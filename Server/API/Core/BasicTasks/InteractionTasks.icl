@@ -73,6 +73,7 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 	# editorId			= "tf-" +++ taskNrToString taskNr
 	# (ovalue,tst)		= readValue initial tst
 	# (oumask,tst)		= readMask initial tst
+	# ovmask			= verifyValue ovalue oumask	
 	# (events,tst)		= getEvents tst
 	= case treeType of
 		SpineTree
@@ -94,10 +95,9 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 			# (anyEvent,tst)	= anyEvents tst
 			# edits				= editEvents events
 			| newTask || (isEmpty events && not anyEvent)
-				// generate TUI definition
-				# ovmask		= verifyValue ovalue oumask			
+				// generate TUI definition		
 				# valid			= isValidValue ovmask
-				# form 			= visualizeAsEditor editorId Nothing oumask ovmask ovalue
+				# form 			= visualizeAsEditor editorId ovalue oumask ovmask
 				# evalActions	= evaluateConditions actions valid ovalue
 				# tst			= setTUIDef (taskPanel taskId context (Just form)) evalActions tst
 				= (TaskBusy,tst)
@@ -107,7 +107,6 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 					// no change for this task
 					# ovmask		= verifyValue ovalue oumask
 					# valid			= isValidValue ovmask
-					//# (_,valid) 	= visualizeAsEditor editorId Nothing oumask ovmask ovalue
 					# evalActions	= evaluateConditions actions valid ovalue
 					# tst			= setTUIUpdates [] evalActions tst
 					= (TaskBusy,tst)
@@ -121,7 +120,7 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 						# tst				= setTaskStore "mask" numask tst
 						# nvmask			= verifyValue nvalue numask
 						# valid				= isValidValue nvmask
-						# updates			= determineEditorUpdates editorId Nothing (map fst edits) numask nvmask ovalue nvalue
+						# updates			= determineEditorUpdates editorId (ovalue, oumask, ovmask) (nvalue, numask, nvmask)
 						# evalActions		= evaluateConditions actions valid ovalue
 						# tst				= setTUIUpdates updates evalActions tst
 						= (TaskBusy, tst)
@@ -443,21 +442,23 @@ where
 	
 	// determine TUI updates for view
 	determineUpdates taskNr n new postValues tst
-		# (Just oEditV,tst)			= getTaskStoreFor taskNr (addStorePrefix n "value") tst
-		# nEditV					= editorFrom new
+		# (Just ovalue,tst)			= getTaskStoreFor taskNr (addStorePrefix n "value") tst
+		# nvalue					= editorFrom new
 		# tst=:{TSt|iworld}			= tst
-		# (umask,iworld)			= defaultMask nEditV iworld
-		# (vmask)					= verifyValue nEditV umask
+		# (numask,iworld)			= defaultMask nvalue iworld
+		# (nvmask)					= verifyValue nvalue numask
+		# (oumask,iworld)			= defaultMask ovalue iworld
+		# (ovmask)					= verifyValue ovalue oumask
 		# (events,tst)				= getEvents {TSt|tst & iworld = iworld}
 		# updpaths					= events2Paths postValues
-		= (determineEditorUpdates (editorId taskNr n) (Just n) updpaths umask vmask oEditV nEditV,tst)
+		= (determineEditorUpdates (editorId taskNr n) (ovalue, oumask, ovmask) (nvalue, numask, nvmask), tst)
 	
 	// generate TUI definition for view
 	visualize taskNr n stateV tst=:{TSt|iworld}
 		# editV					= editorFrom stateV
 		# (umask,iworld)		= defaultMask editV iworld
 		# (vmask)				= verifyValue editV umask
-		= (visualizeAsEditor (editorId taskNr n) (Just n) umask vmask editV,{TSt|tst & iworld = iworld})
+		= (visualizeAsEditor (editorId taskNr n) editV umask vmask ,{TSt|tst & iworld = iworld})
 				
 listener :: !(Listener s a) -> View s | iTask a & iTask s
 listener {listenerFrom} = Listener {Listener`|visualize = visualize}

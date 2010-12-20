@@ -71,19 +71,18 @@ noControls =	{ alignmentControls	= False
 	, enableSourceEdit	:: !Bool
 	}
 
-gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,updateMask,verifyMask}
+gVisualize{|FormattedText|} val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,updateMask,verifyMask}
 	#(cmu,um) = popMask updateMask
 	#(cmv,vm) = popMask verifyMask
 	#(err,hnt) = verifyElementStr cmu cmv
-	# oldV		= value2s (fst (popMask (childMasks cmu))) old
-	# newV		= value2s (fst (popMask (childMasks cmu))) new
+	# valV		= value2s (fst (popMask (childMasks cmu))) val
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUIFormattedText
 									| xtype				= "itasks.tui.FormattedText"
 									, name				= dp2s contentPath
 									, id				= id
-									, value				= replaceMarkers oldV
+									, value				= replaceMarkers valV
 									, fieldLabel		= labelAttr useLabels label
 									, optional			= optional
 									, enableAlignments	= controls.alignmentControls
@@ -97,12 +96,9 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 									}
 								))]
 								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		VEditorUpdate
-			| oldV <> newV	= ([TUIUpdate (TUISetValue id (replaceMarkers newV))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		_					# htmlFrag = case old of
-								VBlank		= Text ""
-								VValue v	= html v
+		_					# htmlFrag = case val of
+								Nothing		= Text ""
+								Just v	= html v
 							= ([HtmlFragment [htmlFrag]]
 								, {VSt|vst & currentPath = stepDataPath currentPath})
 where
@@ -111,9 +107,9 @@ where
 	contentPath	= shiftDataPath currentPath
 	id			= dp2id idPrefix contentPath
 	
-	controls = case old of
-		VBlank								= allControls
-		VValue (FormattedText _ controls) 	= controls
+	controls = case val of
+		Nothing								= allControls
+		Just (FormattedText _ controls) 	= controls
 		
 	replaceMarkers v
 		# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
@@ -197,11 +193,10 @@ getSource (SourceCode src _) = src
 	, optional		:: !Bool
 	}
 	
-gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,updateMask,verifyMask}
+gVisualize{|SourceCode|} val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,updateMask,verifyMask}
 	#(cmu,um) = popMask updateMask
 	#(cmv,vm) = popMask verifyMask
-	# oldV		= value2s (fst (popMask (childMasks cmu))) old
-	# newV		= value2s (fst (popMask (childMasks cmu))) new
+	# valV		= value2s (fst (popMask (childMasks cmu))) val
 	#(err,hnt) = verifyElementStr cmu cmv
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
@@ -209,7 +204,7 @@ gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLab
 									| xtype			= "itasks.tui.SourceCode"
 									, name			= dp2s contentPath
 									, id			= id
-									, value			= oldV
+									, value			= valV
 									, fieldLabel	= labelAttr useLabels label
 									, optional		= optional
 									, staticDisplay = renderAsStatic
@@ -217,12 +212,9 @@ gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLab
 									}
 								))]
 								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		VEditorUpdate
-			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
-								, {VSt|vst & currentPath = stepDataPath currentPath})
-		_					# htmlFrag = case old of
-								VBlank		= Text ""
-								VValue v 	= html v
+		_					# htmlFrag = case val of
+								Nothing		= Text ""
+								Just v 	= html v
 							= ([HtmlFragment [htmlFrag]]
 								, {VSt|vst & currentPath = stepDataPath currentPath})
 where
@@ -230,9 +222,9 @@ where
 	// This way the generic gUpdate will work for this type
 	contentPath	= shiftDataPath currentPath
 	id			= dp2id idPrefix contentPath
-	language = case old of
-		VBlank							= ""
-		VValue (SourceCode _ lang) 		= case lang of
+	language = case val of
+		Nothing							= ""
+		Just (SourceCode _ lang) 		= case lang of
 			JS		= "js"
 			CSS		= "css"
 			PHP		= "php"
@@ -248,11 +240,10 @@ instance toString SourceCode
 where
 	toString (SourceCode src _) = src
 
-gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional, renderAsStatic,updateMask,verifyMask}
+gVisualize{|Color|} val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional, renderAsStatic,updateMask,verifyMask}
 	#(cmu,um) = popMask updateMask
 	#(cmv,vm) = popMask verifyMask
-	# oldV		= value2s (fst (popMask (childMasks cmu))) old
-	# newV		= value2s (fst (popMask (childMasks cmu))) new
+	# valV		= value2s (fst (popMask (childMasks cmu))) val
 	#(err,hnt) = verifyElementStr cmu cmv
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
@@ -260,19 +251,16 @@ gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 									| xtype			= "itasks.tui.ColorChooser"
 									, name			= dp2s contentPath
 									, id			= id
-									, value			= oldV
+									, value			= valV
 									, fieldLabel	= labelAttr useLabels label
 									, optional		= optional
 									, staticDisplay = renderAsStatic
 									}
 								))]
 								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		VEditorUpdate
-			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
-								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		_					# htmlFrag = case old of
-								VBlank		= Text ""
-								VValue v 	= html v
+		_					# htmlFrag = case val of
+								Nothing		= Text ""
+								Just v 	= html v
 							= ([HtmlFragment [htmlFrag]]
 								, {VSt|vst & currentPath = stepDataPath currentPath})
 where

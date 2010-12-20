@@ -25,10 +25,11 @@ derive JSONEncode	GAction, GOnlyAction
 derive JSONDecode	GAction, GOnlyAction
 
 // use string instances of generic function for Tag values 
-gVisualize{|Tag|} old new vst = gVisualize{|*|} (toStr old) (toStr new) vst
+gVisualize{|Tag|} val vst = gVisualize{|*|} (toStr val) vst
 where
-	toStr VBlank			= VBlank
-	toStr (VValue (Tag t))	= VValue (toString t)
+	toStr Nothing			= Nothing
+	toStr (Just (Tag t))	= Just (toString t)
+	
 gUpdate{|Tag|} _ ust=:{USt|mode=UDCreate,newMask} 
 	= (Tag "", {USt | ust & newMask = appendToMask newMask Untouched})
 gUpdate{|Tag|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}

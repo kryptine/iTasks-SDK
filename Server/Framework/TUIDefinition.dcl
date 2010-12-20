@@ -10,7 +10,6 @@ from InteractionTasks	import :: Hotkey(..), :: Key(..)
 
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate
-//derive gEq TUIDef
 
 instance == TUIDef
 
@@ -21,12 +20,23 @@ instance == TUIDef
 	| TUIAddTo			TUIId TUIDef	// Add the additional component as a child of the component with indicated id
 	| TUIRemove			TUIId			// Remove the component with indicated id
 	| TUIReplace		TUIId TUIDef	// Replace a component
-	| TUISetValue		TUIId String	// Call setValue on the component with indicated id
 	| TUISetEnabled		TUIId Bool		// Enable/disable form elements
-	| TUISetError		TUIId String	// Set the error messages on a component
-	| TUISetHint		TUIId String	// Set the hint messages on a component
 	| TUIReplaceMenu	[TUIDef]		// Replace the task's menu bar
 	| TUIReplaceButtons	[TUIDef]		// Replace all task's buttons
+	//NEW COMMANDS:
+	//Leaf updates
+	| TUISetValue_		TUIPath String	// Set the value of a component
+	| TUISetError_		TUIPath String	// Set the error messages on a component
+	| TUISetHint_		TUIPath String	// Set the hint messages on a component
+	//| TUISetEnabled_	TUIPath Bool
+	//Complete replacement
+	| TUIReplace_		TUIPath TUIDef
+	//Structure edits
+	//| TUIAdd_			TUIPath Int TUIDef	//Add child element after index
+	//| TUIRemove_		TUIPath Int			//Remove child element at index
+	//| TUIReorder_		TUIPath Int Int		//Move child element from index to index
+
+:: TUIPath :== String
 
 :: TUIDef
 	= TUILabel
@@ -139,12 +149,7 @@ instance == TUIDef
 	, errorMsg			:: !String
 	, hintMsg			:: !String
 	}
-:: TUIListItemControl =
-	{ name				:: !String
-	, id				:: !TUIId
-	, items				:: ![TUIDef]
-	, index				:: !Int
-	}	
+	
 :: TUITupleContainer =
 	{ id			:: !TUIId
 	, items			:: ![[TUIDef]]
@@ -172,6 +177,13 @@ instance == TUIDef
 	, hintMsg		:: !String
 	, optional		:: !Bool
 	}
+:: TUIListItemControl =
+	{ name				:: !String
+	, id				:: !TUIId
+	, items				:: ![TUIDef]
+	, index				:: !Int
+	}
+	
 :: TUIHtmlContainer =
 	{ id			:: !TUIId
 	, html			:: !String

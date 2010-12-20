@@ -43,10 +43,9 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 			this.showUploadPanel(false);
 		}
 		
-		(function(){
-			this.setError(this.errorMsg);
-			this.setHint(this.hintMsg);
-		}).defer(50,this);
+		
+		this.setError(this.errorMsg);
+		this.setHint(this.hintMsg);
 		
 		this.doLayout();
 	},
@@ -63,21 +62,19 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 	},
 	
 	setError: function(msg){
-		if(this.staticDisplay) return;
+		if(this.staticDisplay)
+			return;
 		
-		(function(){
-			this.uploadPanel.setError(msg);
-			this.downloadPanel.setError(msg);
-		}).defer(30,this);
+		this.uploadPanel.setError(msg);
+		this.downloadPanel.setError(msg);
 	},
 	
 	setHint: function(msg){
-		if(this.staticDisplay) return;
+		if(this.staticDisplay)
+			return;
 		
-		(function(){
-			this.uploadPanel.setHint(msg);
-			this.downloadPanel.setHint(msg);
-		}).defer(70,this);
+		this.uploadPanel.setHint(msg);
+		this.downloadPanel.setHint(msg);
 	},
 	
 	setValue: function(value){
@@ -259,8 +256,7 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 		var tf = this.findParentByType(itasks.ttc.FormContainer);
 		var dp = this.findParentByType('itasks.tui.Document');
 	
-		tf.addUpdate(dp.name,"");
-		tf.sendUpdates(false);
+		dp.fireEvent('tuichange',dp.name,"");
 	},
 	
 	setValue: function(value){

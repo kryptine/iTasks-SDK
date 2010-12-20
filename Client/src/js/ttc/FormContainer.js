@@ -40,9 +40,6 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 					case "TUISetEnabled":
 						this.enableComponent(update[1],update[2]);
 						break;
-					case "TUISetValue":
-						this.setComponentValue(update[1],update[2]);
-						break;
 					case "TUIReplaceMenu":
 						this.menu = update[1];
 						break;
@@ -51,23 +48,93 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 						fbar.removeAll();
 						fbar.add(update[1]);
 						fbar.doLayout();
+						break;						
+					//New instructions:
+					case "TUISetValue_":
+						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
+							cmp.setValue(update[2]);
+						}
 						break;
-					case "TUISetHint":
-						this.setComponentHint(update[1],update[2]);
+					case "TUISetError_":
+						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
+							cmp.setError(update[2]);
+						}
 						break;
-					case "TUISetError":
-						this.setComponentError(update[1],update[2]);
+					case "TUISetHint_":
+						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
+							cmp.setHint(update[2]);
+						}
+						break;
+					case "TUIReplace_":
+						cmp = this.replaceComponentByPath(this.interactionpanel, update[1], update[2]);
 						break;
 				}
 			}
-			//cascade through the structure and update errors and hints
-			//this.updateErrorsNHints(data.updates);
 		} else {
 			//Completely replace form
 			itasks.ttc.FormContainer.superclass.update.apply(this,arguments);
 		}
 	},
+	findComponentByPath: function(start, path) {
+		var steps = path.split("-");
+		var cmp = start;
+		for(var i = 0; i < steps.length; i++) {	
+			
+			if(cmp.isXType('itasks.tui.Constructor')) {
+				cmp = cmp.itemPanel.items.get(parseInt(steps[i]));
+			} else {
+				cmp = cmp.items.get(parseInt(steps[i]));
+			}
+			if(!cmp) {
+				return null;
+			}
+			//Skip list items in the counting
+			if(cmp.isXType('itasks.tui.list.Item')) {
+				cmp = cmp.items.get(0);
+				if(!cmp) {
+					return null;
+				}
+			}
+		}
+		return cmp;
+	},
+	replaceComponentByPath: function(start, path, replacement) {
+		var steps = path.split("-");
+		var target = parseInt(steps.pop());	
+		var cmp = start;
+		//Find parent element
+		for(var i = 0; i < steps.length; i++) {	
+			
+			if(cmp.isXType('itasks.tui.Constructor')) {
+				cmp = cmp.itemPanel.items.get(parseInt(steps[i]));
+			} else {
+				cmp = cmp.items.get(parseInt(steps[i]));
+			}
+			if(!cmp) {
+				return null;
+			}
+			//Skip list items in the counting
+			if(cmp.isXType('itasks.tui.list.Item')) {
+				cmp = cmp.items.get(0);
+				if(!cmp) {
+					return null;
+				}
+			}
+			
+		}
+		//Update component
+		if(cmp.isXType('itasks.tui.Constructor')) {
+			cmp.itemPanel.remove(target);
+			cmp.itemPanel.insert(target, replacement);
+		} else {
+			cmp.remove(target);
+			cmp.insert(target, replacement);	
+		}
 		
+		cmp.doLayout();
+		
+		return cmp.items.get(target);
+	},
 	addComponent :  function (id, cmp){
 		var ct = Ext.getCmp(id);
 		var find = function(cmt,cnt,ind) {
@@ -104,7 +171,6 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 		oct.remove(ct);
 		oct.doLayout();
 	},
-	
 	replaceComponent : function(id, cmp){	
 		var ct = Ext.getCmp(id);
 		if(!ct) return;
@@ -128,51 +194,11 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 	
 		oct.doLayout();	
 	},
-	
 	enableComponent : function(id,enabled){
 		var ct = Ext.getCmp(id);
 		if(ct && ct.setDisabled) {
 			ct.setDisabled(!enabled);
 		}
-	},
-	
-	setComponentValue : function(id,value){
-		var ct = Ext.getCmp(id);
-		
-		if(!ct || !ct.setValue) return;
-		//suspend events to prevent check-event for checkbox
-		ct.suspendEvents();
-		if (ct.xtype == "radio") {
-			if(value == "true") {
-				//first unset current element...
-				var group = ct.findParentByType("radiogroup");
-				var cur = group.getValue();
-				if(cur.setValue)
-					cur.setValue(false);
-				//...then set new one
-				ct.setValue(true);
-			}			
-		}else {
-			ct.setValue(value);
-		}
-		ct.resumeEvents();					
-	},
-	setComponentHint: function (id, value) {
-		var ct = Ext.getCmp(id);
-		
-		if(!ct || !ct.setHint) {
-			console.log("can't set hint on item " + id);
-			return;
-		} else
-			ct.setHint(value);
-	},
-	setComponentError: function (id, value) {
-		var ct = Ext.getCmp(id);
-		
-		if(!ct || !ct.setError)
-			return;
-		else
-			ct.setError(value);
 	}
 });
 

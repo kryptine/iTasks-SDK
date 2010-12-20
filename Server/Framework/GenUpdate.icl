@@ -18,12 +18,12 @@ derive bimap	(,), Maybe
 
 defaultValue :: !*IWorld -> (!a,!*IWorld) | gUpdate{|*|} a
 defaultValue iworld  
-	# (a,ust=:{USt|iworld}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = initialDataPath, currentPath = initialDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
+	# (a,ust=:{USt|iworld}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
 	= (a,iworld)
 
 defaultMask :: a !*IWorld -> (!UpdateMask,!*IWorld) | gUpdate{|*|} a	
 defaultMask a iworld
-	# (_,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = initialDataPath, currentPath = shiftDataPath initialDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
+	# (_,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = emptyDataPath, currentPath = shiftDataPath emptyDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
 	= (hd newMask,iworld)
 
 updateValue	:: DataPath String a !*IWorld -> (a,!*IWorld) | gUpdate{|*|} a 	
@@ -33,7 +33,7 @@ updateValue path update a iworld
 
 updateValueAndMask :: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
-	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath initialDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
+	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath emptyDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
 	= (a,hd newMask,iworld)
 
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
@@ -546,8 +546,11 @@ s2dp str
 isdps :: String -> Bool
 isdps path = and [c == '-' || isDigit c || c == '_' \\ c <-: path]
 
-initialDataPath :: DataPath
-initialDataPath = DataPath [] Nothing
+startDataPath :: DataPath
+startDataPath = DataPath [0] Nothing
+
+emptyDataPath :: DataPath
+emptyDataPath = DataPath [] Nothing
 
 stepDataPath :: DataPath -> DataPath
 stepDataPath dp=:(DataPath [] _)	= dp
@@ -555,6 +558,9 @@ stepDataPath (DataPath [x:xs] sidx)	= DataPath [inc x:xs] sidx
 
 shiftDataPath :: DataPath -> DataPath
 shiftDataPath (DataPath path sidx) = DataPath [0:path] sidx
+
+childDataPath :: DataPath Int -> DataPath
+childDataPath (DataPath path sidx) i = DataPath [i:path] sidx 
 
 dataPathLevel :: DataPath -> Int
 dataPathLevel (DataPath l _) = length l

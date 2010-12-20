@@ -55,21 +55,20 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, optional, useLabels, updateMask, verifyMask}
+gVisualize {|GoogleMap|} val vst=:{vizType, label, idPrefix, currentPath, optional, useLabels, updateMask, verifyMask}
 	# (cmu,um) = popMask updateMask
 	# (cmv,vm) = popMask verifyMask
 	= case vizType of
-		VEditorDefinition = ([TUIFragment (TUICustom   ((mapPanel old label (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		VEditorUpdate	  = ([TUIUpdate   (TUISetValue (dp2id idPrefix currentPath) (toString (mapPanel new label (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		_				  = (staticMapPanel old, {VSt | vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition = ([TUIFragment (TUICustom   ((mapPanel val label (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+		_				  = (staticMapPanel val, {VSt | vst & currentPath = stepDataPath currentPath})
 where
-	mapPanel VBlank fl hl 		  idp cp ed = toJSON (tuidef mkMap fl hl idp cp ed)
-	mapPanel (VValue map) fl hl idp cp ed = toJSON (tuidef map   fl hl idp cp ed)
+	mapPanel Nothing fl hl 		  idp cp ed	= toJSON (tuidef mkMap fl hl idp cp ed)
+	mapPanel (Just map) fl hl idp cp ed		= toJSON (tuidef map   fl hl idp cp ed)
 
-	staticMapPanel VBlank
+	staticMapPanel Nothing
 		# (GoogleStaticMap w h u) = convertToStaticMap mkMap
 		= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
-	staticMapPanel (VValue map)
+	staticMapPanel (Just map)
 		# (GoogleStaticMap w h u) = convertToStaticMap map
 		= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
 
@@ -98,8 +97,8 @@ where
 			}
 		}
 
-gVisualize {|GoogleStaticMap|} VBlank _ vst = ([TextFragment "-"],vst)
-gVisualize {|GoogleStaticMap|} (VValue (GoogleStaticMap w h u)) _ vst=:{vizType,idPrefix,currentPath}
+gVisualize {|GoogleStaticMap|} Nothing vst = ([TextFragment "-"],vst)
+gVisualize {|GoogleStaticMap|} (Just (GoogleStaticMap w h u)) vst=:{vizType,idPrefix,currentPath}
 	= case vizType of
 		VHtmlDisplay	= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]],{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],{VSt | vst & currentPath = stepDataPath currentPath})

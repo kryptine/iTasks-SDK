@@ -54,9 +54,11 @@ appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
 accIWorldUSt :: !.(*IWorld -> *(.a,*IWorld))!*USt -> (.a,!*USt)
 
 //Utility functions for dealing with DataPath values
-initialDataPath			:: DataPath
+startDataPath			:: DataPath			//Path initialized at position "0"
+emptyDataPath			:: DataPath			//Path initialized empty
 stepDataPath			:: DataPath			-> DataPath
 shiftDataPath			:: DataPath			-> DataPath
+childDataPath			:: DataPath Int		-> DataPath
 dataPathLevel			:: DataPath			-> Int
 dataPathHasSubEditorIdx	:: DataPath Int		-> Bool
 dataPathSetSubEditorIdx	:: DataPath Int		-> DataPath

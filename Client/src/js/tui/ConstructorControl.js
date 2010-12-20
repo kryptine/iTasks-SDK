@@ -51,11 +51,11 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 				Ext.form.ComboBox.superclass.setValue.call(this,value);
 				if(value == "" ) this.setRawValue("Select...");
 			}
-		};		
-		
-		var panelItems = this.items.slice(0); //copy the items into another array
+		};
+		//Copy the items into another array
+		var panelItems = this.items.slice(0);
 		delete this.items;
-		
+	
 		this.itemPanel = new Ext.Panel(
 		{ layout: 'form'
 		, autoHeight: true
@@ -65,6 +65,7 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		, hidden: panelItems.length == 0	//Initially hide the itemPanel if there are no items 
 		});
 				
+		/*
 		this.itemPanel.on('add',function(){ this.showOrHide(); },this.itemPanel);
 		this.itemPanel.on('remove', function(){ this.showOrHide();  },this.itemPanel);
 		
@@ -75,6 +76,7 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 				this.hide();
 			}
 		};		
+		*/
 		
 		this.items = [this.consField, this.itemPanel];	
 			
