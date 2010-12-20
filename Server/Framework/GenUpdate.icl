@@ -312,9 +312,9 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask
 				# (nv,ust=:{newMask=childMask})
 							= fx (abort "LIST create with undef") {USt | ust & mode=UDCreate, oldMask = [], newMask = []}
 				# lx		= insertAt (index+1) nv lx
-				# listMask	= insertAt (index+1) (hd childMask) listMask 
+				# listMask	= insertAt (index+1) (hd childMask) listMask
 				# dirty		= [index+1 .. length lx - 1]//Mark evertything above the inserted item dirty
-				= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (makeMask listMask dirty), oldMask = om})
+				= (lx, {USt | ust & mode = UDSearch, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (makeMask listMask dirty), oldMask = om})
 			_ 	
 				= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (makeMask listMask []), oldMask = om})
 	| otherwise 

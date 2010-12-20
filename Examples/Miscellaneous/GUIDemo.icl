@@ -21,8 +21,10 @@ guiDemoExample
 	, age			:: Maybe Int
 	, address		:: Address
 	, grades		:: [Int]
+	, pet			:: String
 	, note			:: Maybe Note
 	, tree			:: Tree Int String
+	, luckyNo		:: Int
 	}
 
 :: Tree a b = Leaf b | Node (Tree a b) a (Tree a b)
@@ -38,8 +40,10 @@ person	= {Person | name	= "John Doe"
 				  , age		= Just 23
 				  , address	= address
 				  , grades	= []
+				  , pet		= "Cat"
 				  , note	= Nothing
 				  , tree	= Leaf "Tree"
+				  , luckyNo	= 42
 				  }
 guiDemo :: Task Person
 guiDemo
