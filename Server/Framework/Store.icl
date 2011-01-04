@@ -1,12 +1,15 @@
 implementation module Store
 
 import StdString,StdMaybe, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
-import Directory
+import Directory, Time
 
 import Map, Text
 import JSON
 
 import dynamic_string //Static dynamic serialization
+
+derive JSONDecode Timestamp
+derive bimap (,), Maybe
 
 :: *Store =
 	{ cache		:: *Map String (Bool,StoreItem)	//Cache for storage items, Bool is used to indicate a value in the cache is 'dirty'
@@ -16,6 +19,7 @@ import dynamic_string //Static dynamic serialization
 :: StoreItem =
 	{ format	:: StoreFormat
 	, content	:: String
+	, timestamp	:: Maybe Timestamp // the timestamp is determined when the item is load first or written to disc
 	}
 
 :: StoreFormat = SFPlain | SFDynamic | SFBlob
@@ -31,11 +35,11 @@ storeValue key value store = storeValueAs SFPlain key value store
 
 storeValueAsBlob :: !String !String !*Store -> *Store
 storeValueAsBlob key value store=:{cache}
-	= {Store|store & cache = put key (True,{StoreItem|format=SFBlob,content=value}) cache}
+	= {Store|store & cache = put key (True,{StoreItem|format=SFBlob,content=value,timestamp=Nothing}) cache}
 
 storeValueAs :: !StoreFormat !String !a !*Store	-> *Store | JSONEncode{|*|}, TC a
 storeValueAs format key value store=:{cache}
-	= {Store|store & cache = put key (True,{StoreItem|format=format,content=content}) cache}
+	= {Store|store & cache = put key (True,{StoreItem|format=format,content=content,timestamp=Nothing}) cache}
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
@@ -76,10 +80,26 @@ where
 	unpackValue {StoreItem|content} = Just content
 
 loadValue :: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | JSONDecode{|*|}, TC a
-loadValue key store=:{cache,location} world
+loadValue key store world
+	# (mbValueAndTimestamp, store, world) = loadValueAndTimestamp key store world
+	= case mbValueAndTimestamp of
+		Nothing		= (Nothing, store, world)
+		Just (v,_)	= (Just v, store, world)
+	 
+loadValueAndTimestamp :: !String !*Store !*World -> (!Maybe (a,Timestamp), !*Store, !*World) | JSONDecode{|*|}, TC a
+loadValueAndTimestamp key store=:{cache,location} world
 	#(mbItem,cache) = getU key cache
 	= case mbItem of
-		Just (dirty,item )= (unpackValue item, {store & cache = cache}, world)
+		Just (dirty,item)
+			# (item,cache,world) = case item.timestamp of
+				Nothing // no timestamp determined yet
+					# (t,world)	= time world
+					# item		= {item & timestamp = Just t}
+					# cache		= put key (dirty, item) cache
+					= (item, cache, world)
+				_ // timestamp already determined
+					= (item, cache, world)
+			= (unpackValue item, {store & cache = cache}, world)
 		Nothing
 			# (mbItem, world) = loadFromDisk key location world
 			= case mbItem of
@@ -89,42 +109,47 @@ loadValue key store=:{cache,location} world
 				Nothing
 					= (Nothing, {store & cache = cache}, world)
 where
-	unpackValue {StoreItem|format=SFPlain,content} = fromJSON (fromString content)
+	unpackValue {StoreItem|format=SFPlain,content,timestamp}
+		= case fromJSON (fromString content) of
+			Nothing		= Nothing
+			Just v		= Just (v, fromJust timestamp)
 	unpackValue {StoreItem|format=SFBlob,content}  = Nothing //<- use loadValueAsBlob
-	unpackValue {StoreItem|format=SFDynamic,content}
+	unpackValue {StoreItem|format=SFDynamic,content,timestamp}
 		= case string_to_dynamic {s` \\ s` <-: content} of
-			(value :: a^)	= Just value
+			(value :: a^)	= Just (value, fromJust timestamp)
 			_				= Nothing
-	 
-	
+				
 loadFromDisk :: String String !*World -> (Maybe StoreItem, !*World)	
 loadFromDisk key location world			
 		//Try plain format first
 		# filename			= location +++ "/" +++ key +++ ".txt"
 		# (ok,file,world)	= fopen filename FReadData world
 		| ok
-			# (content,file)= freadfile file
-			# (ok,world)	= fclose file world
-			= (Just {StoreItem|format = SFPlain, content = content}, world)
+			# (ok,time,file)	= freadi file
+			# (content,file)	= freadfile file
+			# (ok,world)		= fclose file world
+			= (Just {StoreItem|format = SFPlain, content = content, timestamp = Just (Timestamp time)}, world)
 		| otherwise
 			# filename			= location +++ "/" +++ key +++ ".bin"
 			# (ok,file,world)	= fopen filename FReadData world
 			| ok
-				#(content,file)	= freadfile file
-				#(ok,world)		= fclose file world
-				=(Just {StoreItem|format = SFDynamic, content = content}, world)
+				# (ok,time,file)	= freadi file
+				# (content,file)	= freadfile file
+				#( ok,world)		= fclose file world
+				=(Just {StoreItem|format = SFDynamic, content = content, timestamp = Just (Timestamp time)}, world)
 			| otherwise
 				# filename 			= location +++ "/" +++ key +++ ".blb"
 				# (ok,file,world)	= fopen filename FReadData world
 				| ok
-					#(content,file)	= freadfile file
-					#(ok,world)		= fclose file world
-					=(Just {StoreItem|format = SFBlob, content = content}, world)				
+					# (ok,time,file)	= freadi file
+					# (content,file)	= freadfile file
+					# (ok,world)		= fclose file world
+					=(Just {StoreItem|format = SFBlob, content = content, timestamp = Just (Timestamp time)}, world)				
 				| otherwise
 					= (Nothing, world)
 where
 	freadfile file = rec file ""
-	  where 
+	where 
 	  		rec :: *File String -> (String, *File)
 	        rec file acc 
 	        # (string, file) = freads file 102400
@@ -226,15 +251,37 @@ where
 		# (is, world) = flush is world
 		= ([(key,(False,item)):is], world)
 	flush [(key,(True,item)):is] world
+		// determine timestamp if done yet
+		# (item, world) = case item.timestamp of
+			Nothing
+				# (t, world) = time world
+				= ({item & timestamp = Just t}, world)
+			_ = (item, world)
 		# world = writeToDisk key item location world
 		# (is, world) = flush is world
 		= ([(key,(False,item)):is], world)
 
-	writeToDisk key {StoreItem|format,content} location world
+	writeToDisk key {StoreItem|format,content,timestamp} location world
 		# filename 			= location +++ "/" +++ key +++ (case format of SFPlain = ".txt" ; SFDynamic = ".bin" ; SFBlob = ".blb")
 		# (ok,file,world)	= fopen filename FWriteData world
 		| not ok			= abort ("Failed to write value to store: " +++ filename)
+		# file				= fwritei ((\(Just (Timestamp t)) -> t) timestamp) file
 		# file				= fwrites content file
 		# (ok,world)		= fclose file world
 		= world
 
+isValueChanged :: !String !Timestamp !*Store !*World -> (!Bool, !*Store, !*World)
+isValueChanged key t store=:{location,cache} world
+	# (mbItem,cache) = getU key cache
+	# store = {store & cache = cache}
+	# (mbTimestamp, store, world) = case mbItem of
+		Just (_,{timestamp}) = (timestamp, store, world)
+		Nothing
+			# (mbItem, world) = loadFromDisk key location world
+			= case mbItem of
+				Nothing				= (Nothing, store, world)
+				Just {timestamp}	= (timestamp, store, world)
+	= case mbTimestamp of
+		Nothing		= (True, store, world)
+		timestamp	= (t < (fromJust timestamp), store, world)
+	 

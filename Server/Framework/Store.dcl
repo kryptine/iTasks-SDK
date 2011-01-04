@@ -11,6 +11,7 @@ definition module Store
 * functions) should they be used.
 */
 import JSON
+from Time import :: Timestamp
 
 // Abstract store
 :: *Store
@@ -32,40 +33,50 @@ storeValue		:: !String !a !*Store	-> *Store | JSONEncode{|*|}, TC a
 /**
 * Store a value in a specific format
 */
-storeValueAs	:: 	!StoreFormat !String !a !*Store	-> *Store	| JSONEncode{|*|}, TC a
+storeValueAs			:: 	!StoreFormat !String !a !*Store	-> *Store	| JSONEncode{|*|}, TC a
 
 /**
 * Store raw value
 */
-storeValueAsBlob :: !String !String !*Store -> *Store
+storeValueAsBlob 		:: !String !String !*Store -> *Store
 
 /**
 * Load a value from the store
 */
-loadValue		:: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | JSONDecode{|*|}, TC a
+loadValue				:: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | JSONDecode{|*|}, TC a
+
+/**
+* Load a value from the store, additionally a timestamp is given
+*/
+loadValueAndTimestamp	:: !String !*Store !*World -> (!Maybe (a,Timestamp), !*Store, !*World) | JSONDecode{|*|}, TC a
 
 /**
 * Load raw data from the store
 */
-loadValueAsBlob :: !String !*Store !*World -> (!Maybe String, !*Store, !*World)
+loadValueAsBlob 		:: !String !*Store !*World -> (!Maybe String, !*Store, !*World)
 
 /**
 * Loads a dynamic from the store without unwrapping it
 */
-loadDynamicValue :: !String !*Store !*World -> (!Maybe Dynamic, !*Store, !*World)
+loadDynamicValue 		:: !String !*Store !*World -> (!Maybe Dynamic, !*Store, !*World)
 
 /**
 * Deletes all values that start with the prefix from the store
 */
-deleteValues	:: !String !*Store !*World -> (!*Store, !*World)
+deleteValues			:: !String !*Store !*World -> (!*Store, !*World)
 
 /**
 * Copies all values in the store that start with the first prefix to
 * a new name where the first prefix is replaced by the second.
 */
-copyValues		:: !String !String !*Store !*World -> (!*Store, !*World)
+copyValues				:: !String !String !*Store !*World -> (!*Store, !*World)
 
 /**
 * Writes all values stored in the cache to disk
 */
-flushCache		:: !*Store !*World -> (!*Store,!*World)
+flushCache				:: !*Store !*World -> (!*Store,!*World)
+
+/**
+* Determines if the store's value has been changed since given timestamp
+*/
+isValueChanged			:: !String !Timestamp !*Store !*World -> (!Bool, !*Store, !*World)
