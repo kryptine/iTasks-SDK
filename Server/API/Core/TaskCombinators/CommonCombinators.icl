@@ -215,7 +215,7 @@ repeatTask task pred a =
 						(False,msg) -> showStickyMessage ("Feedback",msg) r -||- (taska <| pred)					
 
 dynamicGroup :: ![Task GAction] -> Task Void
-dynamicGroup initTasks = dynamicGroupA initTasks [] undef
+dynamicGroup initTasks = dynamicGroupA initTasks [] (\_ -> GStop)
 
 dynamicGroupA :: ![Task GAction] ![GroupAction Void] !(GroupActionGenFunc GAction) -> Task Void
 dynamicGroupA initTasks gActions genFunc = group ("dynamicGroup", "A simple group with dynamically added tasks") procfun id Void initTasks gActions genFunc
