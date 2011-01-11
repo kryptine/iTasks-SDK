@@ -40,6 +40,7 @@ instance toString 	Clock
 instance toString 	Timestamp
 instance == 		Timestamp
 instance < 			Timestamp
+instance toInt		Timestamp
 
 /**
 * Get the number of clock ticks since the process start

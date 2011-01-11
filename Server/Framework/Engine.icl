@@ -86,7 +86,7 @@ workflow path description task =
 	{ Workflow
 	| path	= path
 	, roles	= []
-	, thread = createThread (task <<@ Subject name)
+	, thread = createThread (task <<@ Title name)
 	, description = description
 	}
 where
@@ -97,7 +97,7 @@ restrictedWorkflow path description roles task =
 	{ Workflow
 	| path	= path
 	, roles	= roles
-	, thread = createThread (task <<@ Subject name)
+	, thread = createThread (task <<@ Title name)
 	, description = description
 	}
 where

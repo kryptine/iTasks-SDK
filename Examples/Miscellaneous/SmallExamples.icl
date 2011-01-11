@@ -9,31 +9,31 @@ smallExamples = [workflow "Examples/Miscellaneous/Calculate sum" "Calculate the 
 
 calculateSum :: Task Int
 calculateSum
-  =   enterInformation "Number 1" "Enter a number"
+  =   enterInformation ("Number 1","Enter a number")
   >>= \num1 ->
-      enterInformation "Number 2" "Enter another number"
+      enterInformation ("Number 2","Enter another number")
   >>= \num2 ->
-      showMessageAbout "Sum" "The sum of those numbers is:" (num1 + num2)
+      showMessageAbout ("Sum","The sum of those numbers is:") (num1 + num2)
         
 calculateSumSteps :: Task Int
 calculateSumSteps = step1First
 where
-	step1First			= enterInformationA "Number 1" "Enter a number" [(ActionNext, ifvalid)]
+	step1First			= enterInformationA ("Number 1","Enter a number") id [(ActionNext, ifvalid)]
 						  >>= \(_,num1) -> step2First num1
-	step1Back num1		= updateInformationA "Number 1" "Enter a number" [(ActionNext, ifvalid)] num1
+	step1Back num1		= updateInformationA ("Number 1","Enter a number") idBimap [(ActionNext, ifvalid)] num1
 						  >>= \(_,num1`) -> step2First num1`
 	
-	step2First num1		= enterInformationA "Number 2" "Enter another number" [(ActionPrevious, always), (ActionNext, ifvalid)]
+	step2First num1		= enterInformationA ("Number 2","Enter another number") id [(ActionPrevious, always), (ActionNext, ifvalid)]
 						  >>= \(action,num2) -> case fst action of
 						  							ActionPrevious	= step1Back num1
 						  							ActionNext		= step3 num1 num2
-	step2Back num1 num2	= updateInformationA "Number 2" "Enter another number" [(ActionPrevious, always), (ActionNext, ifvalid)] num2
+	step2Back num1 num2	= updateInformationA ("Number 2","Enter another number") idBimap [(ActionPrevious, always), (ActionNext, ifvalid)] num2
 						  >>= \(action,num2`) -> case fst action of
 						  							ActionPrevious	= step1Back num1
 						  							ActionNext		= step3 num1 num2`
 	
 	step3 num1 num2		= let sum = (num1 + num2) in
-							showMessageAboutA "Sum" "The sum of those numbers is:" [(ActionPrevious, always), (ActionOk, always)] sum
+							showMessageAboutA ("Sum","The sum of those numbers is:") id [(ActionPrevious, always), (ActionOk, always)] sum
 							>>= \(action,_) -> case fst action of
 													ActionPrevious	= step2Back num1 num2
 													ActionOk		= return sum

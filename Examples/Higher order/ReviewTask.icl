@@ -40,19 +40,19 @@ derive bimap (,), Maybe
 
 reviewTaskExample :: [Workflow]
 reviewTaskExample
-= [workflow "Examples/Higher order/Review task" "Demo of an iterative process" (Subject "Review the results of a task" @>> reviewtask) ]
+= [workflow "Examples/Higher order/Review task" "Demo of an iterative process" (Title "Review the results of a task" @>> reviewtask) ]
 
 reviewtask :: Task (QForm,Review)
 reviewtask = getDefaultValue >>= \def -> taskToReview AnyUser (def, mytask)
 
 mytask :: a -> (Task a) | iTask a
-mytask v =	updateInformation "Form" "Fill in Form:" v
+mytask v =	updateInformation ("Form","Fill in Form:") v
 
 taskToReview :: User (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
 	=					task v`               
-		>>= \v ->		reviewer @: (Subject "Review" @>> review v) 
-		>>= \r ->		showMessageAbout "Review" [Text ("Reviewer " <+++ reviewer <+++ " says ")] r 
+		>>= \v ->		reviewer @: (Title "Review" @>> review v) 
+		>>= \r ->		showMessageAbout ("Review",[Text ("Reviewer " <+++ reviewer <+++ " says ")]) r 
 		>>|				case r of
 							(NeedsRework _) -> taskToReview reviewer (v,task) 	
 							else            -> return (v,r)
@@ -61,9 +61,9 @@ review :: a -> Task Review | iTask a
 review v
 	=	getDefaultValue
 	>>=	\def ->
-		enterChoiceAbout "Review" "What is your verdict?" v
-			[ updateInformation "Comments" "Please add your comments" (NeedsRework def) <<@ Subject "Rework"
-			, return Approved <<@ Subject "Approved"
-			, return Rejected <<@ Subject "Reject"
+		enterChoiceAbout ("Review","What is your verdict?") v
+			[ updateInformation ("Comments","Please add your comments") (NeedsRework def) <<@ Title "Rework"
+			, return Approved <<@ Title "Approved"
+			, return Rejected <<@ Title "Reject"
 			]
 	>>= \task -> task

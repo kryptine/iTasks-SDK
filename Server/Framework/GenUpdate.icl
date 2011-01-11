@@ -14,7 +14,7 @@ derive JSONDecode UpdateMask
 
 derive bimap	(,), Maybe
 
-:: DataPath = DataPath [Int] (Maybe SubEditorIndex)
+:: DataPath = DataPath [Int]
 
 defaultValue :: !*IWorld -> (!a,!*IWorld) | gUpdate{|*|} a
 defaultValue iworld  
@@ -512,7 +512,7 @@ gUpdate{|User|} s ust = (s, ust)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust
-	=	(	{ taskProperties	= {ManagerProperties | initManagerProperties & subject = "return"}
+	=	(	{ taskProperties	= {ManagerProperties | initManagerProperties & taskDescription = toDescr "return"}
 			, groupedProperties	= initGroupedProperties
 			, mbTaskNr			= Nothing
 			, mbMenuGenFunc		= Nothing
@@ -525,59 +525,42 @@ derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails
 
 //Utility functions
 dp2s :: DataPath -> String
-dp2s (DataPath path idx) = (join "-" (map toString (reverse path))) +++ subEditorPostfix
-where
-	subEditorPostfix = case idx of
-		Nothing		= ""
-		Just idx	= "_" +++ (toString idx)
+dp2s (DataPath path) = join "-" (map toString (reverse path))
 
 dp2id :: String DataPath -> String
 dp2id prefix path = prefix +++ "-" +++ dp2s path 
 
 s2dp :: String -> DataPath
-s2dp str
-	# length				= textSize str
-	# postfixIdx			= lastIndexOf "_" str
-	# (str,sidx)			= if (postfixIdx == -1)
-								(str,Nothing)
-								(subString 0 postfixIdx str,Just (toInt (subString (postfixIdx + 1) (length - postfixIdx - 1) str)))
-	= DataPath (reverse (map toInt (split "-" str))) sidx
+s2dp str = DataPath (reverse (map toInt (split "-" str)))
 
 isdps :: String -> Bool
 isdps path = and [c == '-' || isDigit c || c == '_' \\ c <-: path]
 
 startDataPath :: DataPath
-startDataPath = DataPath [0] Nothing
+startDataPath = DataPath [0]
 
 emptyDataPath :: DataPath
-emptyDataPath = DataPath [] Nothing
+emptyDataPath = DataPath []
 
 stepDataPath :: DataPath -> DataPath
-stepDataPath dp=:(DataPath [] _)	= dp
-stepDataPath (DataPath [x:xs] sidx)	= DataPath [inc x:xs] sidx
+stepDataPath dp=:(DataPath [])	= dp
+stepDataPath (DataPath [x:xs])	= DataPath [inc x:xs]
 
 shiftDataPath :: DataPath -> DataPath
-shiftDataPath (DataPath path sidx) = DataPath [0:path] sidx
+shiftDataPath (DataPath path) = DataPath [0:path]
 
 childDataPath :: DataPath Int -> DataPath
-childDataPath (DataPath path sidx) i = DataPath [i:path] sidx 
+childDataPath (DataPath path) i = DataPath [i:path]
 
 dataPathLevel :: DataPath -> Int
-dataPathLevel (DataPath l _) = length l
-
-dataPathHasSubEditorIdx	:: DataPath Int -> Bool
-dataPathHasSubEditorIdx (DataPath _ (Just idx0)) idx1	= idx0 == idx1
-dataPathHasSubEditorIdx _ _								= False
-
-dataPathSetSubEditorIdx	:: DataPath Int -> DataPath
-dataPathSetSubEditorIdx	(DataPath dp _) idx = DataPath dp (Just idx)
+dataPathLevel (DataPath l) = length l
 
 instance == DataPath
 where
-	(==) (DataPath a _) (DataPath b _) = a == b
+	(==) (DataPath a) (DataPath b) = a == b
 
 dataPathList :: DataPath -> [Int]
-dataPathList (DataPath list _) = list
+dataPathList (DataPath list) = list
 
 // detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
 // e.g. [1,0] <== [0] 

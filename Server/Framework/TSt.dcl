@@ -235,114 +235,106 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 * The given task function will add a single basic step to the current
 * sequence.
 *
-* @param A subject of the task
-* @param A description of the task (html)
+* @param A description of the task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
 */
-mkInteractiveTask	:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkInteractiveTask	:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
 * The given task function will add a single instantly computed step to
 * the current sequence.
 *
-* @param A subject of the task
-* @param A description of the task (html)
+* @param A description of the task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
 */
-mkInstantTask		:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkInstantTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
 * The given task function will add a monitoring task to the 
 * the current sequence.
 *
-* @param A subject of the task
-* @param A description of the task (html)
+* @param A description of the task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
 */
-mkMonitorTask		:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkMonitorTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
 * Wrap a function of the proper type to create a function that 
 * displays an (offline) instruction to the user. The user can only
 * dismiss the instruction. No result is returned.
 *
-* @param A subject of the task
-* @param A description of the task (html)
+* @param A description of the task
 * @param The function on the TSt that is the task
 *
 * @return Void
 */
-mkInstructionTask	:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkInstructionTask	:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 
 /**
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
 * and the resulting sequence will be combined in a single sequence node.
 *
-* @param A subject of the task
-* @param A description of the task (html)
+* @param A description of the task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed sequence task
 */
-mkSequenceTask		:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkSequenceTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration for
 * combining a set of parallel subtasks. Each of the subtasks is wrapped in a 
 * separate process. 
 *
-* @param A subject of the task
-* @param A description of the task (html)
+* @param A description of the task
 * @param Some info about the behavior of the parallel task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed parallel task
 */
-mkParallelTask		:: !String !String !TaskParallelType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkParallelTask		:: !d !TaskParallelType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that groups a number of 
 * tasks together. None of the subtasks is created in a separate process and no
 * overview window is shown. It is not considdered good practice to assign any of
 * the subtasks to other users. For that purpose the parallel-task has been introduced
 *
-* @param A subject of the task
-* @param A description of the task (html)
+* @param A description of the task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed grouped task
 */
-mkGroupedTask		:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkGroupedTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that will make a
 * main task. This is a sequence node that keeps track of additional information
 * such as task status, event times and user/delegate information.
 *
-* @param A subject of the task
-* @param A description of the task (html)
+* @param A description of the task
 * @param The task that will run inside the main task
 *
 * @return The newly constructed sequence task
 */
-mkMainTask			:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkMainTask			:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
 * Creates an rpc task from an rpc call definition.
 * A parse function is used to parse the result of the rpc call
 *
-* @param A name used as the task label
+* @param A description of the task
 * @param The initial RPC info record
 * @param The parse function
 *
 * @return The constructed RPC task
 */
-mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
+mkRpcTask :: !d !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a & descr d
 
 //// TASK APPLICATION
 
@@ -390,28 +382,23 @@ setJSONValue		:: !JSONNode !*TSt												-> *TSt
 * @return The modified task state
 */
 getEvents			:: !*TSt						-> ([(!String,!JSONNode)],!*TSt)
-/**
-* Test if there are events for any task during this run.
-*
-* @param The task state
-*
-* @return The test results
-* @return The modified task state
-*/
-anyEvents			:: !*TSt						-> (!Bool,!*TSt)
 
 /**
 * Writes a 'task scoped' value to the store
 * These values are copied and garbage collected along with a task
 */
-setTaskStore		:: !String !a !*TSt				-> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-setTaskStoreFor 	:: !TaskNr !String !a !*TSt		-> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+setTaskStore			:: !String !a !*TSt				-> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+setTaskStoreFor 		:: !TaskNr !String !a !*TSt		-> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 /**
 * Reads a 'task scoped' value from the store
 */
-getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-getTaskStoreFor		:: !TaskNr !String !*TSt		-> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-
+getTaskStore			:: !String !*TSt				-> (Maybe a, !*TSt)			| JSONEncode{|*|}, JSONDecode{|*|}, TC a
+getTaskStoreFor			:: !TaskNr !String !*TSt		-> (Maybe a, !*TSt) 		| JSONEncode{|*|}, JSONDecode{|*|}, TC a
+/**
+* Gets timestamp of 'task scoped' values
+*/
+getTaskStoreTimestamp		:: !String !*TSt			-> (Maybe Timestamp, !*TSt)
+getTaskStoreTimestampFor	:: !TaskNr !String !*TSt	-> (Maybe Timestamp, !*TSt)
 /**
 * Store and load the result of a workflow instance
 */

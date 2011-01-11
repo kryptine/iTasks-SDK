@@ -6,11 +6,12 @@ import Html
 import Text, Base64, Util
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
+from InteractionTasks import class html(..), instance html String
 
 derive gVisualize		EmailAddress, Session
 derive gUpdate			EmailAddress, Session
 derive gVerify			EmailAddress, Session
-derive gMerge			EmailAddress, Currency, FormButton, ButtonState, User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime
+derive gMerge			EmailAddress, Currency, FormButton, ButtonState, User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime, Timestamp
 
 derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note
 derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note
@@ -22,8 +23,7 @@ derive gLexOrd			Currency
 initManagerProperties :: ManagerProperties
 initManagerProperties = 
 	{ worker = AnyUser
-	, subject = ""
-	, description = ""
+	, taskDescription = toDescr ""
 	, context = Nothing
 	, priority = NormalPriority
 	, deadline = Nothing
@@ -323,14 +323,26 @@ JSONEncode{|(->)|} _ _ f						= [JSONString (base64Encode (copy_to_string f))]
 JSONDecode{|(->)|} _ _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
 JSONDecode{|(->)|} _ _ c						= (Nothing,c)
 
-taskSubject :: !(Task a) -> String
-taskSubject task = task.taskProperties.subject
+taskTitle :: !(Task a) -> String
+taskTitle task = task.taskProperties.taskDescription.TaskDescription.title
 
-taskDescription	:: !(Task a) -> String
-taskDescription task = task.taskProperties.description
+taskDescription	:: !(Task a) -> HtmlTag
+taskDescription task = task.taskProperties.taskDescription.description
 
 taskUser :: !(Task a) -> User
 taskUser task = task.taskProperties.worker
 
 taskProperties :: !(Task a) -> ManagerProperties
 taskProperties task = task.taskProperties
+
+instance descr String
+where
+	toDescr str = {title = str, description = html str}
+	
+instance descr (String, descr) | html descr
+where
+	toDescr (title,descr) = {title = title, description = html descr}
+	
+instance descr TaskDescription
+where
+	toDescr descr = descr

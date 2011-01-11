@@ -5,18 +5,19 @@ import TSt, Types, Void
 import Time
 
 import CoreCombinators, Util
+from InteractionTasks import instance html String
 
 getCurrentTime :: Task Time
-getCurrentTime = mkInstantTask "Get current time" "Determine the current time" (mkTaskFunction (accWorldTSt currentTime))
+getCurrentTime = mkInstantTask ("Get current time", "Determine the current time") (mkTaskFunction (accWorldTSt currentTime))
 	
 getCurrentDate :: Task Date
-getCurrentDate = mkInstantTask "Get current date" "Determine the current date" (mkTaskFunction (accWorldTSt currentDate))
+getCurrentDate = mkInstantTask ("Get current date", "Determine the current date") (mkTaskFunction (accWorldTSt currentDate))
 
 getCurrentDateTime :: Task DateTime
-getCurrentDateTime = mkInstantTask "Get current datetime" "Determine the current date and time." (mkTaskFunction (accWorldTSt currentDateTime))
+getCurrentDateTime = mkInstantTask ("Get current datetime", "Determine the current date and time.") (mkTaskFunction (accWorldTSt currentDateTime))
 
 waitForTime :: !Time -> Task Void
-waitForTime time = mkMonitorTask "Wait for time" ("Wait until " +++ toString time) waitForTime`
+waitForTime time = mkMonitorTask ("Wait for time", ("Wait until " +++ toString time)) waitForTime`
 where
 	waitForTime` tst
 		# (now,tst) = accWorldTSt currentTime tst
@@ -27,7 +28,7 @@ where
 			= (TaskFinished Void,tst)
 
 waitForDate :: !Date -> Task Void
-waitForDate date = mkMonitorTask "Wait for date" ("Wait until " +++ toString date) waitForDate`
+waitForDate date = mkMonitorTask ("Wait for date", ("Wait until " +++ toString date)) waitForDate`
 where
 	waitForDate` tst
 		# (now,tst) = accWorldTSt currentDate tst

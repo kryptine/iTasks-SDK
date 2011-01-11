@@ -27,7 +27,7 @@ where
 
 manageLists :: Task Void
 manageLists 
-	=	Subject "Manage lists" @>>
+	=	Title "Manage lists" @>>
 	(	getMyLists
 	>>=	overview
 	>>= \(action,list) -> case fst action of
@@ -38,22 +38,22 @@ manageLists
 	) <! id
 	>>| stop
 where
-	overview []		= getDefaultValue >>= showMessageA "My lists" "You have no lists." [aNew,aQuit]
-	overview list	= enterChoiceA "My lists" "Select a list..." [aOpen,aDelete,aNew,aQuit] list
+	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [aNew,aQuit]
+	overview list	= enterChoiceA ("My lists","Select a list...") [aOpen,aDelete,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)
 	aNew			= (ActionNew, always)
 	aQuit			= (ActionQuit, always)
 	aDelete			= (ActionDelete, ifvalid)
 	
-	newList			=	enterChoice "List type" "What type of list do you want to create?"
+	newList			=	enterChoice ("List type","What type of list do you want to create?")
 						["Simple list", "Todo list", "Date list","Document list"]
 					>>= \type ->
-						enterInformation "Name" "Please enter a name, and if you like, a description for the list"
+						enterInformation ("Name","Please enter a name, and if you like, a description for the list")
 					>>= \desc ->
 						createList type desc.ListDescription.name desc.ListDescription.description
 	
-	delList	list	=	requestConfirmation "Delete list" ("Are you sure you want to delete '" +++ nameOf list +++ "'?")
+	delList	list	=	requestConfirmation ("Delete list","Are you sure you want to delete '" +++ nameOf list +++ "'?")
 					>>= \confirm -> if confirm
 						(deleteList list)
 						(return list)
@@ -70,16 +70,16 @@ manageList list
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= updateShared l.List.name l.List.description [(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = simpleFrom}]
-		(TodoList l)	= updateShared l.List.name l.List.description [(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = todoFrom}]
-		(DateList l)	= updateShared l.List.name l.List.description [(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = dateFrom}]
-		(DocumentList l)= updateShared l.List.name l.List.description [(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = documentFrom}]
+		(SimpleList l)	= showMessageShared (l.List.name,l.List.description) simpleFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
+		(TodoList l)	= showMessageShared (l.List.name,l.List.description) todoFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
+		(DateList l)	= showMessageShared (l.List.name,l.List.description) dateFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
+		(DocumentList l)= showMessageShared (l.List.name,l.List.description) documentFrom	[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
 
 	editItems list = case list of
-		(SimpleList l)	= updateShared l.List.name l.List.description [(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = simpleFrom, editorTo = simpleTo}]
-		(TodoList l)	= updateShared l.List.name l.List.description [(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = todoFrom, editorTo = todoTo}]
-		(DateList l)	= updateShared l.List.name l.List.description [(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = dateFrom, editorTo = dateTo}]
-		(DocumentList l)= updateShared l.List.name l.List.description [(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = documentFrom, editorTo = documentTo}]
+		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		[(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
+		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			[(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
+		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			[(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
+		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	[(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
@@ -102,8 +102,8 @@ manageListSharing list
 		Nothing		= throw "Could not find list meta data"
 		Just meta
 			= (case meta.ListMeta.sharedWith of
-				[]		= showMessageA "Sharing" "This list is not shared" [aPrevious,aAddPerson,aAddGroup] [] 
-				users	= enterMultipleChoiceA "Sharing" "This list is shared with the following people" [aPrevious,aRemove,aAddPerson,aAddGroup] users
+				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] [] 
+				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") [aPrevious,aRemove,aAddPerson,aAddGroup] users
 			  )
 			>>= \(action,users) -> case fst action of
 				ActionPrevious				=						return True
@@ -119,13 +119,13 @@ where
 	aAddGroup	= (Action "add-group" "Add group", ifvalid)
 
 	removeUsers users	= 	removeSharingForList list users
-	addUsers list		=	enterInformation "Add person(s)" "Enter the person(s) you want to share this list with"
+	addUsers list		=	enterInformation ("Add person(s)","Enter the person(s) you want to share this list with")
 						>>= addSharingForList list 
 					
 	addGroup list		= 	getMyGroups
 						>>= \groups -> case groups of
-							[]		= showMessage "Add group" "You have no groups that you are member of" list
-							groups	= enterChoice "Add group" "Which group do you want to share this list with?" groups
+							[]		= showMessage ("Add group","You have no groups that you are member of") list
+							groups	= enterChoice ("Add group","Which group do you want to share this list with?") groups
 									>>= \group ->
 										addSharingForList list group.members
 

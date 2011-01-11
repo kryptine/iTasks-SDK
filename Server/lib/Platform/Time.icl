@@ -38,6 +38,9 @@ where
 instance toString Clock
 where
 	toString (Clock c) = toString c
+instance toInt Timestamp
+where
+	toInt (Timestamp i) = i
 
 clock :: !*World -> (!Clock, !*World)
 clock world

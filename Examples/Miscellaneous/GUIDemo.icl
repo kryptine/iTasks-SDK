@@ -47,5 +47,5 @@ person	= {Person | name	= "John Doe"
 				  }
 guiDemo :: Task Person
 guiDemo
-	=	updateInformation "Update person" "You may change this information" person
-	>>=	showMessageAbout "Summary" "This is the information you entered"
+	=	updateInformation ("Update person","You may change this information") person
+	>>=	showMessageAbout ("Summary","This is the information you entered")

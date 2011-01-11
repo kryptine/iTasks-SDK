@@ -811,7 +811,7 @@ gVisualize{|User|} val vst=:{vizType,currentPath,updateMask}
 			= ([TextFragment (toString val)]
 				, {VSt|vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|Task|} _ (Just {taskProperties}) vst	= ([TextFragment taskProperties.ManagerProperties.subject],vst)
+gVisualize{|Task|} _ (Just {taskProperties}) vst	= ([TextFragment taskProperties.ManagerProperties.taskDescription.TaskDescription.title],vst)
 gVisualize{|Task|}  _ _ vst							= ([],vst)
 
 derive gVisualize DateTime, Either, Void, UserDetails

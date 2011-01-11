@@ -9,7 +9,6 @@ itasks.tui.SourceCodeControl = Ext.extend(Ext.form.TextArea, {
         }
         this.initialized = false;
         itasks.tui.SourceCodeControl.superclass.initComponent.apply(this, arguments);
-		this.on('change', function(){console.log(123);});
         this.addEvents('initialize');
 		this.addEvents('update');
         this.on({

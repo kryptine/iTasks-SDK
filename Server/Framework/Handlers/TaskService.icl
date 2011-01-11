@@ -137,16 +137,17 @@ taskService url html path req tst
 					# events		= case (fromJSON (fromString eventsParam)) of
 						Just events		= events
 						Nothing			= []
+						
 					# (tree,tst)		= calculateTaskTree taskId UITree events tst
-					# (timestamp,tst)	= accWorldTSt time tst
+					# (timestamp,tst)	= getTimestamp tst
 					= case tree of
 						(TTMainTask ti properties _ content)
 							# tui			= buildTaskPanel content session.Session.user
 							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",toJSON tui)]
-							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, tst)
+							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,tst)
 						_
 							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",JSONNull)]
-							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, tst)
+							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,tst)
 		//Cancel / Abort / Delete the current task
 		[taskId,"cancel"]
 			| isJust mbSessionErr
@@ -253,9 +254,9 @@ where
 	taskItem process	= process.Process.properties	
 		
 	getManagerProperty :: !String !ManagerProperties -> JSONNode
-	getManagerProperty param {worker,subject,priority,deadline,tags} = case param of
+	getManagerProperty param {worker,taskDescription,priority,deadline,tags} = case param of
 		"worker" 	= JSONObject [("success",JSONBool True),(param,toJSON worker)]
-		"subject"	= JSONObject [("success",JSONBool True),(param,toJSON subject)]  
+		"subject"	= JSONObject [("success",JSONBool True),(param,toJSON taskDescription.TaskDescription.title)]  
 		"priority"	= JSONObject [("success",JSONBool True),(param,toJSON priority)]
 		"deadline"	= JSONObject [("success",JSONBool True),(param,toJSON deadline)]
 		"tags"		= JSONObject [("success",JSONBool True),(param,toJSON tags)]
@@ -270,7 +271,7 @@ where
 				Just upd = (True,{manProps & worker = upd})
 			"subject" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
-				Just upd = (True,{ManagerProperties | manProps & subject = upd})
+				Just upd = (True,{ManagerProperties | manProps & taskDescription = {TaskDescription | manProps.taskDescription & title = upd}})
 			"priority" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
 				Just upd = (True,{manProps & priority = upd})
@@ -300,6 +301,9 @@ where
 	taskParts (TTInteractiveTask ti val)
 		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",case val of JSONOutput json = json; _ = JSONNull)]]
 	taskParts _								= []
+	
+	getTimestamp :: !*TSt -> (!Timestamp,!*TSt)
+	getTimestamp tst=:{TSt|iworld=iworld=:{IWorld|timestamp}} = (timestamp,tst)
 
 listDescription			:== "This service lists all tasks for the user of the provided session."
 listDebugDescription	:== "This service dumps all information currently in the process database of running instances."

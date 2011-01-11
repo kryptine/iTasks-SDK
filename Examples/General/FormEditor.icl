@@ -61,9 +61,9 @@ handleMenu
 
 doMenu state=:((name,form), mode)
 		=	case mode of
-				NoEdit 		->							updateInformationA "No edit" title1 (actions state) Void 
+				NoEdit 		->							updateInformationA ("No edit",title1) idBimap (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
-				EditType 	->							updateInformationA "Edit" title2
+				EditType 	->							updateInformationA ("Edit",title2) idBimap
 																					[ (ActionEditValue, ifValid (not (isEmpty form.formShape)))
 																					, (ActionOk, ifvalid)
 																					: actions state] form.formShape
@@ -72,7 +72,7 @@ doMenu state=:((name,form), mode)
 			>>= switchAction
 where
 	editValue state=:((name,form=:{formDyn = DV0 v :: DV0 a}), mode)  
-		=							updateInformationA "Edit" title3
+		=							updateInformationA ("Edit",title3) idBimap
 																[ (ActionSave, ifValid (name <> ""))
 																, (ActionEditType, always)
 																: actions state
@@ -108,5 +108,5 @@ switchAction (action, (nameform=:(name,form),mode))
 			ActionOk		->							doMenu (nameform, mode)
 
 showAbout
-	= showMessage "About" "Form editor 0.1 - feb 2010" Void
+	= showMessage ("About","Form editor 0.1 - feb 2010") Void
 

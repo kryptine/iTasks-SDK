@@ -112,7 +112,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @param Initial value of the internal state
 * @param List of initial tasks
 */
-parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (Task taskResult)))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
+parallel :: !TaskParallelType !d !((taskResult,Int) pState -> (pState,PAction (Task taskResult)))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 
 /**
 * Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
@@ -128,7 +128,7 @@ parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pSta
 * @param List of initial tasks
 * @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
 */
-group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult
+group 	 :: !d !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
 
 // Multi-user workflows
 

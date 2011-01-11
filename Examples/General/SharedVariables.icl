@@ -7,29 +7,27 @@ derive bimap Maybe, (,)
 quitButton = (ActionQuit, always)
 
 //Text-Lines Examples
-noteEditor = editor {editorFrom = \txt -> Note txt,	editorTo = \(Note txt) _ -> txt}
-listEditor = editor {editorFrom = split "\n" ,		editorTo = \l _ -> join "\n" l}
+noteEditor = (\txt -> Note txt,	\(Note txt) _ -> txt)
+listEditor = (split "\n" ,		\l _ -> join "\n" l)
 
 TrimAction :== Action "trim" "Trim"
 
 linesPar :: Task Void
 linesPar =
 				createDB ""
-	>>= \sid.	noteE sid -|| updateShared "Lines" "Edit lines" [quitButton] sid [listEditor]
+	>>= \sid.	noteE sid -|| updateSharedInformationA ("Lines","Edit lines") listEditor [quitButton] sid
 	>>|			deleteDB sid
 	>>|			return Void
 where
 	noteE sid = 
-							updateShared "Text" "Edit text" [(TrimAction, always), quitButton] sid [noteEditor]
+							updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, always), quitButton] sid
 		>>= \(action,txt).	case fst action of
 								TrimAction	=			writeDB sid (trim txt)
 												>>|		noteE sid
 								_			= 			stop
 
-linesSingle = updateSharedLocal "Text & Lines" "Edit text and lines" [quitButton] "" [noteEditor,listEditor]
-
-//Calculate Sum Example)
-calculateSum = updateSharedLocal "Sum" "Auto compute sum" [quitButton] (0,0) [idEditor, listener {listenerFrom = \(x,y) -> x + y}]
+//Calculate Sum Example
+calculateSum = updateInformationA ("Sum","Auto compute sum") (\t=:(x,y) -> (t,Display (x+y)),\(t,_) _ -> t) [quitButton] (0,0)
 
 //Tree Example
 :: Tree a = Leaf | Node (Node a)
@@ -53,8 +51,8 @@ where
 		middle		= list !! (middlePos) 
 		end			= drop (middlePos + 1) list
 
-tree = updateSharedLocal "List & Balanced Binary Tree" "Type something in the list and the tree will update as well."
-			[quitButton] emptyL [idEditor, listener {listenerFrom = toTree}]
+tree = updateInformationA ("List & Balanced Binary Tree","Type something in the list and the tree will update as well.")
+			(\l -> (l,Display (toTree l)), \(l,_) _ -> l) [quitButton] emptyL
 where
 	emptyL :: [Int]
 	emptyL = []
@@ -63,12 +61,12 @@ where
 mergeTestList :: Task Void
 mergeTestList =	
 				createDB emptyL
-	>>= \sid.	spawnProcess True True (Subject "1st View" @>> view sid)
-	>>|			spawnProcess True True (Subject "2nd View" @>> view sid)
+	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
+	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
 	>>|			stop
 where
 	view :: (DBId [String]) -> Task (ActionEvent,[String])
-	view sid = updateShared "List" "Merging the lists" [quitButton] sid [idEditor]
+	view sid = updateSharedInformationA ("List","Merging the lists") idBimap [quitButton] sid
 	
 	emptyL :: [String]
 	emptyL = []
@@ -76,13 +74,12 @@ where
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
 				createDB emptyL
-	>>= \sid.	spawnProcess True True (Subject "1st View" @>> view sid idEditor)
-	>>|			spawnProcess True True (Subject "2nd View" @>> view sid idEditor)
-	>>|			spawnProcess True True (Subject "3rd View" @>> view sid idListener)
+	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
+	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
+	>>|			spawnProcess True True (Title "3rd View" @>> showMessageShared "Documents" id [quitButton] sid)
 	>>|			stop
 where
-	view :: (DBId [Document]) (View [Document]) -> Task (ActionEvent,[Document])
-	view sid v = updateShared "List" "Merging the documents" [quitButton] sid [v]
+	view sid = updateSharedInformationA ("List","Merging the documents") idBimap [quitButton] sid
 	
 	emptyL :: [Document]
 	emptyL = []
@@ -103,28 +100,55 @@ derive class iTask MarkerInfo, MapSize, MapOptions
 
 RemoveMarkersAction :== Action "remove-markers" "Remove Markers"
 
-googleMaps :: Task Void
-googleMaps = googleMaps` mkMap
-where
-	googleMaps` map =
-							updateSharedLocal "Google Map, Overview & Markers" "Edit in one map. The others are updated automatically."
-								[(RemoveMarkersAction, always), quitButton] map [optionsEditor, idEditor, overviewEditor, markersListener]
+googleMaps :: Task GoogleMap
+googleMaps = 
+				createDB mkMap
+	>>= \dbid.	updateSharedInformationA "Options" optionsEditor [] dbid
+				||-
+				updateSharedInformationA "Google Map" idBimap [] dbid
+				||-
+				updateSharedInformationA "Overview Map" overviewEditor [] dbid
+				||-
+				markersDisplay dbid
+	>>= \map.	deleteDB dbid
+	>>|			return map
+where							
+	markersDisplay dbid =
+							showMessageShared "Markers" markersListener [(RemoveMarkersAction,always),quitButton] dbid
 		>>= \(action,map).	case fst action of
-								RemoveMarkersAction	= googleMaps` {GoogleMap| map & markers = []}
-								_					= stop
+								RemoveMarkersAction	= modifyDB dbid (\map -> {GoogleMap| map & markers = []})
+								_					= return map
 
-	optionsEditor	= editor	{ editorFrom	= \map			-> {type = map.mapType, showMapTypeControl = map.mapTypeControl, showNavigationControl = map.navigationControl, showScaleControl = map.scaleControl, size = if (map.GoogleMap.width == 400) Normal Large}
-								, editorTo		= \opts map	-> {map & mapType = opts.MapOptions.type, mapTypeControl = opts.showMapTypeControl, navigationControl = opts.showNavigationControl, scaleControl = opts.showScaleControl, width = case opts.MapOptions.size of Large = 650; Normal = 400}
-								}
-	overviewEditor	= editor	{ editorFrom	= \map			-> {GoogleMap| map & mapTypeControl = False, navigationControl = False, scaleControl = False, scrollwheel = False, zoom = 7}
-								, editorTo		= \nmap map	-> {GoogleMap| map & center = nmap.GoogleMap.center}
-								}
-	markersListener	= listener	{ listenerFrom	= \map			-> [{position = position, map = {GoogleMap| mkMap & center = position, width = 150, height = 150, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
-								}
+	optionsEditor	=	( \map ->		{ type = map.mapType
+										, showMapTypeControl = map.mapTypeControl
+										, showNavigationControl = map.navigationControl
+										, showScaleControl = map.scaleControl
+										, size = if (map.GoogleMap.width == 400) Normal Large
+										}
+						, \opts map	->	{ map 
+										& mapType = opts.MapOptions.type
+										, mapTypeControl = opts.showMapTypeControl
+										, navigationControl = opts.showNavigationControl
+										, scaleControl = opts.showScaleControl
+										, width = case opts.MapOptions.size of Large = 650; Normal = 400
+										}
+						)
+	overviewEditor	= 	( \map ->		{ GoogleMap | map
+										& mapTypeControl = False
+										, navigationControl = False
+										, scaleControl = False
+										, scrollwheel = False
+										, zoom = 7
+										}
+						, \nmap map	->	{ GoogleMap | map
+										& center = nmap.GoogleMap.center
+										}
+						)
+	markersListener	map = [{position = position, map = {GoogleMap| mkMap & center = position, width = 150, height = 150, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
-autoSortedList = updateSharedLocal "Automatically Sorted List" "You can edit the list, it will sort automatically."
-					[quitButton] emptyL [editor {editorFrom = sort, editorTo = \list _ -> list}]
+autoSortedList = updateInformationA ("Automatically Sorted List","You can edit the list, it will sort automatically.")
+					(sort, const) [quitButton] emptyL
 where
 	emptyL :: [String]
 	emptyL = []
@@ -134,30 +158,27 @@ formattedText :: Task Void
 formattedText =
 				[Menu "Example" [MenuItem ActionQuit Nothing]]
 	@>>			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
-	>>= \sid.	dynamicGroupAOnly [(t <<@ ExcludeGroupActions) <<@ Floating >>| return Void \\ t <- tasks sid] actions actionsGenFunc
+	>>= \sid.	dynamicGroupAOnly [t <<@ ExcludeGroupActions <<@ Floating >>| return Void \\ t <- tasks sid] actions actionsGenFunc
 	>>|			deleteDB sid
 	>>|			return Void
 where
 	tasks sid =
-		[ updateShared "WYSIWYG Editor"	""		[] sid [idEditor]
-		, updateShared "HTML-Source Editor" ""		[] sid [editor		{ editorFrom	= \ft -> Note (getFormattedTextSrc ft)
-																	, editorTo		= \(Note src) ft -> setFormattedTextSrc src ft
-																	}]
-		, updateShared "Formatted Preview" ""		[] sid [idListener]
-		, updateShared "Unformatted Preview" ""	[] sid [listener	{listenerFrom	= \ft -> Note (toUnformattedString ft False)}]
+		[ updateSharedInformationA "WYSIWYG Editor" idBimap [] sid
+		, updateSharedInformationA "HTML-Source Editor" (\ft -> Note (getFormattedTextSrc ft), \(Note src) ft -> setFormattedTextSrc src ft) [] sid
+		, showMessageShared "Formatted Preview" id [] sid
+		, showMessageShared "Unformatted Preview" (\ft -> Note (toUnformattedString ft False)) [] sid
 		]
 		
 	actions = [(ActionQuit, Always)]
 	actionsGenFunc (ActionQuit,_) = GOStop
 								
 sharedValueExamples :: [Workflow]
-sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)"	"" (Subject "Text-Lines (grouped tasks)"	@>> linesPar)
-						, workflow "Examples/Shared Variables/Text-Lines (single editor)"	"" (Subject "Text-Lines (single editor)"	@>> linesSingle)
-						, workflow "Examples/Shared Variables/Calculate Sum"				"" (Subject "Calculate Sum"				@>> calculateSum)
-						, workflow "Examples/Shared Variables/Balanced Binary Tree"			"" (Subject "Balanced Binary Tree"			@>> tree)
-						, workflow "Examples/Shared Variables/Merge Test (List)"			"" (Subject "Merge Test (List)"			@>> mergeTestList)
-						, workflow "Examples/Shared Variables/Merge Test (Documents)"		"" (Subject "Merge Test (Documents)"		@>> mergeTestDocuments)
-						, workflow "Examples/Shared Variables/Google Maps Example"			"" (Subject "Google Maps Example"			@>> googleMaps)
-						, workflow "Examples/Shared Variables/Sorted List"					"" (Subject "Sorted List"					@>> autoSortedList)
-						, workflow "Examples/Shared Variables/Formatted Text"				"" (Subject "Formatted Text"				@>> formattedText)
+sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)"	"" (Title "Text-Lines"				@>> linesPar)
+						, workflow "Examples/Shared Variables/Calculate Sum"				"" (Title "Calculate Sum"			@>> calculateSum)
+						, workflow "Examples/Shared Variables/Balanced Binary Tree"			"" (Title "Balanced Binary Tree"	@>> tree)
+						, workflow "Examples/Shared Variables/Merge Test (List)"			"" (Title "Merge Test (List)"		@>> mergeTestList)
+						, workflow "Examples/Shared Variables/Merge Test (Documents)"		"" (Title "Merge Test (Documents)"	@>> mergeTestDocuments)
+						, workflow "Examples/Shared Variables/Google Maps Example"			"" (Title "Google Maps Example"		@>> googleMaps)
+						, workflow "Examples/Shared Variables/Sorted List"					"" (Title "Sorted List"				@>> autoSortedList)
+						, workflow "Examples/Shared Variables/Formatted Text"				"" (Title "Formatted Text"			@>> formattedText)
 						]

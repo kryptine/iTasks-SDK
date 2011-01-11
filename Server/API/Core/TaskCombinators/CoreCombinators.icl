@@ -4,7 +4,7 @@ import	StdList, StdArray, StdTuple, StdMisc, StdBool
 from	StdFunc import id, const
 from	TaskTree import :: TaskParallelType
 from 	Types import :: DateTime
-from	InteractionTasks import :: Action(..), ::ActionName, ::ActionLabel, ::ActionData, instance == Action, class ActionName(..), instance ActionName Action
+from	InteractionTasks import :: Action(..), ::ActionName, ::ActionLabel, ::ActionData, instance == Action, class ActionName(..), instance ActionName Action, instance html String, instance html HtmlTag, instance html [HtmlTag]
 derive class iTask SchedulerState
 
 import	TSt
@@ -18,7 +18,7 @@ import	Text
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskb = mkSequenceTask (dotdot (taskSubject taska)) (dotdot (taskDescription taska)) tbind
+(>>=) taska taskb = mkSequenceTask (dotdot (taskTitle taska), taskDescription taska) tbind
 where
 	tbind tst
 		# (result,tst)		= applyTask taska tst
@@ -37,12 +37,12 @@ where
 (>>|) taska taskb = taska >>= \_ -> taskb
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask "return" "Return a value" (\tst -> (TaskFinished a,tst))
+return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,tst))
 
 //Repetition and loops:
 
 forever :: !(Task a) -> Task a | iTask a
-forever task = mkSequenceTask ("Do '" +++ (taskSubject task) +++ "' forever") ("Execute the following task forever:<br /><br />" +++ taskDescription task) forever`
+forever task = mkSequenceTask ("Do '" +++ (taskTitle task) +++ "' forever", [RawText "Execute the following task forever:<br /><br />", taskDescription task]) forever`
 where
 	forever` tst=:{taskNr} 
 		# (result,tst)= applyTask task tst					
@@ -57,7 +57,7 @@ where
 				= (result,tst)
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = mkSequenceTask (taskSubject task) (taskDescription task) doTask
+(<!) task pred = mkSequenceTask (taskTitle task, taskDescription task) doTask
 where
 	doTask tst=:{taskNr}
 		# (result,tst) 	= applyTask task tst
@@ -76,7 +76,7 @@ where
 				= (TaskException e,tst)
 		
 iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
-iterateUntil init cont pred = mkSequenceTask ("Iterate '" +++ taskSubject init +++ "'") (taskDescription init) doTask
+iterateUntil init cont pred = mkSequenceTask ("Iterate '" +++ taskTitle init +++ "'", taskDescription init) doTask
 where
 	doTask tst=:{taskNr}
 		# key 			= "iu-temp"
@@ -97,7 +97,7 @@ where
 					= (result, tst)
 // Sequential composition
 sequence :: !String ![Task a] -> (Task [a])	| iTask a
-sequence label tasks = mkSequenceTask label (description tasks) (\tst -> doseqTasks tasks [] tst)
+sequence label tasks = mkSequenceTask (label, description tasks) (\tst -> doseqTasks tasks [] tst)
 where
 	doseqTasks [] accu tst				= (TaskFinished (reverse accu), tst)
 	doseqTasks [task:ts] accu tst 	
@@ -107,7 +107,7 @@ where
 			TaskFinished a				= doseqTasks ts [a:accu] tst
 			TaskException e				= (TaskException e,tst)
 	
-	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskSubject tasks)) +++ "</li></ul>"
+	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
 // Parallel / Grouped composition
 derive class iTask PSt
 derive bimap Maybe, (,)
@@ -117,8 +117,8 @@ derive bimap Maybe, (,)
 	, tasks :: [(Task a,Bool)]
 	}
 
-group :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult
-group label description procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask label description execInGroup
+group :: !d !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
+group d procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask d execInGroup
 where
 	execInGroup tst=:{taskNr,request}
 		# (pst,tst)   		= loadPSt taskNr tst
@@ -195,9 +195,8 @@ where
 		evaluateCondition (StatePredicate p)		= Left	(p state)
 		evaluateCondition (SharedPredicate id p)	= Right	(checkSharedPred id p)
 		
-		checkSharedPred (DBId id) p tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
-			# (mbVal,store,world)	= loadValue id store world
-			# tst					= {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
+		checkSharedPred (DBId id) p tst
+			# (mbVal,tst) = accIWorldTSt (loadValue id) tst
 			= (p mbVal, tst)
 				
 	getEventGroupActionEvent events groupActions
@@ -210,9 +209,9 @@ where
 		getNameAndData (JSONArray [JSONString key,JSONString data])	= (key, data)
 		getNameAndData _											= abort "invalid group event!"
 		
-parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-parallel parType label description procFun parseFun initState initTasks
-	= mkParallelTask label description parType parallel`
+parallel :: !TaskParallelType !d !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c & descr d
+parallel parType d procFun parseFun initState initTasks
+	= mkParallelTask d parType parallel`
 where
 	parallel` tst=:{taskNr,properties}
 		// When the initial list of tasks is empty just return the transformed initial state
@@ -289,7 +288,7 @@ where
 * It is created once and loaded and evaluated on later runs.
 */
 assign :: !User !(Task a) -> Task a | iTask a	
-assign user task = mkMainTask (taskSubject task) (taskDescription task) assign`
+assign user task = mkMainTask (taskTitle task, taskDescription task) assign`
 where
 	assign` tst
 		# (result,node,tst) = createOrEvaluateTaskInstance Nothing (task <<@ user) tst
@@ -355,21 +354,21 @@ clearSubTaskWorkers procId mbpartype tst
 		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProperties.subTaskWorkers | not (startsWith procId pId)] }}}
 
 spawnProcess :: !Bool !Bool !(Task a) -> Task (ProcessRef a) | iTask a
-spawnProcess activate gcWhenDone task = mkInstantTask "Spawn process" "Spawn a new task instance" spawnProcess`
+spawnProcess activate gcWhenDone task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
 where
 	spawnProcess` tst
 		# (pid,_,_,tst)	= createTaskInstance (createThread task) True Nothing activate gcWhenDone tst
 		= (TaskFinished (ProcessRef pid), tst)
 
 killProcess :: !(ProcessRef a) -> Task Void | iTask a
-killProcess (ProcessRef pid) = mkInstantTask "Kill process" "Kill a running task instance" killProcess`
+killProcess (ProcessRef pid) = mkInstantTask ("Kill process", "Kill a running task instance") killProcess`
 where
 	killProcess` tst 
 		# tst = deleteTaskInstance pid tst
 		= (TaskFinished Void, tst)
 
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
-waitForProcess (ProcessRef pid) = mkMonitorTask "Wait for task" "Wait for an external task to finish" waitForProcess`
+waitForProcess (ProcessRef pid) = mkMonitorTask ("Wait for task", "Wait for an external task to finish") waitForProcess`
 where
 	waitForProcess` tst 
 		# (mbProcess,tst) = getProcess pid tst
@@ -382,7 +381,7 @@ where
 							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)	
 							_								= (TaskFinished Nothing, tst) //Ignore all other cases
 					_	
-						# tst = setStatus [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProperties.ManagerProperties.subject,Text "\""]] tst
+						# tst = setStatus [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title,Text "\""]] tst
 						= (TaskBusy, tst)		// We are not done yet...
 			_	
 				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done

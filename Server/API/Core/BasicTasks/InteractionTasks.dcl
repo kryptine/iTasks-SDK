@@ -84,6 +84,8 @@ instance MenuAction Action
 instance MenuAction ActionName
 instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionName
 
+class SharedVariable a | gMerge{|*|} a
+
 // This tuple is used to link actions to user interfaces.
 // Its two parts represent the (what , when) aspects of actions.
 // What: The conceptual action to be taken
@@ -107,260 +109,292 @@ where
 	html :: a -> HtmlTag
 	
 instance html String
+instance html HtmlTag
 instance html [HtmlTag]
 instance html Note
 instance html (Maybe a) | html a
 
+:: IBimap a v :== (a -> v, v a -> a)
+idBimap :: (IBimap a a)
 //*** Input collection tasks ***//
 
 /*
 * Ask the user to enter information.
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
+* @param (v -> a)			A view for type v is generated; This function defines how to map view v back to a value of type a. 
+*							If not specified, v = a, and the map back is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
 *
-* @return 					A task-form which allows the user to enter information
+* @return 					Resulting value with (optionally) chosen action
 */
-enterInformation			:: !String !description -> Task a									| html description & iTask a
-enterInformationA			:: !String !description ![TaskAction a] -> Task (!ActionEvent,!a)	| html description & iTask a
-
-/*
-* Ask the user to update predefined information. 
-*
-* @param String				A short descriptive subject
-* @param description 		A description of the task to display to the user
-* @param a					The predefined value of the task
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
-*
-* @return 					A task-form which allows the user to enter information
-*/
-updateInformation			:: !String !description a -> Task a										| html description & iTask a
-updateInformationA			:: !String !description ![TaskAction a] a  -> Task (!ActionEvent,!a)	| html description & iTask a
+enterInformation			:: !d 						    -> Task a					| descr d & iTask a
+enterInformationA			:: !d !(v -> a) ![TaskAction a] -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to enter information, given some additional context information
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param b					Additional context information
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
+* @param (v -> a)			A view for type v is generated; This function defines how to map view v back to a value of type a. 
+*							If not specified, v = a, and the map back is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param a					Additional information to display
 *
-* @return 					A task-form which allows the user to enter information and displays the context information
+* @return 					Resulting value with (optionally) chosen action
 */
-enterInformationAbout		:: !String !description  b -> Task a								| html description & iTask a & iTask b
-enterInformationAboutA		:: !String !description ![TaskAction a] b -> Task (!ActionEvent,!a)	| html description & iTask a & iTask b
+enterInformationAbout		:: !d  				  		    !b -> Task a					| descr d  & iTask a & iTask b
+enterInformationAboutA		:: !d !(v -> a) ![TaskAction a] !b -> Task (!ActionEvent, a)	| descr d  & iTask a & iTask b & iTask v
+
+/*
+* Ask the user to update predefined information. 
+*
+* @param description 		A description of the task to display to the user
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param a or (DBId a)	The initial value or shared value to use. 
+*
+* @return 					Resulting value with (optionally) chosen action
+*/
+updateInformation			:: !d								a			-> Task a					| descr d & iTask a
+updateInformationA			:: !d !(IBimap a v) ![TaskAction a]	a			-> Task (!ActionEvent, !a)	| descr d & iTask a & iTask v
+updateSharedInformationA	:: !d !(IBimap a v) ![TaskAction a] !(DBId a)	-> Task (!ActionEvent, !a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to update predefined information, given some additonal context information
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param b					Additional context information
-* @param a					The predefined value of the task
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param b					Additional information to display
+* @param a or (DBId a)	The initial value or shared value to use. 
 *
-* @return 					A task-form which allows the user to enter information and displays the context information
+* @return 					Resulting value with (optionally) chosen action
 */
-updateInformationAbout		:: !String !description b a -> Task a									| html description & iTask a & iTask b
-updateInformationAboutA		:: !String !description ![TaskAction a] b a  -> Task (!ActionEvent,!a)	| html description & iTask a & iTask b
+updateInformationAbout			:: !d 								!b a			-> Task a					| descr d & iTask a & iTask b
+updateInformationAboutA			:: !d !(IBimap a v) ![TaskAction a] !b a			-> Task (!ActionEvent, !a)	| descr d & iTask a & iTask b & iTask v
+updateSharedInformationAboutA	:: !d !(IBimap a v) ![TaskAction a] !b !(DBId a)	-> Task (!ActionEvent, !a)	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Asks the user to confirm or decline a question.
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
 *
 * @return 					A boolean indicating 'accepted' (True) or 'declined' (False)
 */
-requestConfirmation			:: !String !description -> Task Bool	| html description
+requestConfirmation			:: !d -> Task Bool	| descr d 
 
 /*
 * Asks the user to accept or decline a question, given some additional context information
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param a					Additional context information
+* @param a					Additional context information to show to the user
 *
-* @return 					A boolean indiciating 'accepted' (True) or 'declined' (False) and displays the context information
+* @return 					A boolean indiciating 'accepted' (True) or 'declined' (False)
 */
-requestConfirmationAbout	:: !String !description a -> Task Bool	| html description & iTask a
+requestConfirmationAbout	:: !d !a -> Task Bool	| descr d & iTask a
 
 /*
 * Ask the user to select one item from a list of options
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param [a]				A list of options
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param [a]				A list of (shared) options
 *
-* @return 					A task-form which allows the user to choose an item
+* @return 					Resulting value with (optionally) chosen action
 */
-enterChoice					:: !String !description [a] -> Task a									| html description & iTask a
-enterChoiceA				:: !String !description ![TaskAction a] [a] -> Task (!ActionEvent,!a)	| html description & iTask a
-
-/*
-* Ask the user to select one item from a list of options with already one option pre-selected
-*
-* @param String				A short descriptive subject
-* @param description 		A description of the task to display to the user
-* @param [a]				A list of options
-* @param Int				The index of the item which should be pre-selected
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
-*
-* @return 					A task-form which allows the user to choose an item
-*/
-updateChoice				:: !String !description [a] Int -> Task a									| html description & iTask a
-updateChoiceA 				:: !String !description ![TaskAction a] [a] Int -> Task (!ActionEvent,!a)	| html description & iTask a 
+enterChoice					:: !d 					  				  ![a] 			-> Task a					| descr d & iTask a
+enterChoiceA				:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a] 			-> Task (!ActionEvent, a)	| descr d & iTask a// & iTask v
+//enterSharedChoiceA			:: !d !(a -> v, v a -> a) ![TaskAction a] ![Shared a] 	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select one item from a list of options, given some context information
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param b					Additional context information
-* @param [a]				A list of options
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param b					Additional information to display
+* @param [a]				A list of (shared) options
 *
-* @return 					A task-form which allows the user to choose an item and displays the context information
+* @return 					Resulting value with (optionally) chosen action
 */
-enterChoiceAbout			:: !String !description b [a] -> Task a									| html description & iTask a & iTask b
-enterChoiceAboutA			:: !String !description ![TaskAction a] b [a] -> Task (!ActionEvent,!a)	| html description & iTask a & iTask b
+enterChoiceAbout			:: !d 									  !b ![a] 		  -> Task a					| descr d & iTask a	& iTask b
+enterChoiceAboutA			:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a]		  -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b// & iTask v
+//enterSharedChoiceAboutA		:: !d !(a -> v, v a -> a) ![TaskAction a] !b ![Shared a]  -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
+
+/*
+* Ask the user to select one item from a list of options with already one option pre-selected
+*
+* @param description 		A description of the task to display to the user
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param [a]				A list of (shared) options
+* @param Int				The index of the item which should be pre-selected
+*
+* @return 					Resulting value with (optionally) chosen action
+*/
+updateChoice				:: !d 									  ![a] 		  !Int -> Task a					| descr d & iTask a	
+updateChoiceA 				:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a]		  !Int -> Task (!ActionEvent, a)	| descr d & iTask a// & iTask v 
+//updateSharedChoiceA 		:: !d !(a -> v, v a -> a) ![TaskAction a] ![Shared a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected, given some context information
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param b					Additional context information
-* @param [a]				A list of options
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param b					Additional information to display
+* @param [a]				A list of (shared) options
 * @param Int				The index of the item which should be pre-selected
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
 *
-* @return 					A task-form which allows the user to choose an item and displays the context information
+* @return 					Resulting value with (optionally) chosen action
 */
-updateChoiceAbout			:: !String !description b [a] Int -> Task a									| html description & iTask a & iTask b
-updateChoiceAboutA			:: !String !description ![TaskAction a] b [a] Int -> Task (!ActionEvent,!a)	| html description & iTask a & iTask b
+updateChoiceAbout			:: !d 									  !b ![a] 		 !Int -> Task a					| descr d & iTask a	& iTask b
+updateChoiceAboutA			:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a]		 !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b// & iTask v
+//updateSharedChoiceAboutA	:: !d !(a -> v, v a -> a) ![TaskAction a] !b ![Shared a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select one or more items from a list of options
 *
-* @param String				A short descriptive subject
-* @param description 		A description of the task to display to the user
-* @param [a]				A list of options
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
 *
-* @return 					A task-form which allows the user to choose items
+* @param description 		A description of the task to display to the user
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param [a]				A list of (shared) options
+*
+* @return 					Resulting values with (optionally) chosen action
 */
-enterMultipleChoice			:: !String !description [a] -> Task [a]										| html description & iTask a
-enterMultipleChoiceA		:: !String !description ![TaskAction [a]] [a] -> Task (!ActionEvent,![a])	| html description & iTask a
+enterMultipleChoice			:: !d 					  				  ![a] 			-> Task [a]					| descr d & iTask a
+enterMultipleChoiceA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a] 			-> Task (!ActionEvent, [a])	| descr d & iTask a// & iTask v
+//enterSharedMultipleChoiceA	:: !d !(a -> v, v a -> a) ![TaskAction [a]] ![Shared a] 	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+
+/*
+* Ask the user to select one or more items from a list of options, given additional context information
+* @param description 		A description of the task to display to the user
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param b					Additional information to display
+* @param [a]				A list of (shared) options
+*
+* @return 					Resulting values with (optionally) chosen action
+*/
+enterMultipleChoiceAbout		:: !d 									  !b ![a] 		  -> Task [a]					| descr d & iTask a	& iTask b
+enterMultipleChoiceAboutA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![a]		  -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b// & iTask v
+//enterSharedMultipleChoiceAboutA	:: !d !(a -> v, v a -> a) ![TaskAction [a]] !b ![Shared a]  -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select one or more items from a list of options with already some options pre-selected
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param [a]				A list of options
-* @param Int				The index of the item which should be pre-selected
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param [a]				A list of (shared) options
+* @param [Int]				The index of the items which should be pre-selected
 *
-* @return 					A task-form which allows the user to choose items
+* @return 					Resulting value with (optionally) chosen action
 */
-updateMultipleChoice		:: !String !description [a] [Int] -> Task [a]									| html description & iTask a
-updateMultipleChoiceA		:: !String !description ![TaskAction [a]] [a] [Int] -> Task (!ActionEvent,![a])	| html description & iTask a
-
-/*
-* Ask the user to select one or more items from a list of options, given additional context information
-*
-* @param String				A short descriptive subject
-* @param description 		A description of the task to display to the user
-* @param b					Additional context information
-* @param [a]				A list of options
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
-*
-* @return 					A task-form which allows the user to choose items and displays the context information
-*/
-enterMultipleChoiceAbout	:: !String !description b [a] -> Task [a]									| html description & iTask a & iTask b
-enterMultipleChoiceAboutA	:: !String !description ![TaskAction [a]] b [a] -> Task (!ActionEvent,![a])	| html description & iTask a & iTask b
+updateMultipleChoice		:: !d 									  ![a] 		  ![Int] -> Task [a]					| descr d & iTask a
+updateMultipleChoiceA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a]		  ![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a// & iTask v
+//updateSharedMultipleChoiceA :: !d !(a -> v, v a -> a) ![TaskAction [a]] ![Shared a] ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select one or more items from a list of options with already some options pre-selected, given additional context information
 *
-* @param String				A short descriptive subject
 * @param description 		A description of the task to display to the user
-* @param b					Additional context information
-* @param [a]				A list of options
-* @param Int				The index of the item which should be pre-selected
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. If not specified
-*							a default button is rendered.
+* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
+*							If not specified, v = a, and the bimap is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param b					Additional information to display
+* @param [a]				A list of (shared) options
+* @param [Int]				The index of the items which should be pre-selected
 *
-* @return 					A task-form which allows the user to choose items and displays the context information
+* @return 					Resulting value with (optionally) chosen action
 */
-updateMultipleChoiceAbout	:: !String !description b [a] [Int] -> Task [a]										| html description & iTask a & iTask b
-updateMultipleChoiceAboutA	:: !String !description ![TaskAction [a]] b [a] [Int] -> Task (!ActionEvent,![a])	| html description & iTask a & iTask b
+updateMultipleChoiceAbout		 :: !d 									   !b ![a] 		  ![Int] -> Task [a]					| descr d & iTask a	& iTask b
+updateMultipleChoiceAboutA		 :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![a]		  ![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b// & iTask v
+//updateSharedMultipleChoiceAboutA :: !d !(a -> v, v a -> a) ![TaskAction [a]] !b ![Shared a] ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 //*** Output tasks ***//
 
 /*
 * Show a basic message to the user. The user can end the task after reading the message. 
-
-* @param String				A short descriptive subject
-* @param message 			A message to display to the user
-* @param [TaskAction a] 	A list of buttons or menus through which the user can submit the value. If not specified
-*							a default button is rendered
 *
-* @return					a or an Action if [TaskAction a] is specified
+* @param description 		A description of the task to display to the user
+* @param message 			A message to display to the user
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param a					The value is just passed for convenience
+*
+* @return					A copy of value a with (optionally) chosen action
 */
-showMessage					:: !String !message a -> Task a									| html message & iTask a
-showMessageA				:: !String !message ![TaskAction a] a -> Task (!ActionEvent,!a)	| html message & iTask a
+showMessage		:: !d					a -> Task a					| descr d & iTask a
+showMessageA	:: !d ![TaskAction a]	a -> Task (!ActionEvent, a)	| descr d & iTask a 
 
 /*
 * Show a basic message and additional context information to the user. The user can end the task after reading the message. 
 *
-* @param String				A short descriptive subject
-* @param message			The message to display to the user
-* @param a					Additional context information
-* @param [TaskAction a] 	A list of buttons or menus through which the user can submit the value. If not specified
-*							a default button is rendered
+* @param description 		A description of the task to display to the user
+* @param message 			A message to display to the user
+* @param (a -> v)			Map defining how to convert message b to the demanded view v
+*							If not specified, v = a, and the map is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param a or (DBId a)		Additional (local or shared) information to display
 *
-* @return					a or an Action if [TaskAction a] is specified
+* @return					A (copy of) value a with (optionally) chosen action
 */
-showMessageAbout			:: !String !message a -> Task a									| html message & iTask a
-showMessageAboutA			:: !String !message ![TaskAction a] a -> Task (!ActionEvent,!a)	| html message & iTask a
+showMessageAbout	:: !d							!a			-> Task a					| descr d & iTask a
+showMessageAboutA	:: !d !(a -> v) ![TaskAction a]	!a			-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+showMessageShared	:: !d !(a -> v) ![TaskAction a] !(DBId a)	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 /*
 * Show a basic message to the user. The user cannot end the task after reading the message. 
 *
-* @param String				A short descriptive subject
-* @param message			The message to display to the user
-* @param a					The value that is returned when the task is finished
+* @param description 		A description of the task to display to the user
+* @param message 			A message to display to the user
+* @param a					The value is just passed for convenience
 *
-* @return					a
+* @return					A copy of value a with (optionally) chosen action
 */
-showStickyMessage			:: !String !message a -> Task a	| html message & iTask a
+showStickyMessage	:: !d	a	-> Task a	| descr d & iTask a 
 
 /*
 * Show a basic message and some context information to the user. The user cannot end the task after reading the message. 
 *
-* @param String				A short descriptive subject
-* @param message			The message to display to the user
-* @param a					Additional context information
+* @param description 		A description of the task to display to the user
+* @param message 			A message to display to the user
+* @param (a -> v)			Map defining how to convert message b to the demanded view v
+*							If not specified, v = a, and the map is the identity.
+* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+*							If not specified a default button is rendered.
+* @param a or (DbId a)		Additional (local or shared) information to display
 *
-* @return					a
+* @return					A (copy of) value a with (optionally) chosen action
 */
-showStickyMessageAbout		:: !String !message a -> Task a	| html message & iTask a
-
+showStickyMessageAbout	:: !d			!a			-> Task a					| descr d & iTask a
+showStickyMessageShared	:: !d !(a -> v)	!(DBId a)	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 //*** Instruction tasks ***//
 
@@ -385,71 +419,3 @@ showInstruction 			:: !String !instruction	a	-> Task a	| html instruction & iTas
 * @return					a
 */
 showInstructionAbout 		:: !String !instruction a 	-> Task a	| html instruction & iTask a
-
-//*** Shared variable tasks ***//
-
-/*
-* Shared variables tasks allow to specify multiple views upon the same set of data (the share). These views can be either
-* viewed in separate tasks, but can also be combined locally into a single editor. Typically a view is created using an instance
-* of the Editor- or Listener-type, which specify how the shared data should be transformed into a single View and -in case of an editor-
-* back into the original data.
-*/
-class SharedVariable a | gMerge{|*|} a
-
-:: Editor s a	= {editorFrom :: s -> a, editorTo :: a s -> s}
-:: Listener s a	= {listenerFrom :: s -> a}
-:: View s
-
-/*
-* Creates a view from a Listener specification. Listeners can be used only to view the shared data.
-*
-* @param (Listener s a)		The specification of the listener-transformation
-*
-* @return (View s)			A view of the shared data which is read-only
-*/
-listener	:: !(Listener s a)	-> View s | iTask a & iTask s
-
-/*
-* Creates a view from an Editor specification. Editors can be used to both view and update the shared data.
-*
-* @param (Editor s a)		The specification of the editor-transformation
-*
-* @return (View s)			A view of the shared data
-*/
-editor		:: !(Editor s a)	-> View s | iTask a & iTask s & SharedVariable s
-
-/*
-* Creates a editor-view on the shared data, applying the identity function as transformation.
-*
-* @return View s			A view of the shared data
-*/
-idEditor	:: View s	| iTask s & SharedVariable s
-idListener	:: View s	| iTask s
-
-/*
-* Creates a task from a specified set of views using shared data which is stored in a database.
-* 
-* @param String				A short descriptive subject
-* @param question			A description of the task
-* @param [TaskAction s]		A list of buttons or menus through which the user can submit the value.
-* @param (DBId s)			The database handle of the shared data
-* @param [View s]			A list of views on the shared data, which are presented to the user
-*
-* @return Action			The action the user performed
-* @return s					The value/state of the shared data at the time this function is evaluated
-*/
-updateShared			:: !String description ![TaskAction s] !(DBId s) ![View s] -> Task (!ActionEvent, !s)	| html description & iTask s & SharedVariable s
-
-/*
-* Creates a task from a specified set of views using shared data which is only available to this specific task.
-* 
-* @param String				A short descriptive subject
-* @param question			A description of the task
-* @param [TaskAction s]		A list of buttons or menus through which the user can submit the value.
-* @param [View s]			A list of views on the shared data, which are presented to the user
-*
-* @return Action			The action the user performed
-* @return s					The value/state of the shared data at the time this function is evaluated
-*/
-updateSharedLocal		:: !String description ![TaskAction s] !s ![View s] -> Task (!ActionEvent, !s)	| html description & iTask s & SharedVariable s
-

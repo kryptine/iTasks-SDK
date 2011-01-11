@@ -28,7 +28,7 @@ handleMenu
 	=	initMenu @>> doMenu
 where
 	doMenu
-		=							enterInformationA "Stored flow" "Select \"File/Start Workflow... \" to run a stored workflow..." actions
+		=							enterInformationA ("Stored flow","Select \"File/Start Workflow... \" to run a stored workflow...") id actions
 			>>= \(actions,Void) ->	doActions actions
 
 	doActions (ActionStartFlow,_)	= startFlow	>>| doMenu 
@@ -40,13 +40,13 @@ startFlow
 		>>= \(_,flow) ->	try (evalFlow flow.flowDyn >>= taskFound) showTypeError
 where
 	showTypeError :: !String -> Task Void
-	showTypeError s = showMessage "Type error" s Void
+	showTypeError s = showMessage ("Type error",s) Void
 
 	taskFound :: Dynamic -> Task Void
 	taskFound d=:(DT t:: DT a) 
-		=					requestConfirmation "Start workflow" ("Workflow of type :: " +++ showDynType d +++ "  can be started; Shall I ?")
-		>>= \ok ->			if ok (					updateInformation "Name" "Name of this workflow: " "workflow"
-									>>= \name -> 	spawnProcess True True (t <<@ Subject name)
+		=					requestConfirmation ("Start workflow","Workflow of type :: " +++ showDynType d +++ "  can be started; Shall I ?")
+		>>= \ok ->			if ok (					updateInformation ("Name","Name of this workflow: ") "workflow"
+									>>= \name -> 	spawnProcess True True (t <<@ Title name)
 									>>| 			return Void)
 								  (return Void)	
 

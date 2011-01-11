@@ -15,9 +15,9 @@ derive bimap	(,), Maybe
 
 BookTrip :: Task FlightHotel
 BookTrip
-	=						enterInformation "Specify trip" "Please fill in trip information to make booking"
-		>>= \info ->		assign info.delegateTo (enterInformationAbout "Book trip" "Please book the following trip" info)
-		>>= \booking ->		showMessageAbout "Trip booked" "The following trip has been booked" booking
+	=						enterInformation ("Specify trip","Please fill in trip information to make booking")
+		>>= \info ->		assign info.delegateTo (enterInformationAbout ("Book trip","Please book the following trip") info)
+		>>= \booking ->		showMessageAbout ("Trip booked","The following trip has been booked") booking
 	
 
 :: PlaceToGo
@@ -45,31 +45,31 @@ travel
 						  , confirmBookings 				   
 						  ]
 		-||- 
-		(showMessage "Cancel" "Cancel task?" [])
+		(showMessage ("Cancel","Cancel task?") [])
 
 	>>= \booking -> handleBookings booking
 where
 	makeBookings :: Task [Booking]
 	makeBookings
-		=	Subject "Step 1: Make Bookings:"
-		@>> enterMultipleChoice "Booking options" "Choose Booking options:" [BookFlight,BookHotel,BookCar]
+		=	Title "Step 1: Make Bookings:"
+		@>> enterMultipleChoice ("Booking options","Choose Booking options:") [BookFlight,BookHotel,BookCar]
 		>>= sequence "Bookings"
 
 	confirmBookings :: Task [Booking]
  	confirmBookings 
- 		=	Subject "Step 2: Confirm Bookings:"
- 		@>> showMessage "Confirmation" "Confirm" []
+ 		=	Title "Step 2: Confirm Bookings:"
+ 		@>> showMessage ("Confirmation","Confirm") []
  	
 	handleBookings :: [[Booking]] -> Task Void
 	handleBookings booking
-		| isEmpty	booking	= showMessage "Summary" "Cancelled" Void
-		| otherwise			= (updateInformation "Payment" "Pay" (calcCosts booking) >>| showMessage "Summary" "Paid" Void)
+		| isEmpty	booking	= showMessage ("Summary","Cancelled") Void
+		| otherwise			= (updateInformation ("Payment","Pay") (calcCosts booking) >>| showMessage ("Summary","Paid") Void)
 	where
 		calcCosts booked = sum [cost \\ (_,_,_,cost) <- hd booked]
 
 
-	BookFlight  = updateInformation "Book Flight" "BookFlight" ("Flight Number "	,"", "Costs ",DefCosts)
-	BookHotel  	= updateInformation "Book Hotel" "BookHotel" ("Hotel Name "		,"", "Costs ",DefCosts)
-	BookCar  	= updateInformation "Book Car" "BookCar" ("Car Brand "		,"", "Costs ",DefCosts)
+	BookFlight  = updateInformation ("Book Flight","BookFlight") ("Flight Number "	,"", "Costs ",DefCosts)
+	BookHotel  	= updateInformation ("Book Hotel","BookHotel") ("Hotel Name "		,"", "Costs ",DefCosts)
+	BookCar  	= updateInformation ("Book Car","BookCar") ("Car Brand "		,"", "Costs ",DefCosts)
 
 	DefCosts = EUR 0

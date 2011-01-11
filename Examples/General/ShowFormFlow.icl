@@ -33,7 +33,7 @@ handleMenu
 where
 	doMenu :: String a -> Task Void | iTask a
 	doMenu title val
-		=						showMessageAboutA title title [(Refresh, always):actions] val 
+		=						showMessageAboutA title id [(Refresh, always):actions] val 
 			>>= \choice ->		readAllForms
 			>>= \allForms 	->	readAllFlows
 			>>= \allFlows	->	case fst choice of

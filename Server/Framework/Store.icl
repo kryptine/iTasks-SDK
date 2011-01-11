@@ -1,15 +1,10 @@
 implementation module Store
 
-import StdString,StdMaybe, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
-import Directory, Time
-
-import Map, Text
-import JSON
-
+import StdString, StdMaybe, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
+import Directory, Map, Text, JSON
+from Time import :: Timestamp(..), instance < Timestamp
+from Types import :: IWorld{..}, :: Config
 import dynamic_string //Static dynamic serialization
-
-derive JSONDecode Timestamp
-derive bimap (,), Maybe
 
 :: *Store =
 	{ cache		:: *Map String (Bool,StoreItem)	//Cache for storage items, Bool is used to indicate a value in the cache is 'dirty'
@@ -19,7 +14,7 @@ derive bimap (,), Maybe
 :: StoreItem =
 	{ format	:: StoreFormat
 	, content	:: String
-	, timestamp	:: Maybe Timestamp // the timestamp is determined when the item is load first or written to disc
+	, timestamp	:: Timestamp
 	}
 
 :: StoreFormat = SFPlain | SFDynamic | SFBlob
@@ -30,96 +25,109 @@ derive bimap (,), Maybe
 createStore	:: !String -> *Store
 createStore location = {Store|cache = newMap, location = location}
 
-storeValue :: !String !a !*Store -> *Store | JSONEncode{|*|}, TC a
-storeValue key value store = storeValueAs SFPlain key value store
+storeValue :: !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
+storeValue key value iworld = storeValueAs SFPlain key value iworld
 
-storeValueAsBlob :: !String !String !*Store -> *Store
-storeValueAsBlob key value store=:{cache}
-	= {Store|store & cache = put key (True,{StoreItem|format=SFBlob,content=value,timestamp=Nothing}) cache}
+storeValueAsBlob :: !String !String !*IWorld -> *IWorld
+storeValueAsBlob key value iworld=:{IWorld|timestamp}
+	= appCache (put key (True,{StoreItem|format=SFBlob,content=value,timestamp=timestamp})) iworld
 
-storeValueAs :: !StoreFormat !String !a !*Store	-> *Store | JSONEncode{|*|}, TC a
-storeValueAs format key value store=:{cache}
-	= {Store|store & cache = put key (True,{StoreItem|format=format,content=content,timestamp=Nothing}) cache}
+storeValueAs :: !StoreFormat !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
+storeValueAs format key value iworld=:{IWorld|timestamp}
+	= appCache (put key (True,{StoreItem|format=format,content=content,timestamp=timestamp})) iworld
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
 		SFDynamic	= dynamic_to_string (dynamic value)
 
-loadDynamicValue :: !String !*Store !*World -> (!Maybe Dynamic, !*Store, !*World)
-loadDynamicValue key store=:{cache,location} world
-	#(mbItem,cache) = getU key cache
+loadDynamicValue :: !String !*IWorld -> (!Maybe Dynamic,!*IWorld)
+loadDynamicValue key iworld=:{store=store=:{location}}
+	# (mbItem,iworld) = accCache (getU key) iworld
 	= case mbItem of
 		Just (dirty,item)
-			= (unpackItem item, {store & cache = cache}, world)
+			= (unpackItem item,iworld)
 		Nothing
-			# (mbItem, world)	= loadFromDisk key location world
+			# (mbItem,iworld) = accWorld (loadFromDisk key location) iworld
 			= case mbItem of
 				Just item
-					# cache	= put key (False,item) cache
-					= (unpackItem item, {store & cache = cache}, world)
+					# iworld = appCache (put key (False,item)) iworld
+					= (unpackItem item,iworld)
 				Nothing
-					= (Nothing, {store & cache = cache}, world)
+					= (Nothing,iworld)
 where
 	unpackItem {StoreItem | format=SFPlain, content} = Nothing
 	unpackItem {StoreItem | format=SFDynamic, content} = Just (string_to_dynamic { s \\ s <-: content})
 
-loadValueAsBlob :: !String !*Store !*World -> (!Maybe String, !*Store, !*World)
-loadValueAsBlob key store=:{cache,location} world
-	#(mbItem,cache) = getU key cache
+loadValueAsBlob :: !String !*IWorld -> (!Maybe String,!*IWorld)
+loadValueAsBlob key iworld=:{store=store=:{location}}
+	# (mbItem,iworld) = accCache (getU key) iworld
 	= case mbItem of
-		Just (dirty,item )= (unpackValue item, {store & cache = cache}, world)
+		Just (dirty,item) = (unpackValue item,iworld)
 		Nothing
-			# (mbItem, world) = loadFromDisk key location world
+			# (mbItem,iworld) = accWorld (loadFromDisk key location) iworld
 			= case mbItem of
 				Just item
-					# cache	= put key (False,item) cache
-					= (unpackValue item, {store & cache = cache}, world)
+					# iworld = appCache (put key (False,item)) iworld
+					= (unpackValue item,iworld)
 				Nothing
-					= (Nothing, {store & cache = cache}, world)
+					= (Nothing,iworld)
 where
 	unpackValue {StoreItem|content} = Just content
 
-loadValue :: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | JSONDecode{|*|}, TC a
-loadValue key store world
-	# (mbValueAndTimestamp, store, world) = loadValueAndTimestamp key store world
-	= case mbValueAndTimestamp of
-		Nothing		= (Nothing, store, world)
-		Just (v,_)	= (Just v, store, world)
-	 
-loadValueAndTimestamp :: !String !*Store !*World -> (!Maybe (a,Timestamp), !*Store, !*World) | JSONDecode{|*|}, TC a
-loadValueAndTimestamp key store=:{cache,location} world
-	#(mbItem,cache) = getU key cache
+loadValue :: !String !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
+loadValue key iworld
+	# (mbItem,iworld) = loadStoreItem key iworld
+	= case mbItem of
+		Just item = case unpackValue item of
+			Just v	= (Just v,iworld)
+			Nothing	= (Nothing,iworld)
+		Nothing 	= (Nothing,iworld)
+		
+getTimestamp :: !String !*IWorld -> (!Maybe Timestamp,!*IWorld)
+getTimestamp key iworld
+	# (mbItem,iworld) = loadStoreItem key iworld
+	= case mbItem of
+		Just item	= (Just item.StoreItem.timestamp,iworld)
+		Nothing 	= (Nothing,iworld)
+
+loadValueAndTimestamp :: !String !*IWorld -> (!Maybe (a,Timestamp),!*IWorld) | JSONDecode{|*|}, TC a
+loadValueAndTimestamp key iworld
+	# (mbItem,iworld) = loadStoreItem key iworld
+	= case mbItem of
+		Just item = case unpackValue item of
+			Just v	= (Just (v,item.StoreItem.timestamp),iworld)
+			Nothing	= (Nothing,iworld)
+		Nothing 	= (Nothing,iworld)
+
+unpackValue :: !StoreItem -> (Maybe a) | JSONDecode{|*|}, TC a
+unpackValue {StoreItem|format=SFPlain,content}
+	= case fromJSON (fromString content) of
+		Nothing		= Nothing
+		Just v		= Just v
+unpackValue {StoreItem|format=SFBlob,content}
+	= abort "use loadValueAsBlob"
+unpackValue {StoreItem|format=SFDynamic,content,timestamp}
+	= case string_to_dynamic {s` \\ s` <-: content} of
+		(value :: a^)	= Just value
+		_				= Nothing	
+			
+loadStoreItem :: !String !*IWorld -> (!Maybe StoreItem,!*IWorld)
+loadStoreItem key iworld=:{store=store=:{location}}
+	# (mbItem,iworld) = accCache (getU key) iworld
 	= case mbItem of
 		Just (dirty,item)
-			# (item,cache,world) = case item.timestamp of
-				Nothing // no timestamp determined yet
-					# (t,world)	= time world
-					# item		= {item & timestamp = Just t}
-					# cache		= put key (dirty, item) cache
-					= (item, cache, world)
-				_ // timestamp already determined
-					= (item, cache, world)
-			= (unpackValue item, {store & cache = cache}, world)
+			# iworld = appCache (put key (dirty,item)) iworld
+			= (Just item,iworld)
 		Nothing
-			# (mbItem, world) = loadFromDisk key location world
+			# (mbItem,iworld) = accWorld (loadFromDisk key location) iworld
 			= case mbItem of
 				Just item
-					# cache	= put key (False,item) cache
-					= (unpackValue item, {store & cache = cache}, world)
+					# iworld = appCache (put key (False,item)) iworld
+					= (Just item,iworld)
 				Nothing
-					= (Nothing, {store & cache = cache}, world)
-where
-	unpackValue {StoreItem|format=SFPlain,content,timestamp}
-		= case fromJSON (fromString content) of
-			Nothing		= Nothing
-			Just v		= Just (v, fromJust timestamp)
-	unpackValue {StoreItem|format=SFBlob,content}  = Nothing //<- use loadValueAsBlob
-	unpackValue {StoreItem|format=SFDynamic,content,timestamp}
-		= case string_to_dynamic {s` \\ s` <-: content} of
-			(value :: a^)	= Just (value, fromJust timestamp)
-			_				= Nothing
+					= (Nothing,iworld)
 				
-loadFromDisk :: String String !*World -> (Maybe StoreItem, !*World)	
+loadFromDisk :: !String !String !*World -> (Maybe StoreItem, !*World)	
 loadFromDisk key location world			
 		//Try plain format first
 		# filename			= location +++ "/" +++ key +++ ".txt"
@@ -128,7 +136,7 @@ loadFromDisk key location world
 			# (ok,time,file)	= freadi file
 			# (content,file)	= freadfile file
 			# (ok,world)		= fclose file world
-			= (Just {StoreItem|format = SFPlain, content = content, timestamp = Just (Timestamp time)}, world)
+			= (Just {StoreItem|format = SFPlain, content = content, timestamp = Timestamp time}, world)
 		| otherwise
 			# filename			= location +++ "/" +++ key +++ ".bin"
 			# (ok,file,world)	= fopen filename FReadData world
@@ -136,7 +144,7 @@ loadFromDisk key location world
 				# (ok,time,file)	= freadi file
 				# (content,file)	= freadfile file
 				#( ok,world)		= fclose file world
-				=(Just {StoreItem|format = SFDynamic, content = content, timestamp = Just (Timestamp time)}, world)
+				=(Just {StoreItem|format = SFDynamic, content = content, timestamp = Timestamp time}, world)
 			| otherwise
 				# filename 			= location +++ "/" +++ key +++ ".blb"
 				# (ok,file,world)	= fopen filename FReadData world
@@ -144,7 +152,7 @@ loadFromDisk key location world
 					# (ok,time,file)	= freadi file
 					# (content,file)	= freadfile file
 					# (ok,world)		= fclose file world
-					=(Just {StoreItem|format = SFBlob, content = content, timestamp = Just (Timestamp time)}, world)				
+					=(Just {StoreItem|format = SFBlob, content = content, timestamp = Timestamp time}, world)				
 				| otherwise
 					= (Nothing, world)
 where
@@ -156,13 +164,13 @@ where
 	        | string == "" = (acc, file)
 	        | otherwise    = rec file (acc +++ string)
 
-deleteValues :: !String !*Store !*World -> (!*Store, !*World)
-deleteValues prefix store=:{cache,location} world
+deleteValues :: !String !*IWorld -> *IWorld
+deleteValues prefix iworld=:{store=store=:{location}}
 	//Delete items from cache
-	# cache = fromList [(key,item) \\ (key,item) <- toList cache | not (startsWith prefix key)]
+	# iworld = appCache (\cache -> fromList [(key,item) \\ (key,item) <- toList cache | not (startsWith prefix key)]) iworld
 	//Delete items from disk
-	# world = deleteFromDisk prefix location world
-	= ({store & cache = cache},world)
+	# iworld = appWorld (deleteFromDisk prefix location) iworld
+	= iworld
 where
 	deleteFromDisk prefix location world
 		# ((ok,dir),world)		= pd_StringToPath location world
@@ -183,13 +191,13 @@ where
 	pathDown (RelativePath steps) step = RelativePath (steps ++ [PathDown step]) 
 	pathDown (AbsolutePath dn steps) step = AbsolutePath dn (steps ++ [PathDown step])
 
-copyValues :: !String !String !*Store !*World -> (!*Store, !*World)
-copyValues fromprefix toprefix store=:{cache,location} world
+copyValues :: !String !String !*IWorld -> *IWorld
+copyValues fromprefix toprefix iworld=:{store=store=:{location}}
 	//Copy items in the cache
-	# cache = fromList (flatten [[(key,(dirty,item)): if (startsWith fromprefix key) [(newKey key, (True,item) )] [] ]\\ (key,(dirty,item)) <- toList cache])
+	# iworld = appCache (\cache -> fromList (flatten [[(key,(dirty,item)): if (startsWith fromprefix key) [(newKey key, (True,item) )] [] ]\\ (key,(dirty,item)) <- toList cache])) iworld
 	//Copy items on disk
-	# world	= copyOnDisk fromprefix toprefix location world
-	= ({store & cache = cache},world)
+	# iworld = appWorld (copyOnDisk fromprefix toprefix location) iworld
+	= iworld
 where
 	newKey key	= toprefix +++ (key % (size fromprefix, size key))
 
@@ -203,8 +211,8 @@ where
 	copy fromprefix toprefix [] world = world
 	copy fromprefix toprefix [f:fs] world
 		| startsWith fromprefix f.fileName
-			# sfile	= (location +++ "/" +++ f.fileName)
-			# dfile = (location +++ "/" +++ toprefix +++ (f.fileName % (size fromprefix, size f.fileName)))
+			# sfile	= location +++ "/" +++ f.fileName
+			# dfile = location +++ "/" +++ toprefix +++ (f.fileName % (size fromprefix, size f.fileName))
 			# world	= fcopy sfile dfile world
 			= copy fromprefix toprefix fs world
 		| otherwise
@@ -232,8 +240,8 @@ where
 				| err		= abort "fcopy: read error during copy"
 				| otherwise = (sfile,dfile)	
 
-flushCache :: !*Store !*World -> (!*Store,!*World)
-flushCache store=:{cache,location} world
+flushCache :: !*IWorld -> *IWorld
+flushCache iworld=:{world,store=store=:{cache,location}}
 	//Check if the location exists and create it otherwise
 	# ((ok,dir),world)	= pd_StringToPath location world
 	| not ok			= abort ("Cannot create storepath: " +++ location)
@@ -244,19 +252,13 @@ flushCache store=:{cache,location} world
 	| not ok			= abort ("Cannot create store: " +++ location)
 	//Write the states to disk
 	# (list, world) = flush (toList cache) world 
-	= ({store & cache = fromList list}, world)
+	= {iworld & world = world, store = {store & cache = fromList list}}
 where
 	flush [] world = ([],world)
 	flush [(key,(False,item)):is] world
 		# (is, world) = flush is world
 		= ([(key,(False,item)):is], world)
 	flush [(key,(True,item)):is] world
-		// determine timestamp if done yet
-		# (item, world) = case item.timestamp of
-			Nothing
-				# (t, world) = time world
-				= ({item & timestamp = Just t}, world)
-			_ = (item, world)
 		# world = writeToDisk key item location world
 		# (is, world) = flush is world
 		= ([(key,(False,item)):is], world)
@@ -265,23 +267,32 @@ where
 		# filename 			= location +++ "/" +++ key +++ (case format of SFPlain = ".txt" ; SFDynamic = ".bin" ; SFBlob = ".blb")
 		# (ok,file,world)	= fopen filename FWriteData world
 		| not ok			= abort ("Failed to write value to store: " +++ filename)
-		# file				= fwritei ((\(Just (Timestamp t)) -> t) timestamp) file
+		# file				= fwritei ((\(Timestamp t) -> t) timestamp) file
 		# file				= fwrites content file
 		# (ok,world)		= fclose file world
 		= world
 
-isValueChanged :: !String !Timestamp !*Store !*World -> (!Bool, !*Store, !*World)
-isValueChanged key t store=:{location,cache} world
-	# (mbItem,cache) = getU key cache
-	# store = {store & cache = cache}
-	# (mbTimestamp, store, world) = case mbItem of
-		Just (_,{timestamp}) = (timestamp, store, world)
-		Nothing
-			# (mbItem, world) = loadFromDisk key location world
-			= case mbItem of
-				Nothing				= (Nothing, store, world)
-				Just {timestamp}	= (timestamp, store, world)
+isValueChanged :: !String !Timestamp !*IWorld -> (!Bool,!*IWorld)
+isValueChanged key ts0 iworld
+	# (mbTimestamp,iworld) = getTimestamp key iworld
 	= case mbTimestamp of
-		Nothing		= (True, store, world)
-		timestamp	= (t < (fromJust timestamp), store, world)
-	 
+		Nothing		= (True,iworld)
+		Just ts1	= (ts0 < ts1,iworld)
+
+appCache :: !.(*(Map String (Bool,StoreItem)) -> *(Map String (Bool,StoreItem))) !*IWorld -> *IWorld
+appCache f iworld=:{store=store=:{cache}}
+	= {iworld & store = {store & cache = f cache}}
+	
+accCache :: !.(*(Map String (Bool,StoreItem)) -> *(.a,*Map String (Bool,StoreItem))) !*IWorld -> (.a,*IWorld)
+accCache f iworld=:{store=store=:{cache}}
+	# (a,cache) = f cache
+	= (a,{iworld & store = {store & cache = cache}})
+
+appWorld :: !.(*World -> *World) !*IWorld -> *IWorld
+appWorld f iworld=:{world}
+	= {iworld & world = f world}
+	
+accWorld :: !.(*World -> *(.a,*World)) !*IWorld -> (.a,!*IWorld)
+accWorld f iworld=:{world}
+	# (a,world) = f world
+	= (a,{iworld & world = world})

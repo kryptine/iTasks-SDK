@@ -3,7 +3,7 @@ implementation module textEditor
 import iTasks, StdMisc, Text
 
 textEditor :: [Workflow]
-textEditor = [workflow "Examples/Miscellaneous/Text Editor" "A simple text editor, demonstrating the 'application'-like capabilities of iTasks" (textEditorApp <<@ Subject "Text Editor")]
+textEditor = [workflow "Examples/Miscellaneous/Text Editor" "A simple text editor, demonstrating the 'application'-like capabilities of iTasks" (textEditorApp <<@ Title "Text Editor")]
 
 // global workflows
 textEditorApp :: Task Void
@@ -56,8 +56,8 @@ openDialog :: !AppStateRef !(MDITasks EditorState a) -> Task GAction
 openDialog gid mdiTasks =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
-					(showMessage "Open File" "No files to open!" GContinue)
-					(										enterChoiceA "Open file" "Open File" buttons files
+					(showMessage ("Open File","No files to open!") GContinue)
+					(										enterChoiceA ("Open file","Open File") buttons files
 						>>= \(action,(name, Hidden fid)).	case fst action of
 					 										ActionOk	=	open fid mdiTasks (Just gid)
 					 										_			=	continue
@@ -88,7 +88,7 @@ where
 	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ Floating
 
 about :: Task GAction
-about = showMessageA "About" "iTextEditor July 2010" [(ActionOk,always)] GContinue >>= transform snd
+about = showMessageA ("About","iTextEditor January 2011") [(ActionOk,always)] GContinue >>= transform snd
 
 quit :: !(MDIIterateEditors EditorState Bool) -> Task GAction	
 quit iterateEditors =
@@ -126,12 +126,13 @@ where
 	
 editorWindow :: !EditorStateRef -> Task GAction
 editorWindow eid =
-		updateShared "Text Editor" "You can edit the text." [] eid [titleListener, mainEditor] <<@ Tag eid
+		Tag eid @>>
+		(showMessageShared "Title" titleListener [] eid
+		-||-
+		updateSharedInformationA ("Text Editor","You can edit the text.") mainEditor [] eid)
 	>>|	continue
 where		
-	mainEditor = editor	{ editorFrom	= \(EditorState cont _)			-> cont
-						, editorTo		= \newCont (EditorState _ file)	-> EditorState newCont file
-						}
+	mainEditor = (\(EditorState cont _) -> cont,\newCont (EditorState _ file) -> EditorState newCont file)
 						
 save :: !EditorStateRef -> Task GAction
 save eid =
@@ -145,7 +146,7 @@ save eid =
 
 saveAs :: !EditorStateRef -> Task GAction
 saveAs eid =
-						enterInformationA "Save as" "Save As: enter name" buttons <<@ NoMenus
+						enterInformationA ("Save as","Save As: enter name") id buttons <<@ NoMenus
 	>>= \(action,name).	case fst action of
 							ActionOk =
 																readDB eid
@@ -165,7 +166,7 @@ replaceT eid = replaceT` {searchFor = "", replaceWith = ""}
 where
 	replaceT` :: !Replace -> Task GAction
 	replaceT` repl =
-								updateInformationA "Replace" "Replace" buttons repl <<@ NoMenus
+								updateInformationA ("Replace","Replace") idBimap buttons repl <<@ NoMenus
 		>>= \(action, repl).	case fst action of
 									ActionReplaceAll =
 											modifyDB eid (dbReplaceFunc repl)
@@ -185,21 +186,19 @@ ActionReplaceAll :== Action "replace-all" "Replace all"
 
 statistics :: !EditorStateRef  -> Task GAction
 statistics eid = 
-		updateShared "Statistics" "Statistics of your document" [(ActionOk, always)] eid [titleListener, statsListener] <<@ NoMenus
+		showMessageShared ("Statistics","Statistics of your document") statsListener [(ActionOk, always)] eid <<@ NoMenus
 	>>|	continue
 where
-	statsListener = listener {listenerFrom =  \(EditorState (Note text) _) ->
+	statsListener (EditorState (Note text) _) =
 			let txt = trim text
 			in
 				{lines = length (split "\n" txt), words = length (split " " (replaceSubString "\n" " " txt)), characters = textSize txt}
-		}
 					
-titleListener :: View EditorState					
-titleListener = listener	{ listenerFrom = \st=:(EditorState _ file) ->
-								if (hasUnsavedData st) "*" "" 
-								+++
-								getFileName file
-							}
+titleListener :: EditorState -> String					
+titleListener st=:(EditorState _ file) =
+	if (hasUnsavedData st) "*" "" 
+	+++
+	getFileName file
 								
 close :: !EditorStateRef -> Task GAction
 close eid =
@@ -220,9 +219,9 @@ hasUnsavedData (EditorState continue file) = case file of
 	
 requestClosingFile :: !EditorStateRef -> Task Bool
 requestClosingFile eid =
-	readDB eid
+										readDB eid
 	>>= \state=:(EditorState _ file).	if (hasUnsavedData state)
-										(					showMessageAboutA "Save changes" "Save changes?" buttons (question file) <<@ NoMenus
+										(					showMessageAboutA ("Save changes","Save changes?") id buttons (question file) <<@ NoMenus
 											>>= \action.	case fst action of
 																(ActionCancel,_)	= return True
 																(ActionNo,_)		= return False

@@ -11,7 +11,7 @@ from Time				import :: Timestamp
 from StdString			import class toString
 from iTasks				import class iTask
 from Config				import :: Config
-from InteractionTasks	import :: Menus, :: Menu
+from InteractionTasks	import :: Menus, :: Menu, class html
 
 import GenVisualize, GenUpdate, JSON, StoreTasks
 
@@ -112,7 +112,7 @@ instance zero Currency
 :: Session			=
 	{ sessionId	::	!String
 	, user		::	!User
-	, timestamp	::	!Int
+	, timestamp	::	!Timestamp
 	}
 
 :: ProcessId		:== String
@@ -165,14 +165,26 @@ instance zero Currency
 
 :: ManagerProperties =
 	{ worker			:: !User					// Who has to do the task? 
-	, subject			:: !String 					// The subject of the task
-	, description		:: !String					// Description of the task (html)
+	, taskDescription	:: !TaskDescription			// Description of the task
 	, context			:: !Maybe String			// Optional context information for doing the task (html)
 	, priority			:: !TaskPriority			// What is the current priority of this task?
 	, deadline			:: !Maybe DateTime			// When is the task due?
 	, tags				:: ![String]				// A list of tags
 	}
-	
+
+:: TaskDescription	=
+	{ title				:: !String					// The task's title
+	, description		:: !HtmlTag					// A longer description of the task
+	}
+		
+class descr d
+where
+	toDescr :: d -> TaskDescription
+
+instance descr String
+instance descr (String, descr) | html descr
+instance descr TaskDescription
+
 :: WorkerProperties =
 	{ progress			:: !TaskProgress			// Indication of the worker's progress
 	}
@@ -204,10 +216,11 @@ initGroupedProperties :: GroupedProperties
 
 :: TaskEvent	:== (!TaskId,!String,!JSONNode)	// taskid, name, value	
 
-:: *IWorld		=	{ application	:: !String											// The name of the application	
-					, store			:: !Store											// The generic data store
-					, config		:: !Config											// The server configuration
-					, world			:: !*World											// The outside world
+:: *IWorld		=	{ application	:: !String		// The name of the application	
+					, store			:: !Store		// The generic data store
+					, config		:: !Config		// The server configuration
+					, world			:: !*World		// The outside world
+					, timestamp		:: !Timestamp	// The timestamp of the current request
 					}
 
 // Changes
@@ -283,12 +296,12 @@ getRoles			:: !User -> [Role]
 * @param The task
 * @return The task's subject
 */
-taskSubject			:: !(Task a)				-> String
+taskTitle			:: !(Task a)				-> String
 
 /**
 * Extracts the description of a task
 */
-taskDescription		:: !(Task a)				-> String
+taskDescription		:: !(Task a)				-> HtmlTag
 
 /**
 * Extracts the initial worker of a task

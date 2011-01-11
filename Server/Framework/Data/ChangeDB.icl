@@ -37,11 +37,11 @@ where
 		= ([c \\ c <- list | startsWith c.PersistentChange.scope processId],iworld)
 
 changeStore ::  !([PersistentChange] -> [PersistentChange]) !*IWorld -> (![PersistentChange],!*IWorld) 
-changeStore fn iworld=:{IWorld|store,world}
-	# (mbList,store,world)	= loadValue "ChangeDB" store world
-	# list 					= fn (case mbList of Nothing = []; Just list = list)
-	# store					= storeValue "ChangeDB" list store 
-	= (list, {IWorld|iworld & store = store, world = world})
+changeStore fn iworld
+	# (mbList,iworld)	= loadValue "ChangeDB" iworld
+	# list 				= fn (case mbList of Nothing = []; Just list = list)
+	# store				= storeValue "ChangeDB" list iworld 
+	= (list,iworld)
 
 instance ChangeDB TSt
 where

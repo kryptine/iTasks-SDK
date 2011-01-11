@@ -52,17 +52,17 @@ bugReportExample
 	 
 reportBugVerySimple :: Task Note
 reportBugVerySimple
-	=	enterInformation "Describe bug" "Please describe the bug you have found"
+	=	enterInformation ("Describe bug","Please describe the bug you have found")
 	>>=	\report ->
 		assign (NamedUser "bas")
-			(Subject "Bug Report" @>> showInstructionAbout "Fix bug" "The following bug has been reported, please fix it." report)
+			(Title "Bug Report" @>> showInstructionAbout "Fix bug" "The following bug has been reported, please fix it." report)
 
 reportBugSimple :: Task BugReport
 reportBugSimple
-	=	enterInformation "Describe bug" "Please describe the bug you have found"
+	=	enterInformation ("Describe bug","Please describe the bug you have found")
 	>>=	\report ->
 		assign (NamedUser "bas")
-			(Subject "Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
+			(Title "Bug Report" @>> showInstructionAbout "Fix bug" "The following bug has been reported, please fix it." report)
 	>>| return report
 
 //Different variant of simple reportBug
@@ -70,10 +70,10 @@ bugReport :: Task BugReport
 bugReport = reportBug >>= fixBug
 where
 	reportBug :: Task BugReport
-	reportBug = enterInformation "Describe bug" "Please describe the bug you found"
+	reportBug = enterInformation ("Describe bug","Please describe the bug you found")
 	
 	fixBug :: BugReport -> Task BugReport
-	fixBug bug = NamedUser "bas" @: (Subject "Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." bug)
+	fixBug bug = NamedUser "bas" @: (Title "Bug Report" @>> showInstructionAbout "Fix bug" "The following bug has been reported, please fix it." bug)
 
 //Main workflow	  
 reportBug :: Task Bug
@@ -96,7 +96,7 @@ assignBug bug critical
 	>>=	\developer ->
 		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
 	>>= \bug ->
-		assign developer (Subject subject @>> priority @>> resolveBug bug critical)
+		assign developer (Title subject @>> priority @>> resolveBug bug critical)
 where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
@@ -122,7 +122,7 @@ wrapUp bug
 
 enterBugReport :: Task BugReport
 enterBugReport
-	=	enterInformation "Describe bug" "Please describe the bug you have found"
+	=	enterInformation ("Describe bug","Please describe the bug you have found")
 	
 fileBug :: BugReport -> Task Bug
 fileBug report
@@ -138,9 +138,9 @@ confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
 		assign assessor
-			( Subject "Bug report assessment" @>>
+			( Title "Bug report assessment" @>>
 			  HighPriority @>>
-			  requestConfirmationAbout "Confirmation" "Is this bug really critical?" report
+			  requestConfirmationAbout ("Confirmation","Is this bug really critical?") report
 			)
 
 selectDeveloper :: String -> Task User
@@ -174,7 +174,7 @@ analyzeBug bug
 		dbUpdateItem {bug & analysis = Just {cause = cause, affectedVersions = []}}
 where
 	determineCause bug
-		= enterInformationAbout "Cause" "What is the cause of the following bug?" bug
+		= enterInformationAbout ("Cause","What is the cause of the following bug?") bug
 		
 developBugFix :: Bug -> Task Bug
 developBugFix bug = showInstructionAbout "Bug fix" "Please implement a fix for the following bug:" bug
@@ -198,6 +198,6 @@ makePatches bug =
 			  >>| return Void
 		
 notifyReporter :: Bug -> Task Bug
-notifyReporter bug = bug.reportedBy @: (showMessageAbout "Bug Report Result" "The bug you reported has been fixed" bug)
+notifyReporter bug = bug.reportedBy @: (showMessageAbout ("Bug Report Result","The bug you reported has been fixed") bug)
 
 //notifyUser "The bug you reported has been fixed" bug.reportedBy

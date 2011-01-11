@@ -4,7 +4,7 @@ import StdList, StdArray
 
 from TSt import :: Task, :: TSt(..), :: IWorld(..), :: Store, :: HTTPRequest, :: Config, :: StaticInfo(..), :: Workflow
 from TSt import mkInstantTask, mkMonitorTask, accWorldTSt, appWorldTSt, getConfigSetting
-
+from InteractionTasks import instance html String
 import Types, Config
 from TaskTree import :: TaskTree, :: TaskInfo,  :: TaskPriority(..), ::TaskParallelType(..), :: TreeType(..)
 from TaskTree import :: TaskProperties(..), :: SystemProperties(..), :: WorkerProperties, :: ManagerProperties(..)
@@ -34,29 +34,29 @@ where
 	emailOf AnyUser				= EmailAddress ""
 
 getCurrentUser :: Task User
-getCurrentUser = mkInstantTask "Get current user" "Determine the currently logged in user." getCurrentUser`
+getCurrentUser = mkInstantTask ("Get current user", "Determine the currently logged in user.") getCurrentUser`
 where
 	getCurrentUser` tst=:{staticInfo}
 		= (TaskFinished staticInfo.currentSession.user,tst)
 
 getCurrentProcessId :: Task ProcessId
-getCurrentProcessId = mkInstantTask "Get current process id" "Determine the process identifier of the current task instance." getCurrentProcessId`
+getCurrentProcessId = mkInstantTask ("Get current process id", "Determine the process identifier of the current task instance.") getCurrentProcessId`
 where
 	getCurrentProcessId` tst=:{staticInfo}
 		= (TaskFinished staticInfo.currentProcessId,tst)
 
 getContextWorker :: Task User
-getContextWorker = mkInstantTask "Get context worker" "Determine the worker assigned to the current task." getContextWorker`
+getContextWorker = mkInstantTask ("Get context worker", "Determine the worker assigned to the current task.") getContextWorker`
 where
 	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.managerProperties.worker,tst)
 
 getContextManager :: Task User
-getContextManager = mkInstantTask "Get context manager" "Determine the manager of the current task." getContextManager`
+getContextManager = mkInstantTask ("Get context manager", "Determine the manager of the current task.") getContextManager`
 where
 	getContextManager` tst=:{TSt|properties} = (TaskFinished properties.systemProperties.manager, tst)
 
 getDefaultValue :: Task a | iTask a
-getDefaultValue = mkInstantTask "Create default value" "Create a default data value." getDefaultValue`
+getDefaultValue = mkInstantTask ("Create default value", "Create a default data value.") getDefaultValue`
 where
 	getDefaultValue` tst=:{TSt|iworld}
 		# (d,iworld)	= defaultValue iworld
@@ -64,14 +64,14 @@ where
 
 
 getRandomInt :: Task Int
-getRandomInt = mkInstantTask "Create random integer" "Create a random number." getRandomInt`
+getRandomInt = mkInstantTask ("Create random integer", "Create a random number.") getRandomInt`
 where
 	getRandomInt` tst
 		# (Clock seed, tst)	= accWorldTSt clock tst
 		= (TaskFinished (hd (genRandInt seed)), tst)
 
 sendEmail :: !String !Note ![recipient] -> Task [recipient]	| emailOf recipient & iTask recipient
-sendEmail subject (Note body) recipients = mkInstantTask "Send e-mail" "Send out an e-mail" sendEmail`
+sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send out an e-mail") sendEmail`
 where
 	sendEmail` tst=:{properties}
 		//Find out the user details of the sending user

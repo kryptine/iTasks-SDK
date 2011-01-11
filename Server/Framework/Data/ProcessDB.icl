@@ -7,24 +7,24 @@ instance ProcessDB IWorld
 where
 	createProcess :: !Process !*IWorld -> (!ProcessId,!*IWorld)
 	createProcess entry iworld
-		#(procs,iworld=:{store,world})	= processStore id iworld
-		# (pid,store,world) 			= getPid store world
-		# (procs,iworld)				= processStore (\_ -> procs ++ [{Process | entry & taskId = pid, properties = {entry.Process.properties & systemProperties = {SystemProperties|entry.Process.properties.systemProperties & taskId = pid}} }]) {iworld & store = store, world = world}
+		#(procs,iworld)		= processStore id iworld
+		# (pid,iworld)	 	= getPid iworld
+		# (procs,iworld)	= processStore (\_ -> procs ++ [{Process | entry & taskId = pid, properties = {entry.Process.properties & systemProperties = {SystemProperties|entry.Process.properties.systemProperties & taskId = pid}} }]) iworld
 		= (pid, iworld)
 		where
-			getPid store world
-				| entry.Process.taskId <> "" = (entry.Process.taskId,store,world)
-				| otherwise = getNewPid store world
+			getPid iworld
+				| entry.Process.taskId <> "" = (entry.Process.taskId,iworld)
+				| otherwise = getNewPid iworld
 						
-			getNewPid store world
-				# (mbNewPid,store,world) = loadValue "NextProcessID" store world
+			getNewPid iworld
+				# (mbNewPid,iworld) = loadValue "NextProcessID" iworld
 				= case mbNewPid of
 				(Just pid)
-					# store = storeValue "NextProcessID" (pid+1) store //increment the stored counter by 1
-					= (toString pid,store,world)
+					# iworld = storeValue "NextProcessID" (pid+1) iworld //increment the stored counter by 1
+					= (toString pid,iworld)
 				Nothing
-					# store = storeValue "NextProcessID" 2 store //store the next value (2)
-					= ("1",store,world) //return the first value (1)
+					# iworld = storeValue "NextProcessID" 2 iworld //store the next value (2)
+					= ("1",iworld) //return the first value (1)
 			
 	deleteProcess :: !TaskId !*IWorld	-> (!Bool, !*IWorld)
 	deleteProcess taskId iworld 
@@ -155,11 +155,11 @@ where
 		= iworld
 
 processStore ::  !([Process] -> [Process]) !*IWorld -> (![Process],!*IWorld) 
-processStore fn iworld=:{IWorld|store,world}
-	# (mbList,store,world)	= loadValue "ProcessDB" store world
-	# list 					= fn (case mbList of Nothing = []; Just list = list)
-	# store					= storeValue "ProcessDB" list store 
-	= (list, {IWorld| iworld & store = store, world = world})
+processStore fn iworld
+	# (mbList,iworld)	= loadValue "ProcessDB" iworld
+	# list 				= fn (case mbList of Nothing = []; Just list = list)
+	# iworld			= storeValue "ProcessDB" list iworld 
+	= (list,iworld)
 
 instance ProcessDB TSt
 where

@@ -43,9 +43,9 @@ handleMenu
 
 doMenu state=:((name,flow), mode)
 		=	case mode of
-				False 		->							updateInformationA "No flow" title1 (actions state) Void 
+				False 		->							updateInformationA ("No flow",title1) idBimap (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
-				True 	->								updateInformationA "Flow" title2
+				True 	->								updateInformationA ("Flow",title2) idBimap
 																					[ (ActionSave, ifValid (validFlow name flow.flowDyn))
 																					, (ActionOk, ifvalid)
 																					: actions state
@@ -80,9 +80,9 @@ switchAction (action, (nameflow=:(name,flow),mode))
 where
 	errorRaised :: [FlowShape] String -> Task Flow
 	errorRaised flowShape s
-		=					showMessage "Type error" ("Type Error: " +++ s) {flow & flowShape = flowShape}	
+		=					showMessage ("Type error","Type Error: " +++ s) {flow & flowShape = flowShape}	
 
 showAbout
-	= showMessage "About" "Flow editor 0.1 - feb 2010" Void
+	= showMessage ("About","Flow editor 0.1 - feb 2010") Void
 
 

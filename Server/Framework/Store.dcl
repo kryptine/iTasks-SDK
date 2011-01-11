@@ -12,6 +12,7 @@ definition module Store
 */
 import JSON
 from Time import :: Timestamp
+from Types import :: IWorld
 
 // Abstract store
 :: *Store
@@ -26,57 +27,61 @@ createStore		:: !String -> *Store
 
 /**
 * Store a value in the default format
-* Values are first stored in a cache, so no world is needed yet
 */
-storeValue		:: !String !a !*Store	-> *Store | JSONEncode{|*|}, TC a
+storeValue				:: !String !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
 
 /**
 * Store a value in a specific format
 */
-storeValueAs			:: 	!StoreFormat !String !a !*Store	-> *Store	| JSONEncode{|*|}, TC a
+storeValueAs			:: 	!StoreFormat !String !a	!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
 
 /**
 * Store raw value
 */
-storeValueAsBlob 		:: !String !String !*Store -> *Store
+storeValueAsBlob 		:: !String !String			!*IWorld -> *IWorld
 
 /**
 * Load a value from the store
 */
-loadValue				:: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | JSONDecode{|*|}, TC a
+loadValue				:: !String					!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}, TC a
+
+/**
+* Get a value's timestamp
+*/
+getTimestamp			:: !String					!*IWorld -> (!Maybe Timestamp,!*IWorld)
 
 /**
 * Load a value from the store, additionally a timestamp is given
 */
-loadValueAndTimestamp	:: !String !*Store !*World -> (!Maybe (a,Timestamp), !*Store, !*World) | JSONDecode{|*|}, TC a
+loadValueAndTimestamp	:: !String					!*IWorld -> (!Maybe (a,Timestamp),!*IWorld)	| JSONDecode{|*|}, TC a
 
 /**
 * Load raw data from the store
 */
-loadValueAsBlob 		:: !String !*Store !*World -> (!Maybe String, !*Store, !*World)
+loadValueAsBlob 		:: !String					!*IWorld -> (!Maybe String,!*IWorld)
 
 /**
 * Loads a dynamic from the store without unwrapping it
 */
-loadDynamicValue 		:: !String !*Store !*World -> (!Maybe Dynamic, !*Store, !*World)
+loadDynamicValue 		:: !String					!*IWorld -> (!Maybe Dynamic,!*IWorld)
 
 /**
 * Deletes all values that start with the prefix from the store
 */
-deleteValues			:: !String !*Store !*World -> (!*Store, !*World)
+deleteValues			:: !String					!*IWorld -> *IWorld
 
 /**
 * Copies all values in the store that start with the first prefix to
 * a new name where the first prefix is replaced by the second.
 */
-copyValues				:: !String !String !*Store !*World -> (!*Store, !*World)
+copyValues				:: !String !String			!*IWorld -> *IWorld
 
 /**
 * Writes all values stored in the cache to disk
 */
-flushCache				:: !*Store !*World -> (!*Store,!*World)
+flushCache				::							!*IWorld -> *IWorld
 
 /**
 * Determines if the store's value has been changed since given timestamp
 */
-isValueChanged			:: !String !Timestamp !*Store !*World -> (!Bool, !*Store, !*World)
+isValueChanged			:: !String !Timestamp		!*IWorld -> (!Bool,!*IWorld)

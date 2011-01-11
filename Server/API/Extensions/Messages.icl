@@ -49,8 +49,8 @@ manageMessages =
 	) <! id >>| stop
 where
 	overview :: [Message] -> Task (ActionEvent,Message)
-	overview []		= getDefaultValue >>= showMessageA "My messages" "You have no messages" [aNew,aNewGroup,aQuit] 
-	overview msgs	= enterChoiceA "My messages" "Your messages:" [aOpen,aNew,aNewGroup,aQuit] msgs
+	overview []		= getDefaultValue >>= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] 
+	overview msgs	= enterChoiceA ("My messages","Your messages:") [aOpen,aNew,aNewGroup,aQuit] msgs
 	
 	aOpen		= (ActionOpen,ifvalid)
 	aNew		= (Action "new-msg" "New message", always)
@@ -59,18 +59,18 @@ where
 
 manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
-	= 	showMessageAboutA subject "You received a message" [aClose,aReply,aReplyAll,aForward,aDelete] msg
+	= 	showMessageAboutA (subject,"You received a message") id [aClose,aReply,aReplyAll,aForward,aDelete] msg
 	>>= \act -> case act of
 		((ActionClose,_),_) 
 			= return False
 		((Action "reply" _,_),message)
 			= 			getCurrentUser
-			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
+			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
 		((Action "reply-all" _,_),_)
 			= 			getCurrentUser
-			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
+			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
 		((Action "forward" _,_),_)
@@ -80,7 +80,7 @@ manageMessage msg=:{Message |subject}
 			>>| return False
 		((ActionDelete,_),msg)
 			=			dbDeleteItem (getItemId msg)
-			>>|			showMessage "Deleted" "Message deleted" False	
+			>>|			showMessage ("Deleted","Message deleted") False	
 where
 	aReply		= (Action "reply" "Reply",always)
 	aReplyAll	= (Action "reply-all" "Reply All",always)
@@ -98,8 +98,8 @@ newGroupMessage :: Task Void
 newGroupMessage = getCurrentUser
 	>>= \me ->		getMyGroups
 	>>= \groups ->	case groups of
-		[]	=	showMessage "No groups" "You are not a member of any group" Void
-		_	=	enterChoice "Choose group" "Select group" groups
+		[]	=	showMessage ("No groups","You are not a member of any group") Void
+		_	=	enterChoice ("Choose group","Select group") groups
 			>>= \group ->	writeMessage me "" group.members Nothing
 			>>= \msg ->		sendMessage msg
 	
@@ -109,7 +109,7 @@ sendMessage msg
 	>>= \msg -> case msg.needsReply of
 			False	= allTasks [spawnProcess True True (notifyTask rcp msg) \\ rcp <- msg.Message.recipients] >>| stop
 			True	= spawnProcess True True (awaitReplies msg) >>| stop
-	>>| showMessageAbout "Message sent" "The following message has been sent:" msg
+	>>| showMessageAbout ("Message sent","The following message has been sent:") msg
 	>>| stop
 where
 	notifyTask user msg =
@@ -119,7 +119,7 @@ where
 		(manageMessage msg)
 
 	awaitReplies msg =
-		Subject ("Waiting for reply on " +++ msg.Message.subject) @>>
+		Title ("Waiting for reply on " +++ msg.Message.subject) @>>
 		case msg.Message.recipients of
 			[recipient]	= assign recipient (askReplyTask recipient msg) >>= \answer -> notifyNoReplies [recipient] [answer]
 			recipients	= allProc [askReplyTask rcp msg \\ rcp <- recipients] Closed >>=  notifyNoReplies recipients
@@ -128,21 +128,21 @@ where
 		user @>>
 		subject msg @>>
 		msg.Message.priority @>>
-		(showStickyMessage "Reply requested" "The sender would like to receive a reply to this message." False
+		(showStickyMessage ("Reply requested","The sender would like to receive a reply to this message.") False
 		 ||-
 		 manageMessage msg
 		 ) 
 	subject msg
-		= Subject ("Message from " +++ toString (fromDisplay msg.Message.sender)+++ ": "+++msg.Message.subject)
+		= Title ("Message from " +++ toString (fromDisplay msg.Message.sender)+++ ": "+++msg.Message.subject)
 	
 	notifyNoReplies recipients answers
 		= case [rcp \\ rcp <- recipients & ans <- answers | not ans] of
 			[]		= stop
-			users	= showMessageAbout "Reply request ignored" "The following users ignored your request for a reply:" users >>| stop
+			users	= showMessageAbout ("Reply request ignored","The following users ignored your request for a reply:") users >>| stop
 			
 writeMessage :: User String [User] (Maybe Message) -> Task Message
 writeMessage sender subj recipients mbThread
-	= updateInformation "Compose" "Enter your message"
+	= updateInformation ("Compose","Enter your message")
 		{Message | (mkMsg sender) & subject = subj, recipients = recipients,thread = updateThread mbThread}
 where
 	updateThread :: (Maybe Message) -> Display [Message] 

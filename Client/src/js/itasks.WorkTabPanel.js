@@ -44,6 +44,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 							iconCls: 'x-tbar-loading',
 							scope: this,
 							handler: function(item,evt){
+								delete this.params["timestamp"];
 								this.refresh();
 							}
 						},{
@@ -102,6 +103,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		delete(this.params["events"]);
 	},
 	update: function(data,success) {
+		//Store the timestamp of the current value
+		this.params["timestamp"] = data.timestamp;
 		//Check if the task is finished or became redundant
 		if(success == false || data.tui == "done" || data.tui == "redundant") {
 			
@@ -145,9 +148,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		//Update properties
 		this.properties = data.task;
 		//Update header
-		this.getComponent(0).setContent(this.taskId, data.task.managerProperties.subject, data.task);
+		this.getComponent(0).setContent(this.taskId, data.task.managerProperties.taskDescription.title, data.task);
 		//Update title
-		this.updateTitle(data.task.managerProperties.subject);
+		this.updateTitle(data.task.managerProperties.taskDescription.title);
 		//Update content
 		this.updateContent(data.tui);
 	},

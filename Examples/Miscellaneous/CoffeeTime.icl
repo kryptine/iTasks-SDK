@@ -27,15 +27,15 @@ where
 * Collect the drinks orders from all users
 */
 collectOrders :: [User] -> Task [Maybe String] 
-collectOrders users = allTasks [u @: (Subject "Coffee time!" @>> getOrder) \\ u <- users]
+collectOrders users = allTasks [u @: (Title "Coffee time!" @>> getOrder) \\ u <- users]
 /*
 * Ask someone if he/she wants something to drink
 */
 getOrder :: Task (Maybe String)
 getOrder
-	=	requestConfirmation "Coffee time" "It is coffee time, do you want something?"
+	=	requestConfirmation ("Coffee time","It is coffee time, do you want something?")
 	>>= \yes -> if yes
-		(enterChoice "Product choice" "What do you want" ["Coffee","Tea","Chocolate"] >>= \choice -> return (Just choice))
+		(enterChoice ("Product choice","What do you want") ["Coffee","Tea","Chocolate"] >>= \choice -> return (Just choice))
 		(return Nothing)
 /*
 * Determine who has to go get coffee
@@ -47,4 +47,4 @@ determineWhoGoes orders = randomChoice [user \\ (user,_) <- orders]
 * Give someone directions to go get coffee for everyone
 */
 goGetCoffee :: User [(User,String)] -> Task Void
-goGetCoffee user orders = user @: (Subject "Get coffee" @>> showInstructionAbout "Coffee orders" "You have been chosen to get the following drinks" orders >>| stop)
+goGetCoffee user orders = user @: (Title "Get coffee" @>> showInstructionAbout "Coffee orders" "You have been chosen to get the following drinks" orders >>| stop)

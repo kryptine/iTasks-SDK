@@ -240,7 +240,6 @@ itasks.ttc.common.setupHotkeys = function(tb, parent) {
 				var item = hk.menuitem;
 				// only fire hotkey-event if item is not disabled
 				if (!item.disabled) {
-					console.log("HOTKEY");
 					parent.addUpdate(item.name, item.value);
 					parent.sendUpdates();
 				}

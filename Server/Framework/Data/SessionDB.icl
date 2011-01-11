@@ -3,9 +3,7 @@ implementation module SessionDB
 import StdEnv, StdMaybe
 import StdGeneric
 import TSt, Store
-
-import Time
-import Random
+import Random, Time
 
 instance SessionDB IWorld
 where
@@ -26,27 +24,25 @@ where
 			_	= (Nothing, iworld)
 	
 	createSession :: !User !*IWorld -> (!Session,!*IWorld)
-	createSession user iworld
+	createSession user iworld=:{IWorld|timestamp}
 		# (sid, iworld)		= genSessionId iworld
-		# (ts, iworld)		= getTimeStamp iworld
-		# session			= {Session | sessionId = sid, user = user, timestamp = ts}
+		# session			= {Session | sessionId = sid, user = user, timestamp}
 		# (sessions, iworld)= sessionStore (\l -> [session:l]) iworld
 		= (session,iworld)
 	
 	restoreSession	:: !SessionId !*IWorld -> (!Maybe Session, !Bool, !*IWorld)
-	restoreSession sid iworld 
+	restoreSession sid iworld =:{IWorld|timestamp}
 		# (sessions, iworld)			= sessionStore id iworld
-		# (ts, iworld)					= getTimeStamp iworld
 		# (mbSession, before, after)	= findSession sid [] sessions
 		= case mbSession of
 			Nothing
-				= (Nothing, False, iworld)							// Not found and no timeout
+				= (Nothing, False, iworld)												// Not found and no timeout
 			Just s
-				| (ts - s.timestamp) > iworld.config.sessionTime	// Session found but timed out
+				| (diffTime timestamp s.Session.timestamp) > iworld.config.sessionTime	// Session found but timed out
 					# (_, iworld)	= sessionStore (\_ -> (before ++ after)) iworld
 					= (Nothing, True, iworld)
-				| otherwise											// Session found and still valid
-					# (_, iworld)	= sessionStore (\_ -> (before ++ [{s & timestamp = ts}: after])) iworld
+				| otherwise																// Session found and still valid
+					# (_, iworld)	= sessionStore (\_ -> (before ++ [{Session|s & timestamp = timestamp}: after])) iworld
 				 	= (Just s, False, iworld)
 		
 	deleteSession	:: !SessionId !*IWorld -> (!Bool,!*IWorld)
@@ -66,22 +62,16 @@ findSession sid before [s=:{sessionId}:after]
 						= findSession sid [s:before] after
 						
 genSessionId :: !*IWorld -> (!String, !*IWorld)
-genSessionId iworld=:{IWorld|world}
-	# (Timestamp t, world)	= time world
+genSessionId iworld=:{IWorld|world,timestamp}
 	# (Clock c, world)		= clock world
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (t+c)]) , {IWorld|iworld & world = world})
-
-getTimeStamp :: !*IWorld -> (!Int, !*IWorld)
-getTimeStamp iworld=:{IWorld|world}
-	# (Timestamp t, world) = time world
-	= (t, {IWorld|iworld & world = world})
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) , {IWorld|iworld & world = world})
 
 sessionStore :: !([Session] -> [Session]) !*IWorld -> (![Session],!*IWorld) 
-sessionStore fn iworld=:{IWorld|store,world}
-	# (mbList,store,world)	= loadValue "SessionDB" store world
-	# list 					= fn (case mbList of Nothing = []; Just list = list)
-	# store					= storeValue "SessionDB" list store 
-	= (list, {IWorld|iworld & store = store, world = world })
+sessionStore fn iworld
+	# (mbList,iworld)	= loadValue "SessionDB" iworld
+	# list 				= fn (case mbList of Nothing = []; Just list = list)
+	# iworld			= storeValue "SessionDB" list iworld
+	= (list,iworld)
 
 instance SessionDB TSt
 where

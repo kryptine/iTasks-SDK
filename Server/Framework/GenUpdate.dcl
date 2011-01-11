@@ -5,8 +5,6 @@ import Types, Store
 
 //Datapath is used to point to substructures of data structures
 :: DataPath
-:: SubEditorIndex :== Int
-//:: DataMask :== [[Int]]
 
 //				Mode		Dirty			Child Components
 :: UpdateMask = Untouched 			
@@ -60,8 +58,6 @@ stepDataPath			:: DataPath			-> DataPath
 shiftDataPath			:: DataPath			-> DataPath
 childDataPath			:: DataPath Int		-> DataPath
 dataPathLevel			:: DataPath			-> Int
-dataPathHasSubEditorIdx	:: DataPath Int		-> Bool
-dataPathSetSubEditorIdx	:: DataPath Int		-> DataPath
 dataPathList 			:: DataPath 		-> [Int]
 
 dp2s			:: DataPath			-> String

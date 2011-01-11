@@ -1,18 +1,19 @@
 implementation module TuningCombinators
 
 import Types, StdList, StdMisc
-from Time		import :: Timestamp, :: Tm(..), mkTime
-from TaskTree	import :: GroupedBehaviour, :: GroupActionsBehaviour
+from Time				import :: Timestamp, :: Tm(..), mkTime
+from TaskTree			import :: GroupedBehaviour, :: GroupActionsBehaviour
+from InteractionTasks	import class html(..)
 
 class tune b :: !b !(Task a) -> Task a
 instance tune ManagerProperties
 where tune props task								= {task & taskProperties = props}
 instance tune User
 where tune u task=:{taskProperties}					= {task & taskProperties = {taskProperties & worker = u}}
-instance tune Subject
-where tune (Subject s) task=:{taskProperties}		= {task & taskProperties = {taskProperties & subject = toString s}}
+instance tune Title
+where tune (Title s) task=:{taskProperties}			= {task & taskProperties = {taskProperties & taskDescription = {TaskDescription|taskProperties.taskDescription & title = toString s}}}
 instance tune Description
-where tune (Description s) task=:{taskProperties}	= {task & taskProperties = {taskProperties & description = toString s}}
+where tune (Description s) task=:{taskProperties}	= {task & taskProperties = {taskProperties & taskDescription = {TaskDescription|taskProperties.taskDescription & description = html s}}}
 instance tune TaskPriority
 where tune p task=:{taskProperties}					= {task & taskProperties = {taskProperties & priority = p}}
 instance tune DateTime
@@ -34,10 +35,10 @@ where
 			StaticMenus menus				= \iworld -> (menus, iworld)
 			DynamicMenus (DBId refStr) genF	= dynamicMenus
 			where
-				dynamicMenus iworld=:{world, store}
-					# (mbV, store, world) = loadValue refStr store world
+				dynamicMenus iworld
+					# (mbV,iworld) = loadValue refStr iworld
 					= case mbV of
-						Just v	= (genF v, {iworld & store = store, world = world})
+						Just v	= (genF v,iworld)
 						Nothing	= abort "Cannot dynamically generate menus! Stored value deleted!"
 instance tune Menus
 where tune menus task = tune (StaticMenus menus) task

@@ -19,20 +19,19 @@ where
 			_			= (Nothing, iworld)
 	
 	getDocumentContent :: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
-	getDocumentContent documentId iworld=:{IWorld|store,world}
-		# (mbContent,store,world)	= loadValueAsBlob ("document-" +++ documentId) store world
-		= (mbContent,{IWorld|iworld & store = store, world = world})
+	getDocumentContent documentId iworld
+		# (mbContent,iworld) = loadValueAsBlob ("document-" +++ documentId) iworld
+		= (mbContent,iworld)
 	
 	createDocument :: !String !String !String !*IWorld -> (!Document, !*IWorld)
 	createDocument name mime content iworld
 		# (documentId, iworld)	= genDocumentId iworld
 		# document				= {Document|documentId = documentId, name = name, mime = mime, size = size content}
 		//Store the meta-data
-		# (_,iworld=:{IWorld|store})
-							= documentStore (\l -> [document:l]) iworld
+		# (_,iworld)			= documentStore (\l -> [document:l]) iworld
 		//Store the document content
-		# store				= storeValueAsBlob ("document-" +++ documentId) content store
-		= (document, {IWorld|iworld & store = store})
+		# iworld					= storeValueAsBlob ("document-" +++ documentId) content iworld
+		= (document,iworld)
 	
 	deleteDocument :: !DocumentId !*IWorld -> (Maybe Document, !*IWorld)
 	deleteDocument documentId iworld
@@ -40,31 +39,25 @@ where
 		= case mbDocument of
 			Just document
 				//Remove the meta-data
-				# (_,iworld=:{IWorld|store, world})
-								= documentStore (\l -> [d \\ d <- l | d.Document.documentId <> documentId]) iworld
+				# (_,iworld)	= documentStore (\l -> [d \\ d <- l | d.Document.documentId <> documentId]) iworld
 				//Remove the content
-				# (store,world)	= deleteValues ("document-" +++ documentId) store world
-				= (Just document, {IWorld|iworld & store = store, world = world})
+				# iworld		= deleteValues ("document-" +++ documentId) iworld
+				= (Just document,iworld)
 			Nothing
 				= (Nothing, iworld)
 	
 documentStore ::  !([Document] -> [Document]) !*IWorld -> (![Document],!*IWorld) 
-documentStore fn iworld=:{IWorld|store,world}
-	# (mbList,store,world)			= loadValue "DocumentDB" store world
-	# list 							= fn (case mbList of Nothing = []; Just list = list)
-	# store							= storeValue "DocumentDB" list store 
-	= (list, {IWorld|iworld & store = store, world = world})
-
+documentStore fn iworld
+	# (mbList,iworld)	= loadValue "DocumentDB" iworld
+	# list 				= fn (case mbList of Nothing = []; Just list = list)
+	# iworld			= storeValue "DocumentDB" list iworld 
+	= (list,iworld)
 
 genDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
-genDocumentId iworld=:{IWorld|world}
-	# (Timestamp t, world)	= time world
-	# (Clock c, world)		= clock world
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (t+c)]) ,{iworld & world = world})
+genDocumentId iworld=:{world,timestamp}
+	# (Clock c,world)	= clock world
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) ,{iworld & world = world})
 
-
-
-	
 instance DocumentDB TSt
 where
 	getDocuments :: !*TSt -> (![Document],!*TSt)

@@ -15,7 +15,7 @@ instance toString Group where toString g = g.Group.name
 
 manageGroups :: Task Void
 manageGroups
-	=	Subject "Manage groups" @>>
+	=	Title "Manage groups" @>>
 	(	getMyGroups
 	>>=	overview 
 	>>= \(action,group) -> case fst action of
@@ -25,13 +25,13 @@ manageGroups
 	) <! id
 	>>| return Void
 where
-	overview []		= getDefaultValue >>= showMessageA "My groups" startMsg [aNew,aQuit]
-	overview list	= enterChoiceA "My groups" listMsg [aOpen,aNew,aQuit] list
+	overview []		= getDefaultValue >>= showMessageA ("My groups",startMsg) [aNew,aQuit]
+	overview list	= enterChoiceA ("My groups",listMsg) [aOpen,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)
 	aNew			= (ActionNew, always)
 	aQuit			= (ActionQuit, always)
-	newGroup		= 		enterInformation "New group" "Please enter a name for the new group" 
+	newGroup		= 		enterInformation ("New group","Please enter a name for the new group")
 						>>= \name ->
 							getContextWorker
 						>>= \user -> 
@@ -52,7 +52,7 @@ manageGroup igroup
 	= 	
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
-		showMessageAboutA (toString group) "This group contains the following members:" [aBack,aInvite,aLeave] group.Group.members
+		showMessageAboutA (toString group,"This group contains the following members:") id [aBack,aInvite,aLeave] group.Group.members
 	>>= \(action,_) -> case fst action of
 		ActionClose					= 					return True
 		Action "invite" _			= invite group	>>| return False
@@ -64,7 +64,7 @@ where
 	aLeave	= (Action "leave" "Leave group", always)
 		
 	invite group
-		= 	enterInformation ("Invite a someone to join " +++ toString group) "Please enter a user to invite to the group"
+		= 	enterInformation ("Invite a someone to join " +++ toString group,"Please enter a user to invite to the group")
 		>>=	inviteUserToGroup group
 			
 	leave group
@@ -111,16 +111,16 @@ inviteUserToGroup group user
 		>>= \accept ->
 			if accept
 				(addMemberToGroup group user 
-				 >>= showMessage "Invitation accepted" (toString user +++ " accepted your invitation to join the group " +++ toString group)
+				 >>= showMessage ("Invitation accepted",toString user +++ " accepted your invitation to join the group " +++ toString group)
 				)
-				(showMessage "Invitation declined" (toString user +++ " declined your invitation to join the group " +++ toString group) group)
+				(showMessage ("Invitation declined",toString user +++ " declined your invitation to join the group " +++ toString group) group)
 		)
-	>>| showMessage "Invitation sent" ("An invitation to join the group has been sent to " +++ toString user) group
+	>>| showMessage ("Invitation sent","An invitation to join the group has been sent to " +++ toString user) group
 where
 	invite user group
-		= requestConfirmation
-			("Invitation to join group " +++ toString group)
-			[Text (toString user +++ " invites you to join the group " +++ toString group +++ "."),BrTag [], Text "Do you accept this invitation?"]
+		= requestConfirmation (
+			"Invitation to join group " +++ toString group,
+			[Text (toString user +++ " invites you to join the group " +++ toString group +++ "."),BrTag [], Text "Do you accept this invitation?"])
 
 
 			

@@ -158,8 +158,8 @@ where
 buildSubtaskInfo :: !TaskTree -> TTCParallelContainerElement
 buildSubtaskInfo (TTMainTask _ p _ _)
 	= {TTCParallelContainerElement	| taskId		= p.systemProperties.SystemProperties.taskId
-									, subject		= p.managerProperties.ManagerProperties.subject
-									, description	= p.managerProperties.ManagerProperties.description
+									, subject		= p.managerProperties.taskDescription.TaskDescription.title
+									, description	= toString p.managerProperties.taskDescription.TaskDescription.description
 									, delegatedTo	= toString p.managerProperties.worker
 									, finished		= case p.systemProperties.SystemProperties.status of
 											Finished	= True	//Possible improvement:			

@@ -5,7 +5,7 @@ itasks.ttc.ProcessControlContainer = Ext.extend(itasks.ttc.TTCBase,{
 	initComponent: function() {
 		this.cls = 'TTCProcessControlContainer';
 		
-		this.subject = this.properties.managerProperties.subject;
+		this.subject = this.properties.managerProperties.taskDescription.title;
 		this.description = "Waiting for <i>" +  this.properties.managerProperties.subject + "</i>";
 	
 		itasks.ttc.ProcessControlContainer.superclass.initComponent.apply(this,arguments);
