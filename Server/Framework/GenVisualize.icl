@@ -134,6 +134,7 @@ sameType (TUIConstructorControl _)	(TUIConstructorControl _)	= True
 sameType (TUIHiddenControl _)		(TUIHiddenControl _)		= True
 sameType (TUIFormButtonControl _)	(TUIFormButtonControl _)	= True
 sameType (TUIListItemControl _)		(TUIListItemControl _)		= True
+sameType (TUIAppletControl _)       (TUIAppletControl _)        = True
 
 sameType (TUITupleContainer _)		(TUITupleContainer _)		= True
 sameType (TUIRecordContainer _)		(TUIRecordContainer _)		= True
@@ -168,6 +169,7 @@ isControl (TUIDateControl {TUIBasicControl|value})			= True
 isControl (TUITimeControl {TUIBasicControl|value})			= True
 isControl (TUIPasswordControl {TUIBasicControl|value})		= True
 isControl (TUICurrencyControl {TUICurrencyControl|value})	= True
+isControl (TUIAppletControl {TUIAppletControl|value})       = True
 isControl (TUIUserControl {TUIBasicControl|value})			= True
 isControl _													= False
 
@@ -182,6 +184,7 @@ valueOf (TUIDateControl {TUIBasicControl|value})		= Just value
 valueOf (TUITimeControl {TUIBasicControl|value})		= Just value
 valueOf (TUIPasswordControl {TUIBasicControl|value})	= Just value
 valueOf (TUICurrencyControl {TUICurrencyControl|value})	= Just value
+valueOf (TUIAppletControl {TUIAppletControl|value})		= Just value
 valueOf (TUIUserControl {TUIBasicControl|value})		= Just value
 valueOf _												= Nothing
 
@@ -196,6 +199,7 @@ errorOf (TUIDateControl {TUIBasicControl|errorMsg})			= Just errorMsg
 errorOf (TUITimeControl {TUIBasicControl|errorMsg})			= Just errorMsg
 errorOf (TUIPasswordControl {TUIBasicControl|errorMsg})		= Just errorMsg
 errorOf (TUICurrencyControl {TUICurrencyControl|errorMsg})	= Just errorMsg
+errorOf (TUIAppletControl {TUIAppletControl|errorMsg})      = Just errorMsg
 errorOf (TUIUserControl {TUIBasicControl|errorMsg})			= Just errorMsg
 errorOf _													= Nothing
 
@@ -210,6 +214,7 @@ hintOf (TUIDateControl {TUIBasicControl|hintMsg})			= Just hintMsg
 hintOf (TUITimeControl {TUIBasicControl|hintMsg})			= Just hintMsg
 hintOf (TUIPasswordControl {TUIBasicControl|hintMsg})		= Just hintMsg
 hintOf (TUICurrencyControl {TUICurrencyControl|hintMsg})	= Just hintMsg 
+hintOf (TUIAppletControl {TUIAppletControl|hintMsg})		= Just hintMsg
 hintOf (TUIUserControl {TUIBasicControl|hintMsg})			= Just hintMsg
 hintOf _													= Nothing
 

@@ -58,6 +58,7 @@ instance == TUIDef
 	| TUIHiddenControl TUIBasicControl
 	| TUIFormButtonControl TUIButtonControl
 	| TUIListItemControl TUIListItemControl
+	| TUIAppletControl TUIAppletControl
 	
 	| TUITupleContainer TUITupleContainer
 	| TUIRecordContainer TUIRecordContainer
@@ -182,6 +183,18 @@ instance == TUIDef
 	, id				:: !TUIId
 	, items				:: ![TUIDef]
 	, index				:: !Int
+	}
+	
+:: TUIAppletControl =  
+    { appletcode        :: !String
+    , archives          :: ![String]
+    , width             :: !String
+    , height            :: !String
+	, name				:: !String
+	, id				:: !String
+	, value             :: !String
+    , errorMsg          :: !String
+    , hintMsg           :: !String
 	}
 	
 :: TUIHtmlContainer =

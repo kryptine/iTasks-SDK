@@ -5,13 +5,13 @@ import JSON,StdList,StdBool,GenEq
 from Types import :: Document, :: DocumentId, :: Hotkey, :: Key
 
 derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
-derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, JSONNode, Maybe, Document
+derive gEq TUIAppletControl, TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, JSONNode, Maybe, Document
 derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey, Key
 
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
-derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl
+derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl
 derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer
 
 //TODO: Separate control elements from form-widgets
@@ -39,6 +39,7 @@ JSONEncode{|TUIDef|} (TUIPasswordControl r)		= addXType "itasks.tui.Password" (J
 JSONEncode{|TUIDef|} (TUIDocumentControl r)	 	= addXType "itasks.tui.Document" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIConstructorControl r)	= addXType "itasks.tui.Constructor" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIListItemControl r) 	= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIAppletControl r)		= addXType "itasks.tui.Applet" (JSONEncode{|*|} r)
 
 JSONEncode{|TUIDef|} (TUITupleContainer r)		= addXType "itasks.tui.Tuple" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)
@@ -68,6 +69,7 @@ where
 	(==) (TUIDocumentControl a) 	(TUIDocumentControl b) 		= a == b
 	(==) (TUIConstructorControl a) 	(TUIConstructorControl b) 	= a == b
 	(==) (TUIListItemControl a) 	(TUIListItemControl b) 		= a == b
+	(==) (TUIAppletControl a) 	    (TUIAppletControl b)	    = a == b
 	(==) (TUITupleContainer a) 		(TUITupleContainer b) 		= a == b
 	(==) (TUIRecordContainer a) 	(TUIRecordContainer b) 		= a == b
 	(==) (TUIListContainer a) 		(TUIListContainer b) 		= a == b
@@ -122,6 +124,10 @@ instance == TUIListItemControl
 where
 	(==) a b = a.TUIListItemControl.id == b.TUIListItemControl.id
 			&& (a.TUIListItemControl.items == b.TUIListItemControl.items)
+
+instance == TUIAppletControl
+where
+	(==) a b = (a.TUIAppletControl.id == b.TUIAppletControl.id)
 			
 instance == TUIMenuItem
 	where

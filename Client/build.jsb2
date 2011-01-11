@@ -28,12 +28,12 @@
 		,{"text":"HiddenControl.js","path":"src/js/tui/"}
 		,{"text":"FormButtonControl.js","path":"src/js/tui/"}
 		,{"text":"ChoiceControl.js","path":"src/js/tui/"}
+		,{"text":"AppletControl.js","path":"src/js/tui/"}
 		,{"text":"TUICommon.js","path":"src/js/tui/"}
 		
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
 		,{"text":"TupleContainer.js","path":"src/js/tui/"}
-		,{"text":"AppletContainer.js","path":"src/js/tui/"}
 		,{"text":"HtmlContainer.js","path":"src/js/tui/"}
 		
 		,{"text":"TTCCommon.js","path":"src/js/ttc/"}

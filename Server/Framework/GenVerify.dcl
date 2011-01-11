@@ -11,14 +11,15 @@ import GenUpdate
 			  | VMInvalid ErrorMessage (Maybe FieldLabel) [VerifyMask]
 			  
 
-:: VerSt =
+:: *VerSt =
 	{ updateMask	:: [UpdateMask]
 	, verifyMask	:: [VerifyMask]
 	, optional		:: Bool
+	, iworld        :: *IWorld
 	}
 
 
-generic gVerify a :: (Maybe a) VerSt -> VerSt
+generic gVerify a :: (Maybe a) *VerSt -> *VerSt
 
 instance GenMask VerifyMask
 instance toString ErrorMessage
@@ -31,7 +32,7 @@ derive JSONEncode VerifyMask
 /**
 * Verify a value based on the value and its update mask.
 */
-verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
+verifyValue :: !a !UpdateMask *IWorld -> (VerifyMask, *IWorld) | gVerify{|*|} a
 
 /**
 * Based on the verify mask of a value, determine if it is valid.
@@ -39,7 +40,7 @@ verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 */
 isValidValue :: !VerifyMask -> Bool
 
-basicVerify :: String !VerSt -> VerSt
+basicVerify :: String !*VerSt -> *VerSt
 
 /**
 * Verifies a custom ADT
@@ -52,4 +53,17 @@ basicVerify :: String !VerSt -> VerSt
 *
 * @return	The modified verify-state
 */
-verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) VerSt -> VerSt
+verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) !*VerSt -> *VerSt
+
+
+/**
+* Verifies a custom ADT using the world
+* 
+* @param 	An optional hint message
+* @param	A function for error message generation, in case the predicate fails
+* @param	The actual value (if present)
+* @param	The verify-state
+*
+* @return	The modified verify-state
+*/
+worldVerify :: (Maybe String) (a *IWorld -> (Maybe String, *IWorld)) (Maybe a) !*VerSt -> *VerSt

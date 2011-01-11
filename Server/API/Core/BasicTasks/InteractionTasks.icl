@@ -197,7 +197,7 @@ makeInformationTask mbContext mbBimapGet bimapPutback actions informationTaskMod
 			# editorId	= "tf-" +++ taskNrToString taskNr
 			# (ovalue,tst)			= readValue tst
 			# (oumask,tst)			= readMask tst
-			# ovmask				= verifyValue ovalue oumask
+			# (ovmask,tst)			= accIWorldTSt (verifyValue ovalue oumask) tst
 			# (events,tst)			= getEvents tst
 			# edits					= editEvents events
 			// check for edit events
@@ -210,7 +210,7 @@ makeInformationTask mbContext mbBimapGet bimapPutback actions informationTaskMod
 					# (nvalue,numask,tst)	= applyUpdates edits ovalue oumask tst
 					# tst					= setTaskStore "value" nvalue tst
 					# tst					= setTaskStore "mask" numask tst
-					# nvmask				= verifyValue nvalue numask
+					# (nvmask,tst)			= accIWorldTSt (verifyValue nvalue numask) tst
 					= case isValidValue nvmask of
 						True
 							// if view is valid also update model
@@ -275,7 +275,7 @@ where
 	updateViewValue bimapGet modelValue modelTimestamp tst
 		# nvalue			= bimapGet modelValue
 		# (numask,tst)		= accIWorldTSt (defaultMask nvalue) tst
-		# nvmask			= verifyValue nvalue numask
+		# (nvmask,tst)		= accIWorldTSt (verifyValue nvalue numask) tst
 		# tst				= setTaskStoreFor taskNr "value" nvalue tst
 		# tst				= setTaskStoreFor taskNr "mask" numask tst
 		= ((nvalue,numask,nvmask),tst)

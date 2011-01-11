@@ -159,9 +159,9 @@ Ext.reg("itasks.userfield", itasks.form.UserField);
 //Global event firing. This may be used by plugins like
 //Java applets, Flash or Silverlight components
 fireTaskEvent = function(taskid, field, value) {
-	
-	var ct = Ext.getCmp("taskform-" + taskid);
-	if(ct != null && ct.fireEvent) {
-		ct.fireEvent('tuievent',taskid,field,value,'');
-	}
+//	var ct = Ext.getCmp("taskform-" + taskid);
+	var ct = Ext.getCmp(taskid);
+	if(ct != null && ct.fireEvent)
+//		ct.fireEvent('tuievent',taskid,field,value,'');
+		ct.fireEvent('tuichange', field, value);
 }

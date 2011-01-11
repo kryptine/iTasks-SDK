@@ -10,10 +10,10 @@ derive JSONEncode VerifyMask, ErrorMessage
 
 generic gVerify a :: (Maybe a) VerSt -> VerSt
 
-verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
-verifyValue val updateMask
-	# verSt = gVerify{|*|} (Just val) {VerSt | updateMask = [updateMask], verifyMask = [], optional = False}
-	= hd verSt.VerSt.verifyMask
+verifyValue :: !a !UpdateMask *IWorld -> (VerifyMask, *IWorld) | gVerify{|*|} a
+verifyValue val updateMask iworld
+	# verSt = gVerify{|*|} (Just val) {VerSt | updateMask = [updateMask], verifyMask = [], optional = False, iworld = iworld}
+	= (hd verSt.VerSt.verifyMask, verSt.VerSt.iworld)
 
 isValidValue :: !VerifyMask -> Bool
 isValidValue (VMUntouched _ _ optional cm)	= optional && (and (map isValidValue cm)) 
@@ -173,7 +173,7 @@ gVerify{|Task|} _ _ vst = vst
 
 
 //********************************************************************************************************
-basicVerify :: String !VerSt -> VerSt
+basicVerify :: String !*VerSt -> *VerSt
 basicVerify msg vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)   = popMask updateMask
 	| optional  = case cm of
@@ -236,7 +236,7 @@ where
 
 //********************************************************************************************************
 
-verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) VerSt -> VerSt
+verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) !*VerSt -> *VerSt
 verifyConstructor mbHint pred parseErr mbVal vst=:{VerSt | updateMask, verifyMask, optional} 
 	# (cm,um) = popMask updateMask
 	# vmask = case mbVal of
@@ -263,3 +263,34 @@ where
 	validateValue val
 	| pred val 	= VMValid Nothing Nothing [VMValid mbHint Nothing []]
 	| otherwise	= VMInvalid (ErrorMessage "") Nothing [VMInvalid (ErrorMessage (parseErr val)) Nothing []]
+
+worldVerify :: (Maybe String) (a *IWorld -> (Maybe String, *IWorld)) (Maybe a) !*VerSt -> *VerSt
+worldVerify mbHint fErr mbVal vst=:{VerSt | updateMask, verifyMask, optional, iworld} 
+	# (cm,um) = popMask updateMask
+	# (vmask,iworld) = case mbVal of
+		(Just val)
+			| optional
+				= case cm of
+					(Touched _ _) 
+						= validateValue val iworld
+					_
+						= (VMValid Nothing Nothing [VMValid mbHint Nothing []], iworld)
+			| otherwise
+				= case cm of
+					(Untouched)
+						= (VMUntouched Nothing Nothing False [VMUntouched mbHint Nothing False []], iworld)
+					(Blanked _)
+						= (VMInvalid IsBlankError Nothing [VMInvalid IsBlankError Nothing []], iworld)
+					(Touched _ _)
+						= validateValue val iworld
+		Nothing
+			| optional 	= (VMValid Nothing Nothing [VMValid mbHint Nothing []], iworld)
+			| otherwise = (VMUntouched Nothing Nothing False [VMUntouched mbHint Nothing False []], iworld)
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask vmask, iworld = iworld}
+where
+	validateValue val iworld
+		# (mErr, iworld) = fErr val iworld
+		# vm = case mErr of
+		         Nothing  = VMValid mbHint Nothing []
+		         Just err = VMInvalid (ErrorMessage err) Nothing []
+		= (vm, iworld)
