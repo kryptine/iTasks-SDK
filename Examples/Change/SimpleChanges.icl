@@ -156,9 +156,10 @@ chooseUserA :: !question -> Task User | html question
 chooseUserA question
 	= 						getUsers
 	>>= \users ->			enterChoiceA ("Choose user",question) id buttons users
-	>>= \(action,user) ->	case fst action of
-										ActionCancel -> throw "choosing a user has been cancelled"
-										_ ->			return user
+	>>= \res ->				case app2 (fst,id) res of
+								(ActionOk,Just user)	-> return user
+								_						-> throw "choosing a user has been cancelled"
+										
 
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
@@ -170,9 +171,9 @@ chooseProcess question
 											, proc.Process.properties.managerProperties.ManagerProperties.priority
 											, proc.Process.properties.managerProperties.ManagerProperties.worker)
 											\\ proc <- procs | proc.Process.taskId <> mypid]
-	>>= \(action,(pid,_,_,_)) ->	case fst action of
-										ActionCancel -> throw "choosing a process has been cancelled"
-										_ ->			return pid
+	>>= \res ->						case app2 (fst,id) res of
+										(ActionOk,Just (pid,_,_,_))	-> return pid
+										_							-> throw "choosing a process has been cancelled"
 
 buttons = [(ActionCancel, always), (ActionOk, ifvalid)]	
 	

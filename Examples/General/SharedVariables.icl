@@ -20,11 +20,13 @@ linesPar =
 	>>|			return Void
 where
 	noteE sid = 
-							updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, always), quitButton] sid
-		>>= \(action,txt).	case fst action of
-								TrimAction	=			writeDB sid (trim txt)
-												>>|		noteE sid
-								_			= 			stop
+					updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, always), quitButton] sid
+		>>= \res.	case app2 (fst,id) res of
+						(TrimAction,Just txt) =
+								writeDB sid (trim txt)
+							>>|	noteE sid
+						_ =
+							stop
 
 //Calculate Sum Example
 calculateSum = updateInformationA ("Sum","Auto compute sum") (\t=:(x,y) -> (t,Display (x+y)),\(t,_) _ -> t) [quitButton] (0,0)
@@ -60,16 +62,13 @@ where
 //Merge Tests
 mergeTestList :: Task Void
 mergeTestList =	
-				createDB emptyL
+				createDB []
 	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
 	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
 	>>|			stop
 where
-	view :: (DBId [String]) -> Task (ActionEvent,[String])
+	view :: (DBId [String]) -> Task (ActionEvent,Maybe [String])
 	view sid = updateSharedInformationA ("List","Merging the lists") idBimap [quitButton] sid
-	
-	emptyL :: [String]
-	emptyL = []
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
@@ -147,8 +146,7 @@ where
 	markersListener	map = [{position = position, map = {GoogleMap| mkMap & center = position, width = 150, height = 150, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
-autoSortedList = updateInformationA ("Automatically Sorted List","You can edit the list, it will sort automatically.")
-					(sort, const) [quitButton] emptyL
+autoSortedList = updateInformationA ("Automatically Sorted List","You can edit the list, it will sort automatically.") (sort, const) [quitButton] emptyL
 where
 	emptyL :: [String]
 	emptyL = []
@@ -158,15 +156,15 @@ formattedText :: Task Void
 formattedText =
 				[Menu "Example" [MenuItem ActionQuit Nothing]]
 	@>>			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
-	>>= \sid.	dynamicGroupAOnly [t <<@ ExcludeGroupActions <<@ Floating >>| return Void \\ t <- tasks sid] actions actionsGenFunc
+	>>= \sid.	dynamicGroupAOnly [t <<@ ExcludeGroupActions <<@ Floating \\ t <- tasks sid] actions actionsGenFunc
 	>>|			deleteDB sid
 	>>|			return Void
 where
 	tasks sid =
-		[ updateSharedInformationA "WYSIWYG Editor" idBimap [] sid
-		, updateSharedInformationA "HTML-Source Editor" (\ft -> Note (getFormattedTextSrc ft), \(Note src) ft -> setFormattedTextSrc src ft) [] sid
-		, showMessageShared "Formatted Preview" id [] sid
-		, showMessageShared "Unformatted Preview" (\ft -> Note (toUnformattedString ft False)) [] sid
+		[ updateSharedInformationA "WYSIWYG Editor" idBimap [] sid >>| return Void
+		, updateSharedInformationA "HTML-Source Editor" (\ft -> Note (getFormattedTextSrc ft), \(Note src) ft -> setFormattedTextSrc src ft) [] sid >>| return Void
+		, showMessageShared "Formatted Preview" id [] sid >>| return Void
+		, showMessageShared "Unformatted Preview" (\ft -> Note (toUnformattedString ft False)) [] sid >>| return Void
 		]
 		
 	actions = [(ActionQuit, Always)]

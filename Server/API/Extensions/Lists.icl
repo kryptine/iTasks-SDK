@@ -29,15 +29,15 @@ manageLists
 	=	Title "Manage lists" @>>
 	(	getMyLists
 	>>=	overview
-	>>= \(action,list) -> case fst action of
-		ActionNew				= newList >>= manageList	>>| return False
-		ActionOpen				= manageList list			>>| return False
-		ActionDelete			= delList list				>>| return False
-		ActionQuit				=								return True
+	>>= \res -> case app2 (fst,id) res of
+		(ActionOpen,Just list)		= manageList list			>>| return False
+		(ActionDelete,Just list)	= delList list				>>| return False
+		(ActionNew,_)				= newList >>= manageList	>>| return False
+		(ActionQuit,_)				=								return True
 	) <! id
 	>>| stop
 where
-	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [aNew,aQuit]
+	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [aNew,aQuit] >>= transform (app2 (id,Just))
 	overview list	= enterChoiceA ("My lists","Select a list...") id [aOpen,aDelete,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)
@@ -101,14 +101,14 @@ manageListSharing list
 		Nothing		= throw "Could not find list meta data"
 		Just meta
 			= (case meta.ListMeta.sharedWith of
-				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] [] 
+				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] [] >>= transform (app2 (id,Just))
 				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id [aPrevious,aRemove,aAddPerson,aAddGroup] users
 			  )
-			>>= \(action,users) -> case fst action of
-				ActionPrevious				=						return True
-				ActionDelete				= removeUsers users >>| return False
-				Action "add-person" _		= addUsers list		>>| return False
-				Action "add-group" _		= addGroup list		>>| return False
+			>>= \res -> case app2 (fst,id) res of
+				(ActionDelete,Just users)	= removeUsers users >>| return False
+				(Action "add-person" _,_)	= addUsers list		>>| return False
+				(Action "add-group" _,_)	= addGroup list		>>| return False
+				(ActionPrevious,_)			=						return True
 	) <! id >>| stop
 
 where

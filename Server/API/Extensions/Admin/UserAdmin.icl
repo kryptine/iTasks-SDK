@@ -17,16 +17,15 @@ where
 							[(ActionNew,always),(ActionQuit,always)] Nothing
 	overview list	= enterChoiceA ("Users","The following users are available") id
 						[(ActionOpen,ifvalid),(ActionDelete,ifvalid),(ActionNew,always), (ActionQuit,always)] list
-					>>= transform (\(a,i) -> (a,Just i))
 
 createUserFlow :: Task Void
 createUserFlow = Title "Create user"
 	@>>	enterInformationA ("Create user","Enter user information") id [(ActionCancel, always), (ActionOk, ifvalid)]
-	>>=	\(action,user) -> case fst action of
-		ActionCancel	=	stop
-		ActionOk		=	createUser user
-						>>|	showMessage ("User created","Successfully added new user") Void
-
+	>>=	\res -> case app2 (fst,id) res of
+		(ActionOk,Just user)	=	createUser (fromJust user)
+									>>|	showMessage ("User created","Successfully added new user") Void
+		(ActionCancel,_)		= stop
+		
 updateUserFlow :: User -> Task User
 updateUserFlow user 
 	= getUserDetails user
@@ -36,10 +35,9 @@ updateUserFlow user
 		Just oldDetails 						
 			= updateInformationA ("Editing " +++ displayName user,"Please make your changes")
 					idBimap [(ActionCancel, always), (ActionOk, ifvalid)] oldDetails
-			>>= \(action,newDetails) -> case fst action of
-				ActionCancel	=	return user
-				ActionOk		=	updateUser user newDetails >>= showMessage ("User updated","Successfully updated " +++ newDetails.displayName)
-									
+			>>= \res -> case app2 (fst,id) res of
+				(ActionOk,Just newDetails)	= updateUser user newDetails >>= showMessage ("User updated","Successfully updated " +++ newDetails.displayName)
+				(ActionCancel,_)			= return user					
 deleteUserFlow :: User -> Task User
 deleteUserFlow user
 	=	requestConfirmation ("Delete user","Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")

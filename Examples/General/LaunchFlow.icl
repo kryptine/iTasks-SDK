@@ -28,8 +28,11 @@ handleMenu
 	=	initMenu @>> doMenu
 where
 	doMenu
-		=							enterInformationA ("Stored flow","Select \"File/Start Workflow... \" to run a stored workflow...") id actions
-			>>= \(actions,Void) ->	doActions actions
+		=						doMenuEnter
+			>>= \(actions,_) ->	doActions actions
+			
+	doMenuEnter :: Task (ActionEvent,Maybe Void)
+	doMenuEnter = enterInformationA ("Stored flow","Select \"File/Start Workflow... \" to run a stored workflow...") id actions
 
 	doActions (ActionStartFlow,_)	= startFlow	>>| doMenu 
 	doActions (ActionQuit,_)		= return Void

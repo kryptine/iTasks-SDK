@@ -41,15 +41,15 @@ manageMessages :: Task Void
 manageMessages =
 	(	getMyMessages
 	>>= overview
-	>>= \(action,message) -> case fst action of
-		ActionOpen						= manageMessage message	>>|	return False
-		Action "new-msg" _ 				= newMessage			>>|	return False
-		Action "new-group-msg" _		= newGroupMessage		>>| return False
-		ActionQuit						= 							return True
+	>>= \res -> case app2 (fst,id) res of
+		(ActionOpen,Just message)		= manageMessage message	>>|	return False
+		(Action "new-msg" _,_) 			= newMessage			>>|	return False
+		(Action "new-group-msg" _,_)	= newGroupMessage		>>| return False
+		(ActionQuit,_)					= 							return True
 	) <! id >>| stop
 where
-	overview :: [Message] -> Task (ActionEvent,Message)
-	overview []		= getDefaultValue >>= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] 
+	overview :: [Message] -> Task (ActionEvent,Maybe Message)
+	overview []		= getDefaultValue >>= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] >>= transform (app2 (id,Just))
 	overview msgs	= enterChoiceA ("My messages","Your messages:") id [aOpen,aNew,aNewGroup,aQuit] msgs
 	
 	aOpen		= (ActionOpen,ifvalid)

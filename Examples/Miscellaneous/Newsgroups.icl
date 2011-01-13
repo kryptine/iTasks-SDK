@@ -75,7 +75,7 @@ where
 				>>= switch 
 		where
 			switch  ((ActionOk,_),_)	= task n
-			switch  (_,result)	  		= return result
+			switch  (_,Just result)	  	= return result
 
 			appointEditor = (editorFrom,editorTo)
 			
@@ -395,7 +395,7 @@ addNewsGroup
 		>>= switch
 where
 	switch 	((ActionCancel,_),_) = return Void
-	switch 	(_,newName) 	
+	switch 	(_,Just newName) 	
 		= 					readNewsGroups
 		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
 		>>= \groups ->		requestConfirmationAbout ("More groups?","Do you want to add more?") groups 
@@ -459,7 +459,7 @@ where
 			 	>>= switch
 			where
 				switch ((ActionCancel,_),_) = return Void
-				switch (_,note)
+				switch (_,Just note)
 					=					readNewsGroup  group 
 						>>= \news ->	writeNewsGroup group (news ++ [(me,note)]) 
 			 			>>|				showMessage ("Committed","Message commited to newsgroup " <+++ group) Void

@@ -43,14 +43,14 @@ handleMenu
 
 doMenu state=:((name,flow), mode)
 		=	case mode of
-				False 		->							updateInformationA ("No flow",title1) idBimap (actions state) Void 
-								>>= \(action,_) ->		return (action,state)
-				True 	->								updateInformationA ("Flow",title2) idBimap
+				False 		->								updateInformationA ("No flow",title1) idBimap (actions state) Void 
+								>>= \(action,_) ->			return (action,state)
+				True 	->									updateInformationA ("Flow",title2) idBimap
 																					[ (ActionSave, ifValid (validFlow name flow.flowDyn))
 																					, (ActionOk, ifvalid)
 																					: actions state
 																					] flow.flowShape
-								>>= \(action,shape) ->  return (action,((name,{flow & flowShape = shape}),mode))
+								>>= \(action,mbShape) ->	return (action,((name,if (isJust mbShape) {flow & flowShape = fromJust mbShape} flow),mode))
 			>>= switchAction
 where
 	title1 = "No flow..."

@@ -57,10 +57,12 @@ openDialog gid mdiTasks =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
 					(showMessage ("Open File","No files to open!") GContinue)
-					(										enterChoiceA ("Open file","Open File") id buttons files
-						>>= \(action,(name, Hidden fid)).	case fst action of
-					 										ActionOk	=	open fid mdiTasks (Just gid)
-					 										_			=	continue
+					(				enterChoiceA ("Open file","Open File") id buttons files
+						>>= \res.	case app2 (fst,id) res of
+										(ActionOk,Just (_, Hidden fid)) =
+											open fid mdiTasks (Just gid)
+										_ =
+											continue
 					)
 where
 	buttons = [(ActionCancel, always), (ActionOk, ifvalid)]
@@ -127,12 +129,12 @@ where
 editorWindow :: !EditorStateRef -> Task GAction
 editorWindow eid =
 		Tag eid @>>
-		(showMessageShared "Title" titleListener [] eid
-		-||-
-		updateSharedInformationA ("Text Editor","You can edit the text.") mainEditor [] eid)
+		updateSharedInformationA ("Text Editor","You can edit the text.") mainEditor [] eid
 	>>|	continue
 where		
-	mainEditor = (\(EditorState cont _) -> cont,\newCont (EditorState _ file) -> EditorState newCont file)
+	mainEditor =	( \st=:(EditorState cont _)			-> (Display (titleListener st),cont)
+					, \(_,newCont) (EditorState _ file)	-> EditorState newCont file
+					)
 						
 save :: !EditorStateRef -> Task GAction
 save eid =
@@ -146,14 +148,15 @@ save eid =
 
 saveAs :: !EditorStateRef -> Task GAction
 saveAs eid =
-						enterInformationA ("Save as","Save As: enter name") id buttons <<@ NoMenus
-	>>= \(action,name).	case fst action of
-							ActionOk =
-																readDB eid
-								>>= \(EditorState txt _).		storeFile name txt
-								>>= \file=:{TextFile|content}.	writeDB eid (EditorState content (OpenedFile file))
-								>>|								continue
-							_ = continue
+				enterInformationA ("Save as","Save As: enter name") id buttons <<@ NoMenus
+	>>= \res.	case app2 (fst,id) res of
+					(ActionOk,Just name) =
+														readDB eid
+						>>= \(EditorState txt _).		storeFile name txt
+						>>= \file=:{TextFile|content}.	writeDB eid (EditorState content (OpenedFile file))
+						>>|								continue
+					_ =
+						continue
 where
 	buttons = [(ActionCancel, always),(ActionOk, ifvalid)]
 							
@@ -166,12 +169,13 @@ replaceT eid = replaceT` {searchFor = "", replaceWith = ""}
 where
 	replaceT` :: !Replace -> Task GAction
 	replaceT` repl =
-								updateInformationA ("Replace","Replace") idBimap buttons repl <<@ NoMenus
-		>>= \(action, repl).	case fst action of
-									ActionReplaceAll =
-											modifyDB eid (dbReplaceFunc repl)
-										>>|	replaceT` repl
-									_ = continue
+					updateInformationA ("Replace","Replace") idBimap buttons repl <<@ NoMenus
+		>>= \res.	case app2 (fst,id) res of
+						(ActionReplaceAll,Just repl) =
+								modifyDB eid (dbReplaceFunc repl)
+							>>|	replaceT` repl
+						_ =
+							continue
 									
 	buttons = [(ActionClose, always), (ActionReplaceAll, ifvalid)]
 	

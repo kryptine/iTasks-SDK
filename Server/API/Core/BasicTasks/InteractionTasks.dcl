@@ -125,10 +125,10 @@ idBimap :: (IBimap a a)
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 *
-* @return 					Resulting value with (optionally) chosen action
+* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
 */
-enterInformation			:: !d 						    -> Task a					| descr d & iTask a
-enterInformationA			:: !d !(v -> a) ![TaskAction a] -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+enterInformation			:: !d 						    -> Task a						| descr d & iTask a
+enterInformationA			:: !d !(v -> a) ![TaskAction a] -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to enter information, given some additional context information
@@ -140,10 +140,10 @@ enterInformationA			:: !d !(v -> a) ![TaskAction a] -> Task (!ActionEvent, a)	| 
 *							If not specified a default button is rendered.
 * @param a					Additional information to display
 *
-* @return 					Resulting value with (optionally) chosen action
+* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
 */
-enterInformationAbout		:: !d  				  		    !b -> Task a					| descr d  & iTask a & iTask b
-enterInformationAboutA		:: !d !(v -> a) ![TaskAction a] !b -> Task (!ActionEvent, a)	| descr d  & iTask a & iTask b & iTask v
+enterInformationAbout		:: !d  				  		    !b -> Task a						| descr d  & iTask a & iTask b
+enterInformationAboutA		:: !d !(v -> a) ![TaskAction a] !b -> Task (!ActionEvent, Maybe a)	| descr d  & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to update predefined information. 
@@ -155,11 +155,11 @@ enterInformationAboutA		:: !d !(v -> a) ![TaskAction a] !b -> Task (!ActionEvent
 *							If not specified a default button is rendered.
 * @param a or (DBId a)	The initial value or shared value to use. 
 *
-* @return 					Resulting value with (optionally) chosen action
+* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
 */
-updateInformation			:: !d								a			-> Task a					| descr d & iTask a
-updateInformationA			:: !d !(IBimap a v) ![TaskAction a]	a			-> Task (!ActionEvent, !a)	| descr d & iTask a & iTask v
-updateSharedInformationA	:: !d !(IBimap a v) ![TaskAction a] !(DBId a)	-> Task (!ActionEvent, !a)	| descr d & iTask a & iTask v
+updateInformation			:: !d								a			-> Task a							| descr d & iTask a
+updateInformationA			:: !d !(IBimap a v) ![TaskAction a]	a			-> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask v
+updateSharedInformationA	:: !d !(IBimap a v) ![TaskAction a] !(DBId a)	-> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to update predefined information, given some additonal context information
@@ -172,11 +172,11 @@ updateSharedInformationA	:: !d !(IBimap a v) ![TaskAction a] !(DBId a)	-> Task (
 * @param b					Additional information to display
 * @param a or (DBId a)	The initial value or shared value to use. 
 *
-* @return 					Resulting value with (optionally) chosen action
+* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
 */
-updateInformationAbout			:: !d 								!b a			-> Task a					| descr d & iTask a & iTask b
-updateInformationAboutA			:: !d !(IBimap a v) ![TaskAction a] !b a			-> Task (!ActionEvent, !a)	| descr d & iTask a & iTask b & iTask v
-updateSharedInformationAboutA	:: !d !(IBimap a v) ![TaskAction a] !b !(DBId a)	-> Task (!ActionEvent, !a)	| descr d & iTask a & iTask b & iTask v
+updateInformationAbout			:: !d 								!b a			-> Task a							| descr d & iTask a & iTask b
+updateInformationAboutA			:: !d !(IBimap a v) ![TaskAction a] !b a			-> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask b & iTask v
+updateSharedInformationAboutA	:: !d !(IBimap a v) ![TaskAction a] !b !(DBId a)	-> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Asks the user to confirm or decline a question.
@@ -209,8 +209,8 @@ requestConfirmationAbout	:: !d !a -> Task Bool	| descr d & iTask a
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-enterChoice					:: !d 					  		![a] -> Task a					| descr d & iTask a
-enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a] -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+enterChoice					:: !d 					  		![a] -> Task a							| descr d & iTask a
+enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a] -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
 //enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(DBId [a]) 	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 /*
@@ -226,8 +226,8 @@ enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a] -> Task (!ActionEvent, a)	|
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-enterChoiceAbout			:: !d 							!b ![a] -> Task a					| descr d & iTask a	& iTask b
-enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a] -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
+enterChoiceAbout			:: !d 							!b ![a] -> Task a						| descr d & iTask a	& iTask b
+enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a] -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v
 //enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !b !(DBId [a])  -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
 
 /*
@@ -243,8 +243,8 @@ enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a] -> Task (!ActionEven
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-updateChoice				:: !d							![a] !Int -> Task a					| descr d & iTask a	
-updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v 
+updateChoice				:: !d							![a] !Int -> Task a							| descr d & iTask a	
+updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a] !Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v 
 //updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(DBId [a]) !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 
@@ -262,8 +262,8 @@ updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a] !Int -> Task (!ActionEven
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-updateChoiceAbout			:: !d 							!b ![a] !Int -> Task a					| descr d & iTask a	& iTask b
-updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
+updateChoiceAbout			:: !d 							!b ![a] !Int -> Task a							| descr d & iTask a	& iTask b
+updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a] !Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v
 //updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !b !(DBId [a]) !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
 
 /*
@@ -279,8 +279,8 @@ updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a] !Int -> Task (!Acti
 *
 * @return 					Resulting values with (optionally) chosen action
 */
-enterMultipleChoice			:: !d 					  			![a] -> Task [a]					| descr d & iTask a
-enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+enterMultipleChoice			:: !d 					  			![a] -> Task [a]						| descr d & iTask a
+enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
 //enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]] !(DBId [a]) 	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
 
 /*
@@ -296,8 +296,8 @@ enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a] -> Task (!ActionEve
 *
 * @return 					Resulting values with (optionally) chosen action
 */
-enterMultipleChoiceAbout		:: !d 								!b ![a] -> Task [a]					| descr d & iTask a	& iTask b
-enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!b ![a] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
+enterMultipleChoiceAbout		:: !d 								!b ![a] -> Task [a]							| descr d & iTask a	& iTask b
+enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!b ![a] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v
 //enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]] !b !(DBId [a])  -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
@@ -313,8 +313,8 @@ enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!b ![a] -> Task (!A
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-updateMultipleChoice		:: !d 								![a] ![Int] -> Task [a]					| descr d & iTask a
-updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a] ![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+updateMultipleChoice		:: !d 								![a] ![Int] -> Task [a]							| descr d & iTask a
+updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a] ![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
 //updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(DBId [a]) ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
@@ -331,8 +331,8 @@ updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a] ![Int] -> Task (!A
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-updateMultipleChoiceAbout		 :: !d 								!b ![a] ![Int] -> Task [a]					| descr d & iTask a	& iTask b
-updateMultipleChoiceAboutA		 :: !d !(a -> v) ![TaskAction [a]]	!b ![a] ![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
+updateMultipleChoiceAbout		 :: !d 								!b ![a] ![Int] -> Task [a]							| descr d & iTask a	& iTask b
+updateMultipleChoiceAboutA		 :: !d !(a -> v) ![TaskAction [a]]	!b ![a] ![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v
 //updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !b !(DBId [a]) ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 //*** Output tasks ***//

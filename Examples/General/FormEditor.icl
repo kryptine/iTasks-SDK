@@ -61,23 +61,24 @@ handleMenu
 
 doMenu state=:((name,form), mode)
 		=	case mode of
-				NoEdit 		->							updateInformationA ("No edit",title1) idBimap (actions state) Void 
-								>>= \(action,_) ->		return (action,state)
-				EditType 	->							updateInformationA ("Edit",title2) idBimap
+				NoEdit 		->								updateInformationA ("No edit",title1) idBimap (actions state) Void 
+								>>= \(action,_) ->			return (action,state)
+				EditType 	->								updateInformationA ("Edit",title2) idBimap
 																					[ (ActionEditValue, ifValid (not (isEmpty form.formShape)))
 																					, (ActionOk, ifvalid)
 																					: actions state] form.formShape
-								>>= \(action,shape) ->  return (action,((name,{form & formShape = shape}),mode))
-				EditValue 	->							editValue state
+								>>= \(action,mbShape) ->	return (action,((name,if (isJust mbShape) {form & formShape = fromJust mbShape} form),mode))
+				EditValue 	->								editValue state
 			>>= switchAction
 where
 	editValue state=:((name,form=:{formDyn = DV0 v :: DV0 a}), mode)  
-		=							updateInformationA ("Edit",title3) idBimap
-																[ (ActionSave, ifValid (name <> ""))
-																, (ActionEditType, always)
-																: actions state
-																] (Just v)
-			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic DV0 (if (isJust nv) (fromJust nv) v) :: DV0 a^}),mode))
+		=						updateInformationA ("Edit",title3) idBimap
+									[ (ActionSave, ifValid (name <> ""))
+									, (ActionEditType, always)
+									: actions state
+									] (Just v)
+			>>=					transform (app2 (id,\nv -> if (isNothing nv) Nothing (fromJust nv)))
+			>>= \(action,nv) ->	return (action,((name,{form & formDyn = dynamic DV0 (if (isJust nv) (fromJust nv) v) :: DV0 a^}),mode))
 
 	title1 = "No form..."
 	title2 = "Define type of form: \"" +++ name +++ "\""
