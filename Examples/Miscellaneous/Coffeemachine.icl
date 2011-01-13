@@ -21,7 +21,7 @@ where
 		=			enterChoiceA  ("Insert coins",[ Text ("Chosen product: " <+++ product), BrTag[]
 					              , Text ("To pay: " <+++ cost), BrTag []
 					              , Text "Please insert a coin..."
-					              ]) actions coins 
+					              ]) id actions coins 
 		>>= 	handleMoney
 
 	actions = [(ActionCancel, always), (ActionOk, always)]

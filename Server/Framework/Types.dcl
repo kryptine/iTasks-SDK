@@ -249,17 +249,29 @@ initGroupedProperties :: GroupedProperties
 :: MultipleChoice	a = MultipleChoice	![a] ![Int]
 
 // Generates a choice with given options
-choice 				:: ![a]					-> Choice a
+choice 				:: ![a]								-> Choice a
 // Generates a choice with given options and preselected item
-choiceSel			:: ![a] !Int			-> Choice a
-// Get the currently chosen item
-getChoice			:: !(Choice a)			-> a
+choiceSel			:: ![a] !Int						-> Choice a
+// Gets the currently chosen item
+getChoice			:: !(Choice a)						-> a
+// Gets the index of the currently chosen item
+getSelection		:: !(Choice a)						-> Int
+// Sets the index of the currently chosen item
+setSelection		:: !Int !(Choice a)					-> (Choice a)
+// Transforms the choices options
+mapOptions			:: !(a -> b) !(Choice a)			-> (Choice b)
 // Generates a multiple choice with given options
-multipleChoice		:: ![a] 				-> MultipleChoice a
+multipleChoice		:: ![a] 							-> MultipleChoice a
 // Generates a multiple choice with given options and preselected items
-multipleChoiceSel	:: ![a] ![Int]			-> MultipleChoice a
+multipleChoiceSel	:: ![a] ![Int]						-> MultipleChoice a
 // Get the currently chosen items
-getChoices			:: !(MultipleChoice a)	-> [a]
+getChoices			:: !(MultipleChoice a)				-> [a]
+// Gets the indexes of the currently chosen items
+getSelectionM		:: !(MultipleChoice a)				-> [Int]
+// Sets the indexes of the currently chosen items
+setSelectionM		:: ![Int] !(MultipleChoice a)		-> (MultipleChoice a)
+// Transforms the multiple choices options
+mapOptionsM			:: !(a -> b) !(MultipleChoice a)	-> (MultipleChoice b)
 
 // Plain text notes
 :: Note = Note String

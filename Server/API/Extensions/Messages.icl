@@ -50,7 +50,7 @@ manageMessages =
 where
 	overview :: [Message] -> Task (ActionEvent,Message)
 	overview []		= getDefaultValue >>= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] 
-	overview msgs	= enterChoiceA ("My messages","Your messages:") [aOpen,aNew,aNewGroup,aQuit] msgs
+	overview msgs	= enterChoiceA ("My messages","Your messages:") id [aOpen,aNew,aNewGroup,aQuit] msgs
 	
 	aOpen		= (ActionOpen,ifvalid)
 	aNew		= (Action "new-msg" "New message", always)

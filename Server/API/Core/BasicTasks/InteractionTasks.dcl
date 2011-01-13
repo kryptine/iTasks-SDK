@@ -203,24 +203,24 @@ requestConfirmationAbout	:: !d !a -> Task Bool	| descr d & iTask a
 * Ask the user to select one item from a list of options
 *
 * @param description 		A description of the task to display to the user
-* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
-*							If not specified, v = a, and the bimap is the identity.
+* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
+*							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 * @param [a]				A list of (shared) options
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-enterChoice					:: !d 					  				  ![a] 			-> Task a					| descr d & iTask a
-enterChoiceA				:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a] 			-> Task (!ActionEvent, a)	| descr d & iTask a// & iTask v
-//enterSharedChoiceA			:: !d !(a -> v, v a -> a) ![TaskAction a] !(Shared [a]) 	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+enterChoice					:: !d 					  		![a] -> Task a					| descr d & iTask a
+enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a] -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+//enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(DBId [a]) 	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select one item from a list of options, given some context information
 *
 * @param description 		A description of the task to display to the user
-* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
-*							If not specified, v = a, and the bimap is the identity.
+* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
+*							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 * @param b					Additional information to display
@@ -228,16 +228,16 @@ enterChoiceA				:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a] 			-> Task (!
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-enterChoiceAbout			:: !d 									  !b ![a] 		  -> Task a					| descr d & iTask a	& iTask b
-enterChoiceAboutA			:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a]		  -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b// & iTask v
-//enterSharedChoiceAboutA		:: !d !(a -> v, v a -> a) ![TaskAction a] !b ![Shared a]  -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
+enterChoiceAbout			:: !d 							!b ![a] -> Task a					| descr d & iTask a	& iTask b
+enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a] -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
+//enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !b !(DBId [a])  -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected
 *
 * @param description 		A description of the task to display to the user
-* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
-*							If not specified, v = a, and the bimap is the identity.
+* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
+*							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 * @param [a]				A list of (shared) options
@@ -245,17 +245,17 @@ enterChoiceAboutA			:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a]		  -> 
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-updateChoice				:: !d 									  ![a] 		  !Int -> Task a					| descr d & iTask a	
-updateChoiceA 				:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a]		  !Int -> Task (!ActionEvent, a)	| descr d & iTask a// & iTask v 
-//updateSharedChoiceA 		:: !d !(a -> v, v a -> a) ![TaskAction a] ![Shared a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+updateChoice				:: !d							![a] !Int -> Task a					| descr d & iTask a	
+updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v 
+//updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(DBId [a]) !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected, given some context information
 *
 * @param description 		A description of the task to display to the user
-* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
-*							If not specified, v = a, and the bimap is the identity.
+* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
+*							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 * @param b					Additional information to display
@@ -264,33 +264,33 @@ updateChoiceA 				:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a]		  !Int -> 
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-updateChoiceAbout			:: !d 									  !b ![a] 		 !Int -> Task a					| descr d & iTask a	& iTask b
-updateChoiceAboutA			:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a]		 !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b// & iTask v
-//updateSharedChoiceAboutA	:: !d !(a -> v, v a -> a) ![TaskAction a] !b ![Shared a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
+updateChoiceAbout			:: !d 							!b ![a] !Int -> Task a					| descr d & iTask a	& iTask b
+updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
+//updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !b !(DBId [a]) !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options
 *
 *
 * @param description 		A description of the task to display to the user
-* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
-*							If not specified, v = a, and the bimap is the identity.
+* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
+*							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 * @param [a]				A list of (shared) options
 *
 * @return 					Resulting values with (optionally) chosen action
 */
-enterMultipleChoice			:: !d 					  				  ![a] 			-> Task [a]					| descr d & iTask a
-enterMultipleChoiceA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a] 			-> Task (!ActionEvent, [a])	| descr d & iTask a// & iTask v
-//enterSharedMultipleChoiceA	:: !d !(a -> v, v a -> a) ![TaskAction [a]] ![Shared a] 	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+enterMultipleChoice			:: !d 					  			![a] -> Task [a]					| descr d & iTask a
+enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+//enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]] !(DBId [a]) 	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options, given additional context information
 *
 * @param description 		A description of the task to display to the user
-* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
-*							If not specified, v = a, and the bimap is the identity.
+* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
+*							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 * @param b					Additional information to display
@@ -298,16 +298,16 @@ enterMultipleChoiceA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a] 			->
 *
 * @return 					Resulting values with (optionally) chosen action
 */
-enterMultipleChoiceAbout		:: !d 									  !b ![a] 		  -> Task [a]					| descr d & iTask a	& iTask b
-enterMultipleChoiceAboutA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![a]		  -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b// & iTask v
-//enterSharedMultipleChoiceAboutA	:: !d !(a -> v, v a -> a) ![TaskAction [a]] !b ![Shared a]  -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
+enterMultipleChoiceAbout		:: !d 								!b ![a] -> Task [a]					| descr d & iTask a	& iTask b
+enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!b ![a] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
+//enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]] !b !(DBId [a])  -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options with already some options pre-selected
 *
 * @param description 		A description of the task to display to the user
-* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
-*							If not specified, v = a, and the bimap is the identity.
+* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
+*							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 * @param [a]				A list of (shared) options
@@ -315,16 +315,16 @@ enterMultipleChoiceAboutA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-updateMultipleChoice		:: !d 									  ![a] 		  ![Int] -> Task [a]					| descr d & iTask a
-updateMultipleChoiceA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a]		  ![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a// & iTask v
-//updateSharedMultipleChoiceA :: !d !(a -> v, v a -> a) ![TaskAction [a]] ![Shared a] ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
+updateMultipleChoice		:: !d 								![a] ![Int] -> Task [a]					| descr d & iTask a
+updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a] ![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+//updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(DBId [a]) ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options with already some options pre-selected, given additional context information
 *
 * @param description 		A description of the task to display to the user
-* @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
-*							If not specified, v = a, and the bimap is the identity.
+* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
+*							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 *							If not specified a default button is rendered.
 * @param b					Additional information to display
@@ -333,9 +333,9 @@ updateMultipleChoiceA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a]		  !
 *
 * @return 					Resulting value with (optionally) chosen action
 */
-updateMultipleChoiceAbout		 :: !d 									   !b ![a] 		  ![Int] -> Task [a]					| descr d & iTask a	& iTask b
-updateMultipleChoiceAboutA		 :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![a]		  ![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b// & iTask v
-//updateSharedMultipleChoiceAboutA :: !d !(a -> v, v a -> a) ![TaskAction [a]] !b ![Shared a] ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
+updateMultipleChoiceAbout		 :: !d 								!b ![a] ![Int] -> Task [a]					| descr d & iTask a	& iTask b
+updateMultipleChoiceAboutA		 :: !d !(a -> v) ![TaskAction [a]]	!b ![a] ![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
+//updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !b !(DBId [a]) ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 //*** Output tasks ***//
 

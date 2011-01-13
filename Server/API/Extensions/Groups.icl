@@ -26,7 +26,7 @@ manageGroups
 	>>| return Void
 where
 	overview []		= getDefaultValue >>= showMessageA ("My groups",startMsg) [aNew,aQuit]
-	overview list	= enterChoiceA ("My groups",listMsg) [aOpen,aNew,aQuit] list
+	overview list	= enterChoiceA ("My groups",listMsg) id [aOpen,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)
 	aNew			= (ActionNew, always)

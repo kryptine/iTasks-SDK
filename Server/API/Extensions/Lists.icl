@@ -39,7 +39,7 @@ manageLists
 	>>| stop
 where
 	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [aNew,aQuit]
-	overview list	= enterChoiceA ("My lists","Select a list...") [aOpen,aDelete,aNew,aQuit] list
+	overview list	= enterChoiceA ("My lists","Select a list...") id [aOpen,aDelete,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)
 	aNew			= (ActionNew, always)
@@ -103,7 +103,7 @@ manageListSharing list
 		Just meta
 			= (case meta.ListMeta.sharedWith of
 				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] [] 
-				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") [aPrevious,aRemove,aAddPerson,aAddGroup] users
+				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id [aPrevious,aRemove,aAddPerson,aAddGroup] users
 			  )
 			>>= \(action,users) -> case fst action of
 				ActionPrevious				=						return True

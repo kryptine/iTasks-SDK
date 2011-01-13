@@ -57,7 +57,7 @@ openDialog gid mdiTasks =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
 					(showMessage ("Open File","No files to open!") GContinue)
-					(										enterChoiceA ("Open file","Open File") buttons files
+					(										enterChoiceA ("Open file","Open File") id buttons files
 						>>= \(action,(name, Hidden fid)).	case fst action of
 					 										ActionOk	=	open fid mdiTasks (Just gid)
 					 										_			=	continue

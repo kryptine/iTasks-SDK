@@ -27,6 +27,15 @@ getChoice :: !(Choice a) -> a
 getChoice (Choice l i)
 	| i >= 0 &&  i < (length l)	= l !! i
 	| otherwise					= l !! 0
+	
+getSelection :: !(Choice a) -> Int
+getSelection (Choice _ sel) = sel
+
+setSelection :: !Int !(Choice a) -> (Choice a)
+setSelection sel (Choice opts _) = Choice opts sel
+
+mapOptions :: !(a -> b) !(Choice a) -> (Choice b)
+mapOptions f (Choice opts sel) = Choice (map f opts) sel
 
 multipleChoice :: ![a] -> MultipleChoice a
 multipleChoice l = MultipleChoice l []
@@ -37,6 +46,15 @@ multipleChoiceSel l sel = MultipleChoice l sel
 getChoices :: !(MultipleChoice a) -> [a]
 getChoices (MultipleChoice l is)
 	= [l !! i \\ i <- is | i >= 0 && i < (length l)]
+	
+getSelectionM :: !(MultipleChoice a) -> [Int]
+getSelectionM (MultipleChoice _ sel) = sel
+
+setSelectionM :: ![Int] !(MultipleChoice a) -> (MultipleChoice a)
+setSelectionM sel (MultipleChoice opts _) = MultipleChoice opts sel
+
+mapOptionsM :: !(a -> b) !(MultipleChoice a) -> (MultipleChoice b)
+mapOptionsM f (MultipleChoice opts sel) = MultipleChoice (map f opts) sel
 
 initManagerProperties :: ManagerProperties
 initManagerProperties = 

@@ -155,7 +155,7 @@ restartTask
 chooseUserA :: !question -> Task User | html question
 chooseUserA question
 	= 						getUsers
-	>>= \users ->			enterChoiceA ("Choose user",question) buttons users
+	>>= \users ->			enterChoiceA ("Choose user",question) id buttons users
 	>>= \(action,user) ->	case fst action of
 										ActionCancel -> throw "choosing a user has been cancelled"
 										_ ->			return user
@@ -164,7 +164,7 @@ chooseProcess :: String -> Task ProcessId
 chooseProcess question
 	=								getCurrentProcessId
 	>>= \mypid ->					getProcessesWithStatus [Active]
-	>>= \procs ->					enterChoiceA question buttons
+	>>= \procs ->					enterChoiceA question id buttons
 										[	( proc.Process.taskId
 											, proc.Process.properties.managerProperties.taskDescription.TaskDescription.title
 											, proc.Process.properties.managerProperties.ManagerProperties.priority

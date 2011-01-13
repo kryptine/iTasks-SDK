@@ -15,7 +15,7 @@ manageUsers =
 where
 	overview []		= showMessageA ("Users","There are no users yet")
 							[(ActionNew,always),(ActionQuit,always)] Nothing
-	overview list	= enterChoiceA ("Users","The following users are available")
+	overview list	= enterChoiceA ("Users","The following users are available") id
 						[(ActionOpen,ifvalid),(ActionDelete,ifvalid),(ActionNew,always), (ActionQuit,always)] list
 					>>= transform (\(a,i) -> (a,Just i))
 
