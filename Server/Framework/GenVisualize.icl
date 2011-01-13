@@ -1,6 +1,6 @@
 implementation module GenVisualize
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum
+import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum, StdFunc
 import GenUpdate, GenEq
 import Void, Either, Util
 import Text, Html, JSON, TUIDefinition
@@ -611,7 +611,7 @@ where
 	staticDef fx [x:xs] vst
 		# (hx, vst) = fx (Just x) vst
 		# (hxs,vst) = staticDef fx xs vst
-		= ([hx:hxs],vst);
+		= ([hx:hxs],vst)
 	
 	htmlLabel [i] = (flatten (coerceToHtml i))
 	htmlLabel [i:is] = (flatten (coerceToHtml i)) ++ [(Text ", ")] ++ htmlLabel is
@@ -819,6 +819,84 @@ gVisualize{|User|} val vst=:{vizType,currentPath,updateMask}
 gVisualize{|Task|} _ (Just {taskProperties}) vst	= ([TextFragment taskProperties.ManagerProperties.taskDescription.TaskDescription.title],vst)
 gVisualize{|Task|}  _ _ vst							= ([],vst)
 
+gVisualize{|Choice|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,verifyMask,updateMask,updates}
+	# (cmu,um)	= popMask updateMask
+	# (cmv,vm)	= popMask verifyMask
+	# vst		= {VSt|vst & updateMask = um, verifyMask = vm}
+	= case val of
+		Nothing
+			= ([TextFragment "Empty choice"],{VSt|vst & currentPath = stepDataPath currentPath})
+		Just choice=:(Choice opts sel)
+			= case vizType of
+				VEditorDefinition
+					# selection = case cmu of
+						Touched _ _			= [sel]
+						_					= []
+					# (err,hnt)				= verifyElementStr cmu cmv
+					# (optionLabels,vst)	= mkChoiceOptionLabels fx opts vst
+					# id					= dp2id idPrefix currentPath
+					= ([TUIFragment (TUIChoiceControl	{ TUIChoiceControl
+														| name = id 					// names of checkbox groups have to be unique, ...
+														, id = id
+														, dataPath = dp2s currentPath	// ... so use data path field for events
+														, fieldLabel = labelAttr useLabels label
+														, optional = optional
+														, staticDisplay = renderAsStatic
+														, allowMultiple = False
+														, options = optionLabels
+														, selection = selection
+														, errorMsg = err
+														, hintMsg = hnt
+														})]
+					, {VSt|vst & currentPath = stepDataPath currentPath})
+				_
+					| sel > 0 && sel < length opts
+						# (vis,vst) = fx (Just (getChoice choice)) {VSt|vst & currentPath = shiftDataPath currentPath}
+						= (vis,{VSt|vst & currentPath = stepDataPath currentPath})
+					| otherwise
+						= ([TextFragment "No item selected"],{VSt|vst & currentPath = stepDataPath currentPath})
+	
+gVisualize{|MultipleChoice|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,verifyMask,updateMask,updates}
+	# (cmu,um)	= popMask updateMask
+	# (cmv,vm)	= popMask verifyMask
+	# vst		= {VSt|vst & updateMask = um, verifyMask = vm}
+	= case val of
+		Nothing
+			= ([TextFragment "Empty multiple choice"],{VSt|vst & currentPath = stepDataPath currentPath})
+		Just choice=:(MultipleChoice opts sel)
+			= case vizType of
+				VEditorDefinition	
+					# (err,hnt)				= verifyElementStr cmu cmv
+					# (optionLabels,vst)	= mkChoiceOptionLabels fx opts vst
+					#id						= dp2id idPrefix currentPath
+					= ([TUIFragment (TUIChoiceControl	{ TUIChoiceControl
+														| name = id						// names of checkbox groups have to be unique,...
+														, id = id
+														, dataPath = dp2s currentPath	// ... so use data path field for events
+														, fieldLabel = labelAttr useLabels label
+														, staticDisplay = renderAsStatic
+														, optional = optional
+														, allowMultiple = True
+														, options = optionLabels
+														, selection = sel
+														, errorMsg = err
+														, hintMsg = hnt
+														})]
+					, {VSt|vst & currentPath = stepDataPath currentPath})
+				_
+					= case getChoices (fromJust val) of
+						[]
+							= ([TextFragment "No items selected"],{VSt|vst & currentPath = stepDataPath currentPath})
+						choices
+							# (vis,vst) = visualiseChoices choices [] {VSt | vst & currentPath = shiftDataPath currentPath}
+							= (vis,{VSt|vst & currentPath = stepDataPath currentPath})
+where	
+	visualiseChoices [] acc vst = (acc,vst)
+	visualiseChoices [choice:choices] acc vst
+		# (vis,vst) = fx (Just choice) vst
+		= visualiseChoices choices (acc ++ vis ++ (if (isEmpty choices) [] [TextFragment ", "])) vst
+
+
 derive gVisualize DateTime, Either, Void, UserDetails
 derive bimap Maybe
 
@@ -865,6 +943,15 @@ visualizeBasicControl old vst=:{vizType,idPrefix,label,currentPath,updates,useLa
 	# (err,hnt) = verifyElementStr cmu cmv
 	= ({TUIBasicControl | name = dp2s currentPath, id = dp2id idPrefix currentPath, value = val, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = err, hintMsg = hnt}
 	  ,{VSt | vst & verifyMask = vm, updateMask = um, currentPath = stepDataPath currentPath})
+
+mkChoiceOptionLabels fx options vst
+	# vst			= {vst & vizType = VHtmlLabel}
+	# (labels,vst)	= seqList (map mkOptionLabel options) vst
+	= (labels, {vst & vizType = VEditorDefinition})
+where
+	mkOptionLabel option vst
+		# (vis,vst) = fx (Just option) vst
+		= (toString (SpanTag [ClassAttr "task-choice"] (flatten (coerceToHtml vis))),vst)
 
 mbHintToString :: (Maybe HintMessage) -> String
 mbHintToString Nothing = ""

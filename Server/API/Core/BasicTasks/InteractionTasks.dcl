@@ -213,7 +213,7 @@ requestConfirmationAbout	:: !d !a -> Task Bool	| descr d & iTask a
 */
 enterChoice					:: !d 					  				  ![a] 			-> Task a					| descr d & iTask a
 enterChoiceA				:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a] 			-> Task (!ActionEvent, a)	| descr d & iTask a// & iTask v
-//enterSharedChoiceA			:: !d !(a -> v, v a -> a) ![TaskAction a] ![Shared a] 	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+//enterSharedChoiceA			:: !d !(a -> v, v a -> a) ![TaskAction a] !(Shared [a]) 	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select one item from a list of options, given some context information
@@ -269,7 +269,7 @@ updateChoiceAboutA			:: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a]		 !In
 //updateSharedChoiceAboutA	:: !d !(a -> v, v a -> a) ![TaskAction a] !b ![Shared a] !Int -> Task (!ActionEvent, a)	| descr d & iTask a & iTask b & iTask v
 
 /*
-* Ask the user to select one or more items from a list of options
+* Ask the user to select a number of items from a list of options
 *
 *
 * @param description 		A description of the task to display to the user
@@ -286,7 +286,8 @@ enterMultipleChoiceA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a] 			->
 //enterSharedMultipleChoiceA	:: !d !(a -> v, v a -> a) ![TaskAction [a]] ![Shared a] 	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
 
 /*
-* Ask the user to select one or more items from a list of options, given additional context information
+* Ask the user to select a number of items from a list of options, given additional context information
+*
 * @param description 		A description of the task to display to the user
 * @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
 *							If not specified, v = a, and the bimap is the identity.
@@ -302,7 +303,7 @@ enterMultipleChoiceAboutA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![
 //enterSharedMultipleChoiceAboutA	:: !d !(a -> v, v a -> a) ![TaskAction [a]] !b ![Shared a]  -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
-* Ask the user to select one or more items from a list of options with already some options pre-selected
+* Ask the user to select a number of items from a list of options with already some options pre-selected
 *
 * @param description 		A description of the task to display to the user
 * @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 
@@ -319,7 +320,7 @@ updateMultipleChoiceA		:: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a]		  !
 //updateSharedMultipleChoiceA :: !d !(a -> v, v a -> a) ![TaskAction [a]] ![Shared a] ![!Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
-* Ask the user to select one or more items from a list of options with already some options pre-selected, given additional context information
+* Ask the user to select a number of items from a list of options with already some options pre-selected, given additional context information
 *
 * @param description 		A description of the task to display to the user
 * @param (a -> v, v a -> a)	Bimap defining how to convert a to the demanded view v and backwards 

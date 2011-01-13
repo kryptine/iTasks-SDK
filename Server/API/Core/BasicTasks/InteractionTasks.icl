@@ -148,6 +148,126 @@ updateSharedInformationAboutA :: !d !(IBimap a v) ![TaskAction a] !b !(DBId a) -
 updateSharedInformationAboutA description (bimapGet,bimapPutback) actions about dbid
 	= mkInteractiveTask description (makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just bimapGet) bimapPutback actions (SharedUpdate dbid))
 
+enterChoice :: !d ![a] -> Task a | descr d & iTask a
+enterChoice description []		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+enterChoice description options	= mkInteractiveTask description enterChoice`
+where
+	enterChoice` tst
+		# (result,tst) = makeInformationTask Nothing (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (choice options)) tst
+		= (mapTaskResult (\(_,choice) -> getChoice choice) result,tst)
+		
+enterChoiceA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a] -> Task (!ActionEvent, a) | descr d & iTask a// & iTask v
+enterChoiceA description actions []			= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+enterChoiceA description actions options	= mkInteractiveTask description enterChoiceA`
+where
+	enterChoiceA` tst
+		# (result,tst) = makeInformationTask Nothing (Just id) const (mapTaskActionPredicates actions getChoice) (LocalUpdate (choice options)) tst
+		= (mapTaskResult (\(event,choice) -> (event,getChoice choice)) result,tst)
+		
+updateChoice :: !d ![a] !Int -> Task a | descr d & iTask a
+updateChoice description [] sel			= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+updateChoice description options sel	= mkInteractiveTask description updateChoice`
+where
+	updateChoice` tst
+		# (result,tst) = makeInformationTask Nothing (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (choiceSel options sel)) tst
+		= (mapTaskResult (\(_,choice) -> getChoice choice) result,tst)
+
+updateChoiceA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a] !Int -> Task (!ActionEvent, a) | descr d & iTask a// & iTask v
+updateChoiceA description actions [] sel		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+updateChoiceA description actions options sel	= mkInteractiveTask description updateChoiceA`
+where
+	updateChoiceA` tst
+		# (result,tst) = makeInformationTask Nothing (Just id) const (mapTaskActionPredicates actions getChoice) (LocalUpdate (choiceSel options sel)) tst
+		= (mapTaskResult (\(event,choice) -> (event,getChoice choice)) result,tst)
+		
+enterChoiceAbout :: !d !b ![a] -> Task a | descr d & iTask a & iTask b
+enterChoiceAbout description about []		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+enterChoiceAbout description about options	= mkInteractiveTask description enterChoiceAbout`
+where
+	enterChoiceAbout` tst
+		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (choice options)) tst
+		= (mapTaskResult (\(_,choice) -> getChoice choice) result,tst)
+		
+enterChoiceAboutA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a] -> Task (!ActionEvent, a) | descr d & iTask a & iTask b// & iTask v
+enterChoiceAboutA description actions about []		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+enterChoiceAboutA description actions about options	= mkInteractiveTask description enterChoiceAboutA`
+where
+	enterChoiceAboutA` tst
+		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const (mapTaskActionPredicates actions getChoice) (LocalUpdate (choice options)) tst
+		= (mapTaskResult (\(event,choice) -> (event,getChoice choice)) result,tst)
+		
+updateChoiceAbout :: !d !b ![a] !Int -> Task a | descr d & iTask a & iTask b
+updateChoiceAbout description about [] sel		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+updateChoiceAbout description about options sel	= mkInteractiveTask description updateChoiceAbout`
+where
+	updateChoiceAbout` tst
+		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (choiceSel options sel)) tst
+		= (mapTaskResult (\(_,choice) -> getChoice choice) result,tst)
+
+updateChoiceAboutA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a] !Int -> Task (!ActionEvent, a) | descr d & iTask a & iTask b// & iTask v
+updateChoiceAboutA description actions about [] sel			= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+updateChoiceAboutA description actions about options sel	= mkInteractiveTask description updateChoiceAboutA`
+where
+	updateChoiceAboutA` tst
+		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const (mapTaskActionPredicates actions getChoice) (LocalUpdate (choiceSel options sel)) tst
+		= (mapTaskResult (\(event,choice) -> (event,getChoice choice)) result,tst)
+
+enterMultipleChoice :: !d ![a] -> Task [a] | descr d & iTask a
+enterMultipleChoice description options = mkInteractiveTask description enterMultipleChoice`
+where
+	enterMultipleChoice` tst
+		# (result,tst) = makeInformationTask Nothing (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (multipleChoice options)) tst
+		= (mapTaskResult (\(_,choice) -> getChoices choice) result,tst)
+		
+enterMultipleChoiceA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a] -> Task (!ActionEvent, [a]) | descr d & iTask a// & iTask v
+enterMultipleChoiceA description actions options = mkInteractiveTask description enterMultipleChoiceA`
+where
+	enterMultipleChoiceA` tst
+		# (result,tst) = makeInformationTask Nothing (Just id) const (mapTaskActionPredicates actions getChoices) (LocalUpdate (multipleChoice options)) tst
+		= (mapTaskResult (\(event,choice) -> (event,getChoices choice)) result,tst)
+		
+updateMultipleChoice :: !d ![a] ![Int] -> Task [a] | descr d & iTask a
+updateMultipleChoice description options sel = mkInteractiveTask description updateMultipleChoice`
+where
+	updateMultipleChoice` tst
+		# (result,tst) = makeInformationTask Nothing (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (multipleChoiceSel options sel)) tst
+		= (mapTaskResult (\(_,choice) -> getChoices choice) result,tst)
+
+updateMultipleChoiceA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a] ![Int] -> Task (!ActionEvent, [a]) | descr d & iTask a// & iTask v
+updateMultipleChoiceA description actions options sel = mkInteractiveTask description updateMultipleChoiceA`
+where
+	updateMultipleChoiceA` tst
+		# (result,tst) = makeInformationTask Nothing (Just id) const (mapTaskActionPredicates actions getChoices) (LocalUpdate (multipleChoiceSel options sel)) tst
+		= (mapTaskResult (\(event,choice) -> (event,getChoices choice)) result,tst)
+		
+enterMultipleChoiceAbout :: !d !b ![a] -> Task [a] | descr d & iTask a & iTask b
+enterMultipleChoiceAbout description about options = mkInteractiveTask description enterMultipleChoiceAbout`
+where
+	enterMultipleChoiceAbout` tst
+		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (multipleChoice options)) tst
+		= (mapTaskResult (\(_,choice) -> getChoices choice) result,tst)
+		
+enterMultipleChoiceAboutA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![a] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask b// & iTask v
+enterMultipleChoiceAboutA description actions about options = mkInteractiveTask description enterMultipleChoiceAboutA`
+where
+	enterMultipleChoiceAboutA` tst
+		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const (mapTaskActionPredicates actions getChoices) (LocalUpdate (multipleChoice options)) tst
+		= (mapTaskResult (\(event,choice) -> (event,getChoices choice)) result,tst)
+		
+updateMultipleChoiceAbout :: !d !b ![a] ![Int] -> Task [a] | descr d & iTask a & iTask b
+updateMultipleChoiceAbout description about options sel = mkInteractiveTask description updateMultipleChoiceAbout`
+where
+	updateMultipleChoiceAbout` tst
+		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (multipleChoiceSel options sel)) tst
+		= (mapTaskResult (\(_,choice) -> getChoices choice) result,tst)
+
+updateMultipleChoiceAboutA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![a] ![Int] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask b// & iTask v
+updateMultipleChoiceAboutA description actions about options sel = mkInteractiveTask description updateMultipleChoiceAboutA`
+where
+	updateMultipleChoiceAboutA` tst
+		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const (mapTaskActionPredicates actions getChoices) (LocalUpdate (multipleChoiceSel options sel)) tst
+		= (mapTaskResult (\(event,choice) -> (event,getChoices choice)) result,tst)
+
 :: InformationTaskMode a = LocalEnter | LocalUpdate !a | SharedUpdate !(DBId a)
 
 makeInformationTask :: !(Maybe [HtmlTag]) !(Maybe (a -> v)) !(v a -> a) ![TaskAction a] !(InformationTaskMode a) !*TSt -> (!TaskResult (!ActionEvent,!a),!*TSt) | iTask a & iTask v
@@ -308,188 +428,6 @@ where
 		# ts = paramValue "timestamp" request
 		| ts <> ""	= (Just (Timestamp (toInt ts)),tst)
 		| otherwise	= (Nothing,tst)
-
-enterChoice :: !d ![a] -> Task a | descr d & iTask a
-enterChoice description []		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-enterChoice description options	= mkInteractiveTask description (ignoreActionA (makeChoiceTask options -1 Nothing [(ActionOk, ifvalid)]))
-
-enterChoiceA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a] -> Task (!ActionEvent, a) | descr d & iTask a// & iTask v
-enterChoiceA description actions []			= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-enterChoiceA description actions options	= mkInteractiveTask description (makeChoiceTask options -1 Nothing actions)
-
-updateChoice :: !d ![a] !Int -> Task a | descr d & iTask a	
-updateChoice description [] index		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-updateChoice description options index	= mkInteractiveTask description (ignoreActionA (makeChoiceTask options index Nothing [(ActionOk, ifvalid)]))
-
-updateChoiceA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] ![a] !Int -> Task (!ActionEvent, a) | descr d & iTask a// & iTask v
-updateChoiceA description actions [] index		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-updateChoiceA description actions options index	= mkInteractiveTask description (makeChoiceTask options index Nothing actions)
-
-enterChoiceAbout :: !d !b ![a] -> Task a | descr d & iTask a & iTask b
-enterChoiceAbout description about []			= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-enterChoiceAbout description about options		= mkInteractiveTask description (ignoreActionA (makeChoiceTask options -1 (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)]))
-
-enterChoiceAboutA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a] -> Task (!ActionEvent, a) | descr d & iTask a & iTask b// & iTask v
-enterChoiceAboutA description actions about []		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-enterChoiceAboutA description actions about options	= mkInteractiveTask description (makeChoiceTask options -1 (Just (visualizeAsHtmlDisplay about)) actions)
-
-updateChoiceAbout :: !d !b ![a] !Int -> Task a | descr d & iTask a & iTask b
-updateChoiceAbout description about [] index		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-updateChoiceAbout description about options index	= mkInteractiveTask description (ignoreActionA (makeChoiceTask options index (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)]))
-
-updateChoiceAboutA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction a] !b ![a] !Int -> Task (!ActionEvent, a) | descr d & iTask a & iTask b// & iTask v
-updateChoiceAboutA description actions about [] index		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-updateChoiceAboutA description actions about options index	= mkInteractiveTask description (makeChoiceTask options index (Just (visualizeAsHtmlDisplay about)) actions)
-
-makeChoiceTask :: ![a] !Int (Maybe [HtmlTag]) ![TaskAction a] !*TSt -> (!TaskResult (!ActionEvent,!a),!*TSt) | iTask a
-makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
-	# taskId		= taskNrToString taskNr
-	# editorId		= "tf-" +++ taskId
-	# selectionId	= editorId +++ "-sel"
-	# (mbSel,tst)	= getTaskStore "selection" tst
-	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
-	# valid			= selection >= 0 && selection < length options	//Do we have a valid index
-	= case treeType of
-		SpineTree
-			= (TaskBusy,tst)
-		JSONTree
-			# tst = setJSONValue (if valid (toJSON (options !! selection)) JSONNull) tst
-			= (TaskBusy,tst)
-		UITree
-			# (anyEvent,tst)	= (False,tst)//anyEvents tst
-			| newTask || not anyEvent
-				# form			= [TUIChoiceControl {TUIChoiceControl
-													| name = selectionId
-													, id   = selectionId
-													, fieldLabel = Nothing
-													, optional = False
-													, allowMultiple = False
-													, options = [toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)) \\ option <- options]
-													, selection = [selection]
-													}]
-				# evalActions	= evaluateConditions actions valid (if valid (options !! selection) (hd options))
-				# tst			= setTUIDef (taskPanel taskId context (Just form)) evalActions tst
-				= (TaskBusy, tst)
-			| otherwise
-				//Check for user updates
-				# (events,tst) = getEvents tst
-				| isEmpty events
-					// no change for this task
-					# tst = setTUIUpdates [] [] tst
-					= (TaskBusy,tst)
-				| otherwise
-					= case actionEvent events actions of
-						// One of the buttons was pressed
-						Just actionEvent	= (TaskFinished (actionEvent, if valid (options !! selection) (hd options)),tst)
-						// The selection was updated
-						Nothing
-							// The selection was updated
-							# upd = parseUpdate selectionId events
-							# index = if(isEmpty upd) -1 (hd upd)
-							| index <> -1
-								# valid			= index >= 0 && index < length options	//Recompute validity
-								# tst			= setTaskStore "selection" index tst
-								# evalActions 	= evaluateConditions actions valid (if valid (options !! index) (hd options))
-								# tst			= setTUIUpdates [] evalActions tst
-								= (TaskBusy, tst)	
-							// Fallback case (shouldn't really happen)
-							| otherwise
-								# tst = setTUIUpdates [] [] tst
-								= (TaskBusy, tst)
-where
-	parseUpdate :: !String ![(String,JSONNode)] -> [Int]
-	parseUpdate	selectionId events
-		= case [(name,value) \\ (name,value) <- events | name == selectionId] of
-			[(name,value)]	= case fromJSON value of
-								Just l	= l
-								Nothing	= []
-			_				= []
-
-enterMultipleChoice :: !d ![a] -> Task [a] | descr d & iTask a
-enterMultipleChoice description options = mkInteractiveTask description (ignoreActionA (makeMultipleChoiceTask options [] Nothing [(ActionOk, ifvalid)]))
-
-enterMultipleChoiceA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a] -> Task (!ActionEvent, [a]) | descr d & iTask a// & iTask v
-enterMultipleChoiceA description actions options = mkInteractiveTask description (makeMultipleChoiceTask options [] Nothing actions)
-
-updateMultipleChoice :: !d ![a] ![Int] -> Task [a] | descr d & iTask a
-updateMultipleChoice description options indices = mkInteractiveTask description (ignoreActionA (makeMultipleChoiceTask options indices Nothing [(ActionOk, ifvalid)]))
-
-updateMultipleChoiceA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] ![a] ![Int] -> Task (!ActionEvent, [a]) | descr d & iTask a// & iTask v
-updateMultipleChoiceA description actions options indices = mkInteractiveTask description (makeMultipleChoiceTask options indices Nothing actions)
-
-enterMultipleChoiceAbout :: !d !b ![a] -> Task [a] | descr d & iTask a & iTask b
-enterMultipleChoiceAbout description about options = mkInteractiveTask description (ignoreActionA (makeMultipleChoiceTask options [] (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)]))
-
-enterMultipleChoiceAboutA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![a] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask b// & iTask v
-enterMultipleChoiceAboutA description actions about options = mkInteractiveTask description (makeMultipleChoiceTask options [] (Just (visualizeAsHtmlDisplay about)) actions)
-
-updateMultipleChoiceAbout :: !d !b ![a] ![Int] -> Task [a] | descr d & iTask a & iTask b
-updateMultipleChoiceAbout description about options indices = mkInteractiveTask description (ignoreActionA (makeMultipleChoiceTask options indices (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)]))
-
-updateMultipleChoiceAboutA :: !d /*!(a -> v, v a -> a)*/ ![TaskAction [a]] !b ![a] ![Int] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask b// & iTask v
-updateMultipleChoiceAboutA description actions about options indices = mkInteractiveTask description (makeMultipleChoiceTask options indices (Just (visualizeAsHtmlDisplay about)) actions)
-
-makeMultipleChoiceTask :: ![a] ![Int] !(Maybe [HtmlTag]) ![TaskAction [a]] !*TSt -> (!TaskResult (!ActionEvent,![a]),!*TSt) | iTask a
-makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
-	# taskId		= taskNrToString taskNr
-	# editorId		= "tf-" +++ taskId
-	# selectionId	= editorId +++ "-sel"
-	# (mbSel,tst)	= getTaskStore "selection" tst
-	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
-	= case treeType of
-		SpineTree
-			= (TaskBusy,tst)
-		JSONTree
-			# tst = setJSONValue (toJSON (select selection options)) tst
-			= (TaskBusy,tst)
-		UITree
-			# (anyEvent,tst)= (False,tst)//anyEvents tst
-			// finish the task in case of an empty options list. As no options are selectable, the result is -of course- an empty list.
-			| isEmpty options
-			= (TaskFinished ((ActionOk,""),[]),tst)
-			| newTask || not anyEvent
-				// generate TUI definition
-				# checks		= [isMember i selection \\ i <- [0..(length options) - 1]]
-				# form			= [TUIChoiceControl { TUIChoiceControl
-													| name = "selection"
-													, id = editorId +++ "-selection"
-													, fieldLabel = Nothing
-													, allowMultiple = True
-													, optional = False
-													, options = [toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)) \\ option <- options]
-													, selection = selection
-													}]
-				# evalActions	= evaluateConditions actions True (select selection options)
-				# tst			= setTUIDef (taskPanel taskId context (Just form)) evalActions tst
-				= (TaskBusy, tst)
-			| otherwise
-				//Check for events
-				# (events,tst) = getEvents tst
-				| isEmpty events
-					// no change for this task
-					# tst = setTUIUpdates [] [] tst
-					= (TaskBusy,tst)
-				| otherwise
-					// One of the buttons was pressed
-					= case actionEvent events actions of
-						Just actionEvent	= (TaskFinished (actionEvent, select selection options),tst)
-						Nothing
-							// Perhaps the selection was changed
-							# mbSel			= parseSelection events
-							# selection		= case mbSel of Nothing = selection; Just sel = sel
-							# tst			= setTaskStore "selection" (sort selection) tst
-							# evalActions	= evaluateConditions actions True (select selection options)
-							# tst			= setTUIUpdates [] evalActions tst
-							= (TaskBusy, tst)
-where
-	parseSelection :: [(String,JSONNode)] -> Maybe [Int]
-	parseSelection events =
-		case [value \\ (name,value) <- events | name == "selection"] of
-			[value] = fromJSON value
-			_		= Nothing
-
-	select :: [Int] [a] -> [a]
-	select indices options = [options !! index \\ index <- indices]
 
 showMessage :: !d a -> Task a | descr d & iTask a
 showMessage description value
@@ -666,3 +604,12 @@ where
 										| id = panelid
 										, html = toString (html context)
 										}
+
+//Changes all predicates on values of type a to predicates on values of type b										
+mapTaskActionPredicates :: [TaskAction a] (b -> a) -> [TaskAction b]
+mapTaskActionPredicates actions vMap = map changePrecicate actions
+where
+	changePrecicate (action,pred) = (action,newPred pred)
+	newPred pred v = case v of
+		Invalid	= pred Invalid
+		Valid b	= pred (Valid (vMap b))

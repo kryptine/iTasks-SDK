@@ -5,8 +5,8 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	blankText : 'Please select at least one option',
 
 	initComponent : function(){
-		if(this.staticDisplay) {
-			//...
+		if(this.staticDisplay){
+			this.items = [{hidden:true}];
 		}
 	
 		this.listeners = {change: {fn: this.onChange, scope: this}};
@@ -19,11 +19,10 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.name,this.getValue());
+		this.fireEvent('tuichange',this.dataPath,Ext.encode(this.getValue()));
 	},
 	onRender: function(ct, position){
 		var me = this;
-		
 		
 		if(!this.el && !this.staticDisplay){
 			var panelCfg = {
@@ -89,10 +88,14 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	afterRender : function(){
 		itasks.tui.ChoiceControl.superclass.afterRender.call(this);
 		
-		this.eachItem(function(item){
-			item.on('check',this.fireChecked, this);
-			item.inGroup = true;
-		});
+		if(!this.staticDisplay){
+			this.eachItem(function(item){
+				item.on('check',this.fireChecked, this);
+				item.inGroup = true;
+			});
+		}else{
+			this.getEl().createChild({tag: 'div', style: 'overflow: auto', html: this.genStaticDisplay()});
+		}
 	},
 	//buffer to prevent radio group buttons firing twice (uncheck of previous -> check of new)
 	fireChecked : function() {
@@ -118,7 +121,6 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	},
 	//returns a list of checked indices	
 	getValue : function(){	
-		
 		var out = [];
 		var multiple = this.allowMultiple;
 			
@@ -130,6 +132,18 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 		});
 				
 		return out;
+	},
+	genStaticDisplay: function(v){
+		if (this.selection.length == 0){
+			return "No item selected";
+		}else{
+			var display = "";
+			for(var i=0; i < this.selection.length; i++){
+				display += this.options[this.selection[i]];
+				display += (i < this.selection.length-1) ? ", " : "";
+			}
+			return display;
+		}
 	}
 });
 

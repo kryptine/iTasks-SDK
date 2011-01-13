@@ -83,11 +83,15 @@ instance == TUIDef
 :: TUIChoiceControl =
 	{ name			:: !String
 	, id			:: !TUIId
+	, dataPath		:: !String
 	, fieldLabel	:: !Maybe String
 	, allowMultiple	:: !Bool
+	, staticDisplay	:: !Bool
 	, optional		:: !Bool
 	, options		:: ![String]
 	, selection		:: ![Int]
+	, errorMsg		:: !String
+	, hintMsg		:: !String
 	}
 :: TUICurrencyControl =
 	{ name			:: !String

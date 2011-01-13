@@ -521,6 +521,38 @@ gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 		, ust)
 gUpdate{|Task|} _ x ust = (x,ust)
 
+gUpdate{|Choice|} _ _ ust=:{USt|mode=UDCreate,newMask} 
+	= (Choice [] -1, {USt | ust & newMask = appendToMask newMask Untouched})
+gUpdate{|Choice|} _ c=:(Choice opts _) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om)	= popMask oldMask
+	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
+	| currentPath == searchPath
+		# (n,mask) = case fromJSON (fromString update) of
+			Just [i]	= (Choice opts i,	Touched True [])
+			_			= (Choice opts -1,	Blanked True)
+		= (n, {ust & newMask = appendToMask newMask mask}) 
+	| otherwise
+		= (c, {ust & newMask = appendToMask newMask (cleanUpdMask cm)})
+gUpdate{|Choice|} _ c=:(Choice opts sel) ust=:{USt|mode=UDMask,currentPath,newMask}
+	// if no valid selection is made, start with untouched mask
+	# mask = if (sel >= 0 && sel < length opts) (Touched True []) (Untouched)
+	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask mask})
+	
+gUpdate{|MultipleChoice|} _ _ ust=:{USt|mode=UDCreate,newMask} 
+	= (MultipleChoice [] [], {USt | ust & newMask = appendToMask newMask Untouched})
+gUpdate{|MultipleChoice|} _ c=:(MultipleChoice opts _) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om)	= popMask oldMask
+	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
+	| currentPath == searchPath
+		# n = case fromJSON (fromString update) of
+			Just s	= MultipleChoice opts s
+			Nothing	= MultipleChoice opts []
+		= (n, {ust & newMask = appendToMask newMask (toggleMask update)}) 
+	| otherwise
+		= (c, {ust & newMask = appendToMask newMask (cleanUpdMask cm)})
+gUpdate{|MultipleChoice|} _ c ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
+
 derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails
 
 //Utility functions

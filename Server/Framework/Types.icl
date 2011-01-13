@@ -11,14 +11,32 @@ from InteractionTasks import class html(..), instance html String
 derive gVisualize		EmailAddress, Session
 derive gUpdate			EmailAddress, Session
 derive gVerify			EmailAddress, Session
-derive gMerge			EmailAddress, Currency, FormButton, ButtonState, User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime, Timestamp
-
-derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note
-derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note
-
+derive gMerge			EmailAddress, Currency, FormButton, ButtonState, User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime, Timestamp, Choice, MultipleChoice
+derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
+derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
+derive gLexOrd			Currency
 derive bimap			Maybe, (,)
 
-derive gLexOrd			Currency
+choice :: ![a] -> Choice a
+choice l = Choice l -1
+
+choiceSel :: ![a] !Int -> Choice a
+choiceSel l s = Choice l s
+
+getChoice :: !(Choice a) -> a
+getChoice (Choice l i)
+	| i >= 0 &&  i < (length l)	= l !! i
+	| otherwise					= l !! 0
+
+multipleChoice :: ![a] -> MultipleChoice a
+multipleChoice l = MultipleChoice l []
+
+multipleChoiceSel :: ![a] ![Int] -> MultipleChoice a
+multipleChoiceSel l sel = MultipleChoice l sel
+
+getChoices :: !(MultipleChoice a) -> [a]
+getChoices (MultipleChoice l is)
+	= [l !! i \\ i <- is | i >= 0 && i < (length l)]
 
 initManagerProperties :: ManagerProperties
 initManagerProperties = 

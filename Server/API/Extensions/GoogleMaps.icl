@@ -121,7 +121,7 @@ gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate,newMask} = (mkMap,{USt | ust
 gUpdate {|GoogleMap|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
-		= (parseUpdate s update, {USt | ust & newMask = appendToMask newMask (Touched True []), oldMask = om})
+		= (parseUpdate s update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True []), oldMask = om})
 	| otherwise
 		= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 where

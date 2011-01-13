@@ -1,6 +1,6 @@
 implementation module GenVerify
 
-import StdMaybe, StdGeneric, StdBool, StdInt, Text, StdList, StdTuple
+import StdMaybe, StdGeneric, StdBool, StdInt, Text, StdList, StdTuple, StdFunc
 import GenUpdate, StdMisc
 
 derive bimap (,), Maybe
@@ -171,6 +171,8 @@ gVerify{|User|} _ vst=:{VerSt | updateMask, verifyMask, optional} = basicVerify 
 
 gVerify{|Task|} _ _ vst = vst
 
+gVerify{|Choice|}			_ mbVal vst = verifyConstructor (Just "Choose one item")			(const True) undef mbVal vst
+gVerify{|MultipleChoice|}	_ mbVal vst = verifyConstructor (Just "Choose a number of items")	(const True) undef mbVal vst
 
 //********************************************************************************************************
 basicVerify :: String !*VerSt -> *VerSt

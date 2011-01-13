@@ -19,10 +19,10 @@ derive gVisualize		EmailAddress, Session
 derive gUpdate			EmailAddress, Session 
 derive gVerify			EmailAddress, Session
 
-derive gMerge			FormButton, User, Session, VisualizationHint, Note, Password, Date, Time, DateTime
+derive gMerge			FormButton, User, Session, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
 
-derive JSONEncode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
-derive JSONDecode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
+derive JSONEncode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
+derive JSONDecode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
 
 derive JSONEncode		(->)
 derive JSONDecode		(->)
@@ -242,9 +242,27 @@ initGroupedProperties :: GroupedProperties
 :: ChangeInjection :== (!ChangeLifeTime,!ChangeDyn)
 
 // Data types for which the framework provides special visualizations and support
-// Plain text notes
 
-:: Note			= Note String
+// Represents the choice of one element from a list
+:: Choice			a = Choice			![a] !Int
+// Represents the choice of a number of items from a list
+:: MultipleChoice	a = MultipleChoice	![a] ![Int]
+
+// Generates a choice with given options
+choice 				:: ![a]					-> Choice a
+// Generates a choice with given options and preselected item
+choiceSel			:: ![a] !Int			-> Choice a
+// Get the currently chosen item
+getChoice			:: !(Choice a)			-> a
+// Generates a multiple choice with given options
+multipleChoice		:: ![a] 				-> MultipleChoice a
+// Generates a multiple choice with given options and preselected items
+multipleChoiceSel	:: ![a] ![Int]			-> MultipleChoice a
+// Get the currently chosen items
+getChoices			:: !(MultipleChoice a)	-> [a]
+
+// Plain text notes
+:: Note = Note String
 
 :: Date	=
 	{ day	:: Int
