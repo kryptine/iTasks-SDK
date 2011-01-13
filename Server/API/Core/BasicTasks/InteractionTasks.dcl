@@ -7,7 +7,7 @@ from Types		import :: Role
 from Html		import :: HtmlTag
 from iTasks		import class iTask(..)
 
-import GenVisualize, GenUpdate, GenMerge, StoreTasks
+import GenVisualize, GenUpdate, StoreTasks
 
 derive gVisualize Action
 derive gUpdate Action
@@ -83,8 +83,6 @@ where
 instance MenuAction Action
 instance MenuAction ActionName
 instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionName
-
-class SharedVariable a | gMerge{|*|} a
 
 // This tuple is used to link actions to user interfaces.
 // Its two parts represent the (what , when) aspects of actions.

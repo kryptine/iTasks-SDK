@@ -14,8 +14,7 @@ from Directory import :: Path(..), ::DiskName, :: PathStep(..)
 :: CallException = CallFailed !String
 :: DirectoryException = CannotCreate
 
-derive class iTask			Path, FileException, FileProblem, CallException, DirectoryException
-derive class SharedVariable	Path
+derive class iTask Path, FileException, FileProblem, CallException, DirectoryException
 
 /**
 * Generate a platform dependent string representation of a path.

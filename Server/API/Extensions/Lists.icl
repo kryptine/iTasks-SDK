@@ -2,8 +2,7 @@ implementation module Lists
 
 import iTasks, Groups
 
-derive class iTask	List, ListMeta, ListDescription, AnyList
-derive gMerge		List, ListMeta, ListDescription, AnyList
+derive class iTask List, ListMeta, ListDescription, AnyList
 derive bimap Maybe, (,)
 
 //Internal administration of who owns lists and who they are shared with.

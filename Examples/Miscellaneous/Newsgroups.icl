@@ -44,8 +44,7 @@ mkInstruction
 // --- Appointment Example ---
 
 // date fixing
-derive class iTask	Appointment, Meeting, Attending
-derive gMerge		Appointment, Meeting, Attending
+derive class iTask Appointment, Meeting, Attending
 
 :: Appointment		=	{ topic :: Note
 						}
@@ -97,8 +96,7 @@ where
 	defineOptions = enterInformation ("Options","Define date and time options:")
 
 // ====== CHAT =====================================================
-derive class iTask	Chat, ChatMessage, ChatView, ChatMessageView
-derive gMerge		Chat, ChatMessage, ChatView, ChatMessageView
+derive class iTask Chat, ChatMessage, ChatView, ChatMessageView
 
 //Shared State	
 :: Chat =

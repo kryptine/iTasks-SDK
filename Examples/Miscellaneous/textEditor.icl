@@ -277,6 +277,5 @@ getAllFileNames =
 				dbReadAll
 	>>= \files.	return (map (\f -> (f.TextFile.name, Hidden f.fileId)) files)
 	
-derive class iTask			AppState, EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive class SharedVariable	EditorState, EditorFile, TextFile
-derive bimap				Maybe, (,)
+derive class iTask AppState, EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive bimap Maybe, (,)

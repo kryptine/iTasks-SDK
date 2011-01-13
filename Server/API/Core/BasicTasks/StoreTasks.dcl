@@ -6,7 +6,7 @@ from TSt 			import :: Task
 from StdOverloaded	import class ==, class <
 
 from	iTasks import class iTask
-import	GenVisualize, GenUpdate, GenMerge
+import	GenVisualize, GenUpdate
 
 //Database identifier for storing a single value of type a
 ::DBId a = DBId !String
@@ -20,13 +20,11 @@ instance toString (DBId a)
 instance == (DBRef a)
 instance <  (DBRef a)
 
-derive gVisualize		DBRef, DBId
-derive gUpdate			DBRef, DBId
-derive gVerify			DBRef, DBId
-derive gMerge			DBRef, DBId
-
-derive JSONEncode		DBRef, DBId
-derive JSONDecode		DBRef, DBId
+derive gVisualize	DBRef, DBId
+derive gUpdate		DBRef, DBId
+derive gVerify		DBRef, DBId
+derive JSONEncode	DBRef, DBId
+derive JSONDecode	DBRef, DBId
 
 //Core database access functions
 

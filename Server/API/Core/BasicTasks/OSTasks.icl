@@ -4,9 +4,8 @@ import iTasks, TSt, ostoolbox, clCCall_12, StdFile, Text
 from Directory import pathToPD_String
 import code from "OSTasksC."
 
-derive class iTask			Path, PathStep, FileException, FileProblem, CallException, DirectoryException
-derive class SharedVariable	Path, PathStep
-derive bimap		Maybe, (,)
+derive class iTask Path, PathStep, FileException, FileProblem, CallException, DirectoryException
+derive bimap Maybe, (,)
 
 (+<) infixr 5 :: !Path	![PathStep]	-> Path
 (+<) (RelativePath steps)		appSteps = RelativePath (steps ++ appSteps)

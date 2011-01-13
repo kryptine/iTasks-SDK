@@ -19,8 +19,6 @@ derive gVisualize		EmailAddress, Session
 derive gUpdate			EmailAddress, Session 
 derive gVerify			EmailAddress, Session
 
-derive gMerge			FormButton, User, Session, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
-
 derive JSONEncode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
 derive JSONDecode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
 

@@ -11,7 +11,6 @@ from InteractionTasks import class html(..), instance html String
 derive gVisualize		EmailAddress, Session
 derive gUpdate			EmailAddress, Session
 derive gVerify			EmailAddress, Session
-derive gMerge			EmailAddress, Currency, FormButton, ButtonState, User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime, Timestamp, Choice, MultipleChoice
 derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
 derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
 derive gLexOrd			Currency

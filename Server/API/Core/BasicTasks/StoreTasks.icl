@@ -9,13 +9,11 @@ import CoreCombinators
 import GenVisualize, GenUpdate
 from InteractionTasks import instance html String
 
-derive gVisualize		DBRef, DBId
-derive gUpdate			DBRef, DBId
-derive gVerify			DBRef, DBId
-derive gMerge			DBRef, DBId
-
-derive JSONEncode		DBRef, DBId
-derive JSONDecode		DBRef, DBId
+derive gVisualize	DBRef, DBId
+derive gUpdate		DBRef, DBId
+derive gVerify		DBRef, DBId
+derive JSONEncode	DBRef, DBId
+derive JSONDecode	DBRef, DBId
 
 derive bimap Maybe, (,)
 
