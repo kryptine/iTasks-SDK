@@ -106,12 +106,12 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	},
 	bufferChecked : function(){
 		var arr = [];
-        this.eachItem(function(item){
-            if(item.checked){
-                arr.push(item);
-            }
-        });
-        this.fireEvent('change', this, arr);
+		this.eachItem(function(item){
+			if(item.checked){
+				arr.push(item);
+			}
+		});
+		this.fireEvent('change', this, arr);
 	},
 	doLayout: function(){
 		if(this.rendered){
@@ -132,6 +132,21 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 		});
 				
 		return out;
+	},
+	setValue : function(sel){	
+		var sel = Ext.decode(sel);
+		if(Ext.isArray(sel)){
+			var selection = new Ext.util.MixedCollection();
+			selection.addAll(sel);
+			for(var i=0; i<this.items.getCount(); i++){
+				if(selection.contains(i)){
+					this.items.get(i).setValue(true);
+					if(!this.allowMultiple) break;
+				}else{
+					this.items.get(i).setValue(false);
+				}
+			}
+		}
 	},
 	genStaticDisplay: function(v){
 		if (this.selection.length == 0){

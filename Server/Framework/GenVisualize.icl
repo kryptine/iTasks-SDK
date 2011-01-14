@@ -58,6 +58,12 @@ diffEditorDefinitions path old new
 			(TUIDocumentControl odoc, TUIDocumentControl ndoc)
 				| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
 				| otherwise																= [TUIReplace_ (dp2s path) new]
+			// Choices are replaced if the options are changed, otherwise there selection is updated
+			(TUIChoiceControl oc, TUIChoiceControl nc)
+				| oc.options == nc.options
+					| oc.selection == nc.selection	= []
+					| otherwise						= [TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
+				| otherwise							= [TUIReplace_ (dp2s path) new]
 			// Fallback: always replace
 			_	= [TUIReplace_ (dp2s path) new]
 	| otherwise
