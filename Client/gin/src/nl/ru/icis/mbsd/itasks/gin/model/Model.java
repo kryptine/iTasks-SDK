@@ -17,8 +17,8 @@ public abstract class Model {
 	private ArrayList<View> deepViews;
 	private boolean changed = false;
 	private boolean inNotify = false;
-	private boolean inError = false;
-	private String errorMessage;
+	private boolean inHintUpdate = false;
+	private String hintMessage;
 	
 	public Model() {
 		parent = null;
@@ -96,50 +96,50 @@ public abstract class Model {
 		doNotifyViews(source);
 	}
 	
-	public String getErrorMessage() {
-		return errorMessage;
+	public String getHintMessage() {
+		return hintMessage;
 	}
 	
-	public void setErrorMessage(Object source, String errorMessage) {
-		if (this.errorMessage == null && errorMessage == null
-				|| this.errorMessage != null && errorMessage != null 
-				&& this.errorMessage.equals(errorMessage))
+	public void setHintMessage(Object source, String hintMessage) {
+		if (this.hintMessage == null && hintMessage == null
+				|| this.hintMessage != null && hintMessage != null 
+				&& this.hintMessage.equals(hintMessage))
 			return;
 		
-		this.errorMessage = errorMessage;
+		this.hintMessage = hintMessage;
 		setChanged();
 		notifyViews(source);
 	}
 	
-	public void setErrorFromJSON(Object source, String json) {
-		clearErrors(source);
+	public void setHintFromJSON(Object source, String json) {
+		clearHints(source);
 		
 		if (json.isEmpty())
 			return;
 		
-		JSONArray jsonErrors = (JSONArray) JSONValue.parse(json);
-		for (Object o: jsonErrors) {
-			JSONArray jsonError = (JSONArray) o;
-			setErrorFromPath(source, (String) jsonError.get(0), (String) jsonError.get(1));
+		JSONArray jsonHints = (JSONArray) JSONValue.parse(json);
+		for (Object o: jsonHints) {
+			JSONArray jsonHint = (JSONArray) o;
+			setHintFromPath(source, (String) jsonHint.get(0), (String) jsonHint.get(1));
 		}
 	}
 	
-	public void setErrorFromPath(Object source, String path, String message) {
+	public void setHintFromPath(Object source, String path, String message) {
 		System.out.println("path=" + path + ",message=" + message);
 		
 		StringTokenizer st = new StringTokenizer(path, "/[]", true);
 		try {
 			if (! st.nextToken().equals("/"))
 				throw new RuntimeException("Invalid path: Expected \"/\"");
-			setErrorFromPath(source, st, message);
+			setHintFromPath(source, st, message);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 	
-	protected void setErrorFromPath(Object source, StringTokenizer st, String message) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+	protected void setHintFromPath(Object source, StringTokenizer st, String message) throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
 		if (! st.hasMoreTokens()) {
-			setErrorMessage(source, message);
+			setHintMessage(source, message);
 		}
 		else {
 				String field = st.nextToken();
@@ -155,10 +155,10 @@ public abstract class Model {
 						throw new RuntimeException("Invalid path: Expected \"/\"");
 					Object array = findGetter(field).invoke(this);
 					Method arrayGet = array.getClass().getMethod("get", int.class);
-					((Model) arrayGet.invoke(array, index)).setErrorFromPath(source, st, message);
+					((Model) arrayGet.invoke(array, index)).setHintFromPath(source, st, message);
 				}
 				else if (delim.equals("/")){
-					((Model)findGetter(field).invoke(this)).setErrorFromPath(source, st, message);
+					((Model)findGetter(field).invoke(this)).setHintFromPath(source, st, message);
 				}
 				else 
 					throw new RuntimeException ("Invalid path: Invalid delimiter \"" + delim + "\"");
@@ -174,16 +174,16 @@ public abstract class Model {
 		throw new RuntimeException("getter method not found: " + this.getClass().getName() + "." + methodName + "()");
 	}
 	
-	public void clearErrors(Object source) {
-		if (inError)
+	public void clearHints(Object source) {
+		if (inHintUpdate)
 			return;
 		
-		inError = true;
-		setErrorMessage(source, null);
+		inHintUpdate = true;
+		setHintMessage(source, null);
 		for (Model child: children) {
-			child.clearErrors(source);
+			child.clearHints(source);
 		}
-		inError = false;
+		inHintUpdate = false;
 	}
 	
 	public boolean equals (Object obj) {

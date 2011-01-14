@@ -1,9 +1,7 @@
 implementation module GinCompiler
 
-import StdEnv
 import StdDynamicFileIO
 import StdMaybe
-import StdParsComb
 from StdSystem import dirseparator
 
 import GinSyntax
@@ -27,16 +25,13 @@ runCompiler gMod compiler world
 #(config,world) = ginLoadConfig world 
 | isNothing config = (CompileGlobalError "Configuration not found", world)
 #config = fromJust config
-//3. Check configuration
-#(valid, world) = ginCheckConfig config world
-| not valid = (CompileGlobalError "Configuration error", world)
-//4. Pretty-print module
+//3. Pretty-print module
 #basename = "test" /* TODO: Generate unique name */
 #source = renderAModule [PathContexts] { AModule | aMod & name = basename }
-//5. Write source code to file
+//4. Write source code to file
 #(result, world) = osWriteTextFile (filenameFromConfig config basename "icl") source world
 | isOSError result = (CompileGlobalError ("Write icl file failed: " +++ formatOSError result), world)
-//6. Call compiler function
+//5. Call compiler function
 = compiler source basename config world
 
 batchBuild :: !GModule *World -> (CompileResult Dynamic, *World)

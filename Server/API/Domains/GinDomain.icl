@@ -16,7 +16,6 @@ gVisualize {|GinEditor|} val vst=:{vizType, label, idPrefix, currentPath, option
     = case vizType of
         VEditorDefinition = ([TUIFragment (TUIAppletControl (appletPanel val idPrefix currentPath err hnt))]
                              , {VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-//      _                 = (staticMapPanel val, {VSt | vst & currentPath = stepDataPath currentPath})
 where
     appletPanel Nothing                          idp cp errMsg hntMsg = applet newModule                 idp cp errMsg hntMsg 
     appletPanel (Just (GinEditor value)) idp cp errMsg hntMsg = applet (addDefaultLibrary value) idp cp errMsg hntMsg
@@ -51,12 +50,13 @@ where
 gUpdate {|GinEditor|} s ust =: {USt | mode = UDMask, currentPath, newMask}
     = (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 
-gVerify{|GinEditor|} val vst = worldVerify Nothing check val vst where
-  check (GinEditor gMod) iworld =:{ world }
+gVerify{|GinEditor|} val vst = worldVerify check val vst where
+  check Nothing iworld = (Nothing, Nothing, iworld)
+  check (Just (GinEditor gMod)) iworld =:{ world }
   #(compileresult, world) = syntaxCheck gMod world
-  # err = case compileresult of
+  # hint = case compileresult of
        CompileSuccess _ = Nothing
        CompileGlobalError error = Just (toString (toJSON [("/", error)]))
        CompilePathError errors = Just (toString (toJSON errors))
-  = (err, { IWorld | iworld & world = world } )
+  = (hint, Nothing, { IWorld | iworld & world = world } )
 

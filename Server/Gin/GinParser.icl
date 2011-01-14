@@ -139,10 +139,9 @@ gToAListComprehension :: Bindings GListComprehension -> GParseState (AListCompre
 gToAListComprehension bindings glc = 
     gToAExpression bindings glc.GListComprehension.output >>> \output` =
     gToAExpression bindings glc.GListComprehension.input >>> \input` = 
-    gToAMaybeExpression bindings glc.GListComprehension.guard >>> \guard` = 
     ret { output = output`
         , generators = ANestedGeneratorList [Generator glc.GListComprehension.selector input`]
-        , guards = maybeToList guard`
+        , guards = map Unparsed (maybeToList glc.GListComprehension.guard)
         }
         
 spTreeToAExpression :: Bindings SPTree -> GParseState (AExpression Void)

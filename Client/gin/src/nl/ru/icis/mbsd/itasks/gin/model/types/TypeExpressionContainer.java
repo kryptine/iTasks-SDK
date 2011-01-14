@@ -42,16 +42,12 @@ public class TypeExpressionContainer extends Model {
 		String constructorName = (String) (jsonType instanceof String ? jsonType : ((JSONArray)jsonType).get(0));
 		if (constructorName.equals("GUndefinedTypeExpression")) {
 			result.setTypeExpression(null);
-		} else if (constructorName.equals("GBasicTypeExpression")) {
-			result.setTypeExpression(new BasicTypeExpression((JSONArray)jsonType));
-		} else if (constructorName.equals("GAbstractTypeExpression")) {
-			result.setTypeExpression(new AbstractTypeExpression((JSONArray)jsonType));
+		} else if (constructorName.equals("GConstructor")) {
+			result.setTypeExpression(ConstructorTypeExpression.fromJSON((JSONArray)jsonType, scope));
 		} else if (constructorName.equals("GList")) {
 			result.setTypeExpression(ListTypeExpression.fromJSON((JSONArray)jsonType, scope));
 		} else if (constructorName.equals("GTuple")) {
 			result.setTypeExpression(TupleTypeExpression.fromJSON((JSONArray)jsonType, scope));
-		} else if (constructorName.equals("GConstructor")) {
-			result.setTypeExpression(ConstructorTypeExpression.fromJSON((JSONArray)jsonType, scope));
 		} else if (constructorName.equals("GTypeApplication")) {
 			result.setTypeExpression(ApplicationTypeExpression.fromJSON((JSONArray)jsonType, scope));
 		} else if (constructorName.equals("GTypeVariable")) {

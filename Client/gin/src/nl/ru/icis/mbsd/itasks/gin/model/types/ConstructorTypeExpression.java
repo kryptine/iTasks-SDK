@@ -8,12 +8,22 @@ import nl.ru.icis.mbsd.itasks.gin.model.Scope;
 public class ConstructorTypeExpression extends TypeExpression {
 	private TypeDefinition typeDefinition;
 	
+	public ConstructorTypeExpression()
+	{
+	}
+	
+	public ConstructorTypeExpression(TypeDefinition typeDefinition)
+	{
+		this.typeDefinition = typeDefinition;
+	}
+	
 	public TypeDefinition getTypeDefinition() {
 		return typeDefinition;
 	}
 
 	public void setTypeDefinition(TypeDefinition typeDefinition) {
 		this.typeDefinition = typeDefinition;
+		typeDefinition.setParent(this);
 		setChanged();
 	}
 	
@@ -25,7 +35,6 @@ public class ConstructorTypeExpression extends TypeExpression {
 			System.err.println("Warning: type \"" + constructorName + "\" undefined");
 			td = new TypeDefinition();
 			td.setName(constructorName);
-			td.getExpressionContainer().setTypeExpression(null);
 		}
 		result.setTypeDefinition(td);
 		return result;

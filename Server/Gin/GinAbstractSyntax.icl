@@ -13,8 +13,6 @@ import GinSPTree
 import PPrint
 import Text
 
-//derive gPrint AModule, ADefinition, AExpression, ACaseAlt, AListComprehension, AGeneratorList, AGenerator, AFix, Void
-
 instance == AFix
 where
 	(==) Infixl Infixl = True
@@ -148,18 +146,15 @@ instance == PrintOption where
 renderAModule :: [PrintOption] AModule -> String
 renderAModule opt def = display (renderPretty 80.0 0 (printAModule opt def))
 
-//instance toString AModule where
-//    toString amod = printToString amod
-
 printAModule :: [PrintOption] AModule -> Doc
 printAModule opt mod = text "module " <+> text mod.AModule.name
                        <//>
                        text "import StdFile" <//>
                        text "import StdDynamic" <//>
                        text "import StdDynamicFileIO" <//>
-                       vsep (map (\imp = text "import" <+> text imp) (tl mod.AModule.imports)) <//>
-                       vsep (map (printADefinition opt) mod.AModule.definitions) <//>
+                       text "import iTasks" <//>
                        vsep (map printGTypeDefinition mod.AModule.types) <//>
+                       vsep (map (printADefinition opt) mod.AModule.definitions) <//>
                        text "Start :: *World -> *World" <//>
                        text "Start world"  <//>
                        //TODO: Write all ADefinitions to dynamics, not only first

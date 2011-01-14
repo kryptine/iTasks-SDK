@@ -6,22 +6,20 @@ import org.json.simple.JSONObject;
 import nl.ru.icis.mbsd.itasks.gin.json.JSONException;
 import nl.ru.icis.mbsd.itasks.gin.model.ExpressionContainer;
 import nl.ru.icis.mbsd.itasks.gin.model.Scope;
-import nl.ru.icis.mbsd.itasks.gin.model.types.BasicTypeExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.types.ListTypeExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.types.TypeExpressionContainer;
 import nl.ru.icis.mbsd.itasks.gin.model.types.VariableTypeExpression;
 
 public class ListComprehensionExpression extends Expression {
 	private ExpressionContainer output; 
-	private ExpressionContainer guard;
+	private CleanExpression guard;
 	private CleanExpression selector;
 	private ExpressionContainer input;
 	
 	public ListComprehensionExpression()
 	{
 		setOutput(new ExpressionContainer());
-		setGuard(new ExpressionContainer());
-		guard.setExpression(new CleanExpression());
+		guard = new CleanExpression();
 		selector = new CleanExpression();
 		setInput(new ExpressionContainer());
 		input.setExpression(new CleanExpression());
@@ -45,16 +43,12 @@ public class ListComprehensionExpression extends Expression {
 		setChanged();
 	}
 
-	public ExpressionContainer getGuard() {
+	public CleanExpression getGuard() {
 		return guard;
 	}
 
-	private void setGuard(ExpressionContainer guard) {
-		if (this.guard != null)
-			this.guard.setParent(null);
-		this.guard = guard;
-		guard.setParent(this);
-		guard.setTypeExpressionContainer(new TypeExpressionContainer(new BasicTypeExpression("Bool")));
+	private void setGuardText(String guard) {
+		this.guard.setText(guard);
 	}
 	
 	public CleanExpression getSelector() {
@@ -85,7 +79,7 @@ public class ListComprehensionExpression extends Expression {
 	public static ListComprehensionExpression fromJSON(JSONObject jsonObject, ListTypeExpression type, Scope scope) throws JSONException {
 		ListComprehensionExpression result = new ListComprehensionExpression();
 		result.setOutput(ExpressionContainer.fromJSON(jsonObject.get("output"), type.getElementType(), scope));
-		result.setGuard(ExpressionContainer.fromJSON(jsonObject.get("guard"), new TypeExpressionContainer(), scope));
+		result.setGuardText((String) jsonObject.get("guard"));
 		result.setSelectorText((String) jsonObject.get("selector"));
 		result.setInput(ExpressionContainer.fromJSON(jsonObject.get("input"), new TypeExpressionContainer(), scope));
 		return result;
@@ -100,7 +94,7 @@ public class ListComprehensionExpression extends Expression {
 		result.add(jsonListComp);
 		
 		jsonListComp.put("output", getOutput().toJSON());
-		jsonListComp.put("guard", getGuard().toJSON());
+		jsonListComp.put("guard", getGuard().getText());
 		jsonListComp.put("selector", getSelector().getText());
 		jsonListComp.put("input", getInput().toJSON());
 		return result;

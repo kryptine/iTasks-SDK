@@ -52,8 +52,8 @@ public class ErrorDecoration extends Decoration {
 		
 		decoratableView.addInputEventListener(new PBasicInputEventHandler() {
 			public void mouseEntered(PInputEvent event) {
-				if (model.getErrorMessage() != null) {
-					toolTipText.setText(model.getErrorMessage());
+				if (model.getHintMessage() != null) {
+					toolTipText.setText(model.getHintMessage());
 					tooltip.setBounds(tooltip.getUnionOfChildrenBounds(null));
 					tooltip.moveToFront();
 					getDecoratableView().moveToFront();
@@ -73,7 +73,7 @@ public class ErrorDecoration extends Decoration {
 
 	@Override
 	public void update() {
-		if (model.getErrorMessage() != null) {
+		if (model.getHintMessage() != null) {
 			PBounds b = getDecoratableView().getBounds(); 
 			b.inset(-2, -2);
 			errorPath.setBounds(b);

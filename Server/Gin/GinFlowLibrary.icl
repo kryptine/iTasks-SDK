@@ -18,7 +18,7 @@ importBindings :: GImport -> GParseState Bindings
 importBindings imp
 # name = imp.GImport.name
 = case [ mb.bindings \\ mb <- library | mb.ModuleBindings.name == name ] of
-    [] = parseError ("Imported module " +++ name +++ "not found")
+    [] = parseError ("Imported module " +++ name +++ " not found")
     [bindings] = ret bindings
     _ = parseError ("Multiple declarations of module " +++ name)
     
@@ -60,13 +60,13 @@ clean = { ModuleBindings
         }
         
 predefinedTypes :: [GTypeDefinition]
-predefinedTypes = [ { name = "Bool", expression = GBasicTypeExpression "Bool" }
-				  , { name = "Char", expression = GBasicTypeExpression "Char" }
-				  , { name = "Int", expression = GBasicTypeExpression "Int" }
-				  , { name = "Real", expression = GBasicTypeExpression "Real" }
-				  , { name = "String", expression = GBasicTypeExpression "String" }
-				  , { name = "Task", expression = GBasicTypeExpression "Task" }
-				  , { name = "Void", expression = GBasicTypeExpression "Task" }				  
+predefinedTypes = [ { name = "Bool"   , rhs = GAbstractTypeRhs }
+				  , { name = "Char"   , rhs = GAbstractTypeRhs }
+				  , { name = "Int"    , rhs = GAbstractTypeRhs }
+				  , { name = "Real"   , rhs = GAbstractTypeRhs }
+				  , { name = "String" , rhs = GAbstractTypeRhs }
+				  , { name = "Task"   , rhs = GAbstractTypeRhs }
+				  , { name = "Void"   , rhs = GAbstractTypeRhs }				  
 				  ]
 
 bCase :: Binding
@@ -157,7 +157,7 @@ bSequence = NodeBinding { NodeBinding
                             , returnType = gTask  (GTypeVariable "a")
                             , formalParams = [ { GFormalParameter 
                                                | name = "label"
-                                               , type = GBasicTypeExpression "String"
+                                               , type = GConstructor "String"
                                                }
                                              , { GFormalParameter 
                                                | name = "task"
@@ -252,12 +252,8 @@ bEnterInformation = NodeBinding { NodeBinding
                                     | name = "enterInformation"
                                     , returnType = gTask  (GTypeVariable "a")
                                     , formalParams = [ { GFormalParameter 
-                                                       | name = "subject"
-                                                       , type = GBasicTypeExpression "String"
-                                                       }
-                                                     , { GFormalParameter 
                                                        | name = "description"
-                                                       , type = GTypeVariable "description"
+                                                       , type = GTypeVariable "d"
                                                        }
                                                      ]
                                     , icon = "keyboard"
@@ -273,12 +269,8 @@ bUpdateInformation = NodeBinding { NodeBinding
                                      | name = "updateInformation"
                                      , returnType = gTask  (GTypeVariable "a")
                                      , formalParams = [ { GFormalParameter 
-                                                        | name = "subject"
-                                                        , type = GBasicTypeExpression "String"
-                                                        }
-                                                      , { GFormalParameter 
                                                         | name = "description"
-                                                        , type = GTypeVariable "description"
+                                                        , type = GTypeVariable "d"
                                                         }
                                                       , { GFormalParameter 
                                                         | name = "initial"
@@ -296,14 +288,10 @@ brequestConfirmation = NodeBinding { NodeBinding
                                    | declaration = 
                                        { GDeclaration 
                                        | name = "requestConfirmation"
-                                       , returnType = gTask  (GBasicTypeExpression "Bool")
+                                       , returnType = gTask  (GConstructor "Bool")
                                        , formalParams = [ { GFormalParameter 
-                                                          | name = "subject"
-                                                          , type = (GBasicTypeExpression "String")
-                                                          }
-                                                        , { GFormalParameter 
                                                           | name = "description"
-                                                          , type = GTypeVariable "description"
+                                                          , type = GTypeVariable "d"
                                                           }
                                                        ]
                                        , icon = "confirm"
@@ -319,12 +307,8 @@ bEnterChoice = NodeBinding { NodeBinding
                                | name = "enterChoice"
                                , returnType = gTask  (GTypeVariable "a")
                                , formalParams = [ { GFormalParameter 
-                                                  | name = "subject"
-                                                  , type = GBasicTypeExpression "String"
-                                                  }
-                                                , { GFormalParameter 
                                                   | name = "description"
-                                                  , type = GTypeVariable "description"
+                                                  , type = GTypeVariable "d"
                                                   }
                                                 , { GFormalParameter 
                                                   | name = "options"
@@ -344,12 +328,8 @@ bUpdateChoice = NodeBinding { NodeBinding
                                 | name = "updateChoice"
                                 , returnType = gTask  (GTypeVariable "a")
                                 , formalParams = [ { GFormalParameter 
-                                                   | name = "subject"
-                                                   , type = GBasicTypeExpression "String"
-                                                   }
-                                                 , { GFormalParameter 
                                                    | name = "description"
-                                                   , type = GTypeVariable "description"
+                                                   , type = GTypeVariable "d"
                                                    }
                                                  , { GFormalParameter 
                                                    | name = "options"
@@ -357,7 +337,7 @@ bUpdateChoice = NodeBinding { NodeBinding
                                                    }
                                                  , { GFormalParameter 
                                                    | name = "index"
-                                                   , type = GBasicTypeExpression "Int"
+                                                   , type = GConstructor "Int"
                                                    }
                                                  ]
                                 , icon = "choice"
@@ -373,10 +353,6 @@ bShowMessage = NodeBinding { NodeBinding
                                | name = "showMessage"
                                , returnType = gTask  (GTypeVariable "a")
                                , formalParams = [ { GFormalParameter 
-                                                  | name = "subject"
-                                                  , type = GBasicTypeExpression "String"
-                                                  }
-                                                , { GFormalParameter 
                                                   | name = "message"
                                                   , type = GTypeVariable "message"
                                                   } 
@@ -399,7 +375,7 @@ bShowInstruction = NodeBinding { NodeBinding
                                    , returnType = gTask  (GTypeVariable "a")
                                    , formalParams = [ { GFormalParameter 
                                                       | name = "title"
-                                                      , type = GBasicTypeExpression "String"
+                                                      , type = GConstructor "String"
                                                       }
                                                     , { GFormalParameter 
                                                       | name = "instruction"
@@ -423,9 +399,9 @@ bShowInstruction = NodeBinding { NodeBinding
 DateTimeTasks :: ModuleBindings
 DateTimeTasks = { ModuleBindings
                | name = "DateTimeTasks"
-              , types = [ { name = "Time", expression = GAbstractTypeExpression "Time" }
-						, { name = "Date", expression = GAbstractTypeExpression "Date" }
-						, { name = "DateTime", expression = GAbstractTypeExpression "DateTime" }
+              , types = [ { name = "Time"      , rhs = GAbstractTypeRhs}
+						, { name = "Date"      , rhs = GAbstractTypeRhs}
+						, { name = "DateTime"  , rhs = GAbstractTypeRhs}
 						]
                , bindings = [ mkZeroArityBinding "getCurrentTime" (GConstructor "Time") "clock"
                             , mkZeroArityBinding "getCurrentDate" (GConstructor "Date") "date"
@@ -493,8 +469,8 @@ bWaitForTimer = NodeBinding { NodeBinding
 systemTasks :: ModuleBindings
 systemTasks = { ModuleBindings
               | name = "SystemTasks"
-              , types = [ { name = "User", expression = GAbstractTypeExpression "User" }
-						, { name = "UserName", expression = GAbstractTypeExpression "UserName" }
+              , types = [ { name = "User"    , rhs = GAbstractTypeRhs }
+						, { name = "UserName", rhs = GAbstractTypeRhs }
 						]
               , bindings = [ mkZeroArityBinding "getCurrentUser" (GConstructor "User") "user"
                            , mkZeroArityBinding "getCurrentProcessId" (GConstructor "ProcessId") "cog"

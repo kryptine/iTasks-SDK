@@ -7,7 +7,7 @@ import org.json.simple.JSONArray;
 
 public class ListTypeExpression extends TypeExpression {
 	private static final long serialVersionUID = -1890293757860626811L;
-	private TypeExpressionContainer elementType; 
+	private TypeExpressionContainer elementType;
 	
 	public ListTypeExpression() {
 	}
@@ -18,6 +18,8 @@ public class ListTypeExpression extends TypeExpression {
 	
 	public void setElementType (TypeExpressionContainer elementType) {
 		this.elementType = elementType;
+		elementType.setParent(this);
+		setChanged();
 	}
 	
 	public static ListTypeExpression fromJSON (JSONArray jsonArray, Scope scope) throws JSONException {

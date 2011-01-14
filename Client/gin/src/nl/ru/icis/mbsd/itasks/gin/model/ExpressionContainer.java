@@ -10,8 +10,8 @@ import nl.ru.icis.mbsd.itasks.gin.model.expressions.Expression;
 import nl.ru.icis.mbsd.itasks.gin.model.expressions.GraphExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.expressions.ListComprehensionExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.expressions.ListExpression;
-import nl.ru.icis.mbsd.itasks.gin.model.types.AbstractTypeExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.types.ApplicationTypeExpression;
+import nl.ru.icis.mbsd.itasks.gin.model.types.ConstructorTypeExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.types.ListTypeExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.types.TypeExpressionContainer;
 
@@ -100,9 +100,9 @@ public class ExpressionContainer extends Model {
 		ArrayList<Class<? extends Expression>> result = new ArrayList<Class<? extends Expression>>();		
 		if (type.getTypeExpression() instanceof ApplicationTypeExpression) {
 			ApplicationTypeExpression ate = (ApplicationTypeExpression)type.getTypeExpression();
-			if (ate.getA().getTypeExpression() != null && ate.getA().getTypeExpression() instanceof AbstractTypeExpression) {
-				AbstractTypeExpression bte = (AbstractTypeExpression)(ate.getA().getTypeExpression());
-				if (bte.toString().equals("Task"))
+			if (ate.getA().getTypeExpression() != null && ate.getA().getTypeExpression() instanceof ConstructorTypeExpression) {
+				ConstructorTypeExpression cte = (ConstructorTypeExpression)(ate.getA().getTypeExpression());
+				if (cte.toString().equals("Task"))
 					result.add(GraphExpression.class);
 			}
 		}
@@ -115,7 +115,7 @@ public class ExpressionContainer extends Model {
 	}
 	
 	@Override
-	protected void setErrorFromPath(Object source, StringTokenizer st, String message)
+	protected void setHintFromPath(Object source, StringTokenizer st, String message)
 			throws SecurityException, NoSuchMethodException,
 			IllegalArgumentException, IllegalAccessException,
 			InvocationTargetException {
@@ -123,11 +123,11 @@ public class ExpressionContainer extends Model {
 			if (st.hasMoreTokens())
 				throw new RuntimeException("Invalid path: expression not found");
 			else {
-				setErrorMessage(source, message);
+				setHintMessage(source, message);
 			}
 		}
 		else
-			expression.setErrorFromPath(source, st, message);
+			expression.setHintFromPath(source, st, message);
 	}
 
 	@Override

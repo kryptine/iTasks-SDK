@@ -40,7 +40,7 @@ public class ListComprehensionView extends ExpressionView {
 		row1.addChild(makeTextNode(" in "));
 		row1.addChild(new LayoutableNode(new ExpressionContainerView(expression.getInput())));
 		row1.addChild(makeTextNode(" given "));
-		row1.addChild(new LayoutableNode(new ExpressionContainerView(expression.getGuard())));
+		row1.addChild(new LayoutableNode(new TextExpressionView(expression.getGuard())));
 		
 		Rectangle outputRect = new Rectangle(false);
 		LayoutableNode rowOutput = new LayoutableNode(outputRect);

@@ -266,33 +266,32 @@ where
 	| pred val 	= VMValid Nothing Nothing [VMValid mbHint Nothing []]
 	| otherwise	= VMInvalid (ErrorMessage "") Nothing [VMInvalid (ErrorMessage (parseErr val)) Nothing []]
 
-worldVerify :: (Maybe String) (a *IWorld -> (Maybe String, *IWorld)) (Maybe a) !*VerSt -> *VerSt
-worldVerify mbHint fErr mbVal vst=:{VerSt | updateMask, verifyMask, optional, iworld} 
+worldVerify :: ((Maybe a) *IWorld -> (Maybe String, Maybe String, *IWorld)) (Maybe a) !*VerSt -> *VerSt
+worldVerify fVerify mbVal vst=:{VerSt | updateMask, verifyMask, optional, iworld} 
 	# (cm,um) = popMask updateMask
+	# (mbHint, mbErr, iworld`) = fVerify mbVal iworld 
 	# (vmask,iworld) = case mbVal of
 		(Just val)
 			| optional
 				= case cm of
 					(Touched _ _) 
-						= validateValue val iworld
+						= (validateValue mbHint mbErr, iworld`)
 					_
-						= (VMValid Nothing Nothing [VMValid mbHint Nothing []], iworld)
+						= (VMValid Nothing Nothing [VMValid mbHint Nothing []], iworld`)
 			| otherwise
 				= case cm of
 					(Untouched)
-						= (VMUntouched Nothing Nothing False [VMUntouched mbHint Nothing False []], iworld)
+						= (VMUntouched Nothing Nothing False [VMUntouched mbHint Nothing False []], iworld`)
 					(Blanked _)
 						= (VMInvalid IsBlankError Nothing [VMInvalid IsBlankError Nothing []], iworld)
 					(Touched _ _)
-						= validateValue val iworld
+						= (validateValue mbHint mbErr, iworld`)
 		Nothing
-			| optional 	= (VMValid Nothing Nothing [VMValid mbHint Nothing []], iworld)
-			| otherwise = (VMUntouched Nothing Nothing False [VMUntouched mbHint Nothing False []], iworld)
+			| optional 	= (VMValid Nothing Nothing [VMValid mbHint Nothing []], iworld`)
+			| otherwise = (VMUntouched Nothing Nothing False [VMUntouched mbHint Nothing False []], iworld`)
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask vmask, iworld = iworld}
 where
-	validateValue val iworld
-		# (mErr, iworld) = fErr val iworld
-		# vm = case mErr of
-		         Nothing  = VMValid mbHint Nothing []
-		         Just err = VMInvalid (ErrorMessage err) Nothing []
-		= (vm, iworld)
+	validateValue mbHint mbErr
+		= case mbErr of
+		      Nothing  = VMValid mbHint Nothing []
+		      Just err = VMInvalid (ErrorMessage err) Nothing []

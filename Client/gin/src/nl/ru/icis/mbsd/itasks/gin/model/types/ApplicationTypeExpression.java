@@ -18,6 +18,8 @@ public class ApplicationTypeExpression extends TypeExpression {
 
 	public void setA(TypeExpressionContainer a) {
 		this.a = a;
+		a.setParent(this);
+		setChanged();
 	}
 
 	public TypeExpressionContainer getB() {
@@ -26,6 +28,8 @@ public class ApplicationTypeExpression extends TypeExpression {
 
 	public void setB(TypeExpressionContainer b) {
 		this.b = b;
+		b.setParent(this);
+		setChanged();
 	}
 
 	public static ApplicationTypeExpression fromJSON (JSONArray jsonArray, Scope scope) throws JSONException {

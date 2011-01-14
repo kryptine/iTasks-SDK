@@ -1,24 +1,34 @@
 definition module GinTypes
 
-import GenEq, GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
+import GenEq, GenPrint, GenParse, GenVisualize, GenUpdate
 import JSON
 from PPrint import ::Doc
 
-:: GTypeExpression = GUndefinedTypeExpression
-                   | GBasicTypeExpression GIdentifier
-                   | GAbstractTypeExpression GIdentifier
+:: GTypeExpression = GConstructor GIdentifier
                    | GList GTypeExpression
                    | GTuple [GTypeExpression]
-                   | GArray GTypeExpression
-                   | GConstructor GIdentifier
                    | GTypeApplication GTypeExpression GTypeExpression
                    | GTypeVariable GTypeVariable
-
+                   | GUndefinedTypeExpression
+                   
 :: GTypeVariable :== String 
 
-:: GTypeDefinition = { name       :: GIdentifier
-                     , expression :: GTypeExpression
+:: GTypeDefinition = { name :: GIdentifier
+                     , rhs  :: GTypeRhs
                      }
+
+:: GTypeRhs = GAlgebraicTypeRhs [GDataConstructor]
+            | GRecordTypeRhs [GRecordField]
+            | GSynonymTypeRhs GTypeExpression
+            | GAbstractTypeRhs
+            
+:: GDataConstructor = { name      :: GIdentifier
+                      , arguments :: [GTypeExpression]
+                      }
+
+:: GRecordField = { name :: GIdentifier
+                  , type :: GTypeExpression
+                  }
 
 :: GFormalParameter = { name :: GIdentifier
                       , type :: GTypeExpression
@@ -29,9 +39,8 @@ from PPrint import ::Doc
 derive bimap (,)
 derive bimap Maybe
 
-derive class iTask      GTypeExpression, GTypeDefinition, GFormalParameter
-derive gMerge           GTypeExpression, GTypeDefinition, GFormalParameter
-derive gEq              GTypeExpression, GTypeDefinition, GFormalParameter
+derive class iTask      GTypeExpression, GTypeDefinition, GTypeRhs, GDataConstructor, GRecordField, GFormalParameter
+derive gEq              GTypeExpression, GTypeDefinition, GTypeRhs, GDataConstructor, GRecordField, GFormalParameter
 
 typeIsDefined :: GTypeExpression -> Bool
 

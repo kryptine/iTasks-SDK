@@ -1,29 +1,55 @@
 implementation module GinConfig
 
 import StdMaybe
-import Util
-import JSON
-
-from clCCall_12 import winFileExists
-import GinOSUtils
-
+import StdFile
 import GenPrint
 import GenParse
+
+from GinOSUtils import qualified ::Path, appendTrailingSeparator
+from Directory import ::Path(..), getCurrentDirectory, pd_StringToPath, pathToPD_String
+from clCCall_12 import winFileExists
+
+import CommandLine
 from Engine import determineAppName
+import iTasks
 
-derive class iTask GinConfig
-
+derive gVisualize GinConfig
+derive gUpdate    GinConfig
+derive JSONEncode GinConfig
+derive JSONDecode GinConfig
+	
 derive bimap Maybe, (,)
-
-cleanIDE :== "CleanIDE.exe"
 
 ginDefaultConfig :: *World -> (GinConfig, *World)
 ginDefaultConfig world
-#config = { cleanPath = "c:\\clean"
-          , iTasksPath = "c:\\clean\\iTasks-SDK"
-          , projectPath   = "C:\\clean\\iTasks-SDK\\Examples\\Gin"
+#(cleanPath, world)   = getCleanPath world
+#(iTasksPath, world)  = getITasksPath world
+#(projectPath, world) = getProjectPath world
+#config = { cleanPath     = cleanPath
+          , iTasksPath    = iTasksPath
+          , projectPath   = projectPath
           }
 =(config, world)
+where
+	getCleanPath :: *World -> (String, *World)
+	getCleanPath world
+	# (args,world) = getCommandLine world
+	# appPath = hd args
+    # ((_, (AbsolutePath diskname steps)), world) = pd_StringToPath appPath world
+	# cleanPath = (AbsolutePath diskname (take (length steps - 4) steps))
+	= pathToPD_String cleanPath world
+
+	getITasksPath :: *World -> (String, *World)
+	getITasksPath world
+	#(projectPath, world) = getCurrentDirectory world
+	#(AbsolutePath diskname steps) = projectPath
+	#iTasksPath = (AbsolutePath diskname (take (length steps - 2) steps))
+	= pathToPD_String iTasksPath world
+
+	getProjectPath :: *World -> (String, *World)
+	getProjectPath world
+	#(projectPath, world) = getCurrentDirectory world
+	= pathToPD_String projectPath world
 
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)
 ginLoadConfig world
@@ -41,10 +67,21 @@ ginStoreConfig config world
 
 ginConfigFilename :: *World -> (!String, *World) 
 ginConfigFilename world
-#(appName, world) = determineAppName world
-=(appName +++ "-gin-config.json", world)
+# (appName, world) = determineAppName world
+= (appName +++ "-gin-config.json", world)
 
-ginCheckConfig :: !GinConfig !*World -> (Bool, *World)
-ginCheckConfig config world = (winFileExists (config.cleanPath +/+ cleanIDE), world)
+gVerify{|GinConfig|} val vst = worldVerify check val vst
+where
+	check Nothing iworld = (Nothing, Nothing, iworld)
+	check (Just config) iworld =: { world }
+	# (mbError, world) = ginCheckConfig config world
+	= (Nothing, mbError, { iworld & world = world } )
 
+ginCheckConfig :: !GinConfig !*World -> (Maybe String, *World)
+ginCheckConfig config world
+| not (winFileExists ('GinOSUtils'.appendTrailingSeparator config.cleanPath +++ "CleanIDE.exe"))
+  = (Just "Clean path incorrect", world) 
+| not (winFileExists ('GinOSUtils'.appendTrailingSeparator config.iTasksPath +++ "Server\\iTasks.dcl"))
+  = (Just "iTasksPath incorrect", world)
+= (Nothing, world)
 

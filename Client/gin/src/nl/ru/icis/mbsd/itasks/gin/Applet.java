@@ -45,9 +45,13 @@ public class Applet extends JApplet implements View {
 		editor.setModule(value);
 	}
 		
-	public void setError (String error) {
-		System.out.println("SetError(\"" + error + "\")");
-		editor.setError(error);
+	public void setHint (String hint) {
+		System.out.println("setHint(\"" + hint + "\")");
+		editor.setHint(hint);
+	}
+
+	public void setError (String hint) {
+		System.out.println("setError(\"" + hint + "\")");
 	}
 	
 	@Override

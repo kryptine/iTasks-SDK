@@ -59,11 +59,12 @@ verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) !*VerSt 
 /**
 * Verifies a custom ADT using the world
 * 
-* @param 	An optional hint message
-* @param	A function for error message generation, in case the predicate fails
+* @param 	
+* @param	A function for generating hint and error messages:
+*           which takes an optional value and produces an (optional) hint and (optional) error
 * @param	The actual value (if present)
 * @param	The verify-state
 *
 * @return	The modified verify-state
 */
-worldVerify :: (Maybe String) (a *IWorld -> (Maybe String, *IWorld)) (Maybe a) !*VerSt -> *VerSt
+worldVerify :: ((Maybe a) *IWorld -> (Maybe String, Maybe String, *IWorld)) (Maybe a) !*VerSt -> *VerSt

@@ -37,11 +37,10 @@ import GinTypes
                | GGraphExpression GGraph
                | GListExpression [GExpression]
                | GListComprehensionExpression GListComprehension
-               | GStringExpression String
-               | GCleanExpression String
+               | GCleanExpression GCleanExpression
                
 :: GListComprehension = { output :: GExpression
-                        , guard :: Maybe GExpression
+                        , guard :: Maybe GCleanExpression
                         , selector :: GPattern
                         , input :: GExpression
                         }
@@ -63,6 +62,8 @@ import GinTypes
            
 :: GPattern :== String
 
+:: GCleanExpression :== String
+
 :: GPosition = { x :: Real
                , y :: Real
                }
@@ -75,7 +76,6 @@ import GinTypes
 
 // Generic functions
 derive class iTask GModule, GImport, GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize
-derive gMerge      GModule, GImport, GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize
 derive gEq         GModule, GImport, GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize, Maybe
 
 // Selection functions

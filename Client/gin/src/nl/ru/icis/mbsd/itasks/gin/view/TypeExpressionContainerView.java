@@ -8,7 +8,6 @@ import javax.swing.JComboBox;
 
 import nl.ru.icis.mbsd.itasks.gin.model.Scope;
 import nl.ru.icis.mbsd.itasks.gin.model.types.ApplicationTypeExpression;
-import nl.ru.icis.mbsd.itasks.gin.model.types.BasicTypeExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.types.ConstructorTypeExpression;
 import nl.ru.icis.mbsd.itasks.gin.model.types.TypeDefinition;
 import nl.ru.icis.mbsd.itasks.gin.model.types.TypeExpression;
@@ -41,7 +40,7 @@ public class TypeExpressionContainerView extends JComboBox implements View, Acti
 		ArrayList<TypeExpression> result = new ArrayList<TypeExpression>();
 		for (TypeExpression te: getTypeExpressions()) {
 			ApplicationTypeExpression app = new ApplicationTypeExpression();
-			app.setA(new TypeExpressionContainer(new BasicTypeExpression("Task")));
+			app.setA(new TypeExpressionContainer(new ConstructorTypeExpression (scope.getTypeScope().get("Task"))));
 			app.setB(new TypeExpressionContainer(te));
 			result.add(app);
 		}

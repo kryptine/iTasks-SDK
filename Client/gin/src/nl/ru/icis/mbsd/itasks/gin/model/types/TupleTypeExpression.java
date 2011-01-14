@@ -9,7 +9,7 @@ import org.json.simple.JSONArray;
 
 public class TupleTypeExpression extends TypeExpression {
 	private static final long serialVersionUID = -7437229885413584463L;
-	private ArrayList<TypeExpressionContainer> elementTypes; 
+	private ArrayList<TypeExpressionContainer> elementTypes = new ArrayList<TypeExpressionContainer>();
 	
 	public TupleTypeExpression() {
 	}
@@ -19,6 +19,7 @@ public class TupleTypeExpression extends TypeExpression {
 	}
 	
 	public void addElementType (TypeExpressionContainer elementType) {
+		elementType.setParent(this);
 		elementTypes.add(elementType);
 	}
 	

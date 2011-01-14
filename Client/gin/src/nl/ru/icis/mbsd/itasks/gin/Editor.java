@@ -30,7 +30,7 @@ public class Editor extends JPanel {
 
 	private Dimension minimumSize;
 
-	private String lastError = null;
+	private String lastHint = null;
 
 	public Editor(View parent) {
 		this.parent = parent;
@@ -77,8 +77,8 @@ public class Editor extends JPanel {
 			if (moduleView.getModule() != null)
 				moduleView.getModule().removeDeepView(parent);
 			moduleView.setModule(module);
-			if (lastError != null)
-				setError(lastError);
+			if (lastHint != null)
+				setHint(lastHint);
 			Selection.getInstance().set(null);
 			openDefinition(module.getDefinitions().get(0));
 			module.addDeepView(parent);
@@ -112,12 +112,12 @@ public class Editor extends JPanel {
 		centerPanel.revalidate();
 	}
 	
-	public void setError(String error) {
-		this.lastError = error;
-		getModule().setErrorFromJSON(parent, error);
+	public void setHint(String error) {
+		this.lastHint = error;
+		getModule().setHintFromJSON(parent, error);
 		
-		if (getModule().getErrorMessage() != null) 
-			statusBar.setText(getModule().getErrorMessage());
+		if (getModule().getHintMessage() != null) 
+			statusBar.setText(getModule().getHintMessage());
 		else
 			statusBar.setText("Ready");
 	}
