@@ -253,11 +253,15 @@ choiceSel			:: ![a] !Int						-> Choice a
 // Gets the currently chosen item
 getChoice			:: !(Choice a)						-> a
 // Gets the index of the currently chosen item
-getSelection		:: !(Choice a)						-> Int
+getChoiceIndex		:: !(Choice a)						-> Int
 // Sets the index of the currently chosen item
-setSelection		:: !Int !(Choice a)					-> (Choice a)
-// Transforms the choices options
-mapOptions			:: !(a -> b) !(Choice a)			-> (Choice b)
+setChoiceIndex		:: !Int !(Choice a)					-> Choice a
+// Transforms the choice's options
+mapOptions			:: !(a -> b) !(Choice a)			-> Choice b
+// Sets the choice's options, tries to keep the selection as intact as possible
+// Returns a flag indicating if the choice still has the same value
+setOptions			:: ![a] !(Choice a)					-> (Choice a,Bool) | gEq{|*|} a
+
 // Generates a multiple choice with given options
 multipleChoice		:: ![a] 							-> MultipleChoice a
 // Generates a multiple choice with given options and preselected items
@@ -265,11 +269,13 @@ multipleChoiceSel	:: ![a] ![Int]						-> MultipleChoice a
 // Get the currently chosen items
 getChoices			:: !(MultipleChoice a)				-> [a]
 // Gets the indexes of the currently chosen items
-getSelectionM		:: !(MultipleChoice a)				-> [Int]
+getChoiceIndexes	:: !(MultipleChoice a)				-> [Int]
 // Sets the indexes of the currently chosen items
-setSelectionM		:: ![Int] !(MultipleChoice a)		-> (MultipleChoice a)
-// Transforms the multiple choices options
-mapOptionsM			:: !(a -> b) !(MultipleChoice a)	-> (MultipleChoice b)
+setChoiceIndexes	:: ![Int] !(MultipleChoice a)		-> MultipleChoice a
+// Transforms the multiple choice's options
+mapOptionsM			:: !(a -> b) !(MultipleChoice a)	-> MultipleChoice b
+// Sets the multiple choice's options, tries to keep the selection as intact as possible
+setOptionsM			:: ![a] !(MultipleChoice a)			-> MultipleChoice a | gEq{|*|} a
 
 // Plain text notes
 :: Note = Note String

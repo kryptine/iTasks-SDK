@@ -6,13 +6,8 @@ from StdFunc import id, const, o
 from CoreCombinators import >>=, >>|, return
 from HtmlUtil import paramValue
 
-derive gVisualize	Action
-derive gUpdate		Action
-derive gEq			Action
-derive gVerify		Action
-derive JSONEncode	Action
-derive JSONDecode	Action
-
+derive class iTask Action
+derive gEq Action
 derive bimap (,), Maybe
 
 instance == Action
@@ -88,9 +83,9 @@ actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (actionName action) 
 
 actionLabel :: !Action -> String
-actionLabel (Action _ label)		= label
-actionLabel (ActionSaveAs)			= "Save as"
-actionLabel action					= upperCaseFirst (actionName action)
+actionLabel (Action _ label)	= label
+actionLabel (ActionSaveAs)		= "Save as"
+actionLabel action				= upperCaseFirst (actionName action)
 
 instance MenuAction Action
 where
@@ -110,203 +105,235 @@ idBimap = (id, const)
 //Input tasks
 enterInformation :: !d -> Task a | descr d & iTask a
 enterInformation description
-	= mkInteractiveTask description (ignoreActionInfo (makeInformationTask Nothing (Just (fst idBimap)) (snd idBimap) [(ActionOk,ifvalid)] LocalEnter))
+	= mkInteractiveTask description (makeInformationTask noAbout (toExtendedBimapGet (fst idBimap)) (snd idBimap) Enter)
 	
 enterInformationA :: !d !(v -> a) ![TaskAction a] -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v
 enterInformationA description view actions
-	= mkInteractiveTask description (makeInformationTask Nothing Nothing (\v _ -> view v) actions LocalEnter)
+	= mkInteractiveTask description (makeInformationTaskA noAbout undefGet (\v _ -> view v) actions Enter)
 		
 enterInformationAbout :: !d !b -> Task a | descr d  & iTask a & iTask b
 enterInformationAbout description about
-	= mkInteractiveTask description (ignoreActionInfo (makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just (fst idBimap)) (snd idBimap) [(ActionOk,ifvalid)] LocalEnter))
+	= mkInteractiveTask description (makeInformationTask (Just about) (toExtendedBimapGet (fst idBimap)) (snd idBimap) Enter)
 	
 enterInformationAboutA :: !d !(v -> a) ![TaskAction a] !b -> Task (!ActionEvent, Maybe a) | descr d  & iTask a & iTask b& iTask v
 enterInformationAboutA description view actions about
-	= mkInteractiveTask description (makeInformationTask (Just (visualizeAsHtmlDisplay about)) Nothing (\v _ -> view v) actions LocalEnter)
+	= mkInteractiveTask description (makeInformationTaskA (Just about) undefGet (\v _ -> view v) actions Enter)
+
+undefGet = (abort "undefined bimap-get function",abort "undefined initial view value")
 
 updateInformation :: !d a -> Task a | descr d & iTask a
 updateInformation description initial
-	= mkInteractiveTask description (ignoreActionInfo (makeInformationTask Nothing (Just (fst idBimap)) (snd idBimap) [(ActionOk,ifvalid)] (LocalUpdate initial)))
+	= mkInteractiveTask description (makeInformationTask noAbout (toExtendedBimapGet (fst idBimap)) (snd idBimap) (LocalUpdate initial))
 
 updateInformationA :: !d !(IBimap a v) ![TaskAction a] a -> Task (!ActionEvent,  !Maybe a) | descr d & iTask a & iTask v
 updateInformationA description (bimapGet,bimapPutback) actions initial
-	= mkInteractiveTask description (makeInformationTask Nothing (Just bimapGet) bimapPutback actions (LocalUpdate initial))
+	= mkInteractiveTask description (makeInformationTaskA noAbout (toExtendedBimapGet bimapGet) bimapPutback actions (LocalUpdate initial))
 
 updateSharedInformationA :: !d !(IBimap a v) ![TaskAction a] !(DBId a) -> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask v
 updateSharedInformationA description (bimapGet,bimapPutback) actions dbid
-	= mkInteractiveTask description (makeInformationTask Nothing (Just bimapGet) bimapPutback actions (SharedUpdate dbid))
+	= mkInteractiveTask description (makeInformationTaskA noAbout (toExtendedBimapGet bimapGet) bimapPutback actions (SharedUpdate dbid))
 
 updateInformationAbout :: !d !b a -> Task a | descr d & iTask a & iTask b
 updateInformationAbout description about initial
-	= mkInteractiveTask description (ignoreActionInfo (makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just (fst idBimap)) (snd idBimap) [(ActionOk,ifvalid)] (LocalUpdate initial)))
+	= mkInteractiveTask description (makeInformationTask (Just about) (toExtendedBimapGet (fst idBimap)) (snd idBimap) (LocalUpdate initial))
 
 updateInformationAboutA :: !d !(IBimap a v) ![TaskAction a] !b a -> Task (!ActionEvent,  !Maybe a) | descr d & iTask a & iTask b & iTask v
 updateInformationAboutA description (bimapGet,bimapPutback) actions about initial
-	= mkInteractiveTask description (makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just bimapGet) bimapPutback actions (LocalUpdate initial))
+	= mkInteractiveTask description (makeInformationTaskA (Just about) (toExtendedBimapGet bimapGet) bimapPutback actions (LocalUpdate initial))
 
 updateSharedInformationAboutA :: !d !(IBimap a v) ![TaskAction a] !b !(DBId a) -> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask b & iTask v
 updateSharedInformationAboutA description (bimapGet,bimapPutback) actions about dbid
-	= mkInteractiveTask description (makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just bimapGet) bimapPutback actions (SharedUpdate dbid))
+	= mkInteractiveTask description (makeInformationTaskA (Just about) (toExtendedBimapGet bimapGet) bimapPutback actions (SharedUpdate dbid))
 
 enterChoice :: !d ![a] -> Task a | descr d & iTask a
-enterChoice description []		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-enterChoice description options	= mkInteractiveTask description enterChoice`
-where
-	enterChoice` tst
-		# (result,tst) = makeInformationTask Nothing (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (choice options)) tst
-		= (mapTaskResult (\(_,Just choice) -> getChoice choice) result,tst)
+enterChoice description options
+	= mkInteractiveTask description (makeChoiceTask description noAbout id options Nothing)
 		
 enterChoiceA :: !d !(a -> v) ![TaskAction a] ![a] -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v
-enterChoiceA description view actions []		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-enterChoiceA description view actions options	= mkInteractiveTask description enterChoiceA`
-where
-	enterChoiceA` tst
-		# (result,tst) = makeInformationTask Nothing (Just (mapOptions view)) (\v a -> setSelection (getSelection v) a) (mapTaskActionPredicates actions getChoice) (LocalUpdate (choice options)) tst
-		= (mapTaskResult (\(event,choice) -> (event,(mapMaybe getChoice) choice)) result,tst)
-		
+enterChoiceA description view actions options
+	= mkInteractiveTask description (makeChoiceTaskA description noAbout view actions options Nothing)
+
+enterSharedChoiceA :: !d !(a -> v) ![TaskAction a] !(DBId [a]) -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v & gEq{|*|} v
+enterSharedChoiceA description view actions dbid
+	= mkInteractiveTask description (makeSharedChoiceTask description noAbout view actions dbid Nothing)
+				
 updateChoice :: !d ![a] !Int -> Task a | descr d & iTask a
-updateChoice description [] sel			= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-updateChoice description options sel	= mkInteractiveTask description updateChoice`
-where
-	updateChoice` tst
-		# (result,tst) = makeInformationTask Nothing (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (choiceSel options sel)) tst
-		= (mapTaskResult (\(_,Just choice) -> getChoice choice) result,tst)
+updateChoice description options sel
+	= mkInteractiveTask description (makeChoiceTask description noAbout id options (Just sel))
 
 updateChoiceA :: !d !(a -> v) ![TaskAction a] ![a] !Int -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v
-updateChoiceA description view actions [] sel		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-updateChoiceA description view actions options sel	= mkInteractiveTask description updateChoiceA`
-where
-	updateChoiceA` tst
-		# (result,tst) = makeInformationTask Nothing (Just (mapOptions view)) (\v a -> setSelection (getSelection v) a) (mapTaskActionPredicates actions getChoice) (LocalUpdate (choiceSel options sel)) tst
-		= (mapTaskResult (\(event,choice) -> (event,(mapMaybe getChoice) choice)) result,tst)
+updateChoiceA description view actions options sel
+	= mkInteractiveTask description (makeChoiceTaskA description noAbout view actions options (Just sel))
+
+updateSharedChoiceA :: !d !(a -> v) ![TaskAction a] !(DBId [a]) !Int -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v & gEq{|*|} v
+updateSharedChoiceA description view actions dbid sel
+	= mkInteractiveTask description (makeSharedChoiceTask description noAbout view actions dbid (Just sel))
 		
 enterChoiceAbout :: !d !b ![a] -> Task a | descr d & iTask a & iTask b
-enterChoiceAbout description about []		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-enterChoiceAbout description about options	= mkInteractiveTask description enterChoiceAbout`
-where
-	enterChoiceAbout` tst
-		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (choice options)) tst
-		= (mapTaskResult (\(_,Just choice) -> getChoice choice) result,tst)
+enterChoiceAbout description about options
+	= mkInteractiveTask description (makeChoiceTask description (Just about) id options Nothing)
 		
 enterChoiceAboutA :: !d !(a -> v) ![TaskAction a] !b ![a] -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask b & iTask v
-enterChoiceAboutA description view actions about []			= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-enterChoiceAboutA description view actions about options	= mkInteractiveTask description enterChoiceAboutA`
-where
-	enterChoiceAboutA` tst
-		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just (mapOptions view)) (\v a -> setSelection (getSelection v) a) (mapTaskActionPredicates actions getChoice) (LocalUpdate (choice options)) tst
-		= (mapTaskResult (\(event,choice) -> (event,(mapMaybe getChoice) choice)) result,tst)
+enterChoiceAboutA description view actions about options
+	= mkInteractiveTask description (makeChoiceTaskA description (Just about) view actions options Nothing)
+
+enterSharedChoiceAboutA :: !d !(a -> v) ![TaskAction a] !b !(DBId [a]) -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask b & iTask v & gEq{|*|} v
+enterSharedChoiceAboutA description view actions about dbid
+	= mkInteractiveTask description (makeSharedChoiceTask description (Just about) view actions dbid Nothing)
 		
 updateChoiceAbout :: !d !b ![a] !Int -> Task a | descr d & iTask a & iTask b
-updateChoiceAbout description about [] sel		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-updateChoiceAbout description about options sel	= mkInteractiveTask description updateChoiceAbout`
-where
-	updateChoiceAbout` tst
-		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (choiceSel options sel)) tst
-		= (mapTaskResult (\(_,Just choice) -> getChoice choice) result,tst)
+updateChoiceAbout description about options sel
+	= mkInteractiveTask description (makeChoiceTask description (Just about) id options (Just sel))
 
 updateChoiceAboutA :: !d !(a -> v) ![TaskAction a] !b ![a] !Int -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask b & iTask v
-updateChoiceAboutA description view actions about [] sel		= throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
-updateChoiceAboutA description view actions about options sel	= mkInteractiveTask description updateChoiceAboutA`
-where
-	updateChoiceAboutA` tst
-		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just (mapOptions view)) (\v a -> setSelection (getSelection v) a) (mapTaskActionPredicates actions getChoice) (LocalUpdate (choiceSel options sel)) tst
-		= (mapTaskResult (\(event,choice) -> (event,(mapMaybe getChoice) choice)) result,tst)
+updateChoiceAboutA description view actions about options sel
+	= mkInteractiveTask description (makeChoiceTaskA description (Just about) view actions options (Just sel))
+
+updateSharedChoiceAboutA :: !d !(a -> v) ![TaskAction a] !b !(DBId [a]) !Int -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask b & iTask v & gEq{|*|} v
+updateSharedChoiceAboutA description view actions about dbid sel
+	= mkInteractiveTask description (makeSharedChoiceTask description (Just about) view actions dbid (Just sel))
 
 enterMultipleChoice :: !d ![a] -> Task [a] | descr d & iTask a
-enterMultipleChoice description options = mkInteractiveTask description enterMultipleChoice`
-where
-	enterMultipleChoice` tst
-		# (result,tst) = makeInformationTask Nothing (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (multipleChoice options)) tst
-		= (mapTaskResult (\(_,Just choice) -> getChoices choice) result,tst)
+enterMultipleChoice description options
+	= mkInteractiveTask description (makeMultipleChoiceTask noAbout id options Nothing)
 		
 enterMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] ![a] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask v
-enterMultipleChoiceA description view actions options = mkInteractiveTask description enterMultipleChoiceA`
-where
-	enterMultipleChoiceA` tst
-		# (result,tst) = makeInformationTask Nothing (Just (mapOptionsM view)) (\v a -> setSelectionM (getSelectionM v) a) (mapTaskActionPredicates actions getChoices) (LocalUpdate (multipleChoice options)) tst
-		= (mapTaskResult (\(event,choice) -> (event,(mapMaybe getChoices) choice)) result,tst)
+enterMultipleChoiceA description view actions options
+	= mkInteractiveTask description (makeMultipleChoiceTaskA noAbout view actions options Nothing)
+
+enterSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(DBId [a]) -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask v & gEq{|*|} v
+enterSharedMultipleChoiceA description view actions dbid
+	= mkInteractiveTask description (makeSharedMultipleChoiceTask noAbout view actions dbid Nothing)
 		
 updateMultipleChoice :: !d ![a] ![Int] -> Task [a] | descr d & iTask a
-updateMultipleChoice description options sel = mkInteractiveTask description updateMultipleChoice`
-where
-	updateMultipleChoice` tst
-		# (result,tst) = makeInformationTask Nothing (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (multipleChoiceSel options sel)) tst
-		= (mapTaskResult (\(_,Just choice) -> getChoices choice) result,tst)
+updateMultipleChoice description options sel
+	= mkInteractiveTask description (makeMultipleChoiceTask noAbout id options (Just sel))
 
 updateMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] ![a] ![Int] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask v
-updateMultipleChoiceA description view actions options sel = mkInteractiveTask description updateMultipleChoiceA`
-where
-	updateMultipleChoiceA` tst
-		# (result,tst) = makeInformationTask Nothing (Just (mapOptionsM view)) (\v a -> setSelectionM (getSelectionM v) a) (mapTaskActionPredicates actions getChoices) (LocalUpdate (multipleChoiceSel options sel)) tst
-		= (mapTaskResult (\(event,choice) -> (event,(mapMaybe getChoices) choice)) result,tst)
+updateMultipleChoiceA description view actions options sel
+	= mkInteractiveTask description (makeMultipleChoiceTaskA noAbout view actions options (Just sel))
+
+updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(DBId [a]) ![Int] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask v & gEq{|*|} v
+updateSharedMultipleChoiceA description view actions dbid sel
+	= mkInteractiveTask description (makeSharedMultipleChoiceTask noAbout view actions dbid (Just sel))
 		
 enterMultipleChoiceAbout :: !d !b ![a] -> Task [a] | descr d & iTask a & iTask b
-enterMultipleChoiceAbout description about options = mkInteractiveTask description enterMultipleChoiceAbout`
-where
-	enterMultipleChoiceAbout` tst
-		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (multipleChoice options)) tst
-		= (mapTaskResult (\(_,Just choice) -> getChoices choice) result,tst)
+enterMultipleChoiceAbout description about options
+	= mkInteractiveTask description (makeMultipleChoiceTask (Just about) id options Nothing)
 		
 enterMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !b ![a] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask b & iTask v
-enterMultipleChoiceAboutA description view actions about options = mkInteractiveTask description enterMultipleChoiceAboutA`
-where
-	enterMultipleChoiceAboutA` tst
-		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just (mapOptionsM view)) (\v a -> setSelectionM (getSelectionM v) a) (mapTaskActionPredicates actions getChoices) (LocalUpdate (multipleChoice options)) tst
-		= (mapTaskResult (\(event,choice) -> (event,(mapMaybe getChoices) choice)) result,tst)
+enterMultipleChoiceAboutA description view actions about options
+	= mkInteractiveTask description (makeMultipleChoiceTaskA (Just about) view actions options Nothing)
+
+enterSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !b !(DBId [a]) -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask b & iTask v & gEq{|*|} v
+enterSharedMultipleChoiceAboutA description view actions about dbid
+	= mkInteractiveTask description (makeSharedMultipleChoiceTask (Just about) view actions dbid Nothing)
 		
 updateMultipleChoiceAbout :: !d !b ![a] ![Int] -> Task [a] | descr d & iTask a & iTask b
-updateMultipleChoiceAbout description about options sel = mkInteractiveTask description updateMultipleChoiceAbout`
-where
-	updateMultipleChoiceAbout` tst
-		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just id) const [(ActionOk,ifvalid)] (LocalUpdate (multipleChoiceSel options sel)) tst
-		= (mapTaskResult (\(_,Just choice) -> getChoices choice) result,tst)
+updateMultipleChoiceAbout description about options sel
+	= mkInteractiveTask description (makeMultipleChoiceTask (Just about) id options (Just sel))
 
 updateMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !b ![a] ![Int] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask b & iTask v
-updateMultipleChoiceAboutA description view actions about options sel = mkInteractiveTask description updateMultipleChoiceAboutA`
+updateMultipleChoiceAboutA description view actions about options sel
+	= mkInteractiveTask description (makeMultipleChoiceTaskA (Just about) view actions options (Just sel))
+
+updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !b !(DBId [a]) ![Int] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask b & iTask v & gEq{|*|} v
+updateSharedMultipleChoiceAboutA description view actions about dbid sel
+	= mkInteractiveTask description (makeSharedMultipleChoiceTask (Just about) view actions dbid (Just sel))
+
+noAbout :: Maybe Void
+noAbout = Nothing
+
+:: InformationTaskMode a = Enter | LocalUpdate !a | SharedUpdate !(DBId a)
+
+makeInformationTask :: !(Maybe about) ((a v -> (v,Bool)),v) !(v a -> a) !(InformationTaskMode a) !*TSt -> (!TaskResult a,!*TSt) | iTask a & iTask v & gVisualize{|*|} about
+makeInformationTask mbContext bimapGet bimapPutback informationTaskMode tst
+	# (result,tst) = makeInformationTaskA mbContext bimapGet bimapPutback [(ActionOk,ifvalid)] informationTaskMode tst
+	= (mapTaskResult (fromJust o snd) result,tst)
+
+makeInformationTaskA :: !(Maybe about) ((a v -> (v,Bool)),v) !(v a -> a) ![TaskAction a] !(InformationTaskMode a) !*TSt -> (!TaskResult (!ActionEvent,!Maybe a),!*TSt) | iTask a & iTask v & gVisualize{|*|} about
+makeInformationTaskA mbContext bimapGet bimapPutback actions informationTaskMode tst
+	# (result,tst) = makeInformationTaskAV mbContext bimapGet bimapPutback (mapTaskActionPredicates fst actions) informationTaskMode tst
+	= (mapTaskResult (app2 (id,mapMaybe fst)) result,tst)
+
+makeChoiceTask :: !d !(Maybe about) !(a -> v) ![a] !(Maybe Int) !*TSt -> (!TaskResult a,!*TSt) | descr d & iTask a & iTask v & gVisualize{|*|} about
+makeChoiceTask description _ _ [] _ tst
+	= choiceException description tst
+makeChoiceTask _ mbContext view opts mbSel tst
+	# initChoice = case mbSel of
+		Just sel	= choiceSel opts sel
+		Nothing		= choice opts
+	# (result,tst)	= makeInformationTask mbContext (toExtendedBimapGet (mapOptions view)) (\v a -> setChoiceIndex (getChoiceIndex v) a) (LocalUpdate initChoice) tst
+	= (mapTaskResult getChoice result,tst)
+
+makeChoiceTaskA :: !d !(Maybe about) !(a -> v) ![TaskAction a] ![a] !(Maybe Int) !*TSt -> (!TaskResult (!ActionEvent,!Maybe a),!*TSt) | descr d & iTask a & iTask v & gVisualize{|*|} about
+makeChoiceTaskA description _ _ _ [] _ tst
+	= choiceException description tst
+makeChoiceTaskA _ mbContext view actions opts mbSel tst
+	# initChoice = case mbSel of
+		Just sel	= choiceSel opts sel
+		Nothing		= choice opts
+	# (result,tst)	= makeInformationTaskA mbContext (toExtendedBimapGet (mapOptions view)) (\v a -> setChoiceIndex (getChoiceIndex v) a) (mapTaskActionPredicates getChoice actions) (LocalUpdate initChoice) tst
+	= (mapTaskResult (app2 (id,mapMaybe getChoice)) result,tst)
+
+makeSharedChoiceTask :: !d !(Maybe about) !(a -> v) ![TaskAction a] !(DBId [a]) !(Maybe Int) !*TSt -> (!TaskResult (!ActionEvent, !Maybe a),!*TSt) | descr d & iTask a & iTask v & gEq{|*|} v & gVisualize{|*|} about
+makeSharedChoiceTask description mbContext view actions dbid mbSel tst
+	# (opts,tst)	= readModel dbid tst
+	| isEmpty opts
+		= choiceException description tst
+	| otherwise
+		# viewOpts		= map view opts
+		# initChoice = case mbSel of
+			Just sel	= choiceSel viewOpts sel
+			Nothing		= choice viewOpts
+		# (result,tst)	= makeInformationTaskAV mbContext ((\opts choice -> app2 (id,not) (setOptions (map view opts) choice)),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoiceFromModel actions) (SharedUpdate dbid) tst
+		= (mapTaskResult (app2 (id,mapMaybe getChoiceFromModel)) result,tst)
 where
-	updateMultipleChoiceAboutA` tst
-		# (result,tst) = makeInformationTask (Just (visualizeAsHtmlDisplay about)) (Just (mapOptionsM view)) (\v a -> setSelectionM (getSelectionM v) a) (mapTaskActionPredicates actions getChoices) (LocalUpdate (multipleChoiceSel options sel)) tst
-		= (mapTaskResult (\(event,choice) -> (event,(mapMaybe getChoices) choice)) result,tst)
+	getChoiceFromModel (opts,choice) = opts !! getChoiceIndex choice
 
-:: InformationTaskMode a = LocalEnter | LocalUpdate !a | SharedUpdate !(DBId a)
+choiceException description = applyTask (throw ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list"))
+	
+makeMultipleChoiceTask :: !(Maybe about) !(a -> v) ![a] !(Maybe [Int]) !*TSt -> (!TaskResult [a],!*TSt) | iTask a & iTask v & gVisualize{|*|} about
+makeMultipleChoiceTask mbContext view opts mbSel tst
+	# initChoice = case mbSel of
+		Just sel	= multipleChoiceSel opts sel
+		Nothing		= multipleChoice opts
+	# (result,tst)	= makeInformationTask mbContext (toExtendedBimapGet (mapOptionsM view)) (\v a -> setChoiceIndexes (getChoiceIndexes v) a) (LocalUpdate initChoice) tst
+	= (mapTaskResult getChoices result,tst)
 
-makeInformationTask :: !(Maybe [HtmlTag]) !(Maybe (a -> v)) !(v a -> a) ![TaskAction a] !(InformationTaskMode a) !*TSt -> (!TaskResult (!ActionEvent,!Maybe a),!*TSt) | iTask a & iTask v
-makeInformationTask mbContext mbBimapGet bimapPutback actions informationTaskMode tst=:{taskNr, newTask, treeType}
-	# tst = case newTask of
-		True // the first time the task is executed build view value from model
-			# tst = case informationTaskMode of
-				SharedUpdate _
-					= tst
-				_ // auto generate model store if in local mode
-					# (initial,tst) = case informationTaskMode of
-						LocalEnter			= accIWorldTSt defaultValue tst
-						LocalUpdate initial	= (initial,tst)
-					# tst 					= appIWorldTSt (storeValue dbid initial) tst
-					= tst
-			# ((modelValue,modelTimestamp),tst)	= readModelValue tst
-			# tst = case mbBimapGet of
-				Just bimapGet // get view value from model
-					= snd (updateViewValue bimapGet modelValue modelTimestamp tst)
-				Nothing // no bimapGet is given, so use default value
-					# (nvalue,tst)		= accIWorldTSt defaultValue tst
-					# tst				= setTaskStore "value" nvalue tst
-					# tst				= appIWorldTSt (storeValue dbid (bimapPutback nvalue modelValue)) tst
-					= tst
-			// set mask to untouched in enter mode
-			# tst = case informationTaskMode of
-				LocalEnter	= setTaskStoreFor taskNr "mask" Untouched tst
-				_			= tst
-			= tst
-		False
-			= tst
+makeMultipleChoiceTaskA :: !(Maybe about) !(a -> v) ![TaskAction [a]] ![a] !(Maybe [Int]) !*TSt -> (!TaskResult (!ActionEvent,!Maybe [a]),!*TSt) | iTask a & iTask v & gVisualize{|*|} about
+makeMultipleChoiceTaskA mbContext view actions opts mbSel tst
+	# initChoice = case mbSel of
+		Just sel	= multipleChoiceSel opts sel
+		Nothing		= multipleChoice opts
+	# (result,tst)	= makeInformationTaskA mbContext (toExtendedBimapGet (mapOptionsM view)) (\v a -> setChoiceIndexes (getChoiceIndexes v) a) (mapTaskActionPredicates getChoices actions) (LocalUpdate initChoice) tst
+	= (mapTaskResult (app2 (id,mapMaybe getChoices)) result,tst)
+	
+makeSharedMultipleChoiceTask :: !(Maybe about) !(a -> v) ![TaskAction [a]] !(DBId [a]) !(Maybe [Int]) !*TSt -> (!TaskResult (!ActionEvent, !Maybe [a]),!*TSt) | iTask a & iTask v & gVisualize{|*|} about & gEq{|*|} v
+makeSharedMultipleChoiceTask mbContext view actions dbid mbSel tst
+	# (opts,tst)	= readModel dbid tst
+	# viewOpts		= map view opts
+	# initChoice = case mbSel of
+		Just sel	= multipleChoiceSel viewOpts sel
+		Nothing		= multipleChoice viewOpts
+	# (result,tst)	= makeInformationTaskAV mbContext (\opts choice -> (setOptionsM (map view opts) choice,False),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoicesFromModel actions) (SharedUpdate dbid) tst
+	= (mapTaskResult (app2 (id,mapMaybe getChoicesFromModel)) result,tst)
+where
+	getChoicesFromModel (opts,choice) = [opt \\ opt <- opts & i <- [0..] | isMember i (getChoiceIndexes choice)]
+
+makeInformationTaskAV :: !(Maybe about) ((a v -> (v,Bool)),v) !(v a -> a) ![TaskAction (a,v)] !(InformationTaskMode a) !*TSt -> (!TaskResult (!ActionEvent,!Maybe (a,v)),!*TSt) | iTask a & iTask v & gVisualize{|*|} about
+makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informationTaskMode tst=:{taskNr, newTask, treeType}
+	# tst						= if newTask (initTask tst) tst
 	# (Just localTimestamp,tst) = getTaskStoreTimestamp "value" tst
 	# (mbClientTimestamp,tst)	= clientTimestamp tst
 	# (refresh,outdatedClient) = case mbClientTimestamp of
 		Nothing
-			= (True,False)						// refresh if client did not sent timestamp
+			// refresh if client did not sent timestamp
+			= (True,False)
 		Just clientTimestamp
+			// refresh if client timestamp is older than local timestamp of the task or task is new
 			# outdated = clientTimestamp < localTimestamp
-			= (outdated || newTask,outdated)	// refresh if client timestamp is older than local timestamp of the task
+			= (outdated || newTask,outdated)
 	= case treeType of
 		SpineTree
 			= (TaskBusy,tst)
@@ -318,14 +345,15 @@ makeInformationTask mbContext mbBimapGet bimapPutback actions informationTaskMod
 			# (ovalue,tst)	= readValue tst
 			# (oumask,tst)	= readMask tst
 			# (ovmask,tst)	= accIWorldTSt (verifyValue ovalue oumask) tst
+			# old			= (ovalue,oumask,ovmask)
 			# (events,tst)	= getEvents tst
 			# edits			= editEvents events
 			// check for edit events
-			# (rebuild,mbNew,tst) = case (edits,outdatedClient) of
+			# (rebuild,new=:(nvalue,numask,nvmask),tst) = case (edits,outdatedClient) of
 				([],_)		// no edit events
-					= (True,Nothing,tst)
-				(_,True)	// don't perform update events of outdated client
-					= (True,Nothing,tst)
+					= (True,old,tst)
+				(_,True)	// ignore update events of outdated clients
+					= (True,old,tst)
 				_			// update edited view value
 					# (nvalue,numask,tst)	= applyUpdates edits ovalue oumask tst
 					# tst					= setTaskStore "value" nvalue tst
@@ -334,14 +362,14 @@ makeInformationTask mbContext mbBimapGet bimapPutback actions informationTaskMod
 					= case isValidValue nvmask of
 						True
 							// if view is valid also update model
-							# ((oldModelValue,_), tst)	= readModelValue tst
+							# ((oldModelValue,_),tst)	= readModelValue tst
 							# modelValue				= bimapPutback nvalue oldModelValue
 							# tst						= appIWorldTSt (storeValue dbid modelValue) tst
-							// if there is no bimapGet view is not rebuilt, updates are based on current value
-							= (isJust mbBimapGet,Just (nvalue,numask,nvmask),tst)
+							// rebuild value from model after also other possible changes are done
+							= (True,(nvalue,numask,nvmask),tst)
 						False
 							// edited invalid views are not rebuilt, updates are based on current value
-							= (False,Just (nvalue,numask,nvmask), tst)
+							= (False,(nvalue,numask,nvmask),tst)
 			// check for action event
 			# mbActionEvent	= actionEvent events actions
 			= case mbActionEvent of
@@ -354,50 +382,84 @@ makeInformationTask mbContext mbBimapGet bimapPutback actions informationTaskMod
 						_
 							# tst = appIWorldTSt (deleteValues dbid) tst
 							= tst
-					# valid = case mbNew of
-						Just (_,_,nvmask)	= isValidValue nvmask
-						Nothing				= isValidValue ovmask
-					= (TaskFinished (event,if valid (Just modelValue) Nothing),tst)
+					= (TaskFinished (event,if (isValidValue nvmask) (Just (modelValue,nvalue)) Nothing),tst)
 				Nothing
 					// UI is built after all possible changes of the model are done
-					# tst = setTUIFunc (buildUI taskId editorId (ovalue,oumask,ovmask) (if rebuild Nothing mbNew) refresh localTimestamp) tst
+					# tst = setTUIFunc (buildUI taskId editorId old new rebuild refresh localTimestamp) tst
 					= (TaskBusy,tst)
 where
 	// for local mode use auto generated store name, for shared mode use given store
 	dbid = case informationTaskMode of
 		SharedUpdate dbid	= toString dbid
 		_					= "DB_" +++ taskNrToString taskNr
-
-	buildUI taskId editorId old mbNew refresh localTimestamp tst
+	
+	//Iinitialises the task the first time it is run
+	initTask tst
+		// generate model store
+		# tst = case informationTaskMode of
+			SharedUpdate _
+				= tst
+			_ // auto generate model store if in local mode
+				# (initial,tst) = case informationTaskMode of
+					Enter			= accIWorldTSt defaultValue tst
+					LocalUpdate initial	= (initial,tst)
+				# tst 					= appIWorldTSt (storeValue dbid initial) tst
+				= tst
+		// build view value from model
+		# ((modelValue,modelTimestamp),tst)	= readModelValue tst
+		# tst = case enterMode of
+			True	// use default value in enter mode
+				# (nvalue,tst)		= accIWorldTSt defaultValue tst
+				# tst				= setTaskStore "value" nvalue tst
+				# tst				= appIWorldTSt (storeValue dbid (bimapPutback nvalue modelValue)) tst
+				= tst
+			False	// determine initial view value based on model
+				= snd (updateViewValue bimapGet initView modelValue modelTimestamp tst)
+		// set mask to untouched in enter mode
+		# tst = case informationTaskMode of
+			Enter	= setTaskStoreFor taskNr "mask" Untouched tst
+			_			= tst
+		= tst
+	
+	/**
+	* Builds the user interface for an information task AFTER the entire task tree is built.
+	* All changes to shared models have to be done before.
+	*
+	* @param task ID
+	* @param editor ID
+	* @param The view value before the current request.
+	* @param The view value possibly updated by events.
+	* @param Determines if a new view value is build using the current model and the bimap get function.
+	* @param Determines if a new UI definition is computed or the existing one is updated.
+	* @param The timestamp of the local value before the current request.
+	* @param TSt
+	*
+	* @return A tree node containing the computed UI definition/updates.
+	*/
+	buildUI taskId editorId old new=:(nvalue,numask,nvmask) rebuild refresh localTimestamp tst
 		# ((modelValue,modelTimestamp), tst)	= readModelValue tst
-		= case mbNew of
-			Just new=:(nvalue,numask,nvmask) // this case is only needed if no bimap-get func is given, the model can't effect the local view then
-				// update with diff of old and new
-				# updates						= determineEditorUpdates editorId old new
-				# evalActions					= evaluateConditions actions (isValidValue nvmask) modelValue
-				= (Updates updates evalActions,tst)
-			Nothing
-				// check for changed model value
-				# (modelChanged,tst)			= accIWorldTSt (isValueChanged dbid localTimestamp) tst
-				// determine new view value if model has changed
-				# (new,tst) = case (modelChanged,mbBimapGet) of
-					(True,Just bimapGet)		= updateViewValue bimapGet modelValue modelTimestamp tst
-					_							= (old,tst)
-				# evalActions					= evaluateConditions actions (isValidValue (thd3 new)) modelValue
-				| refresh
-					# (nvalue,numask,nvmask)	= new
-					# form 						= visualizeAsEditor editorId nvalue numask nvmask
-					= (Definition (taskPanel taskId mbContext (Just form)) evalActions,tst)
-				| modelChanged	
-					# updates					= determineEditorUpdates editorId old new
-					= (Updates updates evalActions,tst)
-				| otherwise
-					= (Updates [] evalActions,tst)
+		// check for changed model value
+		# (modelChanged,tst)					= accIWorldTSt (isValueChanged dbid localTimestamp) tst
+		// determine new view value if model has changed, rebuild is requested & not in enter mode
+		# (rebuilded,tst) = case modelChanged && rebuild && not enterMode of
+			True								= updateViewValue bimapGet nvalue modelValue modelTimestamp tst
+			False								= (new,tst)
+		# (rvalue,rumask,rvmask)				= rebuilded
+		# evalActions							= evaluateConditions actions (isValidValue rvmask) (modelValue,rvalue)
+		| refresh	// refresh UI, send new def instead of updates
+			# form 								= visualizeAsEditor editorId rvalue rumask rvmask
+			= (Definition (taskPanel taskId (mapMaybe visualizeAsHtmlDisplay mbContext) (Just form)) evalActions,tst)
+		| otherwise	// update UI
+			# updates							= determineEditorUpdates editorId old rebuilded
+			= (Updates updates evalActions,tst)
 					
-	// determines a new view value from model			
-	updateViewValue bimapGet modelValue modelTimestamp tst
-		# nvalue			= bimapGet modelValue
-		# (numask,tst)		= accIWorldTSt (defaultMask nvalue) tst
+	// determines a new view value from model
+	updateViewValue :: !(a v -> (v,Bool)) v !a !Timestamp !*TSt -> (!(v,UpdateMask,VerifyMask),!*TSt) | iTask a & iTask v
+	updateViewValue bimapGet viewValue modelValue modelTimestamp tst
+		# (nvalue,blank)	= bimapGet modelValue viewValue
+		# (numask,tst) = case blank of
+			False			= accIWorldTSt (defaultMask nvalue) tst
+			True			= (Blanked True,tst)
 		# (nvmask,tst)		= accIWorldTSt (verifyValue nvalue numask) tst
 		# tst				= setTaskStoreFor taskNr "value" nvalue tst
 		# tst				= setTaskStoreFor taskNr "mask" numask tst
@@ -413,7 +475,7 @@ where
 		# (mbmask,tst)	= getTaskStore "mask" tst
 		= case mbmask of
 			Just m = (m,tst)
-			Nothing = abort "readValue: no local value stored"
+			Nothing = abort "readMask: no local value stored"
 				
 	readModelValue tst
 		# (mbValue,tst) = accIWorldTSt (loadValueAndTimestamp dbid) tst
@@ -431,6 +493,10 @@ where
 		# ts = paramValue "timestamp" request
 		| ts <> ""	= (Just (Timestamp (toInt ts)),tst)
 		| otherwise	= (Nothing,tst)
+		
+	enterMode = case informationTaskMode of
+		Enter	= True
+		_		= False
 
 showMessage :: !d a -> Task a | descr d & iTask a
 showMessage description value
@@ -613,10 +679,21 @@ where
 										}
 
 //Changes all predicates on values of type a to predicates on values of type b										
-mapTaskActionPredicates :: [TaskAction a] (b -> a) -> [TaskAction b]
-mapTaskActionPredicates actions vMap = map changePrecicate actions
+mapTaskActionPredicates :: !(b -> a) ![TaskAction a] -> [TaskAction b]
+mapTaskActionPredicates vMap actions = map changePrecicate actions
 where
 	changePrecicate (action,pred) = (action,newPred pred)
 	newPred pred v = case v of
 		Invalid	= pred Invalid
 		Valid b	= pred (Valid (vMap b))
+
+readModel :: !(DBId a) !*TSt -> (!a,!*TSt) | JSONDecode{|*|}, TC a
+readModel dbid tst
+	# (mbVal,tst) = accIWorldTSt (loadValue (toString dbid)) tst
+	= case mbVal of
+		Just val	= (val,tst)
+		Nothing		= abort "readModel: shared model deleted!"
+		
+//Convert a simple to an extended bimap-get function
+toExtendedBimapGet :: !(a -> v) -> ((a v -> (v,Bool)),v)
+toExtendedBimapGet get = ((\a _ -> (get a,False)),abort "undefined initial view value")

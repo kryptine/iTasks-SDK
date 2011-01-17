@@ -27,14 +27,20 @@ getChoice (Choice l i)
 	| i >= 0 &&  i < (length l)	= l !! i
 	| otherwise					= l !! 0
 	
-getSelection :: !(Choice a) -> Int
-getSelection (Choice _ sel) = sel
+getChoiceIndex :: !(Choice a) -> Int
+getChoiceIndex (Choice _ sel) = sel
 
-setSelection :: !Int !(Choice a) -> (Choice a)
-setSelection sel (Choice opts _) = Choice opts sel
+setChoiceIndex :: !Int !(Choice a) -> Choice a
+setChoiceIndex sel (Choice opts _) = Choice opts sel
 
-mapOptions :: !(a -> b) !(Choice a) -> (Choice b)
+mapOptions :: !(a -> b) !(Choice a) -> Choice b
 mapOptions f (Choice opts sel) = Choice (map f opts) sel
+
+setOptions :: ![a] !(Choice a) -> (Choice a,Bool) | gEq{|*|} a
+setOptions newOpts (Choice oldOpts s)
+	= case newIndexes oldOpts newOpts [s] of
+		[i]	= (Choice newOpts i,True)
+		_	= (Choice newOpts s,False)
 
 multipleChoice :: ![a] -> MultipleChoice a
 multipleChoice l = MultipleChoice l []
@@ -46,15 +52,43 @@ getChoices :: !(MultipleChoice a) -> [a]
 getChoices (MultipleChoice l is)
 	= [l !! i \\ i <- is | i >= 0 && i < (length l)]
 	
-getSelectionM :: !(MultipleChoice a) -> [Int]
-getSelectionM (MultipleChoice _ sel) = sel
+getChoiceIndexes :: !(MultipleChoice a) -> [Int]
+getChoiceIndexes (MultipleChoice _ sel) = sel
 
-setSelectionM :: ![Int] !(MultipleChoice a) -> (MultipleChoice a)
-setSelectionM sel (MultipleChoice opts _) = MultipleChoice opts sel
+setChoiceIndexes :: ![Int] !(MultipleChoice a) -> MultipleChoice a
+setChoiceIndexes sel (MultipleChoice opts _) = MultipleChoice opts sel
 
-mapOptionsM :: !(a -> b) !(MultipleChoice a) -> (MultipleChoice b)
+mapOptionsM :: !(a -> b) !(MultipleChoice a) -> MultipleChoice b
 mapOptionsM f (MultipleChoice opts sel) = MultipleChoice (map f opts) sel
 
+setOptionsM :: ![a] !(MultipleChoice a) -> MultipleChoice a | gEq{|*|} a
+setOptionsM newOpts (MultipleChoice oldOpts sel) = MultipleChoice newOpts (newIndexes oldOpts newOpts sel)
+
+newIndexes :: ![a] ![a] ![Int] -> [Int] | gEq{|*|} a
+newIndexes oldOpts newOpts sel = newIndexes` curChoices []
+where
+	newIndexes` [] acc = acc
+	newIndexes` [(choice,nrOfOccurrence):choices] acc = case findOption choice nrOfOccurrence of
+		Nothing	= newIndexes` choices acc
+		Just i	= newIndexes` choices [i:acc]
+	where
+		findOption choice nr
+			| isEmpty choiceIndexes			= Nothing
+			| length choiceIndexes <= nr	= Just (choiceIndexes !! (length choiceIndexes - 1))
+			| otherwise						= Just (choiceIndexes !! nr)
+		where
+			choiceIndexes = [i \\ opt <- newOpts & i <- [0..] | gEq{|*|} choice opt]
+	curChoices = [(choice,nrOfOccurrence choice i oldOpts) \\ choice <- oldOpts & i <- [0..] | isMember i sel]
+	where
+		nrOfOccurrence choice choiceIndex opts = nrOfOccurrence` 0 0 opts
+		where
+			nrOfOccurrence` _ nr [] = nr
+			nrOfOccurrence` i nr [opt:oldOpts]
+				| gEq{|*|} choice opt
+					| i == choiceIndex	= nr
+					| otherwise			= nrOfOccurrence` (inc i) (inc nr) oldOpts
+				| otherwise				= nrOfOccurrence` (inc i) nr oldOpts
+	
 initManagerProperties :: ManagerProperties
 initManagerProperties = 
 	{ worker = AnyUser
