@@ -370,6 +370,7 @@ setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	->
 setFocusCommand		:: !String !*TSt												-> *TSt //Only for group tasks
 
 setJSONValue		:: !JSONNode !*TSt												-> *TSt
+setJSONFunc			:: !(*TSt -> *(!JSONNode,!*TSt)) !*TSt							-> *TSt
 
 //EVENTS
 /**

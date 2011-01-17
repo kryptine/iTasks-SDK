@@ -49,7 +49,7 @@ from InteractionTasks	import :: Action
 // Depending on the purpose of evaluating the task tree, different output is generated.
 :: TaskOutput ui	= NoOutput																	//No output is generated
 					| UIOutput ui																//Output for a user interface is generated
-					| JSONOutput JSONNode														//A JSON representation of the task value is generated
+					| JSONOutput JSONOutput														//A JSON representation of the task value is generated
 							
 :: TaskInfo	=		{ taskId				:: TaskId											//Task number in string format
 					, subject				:: String											//Short subject of the task
@@ -72,6 +72,10 @@ from InteractionTasks	import :: Action
 					| Updates		[TUIUpdate]	[(Action,Bool)]				//Update an already rendered user interface
 					| Message		[TUIDef]	[(Action,Bool)]				//Just show a message
 					| Func 			(*TSt -> *(!InteractiveTask, !*TSt))	//Function for delayed generation of an interface definition.
+																			//These functions are evaluated after the full tree has been built.
+
+:: JSONOutput	= JSONValue !JSONNode										//JSON representation of the task
+				| JSONFunc !(*TSt -> *(!JSONNode,!*TSt))					//Function for delayed generation of JSON representation.
 																			//These functions are evaluated after the full tree has been built.
 					
 :: GroupedBehaviour = Fixed 		//The editor is fixed in the main canvas of the parent task

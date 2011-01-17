@@ -324,6 +324,11 @@ where
 makeInformationTaskAV :: !(Maybe about) ((a v -> (v,Bool)),v) !(v a -> a) ![TaskAction (a,v)] !(InformationTaskMode a) !*TSt -> (!TaskResult (!ActionEvent,!Maybe (a,v)),!*TSt) | iTask a & iTask v & gVisualize{|*|} about
 makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informationTaskMode tst=:{taskNr, newTask, treeType}
 	# tst						= if newTask (initTask tst) tst
+	# (ovalue,tst)				= readValue tst
+	# (oumask,tst)				= readMask tst
+	# (ovmask,tst)				= accIWorldTSt (verifyValue ovalue oumask) tst
+	# old						= (ovalue,oumask,ovmask)
+	# (events,tst)				= getEvents tst
 	# (Just localTimestamp,tst) = getTaskStoreTimestamp "value" tst
 	# (mbClientTimestamp,tst)	= clientTimestamp tst
 	# (refresh,outdatedClient) = case mbClientTimestamp of
@@ -338,15 +343,31 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 		SpineTree
 			= (TaskBusy,tst)
 		JSONTree
-			= (TaskBusy,tst)
+			// check for value event
+			# (nvalue,numask,tst) = case (valueEvent events,outdatedClient) of
+				(Nothing,_)		// no value events
+					= (ovalue,oumask,tst)
+				(_,True)		// ignore update events of outdated clients
+					= (ovalue,oumask,tst)
+				(Just nvalue,_)	// update model & view value
+					# (nmask,tst)				= accIWorldTSt (defaultMask nvalue) tst
+					# tst						= setTaskStore "value" nvalue tst	
+					# tst						= setTaskStore "mask" nmask tst
+					# ((oldModelValue,_),tst)	= readModelValue tst
+					# newModelValue				= bimapPutback nvalue oldModelValue
+					# tst						= appIWorldTSt (storeValue dbid newModelValue) tst
+					= (nvalue,nmask,tst)
+			// check for action event
+			# mbActionEvent	= actionEvent events actions
+			= case mbActionEvent of
+				Just event
+					# (nvmask,tst) = accIWorldTSt (verifyValue nvalue numask) tst
+					= handleActionEvent nvalue (isValidValue nvmask) event tst
+				Nothing
+					// JSON representation is built after all possible changes of the model are done
+					# tst = setJSONFunc (buildJSONValue nvalue localTimestamp) tst
+					= (TaskBusy,tst)
 		UITree
-			# taskId		= taskNrToString taskNr
-			# editorId		= "tf-" +++ taskNrToString taskNr
-			# (ovalue,tst)	= readValue tst
-			# (oumask,tst)	= readMask tst
-			# (ovmask,tst)	= accIWorldTSt (verifyValue ovalue oumask) tst
-			# old			= (ovalue,oumask,ovmask)
-			# (events,tst)	= getEvents tst
 			# edits			= editEvents events
 			// check for edit events
 			# (rebuild,new=:(nvalue,numask,nvmask),tst) = case (edits,outdatedClient) of
@@ -363,8 +384,8 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 						True
 							// if view is valid also update model
 							# ((oldModelValue,_),tst)	= readModelValue tst
-							# modelValue				= bimapPutback nvalue oldModelValue
-							# tst						= appIWorldTSt (storeValue dbid modelValue) tst
+							# newModelValue				= bimapPutback nvalue oldModelValue
+							# tst						= appIWorldTSt (storeValue dbid newModelValue) tst
 							// rebuild value from model after also other possible changes are done
 							= (True,(nvalue,numask,nvmask),tst)
 						False
@@ -374,18 +395,10 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 			# mbActionEvent	= actionEvent events actions
 			= case mbActionEvent of
 				Just event
-					# ((modelValue,_), tst)	= readModelValue tst
-					// delete auto generated model store
-					# tst = case informationTaskMode of
-						SharedUpdate _
-							= tst
-						_
-							# tst = appIWorldTSt (deleteValues dbid) tst
-							= tst
-					= (TaskFinished (event,if (isValidValue nvmask) (Just (modelValue,nvalue)) Nothing),tst)
+					= handleActionEvent nvalue (isValidValue nvmask) event tst
 				Nothing
 					// UI is built after all possible changes of the model are done
-					# tst = setTUIFunc (buildUI taskId editorId old new rebuild refresh localTimestamp) tst
+					# tst = setTUIFunc (buildUI old new rebuild refresh localTimestamp) tst
 					= (TaskBusy,tst)
 where
 	// for local mode use auto generated store name, for shared mode use given store
@@ -421,12 +434,21 @@ where
 			_			= tst
 		= tst
 	
+	handleActionEvent viewValue valid event tst
+		# ((modelValue,_), tst)	= readModelValue tst
+		// delete auto generated model store
+		# tst = case informationTaskMode of
+			SharedUpdate _
+				= tst
+			_
+				# tst = appIWorldTSt (deleteValues dbid) tst
+				= tst
+		= (TaskFinished (event,if valid (Just (modelValue,viewValue)) Nothing),tst)
+	
 	/**
 	* Builds the user interface for an information task AFTER the entire task tree is built.
 	* All changes to shared models have to be done before.
 	*
-	* @param task ID
-	* @param editor ID
 	* @param The view value before the current request.
 	* @param The view value possibly updated by events.
 	* @param Determines if a new view value is build using the current model and the bimap get function.
@@ -436,22 +458,33 @@ where
 	*
 	* @return A tree node containing the computed UI definition/updates.
 	*/
-	buildUI taskId editorId old new=:(nvalue,numask,nvmask) rebuild refresh localTimestamp tst
+	buildUI old new=:(nvalue,numask,nvmask) rebuild refresh localTimestamp tst
 		# ((modelValue,modelTimestamp), tst)	= readModelValue tst
 		// check for changed model value
 		# (modelChanged,tst)					= accIWorldTSt (isValueChanged dbid localTimestamp) tst
-		// determine new view value if model has changed, rebuild is requested & not in enter mode
+		// determine new view value if model is changed, rebuild is requested & not in enter mode
 		# (rebuilded,tst) = case modelChanged && rebuild && not enterMode of
 			True								= updateViewValue bimapGet nvalue modelValue modelTimestamp tst
 			False								= (new,tst)
 		# (rvalue,rumask,rvmask)				= rebuilded
 		# evalActions							= evaluateConditions actions (isValidValue rvmask) (modelValue,rvalue)
+		# editorId								= "tf-" +++ taskNrToString taskNr
 		| refresh	// refresh UI, send new def instead of updates
 			# form 								= visualizeAsEditor editorId rvalue rumask rvmask
-			= (Definition (taskPanel taskId (mapMaybe visualizeAsHtmlDisplay mbContext) (Just form)) evalActions,tst)
+			= (Definition (taskPanel (taskNrToString taskNr) (mapMaybe visualizeAsHtmlDisplay mbContext) (Just form)) evalActions,tst)
 		| otherwise	// update UI
 			# updates							= determineEditorUpdates editorId old rebuilded
 			= (Updates updates evalActions,tst)
+	
+	buildJSONValue nvalue localTimestamp tst
+		# ((modelValue,modelTimestamp), tst)	= readModelValue tst
+		// check for changed model value
+		# (modelChanged,tst)					= accIWorldTSt (isValueChanged dbid localTimestamp) tst
+		// determine new view value if model is changed & not in enter mode
+		# (rvalue,tst) = case modelChanged && not enterMode of
+			True								= app2 (fst3,id) (updateViewValue bimapGet nvalue modelValue modelTimestamp tst)
+			False								= (nvalue,tst)
+		= (toJSON rvalue,tst)
 					
 	// determines a new view value from model
 	updateViewValue :: !(a v -> (v,Bool)) v !a !Timestamp !*TSt -> (!(v,UpdateMask,VerifyMask),!*TSt) | iTask a & iTask v

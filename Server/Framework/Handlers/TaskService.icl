@@ -2,7 +2,7 @@ implementation module TaskService
 import Http, TSt
 import HtmlUtil, Text
 import JSON
-import StdList
+import StdList, StdMisc
 
 import ProcessDB
 import TaskPanel
@@ -40,9 +40,10 @@ JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
 	
 JSONEncode{|TaskInfoMenus|} (Menus menus) = []
 	
-JSONEncode{|TaskOutput|} fx NoOutput		= [JSONNull]
-JSONEncode{|TaskOutput|} fx (UIOutput _)	= [JSONString "User Interface Definition"]
-JSONEncode{|TaskOutput|} fx (JSONOutput v)	= [v]
+JSONEncode{|TaskOutput|} fx NoOutput					= [JSONNull]
+JSONEncode{|TaskOutput|} fx (UIOutput _)				= [JSONString "User Interface Definition"]
+JSONEncode{|TaskOutput|} fx (JSONOutput (JSONValue v))	= [v]
+JSONEncode{|TaskOutput|} fx (JSONOutput (JSONFunc _))	= abort "Non-normalized json value left in task tree"
 
 JSONEncode{|InteractiveTask|} _				= [JSONNull]
 
@@ -299,7 +300,7 @@ where
 	taskParts (TTParallelTask _ _ trees)	= flatten (map taskParts trees)	
 	taskParts (TTGroupedTask _ trees _ _)	= flatten (map taskParts trees)
 	taskParts (TTInteractiveTask ti val)
-		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",case val of JSONOutput json = json; _ = JSONNull)]]
+		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",case val of JSONOutput (JSONValue json) = json; _ = JSONNull)]]
 	taskParts _								= []
 	
 	getTimestamp :: !*TSt -> (!Timestamp,!*TSt)

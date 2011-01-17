@@ -447,9 +447,12 @@ where
 	normalizeTasks (TTInteractiveTask ti it) tst
 		# (ti, tst) = normalizeTaskInfo ti tst
 		= case it of
-			(UIOutput (Func f))
+			UIOutput (Func f)
 				# (it,tst) = f tst
 				= (TTInteractiveTask ti (UIOutput it), tst)
+			JSONOutput (JSONFunc f)
+				# (json,tst) = f tst
+				= (TTInteractiveTask ti (JSONOutput (JSONValue json)), tst)
 			_
 				= (TTInteractiveTask ti it, tst)
 	//For grouped tasks the actions are also normalized
@@ -889,7 +892,12 @@ setFocusCommand tag tst=:{tree}
 setJSONValue :: !JSONNode !*TSt -> *TSt
 setJSONValue json tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)				= {tst & tree = TTInteractiveTask info (JSONOutput json)}
+		(TTInteractiveTask info _)				= {tst & tree = TTInteractiveTask info (JSONOutput (JSONValue json))}
+		
+setJSONFunc :: !(*TSt -> *(!JSONNode,!*TSt)) !*TSt -> *TSt
+setJSONFunc f tst=:{tree}
+	= case tree of
+		(TTInteractiveTask info _)				= {tst & tree = TTInteractiveTask info (JSONOutput (JSONFunc f))}
 
 /**
 * Store and load the result of a workflow instance
