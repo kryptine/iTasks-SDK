@@ -22,7 +22,7 @@ createUserFlow :: Task Void
 createUserFlow = Title "Create user"
 	@>>	enterInformationA ("Create user","Enter user information") id [(ActionCancel, always), (ActionOk, ifvalid)]
 	>>=	\res -> case app2 (fst,id) res of
-		(ActionOk,Just user)	=	createUser (fromJust user)
+		(ActionOk,Just user)	=	createUser user
 									>>|	showMessage ("User created","Successfully added new user") Void
 		(ActionCancel,_)		= stop
 		
