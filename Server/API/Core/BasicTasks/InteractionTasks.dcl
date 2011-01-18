@@ -384,10 +384,10 @@ showStickyMessage	:: !d	a	-> Task a	| descr d & iTask a
 *							If not specified a default button is rendered.
 * @param a or (DbId a)		Additional (local or shared) information to display
 *
-* @return					A (copy of) value a with (optionally) chosen action
+* @return					A (copy of) value
 */
-showStickyMessageAbout	:: !d			!a			-> Task a					| descr d & iTask a
-showStickyMessageShared	:: !d !(a -> v)	!(DBId a)	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
+showStickyMessageAbout	:: !d			!a			-> Task a	| descr d & iTask a
+showStickyMessageShared	:: !d !(a -> v)	!(DBId a)	-> Task a	| descr d & iTask a & iTask v
 
 //*** Instruction tasks ***//
 

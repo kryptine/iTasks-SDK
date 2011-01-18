@@ -554,96 +554,103 @@ where
 
 showMessage :: !d a -> Task a | descr d & iTask a
 showMessage description value
-	= mkInteractiveTask description (ignoreActionMsg (makeMessageTask (NoAbout value) noView [(ActionOk, ifvalid)]))
+	= mkInteractiveTask description (makeMessageTask (NoAbout value))
 
 showMessageA :: !d ![TaskAction a] a -> Task (!ActionEvent, a) | descr d & iTask a 
 showMessageA description actions value
-	= mkInteractiveTask description (makeMessageTask (NoAbout value) noView actions)
+	= mkInteractiveTask description (makeMessageTaskA (NoAbout value) id actions)
 
 showMessageAbout :: !d !a -> Task a | descr d & iTask a
 showMessageAbout description about
-	= mkInteractiveTask description (ignoreActionMsg (makeMessageTask (AboutValue about) noView [(ActionOk, ifvalid)]))
+	= mkInteractiveTask description (makeMessageTask (AboutValue about))
 
 showMessageAboutA :: !d !(a -> v) ![TaskAction a] !a -> Task (!ActionEvent, a) | descr d & iTask a & iTask v
 showMessageAboutA description view actions about
-	= mkInteractiveTask description (makeMessageTask (AboutValue about) (Just view) actions)
+	= mkInteractiveTask description (makeMessageTaskA (AboutValue about) view actions)
 
 showMessageShared :: !d !(a -> v) ![TaskAction a] !(DBId a) -> Task (!ActionEvent, a) | descr d & iTask a & iTask v
 showMessageShared description view actions dbid
-	= mkInteractiveTask description (makeMessageTask (SharedAbout dbid) (Just view) actions)
+	= mkInteractiveTask description (makeMessageTaskA (SharedAbout dbid) view actions)
 	
 showStickyMessage :: !d a -> Task a | descr d & iTask a
 showStickyMessage description value
-	= mkInteractiveTask description (ignoreActionMsg (makeMessageTask (NoAbout value) noView []))
+	= mkInteractiveTask description (makeMessageTaskSticky (NoAbout value) id)
 
 showStickyMessageAbout :: !d !a -> Task a | descr d & iTask a
 showStickyMessageAbout description about
-	= mkInteractiveTask description (ignoreActionMsg (makeMessageTask (AboutValue about) noView []))
+	= mkInteractiveTask description (makeMessageTaskSticky (AboutValue about) id)
 
-showStickyMessageShared :: !d !(a -> v) !(DBId a) -> Task (!ActionEvent, a) | descr d & iTask a & iTask v
+showStickyMessageShared :: !d !(a -> v) !(DBId a) -> Task a | descr d & iTask a & iTask v
 showStickyMessageShared description view dbid
-	= mkInteractiveTask description (makeMessageTask (SharedAbout dbid) (Just view) [])
+	= mkInteractiveTask description (makeMessageTaskSticky (SharedAbout dbid) view)
 
 requestConfirmation	:: !d -> Task Bool | descr d
 requestConfirmation description = mkInteractiveTask description requestConfirmation`
 where
 	requestConfirmation` tst 
-		# (result,tst) = (makeMessageTask (NoAbout Void) noView [(ActionNo, always),(ActionYes, always)]) tst
+		# (result,tst) = makeMessageTaskA (NoAbout Void) id [(ActionNo, always),(ActionYes, always)] tst
 		= (mapTaskResult (\a -> case a of ((ActionYes,_),_) = True; _ = False) result, tst)
 								
 requestConfirmationAbout :: !d !a -> Task Bool | descr d & iTask a
 requestConfirmationAbout description about = mkInteractiveTask description requestConfirmationAbout`
 where
 	requestConfirmationAbout` tst
-		# (result,tst) = (makeMessageTask (AboutValue about) noView [(ActionNo, always),(ActionYes, ifvalid)]) tst
+		# (result,tst) = makeMessageTaskA (AboutValue about) id [(ActionNo, always),(ActionYes, ifvalid)] tst
 		= (mapTaskResult (\a -> case a of ((ActionYes,_),_) = True; _ = False) result, tst)
 
 :: About a	= NoAbout !a			// don't show value, only return as result
 			| AboutValue !a			// show about value
 			| SharedAbout !(DBId a)	// show shared about value
 
-// give some type to unused view; otherwise compiler can't solve internal overloading
-noView :: Maybe (b -> Void)
-noView = Nothing
+makeMessageTask :: !(About a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+makeMessageTask about tst
+	# (result,tst) = makeMessageTaskA about id [(ActionOk, ifvalid)] tst
+	= (mapTaskResult snd result,tst)
+	
+makeMessageTaskSticky :: !(About a) !(a -> v) !*TSt -> (!TaskResult a,!*TSt) | iTask a & iTask v
+makeMessageTaskSticky about view tst
+	# (result,tst) = makeMessageTaskA about view [] tst
+	= (mapTaskResult snd result,tst)
 
-makeMessageTask :: !(About a) !(Maybe (a -> v)) ![TaskAction a] *TSt -> (!TaskResult (!ActionEvent, !a),!*TSt) | iTask a & iTask v
-makeMessageTask about mbView actions tst=:{taskNr,treeType}
-	# taskId	= taskNrToString taskNr
-	# editorId	= "tf-" +++ taskId
+makeMessageTaskA :: !(About a) !(a -> v) ![TaskAction a] !*TSt -> (!TaskResult (!ActionEvent, !a),!*TSt) | iTask a & iTask v
+makeMessageTaskA about view actions tst=:{taskNr,treeType}
 	# (events,tst) = getEvents tst
 	= case treeType of
 		SpineTree
 			= (TaskBusy,tst)
 		JSONTree
-			# (value,tst) = getValue tst
-			# tst = setJSONValue (toJSON value) tst
 			= case actionEvent events actions of
-				Just actionEvent	= (TaskFinished (actionEvent,value), tst)
-				Nothing				= (TaskBusy,tst)
+				Just actionEvent
+					# (value,tst) = getValue tst
+					= (TaskFinished (actionEvent,value), tst)
+				Nothing
+					# tst = setJSONFunc buildJSONValue tst
+					= (TaskBusy,tst)
 		UITree
-			| isEmpty events
-				# (mbAbout,tst) = case about of
-					NoAbout _			= (Nothing,tst)
-					AboutValue v		= (Just v,tst)
-					SharedAbout dbid	= app2 (Just,id) (readSharedValue dbid tst)
-				# context = case mbAbout of
-					Just about = case mbView of
-						Just view	= Just (visualizeAsHtmlDisplay (view about))
-						Nothing		= Just (visualizeAsHtmlDisplay about)
-					Nothing			= Nothing
-				# (value,tst)	= getValue tst
-				# evalActions	= evaluateConditions actions True value
-				# tst			= setTUIMessage (taskPanel taskId context Nothing) evalActions tst
-				= (TaskBusy, tst)
-			| otherwise
-				# tst = setTUIUpdates [] [] tst
-				= case actionEvent events actions of
-					Just actionEvent
-						# (value,tst) = getValue tst
-						= (TaskFinished (actionEvent,value), tst)
-					Nothing
-						= (TaskBusy, tst)
+			= case actionEvent events actions of
+				Just actionEvent
+					# (value,tst) = getValue tst
+					= (TaskFinished (actionEvent,value), tst)
+				Nothing
+					# tst = setTUIFunc buildMsg tst
+					= (TaskBusy, tst)
 where
+	buildMsg tst
+		# (mbAbout,tst) = case about of
+			NoAbout _			= (Nothing,tst)
+			AboutValue v		= (Just v,tst)
+			SharedAbout dbid	= app2 (Just,id) (readSharedValue dbid tst)
+		# context = case mbAbout of
+			Just about	= Just (visualizeAsHtmlDisplay (view about))
+			Nothing		= Nothing
+		# (value,tst)	= getValue tst
+		# evalActions	= evaluateConditions actions True value
+		= (Message (taskPanel (taskNrToString taskNr) context Nothing) evalActions,tst)
+
+	buildJSONValue tst
+		# (value,tst) = getValue tst
+		= (toJSON (view value),tst)
+
 	getValue tst = case about of
 		NoAbout v			= (v,tst)
 		AboutValue v		= (v,tst)
@@ -677,14 +684,6 @@ mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
 mapTaskResult f (TaskFinished x)	= TaskFinished (f x) 
 mapTaskResult f (TaskBusy)			= TaskBusy
 mapTaskResult f (TaskException e)	= TaskException e
-
-//Throw away the chosen action part of the result & assume that editor was valid and returned a value
-ignoreActionInfo :: (*TSt -> (!TaskResult (!ActionEvent,!Maybe a),*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
-ignoreActionInfo f = \tst -> let (res,tst`) = f tst in (mapTaskResult (fromJust o snd) res,tst`)
-
-//Throw away the chosen action part of the result
-ignoreActionMsg :: (*TSt -> (!TaskResult (!ActionEvent,!a),*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
-ignoreActionMsg f = \tst -> let (res,tst`) = f tst in (mapTaskResult snd res,tst`)
 
 //Edit events of which the name is a datapath
 editEvents :: [(String,JSONNode)] -> [(DataPath,String)]
