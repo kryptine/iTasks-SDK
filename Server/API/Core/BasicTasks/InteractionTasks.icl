@@ -107,7 +107,7 @@ idBimap = (id, const)
 //Input tasks
 enterInformation :: !d -> Task a | descr d & iTask a
 enterInformation description
-	= mkInteractiveTask description (makeInformationTask noAbout (toExtendedBimapGet (fst idBimap)) (snd idBimap) Enter)
+	= mkInteractiveTask description (makeInformationTask noAbout undefGet (snd idBimap) Enter)
 	
 enterInformationA :: !d !(v -> a) ![TaskAction a] -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v
 enterInformationA description view actions
@@ -115,7 +115,7 @@ enterInformationA description view actions
 		
 enterInformationAbout :: !d !b -> Task a | descr d  & iTask a & iTask b
 enterInformationAbout description about
-	= mkInteractiveTask description (makeInformationTask (Just about) (toExtendedBimapGet (fst idBimap)) (snd idBimap) Enter)
+	= mkInteractiveTask description (makeInformationTask (Just about) undefGet (snd idBimap) Enter)
 	
 enterInformationAboutA :: !d !(v -> a) ![TaskAction a] !b -> Task (!ActionEvent, Maybe a) | descr d  & iTask a & iTask b& iTask v
 enterInformationAboutA description view actions about
@@ -331,7 +331,7 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 	# (ovmask,tst)				= accIWorldTSt (verifyValue ovalue oumask) tst
 	# old						= (ovalue,oumask,ovmask)
 	# (events,tst)				= getEvents tst
-	# (Just localTimestamp,tst) = getTaskStoreTimestamp "value" tst
+	# (localTimestamp,tst)		= getLocalTimestamp tst
 	# (mbClientTimestamp,tst)	= clientTimestamp tst
 	# (refresh,outdatedClient) = case mbClientTimestamp of
 		Nothing
@@ -351,13 +351,20 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					= (ovalue,oumask,tst)
 				(_,True)		// ignore update events of outdated clients
 					= (ovalue,oumask,tst)
-				(Just nvalue,_)	// update model & view value
-					# (nmask,tst)				= accIWorldTSt (defaultMask nvalue) tst
-					# tst						= setTaskStore "value" nvalue tst	
-					# tst						= setTaskStore "mask" nmask tst
-					# ((oldModelValue,_),tst)	= readModelValue tst
-					# newModelValue				= bimapPutback nvalue oldModelValue
-					# tst						= appIWorldTSt (storeValue dbid newModelValue) tst
+				(Just nvalue,_)
+					// update view value
+					# (nmask,tst)	= accIWorldTSt (defaultMask nvalue) tst
+					# tst			= setTaskStore "value" nvalue tst
+					# tst			= setTaskStore "mask" nmask tst
+					// don't update model in enter mode
+					# tst = case enterMode of
+						False
+							# ((oldModelValue,_),tst)	= readModelValue tst
+							# newModelValue				= bimapPutback nvalue oldModelValue
+							# tst						= appIWorldTSt (storeValue dbid newModelValue) tst
+							= tst
+						True
+							= tst
 					= (nvalue,nmask,tst)
 			// check for action event
 			# mbActionEvent	= actionEvent events actions
@@ -370,8 +377,8 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					# tst = setJSONFunc (buildJSONValue nvalue localTimestamp) tst
 					= (TaskBusy,tst)
 		UITree
-			# edits			= editEvents events
 			// check for edit events
+			# edits = editEvents events
 			# (rebuild,new=:(nvalue,numask,nvmask),errors,tst) = case (edits,outdatedClient) of
 				([],_)		// no edit events
 					= (True,old,[],tst)
@@ -382,10 +389,10 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					# tst					= setTaskStore "value" nvalue tst
 					# tst					= setTaskStore "mask" numask tst
 					# (nvmask,tst)			= accIWorldTSt (verifyValue nvalue numask) tst
-					= case isValidValue nvmask of
-						True	// if view is valid also try to update model
+					= case isValidValue nvmask && not enterMode of
+						True	// if view is valid (and not in enter mode) also try to update model
 							// check if the task causes an editing conflict
-							# (conflict,tst)			= accIWorldTSt (isValueChanged dbid localTimestamp) tst
+							# (conflict,tst) = accIWorldTSt (isValueChanged dbid localTimestamp) tst
 							= case conflict of
 								False	// no conflict, update model
 									# ((oldModelValue,_),tst)	= readModelValue tst
@@ -396,7 +403,7 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 								True
 									// don't update model, rebuild view based on current value of model and set errors
 									= (True,old,[(p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.") \\ (p,_) <- edits],tst)
-						False	// edited invalid views are not rebuilt, updates are based on current value
+						False	// edited invalid views (or if in enter mode) are not rebuilt, updates are based on current value
 							= (False,(nvalue,numask,nvmask),[],tst)
 			// check for action event
 			# mbActionEvent	= actionEvent events actions
@@ -411,45 +418,29 @@ where
 	// for local mode use auto generated store name, for shared mode use given store
 	dbid = case informationTaskMode of
 		SharedUpdate dbid	= toString dbid
-		_					= "DB_" +++ taskNrToString taskNr
+		_					= "iTask_" +++ taskNrToString taskNr +++ "-model"
 	
 	//Iinitialises the task the first time it is run
 	initTask tst
-		// generate model store
+		// auto generate model store if in local mode
 		# tst = case informationTaskMode of
-			SharedUpdate _
+			LocalUpdate initial
+				= appIWorldTSt (storeValue dbid initial) tst
+			_
 				= tst
-			_ // auto generate model store if in local mode
-				# (initial,tst) = case informationTaskMode of
-					Enter			= accIWorldTSt defaultValue tst
-					LocalUpdate initial	= (initial,tst)
-				# tst 					= appIWorldTSt (storeValue dbid initial) tst
-				= tst
-		// build view value from model
-		# ((modelValue,modelTimestamp),tst)	= readModelValue tst
-		# tst = case enterMode of
-			True	// use default value in enter mode
-				# (nvalue,tst)		= accIWorldTSt defaultValue tst
-				# tst				= setTaskStore "value" nvalue tst
-				# tst				= appIWorldTSt (storeValue dbid (bimapPutback nvalue modelValue)) tst
-				= tst
-			False	// determine initial view value based on model
-				= snd (updateViewValue bimapGet initView modelValue modelTimestamp [] tst)
-		// set mask to untouched in enter mode
-		# tst = case informationTaskMode of
-			Enter	= setTaskStoreFor taskNr "mask" Untouched tst
-			_			= tst
-		= tst
+		// determine initial view value based on model if not in enter mode
+		| not enterMode	
+			# ((modelValue,modelTimestamp),tst)	= readModelValue tst
+			= snd (updateViewValue bimapGet initView modelValue modelTimestamp [] tst)
+		| otherwise
+			= tst
 	
 	handleActionEvent viewValue valid event tst
 		# ((modelValue,_), tst)	= readModelValue tst
 		// delete auto generated model store
 		# tst = case informationTaskMode of
-			SharedUpdate _
-				= tst
-			_
-				# tst = appIWorldTSt (deleteValues dbid) tst
-				= tst
+			SharedUpdate _	= tst
+			_				= appIWorldTSt (deleteValues dbid) tst
 		= (TaskFinished (event,if valid (Just (modelValue,viewValue)) Nothing),tst)
 	
 	/**
@@ -513,22 +504,39 @@ where
 		= ((nvalue,numask,nvmask),tst)
 					
 	readValue tst
-		# (mbvalue,tst)	= getTaskStore "value" tst
+		# (mbvalue,tst)	= getTaskStoreFor taskNr "value" tst
 		= case mbvalue of
-			Just v		= (v,tst)
-			Nothing		= abort "readValue: no local value stored"
+			Just v
+				= (v,tst)
+			Nothing
+				# (v,tst)	= accIWorldTSt defaultValue tst
+				// store default value because store is used to determine local timestamp next time
+				# tst		= setTaskStoreFor taskNr "value" v tst
+				= (v,tst)
+				
 							
 	readMask tst
-		# (mbmask,tst)	= getTaskStore "mask" tst
+		# (mbmask,tst)	= getTaskStoreFor taskNr "mask" tst
 		= case mbmask of
-			Just m = (m,tst)
-			Nothing = abort "readMask: no local value stored"
-				
+			Just m	= (m,tst)
+			Nothing	= (Untouched,tst)
+			
+	getLocalTimestamp tst=:{TSt|iworld=iworld=:{IWorld|timestamp}}
+		# (mbTimestamp,tst) = getTaskStoreTimestampFor taskNr "value" tst
+		= case mbTimestamp of
+			Just timestamp	= (timestamp,tst)
+			Nothing			= (timestamp,tst)
+		
 	readModelValue tst
-		# (mbValue,tst) = accIWorldTSt (loadValueAndTimestamp dbid) tst
-		= case mbValue of
-			Just v	= (v, tst)
-			Nothing	= abort "readModelValue: shared model deleted!"
+		| enterMode // don't read model in enter mode, but compute from view
+			# (view,tst)			= readValue tst
+			# (localTimestamp,tst)	= getLocalTimestamp tst
+			= ((bimapPutback view undef,localTimestamp),tst)
+		| otherwise
+			# (mbValue,tst) = accIWorldTSt (loadValueAndTimestamp dbid) tst
+			= case mbValue of
+				Just v	= (v, tst)
+				Nothing	= abort "readModelValue: shared model deleted!"
 	
 	// Gets errors if stored (otherwise return empty error list)
 	getErrors taskNr tst
