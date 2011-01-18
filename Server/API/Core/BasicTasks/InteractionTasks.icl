@@ -380,9 +380,9 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 			// check for edit events
 			# edits = editEvents events
 			# (rebuild,new=:(nvalue,numask,nvmask),errors,tst) = case (edits,outdatedClient) of
+				(_,True)	// ignore update events of outdated clients & give error msg
+					= (True,old,[(p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.") \\ (p,_) <- edits],tst)
 				([],_)		// no edit events
-					= (True,old,[],tst)
-				(_,True)	// ignore update events of outdated clients
 					= (True,old,[],tst)
 				_			// update edited view value
 					# (nvalue,numask,tst)	= applyUpdates edits ovalue oumask tst
@@ -464,20 +464,20 @@ where
 		// determine new view value if model is changed, rebuild is requested & not in enter mode
 		# (rebuilded,tst) = case modelChanged && rebuild && not enterMode of
 			True								= updateViewValue bimapGet nvalue modelValue modelTimestamp errors tst
-			False								= (new,tst)
+			False								= (app3 (id,id,setInvalid errors) new,tst)
 		# (rvalue,rumask,rvmask)				= rebuilded
 		# evalActions							= evaluateConditions actions (isValidValue rvmask) (modelValue,rvalue)
 		# editorId								= "tf-" +++ taskNrToString taskNr
 		| refresh	// refresh UI, send new def instead of updates
 			# form 								= visualizeAsEditor editorId rvalue rumask rvmask
+			# tst								= storeErrors errors tst
 			= (Definition (taskPanel (taskNrToString taskNr) (mapMaybe visualizeAsHtmlDisplay mbContext) (Just form)) evalActions,tst)
 		| otherwise	// update UI
 			// get stored old errors
 			# (oldErrors,tst)					= getErrors taskNr tst
 			# old								= app3 (id,id,setInvalid oldErrors) old
 			# updates							= determineEditorUpdates editorId old rebuilded
-			// store new errors if necessary
-			# tst = if (isEmpty errors && isEmpty oldErrors) tst (setTaskStoreFor taskNr "errors" (map (app2 (dataPathList,id)) errors) tst)
+			# tst	 							= storeErrors errors tst
 			= (Updates updates evalActions,tst)
 	
 	buildJSONValue nvalue localTimestamp tst
@@ -544,6 +544,21 @@ where
 		= case mbErrors of
 			Just errors	= (map (app2 (dataPathFromList,id)) errors,tst)
 			Nothing		= ([],tst)
+			
+	// Store errors if necessary
+	storeErrors errors tst
+		// Only store error if store already exists or error are not empty
+		# (mbErrors,tst) = checkErrorStore tst
+		# store = case mbErrors of
+			Just _	= True
+			Nothing	= not (isEmpty errors)
+		| store
+			= setTaskStoreFor taskNr "errors" (map (app2 (dataPathList,id)) errors) tst
+		| otherwise
+			= tst
+	where
+		checkErrorStore :: !*TSt -> (!Maybe [([Int],ErrorMessage)],!*TSt)
+		checkErrorStore tst = getTaskStoreFor taskNr "errors" tst
 							
 	applyUpdates [] val umask tst = (val,umask,tst)
 	applyUpdates [(p,v):us] val umask tst=:{TSt|iworld}
