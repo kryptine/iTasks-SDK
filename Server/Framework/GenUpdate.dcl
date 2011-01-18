@@ -59,6 +59,7 @@ shiftDataPath			:: DataPath			-> DataPath
 childDataPath			:: DataPath Int		-> DataPath
 dataPathLevel			:: DataPath			-> Int
 dataPathList 			:: DataPath 		-> [Int]
+dataPathFromList		:: [Int]			-> DataPath
 
 dp2s			:: DataPath			-> String
 dp2id			:: String DataPath	-> String

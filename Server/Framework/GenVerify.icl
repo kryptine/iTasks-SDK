@@ -295,3 +295,16 @@ where
 		= case mbErr of
 		      Nothing  = VMValid mbHint Nothing []
 		      Just err = VMInvalid (ErrorMessage err) Nothing []
+		      
+setInvalid :: ![(!DataPath,!ErrorMessage)] !VerifyMask -> VerifyMask
+setInvalid errors mask = seq (map setInvalid` errors) mask
+where
+	setInvalid` (p,msg) mask = hd (setInvalid`` (reverse (dataPathList p)) [mask])
+	where
+		setInvalid`` [0]	[mask:masks] = [VMInvalid msg Nothing (childMasks mask):masks]
+		setInvalid`` [0:p]	[mask:masks] = [setChildren mask (setInvalid`` p (childMasks mask)):masks]
+		setInvalid`` [n:p]	[mask:masks] = [mask:setInvalid`` [dec n:p] masks]
+		
+	setChildren (VMUntouched	mbHint mbLabel optional _)	children	= VMUntouched	mbHint mbLabel optional children
+	setChildren (VMValid	 	mbHint mbLabel _)			children	= VMValid	 	mbHint mbLabel children
+	setChildren (VMInvalid		errorM mbLabel _)			children	= VMInvalid		errorM mbLabel children

@@ -59,7 +59,6 @@ verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) !*VerSt 
 /**
 * Verifies a custom ADT using the world
 * 
-* @param 	
 * @param	A function for generating hint and error messages:
 *           which takes an optional value and produces an (optional) hint and (optional) error
 * @param	The actual value (if present)
@@ -68,3 +67,13 @@ verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) !*VerSt 
 * @return	The modified verify-state
 */
 worldVerify :: ((Maybe a) *IWorld -> (Maybe String, Maybe String, *IWorld)) (Maybe a) !*VerSt -> *VerSt
+
+/**
+* Sets a number of fields identified by data-paths in a verify mask to invalid.
+*
+* @ param	A list of data-paths of field to be set to invalid. Additionally an error message is given.
+* @ param	The verify mask to be modified
+*
+* @ return	The modified verify mask
+*/
+setInvalid :: ![(!DataPath,!ErrorMessage)] !VerifyMask -> VerifyMask

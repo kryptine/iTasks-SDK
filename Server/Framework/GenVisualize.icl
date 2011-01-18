@@ -43,10 +43,10 @@ diffEditorDefinitions path old new
 	| sameType old new
 		| isStaticContainer old
 			// Records and tuples have static children
-			= staticContainerUpdate path old new
+			= staticContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
 		| isDynamicContainer old
 			// List and Constructor are special: they have dynamic children
-			= dynamicContainerUpdate path old new
+			= dynamicContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
 		| isControl old
 			//If not same value, error or hint, create set instructions
 			= valueUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
@@ -207,6 +207,8 @@ errorOf (TUIPasswordControl {TUIBasicControl|errorMsg})		= Just errorMsg
 errorOf (TUICurrencyControl {TUICurrencyControl|errorMsg})	= Just errorMsg
 errorOf (TUIAppletControl {TUIAppletControl|errorMsg})      = Just errorMsg
 errorOf (TUIUserControl {TUIBasicControl|errorMsg})			= Just errorMsg
+errorOf (TUIListContainer {TUIListContainer|errorMsg})		= Just errorMsg
+errorOf (TUIRecordContainer {TUIRecordContainer|errorMsg})	= Just errorMsg
 errorOf _													= Nothing
 
 hintOf :: TUIDef -> Maybe String
@@ -222,6 +224,8 @@ hintOf (TUIPasswordControl {TUIBasicControl|hintMsg})		= Just hintMsg
 hintOf (TUICurrencyControl {TUICurrencyControl|hintMsg})	= Just hintMsg 
 hintOf (TUIAppletControl {TUIAppletControl|hintMsg})		= Just hintMsg
 hintOf (TUIUserControl {TUIBasicControl|hintMsg})			= Just hintMsg
+hintOf (TUIListContainer {TUIListContainer|hintMsg})		= Just hintMsg
+hintOf (TUIRecordContainer {TUIRecordContainer|hintMsg})	= Just hintMsg
 hintOf _													= Nothing
 
 //Static containers are GUI elements that contain other elements, but who's structure does not change

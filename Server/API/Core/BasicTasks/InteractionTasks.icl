@@ -8,6 +8,8 @@ from HtmlUtil import paramValue
 
 derive class iTask Action
 derive gEq Action
+derive JSONEncode ErrorMessage
+derive JSONDecode ErrorMessage
 derive bimap (,), Maybe
 
 instance == Action
@@ -370,27 +372,32 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 		UITree
 			# edits			= editEvents events
 			// check for edit events
-			# (rebuild,new=:(nvalue,numask,nvmask),tst) = case (edits,outdatedClient) of
+			# (rebuild,new=:(nvalue,numask,nvmask),errors,tst) = case (edits,outdatedClient) of
 				([],_)		// no edit events
-					= (True,old,tst)
+					= (True,old,[],tst)
 				(_,True)	// ignore update events of outdated clients
-					= (True,old,tst)
+					= (True,old,[],tst)
 				_			// update edited view value
 					# (nvalue,numask,tst)	= applyUpdates edits ovalue oumask tst
 					# tst					= setTaskStore "value" nvalue tst
 					# tst					= setTaskStore "mask" numask tst
 					# (nvmask,tst)			= accIWorldTSt (verifyValue nvalue numask) tst
 					= case isValidValue nvmask of
-						True
-							// if view is valid also update model
-							# ((oldModelValue,_),tst)	= readModelValue tst
-							# newModelValue				= bimapPutback nvalue oldModelValue
-							# tst						= appIWorldTSt (storeValue dbid newModelValue) tst
-							// rebuild value from model after also other possible changes are done
-							= (True,(nvalue,numask,nvmask),tst)
-						False
-							// edited invalid views are not rebuilt, updates are based on current value
-							= (False,(nvalue,numask,nvmask),tst)
+						True	// if view is valid also try to update model
+							// check if the task causes an editing conflict
+							# (conflict,tst)			= accIWorldTSt (isValueChanged dbid localTimestamp) tst
+							= case conflict of
+								False	// no conflict, update model
+									# ((oldModelValue,_),tst)	= readModelValue tst
+									# newModelValue				= bimapPutback nvalue oldModelValue
+									# tst						= appIWorldTSt (storeValue dbid newModelValue) tst
+									// rebuild value from model after also other possible changes are done
+									= (True,(nvalue,numask,nvmask),[],tst)
+								True
+									// don't update model, rebuild view based on current value of model and set errors
+									= (True,old,[(p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.") \\ (p,_) <- edits],tst)
+						False	// edited invalid views are not rebuilt, updates are based on current value
+							= (False,(nvalue,numask,nvmask),[],tst)
 			// check for action event
 			# mbActionEvent	= actionEvent events actions
 			= case mbActionEvent of
@@ -398,7 +405,7 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					= handleActionEvent nvalue (isValidValue nvmask) event tst
 				Nothing
 					// UI is built after all possible changes of the model are done
-					# tst = setTUIFunc (buildUI old new rebuild refresh localTimestamp) tst
+					# tst = setTUIFunc (buildUI old new rebuild refresh localTimestamp errors) tst
 					= (TaskBusy,tst)
 where
 	// for local mode use auto generated store name, for shared mode use given store
@@ -427,7 +434,7 @@ where
 				# tst				= appIWorldTSt (storeValue dbid (bimapPutback nvalue modelValue)) tst
 				= tst
 			False	// determine initial view value based on model
-				= snd (updateViewValue bimapGet initView modelValue modelTimestamp tst)
+				= snd (updateViewValue bimapGet initView modelValue modelTimestamp [] tst)
 		// set mask to untouched in enter mode
 		# tst = case informationTaskMode of
 			Enter	= setTaskStoreFor taskNr "mask" Untouched tst
@@ -454,17 +461,18 @@ where
 	* @param Determines if a new view value is build using the current model and the bimap get function.
 	* @param Determines if a new UI definition is computed or the existing one is updated.
 	* @param The timestamp of the local value before the current request.
+	* @param Error messages added to the rebuilt value.
 	* @param TSt
 	*
 	* @return A tree node containing the computed UI definition/updates.
 	*/
-	buildUI old new=:(nvalue,numask,nvmask) rebuild refresh localTimestamp tst
+	buildUI old new=:(nvalue,numask,nvmask) rebuild refresh localTimestamp errors tst
 		# ((modelValue,modelTimestamp), tst)	= readModelValue tst
 		// check for changed model value
 		# (modelChanged,tst)					= accIWorldTSt (isValueChanged dbid localTimestamp) tst
 		// determine new view value if model is changed, rebuild is requested & not in enter mode
 		# (rebuilded,tst) = case modelChanged && rebuild && not enterMode of
-			True								= updateViewValue bimapGet nvalue modelValue modelTimestamp tst
+			True								= updateViewValue bimapGet nvalue modelValue modelTimestamp errors tst
 			False								= (new,tst)
 		# (rvalue,rumask,rvmask)				= rebuilded
 		# evalActions							= evaluateConditions actions (isValidValue rvmask) (modelValue,rvalue)
@@ -473,7 +481,12 @@ where
 			# form 								= visualizeAsEditor editorId rvalue rumask rvmask
 			= (Definition (taskPanel (taskNrToString taskNr) (mapMaybe visualizeAsHtmlDisplay mbContext) (Just form)) evalActions,tst)
 		| otherwise	// update UI
+			// get stored old errors
+			# (oldErrors,tst)					= getErrors taskNr tst
+			# old								= app3 (id,id,setInvalid oldErrors) old
 			# updates							= determineEditorUpdates editorId old rebuilded
+			// store new errors if necessary
+			# tst = if (isEmpty errors && isEmpty oldErrors) tst (setTaskStoreFor taskNr "errors" (map (app2 (dataPathList,id)) errors) tst)
 			= (Updates updates evalActions,tst)
 	
 	buildJSONValue nvalue localTimestamp tst
@@ -482,18 +495,19 @@ where
 		# (modelChanged,tst)					= accIWorldTSt (isValueChanged dbid localTimestamp) tst
 		// determine new view value if model is changed & not in enter mode
 		# (rvalue,tst) = case modelChanged && not enterMode of
-			True								= app2 (fst3,id) (updateViewValue bimapGet nvalue modelValue modelTimestamp tst)
+			True								= app2 (fst3,id) (updateViewValue bimapGet nvalue modelValue modelTimestamp [] tst)
 			False								= (nvalue,tst)
 		= (toJSON rvalue,tst)
 					
 	// determines a new view value from model
-	updateViewValue :: !(a v -> (v,Bool)) v !a !Timestamp !*TSt -> (!(v,UpdateMask,VerifyMask),!*TSt) | iTask a & iTask v
-	updateViewValue bimapGet viewValue modelValue modelTimestamp tst
+	updateViewValue :: !(a v -> (v,Bool)) v !a !Timestamp ![(DataPath,ErrorMessage)] !*TSt -> (!(v,UpdateMask,VerifyMask),!*TSt) | iTask a & iTask v
+	updateViewValue bimapGet viewValue modelValue modelTimestamp errors tst
 		# (nvalue,blank)	= bimapGet modelValue viewValue
 		# (numask,tst) = case blank of
 			False			= accIWorldTSt (defaultMask nvalue) tst
 			True			= (Blanked True,tst)
 		# (nvmask,tst)		= accIWorldTSt (verifyValue nvalue numask) tst
+		# nvmask			= setInvalid errors nvmask
 		# tst				= setTaskStoreFor taskNr "value" nvalue tst
 		# tst				= setTaskStoreFor taskNr "mask" numask tst
 		= ((nvalue,numask,nvmask),tst)
@@ -515,6 +529,13 @@ where
 		= case mbValue of
 			Just v	= (v, tst)
 			Nothing	= abort "readModelValue: shared model deleted!"
+	
+	// Gets errors if stored (otherwise return empty error list)
+	getErrors taskNr tst
+		# (mbErrors,tst) = getTaskStoreFor taskNr "errors" tst
+		= case mbErrors of
+			Just errors	= (map (app2 (dataPathFromList,id)) errors,tst)
+			Nothing		= ([],tst)
 							
 	applyUpdates [] val umask tst = (val,umask,tst)
 	applyUpdates [(p,v):us] val umask tst=:{TSt|iworld}

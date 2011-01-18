@@ -594,6 +594,9 @@ where
 dataPathList :: DataPath -> [Int]
 dataPathList (DataPath list) = list
 
+dataPathFromList :: [Int] -> DataPath
+dataPathFromList l = DataPath l
+
 // detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
 // e.g. [1,0] <== [0] 
 (<==) infixr 1 :: [Int] [Int] -> Bool
