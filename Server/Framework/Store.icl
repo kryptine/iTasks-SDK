@@ -2,7 +2,7 @@ implementation module Store
 
 import StdString, StdMaybe, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
 import Directory, Map, Text, JSON
-from Time import :: Timestamp(..), instance < Timestamp
+from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Types import :: IWorld{..}, :: Config
 import dynamic_string //Static dynamic serialization
 
@@ -131,9 +131,10 @@ loadFromDisk :: !String !String !*World -> (Maybe StoreItem, !*World)
 loadFromDisk key location world			
 		//Try plain format first
 		# filename			= location +++ "/" +++ key +++ ".txt"
-		# (ok,file,world)	= fopen filename FReadData world
+		# (ok,file,world)	= fopen filename FReadText world
 		| ok
 			# (ok,time,file)	= freadi file
+			# (ok,_,file)		= freadc file // read char indicating the end of the timestamp
 			# (content,file)	= freadfile file
 			# (ok,world)		= fclose file world
 			= (Just {StoreItem|format = SFPlain, content = content, timestamp = Timestamp time}, world)
@@ -265,9 +266,10 @@ where
 
 	writeToDisk key {StoreItem|format,content,timestamp} location world
 		# filename 			= location +++ "/" +++ key +++ (case format of SFPlain = ".txt" ; SFDynamic = ".bin" ; SFBlob = ".blb")
-		# (ok,file,world)	= fopen filename FWriteData world
+		# (ok,file,world)	= fopen filename (case format of SFPlain = FWriteText; _ = FWriteData) world
 		| not ok			= abort ("Failed to write value to store: " +++ filename)
-		# file				= fwritei ((\(Timestamp t) -> t) timestamp) file
+		# file				= fwritei (toInt timestamp) file
+		# file				= case format of SFPlain = fwritec ' ' file; _ = file // for txt files write space to indicate end of timestamp
 		# file				= fwrites content file
 		# (ok,world)		= fclose file world
 		= world
