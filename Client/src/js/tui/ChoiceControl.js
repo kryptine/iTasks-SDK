@@ -1,16 +1,13 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
-
-	blankText : 'Please select at least one option',
-
 	initComponent : function(){
 		if(this.staticDisplay){
 			this.items = [{hidden:true}];
 		}
 	
 		this.listeners = {change: {fn: this.onChange, scope: this}};
-
+		this.msgTarget = 'side';
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		
@@ -96,6 +93,26 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 		}else{
 			this.getEl().createChild({tag: 'div', style: 'overflow: auto', html: this.genStaticDisplay()});
 		}
+		
+		// determine max width of items used to align hint/error icon
+		var maxWidth = 0;
+		this.items.each(function(item) {
+			var el = item.getEl();
+			var width = el.getWidth() + el.next().getWidth();
+			if(width > maxWidth)
+				maxWidth = width;
+		});
+
+		this.customIconAlign = {
+			el: this.el,
+			position: 'l-l',
+			offsets: [maxWidth + 10,0]
+		};
+		
+		if(this.errorMsg)
+			itasks.tui.common.markError(this,this.errorMsg);
+		else if(this.hintMsg)
+			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	//buffer to prevent radio group buttons firing twice (uncheck of previous -> check of new)
 	fireChecked : function() {
@@ -147,6 +164,18 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 				}
 			}
 		}
+	},
+	setError: function(msg){		
+		if(msg == "")
+			itasks.tui.common.clearError(this);
+		else
+			itasks.tui.common.markError(this,msg);
+	},
+	setHint: function(msg){
+		if(msg == "")
+			itasks.tui.common.clearHint(this);
+		else
+			itasks.tui.common.markHint(this,msg);
 	},
 	genStaticDisplay: function(v){
 		if (this.selection.length == 0){

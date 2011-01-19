@@ -71,21 +71,14 @@ itasks.tui.common.clearHint = function(field){
 	delete field.activeHint;
 };
 
-itasks.tui.common.alignHintIcon = function(field){	
-
-	if(field.wrap){
-		field.hintIcon.alignTo(field.wrap, 'tl-tr', [2, 0]);
+itasks.tui.common.alignIcon = function(field,icon){
+	if(field.customIconAlign){
+		var ca = field.customIconAlign;
+		icon.alignTo(ca.el,ca.position,ca.offsets);
+	}else if(field.wrap){
+		icon.alignTo(field.wrap, 'tl-tr', [2, 0]);
 	}else{
-		field.hintIcon.alignTo(field.el, 'tl-tr', [2, 0]);
-	}
-};
-
-itasks.tui.common.alignErrIcon = function(field){
-
-	if(field.wrap){
-		field.errIcon.alignTo(field.wrap, 'tl-tr', [2, 0]);
-	}else{
-		field.errIcon.alignTo(field.el, 'tl-tr', [2, 0]);
+		icon.alignTo(field.el, 'tl-tr', [2, 0]);
 	}
 };
 
@@ -100,14 +93,14 @@ Ext.apply(Ext.form.MessageTargets.side, {
 			field.errIcon = elp.createChild({cls: 'x-form-invalid-icon'});
 			
 			if(field.ownerCt){
-				//field.ownerCt.on('afterlayout', function(){ itasks.tui.common.alignErrIcon(this)}, field);
-				//field.ownerCt.on('expand', function(){ itasks.tui.common.alignErrIcon(this)}, field);
+				//field.ownerCt.on('afterlayout', function(){ itasks.tui.common.alignIcon(this)}, field);
+				//field.ownerCt.on('expand', function(){ itasks.tui.common.alignIcon(this)}, field);
 			}
-			field.on('resize', function(){ itasks.tui.common.alignErrIcon(this)}, field);
+			field.on('resize', function(){ itasks.tui.common.alignIcon(this,this.errIcon)}, field);
 			field.on('destroy', function(){ Ext.destroy(this.errIcon); },field);
 		}
 		
-		itasks.tui.common.alignErrIcon(field);
+		itasks.tui.common.alignIcon(field,field.errIcon);
 		field.errIcon.dom.qtip = msg;
 		field.errIcon.dom.qclass = 'x-form-invalid-tip';
 		field.errIcon.show();	
@@ -123,19 +116,19 @@ Ext.apply(Ext.form.MessageTargets.side, {
 	markHint : function(field, msg){			
 		if(!field.hintIcon){
 			var elp = field.getErrorCt();
-			
+
 			if(!elp) return;
-			
+
 			field.hintIcon = elp.createChild({cls: 'x-form-hint-icon'});
 			if(field.ownerCt){
-				//field.ownerCt.on('afterlayout', function() {itasks.tui.common.alignHintIcon(this)}, field);
-				//field.ownerCt.on('expand', function() {itasks.tui.common.alignHintIcon(this)}, field);
+				//field.ownerCt.on('afterlayout', function() {itasks.tui.common.alignIcon(this)}, field);
+				//field.ownerCt.on('expand', function() {itasks.tui.common.alignIcon(this)}, field);
 			}
-			field.on('resize', function() {itasks.tui.common.alignHintIcon(this)}, field);
+			field.on('resize', function() {itasks.tui.common.alignIcon(this,this.hintIcon)}, field);
 			field.on('destroy', function(){ Ext.destroy(this.hintIcon); }, field);
 		}
 		
-		itasks.tui.common.alignHintIcon(field)
+		itasks.tui.common.alignIcon(field,field.hintIcon)
 		field.hintIcon.dom.qtip = msg;
 		field.hintIcon.dom.qclass = 'x-form-hint-tip';
 		field.hintIcon.show();		

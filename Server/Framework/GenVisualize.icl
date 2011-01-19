@@ -60,10 +60,12 @@ diffEditorDefinitions path old new
 				| otherwise																= [TUIReplace_ (dp2s path) new]
 			// Choices are replaced if the options are changed, otherwise there selection is updated
 			(TUIChoiceControl oc, TUIChoiceControl nc)
-				| oc.options == nc.options
-					| oc.selection == nc.selection	= []
-					| otherwise						= [TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
-				| otherwise							= [TUIReplace_ (dp2s path) new]
+				# updates = if (oc.options == nc.options)
+					if (oc.selection == nc.selection)
+						[]
+						[TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
+					[TUIReplace_ (dp2s path) new]
+				= updates ++ hintUpdate path old new ++ errorUpdate path old new
 			// Fallback: always replace
 			_	= [TUIReplace_ (dp2s path) new]
 	| otherwise
@@ -209,6 +211,7 @@ errorOf (TUIAppletControl {TUIAppletControl|errorMsg})      = Just errorMsg
 errorOf (TUIUserControl {TUIBasicControl|errorMsg})			= Just errorMsg
 errorOf (TUIListContainer {TUIListContainer|errorMsg})		= Just errorMsg
 errorOf (TUIRecordContainer {TUIRecordContainer|errorMsg})	= Just errorMsg
+errorOf (TUIChoiceControl {TUIChoiceControl|errorMsg})		= Just errorMsg
 errorOf _													= Nothing
 
 hintOf :: TUIDef -> Maybe String
@@ -226,6 +229,7 @@ hintOf (TUIAppletControl {TUIAppletControl|hintMsg})		= Just hintMsg
 hintOf (TUIUserControl {TUIBasicControl|hintMsg})			= Just hintMsg
 hintOf (TUIListContainer {TUIListContainer|hintMsg})		= Just hintMsg
 hintOf (TUIRecordContainer {TUIRecordContainer|hintMsg})	= Just hintMsg
+hintOf (TUIChoiceControl {TUIChoiceControl|hintMsg})		= Just hintMsg
 hintOf _													= Nothing
 
 //Static containers are GUI elements that contain other elements, but who's structure does not change
@@ -318,12 +322,12 @@ gVisualize{|CONS of d|} fx val vst=:{vizType,idPrefix,currentPath,label,useLabel
 							(Untouched) = case cmv of
 								(VMInvalid IsBlankError _)		= ("", "")
 								(VMInvalid (ErrorMessage s) _)	= (s, "")
-								(VMValid mbHnt _) 				= ("", mbHintToString mbHnt)
-								(VMUntouched mbHnt _ _)			= ("", mbHintToString mbHnt)
+								(VMValid mbHnt _) 				= ("", toString mbHnt)
+								(VMUntouched mbHnt _ _)			= ("", toString mbHnt)
 							_				= case cmv of
 								(VMInvalid err _) 				= (toString err, "")
-								(VMValid mbHnt _)				= ("", mbHintToString mbHnt)
-								(VMUntouched mbHnt _ _)			= ("", mbHintToString mbHnt)
+								(VMValid mbHnt _)				= ("", toString mbHnt)
+								(VMUntouched mbHnt _ _)			= ("", toString mbHnt)
 				= case x of 
 					//Create an empty record container that can be expanded later
 					Nothing 
@@ -963,21 +967,17 @@ where
 		# (vis,vst) = fx (Just option) vst
 		= (toString (SpanTag [ClassAttr "task-choice"] (flatten (coerceToHtml vis))),vst)
 
-mbHintToString :: (Maybe HintMessage) -> String
-mbHintToString Nothing = ""
-mbHintToString (Just h) = h
-
 verifyElementStr :: !UpdateMask !VerifyMask -> (!String, !String)
 verifyElementStr cmu cmv
 	= case cmu of
 		(Untouched) = case cmv of
-			(VMValid mbHnt _) 				= ("",mbHintToString mbHnt)
-			(VMUntouched mbHnt _ _) 		= ("",mbHintToString mbHnt)
+			(VMValid mbHnt _) 				= ("",toString mbHnt)
+			(VMUntouched mbHnt _ _) 		= ("",toString mbHnt)
 			(VMInvalid IsBlankError _)		= ("","")
 			(VMInvalid (ErrorMessage s) _)	= (s,"")
 		_ = case cmv of
-			(VMValid mbHnt _)				= ("",mbHintToString mbHnt)
-			(VMUntouched mbHnt _ _)		 	= ("",mbHintToString mbHnt)
+			(VMValid mbHnt _)				= ("",toString mbHnt)
+			(VMUntouched mbHnt _ _) 		= ("",toString mbHnt)
 			(VMInvalid err _)				= (toString err,"")
 		
 //*********************************************************************************************************************
