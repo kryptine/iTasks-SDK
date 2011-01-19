@@ -24,36 +24,30 @@ ginExamples = [ workflow "Gin workflow editor" "Create or edit workflows in Gin 
 ginShareExample1 = ginSetup 
                    >>| 
                    updateInformationA ("Gin-source view","Shared Gin editor and source viewer") 
-                                      (get,putback) [quitButton] newModule
+                                      (get,putback) [quitButton] newEditor
 where
-	get gMod						= (GinEditor gMod, Display (Note (tryRender gMod False)))
-	putback (GinEditor gMod,_) _	= gMod	
-	quitButton = (ActionQuit,always)
+	get editor  	  		= (editor, Display (viewSource editor))
+	putback (editor,_) _	= editor	
 
 ginShareExample2 = ginSetup 
                    >>| 
-                   createDB newModule 
+                   createDB newEditor 
 	>>= \dbid -> updateSharedInformationA ("Gin-source view 2", "Shared Gin editor and source viewer as two tasks") 
-								          (get,putback) [quitButton] dbid
+								          idBimap [quitButton] dbid
 				 -||
 				 showMessageShared "Source view" viewSource [] dbid
 	>>|			 deleteDB dbid
-where
-	get gMod				  = GinEditor gMod
-	putback (GinEditor gMod)_ = gMod
-	viewSource gMod = Note (tryRender gMod False)	
-	quitButton = (ActionQuit,always)
 	
 ginShareExample3 = ginSetup 
                    >>| 
-                   createDB newModule 
-	>>= \dbid -> updateSharedInformationA "Gin editor 1" (get,putback) [quitButton] dbid
+                   createDB newEditor 
+	>>= \dbid -> updateSharedInformationA "Gin editor 1" idBimap [quitButton] dbid
 				 -||
-				 updateSharedInformationA "Gin editor 2" (get,putback) [quitButton] dbid
+				 updateSharedInformationA "Gin editor 2" idBimap [quitButton] dbid
 	>>|			 deleteDB dbid
-where
-	get gMod				  = GinEditor gMod
-	putback (GinEditor gMod)_ = gMod
-	viewSource gMod = Note (tryRender gMod False)	
-	quitButton = (ActionQuit,always)
 	
+viewSource :: GinEditor -> Note
+viewSource editor = Note (tryRender editor.GinEditor.gMod False)	
+
+quitButton :: (Action,(Verified a) -> Bool)
+quitButton = (ActionQuit,always)

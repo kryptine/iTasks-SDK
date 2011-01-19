@@ -6,8 +6,7 @@ definition module DynamicIO
 */
 
 import 	StdDynamic
-import 	iDataSettings
-from 	TSt 			import :: Task
+import iTasks
 
 /**
 * Writes a task as dynamic to a file
@@ -17,7 +16,7 @@ from 	TSt 			import :: Task
 *
 * @return Boolean indicating succesful write
 */
-writeDynamicTask 	:: !String !(Task a) 	-> Task Bool 			| iData a
+writeDynamicTask 	:: !String !(Task a) 	-> Task Bool 			| iTask a
 /**
 * Read a dynamic (possibly created by another application) from a file
 *
@@ -26,4 +25,4 @@ writeDynamicTask 	:: !String !(Task a) 	-> Task Bool 			| iData a
 * @return Boolean indicating succesful read
 * @return The task
 */
-readDynamicTask 	:: !String 				-> Task (Bool,Task a) 	| iData a
+readDynamicTask 	:: !String 				-> Task (Bool,Task a) 	| iTask a

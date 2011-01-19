@@ -6,13 +6,13 @@ import StdMisc
 
 import iTasks
 
-writeDynamicTask :: !String !(Task a) -> Task Bool | iData a
+writeDynamicTask :: !String !(Task a) -> Task Bool | iTask a
 writeDynamicTask filename task 
-	= appWorld filename (writeDynamic filename (dynamic task))
+	= accWorld (writeDynamic filename (dynamic task))
 
-readDynamicTask :: !String -> Task (Bool,Task a) | iData a
-readDynamicTask filename  
-	= 					appWorld filename (readDynamic` filename)
+readDynamicTask :: !String -> Task (Bool,Task a) | iTask a
+readDynamicTask filename 
+	= 					accWorld (readDynamic` filename)
 		>>= \(b,d) ->	if b
 						(case d of
 							(t::Task a^) 	-> return (True,t)

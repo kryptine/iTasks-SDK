@@ -3,8 +3,13 @@ definition module GinDomain
 import iTasks
 import GinSyntax
 
-::GinEditor = GinEditor GModule
+::GinEditor = { gMod           :: GModule
+              , checkSyntax    :: Bool
+              }
 
+newEditor :: GinEditor
+
+derive gEq GinEditor
 derive gVisualize GinEditor
 derive gUpdate GinEditor
 derive gVerify GinEditor

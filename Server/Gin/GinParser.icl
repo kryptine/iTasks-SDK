@@ -188,10 +188,19 @@ checkNrBranches pb i = case pb.fixedNrBranches of
 setParallelParams :: Bindings (GNode, GNode) [(SPPattern,SPTree)] (AExpression PBParameter) -> GParseState (AExpression Void)
 setParallelParams _ _ _ (Unparsed s) = ret (Unparsed s)
 setParallelParams _ _ _ (Lit s) = ret (Lit s)
-setParallelParams _ _ _ (Var s) = ret (Var s)
+setParallelParams _ _ _ (Var i) = ret (Var i)
 setParallelParams bindings (split,merge) branches (App exps) =
 	parseMap (setParallelParams bindings (split,merge) branches) exps >>> \exps` = 
     ret (App exps`)
+setParallelParams bindings (split,merge) branches (AppInfix i fix pred exp1 exp2) =
+	setParallelParams bindings (split,merge) branches exp1 >>> \exp1` =
+	setParallelParams bindings (split,merge) branches exp2 >>> \exp2` =
+    ret (AppInfix i fix pred exp1` exp2`)
+    
+setParallelParams bindings (split,merge) branches (Case exp casealts) =
+	setParallelParams bindings (split,merge) branches exp >>> \exp` =
+	parseMap (setParallelParamsCase bindings (split,merge) branches) casealts >>> \casealts` =
+	ret (Case exp` casealts`)
 setParallelParams bindings (split,merge) branches (Lambda pat exp) =
     setParallelParams bindings (split,merge) branches exp >>> \exp` =
     ret (Lambda pat exp`)
@@ -211,7 +220,12 @@ setParallelParams bindings (split,merge) branches (Extension ext) = case ext of
     	parseMap (gToAExpression bindings) split.GNode.actualParams >>> \mergeParams` =
     	parseMap (spTreeToAExpression bindings) (map snd branches) >>> \branches` =
     	f splitParams` mergeParams` (zip2 (map fst branches) branches`)
-
+    	
+setParallelParamsCase :: Bindings (GNode, GNode) [(SPPattern, SPTree)] (ACaseAlt PBParameter) -> GParseState (ACaseAlt Void)
+setParallelParamsCase bindings (split,merge) branches (CaseAlt pat exp) =
+	setParallelParams bindings (split,merge) branches exp >>> \exp` =
+	ret (CaseAlt pat exp`)	
+    	
 foldl1 :: (a a -> a) [a] -> a
 foldl1 f [x:xs]  =  foldl f x xs
 

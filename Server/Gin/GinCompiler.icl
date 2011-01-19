@@ -1,7 +1,5 @@
 implementation module GinCompiler
 
-import StdDynamicFileIO
-import StdMaybe
 from StdSystem import dirseparator
 
 import GinSyntax
@@ -34,20 +32,18 @@ runCompiler gMod compiler world
 //5. Call compiler function
 = compiler source basename config world
 
-batchBuild :: !GModule *World -> (CompileResult Dynamic, *World)
+batchBuild :: !GModule *World -> (CompileResult Void, *World)
 batchBuild gMod world = runCompiler gMod compiler world 
 where
-	compiler :: !String !String !GinConfig *World -> (CompileResult Dynamic, *World)
+	compiler :: !String !String !GinConfig *World -> (CompileResult Void, *World)
 	compiler source basename config world
 	#(result, world) = osCallProcessBlocking (quote (config.cleanPath +/+ "CleanIDE.exe") +++ " --batch-build " +++ quote (filenameFromConfig config basename "prj")) world
 	| isOSError result = (CompileGlobalError ("Calling Clean IDE failed: " +++ formatOSError result), world)
 	| getOSResult result == 0
-//      # (result, world) = osCallProcessBlocking (filenameFromConfig config basename "bat") world
-//      | isOSError result = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ formatOSError result), world)
-//      # (ok,dyn,world) = readDynamic basename world
-//      | not ok = (CompileGlobalError "Failed to read dynamic", world)
-//	  = (CompileSuccess dyn, world)
-      = (CompileSuccess (dynamic Void), world)
+	  # batchfile = (filenameFromConfig config basename "bat")
+	  # (result, world) = osCallProcessBlocking batchfile world
+      | isOSError result = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ formatOSError result), world)
+      = (CompileSuccess Void, world)
 	#(result, world) = osReadTextFile (filenameFromConfig config basename "log") world
 	| isOSError result = (CompileGlobalError ("Read log file failed: " +++ formatOSError result), world)
 	#log = getOSResult result

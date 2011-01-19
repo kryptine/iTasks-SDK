@@ -6,8 +6,14 @@ import iTasks
 import GinSyntax, GinFlowLibrary
 import GinCompiler
 
+derive gEq GinEditor
 derive JSONEncode GinEditor
 derive JSONDecode GinEditor
+
+newEditor :: GinEditor
+newEditor = { gMod        = newModule
+            , checkSyntax = False
+            }
 
 gVisualize {|GinEditor|} val vst=:{vizType, label, idPrefix, currentPath, optional, useLabels, updateMask, verifyMask}
     # (cmu,um) = popMask updateMask
@@ -18,7 +24,7 @@ gVisualize {|GinEditor|} val vst=:{vizType, label, idPrefix, currentPath, option
                              , {VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 where
     appletPanel Nothing                          idp cp errMsg hntMsg = applet newModule                 idp cp errMsg hntMsg 
-    appletPanel (Just (GinEditor value)) idp cp errMsg hntMsg = applet (addDefaultLibrary value) idp cp errMsg hntMsg
+    appletPanel (Just editor) idp cp errMsg hntMsg = applet (addDefaultLibrary editor.gMod) idp cp errMsg hntMsg
 
     applet value idp cp errMsg hntMsg = 
         { TUIAppletControl
@@ -33,7 +39,7 @@ where
         , hintMsg = hntMsg
         }
 
-gUpdate {|GinEditor|} _ ust =: {USt | mode=UDCreate,newMask} = ((GinEditor newModule),{USt | ust & newMask = appendToMask newMask Untouched})
+gUpdate {|GinEditor|} _ ust =: {USt | mode=UDCreate,newMask} = (newEditor ,{USt | ust & newMask = appendToMask newMask Untouched})
 
 gUpdate {|GinEditor|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update,oldMask,newMask}
     # (cm,om) = popMask oldMask
@@ -44,19 +50,21 @@ gUpdate {|GinEditor|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, up
 where
     parseUpdate :: GinEditor String -> GinEditor
     parseUpdate orig update = case gModuleFromJSON update of
-					Just mod = GinEditor mod
+					Just mod = { GinEditor | orig & gMod = mod }
 					Nothing = orig
 
 gUpdate {|GinEditor|} s ust =: {USt | mode = UDMask, currentPath, newMask}
     = (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 
-gVerify{|GinEditor|} val vst = worldVerify check val vst where
-  check Nothing iworld = (Nothing, Nothing, iworld)
-  check (Just (GinEditor gMod)) iworld =:{ world }
-  #(compileresult, world) = syntaxCheck gMod world
+
+
+gVerify{|GinEditor|} val vst = customWorldVerify Nothing check val vst where
+  check editor iworld =:{ world }
+  | not editor.checkSyntax = (WPRValid Nothing, iworld)
+  #(compileresult, world) = syntaxCheck editor.gMod world
   # hint = case compileresult of
        CompileSuccess _ = Nothing
        CompileGlobalError error = Just (toString (toJSON [("/", error)]))
        CompilePathError errors = Just (toString (toJSON errors))
-  = (hint, Nothing, { IWorld | iworld & world = world } )
+  = (WPRValid hint, { IWorld | iworld & world = world } )
 
