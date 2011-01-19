@@ -316,14 +316,14 @@ gVisualize{|CONS of d|} fx val vst=:{vizType,idPrefix,currentPath,label,useLabel
 			| not (isEmpty d.gcd_fields)
 				# (err,hnt) = case cmu of
 							(Untouched) = case cmv of
-								(VMInvalid IsBlankError _ _)		= ("", "")
-								(VMInvalid (ErrorMessage s) _ _)	= (s, "")
-								(VMValid mbHnt _ _) 				= ("", mbHintToString mbHnt)
-								(VMUntouched mbHnt _ _ _)			= ("", mbHintToString mbHnt)
+								(VMInvalid IsBlankError _)		= ("", "")
+								(VMInvalid (ErrorMessage s) _)	= (s, "")
+								(VMValid mbHnt _) 				= ("", mbHintToString mbHnt)
+								(VMUntouched mbHnt _ _)			= ("", mbHintToString mbHnt)
 							_				= case cmv of
-								(VMInvalid err _ _) 				= (toString err, "")
-								(VMValid mbHnt _ _)					= ("", mbHintToString mbHnt)
-								(VMUntouched mbHnt _ _ _)			= ("", mbHintToString mbHnt)
+								(VMInvalid err _) 				= (toString err, "")
+								(VMValid mbHnt _)				= ("", mbHintToString mbHnt)
+								(VMUntouched mbHnt _ _)			= ("", mbHintToString mbHnt)
 				= case x of 
 					//Create an empty record container that can be expanded later
 					Nothing 
@@ -971,14 +971,14 @@ verifyElementStr :: !UpdateMask !VerifyMask -> (!String, !String)
 verifyElementStr cmu cmv
 	= case cmu of
 		(Untouched) = case cmv of
-			(VMValid mbHnt _ _) 				= ("",mbHintToString mbHnt)
-			(VMUntouched mbHnt _ _ _) 			= ("",mbHintToString mbHnt)
-			(VMInvalid IsBlankError _ _)		= ("","")
-			(VMInvalid (ErrorMessage s) _ _)	= (s,"")
+			(VMValid mbHnt _) 				= ("",mbHintToString mbHnt)
+			(VMUntouched mbHnt _ _) 		= ("",mbHintToString mbHnt)
+			(VMInvalid IsBlankError _)		= ("","")
+			(VMInvalid (ErrorMessage s) _)	= (s,"")
 		_ = case cmv of
-			(VMValid mbHnt _ _)					= ("",mbHintToString mbHnt)
-			(VMUntouched mbHnt _ _ _) 			= ("",mbHintToString mbHnt)
-			(VMInvalid err _ _)					= (toString err,"")
+			(VMValid mbHnt _)				= ("",mbHintToString mbHnt)
+			(VMUntouched mbHnt _ _)		 	= ("",mbHintToString mbHnt)
+			(VMInvalid err _)				= (toString err,"")
 		
 //*********************************************************************************************************************
 
