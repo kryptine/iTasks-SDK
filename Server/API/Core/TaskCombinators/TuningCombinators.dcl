@@ -33,5 +33,6 @@ instance tune	Tag						//Append Tag
 instance tune	Tags					//Append List of Tags	
 instance tune	GroupedBehaviour		//Set grouped behaviour
 instance tune	GroupActionsBehaviour	//Set group actions behaviour
-instance tune	MenuAnnotation			//Set menu structure for this tasks and all children
+instance tune	MenuAnnotation			//Set menu structure for this task and all children
 instance tune	Menus					//Abbreviation for StaticMenus
+instance tune	FormWidth				//Set form width for this task and all children

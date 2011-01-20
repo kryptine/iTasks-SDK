@@ -12,7 +12,6 @@ itasks.ttc.MessageContainer = Ext.extend(itasks.ttc.TTCBase, {
 			layout: 'fit',
 			cls: 'TTCMessagePanel',
 			unstyled: true,
-			width: 720,
 			items: data.content.form,
 			buttons: data.content.buttons
 		};		

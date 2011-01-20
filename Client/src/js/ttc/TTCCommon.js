@@ -163,7 +163,6 @@ itasks.ttc.common.SubjectPanel = Ext.extend(Ext.Panel,{
 		
 		Ext.apply(this,{
 			cls: 'TTCSubject',
-			width: 720,
 			unstyled: true
 		});
 		
@@ -182,7 +181,6 @@ itasks.ttc.common.DescriptionPanel = Ext.extend(Ext.Panel,{
 	initComponent : function(){
 		Ext.apply(this,{
 			cls: 'TTCDescription',
-			width: 720,
 			unstyled: true,
 			html: this.description
 		});

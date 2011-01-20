@@ -11,8 +11,8 @@ from InteractionTasks import class html(..), instance html String
 derive gVisualize		EmailAddress, Session
 derive gUpdate			EmailAddress, Session
 derive gVerify			EmailAddress, Session
-derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
-derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
+derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, FormWidth
+derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, FormWidth
 derive gLexOrd			Currency
 derive bimap			Maybe, (,)
 
@@ -97,6 +97,7 @@ initManagerProperties =
 	, priority = NormalPriority
 	, deadline = Nothing
 	, tags = []
+	, formWidth = Nothing
 	}
 	
 initGroupedProperties :: GroupedProperties

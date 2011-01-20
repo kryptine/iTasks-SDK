@@ -18,7 +18,7 @@ from GinOSUtils import qualified ::Path, appendTrailingSeparator
 from clCCall_12 import winFileExists
 
 ginEditor :: Task Void
-ginEditor = ginSetup >>| handleMenu
+ginEditor = (ginSetup >>| handleMenu) <<@ FWFullWidth
 
 ginSetup :: Task Void
 ginSetup = accWorld ginLoadConfig >>= \maybeConfig = 

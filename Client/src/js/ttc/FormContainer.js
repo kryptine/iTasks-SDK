@@ -10,7 +10,6 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 		this.interactionpanel = {
 			xtype: 'panel',
 			cls: 'TTCFormPanel',
-			width: 720,
 			layout: 'form',
 			unstyled: true,
 			autoScroll: true,

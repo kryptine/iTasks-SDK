@@ -17,7 +17,6 @@ itasks.ttc.ProcessControlContainer = Ext.extend(itasks.ttc.TTCBase,{
 			, layout: "form"
 			, defaultType: "staticfield"
 			, cls: "TTCProcessControlPanel"
-			, width: 720
 			, items: [{
 					xtype: "itasks.tui.Username",
 					preventMark: true,

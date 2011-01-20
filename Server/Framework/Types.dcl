@@ -22,8 +22,8 @@ derive gVerify			EmailAddress, Session
 derive JSONEncode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
 derive JSONDecode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
 
-derive JSONEncode		(->)
-derive JSONDecode		(->)
+derive JSONEncode		(->), FormWidth
+derive JSONDecode		(->), FormWidth
 		
 instance toString User
 instance toString TaskPriority
@@ -168,13 +168,17 @@ instance zero Currency
 	, priority			:: !TaskPriority			// What is the current priority of this task?
 	, deadline			:: !Maybe DateTime			// When is the task due?
 	, tags				:: ![String]				// A list of tags
+	, formWidth			:: !Maybe FormWidth			// Width of task form
 	}
 
 :: TaskDescription	=
 	{ title				:: !String					// The task's title
 	, description		:: !HtmlTag					// A longer description of the task
 	}
-		
+	
+:: FormWidth	= FWAuto							// Set form width to client default
+				| FWFullWidth						// Set form width to maximum width
+
 class descr d
 where
 	toDescr :: d -> TaskDescription

@@ -59,6 +59,7 @@ from InteractionTasks	import :: Action
 					, groupedBehaviour		:: GroupedBehaviour
 					, groupActionsBehaviour	:: GroupActionsBehaviour
 					, menus					:: !(Maybe TaskInfoMenus)
+					, formWidth				:: !(Maybe FormWidth)
 					}
 					
 :: TaskInfoMenus = Menus !Menus | GenFunc !MenuGenFunc

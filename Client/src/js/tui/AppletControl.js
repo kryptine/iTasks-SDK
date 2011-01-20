@@ -2,10 +2,6 @@ Ext.ns('itasks.tui');
 
 itasks.tui.AppletControl = Ext.extend(Ext.Panel,{
 	initComponent : function(){
-		this.bubble(function(ct){ 
-			if(this.xtype == 'itasks.ttc.form') this.fullscreen = true;
-		});
-
 		this.appletId = Ext.id(null, 'applet');
 
 		Ext.apply(this,
@@ -36,6 +32,16 @@ itasks.tui.AppletControl = Ext.extend(Ext.Panel,{
 
 		this.addEvents('tuichange');
 		this.enableBubble('tuichange');
+
+		var appletControl = this;
+		this.bubble(function(ct){ 
+			if (this.xtype == 'itasks.ttc.form') {
+				this.on ('resize', 
+					function(panel, w, h) {
+						appletControl.setHeight(this.getHeight() - 90);
+					});
+			}
+		});
 	},
 	
 	setValue : function(_data){

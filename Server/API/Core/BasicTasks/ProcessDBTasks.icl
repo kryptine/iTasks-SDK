@@ -19,6 +19,9 @@ import CommonCombinators
 import Store
 
 derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, TaskParallelType, TaskDescription, HtmlTag, HtmlAttr
+derive gVisualize FormWidth
+derive gUpdate FormWidth
+derive gVerify FormWidth
 
 derive bimap	Maybe, (,)
 

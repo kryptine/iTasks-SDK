@@ -8,6 +8,7 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		if(this.buildComponents) {
 			this.buildComponents(this);	
 		}			
+		this.setChildComponentsWidth();
 		Ext.apply(this, {
 			layout: 'anchor',
 			taskUpdates : {},
@@ -68,12 +69,25 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		
 		if(this.buildComponents)
 			this.buildComponents(data);
+		this.setChildComponentsWidth();
 	
 		this.subjectpanel = this.add(this.subjectpanel);
 		this.descriptionpanel = this.add(this.descriptionpanel);
 		this.interactionpanel = this.add(this.interactionpanel);
 			
 		this.doLayout();
+	},
+	setChildComponentsWidth: function() {
+		this.setComponentWidth(this.subjectpanel);
+		this.setComponentWidth(this.descriptionpanel);
+		if (this.interactionpanel)
+			this.setComponentWidth(this.interactionpanel);
+	},
+	setComponentWidth: function(component) {
+		if (this.formWidth == 'FWFullWidth')
+			delete component.width;
+		else
+			component.width = 720;
 	},
 	update: function(data) {
 		//Default update is to reconstruct the component

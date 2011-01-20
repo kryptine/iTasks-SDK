@@ -33,6 +33,7 @@ derive JSONEncode TaskPanel
 	, subject		:: !String
 	, description	:: !String
 	, menu			:: !Maybe [TUIDef]
+	, formWidth		:: !Maybe FormWidth
 	}
 	
 :: TTCMessageContainer =

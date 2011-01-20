@@ -62,7 +62,6 @@ itasks.ttc.ParallelContainer = Ext.extend(itasks.ttc.TTCBase, {
 			border: false,
 			store : this.store,
 			colModel: col,	
-			width: 720,
 			height: 250,
 			plugins:[cellActions],
 			autoExpandColumn: 2,

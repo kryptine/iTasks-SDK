@@ -68,6 +68,7 @@ initTaskInfo
 		, groupedBehaviour = Fixed
 		, groupActionsBehaviour = IncludeGroupActions
 		, menus = Nothing
+		, formWidth = Nothing
 		}
 
 initSystemProperties :: SystemProperties
@@ -779,6 +780,7 @@ applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc}
 					, menus					= case mbMenuGenFunc of
 												Just f	= Just (GenFunc f)
 												Nothing	= Nothing
+					, formWidth				= taskProperties.ManagerProperties.formWidth
 					}
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}
 	= case taskVal of

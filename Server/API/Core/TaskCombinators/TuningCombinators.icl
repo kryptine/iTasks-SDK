@@ -42,6 +42,8 @@ where
 						Nothing	= abort "Cannot dynamically generate menus! Stored value deleted!"
 instance tune Menus
 where tune menus task = tune (StaticMenus menus) task
+instance tune FormWidth
+where tune fw task=:{taskProperties}					= {task & taskProperties = {taskProperties & formWidth = Just fw}}
 
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (<<@) t a = tune a t

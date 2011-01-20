@@ -25,15 +25,18 @@ JSONEncode{|TaskPanel|} (TTCGroupContainer x)				= JSONEncode{|*|} x
 :: ActionMap :== Map ActionName (Action, TaskId, Bool)
 
 buildTaskPanel :: !TaskTree !User -> TaskPanel
-buildTaskPanel tree currentUser = buildTaskPanel` tree [] currentUser False
+buildTaskPanel tree currentUser = buildTaskPanel` tree [] FWAuto currentUser False
 
-buildTaskPanel` :: !TaskTree !Menus !User !Bool -> TaskPanel
-buildTaskPanel` tree menus currentUser fixedInGroup
+buildTaskPanel` :: !TaskTree !Menus !FormWidth !User !Bool -> TaskPanel
+buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 	# taskInfo	= getTaskInfo tree
 	# menus = case taskInfo.menus of
 		Nothing				= menus		// inherit menus from parent
 		Just (Menus nMenus)	= nMenus	// use new menu structure
 		_					= abort "Non-normalized menu structure left in task tree"
+	# formWidth = case taskInfo.TaskInfo.formWidth of
+		Nothing				= formWidth
+		Just formWidth		= formWidth
 	= case tree of
 		(TTFinishedTask _ _)
 			= TaskDone
@@ -51,6 +54,7 @@ buildTaskPanel` tree menus currentUser fixedInGroup
 				, content 		= Just {form = def, buttons = buttons}
 				, updates 		= Nothing	
 				, menu			= mbMenuBar
+				, formWidth		= Just formWidth
 				}
 		(TTInteractiveTask ti (UIOutput (Updates upd taskActions)))
 			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
@@ -66,6 +70,7 @@ buildTaskPanel` tree menus currentUser fixedInGroup
 				, content 		= Nothing
 				, updates 		= Just (upd ++ [TUIReplaceButtons buttons] ++ case mbMenuBar of Just menuBar = [TUIReplaceMenu menuBar]; Nothing = [])
 				, menu			= Nothing
+				, formWidth		= Nothing
 				}
 		(TTInteractiveTask ti (UIOutput (Func f)))
 			= abort "Non-normalized interactive task left in task tree"
@@ -126,7 +131,7 @@ buildTaskPanel` tree menus currentUser fixedInGroup
 		(TTSequenceTask ti tasks)
 			= case [t \\ t <- tasks | not (isFinished t)] of
 				[]	= if (allFinished tasks) TaskDone TaskRedundant
-				[t]	= buildTaskPanel` t menus currentUser fixedInGroup
+				[t]	= buildTaskPanel` t menus formWidth currentUser fixedInGroup
 				_	= (abort "Multiple simultaneously active tasks in a sequence!")
 		(TTGroupedTask ti tasks actionList mbFocus)
 			# groupActions			= fromList [(actionName action, (action, ti.TaskInfo.taskId, enabled)) \\ el=:(action, Left enabled) <- actionList]
@@ -136,7 +141,7 @@ buildTaskPanel` tree menus currentUser fixedInGroup
 								 , taskId = ti.TaskInfo.taskId
 								 , subject = ti.TaskInfo.subject
 								 , description = ti.TaskInfo.description
-								 , content = filter filterFinished (buildGroupElements tasks currentUser ti.TaskInfo.taskId menus mbFocus)
+								 , content = filter filterFinished (buildGroupElements tasks currentUser ti.TaskInfo.taskId menus formWidth mbFocus)
 								 , subtaskId = Nothing
 								 , menu = Just menuBar
 								 , bbar = Just buttons
@@ -187,8 +192,8 @@ filterFinished container = case container.panel of
 	TaskDone	= False
 	_			= True
 
-buildGroupElements :: ![TaskTree] !User !TaskId !Menus !(Maybe String) -> [TTCGroupContainerElement]
-buildGroupElements tasks currentUser parentId menus mbFocus
+buildGroupElements :: ![TaskTree] !User !TaskId !Menus !FormWidth !(Maybe String) -> [TTCGroupContainerElement]
+buildGroupElements tasks currentUser parentId menus formWidth mbFocus
 	= flatten [buildGroupElements` t [nr] Nothing mbFocus \\ t <- tasks & nr <- [1..]]
 where
 	buildGroupElements` :: !TaskTree !SubtaskNr !(Maybe GroupedBehaviour) !(Maybe String) -> [TTCGroupContainerElement]
@@ -206,7 +211,7 @@ where
 	buildGroupElements` t stnr mbBehaviour mbFocus
 		# info		= getTaskInfo t
 		# behaviour	= getGroupedBehaviour info mbBehaviour
-		# panel		= buildTaskPanel` t menus currentUser (case behaviour of Fixed = True; _ = False)
+		# panel		= buildTaskPanel` t menus formWidth currentUser (case behaviour of Fixed = True; _ = False)
 		= [	{ panel = panel
 			, behaviour = behaviour
 			, index = subtaskNrToString stnr

@@ -9,7 +9,6 @@ itasks.ttc.InstructionContainer = Ext.extend(itasks.ttc.TTCBase,{
 	buildComponents: function(data) {
 		this.interactionpanel = {
 			xtype: 'panel',
-			width: 720,
 			unstyled: true,
 			html: this.context,
 			cls: 'TTCInstructionContainer-Context',
