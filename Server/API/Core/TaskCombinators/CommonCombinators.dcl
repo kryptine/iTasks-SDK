@@ -58,6 +58,15 @@ transform			:: !(a -> b) !a 									-> Task b | iTask b
 justdo	:: !(Task (Maybe a)) -> Task a | iTask a
 
 /**
+* Repeats a task infinitely. As soon as the task is finished, it is restarted immediately.
+* As a consequence, the combined task never finishes.
+*
+* @param The task that has to be repeated infinitely
+* @return The combined task
+*/
+forever	t	:==	(<!) t (\_ -> False)
+
+/**
 * Group two tasks in parallel of which only one needs to be completed.
 * -||-	: Done when one of the two tasks is done. It's result is returned.
 *  ||-	: Done when the right task is done.

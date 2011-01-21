@@ -40,61 +40,30 @@ return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,tst))
 
 //Repetition and loops:
-
-forever :: !(Task a) -> Task a | iTask a
-forever task = mkSequenceTask ("Do '" +++ (taskTitle task) +++ "' forever", [RawText "Execute the following task forever:<br /><br />", taskDescription task]) forever`
-where
-	forever` tst=:{taskNr} 
-		# (result,tst)= applyTask task tst					
-		= case result of
-			TaskFinished _			
-				# tst = deleteTaskStates (tl taskNr) tst
-				// Delete subprocesses in the process table
-				# tst = deleteSubProcesses (taskNrToString (tl taskNr)) tst 
-				# tst = resetSequence tst
-				= forever` tst				
-			_
-				= (result,tst)
-
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred = mkSequenceTask (taskTitle task, taskDescription task) doTask
 where
 	doTask tst=:{taskNr}
-		# (result,tst) 	= applyTask task tst
+		# tst			= {tst & taskNr = tl taskNr}
+		# (mbLoop,tst)	= getTaskStore "counter" tst
+		# loop			= case mbLoop of Nothing = 0; Just i = i
+		# (result,tst) 	= applyTask task {tst & taskNr = [loop:tl taskNr]}
 		= case result of
 			TaskBusy
 				= (TaskBusy,tst)
 			TaskFinished a
-				| not (pred a)			
+				| not (pred a)	
 					# tst = deleteTaskStates (tl taskNr) tst
 					# tst = deleteSubProcesses (taskNrToString (tl taskNr)) tst
 					# tst = resetSequence tst
+					# tst = {tst & taskNr = tl taskNr}	
+					# tst = setTaskStore "counter" (inc loop) tst
 					= doTask tst
 				| otherwise
 					= (TaskFinished a,tst)
 			TaskException e
 				= (TaskException e,tst)
 		
-iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
-iterateUntil init cont pred = mkSequenceTask ("Iterate '" +++ taskTitle init +++ "'", taskDescription init) doTask
-where
-	doTask tst=:{taskNr}
-		# key 			= "iu-temp"
-		# (mbVal,tst)	= getTaskStore key tst
-		# (result,tst)  = case mbVal of
-							Nothing = applyTask init 	 tst
-							Just v  = applyTask (cont v) tst
-		= case result of
-			TaskFinished a
-				| pred a
-					= (TaskFinished a,tst)
-				| otherwise	
-					# tst = deleteTaskStates (tl taskNr) tst
-					# tst = resetSequence tst
-					# tst = setTaskStore key a tst
-					= doTask tst
-			_
-					= (result, tst)
 // Sequential composition
 sequence :: !String ![Task a] -> (Task [a])	| iTask a
 sequence label tasks = mkSequenceTask (label, description tasks) (\tst -> doseqTasks tasks [] tst)

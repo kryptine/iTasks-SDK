@@ -44,14 +44,6 @@ return 		:: !a 										-> Task a 		| iTask a
 //Repetition and loops:
 
 /**
-* Repeats a task infinitely. As soon as the task is finished, it is restarted immediately.
-* As a consequence, the combined task never finishes.
-*
-* @param The task that has to be repeated infinitely
-* @return The combined task
-*/
-forever		:: !(Task a) 								-> Task a 		| iTask a
-/**
 * Repeats a task until a given predicate holds. The predicate is tested as soon as the
 * given task is finished. When it does not hold, the task is restarted.
 *
@@ -60,19 +52,6 @@ forever		:: !(Task a) 								-> Task a 		| iTask a
 * @return The combined task
 */
 (<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
-
-/**
-* Iterates a task until a given predicate holds. The repetition is initialized using the
-* first parameter and continued using the second. The output of each cycle serves as input
-* for the next. The predicate is tested as soon as the given task is finished. 
-* When it does not hold, the task is restarted.
-*
-* @param The initial task
-* @param The task to be looped
-* @param The termination predicate
-* @return The combined task
-*/
-iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 
 // Sequential composition
 
