@@ -51,9 +51,9 @@ instance < Date
 instance < User
 instance < Currency
 
-instance + Time		//Naive fieldwise addition
-instance + Date		//Naive fieldwise addition
-instance + DateTime	//Naive fieldwise addition
+instance + Time		//Basic addition, righthand argument is treated as interval (seconds are added first)
+instance + Date		//Basic addition, righthand argument is treated as interval (days are added first)
+instance + DateTime	//Basic addition, righthand argument is treated as interval
 instance + Currency 
 
 instance - Time		//Naive fieldwise subtraction

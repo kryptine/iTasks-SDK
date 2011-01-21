@@ -1,6 +1,8 @@
 implementation module Types
+from StdFunc import until
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList
+
+import StdInt, StdOverloaded, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList
 import GenVisualize, GenUpdate, GenLexOrd, JSON
 import Html
 import Text, Base64, Util
@@ -151,9 +153,27 @@ where
 		| x.Date.year == y.Date.year && x.Date.mon == y.Date.mon && x.Date.day < y.Date.day	= True
 		| otherwise																			= False
 
-instance + Date
+instance + Date //Second date is treated as an interval to be added
 where
-	(+) x y = {Date|year = x.Date.year + y.Date.year, mon = x.Date.mon + y.Date.mon, day = x.Date.day + y.Date.day}
+	(+) x y = addYears y.Date.year (normMonths (addMonths y.Date.mon (normDays (addDays y.Date.day x))))
+	where
+		addDays days date		= {Date|date & day = date.day + days}
+		normDays date			= until (\d -> d.day <= monthLength d) (\d -> {d & mon = d.mon + 1, day = d.day - monthLength d}) date
+		addMonths months date	= {Date|date & mon = date.mon + months}
+		normMonths date			= until (\d -> d.mon <= 12) (\d -> {d & year = d.year + 1, mon = d.mon - 12}) date
+		addYears years date		= {Date|date & year = date.year + years}
+	
+		monthLength date
+			| date.mon == 2					= if (isLeapYear date.year)	29 28
+			| isMember date.mon [4,6,9,11]	= 30
+			| otherwise						= 31
+			 
+		isLeapYear year
+			| year rem 400	== 0	= True
+			| year rem 100	== 0	= False
+			| year rem 4	== 0	= True
+			| otherwise				= False
+
 
 instance - Date
 where
@@ -179,10 +199,17 @@ where
 		| x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec < y.Time.sec	= True
 		| otherwise																			= False
 
-instance + Time
+instance + Time // Second time is treated as an interval
 where
-	(+) x y = {Time|hour = x.Time.hour + y.Time.hour, min = x.Time.min + y.Time.min, sec = x.Time.sec + y.Time.sec}
-
+	(+) x y = normHours (addHours y.hour (normMinutes (addMinutes y.min (normSeconds (addSeconds y.sec x)))))
+	where
+		addSeconds s t	= {t & sec = t.sec + s}
+		normSeconds t	= {t & min = t.min + (t.sec / 60), sec = t.sec rem 60}
+		addMinutes m t	= {t & min = t.min + m}
+		normMinutes t	= {t & hour = t.hour + (t.min / 60), min = t.min rem 60}
+		addHours h t	= {t & hour = t.hour + h}
+		normHours t		= {t & hour = t.hour rem 24}
+		
 instance - Time
 where
 	(-) x y = {Time|hour = x.Time.hour - y.Time.hour, min = x.Time.min - y.Time.min, sec = x.Time.sec - y.Time.sec}
@@ -201,8 +228,13 @@ where
 
 instance + DateTime
 where
-	(+) (DateTime dx tx) (DateTime dy ty) = DateTime (dx + dy) (tx + ty)
-
+	(+) (DateTime dx tx) (DateTime dy ty)
+			| tn >= tx	= DateTime dn tn
+			| otherwise	= DateTime (dn + {year = 0, mon = 0, day = 1}) tn	//We've passed midnight
+	where
+		dn = dx + dy
+		tn = tx + ty
+		
 instance - DateTime
 where
 	(-) (DateTime dx tx) (DateTime dy ty) = DateTime (dx - dy) (tx - ty)
