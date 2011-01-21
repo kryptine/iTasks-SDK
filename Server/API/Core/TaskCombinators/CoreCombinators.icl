@@ -43,7 +43,7 @@ return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred = mkSequenceTask (taskTitle task, taskDescription task) doTask
 where
-	doTask tst=:{taskNr}
+	doTask tst=:{taskNr} 
 		# tst			= {tst & taskNr = tl taskNr}
 		# (mbLoop,tst)	= getTaskStore "counter" tst
 		# loop			= case mbLoop of Nothing = 0; Just i = i
@@ -58,11 +58,11 @@ where
 					# tst = resetSequence tst
 					# tst = {tst & taskNr = tl taskNr}	
 					# tst = setTaskStore "counter" (inc loop) tst
-					= doTask tst
+					= doTask {tst & taskNr = taskNr}
 				| otherwise
-					= (TaskFinished a,tst)
+					= (TaskFinished a, {tst & taskNr = taskNr})
 			TaskException e
-				= (TaskException e,tst)
+				= (TaskException e, {tst & taskNr = taskNr})
 		
 // Sequential composition
 sequence :: !String ![Task a] -> (Task [a])	| iTask a
