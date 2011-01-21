@@ -66,6 +66,11 @@ loadValueAsBlob 		:: !String					!*IWorld -> (!Maybe String,!*IWorld)
 loadDynamicValue 		:: !String					!*IWorld -> (!Maybe Dynamic,!*IWorld)
 
 /**
+* Deletes the value with given key from the store
+*/
+deleteValue				:: !String					!*IWorld -> *IWorld
+
+/**
 * Deletes all values that start with the prefix from the store
 */
 deleteValues			:: !String					!*IWorld -> *IWorld

@@ -3,12 +3,10 @@ implementation module Util
 import StdBool, StdArray, StdOverloaded, StdList, StdTuple, StdMisc, StdFile
 import Time, Text, Base64
 import TSt, Types
-
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
 derive JSONEncode	Void, Either
 derive JSONDecode	Void, Either
-
 derive bimap		Maybe, (,)
 
 instance iTaskId TaskNr
@@ -70,9 +68,6 @@ mapSt f [x:xs] st
 	# (ys, st) = mapSt f xs st
 	= ([y:ys], st)
 
-
-// ******************************************************************************************************
-
 mb2list	:: !(Maybe [a]) -> [a]
 mb2list	Nothing = []
 mb2list (Just a) = a
@@ -80,8 +75,6 @@ mb2list (Just a) = a
 list2mb	:: ![a] -> (Maybe [a])
 list2mb [] = Nothing
 list2mb a = (Just a)
-
-// ******************************************************************************************************
 
 pad :: Int Int -> String
 pad len num = (createArray (max 0 (len - size nums)) '0' ) +++ nums
@@ -108,14 +101,13 @@ currentDateTime world
 	# time			= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
 	= (DateTime date time,world)
 
-derive gVisualize	Timestamp
-derive gUpdate		Timestamp
-derive gVerify		Timestamp
-
 JSONEncode{|Dynamic|} dyn					= [JSONString (base64Encode (dynamic_to_string dyn))]
-
 JSONDecode{|Dynamic|} [JSONString string:c]	= (Just (string_to_dynamic {s` \\ s` <-: base64Decode string}), c)
 JSONDecode{|Dynamic|} c						= (Nothing, c)
+
+JSONEncode{|(->)|} _ _ f						= [JSONString (base64Encode (copy_to_string f))]
+JSONDecode{|(->)|} _ _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
+JSONDecode{|(->)|} _ _ c						= (Nothing,c)
 
 JSONEncode{|Timestamp|} (Timestamp t)		= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]		= (Just (Timestamp t), c)

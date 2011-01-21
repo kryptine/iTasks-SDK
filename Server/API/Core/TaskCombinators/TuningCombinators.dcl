@@ -2,21 +2,19 @@ definition module TuningCombinators
 /**
 * This module provides combinators for fine-tuning of workflows.
 */
-from Types				import :: Task, :: ManagerProperties, :: User, :: TaskPriority, :: DateTime
+from Types				import :: Task, :: ManagerProperties, :: User, :: TaskPriority, :: DateTime, :: GroupedBehaviour, :: GroupActionsBehaviour, :: Menus, ::Menu, class iTask, :: FormWidth
 from Time				import :: Timestamp
-from TaskTree			import :: GroupedBehaviour, :: GroupActionsBehaviour
-from StoreTasks			import :: DBId
-from InteractionTasks	import :: Menus, :: Menu(..), :: MenuItem, :: MenuLabel, class html
-from iTasks				import class iTask
+from Shared				import class toReadOnlyShared
 import GenVisualize, GenUpdate
 
 :: Title			= E.s: Title !s			& toString s
 :: Description		= E.s: Description !s	& html s
 :: Tag				= E.s: Tag !s			& toString s
 :: Tags				= E.s: Tags ![s]		& toString s
-:: MenuAnnotation	= 		NoMenus
-					| 		StaticMenus		!Menus
-					| E.s:	DynamicMenus	!(DBId s) !(s -> Menus) & iTask s
+:: MenuAnnotation	= 	NoMenus
+					| 	StaticMenus !Menus
+					| E.sharedReadOnly s:
+						DynamicMenus !(sharedReadOnly s) !(s -> Menus) & iTask s & toReadOnlyShared sharedReadOnly s
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a

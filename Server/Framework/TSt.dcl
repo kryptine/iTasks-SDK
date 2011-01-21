@@ -4,21 +4,12 @@ definition module TSt
 * 
 * Additionally it provides utility functions to manipulate the state.
 */
-import StdMaybe
-import Types, Void
-import TaskTree
-import RPC
-
-from SessionDB			import :: Session
-from ProcessDB			import :: Process
-from Config				import :: Config(..)
-from Store				import :: Store(..)
-from Time				import :: Timestamp(..)
-from Http				import :: HTTPRequest
-from InteractionTasks	import :: Action
-
-from	iTasks import class iTask(..)
-import	GenVisualize, GenUpdate
+import StdMaybe, Types, Void, TaskTree, RPC, GenVisualize, GenUpdate
+from ProcessDB	import :: Process
+from Config		import :: Config(..)
+from Store		import :: Store(..)
+from Time		import :: Timestamp(..)
+from Http		import :: HTTPRequest	
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's

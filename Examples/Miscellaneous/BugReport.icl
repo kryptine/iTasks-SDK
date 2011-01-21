@@ -38,7 +38,7 @@ derive class iTask	BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnal
 derive bimap (,), Maybe
 	
 instance DB Bug where
-	databaseId					= mkDBId "Bug"
+	databaseId					= mkSharedReference "Bug"
 	getItemId bug=:{bugNr}		= DBRef bugNr
 	setItemId (DBRef bugNr) bug	= {bug & bugNr = bugNr}
 

@@ -1,11 +1,7 @@
 implementation module GenVisualize
 
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum, StdFunc
-import GenUpdate, GenEq
-import Void, Either, Util
-import Text, Html, JSON, TUIDefinition
-
-derive gEq Document
+import GenUpdate, Void, Either, Util, Text, Html, JSON, TUIDefinition, Types
 
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
@@ -830,8 +826,11 @@ gVisualize{|User|} val vst=:{vizType,currentPath,updateMask}
 			= ([TextFragment (toString val)]
 				, {VSt|vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|Task|} _ (Just {taskProperties}) vst	= ([TextFragment taskProperties.ManagerProperties.taskDescription.TaskDescription.title],vst)
-gVisualize{|Task|}  _ _ vst							= ([],vst)
+gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath, updateMask, verifyMask}
+	# vis = case mbVal of
+		Just {taskProperties}	= [TextFragment taskProperties.ManagerProperties.taskDescription.TaskDescription.title]
+		Nothing					= []
+	= (vis,vst)
 
 gVisualize{|Choice|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,verifyMask,updateMask,updates}
 	# (cmu,um)	= popMask updateMask
@@ -910,8 +909,10 @@ where
 		# (vis,vst) = fx (Just choice) vst
 		= visualiseChoices choices (acc ++ vis ++ (if (isEmpty choices) [] [TextFragment ", "])) vst
 
+gVisualize{|Shared|} _ _ vst			= ([TextFragment "Reference to shared data"],vst)
+gVisualize{|SharedReadOnly|} _ _ vst	= ([TextFragment "Read-Only reference to shared data"],vst)
 
-derive gVisualize DateTime, Either, Void, UserDetails
+derive gVisualize DateTime, Either, Void, UserDetails, Timestamp
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

@@ -4,22 +4,21 @@ definition module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 
-import CoreCombinators, TuningCombinators, InteractionTasks
+import CoreCombinators, TuningCombinators
 import Either
-
-from Types import :: User (..)
+from Types import :: User, :: SessionId
 
 // Additional types for grouping
 // These types are similar to PAction but are needed to avoid circular definitions
 :: GAction		= GStop  | GContinue | GExtend [Task GAction] | GFocus Tag
 :: GOnlyAction	= GOStop | GOExtend [Task Void] | GOFocus Tag
 
-derive gVisualize	GAction, GOnlyAction, Tag
-derive gUpdate		GAction, GOnlyAction, Tag
-derive gVerify		GAction, GOnlyAction, Tag
-
-derive JSONEncode	GAction, GOnlyAction, Tag
-derive JSONDecode	GAction, GOnlyAction, Tag
+derive class iTask GAction, GOnlyAction
+derive gVisualize	Tag
+derive gUpdate		Tag
+derive gVerify		Tag
+derive JSONEncode	Tag
+derive JSONDecode	Tag
 
 /**
 * Transform a value with a custom function
@@ -241,7 +240,7 @@ dynamicGroupAOnly	:: ![Task Void]		![GroupAction Void] !(GroupActionGenFunc GOnl
 *        The second parameter is a collection of tasks for dealing with editors.
 * @param A global menu generation function, mapping the global state to a menu structure.
 */
-mdiApplication :: !globalState ![GroupAction Void] !((DBId globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
+mdiApplication :: !globalState ![GroupAction Void] !((Shared globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
 
 // A collection of tasks for dealing with editors within an MDI application.
 :: MDITasks editorState iterationState = {
@@ -272,6 +271,6 @@ mdiApplication :: !globalState ![GroupAction Void] !((DBId globalState) (MDITask
 	existsEditor :: MDIExistsEditor editorState
 	}
 	
-:: MDICreateEditor editorState					:== editorState ((DBId editorState) -> Task Void) -> Task GAction
-:: MDIIterateEditors editorState iterationState :== iterationState (iterationState (DBId editorState) -> Task iterationState) -> Task iterationState
-:: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (DBId editorState))
+:: MDICreateEditor editorState					:== editorState ((Shared editorState) -> Task Void) -> Task GAction
+:: MDIIterateEditors editorState iterationState :== iterationState (iterationState (Shared editorState) -> Task iterationState) -> Task iterationState
+:: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (Shared editorState))

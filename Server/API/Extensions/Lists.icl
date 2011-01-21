@@ -20,7 +20,7 @@ derive bimap Maybe, (,)
 
 instance DB ListMeta
 where
-	databaseId 					= mkDBId "Lists"
+	databaseId 					= mkSharedReference "Lists"
 	getItemId l					= DBRef l.ListMeta.listId
 	setItemId (DBRef listId) l	= {ListMeta| l & listId = listId}
 
@@ -69,16 +69,16 @@ manageList list
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= showMessageShared (l.List.name,l.List.description) simpleFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
-		(TodoList l)	= showMessageShared (l.List.name,l.List.description) todoFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
-		(DateList l)	= showMessageShared (l.List.name,l.List.description) dateFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
-		(DocumentList l)= showMessageShared (l.List.name,l.List.description) documentFrom	[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
+		(SimpleList l)	= showMessageShared (l.List.name,l.List.description) simpleFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkSharedReference ("List-" <+++ (fromHidden l.List.listId)))
+		(TodoList l)	= showMessageShared (l.List.name,l.List.description) todoFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkSharedReference ("List-" <+++ (fromHidden l.List.listId)))
+		(DateList l)	= showMessageShared (l.List.name,l.List.description) dateFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkSharedReference ("List-" <+++ (fromHidden l.List.listId)))
+		(DocumentList l)= showMessageShared (l.List.name,l.List.description) documentFrom	[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (mkSharedReference ("List-" <+++ (fromHidden l.List.listId)))
 
 	editItems list = case list of
-		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		[(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
-		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			[(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
-		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			[(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
-		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	[(ActionFinish,always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId)))
+		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		[(ActionFinish,always)] (mkSharedReference ("List-" <+++ (fromHidden l.List.listId)))
+		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			[(ActionFinish,always)] (mkSharedReference ("List-" <+++ (fromHidden l.List.listId)))
+		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			[(ActionFinish,always)] (mkSharedReference ("List-" <+++ (fromHidden l.List.listId)))
+		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	[(ActionFinish,always)] (mkSharedReference ("List-" <+++ (fromHidden l.List.listId)))
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
@@ -147,7 +147,7 @@ where
 	makeList _ name	desc listId					= SimpleList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	
 	storeList :: !Int !AnyList -> Task AnyList 
-	storeList listId list = writeDB (mkDBId ("List-" <+++ listId)) list
+	storeList listId list = writeDB (mkSharedReference ("List-" <+++ listId)) list
 	
 getAllLists :: Task [AnyList]
 getAllLists = dbReadAll >>= getLists
@@ -160,7 +160,7 @@ where
 	
 getLists :: [ListMeta] -> Task [AnyList]
 getLists [] 	= return []
-getLists meta	= allTasks [readDB (mkDBId ("List-" <+++ m.ListMeta.listId)) \\ m <- meta]
+getLists meta	= allTasks [readDB (mkSharedReference ("List-" <+++ m.ListMeta.listId)) \\ m <- meta]
 
 deleteList :: !AnyList -> Task AnyList
 deleteList list = deleteMeta listId  >>| deleteList listId >>| return list
@@ -171,7 +171,7 @@ where
 	deleteMeta listId = dbDeleteItem (DBRef listId)
 	
 	deleteList :: Int -> Task (Maybe AnyList)
-	deleteList listId = deleteDB (mkDBId ("List-" <+++ listId))
+	deleteList listId = deleteDB (mkSharedReference ("List-" <+++ listId))
 
 addSharingForList :: !AnyList ![User] -> Task AnyList
 addSharingForList list users

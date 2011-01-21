@@ -1,7 +1,6 @@
 implementation module LiftingCombinators
 
 import TSt
-from InteractionTasks import instance html String
 
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask ("Run world function", "Run a world function.") (\tst -> (TaskFinished Void,appWorldTSt fun tst))

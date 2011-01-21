@@ -1,9 +1,8 @@
 implementation module TuningCombinators
 
-import Types, StdList, StdMisc
+import Types, StdList, StdMisc, Shared
 from Time				import :: Timestamp, :: Tm(..), mkTime
 from TaskTree			import :: GroupedBehaviour, :: GroupActionsBehaviour
-from InteractionTasks	import class html(..)
 
 class tune b :: !b !(Task a) -> Task a
 instance tune ManagerProperties
@@ -13,7 +12,7 @@ where tune u task=:{taskProperties}					= {task & taskProperties = {taskProperti
 instance tune Title
 where tune (Title s) task=:{taskProperties}			= {task & taskProperties = {taskProperties & taskDescription = {TaskDescription|taskProperties.taskDescription & title = toString s}}}
 instance tune Description
-where tune (Description s) task=:{taskProperties}	= {task & taskProperties = {taskProperties & taskDescription = {TaskDescription|taskProperties.taskDescription & description = html s}}}
+where tune (Description s) task=:{taskProperties}	= {task & taskProperties = {taskProperties & taskDescription = {TaskDescription|taskProperties.taskDescription & description = toString (html s)}}}
 instance tune TaskPriority
 where tune p task=:{taskProperties}					= {task & taskProperties = {taskProperties & priority = p}}
 instance tune DateTime
@@ -31,12 +30,12 @@ where
 	tune ma task									= {task & mbMenuGenFunc = (Just menuGenFunc)}
 	where
 		menuGenFunc = case ma of
-			NoMenus							= \iworld -> ([], iworld)
-			StaticMenus menus				= \iworld -> (menus, iworld)
-			DynamicMenus (DBId refStr) genF	= dynamicMenus
+			NoMenus						= \iworld -> ([], iworld)
+			StaticMenus menus			= \iworld -> (menus, iworld)
+			DynamicMenus shared genF	= dynamicMenus
 			where
 				dynamicMenus iworld
-					# (mbV,iworld) = loadValue refStr iworld
+					# (mbV,iworld) = readShared shared iworld
 					= case mbV of
 						Just v	= (genF v,iworld)
 						Nothing	= abort "Cannot dynamically generate menus! Stored value deleted!"

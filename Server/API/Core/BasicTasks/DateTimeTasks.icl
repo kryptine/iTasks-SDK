@@ -1,11 +1,6 @@
 implementation module DateTimeTasks
 
-import StdInt
-import TSt, Types, Void
-import Time
-
-import CoreCombinators, Util
-from InteractionTasks import instance html String
+import StdInt, TSt, Types, Void, Util, Time, CoreCombinators
 
 getCurrentTime :: Task Time
 getCurrentTime = mkInstantTask ("Get current time", "Determine the current time") (mkTaskFunction (accWorldTSt currentTime))

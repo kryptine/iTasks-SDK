@@ -4,25 +4,15 @@ implementation module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
-
+import Util, Either, TSt, GenVisualize, GenUpdate
 from StdFunc	import id, const
-from TSt		import :: Task(..), :: TSt{..}, :: IWorld(..), :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
-from TSt		import applyTask, mkSequenceTask, mkParallelTask, mkInstantTask
 from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..), :: Note(..)
 from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskParallelType{..}
+import StoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, InteractionTasks
 
-import TaskTree
-import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombinators, LiftingCombinators, ExceptionCombinators
-import Util, Either
-import GenVisualize, GenUpdate
-
-derive gVisualize	GAction, GOnlyAction
-derive gUpdate		GAction, GOnlyAction
-derive gVerify		GAction, GOnlyAction
-derive JSONEncode	GAction, GOnlyAction
-derive JSONDecode	GAction, GOnlyAction
+derive class iTask GAction, GOnlyAction
 
 // use string instances of generic function for Tag values 
 gVisualize{|Tag|} val vst = gVisualize{|*|} (toStr val) vst
@@ -52,7 +42,7 @@ JSONDecode{|Tag|} nodes = case nodes of
 derive bimap Maybe, (,)
 
 // Collection of references to all editor states of an MDI application
-:: MDIAppState editorState :== [DBId editorState]
+:: MDIAppState editorState :== [Shared editorState]
 
 transform :: !(a -> b) !a -> Task b | iTask b
 transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") (\tst -> (TaskFinished (f x),tst))
@@ -235,18 +225,15 @@ where
 		GOFocus tag		= (Void, Focus tag)
 	changeTasksType tasks = map (\t -> (t >>| return (GOExtend [])) <<@ t.groupedProperties.GroupedProperties.groupedBehaviour) tasks
 		
-mdiApplication :: !globalState ![GroupAction Void] !((DBId globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
+mdiApplication :: !globalState ![GroupAction Void] !((Shared globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
 mdiApplication initAppState gActions gActionsGenFunc menuGenFunc =
 				createDB initAppState
-	>>= \aid.	createDB initMDIState
+	>>= \aid.	createDB []
 	>>= \sid.	dynamicGroupA [] gActions (gActionsGenFunc aid (globalTasks sid)) <<@ DynamicMenus aid menuGenFunc
 	>>|			deleteDB aid
 	>>|			deleteDB sid
 	>>|			return Void
 where
-	//initMDIState :: [DBId editorState] | iTask editorState
-	initMDIState = []
-
 	//globalTasks :: !(DBId (MDIAppState editorState)) -> MDITasks editorState iterationState | iTask, SharedVariable editorState & iTask iterationState
 	globalTasks sid =
 		{ createEditor		= createEditor
@@ -257,10 +244,10 @@ where
 		//createEditor :: !editorState ((DBId editorState) -> Task Void) -> Task GAction | iTask, SharedVariable editorState
 		createEditor initState editorTask =
 						createDB initState
-			>>= \esid.	modifyDB sid (\editors -> [esid:editors])
+			>>= \esid.	updateDB sid (\editors -> [esid:editors])
 			>>|			editorTask esid
 			>>|			deleteDB esid
-			>>|			modifyDB sid (\editors -> filter (\id -> id <> esid) editors)
+			>>|			updateDB sid (\editors -> filter (\id -> undef/*id <> esid*/) editors)
 			>>|			return GContinue
 			
 		//iterateEditors	:: !iterationState !(iterationState (DBId editorState) -> Task iterationState) -> Task iterationState | iTask, SharedVariable editorState & iTask iterationState

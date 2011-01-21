@@ -9,8 +9,6 @@ import StdMaybe, Void
 from TSt	import :: Task
 from Types	import :: UserId, :: User, :: UserDetails, :: Role
 
-from InteractionTasks 	import class html
-
 /**
 * Finds a specific user
 * 

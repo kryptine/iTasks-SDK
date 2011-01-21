@@ -2,10 +2,8 @@ definition module SessionDBTasks
 /*
 * This module provides means to create or destroy sessions
 */
-from TSt		import :: Task
-from Types		import :: SessionId, :: Session, :: User
-
-from iTasks import class iTask
+from TSt	import :: Task
+from Types	import :: SessionId, :: Session, :: User
 import GenVisualize, GenUpdate
 
 /**

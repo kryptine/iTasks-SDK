@@ -1,6 +1,6 @@
 implementation module Html
 
-import StdString, StdArray, StdList, StdTuple, StdBool
+import StdString, StdArray, StdList, StdTuple, StdBool, StdMaybe
 
 instance toString HtmlTag
 where
@@ -535,3 +535,25 @@ writeAttr name value dest dest_i
 	# dest = {dest & [dest_i] = '"'}
 	# dest_i = dest_i + 1
 	= (dest,dest_i)
+
+class html a 
+where
+	html :: a -> HtmlTag
+	
+instance html String
+where
+	html s = Text s
+
+instance html HtmlTag
+where
+	html h = h
+	
+instance html [HtmlTag]
+where
+	html [h]	= h
+	html h		= SpanTag [] h
+		
+instance html (Maybe a) | html a
+where
+	html Nothing	= SpanTag [] []
+	html (Just h)	= html h

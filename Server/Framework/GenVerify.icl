@@ -1,12 +1,10 @@
 implementation module GenVerify
 
 import StdMaybe, StdGeneric, StdBool, StdInt, Text, StdList, StdTuple, StdFunc
-import GenUpdate, StdMisc
+import GenUpdate, StdMisc, GenVisualize
 
+derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp
 derive bimap (,), Maybe
-
-derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime
-derive JSONEncode VerifyMask, ErrorMessage
 
 generic gVerify a :: (Maybe a) VerSt -> VerSt
 
@@ -170,6 +168,8 @@ gVerify{|Currency|} _ vst = simpleVerify "Enter a currency value" vst
 gVerify{|User|} _ vst=:{VerSt | updateMask, verifyMask, optional} = simpleVerify "Select a username" vst 
 
 gVerify{|Task|} _ _ vst = vst
+gVerify{|Shared|} _ _ vst = vst
+gVerify{|SharedReadOnly|} _ _ vst = vst
 
 gVerify{|Choice|}			_ _ vst = simpleVerify "Choose one item" vst
 gVerify{|MultipleChoice|}	_ _ vst = simpleVerify "Choose a number of items" vst

@@ -1,7 +1,8 @@
 implementation module OSTasks
 
-import iTasks, TSt, ostoolbox, clCCall_12, StdFile, Text
-from Directory import pathToPD_String
+import StdList
+import TSt, ostoolbox, clCCall_12, StdFile, Text
+from Directory import pathToPD_String, :: Path(..), :: PathStep, :: DiskName
 import code from "OSTasksC."
 
 derive class iTask Path, PathStep, FileException, FileProblem, CallException, DirectoryException
@@ -12,7 +13,11 @@ derive bimap Maybe, (,)
 (+<) (AbsolutePath disk steps)	appSteps = AbsolutePath disk (steps ++ appSteps)
 
 pathToPDString :: !Path -> Task String
-pathToPDString path = accWorld (pathToPD_String path)
+pathToPDString path = mkInstantTask "Convert path to platform dependent string" (accIWorldTSt pathToPDString`)
+where
+	pathToPDString` iworld=:{world}
+		# (str,world) = pathToPD_String path world
+		= (TaskFinished str,{iworld & world = world})
 
 callProcessBlocking :: !Path ![String] -> Task Int
 callProcessBlocking cmd args = mkInstantTask ("Call process (blocking)", "Running command") callProcess`

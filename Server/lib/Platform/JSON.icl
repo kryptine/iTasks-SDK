@@ -1,9 +1,6 @@
 implementation module JSON
 
-import StdEnv
-import StdGeneric, StdMaybe, StdString
-import Text
-import Types
+import StdGeneric, StdMaybe, StdList, StdString, _SystemArray, StdTuple, StdBool, StdFunc, Text
 
 //Token type which is the intermediary representation during JSON parsing
 :: Token	= TokenInt Int

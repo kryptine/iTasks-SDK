@@ -2,7 +2,6 @@ implementation module ChangeTasks
 
 import StdList, StdArray, StdTuple, StdMisc
 import TSt
-from InteractionTasks import instance html String
 
 applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 applyChangeToProcess pid change lifetime

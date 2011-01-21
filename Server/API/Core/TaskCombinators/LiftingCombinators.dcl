@@ -2,9 +2,10 @@ definition module LiftingCombinators
 /*
 * Combinators for lifting "World" functions to the task domain.
 */
-from	TSt		import :: Task, :: TSt
-from	iTasks	import class iTask
-import	GenVisualize, GenUpdate
+
+import GenVisualize, GenUpdate
+from TSt	import :: Task, :: TSt
+from Types	import class iTask
 
 /**
 * Evaluate a "World" function that does not yield any result once.

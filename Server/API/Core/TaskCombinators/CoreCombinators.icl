@@ -1,20 +1,11 @@
 implementation module CoreCombinators
 
-import	StdList, StdArray, StdTuple, StdMisc, StdBool
-from	StdFunc import id, const
-from	TaskTree import :: TaskParallelType
-from 	Types import :: DateTime
-from	InteractionTasks import :: Action(..), ::ActionName, ::ActionLabel, ::ActionData, instance == Action, class ActionName(..), instance ActionName Action, instance html String, instance html HtmlTag, instance html [HtmlTag]
-derive class iTask SchedulerState
+import StdList, StdArray, StdTuple, StdMisc, StdBool
+import TSt, Shared, Util, Http, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators
+from StdFunc	import id, const
+from TaskTree	import :: TaskParallelType
 
-import	TSt
-import	Util, Http
-import	GenUpdate
-import	UserDB, ProcessDB
-import  Store
-import	TuningCombinators
-import  Types
-import	Text
+derive class iTask SchedulerState
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -164,8 +155,8 @@ where
 		evaluateCondition (StatePredicate p)		= Left	(p state)
 		evaluateCondition (SharedPredicate id p)	= Right	(checkSharedPred id p)
 		
-		checkSharedPred (DBId id) p tst
-			# (mbVal,tst) = accIWorldTSt (loadValue id) tst
+		checkSharedPred shared p tst
+			# (mbVal,tst) = accIWorldTSt (readShared shared) tst
 			= (p mbVal, tst)
 				
 	getEventGroupActionEvent events groupActions
@@ -355,5 +346,5 @@ where
 			_	
 				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done
 
-scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (DBId (SchedulerState,[ProcessRef a])) | iTask a
-scheduledSpawn when task = return (DBId "Nothing here")
+scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a])) | iTask a
+scheduledSpawn when task = return (mkSharedReference "Nothing here")

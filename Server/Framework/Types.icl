@@ -1,20 +1,17 @@
 implementation module Types
 from StdFunc import until
 
-
-import StdInt, StdOverloaded, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList
+import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc
 import GenVisualize, GenUpdate, GenLexOrd, JSON
 import Html
 import Text, Base64, Util
+import dynamic_string
+from TSt 	import :: TSt
+from Config	import :: Config
 
-import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
-from InteractionTasks import class html(..), instance html String
-
-derive gVisualize		EmailAddress, Session
-derive gUpdate			EmailAddress, Session
-derive gVerify			EmailAddress, Session
-derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, FormWidth
-derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, FormWidth
+derive class iTask		EmailAddress, Session, Action, ProcessRef, TaskStatus
+derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
+derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
 derive gLexOrd			Currency
 derive bimap			Maybe, (,)
 
@@ -107,6 +104,9 @@ initGroupedProperties =
 	{ groupedBehaviour		= Fixed
 	, groupActionsBehaviour	= IncludeGroupActions
 	}
+	
+idBimap :: (IBimap a a)
+idBimap = (id, const)
 
 // ******************************************************************************************************
 // Document
@@ -130,7 +130,7 @@ where
 
 instance toString Note
 where
-	toString (Note s)				= s
+	toString (Note s) = s
 
 instance toString Password
 where
@@ -140,6 +140,10 @@ where
 instance == Note
 where
 	(==) (Note x) (Note y) = x == y
+	
+instance html Note
+where
+	html (Note msg) = Text msg
 
 // ******************************************************************************************************
 // Date
@@ -421,14 +425,10 @@ JSONDecode{|Date|} c					= (Nothing, c)
 JSONDecode{|DateTime|} [JSONString s:c]	= (Just (fromString s), c)
 JSONDecode{|DateTime|} c				= (Nothing, c)
 
-JSONEncode{|(->)|} _ _ f						= [JSONString (base64Encode (copy_to_string f))]
-JSONDecode{|(->)|} _ _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
-JSONDecode{|(->)|} _ _ c						= (Nothing,c)
-
 taskTitle :: !(Task a) -> String
 taskTitle task = task.taskProperties.taskDescription.TaskDescription.title
 
-taskDescription	:: !(Task a) -> HtmlTag
+taskDescription	:: !(Task a) -> String
 taskDescription task = task.taskProperties.taskDescription.description
 
 taskUser :: !(Task a) -> User
@@ -439,12 +439,65 @@ taskProperties task = task.taskProperties
 
 instance descr String
 where
-	toDescr str = {title = str, description = html str}
+	toDescr str = {title = str, description = toString (html str)}
 	
 instance descr (String, descr) | html descr
 where
-	toDescr (title,descr) = {title = title, description = html descr}
+	toDescr (title,descr) = {title = title, description = toString (html descr)}
 	
 instance descr TaskDescription
 where
 	toDescr descr = descr
+
+derive gEq Action
+instance == Action
+where
+	(==) :: !Action !Action -> Bool
+	(==) (Action name0 _) (Action name1 _) = name0 == name1
+	(==) a b = gEq{|*|} a b
+
+instance ActionName Action
+where
+	actionName (Action name _)		= name
+	actionName ActionOk				= "ok"
+	actionName ActionCancel			= "cancel"
+	actionName ActionYes			= "yes"
+	actionName ActionNo				= "no"
+	actionName ActionNext			= "next"
+	actionName ActionPrevious		= "previous"
+	actionName ActionFinish			= "finish"
+	actionName ActionNew			= "new"
+	actionName ActionOpen			= "open"
+	actionName ActionSave			= "save"
+	actionName ActionSaveAs			= "save-as"
+	actionName ActionClose			= "close"
+	actionName ActionQuit			= "quit"
+	actionName ActionHelp			= "help"
+	actionName ActionAbout			= "about"
+	actionName ActionFind			= "find"
+	actionName ActionEdit			= "edit"
+	actionName ActionDelete			= "delete"
+	
+instance ActionName ActionName	
+where
+	actionName name = name
+
+instance MenuAction Action
+where
+	menuAction action = (actionName action, "", "")
+	
+instance MenuAction ActionName
+where
+	menuAction name = (name, "", "")
+	
+instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionName
+where
+	menuAction (name, label, data) = (actionName name, label, data)
+	
+actionIcon :: !Action -> String
+actionIcon action = "icon-" +++ (actionName action) 
+
+actionLabel :: !Action -> String
+actionLabel (Action _ label)	= label
+actionLabel (ActionSaveAs)		= "Save as"
+actionLabel action				= upperCaseFirst (actionName action)

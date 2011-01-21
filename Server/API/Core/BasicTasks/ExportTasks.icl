@@ -1,8 +1,6 @@
 implementation module ExportTasks
 
-import iTasks
-import TSt, DocumentDB
-import StdFile, CSV
+import StdBool, TSt, CSV, DocumentDB
 
 exportDocument :: !String !Document -> Task Document
 exportDocument filename document = mkInstantTask ("Document export", ("Export of document " +++ filename)) (writeDocument filename document)

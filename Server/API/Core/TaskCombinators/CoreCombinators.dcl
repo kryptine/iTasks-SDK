@@ -3,14 +3,12 @@ definition module CoreCombinators
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.
 */
-from Types 				import :: Task, :: TaskPriority
+from Types 				import :: Task, :: TaskPriority, :: Action, :: ActionData, class iTask, class descr, :: ProcessRef
 from Time				import :: Timestamp
 from TaskTree			import :: TaskParallelType, :: GroupedBehaviour
-from InteractionTasks	import :: Action, :: ActionEvent, :: ActionData
 from TuningCombinators	import :: Tag
-from iTasks				import class iTask(..)
 from Types				import :: DateTime
-
+from Shared				import ::Shared, class toReadOnlyShared
 import GenVisualize, GenUpdate
 
 //Standard monadic operations:
@@ -73,11 +71,13 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 // Its two parts represent the (what , when) aspects of actions.
 // What: The conceptual action to be taken
 // When: The condition that determine if the action can be taken
-:: GroupAction gState			:== (Action, GroupCondition gState)
-:: GroupCondition gState		=			Always																	// group action is always enabled
-								| 			StatePredicate !(gState -> Bool)										// use predicate on internal state to determine if action is enabled
-								| E.shared:	SharedPredicate !(DBId shared) !((Maybe shared) -> Bool) & iTask shared	// use predicate on given shared variable to determine if action is enabled
-:: GroupActionGenFunc result	:== (Action, ActionData) -> result															// function mapping task action events to result applied to the group
+:: GroupAction gState :== (Action, GroupCondition gState)
+:: GroupCondition gState
+	=	Always																									// group action is always enabled
+	| 	StatePredicate !(gState -> Bool)																		// use predicate on internal state to determine if action is enabled
+	| E.sharedReadOnly s:
+		SharedPredicate !(sharedReadOnly s) !((Maybe s) -> Bool) & iTask s & toReadOnlyShared sharedReadOnly s	// use predicate on given shared variable to determine if action is enabled
+:: GroupActionGenFunc result	:== (Action, ActionData) -> result												// function mapping task action events to result applied to the group
 /**
 * Execute a list of parallel tasks, assigned to different users. The combinator keeps an internal
 * state of type 'pState' and uses the accumulator function to alter this state and dynamically add new tasks
@@ -159,7 +159,7 @@ waitForProcess	:: (ProcessRef a)				-> Task (Maybe a)	| iTask a
 *
 * @return A reference to a control memory this contains a schedulerstate to control the scheduler and a list of active processes.
 */
-scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (DBId (SchedulerState,[ProcessRef a])) | iTask a
+scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a])) | iTask a
 
 :: SchedulerState = SSActive //Keep monitoring time and spawn new tasks
 				  | SSFinish //Let the already running tasks finish, but don't start new ones anymore

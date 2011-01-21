@@ -165,32 +165,41 @@ where
 	        | string == "" = (acc, file)
 	        | otherwise    = rec file (acc +++ string)
 
+deleteValue :: !String !*IWorld -> *IWorld
+deleteValue delKey iworld = deleteValues` delKey filterFunc iworld
+where
+	// compare key with filename without extension
+	filterFunc delKey key = (subString 0 (size key - 4) key) == delKey
+
 deleteValues :: !String !*IWorld -> *IWorld
-deleteValues prefix iworld=:{store=store=:{location}}
+deleteValues delKey iworld = deleteValues` delKey startsWith iworld
+
+deleteValues` :: !String !(String String -> Bool) !*IWorld -> *IWorld
+deleteValues` delKey filterFunc iworld=:{store=store=:{location}}
 	//Delete items from cache
-	# iworld = appCache (\cache -> fromList [(key,item) \\ (key,item) <- toList cache | not (startsWith prefix key)]) iworld
+	# iworld = appCache (\cache -> fromList [(key,item) \\ (key,item) <- toList cache | not (filterFunc delKey key)]) iworld
 	//Delete items from disk
-	# iworld = appWorld (deleteFromDisk prefix location) iworld
+	# iworld = appWorld deleteFromDisk iworld
 	= iworld
 where
-	deleteFromDisk prefix location world
-		# ((ok,dir),world)		= pd_StringToPath location world
-		| not ok				= abort ("Cannot create path to " +++ location)
- 		# ((err,files),world)	= getDirectoryContents dir world
- 		| err <> NoDirError		= abort ("Cannot read store directory " +++ location)
- 		= unlink prefix dir files world
- 		
-	unlink prefix dir [] world
-		= world
-	unlink prefix dir [f:fs] world
-		| startsWith prefix f.fileName
-			# (err,world) = fremove (pathDown dir f.fileName) world 
-			= unlink prefix dir fs world
-		| otherwise
-			= unlink prefix dir fs world
+	deleteFromDisk world
+		# ((ok,dir),world)			= pd_StringToPath location world
+		| not ok					= abort ("Cannot create path to " +++ location)
+			# ((err,files),world)	= getDirectoryContents dir world
+			| err <> NoDirError		= abort ("Cannot read store directory " +++ location)
+			= unlink dir files world
+		where
+			unlink _ [] world
+				= world
+			unlink dir [f:fs] world
+				| filterFunc delKey f.fileName
+					# (err,world) = fremove (pathDown dir f.fileName) world 
+					= unlink dir fs world
+				| otherwise
+					= unlink dir fs world
 
-	pathDown (RelativePath steps) step = RelativePath (steps ++ [PathDown step]) 
-	pathDown (AbsolutePath dn steps) step = AbsolutePath dn (steps ++ [PathDown step])
+			pathDown (RelativePath steps) step = RelativePath (steps ++ [PathDown step]) 
+			pathDown (AbsolutePath dn steps) step = AbsolutePath dn (steps ++ [PathDown step])
 
 copyValues :: !String !String !*IWorld -> *IWorld
 copyValues fromprefix toprefix iworld=:{store=store=:{location}}

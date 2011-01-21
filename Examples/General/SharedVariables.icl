@@ -67,7 +67,7 @@ mergeTestList =
 	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
 	>>|			stop
 where
-	view :: (DBId [String]) -> Task (ActionEvent,Maybe [String])
+	view :: (Shared [String]) -> Task (ActionEvent,Maybe [String])
 	view sid = updateSharedInformationA ("List","Merging the lists") idBimap [quitButton] sid
 	
 mergeTestDocuments :: Task Void
@@ -115,7 +115,7 @@ where
 	markersDisplay dbid =
 							showMessageShared "Markers" markersListener [(RemoveMarkersAction,always),quitButton] dbid
 		>>= \(action,map).	case fst action of
-								RemoveMarkersAction	= modifyDB dbid (\map -> {GoogleMap| map & markers = []})
+								RemoveMarkersAction	= updateDB dbid (\map -> {GoogleMap| map & markers = []})
 								_					= return map
 
 	optionsEditor	=	( \map ->		{ type = map.mapType

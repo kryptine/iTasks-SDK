@@ -2,7 +2,6 @@ implementation module DocumentDB
 
 import TSt, Types, Store, Random, Text
 import StdList, StdArray, StdBool
-
 from StdFunc import id
 
 instance DocumentDB IWorld

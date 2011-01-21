@@ -2,7 +2,7 @@ definition module ExportTasks
 /**
 * This module provides tasks for exporting data from a workflow to an external source
 */
-import iTasks
+import Types
 
 /**
 * Export a document to the server's filesystem.

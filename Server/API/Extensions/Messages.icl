@@ -20,7 +20,7 @@ derive bimap Maybe, (,)
 
 instance DB Message
 where
-	databaseId				= mkDBId "Messages"
+	databaseId				= mkSharedReference "Messages"
 	getItemId m				= DBRef (fromHidden m.Message.messageId)
 	setItemId (DBRef i) m 	= {Message|m & messageId = toHidden i}
 

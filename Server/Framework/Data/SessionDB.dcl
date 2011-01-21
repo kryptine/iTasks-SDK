@@ -3,8 +3,7 @@ definition module SessionDB
 * This module provides the iTasks session database. It provides 
 * functions for creating and restoring user sessions.
 */
-import StdMaybe
-import TSt
+import StdMaybe, TSt
 
 class SessionDB st
 where

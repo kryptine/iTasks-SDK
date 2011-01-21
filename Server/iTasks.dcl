@@ -54,15 +54,5 @@ from StdFunc import id, const
 
 //Types
 import Types
-from TSt				import :: Workflow{..}, :: Change(..), :: ChangeLifeTime(..)
-from InteractionTasks	import :: Menu(..), :: MenuItem(..), :: Hotkey, :: Action(..)
-from TaskTree			import :: TaskParallelType(..)
-
-//iTask context restriction
-class iTask a
-	| gVisualize{|*|}
-	, gUpdate{|*|}
-	, gVerify{|*|}
-	, JSONEncode{|*|}
-	, JSONDecode{|*|}
-	, TC a
+from TSt		import :: Workflow{..}
+from TaskTree	import :: TaskParallelType(..), :: Change(..), :: ChangeLifeTime(..)

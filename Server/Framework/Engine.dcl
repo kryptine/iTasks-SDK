@@ -4,13 +4,13 @@ definition module Engine
 * This is the primary function that creates the complete
 * environment in which worfklow specifications can be executed.
 */
+import StdMaybe, JSON, GenVisualize
 from TSt			import :: Workflow, :: Task
 from Http			import :: HTTPRequest, :: HTTPResponse
 from HttpServer		import :: HTTPServerControl
 from Config			import :: Config
-
-from	iTasks import class iTask
-import	GenVisualize, GenUpdate
+from Shared			import class toReadOnlyShared, :: Shared
+from Types			import :: Role, class iTask
 
 /**
 * Creates the iTasks system from a set of workflow definitions

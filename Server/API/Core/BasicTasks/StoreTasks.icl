@@ -1,85 +1,77 @@
 implementation module StoreTasks
 
-import TSt, Store
 import StdList, StdOrdList
-from StdFunc import id, const
+import Shared, GenUpdate, GenVisualize, GenVerify, TSt
+from CoreCombinators import >>|, >>=, return
 
-from SystemTasks import getDefaultValue
-import CoreCombinators
-import GenVisualize, GenUpdate
-from InteractionTasks import instance html String
-
-derive gVisualize	DBRef, DBId
-derive gUpdate		DBRef, DBId
-derive gVerify		DBRef, DBId
-derive JSONEncode	DBRef, DBId
-derive JSONDecode	DBRef, DBId
-
+derive class iTask DBRef
 derive bimap Maybe, (,)
-
-instance == (DBId a) where (==) (DBId x) (DBId y) = x == y
-instance toString (DBId a) where toString (DBId x) = x
 
 instance == (DBRef a) where (==) (DBRef x) (DBRef y) = x == y
 instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
 
 // Core db access
-createDBid :: Task (DBId a)
+createDBid :: Task (Shared a)
 createDBid = mkInstantTask ("Create DB id", "Create a database identifier") createDBid`
 where
-	createDBid` tst=:{taskNr} = (TaskFinished (mkDBId ("DB_" +++ taskNrToString taskNr)), tst)
+	createDBid` tst=:{taskNr} = (TaskFinished (mkShared taskNr), tst)
 	
-createDB :: !a -> Task (DBId a) | iTask a
-createDB init =
-				createDBid
-	>>= \id.	writeDB id init
-	>>|			return id
-
-readDB :: !(DBId a) -> Task a | iTask a
-readDB (DBId key) = mkInstantTask ("Read DB", "Read a value from the database") readDB`
+createDB :: !a -> Task (Shared a) | iTask a
+createDB init = mkInstantTask ("Create DB", "Create a database identifier & give initial value") createDB`
 where
-	readDB` tst
-		# (mbVal,tst) = accIWorldTSt (loadValue key) tst
+	createDB` tst=:{taskNr}
+		# shared	= mkShared taskNr
+		# tst		= appIWorldTSt (writeShared shared init) tst
+		= (TaskFinished shared,tst)
+	
+mkShared taskNr = mkSharedReference ("DB_" +++ taskNrToString taskNr)
+
+readDB :: !(shared a) -> Task a | toReadOnlyShared shared a & iTask a
+readDB shared = mkInstantTask ("Read DB", "Read a value from the database") (accIWorldTSt readDB`)
+where
+	readDB` iworld
+		# (mbVal,iworld) = readShared shared iworld
 		= case mbVal of
 			Just val
-				= (TaskFinished val,tst)
+				= (TaskFinished val,iworld)
 			Nothing		
-				# (val,tst) = accIWorldTSt defaultValue tst
-				= (TaskFinished val,tst)
+				# (val,iworld) = defaultValue iworld
+				= (TaskFinished val,iworld)
 		
-readDBIfStored :: !(DBId a)	-> Task (Maybe a) | iTask a
-readDBIfStored (DBId key) = mkInstantTask ("Read DB (conditional)", "Read a value from the database, if it exists") readDBIfStored`
+readDBIfStored :: !(shared a) -> Task (Maybe a) | toReadOnlyShared shared a & iTask a
+readDBIfStored shared = mkInstantTask ("Read DB (conditional)", "Read a value from the database, if it exists") readDBIfStored`
 where
 	readDBIfStored` tst
-		# (mbVal,tst) = accIWorldTSt (loadValue key) tst
+		# (mbVal,tst) = accIWorldTSt (readShared shared) tst
 		= (TaskFinished mbVal,tst)
 
-writeDB	:: !(DBId a) !a -> Task a | iTask a
-writeDB (DBId key) value = mkInstantTask ("Write DB", "Write a value to the database") writeDB`
+writeDB	:: !(Shared a) !a -> Task a | iTask a
+writeDB shared value = mkInstantTask ("Write DB", "Write a value to the database") writeDB`
 where
 	writeDB` tst
-		# tst = appIWorldTSt (storeValue key value) tst
+		# tst = appIWorldTSt (writeShared shared value) tst
 		= (TaskFinished value,tst)
 		
-deleteDB :: !(DBId a) -> Task (Maybe a) | iTask a
-deleteDB (DBId key) = mkInstantTask ("Delete DB", "Delete a value from the database") deleteDB`
+deleteDB :: !(Shared a) -> Task (Maybe a) | iTask a
+deleteDB shared = mkInstantTask ("Delete DB", "Delete a value from the database") (accIWorldTSt deleteDB`)
 where
-	deleteDB` tst
-		# (mbVal,tst)	= accIWorldTSt (loadValue key) tst
-		# tst 			= appIWorldTSt (deleteValues key) tst
-		= (TaskFinished mbVal,tst)
+	deleteDB` iworld
+		# (mbVal,iworld)	= readShared shared iworld
+		# iworld 			= deleteShared shared iworld
+		= (TaskFinished mbVal,iworld)
 
-modifyDB :: !(DBId a) (a -> a) -> Task a | iTask a
-modifyDB key f =
-			readDB key
-	>>= \v.	writeDB key (f v)
-		
-mkDBId :: !String -> (DBId a)
-mkDBId s = DBId s
+updateDB :: !(Shared a) !(a -> a) -> Task a | iTask a
+updateDB shared f = mkInstantTask ("Update DB", "Update the database") (accIWorldTSt updateDB`)
+where
+	updateDB` iworld
+		# (mbVal,iworld) = readShared shared iworld
+		# (val,iworld) = case mbVal of
+			Just val	= (val,iworld)
+			Nothing		= defaultValue iworld
+		# iworld = deleteShared shared iworld
+		= (TaskFinished val,iworld)
 
 //	Convenient operations on databases
-
-
 eqItemId :: a a -> Bool | DB a
 eqItemId a b	= getItemId a == getItemId b
 
@@ -133,5 +125,4 @@ splitWith :: (a -> Bool) [a] -> ([a],[a])
 splitWith f [] = ([],[])
 splitWith f [x:xs]
 	| f x	= let (y,n) = splitWith f xs in ([x:y],n)
-			= let (y,n)	= splitWith f xs in (y,[x:n]) 
-
+			= let (y,n)	= splitWith f xs in (y,[x:n])

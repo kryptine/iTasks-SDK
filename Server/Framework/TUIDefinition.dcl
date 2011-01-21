@@ -5,8 +5,7 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from Types				import :: Document(..), :: DocumentId
-from InteractionTasks	import :: Hotkey(..), :: Key(..)
+from Types import :: Document(..), :: DocumentId, :: Hotkey
 
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate

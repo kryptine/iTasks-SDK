@@ -49,7 +49,7 @@ OpenFile		:== "openFile"
 
 newFile :: !AppStateRef !(MDICreateEditor EditorState) -> Task GAction
 newFile aid createEditor =
-								modifyDB aid (\(AppState num recOpened) -> AppState (inc num) recOpened)
+								updateDB aid (\(AppState num recOpened) -> AppState (inc num) recOpened)
 	>>= \(AppState newNum _).	createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile
 
 openDialog :: !AppStateRef !(MDITasks EditorState a) -> Task GAction
@@ -76,7 +76,7 @@ open fid {createEditor, existsEditor} mbGid =
 			>>= \file.	case mbGid of // determine if to add to list of recently opened files
 							Nothing = stop
 							Just gid =
-									modifyDB gid (\(AppState n files) -> AppState n (take 5 [(fid, file.TextFile.name):files]))
+									updateDB gid (\(AppState n files) -> AppState n (take 5 [(fid, file.TextFile.name):files]))
 								>>| stop
 			>>|			return (GExtend [editor file])
 		Just eid = return (GFocus (Tag eid))
@@ -172,7 +172,7 @@ where
 					updateInformationA ("Replace","Replace") idBimap buttons repl <<@ NoMenus
 		>>= \res.	case app2 (fst,id) res of
 						(ActionReplaceAll,Just repl) =
-								modifyDB eid (dbReplaceFunc repl)
+								updateDB eid (dbReplaceFunc repl)
 							>>|	replaceT` repl
 						_ =
 							continue
@@ -238,10 +238,10 @@ where
 	
 // global application state
 :: AppState = AppState !Int ![(!(DBRef TextFile), !String)]
-:: AppStateRef :== DBId AppState
+:: AppStateRef :== Shared AppState
 :: EditorState = EditorState !Note !EditorFile
 :: EditorFile = NewFile !Int | OpenedFile !TextFile
-:: EditorStateRef :== DBId EditorState
+:: EditorStateRef :== Shared EditorState
 
 // text files database
 :: FileName :==	String
@@ -251,7 +251,7 @@ where
 				}
 
 instance DB TextFile where
-	databaseId			= mkDBId "TextFiles"
+	databaseId			= mkSharedReference "TextFiles"
 	getItemId file		= file.fileId
 	setItemId id file	= {file & fileId = id}
 	

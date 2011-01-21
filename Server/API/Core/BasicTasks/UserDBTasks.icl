@@ -2,9 +2,7 @@ implementation module UserDBTasks
 
 from TSt import :: Task, :: TSt, :: TaskResult(..)
 from TSt import mkInstantTask, mkTaskFunction
-import StdList, StdMaybe
-
-from InteractionTasks import class html, instance html String
+import StdList, StdMaybe, Html
 from Types import :: User, :: UserId, :: UserDetails, :: Role, class descr, instance descr (String,String)
 from UserDB import qualified class UserDB(..)
 from UserDB import qualified instance UserDB TSt

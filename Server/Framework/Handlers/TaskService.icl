@@ -1,14 +1,6 @@
 implementation module TaskService
-import Http, TSt
-import HtmlUtil, Text
-import JSON
-import StdList, StdMisc
 
-import ProcessDB
-import TaskPanel
-from InteractionTasks import :: MenuItem
-
-derive bimap (,), Maybe
+import StdList, StdMisc, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel
 
 //Additional derives for debugging
 derive JSONEncode TaskInfo, Hotkey, Key

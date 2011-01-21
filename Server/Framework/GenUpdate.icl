@@ -1,18 +1,8 @@
 implementation module GenUpdate
 
 import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum
-import Void, Either
-import Text
-import JSON
-import Types, Util
-import DocumentDB
-
-from StdFunc import id
-
-derive JSONEncode UpdateMask
-derive JSONDecode UpdateMask
-
-derive bimap	(,), Maybe
+import Types, Text, DocumentDB, Util, Shared
+from StdFunc	import id
 
 :: DataPath = DataPath [Int]
 
@@ -553,7 +543,13 @@ gUpdate{|MultipleChoice|} _ c=:(MultipleChoice opts _) ust=:{USt|mode=UDSearch,s
 gUpdate{|MultipleChoice|} _ c ust=:{USt|mode=UDMask,currentPath,newMask}
 	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails
+gUpdate{|Shared|}			_ _ ust=:{mode=UDCreate}	= (Shared "" Nothing, ust)
+gUpdate{|Shared|}			_ x ust						= (x,ust)
+gUpdate{|SharedReadOnly|}	_ _ ust=:{mode=UDCreate}	= (SharedReadOnly "" Nothing, ust)
+gUpdate{|SharedReadOnly|}	_ x ust						= (x,ust)
+
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp
+derive bimap (,)
 
 //Utility functions
 dp2s :: DataPath -> String

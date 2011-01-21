@@ -2,10 +2,8 @@ implementation module ExceptionCombinators
 /**
 * This module contains iTask combinators for Exception Handling
 */
-import	StdList, StdArray, StdTuple
-import	TSt, Store, Util
-import 	ProcessDB
-from InteractionTasks import instance html String, instance html HtmlTag
+import StdList, StdArray, StdTuple
+import TSt, ProcessDB, Util
 
 try :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
 try normalTask handlerTask = mkSequenceTask (taskTitle normalTask, taskDescription normalTask) exceptionTask

@@ -1,29 +1,11 @@
 implementation module ProcessDBTasks
 
 import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, StdList
-import TSt
-
-from ProcessDB import :: Process{..}, :: Menu
-
-from ProcessDB import qualified class ProcessDB(..)
-from ProcessDB import qualified instance ProcessDB TSt
-
-from UserDB import class UserDB(..)
-from UserDB import instance UserDB TSt
-
-from Types	import :: ProcessId, :: ProcessRef
-
-import Time
-import CommonCombinators
-
-import Store
-
-derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, TaskParallelType, TaskDescription, HtmlTag, HtmlAttr
-derive gVisualize FormWidth
-derive gUpdate FormWidth
-derive gVerify FormWidth
-
-derive bimap	Maybe, (,)
+import TSt, Time, Store
+from ProcessDB	import :: Process{..}, :: Menu
+from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB TSt
+from UserDB		import class UserDB(..), instance UserDB TSt
+from Types		import :: ProcessId, :: ProcessRef
 
 class toProcessId a where toProcessId :: a -> ProcessId
 

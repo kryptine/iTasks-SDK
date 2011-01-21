@@ -3,11 +3,7 @@ implementation module TSt
 import StdEnv, StdMaybe
 import Http, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
-
-import GenEq, GenVisualize, GenUpdate, Store, Config
-
-import dynamic_string
-
+import GenEq, GenVisualize, GenUpdate, Store, Config, dynamic_string
 from JSON import JSONDecode, fromJSON
 
 :: RPCMessage =

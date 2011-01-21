@@ -1,6 +1,6 @@
 definition module RPC
 
-from TSt 	import :: Task
+from TSt import :: Task
 import JSON
 
 /*

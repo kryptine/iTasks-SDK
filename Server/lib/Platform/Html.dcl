@@ -11,7 +11,7 @@ definition module Html
 *  http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd
 */
 
-import StdString
+import StdString, StdMaybe
 
 /**
 * This type provides an enumeration of all html tags.
@@ -229,3 +229,15 @@ import StdString
 			| XmlspaceAttr		String
 
 instance toString HtmlTag
+
+/*
+* This html class makes it possible to use either strings, or html as description/message/instruction
+*/
+class html a  
+where
+	html :: a -> HtmlTag
+	
+instance html String
+instance html HtmlTag
+instance html [HtmlTag]
+instance html (Maybe a) | html a

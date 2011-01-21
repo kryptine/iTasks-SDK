@@ -2,17 +2,9 @@ definition module StoreTasks
 /**
 * This module provides tasks for simple storage in the iTasks store
 */
-from TSt 			import :: Task 
-from StdOverloaded	import class ==, class <
 
-from	iTasks import class iTask
-import	GenVisualize, GenUpdate
-
-//Database identifier for storing a single value of type a
-::DBId a = DBId !String
-
-instance == (DBId a)
-instance toString (DBId a)
+import Shared, GenUpdate, GenVisualize, GenVerify
+from Types import class iTask
 
 //Database identifier to a value of type a in a database with multiple values
 :: DBRef a = DBRef !Int
@@ -20,48 +12,36 @@ instance toString (DBId a)
 instance == (DBRef a)
 instance <  (DBRef a)
 
-derive gVisualize	DBRef, DBId
-derive gUpdate		DBRef, DBId
-derive gVerify		DBRef, DBId
-derive JSONEncode	DBRef, DBId
-derive JSONDecode	DBRef, DBId
+derive class iTask DBRef
 
 //Core database access functions
-
-/**
-* Create a database reference
-*
-* @param A unique name to identify the database with
-* @return A database reference
-*/
-mkDBId 	:: !String -> (DBId a)
 /**
 * Create a database reference with automatically generated unique name
 *
 * @return A database reference
 */
-createDBid :: Task (DBId a)
+createDBid :: Task (Shared a)
 /**
 * Create a database with automatically generated reference and given initial value
 *
 * @param Inital value
 * @return A database reference
 */
-createDB :: !a 				-> Task (DBId a) | iTask a
+createDB :: !a  -> Task (Shared a) | iTask a
 /**
 * Read the database.
 *
 * @param The database reference
 * @return The value in the database or a default value if no value is stored.
 */
-readDB :: !(DBId a) 		-> Task a | iTask a
+readDB :: !(shared a) -> Task a | toReadOnlyShared shared a & iTask a
 /**
 * Read the database.
 *
 * @param The database reference
 * @return The value in the database if a value is stored.
 */
-readDBIfStored :: !(DBId a)	-> Task (Maybe a) | iTask a
+readDBIfStored :: !(shared a) -> Task (Maybe a) | toReadOnlyShared shared a & iTask a
 /**
 * Write the database.
 *
@@ -69,14 +49,14 @@ readDBIfStored :: !(DBId a)	-> Task (Maybe a) | iTask a
 * @param The new value to store in the database
 * @return The new value of the database
 */
-writeDB	:: !(DBId a) !a 	-> Task a | iTask a
+writeDB	:: !(Shared a) !a -> Task a | iTask a
 /**
 * Delete the database.
 * 
 * @param The database reference
 * @param The value in the deleted database if stored.
 */
-deleteDB :: !(DBId a)		-> Task (Maybe a) | iTask a
+deleteDB :: !(Shared a) -> Task (Maybe a) | iTask a
 /**
 * Modify the database.
 *
@@ -84,14 +64,14 @@ deleteDB :: !(DBId a)		-> Task (Maybe a) | iTask a
 * @param A function modifying the database
 * @param The new value of the database
 */
-modifyDB :: !(DBId a) (a -> a) -> Task a | iTask a
+updateDB :: !(Shared a) !(a -> a) -> Task a | iTask a
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where
 	/*
 	* Retrieve the database handle
 	*/
-	databaseId	:: DBId [a]
+	databaseId	:: Shared [a]
 	/*
 	* Retrieve the reference to a stored instance
 	*/

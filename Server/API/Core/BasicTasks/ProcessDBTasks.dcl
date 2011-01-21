@@ -2,18 +2,12 @@ definition module ProcessDBTasks
 /**
 * This module provides access to the process database
 */
-import StdMaybe
+import StdMaybe, Types
 from TSt		import :: Task
 from ProcessDB	import :: Process(..)
-from Types		import :: ProcessId, :: ProcessRef, :: TaskId
-from Types		import :: TaskProperties, :: TaskPriority, :: TaskProgress
 from TaskTree	import :: TaskParallelType
 from Time		import :: Timestamp 
-
-from iTasks		import class iTask
 import GenVisualize, GenUpdate
-
-derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, TaskParallelType
 
 //Allow either typed or untyped references to lookup a process table entry
 class toProcessId a where toProcessId :: a -> ProcessId

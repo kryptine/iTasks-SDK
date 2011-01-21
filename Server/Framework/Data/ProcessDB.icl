@@ -3,6 +3,9 @@ implementation module ProcessDB
 import StdEnv, StdMaybe
 import TSt, Store, Util, Text
 
+derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, WorkerProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription
+derive bimap Maybe, (,)
+
 instance ProcessDB IWorld
 where
 	createProcess :: !Process !*IWorld -> (!ProcessId,!*IWorld)

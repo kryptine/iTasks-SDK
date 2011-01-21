@@ -5,14 +5,9 @@ definition module TaskTree
 * task tree data structures is performed by the basic tasks and
 * task combinators.
 */
-import StdMaybe, Either
-import Types
-import Html, Time
-import RPC
-
-from JSON 				import :: JSONNode
-from TUIDefinition		import :: TUIDef, :: TUIUpdate
-from InteractionTasks	import :: Action
+import StdMaybe, Either, Types, Html, Time, RPC
+from JSON 			import :: JSONNode
+from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: TaskTree
 	//NODE CONSTRUCTORS
@@ -78,11 +73,4 @@ from InteractionTasks	import :: Action
 :: JSONOutput	= JSONValue !JSONNode										//JSON representation of the task
 				| JSONFunc !(*TSt -> *(!JSONNode,!*TSt))					//Function for delayed generation of JSON representation.
 																			//These functions are evaluated after the full tree has been built.
-					
-:: GroupedBehaviour = Fixed 		//The editor is fixed in the main canvas of the parent task
-					| Floating		//The editor is shown in a floating window
-					| Modal			//The editor is shown in a modal dialog
-
-// Determines if group-actions are added to actions of interactive task
-:: GroupActionsBehaviour	= IncludeGroupActions
-							| ExcludeGroupActions
+																			

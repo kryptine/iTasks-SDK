@@ -135,13 +135,13 @@ chat
 							++ [spawnProcess True True (me @>> Title "Chat Request" @>> menus @>> chatSession chatbox (me))]) 						
 where
 	
-	createChatBox :: User -> (Task (DBId Chat))
+	createChatBox :: User -> (Task (Shared Chat))
 	createChatBox me = createDB {Chat | initUser = me, users = [], messages = []}
 
 	selectFriends :: Task [User]
 	selectFriends = enterInformation ("Select friends","Whom do you want to chat with?")
 	
-	initiateChat :: (DBId Chat) User [User] -> Task Void
+	initiateChat :: (Shared Chat) User [User] -> Task Void
 	initiateChat chatbox friend friends
 		=	requestConfirmation ("Confirm","Do you want to initiate a chat with "+++printFriends+++"?")
 		>>= \yes -> if yes
@@ -158,7 +158,7 @@ where
 					  ]
 		]
 	
-	chatSession :: (DBId Chat) User -> Task Void
+	chatSession :: (Shared Chat) User -> Task Void
 	chatSession chatbox user 
 		= 			readDB chatbox
 		>>= \chat -> writeDB chatbox {Chat | chat & users = chat.Chat.users++[user]}
@@ -172,7 +172,7 @@ where
 			ActionQuit		= GOStop
 			ActionAddUser	= GOExtend [addUsers chatbox >>| stop]
 						 		   	
-	chatEditor :: (DBId Chat) User -> Task Void
+	chatEditor :: (Shared Chat) User -> Task Void
 	chatEditor chatbox user = getCurrentDateTime >>= \dt -> updateSharedInformationA ("Chat","You can chat now") (mainEditor user dt) [] chatbox >>| return Void
 	
 	mainEditor :: User DateTime -> (IBimap Chat ChatView)
@@ -220,7 +220,7 @@ where
 			fromVizHint (VHDisplay x) 	= x
 			fromVizHint (VHHidden x) 		= x
 	
-	newTopic :: (DBId Chat) User -> Task Void
+	newTopic :: (Shared Chat) User -> Task Void
 	newTopic chatbox user 
 		= 				readDB  chatbox
 		>>= \chat ->	getCurrentDateTime
@@ -236,7 +236,7 @@ where
 		  				, replies = []
 		   				}
 	
-	addUsers :: (DBId Chat) -> Task Void
+	addUsers :: (Shared Chat) -> Task Void
 	addUsers chatbox
 		= 			 	enterInformation ("Select users","Select users to add to the chat")
 		>>= \users -> 	readDB chatbox
@@ -472,14 +472,14 @@ where
 	
 // reading and writing of storages
 
-newsGroupsId ::  (DBId NewsGroupNames)
-newsGroupsId		=	mkDBId "newsGroups"
+newsGroupsId ::  (Shared NewsGroupNames)
+newsGroupsId		=	mkSharedReference "newsGroups"
 
-readerId :: User -> (DBId Subscriptions)
-readerId user		= 	mkDBId ("Reader-" <+++ userName user)
+readerId :: User -> (Shared Subscriptions)
+readerId user		= 	mkSharedReference ("Reader-" <+++ userName user)
 
-groupNameId :: String -> (DBId NewsGroup)
-groupNameId name	=	mkDBId ("NewsGroup-" +++ name)
+groupNameId :: String -> (Shared NewsGroup)
+groupNameId name	=	mkSharedReference ("NewsGroup-" +++ name)
 
 readNewsGroups :: Task NewsGroupNames
 readNewsGroups = readDB newsGroupsId

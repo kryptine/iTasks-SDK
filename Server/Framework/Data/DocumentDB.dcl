@@ -1,9 +1,6 @@
 definition module DocumentDB
 
-import StdMaybe
-import TSt
-import Types
-
+import StdMaybe, TSt, Types
 from GenUpdate import :: DataPath
 
 class DocumentDB st
@@ -46,4 +43,3 @@ where
 instance DocumentDB IWorld
 instance DocumentDB TSt
 instance DocumentDB USt
-

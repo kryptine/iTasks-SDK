@@ -3,10 +3,8 @@ definition module ExceptionCombinators
 * This module contains iTask combinators for Exception Handling
 */
 
-from TSt			import :: Task
-
-from	iTasks import class iTask
-import	GenVisualize, GenUpdate
+from TSt import :: Task, class iTask
+import GenVisualize, GenUpdate
 
 /**
 * Exception combinator.

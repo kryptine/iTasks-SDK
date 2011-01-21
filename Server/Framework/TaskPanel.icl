@@ -3,8 +3,6 @@ implementation module TaskPanel
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import JSON, Html, TSt, TUIDefinition, Map
 
-from InteractionTasks import :: ActionName, :: ActionLabel, :: ActionData, class ActionName(..), instance ActionName Action, actionLabel, actionIcon, :: Menu(..), :: MenuLabel, :: MenuItem(..), class MenuAction(..), :: MenuAction
-
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
 derive JSONEncode TTCParallelContainer,TTCParallelContainerElement, TTCGroupContainer, TTCGroupContainerElement, GroupedBehaviour
 

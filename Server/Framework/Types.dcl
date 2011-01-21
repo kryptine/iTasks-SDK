@@ -4,27 +4,17 @@ definition module Types
 * of the iTasks framework.
 */
 
-from TSt 				import :: TSt
-from TaskTree			import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
-from Html 				import :: HtmlTag
-from Time				import :: Timestamp
-from StdString			import class toString
-from iTasks				import class iTask
-from Config				import :: Config
-from InteractionTasks	import :: Menus, :: Menu, class html
+import StdMaybe, GenEq, JSON, Store, GenVisualize
+from Html 		import class html
+from Time		import :: Timestamp
+from TSt 		import :: TSt
+from Config		import :: Config
+from TaskTree	import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
 
-import GenVisualize, GenUpdate, JSON, StoreTasks
+derive class iTask	EmailAddress, Session, Action, ProcessRef, TaskStatus
+derive JSONEncode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
+derive JSONDecode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
 
-derive gVisualize		EmailAddress, Session
-derive gUpdate			EmailAddress, Session 
-derive gVerify			EmailAddress, Session
-
-derive JSONEncode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
-derive JSONDecode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
-
-derive JSONEncode		(->), FormWidth
-derive JSONDecode		(->), FormWidth
-		
 instance toString User
 instance toString TaskPriority
 instance toString TaskStatus
@@ -63,6 +53,20 @@ instance - Currency
 
 instance toInt Currency
 instance zero Currency
+instance html Note
+
+//iTask context restriction
+class iTask a
+	| gVisualize{|*|}
+	, gUpdate{|*|}
+	, gVerify{|*|}
+	, JSONEncode{|*|}
+	, JSONDecode{|*|}
+	, TC a
+	& toReadOnlyShared Shared a
+
+// A bimap where view and model are equal.
+idBimap :: (IBimap a a)
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
@@ -173,7 +177,7 @@ instance zero Currency
 
 :: TaskDescription	=
 	{ title				:: !String					// The task's title
-	, description		:: !HtmlTag					// A longer description of the task
+	, description		:: !String					// A longer description of the task (HTML string)
 	}
 	
 :: FormWidth	= FWAuto							// Set form width to client default
@@ -203,6 +207,14 @@ initManagerProperties :: ManagerProperties
 	{ groupedBehaviour		:: !GroupedBehaviour
 	, groupActionsBehaviour	:: !GroupActionsBehaviour
 	}
+	
+:: GroupedBehaviour = Fixed 		//The editor is fixed in the main canvas of the parent task
+					| Floating		//The editor is shown in a floating window
+					| Modal			//The editor is shown in a modal dialog
+
+// Determines if group-actions are added to actions of interactive task
+:: GroupActionsBehaviour	= IncludeGroupActions
+							| ExcludeGroupActions
 
 initGroupedProperties :: GroupedProperties
 
@@ -226,7 +238,6 @@ initGroupedProperties :: GroupedProperties
 					}
 
 // Changes
-
 // A dynamic that contains a change
 :: ChangeDyn	:== Dynamic
 
@@ -339,7 +350,7 @@ taskTitle			:: !(Task a)				-> String
 /**
 * Extracts the description of a task
 */
-taskDescription		:: !(Task a)				-> HtmlTag
+taskDescription		:: !(Task a)				-> String
 
 /**
 * Extracts the initial worker of a task
@@ -355,3 +366,70 @@ taskUser			:: !(Task a)				-> User
 * @return The task's initial properties
 */
 taskProperties		:: !(Task a)				-> ManagerProperties
+
+/*
+* To allow users to specify a followup action to their current task
+* most interactive tasks allow you to specify actions that can be chosen.
+* These actions are either available as a button on the bottom of the task interface
+* or as an item in the task menu, or both.
+* Additionally conditions can be specified when the action is allowed to be performed.
+*/
+:: Action	= Action !ActionName !ActionLabel
+			| ActionOk
+			| ActionCancel
+			| ActionYes
+			| ActionNo
+			| ActionNext
+			| ActionPrevious
+			| ActionFinish
+			| ActionNew
+			| ActionOpen
+			| ActionSave
+			| ActionSaveAs
+			| ActionQuit
+			| ActionClose
+			| ActionHelp
+			| ActionAbout
+			| ActionFind
+			| ActionDelete
+			| ActionEdit
+
+:: ActionName	:== String	//Locally unique identifier for actions
+:: ActionLabel	:== String	//Textual label for the action
+:: ActionData	:== String	//Extra data to pass along with an action
+
+instance == Action
+
+class ActionName a
+where
+	actionName	:: a -> String
+
+instance ActionName Action
+instance ActionName ActionName
+
+actionIcon 	:: !Action -> String
+actionLabel	:: !Action -> String
+
+:: Menus		:== [Menu]
+:: Menu 		= Menu !MenuLabel ![MenuItem]
+:: MenuItem 	= E.action:	MenuItem !action !(Maybe Hotkey) & MenuAction action
+				| 			SubMenu !MenuLabel ![MenuItem]
+				| 			MenuSeparator
+:: MenuLabel	:== String
+				
+:: Hotkey =	{ key	:: !Key
+			, ctrl	:: !Bool
+			, alt	:: !Bool
+			, shift	:: !Bool
+			}	
+:: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
+
+class MenuAction a
+where
+	menuAction :: a -> MenuAction
+
+:: MenuAction :== (ActionName, ActionLabel, ActionData)
+
+instance MenuAction Action
+instance MenuAction ActionName
+instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionName
