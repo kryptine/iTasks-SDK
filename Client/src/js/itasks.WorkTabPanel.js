@@ -153,6 +153,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.updateTitle(data.task.managerProperties.taskDescription.title);
 		//Update content
 		this.updateContent(data.tui);
+	
+		//Enable download / preview links
+		itasks.ttc.common.attachDocumentLinkInformation();
 	},
 	updateTitle: function(subject) {
 		this.setTitle(Ext.util.Format.ellipsis(subject,10));

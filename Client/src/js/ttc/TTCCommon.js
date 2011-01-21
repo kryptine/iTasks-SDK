@@ -135,7 +135,7 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 	if(comp.topToolbar)
 		itasks.ttc.common.attachTaskHandlers(comp.topToolbar,taskId);
 };
-
+*/
 itasks.ttc.common.attachDocumentLinkInformation = function() {
 	
 	var links   = Ext.query("a[name=x-form-document-link]");
@@ -157,7 +157,7 @@ itasks.ttc.common.attachDocumentLinkInformation = function() {
 		}
 	}
 };
-*/
+
 itasks.ttc.common.SubjectPanel = Ext.extend(Ext.Panel,{
 	initComponent : function(){
 		
