@@ -39,6 +39,14 @@ transform			:: !(a -> b) !a 									-> Task b | iTask b
 */
 (@:) infix 3		:: !User !(Task a) -> Task a | iTask a
 /**
+* Combines two tasks sequentially just as >>=, but the result of the second task is disregarded.
+*
+* @param The first task to be executed
+* @param The second task to be executed
+* @return The combined task
+*/
+(>>^) infixl 1 :: !(Task a) (Task b) -> Task a| iTask a & iTask b
+/**
 * Bind for tasks with optional results.
 *
 * @param The first task to be executed.

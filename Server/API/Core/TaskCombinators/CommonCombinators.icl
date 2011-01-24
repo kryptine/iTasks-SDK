@@ -50,6 +50,9 @@ transform f x = mkInstantTask ("Value transformation", "Value transformation wit
 (@:) infix 3 :: !User !(Task a) -> Task a | iTask a
 (@:) user task = assign user task
 
+(>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
+(>>^) taska taskb = taska >>= \x -> taskb >>= \_ -> return x
+
 (>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iTask a & iTask b
 (>>?) t1 t2 
 = 	t1 
