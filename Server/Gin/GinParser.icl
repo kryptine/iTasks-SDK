@@ -1,6 +1,5 @@
 implementation module GinParser
 
-import StdEnv
 import GenPrint
 import Void
 import Monad

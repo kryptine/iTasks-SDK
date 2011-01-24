@@ -1,7 +1,7 @@
 definition module GinTypes
 
-import GenEq, GenPrint, GenParse, GenVisualize, GenUpdate
-import JSON
+import GenEq
+import iTasks
 from PPrint import ::Doc
 
 :: GTypeExpression = GConstructor GIdentifier

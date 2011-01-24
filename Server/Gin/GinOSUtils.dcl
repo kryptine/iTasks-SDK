@@ -1,13 +1,6 @@
 definition module GinOSUtils
 
-import Void
-
-:: Path :== String
-
-// Exceptions
-:: FileException = FileException !Path !FileProblem
-:: FileProblem = CannotOpen | CannotClose | IOError
-:: CallException = CallFailed !Path
+import OSTasks
 
 :: OSResult a b = OSOK a | OSError b
 
@@ -28,7 +21,7 @@ instance toString CallException
 * @param path to the executable
 * @return return-code of the process
 */
-osCallProcessBlocking :: !Path *World -> (OSResult Int CallException, *World)
+osCallProcessBlocking :: !String *World -> (OSResult Int CallException, *World)
 
 /**
 * Reads a textfile from disc.
@@ -36,7 +29,7 @@ osCallProcessBlocking :: !Path *World -> (OSResult Int CallException, *World)
 * @param path to the file
 * @return content of the file
 */
-osReadTextFile :: !Path *World -> (OSResult String FileException, *World)
+osReadTextFile :: !String *World -> (OSResult String FileException, *World)
 
 /**
 * Writes string to a textfile.
@@ -44,10 +37,10 @@ osReadTextFile :: !Path *World -> (OSResult String FileException, *World)
 * @param path to the file
 * @param string written to file
 */
-osWriteTextFile :: !String !Path *World -> (OSResult Void FileException, *World)
+osWriteTextFile :: !String !String *World -> (OSResult Void FileException, *World)
 
-//Path utils
-appendTrailingSeparator :: !Path -> Path
-(+/+) infixr 5 :: !Path !Path -> Path
+//String utils
+appendTrailingSeparator :: !String -> String
+(+/+) infixr 5 :: !String !String -> String
 quote :: String -> String
 

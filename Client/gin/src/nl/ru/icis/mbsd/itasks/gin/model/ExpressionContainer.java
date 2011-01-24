@@ -32,6 +32,17 @@ public class ExpressionContainer extends Model {
 	public void setTypeExpressionContainer(TypeExpressionContainer type) {
 		this.type = type;
 		type.setParent(this);
+		if (expression == null) {
+			ArrayList<Class <? extends Expression>> supportedExpressions = getSupportedExpressions();
+			if (supportedExpressions.size() == 1)
+				try {
+					expression = supportedExpressions.get(0).newInstance();
+				} catch (InstantiationException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
+		}
 		setChanged();
 	}
 	

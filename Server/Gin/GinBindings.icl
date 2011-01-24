@@ -1,6 +1,5 @@
 implementation module GinBindings
 
-import StdEnv
 import StdMaybe
 import GenEq
 

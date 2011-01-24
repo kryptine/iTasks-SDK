@@ -4,7 +4,8 @@ import StdEnv
 import StdMaybe
 from StdSystem import dirseparator
 
-import Void
+import OSTasks
+
 import ostoolbox, clCCall_12, StdFile, Text
 //import code from "OSTasksC."
 
@@ -35,7 +36,7 @@ instance toString CallException
 where
 	toString (CallFailed path) = "Cannot call process " +++ path
 
-osCallProcessBlocking :: !Path *World -> (OSResult Int CallException, *World)
+osCallProcessBlocking :: !String *World -> (OSResult Int CallException, *World)
 osCallProcessBlocking cmd world
 # (os,world)	= worldGetToolbox world
 # (ccmd,os)		= winMakeCString cmd os
@@ -45,7 +46,7 @@ osCallProcessBlocking cmd world
 | not succ		= (OSError (CallFailed cmd) , world)
 | otherwise		= (OSOK ret, world)
 
-osReadTextFile :: !Path *World -> (OSResult String FileException, *World)
+osReadTextFile :: !String *World -> (OSResult String FileException, *World)
 osReadTextFile path world
 # (ok,file,world) 	= fopen path FReadText world		
 | not ok 			= (OSError (FileException path CannotOpen), world)
@@ -65,7 +66,7 @@ readFile file acc
 	| eof			= (Just [str:acc],file)
 	| otherwise		= readFile file [str:acc]
 		
-osWriteTextFile :: !String !Path *World -> (OSResult Void FileException, *World)
+osWriteTextFile :: !String !String *World -> (OSResult Void FileException, *World)
 osWriteTextFile path text world 
 # (ok,file,world) 	= fopen path FWriteText world		
 | not ok 			= (OSError (FileException path CannotOpen), world)
@@ -76,12 +77,12 @@ osWriteTextFile path text world
 | not ok 			= (OSError (FileException path CannotClose), world)
 | otherwise			= (OSOK Void, world)
 
-//Path utils
-appendTrailingSeparator :: !Path -> Path
+//String utils
+appendTrailingSeparator :: !String -> String
 appendTrailingSeparator a = if (endsWith a sep) a (a +++ sep) where
 	sep = toString dirseparator
 
-(+/+) infixr 5 :: !Path !Path -> Path
+(+/+) infixr 5 :: !String !String -> String
 (+/+) a b = appendTrailingSeparator a +++ b
 
 quote :: String -> String

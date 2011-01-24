@@ -1,8 +1,7 @@
 implementation module GinTypes
 
-import StdEnv
-import GenEq, GenPrint, GenParse, GenVisualize, GenUpdate
-import JSON
+import GenEq
+import iTasks
 import PPrint
 
 derive bimap (,)

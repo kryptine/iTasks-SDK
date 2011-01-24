@@ -1,6 +1,6 @@
 implementation module GinFlowLibrary
 
-import StdFunc
+from StdFunc import o
 import StdTuple
 
 import GinTypes

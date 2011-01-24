@@ -1,6 +1,6 @@
 definition module GinCompiler
 
-import GenEq, GenPrint, GenParse, GenVisualize, GenUpdate
+import iTasks
 from GinSyntax import ::GModule
 
 :: CompileResult a = CompileSuccess a | CompileGlobalError String | CompilePathError [(String,String)]

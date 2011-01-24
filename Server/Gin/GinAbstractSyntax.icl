@@ -1,7 +1,5 @@
 implementation module GinAbstractSyntax
 
-import StdEnv
-import StdDebug
 import GenPrint
 
 import GinBindings

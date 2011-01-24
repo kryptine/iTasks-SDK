@@ -23,7 +23,7 @@ ginEditor = (ginSetup >>| handleMenu) <<@ FWFullWidth
 ginSetup :: Task Void
 ginSetup = accWorld ginLoadConfig >>= \maybeConfig = 
     case maybeConfig of 
-        Just config -> accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (ginCheckApplet config) (setupDialog config)
+        Just config -> accWorld (ginCheckConfig config) >>= \error = (if (isNothing error) stop (setupDialog config)) >>| ginCheckApplet config
         Nothing     -> accWorld ginDefaultConfig >>= \config = setupDialog config
 where
 	setupDialog :: GinConfig -> Task Void

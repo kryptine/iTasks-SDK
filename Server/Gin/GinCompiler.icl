@@ -1,6 +1,7 @@
 implementation module GinCompiler
 
 from StdSystem import dirseparator
+import iTasks
 
 import GinSyntax
 import GinAbstractSyntax

@@ -14,8 +14,8 @@ derive class iTask ModuleStore
 // *************************************************
 
 instance DB ModuleStore where
-	databaseId	:: DBId [ModuleStore]
-	databaseId = mkDBId "ModuleStore"
+	databaseId	:: Shared [ModuleStore]
+	databaseId = mkSharedReference "ModuleStore"
 	
 	getItemId	:: ModuleStore -> DBRef ModuleStore
 	getItemId a = a.dbref
