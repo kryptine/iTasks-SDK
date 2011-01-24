@@ -305,10 +305,10 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					# tst					= setTaskStore "value" nvalue tst
 					# tst					= setTaskStore "mask" numask tst
 					# (nvmask,tst)			= accIWorldTSt (verifyValue nvalue numask) tst
+					# (conflict,tst)		= accIWorldTSt (isSharedChanged shared localTimestamp) tst
 					= case isValidValue nvmask && not enterMode of
 						True	// if view is valid (and not in enter mode) also try to update model
 							// check if the task causes an editing conflict
-							# (conflict,tst) = accIWorldTSt (isSharedChanged shared localTimestamp) tst
 							= case conflict of
 								False	// no conflict, update model
 									# ((oldModelValue,_),tst)	= readModelValue tst

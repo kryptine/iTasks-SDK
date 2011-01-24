@@ -64,7 +64,7 @@ class iTask a
 	, JSONDecode{|*|}
 	, TC a
 	& toReadOnlyShared Shared a
-	//& toReadOnlyShared SharedReadOnly a
+	& toReadOnlyShared SharedReadOnly a
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
