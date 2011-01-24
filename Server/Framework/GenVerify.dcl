@@ -24,7 +24,7 @@ instance toString ErrorMessage
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS, FIELD, Int, Real, Char, Bool, String, (,), (,,),(,,,),(->), []
 derive gVerify Maybe, Dynamic, Void, Document, Either, Editable, Hidden, Display, VisualizationHint, Timestamp
-derive gVerify Password, Date, Time, FormButton, Currency, User, UserDetails, Task, Note, DateTime, Choice, MultipleChoice, Shared, SharedReadOnly
+derive gVerify Password, Date, Time, FormButton, Currency, User, UserDetails, Task, Note, DateTime, Choice, MultipleChoice, Shared, SharedReadOnly, Map
 
 /**
 * Verify a value based on the value and its update mask.

@@ -7,7 +7,7 @@ textEditor = [workflow "Examples/Miscellaneous/Text Editor" "A simple text edito
 
 // global workflows
 textEditorApp :: Task Void
-textEditorApp = mdiApplication (AppState 0 []) groupActions actionGenFunc menuGenFunc
+textEditorApp = mdiApplication (AppState 0 [] newMap) groupActions actionGenFunc menuGenFunc
 where
 	groupActions = [(ActionNew, Always), (ActionOpen, Always), (Action OpenFile "", Always), (ActionAbout, Always), (ActionQuit, Always)]
 	actionGenFunc gid mdiTasks=:{createEditor, iterateEditors} (action, data) = case action of
@@ -21,7 +21,7 @@ where
 	hotkey key = Just {ctrl = True, alt = False, shift = True, key = key}
 	
 	menuGenFunc :: AppState -> Menus
-	menuGenFunc (AppState _ recOpenedFiles) =
+	menuGenFunc (AppState _ recOpenedFiles _) =
 		[ Menu "File"	[ MenuItem ActionNew		(hotkey N)
 						, MenuItem ActionOpen		(hotkey O)
 						, SubMenu "Recently Opened"	recentlyOpenedMenu
@@ -49,8 +49,9 @@ OpenFile		:== "openFile"
 
 newFile :: !AppStateRef !(MDICreateEditor EditorState) -> Task GAction
 newFile aid createEditor =
-								updateDB aid (\(AppState num recOpened) -> AppState (inc num) recOpened)
-	>>= \(AppState newNum _).	createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile
+								updateDB aid (\(AppState num recOpened e) -> AppState (inc num) recOpened e)
+	>>= \(AppState newNum _ _).	createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile
+	>>|							return GContinue
 
 openDialog :: !AppStateRef !(MDITasks EditorState a) -> Task GAction
 openDialog gid mdiTasks =
@@ -76,7 +77,7 @@ open fid {createEditor, existsEditor} mbGid =
 			>>= \file.	case mbGid of // determine if to add to list of recently opened files
 							Nothing = stop
 							Just gid =
-									updateDB gid (\(AppState n files) -> AppState n (take 5 [(fid, file.TextFile.name):files]))
+									updateDB gid (\(AppState n files e) -> AppState n (take 5 [(fid, file.TextFile.name):files]) e)
 								>>| stop
 			>>|			return (GExtend [editor file])
 		Just eid = return (GFocus (Tag eid))
@@ -87,7 +88,7 @@ where
 		OpenedFile file	= (fid == file.fileId)
 	
 	editor :: !TextFile -> Task GAction					
-	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ Floating
+	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ Floating >>| continue
 
 about :: Task GAction
 about = showMessageA ("About","iTextEditor January 2011") [(ActionOk,always)] GContinue >>= transform snd
@@ -102,19 +103,19 @@ where
 	checkForUnsavedData False editor	= requestClosingFile editor
 	
 // editor workflows
-textEditorFile :: !EditorStateRef -> Task Void
-textEditorFile eid = dynamicGroupA [editorWindow eid <<@ Floating] actions actionsGenFunc
+textEditorFile :: !(EditorId EditorState) !EditorStateRef -> Task Void
+textEditorFile eid ref = dynamicGroupA [editorWindow eid ref <<@ Floating] actions actionsGenFunc
 where
-	actions =	[ (ActionSave, SharedPredicate eid noNewFile), (ActionSaveAs, Always)
-				, (Action Replace "Replace", SharedPredicate eid contNotEmpty)
+	actions =	[ (ActionSave, SharedPredicate ref noNewFile), (ActionSaveAs, Always)
+				, (Action Replace "Replace", SharedPredicate ref contNotEmpty)
 				, (Action Stats "Statistics", Always), (ActionClose, Always)
 				]
 	actionsGenFunc (action, _) = case action of
-		ActionSave			= GExtend [save eid]
-		ActionSaveAs		= GExtend [saveAs eid <<@ Modal]
-		Action Replace _	= GExtend [replaceT eid  <<@ Floating]
-		Action Stats _		= GExtend [statistics eid  <<@ Floating]
-		ActionClose			= GExtend [close eid <<@ Modal]
+		ActionSave			= GExtend [save ref]
+		ActionSaveAs		= GExtend [saveAs ref <<@ Modal]
+		Action Replace _	= GExtend [replaceT ref  <<@ Floating]
+		Action Stats _		= GExtend [statistics ref  <<@ Floating]
+		ActionClose			= GExtend [close ref <<@ Modal]
 	
 	noNewFile :: !(Maybe EditorState) -> Bool					
 	noNewFile Nothing = abort "editor state deleted"
@@ -126,10 +127,10 @@ where
 	contNotEmpty Nothing = abort "editor state deleted"
 	contNotEmpty (Just (EditorState (Note cont) _)) = cont <> ""
 	
-editorWindow :: !EditorStateRef -> Task GAction
-editorWindow eid =
+editorWindow :: !(EditorId EditorState) !EditorStateRef -> Task GAction
+editorWindow eid ref =
 		Tag eid @>>
-		updateSharedInformationA ("Text Editor","You can edit the text.") mainEditor [] eid
+		updateSharedInformationA ("Text Editor","You can edit the text.") mainEditor [] ref
 	>>|	continue
 where		
 	mainEditor =	( \st=:(EditorState cont _)			-> (Display (titleListener st),cont)
@@ -237,11 +238,16 @@ where
 	question file = "Save changes to '" +++ getFileName file +++ "'?"
 	
 // global application state
-:: AppState = AppState !Int ![(!(DBRef TextFile), !String)]
+:: AppState = AppState !Int ![(!(DBRef TextFile), !String)] !(EditorCollection EditorState)
 :: AppStateRef :== Shared AppState
 :: EditorState = EditorState !Note !EditorFile
 :: EditorFile = NewFile !Int | OpenedFile !TextFile
 :: EditorStateRef :== Shared EditorState
+
+instance MDIState AppState EditorState
+where
+	getEditorStates (AppState _ _ editors) = editors
+	setEditorStates editors (AppState c recOpened _) = AppState c recOpened editors
 
 // text files database
 :: FileName :==	String

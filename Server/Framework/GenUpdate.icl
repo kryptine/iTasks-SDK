@@ -548,7 +548,7 @@ gUpdate{|Shared|}			_ x ust						= (x,ust)
 gUpdate{|SharedReadOnly|}	_ _ ust=:{mode=UDCreate}	= (SharedReadOnly "" Nothing, ust)
 gUpdate{|SharedReadOnly|}	_ x ust						= (x,ust)
 
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map
 derive bimap (,)
 
 //Utility functions

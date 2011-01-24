@@ -4,7 +4,7 @@ definition module Types
 * of the iTasks framework.
 */
 
-import StdMaybe, GenEq, JSON, Store, GenVisualize
+import StdMaybe, GenEq, JSON, Store, GenVisualize, Map
 from Html 		import class html
 from Time		import :: Timestamp
 from TSt 		import :: TSt
@@ -12,8 +12,8 @@ from Config		import :: Config
 from TaskTree	import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
 
 derive class iTask	EmailAddress, Session, Action, ProcessRef, TaskStatus
-derive JSONEncode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
-derive JSONDecode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice
+derive JSONEncode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map
+derive JSONDecode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map
 
 instance toString User
 instance toString TaskPriority
@@ -64,9 +64,7 @@ class iTask a
 	, JSONDecode{|*|}
 	, TC a
 	& toReadOnlyShared Shared a
-
-// A bimap where view and model are equal.
-idBimap :: (IBimap a a)
+	//& toReadOnlyShared SharedReadOnly a
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String

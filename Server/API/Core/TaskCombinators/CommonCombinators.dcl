@@ -7,6 +7,7 @@ definition module CommonCombinators
 import CoreCombinators, TuningCombinators
 import Either
 from Types import :: User, :: SessionId
+from Map import :: Map
 
 // Additional types for grouping
 // These types are similar to PAction but are needed to avoid circular definitions
@@ -248,7 +249,7 @@ dynamicGroupAOnly	:: ![Task Void]		![GroupAction Void] !(GroupActionGenFunc GOnl
 *        The second parameter is a collection of tasks for dealing with editors.
 * @param A global menu generation function, mapping the global state to a menu structure.
 */
-mdiApplication :: !globalState ![GroupAction Void] !((Shared globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
+mdiApplication :: !globalState ![GroupAction Void] !((Shared globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState & MDIState globalState editorState
 
 // A collection of tasks for dealing with editors within an MDI application.
 :: MDITasks editorState iterationState = {
@@ -279,6 +280,15 @@ mdiApplication :: !globalState ![GroupAction Void] !((Shared globalState) (MDITa
 	existsEditor :: MDIExistsEditor editorState
 	}
 	
-:: MDICreateEditor editorState					:== editorState ((Shared editorState) -> Task Void) -> Task GAction
+:: MDICreateEditor editorState					:== editorState ((EditorId editorState) (Shared editorState) -> Task Void) -> Task editorState
 :: MDIIterateEditors editorState iterationState :== iterationState (iterationState (Shared editorState) -> Task iterationState) -> Task iterationState
-:: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (Shared editorState))
+:: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (EditorId editorState))
+
+// Class for MDI states including a collection of editor states
+class MDIState st est
+where
+	getEditorStates	:: !st -> (EditorCollection est)
+	setEditorStates	:: !(EditorCollection est) !st -> st
+	
+:: EditorId est :== Int
+:: EditorCollection est :== Map (EditorId est) est

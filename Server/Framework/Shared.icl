@@ -29,7 +29,7 @@ readSharedAndTimestamp shared iworld
 		Nothing		= decJSON
 		Just get	= get
 	= (mapMaybe (app2 (func,id)) mbVal,iworld)
-	
+
 writeShared :: !(Shared a) !a !*IWorld -> *IWorld | JSONEncode{|*|} a
 writeShared (Shared ref mbBimap) val iworld
 	= case mbBimap of
@@ -42,7 +42,9 @@ writeShared (Shared ref mbBimap) val iworld
 				Nothing			= iworld // don't store value if no model is stored
 				
 deleteShared :: !(Shared a) !*IWorld -> *IWorld
-deleteShared (Shared ref _) iworld = deleteValue ref iworld
+deleteShared (Shared ref Nothing) iworld = deleteValue ref iworld
+// don't delete entire value if only have view on substructure
+deleteShared (Shared ref _) iworld = iworld
 
 mapShared :: !(IBimap a b) !(Shared a) -> Shared b | JSONEncode{|*|} a & JSONDecode{|*|} a
 mapShared (newGet,newPutback) (Shared ref mbOldBimap)
@@ -90,11 +92,3 @@ where
 		= case mbBimap of
 			Nothing			= SharedReadOnly ref Nothing
 			Just (get,_)	= SharedReadOnly ref (Just get)
-			
-instance toString (Shared a)
-where
-	toString (Shared ref _) = ref
-	
-instance toString (SharedReadOnly a)
-where
-	toString (SharedReadOnly ref _) = ref

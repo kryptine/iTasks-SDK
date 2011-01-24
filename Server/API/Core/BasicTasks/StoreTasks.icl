@@ -1,8 +1,9 @@
 implementation module StoreTasks
 
-import StdList, StdOrdList
+import StdList, StdOrdList, StdTuple
 import Shared, GenUpdate, GenVisualize, GenVerify, TSt
-from CoreCombinators import >>|, >>=, return
+from StdFunc			import id
+from CoreCombinators	import >>|, >>=, return
 
 derive class iTask DBRef
 derive bimap Maybe, (,)
@@ -66,9 +67,9 @@ where
 	updateDB` iworld
 		# (mbVal,iworld) = readShared shared iworld
 		# (val,iworld) = case mbVal of
-			Just val	= (val,iworld)
-			Nothing		= defaultValue iworld
-		# iworld = deleteShared shared iworld
+			Just val	= (f val,iworld)
+			Nothing		= app2 (f,id) (defaultValue iworld)
+		# iworld = writeShared shared val iworld
 		= (TaskFinished val,iworld)
 
 //	Convenient operations on databases

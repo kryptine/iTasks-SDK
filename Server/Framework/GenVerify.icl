@@ -3,7 +3,7 @@ implementation module GenVerify
 import StdMaybe, StdGeneric, StdBool, StdInt, Text, StdList, StdTuple, StdFunc
 import GenUpdate, StdMisc, GenVisualize
 
-derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp
+derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map
 derive bimap (,), Maybe
 
 generic gVerify a :: (Maybe a) VerSt -> VerSt

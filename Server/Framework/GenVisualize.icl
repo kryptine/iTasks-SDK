@@ -912,7 +912,7 @@ where
 gVisualize{|Shared|} _ _ vst			= ([TextFragment "Reference to shared data"],vst)
 gVisualize{|SharedReadOnly|} _ _ vst	= ([TextFragment "Read-Only reference to shared data"],vst)
 
-derive gVisualize DateTime, Either, Void, UserDetails, Timestamp
+derive gVisualize DateTime, Either, Void, UserDetails, Timestamp, Map
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

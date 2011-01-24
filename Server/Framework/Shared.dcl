@@ -7,8 +7,9 @@ definition module Shared
 */
 
 import JSON
-from Types	import :: IWorld
-from Time	import :: Timestamp
+from StdFunc	import id, const
+from Types		import :: IWorld
+from Time		import :: Timestamp
 
 derive JSONEncode Shared, SharedReadOnly
 derive JSONDecode Shared, SharedReadOnly
@@ -17,6 +18,9 @@ derive JSONDecode Shared, SharedReadOnly
 // The information included in the view is a subset of the information provided by the model.
 // A bimap can serve as a lens making it to possible to modify a substructure of the data model.
 :: IBimap m v :== (m -> v, v m -> m)
+
+// A bimap where view and model are equal.
+idBimap :== (id,const)
 
 // This bimap hides the type of the model by working on JSON encoded model values.
 :: JSONBimap a :== (JSONNode -> a, a JSONNode -> JSONNode)
@@ -118,6 +122,3 @@ isSharedChanged :: !(shared a) !Timestamp !*IWorld -> (!Bool,!*IWorld) | toReadO
 class toReadOnlyShared s a :: (s a) -> SharedReadOnly a
 instance toReadOnlyShared SharedReadOnly a
 instance toReadOnlyShared Shared a
-
-instance toString (Shared a)
-instance toString (SharedReadOnly a)

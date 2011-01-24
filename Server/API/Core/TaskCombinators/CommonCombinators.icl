@@ -4,8 +4,8 @@ implementation module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
-import Util, Either, TSt, GenVisualize, GenUpdate
-from StdFunc	import id, const
+import Util, Either, TSt, GenVisualize, GenUpdate, Map
+from StdFunc	import id, const, o
 from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..), :: Note(..)
 from Store		import :: Store
 from SessionDB	import :: Session
@@ -228,52 +228,54 @@ where
 		GOFocus tag		= (Void, Focus tag)
 	changeTasksType tasks = map (\t -> (t >>| return (GOExtend [])) <<@ t.groupedProperties.GroupedProperties.groupedBehaviour) tasks
 		
-mdiApplication :: !globalState ![GroupAction Void] !((Shared globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
+mdiApplication :: !globalState ![GroupAction Void] !((Shared globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState & MDIState globalState editorState
 mdiApplication initAppState gActions gActionsGenFunc menuGenFunc =
 				createDB initAppState
-	>>= \aid.	createDB []
-	>>= \sid.	dynamicGroupA [] gActions (gActionsGenFunc aid (globalTasks sid)) <<@ DynamicMenus aid menuGenFunc
-	>>|			deleteDB aid
-	>>|			deleteDB sid
-	>>|			return Void
+	>>= \ref.	createDB 0
+	>>= \idref.	dynamicGroupA [] gActions (gActionsGenFunc ref (globalTasks ref idref)) <<@ DynamicMenus ref menuGenFunc
+	>>|			deleteDB ref
+	>>|			deleteDB idref
+	>>|			stop
 where
-	//globalTasks :: !(DBId (MDIAppState editorState)) -> MDITasks editorState iterationState | iTask, SharedVariable editorState & iTask iterationState
-	globalTasks sid =
+	globalTasks ref idref =
 		{ createEditor		= createEditor
 		, iterateEditors	= iterateEditors
 		, existsEditor		= existsEditor
 		}
 	where
-		//createEditor :: !editorState ((DBId editorState) -> Task Void) -> Task GAction | iTask, SharedVariable editorState
 		createEditor initState editorTask =
-						createDB initState
-			>>= \esid.	updateDB sid (\editors -> [esid:editors])
-			>>|			editorTask esid
-			>>|			deleteDB esid
-			>>|			updateDB sid (\editors -> filter (\id -> undef/*id <> esid*/) editors)
-			>>|			return GContinue
-			
-		//iterateEditors	:: !iterationState !(iterationState (DBId editorState) -> Task iterationState) -> Task iterationState | iTask, SharedVariable editorState & iTask iterationState
-		iterateEditors v f =
-							readDB sid
-			>>= \editors.	iterate v editors
+								updateDB idref inc
+			>>= \eid.			updateDB ref (putInEditorStates eid initState)
+			>>|					editorTask eid (sharedForEditor eid)
+			>>|					readDB ref
+			>>=	\st.			transform getEditorStates st
+			>>=					transform (delU eid)
+			>>= \(Just e,est).	writeDB ref (setEditorStates est st)
+			>>|					return e
 		where
-			iterate v [] = return v
-			iterate v [editor:editors] =
-						f v editor
-				>>= \v.	iterate v editors
+			sharedForEditor eid = mapShared (fromJust o (get eid) o getEditorStates, putInEditorStates eid) ref
 			
-		//existsEditor :: !(editorState -> Bool) -> Task (Maybe (DBId editorState)) | iTask, SharedVariable editorState
+		iterateEditors initAcc f =
+						readDB ref
+			>>= \st.	iterate initAcc (map fst (toList (getEditorStates st))) f ref
+		where
+			iterate :: !acc ![EditorId est] !(acc (Shared est) -> Task acc) !(Shared st) -> Task acc | iTask acc & iTask st & MDIState st est
+			iterate acc [] _ _= return acc
+			iterate acc [eid:eids] f ref =
+							f acc (mapShared (fromJust o (get eid) o getEditorStates, putInEditorStates eid) ref)
+				>>= \acc.	iterate acc eids f ref
+			
 		existsEditor pred =
-							readDB sid
-			>>= \editors.	check editors
+						readDB ref
+			>>= \st.	return (check (toList (getEditorStates st)))
 		where
-			check [] = return Nothing
-			check [eid:eids] =
-								readDB eid
-				>>= \editor.	if (pred editor)
-									(return (Just eid))
-									(check eids)
+			check [] = Nothing
+			check [(eid,editor):ests]
+				| pred editor	= Just eid
+				| otherwise		= check ests
+				
+		putInEditorStates eid est st = updateEditorStates (put eid est) st
+		updateEditorStates f st = setEditorStates (f (getEditorStates st)) st
 
 //Utility functions
 sortByIndex :: ![(Int,a)] -> [a]

@@ -10,8 +10,8 @@ from TSt 	import :: TSt
 from Config	import :: Config
 
 derive class iTask		EmailAddress, Session, Action, ProcessRef, TaskStatus
-derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
-derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice
+derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map
+derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map
 derive gLexOrd			Currency
 derive bimap			Maybe, (,)
 
@@ -104,9 +104,6 @@ initGroupedProperties =
 	{ groupedBehaviour		= Fixed
 	, groupActionsBehaviour	= IncludeGroupActions
 	}
-	
-idBimap :: (IBimap a a)
-idBimap = (id, const)
 
 // ******************************************************************************************************
 // Document
