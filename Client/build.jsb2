@@ -29,6 +29,7 @@
 		,{"text":"FormButtonControl.js","path":"src/js/tui/"}
 		,{"text":"ChoiceControl.js","path":"src/js/tui/"}
 		,{"text":"AppletControl.js","path":"src/js/tui/"}
+		,{"text":"GridControl.js","path":"src/js/tui/"}
 		,{"text":"TUICommon.js","path":"src/js/tui/"}
 		
 		,{"text":"ListContainer.js","path":"src/js/tui/"}

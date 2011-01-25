@@ -33,7 +33,7 @@ where
 			| otherwise
 				= read (buffer +++ chunk) start cur quoted escape fields file
 		//End of field
-		| buffer.[cur] == delimitChar && not quoted
+		| buffer.[cur] == delimitChar && not quoted && not escape
 			= read buffer next next quoted False [field:fields] file 
 		//End of line
 		| (buffer.[cur] == '\n' || buffer.[cur] == '\r') && not quoted
@@ -54,7 +54,7 @@ where
 		next		= inc cur
 		field		= if isQuoted quotedField normalField
 		isQuoted	= buffer.[start] == quoteChar && buffer.[cur - 1] == quoteChar 
-		normalField = buffer % (start, cur - 1)
+		normalField = unescape (buffer % (start, cur - 1))
 		quotedField = unescape (buffer % (start + 1, cur - 2))
 		
 		remain		= size buffer - next
@@ -63,10 +63,10 @@ where
 		unescape s	= {c \\ c <- (unescape` [u \\ u <-: s])}
 		where
 			unescape` [char1,char2:rest] 
-				| char1 == escapeChar		= [char2:unescape` rest]
-											= unescape` [char2:rest]
-			unescape` [char:rest]			= [char: unescape` rest]
-			unescape` []					= []
+				| char1 == escapeChar	= unescape` [char2:rest]
+										= [char1:unescape` [char2:rest]]
+			unescape` [char]			= [char]
+			unescape` []				= []
 			
 readCSVFile :: !*File -> (![[String]],!*File)
 readCSVFile file = readCSVFileWith ',' '"' '\\' file

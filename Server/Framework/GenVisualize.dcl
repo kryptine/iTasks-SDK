@@ -85,5 +85,6 @@ visualizeBasicControl	:: !(Maybe a) !*VSt -> (!TUIBasicControl, !*VSt) | toStrin
 
 verifyElementStr		:: !UpdateMask !VerifyMask -> (!String, !String)
 
-value2s					:: !UpdateMask !(Maybe a) 							-> String | toString a
-labelAttr				:: !Bool !(Maybe String)							-> Maybe String
+value2s					:: !UpdateMask !(Maybe a)	-> String | toString a
+labelAttr				:: !Bool !(Maybe String)	-> Maybe String
+formatLabel				:: !String					-> String

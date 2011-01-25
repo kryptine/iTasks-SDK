@@ -4,7 +4,7 @@ import JSON,StdList,StdBool,GenEq
 
 from Types import :: Document, :: DocumentId, :: Hotkey, :: Key
 
-derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
+derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl, TUIGridControl, TUIGridColumn
 derive gEq TUIAppletControl, TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, JSONNode, Maybe, Document
 derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey, Key
 
@@ -12,7 +12,7 @@ derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMe
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl
-derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer
+derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn
 
 //TODO: Separate control elements from form-widgets
 JSONEncode{|TUIDef|} (TUIButton r)				= addXType "itasks.ttc.Button" (JSONEncode{|*|} r)
@@ -40,6 +40,7 @@ JSONEncode{|TUIDef|} (TUIDocumentControl r)	 	= addXType "itasks.tui.Document" (
 JSONEncode{|TUIDef|} (TUIConstructorControl r)	= addXType "itasks.tui.Constructor" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIListItemControl r) 	= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIAppletControl r)		= addXType "itasks.tui.Applet" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIGridControl r)			= addXType "itasks.tui.Grid" (JSONEncode{|*|} r)
 
 JSONEncode{|TUIDef|} (TUITupleContainer r)		= addXType "itasks.tui.Tuple" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)

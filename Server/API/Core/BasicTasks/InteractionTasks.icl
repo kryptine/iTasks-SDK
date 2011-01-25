@@ -306,21 +306,20 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					# tst					= setTaskStore "mask" numask tst
 					# (nvmask,tst)			= accIWorldTSt (verifyValue nvalue numask) tst
 					# (conflict,tst)		= accIWorldTSt (isSharedChanged shared localTimestamp) tst
-					= case isValidValue nvmask && not enterMode of
-						True	// if view is valid (and not in enter mode) also try to update model
-							// check if the task causes an editing conflict
-							= case conflict of
-								False	// no conflict, update model
-									# ((oldModelValue,_),tst)	= readModelValue tst
-									# newModelValue				= bimapPutback nvalue oldModelValue
-									# tst						= appIWorldTSt (writeShared shared newModelValue) tst
-									// rebuild value from model after also other possible changes are done
-									= (True,(nvalue,numask,nvmask),[],tst)
-								True
-									// don't update model, rebuild view based on current value of model and set errors
-									= (True,old,[(p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.") \\ (p,_) <- edits],tst)
-						False	// edited invalid views (or if in enter mode) are not rebuilt, updates are based on current value
-							= (False,(nvalue,numask,nvmask),[],tst)
+					| isValidValue nvmask && not enterMode
+						// if view is valid (and not in enter mode) also try to update model
+						| not conflict
+							# ((oldModelValue,_),tst)	= readModelValue tst
+							# newModelValue				= bimapPutback nvalue oldModelValue
+							# tst						= appIWorldTSt (writeShared shared newModelValue) tst
+							// task causes an edit conflict
+							// rebuild value from model after also other possible changes are done
+							= (True,(nvalue,numask,nvmask),[],tst)
+						| otherwise
+							// don't update model, rebuild view based on current value of model and set errors
+							= (True,old,[(p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.") \\ (p,_) <- edits],tst)
+					| otherwise // edited invalid views (or if in enter mode) are not rebuilt, updates are based on current value
+						= (False,(nvalue,numask,nvmask),[],tst)
 			// check for action event
 			# mbActionEvent	= actionEvent events actions
 			= case mbActionEvent of

@@ -58,6 +58,7 @@ instance == TUIDef
 	| TUIFormButtonControl TUIButtonControl
 	| TUIListItemControl TUIListItemControl
 	| TUIAppletControl TUIAppletControl
+	| TUIGridControl TUIGridControl
 	
 	| TUITupleContainer TUITupleContainer
 	| TUIRecordContainer TUIRecordContainer
@@ -232,3 +233,14 @@ instance == TUIDef
 	, hotkey		:: !Maybe Hotkey
 	, actionData	:: !Maybe String
 	}
+:: TUIGridControl =
+	{ name			:: !String
+	, id			:: !TUIId
+	, columns		:: ![TUIGridColumn]
+	, gridData		:: ![JSONNode]
+	}
+:: TUIGridColumn =
+	{ header		:: !String
+	, dataIndex		:: !DataIndex
+	}
+:: DataIndex :== String

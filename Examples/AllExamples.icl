@@ -21,6 +21,7 @@ import Newsgroups
 import ChangeHandling
 import textEditor
 import CoffeeTime
+import TableExamples
 
 //Crisis response examples
 import AmbulanceDispatch
@@ -55,6 +56,7 @@ where
 						, coffeemachineExample
 						, textEditor
 						, coffeeTimeExample
+						, tableExamples
 						, newsgroupsExample
 						, exceptionHandlingExample
 						, changeHandlingExample

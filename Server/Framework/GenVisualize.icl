@@ -301,7 +301,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 	| otherwise
 		= case val of
 			Just (OBJECT x)	= fx (Just x) vst
-			Nothing				= fx Nothing vst			
+			Nothing			= fx Nothing vst			
 where
 	id		= dp2id idPrefix currentPath
 	cId 	= (dp2id idPrefix currentPath) +++ "c"
@@ -931,7 +931,7 @@ labelAttr False	_		= Nothing
 labelAttr True	Nothing	= Just ""
 labelAttr True	l		= l 
 
-formatLabel :: String -> String
+formatLabel :: !String -> String
 formatLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
 where
 	[lname:lnames]		= [c \\ c <-: label]

@@ -13,7 +13,7 @@ defaultValue iworld
 
 defaultMask :: a !*IWorld -> (!UpdateMask,!*IWorld) | gUpdate{|*|} a	
 defaultMask a iworld
-	# (_,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = emptyDataPath, currentPath = shiftDataPath emptyDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
+	# (_,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = emptyDataPath, currentPath = startDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
 	= (hd newMask,iworld)
 
 updateValue	:: DataPath String a !*IWorld -> (a,!*IWorld) | gUpdate{|*|} a 	
@@ -23,7 +23,7 @@ updateValue path update a iworld
 
 updateValueAndMask :: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
-	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath emptyDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
+	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
 	= (a,hd newMask,iworld)
 
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
