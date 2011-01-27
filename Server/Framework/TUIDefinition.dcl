@@ -242,5 +242,6 @@ instance == TUIDef
 :: TUIGridColumn =
 	{ header		:: !String
 	, dataIndex		:: !DataIndex
+	, editor		:: !Maybe String
 	}
 :: DataIndex :== String

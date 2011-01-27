@@ -123,7 +123,7 @@ gUpdate{|OBJECT of d|} fx o ust=:{mode=UDSearch,searchPath,currentPath,update,ol
 		//Update is a constructor switch
 		# (nx,ust) = fx (abort "OBJECT create with undef") {USt|ust & mode = UDCreate, consPath = path}
 		= (OBJECT nx, {USt|ust & oldMask = om, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), mode = UDSearch}) 
-	| (dataPathList searchPath) <== (dataPathList currentPath)
+	| searchPath <== currentPath
 		//Update is targeted somewhere in a substructure of this value
 		# (nx,ust=:{newMask=childMask}) = fx x {USt|ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
 		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched True childMask)})
@@ -236,7 +236,7 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update,oldM
 	| otherwise
 		= case m of
 			Nothing
-				| (dataPathList searchPath) <== (dataPathList currentPath)
+				| searchPath <== currentPath
 					// Create a default value
 					# (x,ust=:{newMask=nmCreate}) 	= (fx (abort "Maybe create with undef") {ust & mode = UDCreate})
 					// Search in the default value
@@ -311,7 +311,7 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask
 		= (lx, {USt | ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask (makeMask listMask []), oldMask = om})
 where
 	//Check if search path is equal or below [datapath:(length list)]
-	isNew cp sp l = (dataPathList sp) <== [l:dataPathList cp] 
+	isNew cp sp l = sp <== dataPathFromList [l:dataPathList cp] 
 
 	updateElements fx []     ust 
 		= ([],ust)
@@ -552,16 +552,16 @@ derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp,
 derive bimap (,)
 
 //Utility functions
-dp2s :: DataPath -> String
+dp2s :: !DataPath -> String
 dp2s (DataPath path) = join "-" (map toString (reverse path))
 
-dp2id :: String DataPath -> String
+dp2id :: !String !DataPath -> String
 dp2id prefix path = prefix +++ "-" +++ dp2s path 
 
-s2dp :: String -> DataPath
+s2dp :: !String -> DataPath
 s2dp str = DataPath (reverse (map toInt (split "-" str)))
 
-isdps :: String -> Bool
+isdps :: !String -> Bool
 isdps path = and [c == '-' || isDigit c || c == '_' \\ c <-: path]
 
 startDataPath :: DataPath
@@ -570,33 +570,33 @@ startDataPath = DataPath [0]
 emptyDataPath :: DataPath
 emptyDataPath = DataPath []
 
-stepDataPath :: DataPath -> DataPath
+stepDataPath :: !DataPath -> DataPath
 stepDataPath dp=:(DataPath [])	= dp
 stepDataPath (DataPath [x:xs])	= DataPath [inc x:xs]
 
-shiftDataPath :: DataPath -> DataPath
+shiftDataPath :: !DataPath -> DataPath
 shiftDataPath (DataPath path) = DataPath [0:path]
 
-childDataPath :: DataPath Int -> DataPath
+childDataPath :: !DataPath !Int -> DataPath
 childDataPath (DataPath path) i = DataPath [i:path]
 
-dataPathLevel :: DataPath -> Int
+dataPathLevel :: !DataPath -> Int
 dataPathLevel (DataPath l) = length l
 
 instance == DataPath
 where
 	(==) (DataPath a) (DataPath b) = a == b
 
-dataPathList :: DataPath -> [Int]
+dataPathList :: !DataPath -> [Int]
 dataPathList (DataPath list) = list
 
-dataPathFromList :: [Int] -> DataPath
+dataPathFromList :: ![Int] -> DataPath
 dataPathFromList l = DataPath l
 
 // detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
 // e.g. [1,0] <== [0] 
-(<==) infixr 1 :: [Int] [Int] -> Bool
-(<==) pathA pathB = tlEq (reverse pathA) (reverse pathB)
+(<==) infixr 1 :: !DataPath !DataPath -> Bool
+(<==) (DataPath pathA) (DataPath pathB) = tlEq (reverse pathA) (reverse pathB)
 where
 	tlEq _  	 []		= True
 	tlEq [] 	 _ 		= False

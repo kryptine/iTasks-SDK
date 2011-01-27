@@ -53,17 +53,21 @@ accIWorldUSt :: !.(*IWorld -> *(.a,*IWorld))!*USt -> (.a,!*USt)
 //Utility functions for dealing with DataPath values
 startDataPath			:: DataPath			//Path initialized at position "0"
 emptyDataPath			:: DataPath			//Path initialized empty
-stepDataPath			:: DataPath			-> DataPath
-shiftDataPath			:: DataPath			-> DataPath
-childDataPath			:: DataPath Int		-> DataPath
-dataPathLevel			:: DataPath			-> Int
-dataPathList 			:: DataPath 		-> [Int]
-dataPathFromList		:: [Int]			-> DataPath
+stepDataPath			:: !DataPath		-> DataPath
+shiftDataPath			:: !DataPath		-> DataPath
+childDataPath			:: !DataPath !Int	-> DataPath
+dataPathLevel			:: !DataPath		-> Int
+dataPathList 			:: !DataPath 		-> [Int]
+dataPathFromList		:: ![Int]			-> DataPath
 
-dp2s			:: DataPath			-> String
-dp2id			:: String DataPath	-> String
-s2dp			:: String			-> DataPath
-isdps			:: String			-> Bool
+dp2s			:: !DataPath			-> String
+dp2id			:: !String !DataPath	-> String
+s2dp			:: !String				-> DataPath
+isdps			:: !String				-> Bool
+
+// detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
+// e.g. [1,0] <== [0] 
+(<==) infixr 1 :: !DataPath !DataPath -> Bool
 
 class GenMask m
 where

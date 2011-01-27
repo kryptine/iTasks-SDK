@@ -40,7 +40,10 @@ itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 			if(this.activeError)
 				this.setError(this.activeError);
 		}
-	},	
+	},
+	getValue: function(){
+		return (new Date(itasks.tui.DateControl.superclass.getValue.call(this))).format(this.format);
+	},
 	setError: function(msg){		
 		if(msg == "")
 			itasks.tui.common.clearError(this);
@@ -52,6 +55,13 @@ itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 			itasks.tui.common.clearHint(this);
 		else
 			itasks.tui.common.markHint(this,msg);
+	},
+	onTriggerClick : function(){
+		// onTriggerClick implementation of superclass expects getValue to return date instead of string
+		var myGetValue = this.getValue;
+		this.getValue = itasks.tui.DateControl.superclass.getValue;
+		itasks.tui.DateControl.superclass.onTriggerClick.call(this);
+		this.getValue = myGetValue;
 	}
 });
 

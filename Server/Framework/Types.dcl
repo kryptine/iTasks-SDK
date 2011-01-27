@@ -12,8 +12,8 @@ from Config		import :: Config
 from TaskTree	import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
 
 derive class iTask	EmailAddress, Session, Action, ProcessRef, TaskStatus
-derive JSONEncode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map
-derive JSONDecode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map
+derive JSONEncode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp
+derive JSONDecode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp
 
 instance toString User
 instance toString TaskPriority

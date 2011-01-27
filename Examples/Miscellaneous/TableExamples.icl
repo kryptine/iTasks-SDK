@@ -11,7 +11,9 @@ plantExample` =
 		readDataset
 	>>= transform toTable
 	>>=	updateInformation ("Plant Dataset",description)
-	>>|	stop
+	>>= transform fromTable
+	>>= showMessageAbout "Updated dataset"
+	>>| stop
 where
 	description = RawText
 		("This example demonstrates how the table type is used to edit a dataset. "
@@ -25,20 +27,21 @@ showError dyn = case dyn of
 readDataset :: Task [Plant]
 readDataset =
 					importCSVFile ".\\Miscellaneous\\plants.csv"
-	>>= \csvData.	toPlant csvData []
+	>>= \csvData.	toPlants csvData []
 where
-	toPlant [] acc = return (reverse acc)
-	toPlant [plant:rest] acc = case plant of
+	toPlants [] acc = return (reverse acc)
+	toPlants [plant:rest] acc = case plant of
 		[common,botanical,zone,light,price,availability,indoor]
-			= toPlant rest
+			= toPlants rest
 				[{ name =
 					{ common	= common
 					, botanical	= botanical
 					}
 				, light			= light
-				, price			= USD (toInt ((toReal price) * 100.0))
+				//, price			= USD (toInt ((toReal price) * 100.0))
 				, availability	= s2Date availability
 				,indoor			= indoor == "true"
+				, description	= Note ""
 				}:acc]
 		_
 			= throw "invalid CSV row!"
@@ -49,9 +52,10 @@ where
 
 :: Plant =		{ name			:: PlantName
 				, light			:: String
-				, price			:: Currency
+				//, price			:: Currency
 				, availability	:: Date
 				, indoor		:: Bool
+				, description	:: Note
 				}
 :: PlantName =	{ common		:: String
 				, botanical		:: String
@@ -59,4 +63,4 @@ where
 
 derive class iTask		Plant, PlantName
 derive class tableRow	Plant, PlantName
-derive bimap Maybe, (,)
+derive bimap Maybe, (,), []

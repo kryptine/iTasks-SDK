@@ -8,16 +8,26 @@ derive gVerify		Table
 derive JSONEncode	Table
 derive JSONDecode	Table
 
-derive gMakeColumns	OBJECT, CONS, FIELD, PAIR, Int, String, Bool, Real, Date, Currency
-derive gMakeRow		OBJECT, CONS, FIELD, PAIR, Int, String, Bool, Real, Date, Currency
+derive gMakeColumns	OBJECT, CONS, FIELD, PAIR, Int, String, Bool, Real, Date, Note
+derive gToRow		OBJECT, CONS, FIELD, PAIR, Int, String, Bool, Real, Date, Note
+derive gFromRow		OBJECT, CONS, FIELD, PAIR, Int, String, Bool, Real, Date, Note
+derive bimap		TableCol
 
-:: Table = Table ![TUIGridColumn] ![JSONNode]
+:: Table a = Table ![TableCol a] ![JSONNode]
+:: TableCol a =
+	{ header		:: !String
+	, dataIndex		:: !String
+	, editorType	:: !Maybe String
+	}
 
-toTable :: ![a] -> Table | tableRow a
+toTable		:: ![a] -> (Table a) | tableRow a
+fromTable	:: !(Table a) -> [a] | tableRow a
 
 class tableRow a
 	| gMakeColumns{|*|}
-	, gMakeRow{|*|} a
+	, gToRow{|*|}
+	, gFromRow{|*|} a
 
-generic gMakeColumns	a :: !a ![String] !(Maybe Int)	!DataPath -> (![TUIGridColumn],!DataPath)
-generic gMakeRow		a :: !a							!DataPath -> (![(!String,!String)],!DataPath)
+generic gMakeColumns	a :: ![String] !(Maybe Int)	!DataPath -> (![TableCol a],!DataPath)
+generic gToRow			a :: !a						!DataPath -> (![(!String,!String)],!DataPath)
+generic gFromRow		a :: !(Map String String)	!DataPath -> (!a,!DataPath)

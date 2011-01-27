@@ -8,12 +8,17 @@ import Text, Base64, Util
 import dynamic_string
 from TSt 	import :: TSt
 from Config	import :: Config
+from Time	import :: Timestamp(..)
 
 derive class iTask		EmailAddress, Session, Action, ProcessRef, TaskStatus
-derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map
-derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map
+derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map, Void, Either
+derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map, Void, Either
 derive gLexOrd			Currency
 derive bimap			Maybe, (,)
+
+JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
+JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
+JSONDecode{|Timestamp|} c				= (Nothing, c)
 
 choice :: ![a] -> Choice a
 choice l = Choice l -1

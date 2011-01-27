@@ -1,12 +1,7 @@
 definition module Util
 
-from Types	import :: TaskNr, :: TaskId
-from Void	import :: Void
-from Either	import :: Either
-import GenVisualize, GenUpdate, GenVerify
-
-derive JSONEncode	Dynamic, Void, Either, Timestamp, (->)
-derive JSONDecode	Dynamic, Void, Either, Timestamp, (->)
+from Types import :: TaskNr, :: TaskId
+import GenVisualize
 
 class iTaskId a
 where

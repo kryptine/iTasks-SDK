@@ -8,18 +8,15 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.EditorGridPanel,{
 	
 	initComponent: function() {
 		var fields = [];
-		for(var i = 0; i < this.columns.length; i++){
-			fields[i] = this.columns[i].dataIndex;
+		var cols = this.columns;
+		for(var i = 0; i < cols.length; i++){
+			cols[i].editor = {xtype: cols[i].editor};
+			fields[i] = cols[i].dataIndex;
 		}
 		
-		console.log(this.columns);
-		console.log(this.gridData);
-		
 		var store = new Ext.data.JsonStore({
-			// store configs
 			autoDestroy: true,
 			root: 'data',
-			//idProperty: 'name',
 			fields: fields,
 			data: {data: this.gridData}
 		});
@@ -28,9 +25,14 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.EditorGridPanel,{
 	
 		itasks.tui.GridControl.superclass.initComponent.apply(this,arguments);
 		
-		//this.addEvents('tuichange');
-		//this.enableBubble('tuichange');
-	},
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
+		
+		this.on('afteredit',function(e) {
+			this.fireEvent('tuichange',this.name + "-" + e.row + "-" + e.field,e.value.toString());
+			e.record.commit();
+		},this);
+	}
 });
 
 Ext.reg("itasks.tui.Grid",itasks.tui.GridControl);
