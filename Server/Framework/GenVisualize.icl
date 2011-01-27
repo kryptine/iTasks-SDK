@@ -809,11 +809,11 @@ where
 	curLabel (Just (EUR _))	= "&euro;"
 	curLabel (Just (GBP _))	= "&pound;"
 	curLabel (Just (USD _))	= "$"
-	curLabel (Just (JPY _)) 	= "&yen;"
-	curLabel _					= "&euro;" //Use the default currency
+	curLabel (Just (JPY _)) = "&yen;"
+	curLabel _				= "&euro;" //Use the default currency
 	
-	value Nothing um			= ""
-	value (Just v) um = case um of (Touched _ _) = (decFormat (toInt v)); _ = ""
+	value Nothing um	= ""
+	value (Just v) um	= case um of (Touched _ _) = (decFormat (toInt v)); _ = ""
 	
 	id = dp2id idPrefix currentPath
 
@@ -863,7 +863,7 @@ gVisualize{|Choice|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 														})]
 					, {VSt|vst & currentPath = stepDataPath currentPath})
 				_
-					| sel > 0 && sel < length opts
+					| sel >= 0 && sel < length opts
 						# (vis,vst) = fx (Just (getChoice choice)) {VSt|vst & currentPath = shiftDataPath currentPath}
 						= (vis,{VSt|vst & currentPath = stepDataPath currentPath})
 					| otherwise
