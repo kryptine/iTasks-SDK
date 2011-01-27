@@ -5,8 +5,8 @@ import Types, Shared, Util, Html, Text, Http, TSt, Store, ExceptionCombinators
 from StdFunc import id, const, o
 from HtmlUtil import paramValue
 
-derive JSONEncode UpdateMask, ErrorMessage
-derive JSONDecode UpdateMask, ErrorMessage
+derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
+derive JSONDecode UpdateMask, VerifyMask, ErrorMessage
 derive bimap Maybe,(,)
 
 always :: (Verified a) -> Bool
@@ -243,8 +243,8 @@ makeInformationTaskAV :: !(Maybe about) ((a v -> (v,Bool)),v) !(v a -> a) ![Task
 makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informationTaskMode tst=:{taskNr, newTask, treeType}
 	# tst						= if newTask (initTask tst) tst
 	# (ovalue,tst)				= readValue tst
-	# (oumask,tst)				= readMask tst
-	# (ovmask,tst)				= accIWorldTSt (verifyValue ovalue oumask) tst
+	# (oumask,tst)				= readUMask tst
+	# (ovmask,tst)				= readVMask ovalue oumask tst
 	# old						= (ovalue,oumask,ovmask)
 	# (events,tst)				= getEvents tst
 	# (localTimestamp,tst)		= getLocalTimestamp tst
@@ -271,7 +271,7 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					// update view value
 					# (nmask,tst)	= accIWorldTSt (defaultMask nvalue) tst
 					# tst			= setTaskStore "value" nvalue tst
-					# tst			= setTaskStore "mask" nmask tst
+					# tst			= setTaskStore "umask" nmask tst
 					// don't update model in enter mode
 					# tst = case enterMode of
 						False
@@ -303,7 +303,7 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 				_			// update edited view value
 					# (nvalue,numask,tst)	= applyUpdates edits ovalue oumask tst
 					# tst					= setTaskStore "value" nvalue tst
-					# tst					= setTaskStore "mask" numask tst
+					# tst					= setTaskStore "umask" numask tst
 					# (nvmask,tst)			= accIWorldTSt (verifyValue nvalue numask) tst
 					# (conflict,tst)		= accIWorldTSt (isSharedChanged shared localTimestamp) tst
 					| isValidValue nvmask && not enterMode
@@ -415,7 +415,8 @@ where
 		# (nvmask,tst)		= accIWorldTSt (verifyValue nvalue numask) tst
 		# nvmask			= setInvalid errors nvmask
 		# tst				= setTaskStoreFor taskNr "value" nvalue tst
-		# tst				= setTaskStoreFor taskNr "mask" numask tst
+		# tst				= setTaskStoreFor taskNr "umask" numask tst
+		# tst				= setTaskStoreFor taskNr "vmask" numask tst
 		= ((nvalue,numask,nvmask),tst)
 					
 	readValue tst
@@ -429,11 +430,17 @@ where
 				# tst		= setTaskStoreFor taskNr "value" v tst
 				= (v,tst)
 							
-	readMask tst
-		# (mbmask,tst)	= getTaskStoreFor taskNr "mask" tst
+	readUMask tst
+		# (mbmask,tst)	= getTaskStoreFor taskNr "umask" tst
 		= case mbmask of
 			Just m	= (m,tst)
 			Nothing	= (Untouched,tst)
+			
+	readVMask value umask tst
+		# (mbmask,tst)	= getTaskStoreFor taskNr "vmask" tst
+		= case mbmask of
+			Just m	= (m,tst)
+			Nothing	= accIWorldTSt (verifyValue value umask) tst
 			
 	getLocalTimestamp tst=:{TSt|iworld=iworld=:{IWorld|timestamp}}
 		# (mbTimestamp,tst) = getTaskStoreTimestampFor taskNr "value" tst
