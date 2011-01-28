@@ -416,7 +416,7 @@ where
 		# nvmask			= setInvalid errors nvmask
 		# tst				= setTaskStoreFor taskNr "value" nvalue tst
 		# tst				= setTaskStoreFor taskNr "umask" numask tst
-		# tst				= setTaskStoreFor taskNr "vmask" numask tst
+		# tst				= setTaskStoreFor taskNr "vmask" nvmask tst
 		= ((nvalue,numask,nvmask),tst)
 					
 	readValue tst

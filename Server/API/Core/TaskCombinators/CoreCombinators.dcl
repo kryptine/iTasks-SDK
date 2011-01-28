@@ -124,9 +124,9 @@ assign :: !User !(Task a) -> Task a	| iTask a
 /**
 * Create a new process.
 *
-* @param The user that will perform processes main task.
 * @param Activate the process immediately (False creates the process in a suspended state)
 * @param Automatically garbage collect the process when it is finished (removing all references to the state of the process).
+* @param The task that is to be started in the new process.
 *
 * @return A reference to the newly created process
 */
