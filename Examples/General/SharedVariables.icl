@@ -32,21 +32,21 @@ where
 calculateSum = updateInformationA ("Sum","Auto compute sum") (\t=:(x,y) -> (t,Display (x+y)),\(t,_) _ -> t) [quitButton] (0,0)
 
 //Tree Example
-:: Tree a = Leaf | Node (Node a)
-:: Node a = { rightChildren	:: Tree a
-			, value			:: a
-			, leftChildren	:: Tree a
+:: Tree` a = Leaf` | Node` (Node` a)
+:: Node` a = { rightChildren	:: Tree` a
+			, value				:: a
+			, leftChildren		:: Tree` a
 			}
 
-derive class iTask Tree, Node
+derive class iTask Tree`, Node`
 
-toTree :: [a] -> (Tree a) | Ord a
+toTree :: [a] -> (Tree` a) | Ord a
 toTree list = makeTree (sort list)
 where
-	makeTree :: [a] -> (Tree a)
-	makeTree []			= Leaf
-	makeTree [el:[]]	= Node {rightChildren = Leaf, value = el, leftChildren = Leaf}
-	makeTree list		= Node {rightChildren = makeTree end, value = middle, leftChildren = makeTree begin}
+	makeTree :: [a] -> (Tree` a)
+	makeTree []			= Leaf`
+	makeTree [el:[]]	= Node` {rightChildren = Leaf`, value = el, leftChildren = Leaf`}
+	makeTree list		= Node` {rightChildren = makeTree end, value = middle, leftChildren = makeTree begin}
 	where
 		middlePos	= (length list) / 2
 		begin		= take (middlePos) list

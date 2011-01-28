@@ -11,8 +11,8 @@ from Config	import :: Config
 from Time	import :: Timestamp(..)
 
 derive class iTask		EmailAddress, Session, Action, ProcessRef, TaskStatus
-derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map, Void, Either
-derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map, Void, Either
+derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
+derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
 derive gLexOrd			Currency
 derive bimap			Maybe, (,)
 
@@ -92,7 +92,27 @@ where
 					| i == choiceIndex	= nr
 					| otherwise			= nrOfOccurrence` (inc i) (inc nr) oldOpts
 				| otherwise				= nrOfOccurrence` (inc i) nr oldOpts
-	
+				
+mkTree :: ![TreeNode a] -> Tree a
+mkTree nodes = Tree nodes Nothing
+
+getSelectedLeaf :: !(Tree a) -> Maybe a
+getSelectedLeaf (Tree nodes mbSel)
+	= case mbSel of
+		Just sel	= searchV nodes sel
+		Nothing		= Nothing
+where
+	searchV nodes selIdx = fst (searchV` nodes 0)
+	where
+		searchV` [] c = (Nothing,c)
+		searchV` [Leaf v:r] c
+			| c == selIdx	= (Just v,c)
+			| otherwise		= searchV` r (inc c)
+		searchV` [Node _ children:r] c
+			= case searchV` children c of
+				(Nothing,c)	= searchV` r c
+				v			= v
+
 initManagerProperties :: ManagerProperties
 initManagerProperties = 
 	{ worker = AnyUser

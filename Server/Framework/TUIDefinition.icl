@@ -4,15 +4,11 @@ import JSON,StdList,StdBool,GenEq
 
 from Types import :: Document, :: DocumentId, :: Hotkey, :: Key
 
-derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl, TUIGridControl, TUIGridColumn
-derive gEq TUIAppletControl, TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, JSONNode, Maybe, Document
-derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey, Key
-
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl
-derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn
+derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree
 
 //TODO: Separate control elements from form-widgets
 JSONEncode{|TUIDef|} (TUIButton r)				= addXType "itasks.ttc.Button" (JSONEncode{|*|} r)
@@ -41,6 +37,7 @@ JSONEncode{|TUIDef|} (TUIConstructorControl r)	= addXType "itasks.tui.Constructo
 JSONEncode{|TUIDef|} (TUIListItemControl r) 	= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIAppletControl r)		= addXType "itasks.tui.Applet" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIGridControl r)			= addXType "itasks.tui.Grid" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUITreeControl r)			= addXType "itasks.tui.Tree" (JSONEncode{|*|} r)
 
 JSONEncode{|TUIDef|} (TUITupleContainer r)		= addXType "itasks.tui.Tuple" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)
@@ -59,6 +56,8 @@ where
 	(==) (TUIRealControl a) 		(TUIRealControl b) 			= a == b
 	(==) (TUIBoolControl a) 		(TUIBoolControl b) 			= a == b
 	(==) (TUIChoiceControl a) 		(TUIChoiceControl b) 		= a == b
+	(==) (TUITreeControl a) 		(TUITreeControl b) 			= a == b
+	(==) (TUIGridControl a) 		(TUIGridControl b) 			= a == b
 	(==) (TUINoteControl a) 		(TUINoteControl b) 			= a == b
 	(==) (TUIDateControl a) 		(TUIDateControl b) 			= a == b
 	(==) (TUITimeControl a) 		(TUITimeControl b) 			= a == b
@@ -96,6 +95,30 @@ where
 	(==) a b = (a.TUIChoiceControl.id == b.TUIChoiceControl.id)
 			&& (a.TUIChoiceControl.optional == b.TUIChoiceControl.optional)
 			&& (a.TUIChoiceControl.options == a.TUIChoiceControl.options)
+			
+instance == TUIGridControl
+where
+	(==) a b = (a.TUIGridControl.id == b.TUIGridControl.id)
+			&& (a.TUIGridControl.columns == a.TUIGridControl.columns)
+			
+instance == TUIGridColumn
+where
+	(==) a b = (a.TUIGridColumn.header == b.TUIGridColumn.header)
+			&& (a.TUIGridColumn.dataIndex == a.TUIGridColumn.dataIndex)
+			
+instance == TUITreeControl
+where
+	(==) a b = (a.TUITreeControl.id == b.TUITreeControl.id)
+			&& (a.TUITreeControl.optional == b.TUITreeControl.optional)
+			&& (a.TUITreeControl.tuiTree == a.TUITreeControl.tuiTree)
+			
+instance == TUITree
+where
+	(==) a b = (a.TUITree.id == b.TUITree.id)
+			&& (a.TUITree.text == b.TUITree.text)
+			&& (a.TUITree.children == b.TUITree.children)
+			&& (a.TUITree.leaf == a.TUITree.leaf)
+			&& (a.TUITree.index == a.TUITree.index)
 	
 instance == TUICurrencyControl
 where

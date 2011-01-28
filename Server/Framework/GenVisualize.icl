@@ -54,12 +54,20 @@ diffEditorDefinitions path old new
 			(TUIDocumentControl odoc, TUIDocumentControl ndoc)
 				| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
 				| otherwise																= [TUIReplace_ (dp2s path) new]
-			// Choices are replaced if the options are changed, otherwise there selection is updated
+			// Choices are replaced if the options are changed, otherwise their selection is updated
 			(TUIChoiceControl oc, TUIChoiceControl nc)
 				# updates = if (oc.options == nc.options)
 					if (oc.selection == nc.selection)
 						[]
 						[TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
+					[TUIReplace_ (dp2s path) new]
+				= updates ++ hintUpdate path old new ++ errorUpdate path old new
+			// Trees are replaced if the nodes are changed, otherwise their selection is updated
+			(TUITreeControl ot, TUITreeControl nt)
+				# updates = if (ot.tuiTree == nt.tuiTree)
+					if (ot.selIndex == nt.selIndex)
+						[]
+						[TUISetValue_ (dp2s path) (toString nt.selIndex)]
 					[TUIReplace_ (dp2s path) new]
 				= updates ++ hintUpdate path old new ++ errorUpdate path old new
 			// Fallback: always replace
@@ -139,6 +147,8 @@ sameType (TUIHiddenControl _)		(TUIHiddenControl _)		= True
 sameType (TUIFormButtonControl _)	(TUIFormButtonControl _)	= True
 sameType (TUIListItemControl _)		(TUIListItemControl _)		= True
 sameType (TUIAppletControl _)       (TUIAppletControl _)        = True
+sameType (TUIGridControl _)			(TUIGridControl _)        = True
+sameType (TUITreeControl _)			(TUITreeControl _)        = True
 
 sameType (TUITupleContainer _)		(TUITupleContainer _)		= True
 sameType (TUIRecordContainer _)		(TUIRecordContainer _)		= True
@@ -909,6 +919,49 @@ where
 		# (vis,vst) = fx (Just choice) vst
 		= visualiseChoices choices (acc ++ vis ++ (if (isEmpty choices) [] [TextFragment ", "])) vst
 
+gVisualize{|Tree|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,verifyMask,updateMask,updates}
+	# (cmu,um)	= popMask updateMask
+	# (cmv,vm)	= popMask verifyMask
+	# vst		= {VSt|vst & updateMask = um, verifyMask = vm}
+	= case val of
+		Nothing
+			= ([TextFragment "Empty tree"],{VSt|vst & currentPath = stepDataPath currentPath})
+		Just (Tree nodes mbSel)
+			# vst = {vst & vizType = VTextLabel}
+			# (tree,_,vst) = mkTree nodes 0 vst
+			# vst = {vst & vizType = VEditorDefinition}
+			= case vizType of
+				VEditorDefinition
+					# (err,hnt)				= verifyElementStr cmu cmv
+					# id					= dp2id idPrefix currentPath
+					= ([TUIFragment (TUITreeControl	{ TUITreeControl
+													| name = dp2s currentPath
+													, id = id
+													, tuiTree = tree
+													, selIndex = mbSel
+													, fieldLabel = labelAttr useLabels label
+													, optional = optional
+													, staticDisplay = renderAsStatic
+													, errorMsg = err
+													, hintMsg = hnt
+													})]
+					, {VSt|vst & currentPath = stepDataPath currentPath})
+				_
+					= ([TextFragment "tree"],{VSt|vst & currentPath = stepDataPath currentPath})
+where
+	mkTree [] idx vst
+		= ([],idx,vst)
+	mkTree [Node label nodes:r] idx vst
+		# (children,idx,vst)	= mkTree nodes idx vst
+		# (rtree,idx,vst)		= mkTree r idx vst
+		= ([{id = Nothing, text = label, index = Nothing, leaf = False, children = Just children}:rtree],idx,vst)
+	mkTree [Leaf v:r] idx vst
+		# (leaf,vst)		= fx (Just v) vst
+		# (rtree,idx`,vst)	= mkTree r (inc idx) vst
+		= ([{id = Just (nodeId idx), text = join " " (coerceToStrings leaf), index = Just idx, leaf = True, children = Nothing}:rtree],idx`,vst)
+	
+	nodeId idx = (dp2id idPrefix currentPath) +++ "-" +++ toString idx
+	
 gVisualize{|Shared|} _ _ vst			= ([TextFragment "Reference to shared data"],vst)
 gVisualize{|SharedReadOnly|} _ _ vst	= ([TextFragment "Read-Only reference to shared data"],vst)
 

@@ -23,13 +23,13 @@ guiDemoExample
 	, grades		:: [Int]
 	, pet			:: String
 	, note			:: Maybe Note
-	, tree			:: Tree Int String
+	, tree			:: Tree` Int String
 	, luckyNo		:: Int
 	}
 
-:: Tree a b = Leaf b | Node (Tree a b) a (Tree a b)
+:: Tree` a b = Leaf` b | Node` (Tree` a b) a (Tree` a b)
 
-derive class iTask	Person, Address, Tree
+derive class iTask	Person, Address, Tree`
 derive bimap (,), Maybe
 
 address = {Address | street = "Heyendaalseweg", number = 135, postalCode = "6525 AJ", city = "Nijmegen"}
@@ -42,7 +42,7 @@ person	= {Person | name	= "John Doe"
 				  , grades	= []
 				  , pet		= "Cat"
 				  , note	= Nothing
-				  , tree	= Leaf "Tree"
+				  , tree	= Leaf` "Tree"
 				  , luckyNo	= 42
 				  }
 guiDemo :: Task Person

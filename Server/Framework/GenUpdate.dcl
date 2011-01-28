@@ -1,8 +1,7 @@
 definition module GenUpdate
 
-import StdGeneric, StdMaybe, Void, Either, Store, Shared
+import StdGeneric, StdMaybe, Void, Either, Store, Shared, Types
 from Map			import :: Map
-from Types			import :: Time, :: DateTime, :: FormButton, :: Currency, :: User, :: UserDetails, :: Task, :: Choice, :: MultipleChoice, :: Password, :: Note, :: Document, :: Date
 from GenVisualize	import :: Display, :: Editable, :: Hidden, :: VisualizationHint
 
 //Datapath is used to point to substructures of data structures
@@ -38,7 +37,7 @@ generic gUpdate a		:: a 		*USt -> (a, *USt)
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gUpdate Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Task, Choice, MultipleChoice, Shared, SharedReadOnly, Map
+derive gUpdate Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Task, Choice, MultipleChoice, Shared, SharedReadOnly, Map, Tree
 
 //Wrapper functions for updating
 defaultValue			:: !*IWorld -> (!a,!*IWorld)										| gUpdate{|*|} a

@@ -173,6 +173,7 @@ gVerify{|SharedReadOnly|} _ _ vst = vst
 
 gVerify{|Choice|}			_ _ vst = simpleVerify "Choose one item" vst
 gVerify{|MultipleChoice|}	_ _ vst = simpleVerify "Choose a number of items" vst
+gVerify{|Tree|}				_ _ vst = simpleVerify "Choose a leaf of the tree" vst
 
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool

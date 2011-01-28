@@ -42,6 +42,9 @@ import SharedVariables
 //Ad-hoc work extensions
 import Groups, Lists, Messages, Consensus
 
+//Workflow starter
+import WorkflowStarter
+
 Start :: *World -> *World
 Start world = startEngine workflows world
 where
@@ -71,4 +74,5 @@ where
 						, sharedValueExamples
 						,	[workflow "General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions
 							]
+						, workflowStarter
 						]

@@ -12,8 +12,8 @@ from Config		import :: Config
 from TaskTree	import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
 
 derive class iTask	EmailAddress, Session, Action, ProcessRef, TaskStatus
-derive JSONEncode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp
-derive JSONDecode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp
+derive JSONEncode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive JSONDecode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 
 instance toString User
 instance toString TaskPriority
@@ -315,6 +315,14 @@ setOptionsM			:: ![a] !(MultipleChoice a)			-> MultipleChoice a | gEq{|*|} a
 	}
 
 :: DocumentId :== String
+
+:: Tree a = Tree ![TreeNode a] !(Maybe Int)
+:: TreeNode a = Leaf !a | Node !TreeLabel ![TreeNode a]
+:: TreeLabel :== String
+
+mkTree :: ![TreeNode a] -> Tree a
+
+getSelectedLeaf :: !(Tree a) -> Maybe a
 
 /*
 * Gives the unique username of a user

@@ -10,7 +10,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate
 
-instance == TUIDef
+instance == TUIDef, TUITree
 
 :: TUIId :== String
 
@@ -59,6 +59,7 @@ instance == TUIDef
 	| TUIListItemControl TUIListItemControl
 	| TUIAppletControl TUIAppletControl
 	| TUIGridControl TUIGridControl
+	| TUITreeControl TUITreeControl
 	
 	| TUITupleContainer TUITupleContainer
 	| TUIRecordContainer TUIRecordContainer
@@ -92,6 +93,24 @@ instance == TUIDef
 	, selection		:: ![Int]
 	, errorMsg		:: !String
 	, hintMsg		:: !String
+	}
+:: TUITreeControl =
+	{ name			:: !String
+	, id			:: !TUIId
+	, tuiTree		:: ![TUITree]
+	, selIndex		:: !Maybe Int
+	, fieldLabel	:: !Maybe String
+	, staticDisplay	:: !Bool
+	, optional		:: !Bool
+	, errorMsg		:: !String
+	, hintMsg		:: !String
+	}
+:: TUITree =
+	{ id		:: !Maybe TUIId
+	, text		:: !String
+	, children	:: !Maybe [TUITree]
+	, leaf		:: !Bool
+	, index		:: !Maybe Int
 	}
 :: TUICurrencyControl =
 	{ name			:: !String

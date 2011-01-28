@@ -543,6 +543,24 @@ gUpdate{|MultipleChoice|} _ c=:(MultipleChoice opts _) ust=:{USt|mode=UDSearch,s
 gUpdate{|MultipleChoice|} _ c ust=:{USt|mode=UDMask,currentPath,newMask}
 	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 
+gUpdate{|Tree|} _ _ ust=:{USt|mode=UDCreate,newMask} 
+	= (Tree [] Nothing, {USt | ust & newMask = appendToMask newMask Untouched})
+gUpdate{|Tree|} _ tree=:(Tree nodes _) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om)	= popMask oldMask
+	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
+	| currentPath == searchPath
+		# selIdx = toInt update
+		# (n,mask) = if (selIdx >= 0)
+			(Tree nodes (Just (toInt update)),	Touched True [])
+			(Tree nodes Nothing,				Blanked True)
+		= (n, {ust & newMask = appendToMask newMask mask}) 
+	| otherwise
+		= (tree, {ust & newMask = appendToMask newMask (cleanUpdMask cm)})
+gUpdate{|Tree|} _ tree=:(Tree _ mbSel) ust=:{USt|mode=UDMask,currentPath,newMask}
+	// if no valid selection is made, start with untouched mask
+	# mask = if (isJust mbSel) (Touched True []) (Untouched)
+	= (tree, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask mask})
+
 gUpdate{|Shared|}			_ _ ust=:{mode=UDCreate}	= (Shared "" Nothing, ust)
 gUpdate{|Shared|}			_ x ust						= (x,ust)
 gUpdate{|SharedReadOnly|}	_ _ ust=:{mode=UDCreate}	= (SharedReadOnly "" Nothing, ust)
