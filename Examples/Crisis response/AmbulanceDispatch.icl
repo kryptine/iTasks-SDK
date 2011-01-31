@@ -1,7 +1,6 @@
 implementation module AmbulanceDispatch
 
 import iTasks
-import GenEq
 
 ambulanceDispatchExamples :: [Workflow]
 ambulanceDispatchExamples = flows
@@ -63,8 +62,6 @@ allproviders  = [{name="Ambulance Post 0",id=NamedUser "ambupost0",location={str
 
 derive class iTask	Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
 derive bimap (,), Maybe
-
-derive gEq IncidentType
 
 reportIncident :: Task [Void]
 reportIncident

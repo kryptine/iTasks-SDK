@@ -2,11 +2,11 @@ implementation module Shared
 
 import StdTuple, StdFunc, StdMisc
 import JSON, Store, Util
-from Types		import :: IBimap
 from GenUpdate	import defaultValue, generic gUpdate
 
-derive JSONEncode Shared, SharedReadOnly
-derive JSONDecode Shared, SharedReadOnly
+derive JSONEncode	Shared, SharedReadOnly
+derive JSONDecode	Shared, SharedReadOnly
+derive gEq			Shared, SharedReadOnly
 derive bimap Maybe,(,)
 
 mkSharedReference :: !String -> (Shared a)

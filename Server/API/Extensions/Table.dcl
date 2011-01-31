@@ -7,6 +7,7 @@ derive gUpdate		Table
 derive gVerify		Table
 derive JSONEncode	Table
 derive JSONDecode	Table
+derive gEq			Table
 
 derive gMakeColumns	OBJECT, CONS, FIELD, PAIR, Int, String, Bool, Real, Date, Note
 derive gToRow		OBJECT, CONS, FIELD, PAIR, Int, String, Bool, Real, Date, Note

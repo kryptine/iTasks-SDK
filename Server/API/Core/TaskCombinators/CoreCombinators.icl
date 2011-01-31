@@ -98,7 +98,7 @@ where
 						Focus tag		= (False,Just tag,pst)
 				
 		# (result,pst,tst,mbFocus) 	= processAllTasks pst 0 tst mbFocus
-		# tst						= setTaskStoreFor taskNr "pst" pst tst
+		# tst						= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 		= case result of
 			TaskException e = (TaskException e,tst)
 			TaskFinished  r = (TaskFinished (parseFun r),tst)
@@ -131,7 +131,7 @@ where
 					Focus tag	= processAllTasks pst (inc idx) {tst & taskNr = taskNr} (Just tag)
 
 	loadPSt taskNr tst
-		# (mbPSt,tst) = getTaskStoreFor taskNr "pst" tst
+		# (mbPSt,tst) = accIWorldTSt (getTaskStoreFor taskNr "pst") tst
 		= case mbPSt of
 			(Just p) = (p,tst)
 			Nothing  = initPSt taskNr tst
@@ -141,7 +141,7 @@ where
 				| state = initState
 				, tasks = [(task, False) \\ task <- initTasks]
 				}
-		# tst = setTaskStoreFor taskNr "pst" pst tst
+		# tst = appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 		= (pst,tst)
 
 	markProcessed pst idx
@@ -155,9 +155,9 @@ where
 		evaluateCondition (StatePredicate p)		= Left	(p state)
 		evaluateCondition (SharedPredicate id p)	= Right	(checkSharedPred id p)
 		
-		checkSharedPred shared p tst
-			# (mbVal,tst) = accIWorldTSt (readShared shared) tst
-			= (p mbVal, tst)
+		checkSharedPred shared p iworld
+			# (mbVal,iworld) = readShared shared iworld
+			= (p mbVal, iworld)
 				
 	getEventGroupActionEvent events groupActions
 		# actionEvents = [getNameAndData event \\ ("action", event) <- events]
@@ -197,13 +197,13 @@ where
 	
 	//Load or create the internal state
 	loadPSt taskNr tst=:{TSt|properties}
-		# (mbPSt,tst) = getTaskStoreFor taskNr "pst" tst
+		# (mbPSt,tst) = accIWorldTSt (getTaskStoreFor taskNr "pst") tst
 		= case mbPSt of
 			Just pst	= (pst,tst)
 			Nothing 	= ({PSt | state = initState, tasks = [(task,False) \\ task <- initTasks]},tst)
 	
 	storePSt taskNr pst tst
-		= setTaskStoreFor taskNr "pst" pst tst
+		= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 	
 	processAllTasks idx pst=:{PSt|state,tasks} tst=:{TSt|taskNr,properties}
 		= case tasks of

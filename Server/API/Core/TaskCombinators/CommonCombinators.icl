@@ -6,7 +6,7 @@ implementation module CommonCombinators
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
 import Util, Either, TSt, GenVisualize, GenUpdate, Map
 from StdFunc	import id, const, o
-from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..), :: Note(..)
+from Types		import :: ProcessId, :: User(..), :: Note(..)
 from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskParallelType{..}
@@ -38,6 +38,7 @@ JSONEncode{|Tag|} (Tag t) = JSONEncode{|*|} (toString t)
 JSONDecode{|Tag|} nodes = case nodes of
 	[JSONString str]	= (Just (Tag str), [])
 	_					= (Nothing, nodes)
+gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
 
 derive bimap Maybe, (,)
 

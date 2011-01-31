@@ -3,7 +3,7 @@ implementation module ProcessDB
 import StdEnv, StdMaybe
 import TSt, Store, Util, Text
 
-derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, WorkerProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription
+derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, WorkerProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
 derive bimap Maybe, (,)
 
 instance ProcessDB IWorld

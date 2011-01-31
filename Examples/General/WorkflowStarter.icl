@@ -5,42 +5,53 @@ from UserDB import qualified class UserDB(..)
 from UserDB import qualified instance UserDB TSt
 from StdFunc import o, seq
 
+derive gVisualize	TreeNode
+derive gUpdate		TreeNode
+derive gVerify		TreeNode
+derive bimap Maybe, (,)
+
 workflowStarter :: [Workflow]
 workflowStarter = [workflow "Examples/Workflow starter" "This task rebuilds the client's panel for starting up new workflows." starter]
 
 starter =
-					getWorkflowTree
-	>>= \workflows.	createDB workflows
+					createDB Nothing
 	>>= \ref.		chooseWorkflow ref ||- showDescription ref
 	>>|				deleteDB ref
 	
-chooseWorkflow ref = updateSharedInformationA "Tasks" idBimap [] ref
+chooseWorkflow ref =
+					getWorkflowTreeNodes
+	>>= \workflows.	updateSharedInformationA "Tasks" (treeBimap workflows) [] ref
+where
+	treeBimap workflows =	( \mbSel -> case mbSel of
+								Just sel 	= mkTreeSel workflows sel
+								Nothing		= mkTree workflows
+							, \tree _ -> Just (getSelectedLeaf tree)
+							)
 
 showDescription ref =
-						showMessageShared "Task description" view actions ref
-	>>= \(event,tree).	case fst event of
-								Action "start-task" _ =
-										startWorkflowByIndex (fromHidden (thd3 (fromJust (getSelectedLeaf tree))))
-									>>|	showDescription ref
-								_ =
-										stop
+										showMessageShared "Task description" view actions ref
+	>>= \(event,Just (_,_,Hidden idx)).	case fst event of
+											Action "start-task" _ =
+													startWorkflowByIndex idx
+												>>|	showDescription ref
+											_ =
+													stop
 where
 	actions = [(Action "start-task" " Start task",startPred),(ActionQuit,always)]
-	startPred (Valid tree)	= isJust (getSelectedLeaf tree)
+	startPred (Valid mbSel)	= isJust mbSel
 	startPred _				= False
 	
-	view tree = case getSelectedLeaf tree of
-		Just (_,Hidden desc,_)	= desc
-		Nothing					= ""
+	view (Just (_,Hidden desc,_))	= desc
+	view Nothing					= ""
 
-getWorkflowTree :: Task (Tree (String,Hidden String,Hidden Int))
-getWorkflowTree = mkInstantTask "get a tree of workflows" getWorkflowTree`
+getWorkflowTreeNodes :: Task [TreeNode (!String,!Hidden String,!Hidden Int)]
+getWorkflowTreeNodes = mkInstantTask "get a tree of workflows" getWorkflowTree`
 where
 	getWorkflowTree` tst
 		# (workflows,tst) = getAllowedWorkflows tst
 		= (TaskFinished (mkFlowTree workflows),tst)
 		
-	mkFlowTree workflows = mkTree (seq (map insertWorkflow (zip2 workflows (indexList workflows))) [])
+	mkFlowTree workflows = seq (map insertWorkflow (zip2 workflows (indexList workflows))) []
 		where
 			insertWorkflow ({path,description},idx) nodeList = insertWorkflow` (split "/" path) nodeList
 			where
@@ -52,14 +63,14 @@ where
 				insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
 				insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
 
-startWorkflow :: Workflow -> Task Void
+startWorkflow :: !Workflow -> Task Void
 startWorkflow {thread} = mkInstantTask "create new task" (startWorkflow` thread)
 	
 startWorkflow` thread tst
 	# (_,_,_,tst) = createTaskInstance thread True Nothing True True tst
 	= (TaskFinished Void,tst)
 	
-startWorkflowByIndex :: Int -> Task Void
+startWorkflowByIndex :: !Int -> Task Void
 startWorkflowByIndex idx = mkInstantTask "create new task by index in workflow list" startWorkflowByIndex`
 where
 	startWorkflowByIndex` tst

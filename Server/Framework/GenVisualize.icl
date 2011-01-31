@@ -1,7 +1,7 @@
 implementation module GenVisualize
 
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum, StdFunc
-import GenUpdate, Void, Either, Util, Text, Html, JSON, TUIDefinition, Types
+import GenUpdate, GenVerify, TUIDiff, Util, Text, Html, JSON, TUIDefinition, Types
 
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
@@ -33,229 +33,6 @@ determineEditorUpdates name (oval, oumask, ovmask) (nval, numask, nvmask)
 	# oldviz = visualizeAsEditor name oval oumask ovmask
 	# newviz = visualizeAsEditor name nval numask nvmask
 	= diffEditorDefinitions startDataPath (hd oldviz) (hd newviz) 
-
-diffEditorDefinitions :: DataPath TUIDef TUIDef -> [TUIUpdate]
-diffEditorDefinitions path old new
-	| sameType old new
-		| isStaticContainer old
-			// Records and tuples have static children
-			= staticContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
-		| isDynamicContainer old
-			// List and Constructor are special: they have dynamic children
-			= dynamicContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
-		| isControl old
-			//If not same value, error or hint, create set instructions
-			= valueUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
-		= case (old,new) of //Special cases
-			// Custom components are always updated
-			(TUICustom _, _)
-				= [TUIReplace_ (dp2s path) new]
-			// Documents are replaced when their value has changed
-			(TUIDocumentControl odoc, TUIDocumentControl ndoc)
-				| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
-				| otherwise																= [TUIReplace_ (dp2s path) new]
-			// Choices are replaced if the options are changed, otherwise their selection is updated
-			(TUIChoiceControl oc, TUIChoiceControl nc)
-				# updates = if (oc.options == nc.options)
-					if (oc.selection == nc.selection)
-						[]
-						[TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
-					[TUIReplace_ (dp2s path) new]
-				= updates ++ hintUpdate path old new ++ errorUpdate path old new
-			// Trees are replaced if the nodes are changed, otherwise their selection is updated
-			(TUITreeControl ot, TUITreeControl nt)
-				# updates = if (ot.tuiTree == nt.tuiTree)
-					if (ot.selIndex == nt.selIndex)
-						[]
-						[TUISetValue_ (dp2s path) (toString nt.selIndex)]
-					[TUIReplace_ (dp2s path) new]
-				= updates ++ hintUpdate path old new ++ errorUpdate path old new
-			// Fallback: always replace
-			_	= [TUIReplace_ (dp2s path) new]
-	| otherwise
-		//If not the same type, just replace
-		= [TUIReplace_ (dp2s path) new]
-where
-	valueUpdate path old new	= update sameValue valueOf TUISetValue_ path old new
-	hintUpdate path old new		= update sameHint hintOf TUISetHint_ path old new	
-	errorUpdate path old new	= update sameError errorOf TUISetError_ path old new
-	
-	update eqfun accfun consfun path old new
-		| not (eqfun old new)	= case accfun new of
-			Just prop			= [consfun (dp2s path) prop]
-			Nothing				= []
-		| otherwise				= []	
-
-	staticContainerUpdate path old new
-		//Simply update all child elements
-		= flatten [diffEditorDefinitions (childDataPath path i) co cn \\ co <- childrenOf old & cn <- childrenOf new & i <- [0..] ]
-	
-	dynamicContainerUpdate path (TUIListContainer lcOld) (TUIListContainer lcNew)
-		//Same number of items -> simply do pairwise diffs
-		| numOld == numNew
-			= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
-		//TODO: Less items in new list -> do pairwise diffs and drop last items
-		//TODO: More items in new list -> do pairwise diffs and add last items
-		| otherwise 
-			= [TUIReplace_ (dp2s path) (TUIListContainer lcNew)]
-		where
-			numOld = length lcOld.TUIListContainer.items
-			numNew = length lcNew.TUIListContainer.items
-			
-			diffListItemDefinitions path old new
-				= flatten [ diffEditorDefinitions (childDataPath path i) (hd co) (hd cn)
-				 		  \\(TUIListItemControl {TUIListItemControl|items=co}) <- old
-						  & (TUIListItemControl {TUIListItemControl|items=cn}) <- new
-						  & i <- [0..] ]
-			
-	dynamicContainerUpdate path (TUIConstructorControl ccOld) (TUIConstructorControl ccNew)
-		//Same constructor: diff the children
-		| ccOld.TUIConstructorControl.consSelIdx == ccNew.TUIConstructorControl.consSelIdx
-			= flatten [  diffEditorDefinitions (childDataPath path i) co cn
-					  \\ co <- ccOld.TUIConstructorControl.items
-					  &  cn <- ccNew.TUIConstructorControl.items
-					  & i <- [0..] ]
-		//Different constructor: replace everything
-		| otherwise
-			= [TUIReplace_ (dp2s path) new]
-		
-	dynamicContainerUpdate path old new
-		= [TUIReplace_ (dp2s path) new]	//Just replace, dynamic containers are too difficult to do at once :)
-
-	
-				  
-// TODO: TUIMenu*
-
-//Boilerplate type equality
-sameType :: TUIDef TUIDef -> Bool
-sameType (TUIButton _)				(TUIButton _)				= True
-sameType (TUIStringControl _)		(TUIStringControl _)		= True
-sameType (TUICharControl _)			(TUICharControl _)			= True
-sameType (TUIIntControl _)			(TUIIntControl _)			= True
-sameType (TUIRealControl _)			(TUIRealControl _)			= True
-sameType (TUIBoolControl _)			(TUIBoolControl _)			= True
-sameType (TUINoteControl _)			(TUINoteControl _)			= True
-sameType (TUIDateControl _)			(TUIDateControl _)			= True
-sameType (TUITimeControl _)			(TUITimeControl _)			= True
-sameType (TUIPasswordControl _)		(TUIPasswordControl _)		= True
-sameType (TUIChoiceControl _)		(TUIChoiceControl _)		= True
-sameType (TUICurrencyControl _)		(TUICurrencyControl _)		= True
-sameType (TUIUserControl _)			(TUIUserControl _)			= True
-sameType (TUIDocumentControl _)		(TUIDocumentControl _)		= True
-sameType (TUIConstructorControl _)	(TUIConstructorControl _)	= True
-sameType (TUIHiddenControl _)		(TUIHiddenControl _)		= True
-sameType (TUIFormButtonControl _)	(TUIFormButtonControl _)	= True
-sameType (TUIListItemControl _)		(TUIListItemControl _)		= True
-sameType (TUIAppletControl _)       (TUIAppletControl _)        = True
-sameType (TUIGridControl _)			(TUIGridControl _)        = True
-sameType (TUITreeControl _)			(TUITreeControl _)        = True
-
-sameType (TUITupleContainer _)		(TUITupleContainer _)		= True
-sameType (TUIRecordContainer _)		(TUIRecordContainer _)		= True
-sameType (TUIListContainer _)		(TUIListContainer _)		= True
-sameType (TUIHtmlContainer _)		(TUIHtmlContainer _)		= True
-
-sameType (TUIMenuButton _)			(TUIMenuButton _)			= True
-sameType (TUIMenuItem _)			(TUIMenuItem _)				= True
-sameType (TUIMenuSeparator)			(TUIMenuSeparator)			= True
-sameType (TUICustom _)				(TUICustom _)				= True
-
-sameType _							_ 							= False
-
-sameValue :: TUIDef TUIDef -> Bool
-sameValue a b = (valueOf a) == (valueOf b)
-
-sameError :: TUIDef TUIDef -> Bool
-sameError a b = (errorOf a) == (errorOf b)
-
-sameHint :: TUIDef TUIDef -> Bool
-sameHint a b = (hintOf a) == (hintOf b)
-
-//Basic controls
-isControl :: TUIDef -> Bool
-isControl (TUIStringControl {TUIBasicControl|value})		= True
-isControl (TUICharControl {TUIBasicControl|value})			= True
-isControl (TUIIntControl {TUIBasicControl|value})			= True
-isControl (TUIRealControl {TUIBasicControl|value})			= True
-isControl (TUIBoolControl {TUIBasicControl|value})			= True
-isControl (TUINoteControl {TUIBasicControl|value})			= True
-isControl (TUIDateControl {TUIBasicControl|value})			= True
-isControl (TUITimeControl {TUIBasicControl|value})			= True
-isControl (TUIPasswordControl {TUIBasicControl|value})		= True
-isControl (TUICurrencyControl {TUICurrencyControl|value})	= True
-isControl (TUIAppletControl {TUIAppletControl|value})       = True
-isControl (TUIUserControl {TUIBasicControl|value})			= True
-isControl _													= False
-
-valueOf :: TUIDef -> Maybe String
-valueOf (TUIStringControl {TUIBasicControl|value})		= Just value	
-valueOf (TUICharControl {TUIBasicControl|value})		= Just value
-valueOf (TUIIntControl {TUIBasicControl|value})			= Just value
-valueOf (TUIRealControl {TUIBasicControl|value})		= Just value
-valueOf (TUIBoolControl {TUIBasicControl|value})		= Just value
-valueOf (TUINoteControl {TUIBasicControl|value})		= Just value
-valueOf (TUIDateControl {TUIBasicControl|value})		= Just value
-valueOf (TUITimeControl {TUIBasicControl|value})		= Just value
-valueOf (TUIPasswordControl {TUIBasicControl|value})	= Just value
-valueOf (TUICurrencyControl {TUICurrencyControl|value})	= Just value
-valueOf (TUIAppletControl {TUIAppletControl|value})		= Just value
-valueOf (TUIUserControl {TUIBasicControl|value})		= Just value
-valueOf _												= Nothing
-
-errorOf :: TUIDef -> Maybe String
-errorOf (TUIStringControl {TUIBasicControl|errorMsg})		= Just errorMsg		
-errorOf (TUICharControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIIntControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIRealControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIBoolControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUINoteControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIDateControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUITimeControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIPasswordControl {TUIBasicControl|errorMsg})		= Just errorMsg
-errorOf (TUICurrencyControl {TUICurrencyControl|errorMsg})	= Just errorMsg
-errorOf (TUIAppletControl {TUIAppletControl|errorMsg})      = Just errorMsg
-errorOf (TUIUserControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIListContainer {TUIListContainer|errorMsg})		= Just errorMsg
-errorOf (TUIRecordContainer {TUIRecordContainer|errorMsg})	= Just errorMsg
-errorOf (TUIChoiceControl {TUIChoiceControl|errorMsg})		= Just errorMsg
-errorOf _													= Nothing
-
-hintOf :: TUIDef -> Maybe String
-hintOf (TUIStringControl {TUIBasicControl|hintMsg})			= Just hintMsg		
-hintOf (TUICharControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIIntControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIRealControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIBoolControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUINoteControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIDateControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUITimeControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIPasswordControl {TUIBasicControl|hintMsg})		= Just hintMsg
-hintOf (TUICurrencyControl {TUICurrencyControl|hintMsg})	= Just hintMsg 
-hintOf (TUIAppletControl {TUIAppletControl|hintMsg})		= Just hintMsg
-hintOf (TUIUserControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIListContainer {TUIListContainer|hintMsg})		= Just hintMsg
-hintOf (TUIRecordContainer {TUIRecordContainer|hintMsg})	= Just hintMsg
-hintOf (TUIChoiceControl {TUIChoiceControl|hintMsg})		= Just hintMsg
-hintOf _													= Nothing
-
-//Static containers are GUI elements that contain other elements, but who's structure does not change
-isStaticContainer :: TUIDef -> Bool
-isStaticContainer (TUITupleContainer _)		= True
-isStaticContainer (TUIRecordContainer _)	= True
-isStaticContainer _							= False
-
-//Dynamic containers are GUI elements that contain other elements that can be added, removed or reordered
-isDynamicContainer :: TUIDef -> Bool
-isDynamicContainer (TUIConstructorControl _)= True
-isDynamicContainer (TUIListContainer _)		= True
-isDynamicContainer _						= False
-
-
-childrenOf :: TUIDef -> [TUIDef]
-childrenOf (TUITupleContainer {TUITupleContainer|items})	= flatten items
-childrenOf (TUIRecordContainer {TUIRecordContainer|items})	= items
-childrenOf _												= []
-
 
 //IDEAS:
 // - ConstructorControl, should in same cases be a constructor container
@@ -836,12 +613,6 @@ gVisualize{|User|} val vst=:{vizType,currentPath,updateMask}
 			= ([TextFragment (toString val)]
 				, {VSt|vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath, updateMask, verifyMask}
-	# vis = case mbVal of
-		Just {taskProperties}	= [TextFragment taskProperties.ManagerProperties.taskDescription.TaskDescription.title]
-		Nothing					= []
-	= (vis,vst)
-
 gVisualize{|Choice|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,verifyMask,updateMask,updates}
 	# (cmu,um)	= popMask updateMask
 	# (cmv,vm)	= popMask verifyMask
@@ -926,7 +697,7 @@ gVisualize{|Tree|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,opt
 	= case val of
 		Nothing
 			= ([TextFragment "Empty tree"],{VSt|vst & currentPath = stepDataPath currentPath})
-		Just (Tree nodes mbSel)
+		Just (Tree nodes sel)
 			# vst = {vst & vizType = VTextLabel}
 			# (tree,_,vst) = mkTree nodes 0 vst
 			# vst = {vst & vizType = VEditorDefinition}
@@ -938,7 +709,7 @@ gVisualize{|Tree|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,opt
 													| name = dp2s currentPath
 													, id = id
 													, tuiTree = tree
-													, selIndex = mbSel
+													, selIndex = if (sel >= 0) (Just sel) Nothing
 													, fieldLabel = labelAttr useLabels label
 													, optional = optional
 													, staticDisplay = renderAsStatic
@@ -965,15 +736,10 @@ where
 gVisualize{|Shared|} _ _ vst			= ([TextFragment "Reference to shared data"],vst)
 gVisualize{|SharedReadOnly|} _ _ vst	= ([TextFragment "Read-Only reference to shared data"],vst)
 
-derive gVisualize DateTime, Either, Void, UserDetails, Timestamp, Map
+derive gVisualize DateTime, Either, Void, UserDetails, Timestamp, Map, ProcessRef, EmailAddress, Action
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
-
-instance toString (Maybe a) | toString a
-where
-	toString Nothing	= ""
-	toString (Just x)	= toString x
 
 value2s :: !UpdateMask !(Maybe a) -> String | toString a
 value2s (Touched _ _) (Just a) = toString a
@@ -1111,3 +877,9 @@ fromHidden (Hidden x) = x
 
 toHidden :: !.a -> (Hidden .a)
 toHidden x = (Hidden x)
+
+(+++>) infixr 5	:: !a !String -> String | gVisualize{|*|} a
+(+++>) a s = visualizeAsTextLabel a +++ s
+
+(<+++) infixl 5	:: !String !a -> String | gVisualize{|*|} a
+(<+++) s a = s +++ visualizeAsTextLabel a

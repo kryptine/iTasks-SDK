@@ -2,23 +2,28 @@ implementation module Types
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc
-import GenVisualize, GenUpdate, GenLexOrd, JSON
-import Html
-import Text, Base64, Util
-import dynamic_string
-from TSt 	import :: TSt
-from Config	import :: Config
-from Time	import :: Timestamp(..)
+import GenLexOrd, JSON, Html, Text, Util
+from Time import :: Timestamp(..)
 
-derive class iTask		EmailAddress, Session, Action, ProcessRef, TaskStatus
-derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive gLexOrd			Currency
-derive bimap			Maybe, (,)
+derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
+derive JSONEncode	EmailAddress, Session, Action, ProcessRef
+derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
+derive JSONDecode	EmailAddress, Session, Action, ProcessRef
+derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, ButtonState, JSONNode
+derive gLexOrd		Currency
+derive bimap		Maybe, (,)
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
+
+gEq{|(->)|} _ _ _ _ = False // functions are never equal
+gEq{|Dynamic|} _ _ = False // dynamics are never equal
+//gEq{|Dynamic|} (x :: a | gEq{|*|} a) (y :: a | gEq{|*|} a) = x === y
 
 choice :: ![a] -> Choice a
 choice l = Choice l -1
@@ -81,26 +86,42 @@ where
 			| length choiceIndexes <= nr	= Just (choiceIndexes !! (length choiceIndexes - 1))
 			| otherwise						= Just (choiceIndexes !! nr)
 		where
-			choiceIndexes = [i \\ opt <- newOpts & i <- [0..] | gEq{|*|} choice opt]
+			choiceIndexes = [i \\ opt <- newOpts & i <- [0..] | choice === opt]
 	curChoices = [(choice,nrOfOccurrence choice i oldOpts) \\ choice <- oldOpts & i <- [0..] | isMember i sel]
 	where
 		nrOfOccurrence choice choiceIndex opts = nrOfOccurrence` 0 0 opts
 		where
 			nrOfOccurrence` _ nr [] = nr
 			nrOfOccurrence` i nr [opt:oldOpts]
-				| gEq{|*|} choice opt
+				| choice === opt
 					| i == choiceIndex	= nr
 					| otherwise			= nrOfOccurrence` (inc i) (inc nr) oldOpts
 				| otherwise				= nrOfOccurrence` (inc i) nr oldOpts
 				
 mkTree :: ![TreeNode a] -> Tree a
-mkTree nodes = Tree nodes Nothing
+mkTree nodes = Tree nodes -1
 
-getSelectedLeaf :: !(Tree a) -> Maybe a
-getSelectedLeaf (Tree nodes mbSel)
-	= case mbSel of
-		Just sel	= searchV nodes sel
-		Nothing		= Nothing
+mkTreeSel :: ![TreeNode a] !a -> Tree a | gEq{|*|} a
+mkTreeSel nodes sel = Tree nodes idx
+where
+	idx = case getIdx nodes 0 of
+		(Nothing,_)		= -1
+		(Just idx,_)	= idx
+
+	getIdx [] idx = (Nothing,idx)
+	getIdx [Leaf v:r] idx
+		| v === sel	= (Just idx,idx)
+		| otherwise	= getIdx r (inc idx)
+	getIdx [Node _ children:r] idx
+		= case getIdx children idx of
+			(Nothing,idx)	= getIdx r idx
+			idx				= idx
+			
+getSelectedLeaf :: !(Tree a) -> a
+getSelectedLeaf (Tree nodes sel)
+	= case searchV nodes sel of
+		Just sel	= sel
+		Nothing		= abort "invalid tree!"
 where
 	searchV nodes selIdx = fst (searchV` nodes 0)
 	where
@@ -112,23 +133,6 @@ where
 			= case searchV` children c of
 				(Nothing,c)	= searchV` r c
 				v			= v
-
-initManagerProperties :: ManagerProperties
-initManagerProperties = 
-	{ worker = AnyUser
-	, taskDescription = toDescr ""
-	, context = Nothing
-	, priority = NormalPriority
-	, deadline = Nothing
-	, tags = []
-	, formWidth = Nothing
-	}
-	
-initGroupedProperties :: GroupedProperties
-initGroupedProperties =
-	{ groupedBehaviour		= Fixed
-	, groupActionsBehaviour	= IncludeGroupActions
-	}
 
 // ******************************************************************************************************
 // Document
@@ -405,37 +409,6 @@ getRoles :: !User -> [Role]
 getRoles (RegisteredUser details) = mb2list details.roles
 getRoles _ = []
 
-// ******************************************************************************************************
-// Task specialization
-// ******************************************************************************************************
-	
-instance toString TaskPriority
-where
-	toString LowPriority	= "LowPriority"
-	toString NormalPriority	= "NormalPriority"
-	toString HighPriority	= "HighPriority"
-
-instance toString TaskStatus
-where
-	toString Active		= "Active"
-	toString Suspended	= "Suspended"
-	toString Finished	= "Finished"
-	toString Excepted	= "Excepted"
-	toString Deleted	= "Deleted"
-
-instance == TaskStatus
-where
-	(==) Active		Active		= True
-	(==) Suspended	Suspended	= True
-	(==) Finished	Finished	= True
-	(==) Excepted	Excepted	= True
-	(==) Deleted	Deleted		= True
-	(==) _			_			= False
-
-JSONEncode{|Task|} _ t						= [JSONString (base64Encode (copy_to_string t))]
-JSONDecode{|Task|} _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
-JSONDecode{|Task|} _ c						= (Nothing,c) 
-
 JSONEncode{|Time|} t		= [JSONString (toString t)]
 JSONEncode{|Date|} d		= [JSONString (toString d)]
 JSONEncode{|DateTime|} dt	= [JSONString (toString dt)]
@@ -447,36 +420,11 @@ JSONDecode{|Date|} c					= (Nothing, c)
 JSONDecode{|DateTime|} [JSONString s:c]	= (Just (fromString s), c)
 JSONDecode{|DateTime|} c				= (Nothing, c)
 
-taskTitle :: !(Task a) -> String
-taskTitle task = task.taskProperties.taskDescription.TaskDescription.title
-
-taskDescription	:: !(Task a) -> String
-taskDescription task = task.taskProperties.taskDescription.description
-
-taskUser :: !(Task a) -> User
-taskUser task = task.taskProperties.worker
-
-taskProperties :: !(Task a) -> ManagerProperties
-taskProperties task = task.taskProperties
-
-instance descr String
-where
-	toDescr str = {title = str, description = toString (html str)}
-	
-instance descr (String, descr) | html descr
-where
-	toDescr (title,descr) = {title = title, description = toString (html descr)}
-	
-instance descr TaskDescription
-where
-	toDescr descr = descr
-
-derive gEq Action
 instance == Action
 where
 	(==) :: !Action !Action -> Bool
 	(==) (Action name0 _) (Action name1 _) = name0 == name1
-	(==) a b = gEq{|*|} a b
+	(==) a b = a === b
 
 instance ActionName Action
 where
@@ -523,3 +471,56 @@ actionLabel :: !Action -> String
 actionLabel (Action _ label)	= label
 actionLabel (ActionSaveAs)		= "Save as"
 actionLabel action				= upperCaseFirst (actionName action)
+
+instance descr String
+where
+	toDescr str = {title = str, description = toString (html str)}
+	
+instance descr (String, descr) | html descr
+where
+	toDescr (title,descr) = {title = title, description = toString (html descr)}
+	
+instance descr TaskDescription
+where
+	toDescr descr = descr
+	
+instance toString TaskPriority
+where
+	toString LowPriority	= "LowPriority"
+	toString NormalPriority	= "NormalPriority"
+	toString HighPriority	= "HighPriority"
+
+instance toString TaskStatus
+where
+	toString Active		= "Active"
+	toString Suspended	= "Suspended"
+	toString Finished	= "Finished"
+	toString Excepted	= "Excepted"
+	toString Deleted	= "Deleted"
+
+instance == TaskStatus
+where
+	(==) Active		Active		= True
+	(==) Suspended	Suspended	= True
+	(==) Finished	Finished	= True
+	(==) Excepted	Excepted	= True
+	(==) Deleted	Deleted		= True
+	(==) _			_			= False
+
+initManagerProperties :: ManagerProperties
+initManagerProperties = 
+	{ worker = AnyUser
+	, taskDescription = toDescr ""
+	, context = Nothing
+	, priority = NormalPriority
+	, deadline = Nothing
+	, tags = []
+	, formWidth = Nothing
+	}
+	
+initGroupedProperties :: GroupedProperties
+initGroupedProperties =
+	{ GroupedProperties
+	| groupedBehaviour		= Fixed
+	, groupActionsBehaviour	= IncludeGroupActions
+	}

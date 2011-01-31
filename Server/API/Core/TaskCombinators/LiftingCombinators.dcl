@@ -3,9 +3,8 @@ definition module LiftingCombinators
 * Combinators for lifting "World" functions to the task domain.
 */
 
-import GenVisualize, GenUpdate
-from TSt	import :: Task, :: TSt
-from Types	import class iTask
+import Task
+from TSt import :: TSt
 
 /**
 * Evaluate a "World" function that does not yield any result once.

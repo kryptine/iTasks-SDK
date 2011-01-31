@@ -1,9 +1,10 @@
 implementation module Table
 
-import StdTuple, StdList, StdMisc, StdBool, StdFunc, Text, Types
+import StdTuple, StdList, StdMisc, StdBool, StdFunc, Text, Types, GenVisualize
 
 derive JSONEncode	Table, TableCol
 derive JSONDecode	Table, TableCol
+derive gEq			Table, TableCol
 derive bimap		Maybe, (,), TableCol
 
 gUpdate{|Table|} _ _ ust=:{USt|mode=UDCreate,newMask} 

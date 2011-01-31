@@ -2,9 +2,7 @@ definition module SystemTasks
 /**
 * This module provides tasks for interacting with the iTasks engine
 */
-from TSt	import :: Task
-from Types	import :: User, :: ProcessId, :: ProcessRef, :: EmailAddress, class iTask
-import GenVisualize, GenUpdate
+import Task
 
 class emailOf r where emailOf :: r -> EmailAddress
 instance emailOf EmailAddress

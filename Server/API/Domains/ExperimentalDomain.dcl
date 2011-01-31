@@ -7,6 +7,7 @@ derive gUpdate		FormattedText, SourceCode, Color
 derive gVerify		FormattedText, SourceCode, Color
 derive JSONEncode	FormattedText, SourceCode, Color
 derive JSONDecode	FormattedText, SourceCode, Color
+derive gEq			FormattedText, SourceCode, Color
 
 // Html-formatted text
 :: FormattedText = FormattedText !String !FormattedTextControls

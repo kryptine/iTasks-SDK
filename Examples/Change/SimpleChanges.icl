@@ -1,8 +1,6 @@
 implementation module SimpleChanges
 
 import iTasks
-from TSt import :: Change(..)
-from TaskTree import :: TaskProperties(..),::WorkerProperties(..),::ManagerProperties(..), :: SystemProperties(..), :: TaskProgress, :: TaskParallelType(..)
 
 changeExamples :: [Workflow]
 changeExamples =

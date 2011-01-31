@@ -445,10 +445,10 @@ where
 		# (ti, tst) = normalizeTaskInfo ti tst
 		= case it of
 			UIOutput (Func f)
-				# (it,tst) = f tst
+				# (it,tst) = accIWorldTSt f tst
 				= (TTInteractiveTask ti (UIOutput it), tst)
 			JSONOutput (JSONFunc f)
-				# (json,tst) = f tst
+				# (json,tst) = accIWorldTSt f tst
 				= (TTInteractiveTask ti (JSONOutput (JSONValue json)), tst)
 			_
 				= (TTInteractiveTask ti it, tst)
@@ -461,7 +461,7 @@ where
 	where
 		normalizeAction (action, Left b) tst = ((action,Left b), tst)
 		normalizeAction (action, Right f) tst
-			# (b,tst)	= f tst
+			# (b,tst)	= accIWorldTSt f tst
 			= ((action,Left b), tst)
 	//Tree traversal
 	normalizeTasks (TTMainTask ti properties pt task) tst
@@ -851,7 +851,7 @@ setTUIUpdates upd actions tst=:{tree}
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Updates upd actions))}
 		_								= tst
 		
-setTUIFunc :: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt -> *TSt
+setTUIFunc :: (*IWorld -> *(!InteractiveTask, !*IWorld)) !*TSt -> *TSt
 setTUIFunc func tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Func func))}
@@ -875,7 +875,7 @@ setInstruction context tst=:{tree}
 			(TTInstructionTask ti _)	= {tst & tree = TTInstructionTask ti (UIOutput context)}
 			_							= tst
 			
-setGroupActions :: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt -> *TSt
+setGroupActions :: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt -> *TSt
 setGroupActions actions tst=:{tree}
 	= case tree of
 		(TTGroupedTask info tasks _ mbFocus)	= {tst & tree = TTGroupedTask info tasks actions mbFocus}
@@ -892,7 +892,7 @@ setJSONValue json tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)				= {tst & tree = TTInteractiveTask info (JSONOutput (JSONValue json))}
 		
-setJSONFunc :: !(*TSt -> *(!JSONNode,!*TSt)) !*TSt -> *TSt
+setJSONFunc :: !(*IWorld -> *(!JSONNode,!*IWorld)) !*TSt -> *TSt
 setJSONFunc f tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)				= {tst & tree = TTInteractiveTask info (JSONOutput (JSONFunc f))}
@@ -932,27 +932,27 @@ where
 
 setTaskStore :: !String !a !*TSt -> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setTaskStore key value tst=:{taskNr}
-	= setTaskStoreFor taskNr key value tst
+	= appIWorldTSt (setTaskStoreFor taskNr key value) tst
 	
-setTaskStoreFor :: !TaskNr !String !a !*TSt -> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-setTaskStoreFor taskNr key value tst
-	= appIWorldTSt (storeValue (storekey taskNr key) value) tst
+setTaskStoreFor :: !TaskNr !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+setTaskStoreFor taskNr key value iworld
+	= storeValue (storekey taskNr key) value iworld
 
 getTaskStore :: !String !*TSt -> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 getTaskStore key tst=:{taskNr}
-	= getTaskStoreFor taskNr key tst
+	= accIWorldTSt (getTaskStoreFor taskNr key) tst
 
-getTaskStoreFor	:: !TaskNr !String !*TSt -> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-getTaskStoreFor taskNr key tst
-	= accIWorldTSt (loadValue (storekey taskNr key)) tst
+getTaskStoreFor	:: !TaskNr !String !*IWorld -> (Maybe a, !*IWorld) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+getTaskStoreFor taskNr key iworld
+	= loadValue (storekey taskNr key) iworld
 	
 getTaskStoreTimestamp :: !String !*TSt -> (Maybe Timestamp, !*TSt)
 getTaskStoreTimestamp key tst=:{taskNr}
-	= getTaskStoreTimestampFor taskNr key tst
+	= accIWorldTSt (getTaskStoreTimestampFor taskNr key) tst
 
-getTaskStoreTimestampFor :: !TaskNr !String !*TSt -> (Maybe Timestamp, !*TSt)
-getTaskStoreTimestampFor taskNr key tst
-	= accIWorldTSt (getTimestamp (storekey taskNr key)) tst
+getTaskStoreTimestampFor :: !TaskNr !String !*IWorld -> (Maybe Timestamp, !*IWorld)
+getTaskStoreTimestampFor taskNr key iworld
+	= getTimestamp (storekey taskNr key) iworld
 
 storekey taskNr key= "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
@@ -989,28 +989,6 @@ copyTaskStates fromtask totask tst
 	
 flushStore :: !*TSt -> *TSt
 flushStore tst = appIWorldTSt flushCache tst
-
-taskNrToString :: !TaskNr -> String
-taskNrToString [] 		= ""
-taskNrToString [i] 		= toString i
-taskNrToString [i:is] 	= taskNrToString is +++ "." +++ toString i 
-
-taskNrFromString :: !String -> TaskNr
-taskNrFromString "" 		= []
-taskNrFromString string	= reverse (parseTaskNr` [char \\ char <-: string])
-where
-	parseTaskNr` :: ![Char] -> TaskNr
-	parseTaskNr` [] = []
-	parseTaskNr` list 
-	# (front,end)	= span (\c -> c <> '.') list
-	=  [toInt (toString  front) : parseTaskNr` (stl end)]
-
-	toString :: [Char] -> String
-	toString list = {c \\ c <- list}
-
-	stl :: [Char] -> [Char]
-	stl [] = []
-	stl xs = tl xs
 
 events2Paths :: ![(!String,!String)] -> [DataPath]
 events2Paths updates = map (s2dp o fst) updates

@@ -4,7 +4,7 @@ definition module ChangeDB
 * The change functions themselves (packed as dynamic) are stored separately.
 */
 
-import Types
+import Task
 
 :: PersistentChange =
 	{ label		:: ChangeLabel	// A label for identifying a persistent change

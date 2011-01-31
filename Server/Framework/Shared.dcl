@@ -6,13 +6,14 @@ definition module Shared
 * Also read-only references are provided.
 */
 
-import JSON
+import JSON, GenEq
 from StdFunc	import id, const
 from Types		import :: IWorld
 from Time		import :: Timestamp
 
-derive JSONEncode Shared, SharedReadOnly
-derive JSONDecode Shared, SharedReadOnly
+derive JSONEncode	Shared, SharedReadOnly
+derive JSONDecode	Shared, SharedReadOnly
+derive gEq			Shared, SharedReadOnly
 
 // A bimap is used to provide a view of type v on a data model of type m.
 // The information included in the view is a subset of the information provided by the model.

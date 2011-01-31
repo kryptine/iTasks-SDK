@@ -4,34 +4,34 @@ definition module Types
 * of the iTasks framework.
 */
 
-import StdMaybe, GenEq, JSON, Store, GenVisualize, Map
+import StdMaybe, GenEq, JSON, Store, Map, Void, Either
 from Html 		import class html
 from Time		import :: Timestamp
-from TSt 		import :: TSt
 from Config		import :: Config
-from TaskTree	import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
 
-derive class iTask	EmailAddress, Session, Action, ProcessRef, TaskStatus
-derive JSONEncode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONDecode	Currency, FormButton, User, UserDetails, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive JSONEncode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive JSONEncode	EmailAddress, Session, Action, ProcessRef
+derive JSONDecode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive JSONDecode	EmailAddress, Session, Action, ProcessRef
+derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, JSONNode, (->), Dynamic
 
 instance toString User
-instance toString TaskPriority
-instance toString TaskStatus
-
 instance toString Note
 instance toString Password
 instance toString Date
 instance toString Time
 instance toString DateTime
 instance toString Currency
-
+instance toString TaskPriority
 instance fromString Date
 instance fromString Time
 instance fromString DateTime
 
 instance == User
-instance == TaskStatus
 instance == Document
 instance == Note
 instance == Password
@@ -55,31 +55,13 @@ instance toInt Currency
 instance zero Currency
 instance html Note
 
-//iTask context restriction
-class iTask a
-	| gVisualize{|*|}
-	, gUpdate{|*|}
-	, gVerify{|*|}
-	, JSONEncode{|*|}
-	, JSONDecode{|*|}
-	, TC a
-	& toReadOnlyShared Shared a
-	& toReadOnlyShared SharedReadOnly a
-
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
 :: URL			= URL String
 :: PhoneNr		= PhoneNr String
 :: Password		= Password !String
-
-// Form buttons
-:: FormButton 		= 
-	{ label			:: String
-	, icon			:: String
-	, state			:: ButtonState
-	}
-	
-:: ButtonState		= NotPressed | Pressed
+// Plain text notes
+:: Note = Note String
 
 // Money
 :: Currency		// Type of currency and amount in cents. ISO4217 currency codes are used
@@ -87,172 +69,35 @@ class iTask a
 	| GBP Int
 	| USD Int
 	| JPY Int
-	
-// Users	
-:: User
-	= AnyUser						// Any not further specified person
-	| RootUser						// The system super user
-	| RegisteredUser !UserDetails	// A registered person of whom we know details
-	| NamedUser !String				// A person identified by a username
-	| SessionUser !SessionId		// A person that is only identified by a session
-	
-:: UserDetails			=
-	{ userName		:: !UserId
-	, password		:: !Password
-	, displayName	:: !String
-	, emailAddress	:: !EmailAddress
-	, roles			:: !Maybe [Role]
+
+:: Date	=
+	{ day	:: Int
+	, mon	:: Int
+	, year	:: Int
 	}
-
-:: UserId			:== String
-:: Role				:== String
-
-// Session
-:: SessionId		:== String
-:: Session			=
-	{ sessionId	::	!String
-	, user		::	!User
-	, timestamp	::	!Timestamp
+:: Time =
+	{ hour	:: Int
+	, min	:: Int
+	, sec	:: Int
 	}
+:: DateTime = DateTime Date Time
 
-:: ProcessId		:== String
-:: ProcessRef a		= ProcessRef !ProcessId
-
-// Tasks
-:: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
-:: TaskId			:== String		// String serialization of TaskNr values
-:: MenuId			:== Int
-
-:: Task a =
-	{ taskProperties	:: !ManagerProperties					// the task's manager properties
-	, groupedProperties	:: !GroupedProperties					// properties about how the tasks behaves inside of a group
-	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
-	, mbMenuGenFunc		:: !(Maybe MenuGenFunc)					// a function generating a menu structure
-	, taskFunc			:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task
+// Documents
+:: Document =
+	{ documentId	:: !DocumentId				//A unique identifier of the document
+	, name			:: !String					//The filename of a document
+	, mime			:: !String					//The mime type of the document
+	, size			:: !Int						//The filesize in bytes
 	}
+:: DocumentId :== String
 
-:: TaskResult a		= TaskBusy
-					| TaskFinished !a
-					| TaskException !Dynamic
-
-:: TaskThread a		=
-	{ originalTask		:: !Task a
-	, currentTask		:: !Task a
-	}	
-
-:: TaskPriority		= HighPriority				// tasks can have three levels of priority
-					| NormalPriority
-					| LowPriority
-
-:: TaskProperties =
-	{ systemProperties	:: SystemProperties
-	, managerProperties	:: ManagerProperties
-	, workerProperties	:: WorkerProperties
+// Form buttons
+:: FormButton 		= 
+	{ label			:: String
+	, icon			:: String
+	, state			:: ButtonState
 	}
-
-:: SystemProperties =
-	{ taskId			:: !TaskId					// Process table identification
-	, parent			:: !Maybe TaskId			// The (direct) parent process
-	, status			:: !TaskStatus				// Is a maintask active,suspended,finished or excepted
-	, manager			:: !User					// Who is managing this task
-	, issuedAt			:: !Timestamp				// When was the task created
-	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
-	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	
-	, latestExtEvent	:: !Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
-	, subTaskWorkers	:: ![(ProcessId, User)] 	// Users who have temporary access to the process because they work on a subprocess in an open parallel.
-	, deleteWhenDone	:: !Bool					// Delete the process after completion
-	}
-
-:: ManagerProperties =
-	{ worker			:: !User					// Who has to do the task? 
-	, taskDescription	:: !TaskDescription			// Description of the task
-	, context			:: !Maybe String			// Optional context information for doing the task (html)
-	, priority			:: !TaskPriority			// What is the current priority of this task?
-	, deadline			:: !Maybe DateTime			// When is the task due?
-	, tags				:: ![String]				// A list of tags
-	, formWidth			:: !Maybe FormWidth			// Width of task form
-	}
-
-:: TaskDescription	=
-	{ title				:: !String					// The task's title
-	, description		:: !String					// A longer description of the task (HTML string)
-	}
-	
-:: FormWidth	= FWAuto							// Set form width to client default
-				| FWFullWidth						// Set form width to maximum width
-
-class descr d
-where
-	toDescr :: d -> TaskDescription
-
-instance descr String
-instance descr (String, descr) | html descr
-instance descr TaskDescription
-
-:: WorkerProperties =
-	{ progress			:: !TaskProgress			// Indication of the worker's progress
-	}
-
-:: TaskStatus =	Active			// A process is active and can be further evaluated
-			 |	Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
-			 |	Finished		// A process terminated normally
-			 |	Excepted		// A process terminated with an exception
-			 |	Deleted			// A process is deleted (never set, but returned when process can not be found)
-
-initManagerProperties :: ManagerProperties
-	
-:: GroupedProperties =
-	{ groupedBehaviour		:: !GroupedBehaviour
-	, groupActionsBehaviour	:: !GroupActionsBehaviour
-	}
-	
-:: GroupedBehaviour = Fixed 		//The editor is fixed in the main canvas of the parent task
-					| Floating		//The editor is shown in a floating window
-					| Modal			//The editor is shown in a modal dialog
-
-// Determines if group-actions are added to actions of interactive task
-:: GroupActionsBehaviour	= IncludeGroupActions
-							| ExcludeGroupActions
-
-initGroupedProperties :: GroupedProperties
-
-:: MenuGenFunc :== *IWorld -> *(Menus, *IWorld)
-					
-:: TaskProgress		= TPActive			//Worker is happily working on the task
-					| TPStuck			//Worker is stuck and needs assistence
-					| TPWaiting			//Worker is waiting, not actively working on the task
-					| TPReject			//Worker does not want to continue working on the task
-
-
-:: Container a c	= Container a & iTask c		// container for context restrictions
-
-:: TaskEvent	:== (!TaskId,!String,!JSONNode)	// taskid, name, value	
-
-:: *IWorld		=	{ application	:: !String		// The name of the application	
-					, store			:: !Store		// The generic data store
-					, config		:: !Config		// The server configuration
-					, world			:: !*World		// The outside world
-					, timestamp		:: !Timestamp	// The timestamp of the current request
-					}
-
-// Changes
-// A dynamic that contains a change
-:: ChangeDyn	:== Dynamic
-
-// A change function which may be used to change tasks at runtime
-:: Change a :== (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn))
-
-// Changes may be applied only once, or persist for future changes
-:: ChangeLifeTime	= CLTransient
-					| CLPersistent !ChangeLabel
-
-//A label for identifying changes externally
-:: ChangeLabel	:== String
-
-//A labeled new change
-:: ChangeInjection :== (!ChangeLifeTime,!ChangeDyn)
-
-// Data types for which the framework provides special visualizations and support
+:: ButtonState		= NotPressed | Pressed
 
 // Represents the choice of one element from a list
 :: Choice			a = Choice			![a] !Int
@@ -290,39 +135,143 @@ mapOptionsM			:: !(a -> b) !(MultipleChoice a)	-> MultipleChoice b
 // Sets the multiple choice's options, tries to keep the selection as intact as possible
 setOptionsM			:: ![a] !(MultipleChoice a)			-> MultipleChoice a | gEq{|*|} a
 
-// Plain text notes
-:: Note = Note String
-
-:: Date	=
-	{ day	:: Int
-	, mon	:: Int
-	, year	:: Int
-	}
-:: Time =
-	{ hour	:: Int
-	, min	:: Int
-	, sec	:: Int
-	}
-
-:: DateTime = DateTime Date Time
-
-// Documents
-:: Document =
-	{ documentId	:: !DocumentId				//A unique identifier of the document
-	, name			:: !String					//The filename of a document
-	, mime			:: !String					//The mime type of the document
-	, size			:: !Int						//The filesize in bytes
-	}
-
-:: DocumentId :== String
-
-:: Tree a = Tree ![TreeNode a] !(Maybe Int)
+// Represents a tree from with the user can choose one leaf
+:: Tree a = Tree ![TreeNode a] !Int
 :: TreeNode a = Leaf !a | Node !TreeLabel ![TreeNode a]
 :: TreeLabel :== String
 
-mkTree :: ![TreeNode a] -> Tree a
+// Generates a tree with initially no chosen item
+mkTree		:: ![TreeNode a]	-> Tree a
+// Generates a tree with initially chosen item
+mkTreeSel	:: ![TreeNode a] !a	-> Tree a | gEq{|*|} a
+// Gets the currently selected leaf of a VALID tree
+getSelectedLeaf :: !(Tree a) -> a
 
-getSelectedLeaf :: !(Tree a) -> Maybe a
+// Field behaviour extensions
+:: VisualizationHint a 	= VHEditable a
+					   	| VHDisplay a
+					   	| VHHidden a
+:: Editable a 			= Editable a		// Variable is always rendered within a form as editor field
+:: Display a 			= Display a			// Variable is always rendered within a form as a static element
+:: Hidden a 			= Hidden a			// Variable is never rendered
+
+// Properties of tasks	
+:: TaskProperties =
+	{ systemProperties	:: SystemProperties
+	, managerProperties	:: ManagerProperties
+	, workerProperties	:: WorkerProperties
+	}
+
+:: SystemProperties =
+	{ taskId			:: !TaskId					// Process table identification
+	, parent			:: !Maybe TaskId			// The (direct) parent process
+	, status			:: !TaskStatus				// Is a maintask active,suspended,finished or excepted
+	, manager			:: !User					// Who is managing this task
+	, issuedAt			:: !Timestamp				// When was the task created
+	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
+	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	
+	, latestExtEvent	:: !Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
+	, subTaskWorkers	:: ![(ProcessId, User)] 	// Users who have temporary access to the process because they work on a subprocess in an open parallel.
+	, deleteWhenDone	:: !Bool					// Delete the process after completion
+	}
+	
+:: TaskId :== String		// String serialization of TaskNr values
+
+:: TaskStatus =	Active			// A process is active and can be further evaluated
+			 |	Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
+			 |	Finished		// A process terminated normally
+			 |	Excepted		// A process terminated with an exception
+			 |	Deleted			// A process is deleted (never set, but returned when process can not be found)
+
+:: ManagerProperties =
+	{ worker			:: !User					// Who has to do the task? 
+	, taskDescription	:: !TaskDescription			// Description of the task
+	, context			:: !Maybe String			// Optional context information for doing the task (html)
+	, priority			:: !TaskPriority			// What is the current priority of this task?
+	, deadline			:: !Maybe DateTime			// When is the task due?
+	, tags				:: ![String]				// A list of tags
+	, formWidth			:: !Maybe FormWidth			// Width of task form
+	}
+
+:: TaskDescription	=
+	{ title				:: !String					// The task's title
+	, description		:: !String					// A longer description of the task (HTML string)
+	}
+	
+:: TaskPriority		= HighPriority					// tasks can have three levels of priority
+					| NormalPriority
+					| LowPriority
+					
+:: FormWidth	= FWAuto							// Set form width to client default
+				| FWFullWidth						// Set form width to maximum width
+	
+:: WorkerProperties =
+	{ progress			:: !TaskProgress			// Indication of the worker's progress
+	}
+	
+:: TaskProgress		= TPActive			//Worker is happily working on the task
+					| TPStuck			//Worker is stuck and needs assistence
+					| TPWaiting			//Worker is waiting, not actively working on the task
+					| TPReject			//Worker does not want to continue working on the task
+
+instance toString TaskStatus
+instance == TaskStatus
+
+class descr d
+where
+	toDescr :: d -> TaskDescription
+
+instance descr String
+instance descr (String, descr) | html descr
+instance descr TaskDescription
+
+initManagerProperties :: ManagerProperties
+initGroupedProperties :: GroupedProperties
+
+// Properties of groups
+				
+:: GroupedProperties =
+	{ groupedBehaviour		:: !GroupedBehaviour
+	, groupActionsBehaviour	:: !GroupActionsBehaviour
+	}
+	
+:: GroupedBehaviour = Fixed 		//The editor is fixed in the main canvas of the parent task
+					| Floating		//The editor is shown in a floating window
+					| Modal			//The editor is shown in a modal dialog
+					
+// Determines if group-actions are added to actions of interactive task
+:: GroupActionsBehaviour	= IncludeGroupActions
+							| ExcludeGroupActions
+
+// Users	
+:: User
+	= AnyUser						// Any not further specified person
+	| RootUser						// The system super user
+	| RegisteredUser !UserDetails	// A registered person of whom we know details
+	| NamedUser !String				// A person identified by a username
+	| SessionUser !SessionId		// A person that is only identified by a session
+	
+:: UserDetails			=
+	{ userName		:: !UserId
+	, password		:: !Password
+	, displayName	:: !String
+	, emailAddress	:: !EmailAddress
+	, roles			:: !Maybe [Role]
+	}
+
+:: UserId			:== String
+:: Role				:== String
+
+// Session
+:: SessionId		:== String
+:: Session			=
+	{ sessionId	::	!String
+	, user		::	!User
+	, timestamp	::	!Timestamp
+	}
+
+:: ProcessId		:== String
+:: ProcessRef a		= ProcessRef !ProcessId
 
 /*
 * Gives the unique username of a user
@@ -345,33 +294,6 @@ displayName			:: !User -> String
 * @return The roles currently assigned to this user
 */
 getRoles			:: !User -> [Role]
-/**
-* Extracts the subject of a task
-*
-* @param The task
-* @return The task's subject
-*/
-taskTitle			:: !(Task a)				-> String
-
-/**
-* Extracts the description of a task
-*/
-taskDescription		:: !(Task a)				-> String
-
-/**
-* Extracts the initial worker of a task
-*
-* @param The task
-* @param The task's initial worker
-*/
-taskUser			:: !(Task a)				-> User
-/*
-* Extracts the initial properties of a task
-*
-* @param The task
-* @return The task's initial properties
-*/
-taskProperties		:: !(Task a)				-> ManagerProperties
 
 /*
 * To allow users to specify a followup action to their current task
@@ -416,6 +338,8 @@ instance ActionName ActionName
 actionIcon 	:: !Action -> String
 actionLabel	:: !Action -> String
 
+// Definition of menus
+
 :: Menus		:== [Menu]
 :: Menu 		= Menu !MenuLabel ![MenuItem]
 :: MenuItem 	= E.action:	MenuItem !action !(Maybe Hotkey) & MenuAction action
@@ -430,6 +354,8 @@ actionLabel	:: !Action -> String
 			}	
 :: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
 
+:: MenuGenFunc :== *IWorld -> *(Menus, *IWorld)
+
 class MenuAction a
 where
 	menuAction :: a -> MenuAction
@@ -439,3 +365,11 @@ where
 instance MenuAction Action
 instance MenuAction ActionName
 instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionName
+
+// iWorld
+:: *IWorld		=	{ application	:: !String		// The name of the application	
+					, store			:: !Store		// The generic data store
+					, config		:: !Config		// The server configuration
+					, world			:: !*World		// The outside world
+					, timestamp		:: !Timestamp	// The timestamp of the current request
+					}

@@ -1,7 +1,8 @@
 definition module DocumentDB
 
-import StdMaybe, TSt, Types
-from GenUpdate import :: DataPath
+import StdMaybe, Types
+from GenUpdate	import :: DataPath, :: USt
+from Task		import :: TSt
 
 class DocumentDB st
 where

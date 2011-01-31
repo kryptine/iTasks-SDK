@@ -5,7 +5,7 @@ definition module TaskTree
 * task tree data structures is performed by the basic tasks and
 * task combinators.
 */
-import StdMaybe, Either, Types, Html, Time, RPC
+import StdMaybe, Either, Html, Time, RPC, Types
 from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
@@ -19,7 +19,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
 	| TTParallelTask	TaskInfo TaskParallelType [TaskTree]													 
 	//A task that is composed of a number of grouped subtasks
-	| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !(Maybe String)
+	| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !(Maybe String)
 	
 	//LEAF CONSTRUCTORS
 	
@@ -64,13 +64,12 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
-:: InteractiveTask	= Definition	[TUIDef]	[(Action,Bool)]				//Definition for rendering a user interface
-					| Updates		[TUIUpdate]	[(Action,Bool)]				//Update an already rendered user interface
-					| Message		[TUIDef]	[(Action,Bool)]				//Just show a message
-					| Func 			(*TSt -> *(!InteractiveTask, !*TSt))	//Function for delayed generation of an interface definition.
-																			//These functions are evaluated after the full tree has been built.
+:: InteractiveTask	= Definition	[TUIDef]	[(Action,Bool)]					//Definition for rendering a user interface
+					| Updates		[TUIUpdate]	[(Action,Bool)]					//Update an already rendered user interface
+					| Message		[TUIDef]	[(Action,Bool)]					//Just show a message
+					| Func 			(*IWorld -> *(!InteractiveTask, !*IWorld))	//Function for delayed generation of an interface definition.
+																				//These functions are evaluated after the full tree has been built.
 
-:: JSONOutput	= JSONValue !JSONNode										//JSON representation of the task
-				| JSONFunc !(*TSt -> *(!JSONNode,!*TSt))					//Function for delayed generation of JSON representation.
-																			//These functions are evaluated after the full tree has been built.
-																			
+:: JSONOutput	= JSONValue !JSONNode											//JSON representation of the task
+				| JSONFunc !(*IWorld -> *(!JSONNode,!*IWorld))					//Function for delayed generation of JSON representation.
+																				//These functions are evaluated after the full tree has been built.

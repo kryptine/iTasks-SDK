@@ -1,31 +1,7 @@
 implementation module Util
 
-import StdList, StdMaybe, StdFile, StdMisc, StdArray, Time, Text
-import GenVisualize
-from Types	import :: TaskNr, :: TaskId, :: Date{..}, :: Time{..}, :: DateTime(..)
-from TSt	import taskNrToString
-
-instance iTaskId TaskNr
-where
-	iTaskId :: !TaskNr !String -> String
-	iTaskId tasknr postfix 
-		# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
-		| postfix == ""		= "iTask_" +++ (taskNrToString tasknr) 
-		| otherwise			= "iTask_" +++ (taskNrToString tasknr) +++ "-" +++ postfix
-
-instance iTaskId TaskId
-where
-	iTaskId :: !TaskId !String -> String
-	iTaskId taskid postfix
-		# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
-		| postfix == ""		= "iTask_" +++ taskid 
-		| otherwise			= "iTask_" +++ taskid +++ "-" +++ postfix
-
-(+++>) infixr 5	:: !a !String -> String | gVisualize{|*|} a
-(+++>) a s = visualizeAsTextLabel a +++ s
-
-(<+++) infixl 5	:: !String !a -> String | gVisualize{|*|} a
-(<+++) s a = s +++ visualizeAsTextLabel a
+import StdList, StdMaybe, StdFile, StdMisc, StdArray, StdString, Time, Text
+from Types	import :: Date{..}, :: Time{..}, :: DateTime(..)
 
 readfile :: !String !*World -> (!String,!*World)
 readfile filename world
@@ -96,3 +72,8 @@ currentDateTime world
 	# date			= {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year}
 	# time			= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
 	= (DateTime date time,world)
+
+instance toString (Maybe a) | toString a
+where
+	toString Nothing	= ""
+	toString (Just x)	= toString x

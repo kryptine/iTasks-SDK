@@ -10,6 +10,7 @@ derive gUpdate	  		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleSt
 derive gVerify			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive JSONEncode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive JSONDecode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gEq				GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
 derive bimap	Maybe, (,)
 

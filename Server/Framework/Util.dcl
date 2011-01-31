@@ -1,17 +1,6 @@
 definition module Util
 
-from Types import :: TaskNr, :: TaskId
-import GenVisualize
-
-class iTaskId a
-where
-	iTaskId 			:: !a !String 	-> String
-	
-instance iTaskId TaskNr
-instance iTaskId TaskId
-
-(+++>) infixr 5		:: !a	!String	-> String | gVisualize{|*|} a
-(<+++) infixl 5		:: !String	!a	-> String | gVisualize{|*|} a
+import Types
 
 readfile			:: !String !*World -> (!String,!*World)
 writefile			:: !String !String !*World -> *World
@@ -21,6 +10,7 @@ baseName			:: !String -> String
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
+instance toString (Maybe a) | toString a
 
 pad					:: Int Int -> String
 decFormat			:: Int -> String

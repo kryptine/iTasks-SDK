@@ -3,7 +3,8 @@ definition module InteractionTasks
 * This module provides means to interact with users
 */
 from TSt	import :: Task
-from Types	import :: Role, :: Action, :: ActionData, class descr
+from Types	import :: Role, :: Action, :: ActionData
+from Task	import class descr
 from Html	import :: HtmlTag
 from Shared	import :: Shared
 import GenVisualize, GenUpdate, StoreTasks
@@ -122,7 +123,7 @@ requestConfirmationAbout	:: !d !a -> Task Bool	| descr d & iTask a
 */
 enterChoice					:: !d 					  		![a]			-> Task a						| descr d & iTask a
 enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a]			-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
-enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(Shared [a])	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v & gEq{|*|} v
+enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(Shared [a])	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select one item from a list of options, given some context information
@@ -139,7 +140,7 @@ enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(Shared [a])	-> Task (!Act
 */
 enterChoiceAbout			:: !d 							!b ![a]				-> Task a						| descr d & iTask a	& iTask b
 enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a]				-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v
-enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !b !(Shared [a])	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v & gEq{|*|} v
+enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !b !(Shared [a])	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected
@@ -156,7 +157,7 @@ enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !b !(Shared [a])	-> Tas
 */
 updateChoice				:: !d							![a]			!Int -> Task a							| descr d & iTask a	
 updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a]			!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v 
-updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(Shared [a])	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v & gEq{|*|} v
+updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(Shared [a])	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
 
 
 /*
@@ -175,7 +176,7 @@ updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(Shared [a])	!Int -> Task
 */
 updateChoiceAbout			:: !d 							!b ![a]				!Int -> Task a							| descr d & iTask a	& iTask b
 updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !b ![a]				!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v
-updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !b !(Shared [a])	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v & gEq{|*|} v
+updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !b !(Shared [a])	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options
@@ -192,7 +193,7 @@ updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !b !(Shared [a])	!Int -
 */
 enterMultipleChoice			:: !d 					  			![a]			-> Task [a]							| descr d & iTask a
 enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
-enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a])	-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v & gEq{|*|} v
+enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a])	-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options, given additional context information
@@ -209,7 +210,7 @@ enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a])	-> Ta
 */
 enterMultipleChoiceAbout		:: !d 								!b ![a]				-> Task [a]							| descr d & iTask a	& iTask b
 enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!b ![a]				-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v
-enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!b !(Shared [a])	-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v & gEq{|*|} v
+enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!b !(Shared [a])	-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options with already some options pre-selected
@@ -226,7 +227,7 @@ enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!b !(Shared [a
 */
 updateMultipleChoice		:: !d 								![a]			![Int] -> Task [a]							| descr d & iTask a
 updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
-updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]]	!(Shared [a])	![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v & gEq{|*|} v
+updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]]	!(Shared [a])	![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options with already some options pre-selected, given additional context information
@@ -244,7 +245,7 @@ updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]]	!(Shared [a])	![In
 */
 updateMultipleChoiceAbout		 :: !d 								!b ![a] 			![Int] -> Task [a]							| descr d & iTask a	& iTask b
 updateMultipleChoiceAboutA		 :: !d !(a -> v) ![TaskAction [a]]	!b ![a] 			![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v
-updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]]	!b !(Shared [a])	![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v & gEq{|*|} v
+updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]]	!b !(Shared [a])	![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v
 
 //*** Output tasks ***//
 

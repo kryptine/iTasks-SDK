@@ -2,7 +2,7 @@ definition module OSTasks
 /*
 * This module provides tasks to interface with the underlying OS
 */
-import Types
+import Task
 from Directory import :: Path(..), ::DiskName, :: PathStep(..)
 
 // Appends a list of path steps to a path.

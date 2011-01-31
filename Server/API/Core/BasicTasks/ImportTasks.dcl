@@ -2,7 +2,7 @@ definition module ImportTasks
 /**
 * This module provides tasks for importing external data into a workflow.
 */
-import Types
+import Types, Task
 /**
 * Import a file on the server's filesystem as a Document
 *

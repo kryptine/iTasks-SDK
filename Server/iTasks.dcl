@@ -55,4 +55,5 @@ from StdFunc import id, const
 //Types
 import Types
 from TSt		import :: Workflow{..}
-from TaskTree	import :: TaskParallelType(..), :: Change(..), :: ChangeLifeTime(..)
+from TaskTree	import :: TaskParallelType(..)
+from Task		import :: Change(..), :: ChangeLifeTime(..)

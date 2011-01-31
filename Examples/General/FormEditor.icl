@@ -16,7 +16,6 @@ emptyState = (("",emptyForm),NoEdit)
 setShape  ((name,form),mode) shape = ((name,{form & formShape = shape}),mode)
 
 derive class iTask	Mode
-derive gEq 			Mode
 derive bimap		Maybe, (,)
 
 ActionEditType	:== Action "edit-type" "Edit Type"

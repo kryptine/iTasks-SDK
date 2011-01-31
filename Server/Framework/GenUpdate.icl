@@ -1,8 +1,8 @@
 implementation module GenUpdate
 
 import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum
-import Types, Text, DocumentDB, Util, Shared
-from StdFunc	import id
+import Types, Text, Util, Shared, DocumentDB
+from StdFunc import id
 
 :: DataPath = DataPath [Int]
 
@@ -500,17 +500,6 @@ gUpdate{|User|} s ust=:{USt|mode=UDMask,currentPath,newMask}
 	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 gUpdate{|User|} s ust = (s, ust)
 
-gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
-	# (a,ust) = fx (abort "Task create with undef") ust
-	=	(	{ taskProperties	= {ManagerProperties | initManagerProperties & taskDescription = toDescr "return"}
-			, groupedProperties	= initGroupedProperties
-			, mbTaskNr			= Nothing
-			, mbMenuGenFunc		= Nothing
-			, taskFunc			= \tst -> (TaskFinished a,tst)
-			}
-		, ust)
-gUpdate{|Task|} _ x ust = (x,ust)
-
 gUpdate{|Choice|} _ _ ust=:{USt|mode=UDCreate,newMask} 
 	= (Choice [] -1, {USt | ust & newMask = appendToMask newMask Untouched})
 gUpdate{|Choice|} _ c=:(Choice opts _) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
@@ -544,21 +533,21 @@ gUpdate{|MultipleChoice|} _ c ust=:{USt|mode=UDMask,currentPath,newMask}
 	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 
 gUpdate{|Tree|} _ _ ust=:{USt|mode=UDCreate,newMask} 
-	= (Tree [] Nothing, {USt | ust & newMask = appendToMask newMask Untouched})
+	= (Tree [] -1, {USt | ust & newMask = appendToMask newMask Untouched})
 gUpdate{|Tree|} _ tree=:(Tree nodes _) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om)	= popMask oldMask
 	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
 	| currentPath == searchPath
 		# selIdx = toInt update
-		# (n,mask) = if (selIdx >= 0)
-			(Tree nodes (Just (toInt update)),	Touched True [])
-			(Tree nodes Nothing,				Blanked True)
+		# (n,mask) = if (update <> "" && selIdx >= 0)
+			(Tree nodes (toInt update),	Touched True [])
+			(Tree nodes -1,				Blanked True)
 		= (n, {ust & newMask = appendToMask newMask mask}) 
 	| otherwise
 		= (tree, {ust & newMask = appendToMask newMask (cleanUpdMask cm)})
-gUpdate{|Tree|} _ tree=:(Tree _ mbSel) ust=:{USt|mode=UDMask,currentPath,newMask}
+gUpdate{|Tree|} _ tree=:(Tree _ sel) ust=:{USt|mode=UDMask,currentPath,newMask}
 	// if no valid selection is made, start with untouched mask
-	# mask = if (isJust mbSel) (Touched True []) (Untouched)
+	# mask = if (sel >= 0) (Touched True []) (Untouched)
 	= (tree, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask mask})
 
 gUpdate{|Shared|}			_ _ ust=:{mode=UDCreate}	= (Shared "" Nothing, ust)
@@ -566,7 +555,7 @@ gUpdate{|Shared|}			_ x ust						= (x,ust)
 gUpdate{|SharedReadOnly|}	_ _ ust=:{mode=UDCreate}	= (SharedReadOnly "" Nothing, ust)
 gUpdate{|SharedReadOnly|}	_ x ust						= (x,ust)
 
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef
 derive bimap (,)
 
 //Utility functions

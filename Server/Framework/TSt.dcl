@@ -4,7 +4,7 @@ definition module TSt
 * 
 * Additionally it provides utility functions to manipulate the state.
 */
-import StdMaybe, Void, TaskTree, RPC
+import StdMaybe, Void, TaskTree, RPC, Task
 from ProcessDB	import :: Process
 from Config		import :: Config(..)
 from Store		import :: Store(..)
@@ -46,6 +46,7 @@ from Http		import :: HTTPRequest
 					, thread		:: !Dynamic											// the thread of the main task of the workflow
 					, description	:: !String											// a description of the workflow
 					}
+					
 /**
 * Creates an initial task state.
 *
@@ -351,18 +352,17 @@ applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 addTaskNode 		:: !TaskTree !*TSt -> *TSt
 
 //// TASK CONTENT
-setTUIDef			:: ![TUIDef] ![(Action,Bool)] !*TSt 							-> *TSt //Only for interactive tasks
-setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt							-> *TSt //Only for interactive tasks
-setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt					-> *TSt //Only for interactive tasks
-setTUIMessage 		:: ![TUIDef] ![(Action,Bool)] !*TSt								-> *TSt //Only for interactive tasks
-setStatus			:: ![HtmlTag] !*TSt												-> *TSt	//Only for monitor tasks
-setInstruction		:: !(Maybe [HtmlTag]) !*TSt										-> *TSt //Only for instruction tasks
-setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	-> *TSt //Only for group tasks
-setFocusCommand		:: !String !*TSt												-> *TSt //Only for group tasks
+setTUIDef			:: ![TUIDef] ![(Action,Bool)] !*TSt 								-> *TSt //Only for interactive tasks
+setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt								-> *TSt //Only for interactive tasks
+setTUIFunc			:: (*IWorld -> *(!InteractiveTask, !*IWorld)) !*TSt					-> *TSt //Only for interactive tasks
+setTUIMessage 		:: ![TUIDef] ![(Action,Bool)] !*TSt									-> *TSt //Only for interactive tasks
+setStatus			:: ![HtmlTag] !*TSt													-> *TSt	//Only for monitor tasks
+setInstruction		:: !(Maybe [HtmlTag]) !*TSt											-> *TSt //Only for instruction tasks
+setGroupActions		:: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt	-> *TSt //Only for group tasks
+setFocusCommand		:: !String !*TSt													-> *TSt //Only for group tasks
 
-setJSONValue		:: !JSONNode !*TSt												-> *TSt
-setJSONFunc			:: !(*TSt -> *(!JSONNode,!*TSt)) !*TSt							-> *TSt
-
+setJSONValue		:: !JSONNode !*TSt													-> *TSt
+setJSONFunc			:: !(*IWorld -> *(!JSONNode,!*IWorld)) !*TSt						-> *TSt
 //EVENTS
 /**
 * Get the events (name/value pairs) for the current task
@@ -379,18 +379,18 @@ getEvents			:: !*TSt						-> ([(!String,!JSONNode)],!*TSt)
 * Writes a 'task scoped' value to the store
 * These values are copied and garbage collected along with a task
 */
-setTaskStore			:: !String !a !*TSt				-> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-setTaskStoreFor 		:: !TaskNr !String !a !*TSt		-> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+setTaskStore			:: !String !a !*TSt				-> *TSt		| JSONEncode{|*|}, JSONDecode{|*|}, TC a
+setTaskStoreFor 		:: !TaskNr !String !a !*IWorld	-> *IWorld	| JSONEncode{|*|}, JSONDecode{|*|}, TC a
 /**
 * Reads a 'task scoped' value from the store
 */
 getTaskStore			:: !String !*TSt				-> (Maybe a, !*TSt)			| JSONEncode{|*|}, JSONDecode{|*|}, TC a
-getTaskStoreFor			:: !TaskNr !String !*TSt		-> (Maybe a, !*TSt) 		| JSONEncode{|*|}, JSONDecode{|*|}, TC a
+getTaskStoreFor			:: !TaskNr !String !*IWorld		-> (Maybe a, !*IWorld) 		| JSONEncode{|*|}, JSONDecode{|*|}, TC a
 /**
 * Gets timestamp of 'task scoped' values
 */
 getTaskStoreTimestamp		:: !String !*TSt			-> (Maybe Timestamp, !*TSt)
-getTaskStoreTimestampFor	:: !TaskNr !String !*TSt	-> (Maybe Timestamp, !*TSt)
+getTaskStoreTimestampFor	:: !TaskNr !String !*IWorld	-> (Maybe Timestamp, !*IWorld)
 /**
 * Store and load the result of a workflow instance
 */
@@ -426,23 +426,6 @@ copyTaskStates		:: !TaskNr !TaskNr !*TSt	-> *TSt
 flushStore			:: !*TSt					-> *TSt
 
 //// UTILITY
-/**
-* Parses a formatted task number to its integer list representation
-*
-* @param The task nr as formatted string
-*
-* @return The task nr as integer list
-*/
-taskNrFromString 	:: !String 					-> TaskNr
-/**
-* Converts a task number to its dotted string representation
-*
-* @param The task number as integer list
-*
-* @return The formatted task number
-*/
-taskNrToString		:: !TaskNr 					-> String
-
 /**
 * Convert the names in events to data paths
 *

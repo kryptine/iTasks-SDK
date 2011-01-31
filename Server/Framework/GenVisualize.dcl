@@ -13,7 +13,8 @@ generic gVisualize a	:: (Maybe a) *VSt -> ([Visualization], *VSt)
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Task, Choice, MultipleChoice, Shared, SharedReadOnly, Map, Tree
+derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Shared, SharedReadOnly, Map, Tree
+derive gVisualize ProcessRef, EmailAddress, Action
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: String a UpdateMask VerifyMask -> [TUIDef]			| gVisualize{|*|} a
@@ -21,14 +22,6 @@ visualizeAsHtmlDisplay	:: a -> [HtmlTag]										| gVisualize{|*|} a
 visualizeAsTextDisplay	:: a -> String											| gVisualize{|*|} a
 visualizeAsHtmlLabel	:: a -> [HtmlTag]										| gVisualize{|*|} a
 visualizeAsTextLabel	:: a -> String											| gVisualize{|*|} a
-
-// Field behaviour extensions
-:: VisualizationHint a 	= VHEditable a
-					   	| VHDisplay a
-					   	| VHHidden a
-:: Editable a 			= Editable a		// Variable is always rendered within a form as editor field
-:: Display a 			= Display a			// Variable is always rendered within a form as a static element
-:: Hidden a 			= Hidden a			// Variable is never rendered
 
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 toVisualizationHint :: !.a -> (VisualizationHint .a)
@@ -88,3 +81,6 @@ verifyElementStr		:: !UpdateMask !VerifyMask -> (!String, !String)
 value2s					:: !UpdateMask !(Maybe a)	-> String | toString a
 labelAttr				:: !Bool !(Maybe String)	-> Maybe String
 formatLabel				:: !String					-> String
+
+(+++>) infixr 5		:: !a	!String	-> String | gVisualize{|*|} a
+(<+++) infixl 5		:: !String	!a	-> String | gVisualize{|*|} a

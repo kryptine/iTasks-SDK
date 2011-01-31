@@ -7,6 +7,7 @@ derive gVerify			FormattedText, FormattedTextControls, SourceCode, SourceCodeLan
 derive JSONEncode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONDecode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONEncode		TUIFormattedText, TUIColorChooser, TUISourceCode
+derive gEq				FormattedText, SourceCode, Color, FormattedTextControls, SourceCodeLanguage
 derive bimap			Maybe, (,)
 
 mkEmptyFormattedText :: !FormattedTextControls -> FormattedText

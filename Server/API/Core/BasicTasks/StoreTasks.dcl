@@ -3,8 +3,7 @@ definition module StoreTasks
 * This module provides tasks for simple storage in the iTasks store
 */
 
-import Shared, GenUpdate, GenVisualize, GenVerify
-from Types import class iTask
+import Shared, Task
 
 //Database identifier to a value of type a in a database with multiple values
 :: DBRef a = DBRef !Int
