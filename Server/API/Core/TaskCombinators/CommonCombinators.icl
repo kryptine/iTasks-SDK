@@ -229,9 +229,9 @@ where
 		GOFocus tag		= (Void, Focus tag)
 	changeTasksType tasks = map (\t -> (t >>| return (GOExtend [])) <<@ t.groupedProperties.GroupedProperties.groupedBehaviour) tasks
 		
-mdiApplication :: !globalState ![GroupAction Void] !((Shared globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState & MDIState globalState editorState
+mdiApplication :: !globalState ![GroupAction Void] !((Shared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !((globalState,EditorCollection editorState) -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
 mdiApplication initAppState gActions gActionsGenFunc menuGenFunc =
-				createDB initAppState
+				createDB (initAppState,newMap)
 	>>= \ref.	createDB 0
 	>>= \idref.	dynamicGroupA [] gActions (gActionsGenFunc ref (globalTasks ref idref)) <<@ DynamicMenus ref menuGenFunc
 	>>|			deleteDB ref
@@ -245,38 +245,33 @@ where
 		}
 	where
 		createEditor initState editorTask =
-								updateDB idref inc
-			>>= \eid.			updateDB ref (putInEditorStates eid initState)
-			>>|					editorTask eid (sharedForEditor eid)
-			>>|					readDB ref
-			>>=	\st.			transform getEditorStates st
-			>>=					transform (delU eid)
-			>>= \(Just e,est).	writeDB ref (setEditorStates est st)
-			>>|					return e
-		where
-			sharedForEditor eid = mapShared (fromJust o (get eid) o getEditorStates, putInEditorStates eid) ref
+						updateDB idref inc
+			>>= \eid.	updateDB ref (putInEditorStates eid initState)
+			>>|			editorTask eid (sharedForEditor eid)
+			>>|			updateDB ref (updateEditorStates (del eid))
+			>>|			stop
 			
 		iterateEditors initAcc f =
 						readDB ref
-			>>= \st.	iterate initAcc (map fst (toList (getEditorStates st))) f ref
+			>>= \st.	iterate initAcc (map fst (toList (snd st))) f ref
 		where
-			iterate :: !acc ![EditorId est] !(acc (Shared est) -> Task acc) !(Shared st) -> Task acc | iTask acc & iTask st & MDIState st est
 			iterate acc [] _ _= return acc
 			iterate acc [eid:eids] f ref =
-							f acc (mapShared (fromJust o (get eid) o getEditorStates, putInEditorStates eid) ref)
+							f acc (sharedForEditor eid)
 				>>= \acc.	iterate acc eids f ref
 			
 		existsEditor pred =
 						readDB ref
-			>>= \st.	return (check (toList (getEditorStates st)))
+			>>= \st.	return (check (toList (snd st)))
 		where
 			check [] = Nothing
 			check [(eid,editor):ests]
 				| pred editor	= Just eid
 				| otherwise		= check ests
 				
+		sharedForEditor eid = mapShared (fromJust o (get eid) o snd, putInEditorStates eid) ref		
 		putInEditorStates eid est st = updateEditorStates (put eid est) st
-		updateEditorStates f st = setEditorStates (f (getEditorStates st)) st
+		updateEditorStates f st = app2 (id,f) st
 
 //Utility functions
 sortByIndex :: ![(Int,a)] -> [a]
