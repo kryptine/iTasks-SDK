@@ -64,9 +64,9 @@ gVerify{|CONS of d|}	fx    cons					vst=:{VerSt|updateMask,verifyMask,optional}
 				= VMValid (Just "Select an option") childMask
 			False
 				= case cmu of
-					(Untouched)		= VMUntouched (Just "Select an option") False childMask
-					(Blanked _)		= VMInvalid IsBlankError childMask
-					(Touched _ _)	= VMValid (Just "Select an option") childMask
+					Untouched	= VMUntouched (Just "Select an option") False childMask
+					Blanked _	= VMInvalid IsBlankError childMask
+					Touched _ _	= VMValid (Just "Select an option") childMask
 		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	
 where
 	val = case cons of
@@ -93,7 +93,7 @@ gVerify{|Maybe|} fx (Just Nothing) vst=:{VerSt | optional}
 gVerify{|Maybe|} fx Nothing vst=:{VerSt | updateMask,verifyMask,optional}
 	# vst = fx Nothing {VerSt | vst & optional = True}
 	= {VerSt | vst & optional = optional}
-	
+derive JSONEncode UpdateMask	
 gVerify{|[]|} fx Nothing   vst=:{VerSt | optional}
 	# msg = if optional "You may add list items" "Create at least one list item"
 	= simpleVerify msg vst
@@ -102,11 +102,13 @@ gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
 	# vst=:{VerSt | verifyMask=childMask} = verifyItems fx [] {VerSt | vst & verifyMask = [], updateMask = childMasks cm, optional = False}
 	| optional
 		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") childMask)}	
-	# listMask  = case cm of 
-					(Untouched) 
-						= (VMUntouched Nothing optional childMask)
-					(TouchedList _ _)
-						= (VMValid Nothing childMask)
+	# listMask  = case cm of
+					Untouched
+						= VMUntouched Nothing optional childMask
+					Blanked _
+						= VMInvalid IsBlankError childMask
+					TouchedList _ _
+						= VMValid Nothing childMask
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask listMask}
 gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)	= popMask updateMask
@@ -276,7 +278,7 @@ where
 			WPRValid mbHint	= VMValid mbHint []
 			WPRInvalid err	= VMInvalid (ErrorMessage err) []
 		= (mask,{VerSt|vst & iworld = iworld})
-		      
+
 setInvalid :: ![(!DataPath,!ErrorMessage)] !VerifyMask -> VerifyMask
 setInvalid errors mask = seq (map setInvalid` errors) mask
 where
