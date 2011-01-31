@@ -353,8 +353,8 @@ where
 			# ((modelValue,modelTimestamp),iworld)	= readModelValue iworld
 			# (nvalue,blank)						= bimapGet modelValue initView
 			# (numask,iworld) = if blank
-				(defaultMask nvalue iworld)
 				(Blanked True,iworld)
+				(defaultMask nvalue iworld)
 			# (nvmask,iworld)	= verifyValue nvalue numask iworld
 			# iworld			= setStores (nvalue,numask,nvmask) iworld
 			= iworld
