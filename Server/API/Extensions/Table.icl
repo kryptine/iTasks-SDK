@@ -21,18 +21,18 @@ gUpdate{|Table|} _ table=:(Table cols data) ust=:{USt|mode=UDSearch,searchPath,c
 			# [row:l]	= reverse inTableDP
 			# dp		= (dataPathFromList (reverse l))
 			| length data > row
-				= (Table cols (updateAt row (updObj update dp (data !! row)) data),{ust & newMask = appendToMask newMask (Touched True [])})
+				= (Table cols (updateAt row (updObj update dp (data !! row)) data),{ust & newMask = appendToMask newMask (Touched [])})
 			| otherwise
 				= undef
 		| otherwise
 			= undef
 	| otherwise
-		= (table,{ust & newMask = appendToMask newMask (cleanUpdMask cm)})
+		= (table,{ust & newMask = appendToMask newMask cm})
 where
 	updObj v dp (JSONObject obj) = JSONObject [(dp2s dp,JSONString v):filter (\(idx,_) -> idx <> dp2s dp) obj]
 	
 gUpdate{|Table|} _ table ust=:{USt|mode=UDMask,currentPath,newMask}
-	# mask = Touched True []
+	# mask = Touched []
 	= (table,{USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask mask})
 
 gVerify{|Table|} _ v vst = customVerify Nothing (const True) (const "") v vst

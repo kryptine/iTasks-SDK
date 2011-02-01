@@ -3,61 +3,66 @@ implementation module TUIDiff
 import StdBool, StdClass, StdList
 import Util, GenUpdate, TUIDefinition
 
-diffEditorDefinitions :: !DataPath !TUIDef !TUIDef -> [TUIUpdate]
-diffEditorDefinitions path old new
-	| sameType old new
-		| isStaticContainer old
-			// Records and tuples have static children
-			= staticContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
-		| isDynamicContainer old
-			// List and Constructor are special: they have dynamic children
-			= dynamicContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
-		| isControl old
-			//If not same value, error or hint, create set instructions
-			= valueUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
-		= case (old,new) of //Special cases
-			// Custom components are always updated
-			(TUICustom _, _)
-				= [TUIReplace_ (dp2s path) new]
-			// Documents are replaced when their value has changed
-			(TUIDocumentControl odoc, TUIDocumentControl ndoc)
-				| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
-				| otherwise																= [TUIReplace_ (dp2s path) new]
-			// Choices are replaced if the options are changed, otherwise their selection is updated
-			(TUIChoiceControl oc, TUIChoiceControl nc)
-				# updates = if (oc.options == nc.options)
-					if (oc.selection == nc.selection)
-						[]
-						[TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
-					[TUIReplace_ (dp2s path) new]
-				= updates ++ hintUpdate path old new ++ errorUpdate path old new
-			// Trees are replaced if the nodes are changed, otherwise their selection is updated
-			(TUITreeControl ot, TUITreeControl nt)
-				# updates = if (ot.tuiTree == nt.tuiTree)
-					if (ot.selIndex == nt.selIndex)
-						[]
-						[TUISetValue_ (dp2s path) (toString nt.selIndex)]
-					[TUIReplace_ (dp2s path) new]
-				= updates ++ hintUpdate path old new ++ errorUpdate path old new
-			// Fallback: always replace
-			_	= [TUIReplace_ (dp2s path) new]
-	| otherwise
-		//If not the same type, just replace
-		= [TUIReplace_ (dp2s path) new]
+diffEditorDefinitions :: !TUIDef !TUIDef ![DataPath] -> [TUIUpdate]
+diffEditorDefinitions old new alwaysUpdatePaths
+	= diffEditorDefinitions` startDataPath old new
 where
+	diffEditorDefinitions` :: !DataPath !TUIDef !TUIDef -> [TUIUpdate]
+	diffEditorDefinitions` path old new
+		| sameType old new
+			| isStaticContainer old
+				// Records and tuples have static children
+				= staticContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
+			| isDynamicContainer old
+				// List and Constructor are special: they have dynamic children
+				= dynamicContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
+			| isControl old
+				//If not same value, error or hint, create set instructions
+				= valueUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
+			= case (old,new) of //Special cases
+				// Custom components are always updated
+				(TUICustom _, _)
+					= [TUIReplace_ (dp2s path) new]
+				// Documents are replaced when their value has changed
+				(TUIDocumentControl odoc, TUIDocumentControl ndoc)
+					| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
+					| otherwise																= [TUIReplace_ (dp2s path) new]
+				// Choices are replaced if the options are changed, otherwise their selection is updated
+				(TUIChoiceControl oc, TUIChoiceControl nc)
+					# updates = if (oc.options == nc.options)
+						if (oc.selection == nc.selection)
+							[]
+							[TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
+						[TUIReplace_ (dp2s path) new]
+					= updates ++ hintUpdate path old new ++ errorUpdate path old new
+				// Trees are replaced if the nodes are changed, otherwise their selection is updated
+				(TUITreeControl ot, TUITreeControl nt)
+					# updates = if (ot.tuiTree == nt.tuiTree)
+						if (ot.selIndex == nt.selIndex)
+							[]
+							[TUISetValue_ (dp2s path) (toString nt.selIndex)]
+						[TUIReplace_ (dp2s path) new]
+					= updates ++ hintUpdate path old new ++ errorUpdate path old new
+				// Fallback: always replace
+				_	= [TUIReplace_ (dp2s path) new]
+		| otherwise
+			//If not the same type, just replace
+			= [TUIReplace_ (dp2s path) new]
+	
 	valueUpdate path old new	= update sameValue valueOf TUISetValue_ path old new
 	hintUpdate path old new		= update sameHint hintOf TUISetHint_ path old new	
 	errorUpdate path old new	= update sameError errorOf TUISetError_ path old new
 	
 	update eqfun accfun consfun path old new
-		| not (eqfun old new)	= case accfun new of
-			Just prop			= [consfun (dp2s path) prop]
-			Nothing				= []
-		| otherwise				= []	
+		| not (eqfun old new) || isMember path alwaysUpdatePaths
+			= case accfun new of
+				Just prop	= [consfun (dp2s path) prop]
+				Nothing		= []
+		| otherwise			= []	
 
 	staticContainerUpdate path old new
 		//Simply update all child elements
-		= flatten [diffEditorDefinitions (childDataPath path i) co cn \\ co <- childrenOf old & cn <- childrenOf new & i <- [0..] ]
+		= flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- childrenOf old & cn <- childrenOf new & i <- [0..] ]
 	
 	dynamicContainerUpdate path (TUIListContainer lcOld) (TUIListContainer lcNew)
 		//Same number of items -> simply do pairwise diffs
@@ -72,7 +77,7 @@ where
 			numNew = length lcNew.TUIListContainer.items
 			
 			diffListItemDefinitions path old new
-				= flatten [ diffEditorDefinitions (childDataPath path i) (hd co) (hd cn)
+				= flatten [ diffEditorDefinitions` (childDataPath path i) (hd co) (hd cn)
 				 		  \\(TUIListItemControl {TUIListItemControl|items=co}) <- old
 						  & (TUIListItemControl {TUIListItemControl|items=cn}) <- new
 						  & i <- [0..] ]
@@ -80,7 +85,7 @@ where
 	dynamicContainerUpdate path (TUIConstructorControl ccOld) (TUIConstructorControl ccNew)
 		//Same constructor: diff the children
 		| ccOld.TUIConstructorControl.consSelIdx == ccNew.TUIConstructorControl.consSelIdx
-			= flatten [  diffEditorDefinitions (childDataPath path i) co cn
+			= flatten [  diffEditorDefinitions` (childDataPath path i) co cn
 					  \\ co <- ccOld.TUIConstructorControl.items
 					  &  cn <- ccNew.TUIConstructorControl.items
 					  & i <- [0..] ]
@@ -116,8 +121,8 @@ sameType (TUIHiddenControl _)		(TUIHiddenControl _)		= True
 sameType (TUIFormButtonControl _)	(TUIFormButtonControl _)	= True
 sameType (TUIListItemControl _)		(TUIListItemControl _)		= True
 sameType (TUIAppletControl _)       (TUIAppletControl _)        = True
-sameType (TUIGridControl _)			(TUIGridControl _)        = True
-sameType (TUITreeControl _)			(TUITreeControl _)        = True
+sameType (TUIGridControl _)			(TUIGridControl _)        	= True
+sameType (TUITreeControl _)			(TUITreeControl _)        	= True
 
 sameType (TUITupleContainer _)		(TUITupleContainer _)		= True
 sameType (TUIRecordContainer _)		(TUIRecordContainer _)		= True
@@ -218,7 +223,6 @@ isDynamicContainer :: TUIDef -> Bool
 isDynamicContainer (TUIConstructorControl _)= True
 isDynamicContainer (TUIListContainer _)		= True
 isDynamicContainer _						= False
-
 
 childrenOf :: TUIDef -> [TUIDef]
 childrenOf (TUITupleContainer {TUITupleContainer|items})	= flatten items

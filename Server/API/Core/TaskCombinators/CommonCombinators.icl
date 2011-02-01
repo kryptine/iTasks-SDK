@@ -27,9 +27,9 @@ gUpdate{|Tag|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,n
 	| currentPath == searchPath
 		= (Tag update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
 	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
 gUpdate{|Tag|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
 gVerify{|Tag|} mbTag vst = gVerify{|*|} (toStr mbTag) vst
 where
 	toStr Nothing			= Nothing

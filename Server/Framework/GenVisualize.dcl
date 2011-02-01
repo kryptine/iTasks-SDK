@@ -36,7 +36,7 @@ fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String (a, UpdateMask, VerifyMask) (a, UpdateMask, VerifyMask) -> [TUIUpdate]	| gVisualize{|*|} a
+determineEditorUpdates	:: String (a, UpdateMask, VerifyMask) (a, UpdateMask, VerifyMask) ![DataPath] -> [TUIUpdate] | gVisualize{|*|} a
 
 //Type definitions for visualization
 :: VisualizationValue a

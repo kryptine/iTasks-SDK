@@ -28,12 +28,12 @@ visualizeAsHtmlLabel x =  flatten (coerceToHtml (fst (gVisualize{|*|} (Just x) {
 visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
 
-determineEditorUpdates :: String (a, UpdateMask, VerifyMask) (a, UpdateMask, VerifyMask) -> [TUIUpdate]	| gVisualize{|*|} a
-determineEditorUpdates name (oval, oumask, ovmask) (nval, numask, nvmask)
+determineEditorUpdates :: String (a, UpdateMask, VerifyMask) (a, UpdateMask, VerifyMask) ![DataPath] -> [TUIUpdate]	| gVisualize{|*|} a
+determineEditorUpdates name (oval, oumask, ovmask) (nval, numask, nvmask) alwaysUpdate
 	# oldviz = visualizeAsEditor name oval oumask ovmask
 	# newviz = visualizeAsEditor name nval numask nvmask
-	= diffEditorDefinitions startDataPath (hd oldviz) (hd newviz) 
-
+	= diffEditorDefinitions (hd oldviz) (hd newviz) alwaysUpdate
+	
 //IDEAS:
 // - ConstructorControl, should in same cases be a constructor container
 // - HtmlContainer should really be an html control
@@ -73,9 +73,9 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 														| id = id
 														, name = dp2s currentPath
 														, fieldLabel = labelAttr useLabels label
-														, consSelIdx = case cmu of (Touched _ _) = selectedConsIndex; _ = -1
+														, consSelIdx = case cmu of (Touched _) = selectedConsIndex; _ = -1
 														, consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
-														, items = case cmu of (Touched _ _) = (coerceToTUIDefs items); _ = []
+														, items = case cmu of (Touched _) = (coerceToTUIDefs items); _ = []
 														, staticDisplay = renderAsStatic
 														, errorMsg = err
 														, hintMsg = hnt
@@ -600,7 +600,7 @@ where
 	curLabel _				= "&euro;" //Use the default currency
 	
 	value Nothing um	= ""
-	value (Just v) um	= case um of (Touched _ _) = (decFormat (toInt v)); _ = ""
+	value (Just v) um	= case um of (Touched _) = (decFormat (toInt v)); _ = ""
 	
 	id = dp2id idPrefix currentPath
 
@@ -624,7 +624,7 @@ gVisualize{|Choice|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 			= case vizType of
 				VEditorDefinition
 					# selection = case cmu of
-						Touched _ _			= [sel]
+						Touched _			= [sel]
 						_					= []
 					# (err,hnt)				= verifyElementStr cmu cmv
 					# (optionLabels,vst)	= mkChoiceOptionLabels fx opts vst
@@ -742,7 +742,7 @@ derive bimap Maybe
 //***** UTILITY FUNCTIONS *************************************************************************************************	
 
 value2s :: !UpdateMask !(Maybe a) -> String | toString a
-value2s (Touched _ _) (Just a) = toString a
+value2s (Touched _) (Just a) = toString a
 value2s _ _ = ""
 
 labelAttr :: !Bool !(Maybe String) -> Maybe String

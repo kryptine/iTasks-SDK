@@ -331,7 +331,7 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					= handleActionEvent nvalue (isValidValue nvmask) event tst
 				Nothing
 					// UI is built after all possible changes of the model are done
-					# tst = setTUIFunc (buildUI old new rebuild refresh localTimestamp errors) tst
+					# tst = setTUIFunc (buildUI old new rebuild refresh localTimestamp errors (map fst edits)) tst
 					= (TaskBusy,tst)
 where
 	// for local mode use auto generated store name, for shared mode use given store
@@ -353,7 +353,7 @@ where
 			# ((modelValue,modelTimestamp),iworld)	= readModelValue iworld
 			# (nvalue,blank)						= bimapGet modelValue initView
 			# (numask,iworld) = if blank
-				(Blanked True,iworld)
+				(Blanked,iworld)
 				(defaultMask nvalue iworld)
 			# (nvmask,iworld)	= verifyValue nvalue numask iworld
 			# iworld			= setStores (nvalue,numask,nvmask) iworld
@@ -379,11 +379,12 @@ where
 	* @param Determines if a new UI definition is computed or the existing one is updated.
 	* @param The timestamp of the local value before the current request.
 	* @param Error messages added to the rebuilt value.
+	* @param Datapaths of values updates by an event
 	* @param IWorld
 	*
 	* @return A tree node containing the computed UI definition/updates.
 	*/
-	buildUI old new=:(nvalue,numask,nvmask) rebuild refresh localTimestamp errors iworld
+	buildUI old new=:(nvalue,numask,nvmask) rebuild refresh localTimestamp errors updatedPaths iworld
 		# ((modelValue,modelTimestamp), iworld)	= readModelValue iworld
 		// check for changed model value
 		# (modelChanged,iworld)					= isSharedChanged shared localTimestamp iworld
@@ -402,7 +403,7 @@ where
 			// get stored old errors
 			# (oldErrors,iworld)				= getErrors taskNr iworld
 			# old								= app3 (id,id,setInvalid oldErrors) old
-			# updates							= determineEditorUpdates editorId old rebuilt
+			# updates							= determineEditorUpdates editorId old rebuilt updatedPaths
 			= (Updates updates evalActions,iworld)
 
 	buildJSONValue new=:(nvalue,_,_) localTimestamp iworld
@@ -422,7 +423,7 @@ where
 		// only calculate new view value if 'get (put v m) <> v' or if mask is blanked
 		| viewValue =!= nvalue || blank
 			# (numask,iworld) = if blank
-				(Blanked True,iworld)
+				(Blanked,iworld)
 				(defaultMask nvalue iworld)
 			# (nvmask,iworld)	= verifyValue nvalue numask iworld
 			# nvmask			= setInvalid errors nvmask

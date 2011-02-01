@@ -6,14 +6,9 @@ from Map import :: Map
 //Datapath is used to point to substructures of data structures
 :: DataPath
 
-//				Mode		Dirty			Child Components
-:: UpdateMask = Untouched 			
-			  | Touched		Bool			[UpdateMask]
-			  | TouchedList	[Int]			[UpdateMask] //For lists, a mask 
-			  | Blanked		Bool			
-				
-//							Dirty Children	Child Components	Untouched
-//			  | UMList		[Int]			[UpdateMask]		Bool
+:: UpdateMask = Untouched
+			  | Touched [UpdateMask]
+			  | Blanked
 
 :: *USt =
 	{ mode				:: UpdateMode
@@ -31,7 +26,7 @@ from Map import :: Map
 	| UDCreate
 	| UDMask
 
-generic gUpdate a		:: a 		*USt -> (a, *USt)
+generic gUpdate a :: a  *USt -> (a, *USt)
 
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String
@@ -77,8 +72,4 @@ where
 instance == DataPath
 instance GenMask UpdateMask
 
-isDirty 			:: !UpdateMask 	-> Bool
-
 toggleMask 			:: !String 		-> UpdateMask
-cleanUpdMask 		:: !UpdateMask 	-> UpdateMask
-dirtyUpdMask 		:: !UpdateMask 	-> UpdateMask

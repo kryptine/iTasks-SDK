@@ -38,7 +38,7 @@ gVerify{|CONS of d|}	fx    cons					vst=:{VerSt|updateMask,verifyMask,optional}
 		| optional
 			//Only compute child verify mask, if record is already touched. Else you can end up in endless recursion!
 			= case cmu of
-				(Touched _ _)
+				(Touched _)
 					# vst=:{VerSt | verifyMask = childMask} = fx val {VerSt | vst & optional = False, updateMask = childMasks cmu, verifyMask = []}
 					= {VerSt| vst & verifyMask = appendToMask verifyMask (VMValid Nothing childMask), optional = optional, updateMask = um}
 				_
@@ -65,8 +65,8 @@ gVerify{|CONS of d|}	fx    cons					vst=:{VerSt|updateMask,verifyMask,optional}
 			False
 				= case cmu of
 					Untouched	= VMUntouched (Just "Select an option") False childMask
-					Blanked _	= VMInvalid IsBlankError childMask
-					Touched _ _	= VMValid (Just "Select an option") childMask
+					Blanked		= VMInvalid IsBlankError childMask
+					Touched _	= VMValid (Just "Select an option") childMask
 		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	
 where
 	val = case cons of
@@ -103,12 +103,8 @@ gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
 	| optional
 		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") childMask)}	
 	# listMask  = case cm of
-					Untouched
-						= VMUntouched Nothing optional childMask
-					Blanked _
-						= VMInvalid IsBlankError childMask
-					TouchedList _ _
-						= VMValid Nothing childMask
+					Untouched	= VMUntouched Nothing optional childMask
+					Blanked		= VMInvalid IsBlankError childMask
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask listMask}
 gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)	= popMask updateMask
@@ -125,7 +121,6 @@ verifyItems fx [] vst=:{VerSt | optional}
 verifyItems fx [x:xs] vst
 	# vst = fx (Just x) vst
 	= verifyItems fx xs vst
-
 
 gVerify{|Dynamic|} _ vst = vst
 
@@ -230,12 +225,12 @@ wrapperVerify mbHint pred parseErr mbVal vst=:{VerSt | updateMask, verifyMask, o
 	# vmask = case mbVal of
 		Just val
 			| optional = case cm of
-				Touched _ _	= validateValue val
+				Touched _	= validateValue val
 				_			= VMValid Nothing [VMValid mbHint []]           
 			| otherwise = case cm of
 				Untouched	= VMUntouched Nothing False [VMUntouched mbHint False []]
-				Blanked _	= VMInvalid IsBlankError [VMInvalid IsBlankError []]
-				Touched _ _	= validateValue val     
+				Blanked		= VMInvalid IsBlankError [VMInvalid IsBlankError []]
+				Touched _	= validateValue val     
 		Nothing
 			| optional		= VMValid Nothing [VMValid mbHint []]
 			| otherwise		= VMUntouched Nothing False [VMUntouched mbHint False []]
@@ -259,17 +254,16 @@ customWorldVerify mbHint pred mbVal vst=:{VerSt | updateMask, verifyMask, option
 		Just val
 			| optional
 				= case cm of
-					Touched _ _		= validateValue val vst
-					_				= (VMValid mbHint [],vst)
+					Touched _	= validateValue val vst
+					_			= (VMValid mbHint [],vst)
 			| otherwise
 				= case cm of
-					Untouched		= (VMUntouched mbHint False [],vst)
-					Blanked _		= (VMInvalid IsBlankError [],vst)
-					Touched _ _		= validateValue val vst
-					TouchedList _ _	= (VMValid mbHint [],vst)
+					Untouched	= (VMUntouched mbHint False [],vst)
+					Blanked		= (VMInvalid IsBlankError [],vst)
+					Touched _	= validateValue val vst
 		Nothing
-			| optional				= (VMValid mbHint [],vst)
-			| otherwise				= (VMUntouched mbHint False [],vst)
+			| optional			= (VMValid mbHint [],vst)
+			| otherwise			= (VMUntouched mbHint False [],vst)
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
 where
 	validateValue val vst=:{VerSt|iworld}
