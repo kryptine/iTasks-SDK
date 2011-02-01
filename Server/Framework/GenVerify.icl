@@ -38,7 +38,7 @@ gVerify{|CONS of d|}	fx    cons					vst=:{VerSt|updateMask,verifyMask,optional}
 		| optional
 			//Only compute child verify mask, if record is already touched. Else you can end up in endless recursion!
 			= case cmu of
-				(Touched _)
+				Touched _
 					# vst=:{VerSt | verifyMask = childMask} = fx val {VerSt | vst & optional = False, updateMask = childMasks cmu, verifyMask = []}
 					= {VerSt| vst & verifyMask = appendToMask verifyMask (VMValid Nothing childMask), optional = optional, updateMask = um}
 				_
@@ -51,7 +51,7 @@ gVerify{|CONS of d|}	fx    cons					vst=:{VerSt|updateMask,verifyMask,optional}
 	| d.gcd_type_def.gtd_num_conses == 1
 		# vst=:{VerSt | verifyMask = childMask} = fx val {VerSt | vst & updateMask = childMasks cmu, verifyMask = []}
 		= case cmu of
-			(Untouched)
+			Untouched
 				= {VerSt| vst & verifyMask = appendToMask verifyMask (VMUntouched Nothing optional childMask), optional = optional, updateMask = um}
 			_
 				= {VerSt| vst & verifyMask = appendToMask verifyMask (VMValid Nothing childMask), optional = optional, updateMask = um}	
@@ -104,7 +104,7 @@ gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
 		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") childMask)}	
 	# listMask  = case cm of
 					Untouched	= VMUntouched Nothing optional childMask
-					Blanked		= VMInvalid IsBlankError childMask
+					_			= VMInvalid IsBlankError childMask
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask listMask}
 gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)	= popMask updateMask

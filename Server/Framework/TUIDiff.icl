@@ -10,6 +10,12 @@ where
 	diffEditorDefinitions` :: !DataPath !TUIDef !TUIDef -> [TUIUpdate]
 	diffEditorDefinitions` path old new
 		| sameType old new
+			= valueUpdates old new ++ hintUpdate path old new ++ errorUpdate path old new 
+		| otherwise
+			//If not the same type, just replace
+			= [TUIReplace_ (dp2s path) new]
+	where
+		valueUpdates old new
 			| isStaticContainer old
 				// Records and tuples have static children
 				= staticContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
@@ -20,6 +26,12 @@ where
 				//If not same value, error or hint, create set instructions
 				= valueUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
 			= case (old,new) of //Special cases
+				// Records are static except if they are optional
+				(TUIRecordContainer o, TUIRecordContainer n)
+					= case (o.hasValue,n.hasValue) of
+						(True,True)		= staticContainerUpdate path old new
+						(False,True)	= map (TUIAddTo n.TUIRecordContainer.id) n.TUIRecordContainer.items
+						_				= [TUIReplace_ (dp2s path) new]
 				// Custom components are always updated
 				(TUICustom _, _)
 					= [TUIReplace_ (dp2s path) new]
@@ -45,60 +57,53 @@ where
 					= updates ++ hintUpdate path old new ++ errorUpdate path old new
 				// Fallback: always replace
 				_	= [TUIReplace_ (dp2s path) new]
-		| otherwise
-			//If not the same type, just replace
-			= [TUIReplace_ (dp2s path) new]
 	
-	valueUpdate path old new	= update sameValue valueOf TUISetValue_ path old new
-	hintUpdate path old new		= update sameHint hintOf TUISetHint_ path old new	
-	errorUpdate path old new	= update sameError errorOf TUISetError_ path old new
-	
-	update eqfun accfun consfun path old new
-		| not (eqfun old new) || isMember path alwaysUpdatePaths
-			= case accfun new of
-				Just prop	= [consfun (dp2s path) prop]
-				Nothing		= []
-		| otherwise			= []	
-
-	staticContainerUpdate path old new
-		//Simply update all child elements
-		= flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- childrenOf old & cn <- childrenOf new & i <- [0..] ]
-	
-	dynamicContainerUpdate path (TUIListContainer lcOld) (TUIListContainer lcNew)
-		//Same number of items -> simply do pairwise diffs
-		| numOld == numNew
-			= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
-		//TODO: Less items in new list -> do pairwise diffs and drop last items
-		//TODO: More items in new list -> do pairwise diffs and add last items
-		| otherwise 
-			= [TUIReplace_ (dp2s path) (TUIListContainer lcNew)]
-		where
-			numOld = length lcOld.TUIListContainer.items
-			numNew = length lcNew.TUIListContainer.items
-			
-			diffListItemDefinitions path old new
-				= flatten [ diffEditorDefinitions` (childDataPath path i) (hd co) (hd cn)
-				 		  \\(TUIListItemControl {TUIListItemControl|items=co}) <- old
-						  & (TUIListItemControl {TUIListItemControl|items=cn}) <- new
-						  & i <- [0..] ]
-			
-	dynamicContainerUpdate path (TUIConstructorControl ccOld) (TUIConstructorControl ccNew)
-		//Same constructor: diff the children
-		| ccOld.TUIConstructorControl.consSelIdx == ccNew.TUIConstructorControl.consSelIdx
-			= flatten [  diffEditorDefinitions` (childDataPath path i) co cn
-					  \\ co <- ccOld.TUIConstructorControl.items
-					  &  cn <- ccNew.TUIConstructorControl.items
-					  & i <- [0..] ]
-		//Different constructor: replace everything
-		| otherwise
-			= [TUIReplace_ (dp2s path) new]
+		valueUpdate path old new	= update (\o n -> sameValue o n && not (isMember path alwaysUpdatePaths)) valueOf TUISetValue_ path old new
+		hintUpdate path old new		= update sameHint hintOf TUISetHint_ path old new	
+		errorUpdate path old new	= update sameError errorOf TUISetError_ path old new
 		
-	dynamicContainerUpdate path old new
-		= [TUIReplace_ (dp2s path) new]	//Just replace, dynamic containers are too difficult to do at once :)
-
+		update eqfun accfun consfun path old new
+			| not (eqfun old new)
+				= case accfun new of
+					Just prop	= [consfun (dp2s path) prop]
+					Nothing		= []
+			| otherwise			= []	
 	
-				  
-// TODO: TUIMenu*
+		staticContainerUpdate path old new
+			//Simply update all child elements
+			= flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- childrenOf old & cn <- childrenOf new & i <- [0..] ]
+		
+		dynamicContainerUpdate path (TUIListContainer lcOld) (TUIListContainer lcNew)
+			# valueUpdates	= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
+			# lengthUpdates	= if (numOld < numNew)
+				[TUIAddTo id item \\item <- drop numMin lcNew.TUIListContainer.items]
+				[TUIRemove (id +++ "#" +++ toString idx) \\ idx <- [numMin..numOld-1]]
+			= valueUpdates ++ lengthUpdates
+			where
+				id = lcNew.TUIListContainer.id
+				numOld = length lcOld.TUIListContainer.items
+				numNew = length lcNew.TUIListContainer.items
+				numMin = min numOld numNew
+				
+				diffListItemDefinitions path old new
+					= flatten [ diffEditorDefinitions` (childDataPath path i) (hd co) (hd cn)
+					 		  \\(TUIListItemControl {TUIListItemControl|items=co}) <- old
+							  & (TUIListItemControl {TUIListItemControl|items=cn}) <- new
+							  & i <- [0..]]
+				
+		dynamicContainerUpdate path (TUIConstructorControl ccOld) (TUIConstructorControl ccNew)
+			//Same constructor: diff the children
+			| ccOld.TUIConstructorControl.consSelIdx == ccNew.TUIConstructorControl.consSelIdx
+				= flatten [  diffEditorDefinitions` (childDataPath path i) co cn
+						  \\ co <- ccOld.TUIConstructorControl.items
+						  &  cn <- ccNew.TUIConstructorControl.items
+						  & i <- [0..] ]
+			//Different constructor: replace everything
+			| otherwise
+				= [TUIReplace_ (dp2s path) new]
+			
+		dynamicContainerUpdate path old new
+			= [TUIReplace_ (dp2s path) new]	//Just replace, dynamic containers are too difficult to do at once :)
 
 //Boilerplate type equality
 sameType :: TUIDef TUIDef -> Bool
@@ -215,7 +220,6 @@ hintOf _													= Nothing
 //Static containers are GUI elements that contain other elements, but who's structure does not change
 isStaticContainer :: TUIDef -> Bool
 isStaticContainer (TUITupleContainer _)		= True
-isStaticContainer (TUIRecordContainer _)	= True
 isStaticContainer _							= False
 
 //Dynamic containers are GUI elements that contain other elements that can be added, removed or reordered

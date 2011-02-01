@@ -264,3 +264,5 @@ instance == TUIDef, TUITree
 	, editor		:: !Maybe String
 	}
 :: DataIndex :== String
+
+getTUIId :: !TUIDef -> Maybe TUIId

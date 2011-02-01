@@ -1,7 +1,6 @@
 implementation module TUIDefinition
 
-import JSON,StdList,StdBool,GenEq
-
+import JSON, StdList, StdBool, GenEq, StdMisc
 from Types import :: Document, :: DocumentId, :: Hotkey, :: Key
 
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
@@ -188,3 +187,25 @@ where
 instance == TUIMenu
 where
 	(==) a b = a.TUIMenu.items == b.TUIMenu.items
+	
+getTUIId :: !TUIDef -> Maybe TUIId
+getTUIId (TUIStringControl d)		= Just d.TUIBasicControl.id
+getTUIId (TUICharControl d)			= Just d.TUIBasicControl.id
+getTUIId (TUIIntControl d)			= Just d.TUIBasicControl.id
+getTUIId (TUIRealControl d)			= Just d.TUIBasicControl.id
+getTUIId (TUIBoolControl d)			= Just d.TUIBasicControl.id
+getTUIId (TUINoteControl d)			= Just d.TUIBasicControl.id
+getTUIId (TUIDateControl d)			= Just d.TUIBasicControl.id
+getTUIId (TUITimeControl d)			= Just d.TUIBasicControl.id
+getTUIId (TUICurrencyControl d)		= Just d.TUICurrencyControl.id
+getTUIId (TUIUserControl d)			= Just d.TUIBasicControl.id
+getTUIId (TUIPasswordControl d)		= Just d.TUIBasicControl.id
+getTUIId (TUIDocumentControl d)		= Just d.TUIDocumentControl.id
+getTUIId (TUIConstructorControl d)	= Just d.TUIConstructorControl.id
+getTUIId (TUIListItemControl d)		= Just d.TUIListItemControl.id
+getTUIId (TUITupleContainer d)		= Just d.TUITupleContainer.id
+getTUIId (TUIRecordContainer d)		= Just d.TUIRecordContainer.id
+getTUIId (TUIListContainer d)		= Just d.TUIListContainer.id
+getTUIId (TUILabel)					= Nothing
+getTUIId (TUICustom d)				= Nothing
+getTUIId _							= abort "unknown TUI Definition"

@@ -261,18 +261,15 @@ gVisualize{|Bool|} val vst=:{VSt | vizType,currentPath}
 gVisualize{|Maybe|} fx val vst=:{vizType,idPrefix,currentPath,optional}
 	= case vizType of
 		VEditorDefinition
-			= case val of
-				Just (Just x)
-					# (viz, vst) = fx (Just x) {VSt|vst & optional = True}
-					= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
-				_
-					# (viz, vst) = fx Nothing {VSt|vst & optional = True}
-					= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
+			# (viz, vst) = case val of
+				Just (Just x)	= fx (Just x)	{VSt|vst & optional = True}
+				_				= fx Nothing	{VSt|vst & optional = True}
+			= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 		_			
 			= case val of
-				(Just Nothing)	= ([TextFragment "-"],vst)
-				(Just (Just x))	= fx (Just x) vst
-				Nothing				= ([],vst)
+				Just Nothing	= ([TextFragment "-"],vst)
+				Just (Just x)	= fx (Just x) vst
+				Nothing			= ([],vst)
 
 gVisualize{|Dynamic|} val vst
 	= ([],vst)
@@ -761,7 +758,7 @@ where
 		| otherwise			= [c:addspace cs]
 
 determineRemovals :: [Visualization] -> [Visualization]
-determineRemovals editor = ([TUIUpdate (TUIRemove (fromJust (getId consid))) \\ consid <- (coerceToTUIDefs editor) | isJust (getId consid)])
+determineRemovals editor = ([TUIUpdate (TUIRemove (fromJust (getTUIId consid))) \\ consid <- (coerceToTUIDefs editor) | isJust (getTUIId consid)])
 	
 determineAdditions :: String [Visualization] -> [Visualization]
 determineAdditions consid editor = reverse [TUIUpdate (TUIAdd consid def) \\ def <- coerceToTUIDefs editor]
@@ -810,33 +807,10 @@ coerceToTUIUpdates :: [Visualization] -> [TUIUpdate]
 coerceToTUIUpdates []				  = []
 coerceToTUIUpdates [(TUIUpdate u):vs] = [u:coerceToTUIUpdates vs]
 coerceToTUIUpdates [(TUIFragment d):vs]
-= case getId d of
+= case getTUIId d of
 	(Just id) 	= [(TUIReplace id d):coerceToTUIUpdates vs]
 	Nothing		= coerceToTUIUpdates vs
 coerceToTUIUpdates [v:vs]			= coerceToTUIUpdates vs
-
-getId :: TUIDef -> Maybe TUIId
-getId (TUIStringControl d)		= Just d.TUIBasicControl.id
-getId (TUICharControl d)		= Just d.TUIBasicControl.id
-getId (TUIIntControl d)			= Just d.TUIBasicControl.id
-getId (TUIRealControl d)		= Just d.TUIBasicControl.id
-getId (TUIBoolControl d)		= Just d.TUIBasicControl.id
-getId (TUINoteControl d)		= Just d.TUIBasicControl.id
-getId (TUIDateControl d)		= Just d.TUIBasicControl.id
-getId (TUITimeControl d)		= Just d.TUIBasicControl.id
-getId (TUICurrencyControl d)	= Just d.TUICurrencyControl.id
-getId (TUIUserControl d)		= Just d.TUIBasicControl.id
-getId (TUIPasswordControl d)	= Just d.TUIBasicControl.id
-getId (TUIDocumentControl d)	= Just d.TUIDocumentControl.id
-getId (TUIConstructorControl d)	= Just d.TUIConstructorControl.id
-getId (TUIListItemControl d)	= Just d.TUIListItemControl.id
-getId (TUITupleContainer d)		= Just d.TUITupleContainer.id
-getId (TUIRecordContainer d)	= Just d.TUIRecordContainer.id
-getId (TUIListContainer d)		= Just d.TUIListContainer.id
-
-getId (TUILabel)				= Nothing
-getId (TUICustom d)				= Nothing
-getId _							= abort "unknown TUI Definition"
 
 coerceToStrings :: [Visualization] -> [String]
 coerceToStrings visualizations = [s \\ (TextFragment s) <- visualizations]
