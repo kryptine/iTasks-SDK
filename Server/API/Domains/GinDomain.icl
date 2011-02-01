@@ -59,12 +59,11 @@ gUpdate {|GinEditor|} s ust =: {USt | mode = UDMask, currentPath, newMask}
 
 
 gVerify{|GinEditor|} val vst = customWorldVerify Nothing check val vst where
-  check editor iworld =:{ world }
+  check editor iworld
   | not editor.checkSyntax = (WPRValid Nothing, iworld)
-  #(compileresult, world) = syntaxCheck editor.gMod world
+  #(compileresult, iworld) = syntaxCheck editor.gMod iworld
   # hint = case compileresult of
        CompileSuccess _ = Nothing
        CompileGlobalError error = Just (toString (toJSON [("/", error)]))
        CompilePathError errors = Just (toString (toJSON errors))
-  = (WPRValid hint, { IWorld | iworld & world = world } )
-
+  = (WPRValid hint, iworld )

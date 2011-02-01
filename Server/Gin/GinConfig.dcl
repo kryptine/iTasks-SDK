@@ -6,9 +6,10 @@ import GenEq, GenPrint, GenParse, GenVisualize, GenUpdate
 :: GinConfig =
 	{ cleanPath		:: !String
 	, iTasksPath    :: !String
-	, projectPath	:: !String
+	, tempPath		:: !String
 	}
 
+derive gEq        GinConfig	
 derive gVisualize GinConfig
 derive gUpdate    GinConfig
 derive gVerify    GinConfig

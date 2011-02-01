@@ -5,7 +5,7 @@ import DynamicIO
 
 import GenEq
 import Text
-import iTasks
+import iTasks, TSt
 
 import GinAbstractSyntax
 import GinConfig
@@ -47,14 +47,13 @@ where
 							  ]
 
 :: Mode = EditWorkflow | EditTypes | EditCode
-derive gEq Mode
 
 :: EditorState = 
     { name     :: Maybe String
     , changed  :: Bool
     , mode     :: Mode
     , editor   :: GinEditor
-    , compiled :: Bool
+    , compiled :: Maybe String
     }
 
 derive class iTask EditorState, Mode
@@ -98,7 +97,7 @@ actions state = [ (ActionNew,              always)
                 , (ActionSave,             (\_ -> state.EditorState.changed ))
                 , (ActionSaveAs,           always)
                 , (ActionUpdate,           always)
-                , (ActionRun,              (\_ -> state.EditorState.compiled ))
+                , (ActionRun,              (\_ -> isJust state.EditorState.compiled ))
                 , (ActionQuit,             always)
                 , (ActionAbout,            always)
                 , (ActionEditWorkflow,     (\_ -> state.EditorState.mode =!= EditWorkflow))
@@ -113,7 +112,7 @@ handleMenu
     =   initMenu @>> doMenu emptyState
 
 emptyState :: EditorState 
-emptyState = { name = Nothing, changed = False, mode = EditWorkflow, editor = newEditor, compiled = False }
+emptyState = { name = Nothing, changed = False, mode = EditWorkflow, editor = newEditor, compiled = Nothing }
     
 doMenu :: EditorState -> Task Void
 doMenu state =: { EditorState | mode, editor } = 
@@ -127,7 +126,7 @@ doMenu state =: { EditorState | mode, editor } =
                         >>= \(action, mbTypes) 
                         = case mbTypes of
                         	Nothing     -> return (action, state)
-                        	Just types` -> return (action, setChanged state { EditorState | state & editor = {GinEditor | state.editor & gMod = {GModule | state.editor.gMod & types = types` }}})
+                        	Just types` -> return (action, setChanged state { EditorState | state & editor = {GinEditor | state.EditorState.editor & gMod = {GModule | state.EditorState.editor.gMod & types = types` }}})
         EditCode     -> updateInformationA (getName state, "code view") idBimap (actions state) 
                                            ( Note (tryRender editor.gMod False)
                                            , Note (tryRender editor.gMod True)
@@ -149,8 +148,8 @@ switchAction ((action, actiondata), state) =
         ActionEditWorkflow     -> doMenu { EditorState | state & mode = EditWorkflow }
         ActionEditTypes        -> doMenu { EditorState | state & mode = EditTypes }
         ActionEditCode         -> doMenu { EditorState | state & mode = EditCode }
-        ActionEnableSC         -> doMenu { EditorState | state & editor = { GinEditor | state.editor & checkSyntax = True } }
-        ActionDisableSC        -> doMenu { EditorState | state & editor = { GinEditor | state.editor & checkSyntax = False } }
+        ActionEnableSC         -> doMenu { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = True } }
+        ActionDisableSC        -> doMenu { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = False } }
     
 getName :: EditorState -> String
 getName state = case state.EditorState.name of
@@ -158,14 +157,14 @@ getName state = case state.EditorState.name of
     Nothing -> "(unnamed)"
 
 setChanged :: EditorState EditorState -> EditorState
-setChanged old new = if (old.editor =!= new.editor) { new & changed = True } new
+setChanged old new = if (old.EditorState.editor =!= new.EditorState.editor) { new & changed = True } new
 
 tryRender :: GModule Bool -> String
 tryRender gMod expand = 
     case runParse (gToAModule gMod) of
         GSuccess aMod -> renderAModule [] ((if expand expandModule id) aMod) 
         GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))        
-              
+
 open :: EditorState -> Task EditorState 
 open state = chooseModule >>= \(name, gMod) = 
     return { EditorState | emptyState & name = Just name, editor = { GinEditor | newEditor & gMod = gMod } }
@@ -189,18 +188,24 @@ askSaveIfChanged state = if state.changed
 
 update :: EditorState -> Task EditorState
 update state
-# state = { state & compiled = False }
-= accWorld (batchBuild state.editor.GinEditor.gMod) 
+# state = { state & compiled = Nothing }
+= accIWorld (batchBuild state.EditorState.editor.GinEditor.gMod) 
   >>= \result = case result of
-   				  CompileSuccess dyn -> return { state & compiled = True }
-    			  error              -> showMessageAbout "Compiler output" error >>| return state
+   				  CompileSuccess dynfile 	-> (showMessage ("Compiler output", "Compiled successfully") Void) 
+   				  								>>| return { state & compiled = Just dynfile }
+    			  error						-> showMessageAbout "Compiler output" error >>| return state
 
 run :: EditorState -> Task Void
-run state 					= readDynamicTask "test" 
-			>>= \(ok, task) = (if ok task (showMessage ("Error", "Failed to read task") Void)) >>| stop
+run state 					= case state.compiled of
+	Just dynfile -> readDynamicTask dynfile
+						>>= \(ok, task) = (if ok task (showMessage ("Error", "Failed to read task") Void)) >>| stop
+	Nothing 	-> showMessage ("Error", "No compiled task") Void
 
 viewSource :: GinEditor -> Note
 viewSource editor = Note (tryRender editor.GinEditor.gMod False)	
-    
+
 showAbout :: Task Void
 showAbout = showMessage ("Gin workflow editor", "version 0.1") Void
+
+accIWorld :: !(*IWorld -> *(!a,!*IWorld)) -> Task a | iTask a
+accIWorld fun = mkInstantTask ("Run Iworld function", "Run a IWorld function and get result.") (mkTaskFunction (accIWorldTSt fun))

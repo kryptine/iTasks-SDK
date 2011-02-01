@@ -8,7 +8,6 @@ derive bimap (,)
 derive bimap Maybe
 
 derive class iTask      GTypeExpression, GTypeDefinition, GTypeRhs, GDataConstructor, GRecordField, GFormalParameter
-derive gEq              GTypeExpression, GTypeDefinition, GTypeRhs, GDataConstructor, GRecordField, GFormalParameter
 
 typeIsDefined :: GTypeExpression -> Bool
 typeIsDefined GUndefinedTypeExpression	= False

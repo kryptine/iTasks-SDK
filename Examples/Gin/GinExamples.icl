@@ -8,7 +8,6 @@ from GinSyntax import ::GModule, newModule
 
 import GinTypes
 
-//Start = toString (toJSON ( { GTypeDefinition | name = "foo", rhs = GAlgebraicTypeRhs [{GDataConstructor | name =  "hoi", arguments = [GBasicTypeExpression "foo"]}] } ))
 Start :: *World -> *World
 Start world = startEngine workflows world
 where

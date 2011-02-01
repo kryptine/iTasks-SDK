@@ -76,7 +76,6 @@ import GinTypes
 
 // Generic functions
 derive class iTask GModule, GImport, GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize
-derive gEq         GModule, GImport, GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize, Maybe
 
 // Selection functions
 getPredecessors :: GGraph Int -> [Int]

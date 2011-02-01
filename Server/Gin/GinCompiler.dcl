@@ -7,7 +7,9 @@ from GinSyntax import ::GModule
 
 derive class iTask CompileResult
 
-batchBuild :: !GModule *World -> (CompileResult Void, *World)
+batchBuild :: !GModule *IWorld -> (CompileResult String, *IWorld)
 
-syntaxCheck :: !GModule *World -> (CompileResult Void, *World)
+syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
+
+exitCompiler :: *IWorld -> *IWorld
 

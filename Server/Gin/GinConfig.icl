@@ -13,6 +13,7 @@ import CommandLine
 from Engine import determineAppName
 import iTasks
 
+derive gEq        GinConfig	
 derive gVisualize GinConfig
 derive gUpdate    GinConfig
 derive JSONEncode GinConfig
@@ -22,14 +23,14 @@ derive bimap Maybe, (,)
 
 ginDefaultConfig :: *World -> (GinConfig, *World)
 ginDefaultConfig world
-#(cleanPath, world)   = getCleanPath world
-#(iTasksPath, world)  = getITasksPath world
-#(projectPath, world) = getProjectPath world
-#config = { cleanPath     = cleanPath
-          , iTasksPath    = iTasksPath
-          , projectPath   = projectPath
-          }
-=(config, world)
+# (cleanPath, world)	= getCleanPath world
+# (iTasksPath, world)	= getITasksPath world
+# (tempPath, world)		= getTempPath world
+# config = 	{ cleanPath		= cleanPath
+          	, iTasksPath	= iTasksPath
+			, tempPath		= tempPath
+			}
+= (config, world)
 where
 	getCleanPath :: *World -> (String, *World)
 	getCleanPath world
@@ -41,20 +42,21 @@ where
 
 	getITasksPath :: *World -> (String, *World)
 	getITasksPath world
-	#(projectPath, world) = getCurrentDirectory world
-	#(AbsolutePath diskname steps) = projectPath
-	#iTasksPath = (AbsolutePath diskname (take (length steps - 2) steps))
+	# (currentPath, world) = getCurrentDirectory world
+	# (AbsolutePath diskname steps) = currentPath
+	# iTasksPath = (AbsolutePath diskname (take (length steps - 2) steps))
 	= pathToPD_String iTasksPath world
 
-	getProjectPath :: *World -> (String, *World)
-	getProjectPath world
-	#(projectPath, world) = getCurrentDirectory world
-	= pathToPD_String projectPath world
+	getTempPath :: *World -> (String, *World)
+	getTempPath world
+	# (currentPath, world) = getCurrentDirectory world
+	# (AbsolutePath diskname steps) = currentPath
+	= pathToPD_String (AbsolutePath diskname (steps ++ [PathDown "Temp"])) world
 
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)
 ginLoadConfig world
-	#(filename, world) = ginConfigFilename world
-	#(content,world) = readfile filename world
+	# (filename, world) = ginConfigFilename world
+	# (content,world) = readfile filename world
 	| content == ""
 	= (Nothing,world)
 	| otherwise
@@ -62,7 +64,7 @@ ginLoadConfig world
 	
 ginStoreConfig :: !GinConfig !*World -> *World
 ginStoreConfig config world
-	#(filename, world) = ginConfigFilename world
+	# (filename, world) = ginConfigFilename world
 	= writefile filename (toString (toJSON config)) world
 
 ginConfigFilename :: *World -> (!String, *World) 
@@ -84,6 +86,7 @@ ginCheckConfig config world
 | not (winFileExists ('GinOSUtils'.appendTrailingSeparator config.cleanPath +++ "CleanIDE.exe"))
   = (Just "Clean path incorrect", world) 
 | not (winFileExists ('GinOSUtils'.appendTrailingSeparator config.iTasksPath +++ "Server\\iTasks.dcl"))
-  = (Just "iTasksPath incorrect", world)
+  = (Just "iTasks path incorrect", world)
+| not (winFileExists config.tempPath)
+  = (Just "Temp path incorrect", world)
 = (Nothing, world)
-
