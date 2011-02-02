@@ -43,18 +43,12 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 		this.fireEvent('tuichange',this.name,(this.checkbox.dom.checked ? 'create' : ''));
 	},
 	setError: function(msg){		
-		if(this.staticDisplay)
-			return;
-		
 		if(msg == "")
 			this.clearError();
 		else
 			this.markError(msg);
 	},
 	setHint: function(msg){
-		if(this.staticDisplay)
-			return;
-		
 		if(msg == "")
 			this.clearHint();
 		else

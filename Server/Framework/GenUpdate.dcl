@@ -11,8 +11,7 @@ from Map import :: Map
 			  | Blanked
 
 :: *USt =
-	{ mode				:: UpdateMode
-	, searchPath		:: DataPath
+	{ searchPath		:: DataPath
 	, currentPath		:: DataPath
 	, update			:: String
 	, consPath			:: [ConsPos]
@@ -21,22 +20,29 @@ from Map import :: Map
 	, iworld			:: *IWorld
 	}
 
-:: UpdateMode
-	= UDSearch
-	| UDCreate
-	| UDMask
+:: UpdateMode a = UDSearch !a | UDCreate
 
-generic gUpdate a :: a  *USt -> (a, *USt)
+generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
 
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gUpdate Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Choice, MultipleChoice, Shared, SharedReadOnly, Map, Tree
+derive gUpdate Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Choice, MultipleChoice, Shared, SharedReadOnly, Map, Tree, TreeNode
 derive gUpdate EmailAddress, Action, ProcessRef
+
+generic gDefaultMask a :: !a -> [UpdateMask]
+
+derive gDefaultMask UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gDefaultMask Int, Real, Char, Bool, String
+derive gDefaultMask Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gDefaultMask Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Choice, MultipleChoice, Shared, SharedReadOnly, Map, Tree, TreeNode
+derive gDefaultMask EmailAddress, Action, ProcessRef
+
+derive bimap UpdateMode
 
 //Wrapper functions for updating
 defaultValue			:: !*IWorld -> (!a,!*IWorld)										| gUpdate{|*|} a
-defaultMask				:: a !*IWorld -> (!UpdateMask,!*IWorld)								| gUpdate{|*|} a
+defaultMask				:: !a -> UpdateMask													| gDefaultMask{|*|} a
 updateValue				:: DataPath String a !*IWorld -> (a,!*IWorld)						| gUpdate{|*|} a 
 updateValueAndMask  	:: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld)	| gUpdate{|*|} a
 
@@ -73,3 +79,9 @@ instance == DataPath
 instance GenMask UpdateMask
 
 toggleMask 			:: !String 		-> UpdateMask
+
+// utility functions for custom gUpdate definitions
+basicUpdate :: !(UpdateMode a) (String a -> a) a !*USt -> *(!a,!*USt)
+basicUpdateSimple :: !(UpdateMode a) (String -> a) a !*USt -> *(!a,!*USt)
+basicCreate :: !a !*USt -> *(!a,!*USt)
+basicSearch :: a (String a -> a) !*USt -> *(!a,!*USt)

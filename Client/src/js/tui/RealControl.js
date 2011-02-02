@@ -5,10 +5,6 @@ itasks.tui.RealControl = Ext.extend(Ext.form.NumberField,{
 	allowDecimals: true,
 	decimalPrecision: 20, //Maximum precision
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'div', style: 'overflow: auto', html: this.value};
-		}
-		
 		this.msgTarget = 'side';
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 		
@@ -33,13 +29,9 @@ itasks.tui.RealControl = Ext.extend(Ext.form.NumberField,{
 			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	setValue: function(value){
-		if(this.staticDisplay){
-			this.update(value);
-		}else{
-			itasks.tui.RealControl.superclass.setValue.call(this,value);
-			if(this.activeError)
-				this.setError(this.activeError);
-		}
+		itasks.tui.RealControl.superclass.setValue.call(this,value);
+		if(this.activeError)
+			this.setError(this.activeError);
 	},
 	setError: function(msg){		
 		if(msg == "")

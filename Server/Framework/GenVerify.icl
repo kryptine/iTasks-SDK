@@ -3,7 +3,7 @@ implementation module GenVerify
 import StdMaybe, StdGeneric, StdBool, StdInt, Text, StdList, StdTuple, StdFunc
 import GenUpdate, StdMisc, GenVisualize
 
-derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, ProcessRef
+derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode
 derive bimap (,), Maybe
 
 generic gVerify a :: (Maybe a) VerSt -> VerSt
@@ -75,14 +75,6 @@ where
 	
 gVerify{|FIELD of d|}   fx	  Nothing				vst = fx Nothing vst
 gVerify{|FIELD of d|}   fx    (Just (FIELD x))		vst = fx (Just x) vst
-	
-gVerify{|Int|}    _ vst = simpleVerify "Enter a number" vst
-gVerify{|Real|}   _ vst = simpleVerify "Enter a decimal number" vst
-gVerify{|Char|}   _ vst = simpleVerify "Enter a character" vst
-gVerify{|String|} _ vst = simpleVerify "Enter a short text" vst
-gVerify{|Bool|}   _ vst=:{VerSt | verifyMask,updateMask} 
-	# (cm,um) = popMask updateMask
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
 
 gVerify{|Maybe|} fx (Just (Just x)) vst=:{VerSt | optional}
 	# vst = fx (Just x) {VerSt | vst & optional = True}
@@ -93,7 +85,7 @@ gVerify{|Maybe|} fx (Just Nothing) vst=:{VerSt | optional}
 gVerify{|Maybe|} fx Nothing vst=:{VerSt | updateMask,verifyMask,optional}
 	# vst = fx Nothing {VerSt | vst & optional = True}
 	= {VerSt | vst & optional = optional}
-derive JSONEncode UpdateMask	
+
 gVerify{|[]|} fx Nothing   vst=:{VerSt | optional}
 	# msg = if optional "You may add list items" "Create at least one list item"
 	= simpleVerify msg vst
@@ -122,10 +114,6 @@ verifyItems fx [x:xs] vst
 	# vst = fx (Just x) vst
 	= verifyItems fx xs vst
 
-gVerify{|Dynamic|} _ vst = vst
-
-gVerify{|(->)|} _ _ _ vst = vst
-
 gVerify{|Hidden|} fx Nothing vst = vst
 gVerify{|Hidden|} fx (Just (Hidden x)) vst=:{VerSt | verifyMask,updateMask}
 	# (cm,um) = popMask updateMask
@@ -148,28 +136,27 @@ gVerify{|VisualizationHint|} fx (Just (VHDisplay x)) vst=:{VerSt | verifyMask,up
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
 gVerify{|VisualizationHint|} fx (Just (VHEditable x)) vst = fx (Just x) vst
 
-gVerify{|Document|} _ vst = simpleVerify "Upload a document" vst
+gVerify{|Int|}    			_ vst = simpleVerify "Enter a number" vst
+gVerify{|Real|}   			_ vst = simpleVerify "Enter a decimal number" vst
+gVerify{|Char|}   			_ vst = simpleVerify "Enter a character" vst
+gVerify{|String|}			_ vst = simpleVerify "Enter a short text" vst
+gVerify{|Bool|}   			_ vst = alwaysValid vst
+gVerify{|Document|}			_ vst = simpleVerify "Upload a document" vst
+gVerify{|Password|}			_ vst = simpleVerify "Enter a password" vst
+gVerify{|Date|}				_ vst = simpleVerify "Enter a date" vst
+gVerify{|Time|}				_ vst = simpleVerify "Enter a time of day" vst
+gVerify{|Note|}				_ vst = simpleVerify "Enter a long text" vst
+gVerify{|FormButton|}		_ vst = alwaysValid vst
+gVerify{|Currency|}			_ vst = simpleVerify "Enter a currency value" vst
+gVerify{|User|}				_ vst = simpleVerify "Select a username" vst 
+gVerify{|Choice|}_			_ vst = simpleVerify "Choose one item" vst
+gVerify{|MultipleChoice|} _	_ vst = simpleVerify "Choose a number of items" vst
+gVerify{|Tree|} _			_ vst = simpleVerify "Choose a leaf of the tree" vst
 
-gVerify{|Password|} _ vst = simpleVerify "Enter a password" vst
-
-gVerify{|Date|} _ vst = simpleVerify "Enter a date" vst
-
-gVerify{|Time|} _ vst = simpleVerify "Enter a time of day" vst
-
-gVerify{|Note|} _ vst = simpleVerify "Enter a long text" vst
-
-gVerify{|FormButton|} _ vst = vst
-
-gVerify{|Currency|} _ vst = simpleVerify "Enter a currency value" vst
-
-gVerify{|User|} _ vst=:{VerSt | updateMask, verifyMask, optional} = simpleVerify "Select a username" vst 
-
-gVerify{|Shared|} _ _ vst = vst
-gVerify{|SharedReadOnly|} _ _ vst = vst
-
-gVerify{|Choice|}			_ _ vst = simpleVerify "Choose one item" vst
-gVerify{|MultipleChoice|}	_ _ vst = simpleVerify "Choose a number of items" vst
-gVerify{|Tree|}				_ _ vst = simpleVerify "Choose a leaf of the tree" vst
+gVerify{|Dynamic|}			_ vst = alwaysValid vst
+gVerify{|(->)|} _ _			_ vst = alwaysValid vst
+gVerify{|Shared|} _			_ vst = alwaysValid vst
+gVerify{|SharedReadOnly|} _	_ vst = alwaysValid vst
 
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool
@@ -214,6 +201,11 @@ where
 	childMasks (VMValid _ cm)		= cm
 	childMasks (VMInvalid _ cm)		= cm
 	childMasks (VMUntouched _ _ cm)	= cm
+	
+alwaysValid :: !*VerSt -> *VerSt
+alwaysValid vst=:{VerSt | verifyMask,updateMask}
+	# (cm,um) = popMask updateMask
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
 	
 simpleVerify :: !String !*VerSt -> *VerSt
 simpleVerify hint vst

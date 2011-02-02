@@ -5,10 +5,6 @@ itasks.tui.PasswordControl = Ext.extend(Ext.form.TextField,{
 	fieldClass: 'x-form-field',
 
 	initComponent: function(){
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'span', html: '***********'};
-		}
-		
 		this.msgTarget = 'side';
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 				
@@ -36,14 +32,10 @@ itasks.tui.PasswordControl = Ext.extend(Ext.form.TextField,{
 			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	setValue: function(value){		
-		if(this.staticDisplay){
-			this.update('***********');
-		}else{
-			itasks.tui.PasswordControl.superclass.setValue.call(this,value);
+		itasks.tui.PasswordControl.superclass.setValue.call(this,value);
 
-			if(this.activeError)
-				this.setError(this.activeError);
-		}
+		if(this.activeError)
+			this.setError(this.activeError);
 	},
 	setError: function(msg) {		
 		if(msg == "")

@@ -269,7 +269,7 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					= (old,tst)
 				(Just nvalue,_)
 					// update view value
-					# (umask,tst)	= accIWorldTSt (defaultMask nvalue) tst
+					# umask			= defaultMask nvalue
 					# (vmask,tst)	= accIWorldTSt (verifyValue nvalue umask) tst
 					# new			= (nvalue,umask,vmask)
 					# tst			= appIWorldTSt (setStores new) tst
@@ -352,11 +352,9 @@ where
 		| not enterMode
 			# ((modelValue,modelTimestamp),iworld)	= readModelValue iworld
 			# (nvalue,blank)						= bimapGet modelValue initView
-			# (numask,iworld) = if blank
-				(Blanked,iworld)
-				(defaultMask nvalue iworld)
-			# (nvmask,iworld)	= verifyValue nvalue numask iworld
-			# iworld			= setStores (nvalue,numask,nvmask) iworld
+			# numask								= if blank Blanked (defaultMask nvalue)
+			# (nvmask,iworld)						= verifyValue nvalue numask iworld
+			# iworld								= setStores (nvalue,numask,nvmask) iworld
 			= iworld
 		| otherwise
 			= iworld
@@ -422,9 +420,7 @@ where
 		# (nvalue,blank) = bimapGet modelValue viewValue
 		// only calculate new view value if 'get (put v m) <> v' or if mask is blanked
 		| viewValue =!= nvalue || blank
-			# (numask,iworld) = if blank
-				(Blanked,iworld)
-				(defaultMask nvalue iworld)
+			# numask			= if blank Blanked (defaultMask nvalue)
 			# (nvmask,iworld)	= verifyValue nvalue numask iworld
 			# nvmask			= setInvalid errors nvmask
 			# new				= (nvalue,numask,nvmask)
@@ -698,6 +694,7 @@ where
 										{ TUIHtmlContainer
 										| id = panelid
 										, html = toString (html context)
+										, fieldLabel = Nothing
 										}
 
 //Changes all predicates on values of type a to predicates on values of type b										

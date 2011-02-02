@@ -125,6 +125,10 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 		if(cmp.isXType('itasks.tui.Constructor')) {
 			cmp.itemPanel.remove(target);
 			cmp.itemPanel.insert(target, replacement);
+		} else if (cmp.isXType('itasks.tui.List')) {
+			var itemCtrl = cmp.items.get(target);
+			itemCtrl.remove(0);
+			itemCtrl.add(replacement);
 		} else {
 			cmp.remove(target);
 			cmp.insert(target, replacement);	

@@ -2,10 +2,6 @@ Ext.ns('itasks.tui');
 
 itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	initComponent : function(){
-		if(this.staticDisplay){
-			this.items = [{hidden:true}];
-		}
-	
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 		this.msgTarget = 'side';
 		this.hideLabel = this.fieldLabel == null;
@@ -21,7 +17,7 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	onRender: function(ct, position){
 		var me = this;
 		
-		if(!this.el && !this.staticDisplay){
+		if(!this.el){
 			var panelCfg = {
 				autoEl : { id: this.id },
 				renderTo: ct,
@@ -85,14 +81,10 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	afterRender : function(){
 		itasks.tui.ChoiceControl.superclass.afterRender.call(this);
 		
-		if(!this.staticDisplay){
-			this.eachItem(function(item){
-				item.on('check',this.fireChecked, this);
-				item.inGroup = true;
-			});
-		}else{
-			this.getEl().createChild({tag: 'div', style: 'overflow: auto', html: this.genStaticDisplay()});
-		}
+		this.eachItem(function(item){
+			item.on('check',this.fireChecked, this);
+			item.inGroup = true;
+		});
 		
 		// determine max width of items used to align hint/error icon
 		var maxWidth = 0;
@@ -176,18 +168,6 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 			itasks.tui.common.clearHint(this);
 		else
 			itasks.tui.common.markHint(this,msg);
-	},
-	genStaticDisplay: function(v){
-		if (this.selection.length == 0){
-			return "No item selected";
-		}else{
-			var display = "";
-			for(var i=0; i < this.selection.length; i++){
-				display += this.options[this.selection[i]];
-				display += (i < this.selection.length-1) ? ", " : "";
-			}
-			return display;
-		}
 	}
 });
 

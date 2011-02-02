@@ -10,6 +10,7 @@ from TSt import :: TSt
 derive JSONEncode	Task, TaskResult
 derive JSONDecode	Task, TaskResult
 derive gUpdate		Task
+derive gDefaultMask	Task
 derive gVerify		Task
 derive gVisualize	Task
 derive gEq			Task

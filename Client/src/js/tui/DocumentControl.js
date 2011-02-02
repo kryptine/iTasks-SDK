@@ -30,19 +30,11 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 	afterRender : function(arguments){
 		itasks.tui.DocumentControl.superclass.afterRender.call(this,arguments);
 		
-		if(this.staticDisplay){
-			if(this.document.size != 0){
-				this.showDownloadPanel(true);
-			}else{
-				this.removeAll();
-				this.add({html: 'Empty Document', unstyled: true});
-			}				
-		}else if(this.document.size != 0){
+		if(this.document.size != 0){
 			this.showDownloadPanel(false);
 		}else{
 			this.showUploadPanel(false);
 		}
-		
 		
 		this.setError(this.errorMsg);
 		this.setHint(this.hintMsg);
@@ -62,17 +54,11 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 	},
 	
 	setError: function(msg){
-		if(this.staticDisplay)
-			return;
-		
 		this.uploadPanel.setError(msg);
 		this.downloadPanel.setError(msg);
 	},
 	
 	setHint: function(msg){
-		if(this.staticDisplay)
-			return;
-		
 		this.uploadPanel.setHint(msg);
 		this.downloadPanel.setHint(msg);
 	},

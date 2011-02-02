@@ -4,10 +4,6 @@ itasks.tui.TimeControl = Ext.extend(Ext.form.TimeField,{
 	format: "H:i:s",
 	width: 100,
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'div', style: 'padding-top: 4px', html: this.value};
-		}
-		
 		this.msgTarget = 'side';
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 		
@@ -27,22 +23,15 @@ itasks.tui.TimeControl = Ext.extend(Ext.form.TimeField,{
 	afterRender: function(ct,position){		
 		itasks.tui.TimeControl.superclass.afterRender.call(this,ct,position);
 
-		if(this.staticDisplay){
-			this.el.next().remove();		
-		}	
 		if(this.errorMsg)
 			itasks.tui.common.markError(this,this.errorMsg);
 		else if(this.hintMsg)
 			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	setValue: function(value){
-		if(this.staticDisplay){
-			this.update(value);
-		}else{
-			itasks.tui.TimeControl.superclass.setValue.call(this,value);
-			if(this.activeError)
-				this.setError(this.activeError);
-		}
+		itasks.tui.TimeControl.superclass.setValue.call(this,value);
+		if(this.activeError)
+			this.setError(this.activeError);
 	},
 	setError: function(msg){
 		if(msg == "")

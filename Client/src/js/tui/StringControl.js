@@ -3,10 +3,6 @@ Ext.ns("itasks.tui");
 itasks.tui.StringControl = Ext.extend(Ext.form.TextField,{
 	width: 330,
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'div', style: 'overflow: auto', html: this.value};
-		}
-		
 		this.msgTarget = 'side';
 		this.listeners = {change : {fn: this.onChange, scope: this}};
 		
@@ -34,11 +30,8 @@ itasks.tui.StringControl = Ext.extend(Ext.form.TextField,{
 		}
 	},
 	setValue: function(value){		
-		if(this.staticDisplay){
-			this.update(value);
-		}else{
-			itasks.tui.StringControl.superclass.setValue.call(this,value);
-		}	
+		itasks.tui.StringControl.superclass.setValue.call(this,value);
+
 		if(this.activeError) this.setError(this.activeError);
 	},
 	

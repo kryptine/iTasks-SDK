@@ -3,10 +3,6 @@ Ext.ns("itasks.tui");
 itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 	format: "Y-m-d",
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'div', style: 'padding-top: 4px', html: this.value};
-		}
-		
 		this.msgTarget = 'side';
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 			
@@ -23,23 +19,16 @@ itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 	afterRender: function(ct,position){		
 		itasks.tui.DateControl.superclass.afterRender.call(this,ct,position);
 
-		if(this.staticDisplay){
-			this.el.next().remove();		
-		}	
 		if(this.errorMsg)
 			itasks.tui.common.markError(this,this.errorMsg);
 		else if(this.hintMsg)
 			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	setValue: function(value){
-		if(this.staticDisplay){
-			this.update(value);
-		}else{
-			itasks.tui.DateControl.superclass.setValue.call(this,value);
-		
-			if(this.activeError)
-				this.setError(this.activeError);
-		}
+		itasks.tui.DateControl.superclass.setValue.call(this,value);
+	
+		if(this.activeError)
+			this.setError(this.activeError);
 	},
 	getValue: function(){
 		return (new Date(itasks.tui.DateControl.superclass.getValue.call(this))).format(this.format);

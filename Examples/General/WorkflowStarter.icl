@@ -5,11 +5,6 @@ from UserDB import qualified class UserDB(..)
 from UserDB import qualified instance UserDB TSt
 from StdFunc import o, seq
 
-derive gVisualize	TreeNode
-derive gUpdate		TreeNode
-derive gVerify		TreeNode
-derive bimap Maybe, (,)
-
 workflowStarter :: [Workflow]
 workflowStarter = [workflow "Examples/Workflow starter" "This task rebuilds the client's panel for starting up new workflows." starter]
 

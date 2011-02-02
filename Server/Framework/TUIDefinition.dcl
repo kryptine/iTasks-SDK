@@ -10,8 +10,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate
 
-instance == TUIDef, TUITree
-
 :: TUIId :== String
 
 :: TUIUpdate
@@ -76,7 +74,6 @@ instance == TUIDef, TUITree
 	, id			:: !TUIId
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
-	, staticDisplay	:: !Bool
 	, optional		:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
@@ -87,7 +84,6 @@ instance == TUIDef, TUITree
 	, dataPath		:: !String
 	, fieldLabel	:: !Maybe String
 	, allowMultiple	:: !Bool
-	, staticDisplay	:: !Bool
 	, optional		:: !Bool
 	, options		:: ![String]
 	, selection		:: ![Int]
@@ -100,7 +96,6 @@ instance == TUIDef, TUITree
 	, tuiTree		:: ![TUITree]
 	, selIndex		:: !Maybe Int
 	, fieldLabel	:: !Maybe String
-	, staticDisplay	:: !Bool
 	, optional		:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
@@ -119,7 +114,6 @@ instance == TUIDef, TUITree
 	, fieldLabel	:: !Maybe String
 	, currencyLabel	:: !String
 	, optional		:: !Bool
-	, staticDisplay	:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
 	}
@@ -129,7 +123,6 @@ instance == TUIDef, TUITree
 	, document		:: !Document
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
-	, staticDisplay :: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
 	}
@@ -140,7 +133,6 @@ instance == TUIDef, TUITree
 	, label			:: !String
 	, iconCls		:: !String
 	, fieldLabel	:: !Maybe String
-	, staticDisplay	:: !Bool
 	, optional		:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
@@ -223,6 +215,7 @@ instance == TUIDef, TUITree
 :: TUIHtmlContainer =
 	{ id			:: !TUIId
 	, html			:: !String
+	, fieldLabel	:: !Maybe String
 	}
 
 :: TUIButton =

@@ -3,6 +3,7 @@ implementation module ExperimentalDomain
 import iTasks, Text
 
 derive gUpdate			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive gDefaultMask		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gVerify			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONEncode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONDecode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color

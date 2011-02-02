@@ -2,10 +2,6 @@ Ext.ns("itasks.tui");
 
 itasks.tui.FormButtonControl = Ext.extend(Ext.Button,{
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'span', html: this.value};
-		}
-		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		
@@ -33,9 +29,7 @@ itasks.tui.FormButtonControl = Ext.extend(Ext.Button,{
 	},
 	
 	setValue: function(value){
-		if(this.staticDisplay){
-			this.update(value);
-		}else if(value == "True"){
+		if(value == "True"){
 			this.toggle(true,true);
 		}else{
 			this.toggle(false,true);

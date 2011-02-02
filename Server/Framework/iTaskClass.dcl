@@ -6,6 +6,7 @@ import GenVisualize
 class iTask a
 	| gVisualize{|*|}
 	, gUpdate{|*|}
+	, gDefaultMask{|*|}
 	, gVerify{|*|}
 	, JSONEncode{|*|}
 	, JSONDecode{|*|}

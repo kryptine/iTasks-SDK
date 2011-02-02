@@ -4,10 +4,6 @@ itasks.tui.CharControl = Ext.extend(Ext.form.TextField,{
 	width: 40,
 	maxLength: 1,
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'div', style: 'overflow: auto', html: this.value};
-		}
-		
 		this.msgTarget = 'side';
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 		
@@ -32,13 +28,9 @@ itasks.tui.CharControl = Ext.extend(Ext.form.TextField,{
 			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	setValue: function(value){		
-		if(this.staticDisplay){
-			this.update(value);
-		}else{
-			itasks.tui.CharControl.superclass.setValue.call(this,value);
-			if(this.activeError)
-				this.setError(this.activeError);
-		}
+		itasks.tui.CharControl.superclass.setValue.call(this,value);
+		if(this.activeError)
+			this.setError(this.activeError);
 	},	
 	setError: function(msg){		
 		if(msg == "")

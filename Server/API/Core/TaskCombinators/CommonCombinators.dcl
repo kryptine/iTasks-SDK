@@ -17,6 +17,7 @@ from Map import :: Map
 derive class iTask GAction, GOnlyAction
 derive gVisualize	Tag
 derive gUpdate		Tag
+derive gDefaultMask	Tag
 derive gVerify		Tag
 derive JSONEncode	Tag
 derive JSONDecode	Tag

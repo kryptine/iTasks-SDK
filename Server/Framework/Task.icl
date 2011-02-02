@@ -64,17 +64,21 @@ JSONEncode{|Task|} _ t						= [JSONString (base64Encode (copy_to_string t))]
 JSONDecode{|Task|} _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
 JSONDecode{|Task|} _ c						= (Nothing,c)
 
-gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
-	# (a,ust) = fx (abort "Task create with undef") ust
-	=	(	{ taskProperties	= {ManagerProperties | initManagerProperties & taskDescription = toDescr "return"}
-			, groupedProperties	= initGroupedProperties
-			, mbTaskNr			= Nothing
-			, mbMenuGenFunc		= Nothing
-			, taskFunc			= \tst -> (TaskFinished a,tst)
-			}
-		, ust)
-gUpdate{|Task|} _ x ust = (x,ust)
-gVerify{|Task|} _ _ vst = vst
+gUpdate{|Task|} fx UDCreate ust
+	# (a,ust) = fx UDCreate ust
+	= basicCreate (defaultTask a) ust
+where
+	defaultTask a =	{ taskProperties	= {ManagerProperties | initManagerProperties & taskDescription = toDescr "return"}
+					, groupedProperties	= initGroupedProperties
+					, mbTaskNr			= Nothing
+					, mbMenuGenFunc		= Nothing
+					, taskFunc			= \tst -> (TaskFinished a,tst)
+					}
+gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\_ t -> t) ust
+
+gDefaultMask{|Task|} _ _ = [Touched []]
+
+gVerify{|Task|} _ _ vst = alwaysValid vst
 
 gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath, updateMask, verifyMask}
 	# vis = case mbVal of

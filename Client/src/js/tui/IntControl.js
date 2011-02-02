@@ -4,10 +4,6 @@ itasks.tui.IntControl = Ext.extend(Ext.form.NumberField,{
 	width: 100,
 	allowDecimals: false,
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'div', style: 'overflow: auto', html: this.value};
-		}
-		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		
@@ -32,13 +28,9 @@ itasks.tui.IntControl = Ext.extend(Ext.form.NumberField,{
 			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	setValue: function(value){
-		if(this.staticDisplay){
-			this.update(value);
-		}else{
-			itasks.tui.IntControl.superclass.setValue.call(this,value);
-			if(this.activeError)
-				this.setError(this.activeError);
-		}
+		itasks.tui.IntControl.superclass.setValue.call(this,value);
+		if(this.activeError)
+			this.setError(this.activeError);
 	},
 	setError: function(msg){		
 		if(msg == "")

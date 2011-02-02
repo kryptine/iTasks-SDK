@@ -4,6 +4,7 @@ import GenUpdate, GenVisualize
 
 derive gVisualize	FormattedText, SourceCode, Color
 derive gUpdate		FormattedText, SourceCode, Color
+derive gDefaultMask	FormattedText, SourceCode, Color
 derive gVerify		FormattedText, SourceCode, Color
 derive JSONEncode	FormattedText, SourceCode, Color
 derive JSONDecode	FormattedText, SourceCode, Color

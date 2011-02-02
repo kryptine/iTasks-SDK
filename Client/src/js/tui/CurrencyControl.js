@@ -9,10 +9,6 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 		itasks.tui.CurrencyControl.superclass.initEvents.call(this);
 	},
 	initComponent: function() {
-		if(this.staticDisplay){			
-			this.autoCreate = {tag: 'div', style: 'overflow: auto; padding-top: 4px', html: this.value};
-		}
-		
 		this.msgTarget = 'side';
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 		
@@ -67,20 +63,16 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 		this.setValue(this.normalize(this.getRawValue()));
 	},
 	setValue: function(value){
-		if(this.staticDisplay){
-			this.update(value);
-		}else{
-			itasks.tui.CurrencyControl.superclass.setValue.call(this,value);
-		
-			if(this.activeError)
-				this.setError(this.activeError);
-		}	
+		itasks.tui.CurrencyControl.superclass.setValue.call(this,value);
+	
+		if(this.activeError)
+			this.setError(this.activeError);
 	},
 	setError: function(msg){		
 		if(msg == "")
-			this.clearInvalid();
+			itasks.tui.common.clearError(this);
 		else
-			this.markInvalid(msg);
+			itasks.tui.common.markError(this,msg);
 	},
 	setHint: function(msg){
 		if(msg == "")

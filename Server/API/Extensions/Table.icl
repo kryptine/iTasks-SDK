@@ -7,10 +7,10 @@ derive JSONDecode	Table, TableCol
 derive gEq			Table, TableCol
 derive bimap		Maybe, (,), TableCol
 
-gUpdate{|Table|} _ _ ust=:{USt|mode=UDCreate,newMask} 
+gUpdate{|Table|} _ UDCreate ust=:{newMask} 
 	= (Table [] [], {USt | ust & newMask = appendToMask newMask Untouched})
 	
-gUpdate{|Table|} _ table=:(Table cols data) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+gUpdate{|Table|} _ (UDSearch table=:(Table cols data)) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om)		= popMask oldMask
 	# ust			= {ust & currentPath = stepDataPath currentPath, oldMask = om}
 	| searchPath <== currentPath
@@ -31,9 +31,7 @@ gUpdate{|Table|} _ table=:(Table cols data) ust=:{USt|mode=UDSearch,searchPath,c
 where
 	updObj v dp (JSONObject obj) = JSONObject [(dp2s dp,JSONString v):filter (\(idx,_) -> idx <> dp2s dp) obj]
 	
-gUpdate{|Table|} _ table ust=:{USt|mode=UDMask,currentPath,newMask}
-	# mask = Touched []
-	= (table,{USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask mask})
+gDefaultMask{|Table|} _ _ =[Touched []]
 
 gVerify{|Table|} _ v vst = customVerify Nothing (const True) (const "") v vst
 

@@ -2,10 +2,6 @@ Ext.ns("itasks.tui");
 
 itasks.tui.BoolControl = Ext.extend(Ext.form.Checkbox,{
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'span', html: this.value};
-		}
-		
 		this.msgTarget = 'side';
 		this.listeners = {check: {fn: this.onCheck, scope : this}};
 		
@@ -29,13 +25,9 @@ itasks.tui.BoolControl = Ext.extend(Ext.form.Checkbox,{
 		this.setError(this.errorMsg);
 		this.setHint(this.hintMsg);
 	},
-	setValue: function(value){
-		if(this.staticDisplay){
-			this.update(value);
-		}else{		
-			if(value == "True") value = true;
-			itasks.tui.BoolControl.superclass.setValue.call(this,value);
-		}
+	setValue: function(value){		
+		if(value == "True") value = true;
+		itasks.tui.BoolControl.superclass.setValue.call(this,value);
 		
 		if(this.activeError) this.setError(this.activeError);
 	},

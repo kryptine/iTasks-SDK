@@ -4,10 +4,6 @@ itasks.tui.NoteControl = Ext.extend(Ext.form.TextArea,{
 	width: 400,
 	grow: true,
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: 'div', style: 'width:330px; overflow: auto', html: this.value.replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1<br>$2')};
-			this.autoHeight = true;
-		}	
 		this.msgTarget = 'side';
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 		this.hideLabel = this.fieldLabel == null;
@@ -31,14 +27,10 @@ itasks.tui.NoteControl = Ext.extend(Ext.form.TextArea,{
 			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	setValue: function(value){
-		if(this.staticDisplay){
-			this.update(value.replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1<br>$2'));
-		}else{
-			itasks.tui.NoteControl.superclass.setValue.call(this,value);
-		
-			if(this.activeError)
-				this.setError(this.activeError);
-		}
+		itasks.tui.NoteControl.superclass.setValue.call(this,value);
+	
+		if(this.activeError)
+			this.setError(this.activeError);
 	},
 	setError: function(msg){		
 		if(msg == "")

@@ -1,7 +1,6 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.HtmlContainer = Ext.extend(Ext.Panel, {
-
 	initComponent: function() {
 		this.unstyled = true;
 		this.border = false;
@@ -9,10 +8,7 @@ itasks.tui.HtmlContainer = Ext.extend(Ext.Panel, {
 		itasks.tui.HtmlContainer.superclass.initComponent.apply(this,arguments);
 	},
 	setValue: function(value) {
-		console.log("SETTING VALUE");
-	},
-	update: function(data) {
-		console.log("UPDATING");
+		this.update(value);
 	}
 });
 

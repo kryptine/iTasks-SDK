@@ -7,6 +7,7 @@ derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent
 
 derive gVisualize   	GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gDefaultMask		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gVerify			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive JSONEncode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive JSONDecode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
@@ -115,17 +116,10 @@ where
 		, id		= dp2id idPrefix currentPath
 		, url		= u
 		}	
-		
-gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate,newMask} = (mkMap,{USt | ust & newMask = appendToMask newMask Untouched})
 
-gUpdate {|GoogleMap|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update,oldMask,newMask}
-	# (cm,om) = popMask oldMask
-	| currentPath == searchPath
-		= (parseUpdate s update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched []), oldMask = om})
-	| otherwise
-		= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
+gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate mkMap ust
 where
-	parseUpdate orig update
+	parseUpdate update orig
 		# mbMVC		= fromJSON (fromString update)
 		| isJust mbMVC
 			# mvc = fromJust mbMVC
@@ -137,10 +131,7 @@ where
 			= {GoogleMap | orig & markers = [marker:orig.GoogleMap.markers]}
 		| otherwise = orig
 
-gUpdate {|GoogleMap|} s ust =: {USt | mode = UDMask, currentPath, newMask}
-	= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])})
-
-gUpdate {|GoogleMap|} s ust = (s,ust)
+gDefaultMask{|GoogleMap|} _ = [Touched []]
 
 // -- Utility Functions --
 

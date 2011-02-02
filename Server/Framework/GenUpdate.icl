@@ -4,17 +4,17 @@ import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMay
 import Types, Text, Util, Shared, DocumentDB
 from StdFunc import id
 
+derive bimap (,), UpdateMode
+
 :: DataPath = DataPath [Int]
 
 defaultValue :: !*IWorld -> (!a,!*IWorld) | gUpdate{|*|} a
 defaultValue iworld  
-	# (a,ust=:{USt|iworld}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
+	# (a,ust=:{iworld}) = gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
 	= (a,iworld)
 
-defaultMask :: a !*IWorld -> (!UpdateMask,!*IWorld) | gUpdate{|*|} a	
-defaultMask a iworld
-	# (_,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = emptyDataPath, currentPath = startDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
-	= (hd newMask,iworld)
+defaultMask :: !a -> UpdateMask | gDefaultMask{|*|} a	
+defaultMask a = hd (gDefaultMask{|*|} a)
 
 updateValue	:: DataPath String a !*IWorld -> (a,!*IWorld) | gUpdate{|*|} a 	
 updateValue path update a iworld
@@ -23,201 +23,113 @@ updateValue path update a iworld
 
 updateValueAndMask :: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
-	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
+	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} (UDSearch a) {searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
 	= (a,hd newMask,iworld)
 
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
-appIWorldUSt f ust=:{USt|iworld}
-	= {USt|ust & iworld = f iworld}
+appIWorldUSt f ust=:{iworld}
+	= {ust & iworld = f iworld}
 	
 accIWorldUSt :: !.(*IWorld -> *(.a,*IWorld))!*USt -> (.a,!*USt)
-accIWorldUSt f ust=:{USt|iworld}
+accIWorldUSt f ust=:{iworld}
 	# (a,iworld) = f iworld
-	= (a,{USt|ust & iworld = iworld})
+	= (a,{ust & iworld = iworld})
 
 //Generic updater
-generic gUpdate a :: a *USt ->  (a, *USt)
+generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
 
-gUpdate{|UNIT|} _ ust=:{mode=UDCreate} = (UNIT, ust)
-gUpdate{|UNIT|} u ust = (u, ust)
+gUpdate{|UNIT|} _ ust = (UNIT,ust)
 
-gUpdate{|PAIR|} fx fy _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx (abort "PAIR create with undef") ust
-	# (ny,ust) = fy (abort "PAIR create with undef") ust
-	= (PAIR nx ny, ust)
-	
-gUpdate{|PAIR|} fx fy (PAIR x y) ust
-	# (nx,ust) = fx x ust
-	# (ny,ust) = fy y ust
-	= (PAIR nx ny, ust)
-
-gUpdate{|EITHER|} fx fy _ ust=:{mode=UDCreate,consPath}
-	= case consPath of
-		[ConsLeft:cl]
-			# (nx,ust) = fx (abort "EITHER create with undef") {ust & consPath = cl}
-			= (LEFT nx, ust)
-		[ConsRight:cl]
-			# (ny,ust) = fy (abort "EITHER create with undef") {ust & consPath = cl}
-			= (RIGHT ny, ust)
-		[]
-			# (nx,ust) = fx (abort "EITHER create with undef") ust
-			= (LEFT nx, ust)
-
-gUpdate{|EITHER|} fx fy e ust	
-	= case e of
-		(LEFT x)	
-			# (nx,ust) = fx x ust
-			= (LEFT nx, ust)
-		(RIGHT y)
-			# (ny,ust) = fy y ust
-			= (RIGHT ny,ust)
-
-gUpdate{|CONS|} fx _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx (abort "CONS create with undef") ust
-	= (CONS nx, ust)
-		
-gUpdate{|CONS|} fx (CONS x) ust
-	# (nx,ust) = (fx x ust)
-	= (CONS nx, ust)
-
-gUpdate{|OBJECT|} fx _ ust=:{mode=UDCreate,newMask}
+gUpdate{|OBJECT|} fx UDCreate ust=:{newMask}
 	//Empty object mask
-	# (nx,ust=:{newMask=objectMask}) = fx (abort "OBJECT create with undef") {USt | ust & newMask = []}
-	= (OBJECT nx, {USt | ust & newMask = newMask ++ objectMask})
-
-gUpdate{|OBJECT of d|} fx (OBJECT x) ust=:{mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (nx,ust=:{newMask=objectMask}) = fx UDCreate {ust & newMask = []}
+	= (OBJECT nx, {ust & newMask = newMask ++ objectMask})
+gUpdate{|OBJECT of d|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
 		//Update is a constructor switch
-		# (nx,ust) = fx (abort "OBJECT create with undef") {USt|ust & mode = UDCreate, consPath = path}
-		= (OBJECT nx, {USt|ust & oldMask = om, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), mode = UDSearch}) 
+		# (nx,ust) = fx UDCreate {ust & consPath = path}
+		= (OBJECT nx, {ust & oldMask = om, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update)}) 
 	| searchPath <== currentPath
 		//Update is targeted somewhere in a substructure of this value
-		# (nx,ust=:{newMask=childMask}) = fx x {USt|ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
-		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched childMask)})
+		# (nx,ust=:{newMask=childMask}) = fx (UDSearch x) {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
+		= (OBJECT nx, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched childMask)})
 	| otherwise
 		//Not on the path, so just put back the current mask (cm)	
-		= (OBJECT x, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
+		= (OBJECT x, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
 where
 	path = case [cons \\ cons <- d.gtd_conses | cons.gcd_name == update] of
 		[cons]	= getConsPath cons
 		_		= []
+		
+gUpdate{|CONS|}		fx UDCreate				ust = app2 (CONS,id)	(fx UDCreate ust)
+gUpdate{|CONS|}		fx (UDSearch (CONS c))	ust = app2 (CONS,id)	(fx (UDSearch c) ust)
+gUpdate{|FIELD|}	fx UDCreate				ust = app2 (FIELD,id)	(fx UDCreate ust)
+gUpdate{|FIELD|}	fx (UDSearch (FIELD c))	ust = app2 (FIELD,id)	(fx (UDSearch c) ust)
 
-gUpdate{|OBJECT of d|} fx o=:(OBJECT x) ust=:{mode=UDMask,currentPath,oldMask,newMask}
-	# (cm,om) = popMask oldMask
-	# (_,ust=:{newMask = childMask}) = fx x {USt|ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
-	= (o,{USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched childMask)})
+gUpdate{|PAIR|} fx fy UDCreate ust
+	# (nx,ust) = fx UDCreate ust
+	# (ny,ust) = fy UDCreate ust
+	= (PAIR nx ny, ust)
+gUpdate{|PAIR|} fx fy (UDSearch (PAIR x y)) ust
+	# (nx,ust) = fx (UDSearch x) ust
+	# (ny,ust) = fy (UDSearch y) ust
+	= (PAIR nx ny, ust)
 
-gUpdate{|FIELD|} fx _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx (abort "FIELD create with undef") ust
-	= (FIELD nx, ust)
-
-gUpdate{|FIELD|} fx (FIELD x) ust
-	# (nx,ust) = fx x ust
-	= (FIELD nx, ust)
-	
-//**********************************************************************************************************
-gUpdate{|Int|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (0,{USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Int|} i ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om) = popMask oldMask	
-	| currentPath == searchPath
-		= (toInt update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
-	| otherwise
-		= (i, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Int|} i ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (i, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-//***
-gUpdate{|Real|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (0.0, {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Real|} r ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om) = popMask oldMask
-	| currentPath == searchPath
-		= (toReal update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
-	| otherwise
-		= (r, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Real|} r ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (r, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-//***
-gUpdate{|Char|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (' ', {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Char|} c ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om) = popMask oldMask
-	| currentPath == searchPath
-		= (if (size update > 0) update.[0] c, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
-	| otherwise
-		= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Char|} c ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-//***
-gUpdate{|Bool|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (False, {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Bool|} b ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om) = popMask oldMask
-	| currentPath == searchPath
-		= (update == "true", {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
-	| otherwise
-		= (b, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Bool|} b ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (b, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-//***
-gUpdate{|String|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= ("", {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|String|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om) = popMask oldMask
-	| currentPath == searchPath
-		= (update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|String|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-
-//Specialized instance Maybe that chooses the non-recursive constructor 
-gUpdate{|Maybe|} fx _ ust=:{USt|mode=UDCreate,newMask} 
-	= (Nothing,{USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update,oldMask,newMask}
+gUpdate{|EITHER|} fx fy UDCreate ust=:{consPath}
+	= case consPath of
+		[ConsLeft:cl]
+			# (nx,ust) = fx UDCreate {ust & consPath = cl}
+			= (LEFT nx, ust)
+		[ConsRight:cl]
+			# (ny,ust) = fy UDCreate {ust & consPath = cl}
+			= (RIGHT ny, ust)
+		[]
+			# (nx,ust) = fx UDCreate ust
+			= (LEFT nx, ust)
+gUpdate{|EITHER|} fx fy (UDSearch e) ust	
+	= case e of
+		(LEFT x)	
+			# (nx,ust) = fx (UDSearch x) ust
+			= (LEFT nx, ust)
+		(RIGHT y)
+			# (ny,ust) = fy (UDSearch y) ust
+			= (RIGHT ny,ust)
+			
+gUpdate{|Maybe|} _ UDCreate ust=:{newMask}
+	//Specialized instance Maybe that chooses the non-recursive constructor 
+	= (Nothing,{ust & newMask = appendToMask newMask Untouched})
+gUpdate{|Maybe|} fx (UDSearch m) ust=:{currentPath,searchPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath && update == ""	
-		= (Nothing, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask Blanked, oldMask = om}) //Reset
+		= (Nothing, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask Blanked, oldMask = om}) //Reset
 	| otherwise
 		= case m of
 			Nothing
 				| searchPath <== currentPath
 					// Create a default value
-					# (x,ust=:{newMask=nmCreate}) 	= (fx (abort "Maybe create with undef") {ust & mode = UDCreate})
+					# (x,ust=:{newMask=nmCreate}) 	= fx UDCreate ust
 					// Search in the default value
-					# (x,ust=:{newMask=nmSearch}) 	= fx x {ust & mode = UDSearch, currentPath = currentPath, searchPath = searchPath, update = update, oldMask = oldMask, newMask = newMask}
+					# (x,ust=:{newMask=nmSearch}) 	= fx (UDSearch x) {ust & currentPath = currentPath, searchPath = searchPath, update = update, oldMask = oldMask, newMask = newMask}
 					= (Just x, ust)
 				| otherwise
-					= (Nothing, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
+					= (Nothing, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
 			Just x
-				# (x,ust) = fx x ust //all mask transformations are made here..
+				# (x,ust) = fx (UDSearch x) ust //all mask transformations are made here..
 				= (Just x,ust)
-				
-gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,newMask}
-	= case m of
-		Nothing	= (m, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask Untouched})
-		Just x
-			# (_,ust) = fx x ust //all mask transformations are made here..
-			= (m,ust)
 
-//Specialize instance for Dynamic
-gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
-gUpdate{|Dynamic|} d ust						= (d, ust)
-
-gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate,newMask} 
-	= ([], {USt | ust & newMask = appendToMask newMask (Touched [])})
-gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+gUpdate{|[]|} _ UDCreate ust = basicCreate [] ust
+gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	# (l,listMask,ust)
 		= case isNew currentPath searchPath (length l) of
 			True
-				# (nv,ust) = fx (abort "LIST - new element accessed during create") {USt | ust & mode=UDCreate, oldMask = [], newMask = []}
+				# (nv,ust) = fx UDCreate {ust & oldMask = [], newMask = []}
 				= (l++[nv], Touched [], ust)
 			False
 				= (l,Touched [], ust)
 	# (lx,ust=:{newMask=listMask})
-		= updateElements fx l {USt|ust & mode = UDSearch, currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
+		= updateElements fx l {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
 	| currentPath == searchPath
 		//Process the reordering commands 
 		# split = split "_" update
@@ -225,34 +137,34 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask
 		= case hd split of	
 			"mup"
 				| index == 0
-					= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+					= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
 				# lx		= swap lx index
 				# listMask	= swap listMask index
 				# dirty		= [index - 1, index]
-				= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om}) 
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om}) 
 			"mdn"
 				| index >= (length lx) - 1
-					= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+					= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
 				# lx		= swap lx (index+1) //down idx == up (idx+1)
 				# listMask	= swap listMask (index+1)
 				# dirty		= [index, index + 1]
-				= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
 			"rem"
 				# lx		= removeAt index lx
 				# listMask	= removeAt index listMask 
 				# dirty		= [index .. length lx-1]	//Mark everything above the removed item dirty
-				= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})	
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})	
 			"add"
 				# (nv,ust=:{newMask=childMask})
-							= fx (abort "LIST create with undef") {USt | ust & mode=UDCreate, oldMask = [], newMask = []}
+							= fx UDCreate {ust & oldMask = [], newMask = []}
 				# lx		= insertAt (index+1) nv lx
 				# listMask	= insertAt (index+1) (hd childMask) listMask
 				# dirty		= [index+1 .. length lx - 1]//Mark evertything above the inserted item dirty
-				= (lx, {USt | ust & mode = UDSearch, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
 			_ 	
-				= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
 	| otherwise 
-		= (lx, {USt | ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+		= (lx, {ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
 where
 	//Check if search path is equal or below [datapath:(length list)]
 	isNew cp sp l = sp <== dataPathFromList [l:dataPathList cp] 
@@ -260,7 +172,7 @@ where
 	updateElements fx []     ust 
 		= ([],ust)
 	updateElements fx [l:ls] ust
-		# (lx,ust)  = fx l ust
+		# (lx,ust)  = fx (UDSearch l) ust
 		# (lxs,ust) = updateElements fx ls ust
 		= ([lx:lxs],ust)
 		
@@ -271,224 +183,152 @@ where
 		| otherwise				
 			# f = list !! (index-1)
 			# l = list !! (index)
-			= updateAt (index-1) l (updateAt index f list)	
-	
-gUpdate{|[]|} fx l ust=:{USt|mode=UDMask,currentPath,newMask}
-	# ust=:{newMask=listMask} = gMarkList fx l {USt | ust & currentPath = shiftDataPath currentPath, newMask = []}
-	= (l,{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask)})
+			= updateAt (index-1) l (updateAt index f list)
+
+gUpdate{|Display|}	fx mode										ust = wrapperUpdate fx mode (\(Display d) -> d) Display ust
+gUpdate{|Editable|}	fx mode										ust = wrapperUpdate fx mode (\(Editable d) -> d) Editable ust
+gUpdate{|Hidden|}	fx mode										ust = wrapperUpdate fx mode (\(Hidden d) -> d) Hidden ust
+gUpdate {|VisualizationHint|} fx UDCreate						ust = wrapperUpdate fx UDCreate undef VHEditable ust 
+gUpdate {|VisualizationHint|} fx m=:(UDSearch (VHEditable s))	ust = wrapperUpdate fx m (\(VHEditable e) -> e) VHEditable ust
+gUpdate {|VisualizationHint|} fx m=:(UDSearch (VHDisplay s))	ust = wrapperUpdate fx m (\(VHDisplay e) -> e) VHDisplay ust
+gUpdate {|VisualizationHint|} fx m=:(UDSearch (VHHidden s))		ust = wrapperUpdate fx m (\(VHHidden e) -> e) VHHidden ust
+
+wrapperUpdate fx mode get cons ust=:{currentPath} = case mode of
+	UDCreate
+		= app2 (cons,id) (fx UDCreate ust)
+	UDSearch w
+		# (w,ust) = fx (UDSearch (get w)) ust
+		= (cons w,{ust & currentPath = stepDataPath currentPath})
+
+gUpdate{|Int|}				mode ust = basicUpdateSimple mode toInt 0 ust
+gUpdate{|Real|}				mode ust = basicUpdateSimple mode toReal 0.0 ust
+gUpdate{|Char|}				mode ust = basicUpdateSimple mode (\str -> if (size str > 0) str.[0] ' ') ' ' ust
+gUpdate{|Bool|}				mode ust = basicUpdateSimple mode ((==) "true") False ust
+gUpdate{|String|}			mode ust = basicUpdateSimple mode id "" ust
+gUpdate{|Note|}				mode ust = basicUpdateSimple mode Note (Note "") ust
+gUpdate{|Password|}			mode ust = basicUpdateSimple mode Password (Password "") ust
+gUpdate{|User|}				mode ust = basicUpdateSimple mode (\str -> if (userName (NamedUser str) == "root") RootUser (NamedUser str)) AnyUser ust
+gUpdate{|FormButton|}		mode ust = basicUpdate mode (\str b -> {b & state = if (str == "true") Pressed NotPressed}) {FormButton | label = "Form Button", icon="", state = NotPressed} ust
+gUpdate{|Tree|} _			mode ust = basicUpdate mode (\str (Tree nodes _) -> Tree nodes (toInt str)) (Tree [] -1) ust
+gUpdate{|Choice|} _			mode ust = basicUpdate mode (\str c=:(Choice opts _) -> case fromJSON (fromString str) of Just [i] = Choice opts i; _ = c) (Choice [] -1) ust
+gUpdate{|MultipleChoice|} _	mode ust = basicUpdate mode (\str c=:(MultipleChoice opts _) -> case fromJSON (fromString str) of Just s = MultipleChoice opts s; _ = c) (MultipleChoice [] []) ust
+gUpdate{|Currency|}			mode ust = basicUpdate mode parseUpdate (EUR 0) ust
 where
-	gMarkList fx [] ust = ust
-	gMarkList fx [x:xs] ust
-		# (_,ust) = fx x ust
-		= gMarkList fx xs ust
-
-gUpdate {|Display|} fx _ ust=:{USt | mode=UDCreate, currentPath}
-	# (nx,ust) = fx (abort "Display created with undef") ust
-	= (Display nx,{USt | ust & currentPath = stepDataPath currentPath})
-gUpdate {|Display|} fx (Display s) ust=:{USt | currentPath} 
-	# (s,ust) = fx s ust
-	= (Display s,{USt | ust & currentPath = stepDataPath currentPath})
-
-gUpdate {|Editable|} fx _ ust=:{USt | mode=UDCreate, currentPath} 
-	# (nx,ust) = fx (abort "Editable created with undef") ust
-	= (Editable nx,{USt | ust & currentPath = stepDataPath currentPath})
-gUpdate {|Editable|} fx (Editable s) ust=:{USt | currentPath} 
-	# (s,ust) = fx s ust
-	= (Editable s,{USt | ust & currentPath = stepDataPath currentPath})
-
-gUpdate {|(->)|} fx fy _ ust=:{USt | mode=UDCreate, currentPath} 
-	= (abort "default function",{USt | ust & currentPath = stepDataPath currentPath})
-gUpdate {|(->)|} fx fy f ust=:{USt | currentPath} 
-	= (f,{USt | ust & currentPath = stepDataPath currentPath})
-
-gUpdate {|Hidden|} fx _ ust=:{USt | mode=UDCreate, currentPath} 
-	# (nx,ust) = fx (abort "Hidden created with undef") ust
-	= (Hidden nx,{USt | ust & currentPath = stepDataPath currentPath})
-gUpdate {|Hidden|} fx (Hidden s) ust=:{USt | currentPath} 
-	# (s,ust) = fx s ust
-	= (Hidden s,{USt | ust & currentPath = stepDataPath currentPath})
-
-gUpdate {|VisualizationHint|} fx _ ust=:{USt | mode=UDCreate, currentPath} 
-	# (nx,ust) = fx (abort "VisualizationHint created with undef") ust
-	= (VHEditable nx,{USt | ust & currentPath = stepDataPath currentPath})
-gUpdate {|VisualizationHint|} fx (VHEditable s) ust=:{USt | currentPath} 
-	# (s,ust) = fx s ust
-	= (VHEditable s,{USt | ust & currentPath = stepDataPath currentPath})
-gUpdate {|VisualizationHint|} fx (VHDisplay s) ust=:{USt | currentPath} 
-	# (s,ust) = fx s ust
-	= (VHDisplay s,{USt | ust & currentPath = stepDataPath currentPath})
-gUpdate {|VisualizationHint|} fx (VHHidden s) ust=:{USt | currentPath} 
-	# (s,ust) = fx s ust
-	= (VHHidden s,{USt | ust & currentPath = stepDataPath currentPath})
-
-gUpdate {|Document|} _ ust =: {USt | mode=UDCreate,newMask} 
-	= ({Document|documentId = "", name="", mime="", size = 0},{USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,newMask}
-	= (s,{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])})
-gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update, oldMask, newMask}
-	# (cm,om) = popMask oldMask
-	| currentPath == searchPath
-		| update == "" // Reset
-			= ({Document|documentId = "", name="", mime="", size = 0},{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask Blanked, oldMask = om})
-		| otherwise // Look up meta-data in the store and update the document
-			# (mbDocument,ust) = getDocument update ust
-			= case mbDocument of
-				Just document 	= (document,{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched []), oldMask = om})
-				Nothing			= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched []), oldMask = om})
-	| otherwise 
-		= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-
-gUpdate{|FormButton|} _ ust=:{USt|mode=UDCreate,newMask}
-	= ({FormButton | label = "Form Button", icon="", state = NotPressed}, {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|FormButton|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om) = popMask oldMask
-	| currentPath == searchPath
-		= ({s & state = if(update == "true") Pressed NotPressed}, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|FormButton|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-
-gUpdate{|Note|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (Note "", {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Note|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm,om) = popMask oldMask
-	| currentPath == searchPath
-		= (Note update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Note|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-
-gUpdate{|Password|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (Password "", {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Password|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm,om) = popMask oldMask
-	| currentPath == searchPath
-		= (Password update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Password|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-
-gUpdate{|Currency|} _ ust=:{USt|mode=UDCreate, newMask} 
-	= (EUR 0,{USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Currency|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,newMask, oldMask}
-	# (cm,om) = popMask oldMask
-	| currentPath == searchPath
-		= (parseUpdate s update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-where
-	parseUpdate orig update =
-		 case split "." update of
-			[whole]		= replaceVal orig (100 * toInt whole)
-			[whole,dec] = replaceVal orig (100 * toInt whole + (if (size dec == 1) (10 * toInt dec) (toInt (dec % (0,1)))))
-			_			= orig
-	
+	parseUpdate update orig = case split "." update of
+		[whole]		= replaceVal orig (100 * toInt whole)
+		[whole,dec] = replaceVal orig (100 * toInt whole + (if (size dec == 1) (10 * toInt dec) (toInt (dec % (0,1)))))
+		_			= orig
 	replaceVal (EUR _) x = (EUR x)
 	replaceVal (GBP _) x = (GBP x)
 	replaceVal (USD _) x = (USD x)
 	replaceVal (JPY _) x = (JPY x)
 
-gUpdate{|Currency|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-
-gUpdate{|Date|} _ ust=:{USt|mode=UDCreate,newMask,iworld=iworld=:{IWorld|world}}
+gUpdate{|Date|} UDCreate ust=:{newMask,iworld=iworld=:{IWorld|world}}
 	# (date,world) = currentDate world
-	= (date, {USt|ust & iworld = {IWorld|iworld & world = world}, newMask = appendToMask newMask Untouched})
-gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm,om) = popMask oldMask
-	| currentPath == searchPath
-		= (fromString update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Date|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-
-gUpdate{|Time|} _ ust=:{USt|mode=UDCreate,newMask,iworld=iworld=:{IWorld|world}}
+	= basicCreate date {ust & iworld = {iworld & world = world}}
+gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\str _ -> fromString str) ust
+gUpdate{|Time|} UDCreate ust=:{newMask,iworld=iworld=:{IWorld|world}}
 	# (time,world) = currentTime world
-	= (time, {USt|ust & iworld = {IWorld|iworld & world = world}, newMask = appendToMask newMask Untouched})
-gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm,om) = popMask oldMask
-	| currentPath == searchPath
-		= (fromString update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Time|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
+	= basicCreate time {ust & iworld = {iworld & world = world}}
+gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\str _ -> fromString str) ust
 
-gUpdate{|User|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (AnyUser,{USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|User|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om) = popMask oldMask
-	| currentPath == searchPath
-		| userName (NamedUser update) == "root"
-			= (RootUser, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
-		| otherwise
-			= (NamedUser update,  {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|User|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])})
+gUpdate{|Dynamic|}			mode ust = basicUpdate mode unchanged (dynamic 42) ust
+gUpdate{|(->)|} _ _			mode ust = basicUpdate mode unchanged (abort "default function") ust
+gUpdate{|Shared|} _			mode ust = basicUpdate mode unchanged (mkSharedReference "default") ust
+gUpdate{|SharedReadOnly|} _	mode ust = basicUpdate mode unchanged (SharedReadOnly "default" Nothing) ust
+unchanged _ v = v
 
-gUpdate{|Choice|} _ _ ust=:{USt|mode=UDCreate,newMask} 
-	= (Choice [] -1, {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Choice|} _ c=:(Choice opts _) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust
+gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask, newMask}
 	# (cm,om)	= popMask oldMask
 	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
 	| currentPath == searchPath
-		# (n,mask) = case fromJSON (fromString update) of
-			Just [i]	= (Choice opts i,	Touched [])
-			_			= (Choice opts -1,	Blanked)
-		= (n, {ust & newMask = appendToMask newMask mask}) 
-	| otherwise
-		= (c, {ust & newMask = appendToMask newMask cm})
-gUpdate{|Choice|} _ c=:(Choice opts sel) ust=:{USt|mode=UDMask,currentPath,newMask}
-	// if no valid selection is made, start with untouched mask
-	# mask = if (sel >= 0 && sel < length opts) (Touched []) (Untouched)
-	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask mask})
+		| update == "" // Reset
+			= ({Document|documentId = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
+		| otherwise // Look up meta-data in the store and update the document
+			# (mbDocument,ust)	= getDocument update ust
+			# ust				= {ust & newMask = appendToMask newMask (Touched [])}
+			= case mbDocument of
+				Just document 	= (document,ust)
+				Nothing			= (s,ust)
+	| otherwise 
+		= (s, {ust & newMask = appendToMask newMask cm})
+
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode
+
+basicUpdateSimple :: !(UpdateMode a) (String -> a) a !*USt -> *(!a,!*USt)
+basicUpdateSimple mode toV def ust = case mode of
+	UDCreate	= basicCreate def ust
+	UDSearch v	= basicSearch v (\str _ -> toV str) ust
 	
-gUpdate{|MultipleChoice|} _ _ ust=:{USt|mode=UDCreate,newMask} 
-	= (MultipleChoice [] [], {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|MultipleChoice|} _ c=:(MultipleChoice opts _) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm,om)	= popMask oldMask
-	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
-	| currentPath == searchPath
-		# n = case fromJSON (fromString update) of
-			Just s	= MultipleChoice opts s
-			Nothing	= MultipleChoice opts []
-		= (n, {ust & newMask = appendToMask newMask (toggleMask update)}) 
-	| otherwise
-		= (c, {ust & newMask = appendToMask newMask cm})
-gUpdate{|MultipleChoice|} _ c ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])})
+basicUpdate :: !(UpdateMode a) (String a -> a) a !*USt -> *(!a,!*USt)
+basicUpdate mode toV def ust = case mode of
+	UDCreate	= basicCreate def ust
+	UDSearch v	= basicSearch v toV ust
+	
+basicCreate :: !a !*USt -> *(!a,!*USt)
+basicCreate def ust=:{newMask} = (def,{ust & newMask = appendToMask newMask Untouched})
 
-gUpdate{|Tree|} _ _ ust=:{USt|mode=UDCreate,newMask} 
-	= (Tree [] -1, {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Tree|} _ tree=:(Tree nodes _) ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm,om)	= popMask oldMask
+basicSearch :: a (String a -> a) !*USt -> *(!a,!*USt)
+basicSearch v toV ust=:{searchPath,currentPath,update,oldMask,newMask}
+	# (cm, om)	= popMask oldMask
 	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
 	| currentPath == searchPath
-		# selIdx = toInt update
-		# (n,mask) = if (update <> "" && selIdx >= 0)
-			(Tree nodes (toInt update),	Touched [])
-			(Tree nodes -1,				Blanked)
-		= (n, {ust & newMask = appendToMask newMask mask}) 
+		= (toV update v, {ust & newMask = appendToMask newMask (toggleMask update)})
 	| otherwise
-		= (tree, {ust & newMask = appendToMask newMask cm})
-gUpdate{|Tree|} _ tree=:(Tree _ sel) ust=:{USt|mode=UDMask,currentPath,newMask}
+		= (v, {ust & newMask = appendToMask newMask cm})
+
+generic gDefaultMask a :: !a -> [UpdateMask]
+
+gDefaultMask{|UNIT|} _						= []
+gDefaultMask{|OBJECT|}	fx (OBJECT x)		= [Touched (fx x)]
+gDefaultMask{|CONS|}	fx (CONS x)			= fx x
+gDefaultMask{|FIELD|}	fx (FIELD x)		= fx x
+gDefaultMask{|PAIR|}	fx fy (PAIR x y)	= fx x ++ fy y
+gDefaultMask{|EITHER|}	fx fy e = case e of
+	(LEFT x)								= fx x
+	(RIGHT y)								= fy y
+
+gDefaultMask{|Maybe|} fx mbVal
+	= case mbVal of
+		Nothing	= [Untouched]
+		Just x	= fx x //all mask transformations are made here..
+
+gDefaultMask {|Display|}			fx (Display d)		= fx d
+gDefaultMask {|Editable|}			fx (Editable e)		= fx e
+gDefaultMask {|Hidden|}				fx (Hidden h)		= fx h
+gDefaultMask {|VisualizationHint|}	fx (VHEditable e)	= fx e
+gDefaultMask {|VisualizationHint|}	fx (VHDisplay d)	= fx d
+gDefaultMask {|VisualizationHint|}	fx (VHHidden h)		= fx h
+
+gDefaultMask{|Int|}					_ = [Touched []]
+gDefaultMask{|Real|}				_ = [Touched []]
+gDefaultMask{|Char|}				_ = [Touched []]
+gDefaultMask{|Bool|}				_ = [Touched []]
+gDefaultMask{|String|}				_ = [Touched []]
+gDefaultMask{|Dynamic|}				_ = [Touched []]
+gDefaultMask{|(->)|} _ _			_ = [Touched []]
+gDefaultMask{|Document|}			_ = [Touched []]			
+gDefaultMask{|FormButton|}			_ = [Touched []]
+gDefaultMask{|Note|}				_ = [Touched []]
+gDefaultMask{|Password|}			_ = [Touched []]
+gDefaultMask{|Currency|}			_ = [Touched []]
+gDefaultMask{|Date|}				_ = [Touched []]
+gDefaultMask{|Time|}				_ = [Touched []]
+gDefaultMask{|User|}				_ = [Touched []]
+gDefaultMask{|MultipleChoice|}_		_ = [Touched []]
+gDefaultMask{|Shared|} _			_ = [Touched []]
+gDefaultMask{|SharedReadOnly|} _	_ = [Touched []]
+gDefaultMask{|Choice|} _ (Choice opts sel)
 	// if no valid selection is made, start with untouched mask
-	# mask = if (sel >= 0) (Touched []) Untouched
-	= (tree, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask mask})
+	| sel >= 0 && sel < length opts	= [Touched []]
+	| otherwise						= [Untouched]
+gDefaultMask{|Tree|} _ tree=:(Tree _ sel)
+	// if no valid selection is made, start with untouched mask
+	| sel >= 0	= [Touched []]
+	| otherwise	= [Untouched]
 
-gUpdate{|Shared|}			_ _ ust=:{mode=UDCreate}	= (Shared "" Nothing, ust)
-gUpdate{|Shared|}			_ x ust						= (x,ust)
-gUpdate{|SharedReadOnly|}	_ _ ust=:{mode=UDCreate}	= (SharedReadOnly "" Nothing, ust)
-gUpdate{|SharedReadOnly|}	_ x ust						= (x,ust)
-
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef
-derive bimap (,)
+derive gDefaultMask Either, [], (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode
 
 //Utility functions
 dp2s :: !DataPath -> String

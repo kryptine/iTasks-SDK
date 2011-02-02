@@ -19,7 +19,7 @@ itasks.tui.TreeControl = Ext.extend(Ext.tree.TreePanel,{
 		this.addEvents('tuichange');
 		this.enableBubble('tuichange');
 		this.on('click',function(node){
-			if(!this.staticDisplay && node.leaf){
+			if(node.leaf){
 				this.fireEvent('tuichange',this.name,node.attributes.index.toString());
 			}
 		},this);

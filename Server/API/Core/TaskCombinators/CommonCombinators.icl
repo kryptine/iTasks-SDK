@@ -19,21 +19,12 @@ gVisualize{|Tag|} val vst = gVisualize{|*|} (toStr val) vst
 where
 	toStr Nothing			= Nothing
 	toStr (Just (Tag t))	= Just (toString t)
+
+gUpdate{|Tag|} mode ust = basicUpdateSimple mode Tag (Tag "") ust
+gDefaultMask{|Tag|} _ = [Touched []]
+
+gVerify{|Tag|} _ vst = simpleVerify "Enter a tag" vst
 	
-gUpdate{|Tag|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (Tag "", {USt | ust & newMask = appendToMask newMask Untouched})
-gUpdate{|Tag|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm,om) = popMask oldMask
-	| currentPath == searchPath
-		= (Tag update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
-gUpdate{|Tag|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched [])}) 
-gVerify{|Tag|} mbTag vst = gVerify{|*|} (toStr mbTag) vst
-where
-	toStr Nothing			= Nothing
-	toStr (Just (Tag t))	= Just (toString t)
 JSONEncode{|Tag|} (Tag t) = JSONEncode{|*|} (toString t)
 JSONDecode{|Tag|} nodes = case nodes of
 	[JSONString str]	= (Just (Tag str), [])

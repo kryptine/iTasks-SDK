@@ -3,6 +3,8 @@ implementation module TUIDiff
 import StdBool, StdClass, StdList
 import Util, GenUpdate, TUIDefinition
 
+derive gEq TUITree
+
 diffEditorDefinitions :: !TUIDef !TUIDef ![DataPath] -> [TUIUpdate]
 diffEditorDefinitions old new alwaysUpdatePaths
 	= diffEditorDefinitions` startDataPath old new
@@ -31,7 +33,8 @@ where
 					= case (o.hasValue,n.hasValue) of
 						(True,True)		= staticContainerUpdate path old new
 						(False,True)	= map (TUIAddTo n.TUIRecordContainer.id) n.TUIRecordContainer.items
-						_				= [TUIReplace_ (dp2s path) new]
+						(False,False)	= []
+						(True,False)	= [TUIReplace_ (dp2s path) new]
 				// Custom components are always updated
 				(TUICustom _, _)
 					= [TUIReplace_ (dp2s path) new]
@@ -49,7 +52,7 @@ where
 					= updates ++ hintUpdate path old new ++ errorUpdate path old new
 				// Trees are replaced if the nodes are changed, otherwise their selection is updated
 				(TUITreeControl ot, TUITreeControl nt)
-					# updates = if (ot.tuiTree == nt.tuiTree)
+					# updates = if (ot.tuiTree === nt.tuiTree)
 						if (ot.selIndex == nt.selIndex)
 							[]
 							[TUISetValue_ (dp2s path) (toString nt.selIndex)]
@@ -74,7 +77,7 @@ where
 			= flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- childrenOf old & cn <- childrenOf new & i <- [0..] ]
 		
 		dynamicContainerUpdate path (TUIListContainer lcOld) (TUIListContainer lcNew)
-			# valueUpdates	= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
+			# valueUpdates	= diffListItemDefinitions (path) lcOld.TUIListContainer.items lcNew.TUIListContainer.items
 			# lengthUpdates	= if (numOld < numNew)
 				[TUIAddTo id item \\item <- drop numMin lcNew.TUIListContainer.items]
 				[TUIRemove (id +++ "#" +++ toString idx) \\ idx <- [numMin..numOld-1]]
@@ -152,19 +155,20 @@ sameHint a b = (hintOf a) == (hintOf b)
 
 //Basic controls
 isControl :: TUIDef -> Bool
-isControl (TUIStringControl {TUIBasicControl|value})		= True
-isControl (TUICharControl {TUIBasicControl|value})			= True
-isControl (TUIIntControl {TUIBasicControl|value})			= True
-isControl (TUIRealControl {TUIBasicControl|value})			= True
-isControl (TUIBoolControl {TUIBasicControl|value})			= True
-isControl (TUINoteControl {TUIBasicControl|value})			= True
-isControl (TUIDateControl {TUIBasicControl|value})			= True
-isControl (TUITimeControl {TUIBasicControl|value})			= True
-isControl (TUIPasswordControl {TUIBasicControl|value})		= True
-isControl (TUICurrencyControl {TUICurrencyControl|value})	= True
-isControl (TUIAppletControl {TUIAppletControl|value})       = True
-isControl (TUIUserControl {TUIBasicControl|value})			= True
-isControl _													= False
+isControl (TUIStringControl _)		= True
+isControl (TUICharControl _)		= True
+isControl (TUIIntControl _)			= True
+isControl (TUIRealControl _)		= True
+isControl (TUIBoolControl _)		= True
+isControl (TUINoteControl _)		= True
+isControl (TUIDateControl _)		= True
+isControl (TUITimeControl _)		= True
+isControl (TUIPasswordControl _)	= True
+isControl (TUICurrencyControl _)	= True
+isControl (TUIAppletControl _)		= True
+isControl (TUIUserControl _)		= True
+isControl (TUIHtmlContainer _)		= True
+isControl _							= False
 
 valueOf :: TUIDef -> Maybe String
 valueOf (TUIStringControl {TUIBasicControl|value})		= Just value	
@@ -179,6 +183,7 @@ valueOf (TUIPasswordControl {TUIBasicControl|value})	= Just value
 valueOf (TUICurrencyControl {TUICurrencyControl|value})	= Just value
 valueOf (TUIAppletControl {TUIAppletControl|value})		= Just value
 valueOf (TUIUserControl {TUIBasicControl|value})		= Just value
+valueOf (TUIHtmlContainer {TUIHtmlContainer|html})		= Just html
 valueOf _												= Nothing
 
 errorOf :: TUIDef -> Maybe String

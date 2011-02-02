@@ -14,9 +14,6 @@ itasks.tui.UsernameReader.readRecords = function(o) {
 itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 	
 	initComponent: function() {
-		if(this.staticDisplay){
-			this.autoCreate = {tag: "span", html: this.value};
-		}
 		this.msgTarget = "side";
 		this.listeners = {
 			change: {fn: this.onChange, scope: this},
@@ -50,20 +47,14 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 	afterRender: function(ct,position){		
 		itasks.tui.UsernameControl.superclass.afterRender.call(this,ct,position);
 
-		if(this.staticDisplay){
-			this.el.next().remove();		
-		}		
 		if(this.errorMsg)
 			itasks.tui.common.markError(this,this.errorMsg);
 		else if(this.hintMsg)
 			itasks.tui.common.markHint(this,this.hintMsg);
 	},	
 	setValue: function(value){
-		if(this.staticDisplay){
-			if(this.el) this.el.dom.innerHTML = value;
-		}else{
-			itasks.tui.UsernameControl.superclass.setValue.call(this,value);
-		}
+		itasks.tui.UsernameControl.superclass.setValue.call(this,value);
+		
 		if(this.activeError)
 			this.setError(this.activeError);
 	},
