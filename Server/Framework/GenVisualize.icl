@@ -17,13 +17,13 @@ visualizeAsEditor name x umask vmask
 	= coerceToTUIDefs defs	
 
 visualizeAsHtmlDisplay :: a -> [HtmlTag] | gVisualize{|*|} a
-visualizeAsHtmlDisplay x = flatten (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay})))
+visualizeAsHtmlDisplay x = coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay}))
 
 visualizeAsTextDisplay :: a -> String | gVisualize{|*|} a
 visualizeAsTextDisplay x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextDisplay, vizType = VTextDisplay})))
 
 visualizeAsHtmlLabel :: a -> [HtmlTag] | gVisualize{|*|} a
-visualizeAsHtmlLabel x =  flatten (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlLabel, vizType = VHtmlLabel})))
+visualizeAsHtmlLabel x =  coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlLabel, vizType = VHtmlLabel}))
 	
 visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
@@ -148,7 +148,7 @@ gVisualize{|CONS of d|} fx val vst=:{vizType,idPrefix,currentPath,label,useLabel
 									{VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 					//Records
 					| not (isEmpty d.gcd_fields) 
-						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml viz))]], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+						= ([HtmlFragment [TableTag [] (coerceToHtml viz)]], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 					//When there are multiple constructors, also show the name of the constructor
 					| d.gcd_type_def.gtd_num_conses > 1
 						= ([TextFragment d.gcd_name, TextFragment " " :viz], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
@@ -201,7 +201,7 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType,currentPath}
 			# (vizBody,vst) 	= fx x {VSt |vst & label = Nothing}
 			= case vizBody of
 			 [] = ([],vst)
-			 _  = ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
+			 _  = ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (coerceToHtml vizBody)]]],{VSt | vst & label = Nothing})
 		VTextDisplay
 			# (vizBody,vst) 	= fx x {VSt |vst & label = Just (formatLabel d.gfd_name)}
 			= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody]++[TextFragment " "], {VSt | vst & label = Nothing})
@@ -360,7 +360,7 @@ gVisualize {|[]|} fx val vst=:{vizType,idPrefix,currentPath,useLabels,label,opti
 					= ([HtmlFragment [UlTag [] [LiTag [ClassAttr "list-item-light"] [(Text "Empty list")]]]],{VSt | vst & currentPath = stepDataPath currentPath})
 				_		
 					# (items,vst) = staticDef fx x {VSt | vst & currentPath = shiftDataPath currentPath}
-					= ([HtmlFragment [UlTag [] [(LiTag [ClassAttr (itemCls i)] (flatten (coerceToHtml x))) \\ x <- items & i <- [0..]]]],{VSt | vst & currentPath = stepDataPath currentPath})
+					= ([HtmlFragment [UlTag [] [(LiTag [ClassAttr (itemCls i)] (coerceToHtml x)) \\ x <- items & i <- [0..]]]],{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextDisplay
 			= case x of
 				[]
@@ -403,8 +403,8 @@ where
 		# (hxs,vst) = staticDef fx xs vst
 		= ([hx:hxs],vst)
 	
-	htmlLabel [i] = (flatten (coerceToHtml i))
-	htmlLabel [i:is] = (flatten (coerceToHtml i)) ++ [(Text ", ")] ++ htmlLabel is
+	htmlLabel [i]		= coerceToHtml i
+	htmlLabel [i:is]	= coerceToHtml i ++ [(Text ", ")] ++ htmlLabel is
 	
 //Hidden type
 gVisualize{|Hidden|} fx val vst=:{VSt | currentPath, updateMask, verifyMask}
@@ -752,38 +752,71 @@ gVisualize{|Tree|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,opt
 	= case val of
 		Nothing
 			= ([TextFragment "Empty tree"],{VSt|vst & currentPath = stepDataPath currentPath})
-		Just (Tree nodes sel)
-			# vst = {vst & vizType = VTextLabel}
-			# (tree,_,vst) = mkTree nodes 0 vst
-			# vst = {vst & vizType = VEditorDefinition}
+		Just tree=:(Tree nodes sel)
 			= case vizType of
 				VEditorDefinition
-					# (err,hnt)				= verifyElementStr cmu cmv
-					# id					= dp2id idPrefix currentPath
-					= ([TUIFragment (TUITreeControl	{ TUITreeControl
-													| name = dp2s currentPath
-													, id = id
-													, tuiTree = tree
-													, selIndex = if (sel >= 0) (Just sel) Nothing
-													, fieldLabel = labelAttr useLabels label
-													, optional = optional
-													, errorMsg = err
-													, hintMsg = hnt
-													})]
-					, {VSt|vst & currentPath = stepDataPath currentPath})
+					# id	= dp2id idPrefix currentPath
+					# label	= labelAttr useLabels label
+					# (vis,vst) = case renderAsStatic of
+						False
+							# vst = {vst & vizType = VTextLabel}
+							# (tree,_,vst) = mkTree nodes 0 vst
+							# vst = {vst & vizType = VEditorDefinition}
+							# (err,hnt) = verifyElementStr cmu cmv
+							= ([TUIFragment (TUITreeControl	{ TUITreeControl
+															| name = dp2s currentPath
+															, id = id
+															, tuiTree = tree
+															, selIndex = if (sel >= 0) (Just sel) Nothing
+															, fieldLabel = label
+															, optional = optional
+															, errorMsg = err
+															, hintMsg = hnt
+															})],vst)
+						True
+							# (vis,vst) = accVStHtmlDisplay (staticVis tree) vst
+							= (staticDisplay id label vis,vst)
+					= (vis,{VSt|vst & currentPath = stepDataPath currentPath})
 				_
-					= ([TextFragment "tree"],{VSt|vst & currentPath = stepDataPath currentPath})
+					= staticVis tree vst
 where
+	staticVis tree=:(Tree nodes sel) vst=:{vizType}
+		# (vis,vst) = case vizType of
+			VHtmlDisplay
+				= (\(html,_,vst) -> ([HtmlFragment [UlTag [] html]],vst)) (mkHtmlDisplay nodes 0 vst)
+			_
+				| sel >= 0	= fx (Just (getSelectedLeaf tree)) vst
+				| otherwise	= ([TextFragment "No leaf selected"],vst)
+		= (vis,{VSt|vst & currentPath = stepDataPath currentPath})
+	where
+		mkHtmlDisplay [] idx vst
+			= ([],idx,vst)
+		mkHtmlDisplay [Leaf v:r] idx vst
+			# (leaf,vst)		= fx (Just v) vst
+			# (rtree,idx`,vst)	= mkHtmlDisplay r (inc idx) vst
+			= ([LiTag (itemCls idx) (coerceToHtml leaf):rtree],idx`,vst)
+		where
+			itemCls idx
+				| idx == sel	= [ClassAttr "tree-list-item-selected"]
+				| isEven idx	= [ClassAttr "list-item-light"]
+				| otherwise		= [ClassAttr "list-item-dark"]
+		mkHtmlDisplay [Node label nodes:r] idx vst
+			# (children,idx,vst)	= mkHtmlDisplay nodes idx vst
+			# (rtree,idx,vst)		= mkHtmlDisplay r idx vst
+			= ([LiTag [ClassAttr "tree-list-node-header"] [Text label],UlTag ulClass children:rtree],idx,vst)
+		where
+			ulClass = [ClassAttr "tree-list"]
+			
 	mkTree [] idx vst
 		= ([],idx,vst)
-	mkTree [Node label nodes:r] idx vst
-		# (children,idx,vst)	= mkTree nodes idx vst
-		# (rtree,idx,vst)		= mkTree r idx vst
-		= ([{id = Nothing, text = label, index = Nothing, leaf = False, children = Just children}:rtree],idx,vst)
 	mkTree [Leaf v:r] idx vst
 		# (leaf,vst)		= fx (Just v) vst
 		# (rtree,idx`,vst)	= mkTree r (inc idx) vst
 		= ([{id = Just (nodeId idx), text = join " " (coerceToStrings leaf), index = Just idx, leaf = True, children = Nothing}:rtree],idx`,vst)
+	mkTree [Node label nodes:r] idx vst
+		# (children,idx,vst)	= mkTree nodes idx vst
+		# (rtree,idx,vst)		= mkTree r idx vst
+		= ([{id = Nothing, text = label, index = Nothing, leaf = False, children = Just children}:rtree],idx,vst)
 	
 	nodeId idx = (dp2id idPrefix currentPath) +++ "-" +++ toString idx
 	
@@ -839,7 +872,7 @@ visualizeBasicControl tuiType v vst=:{vizType,idPrefix,label,currentPath,updates
 	= ([TUIFragment vis],{VSt | vst & verifyMask = vm, updateMask = um, currentPath = stepDataPath currentPath})
 
 staticDisplay :: !String !(Maybe String) ![Visualization] -> [Visualization]
-staticDisplay id label vis = [TUIFragment (TUIHtmlContainer {id = id, html = toString (html (flatten (coerceToHtml vis))), fieldLabel = label})]
+staticDisplay id label vis = [TUIFragment (TUIHtmlContainer {id = id, html = toString (html (coerceToHtml vis)), fieldLabel = label})]
 
 mkChoiceOptionLabels fx options vst
 	# vst			= {vst & vizType = VHtmlLabel}
@@ -848,7 +881,7 @@ mkChoiceOptionLabels fx options vst
 where
 	mkOptionLabel option vst
 		# (vis,vst) = fx (Just option) vst
-		= (toString (SpanTag [ClassAttr "task-choice"] (flatten (coerceToHtml vis))),vst)
+		= (toString (SpanTag [ClassAttr "task-choice"] (coerceToHtml vis)),vst)
 
 verifyElementStr :: !UpdateMask !VerifyMask -> (!String, !String)
 verifyElementStr cmu cmv
@@ -885,8 +918,8 @@ coerceToTUIUpdates [v:vs]			= coerceToTUIUpdates vs
 coerceToStrings :: [Visualization] -> [String]
 coerceToStrings visualizations = [s \\ (TextFragment s) <- visualizations]
 
-coerceToHtml :: [Visualization] -> [[HtmlTag]]
-coerceToHtml visualizations = [coerce h \\h <- visualizations | coercable h]
+coerceToHtml :: [Visualization] -> [HtmlTag]
+coerceToHtml visualizations = flatten [coerce h \\h <- visualizations | coercable h]
 where
 	coerce (TextFragment s)		= [Text s]
 	coerce (HtmlFragment h)		= h

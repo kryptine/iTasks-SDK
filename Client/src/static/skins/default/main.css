@@ -710,6 +710,23 @@ div.taskForestLegend{
 	left: 0px;
 }
 
+.tree-list {
+	margin-left: 32px;
+}
+
+.tree-list-node-header {
+	padding: 4px 8px 2px 0px;
+	background-image: url('img/darker-blue-background.png') !important;
+	position: relative;
+	font-weight: bold;
+}
+
+.tree-list-item-selected {
+	padding: 4px 8px 2px 0px;
+	background-image: url('img/red-background.png') !important;
+	position: relative;
+}
+
 /* == Document Panel == */
 
 .x-form-file-wrap {
