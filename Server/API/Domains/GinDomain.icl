@@ -38,25 +38,15 @@ where
         , errorMsg = errMsg
         , hintMsg = hntMsg
         }
-
-gUpdate {|GinEditor|} _ ust =: {USt | mode=UDCreate,newMask} = (newEditor ,{USt | ust & newMask = appendToMask newMask Untouched})
-
-gUpdate {|GinEditor|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update,oldMask,newMask}
-    # (cm,om) = popMask oldMask
-    | currentPath == searchPath
-        = (parseUpdate s update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True []), oldMask = om})
-    | otherwise
-        = (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+        
+gUpdate{|GinEditor|} mode ust = basicUpdate mode parseUpdate newEditor ust
 where
-    parseUpdate :: GinEditor String -> GinEditor
-    parseUpdate orig update = case gModuleFromJSON update of
-					Just mod = { GinEditor | orig & gMod = mod }
-					Nothing = orig
+	parseUpdate update orig
+		= case gModuleFromJSON update of	
+			Just mod = { GinEditor | orig & gMod = mod }
+			Nothing = orig
 
-gUpdate {|GinEditor|} s ust =: {USt | mode = UDMask, currentPath, newMask}
-    = (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
-
-
+gDefaultMask{|GinEditor|} _ = [Touched []]
 
 gVerify{|GinEditor|} val vst = customWorldVerify Nothing check val vst where
   check editor iworld
