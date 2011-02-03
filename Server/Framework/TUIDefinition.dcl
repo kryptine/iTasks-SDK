@@ -10,8 +10,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate
 
-:: TUIId :== String
-
 :: TUIUpdate
 	= TUIAdd			TUIId TUIDef	// Add the additional component *after* the component with indicated id
 	| TUIAddTo			TUIId TUIDef	// Add the additional component as a child of the component with indicated id
@@ -33,7 +31,9 @@ derive JSONEncode TUIDef, TUIUpdate
 	//| TUIRemove_		TUIPath Int			//Remove child element at index
 	//| TUIReorder_		TUIPath Int Int		//Move child element from index to index
 
-:: TUIPath :== String
+:: TUIId	:== String
+:: TUIPath	:== String
+:: TUIName	:== String
 
 :: TUIDef
 	= TUILabel
@@ -70,7 +70,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUICustom JSONNode
 
 :: TUIBasicControl =
-	{ name			:: !String
+	{ name			:: !TUIName
 	, id			:: !TUIId
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
@@ -79,7 +79,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, hintMsg		:: !String
 	}
 :: TUIChoiceControl =
-	{ name			:: !String
+	{ name			:: !TUIName
 	, id			:: !TUIId
 	, dataPath		:: !String
 	, fieldLabel	:: !Maybe String
@@ -91,7 +91,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, hintMsg		:: !String
 	}
 :: TUITreeControl =
-	{ name			:: !String
+	{ name			:: !TUIName
 	, id			:: !TUIId
 	, tuiTree		:: ![TUITree]
 	, selIndex		:: !Maybe Int
@@ -108,7 +108,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, index		:: !Maybe Int
 	}
 :: TUICurrencyControl =
-	{ name			:: !String
+	{ name			:: !TUIName
 	, id			:: !TUIId
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
@@ -119,7 +119,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	}
 :: TUIDocumentControl = 
 	{ id			:: !TUIId
-	, name			:: !String
+	, name			:: !TUIName
 	, document		:: !Document
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
@@ -127,7 +127,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, hintMsg		:: !String
 	}
 :: TUIButtonControl =
-	{ name			:: !String
+	{ name			:: !TUIName
 	, id			:: !TUIId
 	, value			:: !String
 	, label			:: !String
@@ -139,7 +139,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	}
 :: TUIConstructorControl =
 	{ id			:: !TUIId
-	, name			:: !String
+	, name			:: !TUIName
 	, fieldLabel	:: !Maybe String
 	, consSelIdx	:: !Int
 	, consValues	:: ![String]
@@ -148,24 +148,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	, errorMsg		:: !String
 	, hintMsg		:: !String
 	}
-:: TUIFormattedTextControl =
-	{ name				:: !String
-	, id				:: !TUIId
-	, value				:: !String
-	, fieldLabel		:: !Maybe String
-	, optional			:: !Bool
-	, enableAlignments	:: !Bool
-	, enableColors		:: !Bool
-	, enableFont		:: !Bool
-	, enableFontSize	:: !Bool
-	, enableFormat		:: !Bool
-	, enableLinks		:: !Bool
-	, enableLists		:: !Bool
-	, enableSourceEdit	:: !Bool
-	, errorMsg			:: !String
-	, hintMsg			:: !String
-	}
-	
 :: TUITupleContainer =
 	{ id			:: !TUIId
 	, items			:: ![[TUIDef]]
@@ -174,7 +156,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	}
 :: TUIRecordContainer = 
 	{ id			:: !TUIId
-	, name			:: !String
+	, name			:: !TUIName
 	, title			:: !Maybe String
 	, items			:: ![TUIDef]
 	, optional		:: !Bool
@@ -184,7 +166,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	}
 :: TUIListContainer =
 	{ items			:: ![TUIDef]
-	, name			:: !String
+	, name			:: !TUIName
 	, id			:: !TUIId
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool
@@ -194,7 +176,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, optional		:: !Bool
 	}
 :: TUIListItemControl =
-	{ name				:: !String
+	{ name				:: !TUIName
 	, id				:: !TUIId
 	, items				:: ![TUIDef]
 	, index				:: !Int
@@ -205,7 +187,7 @@ derive JSONEncode TUIDef, TUIUpdate
     , archives          :: ![String]
     , width             :: !String
     , height            :: !String
-	, name				:: !String
+	, name				:: !TUIName
 	, id				:: !String
 	, value             :: !String
     , errorMsg          :: !String
@@ -219,7 +201,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	}
 
 :: TUIButton =
-	{ name			:: !String
+	{ name			:: !TUIName
 	, id			:: !TUIId
 	, text			:: !String
 	, action		:: !String
@@ -246,16 +228,17 @@ derive JSONEncode TUIDef, TUIUpdate
 	, actionData	:: !Maybe String
 	}
 :: TUIGridControl =
-	{ name			:: !String
+	{ name			:: !TUIName
 	, id			:: !TUIId
 	, columns		:: ![TUIGridColumn]
 	, gridData		:: ![JSONNode]
 	}
 :: TUIGridColumn =
-	{ header		:: !String
-	, dataIndex		:: !DataIndex
-	, editor		:: !Maybe String
+	{ header	:: !String
+	, name		:: !TUIName
+	, editor	:: !Maybe String
 	}
-:: DataIndex :== String
 
-getTUIId :: !TUIDef -> Maybe TUIId
+getTUIId	:: !TUIDef -> Maybe TUIId
+childrenOf	:: !TUIDef -> [TUIDef]
+valueOf		:: !TUIDef -> Maybe String

@@ -1,17 +1,16 @@
 implementation module TableExamples
 
-import iTasks, Table, Text, StdInt
+import iTasks, Text, StdInt
 
 tableExamples :: [Workflow]
-tableExamples = [workflow "Examples/Miscellaneous/Plant dataset table" "Uses the Table type to represent a simple plant dataset." plantExample]
+tableExamples = [workflow "Plant dataset table" "Uses the Table type to represent a simple plant dataset." plantExample]
 
 plantExample = try plantExample` showError
 
 plantExample` =
 		readDataset
-	>>= transform toTable
+	>>= transform Table
 	>>=	updateInformation ("Plant Dataset",description)
-	>>= transform fromTable
 	>>= showMessageAbout "Updated dataset"
 	>>| stop
 where
@@ -34,14 +33,18 @@ where
 		[common,botanical,zone,light,price,availability,indoor]
 			= toPlants rest
 				[{ name =
-					{ common	= common
-					, botanical	= botanical
+					{ common		= common
+					, botanical		= botanical
 					}
-				, light			= light
-				//, price			= USD (toInt ((toReal price) * 100.0))
-				, availability	= s2Date availability
-				,indoor			= indoor == "true"
-				, description	= Note ""
+				, light 			= case light of
+					"Sunny"			= Sunny
+					"Sun or Shade"	= SunOrShade
+					"Mostly Shady"	= MostlyShady
+					_				= Shade
+				, price				= USD (toInt (toReal price) * 100)
+				, availability		= s2Date availability
+				, indoor			= indoor == "true"
+				, description		= Note ""
 				}:acc]
 		_
 			= throw "invalid CSV row!"
@@ -51,8 +54,8 @@ where
 		_		= {day = 0, mon = 0, year = 0}
 
 :: Plant =		{ name			:: PlantName
-				, light			:: String
-				//, price			:: Currency
+				, light			:: PlantLight
+				, price			:: Currency
 				, availability	:: Date
 				, indoor		:: Bool
 				, description	:: Note
@@ -60,7 +63,10 @@ where
 :: PlantName =	{ common		:: String
 				, botanical		:: String
 				}
+:: PlantLight	= Sunny
+				| SunOrShade
+				| MostlyShady
+				| Shade
 
-derive class iTask		Plant, PlantName
-derive class tableRow	Plant, PlantName
-derive bimap Maybe, (,), []
+derive class iTask Plant, PlantName, PlantLight
+derive bimap Maybe, (,)

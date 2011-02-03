@@ -254,7 +254,7 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode, Table
 
 basicUpdateSimple :: !(UpdateMode a) (String -> a) a !*USt -> *(!a,!*USt)
 basicUpdateSimple mode toV def ust = case mode of
@@ -293,7 +293,8 @@ gDefaultMask{|Maybe|} fx mbVal
 	= case mbVal of
 		Nothing	= [Untouched]
 		Just x	= fx x //all mask transformations are made here..
-gDefaultMask{|[]|} fx l = [Touched (map (hd o fx) l)]
+gDefaultMask{|[]|} fx l				= [Touched (map (hd o fx) l)]
+gDefaultMask{|Table|} fx (Table l)	= [Touched (map (hd o fx) l)]
 
 gDefaultMask {|Display|}			fx (Display d)		= fx d
 gDefaultMask {|Editable|}			fx (Editable e)		= fx e

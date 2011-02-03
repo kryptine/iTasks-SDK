@@ -10,8 +10,8 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.EditorGridPanel,{
 		var fields = [];
 		var cols = this.columns;
 		for(var i = 0; i < cols.length; i++){
-			cols[i].editor = {xtype: cols[i].editor};
-			fields[i] = cols[i].dataIndex;
+			if (cols[i].editor) cols[i].editor = {xtype: cols[i].editor};
+			fields[i] = cols[i].name;
 		}
 		
 		var store = new Ext.data.JsonStore({

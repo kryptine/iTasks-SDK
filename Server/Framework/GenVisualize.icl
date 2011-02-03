@@ -7,7 +7,7 @@ NEWLINE	:== "\n"		//The character sequence to use for new lines in text display 
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = startDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, updateMask = [], verifyMask = [], updates = []}
+		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, updateMask = [], verifyMask = [], updates = [], headers = []}
 
 //Wrapper functions
 visualizeAsEditor :: String a UpdateMask VerifyMask -> [TUIDef] | gVisualize{|*|} a
@@ -88,7 +88,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 	| otherwise
 		= case val of
 			Just (OBJECT x)	= fx (Just x) vst
-			Nothing			= fx Nothing vst			
+			Nothing			= fx Nothing vst
 where
 	id		= dp2id idPrefix currentPath
 	cId 	= (dp2id idPrefix currentPath) +++ "c"
@@ -98,22 +98,13 @@ gVisualize{|CONS of d|} fx val vst=:{vizType,idPrefix,currentPath,label,useLabel
 	# (cmv,vm)	= popMask verifyMask
 	# x			= case val of (Just (CONS x)) = (Just x); _ = Nothing
 	= case vizType of
-		VEditorDefinition	
+		VEditorDefinition
 			//records
 			| not (isEmpty d.gcd_fields)
-				# (err,hnt) = case cmu of
-							(Untouched) = case cmv of
-								(VMInvalid IsBlankError _)		= ("", "")
-								(VMInvalid (ErrorMessage s) _)	= (s, "")
-								(VMValid mbHnt _) 				= ("", toString mbHnt)
-								(VMUntouched mbHnt _ _)			= ("", toString mbHnt)
-							_				= case cmv of
-								(VMInvalid err _) 				= (toString err, "")
-								(VMValid mbHnt _)				= ("", toString mbHnt)
-								(VMUntouched mbHnt _ _)			= ("", toString mbHnt)
-				= case x of 
-					//Create an empty record container that can be expanded later
-					Nothing 
+				# (err,hnt) = verifyElementStr cmu cmv
+				# (vis,vst) = case x of
+					Nothing
+						//Create an empty record container that can be expanded later
 						= ([TUIFragment (TUIRecordContainer  {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs"
 																				 , name = dp2s currentPath
 																				 , title = label
@@ -121,8 +112,7 @@ gVisualize{|CONS of d|} fx val vst=:{vizType,idPrefix,currentPath,label,useLabel
 																				 , optional = (optional && (not renderAsStatic))
 																				 , hasValue = False
 																				 , errorMsg = err
-																				 , hintMsg = hnt})]
-						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, updateMask = um, verifyMask = vm})
+																				 , hintMsg = hnt})],vst)
 					_
 						# (viz,vst) = fx x {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = True, optional = False
 													, updateMask = childMasks cmu, verifyMask = childMasks cmv}
@@ -133,13 +123,12 @@ gVisualize{|CONS of d|} fx val vst=:{vizType,idPrefix,currentPath,label,useLabel
 																				, optional = (optional && (not renderAsStatic))
 																				, hasValue = True
 																				, errorMsg = err
-																				, hintMsg = hnt})]
-						 , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels, updateMask = um, verifyMask = vm})
-			
+																				, hintMsg = hnt})],vst)
+				= (vis, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, updateMask = um, verifyMask = vm, useLabels = useLabels, headers = recordHeaders d.gcd_fields})
 			//ADT's with multiple fields are essentially tuples
 			| otherwise		
 				# (viz,vst) = fx x {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, updateMask = childMasks cmu, verifyMask = childMasks cmv}
-				= (viz, {VSt | vst & currentPath = stepDataPath currentPath, optional = optional, selectedConsIndex= d.gcd_index, useLabels = useLabels, updateMask = um, verifyMask = vm})
+				= (viz, {VSt | vst & currentPath = stepDataPath currentPath, optional = optional, selectedConsIndex = d.gcd_index, useLabels = useLabels, updateMask = um, verifyMask = vm})
 		//Html display vizualization
 		VHtmlDisplay
 			= case val of
@@ -193,6 +182,8 @@ where
 	id		= (dp2id idPrefix currentPath)
 	fsid	= id +++ "-fs"
 	cId		= id +++ "c"
+	
+	recordHeaders fields = map (\{gfd_name} -> gfd_name) fields
 	
 gVisualize{|FIELD of d|} fx val vst=:{vizType,currentPath}
 	# x = case val of (Just (FIELD x)) = (Just x) ; _ = Nothing
@@ -732,18 +723,7 @@ gVisualize{|MultipleChoice|} fx val vst=:{vizType,label,idPrefix,currentPath,use
 				_
 					= staticVis choice vst
 where
-	staticVis choice vst
-		# (vis,vst) = case getChoices choice of
-			[]
-				= ([TextFragment "No items selected"],vst)
-			choices
-				= visualiseChoices choices [] {VSt | vst & currentPath = shiftDataPath currentPath}
-		= (vis,{VSt|vst & currentPath = stepDataPath currentPath})
-
-	visualiseChoices [] acc vst = (acc,vst)
-	visualiseChoices [choice:choices] acc vst
-		# (vis,vst) = fx (Just choice) vst
-		= visualiseChoices choices (acc ++ vis ++ (if (isEmpty choices) [] [TextFragment ", "])) vst
+	staticVis choice vst = gVisualize{|* -> *|} fx (Just (getChoices choice)) vst
 
 gVisualize{|Tree|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,verifyMask,updateMask,updates}
 	# (cmu,um)	= popMask updateMask
@@ -819,6 +799,68 @@ where
 		= ([{id = Nothing, text = label, index = Nothing, leaf = False, children = Just children}:rtree],idx,vst)
 	
 	nodeId idx = (dp2id idPrefix currentPath) +++ "-" +++ toString idx
+
+gVisualize{|Table|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,verifyMask,updateMask,updates,origVizType}
+	# (cmu,um)	= popMask updateMask
+	# (cmv,vm)	= popMask verifyMask
+	# (vis,vst) = case val of
+		Nothing
+			= ([TextFragment "Empty table"],vst)
+		Just (Table rows)
+			#(vis,vst=:{headers}) = gVisualize{|* -> *|} fx (Just rows) {VSt|vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+			= case vizType of
+				VEditorDefinition
+					# id	= dp2id idPrefix currentPath
+					# label	= labelAttr useLabels label
+					= case renderAsStatic of
+						False
+							# (labels,vst)	= seqList (map (\row vst -> fx (Just row) vst) rows) {vst & renderAsStatic = True, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+							# vst			= {vst & renderAsStatic = False}
+							= ([TUIFragment (TUIGridControl	{ TUIGridControl
+															| name = dp2s currentPath
+															, id = id
+															, columns = toTUICols headers
+															, gridData = map (\label -> getData (hd label) (shiftDataPath currentPath)) labels
+															})],{vst & headers = headers})
+						True
+							# (vis,vst) = accVStHtmlDisplay (gVisualize{|* -> *|} fx (Just rows)) vst
+							= (staticDisplay id label vis,vst)
+				_
+					= (vis,vst)
+	= (vis, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+	where
+		dpSeq func items dp = fst (seqList (map (\i dp -> (func i dp,stepDataPath dp)) items) dp)
+	
+		getData (TUIFragment tui) dp = case tui of
+			TUIRecordContainer {TUIRecordContainer|items}	= childEntries items dp
+			TUIHtmlContainer {TUIHtmlContainer|html}		= dataEntry [(dp,html)]
+			tui = case tui of
+				TUIConstructorControl cons					= constructorVis cons dp
+				_ = case childrenOf tui of
+					[child:_]								= getData (TUIFragment child) dp
+					_										= JSONObject []
+		getData (HtmlFragment htm)	dp						= dataEntry [(dp,html htm)]
+		getData (TextFragment str)	dp						= dataEntry [(dp,str)]
+		getData (TUIUpdate _)		_						= abort "get tree data: no TUIUpdate expected"
+		
+		dataEntry data = JSONObject (map (app2 (dp2s,JSONString o toString)) data)
+		
+		childEntries items dp = JSONObject ((dpSeq (\item dp -> combine (getData (TUIFragment item) dp) dp) items dp))
+		
+		constructorVis {consSelIdx,consValues,items} dp
+			# obj=:(JSONObject data) = childEntries items dp
+			| length consValues > 1	&& consSelIdx <> -1
+				= JSONObject [combine (JSONObject [(dp2s dp,JSONString (consValues !! consSelIdx)):data]) dp]
+			| otherwise
+				= JSONObject [combine obj dp]
+		
+		combine (JSONObject data) dp = (dp2s dp,JSONString (join "" (map (\(_,JSONString str) -> str) data)))
+		combine _ _ = abort "get tree data: no JSON object"
+		
+		toTUICols []		= [{header = "", name = dp2s (shiftDataPath currentPath), editor = Nothing}]
+		toTUICols headers	= dpSeq toTUICol headers (shiftDataPath currentPath)
+		where
+			toTUICol header dp = {header = (formatLabel header), name = dp2s dp, editor = Nothing}
 	
 gVisualize{|Shared|} _ _ vst			= ([TextFragment "Reference to shared data"],vst)
 gVisualize{|SharedReadOnly|} _ _ vst	= ([TextFragment "Read-Only reference to shared data"],vst)
@@ -886,15 +928,15 @@ where
 verifyElementStr :: !UpdateMask !VerifyMask -> (!String, !String)
 verifyElementStr cmu cmv
 	= case cmu of
-		(Untouched) = case cmv of
-			(VMValid mbHnt _) 				= ("",toString mbHnt)
-			(VMUntouched mbHnt _ _) 		= ("",toString mbHnt)
-			(VMInvalid IsBlankError _)		= ("","")
-			(VMInvalid (ErrorMessage s) _)	= (s,"")
+		Untouched = case cmv of
+			VMValid mbHnt _ 				= ("",toString mbHnt)
+			VMUntouched mbHnt _ _ 			= ("",toString mbHnt)
+			VMInvalid IsBlankError _		= ("","")
+			VMInvalid (ErrorMessage s) _	= (s,"")
 		_ = case cmv of
-			(VMValid mbHnt _)				= ("",toString mbHnt)
-			(VMUntouched mbHnt _ _) 		= ("",toString mbHnt)
-			(VMInvalid err _)				= (toString err,"")
+			VMValid mbHnt _					= ("",toString mbHnt)
+			VMUntouched mbHnt _ _ 			= ("",toString mbHnt)
+			VMInvalid err _					= (toString err,"")
 
 accVStHtmlDisplay :: !(*VSt -> (!a,!*VSt)) !*VSt -> (!a,!*VSt)
 accVStHtmlDisplay f vst=:{origVizType}

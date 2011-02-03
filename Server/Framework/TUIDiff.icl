@@ -170,22 +170,6 @@ isControl (TUIUserControl _)		= True
 isControl (TUIHtmlContainer _)		= True
 isControl _							= False
 
-valueOf :: TUIDef -> Maybe String
-valueOf (TUIStringControl {TUIBasicControl|value})		= Just value	
-valueOf (TUICharControl {TUIBasicControl|value})		= Just value
-valueOf (TUIIntControl {TUIBasicControl|value})			= Just value
-valueOf (TUIRealControl {TUIBasicControl|value})		= Just value
-valueOf (TUIBoolControl {TUIBasicControl|value})		= Just value
-valueOf (TUINoteControl {TUIBasicControl|value})		= Just value
-valueOf (TUIDateControl {TUIBasicControl|value})		= Just value
-valueOf (TUITimeControl {TUIBasicControl|value})		= Just value
-valueOf (TUIPasswordControl {TUIBasicControl|value})	= Just value
-valueOf (TUICurrencyControl {TUICurrencyControl|value})	= Just value
-valueOf (TUIAppletControl {TUIAppletControl|value})		= Just value
-valueOf (TUIUserControl {TUIBasicControl|value})		= Just value
-valueOf (TUIHtmlContainer {TUIHtmlContainer|html})		= Just html
-valueOf _												= Nothing
-
 errorOf :: TUIDef -> Maybe String
 errorOf (TUIStringControl {TUIBasicControl|errorMsg})		= Just errorMsg		
 errorOf (TUICharControl {TUIBasicControl|errorMsg})			= Just errorMsg
@@ -232,8 +216,3 @@ isDynamicContainer :: TUIDef -> Bool
 isDynamicContainer (TUIConstructorControl _)= True
 isDynamicContainer (TUIListContainer _)		= True
 isDynamicContainer _						= False
-
-childrenOf :: TUIDef -> [TUIDef]
-childrenOf (TUITupleContainer {TUITupleContainer|items})	= flatten items
-childrenOf (TUIRecordContainer {TUIRecordContainer|items})	= items
-childrenOf _												= []

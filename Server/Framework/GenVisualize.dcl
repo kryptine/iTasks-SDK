@@ -14,7 +14,7 @@ derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Shared, SharedReadOnly, Map, Tree, TreeNode
-derive gVisualize ProcessRef, EmailAddress, Action
+derive gVisualize ProcessRef, EmailAddress, Action, Table
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: String a UpdateMask VerifyMask -> [TUIDef]			| gVisualize{|*|} a
@@ -57,6 +57,7 @@ determineEditorUpdates	:: String (a, UpdateMask, VerifyMask) (a, UpdateMask, Ver
 	, verifyMask		:: ![VerifyMask]
 	, updates			:: ![DataPath]
 	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
+	, headers			:: [String]						// name of the fields of the topmost record, otherwise []
 	}
 
 :: VisualizationType
