@@ -9,12 +9,13 @@ import GenEq, GenPrint, GenParse, GenVisualize, GenUpdate
 	, tempPath		:: !String
 	}
 
-derive gEq        GinConfig	
-derive gVisualize GinConfig
-derive gUpdate    GinConfig
-derive gVerify    GinConfig
-derive JSONEncode GinConfig
-derive JSONDecode GinConfig
+derive gEq        	GinConfig	
+derive gVisualize 	GinConfig
+derive gUpdate    	GinConfig
+derive gDefaultMask	GinConfig
+derive gVerify    	GinConfig
+derive JSONEncode 	GinConfig
+derive JSONDecode 	GinConfig
 
 ginDefaultConfig :: *World -> (GinConfig, *World)
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)

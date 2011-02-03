@@ -13,11 +13,12 @@ import CommandLine
 from Engine import determineAppName
 import iTasks
 
-derive gEq        GinConfig	
-derive gVisualize GinConfig
-derive gUpdate    GinConfig
-derive JSONEncode GinConfig
-derive JSONDecode GinConfig
+derive gEq        	GinConfig	
+derive gVisualize 	GinConfig
+derive gUpdate    	GinConfig
+derive gDefaultMask	GinConfig
+derive JSONEncode 	GinConfig
+derive JSONDecode 	GinConfig
 	
 derive bimap Maybe, (,)
 
