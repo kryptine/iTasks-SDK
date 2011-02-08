@@ -1,7 +1,7 @@
 definition module GinConfig
 
-import StdMaybe
-import GenEq, GenPrint, GenParse, GenVisualize, GenUpdate
+import Maybe
+import GenEq, GenPrint, GenVisualize, GenUpdate
 
 :: GinConfig =
 	{ cleanPath		:: !String
@@ -21,5 +21,3 @@ ginDefaultConfig :: *World -> (GinConfig, *World)
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)
 ginStoreConfig :: !GinConfig !*World -> *World
 ginCheckConfig :: !GinConfig !*World -> (Maybe String, *World)
-
-

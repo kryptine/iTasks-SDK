@@ -14,7 +14,6 @@ ObjectPaths
 	Path:	{ITasks}\Server\API\Core\BasicTasks\Clean System Files\ImportTasks.o
 	Path:	{ITasks}\Server\API\Core\BasicTasks\Clean System Files\InteractionTasks.o
 	Path:	{ITasks}\Server\API\Core\BasicTasks\Clean System Files\OSTasks.o
-	Path:	{ITasks}\Server\API\Core\BasicTasks\Clean System Files\OSTasksC.o
 	Path:	{ITasks}\Server\API\Core\BasicTasks\Clean System Files\ProcessDBTasks.o
 	Path:	{ITasks}\Server\API\Core\BasicTasks\Clean System Files\SessionDBTasks.o
 	Path:	{ITasks}\Server\API\Core\BasicTasks\Clean System Files\StoreTasks.o
@@ -67,25 +66,34 @@ ObjectPaths
 	Path:	{ITasks}\Server\lib\graph_copy\Clean System Files\copy_string_to_graph.obj
 	Path:	{ITasks}\Server\lib\graph_copy\Clean System Files\copy_string_to_graph_interface.obj
 	Path:	{ITasks}\Server\lib\graph_copy\Clean System Files\dynamic_string.o
-	Path:	{ITasks}\Server\lib\Http\Clean System Files\Http.o
 	Path:	{ITasks}\Server\lib\Http\Clean System Files\HttpServer.o
 	Path:	{ITasks}\Server\lib\Http\Clean System Files\HttpTextUtil.o
 	Path:	{ITasks}\Server\lib\Http\Clean System Files\HttpUtil.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Base64.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\CommandLine.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\CSV.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Either.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\ExtToMime.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Html.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\JSON.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Map.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Pointer.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Random.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Text.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Time.o
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\Void.o
-	Path:	{Application}\Libraries\Directory\Clean System Files\cDirectory.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Clean System Files\Text.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Data\Clean System Files\Either.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Data\Clean System Files\Error.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Data\Clean System Files\Map.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Data\Clean System Files\Maybe.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Data\Clean System Files\Void.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Internet\Clean System Files\ExtToMime.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Internet\Clean System Files\HTTP.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Internet\Clean System Files\JSON.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Math\Clean System Files\Random.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\System\Clean System Files\CommandLine.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\System\Clean System Files\FilePath.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\System\Clean System Files\Pointer.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Text\Clean System Files\CSV.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Text\Clean System Files\HTML.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Independent\Text\Encodings\Clean System Files\Base64.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows-32\System\Clean System Files\_WinBase.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows-32\System\Clean System Files\_WinDef.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows\System\Clean System Files\File.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows\System\Clean System Files\OSError.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows\System\Clean System Files\Process.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows\System\Clean System Files\Time.o
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows\System\Clean System Files\_Windows.o
 	Path:	{Application}\Libraries\Directory\Clean System Files\Directory.o
+	Path:	{Application}\Libraries\Directory\Clean System Files\cDirectory.o
 	Path:	{Application}\Libraries\Dynamics\Clean System Files\StdCleanTypes.o
 	Path:	{Application}\Libraries\Dynamics\Clean System Files\StdDynamic.o
 	Path:	{Application}\Libraries\Dynamics\Clean System Files\StdDynamicFileIO.o
@@ -110,164 +118,6 @@ ObjectPaths
 	Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\shared_buffer.o
 	Path:	{Application}\Libraries\Generics\Clean System Files\GenEq.o
 	Path:	{Application}\Libraries\Generics\Clean System Files\GenLexOrd.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\cast.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\commondef.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controlaccess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controlcreate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controldraw.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controlinternal.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controllayout.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controlpos.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controlrelayout.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controlresize.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\controlvalidate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\device.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\deviceevents.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicefunctions.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicesystemstate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\id.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\iostate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\keyfocus.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\layout.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\menuaccess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\menucreate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\menudefaccess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\menudevice.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\menuhandle.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\menuinternal.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\menuitems.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\mstate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\processdevice.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\processhandle.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\processstack.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiveraccess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdefaccess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdevice.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverhandle.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverid.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivermessage.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivertable.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\relayout.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\roundrobin.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\scheduler.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\sdisize.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\semidynamic.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdBitmap.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdClipboard.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdControl.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdControlAttribute.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdControlClass.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdControlDef.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdControlReceiver.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdFileSelect.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdId.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIO.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOBasic.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOCommon.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdKey.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenu.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenuAttribute.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenuDef.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenuElement.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenuElementClass.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenuReceiver.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPicture.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPictureDef.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPrint.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPrintText.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessAttribute.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessDef.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPSt.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPStClass.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiver.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverAttribute.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverDef.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdSystem.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTime.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTimer.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTimerAttribute.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTimerDef.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTimerElementClass.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTimerReceiver.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdWindow.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdWindowAttribute.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdWindowDef.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\systemid.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\timeraccess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\timerdefaccess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\timerdevice.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\timerhandle.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\timertable.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\toolbar.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowaccess.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowclipstate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowcontrols.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowcreate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowdevice.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowdispose.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowdraw.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowhandle.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowupdate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowvalidate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\world.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\wstate.o
-	Path:	{Application}\Libraries\ObjectIO\Clean System Files\wstateaccess.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cAcceleratorTable_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCCallSystem_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCCallWindows_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallClipboard_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallCursor_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFileSelectors_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFont_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallMenus_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallPrinter_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallProcedureTable_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallWindows_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallxDI_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCall_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cdebug_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCrossCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clipboardCrossCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cpicture_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cprinter_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuCCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuCrossCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuevent.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuwindowmenu.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osactivaterequests.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbeep.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbitmap.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osclipboard.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osdocumentinterface.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osevent.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfileselect.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfont.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osguishare.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\oskey.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmenu.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmouse.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ospicture.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osprint.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osrgn.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ossystem.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostick.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostime.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbar.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbox.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostooltip.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostypes.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\oswindow.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\pictCCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\processevent.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\receiverevent.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\rgnCCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\timerevent.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\util_121.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowCCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowCrossCall_12.o
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowevent.o
 	Path:	{Application}\Libraries\StdEnv\Clean System Files\StdArray.o
 	Path:	{Application}\Libraries\StdEnv\Clean System Files\StdBool.o
 	Path:	{Application}\Libraries\StdEnv\Clean System Files\StdChar.o
@@ -306,24 +156,15 @@ ObjectPaths
 	Path:	{Application}\Libraries\TCPIP\Clean System Files\TCPStringChannelsInternal.o
 	Path:	{Application}\Libraries\TCPIP\Clean System Files\tcp_bytestreams.o
 DynamicLibs
-	Path:	{ITasks}\Server\lib\Platform\Clean System Files\msvcrt.txt
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows-32\System\Clean System Files\_WinBase_library
+	Path:	{ITasks}\Server\lib\Platform\OS-Windows\System\Clean System Files\msvcrt.txt
 	Path:	{Application}\Libraries\Directory\Clean System Files\directory_library
 	Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\StaticClientChannel_library
 	Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\StdDynamic_kernel32_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\advapi32_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\comctl32_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\gdiExt_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\kernel32_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\kernelExt_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ole32_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\shell32_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\userExt_library
-	Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\winmm_library
 	Path:	{Application}\Libraries\StdEnv\Clean System Files\comdlg_library
 	Path:	{Application}\Libraries\StdEnv\Clean System Files\gdi_library
 	Path:	{Application}\Libraries\StdEnv\Clean System Files\kernel_library
 	Path:	{Application}\Libraries\StdEnv\Clean System Files\user_library
-	Path:	{Application}\Libraries\StdEnv\Clean System Files\winspool_library
 	Path:	{Application}\Libraries\TCPIP\Clean System Files\wsock_library
 StackSize:	1048576
 GenDLL:	0

@@ -18,7 +18,7 @@ instance == CodeGenerateAsmOrCode
 
 InitCompilingInfo :: *CompilingInfo
 
-ExitCleanCompiler :: !(!CompilingInfo,*env) -> (!CompilingInfo,*env)
+ExitCleanCompiler :: !(!CompilingInfo,*World) -> (!CompilingInfo,*World)
 
 :: CompilerProcess = NoCompiler | CompilerProcess !Int !Int !Int; // thread_id thread_handle process_handle
 
@@ -29,19 +29,24 @@ ExitCleanCompiler :: !(!CompilingInfo,*env) -> (!CompilingInfo,*env)
 
 instance == CompilerMsg
 
+:: *LogEnv = { errors :: [[String]]
+		     , world  :: *World
+			 }
+			 
+instance FileEnv LogEnv			 
+			 
 ::	WindowFun env :== ([String]) -> env -> env
 
 CompilePersistent ::
-	!String !Bool !(WindowFun *env) !(WindowFun *env) !CompileOrCheckSyntax !Pathname
-	!(List Pathname) !Bool !Bool !Bool !CompilerOptions !Pathname !CompilingInfo !*env
-	-> (!CompilingInfo,!(!*env, !Pathname, !CompilerMsg))
-	| FileEnv env
+	!String !Bool !(WindowFun *LogEnv) !(WindowFun *LogEnv) !CompileOrCheckSyntax !Pathname
+	!(List Pathname) !Bool !Bool !Bool !CompilerOptions !Pathname !CompilingInfo !*LogEnv
+	-> (!CompilingInfo,!(!*LogEnv, !Pathname, !CompilerMsg))
 
 CodeGen	::						// Generates code for the given file:
 	!String						// generator exe name and options
 								// !! should be full path so that cg generates diagnostics in logical place...
 								// should be quoted if required
-	!(WindowFun *env)			// error display fun
+	!(WindowFun *LogEnv)		// error display fun
 	!CodeGenerateAsmOrCode		// generate assembly only?
 	!Pathname					// full .abc pathname of module to be compiled
 	!Bool						// time profiling...
@@ -49,22 +54,21 @@ CodeGen	::						// Generates code for the given file:
 	!Processor					// target processor
 	!ApplicationOptions			// application options
 	!Pathname					// startup directory
-	!*env						// state
+	!*LogEnv					// state
 	->
 	( !Pathname					// full pathname of generated object file
 //					Note: on the macintosh the .o file is generated in the standard Clean System
 //					Files Folder. On Unix, however, the location of the .o depends on the user
 //					settings.
-	, !Bool							// success status
-	, !*env							// state
+	, !Bool						// success status
+	, !*LogEnv					// state
 	)
-	| FileEnv env
 
 Link ::							// Links the given file:
 	!String						// linker exe name
 								// !! should be full path so that linker generates diagnostics in logical place...
 								// this is quoted by the Link function because it first needs to decompose it...
-	!(WindowFun *env)			// error display fun
+	!(WindowFun *LogEnv)		// error display fun
 	!Pathname					// full pathname of the executable
 	!ApplicationOptions			// application options
 	!Pathname					// options pathname
@@ -82,9 +86,8 @@ Link ::							// Links the given file:
 	!String						// path to dynamic linker
 	!Processor					// target processor
 	!Bool						// 64 bit target processor
-	!*env						// state
+	!*LogEnv					// state
 	->
-	( !*env						// state
+	( !*LogEnv					// state
 	, !Bool						// success status
 	)
-	| FileEnv env

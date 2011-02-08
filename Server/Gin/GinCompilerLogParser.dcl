@@ -1,6 +1,6 @@
 definition module GinCompilerLogParser
 
-import StdMaybe
+import Maybe
 
 :: CompilerErrorContext :== (CompilerError, ErrorContext)
 

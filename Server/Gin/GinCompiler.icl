@@ -1,7 +1,6 @@
 implementation module GinCompiler
 
 import StdFile
-from StdSystem import dirseparator
 import iTasks
 
 import GinSyntax
@@ -9,9 +8,15 @@ import GinAbstractSyntax
 import GinParser
 
 import GinCompilerLogParser
-import GinOSUtils
 import GinConfig
+
 import Text
+import Error
+import OSError
+
+import FilePath
+from File import instance toString FileError, readFile, writeFile
+from Process import qualified callProcess
 
 from PmCleanSystem import 
 	::CompileOrCheckSyntax(..),
@@ -20,11 +25,11 @@ from PmCleanSystem import
 	::CompilerOptions(..), 
 	::CompilerProcess,
 	::CompilingInfo,
-	::List, 
+	::List,
 	::ListTypes(..),
+	::LogEnv(..),
 	::Pathname, 
 	::WindowFun,
-	class FileEnv, 
 	CodeGen,
 	CompilePersistent,
 	DefaultCompilerOptions,
@@ -32,7 +37,7 @@ from PmCleanSystem import
 	InitCompilingInfo,
 	Link,
 	instance == CompilerMsg
-	
+
 from PmPath import 
 	MakeABCSystemPathname,
 	MakeObjSystemPathname
@@ -53,7 +58,7 @@ from linkargs import
 
 import UtilStrictLists
 
-from Windows import DeleteFile
+from File import deleteFile
 
 derive class iTask CompileResult
 
@@ -75,13 +80,13 @@ runCompiler gMod compiler iworld
 # source = renderAModule [PathContexts] { AModule | aMod & name = basename }
 //4. Write source code to temp icl file
 # fullname = (filenameFromConfig config basename "icl")
-# (result, iworld) = accWorldIWorld (osWriteTextFile fullname source) iworld
-| isOSError result = (CompileGlobalError ("Write icl file failed: " +++ formatOSError result), iworld)
+# (result, iworld) = accWorldIWorld (writeFile fullname source) iworld
+| isError result = (CompileGlobalError ("Write icl file failed: " +++ toString (fromError result)), iworld)
 //5. Call compiler function
 # (result, iworld) = compiler source basename config iworld
 //6. Delete temp icl file
-# (ok,iworld) = accWorldIWorld (DeleteFile fullname) iworld
-| not ok = (CompileGlobalError ("Failed to delete file " +++ fullname), iworld)
+# (deleted,iworld) = accWorldIWorld (deleteFile fullname) iworld
+| isError deleted = (CompileGlobalError ("Failed to delete file " +++ fullname +++ ": " +++ snd (fromError deleted)), iworld)
 = (result, iworld)
 
 getUniqueBasename :: *IWorld -> (String, *IWorld)
@@ -107,8 +112,8 @@ batchBuild gMod iworld = runCompiler gMod build iworld where
 	# (result, iworld) = link basename config iworld
 	| failed result = (convertFail result, iworld)
 	# batchfile = (filenameFromConfig config basename "bat")
-	# (result, iworld) = accWorldIWorld (osCallProcessBlocking batchfile) iworld
-	| isOSError result = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ formatOSError result), iworld)
+	# (result, iworld) = accWorldIWorld ('Process'.callProcess batchfile [] Nothing) iworld
+	| isError result = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ snd (fromError result)), iworld)
 	# dynfile = (filenameFromConfig config basename "dyn")
     = (CompileSuccess dynfile, iworld)
     
@@ -136,7 +141,7 @@ where
 	# compilingInfo = InitCompilingInfo //<- TODO: remove
 	# (compilingInfo, (env, _, compilerMsg)) = 
 		CompilePersistent
-				("Tools" +/+ "Clean System" +/+ "CleanCompiler.exe : -h 64M")
+				("Tools" </> "Clean System" </> "CleanCompiler.exe : -h 64M")
 		        False                                      //Don't write module times
 		        addError                                   //Error display function
 		        (\_ x -> x)                                //Types display function
@@ -189,7 +194,7 @@ where
 	# env = { errors = [], world = world }
 	# abcfile = MakeABCSystemPathname (filenameFromConfig config basename "icl")
 	# (pathname, ok, env) = CodeGen
-		("Tools" +/+ "Clean System" +/+ "CodeGenerator.exe")
+		("Tools" </> "Clean System" </> "CodeGenerator.exe")
 		addError
 		CodeGeneration
 		abcfile
@@ -202,8 +207,9 @@ where
 	# log = join "\n" (map (join "\n") env.LogEnv.errors)
 	| not ok
 		= (CompileGlobalError ("Code generator error: " +++ log), env.LogEnv.world)
-	# (_,env) = accFiles (DeleteFile abcfile) env
-	= (CompileSuccess Void, env.LogEnv.world)
+	# world = env.LogEnv.world
+	# (_,world) = deleteFile abcfile world
+	= (CompileSuccess Void, world)
 
 // --------------------------------------------------------------------------------
 // Linker interface
@@ -214,13 +220,13 @@ link basename config iworld = accWorldIWorld (link` basename config) iworld
 where
 	link` :: !String !GinConfig *World -> (CompileResult Void, *World)	
 	link` basename config world
-	# ((linkinfo, ok, err), world) = accFiles (ReadLinkOpts (config.iTasksPath +/+ "Server" +/+ "Gin" +/+ "linkopts-template")) world
+	# ((linkinfo, ok, err), world) = accFiles (ReadLinkOpts (config.iTasksPath </> "Server" </> "Gin" </> "linkopts-template")) world
 	| not ok = (CompileGlobalError ("Linker error: Failed to read linker options file: " +++ err), world)
 	
 	# env = { errors = [], world = world }
-	# linkopts = filenameFromConfig config basename "linkopts"
+	# linkopts = MakeObjSystemPathname DefaultProcessor (filenameFromConfig config (basename +++ "_options") "icl")
 	# (env, ok) = Link
-		("Tools" +/+ "Clean System" +/+ "StaticLinker.exe")
+		("Tools" </> "Clean System" </> "StaticLinker.exe")
 		addError
 		(filenameFromConfig config basename "exe")
 		ginApplicationOptions
@@ -236,17 +242,18 @@ where
 		False											// generate dll?
 		""												// dll export symbols
 		config.cleanPath								// startup directory
-		("Tools" +/+ "Dynamics" +/+ "DynamicLinker.exe")
+		("Tools" </> "Dynamics" </> "DynamicLinker.exe")
 		DefaultProcessor
 		False						// 64 bit target processor
 		env
 	//Delete object file and link opts
-	# (_,env) = accFiles (DeleteFile (MakeObjSystemPathname DefaultProcessor (filenameFromConfig config basename "icl"))) env
-	# (_,env) = accFiles (DeleteFile linkopts) env
+	# world = env.LogEnv.world
+	# (_, world) = deleteFile (MakeObjSystemPathname DefaultProcessor (filenameFromConfig config basename "obj")) world
+	# (_, world) = deleteFile linkopts world
 	# log = join "\n" (map (join "\n") env.LogEnv.errors)
 	| not ok
-		= (CompileGlobalError (log), env.LogEnv.world)
-	= (CompileSuccess Void, env.LogEnv.world)
+		= (CompileGlobalError (log), world)
+	= (CompileSuccess Void, world)
 
 dynamicLibs :: !GinConfig !String !LinkInfo` -> List LPathname
 dynamicLibs config basename linkinfo = Map (setLinkPaths config basename) linkinfo.dynamic_libs
@@ -273,17 +280,6 @@ convertFail :: (CompileResult a) -> (CompileResult b)
 convertFail (CompileGlobalError msg) = CompileGlobalError msg
 convertFail (CompilePathError paths) = CompilePathError paths
 
-:: *LogEnv = { errors :: [[String]]
-		     , world    :: *World
-			 }
-
-instance FileEnv LogEnv where
-	accFiles f env
-	# (v,world) = accFiles f env.LogEnv.world
-	= (v, { LogEnv | env & world = world })
-	appFiles f env
-	= { LogEnv | env & world = appFiles f env.LogEnv.world }
-
 addError :: [String] LogEnv -> LogEnv
 addError err env = 	/* trace_n (join "\n" err) */ { env & errors = env.errors ++ [err] }
 
@@ -296,7 +292,7 @@ appWorldIWorld :: (*World -> *World) *IWorld -> *IWorld
 appWorldIWorld f iworld = { IWorld | iworld & world = f iworld.IWorld.world }
 	
 filenameFromConfig :: !GinConfig !String !String -> String
-filenameFromConfig config basename extension = config.tempPath +/+ basename +++ "." +++ extension
+filenameFromConfig config basename extension = config.tempPath </> basename +++ "." +++ extension
 
 // --------------------------------------------------------------------------------
 // Project settings
@@ -308,10 +304,9 @@ ginApplicationOptions = { DefApplicationOptions & o = NoConsole}
 searchPaths :: GinConfig -> [String]
 searchPaths config = 
 	[ config.tempPath
-	: prefix (appendTrailingSeparator config.iTasksPath) iTasksPaths
-	  ++ prefix (appendTrailingSeparator config.cleanPath) cleanPaths
-	] where
-		prefix p l = map (\x = p +++ x) l
+	: map ((</>) config.iTasksPath) iTasksPaths
+	++ map ((</>) config.cleanPath) cleanPaths
+	]
 
 iTasksPaths :: [String]
 iTasksPaths = 
@@ -325,8 +320,25 @@ iTasksPaths =
 	, "Server\\Framework\\Data"
 	, "Server\\Framework\\Handlers"
 	, "Server\\lib"
-	, "Server\\lib\\Platform"
 	, "Server\\lib\\Http"
+	, "Server\\lib\\Platform\\OS-Independent"
+	, "Server\\lib\\Platform\\OS-Independent\\Data"
+	, "Server\\lib\\Platform\\OS-Independent\\Database"
+	, "Server\\lib\\Platform\\OS-Independent\\Database\\SQL"
+	, "Server\\lib\\Platform\\OS-Independent\\GUI"
+	, "Server\\lib\\Platform\\OS-Independent\\Internet"
+	, "Server\\lib\\Platform\\OS-Independent\\Internet\\HTTP"
+	, "Server\\lib\\Platform\\OS-Independent\\Math"
+	, "Server\\lib\\Platform\\OS-Independent\\Network"
+	, "Server\\lib\\Platform\\OS-Independent\\System"
+	, "Server\\lib\\Platform\\OS-Independent\\Test"
+	, "Server\\lib\\Platform\\OS-Independent\\Text"
+	, "Server\\lib\\Platform\\OS-Independent\\Text\\Encodings"
+	, "Server\\lib\\Platform\\OS-Windows\\Network"
+	, "Server\\lib\\Platform\\OS-Windows\\System"
+	, "Server\\lib\\Platform\\OS-Windows\\Database"
+	, "Server\\lib\\Platform\\OS-Windows\\Database\\SQL"
+	, "Server\\lib\\Platform\\OS-Windows-32\\System"
 	, "Server\\lib\\graph_copy"
 	]
 

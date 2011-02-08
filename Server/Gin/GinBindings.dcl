@@ -1,6 +1,6 @@
 definition module GinBindings
 
-import StdMaybe
+import Maybe
 import GinSyntax
 import GinAbstractSyntax
 

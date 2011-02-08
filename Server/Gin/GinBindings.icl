@@ -1,6 +1,6 @@
 implementation module GinBindings
 
-import StdMaybe
+import Maybe
 import GenEq
 
 import GinSyntax

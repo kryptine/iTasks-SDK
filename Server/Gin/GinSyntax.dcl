@@ -1,6 +1,6 @@
 definition module GinSyntax
 
-import StdMaybe
+import Maybe
 import GenEq 
 
 import GinTypes
