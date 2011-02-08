@@ -4,7 +4,7 @@ definition module Task
 * This module provides types for the definition of tasks & changes.
 */
 
-import Types, Http, GenVisualize, iTaskClass
+import Types, HTTP, GenVisualize, iTaskClass
 from TSt import :: TSt
 
 derive JSONEncode	Task, TaskResult

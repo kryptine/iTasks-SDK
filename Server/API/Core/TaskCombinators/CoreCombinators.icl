@@ -1,7 +1,7 @@
 implementation module CoreCombinators
 
 import StdList, StdArray, StdTuple, StdMisc, StdBool
-import TSt, Shared, Util, Http, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators
+import TSt, Shared, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators
 from StdFunc	import id, const
 from TaskTree	import :: TaskParallelType
 

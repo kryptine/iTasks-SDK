@@ -2,7 +2,7 @@ definition module ProcessDBTasks
 /**
 * This module provides access to the process database
 */
-import StdMaybe, Types
+import Maybe, Types
 from TSt		import :: Task
 from ProcessDB	import :: Process(..)
 from TaskTree	import :: TaskParallelType

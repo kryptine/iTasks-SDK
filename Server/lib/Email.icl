@@ -1,7 +1,8 @@
 implementation module Email
 
 import TCPChannels
-import StdIO, StdTuple, StdInt, StdList
+import StdMaybe
+import StdTuple, StdInt, StdList
 
 // Send function which sends the e-mail out
 sendEmail :: [EmailOption] Email *World -> (Bool,*World)

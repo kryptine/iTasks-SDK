@@ -6,7 +6,7 @@ definition module HttpServer
 //
 // This module is based upon the original Clean HTTP server by Paul de Mast
 
-import Http
+import HTTP
 
 :: HTTPServerOption		= HTTPServerOptPort Int				// The port on which the server listens (default is 80)
 						| HTTPServerOptStaticFallback Bool	// If all request handlers fail, should the static file handler be tried (default False)

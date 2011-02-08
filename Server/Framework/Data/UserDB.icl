@@ -1,7 +1,8 @@
 implementation module UserDB
 
-import StdEnv, StdMaybe
+import StdEnv, Maybe
 import StdGeneric
+import File, Error
 import TSt, Util
 
 from Types import :: Password(..)
@@ -94,17 +95,15 @@ userStore fn iworld=:{IWorld|application,world}
 	= (users,{IWorld|iworld & world = world})
 where
 	readUserFile appName world
-		# (content,world) = readfile (appName +++ "-users.json") world
-		# world = world
-		| content == ""
-			= ([],world)
-		| otherwise
-			= case (fromJSON (fromString content)) of
+		# (res,world) = readFile (appName +++ "-users.json") world
+		| isError res = ([],world)
+		= case (fromJSON (fromString (fromOk res))) of
 				Just users	= (users,world)
 				Nothing		= ([],world)
 				
 	writeUserFile users appName world
-		= writefile (appName +++ "-users.json") (toString (toJSON users)) world
+		# (_, world) = writeFile (appName +++ "-users.json") (toString (toJSON users)) world
+		= world
 		
 instance UserDB TSt
 where

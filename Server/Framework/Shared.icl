@@ -19,7 +19,7 @@ readShared shared iworld
 	# func = case mbGet of
 		Nothing		= decJSON
 		Just get	= get
-	= (mapMaybe func mbVal,iworld)
+	= (fmap func mbVal,iworld)
 	
 readSharedAndTimestamp :: !(sharedReadOnly a) !*IWorld -> (!Maybe (!a,!Timestamp),!*IWorld) | toReadOnlyShared sharedReadOnly a & JSONDecode{|*|} a
 readSharedAndTimestamp shared iworld
@@ -28,7 +28,7 @@ readSharedAndTimestamp shared iworld
 	# func = case mbGet of
 		Nothing		= decJSON
 		Just get	= get
-	= (mapMaybe (app2 (func,id)) mbVal,iworld)
+	= (fmap (app2 (func,id)) mbVal,iworld)
 
 writeShared :: !(Shared a) !a !*IWorld -> *IWorld | JSONEncode{|*|} a
 writeShared (Shared ref mbBimap) val iworld

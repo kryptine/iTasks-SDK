@@ -1,6 +1,6 @@
 implementation module DocumentService
 
-import Http, TSt
+import HTTP, TSt
 import StdInt, StdList
 
 import HtmlUtil

@@ -4,8 +4,8 @@ definition module Types
 * of the iTasks framework.
 */
 
-import StdMaybe, GenEq, JSON, Store, Map, Void, Either
-from Html 		import class html
+import GenEq, Maybe, JSON, Store, Map, Void, Either
+from HTML 		import class html
 from Time		import :: Timestamp
 from Config		import :: Config
 

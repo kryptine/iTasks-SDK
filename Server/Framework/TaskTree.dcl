@@ -5,7 +5,7 @@ definition module TaskTree
 * task tree data structures is performed by the basic tasks and
 * task combinators.
 */
-import StdMaybe, Either, Html, Time, RPC, Types
+import Maybe, Either, HTML, Time, RPC, Types
 from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
 

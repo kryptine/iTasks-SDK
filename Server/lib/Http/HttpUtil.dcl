@@ -1,6 +1,6 @@
 definition module HttpUtil
 
-import Http, HttpServer
+import HTTP, HttpServer
 
 //General utility functions
 http_urlencode :: !String -> String

@@ -1,6 +1,6 @@
 implementation module TuningCombinators
 
-import Types, StdList, StdMisc, Shared, Html, Task
+import Types, StdList, StdMisc, Shared, HTML, Task
 from Time				import :: Timestamp, :: Tm(..), mkTime
 from TaskTree			import :: GroupedBehaviour, :: GroupActionsBehaviour
 

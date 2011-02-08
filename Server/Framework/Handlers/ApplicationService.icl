@@ -1,6 +1,6 @@
 implementation module ApplicationService
 
-import Http, TSt
+import HTTP, TSt
 import HtmlUtil
 
 applicationService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)

@@ -1,11 +1,11 @@
 implementation module Setup
 
-import StdList,StdBool, StdInt
-import Http, HttpServer
-import Html, HtmlUtil
+import StdList,StdBool, StdInt, StdFile
+import HTTP, HttpServer
+import HTML, HtmlUtil
+import File, Error
 import Config
 import Engine, Util
-
 
 setupHandler :: !(Config -> [(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!HTTPServerControl,!*World)))]) !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
 setupHandler handlers req world	
@@ -72,13 +72,13 @@ CLIENT_ERROR :== "The client framework could not be found at this location.<br /
 
 checkClientPath :: !String !*World -> (!Bool,!*World)
 checkClientPath clientPath world
-	# (index,world) = readfile (clientPath +++ "\\index.html") world
-	= (index <> "",world)
+	# (res,world) = readFile (clientPath +++ "\\index.html") world
+	= (isOk res,world)
 
 configFileAvailable :: !String !*World -> (!Bool,!*World)
 configFileAvailable appName world
-	# (config,world) = readfile (appName +++ "-config.json") world
-	= (config <> "",world)
+	# (res,world) = readFile (appName +++ "-config.json") world
+	= (isOk res, world)
 
 noErrors :: [(Maybe String)] -> Bool
 noErrors errors = not (or (map isJust errors))

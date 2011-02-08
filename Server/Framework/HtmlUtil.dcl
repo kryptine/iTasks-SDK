@@ -3,7 +3,7 @@ definition module HtmlUtil
 * This module provides rudimentary utilities for generating simple html pages.
 *
 */
-import Html, JSON, Http
+import HTML, JSON, HTTP
 
 /**
 * Defines the simple inline CSS stylesheet

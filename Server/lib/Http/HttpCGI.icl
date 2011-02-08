@@ -1,6 +1,6 @@
 implementation module HttpCGI
 
-import Http, HttpUtil, HttpTextUtil
+import HTTP, HttpUtil, HttpTextUtil
 import StdFile, StdInt, StdBool, StdArray, ArgEnv
 
 //Http headers for which should be checked if they exist in the environment

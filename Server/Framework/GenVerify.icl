@@ -1,6 +1,6 @@
 implementation module GenVerify
 
-import StdMaybe, StdGeneric, StdBool, StdInt, Text, StdList, StdTuple, StdFunc
+import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Text
 import GenUpdate, StdMisc, GenVisualize
 
 derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode, Table

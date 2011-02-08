@@ -1,7 +1,7 @@
 implementation module Store
 
-import StdString, StdMaybe, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
-import Directory, Map, Text, JSON
+import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
+import Directory, Maybe, Map, Text, JSON
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Types import :: IWorld{..}, :: Config
 import dynamic_string //Static dynamic serialization

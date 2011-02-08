@@ -1,6 +1,6 @@
 implementation module HttpServer
 
-import Http, HttpUtil, HttpTextUtil
+import HTTP, HttpUtil, HttpTextUtil
 import StdList, StdTuple, StdArray, StdFile, StdBool, StdMisc, StdMaybe
 //import StdTCP
 //import TCPIP

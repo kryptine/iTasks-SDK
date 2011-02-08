@@ -1,6 +1,6 @@
 implementation module HttpUtil
 
-import Http, HttpServer, HttpTextUtil
+import HTTP, HttpServer, HttpTextUtil
 import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList
 import Time
 

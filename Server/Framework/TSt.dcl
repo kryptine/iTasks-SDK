@@ -4,12 +4,12 @@ definition module TSt
 * 
 * Additionally it provides utility functions to manipulate the state.
 */
-import StdMaybe, Void, TaskTree, RPC, Task
+import Maybe, Void, TaskTree, RPC, Task
 from ProcessDB	import :: Process
 from Config		import :: Config(..)
 from Store		import :: Store(..)
 from Time		import :: Timestamp(..)
-from Http		import :: HTTPRequest
+from HTTP		import :: HTTPRequest
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's

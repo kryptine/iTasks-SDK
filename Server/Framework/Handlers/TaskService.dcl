@@ -4,6 +4,6 @@ definition module TaskService
 * It provides all information about currently running workflow instances (processes)
 * and the active tasks belonging to them.
 */
-import Http, TSt
+import HTTP, TSt
 
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)

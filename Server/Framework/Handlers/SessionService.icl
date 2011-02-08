@@ -1,6 +1,6 @@
 implementation module SessionService
 
-import Http
+import HTTP
 import TSt, UserDB, SessionDB
 import StdBool, StdList
 import JSON

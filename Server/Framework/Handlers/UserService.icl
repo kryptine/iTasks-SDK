@@ -1,6 +1,6 @@
 implementation module UserService
 
-import Http, TSt
+import HTTP, TSt
 import HtmlUtil
 import UserDB
 import StdOrdList

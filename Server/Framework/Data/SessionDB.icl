@@ -1,6 +1,6 @@
 implementation module SessionDB
 
-import StdEnv, StdMaybe
+import StdEnv, Maybe
 import StdGeneric
 import TSt, Store
 import Random, Time

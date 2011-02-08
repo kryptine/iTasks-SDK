@@ -1,6 +1,6 @@
 definition module GenUpdate
 
-import StdGeneric, StdMaybe, Void, Either, Store, Shared, Types
+import StdGeneric, Maybe, Void, Either, Store, Shared, Types
 from Map import :: Map
 
 //Datapath is used to point to substructures of data structures

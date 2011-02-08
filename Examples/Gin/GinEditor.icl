@@ -14,8 +14,7 @@ import GinDomain
 import GinStorage
 import GinSyntax
 
-from GinOSUtils import qualified ::Path, appendTrailingSeparator
-from clCCall_12 import winFileExists
+import FilePath
 
 ginEditor :: Task Void
 ginEditor = (ginSetup >>| handleMenu) <<@ FWFullWidth
@@ -32,17 +31,16 @@ where
 	                    accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) (dialog config)
 	
 	ginCheckApplet :: !GinConfig -> Task Void
-	ginCheckApplet config
-	| not (winFileExists ('GinOSUtils'.appendTrailingSeparator config.iTasksPath +++ "Client\\Build\\Gin.jar"))
-	  = showInstruction "Gin Editor" instruction Void >>| ginCheckApplet config
-	= stop
+	ginCheckApplet config =
+		fileExists (config.iTasksPath </> "Client" </> "Build" </> "Gin.jar") >>= \exists	=
+		if exists stop (showInstruction "Gin Editor" instruction Void >>| ginCheckApplet config)
 	where
 		instruction = PTag [] [ Text "In order to run the Gin editor, make sure that"
 							  , UlTag [] [ LiTag [] [Text "1. The Java JDK 1.6.x is installed on your system"]
 							             , LiTag [] [Text "2. The JAVA_HOME environment variable points to the JDK directory"]
 							             ]
 							  , Text "Next, run the batch file "
-							  , TtTag [] [Text ('GinOSUtils'.appendTrailingSeparator config.iTasksPath +++ "Client\\Gin\\build.bat")]
+							  , TtTag [] [Text (config.iTasksPath </> "Client\\Gin\\build.bat")]
 							  , Text " to compile the Gin editor applet."
 							  ]
 

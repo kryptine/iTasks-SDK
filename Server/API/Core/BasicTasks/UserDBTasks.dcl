@@ -4,7 +4,7 @@ definition module UserDBTasks
 * of the iTask system. These tasks are useful when work is to be delegated to
 * other users.
 */
-import StdMaybe, Void
+import Maybe, Void
 
 from TSt	import :: Task
 from Types	import :: UserId, :: User, :: UserDetails, :: Role

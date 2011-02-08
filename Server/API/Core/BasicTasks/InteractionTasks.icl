@@ -1,7 +1,7 @@
 implementation module InteractionTasks
 
 import StdTuple, StdList, StdOrdList, StdBool, StdMisc
-import Types, Shared, Util, Html, Text, Http, TSt, Store, ExceptionCombinators
+import Types, Shared, Util, HTML, Text, HTTP, TSt, Store, ExceptionCombinators
 from StdFunc import id, const, o
 from HtmlUtil import paramValue
 
@@ -172,7 +172,7 @@ makeInformationTask mbContext bimapGet bimapPutback informationTaskMode tst
 makeInformationTaskA :: !(Maybe about) ((a v -> (v,Bool)),v) !(v a -> a) ![TaskAction a] !(InformationTaskMode a) !*TSt -> (!TaskResult (!ActionEvent,!Maybe a),!*TSt) | iTask a & iTask v & gVisualize{|*|} about
 makeInformationTaskA mbContext bimapGet bimapPutback actions informationTaskMode tst
 	# (result,tst) = makeInformationTaskAV mbContext bimapGet bimapPutback (mapTaskActionPredicates fst actions) informationTaskMode tst
-	= (mapTaskResult (app2 (id,mapMaybe fst)) result,tst)
+	= (mapTaskResult (app2 (id,fmap fst)) result,tst)
 
 makeChoiceTask :: !d !(Maybe about) !(a -> v) ![a] !(Maybe Int) !*TSt -> (!TaskResult a,!*TSt) | descr d & iTask a & iTask v & gVisualize{|*|} about
 makeChoiceTask description _ _ [] _ tst
@@ -192,7 +192,7 @@ makeChoiceTaskA _ mbContext view actions opts mbSel tst
 		Just sel	= choiceSel opts sel
 		Nothing		= choice opts
 	# (result,tst)	= makeInformationTaskA mbContext (toExtendedBimapGet (mapOptions view)) (\v a -> setChoiceIndex (getChoiceIndex v) a) (mapTaskActionPredicates getChoice actions) (LocalUpdate initChoice) tst
-	= (mapTaskResult (app2 (id,mapMaybe getChoice)) result,tst)
+	= (mapTaskResult (app2 (id,fmap getChoice)) result,tst)
 
 makeSharedChoiceTask :: !d !(Maybe about) !(a -> v) ![TaskAction a] !(Shared [a]) !(Maybe Int) !*TSt -> (!TaskResult (!ActionEvent, !Maybe a),!*TSt) | descr d & iTask a & iTask v & gVisualize{|*|} about
 makeSharedChoiceTask description mbContext view actions shared mbSel tst
@@ -205,7 +205,7 @@ makeSharedChoiceTask description mbContext view actions shared mbSel tst
 			Just sel	= choiceSel viewOpts sel
 			Nothing		= choice viewOpts
 		# (result,tst)	= makeInformationTaskAV mbContext ((\opts choice -> app2 (id,not) (setOptions (map view opts) choice)),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoiceFromModel actions) (SharedUpdate shared) tst
-		= (mapTaskResult (app2 (id,mapMaybe getChoiceFromModel)) result,tst)
+		= (mapTaskResult (app2 (id,fmap getChoiceFromModel)) result,tst)
 where
 	getChoiceFromModel (opts,choice) = opts !! getChoiceIndex choice
 
@@ -225,7 +225,7 @@ makeMultipleChoiceTaskA mbContext view actions opts mbSel tst
 		Just sel	= multipleChoiceSel opts sel
 		Nothing		= multipleChoice opts
 	# (result,tst)	= makeInformationTaskA mbContext (toExtendedBimapGet (mapOptionsM view)) (\v a -> setChoiceIndexes (getChoiceIndexes v) a) (mapTaskActionPredicates getChoices actions) (LocalUpdate initChoice) tst
-	= (mapTaskResult (app2 (id,mapMaybe getChoices)) result,tst)
+	= (mapTaskResult (app2 (id,fmap getChoices)) result,tst)
 	
 makeSharedMultipleChoiceTask :: !(Maybe about) !(a -> v) ![TaskAction [a]] !(Shared [a]) !(Maybe [Int]) !*TSt -> (!TaskResult (!ActionEvent, !Maybe [a]),!*TSt) | iTask a & iTask v & gVisualize{|*|} about
 makeSharedMultipleChoiceTask mbContext view actions shared mbSel tst
@@ -235,7 +235,7 @@ makeSharedMultipleChoiceTask mbContext view actions shared mbSel tst
 		Just sel	= multipleChoiceSel viewOpts sel
 		Nothing		= multipleChoice viewOpts
 	# (result,tst)	= makeInformationTaskAV mbContext (\opts choice -> (setOptionsM (map view opts) choice,False),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoicesFromModel actions) (SharedUpdate shared) tst
-	= (mapTaskResult (app2 (id,mapMaybe getChoicesFromModel)) result,tst)
+	= (mapTaskResult (app2 (id,fmap getChoicesFromModel)) result,tst)
 where
 	getChoicesFromModel (opts,choice) = [opt \\ opt <- opts & i <- [0..] | isMember i (getChoiceIndexes choice)]
 
@@ -396,7 +396,7 @@ where
 		# iworld								= storeErrors errors iworld
 		| refresh	// refresh UI, send new def instead of updates
 			# form 								= visualizeAsEditor editorId rvalue rumask rvmask
-			= (Definition (taskPanel (taskNrToString taskNr) (mapMaybe visualizeAsHtmlDisplay mbContext) (Just form)) evalActions,iworld)
+			= (Definition (taskPanel (taskNrToString taskNr) (fmap visualizeAsHtmlDisplay mbContext) (Just form)) evalActions,iworld)
 		| otherwise	// update UI
 			// get stored old errors
 			# (oldErrors,iworld)				= getErrors taskNr iworld

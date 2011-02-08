@@ -13,7 +13,7 @@ import	Text, Util, HtmlUtil
 import	CommandLine
 import	TuningCombinators
 
-import	Http, HttpUtil
+import	HTTP, HttpUtil
 from	HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
 
 import	Setup

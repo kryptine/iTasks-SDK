@@ -3,7 +3,7 @@ definition module UserDB
 * This module provides the iTasks user database. It provides
 * functions for accessing information about system users.
 */
-import StdMaybe
+import Maybe
 import TSt
 
 class UserDB st

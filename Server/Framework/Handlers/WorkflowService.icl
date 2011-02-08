@@ -1,6 +1,6 @@
 implementation module WorkflowService
 
-import Http, TSt, UserDB
+import HTTP, TSt, UserDB
 import HtmlUtil, Text
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
 import GenEq

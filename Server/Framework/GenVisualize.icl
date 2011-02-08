@@ -1,7 +1,7 @@
 implementation module GenVisualize
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum, StdFunc
-import GenUpdate, GenVerify, TUIDiff, Util, Text, Html, JSON, TUIDefinition, Types
+import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc
+import GenUpdate, GenVerify, TUIDiff, Util, Maybe, Text, HTML, JSON, TUIDefinition, Types
 
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 

@@ -1,6 +1,6 @@
 implementation module Task
 
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdMisc, Html, Types, dynamic_string, Base64, Http
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdMisc, HTML, Types, dynamic_string, Base64, HTTP
 import GenVisualize
 from TSt import :: TSt
 

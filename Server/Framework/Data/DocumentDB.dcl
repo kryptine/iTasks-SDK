@@ -1,6 +1,6 @@
 definition module DocumentDB
 
-import StdMaybe, Types
+import Maybe, Types
 from GenUpdate	import :: DataPath, :: USt
 from Task		import :: TSt
 

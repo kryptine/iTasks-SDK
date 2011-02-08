@@ -1,7 +1,7 @@
 implementation module HttpSubServer
 
 import StdEnv, Directory
-import Http, HttpUtil, SubServerUtil, Semaphore
+import HTTP, HttpUtil, SubServerUtil, Semaphore
 import code from "REGEXP.OBJ"
 import code from "REGSUB.OBJ"
 import code from "REGERROR.OBJ"

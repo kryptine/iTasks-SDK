@@ -1,6 +1,6 @@
 definition module HttpSubServer
 
-import Http, SubServerUtil
+import HTTP, SubServerUtil
 
 // (c) 2006 Erwin Lips and Jacco van Drunen
 // HIO - Breda

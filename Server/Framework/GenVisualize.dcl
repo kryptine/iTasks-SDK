@@ -1,7 +1,7 @@
 definition module GenVisualize
 
-import Html, JSON, TUIDefinition
-import StdGeneric, StdMaybe, Void, Either
+import HTML, JSON, TUIDefinition
+import StdGeneric, Maybe, Void, Either
 import GenUpdate, GenVerify
 from Map import :: Map
 from Shared import :: Shared, :: SharedReadOnly

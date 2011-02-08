@@ -4,6 +4,6 @@ definition module DocumentService
 * It provides uploading and downloading of (large) documents that are further
 * processed by workflows.
 */
-import Http, TSt
+import HTTP, TSt
 
 documentService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)

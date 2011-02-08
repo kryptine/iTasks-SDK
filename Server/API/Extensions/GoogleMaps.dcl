@@ -2,7 +2,7 @@ definition module GoogleMaps
 /*
 * This extension allows the use of GoogleMaps in editors
 */
-import Html, GenVisualize
+import HTML, GenVisualize
 
 derive gVisualize  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gUpdate	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap

@@ -2,7 +2,7 @@ implementation module Types
 from StdFunc import until
 
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc
-import GenLexOrd, JSON, Html, Text, Util
+import GenLexOrd, JSON, HTML, Text, Util
 from Time import :: Timestamp(..)
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint

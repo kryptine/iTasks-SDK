@@ -4,9 +4,9 @@ definition module Engine
 * This is the primary function that creates the complete
 * environment in which worfklow specifications can be executed.
 */
-import StdMaybe, JSON, Task
+import Maybe, JSON, Task
 from TSt		import :: Workflow
-from Http		import :: HTTPRequest, :: HTTPResponse
+from HTTP		import :: HTTPRequest, :: HTTPResponse
 from HttpServer	import :: HTTPServerControl
 from Config		import :: Config
 from Shared		import class toReadOnlyShared, :: Shared
@@ -50,6 +50,11 @@ workflow :: !String !String !(Task a) -> Workflow | iTask a
 * @param The task
 */
 restrictedWorkflow :: !String !String ![Role] !(Task a) -> Workflow | iTask a
+
+/**
+* Determines the server executables path
+*/
+determineAppPath :: !*World -> (!String, !*World)
 
 /**
 * Determine the name of the application based on the executable's name

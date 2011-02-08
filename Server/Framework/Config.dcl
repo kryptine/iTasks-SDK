@@ -3,7 +3,7 @@ definition module Config
 * This module provides a configuration file for the iTasks server.
 * An initial default configuration is written when no config file is found.
 */
-import StdMaybe
+from Maybe import ::Maybe
 
 :: Config =
 	{ clientPath		:: !String			// Where is the client located.

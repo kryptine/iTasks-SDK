@@ -3,7 +3,7 @@ definition module ProcessDB
 * This module provides an abstract process database
 * 
 */
-import StdMaybe, Types, TSt, Task
+import Maybe, Types, TSt, Task
 from Time import :: Timestamp
 
 derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, WorkerProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription

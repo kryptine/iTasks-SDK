@@ -5,7 +5,7 @@ definition module InteractionTasks
 from TSt	import :: Task
 from Types	import :: Role, :: Action, :: ActionData
 from Task	import class descr
-from Html	import :: HtmlTag
+from HTML	import :: HtmlTag
 from Shared	import :: Shared
 import GenVisualize, GenUpdate, StoreTasks
 

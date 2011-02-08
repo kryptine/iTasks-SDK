@@ -1,6 +1,6 @@
 implementation module Config
 
-import Util, JSON, StdMisc
+import StdFile, Util, Error, File, JSON, StdMisc
 
 derive JSONEncode Config
 derive JSONDecode Config
@@ -22,13 +22,12 @@ defaultConfig =
 
 loadConfig :: !String !*World -> (!Maybe Config, !*World)
 loadConfig appName world
-	# (content,world)	= readfile (appName +++ "-config.json") world
-	| content == ""
-		= (Nothing,world)
-	| otherwise
-		= (fromJSON (fromString content),world)
+	# (res,world) = readFile (appName +++ "-config.json") world
+	| isError res = (Nothing, world)
+	= (fromJSON (fromString (fromOk res)),world)
 	
 storeConfig :: !String !Config !*World -> *World
 storeConfig appName config world
-	= writefile (appName +++ "-config.json") (toString (toJSON config)) world
+	# (_, world) = writeFile (appName +++ "-config.json") (toString (toJSON config)) world
+	= world
 	

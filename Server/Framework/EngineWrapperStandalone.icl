@@ -2,7 +2,7 @@ implementation module EngineWrapperStandalone
 
 import StdFile, StdInt
 import Engine
-import Http, HttpServer
+import HTTP, HttpServer
 import Config
 
 startEngine :: ![Workflow] !*World -> *World 

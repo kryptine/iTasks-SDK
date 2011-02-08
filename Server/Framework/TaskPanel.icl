@@ -1,7 +1,7 @@
 implementation module TaskPanel
 
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
-import JSON, Html, TSt, TUIDefinition, Map
+import JSON, HTML, TSt, TUIDefinition, Map
 
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
 derive JSONEncode TTCParallelContainer,TTCParallelContainerElement, TTCGroupContainer, TTCGroupContainerElement, GroupedBehaviour

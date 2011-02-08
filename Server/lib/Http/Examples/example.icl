@@ -1,5 +1,5 @@
 module example
-import Http, HttpServer, HttpCGI, HttpUtil, HttpSubServer
+import HTTP, HttpServer, HttpCGI, HttpUtil, HttpSubServer
 import StdString, StdList, StdArray, StdInt
 serverFunction = http_startServer
 serverOptions = [HTTPServerOptPort 80, HTTPServerOptStaticFallback True, HTTPServerOptParseArguments True]

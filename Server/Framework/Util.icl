@@ -1,30 +1,8 @@
 implementation module Util
 
-import StdList, StdMaybe, StdFile, StdMisc, StdArray, StdString, Time, Text
+import StdList, StdFile, StdMisc, StdArray, StdString, Maybe, Time, Text
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..)
 
-readfile :: !String !*World -> (!String,!*World)
-readfile filename world
-	# (ok,file,world)	= fopen filename FReadData world
-	| ok
-		# (content,file)= rec file ""
-		# (ok,world)	= fclose file world
-		= (content,world)
-	| otherwise
-		= ("",world)
-where		
-	rec :: *File String -> (String, *File)
-	rec file acc # (string, file) = freads file 100
-		| string == "" = (acc, file)
-		| otherwise    = rec file (acc +++ string)
-
-writefile :: !String !String !*World -> *World
-writefile filename content world
-	# (ok,file,world)	= fopen filename FWriteData world
-	| not ok			= abort ("Failed to write file: " +++ filename)
-	# file				= fwrites content file
-	# (ok,world)		= fclose file world
-	= world
 fileExtension :: !String -> String
 fileExtension filename = case (split "." filename) of
 	[_]		= ""
