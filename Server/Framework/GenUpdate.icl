@@ -293,8 +293,7 @@ gDefaultMask{|Maybe|} fx mbVal
 	= case mbVal of
 		Nothing	= [Untouched]
 		Just x	= fx x //all mask transformations are made here..
-gDefaultMask{|[]|} fx l				= [Touched (map (hd o fx) l)]
-gDefaultMask{|Table|} fx (Table l)	= [Touched (map (hd o fx) l)]
+gDefaultMask{|[]|} fx l = [Touched (map (hd o fx) l)]
 
 gDefaultMask {|Display|}			fx (Display d)		= fx d
 gDefaultMask {|Editable|}			fx (Editable e)		= fx e
@@ -330,7 +329,7 @@ gDefaultMask{|Tree|} _ tree=:(Tree _ sel)
 	| sel >= 0	= [Touched []]
 	| otherwise	= [Untouched]
 
-derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode
+derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode, Table
 
 //Utility functions
 dp2s :: !DataPath -> String

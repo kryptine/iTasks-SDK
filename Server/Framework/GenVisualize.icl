@@ -137,7 +137,7 @@ gVisualize{|CONS of d|} fx val vst=:{vizType,idPrefix,currentPath,label,useLabel
 									{VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 					//Records
 					| not (isEmpty d.gcd_fields) 
-						= ([HtmlFragment [TableTag [] (coerceToHtml viz)]], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+						= ([HtmlFragment [TableTag [ClassAttr "viz-record"] (coerceToHtml viz)]], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 					//When there are multiple constructors, also show the name of the constructor
 					| d.gcd_type_def.gtd_num_conses > 1
 						= ([TextFragment d.gcd_name, TextFragment " " :viz], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
@@ -350,20 +350,20 @@ gVisualize {|[]|} fx val vst=:{vizType,idPrefix,currentPath,useLabels,label,opti
 				[] 
 					= ([HtmlFragment [UlTag [] [LiTag [ClassAttr "list-item-light"] [(Text "Empty list")]]]],{VSt | vst & currentPath = stepDataPath currentPath})
 				_		
-					# (items,vst) = staticDef fx x {VSt | vst & currentPath = shiftDataPath currentPath}
+					# (items,vst) = staticDef fx x {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 					= ([HtmlFragment [UlTag [] [(LiTag [ClassAttr (itemCls i)] (coerceToHtml x)) \\ x <- items & i <- [0..]]]],{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextDisplay
 			= case x of
 				[]
 					= ([TextFragment "[]"],{VSt | vst & currentPath = stepDataPath currentPath})
 				_
-					# (items,vst) = staticDef fx x {VSt | vst & currentPath = shiftDataPath currentPath}
+					# (items,vst) = staticDef fx x {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 					= ([TextFragment ("["+++join ", " (flatten  [(coerceToStrings x) \\ x <-items])+++"]")],{VSt | vst & currentPath = stepDataPath currentPath})
 		VHtmlLabel
 			= case x of
 				[] = ([HtmlFragment [(Text "Empty list")]],{VSt | vst & currentPath = stepDataPath currentPath})
 				_ 
-					# (items,vst) = staticDef fx x {VSt | vst & currentPath = shiftDataPath currentPath}
+					# (items,vst) = staticDef fx x {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 					= ([HtmlFragment (htmlLabel items)],{VSt | vst & currentPath = stepDataPath currentPath})
 		_
 			= ([],
@@ -814,13 +814,13 @@ gVisualize{|Table|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,op
 					# label	= labelAttr useLabels label
 					= case renderAsStatic of
 						False
-							# (labels,vst)	= seqList (map (\row vst -> fx (Just row) vst) rows) {vst & renderAsStatic = True, updateMask = childMasks cmu, verifyMask = childMasks cmv}
-							# vst			= {vst & renderAsStatic = False}
+							# (htm,vst)	= accVStHtmlDisplay (mapSt (\row vst -> fx (Just row) vst) rows) {VSt|vst & updateMask = childMasks cmu, verifyMask = childMasks cmv}
 							= ([TUIFragment (TUIGridControl	{ TUIGridControl
 															| name = dp2s currentPath
 															, id = id
 															, columns = toTUICols headers
-															, gridData = map (\label -> getData (hd label) (shiftDataPath currentPath)) labels
+															, gridHtml = map getHtml htm
+															, gridEditors = getEditors vis
 															})],{vst & headers = headers})
 						True
 							# (vis,vst) = accVStHtmlDisplay (gVisualize{|* -> *|} fx (Just rows)) vst
@@ -829,38 +829,31 @@ gVisualize{|Table|} fx val vst=:{vizType,label,idPrefix,currentPath,useLabels,op
 					= (vis,vst)
 	= (vis, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 	where
-		dpSeq func items dp = fst (seqList (map (\i dp -> (func i dp,stepDataPath dp)) items) dp)
-	
-		getData (TUIFragment tui) dp = case tui of
-			TUIRecordContainer {TUIRecordContainer|items}	= childEntries items dp
-			TUIHtmlContainer {TUIHtmlContainer|html}		= dataEntry [(dp,html)]
-			tui = case tui of
-				TUIConstructorControl cons					= constructorVis cons dp
-				_ = case childrenOf tui of
-					[child:_]								= getData (TUIFragment child) dp
-					_										= JSONObject []
-		getData (HtmlFragment htm)	dp						= dataEntry [(dp,html htm)]
-		getData (TextFragment str)	dp						= dataEntry [(dp,str)]
-		getData (TUIUpdate _)		_						= abort "get tree data: no TUIUpdate expected"
-		
-		dataEntry data = JSONObject (map (app2 (dp2s,JSONString o toString)) data)
-		
-		childEntries items dp = JSONObject ((dpSeq (\item dp -> combine (getData (TUIFragment item) dp) dp) items dp))
-		
-		constructorVis {consSelIdx,consValues,items} dp
-			# obj=:(JSONObject data) = childEntries items dp
-			| length consValues > 1	&& consSelIdx <> -1
-				= JSONObject [combine (JSONObject [(dp2s dp,JSONString (consValues !! consSelIdx)):data]) dp]
-			| otherwise
-				= JSONObject [combine obj dp]
-		
-		combine (JSONObject data) dp = (dp2s dp,JSONString (join "" (map (\(_,JSONString str) -> str) data)))
-		combine _ _ = abort "get tree data: no JSON object"
-		
-		toTUICols []		= [{header = "", name = dp2s (shiftDataPath currentPath), editor = Nothing}]
-		toTUICols headers	= dpSeq toTUICol headers (shiftDataPath currentPath)
+		getHtml :: [Visualization] -> [String]
+		getHtml [HtmlFragment [TableTag [ClassAttr "viz-record"] cols]] = map getHtml` cols
 		where
-			toTUICol header dp = {header = (formatLabel header), name = dp2s dp, editor = Nothing}
+			getHtml` :: HtmlTag -> String
+			getHtml` (TrTag _ [_,TdTag _ htm])	= toString (html htm)
+			getHtml` _							= abort "get table html: unexpected format of record table row"
+		getLabels viz = [toString (coerceToHtml viz)]
+		
+		getEditors :: [Visualization] -> [[TUIDef]]
+		getEditors [TUIFragment (TUIListContainer {TUIListContainer|items})] = map (getEditors` o stripListItem) items
+		where
+			stripListItem :: TUIDef -> [TUIDef]
+			stripListItem (TUIListItemControl {TUIListItemControl|items}) = items
+			stripListItem _ = abort "get table editors: list item container expected"
+			
+			getEditors` :: [TUIDef] -> [TUIDef]
+			getEditors` tui = case tui of
+				[TUIRecordContainer {TUIRecordContainer|items}]	= items
+				tui												= tui
+		getEditors _ = abort "get table editors: list container expected"
+		
+		toTUICols []		= [{header = ""}]
+		toTUICols headers	= map toTUICol headers
+		where
+			toTUICol header = {header = (formatLabel header)}
 	
 gVisualize{|Shared|} _ _ vst			= ([TextFragment "Reference to shared data"],vst)
 gVisualize{|SharedReadOnly|} _ _ vst	= ([TextFragment "Read-Only reference to shared data"],vst)

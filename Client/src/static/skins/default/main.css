@@ -710,6 +710,8 @@ div.taskForestLegend{
 	left: 0px;
 }
 
+/* == Tree Html Display == */
+
 .tree-list {
 	margin-left: 32px;
 }
@@ -725,6 +727,14 @@ div.taskForestLegend{
 	padding: 4px 8px 2px 0px;
 	background-image: url('img/red-background.png') !important;
 	position: relative;
+}
+
+/* == Table Panel == */
+
+.table-editor {
+	background-image : url('img/ttc-icons/TTCFormContainer.png') !important;
+	background-repeat: no-repeat ;
+	background-position: 3px 3px;
 }
 
 /* == Document Panel == */

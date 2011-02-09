@@ -3,9 +3,9 @@ implementation module TableExamples
 import iTasks, Text, StdInt
 
 tableExamples :: [Workflow]
-tableExamples = [workflow "Plant dataset table" "Uses the Table type to represent a simple plant dataset." plantExample]
+tableExamples = [workflow "Examples/Miscellaneous/Plant dataset table" "Uses the Table type to represent a simple plant dataset." plantExample]
 
-plantExample = try plantExample` showError
+plantExample = try plantExample` showError <<@ FWFullWidth
 
 plantExample` =
 		readDataset
@@ -44,7 +44,7 @@ where
 				, price				= USD (toInt (toReal price) * 100)
 				, availability		= s2Date availability
 				, indoor			= indoor == "true"
-				, description		= Note ""
+				, notes				= Nothing
 				}:acc]
 		_
 			= throw "invalid CSV row!"
@@ -58,7 +58,7 @@ where
 				, price			:: Currency
 				, availability	:: Date
 				, indoor		:: Bool
-				, description	:: Note
+				, notes			:: Maybe [Note]
 				}
 :: PlantName =	{ common		:: String
 				, botanical		:: String

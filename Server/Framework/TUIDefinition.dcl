@@ -231,12 +231,11 @@ derive JSONEncode TUIDef, TUIUpdate
 	{ name			:: !TUIName
 	, id			:: !TUIId
 	, columns		:: ![TUIGridColumn]
-	, gridData		:: ![JSONNode]
+	, gridHtml		:: ![[String]]
+	, gridEditors	:: ![[TUIDef]]
 	}
 :: TUIGridColumn =
 	{ header	:: !String
-	, name		:: !TUIName
-	, editor	:: !Maybe String
 	}
 
 getTUIId	:: !TUIDef -> Maybe TUIId
