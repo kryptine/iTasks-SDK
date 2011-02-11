@@ -98,3 +98,8 @@ pageSection title content = DivTag [ClassAttr "section"] [H2Tag [] [Text title]:
 
 paramValue :: !String !HTTPRequest -> String
 paramValue name req = http_getValue name (req.arg_post ++ req.arg_get) ""
+
+NEWLINE	:== "\n"
+
+nl2br :: !String -> HtmlTag
+nl2br str = html [[Text line,BrTag []] \\ line <- split NEWLINE str]

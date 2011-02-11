@@ -8,6 +8,7 @@ import GinSyntax
               }
 
 newEditor :: GinEditor
+tryRender :: GModule Bool -> String
 
 derive gEq GinEditor
 derive gVisualize GinEditor

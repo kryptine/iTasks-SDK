@@ -1,9 +1,7 @@
 implementation module GenVisualize
 
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc
-import GenUpdate, GenVerify, TUIDiff, Util, Maybe, Text, HTML, JSON, TUIDefinition, Types
-
-NEWLINE	:== "\n" //The character sequence to use for new lines in text display visualization
+import GenUpdate, GenVerify, TUIDiff, Util, Maybe, Text, HTML, JSON, TUIDefinition, Types, HtmlUtil
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = startDataPath, label = Nothing, 
@@ -184,7 +182,7 @@ where
 	staticViz = "********"
 gVisualize{|Note|}		val vst = visualizeBasicControl TUINoteControl (toString,toHtml) val vst
 where
-	toHtml val _ = html [[Text line,BrTag []] \\ line <- split NEWLINE (toString val)]
+	toHtml val _ = nl2br (toString val)
 gVisualize{|Date|}		val vst = visualizeBasicControlSimple TUIDateControl val vst
 gVisualize{|Time|}		val vst = visualizeBasicControlSimple TUITimeControl val vst
 gVisualize{|User|}		val vst = visualizeBasicControlSimple TUIUserControl val vst

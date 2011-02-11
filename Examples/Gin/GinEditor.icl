@@ -155,13 +155,7 @@ getName state = case state.EditorState.name of
     Nothing -> "(unnamed)"
 
 setChanged :: EditorState EditorState -> EditorState
-setChanged old new = if (old.EditorState.editor =!= new.EditorState.editor) { new & changed = True } new
-
-tryRender :: GModule Bool -> String
-tryRender gMod expand = 
-    case runParse (gToAModule gMod) of
-        GSuccess aMod -> renderAModule [] ((if expand expandModule id) aMod) 
-        GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))        
+setChanged old new = if (old.EditorState.editor =!= new.EditorState.editor) { new & changed = True } new        
 
 open :: EditorState -> Task EditorState 
 open state = chooseModule >>= \(name, gMod) = 

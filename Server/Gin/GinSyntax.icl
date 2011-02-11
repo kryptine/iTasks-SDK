@@ -3,7 +3,7 @@ implementation module GinSyntax
 //import StdEnv
 import iTasks
 import JSON
-import GinTypes
+import GinTypes, GinFlowLibrary
 
 // Generic functions
 derive class iTask GModule, GImport, GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize
@@ -53,8 +53,8 @@ newWorkflow = { declaration = { name         = "newWorkflow"
               }
               
 newModule :: GModule
-newModule = { name = "newModule"
-            , types = []
-            , definitions = [newWorkflow]
-            , imports = []
-            }
+newModule = addDefaultLibrary	{ name = "newModule"
+					            , types = []
+					            , definitions = [newWorkflow]
+					            , imports = []
+					            }

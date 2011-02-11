@@ -50,3 +50,7 @@ notFoundResponse :: !HTTPRequest -> HTTPResponse
 * Gets the value of a parameter in the GET or POST values.
 */
 paramValue :: !String !HTTPRequest -> String
+/**
+* Convert newlines to br tags.
+*/
+nl2br :: !String -> HtmlTag

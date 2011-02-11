@@ -5,4 +5,3 @@ import GinSyntax
 
 ginSetup :: Task Void
 ginEditor :: Task Void
-tryRender :: GModule Bool -> String

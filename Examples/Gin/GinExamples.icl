@@ -4,7 +4,7 @@ import iTasks
 
 import GinEditor
 import GinDomain
-from GinSyntax import ::GModule, newModule
+from GinSyntax import ::GModule
 
 import GinTypes
 
@@ -34,7 +34,7 @@ ginShareExample2 = ginSetup
 	>>= \dbid -> updateSharedInformationA ("Gin-source view 2", "Shared Gin editor and source viewer as two tasks") 
 								          idBimap [quitButton] dbid
 				 -||
-				 showMessageShared "Source view" viewSource [] dbid
+				 showMessageShared "Source view" id [] dbid
 	>>|			 deleteDB dbid
 	
 ginShareExample3 = ginSetup 

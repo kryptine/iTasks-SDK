@@ -2,9 +2,9 @@ implementation module GinDomain
 
 from StdEnv import id
 
-import iTasks
+import iTasks, Text, HtmlUtil
 import GinSyntax, GinFlowLibrary
-import GinCompiler
+import GinCompiler, GinParser
 
 derive gEq GinEditor
 derive JSONEncode GinEditor
@@ -15,30 +15,30 @@ newEditor = { gMod        = newModule
             , checkSyntax = False
             }
 
-gVisualize {|GinEditor|} val vst=:{vizType, label, idPrefix, currentPath, optional, useLabels, updateMask, verifyMask}
-    # (cmu,um) = popMask updateMask
-    # (cmv,vm) = popMask verifyMask
-	# (err,hnt) = verifyElementStr cmu cmv 
-    = case vizType of
-        VEditorDefinition = ([TUIFragment (TUIAppletControl (appletPanel val idPrefix currentPath err hnt))]
-                             , {VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+gVisualize {|GinEditor|} val vst = visualizeControl mkControl (mkText,mkHtml) val vst
 where
-    appletPanel Nothing                          idp cp errMsg hntMsg = applet newModule                 idp cp errMsg hntMsg 
-    appletPanel (Just editor) idp cp errMsg hntMsg = applet (addDefaultLibrary editor.gMod) idp cp errMsg hntMsg
-
-    applet value idp cp errMsg hntMsg = 
-        { TUIAppletControl
-        | appletcode = "nl/ru/icis/mbsd/itasks/gin/Applet.class"
-        , archives = ["/gin.jar"]
-        , width = "100%"
-        , height = "500"
-        , name = dp2s cp
-        , id = dp2id idp cp
-        , value = gModuleToJSON value
-        , errorMsg = errMsg
-        , hintMsg = hntMsg
-        }
-        
+	mkControl name id val _ _ hnt err
+		= TUIAppletControl applet
+	where
+	    applet
+	    	# value = case val of
+				Nothing		= newModule
+				Just {gMod}	= gMod
+	        =	{ TUIAppletControl
+		        | appletcode = "nl/ru/icis/mbsd/itasks/gin/Applet.class"
+		        , archives = ["/gin.jar"]
+		        , width = "100%"
+		        , height = "500"
+		        , name = name
+		        , id = id
+		        , value = gModuleToJSON value
+		        , errorMsg = err
+		        , hintMsg = hnt
+		        }
+		        
+	mkText v = toString (fmap (\{gMod} -> tryRender gMod False) v)
+	mkHtml v _ = nl2br (mkText v)
+     
 gUpdate{|GinEditor|} mode ust = basicUpdate mode parseUpdate newEditor ust
 where
 	parseUpdate update orig
@@ -57,3 +57,9 @@ gVerify{|GinEditor|} val vst = customWorldVerify Nothing check val vst where
        CompileGlobalError error = Just (toString (toJSON [("/", error)]))
        CompilePathError errors = Just (toString (toJSON errors))
   = (WPRValid hint, iworld )
+  
+tryRender :: GModule Bool -> String
+tryRender gMod expand = 
+    case runParse (gToAModule gMod) of
+        GSuccess aMod -> renderAModule [] ((if expand expandModule id) aMod) 
+        GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))
