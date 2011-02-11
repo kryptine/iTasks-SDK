@@ -174,6 +174,10 @@ where
 // ******************************************************************************************************
 // Date
 // ******************************************************************************************************
+
+instance == Date
+where
+	(==) x y	= x.Date.year == y.Date.year && x.Date.mon == y.Date.mon && x.Date.day == y.Date.day
 		
 instance < Date
 where
@@ -255,7 +259,13 @@ where
 // ******************************************************************************************************
 // DateTime
 // ******************************************************************************************************
-
+instance < DateTime
+where
+	(<) (DateTime dx tx) (DateTime dy ty)
+		| dx < dy	= True
+		| dx == dy	= (tx < ty)
+		| otherwise	= False
+		
 instance + DateTime
 where
 	(+) (DateTime dx tx) (DateTime dy ty)

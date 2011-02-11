@@ -38,6 +38,7 @@ instance == Password
 
 instance < Time
 instance < Date
+instance < DateTime
 instance < User
 instance < Currency
 
