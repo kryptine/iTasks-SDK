@@ -1,6 +1,6 @@
 implementation module ImportTasks
  
-import StdBool, _SystemArray, StdInt, TSt, DocumentDB, ExtToMime, Text, Util, CSV
+import StdBool, _SystemArray, StdInt, TSt, DocumentDB, MIME, Text, Util, CSV
 
 CHUNK_SIZE :== 1024
 
@@ -55,7 +55,7 @@ readDocument filename tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (ok,world)		= fclose file world
 	| not ok			= (TaskException (closeException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# name				= baseName filename 
-	# mime				= extToMimeType (fileExtension name)
+	# mime				= extensionToMimeType (fileExtension name)
 	# (document,tst)	= createDocument name mime content {TSt|tst & iworld={IWorld|iworld & world = world}}
 	= (TaskFinished document, tst)
 
