@@ -85,6 +85,7 @@ toUnformattedString :: !FormattedText !Bool -> String
 removeMarkers :: !String -> String
 
 instance toString FormattedText
+instance html FormattedText
 
 // source code
 :: SourceCode =	SourceCode !String !SourceCodeLanguage
@@ -111,3 +112,4 @@ colorOrange		:== Color "FF9900"
 colorWhite		:== Color "FFFFFF"
 
 instance toString Color
+instance html Color

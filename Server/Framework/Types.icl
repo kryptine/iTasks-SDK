@@ -331,6 +331,32 @@ where
 	(-) (USD x) (USD y) = USD (x - y)
 	(-) (JPY x) (JPY y) = JPY (x - y)
 	(-) _ _ = abort "Trying to subtract money of different currencies!"
+	
+fromVisualizationHint :: !(VisualizationHint .a) -> .a
+fromVisualizationHint (VHEditable a) = a
+fromVisualizationHint (VHDisplay a) = a
+fromVisualizationHint (VHHidden a) = a
+
+toVisualizationHint :: !.a -> (VisualizationHint .a)
+toVisualizationHint a = (VHEditable a)
+
+fromEditable :: !(Editable .a) -> .a
+fromEditable (Editable a) = a
+
+toEditable :: !.a -> (Editable .a)
+toEditable a = (Editable a)
+
+fromDisplay :: !(Display .a) -> .a
+fromDisplay (Display a) = a
+
+toDisplay :: !.a -> (Display .a)
+toDisplay a = (Display a)
+
+fromHidden :: !(Hidden .a) -> .a
+fromHidden (Hidden x) = x
+
+toHidden :: !.a -> (Hidden .a)
+toHidden x = (Hidden x)
 
 // ******************************************************************************************************
 // User

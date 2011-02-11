@@ -17,7 +17,7 @@ where
 	waitForTime` tst
 		# (now,tst) = accWorldTSt currentTime tst
 		| now < time
-			# tst = setStatus [Text "Waiting until ": visualizeAsHtmlLabel time] tst
+			# tst = setStatus (html [Text "Waiting until ",visualizeAsHtmlLabel time]) tst
 			= (TaskBusy,tst)
 		| otherwise
 			= (TaskFinished Void,tst)
@@ -28,7 +28,7 @@ where
 	waitForDate` tst
 		# (now,tst) = accWorldTSt currentDate tst
 		| now < date
-			# tst = setStatus [Text "Waiting until ": visualizeAsHtmlLabel date] tst
+			# tst = setStatus (html [Text "Waiting until ",visualizeAsHtmlLabel date]) tst
 			= (TaskBusy,tst)
 		| otherwise
 			= (TaskBusy,tst)

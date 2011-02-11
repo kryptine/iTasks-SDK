@@ -123,9 +123,7 @@ gVerify{|Editable|} fx Nothing vst = fx Nothing vst
 gVerify{|Editable|} fx (Just (Editable x)) vst = fx (Just x) vst
 
 gVerify{|Display|} fx Nothing vst = vst
-gVerify{|Display|} fx (Just (Display x)) vst=:{VerSt | verifyMask,updateMask}
-	# (cm,um) = popMask updateMask
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
+gVerify{|Display|} fx (Just (Display x)) vst = fx (Just x) vst
 
 gVerify{|VisualizationHint|} fx Nothing vst = fx Nothing vst
 gVerify{|VisualizationHint|} fx (Just (VHHidden x)) vst=:{VerSt | verifyMask,updateMask}

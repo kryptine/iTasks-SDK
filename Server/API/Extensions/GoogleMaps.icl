@@ -68,10 +68,10 @@ where
 
 	staticMapPanel Nothing
 		# (GoogleStaticMap w h u) = convertToStaticMap mkMap
-		= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
+		= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])])
 	staticMapPanel (Just map)
 		# (GoogleStaticMap w h u) = convertToStaticMap map
-		= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
+		= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])])
 
 	tuidef map fl hl idp cp ed =
 		{ TUIGoogleMap
@@ -101,9 +101,9 @@ where
 gVisualize {|GoogleStaticMap|} Nothing vst = ([TextFragment "-"],vst)
 gVisualize {|GoogleStaticMap|} (Just (GoogleStaticMap w h u)) vst=:{vizType,idPrefix,currentPath}
 	= case vizType of
-		VHtmlDisplay	= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]],{VSt | vst & currentPath = stepDataPath currentPath})
+		VHtmlDisplay	= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])],{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],{VSt | vst & currentPath = stepDataPath currentPath})
-		VHtmlLabel		= ([HtmlFragment [Text "Static Map"]],{VSt | vst & currentPath = stepDataPath currentPath})
+		VHtmlLabel		= ([HtmlFragment (Text "Static Map")],{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextLabel		= ([TextFragment "Static Map"],{VSt | vst & currentPath = stepDataPath currentPath})
 		_				= ([TUIFragment (TUICustom ((toJSON staticMap)))],{VSt | vst & currentPath = stepDataPath currentPath})
 where

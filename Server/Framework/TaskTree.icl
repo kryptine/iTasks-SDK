@@ -1,3 +1,4 @@
 implementation module TaskTree
 
-import Maybe, Either, Types, RPC
+import Maybe, Either, Types, RPC, HTML
+from TUIDefinition	import :: TUIDef, :: TUIUpdate

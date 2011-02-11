@@ -635,7 +635,7 @@ showInstructionAbout :: !String !instruction a -> Task a | html instruction & iT
 showInstructionAbout subject instruction context
 	= mkInstructionTask (subject,instruction) (makeInstructionTask (Just (visualizeAsHtmlDisplay context)) context)
 
-makeInstructionTask :: (Maybe [HtmlTag]) a *TSt -> *(!TaskResult a,!*TSt) | iTask a
+makeInstructionTask :: (Maybe HtmlTag) a *TSt -> *(!TaskResult a,!*TSt) | iTask a
 makeInstructionTask context value tst
 	# (events, tst) = getEvents tst
 	| isEmpty events
@@ -684,16 +684,16 @@ where
 	evaluateCondition pred valid value = pred (if valid (Valid value) Invalid)
 
 //Build TUI definition for task with given context/form	
-taskPanel :: String (Maybe [HtmlTag]) (Maybe [TUIDef]) -> [TUIDef]
+taskPanel :: String (Maybe HtmlTag) (Maybe [TUIDef]) -> [TUIDef]
 taskPanel taskid mbContext mbForm =
 	(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
 	(case mbForm of Just form = form; Nothing = [])
 where			
-	taskContextPanel :: !String ![HtmlTag] -> TUIDef
+	taskContextPanel :: !String !HtmlTag -> TUIDef
 	taskContextPanel panelid context = TUIHtmlContainer
 										{ TUIHtmlContainer
 										| id = panelid
-										, html = toString (html context)
+										, html = toString context
 										, fieldLabel = Nothing
 										}
 

@@ -70,50 +70,34 @@ noControls =	{ alignmentControls	= False
 	, enableSourceEdit	:: !Bool
 	}
 
-gVisualize{|FormattedText|} val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,updateMask,verifyMask}
-	#(cmu,um) = popMask updateMask
-	#(cmv,vm) = popMask verifyMask
-	#(err,hnt) = verifyElementStr cmu cmv
-	# valV		= value2s (fst (popMask (childMasks cmu))) val
-	= case vizType of
-		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
-									{ TUIFormattedText
-									| xtype				= "itasks.tui.FormattedText"
-									, name				= dp2s contentPath
-									, id				= id
-									, value				= replaceMarkers valV
-									, fieldLabel		= labelAttr useLabels label
-									, optional			= optional
-									, enableAlignments	= controls.alignmentControls
-									, enableColors		= controls.colorControls
-									, enableFont		= controls.fontControl
-									, enableFontSize	= controls.fontSizeControls
-									, enableFormat		= controls.formatControls
-									, enableLinks		= controls.linkControl
-									, enableLists		= controls.listControls
-									, enableSourceEdit	= controls.sourceEditControl
-									}
-								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		_					# htmlFrag = case val of
-								Nothing		= Text ""
-								Just v	= html v
-							= ([HtmlFragment [htmlFrag]]
-								, {VSt|vst & currentPath = stepDataPath currentPath})
+gVisualize{|FormattedText|} val vst = visualizeControl mkControl (toString,(\v _ -> html v)) val vst
 where
-	// Use the path to the inner constructor instead of the current path.
-	// This way the generic gUpdate will work for this type
-	contentPath	= shiftDataPath currentPath
-	id			= dp2id idPrefix contentPath
-	
-	controls = case val of
-		Nothing								= allControls
-		Just (FormattedText _ controls) 	= controls
-		
-	replaceMarkers v
-		# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
-		# v = replaceSubString SelectionEndMarker ("<markerend id='" +++ id +++ "_marker-end'></markerend>") v
-		= v
+	mkControl name id val label optional _ _
+		= TUICustom (toJSON	{ TUIFormattedText
+							| xtype				= "itasks.tui.FormattedText"
+							, name				= name
+							, id				= id
+							, value				= replaceMarkers (toString val)
+							, fieldLabel		= label
+							, optional			= optional
+							, enableAlignments	= controls.alignmentControls
+							, enableColors		= controls.colorControls
+							, enableFont		= controls.fontControl
+							, enableFontSize	= controls.fontSizeControls
+							, enableFormat		= controls.formatControls
+							, enableLinks		= controls.linkControl
+							, enableLists		= controls.listControls
+							, enableSourceEdit	= controls.sourceEditControl
+							})
+	where
+		controls = case val of
+			Nothing							= allControls
+			Just (FormattedText _ controls) = controls
+			
+		replaceMarkers v
+			# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
+			# v = replaceSubString SelectionEndMarker ("<markerend id='" +++ id +++ "_marker-end'></markerend>") v
+			= v
 		
 toUnformattedString :: !FormattedText !Bool -> String
 toUnformattedString (FormattedText s _) includeCursorMarkers
@@ -170,16 +154,14 @@ setSource src (SourceCode _ lang) = SourceCode src lang
 getSource :: !SourceCode -> String
 getSource (SourceCode src _) = src
 
-//'js', 'css', 'php', 'htm', 'html', 'xml'
 :: TUISourceCode =
 	{ xtype			:: !String
 	, name			:: !String
 	, id			:: !String
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
-	, staticDisplay	:: !Bool
 	, optional		:: !Bool
-	, language		:: !String
+	, language		:: !String //'js', 'css', 'php', 'htm', 'html', 'xml'
 	}
 
 :: TUIColorChooser =
@@ -188,39 +170,22 @@ getSource (SourceCode src _) = src
 	, id			:: !String
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
-	, staticDisplay	:: !Bool
 	, optional		:: !Bool
 	}
 	
-gVisualize{|SourceCode|} val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,updateMask,verifyMask}
-	#(cmu,um) = popMask updateMask
-	#(cmv,vm) = popMask verifyMask
-	# valV		= value2s (fst (popMask (childMasks cmu))) val
-	#(err,hnt) = verifyElementStr cmu cmv
-	= case vizType of
-		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
-									{ TUISourceCode
-									| xtype			= "itasks.tui.SourceCode"
-									, name			= dp2s contentPath
-									, id			= id
-									, value			= valV
-									, fieldLabel	= labelAttr useLabels label
-									, optional		= optional
-									, staticDisplay = renderAsStatic
-									, language		= language
-									}
-								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		_					# htmlFrag = case val of
-								Nothing		= Text ""
-								Just v 	= html v
-							= ([HtmlFragment [htmlFrag]]
-								, {VSt|vst & currentPath = stepDataPath currentPath})
+gVisualize{|SourceCode|} val vst = visualizeControl mkControl (textOnly toString) val vst
 where
-	// Use the path to the inner constructor instead of the current path.
-	// This way the generic gUpdate will work for this type
-	contentPath	= shiftDataPath currentPath
-	id			= dp2id idPrefix contentPath
+	mkControl name id val label optional _ _
+		= TUICustom (toJSON	{ TUISourceCode
+							| xtype			= "itasks.tui.SourceCode"
+							, name			= name
+							, id			= id
+							, value			= toString (fmap getSource val)
+							, fieldLabel	= label
+							, optional		= optional
+							, language		= language
+							})
+
 	language = case val of
 		Nothing							= ""
 		Just (SourceCode _ lang) 		= case lang of
@@ -239,35 +204,18 @@ instance toString SourceCode
 where
 	toString (SourceCode src _) = src
 
-gVisualize{|Color|} val vst=:{vizType,label,idPrefix,currentPath,useLabels,optional, renderAsStatic,updateMask,verifyMask}
-	#(cmu,um) = popMask updateMask
-	#(cmv,vm) = popMask verifyMask
-	# valV		= value2s (fst (popMask (childMasks cmu))) val
-	#(err,hnt) = verifyElementStr cmu cmv
-	= case vizType of
-		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
-									{ TUIColorChooser
-									| xtype			= "itasks.tui.ColorChooser"
-									, name			= dp2s contentPath
-									, id			= id
-									, value			= valV
-									, fieldLabel	= labelAttr useLabels label
-									, optional		= optional
-									, staticDisplay = renderAsStatic
-									}
-								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
-		_					# htmlFrag = case val of
-								Nothing		= Text ""
-								Just v 	= html v
-							= ([HtmlFragment [htmlFrag]]
-								, {VSt|vst & currentPath = stepDataPath currentPath})
+gVisualize{|Color|} val vst = visualizeControl mkControl (toString,(\v _ -> html v)) val vst
 where
-	// Use the path to the inner constructor instead of the current path.
-	// This way the generic gUpdate will work for this type
-	contentPath	= shiftDataPath currentPath
-	id			= dp2id idPrefix contentPath
-	
+	mkControl name id val label optional _ _
+		= TUICustom (toJSON	{ TUIColorChooser
+							| xtype			= "itasks.tui.ColorChooser"
+							, name			= name
+							, id			= id
+							, value			= toString (fmap (\(Color c) -> c) val)
+							, fieldLabel	= label
+							, optional		= optional
+							})
+
 instance html Color
 where
 	html (Color c) = DivTag [StyleAttr ("background-color: #" +++ c +++ "; border: 1px solid; border-color: #ACA899; height: 10px; width: 10px;")] []

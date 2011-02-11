@@ -97,7 +97,7 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 				, taskId 		= ti.TaskInfo.taskId
 				, subject		= ti.TaskInfo.subject
 				, description	= ti.TaskInfo.description
-				, html 			= toString (DivTag [] html)
+				, html 			= toString html
 				, menu			= Nothing
 				}
 		(TTInstructionTask ti (UIOutput context))
@@ -107,7 +107,7 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 				, taskId 		= ti.TaskInfo.taskId
 				, subject		= ti.TaskInfo.subject
 				, description 	= ti.TaskInfo.description
-				, context		= if(isJust context) (Just (toString (DivTag [] (fromJust context)))) Nothing
+				, context		= fmap toString context
 				}
 		(TTRpcTask ti rpc) 
 			= TTCMonitorContainer {TTCMonitorContainer 
@@ -116,7 +116,7 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 				, taskId 		= ti.TaskInfo.taskId
 				, subject		= ti.TaskInfo.subject
 				, description	= ti.TaskInfo.description
-				, html 			= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
+				, html 			= toString (html [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
 				, menu			= Nothing
 				}
 		(TTMainTask ti mti _ _)
@@ -178,7 +178,7 @@ buildResultPanel tree = case tree of
 								, id 		= "taskform-" +++ ti.TaskInfo.taskId
 								, taskId	= ti.TaskInfo.taskId
 								, subject	= ti.TaskInfo.subject
-								, result	= (foldl (+++) "" (map toString result))
+								, result	= toString result
 								})
 	(TTMainTask ti p _ tt) //Pass through any finished main tasks, in case there is a finished task below (e.g. in case of a parallel)
 		| p.systemProperties.SystemProperties.status == Finished = buildResultPanel tt

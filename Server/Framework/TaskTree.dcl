@@ -24,13 +24,13 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//LEAF CONSTRUCTORS
 	
 	//A task which displays an (offline) instruction to the user
-	| TTInstructionTask TaskInfo (TaskOutput (Maybe [HtmlTag]))										
+	| TTInstructionTask TaskInfo (TaskOutput (Maybe HtmlTag))										
 	//A task that can be worked on through a gui
 	| TTInteractiveTask	TaskInfo (TaskOutput InteractiveTask)													
 	//A task that upon evaluation monitors a condition and may give status output
-	| TTMonitorTask		TaskInfo (TaskOutput [HtmlTag])																
+	| TTMonitorTask		TaskInfo (TaskOutput HtmlTag)																
 	//A completed task
-	| TTFinishedTask	TaskInfo (TaskOutput [HtmlTag])															
+	| TTFinishedTask	TaskInfo (TaskOutput HtmlTag)															
 	//A task that represents an rpc invocation
 	| TTRpcTask			TaskInfo RPCExecute																		
 

@@ -356,8 +356,8 @@ setTUIDef			:: ![TUIDef] ![(Action,Bool)] !*TSt 								-> *TSt //Only for inter
 setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt								-> *TSt //Only for interactive tasks
 setTUIFunc			:: (*IWorld -> *(!InteractiveTask, !*IWorld)) !*TSt					-> *TSt //Only for interactive tasks
 setTUIMessage 		:: ![TUIDef] ![(Action,Bool)] !*TSt									-> *TSt //Only for interactive tasks
-setStatus			:: ![HtmlTag] !*TSt													-> *TSt	//Only for monitor tasks
-setInstruction		:: !(Maybe [HtmlTag]) !*TSt											-> *TSt //Only for instruction tasks
+setStatus			:: !HtmlTag !*TSt													-> *TSt	//Only for monitor tasks
+setInstruction		:: !(Maybe HtmlTag) !*TSt											-> *TSt //Only for instruction tasks
 setGroupActions		:: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt	-> *TSt //Only for group tasks
 setFocusCommand		:: !String !*TSt													-> *TSt //Only for group tasks
 

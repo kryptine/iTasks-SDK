@@ -20,13 +20,13 @@ where
 		valueUpdates old new
 			| isStaticContainer old
 				// Records and tuples have static children
-				= staticContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
+				= staticContainerUpdate path old new
 			| isDynamicContainer old
 				// List and Constructor are special: they have dynamic children
-				= dynamicContainerUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
+				= dynamicContainerUpdate path old new
 			| isControl old
 				//If not same value, error or hint, create set instructions
-				= valueUpdate path old new ++ hintUpdate path old new ++ errorUpdate path old new
+				= valueUpdate path old new
 			= case (old,new) of //Special cases
 				// Records are static except if they are optional
 				(TUIRecordContainer o, TUIRecordContainer n)
@@ -44,20 +44,18 @@ where
 					| otherwise																= [TUIReplace_ (dp2s path) new]
 				// Choices are replaced if the options are changed, otherwise their selection is updated
 				(TUIChoiceControl oc, TUIChoiceControl nc)
-					# updates = if (oc.options == nc.options)
+					= if (oc.options == nc.options)
 						if (oc.selection == nc.selection)
 							[]
 							[TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
 						[TUIReplace_ (dp2s path) new]
-					= updates ++ hintUpdate path old new ++ errorUpdate path old new
 				// Trees are replaced if the nodes are changed, otherwise their selection is updated
 				(TUITreeControl ot, TUITreeControl nt)
-					# updates = if (ot.tuiTree === nt.tuiTree)
+					= if (ot.tuiTree === nt.tuiTree)
 						if (ot.selIndex == nt.selIndex)
 							[]
 							[TUISetValue_ (dp2s path) (toString nt.selIndex)]
 						[TUIReplace_ (dp2s path) new]
-					= updates ++ hintUpdate path old new ++ errorUpdate path old new
 				// Fallback: always replace
 				_	= [TUIReplace_ (dp2s path) new]
 	

@@ -158,6 +158,18 @@ getSelectedLeaf :: !(Tree a) -> a
 :: Display a 			= Display a			// Variable is always rendered within a form as a static element
 :: Hidden a 			= Hidden a			// Variable is never rendered
 
+fromVisualizationHint :: !(VisualizationHint .a) -> .a
+toVisualizationHint :: !.a -> (VisualizationHint .a)
+
+fromEditable :: !(Editable .a) -> .a
+toEditable :: !.a -> (Editable .a)
+
+fromDisplay :: !(Display .a) -> .a
+toDisplay :: !.a -> (Display .a)
+
+fromHidden :: !(Hidden .a) -> .a
+toHidden :: !.a -> (Hidden .a)
+
 // Properties of tasks	
 :: TaskProperties =
 	{ systemProperties	:: SystemProperties

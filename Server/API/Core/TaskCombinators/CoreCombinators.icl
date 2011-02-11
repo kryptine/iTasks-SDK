@@ -341,7 +341,7 @@ where
 							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)	
 							_								= (TaskFinished Nothing, tst) //Ignore all other cases
 					_	
-						# tst = setStatus [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title,Text "\""]] tst
+						# tst = setStatus (html [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title,Text "\""]]) tst
 						= (TaskBusy, tst)		// We are not done yet...
 			_	
 				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done

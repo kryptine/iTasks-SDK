@@ -530,7 +530,7 @@ calculateTaskTree taskId treeType events tst
 					# (mbContainer,tst) = accIWorldTSt (loadValue (taskId +++ "-container")) tst				
 					# result = case mbContainer of
 						(Just dyn)	= UIOutput (renderResult dyn)
-						(Nothing)	= UIOutput [Text "Cannot load result."]
+						(Nothing)	= UIOutput (Text "Cannot load result.")
 					# info =	{ TaskInfo| initTaskInfo
 								& taskId			= taskId
 								, subject			= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
@@ -538,7 +538,7 @@ calculateTaskTree taskId treeType events tst
 								}
 					= (TTFinishedTask info result,tst)
 
-renderResult :: Dynamic -> [HtmlTag]
+renderResult :: Dynamic -> HtmlTag
 renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value				
 
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
@@ -815,7 +815,7 @@ applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc}
 				(TaskException e)
 					// Store exception
 					# tst					= appIWorldTSt (storeValue taskId result) tst
-					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput [Text "Uncaught exception"]))
+					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput (Text "Uncaught exception")))
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e, tst)
 		
@@ -863,13 +863,13 @@ setTUIMessage msg actions tst=:{tree}
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Message msg actions))}
 		_								= tst
 
-setStatus :: ![HtmlTag] !*TSt -> *TSt
+setStatus :: !HtmlTag !*TSt -> *TSt
 setStatus msg tst=:{tree}
 	= case tree of
 		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info (UIOutput msg)}
 		_									= tst
 
-setInstruction :: !(Maybe [HtmlTag]) !*TSt -> *TSt
+setInstruction :: !(Maybe HtmlTag) !*TSt -> *TSt
 setInstruction context tst=:{tree}
 	= case tree of
 			(TTInstructionTask ti _)	= {tst & tree = TTInstructionTask ti (UIOutput context)}
