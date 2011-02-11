@@ -1,15 +1,21 @@
 implementation module HttpServer
 
-import HTTP, HttpUtil, HttpTextUtil
-import StdList, StdTuple, StdArray, StdFile, StdBool, StdMisc, StdMaybe
-//import StdTCP
-//import TCPIP
+//import HTTP, HttpUtil
+import StdList, StdTuple, StdArray, StdFile, StdBool, StdMisc
+import StdMaybe
 
 import	TCPChannelClass,
 		TCPChannels,
 		TCPEvent,
 		TCPStringChannels,
 		TCPDef
+		
+from HTTP import :: HTTPRequest(..), :: HTTPResponse(..), :: HTTPUpload, :: HTTPProtocol, :: Map
+from HTTP import newHTTPRequest
+from HTTP import instance toString HTTPRequest, instance toString HTTPResponse
+
+from HttpUtil import http_addRequestData, http_parseArguments, http_makeResponse, http_encodeResponse
+
 
 //Start the HTTP server
 http_startServer :: [HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!HTTPServerControl,!*World)))] *World -> *World
@@ -47,7 +53,7 @@ loop options handlers listener rchannels schannels requests world
 		# (tReport, mbNewMember, listener, world)	= receive_MT (Just 0) listener world
 		| tReport <> TR_Success						= loop options handlers listener rchannels schannels requests world //Just continue
 		# (ip,{sChannel,rChannel})					= fromJust mbNewMember
-		# request									= {http_emptyRequest & client_name = toString ip, server_port = getPortOption options}
+		# request									= {newHTTPRequest & client_name = toString ip, server_port = getPortOption options}
 		= loop options handlers listener [rChannel:rchannels] [sChannel:schannels] [(request,False,False,False):requests] world		
 	//A client has new data
 	| otherwise

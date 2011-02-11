@@ -1,48 +1,8 @@
 implementation module HttpUtil
 
-import HTTP, HttpServer, HttpTextUtil
-import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList
-import Time
-
-//General utility functions
-http_urlencode :: !String -> String
-http_urlencode s = mkString (urlEncode` (mkList s))
-where
-	urlEncode` :: ![Char] -> [Char]
-	urlEncode` []						= []
-	urlEncode` [x:xs] 
-	| isAlphanum x						= [x  : urlEncode` xs]
-	| otherwise							= urlEncodeChar x ++ urlEncode` xs
-	where
-		urlEncodeChar x 
-		# (c1,c2)						= charToHex x
-		= ['%', c1 ,c2]
-	
-		charToHex :: !Char -> (!Char, !Char)
-		charToHex c						= (toChar (digitToHex (i >> 4)), toChar (digitToHex (i bitand 15)))
-		where
-		        i						= toInt c
-		        digitToHex :: !Int -> Int
-		        digitToHex d
-		                | d <= 9		= d + toInt '0'
-		                | otherwise		= d + toInt 'A' - 10
-
-http_urldecode :: !String -> String
-http_urldecode s						= mkString (urlDecode` (mkList s))
-where
-	urlDecode` :: ![Char] -> [Char]
-	urlDecode` []						= []
-	urlDecode` ['%',hex1,hex2:xs]		= [hexToChar(hex1, hex2):urlDecode` xs]
-	where
-		hexToChar :: !(!Char, !Char) -> Char
-		hexToChar (a, b)				= toChar (hexToDigit (toInt a) << 4 + hexToDigit (toInt b))
-		where
-		        hexToDigit :: !Int -> Int
-		        hexToDigit i
-		                | i<=toInt '9'	= i - toInt '0'
-		                | otherwise		= 10 + (i - toInt 'A')
-	urlDecode` ['+':xs]				 	= [' ':urlDecode` xs]
-	urlDecode` [x:xs]				 	= [x:urlDecode` xs]
+import HTTP, HttpServer
+import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList, StdFunc, StdTuple
+import Time, Text, UrlEncoding
 
 mkString	:: ![Char] -> *String
 mkString	listofchar				= {c \\ c <- listofchar }
@@ -50,23 +10,21 @@ mkString	listofchar				= {c \\ c <- listofchar }
 mkList		:: !String -> [Char]
 mkList		string					= [c \\ c <-: string ]
 
-
-
-http_splitMultiPart :: !String !String -> [([HTTPHeader], String)]
+http_splitMultiPart :: !String !String -> [([(String,String)], String)]
 http_splitMultiPart boundary body
-	# startindex		= text_indexOf ("--" +++ boundary +++ "\r\n") body //Locate the first boundary
+	# startindex		= indexOf ("--" +++ boundary +++ "\r\n") body //Locate the first boundary
 	| startindex == -1	= [] //Fail
-	# endindex			= text_indexOf ("\r\n" +++ "--" +++ boundary +++ "--") body //Locate the final boundary
+	# endindex			= indexOf ("\r\n" +++ "--" +++ boundary +++ "--") body //Locate the final boundary
 	| endindex == -1	= [] //Fail
 	# body				= body % (startindex + (size boundary) + 4, endindex - 1)
-	# parts				= text_split ("\r\n" +++ "--" +++ boundary +++ "\r\n") body
+	# parts				= split ("\r\n" +++ "--" +++ boundary +++ "\r\n") body
 	= map parsePart parts
 where
-	parsePart :: String -> ([HTTPHeader], String)
+	parsePart :: String -> ([(String,String)], String)
 	parsePart part 
-		# index 		= text_indexOf "\r\n\r\n" part
+		# index 		= indexOf "\r\n\r\n" part
 		| index < 1 	= ([], part)
-						= ([header \\ (header,error) <- map http_parseHeader (text_split "\r\n" (part % (0, index - 1))) | not error]
+						= ([header \\ (header,error) <- map http_parseHeader (split "\r\n" (part % (0, index - 1))) | not error]
 							, part % (index + 4, size part))
 
 //Parsing of HTTP Request messages
@@ -77,7 +35,7 @@ http_addRequestData req requestline_done headers_done data_done data
 	# req	= {req & req_data = req.req_data +++ data}	//Add the new data
 	//Parsing of the request line
 	| not requestline_done
-		# index = text_indexOf "\r\n" req.req_data
+		# index = indexOf "\r\n" req.req_data
 		| index == -1	= (req,False,False,False,False)	//The first line is not complete yet
 		| otherwise
 			# (method,path,query,version,error) = http_parseRequestLine (req.req_data % (0, index - 1))
@@ -86,7 +44,7 @@ http_addRequestData req requestline_done headers_done data_done data
 			= http_addRequestData req True False False ""	//We are done with the request line but still need to inspect the rest of the data
 	//Parsing of headers
 	| not headers_done
-		# index = text_indexOf "\r\n" req.req_data
+		# index = indexOf "\r\n" req.req_data
 		| index == -1	= (req,True,False,False,False)		//We do not have a full line yet
 		| index == 0										//We have an empty line, this means we have received all the headers
 			# req = {req & req_data = req.req_data % (2, size req.req_data)}
@@ -94,7 +52,7 @@ http_addRequestData req requestline_done headers_done data_done data
 		| otherwise
 			# (header,error) = http_parseHeader (req.req_data % (0, index - 1))
 			| error = (req,True,False,False,True)			//We failed to parse the header
-			# req = {req & req_headers = [header:req.req_headers], req_data = req.req_data % (index + 2, size req.req_data)}
+			# req = {req & req_headers = put (fst header) (snd header) req.req_headers, req_data = req.req_data % (index + 2, size req.req_data)}
 			= http_addRequestData req True False False ""	//We continue to look for more headers
 	//Addition of data
 	| not data_done
@@ -105,21 +63,25 @@ http_addRequestData req requestline_done headers_done data_done data
 	= (req,True,True,True,False) 
 
 
+http_getValue :: !String !(Map String String) !String -> String
+http_getValue key valuemap defaultval
+	= maybe defaultval id (get key valuemap)
+
 http_parseRequestLine :: !String -> (!String,!String,!String,!String,!Bool)
 http_parseRequestLine line
-	# parts	= text_split " " line
+	# parts	= split " " line
 	| length parts <> 3	= ("","","","",True)
 	# [method,path,version:_]	= parts
-	# qindex					= text_indexOf "?" path
+	# qindex					= indexOf "?" path
 	| qindex <> -1				= (method, path % (0, qindex - 1), path % (qindex + 1, size path), version, False)
 								= (method, path, "", version, False)
 								
-http_parseHeader :: !String -> (!HTTPHeader, !Bool)
+http_parseHeader :: !String -> (!(String,String), !Bool)
 http_parseHeader header
-	# index					= text_indexOf ":" header
+	# index					= indexOf ":" header
 	| index < 1				= (("",""), False)
-	# name					= text_trim (header % (0, index - 1))
-	# value					= text_trim (header % (index + 1, size header))
+	# name					= trim (header % (0, index - 1))
+	# value					= trim (header % (index + 1, size header))
 	= ((name,value), False)
 
 http_parseArguments :: !HTTPRequest -> HTTPRequest
@@ -134,45 +96,45 @@ where
 	isPost headers = (http_getValue "Content-Type" headers "") % (0,32) == "application/x-www-form-urlencoded"
 	isMultiPart headers = (http_getValue "Content-Type" headers "") % (0,18) == "multipart/form-data"
 	
-http_parseGetArguments :: !HTTPRequest -> [HTTPArgument]
+http_parseGetArguments :: !HTTPRequest -> Map String String
 http_parseGetArguments req
-	| req.req_query == ""	= []
-							= http_parseUrlEncodedArguments req.req_query
+	| req.req_query == ""	= fromList []
+							= fromList (http_parseUrlEncodedArguments req.req_query)
 
-http_parsePostArguments :: !HTTPRequest -> [HTTPArgument]
-http_parsePostArguments req	= http_parseUrlEncodedArguments req.req_data
+http_parsePostArguments :: !HTTPRequest -> Map String String
+http_parsePostArguments req	= fromList (http_parseUrlEncodedArguments req.req_data)
 
-http_parseUrlEncodedArguments :: !String -> [HTTPArgument]
-http_parseUrlEncodedArguments s = [(http_urldecode name, http_urldecode (text_join "=" value)) \\ [name:value] <- map (text_split "=") (text_split "&" s)]
+http_parseUrlEncodedArguments :: !String -> [(String,String)]
+http_parseUrlEncodedArguments s = [(urlDecode name, urlDecode (join "=" value)) \\ [name:value] <- map (split "=") (split "&" s)]
 
-http_parseMultiPartPostArguments :: !HTTPRequest -> ([HTTPArgument],[HTTPUpload])
+http_parseMultiPartPostArguments :: !HTTPRequest -> (Map String String, Map String HTTPUpload)
 http_parseMultiPartPostArguments req
 	# mimetype		= http_getValue "Content-Type" req.req_headers ""
-	# index			= text_indexOf "boundary=" mimetype
-	| index == -1	= ([],[])
+	# index			= indexOf "boundary=" mimetype
+	| index == -1	= (newMap,newMap)
 	# boundary		= mimetype % (index + 9, size mimetype)
 	# parts			= http_splitMultiPart boundary req.req_data
-	= parseParts parts [] []
+	= parseParts parts newMap newMap
 where
 	parseParts [] arguments uploads	= (arguments, uploads)
 	parseParts [(headers, body):xs] arguments uploads
-		# disposition		= http_getValue "Content-Disposition" headers ""
+		# disposition		= http_getValue "Content-Disposition" (fromList headers) ""
 		| disposition == ""	= parseParts xs arguments uploads
 		# name				= getParam "name" disposition
 		| name == ""		= parseParts xs arguments uploads
 		# filename			= getParam "filename" disposition
-		| filename == ""	= parseParts xs [(name,body):arguments] uploads
-		| otherwise			= parseParts xs arguments [	{ http_emptyUpload
+		| filename == ""	= parseParts xs (put name body arguments) uploads
+		| otherwise			= parseParts xs arguments (put name { newHTTPUpload
 														& upl_name		= name
 														, upl_filename	= filename
-														, upl_mimetype	= http_getValue "Content-Type" headers ""
+														, upl_mimetype	= http_getValue "Content-Type" (fromList headers) ""
 														, upl_content	= body
-														}:uploads]
+														} uploads)
 	getParam name header
-		# index	= text_indexOf (name +++ "=") header
+		# index	= indexOf (name +++ "=") header
 		| index == -1	= ""
 		# header = header % (index + (size name) + 1, size header)
-		# index	= text_indexOf ";" header
+		# index	= indexOf ";" header
 		| index == -1	= removequotes header
 						= removequotes (header % (0, index - 1))
 
@@ -204,7 +166,7 @@ http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply world //W
 	# reply = reply +++	("Content-Type: " +++ (http_getValue "Content-Type" headers "text/html") +++ "\r\n")					//Content type header
 	# reply = reply +++	("Content-Length: " +++ (toString (size data)) +++ "\r\n")												//Content length header
 	# reply = reply +++ ("Last-Modified: " +++ (http_getValue "Last-Modified" headers (now tm)) +++ "\r\n")						//Timestamp for caching
-	# reply = reply +++	(foldr (+++) "" [(n +++ ": " +++ v +++ "\r\n") \\ (n,v) <- headers | not (skipHeader n)])				//Additional headers
+	# reply = reply +++	(foldr (+++) "" [(n +++ ": " +++ v +++ "\r\n") \\ (n,v) <- toList headers | not (skipHeader n)])				//Additional headers
 	# reply = reply +++	("\r\n" +++ data)																						//Separator + data
 	= (reply, world)
 where
@@ -239,10 +201,10 @@ where
 
 //Error responses
 http_notfoundResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
-http_notfoundResponse req world = ({rsp_headers = [("Status","404 Not Found")], rsp_data = "404 - Not found"}, HTTPServerContinue, world)
+http_notfoundResponse req world = ({rsp_headers = put "Status" "404 Not Found" newMap, rsp_data = "404 - Not found"}, HTTPServerContinue, world)
 
 http_forbiddenResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
-http_forbiddenResponse req world = ({rsp_headers = [("Status","403 Forbidden")], rsp_data = "403 - Forbidden"}, HTTPServerContinue, world)
+http_forbiddenResponse req world = ({rsp_headers = put "Status" "403 Forbidden" newMap, rsp_data = "403 - Forbidden"}, HTTPServerContinue, world)
 
 //Static content
 http_staticResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
@@ -251,9 +213,9 @@ http_staticResponse req world
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
 	| not ok 				= http_notfoundResponse req world
-							= ({rsp_headers = [("Status","200 OK"),
-											   ("Content-Type", type),
-											   ("Content-Length", toString (size content))]
+							= ({rsp_headers = fromList [("Status","200 OK"),
+											   			("Content-Type", type),
+											   			("Content-Length", toString (size content))]
 							   ,rsp_data = content}, HTTPServerContinue, world)						
 							
 http_staticFileContent :: !String !*World -> (!Bool, !String, !*World)

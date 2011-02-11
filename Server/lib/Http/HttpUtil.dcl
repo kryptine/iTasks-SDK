@@ -3,10 +3,7 @@ definition module HttpUtil
 import HTTP, HttpServer
 
 //General utility functions
-http_urlencode :: !String -> String
-http_urldecode :: !String -> String
-
-http_splitMultiPart :: !String !String -> [([HTTPHeader], String)]
+http_splitMultiPart :: !String !String -> [([(String,String)], String)]
 
 //Incremental construction of a request
 http_addRequestData :: !HTTPRequest !Bool !Bool !Bool !String -> (HTTPRequest, Bool, Bool, Bool, Bool)
@@ -14,13 +11,13 @@ http_addRequestData :: !HTTPRequest !Bool !Bool !Bool !String -> (HTTPRequest, B
 
 //Parsing of HTTP Request messages
 http_parseRequestLine :: !String -> (!String, !String, !String, !String, !Bool)
-http_parseHeader :: !String -> (!HTTPHeader, !Bool)
+http_parseHeader :: !String -> (!(String,String), !Bool)
 
 http_parseArguments :: !HTTPRequest -> HTTPRequest
-http_parseGetArguments :: !HTTPRequest -> [HTTPArgument]
-http_parsePostArguments :: !HTTPRequest -> [HTTPArgument]
-http_parseUrlEncodedArguments :: !String -> [HTTPArgument]
-http_parseMultiPartPostArguments :: !HTTPRequest -> ([HTTPArgument],[HTTPUpload]) 
+http_parseGetArguments :: !HTTPRequest -> Map String String
+http_parsePostArguments :: !HTTPRequest -> Map String String
+http_parseUrlEncodedArguments :: !String -> [(String,String)]
+http_parseMultiPartPostArguments :: !HTTPRequest -> (Map String String, Map String HTTPUpload) 
 
 //Construction of HTTP Response messages
 http_makeResponse :: !HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, HTTPServerControl, *World)))] !Bool !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
