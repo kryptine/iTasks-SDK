@@ -56,11 +56,10 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} val vst=:{vizType, label, idPrefix, currentPath, optional, useLabels, updateMask, verifyMask}
-	# (cmu,um) = popMask updateMask
+gVisualize {|GoogleMap|} val vst=:{vizType, label, idPrefix, currentPath, optional, useLabels, verifyMask}
 	# (cmv,vm) = popMask verifyMask
 	= case vizType of
-		VEditorDefinition = ([TUIFragment (TUICustom   ((mapPanel val label (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+		VEditorDefinition = ([TUIFragment (TUICustom   ((mapPanel val label (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 		_				  = (staticMapPanel val, {VSt | vst & currentPath = stepDataPath currentPath})
 where
 	mapPanel Nothing fl hl 		  idp cp ed	= toJSON (tuidef mkMap fl hl idp cp ed)

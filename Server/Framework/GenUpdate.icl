@@ -401,6 +401,10 @@ where
 	childMasks (Untouched)		= []
 	childMasks (Touched  cm)	= cm
 	childMasks (Blanked)		= []
+	
+	isTouched :: !UpdateMask -> Bool
+	isTouched (Touched _)	= True
+	isTouched _				= False
 
 allUntouched :: ![UpdateMask] -> Bool
 allUntouched children = and [isUntouched c \\ c <- children]

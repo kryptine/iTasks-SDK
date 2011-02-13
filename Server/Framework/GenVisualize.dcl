@@ -17,14 +17,14 @@ derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Cu
 derive gVisualize ProcessRef, EmailAddress, Action, Table
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: String a UpdateMask VerifyMask -> [TUIDef]	| gVisualize{|*|} a
-visualizeAsHtmlDisplay	:: a -> HtmlTag									| gVisualize{|*|} a
-visualizeAsTextDisplay	:: a -> String									| gVisualize{|*|} a
-visualizeAsHtmlLabel	:: a -> HtmlTag									| gVisualize{|*|} a
-visualizeAsTextLabel	:: a -> String									| gVisualize{|*|} a
+visualizeAsEditor		:: String a VerifyMask	-> [TUIDef]	| gVisualize{|*|} a
+visualizeAsHtmlDisplay	:: a					-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextDisplay	:: a					-> String	| gVisualize{|*|} a
+visualizeAsHtmlLabel	:: a					-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextLabel	:: a					-> String	| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String (a, UpdateMask, VerifyMask) (a, UpdateMask, VerifyMask) ![DataPath] -> [TUIUpdate] | gVisualize{|*|} a
+determineEditorUpdates	:: String (a, VerifyMask) (a, VerifyMask) ![DataPath] -> [TUIUpdate] | gVisualize{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -35,7 +35,6 @@ determineEditorUpdates	:: String (a, UpdateMask, VerifyMask) (a, UpdateMask, Ver
 	
 	// Additional information for form generation
 	, currentPath		:: !DataPath					// Accumulated path through the data structure, used to identify sub-structures
-	, updateMask		:: ![UpdateMask]
 	, verifyMask		:: ![VerifyMask]
 	, selectedConsIndex	:: !Int							// Index of the selected constructor in an Object
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not

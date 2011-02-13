@@ -80,7 +80,7 @@ gDefaultMask{|Task|} _ _ = [Touched []]
 
 gVerify{|Task|} _ _ vst = alwaysValid vst
 
-gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath, updateMask, verifyMask}
+gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
 	# vis = case mbVal of
 		Just {taskProperties}	= [TextFragment taskProperties.ManagerProperties.taskDescription.TaskDescription.title]
 		Nothing					= []

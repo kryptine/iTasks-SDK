@@ -200,6 +200,10 @@ where
 	childMasks (VMInvalid _ cm)		= cm
 	childMasks (VMUntouched _ _ cm)	= cm
 	
+	isTouched :: !VerifyMask -> Bool
+	isTouched (VMUntouched _ _ _)	= False
+	isTouched _						= True
+	
 alwaysValid :: !*VerSt -> *VerSt
 alwaysValid vst=:{VerSt | verifyMask,updateMask}
 	# (cm,um) = popMask updateMask

@@ -5,12 +5,12 @@ import GenUpdate, GenVerify, TUIDiff, Util, Maybe, Text, HTML, JSON, TUIDefiniti
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = startDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, updateMask = [], verifyMask = [], headers = []}
+		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], headers = []}
 
 //Wrapper functions
-visualizeAsEditor :: String a UpdateMask VerifyMask -> [TUIDef] | gVisualize{|*|} a
-visualizeAsEditor name x umask vmask
-	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, idPrefix = name, updateMask = [umask], verifyMask = [vmask]}
+visualizeAsEditor :: String a VerifyMask -> [TUIDef] | gVisualize{|*|} a
+visualizeAsEditor name x vmask
+	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, idPrefix = name, verifyMask = [vmask]}
 	# (defs,vst) = gVisualize{|*|} (Just x) vst
 	= coerceToTUIDefs defs	
 
@@ -26,10 +26,10 @@ visualizeAsHtmlLabel x = html (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVS
 visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
 
-determineEditorUpdates :: String (a, UpdateMask, VerifyMask) (a, UpdateMask, VerifyMask) ![DataPath] -> [TUIUpdate]	| gVisualize{|*|} a
-determineEditorUpdates name (oval, oumask, ovmask) (nval, numask, nvmask) alwaysUpdate
-	# oldviz = visualizeAsEditor name oval oumask ovmask
-	# newviz = visualizeAsEditor name nval numask nvmask
+determineEditorUpdates :: String (a,VerifyMask) (a,VerifyMask) ![DataPath] -> [TUIUpdate]	| gVisualize{|*|} a
+determineEditorUpdates name (oval,ovmask) (nval,nvmask) alwaysUpdate
+	# oldviz = visualizeAsEditor name oval ovmask
+	# newviz = visualizeAsEditor name nval nvmask
 	= diffEditorDefinitions (hd oldviz) (hd newviz) alwaysUpdate
 	
 //IDEAS:
@@ -59,25 +59,24 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType}
 			= (vizBody,vst)
 	= (vis,{VSt|vst & label = Nothing})
 			
-gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,updateMask,verifyMask}
-	//For objects we only peek at the update & verify mask, but don't take it out of the state yet.
+gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,verifyMask}
+	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
-	# (cmu,_) = popMask updateMask
 	# (cmv,_) = popMask verifyMask
 	//ADT's with multiple constructors: Add the creation of a control for choosing the constructor
 	| d.gtd_num_conses > 1
 		# x = fmap (\(OBJECT o) -> o) val
 		= case vizType of 
 			VEditorDefinition
-				# (err,hnt)	= verifyElementStr cmu cmv
+				# (err,hnt)	= verifyElementStr cmv
 				# (items, vst=:{selectedConsIndex}) = fx x {vst & useLabels = False, optional = False}
 				= ([TUIFragment (TUIConstructorControl {TUIConstructorControl
 														| id = dp2id idPrefix currentPath
 														, name = dp2s currentPath
 														, fieldLabel = labelAttr useLabels label
-														, consSelIdx = case cmu of (Touched _) = selectedConsIndex; _ = -1
+														, consSelIdx = if (isTouched cmv) selectedConsIndex -1
 														, consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
-														, items = case cmu of (Touched _) = (coerceToTUIDefs items); _ = []
+														, items = if (isTouched cmv) (coerceToTUIDefs items) []
 														, staticDisplay = renderAsStatic
 														, errorMsg = err
 														, hintMsg = hnt
@@ -205,7 +204,7 @@ where
 	curLabel (Just (JPY _)) = "&yen;"
 	curLabel _				= "&euro;" //Use the default currency
 
-gVisualize {|Document|}	val vst=:{VSt|updateMask} = visualizeControl mkControl (mkText,mkHtml) val vst
+gVisualize {|Document|}	val vst = visualizeControl mkControl (mkText,mkHtml) val vst
 where
 	mkControl name id val label optional err hnt
 		# doc = case val of
@@ -398,7 +397,7 @@ where
 
 gVisualize{|Table|} fx val vst = visualizeCustom mkControl staticVis val True vst
 where
-	mkControl name id val touched label optional err hnt _ vst=:{VSt|currentPath,updateMask,verifyMask} = case val of
+	mkControl name id val touched label optional err hnt _ vst=:{VSt|currentPath,verifyMask} = case val of
 		Nothing
 			= ([TUIHtmlContainer	{ id = id
 									, html = empty
@@ -406,7 +405,7 @@ where
 									}],vst)
 		Just (Table rows)
 			#( vis,vst=:{headers})	= gVisualize{|* -> *|} fx (Just rows) vst
-			# (htm,vst)				= childVisualizations fx rows (Just VHtmlDisplay) {VSt|vst & currentPath = currentPath, updateMask = updateMask, verifyMask = verifyMask}
+			# (htm,vst)				= childVisualizations fx rows (Just VHtmlDisplay) {VSt|vst & currentPath = currentPath, verifyMask = verifyMask}
 			= ([TUIGridControl	{ TUIGridControl
 								| name = dp2s currentPath
 								, id = id
@@ -586,10 +585,9 @@ gVisualize{|Maybe|} fx val vst=:{vizType,currentPath,optional}
 	= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 	
 // wrapper types changing visualization behaviour
-gVisualize{|Hidden|} fx val vst=:{VSt | currentPath, updateMask, verifyMask}
-	# (cmu,um) = popMask updateMask
+gVisualize{|Hidden|} fx val vst=:{VSt | currentPath, verifyMask}
 	# (cmv,vm) = popMask verifyMask	
-	= ([],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+	= ([],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
 gVisualize{|Display|} fx val vst=:{currentPath,renderAsStatic}
 	# x	= fmap fromDisplay val
@@ -681,16 +679,13 @@ where
 	checkMask _ val _					= val
 	
 visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Maybe a) !Bool !*VSt -> *(![Visualization],!*VSt)
-visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,renderAsStatic,updateMask,verifyMask}
-	# (cmu,um)	= popMask updateMask
+visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,renderAsStatic,verifyMask}
 	# (cmv,vm)	= popMask verifyMask
 	# touched	= case (vizType) of
-		VEditorDefinition = case cmu of
-			Touched _	= True
-			_			= False
-		_				= True
+		VEditorDefinition	= isTouched cmv
+		_					= True
 	# id		= dp2id idPrefix currentPath
-	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# (vis,vst) = case vizType of
 		VEditorDefinition
 			# label = labelAttr useLabels label
@@ -703,19 +698,18 @@ visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,idPrefix,label,
 										, fieldLabel = label
 										}],vst)
 				_
-					# (err,hnt) = verifyElementStr cmu cmv
+					# (err,hnt) = verifyElementStr cmv
 					= tuiF (dp2s currentPath) id v touched label optional err hnt renderAsStatic vst
 				
 			= (map TUIFragment vis,vst)
 		_
 			= staticF v touched id vst
-	= (vis,{VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+	= (vis,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 noVisualization :: !*VSt -> *(![Visualization],!*VSt)
-noVisualization vst=:{VSt|currentPath,updateMask,verifyMask}
-	# (_,um)	= popMask updateMask
-	# (_,vm)	= popMask verifyMask
-	= ([],{VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+noVisualization vst=:{VSt|currentPath,verifyMask}
+	# (_,vm) = popMask verifyMask
+	= ([],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 childVisualizations :: !((Maybe a) -> .(*VSt -> *([Visualization],*VSt))) ![a] !(Maybe VisualizationType) !*VSt -> *(![[Visualization]],!*VSt)
 childVisualizations fx children mbVizType vst=:{vizType}
@@ -746,18 +740,11 @@ where
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
 
-verifyElementStr :: !UpdateMask !VerifyMask -> (!String, !String)
-verifyElementStr cmu cmv
-	= case cmu of
-		Untouched = case cmv of
-			VMValid mbHnt _ 				= ("",toString mbHnt)
-			VMUntouched mbHnt _ _ 			= ("",toString mbHnt)
-			VMInvalid IsBlankError _		= ("","")
-			VMInvalid (ErrorMessage s) _	= (s,"")
-		_ = case cmv of
-			VMValid mbHnt _					= ("",toString mbHnt)
-			VMUntouched mbHnt _ _ 			= ("",toString mbHnt)
-			VMInvalid err _					= (toString err,"")
+verifyElementStr :: !VerifyMask -> (!String, !String)
+verifyElementStr cmv = case cmv of
+	VMValid mbHnt _			= ("",toString mbHnt)
+	VMUntouched mbHnt _ _	= ("",toString mbHnt)
+	VMInvalid err _			= (toString err,"")
 
 //*********************************************************************************************************************
 

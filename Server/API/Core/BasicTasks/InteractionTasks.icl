@@ -331,7 +331,7 @@ makeInformationTaskAV mbContext (bimapGet,initView) bimapPutback actions informa
 					= handleActionEvent nvalue (isValidValue nvmask) event tst
 				Nothing
 					// UI is built after all possible changes of the model are done
-					# tst = setTUIFunc (buildUI old new rebuild refresh localTimestamp errors (map fst edits)) tst
+					# tst = setTUIFunc (buildUI (ovalue,ovmask) new rebuild refresh localTimestamp errors (map fst edits)) tst
 					= (TaskBusy,tst)
 where
 	// for local mode use auto generated store name, for shared mode use given store
@@ -382,26 +382,25 @@ where
 	*
 	* @return A tree node containing the computed UI definition/updates.
 	*/
-	buildUI old new=:(nvalue,numask,nvmask) rebuild refresh localTimestamp errors updatedPaths iworld
+	buildUI old new rebuild refresh localTimestamp errors updatedPaths iworld
 		# ((modelValue,modelTimestamp), iworld)	= readModelValue iworld
 		// check for changed model value
 		# (modelChanged,iworld)					= isSharedChanged shared localTimestamp iworld
 		// determine new view value if model is changed, rebuild is requested & not in enter mode
-		# (rebuilt,iworld) = case modelChanged && rebuild && not enterMode of
+		# ((rvalue,_,rvmask),iworld) = case modelChanged && rebuild && not enterMode of
 			True								= updateViewValue bimapGet new modelValue modelTimestamp errors iworld
 			False								= (app3 (id,id,setInvalid errors) new,iworld)
-		# (rvalue,rumask,rvmask)				= rebuilt
 		# evalActions							= evaluateConditions actions (isValidValue rvmask) (modelValue,rvalue)
 		# editorId								= "tf-" +++ taskNrToString taskNr
 		# iworld								= storeErrors errors iworld
 		| refresh	// refresh UI, send new def instead of updates
-			# form 								= visualizeAsEditor editorId rvalue rumask rvmask
+			# form 								= visualizeAsEditor editorId rvalue rvmask
 			= (Definition (taskPanel (taskNrToString taskNr) (fmap visualizeAsHtmlDisplay mbContext) (Just form)) evalActions,iworld)
 		| otherwise	// update UI
 			// get stored old errors
 			# (oldErrors,iworld)				= getErrors taskNr iworld
-			# old								= app3 (id,id,setInvalid oldErrors) old
-			# updates							= determineEditorUpdates editorId old rebuilt updatedPaths
+			# old								= app2 (id,setInvalid oldErrors) old
+			# updates							= determineEditorUpdates editorId old (rvalue,rvmask) updatedPaths
 			= (Updates updates evalActions,iworld)
 
 	buildJSONValue new=:(nvalue,_,_) localTimestamp iworld

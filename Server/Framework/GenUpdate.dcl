@@ -74,6 +74,7 @@ where
 	popMask 			:: ![m] -> (!m, ![m])
 	appendToMask 		:: ![m] !m -> [m]
 	childMasks			:: !m -> [m]
+	isTouched			:: !m -> Bool
 
 instance == DataPath
 instance GenMask UpdateMask
