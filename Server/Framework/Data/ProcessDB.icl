@@ -122,7 +122,11 @@ where
 	setImmutable prefix iworld
 		# (nprocs,iworld)	= processStore (\procs -> [if (startsWith prefix proc.Process.taskId) {Process|proc & mutable = False} proc \\ proc <- procs]) iworld
 		= iworld
-		
+	
+	addDependency :: !TaskId !TaskId !*IWorld -> (!Bool,!*IWorld)
+	addDependency processId dependent iworld
+		= updateProcess processId (\p -> {Process |p & dependents = removeDup [dependent : p.Process.dependents]}) iworld
+	
 	copySubProcesses :: !TaskId !TaskId !*IWorld -> *IWorld
 	copySubProcesses fromprefix toprefix iworld
 		# (nprocs,iworld)	= processStore (\procs -> flatten [copy fromprefix toprefix proc \\ proc <- procs]) iworld
@@ -194,6 +198,8 @@ where
 	removeFinishedProcesses tst = accIWorldTSt removeFinishedProcesses tst
 	setImmutable :: !TaskId !*TSt -> *TSt
 	setImmutable prefix tst = appIWorldTSt (setImmutable prefix) tst
+	addDependency :: !TaskId !TaskId !*TSt -> (!Bool,!*TSt)
+	addDependency processId dependent tst = accIWorldTSt (addDependency processId dependent) tst
 	copySubProcesses :: !TaskId !TaskId !*TSt -> *TSt
 	copySubProcesses fromprefix toprefix tst = appIWorldTSt (copySubProcesses fromprefix toprefix) tst
 	deleteSubProcesses :: !TaskId !*TSt -> *TSt

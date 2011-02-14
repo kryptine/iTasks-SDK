@@ -134,6 +134,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 		{ Process
 		| taskId		 = taskId
 		, properties	 = properties
+		, dependents	 = []
 		, changeCount	 = 0
 		, mutable		 = True
 		, inParallelType = mbParType
@@ -207,7 +208,7 @@ loadThread processId tst
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process !TreeType ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | taskId, properties, changeCount, inParallelType} treeType events newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,tree=parentTree,treeType=parentTreeType,events=parentEvents,properties=parentProperties,iworld=iworld=:{IWorld|timestamp=now}}
+evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeCount, inParallelType} treeType events newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,tree=parentTree,treeType=parentTreeType,events=parentEvents,properties=parentProperties,iworld=iworld=:{IWorld|timestamp=now}}
 	// Update access timestamps in properties
 	# properties						= {properties & systemProperties = {properties.systemProperties
 															& latestEvent = Just now
@@ -253,8 +254,10 @@ evaluateTaskInstance process=:{Process | taskId, properties, changeCount, inPara
 			//Update process table (status, changeCount & properties)
 			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Finished}}
 			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
+			//Evaluate dependent processes
+			# tst			= evaluateDependent dependents tst
 			| isTop
-				//Evaluate parent process
+				//Evaluate parent process (can probably be included in dependents evaluation)
 				| isJust properties.systemProperties.parent
 					# (mbParentProcess,tst) = getProcess (fromJust properties.systemProperties.parent) tst
 					= case mbParentProcess of
@@ -436,6 +439,17 @@ where
 			# tst = appIWorldTSt (storeValueAs SFDynamic ("iTask_change-" +++ label) dyn) tst
 			= storeChanges cs tst
 
+	evaluateDependent :: ![ProcessId] !*TSt -> *TSt
+	evaluateDependent [] tst = tst
+	evaluateDependent [p:ps] tst
+		# (mbProc,tst)	= getProcess p tst
+		= case mbProc of
+			Nothing
+				= evaluateDependent ps tst
+			Just proc 
+				# (_,_,tst)	= evaluateTaskInstance proc SpineTree [] Nothing True False tst
+				= evaluateDependent ps tst
+	
 	/*
 	* Evaluate all functions in interactive task nodes and task infos
 	*/
@@ -680,8 +694,8 @@ where
 	getRpcUpdates tst=:{taskNr,request} = (updates request, tst)
 	where
 		updates request
-			| http_getValue "_rpctaskid" request.arg_post "" == taskNrToString taskNr
-				= [u \\ u =: (k,v) <- request.arg_post]
+			| maybe "" id (get "_rpctaskid" request.arg_post) == taskNrToString taskNr
+				= toList request.arg_post
 			| otherwise
 				= []
 

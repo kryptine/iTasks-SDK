@@ -11,14 +11,15 @@ derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, Work
 /**
 * Our local process type
 */
-:: Process =	{ taskId			:: !TaskId						// The process identification				  
-				//Public process meta data
-				, properties		:: !TaskProperties				// The properties of the main task node of this process
-				//System internal information
-				, changeCount		:: !Int							// The number of task changes that have been applied
-				, mutable			:: !Bool						// May the process be evaluated further (required for duplication of processes by changes)
-				, inParallelType	:: !(Maybe TaskParallelType)	// The type of parallel, if the process is part of one
-					}
+:: Process 		= {	taskId			:: !TaskId						// The process identification				  
+				  //Public process meta data
+				  , properties		:: !TaskProperties				// The properties of the main task node of this process
+				  //System internal information
+				  , dependents		:: ![TaskId]					// Other process that are to be evaluated on completion of this task
+				  , changeCount		:: !Int							// The number of task changes that have been applied
+				  , mutable			:: !Bool						// May the process be evaluated further (required for duplication of processes by changes)
+				  , inParallelType	:: !(Maybe TaskParallelType)	// The type of parallel, if the process is part of one
+				  }
 
 class ProcessDB st
 where
@@ -40,6 +41,8 @@ where
 	removeFinishedProcesses :: 														!*st -> (!Bool, 			!*st)
 	
 	setImmutable			:: !TaskId												!*st -> *st
+	addDependency			:: !TaskId !TaskId										!*st -> (!Bool,				!*st)	
+	
 	copySubProcesses		:: !TaskId !TaskId										!*st -> *st
 	deleteSubProcesses		:: !TaskId												!*st -> *st
 
