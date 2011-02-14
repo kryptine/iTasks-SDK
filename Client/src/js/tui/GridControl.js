@@ -2,7 +2,9 @@ Ext.ns("itasks.tui");
 
 itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
 	autoHeight: true,
-	 viewConfig: {
+	htmlDirty: false,
+	stateful: false,
+	viewConfig: {
 		forceFit: true,
 		// increase selector depths to allow complex html layouts like for lists inside grid
 		rowSelectorDepth: 1000,
@@ -23,16 +25,20 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
 		var fieldsC = new Ext.util.MixedCollection();
 		fieldsC.addAll(fields);
 		
-		var mkRecord = function(row){
+		var mkRecord = function(row,idx){
 			var recConfig = {};
 			for(var j = 0; j < row.length; j++){
 				recConfig[j] = '<div>' + row[j] + '</div>';
 			}
 			
-			return new MyRecord(recConfig);
+			var rec = new MyRecord(recConfig);
+			rec.row = idx;
+			return rec;
 		};
 		
-		this.store = {
+		this.store = new Ext.util.Observable();
+		this.store.addEvents('update');
+		Ext.apply(this.store,{
 			getSortState: function(){},
 			getCount: function(){return data.length;},
 			getRange: function(start,end){
@@ -46,10 +52,13 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
 				return records;
 			},
 			getAt: function(i){
-				return mkRecord(data[i]);
+				return mkRecord(data[i],i);
+			},
+			indexOf: function(rec){
+				return rec.row;
 			},
 			fields: fieldsC
-		};
+		});
 	
 		itasks.tui.GridControl.superclass.initComponent.apply(this,arguments);
 		
@@ -104,11 +113,11 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
 		this.editing = true;
 		var ed = this.gridEditors[row][col];
 		
+		var cellEl = new Ext.Element(this.getView().getCell(row,col));
 		if(!ed.rendered){
 			ed = Ext.create(ed);
-			var cellEl = this.getView().getCell(row,col);
 			
-			ed.displayEl = new Ext.Element(cellEl.firstChild);
+			ed.displayEl = new Ext.Element(cellEl.first());
 			ed.displayEl.setVisibilityMode(Ext.Element.DISPLAY);
 			
 			var edPanel = new Ext.Panel({
@@ -123,6 +132,11 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
 			
 			ed.panel = edPanel;
 			this.gridEditors[row][col] = ed;
+		}else if(!cellEl.contains(ed.getEl())){
+			// re-append editor after cell update
+			cellEl.appendChild(ed.panel.getEl());
+			ed.displayEl = new Ext.Element(cellEl.first());
+			ed.displayEl.setVisibilityMode(Ext.Element.DISPLAY);
 		}
 		
 		this.activeEditor = ed;
@@ -149,6 +163,29 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
 				ae.panel.hide();
 				this.getColumnModel().setColumnWidth(ae.col,ae.beforeEditColWidth);
 			}
+			
+			if(ae.htmlDirty){
+				var store = this.store;
+				store.fireEvent('update',store,store.getAt(ae.row));
+				ae.htmlDirty = false;
+			}
+		}
+	},
+	
+	setValue: function(v){
+		var v = Ext.decode(v);
+		var	row = v[0],
+			col = v[1],
+			val = v[2];
+			
+		this.gridHtml[row][col] = val;
+		
+		var ae = this.activeEditor;
+		if (ae && ae.row == row){
+			ae.htmlDirty = true;
+		}else{
+			var store = this.store;
+			store.fireEvent('update',store,store.getAt(row));
 		}
 	}
 });

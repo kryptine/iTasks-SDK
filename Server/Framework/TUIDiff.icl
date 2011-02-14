@@ -56,6 +56,11 @@ where
 							[]
 							[TUISetValue_ (dp2s path) (toString nt.selIndex)]
 						[TUIReplace_ (dp2s path) new]
+				(TUIGridControl {gridEditors = oe,gridHtml = oh}, TUIGridControl {gridEditors = ne, gridHtml = nh})
+					# htmlUpdates	= flatten [[TUISetValue_  (dp2s path) (toString (toJSON (i,j,n))) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
+					# path			= shiftDataPath path
+					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (childDataPath (childDataPath path i) j) o n \\ o <- or & n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
+					= htmlUpdates ++ editorUpdates
 				// Fallback: always replace
 				_	= [TUIReplace_ (dp2s path) new]
 	
@@ -68,7 +73,7 @@ where
 				= case accfun new of
 					Just prop	= [consfun (dp2s path) prop]
 					Nothing		= []
-			| otherwise			= []	
+			| otherwise			= []
 	
 		staticContainerUpdate path old new
 			//Simply update all child elements

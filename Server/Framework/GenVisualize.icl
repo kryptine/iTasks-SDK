@@ -420,7 +420,7 @@ where
 			getHtml` :: HtmlTag -> String
 			getHtml` (TrTag _ [_,TdTag _ htm])	= toString (html htm)
 			getHtml` _							= abort "get table html: unexpected format of record table row"
-		getLabels viz = [toString (coerceToHtml viz)]
+		getHtml viz = [toString (html (coerceToHtml viz))]
 		
 		getEditors :: [Visualization] -> [[TUIDef]]
 		getEditors [TUIFragment (TUIListContainer {TUIListContainer|items})] = map (getEditors` o stripListItem) items

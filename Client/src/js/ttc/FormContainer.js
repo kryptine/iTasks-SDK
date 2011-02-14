@@ -51,7 +51,11 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 					//New instructions:
 					case "TUISetValue_":
 						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
-							cmp.setValue(update[2]);
+							if(cmp.setValue){
+								cmp.setValue(update[2]);
+							}else{
+								cmp.value = update[2]; // cmp is not created yet
+							}
 						}
 						break;
 					case "TUISetError_":
@@ -75,26 +79,33 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 		}
 	},
 	findComponentByPath: function(start, path) {
-		var steps = path.split("-");
+		var path = path.split("-");
 		var cmp = start;
-		for(var i = 0; i < steps.length; i++) {	
+		for(var i = 0; i < path.length; i++) {
+			var steps = parseInt(path[i]);
 			
-			if(cmp.isXType('itasks.tui.Constructor')) {
-				cmp = cmp.itemPanel.items.get(parseInt(steps[i]));
+			if (cmp.xtype == 'itasks.tui.Grid') {
+				//Get grid editor
+				var row = parseInt(path[i+1]);
+				var col = parseInt(path[i+2]);
+				i = i + 2;
+				cmp = cmp.gridEditors[row][col];
+			} else if(cmp.xtype == 'itasks.tui.Constructor') {
+				cmp = cmp.itemPanel.items.get(steps);
 			} else {
-				cmp = cmp.items.get(parseInt(steps[i]));
+				cmp = cmp.items.get(steps);
 			}
+			
+			if(cmp.xtype == 'itasks.tui.list.Item') {
+				//Skip list items in the counting
+				cmp = cmp.items.get(0);
+			}
+			
 			if(!cmp) {
 				return null;
 			}
-			//Skip list items in the counting
-			if(cmp.isXType('itasks.tui.list.Item')) {
-				cmp = cmp.items.get(0);
-				if(!cmp) {
-					return null;
-				}
-			}
 		}
+
 		return cmp;
 	},
 	replaceComponentByPath: function(start, path, replacement) {
