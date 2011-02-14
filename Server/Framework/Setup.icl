@@ -13,7 +13,7 @@ setupHandler handlers req world
 	# (finished,world)	= configFileAvailable appName world
 	| finished
 		= finishPage appName world
-	# (config,world)	= if (isEmpty req.arg_post) (initialConfig world) (postedConfig req, world)
+	# (config,world)	= if (isEmpty (toList req.arg_post)) (initialConfig world) (postedConfig req, world)
 	# (errors,world)	= checkConfig config world
 	= case req.req_path of
 		"/edit"	= editConfigPage appName config errors world
@@ -39,16 +39,16 @@ where
 
 postedConfig :: !HTTPRequest -> Config	
 postedConfig req = 
-	{ clientPath = http_getValue "clientPath" req.arg_post ""
-	, staticPath = http_getValue "staticPath" req.arg_post ""
-	, rootPassword = http_getValue "rootPassword" req.arg_post ""
-	, rootEmail	= http_getValue "rootEmail" req.arg_post ""
-	, sessionTime = toInt (http_getValue "sessionTime" req.arg_post "0")
-	, serverPort = toInt (http_getValue "serverPort" req.arg_post "0")
-	, serverPath = http_getValue "serverPath" req.arg_post "0"
-	, debug = http_getValue "debug" req.arg_post "false" <> "false"
-	, smtpServer = http_getValue "smtpServer" req.arg_post ""
-	, generalWorkflows = http_getValue "generalWorkflows" req.arg_post "false" <> "false"
+	{ clientPath = maybe "" id (get "clientPath" req.arg_post)
+	, staticPath = maybe "" id (get "staticPath" req.arg_post)
+	, rootPassword = maybe "" id (get "rootPassword" req.arg_post)
+	, rootEmail	= maybe "" id (get "rootEmail" req.arg_post)
+	, sessionTime = maybe 0 toInt (get "sessionTime" req.arg_post)
+	, serverPort = maybe 0 toInt (get "serverPort" req.arg_post)
+	, serverPath = maybe "" id (get "serverPath" req.arg_post)
+	, debug = (maybe "false" id (get "debug" req.arg_post)) <> "false"
+	, smtpServer = maybe "" id (get "smtpServer" req.arg_post)
+	, generalWorkflows = (maybe "false" id (get "generalWorkflows" req.arg_post)) <> "false"
 	} 
 			 		 
 checkConfig :: !Config !*World -> (![Maybe String],!*World)
@@ -84,7 +84,7 @@ noErrors :: [(Maybe String)] -> Bool
 noErrors errors = not (or (map isJust errors))
 	
 page :: !String ![HtmlTag] !*World -> (!HTTPResponse,!HTTPServerControl, !*World)
-page appName content world = ({http_emptyResponse & rsp_data = toString (pageLayout (appName +++ " setup") "" content)}, HTTPServerContinue, world)
+page appName content world = ({newHTTPResponse & rsp_data = toString (pageLayout (appName +++ " setup") "" content)}, HTTPServerContinue, world)
 
 choicePage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
 choicePage appName config errors world = page appName [DivTag [IdAttr "content"] [instructions,showConfig config errors],buttons] world
@@ -113,7 +113,7 @@ saveConfigPage appName config handlers world
 	# world 		= storeConfig appName config world
 	# options 		= [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
 	# redirectUrl	= if (config.serverPort == 80) "http://localhost/" ("http://localhost:" +++ toString config.serverPort +++ "/")
-	= ({http_emptyResponse & rsp_headers = [("Status","302"),("Location",redirectUrl)]}, HTTPServerRestart options handlers, world)
+	= ({newHTTPResponse & rsp_headers = fromList [("Status","302"),("Location",redirectUrl)]}, HTTPServerRestart options handlers, world)
 
 finishPage :: !String !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
 finishPage appName world = page appName [instructions] world

@@ -42,8 +42,8 @@ where
 	
 serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] JSONNode -> HTTPResponse
 serviceResponse html title description url params json =
-		if html	{http_emptyResponse & rsp_data = toString (servicePage title description url params json)}
-				{http_emptyResponse & rsp_data = toString json}
+		if html	{newHTTPResponse & rsp_data = toString (servicePage title description url params json)}
+				{newHTTPResponse & rsp_data = toString json}
 
 
 formatJSON :: JSONNode -> [HtmlTag]
@@ -77,11 +77,11 @@ where
 		[ATag [HrefAttr "html/documents"] [Text "Upload/download of binary files"]]
 	
 overviewResponse :: HTTPResponse
-overviewResponse = {http_emptyResponse & rsp_data = toString overviewPage}
+overviewResponse = {newHTTPResponse & rsp_data = toString overviewPage}
 
 redirectResponse :: !String -> HTTPResponse
 redirectResponse url
-	= {HTTPResponse | rsp_headers = [("Status","302 - Found"),("Location",url)], rsp_data = ""}
+	= {HTTPResponse | rsp_headers = fromList [("Status","302 - Found"),("Location",url)], rsp_data = ""}
 
 notFoundPage :: !HTTPRequest -> HtmlTag
 notFoundPage req = pageLayout "404 - Not Found" "" message
@@ -90,14 +90,18 @@ where
 
 notFoundResponse :: !HTTPRequest -> HTTPResponse
 notFoundResponse req
-	= {HTTPResponse | rsp_headers = [("Status","404 - Not Found")], rsp_data = toString (notFoundPage req)}
+	= {HTTPResponse | rsp_headers = fromList [("Status","404 - Not Found")], rsp_data = toString (notFoundPage req)}
 
 pageSection :: !String ![HtmlTag] -> HtmlTag
 pageSection title content = DivTag [ClassAttr "section"] [H2Tag [] [Text title]:content]
 
-
 paramValue :: !String !HTTPRequest -> String
-paramValue name req = http_getValue name (req.arg_post ++ req.arg_get) ""
+paramValue name req
+	= case get name req.arg_post of
+		Just val	= val
+		Nothing		= case get name req.arg_get of
+			Just val	= val
+			Nothing		= ""
 
 NEWLINE	:== "\n"
 

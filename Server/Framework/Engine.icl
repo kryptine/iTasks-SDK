@@ -10,7 +10,7 @@ from Directory import qualified pd_StringToPath, createDirectory, getFileInfo, :
 import	Store, UserDB, ProcessDB, SessionDB
 import	Text, Util, HtmlUtil
 
-import	CommandLine
+import	CommandLine, UrlEncoding
 import	TuningCombinators
 
 import	HTTP, HttpUtil
@@ -56,7 +56,7 @@ where
 	
 	serviceDispatch config flows req world
 		# tst				= initTSt req config flows world
-		# reqpath			= (http_urldecode req.req_path)
+		# reqpath			= (urlDecode req.req_path)
 		# reqpath			= reqpath % (size config.serverPath, size reqpath)
 		# (response,tst) = case (split "/" reqpath) of
 			[""]								= (redirectResponse (req.req_path +++ "/html"), tst)
@@ -117,14 +117,14 @@ handleStaticResourceRequest config req world
 	# filename				= config.clientPath +++ filePath path
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
-	|  ok 					= ({rsp_headers = [("Status","200 OK"),
+	|  ok 					= ({rsp_headers = fromList [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size content))]
 							   	,rsp_data = content}, HTTPServerContinue, world)
 	# filename				= config.staticPath +++ filePath path
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
-	|  ok 					= ({rsp_headers = [("Status","200 OK"),
+	|  ok 					= ({rsp_headers = fromList [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size content))											   
 											   ]
@@ -135,7 +135,7 @@ where
 	filePath path = ((replaceSubString "/" PATH_SEP) o (replaceSubString ".." "")) path
 
 handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!HTTPServerControl,!*World)
-handleStopRequest req world = ({http_emptyResponse & rsp_data = "Server stopped..."},HTTPServerStop, world)
+handleStopRequest req world = ({newHTTPResponse & rsp_data = "Server stopped..."},HTTPServerStop, world)
 
 initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world

@@ -24,11 +24,11 @@ documentService url html path req tst
 			| isJust mbSessionErr
 				# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbSessionErr))]
 				= (serviceResponse html "Upload document" uploadDescription url params json, tst)
-			| length req.arg_uploads == 0
+			# uploads = toList req.arg_uploads
+			| length uploads == 0
 				# json = JSONObject [("success",JSONBool False),("error",JSONString "No documents were uploaded")]
-				= (serviceResponse html "Upload document" uploadDescription url params json, tst)
-				
-			# (documents, tst) = createDocuments req.arg_uploads tst
+				= (serviceResponse html "Upload document" uploadDescription url params json, tst)		
+			# (documents, tst) = createDocuments uploads tst
 			# json = JSONObject [("success",JSONBool True),("documents", toJSON documents)]
 			= (serviceResponse html "Upload document" uploadDescription url params json, tst)
 		//Requests for a single request
@@ -56,7 +56,7 @@ where
 	params			= [("session",sessionParam,True)]
 					  
 	createDocuments [] tst = ([],tst)
-	createDocuments [u:us] tst
+	createDocuments [(n,u):us] tst
 		# (d,tst)	= createDocument u.upl_filename u.upl_mimetype u.upl_content tst
 		# (ds,tst)	= createDocuments us tst
 		= ([d:ds],tst)
@@ -71,7 +71,7 @@ where
 			(Just {Document|name,mime,size} ,Just content)
 				# downloadHeader	= if download [("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")] []
 				# headers			= [("Status","200 OK"),("Content-Type", mime),("Content-Length", toString size):downloadHeader]
-				= ({HTTPResponse|rsp_headers = headers, rsp_data = content},tst)
+				= ({HTTPResponse|rsp_headers = fromList headers, rsp_data = content},tst)
 			_
 				= (notFoundResponse req,tst)
 						
