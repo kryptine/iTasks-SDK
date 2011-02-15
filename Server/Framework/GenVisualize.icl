@@ -656,11 +656,11 @@ where
 visualizeControl :: !(TUIVizFunction a) !(StaticVizFunctions a) !(Maybe a) !*VSt -> (![Visualization],!*VSt) | gVisualize{|*|} a
 visualizeControl tuiF (strF,htmlF) v vst = visualizeCustom tuiF` staticF v True vst
 where
-	tuiF` name id v touched label optional err hnt _ vst=:{vizType}
-		# v = checkMask touched v vizType
+	tuiF` name id v touched label optional err hnt _ vst
+		# v = checkMask touched v
 		= ([tuiF name id v label optional err hnt],vst)
 	staticF v touched id vst=:{vizType}
-		# v = checkMask touched v vizType
+		# v = checkMask touched v
 		# vis = case vizType of
 			VHtmlDisplay
 				= [HtmlFragment (htmlF v id)]
@@ -674,9 +674,9 @@ where
 				= abort "function for static visualizations called with VEditorDefinition"
 		= (vis,vst)
 
-	checkMask :: !Bool !(Maybe a) !VisualizationType -> (Maybe a)
-	checkMask False _ VEditorDefinition	= Nothing
-	checkMask _ val _					= val
+	checkMask :: !Bool !(Maybe a) -> (Maybe a)
+	checkMask False _	= Nothing
+	checkMask _ val 	= val
 	
 visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Maybe a) !Bool !*VSt -> *(![Visualization],!*VSt)
 visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,renderAsStatic,verifyMask}
