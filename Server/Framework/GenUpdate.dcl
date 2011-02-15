@@ -82,7 +82,47 @@ instance GenMask UpdateMask
 toggleMask 			:: !String 		-> UpdateMask
 
 // utility functions for custom gUpdate definitions
+/**
+* Updates a value.
+*
+* @param The current update mode
+* @param A function defining how to update the value given an update-string
+* @param A default value for creation
+* @param USt
+*
+* @return modified USt
+*/
 basicUpdate :: !(UpdateMode a) (String a -> a) a !*USt -> *(!a,!*USt)
+/**
+* Updates a value which's new value can be calculated from the update-string
+* without knowledge of the previous value.
+*
+* @param The current update mode
+* @param A function defining how calculate a new value from an update-string
+* @param A default value for creation
+* @param USt
+*
+* @return modified USt
+*/
 basicUpdateSimple :: !(UpdateMode a) (String -> a) a !*USt -> *(!a,!*USt)
+/**
+* Creates a default value.
+* (Same as basicUpdate with UDCreate as first parameter.)
+*
+* @param The created default value
+* @param USt
+*
+* @return modified USt
+*/
 basicCreate :: !a !*USt -> *(!a,!*USt)
+/**
+* Search in a value and possibly apply update.
+* (Same as basicUpdate with (UDSearch a) as first parameter.)
+*
+* @param The value to search in
+* @param A function defining how calculate a new value from an update-string
+* @param USt
+*
+* @return modified USt
+*/
 basicSearch :: a (String a -> a) !*USt -> *(!a,!*USt)
