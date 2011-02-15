@@ -1,10 +1,9 @@
 implementation module EngineWrapperCGI
 
 import Engine
-import HTTP, HttpCGI
-import StdList, StdFunc
+import HTTP, CGI
 
 startEngine :: ![Workflow] !*World -> *World 
 startEngine flows world
 	# (config,world) = config world
-	= http_startCGI [] (engine config flows) world
+	= startCGI [] (engine config flows) world

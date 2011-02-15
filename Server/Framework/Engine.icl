@@ -8,13 +8,10 @@ from StdLibMisc import qualified ::Date{..}, ::Time{..}
 from Directory import qualified pd_StringToPath, createDirectory, getFileInfo, ::DirError(..), ::FileInfo(..), ::PI_FileInfo(..), instance == DirError
 
 import	Store, UserDB, ProcessDB, SessionDB
-import	Text, Util, HtmlUtil
+import	Util, HtmlUtil
+import	CommandLine, File, FilePath, HTTP, Text, MIME, UrlEncoding
 
-import	CommandLine, UrlEncoding
 import	TuningCombinators
-
-import	HTTP, HttpUtil
-
 import	Setup
 
 import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService
@@ -25,8 +22,6 @@ from UserAdmin	import manageUsers
 from Messages	import manageMessages
 from Lists		import manageLists
 from Groups		import manageGroups
-
-PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
@@ -114,24 +109,25 @@ handleStaticResourceRequest :: !Config !HTTPRequest *World -> (!HTTPResponse,!*W
 handleStaticResourceRequest config req world
 	# path					= if (req.req_path == "/") "/index.html" req.req_path
 	# filename				= config.clientPath +++ filePath path
-	# (type, world)			= http_staticFileMimeType filename world
-	# (ok, content, world)	= http_staticFileContent filename world
-	|  ok 					= ({rsp_headers = fromList [("Status","200 OK"),
+	# type					= mimeType filename
+	# (mbContent, world)	= readFile filename world
+	| isOk mbContent		= ({rsp_headers = fromList [("Status","200 OK"),
 											   ("Content-Type", type),
-											   ("Content-Length", toString (size content))]
-							   	,rsp_data = content}, world)
+											   ("Content-Length", toString (size (fromOk mbContent)))]
+							   	,rsp_data = fromOk mbContent}, world)
 	# filename				= config.staticPath +++ filePath path
-	# (type, world)			= http_staticFileMimeType filename world
-	# (ok, content, world)	= http_staticFileContent filename world
-	|  ok 					= ({rsp_headers = fromList [("Status","200 OK"),
+	# type					= mimeType filename
+	# (mbContent, world)	= readFile filename world
+	| isOk mbContent 		= ({rsp_headers = fromList [("Status","200 OK"),
 											   ("Content-Type", type),
-											   ("Content-Length", toString (size content))											   
+											   ("Content-Length", toString (size (fromOk mbContent)))											   
 											   ]
-							   	,rsp_data = content}, world)						   								 	 							   
+							   	,rsp_data = fromOk mbContent}, world)						   								 	 							   
 	= (notFoundResponse req,world)
 where
 	//Translate a URL path to a filesystem path
-	filePath path = ((replaceSubString "/" PATH_SEP) o (replaceSubString ".." "")) path
+	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
+	mimeType path	= extensionToMimeType (takeExtension path)
 
 handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!*World)
 handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, world) //Stop
@@ -173,6 +169,4 @@ determineAppPath world
 determineAppName :: !*World -> (!String,!*World)
 determineAppName world 
 	# (args,world)	= getCommandLine world
-	= (strip (hd args),world)
-where
-	strip path = let executable = last (split PATH_SEP path) in executable % (0, size executable - 5)
+	= ((dropExtension o dropDirectory o hd) args,world)
