@@ -228,11 +228,12 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 * sequence.
 *
 * @param A description of the task
+* @param The type of the interactive task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
 */
-mkInteractiveTask	:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkInteractiveTask	:: !d !InteractiveTaskType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
@@ -257,18 +258,6 @@ mkInstantTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 * @return The newly constructed basic task
 */
 mkMonitorTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-/**
-* Wrap a function of the proper type to create a function that 
-* displays an (offline) instruction to the user. The user can only
-* dismiss the instruction. No result is returned.
-*
-* @param A description of the task
-* @param The function on the TSt that is the task
-*
-* @return Void
-*/
-mkInstructionTask	:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-
 /**
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
@@ -355,9 +344,7 @@ addTaskNode 		:: !TaskTree !*TSt -> *TSt
 setTUIDef			:: ![TUIDef] ![(Action,Bool)] !*TSt 								-> *TSt //Only for interactive tasks
 setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt								-> *TSt //Only for interactive tasks
 setTUIFunc			:: (*IWorld -> *(!InteractiveTask, !*IWorld)) !*TSt					-> *TSt //Only for interactive tasks
-setTUIMessage 		:: ![TUIDef] ![(Action,Bool)] !*TSt									-> *TSt //Only for interactive tasks
 setStatus			:: !HtmlTag !*TSt													-> *TSt	//Only for monitor tasks
-setInstruction		:: !(Maybe HtmlTag) !*TSt											-> *TSt //Only for instruction tasks
 setGroupActions		:: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt	-> *TSt //Only for group tasks
 setFocusCommand		:: !String !*TSt													-> *TSt //Only for group tasks
 

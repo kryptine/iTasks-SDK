@@ -3,17 +3,15 @@ implementation module TaskPanel
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import JSON, HTML, TSt, TUIDefinition, Map
 
-derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
+derive JSONEncode TTCInteractiveContainer, FormContent, InteractiveTaskType, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer
 derive JSONEncode TTCParallelContainer,TTCParallelContainerElement, TTCGroupContainer, TTCGroupContainerElement, GroupedBehaviour
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (TaskDone)							= [JSONString "done"]
 JSONEncode{|TaskPanel|} (TaskRedundant)						= [JSONString "redundant"]
 JSONEncode{|TaskPanel|} (TaskNotDone)						= [JSONString "notdone"]
-JSONEncode{|TaskPanel|} (TTCFormContainer x)				= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCInteractiveContainer x)			= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCMonitorContainer x)				= JSONEncode{|*|} x
-JSONEncode{|TaskPanel|} (TTCMessageContainer x)				= JSONEncode{|*|} x
-JSONEncode{|TaskPanel|} (TTCInstructionContainer x)			= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCResultContainer x)				= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCProcessControlContainer x)	 	= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCParallelContainer x)			= JSONEncode{|*|} x
@@ -38,13 +36,13 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 	= case tree of
 		(TTFinishedTask _ _)
 			= TaskDone
-		(TTInteractiveTask ti (UIOutput (Definition def taskActions)))
+		(TTInteractiveTask ti type (UIOutput (Definition def taskActions)))
 			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
 			# (buttons, mbMenuBar) = case fixedInGroup of
 				True	= (mkButtons taskActions, Nothing)
 				False	= app2 (id, Just) (makeButtonsAndMenus taskActions menus)
-			= TTCFormContainer {TTCFormContainer 
-				| xtype 		= "itasks.ttc.form"
+			= TTCInteractiveContainer {TTCInteractiveContainer 
+				| xtype 		= "itasks.ttc.interactive"
 				, id 			= "taskform-" +++ ti.TaskInfo.taskId
 				, taskId 		= ti.TaskInfo.taskId
 				, subject		= ti.TaskInfo.subject
@@ -53,14 +51,15 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 				, updates 		= Nothing	
 				, menu			= mbMenuBar
 				, formWidth		= Just formWidth
+				, type			= type
 				}
-		(TTInteractiveTask ti (UIOutput (Updates upd taskActions)))
+		(TTInteractiveTask ti type (UIOutput (Updates upd taskActions)))
 			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
 			# (buttons, mbMenuBar) = case fixedInGroup of
 				True	= (mkButtons taskActions, Nothing)
 				False	= app2 (id, Just) (makeButtonsAndMenus taskActions menus)
-			= TTCFormContainer {TTCFormContainer 
-				| xtype 		= "itasks.ttc.form"
+			= TTCInteractiveContainer {TTCInteractiveContainer 
+				| xtype 		= "itasks.ttc.interactive"
 				, id 			= "taskform-" +++ ti.TaskInfo.taskId
 				, taskId 		= ti.TaskInfo.taskId
 				, subject		= ti.TaskInfo.subject
@@ -69,26 +68,13 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 				, updates 		= Just (upd ++ [TUIReplaceButtons buttons] ++ case mbMenuBar of Just menuBar = [TUIReplaceMenu menuBar]; Nothing = [])
 				, menu			= Nothing
 				, formWidth		= Nothing
+				, type			= type
 				}
-		(TTInteractiveTask ti (UIOutput (Func f)))
+		(TTInteractiveTask _ _ (UIOutput (Func f)))
 			= abort "Non-normalized interactive task left in task tree"
-		(TTInteractiveTask ti (UIOutput (Message msg taskActions)))
-			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
-			# (buttons, mbMenuBar) = case fixedInGroup of
-				True	= (mkButtons taskActions, Nothing)
-				False	= app2 (id, Just) (makeButtonsAndMenus taskActions menus)
-			= TTCMessageContainer {TTCMessageContainer
-				| xtype		= "itasks.ttc.message"
-				, id		= "taskform-" +++ ti.TaskInfo.taskId
-				, taskId	= ti.TaskInfo.taskId
-				, subject	= ti.TaskInfo.subject
-				, description = ti.TaskInfo.description
-				, content	= {form = msg, buttons = buttons }
-				, menu		= mbMenuBar
-				}
-		(TTInteractiveTask ti NoOutput)
+		(TTInteractiveTask _ _ NoOutput)
 			= abort "No Output node in the task tree"
-		(TTInteractiveTask ti (JSONOutput _))
+		(TTInteractiveTask _ _ (JSONOutput _))
 			= abort "JSON Output in the task tree"
 		(TTMonitorTask ti (UIOutput html))
 			= TTCMonitorContainer {TTCMonitorContainer 
@@ -99,15 +85,6 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 				, description	= ti.TaskInfo.description
 				, html 			= toString html
 				, menu			= Nothing
-				}
-		(TTInstructionTask ti (UIOutput context))
-			= TTCInstructionContainer {TTCInstructionContainer 
-				| xtype 		= "itasks.ttc.instruction"
-				, id 			= "taskform-" +++ ti.TaskInfo.taskId
-				, taskId 		= ti.TaskInfo.taskId
-				, subject		= ti.TaskInfo.subject
-				, description 	= ti.TaskInfo.description
-				, context		= fmap toString context
 				}
 		(TTRpcTask ti rpc) 
 			= TTCMonitorContainer {TTCMonitorContainer 
@@ -226,7 +203,7 @@ where
 getTaskInfo :: !TaskTree -> TaskInfo
 getTaskInfo task
 	# info = case task of
-		TTInteractiveTask ti _	 	= ti
+		TTInteractiveTask ti _ _ 	= ti
 		TTMonitorTask ti _			= ti
 		TTRpcTask ti _				= ti
 		TTFinishedTask ti _			= ti
@@ -234,7 +211,6 @@ getTaskInfo task
 		TTSequenceTask ti _			= ti
 		TTMainTask ti _ _ _			= ti
 		TTGroupedTask ti _ _ _		= ti
-		TTInstructionTask ti _ 		= ti
 		_ 							= abort "Unknown panel type in group"
 	= info
 

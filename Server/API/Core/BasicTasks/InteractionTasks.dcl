@@ -278,7 +278,7 @@ showMessageA	:: !d ![TaskAction a]	a -> Task (!ActionEvent, a)	| descr d & iTask
 */
 showMessageAbout	:: !d							!a			-> Task a					| descr d & iTask a
 showMessageAboutA	:: !d !(a -> v) ![TaskAction a]	!a			-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v
-showMessageShared	:: !d !(a -> v) ![TaskAction a] !(shared a)	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v & toReadOnlyShared shared a
+showMessageShared	:: !d !(a -> v) ![TaskAction a] !(Shared a)	-> Task (!ActionEvent, a)	| descr d & iTask a & iTask v & toReadOnlyShared Shared a
 
 /*
 * Show a basic message to the user. The user cannot end the task after reading the message. 
@@ -305,7 +305,7 @@ showStickyMessage	:: !d	a	-> Task a	| descr d & iTask a
 * @return					A (copy of) value
 */
 showStickyMessageAbout	:: !d			!a			-> Task a	| descr d & iTask a
-showStickyMessageShared	:: !d !(a -> v)	!(shared a)	-> Task a	| descr d & iTask a & iTask v & toReadOnlyShared shared a
+showStickyMessageShared	:: !d !(a -> v)	!(Shared a)	-> Task a	| descr d & iTask a & iTask v & toReadOnlyShared Shared a
 
 //*** Instruction tasks ***//
 

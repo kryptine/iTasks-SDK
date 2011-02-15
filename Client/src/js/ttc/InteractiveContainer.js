@@ -1,15 +1,29 @@
 Ext.ns('itasks.ttc');
 
-itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
+itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 
 	initComponent : function() {
-		this.cls = 'TTCFormContainer';	
-		itasks.ttc.FormContainer.superclass.initComponent.apply(this,arguments);
+		switch(this.type){
+			case 'Information':
+				this.cls		= 'TTCInformationContainer';
+				this.panelCls	= 'TTCInformationPanel';
+				break;
+			case 'Message':
+				this.cls		= 'TTCMessageContainer';
+				this.panelCls	= 'TTCMessagePanel';
+				break;
+			case 'Instruction':
+				this.cls		= 'TTCInstructionContainer';
+				this.panelCls	= 'TTCInstructionContainer-Context';
+				break;
+		}
+		
+		itasks.ttc.InteractiveContainer.superclass.initComponent.apply(this,arguments);
 	},
 	buildComponents: function(data){
 		this.interactionpanel = {
 			xtype: 'panel',
-			cls: 'TTCFormPanel',
+			cls: this.panelCls,
 			layout: 'form',
 			unstyled: true,
 			autoScroll: true,
@@ -75,7 +89,7 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 			}
 		} else {
 			//Completely replace form
-			itasks.ttc.FormContainer.superclass.update.apply(this,arguments);
+			itasks.ttc.InteractiveContainer.superclass.update.apply(this,arguments);
 		}
 	},
 	findComponentByPath: function(start, path) {
@@ -216,4 +230,4 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 	}
 });
 
-Ext.reg('itasks.ttc.form',itasks.ttc.FormContainer);
+Ext.reg('itasks.ttc.interactive',itasks.ttc.InteractiveContainer);

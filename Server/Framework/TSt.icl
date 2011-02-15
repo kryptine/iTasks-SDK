@@ -455,17 +455,17 @@ where
 	*/
 	normalizeTasks :: !TaskTree !*TSt -> (!TaskTree,!*TSt)
 	//The interactive task leaves that are normalized
-	normalizeTasks (TTInteractiveTask ti it) tst
+	normalizeTasks (TTInteractiveTask ti type it) tst
 		# (ti, tst) = normalizeTaskInfo ti tst
 		= case it of
 			UIOutput (Func f)
 				# (it,tst) = accIWorldTSt f tst
-				= (TTInteractiveTask ti (UIOutput it), tst)
+				= (TTInteractiveTask ti type (UIOutput it), tst)
 			JSONOutput (JSONFunc f)
 				# (json,tst) = accIWorldTSt f tst
-				= (TTInteractiveTask ti (JSONOutput (JSONValue json)), tst)
+				= (TTInteractiveTask ti type (JSONOutput (JSONValue json)), tst)
 			_
-				= (TTInteractiveTask ti it, tst)
+				= (TTInteractiveTask ti type it, tst)
 	//For grouped tasks the actions are also normalized
 	normalizeTasks (TTGroupedTask ti tasks actions s) tst
 		# (ti, tst)		= normalizeTaskInfo ti tst
@@ -492,9 +492,6 @@ where
 		= (TTParallelTask ti pi tasks, tst)
 	
 	//All other leaf cases
-	normalizeTasks (TTInstructionTask ti to) tst
-		# (ti, tst) = normalizeTaskInfo ti tst
-		= (TTInstructionTask ti to, tst)
 	normalizeTasks (TTMonitorTask ti to) tst
 		# (ti, tst) = normalizeTaskInfo ti tst
 		= (TTMonitorTask ti to, tst)
@@ -614,8 +611,8 @@ accWorldTSt f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
-mkInteractiveTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkInteractiveTask description taskfun =
+mkInteractiveTask :: !d !InteractiveTaskType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkInteractiveTask description type taskfun =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
 	, mbTaskNr			= Nothing
@@ -624,7 +621,7 @@ mkInteractiveTask description taskfun =
 	}	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTInteractiveTask taskInfo NoOutput}
+		= taskfun {tst & tree = TTInteractiveTask taskInfo type NoOutput}
 
 mkInstantTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkInstantTask description taskfun =
@@ -649,18 +646,6 @@ mkMonitorTask description taskfun =
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo NoOutput}
-
-mkInstructionTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkInstructionTask description taskfun =
-	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
-	, groupedProperties	= initGroupedProperties
-	, mbTaskNr			= Nothing
-	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkInstructionTask`
-	}
-where
-	mkInstructionTask` tst =:{TSt | taskInfo}
-		= taskfun {tst & tree = TTInstructionTask taskInfo NoOutput}
 
 mkRpcTask :: !d !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a & descr d
 mkRpcTask description rpce parsefun =
@@ -847,69 +832,59 @@ where
 //Add a new node to the current sequence or process
 addTaskNode :: !TaskTree !*TSt -> *TSt
 addTaskNode node tst=:{tree} = case tree of
-	(TTMainTask ti mti inptype task)			= {tst & tree = TTMainTask ti mti inptype node} 			//Just replace the subtree 
-	(TTSequenceTask ti tasks)					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
-	(TTParallelTask ti tpi tasks)				= {tst & tree = TTParallelTask ti tpi [node:tasks]}				//Add the node to the parallel set
-	(TTGroupedTask ti tasks gActions mbFocus)	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
-	_											= {tst & tree = tree}
+	TTMainTask ti mti inptype task			= {tst & tree = TTMainTask ti mti inptype node} 			//Just replace the subtree 
+	TTSequenceTask ti tasks					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
+	TTParallelTask ti tpi tasks				= {tst & tree = TTParallelTask ti tpi [node:tasks]}				//Add the node to the parallel set
+	TTGroupedTask ti tasks gActions mbFocus	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
+	_										= {tst & tree = tree}
 		
 setTUIDef :: ![TUIDef] ![(Action,Bool)] !*TSt -> *TSt
 setTUIDef def accActions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Definition def accActions))}
-		_								= tst
+		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (UIOutput (Definition def accActions))}
+		_									= tst
 
 setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] !*TSt -> *TSt
 setTUIUpdates upd actions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Updates upd actions))}
-		_								= tst
+		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (UIOutput (Updates upd actions))}
+		_									= tst
 		
 setTUIFunc :: (*IWorld -> *(!InteractiveTask, !*IWorld)) !*TSt -> *TSt
 setTUIFunc func tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Func func))}
-		_								= tst
-
-setTUIMessage :: ![TUIDef] ![(Action,Bool)] !*TSt -> *TSt
-setTUIMessage msg actions tst=:{tree}
-	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Message msg actions))}
-		_								= tst
+		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (UIOutput (Func func))}
+		_									= tst
 
 setStatus :: !HtmlTag !*TSt -> *TSt
 setStatus msg tst=:{tree}
 	= case tree of
-		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info (UIOutput msg)}
+		TTMonitorTask info _				= {tst & tree = TTMonitorTask info (UIOutput msg)}
 		_									= tst
-
-setInstruction :: !(Maybe HtmlTag) !*TSt -> *TSt
-setInstruction context tst=:{tree}
-	= case tree of
-			(TTInstructionTask ti _)	= {tst & tree = TTInstructionTask ti (UIOutput context)}
-			_							= tst
 			
 setGroupActions :: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt -> *TSt
 setGroupActions actions tst=:{tree}
 	= case tree of
-		(TTGroupedTask info tasks _ mbFocus)	= {tst & tree = TTGroupedTask info tasks actions mbFocus}
-		_										= tst
+		TTGroupedTask info tasks _ mbFocus	= {tst & tree = TTGroupedTask info tasks actions mbFocus}
+		_									= tst
 		
 setFocusCommand :: !String !*TSt -> *TSt
 setFocusCommand tag tst=:{tree}
 	= case tree of
-		(TTGroupedTask info tasks actions _)	= {tst & tree = TTGroupedTask info tasks actions (Just tag)}
-		_										= tst
+		TTGroupedTask info tasks actions _	= {tst & tree = TTGroupedTask info tasks actions (Just tag)}
+		_									= tst
 
 setJSONValue :: !JSONNode !*TSt -> *TSt
 setJSONValue json tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)				= {tst & tree = TTInteractiveTask info (JSONOutput (JSONValue json))}
+		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (JSONOutput (JSONValue json))}
+		_									= tst
 		
 setJSONFunc :: !(*IWorld -> *(!JSONNode,!*IWorld)) !*TSt -> *TSt
 setJSONFunc f tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)				= {tst & tree = TTInteractiveTask info (JSONOutput (JSONFunc f))}
+		TTInteractiveTask info type _			= {tst & tree = TTInteractiveTask info type (JSONOutput (JSONFunc f))}
+		_										= tst
 
 /**
 * Store and load the result of a workflow instance

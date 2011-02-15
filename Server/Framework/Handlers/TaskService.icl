@@ -18,13 +18,10 @@ JSONEncode{|TaskTree|} (TTParallelTask a0 a1 a2)
 JSONEncode{|TaskTree|} (TTGroupedTask a0 a1 a2 a3)
 	= [JSONArray [JSONString "TTGroupedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a3]] //DOES NOT INCLUDE a2	
 
-JSONEncode{|TaskTree|} (TTInteractiveTask a0 a1)
-	= [JSONArray [JSONString "TTInteractiveTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
+JSONEncode{|TaskTree|} (TTInteractiveTask a0 a1 a2)
+	= [JSONArray [JSONString "TTInteractiveTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2]]
 JSONEncode{|TaskTree|} (TTMonitorTask a0 a1)
 	= [JSONArray [JSONString "TTMonitorTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
-JSONEncode{|TaskTree|} (TTInstructionTask a0 a1)
-	= [JSONArray [JSONString "TTInstructionTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
-
 JSONEncode{|TaskTree|} (TTFinishedTask a0 a1)
 	= [JSONArray [JSONString "TTFinishedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
@@ -291,7 +288,7 @@ where
 	taskParts (TTSequenceTask _ trees)		= flatten (map taskParts trees)
 	taskParts (TTParallelTask _ _ trees)	= flatten (map taskParts trees)	
 	taskParts (TTGroupedTask _ trees _ _)	= flatten (map taskParts trees)
-	taskParts (TTInteractiveTask ti val)
+	taskParts (TTInteractiveTask ti _ val)
 		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",case val of JSONOutput (JSONValue json) = json; _ = JSONNull)]]
 	taskParts _								= []
 	

@@ -2,29 +2,29 @@ definition module TaskPanel
 
 import JSON, TUIDefinition, TSt, ProcessDB
 
-derive JSONEncode TaskPanel
+derive JSONEncode TaskPanel, InteractiveTaskType
 
 :: TaskPanel
 	= TaskDone
 	| TaskNotDone
 	| TaskRedundant
-	| TTCFormContainer TTCFormContainer
-	| TTCMessageContainer TTCMessageContainer
+	| TTCInteractiveContainer TTCInteractiveContainer
 	| TTCMonitorContainer TTCMonitorContainer
-	| TTCInstructionContainer TTCInstructionContainer
 	| TTCResultContainer TTCResultContainer
 	| TTCProcessControlContainer TTCProcessControlContainer
 	| TTCParallelContainer TTCParallelContainer
 	| TTCGroupContainer TTCGroupContainer
-	
+
 :: SubtaskNr :== [Int]
 
 :: FormContent =
 	{ form		:: ![TUIDef]
 	, buttons	:: ![TUIDef]
 	}
+	
+:: InteractiveTaskType = Information | Message | Instruction
 
-:: TTCFormContainer = 
+:: TTCInteractiveContainer = 
 	{ xtype			:: !String
 	, id			:: !String
 	, taskId		:: !String
@@ -34,16 +34,7 @@ derive JSONEncode TaskPanel
 	, description	:: !String
 	, menu			:: !Maybe [TUIDef]
 	, formWidth		:: !Maybe FormWidth
-	}
-	
-:: TTCMessageContainer =
-	{ xtype			:: !String
-	, id			:: !String
-	, taskId		:: !String
-	, content		:: !FormContent
-	, subject		:: !String
-	, description	:: !String
-	, menu			:: !Maybe [TUIDef]
+	, type			:: !InteractiveTaskType
 	}
 
 :: TTCMonitorContainer =
@@ -54,15 +45,6 @@ derive JSONEncode TaskPanel
 	, subject		:: !String
 	, description	:: !String 
 	, menu			:: !Maybe [TUIDef]
-	}
-	
-:: TTCInstructionContainer =
-	{ xtype			:: !String
-	, id			:: !String
-	, taskId		:: !String
-	, context		:: !(Maybe String)
-	, subject		:: !String
-	, description	:: !String
 	}
 	
 :: TTCResultContainer =

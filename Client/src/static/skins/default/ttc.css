@@ -19,14 +19,14 @@
 	padding: 5px;
 }
 /* Form Container */
-.TTCFormContainer {
+.TTCInformationContainer {
 	background-color: #eee;
 	
 	background-image : url('img/ttc-icons/TTCFormContainer.png') !important;
 	background-repeat: no-repeat ;
 	background-position: 3px 3px;
 }
-.TTCFormPanel {
+.TTCInformationPanel {
 	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
 	padding: 4px;
 	border: solid #99bbe8;

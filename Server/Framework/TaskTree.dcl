@@ -8,6 +8,7 @@ definition module TaskTree
 import Maybe, Either, HTML, Time, RPC, Types
 from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
+from TaskPanel		import :: InteractiveTaskType
 
 :: TaskTree
 	//NODE CONSTRUCTORS
@@ -22,11 +23,9 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !(Maybe String)
 	
 	//LEAF CONSTRUCTORS
-	
-	//A task which displays an (offline) instruction to the user
-	| TTInstructionTask TaskInfo (TaskOutput (Maybe HtmlTag))										
+											
 	//A task that can be worked on through a gui
-	| TTInteractiveTask	TaskInfo (TaskOutput InteractiveTask)													
+	| TTInteractiveTask	TaskInfo InteractiveTaskType (TaskOutput InteractiveTask)													
 	//A task that upon evaluation monitors a condition and may give status output
 	| TTMonitorTask		TaskInfo (TaskOutput HtmlTag)																
 	//A completed task
@@ -62,11 +61,9 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TaskParallelType = Open 				//Everybody to whom a subtask is assigned can see the full status of this parallel, including the results of others
 					| Closed			//Only the manager can see the overview. For assigned users, it just looks like an ordinary task.
 
-
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
 :: InteractiveTask	= Definition	[TUIDef]	[(Action,Bool)]					//Definition for rendering a user interface
 					| Updates		[TUIUpdate]	[(Action,Bool)]					//Update an already rendered user interface
-					| Message		[TUIDef]	[(Action,Bool)]					//Just show a message
 					| Func 			(*IWorld -> *(!InteractiveTask, !*IWorld))	//Function for delayed generation of an interface definition.
 																				//These functions are evaluated after the full tree has been built.
 
