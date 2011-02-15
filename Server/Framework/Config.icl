@@ -1,6 +1,6 @@
 implementation module Config
 
-import StdFile, Util, Error, File, JSON, StdMisc
+import StdFile, Util, Error, File, JSON
 
 derive JSONEncode Config
 derive JSONDecode Config

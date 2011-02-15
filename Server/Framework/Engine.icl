@@ -14,7 +14,6 @@ import	CommandLine, UrlEncoding
 import	TuningCombinators
 
 import	HTTP, HttpUtil
-from	HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
 
 import	Setup
 
@@ -30,7 +29,7 @@ from Groups		import manageGroups
 PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))] 
+engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
 engine mbConfig userWorkflows	
 	= case mbConfig of
 		Just config
@@ -79,7 +78,7 @@ where
 			_
 				= (notFoundResponse req, tst)
 		# tst		= flushStore tst
-		= (response, HTTPServerContinue, finalizeTSt tst)
+		= (response, finalizeTSt tst)
 
 workflow :: !String !String !(Task a) -> Workflow | iTask a
 workflow path description task =
@@ -111,7 +110,7 @@ config world
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
-handleStaticResourceRequest :: !Config !HTTPRequest *World -> (!HTTPResponse,!HTTPServerControl,!*World)
+handleStaticResourceRequest :: !Config !HTTPRequest *World -> (!HTTPResponse,!*World)
 handleStaticResourceRequest config req world
 	# path					= if (req.req_path == "/") "/index.html" req.req_path
 	# filename				= config.clientPath +++ filePath path
@@ -120,7 +119,7 @@ handleStaticResourceRequest config req world
 	|  ok 					= ({rsp_headers = fromList [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size content))]
-							   	,rsp_data = content}, HTTPServerContinue, world)
+							   	,rsp_data = content}, world)
 	# filename				= config.staticPath +++ filePath path
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
@@ -128,14 +127,14 @@ handleStaticResourceRequest config req world
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size content))											   
 											   ]
-							   	,rsp_data = content}, HTTPServerContinue, world)						   								 	 							   
-	= (notFoundResponse req,HTTPServerContinue,world)
+							   	,rsp_data = content}, world)						   								 	 							   
+	= (notFoundResponse req,world)
 where
 	//Translate a URL path to a filesystem path
 	filePath path = ((replaceSubString "/" PATH_SEP) o (replaceSubString ".." "")) path
 
-handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!HTTPServerControl,!*World)
-handleStopRequest req world = ({newHTTPResponse & rsp_data = "Server stopped..."},HTTPServerStop, world)
+handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!*World)
+handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, world) //Stop
 
 initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world

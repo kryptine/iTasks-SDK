@@ -13,14 +13,9 @@ import HTTP
 						| HTTPServerOptParseArguments Bool	// Should the query and body of the request be parsed (default True)
 						| HTTPServerOptDebug Bool			// Should the server write debug info to the stdout
 
-:: HTTPServerControl	= HTTPServerContinue				// Nothing special, just keep the server alive
-						| HTTPServerStop					// Stop the server
-															// Restart the server with new options and handlers
-						| HTTPServerRestart [HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World -> *(!HTTPResponse,!HTTPServerControl,!*World)))]
-
 // Start the HTTP server
 // The first argument is a list of server options
 // The second argument is a list of pairs of predicates and request handlers
 // The predicate inspects the requested path (eg. /foo), if the predicate is true the corresponding request handler is invoked 
 					
-http_startServer :: [HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!HTTPServerControl,!*World)))] *World -> *World
+http_startServer :: [HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!*World)))] *World -> *World

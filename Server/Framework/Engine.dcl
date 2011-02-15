@@ -7,7 +7,6 @@ definition module Engine
 import Maybe, JSON, Task
 from TSt		import :: Workflow
 from HTTP		import :: HTTPRequest, :: HTTPResponse
-from HttpServer	import :: HTTPServerControl
 from Config		import :: Config
 from Shared		import class toReadOnlyShared, :: Shared
 
@@ -18,7 +17,7 @@ from Shared		import class toReadOnlyShared, :: Shared
 * @param  A list of workflow definitions
 * @return A list of predicate/handler pairs that can be plugged into a server
 */
-engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))]
+engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]
 
 /**
 * Loads the itasks specific config

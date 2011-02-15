@@ -1,5 +1,5 @@
 definition module Setup
 
-import HTTP, HttpServer, Config
+import HTTP, Config
 
-setupHandler :: !(Config -> [(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!HTTPServerControl,!*World)))]) !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
+setupHandler :: !(Config -> [(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!*World)))]) !HTTPRequest !*World -> (!HTTPResponse, !*World)

@@ -1,13 +1,13 @@
 implementation module Setup
 
 import StdList,StdBool, StdInt, StdFile
-import HTTP, HttpServer
+import HTTP
 import HTML, HtmlUtil
 import File, Error
 import Config
 import Engine, Util
 
-setupHandler :: !(Config -> [(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!HTTPServerControl,!*World)))]) !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
+setupHandler :: !(Config -> [(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!*World)))]) !HTTPRequest !*World -> (!HTTPResponse, !*World)
 setupHandler handlers req world	
 	# (appName,world)	= determineAppName world
 	# (finished,world)	= configFileAvailable appName world
@@ -83,10 +83,10 @@ configFileAvailable appName world
 noErrors :: [(Maybe String)] -> Bool
 noErrors errors = not (or (map isJust errors))
 	
-page :: !String ![HtmlTag] !*World -> (!HTTPResponse,!HTTPServerControl, !*World)
-page appName content world = ({newHTTPResponse & rsp_data = toString (pageLayout (appName +++ " setup") "" content)}, HTTPServerContinue, world)
+page :: !String ![HtmlTag] !*World -> (!HTTPResponse, !*World)
+page appName content world = ({newHTTPResponse & rsp_data = toString (pageLayout (appName +++ " setup") "" content)}, world)
 
-choicePage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
+choicePage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!*World)
 choicePage appName config errors world = page appName [DivTag [IdAttr "content"] [instructions,showConfig config errors],buttons] world
 where
 	instructions
@@ -99,7 +99,7 @@ where
 			  ,ButtonTag [TypeAttr "submit",OnclickAttr "window.location = '/edit';"] [Text "Edit the configuration first"]
 			  ]
 		
-editConfigPage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
+editConfigPage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!*World)
 editConfigPage appName config errors world = page appName [form] world
 where
 	form = FormTag [MethodAttr "post",ActionAttr "/save"] [DivTag [IdAttr "content"] [editConfig config errors],submit]
@@ -108,14 +108,13 @@ where
 	instructions
 		= PTag [] [Text "Please confirm the configuration settings below and save them."]
 
-saveConfigPage :: !String !Config ![(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!HTTPServerControl,!*World)))] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
+saveConfigPage :: !String !Config ![(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!*World)))] !*World -> (!HTTPResponse,!*World)
 saveConfigPage appName config handlers world
 	# world 		= storeConfig appName config world
-	# options 		= [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
 	# redirectUrl	= if (config.serverPort == 80) "http://localhost/" ("http://localhost:" +++ toString config.serverPort +++ "/")
-	= ({newHTTPResponse & rsp_headers = fromList [("Status","302"),("Location",redirectUrl)]}, HTTPServerRestart options handlers, world)
+	= ({newHTTPResponse & rsp_headers = fromList [("Status","302"),("Location",redirectUrl)]}, world) //Restart
 
-finishPage :: !String !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
+finishPage :: !String !*World -> (!HTTPResponse, !*World)
 finishPage appName world = page appName [instructions] world
 where
 	instructions
