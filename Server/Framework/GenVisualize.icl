@@ -44,7 +44,7 @@ gVisualize{|UNIT|} _ vst
 	= ([],vst)
 	
 gVisualize{|FIELD of d|} fx val vst=:{vizType}
-	# x = fmap (\(FIELD x) -> x) val
+	# x = fmap fromFIELD val
 	# (vis,vst) = case vizType of
 		VHtmlDisplay
 			# (vizBody,vst) 	= fx x {VSt |vst & label = Nothing}
@@ -62,10 +62,10 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType}
 gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,verifyMask}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
-	# (cmv,_) = popMask verifyMask
+	# (cmv,_)	= popMask verifyMask
+	# x			= fmap fromOBJECT val
 	//ADT's with multiple constructors: Add the creation of a control for choosing the constructor
 	| d.gtd_num_conses > 1
-		# x = fmap (\(OBJECT o) -> o) val
 		= case vizType of 
 			VEditorDefinition
 				# (err,hnt)	= verifyElementStr cmv
@@ -87,13 +87,12 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 				= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
 	//Everything else, just strip of the OBJECT constructor and pass through
 	| otherwise = case val of
-		Just (OBJECT x)	= fx (Just x) vst
-		Nothing			= fx Nothing vst
+		= fx x vst
 			
 gVisualize{|CONS of d|} fx val vst=:{useLabels,optional} = visualizeCustom mkControl staticVis val False vst
 where
 	mkControl name id val _ label optional err hnt renderAsStatic vst
-		# x = fmap (\(CONS c) -> c) val
+		# x = fmap fromCONS val
 		# (vis,vst) = case d.gcd_fields of
 			[] // normal ADT
 				# (viz,vst) = fx x {vst & useLabels = False}
@@ -113,8 +112,6 @@ where
 															, items = coerceToTUIDefs viz
 															, optional = (optional && (not renderAsStatic))
 															, hasValue = hasValue
-															, errorMsg = err
-															, hintMsg = hnt
 															}]
 															
 		recordHeaders fields = map (\{gfd_name} -> gfd_name) fields
@@ -155,11 +152,9 @@ where
 				= (viz,vst)
 
 gVisualize{|PAIR|} fx fy val vst
-	# (x,y) = case val of
-		Just (PAIR x y)	= (Just x, Just y)
-		Nothing			= (Nothing,Nothing)	
-	# (vizx, vst)		= fx x vst
-	# (vizy, vst)		= fy y vst
+	# (x,y)			= (fmap fromPAIRX val, fmap fromPAIRY val)
+	# (vizx, vst)	= fx x vst
+	# (vizy, vst)	= fy y vst
 	= (vizx ++ vizy, vst)
 
 gVisualize{|EITHER|} fx fy val vst = case val of

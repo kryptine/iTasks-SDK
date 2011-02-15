@@ -161,8 +161,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	, items			:: ![TUIDef]
 	, optional		:: !Bool
 	, hasValue		:: !Bool
-	, errorMsg		:: !String
-	, hintMsg		:: !String
 	}
 :: TUIListContainer =
 	{ items			:: ![TUIDef]

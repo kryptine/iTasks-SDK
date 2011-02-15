@@ -1,7 +1,7 @@
 implementation module GenVerify
 
-import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Text
-import GenUpdate, StdMisc, GenVisualize
+import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Util, Text
+import GenUpdate, StdMisc
 
 derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode, Table
 derive bimap (,), Maybe
@@ -10,8 +10,8 @@ generic gVerify a :: (Maybe a) VerSt -> VerSt
 
 verifyValue :: !a !UpdateMask !*IWorld -> (!VerifyMask, !*IWorld) | gVerify{|*|} a
 verifyValue val updateMask iworld
-	# verSt = gVerify{|*|} (Just val) {VerSt | updateMask = [updateMask], verifyMask = [], optional = False, iworld = iworld}
-	= (hd verSt.VerSt.verifyMask, verSt.VerSt.iworld)
+	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, iworld = iworld}
+	= (hd verSt.verifyMask, verSt.VerSt.iworld)
 
 isValidValue :: !VerifyMask -> Bool
 isValidValue (VMUntouched _ optional cm)	= optional && (and (map isValidValue cm)) 
@@ -20,119 +20,76 @@ isValidValue (VMInvalid _ _)				= False
 
 //Generic Verify
 gVerify{|UNIT|} 			  _ 					vst = vst
-
-gVerify{|PAIR|} 		fx fy  Nothing				vst = fy Nothing (fx Nothing vst)
-gVerify{|PAIR|} 		fx fy (Just (PAIR x y))		vst = fy (Just y) (fx (Just x) vst)
+gVerify{|PAIR|}			fx fy p						vst = fy (fmap fromPAIRY p) (fx (fmap fromPAIRX p) vst)
+gVerify{|OBJECT|}		fx o						vst = fx (fmap fromOBJECT o) vst
+gVerify{|FIELD|}		fx f						vst = fx (fmap fromFIELD f) vst
 
 gVerify{|EITHER|} 		_  _  Nothing				vst = vst
 gVerify{|EITHER|}		fx _  (Just (LEFT x))		vst	= fx (Just x) vst
-gVerify{|EITHER|}		_  fy (Just (RIGHT y))		vst = fy (Just y) vst 
+gVerify{|EITHER|}		_  fy (Just (RIGHT y))		vst = fy (Just y) vst
 
-gVerify{|OBJECT of d|}  fx     Nothing				vst = fx Nothing vst
-gVerify{|OBJECT of d|}  fx	  (Just (OBJECT x))		vst	= fx (Just x) vst
-
-gVerify{|CONS of d|}	fx    cons					vst=:{VerSt|updateMask,verifyMask,optional}
+gVerify{|CONS of d|}	fx    cons					vst=:{updateMask,verifyMask,optional}
+	# val		= fmap fromCONS cons
 	# (cmu,um)	= popMask updateMask
-	//Records
-	| not (isEmpty d.gcd_fields)
-		| optional
-			//Only compute child verify mask, if record is already touched. Else you can end up in endless recursion!
-			= case cmu of
-				Touched _
-					# vst=:{VerSt | verifyMask = childMask} = fx val {VerSt | vst & optional = False, updateMask = childMasks cmu, verifyMask = []}
-					= {VerSt| vst & verifyMask = appendToMask verifyMask (VMValid Nothing childMask), optional = optional, updateMask = um}
-				_
-					= {VerSt| vst & verifyMask = appendToMask verifyMask (VMValid Nothing []), optional = optional, updateMask = um}
-		| otherwise
-			//Compute child mask
-			# vst=:{VerSt | verifyMask = childMask} = fx val {VerSt | vst & optional = False, updateMask = childMasks cmu, verifyMask = []}
-			= {VerSt| vst & verifyMask = appendToMask verifyMask (VMValid Nothing childMask), optional = optional, updateMask = um}	
-	// ADT's with just one constructor
-	| d.gcd_type_def.gtd_num_conses == 1
-		# vst=:{VerSt | verifyMask = childMask} = fx val {VerSt | vst & updateMask = childMasks cmu, verifyMask = []}
-		= case cmu of
-			Untouched
-				= {VerSt| vst & verifyMask = appendToMask verifyMask (VMUntouched Nothing optional childMask), optional = optional, updateMask = um}
-			_
-				= {VerSt| vst & verifyMask = appendToMask verifyMask (VMValid Nothing childMask), optional = optional, updateMask = um}	
-	// ADT's with multiple constructors
-	| otherwise
-		//ADT's
-		# vst=:{VerSt | verifyMask = childMask} = fx val {VerSt | vst & optional = False, updateMask = childMasks cmu, verifyMask = []}
-		# consMask = case optional of
-			True
-				= VMValid (Just "Select an option") childMask
-			False
-				= case cmu of
-					Untouched	= VMUntouched (Just "Select an option") False childMask
-					Blanked		= VMInvalid IsBlankError childMask
-					Touched _	= VMValid (Just "Select an option") childMask
-		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	
+	# vst		= {vst & updateMask = childMasks cmu, verifyMask = []}
+	# (consMask,vst) = case (d.gcd_fields,d.gcd_type_def.gtd_num_conses) of
+		([],1) // ADT's with just one constructor
+			# vst=:{verifyMask = childMask} 	= fx val vst
+			# vst								= {vst & verifyMask = childMask}
+			| optional || isTouched cmu			= (VMValid Nothing childMask,vst)
+			| otherwise							= (VMUntouched Nothing optional childMask,vst)
+		([],_) // ADT's with multiple constructors
+			# vst=:{verifyMask = childMask} 	= fx val {vst & optional = False}
+			# vst								= {vst & verifyMask = childMask}
+			| optional || isTouched cmu			= (VMValid (Just "Select an option") childMask,vst)
+			| otherwise = case cmu of
+				Untouched						= (VMUntouched (Just "Select an option") False childMask,vst)
+				Blanked							= (VMInvalid IsBlankError childMask,vst)
+		_ // Records
+			| not (isTouched cmu)				= (VMValid Nothing [],vst)
+			| otherwise
+												//Only compute child verify mask, if record is already touched. Else you can end up in endless recursion!
+												# vst=:{verifyMask = childMask} = fx val {vst & optional = False}						
+												= (VMValid Nothing childMask,{vst & verifyMask = childMask})
+	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}
+
+gVerify{|[]|} fx mbL vst=:{optional,verifyMask,updateMask}
+	# (cm,um) = popMask updateMask
+	# (listMask,vst) = case mbL of
+		Nothing
+			= (if optional (VMValid hintOpt []) (VMInvalid err []),vst)
+		Just l
+			# vst=:{verifyMask=childMask} = verifyItems fx l {vst & verifyMask = [], updateMask = childMasks cm, optional = False}
+			# vst = {vst & verifyMask = childMask}
+			| not (isTouched cm)
+					= (VMUntouched Nothing optional childMask,vst)
+			| isEmpty l
+				| optional
+					= (VMValid hintOpt childMask,vst)
+				| otherwise
+					= (VMInvalid IsBlankError [],vst)
+			| otherwise
+					= (VMValid Nothing childMask,vst)
+	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask listMask}
 where
-	val = case cons of
-		Nothing			= Nothing
-		Just (CONS x)	= Just x
-	
-gVerify{|FIELD of d|}   fx	  Nothing				vst = fx Nothing vst
-gVerify{|FIELD of d|}   fx    (Just (FIELD x))		vst = fx (Just x) vst
+	err		= ErrorMessage "Create at least one list item"
+	hintOpt	= Just "You may add list items"
 
-gVerify{|Maybe|} fx (Just (Just x)) vst=:{VerSt | optional}
-	# vst = fx (Just x) {VerSt | vst & optional = True}
-	= {VerSt | vst & optional = optional}
-gVerify{|Maybe|} fx (Just Nothing) vst=:{VerSt | optional} 
-	# vst = fx Nothing {VerSt | vst & optional = True}
-	= {VerSt | vst & optional = optional}
-gVerify{|Maybe|} fx Nothing vst=:{VerSt | updateMask,verifyMask,optional}
-	# vst = fx Nothing {VerSt | vst & optional = True}
-	= {VerSt | vst & optional = optional}
-
-gVerify{|[]|} fx Nothing   vst=:{VerSt | optional}
-	# msg = if optional "You may add list items" "Create at least one list item"
-	= simpleVerify msg vst
-gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
-	# (cm,um)	= popMask updateMask
-	# vst=:{VerSt | verifyMask=childMask} = verifyItems fx [] {VerSt | vst & verifyMask = [], updateMask = childMasks cm, optional = False}
-	| optional
-		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") childMask)}	
-	# listMask  = case cm of
-					Untouched	= VMUntouched Nothing optional childMask
-					_			= VMInvalid IsBlankError childMask
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask listMask}
-gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
-	# (cm,um)	= popMask updateMask
-	# vst=:{VerSt | verifyMask=childMask} = verifyItems fx x {VerSt | vst & verifyMask = [], updateMask = childMasks cm, optional = False}
-	= case cm of
-		(Untouched)
-			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched Nothing optional childMask), optional = optional}
-		_
-			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing childMask), optional = optional}
-
-verifyItems fx [] vst=:{VerSt | optional}
-	# vst = fx Nothing {VerSt | vst & optional = True}
-	= {VerSt | vst & optional = optional}
+verifyItems fx [] vst=:{optional}
+	# vst = fx Nothing {vst & optional = True}
+	= {vst & optional = optional}
 verifyItems fx [x:xs] vst
 	# vst = fx (Just x) vst
 	= verifyItems fx xs vst
 
-gVerify{|Hidden|} fx Nothing vst = vst
-gVerify{|Hidden|} fx (Just (Hidden x)) vst=:{VerSt | verifyMask,updateMask}
-	# (cm,um) = popMask updateMask
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
+gVerify{|Maybe|} fx m vst=:{optional}
+	# vst = fx (maybe Nothing id m) {vst & optional = True}
+	= {vst & optional = optional}
 
-gVerify{|Editable|} fx Nothing vst = fx Nothing vst
-gVerify{|Editable|} fx (Just (Editable x)) vst = fx (Just x) vst
-
-gVerify{|Display|} fx Nothing vst = vst
-gVerify{|Display|} fx (Just (Display x)) vst = fx (Just x) vst
-
-gVerify{|VisualizationHint|} fx Nothing vst = fx Nothing vst
-gVerify{|VisualizationHint|} fx (Just (VHHidden x)) vst=:{VerSt | verifyMask,updateMask}
-	# (cm,um) = popMask updateMask
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
-gVerify{|VisualizationHint|} fx (Just (VHDisplay x)) vst=:{VerSt | verifyMask,updateMask}
-	# (cm,um) = popMask updateMask
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
-gVerify{|VisualizationHint|} fx (Just (VHEditable x)) vst = fx (Just x) vst
+gVerify{|Hidden|}				fx h vst = fx (fmap fromHidden h) vst
+gVerify{|Editable|}				fx e vst = fx (fmap fromEditable e) vst
+gVerify{|Display|}				fx d vst = fx (fmap fromDisplay d) vst
+gVerify{|VisualizationHint|}	fx v vst = fx (fmap fromVisualizationHint v) vst
 
 gVerify{|Int|}    			_ vst = simpleVerify "Enter a number" vst
 gVerify{|Real|}   			_ vst = simpleVerify "Enter a decimal number" vst
@@ -206,16 +163,16 @@ where
 	isTouched _								= True
 	
 alwaysValid :: !*VerSt -> *VerSt
-alwaysValid vst=:{VerSt | verifyMask,updateMask}
+alwaysValid vst=:{verifyMask,updateMask}
 	# (cm,um) = popMask updateMask
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
+	= {vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
 	
 simpleVerify :: !String !*VerSt -> *VerSt
 simpleVerify hint vst
 	= customWorldVerify (Just hint) (curry (app2 (const (WPRValid (Just hint)),id))) (Just (abort "no value needed for simple verify")) vst
 
 wrapperVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt -> *VerSt
-wrapperVerify mbHint pred parseErr mbVal vst=:{VerSt | updateMask, verifyMask, optional} 
+wrapperVerify mbHint pred parseErr mbVal vst=:{updateMask, verifyMask, optional} 
 	# (cm,um) = popMask updateMask
 	# vmask = case mbVal of
 		Just val
@@ -229,7 +186,7 @@ wrapperVerify mbHint pred parseErr mbVal vst=:{VerSt | updateMask, verifyMask, o
 		Nothing
 			| optional		= VMValid Nothing [VMValid mbHint []]
 			| otherwise		= VMUntouched Nothing False [VMUntouched mbHint False []]
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
+	= {vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
 where
     validateValue val
 	    | pred val  = VMValid Nothing [VMValid mbHint []]
@@ -243,7 +200,7 @@ where
 		| otherwise	= (WPRInvalid (mkErrMsg val),iworld)
 
 customWorldVerify :: !(Maybe String) !(a *IWorld -> (!WorldPredicateResult,!*IWorld)) !(Maybe a) !*VerSt -> *VerSt
-customWorldVerify mbHint pred mbVal vst=:{VerSt | updateMask, verifyMask, optional} 
+customWorldVerify mbHint pred mbVal vst=:{updateMask, verifyMask, optional} 
 	# (cm,um) = popMask updateMask
 	# (vmask,vst) = case mbVal of
 		Just val
@@ -259,7 +216,7 @@ customWorldVerify mbHint pred mbVal vst=:{VerSt | updateMask, verifyMask, option
 		Nothing
 			| optional			= (VMValid mbHint [],vst)
 			| otherwise			= (VMUntouched mbHint False [],vst)
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
+	= {vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
 where
 	validateValue val vst=:{VerSt|iworld}
 		# (res,iworld) = pred val iworld

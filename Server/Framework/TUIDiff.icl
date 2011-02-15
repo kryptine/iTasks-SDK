@@ -187,7 +187,6 @@ errorOf (TUICurrencyControl {TUICurrencyControl|errorMsg})	= Just errorMsg
 errorOf (TUIAppletControl {TUIAppletControl|errorMsg})      = Just errorMsg
 errorOf (TUIUserControl {TUIBasicControl|errorMsg})			= Just errorMsg
 errorOf (TUIListContainer {TUIListContainer|errorMsg})		= Just errorMsg
-errorOf (TUIRecordContainer {TUIRecordContainer|errorMsg})	= Just errorMsg
 errorOf (TUIChoiceControl {TUIChoiceControl|errorMsg})		= Just errorMsg
 errorOf _													= Nothing
 
@@ -205,7 +204,6 @@ hintOf (TUICurrencyControl {TUICurrencyControl|hintMsg})	= Just hintMsg
 hintOf (TUIAppletControl {TUIAppletControl|hintMsg})		= Just hintMsg
 hintOf (TUIUserControl {TUIBasicControl|hintMsg})			= Just hintMsg
 hintOf (TUIListContainer {TUIListContainer|hintMsg})		= Just hintMsg
-hintOf (TUIRecordContainer {TUIRecordContainer|hintMsg})	= Just hintMsg
 hintOf (TUIChoiceControl {TUIChoiceControl|hintMsg})		= Just hintMsg
 hintOf _													= Nothing
 

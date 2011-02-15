@@ -1,6 +1,6 @@
 definition module Util
 
-import Types
+import StdGeneric, Types
 
 fileExtension		:: !String -> String
 baseName			:: !String -> String
@@ -18,3 +18,10 @@ mapSt				:: (a *st -> (b,*st)) [a] *st -> ([b],*st)
 currentTime 	:: !*World -> (!Time,!*World)
 currentDate 	:: !*World -> (!Date,!*World)
 currentDateTime :: !*World -> (!DateTime,!*World)
+
+// Utility functions for generics
+fromOBJECT	:: (OBJECT x)	-> x
+fromCONS	:: (CONS x)		-> x
+fromFIELD	:: (FIELD x)	-> x
+fromPAIRX	:: (PAIR x y)	-> x
+fromPAIRY	:: (PAIR x y)	-> y

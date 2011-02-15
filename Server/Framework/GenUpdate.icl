@@ -89,10 +89,10 @@ gUpdate{|EITHER|} fx fy UDCreate ust=:{consPath}
 			= (LEFT nx, ust)
 gUpdate{|EITHER|} fx fy (UDSearch e) ust	
 	= case e of
-		(LEFT x)	
+		LEFT x
 			# (nx,ust) = fx (UDSearch x) ust
 			= (LEFT nx, ust)
-		(RIGHT y)
+		RIGHT y
 			# (ny,ust) = fy (UDSearch y) ust
 			= (RIGHT ny,ust)
 			

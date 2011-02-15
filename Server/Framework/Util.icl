@@ -1,6 +1,6 @@
 implementation module Util
 
-import StdList, StdFile, StdMisc, StdArray, StdString, Maybe, Time, Text
+import StdList, StdFile, StdMisc, StdArray, StdString, StdGeneric, Maybe, Time, Text
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..)
 
 fileExtension :: !String -> String
@@ -55,3 +55,18 @@ instance toString (Maybe a) | toString a
 where
 	toString Nothing	= ""
 	toString (Just x)	= toString x
+
+fromOBJECT	:: (OBJECT x)	-> x
+fromOBJECT	(OBJECT x)	= x
+
+fromCONS	:: (CONS x)		-> x
+fromCONS	(CONS x)	= x
+
+fromFIELD	:: (FIELD x)	-> x
+fromFIELD	(FIELD x)	= x
+
+fromPAIRX	:: (PAIR x y)	-> x
+fromPAIRX	(PAIR x _)	= x
+
+fromPAIRY	:: (PAIR x y)	-> y
+fromPAIRY	(PAIR _ y)	= y
