@@ -1,7 +1,7 @@
 implementation module TaskPanel
 
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
-import JSON, HTML, TSt, TUIDefinition, Map
+import JSON, HTML, TSt, TUIDefinition, Map, Util
 
 derive JSONEncode TTCInteractiveContainer, FormContent, InteractiveTaskType, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer
 derive JSONEncode TTCParallelContainer,TTCParallelContainerElement, TTCGroupContainer, TTCGroupContainerElement, GroupedBehaviour
@@ -40,7 +40,7 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
 			# (buttons, mbMenuBar) = case fixedInGroup of
 				True	= (mkButtons taskActions, Nothing)
-				False	= app2 (id, Just) (makeButtonsAndMenus taskActions menus)
+				False	= appSnd Just (makeButtonsAndMenus taskActions menus)
 			= TTCInteractiveContainer {TTCInteractiveContainer 
 				| xtype 		= "itasks.ttc.interactive"
 				, id 			= "taskform-" +++ ti.TaskInfo.taskId
@@ -57,7 +57,7 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
 			# (buttons, mbMenuBar) = case fixedInGroup of
 				True	= (mkButtons taskActions, Nothing)
-				False	= app2 (id, Just) (makeButtonsAndMenus taskActions menus)
+				False	= appSnd Just (makeButtonsAndMenus taskActions menus)
 			= TTCInteractiveContainer {TTCInteractiveContainer 
 				| xtype 		= "itasks.ttc.interactive"
 				, id 			= "taskform-" +++ ti.TaskInfo.taskId

@@ -169,7 +169,7 @@ makeInformationTask mbContext bimapGet bimapPutback informationTaskMode tst
 makeInformationTaskA :: !(Maybe about) ((a v -> (v,Bool)),v) !(v a -> a) ![TaskAction a] !(InteractionTaskMode a) !*TSt -> (!TaskResult (!ActionEvent,!Maybe a),!*TSt) | iTask a & iTask v & iTask about
 makeInformationTaskA mbContext bimapGet bimapPutback actions informationTaskMode tst
 	# (result,tst) = makeInformationTaskAV mbContext bimapGet bimapPutback (mapTaskActionPredicates fst actions) informationTaskMode tst
-	= (mapTaskResult (app2 (id,fmap fst)) result,tst)
+	= (mapTaskResult (appSnd (fmap fst)) result,tst)
 
 makeChoiceTask :: !d !(Maybe about) !(a -> v) ![a] !(Maybe Int) !*TSt -> (!TaskResult a,!*TSt) | descr d & iTask a & iTask v & iTask about
 makeChoiceTask description _ _ [] _ tst
@@ -189,7 +189,7 @@ makeChoiceTaskA _ mbContext view actions opts mbSel tst
 		Just sel	= choiceSel opts sel
 		Nothing		= choice opts
 	# (result,tst)	= makeInformationTaskA mbContext (toSymmetricBimapGet (mapOptions view)) (\v a -> setChoiceIndex (getChoiceIndex v) a) (mapTaskActionPredicates getChoice actions) (LocalUpdate initChoice) tst
-	= (mapTaskResult (app2 (id,fmap getChoice)) result,tst)
+	= (mapTaskResult (appSnd (fmap getChoice)) result,tst)
 
 makeSharedChoiceTask :: !d !(Maybe about) !(a -> v) ![TaskAction a] !(Shared [a]) !(Maybe Int) !*TSt -> (!TaskResult (!ActionEvent, !Maybe a),!*TSt) | descr d & iTask a & iTask v & iTask about
 makeSharedChoiceTask description mbContext view actions shared mbSel tst
@@ -201,8 +201,8 @@ makeSharedChoiceTask description mbContext view actions shared mbSel tst
 		# initChoice = case mbSel of
 			Just sel	= choiceSel viewOpts sel
 			Nothing		= choice viewOpts
-		# (result,tst)	= makeInformationTaskAV mbContext ((\opts choice -> app2 (id,not) (setOptions (map view opts) choice)),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoiceFromModel actions) (SharedUpdate shared) tst
-		= (mapTaskResult (app2 (id,fmap getChoiceFromModel)) result,tst)
+		# (result,tst)	= makeInformationTaskAV mbContext ((\opts choice -> appSnd not (setOptions (map view opts) choice)),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoiceFromModel actions) (SharedUpdate shared) tst
+		= (mapTaskResult (appSnd (fmap getChoiceFromModel)) result,tst)
 where
 	getChoiceFromModel (opts,choice) = opts !! getChoiceIndex choice
 
@@ -222,7 +222,7 @@ makeMultipleChoiceTaskA mbContext view actions opts mbSel tst
 		Just sel	= multipleChoiceSel opts sel
 		Nothing		= multipleChoice opts
 	# (result,tst)	= makeInformationTaskA mbContext (toSymmetricBimapGet (mapOptionsM view)) (\v a -> setChoiceIndexes (getChoiceIndexes v) a) (mapTaskActionPredicates getChoices actions) (LocalUpdate initChoice) tst
-	= (mapTaskResult (app2 (id,fmap getChoices)) result,tst)
+	= (mapTaskResult (appSnd (fmap getChoices)) result,tst)
 	
 makeSharedMultipleChoiceTask :: !(Maybe about) !(a -> v) ![TaskAction [a]] !(Shared [a]) !(Maybe [Int]) !*TSt -> (!TaskResult (!ActionEvent, !Maybe [a]),!*TSt) | iTask a & iTask v & iTask about
 makeSharedMultipleChoiceTask mbContext view actions shared mbSel tst
@@ -232,7 +232,7 @@ makeSharedMultipleChoiceTask mbContext view actions shared mbSel tst
 		Just sel	= multipleChoiceSel viewOpts sel
 		Nothing		= multipleChoice viewOpts
 	# (result,tst)	= makeInformationTaskAV mbContext (\opts choice -> (setOptionsM (map view opts) choice,False),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoicesFromModel actions) (SharedUpdate shared) tst
-	= (mapTaskResult (app2 (id,fmap getChoicesFromModel)) result,tst)
+	= (mapTaskResult (appSnd (fmap getChoicesFromModel)) result,tst)
 where
 	getChoicesFromModel (opts,choice) = [opt \\ opt <- opts & i <- [0..] | isMember i (getChoiceIndexes choice)]
 
@@ -313,7 +313,7 @@ makeMessageTaskA about view actions tst
 		NoAboutMsg v		= (v,tst)
 		AboutValueMsg v		= (v,tst)
 		SharedAboutMsg ref	= accIWorldTSt (readModel ref) tst
-	= (mapTaskResult (app2 (id,const msgResult)) result,tst)
+	= (mapTaskResult (appSnd (const msgResult)) result,tst)
 where
 	mbAbout = case about of
 		NoAboutMsg _		= Nothing
@@ -512,12 +512,12 @@ where
 			# (about,iworld) = case mbAbout of
 				Nothing							= (Nothing,iworld)
 				Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
-				Just (SharedAbout ref)			= app2 (Just o visualizeAsHtmlDisplay o aboutView,id) (readModel ref iworld)
+				Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView) (readModel ref iworld)
 			= (Definition (taskPanel (taskNrToString taskNr) about (Just form)) evalActions,iworld)
 		| otherwise	// update UI
 			// get stored old errors
 			# (oldErrors,iworld)				= getErrors taskNr iworld
-			# old								= app2 (id,setInvalid oldErrors) old
+			# old								= appSnd (setInvalid oldErrors) old
 			# updates							= determineEditorUpdates editorId old (rvalue,rvmask) updatedPaths
 			= (Updates updates evalActions,iworld)
 
@@ -527,7 +527,7 @@ where
 		# (modelChanged,iworld)					= isSharedChanged shared localTimestamp iworld
 		// determine new view value if model is changed & not in enter mode
 		# (rvalue,iworld) = case modelChanged && not enterMode of
-			True								= app2 (fst3,id) (updateViewValue bimapGet new modelValue modelTimestamp [] iworld)
+			True								= appFst fst3 (updateViewValue bimapGet new modelValue modelTimestamp [] iworld)
 			False								= (nvalue,iworld)
 		= (toJSON rvalue,iworld)
 					
@@ -601,7 +601,7 @@ where
 	getErrors taskNr iworld
 		# (mbErrors,iworld) = getTaskStoreFor taskNr "errors" iworld
 		= case mbErrors of
-			Just errors	= (map (app2 (dataPathFromList,id)) errors,iworld)
+			Just errors	= (map (appFst dataPathFromList) errors,iworld)
 			Nothing		= ([],iworld)
 			
 	// Store errors if necessary
@@ -612,7 +612,7 @@ where
 			Just _	= True
 			Nothing	= not (isEmpty errors)
 		| store
-			= setTaskStoreFor taskNr "errors" (map (app2 (dataPathList,id)) errors) iworld
+			= setTaskStoreFor taskNr "errors" (map (appFst dataPathList) errors) iworld
 		| otherwise
 			= iworld
 	where

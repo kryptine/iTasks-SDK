@@ -18,14 +18,14 @@ manageGroups
 	=	Title "Manage groups" @>>
 	(	getMyGroups
 	>>=	overview 
-	>>= \res -> case app2 (fst,id) res of
+	>>= \res -> case appFst fst res of
 		(ActionOpen,Just group)	= manageGroup group			>>| return False
 		(ActionNew,_)			= newGroup >>= manageGroup 	>>| return False
 		(ActionQuit,_)			= 								return True
 	) <! id
 	>>| return Void
 where
-	overview []		= getDefaultValue >>= showMessageA ("My groups",startMsg) [aNew,aQuit] >>= transform (app2 (id,Just))
+	overview []		= getDefaultValue >>= showMessageA ("My groups",startMsg) [aNew,aQuit] >>= transform (appSnd Just)
 	overview list	= enterChoiceA ("My groups",listMsg) id [aOpen,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)

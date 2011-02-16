@@ -504,7 +504,7 @@ where
 		
 normalizeTaskInfo ti=:{TaskInfo | menus} tst=:{TSt | iworld}
 	# (menus, iworld) = case menus of
-		Just (GenFunc f)	= app2 (Just o Menus, id) (f iworld)
+		Just (GenFunc f)	= appFst (Just o Menus) (f iworld)
 		m					= (m, iworld)
 	= ({ti & menus = menus}, {TSt | tst & iworld = iworld})
 

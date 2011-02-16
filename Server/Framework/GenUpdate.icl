@@ -62,10 +62,10 @@ where
 		[cons]	= getConsPath cons
 		_		= []
 		
-gUpdate{|CONS|}		fx UDCreate				ust = app2 (CONS,id)	(fx UDCreate ust)
-gUpdate{|CONS|}		fx (UDSearch (CONS c))	ust = app2 (CONS,id)	(fx (UDSearch c) ust)
-gUpdate{|FIELD|}	fx UDCreate				ust = app2 (FIELD,id)	(fx UDCreate ust)
-gUpdate{|FIELD|}	fx (UDSearch (FIELD c))	ust = app2 (FIELD,id)	(fx (UDSearch c) ust)
+gUpdate{|CONS|}		fx UDCreate				ust = appFst CONS	(fx UDCreate ust)
+gUpdate{|CONS|}		fx (UDSearch (CONS c))	ust = appFst CONS	(fx (UDSearch c) ust)
+gUpdate{|FIELD|}	fx UDCreate				ust = appFst FIELD	(fx UDCreate ust)
+gUpdate{|FIELD|}	fx (UDSearch (FIELD c))	ust = appFst FIELD	(fx (UDSearch c) ust)
 
 gUpdate{|PAIR|} fx fy UDCreate ust
 	# (nx,ust) = fx UDCreate ust
@@ -195,7 +195,7 @@ gUpdate {|VisualizationHint|} fx m=:(UDSearch (VHHidden s))		ust = wrapperUpdate
 
 wrapperUpdate fx mode get cons ust=:{currentPath} = case mode of
 	UDCreate
-		= app2 (cons,id) (fx UDCreate ust)
+		= appFst cons (fx UDCreate ust)
 	UDSearch w
 		# (w,ust) = fx (UDSearch (get w)) ust
 		= (cons w,{ust & currentPath = stepDataPath currentPath})

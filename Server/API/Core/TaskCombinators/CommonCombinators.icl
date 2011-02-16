@@ -262,7 +262,7 @@ where
 				
 		sharedForEditor eid = mapShared (fromJust o (get eid) o snd, putInEditorStates eid) ref		
 		putInEditorStates eid est st = updateEditorStates (put eid est) st
-		updateEditorStates f st = app2 (id,f) st
+		updateEditorStates f st = appSnd f st
 
 //Utility functions
 sortByIndex :: ![(Int,a)] -> [a]

@@ -5,7 +5,6 @@ import StdList, StdMisc, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel
 //Additional derives for debugging
 derive JSONEncode TaskInfo, Hotkey, Key
 derive JSONEncode GroupActionsBehaviour, GroupedBehaviour
-derive JSONEncode HtmlTag, HtmlAttr
 
 //Can't derive TaskTree serialization because the damn thing contains functions
 //on unique states @!#$%!!
@@ -28,13 +27,12 @@ JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
 	= [JSONArray [JSONString "TTRpcTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 	
 JSONEncode{|TaskInfoMenus|} (Menus menus) = []
-	
 JSONEncode{|TaskOutput|} fx NoOutput					= [JSONNull]
 JSONEncode{|TaskOutput|} fx (UIOutput _)				= [JSONString "User Interface Definition"]
 JSONEncode{|TaskOutput|} fx (JSONOutput (JSONValue v))	= [v]
 JSONEncode{|TaskOutput|} fx (JSONOutput (JSONFunc _))	= abort "Non-normalized json value left in task tree"
-
-JSONEncode{|InteractiveTask|} _				= [JSONNull]
+JSONEncode{|InteractiveTask|} _							= [JSONNull]
+JSONEncode{|HtmlTag|} htm								= [JSONString (toString htm)]
 
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 taskService url html path req tst

@@ -29,7 +29,7 @@ manageLists
 	=	Title "Manage lists" @>>
 	(	getMyLists
 	>>=	overview
-	>>= \res -> case app2 (fst,id) res of
+	>>= \res -> case appFst fst res of
 		(ActionOpen,Just list)		= manageList list			>>| return False
 		(ActionDelete,Just list)	= delList list				>>| return False
 		(ActionNew,_)				= newList >>= manageList	>>| return False
@@ -37,7 +37,7 @@ manageLists
 	) <! id
 	>>| stop
 where
-	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [aNew,aQuit] >>= transform (app2 (id,Just))
+	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [aNew,aQuit] >>= transform (appSnd Just)
 	overview list	= enterChoiceA ("My lists","Select a list...") id [aOpen,aDelete,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)
@@ -101,10 +101,10 @@ manageListSharing list
 		Nothing		= throw "Could not find list meta data"
 		Just meta
 			= (case meta.ListMeta.sharedWith of
-				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] [] >>= transform (app2 (id,Just))
+				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] [] >>= transform (appSnd Just)
 				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id [aPrevious,aRemove,aAddPerson,aAddGroup] users
 			  )
-			>>= \res -> case app2 (fst,id) res of
+			>>= \res -> case appFst fst res of
 				(ActionDelete,Just users)	= removeUsers users >>| return False
 				(Action "add-person" _,_)	= addUsers list		>>| return False
 				(Action "add-group" _,_)	= addGroup list		>>| return False

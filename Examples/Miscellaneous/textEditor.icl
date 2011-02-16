@@ -65,7 +65,7 @@ openDialog gid mdiTasks =
 	>>= \files.	if (isEmpty files)
 					(showMessage ("Open File","No files to open!") GContinue)
 					(				enterChoiceA ("Open file","Open File") id buttons files
-						>>= \res.	case app2 (fst,id) res of
+						>>= \res.	case appFst fst res of
 										(ActionOk,Just (_, Hidden fid)) =
 											open fid mdiTasks (Just gid)
 										_ =
@@ -156,7 +156,7 @@ save eid =
 saveAs :: !EditorStateRef -> Task GAction
 saveAs eid =
 				enterInformationA ("Save as","Save As: enter name") id buttons <<@ NoMenus
-	>>= \res.	case app2 (fst,id) res of
+	>>= \res.	case appFst fst res of
 					(ActionOk,Just name) =
 														readDB eid
 						>>= \(EditorState txt _).		storeFile name txt
@@ -177,7 +177,7 @@ where
 	replaceT` :: !Replace -> Task GAction
 	replaceT` repl =
 					updateInformationA ("Replace","Replace") idBimap buttons repl <<@ NoMenus
-		>>= \res.	case app2 (fst,id) res of
+		>>= \res.	case appFst fst res of
 						(ActionReplaceAll,Just repl) =
 								updateDB eid (dbReplaceFunc repl)
 							>>|	replaceT` repl

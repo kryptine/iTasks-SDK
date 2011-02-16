@@ -19,6 +19,10 @@ currentTime 	:: !*World -> (!Time,!*World)
 currentDate 	:: !*World -> (!Date,!*World)
 currentDateTime :: !*World -> (!DateTime,!*World)
 
+// Utility functions for tuples
+appFst	:: (.a -> .c) (.a,.b) -> (.c,.b)
+appSnd	:: (.b -> .c) (.a,.b) -> (.a,.c)
+
 // Utility functions for generics
 fromOBJECT	:: (OBJECT x)	-> x
 fromCONS	:: (CONS x)		-> x

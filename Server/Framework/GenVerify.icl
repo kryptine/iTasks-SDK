@@ -169,7 +169,7 @@ alwaysValid vst=:{verifyMask,updateMask}
 	
 simpleVerify :: !String !*VerSt -> *VerSt
 simpleVerify hint vst
-	= customWorldVerify (Just hint) (curry (app2 (const (WPRValid (Just hint)),id))) (Just (abort "no value needed for simple verify")) vst
+	= customWorldVerify (Just hint) (curry (appFst (const (WPRValid (Just hint))))) (Just (abort "no value needed for simple verify")) vst
 
 wrapperVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt -> *VerSt
 wrapperVerify mbHint pred parseErr mbVal vst=:{updateMask, verifyMask, optional} 

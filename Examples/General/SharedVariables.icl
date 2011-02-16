@@ -21,7 +21,7 @@ linesPar =
 where
 	noteE sid = 
 					updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, always), quitButton] sid
-		>>= \res.	case app2 (fst,id) res of
+		>>= \res.	case appFst fst res of
 						(TrimAction,Just txt) =
 								writeDB sid (trim txt)
 							>>|	noteE sid

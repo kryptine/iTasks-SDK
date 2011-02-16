@@ -56,6 +56,12 @@ where
 	toString Nothing	= ""
 	toString (Just x)	= toString x
 
+appFst	:: (.a -> .c) (.a,.b) -> (.c,.b)
+appFst f (a,b) = (f a,b)
+
+appSnd	:: (.b -> .c) (.a,.b) -> (.a,.c)
+appSnd f (a,b) = (a,f b)
+
 fromOBJECT	:: (OBJECT x)	-> x
 fromOBJECT	(OBJECT x)	= x
 

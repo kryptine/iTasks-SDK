@@ -76,7 +76,7 @@ where
 									, (ActionEditType, always)
 									: actions state
 									] (Just v)
-			>>=					transform (app2 (id,\nv -> if (isNothing nv) Nothing (fromJust nv)))
+			>>=					transform (appSnd (\nv -> if (isNothing nv) Nothing (fromJust nv)))
 			>>= \(action,nv) ->	return (action,((name,{form & formDyn = dynamic DV0 (if (isJust nv) (fromJust nv) v) :: DV0 a^}),mode))
 
 	title1 = "No form..."
