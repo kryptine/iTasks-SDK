@@ -1,6 +1,6 @@
 implementation module ExperimentalDomain
 
-import iTasks, Text
+import iTasks, Text, Functor
 
 derive gUpdate			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gDefaultMask		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color

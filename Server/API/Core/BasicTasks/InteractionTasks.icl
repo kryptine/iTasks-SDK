@@ -1,7 +1,7 @@
 implementation module InteractionTasks
 
 import StdTuple, StdList, StdOrdList, StdBool, StdMisc
-import Types, Shared, Util, HTML, Text, HTTP, TSt, Store, ExceptionCombinators
+import Types, Shared, Util, Functor, HTML, Text, HTTP, TSt, Store, ExceptionCombinators
 from StdFunc import id, const, o
 from HtmlUtil import paramValue
 from TaskPanel import :: InteractiveTaskType(..)

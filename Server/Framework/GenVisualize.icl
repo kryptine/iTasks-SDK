@@ -1,7 +1,7 @@
 implementation module GenVisualize
 
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc
-import GenUpdate, GenVerify, TUIDiff, Util, Maybe, Text, HTML, JSON, TUIDefinition, Types, HtmlUtil
+import GenUpdate, GenVerify, TUIDiff, Util, Maybe, Functor, Text, HTML, JSON, TUIDefinition, Types, HtmlUtil
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = startDataPath, label = Nothing, 

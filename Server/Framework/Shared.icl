@@ -1,7 +1,7 @@
 implementation module Shared
 
 import StdTuple, StdFunc, StdMisc
-import JSON, Store, Util
+import JSON, Store, Util, Functor
 from GenUpdate	import defaultValue, generic gUpdate
 
 derive JSONEncode	Shared, SharedReadOnly
