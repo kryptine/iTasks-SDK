@@ -3,7 +3,7 @@ implementation module OSTasks
 import StdList
 import TSt, StdFile, Process, Text
 from File import qualified fileExists
-from Process import qualified ::ProcessHandle, runProcess, getExitCode, closeProcessHandle
+from Process import qualified ::ProcessHandle, runProcess, checkProcess
 
 derive bimap Maybe, (,)
 
@@ -17,10 +17,10 @@ where
 		| isError res		= (TaskException (dynamic (fromError res)), tst)
 		# handle			= fromOk res
 		# (res,tst)			= accWorldTSt (waitForProcess handle) tst
-		| isError res		= (TaskException (dynamic (fromError res)), tst)
-		# exitCode			= fromOk res
-		# (_, tst)			= accWorldTSt (closeProcessHandle handle) tst
-		| otherwise			= (TaskFinished exitCode, tst)
+		| isError res
+			= (TaskException (dynamic (fromError res)), tst)
+		| otherwise
+			= (TaskFinished (fromOk res), tst)
 
 callProcess :: !message !FilePath ![String] -> Task Int | html message
 callProcess msg cmd args = mkMonitorTask ("Call process", ("Running command: " +++ (toString (html msg)))) callProcess`
@@ -34,12 +34,13 @@ where
 				# tst				= setTaskStore "handle" (fromOk res) tst
 				| otherwise			= (TaskBusy, tst)
 			Just handle
-				# (res,tst)			= accWorldTSt (getExitCode handle) tst
+				# (res,tst)			= accWorldTSt (checkProcess handle) tst
 				| isError res		= (TaskException (dynamic (fromError res)), tst)
 				= case fromOk res of
-					Nothing			= (TaskBusy, tst)
-					Just exitCode	# (_,tst) = accWorldTSt (closeProcessHandle handle) tst
-									= (TaskFinished exitCode, tst)
+					Just exitCode
+						= (TaskFinished exitCode, tst)
+					Nothing
+						= (TaskBusy, tst)
 
 fileExists :: !FilePath -> Task Bool
 fileExists path = mkInstantTask ("File exists check", "Check if a file exists") fileExists`
