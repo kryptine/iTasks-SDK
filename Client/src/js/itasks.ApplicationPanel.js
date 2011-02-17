@@ -163,3 +163,5 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		tab.refresh();
 	}
 });
+
+Ext.reg('itasks.application',itasks.ApplicationPanel);
