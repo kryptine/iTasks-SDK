@@ -35,7 +35,7 @@ itasks.tui.AppletControl = Ext.extend(Ext.Panel,{
 
 		var appletControl = this;
 		this.bubble(function(ct){ 
-			if (this.xtype == 'itasks.ttc.form') {
+			if (this.xtype == 'itasks.ttc.interactive') {
 				this.on ('resize', 
 					function(panel, w, h) {
 						appletControl.setHeight(this.getHeight() - 90);

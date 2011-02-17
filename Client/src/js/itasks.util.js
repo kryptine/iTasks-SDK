@@ -51,7 +51,7 @@ itasks.util.formatUser = function (user) {
 		return user[1];
 			
 	return "Unknown user type"*/
-	return user
+	return Ext.util.Format.htmlEncode(user);
 }
 
 itasks.util.fieldLabel = function(optional, label) {
