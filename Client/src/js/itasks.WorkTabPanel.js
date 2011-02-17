@@ -103,6 +103,11 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		delete(this.params["events"]);
 	},
 	update: function(data,success) {
+		if (!success){
+			Ext.Msg.alert('Error',"Error updating task.");
+			return;
+		}
+		
 		//Store the timestamp of the current value
 		this.params["timestamp"] = data.timestamp;
 		//Check if the task is finished or became redundant
