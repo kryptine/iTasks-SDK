@@ -675,11 +675,15 @@ where
 	checkMask _ val 	= val
 	
 visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Maybe a) !Bool !*VSt -> *(![Visualization],!*VSt)
-visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,renderAsStatic,verifyMask}
+visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,origVizType,idPrefix,label,currentPath,useLabels,optional,renderAsStatic,verifyMask}
 	# (cmv,vm)	= popMask verifyMask
-	# touched	= case (vizType) of
-		VEditorDefinition	= isTouched cmv
-		_					= True
+	// only check mask if generating editor definition & not for labels
+	# touched	= case origVizType of
+		VEditorDefinition = case vizType of
+			VTextLabel	= True
+			VHtmlLabel	= True
+			_			= isTouched cmv
+		_				= True
 	# id		= dp2id idPrefix currentPath
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# (vis,vst) = case vizType of
@@ -690,9 +694,9 @@ visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,idPrefix,label,
 					# (vis,vst)	= staticF v touched id {vst & vizType = VHtmlDisplay}
 					# vst		= {vst & vizType = vizType} 
 					= ([TUIHtmlContainer	{ id = id
-										, html = toString (html (coerceToHtml vis))
-										, fieldLabel = label
-										}],vst)
+											, html = toString (html (coerceToHtml vis))
+											, fieldLabel = label
+											}],vst)
 				_
 					# (err,hnt) = verifyElementStr cmv
 					= tuiF (dp2s currentPath) id v touched label optional err hnt renderAsStatic vst
@@ -708,12 +712,12 @@ noVisualization vst=:{VSt|currentPath,verifyMask}
 	= ([],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 childVisualizations :: !((Maybe a) -> .(*VSt -> *([Visualization],*VSt))) ![a] !(Maybe VisualizationType) !*VSt -> *(![[Visualization]],!*VSt)
-childVisualizations fx children mbVizType vst=:{vizType}
+childVisualizations fx children mbVizType vst=:{vizType,verifyMask}
 	# vst = case mbVizType of
 		Nothing	= vst
 		Just vt	= {vst & vizType = vt}
-	# (vis,vst)	= childVisualizations` children [] vst
-	= (vis,{vst & vizType = vizType})
+	# (vis,vst)	= childVisualizations` children [] {VSt|vst & verifyMask = childMasks (fst (popMask verifyMask))}
+	= (vis,{vst & vizType = vizType, verifyMask = verifyMask})
 where
 	childVisualizations` [] acc vst
 		= (reverse acc,vst)
