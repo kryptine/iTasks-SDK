@@ -61,7 +61,7 @@ mkAppointment
 		>>= \dates ->	defineParticipants 
 		>>= \users ->	let 	sharedData :: MeetingDB
 								sharedData = (goal,[(date,[(user, Nothing)\\ user <- users])\\ date <- dates])
-							in (createDB sharedData
+							in (createSharedStore sharedData
 								>>= \dbid -> startup 0 dbid users sharedData)
 where
 	startup n dbid [] _
@@ -98,7 +98,7 @@ where
 // ====== CHAT =====================================================
 derive class iTask Chat, ChatMessage, ChatView, ChatMessageView
 
-//Shared State	
+//SymmetricShared State	
 :: Chat =
 	{ initUser	:: User
 	, users		:: [User]
@@ -135,13 +135,13 @@ chat
 							++ [spawnProcess True True (me @>> Title "Chat Request" @>> menus @>> chatSession chatbox (me))]) 						
 where
 	
-	createChatBox :: User -> (Task (Shared Chat))
-	createChatBox me = createDB {Chat | initUser = me, users = [], messages = []}
+	createChatBox :: User -> (Task (SymmetricShared Chat))
+	createChatBox me = createSharedStore {Chat | initUser = me, users = [], messages = []}
 
 	selectFriends :: Task [User]
 	selectFriends = enterInformation ("Select friends","Whom do you want to chat with?")
 	
-	initiateChat :: (Shared Chat) User [User] -> Task Void
+	initiateChat :: (SymmetricShared Chat) User [User] -> Task Void
 	initiateChat chatbox friend friends
 		=	requestConfirmation ("Confirm","Do you want to initiate a chat with "+++printFriends+++"?")
 		>>= \yes -> if yes
@@ -158,24 +158,24 @@ where
 					  ]
 		]
 	
-	chatSession :: (Shared Chat) User -> Task Void
+	chatSession :: (SymmetricShared Chat) User -> Task Void
 	chatSession chatbox user 
-		= 			readDB chatbox
-		>>= \chat -> writeDB chatbox {Chat | chat & users = chat.Chat.users++[user]}
+		= 			readShared chatbox
+		>>= \chat -> writeShared chatbox {Chat | chat & users = chat.Chat.users++[user]}
 		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ Fixed] chatActions chatActionsGenFunc
 	where
 		chatActions = [ (ActionNew, Always), (ActionQuit, Always)
-					, (ActionAddUser, SharedPredicate chatbox (\(Just chat) -> chat.Chat.initUser == user))
+					, (ActionAddUser, SharedPredicate chatbox (\chat -> chat.Chat.initUser == user))
 					]
 		chatActionsGenFunc (action, _) = case action of
 			ActionNew		= GOExtend [newTopic chatbox user >>| stop]
 			ActionQuit		= GOStop
 			ActionAddUser	= GOExtend [addUsers chatbox >>| stop]
 						 		   	
-	chatEditor :: (Shared Chat) User -> Task Void
+	chatEditor :: (SymmetricShared Chat) User -> Task Void
 	chatEditor chatbox user = getCurrentDateTime >>= \dt -> updateSharedInformationA ("Chat","You can chat now") (mainEditor user dt) [] chatbox >>| return Void
 	
-	mainEditor :: User DateTime -> (IBimap Chat ChatView)
+	mainEditor :: User DateTime -> (SymmetricView Chat ChatView)
 	mainEditor user dt = (editorFrom user,editorTo user dt)
 	where
 		editorFrom :: User Chat -> ChatView
@@ -220,11 +220,11 @@ where
 			fromVizHint (VHDisplay x) 	= x
 			fromVizHint (VHHidden x) 		= x
 	
-	newTopic :: (Shared Chat) User -> Task Void
+	newTopic :: (SymmetricShared Chat) User -> Task Void
 	newTopic chatbox user 
-		= 				readDB  chatbox
+		= 				readShared  chatbox
 		>>= \chat ->	getCurrentDateTime
-		>>= \dt	  ->	writeDB chatbox (addNew chat user dt)
+		>>= \dt	  ->	writeShared chatbox (addNew chat user dt)
 		>>|				return  Void
 	where
 		addNew chat user dt = {Chat | chat & messages = chat.Chat.messages ++ [mkMsg user dt]}			
@@ -236,10 +236,10 @@ where
 		  				, replies = []
 		   				}
 	
-	addUsers :: (Shared Chat) -> Task Void
+	addUsers :: (SymmetricShared Chat) -> Task Void
 	addUsers chatbox
 		= 			 	enterInformation ("Select users","Select users to add to the chat")
-		>>= \users -> 	readDB chatbox
+		>>= \users -> 	readShared chatbox
 		>>= \chat ->	allTasks ([spawnProcess True True (u @>> Title "Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users))) \\ u <- users])
 		>>| 		 	return Void
 //===============================================
@@ -472,26 +472,26 @@ where
 	
 // reading and writing of storages
 
-newsGroupsId ::  (Shared NewsGroupNames)
-newsGroupsId		=	mkSharedReference "newsGroups"
+newsGroupsId ::  (SymmetricShared NewsGroupNames)
+newsGroupsId		=	sharedStore "newsGroups"
 
-readerId :: User -> (Shared Subscriptions)
-readerId user		= 	mkSharedReference ("Reader-" <+++ userName user)
+readerId :: User -> (SymmetricShared Subscriptions)
+readerId user		= 	sharedStore ("Reader-" <+++ userName user)
 
-groupNameId :: String -> (Shared NewsGroup)
-groupNameId name	=	mkSharedReference ("NewsGroup-" +++ name)
+groupNameId :: String -> (SymmetricShared NewsGroup)
+groupNameId name	=	sharedStore ("NewsGroup-" +++ name)
 
 readNewsGroups :: Task NewsGroupNames
-readNewsGroups = readDB newsGroupsId
+readNewsGroups = readShared newsGroupsId
 
 writeNewsGroups :: NewsGroupNames -> Task NewsGroupNames
-writeNewsGroups newgroups = writeDB newsGroupsId newgroups
+writeNewsGroups newgroups = writeShared newsGroupsId newgroups
 
 readSubscriptions :: Subscriber -> Task Subscriptions
-readSubscriptions me = readDB (readerId me)
+readSubscriptions me = readShared (readerId me)
 
 writeSubscriptions :: Subscriber Subscriptions -> Task Subscriptions
-writeSubscriptions me subscriptions = writeDB (readerId me) subscriptions
+writeSubscriptions me subscriptions = writeShared (readerId me) subscriptions
 
 addSubscription :: Subscriber Subscription -> Task Subscriptions
 addSubscription me (groupname,index)
@@ -508,8 +508,8 @@ where
 	hds [] = 0
 
 readNewsGroup :: GroupName -> Task NewsGroup
-readNewsGroup groupname = readDB (groupNameId groupname)
+readNewsGroup groupname = readShared (groupNameId groupname)
 
 writeNewsGroup :: GroupName NewsGroup -> Task NewsGroup
-writeNewsGroup groupname news = writeDB (groupNameId groupname) news
+writeNewsGroup groupname news = writeShared (groupNameId groupname) news
 

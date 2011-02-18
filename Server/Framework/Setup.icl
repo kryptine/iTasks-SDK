@@ -1,6 +1,6 @@
 implementation module Setup
 
-import StdList,StdBool, StdInt, StdFile
+import StdList,StdBool, StdInt, StdFile, StdFunc
 import HTTP
 import HTML, HtmlUtil
 import File, Error

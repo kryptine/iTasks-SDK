@@ -1,94 +1,59 @@
 implementation module Shared
 
-import StdTuple, StdFunc, StdMisc
-import JSON, Store, Util, Functor
-from GenUpdate	import defaultValue, generic gUpdate
+import StdTuple, StdFunc, Void, Maybe, Time, Error, GenUpdate, Util, Functor, StdList
+from Types import :: IWorld
 
-derive JSONEncode	Shared, SharedReadOnly
-derive JSONDecode	Shared, SharedReadOnly
-derive gEq			Shared, SharedReadOnly
-derive bimap Maybe,(,)
+readShared :: !(Shared r w) !*IWorld -> (!MaybeErrorString r,!*IWorld)
+readShared (Shared read _ _) iworld = read iworld
 
-mkSharedReference :: !String -> (Shared a)
-mkSharedReference ref = Shared ref Nothing
+writeShared :: !(Shared r w) !w !*IWorld -> (!MaybeErrorString Void,!*IWorld)
+writeShared (Shared _ write _) val iworld = write val iworld
 
-readShared :: !(sharedReadOnly a) !*IWorld -> (!Maybe a,!*IWorld) | toReadOnlyShared sharedReadOnly a & JSONDecode{|*|} a
-readShared shared iworld
-	# (SharedReadOnly ref mbGet)	= toReadOnlyShared shared
-	# (mbVal,iworld)				= loadValue ref iworld
-	# func = case mbGet of
-		Nothing		= decJSON
-		Just get	= get
-	= (fmap func mbVal,iworld)
-	
-readSharedAndTimestamp :: !(sharedReadOnly a) !*IWorld -> (!Maybe (!a,!Timestamp),!*IWorld) | toReadOnlyShared sharedReadOnly a & JSONDecode{|*|} a
-readSharedAndTimestamp shared iworld
-	# (SharedReadOnly ref mbGet)	= toReadOnlyShared shared
-	# (mbVal,iworld)				= loadValueAndTimestamp ref iworld
-	# func = case mbGet of
-		Nothing		= decJSON
-		Just get	= get
-	= (fmap (appFst func) mbVal,iworld)
+getSharedTimestamp :: !(Shared r w) !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
+getSharedTimestamp (Shared _ _ getTimestamp) iworld = getTimestamp iworld
 
-writeShared :: !(Shared a) !a !*IWorld -> *IWorld | JSONEncode{|*|} a
-writeShared (Shared ref mbBimap) val iworld
-	= case mbBimap of
-		Nothing
-			= storeValue ref (toJSON val) iworld
-		Just (_,putback)
-			# (mbMValJSON,iworld) = loadValue ref iworld
-			= case mbMValJSON of
-				Just mValJSON	= storeValue ref (putback val mValJSON) iworld
-				Nothing			= iworld // don't store value if no model is stored
-				
-deleteShared :: !(Shared a) !*IWorld -> *IWorld
-deleteShared (Shared ref Nothing) iworld = deleteValue ref iworld
-// don't delete entire value if only have view on substructure
-deleteShared (Shared ref _) iworld = iworld
+mapSharedRead :: !(r -> r`) !(Shared r w) -> (Shared r` w)
+mapSharedRead f (Shared read write getTimestamp) = Shared (appFst (fmap f) o read) write getTimestamp
 
-mapShared :: !(IBimap a b) !(Shared a) -> Shared b | JSONEncode{|*|} a & JSONDecode{|*|} a
-mapShared (newGet,newPutback) (Shared ref mbOldBimap)
-	= case mbOldBimap of
-		Nothing
-			= Shared ref (Just (newGet o decJSON, \b json -> toJSON (newPutback b (decJSON json))))
-		Just (oldGet,oldPutback)
-			= Shared ref (Just (newGet o oldGet,  \b json -> oldPutback (newPutback b (oldGet json)) json))
-
-mapSharedReadOnly :: !(a -> b) !(SharedReadOnly a) -> SharedReadOnly b | JSONDecode{|*|} a
-mapSharedReadOnly newGet (SharedReadOnly ref mbOldGet)
-	= case mbOldGet of
-		Nothing
-			= SharedReadOnly ref (Just (newGet o decJSON))
-		Just oldGet
-			= SharedReadOnly ref (Just (newGet o oldGet))
-
-isValueStored :: !(shared a) !*IWorld -> (!Bool,!*IWorld) | toReadOnlyShared shared a
-isValueStored shared iworld
-	# (SharedReadOnly ref _)	= toReadOnlyShared shared
-	# (mbJSON,iworld)			= get ref iworld
-	= (isJust mbJSON,iworld)
+mapSharedWrite :: !(w` r -> w) !(Shared r w) -> (Shared r w`)
+mapSharedWrite f (Shared read write getTimestamp) = Shared read newWrite getTimestamp
 where
-	get :: !String !*IWorld -> (!Maybe JSONNode,!*IWorld)
-	get ref iworld = loadValue ref iworld
-	
-isSharedChanged :: !(shared a) !Timestamp !*IWorld -> (!Bool,!*IWorld) | toReadOnlyShared shared a
-isSharedChanged shared timestamp iworld
-	# (SharedReadOnly ref _) = toReadOnlyShared shared
-	= isValueChanged ref timestamp iworld
-	
-decJSON json = case fromJSON json of
-	Just v	= v
-	Nothing	= abort "Shared: can't decode JSON"
+	newWrite v iworld
+		# (m,iworld) = read iworld
+		| isError m = (liftError m,iworld)
+		= write (f v (fromOk m)) iworld
+		
+mapShared :: !(r -> r`,w` r -> w) !(Shared r w) -> Shared r` w`
+mapShared (readMap,writeMap) shared = mapSharedRead readMap (mapSharedWrite writeMap shared)
 
-instance toReadOnlyShared SharedReadOnly a
-where
-	toReadOnlyShared :: !(SharedReadOnly a) -> SharedReadOnly a
-	toReadOnlyShared sharedRO = sharedRO
+isSharedChanged :: !(Shared r w) !Timestamp !*IWorld -> (!MaybeErrorString Bool,!*IWorld)
+isSharedChanged (Shared _ _ getTimestamp) t0 iworld
+	# (t1,iworld) = getTimestamp iworld
+	| isError t1 = (liftError t1,iworld)
+	= (Ok (t0 < fromOk t1),iworld)
 
-instance toReadOnlyShared Shared a
-where
-	toReadOnlyShared :: !(Shared a) -> SharedReadOnly a
-	toReadOnlyShared (Shared ref mbBimap)
-		= case mbBimap of
-			Nothing			= SharedReadOnly ref Nothing
-			Just (get,_)	= SharedReadOnly ref (Just get)
+toReadOnlyShared :: !(Shared r w) -> ReadOnlyShared r
+toReadOnlyShared (Shared read write getTimestamp) = Shared read (\_ iworld -> (Ok Void,iworld)) getTimestamp
+
+(>+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) (w0,w1)
+(>+<) (Shared read0 write0 getTimestamp0) (Shared read1 write1 getTimestamp1)
+	= Shared (composeReads read0 read1) (composeWrites write0 write1) (composeGetTimestamps getTimestamp0 getTimestamp1)
+	
+(>+|) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w0
+(>+|) (Shared read0 write0 getTimestamp0) (Shared read1 _ getTimestamp1)
+	= Shared (composeReads read0 read1) write0 (composeGetTimestamps getTimestamp0 getTimestamp1)
+
+(|+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w1
+(|+<) (Shared read0 _ getTimestamp0) (Shared read1 write1 getTimestamp1)
+	= Shared (composeReads read0 read1) write1 (composeGetTimestamps getTimestamp0 getTimestamp1)
+	
+composeReads						= compose (\a b -> (a,b))
+composeGetTimestamps				= compose max
+composeWrites write0 write1 (v0,v1)	= compose const (write0 v0) (write1 v1)
+
+compose compF f0 f1 iworld
+	# (res0,iworld)	= f0 iworld
+	| isError res0	= (liftError res0,iworld)
+	# (res1,iworld)	= f1 iworld
+	| isError res1	= (liftError res1,iworld)
+	= (Ok (compF (fromOk res0) (fromOk res1)),iworld)

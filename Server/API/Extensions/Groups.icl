@@ -7,7 +7,7 @@ derive bimap Maybe, (,)
 
 instance DB Group
 where
-	databaseId 					= mkSharedReference "Groups"
+	databaseId 					= sharedStore "Groups"
 	getItemId g					= DBRef (fromHidden g.Group.groupId)
 	setItemId (DBRef groupId) g	= {Group| g & groupId = toHidden groupId}
 

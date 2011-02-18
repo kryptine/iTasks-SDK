@@ -1,9 +1,9 @@
 implementation module CoreCombinators
 
 import StdList, StdArray, StdTuple, StdMisc, StdBool
-import TSt, Shared, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators
-from StdFunc	import id, const
-from TaskTree	import :: TaskParallelType
+import TSt, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators, Shared
+from StdFunc		import id, const
+from TaskTree		import :: TaskParallelType
 
 derive class iTask SchedulerState
 
@@ -156,8 +156,8 @@ where
 		evaluateCondition (SharedPredicate id p)	= Right	(checkSharedPred id p)
 		
 		checkSharedPred shared p iworld
-			# (mbVal,iworld) = readShared shared iworld
-			= (p mbVal, iworld)
+			# (val,iworld) = appFst fromOk (readShared shared iworld)
+			= (p val, iworld)
 				
 	getEventGroupActionEvent events groupActions
 		# actionEvents = [getNameAndData event \\ ("action", event) <- events]
@@ -346,5 +346,5 @@ where
 			_	
 				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done
 
-scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a])) | iTask a
-scheduledSpawn when task = return (mkSharedReference "Nothing here")
+scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a]) Void) | iTask a
+scheduledSpawn when task = abort "not implemented"

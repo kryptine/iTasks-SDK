@@ -35,10 +35,11 @@ where
 			DynamicMenus shared genF	= dynamicMenus
 			where
 				dynamicMenus iworld
-					# (mbV,iworld) = readShared shared iworld
-					= case mbV of
-						Just v	= (genF v,iworld)
-						Nothing	= abort "Cannot dynamically generate menus! Stored value deleted!"
+					# (v,iworld) = readShared shared iworld
+					= case v of
+						Ok v	= (genF v,iworld)
+						Error _	= ([],iworld) // empty menus on error
+					
 instance tune Menus
 where tune menus task = tune (StaticMenus menus) task
 instance tune FormWidth

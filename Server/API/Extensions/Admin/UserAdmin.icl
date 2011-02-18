@@ -34,7 +34,7 @@ updateUserFlow user
 			= showMessage ("Error","Cannot update this user") user
 		Just oldDetails 						
 			= updateInformationA ("Editing " +++ displayName user,"Please make your changes")
-					idBimap [(ActionCancel, always), (ActionOk, ifvalid)] oldDetails
+					idView [(ActionCancel, always), (ActionOk, ifvalid)] oldDetails
 			>>= \res -> case appFst fst res of
 				(ActionOk,Just newDetails)	= updateUser user newDetails >>= showMessage ("User updated","Successfully updated " +++ newDetails.displayName)
 				(ActionCancel,_)			= return user					

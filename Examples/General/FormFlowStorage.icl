@@ -22,8 +22,8 @@ derive bimap Maybe, (,)
 // *************************************************
 
 instance DB FormStore where
-	databaseId	:: Shared [FormStore]
-	databaseId = mkSharedReference "FormStore"
+	databaseId	:: SymmetricShared [FormStore]
+	databaseId = sharedStore "FormStore"
 	
 	getItemId	:: FormStore -> DBRef FormStore
 	getItemId a = a.formDBRef
@@ -32,8 +32,8 @@ instance DB FormStore where
 	setItemId dbref a = {a & formDBRef = dbref}
 
 instance DB FlowStore where
-	databaseId	:: Shared [FlowStore]
-	databaseId = mkSharedReference "FlowStore"
+	databaseId	:: SymmetricShared [FlowStore]
+	databaseId = sharedStore "FlowStore"
 	
 	getItemId	:: FlowStore -> DBRef FlowStore
 	getItemId a = a.flowDBRef

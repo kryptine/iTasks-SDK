@@ -6,8 +6,9 @@ definition module CommonCombinators
 
 import CoreCombinators, TuningCombinators
 import Either
-from Types import :: User, :: SessionId
-from Map import :: Map
+from Types	import :: User, :: SessionId
+from Map	import :: Map
+from Shared	import :: SymmetricShared
 
 // Additional types for grouping
 // These types are similar to PAction but are needed to avoid circular definitions
@@ -253,7 +254,7 @@ dynamicGroupAOnly	:: ![Task Void]		![GroupAction Void] !(GroupActionGenFunc GOnl
 mdiApplication ::
 	!globalState
 	![GroupAction Void]
-	!((Shared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction))
+	!((SymmetricShared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction))
 	!((globalState,EditorCollection editorState) -> Menus)
 	->
 	Task Void | iTask globalState & iTask editorState & iTask iterationState
@@ -287,8 +288,8 @@ mdiApplication ::
 	existsEditor :: MDIExistsEditor editorState
 	}
 	
-:: MDICreateEditor editorState					:== editorState ((EditorId editorState) (Shared editorState) -> Task Void) -> Task Void
-:: MDIIterateEditors editorState iterationState :== iterationState (iterationState (Shared editorState) -> Task iterationState) -> Task iterationState
+:: MDICreateEditor editorState					:== editorState ((EditorId editorState) (SymmetricShared editorState) -> Task Void) -> Task Void
+:: MDIIterateEditors editorState iterationState :== iterationState (iterationState (SymmetricShared editorState) -> Task iterationState) -> Task iterationState
 :: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (EditorId editorState))
 	
 :: EditorId est :== Int

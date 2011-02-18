@@ -30,7 +30,9 @@ determineEditorUpdates :: String (a,VerifyMask) (a,VerifyMask) ![DataPath] -> [T
 determineEditorUpdates name (oval,ovmask) (nval,nvmask) alwaysUpdate
 	# oldviz = visualizeAsEditor name oval ovmask
 	# newviz = visualizeAsEditor name nval nvmask
-	= diffEditorDefinitions (hd oldviz) (hd newviz) alwaysUpdate
+	= case (oldviz,newviz) of
+		([oldviz],[newviz])	= diffEditorDefinitions oldviz newviz alwaysUpdate
+		_					= []
 	
 //IDEAS:
 // - ConstructorControl, should in same cases be a constructor container
@@ -564,8 +566,7 @@ where
 	
 gVisualize{|Dynamic|}			_ vst	= noVisualization vst
 gVisualize{|(->)|} _ _			_ vst	= noVisualization vst
-gVisualize{|Shared|} _			_ vst	= noVisualization vst
-gVisualize{|SharedReadOnly|} _	_ vst	= noVisualization vst
+gVisualize{|Shared|} _ _		_ vst	= noVisualization vst
 
 gVisualize{|Maybe|} fx val vst=:{vizType,currentPath,optional}
 	# vst = {VSt|vst & optional = True}

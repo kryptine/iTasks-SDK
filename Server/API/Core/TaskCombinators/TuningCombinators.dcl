@@ -3,7 +3,6 @@ definition module TuningCombinators
 * This module provides combinators for fine-tuning of workflows.
 */
 from Time	import :: Timestamp
-from Shared	import class toReadOnlyShared
 import Task
 
 :: Title			= E.s: Title !s			& toString s
@@ -12,8 +11,8 @@ import Task
 :: Tags				= E.s: Tags ![s]		& toString s
 :: MenuAnnotation	= 	NoMenus
 					| 	StaticMenus !Menus
-					| E.sharedReadOnly s:
-						DynamicMenus !(sharedReadOnly s) !(s -> Menus) & iTask s & toReadOnlyShared sharedReadOnly s
+					| E.s w:
+						DynamicMenus !(Shared s w) !(s -> Menus) & iTask s
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a

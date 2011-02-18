@@ -15,8 +15,6 @@ taskUser task = task.taskProperties.worker
 
 taskProperties :: !(Task a) -> ManagerProperties
 taskProperties task = task.taskProperties
-
-
 	
 instance iTaskId TaskNr
 where

@@ -12,7 +12,5 @@ class iTask a
 	, JSONDecode{|*|}
 	, gEq{|*|}
 	, TC a
-	& toReadOnlyShared Shared a
-	& toReadOnlyShared SharedReadOnly a
 	
 :: Container a c = Container a & iTask c // container for context restrictions

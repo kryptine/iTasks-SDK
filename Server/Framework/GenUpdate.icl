@@ -234,8 +234,7 @@ gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\str _ -> fromString str) ust
 
 gUpdate{|Dynamic|}			mode ust = basicUpdate mode unchanged (dynamic 42) ust
 gUpdate{|(->)|} _ _			mode ust = basicUpdate mode unchanged (abort "default function") ust
-gUpdate{|Shared|} _			mode ust = basicUpdate mode unchanged (mkSharedReference "default") ust
-gUpdate{|SharedReadOnly|} _	mode ust = basicUpdate mode unchanged (SharedReadOnly "default" Nothing) ust
+gUpdate{|Shared|} _ _		mode ust = basicUpdate mode unchanged (abort "default shared") ust
 unchanged _ v = v
 
 gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust
@@ -318,8 +317,7 @@ gDefaultMask{|Date|}				_ = [Touched []]
 gDefaultMask{|Time|}				_ = [Touched []]
 gDefaultMask{|User|}				_ = [Touched []]
 gDefaultMask{|MultipleChoice|}_		_ = [Touched []]
-gDefaultMask{|Shared|} _			_ = [Touched []]
-gDefaultMask{|SharedReadOnly|} _	_ = [Touched []]
+gDefaultMask{|Shared|} _ _			_ = [Touched []]
 gDefaultMask{|Choice|} _ (Choice opts sel)
 	// if no valid selection is made, start with untouched mask
 	| sel >= 0 && sel < length opts	= [Touched []]

@@ -4,7 +4,7 @@ import HTML, JSON, TUIDefinition
 import StdGeneric, Maybe, Void, Either
 import GenUpdate, GenVerify
 from Map import :: Map
-from Shared import :: Shared, :: SharedReadOnly
+from Shared import :: Shared
 
 //Generic visualization function
 generic gVisualize a	:: (Maybe a) *VSt -> ([Visualization], *VSt)
@@ -13,7 +13,7 @@ generic gVisualize a	:: (Maybe a) *VSt -> ([Visualization], *VSt)
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Shared, SharedReadOnly, Map, Tree, TreeNode
+derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Shared, Map, Tree, TreeNode
 derive gVisualize ProcessRef, EmailAddress, Action, Table
 
 //Wrapper functions for visualization

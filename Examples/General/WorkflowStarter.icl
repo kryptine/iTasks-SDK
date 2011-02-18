@@ -9,9 +9,8 @@ workflowStarter :: [Workflow]
 workflowStarter = [workflow "Examples/Workflow starter" "This task rebuilds the client's panel for starting up new workflows." starter]
 
 starter =
-					createDB Nothing
+					createSharedStore Nothing
 	>>= \ref.		chooseWorkflow ref ||- showDescription ref
-	>>|				deleteDB ref
 	
 chooseWorkflow ref =
 					getWorkflowTreeNodes
@@ -24,7 +23,7 @@ where
 							)
 
 showDescription ref =
-										showMessageShared "Task description" view actions ref
+										showMessageSharedA "Task description" view actions ref
 	>>= \(event,Just (_,_,Hidden idx)).	case fst event of
 											Action "start-task" _ =
 													startWorkflowByIndex idx

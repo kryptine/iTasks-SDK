@@ -23,9 +23,18 @@ currentDateTime :: !*World -> (!DateTime,!*World)
 appFst	:: (.a -> .c) (.a,.b) -> (.c,.b)
 appSnd	:: (.b -> .c) (.a,.b) -> (.a,.c)
 
+appFst3 :: (.a -> .d) (.a,.b,.c) -> (.d,.b,.c)
+appSnd3 :: (.b -> .d) (.a,.b,.c) -> (.a,.d,.c)
+appThd3 :: (.c -> .d) (.a,.b,.c) -> (.a,.b,.d)
+
 // Utility functions for generics
 fromOBJECT	:: (OBJECT x)	-> x
 fromCONS	:: (CONS x)		-> x
 fromFIELD	:: (FIELD x)	-> x
 fromPAIRX	:: (PAIR x y)	-> x
 fromPAIRY	:: (PAIR x y)	-> y
+
+//List utility functions
+replaceInList	:: !(a a -> Bool) !a ![a] -> [a]
+splitWith		:: !(a -> Bool) ![a] -> (![a],![a])
+

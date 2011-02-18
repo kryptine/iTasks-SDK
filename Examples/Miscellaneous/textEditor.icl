@@ -55,7 +55,7 @@ FocusWindow		:== "focus-window"
 
 newFile :: !AppStateRef !(MDICreateEditor EditorState) -> Task GAction
 newFile aid createEditor =
-								updateDB aid (\(AppState num recOpened) -> AppState (inc num) recOpened)
+								updateShared aid (\(AppState num recOpened) -> AppState (inc num) recOpened)
 	>>= \(AppState newNum _).	createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile
 	>>|							return GContinue
 
@@ -83,7 +83,7 @@ open fid {createEditor, existsEditor} mbGid =
 			>>= \file.	case mbGid of // determine if to add to list of recently opened files
 							Nothing = stop
 							Just gid =
-									updateDB gid (\(AppState n files) -> AppState n (take 5 [(fid, file.TextFile.name):files]))
+									updateShared gid (\(AppState n files) -> AppState n (take 5 [(fid, file.TextFile.name):files]))
 								>>| stop
 			>>|			return (GExtend [editor file])
 		Just eid = return (GFocus (Tag eid))
@@ -123,15 +123,13 @@ where
 		Action Stats _		= GExtend [statistics ref  <<@ Floating]
 		ActionClose			= GExtend [close ref <<@ Modal]
 	
-	noNewFile :: !(Maybe EditorState) -> Bool					
-	noNewFile Nothing = abort "editor state deleted"
-	noNewFile (Just (EditorState _ file)) = case file of
+	noNewFile :: !EditorState -> Bool					
+	noNewFile (EditorState _ file) = case file of
 		(OpenedFile _)	= True
 		_				= False
 	
-	contNotEmpty :: !(Maybe EditorState) -> Bool
-	contNotEmpty Nothing = abort "editor state deleted"
-	contNotEmpty (Just (EditorState (Note cont) _)) = cont <> ""
+	contNotEmpty :: !EditorState -> Bool
+	contNotEmpty (EditorState (Note cont) _) = cont <> ""
 	
 editorWindow :: !(EditorId EditorState) !EditorStateRef -> Task GAction
 editorWindow eid ref =
@@ -145,11 +143,11 @@ where
 						
 save :: !EditorStateRef -> Task GAction
 save eid =
-					readDB eid
+					readShared eid
 	>>= \editor.	case editor of
 						EditorState txt (OpenedFile file) =
 										setFileContent txt file
-							>>= \file.	writeDB eid (EditorState file.TextFile.content (OpenedFile file))
+							>>= \file.	writeShared eid (EditorState file.TextFile.content (OpenedFile file))
 							>>|			continue
 						_ = saveAs eid
 
@@ -158,9 +156,9 @@ saveAs eid =
 				enterInformationA ("Save as","Save As: enter name") id buttons <<@ NoMenus
 	>>= \res.	case appFst fst res of
 					(ActionOk,Just name) =
-														readDB eid
+														readShared eid
 						>>= \(EditorState txt _).		storeFile name txt
-						>>= \file=:{TextFile|content}.	writeDB eid (EditorState content (OpenedFile file))
+						>>= \file=:{TextFile|content}.	writeShared eid (EditorState content (OpenedFile file))
 						>>|								continue
 					_ =
 						continue
@@ -176,10 +174,10 @@ replaceT eid = replaceT` {searchFor = "", replaceWith = ""}
 where
 	replaceT` :: !Replace -> Task GAction
 	replaceT` repl =
-					updateInformationA ("Replace","Replace") idBimap buttons repl <<@ NoMenus
+					updateInformationA ("Replace","Replace") idView buttons repl <<@ NoMenus
 		>>= \res.	case appFst fst res of
 						(ActionReplaceAll,Just repl) =
-								updateDB eid (dbReplaceFunc repl)
+								updateShared eid (dbReplaceFunc repl)
 							>>|	replaceT` repl
 						_ =
 							continue
@@ -197,7 +195,7 @@ ActionReplaceAll :== Action "replace-all" "Replace all"
 
 statistics :: !EditorStateRef  -> Task GAction
 statistics eid = 
-		showMessageShared ("Statistics","Statistics of your document") statsListener [(ActionOk, always)] eid <<@ NoMenus
+		showMessageSharedA ("Statistics","Statistics of your document") statsListener [(ActionOk, always)] eid <<@ NoMenus
 	>>|	continue
 where
 	statsListener (EditorState (Note text) _) =
@@ -230,7 +228,7 @@ hasUnsavedData (EditorState continue file) = case file of
 	
 requestClosingFile :: !EditorStateRef -> Task Bool
 requestClosingFile eid =
-										readDB eid
+										readShared eid
 	>>= \state=:(EditorState _ file).	if (hasUnsavedData state)
 										(					showMessageAboutA ("Save changes","Save changes?") id buttons (question file) <<@ NoMenus
 											>>= \action.	case fst action of
@@ -245,10 +243,10 @@ where
 	
 // global application state
 :: AppState = AppState !Int ![(!(DBRef TextFile), !String)]
-:: AppStateRef :== Shared AppState
+:: AppStateRef :== SymmetricShared AppState
 :: EditorState = EditorState !Note !EditorFile
 :: EditorFile = NewFile !Int | OpenedFile !TextFile
-:: EditorStateRef :== Shared EditorState
+:: EditorStateRef :== SymmetricShared EditorState
 
 // text files database
 :: FileName :==	String
@@ -258,7 +256,7 @@ where
 				}
 
 instance DB TextFile where
-	databaseId			= mkSharedReference "TextFiles"
+	databaseId			= sharedStore "TextFiles"
 	getItemId file		= file.fileId
 	setItemId id file	= {file & fileId = id}
 	

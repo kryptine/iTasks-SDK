@@ -8,7 +8,6 @@ import Maybe, JSON, Task
 from TSt		import :: Workflow
 from HTTP		import :: HTTPRequest, :: HTTPResponse
 from Config		import :: Config
-from Shared		import class toReadOnlyShared, :: Shared
 
 /**
 * Creates the iTasks system from a set of workflow definitions

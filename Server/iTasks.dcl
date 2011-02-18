@@ -10,7 +10,7 @@ import	Engine						// basic iTask system creator
 	//	Basic tasks
 	,	InteractionTasks			// tasks for interaction with users
 	,	SystemTasks					// tasks for interaction with the iTasks system itself
-	,	StoreTasks					// tasks for accessing the generic store
+	,	SharedTasks					// tasks for accessing the generic store
 	
 	,	UserDBTasks					// tasks for accessing the user database
 	,	SessionDBTasks				// tasks for accessing the session database
@@ -58,3 +58,5 @@ import Types
 from TSt		import :: Workflow{..}
 from TaskTree	import :: TaskParallelType(..)
 from Task		import :: Change(..), :: ChangeLifeTime(..)
+from Shared		import :: Shared, :: ReadOnlyShared, :: SymmetricShared, mapShared, toReadOnlyShared, >+<, |+<, >+|
+

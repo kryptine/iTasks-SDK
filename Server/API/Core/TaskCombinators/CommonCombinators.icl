@@ -10,7 +10,8 @@ from Types		import :: ProcessId, :: User(..), :: Note(..)
 from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskParallelType{..}
-import StoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, InteractionTasks
+from Shared		import mapShared, :: SymmetricShared
+import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, InteractionTasks, SharedTasks
 
 derive class iTask GAction, GOnlyAction
 
@@ -32,9 +33,6 @@ JSONDecode{|Tag|} nodes = case nodes of
 gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
 
 derive bimap Maybe, (,)
-
-// Collection of references to all editor states of an MDI application
-:: MDIAppState editorState :== [Shared editorState]
 
 transform :: !(a -> b) !a -> Task b | iTask b
 transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") (\tst -> (TaskFinished (f x),tst))
@@ -220,13 +218,11 @@ where
 		GOFocus tag		= (Void, Focus tag)
 	changeTasksType tasks = map (\t -> (t >>| return (GOExtend [])) <<@ t.groupedProperties.GroupedProperties.groupedBehaviour) tasks
 		
-mdiApplication :: !globalState ![GroupAction Void] !((Shared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !((globalState,EditorCollection editorState) -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
+mdiApplication :: !globalState ![GroupAction Void] !((SymmetricShared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !((globalState,EditorCollection editorState) -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
 mdiApplication initAppState gActions gActionsGenFunc menuGenFunc =
-				createDB (initAppState,newMap)
-	>>= \ref.	createDB 0
+				createSharedStore (initAppState,newMap)
+	>>= \ref.	createSharedStore 0
 	>>= \idref.	dynamicGroupA [] gActions (gActionsGenFunc ref (globalTasks ref idref)) <<@ DynamicMenus ref menuGenFunc
-	>>|			deleteDB ref
-	>>|			deleteDB idref
 	>>|			stop
 where
 	globalTasks ref idref =
@@ -236,14 +232,14 @@ where
 		}
 	where
 		createEditor initState editorTask =
-						updateDB idref inc
-			>>= \eid.	updateDB ref (putInEditorStates eid initState)
+						updateShared idref inc
+			>>= \eid.	updateShared ref (putInEditorStates eid initState)
 			>>|			editorTask eid (sharedForEditor eid)
-			>>|			updateDB ref (updateEditorStates (del eid))
+			>>|			updateShared ref (updateEditorStates (del eid))
 			>>|			stop
 			
 		iterateEditors initAcc f =
-						readDB ref
+						readShared ref
 			>>= \st.	iterate initAcc (map fst (toList (snd st))) f ref
 		where
 			iterate acc [] _ _= return acc
@@ -252,7 +248,7 @@ where
 				>>= \acc.	iterate acc eids f ref
 			
 		existsEditor pred =
-						readDB ref
+						readShared ref
 			>>= \st.	return (check (toList (snd st)))
 		where
 			check [] = Nothing

@@ -20,7 +20,7 @@ calculateSumSteps = step1First
 where
 	step1First			= enterInformationA ("Number 1","Enter a number") id [(ActionNext, ifvalid)]
 						  >>= \(_,Just num1) -> step2First num1
-	step1Back num1		= updateInformationA ("Number 1","Enter a number") idBimap [(ActionNext, ifvalid)] num1
+	step1Back num1		= updateInformationA ("Number 1","Enter a number") idView [(ActionNext, ifvalid)] num1
 						  >>= \(_,Just num1`) -> step2First num1`
 	
 	step2First num1		= enterInformationA ("Number 2","Enter another number") id [(ActionPrevious, always), (ActionNext, ifvalid)]
@@ -28,7 +28,7 @@ where
 						  	(ActionNext,Just num2)	= step3 num1 num2
 						  	(ActionPrevious,_)		= step1Back num1
 						  							
-	step2Back num1 num2	= updateInformationA ("Number 2","Enter another number") idBimap [(ActionPrevious, always), (ActionNext, ifvalid)] num2
+	step2Back num1 num2	= updateInformationA ("Number 2","Enter another number") idView [(ActionPrevious, always), (ActionNext, ifvalid)] num2
 						  >>= \res -> case appFst fst res of
 						  	(ActionNext,Just num2`)	= step3 num1 num2`
 						  	(ActionPrevious,_)		= step1Back num1

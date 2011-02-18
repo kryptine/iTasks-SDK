@@ -1,7 +1,7 @@
 implementation module Store
 
 import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
-import Directory, Maybe, Map, Text, JSON
+import Directory, Maybe, Map, Text, JSON, Functor
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Types import :: IWorld{..}, :: Config
 import dynamic_string //Static dynamic serialization
@@ -83,8 +83,8 @@ loadValue key iworld
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 		
-getTimestamp :: !String !*IWorld -> (!Maybe Timestamp,!*IWorld)
-getTimestamp key iworld
+getStoreTimestamp :: !String !*IWorld -> (!Maybe Timestamp,!*IWorld)
+getStoreTimestamp key iworld
 	# (mbItem,iworld) = loadStoreItem key iworld
 	= case mbItem of
 		Just item	= (Just item.StoreItem.timestamp,iworld)
@@ -283,12 +283,10 @@ where
 		# (ok,world)		= fclose file world
 		= world
 
-isValueChanged :: !String !Timestamp !*IWorld -> (!Bool,!*IWorld)
+isValueChanged :: !String !Timestamp !*IWorld -> (!Maybe Bool,!*IWorld)
 isValueChanged key ts0 iworld
-	# (mbTimestamp,iworld) = getTimestamp key iworld
-	= case mbTimestamp of
-		Nothing		= (True,iworld)
-		Just ts1	= (ts0 < ts1,iworld)
+	# (mbTimestamp,iworld) = getStoreTimestamp key iworld
+	= (fmap ((<) ts0) mbTimestamp,iworld)
 
 appCache :: !.(*(Map String (Bool,StoreItem)) -> *(Map String (Bool,StoreItem))) !*IWorld -> *IWorld
 appCache f iworld=:{store=store=:{cache}}

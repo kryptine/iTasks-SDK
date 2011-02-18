@@ -110,8 +110,7 @@ gVerify{|Tree|} _			_ vst = simpleVerify "Choose a leaf of the tree" vst
 
 gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst
-gVerify{|Shared|} _			_ vst = alwaysValid vst
-gVerify{|SharedReadOnly|} _	_ vst = alwaysValid vst
+gVerify{|Shared|} _ _		_ vst = alwaysValid vst
 
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool

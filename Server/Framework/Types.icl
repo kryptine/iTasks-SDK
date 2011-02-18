@@ -1,7 +1,7 @@
 implementation module Types
 from StdFunc import until
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc
+import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, dynamic_string, Base64, Shared
 import GenLexOrd, JSON, HTML, Text, Util
 from Time import :: Timestamp(..)
 
@@ -21,9 +21,16 @@ JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
 
-gEq{|(->)|} _ _ _ _ = False // functions are never equal
-gEq{|Dynamic|} _ _ = False // dynamics are never equal
+JSONEncode{|Shared|} _ _ (Shared read write getTimestamp) = [JSONArray [JSONString "Shared", JSONString (base64Encode (copy_to_string (read,write,getTimestamp)))]]
+JSONDecode{|Shared|} _ _ [JSONArray [JSONString "Shared", JSONString funcs]:c] = (Just (Shared read write getTimestamp),c)
+where
+	(read,write,getTimestamp) = fst (copy_from_string {s` \\ s` <-: base64Decode funcs})
+JSONDecode{|Shared|} _ _ c = (Nothing,c)
+
+gEq{|(->)|} _ _ _ _			= False	// functions are never equal
+gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 //gEq{|Dynamic|} (x :: a | gEq{|*|} a) (y :: a | gEq{|*|} a) = x === y
+gEq{|Shared|} _ _ _ _		= False
 
 choice :: ![a] -> Choice a
 choice l = Choice l -1

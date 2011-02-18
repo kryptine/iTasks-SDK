@@ -6,7 +6,7 @@ definition module CoreCombinators
 from Time				import :: Timestamp
 from TaskTree			import :: TaskParallelType, :: GroupedBehaviour
 from TuningCombinators	import :: Tag
-from Shared				import ::Shared, class toReadOnlyShared
+from Shared				import ::Shared
 import Task
 
 //Standard monadic operations:
@@ -71,11 +71,11 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 // When: The condition that determine if the action can be taken
 :: GroupAction gState :== (Action, GroupCondition gState)
 :: GroupCondition gState
-	=	Always																									// group action is always enabled
-	| 	StatePredicate !(gState -> Bool)																		// use predicate on internal state to determine if action is enabled
-	| E.sharedReadOnly s:
-		SharedPredicate !(sharedReadOnly s) !((Maybe s) -> Bool) & iTask s & toReadOnlyShared sharedReadOnly s	// use predicate on given shared variable to determine if action is enabled
-:: GroupActionGenFunc result	:== (Action, ActionData) -> result												// function mapping task action events to result applied to the group
+	=	Always														// group action is always enabled
+	| 	StatePredicate !(gState -> Bool)							// use predicate on internal state to determine if action is enabled
+	| E.s w:
+		SharedPredicate !(Shared s w) !(s -> Bool) & iTask s		// use predicate on given shared variable to determine if action is enabled
+:: GroupActionGenFunc result	:== (Action, ActionData) -> result	// function mapping task action events to result applied to the group
 /**
 * Execute a list of parallel tasks, assigned to different users. The combinator keeps an internal
 * state of type 'pState' and uses the accumulator function to alter this state and dynamically add new tasks
@@ -157,7 +157,7 @@ waitForProcess	:: (ProcessRef a)				-> Task (Maybe a)	| iTask a
 *
 * @return A reference to a control memory this contains a schedulerstate to control the scheduler and a list of active processes.
 */
-scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a])) | iTask a
+scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a]) Void) | iTask a
 
 :: SchedulerState = SSActive //Keep monitoring time and spawn new tasks
 				  | SSFinish //Let the already running tasks finish, but don't start new ones anymore

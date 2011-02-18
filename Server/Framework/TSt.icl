@@ -941,7 +941,7 @@ getTaskStoreTimestamp key tst=:{taskNr}
 
 getTaskStoreTimestampFor :: !TaskNr !String !*IWorld -> (Maybe Timestamp, !*IWorld)
 getTaskStoreTimestampFor taskNr key iworld
-	= getTimestamp (storekey taskNr key) iworld
+	= getStoreTimestamp (storekey taskNr key) iworld
 
 storekey taskNr key= "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 

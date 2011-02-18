@@ -17,15 +17,15 @@ exceptionHandlingExample
 exceptionTask :: Task Int
 exceptionTask = Title "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
 
-db :: (Shared Int)
-db = mkSharedReference "MyIntDB"
+db :: (SymmetricShared Int)
+db = sharedStore "MyIntDB"
 
 normalTask :: Task Int
 normalTask
-	= forever (				readDB db
+	= forever (				readShared db
 		>>= \initval 	->	updateInformation (subj,msg) initval
 		>>= \setval		->	inspectVal setval
-		>>= \setval		->	writeDB db setval
+		>>= \setval		->	writeShared db setval
 		)
 where
 	subj :: String
@@ -40,7 +40,7 @@ where
 
 catchNegativeValueTask :: (Task Int) NegativeValueException  -> Task Int
 catchNegativeValueTask task (NegativeValueException msg) 
-	=	readDB db
+	=	readShared db
 	>>=	\curval ->
 		showMessageAbout ("Exception!",
 			[Text "A NegativeValueException occurred: ",Text msg, BrTag []

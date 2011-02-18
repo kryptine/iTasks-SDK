@@ -62,6 +62,15 @@ appFst f (a,b) = (f a,b)
 appSnd	:: (.b -> .c) (.a,.b) -> (.a,.c)
 appSnd f (a,b) = (a,f b)
 
+appFst3 :: (.a -> .d) (.a,.b,.c) -> (.d,.b,.c)
+appFst3 f (a,b,c) = (f a,b,c)
+
+appSnd3 :: (.b -> .d) (.a,.b,.c) -> (.a,.d,.c)
+appSnd3 f (a,b,c) = (a,f b,c)
+
+appThd3 :: (.c -> .d) (.a,.b,.c) -> (.a,.b,.d)
+appThd3 f (a,b,c) = (a,b,f c)
+
 fromOBJECT	:: (OBJECT x)	-> x
 fromOBJECT	(OBJECT x)	= x
 
@@ -76,3 +85,15 @@ fromPAIRX	(PAIR x _)	= x
 
 fromPAIRY	:: (PAIR x y)	-> y
 fromPAIRY	(PAIR _ y)	= y
+
+replaceInList :: !(a a -> Bool) !a ![a] -> [a]
+replaceInList cond new []         = [new]
+replaceInList cond new [x:xs]
+    | cond new x            = [new : xs]
+    | otherwise             = [x : replaceInList cond new xs]
+
+splitWith :: !(a -> Bool) ![a] -> (![a],![a])
+splitWith f [] = ([],[])
+splitWith f [x:xs]
+	| f x	= let (y,n) = splitWith f xs in ([x:y],n)
+			= let (y,n)	= splitWith f xs in (y,[x:n])

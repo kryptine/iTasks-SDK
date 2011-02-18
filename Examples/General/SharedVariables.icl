@@ -14,16 +14,15 @@ TrimAction :== Action "trim" "Trim"
 
 linesPar :: Task Void
 linesPar =
-				createDB ""
+				createSharedStore ""
 	>>= \sid.	noteE sid -|| updateSharedInformationA ("Lines","Edit lines") listEditor [quitButton] sid
-	>>|			deleteDB sid
 	>>|			return Void
 where
 	noteE sid = 
 					updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, always), quitButton] sid
 		>>= \res.	case appFst fst res of
 						(TrimAction,Just txt) =
-								writeDB sid (trim txt)
+								writeShared sid (trim txt)
 							>>|	noteE sid
 						_ =
 							stop
@@ -62,23 +61,23 @@ where
 //Merge Tests
 mergeTestList :: Task Void
 mergeTestList =	
-				createDB []
+				createSharedStore []
 	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
 	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
 	>>|			stop
 where
-	view :: (Shared [String]) -> Task (ActionEvent,Maybe [String])
-	view sid = updateSharedInformationA ("List","Merging the lists") idBimap [quitButton] sid
+	view :: (SymmetricShared [String]) -> Task (ActionEvent,Maybe [String])
+	view sid = updateSharedInformationA ("List","Merging the lists") idView [quitButton] sid
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
-				createDB emptyL
+				createSharedStore emptyL
 	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
 	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
-	>>|			spawnProcess True True (Title "3rd View" @>> showMessageShared "Documents" id [quitButton] sid)
+	>>|			spawnProcess True True (Title "3rd View" @>> showMessageSharedA "Documents" id [quitButton] sid)
 	>>|			stop
 where
-	view sid = updateSharedInformationA ("List","Merging the documents") idBimap [quitButton] sid
+	view sid = updateSharedInformationA ("List","Merging the documents") idView [quitButton] sid
 	
 	emptyL :: [Document]
 	emptyL = []
@@ -101,21 +100,19 @@ RemoveMarkersAction :== Action "remove-markers" "Remove Markers"
 
 googleMaps :: Task GoogleMap
 googleMaps = 
-				createDB mkMap
+				createSharedStore mkMap
 	>>= \dbid.	updateSharedInformationA "Options" optionsEditor [] dbid
 				||-
-				updateSharedInformationA "Google Map" idBimap [] dbid
+				updateSharedInformationA "Google Map" idView [] dbid
 				||-
 				updateSharedInformationA "Overview Map" overviewEditor [] dbid
 				||-
 				markersDisplay dbid
-	>>= \map.	deleteDB dbid
-	>>|			return map
 where							
 	markersDisplay dbid =
-							showMessageShared "Markers" markersListener [(RemoveMarkersAction,always),quitButton] dbid
+							showMessageSharedA "Markers" markersListener [(RemoveMarkersAction,always),quitButton] dbid
 		>>= \(action,map).	case fst action of
-								RemoveMarkersAction	= updateDB dbid (\map -> {GoogleMap| map & markers = []})
+								RemoveMarkersAction	= updateShared dbid (\map -> {GoogleMap| map & markers = []})
 								_					= return map
 
 	optionsEditor	=	( \map ->		{ type = map.mapType
@@ -155,16 +152,15 @@ where
 formattedText :: Task Void
 formattedText =
 				[Menu "Example" [MenuItem ActionQuit Nothing]]
-	@>>			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
+	@>>			createSharedStore (mkEmptyFormattedText {allControls & sourceEditControl = False})
 	>>= \sid.	dynamicGroupAOnly [t <<@ ExcludeGroupActions <<@ Floating \\ t <- tasks sid] actions actionsGenFunc
-	>>|			deleteDB sid
-	>>|			return Void
+	>>|			stop
 where
 	tasks sid =
-		[ updateSharedInformationA "WYSIWYG Editor" idBimap [] sid >>| return Void
+		[ updateSharedInformationA "WYSIWYG Editor" idView [] sid >>| return Void
 		, updateSharedInformationA "HTML-Source Editor" (\ft -> Note (getFormattedTextSrc ft), \(Note src) ft -> setFormattedTextSrc src ft) [] sid >>| return Void
-		, showMessageShared "Formatted Preview" id [] sid >>| return Void
-		, showMessageShared "Unformatted Preview" (\ft -> Note (toUnformattedString ft False)) [] sid >>| return Void
+		, showMessageSharedA "Formatted Preview" id [] sid >>| return Void
+		, showMessageSharedA "Unformatted Preview" (\ft -> Note (toUnformattedString ft False)) [] sid >>| return Void
 		]
 		
 	actions = [(ActionQuit, Always)]

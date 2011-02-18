@@ -48,7 +48,7 @@ loadValue				:: !String					!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}
 /**
 * Get a value's timestamp
 */
-getTimestamp			:: !String					!*IWorld -> (!Maybe Timestamp,!*IWorld)
+getStoreTimestamp		:: !String					!*IWorld -> (!Maybe Timestamp,!*IWorld)
 
 /**
 * Load a value from the store, additionally a timestamp is given
@@ -89,4 +89,4 @@ flushCache				::							!*IWorld -> *IWorld
 /**
 * Determines if the store's value has been changed since given timestamp
 */
-isValueChanged			:: !String !Timestamp		!*IWorld -> (!Bool,!*IWorld)
+isValueChanged			:: !String !Timestamp		!*IWorld -> (!Maybe Bool,!*IWorld)
