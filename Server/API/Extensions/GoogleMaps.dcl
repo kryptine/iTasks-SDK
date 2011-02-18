@@ -4,13 +4,13 @@ definition module GoogleMaps
 */
 import HTML, GenVisualize
 
-derive gVisualize  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gUpdate	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gDefaultMask		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gVerify			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive JSONEncode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive JSONDecode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gEq				GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVisualize  		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gUpdate	  		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gDefaultMask		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVerify			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive JSONEncode		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive JSONDecode		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gEq				GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
 //API Key for http://localhost
 GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4lboFdTKu2o9gr_i8kRV0Pn1fNw"
@@ -18,7 +18,7 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 :: GoogleStaticMap = GoogleStaticMap Int Int String
 
 :: GoogleMap = 
-	{ center				:: Coordinate 				// Coordinate of the center point (Required by maps)
+	{ center				:: GoogleMapPosition 		// Coordinate of the center point (Required by maps)
 	, width					:: Int		 				// Width &
 	, height				:: Int						// Height of the map
 	, mapTypeControl		:: Bool		  				// Show the control for switching between map types
@@ -32,10 +32,13 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	, markers				:: [GoogleMapMarker]		// Markers placed on the map
 	}
 	
-:: Coordinate :== (Real, Real) // (Lattitude, Longitude)
-
+:: GoogleMapPosition = 
+	{ lat		:: !Real	//Lattitude
+	, lng		:: !Real	//Longitude
+	}
+	
 :: GoogleMapMarker =
-	{ position				:: Coordinate			// Coordinate of the marker point
+	{ position				:: GoogleMapPosition	// Coordinate of the marker point
 	, infoWindow			:: GoogleMapInfoWindow	// Information which is shown on click
 	}
 	
@@ -47,7 +50,7 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 :: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
 
 :: MVCUpdate = 
-	{ center			:: Coordinate
+	{ center			:: GoogleMapPosition
 	, zoom				:: Int
 	, type				:: GoogleMapType
 	}	
@@ -55,11 +58,11 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 :: ClickUpdate = 
 	{ event				:: ClickEvent
 	, source			:: ClickSource
-	, point				:: Coordinate
+	, point				:: GoogleMapPosition
 	}
 	
 :: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
-:: ClickSource  = MAP | MARKER Coordinate
+:: ClickSource  = MAP | MARKER GoogleMapPosition
 
 /*
 * Convert a dynamic map into a static image

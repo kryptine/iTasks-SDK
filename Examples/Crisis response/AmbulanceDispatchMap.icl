@@ -14,7 +14,7 @@ where
 	flows = [ workflow "Examples/Crisis response/Report incident (Map)" "" reportIncident]
 
 :: Incident =
-	{ location		:: Coordinate
+	{ location		:: GoogleMapPosition
 	, address		:: Note
 	, type			:: IncidentType
 	, time			:: Time
@@ -39,7 +39,7 @@ specifiyIncidents map = sequence "Specify individual incident details" [ (addres
 
 addressLookup :: GoogleMapMarker -> Task String
 addressLookup marker
-	# (lat,lng) = marker.position
+	# {lat,lng} = marker.position
 	= showStickyMessage ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")") Void
 	  ||- reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
 where

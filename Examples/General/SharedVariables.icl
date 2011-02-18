@@ -83,7 +83,7 @@ where
 	emptyL = []
 
 //Google Map Example
-:: MarkerInfo =	{ position	:: Coordinate
+:: MarkerInfo =	{ position	:: GoogleMapPosition
 				, map		:: GoogleMap
 				}
 :: MapSize = Normal | Large

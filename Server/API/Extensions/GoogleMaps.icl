@@ -5,18 +5,24 @@ import HTML, StdEnv, JSON, GenUpdate, GenVisualize, GenVerify
 derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap
 derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent
 
-derive gVisualize   	GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
-derive gUpdate	  		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gDefaultMask		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gVerify			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVisualize   	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gUpdate	  		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gDefaultMask		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVerify			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+
 derive JSONEncode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive JSONDecode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gEq				GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gEq				GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+
+JSONEncode{|GoogleMapPosition|} {lat,lng}	= [JSONArray [JSONReal lat,JSONReal lng]]
+JSONDecode{|GoogleMapPosition|} [JSONArray [JSONReal lat,JSONReal lng]:rest]
+											= (Just {lat=lat,lng=lng},rest)
+JSONDecode{|GoogleMapPosition|} rest		= (Nothing,rest)
 
 derive bimap	Maybe, (,)
 
 :: TUIGoogleMap = 
-	{ center 			:: Coordinate
+	{ center 			:: GoogleMapPosition
 	, width				:: Int
 	, height			:: Int
 	, mapType			:: GoogleMapType
@@ -136,7 +142,7 @@ gDefaultMask{|GoogleMap|} _ = [Touched []]
 
 mkMap :: GoogleMap
 mkMap = { GoogleMap
-		| center 			= (51.82,5.86)
+		| center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
 		, width 			= 710
 		, height 			= 300
 		, mapTypeControl	= True
@@ -152,7 +158,7 @@ mkMap = { GoogleMap
 
 minimalMap :: GoogleMap
 minimalMap = { GoogleMap
-		| center 			= (51.82,5.86)
+		| center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
 		, width 			= 710
 		, height 			= 300
 		, mapTypeControl	= False
@@ -166,9 +172,8 @@ minimalMap = { GoogleMap
 		, markers			= []
 		}
 
-
 convertToStaticMap :: GoogleMap -> GoogleStaticMap
-convertToStaticMap map =:{GoogleMap | center = (lat,lng), width, height, zoom, mapType, markers}
+convertToStaticMap map =:{GoogleMap | center = {lat,lng}, width, height, zoom, mapType, markers}
 # url 		= "http://maps.google.com/maps/api/staticmap?"
 # cntr		= "center="+++(toString lat)+++","+++(toString lng)
 # zm		= "zoom="+++(toString zoom)
@@ -183,5 +188,5 @@ where
 	convertMarkers [x:xs] = (convertMarker x)+++"|"+++(convertMarkers xs)
 	
 	convertMarker :: GoogleMapMarker -> String
-	convertMarker mrkr =: {position = (lat,lng), infoWindow}
+	convertMarker mrkr =: {position ={lat,lng}, infoWindow}
 	= toString lat+++","+++toString lng

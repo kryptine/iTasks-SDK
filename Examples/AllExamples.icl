@@ -22,6 +22,7 @@ import ChangeHandling
 import textEditor
 import CoffeeTime
 import TableExamples
+import GeoTracker
 
 //Crisis response examples
 import AmbulanceDispatch
@@ -60,6 +61,7 @@ where
 						, textEditor
 						, coffeeTimeExample
 						, tableExamples
+						, geoTrackerExamples
 						, newsgroupsExample
 						, exceptionHandlingExample
 						, changeHandlingExample
