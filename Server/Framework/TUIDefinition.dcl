@@ -145,6 +145,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, consValues	:: ![String]
 	, items			:: ![TUIDef]
 	, staticDisplay	:: !Bool
+	, optional		:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
 	}

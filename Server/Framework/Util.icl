@@ -86,6 +86,11 @@ fromPAIRX	(PAIR x _)	= x
 fromPAIRY	:: (PAIR x y)	-> y
 fromPAIRY	(PAIR _ y)	= y
 
+isRecord :: !GenericTypeDefDescriptor -> Bool
+isRecord {gtd_conses} = case gtd_conses of
+	[{gcd_fields}]	= not (isEmpty gcd_fields)
+	_				= False
+
 replaceInList :: !(a a -> Bool) !a ![a] -> [a]
 replaceInList cond new []         = [new]
 replaceInList cond new [x:xs]

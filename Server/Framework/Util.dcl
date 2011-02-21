@@ -34,6 +34,8 @@ fromFIELD	:: (FIELD x)	-> x
 fromPAIRX	:: (PAIR x y)	-> x
 fromPAIRY	:: (PAIR x y)	-> y
 
+isRecord :: !GenericTypeDefDescriptor -> Bool
+
 //List utility functions
 replaceInList	:: !(a a -> Bool) !a ![a] -> [a]
 splitWith		:: !(a -> Bool) ![a] -> (![a],![a])

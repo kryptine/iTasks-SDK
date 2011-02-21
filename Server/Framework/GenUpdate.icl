@@ -127,8 +127,8 @@ gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMas
 				# (nv,ust) = fx UDCreate {ust & oldMask = [], newMask = []}
 				= (l++[nv], Touched [], ust)
 			False
-				= (l,Touched [], ust)
-	# (lx,ust=:{newMask=listMask})
+				= (l,cm,ust)
+	# (lx,ust=:{newMask=cMasks})
 		= updateElements fx l {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
 	| currentPath == searchPath
 		//Process the reordering commands 
@@ -137,34 +137,37 @@ gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMas
 		= case hd split of	
 			"mup"
 				| index == 0
-					= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+					= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
 				# lx		= swap lx index
-				# listMask	= swap listMask index
+				# cMasks	= swap cMasks index
 				# dirty		= [index - 1, index]
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om}) 
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om}) 
 			"mdn"
 				| index >= (length lx) - 1
-					= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+					= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
 				# lx		= swap lx (index+1) //down idx == up (idx+1)
-				# listMask	= swap listMask (index+1)
+				# cMasks	= swap cMasks (index+1)
 				# dirty		= [index, index + 1]
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
 			"rem"
 				# lx		= removeAt index lx
-				# listMask	= removeAt index listMask 
+				# cMasks	= removeAt index cMasks 
 				# dirty		= [index .. length lx-1]	//Mark everything above the removed item dirty
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})	
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})	
 			"add"
 				# (nv,ust=:{newMask=childMask})
 							= fx UDCreate {ust & oldMask = [], newMask = []}
 				# lx		= insertAt (index+1) nv lx
-				# listMask	= insertAt (index+1) (hd childMask) listMask
+				# cMasks	= insertAt (index+1) (hd cMasks) cMasks
 				# dirty		= [index+1 .. length lx - 1]//Mark evertything above the inserted item dirty
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
 			_ 	
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
-	| otherwise 
-		= (lx, {ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask (Touched listMask), oldMask = om})
+				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
+	| otherwise
+		# listMask = case listMask of
+			Touched _	= Touched cMasks
+			mask		= mask
+		= (lx, {ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask listMask, oldMask = om})
 where
 	//Check if search path is equal or below [datapath:(length list)]
 	isNew cp sp l = sp <== dataPathFromList [l:dataPathList cp] 
@@ -292,6 +295,7 @@ gDefaultMask{|Maybe|} fx mbVal
 	= case mbVal of
 		Nothing	= [Untouched]
 		Just x	= fx x //all mask transformations are made here..
+gDefaultMask{|[]|} _ [] = [Untouched]
 gDefaultMask{|[]|} fx l = [Touched (map (hd o fx) l)]
 
 gDefaultMask {|Display|}			fx (Display d)		= fx d

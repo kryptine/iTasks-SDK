@@ -72,7 +72,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 			VEditorDefinition
 				# (err,hnt)	= verifyElementStr cmv
 				# (items, vst=:{selectedConsIndex}) = fx x {vst & useLabels = False, optional = False}
-				= ([TUIFragment (TUIConstructorControl {TUIConstructorControl
+				= ([TUIFragment (TUIConstructorControl	{TUIConstructorControl
 														| id = dp2id idPrefix currentPath
 														, name = dp2s currentPath
 														, fieldLabel = labelAttr useLabels label
@@ -80,6 +80,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 														, consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
 														, items = if (isTouched cmv) (coerceToTUIDefs items) []
 														, staticDisplay = renderAsStatic
+														, optional = optional
 														, errorMsg = err
 														, hintMsg = hnt
 														})]
@@ -95,11 +96,11 @@ gVisualize{|CONS of d|} fx val vst=:{useLabels,optional} = visualizeCustom mkCon
 where
 	mkControl name id val _ label optional err hnt renderAsStatic vst
 		# x = fmap fromCONS val
-		# (vis,vst) = case d.gcd_fields of
-			[] // normal ADT
+		# (vis,vst) = case isRecord d.gcd_type_def of
+			False // normal ADT
 				# (viz,vst) = fx x {vst & useLabels = False}
 				= (coerceToTUIDefs viz, {VSt | vst & selectedConsIndex = d.gcd_index})
-			_ = case x of // record
+			True = case x of // record
 				Nothing // Create an empty record container that can be expanded later
 					= (recordContainer False [],vst)
 				Just x
@@ -402,7 +403,7 @@ where
 									}],vst)
 		Just (Table rows)
 			#( vis,vst=:{headers})	= gVisualize{|* -> *|} fx (Just rows) vst
-			# (htm,vst)				= childVisualizations fx rows (Just VHtmlDisplay) {VSt|vst & currentPath = currentPath, verifyMask = verifyMask}
+			# (htm,vst)				= childVisualizations fx rows (Just VHtmlDisplay) {VSt|vst & currentPath = currentPath, verifyMask = childMasks (fst (popMask verifyMask))}
 			= ([TUIGridControl	{ TUIGridControl
 								| name = dp2s currentPath
 								, id = id
@@ -449,15 +450,15 @@ where
 		# val = listValue val
 		# (items,vst) = TUIDef val vst
 		= ([TUIListContainer	{ TUIListContainer
-							| items = items
-							, optional = optional
-							, name = name
-							, id = id
-							, fieldLabel = label
-							, hideLabel = not useLabels
-							, staticDisplay = renderAsStatic
-							, errorMsg = err
-							, hintMsg = hnt}],vst)
+								| items = items
+								, optional = optional
+								, name = name
+								, id = id
+								, fieldLabel = label
+								, hideLabel = not useLabels
+								, staticDisplay = renderAsStatic
+								, errorMsg = err
+								, hintMsg = hnt}],vst)
 		where
 			TUIDef items vst=:{optional,useLabels}
 				# (itemsVis,vst)	= childVisualizations fx items Nothing {vst & optional = False, useLabels = False, label = Nothing}
@@ -712,12 +713,12 @@ noVisualization vst=:{VSt|currentPath,verifyMask}
 	= ([],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 childVisualizations :: !((Maybe a) -> .(*VSt -> *([Visualization],*VSt))) ![a] !(Maybe VisualizationType) !*VSt -> *(![[Visualization]],!*VSt)
-childVisualizations fx children mbVizType vst=:{vizType,verifyMask}
+childVisualizations fx children mbVizType vst=:{vizType}
 	# vst = case mbVizType of
 		Nothing	= vst
 		Just vt	= {vst & vizType = vt}
-	# (vis,vst)	= childVisualizations` children [] {VSt|vst & verifyMask = childMasks (fst (popMask verifyMask))}
-	= (vis,{vst & vizType = vizType, verifyMask = verifyMask})
+	# (vis,vst)	= childVisualizations` children [] vst
+	= (vis,{vst & vizType = vizType})
 where
 	childVisualizations` [] acc vst
 		= (reverse acc,vst)
