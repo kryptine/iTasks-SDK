@@ -1,7 +1,7 @@
 implementation module SharedTasks
 
 import StdList, StdOrdList, StdTuple, Error, Util
-import GenUpdate, GenVisualize, GenVerify, TSt
+import GenUpdate, GenVisualize, GenVerify, TSt, ExceptionCombinators
 from StdFunc			import id, o
 from CoreCombinators	import >>|, >>=, return
 from Shared				import :: Shared(..), :: SharedWrite, :: SharedRead, :: SharedGetTimestamp, :: SymmetricShared, mapShared, >+<

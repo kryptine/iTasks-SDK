@@ -6,8 +6,6 @@ definition module SharedTasks
 import Task
 from Shared import :: Shared, :: SymmetricShared
 
-:: SharedException = SharedException !String
-
 /**
 * Creates a reference to a store identified by a string identifier.
 * Initially no data is stored and reading data will cause an exception.

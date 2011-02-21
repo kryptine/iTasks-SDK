@@ -1,7 +1,7 @@
 implementation module OSTasks
 
 import StdList
-import TSt, StdFile, Process, Text
+import TSt, StdFile, Process, Text, ExceptionCombinators
 from File import qualified fileExists
 from Process import qualified ::ProcessHandle, runProcess, checkProcess
 
@@ -14,11 +14,11 @@ callProcessBlocking cmd args = mkInstantTask ("Call process (blocking)", "Runnin
 where
 	callProcess` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (res,tst)			= accWorldTSt (runProcess cmd args Nothing) tst
-		| isError res		= (TaskException (dynamic (fromError res)), tst)
+		| isError res		= (callException res, tst)
 		# handle			= fromOk res
 		# (res,tst)			= accWorldTSt (waitForProcess handle) tst
 		| isError res
-			= (TaskException (dynamic (fromError res)), tst)
+			= (callException res, tst)
 		| otherwise
 			= (TaskFinished (fromOk res), tst)
 
@@ -30,12 +30,12 @@ where
 		= case mbHandle of
 			Nothing
 				# (res, tst) 		= accWorldTSt (runProcess cmd args Nothing) tst
-				| isError res		= (TaskException (dynamic (fromError res)), tst)
+				| isError res		= (callException res, tst)
 				# tst				= setTaskStore "handle" (fromOk res) tst
 				| otherwise			= (TaskBusy, tst)
 			Just handle
 				# (res,tst)			= accWorldTSt (checkProcess handle) tst
-				| isError res		= (TaskException (dynamic (fromError res)), tst)
+				| isError res		= (callException res, tst)
 				= case fromOk res of
 					Just exitCode
 						= (TaskFinished exitCode, tst)
@@ -48,3 +48,5 @@ where
 	fileExists` tst
 		# (exists, tst) = accWorldTSt ('File'.fileExists path) tst
 		= (TaskFinished exists, tst)
+
+callException res = TaskException (dynamic (CallFailed (fromError res)))

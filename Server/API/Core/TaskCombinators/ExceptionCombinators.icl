@@ -2,7 +2,7 @@ implementation module ExceptionCombinators
 /**
 * This module contains iTask combinators for Exception Handling
 */
-import StdList, StdArray, StdTuple
+import StdList, StdArray, StdTuple, OSError, File, FilePath
 import TSt, ProcessDB, Util
 
 try :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e

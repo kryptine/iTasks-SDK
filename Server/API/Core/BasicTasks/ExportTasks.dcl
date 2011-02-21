@@ -2,7 +2,7 @@ definition module ExportTasks
 /**
 * This module provides tasks for exporting data from a workflow to an external source
 */
-import Types, Task
+import FilePath, Types, Task
 
 /**
 * Export a document to the server's filesystem.
@@ -11,8 +11,9 @@ import Types, Task
 * @param The document to export
 *
 * @return The exported document
+* @throws FileException
 */
-exportDocument		:: !String !Document -> Task Document
+exportDocument		:: !FilePath !Document -> Task Document
 
 /**
 * Export a string as text file to the server's filesystem.
@@ -21,8 +22,9 @@ exportDocument		:: !String !Document -> Task Document
 * @param The content to export
 *
 * @return The exported content
+* @throws FileException
 */
-exportTextFile		:: !String !String -> Task String
+exportTextFile		:: !FilePath !String -> Task String
 
 /**
 * Export a list of rows of fields to a comma separated vector (CSV) file on the server's filesystem.
@@ -31,8 +33,9 @@ exportTextFile		:: !String !String -> Task String
 * @param The content to export as a list of rows of lists of fields
 *
 * @return The exported content
+* @throws FileException
 */
-exportCSVFile		:: !String ![[String]] -> Task [[String]]
+exportCSVFile		:: !FilePath ![[String]] -> Task [[String]]
 
 /**
 * Export a list of rows of fields to a comma separated vector (CSV) file on the server's filesystem
@@ -45,8 +48,9 @@ exportCSVFile		:: !String ![[String]] -> Task [[String]]
 * @param The content to export as a list of rows of lists of fields
 *
 * @return The exported content
+* @throws FileException
 */
-exportCSVFileWith	:: !Char !Char !Char !String ![[String]] -> Task [[String]]
+exportCSVFileWith	:: !Char !Char !Char !FilePath ![[String]] -> Task [[String]]
 
 /**
 * Encode and export a JSON datafile to the server's filesystem.
@@ -56,7 +60,7 @@ exportCSVFileWith	:: !Char !Char !Char !String ![[String]] -> Task [[String]]
 *
 * @param The exported content
 */
-exportJSONFile		:: !String a -> Task a | JSONEncode{|*|} a
+exportJSONFile		:: !FilePath a -> Task a | JSONEncode{|*|} a
 /**
 * Encode and export a JSON datafile to the server's filesystem using a custom encode function.
 * 
@@ -64,5 +68,6 @@ exportJSONFile		:: !String a -> Task a | JSONEncode{|*|} a
 * @param The path of the exported file
 * 
 * @return The exported content
+* @throws FileException
 */
-exportJSONFileWith	:: !(a -> JSONNode) !String a -> Task a
+exportJSONFileWith	:: !(a -> JSONNode) !FilePath a -> Task a

@@ -2,31 +2,34 @@ definition module ImportTasks
 /**
 * This module provides tasks for importing external data into a workflow.
 */
-import Types, Task
+import FilePath, Types, Task
 /**
 * Import a file on the server's filesystem as a Document
 *
 * @param The path of the file to import
 *
 * @return The imported document
+* @throws FileException
 */
-importDocument		:: !String -> Task Document
+importDocument		:: !FilePath -> Task Document
 /**
 * Import the content of  a text file on the server's filesystem.
 *
 * @param The path of the file to import
 *
 * @return The imported content
+* @throws FileException
 */
-importTextFile		:: !String -> Task String
+importTextFile		:: !FilePath -> Task String
 /**
 * Import a comma separated vector (CSV) file on the server's filesystem.
 *
 * @param The path of the file to import
 *
 * @return The imported content
+* @throws FileException
 */
-importCSVFile		:: !String -> Task [[String]]
+importCSVFile		:: !FilePath -> Task [[String]]
 /**
 * Import a comma separated vector (CSV) file on the server's filesystem using
 * custom separator characters.
@@ -37,16 +40,18 @@ importCSVFile		:: !String -> Task [[String]]
 * @param The path of the file to import
 *
 * @return The imported content
+* @throws FileException
 */
-importCSVFileWith	:: !Char !Char !Char !String -> Task [[String]]
+importCSVFileWith	:: !Char !Char !Char !FilePath -> Task [[String]]
 /**
 * Import and parse a JSON datafile on the server's filesystem.
 *
 * @param The path of the file to import
 *
-* @return The imported content 
+* @return The imported content
+* @throws FileException 
 */
-importJSONFile		:: !String -> Task a | JSONDecode{|*|} a
+importJSONFile		:: !FilePath -> Task a | JSONDecode{|*|} a
 /**
 * Import and parse a JSON datafile on the server's filesystem using
 * a custom parse function.
@@ -54,6 +59,7 @@ importJSONFile		:: !String -> Task a | JSONDecode{|*|} a
 * @param The JSON decoder function
 * @param The path of the file to import
 *
-* @return The imported content 
+* @return The imported content
+* @throws FileException 
 */
-importJSONFileWith	:: !(JSONNode -> Maybe a) !String -> Task a
+importJSONFileWith	:: !(JSONNode -> Maybe a) !FilePath -> Task a

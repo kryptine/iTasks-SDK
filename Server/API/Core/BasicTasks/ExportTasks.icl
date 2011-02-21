@@ -1,23 +1,23 @@
 implementation module ExportTasks
 
-import StdBool, TSt, CSV, DocumentDB
+import StdBool, FilePath, TSt, CSV, File, DocumentDB, ExceptionCombinators
 
-exportDocument :: !String !Document -> Task Document
+exportDocument :: !FilePath !Document -> Task Document
 exportDocument filename document = mkInstantTask ("Document export", ("Export of document " +++ filename)) (writeDocument filename document)
 
-exportTextFile :: !String !String -> Task String
+exportTextFile :: !FilePath !String -> Task String
 exportTextFile filename content = mkInstantTask ("Text file export", ("Export of text file " +++ filename))(fileTask filename content writeAll)
 
-exportCSVFile :: !String ![[String]] -> Task [[String]]
+exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask ("CSV file export", ("Export of CSV file " +++ filename)) (fileTask filename content writeCSVFile)
 
-exportCSVFileWith :: !Char !Char !Char !String ![[String]] -> Task [[String]]
+exportCSVFileWith :: !Char !Char !Char !FilePath ![[String]] -> Task [[String]]
 exportCSVFileWith delimitChar quoteChar escapeChar filename content = mkInstantTask ("CSV file export", ("Export of CSV file " +++ filename)) (fileTask filename content (writeCSVFileWith delimitChar quoteChar escapeChar))
 
-exportJSONFile :: !String a -> Task a | JSONEncode{|*|} a
+exportJSONFile :: !FilePath a -> Task a | JSONEncode{|*|} a
 exportJSONFile filename content = exportJSONFileWith toJSON filename content
  
-exportJSONFileWith :: !(a -> JSONNode) !String a -> Task a
+exportJSONFileWith :: !(a -> JSONNode) !FilePath a -> Task a
 exportJSONFileWith encoder filename content = mkInstantTask ("JSON file export", ("Export of JSON file " +++ filename)) (fileTask filename content (writeJSON encoder))
 
 fileTask filename content f tst=:{TSt|iworld=iworld=:{IWorld|world}}
@@ -37,7 +37,7 @@ writeJSON encoder content file
 writeDocument filename document tst
 	# (mbContent,tst=:{TSt|iworld=iworld=:{IWorld|world}})
 							= getDocumentContent document.Document.documentId tst
-	| isNothing mbContent	= (TaskException documentException, {TSt|tst & iworld={IWorld|iworld & world = world}})
+	| isNothing mbContent	= (TaskException (ioException filename), {TSt|tst & iworld={IWorld|iworld & world = world}})
 	# (ok,file,world)		= fopen filename FWriteData world
 	| not ok				= (TaskException (openException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# file					= fwrites (fromJust mbContent) file
@@ -45,10 +45,6 @@ writeDocument filename document tst
 	| not ok				= (TaskException (closeException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})	
 	= (TaskFinished document, {TSt|tst & iworld={IWorld|iworld & world = world}})
 
-documentException = (dynamic "Could not read document content")
-openException s = (dynamic ("Could not open file: " +++ s))
-closeException s = (dynamic ("Could not close file: " +++ s))
-
-
-
- 
+ioException s		= dynamic (FileException s IOError)
+openException s		= dynamic (FileException s CannotOpen)
+closeException s	= dynamic (FileException s CannotClose)

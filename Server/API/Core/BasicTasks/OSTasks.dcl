@@ -2,8 +2,7 @@ definition module OSTasks
 /*
 * This module provides tasks to interface with the underlying OS
 */
-import Task
-from FilePath import ::FilePath
+import FilePath, Task
 from File import ::FileError(..)
 
 /**
