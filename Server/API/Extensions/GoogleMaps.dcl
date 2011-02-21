@@ -19,12 +19,11 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 
 :: GoogleMap = 
 	{ center				:: GoogleMapPosition 		// Coordinate of the center point (Required by maps)
-	, width					:: Int		 				// Width &
-	, height				:: Int						// Height of the map
 	, mapTypeControl		:: Bool		  				// Show the control for switching between map types
-	, navigationControl		:: Bool		  				// Show the control for panning
-	, scaleControl			:: Bool		  				// Show the control for zooming
+	, panControl			:: Bool		  				// Show the control for panning
+	, zoomControl			:: Bool						// Show the control for zooming
 	, streetViewControl		:: Bool						// Show the control for street view
+	, scaleControl			:: Bool		  				// Show the scale of the map
 	, scrollwheel			:: Bool						// Scrollwheel zooming on the map
 	, draggable				:: Bool						// Map can be dragged
 	, zoom					:: Int	      				// The zoom level (Required by maps)
@@ -38,13 +37,13 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	}
 	
 :: GoogleMapMarker =
-	{ position				:: GoogleMapPosition	// Coordinate of the marker point
-	, infoWindow			:: GoogleMapInfoWindow	// Information which is shown on click
+	{ position				:: !GoogleMapPosition			// Position of the marker
+	, title					:: !Maybe String					// Title of the marker
+	, infoWindow			:: !Maybe GoogleMapInfoWindow	// Information which is shown on click
 	}
 	
 :: GoogleMapInfoWindow =
-	{ content				:: String			// Contents of the window
-	, width					:: Int				// Width of the window
+	{ content				:: !String			// Contents of the window
 	}
 
 :: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN

@@ -7,6 +7,7 @@ from HtmlUtil		import paramValue
 from TaskPanel		import :: InteractiveTaskType(..)
 from SharedTasks	import sharedStore
 
+
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
 derive JSONDecode UpdateMask, VerifyMask, ErrorMessage
 derive bimap Maybe,(,)

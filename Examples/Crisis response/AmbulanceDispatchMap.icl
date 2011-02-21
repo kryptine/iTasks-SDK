@@ -53,7 +53,7 @@ where
 
 specifyIncident :: String GoogleMapMarker -> Task Incident
 specifyIncident addr marker
-# smap = convertToStaticMap {GoogleMap | mkMap & center = marker.position, width = 200, height = 200, zoom = 15, markers = [marker]}
+# smap = convertToStaticMap {GoogleMap | mkMap & center = marker.position, zoom = 15, markers = [marker]}
 # incident = { Incident
 			 | location = marker.position
 			 , address = Note addr

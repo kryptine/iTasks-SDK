@@ -805,6 +805,7 @@ applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc}
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskFinished a, tst)
 				(TaskBusy)
+					
 					// Store intermediate value
 					# procId				= taskNrToString (tl taskNr)	
 					# tst					= addTaskNode (finalizeTaskNode node)
@@ -817,6 +818,7 @@ applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc}
 					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput (Text "Uncaught exception")))
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e, tst)
+				
 		
 where
 	//Increase the task nr

@@ -26,6 +26,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	//| TUISetEnabled_	TUIPath Bool
 	//Complete replacement
 	| TUIReplace_		TUIPath TUIDef
+	| TUIUpdate_		TUIPath TUIDef	// Let a component update itself with a new TUI definition (for custom components)
 	//Structure edits
 	//| TUIAdd_			TUIPath Int TUIDef	//Add child element after index
 	//| TUIRemove_		TUIPath Int			//Remove child element at index

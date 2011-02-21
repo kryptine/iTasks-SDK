@@ -13,4 +13,13 @@ reportPosition :: Task GoogleMapPosition
 reportPosition = enterInformation "Where are you now?"
 
 viewMap :: Task GoogleMap
-viewMap = updateInformation "Look where everyone is" mkMap <<@ FWFullWidth
+viewMap = updateInformation "Look where everyone is" initMap <<@ FWFullWidth
+where
+	initMap = {GoogleMap| mkMap & mapType = TERRAIN, markers = [uni]}
+	
+	uni :: GoogleMapMarker
+	uni = 	{GoogleMapMarker
+			| position		= {lat = 51.82, lng = 5.86}
+			, title			= Just "Radboud University"
+			, infoWindow	= Just {GoogleMapInfoWindow|content = "Radboud University"}
+			}

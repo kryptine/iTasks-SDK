@@ -8,23 +8,23 @@ derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent
 derive gVisualize   	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gDefaultMask		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gVerify			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVerify			GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
 derive JSONEncode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive JSONDecode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gEq				GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
-JSONEncode{|GoogleMapPosition|} {lat,lng}	= [JSONArray [JSONReal lat,JSONReal lng]]
-JSONDecode{|GoogleMapPosition|} [JSONArray [JSONReal lat,JSONReal lng]:rest]
-											= (Just {lat=lat,lng=lng},rest)
-JSONDecode{|GoogleMapPosition|} rest		= (Nothing,rest)
+JSONEncode{|GoogleMapPosition|} {lat,lng}										= [JSONArray [JSONReal lat,JSONReal lng]]
+JSONDecode{|GoogleMapPosition|} [JSONArray [JSONReal lat,JSONReal lng]:rest]	= (Just {lat=lat,lng=lng},rest)
+JSONDecode{|GoogleMapPosition|} [JSONArray [JSONInt lat,JSONReal lng]:rest]		= (Just {lat=toReal lat,lng=lng},rest)
+JSONDecode{|GoogleMapPosition|} [JSONArray [JSONReal lat,JSONInt lng]:rest]		= (Just {lat=lat,lng=toReal lng},rest)
+JSONDecode{|GoogleMapPosition|} [JSONArray [JSONInt lat,JSONInt lng]:rest]		= (Just {lat=toReal lat,lng=toReal lng},rest)
+JSONDecode{|GoogleMapPosition|} rest											= (Nothing,rest)
 
 derive bimap	Maybe, (,)
 
 :: TUIGoogleMap = 
 	{ center 			:: GoogleMapPosition
-	, width				:: Int
-	, height			:: Int
 	, mapType			:: GoogleMapType
 	, markers			:: [GoogleMapMarker]
 	, xtype				:: String
@@ -38,9 +38,10 @@ derive bimap	Maybe, (,)
 	
 :: TUIGoogleMapOptions =
 	{ mapTypeControl 	:: Bool
-	, navigationControl :: Bool
-	, scaleControl		:: Bool
+	, panControl		:: Bool
 	, streetViewControl	:: Bool
+	, zoomControl		:: Bool
+	, scaleControl		:: Bool
 	, scrollwheel		:: Bool
 	, draggable			:: Bool
 	, zoom				:: Int
@@ -81,8 +82,6 @@ where
 	tuidef map fl hl idp cp ed =
 		{ TUIGoogleMap
 		| center = map.GoogleMap.center
-		, width = map.GoogleMap.width
-		, height = map.GoogleMap.height
 		, mapType = map.GoogleMap.mapType
 		, markers = map.GoogleMap.markers
 		, xtype = "itasks.tui.GMapControl"
@@ -94,9 +93,10 @@ where
 		, options =
 			{ TUIGoogleMapOptions
 			| mapTypeControl = map.GoogleMap.mapTypeControl
-			, navigationControl = map.GoogleMap.navigationControl
-			, scaleControl = map.GoogleMap.scaleControl
+			, panControl = map.GoogleMap.panControl
 			, streetViewControl = map.GoogleMap.streetViewControl
+			, zoomControl = map.GoogleMap.zoomControl
+			, scaleControl = map.GoogleMap.scaleControl
 			, scrollwheel = map.GoogleMap.scrollwheel
 			, draggable = map.GoogleMap.draggable
 			, zoom = map.GoogleMap.zoom
@@ -132,23 +132,26 @@ where
 		# mbClick 	= fromJSON (fromString update)
 		| isJust mbClick
 			# click = fromJust mbClick
-			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, infoWindow = {GoogleMapInfoWindow | content = "", width=0}} 
+			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, title = Nothing, infoWindow = Nothing} 
 			= {GoogleMap | orig & markers = [marker:orig.GoogleMap.markers]}
 		| otherwise = orig
 
 gDefaultMask{|GoogleMap|} _ = [Touched []]
 
+gVerify{|GoogleMap|} _ vst = alwaysValid vst //Maps are always valid
+
+
+import StdDebug
 // -- Utility Functions --
 
 mkMap :: GoogleMap
 mkMap = { GoogleMap
 		| center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
-		, width 			= 710
-		, height 			= 300
 		, mapTypeControl	= True
-		, navigationControl = True
-		, scaleControl		= True
+		, panControl		= True
 		, streetViewControl	= True
+		, zoomControl		= True
+		, scaleControl		= True
 		, scrollwheel		= True
 		, draggable			= True
 		, zoom				= 10
@@ -159,12 +162,11 @@ mkMap = { GoogleMap
 minimalMap :: GoogleMap
 minimalMap = { GoogleMap
 		| center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
-		, width 			= 710
-		, height 			= 300
 		, mapTypeControl	= False
-		, navigationControl = False
-		, scaleControl		= False
+		, panControl		= False
 		, streetViewControl	= False
+		, zoomControl		= False
+		, scaleControl		= False
 		, scrollwheel		= False
 		, draggable			= False
 		, zoom				= 10
@@ -173,14 +175,14 @@ minimalMap = { GoogleMap
 		}
 
 convertToStaticMap :: GoogleMap -> GoogleStaticMap
-convertToStaticMap map =:{GoogleMap | center = {lat,lng}, width, height, zoom, mapType, markers}
+convertToStaticMap map =:{GoogleMap | center = {lat,lng}, zoom, mapType, markers}
 # url 		= "http://maps.google.com/maps/api/staticmap?"
 # cntr		= "center="+++(toString lat)+++","+++(toString lng)
 # zm		= "zoom="+++(toString zoom)
-# sz		= "size="+++(toString width)+++"x"+++(toString height)
+# sz		= "size=800x600"
 # tp		= "maptype="+++(toString mapType)
 # mrkrs		= "markers="+++(convertMarkers markers)
-= GoogleStaticMap width height (url+++cntr+++"&"+++zm+++"&"+++sz+++"&"+++tp+++"&"+++mrkrs+++"&sensor=false&key="+++GOOGLE_API_KEY)
+= GoogleStaticMap 800 600 (url+++cntr+++"&"+++zm+++"&"+++sz+++"&"+++tp+++"&"+++mrkrs+++"&sensor=false&key="+++GOOGLE_API_KEY)
 where
 	convertMarkers :: [GoogleMapMarker] -> String
 	convertMarkers [] = "";

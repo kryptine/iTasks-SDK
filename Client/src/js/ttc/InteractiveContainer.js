@@ -85,6 +85,11 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 					case "TUIReplace_":
 						cmp = this.replaceComponentByPath(this.interactionpanel, update[1], update[2]);
 						break;
+					case "TUIUpdate_":
+						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
+							cmp.update(update[2]);
+						}
+						break;
 				}
 			}
 		} else {

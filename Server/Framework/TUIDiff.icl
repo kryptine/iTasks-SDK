@@ -35,9 +35,6 @@ where
 						(False,True)	= map (TUIAddTo n.TUIRecordContainer.id) n.TUIRecordContainer.items
 						(False,False)	= []
 						(True,False)	= [TUIReplace_ (dp2s path) new]
-				// Custom components are always updated
-				(TUICustom _, _)
-					= [TUIReplace_ (dp2s path) new]
 				// Documents are replaced when their value has changed
 				(TUIDocumentControl odoc, TUIDocumentControl ndoc)
 					| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
@@ -61,6 +58,10 @@ where
 					# path			= shiftDataPath path
 					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (childDataPath (childDataPath path i) j) o n \\ o <- or & n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
 					= htmlUpdates ++ editorUpdates
+				// Custom components need to figure out their own update on the client side
+				(TUICustom oc, TUICustom nc)
+					| oc === nc	= []
+					| otherwise	= [TUIUpdate_ (dp2s path) new]
 				// Fallback: always replace
 				_	= [TUIReplace_ (dp2s path) new]
 	

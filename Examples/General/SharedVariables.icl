@@ -86,15 +86,16 @@ where
 :: MarkerInfo =	{ position	:: GoogleMapPosition
 				, map		:: GoogleMap
 				}
-:: MapSize = Normal | Large
+				
 :: MapOptions =	{ type					:: GoogleMapType
 				, showMapTypeControl	:: Bool
-				, showNavigationControl	:: Bool
+				, showPanControl		:: Bool
+				, showStreetViewControl	:: Bool
+				, showZoomControl		:: Bool
 				, showScaleControl		:: Bool
-				, size					:: MapSize
 				}
 
-derive class iTask MarkerInfo, MapSize, MapOptions
+derive class iTask MarkerInfo, MapOptions
 
 RemoveMarkersAction :== Action "remove-markers" "Remove Markers"
 
@@ -117,21 +118,25 @@ where
 
 	optionsEditor	=	( \map ->		{ type = map.mapType
 										, showMapTypeControl = map.mapTypeControl
-										, showNavigationControl = map.navigationControl
+										, showPanControl = map.panControl
+										, showStreetViewControl = map.streetViewControl
+										, showZoomControl = map.zoomControl
 										, showScaleControl = map.scaleControl
-										, size = if (map.GoogleMap.width == 400) Normal Large
 										}
 						, \opts map	->	{ map 
 										& mapType = opts.MapOptions.type
 										, mapTypeControl = opts.showMapTypeControl
-										, navigationControl = opts.showNavigationControl
+										, panControl = opts.showPanControl
+										, streetViewControl = opts.showStreetViewControl
+										, zoomControl = opts.showZoomControl
 										, scaleControl = opts.showScaleControl
-										, width = case opts.MapOptions.size of Large = 650; Normal = 400
 										}
 						)
 	overviewEditor	= 	( \map ->		{ GoogleMap | map
 										& mapTypeControl = False
-										, navigationControl = False
+										, panControl = False
+										, streetViewControl = False
+										, zoomControl = map.zoomControl
 										, scaleControl = False
 										, scrollwheel = False
 										, zoom = 7
@@ -140,7 +145,7 @@ where
 										& center = nmap.GoogleMap.center
 										}
 						)
-	markersListener	map = [{position = position, map = {GoogleMap| mkMap & center = position, width = 150, height = 150, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
+	markersListener	map = [{position = position, map = {GoogleMap| mkMap & center = position, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
 autoSortedList = updateInformationA ("Automatically Sorted List","You can edit the list, it will sort automatically.") (sort, const) [quitButton] emptyL

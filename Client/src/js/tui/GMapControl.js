@@ -6,63 +6,54 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 		
 		Ext.applyIf(this,
 			{ border: false
-			, autoHeight: false
+			, height: 400
 			, scope: this
 			, displayedMarkers : new Array()
 			});
 
 		itasks.tui.GMapControl.superclass.initComponent.apply(this,arguments);
-		//this.show();
-		
-		
+	
 		this.addEvents('tuichange');
 		this.enableBubble('tuichange');
 	},
-	
-	setValue : function(_data){
-		var data = Ext.decode(_data);
-		
-		if(this.getWidth() != data.width || this.getHeight() != data.height) {
-			this.setSize(data.width, data.height);
-			this.buildMap();
-		}
+	update : function (data) {
+		//Update map options
 		this.gmap.setOptions(this.getOptions(data));
+		
+		//Update markers
 		this.markers = data.markers;
 		this.addMarkers();
 	},
-	
 	getMapType : function (mapType){
 		return eval("google.maps.MapTypeId."+mapType);
 	},
-	
 	getOptions : function(data) {
 		var options = data.options;
 		options.center = new google.maps.LatLng(data.center[0],data.center[1]);
 		options.mapTypeId = this.getMapType(data.mapType);
+		
 		return options;
 	},
 	
 	buildMap: function(){
+		
 		this.gmap = new google.maps.Map(this.body.dom, this.getOptions(this));
 
-		
 		this.addMarkers();
 	
-		var parent = this;
-		
+		var cmp = this;
+			
 		var mvcEventHandler = function(){
-			var ll = parent.gmap.getCenter();
-			var zm = parent.gmap.getZoom();
+			var ll = cmp.gmap.getCenter();
+			var zm = cmp.gmap.getZoom();
 			
 			var value = {
 				center : [ll.lat(),ll.lng()],
 				zoom   : zm,
-				type   : parent.gmap.getMapTypeId().toUpperCase()
+				type   : cmp.gmap.getMapTypeId().toUpperCase()
 			}
-			
-			parent.fireEvent('tuichange', parent.name, Ext.encode(value));
-		}
-		
+			cmp.fireEvent('tuichange', cmp.name, Ext.encode(value));
+		};
 		var lclickEventHandler = function(event){
 			var ll = event.latLng
 			
@@ -71,8 +62,8 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 				source 	: "MAP",
 				point	: [ll.lat(),ll.lng()]
 			}
-			parent.fireEvent('tuichange', parent.name, Ext.encode(value));
-		}
+			cmp.fireEvent('tuichange', cmp.name, Ext.encode(value));
+		};
 				
 		if(this.editor){
 			google.maps.event.addListener(this.gmap, 'maptypeid_changed', mvcEventHandler);
@@ -84,7 +75,7 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 	
 	afterRender : function(){
 		itasks.tui.GMapControl.superclass.afterRender.call(this);
-		
+
 		switch(itasks.app.googleMapsState) {
 			case 'loaded':
 				this.buildMap();
@@ -92,7 +83,7 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 			case 'unloaded':
 				itasks.app.googleMapsState = 'loading';
 				Ext.Ajax.remoteRequest({
-					url : 'http://maps.google.com/maps/api/js',
+					url : 'http://maps.google.com/maps/api/js?v=3.3',
 					method : 'GET',
 					scriptTag: true,
 					params : {
@@ -121,14 +112,27 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 		this.displayedMarkers = new Array();
 		
 		for(i=0; i<this.markers.length; i++){
-						
+			
+			var mapObj = this.gmap;
+					
 			var markerObj = new google.maps.Marker({
-				map : this.gmap,
-				position : new google.maps.LatLng(this.markers[i].position[0],this.markers[i].position[1])
-			});	
-
+				map : mapObj,
+				position : new google.maps.LatLng(this.markers[i].position[0],this.markers[i].position[1]),
+				title : this.markers[i].title
+			});
+			
+			if(this.markers[i].infoWindow) {
+				var infoObj = new google.maps.InfoWindow({
+					content : this.markers[i].infoWindow.content
+				});	
+			
+				google.maps.event.addListener(markerObj,'click',function() {
+					infoObj.open(mapObj,markerObj);
+				});
+			}
 			this.displayedMarkers[i] = markerObj;
-		}		
+		}
+			
 	}
 });
 
