@@ -89,3 +89,10 @@ toReadOnlyShared :: !(Shared r w) -> ReadOnlyShared r
 (>+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) (w0,w1)
 (>+|) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w0
 (|+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w1
+
+/**
+* Creates a simple read-only shared which's value is computed by a function on IWorld (which can optionally give an error).
+* The timestamp of the shared is the current one.
+*/
+makeReadOnlyShared		:: !(*IWorld -> *(!a,!*IWorld))						-> ReadOnlyShared a
+makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld))	-> ReadOnlyShared a

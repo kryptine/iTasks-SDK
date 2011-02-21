@@ -19,8 +19,6 @@ JSONEncode{|TaskTree|} (TTGroupedTask a0 a1 a2 a3)
 
 JSONEncode{|TaskTree|} (TTInteractiveTask a0 a1 a2)
 	= [JSONArray [JSONString "TTInteractiveTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2]]
-JSONEncode{|TaskTree|} (TTMonitorTask a0 a1)
-	= [JSONArray [JSONString "TTMonitorTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTFinishedTask a0 a1)
 	= [JSONArray [JSONString "TTFinishedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTRpcTask a0 a1)

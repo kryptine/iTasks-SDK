@@ -142,12 +142,16 @@ killProcess 	:: !(ProcessRef a) -> Task Void | iTask a
 /**
 * Wait (blocking) for a process to complete.
 *
+* @param A flag indicating if to continue automatically after the process finished
+*        or to show the process result and let the user continue.
 * @param The process reference
 *
 * @return A task that maybe gives the result of the process.
 *         When a process is prematurely deleted, the task yields Nothing
+*         Possibly the user can also cancel the task.
 */
-waitForProcess	:: (ProcessRef a)				-> Task (Maybe a)	| iTask a
+waitForProcess			:: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
+waitForProcessCancel	:: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
 
 /**
 * Spawn a process at regular times

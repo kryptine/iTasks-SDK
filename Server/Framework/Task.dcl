@@ -30,6 +30,8 @@ derive gEq			Task
 :: TaskResult a		= TaskBusy
 					| TaskFinished !a
 					| TaskException !Dynamic
+					
+mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
 
 :: TaskThread a		=
 	{ originalTask		:: !Task a

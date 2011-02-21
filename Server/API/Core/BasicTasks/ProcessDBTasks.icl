@@ -1,9 +1,9 @@
 implementation module ProcessDBTasks
 
-import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, StdList
+import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, StdList, Error, Shared
 import TSt, Time, Store
 from ProcessDB	import :: Process{..}, :: Menu
-from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB TSt
+from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
 from UserDB		import class UserDB(..), instance UserDB TSt
 from Types		import :: ProcessId, :: ProcessRef
 
@@ -86,3 +86,27 @@ where
 	deleteProcess` tst
 		# (_,tst)	= 'ProcessDB'.deleteProcess (toProcessId pid) tst
 		= (TaskFinished Void,tst)
+
+sharedProcessResult :: !(ProcessRef a) -> ReadOnlyShared (Maybe a) | iTask a
+sharedProcessResult (ProcessRef pid) = Shared read write getTimestamp
+where
+	read iworld
+		# (mbResult,iworld)					= loadProcessResult (taskNrFromString pid) iworld	
+		= case mbResult of
+			Just (TaskFinished (a :: a^))	= (Ok (Just a),iworld)	
+			_								= (Ok Nothing,iworld) //Ignore all other cases
+			
+	write _ iworld = (Ok Void,iworld)
+	
+	getTimestamp iworld=:{IWorld|timestamp} = (Ok timestamp,iworld)
+		
+sharedProcessStatus :: !pid -> ReadOnlyShared TaskStatus | toProcessId pid
+sharedProcessStatus pid = makeReadOnlyShared read
+where
+	read iworld
+		# (mbProcess,iworld) = 'ProcessDB'.getProcess (toProcessId pid) iworld
+		= case mbProcess of
+			Just proc	= (proc.Process.properties.systemProperties.SystemProperties.status,iworld)
+			Nothing		= (Deleted,iworld)
+
+	

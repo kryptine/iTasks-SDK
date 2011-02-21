@@ -1,9 +1,11 @@
 implementation module OSTasks
 
-import StdList
-import TSt, StdFile, Process, Text, ExceptionCombinators
-from File import qualified fileExists
-from Process import qualified ::ProcessHandle, runProcess, checkProcess
+import StdList, StdTuple
+import TSt, StdFile, Process, Text, ExceptionCombinators, MonitorTasks, Shared
+from File				import qualified fileExists
+from Process			import qualified ::ProcessHandle, runProcess, checkProcess
+from CoreCombinators	import >>=
+from CommonCombinators	import transform
 
 derive bimap Maybe, (,)
 
@@ -22,26 +24,27 @@ where
 		| otherwise
 			= (TaskFinished (fromOk res), tst)
 
-callProcess :: !message !FilePath ![String] -> Task Int | html message
-callProcess msg cmd args = mkMonitorTask ("Call process", ("Running command: " +++ (toString (html msg)))) callProcess`
+callProcessWait :: !message !FilePath ![String] -> Task Int | iTask message
+callProcessWait msg cmd args =
+		callProcess cmd args
+	>>=	monitorTask (const msg) isJust True
+	>>= transform fromJust
+						
+callProcess :: !FilePath ![String] -> Task (ReadOnlyShared (Maybe Int))			
+callProcess cmd args = mkInstantTask ("Call process","Calls a process and give shared reference to return code.") callProcess`
 where
 	callProcess` tst
-		# (mbHandle, tst)			= getTaskStore "handle" tst
-		= case mbHandle of
-			Nothing
-				# (res, tst) 		= accWorldTSt (runProcess cmd args Nothing) tst
-				| isError res		= (callException res, tst)
-				# tst				= setTaskStore "handle" (fromOk res) tst
-				| otherwise			= (TaskBusy, tst)
-			Just handle
-				# (res,tst)			= accWorldTSt (checkProcess handle) tst
-				| isError res		= (callException res, tst)
-				= case fromOk res of
-					Just exitCode
-						= (TaskFinished exitCode, tst)
-					Nothing
-						= (TaskBusy, tst)
-
+		# (res, tst) 		= accWorldTSt (runProcess cmd args Nothing) tst
+		| isError res		= (callException res,tst)
+		= (TaskFinished (makeReadOnlySharedError (check (fromOk res))),tst)
+	
+	check handle iworld=:{world}
+		# (res,world)	= checkProcess handle world
+		# iworld		= {iworld & world = world}
+		= case res of
+			Ok c	= (Ok c,iworld)
+			Error e	= (Error (snd e),iworld)
+	
 fileExists :: !FilePath -> Task Bool
 fileExists path = mkInstantTask ("File exists check", "Check if a file exists") fileExists`
 where

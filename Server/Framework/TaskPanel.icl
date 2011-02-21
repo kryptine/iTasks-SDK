@@ -76,16 +76,6 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 			= abort "No Output node in the task tree"
 		(TTInteractiveTask _ _ (JSONOutput _))
 			= abort "JSON Output in the task tree"
-		(TTMonitorTask ti (UIOutput html))
-			= TTCMonitorContainer {TTCMonitorContainer 
-				| xtype 		= "itasks.ttc.monitor"
-				, id 			= "taskform-" +++ ti.TaskInfo.taskId
-				, taskId 		= ti.TaskInfo.taskId
-				, subject		= ti.TaskInfo.subject
-				, description	= ti.TaskInfo.description
-				, html 			= toString html
-				, menu			= Nothing
-				}
 		(TTRpcTask ti rpc) 
 			= TTCMonitorContainer {TTCMonitorContainer 
 				| xtype 		= "itasks.ttc.monitor"
@@ -204,7 +194,6 @@ getTaskInfo :: !TaskTree -> TaskInfo
 getTaskInfo task
 	# info = case task of
 		TTInteractiveTask ti _ _ 	= ti
-		TTMonitorTask ti _			= ti
 		TTRpcTask ti _				= ti
 		TTFinishedTask ti _			= ti
 		TTParallelTask ti _ _		= ti

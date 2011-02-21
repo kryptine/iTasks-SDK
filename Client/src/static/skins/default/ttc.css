@@ -169,7 +169,7 @@
 }
 
 /* Monitor Container */
-.MonitorContainer {
+.TTCMonitorContainer {
 	background-color: #eee;
 	background-image : url('img/ttc-icons/TTCMessageContainer.png') !important;
 	background-repeat: no-repeat ;

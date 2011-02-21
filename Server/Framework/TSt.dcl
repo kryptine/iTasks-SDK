@@ -247,18 +247,6 @@ mkInteractiveTask	:: !d !InteractiveTaskType !(*TSt -> *(!TaskResult a,!*TSt)) -
 */
 mkInstantTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 /**
-* Wrap a function of proper type to create a function that also
-* keeps track of the the internal numbering and administration.
-* The given task function will add a monitoring task to the 
-* the current sequence.
-*
-* @param A description of the task
-* @param The function on the TSt that is the task
-*
-* @return The newly constructed basic task
-*/
-mkMonitorTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-/**
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
 * and the resulting sequence will be combined in a single sequence node.
@@ -344,7 +332,6 @@ addTaskNode 		:: !TaskTree !*TSt -> *TSt
 setTUIDef			:: ![TUIDef] ![(Action,Bool)] !*TSt 								-> *TSt //Only for interactive tasks
 setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt								-> *TSt //Only for interactive tasks
 setTUIFunc			:: (*IWorld -> *(!InteractiveTask, !*IWorld)) !*TSt					-> *TSt //Only for interactive tasks
-setStatus			:: !HtmlTag !*TSt													-> *TSt	//Only for monitor tasks
 setGroupActions		:: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt	-> *TSt //Only for group tasks
 setFocusCommand		:: !String !*TSt													-> *TSt //Only for group tasks
 
@@ -381,8 +368,8 @@ getTaskStoreTimestampFor	:: !TaskNr !String !*IWorld	-> (Maybe Timestamp, !*IWor
 /**
 * Store and load the result of a workflow instance
 */
-loadProcessResult		:: !TaskNr 							!*TSt -> (!Maybe (TaskResult Dynamic), !*TSt)
-storeProcessResult		:: !TaskNr !(TaskResult Dynamic)	!*TSt -> *TSt
+loadProcessResult		:: !TaskNr 							!*IWorld -> (!Maybe (TaskResult Dynamic), !*IWorld)
+storeProcessResult		:: !TaskNr !(TaskResult Dynamic)	!*IWorld -> *IWorld
 
 /**
 * Resets a sequence

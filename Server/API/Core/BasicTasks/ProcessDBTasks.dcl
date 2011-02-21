@@ -7,7 +7,8 @@ from TSt		import :: Task
 from ProcessDB	import :: Process(..)
 from TaskTree	import :: TaskParallelType
 from Time		import :: Timestamp 
-import GenVisualize, GenUpdate
+from Shared		import :: ReadOnlyShared
+import GenVisualize, GenUpdate, iTaskClass
 
 //Allow either typed or untyped references to lookup a process table entry
 class toProcessId a where toProcessId :: a -> ProcessId
@@ -116,3 +117,7 @@ suspendProcess			:: !pid						-> Task Void			| toProcessId pid
 * @param The process reference
 */
 deleteProcess			:: pid						-> Task Void			| toProcessId pid
+
+// shared process data
+sharedProcessResult		:: !(ProcessRef a)			-> ReadOnlyShared (Maybe a)		| iTask a
+sharedProcessStatus		:: !pid						-> ReadOnlyShared TaskStatus	| toProcessId pid

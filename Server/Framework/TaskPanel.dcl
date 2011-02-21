@@ -22,7 +22,7 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 	, buttons	:: ![TUIDef]
 	}
 	
-:: InteractiveTaskType = Information | Message | Instruction
+:: InteractiveTaskType = Information | Message | Instruction | Monitor
 
 :: TTCInteractiveContainer = 
 	{ xtype			:: !String

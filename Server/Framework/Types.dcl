@@ -326,6 +326,7 @@ getRoles			:: !User -> [Role]
 			| ActionNext
 			| ActionPrevious
 			| ActionFinish
+			| ActionContinue
 			| ActionNew
 			| ActionOpen
 			| ActionSave

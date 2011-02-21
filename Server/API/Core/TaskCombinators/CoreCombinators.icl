@@ -1,11 +1,13 @@
 implementation module CoreCombinators
 
 import StdList, StdArray, StdTuple, StdMisc, StdBool
-import TSt, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators, Shared
-from StdFunc		import id, const
-from TaskTree		import :: TaskParallelType
+import TSt, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks
+from ProcessDBTasks		import sharedProcessStatus, sharedProcessResult, class toProcessId, instance toProcessId ProcessRef
+from StdFunc			import id, const, o
+from TaskTree			import :: TaskParallelType
+from CommonCombinators	import transform
 
-derive class iTask SchedulerState
+derive class iTask SchedulerState, TaskStatus
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -327,24 +329,33 @@ where
 		# tst = deleteTaskInstance pid tst
 		= (TaskFinished Void, tst)
 
-waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
-waitForProcess (ProcessRef pid) = mkMonitorTask ("Wait for task", "Wait for an external task to finish") waitForProcess`
+waitForProcess :: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
+waitForProcess autoContinue pref =
+		monitorTask waitForProcessView waitForProcessPred autoContinue (sharedProcessStatus pref >+< sharedProcessResult pref)
+	>>=	transform snd
+	
+waitForProcessCancel :: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
+waitForProcessCancel autoContinue pref =
+		monitorTaskA waitForProcessView actions autoEvents (sharedProcessStatus pref >+< sharedProcessResult pref)
+	>>=	transform (maybe Nothing snd o snd)
 where
-	waitForProcess` tst 
-		# (mbProcess,tst) = getProcess pid tst
-		= case mbProcess of
-			Just {Process | taskId, properties}
-				= case properties.systemProperties.SystemProperties.status of
-					Finished
-						# (mbResult,tst)					= loadProcessResult (taskNrFromString pid) tst	
-						= case mbResult of
-							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)	
-							_								= (TaskFinished Nothing, tst) //Ignore all other cases
-					_	
-						# tst = setStatus (html [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title,Text "\""]]) tst
-						= (TaskBusy, tst)		// We are not done yet...
-			_	
-				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done
+	actions = [(ActionCancel,always)] ++ if autoContinue [] [(ActionContinue,pred`)]
+	
+	autoEvents v
+		| autoContinue && pred` v	= Just (ActionContinue,"")
+		| otherwise					= Nothing
+		
+	pred` Invalid	= False
+	pred` (Valid v)	= waitForProcessPred v
+	
+waitForProcessView (Active,_)		= "Task is running."
+waitForProcessView (Suspended,_)	= "Task is suspended."
+waitForProcessView (_,res)			= "Task finished. Result: " <+++ res
+//waiting = html [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title,Text "\""]]
+
+waitForProcessPred (Active,_)		= False
+waitForProcessPred (Suspended,_)	= False
+waitForProcessPred _				= True
 
 scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a]) Void) | iTask a
 scheduledSpawn when task = abort "not implemented"

@@ -3,7 +3,8 @@ definition module OSTasks
 * This module provides tasks to interface with the underlying OS
 */
 import FilePath, Task
-from File import ::FileError(..)
+from File	import ::FileError(..)
+from Shared	import :: ReadOnlyShared
 
 /**
 * Calls an external executable. The call is non-blocking.
@@ -14,7 +15,7 @@ from File import ::FileError(..)
 * @return return-code of the process
 * @throws CallException
 */
-callProcess :: !message !FilePath ![String] -> Task Int | html message
+callProcessWait :: !message !FilePath ![String] -> Task Int | iTask message
 
 /**
 * Calls an external executable. The call is blocking and should only
@@ -26,6 +27,8 @@ callProcess :: !message !FilePath ![String] -> Task Int | html message
 * @throws CallException
 */
 callProcessBlocking :: !FilePath ![String] -> Task Int
+
+callProcess :: !FilePath ![String] -> Task (ReadOnlyShared (Maybe Int))
 
 /**
 * Checks if a file exists.

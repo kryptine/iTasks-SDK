@@ -16,6 +16,10 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 				this.cls		= 'TTCInstructionContainer';
 				this.panelCls	= 'TTCInstructionContainer-Context';
 				break;
+			case 'Monitor':
+				this.cls		= 'TTCMonitorContainer';
+				this.panelCls	= 'MonitorPanel';
+				break;
 		}
 		
 		itasks.ttc.InteractiveContainer.superclass.initComponent.apply(this,arguments);

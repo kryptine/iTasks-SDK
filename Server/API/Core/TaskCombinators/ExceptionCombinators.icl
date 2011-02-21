@@ -28,8 +28,6 @@ where
 						= (result,tst) 
 									
 throw :: !e -> Task a | iTask a & TC e	
-throw e = mkMonitorTask "Throw an exception" throw`
+throw e = mkInstantTask "Throw an exception" throw`
 where
-	throw` tst
-		# tst		= setStatus (H1Tag [] [Text "Error, an uncaught exception was thrown"]) tst
-		= (TaskException (dynamic e),tst) 
+	throw` tst = (TaskException (dynamic e),tst)

@@ -53,6 +53,12 @@ where
 	stl :: [Char] -> [Char]
 	stl [] = []
 	stl xs = tl xs
+	
+//Applies given function to the result if task is finished
+mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
+mapTaskResult f (TaskFinished x)	= TaskFinished (f x) 
+mapTaskResult f (TaskBusy)			= TaskBusy
+mapTaskResult f (TaskException e)	= TaskException e
 
 derive JSONEncode TaskResult
 derive JSONDecode TaskResult

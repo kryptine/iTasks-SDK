@@ -25,9 +25,7 @@ from TaskPanel		import :: InteractiveTaskType
 	//LEAF CONSTRUCTORS
 											
 	//A task that can be worked on through a gui
-	| TTInteractiveTask	TaskInfo InteractiveTaskType (TaskOutput InteractiveTask)													
-	//A task that upon evaluation monitors a condition and may give status output
-	| TTMonitorTask		TaskInfo (TaskOutput HtmlTag)																
+	| TTInteractiveTask	TaskInfo InteractiveTaskType (TaskOutput InteractiveTask)																
 	//A completed task
 	| TTFinishedTask	TaskInfo (TaskOutput HtmlTag)															
 	//A task that represents an rpc invocation

@@ -79,7 +79,7 @@ where
 		>>| 				return False
 
 	waitForIt wid
-	=						showStickyMessage ("Waiting","Waiting for the result...") Void ||- waitForProcess wid
+	=						showStickyMessage ("Waiting","Waiting for the result...") Void ||- waitForProcess True wid
 		>>= \(Just res) -> 	deleteProcess wid 
 		>>| 				showMessageAbout ("Finished","Finished, the result = ") res 
 		>>|					return False

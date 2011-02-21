@@ -486,12 +486,11 @@ where
 			VHtmlDisplay = case v of
 				[]	= ([HtmlFragment (UlTag [] [LiTag [ClassAttr "list-item-light"] [(Text empty)]])],vst)
 				_	= ([HtmlFragment (UlTag [] [(LiTag [ClassAttr (itemCls i)] (coerceToHtml x)) \\ x <- items & i <- [0..]])],vst)
-			VTextDisplay
-					= ([TextFragment ("["+++join ", " (flatten  [(coerceToStrings x) \\ x <-items])+++"]")],vst)
 			VHtmlLabel = case v of
 				[]	= ([HtmlFragment (Text empty)],vst)
 				_	= ([HtmlFragment (html (htmlLabel items))],vst)
-			_		= ([],vst)
+			_
+					= ([TextFragment ("["+++join ", " (flatten  [(coerceToStrings x) \\ x <-items])+++"]")],vst)
 	where
 		itemCls i
 			| isEven i  = "list-item-light"

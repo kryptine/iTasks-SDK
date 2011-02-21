@@ -248,7 +248,7 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 			= (TaskBusy, tree, tst)
 		TaskFinished dyn
 			//Store result
-			# tst 			= storeProcessResult (taskNrFromString taskId) result tst
+			# tst 			= appIWorldTSt (storeProcessResult (taskNrFromString taskId) result) tst
 			//Store result container
 			# tst			= storeProcessContainer taskId result thread tst
 			//Update process table (status, changeCount & properties)
@@ -275,7 +275,7 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 				= (result,tree,tst)
 		TaskException e
 			//Store exception
-			# tst 		= storeProcessResult (taskNrFromString taskId) result tst
+			# tst 		= appIWorldTSt (storeProcessResult (taskNrFromString taskId) result) tst
 			//Update process table
 			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Excepted}}
 			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
@@ -492,9 +492,6 @@ where
 		= (TTParallelTask ti pi tasks, tst)
 	
 	//All other leaf cases
-	normalizeTasks (TTMonitorTask ti to) tst
-		# (ti, tst) = normalizeTaskInfo ti tst
-		= (TTMonitorTask ti to, tst)
 	normalizeTasks (TTFinishedTask ti to) tst
 		# (ti, tst) = normalizeTaskInfo ti tst
 		= (TTFinishedTask ti to, tst)
@@ -634,18 +631,6 @@ mkInstantTask description taskfun =
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTFinishedTask taskInfo NoOutput} //We use a FinishedTask node because the task is finished after one evaluation
-
-mkMonitorTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkMonitorTask description taskfun =
-	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
-	, groupedProperties	= initGroupedProperties
-	, mbTaskNr			= Nothing
-	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkMonitorTask`
-	}
-where
-	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTMonitorTask taskInfo NoOutput}
 
 mkRpcTask :: !d !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a & descr d
 mkRpcTask description rpce parsefun =
@@ -857,12 +842,6 @@ setTUIFunc func tst=:{tree}
 	= case tree of
 		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (UIOutput (Func func))}
 		_									= tst
-
-setStatus :: !HtmlTag !*TSt -> *TSt
-setStatus msg tst=:{tree}
-	= case tree of
-		TTMonitorTask info _				= {tst & tree = TTMonitorTask info (UIOutput msg)}
-		_									= tst
 			
 setGroupActions :: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt -> *TSt
 setGroupActions actions tst=:{tree}
@@ -891,22 +870,22 @@ setJSONFunc f tst=:{tree}
 /**
 * Store and load the result of a workflow instance
 */
-loadProcessResult :: !TaskNr !*TSt -> (!Maybe (TaskResult Dynamic), !*TSt)
-loadProcessResult taskNr tst = accIWorldTSt (loadValue key) tst
+loadProcessResult :: !TaskNr !*IWorld -> (!Maybe (TaskResult Dynamic), !*IWorld)
+loadProcessResult taskNr iworld = loadValue key iworld
 where
 	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	
-storeProcessResult :: !TaskNr !(TaskResult Dynamic) !*TSt -> *TSt
-storeProcessResult taskNr result tst
+storeProcessResult :: !TaskNr !(TaskResult Dynamic) !*IWorld -> *IWorld
+storeProcessResult taskNr result iworld
 	// Only store process result if the process is not garbage collected (still exists in te process table)
-	# (storeResult,tst) = storeResult tst
-	= if (storeResult) (appIWorldTSt (storeValueAs SFDynamic key result) tst) tst
+	# (storeResult,iworld) = storeResult iworld
+	= if (storeResult) (storeValueAs SFDynamic key result iworld) iworld
 where
 	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	
-	storeResult tst 
-		# (mbproc,tst) = getProcess (taskNrToString taskNr) tst
-		= (isJust mbproc, tst) 
+	storeResult iworld 
+		# (mbproc,iworld) = getProcess (taskNrToString taskNr) iworld
+		= (isJust mbproc, iworld) 
 
 // Store the final value and it's type as a dynamic value, so it can be visualized by the task-result service later.		
 storeProcessContainer :: !TaskId !(TaskResult Dynamic) !Dynamic !*TSt -> *TSt

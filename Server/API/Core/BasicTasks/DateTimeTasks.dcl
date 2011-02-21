@@ -5,6 +5,7 @@ definition module DateTimeTasks
 from TSt 			import :: Task
 from Void			import :: Void
 from Types			import :: Date, :: Time, :: DateTime
+from Shared			import :: ReadOnlyShared, :: Shared
 
 /**
 * Retrieves the current time
@@ -49,3 +50,7 @@ waitForDate		:: !Date			-> Task Void
 * @return Void
 */
 waitForTimer	:: !Time			-> Task Void
+
+sharedCurrentDateTime	:: ReadOnlyShared DateTime
+sharedCurrentTime		:: ReadOnlyShared Time
+sharedCurrentDate		:: ReadOnlyShared Date

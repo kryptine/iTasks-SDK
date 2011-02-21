@@ -69,7 +69,7 @@ button.icon-close, .icon-close {
 button.icon-previous, .icon-previous {
 	background-image: url('img/icons/arrow_left.png');
 }
-button.icon-next, .icon-next {
+button.icon-next, .icon-next, button.icon-continue, .icon-continue {
 	background-image: url('img/icons/arrow_right.png');
 }
 button.icon-edit, .icon-edit {

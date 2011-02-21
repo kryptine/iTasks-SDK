@@ -479,6 +479,7 @@ where
 	actionName ActionNext			= "next"
 	actionName ActionPrevious		= "previous"
 	actionName ActionFinish			= "finish"
+	actionName ActionContinue		= "continue"
 	actionName ActionNew			= "new"
 	actionName ActionOpen			= "open"
 	actionName ActionSave			= "save"
