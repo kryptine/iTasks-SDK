@@ -6,11 +6,13 @@ definition module SharedTasks
 import Task
 from Shared import :: Shared, :: SymmetricShared
 
+:: SharedStoreId :== String
+
 /**
 * Creates a reference to a store identified by a string identifier.
 * Initially no data is stored and reading data will cause an exception.
 */
-sharedStore :: !String -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Create a shared store with automatically generated reference and given initial value.
@@ -21,6 +23,13 @@ sharedStore :: !String -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, 
 * @throws SharedException
 */
 createSharedStore :: !a  -> Task (SymmetricShared a) | iTask a
+
+/**
+* Deletes a store with given identifier.
+*
+* @param A unique identifier
+*/
+deleteSharedStore :: !SharedStoreId -> Task Void
 
 /**
 * Reads shared data.

@@ -7,7 +7,7 @@ from CoreCombinators	import >>|, >>=, return
 from Shared				import :: Shared(..), :: SharedWrite, :: SharedRead, :: SharedGetTimestamp, :: SymmetricShared, mapShared, >+<
 from Shared				import qualified writeShared, readShared
 
-sharedStore :: !String -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId = Shared
 	(get loadValue ("cannot load value from store '" +++ storeId +++ "'"))
 	write
@@ -34,6 +34,14 @@ where
 		= case wres of
 			Ok _	= (TaskFinished shared,tst)
 			Error e	= (TaskException (dynamic (SharedException e)),tst)
+			
+deleteSharedStore :: !SharedStoreId -> Task Void
+deleteSharedStore id
+	= mkInstantTask ("Delete shared store","Deletes a shared store with given identifier") deleteSharedStore`
+where
+	deleteSharedStore` tst
+		# tst = appIWorldTSt (deleteValue id) tst
+		= (TaskFinished Void,tst)
 
 readShared :: !(Shared a w) -> Task a | iTask a
 readShared shared
