@@ -2,7 +2,7 @@ implementation module InteractiveTasks
 
 import StdTuple, StdBool, StdList, StdMisc, Maybe, Types, Util, Shared, HtmlUtil
 import iTaskClass, Task, TSt
-from SharedTasks	import sharedStore
+from SharedTasks	import sharedStore, :: SharedStoreId
 from StdFunc		import id, const, o
 
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
