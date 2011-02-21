@@ -140,6 +140,9 @@ where
 			= case searchV` children c of
 				(Nothing,c)	= searchV` r c
 				v			= v
+				
+fromTable :: !(Table a) -> [a]
+fromTable (Table t) = t
 
 // ******************************************************************************************************
 // Document

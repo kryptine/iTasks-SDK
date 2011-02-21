@@ -151,6 +151,8 @@ getSelectedLeaf :: !(Tree a) -> a
 
 :: Table a = Table ![a]
 
+fromTable :: !(Table a) -> [a]
+
 // Field behaviour extensions
 :: VisualizationHint a 	= VHEditable a
 					   	| VHDisplay a

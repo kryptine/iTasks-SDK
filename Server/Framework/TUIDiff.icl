@@ -32,9 +32,9 @@ where
 				(TUIRecordContainer o, TUIRecordContainer n)
 					= case (o.hasValue,n.hasValue) of
 						(True,True)		= staticContainerUpdate path old new
-						(False,True)	= map (TUIAddTo n.TUIRecordContainer.id) n.TUIRecordContainer.items
+						(False,True)	= [TUISetValue_ (dp2s path) "expand":map (TUIAddTo n.TUIRecordContainer.id) n.TUIRecordContainer.items]
 						(False,False)	= []
-						(True,False)	= [TUIReplace_ (dp2s path) new]
+						(True,False)	= [TUISetValue_ (dp2s path) "collapse"]
 				// Documents are replaced when their value has changed
 				(TUIDocumentControl odoc, TUIDocumentControl ndoc)
 					| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []

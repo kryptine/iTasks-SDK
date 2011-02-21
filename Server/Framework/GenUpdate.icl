@@ -130,39 +130,36 @@ gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMas
 				= (l,cm,ust)
 	# (lx,ust=:{newMask=cMasks})
 		= updateElements fx l {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
+	# ust = {ust & newMask = cMasks}
 	| currentPath == searchPath
 		//Process the reordering commands 
 		# split = split "_" update
 		# index = toInt (last split)
-		= case hd split of	
+		# (lx,cMasks,ust) = case hd split of	
 			"mup"
-				| index == 0
-					= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
+				| index == 0 = (lx,cMasks,ust)
 				# lx		= swap lx index
 				# cMasks	= swap cMasks index
-				# dirty		= [index - 1, index]
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om}) 
+				= (lx,cMasks,ust) 
 			"mdn"
-				| index >= (length lx) - 1
-					= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
+				| index >= (length lx) - 1 = (lx,cMasks,ust)
 				# lx		= swap lx (index+1) //down idx == up (idx+1)
 				# cMasks	= swap cMasks (index+1)
-				# dirty		= [index, index + 1]
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
+				= (lx,cMasks,ust)
 			"rem"
 				# lx		= removeAt index lx
 				# cMasks	= removeAt index cMasks 
-				# dirty		= [index .. length lx-1]	//Mark everything above the removed item dirty
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})	
+				= (lx,cMasks,ust)	
 			"add"
 				# (nv,ust=:{newMask=childMask})
 							= fx UDCreate {ust & oldMask = [], newMask = []}
+				# ust		= {ust & newMask = childMask}
 				# lx		= insertAt (index+1) nv lx
-				# cMasks	= insertAt (index+1) (hd cMasks) cMasks
-				# dirty		= [index+1 .. length lx - 1]//Mark evertything above the inserted item dirty
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
+				# cMasks	= insertAt (index+1) (hd childMask) cMasks
+				= (lx,cMasks,ust)
 			_ 	
-				= (lx, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
+				= (lx,cMasks,ust)
+		= (lx,{ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
 	| otherwise
 		# listMask = case listMask of
 			Touched _	= Touched cMasks

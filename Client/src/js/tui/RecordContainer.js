@@ -37,6 +37,14 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 			this.collapse();
 	
 		this.fireEvent('tuichange',this.name,(this.checkbox.dom.checked ? 'create' : ''));
+	},
+	setValue: function(action) {
+		if(action == 'expand'){
+			this.expand();
+		}else if(action == 'collapse'){
+			this.collapse();
+			this.removeAll();
+		}
 	}
 });
 
