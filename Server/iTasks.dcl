@@ -23,6 +23,7 @@ import	Engine						// basic iTask system creator
 	,	ChangeTasks					// Tasks for changing existing workflows
 	
 	,	OSTasks						// tasks for OS operations like reading/writing files or calling external processes
+	,	MonitorTasks
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
