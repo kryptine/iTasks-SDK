@@ -38,8 +38,9 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	
 :: GoogleMapMarker =
 	{ position				:: !GoogleMapPosition			// Position of the marker
-	, title					:: !Maybe String					// Title of the marker
+	, title					:: !Maybe String				// Title of the marker
 	, infoWindow			:: !Maybe GoogleMapInfoWindow	// Information which is shown on click
+	, draggable				:: !Bool						// Can the marker be dragged
 	}
 	
 :: GoogleMapInfoWindow =
@@ -49,20 +50,24 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 :: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
 
 :: MVCUpdate = 
-	{ center			:: GoogleMapPosition
-	, zoom				:: Int
-	, type				:: GoogleMapType
+	{ center			:: !GoogleMapPosition
+	, zoom				:: !Int
+	, type				:: !GoogleMapType
 	}	
 	
 :: ClickUpdate = 
-	{ event				:: ClickEvent
-	, source			:: ClickSource
-	, point				:: GoogleMapPosition
+	{ event				:: !ClickEvent
+	, source			:: !ClickSource
+	, point				:: !GoogleMapPosition
 	}
-	
+
 :: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
 :: ClickSource  = MAP | MARKER GoogleMapPosition
 
+:: MarkerDragUpdate = 
+	{ index				:: !Int
+	, point				:: !GoogleMapPosition
+	}
 /*
 * Convert a dynamic map into a static image
 *

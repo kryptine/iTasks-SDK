@@ -22,4 +22,5 @@ where
 			| position		= {lat = 51.82, lng = 5.86}
 			, title			= Just "Radboud University"
 			, infoWindow	= Just {GoogleMapInfoWindow|content = "Radboud University"}
+			, draggable		= False
 			}

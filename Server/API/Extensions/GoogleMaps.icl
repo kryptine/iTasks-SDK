@@ -3,7 +3,7 @@ implementation module GoogleMaps
 import HTML, StdEnv, JSON, GenUpdate, GenVisualize, GenVerify
 
 derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap
-derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent
+derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent, MarkerDragUpdate
 
 derive gVisualize   	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
@@ -125,23 +125,27 @@ where
 gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate mkMap ust
 where
 	parseUpdate update orig
-		# mbMVC		= fromJSON (fromString update)
+		# json		= fromString update
+		# mbMVC		= fromJSON json
 		| isJust mbMVC
 			# mvc = fromJust mbMVC
 			= {GoogleMap | orig & center = mvc.MVCUpdate.center, zoom = mvc.MVCUpdate.zoom, mapType = mvc.MVCUpdate.type}
-		# mbClick 	= fromJSON (fromString update)
+		# mbClick 	= fromJSON json
 		| isJust mbClick
 			# click = fromJust mbClick
-			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, title = Nothing, infoWindow = Nothing} 
-			= {GoogleMap | orig & markers = [marker:orig.GoogleMap.markers]}
+			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, title = Nothing, infoWindow = Nothing, draggable = True} 
+			= {GoogleMap | orig & markers = orig.GoogleMap.markers ++ [marker]}
+		# mbMarkerDrag = fromJSON json
+		| isJust mbMarkerDrag
+			# {MarkerDragUpdate|index,point}		= fromJust mbMarkerDrag
+			= {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = point} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
+		
 		| otherwise = orig
 
 gDefaultMask{|GoogleMap|} _ = [Touched []]
 
 gVerify{|GoogleMap|} _ vst = alwaysValid vst //Maps are always valid
 
-
-import StdDebug
 // -- Utility Functions --
 
 mkMap :: GoogleMap

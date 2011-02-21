@@ -113,7 +113,7 @@ where
 	markersDisplay dbid =
 							showMessageSharedA "Markers" markersListener [(RemoveMarkersAction,always),quitButton] dbid
 		>>= \(action,map).	case fst action of
-								RemoveMarkersAction	= updateShared dbid (\map -> {GoogleMap| map & markers = []})
+								RemoveMarkersAction	= updateShared dbid (\map -> {GoogleMap| map & markers = []}) >>| markersDisplay dbid
 								_					= return map
 
 	optionsEditor	=	( \map ->		{ type = map.mapType
@@ -136,10 +136,11 @@ where
 										& mapTypeControl = False
 										, panControl = False
 										, streetViewControl = False
-										, zoomControl = map.zoomControl
+										, zoomControl = False
 										, scaleControl = False
 										, scrollwheel = False
 										, zoom = 7
+										, markers = [{GoogleMapMarker|m & draggable = False} \\ m <- map.markers]
 										}
 						, \nmap map	->	{ GoogleMap | map
 										& center = nmap.GoogleMap.center

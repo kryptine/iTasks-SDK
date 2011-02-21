@@ -20,7 +20,7 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 		//Update map options
 		this.gmap.setOptions(this.getOptions(data));
 		
-		//Update markers
+		//Update markers (can be implemented nicer)
 		this.markers = data.markers;
 		this.addMarkers();
 	},
@@ -31,6 +31,7 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 		var options = data.options;
 		options.center = new google.maps.LatLng(data.center[0],data.center[1]);
 		options.mapTypeId = this.getMapType(data.mapType);
+		options.draggableCursor = "default";
 		
 		return options;
 	},
@@ -114,22 +115,39 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 		for(i=0; i<this.markers.length; i++){
 			
 			var mapObj = this.gmap;
+			var cmp = this;
 					
 			var markerObj = new google.maps.Marker({
 				map : mapObj,
 				position : new google.maps.LatLng(this.markers[i].position[0],this.markers[i].position[1]),
-				title : this.markers[i].title
+				title : this.markers[i].title,
+				draggable : this.markers[i].draggable
 			});
-			
+				
 			if(this.markers[i].infoWindow) {
 				var infoObj = new google.maps.InfoWindow({
 					content : this.markers[i].infoWindow.content
 				});	
 			
-				google.maps.event.addListener(markerObj,'click',function() {
-					infoObj.open(mapObj,markerObj);
-				});
+				var clickHandler = function(mapObj,markerObj) {
+					return function() {
+						infoObj.open(mapObj,markerObj);
+					}
+				}	
+				google.maps.event.addListener(markerObj,'click',clickHandler(mapObj,markerObj));
 			}
+			
+			if(this.markers[i].draggable) {
+				var handler = function(markerId) { return function(event) {
+					
+					var value = {index: markerId, point : [event.latLng.lat(),event.latLng.lng()]}
+					
+					cmp.fireEvent('tuichange', cmp.name, Ext.encode(value));
+				};};
+				
+				google.maps.event.addListener(markerObj,'dragend', handler(i));
+			}
+			
 			this.displayedMarkers[i] = markerObj;
 		}
 			
