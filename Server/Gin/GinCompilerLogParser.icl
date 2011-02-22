@@ -2,7 +2,7 @@ implementation module GinCompilerLogParser
 
 import StdEnv
 import Maybe
-import StdParsComb
+import ParserCombinators
 import GenPrint
 
 import StdDebug
