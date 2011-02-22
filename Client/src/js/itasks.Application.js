@@ -10,6 +10,8 @@ itasks.Application = function () {
 		displayName: null,
 		googleMapsState: 'unloaded',
 		waitingForGoogleMaps: new Ext.util.MixedCollection(true),
+        oryxState: 'unloaded',
+        waitingForOryx: new Ext.util.MixedCollection(true),
 		scrollbarWidth: 0,
 		
 		viewport: new Ext.Viewport({

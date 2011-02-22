@@ -40,10 +40,27 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 	afterRender : function(){
 	    itasks.tui.OryxControl.superclass.afterRender.call(this);
 
-        this.facade = new ORYX.Editor({
+		switch(itasks.app.oryxState) {
+			case 'loaded':
+				this.buildEditor();
+				break;
+			case 'unloaded':
+				itasks.app.oryxState = 'loading';
+
+            	var script = document.createElement("script");
+            	script.setAttribute('type', 'text/javascript');
+            	script.setAttribute('src', 'oryx-all.js');
+            	Ext.getHead().appendChild(script);
+			case 'loading':
+				itasks.app.waitingForOryx.addAll([this.buildEditor.createDelegate(this)]);
+		}
+	},
+
+    buildEditor: function() {
+		this.facade = new ORYX.Editor({
             parentContainer: this,
             stencilset: {
-                url: ORYX.CONFIG.ROOT_PATH + this.stencilsetURL
+                url: ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetURL
             }
         });
 
@@ -55,7 +72,7 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 			this.setError(this.errorMsg);
 			this.setHint(this.hintMsg);
 		}).defer(50,this);
-	},
+    },
 	
 	setError: function(msg){		
         if (console != null)
@@ -68,10 +85,9 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 	}
 });
 
-//override onOryxResourcesLoaded in lib/oryx/scripts/Plugins/file.js
-window.onOryxResourcesLoaded = function() { }
-{
-    //TODO: Use as callback for on-request loading of ORYX
+window.onOryxResourcesLoaded = function() {
+	itasks.app.waitingForOryx.each(function(build){build();});
+	itasks.app.oryxState = 'loaded';
 };
 
 Ext.reg('itasks.tui.Oryx', itasks.tui.OryxControl);

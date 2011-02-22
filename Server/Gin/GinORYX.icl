@@ -27,7 +27,7 @@ where
 	petriNetStencilSet :: ORYXStencilSet
 	petriNetStencilSet 
 		=	{ ORYXStencilSet 
-	   		| url = "../../lib/oryx/stencilsets/petrinets/petrinet.json"
+	   		| url = "petrinets/petrinet.json"
 			, namespace = "http://b3mn.org/stencilset/petrinet#"
 			}
 			
@@ -37,7 +37,7 @@ where
 	workflowNetStencilSet :: ORYXStencilSet
 	workflowNetStencilSet 
 		=	{ ORYXStencilSet 
-	   		| url = "../../lib/oryx/stencilsets/workflownets/workflownets.json"
+	   		| url = "workflownets/workflownets.json"
 			, namespace = "http://www.example.org/workflownets#"
 			}
 

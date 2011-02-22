@@ -6,8 +6,9 @@ if(!ORYX) var ORYX = {};
 if(!ORYX.CONFIG) ORYX.CONFIG = {};
 
 //This is usually the name of the war file!
-ORYX.CONFIG.ROOT_PATH =					"../../lib/oryx/";
-ORYX.CONFIG.WEB_URL =                   "http://localhost";
+//Set by iTasks index[-debug].html
+// ORYX.CONFIG.ROOT_PATH =				"../../lib/oryx/";
+// ORYX.CONFIG.WEB_URL =				"http://localhost";
 	
 ORYX.CONFIG.VERSION_URL =				ORYX.CONFIG.ROOT_PATH + "VERSION";
 ORYX.CONFIG.LICENSE_URL =				ORYX.CONFIG.ROOT_PATH + "LICENSE";

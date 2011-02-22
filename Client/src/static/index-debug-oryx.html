@@ -61,6 +61,13 @@
 	<script type="text/javascript" src="../../lib/CodeMirror-0.67/js/codemirror.js"></script>
 
     <!-- import Oryx editor -->
+    <script type="text/javascript">
+      if(!ORYX) var ORYX = {};
+      if(!ORYX.CONFIG) ORYX.CONFIG = {};
+      ORYX.CONFIG.ROOT_PATH =					"../../lib/oryx/";
+      ORYX.CONFIG.WEB_URL =                   "http://localhost";
+    </script>
+
     <script src="../../lib/oryx/lib/prototype-1.5.1.js" type="text/javascript"></script>
 	<script src="../../lib/oryx/lib/path_parser.js" type="text/javascript"></script>
 

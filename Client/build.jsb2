@@ -29,6 +29,7 @@
 		,{"text":"FormButtonControl.js","path":"src/js/tui/"}
 		,{"text":"ChoiceControl.js","path":"src/js/tui/"}
 		,{"text":"AppletControl.js","path":"src/js/tui/"}
+		,{"text":"OryxControl.js","path":"src/js/tui/"}
 		,{"text":"GridControl.js","path":"src/js/tui/"}
 		,{"text":"TreeControl.js","path":"src/js/tui/"}
 		,{"text":"TUICommon.js","path":"src/js/tui/"}
@@ -81,6 +82,66 @@
 		,{"text":"Ext.ux.form.FileUploadField.js","path":"src/js/"}
 		,{"text":"Ext.ux.grid.CellActions.js","path":"src/js/"}
 		]
+	,"pkgDeps" : []
+	,"includeDeps" : false
+	},
+    {"name": "oryx-all"
+	,"file": "oryx-all.js"
+	,"isDebug": false
+	,"fileIncludes" : 
+      [{"text":"prototype-1.5.1.js","path":"lib/oryx/lib/"}
+      ,{"text":"path_parser.js","path":"lib/oryx/lib/"}
+	  ,{"text":"translation_en_us.js","path":"lib/oryx/i18n/"}
+	  ,{"text":"clazz.js","path":"lib/oryx/scripts/"}
+	  ,{"text":"kickstart.js","path":"lib/oryx/scripts/"}
+	  ,{"text":"erdfparser.js","path":"lib/oryx/scripts/"}
+	  ,{"text":"datamanager.js","path":"lib/oryx/scripts/"}
+	  ,{"text":"config.js","path":"lib/oryx/scripts/"}
+	  ,{"text":"oryx.js","path":"lib/oryx/scripts/"}
+	  ,{"text":"utils.js","path":"lib/oryx/scripts/"}
+      ,{"text":"editpathhandler.js","path":"lib/oryx/scripts/Core/SVG/"}
+      ,{"text":"minmaxpathhandler.js","path":"lib/oryx/scripts/Core/SVG/"}
+      ,{"text":"pointspathhandler.js","path":"lib/oryx/scripts/Core/SVG/"}
+      ,{"text":"/svgmarker.js","path":"lib/oryx/scripts/Core/SVG/"}
+      ,{"text":"svgshape.js","path":"lib/oryx/scripts/Core/SVG/"}
+      ,{"text":"label.js","path":"lib/oryx/scripts/Core/SVG/"}
+      ,{"text":"math.js","path":"lib/oryx/scripts/Core/Math/"}
+      ,{"text":"stencil.js","path":"lib/oryx/scripts/Core/StencilSet/"}
+      ,{"text":"property.js","path":"lib/oryx/scripts/Core/StencilSet/"}
+      ,{"text":"propertyitem.js","path":"lib/oryx/scripts/Core/StencilSet/"}
+      ,{"text":"complexpropertyitem.js","path":"lib/oryx/scripts/Core/StencilSet/"}
+      ,{"text":"rules.js","path":"lib/oryx/scripts/Core/StencilSet/"}
+      ,{"text":"stencilset.js","path":"lib/oryx/scripts/Core/StencilSet/"}
+      ,{"text":"stencilsets.js","path":"lib/oryx/scripts/Core/StencilSet/"}
+      ,{"text":"bounds.js","path":"lib/oryx/scripts/Core/"}
+      ,{"text":"uiobject.js","path":"lib/oryx/scripts/Core/"}
+      ,{"text":"abstractshape.js","path":"lib/oryx/scripts/Core/"}
+      ,{"text":"canvas.js","path":"lib/oryx/scripts/Core/"}
+      ,{"text":"main.js","path":"lib/oryx/scripts/Core/"}
+      ,{"text":"svgDrag.js","path":"lib/oryx/scripts/Core/"}
+      ,{"text":"shape.js","path":"lib/oryx/scripts/Core/"}
+      ,{"text":"control.js","path":"lib/oryx/scripts/Core/Controls/"}
+      ,{"text":"docker.js","path":"lib/oryx/scripts/Core/Controls/"}
+      ,{"text":"magnet.js","path":"lib/oryx/scripts/Core/Controls/"}
+      ,{"text":"node.js","path":"lib/oryx/scripts/Core/"}
+      ,{"text":"edge.js","path":"lib/oryx/scripts/Core/"}
+	  ,{"text":"command.js","path":"lib/oryx/scripts/Core/"}
+	  ,{"text":"abstractPlugin.js","path":"lib/oryx/scripts/Core/"}
+      
+ 	  ,{"text":"toolbar.js","path":"lib/oryx/scripts/Plugins/"}
+      ,{"text":"shapemenu.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"shaperepository.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"renameShapes.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"dragdropresize.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"selectionframe.js","path":"lib/oryx/scripts/Plugins/"}
+      ,{"text":"undo.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"edit.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"view.js","path":"lib/oryx/scripts/Plugins/"}
+      ,{"text":"addDocker.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"dragDocker.js","path":"lib/oryx/scripts/Plugins/"}
+
+	  ,{"text":"loader.js","path":"lib/oryx/scripts/"}
+      ]
 	,"pkgDeps" : []
 	,"includeDeps" : false
 	}]
