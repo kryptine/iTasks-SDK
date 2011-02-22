@@ -5,6 +5,9 @@ implementation module ExceptionCombinators
 import StdList, StdArray, StdTuple, OSError, File, FilePath
 import TSt, ProcessDB, Util
 
+derive class iTask FileException, ParseException, CallException, DirectoryException, SharedException, FileError
+derive bimap Maybe,(,)
+
 try :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
 try normalTask handlerTask = mkSequenceTask (taskTitle normalTask, taskDescription normalTask) exceptionTask
 where

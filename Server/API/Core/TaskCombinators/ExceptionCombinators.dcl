@@ -16,6 +16,8 @@ import iTaskClass, GenVisualize, GenUpdate
 :: DirectoryException = CannotCreate
 :: SharedException = SharedException !String
 
+derive class iTask FileException, ParseException, CallException, DirectoryException, SharedException
+
 /**
 * Exception combinator.
 *
