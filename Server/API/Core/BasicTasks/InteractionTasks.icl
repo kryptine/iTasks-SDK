@@ -162,9 +162,7 @@ makeChoiceTask :: !d !(Maybe about) !(a -> v) ![a] !(Maybe Int) !*TSt -> (!TaskR
 makeChoiceTask description _ _ [] _ tst
 	= choiceException description tst
 makeChoiceTask _ mbContext view opts mbSel tst
-	# initChoice = case mbSel of
-		Just sel	= choiceSel opts sel
-		Nothing		= choice opts
+	# initChoice	= maybe (choice opts) (choiceSel opts) mbSel
 	# (result,tst)	= makeInformationTask mbContext (mapOptions view,\v a -> setChoiceIndex (getChoiceIndex v) a) (LocalUpdate initChoice) tst
 	= (mapTaskResult getChoice result,tst)
 
@@ -172,9 +170,7 @@ makeChoiceTaskA :: !d !(Maybe about) !(a -> v) ![TaskAction a] ![a] !(Maybe Int)
 makeChoiceTaskA description _ _ _ [] _ tst
 	= choiceException description tst
 makeChoiceTaskA _ mbContext view actions opts mbSel tst
-	# initChoice = case mbSel of
-		Just sel	= choiceSel opts sel
-		Nothing		= choice opts
+	# initChoice	= maybe (choice opts) (choiceSel opts) mbSel
 	# (result,tst)	= makeInformationTaskA mbContext (mapOptions view,\v a -> setChoiceIndex (getChoiceIndex v) a) (mapTaskActionPredicates getChoice actions) (LocalUpdate initChoice) tst
 	= (mapTaskResult (appSnd (fmap getChoice)) result,tst)
 
@@ -197,17 +193,13 @@ choiceException description = applyTask (throw ((toDescr description).TaskDescri
 	
 makeMultipleChoiceTask :: !(Maybe about) !(a -> v) ![a] !(Maybe [Int]) !*TSt -> (!TaskResult [a],!*TSt) | iTask a & iTask v & iTask about
 makeMultipleChoiceTask mbContext view opts mbSel tst
-	# initChoice = case mbSel of
-		Just sel	= multipleChoiceSel opts sel
-		Nothing		= multipleChoice opts
+	# initChoice	= maybe (multipleChoice opts) (multipleChoiceSel opts) mbSel
 	# (result,tst)	= makeInformationTask mbContext (mapOptionsM view,\v a -> setChoiceIndexes (getChoiceIndexes v) a) (LocalUpdate initChoice) tst
 	= (mapTaskResult getChoices result,tst)
 
 makeMultipleChoiceTaskA :: !(Maybe about) !(a -> v) ![TaskAction [a]] ![a] !(Maybe [Int]) !*TSt -> (!TaskResult (!ActionEvent,!Maybe [a]),!*TSt) | iTask a & iTask v & iTask about
 makeMultipleChoiceTaskA mbContext view actions opts mbSel tst
-	# initChoice = case mbSel of
-		Just sel	= multipleChoiceSel opts sel
-		Nothing		= multipleChoice opts
+	# initChoice	= maybe (multipleChoice opts) (multipleChoiceSel opts) mbSel
 	# (result,tst)	= makeInformationTaskA mbContext (mapOptionsM view,\v a -> setChoiceIndexes (getChoiceIndexes v) a) (mapTaskActionPredicates getChoices actions) (LocalUpdate initChoice) tst
 	= (mapTaskResult (appSnd (fmap getChoices)) result,tst)
 	

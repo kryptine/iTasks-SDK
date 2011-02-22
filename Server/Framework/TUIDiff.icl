@@ -71,11 +71,8 @@ where
 		errorUpdate path old new	= update sameError errorOf TUISetError_ path old new
 		
 		update eqfun accfun consfun path old new
-			| not (eqfun old new)
-				= case accfun new of
-					Just prop	= [consfun (dp2s path) prop]
-					Nothing		= []
-			| otherwise			= []
+			| not (eqfun old new)	= maybe [] (\prop -> [consfun (dp2s path) prop]) (accfun new)
+			| otherwise				= []
 	
 		staticContainerUpdate path old new
 			//Simply update all child elements

@@ -232,9 +232,7 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 		| otherwise // Look up meta-data in the store and update the document
 			# (mbDocument,ust)	= getDocument update ust
 			# ust				= {ust & newMask = appendToMask newMask (Touched [])}
-			= case mbDocument of
-				Just document 	= (document,ust)
-				Nothing			= (s,ust)
+			= (fromMaybe s mbDocument,ust)
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
@@ -273,10 +271,8 @@ gDefaultMask{|EITHER|}	fx fy e = case e of
 	(LEFT x)								= fx x
 	(RIGHT y)								= fy y
 
-gDefaultMask{|Maybe|} fx mbVal
-	= case mbVal of
-		Nothing	= [Untouched]
-		Just x	= fx x //all mask transformations are made here..
+gDefaultMask{|Maybe|} fx mbVal = maybe [Untouched] fx mbVal
+
 gDefaultMask{|[]|} _ [] = [Untouched]
 gDefaultMask{|[]|} fx l = [Touched (map (hd o fx) l)]
 

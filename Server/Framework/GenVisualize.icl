@@ -499,44 +499,38 @@ where
 		htmlLabel [i]		= coerceToHtml i
 		htmlLabel [i:is]	= coerceToHtml i ++ [(Text ", ")] ++ htmlLabel is
 		
-	listValue l = case val of
-		Just l	= l
-		Nothing	= []
+	listValue l = fromMaybe [] l
 		
 	empty = "Empty list"
 	
 gVisualize{|(,)|} f1 f2 val vst = visualizeCustom (tupleMkControl visChildren) (tupleStaticVis visChildren) val False vst
 where
 	visChildren val combF vst=:{useLabels}
-		# (v1,v2) = case val of
-			Just (o1,o2)	= (Just o1, Just o2)
-			Nothing		 	= (Nothing,Nothing)
-		# (viz1,vst)		= f1 v1 {VSt| vst & useLabels = False, label = Nothing}
-		# (viz2,vst)		= f2 v2 vst
+		# (v1,v2)		= maybe (Nothing,Nothing) (app2 (Just,Just)) val
+		# (viz1,vst)	= f1 v1 {VSt| vst & useLabels = False, label = Nothing}
+		# (viz2,vst)	= f2 v2 vst
 		= (combF [viz1,viz2],{vst & useLabels = useLabels})
 		
 gVisualize{|(,,)|} f1 f2 f3 val vst = visualizeCustom (tupleMkControl visChildren) (tupleStaticVis visChildren) val False vst
 where
 	visChildren val combF vst=:{useLabels}
-		# (v1,v2,v3) = case val of
-			Just (o1,o2,o3)	= (Just o1, Just o2, Just o3)
-			Nothing		 	= (Nothing,Nothing,Nothing)
-		# (viz1,vst)		= f1 v1 {VSt| vst & useLabels = False, label = Nothing}
-		# (viz2,vst)		= f2 v2 vst
-		# (viz3,vst)		= f3 v3 vst
+		# (v1,v2,v3)	= maybe (Nothing,Nothing,Nothing) (app3 (Just,Just,Just)) val
+		# (viz1,vst)	= f1 v1 {VSt| vst & useLabels = False, label = Nothing}
+		# (viz2,vst)	= f2 v2 vst
+		# (viz3,vst)	= f3 v3 vst
 		= (combF [viz1,viz2,viz3],{vst & useLabels = useLabels})
 		
 gVisualize{|(,,,)|} f1 f2 f3 f4 val vst = visualizeCustom (tupleMkControl visChildren) (tupleStaticVis visChildren) val False vst
 where
 	visChildren val combF vst=:{useLabels}
-		# (v1,v2,v3,v4) = case val of
-			Just (o1,o2,o3,o4)	= (Just o1, Just o2, Just o3, Just o4)
-			Nothing		 		= (Nothing,Nothing,Nothing,Nothing)
+		# (v1,v2,v3,v4) = maybe (Nothing,Nothing,Nothing,Nothing) (app4 (Just,Just,Just,Just)) val
 		# (viz1,vst)			= f1 v1 {VSt| vst & useLabels = False, label = Nothing}
 		# (viz2,vst)			= f2 v2 vst
 		# (viz3,vst)			= f3 v3 vst
 		# (viz4,vst)			= f4 v4 vst
 		= (combF [viz1,viz2,viz3,viz4],{vst & useLabels = useLabels})
+
+	app4 (fa,fb,fc,fd) (a,b,c,d) = (fa a, fb b, fc c, fd d)
 
 // tuple util functions	
 tupleMkControl visChildren _ id val _ label optional _ _ _ vst
@@ -753,13 +747,10 @@ coerceToTUIDefs :: [Visualization] -> [TUIDef]
 coerceToTUIDefs visualizations = [d \\ (TUIFragment d) <- visualizations]
 
 coerceToTUIUpdates :: [Visualization] -> [TUIUpdate]
-coerceToTUIUpdates []				  = []
-coerceToTUIUpdates [(TUIUpdate u):vs] = [u:coerceToTUIUpdates vs]
-coerceToTUIUpdates [(TUIFragment d):vs]
-= case getTUIId d of
-	(Just id) 	= [(TUIReplace id d):coerceToTUIUpdates vs]
-	Nothing		= coerceToTUIUpdates vs
-coerceToTUIUpdates [v:vs]			= coerceToTUIUpdates vs
+coerceToTUIUpdates []					= []
+coerceToTUIUpdates [(TUIUpdate u):vs]	= [u:coerceToTUIUpdates vs]
+coerceToTUIUpdates [(TUIFragment d):vs]	= maybe (coerceToTUIUpdates vs) (\id -> [(TUIReplace id d):coerceToTUIUpdates vs]) (getTUIId d)
+coerceToTUIUpdates [v:vs]				= coerceToTUIUpdates vs
 
 coerceToStrings :: [Visualization] -> [String]
 coerceToStrings visualizations = [s \\ (TextFragment s) <- visualizations]

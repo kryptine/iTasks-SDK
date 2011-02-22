@@ -39,16 +39,16 @@ where
 
 postedConfig :: !HTTPRequest -> Config	
 postedConfig req = 
-	{ clientPath = maybe "" id (get "clientPath" req.arg_post)
-	, staticPath = maybe "" id (get "staticPath" req.arg_post)
-	, rootPassword = maybe "" id (get "rootPassword" req.arg_post)
-	, rootEmail	= maybe "" id (get "rootEmail" req.arg_post)
+	{ clientPath = fromMaybe "" (get "clientPath" req.arg_post)
+	, staticPath = fromMaybe "" (get "staticPath" req.arg_post)
+	, rootPassword = fromMaybe "" (get "rootPassword" req.arg_post)
+	, rootEmail	= fromMaybe "" (get "rootEmail" req.arg_post)
 	, sessionTime = maybe 0 toInt (get "sessionTime" req.arg_post)
 	, serverPort = maybe 0 toInt (get "serverPort" req.arg_post)
-	, serverPath = maybe "" id (get "serverPath" req.arg_post)
-	, debug = (maybe "false" id (get "debug" req.arg_post)) <> "false"
-	, smtpServer = maybe "" id (get "smtpServer" req.arg_post)
-	, generalWorkflows = (maybe "false" id (get "generalWorkflows" req.arg_post)) <> "false"
+	, serverPath = fromMaybe "" (get "serverPath" req.arg_post)
+	, debug = (fromMaybe "false" (get "debug" req.arg_post)) <> "false"
+	, smtpServer = fromMaybe "" (get "smtpServer" req.arg_post)
+	, generalWorkflows = (fromMaybe "false" (get "generalWorkflows" req.arg_post)) <> "false"
 	} 
 			 		 
 checkConfig :: !Config !*World -> (![Maybe String],!*World)

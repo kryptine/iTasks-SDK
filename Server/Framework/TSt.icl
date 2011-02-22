@@ -664,7 +664,7 @@ where
 	getRpcUpdates tst=:{taskNr,request} = (updates request, tst)
 	where
 		updates request
-			| maybe "" id (get "_rpctaskid" request.arg_post) == taskNrToString taskNr
+			| fromMaybe "" (get "_rpctaskid" request.arg_post) == taskNrToString taskNr
 				= toList request.arg_post
 			| otherwise
 				= []

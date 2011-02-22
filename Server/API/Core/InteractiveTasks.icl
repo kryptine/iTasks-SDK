@@ -274,10 +274,7 @@ where
 		= iworld
 			
 	getLocalTimestamp iworld=:{IWorld|timestamp}
-		# (mbTimestamp,iworld) = getTaskStoreTimestampFor taskNr "value" iworld
-		= case mbTimestamp of
-			Just timestamp	= (timestamp,iworld)
-			Nothing			= (timestamp,iworld)
+		= appFst (fromMaybe timestamp) (getTaskStoreTimestampFor taskNr "value" iworld)
 	
 	readModelValue iworld
 		| enterMode // don't read model in enter mode, but compute from view
@@ -292,18 +289,13 @@ where
 	// Gets errors if stored (otherwise return empty error list)
 	getErrors taskNr iworld
 		# (mbErrors,iworld) = getTaskStoreFor taskNr "errors" iworld
-		= case mbErrors of
-			Just errors	= (map (appFst dataPathFromList) errors,iworld)
-			Nothing		= ([],iworld)
+		= (maybe [] (map (appFst dataPathFromList)) mbErrors,iworld)
 			
 	// Store errors if necessary
 	storeErrors errors iworld
 		// Only store error if store already exists or error are not empty
 		# (mbErrors,iworld) = checkErrorStore iworld
-		# store = case mbErrors of
-			Just _	= True
-			Nothing	= not (isEmpty errors)
-		| store
+		| isJust mbErrors || not (isEmpty errors)
 			= setTaskStoreFor taskNr "errors" (map (appFst dataPathList) errors) iworld
 		| otherwise
 			= iworld
@@ -328,7 +320,7 @@ where
 		
 	//Build TUI definition for task with given context/form	
 	taskPanel :: String (Maybe HtmlTag) (Maybe [TUIDef]) -> [TUIDef]
-	taskPanel taskid mbContext mbForm = maybeToList (fmap taskContextPanel mbContext) ++ maybe [] id mbForm
+	taskPanel taskid mbContext mbForm = maybeToList (fmap taskContextPanel mbContext) ++ fromMaybe [] mbForm
 		
 	taskContextPanel context = TUIHtmlContainer	{ TUIHtmlContainer
 												| id = contextId
@@ -344,10 +336,7 @@ editEvents events = [(s2dp name,value) \\ (name,JSONString value) <- events | is
 
 //Check if there is a value event among the events
 valueEvent :: ![(!String,!JSONNode)] -> Maybe a | JSONDecode{|*|} a
-valueEvent events
-	= case [value \\ (name,value) <- events | name == "value"] of
-		[value]	= fromJSON value
-		_		= Nothing
+valueEvent events = maybe Nothing fromJSON (listToMaybe [value \\ (name,value) <- events | name == "value"])
 
 //Check if there is an action event among the events 
 actionEvent :: ![(!String,!JSONNode)] ![TaskAction a] -> Maybe ActionEvent
@@ -357,9 +346,7 @@ actionEvent events actions
 		[JSONArray [JSONString key,JSONString data]]= addData data (mbAction key)
 		_											= Nothing
 where
-	mbAction key = case [action \\ (action,pred) <- actions | actionName action == key] of
-		[action]	= Just action
-		_			= Nothing
+	mbAction key = listToMaybe [action \\ (action,pred) <- actions | actionName action == key]
 		
 	addData data (Just action)	= Just (action,data)
 	addData data Nothing		= Nothing

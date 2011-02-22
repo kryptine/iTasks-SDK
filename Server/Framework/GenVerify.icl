@@ -59,7 +59,7 @@ gVerify{|OBJECT of d|}	fx    obj					vst=:{updateMask,verifyMask,optional}
 
 gVerify{|[]|} fx mbL vst=:{optional,verifyMask,updateMask}
 	# (cm,um)			= popMask updateMask
-	# l					= maybe [] id mbL
+	# l					= fromMaybe [] mbL
 	# (listMask,vst)	= verifyList l cm vst	
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask listMask}
 where
@@ -86,7 +86,7 @@ where
 	hintOpt	= Just "You may add list items"
 
 gVerify{|Maybe|} fx mb vst=:{optional,verifyMask}
-	# vst=:{verifyMask} = fx (maybe Nothing id mb) {vst & optional = True}
+	# vst=:{verifyMask} = fx (fromMaybe Nothing mb) {vst & optional = True}
 	= {vst & optional = optional}
 
 gVerify{|Hidden|}				fx h vst = fx (fmap fromHidden h) vst

@@ -65,7 +65,7 @@ http_addRequestData req requestline_done headers_done data_done data
 
 http_getValue :: !String !(Map String String) !String -> String
 http_getValue key valuemap defaultval
-	= maybe defaultval id (get key valuemap)
+	= fromMaybe defaultval (get key valuemap)
 
 http_parseRequestLine :: !String -> (!String,!String,!String,!String,!Bool)
 http_parseRequestLine line
