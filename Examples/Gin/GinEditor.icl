@@ -1,7 +1,7 @@
 implementation module GinEditor
 
 import StdFile
-import DynamicIO
+//import DynamicIO
 
 import GenEq
 import Text
@@ -17,7 +17,7 @@ import GinSyntax
 import FilePath
 
 ginEditor :: Task Void
-ginEditor = (ginSetup >>| handleMenu) <<@ FWFullWidth
+ginEditor = (/*ginSetup >>| */handleMenu) <<@ FWFullWidth
 
 ginSetup :: Task Void
 ginSetup = accWorld ginLoadConfig >>= \maybeConfig = 
@@ -47,11 +47,12 @@ where
 :: Mode = EditWorkflow | EditTypes | EditCode
 
 :: EditorState = 
-    { name     :: Maybe String
-    , changed  :: Bool
-    , mode     :: Mode
-    , editor   :: GinEditor
-    , compiled :: Maybe String
+    { name			:: Maybe String
+    , changed		:: Bool
+    , mode			:: Mode
+    , checkSyntax 	:: Bool
+    , gMod			:: GModule
+    , compiled		:: Maybe String
     }
 
 derive class iTask EditorState, Mode
@@ -101,8 +102,8 @@ actions state = [ (ActionNew,              always)
                 , (ActionEditWorkflow,     (\_ -> state.EditorState.mode =!= EditWorkflow))
                 , (ActionEditTypes,        (\_ -> state.EditorState.mode =!= EditTypes))
                 , (ActionEditCode,         (\_ -> state.EditorState.mode =!= EditCode))
-                , (ActionEnableSC,         (\_ -> not state.EditorState.editor.GinEditor.checkSyntax))
-                , (ActionDisableSC,        (\_ -> state.EditorState.editor.GinEditor.checkSyntax))
+                , (ActionEnableSC,         (\_ -> not state.EditorState.checkSyntax))
+                , (ActionDisableSC,        (\_ -> state.EditorState.checkSyntax))
                 ]
 
 handleMenu :: Task Void
@@ -110,27 +111,40 @@ handleMenu
     =   initMenu @>> doMenu emptyState
 
 emptyState :: EditorState 
-emptyState = { name = Nothing, changed = False, mode = EditWorkflow, editor = newEditor, compiled = Nothing }
+emptyState = { name = Nothing, changed = False, mode = EditWorkflow, checkSyntax = False, gMod = newModule, compiled = Nothing }
     
 doMenu :: EditorState -> Task Void
-doMenu state =: { EditorState | mode, editor } = 
+doMenu state =: { EditorState | mode, gMod } = 
     case mode of
-        EditWorkflow -> updateInformationA (getName state, "workflow view") idBimap (actions state) editor
-                        >>= \(action, mbEditor) 
-                        = case mbEditor of
-                        	Nothing                -> return (action, state)
-                        	Just editor` -> return (action, setChanged state { EditorState | state & editor = editor`})
-        EditTypes    -> updateInformationA (getName state, "types view") idBimap (actions state) editor.gMod.GModule.types
-                        >>= \(action, mbTypes) 
-                        = case mbTypes of
-                        	Nothing     -> return (action, state)
-                        	Just types` -> return (action, setChanged state { EditorState | state & editor = {GinEditor | state.EditorState.editor & gMod = {GModule | state.EditorState.editor.gMod & types = types` }}})
-        EditCode     -> updateInformationA (getName state, "code view") idBimap (actions state) 
-                                           ( Note (tryRender editor.gMod False)
-                                           , Note (tryRender editor.gMod True)
-                                           )
+        EditWorkflow -> updateInformationA (getName state, "workflow view") (diagramView, diagramUpdate) (actions state) gMod
+                        >>= \(action, mbEditor) -> 
+                        case mbEditor of
+                        	Nothing		-> return (action, state)
+                        	Just gMod	-> return (action, setChanged state { EditorState | state & gMod = gMod})
+        EditTypes    -> updateInformationA (getName state, "types view") (typeView, typeUpdate) (actions state) gMod
+	                    >>= \(action, mbGMod) -> 
+	                    case mbGMod of
+	                       	Nothing		-> return (action, state)
+	                       	Just gMod	-> return (action, setChanged state { EditorState | state & gMod = gMod})
+        EditCode     -> updateInformationA (getName state, "code view") (codeView, codeUpdate) (actions state) gMod
                         >>= \(action, _) = return (action, state)                   
     >>= switchAction
+
+//Bimaps on GModule
+diagramView :: GModule -> ORYXEditor
+diagramView gMod = ginORYXEditor
+diagramUpdate :: ORYXEditor GModule -> GModule
+diagramUpdate oryx gMod = gMod
+
+typeView :: GModule -> [GTypeDefinition]
+typeView gMod = gMod.GModule.types
+typeUpdate :: [GTypeDefinition] GModule -> GModule
+typeUpdate types gMod = { GModule | gMod & types = types }
+
+codeView :: GModule -> (Note, Note)
+codeView gMod = ( Note (tryRender gMod False), Note (tryRender gMod True))
+codeUpdate :: (Note, Note) GModule -> GModule
+codeUpdate _ gMod = gMod 
 
 switchAction :: (ActionEvent, EditorState) -> Task Void
 switchAction ((action, actiondata), state) = 
@@ -146,8 +160,8 @@ switchAction ((action, actiondata), state) =
         ActionEditWorkflow     -> doMenu { EditorState | state & mode = EditWorkflow }
         ActionEditTypes        -> doMenu { EditorState | state & mode = EditTypes }
         ActionEditCode         -> doMenu { EditorState | state & mode = EditCode }
-        ActionEnableSC         -> doMenu { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = True } }
-        ActionDisableSC        -> doMenu { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = False } }
+        ActionEnableSC         -> doMenu state //{ EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = True } }
+        ActionDisableSC        -> doMenu state //{ EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = False } }
     
 getName :: EditorState -> String
 getName state = case state.EditorState.name of
@@ -155,20 +169,20 @@ getName state = case state.EditorState.name of
     Nothing -> "(unnamed)"
 
 setChanged :: EditorState EditorState -> EditorState
-setChanged old new = if (old.EditorState.editor =!= new.EditorState.editor) { new & changed = True } new        
+setChanged old new = if (old.EditorState.gMod =!= new.EditorState.gMod) { new & changed = True } new        
 
 open :: EditorState -> Task EditorState 
 open state = chooseModule >>= \(name, gMod) = 
-    return { EditorState | emptyState & name = Just name, editor = { GinEditor | newEditor & gMod = gMod } }
+    return { EditorState | emptyState & name = Just name, gMod = gMod }
 
 save :: EditorState -> Task EditorState
 save state = case state.EditorState.name of
-    Just n  -> storeModule (n, state.EditorState.editor.GinEditor.gMod) >>| 
+    Just n  -> storeModule (n, state.EditorState.gMod) >>| 
                return { state & changed = False }
     Nothing -> saveAs state
 
 saveAs :: EditorState -> Task EditorState
-saveAs state = newModuleName state.EditorState.editor.GinEditor.gMod >>= \(name, gMod`) = 
+saveAs state = newModuleName state.EditorState.gMod >>= \(name, gMod`) = 
     return { state & name = Just name, changed = False }
 
 askSaveIfChanged :: EditorState -> Task Void
@@ -181,20 +195,23 @@ askSaveIfChanged state = if state.changed
 update :: EditorState -> Task EditorState
 update state
 # state = { state & compiled = Nothing }
-= accIWorld (batchBuild state.EditorState.editor.GinEditor.gMod) 
+= accIWorld (batchBuild state.EditorState.gMod)
   >>= \result = case result of
    				  CompileSuccess dynfile 	-> (showMessage ("Compiler output", "Compiled successfully") Void) 
    				  								>>| return { state & compiled = Just dynfile }
     			  error						-> showMessageAbout "Compiler output" error >>| return state
 
 run :: EditorState -> Task Void
+run state = showMessage ("Error", "Runninig tasks requires dynamic linker") Void
+/*
 run state 					= case state.compiled of
 	Just dynfile -> readDynamicTask dynfile
 						>>= \(ok, task) = (if ok task (showMessage ("Error", "Failed to read task") Void)) >>| stop
 	Nothing 	-> showMessage ("Error", "No compiled task") Void
+*/
 
-viewSource :: GinEditor -> Note
-viewSource editor = Note (tryRender editor.GinEditor.gMod False)	
+viewSource :: GModule -> Note
+viewSource gMod = Note (tryRender gMod False)	
 
 showAbout :: Task Void
 showAbout = showMessage ("Gin workflow editor", "version 0.1") Void

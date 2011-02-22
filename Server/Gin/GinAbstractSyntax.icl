@@ -1,10 +1,13 @@
 implementation module GinAbstractSyntax
 
+import StdBool
 import GenPrint
+
+import Void
 
 import GinBindings
 import GinFlowLibrary
-import GinSyntax
+import GinSyntax 
 import GinParser
 import GinSPTree
 

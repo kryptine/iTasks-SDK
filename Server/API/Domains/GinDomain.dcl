@@ -1,19 +1,15 @@
 definition module GinDomain
 
 import iTasks
-import GinSyntax
+//import GinSyntax
+import GinORYX
 
-::GinEditor = { gMod           :: GModule
-              , checkSyntax    :: Bool
-              }
-
-newEditor :: GinEditor
 tryRender :: GModule Bool -> String
 
-derive gEq GinEditor
-derive gVisualize GinEditor
-derive gUpdate GinEditor
-derive gDefaultMask GinEditor
-derive gVerify GinEditor
-derive JSONEncode GinEditor
-derive JSONDecode GinEditor
+derive gEq ORYXEditor
+derive gVisualize ORYXEditor
+derive gUpdate ORYXEditor
+derive gDefaultMask ORYXEditor
+derive gVerify ORYXEditor
+derive JSONEncode ORYXEditor
+derive JSONDecode ORYXEditor

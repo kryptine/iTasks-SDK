@@ -4,7 +4,6 @@ import StdEnv
 import Directory
 
 import OSError
-import Pointer
 import FilePath
 from Maybe import qualified ::Maybe(..)
 from Process import qualified callProcess

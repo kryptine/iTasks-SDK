@@ -1,7 +1,11 @@
 implementation module GinTypes
 
+import StdBool
+import StdList
 import GenEq
-import iTasks
+import Maybe
+
+from iTasks import class iTask, generic JSONDecode, generic JSONEncode, generic gVerify, generic gDefaultMask, generic gUpdate, generic gVisualize
 import PPrint
 
 derive bimap (,)

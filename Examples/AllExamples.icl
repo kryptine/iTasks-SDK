@@ -40,6 +40,9 @@ import LaunchFlow
 //Shared Value Examples
 import SharedVariables
 
+//Graphical iTask Notation
+import GinExamples
+
 //Ad-hoc work extensions
 import Groups, Lists, Messages, Consensus
 
@@ -76,5 +79,6 @@ where
 						, sharedValueExamples
 						,	[workflow "General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions
 							]
+						, ginExamples
 						, workflowStarter
 						]

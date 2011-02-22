@@ -1,7 +1,9 @@
 definition module GinTypes
 
 import GenEq
-import iTasks
+import Maybe
+
+from iTasks import class iTask, generic JSONDecode, generic JSONEncode, generic gVerify, generic gDefaultMask, generic gUpdate, generic gVisualize
 from PPrint import ::Doc
 
 :: GTypeExpression = GConstructor GIdentifier

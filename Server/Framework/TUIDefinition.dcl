@@ -57,6 +57,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIFormButtonControl TUIButtonControl
 	| TUIListItemControl TUIListItemControl
 	| TUIAppletControl TUIAppletControl
+	| TUIORYXControl TUIORYXControl
 	| TUIGridControl TUIGridControl
 	| TUITreeControl TUITreeControl
 	
@@ -192,6 +193,15 @@ derive JSONEncode TUIDef, TUIUpdate
 	, value             :: !String
     , errorMsg          :: !String
     , hintMsg           :: !String
+	}
+	
+:: TUIORYXControl =
+	{ name				:: !TUIName
+	, id				:: !TUIId
+	, value				:: !String
+    , errorMsg          :: !String
+    , hintMsg           :: !String
+    , stencilsetURL		:: !String
 	}
 	
 :: TUIHtmlContainer =

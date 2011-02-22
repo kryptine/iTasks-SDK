@@ -6,7 +6,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: Key
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
-derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl
+derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
 derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree
 
 //TODO: Separate control elements from form-widgets
@@ -35,6 +35,7 @@ JSONEncode{|TUIDef|} (TUIDocumentControl r)	 	= addXType "itasks.tui.Document" (
 JSONEncode{|TUIDef|} (TUIConstructorControl r)	= addXType "itasks.tui.Constructor" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIListItemControl r) 	= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIAppletControl r)		= addXType "itasks.tui.Applet" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIORYXControl r)			= addXType "itasks.tui.Oryx" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIGridControl r)			= addXType "itasks.tui.Grid" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUITreeControl r)			= addXType "itasks.tui.Tree" (JSONEncode{|*|} r)
 
@@ -90,6 +91,7 @@ valueOf (TUIPasswordControl {TUIBasicControl|value})				= Just value
 valueOf (TUIHiddenControl {TUIBasicControl|value})					= Just value
 valueOf (TUICurrencyControl {TUICurrencyControl|value})				= Just value
 valueOf (TUIAppletControl {TUIAppletControl|value})					= Just value
+valueOf (TUIORYXControl {TUIORYXControl|value})						= Just value
 valueOf (TUIUserControl {TUIBasicControl|value})					= Just value
 valueOf (TUIHtmlContainer {TUIHtmlContainer|html})					= Just html
 valueOf (TUIFormButtonControl {TUIButtonControl|value})				= Just value
