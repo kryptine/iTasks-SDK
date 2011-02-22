@@ -136,27 +136,12 @@ gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMas
 		# split = split "_" update
 		# index = toInt (last split)
 		# (lx,cMasks,ust) = case hd split of	
-			"mup"
-				| index == 0 = (lx,cMasks,ust)
-				# lx		= swap lx index
-				# cMasks	= swap cMasks index
-				= (lx,cMasks,ust) 
-			"mdn"
-				| index >= (length lx) - 1 = (lx,cMasks,ust)
-				# lx		= swap lx (index+1) //down idx == up (idx+1)
-				# cMasks	= swap cMasks (index+1)
-				= (lx,cMasks,ust)
-			"rem"
-				# lx		= removeAt index lx
-				# cMasks	= removeAt index cMasks 
-				= (lx,cMasks,ust)	
+			"mup" = (swap lx index,swap cMasks index,ust) 
+			"mdn" = (swap lx (index+1),swap cMasks (index+1),ust)
+			"rem" = (removeAt index lx,removeAt index cMasks,ust)	
 			"add"
-				# (nv,ust=:{newMask=childMask})
-							= fx UDCreate {ust & oldMask = [], newMask = []}
-				# ust		= {ust & newMask = childMask}
-				# lx		= insertAt (index+1) nv lx
-				# cMasks	= insertAt (index+1) (hd childMask) cMasks
-				= (lx,cMasks,ust)
+				# (nv,ust=:{newMask=childMask}) = fx UDCreate {ust & oldMask = [], newMask = []}
+				= (insertAt (index+1) nv lx,insertAt (index+1) (hd childMask) cMasks,{ust & newMask = childMask})
 			_ 	
 				= (lx,cMasks,ust)
 		= (lx,{ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})

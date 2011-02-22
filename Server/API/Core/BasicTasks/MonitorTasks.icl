@@ -6,11 +6,11 @@ from TaskPanel			import :: InteractiveTaskType(..)
 
 monitorTask	 :: !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | iTask m & iTask v
 monitorTask view pred autoContinue shared
-	= mkInteractiveTask ("monitor task","Monitors a shared state") Monitor (makeMonitorTask shared view pred autoContinue)
+	= mkInteractiveTask ("Monitor task","Monitors a shared state") Monitor (makeMonitorTask shared view pred autoContinue)
 
 monitorTaskA :: !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!ActionEvent,!Maybe m) | iTask m & iTask v
 monitorTaskA view actions autoEvents shared
-	= mkInteractiveTask ("monitor task actions","Monitors a shared state") Monitor (makeMonitorTaskA shared view actions autoEvents)
+	= mkInteractiveTask ("Monitor task actions","Monitors a shared state") Monitor (makeMonitorTaskA shared view actions autoEvents)
 
 makeMonitorTask :: !(Shared m w) !(m -> v) !(m -> Bool) !Bool !*TSt -> (!TaskResult m,!*TSt) | iTask m & iTask v
 makeMonitorTask shared view pred autoContinue tst

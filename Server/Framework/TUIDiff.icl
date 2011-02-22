@@ -30,6 +30,7 @@ where
 			= case (old,new) of //Special cases
 				// Records are static except if they are optional
 				(TUIRecordContainer o, TUIRecordContainer n)
+					| o.TUIRecordContainer.optional <> n.TUIRecordContainer.optional = [TUIReplace_ (dp2s path) new]
 					= case (o.hasValue,n.hasValue) of
 						(True,True)		= staticContainerUpdate path old new
 						(False,True)	= [TUISetValue_ (dp2s path) "expand":map (TUIAddTo n.TUIRecordContainer.id) n.TUIRecordContainer.items]
