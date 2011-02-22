@@ -331,12 +331,12 @@ where
 
 waitForProcess :: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
 waitForProcess autoContinue pref =
-		monitorTask waitForProcessView waitForProcessPred autoContinue (sharedProcessStatus pref >+< sharedProcessResult pref)
+		monitorTask ("Wait for task", "Wait for an external task to finish") waitForProcessView waitForProcessPred autoContinue (sharedProcessStatus pref >+< sharedProcessResult pref)
 	>>=	transform snd
 	
 waitForProcessCancel :: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
 waitForProcessCancel autoContinue pref =
-		monitorTaskA waitForProcessView actions autoEvents (sharedProcessStatus pref >+< sharedProcessResult pref)
+		monitorTaskA ("Wait for task", "Wait for an external task to finish or cancel") waitForProcessView actions autoEvents (sharedProcessStatus pref >+< sharedProcessResult pref)
 	>>=	transform (maybe Nothing snd o snd)
 where
 	actions = [(ActionCancel,always)] ++ if autoContinue [] [(ActionContinue,pred`)]

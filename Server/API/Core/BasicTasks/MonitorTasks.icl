@@ -4,13 +4,13 @@ import StdBool, StdTuple, StdFunc, Util, Shared, Task, TSt, InteractiveTasks
 from Shared				import :: Shared
 from TaskPanel			import :: InteractiveTaskType(..)
 
-monitorTask	 :: !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | iTask m & iTask v
-monitorTask view pred autoContinue shared
-	= mkInteractiveTask ("Monitor task","Monitors a shared state") Monitor (makeMonitorTask shared view pred autoContinue)
+monitorTask :: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & iTask m & iTask v
+monitorTask d view pred autoContinue shared
+	= mkInteractiveTask d Monitor (makeMonitorTask shared view pred autoContinue)
 
-monitorTaskA :: !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!ActionEvent,!Maybe m) | iTask m & iTask v
-monitorTaskA view actions autoEvents shared
-	= mkInteractiveTask ("Monitor task actions","Monitors a shared state") Monitor (makeMonitorTaskA shared view actions autoEvents)
+monitorTaskA :: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!ActionEvent,!Maybe m) | descr d & iTask m & iTask v
+monitorTaskA d view actions autoEvents shared
+	= mkInteractiveTask d Monitor (makeMonitorTaskA shared view actions autoEvents)
 
 makeMonitorTask :: !(Shared m w) !(m -> v) !(m -> Bool) !Bool !*TSt -> (!TaskResult m,!*TSt) | iTask m & iTask v
 makeMonitorTask shared view pred autoContinue tst

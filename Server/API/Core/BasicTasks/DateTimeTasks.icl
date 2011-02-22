@@ -16,7 +16,7 @@ getCurrentDateTime = 'SharedTasks'.readShared sharedCurrentDateTime
 
 waitForTime :: !Time -> Task Void
 waitForTime time =
-		monitorTask view pred True sharedCurrentTime
+		monitorTask ("Wait for time", ("Wait until " +++ toString time)) view pred True sharedCurrentTime
 	>>| stop
 where	
 	view _ = "Waiting until " <+++ time//html [Text "Waiting until ",visualizeAsHtmlLabel time]
@@ -24,7 +24,7 @@ where
 
 waitForDate :: !Date -> Task Void
 waitForDate date =
-		monitorTask view pred True sharedCurrentDate
+		monitorTask ("Wait for date", ("Wait until " +++ toString date)) view pred True sharedCurrentDate
 	>>| stop
 where
 	view _ = "Waiting until " <+++ date//html [Text "Waiting until ",visualizeAsHtmlLabel date]

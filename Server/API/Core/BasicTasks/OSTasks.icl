@@ -27,7 +27,7 @@ where
 callProcessWait :: !message !FilePath ![String] -> Task Int | iTask message
 callProcessWait msg cmd args =
 		callProcess cmd args
-	>>=	monitorTask (const msg) isJust True
+	>>=	monitorTask ("Call process", "Running command") (const msg) isJust True
 	>>= transform fromJust
 						
 callProcess :: !FilePath ![String] -> Task (ReadOnlyShared (Maybe Int))			
