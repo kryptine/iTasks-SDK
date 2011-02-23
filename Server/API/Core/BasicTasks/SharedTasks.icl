@@ -22,6 +22,26 @@ where
 		
 	write v iworld = (Ok Void,storeValue storeId v iworld)
 
+sharedStoreDefault :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, gUpdate{|*|}, TC a
+sharedStoreDefault storeId = Shared read write timestamp
+where
+	read iworld
+		# (mbV,iworld) = loadValue storeId iworld
+		= case mbV of
+			Nothing
+				# (v,iworld)	= defaultValue iworld
+				# iworld = storeValue storeId v iworld
+				= (Ok v,iworld)
+			Just v
+				= (Ok v,iworld)	
+	write v iworld
+		= (Ok Void,storeValue storeId v iworld)
+	timestamp iworld
+		# (mbV,iworld) = getStoreTimestamp storeId iworld
+		= case mbV of
+			Nothing	= (Error ("cannot get timestamp of store '" +++ storeId +++ "'"), iworld)
+			Just v	= (Ok v, iworld)
+	
 createSharedStore :: !a  -> Task (SymmetricShared a) | iTask a
 createSharedStore init
 	= mkInstantTask ("Create shared store", "Creates a shared store") createSharedStore`

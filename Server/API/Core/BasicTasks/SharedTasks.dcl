@@ -15,6 +15,12 @@ from Shared import :: Shared, :: SymmetricShared
 sharedStore :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
+* Creates a reference to a store identified by a string identifier.
+* Initially the share contains a default value.
+*/
+sharedStoreDefault :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, gUpdate{|*|}, TC a
+
+/**
 * Create a shared store with automatically generated reference and given initial value.
 * The store is automatically garbage collected after the process it was generated in terminates.
 *
