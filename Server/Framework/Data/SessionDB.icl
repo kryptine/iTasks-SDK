@@ -23,9 +23,10 @@ where
 			[s]	= (Just s, iworld)
 			_	= (Nothing, iworld)
 	
-	createSession :: !User !*IWorld -> (!Session,!*IWorld)
-	createSession user iworld=:{IWorld|timestamp}
+	createSession :: !(Maybe User) !*IWorld -> (!Session,!*IWorld)
+	createSession mbUser iworld=:{IWorld|timestamp}
 		# (sid, iworld)		= genSessionId iworld
+		# user				= case mbUser of (Just u) = u; Nothing = SessionUser sid;
 		# session			= {Session | sessionId = sid, user = user, timestamp}
 		# (sessions, iworld)= sessionStore (\l -> [session:l]) iworld
 		= (session,iworld)
@@ -81,7 +82,7 @@ where
 	getSessionsForUser user tst = accIWorldTSt (getSessionsForUser user) tst
 	getSession :: !SessionId !*TSt -> (!Maybe Session, !*TSt)
 	getSession sessionId tst = accIWorldTSt (getSession sessionId) tst
-	createSession :: !User !*TSt -> (!Session,!*TSt)
+	createSession :: !(Maybe User) !*TSt -> (!Session,!*TSt)
 	createSession user tst = accIWorldTSt (createSession user) tst
 	restoreSession :: !SessionId !*TSt -> (!Maybe Session, !Bool, !*TSt)
 	restoreSession sessionId tst=:{TSt|iworld}

@@ -33,14 +33,15 @@ sessionService url html path req tst
 		["create"]			
 			//Anonymous session
 			| usernameParam == "" && passwordParam == ""
-				# json	= JSONObject [("success",JSONBool False),("error",JSONString "Anonymous sessions not yet supported")]
+				# (session, tst)	= createSession Nothing tst
+				# json				= JSONObject [("success",JSONBool True),("session",toJSON session)]
 				= (serviceResponse html "Create session" createDescription url createParams json, tst)
 			//Authenticated session
 			| otherwise
 				# (mbUser, tst) = authenticateUser usernameParam passwordParam tst
 				= case mbUser of
 					Just user
-						# (session, tst)	= createSession user tst
+						# (session, tst)	= createSession (Just user) tst
 						# tst				= flushStore tst
 						# json				= JSONObject [("success",JSONBool True),("session",toJSON session)]
 						= (serviceResponse html "Create session" createDescription url createParams json, tst)

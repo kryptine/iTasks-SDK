@@ -431,9 +431,10 @@ JSONDecode{|User|} json	= (Nothing,json)
 
 userName :: !User -> String
 userName RootUser = "root"
+userName (SessionUser sid) = ""
 userName (NamedUser name)
-	| end > start && start > -1	= name % (start + 1,end - 1) //Named user of form "Joe Smith <joe>" (with display name)
-	| otherwise					= name				 //Other named users (without display name)
+	| end > start && start > -1	= name % (start + 1,end - 1)	//Named user of form "Joe Smith <joe>" (with display name)
+	| otherwise					= name							//Other named users (without display name)
 where
 	start = indexOf "<" name
 	end = indexOf ">" name
@@ -442,6 +443,7 @@ userName _ = ""
 			
 displayName :: !User -> String
 displayName RootUser = "Root User"
+displayName (SessionUser _) = "Anonymous"
 displayName (RegisteredUser details) = details.UserDetails.displayName
 displayName (NamedUser name)
 	| end > start && start > -1 = trim (name % (0,start - 1)) //Named user of form "Joe Smith <joe>" (with display name)

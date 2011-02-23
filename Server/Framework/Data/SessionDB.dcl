@@ -22,9 +22,9 @@ where
 	/**
 	* Create a new session
 	* 
-	* @param the user to create the session for
+	* @param the user to create the session for. When Nothing is used an anonymous session is created.
 	*/
-	createSession	:: !User !*st	-> (!Session,!*st)	
+	createSession	:: !(Maybe User) !*st	-> (!Session,!*st)	
 	/**
 	* Restore an existing session
 	*
