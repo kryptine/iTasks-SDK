@@ -17,14 +17,14 @@ derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Cu
 derive gVisualize ProcessRef, EmailAddress, Action, Table
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: String a VerifyMask	-> [TUIDef]	| gVisualize{|*|} a
-visualizeAsHtmlDisplay	:: a					-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextDisplay	:: a					-> String	| gVisualize{|*|} a
-visualizeAsHtmlLabel	:: a					-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextLabel	:: a					-> String	| gVisualize{|*|} a
+visualizeAsEditor		:: !String !a !VerifyMask	-> [TUIDef]	| gVisualize{|*|} a
+visualizeAsHtmlDisplay	:: !a						-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextDisplay	:: !a						-> String	| gVisualize{|*|} a
+visualizeAsHtmlLabel	:: !a						-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextLabel	:: !a						-> String	| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String (a, VerifyMask) (a, VerifyMask) ![DataPath] -> [TUIUpdate] | gVisualize{|*|} a
+determineEditorUpdates	:: !String !(!a, !VerifyMask) !(!a, !VerifyMask) ![DataPath] -> [TUIUpdate] | gVisualize{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -51,10 +51,10 @@ determineEditorUpdates	:: String (a, VerifyMask) (a, VerifyMask) ![DataPath] -> 
 	| VTextLabel
 	
 :: Visualization
-	= TextFragment String
-	| HtmlFragment HtmlTag
-	| TUIFragment TUIDef
-	| TUIUpdate TUIUpdate
+	= TextFragment !String
+	| HtmlFragment !HtmlTag
+	| TUIFragment !TUIDef
+	| TUIUpdate !TUIUpdate
 
 //Utility functions making specializations of gVisualize
 

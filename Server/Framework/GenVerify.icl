@@ -17,7 +17,7 @@ isValidValue (VMValid _ cm)					= and (map isValidValue cm)
 isValidValue (VMInvalid _ _)				= False
 
 //Generic Verify
-generic gVerify a :: (Maybe a) VerSt -> VerSt
+generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
 
 gVerify{|UNIT|} 			  _ 					vst = vst
 gVerify{|PAIR|}			fx fy p						vst = fy (fmap fromPAIRY p) (fx (fmap fromPAIRX p) vst)

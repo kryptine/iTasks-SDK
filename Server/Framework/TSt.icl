@@ -18,7 +18,7 @@ from JSON import JSONDecode, fromJSON
 derive bimap 		Maybe, (,)
 derive JSONDecode 	RPCMessage
 
-mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*World -> *TSt
+mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !*World -> *TSt
 mkTSt appName config request workflows store world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo

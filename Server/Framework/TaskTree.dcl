@@ -14,22 +14,22 @@ from TaskPanel		import :: InteractiveTaskType
 	//NODE CONSTRUCTORS
 	
 	//A task that is treated as a main chunk of work
-	= TTMainTask		TaskInfo TaskProperties !(Maybe TaskParallelType) TaskTree
+	= TTMainTask		!TaskInfo !TaskProperties !(Maybe TaskParallelType) !TaskTree
 	//A task that is composed of a number of sequentially executed subtasks
-	| TTSequenceTask	TaskInfo [TaskTree]	
+	| TTSequenceTask	!TaskInfo ![TaskTree]
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
-	| TTParallelTask	TaskInfo TaskParallelType [TaskTree]													 
+	| TTParallelTask	!TaskInfo !TaskParallelType ![TaskTree]													 
 	//A task that is composed of a number of grouped subtasks
-	| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !(Maybe String)
+	| TTGroupedTask		!TaskInfo ![TaskTree] ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !(Maybe String)
 	
 	//LEAF CONSTRUCTORS
 											
 	//A task that can be worked on through a gui
-	| TTInteractiveTask	TaskInfo InteractiveTaskType (TaskOutput InteractiveTask)																
+	| TTInteractiveTask	!TaskInfo !InteractiveTaskType !(TaskOutput InteractiveTask)																
 	//A completed task
-	| TTFinishedTask	TaskInfo (TaskOutput HtmlTag)															
+	| TTFinishedTask	!TaskInfo !(TaskOutput HtmlTag)															
 	//A task that represents an rpc invocation
-	| TTRpcTask			TaskInfo RPCExecute																		
+	| TTRpcTask			!TaskInfo !RPCExecute																		
 
 
 // Different trees can be constructed.
@@ -43,13 +43,13 @@ from TaskPanel		import :: InteractiveTaskType
 					| UIOutput ui																//Output for a user interface is generated
 					| JSONOutput JSONOutput														//A JSON representation of the task value is generated
 							
-:: TaskInfo	=		{ taskId				:: TaskId											//Task number in string format
-					, subject				:: String											//Short subject of the task
-					, description			:: String											//Description of the task (html)
-					, context				:: Maybe String										//Optional context information for the task
-					, tags					:: [String]
-					, groupedBehaviour		:: GroupedBehaviour
-					, groupActionsBehaviour	:: GroupActionsBehaviour
+:: TaskInfo	=		{ taskId				:: !TaskId											//Task number in string format
+					, subject				:: !String											//Short subject of the task
+					, description			:: !String											//Description of the task (html)
+					, context				:: !Maybe String										//Optional context information for the task
+					, tags					:: ![String]
+					, groupedBehaviour		:: !GroupedBehaviour
+					, groupActionsBehaviour	:: !GroupActionsBehaviour
 					, menus					:: !(Maybe TaskInfoMenus)
 					, formWidth				:: !(Maybe FormWidth)
 					}
@@ -60,9 +60,9 @@ from TaskPanel		import :: InteractiveTaskType
 					| Closed			//Only the manager can see the overview. For assigned users, it just looks like an ordinary task.
 
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
-:: InteractiveTask	= Definition	[TUIDef]	[(Action,Bool)]					//Definition for rendering a user interface
-					| Updates		[TUIUpdate]	[(Action,Bool)]					//Update an already rendered user interface
-					| Func 			(*IWorld -> *(!InteractiveTask, !*IWorld))	//Function for delayed generation of an interface definition.
+:: InteractiveTask	= Definition	![TUIDef]		![(Action,Bool)]					//Definition for rendering a user interface
+					| Updates		![TUIUpdate]	![(Action,Bool)]					//Update an already rendered user interface
+					| Func 			!(*IWorld -> *(!InteractiveTask, !*IWorld))	//Function for delayed generation of an interface definition.
 																				//These functions are evaluated after the full tree has been built.
 
 :: JSONOutput	= JSONValue !JSONNode											//JSON representation of the task

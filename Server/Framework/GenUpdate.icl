@@ -16,12 +16,12 @@ defaultValue iworld
 defaultMask :: !a -> UpdateMask | gDefaultMask{|*|} a	
 defaultMask a = hd (gDefaultMask{|*|} a)
 
-updateValue	:: DataPath String a !*IWorld -> (a,!*IWorld) | gUpdate{|*|} a 	
+updateValue	:: !DataPath !String !a !*IWorld -> (!a,!*IWorld) | gUpdate{|*|} a 	
 updateValue path update a iworld
 	# (a,_,iworld) = updateValueAndMask path update a Untouched iworld
 	= (a,iworld)
 
-updateValueAndMask :: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld) | gUpdate{|*|} a
+updateValueAndMask :: !DataPath !String !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
 	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} (UDSearch a) {searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
 	= (a,hd newMask,iworld)
@@ -30,7 +30,7 @@ appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
 appIWorldUSt f ust=:{iworld}
 	= {ust & iworld = f iworld}
 	
-accIWorldUSt :: !.(*IWorld -> *(.a,*IWorld))!*USt -> (.a,!*USt)
+accIWorldUSt :: !.(*IWorld -> *(!.a,!*IWorld))!*USt -> (!.a,!*USt)
 accIWorldUSt f ust=:{iworld}
 	# (a,iworld) = f iworld
 	= (a,{ust & iworld = iworld})
@@ -251,7 +251,7 @@ basicUpdate mode toV def ust = case mode of
 basicCreate :: !a !*USt -> *(!a,!*USt)
 basicCreate def ust=:{newMask} = (def,{ust & newMask = appendToMask newMask Untouched})
 
-basicSearch :: a (String a -> a) !*USt -> *(!a,!*USt)
+basicSearch :: !a !(String a -> a) !*USt -> *(!a,!*USt)
 basicSearch v toV ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm, om)	= popMask oldMask
 	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}

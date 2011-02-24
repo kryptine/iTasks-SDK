@@ -4,4 +4,4 @@ dynamic_to_string 	:: !Dynamic -> *{#Char}
 string_to_dynamic 	:: *{#Char} -> .Dynamic
 
 copy_to_string 		:: !.a -> *{#Char}
-copy_from_string 	:: !*{#Char} -> (.a,!Int)
+copy_from_string 	:: !*{#Char} -> (!.a,!Int)

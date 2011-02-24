@@ -8,25 +8,25 @@ mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "",
 		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], headers = []}
 
 //Wrapper functions
-visualizeAsEditor :: String a VerifyMask -> [TUIDef] | gVisualize{|*|} a
+visualizeAsEditor :: !String !a !VerifyMask -> [TUIDef] | gVisualize{|*|} a
 visualizeAsEditor name x vmask
 	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, idPrefix = name, verifyMask = [vmask]}
 	# (defs,vst) = gVisualize{|*|} (Just x) vst
 	= coerceToTUIDefs defs	
 
-visualizeAsHtmlDisplay :: a -> HtmlTag | gVisualize{|*|} a
+visualizeAsHtmlDisplay :: !a -> HtmlTag | gVisualize{|*|} a
 visualizeAsHtmlDisplay x = html (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay})))
 
-visualizeAsTextDisplay :: a -> String | gVisualize{|*|} a
+visualizeAsTextDisplay :: !a -> String | gVisualize{|*|} a
 visualizeAsTextDisplay x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextDisplay, vizType = VTextDisplay})))
 
-visualizeAsHtmlLabel :: a -> HtmlTag | gVisualize{|*|} a
+visualizeAsHtmlLabel :: !a -> HtmlTag | gVisualize{|*|} a
 visualizeAsHtmlLabel x = html (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlLabel, vizType = VHtmlLabel})))
 	
-visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
+visualizeAsTextLabel :: !a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
 
-determineEditorUpdates :: String (a,VerifyMask) (a,VerifyMask) ![DataPath] -> [TUIUpdate]	| gVisualize{|*|} a
+determineEditorUpdates :: !String !(!a,!VerifyMask) !(!a,!VerifyMask) ![DataPath] -> [TUIUpdate] | gVisualize{|*|} a
 determineEditorUpdates name (oval,ovmask) (nval,nvmask) alwaysUpdate
 	# oldviz = visualizeAsEditor name oval ovmask
 	# newviz = visualizeAsEditor name nval nvmask

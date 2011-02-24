@@ -7,14 +7,14 @@ from Types import :: IWorld{store,world,timestamp}, :: Config
 import dynamic_string //Static dynamic serialization
 
 :: *Store =
-	{ cache		:: *Map String (Bool,StoreItem)	//Cache for storage items, Bool is used to indicate a value in the cache is 'dirty'
-	, location	:: String						//Path to the store on disk
+	{ cache		:: !*(Map String (!Bool,!StoreItem))	//Cache for storage items, Bool is used to indicate a value in the cache is 'dirty'
+	, location	:: !String							//Path to the store on disk
 	}
 	
 :: StoreItem =
-	{ format	:: StoreFormat
-	, content	:: String
-	, timestamp	:: Timestamp
+	{ format	:: !StoreFormat
+	, content	:: !String
+	, timestamp	:: !Timestamp
 	}
 
 :: StoreFormat = SFPlain | SFDynamic | SFBlob

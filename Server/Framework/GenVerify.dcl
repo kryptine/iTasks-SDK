@@ -17,7 +17,7 @@ import GenUpdate
 	, iworld        :: !*IWorld
 	}
 
-generic gVerify a :: (Maybe a) *VerSt -> *VerSt
+generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
 
 instance GenMask VerifyMask
 instance toString ErrorMessage

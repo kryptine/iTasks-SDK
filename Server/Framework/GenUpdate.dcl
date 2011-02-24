@@ -8,17 +8,17 @@ from Shared	import :: Shared
 :: DataPath
 
 :: UpdateMask = Untouched
-			  | Touched [UpdateMask]
+			  | Touched ![UpdateMask]
 			  | Blanked
 
 :: *USt =
-	{ searchPath		:: DataPath
-	, currentPath		:: DataPath
-	, update			:: String
-	, consPath			:: [ConsPos]
-	, oldMask			:: [UpdateMask]
-	, newMask			:: [UpdateMask]
-	, iworld			:: *IWorld
+	{ searchPath		:: !DataPath
+	, currentPath		:: !DataPath
+	, update			:: !String
+	, consPath			:: ![ConsPos]
+	, oldMask			:: ![UpdateMask]
+	, newMask			:: ![UpdateMask]
+	, iworld			:: !*IWorld
 	}
 
 :: UpdateMode a = UDSearch !a | UDCreate
@@ -42,14 +42,14 @@ derive gDefaultMask EmailAddress, Action, ProcessRef, Table
 derive bimap UpdateMode
 
 //Wrapper functions for updating
-defaultValue			:: !*IWorld -> (!a,!*IWorld)										| gUpdate{|*|} a
-defaultMask				:: !a -> UpdateMask													| gDefaultMask{|*|} a
-updateValue				:: DataPath String a !*IWorld -> (a,!*IWorld)						| gUpdate{|*|} a 
-updateValueAndMask  	:: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld)	| gUpdate{|*|} a
+defaultValue			:: !*IWorld -> (!a,!*IWorld)												| gUpdate{|*|} a
+defaultMask				:: !a -> UpdateMask															| gDefaultMask{|*|} a
+updateValue				:: !DataPath !String !a !*IWorld -> (!a,!*IWorld)							| gUpdate{|*|} a 
+updateValueAndMask  	:: !DataPath !String !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld)	| gUpdate{|*|} a
 
 //Utility functions for working accessing the iWorld in a USt
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
-accIWorldUSt :: !.(*IWorld -> *(.a,*IWorld))!*USt -> (.a,!*USt)
+accIWorldUSt :: !.(*IWorld -> *(!.a,!*IWorld))!*USt -> (!.a,!*USt)
 
 //Utility functions for dealing with DataPath values
 startDataPath			:: DataPath			//Path initialized at position "0"
@@ -126,4 +126,4 @@ basicCreate :: !a !*USt -> *(!a,!*USt)
 *
 * @return modified USt
 */
-basicSearch :: a (String a -> a) !*USt -> *(!a,!*USt)
+basicSearch :: !a !(String a -> a) !*USt -> *(!a,!*USt)

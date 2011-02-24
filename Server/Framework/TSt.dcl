@@ -34,9 +34,9 @@ from HTTP		import :: HTTPRequest
 					}
 					
 
-:: StaticInfo	=	{ appName			:: String										// the name of the server executable
+:: StaticInfo	=	{ appName			:: !String										// the name of the server executable
 					, currentProcessId	:: !ProcessId									// the id of the current process
-					, currentSession	:: Session										// the current session			
+					, currentSession	:: !Session										// the current session			
 					, staticWorkflows	:: ![Workflow]									// the list of workflows supported by the application				
 					}
 
@@ -59,7 +59,7 @@ from HTTP		import :: HTTPRequest
 *
 * @return a TSt iTask state
 */
-mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*World -> *TSt
+mkTSt :: !String !Config! HTTPRequest ![Workflow] !*Store !*World -> *TSt
 
 /**
 * Initializes the session information.

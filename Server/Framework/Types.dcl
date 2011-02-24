@@ -58,31 +58,31 @@ instance zero Currency
 instance html Note
 
 // Strings with special meanings
-:: EmailAddress	= EmailAddress String
-:: URL			= URL String
+:: EmailAddress	= EmailAddress !String
+:: URL			= URL !String
 :: PhoneNr		= PhoneNr String
 :: Password		= Password !String
 // Plain text notes
-:: Note = Note String
+:: Note = Note !String
 
 // Money
 :: Currency		// Type of currency and amount in cents. ISO4217 currency codes are used
-	= EUR Int
-	| GBP Int
-	| USD Int
-	| JPY Int
+	= EUR !Int
+	| GBP !Int
+	| USD !Int
+	| JPY !Int
 
 :: Date	=
-	{ day	:: Int
-	, mon	:: Int
-	, year	:: Int
+	{ day	:: !Int
+	, mon	:: !Int
+	, year	:: !Int
 	}
 :: Time =
-	{ hour	:: Int
-	, min	:: Int
-	, sec	:: Int
+	{ hour	:: !Int
+	, min	:: !Int
+	, sec	:: !Int
 	}
-:: DateTime = DateTime Date Time
+:: DateTime = DateTime !Date !Time
 
 // Documents
 :: Document =
@@ -95,9 +95,9 @@ instance html Note
 
 // Form buttons
 :: FormButton 		= 
-	{ label			:: String
-	, icon			:: String
-	, state			:: ButtonState
+	{ label			:: !String
+	, icon			:: !String
+	, state			:: !ButtonState
 	}
 :: ButtonState		= NotPressed | Pressed
 
@@ -175,9 +175,9 @@ toHidden :: !.a -> (Hidden .a)
 
 // Properties of tasks	
 :: TaskProperties =
-	{ systemProperties	:: SystemProperties
-	, managerProperties	:: ManagerProperties
-	, workerProperties	:: WorkerProperties
+	{ systemProperties	:: !SystemProperties
+	, managerProperties	:: !ManagerProperties
+	, workerProperties	:: !WorkerProperties
 	}
 
 :: SystemProperties =
