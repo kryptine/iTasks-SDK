@@ -15,9 +15,12 @@ decFormat			:: Int -> String
 mapSt				:: (a *st -> (b,*st)) [a] *st -> ([b],*st)
 
 // Functions for accessing dates and times
-currentTime 	:: !*World -> (!Time,!*World)
-currentDate 	:: !*World -> (!Date,!*World)
-currentDateTime :: !*World -> (!DateTime,!*World)
+currentTime 		:: !*IWorld -> (!Time,!*IWorld)
+currentDate 		:: !*IWorld -> (!Date,!*IWorld)
+currentDateTime 	:: !*IWorld -> (!DateTime,!*IWorld)
+currentTimestamp	:: !*IWorld -> (!Timestamp,!*IWorld)
+
+currentDateTimeWorld :: !*World -> (!DateTime,!*World)
 
 // Utility functions for tuples
 appFst	:: (.a -> .c) (.a,.b) -> (.c,.b)

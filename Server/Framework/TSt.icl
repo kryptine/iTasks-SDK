@@ -44,13 +44,15 @@ initStaticInfo appName workflows
 
 initIWorld	:: !String !Config !*Store !*World -> *IWorld
 initIWorld application config store world
-	# (timestamp,world) = time world
+	# (timestamp,world)	= time world
+	# (dateTime,world)	= currentDateTimeWorld world
 	= 	{ IWorld
 		| application		= application
 		, config			= config
 		, store				= store
 		, world				= world
 		, timestamp			= timestamp
+		, localDateTime		= dateTime
 		}
 		
 initTaskInfo :: TaskInfo
@@ -186,17 +188,21 @@ where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
 
 applyThread :: !Dynamic *TSt -> (!TaskResult Dynamic, !*TSt)
-applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst=:{TSt|taskNr,properties=p=:{TaskProperties|systemProperties=s=:{SystemProperties|taskId}}}
+applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst
 	# (_,tst)		= applyTaskEdit currentTask tst
-	// reset task nr
-	# processTaskNr	= taskNrFromString taskId
-	# tst			= {tst & taskNr = [taskNr !! (length taskNr - length processTaskNr - 1):processTaskNr]}
-	# (result, tst)	= applyTaskCommit currentTask tst
+	# (result,tst)	= applyTaskCommit` tst
 	= case result of
 			TaskBusy		= (TaskBusy, tst)
 			TaskFinished a	= (TaskFinished (dynamic a), tst)
 			TaskException e	= (TaskException e, tst)
-
+where
+	applyTaskCommit` tst=:{TSt|taskNr,properties=p=:{TaskProperties|systemProperties=s=:{SystemProperties|taskId}}}
+		// reset task nr
+		# processTaskNr	= taskNrFromString taskId
+		# tst			= {tst & taskNr = [taskNr !! (length taskNr - length processTaskNr - 1):processTaskNr]}
+		# (result, tst)	= applyTaskCommit currentTask tst
+		= (result,tst)
+	
 storeThread :: !ProcessId !Dynamic !*TSt -> *TSt
 storeThread processId thread tst
 	= appIWorldTSt (storeValueAs SFDynamic ("iTask_" +++ processId +++ "-thread") thread) tst

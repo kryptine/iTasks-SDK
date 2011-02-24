@@ -3,7 +3,7 @@ implementation module Store
 import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
 import Directory, Maybe, Map, Text, JSON, Functor
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
-from Types import :: IWorld{..}, :: Config
+from Types import :: IWorld{store,world,timestamp}, :: Config
 import dynamic_string //Static dynamic serialization
 
 :: *Store =

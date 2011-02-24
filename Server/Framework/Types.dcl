@@ -391,4 +391,5 @@ instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionNam
 					, config		:: !Config		// The server configuration
 					, world			:: !*World		// The outside world
 					, timestamp		:: !Timestamp	// The timestamp of the current request
+					, localDateTime	:: !DateTime	// The local date & time of the current request
 					}

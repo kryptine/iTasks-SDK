@@ -208,13 +208,13 @@ where
 	replaceVal (USD _) x = (USD x)
 	replaceVal (JPY _) x = (JPY x)
 
-gUpdate{|Date|} UDCreate ust=:{newMask,iworld=iworld=:{IWorld|world}}
-	# (date,world) = currentDate world
-	= basicCreate date {ust & iworld = {iworld & world = world}}
+gUpdate{|Date|} UDCreate ust=:{iworld}
+	# (date,iworld) = currentDate iworld
+	= basicCreate date {ust & iworld = iworld}
 gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\str _ -> fromString str) ust
-gUpdate{|Time|} UDCreate ust=:{newMask,iworld=iworld=:{IWorld|world}}
-	# (time,world) = currentTime world
-	= basicCreate time {ust & iworld = {iworld & world = world}}
+gUpdate{|Time|} UDCreate ust=:{iworld}
+	# (time,iworld) = currentTime iworld
+	= basicCreate time {ust & iworld = iworld}
 gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\str _ -> fromString str) ust
 
 gUpdate{|Dynamic|}			mode ust = basicUpdate mode unchanged (dynamic 42) ust

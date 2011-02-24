@@ -1,7 +1,7 @@
 implementation module Util
 
 import StdList, StdFile, StdMisc, StdArray, StdString, StdGeneric, Maybe, Time, Text
-from Types	import :: Date{..}, :: Time{..}, :: DateTime(..)
+from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
 
 fileExtension :: !String -> String
 fileExtension filename = case (split "." filename) of
@@ -34,18 +34,20 @@ where
 decFormat :: Int -> String
 decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
 
-currentTime :: !*World -> (!Time,!*World)
-currentTime world
-	# (tm,world) = localTime world
-	= ({Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec},world)
+currentTime :: !*IWorld -> (!Time,!*IWorld)
+currentTime iworld=:{localDateTime=l=:(DateTime _ time)} = (time,iworld)
 
-currentDate :: !*World -> (!Date,!*World)
-currentDate world
-	# (tm,world) = localTime world
-	= ({Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year},world)
+currentDate :: !*IWorld -> (!Date,!*IWorld)
+currentDate iworld=:{localDateTime=l=:(DateTime date _)} = (date,iworld)
+	
+currentDateTime :: !*IWorld -> (!DateTime,!*IWorld)
+currentDateTime iworld=:{localDateTime} = (localDateTime,iworld)
 
-currentDateTime :: !*World -> (!DateTime,!*World)
-currentDateTime world
+currentTimestamp :: !*IWorld -> (!Timestamp,!*IWorld)
+currentTimestamp iworld=:{timestamp} = (timestamp,iworld)
+
+currentDateTimeWorld :: !*World -> (!DateTime,!*World)
+currentDateTimeWorld world
 	# (tm,world)	= localTime world
 	# date			= {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year}
 	# time			= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}

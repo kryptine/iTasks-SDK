@@ -2,17 +2,16 @@ implementation module DateTimeTasks
 
 import StdInt, Error, TSt, Types, Void, Util, Time, Shared, CoreCombinators, MonitorTasks
 from TaskPanel			import :: InteractiveTaskType(..)
-from SharedTasks		import qualified readShared
 from CommonCombinators	import stop
 
 getCurrentTime :: Task Time
-getCurrentTime = mkInstantTask ("Get current time", "Determine the current time") (mkTaskFunction (accWorldTSt currentTime))
+getCurrentTime = mkInstantTask ("Get current time", "Determine the current time") (mkTaskFunction (accIWorldTSt currentTime))
 	
 getCurrentDate :: Task Date
-getCurrentDate = mkInstantTask ("Get current date", "Determine the current date") (mkTaskFunction (accWorldTSt currentDate))
+getCurrentDate = mkInstantTask ("Get current date", "Determine the current date") (mkTaskFunction (accIWorldTSt currentDate))
 
 getCurrentDateTime :: Task DateTime
-getCurrentDateTime = 'SharedTasks'.readShared sharedCurrentDateTime
+getCurrentDateTime = mkInstantTask ("Get current datetime", "Determine the current date and time.") (mkTaskFunction (accIWorldTSt currentDateTime))
 
 waitForTime :: !Time -> Task Void
 waitForTime time =
@@ -34,23 +33,10 @@ waitForTimer :: !Time -> Task Void
 waitForTimer time = getCurrentTime >>= \now -> waitForTime (now + time)
 
 sharedCurrentDateTime :: ReadOnlyShared DateTime
-sharedCurrentDateTime = makeReadOnlyShared read
-where
-	read iworld=:{world}
-		# (dateTime,world) = currentDateTime world
-		= (dateTime,{iworld & world = world})
+sharedCurrentDateTime = makeReadOnlyShared currentDateTime
 		
 sharedCurrentTime :: ReadOnlyShared Time
-sharedCurrentTime = makeReadOnlyShared read
-where
-	read iworld=:{world}
-		# (dateTime,world) = currentTime world
-		= (dateTime,{iworld & world = world})
+sharedCurrentTime = makeReadOnlyShared currentTime
 		
 sharedCurrentDate :: ReadOnlyShared Date
-sharedCurrentDate = makeReadOnlyShared read
-where
-	read iworld=:{world}
-		# (dateTime,world) = currentDate world
-		= (dateTime,{iworld & world = world})
-
+sharedCurrentDate = makeReadOnlyShared currentDate
