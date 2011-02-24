@@ -159,25 +159,25 @@ loadFromDisk key location world
 where
 	freadfile file = rec file ""
 	where 
-	  		rec :: *File String -> (String, *File)
-	        rec file acc 
-	        # (string, file) = freads file 102400
-	        | string == "" = (acc, file)
-	        | otherwise    = rec file (acc +++ string)
+		rec :: *File String -> (String, *File)
+		rec file acc 
+			# (string, file) = freads file 102400
+			| string == "" = (acc, file)
+			| otherwise    = rec file (acc +++ string)
 
 deleteValue :: !String !*IWorld -> *IWorld
-deleteValue delKey iworld = deleteValues` delKey filterFunc iworld
+deleteValue delKey iworld = deleteValues` delKey (==) filterFuncDisk iworld
 where
 	// compare key with filename without extension
-	filterFunc delKey key = (subString 0 (size key - 4) key) == delKey
+	filterFuncDisk delKey key = (subString 0 (size key - 4) key) == delKey
 
 deleteValues :: !String !*IWorld -> *IWorld
-deleteValues delKey iworld = deleteValues` delKey startsWith iworld
+deleteValues delKey iworld = deleteValues` delKey startsWith startsWith iworld
 
-deleteValues` :: !String !(String String -> Bool) !*IWorld -> *IWorld
-deleteValues` delKey filterFunc iworld=:{store=store=:{location}}
+deleteValues` :: !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
+deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{store=store=:{location}}
 	//Delete items from cache
-	# iworld = appCache (\cache -> fromList [(key,item) \\ (key,item) <- toList cache | not (filterFunc delKey key)]) iworld
+	# iworld = appCache (\cache -> fromList [(key,item) \\ (key,item) <- toList cache | not (filterFuncCache delKey key)]) iworld
 	//Delete items from disk
 	# iworld = appWorld deleteFromDisk iworld
 	= iworld
@@ -192,7 +192,7 @@ where
 			unlink _ [] world
 				= world
 			unlink dir [f:fs] world
-				| filterFunc delKey f.fileName
+				| filterFuncDisk delKey f.fileName
 					# (err,world) = fremove (pathDown dir f.fileName) world 
 					= unlink dir fs world
 				| otherwise
