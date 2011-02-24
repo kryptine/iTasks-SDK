@@ -1,5 +1,6 @@
 implementation module GinORYX
 
+from StdFunc import o
 import StdList
 import StdMisc
 
@@ -10,8 +11,51 @@ import GinSyntax
 import GinORYX
 
 derive gEq		 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencil, ORYXStencilSet, ORYXTarget
-derive JSONEncode	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencil, ORYXStencilSet, ORYXTarget
-derive JSONDecode 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencil, ORYXStencilSet, ORYXTarget
+derive JSONEncode	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencil, ORYXStencilSet, ORYXTarget
+derive JSONDecode 	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencil, ORYXStencilSet, ORYXTarget
+
+JSONEncode{|ORYXChildShape|} {resourceId, properties, stencil, childShapes, outgoing, bounds, dockers, target}
+	# target` = case target of
+		Just t	= [("target", toJSON t)]
+		Nothing	= []
+	# fields =
+		[ ("resourceId"	, toJSON resourceId)
+		, ("properties"	, toJSON properties)
+		, ("stencil"	, toJSON stencil)
+		, ("childShapes", toJSON childShapes)
+		, ("outgoing"	, toJSON outgoing)
+		, ("bounds"		, toJSON bounds)
+		, ("dockers"	, toJSON dockers)
+		: target` ]
+	= [JSONObject fields]
+
+JSONDecode{|ORYXChildShape|} [node:nodes]
+	# mResourceId	= jsonQuery "resourceId"	node
+	# mProperties	= jsonQuery "properties"	node
+	# mStencil		= jsonQuery "stencil"		node
+	# mChildShapes	= jsonQuery "childShapes"	node
+	# mOutgoing		= jsonQuery "outgoing"		node
+	# mBounds		= jsonQuery "bounds"		node
+	# mDockers		= jsonQuery "dockers"		node
+	# mTarget		= jsonQuery "target"		node
+	| isNothing mResourceId		= (Nothing, nodes)
+	| isNothing mProperties		= (Nothing, nodes)
+	| isNothing mStencil		= (Nothing, nodes)
+	| isNothing mChildShapes	= (Nothing, nodes)
+	| isNothing mOutgoing		= (Nothing, nodes)
+	| isNothing mBounds			= (Nothing, nodes)
+	| isNothing mDockers		= (Nothing, nodes)
+	=	(Just	{ ORYXChildShape
+				| resourceId	= fromJust mResourceId
+				, properties	= fromJust mProperties
+				, stencil		= fromJust mStencil
+				, childShapes	= fromJust mChildShapes
+				, outgoing		= fromJust mOutgoing
+				, bounds		= fromJust mBounds
+				, dockers		= fromJust mDockers
+				, target		= mTarget
+				}
+		, nodes)
 
 JSONEncode{|ORYXProperties|} (ORYXProperties properties)
 	=	[JSONObject (map (\{ORYXProperty | key, value} -> (key, value)) properties)]

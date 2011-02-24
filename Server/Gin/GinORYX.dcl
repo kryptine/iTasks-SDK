@@ -27,8 +27,8 @@ import GinSyntax
 	, outgoing		:: ![ORYXOutgoing]
 	, bounds		:: !ORYXBounds
 	, dockers		:: ![ORYXDocker]
+	, target		:: Maybe ORYXTarget
 	}
-	
 	
 :: ORYXProperties = ORYXProperties [ORYXProperty]
 

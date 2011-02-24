@@ -137,3 +137,33 @@ itasks.util.getScrollerWidth =  function() {
 	return (wNoScroll - wScroll);*/
 };
 
+//Function to determine equality of values,
+//modulo diff for comparing numeric values,
+//modulo functions, which are assumed to be equal
+itasks.util.approxEquals = function(a,b,diff) {
+    if (Ext.isPrimitive(a) && Ext.isPrimitive(b)) {
+            if (Ext.isNumber(a) && Ext.isNumber(b))
+                return Math.abs(a - b) <= diff;
+            else
+                return a == b;
+    }
+    else if (Ext.isObject(a) && Ext.isObject(b)
+            || Ext.isArray(a) && Ext.isArray(b)) {
+        var count = 0;
+        for (var p in a) {
+            if (Ext.isFunction(a[p]))
+                continue;
+            if (! itasks.util.approxEquals(a[p], b[p], diff))
+                return false;
+            count++;
+        }
+        for (var p in b) {
+            if (Ext.isFunction(b[p]))
+                continue;
+            count--;
+        }
+        return count == 0;
+    }
+    else
+        return true;
+};
