@@ -52,7 +52,7 @@ import	Engine						// basic iTask system creator
 	,	StdGeneric
 	,	StdDynamic
 
-from StdFunc import id, const
+from StdFunc import id, const, o
 
 //Types
 import Types

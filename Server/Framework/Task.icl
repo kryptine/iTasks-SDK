@@ -1,6 +1,6 @@
 implementation module Task
 
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdMisc, HTML, Types, dynamic_string, Base64, HTTP
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdMisc, StdFunc, HTML, Types, dynamic_string, Base64, HTTP
 import GenVisualize
 from TSt import :: TSt
 
@@ -76,7 +76,8 @@ where
 					, groupedProperties	= initGroupedProperties
 					, mbTaskNr			= Nothing
 					, mbMenuGenFunc		= Nothing
-					, taskFunc			= \tst -> (TaskFinished a,tst)
+					, taskFuncEdit		= id
+					, taskFuncCommit	= \tst -> (TaskFinished a,tst)
 					}
 gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\_ t -> t) ust
 

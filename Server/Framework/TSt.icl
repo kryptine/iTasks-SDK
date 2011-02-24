@@ -186,8 +186,12 @@ where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
 
 applyThread :: !Dynamic *TSt -> (!TaskResult Dynamic, !*TSt)
-applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst
-	# (result, tst) = applyTask currentTask tst
+applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst=:{TSt|taskNr,properties=p=:{TaskProperties|systemProperties=s=:{SystemProperties|taskId}}}
+	# (_,tst)		= applyTaskEdit currentTask tst
+	// reset task nr
+	# processTaskNr	= taskNrFromString taskId
+	# tst			= {tst & taskNr = [taskNr !! (length taskNr - length processTaskNr - 1):processTaskNr]}
+	# (result, tst)	= applyTaskCommit currentTask tst
 	= case result of
 			TaskBusy		= (TaskBusy, tst)
 			TaskFinished a	= (TaskFinished (dynamic a), tst)
@@ -605,32 +609,31 @@ accWorldTSt f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (a,world) = f world
 	= (a, {TSt|tst & iworld = {IWorld|iworld & world = world}})
 
-mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
+mapTaskFunctions :: !(a -> b) !(TaskFunctions a) -> TaskFunctions b
+mapTaskFunctions f funcs = appSnd ((o) (appFst (mapTaskResult f))) funcs
+
+mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> TaskFunctionCommit a
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
-mkInteractiveTask :: !d !InteractiveTaskType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkInteractiveTask description type taskfun =
+mkInteractiveTask :: !d !InteractiveTaskType !(TaskFunctions a) -> Task a | descr d
+mkInteractiveTask description type (taskfunE,taskfunC) =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkInteractiveTask`
-	}	
-where
-	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTInteractiveTask taskInfo type NoOutput}
+	, taskFuncEdit		= taskfunE
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractiveTask taskInfo type NoOutput}
+	}
 
-mkInstantTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkInstantTask :: !d !(TaskFunctionCommit a) -> Task a | descr d
 mkInstantTask description taskfun =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkInstantTask`
+	, taskFuncEdit		= id
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo NoOutput} //We use a FinishedTask node because the task is finished after one evaluation
 	}
-where
-	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTFinishedTask taskInfo NoOutput} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkRpcTask :: !d !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a & descr d
 mkRpcTask description rpce parsefun =
@@ -638,7 +641,8 @@ mkRpcTask description rpce parsefun =
 	, groupedProperties	= initGroupedProperties
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkRpcTask`
+	, taskFuncEdit		= id
+	, taskFuncCommit	= mkRpcTask`
 	}
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
@@ -695,43 +699,35 @@ where
 	setStatus "" tst		= tst
 	setStatus status tst	= setTaskStore "status" status tst
 		
-mkSequenceTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkSequenceTask description taskfun =
+mkSequenceTask :: !d !(TaskFunctions a) -> Task a | descr d
+mkSequenceTask description (taskfunE,taskfunC) =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkSequenceTask`
+	, taskFuncEdit		= \tst=:{taskNr}				-> taskfunE {tst & taskNr = [0:taskNr]}
+	, taskFuncCommit	= \tst=:{TSt|taskNr,taskInfo}	-> taskfunC {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 	}
-where
-	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
-mkParallelTask :: !d !TaskParallelType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkParallelTask description tpt taskfun =
+mkParallelTask :: !d !TaskParallelType !(TaskFunctions a) -> Task a | descr d
+mkParallelTask description tpt (taskfunE,taskfunC) =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkParallelTask`
+	, taskFuncEdit		= taskfunE
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTParallelTask taskInfo tpt []}
 	}
-where
-	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
-		# tst = {tst & tree = TTParallelTask taskInfo tpt []}												
-		= taskfun tst
 
-mkGroupedTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkGroupedTask description taskfun =
+mkGroupedTask :: !d !(TaskFunctions a) -> Task a | descr d
+mkGroupedTask description (taskfunE,taskfunC) =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkGroupedTask`
+	, taskFuncEdit		= taskfunE
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTGroupedTask taskInfo [] [] Nothing}
 	}
-where
-	mkGroupedTask` tst=:{TSt|taskInfo}
-		# tst = {tst & tree = TTGroupedTask taskInfo [] [] Nothing}
-		= taskfun tst
 			
 mkMainTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkMainTask description taskfun =
@@ -739,14 +735,28 @@ mkMainTask description taskfun =
 	, groupedProperties	= initGroupedProperties
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
-	, taskFunc			= mkMainTask`
+	, taskFuncEdit		= id
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo NoOutput)}
 	}
-where
-	mkMainTask` tst=:{taskNr,taskInfo}
-		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo NoOutput)}
 
-applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc} tst=:{taskNr,tree,properties}
+applyTaskEdit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
+	# taskId								= iTaskId taskNr ""
+	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
+	= case taskVal of
+		(Just (TaskFinished a))
+			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
+		_
+			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
+			# tst = case (taskVal,mbTaskNr) of
+				(Nothing, Just initTaskNr)	= copyTaskStates initTaskNr taskNr tst
+				_							= tst
+			// Execute task function
+			# tst = taskFuncEdit tst
+			= (TaskBusy,tst)
+
+applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit} tst=:{taskNr,tree,properties}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
@@ -757,9 +767,7 @@ applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc}
 					, tags					= taskProperties.ManagerProperties.tags
 					, groupedBehaviour 		= groupedProperties.GroupedProperties.groupedBehaviour
 					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
-					, menus					= case mbMenuGenFunc of
-												Just f	= Just (GenFunc f)
-												Nothing	= Nothing
+					, menus					= fmap GenFunc mbMenuGenFunc
 					, formWidth				= taskProperties.ManagerProperties.formWidth
 					}
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}
@@ -768,12 +776,8 @@ applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc}
 			# tst = addTaskNode (TTFinishedTask taskInfo (UIOutput (visualizeAsHtmlDisplay a))) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
-			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
-			# tst	= case (taskVal,mbTaskNr) of
-						(Nothing, Just initTaskNr)	= copyTaskStates initTaskNr taskNr tst
-						_							= tst
 			// Execute task function
-			# (result, tst=:{tree=node})			= taskFunc tst
+			# (result, tst=:{tree=node})			= taskFuncCommit tst
 			// Update task state
 			= case result of
 				(TaskFinished a)
@@ -803,18 +807,16 @@ applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc}
 					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput (Text "Uncaught exception")))
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e, tst)
-				
-		
 where
-	//Increase the task nr
-	incTaskNr [] = [0]
-	incTaskNr [i:is] = [i+1:is]
-	
 	//Perform reversal of lists that have been accumulated in reversed order
 	finalizeTaskNode (TTSequenceTask ti tasks) 					= TTSequenceTask	ti (reverse tasks)
 	finalizeTaskNode (TTParallelTask ti tpi tasks)				= TTParallelTask	ti tpi (reverse tasks)
 	finalizeTaskNode (TTGroupedTask ti tasks gActions mbFocus)	= TTGroupedTask		ti (reverse tasks) gActions mbFocus
 	finalizeTaskNode node										= node
+
+//Increase the task nr
+incTaskNr [] = [0]
+incTaskNr [i:is] = [i+1:is]
 
 //Add a new node to the current sequence or process
 addTaskNode :: !TaskTree !*TSt -> *TSt
@@ -923,18 +925,44 @@ getTaskStoreTimestamp key tst=:{taskNr}
 getTaskStoreTimestampFor :: !TaskNr !String !*IWorld -> (Maybe Timestamp, !*IWorld)
 getTaskStoreTimestampFor taskNr key iworld
 	= getStoreTimestamp (storekey taskNr key) iworld
+	
+deleteTaskStore :: !String !*TSt -> *TSt
+deleteTaskStore key tst=:{taskNr}
+	= appIWorldTSt (deleteTaskStoreFor taskNr key) tst
+
+deleteTaskStoreFor :: !TaskNr !String !*IWorld -> *IWorld
+deleteTaskStoreFor taskNr key iworld
+	= deleteValue (storekey taskNr key) iworld
 
 storekey taskNr key= "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
-getEvents :: !*TSt -> ([(!String,!JSONNode)],!*TSt)
-getEvents tst=:{taskNr,events} = (match,{TSt|tst & events = rest})
+//Get edit events for current task of which the name is a datapath
+getEditEvents :: !*TSt -> (![(!DataPath,!String)],!*TSt)
+getEditEvents tst
+	# (events,tst) = getEvents isdps tst
+	= ([(s2dp name,value) \\ (name,JSONString value) <- events],tst)
+
+//Get value event for current task if present
+getValueEvent :: !*TSt -> (!Maybe a,!*TSt) | JSONDecode{|*|} a
+getValueEvent tst
+	# (events,tst) = getEvents ((==) "value") tst
+	= (maybe Nothing (fromJSON o snd) (listToMaybe events),tst)
+
+//Get action event for current task if present
+getActionEvent :: !*TSt -> (!Maybe JSONNode,!*TSt)
+getActionEvent tst
+	# (events,tst) = getEvents ((==) "action") tst	
+	= (fmap snd (listToMaybe events),tst)
+
+getEvents :: !(String -> Bool) !*TSt -> ([(!String,!JSONNode)],!*TSt)
+getEvents pred tst=:{taskNr,events} = (match,{TSt|tst & events = rest})
 where
 	(match,rest) = splitEvents events
 	
 	splitEvents [] = ([],[])
 	splitEvents [event=:(t,n,v):events]
 		= let (match,rest) = splitEvents events in
-			if (t == taskId) ([(n,v):match],rest) (match, [event:rest])
+			if (t == taskId && pred n) ([(n,v):match],rest) (match, [event:rest])
 
 	taskId = taskNrToString taskNr
 
@@ -959,6 +987,3 @@ copyTaskStates fromtask totask tst
 	
 flushStore :: !*TSt -> *TSt
 flushStore tst = appIWorldTSt flushCache tst
-
-events2Paths :: ![(!String,!String)] -> [DataPath]
-events2Paths updates = map (s2dp o fst) updates

@@ -23,115 +23,116 @@ ifinvalid _			= False
 noAutoActionEvents :: AutoActionEvents a
 noAutoActionEvents = const Nothing
 
-makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(AutoActionEvents i) !(InteractionTaskMode i o) !*TSt -> (!TaskResult (!ActionEvent,!Maybe i),!*TSt) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
-makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions autoEventF informationTaskMode tst=:{taskNr, newTask, treeType}
-	# tst						= if newTask (appIWorldTSt initTask tst) tst
-	# (ovalue,tst)				= accIWorldTSt readValue tst
-	# (oumask,tst)				= accIWorldTSt readUMask tst
-	# (ovmask,tst)				= accIWorldTSt (readVMask ovalue oumask) tst
-	# old						= (ovalue,oumask,ovmask)
-	# (events,tst)				= getEvents tst
-	# (localTimestamp,tst)		= accIWorldTSt getLocalTimestamp tst
-	# (mbClientTimestamp,tst)	= clientTimestamp tst
-	# (refresh,outdatedClient) = case mbClientTimestamp of
-		Nothing
-			// refresh if client did not sent timestamp
-			= (True,False)
-		Just clientTimestamp
-			// refresh if client timestamp is older than local timestamp of the task or task is new
-			# outdated = clientTimestamp < localTimestamp
-			= (outdated || newTask,outdated)
-	= case treeType of
-		SpineTree
-			// check auto event
-			# ((modelV,_),tst) = accIWorldTSt readModelValue tst
-			# mbAutoEvent = autoEventF (if (isValidValue ovmask) (Valid modelV) Invalid)
-			| isJust mbAutoEvent = (TaskFinished (fromJust mbAutoEvent,(if (isValidValue ovmask) (Just modelV) Nothing)),tst)
-			= (TaskBusy,tst)
-		JSONTree
-			// check for value event
-			# (new=:(nvalue,_,vmask),tst) = case (valueEvent events,outdatedClient) of
-				(Nothing,_)		// no value events
-					= (old,tst)
-				(_,True)		// ignore update events of outdated clients
-					= (old,tst)
-				(Just nvalue,_)
-					// update view value
-					# umask			= defaultMask nvalue
-					# (vmask,tst)	= accIWorldTSt (verifyValue nvalue umask) tst
-					# new			= (nvalue,umask,vmask)
-					# tst			= appIWorldTSt (setStores new) tst
-					// don't update model in enter mode
-					# tst = case enterMode of
-						False
-							# ((oldModelValue,_),tst)	= accIWorldTSt readModelValue tst
-							# newModelValue				= bimapPutback nvalue oldModelValue
-							# tst						= appIWorldTSt (snd o writeShared shared newModelValue) tst
-							= tst
-						True
-							= tst
-					= (new,tst)
-			// check auto event
-			# ((modelV,_),tst) = accIWorldTSt readModelValue tst
-			# mbAutoEvent = autoEventF (if (isValidValue vmask) (Valid modelV) Invalid)
-			| isJust mbAutoEvent = (TaskFinished (fromJust mbAutoEvent,(if (isValidValue vmask) (Just modelV) Nothing)),tst)
-			// check for action event
-			# mbActionEvent	= actionEvent events actions
-			= case mbActionEvent of
-				Just event
-					= handleActionEvent nvalue (isValidValue vmask) event tst
-				Nothing
-					// JSON representation is built after all possible changes of the model are done
-					# tst = setJSONFunc (buildJSONValue new localTimestamp) tst
-					= (TaskBusy,tst)
-		UITree
-			// check for edit events
-			# edits = editEvents events
-			# (rebuild,new=:(nvalue,numask,nvmask),errors,tst) = case (edits,outdatedClient) of
-				(_,True)	// ignore update events of outdated clients & give error msg
-					= (True,old,[(p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.") \\ (p,_) <- edits],tst)
-				([],_)		// no edit events
-					= (True,old,[],tst)
-				_			// update edited view value
-					# (nvalue,numask,tst)	= applyUpdates edits ovalue oumask tst
-					# (nvmask,tst)			= accIWorldTSt (verifyValue nvalue numask) tst
-					# new					= (nvalue,numask,nvmask)
-					# tst					= appIWorldTSt (setStores new) tst
-					# (conflict,tst)		= appFst fromOk (accIWorldTSt (isSharedChanged shared localTimestamp) tst)
-					| not enterMode
-						| not conflict
-							| isValidValue nvmask
-								# ((oldModelValue,_),tst)	= accIWorldTSt readModelValue tst
-								# newModelValue				= bimapPutback nvalue oldModelValue
-								# tst						= appIWorldTSt (snd o writeShared shared newModelValue) tst
-								// rebuild value from model after also other possible changes are done
-								= (True,new,[],tst)
-							| otherwise
-								// for updated invalid editors views are not rebuilt, updates are based on current value
-								= (False,new,[],tst)
-						| otherwise
-							// task causes an edit conflict
-							// don't update model, rebuild view based on current value of model and set errors
-							= (True,old,[(p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.") \\ (p,_) <- edits],tst)
-					| otherwise
-						// in enter mode views not rebuilt, updates are based on current value
-						= (False,new,[],tst)
-			// check auto event
-			# ((modelV,_),tst) = accIWorldTSt readModelValue tst
-			# mbAutoEvent = autoEventF (if (isValidValue nvmask) (Valid modelV) Invalid)
-			| isJust mbAutoEvent = (TaskFinished (fromJust mbAutoEvent,(if (isValidValue nvmask) (Just modelV) Nothing)),tst)
-			// check for action event
-			# mbActionEvent	= actionEvent events actions
-			= case mbActionEvent of
-				Just event
-					= handleActionEvent nvalue (isValidValue nvmask) event tst
-				Nothing
-					// UI is built after all possible changes of the model are done
-					# tst = setTUIFunc (buildUI (ovalue,ovmask) new rebuild refresh localTimestamp errors (map fst edits)) tst
-					= (TaskBusy,tst)
+makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(AutoActionEvents i) !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
+makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions autoEventF informationTaskMode = (interactiveTaskE,interactiveTaskC)
 where
+	interactiveTaskE tst=:{taskNr}
+		# (old=:(ovalue,oumask,ovmask),tst)	= accIWorldTSt (readStores taskNr) tst
+		# tst								= appIWorldTSt (setCommitStoreOld taskNr old) tst
+		# (localTimestamp,tst)				= accIWorldTSt (getLocalTimestamp taskNr) tst
+		# (mbClientTimestamp,tst)			= clientTimestamp tst
+		# outdatedClient					= maybe False (\clientTimestamp -> clientTimestamp < localTimestamp) mbClientTimestamp
+		| outdatedClient					= tst // ignore edit events of outdated clients
+		// check for edit/value event
+		# (edits,tst)						= getEditEvents tst
+		# (mbValueEvent,tst)				= getValueEvent tst
+		# (mbNew,tst) = case (edits,mbValueEvent) of
+			(edits,_) | not (isEmpty edits) // edit event
+				# (nvalue,numask,tst)		= applyUpdates edits ovalue oumask tst
+				= (Just (nvalue,numask),tst)
+			(_,Just nvalue) // value event
+				# numask					= defaultMask nvalue
+				= (Just (nvalue,numask),tst)
+			_ // no edit/value events
+				= (Nothing,tst)
+		# (conflict,tst) = case mbNew of
+			Just (nvalue,numask)
+				# (nvmask,tst)				= accIWorldTSt (verifyValue nvalue numask) tst
+				# tst						= appIWorldTSt (setStores taskNr (nvalue,numask,nvmask)) tst
+				# (conflict,tst)			= appFst fromOk (accIWorldTSt (isSharedChanged (shared taskNr) localTimestamp) tst)
+				| enterMode || not (isValidValue nvmask) || conflict = (conflict,tst)
+				# ((oldModelValue,_),tst)	= accIWorldTSt (readModelValue taskNr) tst
+				# newModelValue				= bimapPutback nvalue oldModelValue
+				# tst						= appIWorldTSt (snd o writeShared (shared taskNr) newModelValue) tst
+				= (conflict,tst)
+			Nothing
+				= (False,tst)
+		= appIWorldTSt (setCommitStoreInfo taskNr (outdatedClient,conflict,map fst edits,localTimestamp)) tst
+
+	interactiveTaskC tst=:{taskNr,newTask,treeType}
+		// init task if it's new
+		# tst								= if newTask (appIWorldTSt (initTask taskNr) tst) tst
+		// read local value/masks & model value/timestamp
+		# (new=:(nvalue,numask,nvmask),tst)	= accIWorldTSt (readStores taskNr) tst
+		# ((modelV,modelT),tst)				= accIWorldTSt (readModelValue taskNr) tst
+		// check auto event
+		# mbAutoEvent						= autoEventF (if (isValidValue nvmask) (Valid modelV) Invalid)
+		| isJust mbAutoEvent				= (TaskFinished (fromJust mbAutoEvent,(if (isValidValue nvmask) (Just modelV) Nothing)),tst)
+		# ((outdatedClient,conflict,updatedPaths,localTimestamp),tst) = accIWorldTSt (getCommitStoreInfo taskNr) tst
+		# errors = case (outdatedClient,conflict) of
+			(True,_)						= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
+			(_,True)						= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
+			_								= []
+		// rebuild value from model if model is newer than local value, not in enter mode and no other errors occurred
+		# ((new=:(nvalue,numask,nvmask)),tst) = case localTimestamp < modelT && not (enterMode || conflict || outdatedClient || not (isValidValue nvmask)) of
+			True	= accIWorldTSt (updateViewValue taskNr bimapGet new modelV modelT errors) tst
+			False	= (new,tst)
+		= case treeType of
+			SpineTree
+				= (TaskBusy,tst)
+			JSONTree
+				// check for action event
+				# (mbActionEvent,tst) = actionEvent actions tst
+				= case mbActionEvent of
+					Just event
+						= (TaskFinished (event,if (isValidValue nvmask) (Just modelV) Nothing),tst)
+					Nothing
+						# tst		= setJSONValue (toJSON nvalue) tst
+						= (TaskBusy,tst)
+			UITree
+				// check for action event
+				# (mbActionEvent,tst) = actionEvent actions tst
+				# (res,tst) = case mbActionEvent of
+					Just event
+						= (TaskFinished (event,if (isValidValue nvmask) (Just modelV) Nothing),tst)
+					Nothing
+						# editorId                              = "tf-" +++ taskNrToString taskNr
+						# evalActions                           = evaluateConditions actions (isValidValue nvmask) modelV
+						# (mbClientTimestamp,tst)				= clientTimestamp tst
+						| isNothing mbClientTimestamp || outdatedClient || newTask // refresh UI if client is outdated, no timestamp is send (refresh) or task is new
+							# form 								= visualizeAsEditor editorId nvalue nvmask
+							# (mbContext,tst) = case mbAbout of
+								Nothing							= (Nothing,tst)
+								Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),tst)
+								Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (accIWorldTSt (readShared ref) tst)
+							# tst = setTUIDef (taskPanel taskNr mbContext (Just form)) evalActions tst
+							= (TaskBusy,tst)
+						| otherwise	// update UI
+							// get stored old value, masks & errors
+							# ((ovalue,oumask,ovmask),tst)		= accIWorldTSt (getCommitStoreOld taskNr) tst
+							# (oldErrors,tst)					= accIWorldTSt (getErrors taskNr) tst
+							# nvmask							= setInvalid oldErrors nvmask
+							# updates							= determineEditorUpdates editorId (ovalue,ovmask) (nvalue,nvmask) updatedPaths
+							// update context if shared & changed
+							# (updates,tst) = case mbAbout of
+								Just (SharedAbout shared)
+									# (changed,tst) = appFst fromOk (accIWorldTSt (isSharedChanged shared localTimestamp) tst)
+									| changed
+										# (context,tst) = appFst (visualizeAsHtmlDisplay o aboutView o fromOk) (accIWorldTSt (readShared shared) tst)
+										= ([TUIReplace (contextId taskNr) (taskContextPanel taskNr context):updates],tst)
+									| otherwise
+										= (updates,tst) 
+								_
+									= (updates,tst)
+							# tst = setTUIUpdates updates evalActions tst
+							= (TaskBusy,tst)
+				// delete commit stores
+				# tst	= deleteTaskStore "commit-old" tst
+				# tst	= deleteTaskStore "commit-info" tst
+				= (res,tst)
+
 	// for local mode use auto generated store name, for shared mode use given store
-	shared = case informationTaskMode of
+	shared taskNr = case informationTaskMode of
 		SharedUpdate shared	= shared
 		_					= mapSharedRead w2r (sharedStore ("iTask_" +++ taskNrToString taskNr +++ "-model"))
 	
@@ -139,218 +140,158 @@ where
 		LocalUpdateMode _ f	= f
 		EnterMode f			= f
 		_					= abort "no w2r function"
-			
-	// initialises the task the first time it is ran
-	initTask iworld
-		// auto generate model store if in local mode
-		# iworld = case informationTaskMode of
-			LocalUpdateMode initial	_	= snd (writeShared shared initial iworld)
-			_							= iworld
-		// determine initial view value based on model if not in enter mode
-		| not enterMode
-			# ((modelValue,modelTimestamp),iworld)	= readModelValue iworld
-			# nvalue								= bimapGet modelValue
-			# numask								= defaultMask nvalue
-			# (nvmask,iworld)						= verifyValue nvalue numask iworld
-			# iworld								= setStores (nvalue,numask,nvmask) iworld
-			= iworld
-		| otherwise
-			= iworld
-	
-	handleActionEvent viewValue valid event tst
-		# ((modelValue,_),tst) = accIWorldTSt readModelValue tst
-		= (TaskFinished (event,if valid (Just modelValue) Nothing),tst)
-	
-	/**
-	* Builds the user interface for an information task AFTER the entire task tree is built.
-	* All changes to shared models have to be done before.
-	*
-	* @param The view value before the current request.
-	* @param The view value possibly updated by events.
-	* @param Determines if a new view value is build using the current model and the bimap get function.
-	* @param Determines if a new UI definition is computed or the existing one is updated.
-	* @param The timestamp of the local value before the current request.
-	* @param Error messages added to the rebuilt value.
-	* @param Datapaths of values updates by an event
-	* @param IWorld
-	*
-	* @return A tree node containing the computed UI definition/updates.
-	*/
-	buildUI old new rebuild refresh localTimestamp errors updatedPaths iworld
-		# ((modelValue,modelTimestamp), iworld)	= readModelValue iworld
-		// check for changed model value
-		# (modelChanged,iworld) = case enterMode of
-			False								= appFst fromOk (isSharedChanged shared localTimestamp iworld)
-			True								= (False,iworld)
-		// determine new view value if model is changed, rebuild is requested & not in enter mode
-		# ((rvalue,_,rvmask),iworld) = case modelChanged && rebuild && not enterMode of
-			True								= updateViewValue bimapGet new modelValue modelTimestamp errors iworld
-			False								= (appThd3 (setInvalid errors) new,iworld)
-		# evalActions							= evaluateConditions actions (isValidValue rvmask) modelValue
-		# editorId								= "tf-" +++ taskNrToString taskNr
-		# iworld								= storeErrors errors iworld
-		| refresh	// refresh UI, send new def instead of updates
-			# form 								= visualizeAsEditor editorId rvalue rvmask
-			# (mbContext,iworld) = case mbAbout of
-				Nothing								= (Nothing,iworld)
-				Just (AboutValue a)					= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
-				Just (SharedAbout ref)				= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (readShared ref iworld)
-			= (Definition (taskPanel (taskNrToString taskNr) mbContext (Just form)) evalActions,iworld)
-		| otherwise	// update UI
-			// get stored old errors
-			# (oldErrors,iworld)				= getErrors taskNr iworld
-			# old								= appSnd (setInvalid oldErrors) old
-			# updates							= determineEditorUpdates editorId old (rvalue,rvmask) updatedPaths
-			// update context if shared & changed
-			# (updates,iworld) = case mbAbout of
-				Just (SharedAbout shared)
-					# (changed,iworld) = appFst fromOk (isSharedChanged shared localTimestamp iworld)
-					| changed
-						# (context,iworld) = appFst (visualizeAsHtmlDisplay o aboutView o fromOk) (readShared shared iworld)
-						= ([TUIReplace contextId (taskContextPanel context):updates],iworld)
-					| otherwise
-						= (updates,iworld) 
-				_
-					= (updates,iworld)
-			= (Updates updates evalActions,iworld)
-
-	buildJSONValue new=:(nvalue,_,_) localTimestamp iworld
-		# ((modelValue,modelTimestamp),iworld)	= readModelValue iworld
-		// check for changed model value
-		# (modelChanged,iworld)					= appFst fromOk (isSharedChanged shared localTimestamp iworld)
-		// determine new view value if model is changed & not in enter mode
-		# (rvalue,iworld) = case modelChanged && not enterMode of
-			True								= appFst fst3 (updateViewValue bimapGet new modelValue modelTimestamp [] iworld)
-			False								= (nvalue,iworld)
-		= (toJSON rvalue,iworld)
-					
-	// determines a new view value from model
-	updateViewValue :: !(a -> v) (!v,!UpdateMask,!VerifyMask) !a !Timestamp ![(!DataPath,!ErrorMessage)] !*IWorld -> (!(v,UpdateMask,VerifyMask),!*IWorld) | iTask a & iTask v
-	updateViewValue bimapGet view=:(viewValue,_,_) modelValue modelTimestamp errors iworld
-		# nvalue = bimapGet modelValue
-		// only calculate new view value if 'get (put v m) <> v'
-		| viewValue =!= nvalue
-			# numask			= defaultMask nvalue
-			# (nvmask,iworld)	= verifyValue nvalue numask iworld
-			# nvmask			= setInvalid errors nvmask
-			# new				= (nvalue,numask,nvmask)
-			# iworld			= setStores new iworld
-			= (new,iworld)
-		| otherwise
-			# iworld			= setTaskStoreFor taskNr "value" viewValue iworld // set value to update timestamp
-			= (appThd3 (setInvalid errors) view,iworld)
-					
-	readValue iworld
-		# (mbvalue,iworld)	= getTaskStoreFor taskNr "value" iworld
-		= case mbvalue of
-			Just v
-				= (v,iworld)
-			Nothing
-				# (v,iworld)	= defaultValue iworld
-				// store default value because store is used to determine local timestamp next time
-				# iworld		= setTaskStoreFor taskNr "value" v iworld
-				= (v,iworld)
-							
-	readUMask iworld
-		# (mbmask,iworld) = getTaskStoreFor taskNr "umask" iworld
-		= case mbmask of
-			Just m	= (m,iworld)
-			Nothing	= (Untouched,iworld)
-			
-	readVMask value umask iworld
-		# (mbmask,iworld) = getTaskStoreFor taskNr "vmask" iworld
-		= case mbmask of
-			Just m
-				= (m,iworld)
-			Nothing
-				# (vmask,iworld)	= verifyValue value umask iworld
-				# iworld			= setTaskStoreFor taskNr "vmask" vmask iworld
-				= (vmask,iworld)
-				
-	setStores(value,umask,vmask) iworld
-		# iworld			= setTaskStoreFor taskNr "value" value iworld
-		# iworld			= setTaskStoreFor taskNr "umask" umask iworld
-		# iworld			= setTaskStoreFor taskNr "vmask" vmask iworld
-		= iworld
-			
-	getLocalTimestamp iworld=:{IWorld|timestamp}
-		= appFst (fromMaybe timestamp) (getTaskStoreTimestampFor taskNr "value" iworld)
-	
-	readModelValue iworld
-		| enterMode // don't read model in enter mode, but compute from view
-			# (view,iworld)				= readValue iworld
-			# (localTimestamp,iworld)	= getLocalTimestamp iworld
-			= ((w2r (bimapPutback view undef),localTimestamp),iworld)
-		| otherwise
-			# (value,iworld) 	= appFst fromOk (readShared shared iworld)
-			# (timest,iworld)	= appFst fromOk (getSharedTimestamp shared iworld)
-			= ((value,timest),iworld)
-	
-	// Gets errors if stored (otherwise return empty error list)
-	getErrors taskNr iworld
-		# (mbErrors,iworld) = getTaskStoreFor taskNr "errors" iworld
-		= (maybe [] (map (appFst dataPathFromList)) mbErrors,iworld)
-			
-	// Store errors if necessary
-	storeErrors errors iworld
-		// Only store error if store already exists or error are not empty
-		# (mbErrors,iworld) = checkErrorStore iworld
-		| isJust mbErrors || not (isEmpty errors)
-			= setTaskStoreFor taskNr "errors" (map (appFst dataPathList) errors) iworld
-		| otherwise
-			= iworld
-	where
-		checkErrorStore :: !*IWorld -> (!Maybe [([Int],ErrorMessage)],!*IWorld)
-		checkErrorStore tst = getTaskStoreFor taskNr "errors" tst
-							
-	applyUpdates [] val umask tst = (val,umask,tst)
-	applyUpdates [(p,v):us] val umask tst=:{TSt|iworld}
-		# (val,umask,iworld) = updateValueAndMask p v val umask iworld
-		= applyUpdates us val umask {TSt|tst & iworld = iworld}
-		
-	clientTimestamp :: !*TSt -> (!Maybe Timestamp,!*TSt)
-	clientTimestamp tst=:{request}
-		# ts = paramValue "timestamp" request
-		| ts <> ""	= (Just (Timestamp (toInt ts)),tst)
-		| otherwise	= (Nothing,tst)
 		
 	enterMode = case informationTaskMode of
 		EnterMode _	= True
 		_			= False
+			
+	// initialises the task the first time it is ran
+	initTask taskNr iworld
+		// auto generate model store if in local mode
+		# iworld = case informationTaskMode of
+			LocalUpdateMode initial	_	= snd (writeShared (shared taskNr) initial iworld)
+			_							= iworld
+		// determine initial view value based on model if not in enter mode
+		| not enterMode
+			# ((modelValue,modelTimestamp),iworld)	= readModelValue taskNr iworld
+			# nvalue								= bimapGet modelValue
+			# numask								= defaultMask nvalue
+			# (nvmask,iworld)						= verifyValue nvalue numask iworld
+			# iworld								= setStores taskNr (nvalue,numask,nvmask) iworld
+			= iworld
+		| otherwise
+			= iworld
+			
+	readModelValue taskNr iworld
+		| enterMode // don't read model in enter mode, but compute from view
+			# (view,iworld)				= readValue taskNr iworld
+			# (localTimestamp,iworld)	= getLocalTimestamp taskNr iworld
+			= ((w2r (bimapPutback view undef),localTimestamp),iworld)
+		| otherwise
+			# (value,iworld) 	= appFst fromOk (readShared (shared taskNr) iworld)
+			# (timest,iworld)	= appFst fromOk (getSharedTimestamp (shared taskNr) iworld)
+			= ((value,timest),iworld)
+	
+// store for information provided to the commit pass
+setCommitStoreOld :: !TaskNr (!a,!UpdateMask,!VerifyMask) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+setCommitStoreOld taskNr old iworld = setTaskStoreFor taskNr "commit-old" old iworld
+getCommitStoreOld :: !TaskNr !*IWorld -> (!(!a,!UpdateMask,!VerifyMask),!*IWorld) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+getCommitStoreOld taskNr iworld
+	# (mbOld,iworld)	= getTaskStoreFor taskNr "commit-old" iworld
+	= (fromJust mbOld,iworld)
+// outdated client & conflict flag & update paths
+setCommitStoreInfo :: !TaskNr (!Bool,!Bool,![DataPath],!Timestamp) !*IWorld -> *IWorld
+setCommitStoreInfo taskNr info iworld = setTaskStoreFor taskNr "commit-info" ((\(o,c,dps,t) -> (o,c,map dataPathList dps,t)) info) iworld
+getCommitStoreInfo :: !TaskNr !*IWorld -> (!(!Bool,!Bool,![DataPath],!Timestamp),!*IWorld)
+getCommitStoreInfo taskNr iworld=:{IWorld|timestamp}
+	# (mbInfo,iworld) = getTaskStoreFor taskNr "commit-info" iworld
+	= (fromMaybe (False,False,[],timestamp) (fmap (\(o,c,dps,t) -> (o,c,map dataPathFromList dps,t)) mbInfo),iworld)
 		
-	//Build TUI definition for task with given context/form	
-	taskPanel :: String (Maybe HtmlTag) (Maybe [TUIDef]) -> [TUIDef]
-	taskPanel taskid mbContext mbForm = maybeToList (fmap taskContextPanel mbContext) ++ fromMaybe [] mbForm
+// Gets errors if stored (otherwise return empty error list)
+getErrors :: !TaskNr !*IWorld -> *(![(!DataPath,!a)],!*IWorld) | JSONEncode{|*|} a & JSONDecode{|*|} a & TC a
+getErrors taskNr iworld
+	# (mbErrors,iworld) = getTaskStoreFor taskNr "errors" iworld
+	= (maybe [] (map (appFst dataPathFromList)) mbErrors,iworld)
+storeErrors :: [(!DataPath,!a)] !TaskNr !*IWorld -> *IWorld | JSONEncode{|*|} a & JSONDecode{|*|} a & TC a
+storeErrors errors taskNr iworld
+	= setTaskStoreFor taskNr "errors" (map (appFst dataPathList) errors) iworld
+					
+// determines a new view value from model
+updateViewValue :: !TaskNr !(a -> v) (!v,!UpdateMask,!VerifyMask) !a !Timestamp ![(!DataPath,!ErrorMessage)] !*IWorld -> (!(v,UpdateMask,VerifyMask),!*IWorld) | iTask a & iTask v
+updateViewValue taskNr bimapGet view=:(viewValue,_,_) modelValue modelTimestamp errors iworld
+	# nvalue = bimapGet modelValue
+	// only calculate new view value if 'get (put v m) <> v'
+	| viewValue =!= nvalue
+		# numask			= defaultMask nvalue
+		# (nvmask,iworld)	= verifyValue nvalue numask iworld
+		# nvmask			= setInvalid errors nvmask
+		# new				= (nvalue,numask,nvmask)
+		# iworld			= setStores taskNr new iworld
+		= (new,iworld)
+	| otherwise
+		# iworld			= setTaskStoreFor taskNr "value" viewValue iworld // set value to update timestamp
+		= (appThd3 (setInvalid errors) view,iworld)
+
+readStores :: !TaskNr !*IWorld -> *(!(!a,!UpdateMask,!VerifyMask),!*IWorld) | gVerify{|*|} a & gUpdate{|*|} a & JSONEncode{|*|} a & JSONDecode{|*|} a & TC a			
+readStores taskNr iworld
+	# (value,iworld)	= readValue taskNr iworld
+	# (umask,iworld)	= readUMask taskNr iworld
+	# (vmask,iworld)	= readVMask value umask taskNr iworld
+	= ((value,umask,vmask),iworld)
+
+readValue :: !TaskNr !*IWorld -> *(!a,!*IWorld) | gUpdate{|*|} a & JSONEncode{|*|} a & JSONDecode{|*|} a & TC a
+readValue taskNr iworld
+	# (mbvalue,iworld)	= getTaskStoreFor taskNr "value" iworld
+	= case mbvalue of
+		Just v	= (v,iworld)
+		Nothing	= defaultValue iworld
+
+readUMask :: !TaskNr !*IWorld -> *(!UpdateMask,!*IWorld)						
+readUMask taskNr iworld
+	# (mbMask,iworld) = getTaskStoreFor taskNr "umask" iworld
+	= (fromMaybe Untouched mbMask,iworld)
+
+readVMask :: !a !UpdateMask !TaskNr !*IWorld -> *(!VerifyMask,!*IWorld) | gVerify{|*|} a		
+readVMask value umask taskNr iworld
+	# (mbmask,iworld) = getTaskStoreFor taskNr "vmask" iworld
+	= case mbmask of
+		Just m
+			= (m,iworld)
+		Nothing
+			# (vmask,iworld)	= verifyValue value umask iworld
+			# iworld			= setTaskStoreFor taskNr "vmask" vmask iworld
+			= (vmask,iworld)
+
+setStores :: !TaskNr !(!a,!UpdateMask,!VerifyMask) !*IWorld -> *IWorld | JSONEncode{|*|} a & JSONDecode{|*|} a & TC a			
+setStores taskNr (value,umask,vmask) iworld
+	# iworld			= setTaskStoreFor taskNr "value" value iworld
+	# iworld			= setTaskStoreFor taskNr "umask" umask iworld
+	# iworld			= setTaskStoreFor taskNr "vmask" vmask iworld
+	= iworld
+
+getLocalTimestamp :: !TaskNr !*IWorld -> *(!Timestamp,!*IWorld)			
+getLocalTimestamp taskNr iworld=:{IWorld|timestamp}
+	= appFst (fromMaybe timestamp) (getTaskStoreTimestampFor taskNr "value" iworld)
+	
+applyUpdates :: ![(!DataPath,!String)] !a !UpdateMask !*TSt -> *(!a,!UpdateMask,!*TSt) | gUpdate{|*|} a							
+applyUpdates [] val umask tst = (val,umask,tst)
+applyUpdates [(p,v):us] val umask tst=:{TSt|iworld}
+	# (val,umask,iworld) = updateValueAndMask p v val umask iworld
+	= applyUpdates us val umask {TSt|tst & iworld = iworld}
 		
-	taskContextPanel context = TUIHtmlContainer	{ TUIHtmlContainer
-												| id = contextId
-												, html = toString context
-												, fieldLabel = Nothing
-												}
-											
-	contextId = "context-" +++ taskNrToString taskNr
-
-//Edit events of which the name is a datapath
-editEvents :: [(String,JSONNode)] -> [(DataPath,String)]
-editEvents events = [(s2dp name,value) \\ (name,JSONString value) <- events | isdps name]
-
-//Check if there is a value event among the events
-valueEvent :: ![(!String,!JSONNode)] -> Maybe a | JSONDecode{|*|} a
-valueEvent events = maybe Nothing fromJSON (listToMaybe [value \\ (name,value) <- events | name == "value"])
-
-//Check if there is an action event among the events 
-actionEvent :: ![(!String,!JSONNode)] ![TaskAction a] -> Maybe ActionEvent
-actionEvent events actions	
-	= case [value \\ (name,value) <- events | name == "action"] of
-		[JSONString key]							= addData "" (mbAction key)
-		[JSONArray [JSONString key,JSONString data]]= addData data (mbAction key)
-		_											= Nothing
-where
-	mbAction key = listToMaybe [action \\ (action,pred) <- actions | actionName action == key]
+clientTimestamp :: !*TSt -> (!Maybe Timestamp,!*TSt)
+clientTimestamp tst=:{request}
+	# ts = paramValue "timestamp" request
+	| ts <> ""	= (Just (Timestamp (toInt ts)),tst)
+	| otherwise	= (Nothing,tst)
 		
-	addData data (Just action)	= Just (action,data)
-	addData data Nothing		= Nothing
+//Build TUI definition for task with given context/form	
+taskPanel :: !TaskNr !(Maybe HtmlTag) !(Maybe [TUIDef]) -> [TUIDef]
+taskPanel taskNr mbContext mbForm = maybeToList (fmap (taskContextPanel taskNr) mbContext) ++ fromMaybe [] mbForm
+
+taskContextPanel :: !TaskNr !a -> TUIDef | toString a		
+taskContextPanel taskNr context = TUIHtmlContainer	{ TUIHtmlContainer
+													| id = (contextId taskNr)
+													, html = toString context
+													, fieldLabel = Nothing
+													}
+
+contextId :: !TaskNr -> String											
+contextId taskNr = "context-" +++ taskNrToString taskNr
 	
 //Evaluate action's conditions
 evaluateConditions :: ![(!Action, (Verified a) -> Bool)] !Bool a -> [(Action, Bool)]
 evaluateConditions actions valid value = [(action,pred (if valid (Valid value) Invalid)) \\ (action,pred) <- actions]
+
+//Get action event for current task if present
+actionEvent :: ![TaskAction a] !*TSt-> (!Maybe ActionEvent,!*TSt)
+actionEvent actions	tst
+	# (mbActionEvent,tst) = getActionEvent tst
+	# mbEvent = case mbActionEvent of
+		Just (JSONString key)								= addData "" (mbAction key)
+		Just (JSONArray [JSONString key,JSONString data])	= addData data (mbAction key)
+		_													= Nothing
+	= (mbEvent,tst)
+where
+	mbAction key = listToMaybe [action \\ (action,pred) <- actions | actionName action == key]
+	addData data mbAction = fmap (\a -> (a,data)) mbAction

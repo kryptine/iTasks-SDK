@@ -6,6 +6,7 @@ import Maybe, iTaskClass, Task
 from Shared		import :: Shared
 from Types		import :: Action, :: ActionData
 from StdFunc	import id, const
+from TSt		import :: TaskFunctions, :: TaskFunctionEdit, :: TaskFunctionCommit
 
 // A view mapping an input from a shared data source (i)
 // to a view shown to the user (v)
@@ -51,4 +52,4 @@ SharedUpdate s	:== SharedUpdateMode s
 
 noAutoActionEvents :: AutoActionEvents a
 
-makeInteractiveTask	:: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(AutoActionEvents i) !(InteractionTaskMode i o) !*TSt -> (!TaskResult (!ActionEvent,!Maybe i),!*TSt) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
+makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(AutoActionEvents i) !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV

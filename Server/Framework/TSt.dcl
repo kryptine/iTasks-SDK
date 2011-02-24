@@ -212,6 +212,17 @@ getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getConfigSetting :: !(Config -> a) !*TSt -> (!a,!*TSt)
 //// TASK CREATION
 
+// functions used for the definition of tasks
+// there are functions for two separate passes (edit & commit events pass)
+:: TaskFunctionEdit		:== *TSt -> *TSt
+:: TaskFunctionCommit a	:== *TSt -> *(!TaskResult a,!*TSt)
+:: TaskFunctions a		:== (!TaskFunctionEdit,!TaskFunctionCommit a)
+
+/**
+* Maps task functions to a different type.
+*/
+mapTaskFunctions :: !(a -> b) !(TaskFunctions a) -> TaskFunctions b
+
 /**
 * Lift a function that uses the TSt to a function that returns
 * a TaskResult value of TaskFinished with the value returned by the function.
@@ -220,7 +231,7 @@ getConfigSetting :: !(Config -> a) !*TSt -> (!a,!*TSt)
 *
 * @return The task function
 */
-mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
+mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> TaskFunctionCommit a
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
@@ -233,7 +244,7 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 *
 * @return The newly constructed basic task
 */
-mkInteractiveTask	:: !d !InteractiveTaskType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkInteractiveTask	:: !d !InteractiveTaskType !(TaskFunctions a) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
@@ -245,18 +256,19 @@ mkInteractiveTask	:: !d !InteractiveTaskType !(*TSt -> *(!TaskResult a,!*TSt)) -
 *
 * @return The newly constructed basic task
 */
-mkInstantTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkInstantTask		:: !d !(TaskFunctionCommit a) -> Task a | descr d
 /**
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
 * and the resulting sequence will be combined in a single sequence node.
 *
 * @param A description of the task
-* @param The function on the TSt that is the task
+* @param The function on the TSt that is the task (edit pass)
+* @param The function on the TSt that is the task (commit pass)
 *
 * @return The newly constructed sequence task
 */
-mkSequenceTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkSequenceTask		:: !d !(TaskFunctions a) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration for
@@ -269,7 +281,7 @@ mkSequenceTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 *
 * @return The newly constructed parallel task
 */
-mkParallelTask		:: !d !TaskParallelType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkParallelTask		:: !d !TaskParallelType !(TaskFunctions a) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that groups a number of 
 * tasks together. None of the subtasks is created in a separate process and no
@@ -281,7 +293,7 @@ mkParallelTask		:: !d !TaskParallelType !(*TSt -> *(!TaskResult a,!*TSt)) -> Tas
 *
 * @return The newly constructed grouped task
 */
-mkGroupedTask		:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkGroupedTask		:: !d !(TaskFunctions a) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that will make a
 * main task. This is a sequence node that keeps track of additional information
@@ -308,6 +320,16 @@ mkRpcTask :: !d !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a & descr d
 //// TASK APPLICATION
 
 /**
+* Applies a task to the task state and process all edit events (update local/shared values...)
+*
+* @param The task that is applied
+* @param The task state
+*
+* @return The modified task state
+*/
+applyTaskEdit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+
+/**
 * Applies a task to the task state and yields the tasks result.
 *
 * @param The task that is applied
@@ -316,7 +338,7 @@ mkRpcTask :: !d !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a & descr d
 * @return The value produced by the task
 * @return The modified task state
 */
-applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+applyTaskCommit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 
 /**
 * Add a subnode to the current task tree
@@ -338,16 +360,14 @@ setFocusCommand		:: !String !*TSt													-> *TSt //Only for group tasks
 setJSONValue		:: !JSONNode !*TSt													-> *TSt
 setJSONFunc			:: !(*IWorld -> *(!JSONNode,!*IWorld)) !*TSt						-> *TSt
 //EVENTS
-/**
-* Get the events (name/value pairs) for the current task
-* These events are removed from the task state
-*
-* @param The task state
-*
-* @return The matched events
-* @return The modified task state
-*/
-getEvents			:: !*TSt						-> ([(!String,!JSONNode)],!*TSt)
+//Get edit events for current task of which the name is a datapath
+getEditEvents :: !*TSt -> (![(!DataPath,!String)],!*TSt)
+
+//Get value event for current task if present
+getValueEvent :: !*TSt -> (!Maybe a,!*TSt) | JSONDecode{|*|} a
+
+//Get action event for current task if present
+getActionEvent :: !*TSt -> (!Maybe JSONNode,!*TSt)
 
 /**
 * Writes a 'task scoped' value to the store
@@ -365,6 +385,11 @@ getTaskStoreFor			:: !TaskNr !String !*IWorld		-> (Maybe a, !*IWorld) 		| JSONEn
 */
 getTaskStoreTimestamp		:: !String !*TSt			-> (Maybe Timestamp, !*TSt)
 getTaskStoreTimestampFor	:: !TaskNr !String !*IWorld	-> (Maybe Timestamp, !*IWorld)
+/**
+* Delete 'task scoped' values
+*/
+deleteTaskStore			:: !String !*TSt			-> *TSt
+deleteTaskStoreFor		:: !TaskNr !String !*IWorld	-> *IWorld
 /**
 * Store and load the result of a workflow instance
 */
@@ -398,13 +423,3 @@ copyTaskStates		:: !TaskNr !TaskNr !*TSt	-> *TSt
 * Writes all cached values in the store
 */
 flushStore			:: !*TSt					-> *TSt
-
-//// UTILITY
-/**
-* Convert the names in events to data paths
-*
-* @param The events (name/value list)
-*
-* @return The converted data paths
-*/
-events2Paths 		:: ![(!String,!String)] 	-> [DataPath]

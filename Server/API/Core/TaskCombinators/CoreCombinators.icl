@@ -11,16 +11,22 @@ derive class iTask SchedulerState, TaskStatus
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskb = mkSequenceTask (dotdot (taskTitle taska), taskDescription taska) tbind
+(>>=) taska taskb = mkSequenceTask (dotdot (taskTitle taska), taskDescription taska) (tbindE,tbindC)
 where
-	tbind tst
-		# (result,tst)		= applyTask taska tst
+	tbindE tst
+		# (result,tst) = applyTaskEdit taska tst
+		= case result of
+			TaskFinished a	= snd (applyTaskEdit (taskb a) tst)
+			_				= tst
+			
+	tbindC tst
+		# (result,tst) = applyTaskCommit taska tst
 		= case result of
 			TaskBusy
 				= (TaskBusy, tst)
 			TaskFinished a
 				//Pass the argument and do the second part
-				= applyTask (taskb a) tst
+				= applyTaskCommit (taskb a) tst
 			TaskException e
 				= (TaskException e,tst)
 
@@ -34,13 +40,17 @@ return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,
 
 //Repetition and loops:
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = mkSequenceTask (taskTitle task, taskDescription task) doTask
+(<!) task pred = mkSequenceTask (taskTitle task, taskDescription task) (doTaskE,doTaskC)
 where
-	doTask tst=:{taskNr} 
-		# tst			= {tst & taskNr = tl taskNr}
-		# (mbLoop,tst)	= getTaskStore "counter" tst
-		# loop			= case mbLoop of Nothing = 0; Just i = i
-		# (result,tst) 	= applyTask task {tst & taskNr = [loop:tl taskNr]}
+	doTaskE tst=:{taskNr}
+		# (loop,tst)				= getCounter tst
+		# (result,tst) 				= applyTaskEdit task {tst & taskNr = [loop:tl taskNr]}
+		= tst
+				
+		
+	doTaskC tst=:{taskNr} 
+		# (loop,tst)	= getCounter tst
+		# (result,tst) 	= applyTaskCommit task {tst & taskNr = [loop:tl taskNr]}
 		= case result of
 			TaskBusy
 				= (TaskBusy,tst)
@@ -51,22 +61,33 @@ where
 					# tst = resetSequence tst
 					# tst = {tst & taskNr = tl taskNr}	
 					# tst = setTaskStore "counter" (inc loop) tst
-					= doTask {tst & taskNr = taskNr}
+					= doTaskC {tst & taskNr = taskNr}
 				| otherwise
 					= (TaskFinished a, {tst & taskNr = taskNr})
 			TaskException e
 				= (TaskException e, {tst & taskNr = taskNr})
+				
+	getCounter tst=:{taskNr}
+		# (mbLoop,tst)	= getTaskStore "counter" {tst & taskNr = tl taskNr}
+		= (fromMaybe 0 mbLoop,tst)
 		
 // Sequential composition
 sequence :: !String ![Task a] -> (Task [a])	| iTask a
-sequence label tasks = mkSequenceTask (label, description tasks) (\tst -> doseqTasks tasks [] tst)
+sequence label tasks = mkSequenceTask (label, description tasks) (doseqTasksE tasks,\tst -> doseqTasksC tasks [] tst)
 where
-	doseqTasks [] accu tst				= (TaskFinished (reverse accu), tst)
-	doseqTasks [task:ts] accu tst 	
-		# (result,tst)					= applyTask task tst
+	doseqTasksE [] tst			= tst
+	doseqTasksE [task:ts] tst
+		# (result,tst)			= applyTaskEdit task tst
+		= case result of
+			TaskFinished _		= doseqTasksE ts tst
+			_					= tst
+
+	doseqTasksC [] accu tst				= (TaskFinished (reverse accu), tst)
+	doseqTasksC [task:ts] accu tst 	
+		# (result,tst)					= applyTaskCommit task tst
 		= case result of
 			TaskBusy					= (TaskBusy,tst)
-			TaskFinished a				= doseqTasks ts [a:accu] tst
+			TaskFinished a				= doseqTasksC ts [a:accu] tst
 			TaskException e				= (TaskException e,tst)
 	
 	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
@@ -80,12 +101,21 @@ derive bimap Maybe, (,)
 	}
 
 group :: !d !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
-group d procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask d execInGroup
+group d procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask d (execInGroupE,execInGroupC)
 where
-	execInGroup tst=:{taskNr,request}
+	execInGroupE tst=:{taskNr}
+		# (pst,tst) = loadPSt taskNr tst
+		= processAllTasksE pst 0 tst
+		
+	processAllTasksE pst idx tst=:{taskNr}
+		| (length pst.tasks) == idx = tst
+		# (task,_)					= pst.tasks !! idx
+		# (_,tst)					= applyTaskEdit task {tst & taskNr = [idx:taskNr]} 
+		= processAllTasksE pst (inc idx) {tst & taskNr = taskNr}
+		
+	execInGroupC tst=:{taskNr,request}
 		# (pst,tst)   		= loadPSt taskNr tst
-		# (events,tst)		= getEvents tst
-		# mbAction			= getEventGroupActionEvent events groupActions
+		# (mbAction,tst)	= getEventGroupActionEvent groupActions tst
 		# (gActionStop,mbFocus,pst) 
 			= case mbAction of
 				Nothing
@@ -99,7 +129,7 @@ where
 						Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]})
 						Focus tag		= (False,Just tag,pst)
 				
-		# (result,pst,tst,mbFocus) 	= processAllTasks pst 0 tst mbFocus
+		# (result,pst,tst,mbFocus) 	= processAllTasksC pst 0 tst mbFocus
 		# tst						= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 		= case result of
 			TaskException e = (TaskException e,tst)
@@ -113,24 +143,24 @@ where
 						Nothing			= tst
 					= (TaskBusy,tst)
 
-	processAllTasks pst idx tst=:{taskNr} mbFocus
+	processAllTasksC pst idx tst=:{taskNr} mbFocus
 		| (length pst.tasks) == idx = (TaskBusy,pst,tst,mbFocus)
 		# (task,done)				= pst.tasks !! idx
-		# (res,tst)					= applyTask task {tst & taskNr = [idx:taskNr]} 
+		# (res,tst)					= applyTaskCommit task {tst & taskNr = [idx:taskNr]} 
 		= case res of
 			TaskException e = (TaskException e,pst,{tst & taskNr = taskNr},mbFocus)
-			TaskBusy		= processAllTasks pst (inc idx) {tst & taskNr = taskNr} mbFocus
+			TaskBusy		= processAllTasksC pst (inc idx) {tst & taskNr = taskNr} mbFocus
 			TaskFinished a	
-				| done			= processAllTasks pst (inc idx) {tst & taskNr = taskNr} mbFocus
+				| done			= processAllTasksC pst (inc idx) {tst & taskNr = taskNr} mbFocus
 				# (nSt,act)		= procFun (a,idx) pst.PSt.state
 				# pst			= markProcessed {PSt | pst & state = nSt} idx
 				= case act of
 					Stop 		= (TaskFinished pst.PSt.state,pst,{tst & taskNr = taskNr},mbFocus)
-					Continue	= processAllTasks pst (inc idx) {tst & taskNr = taskNr} mbFocus
+					Continue	= processAllTasksC pst (inc idx) {tst & taskNr = taskNr} mbFocus
 					Extend tlist
 						# pst = {PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]}
-						= processAllTasks pst (inc idx) {tst & taskNr = taskNr} mbFocus
-					Focus tag	= processAllTasks pst (inc idx) {tst & taskNr = taskNr} (Just tag)
+						= processAllTasksC pst (inc idx) {tst & taskNr = taskNr} mbFocus
+					Focus tag	= processAllTasksC pst (inc idx) {tst & taskNr = taskNr} (Just tag)
 
 	loadPSt taskNr tst
 		# (mbPSt,tst) = accIWorldTSt (getTaskStoreFor taskNr "pst") tst
@@ -161,28 +191,45 @@ where
 			# (val,iworld) = appFst fromOk (readShared shared iworld)
 			= (p val, iworld)
 				
-	getEventGroupActionEvent events groupActions
-		# actionEvents = [getNameAndData event \\ ("action", event) <- events]
-		= case [(action, data) \\ (action,pred) <- groupActions, (name, data) <- actionEvents | actionName action == name] of
-			[actionEvent]	= Just actionEvent
-			_				= Nothing
+	getEventGroupActionEvent groupActions tst
+		# (mbActionEvent,tst)	= getActionEvent tst
+		# mbActionEvent			= maybe Nothing getNameAndData mbActionEvent
+		# res = case mbActionEvent of
+			Nothing
+				= Nothing
+			Just (name,data)
+				= case [(action, data) \\ (action,pred) <- groupActions | actionName action == name] of
+					[actionEvent]	= Just actionEvent
+					_				= Nothing
+		= (res,tst)
 	where
-		getNameAndData (JSONString key) 							= (key, "")
-		getNameAndData (JSONArray [JSONString key,JSONString data])	= (key, data)
-		getNameAndData _											= abort "invalid group event!"
+		getNameAndData (JSONString key) 							= Just (key, "")
+		getNameAndData (JSONArray [JSONString key,JSONString data])	= Just (key, data)
+		getNameAndData _											= Nothing
 		
 parallel :: !TaskParallelType !d !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c & descr d
 parallel parType d procFun parseFun initState initTasks
-	= mkParallelTask d parType parallel`
+	= mkParallelTask d parType (parallelE,parallelC)
 where
-	parallel` tst=:{taskNr,properties}
+	parallelE tst=:{taskNr}
+		| isEmpty initTasks = tst
+		# (pst,tst) = loadPSt taskNr tst
+		= processAllTasksE pst 0 tst
+		
+	processAllTasksE pst idx tst=:{taskNr}
+		| (length pst.tasks) == idx = tst
+		# (task,_)					= pst.tasks !! idx
+		# (_,tst)					= applyTaskEdit task {tst & taskNr = [idx:taskNr]} 
+		= processAllTasksE pst (inc idx) {tst & taskNr = taskNr}
+
+	parallelC tst=:{taskNr,properties}
 		// When the initial list of tasks is empty just return the transformed initial state
 		| isEmpty initTasks
 			= (TaskFinished (parseFun initState), tst)
 		// Load the internal state
 		# (pst,tst)			= loadPSt taskNr tst
 		// Evaluate the subtasks for all currently active tasks
- 		# (res,pst,tst)		= processAllTasks 0 pst tst
+ 		# (res,pst,tst)		= processAllTasksC 0 pst tst
 		// Store the internal state
 		# tst				= storePSt taskNr pst tst
 		// The result of the combined evaluation of all parallel subtasks
@@ -207,7 +254,7 @@ where
 	storePSt taskNr pst tst
 		= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 	
-	processAllTasks idx pst=:{PSt|state,tasks} tst=:{TSt|taskNr,properties}
+	processAllTasksC idx pst=:{PSt|state,tasks} tst=:{TSt|taskNr,properties}
 		= case tasks of
 			//We have processed all results
 			[]					= (TaskBusy, {PSt|state = state, tasks = []}, tst)
@@ -220,13 +267,13 @@ where
 				= case result of
 					TaskBusy
 						//Process the other tasks
-						# (result,pst,tst) = processAllTasks (inc idx) {PSt|state = state, tasks = ts} {tst & taskNr = taskNr}
+						# (result,pst,tst) = processAllTasksC (inc idx) {PSt|state = state, tasks = ts} {tst & taskNr = taskNr}
 						= (result, {PSt| pst & tasks = [(task,False):pst.tasks]}, {tst & taskNr = taskNr})  
 					TaskFinished a
 						//When we have applied the process function already, don't do it a second time
 						| done
 							//Process the other tasks
-							# (result,pst,tst) = processAllTasks (inc idx) {PSt| state = state, tasks = ts} {tst & taskNr = taskNr}
+							# (result,pst,tst) = processAllTasksC (inc idx) {PSt| state = state, tasks = ts} {tst & taskNr = taskNr}
 							= (result, {PSt | pst & tasks = [(task,True):pst.tasks]}, {tst & taskNr = taskNr}) 
 						//Apply the process function
 						# (state,action)	= procFun (a,idx) state
@@ -236,11 +283,11 @@ where
 								= (TaskFinished state, {PSt|pst & state = state, tasks = [(task,True):ts]}, {tst & taskNr = taskNr})
 							Continue
 								//Process the other tasks
-								# (result,pst,tst) = processAllTasks (inc idx) {PSt| state = state, tasks = ts} {tst & taskNr = taskNr}
+								# (result,pst,tst) = processAllTasksC (inc idx) {PSt| state = state, tasks = ts} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = [(task,True):pst.tasks]}, {tst & taskNr = taskNr})
 								//Process the other tasks extended with the new tasks
 							Extend tasks
-								# (result,pst,tst) = processAllTasks (inc idx) {PSt| state = state, tasks = ts ++ [(t,False) \\ t <- tasks]} {tst & taskNr = taskNr}
+								# (result,pst,tst) = processAllTasksC (inc idx) {PSt| state = state, tasks = ts ++ [(t,False) \\ t <- tasks]} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = [(task,True):pst.tasks]}, {tst & taskNr = taskNr})
 					TaskException e
 						//Don't process the other tasks, just let the exception through

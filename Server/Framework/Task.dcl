@@ -22,7 +22,8 @@ derive gEq			Task
 	, groupedProperties	:: !GroupedProperties					// properties about how the tasks behaves inside of a group
 	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
 	, mbMenuGenFunc		:: !(Maybe MenuGenFunc)					// a function generating a menu structure
-	, taskFunc			:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task
+	, taskFuncEdit		:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
+	, taskFuncCommit	:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
 	}
 
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
