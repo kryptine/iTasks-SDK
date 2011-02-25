@@ -61,26 +61,42 @@ derive bimap (,), Maybe
 	|	ProcurementRejected
 	|	ProcurementCanceled
 	
-	
-	
-	
-		
-	
-	
-
 // start 
 
-Start world = startEngine [workflow "Order Example" "Order Example" test] world	  	
+Start world = startEngine [workflow "Order Example" "Order Example" request] world	  	
 	  	
-test :: Task [LineItem]
-test = enterInformation "test"
-
-
-
 // requester
 
-
+request :: (Task [(Int,Item)])
+request 
+	=						enterInformation "Which items do you want to order ?"
+		>>= \items ->		getUsersWithRole "buyer" 				
+		>>= \buyers ->  	enterChoice "Choose a buyer ?" (map userName buyers)
+		>>= \buyer ->		(NamedUser buyer) @: buy (NamedUser buyer) [(i,item) \\ item <- items & i <- [0..]]
 
 // buyer
 
+buy :: User [(Int,Item)] -> Task [(Int,Item)]
+buy buyer []
+	=						return []
+buy buyer items
+	=						getUsersWithRole "supplier" 
+		>>= \suppliers -> 	(enterMultipleChoice "Select items from list" items
+							-&&-
+							enterChoice "Select supplier" (map userName suppliers))
+		>>= \(chosen,supplier) ->
+							(addToOrderList supplier chosen 
+							-&&-
+							buy buyer [(i,item) \\ (i,item) <- items | not (isMember i (map fst chosen))])
+		>>= \(list,_) ->	return list
+
+addToOrderList :: String [(Int,Item)] -> Task [(Int,Item)]
+addToOrderList supplier chosen
+	=						let sid = (sharedStore supplier) in
+							readShared sid
+		>>= \list ->		writeShared sid (list++chosen)
+
+
 // suppliers
+
+
