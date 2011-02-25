@@ -23,8 +23,8 @@ ifinvalid _			= False
 noAutoActionEvents :: AutoActionEvents a
 noAutoActionEvents = const Nothing
 
-makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(AutoActionEvents i) !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
-makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions autoEventF informationTaskMode = (interactiveTaskE,interactiveTaskC)
+makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(Maybe (AutoActionEvents i)) !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
+makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions mbAutoEventF informationTaskMode = (interactiveTaskE,interactiveTaskC)
 where
 	interactiveTaskE tst=:{taskNr}
 		# (old=:(ovalue,oumask,ovmask),tst)	= accIWorldTSt (readStores taskNr) tst
@@ -59,15 +59,20 @@ where
 				= (False,tst)
 		= appIWorldTSt (setCommitStoreInfo taskNr (outdatedClient,conflict,map fst edits,localTimestamp)) tst
 
-	interactiveTaskC tst=:{taskNr,newTask,treeType}
+	interactiveTaskC tst=:{taskNr,newTask,treeType,triggerPresent}
 		// init task if it's new
 		# tst								= if newTask (appIWorldTSt (initTask taskNr) tst) tst
 		// read local value/masks & model value/timestamp
 		# (new=:(nvalue,numask,nvmask),tst)	= accIWorldTSt (readStores taskNr) tst
 		# ((modelV,modelT),tst)				= accIWorldTSt (readModelValue taskNr) tst
 		// check auto event
-		# mbAutoEvent						= autoEventF (if (isValidValue nvmask) (Valid modelV) Invalid)
+		# mbAutoEvent						= maybe Nothing (\autoEventF -> autoEventF (if (isValidValue nvmask) (Valid modelV) Invalid)) mbAutoEventF
 		| isJust mbAutoEvent				= (TaskFinished (fromJust mbAutoEvent,(if (isValidValue nvmask) (Just modelV) Nothing)),tst)
+		// check for action event
+		# (mbActionEvent,tst)				= actionEvent actions tst
+		| isJust mbActionEvent				= (TaskFinished (fromJust mbActionEvent,if (isValidValue nvmask) (Just modelV) Nothing),tst)
+		// task is still busy, set trigger flag
+		# tst								= {tst & triggerPresent = triggerPresent || isJust mbAutoEventF}
 		# ((outdatedClient,conflict,updatedPaths,localTimestamp),tst) = accIWorldTSt (getCommitStoreInfo taskNr) tst
 		# errors = case (outdatedClient,conflict) of
 			(True,_)						= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
@@ -81,65 +86,52 @@ where
 			SpineTree
 				= (TaskBusy,tst)
 			JSONTree
-				// check for action event
-				# (mbActionEvent,tst) = actionEvent actions tst
-				= case mbActionEvent of
-					Just event
-						= (TaskFinished (event,if (isValidValue nvmask) (Just modelV) Nothing),tst)
-					Nothing
-						# tst		= setJSONValue (toJSON nvalue) tst
-						= (TaskBusy,tst)
+				# tst = setJSONValue (toJSON nvalue) tst
+				= (TaskBusy,tst)
 			UITree
-				// check for action event
-				# (mbActionEvent,tst) = actionEvent actions tst
-				# (res,tst) = case mbActionEvent of
-					Just event
-						= (TaskFinished (event,if (isValidValue nvmask) (Just modelV) Nothing),tst)
-					Nothing
-						# editorId                              = "tf-" +++ taskNrToString taskNr
-						# evalActions                           = evaluateConditions actions (isValidValue nvmask) modelV
-						# (mbClientTimestamp,tst)				= clientTimestamp tst
-						| isNothing mbClientTimestamp || outdatedClient || newTask // refresh UI if client is outdated, no timestamp is send (refresh) or task is new
-							# form 								= visualizeAsEditor editorId nvalue nvmask
-							# (mbContext,tst) = case mbAbout of
-								Nothing							= (Nothing,tst)
-								Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),tst)
-								Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (accIWorldTSt (readShared ref) tst)
-							# tst = setTUIDef (taskPanel taskNr mbContext (Just form)) evalActions tst
-							= (TaskBusy,tst)
-						| otherwise	// update UI
-							// get stored old value, masks & errors
-							# ((ovalue,oumask,ovmask),tst)		= accIWorldTSt (getCommitStoreOld taskNr) tst
-							# (oldErrors,tst)					= accIWorldTSt (getErrors taskNr) tst
-							# nvmask							= setInvalid oldErrors nvmask
-							# updates							= determineEditorUpdates editorId (ovalue,ovmask) (nvalue,nvmask) updatedPaths
-							// update context if shared & changed
-							# (updates,tst) = case mbAbout of
-								Just (SharedAbout shared)
-									# (changed,tst) = appFst fromOk (accIWorldTSt (isSharedChanged shared localTimestamp) tst)
-									| changed
-										# (context,tst) = appFst (visualizeAsHtmlDisplay o aboutView o fromOk) (accIWorldTSt (readShared shared) tst)
-										= ([TUIReplace (contextId taskNr) (taskContextPanel taskNr context):updates],tst)
-									| otherwise
-										= (updates,tst) 
-								_
-									= (updates,tst)
-							# tst = setTUIUpdates updates evalActions tst
-							= (TaskBusy,tst)
+				# editorId								= "tf-" +++ taskNrToString taskNr
+				# evalActions							= evaluateConditions actions (isValidValue nvmask) modelV
+				# (mbClientTimestamp,tst)				= clientTimestamp tst
+				| isNothing mbClientTimestamp || outdatedClient || newTask // refresh UI if client is outdated, no timestamp is send (refresh) or task is new
+					# form 								= visualizeAsEditor editorId nvalue nvmask
+					# (mbContext,tst) = case mbAbout of
+						Nothing							= (Nothing,tst)
+						Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),tst)
+						Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (accIWorldTSt (readShared ref) tst)
+					# tst = setTUIDef (taskPanel taskNr mbContext (Just form)) evalActions tst
+					= (TaskBusy,tst)
+				| otherwise	// update UI
+					// get stored old value, masks & errors
+					# ((ovalue,oumask,ovmask),tst)		= accIWorldTSt (getCommitStoreOld taskNr) tst
+					# (oldErrors,tst)					= accIWorldTSt (getErrors taskNr) tst
+					# nvmask							= setInvalid oldErrors nvmask
+					# updates							= determineEditorUpdates editorId (ovalue,ovmask) (nvalue,nvmask) updatedPaths
+					// update context if shared & changed
+					# (updates,tst) = case mbAbout of
+						Just (SharedAbout shared)
+							# (changed,tst) = appFst fromOk (accIWorldTSt (isSharedChanged shared localTimestamp) tst)
+							| changed
+								# (context,tst) = appFst (visualizeAsHtmlDisplay o aboutView o fromOk) (accIWorldTSt (readShared shared) tst)
+								= ([TUIReplace (contextId taskNr) (taskContextPanel taskNr context):updates],tst)
+							| otherwise
+								= (updates,tst) 
+						_
+							= (updates,tst)
+					# tst = setTUIUpdates updates evalActions tst
+					= (TaskBusy,tst)
 				// delete commit stores
-				# tst	= deleteTaskStore "commit-old" tst
-				# tst	= deleteTaskStore "commit-info" tst
-				= (res,tst)
+				//# tst	= deleteTaskStore "commit-old" tst
+				//# tst	= deleteTaskStore "commit-info" tst
 
 	// for local mode use auto generated store name, for shared mode use given store
 	shared taskNr = case informationTaskMode of
 		SharedUpdate shared	= shared
-		_					= mapSharedRead w2r (sharedStore ("iTask_" +++ taskNrToString taskNr +++ "-model"))
+		_					= mapSharedRead o2i (sharedStore ("iTask_" +++ taskNrToString taskNr +++ "-model"))
 	
-	w2r = case informationTaskMode of
+	o2i = case informationTaskMode of
 		LocalUpdateMode _ f	= f
 		EnterMode f			= f
-		_					= abort "no w2r function"
+		_					= abort "no o2i function"
 		
 	enterMode = case informationTaskMode of
 		EnterMode _	= True
@@ -166,7 +158,7 @@ where
 		| enterMode // don't read model in enter mode, but compute from view
 			# (view,iworld)				= readValue taskNr iworld
 			# (localTimestamp,iworld)	= getLocalTimestamp taskNr iworld
-			= ((w2r (bimapPutback view undef),localTimestamp),iworld)
+			= ((o2i (bimapPutback view undef),localTimestamp),iworld)
 		| otherwise
 			# (value,iworld) 	= appFst fromOk (readShared (shared taskNr) iworld)
 			# (timest,iworld)	= appFst fromOk (getSharedTimestamp (shared taskNr) iworld)

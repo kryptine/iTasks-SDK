@@ -92,13 +92,16 @@ where
 	
 	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
 // Parallel / Grouped composition
-derive class iTask PSt
+derive JSONEncode PSt, PStTask
+derive JSONDecode PSt, PStTask
 derive bimap Maybe, (,)
 
 :: PSt a b =
-	{ state :: b
-	, tasks :: [(Task a,Bool)]
+	{ state :: !b
+	, tasks :: ![(!PStTask a,!Bool)]
 	}
+	
+:: PStTask a = InitTask !Int | AddedTask !(Task a)
 
 group :: !d !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
 group d procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask d (execInGroupE,execInGroupC)
@@ -109,7 +112,7 @@ where
 		
 	processAllTasksE pst idx tst=:{taskNr}
 		| (length pst.tasks) == idx = tst
-		# (task,_)					= pst.tasks !! idx
+		# (task,_)					= getTaskFromPSt idx pst
 		# (_,tst)					= applyTaskEdit task {tst & taskNr = [idx:taskNr]} 
 		= processAllTasksE pst (inc idx) {tst & taskNr = taskNr}
 		
@@ -126,7 +129,7 @@ where
 					= case act of
 						Stop			= (True,Nothing,pst)
 						Continue		= (False,Nothing,pst)
-						Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]})
+						Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(AddedTask task,False) \\ task <- tlist]})
 						Focus tag		= (False,Just tag,pst)
 				
 		# (result,pst,tst,mbFocus) 	= processAllTasksC pst 0 tst mbFocus
@@ -145,7 +148,7 @@ where
 
 	processAllTasksC pst idx tst=:{taskNr} mbFocus
 		| (length pst.tasks) == idx = (TaskBusy,pst,tst,mbFocus)
-		# (task,done)				= pst.tasks !! idx
+		# (task,done)				= getTaskFromPSt idx pst
 		# (res,tst)					= applyTaskCommit task {tst & taskNr = [idx:taskNr]} 
 		= case res of
 			TaskException e = (TaskException e,pst,{tst & taskNr = taskNr},mbFocus)
@@ -158,7 +161,7 @@ where
 					Stop 		= (TaskFinished pst.PSt.state,pst,{tst & taskNr = taskNr},mbFocus)
 					Continue	= processAllTasksC pst (inc idx) {tst & taskNr = taskNr} mbFocus
 					Extend tlist
-						# pst = {PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]}
+						# pst = {PSt | pst & tasks = pst.tasks ++ [(AddedTask task,False) \\ task <- tlist]}
 						= processAllTasksC pst (inc idx) {tst & taskNr = taskNr} mbFocus
 					Focus tag	= processAllTasksC pst (inc idx) {tst & taskNr = taskNr} (Just tag)
 
@@ -171,10 +174,17 @@ where
 	initPSt taskNr tst
 		# pst = { PSt
 				| state = initState
-				, tasks = [(task, False) \\ task <- initTasks]
+				, tasks = [(InitTask idx,False) \\ idx <- indexList initTasks]
 				}
 		# tst = appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 		= (pst,tst)
+		
+	getTaskFromPSt idx pst
+		# (pstTask,done) = pst.tasks !! idx
+		= (getPStTask pstTask,done)
+			
+	getPStTask (InitTask idx)	= initTasks !! idx
+	getPStTask (AddedTask task)	= task
 
 	markProcessed pst idx
 		# (t,b) 	= pst.tasks !! idx
@@ -218,7 +228,7 @@ where
 		
 	processAllTasksE pst idx tst=:{taskNr}
 		| (length pst.tasks) == idx = tst
-		# (task,_)					= pst.tasks !! idx
+		# (task,_)					= getTaskFromPSt idx pst
 		# (_,tst)					= applyTaskEdit task {tst & taskNr = [idx:taskNr]} 
 		= processAllTasksE pst (inc idx) {tst & taskNr = taskNr}
 
@@ -249,17 +259,25 @@ where
 		# (mbPSt,tst) = accIWorldTSt (getTaskStoreFor taskNr "pst") tst
 		= case mbPSt of
 			Just pst	= (pst,tst)
-			Nothing 	= ({PSt | state = initState, tasks = [(task,False) \\ task <- initTasks]},tst)
+			Nothing 	= ({PSt | state = initState, tasks = [(InitTask idx,False) \\ idx <- indexList initTasks]},tst)
 	
 	storePSt taskNr pst tst
 		= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
+		
+	getTaskFromPSt idx pst
+		# (pstTask,done) = pst.tasks !! idx
+		= (getPStTask pstTask,done)
+			
+	getPStTask (InitTask idx)	= initTasks !! idx
+	getPStTask (AddedTask task)	= task
 	
 	processAllTasksC idx pst=:{PSt|state,tasks} tst=:{TSt|taskNr,properties}
 		= case tasks of
 			//We have processed all results
 			[]					= (TaskBusy, {PSt|state = state, tasks = []}, tst)
 			//Process another task
-			[(task,done):ts]
+			[(pstTask,done):ts]
+				# task = getPStTask pstTask
 				//IMPORTANT: Task is evaluated with a shifted task number!!!
 				# (result,tree,tst)	= createOrEvaluateTaskInstance (Just parType) task {tst & taskNr = [idx:taskNr]}
 				// Add the tree to the current node
@@ -268,30 +286,30 @@ where
 					TaskBusy
 						//Process the other tasks
 						# (result,pst,tst) = processAllTasksC (inc idx) {PSt|state = state, tasks = ts} {tst & taskNr = taskNr}
-						= (result, {PSt| pst & tasks = [(task,False):pst.tasks]}, {tst & taskNr = taskNr})  
+						= (result, {PSt| pst & tasks = [(pstTask,False):pst.tasks]}, {tst & taskNr = taskNr})  
 					TaskFinished a
 						//When we have applied the process function already, don't do it a second time
 						| done
 							//Process the other tasks
 							# (result,pst,tst) = processAllTasksC (inc idx) {PSt| state = state, tasks = ts} {tst & taskNr = taskNr}
-							= (result, {PSt | pst & tasks = [(task,True):pst.tasks]}, {tst & taskNr = taskNr}) 
+							= (result, {PSt | pst & tasks = [(pstTask,True):pst.tasks]}, {tst & taskNr = taskNr}) 
 						//Apply the process function
 						# (state,action)	= procFun (a,idx) state
 						= case action of
 							Stop
 								//Don't process the other tasks, return the state as result
-								= (TaskFinished state, {PSt|pst & state = state, tasks = [(task,True):ts]}, {tst & taskNr = taskNr})
+								= (TaskFinished state, {PSt|pst & state = state, tasks = [(pstTask,True):ts]}, {tst & taskNr = taskNr})
 							Continue
 								//Process the other tasks
 								# (result,pst,tst) = processAllTasksC (inc idx) {PSt| state = state, tasks = ts} {tst & taskNr = taskNr}
-								= (result, {PSt | pst & tasks = [(task,True):pst.tasks]}, {tst & taskNr = taskNr})
+								= (result, {PSt | pst & tasks = [(pstTask,True):pst.tasks]}, {tst & taskNr = taskNr})
 								//Process the other tasks extended with the new tasks
 							Extend tasks
-								# (result,pst,tst) = processAllTasksC (inc idx) {PSt| state = state, tasks = ts ++ [(t,False) \\ t <- tasks]} {tst & taskNr = taskNr}
-								= (result, {PSt | pst & tasks = [(task,True):pst.tasks]}, {tst & taskNr = taskNr})
+								# (result,pst,tst) = processAllTasksC (inc idx) {PSt| state = state, tasks = ts ++ [(AddedTask t,False) \\ t <- tasks]} {tst & taskNr = taskNr}
+								= (result, {PSt | pst & tasks = [(pstTask,True):pst.tasks]}, {tst & taskNr = taskNr})
 					TaskException e
 						//Don't process the other tasks, just let the exception through
-						= (TaskException e, {PSt| pst & tasks = [(task,True):ts]}, {tst & taskNr = taskNr})
+						= (TaskException e, {PSt| pst & tasks = [(pstTask,True):ts]}, {tst & taskNr = taskNr})
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.

@@ -12,25 +12,29 @@ from Time		import :: Timestamp(..)
 from HTTP		import :: HTTPRequest
 
 // The task state
-:: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
-					, taskInfo		:: !TaskInfo										// task information available to tasks
-					, tree			:: !TaskTree										// accumulator for constructing a task tree
-					, treeType		:: !TreeType										// the type of task tree that is to be constructed
-					, newTask		:: !Bool											// does the task run for the first time
+:: *TSt 		=	{ taskNr 			:: !TaskNr											// for generating unique form-id's
+					, taskInfo			:: !TaskInfo										// task information available to tasks
+					, tree				:: !TaskTree										// accumulator for constructing a task tree
+					, treeType			:: !TreeType										// the type of task tree that is to be constructed
+					, newTask			:: !Bool											// does the task run for the first time
 					
-					, events		:: ![TaskEvent]										// The update events for interactive tasks
-																						// (task id, name, value)
+					, events			:: ![TaskEvent]										// The update events for interactive tasks
+																							// (task id, name, value)
 																						
-					, properties	:: !TaskProperties									// Properties of the current evaluated process
+					, properties		:: !TaskProperties									// Properties of the current evaluated process
 					
-					, staticInfo	:: !StaticInfo										// info which does not change during a run
+					, staticInfo		:: !StaticInfo										// info which does not change during a run
 										
-					, currentChange	:: !Maybe (!ChangeLifeTime,!ChangeDyn)				// An active change
-					, pendingChanges:: ![(!ChangeLifeTime,!ChangeDyn)]					// Pending persistent changes
+					, currentChange		:: !Maybe (!ChangeLifeTime,!ChangeDyn)				// An active change
+					, pendingChanges	:: ![(!ChangeLifeTime,!ChangeDyn)]					// Pending persistent changes
 					
-					, request		:: !HTTPRequest										// The current http request
+					, request			:: !HTTPRequest										// The current http request
 					
-					, iworld		:: !*IWorld											// The 'iTasks' world				
+					, iworld			:: !*IWorld											// The 'iTasks' world
+					
+					, sharedChanged		:: !Bool											// Is set to true if a Shared is changed
+					, triggerPresent	:: !Bool											// Is set to true if an editor with an auto event is present
+					, iterationCount	:: !Int												// Number of iterations in the commit phase
 					}
 					
 

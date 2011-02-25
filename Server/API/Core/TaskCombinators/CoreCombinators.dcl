@@ -62,7 +62,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
 :: PAction x	= Stop			// stop the entire parallel/grouped execution
 				| Continue		// continue execution without change
-				| Extend .[x]	// dynamically extend list of tasks in parallel/group
+				| Extend ![x]	// dynamically extend list of tasks in parallel/group
 				| Focus Tag		// focus child-tasks with given tag
 
 // This tuple is used to link actions to groups, similar to TaskAction.

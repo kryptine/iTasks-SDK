@@ -31,4 +31,4 @@ where
 makeMonitorTaskA	:: !(Shared m w) !(m -> v) ![TaskAction m] !(AutoActionEvents m) -> TaskFunctions (!ActionEvent,!Maybe m) | iTask m & iTask v
 makeMonitorTaskA shared view actions autoEvents
 	# shared = toReadOnlyShared shared
-	= makeInteractiveTask (Just (SharedAbout shared)) view (Hidden,\_ _ -> Void) actions autoEvents (SharedUpdate shared)
+	= makeInteractiveTask (Just (SharedAbout shared)) view (Hidden,\_ _ -> Void) actions (Just autoEvents) (SharedUpdate shared)

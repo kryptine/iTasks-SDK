@@ -73,17 +73,19 @@ where
 			Ok val	= TaskFinished val
 			Error e	= TaskException (dynamic (SharedException e))
 		= (res,iworld)
-		
+	
 writeShared :: !(Shared r a) !a -> Task a | iTask a
 writeShared shared val
-	= mkInstantTask ("Write shared", "Writes a shared value") (accIWorldTSt writeShared`)
+	= mkInstantTask ("Write shared", "Writes a shared value") writeShared`
 where
-	writeShared` iworld
-		# (res,iworld) = 'Shared'.writeShared shared val iworld
+	writeShared` tst
+		// set shared changed flag
+		# tst		= {tst & sharedChanged = True}
+		# (res,tst)	= accIWorldTSt ('Shared'.writeShared shared val) tst
 		# res = case res of
 			Ok _	= TaskFinished val
 			Error e	= TaskException (dynamic (SharedException e))
-		= (res,iworld)
+		= (res,tst)
 
 updateShared :: !(Shared r w) !(r -> w) -> Task w | iTask r & iTask w
 updateShared shared f

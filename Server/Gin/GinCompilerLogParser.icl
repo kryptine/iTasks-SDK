@@ -5,8 +5,6 @@ import Maybe
 import ParserCombinators
 import GenPrint
 
-import StdDebug
-
 parseCleanIDELog :: String -> [CompilerErrorContext]
 parseCleanIDELog s = (snd o hd) (begin1 parser (fromString s))
 where

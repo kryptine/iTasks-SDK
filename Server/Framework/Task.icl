@@ -1,6 +1,6 @@
 implementation module Task
 
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdMisc, StdFunc, HTML, Types, dynamic_string, Base64, HTTP
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, HTML, Types, dynamic_string, Base64, HTTP, graph_to_sapl_string
 import GenVisualize
 from TSt import :: TSt
 
@@ -60,13 +60,47 @@ mapTaskResult f (TaskFinished x)	= TaskFinished (f x)
 mapTaskResult f (TaskBusy)			= TaskBusy
 mapTaskResult f (TaskException e)	= TaskException e
 
-derive JSONEncode TaskResult
-derive JSONDecode TaskResult
+derive JSONEncode TaskResult, GroupedProperties, GroupActionsBehaviour, GroupedBehaviour
+derive JSONDecode TaskResult, GroupedProperties, GroupActionsBehaviour, GroupedBehaviour
 derive bimap Maybe, (,)
 
-JSONEncode{|Task|} _ t						= [JSONString (base64Encode (copy_to_string t))]
-JSONDecode{|Task|} _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
-JSONDecode{|Task|} _ c						= (Nothing,c)
+JSONEncode{|Task|} _ {taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit}
+	= [JSONArray	[  JSONString "Task"
+					:  JSONEncode{|*|} taskProperties
+					++ JSONEncode{|*|} groupedProperties
+					++ JSONEncode{|*|} mbTaskNr
+					++ encodeFunc mbMenuGenFunc
+					++ encodeFunc taskFuncEdit
+					++ encodeFunc taskFuncCommit]]
+					
+encodeFunc f = [JSONString (base64Encode (copy_to_string f))]//[JSONString (graph_to_sapl_string f)]
+
+JSONDecode{|Task|} _ [JSONArray [taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
+	# mbTaskProperties		= fromJSON taskProperties
+	# mbGroupedProperties	= fromJSON groupedProperties
+	# mbMbTaskNr			= fromJSON mbTaskNr
+	# mbMbMenuGenFunc		= decodeFunc mbMenuGenFunc
+	# mbTaskFuncEdit		= decodeFunc taskFuncEdit
+	# mbTaskFuncCommit		= decodeFunc taskFuncCommit
+	|  isJust mbTaskProperties
+	&& isJust mbGroupedProperties
+	&& isJust mbMbTaskNr
+	&& isJust mbMbMenuGenFunc
+	&& isJust mbTaskFuncEdit
+	&& isJust mbTaskFuncCommit
+		= (Just	{ taskProperties	= fromJust mbTaskProperties
+				, groupedProperties	= fromJust mbGroupedProperties
+				, mbTaskNr			= fromJust mbMbTaskNr
+				, mbMenuGenFunc		= fromJust mbMbMenuGenFunc
+				, taskFuncEdit		= fromJust mbTaskFuncEdit
+				, taskFuncCommit	= fromJust mbTaskFuncCommit
+				},c)
+	| otherwise
+		= (Nothing,c)
+JSONDecode{|Task|} _ c = (Nothing,c)
+
+decodeFunc (JSONString str)	= Just (fst(copy_from_string {s` \\ s` <-: base64Decode str}))//(string_to_graph str)
+decodeFunc _				= Nothing
 
 gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust

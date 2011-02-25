@@ -50,6 +50,5 @@ SharedUpdate s	:== SharedUpdateMode s
 // function possibly generating action event triggered automatically
 :: AutoActionEvents a :== (Verified a) -> Maybe ActionEvent
 
-noAutoActionEvents :: AutoActionEvents a
+makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(Maybe (AutoActionEvents i)) !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
 
-makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(AutoActionEvents i) !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV

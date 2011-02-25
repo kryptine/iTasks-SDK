@@ -56,7 +56,7 @@ makeInformationTaskA mbContext view actions informationTaskMode
 	
 makeInformationTaskAV :: !(Maybe about) !(View i v o) ![TaskAction i] !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent,!Maybe i) | iTask i & iTask v & iTask o & iTask about
 makeInformationTaskAV mbContext view actions interactionTaskMode
-	= makeInteractiveTask (fmap AboutValue mbContext) id view actions noAutoActionEvents interactionTaskMode
+	= makeInteractiveTask (fmap AboutValue mbContext) id view actions Nothing interactionTaskMode
 
 enterChoice :: !d ![a] -> Task a | descr d & iTask a
 enterChoice description options
@@ -276,7 +276,7 @@ makeMessageTaskSticky about view
 	= mapTaskFunctions snd (makeMessageTaskA about view [])
 
 makeMessageTaskA :: !(AboutMsg a) !(a -> v) ![TaskAction a] -> TaskFunctions (!ActionEvent,!a) | iTask a & iTask v
-makeMessageTaskA about view actions = appSnd ((o) mapResult) (makeInteractiveTask mbAbout view (Hidden,\_ _ -> Void) actions noAutoActionEvents mode)
+makeMessageTaskA about view actions = appSnd ((o) mapResult) (makeInteractiveTask mbAbout view (Hidden,\_ _ -> Void) actions Nothing mode)
 where
 	mapResult (res,tst) = case res of
 		TaskFinished (event,_)
@@ -309,7 +309,7 @@ showInstructionAbout subject instruction context
 
 makeInstructionTask :: !(Maybe about) !a -> TaskFunctions a | iTask a & iTask about
 makeInstructionTask context value
-	= mapTaskFunctions (const value) (makeInteractiveTask (fmap AboutValue context) id idView [(ActionOk,always)] noAutoActionEvents (LocalUpdate Void))
+	= mapTaskFunctions (const value) (makeInteractiveTask (fmap AboutValue context) id idView [(ActionOk,always)] Nothing (LocalUpdate Void))
 
 //Changes all predicates on values of type a to predicates on values of type b										
 mapTaskActionPredicates :: !(b -> a) ![TaskAction a] -> [TaskAction b]

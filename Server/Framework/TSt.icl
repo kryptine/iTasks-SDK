@@ -6,6 +6,8 @@ import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import GenEq, GenVisualize, GenUpdate, Store, Config, dynamic_string
 from JSON import JSONDecode, fromJSON
 
+ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
+
 :: RPCMessage =
 			{ success		:: Bool
 			, error			:: Bool
@@ -20,18 +22,21 @@ derive JSONDecode 	RPCMessage
 
 mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !*World -> *TSt
 mkTSt appName config request workflows store world
-	=	{ taskNr		= []
-		, taskInfo		= initTaskInfo
-		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo NoOutput)
-		, treeType		= SpineTree
-		, newTask		= True
-		, events		= []
-		, properties	= initTaskProperties
-		, staticInfo	= initStaticInfo appName workflows
-		, currentChange	= Nothing
-		, pendingChanges= []
-		, request		= request
-		, iworld		= initIWorld appName config store world
+	=	{ taskNr			= []
+		, taskInfo			= initTaskInfo
+		, tree				= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo NoOutput)
+		, treeType			= SpineTree
+		, newTask			= True
+		, events			= []
+		, properties		= initTaskProperties
+		, staticInfo		= initStaticInfo appName workflows
+		, currentChange		= Nothing
+		, pendingChanges	= []
+		, request			= request
+		, iworld			= initIWorld appName config store world
+		, sharedChanged		= False
+		, triggerPresent	= False
+		, iterationCount	= 1
 		}
 
 initStaticInfo :: String ![Workflow] -> StaticInfo
@@ -187,21 +192,30 @@ createThread task = (dynamic container :: Container (TaskThread a^) a^)
 where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
 
-applyThread :: !Dynamic *TSt -> (!TaskResult Dynamic, !*TSt)
-applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst
-	# (_,tst)		= applyTaskEdit currentTask tst
-	# (result,tst)	= applyTaskCommit` tst
+applyThread :: !Dynamic !(Maybe TaskParallelType) !*TSt -> (!TaskResult Dynamic, !*TSt)
+applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) inptype tst=:{taskNr}
+	#! (_,tst)		= applyTaskEdit currentTask tst
+	#! (result,tst)	= applyTaskCommit` tst
 	= case result of
 			TaskBusy		= (TaskBusy, tst)
 			TaskFinished a	= (TaskFinished (dynamic a), tst)
 			TaskException e	= (TaskException e, tst)
 where
-	applyTaskCommit` tst=:{TSt|taskNr,properties=p=:{TaskProperties|systemProperties=s=:{SystemProperties|taskId}}}
+	applyTaskCommit` tst=:{TSt|iterationCount,properties=properties=:{TaskProperties|systemProperties=s=:{SystemProperties|taskId}}}
 		// reset task nr
-		# processTaskNr	= taskNrFromString taskId
-		# tst			= {tst & taskNr = [taskNr !! (length taskNr - length processTaskNr - 1):processTaskNr]}
-		# (result, tst)	= applyTaskCommit currentTask tst
-		= (result,tst)
+		# processTaskNr									= taskNrFromString taskId
+		# tst											= {tst & taskNr = [taskNr !! (length taskNr - length processTaskNr - 1):processTaskNr]}
+		// reset tree
+		# info 											=	{ TaskInfo|initTaskInfo
+															& taskId	= taskId
+															, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
+															}
+		# tst											= {tst & tree = TTMainTask info properties inptype (TTFinishedTask info NoOutput)}
+		# (result, tst=:{sharedChanged,triggerPresent})	= applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False}
+		| triggerPresent && sharedChanged && iterationCount < ITERATION_THRESHOLD
+			= applyTaskCommit` {tst & iterationCount = inc iterationCount}
+		| otherwise
+			= (result,tst)
 	
 storeThread :: !ProcessId !Dynamic !*TSt -> *TSt
 storeThread processId thread tst
@@ -239,8 +253,8 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 	// subject of later changes
 	# (changeCount,thread,properties,result,tst)
 										= if firstRun
-											(applyAllChanges taskId changeCount pendingChanges thread properties tst)
-											(applyCurrentChange taskId changeCount thread properties tst)
+											(applyAllChanges taskId changeCount pendingChanges thread properties inParallelType tst)
+											(applyCurrentChange taskId changeCount thread properties inParallelType tst)
 	// The tasktree of this process is the tree as it has been constructed, but with updated properties
 	# (TTMainTask ti _ _ tasks,tst)		= getTaskTree tst
 	# tree								= TTMainTask ti properties inParallelType tasks
@@ -327,18 +341,18 @@ where
 	* Because applying a change may result in the creation of new sub processes, changes must be carefully applied
 	* in the right order. 
 	*/
-	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !TaskProperties !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
-	applyAllChanges processId changeCount [] thread properties tst
+	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !TaskProperties !(Maybe TaskParallelType) !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
+	applyAllChanges processId changeCount [] thread properties inptype tst
 		//Only apply the current change
-		= applyCurrentChange processId changeCount thread properties tst
-	applyAllChanges processId changeCount changes thread properties tst=:{currentChange}
+		= applyCurrentChange processId changeCount thread properties inptype tst
+	applyAllChanges processId changeCount changes thread properties inptype tst=:{currentChange}
 		//Add the pending changes one after another (start empty)
 		= applyAllChanges` processId changeCount currentChange changes thread properties {tst & pendingChanges = []} 
 	where
 		applyAllChanges` processId changeCount currentChange [] thread properties tst
-			= applyCurrentChange processId changeCount thread properties {tst & currentChange = currentChange}
+			= applyCurrentChange processId changeCount thread properties inptype {tst & currentChange = currentChange}
 		applyAllChanges` processId changeCount currentChange [c:cs] thread properties tst
-			# (changeCount,thread,properties,result,tst) = applyCurrentChange processId changeCount thread properties {tst & currentChange = Just c} 
+			# (changeCount,thread,properties,result,tst) = applyCurrentChange processId changeCount thread properties inptype {tst & currentChange = Just c} 
 			//Update pending changes list
 			# tst	= {tst & pendingChanges = (case tst.currentChange of
 														Nothing = tst.pendingChanges
@@ -354,8 +368,8 @@ where
 					//A change caused an exception. Stop, but keep pending changes
 					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
 
-	applyCurrentChange :: !ProcessId !Int !Dynamic !TaskProperties !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
-	applyCurrentChange processId changeCount thread properties tst=:{currentChange}
+	applyCurrentChange :: !ProcessId !Int !Dynamic !TaskProperties !(Maybe TaskParallelType) !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
+	applyCurrentChange processId changeCount thread properties inptype tst=:{currentChange}
 		= case currentChange of
 			Just (lifetime,change)
 				// Apply the active change
@@ -389,11 +403,11 @@ where
 				// Evaluate the thread
 				// IMPORTANT: The taskNr is reset with the latest change count
 				# (result,tst=:{TSt|properties})
-					= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
+					= applyThread thread inptype {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
 				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
 			Nothing
 				# (result,tst=:{TSt|properties})
-					= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
+					= applyThread thread inptype {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
 				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
 	
 	applyChange :: !TaskNr !Dynamic !Dynamic !TaskProperties -> (!Maybe Dynamic, !Maybe Dynamic, !TaskProperties)
@@ -732,7 +746,7 @@ mkGroupedTask description (taskfunE,taskfunC) =
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= taskfunE
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTGroupedTask taskInfo [] [] Nothing}
+	, taskFuncCommit	= \tst=:{taskInfo,taskNr} -> taskfunC {tst & tree = TTGroupedTask taskInfo [] [] Nothing}
 	}
 			
 mkMainTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
@@ -783,7 +797,7 @@ applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, tas
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// Execute task function
-			# (result, tst=:{tree=node})			= taskFuncCommit tst
+			# (result, tst=:{tree=node})	= taskFuncCommit tst
 			// Update task state
 			= case result of
 				(TaskFinished a)
@@ -800,7 +814,6 @@ applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, tas
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskFinished a, tst)
 				(TaskBusy)
-					
 					// Store intermediate value
 					# procId				= taskNrToString (tl taskNr)	
 					# tst					= addTaskNode (finalizeTaskNode node)
@@ -827,7 +840,7 @@ incTaskNr [i:is] = [i+1:is]
 //Add a new node to the current sequence or process
 addTaskNode :: !TaskTree !*TSt -> *TSt
 addTaskNode node tst=:{tree} = case tree of
-	TTMainTask ti mti inptype task			= {tst & tree = TTMainTask ti mti inptype node} 			//Just replace the subtree 
+	TTMainTask ti mti inptype task			= {tst & tree = TTMainTask ti mti inptype node} 				//Just replace the subtree 
 	TTSequenceTask ti tasks					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
 	TTParallelTask ti tpi tasks				= {tst & tree = TTParallelTask ti tpi [node:tasks]}				//Add the node to the parallel set
 	TTGroupedTask ti tasks gActions mbFocus	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
