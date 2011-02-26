@@ -49,8 +49,10 @@ where
 			Just (nvalue,numask)
 				# (nvmask,tst)				= accIWorldTSt (verifyValue nvalue numask) tst
 				# tst						= appIWorldTSt (setStores taskNr (nvalue,numask,nvmask)) tst
+				| enterMode 				= (False,tst)
 				# (conflict,tst)			= appFst fromOk (accIWorldTSt (isSharedChanged (shared taskNr) localTimestamp) tst)
-				| enterMode || not (isValidValue nvmask) || conflict = (conflict,tst)
+				| not (isValidValue nvmask) || conflict = (conflict,tst)
+				// update model if view is changed, not in enter mode, no edit conflict occurred & view is valid
 				# ((oldModelValue,_),tst)	= accIWorldTSt (readModelValue taskNr) tst
 				# newModelValue				= bimapPutback nvalue oldModelValue
 				# tst						= appIWorldTSt (snd o writeShared (shared taskNr) newModelValue) tst
@@ -242,8 +244,8 @@ setStores taskNr (value,umask,vmask) iworld
 	= iworld
 
 getLocalTimestamp :: !TaskNr !*IWorld -> *(!Timestamp,!*IWorld)			
-getLocalTimestamp taskNr iworld=:{IWorld|timestamp}
-	= appFst (fromMaybe timestamp) (getTaskStoreTimestampFor taskNr "value" iworld)
+getLocalTimestamp taskNr iworld
+	= appFst (fromMaybe (Timestamp 0)) (getTaskStoreTimestampFor taskNr "value" iworld)
 	
 applyUpdates :: ![(!DataPath,!String)] !a !UpdateMask !*TSt -> *(!a,!UpdateMask,!*TSt) | gUpdate{|*|} a							
 applyUpdates [] val umask tst = (val,umask,tst)
