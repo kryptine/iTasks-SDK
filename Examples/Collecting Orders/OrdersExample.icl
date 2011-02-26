@@ -63,19 +63,24 @@ derive bimap (,), Maybe
 	
 // start 
 
-Start world = startEngine [workflow "Order Example" "Order Example" request] world	  	
+Start world = startEngine [ workflow "Order Example" "Order Example" request
+						  , workflow "Start Buyers" "Start batch process buyers" buyersBatch
+						  ] world	  	
 	  	
 // utility
-
 
 instance == Item
 where
 	(==) i1 i2 = i1 === i2
 
-selectUserWithRole :: String -> Task String
+selectUserWithRole :: String -> Task User
 selectUserWithRole role 
 	= 						getUsersWithRole role 
 		>>= \users ->		enterChoice ("Choose a " +++ role) (map userName users)
+		>>= \name ->		return (NamedUser name)
+
+sid :: User User -> Shared [(Int,Item)] [(Int,Item)]
+sid b s = sharedStore (userName b +++ userName s)
 
 // requester
 
@@ -83,7 +88,7 @@ request :: (Task [(Int,Item)])
 request 
 	=						enterInformation "Which items do you want to order ?"
 		>>= \items ->		selectUserWithRole "buyer"
-		>>= \buyer ->		(NamedUser buyer) @: buy (NamedUser buyer) [(i,item) \\ item <- items & i <- [0..]]
+		>>= \buyer ->		buyer @: buy buyer [(i,item) \\ item <- items & i <- [0..]]
 
 // buyer
 
@@ -95,17 +100,36 @@ buy buyer items
 							-&&-
 							selectUserWithRole "supplier")
 		>>= \(chosen,supplier) ->
-							(// addToOrderList supplier chosen 			
-//							-&&-									// incorrect behaviour if && is called here !
-							buy buyer [item \\ item <- items | not (isMember item chosen)])
-//		>>= \(list,_) ->	return list
+							addToOrderList chosen (sid buyer supplier)		
+		>>|					buy buyer [item \\ item <- items | not (isMember item chosen)]
 
-addToOrderList :: String [(Int,Item)] -> Task [(Int,Item)]
-addToOrderList supplier chosen
-	=						let sid = (sharedStore supplier) in
-//							readShared sid
-//		>>= \list ->		writeShared sid (list++chosen)
-							return chosen
+addToOrderList :: [a] (Shared [a] [a]) -> Task [a] | iTask a
+addToOrderList chosen sid
+	=						readShared sid
+		>>= \list ->		writeShared sid (list++chosen)
+
+buyersBatch :: Task Void
+buyersBatch
+	=						getUsersWithRole "buyer"
+		>>= \buyers ->		getUsersWithRole "supplier"
+		>>= \suppliers ->	startBatch [(b,s,sid b s) \\ b <- buyers, s <- suppliers]
+where
+	startBatch :: [(User,User,Shared [a] [a])] -> Task Void | iTask a
+	startBatch [] 
+		= return Void
+	startBatch [(b,s,sid):bsids]	
+		=					spawnProcess True True (b @: batch s sid)
+			>>|				startBatch bsids
+	
+	batch :: User (Shared [a] [a]) -> Task Void | iTask a
+	batch supplier sid
+		=					writeShared sid []
+			>>| 			order supplier sid
+													
+order :: User (Shared [a] [a]) -> Task Void | iTask a
+order supplier sid  
+	=						updateSharedInformationA "Order collected so far:" idView [(ActionOk,always)] sid
+		>>= \(_,_) ->		order supplier sid
 
 // suppliers
 
