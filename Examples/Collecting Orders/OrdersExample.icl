@@ -22,8 +22,8 @@ derive bimap (,), Maybe
 	|	ItemCanceled
 :: Item
 	=	{ itemDescription :: String
-		, productCode	  :: String
-		, color			  :: String
+//		, productCode	  :: String
+//		, color			  :: String
 		}
 
 // requisition order
@@ -65,13 +65,24 @@ derive bimap (,), Maybe
 
 Start world = startEngine [workflow "Order Example" "Order Example" request] world	  	
 	  	
+// utility
+
+
+instance == Item
+where
+	(==) i1 i2 = i1 === i2
+
+selectUserWithRole :: String -> Task String
+selectUserWithRole role 
+	= 						getUsersWithRole role 
+		>>= \users ->		enterChoice ("Choose a " +++ role) (map userName users)
+
 // requester
 
 request :: (Task [(Int,Item)])
 request 
 	=						enterInformation "Which items do you want to order ?"
-		>>= \items ->		getUsersWithRole "buyer" 				
-		>>= \buyers ->  	enterChoice "Choose a buyer ?" (map userName buyers)
+		>>= \items ->		selectUserWithRole "buyer"
 		>>= \buyer ->		(NamedUser buyer) @: buy (NamedUser buyer) [(i,item) \\ item <- items & i <- [0..]]
 
 // buyer
@@ -80,22 +91,21 @@ buy :: User [(Int,Item)] -> Task [(Int,Item)]
 buy buyer []
 	=						return []
 buy buyer items
-	=						getUsersWithRole "supplier" 
-		>>= \suppliers -> 	(enterMultipleChoice "Select items from list" items
+	=						(enterMultipleChoice "Select items from list" items
 							-&&-
-							enterChoice "Select supplier" (map userName suppliers))
+							selectUserWithRole "supplier")
 		>>= \(chosen,supplier) ->
-							(addToOrderList supplier chosen 
-							-&&-
-							buy buyer [(i,item) \\ (i,item) <- items | not (isMember i (map fst chosen))])
-		>>= \(list,_) ->	return list
+							(// addToOrderList supplier chosen 			
+//							-&&-									// incorrect behaviour if && is called here !
+							buy buyer [item \\ item <- items | not (isMember item chosen)])
+//		>>= \(list,_) ->	return list
 
 addToOrderList :: String [(Int,Item)] -> Task [(Int,Item)]
 addToOrderList supplier chosen
 	=						let sid = (sharedStore supplier) in
-							readShared sid
-		>>= \list ->		writeShared sid (list++chosen)
-
+//							readShared sid
+//		>>= \list ->		writeShared sid (list++chosen)
+							return chosen
 
 // suppliers
 
