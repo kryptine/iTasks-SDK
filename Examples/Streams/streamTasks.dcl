@@ -4,12 +4,7 @@ import iTasks
 from StdMisc import abort
 from StdFunc import o
 
-derive gVisualize	Stream	
-derive gUpdate		Stream	
-derive gPrint		Stream, Either	
-derive gParse		Stream, Either
-derive gHint		Stream
-derive gError		Stream	
+derive class iTask	Stream	
 
 
 :: Stream a 
