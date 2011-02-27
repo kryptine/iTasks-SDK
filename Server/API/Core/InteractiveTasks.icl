@@ -111,7 +111,8 @@ where
 				False	= (new,iworld)
 			# editorId								= "tf-" +++ taskNrToString taskNr
 			# evalActions							= evaluateConditions actions (isValidValue nvmask) modelV
-			| not clientTimestampSent || outdatedClient || newTask // refresh UI if client is outdated, no timestamp is send (refresh) or task is new
+			# (mbOld,iworld)						= getCommitStoreOld taskNr iworld
+			| not clientTimestampSent || outdatedClient || isNothing mbOld // refresh UI if client is outdated, no timestamp is send (refresh) or task is new for this request (no old value stored during edit phase)
 				# form 								= visualizeAsEditor editorId nvalue nvmask
 				# (mbContext,iworld) = case mbAbout of
 					Nothing							= (Nothing,iworld)
@@ -123,7 +124,7 @@ where
 				= (Definition (taskPanel taskNr mbContext (Just form)) evalActions,iworld)
 			| otherwise	// update UI
 				// get stored old value, masks & errors
-				# ((ovalue,oumask,ovmask),iworld)	= getCommitStoreOld taskNr iworld
+				# (ovalue,oumask,ovmask)			= fromJust mbOld
 				# (oldErrors,iworld)				= getErrors taskNr iworld
 				# nvmask							= setInvalid oldErrors nvmask
 				# updates							= determineEditorUpdates editorId (ovalue,ovmask) (nvalue,nvmask) updatedPaths
@@ -194,10 +195,10 @@ where
 // store for information provided to the commit pass
 setCommitStoreOld :: !TaskNr (!a,!UpdateMask,!VerifyMask) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setCommitStoreOld taskNr old iworld = setTaskStoreFor taskNr "commit-old" old iworld
-getCommitStoreOld :: !TaskNr !*IWorld -> (!(!a,!UpdateMask,!VerifyMask),!*IWorld) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+getCommitStoreOld :: !TaskNr !*IWorld -> (!Maybe (!a,!UpdateMask,!VerifyMask),!*IWorld) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 getCommitStoreOld taskNr iworld
 	# (mbOld,iworld) = getTaskStoreFor taskNr "commit-old" iworld
-	= (fromJust mbOld,iworld)
+	= (mbOld,iworld)
 // outdated client & conflict flag & update paths
 setCommitStoreInfo :: !TaskNr (!Bool,!Bool,![DataPath],!Timestamp,!Bool) !*IWorld -> *IWorld
 setCommitStoreInfo taskNr info iworld = setTaskStoreFor taskNr "commit-info" ((\(o,c,dps,t,ct) -> (o,c,map dataPathList dps,t,ct)) info) iworld
