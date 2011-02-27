@@ -474,7 +474,7 @@ where
 	(==) (Action name0 _) (Action name1 _) = name0 == name1
 	(==) a b = a === b
 
-instance ActionName Action
+instance actionName Action
 where
 	actionName (Action name _)		= name
 	actionName ActionOk				= "ok"
@@ -497,19 +497,19 @@ where
 	actionName ActionEdit			= "edit"
 	actionName ActionDelete			= "delete"
 	
-instance ActionName ActionName	
+instance actionName ActionName	
 where
 	actionName name = name
 
-instance MenuAction Action
+instance menuAction Action
 where
 	menuAction action = (actionName action, "", "")
 	
-instance MenuAction ActionName
+instance menuAction ActionName
 where
 	menuAction name = (name, "", "")
 	
-instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionName
+instance menuAction (actionName, ActionLabel, ActionData) | actionName actionName
 where
 	menuAction (name, label, data) = (actionName name, label, data)
 	

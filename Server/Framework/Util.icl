@@ -11,6 +11,9 @@ fileExtension filename = case (split "." filename) of
 baseName :: !String -> String
 baseName path = last (split "\\" path)
 
+app :: !(.a -> .b) !.a -> .b
+app f x = f x
+
 mapSt :: (a *st -> (b,*st)) [a] *st -> ([b],*st)
 mapSt f [] st = ([], st)
 mapSt f [x:xs] st

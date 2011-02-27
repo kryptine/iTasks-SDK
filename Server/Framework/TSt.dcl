@@ -13,9 +13,8 @@ from HTTP		import :: HTTPRequest
 
 // The task state
 :: *TSt 		=	{ taskNr 			:: !TaskNr											// for generating unique form-id's
-					, taskInfo			:: !TaskInfo										// task information available to tasks
-					, tree				:: !TaskTree										// accumulator for constructing a task tree
-					, treeType			:: !TreeType										// the type of task tree that is to be constructed
+					, taskInfo			:: !NonNormalizedTaskInfo							// task information available to tasks
+					, tree				:: !NonNormalizedTree								// accumulator for constructing a task tree
 					, newTask			:: !Bool											// does the task run for the first time
 					
 					, events			:: ![TaskEvent]										// The update events for interactive tasks
@@ -102,7 +101,7 @@ createThread :: !(Task a) -> Dynamic	| iTask a
 * @return The task tree created at the first run
 * @return The modified task state
 */
-createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !TaskTree, !*TSt)
+createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
 
 /**
 * Removes a running task instance from the list of processes and clears any associated data in the store
@@ -138,7 +137,7 @@ garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
 *
 * @return The modified task state
 */
-evaluateTaskInstance :: !Process !TreeType ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
+evaluateTaskInstance :: !Process ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !NonNormalizedTree, !*TSt)
 /**
 * Applies a change to a running task process task state.
 * 
@@ -160,7 +159,7 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTree :: !TaskId !TreeType ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
+calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!NonNormalizedTree, !*TSt)
 /**
 * Lists which workflows are available
 *
@@ -208,7 +207,7 @@ getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 /**
 * Extract the calculated task forest data structure from the TSt
 */
-getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
+getTaskTree :: !*TSt	-> (!NonNormalizedTree, !*TSt)
 
 /**
 * Get a value from the configuration data
@@ -352,17 +351,13 @@ applyTaskCommit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 *
 * @return The modified task state
 */
-addTaskNode 		:: !TaskTree !*TSt -> *TSt
+addTaskNode 		:: !NonNormalizedTree !*TSt -> *TSt
 
 //// TASK CONTENT
-setTUIDef			:: ![TUIDef] ![(Action,Bool)] !*TSt 								-> *TSt //Only for interactive tasks
-setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt								-> *TSt //Only for interactive tasks
-setTUIFunc			:: (*IWorld -> *(!InteractiveTask, !*IWorld)) !*TSt					-> *TSt //Only for interactive tasks
-setGroupActions		:: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt	-> *TSt //Only for group tasks
-setFocusCommand		:: !String !*TSt													-> *TSt //Only for group tasks
+setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt						-> *TSt // Only for interactive tasks
+setGroupActions		:: ![(!Action,*IWorld -> *(!Bool,!*IWorld))] !*TSt	-> *TSt // Only for group tasks
+setFocusCommand		:: !String !*TSt									-> *TSt //Only for group tasks
 
-setJSONValue		:: !JSONNode !*TSt													-> *TSt
-setJSONFunc			:: !(*IWorld -> *(!JSONNode,!*IWorld)) !*TSt						-> *TSt
 //EVENTS
 //Get edit events for current task of which the name is a datapath
 getEditEvents :: !*TSt -> (![(!DataPath,!String)],!*TSt)

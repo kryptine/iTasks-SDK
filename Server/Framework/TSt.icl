@@ -24,9 +24,8 @@ mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !*World -> *TSt
 mkTSt appName config request workflows store world
 	=	{ taskNr			= []
 		, taskInfo			= initTaskInfo
-		, tree				= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo NoOutput)
-		, treeType			= SpineTree
-		, newTask			= True
+		, tree				= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo (noOutput 1))
+		, newTask			= False
 		, events			= []
 		, properties		= initTaskProperties
 		, staticInfo		= initStaticInfo appName workflows
@@ -60,7 +59,7 @@ initIWorld application config store world
 		, localDateTime		= dateTime
 		}
 		
-initTaskInfo :: TaskInfo
+initTaskInfo :: NonNormalizedTaskInfo
 initTaskInfo
 	=	{ TaskInfo
 		| taskId = ""
@@ -111,7 +110,7 @@ initSession sessionId tst
 		Just session
 			= (Nothing, {tst & staticInfo = {staticInfo & currentSession = session}})
 
-createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !TaskTree, !*TSt)	  
+createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)	  
 createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
@@ -155,7 +154,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# tst					= storeThread processId thread tst
 	| activate
 		//If directly active, evaluate the process once to kickstart automated steps that can be set in motion immediately	
-		# (result,tree,tst)	= evaluateTaskInstance process SpineTree [] Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
+		# (result,tree,tst)	= evaluateTaskInstance process [] Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
 		= (processId,result,tree,tst)
 	| otherwise
 		= (processId, TaskBusy, node properties processId, tst)
@@ -169,7 +168,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
 					}
-		= TTMainTask info properties mbParType (TTFinishedTask info NoOutput)
+		= TTMainTask info properties mbParType (TTFinishedTask info (noOutput "2"))
 
 deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
@@ -194,8 +193,8 @@ where
 
 applyThread :: !Dynamic !(Maybe TaskParallelType) !*TSt -> (!TaskResult Dynamic, !*TSt)
 applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) inptype tst=:{taskNr}
-	#! (_,tst)		= applyTaskEdit currentTask tst
-	#! (result,tst)	= applyTaskCommit` tst
+	# (_,tst)		= applyTaskEdit currentTask tst
+	# (result,tst)	= applyTaskCommit` tst
 	= case result of
 			TaskBusy		= (TaskBusy, tst)
 			TaskFinished a	= (TaskFinished (dynamic a), tst)
@@ -210,7 +209,7 @@ where
 															& taskId	= taskId
 															, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
 															}
-		# tst											= {tst & tree = TTMainTask info properties inptype (TTFinishedTask info NoOutput)}
+		# tst											= {tst & tree = TTMainTask info properties inptype (TTFinishedTask info (noOutput "3"))}
 		# (result, tst=:{sharedChanged,triggerPresent})	= applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False}
 		| triggerPresent && sharedChanged && iterationCount < ITERATION_THRESHOLD
 			= applyTaskCommit` {tst & iterationCount = inc iterationCount}
@@ -231,8 +230,8 @@ loadThread processId tst
 //END NEW THREAD FUNCTIONS
 
 //Computes a workflow (sub) process
-evaluateTaskInstance :: !Process !TreeType ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeCount, inParallelType} treeType events newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,tree=parentTree,treeType=parentTreeType,events=parentEvents,properties=parentProperties,iworld=iworld=:{IWorld|timestamp=now}}
+evaluateTaskInstance :: !Process ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeCount, inParallelType} events newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,tree=parentTree,events=parentEvents,properties=parentProperties,iworld=iworld=:{IWorld|timestamp=now}}
 	// Update access timestamps in properties
 	# properties						= {properties & systemProperties = {properties.systemProperties
 															& latestEvent = Just now
@@ -240,7 +239,7 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 																Nothing	= Just now
 																Just t	= Just t }}
 	// Reset the task state
-	# tst								= resetTSt taskId treeType events properties inParallelType tst
+	# tst								= resetTSt taskId events properties inParallelType tst
 	// Queue all stored persistent changes (only when run as top node)
 	# tst								= if isTop (loadPersistentChanges taskId tst) tst
 	// When a change is injected set it as active change
@@ -258,12 +257,9 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 	// The tasktree of this process is the tree as it has been constructed, but with updated properties
 	# (TTMainTask ti _ _ tasks,tst)		= getTaskTree tst
 	# tree								= TTMainTask ti properties inParallelType tasks
-	// Normalize the tree by evaluating all interactive task nodes that contain functions
-	// These can only be evaluated after the complete tree has been evaluated because of mutual dependencies
-	# (tree,tst)						= normalizeTasks tree tst
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges taskId tst) tst
-	# tst								= restoreTSt parentTree parentTreeType parentEvents parentProperties tst
+	# tst								= restoreTSt parentTree parentEvents parentProperties tst
 	= case result of
 		TaskBusy
 			//Update process table (changeCount & properties)
@@ -288,7 +284,7 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 						Nothing 
 							= (result,tree,tst)
 						Just parentProcess
-							# (_,_,tst)	= evaluateTaskInstance parentProcess treeType events Nothing True False tst
+							# (_,_,tst)	= evaluateTaskInstance parentProcess events Nothing True False tst
 							= (result,tree,tst)	
 				| otherwise
 					= (result,tree,tst)
@@ -305,18 +301,18 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
 			= (TaskException e, tree, tst)
 where
-	resetTSt :: !TaskId !TreeType ![TaskEvent] !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
-	resetTSt taskId treeType events properties inptype tst
+	resetTSt :: !TaskId ![TaskEvent] !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
+	resetTSt taskId events properties inptype tst
 		# taskNr	= taskNrFromString taskId
 		# info =	{ TaskInfo|initTaskInfo
 					& taskId	= taskId
 					, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
 					}
-		# tree		= TTMainTask info properties inptype (TTFinishedTask info NoOutput)
-		= {TSt| tst & taskNr = taskNr, tree = tree, treeType = treeType, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
+		# tree		= TTMainTask info properties inptype (TTFinishedTask info (noOutput "4"))
+		= {TSt| tst & taskNr = taskNr, tree = tree, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
 	
-	restoreTSt :: !TaskTree !TreeType ![TaskEvent] !TaskProperties !*TSt -> *TSt
-	restoreTSt tree treeType events properties tst = {TSt|tst & tree = tree, treeType = treeType, events = events, properties = properties}
+	restoreTSt :: !NonNormalizedTree ![TaskEvent] !TaskProperties !*TSt -> *TSt
+	restoreTSt tree events properties tst = {TSt|tst & tree = tree, events = events, properties = properties}
 	/*
 	* Load all stored persistent changes that are applicable to the current (sub) process.
 	* In case of evaluating a subprocess, this also includes the changes that have been injected
@@ -471,77 +467,22 @@ where
 			Nothing
 				= evaluateDependent ps tst
 			Just proc 
-				# (_,_,tst)	= evaluateTaskInstance proc SpineTree [] Nothing True False tst
+				# (_,_,tst)	= evaluateTaskInstance proc [] Nothing True False tst
 				= evaluateDependent ps tst
-	
-	/*
-	* Evaluate all functions in interactive task nodes and task infos
-	*/
-	normalizeTasks :: !TaskTree !*TSt -> (!TaskTree,!*TSt)
-	//The interactive task leaves that are normalized
-	normalizeTasks (TTInteractiveTask ti type it) tst
-		# (ti, tst) = normalizeTaskInfo ti tst
-		= case it of
-			UIOutput (Func f)
-				# (it,tst) = accIWorldTSt f tst
-				= (TTInteractiveTask ti type (UIOutput it), tst)
-			JSONOutput (JSONFunc f)
-				# (json,tst) = accIWorldTSt f tst
-				= (TTInteractiveTask ti type (JSONOutput (JSONValue json)), tst)
-			_
-				= (TTInteractiveTask ti type it, tst)
-	//For grouped tasks the actions are also normalized
-	normalizeTasks (TTGroupedTask ti tasks actions s) tst
-		# (ti, tst)		= normalizeTaskInfo ti tst
-		# (actions,tst)	= mapSt normalizeAction actions tst
-		# (tasks,tst)	= mapSt normalizeTasks tasks tst
-		= (TTGroupedTask ti tasks actions s, tst)
-	where
-		normalizeAction (action, Left b) tst = ((action,Left b), tst)
-		normalizeAction (action, Right f) tst
-			# (b,tst)	= accIWorldTSt f tst
-			= ((action,Left b), tst)
-	//Tree traversal
-	normalizeTasks (TTMainTask ti properties pt task) tst
-		# (ti, tst)		= normalizeTaskInfo ti tst
-		# (task,tst)	= normalizeTasks task tst
-		= (TTMainTask ti properties pt task, tst)
-	normalizeTasks (TTSequenceTask ti tasks) tst
-		# (ti, tst)		= normalizeTaskInfo ti tst
-		# (tasks,tst)	= mapSt normalizeTasks tasks tst
-		= (TTSequenceTask ti tasks, tst)
-	normalizeTasks (TTParallelTask ti pi tasks) tst
-		# (ti, tst)		= normalizeTaskInfo ti tst
-		# (tasks,tst)	= mapSt normalizeTasks tasks tst
-		= (TTParallelTask ti pi tasks, tst)
-	
-	//All other leaf cases
-	normalizeTasks (TTFinishedTask ti to) tst
-		# (ti, tst) = normalizeTaskInfo ti tst
-		= (TTFinishedTask ti to, tst)
-	normalizeTasks (TTRpcTask ti rpc) tst
-		# (ti, tst) = normalizeTaskInfo ti tst
-		= (TTRpcTask ti rpc, tst)
-		
-normalizeTaskInfo ti=:{TaskInfo | menus} tst=:{TSt | iworld}
-	# (menus, iworld) = case menus of
-		Just (GenFunc f)	= appFst (Just o Menus) (f iworld)
-		m					= (m, iworld)
-	= ({ti & menus = menus}, {TSt | tst & iworld = iworld})
 
 applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInfo,currentChange,pendingChanges, properties}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		(Just proc) 
-			# (_,_,tst) = evaluateTaskInstance proc SpineTree [] (Just (lifetime,change)) True False tst
+			# (_,_,tst) = evaluateTaskInstance proc [] (Just (lifetime,change)) True False tst
 			= {tst & taskNr = taskNr, taskInfo = taskInfo,properties = properties
 			  , tree = tree, staticInfo = staticInfo, currentChange = currentChange, pendingChanges = pendingChanges}
 		Nothing		
 			= tst
 
-calculateTaskTree :: !TaskId !TreeType ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
-calculateTaskTree taskId treeType events tst
+calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!NonNormalizedTree, !*TSt)
+calculateTaskTree taskId events tst
 	# (mbProcess,tst) = getProcess taskId tst
 	= case mbProcess of
 		Nothing
@@ -550,19 +491,19 @@ calculateTaskTree taskId treeType events tst
 						, subject			= "Deleted Process"
 						, description		= "Task Result"
 						}
-			= (TTFinishedTask info NoOutput, tst)
+			= (TTFinishedTask info noProcessResult, tst)
 		Just process=:{Process|properties}
 			= case properties.systemProperties.SystemProperties.status of
 				Active
 					//Evaluate the process
-					# (result,tree,tst) = evaluateTaskInstance process treeType events Nothing True False tst
+					# (result,tree,tst) = evaluateTaskInstance process events Nothing True False tst
 					= (tree,tst)
 				_		
 					//retrieve process result from store and show it??
 					# (mbContainer,tst) = accIWorldTSt (loadValue (taskId +++ "-container")) tst				
 					# result = case mbContainer of
-						(Just dyn)	= UIOutput (renderResult dyn)
-						(Nothing)	= UIOutput (Text "Cannot load result.")
+						(Just dyn)	= (renderResult dyn,jsonResult dyn)
+						(Nothing)	= noProcessResult
 					# info =	{ TaskInfo| initTaskInfo
 								& taskId			= taskId
 								, subject			= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
@@ -570,8 +511,11 @@ calculateTaskTree taskId treeType events tst
 								}
 					= (TTFinishedTask info result,tst)
 
-renderResult :: Dynamic -> HtmlTag
-renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value				
+renderResult :: !Dynamic -> HtmlTag
+renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value
+
+jsonResult :: !Dynamic -> JSONNode
+jsonResult (Container value :: Container a a) = toJSON value
 
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)
@@ -588,7 +532,7 @@ getCurrentWorker :: !*TSt -> (!User, !*TSt)
 getCurrentWorker tst =: {TSt | properties}
 	= (properties.managerProperties.worker,{TSt | tst & properties = properties})
 
-getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
+getTaskTree :: !*TSt	-> (!NonNormalizedTree, !*TSt)
 getTaskTree tst =: {tree}
 	= (tree, {tst & tree = tree})
 
@@ -642,7 +586,7 @@ mkInteractiveTask description type (taskfunE,taskfunC) =
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= taskfunE
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractiveTask taskInfo type NoOutput}
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractiveTask taskInfo type (noOutput "5")}
 	}
 
 mkInstantTask :: !d !(TaskFunctionCommit a) -> Task a | descr d
@@ -652,7 +596,7 @@ mkInstantTask description taskfun =
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= id
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo NoOutput} //We use a FinishedTask node because the task is finished after one evaluation
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo (noOutput "6")} //We use a FinishedTask node because the task is finished after one evaluation
 	}
 
 mkRpcTask :: !d !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a & descr d
@@ -756,23 +700,28 @@ mkMainTask description taskfun =
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= id
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo NoOutput)}
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo (noOutput "7"))}
 	}
 
 applyTaskEdit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
-	= case taskVal of
-		(Just (TaskFinished a))
+	= case (taskVal,mbTaskNr) of
+		(Just (TaskFinished a),_)
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
-		_
-			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
-			# tst = case (taskVal,mbTaskNr) of
-				(Nothing, Just initTaskNr)	= copyTaskStates initTaskNr taskNr tst
-				_							= tst
+		(Just _,_)
 			// Execute task function
 			# tst = taskFuncEdit tst
+			= (TaskBusy,tst)
+		(Nothing, Just initTaskNr)
+			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
+			# tst = copyTaskStates initTaskNr taskNr tst
+			// Execute task function
+			# tst = taskFuncEdit tst
+			= (TaskBusy,tst)
+		(Nothing,Nothing)
+			// no edit pass for new task
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
@@ -787,13 +736,13 @@ applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, tas
 					, tags					= taskProperties.ManagerProperties.tags
 					, groupedBehaviour 		= groupedProperties.GroupedProperties.groupedBehaviour
 					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
-					, menus					= fmap GenFunc mbMenuGenFunc
+					, menus					= mbMenuGenFunc
 					, formWidth				= taskProperties.ManagerProperties.formWidth
 					}
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}
 	= case taskVal of
 		(Just (TaskFinished a))	
-			# tst = addTaskNode (TTFinishedTask taskInfo (UIOutput (visualizeAsHtmlDisplay a))) tst
+			# tst = addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a)) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// Execute task function
@@ -810,7 +759,7 @@ applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, tas
 					# tst					= deleteTaskStates taskNr tst					
 					// Store final value if the process is not garbage collected
 					# tst					= if (gc) tst (appIWorldTSt (storeValue taskId result) tst)
-					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput (visualizeAsHtmlDisplay a)))
+					# tst					= addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a))
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskFinished a, tst)
 				(TaskBusy)
@@ -823,7 +772,7 @@ applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, tas
 				(TaskException e)
 					// Store exception
 					# tst					= appIWorldTSt (storeValue taskId result) tst
-					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput (Text "Uncaught exception")))
+					# tst					= addTaskNode (TTFinishedTask taskInfo (finishedStrOutput "Uncaught exception"))
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e, tst)
 where
@@ -838,36 +787,24 @@ incTaskNr [] = [0]
 incTaskNr [i:is] = [i+1:is]
 
 //Add a new node to the current sequence or process
-addTaskNode :: !TaskTree !*TSt -> *TSt
+addTaskNode :: !NonNormalizedTree !*TSt -> *TSt
 addTaskNode node tst=:{tree} = case tree of
 	TTMainTask ti mti inptype task			= {tst & tree = TTMainTask ti mti inptype node} 				//Just replace the subtree 
 	TTSequenceTask ti tasks					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
 	TTParallelTask ti tpi tasks				= {tst & tree = TTParallelTask ti tpi [node:tasks]}				//Add the node to the parallel set
 	TTGroupedTask ti tasks gActions mbFocus	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
 	_										= {tst & tree = tree}
-		
-setTUIDef :: ![TUIDef] ![(Action,Bool)] !*TSt -> *TSt
-setTUIDef def accActions tst=:{tree}
+
+setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt
+setInteractiveFuncs funcs tst=:{tree}
 	= case tree of
-		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (UIOutput (Definition def accActions))}
+		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type funcs}
 		_									= tst
 
-setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] !*TSt -> *TSt
-setTUIUpdates upd actions tst=:{tree}
-	= case tree of
-		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (UIOutput (Updates upd actions))}
-		_									= tst
-		
-setTUIFunc :: (*IWorld -> *(!InteractiveTask, !*IWorld)) !*TSt -> *TSt
-setTUIFunc func tst=:{tree}
-	= case tree of
-		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (UIOutput (Func func))}
-		_									= tst
-			
-setGroupActions :: ![(Action, (Either Bool (*IWorld -> *(!Bool,!*IWorld))))] !*TSt -> *TSt
+setGroupActions	 :: ![(!Action,*IWorld -> *(!Bool,!*IWorld))] !*TSt -> *TSt
 setGroupActions actions tst=:{tree}
 	= case tree of
-		TTGroupedTask info tasks _ mbFocus	= {tst & tree = TTGroupedTask info tasks actions mbFocus}
+		TTGroupedTask info tasks _ tag		= {tst & tree = TTGroupedTask info tasks actions tag}
 		_									= tst
 		
 setFocusCommand :: !String !*TSt -> *TSt
@@ -875,18 +812,6 @@ setFocusCommand tag tst=:{tree}
 	= case tree of
 		TTGroupedTask info tasks actions _	= {tst & tree = TTGroupedTask info tasks actions (Just tag)}
 		_									= tst
-
-setJSONValue :: !JSONNode !*TSt -> *TSt
-setJSONValue json tst=:{tree}
-	= case tree of
-		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type (JSONOutput (JSONValue json))}
-		_									= tst
-		
-setJSONFunc :: !(*IWorld -> *(!JSONNode,!*IWorld)) !*TSt -> *TSt
-setJSONFunc f tst=:{tree}
-	= case tree of
-		TTInteractiveTask info type _			= {tst & tree = TTInteractiveTask info type (JSONOutput (JSONFunc f))}
-		_										= tst
 
 /**
 * Store and load the result of a workflow instance
@@ -1006,3 +931,7 @@ copyTaskStates fromtask totask tst
 	
 flushStore :: !*TSt -> *TSt
 flushStore tst = appIWorldTSt flushCache tst
+
+noOutput i 				= abort ("Task tree node without output." +++ toString i)
+noProcessResult 		= finishedStrOutput "Cannot load result."
+finishedStrOutput str	= (Text str,JSONString str)

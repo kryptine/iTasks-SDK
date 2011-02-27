@@ -347,12 +347,10 @@ getRoles			:: !User -> [Role]
 
 instance == Action
 
-class ActionName a
-where
-	actionName	:: a -> String
+class actionName a :: a -> String
 
-instance ActionName Action
-instance ActionName ActionName
+instance actionName Action
+instance actionName ActionName
 
 actionIcon 	:: !Action -> String
 actionLabel	:: !Action -> String
@@ -361,7 +359,7 @@ actionLabel	:: !Action -> String
 
 :: Menus		:== [Menu]
 :: Menu 		= Menu !MenuLabel ![MenuItem]
-:: MenuItem 	= E.action:	MenuItem !action !(Maybe Hotkey) & MenuAction action
+:: MenuItem 	= E.action:	MenuItem !action !(Maybe Hotkey) & menuAction action
 				| 			SubMenu !MenuLabel ![MenuItem]
 				| 			MenuSeparator
 :: MenuLabel	:== String
@@ -375,15 +373,15 @@ actionLabel	:: !Action -> String
 
 :: MenuGenFunc :== *IWorld -> *(Menus, *IWorld)
 
-class MenuAction a
-where
-	menuAction :: a -> MenuAction
+class menuAction a :: a -> MenuAction
 
 :: MenuAction :== (ActionName, ActionLabel, ActionData)
 
-instance MenuAction Action
-instance MenuAction ActionName
-instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionName
+instance menuAction Action
+instance menuAction ActionName
+instance menuAction (actionName, ActionLabel, ActionData) | actionName actionName
+
+:: InteractiveTaskType = Information | Message | Instruction | Monitor
 
 // iWorld
 :: *IWorld		=	{ application	:: !String		// The name of the application	

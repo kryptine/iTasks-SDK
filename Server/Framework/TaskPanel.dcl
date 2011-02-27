@@ -1,6 +1,6 @@
 definition module TaskPanel
 
-import JSON, TUIDefinition, TSt, ProcessDB
+import JSON, TUIDefinition, Types, TaskTree
 
 derive JSONEncode TaskPanel, InteractiveTaskType
 
@@ -21,8 +21,6 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 	{ form		:: ![TUIDef]
 	, buttons	:: ![TUIDef]
 	}
-	
-:: InteractiveTaskType = Information | Message | Instruction | Monitor
 
 :: TTCInteractiveContainer = 
 	{ xtype			:: !String
@@ -97,5 +95,5 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 	, focus		:: !Bool
 	}
 
-buildTaskPanel 		:: !TaskTree !User	-> TaskPanel
-buildResultPanel 	:: !TaskTree 		-> TaskPanel
+buildTaskPanel 		:: !UITree !User	-> TaskPanel
+buildResultPanel 	:: !UITree 			-> TaskPanel

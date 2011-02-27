@@ -12,6 +12,7 @@ instance toString (Maybe a) | toString a
 pad					:: Int Int -> String
 decFormat			:: Int -> String
 
+app					:: !(.a -> .b) !.a -> .b
 mapSt				:: (a *st -> (b,*st)) [a] *st -> ([b],*st)
 
 // Functions for accessing dates and times

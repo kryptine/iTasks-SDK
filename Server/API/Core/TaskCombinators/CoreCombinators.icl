@@ -193,11 +193,11 @@ where
 		
 	evaluateConditions actions state = [(action, evaluateCondition condition) \\ (action, condition) <-  actions]
 	where
-		evaluateCondition Always					= Left	True
-		evaluateCondition (StatePredicate p)		= Left	(p state)
-		evaluateCondition (SharedPredicate id p)	= Right	(checkSharedPred id p)
-		
-		checkSharedPred shared p iworld
+		evaluateCondition Always iworld
+			= (True,iworld)
+		evaluateCondition (StatePredicate p) iworld
+			= (p state,iworld)
+		evaluateCondition (SharedPredicate shared p) iworld
 			# (val,iworld) = appFst fromOk (readShared shared iworld)
 			= (p val, iworld)
 				
@@ -321,8 +321,8 @@ where
 		# (result,node,tst) = createOrEvaluateTaskInstance Nothing (task <<@ user) tst
 		= (result,{TSt|tst & tree = node})
 		
-createOrEvaluateTaskInstance :: !(Maybe TaskParallelType) !(Task a) !*TSt -> (!TaskResult a, !TaskTree, !*TSt) | iTask a
-createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events,treeType}
+createOrEvaluateTaskInstance :: !(Maybe TaskParallelType) !(Task a) !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
+createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
 	//Try to load the stored process for this subtask
 	# taskId		 = taskNrToString taskNr
 	# (mbProc,tst)	 = getProcess taskId tst
@@ -342,7 +342,7 @@ createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events,treeType}
 			# user				= proc.Process.properties.managerProperties.worker
 			# tst				= addSubTaskWorker taskId user mbpartype tst
 			// -> TSt in subprocess
-			# (result,tree,tst)	= evaluateTaskInstance proc treeType events Nothing False False tst
+			# (result,tree,tst)	= evaluateTaskInstance proc events Nothing False False tst
 			// <- TSt back to current process				
 			//Add parallel type after the new proc is evaluated
 			= case result of
