@@ -77,7 +77,7 @@ updateShared :: !(Shared r w) !(r -> w) -> Task w | iTask r & iTask w
 * @param missing complement: includes all information not shared by a & b
 * @param Shared references of the same type with symmetric lens between them
 */
-symmetricLens :: !(SymmetricShared a) !(SymmetricShared b) !(a c -> (b,c)) !(b c -> (a,c)) !c -> Task (!SymmetricShared a,!SymmetricShared b) | iTask a & iTask b & iTask c
+symmetricLens :: !(Shared ar aw) !(Shared br bw) !(aw c -> (bw,c)) !(bw c -> (aw,c)) !c -> Task (!Shared ar aw,!Shared br bw) | iTask ar & iTask aw & iTask br & iTask bw & iTask c
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where

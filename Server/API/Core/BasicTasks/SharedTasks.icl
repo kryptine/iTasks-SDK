@@ -99,7 +99,7 @@ where
 		| isError wres	= (TaskException (dynamic (SharedException (fromError wres))),iworld)
 		= (TaskFinished val,iworld)
 
-symmetricLens :: !(SymmetricShared a) !(SymmetricShared b) !(a c -> (b,c)) !(b c -> (a,c)) !c -> Task (!SymmetricShared a,!SymmetricShared b) | iTask a & iTask b & iTask c
+symmetricLens :: !(Shared ar aw) !(Shared br bw) !(aw c -> (bw,c)) !(bw c -> (aw,c)) !c -> Task (!Shared ar aw,!Shared br bw) | iTask ar & iTask aw & iTask br & iTask bw & iTask c
 symmetricLens sharedA sharedB putr putl missing =
 					createSharedStore missing
 	>>=	\sharedC.	return (sharedA >+< sharedB >+< sharedC)
