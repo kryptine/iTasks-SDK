@@ -62,7 +62,7 @@ where
 //Merge Tests
 mergeTestList :: Task Void
 mergeTestList =	
-				createSharedStore []
+				return (sharedStoreDefault "mergeTestLists")
 	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
 	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
 	>>|			stop
@@ -72,7 +72,7 @@ where
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
-				createSharedStore emptyL
+				return store
 	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
 	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
 	>>|			spawnProcess True True (Title "3rd View" @>> showMessageSharedA "Documents" id [quitButton] sid)
@@ -80,8 +80,8 @@ mergeTestDocuments =
 where
 	view sid = updateSharedInformationA ("List","Merging the documents") idView [quitButton] sid
 	
-	emptyL :: [Document]
-	emptyL = []
+	store :: SymmetricShared [Document]
+	store = sharedStoreDefault "mergeTestDocs"
 
 //Google Map Example
 :: MarkerInfo =	{ position	:: GoogleMapPosition
