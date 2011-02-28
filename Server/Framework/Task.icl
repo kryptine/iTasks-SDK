@@ -75,7 +75,7 @@ JSONEncode{|Task|} _ {taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,ta
 					
 encodeFunc f = [JSONString (base64Encode (copy_to_string f))]//[JSONString (graph_to_sapl_string f)]
 
-JSONDecode{|Task|} _ [JSONArray [taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
+JSONDecode{|Task|} _ [JSONArray [JSONString "Task",taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
 	# mbTaskProperties		= fromJSON taskProperties
 	# mbGroupedProperties	= fromJSON groupedProperties
 	# mbMbTaskNr			= fromJSON mbTaskNr
