@@ -43,7 +43,11 @@ where
 serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] JSONNode -> HTTPResponse
 serviceResponse html title description url params json =
 		if html	{newHTTPResponse & rsp_data = toString (servicePage title description url params json)}
-				{newHTTPResponse & rsp_data = toString json}
+				{ newHTTPResponse
+				//Content-Type for JSON should be "application/json", see http://www.ietf.org/rfc/rfc4627.txt
+				& rsp_headers = put "Content-Type" "application/json" (newHTTPResponse.rsp_headers) 
+				, rsp_data = toString json
+				}
 
 
 formatJSON :: JSONNode -> [HtmlTag]
