@@ -13,11 +13,11 @@ derive bimap (,), Maybe
 
 // Item Storage
 :: Order a 
-	= 	{ item  	  :: [([a],[TimeStamp SupplierState])]
+	= 	{ item  	  :: [([a],[TimeStamp SupplierState])]		// Sub-orders history
 		, orderNumber :: String
 		, requester	  :: Requester
 		, buyer		  :: Buyer	
-		, orderStatus :: [TimeStamp OrderState]		// History
+		, orderStatus :: [TimeStamp OrderState]					// Order history
 	  	}
 :: Requester 	:== User
 :: Buyer	 	:== User
@@ -34,17 +34,19 @@ derive bimap (,), Maybe
 
 :: OrderStore a		:== Shared [Order a] [Order a]
 
-orderStore :: (OrderStore a) | iTask a
-orderStore = sharedStore "sharedOrderStore"
-
 // start 
 
-Start world = startEngine [ workflow "Order Example" "Order Example" myRequest
-						  , workflow "Start Buyers" "Start batch process buyers" buyersBatch
+Start world = startEngine [ workflow "Order Example" "Order Example" (Title "Request items..." @>> request itemStore)
+						  , workflow "Start Buyers" "Start batch process buyers" (buyersBatch itemStore)
 						  ] world	  	
 	  	
-myRequest :: (Task (Order Item))
-myRequest = request
+// storage
+
+:: ItemStore :== OrderStore Item
+
+itemStore :: ItemStore
+itemStore = sharedStore "sharedItemOrderStore"
+
 
 // utility functions
 
@@ -69,10 +71,10 @@ addOrderSupplierState order items state
 		>>= \timestamp ->	return {order & item = [(items,[(timestamp,state)]):order.item]}
 
 
-initOrder :: Requester Buyer [a] -> Task (Order a) | iTask a
-initOrder requester buyer items
+initOrder :: Requester Buyer -> Task (Order a) | iTask a
+initOrder requester buyer 	
 	=						getCurrentDateTime
-		>>= \timestamp ->	return 	{ item = [(items,[])]
+		>>= \timestamp ->	return 	{ item = []
 									, orderNumber = toString timestamp
 									, requester = requester
 									, buyer = buyer
@@ -81,9 +83,10 @@ initOrder requester buyer items
 // for every buyer and supplier start up a workflow which controls the oustanding orders 
 // probably can be replaced by a monitor tasks ....
 
-buyersBatch :: Task Void
-buyersBatch
-	=						getUsersWithRole "buyer"
+buyersBatch :: (OrderStore a) -> Task Void | iTask a
+buyersBatch store
+	=						writeShared store []
+		>>|					getUsersWithRole "buyer"
 		>>= \buyers ->		getUsersWithRole "supplier"
 		>>= \suppliers ->	startBatch [(b,s) \\ b <- buyers, s <- suppliers]
 where
@@ -91,51 +94,47 @@ where
 	startBatch [] 
 		= return Void
 	startBatch [(b,s):bsids]	
-		=					let 
-								store :: OrderStore Item 
-								store = orderStore in // one store for the time being seems to be fine ....
-							writeShared store []
-			>>|				spawnProcess True True (b @: shipOrder b s store)
+		=					spawnProcess True True (b @: shipOrder b s store)
 			>>|				startBatch bsids
 
 // --------------- workflow
 
 // requester
 
-request :: (Task (Order a)) | iTask a & Eq a
-request 
+request :: (OrderStore a) -> (Task Void) | iTask a & Eq a
+request store
 	=						getCurrentUser
 		>>= \requester ->	enterInformation "What do you want to order ?"
 		>>= \items ->		selectUserWithRole "buyer"
-		>>= \buyer ->		initOrder requester buyer []  
-		>>= \order ->		buyer @: buy buyer order items 
-		>>|					showMessageSharedA "Status of your order:" (showStatus order) [(ActionOk,always)] orderStore
-		>>|					return order
+		>>= \buyer ->		initOrder requester buyer   
+		>>= \order ->		buyer @: buy buyer order items store
+		>>|					showMessageSharedA "Status of your order:" (showStatus order) [(ActionOk,always)] store
+		>>|					return Void
 where
 	showStatus :: (Order a) [(Order a)] -> Display [(Order a)] | iTask a 
 	showStatus order orders = Display [o \\ o <- orders | o.orderNumber == order.orderNumber]  
 
 // buyer
 
-buy :: Buyer (Order a) [a] -> Task Void | iTask a & Eq a
-buy buyer order items
+buy :: Buyer (Order a) [a] (OrderStore a) -> Task Void | iTask a & Eq a
+buy buyer order items store
 	=						setOrderState order SentToBuyer
-		>>= \order ->		Description "Choose suppliers..." @>> spawnProcess True True (chooseSuppliers order items)
+		>>= \order ->		spawnProcess True True (Title "Choose suppliers..." @>> chooseSuppliers order items store)
 		>>|					return Void 
-	
-chooseSuppliers :: (Order a) [a]   -> Task Void | iTask a & Eq a
-chooseSuppliers order [] 
+
+chooseSuppliers :: (Order a) [a] (OrderStore a) -> Task Void | iTask a & Eq a
+chooseSuppliers order [] store
 	=						setOrderState order ReadyToSendToSuppliers
-		>>= \norder ->		readShared orderStore
-		>>= \orders -> 		writeShared orderStore (orders ++ [norder])
+		>>= \norder ->		readShared store
+		>>= \orders -> 		writeShared store (orders ++ [norder])
 		>>|					return Void
-chooseSuppliers order items 
+chooseSuppliers order items store
 	=						(enterMultipleChoice "Select items from list intended for the same supplier " items
 							-&&-
 							selectUserWithRole "supplier")
 		>>= \(chosen,supplier) ->
 							addOrderSupplierState order chosen (ToBeSendToSupplier supplier)
-		>>= \norder ->		chooseSuppliers norder [item \\ item <- items | not (isMember item chosen)] 
+		>>= \norder ->		chooseSuppliers norder [item \\ item <- items | not (isMember item chosen)] store
 
 	
 shipOrder :: Buyer Supplier (OrderStore a) -> Task (Order a) | iTask a
