@@ -89,7 +89,7 @@ where
 
 updateShared :: !(Shared r w) !(r -> w) -> Task w | iTask r & iTask w
 updateShared shared f
-	= mkInstantTask ("Update shared", "Updates a shared value") (accIWorldTSt updateShared`)
+	= mkInstantTask ("Update shared", "Updates a shared value") (\tst -> accIWorldTSt updateShared` {tst & sharedChanged = True})
 where
 	updateShared` iworld
 		# (val,iworld)	= 'Shared'.readShared shared iworld
