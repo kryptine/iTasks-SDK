@@ -1,6 +1,6 @@
 implementation module Task
 
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, HTML, Types, dynamic_string, Base64, HTTP, graph_to_sapl_string
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, HTML, Types, dynamic_string, Base64, HTTP
 import GenVisualize
 from TSt import :: TSt
 
@@ -73,7 +73,7 @@ JSONEncode{|Task|} _ {taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,ta
 					++ encodeFunc taskFuncEdit
 					++ encodeFunc taskFuncCommit]]
 					
-encodeFunc f = [JSONString (base64Encode (copy_to_string f))]//[JSONString (graph_to_sapl_string f)]
+encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
 
 JSONDecode{|Task|} _ [JSONArray [JSONString "Task",taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
 	# mbTaskProperties		= fromJSON taskProperties
@@ -99,7 +99,7 @@ JSONDecode{|Task|} _ [JSONArray [JSONString "Task",taskProperties,groupedPropert
 		= (Nothing,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
 
-decodeFunc (JSONString str)	= Just (fst(copy_from_string {s` \\ s` <-: base64Decode str}))//(string_to_graph str)
+decodeFunc (JSONString str)	= Just (fst(copy_from_string {s` \\ s` <-: base64Decode str}))
 decodeFunc _				= Nothing
 
 gUpdate{|Task|} fx UDCreate ust
