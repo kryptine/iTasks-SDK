@@ -15,7 +15,8 @@ derive bimap (,), Maybe
 :: Requester 		:== User
 :: Buyer	 		:== User
 :: OrderNumber a 	:== Int
-:: OrderState		=	SentToBuyer
+:: OrderState		=	OrderCreated
+					|	SentToBuyer
 					|	SuppliersChosen 		
 					|	ShippedToRequester
 					|	OrderCancelled	
@@ -38,7 +39,7 @@ derive bimap (,), Maybe
 
 // start 
 
-Start world = startEngine [ workflow "Order Example" "Order Example" (Title "Request items..." @>> request itemStore)
+Start world = startEngine [ workflow "Order Items" "Order Example" (Title "Request items..." @>> request itemStore)
 						  , workflow "Start Buyers" "Start batch process buyers" (buyersBatch itemStore)
 						  ] world	  	
 	  	
@@ -55,7 +56,7 @@ Start world = startEngine [ workflow "Order Example" "Order Example" (Title "Req
 itemStore :: ItemStore
 itemStore = sharedStore "sharedItemOrderStore"
 
-// storage
+// storage access utility functions
 
 addOrder ::  Requester Buyer [a] OrderState (OrderStore a) -> Task (OrderNumber a) | iTask a
 addOrder requester buyer items orderstate store 
@@ -128,10 +129,10 @@ where
 	startBatch [] 
 		= return Void
 	startBatch [(b,s):bsids]	
-		=					spawnProcess True True (b @: shipOrder b s store)
+		=					spawnProcess True True (Title "Send collected orders" @>> b @: shipOrder b s store)
 			>>|				startBatch bsids
 
-// --------------- workflow
+// the workflows:
 
 // requester
 
@@ -140,8 +141,8 @@ request store
 	=						getCurrentUser
 		>>= \requester ->	enterInformation "What do you want to order ?"
 		>>= \items ->		selectUserWithRole "buyer"
-		>>= \buyer ->		addOrder requester buyer items SentToBuyer store 
-		>>= \ordernr ->		buyer @: buy items (ordernr, store)
+		>>= \buyer ->		addOrder requester buyer items OrderCreated store 
+		>>= \ordernr ->		startChooseSuppliers buyer items (ordernr, store)
 		>>|					showMessageSharedA "Status of your order:" (showStatus ordernr) [(ActionOk,always)] store
 		>>|					return Void
 where
@@ -149,11 +150,14 @@ where
 
 // buyer
 
-buy :: [a] (OrderId a) -> Task Void | iTask a & Eq a
-buy items orderId
-	=						spawnProcess True True (Title "Choose suppliers..." @>> chooseSuppliers items orderId)
-		>>|					return Void 
-
+startChooseSuppliers :: Buyer [a] (OrderId a) -> Task Void | iTask a & Eq a
+startChooseSuppliers buyer items orderId
+	=	spawnProcess True True (Title "Choose suppliers..." @>> buyer @: workflow ) >>| return Void	
+where
+	workflow 
+		= 			setOrderState SentToBuyer orderId
+			>>|		chooseSuppliers items orderId
+				  
 chooseSuppliers :: [a]  (OrderId a) -> Task Void | iTask a & Eq a
 chooseSuppliers [] orderId  
 	=						setOrderState SuppliersChosen orderId
@@ -168,10 +172,13 @@ chooseSuppliers items orderId
 	
 shipOrder :: Buyer Supplier (OrderStore a) -> Task (Order a) | iTask a
 shipOrder buyer supplier store
-	=					updateSharedInformationA "Ready to order:" (toView,fromView) [(ActionOk,always)] store
+	=					updateSharedInformationA "Outstanding orders" (toView,fromView) [(ActionOk,always)] store
 	 >>= \(_,mba) ->	shipOrder buyer supplier store //handleOrder store
 where
-	toView orders	= Display orders // [o \\ o <- orders | o.buyer == buyer ]
+	toView orders	= Display [suporder \\ o <- orders, suporder <- o.supOrders 
+										| o.buyer == buyer && suporder.supplier == supplier 
+										&& fst (hd suporder.supOrderStatus) === ToBeSendToSupplier
+							  ]
 	fromView _ order = order
 	
 
