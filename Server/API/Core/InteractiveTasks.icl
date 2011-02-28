@@ -27,15 +27,15 @@ makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) !
 makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions mbAutoEventF informationTaskMode = (interactiveTaskE,interactiveTaskC)
 where
 	interactiveTaskE tst=:{taskNr}
+		# (edits,tst)						= getEditEvents tst
+		# (mbValueEvent,tst)				= getValueEvent tst
 		# (old=:(ovalue,oumask,ovmask),tst)	= accIWorldTSt (readStores taskNr) tst
 		# tst								= appIWorldTSt (setCommitStoreOld taskNr old) tst
 		# (localTimestamp,tst)				= accIWorldTSt (getLocalTimestamp taskNr) tst
 		# (mbClientTimestamp,tst)			= clientTimestamp tst
 		# outdatedClient					= maybe False (\clientTimestamp -> clientTimestamp < localTimestamp) mbClientTimestamp
-		| outdatedClient					= tst // ignore edit events of outdated clients
+		| outdatedClient					= appIWorldTSt (setCommitStoreInfo taskNr (outdatedClient,False,map fst edits,localTimestamp,isJust mbClientTimestamp)) tst // ignore edit events of outdated clients
 		// check for edit/value event
-		# (edits,tst)						= getEditEvents tst
-		# (mbValueEvent,tst)				= getValueEvent tst
 		# (mbNew,tst) = case (edits,mbValueEvent) of
 			(edits,_) | not (isEmpty edits) // edit event
 				# (nvalue,numask,tst)		= applyUpdates edits ovalue oumask tst
@@ -83,14 +83,16 @@ where
 			# (new=:(nvalue,numask,nvmask),iworld)	= readStores taskNr iworld
 			# ((modelV,modelT),iworld)				= readModelValue taskNr iworld
 			# ((outdatedClient,conflict,updatedPaths,localTimestamp,_),iworld) = getCommitStoreInfo taskNr iworld
-			# errors = case (outdatedClient,conflict) of
-				(True,_)							= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
-				(_,True)							= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
-				_									= []
-			// rebuild view value from model if model is newer than local value, not in enter mode and no other errors occurred
-			# ((new=:(nvalue,numask,nvmask)),iworld) = case localTimestamp < modelT && not (enterMode || conflict || outdatedClient || not (isValidValue nvmask)) of
-				True	= updateViewValue taskNr bimapGet new modelV modelT errors iworld
-				False	= (new,iworld)
+			// rebuild view value from model if not in enter mode, model is newer than local value or an error occurred and valid was not updated to an invalid one this request
+			# ((new=:(nvalue,numask,nvmask)),iworld) = case not enterMode && (localTimestamp < modelT && (isEmpty updatedPaths || isValidValue nvmask) || conflict || outdatedClient) of
+				True
+					# errors = case (outdatedClient,conflict) of
+						(True,_)							= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
+						(_,True)							= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
+						_									= []
+					= updateViewValue taskNr bimapGet new modelV modelT errors iworld
+				False
+					= (new,iworld)
 			// delete commit stores
 			# iworld	= deleteTaskStoreFor taskNr "commit-old" iworld
 			# iworld	= deleteTaskStoreFor taskNr "commit-info" iworld	
@@ -101,14 +103,16 @@ where
 			# (new=:(nvalue,numask,nvmask),iworld)	= readStores taskNr iworld
 			# ((modelV,modelT),iworld)				= readModelValue taskNr iworld
 			# ((outdatedClient,conflict,updatedPaths,localTimestamp,clientTimestampSent),iworld) = getCommitStoreInfo taskNr iworld
-			# errors = case (outdatedClient,conflict) of
-				(True,_)							= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
-				(_,True)							= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
-				_									= []
-			// rebuild view value from model if model is newer than local value, not in enter mode and no other errors occurred
-			# ((new=:(nvalue,numask,nvmask)),iworld) = case localTimestamp < modelT && not (enterMode || conflict || outdatedClient || not (isValidValue nvmask)) of
-				True	= updateViewValue taskNr bimapGet new modelV modelT errors iworld
-				False	= (new,iworld)
+			// rebuild view value from model if not in enter mode, model is newer than local value or an error occurred and valid was not updated to an invalid one this request
+			# ((new=:(nvalue,numask,nvmask)),iworld) = case not enterMode && (localTimestamp < modelT && (isEmpty updatedPaths || isValidValue nvmask) || conflict || outdatedClient) of
+				True
+					# errors = case (outdatedClient,conflict) of
+						(True,_)					= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
+						(_,True)					= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
+						_							= []
+					= updateViewValue taskNr bimapGet new modelV modelT errors iworld
+				False
+					= (new,iworld)
 			# editorId								= "tf-" +++ taskNrToString taskNr
 			# evalActions							= evaluateConditions actions (isValidValue nvmask) modelV
 			# (mbOld,iworld)						= getCommitStoreOld taskNr iworld
@@ -125,8 +129,6 @@ where
 			| otherwise	// update UI
 				// get stored old value, masks & errors
 				# (ovalue,oumask,ovmask)			= fromJust mbOld
-				# (oldErrors,iworld)				= getErrors taskNr iworld
-				# nvmask							= setInvalid oldErrors nvmask
 				# updates							= determineEditorUpdates editorId (ovalue,ovmask) (nvalue,nvmask) updatedPaths
 				// update context if shared & changed
 				# (updates,iworld) = case mbAbout of
@@ -206,15 +208,6 @@ getCommitStoreInfo :: !TaskNr !*IWorld -> (!(!Bool,!Bool,![DataPath],!Timestamp,
 getCommitStoreInfo taskNr iworld=:{IWorld|timestamp}
 	# (mbInfo,iworld) = getTaskStoreFor taskNr "commit-info" iworld
 	= (fromMaybe (False,False,[],timestamp,True) (fmap (\(o,c,dps,t,ct) -> (o,c,map dataPathFromList dps,t,ct)) mbInfo),iworld)
-		
-// Gets errors if stored (otherwise return empty error list)
-getErrors :: !TaskNr !*IWorld -> *(![(!DataPath,!a)],!*IWorld) | JSONEncode{|*|} a & JSONDecode{|*|} a & TC a
-getErrors taskNr iworld
-	# (mbErrors,iworld) = getTaskStoreFor taskNr "errors" iworld
-	= (maybe [] (map (appFst dataPathFromList)) mbErrors,iworld)
-storeErrors :: [(!DataPath,!a)] !TaskNr !*IWorld -> *IWorld | JSONEncode{|*|} a & JSONDecode{|*|} a & TC a
-storeErrors errors taskNr iworld
-	= setTaskStoreFor taskNr "errors" (map (appFst dataPathList) errors) iworld
 					
 // determines a new view value from model
 updateViewValue :: !TaskNr !(a -> v) (!v,!UpdateMask,!VerifyMask) !a !Timestamp ![(!DataPath,!ErrorMessage)] !*IWorld -> (!(v,UpdateMask,VerifyMask),!*IWorld) | iTask a & iTask v
