@@ -33,10 +33,10 @@ config :: !*World -> (!Maybe Config,!*World)
 *
 * @param A label for the workflow. This may contain slashes to group workflows
 * @param A description of the workflow
-* @param The task
+* @param The task (with or without parameter)
 */
-workflow :: !String !String !(Task a) -> Workflow | iTask a
-
+workflow		:: !String !String !(Task a)		-> Workflow | iTask a
+workflowParam	:: !String !String !(a -> Task b)	-> Workflow | iTask a & iTask b
 
 /**
 *
@@ -45,9 +45,10 @@ workflow :: !String !String !(Task a) -> Workflow | iTask a
 * @param A label for the workflow. This may contain slashes to group workflows
 * @param A description of the workflow
 * @param A list of roles. The workflow will be available to users with any of the specified roles
-* @param The task
+* @param The task (with or without parameter)
 */
-restrictedWorkflow :: !String !String ![Role] !(Task a) -> Workflow | iTask a
+restrictedWorkflow		:: !String !String ![Role] !(Task a)		-> Workflow | iTask a
+restrictedWorkflowParam	:: !String !String ![Role] !(a -> Task b)	-> Workflow | iTask a & iTask b
 
 /**
 * Determines the server executables path

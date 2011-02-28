@@ -1,10 +1,12 @@
 implementation module TSt
 
-import StdEnv, Maybe
+import StdList, StdTuple, StdBool, StdMisc, Maybe
 import HTTP, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import GenEq, GenVisualize, GenUpdate, Store, Config, dynamic_string
-from JSON import JSONDecode, fromJSON
+import CoreCombinators, InteractionTasks
+from StdFunc	import id, const, o
+from JSON		import JSONDecode, fromJSON
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
 
@@ -110,7 +112,10 @@ initSession sessionId tst
 		Just session
 			= (Nothing, {tst & staticInfo = {staticInfo & currentSession = session}})
 
-createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)	  
+createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+createTaskInstance thread=:(_ :: Container (Container (TaskThreadParam a b) b) a) toplevel mbParType activate delete tst
+	= createTaskInstance (toNonParamThreadEnter thread) toplevel mbParType activate delete tst
+
 createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
@@ -186,10 +191,30 @@ garbageCollectTaskInstance procId tst
 	= (False,tst)
 
 //NEW THREAD FUNCTIONS
-createThread :: !(Task a) -> Dynamic	| iTask a
+createThread :: !(Task a) -> Dynamic | iTask a
 createThread task = (dynamic container :: Container (TaskThread a^) a^)
 where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
+ 	
+createThreadParam :: !(a -> Task b)	-> Dynamic | iTask a & iTask b
+createThreadParam task = (dynamic container :: Container (Container (TaskThreadParam a^ b^) b^) a^)
+where
+ 	container = Container (Container ({TaskThreadParam|originalTask = task, currentTask = task}))
+ 	
+toNonParamThreadValue :: !String !Dynamic -> Maybe Dynamic
+toNonParamThreadValue vStr (Container (Container {TaskThreadParam|originalTask,currentTask}) :: Container (Container (TaskThreadParam a b) b) a)
+	= case fromJSON (fromString vStr) of
+		Just v = 
+			Just (dynamic Container {TaskThread | originalTask = originalTask v, currentTask = currentTask v} :: Container (TaskThread b) b)
+		Nothing =
+			Nothing
+toNonParamThreadValue _ _ = Nothing
+
+toNonParamThreadEnter :: !Dynamic -> Dynamic
+toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,currentTask}) :: Container (Container (TaskThreadParam a b) b) a)
+	= (dynamic Container {TaskThread | originalTask = enterParam originalTask, currentTask = enterParam currentTask} :: Container (TaskThread b) b)
+where		
+	enterParam paramTask = enterInformation ("Workflow parameter","Enter the parameter of the workflow") >>= paramTask
 
 applyThread :: !Dynamic !(Maybe TaskParallelType) !*TSt -> (!TaskResult Dynamic, !*TSt)
 applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) inptype tst=:{taskNr}
@@ -411,7 +436,7 @@ where
 	applyChange cxt (changeFun :: Change a) (Container (thread=:{TaskThread|originalTask,currentTask}) :: Container (TaskThread a) a) properties
 		# (mbProps,mbTask,mbChange) = changeFun properties (setTaskContext cxt currentTask) originalTask
 		# newThread		= case mbTask of
-								Just task	= Just (dynamic Container {thread & currentTask = task} :: Container (TaskThread a) a)
+								Just task	= Just (dynamic Container {TaskThread|thread & currentTask = task} :: Container (TaskThread a) a)
 								Nothing		= Nothing
 		# newProperties = case mbProps of
 								Just props	= props
@@ -421,7 +446,7 @@ where
 	applyChange cxt (changeFun :: A.c: Change c | iTask c) (Container (thread=:{TaskThread|originalTask,currentTask}) :: Container (TaskThread a) a) properties
 		# (mbProps,mbTask,mbChange) = changeFun properties (setTaskContext cxt currentTask) originalTask
 		# newThread		= case mbTask of
-								Just task	= Just (dynamic Container {thread & currentTask = task} :: Container (TaskThread a) a)
+								Just task	= Just (dynamic Container {TaskThread|thread & currentTask = task} :: Container (TaskThread a) a)
 								Nothing		= Nothing
 		# newProperties = case mbProps of
 								Just props	= props

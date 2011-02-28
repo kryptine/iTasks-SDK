@@ -80,22 +80,38 @@ workflow path description task =
 	{ Workflow
 	| path	= path
 	, roles	= []
-	, thread = createThread (task <<@ Title name)
+	, thread = createThread (task <<@ Title (path2name path))
 	, description = description
 	}
-where
-	name = last (split "/" path)
 	
+workflowParam :: !String !String !(a -> Task b)	-> Workflow | iTask a & iTask b
+workflowParam path description task =
+	{ Workflow
+	| path	= path
+	, roles	= []
+	, thread = createThreadParam ((@>>) (Title (path2name path)) o task)
+	, description = description
+	}
+
 restrictedWorkflow :: !String !String ![Role] !(Task a) -> Workflow | iTask a
 restrictedWorkflow path description roles task =
 	{ Workflow
 	| path	= path
 	, roles	= roles
-	, thread = createThread (task <<@ Title name)
+	, thread = createThread (task <<@ Title (path2name path))
 	, description = description
 	}
-where
-	name = last (split "/" path)
+	
+restrictedWorkflowParam :: !String !String ![Role] !(a -> Task b) -> Workflow | iTask a & iTask b
+restrictedWorkflowParam path description roles task =
+	{ Workflow
+	| path	= path
+	, roles	= roles
+	, thread = createThreadParam ((@>>) (Title (path2name path)) o task)
+	, description = description
+	}
+
+path2name path = last (split "/" path)
 
 config :: !*World -> (!Maybe Config,!*World)
 config world

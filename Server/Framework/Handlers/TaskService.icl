@@ -47,8 +47,15 @@ taskService url html path req tst
 				Nothing
 					= (JSONObject [("success",JSONBool False),("error",JSONString "No such workflow")], tst)
 				Just workflow
-					# (taskId,_,_,tst) = createTaskInstance workflow.Workflow.thread True Nothing True True tst
-					= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
+					# mbThread = case paramParam of
+						""		= Just workflow.Workflow.thread
+						param	= toNonParamThreadValue param workflow.Workflow.thread
+					= case mbThread of
+						Nothing
+							= (JSONObject [("success",JSONBool False),("error",JSONString "Invalid parameter")], tst)
+						Just thread
+							# (taskId,_,_,tst) = createTaskInstance thread True Nothing True True tst
+							= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
 			= (serviceResponse html "Create task" createDescription url createParams json, tst)
 		//Show task details of an individual task
 		[taskId]
@@ -199,8 +206,9 @@ where
 	sessionParam	= paramValue "session" req
 	userParam		= paramValue "user" req
 	
-	createParams	= [("session",sessionParam,True),("workflow",workflowParam,True)]
+	createParams	= [("session",sessionParam,True),("workflow",workflowParam,True),("parameter",paramParam,False)]
 	workflowParam	= paramValue "workflow" req
+	paramParam		= paramValue "parameter" req
 	
 	listParams		= [("session",sessionParam,True),("user",userParam,False)]
 	

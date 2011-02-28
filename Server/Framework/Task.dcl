@@ -38,6 +38,11 @@ mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
 	{ originalTask		:: !Task a
 	, currentTask		:: !Task a
 	}
+	
+:: TaskThreadParam a b	=
+	{ originalTask		:: !a -> Task b
+	, currentTask		:: !a -> Task b
+	}
 
 /**
 * Extracts the subject of a task
