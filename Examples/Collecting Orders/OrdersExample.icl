@@ -2,37 +2,39 @@ module OrdersExample
 
 import iTasks
 
-derive class iTask Item, Order, OrderState, SupplierState
+derive class iTask Item, Order, OrderState, SupOrder, SupOrderState
 derive bimap (,), Maybe
 
-:: Item
-	=	{ description 	:: String
-//		, productCode	:: String
-//		, color			:: String
-		}
+:: Order a			= 	{ item  	  :: [a]		
+						, requester	  :: Requester
+						, buyer		  :: Buyer	
+						, orderNumber :: OrderNumber a
+						, orderStatus :: [TimeStamp OrderState]					
+						, supOrders	  :: [SupOrder a]	
+	  					}
+:: Requester 		:== User
+:: Buyer	 		:== User
+:: OrderNumber a 	:== Int
+:: OrderState		=	SentToBuyer
+					|	SuppliersChosen 		
+					|	ShippedToRequester
+					|	OrderCancelled	
+:: TimeStamp a		:== (a,DateTime)
+:: SupOrder a		=	{ item			:: [a]
+						, supplier		:: Supplier
+						, supOrderNumber:: SupOrderNumber a
+						, supOrderStatus:: [TimeStamp SupOrderState]
+						}
+:: Supplier			:== User
+:: SupOrderNumber a	:== Int
+:: SupOrderState	=	ToBeSendToSupplier 	
+					|	SentToSupplier 		
+					|	ShippedToBuyer		
+					|	RejectedBySupplier 			
+:: OrderId a		:== (OrderNumber a, OrderStore a)
+:: SupOrderId a		:== (SupOrderNumber a, OrderNumber a, OrderStore a)
 
-// Item Storage
-:: Order a 
-	= 	{ item  	  :: [([a],[TimeStamp SupplierState])]		// Sub-orders history
-		, orderNumber :: String
-		, requester	  :: Requester
-		, buyer		  :: Buyer	
-		, orderStatus :: [TimeStamp OrderState]					// Order history
-	  	}
-:: Requester 	:== User
-:: Buyer	 	:== User
-:: Supplier		:== User
-:: TimeStamp a	:== (DateTime,a)
-:: OrderState
-	=	SentToBuyer
-	|	ReadyToSendToSuppliers 		
-	|	ShippedToRequester	
-:: SupplierState
-	=	ToBeSendToSupplier Supplier
-	|	SentToSupplier Supplier
-	|	RejectedBy Supplier
-
-:: OrderStore a		:== Shared [Order a] [Order a]
+:: OrderStore a 	:== Shared [Order a] [Order a]
 
 // start 
 
@@ -40,13 +42,65 @@ Start world = startEngine [ workflow "Order Example" "Order Example" (Title "Req
 						  , workflow "Start Buyers" "Start batch process buyers" (buyersBatch itemStore)
 						  ] world	  	
 	  	
-// storage
+// specific instantiations
 
-:: ItemStore :== OrderStore Item
+:: Item
+	=	{ description 	:: String
+//		, productCode	:: String
+//		, color			:: String
+		}
+
+:: ItemStore 		:== OrderStore Item
 
 itemStore :: ItemStore
 itemStore = sharedStore "sharedItemOrderStore"
 
+// storage
+
+addOrder ::  Requester Buyer [a] OrderState (OrderStore a) -> Task (OrderNumber a) | iTask a
+addOrder requester buyer items orderstate store 
+	= 						getCurrentDateTime
+		>>= \timestamp ->	readShared store
+		>>= \as ->			let orderNumber = length as in
+							 (writeShared store (as ++ [ { item 		= items
+										 				 , orderNumber 	= orderNumber
+										  				 , requester 	= requester
+										  				 , buyer 		= buyer
+										  				 , orderStatus 	= [(orderstate,timestamp)]
+										  				 , supOrders 	= [] 
+										  				}
+										  			    ]) 
+							  >>| return orderNumber)
+		
+fetchOrder :: (OrderId a) -> Task (Order a) | iTask a 
+fetchOrder (nr, store)
+	=						readShared store
+		>>= \as -> 			return (as!!nr)
+
+updateOrder :: (Order a) (OrderId a) -> Task (Order a) | iTask a 
+updateOrder order (nr, store)
+	=						readShared store
+		>>= \orders -> 		writeShared store (updateAt nr order orders) 
+		>>|					return order
+
+setOrderState :: OrderState (OrderId a) -> Task (Order a) | iTask a
+setOrderState orderState orderId
+	=						getCurrentDateTime
+		>>= \timestamp ->	fetchOrder orderId
+		>>= \order -> 		updateOrder {order & orderStatus = [(orderState,timestamp):order.orderStatus]} orderId
+
+addSupplier :: [a] Supplier SupOrderState (OrderId a) -> Task (SupOrderNumber a) | iTask a
+addSupplier items supplier supstate orderId
+	=						getCurrentDateTime
+		>>= \timestamp ->	fetchOrder orderId
+		>>= \order ->		let subOrderNumber 	= length order.supOrders
+								nsup			= { item 			= items
+												  , supplier 		= supplier
+												  , supOrderNumber 	= subOrderNumber
+												  , supOrderStatus 	= [(supstate,timestamp)]
+												  }
+							in 	(updateOrder {order & supOrders = order.supOrders ++ [nsup]} orderId
+							     >>| return subOrderNumber) 
 
 // utility functions
 
@@ -60,26 +114,6 @@ selectUserWithRole role
 		>>= \users ->		enterChoice ("Choose a " +++ role) (map userName users)
 		>>= \name ->		return (NamedUser name)
 
-setOrderState :: (Order a) OrderState -> Task (Order a) | iTask a
-setOrderState order status 
-	=						getCurrentDateTime
-		>>= \timestamp ->	return {order & orderStatus = [(timestamp,status):order.orderStatus]}
-
-addOrderSupplierState :: (Order a) [a] SupplierState -> Task (Order a) | iTask a
-addOrderSupplierState order items state 
-	=						getCurrentDateTime
-		>>= \timestamp ->	return {order & item = [(items,[(timestamp,state)]):order.item]}
-
-
-initOrder :: Requester Buyer -> Task (Order a) | iTask a
-initOrder requester buyer 	
-	=						getCurrentDateTime
-		>>= \timestamp ->	return 	{ item = []
-									, orderNumber = toString timestamp
-									, requester = requester
-									, buyer = buyer
-									, orderStatus = []}
-		
 // for every buyer and supplier start up a workflow which controls the oustanding orders 
 // probably can be replaced by a monitor tasks ....
 
@@ -101,41 +135,36 @@ where
 
 // requester
 
-request :: (OrderStore a) -> (Task Void) | iTask a & Eq a
+request :: (OrderStore a) -> Task Void | iTask a & Eq a
 request store
 	=						getCurrentUser
 		>>= \requester ->	enterInformation "What do you want to order ?"
 		>>= \items ->		selectUserWithRole "buyer"
-		>>= \buyer ->		initOrder requester buyer   
-		>>= \order ->		buyer @: buy buyer order items store
-		>>|					showMessageSharedA "Status of your order:" (showStatus order) [(ActionOk,always)] store
+		>>= \buyer ->		addOrder requester buyer items SentToBuyer store 
+		>>= \ordernr ->		buyer @: buy items (ordernr, store)
+		>>|					showMessageSharedA "Status of your order:" (showStatus ordernr) [(ActionOk,always)] store
 		>>|					return Void
 where
-	showStatus :: (Order a) [(Order a)] -> Display [(Order a)] | iTask a 
-	showStatus order orders = Display [o \\ o <- orders | o.orderNumber == order.orderNumber]  
+	showStatus ordernr orders = Display [o \\ o <- orders | o.orderNumber == ordernr]  
 
 // buyer
 
-buy :: Buyer (Order a) [a] (OrderStore a) -> Task Void | iTask a & Eq a
-buy buyer order items store
-	=						setOrderState order SentToBuyer
-		>>= \order ->		spawnProcess True True (Title "Choose suppliers..." @>> chooseSuppliers order items store)
+buy :: [a] (OrderId a) -> Task Void | iTask a & Eq a
+buy items orderId
+	=						spawnProcess True True (Title "Choose suppliers..." @>> chooseSuppliers items orderId)
 		>>|					return Void 
 
-chooseSuppliers :: (Order a) [a] (OrderStore a) -> Task Void | iTask a & Eq a
-chooseSuppliers order [] store
-	=						setOrderState order ReadyToSendToSuppliers
-		>>= \norder ->		readShared store
-		>>= \orders -> 		writeShared store (orders ++ [norder])
+chooseSuppliers :: [a]  (OrderId a) -> Task Void | iTask a & Eq a
+chooseSuppliers [] orderId  
+	=						setOrderState SuppliersChosen orderId
 		>>|					return Void
-chooseSuppliers order items store
+chooseSuppliers items orderId
 	=						(enterMultipleChoice "Select items from list intended for the same supplier " items
 							-&&-
 							selectUserWithRole "supplier")
 		>>= \(chosen,supplier) ->
-							addOrderSupplierState order chosen (ToBeSendToSupplier supplier)
-		>>= \norder ->		chooseSuppliers norder [item \\ item <- items | not (isMember item chosen)] store
-
+							addSupplier chosen supplier ToBeSendToSupplier orderId
+		>>= \norder ->		chooseSuppliers [item \\ item <- items | not (isMember item chosen)] orderId
 	
 shipOrder :: Buyer Supplier (OrderStore a) -> Task (Order a) | iTask a
 shipOrder buyer supplier store
