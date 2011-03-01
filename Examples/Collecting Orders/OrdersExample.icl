@@ -73,17 +73,18 @@ addOrder ::  Requester Buyer [a] OrderState (OrderStore a) -> Task (OrderNumber 
 addOrder requester buyer items orderstate store 
 	= 						getCurrentDateTime
 		>>= \timestamp ->	readShared store
-		>>= \as ->			let orderNumber = length as in
-							 (writeShared store (as ++ [ { item 		= items
-										 				 , orderNumber 	= orderNumber
-										  				 , requester 	= requester
-										  				 , buyer 		= buyer
-										  				 , orderStatus 	= [(orderstate,timestamp)]
-										  				 , supOrders 	= [] 
-										  				}
-										  			    ]) 
-							  >>| return orderNumber)
-		
+		>>= \as ->			let orderNumber = length as
+							    new			= { item 		= items
+							 				  , orderNumber = orderNumber
+							  				  , requester 	= requester
+							  				  , buyer 		= buyer
+							  				  , orderStatus = [(orderstate,timestamp)]
+							  				  , supOrders 	= [] 
+							  				  }
+							in
+							    writeShared store (append as new) 
+							>>| return orderNumber
+
 fetchOrder :: (OrderId a) -> Task (Order a) | iTask a 
 fetchOrder (nr, store)
 	=						readShared store
@@ -110,30 +111,32 @@ addSupplier items supplier supstate orderId=:(orderNumber, store)
 												  , supOrderNumber 	= (orderNumber, subOrderNumber)
 												  , supOrderStatus 	= [(supstate,timestamp)]
 												  }
-							in 	(updateOrder {order & supOrders = order.supOrders ++ [nsup]} orderId
-							     >>| return subOrderNumber) 
+							in
+							    updateOrder {order & supOrders = append order.supOrders nsup} orderId
+							>>| return subOrderNumber
 
 changeSupOrderState :: Buyer Supplier SupOrderState SupOrderState (OrderStore a) -> Task [Order a] | iTask a
 changeSupOrderState buyer supplier oldstate newstate store
 	=						getCurrentDateTime
 		>>= \timestamp ->	readShared store
-		>>= \orders ->		writeShared store (update (fetchOrderNumbers buyer supplier oldstate orders) (newstate, timestamp) orders) 
+		>>= \orders ->		writeShared store (foldl (update (newstate, timestamp)) orders (fetchOrderNumbers buyer supplier oldstate orders)) 
 where
-	update :: [(OrderNumber a, SupOrderNumber a)] (TimeStamp SupOrderState) [Order a] -> [Order a]
-	update [] nsupstate orders 	= orders
-	update [(i,j):nrs] nsupstate orders 	
-		= let 	order 		= orders!!i
-				suporder 	= order.supOrders!!j 
-				nsuporder 	= {suporder & supOrderStatus = [nsupstate:suporder.supOrderStatus]}
-				norder 		= {order & supOrders = updateAt j nsuporder order.supOrders} 
-				norders 	= updateAt i norder orders
-		  in update nrs nsupstate norders
+	update :: (TimeStamp SupOrderState) [Order a] (OrderNumber a, SupOrderNumber a) -> [Order a]
+	update nsupstate orders (i,j)
+							= updateAt i norder orders
+	where
+		norder				= {order & supOrders = updateAt j nsuporder order.supOrders}
+		nsuporder			= {suporder & supOrderStatus = [nsupstate:suporder.supOrderStatus]}
+		suporder			= order.supOrders!!j 
+		order				= orders!!i
 
 // utility functions
 
 instance == Item
 where
 	(==) i1 i2 = i1 === i2
+
+append xs x = xs ++ [x]
 
 selectUserWithRole :: String -> Task User
 selectUserWithRole role 
@@ -144,7 +147,7 @@ selectUserWithRole role
 getProperty :: [TimeStamp a] -> a
 getProperty [(p,_):_] = p
 
-myOrder orderNr orders = hd [o \\ o <- orders | o.orderNumber == orderNr] 
+myOrder orderNr orders = hd [o \\ o <- orders | o.orderNumber == orderNr]
 
 fetchOutstandingSubOrders :: Buyer Supplier SupOrderState [Order a] -> [SupOrder a]
 fetchOutstandingSubOrders buyer supplier supStatus orders 
@@ -213,13 +216,11 @@ where
 
 shipOrder :: Buyer Supplier (OrderStore a) -> Task Void | iTask a
 shipOrder buyer supplier store
-	=						monitorTask ("Orders collected for " <+++ supplier) showSupOrders (\_ -> True) False store
+	=						monitorTask ("Orders collected for " <+++ supplier) showSupOrders (const True) False store
 		>>|					readShared store
 		>>= \orders ->		changeSupOrderState buyer supplier ToBeSendToSupplier SentToSupplier store
 		>>= \orders ->		supplier @: deliver (fetchOutstandingSubOrders buyer supplier SentToSupplier orders)
-		>>= \ok -> 			if ok
-								(changeSupOrderState buyer supplier SentToSupplier ShippedToBuyer store)
-								(changeSupOrderState buyer supplier SentToSupplier RejectedBySupplier store)
+		>>= \ok -> 			changeSupOrderState buyer supplier SentToSupplier (if ok ShippedToBuyer RejectedBySupplier) store
 		>>|					return Void
 where
 	showSupOrders orders = Display (fetchOutstandingSubOrders buyer supplier ToBeSendToSupplier orders)
