@@ -23,6 +23,7 @@ import	Engine						// basic iTask system creator
 	,	ChangeTasks					// Tasks for changing existing workflows
 	
 	,	OSTasks						// tasks for OS operations like reading/writing files or calling external processes
+	,	RPCTasks					// tasks for calling methods on remote servers
 	,	MonitorTasks
 	
 	//	Task combinators

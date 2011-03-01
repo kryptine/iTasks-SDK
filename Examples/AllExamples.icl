@@ -23,6 +23,7 @@ import textEditor
 import CoffeeTime
 import TableExamples
 import GeoTracker
+import RPCExamples
 
 //Crisis response examples
 import AmbulanceDispatch
@@ -79,6 +80,7 @@ where
 						, sharedValueExamples
 						,	[workflow "General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions
 							]
+						, rpcExamples
 						, ginExamples
 						, workflowStarter
 						]

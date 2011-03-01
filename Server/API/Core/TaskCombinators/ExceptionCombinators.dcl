@@ -15,8 +15,9 @@ import iTaskClass, GenVisualize, GenUpdate
 :: CallException = CallFailed !OSError
 :: DirectoryException = CannotCreate
 :: SharedException = SharedException !String
+:: RPCException = RPCException !String
 
-derive class iTask FileException, ParseException, CallException, DirectoryException, SharedException
+derive class iTask FileException, ParseException, CallException, DirectoryException, SharedException, RPCException
 
 /**
 * Exception combinator.
