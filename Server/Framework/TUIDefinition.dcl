@@ -242,7 +242,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, id			:: !TUIId
 	, columns		:: ![TUIGridColumn]
 	, gridHtml		:: ![[String]]
-	, gridEditors	:: ![[TUIDef]]
+	, gridEditors	:: ![[Maybe TUIDef]]
 	}
 :: TUIGridColumn =
 	{ header	:: !String

@@ -420,8 +420,8 @@ where
 			getHtml` _							= abort "get table html: unexpected format of record table row"
 		getHtml viz = [toString (html (coerceToHtml viz))]
 		
-		getEditors :: [Visualization] -> [[TUIDef]]
-		getEditors [TUIFragment (TUIListContainer {TUIListContainer|items})] = map (getEditors` o stripListItem) items
+		getEditors :: [Visualization] -> [[Maybe TUIDef]]
+		getEditors [TUIFragment (TUIListContainer {TUIListContainer|items})] = map (filterHtmlContainers o getEditors` o stripListItem) items
 		where
 			stripListItem :: TUIDef -> [TUIDef]
 			stripListItem (TUIListItemControl {TUIListItemControl|items}) = items
@@ -431,6 +431,10 @@ where
 			getEditors` tui = case tui of
 				[TUIRecordContainer {TUIRecordContainer|items}]	= items
 				tui												= tui
+				
+			filterHtmlContainers :: [TUIDef] -> [Maybe TUIDef]
+			filterHtmlContainers tuis = map (\tui -> case tui of (TUIHtmlContainer _) = Nothing; _ = Just tui) tuis
+			
 		getEditors _ = abort "get table editors: list container expected"
 		
 		toTUICols []		= [{header = ""}]

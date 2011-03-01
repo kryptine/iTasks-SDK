@@ -57,7 +57,7 @@ where
 				(TUIGridControl {gridEditors = oe,gridHtml = oh}, TUIGridControl {gridEditors = ne, gridHtml = nh})
 					# htmlUpdates	= flatten [[TUISetValue_  (dp2s path) (toString (toJSON (i,j,n))) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
 					# path			= shiftDataPath path
-					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (childDataPath (childDataPath path i) j) o n \\ o <- or & n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
+					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (childDataPath (childDataPath path i) j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
 					= htmlUpdates ++ editorUpdates
 				// Custom components need to figure out their own update on the client side
 				(TUICustom oc, TUICustom nc)
