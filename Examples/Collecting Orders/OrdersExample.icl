@@ -125,6 +125,12 @@ selectUserWithRole role
 		>>= \users ->		enterChoice ("Choose a " +++ role) (map userName users)
 		>>= \name ->		return (NamedUser name)
 
+getProperty :: [TimeStamp a] -> a
+getProperty [(p,_):_] = p
+
+myOrder orderNr orders = hd [o \\ o <- orders | o.orderNumber == orderNr] 
+
+
 // the workflows:
 
 // requester
@@ -135,11 +141,13 @@ request store
 		>>= \requester ->	enterInformation "What do you want to order ?"
 		>>= \items ->		selectUserWithRole "buyer"
 		>>= \buyer ->		addOrder requester buyer items OrderCreated store 
-		>>= \ordernr ->		startChooseSuppliers buyer items (ordernr, store)
-		>>|					showMessageSharedA "Status of your order:" (showStatus ordernr) [(ActionOk,always)] store
+		>>= \orderNr ->		startChooseSuppliers buyer items (orderNr, store)
+		>>|					monitorTask "Status of your order:" (showStatus orderNr) (finished orderNr) False store
 		>>|					return Void
 where
-	showStatus ordernr orders = Display [o \\ o <- orders | o.orderNumber == ordernr]  
+	showStatus orderNr orders = Display (myOrder orderNr orders)
+	finished orderNr   orders = let prop = getProperty (myOrder orderNr orders).orderStatus in
+									prop === ShippedToRequester  || prop === OrderCancelled
 
 // buyer
 
@@ -161,7 +169,7 @@ chooseSuppliers buyer items orderId
 							selectUserWithRole "supplier")
 		>>= \(chosen,supplier) ->
 							addSupplier chosen supplier ToBeSendToSupplier orderId
-		>>= \norder ->		startOrderingProcess buyer supplier (snd orderId)
+		>>= \norder ->		startOrderingProcess buyer supplier (snd orderId) 
 		>>|					chooseSuppliers buyer [item \\ item <- items | not (isMember item chosen)] orderId
 	
 
@@ -172,7 +180,7 @@ startOrderingProcess buyer supplier store
 where
 	startProcess table
 	| isMember (buyer,supplier) table 
-				= 		return Void 		// process already active
+				= 		return Void 					// process already active
 	| otherwise =		spawnProcess True True (Title "Collecting orders..." @>> buyer @: shipOrder buyer supplier store)
 					>>| writeShared orderingProcessStore [(buyer,supplier):table]
 					>>|	return Void
@@ -180,7 +188,7 @@ where
 shipOrder :: Buyer Supplier (OrderStore a) -> Task (Order a) | iTask a
 shipOrder buyer supplier store
 	=					updateSharedInformationA "Orders to ship..." (toView,fromView) [(ActionOk,always)] store
-	 >>= \(_,mba) ->	shipOrder buyer supplier store //handleOrder store
+	 >>= \(_,mba) ->	shipOrder buyer supplier store 	//handleOrder store
 where
 	toView orders	= Display [suporder \\ o <- orders, suporder <- o.supOrders 
 										| o.buyer == buyer && suporder.supplier == supplier 
