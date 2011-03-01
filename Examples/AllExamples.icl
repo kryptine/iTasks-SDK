@@ -26,7 +26,7 @@ import GeoTracker
 
 //Crisis response examples
 import AmbulanceDispatch
-import AmbulanceDispatchMap
+//import AmbulanceDispatchMap
 
 //Change examples
 import SimpleChanges

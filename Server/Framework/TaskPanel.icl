@@ -69,16 +69,6 @@ buildTaskPanel` tree menus formWidth currentUser fixedInGroup
 				, formWidth		= Nothing
 				, type			= type
 				}
-		TTRpcTask ti rpc
-			= TTCMonitorContainer {TTCMonitorContainer 
-				| xtype 		= "itasks.ttc.monitor"
-				, id 			= "taskform-" +++ ti.TaskInfo.taskId
-				, taskId 		= ti.TaskInfo.taskId
-				, subject		= ti.TaskInfo.subject
-				, description	= ti.TaskInfo.description
-				, html 			= toString (html [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
-				, menu			= Nothing
-				}
 		TTMainTask ti mti _ _
 			= TTCProcessControlContainer {TTCProcessControlContainer 
 				| xtype = "itasks.ttc.proc-control"
@@ -186,7 +176,6 @@ getTaskInfo :: !UITree -> NormalizedTaskInfo
 getTaskInfo task
 	# info = case task of
 		TTInteractiveTask ti _ _ 	= ti
-		TTRpcTask ti _				= ti
 		TTFinishedTask ti _			= ti
 		TTParallelTask ti _ _		= ti
 		TTSequenceTask ti _			= ti

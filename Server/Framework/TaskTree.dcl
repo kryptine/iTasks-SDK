@@ -5,7 +5,7 @@ definition module TaskTree
 * task tree data structures is performed by the basic tasks and
 * task combinators.
 */
-import Maybe, Either, HTML, Time, RPC, Types
+import Maybe, Either, HTML, Time, Types
 from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
@@ -35,9 +35,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//A task that can be worked on through a gui
 	| TTInteractiveTask	!.(TaskInfo menus) !InteractiveTaskType interactiveOutput								
 	//A completed task
-	| TTFinishedTask	!.(TaskInfo menus) finishedOutput		
-	//A task that represents an rpc invocation
-	| TTRpcTask			!.(TaskInfo menus) !RPCExecute
+	| TTFinishedTask	!.(TaskInfo menus) finishedOutput
 
 
 :: NonNormalizedTaskInfo	:== TaskInfo MenuGenFunc

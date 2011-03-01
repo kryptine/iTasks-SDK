@@ -1,6 +1,6 @@
 implementation module TaskTree
 
-import StdTuple, Util, Maybe, Either, HTML, Time, RPC, Types, StdFunc, GenMap, GenMapSt
+import StdTuple, Util, Maybe, Either, HTML, Time, Types, StdFunc, GenMap, GenMapSt
 from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
 

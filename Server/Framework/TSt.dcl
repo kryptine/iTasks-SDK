@@ -4,7 +4,7 @@ definition module TSt
 * 
 * Additionally it provides utility functions to manipulate the state.
 */
-import Maybe, Void, TaskTree, RPC, Task
+import Maybe, Void, TaskTree, Task
 from ProcessDB	import :: Process
 from Config		import :: Config(..)
 from Store		import :: Store(..)
@@ -315,17 +315,6 @@ mkGroupedTask		:: !d !(TaskFunctions a) -> Task a | descr d
 * @return The newly constructed sequence task
 */
 mkMainTask			:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-/**
-* Creates an rpc task from an rpc call definition.
-* A parse function is used to parse the result of the rpc call
-*
-* @param A description of the task
-* @param The initial RPC info record
-* @param The parse function
-*
-* @return The constructed RPC task
-*/
-mkRpcTask :: !d !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a & descr d
 
 //// TASK APPLICATION
 
