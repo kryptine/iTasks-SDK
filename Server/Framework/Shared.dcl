@@ -43,7 +43,7 @@ readShared :: !(Shared r w) !*IWorld -> (!MaybeErrorString r,!*IWorld)
 writeShared :: !(Shared r w) !w !*IWorld -> (!MaybeErrorString Void,!*IWorld)
 
 /**
-* Maps the read type, the write type or both of a shared reference to another one using a funcitonal mapping.
+* Maps the read type, the write type or both of a shared reference to another one using a functional mapping.
 * The function for mapping the write type also gets the current read-value as input
 * making it possible to change only parts of the datastructure.
 *
