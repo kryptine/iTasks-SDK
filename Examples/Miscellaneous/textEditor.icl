@@ -55,7 +55,7 @@ FocusWindow		:== "focus-window"
 
 newFile :: !AppStateRef !(MDICreateEditor EditorState) -> Task GAction
 newFile aid createEditor =
-								updateShared aid (\(AppState num recOpened) -> AppState (inc num) recOpened)
+								updateShared (\(AppState num recOpened) -> AppState (inc num) recOpened) aid
 	>>= \(AppState newNum _).	createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile
 	>>|							return GContinue
 
@@ -83,7 +83,7 @@ open fid {createEditor, existsEditor} mbGid =
 			>>= \file.	case mbGid of // determine if to add to list of recently opened files
 							Nothing = stop
 							Just gid =
-									updateShared gid (\(AppState n files) -> AppState n (take 5 [(fid, file.TextFile.name):files]))
+									updateShared (\(AppState n files) -> AppState n (take 5 [(fid, file.TextFile.name):files])) gid
 								>>| stop
 			>>|			return (GExtend [editor file])
 		Just eid = return (GFocus (Tag eid))
@@ -177,7 +177,7 @@ where
 					updateInformationA ("Replace","Replace") idView buttons repl <<@ NoMenus
 		>>= \res.	case appFst fst res of
 						(ActionReplaceAll,Just repl) =
-								updateShared eid (dbReplaceFunc repl)
+								updateShared (dbReplaceFunc repl) eid
 							>>|	replaceT` repl
 						_ =
 							continue

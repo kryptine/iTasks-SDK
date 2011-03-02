@@ -82,7 +82,7 @@ addOrder requester buyer items orderstate store
 							  				  , supOrders 	= [] 
 							  				  }
 							in
-							    writeShared store (append as new) 
+							    writeShared store (append as new)
 							>>| return orderNumber
 
 fetchOrder :: (OrderId a) -> Task (Order a) | iTask a 
@@ -92,7 +92,7 @@ fetchOrder (nr, store)
 
 updateOrder :: (Order a) (OrderId a) -> Task (Order a) | iTask a 
 updateOrder order (nr, store)
-	=						updateShared store (updateAt nr order) 
+	=						updateShared (updateAt nr order) store
 		>>|					return order
 
 setOrderState :: OrderState (OrderId a) -> Task (Order a) | iTask a
@@ -119,7 +119,7 @@ changeSupOrderState :: Buyer Supplier SupOrderState SupOrderState (OrderStore a)
 changeSupOrderState buyer supplier oldstate newstate store
 	=						getCurrentDateTime
 		>>= \timestamp ->	readShared store
-		>>= \orders ->		writeShared store (foldl (update (newstate, timestamp)) orders (fetchOrderNumbers buyer supplier oldstate orders)) 
+		>>= \orders ->		writeShared store (foldl (update (newstate, timestamp)) orders (fetchOrderNumbers buyer supplier oldstate orders))
 where
 	update :: (TimeStamp SupOrderState) [Order a] (OrderNumber a, SupOrderNumber a) -> [Order a]
 	update nsupstate orders (i,j)
@@ -171,7 +171,7 @@ request store
 		>>= \items ->		selectUserWithRole "buyer"
 		>>= \buyer ->		addOrder requester buyer items OrderCreated store 
 		>>= \orderNr ->		startChooseSuppliers buyer items (orderNr, store)
-		>>|					monitorTask "Status of your order:" (showStatus orderNr) (finished orderNr) False store
+		>>|					monitor "Status of your order:" (showStatus orderNr) (finished orderNr) False store
 		>>|					return Void
 where
 	showStatus orderNr orders = Display (myOrder orderNr orders)
@@ -216,7 +216,7 @@ where
 
 shipOrder :: Buyer Supplier (OrderStore a) -> Task Void | iTask a
 shipOrder buyer supplier store
-	=						monitorTask ("Orders collected for " <+++ supplier) showSupOrders (const True) False store
+	=						monitor ("Orders collected for " <+++ supplier) showSupOrders (const True) False store
 		>>|					readShared store
 		>>= \orders ->		changeSupOrderState buyer supplier ToBeSendToSupplier SentToSupplier store
 		>>= \orders ->		supplier @: deliver (fetchOutstandingSubOrders buyer supplier SentToSupplier orders)

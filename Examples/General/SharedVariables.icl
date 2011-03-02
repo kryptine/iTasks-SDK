@@ -114,7 +114,7 @@ where
 	markersDisplay dbid =
 							showMessageSharedA "Markers" markersListener [(RemoveMarkersAction,always),quitButton] dbid
 		>>= \(action,map).	case fst action of
-								RemoveMarkersAction	= updateShared dbid (\map -> {GoogleMap| map & markers = []}) >>| markersDisplay dbid
+								RemoveMarkersAction	= updateShared (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid
 								_					= return map
 
 	optionsEditor	=	( \map ->		{ type = map.mapType

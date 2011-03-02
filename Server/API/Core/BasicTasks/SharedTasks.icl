@@ -87,8 +87,8 @@ where
 			Error e	= TaskException (dynamic (SharedException e))
 		= (res,tst)
 
-updateShared :: !(Shared r w) !(r -> w) -> Task w | iTask r & iTask w
-updateShared shared f
+updateShared :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
+updateShared f shared
 	= mkInstantTask ("Update shared", "Updates a shared value") (\tst -> accIWorldTSt updateShared` {tst & sharedChanged = True})
 where
 	updateShared` iworld
@@ -99,8 +99,8 @@ where
 		| isError wres	= (TaskException (dynamic (SharedException (fromError wres))),iworld)
 		= (TaskFinished val,iworld)
 
-symmetricLens :: !(Shared ar aw) !(Shared br bw) !(aw c -> (bw,c)) !(bw c -> (aw,c)) !c -> Task (!Shared ar aw,!Shared br bw) | iTask ar & iTask aw & iTask br & iTask bw & iTask c
-symmetricLens sharedA sharedB putr putl missing =
+symmetricLens :: !(aw c -> (bw,c)) !(bw c -> (aw,c)) !c !(Shared ar aw) !(Shared br bw) -> Task (!Shared ar aw,!Shared br bw) | iTask ar & iTask aw & iTask br & iTask bw & iTask c
+symmetricLens putr putl missing sharedA sharedB =
 					createSharedStore missing
 	>>=	\sharedC.	return (sharedA >+< sharedB >+< sharedC)
 	>>= \sharedAll.	return (newSharedA sharedAll,newSharedB sharedAll)

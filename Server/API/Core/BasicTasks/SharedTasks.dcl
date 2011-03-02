@@ -49,8 +49,8 @@ readShared :: !(Shared a w) -> Task a | iTask a
 /**
 * Writes shared data.
 *
-* @param A shared reference
 * @param A value to write
+* @param A shared reference
 * @return The value written
 * @throws SharedException
 */
@@ -59,12 +59,12 @@ writeShared :: !(Shared r a) !a -> Task a | iTask a
 /**
 * Modifies shared data.
 *
-* @param A shared reference
 * @param A function modifying the shared value
+* @param A shared reference
 * @param The new value
 * @throws SharedException
 */
-updateShared :: !(Shared r w) !(r -> w) -> Task w | iTask r & iTask w
+updateShared :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 
 /**
 * Puts a symmetric lens between two symmetric shared data sources.
@@ -77,7 +77,7 @@ updateShared :: !(Shared r w) !(r -> w) -> Task w | iTask r & iTask w
 * @param missing complement: includes all information not shared by a & b
 * @param Shared references of the same type with symmetric lens between them
 */
-symmetricLens :: !(Shared ar aw) !(Shared br bw) !(aw c -> (bw,c)) !(bw c -> (aw,c)) !c -> Task (!Shared ar aw,!Shared br bw) | iTask ar & iTask aw & iTask br & iTask bw & iTask c
+symmetricLens :: !(aw c -> (bw,c)) !(bw c -> (aw,c)) !c !(Shared ar aw) !(Shared br bw) -> Task (!Shared ar aw,!Shared br bw) | iTask ar & iTask aw & iTask br & iTask bw & iTask c
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where

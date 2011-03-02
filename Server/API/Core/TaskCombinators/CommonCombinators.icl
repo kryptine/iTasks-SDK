@@ -232,10 +232,10 @@ where
 		}
 	where
 		createEditor initState editorTask =
-						updateShared idref inc
-			>>= \eid.	updateShared ref (putInEditorStates eid initState)
+						updateShared inc idref
+			>>= \eid.	updateShared (putInEditorStates eid initState) ref
 			>>|			editorTask eid (sharedForEditor eid)
-			>>|			updateShared ref (updateEditorStates (del eid))
+			>>|			updateShared (updateEditorStates (del eid)) ref
 			>>|			stop
 			
 		iterateEditors initAcc f =

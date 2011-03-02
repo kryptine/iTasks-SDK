@@ -15,7 +15,7 @@ getCurrentDateTime = mkInstantTask ("Get current datetime", "Determine the curre
 
 waitForTime :: !Time -> Task Void
 waitForTime time =
-		monitorTask ("Wait for time", ("Wait until " +++ toString time)) view pred True sharedCurrentTime
+		monitor ("Wait for time", ("Wait until " +++ toString time)) view pred True sharedCurrentTime
 	>>| stop
 where	
 	view _ = "Waiting until " <+++ time//html [Text "Waiting until ",visualizeAsHtmlLabel time]
@@ -23,7 +23,7 @@ where
 
 waitForDate :: !Date -> Task Void
 waitForDate date =
-		monitorTask ("Wait for date", ("Wait until " +++ toString date)) view pred True sharedCurrentDate
+		monitor ("Wait for date", ("Wait until " +++ toString date)) view pred True sharedCurrentDate
 	>>| stop
 where
 	view _ = "Waiting until " <+++ date//html [Text "Waiting until ",visualizeAsHtmlLabel date]

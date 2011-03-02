@@ -17,7 +17,7 @@ from InteractiveTasks	import :: TaskAction, :: ActionEvent, :: AutoActionEvents,
 * @param A reference to the shared state
 * @return The last value of the monitored state
 */
-monitorTask		:: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & iTask m & iTask v
+monitor		:: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & iTask m & iTask v
 
 /**
 * Monitor a shared state using a functional view.
@@ -30,4 +30,4 @@ monitorTask		:: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr 
 * @param A reference to the shared state
 * @return The last value of the monitored state + the generated action event
 */
-monitorTaskA	:: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!ActionEvent,!Maybe m) | descr d & iTask m & iTask v
+monitorA	:: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!ActionEvent,!Maybe m) | descr d & iTask m & iTask v

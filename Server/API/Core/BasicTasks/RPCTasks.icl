@@ -68,7 +68,7 @@ where
 
 showRPCWaitMessage :: !message (ReadOnlyShared (Maybe a)) -> Task a | iTask message & iTask a
 showRPCWaitMessage msg shared = 
-		monitorTask ("Call RPC", "Running method from remote server") (const msg) isJust True shared
+		monitor ("Call RPC", "Running method from remote server") (const msg) isJust True shared
 	>>= transform fromJust
 
 getITasksPath :: *World -> (String, *World)
