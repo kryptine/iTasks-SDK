@@ -26,7 +26,7 @@ derive class iTask FileException, ParseException, CallException, DirectoryExcept
 * @param The exception handling task which gets the exception as parameter
 * @return The combined task
 */
-try  :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
+try 		:: !(Task a) (e -> Task a) 	-> Task a 	| iTask a & iTask e
 
 /**
 * Exception throwing. This will trough an exception of arbitrary type e which has to be caught
@@ -35,4 +35,12 @@ try  :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
 * @param The exception value
 * @return The combined task
 */
-throw 			:: !e 				-> Task a 	| iTask a & TC e
+throw		:: !e 						-> Task a 	| iTask a & TC e
+
+/**
+* Catches all exceptions.
+*
+* @param The normal task which will possibly raise an exception of any type
+* @param The exception handling task
+*/
+catchAll	:: !(Task a) (Task a)		-> Task a | iTask a
