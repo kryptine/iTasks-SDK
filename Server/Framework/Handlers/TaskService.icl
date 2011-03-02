@@ -200,6 +200,15 @@ taskService url html path req tst
 				# tui			= buildResultPanel uiTree
 				# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
 				= (serviceResponse html "Task result user interface" tuiResDescription url detailsParams json, tst)
+		[taskId,"refresh"]
+			# (mbProcess, tst)	= getProcess taskId tst
+			= case mbProcess of
+				Nothing
+					= (notFoundResponse req, tst)
+				Just proc
+					# (_,tst) = calculateTaskTree taskId [] tst
+					# json = JSONObject [("success",JSONBool True)]
+					= (serviceResponse html "Task details" refreshDescription url [] json, tst)
 		_
 			= (notFoundResponse req, tst)
 where
@@ -294,3 +303,4 @@ manPropDescription		:== "This service displays a single manager property."
 cancelDescription		:== "This service let's you cancel (delete) a running task instance."
 tuiDescription 			:== "This yields an abstract user interface description for the current task."
 tuiResDescription		:== "This yields an abstract user interface description that displays the current value of the task."
+refreshDescription		:== "This service recalculates the task tree of a running task instance."
