@@ -1,7 +1,7 @@
 implementation module Store
 
 import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
-import Directory, Maybe, Map, Text, JSON, Functor
+import Directory, Maybe, Map, Text, JSON, Functor, FilePath
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Types import :: IWorld{store,world,timestamp}, :: Config
 import dynamic_string //Static dynamic serialization
@@ -130,7 +130,7 @@ loadStoreItem key iworld=:{store=store=:{location}}
 loadFromDisk :: !String !String !*World -> (Maybe StoreItem, !*World)	
 loadFromDisk key location world			
 		//Try plain format first
-		# filename			= location +++ "/" +++ key +++ ".txt"
+		# filename			= addExtension (location </> key) "txt"
 		# (ok,file,world)	= fopen filename FReadText world
 		| ok
 			# (ok,time,file)	= freadi file
@@ -139,7 +139,7 @@ loadFromDisk key location world
 			# (ok,world)		= fclose file world
 			= (Just {StoreItem|format = SFPlain, content = content, timestamp = Timestamp time}, world)
 		| otherwise
-			# filename			= location +++ "/" +++ key +++ ".bin"
+			# filename			= addExtension (location </> key) "bin"
 			# (ok,file,world)	= fopen filename FReadData world
 			| ok
 				# (ok,time,file)	= freadi file
@@ -147,7 +147,7 @@ loadFromDisk key location world
 				#( ok,world)		= fclose file world
 				=(Just {StoreItem|format = SFDynamic, content = content, timestamp = Timestamp time}, world)
 			| otherwise
-				# filename 			= location +++ "/" +++ key +++ ".blb"
+				# filename 			= addExtension (location </> key) "blb"
 				# (ok,file,world)	= fopen filename FReadData world
 				| ok
 					# (ok,time,file)	= freadi file
@@ -221,8 +221,8 @@ where
 	copy fromprefix toprefix [] world = world
 	copy fromprefix toprefix [f:fs] world
 		| startsWith fromprefix f.fileName
-			# sfile	= location +++ "/" +++ f.fileName
-			# dfile = location +++ "/" +++ toprefix +++ (f.fileName % (size fromprefix, size f.fileName))
+			# sfile	= location </> f.fileName
+			# dfile = location </> toprefix +++ (f.fileName % (size fromprefix, size f.fileName))
 			# world	= fcopy sfile dfile world
 			= copy fromprefix toprefix fs world
 		| otherwise
@@ -274,7 +274,7 @@ where
 		= ([(key,(False,item)):is], world)
 
 	writeToDisk key {StoreItem|format,content,timestamp} location world
-		# filename 			= location +++ "/" +++ key +++ (case format of SFPlain = ".txt" ; SFDynamic = ".bin" ; SFBlob = ".blb")
+		# filename 			= addExtension (location </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin" ; SFBlob = "blb")
 		# (ok,file,world)	= fopen filename (case format of SFPlain = FWriteText; _ = FWriteData) world
 		| not ok			= abort ("Failed to write value to store: " +++ filename)
 		# file				= fwritei (toInt timestamp) file
