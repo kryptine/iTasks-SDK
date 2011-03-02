@@ -29,6 +29,7 @@ getBranchType name [b:bs] = case b of
 	ParallelBinding pb | pb.ParallelBinding.merge.GDeclaration.name   == name = ret BTMerge
 	otherwise = getBranchType name bs
 
+/*
 importDeclarations :: ModuleBindings -> GImport
 importDeclarations mb = { GImport 
                         | name = mb.ModuleBindings.name
@@ -42,10 +43,22 @@ importDeclarations mb = { GImport
 	filterDup              :: [a] -> [a] | gEq{|*|} a
 	filterDup []           =  []
 	filterDup [x:xs]       =  [x : filterDup (filter (\y = not (x === y)) xs)]
-
+*/
 mkGDefinitionBinding :: GDefinition -> Binding
 mkGDefinitionBinding gdef = 
 	NodeBinding { NodeBinding 
                 | declaration = gdef.GDefinition.declaration
 				, parameterMap = NBPrefixApp
 				}
+
+getModuleDeclarations :: ModuleBindings -> [GDeclaration]
+getModuleDeclarations mb = getDeclarations mb.ModuleBindings.bindings
+
+getDeclarations :: Bindings -> [GDeclaration]
+getDeclarations bindings = flatten (map get bindings)
+where
+	get :: Binding -> [GDeclaration]
+	get (NodeBinding nb) = [nb.NodeBinding.declaration]
+	get (ParallelBinding pb) = [ pb.ParallelBinding.split
+							   , pb.ParallelBinding.merge ]
+

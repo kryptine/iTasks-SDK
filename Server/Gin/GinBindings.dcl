@@ -56,6 +56,9 @@ getParallelBinding :: GIdentifier GIdentifier Bindings -> GParseState ParallelBi
 :: BranchType = BTSingle | BTSplit | BTMerge
 getBranchType :: GIdentifier Bindings -> GParseState BranchType
 
-importDeclarations :: ModuleBindings -> GImport
+//importDeclarations :: ModuleBindings -> GImport
 
 mkGDefinitionBinding :: GDefinition -> Binding
+getModuleDeclarations :: ModuleBindings -> [GDeclaration]
+
+getDeclarations :: Bindings -> [GDeclaration]

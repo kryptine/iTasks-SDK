@@ -3,6 +3,7 @@ definition module GinTypes
 import GenEq
 import Maybe
 
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
 from iTasks import class iTask, generic JSONDecode, generic JSONEncode, generic gVerify, generic gDefaultMask, generic gUpdate, generic gVisualize
 from PPrint import ::Doc
 

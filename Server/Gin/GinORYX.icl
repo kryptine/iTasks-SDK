@@ -10,9 +10,9 @@ import JSON
 import GinSyntax
 import GinORYX
 
-derive gEq		 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencil, ORYXStencilSet, ORYXTarget
-derive JSONEncode	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencil, ORYXStencilSet, ORYXTarget
-derive JSONDecode 	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencil, ORYXStencilSet, ORYXTarget
+derive gEq		 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive JSONEncode	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive JSONDecode 	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
 
 JSONEncode{|ORYXChildShape|} {resourceId, properties, stencil, childShapes, outgoing, bounds, dockers, target}
 	# target` = case target of
@@ -68,9 +68,9 @@ JSONDecode{|ORYXProperties|} nodes = (Nothing, nodes)
 petriNetORYXEditor :: ORYXEditor
 petriNetORYXEditor = newORYXEditor petriNetStencilSet
 where
-	petriNetStencilSet :: ORYXStencilSet
+	petriNetStencilSet :: ORYXStencilSetReference
 	petriNetStencilSet 
-		=	{ ORYXStencilSet 
+		=	{ ORYXStencilSetReference 
 	   		| url = "petrinets/petrinet.json"
 			, namespace = "http://b3mn.org/stencilset/petrinet#"
 			}
@@ -78,27 +78,24 @@ where
 workflowNetORYXEditor :: ORYXEditor
 workflowNetORYXEditor = newORYXEditor workflowNetStencilSet
 where
-	workflowNetStencilSet :: ORYXStencilSet
+	workflowNetStencilSet :: ORYXStencilSetReference
 	workflowNetStencilSet 
-		=	{ ORYXStencilSet 
+		=	{ ORYXStencilSetReference 
 	   		| url = "workflownets/workflownets.json"
 			, namespace = "http://www.example.org/workflownets#"
 			}
 
 ginORYXEditor :: ORYXEditor
-ginORYXEditor = petriNetORYXEditor
-/*
 ginORYXEditor = newORYXEditor ginStencilSet
 where
-	ginStencilSet :: ORYXStencilSet
+	ginStencilSet :: ORYXStencilSetReference
 	ginStencilSet
-		=	{ ORYXStencilSet 
-	   		| url = "../../lib/oryx/stencilsets/gin/gin.json"
+		=	{ ORYXStencilSetReference 
+	   		| url = "/services/json/stencils/gin"
 			, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
 			}
-*/
 			
-newORYXEditor :: ORYXStencilSet -> ORYXEditor
+newORYXEditor :: ORYXStencilSetReference -> ORYXEditor
 newORYXEditor stencilset
 	=	{ ORYXEditor
 		| diagram = newORYXDiagram stencilset
@@ -106,12 +103,12 @@ newORYXEditor stencilset
 		, toString = \_ -> "" //TODO
 		}
 
-newORYXDiagram :: ORYXStencilSet -> ORYXDiagram
+newORYXDiagram :: ORYXStencilSetReference -> ORYXDiagram
 newORYXDiagram stencilset
 	=	{ ORYXDiagram
 					| resourceId = "oryx_78E522C8-943A-44FF-B391-14BE8630F198"
 					, properties =	ORYXProperties []
-					, stencil = { ORYXStencil
+					, stencil = { ORYXStencilReference
 								| id = "Diagram"
 								}
 					, childShapes = []
@@ -122,5 +119,4 @@ newORYXDiagram stencilset
 					, stencilset = stencilset
 					, ssextensions = []
 					}
-
 

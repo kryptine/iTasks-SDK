@@ -1,7 +1,7 @@
 definition module GinDomain
 
 import iTasks
-//import GinSyntax
+import GinSyntax
 import GinORYX
 
 tryRender :: GModule Bool -> String

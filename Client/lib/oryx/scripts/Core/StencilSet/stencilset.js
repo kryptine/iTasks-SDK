@@ -247,7 +247,7 @@ ORYX.Core.StencilSet.StencilSet = Clazz.extend({
 					
 			if(jsonExtension["extends"] == this.namespace()) {
 				this._extensions[jsonExtension.namespace] = jsonExtension;
-				
+
 				var defaultPosition = this._stencils.keys().size();
 				//load new stencils
 				if(jsonExtension.stencils) {
@@ -439,6 +439,15 @@ ORYX.Core.StencilSet.StencilSet = Clazz.extend({
 		}
 		
 		var defaultPosition = 0;
+
+        if (this._jsonObject.baseUrl) {
+            if (this._jsonObject.baseUrl[0] == '/')
+                this._baseUrl = this._jsonObject.baseUrl;
+            else
+                this._baseUrl = ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this._jsonObject.baseUrl;
+            if (this._baseUrl[this._baseUrl.length - 1] != '/')
+                this._baseUrl = this._baseUrl + '/';
+        }
 		
         // init each stencil
         $A(this._jsonObject.stencils).each((function(stencil){

@@ -60,7 +60,7 @@ compose compF f0 f1 iworld
 
 makeReadOnlyShared :: !(*IWorld -> *(!a,!*IWorld)) -> ReadOnlyShared a
 makeReadOnlyShared valueF = Shared (appFst Ok o valueF) roWrite roGetTimestamp
-	
+
 makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld))	-> ReadOnlyShared a
 makeReadOnlySharedError valueF = Shared valueF roWrite roGetTimestamp
 

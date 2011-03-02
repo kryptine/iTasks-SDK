@@ -78,10 +78,14 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 	},
 
     buildEditor: function() {
+        var url = this.stencilsetURL[0] == '/' 
+                  ? this.stencilsetURL
+                  : ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetURL;
+
 		this.facade = new ORYX.Editor({
             parentContainer: this,
             stencilset: {
-                url: ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetURL
+                url: url
             }
         });
 

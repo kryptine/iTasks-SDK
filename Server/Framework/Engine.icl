@@ -14,7 +14,7 @@ import	CommandLine, File, FilePath, HTTP, Text, MIME, UrlEncoding
 import	TuningCombinators
 import	Setup
 
-import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService
+import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService, StencilService
 
 import Config, TSt
 
@@ -67,6 +67,7 @@ where
 						["tasks":path]			= taskService req.req_path html path req tst
 						["users":path]			= userService req.req_path html path req tst
 						["documents":path]		= documentService req.req_path html path req tst
+						["stencils":path]		= stencilService req.req_path html path req tst
 						_						= (notFoundResponse req, tst)
 				| otherwise
 					= (notFoundResponse req, tst)

@@ -53,8 +53,8 @@ newWorkflow = { declaration = { name         = "newWorkflow"
               }
               
 newModule :: GModule
-newModule = addDefaultLibrary	{ name = "newModule"
-					            , types = []
-					            , definitions = [newWorkflow]
-					            , imports = []
-					            }
+newModule = { name = "newModule"
+			, types = []
+			, definitions = [newWorkflow]
+			, imports = []
+			}

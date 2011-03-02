@@ -10,7 +10,7 @@ import Void, Maybe, Error
 from StdFunc	import id, const
 from Types		import :: IWorld
 from Time		import :: Timestamp
-from GenUpdate	import generic gUpdate
+from GenUpdate	import :: USt, :: UpdateMode, generic gUpdate
 
 // shared reference, data of type r can be read, data of type w can be written
 :: Shared r w = Shared !(SharedRead r) !(SharedWrite w) !SharedGetTimestamp

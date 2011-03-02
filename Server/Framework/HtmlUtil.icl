@@ -63,7 +63,7 @@ formatJSON (JSONRaw r)			= [PreTag [] [Text (toString r)]]
 formatJSON _					= []
 
 overviewPage :: HtmlTag
-overviewPage = pageLayout "Services" description [application,sessions,workflows,tasks,users,documents]
+overviewPage = pageLayout "Services" description [application,sessions,workflows,tasks,users,documents,stencils]
 where
 	description = "This application can be accessed through a RESTful JSON API.<br />Below is an overview of the available service urls."
 	
@@ -79,6 +79,8 @@ where
 		[ATag [HrefAttr "html/users"] [Text "User management"]]
 	documents	= pageSection "documents"
 		[ATag [HrefAttr "html/documents"] [Text "Upload/download of binary files"]]
+	stencils	= pageSection "stencils"
+		[ATag [HrefAttr "html/stencils"] [Text "Catalogue of stencils for use in graphical workflow diagrams"]]
 	
 overviewResponse :: HTTPResponse
 overviewResponse = {newHTTPResponse & rsp_data = toString overviewPage}

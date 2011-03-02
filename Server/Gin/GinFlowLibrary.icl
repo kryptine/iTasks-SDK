@@ -1,5 +1,6 @@
 implementation module GinFlowLibrary
 
+import StdEnum
 from StdFunc import o
 import StdTuple
 
@@ -9,27 +10,24 @@ import GinAbstractSyntax
 import GinParser
 import GinBindings
 
-addDefaultLibrary :: GModule -> GModule
-addDefaultLibrary mod = { GModule 
-                        | mod & imports = map importDeclarations library
-                        }
+import GinORYX
 
 importBindings :: GImport -> GParseState Bindings
 importBindings imp
 # name = imp.GImport.name
-= case [ mb.bindings \\ mb <- library | mb.ModuleBindings.name == name ] of
+= case [ mb.bindings \\ mb <- flowLibrary | mb.ModuleBindings.name == name ] of
     [] = parseError ("Imported module " +++ name +++ " not found")
     [bindings] = ret bindings
     _ = parseError ("Multiple declarations of module " +++ name)
-    
-library :: [ModuleBindings]
-library = [ clean
-	      , coreCombinators
-          , commonCombinators
-          , DateTimeTasks
-          , interactionTasks
-          , systemTasks
-          ]
+
+flowLibrary :: [ModuleBindings]
+flowLibrary = [ clean
+		      , coreCombinators
+	          , commonCombinators
+	          , DateTimeTasks
+	          , interactionTasks
+	          , systemTasks
+	          ]
 
 mkZeroArityBinding :: String GTypeExpression String -> Binding
 mkZeroArityBinding name type icon = NodeBinding 

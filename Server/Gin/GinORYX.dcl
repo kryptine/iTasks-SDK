@@ -1,11 +1,10 @@
 definition module GinORYX
 
+import GenEq
 import JSON
 
-import GinSyntax
-
 ::ORYXEditor = { diagram	:: ORYXDiagram
-			   , stencilset	:: ORYXStencilSet
+			   , stencilset	:: ORYXStencilSetReference
 			   , toString	:: (ORYXEditor -> String)
 			   }
 
@@ -22,7 +21,7 @@ import GinSyntax
 :: ORYXChildShape =	
 	{ resourceId	:: !ORYXResourceId
 	, properties	:: !ORYXProperties
-	, stencil		:: !ORYXStencil
+	, stencil		:: !ORYXStencilReference
 	, childShapes	:: ![ORYXChildShape]
 	, outgoing		:: ![ORYXOutgoing]
 	, bounds		:: !ORYXBounds
@@ -40,10 +39,10 @@ import GinSyntax
 :: ORYXDiagram = 
 	{ resourceId	:: !ORYXResourceId
 	, properties	:: !ORYXProperties
-	, stencil	 	:: !ORYXStencil
+	, stencil	 	:: !ORYXStencilReference
 	, childShapes	:: ![ORYXChildShape]
 	, bounds		:: !ORYXBounds
-	, stencilset	:: !ORYXStencilSet
+	, stencilset	:: !ORYXStencilSetReference
 	, ssextensions	:: ![ORYXStencilSetExtension]
 	}
 	
@@ -55,14 +54,14 @@ import GinSyntax
 :: ORYXOutgoing =
 	{ resourceId	:: !ORYXResourceId
 	}
-
+ 
 :: ORYXResourceId :== String
 
-:: ORYXStencil = 
+:: ORYXStencilReference = 
 	{ id			:: !ORYXResourceId
 	}
 
-:: ORYXStencilSet =
+:: ORYXStencilSetReference =
 	{ url		:: !String
 	, namespace	:: !String
 	}
@@ -73,10 +72,11 @@ import GinSyntax
 	{ resourceId	:: !ORYXResourceId
 	}
 
-derive gEq		 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperty,   ORYXStencil, ORYXStencilSet, ORYXTarget
-derive JSONEncode	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencil, ORYXStencilSet, ORYXTarget
-derive JSONDecode 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencil, ORYXStencilSet, ORYXTarget
+// Stencil definition types
 
+derive gEq		 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty,   ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive JSONEncode	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive JSONDecode 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
 
 petriNetORYXEditor :: ORYXEditor
 
@@ -84,4 +84,6 @@ workflowNetORYXEditor :: ORYXEditor
 
 ginORYXEditor :: ORYXEditor
 
-newORYXDiagram :: ORYXStencilSet -> ORYXDiagram
+newORYXDiagram :: ORYXStencilSetReference -> ORYXDiagram
+
+

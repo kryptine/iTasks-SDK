@@ -27,7 +27,7 @@ where
 		        , value = toString (toJSON value.ORYXEditor.diagram)
 		        , errorMsg = err
 		        , hintMsg = hnt
-		        , stencilsetURL = value.ORYXEditor.stencilset.ORYXStencilSet.url
+		        , stencilsetURL = value.ORYXEditor.stencilset.ORYXStencilSetReference.url
 		        }
 		        
 	mkText v = toString (fmap (\oryxeditor -> oryxeditor.toString oryxeditor) v)
