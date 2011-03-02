@@ -60,10 +60,12 @@ return 		:: !a 										-> Task a 		| iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-:: PAction x	= Stop			// stop the entire parallel/grouped execution
-				| Continue		// continue execution without change
-				| Extend ![x]	// dynamically extend list of tasks in parallel/group
-				| Focus Tag		// focus child-tasks with given tag
+:: PAction x acc	= Stop				// stop the entire parallel/grouped execution
+					| Continue			// continue execution without change
+					| Extend ![Task x]	// dynamically extend list of tasks in parallel/group
+					| Focus Tag			// focus child-tasks with given tag
+					
+derive class iTask PAction
 
 // This tuple is used to link actions to groups, similar to TaskAction.
 // Its two parts represent the (what , when) aspects of actions.
@@ -76,6 +78,9 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 	| E.s w:
 		SharedPredicate !(Shared s w) !(s -> Bool) & iTask s		// use predicate on given shared variable to determine if action is enabled
 :: GroupActionGenFunc result	:== (Action, ActionData) -> result	// function mapping task action events to result applied to the group
+
+:: CTask a acc :== (Shared (acc,[TaskProperties]) [ManagerProperties]) -> Task (PAction a acc)
+
 /**
 * Execute a list of parallel tasks, assigned to different users. The combinator keeps an internal
 * state of type 'pState' and uses the accumulator function to alter this state and dynamically add new tasks
@@ -89,7 +94,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @param Initial value of the internal state
 * @param List of initial tasks
 */
-parallel :: !TaskParallelType !d !((taskResult,Int) pState -> (pState,PAction (Task taskResult)))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel :: !TaskParallelType !d !((taskResult,Int) pState -> (pState,PAction taskResult pState)) (pState -> pResult) !pState ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 
 /**
 * Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
@@ -105,7 +110,7 @@ parallel :: !TaskParallelType !d !((taskResult,Int) pState -> (pState,PAction (T
 * @param List of initial tasks
 * @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
 */
-group 	 :: !d !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
+group 	 :: !d !((taskResult,Int) gState -> (gState,PAction taskResult gState)) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
 
 // Multi-user workflows
 

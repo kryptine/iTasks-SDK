@@ -1,13 +1,13 @@
 implementation module CoreCombinators
 
 import StdList, StdArray, StdTuple, StdMisc, StdBool
-import TSt, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks
+import TSt, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks, InteractionTasks, CommonCombinators
 from ProcessDBTasks		import sharedProcessStatus, sharedProcessResult, class toProcessId, instance toProcessId ProcessRef
-from StdFunc			import id, const, o
+from StdFunc			import id, const, o, seq
 from TaskTree			import :: TaskParallelType
 from CommonCombinators	import transform
 
-derive class iTask SchedulerState, TaskStatus
+derive class iTask SchedulerState, TaskStatus, PAction
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -97,18 +97,18 @@ derive JSONDecode PSt, PStTask
 derive bimap Maybe, (,)
 
 :: PSt a b =
-	{ state 	:: !b
-	, tasks 	:: ![(!Int,!PStTask a)]
-	, nextIdx	:: !Int
+	{ state 		:: !b
+	, tasks 		:: ![(!Int,!PStTask a b)]
+	, nextIdx		:: !Int
 	}
 	
-:: PStTask a = InitTask !Int | AddedTask !(Task a)
+:: PStTask a acc = InitTask !Int | AddedTask !(Task a) | InitControlTask !Int | AddedControlTask !(CTask a acc)
 
-group :: !d !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
+group :: !d !((taskResult,Int) gState -> (gState,PAction taskResult gState)) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
 group d procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask d (execInGroupE,execInGroupC)
 where
 	execInGroupE tst=:{taskNr}
-		# (pst,tst) = loadPSt taskNr tst
+		# (pst,tst) = accIWorldTSt (loadPSt taskNr) tst
 		= processAllTasksE pst 0 tst
 		
 	processAllTasksE pst n tst=:{taskNr}
@@ -118,7 +118,7 @@ where
 		= processAllTasksE pst (inc n) {tst & taskNr = taskNr}
 		
 	execInGroupC tst=:{taskNr,request}
-		# (pst,tst)   		= loadPSt taskNr tst
+		# (pst,tst)   		= accIWorldTSt (loadPSt taskNr) tst
 		# (mbAction,tst)	= getEventGroupActionEvent groupActions tst
 		# (gActionStop,mbFocus,pst) 
 			= case mbAction of
@@ -165,26 +165,26 @@ where
 						= processAllTasksC pst n {tst & taskNr = taskNr} mbFocus
 					Focus tag	= processAllTasksC pst n {tst & taskNr = taskNr} (Just tag)
 
-	loadPSt taskNr tst
-		# (mbPSt,tst) = accIWorldTSt (getTaskStoreFor taskNr "pst") tst
+	loadPSt taskNr iworld
+		# (mbPSt,iworld) = getTaskStoreFor taskNr "pst" iworld
 		= case mbPSt of
-			Just p 	= (p,tst)
-			Nothing	= initPSt taskNr tst
+			Just p 	= (p,iworld)
+			Nothing	= (initPSt taskNr,iworld)
 	
-	initPSt taskNr tst
-		# pst = { PSt
-				| state 	= initState
-				, tasks 	= [(n,InitTask n) \\ n <- indexList initTasks]
-				, nextIdx	= length initTasks
-				}
-		= (pst,tst)
+	initPSt taskNr
+		= { PSt
+		| state 	= initState
+		, tasks 	= [(n,InitTask n) \\ n <- indexList initTasks]
+		, nextIdx	= length initTasks
+		}
 		
 	getTaskFromPSt n pst
 		# (idx,pstTask) = pst.tasks !! n
 		= (idx,getPStTask pstTask)
 			
-	getPStTask (InitTask n)	= initTasks !! n
-	getPStTask (AddedTask task)	= task
+	getPStTask (InitTask n)				= initTasks !! n
+	getPStTask (AddedTask task)			= task
+	getPStTask _						= abort "invalid task in group"
 		
 	evaluateConditions actions state = [(action, evaluateCondition condition) \\ (action, condition) <-  actions]
 	where
@@ -212,18 +212,18 @@ where
 		getNameAndData (JSONArray [JSONString key,JSONString data])	= Just (key, data)
 		getNameAndData _											= Nothing
 		
-parallel :: !TaskParallelType !d !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c & descr d
-parallel parType d procFun parseFun initState initTasks
+parallel :: !TaskParallelType !d !((a,Int) b -> (b,PAction a b)) (b -> c) !b ![CTask a b] ![Task a] -> Task c | iTask a & iTask b & iTask c & descr d
+parallel parType d procFun parseFun initState initCTasks initTasks
 	= mkParallelTask d parType (parallelE,parallelC)
 where
 	parallelE tst=:{taskNr}
 		| isEmpty initTasks = tst
-		# (pst,tst) = loadPSt taskNr tst
+		# (pst,tst) = accIWorldTSt (loadPSt taskNr) tst
 		= processAllTasksE pst 0 tst
 		
 	processAllTasksE pst n tst=:{taskNr}
 		| (length pst.tasks) == n	= tst
-		# (_,task)					= getTaskFromPSt n pst
+		# (_,(task,_))				= getTaskFromPSt taskNr n pst
 		# (_,tst)					= applyTaskEdit task {tst & taskNr = [n:taskNr]} 
 		= processAllTasksE pst (inc n) {tst & taskNr = taskNr}
 
@@ -232,7 +232,7 @@ where
 		| isEmpty initTasks
 			= (TaskFinished (parseFun initState), tst)
 		// Load the internal state
-		# (pst,tst)			= loadPSt taskNr tst
+		# (pst,tst)			= accIWorldTSt (loadPSt taskNr) tst
 		// Evaluate the subtasks for all currently active tasks
  		# (res,pst,tst)		= processAllTasksC pst tst
 		// Store the internal state
@@ -250,33 +250,76 @@ where
 				= (TaskFinished (parseFun r),tst)
 	
 	//Load or create the internal state
-	loadPSt taskNr tst=:{TSt|properties}
-		# (mbPSt,tst) = accIWorldTSt (getTaskStoreFor taskNr "pst") tst
+	loadPSt taskNr iworld
+		# (mbPSt,iworld) = getTaskStoreFor taskNr "pst" iworld
 		= case mbPSt of
-			Just pst	= (pst,tst)
-			Nothing 	= ({PSt | state = initState, tasks = [(n,InitTask n) \\ n <- indexList initTasks], nextIdx = length initTasks},tst)
+			Just pst
+				= (pst,iworld)
+			Nothing
+				# iworld = updateTimestamp taskNr iworld
+				= (	{ PSt
+					| state = initState
+					, tasks = [(n,InitTask n) \\ n <- indexList initTasks] ++ [(n + length initTasks,InitControlTask n) \\ n <- indexList initCTasks]
+					, nextIdx = length initTasks + length initCTasks
+					},iworld)
 	
 	storePSt taskNr pst tst
+		# iworld = appIWorldTSt updateTimestamp tst
 		= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 		
-	getTaskFromPSt n pst
+	getTaskFromPSt taskNr n pst
 		# (idx,pstTask) = pst.tasks !! n
-		= (idx,getPStTask pstTask)
+		= (idx,getPStTask taskNr pstTask)
 			
-	getPStTask (InitTask n)	= initTasks !! n
-	getPStTask (AddedTask task)	= task
+	getPStTask _		(InitTask n)			= (mapTask Left	(initTasks !! n),True)
+	getPStTask _		(AddedTask task)		= (mapTask Left	task,True)
+	getPStTask taskNr	(InitControlTask n)		= (mapTask Right	((initCTasks !! n) (sharedParallelState taskNr)),False)
+	getPStTask taskNr	(AddedControlTask task)	= (mapTask Right	(task (sharedParallelState taskNr)),False)
 	
+	updateTimestamp taskNr iworld=:{IWorld|timestamp} = setTaskStoreFor taskNr "lastUpdate" timestamp iworld
+	
+	sharedParallelState taskNr = Shared read write getTimestamp
+	where
+		read iworld
+			# (state,procs,iworld) = getProcessesAndState iworld
+			= (Ok (state,map (\{Process|properties} -> properties) procs),iworld)
+			
+		write mprops iworld
+			# iworld			= updateTimestamp taskNr iworld
+			# (_,procs,iworld)	= getProcessesAndState iworld
+			= (Ok Void,seq [\iworld ->  snd (updateProcessProperties taskId (\p -> {p & managerProperties = mprop}) iworld) \\ {Process|taskId} <- procs & mprop <- mprops] iworld)
+		
+		getTimestamp iworld
+			# (mbLastUpdate,iworld) = getTaskStoreFor taskNr "lastUpdate" iworld
+			= case mbLastUpdate of
+				Just lastUpdate	= (Ok lastUpdate,iworld)
+				Nothing			= (Error "no timestamp",iworld)
+			
+		getProcessesAndState iworld
+			# (pst,iworld)		= loadPSt taskNr iworld
+			# (tasks,state)		= getTasksAndState pst
+			# (procs,iworld)	= getProcessesById (map (\(idx,_) -> taskNrToString [idx:taskNr]) tasks) iworld
+			= (state,procs,iworld)
+		
+		getTasksAndState :: !(PSt Void s) -> (![(!Int,!PStTask Void s)],s)
+		getTasksAndState {tasks,state} = (tasks,state)
+		
 	processAllTasksC pst=:{PSt|state,tasks} tst=:{TSt|taskNr,properties}
 		= case tasks of
 			//We have processed all results
 			[] = (TaskBusy, pst, tst)
 			//Process another task
 			[t=:(idx,pstTask):ts]
-				# task = getPStTask pstTask
-				//IMPORTANT: Task is evaluated with a shifted task number!!!
-				# (result,tree,tst)	= createOrEvaluateTaskInstance (Just parType) task {tst & taskNr = [idx:taskNr]}
-				// Add the tree to the current node
-				# tst				= addTaskNode tree tst
+				# (task,createProcess) = getPStTask taskNr pstTask
+				# (result,tst) = case createProcess of
+					True
+						//IMPORTANT: Task is evaluated with a shifted task number!!!
+						# (result,tree,tst)	= createOrEvaluateTaskInstance (Just parType) task {tst & taskNr = [idx:taskNr]}
+						// Add the tree to the current node
+						# tst				= addTaskNode tree tst
+						= (result,tst)
+					False
+						= applyTaskCommit task {tst & taskNr = [idx:taskNr]}
 				= case result of
 					TaskBusy
 						//Process the other tasks
@@ -284,33 +327,70 @@ where
 						= (result, {PSt| pst & tasks = [t:pst.tasks]}, {tst & taskNr = taskNr})  
 					TaskFinished a
 						//Apply the process function
-						# (state,action) = procFun (a,idx) state
+						# (state,action) = case a of
+							Left v	= procFun (v,idx) state
+							Right a	= (state,a)
 						= case action of
 							Stop
 								//Don't process the other tasks, return the state as result
-								= (TaskFinished state, {PSt|pst & state = state, tasks = [t:ts]}, {tst & taskNr = taskNr})
+								= (TaskFinished state,pst,tst)
 							Continue
 								//Process the other tasks
 								# (result,pst,tst) = processAllTasksC {pst & state = state, tasks = ts} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = pst.tasks}, {tst & taskNr = taskNr})
 								//Process the other tasks extended with the new tasks
 							Extend tasks
-								# (result,pst,tst) = processAllTasksC {PSt| state = state, tasks = ts ++ [(idx,AddedTask t) \\ t <- tasks & idx <- [pst.nextIdx..]], nextIdx = pst.nextIdx + length tasks + pst.nextIdx} {tst & taskNr = taskNr}
+								# (result,pst,tst) = processAllTasksC {pst & state = state, tasks = ts ++ [(idx,AddedTask t) \\ t <- tasks & idx <- [pst.nextIdx..]], nextIdx = pst.nextIdx + length tasks + pst.nextIdx} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = pst.tasks}, {tst & taskNr = taskNr})
 					TaskException e
 						//Don't process the other tasks, just let the exception through
-						= (TaskException e, {PSt| pst & tasks = [t:ts]}, {tst & taskNr = taskNr})
+						= (TaskException e,pst,tst)
+						
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
 assign :: !User !(Task a) -> Task a | iTask a	
-assign user task = mkMainTask (taskTitle task, taskDescription task) assign`
+assign user task = parallel Closed ("Assign","Manage a task assigned to another user.") (\(r,_) _ -> (Just r,Stop)) fromJust Nothing [processControl] [task <<@ user]
 where
-	assign` tst
-		# (result,node,tst) = createOrEvaluateTaskInstance Nothing (task <<@ user) tst
-		= (result,{TSt|tst & tree = node})
+	processControl shared =
+			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
+		>>|	return undef
 		
+	toView (_,[{progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker,priority,deadline,context,tags}}:_])=
+		{ assignedTo	= worker
+		, priority		= priority
+		, progress		= Display progress
+		, issuedAt		= Display issuedAt
+		, firstWorkedOn	= Display firstEvent
+		, lastWorkedOn	= Display latestEvent
+		, deadline		= deadline
+		, context		= fmap Note context
+		, tags			= list2mb tags
+		}
+		
+	fromView {assignedTo,context,priority,deadline,tags} (_,[{managerProperties}:rest])
+		# newManagerProperties =	{ managerProperties
+									& worker	= assignedTo
+									, context	= fmap toString context
+									, priority	= priority
+									, deadline	= deadline
+									, tags		= mb2list tags
+									}
+		= [newManagerProperties:map (\{managerProperties} -> managerProperties) rest]
+	
+:: ProcessControlView =	{ assignedTo	:: !User
+						, priority		:: !TaskPriority
+						, progress		:: !Display TaskProgress
+						, issuedAt		:: !Display Timestamp
+						, firstWorkedOn	:: !Display (Maybe Timestamp)
+						, lastWorkedOn	:: !Display (Maybe Timestamp)
+						, deadline		:: !Maybe DateTime
+						, context		:: !Maybe Note
+						, tags			:: !Maybe [String]
+						}
+derive class iTask ProcessControlView
+
 createOrEvaluateTaskInstance :: !(Maybe TaskParallelType) !(Task a) !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
 createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
 	//Try to load the stored process for this subtask

@@ -557,14 +557,13 @@ where
 	(==) _			_			= False
 
 initManagerProperties :: ManagerProperties
-initManagerProperties = 
+initManagerProperties =
 	{ worker = AnyUser
 	, taskDescription = toDescr ""
 	, context = Nothing
 	, priority = NormalPriority
 	, deadline = Nothing
 	, tags = []
-	, formWidth = Nothing
 	}
 	
 initGroupedProperties :: GroupedProperties

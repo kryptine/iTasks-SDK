@@ -1,6 +1,6 @@
 implementation module Task
 
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, HTML, Types, dynamic_string, Base64, HTTP
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, HTML, Types, dynamic_string, Base64, HTTP, Util
 import GenVisualize
 from TSt import :: TSt
 
@@ -60,6 +60,9 @@ mapTaskResult f (TaskFinished x)	= TaskFinished (f x)
 mapTaskResult f (TaskBusy)			= TaskBusy
 mapTaskResult f (TaskException e)	= TaskException e
 
+mapTask :: !(a -> b) !(Task a) -> Task b
+mapTask f t=:{taskFuncCommit} = {t & taskFuncCommit = appFst (mapTaskResult f) o taskFuncCommit}
+
 derive JSONEncode TaskResult, GroupedProperties, GroupActionsBehaviour, GroupedBehaviour
 derive JSONDecode TaskResult, GroupedProperties, GroupActionsBehaviour, GroupedBehaviour
 derive bimap Maybe, (,)
@@ -90,6 +93,7 @@ JSONDecode{|Task|} _ [JSONArray [JSONString "Task",taskProperties,groupedPropert
 	&& isJust mbTaskFuncCommit
 		= (Just	{ taskProperties	= fromJust mbTaskProperties
 				, groupedProperties	= fromJust mbGroupedProperties
+				, formWidth			= Nothing
 				, mbTaskNr			= fromJust mbMbTaskNr
 				, mbMenuGenFunc		= fromJust mbMbMenuGenFunc
 				, taskFuncEdit		= fromJust mbTaskFuncEdit
@@ -108,6 +112,7 @@ gUpdate{|Task|} fx UDCreate ust
 where
 	defaultTask a =	{ taskProperties	= {ManagerProperties | initManagerProperties & taskDescription = toDescr "return"}
 					, groupedProperties	= initGroupedProperties
+					, formWidth			= Nothing
 					, mbTaskNr			= Nothing
 					, mbMenuGenFunc		= Nothing
 					, taskFuncEdit		= id

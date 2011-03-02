@@ -22,6 +22,7 @@ derive gDefaultMask	Tag
 derive gVerify		Tag
 derive JSONEncode	Tag
 derive JSONDecode	Tag
+derive gEq			Tag
 
 /**
 * Transform a value with a custom function

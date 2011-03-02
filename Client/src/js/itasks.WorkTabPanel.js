@@ -260,7 +260,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					name: "progress",
 					fieldLabel: "Progress",
 					format: itasks.util.formatProgress,
-					value: p.workerProperties.progress
+					value: p.progress
 				},{
 					name: "priority",
 					fieldLabel: "Priority",
@@ -330,7 +330,7 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 					'</div>'+
 				'</div>'+
 				'<div class="worktab-header-indicator">'
-				, worktabStatus(properties.workerProperties.progress),worktabBackground(properties.managerProperties.priority),subject, itasks.util.formatUser(properties.systemProperties.manager)
+				, worktabStatus(properties.progress),worktabBackground(properties.managerProperties.priority),subject, itasks.util.formatUser(properties.systemProperties.manager)
 				, itasks.util.formatDeadline(properties.managerProperties.deadline)
 				));
 	},

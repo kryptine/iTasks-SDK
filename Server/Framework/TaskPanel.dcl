@@ -8,12 +8,10 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 	= TaskDone
 	| TaskNotDone
 	| TaskRedundant
-	| TTCInteractiveContainer TTCInteractiveContainer
-	| TTCMonitorContainer TTCMonitorContainer
-	| TTCResultContainer TTCResultContainer
-	| TTCProcessControlContainer TTCProcessControlContainer
-	| TTCParallelContainer TTCParallelContainer
-	| TTCGroupContainer TTCGroupContainer
+	| TTCInteractiveContainer !TTCInteractiveContainer
+	| TTCResultContainer !TTCResultContainer
+	| TTCParallelContainer !TTCParallelContainer
+	| TTCGroupContainer !TTCGroupContainer
 
 :: SubtaskNr :== [Int]
 
@@ -34,16 +32,6 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 	, formWidth		:: !Maybe FormWidth
 	, type			:: !InteractiveTaskType
 	}
-
-:: TTCMonitorContainer =
-	{ xtype			:: !String
-	, id 			:: !String 
-	, taskId		:: !String
-	, html			:: !String 
-	, subject		:: !String
-	, description	:: !String 
-	, menu			:: !Maybe [TUIDef]
-	}
 	
 :: TTCResultContainer =
 	{ xtype			:: !String
@@ -53,20 +41,13 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 	, result		:: !String
 	}
 	
-:: TTCProcessControlContainer =
-	{ xtype			:: !String
-	, taskId		:: !String
-	, properties	:: !TaskProperties
-	, menu			:: !Maybe [TUIDef]
-	}
-	
 :: TTCParallelContainer =
 	{ xtype			:: !String
 	, taskId		:: !String
 	, subject		:: !String
 	, description	:: !String
 	, subtaskInfo	:: ![TTCParallelContainerElement]
-	, menu			:: !Maybe [TUIDef]
+	, content		:: ![TaskPanel]
 	}
 
 :: TTCParallelContainerElement =

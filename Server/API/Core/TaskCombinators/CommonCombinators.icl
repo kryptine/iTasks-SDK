@@ -81,7 +81,7 @@ where
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb = group ("-&&-", "Done when both subtasks are finished") andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Either a b) (Maybe a,Maybe b))
 	andfunc (val,_) (left,right)
 	= case val of
 		(Left a)
@@ -139,15 +139,15 @@ where
 	eitherfunc (val,idx) _  = abort "Multiple results in Either"
 
 orProc :: !(Task a) !(Task a) !TaskParallelType -> Task a | iTask a
-orProc taska taskb type = parallel type ("-|@|-", "Done if either subtask is finished.") orfunc hd [] [taska,taskb] 
+orProc taska taskb type = parallel type ("-|@|-", "Done if either subtask is finished.") orfunc hd [] [] [taska,taskb] 
 where
 	orfunc (val,_) [] = ([val],Stop)
 	orfunc (val,_) _  = abort "Multiple results in -|@|-"
 
 andProc :: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
-andProc taska taskb type = parallel type ("AndProc", "Done if both subtasks are finished.") andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour]
+andProc taska taskb type = parallel type ("AndProc", "Done if both subtasks are finished.") andfunc parseresult (Nothing,Nothing) [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour]
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Either a b) (Maybe a,Maybe b))
 	andfunc (val,_) (left,right)
 	= case val of
 		(Left a)
@@ -166,13 +166,13 @@ where
 
 anyProc :: ![Task a] !TaskParallelType -> Task a | iTask a
 anyProc [] 	  type = getDefaultValue
-anyProc tasks type = parallel type ("any", "Done when any subtask is finished.") anyfunc hd [] tasks
+anyProc tasks type = parallel type ("any", "Done when any subtask is finished.") anyfunc hd [] [] tasks
 where
 	anyfunc (val,_) [] = ([val],Stop)
 	anyfunc (val,_) _  = abort "Multiple results in ANY"
 
 allProc :: ![Task a] !TaskParallelType -> Task [a] | iTask a
-allProc tasks type = parallel type ("all", "Done when all subtasks are finished.") (allfunc (length tasks)) sortByIndex [] tasks 
+allProc tasks type = parallel type ("all", "Done when all subtasks are finished.") (allfunc (length tasks)) sortByIndex [] [] tasks 
 where
 	allfunc tlen (val,idx) st 
 		# st = st ++ [(idx,val)]

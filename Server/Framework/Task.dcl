@@ -20,6 +20,7 @@ derive gEq			Task
 :: Task a =
 	{ taskProperties	:: !ManagerProperties					// the task's manager properties
 	, groupedProperties	:: !GroupedProperties					// properties about how the tasks behaves inside of a group
+	, formWidth			:: !Maybe FormWidth						// Width of task form
 	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
 	, mbMenuGenFunc		:: !(Maybe MenuGenFunc)					// a function generating a menu structure
 	, taskFuncEdit		:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
@@ -32,7 +33,8 @@ derive gEq			Task
 					| TaskFinished !a
 					| TaskException !Dynamic
 					
-mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
+mapTaskResult	:: !(a -> b) !(TaskResult a)	-> TaskResult b
+mapTask			:: !(a -> b) !(Task a)			-> Task b
 
 :: TaskThread a		=
 	{ originalTask		:: !Task a

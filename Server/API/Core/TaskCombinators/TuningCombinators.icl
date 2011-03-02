@@ -43,7 +43,7 @@ where
 instance tune Menus
 where tune menus task = tune (StaticMenus menus) task
 instance tune FormWidth
-where tune fw task=:{taskProperties}					= {task & taskProperties = {taskProperties & formWidth = Just fw}}
+where tune fw task=:{taskProperties}				= {task & formWidth = Just fw}
 
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (<<@) t a = tune a t

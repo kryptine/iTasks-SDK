@@ -85,22 +85,15 @@ initSystemProperties =
 	, issuedAt = Timestamp 0
 	, firstEvent = Nothing
 	, latestEvent = Nothing
-	, latestExtEvent = Nothing
 	, subTaskWorkers = []
 	, deleteWhenDone = False
-	}
-
-initWorkerProperties :: WorkerProperties
-initWorkerProperties =
-	{WorkerProperties
-	| progress = TPActive
 	}
 	
 initTaskProperties :: TaskProperties
 initTaskProperties
 	= { systemProperties	= initSystemProperties
 	  , managerProperties	= initManagerProperties
-	  , workerProperties	= initWorkerProperties
+	  , progress			= TPActive
 	  }
 
 initSession :: !SessionId !*TSt -> (!Maybe String, !*TSt)
@@ -132,14 +125,11 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 			, issuedAt		= currentTime
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
-			, latestExtEvent = Nothing
 			, subTaskWorkers = []
 			, deleteWhenDone = delete
 			}
-		, managerProperties = managerProperties
-		, workerProperties =
-			{ progress	= TPActive
-			}
+		, managerProperties	= managerProperties
+		, progress 			= TPActive
 		}
 	# process =
 		{ Process
@@ -173,7 +163,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
 					}
-		= TTMainTask info properties mbParType (TTFinishedTask info (noOutput "2"))
+		= TTMainTask info properties mbParType (TTFinishedTask info noOutput)
 
 deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
@@ -234,7 +224,7 @@ where
 															& taskId	= taskId
 															, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
 															}
-		# tst											= {tst & tree = TTMainTask info properties inptype (TTFinishedTask info (noOutput "3"))}
+		# tst											= {tst & tree = TTMainTask info properties inptype (TTFinishedTask info noOutput)}
 		# (result, tst=:{sharedChanged,triggerPresent})	= applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False}
 		| triggerPresent && sharedChanged && iterationCount < ITERATION_THRESHOLD
 			= applyTaskCommit` {tst & iterationCount = inc iterationCount}
@@ -250,7 +240,7 @@ loadThread processId tst
 	# (mbThread,tst) = accIWorldTSt (loadValue ("iTask_" +++ processId +++ "-thread")) tst
 	= case mbThread of
 		Just thread	= (thread,tst)
-		Nothing		= abort "Could not load task thread"
+		Nothing		= abort ("Could not load task thread for process " +++ processId)
 		
 //END NEW THREAD FUNCTIONS
 
@@ -333,7 +323,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
 					}
-		# tree		= TTMainTask info properties inptype (TTFinishedTask info (noOutput "4"))
+		# tree		= TTMainTask info properties inptype (TTFinishedTask info noOutput)
 		= {TSt| tst & taskNr = taskNr, tree = tree, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
 	
 	restoreTSt :: !NonNormalizedTree ![TaskEvent] !TaskProperties !*TSt -> *TSt
@@ -608,26 +598,29 @@ mkInteractiveTask :: !d !InteractiveTaskType !(TaskFunctions a) -> Task a | desc
 mkInteractiveTask description type (taskfunE,taskfunC) =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
+	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= taskfunE
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractiveTask taskInfo type (noOutput "5")}
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractiveTask taskInfo type noOutput}
 	}
 
 mkInstantTask :: !d !(TaskFunctionCommit a) -> Task a | descr d
 mkInstantTask description taskfun =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
+	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= id
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo (noOutput "6")} //We use a FinishedTask node because the task is finished after one evaluation
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput} //We use a FinishedTask node because the task is finished after one evaluation
 	}
 		
 mkSequenceTask :: !d !(TaskFunctions a) -> Task a | descr d
 mkSequenceTask description (taskfunE,taskfunC) =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
+	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= \tst=:{taskNr}				-> taskfunE {tst & taskNr = [0:taskNr]}
@@ -638,6 +631,7 @@ mkParallelTask :: !d !TaskParallelType !(TaskFunctions a) -> Task a | descr d
 mkParallelTask description tpt (taskfunE,taskfunC) =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
+	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= taskfunE
@@ -648,6 +642,7 @@ mkGroupedTask :: !d !(TaskFunctions a) -> Task a | descr d
 mkGroupedTask description (taskfunE,taskfunC) =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
+	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= taskfunE
@@ -658,10 +653,11 @@ mkMainTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkMainTask description taskfun =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
+	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= id
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo (noOutput "7"))}
+	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo noOutput)}
 	}
 
 applyTaskEdit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
@@ -686,7 +682,7 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit} tst=:{taskNr,tree,properties}
+applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth} tst=:{taskNr,tree,properties}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
@@ -698,7 +694,7 @@ applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, tas
 					, groupedBehaviour 		= groupedProperties.GroupedProperties.groupedBehaviour
 					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
 					, menus					= mbMenuGenFunc
-					, formWidth				= taskProperties.ManagerProperties.formWidth
+					, formWidth				= formWidth
 					}
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}
 	= case taskVal of
@@ -893,6 +889,6 @@ copyTaskStates fromtask totask tst
 flushStore :: !*TSt -> *TSt
 flushStore tst = appIWorldTSt flushCache tst
 
-noOutput i 				= abort ("Task tree node without output." +++ toString i)
+noOutput 				= abort "Task tree node without output."
 noProcessResult 		= finishedStrOutput "Cannot load result."
 finishedStrOutput str	= (Text str,JSONString str)

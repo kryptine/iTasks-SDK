@@ -6,7 +6,7 @@ definition module ProcessDB
 import Maybe, Types, TSt, Task
 from Time import :: Timestamp
 
-derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, WorkerProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription
+derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription
 
 /**
 * Our local process type

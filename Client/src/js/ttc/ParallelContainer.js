@@ -7,7 +7,6 @@ itasks.ttc.ParallelContainer = Ext.extend(itasks.ttc.TTCBase, {
 	id: null,
 		
 	initComponent : function(){
-		
 		this.cls = 'TTCParallelControlContainer';
 		
 		//Create a json store for holding the information of the parallel subtasks
@@ -30,46 +29,51 @@ itasks.ttc.ParallelContainer = Ext.extend(itasks.ttc.TTCBase, {
 		//Bubble the event to trigger viewing a task result
 		this.addEvents('taskresult');
 		this.enableBubble('taskresult');
+		
+		for(var i=0; i < this.content.length; i++) {
+			return this.add(this.content[i]);
+		}
 	},
 	buildComponents: function(data) {
-		
-		var col = new Ext.grid.ColumnModel({
-			defaults: {
-				menuDisabled: true,
-				sortable: true,
-				resizable: false
-			},
-			columns: [
-				{header: 'Status', dataIndex: 'finished', renderer: this.renderFinished, width: 50},
-				{header: 'Subject',	dataIndex: 'subject', width: 450},
-				{header: 'Assigned to', dataIndex: 'delegatedTo', renderer: this.renderDelegated, cellActions:[{ iconCls: 'icon-edit', qtip: 'Re-asign the task to another user'}]}			
-			]
-		});
-		
-		var cellActions = new Ext.ux.grid.CellActions({
-			callbacks: {
-				'icon-edit' : function(grid, record, action, value){
-					var win = new itasks.ttc.parallel.ReassignWindow({initUser : value, taskId: record.data.taskId});
-					win.show();
-				}
-			},
-			align: 'right'
-		});
-					
-		this.interactionpanel = {
-			xtype: 'editorgrid',
-			cls: 'TTCParallelControlPanel',
-			border: false,
-			store : this.store,
-			colModel: col,	
-			height: 250,
-			plugins:[cellActions],
-			autoExpandColumn: 2,
-			clicksToEdit: 'auto',
-			listeners:	{afteredit: {fn: this.handleChange, scope: this}
-						,rowdblclick: {fn: this.handleDblClick, scope: this}
-						}
+		if(this.content.length == 0){
+			var col = new Ext.grid.ColumnModel({
+				defaults: {
+					menuDisabled: true,
+					sortable: true,
+					resizable: false
+				},
+				columns: [
+					{header: 'Status', dataIndex: 'finished', renderer: this.renderFinished, width: 50},
+					{header: 'Subject',	dataIndex: 'subject', width: 450},
+					{header: 'Assigned to', dataIndex: 'delegatedTo', renderer: this.renderDelegated, cellActions:[{ iconCls: 'icon-edit', qtip: 'Re-asign the task to another user'}]}			
+				]
+			});
+			
+			var cellActions = new Ext.ux.grid.CellActions({
+				callbacks: {
+					'icon-edit' : function(grid, record, action, value){
+						var win = new itasks.ttc.parallel.ReassignWindow({initUser : value, taskId: record.data.taskId});
+						win.show();
+					}
+				},
+				align: 'right'
+			});
+						
+			this.interactionpanel = {
+				xtype: 'editorgrid',
+				cls: 'TTCParallelControlPanel',
+				border: false,
+				store : this.store,
+				colModel: col,	
+				height: 250,
+				plugins:[cellActions],
+				autoExpandColumn: 2,
+				clicksToEdit: 'auto',
+				listeners:	{afteredit: {fn: this.handleChange, scope: this}
+							,rowdblclick: {fn: this.handleDblClick, scope: this}
+							}
 			};
+		}
 	},
 	handleChange : function(edit){
 		this.grid.store.commitChanges();
@@ -81,8 +85,12 @@ itasks.ttc.ParallelContainer = Ext.extend(itasks.ttc.TTCBase, {
 		}
 	},	
 	update : function(data){
-		//Simply update the store
+		//update the store
 		this.store.loadData({subtasks : data.subtaskInfo},false);
+		
+		for(var i=0; i < data.content.length; i++) {
+			this.get(i+2).update(data.content[i]);
+		}
 	},
 	renderFinished: function(val,metadata,rec,row,col,store){
 		if(val == false){

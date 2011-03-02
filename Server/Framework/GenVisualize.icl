@@ -98,7 +98,7 @@ where
 		# x = fmap fromCONS val
 		# (vis,vst) = case isRecord d.gcd_type_def of
 			False // normal ADT
-				# (viz,vst) = fx x {vst & useLabels = False}
+				# (viz,vst) = fx x vst
 				= (coerceToTUIDefs viz, {VSt | vst & selectedConsIndex = d.gcd_index})
 			True = case x of // record
 				Nothing // Create an empty record container that can be expanded later

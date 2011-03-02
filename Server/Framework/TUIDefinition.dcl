@@ -11,26 +11,26 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 derive JSONEncode TUIDef, TUIUpdate
 
 :: TUIUpdate
-	= TUIAdd			TUIId TUIDef	// Add the additional component *after* the component with indicated id
-	| TUIAddTo			TUIId TUIDef	// Add the additional component as a child of the component with indicated id
-	| TUIRemove			TUIId			// Remove the component with indicated id
-	| TUIReplace		TUIId TUIDef	// Replace a component
-	| TUISetEnabled		TUIId Bool		// Enable/disable form elements
-	| TUIReplaceMenu	[TUIDef]		// Replace the task's menu bar
-	| TUIReplaceButtons	[TUIDef]		// Replace all task's buttons
+	= TUIAdd			!TUIId !TUIDef	// Add the additional component *after* the component with indicated id
+	| TUIAddTo			!TUIId !TUIDef	// Add the additional component as a child of the component with indicated id
+	| TUIRemove			!TUIId			// Remove the component with indicated id
+	| TUIReplace		!TUIId !TUIDef	// Replace a component
+	| TUISetEnabled		!TUIId !Bool		// Enable/disable form elements
+	| TUIReplaceMenu	![TUIDef]		// Replace the task's menu bar
+	| TUIReplaceButtons	![TUIDef]		// Replace all task's buttons
 	//NEW COMMANDS:
 	//Leaf updates
-	| TUISetValue_		TUIPath String	// Set the value of a component
-	| TUISetError_		TUIPath String	// Set the error messages on a component
-	| TUISetHint_		TUIPath String	// Set the hint messages on a component
-	//| TUISetEnabled_	TUIPath Bool
+	| TUISetValue_		!TUIPath !String	// Set the value of a component
+	| TUISetError_		!TUIPath !String	// Set the error messages on a component
+	| TUISetHint_		!TUIPath !String	// Set the hint messages on a component
+	//| TUISetEnabled_	!TUIPath !Bool
 	//Complete replacement
-	| TUIReplace_		TUIPath TUIDef
-	| TUIUpdate_		TUIPath TUIDef	// Let a component update itself with a new TUI definition (for custom components)
+	| TUIReplace_		!TUIPath !TUIDef
+	| TUIUpdate_		!TUIPath !TUIDef	// Let a component update itself with a new TUI definition (for custom components)
 	//Structure edits
-	//| TUIAdd_			TUIPath Int TUIDef	//Add child element after index
-	//| TUIRemove_		TUIPath Int			//Remove child element at index
-	//| TUIReorder_		TUIPath Int Int		//Move child element from index to index
+	//| TUIAdd_			!TUIPath Int !TUIDef	//Add child element after index
+	//| TUIRemove_		!TUIPath Int			//Remove child element at index
+	//| TUIReorder_		!TUIPath Int Int		//Move child element from index to index
 
 :: TUIId	:== String
 :: TUIPath	:== String
@@ -38,38 +38,38 @@ derive JSONEncode TUIDef, TUIUpdate
 
 :: TUIDef
 	= TUILabel
-	| TUIButton TUIButton
-	| TUIStringControl TUIBasicControl
-	| TUICharControl TUIBasicControl
-	| TUIIntControl TUIBasicControl
-	| TUIRealControl TUIBasicControl
-	| TUIBoolControl TUIBasicControl
-	| TUINoteControl TUIBasicControl
-	| TUIDateControl TUIBasicControl
-	| TUITimeControl TUIBasicControl
-	| TUIPasswordControl TUIBasicControl
-	| TUIChoiceControl TUIChoiceControl	
-	| TUICurrencyControl TUICurrencyControl
-	| TUIUserControl TUIBasicControl
-	| TUIDocumentControl TUIDocumentControl
-	| TUIConstructorControl TUIConstructorControl
-	| TUIHiddenControl TUIBasicControl
-	| TUIFormButtonControl TUIButtonControl
-	| TUIListItemControl TUIListItemControl
-	| TUIAppletControl TUIAppletControl
-	| TUIORYXControl TUIORYXControl
-	| TUIGridControl TUIGridControl
-	| TUITreeControl TUITreeControl
+	| TUIButton !TUIButton
+	| TUIStringControl !TUIBasicControl
+	| TUICharControl !TUIBasicControl
+	| TUIIntControl !TUIBasicControl
+	| TUIRealControl !TUIBasicControl
+	| TUIBoolControl !TUIBasicControl
+	| TUINoteControl !TUIBasicControl
+	| TUIDateControl !TUIBasicControl
+	| TUITimeControl !TUIBasicControl
+	| TUIPasswordControl !TUIBasicControl
+	| TUIChoiceControl !TUIChoiceControl	
+	| TUICurrencyControl !TUICurrencyControl
+	| TUIUserControl !TUIBasicControl
+	| TUIDocumentControl !TUIDocumentControl
+	| TUIConstructorControl !TUIConstructorControl
+	| TUIHiddenControl !TUIBasicControl
+	| TUIFormButtonControl !TUIButtonControl
+	| TUIListItemControl !TUIListItemControl
+	| TUIAppletControl !TUIAppletControl
+	| TUIORYXControl !TUIORYXControl
+	| TUIGridControl !TUIGridControl
+	| TUITreeControl !TUITreeControl
 	
-	| TUITupleContainer TUITupleContainer
-	| TUIRecordContainer TUIRecordContainer
-	| TUIListContainer TUIListContainer		
-	| TUIHtmlContainer TUIHtmlContainer
+	| TUITupleContainer !TUITupleContainer
+	| TUIRecordContainer !TUIRecordContainer
+	| TUIListContainer !TUIListContainer		
+	| TUIHtmlContainer !TUIHtmlContainer
 	
-	| TUIMenuButton TUIMenuButton
-	| TUIMenuItem TUIMenuItem
+	| TUIMenuButton !TUIMenuButton
+	| TUIMenuItem !TUIMenuItem
 	| TUIMenuSeparator
-	| TUICustom JSONNode
+	| TUICustom !JSONNode
 
 :: TUIBasicControl =
 	{ name			:: !TUIName
