@@ -110,9 +110,14 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 			if (cmp.xtype == 'itasks.tui.Grid') {
 				//Get grid editor
 				var row = parseInt(path[i+1]);
-				var col = parseInt(path[i+2]);
-				i = i + 2;
-				cmp = cmp.gridEditors[row][col];
+				if (cmp.gridEditors[row].length != 1){
+					var col = parseInt(path[i+2]);
+					i = i + 2;
+					cmp = cmp.gridEditors[row][col];
+				}else{
+					i++;
+					cmp = cmp.gridEditors[row][0];
+				}
 			} else if(cmp.xtype == 'itasks.tui.Constructor') {
 				cmp = cmp.itemPanel.items.get(steps);
 			} else {

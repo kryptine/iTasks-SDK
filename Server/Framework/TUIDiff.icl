@@ -57,7 +57,7 @@ where
 				(TUIGridControl {gridEditors = oe,gridHtml = oh}, TUIGridControl {gridEditors = ne, gridHtml = nh})
 					# htmlUpdates	= flatten [[TUISetValue_  (dp2s path) (toString (toJSON (i,j,n))) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
 					# path			= shiftDataPath path
-					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (childDataPath (childDataPath path i) j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
+					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
 					= htmlUpdates ++ editorUpdates
 				// Custom components need to figure out their own update on the client side
 				(TUICustom oc, TUICustom nc)
@@ -109,6 +109,11 @@ where
 			
 		dynamicContainerUpdate path old new
 			= [TUIReplace_ (dp2s path) new]	//Just replace, dynamic containers are too difficult to do at once :)
+		
+		// don't use index of column in datapath if there is only one column
+		tablePath l path i j
+			| length l == 1	= childDataPath path i
+			| otherwise		= childDataPath (childDataPath path i) j
 
 //Boilerplate type equality
 sameType :: TUIDef TUIDef -> Bool
