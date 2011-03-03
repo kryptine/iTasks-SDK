@@ -78,12 +78,11 @@ derive gEq		 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, OR
 derive JSONEncode	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
 derive JSONDecode 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
 
-petriNetORYXEditor :: ORYXEditor
+newORYXDiagram :: ORYXStencilSetReference -> ORYXDiagram
 
-workflowNetORYXEditor :: ORYXEditor
+petriNetORYXEditor :: ORYXEditor
 
 ginORYXEditor :: ORYXEditor
 
-newORYXDiagram :: ORYXStencilSetReference -> ORYXDiagram
 
 

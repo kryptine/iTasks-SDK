@@ -12,6 +12,7 @@ import GinBindings
 
 import GinORYX
 
+/*
 importBindings :: GImport -> GParseState Bindings
 importBindings imp
 # name = imp.GImport.name
@@ -19,6 +20,10 @@ importBindings imp
     [] = parseError ("Imported module " +++ name +++ " not found")
     [bindings] = ret bindings
     _ = parseError ("Multiple declarations of module " +++ name)
+*/
+
+flowLibraryBindings :: Bindings
+flowLibraryBindings = flatten [ mb.ModuleBindings.bindings \\ mb <- flowLibrary ]
 
 flowLibrary :: [ModuleBindings]
 flowLibrary = [ clean

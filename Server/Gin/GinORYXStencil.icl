@@ -172,7 +172,7 @@ declToStencil :: GDeclaration -> ORYXStencil
 declToStencil gDecl = 
 	{ ORYXStencil
 	| type			= "node"
-	, id			= replaceSubString " " "_" gDecl.GDeclaration.name
+	, id			= gDecl.GDeclaration.name
 	, title			= gDecl.GDeclaration.name
 	, groups		= []
 	, description	= gDecl.GDeclaration.name

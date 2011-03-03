@@ -6,6 +6,8 @@ from GinBindings import ::ModuleBindings, ::Bindings, ::Binding
 
 //addDefaultLibrary :: GModule -> GModule
 
-importBindings :: GImport -> GParseState Bindings
+//importBindings :: GImport -> GParseState Bindings
+
+flowLibraryBindings :: Bindings
 
 flowLibrary :: [ModuleBindings]

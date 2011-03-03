@@ -1,14 +1,20 @@
 implementation module GinORYX
 
-from StdFunc import o
+import StdEnum
+from StdFunc import const,o
 import StdList
 import StdMisc
+import StdTuple
 
 import Maybe
 import JSON
+import Text
 
 import GinSyntax
+import GinAbstractSyntax
 import GinORYX
+
+import Map
 
 derive gEq		 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
 derive JSONEncode	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
@@ -65,44 +71,14 @@ JSONDecode{|ORYXProperties|} [JSONObject fields:nodes]
 	= (Just properties, nodes)
 JSONDecode{|ORYXProperties|} nodes = (Nothing, nodes)
 
-petriNetORYXEditor :: ORYXEditor
-petriNetORYXEditor = newORYXEditor petriNetStencilSet
-where
-	petriNetStencilSet :: ORYXStencilSetReference
-	petriNetStencilSet 
-		=	{ ORYXStencilSetReference 
-	   		| url = "petrinets/petrinet.json"
-			, namespace = "http://b3mn.org/stencilset/petrinet#"
-			}
-			
-workflowNetORYXEditor :: ORYXEditor
-workflowNetORYXEditor = newORYXEditor workflowNetStencilSet
-where
-	workflowNetStencilSet :: ORYXStencilSetReference
-	workflowNetStencilSet 
-		=	{ ORYXStencilSetReference 
-	   		| url = "workflownets/workflownets.json"
-			, namespace = "http://www.example.org/workflownets#"
-			}
-
-ginORYXEditor :: ORYXEditor
-ginORYXEditor = newORYXEditor ginStencilSet
-where
-	ginStencilSet :: ORYXStencilSetReference
-	ginStencilSet
-		=	{ ORYXStencilSetReference 
-	   		| url = "/services/json/stencils/gin"
-			, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
-			}
-			
 newORYXEditor :: ORYXStencilSetReference -> ORYXEditor
 newORYXEditor stencilset
 	=	{ ORYXEditor
 		| diagram = newORYXDiagram stencilset
 		, stencilset = stencilset
-		, toString = \_ -> "" //TODO
+		, toString = const "newORYXEditor: toString is undefined"
 		}
-
+		
 newORYXDiagram :: ORYXStencilSetReference -> ORYXDiagram
 newORYXDiagram stencilset
 	=	{ ORYXDiagram
@@ -119,4 +95,102 @@ newORYXDiagram stencilset
 					, stencilset = stencilset
 					, ssextensions = []
 					}
+					
+//Petri net specific:
+
+petriNetORYXEditor :: ORYXEditor
+petriNetORYXEditor = newORYXEditor petriNetStencilSet
+where
+	petriNetStencilSet :: ORYXStencilSetReference
+	petriNetStencilSet 
+		=	{ ORYXStencilSetReference 
+	   		| url = "petrinets/petrinet.json"
+			, namespace = "http://b3mn.org/stencilset/petrinet#"
+			}
+
+//Gin specific:
+
+ginORYXEditor :: ORYXEditor
+ginORYXEditor = 
+	{ ORYXEditor
+	| newORYXEditor ginStencilSet
+	& toString = \editor -> tryRender (simpleGModule editor.ORYXEditor.diagram)
+	}
+where
+	ginStencilSet :: ORYXStencilSetReference
+	ginStencilSet
+		=	{ ORYXStencilSetReference 
+	   		| url = "/services/json/stencils/gin"
+			, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
+			}
+	
+	tryRender :: GModule -> String
+	tryRender gMod = 
+	    case runParse (gToAModule gMod) of
+	        GSuccess aMod -> renderAModule [] aMod
+	        GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))
+					
+simpleGModule :: !ORYXDiagram -> GModule
+simpleGModule diagram = 
+	{ GModule 
+	| newModule
+	& definitions = [ { GDefinition
+					  | newWorkflow
+					  & body = GGraphExpression (oryxDiagramToGraph diagram)
+					  }
+					]
+
+	}
+
+oryxDiagramToGraph :: !ORYXDiagram -> GGraph
+oryxDiagramToGraph diagram
+	# shapes = diagram.ORYXDiagram.childShapes
+	# shapeMap = (fromList o map (\shape -> (shapeId shape, shape)))  shapes
+	# nodes =  (zip2 [0..] o filter (not o isEdge)) shapes
+	# nodeMap = (fromList o map (\(index,node) -> (shapeId node, index))) nodes
+	=	{ GGraph
+		| nodes = map (oryxChildShapeToNode o snd) nodes
+		, edges = (flatten o map (oryxChildShapesToEdge shapeMap nodeMap)) nodes
+		, size = Nothing
+		}
+
+oryxChildShapeToNode :: !ORYXChildShape -> GNode
+oryxChildShapeToNode shape = 
+	{ GNode
+	| name = shapeName shape
+	, position =	{ GPosition 
+					| x = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.x
+					, y = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.y
+					}
+	, actualParams = []
+	}
+	
+oryxChildShapesToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) (!Int,!ORYXChildShape) -> [GEdge]
+oryxChildShapesToEdge shapeMap nodeMap (fromIndex,fromNode) = 
+	catMaybes (map (oryxChildShapeToEdge shapeMap nodeMap fromIndex) fromNode.ORYXChildShape.outgoing)
+
+oryxChildShapeToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) !Int !ORYXOutgoing -> Maybe GEdge
+oryxChildShapeToEdge shapeMap nodeMap fromIndex arcres =
+	case get arcres.ORYXOutgoing.resourceId shapeMap of
+		Just arc = case arc.ORYXChildShape.outgoing of
+			[toRes]	= case get toRes.ORYXOutgoing.resourceId nodeMap of
+						  Just toIndex = Just
+						  	{ GEdge
+						  	| fromNode = fromIndex
+						  	, pattern = Nothing
+						  	, toNode = toIndex
+						    }
+					  	  Nothing = abort "oryxChildShapeToEdge: Arc outgoing resourceId not found"
+			[]		= Nothing //Arc not connected to node
+			_		= abort "oryxChildShapeToEdge: arc cannot point to multiple nodes"
+		Nothing = abort "oryxChildShapeToEdge: Node outgoing resourceId not found"
+
+shapeId :: !ORYXChildShape -> String
+shapeId shape = shape.ORYXChildShape.resourceId
+	
+shapeName :: !ORYXChildShape -> String
+shapeName shape = shape.ORYXChildShape.stencil.ORYXStencilReference.id
+
+isEdge :: !ORYXChildShape -> Bool
+isEdge shape = shapeName shape == "Arc"
 

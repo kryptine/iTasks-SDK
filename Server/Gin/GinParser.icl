@@ -95,8 +95,7 @@ runParse (GParseState f) = f GRoot
 
 gToAModule :: GModule -> GParseState AModule
 gToAModule gmod 
-= parseChildMap "imports" importBindings gmod.GModule.imports >>> \bindings = 
-  let bindings` = map mkGDefinitionBinding gmod.GModule.definitions ++ flatten bindings
+= let bindings` = map mkGDefinitionBinding gmod.GModule.definitions ++ flowLibraryBindings
   in parseChildMap "definitions" (gToADefinition bindings`) gmod.GModule.definitions >>> \definitions = 
   ret { AModule
       | name = gmod.GModule.name
