@@ -144,3 +144,4 @@ styleToXMLAttr (SVGStrokeLineCap s)		= XMLAttr (uname "stroke-linecap") s
 styleToXMLAttr (SVGStrokeLineJoin s)	= XMLAttr (uname "stroke-linejoin") s
 styleToXMLAttr (SVGStrokeMiterLimit l)	= XMLAttr (uname "stroke-miterlimit") (toString l)
 styleToXMLAttr (SVGMarkerEnd m)			= XMLAttr (uname "marker-end") m
+styleToXMLAttr (SVGEdgePosition s)		= XMLAttr (qname "oryx" "edgePosition") s

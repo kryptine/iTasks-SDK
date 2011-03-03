@@ -20,8 +20,7 @@ stencilService url html path req tst
 			| isJust mbErr
 				# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbErr))]
 				= (serviceResponse html "stencils" description url params json, tst)
-			# declarations = flatten ((map getModuleDeclarations) flowLibrary)
-			# components		= makeStencilSet declarations
+			# components		= makeStencilSet flowLibrary
 			# json 				= toJSON components
 			= (serviceResponse html "workflows" description url params json, tst)
 		_

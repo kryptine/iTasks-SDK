@@ -2,7 +2,7 @@ definition module GinORYXStencil
 
 import JSON
 
-import GinSyntax
+from GinBindings import ::ModuleBindings
 import GinORYX
 
 ::ORYXStencilSet =
@@ -24,9 +24,9 @@ import GinORYX
 	, icon			:: !String
 	, mayBeRoot		:: !Bool
 	, roles			:: ![String]
-	, properties	:: !ORYXProperties
+	, properties	:: ![ORYXProperties]
 	}
-	
+
 ::ORYXRules = 
 	{ connectionRules	:: ![ORYXConnectionRule]
 	, containmentRules	:: ![ORYXContainmentRule]
@@ -57,7 +57,7 @@ derive gEq		 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXCo
 derive JSONEncode	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXConnect, ORYXContainmentRule, ORYXMorphingRule
 derive JSONDecode 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXConnect, ORYXContainmentRule, ORYXMorphingRule
 
-makeStencilSet :: [GDeclaration] -> ORYXStencilSet
+makeStencilSet :: [ModuleBindings] -> ORYXStencilSet
 
 from GinSVG import :: SVGShape
 

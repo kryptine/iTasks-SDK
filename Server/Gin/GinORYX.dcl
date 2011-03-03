@@ -82,6 +82,8 @@ newORYXDiagram :: ORYXStencilSetReference -> ORYXDiagram
 
 petriNetORYXEditor :: ORYXEditor
 
+bpmnORYXEditor :: ORYXEditor
+
 ginORYXEditor :: ORYXEditor
 
 

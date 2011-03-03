@@ -59,6 +59,7 @@ getBranchType :: GIdentifier Bindings -> GParseState BranchType
 //importDeclarations :: ModuleBindings -> GImport
 
 mkGDefinitionBinding :: GDefinition -> Binding
-getModuleDeclarations :: ModuleBindings -> [GDeclaration]
 
-getDeclarations :: Bindings -> [GDeclaration]
+getModuleDeclarations :: ModuleBindings -> [(BranchType,GDeclaration)]
+
+getDeclarations :: Bindings -> [(BranchType,GDeclaration)]

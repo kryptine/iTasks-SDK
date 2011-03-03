@@ -33,6 +33,7 @@ import XML
 			| SVGStrokeLineJoin !String
 			| SVGStrokeMiterLimit !Int
 			| SVGMarkerEnd !String
+			| SVGEdgePosition !String
 
 :: SVGShape = 
 	{ width		:: !Int

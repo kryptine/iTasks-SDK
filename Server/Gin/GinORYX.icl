@@ -10,6 +10,8 @@ import Maybe
 import JSON
 import Text
 
+import GinBindings
+import GinFlowLibrary
 import GinSyntax
 import GinAbstractSyntax
 import GinORYX
@@ -96,8 +98,6 @@ newORYXDiagram stencilset
 					, ssextensions = []
 					}
 					
-//Petri net specific:
-
 petriNetORYXEditor :: ORYXEditor
 petriNetORYXEditor = newORYXEditor petriNetStencilSet
 where
@@ -106,6 +106,17 @@ where
 		=	{ ORYXStencilSetReference 
 	   		| url = "petrinets/petrinet.json"
 			, namespace = "http://b3mn.org/stencilset/petrinet#"
+			}
+
+
+bpmnORYXEditor :: ORYXEditor
+bpmnORYXEditor = newORYXEditor bpmnStencilSet
+where
+	bpmnStencilSet :: ORYXStencilSetReference
+	bpmnStencilSet 
+		=	{ ORYXStencilSetReference 
+	   		| url = "bpmn2.0/bpmn2.0.json"
+			, namespace = "http://b3mn.org/stencilset/bpmn2.0#"
 			}
 
 //Gin specific:
@@ -144,26 +155,40 @@ simpleGModule diagram =
 
 oryxDiagramToGraph :: !ORYXDiagram -> GGraph
 oryxDiagramToGraph diagram
+	# declMap = (fromList o map (\(bt,decl) -> (decl.GDeclaration.name, (bt,decl))) o flatten o map getModuleDeclarations) flowLibrary
 	# shapes = diagram.ORYXDiagram.childShapes
 	# shapeMap = (fromList o map (\shape -> (shapeId shape, shape)))  shapes
 	# nodes =  (zip2 [0..] o filter (not o isEdge)) shapes
 	# nodeMap = (fromList o map (\(index,node) -> (shapeId node, index))) nodes
 	=	{ GGraph
-		| nodes = map (oryxChildShapeToNode o snd) nodes
+		| nodes = map (oryxChildShapeToNode declMap o snd) nodes
 		, edges = (flatten o map (oryxChildShapesToEdge shapeMap nodeMap)) nodes
 		, size = Nothing
 		}
 
-oryxChildShapeToNode :: !ORYXChildShape -> GNode
-oryxChildShapeToNode shape = 
-	{ GNode
-	| name = shapeName shape
-	, position =	{ GPosition 
-					| x = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.x
-					, y = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.y
-					}
-	, actualParams = []
-	}
+oryxChildShapeToNode :: (Map String (BranchType,GDeclaration)) !ORYXChildShape -> GNode
+oryxChildShapeToNode declMap shape
+	# mDecl = get (shapeName shape) declMap
+	| isNothing mDecl = abort ("oryxChildShapeToNode: Invalid shape " +++ shapeName shape)
+    =	{ GNode
+		| name = shapeName shape
+		, position =	{ GPosition 
+						| x = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.x
+						, y = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.y
+						}
+		, actualParams = oryxPropertiesToGExpressions (snd (fromJust mDecl)) shape.ORYXChildShape.properties 
+		}
+
+oryxPropertiesToGExpressions :: GDeclaration !ORYXProperties -> [GExpression]
+oryxPropertiesToGExpressions decl properties
+	# propMap = propertyMap properties
+ 	= [ maybe GUndefinedExpression jsonNodetoGExpression (get param.GFormalParameter.name propMap)
+ 	    \\ param <- decl.GDeclaration.formalParams 
+ 	  ]
+ 	  
+jsonNodetoGExpression :: JSONNode -> GExpression
+jsonNodetoGExpression (JSONString s)	= GCleanExpression s
+jsonNodetoGExpression _				= GUndefinedExpression
 	
 oryxChildShapesToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) (!Int,!ORYXChildShape) -> [GEdge]
 oryxChildShapesToEdge shapeMap nodeMap (fromIndex,fromNode) = 
@@ -172,18 +197,30 @@ oryxChildShapesToEdge shapeMap nodeMap (fromIndex,fromNode) =
 oryxChildShapeToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) !Int !ORYXOutgoing -> Maybe GEdge
 oryxChildShapeToEdge shapeMap nodeMap fromIndex arcres =
 	case get arcres.ORYXOutgoing.resourceId shapeMap of
-		Just arc = case arc.ORYXChildShape.outgoing of
+		Just arc 
+				 = case arc.ORYXChildShape.outgoing of
 			[toRes]	= case get toRes.ORYXOutgoing.resourceId nodeMap of
 						  Just toIndex = Just
 						  	{ GEdge
 						  	| fromNode = fromIndex
-						  	, pattern = Nothing
+						  	, pattern = oryxPropertiesToPattern arc.ORYXChildShape.properties
 						  	, toNode = toIndex
 						    }
 					  	  Nothing = abort "oryxChildShapeToEdge: Arc outgoing resourceId not found"
 			[]		= Nothing //Arc not connected to node
 			_		= abort "oryxChildShapeToEdge: arc cannot point to multiple nodes"
 		Nothing = abort "oryxChildShapeToEdge: Node outgoing resourceId not found"
+	
+oryxPropertiesToPattern :: !ORYXProperties -> Maybe GPattern
+oryxPropertiesToPattern properties
+	= case get "pattern" (propertyMap properties) of
+		Just (JSONString s)  = case trim s of
+								   "" = Nothing
+							       s` = Just s`
+		_					 = Nothing
+
+propertyMap :: !ORYXProperties -> Map String JSONNode
+propertyMap (ORYXProperties properties) = fromList [ (p.ORYXProperty.key, p.ORYXProperty.value) \\ p <- properties ]
 
 shapeId :: !ORYXChildShape -> String
 shapeId shape = shape.ORYXChildShape.resourceId

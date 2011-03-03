@@ -15,14 +15,17 @@ where
 
 ginExamples :: [Workflow]
 ginExamples = [ workflow "Examples/Graphical Editors/Graphical Editor" "Create or edit workflows in Gin notation" ginEditor
-              , workflow "Examples/Graphical Editors/Petri net editor" "Petri net editor" simplePetrinetEditor
-              , workflow "Examples/Graphical Editors/Gin editor" "Gin editor" simpleGinEditor
+			  , simpleEditorWorkflow "Petri net" petriNetORYXEditor
+//			  , simpleEditorWorkflow "BPMN" bpmnORYXEditor
+			  , simpleEditorWorkflow "Gin" ginORYXEditor
               , workflow "Examples/Graphical Editors/Shared Petri net editors" "Two shared Petri net editors" petrinetShareExample
               , workflow "Examples/Graphical Editors/Shared Gin editor" "Gin editor" sourceGinEditor
 			  ]
-simplePetrinetEditor = updateInformationA "Simple Petri net editor" idView [quitButton] petriNetORYXEditor
-
-simpleGinEditor = updateInformationA "Simple Gin editor" idView [quitButton] ginORYXEditor
+			  
+simpleEditorWorkflow :: !String !ORYXEditor -> Workflow
+simpleEditorWorkflow language editor = 
+	workflow ("Examples/Graphical Editors/" +++ language +++ " editor") ("Simple " +++ language +++ " editor")
+		(updateInformationA ("Simple " +++ language +++ " editor") idView [quitButton] editor <<@ FWFullWidth)
 
 petrinetShareExample = createSharedStore petriNetORYXEditor
 	>>= \dbid -> updateSharedInformationA "Editor 1" idView [quitButton] dbid
@@ -30,7 +33,7 @@ petrinetShareExample = createSharedStore petriNetORYXEditor
 				 updateSharedInformationA "Editor 2" idView [quitButton] dbid
 
 sourceGinEditor = createSharedStore ginORYXEditor
-	>>= \dbid -> updateSharedInformationA "Graphical editor" idView [quitButton] dbid
+	>>= \dbid -> (updateSharedInformationA "Graphical editor" idView [quitButton] dbid <<@ FWFullWidth)
 				 -||
 				 updateSharedInformationA "Source view" (get,putback) [quitButton] dbid
 where

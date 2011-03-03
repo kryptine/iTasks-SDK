@@ -51,14 +51,14 @@ mkGDefinitionBinding gdef =
 				, parameterMap = NBPrefixApp
 				}
 
-getModuleDeclarations :: ModuleBindings -> [GDeclaration]
+getModuleDeclarations :: ModuleBindings -> [(BranchType,GDeclaration)]
 getModuleDeclarations mb = getDeclarations mb.ModuleBindings.bindings
 
-getDeclarations :: Bindings -> [GDeclaration]
+getDeclarations :: Bindings -> [(BranchType,GDeclaration)]
 getDeclarations bindings = flatten (map get bindings)
 where
-	get :: Binding -> [GDeclaration]
-	get (NodeBinding nb) = [nb.NodeBinding.declaration]
-	get (ParallelBinding pb) = [ pb.ParallelBinding.split
-							   , pb.ParallelBinding.merge ]
+	get :: Binding -> [(BranchType,GDeclaration)]
+	get (NodeBinding nb) = [(BTSingle, nb.NodeBinding.declaration)]
+	get (ParallelBinding pb) = [ (BTSplit, pb.ParallelBinding.split)
+							   , (BTMerge, pb.ParallelBinding.merge) ]
 

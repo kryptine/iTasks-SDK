@@ -7,6 +7,7 @@ import GenEq
 import JSON
 import Text
 
+import GinBindings
 import GinSyntax
 import GinORYX
 import GinSVG
@@ -14,7 +15,6 @@ import GinSVG
 derive gEq		 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXConnect, ORYXContainmentRule, ORYXMorphingRule
 derive JSONEncode	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXContainmentRule, ORYXMorphingRule
 derive JSONDecode 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXContainmentRule, ORYXMorphingRule
-
 
 JSONEncode{|ORYXConnect|} {from_, to} = 
 	[JSONObject [ ("from", toJSON from_)
@@ -33,48 +33,57 @@ JSONDecode{|ORYXConnect|} [node:nodes]
 			}
 	  , nodes)
 
-makeStencilSet :: [GDeclaration] -> ORYXStencilSet
-makeStencilSet decls =
-	{ ORYXStencilSet
-	| title = "Graphical iTask Notation"
-	, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
-	, description = "A graphical notation for iTask workflows"
-	, baseUrl = Just "gin"
-	, stencils = [diagramStencil, arcStencil] ++ map declToStencil decls
-	, rules =	{ ORYXRules
-				| connectionRules = 
-					[	{ ORYXConnectionRule
-						| role = "arc"
-						, connects = 
-							[	{ ORYXConnect
-								| from_ = "task"
-								, to	= ["task", "split", "merge"]
-								}
-							,	{ ORYXConnect
-								| from_ = "split"
-								, to	= ["task", "split"]
-								}
-							,	{ ORYXConnect
-								| from_ = "merge"
-								, to	= ["task", "split", "merge"]
-								}
-							]						
-						}
-					]
-				, containmentRules = 
-					[	{ ORYXContainmentRule
-						| role		= "diagram"
-						, contains	= ["all"]
-						}
-					]
-				, morphingRules = 
-					[	{ ORYXMorphingRule
-						| role			= "arc"
-						, baseMorphs	= ["Arc"]
-						}
-					]
-				}
-	}
+makeStencilSet :: [ModuleBindings] -> ORYXStencilSet
+makeStencilSet modulebindings
+	# decls = flatten [ [ (mb.ModuleBindings.name,bt,decl) \\ (bt,decl) <- getModuleDeclarations mb] \\ mb <- modulebindings ]
+	= 	{ ORYXStencilSet
+		| title = "Graphical iTask Notation"
+		, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
+		, description = "A graphical notation for iTask workflows"
+		, baseUrl = Just "gin"
+		, stencils = [diagramStencil, arcStencil] ++ map declToStencil decls
+		, rules =	{ ORYXRules
+					| connectionRules = 
+						[	{ ORYXConnectionRule
+							| role = "arc"
+							, connects = 
+								[	{ ORYXConnect
+									| from_ = "single"
+									, to	= ["single", "split", "merge"]
+									}
+								,	{ ORYXConnect
+									| from_ = "split"
+									, to	= ["single", "split"]
+									}
+								,	{ ORYXConnect
+									| from_ = "merge"
+									, to	= ["single", "split", "merge"]
+									}
+								]						
+							}
+						]
+					, containmentRules = 
+						[	{ ORYXContainmentRule
+							| role		= "diagram"
+							, contains	= ["all"]
+							}
+						]
+					, morphingRules = 
+						[	{ ORYXMorphingRule
+							| role			= "single"
+							, baseMorphs	= ["single"]
+							} 
+						,	{ ORYXMorphingRule
+							| role			= "split"
+							, baseMorphs	= ["split"]
+							} 
+						,	{ ORYXMorphingRule
+							| role			= "merge"
+							, baseMorphs	= ["merge"]
+							} 
+						]
+					}
+		}
 	
 diagramStencil :: ORYXStencil
 diagramStencil = 
@@ -88,9 +97,8 @@ diagramStencil =
 	, icon			= "new_diagram.png"
 	, mayBeRoot		= True
 	, roles			= ["diagram"]
-	, properties	= ORYXProperties []
+	, properties	= []
 	}
-//where
 
 diagramView :: SVGShape
 diagramView = 
@@ -129,7 +137,21 @@ arcStencil =
 	, icon			= "new_flow.png"
 	, mayBeRoot		= False
 	, roles			= ["all", "arc" ]
-	, properties	= ORYXProperties []
+	, properties	=  
+		[ ORYXProperties
+			[ { ORYXProperty| key = "id"			, value = JSONString "pattern"}
+			, { ORYXProperty| key = "type"			, value = JSONString "String"}
+			, { ORYXProperty| key = "title"			, value = JSONString "Pattern"}
+			, { ORYXProperty| key = "value"			, value = JSONString ""}
+			, { ORYXProperty| key = "description"	, value = JSONString ""}
+			, { ORYXProperty| key = "tooltip"		, value = JSONString ""}
+			, { ORYXProperty| key = "readonly"		, value = JSONBool False}
+			, { ORYXProperty| key = "optional"		, value = JSONBool True}
+			, { ORYXProperty| key = "refToView"		, value = JSONString "pattern"}
+			, { ORYXProperty| key = "length"		, value = JSONString ""}
+			, { ORYXProperty| key = "wrapLines"		, value = JSONBool False}
+			]
+		]
 	}
 where
 	arcView :: SVGShape
@@ -165,28 +187,48 @@ where
 			 	, SVGStrokeLineJoin "round"
 			 	, SVGMarkerEnd "url(#end)"
 			 	]
+			,	 SVGText (Just "pattern") (X 47, Y 7) "" [SVGEdgePosition "midtop"]
 			]
 		}
 
-declToStencil :: GDeclaration -> ORYXStencil
-declToStencil gDecl = 
-	{ ORYXStencil
-	| type			= "node"
-	, id			= gDecl.GDeclaration.name
-	, title			= gDecl.GDeclaration.name
-	, groups		= []
-	, description	= gDecl.GDeclaration.name
-	, view			= toString (fromMaybe (taskShape gDecl) Nothing)//gDecl.GDeclaration.shape
-	, icon			= gDecl.GDeclaration.icon +++ ".png"
-	, mayBeRoot		= False
-	, roles			= ["all", "task"] //TODO:Split/Merge
-	, properties	= ORYXProperties []
-	}
+declToStencil :: (!String, !BranchType, GDeclaration) -> ORYXStencil
+declToStencil (group,branchtype,gDecl) 
+	# morphrole = case branchtype of
+		BTSingle	= "single"
+		BTSplit		= "split"
+		BTMerge		= "merge"
+	=	{ ORYXStencil
+		| type			= "node"
+		, id			= gDecl.GDeclaration.name
+		, title			= gDecl.GDeclaration.name
+		, groups		= [group]
+		, description	= gDecl.GDeclaration.name
+		, view			= toString (fromMaybe (taskShape gDecl) Nothing)//gDecl.GDeclaration.shape
+		, icon			= gDecl.GDeclaration.icon +++ ".png"
+		, mayBeRoot		= False
+		, roles			= ["all", morphrole]
+		, properties	= map formalParameterToProperty gDecl.GDeclaration.formalParams
+		}
+
+formalParameterToProperty :: GFormalParameter -> ORYXProperties
+formalParameterToProperty param = ORYXProperties
+	[ { ORYXProperty| key = "id"			, value = JSONString param.GFormalParameter.name}
+	, { ORYXProperty| key = "type"			, value = JSONString "String"}
+	, { ORYXProperty| key = "title"			, value = JSONString param.GFormalParameter.name}
+	, { ORYXProperty| key = "value"			, value = JSONString ""}
+	, { ORYXProperty| key = "description"	, value = JSONString ""}
+	, { ORYXProperty| key = "tooltip"		, value = JSONString ""}
+	, { ORYXProperty| key = "readonly"		, value = JSONBool False}
+	, { ORYXProperty| key = "optional"		, value = JSONBool True}
+	, { ORYXProperty| key = "refToView"		, value = JSONString param.GFormalParameter.name}
+	, { ORYXProperty| key = "length"		, value = JSONString ""}
+	, { ORYXProperty| key = "wrapLines"		, value = JSONBool False}
+	]
 
 taskShape :: GDeclaration -> SVGShape	
 taskShape gDecl = 
 	{ SVGShape
-	| width = 120 
+	| width = if (isEmpty gDecl.GDeclaration.formalParams) 80 200
 	, height = 20 + 20 * length gDecl.GDeclaration.formalParams
 	, defs = []
 	, magnets = True
@@ -194,12 +236,12 @@ taskShape gDecl =
 		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 [SVGStroke "black", SVGFill "white"]
 		, SVGImage Nothing ((X 2, Y 2), (X 18, Y 18)) (gDecl.GDeclaration.icon +++ ".png")
 		, SVGText Nothing (X 20, Y 13) gDecl.GDeclaration.name []
-	    , SVGLine Nothing ((XPct 60, Y 20), (XPct 60, YBottom)) []
+	    , SVGLine Nothing ((X 80, Y 20), (X 80, YBottom)) []
 		] 
 		++ flatten (map
 			(\(nr,param) -> [ SVGLine Nothing ((XLeft, Y (20 * nr)), (XRight, Y (20 * nr))) []
 					   		, SVGText Nothing (X 3, Y (13 + 20 * nr)) param.GFormalParameter.name []
-							, SVGText (Just "param.GFormalParameter.name") (X 53, Y (13 + 20 * nr)) "" [] //TODO: Add support for higher order parameters
+							, SVGText (Just param.GFormalParameter.name) (X 83, Y (13 + 20 * nr)) "" [] //TODO: Add support for higher order parameters
 							]
 			) (zip2 [1..] gDecl.GDeclaration.formalParams))
 	}

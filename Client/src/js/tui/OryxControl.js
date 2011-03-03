@@ -6,7 +6,7 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 			{ url: "/handlers/work/tab"
 			, border: false
             , layout: 'fit'
-            , height: 240
+            , height: 320
             , html: 'Loading...'
 			});
 
