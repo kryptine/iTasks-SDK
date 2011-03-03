@@ -193,32 +193,31 @@ chooseSuppliers buyer [] orderId
 	=						setOrderState SuppliersChosen orderId
 		>>|					return Void
 chooseSuppliers buyer items orderId
-	=						(enterMultipleChoice "Select items from list intended for the same supplier " items
-							-&&-
-							selectUserWithRole "supplier")
+	=						( enterMultipleChoice "Select items from list intended for the same supplier " items
+							     -&&-
+							  selectUserWithRole "supplier"
+							)
 		>>= \(chosen,supplier) ->
 							addSupplier chosen supplier ToBeSendToSupplier orderId
-		>>= \norder ->		startOrderingProcess buyer supplier (snd orderId) 
-		>>|					chooseSuppliers buyer [item \\ item <- items | not (isMember item chosen)] orderId
+		>>|					startOrderingProcess buyer supplier (snd orderId) 
+		>>|					chooseSuppliers buyer (removeMembers items chosen) orderId
 	
 
 startOrderingProcess :: Buyer Supplier (OrderStore a) -> Task Void | iTask a
 startOrderingProcess buyer supplier store
 	=						readShared orderingProcessStore
-		>>= \table ->		startProcess table
-where
-	startProcess table
-	| isMember (buyer,supplier) table 
-				= 			return Void 					// process already active
-	| otherwise =			spawnProcess True True (Title "Collecting orders..." @>> buyer @: shipOrder buyer supplier store)
-					>>| 	writeShared orderingProcessStore [(buyer,supplier):table]
-					>>|		return Void
+		>>= \table ->		if (isMember (buyer,supplier) table)
+							   (		return Void			// process already active
+							   )
+							   (		spawnProcess True True (Title "Collecting orders..." @>> buyer @: shipOrder buyer supplier store)
+								>>| 	writeShared orderingProcessStore [(buyer,supplier):table]
+								>>|		return Void
+							   )
 
 shipOrder :: Buyer Supplier (OrderStore a) -> Task Void | iTask a
 shipOrder buyer supplier store
 	=						monitor ("Orders collected for " <+++ supplier) showSupOrders (const True) False store
-		>>|					readShared store
-		>>= \orders ->		changeSupOrderState buyer supplier ToBeSendToSupplier SentToSupplier store
+		>>|					changeSupOrderState buyer supplier ToBeSendToSupplier SentToSupplier store
 		>>= \orders ->		supplier @: deliver (fetchOutstandingSubOrders buyer supplier SentToSupplier orders)
 		>>= \ok -> 			changeSupOrderState buyer supplier SentToSupplier (if ok ShippedToBuyer RejectedBySupplier) store
 		>>|					return Void
@@ -232,7 +231,7 @@ deliver subOrders
 	=						requestConfirmationAbout "Can you deliver: " subOrders
 
 
-/* old stuf
+/* old stuff
 
 :: LineItemStatus
 	=	ItemCreated
