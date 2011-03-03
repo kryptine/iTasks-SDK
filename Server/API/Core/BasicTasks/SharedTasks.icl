@@ -4,7 +4,7 @@ import StdList, StdOrdList, StdTuple, Error, Util
 import GenUpdate, GenVisualize, GenVerify, TSt, ExceptionCombinators
 from StdFunc			import id, o
 from CoreCombinators	import >>|, >>=, return
-from Shared				import :: Shared(..), :: SharedWrite, :: SharedRead, :: SharedGetTimestamp, :: SymmetricShared, mapShared, >+<
+from Shared				import :: Shared(..), :: SharedWrite, :: SharedRead, :: SharedGetTimestamp, :: SymmetricShared
 from Shared				import qualified writeShared, readShared
 
 sharedStore :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
@@ -98,15 +98,6 @@ where
 		# (wres,iworld)	= 'Shared'.writeShared shared val iworld
 		| isError wres	= (TaskException (dynamic (SharedException (fromError wres))),iworld)
 		= (TaskFinished val,iworld)
-
-symmetricLens :: !(aw c -> (bw,c)) !(bw c -> (aw,c)) !c !(Shared ar aw) !(Shared br bw) -> Task (!Shared ar aw,!Shared br bw) | iTask ar & iTask aw & iTask br & iTask bw & iTask c
-symmetricLens putr putl missing sharedA sharedB =
-					createSharedStore missing
-	>>=	\sharedC.	return (sharedA >+< sharedB >+< sharedC)
-	>>= \sharedAll.	return (newSharedA sharedAll,newSharedB sharedAll)
-where
-	newSharedA sharedAll = mapShared (fst o fst,\a ((_,b),c) -> let (b`,c`) = putr a c in ((a,b`),c`)) sharedAll
-	newSharedB sharedAll = mapShared (snd o fst,\b ((a,_),c) -> let (a`,c`) = putl b c in ((a`,b),c`)) sharedAll
 	
 //	Convenient operations on databases
 eqItemId :: a a -> Bool | DB a

@@ -6,7 +6,7 @@ definition module Shared
 * Additonally references can be composed.
 */
 
-import Void, Maybe, Error
+import Void, Maybe, Error, GenEq
 from StdFunc	import id, const
 from Types		import :: IWorld
 from Time		import :: Timestamp
@@ -89,6 +89,21 @@ toReadOnlyShared :: !(Shared r w) -> ReadOnlyShared r
 (>+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) (w0,w1)
 (>+|) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w0
 (|+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w1
+
+// Compose symmetric shared references and only write to one of the shares if the value changed (read shared <> value to write).
+(>&<) infixl 6 :: !(SymmetricShared a) !(SymmetricShared b) -> (SymmetricShared (a,b)) | gEq{|*|} a & gEq{|*|} b
+
+/**
+* Puts a symmetric lens between two symmetric shared data sources.
+* Changes of one also affects the other one.
+*
+* @param putr: used to map changes of shared a to shared b
+* @param putl: used to map changes of shared b to shared a
+* @param SymmetricShared a
+* @param SymmetricShared b
+* @param Shared references of the same type with symmetric lens between them
+*/
+symmetricLens :: !(a b -> b) !(b a -> a) !(SymmetricShared a) !(SymmetricShared b) -> (!SymmetricShared a,!SymmetricShared b)
 
 /**
 * Creates a simple read-only shared which's value is computed by a function on IWorld (which can optionally give an error).

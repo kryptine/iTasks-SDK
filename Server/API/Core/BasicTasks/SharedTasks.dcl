@@ -66,19 +66,6 @@ writeShared :: !(Shared r a) !a -> Task a | iTask a
 */
 updateShared :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 
-/**
-* Puts a symmetric lens between two symmetric shared data sources.
-* Changes of one also affects the other one.
-*
-* @param Shared a
-* @param Shared b
-* @param putr: used to map changes of shared a to shared b
-* @param putl: used to map changes of shared b to shared a
-* @param missing complement: includes all information not shared by a & b
-* @param Shared references of the same type with symmetric lens between them
-*/
-symmetricLens :: !(aw c -> (bw,c)) !(bw c -> (aw,c)) !c !(Shared ar aw) !(Shared br bw) -> Task (!Shared ar aw,!Shared br bw) | iTask ar & iTask aw & iTask br & iTask bw & iTask c
-
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where
 	/*

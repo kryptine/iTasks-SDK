@@ -47,6 +47,19 @@ toReadOnlyShared (Shared read write getTimestamp) = Shared read (\_ iworld -> (O
 (|+<) (Shared read0 _ getTimestamp0) (Shared read1 write1 getTimestamp1)
 	= Shared (composeReads read0 read1) write1 (composeGetTimestamps getTimestamp0 getTimestamp1)
 	
+(>&<) infixl 6 :: !(SymmetricShared a) !(SymmetricShared b) -> (SymmetricShared (a,b)) | gEq{|*|} a & gEq{|*|} b
+(>&<) (Shared read0 write0 getTimestamp0) (Shared read1 write1 getTimestamp1)
+	= Shared (composeReads read0 read1) writeC (composeGetTimestamps getTimestamp0 getTimestamp1)
+where
+	writeC (na,nb) iworld
+		# (oa,iworld)	= read0 iworld
+		| isError oa = (liftError oa,iworld)
+		# (ob,iworld)	= read1 iworld
+		| isError ob = (liftError ob,iworld)
+		# (r,iworld)	= if (fromOk oa =!= na) (write0 na iworld) (Ok Void,iworld)
+		| isError r = (liftError r,iworld)
+		= if (fromOk ob =!= nb) (write1 nb iworld) (Ok Void,iworld)
+
 composeReads						= compose (\a b -> (a,b))
 composeGetTimestamps				= compose max
 composeWrites write0 write1 (v0,v1)	= compose const (write0 v0) (write1 v1)
@@ -57,6 +70,13 @@ compose compF f0 f1 iworld
 	# (res1,iworld)	= f1 iworld
 	| isError res1	= (liftError res1,iworld)
 	= (Ok (compF (fromOk res0) (fromOk res1)),iworld)
+	
+symmetricLens :: !(a b -> b) !(b a -> a) !(SymmetricShared a) !(SymmetricShared b) -> (!SymmetricShared a,!SymmetricShared b)
+symmetricLens putr putl sharedA sharedB = (newSharedA,newSharedB)
+where
+	sharedAll = sharedA >+< sharedB 
+	newSharedA = mapShared (fst,\a (_,b) -> (a,putr a b)) sharedAll
+	newSharedB = mapShared (snd,\b (a,_) -> (putl b a,b)) sharedAll
 
 makeReadOnlyShared :: !(*IWorld -> *(!a,!*IWorld)) -> ReadOnlyShared a
 makeReadOnlyShared valueF = Shared (appFst Ok o valueF) roWrite roGetTimestamp
