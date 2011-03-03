@@ -345,51 +345,6 @@ where
 					TaskException e
 						//Don't process the other tasks, just let the exception through
 						= (TaskException e,pst,tst)
-						
-/*
-* When a task is assigned to a user a synchronous task instance process is created.
-* It is created once and loaded and evaluated on later runs.
-*/
-assign :: !User !(Task a) -> Task a | iTask a	
-assign user task = parallel Closed ("Assign","Manage a task assigned to another user.") (\(r,_) _ -> (Just r,Stop)) fromJust Nothing [processControl] [task <<@ user]
-where
-	processControl shared =
-			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
-		>>|	return undef
-		
-	toView (_,[{progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker,priority,deadline,context,tags}}:_])=
-		{ assignedTo	= worker
-		, priority		= priority
-		, progress		= Display progress
-		, issuedAt		= Display issuedAt
-		, firstWorkedOn	= Display firstEvent
-		, lastWorkedOn	= Display latestEvent
-		, deadline		= deadline
-		, context		= fmap Note context
-		, tags			= list2mb tags
-		}
-		
-	fromView {assignedTo,context,priority,deadline,tags} (_,[{managerProperties}:rest])
-		# newManagerProperties =	{ managerProperties
-									& worker	= assignedTo
-									, context	= fmap toString context
-									, priority	= priority
-									, deadline	= deadline
-									, tags		= mb2list tags
-									}
-		= [newManagerProperties:map (\{managerProperties} -> managerProperties) rest]
-	
-:: ProcessControlView =	{ assignedTo	:: !User
-						, priority		:: !TaskPriority
-						, progress		:: !Display TaskProgress
-						, issuedAt		:: !Display Timestamp
-						, firstWorkedOn	:: !Display (Maybe Timestamp)
-						, lastWorkedOn	:: !Display (Maybe Timestamp)
-						, deadline		:: !Maybe DateTime
-						, context		:: !Maybe Note
-						, tags			:: !Maybe [String]
-						}
-derive class iTask ProcessControlView
 
 createOrEvaluateTaskInstance :: !(Maybe TaskParallelType) !(Task a) !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
 createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}

@@ -115,16 +115,6 @@ group 	 :: !d !((taskResult,Int) gState -> (gState,PAction taskResult gState)) (
 // Multi-user workflows
 
 /**
-* Assign a task to a(nother) user.
-*
-* @param The initial UserId of the user to which the task is delegated
-* @param The task that is to be delegated.
-*
-* @return The combined task
-*/ 
-assign :: !User !(Task a) -> Task a	| iTask a
-
-/**
 * Create a new process.
 *
 * @param Activate the process immediately (False creates the process in a suspended state)

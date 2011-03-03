@@ -34,6 +34,15 @@ derive gEq			Tag
 */
 transform			:: !(a -> b) !a 									-> Task b | iTask b
 /**
+* Assign a task to a(nother) user.
+*
+* @param The initial UserId of the user to which the task is delegated
+* @param The task that is to be delegated.
+*
+* @return The combined task
+*/ 
+assign :: !User !(Task a) -> Task a	| iTask a
+/**
 * Assign a task to a user. (synonym for assign)
 *
 * @param The initial UserId of the user to which the task is delegated
