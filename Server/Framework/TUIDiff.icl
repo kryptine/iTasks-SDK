@@ -54,7 +54,7 @@ where
 							[]
 							[TUISetValue_ (dp2s path) (toString nt.selIndex)]
 						[TUIReplace_ (dp2s path) new]
-				(TUIGridControl {gridEditors = oe,gridHtml = oh}, TUIGridControl {gridEditors = ne, gridHtml = nh})
+				(TUIGridControl {gridEditors = oe,gridHtml = oh}, TUIGridControl {gridEditors = ne, gridHtml = nh}) | length oe == length ne
 					# htmlUpdates	= flatten [[TUISetValue_  (dp2s path) (toString (toJSON (i,j,n))) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
 					# path			= shiftDataPath path
 					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
