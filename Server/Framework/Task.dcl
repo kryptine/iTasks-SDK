@@ -99,6 +99,8 @@ taskNrFromString 	:: !String -> TaskNr
 * @return The formatted task number
 */
 taskNrToString		:: !TaskNr -> String
+
+incTaskNr :: !TaskNr -> TaskNr
 				
 :: TaskEvent :== (!TaskId,!String,!JSONNode)	// taskid, name, value
 

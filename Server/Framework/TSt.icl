@@ -595,69 +595,56 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> TaskFunctionCommit a
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
 mkInteractiveTask :: !d !InteractiveTaskType !(TaskFunctions a) -> Task a | descr d
-mkInteractiveTask description type (taskfunE,taskfunC) =
-	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
-	, groupedProperties	= initGroupedProperties
-	, formWidth			= Nothing
-	, mbTaskNr			= Nothing
-	, mbMenuGenFunc		= Nothing
-	, taskFuncEdit		= taskfunE
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractiveTask taskInfo type noOutput}
-	}
+mkInteractiveTask description type (taskfunE,taskfunC)
+	= mkTask
+		description
+		taskfunE
+		(\tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractiveTask taskInfo type noOutput})
 
 mkInstantTask :: !d !(TaskFunctionCommit a) -> Task a | descr d
-mkInstantTask description taskfun =
-	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
-	, groupedProperties	= initGroupedProperties
-	, formWidth			= Nothing
-	, mbTaskNr			= Nothing
-	, mbMenuGenFunc		= Nothing
-	, taskFuncEdit		= id
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput} //We use a FinishedTask node because the task is finished after one evaluation
-	}
+mkInstantTask description taskfun
+	= mkTask
+		description
+		id
+		(\tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput}) //We use a FinishedTask node because the task is finished after one evaluation
 		
 mkSequenceTask :: !d !(TaskFunctions a) -> Task a | descr d
-mkSequenceTask description (taskfunE,taskfunC) =
-	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
-	, groupedProperties	= initGroupedProperties
-	, formWidth			= Nothing
-	, mbTaskNr			= Nothing
-	, mbMenuGenFunc		= Nothing
-	, taskFuncEdit		= \tst=:{taskNr}				-> taskfunE {tst & taskNr = [0:taskNr]}
-	, taskFuncCommit	= \tst=:{TSt|taskNr,taskInfo}	-> taskfunC {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
-	}
+mkSequenceTask description (taskfunE,taskfunC)
+	= mkTask
+		description 
+		(\tst=:{taskNr}					-> taskfunE {tst & taskNr = [0:taskNr]})
+		(\tst=:{TSt|taskNr,taskInfo}	-> taskfunC {tst & taskNr = [0:taskNr], tree = TTSequenceTask taskInfo []})
 			
 mkParallelTask :: !d !TaskParallelType !(TaskFunctions a) -> Task a | descr d
-mkParallelTask description tpt (taskfunE,taskfunC) =
-	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
-	, groupedProperties	= initGroupedProperties
-	, formWidth			= Nothing
-	, mbTaskNr			= Nothing
-	, mbMenuGenFunc		= Nothing
-	, taskFuncEdit		= taskfunE
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfunC {tst & tree = TTParallelTask taskInfo tpt []}
-	}
+mkParallelTask description tpt (taskfunE,taskfunC)
+	= mkTask
+		description
+		taskfunE
+		(\tst=:{taskInfo} -> taskfunC {tst & tree = TTParallelTask taskInfo tpt []})
 
 mkGroupedTask :: !d !(TaskFunctions a) -> Task a | descr d
-mkGroupedTask description (taskfunE,taskfunC) =
-	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
-	, groupedProperties	= initGroupedProperties
-	, formWidth			= Nothing
-	, mbTaskNr			= Nothing
-	, mbMenuGenFunc		= Nothing
-	, taskFuncEdit		= taskfunE
-	, taskFuncCommit	= \tst=:{taskInfo,taskNr} -> taskfunC {tst & tree = TTGroupedTask taskInfo [] [] Nothing}
-	}
+mkGroupedTask description (taskfunE,taskfunC)
+	= mkTask
+		description
+		taskfunE
+		(\tst=:{taskInfo,taskNr} -> taskfunC {tst & tree = TTGroupedTask taskInfo [] [] Nothing})
 			
 mkMainTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkMainTask description taskfun =
+mkMainTask description taskfun
+	= mkTask
+		description
+		id
+		(\tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo noOutput)})
+
+mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
+mkTask description taskFuncEdit taskFuncCommit =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
 	, groupedProperties	= initGroupedProperties
 	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
-	, taskFuncEdit		= id
-	, taskFuncCommit	= \tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo noOutput)}
+	, taskFuncEdit		= taskFuncEdit
+	, taskFuncCommit	= taskFuncCommit
 	}
 
 applyTaskEdit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
@@ -738,10 +725,6 @@ where
 	finalizeTaskNode (TTParallelTask ti tpi tasks)				= TTParallelTask	ti tpi (reverse tasks)
 	finalizeTaskNode (TTGroupedTask ti tasks gActions mbFocus)	= TTGroupedTask		ti (reverse tasks) gActions mbFocus
 	finalizeTaskNode node										= node
-
-//Increase the task nr
-incTaskNr [] = [0]
-incTaskNr [i:is] = [i+1:is]
 
 //Add a new node to the current sequence or process
 addTaskNode :: !NonNormalizedTree !*TSt -> *TSt

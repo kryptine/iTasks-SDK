@@ -54,6 +54,11 @@ where
 	stl [] = []
 	stl xs = tl xs
 	
+//Increase the task nr
+incTaskNr :: !TaskNr -> TaskNr
+incTaskNr [] = [0]
+incTaskNr [i:is] = [i+1:is]
+	
 //Applies given function to the result if task is finished
 mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
 mapTaskResult f (TaskFinished x)	= TaskFinished (f x) 

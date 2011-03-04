@@ -2,8 +2,9 @@ implementation module InteractiveTasks
 
 import StdTuple, StdBool, StdList, StdMisc, Maybe, Types, Util, Shared, HtmlUtil
 import iTaskClass, Task, TSt
-from SharedTasks	import sharedStore, :: SharedStoreId
-from StdFunc		import id, const, o
+from SharedTasks			import sharedStore, :: SharedStoreId
+from StdFunc				import id, const, o
+from ExceptionCombinators	import :: SharedException(..)
 
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
 derive JSONDecode UpdateMask, VerifyMask, ErrorMessage
@@ -50,11 +51,14 @@ where
 				# (nvmask,tst)				= accIWorldTSt (verifyValue nvalue numask) tst
 				# tst						= appIWorldTSt (setStores taskNr (nvalue,numask,nvmask)) tst
 				| enterMode 				= (False,tst)
-				# (conflict,tst)			= appFst fromOk (accIWorldTSt (isSharedChanged (shared taskNr) localTimestamp) tst)
+				# (conflict,tst)			= accIWorldTSt (isSharedChanged (shared taskNr) localTimestamp) tst
+				| isError conflict			= (False,tst)
+				# conflict					= fromOk conflict
 				| not (isValidValue nvmask) || conflict = (conflict,tst)
 				// update model if view is changed, not in enter mode, no edit conflict occurred & view is valid
-				# ((oldModelValue,_),tst)	= accIWorldTSt (readModelValue taskNr) tst
-				# newModelValue				= bimapPutback nvalue oldModelValue
+				# (oldModel,tst)			= accIWorldTSt (readModelValue taskNr) tst
+				| isError oldModel			= (False,tst)
+				# newModelValue				= bimapPutback nvalue (fst (fromOk oldModel))
 				# tst						= appIWorldTSt (snd o writeShared (shared taskNr) newModelValue) tst
 				= (conflict,tst)
 			Nothing
@@ -63,10 +67,13 @@ where
 
 	interactiveTaskC tst=:{taskNr,newTask,triggerPresent}
 		// init task if it's new
-		# tst								= if newTask (appIWorldTSt (initTask taskNr) tst) tst
+		# (res,tst)							= if newTask (accIWorldTSt (initTask taskNr) tst) (Ok Void,tst)
+		| isError res						= (sharedException res,tst)
 		// read local value/masks & model value/timestamp
 		# (nvmask,tst)						= accIWorldTSt (readVMask taskNr) tst
-		# ((modelV,modelT),tst)				= accIWorldTSt (readModelValue taskNr) tst
+		# (model,tst)						= accIWorldTSt (readModelValue taskNr) tst
+		| isError model						= (sharedException model,tst)
+		# (modelV,modelT)					= fromOk model
 		// check auto event
 		# mbAutoEvent						= maybe Nothing (\autoEventF -> autoEventF (if (isValidValue nvmask) (Valid modelV) Invalid)) mbAutoEventF
 		| isJust mbAutoEvent				= (TaskFinished (fromJust mbAutoEvent,(if (isValidValue nvmask) (Just modelV) Nothing)),tst)
@@ -75,44 +82,17 @@ where
 		| isJust mbActionEvent				= (TaskFinished (fromJust mbActionEvent,if (isValidValue nvmask) (Just modelV) Nothing),tst)
 		// task is still busy, set trigger flag
 		# tst								= {tst & triggerPresent = triggerPresent || isJust mbAutoEventF}
-		# tst								= setInteractiveFuncs (tuiFunc,jsonFunc) tst
+		# tst								= setInteractiveFuncs (appSnd (deleteCommitStores taskNr) o tuiFunc,appSnd (deleteCommitStores taskNr) o jsonFunc) tst
 		= (TaskBusy,tst)
 	where	
 		jsonFunc iworld
-			// read local value/masks & model value/timestamp
-			# (new=:(nvalue,numask,nvmask),iworld)	= readStores taskNr iworld
-			# ((modelV,modelT),iworld)				= readModelValue taskNr iworld
-			# ((outdatedClient,conflict,updatedPaths,localTimestamp,_),iworld) = getCommitStoreInfo taskNr iworld
-			// rebuild view value from model if not in enter mode, model is newer than local value or an error occurred and valid was not updated to an invalid one this request
-			# ((new=:(nvalue,numask,nvmask)),iworld) = case not enterMode && (localTimestamp < modelT && (isEmpty updatedPaths || isValidValue nvmask) || conflict || outdatedClient) of
-				True
-					# errors = case (outdatedClient,conflict) of
-						(True,_)							= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
-						(_,True)							= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
-						_									= []
-					= updateViewValue taskNr bimapGet new modelV modelT errors iworld
-				False
-					= (new,iworld)
-			// delete commit stores
-			# iworld	= deleteTaskStoreFor taskNr "commit-old" iworld
-			# iworld	= deleteTaskStoreFor taskNr "commit-info" iworld	
-			= (toJSON nvalue,iworld)
+			# (new,iworld) = newViewValue taskNr iworld
+			= (toJSON (fst3 new),iworld)
 			
 		tuiFunc iworld
-			// read local value/masks & model value/timestamp
-			# (new=:(nvalue,numask,nvmask),iworld)	= readStores taskNr iworld
-			# ((modelV,modelT),iworld)				= readModelValue taskNr iworld
-			# ((outdatedClient,conflict,updatedPaths,localTimestamp,clientTimestampSent),iworld) = getCommitStoreInfo taskNr iworld
-			// rebuild view value from model if not in enter mode, model is newer than local value or an error occurred and valid was not updated to an invalid one this request
-			# ((new=:(nvalue,numask,nvmask)),iworld) = case not enterMode && (localTimestamp < modelT && (isEmpty updatedPaths || isValidValue nvmask) || conflict || outdatedClient) of
-				True
-					# errors = case (outdatedClient,conflict) of
-						(True,_)					= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
-						(_,True)					= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
-						_							= []
-					= updateViewValue taskNr bimapGet new modelV modelT errors iworld
-				False
-					= (new,iworld)
+			# ((modelV,_),iworld)					= appFst fromOk (readModelValue taskNr iworld)
+			# ((outdatedClient,_,updatedPaths,localTimestamp,clientTimestampSent),iworld) = getCommitStoreInfo taskNr iworld
+			# ((nvalue,numask,nvmask),iworld)		= newViewValue taskNr iworld
 			# editorId								= "tf-" +++ taskNrToString taskNr
 			# evalActions							= evaluateConditions actions (isValidValue nvmask) modelV
 			# (mbOld,iworld)						= getCommitStoreOld taskNr iworld
@@ -122,9 +102,6 @@ where
 					Nothing							= (Nothing,iworld)
 					Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
 					Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (readShared ref iworld)
-				// delete commit stores
-				# iworld	= deleteTaskStoreFor taskNr "commit-old" iworld
-				# iworld	= deleteTaskStoreFor taskNr "commit-info" iworld
 				= (Definition (taskPanel taskNr mbContext (Just form)) evalActions,iworld)
 			| otherwise	// update UI
 				// get stored old value, masks & errors
@@ -141,9 +118,6 @@ where
 							= (updates,iworld)
 					_
 						= (updates,iworld)
-				// delete commit stores
-				# iworld	= deleteTaskStoreFor taskNr "commit-old" iworld
-				# iworld	= deleteTaskStoreFor taskNr "commit-info" iworld
 				= (Updates updates evalActions,iworld)
 
 	// for local mode use auto generated store name, for shared mode use given store
@@ -168,12 +142,14 @@ where
 			_							= iworld
 		// determine initial view value based on model if not in enter mode
 		| not enterMode
-			# ((modelValue,modelTimestamp),iworld)	= readModelValue taskNr iworld
+			# (model,iworld)						= readModelValue taskNr iworld
+			| isError model							= (liftError model,iworld)
+			# (modelValue,modelTimestamp)			= fromOk model
 			# value									= bimapGet modelValue
 			# umask									= defaultMask value
 			# (vmask,iworld)						= verifyValue value umask iworld
 			# iworld								= setStores taskNr (value,umask,vmask) iworld
-			= iworld
+			= (Ok Void,iworld)
 		| otherwise
 			# (value,iworld)						= defaultValue iworld
 			# umask									= Untouched
@@ -182,18 +158,36 @@ where
 			// make use of 'bimapPutback' to help compiler determining the type of the default value
 			# (defModel,iworld)						= defaultValue iworld
 			# (_,iworld) 							= (bimapPutback value defModel,iworld)
-			= iworld
+			= (Ok Void,iworld)
 			
 	readModelValue taskNr iworld
 		| enterMode // don't read model in enter mode, but compute from view
 			# (view,iworld)				= readValue taskNr iworld
 			# (localTimestamp,iworld)	= getLocalTimestamp taskNr iworld
-			= ((o2i (bimapPutback view undef),localTimestamp),iworld)
+			= (Ok (o2i (bimapPutback view undef),localTimestamp),iworld)
 		| otherwise
-			# (value,iworld) 	= appFst fromOk (readShared (shared taskNr) iworld)
-			# (timest,iworld)	= appFst fromOk (getSharedTimestamp (shared taskNr) iworld)
-			= ((value,timest),iworld)
-
+			# (value,iworld) 	= readShared (shared taskNr) iworld
+			| isError value		= (liftError value,iworld)
+			# (timest,iworld)	= getSharedTimestamp (shared taskNr) iworld
+			| isError timest	= (liftError timest,iworld)
+			= (Ok (fromOk value,fromOk timest),iworld)
+			
+	newViewValue taskNr iworld
+		// read local value/masks & model value/timestamp
+		# (new=:(nvalue,numask,nvmask),iworld)	= readStores taskNr iworld
+		# ((modelV,modelT),iworld)				= appFst fromOk (readModelValue taskNr iworld)
+		# ((outdatedClient,conflict,updatedPaths,localTimestamp,_),iworld) = getCommitStoreInfo taskNr iworld
+		// rebuild view value from model if not in enter mode, model is newer than local value or an error occurred and valid was not updated to an invalid one this request
+		= case not enterMode && (localTimestamp < modelT && (isEmpty updatedPaths || isValidValue nvmask) || conflict || outdatedClient) of
+			True
+				# errors = case (outdatedClient,conflict) of
+					(True,_)					= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
+					(_,True)					= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
+					_							= []
+				= updateViewValue taskNr bimapGet new modelV modelT errors iworld
+			False
+				= (new,iworld)
+	
 // store for information provided to the commit pass
 setCommitStoreOld :: !TaskNr (!a,!UpdateMask,!VerifyMask) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setCommitStoreOld taskNr old iworld = setTaskStoreFor taskNr "commit-old" old iworld
@@ -208,6 +202,12 @@ getCommitStoreInfo :: !TaskNr !*IWorld -> (!(!Bool,!Bool,![DataPath],!Timestamp,
 getCommitStoreInfo taskNr iworld=:{IWorld|timestamp}
 	# (mbInfo,iworld) = getTaskStoreFor taskNr "commit-info" iworld
 	= (fromMaybe (False,False,[],timestamp,True) (fmap (\(o,c,dps,t,ct) -> (o,c,map dataPathFromList dps,t,ct)) mbInfo),iworld)
+// delete stores providing information for commit pass
+deleteCommitStores :: !TaskNr !*IWorld -> *IWorld
+deleteCommitStores taskNr iworld
+	# iworld	= deleteTaskStoreFor taskNr "commit-old" iworld
+	# iworld	= deleteTaskStoreFor taskNr "commit-info" iworld
+	= iworld
 					
 // determines a new view value from model
 updateViewValue :: !TaskNr !(a -> v) (!v,!UpdateMask,!VerifyMask) !a !Timestamp ![(!DataPath,!ErrorMessage)] !*IWorld -> (!(v,UpdateMask,VerifyMask),!*IWorld) | iTask a & iTask v
@@ -294,3 +294,6 @@ actionEvent actions	tst
 where
 	mbAction key = listToMaybe [action \\ (action,pred) <- actions | actionName action == key]
 	addData data mbAction = fmap (\a -> (a,data)) mbAction
+
+sharedException :: !(MaybeErrorString a) -> (TaskResult b)
+sharedException err = TaskException (dynamic (SharedException (fromError err)))
