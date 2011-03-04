@@ -32,6 +32,7 @@ flowLibrary = [ clean
 	          , DateTimeTasks
 	          , interactionTasks
 	          , systemTasks
+			  , userDBTasks
 	          ]
 
 mkZeroArityBinding :: String GTypeExpression String -> Binding
@@ -481,4 +482,16 @@ systemTasks = { ModuleBindings
                            , mkZeroArityBinding "getContextManager" (GConstructor "UserName") "user"
                            , mkZeroArityBinding "getDefaultValue" (GTypeVariable "a") "page_white"
                            ]
+              }
+
+
+/**
+* Module bindings for UserDBTasks module
+*/
+userDBTasks :: ModuleBindings
+userDBTasks = { ModuleBindings
+              | name = "UserDBTasks"
+              , types = [] 
+              , bindings =	[ mkZeroArityBinding "getUsers" (GTypeApplication (GConstructor "_List") (GConstructor "User")) "user"
+							]
               }
