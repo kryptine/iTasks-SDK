@@ -27,7 +27,7 @@ import RPCExamples
 
 //Crisis response examples
 import AmbulanceDispatch
-//import AmbulanceDispatchMap
+import AmbulanceDispatchMap
 
 //Change examples
 import SimpleChanges
@@ -70,7 +70,7 @@ where
 						, exceptionHandlingExample
 						, changeHandlingExample
 						, ambulanceDispatchExamples
-						//, ambulanceDispatchMapExamples
+						, ambulanceDispatchMapExamples
 						, changeExamples
 						,	[ formEditor
 							, flowEditor

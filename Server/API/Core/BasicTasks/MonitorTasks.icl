@@ -12,6 +12,10 @@ monitorA :: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> 
 monitorA d view actions autoEvents shared
 	= mkInteractiveTask d Monitor (makeMonitorTaskA shared view actions autoEvents)
 
+wait :: !d !Bool !(Shared (Maybe m) w) -> Task m | descr d & iTask m
+wait d autoContinue shared
+	= mapTask fromJust (mkInteractiveTask d Monitor (makeMonitorTask shared (const (Hidden Void)) isJust autoContinue))
+
 makeMonitorTask :: !(Shared m w) !(m -> v) !(m -> Bool) !Bool -> TaskFunctions m | iTask m & iTask v
 makeMonitorTask shared view pred autoContinue
 	= mapTaskFunctions (fromJust o snd) (makeMonitorTaskA shared view actions autoEvents)

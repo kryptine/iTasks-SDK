@@ -7,7 +7,7 @@ from Shared				import :: Shared
 from InteractiveTasks	import :: TaskAction, :: ActionEvent, :: AutoActionEvents, :: Verified
 
 /**
-* Monitor a shared state using a functional view.
+* Monitors a shared state using a functional view.
 * A predicate determines when to continue.
 *
 * @param A description of the task to display to the user
@@ -20,7 +20,7 @@ from InteractiveTasks	import :: TaskAction, :: ActionEvent, :: AutoActionEvents,
 monitor		:: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & iTask m & iTask v
 
 /**
-* Monitor a shared state using a functional view.
+* Monitors a shared state using a functional view.
 * A function generating automatically triggered action events and a list of actions can be provided.
 *
 * @param A description of the task to display to the user
@@ -31,3 +31,13 @@ monitor		:: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & 
 * @return The last value of the monitored state + the generated action event
 */
 monitorA	:: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!ActionEvent,!Maybe m) | descr d & iTask m & iTask v
+
+/**
+* Waits until a shared Maybe-state contains a value.
+*
+* @param A description of the task to display to the user
+* @param A flag indicating if to finish the task automatically if condition is true or let the user press a continue-button
+* @param A reference to the shared state
+* @return The last value of the monitored state
+*/
+wait :: !d !Bool !(Shared (Maybe m) w) -> Task m | descr d & iTask m

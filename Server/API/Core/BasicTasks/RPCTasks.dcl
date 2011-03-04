@@ -10,6 +10,4 @@ import JSON
 
 ::HTTPMethod = GET | POST
 
-callRPCHTTP :: !HTTPMethod !String ![(String,String)] -> Task (ReadOnlyShared (Maybe String))
-
-showRPCWaitMessage :: !message (ReadOnlyShared (Maybe a)) -> Task a | iTask message & iTask a
+callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task (ReadOnlyShared (Maybe a)) | iTask a

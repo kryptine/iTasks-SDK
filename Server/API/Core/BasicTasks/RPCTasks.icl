@@ -22,15 +22,15 @@ import TSt
 from CoreCombinators	import >>=
 from CommonCombinators	import transform
 
-callRPCHTTP :: !HTTPMethod !String ![(String,String)] -> Task (ReadOnlyShared (Maybe String))
-callRPCHTTP method url params
+callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task (ReadOnlyShared (Maybe a)) | iTask a
+callRPCHTTP method url params transformResult
 	# options = case method of
 		GET	 = "--get"
 		POST = ""
 	# args = urlEncodePairs params
-	= callRPC options url args id
+	= callRPC options url args transformResult
 
-callRPC :: !String !String !String (String -> a) -> Task (ReadOnlyShared (Maybe a))			
+callRPC :: !String !String !String !(String -> a) -> Task (ReadOnlyShared (Maybe a))			
 callRPC options url args transformResult = mkInstantTask ("Call RPC","Calls a method from a remote server") callRPC`
 where
 	callRPC` tst=:{taskNr}
@@ -65,11 +65,6 @@ where
 		# (_,world) = deleteFile outfile world
 		| isError out = (Error (toString (fromError out)), {iworld & world = world})
 		= (Ok (Just (transformResult (fromOk out))), {iworld & world = world})
-
-showRPCWaitMessage :: !message (ReadOnlyShared (Maybe a)) -> Task a | iTask message & iTask a
-showRPCWaitMessage msg shared = 
-		monitor ("Call RPC", "Running method from remote server") (const msg) isJust True shared
-	>>= transform fromJust
 
 getITasksPath :: *World -> (String, *World)
 getITasksPath world

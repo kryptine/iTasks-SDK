@@ -3,7 +3,7 @@ implementation module AmbulanceDispatchMap
 import iTasks
 import GoogleMaps
 import google_maps_services
-import Base64
+import Text
 
 derive class iTask	Incident, IncidentType
 derive bimap (,), Maybe
@@ -38,18 +38,15 @@ specifiyIncidents :: GoogleMap -> Task [Incident]
 specifiyIncidents map = sequence "Specify individual incident details" [ (addressLookup m) >>= \addr -> (specifyIncident addr m) \\ m <- (reverse map.GoogleMap.markers) ]
 
 addressLookup :: GoogleMapMarker -> Task String
-addressLookup marker
-	# {lat,lng} = marker.position
-	= showStickyMessage ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")") Void
-	  ||- reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
+addressLookup marker = 
+		reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
+	>>=	wait ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")") True
 where
-	parseJSON info 
-	= case fromString (base64Decode info) of
-		(obj =:(JSONObject f))
-			= case jsonQuery "Placemark/1/address" obj of
-				(Just addr) = addr
-				_			= "Address Unknown"
-		_	= "Address Unknown"
+	{lat,lng} = marker.position
+	
+	parseJSON info = case jsonQuery "Placemark/0/address" (fromString info) of
+		(Just addr) = replaceSubString ", " "\n" addr
+		_			= "Address Unknown"
 
 specifyIncident :: String GoogleMapMarker -> Task Incident
 specifyIncident addr marker
@@ -63,7 +60,6 @@ specifyIncident addr marker
 			 , description = Note ""
 			 }
 = showStickyMessageAbout ("Location","Incident location:") smap ||- updateInformation ("Details","Specify incident details") incident 
-
 
 //====
 showSources ::  Task Void

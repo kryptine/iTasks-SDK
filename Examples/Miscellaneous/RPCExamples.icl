@@ -10,8 +10,8 @@ GOOGLE_API = "http://www.google.com/ig/api"
 
 weatherExample :: Task Void
 weatherExample = 
-	try ( 	  callRPCHTTP GET GOOGLE_API [("weather", "Nijmegen, Netherlands")]
-		  >>= showRPCWaitMessage "Waiting for weather service"
+	try ( 	  callRPCHTTP GET GOOGLE_API [("weather", "Nijmegen, Netherlands")] id
+		  >>= wait "Waiting for weather service" True
 		  >>= \weather -> showMessageAbout ("Weather", "Weather forecast is:") weather >>| stop
 		)
 		(\(RPCException message) -> showMessage ("RPC call failed", message) Void)
