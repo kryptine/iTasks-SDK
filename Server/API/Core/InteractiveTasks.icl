@@ -78,7 +78,7 @@ where
 		# mbAutoEvent						= maybe Nothing (\autoEventF -> autoEventF (if (isValidValue nvmask) (Valid modelV) Invalid)) mbAutoEventF
 		| isJust mbAutoEvent				= (TaskFinished (fromJust mbAutoEvent,(if (isValidValue nvmask) (Just modelV) Nothing)),tst)
 		// check for action event
-		# (mbActionEvent,tst)				= actionEvent actions tst
+		# (mbActionEvent,tst)				= actionEvent (if (isValidValue nvmask) (Valid modelV) Invalid) actions tst
 		| isJust mbActionEvent				= (TaskFinished (fromJust mbActionEvent,if (isValidValue nvmask) (Just modelV) Nothing),tst)
 		// task is still busy, set trigger flag
 		# tst								= {tst & triggerPresent = triggerPresent || isJust mbAutoEventF}
@@ -282,9 +282,9 @@ contextId taskNr = "context-" +++ taskNrToString taskNr
 evaluateConditions :: ![(!Action, (Verified a) -> Bool)] !Bool a -> [(Action, Bool)]
 evaluateConditions actions valid value = [(action,pred (if valid (Valid value) Invalid)) \\ (action,pred) <- actions]
 
-//Get action event for current task if present
-actionEvent :: ![TaskAction a] !*TSt-> (!Maybe ActionEvent,!*TSt)
-actionEvent actions	tst
+//Get action event for current task if present & pred is true
+actionEvent :: !(Verified a) ![TaskAction a] !*TSt-> (!Maybe ActionEvent,!*TSt)
+actionEvent v actions tst
 	# (mbActionEvent,tst) = getActionEvent tst
 	# mbEvent = case mbActionEvent of
 		Just (JSONString key)								= addData "" (mbAction key)
@@ -292,7 +292,7 @@ actionEvent actions	tst
 		_													= Nothing
 	= (mbEvent,tst)
 where
-	mbAction key = listToMaybe [action \\ (action,pred) <- actions | actionName action == key]
+	mbAction key = listToMaybe [action \\ (action,pred) <- actions | actionName action == key && pred v]
 	addData data mbAction = fmap (\a -> (a,data)) mbAction
 
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
