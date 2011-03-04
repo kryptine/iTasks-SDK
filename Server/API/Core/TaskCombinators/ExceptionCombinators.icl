@@ -14,7 +14,7 @@ where
 	exceptionTaskE tst=:{taskNr}
 		# (mbEx,tst) = getException tst
 		# (_,tst) = case mbEx of
-			Just ex	= applyTaskEdit (handlerTask ex) tst
+			Just ex	= applyTaskEdit (handlerTask ex) {tst & taskNr = incTaskNr taskNr}
 			Nothing = applyTaskEdit normalTask tst
 		= tst
 
@@ -22,16 +22,16 @@ where
 		# (mbEx,tst) = getException tst
 		= case mbEx of
 			Just ex	
-				= applyTaskCommit (handlerTask ex) tst
+				= applyTaskCommit (handlerTask ex) {tst & taskNr = incTaskNr taskNr}
 			Nothing			
 				# (result, tst)	= applyTaskCommit normalTask tst
 				= case result of
 					//Handle exception if it matches
 					TaskException (ex :: e^)
-						# tst	= deleteTaskStates taskNr tst 						//Garbage collect
+						# tst	= deleteTaskStates taskNr tst 													//Garbage collect
 						# tst	= deleteSubProcesses (taskNrToString taskNr) tst
-						# tst	= setException ex tst								//Store the exception
-						= applyTaskCommit (handlerTask ex) (resetSequence tst)		//Run the handler
+						# tst	= setException ex tst															//Store the exception
+						= applyTaskCommit (handlerTask ex) {(resetSequence tst) & taskNr = incTaskNr taskNr}	//Run the handler
 					//Just pass through the result
 					_
 						= (result,tst)
@@ -47,7 +47,7 @@ where
 	exceptionTaskE tst=:{taskNr}
 		# (mbEx,tst) = getException tst
 		# (_,tst) = case mbEx of
-			Just True	= applyTaskEdit handlerTask tst
+			Just True	= applyTaskEdit handlerTask {tst & taskNr = incTaskNr taskNr}
 			Nothing		= applyTaskEdit normalTask tst
 		= tst
 
@@ -55,16 +55,16 @@ where
 		# (mbEx,tst) = getException tst
 		= case mbEx of
 			Just True
-				= applyTaskCommit handlerTask tst
+				= applyTaskCommit handlerTask {tst & taskNr = incTaskNr taskNr}
 			Nothing
 				# (result, tst)	= applyTaskCommit normalTask tst
 				= case result of
 					//Handle exception
 					TaskException _
-						# tst	= deleteTaskStates taskNr tst 						//Garbage collect
+						# tst	= deleteTaskStates taskNr tst 											//Garbage collect
 						# tst	= deleteSubProcesses (taskNrToString taskNr) tst
-						# tst	= setException True tst								//set exception flag
-						= applyTaskCommit handlerTask (resetSequence tst)			//Run the handler
+						# tst	= setException True tst													//set exception flag
+						= applyTaskCommit handlerTask {(resetSequence tst) & taskNr = incTaskNr taskNr}	//Run the handler
 					//Just pass through the result
 					_
 						= (result,tst)
