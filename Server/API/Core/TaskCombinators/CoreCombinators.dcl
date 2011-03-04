@@ -61,11 +61,41 @@ return 		:: !a 										-> Task a 		| iTask a
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
 :: PAction x acc	= Stop				// stop the entire parallel/grouped execution
-					| Continue			// continue execution without change
 					| Extend ![Task x]	// dynamically extend list of tasks in parallel/group
 					| Focus Tag			// focus child-tasks with given tag
 					
 derive class iTask PAction
+
+// The ValueMerger consists of 
+// - an accumulator
+// - a function AccuFun which is called whn a ordinary task finishes defining how its result is added to the accumulator
+// - a function defining how to convert the accumulator tot the final result when the parallel task finishes
+:: ValueMerger taskResult pState pResult :== (!pState, !AccuFun taskResult pState, !ResultFun pState pResult)
+
+/**
+* AccuFun is called when an ordinary parallel iTask task (i.e. not a control task) terminates returning a value of type a 
+* 
+* @param The index of the terminated task 
+* @param The value returned by the terminated task
+* @param The current value of the accumulator 
+* @return Tuple with new value of the accumulator, and possibly an action
+*/
+:: AccuFun taskResult pState :== TaskIndex taskResult pState -> (!pState, !Maybe (PAction taskResult pState))
+
+// Index in list of parallel executing processes, [0..length list -1]; number of processes can dynamically increase
+:: TaskIndex :== Int
+
+/**
+* ResultFun  is called when the parallel task is stopped
+* 
+* @param The termination status: why was the parallel task ended
+* @param The current value of the accumulator 
+* @return The resulting value of type b
+*/
+:: ResultFun pState pResult :== TerminationStatus pState -> pResult
+:: TerminationStatus	=	AllRunToCompletion	// all parallel processes have ended their execution
+						|	Stopped				// the control signal StopParallel has been commited
+
 
 // This tuple is used to link actions to groups, similar to TaskAction.
 // Its two parts represent the (what , when) aspects of actions.
@@ -82,19 +112,16 @@ derive class iTask PAction
 :: CTask a acc :== (Shared (acc,[TaskProperties]) [ManagerProperties]) -> Task (PAction a acc)
 
 /**
-* Execute a list of parallel tasks, assigned to different users. The combinator keeps an internal
-* state of type 'pState' and uses the accumulator function to alter this state and dynamically add new tasks
-* or stop execution of the entire parallel using the result of a subtask as soon as it is finished.
+* All-in-one swiss-army-knife parallel task creation
 *
-* @param Type of the parallel, defines who is allowed to see the status of the parallel
-* @param Label
-* @param Description
-* @param An accumulator function which alters the internal state
-* @param A function which transforms the internal state to the desired output
-* @param Initial value of the internal state
-* @param List of initial tasks
+* @param The (overloaded) task description
+* @param The Value merger: a set of functions defining how subtasks values are accumulated 
+* @param Layout merge function that layouts the user interfaces of tasks that are placed in the body
+* @param The list of Control tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
+* @param The list of ordinary tasks to run in parallel
+* @return The resulting value
 */
-parallel :: !TaskParallelType !d !((taskResult,Int) pState -> (pState,PAction taskResult pState)) (pState -> pResult) !pState ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 
 /**
 * Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
@@ -110,7 +137,7 @@ parallel :: !TaskParallelType !d !((taskResult,Int) pState -> (pState,PAction ta
 * @param List of initial tasks
 * @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
 */
-group 	 :: !d !((taskResult,Int) gState -> (gState,PAction taskResult gState)) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
+group 	 :: !d !((taskResult,Int) gState -> (gState,Maybe (PAction taskResult gState))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
 
 // Multi-user workflows
 

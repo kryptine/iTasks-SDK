@@ -43,4 +43,4 @@ isRecord :: !GenericTypeDefDescriptor -> Bool
 //List utility functions
 replaceInList	:: !(a a -> Bool) !a ![a] -> [a]
 splitWith		:: !(a -> Bool) ![a] -> (![a],![a])
-
+sortByIndex		:: ![(!Int,!a)] -> [a]

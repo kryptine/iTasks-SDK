@@ -107,3 +107,7 @@ splitWith f [] = ([],[])
 splitWith f [x:xs]
 	| f x	= let (y,n) = splitWith f xs in ([x:y],n)
 			= let (y,n)	= splitWith f xs in (y,[x:n])
+
+sortByIndex :: ![(!Int,!a)] -> [a]
+sortByIndex [] = []
+sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortByIndex [(is,vs) \\ (is,vs) <- ps | is > i]

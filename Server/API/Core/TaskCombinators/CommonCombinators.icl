@@ -42,7 +42,7 @@ transform f x = mkInstantTask ("Value transformation", "Value transformation wit
 * It is created once and loaded and evaluated on later runs.
 */
 assign :: !User !(Task a) -> Task a | iTask a	
-assign user task = parallel Closed ("Assign","Manage a task assigned to another user.") (\(r,_) _ -> (Just r,Stop)) fromJust Nothing [processControl] [task <<@ user]
+assign user task = parallel Closed ("Assign","Manage a task assigned to another user.") (Nothing,\_ r _ -> (Just r,Just Stop), \_ (Just r) -> r) [processControl] [task <<@ user]
 where
 	processControl shared =
 			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
@@ -104,41 +104,41 @@ justdo task
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = group ("-||-", "Done when either subtask is finished.") orfunc hd [] [taska,taskb] [] undef
 where
-	orfunc (val,_) [] = ([val],Stop)
+	orfunc (val,_) [] = ([val],Just Stop)
 	orfunc (val,_) _  = abort "Multiple results in OR"
 
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
 	= group ("||-", "Done when the second subtask is finished.") rorfunc hd [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
-	rorfunc (Right val,_) [] = ([val],Stop)
-	rorfunc (Left val, _) [] = ([],Continue)
+	rorfunc (Right val,_) [] = ([val],Just Stop)
+	rorfunc (Left val, _) [] = ([],Nothing)
 	rorfunc _ _				 = abort "Illegal result in ||-"
 
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
 	= group ("-||", "Done when the first subtask is finished") lorfunc hd [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour,(taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
-	lorfunc (Right val,_) [] = ([],Continue)
-	lorfunc (Left val, _) [] = ([val],Stop)
+	lorfunc (Right val,_) [] = ([],Nothing)
+	lorfunc (Left val, _) [] = ([val],Just Stop)
 	lorfunc _ _				 = abort "Illegal result in -||"					
 
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb = group ("-&&-", "Done when both subtasks are finished") andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Either a b) (Maybe a,Maybe b))
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),Maybe (PAction (Either a b) (Maybe a,Maybe b)))
 	andfunc (val,_) (left,right)
 	= case val of
 		(Left a)
 			# state = (Just a,right)
 			= case state of
-				(Just l, Just r) = (state,Stop)
-				_				 = (state,Continue)
+				(Just l, Just r) = (state,Just Stop)
+				_				 = (state,Nothing)
 		(Right b)
 			# state = (left,Just b)
 			= case state of
-				(Just l, Just r) = (state,Stop)
-				_				 = (state,Continue)		
+				(Just l, Just r) = (state,Just Stop)
+				_				 = (state,Nothing)		
 	
 	parseresult (Just a,Just b)	= (a,b)
 	parseresult _				= abort "AND not finished"
@@ -152,13 +152,13 @@ where
 			Left v
 				# state = (Just v,right)
 				= case state of
-					(Just a, Just b) = (state,Stop)
-					_				 = (state,Continue)				
+					(Just a, Just b) = (state,Just Stop)
+					_				 = (state,Nothing)				
 			Right v
 				# state = (left,Just v)
 				= case state of
-					(Just a, Just b) = (state,Stop)
-					_				 = (state,Continue)
+					(Just a, Just b) = (state,Just Stop)
+					_				 = (state,Nothing)
 	parsefunc (Just (Just a), Just (Just b)) = Just (a,b)
 	parsefunc _								 = Nothing
 
@@ -166,7 +166,7 @@ anyTask :: ![Task a] -> Task a | iTask a
 anyTask [] 		= getDefaultValue
 anyTask tasks 	= group ("any", "Done when any subtask is finished") anyfunc hd [] tasks [] undef
 where
-	anyfunc (val,_) [] = ([val],Stop)
+	anyfunc (val,_) [] = ([val],Just Stop)
 	anyfunc (val,_) _  = abort "Multiple results in ANY"
 
 allTasks :: ![Task a] -> Task [a] | iTask a
@@ -174,55 +174,55 @@ allTasks tasks = group ("all", "Done when all subtasks are finished") (allfunc(l
 where
 	allfunc tlen (val,idx) st 
 		# st = st ++ [(idx,val)]
-		| length st == tlen = (st,Stop)
-		| otherwise = (st,Continue)
+		| length st == tlen = (st,Just Stop)
+		| otherwise = (st,Nothing)
 			
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb = group ("either", "Done when either subtask is finished") eitherfunc hd [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
-	eitherfunc (val,idx) [] = ([val],Stop)
+	eitherfunc (val,idx) [] = ([val],Just Stop)
 	eitherfunc (val,idx) _  = abort "Multiple results in Either"
 
 orProc :: !(Task a) !(Task a) !TaskParallelType -> Task a | iTask a
-orProc taska taskb type = parallel type ("-|@|-", "Done if either subtask is finished.") orfunc hd [] [] [taska,taskb] 
+orProc taska taskb type = parallel type ("-|@|-", "Done if either subtask is finished.") (Nothing,orfunc,\_ (Just r) -> r) [] [taska,taskb] 
 where
-	orfunc (val,_) [] = ([val],Stop)
-	orfunc (val,_) _  = abort "Multiple results in -|@|-"
+	orfunc _ val Nothing	= (Just val,Just Stop)
+	orfunc _ val _ 			= abort "Multiple results in -|@|-"
 
 andProc :: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
-andProc taska taskb type = parallel type ("AndProc", "Done if both subtasks are finished.") andfunc parseresult (Nothing,Nothing) [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour]
+andProc taska taskb type = parallel type ("AndProc", "Done if both subtasks are finished.") ((Nothing,Nothing),andfunc,parseresult) [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour]
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Either a b) (Maybe a,Maybe b))
-	andfunc (val,_) (left,right)
+	andfunc :: !Int !(Either a b) !(!Maybe a,!Maybe b) -> (!(!Maybe a,!Maybe b),!Maybe (PAction (Either a b) (!Maybe a,!Maybe b)))
+	andfunc _ val (left,right)
 	= case val of
 		(Left a)
 			# state = (Just a,right)
 			= case state of
-				(Just l, Just r) = (state,Stop)
-				_				 = (state,Continue)
+				(Just l, Just r) = (state,Just Stop)
+				_				 = (state,Nothing)
 		(Right b)
 			# state = (left,Just b)
 			= case state of
-				(Just l, Just r) = (state,Stop)
-				_				 = (state,Continue)		
+				(Just l, Just r) = (state,Just Stop)
+				_				 = (state,Nothing)		
 	
-	parseresult (Just a,Just b) = (a,b)
-	parseresult _	 			= abort "AND not finished"
+	parseresult _ (Just a,Just b)	= (a,b)
+	parseresult _ _	 				= abort "AND not finished"
 
 anyProc :: ![Task a] !TaskParallelType -> Task a | iTask a
 anyProc [] 	  type = getDefaultValue
-anyProc tasks type = parallel type ("any", "Done when any subtask is finished.") anyfunc hd [] [] tasks
+anyProc tasks type = parallel type ("any", "Done when any subtask is finished.") (Nothing,anyfunc,\_ (Just r) -> r) [] tasks
 where
-	anyfunc (val,_) [] = ([val],Stop)
-	anyfunc (val,_) _  = abort "Multiple results in ANY"
+	anyfunc _ val Nothing	= (Just val,Just Stop)
+	anyfunc _ val _			= abort "Multiple results in ANY"
 
 allProc :: ![Task a] !TaskParallelType -> Task [a] | iTask a
-allProc tasks type = parallel type ("all", "Done when all subtasks are finished.") (allfunc (length tasks)) sortByIndex [] [] tasks 
+allProc tasks type = parallel type ("all", "Done when all subtasks are finished.") ([],allfunc (length tasks),\_ r -> sortByIndex r) [] tasks 
 where
-	allfunc tlen (val,idx) st 
+	allfunc tlen idx val st 
 		# st = st ++ [(idx,val)]
-		| length st == tlen = (st,Stop)
-		| otherwise = (st,Continue)
+		| length st == tlen = (st,Just Stop)
+		| otherwise = (st,Nothing)
 
 stop :: Task Void
 stop = return Void
@@ -249,18 +249,18 @@ dynamicGroupA :: ![Task GAction] ![GroupAction Void] !(GroupActionGenFunc GActio
 dynamicGroupA initTasks gActions genFunc = group ("dynamicGroup", "A simple group with dynamically added tasks") procfun id Void initTasks gActions genFunc
 where
 	procfun (action,_) _ = case action of
-		GStop			= (Void, Stop)
-		GContinue		= (Void, Continue)
-		GExtend tasks	= (Void, Extend tasks)
-		GFocus tag		= (Void, Focus tag)
+		GStop			= (Void, Just Stop)
+		GContinue		= (Void, Nothing)
+		GExtend tasks	= (Void, Just (Extend tasks))
+		GFocus tag		= (Void, Just (Focus tag))
 		
 dynamicGroupAOnly :: ![Task Void] ![GroupAction Void] !(GroupActionGenFunc GOnlyAction) -> Task Void
 dynamicGroupAOnly initTasks gActions genFunc = group ("dynamicGroup", "A simple group with dynamically added tasks") procfun id Void (changeTasksType initTasks) gActions genFunc
 where
 	procfun (action,_) _ = case action of
-		GOStop			= (Void, Stop)
-		GOExtend tasks	= (Void, Extend (changeTasksType tasks))
-		GOFocus tag		= (Void, Focus tag)
+		GOStop			= (Void, Just Stop)
+		GOExtend tasks	= (Void, Just (Extend (changeTasksType tasks)))
+		GOFocus tag		= (Void, Just (Focus tag))
 	changeTasksType tasks = map (\t -> (t >>| return (GOExtend [])) <<@ t.groupedProperties.GroupedProperties.groupedBehaviour) tasks
 		
 mdiApplication :: !globalState ![GroupAction Void] !((SymmetricShared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !((globalState,EditorCollection editorState) -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
@@ -304,8 +304,3 @@ where
 		sharedForEditor eid = mapShared (fromJust o (get eid) o snd, putInEditorStates eid) ref		
 		putInEditorStates eid est st = updateEditorStates (put eid est) st
 		updateEditorStates f st = appSnd f st
-
-//Utility functions
-sortByIndex :: ![(Int,a)] -> [a]
-sortByIndex [] = []
-sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortByIndex [(is,vs) \\ (is,vs) <- ps | is > i]

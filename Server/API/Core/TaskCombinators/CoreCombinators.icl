@@ -104,8 +104,8 @@ derive bimap Maybe, (,)
 	
 :: PStTask a acc = InitTask !Int | AddedTask !(Task a) | InitControlTask !Int | AddedControlTask !(CTask a acc)
 
-group :: !d !((taskResult,Int) gState -> (gState,PAction taskResult gState)) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
-group d procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask d (execInGroupE,execInGroupC)
+group :: !d !((taskResult,Int) gState -> (gState,Maybe (PAction taskResult gState))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult & descr d
+group d accuFun resultFun initState initTasks groupActions groupAGenFunc = mkGroupedTask d (execInGroupE,execInGroupC)
 where
 	execInGroupE tst=:{taskNr}
 		# (pst,tst) = accIWorldTSt (loadPSt taskNr) tst
@@ -125,21 +125,21 @@ where
 				Nothing
 					= (False,Nothing,pst)
 				Just (action,data)
-					# (nSt,act) = procFun (groupAGenFunc (action, data), -1) pst.PSt.state
+					# (nSt,mbAct) = accuFun (groupAGenFunc (action,data),-1) pst.PSt.state
 					# pst = {PSt | pst & state = nSt}
-					= case act of
-						Stop			= (True,Nothing,pst)
-						Continue		= (False,Nothing,pst)
-						Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(idx,AddedTask task) \\ task <- tlist & idx <- [pst.nextIdx..]], nextIdx = length tlist + pst.nextIdx})
-						Focus tag		= (False,Just tag,pst)
+					= case mbAct of
+						Nothing				= (False,Nothing,pst)
+						Just Stop			= (True,Nothing,pst)
+						Just (Extend tlist)	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(idx,AddedTask task) \\ task <- tlist & idx <- [pst.nextIdx..]], nextIdx = length tlist + pst.nextIdx})
+						Just (Focus tag)	= (False,Just tag,pst)
 				
 		# (result,pst,tst,mbFocus) 	= processAllTasksC pst 0 tst mbFocus
 		# tst						= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 		= case result of
 			TaskException e = (TaskException e,tst)
-			TaskFinished  r = (TaskFinished (parseFun r),tst)
+			TaskFinished  r = (TaskFinished (resultFun r),tst)
 			TaskBusy
-				| gActionStop	= (TaskFinished (parseFun pst.PSt.state),tst)
+				| gActionStop	= (TaskFinished (resultFun pst.PSt.state),tst)
 				| otherwise
 					# tst = setGroupActions (evaluateConditions groupActions pst.PSt.state) tst
 					# tst = case mbFocus of
@@ -155,15 +155,15 @@ where
 			TaskException e = (TaskException e,pst,{tst & taskNr = taskNr},mbFocus)
 			TaskBusy		= processAllTasksC pst (inc n) {tst & taskNr = taskNr} mbFocus
 			TaskFinished a	
-				# (nSt,act)		= procFun (a,n) pst.PSt.state
+				# (nSt,mbAct)	= accuFun (a,n) pst.PSt.state
 				# pst			= {PSt | pst & state = nSt, tasks = take n pst.tasks ++ drop (n + 1) pst.tasks}
-				= case act of
-					Stop 		= (TaskFinished pst.PSt.state,pst,{tst & taskNr = taskNr},mbFocus)
-					Continue	= processAllTasksC pst n {tst & taskNr = taskNr} mbFocus
-					Extend tlist
+				= case mbAct of
+					Nothing				= processAllTasksC pst n {tst & taskNr = taskNr} mbFocus
+					Just Stop 			= (TaskFinished pst.PSt.state,pst,{tst & taskNr = taskNr},mbFocus)
+					Just (Extend tlist)
 						# pst = {PSt | pst & tasks = pst.tasks ++ [(idx,AddedTask task) \\ task <- tlist & idx <- [pst.nextIdx..]], nextIdx = length tlist + pst.nextIdx}
 						= processAllTasksC pst n {tst & taskNr = taskNr} mbFocus
-					Focus tag	= processAllTasksC pst n {tst & taskNr = taskNr} (Just tag)
+					Just (Focus tag)	= processAllTasksC pst n {tst & taskNr = taskNr} (Just tag)
 
 	loadPSt taskNr iworld
 		# (mbPSt,iworld) = getTaskStoreFor taskNr "pst" iworld
@@ -212,8 +212,8 @@ where
 		getNameAndData (JSONArray [JSONString key,JSONString data])	= Just (key, data)
 		getNameAndData _											= Nothing
 		
-parallel :: !TaskParallelType !d !((a,Int) b -> (b,PAction a b)) (b -> c) !b ![CTask a b] ![Task a] -> Task c | iTask a & iTask b & iTask c & descr d
-parallel parType d procFun parseFun initState initCTasks initTasks
+parallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel parType d (initState,accuFun,resultFun) initCTasks initTasks
 	= mkParallelTask d parType (parallelE,parallelC)
 where
 	parallelE tst=:{taskNr}
@@ -230,7 +230,7 @@ where
 	parallelC tst=:{taskNr,properties}
 		// When the initial list of tasks is empty just return the transformed initial state
 		| isEmpty initTasks
-			= (TaskFinished (parseFun initState), tst)
+			= (TaskFinished (resultFun AllRunToCompletion initState), tst)
 		// Load the internal state
 		# (pst,tst)			= accIWorldTSt (loadPSt taskNr) tst
 		// Evaluate the subtasks for all currently active tasks
@@ -243,11 +243,11 @@ where
 			TaskBusy		= (TaskBusy,tst)
 			//One the tasks raised an execption
 			TaskException e	= (TaskException e, tst)
-			//The procFun returned a stop action, or all tasks are completed
-			TaskFinished r
+			//The accuFun returned a stop action, or all tasks are completed
+			TaskFinished (r,terminationStatus)
 				//Remove the extra workers for this parallel combination
 				# tst = clearSubTaskWorkers (taskNrToString taskNr) (Just parType) tst
-				= (TaskFinished (parseFun r),tst)
+				= (TaskFinished (resultFun terminationStatus r),tst)
 	
 	//Load or create the internal state
 	loadPSt taskNr iworld
@@ -271,8 +271,8 @@ where
 		# (idx,pstTask) = pst.tasks !! n
 		= (idx,getPStTask taskNr pstTask)
 			
-	getPStTask _		(InitTask n)			= (mapTask Left	(initTasks !! n),True)
-	getPStTask _		(AddedTask task)		= (mapTask Left	task,True)
+	getPStTask _		(InitTask n)			= (mapTask Left		(initTasks !! n),True)
+	getPStTask _		(AddedTask task)		= (mapTask Left		task,True)
 	getPStTask taskNr	(InitControlTask n)		= (mapTask Right	((initCTasks !! n) (sharedParallelState taskNr)),False)
 	getPStTask taskNr	(AddedControlTask task)	= (mapTask Right	(task (sharedParallelState taskNr)),False)
 	
@@ -327,19 +327,20 @@ where
 						= (result, {PSt| pst & tasks = [t:pst.tasks]}, {tst & taskNr = taskNr})  
 					TaskFinished a
 						//Apply the process function
-						# (state,action) = case a of
-							Left v	= procFun (v,idx) state
-							Right a	= (state,a)
-						= case action of
-							Stop
-								//Don't process the other tasks, return the state as result
-								= (TaskFinished state,pst,tst)
-							Continue
+						# (state,mbAction) = case a of
+							Left v	= accuFun idx v state
+							Right a	= (state,Just a)
+						= case mbAction of
+							Nothing
 								//Process the other tasks
 								# (result,pst,tst) = processAllTasksC {pst & state = state, tasks = ts} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = pst.tasks}, {tst & taskNr = taskNr})
 								//Process the other tasks extended with the new tasks
-							Extend tasks
+							Just Stop
+								//Don't process the other tasks, return the state as result
+								= (TaskFinished (state,Stopped),pst,tst)
+							
+							Just (Extend tasks)
 								# (result,pst,tst) = processAllTasksC {pst & state = state, tasks = ts ++ [(idx,AddedTask t) \\ t <- tasks & idx <- [pst.nextIdx..]], nextIdx = pst.nextIdx + length tasks + pst.nextIdx} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = pst.tasks}, {tst & taskNr = taskNr})
 					TaskException e

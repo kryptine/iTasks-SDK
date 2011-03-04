@@ -164,17 +164,17 @@ where
 resourceRequestTimeOut :: [(b,User,a)] Time ([(b,Maybe a)] -> Bool) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) (a -> Task a) -> 
                              Task (a,[(b,Maybe a)]) | iTask a & iTask b
 resourceRequestTimeOut resources time_out check predf allf task
-	= parallel Closed ("Resource requests","Waiting for resources...") procfun finalfun [] [] tasks
+	= parallel Closed ("Resource requests","Waiting for resources...") ([],procfun,finalfun) [] tasks
 where		
 	tasks	=	[(delegateTaskTimeOut uid "Resource Request" amount task time_out >>= \mba -> return (resource, mba))
 				\\ (resource,uid,amount) <- resources]
 
-  	procfun (result,index) st
+  	procfun index result st
   		# st = sortBy (\x y. snd x < snd y) [(result,index):st]
-  		| check (map fst st)	= (st, Stop)
-  								= (st,Continue)
+  		| check (map fst st)	= (st,Just Stop)
+  								= (st,Nothing)
   
-  	finalfun st
+  	finalfun _ st
   		# results = map fst st
         | length st < length tasks
         	= predf results
