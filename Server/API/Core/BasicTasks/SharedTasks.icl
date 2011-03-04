@@ -49,7 +49,7 @@ where
 	createSharedStore` tst=:{taskNr,properties=p=:{systemProperties=s=:{SystemProperties|taskId}}}
 		// store name starts with 'iTask_{id of main task}' to include it in garbage collection if process finishes
 		// in the rest of the name the id of the current task serves as unique id for the store
-		# shared		= sharedStore ("iTask_" +++ taskId +++ "-" +++ taskNrToString taskNr +++ "-shared")
+		# shared		= sharedStore (iTaskId taskId (taskNrToString taskNr +++ "-shared"))
 		# (wres,tst)	= accIWorldTSt ('Shared'.writeShared shared init) tst
 		= case wres of
 			Ok _	= (TaskFinished shared,tst)

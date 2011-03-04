@@ -33,10 +33,10 @@ callRPCHTTP method url params
 callRPC :: !String !String !String (String -> a) -> Task (ReadOnlyShared (Maybe a))			
 callRPC options url args transformResult = mkInstantTask ("Call RPC","Calls a method from a remote server") callRPC`
 where
-	callRPC` tst=:{taskNr,properties=p=:{systemProperties=s=:{SystemProperties|taskId}}}
+	callRPC` tst=:{taskNr}
 		# (iTasksPath, tst) = accWorldTSt getITasksPath tst
-		# infile  = mkFileName taskId taskNr "request"
-		# outfile = mkFileName taskId taskNr "response"
+		# infile  = mkFileName taskNr "request"
+		# outfile = mkFileName taskNr "response"
 		
 		# (res,tst) = accWorldTSt (writeFile infile args) tst
 		| isError res = (TaskException (dynamic (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res)))),tst)
@@ -51,7 +51,7 @@ where
 		| isError res		= (TaskException (dynamic (RPCException ("Calling " +++ cmd +++ " failed: " +++ snd (fromError res)))),tst)
 		= (TaskFinished (makeReadOnlySharedError (check (fromOk res) infile outfile transformResult)),tst)
 
-	mkFileName taskId taskNr part = "iTask_" +++ taskId +++ "-" +++ taskNrToString taskNr +++ "-rpc-" +++ part +++ ".txt"
+	mkFileName taskNr part = iTaskId taskNr ("rpc-" +++ part)
 
 	check handle infile outfile transformResult iworld=:{world}
 		# (res,world)	= checkProcess handle world

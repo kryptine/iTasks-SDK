@@ -19,10 +19,7 @@ taskProperties task = task.taskProperties
 instance iTaskId TaskNr
 where
 	iTaskId :: !TaskNr !String -> String
-	iTaskId tasknr postfix 
-		# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
-		| postfix == ""		= "iTask_" +++ (taskNrToString tasknr) 
-		| otherwise			= "iTask_" +++ (taskNrToString tasknr) +++ "-" +++ postfix
+	iTaskId tasknr postfix = iTaskId (taskNrToString tasknr) postfix
 
 instance iTaskId TaskId
 where

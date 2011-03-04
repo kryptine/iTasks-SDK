@@ -123,7 +123,7 @@ where
 	// for local mode use auto generated store name, for shared mode use given store
 	shared taskNr = case informationTaskMode of
 		SharedUpdate shared	= shared
-		_					= mapSharedRead o2i (sharedStore ("iTask_" +++ taskNrToString taskNr +++ "-model"))
+		_					= mapSharedRead o2i (sharedStore (iTaskId taskNr "model"))
 	
 	o2i = case informationTaskMode of
 		LocalUpdateMode _ f	= f

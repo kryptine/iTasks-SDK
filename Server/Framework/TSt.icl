@@ -10,18 +10,6 @@ from JSON		import JSONDecode, fromJSON
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
 
-:: RPCMessage =
-			{ success		:: Bool
-			, error			:: Bool
-			, finished		:: Bool
-			, result		:: String
-			, status		:: String
-			, errormsg		:: String
-			}
-
-derive bimap 		Maybe, (,)
-derive JSONDecode 	RPCMessage
-
 mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !*World -> *TSt
 mkTSt appName config request workflows store world
 	=	{ taskNr			= []
@@ -233,11 +221,11 @@ where
 	
 storeThread :: !ProcessId !Dynamic !*TSt -> *TSt
 storeThread processId thread tst
-	= appIWorldTSt (storeValueAs SFDynamic ("iTask_" +++ processId +++ "-thread") thread) tst
+	= appIWorldTSt (storeValueAs SFDynamic (iTaskId processId "thread") thread) tst
 
 loadThread :: !ProcessId !*TSt -> (!Dynamic,!*TSt)
 loadThread processId tst
-	# (mbThread,tst) = accIWorldTSt (loadValue ("iTask_" +++ processId +++ "-thread")) tst
+	# (mbThread,tst) = accIWorldTSt (loadValue (iTaskId processId "thread")) tst
 	= case mbThread of
 		Just thread	= (thread,tst)
 		Nothing		= abort ("Could not load task thread for process " +++ processId)
@@ -759,7 +747,7 @@ setFocusCommand tag tst=:{tree}
 loadProcessResult :: !TaskNr !*IWorld -> (!Maybe (TaskResult Dynamic), !*IWorld)
 loadProcessResult taskNr iworld = loadValue key iworld
 where
-	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
+	key = iTaskId taskNr "result"
 	
 storeProcessResult :: !TaskNr !(TaskResult Dynamic) !*IWorld -> *IWorld
 storeProcessResult taskNr result iworld
@@ -767,7 +755,7 @@ storeProcessResult taskNr result iworld
 	# (storeResult,iworld) = storeResult iworld
 	= if (storeResult) (storeValueAs SFDynamic key result iworld) iworld
 where
-	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
+	key = iTaskId taskNr "result"
 	
 	storeResult iworld 
 		# (mbproc,iworld) = getProcess (taskNrToString taskNr) iworld
@@ -792,7 +780,7 @@ setTaskStore key value tst=:{taskNr}
 	
 setTaskStoreFor :: !TaskNr !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setTaskStoreFor taskNr key value iworld
-	= storeValue (storekey taskNr key) value iworld
+	= storeValue (iTaskId taskNr key) value iworld
 
 getTaskStore :: !String !*TSt -> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 getTaskStore key tst=:{taskNr}
@@ -800,7 +788,7 @@ getTaskStore key tst=:{taskNr}
 
 getTaskStoreFor	:: !TaskNr !String !*IWorld -> (Maybe a, !*IWorld) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 getTaskStoreFor taskNr key iworld
-	= loadValue (storekey taskNr key) iworld
+	= loadValue (iTaskId taskNr key) iworld
 	
 getTaskStoreTimestamp :: !String !*TSt -> (Maybe Timestamp, !*TSt)
 getTaskStoreTimestamp key tst=:{taskNr}
@@ -808,7 +796,7 @@ getTaskStoreTimestamp key tst=:{taskNr}
 
 getTaskStoreTimestampFor :: !TaskNr !String !*IWorld -> (Maybe Timestamp, !*IWorld)
 getTaskStoreTimestampFor taskNr key iworld
-	= getStoreTimestamp (storekey taskNr key) iworld
+	= getStoreTimestamp (iTaskId taskNr key) iworld
 	
 deleteTaskStore :: !String !*TSt -> *TSt
 deleteTaskStore key tst=:{taskNr}
@@ -816,9 +804,7 @@ deleteTaskStore key tst=:{taskNr}
 
 deleteTaskStoreFor :: !TaskNr !String !*IWorld -> *IWorld
 deleteTaskStoreFor taskNr key iworld
-	= deleteValue (storekey taskNr key) iworld
-
-storekey taskNr key= "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
+	= deleteValue (iTaskId taskNr key) iworld
 
 //Get edit events for current task of which the name is a datapath
 getEditEvents :: !*TSt -> (![(!DataPath,!String)],!*TSt)
