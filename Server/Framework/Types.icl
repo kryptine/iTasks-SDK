@@ -52,11 +52,11 @@ setChoiceIndex sel (Choice opts _) = Choice opts sel
 mapOptions :: !(a -> b) !(Choice a) -> Choice b
 mapOptions f (Choice opts sel) = Choice (map f opts) sel
 
-setOptions :: ![a] !(Choice a) -> (Choice a,Bool) | gEq{|*|} a
+setOptions :: ![a] !(Choice a) -> Choice a | gEq{|*|} a
 setOptions newOpts (Choice oldOpts s)
 	= case newIndexes oldOpts newOpts [s] of
-		[i]	= (Choice newOpts i,True)
-		_	= (Choice newOpts s,False)
+		[i]	= Choice newOpts i
+		[]	= Choice newOpts -1
 
 multipleChoice :: ![a] -> MultipleChoice a
 multipleChoice l = MultipleChoice l []

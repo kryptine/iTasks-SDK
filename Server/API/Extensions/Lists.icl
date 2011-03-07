@@ -101,11 +101,11 @@ manageListSharing list
 		Nothing		= throw "Could not find list meta data"
 		Just meta
 			= (case meta.ListMeta.sharedWith of
-				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] [] >>= transform (appSnd Just)
+				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] []
 				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id [aPrevious,aRemove,aAddPerson,aAddGroup] users
 			  )
 			>>= \res -> case appFst fst res of
-				(ActionDelete,Just users)	= removeUsers users >>| return False
+				(ActionDelete,users)		= removeUsers users >>| return False
 				(Action "add-person" _,_)	= addUsers list		>>| return False
 				(Action "add-group" _,_)	= addGroup list		>>| return False
 				(ActionPrevious,_)			=						return True

@@ -11,7 +11,7 @@ from TSt		import :: TaskFunctions, :: TaskFunctionEdit, :: TaskFunctionCommit
 // A view mapping an input from a shared data source (i)
 // to a view shown to the user (v)
 // and finally data changed by the user back to the data source (o).
-:: View				i v o	:== (i -> v, v i -> o)
+:: View				i v o	:== (!i -> v,!v i -> o)
 // A view on a SymmetricShared, having the same read and write type.
 :: SymmetricView	m v		:== View m v m
 // The identity view
@@ -38,7 +38,7 @@ ifinvalid	:: (Verified a) -> Bool
 :: About a	= 		AboutValue !a
 			| E.o:	SharedAbout !(Shared a o)
 			
-:: InteractionTaskMode i o	= EnterMode !(o -> i)				// enter new value, function o->i needed to make type system happy, should be id function
+:: InteractiveTaskMode i o	= EnterMode !(o -> i)				// enter new value, function o->i needed to make type system happy, should be id function
 							| LocalUpdateMode !o !(o -> i)		// update local value, function o->i needed to make type system happy, should be id function
 							| SharedUpdateMode !(Shared i o)	// update shared value
 
@@ -50,5 +50,5 @@ SharedUpdate s	:== SharedUpdateMode s
 // function possibly generating action event triggered automatically
 :: AutoActionEvents a :== (Verified a) -> Maybe ActionEvent
 
-makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(Maybe (AutoActionEvents i)) !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
+makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(Maybe (AutoActionEvents i)) !(InteractiveTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
 

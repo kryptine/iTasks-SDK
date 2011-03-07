@@ -119,8 +119,7 @@ setChoiceIndex		:: !Int !(Choice a)					-> Choice a
 // Transforms the choice's options
 mapOptions			:: !(a -> b) !(Choice a)			-> Choice b
 // Sets the choice's options, tries to keep the selection as intact as possible
-// Returns a flag indicating if the choice still has the same value
-setOptions			:: ![a] !(Choice a)					-> (Choice a,Bool) | gEq{|*|} a
+setOptions			:: ![a] !(Choice a)					-> Choice a | gEq{|*|} a
 
 // Generates a multiple choice with given options
 multipleChoice		:: ![a] 							-> MultipleChoice a

@@ -1,9 +1,11 @@
 implementation module InteractionTasks
 
 import StdTuple, StdList, StdOrdList, StdBool, StdMisc, Functor
-import Types, Shared, Util, TSt, ExceptionCombinators, InteractiveTasks
-from StdFunc 	import id, const, o
-from TaskPanel	import :: InteractiveTaskType(..)
+import Types, Shared, Util, TSt, ExceptionCombinators, InteractiveTasks, CoreCombinators, CommonCombinators
+from StdFunc 		import id, const, o
+from TaskPanel		import :: InteractiveTaskType(..)
+from SharedTasks	import sharedStore, :: SharedStoreId
+from SharedTasks	import qualified readShared, writeShared
 
 //Input tasks
 enterInformation :: !d -> Task a | descr d & iTask a
@@ -46,15 +48,15 @@ updateSharedInformationAboutA :: !d !(View i v o) ![TaskAction i] !about !(Share
 updateSharedInformationAboutA description view actions about shared
 	= mkInteractiveTask description Information (makeInformationTaskA (Just about) view actions (SharedUpdate shared))
 
-makeInformationTask :: !(Maybe about) !(View i v o) !(InteractionTaskMode i o) -> TaskFunctions i | iTask i & iTask v & iTask o & iTask about
+makeInformationTask :: !(Maybe about) !(View i v o) !(InteractiveTaskMode i o) -> TaskFunctions i | iTask i & iTask v & iTask o & iTask about
 makeInformationTask mbContext view informationTaskMode
 	= mapTaskFunctions (fromJust o snd) (makeInformationTaskA mbContext view [(ActionOk,ifvalid)] informationTaskMode)
 
-makeInformationTaskA :: !(Maybe about) !(View i v o) ![TaskAction i] !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent,!Maybe i) | iTask i & iTask v & iTask o & iTask about
+makeInformationTaskA :: !(Maybe about) !(View i v o) ![TaskAction i] !(InteractiveTaskMode i o) -> TaskFunctions (!ActionEvent,!Maybe i) | iTask i & iTask v & iTask o & iTask about
 makeInformationTaskA mbContext view actions informationTaskMode
 	= makeInformationTaskAV mbContext view actions informationTaskMode
 	
-makeInformationTaskAV :: !(Maybe about) !(View i v o) ![TaskAction i] !(InteractionTaskMode i o) -> TaskFunctions (!ActionEvent,!Maybe i) | iTask i & iTask v & iTask o & iTask about
+makeInformationTaskAV :: !(Maybe about) !(View i v o) ![TaskAction i] !(InteractiveTaskMode i o) -> TaskFunctions (!ActionEvent,!Maybe i) | iTask i & iTask v & iTask o & iTask about
 makeInformationTaskAV mbContext view actions interactionTaskMode
 	= makeInteractiveTask (fmap AboutValue mbContext) id view actions Nothing interactionTaskMode
 
@@ -66,9 +68,9 @@ enterChoiceA :: !d !(a -> v) ![TaskAction a] ![a] -> Task (!ActionEvent, Maybe a
 enterChoiceA description view actions options
 	= mkInteractiveTask description Information (makeChoiceTaskA description noAboutInfo view actions options Nothing)
 
-//enterSharedChoiceA :: !d !(a -> v) ![TaskAction a] !(Shared [a] w) -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v
-//enterSharedChoiceA description view actions shared
-//	= mkInteractiveTask description Information (makeSharedChoiceTask description noAboutInfo view actions shared Nothing)
+enterSharedChoiceA :: !d !(a -> v) ![TaskAction a] !(Shared [a] w) -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v
+enterSharedChoiceA description view actions shared
+	= sharedChoiceTask description noAboutInfo view actions shared Nothing
 				
 updateChoice :: !d ![a] !Int -> Task a | descr d & iTask a
 updateChoice description options sel
@@ -78,9 +80,9 @@ updateChoiceA :: !d !(a -> v) ![TaskAction a] ![a] !Int -> Task (!ActionEvent, M
 updateChoiceA description view actions options sel
 	= mkInteractiveTask description Information (makeChoiceTaskA description noAboutInfo view actions options (Just sel))
 
-//updateSharedChoiceA :: !d !(a -> v) ![TaskAction a] !(Shared [a] w) !Int -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v
-//updateSharedChoiceA description view actions shared sel
-//	= mkInteractiveTask description Information (makeSharedChoiceTask description noAboutInfo view actions shared (Just sel))
+updateSharedChoiceA :: !d !(a -> v) ![TaskAction a] !(Shared [a] w) !Int -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask v
+updateSharedChoiceA description view actions shared sel
+	= sharedChoiceTask description noAboutInfo view actions shared (Just sel)
 		
 enterChoiceAbout :: !d !about ![a] -> Task a | descr d & iTask a & iTask about
 enterChoiceAbout description about options
@@ -90,9 +92,9 @@ enterChoiceAboutA :: !d !(a -> v) ![TaskAction a] !about ![a] -> Task (!ActionEv
 enterChoiceAboutA description view actions about options
 	= mkInteractiveTask description Information (makeChoiceTaskA description (Just about) view actions options Nothing)
 
-//enterSharedChoiceAboutA :: !d !(a -> v) ![TaskAction a] !b !(Shared [a] w) -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask b & iTask v
-//enterSharedChoiceAboutA description view actions about shared
-//	= mkInteractiveTask description Information (makeSharedChoiceTask description (Just about) view actions shared Nothing)
+enterSharedChoiceAboutA :: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w) -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask about & iTask v
+enterSharedChoiceAboutA description view actions about shared
+	= sharedChoiceTask description (Just about) view actions shared Nothing
 		
 updateChoiceAbout :: !d !about ![a] !Int -> Task a | descr d & iTask a & iTask about
 updateChoiceAbout description about options sel
@@ -102,57 +104,57 @@ updateChoiceAboutA :: !d !(a -> v) ![TaskAction a] !about ![a] !Int -> Task (!Ac
 updateChoiceAboutA description view actions about options sel
 	= mkInteractiveTask description Information (makeChoiceTaskA description (Just about) view actions options (Just sel))
 
-//updateSharedChoiceAboutA :: !d !(a -> v) ![TaskAction a] !b !(Shared [a] w) !Int -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask b & iTask v
-//updateSharedChoiceAboutA description view actions about shared sel
-//	= mkInteractiveTask description Information (makeSharedChoiceTask description (Just about) view actions shared (Just sel))
+updateSharedChoiceAboutA :: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w) !Int -> Task (!ActionEvent, Maybe a) | descr d & iTask a & iTask about & iTask v
+updateSharedChoiceAboutA description view actions about shared sel
+	= sharedChoiceTask description (Just about) view actions shared (Just sel)
 
 enterMultipleChoice :: !d ![a] -> Task [a] | descr d & iTask a
 enterMultipleChoice description options
 	= mkInteractiveTask description Information (makeMultipleChoiceTask noAboutInfo id options Nothing)
 		
-enterMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] ![a] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask v
+enterMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] ![a] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask v
 enterMultipleChoiceA description view actions options
 	= mkInteractiveTask description Information (makeMultipleChoiceTaskA noAboutInfo view actions options Nothing)
 
-//enterSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(Shared [a] w) -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask v
-//enterSharedMultipleChoiceA description view actions shared
-//	= mkInteractiveTask description Information (makeSharedMultipleChoiceTask noAboutInfo view actions shared Nothing)
+enterSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(Shared [a] w) -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask v
+enterSharedMultipleChoiceA description view actions shared
+	= sharedMultipleChoiceTask description noAboutInfo view actions shared Nothing
 		
 updateMultipleChoice :: !d ![a] ![Int] -> Task [a] | descr d & iTask a
 updateMultipleChoice description options sel
 	= mkInteractiveTask description Information (makeMultipleChoiceTask noAboutInfo id options (Just sel))
 
-updateMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] ![a] ![Int] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask v
+updateMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] ![a] ![Int] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask v
 updateMultipleChoiceA description view actions options sel
 	= mkInteractiveTask description Information (makeMultipleChoiceTaskA noAboutInfo view actions options (Just sel))
 
-//updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(Shared [a] w) ![Int] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask v
-//updateSharedMultipleChoiceA description view actions shared sel
-//	= mkInteractiveTask description Information (makeSharedMultipleChoiceTask noAboutInfo view actions shared (Just sel))
+updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(Shared [a] w) ![Int] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask v
+updateSharedMultipleChoiceA description view actions shared sel
+	= sharedMultipleChoiceTask description noAboutInfo view actions shared (Just sel)
 		
 enterMultipleChoiceAbout :: !d !about ![a] -> Task [a] | descr d & iTask a & iTask about
 enterMultipleChoiceAbout description about options
 	= mkInteractiveTask description Information (makeMultipleChoiceTask (Just about) id options Nothing)
 		
-enterMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about ![a] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask about & iTask v
+enterMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about ![a] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask about & iTask v
 enterMultipleChoiceAboutA description view actions about options
 	= mkInteractiveTask description Information (makeMultipleChoiceTaskA (Just about) view actions options Nothing)
 
-//enterSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !b !(Shared [a] w) -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask b & iTask v
-//enterSharedMultipleChoiceAboutA description view actions about shared
-//	= mkInteractiveTask description Information (makeSharedMultipleChoiceTask (Just about) view actions shared Nothing)
+enterSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about !(Shared [a] w) -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask about & iTask v
+enterSharedMultipleChoiceAboutA description view actions about shared
+	= sharedMultipleChoiceTask description (Just about) view actions shared Nothing
 		
 updateMultipleChoiceAbout :: !d !about ![a] ![Int] -> Task [a] | descr d & iTask a & iTask about
 updateMultipleChoiceAbout description about options sel
 	= mkInteractiveTask description Information (makeMultipleChoiceTask (Just about) id options (Just sel))
 
-updateMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about ![a] ![Int] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask about & iTask v
+updateMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about ![a] ![Int] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask about & iTask v
 updateMultipleChoiceAboutA description view actions about options sel
 	= mkInteractiveTask description Information (makeMultipleChoiceTaskA (Just about) view actions options (Just sel))
 
-//updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !b !(Shared [a] w) ![Int] -> Task (!ActionEvent, Maybe [a]) | descr d & iTask a & iTask b & iTask v
-//updateSharedMultipleChoiceAboutA description view actions about shared sel
-//	= mkInteractiveTask description Information (makeSharedMultipleChoiceTask (Just about) view actions shared (Just sel))
+updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about !(Shared [a] w) ![Int] -> Task (!ActionEvent, [a]) | descr d & iTask a & iTask about & iTask v
+updateSharedMultipleChoiceAboutA description view actions about shared sel
+	=  sharedMultipleChoiceTask description (Just about) view actions shared (Just sel)
 
 noAboutInfo :: Maybe Void
 noAboutInfo = Nothing
@@ -173,46 +175,55 @@ makeChoiceTaskA _ mbContext view actions opts mbSel
 	# (result,tst)	= makeInformationTaskA mbContext (mapOptions view,\v a -> setChoiceIndex (getChoiceIndex v) a) (mapTaskActionPredicates getChoice actions) (LocalUpdate initChoice)
 	= mapTaskFunctions (appSnd (fmap getChoice)) (result,tst)
 
-/*makeSharedChoiceTask :: !d !(Maybe about) !(a -> v) ![TaskAction a] !(Shared [a] w) !(Maybe Int) !*TSt -> (!TaskResult (!ActionEvent, !Maybe a),!*TSt) | descr d & iTask a & iTask v & iTask about
-makeSharedChoiceTask description mbContext view actions shared mbSel tst
-	# (opts,tst) = accIWorldTSt (readShared shared) tst
-	| isEmpty opts
-		= choiceException description tst
-	| otherwise
-		# viewOpts		= map view opts
-		# initChoice = case mbSel of
+sharedChoiceTask :: !d !(Maybe about) !(a -> v) ![TaskAction a] !(Shared [a] w) !(Maybe Int) -> Task (!ActionEvent,!Maybe a) | descr d & iTask a & iTask v & iTask about
+sharedChoiceTask description mbContext view actions sharedOpts mbSel =
+				choiceStore
+	>>= \store.	'SharedTasks'.readShared sharedOpts
+	>>=		 	transform initChoice
+	>>=			'SharedTasks'.writeShared store
+	>>|			if (isJust mbContext) (updateSharedInformationAboutA description (toView,const) (mapTaskActionPredicates getChoiceFromModel actions) (fromJust mbContext) (store >+| sharedOpts)) (updateSharedInformationA description (toView,const) (mapTaskActionPredicates getChoiceFromModel actions) (store >+| sharedOpts))
+	>>=			transform (appSnd (fmap getChoiceFromModel))
+where
+	initChoice opts
+		# viewOpts = map view opts
+		= case mbSel of
 			Just sel	= choiceSel viewOpts sel
 			Nothing		= choice viewOpts
-		# (result,tst)	= makeInformationTaskAV mbContext ((\opts choice -> app2 (id,not) (setOptions (map view opts) choice)),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoiceFromModel actions) (SharedUpdate shared) tst
-		= (mapTaskResult (app2 (id,fmap getChoiceFromModel)) result,tst)
-where
-	getChoiceFromModel (opts,choice) = opts !! getChoiceIndex choice*/
-
-choiceException description = TaskException (dynamic ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list"))
+	toView (choice,opts) = setOptions (map view opts) choice
+	getChoiceFromModel (choice,opts) = opts !! getChoiceIndex choice
 	
+choiceException description = TaskException (dynamic ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list"))
+
 makeMultipleChoiceTask :: !(Maybe about) !(a -> v) ![a] !(Maybe [Int]) -> TaskFunctions [a] | iTask a & iTask v & iTask about
 makeMultipleChoiceTask mbContext view opts mbSel
 	# initChoice	= maybe (multipleChoice opts) (multipleChoiceSel opts) mbSel
 	# taskFuncs		= makeInformationTask mbContext (mapOptionsM view,\v a -> setChoiceIndexes (getChoiceIndexes v) a) (LocalUpdate initChoice)
 	= mapTaskFunctions getChoices taskFuncs
 
-makeMultipleChoiceTaskA :: !(Maybe about) !(a -> v) ![TaskAction [a]] ![a] !(Maybe [Int]) -> TaskFunctions (!ActionEvent,!Maybe [a]) | iTask a & iTask v & iTask about
+makeMultipleChoiceTaskA :: !(Maybe about) !(a -> v) ![TaskAction [a]] ![a] !(Maybe [Int]) -> TaskFunctions (!ActionEvent,![a]) | iTask a & iTask v & iTask about
 makeMultipleChoiceTaskA mbContext view actions opts mbSel
 	# initChoice	= maybe (multipleChoice opts) (multipleChoiceSel opts) mbSel
 	# taskFuncs		= makeInformationTaskA mbContext (mapOptionsM view,\v a -> setChoiceIndexes (getChoiceIndexes v) a) (mapTaskActionPredicates getChoices actions) (LocalUpdate initChoice)
-	= mapTaskFunctions (appSnd (fmap getChoices)) taskFuncs
+	= mapTaskFunctions (appSnd (getChoices o fromJust)) taskFuncs
 	
-/*makeSharedMultipleChoiceTask :: !(Maybe about) !(a -> v) ![TaskAction [a]] !(Shared [a] w) !(Maybe [Int]) !*TSt -> (!TaskResult (!ActionEvent, !Maybe [a]),!*TSt) | iTask a & iTask v & iTask about
-makeSharedMultipleChoiceTask mbContext view actions shared mbSel tst =
-	# (opts,tst)	= accIWorldTSt (readShared shared) tst
-	# viewOpts		= map view opts
-	# initChoice = case mbSel of
-		Just sel	= multipleChoiceSel viewOpts sel
-		Nothing		= multipleChoice viewOpts
-	# (result,tst)	= makeInformationTaskAV mbContext (\opts choice -> (setOptionsM (map view opts) choice,False),initChoice) (\_ a -> a) (mapTaskActionPredicates getChoicesFromModel actions) (SharedUpdate shared) tst
-	= (mapTaskResult (app2 (id,fmap getChoicesFromModel)) result,tst)
+sharedMultipleChoiceTask :: !d !(Maybe about) !(a -> v) ![TaskAction [a]] !(Shared [a] w) !(Maybe [Int]) -> Task (!ActionEvent,![a]) | descr d & iTask a & iTask v & iTask about
+sharedMultipleChoiceTask description mbContext view actions sharedOpts mbSel =
+				choiceStore
+	>>= \store.	'SharedTasks'.readShared sharedOpts
+	>>=		 	transform initChoice
+	>>=			'SharedTasks'.writeShared store
+	>>|			if (isJust mbContext) (updateSharedInformationAboutA description (toView,const) (mapTaskActionPredicates getChoicesFromModel actions) (fromJust mbContext) (store >+| sharedOpts)) (updateSharedInformationA description (toView,const) (mapTaskActionPredicates getChoicesFromModel actions) (store >+| sharedOpts))
+	>>=			transform (appSnd (getChoicesFromModel o fromJust))
 where
-	getChoicesFromModel (opts,choice) = [opt \\ opt <- opts & i <- [0..] | isMember i (getChoiceIndexes choice)]*/
+	initChoice opts
+		# viewOpts = map view opts
+		= case mbSel of
+			Just sel	= multipleChoiceSel viewOpts sel
+			Nothing		= multipleChoice viewOpts
+	toView (choice,opts) = setOptionsM (map view opts) choice
+	getChoicesFromModel (choice,opts) = [opt \\ opt <- opts & i <- [0..] | isMember i (getChoiceIndexes choice)]
+
+choiceStore = mkInstantTask "Creates store for shared choice" (\tst=:{taskNr} -> (TaskFinished (sharedStore (iTaskId taskNr "choice")),tst))
 
 showMessage :: !d a -> Task a | descr d & iTask a
 showMessage description value
@@ -311,17 +322,17 @@ makeInstructionTask :: !(Maybe about) !a -> TaskFunctions a | iTask a & iTask ab
 makeInstructionTask context value
 	= mapTaskFunctions (const value) (makeInteractiveTask (fmap AboutValue context) id idView [(ActionOk,always)] Nothing (LocalUpdate Void))
 
-//Changes all predicates on values of type a to predicates on values of type b										
-mapTaskActionPredicates :: !(b -> a) ![TaskAction a] -> [TaskAction b]
+//Changes all predicates on values of type a to predicates on values of type about										
+mapTaskActionPredicates :: !(about -> a) ![TaskAction a] -> [TaskAction about]
 mapTaskActionPredicates vMap actions = map changePrecicate actions
 where
 	changePrecicate (action,pred) = (action,newPred pred)
 	newPred pred v = case v of
 		Invalid	= pred Invalid
-		Valid b	= pred (Valid (vMap b))
+		Valid about	= pred (Valid (vMap about))
 
-undefGet :: (a -> b)
-undefGet = abort "undefined view-get function"
+undefGet :: !a -> abort
+undefGet _ = abort "undefined view-get function"
 
 sharedException :: !String -> TaskResult a
 sharedException e = TaskException (dynamic (SharedException e))

@@ -63,6 +63,7 @@ updateSharedInformationA	:: !d !(View i v o)			![TaskAction i]	!(Shared i o)	-> 
 * @param a or (Shared a)	The initial value or shared value to use. 
 *
 * @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @throws					SharedException (updateSharedInformationAboutA only)
 */
 updateInformationAbout			:: !d 										!about !a				-> Task a							| descr d & iTask a & iTask about
 updateInformationAboutA			:: !d !(SymmetricView a v)	![TaskAction a]	!about !a				-> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask about & iTask v
@@ -96,11 +97,12 @@ requestConfirmationAbout	:: !d !about -> Task Bool	| descr d & iTask about
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 * @param [a]				A list of (shared) options
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
+* @throws					ChoiceException, SharedException (enterSharedChoiceA only)
 */
 enterChoice					:: !d 					  		![a]			-> Task a						| descr d & iTask a
 enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a]			-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
-//enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
+enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select one item from a list of options, given some context information
@@ -112,11 +114,12 @@ enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a]			-> Task (!ActionEvent, Ma
 * @param b					Additional information to display
 * @param [a]				A list of (shared) options
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
+* @throws					ChoiceException, SharedException (enterSharedChoiceAboutA only)
 */
 enterChoiceAbout			:: !d 							!about ![a]				-> Task a						| descr d & iTask a	& iTask about
 enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !about ![a]				-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask about & iTask v
-//enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !b !(Shared [a] w)	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v
+enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w)	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask about & iTask v
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected
@@ -128,12 +131,12 @@ enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !about ![a]				-> Task (!Act
 * @param [a]				A list of (shared) options
 * @param Int				The index of the item which should be pre-selected
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
+* @throws					ChoiceException, SharedException (updateSharedChoiceA only)
 */
 updateChoice				:: !d							![a]			!Int -> Task a							| descr d & iTask a	
 updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a]			!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v 
-//updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
-
+updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected, given some context information
@@ -146,11 +149,12 @@ updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a]			!Int -> Task (!ActionEv
 * @param [a]				A list of (shared) options
 * @param Int				The index of the item which should be pre-selected
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
+* @throws					ChoiceException, SharedException (updateSharedChoiceAboutA only)
 */
 updateChoiceAbout			:: !d 							!about ![a]				!Int -> Task a							| descr d & iTask a	& iTask about
 updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !about ![a]				!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask about & iTask v
-//updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !b !(Shared [a] w)	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask b & iTask v
+updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w)	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask about & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options
@@ -162,11 +166,12 @@ updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !about ![a]				!Int -> Task
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
 * @param [a]				A list of (shared) options
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 					Chosen values or chosen action with the chosen values.
+* @throws					SharedException (enterSharedMultipleChoiceA only)
 */
-enterMultipleChoice			:: !d 					  			![a]			-> Task [a]							| descr d & iTask a
-enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
-//enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
+enterMultipleChoice			:: !d 					  			![a]			-> Task [a]					| descr d & iTask a
+enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options, given additional context information
@@ -178,11 +183,12 @@ enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			-> Task (!ActionE
 * @param b					Additional information to display
 * @param [a]				A list of (shared) options
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 					Chosen values or chosen action with the chosen values.
+* @throws					SharedException (enterSharedMultipleChoiceAboutA only)
 */
 enterMultipleChoiceAbout		:: !d 								!about ![a]				-> Task [a]							| descr d & iTask a	& iTask about
-enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!about ![a]				-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask about & iTask v
-//enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!b !(Shared [a] w)	-> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v
+enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!about ![a]				-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask about & iTask v
+enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!about !(Shared [a] w)	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask about & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options with already some options pre-selected
@@ -194,11 +200,12 @@ enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!about ![a]				-> T
 * @param [a]				A list of (shared) options
 * @param [Int]				The index of the items which should be pre-selected
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 					Chosen values or chosen action with the chosen values.
+* @throws					SharedException (updateSharedMultipleChoiceA only)
 */
 updateMultipleChoice		:: !d 								![a]			![Int] -> Task [a]							| descr d & iTask a
-updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
-//updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask v
+updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options with already some options pre-selected, given additional context information
@@ -211,11 +218,12 @@ updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			![Int] -> Task (
 * @param [a]				A list of (shared) options
 * @param [Int]				The index of the items which should be pre-selected
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 					Chosen values or chosen action with the chosen values.
+* @throws					SharedException (updateSharedMultipleChoiceAboutA only)
 */
-updateMultipleChoiceAbout		 :: !d 								!about ![a] 			![Int] -> Task [a]							| descr d & iTask a	& iTask about
-updateMultipleChoiceAboutA		 :: !d !(a -> v) ![TaskAction [a]]	!about ![a] 			![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask about & iTask v
-//updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]]	!b !(Shared [a] w)	![Int] -> Task (!ActionEvent, Maybe [a])	| descr d & iTask a & iTask b & iTask v
+updateMultipleChoiceAbout		 :: !d 								!about ![a] 			![Int] -> Task [a]					| descr d & iTask a	& iTask about
+updateMultipleChoiceAboutA		 :: !d !(a -> v) ![TaskAction [a]]	!about ![a] 			![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask about & iTask v
+updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]]	!about !(Shared [a] w)	![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask about & iTask v
 
 //*** Output tasks ***//
 
