@@ -1,17 +1,18 @@
 implementation module TSt
 
-import StdList, StdTuple, StdBool, StdMisc, Maybe
+import StdList, StdTuple, StdBool, StdMisc, Maybe, StdFile, File
 import HTTP, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import GenEq, GenVisualize, GenUpdate, Store, Config, dynamic_string
 import CoreCombinators, InteractionTasks
-from StdFunc	import id, const, o
+from StdFunc	import id, const, o, seq
 from JSON		import JSONDecode, fromJSON
+from Directory	import :: Path, pd_StringToPath, getDirectoryContents, :: DirError, :: DirEntry{fileName}
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
 
-mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !*World -> *TSt
-mkTSt appName config request workflows store world
+mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !FilePath !*World -> *TSt
+mkTSt appName config request workflows store tmpDir world
 	=	{ taskNr			= []
 		, taskInfo			= initTaskInfo
 		, tree				= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo (noOutput 1))
@@ -22,7 +23,7 @@ mkTSt appName config request workflows store world
 		, currentChange		= Nothing
 		, pendingChanges	= []
 		, request			= request
-		, iworld			= initIWorld appName config store world
+		, iworld			= initIWorld appName config store tmpDir world
 		, sharedChanged		= False
 		, triggerPresent	= False
 		, iterationCount	= 1
@@ -36,8 +37,8 @@ initStaticInfo appName workflows
 		, staticWorkflows	= workflows
 		}
 
-initIWorld	:: !String !Config !*Store !*World -> *IWorld
-initIWorld application config store world
+initIWorld	:: !String !Config !*Store !FilePath !*World -> *IWorld
+initIWorld application config store tmpDir world
 	# (timestamp,world)	= time world
 	# (dateTime,world)	= currentDateTimeWorld world
 	= 	{ IWorld
@@ -47,6 +48,7 @@ initIWorld application config store world
 		, world				= world
 		, timestamp			= timestamp
 		, localDateTime		= dateTime
+		, tmpDirectory		= tmpDir
 		}
 		
 initTaskInfo :: NonNormalizedTaskInfo
@@ -157,7 +159,8 @@ deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
 	# (_,tst) 	= deleteProcess procId tst
 	# tst		= deleteSubProcesses procId tst
-	# tst		= appIWorldTSt (deleteValues (iTaskId (taskNrFromString procId) "")) tst
+	# tst		= appIWorldTSt (deleteValues procId) tst
+	# tst		= appIWorldTSt (deleteTmpFiles procId) tst
 	= tst
 
 garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
@@ -844,7 +847,8 @@ resetSequence tst=:{taskNr,tree}
 
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
 deleteTaskStates taskNr tst
-	// Delete values in the data store
+	// Delete tmpFiles & values in the data store
+	# tst = appIWorldTSt (deleteTmpFiles taskNr) tst
 	= appIWorldTSt (deleteValues (iTaskId taskNr "")) tst
 	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
@@ -857,6 +861,21 @@ copyTaskStates fromtask totask tst
 	
 flushStore :: !*TSt -> *TSt
 flushStore tst = appIWorldTSt flushCache tst
+
+deleteTmpFiles :: !id !*IWorld -> *IWorld | iTaskId id
+deleteTmpFiles taskId iworld=:{world,tmpDirectory}
+	# ((_,piPath),world)	= pd_StringToPath tmpDirectory world
+	# ((_,entries),world)	= getDirectoryContents piPath world
+	# world					= seq (map checkEntry entries) world
+	= {iworld & world = world}
+where
+	prefix = iTaskId taskId ""
+
+	checkEntry {fileName} world
+		| startsWith prefix fileName
+			= snd (deleteFile (tmpDirectory </> fileName) world)
+		| otherwise
+			= world
 
 noOutput 				= abort "Task tree node without output."
 noProcessResult 		= finishedStrOutput "Cannot load result."

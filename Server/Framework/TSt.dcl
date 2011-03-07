@@ -58,11 +58,12 @@ from HTTP		import :: HTTPRequest
 * @param The current HTTP request
 * @param The workflows available in the application
 * @param The generic data store
+* @param The path for temporary files
 * @param The world
 *
 * @return a TSt iTask state
 */
-mkTSt :: !String !Config! HTTPRequest ![Workflow] !*Store !*World -> *TSt
+mkTSt :: !String !Config! HTTPRequest ![Workflow] !*Store !FilePath !*World -> *TSt
 
 /**
 * Initializes the session information.

@@ -165,11 +165,17 @@ initTSt request config flows world
 								   (padZero time.'StdLibMisc'.Time.'StdLibMisc'.minutes)+++"."+++
 								   (padZero time.'StdLibMisc'.Time.'StdLibMisc'.seconds
 								  )
-	# ((ok,datapath),world)		= 'Directory'.pd_StringToPath appName world
+	# ((_,datapath),world)		= 'Directory'.pd_StringToPath appName world
 	# (err,world)				= 'Directory'.createDirectory datapath world
 	| err <> 'Directory'.NoDirError && err <> 'Directory'.AlreadyExists
 		= abort "Cannot create data directory"
-	= mkTSt appName config request flows (createStore (appName +++ "\\" +++ datestr)) world
+	# storePath					= appName </> datestr
+	# tmpPath					= appName </> "tmp-" +++ datestr
+	# ((_,piTmpPath),world)		= 'Directory'.pd_StringToPath tmpPath world
+	# (err,world)				= 'Directory'.createDirectory piTmpPath world
+	| err <> 'Directory'.NoDirError && err <> 'Directory'.AlreadyExists
+		= abort "Cannot create tmp directory"
+	= mkTSt appName config request flows (createStore storePath) tmpPath world
 where 
 	padZero number = (if (number < 10) "0" "") +++ toString number
 

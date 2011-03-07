@@ -4,7 +4,7 @@ definition module Types
 * of the iTasks framework.
 */
 
-import GenEq, Maybe, JSON, Store, Map, Void, Either
+import GenEq, Maybe, JSON, Store, Map, Void, Either, FilePath
 from Shared		import :: Shared
 from HTML 		import class html
 from Time		import :: Timestamp
@@ -384,4 +384,5 @@ instance menuAction (actionName, ActionLabel, ActionData) | actionName actionNam
 					, world			:: !*World		// The outside world
 					, timestamp		:: !Timestamp	// The timestamp of the current request
 					, localDateTime	:: !DateTime	// The local date & time of the current request
+					, tmpDirectory	:: !FilePath	// The path for temporary files, the garbage collector also works on files in this dir
 					}
