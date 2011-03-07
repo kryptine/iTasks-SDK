@@ -7,6 +7,7 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 			, border: false
             , layout: 'fit'
             , height: 320
+            , cls: 'oryxcontrol'
             , html: 'Loading...'
 			});
 
