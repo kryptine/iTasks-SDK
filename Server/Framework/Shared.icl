@@ -47,6 +47,10 @@ toReadOnlyShared (Shared read write getTimestamp) = Shared read (\_ iworld -> (O
 (|+<) (Shared read0 _ getTimestamp0) (Shared read1 write1 getTimestamp1)
 	= Shared (composeReads read0 read1) write1 (composeGetTimestamps getTimestamp0 getTimestamp1)
 	
+(|+|) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> ReadOnlyShared (r0,r1)
+(|+|) (Shared read0 write0 getTimestamp0) (Shared read1 write1 getTimestamp1)
+	= Shared (composeReads read0 read1) (\_ iworld -> (Ok Void,iworld)) (composeGetTimestamps getTimestamp0 getTimestamp1)
+	
 (>&<) infixl 6 :: !(SymmetricShared a) !(SymmetricShared b) -> (SymmetricShared (a,b)) | gEq{|*|} a & gEq{|*|} b
 (>&<) (Shared read0 write0 getTimestamp0) (Shared read1 write1 getTimestamp1)
 	= Shared (composeReads read0 read1) writeC (composeGetTimestamps getTimestamp0 getTimestamp1)

@@ -2,7 +2,7 @@ implementation module CoreCombinators
 
 import StdList, StdArray, StdTuple, StdMisc, StdBool
 import TSt, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks, InteractionTasks, CommonCombinators
-from ProcessDBTasks		import sharedProcessStatus, sharedProcessResult, class toProcessId, instance toProcessId ProcessRef
+from ProcessDBTasks		import sharedProcess, sharedProcessResult, class toProcessId, instance toProcessId ProcessRef
 from StdFunc			import id, const, o, seq
 from TaskTree			import :: TaskParallelType
 from CommonCombinators	import transform
@@ -422,12 +422,12 @@ where
 
 waitForProcess :: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
 waitForProcess autoContinue pref =
-		monitor ("Wait for task", "Wait for an external task to finish") waitForProcessView waitForProcessPred autoContinue (sharedProcessStatus pref >+< sharedProcessResult pref)
+		monitor ("Wait for task", "Wait for an external task to finish") waitForProcessView waitForProcessPred autoContinue (sharedDescriptionAndStatus pref |+| sharedProcessResult pref)
 	>>=	transform snd
 	
 waitForProcessCancel :: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
 waitForProcessCancel autoContinue pref =
-		monitorA ("Wait for task", "Wait for an external task to finish or cancel") waitForProcessView actions autoEvents (sharedProcessStatus pref >+< sharedProcessResult pref)
+		monitorA ("Wait for task", "Wait for an external task to finish or cancel") waitForProcessView actions autoEvents (sharedDescriptionAndStatus pref |+| sharedProcessResult pref)
 	>>=	transform (maybe Nothing snd o snd)
 where
 	actions = [(ActionCancel,always)] ++ if autoContinue [] [(ActionContinue,pred`)]
@@ -438,15 +438,32 @@ where
 		
 	pred` Invalid	= False
 	pred` (Valid v)	= waitForProcessPred v
+
+// map entire process to only description & status before giving it to editor,
+// because empty lists in propreties lead to invalid editor states
+sharedDescriptionAndStatus pref = mapSharedRead f (sharedProcess pref)
+	where
+		f Nothing = Nothing
+		f (Just {Process|properties=p=:{systemProperties=s=:{status}, managerProperties=m=:{taskDescription}}}) = Just (taskDescription,status)
+
+waitForProcessView (Nothing,res) = finishedView res
+waitForProcessView (Just (desc,status),res) = case status of
+	Active		= toHtmlDisplay [Text "Waiting for result of task ",title]
+	Suspended	= toHtmlDisplay [Text "Task ", title ,Text" is suspended."]
+	_			= finishedView res
+where
+	title = StrongTag [] [Text "\"",Text desc.TaskDescription.title,Text "\""]
 	
-waitForProcessView (Active,_)		= "Task is running."
-waitForProcessView (Suspended,_)	= "Task is suspended."
-waitForProcessView (_,res)			= "Task finished. Result: " <+++ res
-//waiting = html [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title,Text "\""]]
+finishedView Nothing 	= toHtmlDisplay [Text "Task finished."]
+finishedView (Just res)	= toHtmlDisplay [Text "Task finished. Result: ", visualizeAsHtmlDisplay res]
 
-waitForProcessPred (Active,_)		= False
-waitForProcessPred (Suspended,_)	= False
-waitForProcessPred _				= True
+waitForProcessPred (Nothing,_) = True
+waitForProcessPred (Just (_,status),_) = case status of
+	Active		= False
+	Suspended	= False
+	_			= True
 
-scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a]) Void) | iTask a
+getStatus {Process|properties=p=:{systemProperties=s=:{status}}} = status
+
+scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (ReadOnlyShared (SchedulerState,[ProcessRef a])) | iTask a
 scheduledSpawn when task = abort "not implemented"

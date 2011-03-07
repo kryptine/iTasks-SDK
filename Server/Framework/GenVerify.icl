@@ -110,6 +110,7 @@ gVerify{|User|}				_ vst = simpleVerify "Select a username" vst
 gVerify{|Choice|}_			_ vst = simpleVerify "Choose one item" vst
 gVerify{|MultipleChoice|} _	_ vst = simpleVerify "Choose a number of items" vst
 gVerify{|Tree|} _			_ vst = simpleVerify "Choose a leaf of the tree" vst
+gVerify{|HtmlDisplay|}		_ vst = alwaysValid vst
 
 gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst

@@ -6,7 +6,7 @@ definition module CoreCombinators
 from Time				import :: Timestamp
 from TaskTree			import :: TaskParallelType, :: GroupedBehaviour
 from TuningCombinators	import :: Tag
-from Shared				import ::Shared
+from Shared				import :: Shared, :: ReadOnlyShared
 import Task
 
 //Standard monadic operations:
@@ -183,7 +183,7 @@ waitForProcessCancel	:: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
 *
 * @return A reference to a control memory this contains a schedulerstate to control the scheduler and a list of active processes.
 */
-scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (Shared (SchedulerState,[ProcessRef a]) Void) | iTask a
+scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (ReadOnlyShared (SchedulerState,[ProcessRef a])) | iTask a
 
 :: SchedulerState = SSActive //Keep monitoring time and spawn new tasks
 				  | SSFinish //Let the already running tasks finish, but don't start new ones anymore

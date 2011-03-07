@@ -183,6 +183,7 @@ where
 gVisualize{|Date|}		val vst = visualizeBasicControlSimple TUIDateControl val vst
 gVisualize{|Time|}		val vst = visualizeBasicControlSimple TUITimeControl val vst
 gVisualize{|User|}		val vst = visualizeBasicControlSimple TUIUserControl val vst
+
 gVisualize{|Currency|}	val vst = visualizeControl mkControl (textOnly toString) val vst
 where
 	mkControl name id val label optional err hnt
@@ -201,6 +202,15 @@ where
 	curLabel (Just (USD _))	= "$"
 	curLabel (Just (JPY _)) = "&yen;"
 	curLabel _				= "&euro;" //Use the default currency
+	
+gVisualize{|HtmlDisplay|} val vst = visualizeControl mkControl (toString,\mbD _ -> html (fmap (RawText o fromHtmlDisplay) mbD)) val vst
+where
+	mkControl _ id val label _ _ _
+		= TUIHtmlContainer	{ TUIHtmlContainer
+							| id = id
+							, html = toString val
+							, fieldLabel = label
+							}
 
 gVisualize {|Document|}	val vst = visualizeControl mkControl (mkText,mkHtml) val vst
 where

@@ -85,10 +85,11 @@ toReadOnlyShared :: !(Shared r w) -> ReadOnlyShared r
 
 // Composition of two shared references.
 // The read type is a tuple of both types.
-// The write type can either be a tuple of both write types or only one of them.
+// The write type can either be a tuple of both write types, only one of them or it is written to none of them (result is a read-only shared).
 (>+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) (w0,w1)
 (>+|) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w0
 (|+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w1
+(|+|) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> ReadOnlyShared (r0,r1)
 
 // Compose symmetric shared references and only write to one of the shares if the value changed (read shared <> value to write).
 (>&<) infixl 6 :: !(SymmetricShared a) !(SymmetricShared b) -> (SymmetricShared (a,b)) | gEq{|*|} a & gEq{|*|} b

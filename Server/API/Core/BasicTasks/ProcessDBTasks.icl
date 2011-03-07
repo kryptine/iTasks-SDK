@@ -100,13 +100,7 @@ where
 	
 	getTimestamp iworld=:{IWorld|timestamp} = (Ok timestamp,iworld)
 		
-sharedProcessStatus :: !pid -> ReadOnlyShared TaskStatus | toProcessId pid
-sharedProcessStatus pid = makeReadOnlyShared read
+sharedProcess :: !pid -> ReadOnlyShared (Maybe Process) | toProcessId pid
+sharedProcess pid = makeReadOnlyShared read
 where
-	read iworld
-		# (mbProcess,iworld) = 'ProcessDB'.getProcess (toProcessId pid) iworld
-		= case mbProcess of
-			Just proc	= (proc.Process.properties.systemProperties.SystemProperties.status,iworld)
-			Nothing		= (Deleted,iworld)
-
-	
+	read iworld = 'ProcessDB'.getProcess (toProcessId pid) iworld

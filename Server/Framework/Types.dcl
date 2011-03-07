@@ -12,13 +12,13 @@ from Config		import :: Config
 
 derive JSONEncode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, ProcessRef, Table, Shared
+derive JSONEncode	EmailAddress, Session, Action, ProcessRef, Table, Shared, HtmlDisplay
 derive JSONDecode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, ProcessRef, Table, Shared
+derive JSONDecode	EmailAddress, Session, Action, ProcessRef, Table, Shared, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, JSONNode, (->), Dynamic, Table, Shared
+derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, JSONNode, (->), Dynamic, Table, Shared, HtmlDisplay
 
 instance toString User
 instance toString Note
@@ -172,6 +172,11 @@ toDisplay :: !.a -> (Display .a)
 
 fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
+
+:: HtmlDisplay = HtmlDisplay !String
+toHtmlDisplay	:: !h -> HtmlDisplay | html h
+fromHtmlDisplay	:: !HtmlDisplay -> String
+instance toString HtmlDisplay
 
 // Properties of tasks	
 :: TaskProperties =

@@ -119,5 +119,5 @@ suspendProcess			:: !pid						-> Task Void			| toProcessId pid
 deleteProcess			:: pid						-> Task Void			| toProcessId pid
 
 // shared process data
-sharedProcessResult		:: !(ProcessRef a)			-> ReadOnlyShared (Maybe a)		| iTask a
-sharedProcessStatus		:: !pid						-> ReadOnlyShared TaskStatus	| toProcessId pid
+sharedProcessResult		:: !(ProcessRef a)			-> ReadOnlyShared (Maybe a)			| iTask a
+sharedProcess			:: !pid						-> ReadOnlyShared (Maybe Process)	| toProcessId pid

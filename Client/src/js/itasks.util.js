@@ -28,16 +28,6 @@ itasks.util.formatPriority = function(priority) {
 	}
 	return priority;
 };
-itasks.util.formatProgress = function(progress) {
-	switch(progress) {
-		case null: return "";
-		case "TPActive" : return itasks.util.coloredLabel("green","Active");
-		case "TPStuck" : return itasks.util.coloredLabel("purple","Stuck");
-		case "TPWaiting": return itasks.util.coloredLabel("blue","Waiting");
-		case "TPReject": return itasks.util.coloredLabel("red","Reject");
-	}
-	return progress;
-}
 itasks.util.coloredLabel = function (color, msg) {
 	return "<span style=\"color: " + color + "; font-weight: bold;\">" + msg + "</span>";
 };

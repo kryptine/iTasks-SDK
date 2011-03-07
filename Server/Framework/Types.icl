@@ -7,13 +7,13 @@ from Time import :: Timestamp(..)
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, ProcessRef, Table
+derive JSONEncode	EmailAddress, Session, Action, ProcessRef, Table, HtmlDisplay
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, ProcessRef, Table
+derive JSONDecode	EmailAddress, Session, Action, ProcessRef, Table, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, ButtonState, JSONNode, Table
+derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, ButtonState, JSONNode, Table, HtmlDisplay
 derive gLexOrd		Currency
 derive bimap		Maybe, (,)
 
@@ -367,6 +367,16 @@ fromHidden (Hidden x) = x
 
 toHidden :: !.a -> (Hidden .a)
 toHidden x = (Hidden x)
+
+toHtmlDisplay :: !h -> HtmlDisplay | html h
+toHtmlDisplay h = HtmlDisplay (toString (html h))
+
+fromHtmlDisplay :: !HtmlDisplay -> String
+fromHtmlDisplay (HtmlDisplay h) = h
+
+instance toString HtmlDisplay
+where
+	toString (HtmlDisplay h) = h
 
 // ******************************************************************************************************
 // User

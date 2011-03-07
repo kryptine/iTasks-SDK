@@ -51,7 +51,7 @@ where
 	toView (_,[{progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker,priority,deadline,context,tags}}:_])=
 		{ assignedTo	= worker
 		, priority		= priority
-		, progress		= Display progress
+		, progress		= formatProgress progress
 		, issuedAt		= Display issuedAt
 		, firstWorkedOn	= Display firstEvent
 		, lastWorkedOn	= Display latestEvent
@@ -59,6 +59,13 @@ where
 		, context		= fmap Note context
 		, tags			= list2mb tags
 		}
+	where
+		formatProgress TPActive		= coloredLabel "Active" "green"
+		formatProgress TPStuck		= coloredLabel "Stuck" "purple"
+		formatProgress TPWaiting	= coloredLabel "Waiting" "blue"
+		formatProgress TPReject		= coloredLabel "Reject" "red"
+		
+		coloredLabel label color = toHtmlDisplay [SpanTag [StyleAttr ("color:" +++ color)] [Text label]]
 		
 	fromView {assignedTo,context,priority,deadline,tags} (_,[{managerProperties}:rest])
 		# newManagerProperties =	{ managerProperties
@@ -72,7 +79,7 @@ where
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
-						, progress		:: !Display TaskProgress
+						, progress		:: !HtmlDisplay
 						, issuedAt		:: !Display Timestamp
 						, firstWorkedOn	:: !Display (Maybe Timestamp)
 						, lastWorkedOn	:: !Display (Maybe Timestamp)

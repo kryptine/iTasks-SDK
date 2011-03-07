@@ -18,7 +18,7 @@ waitForTime time =
 		monitor ("Wait for time", ("Wait until " +++ toString time)) view pred True sharedCurrentTime
 	>>| stop
 where	
-	view _ = "Waiting until " <+++ time//html [Text "Waiting until ",visualizeAsHtmlLabel time]
+	view _ = toHtmlDisplay [Text "Waiting until ",visualizeAsHtmlLabel time]
 	pred now = time < now
 
 waitForDate :: !Date -> Task Void
@@ -26,7 +26,7 @@ waitForDate date =
 		monitor ("Wait for date", ("Wait until " +++ toString date)) view pred True sharedCurrentDate
 	>>| stop
 where
-	view _ = "Waiting until " <+++ date//html [Text "Waiting until ",visualizeAsHtmlLabel date]
+	view _ = toHtmlDisplay [Text "Waiting until ",visualizeAsHtmlLabel date]
 	pred now = date < now
 
 waitForTimer :: !Time -> Task Void

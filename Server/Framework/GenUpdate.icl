@@ -170,13 +170,13 @@ where
 			# l = list !! (index)
 			= updateAt (index-1) l (updateAt index f list)
 
-gUpdate{|Display|}	fx mode										ust = wrapperUpdate fx mode fromDisplay Display ust
-gUpdate{|Editable|}	fx mode										ust = wrapperUpdate fx mode fromEditable Editable ust
-gUpdate{|Hidden|}	fx mode										ust = wrapperUpdate fx mode fromHidden Hidden ust
-gUpdate {|VisualizationHint|} fx UDCreate						ust = wrapperUpdate fx UDCreate undef VHEditable ust 
-gUpdate {|VisualizationHint|} fx m=:(UDSearch (VHEditable s))	ust = wrapperUpdate fx m fromVisualizationHint VHEditable ust
-gUpdate {|VisualizationHint|} fx m=:(UDSearch (VHDisplay s))	ust = wrapperUpdate fx m fromVisualizationHint VHDisplay ust
-gUpdate {|VisualizationHint|} fx m=:(UDSearch (VHHidden s))		ust = wrapperUpdate fx m fromVisualizationHint VHHidden ust
+gUpdate{|Display|}				fx mode							ust = wrapperUpdate fx mode fromDisplay Display ust
+gUpdate{|Editable|}				fx mode							ust = wrapperUpdate fx mode fromEditable Editable ust
+gUpdate{|Hidden|}				fx mode							ust = wrapperUpdate fx mode fromHidden Hidden ust
+gUpdate {|VisualizationHint|} 	fx UDCreate						ust = wrapperUpdate fx UDCreate undef VHEditable ust 
+gUpdate {|VisualizationHint|} 	fx m=:(UDSearch (VHEditable s))	ust = wrapperUpdate fx m fromVisualizationHint VHEditable ust
+gUpdate {|VisualizationHint|} 	fx m=:(UDSearch (VHDisplay s))	ust = wrapperUpdate fx m fromVisualizationHint VHDisplay ust
+gUpdate {|VisualizationHint|} 	fx m=:(UDSearch (VHHidden s))	ust = wrapperUpdate fx m fromVisualizationHint VHHidden ust
 
 wrapperUpdate fx mode get cons ust=:{currentPath} = case mode of
 	UDCreate
@@ -193,6 +193,7 @@ gUpdate{|String|}			mode ust = basicUpdateSimple mode id "" ust
 gUpdate{|Note|}				mode ust = basicUpdateSimple mode Note (Note "") ust
 gUpdate{|Password|}			mode ust = basicUpdateSimple mode Password (Password "") ust
 gUpdate{|User|}				mode ust = basicUpdateSimple mode (\str -> if (userName (NamedUser str) == "root") RootUser (NamedUser str)) AnyUser ust
+gUpdate{|HtmlDisplay|}		mode ust = basicUpdateSimple mode (const (HtmlDisplay "")) (HtmlDisplay "") ust
 gUpdate{|FormButton|}		mode ust = basicUpdate mode (\str b -> {b & state = if (str == "true") Pressed NotPressed}) {FormButton | label = "Form Button", icon="", state = NotPressed} ust
 gUpdate{|Tree|} _			mode ust = basicUpdate mode (\str (Tree nodes _) -> Tree nodes (toInt str)) (Tree [] -1) ust
 gUpdate{|Choice|} _			mode ust = basicUpdate mode (\str c=:(Choice opts _) -> case fromJSON (fromString str) of Just [i] = Choice opts i; _ = Choice opts -1) (Choice [] -1) ust
@@ -298,6 +299,7 @@ gDefaultMask{|Currency|}			_ = [Touched []]
 gDefaultMask{|Date|}				_ = [Touched []]
 gDefaultMask{|Time|}				_ = [Touched []]
 gDefaultMask{|User|}				_ = [Touched []]
+gDefaultMask{|HtmlDisplay|}			_ = [Touched []]
 gDefaultMask{|MultipleChoice|}_		_ = [Touched []]
 gDefaultMask{|Shared|} _ _			_ = [Touched []]
 gDefaultMask{|Choice|} _ (Choice opts sel)
