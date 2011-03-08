@@ -4,8 +4,6 @@ import StdMisc, StdArray, StdList, StdTuple, StdChar, StdFile, StdBool
 
 from StdFunc import o
 
-from StdLibMisc import qualified ::Date{..}, ::Time{..}
-
 import	Store, UserDB, ProcessDB, SessionDB
 import	Util, HtmlUtil
 import	CommandLine, File, FilePath, Directory, HTTP, Text, MIME, UrlEncoding
