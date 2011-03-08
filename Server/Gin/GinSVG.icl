@@ -13,7 +13,7 @@ where
 	where
 		doc :: XMLDoc
 		doc = XMLDoc 
-			"http://www.w3.org/2000/svg"
+			(Just "http://www.w3.org/2000/svg")
 			[ ("svg","http://www.w3.org/2000/svg")
 			, ("oryx","http://www.b3mn.org/oryx")
 			, ("xlink", "http://www.w3.org/1999/xlink")
