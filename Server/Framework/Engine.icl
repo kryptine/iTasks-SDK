@@ -1,15 +1,14 @@
 implementation module Engine
 
-import StdMisc, StdArray, StdList, StdChar, StdFile, StdBool
+import StdMisc, StdArray, StdList, StdTuple, StdChar, StdFile, StdBool
 
 from StdFunc import o
 
 from StdLibMisc import qualified ::Date{..}, ::Time{..}
-from Directory import qualified pd_StringToPath, createDirectory, getFileInfo, ::DirError(..), ::FileInfo(..), ::PI_FileInfo(..), instance == DirError
 
 import	Store, UserDB, ProcessDB, SessionDB
 import	Util, HtmlUtil
-import	CommandLine, File, FilePath, HTTP, Text, MIME, UrlEncoding
+import	CommandLine, File, FilePath, Directory, HTTP, Text, MIME, UrlEncoding
 
 import	TuningCombinators
 import	Setup
@@ -152,32 +151,34 @@ handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Se
 initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world
 	# (appName,world) 			= determineAppName world
-	# (pathstr,world)			= determineAppPath world
-	# ((ok, path),world)		= 'Directory'.pd_StringToPath (pathstr) world
-	| not ok					= abort "Cannot find the executable."
-	# ((err,info),world)		= 'Directory'.getFileInfo path world
-	| err <> 'Directory'.NoDirError			= abort "Cannot get executable info."
-	# (date,time)				= info.'Directory'.pi_fileInfo.'Directory'.lastModified
-	# datestr					= (toString date.'StdLibMisc'.Date.'StdLibMisc'.year)+++"."+++
-								   (padZero date.'StdLibMisc'.Date.'StdLibMisc'.month)+++"."+++
-								   (padZero date.'StdLibMisc'.Date.'StdLibMisc'.day)+++"-"+++
-								   (padZero time.'StdLibMisc'.Time.'StdLibMisc'.hours)+++"."+++
-								   (padZero time.'StdLibMisc'.Time.'StdLibMisc'.minutes)+++"."+++
-								   (padZero time.'StdLibMisc'.Time.'StdLibMisc'.seconds
+	# (appPath,world)			= determineAppPath world
+	# appPath					= takeDirectory appPath
+	# (res,world)				= getFileInfo appPath world
+	| isError res				= abort "Cannot get executable info."
+	# tm						= (fromOk res).lastModifiedTime
+	# datestr					= (toString tm.Tm.year)+++"."+++
+								   (padZero tm.Tm.mon)+++"."+++
+								   (padZero tm.Tm.mday)+++"-"+++
+								   (padZero tm.Tm.hour)+++"."+++
+								   (padZero tm.Tm.min)+++"."+++
+								   (padZero tm.Tm.sec
 								  )
-	# ((_,datapath),world)		= 'Directory'.pd_StringToPath appName world
-	# (err,world)				= 'Directory'.createDirectory datapath world
-	| err <> 'Directory'.NoDirError && err <> 'Directory'.AlreadyExists
-		= abort "Cannot create data directory"
-	# storePath					= appName </> datestr
+	# world						= ensureDir "data" (appPath </> appName) world
 	# tmpPath					= appName </> "tmp-" +++ datestr
-	# ((_,piTmpPath),world)		= 'Directory'.pd_StringToPath tmpPath world
-	# (err,world)				= 'Directory'.createDirectory piTmpPath world
-	| err <> 'Directory'.NoDirError && err <> 'Directory'.AlreadyExists
-		= abort "Cannot create tmp directory"
+	# world						= ensureDir "tmp" tmpPath world
+	# storePath					= appName </> datestr
 	= mkTSt appName config request flows (createStore storePath) tmpPath world
 where 
+	padZero :: !Int -> String
 	padZero number = (if (number < 10) "0" "") +++ toString number
+
+	ensureDir :: !String !FilePath *World -> *World
+	ensureDir name path world
+	# (exists, world) = fileExists path world
+	| exists = world
+	# (res, world) = createDirectory path world
+	| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
+	= world
 
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|iworld={IWorld|world}} = world

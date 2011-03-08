@@ -1,13 +1,12 @@
 implementation module TSt
 
-import StdList, StdTuple, StdBool, StdMisc, Maybe, StdFile, File
+import StdList, StdTuple, StdBool, StdMisc, Maybe, StdFile, File, Directory
 import HTTP, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import GenEq, GenVisualize, GenUpdate, Store, Config, dynamic_string
 import CoreCombinators, InteractionTasks
 from StdFunc	import id, const, o, seq
 from JSON		import JSONDecode, fromJSON
-from Directory	import :: Path, pd_StringToPath, getDirectoryContents, :: DirError, :: DirEntry{fileName}
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
 
@@ -864,14 +863,14 @@ flushStore tst = appIWorldTSt flushCache tst
 
 deleteTmpFiles :: !id !*IWorld -> *IWorld | iTaskId id
 deleteTmpFiles taskId iworld=:{world,tmpDirectory}
-	# ((_,piPath),world)	= pd_StringToPath tmpDirectory world
-	# ((_,entries),world)	= getDirectoryContents piPath world
-	# world					= seq (map checkEntry entries) world
+	# (res, world)			= readDirectory tmpDirectory world
+	| isError res			= {iworld & world = world} //Ignore error
+	# world					= seq (map checkEntry (fromOk res)) world
 	= {iworld & world = world}
 where
 	prefix = iTaskId taskId ""
 
-	checkEntry {fileName} world
+	checkEntry fileName world
 		| startsWith prefix fileName
 			= snd (deleteFile (tmpDirectory </> fileName) world)
 		| otherwise

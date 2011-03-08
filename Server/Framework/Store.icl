@@ -1,7 +1,7 @@
 implementation module Store
 
-import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdMisc
-import Directory, Maybe, Map, Text, JSON, Functor, FilePath
+import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTuple, StdMisc
+import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Types import :: IWorld{store,world,timestamp}, :: Config
 import dynamic_string //Static dynamic serialization
@@ -183,23 +183,18 @@ deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{store=store=:{locat
 	= iworld
 where
 	deleteFromDisk world
-		# ((ok,dir),world)			= pd_StringToPath location world
-		| not ok					= abort ("Cannot create path to " +++ location)
-			# ((err,files),world)	= getDirectoryContents dir world
-			| err <> NoDirError		= abort ("Cannot read store directory " +++ location)
-			= unlink dir files world
+		# (res, world) = readDirectory location world
+		| isError res = abort ("Cannot read store directory " +++ location +++ ": " +++ snd (fromError res))
+		= unlink location (fromOk res) world
 		where
 			unlink _ [] world
 				= world
 			unlink dir [f:fs] world
-				| filterFuncDisk delKey f.fileName
-					# (err,world) = fremove (pathDown dir f.fileName) world 
+				| filterFuncDisk delKey f
+					# (err,world) = deleteFile (dir </> f) world 
 					= unlink dir fs world
 				| otherwise
 					= unlink dir fs world
-
-			pathDown (RelativePath steps) step = RelativePath (steps ++ [PathDown step]) 
-			pathDown (AbsolutePath dn steps) step = AbsolutePath dn (steps ++ [PathDown step])
 
 copyValues :: !String !String !*IWorld -> *IWorld
 copyValues fromprefix toprefix iworld=:{store=store=:{location}}
@@ -212,17 +207,15 @@ where
 	newKey key	= toprefix +++ (key % (size fromprefix, size key))
 
 	copyOnDisk fromprefix toprefix location world
-		# ((ok,dir),world)		= pd_StringToPath location world
-		| not ok				= abort ("Cannot create path to " +++ location)
- 		# ((err,files),world)	= getDirectoryContents dir world
- 		| err <> NoDirError		= abort ("Cannot read store directory " +++ location)
- 		= copy fromprefix toprefix files world
+ 		# (res,world)	= readDirectory location world
+ 		| isError res	= abort ("Cannot read store directory " +++ location +++ ": " +++ snd (fromError res))
+ 		= copy fromprefix toprefix (fromOk res) world
 
 	copy fromprefix toprefix [] world = world
 	copy fromprefix toprefix [f:fs] world
-		| startsWith fromprefix f.fileName
-			# sfile	= location </> f.fileName
-			# dfile = location </> toprefix +++ (f.fileName % (size fromprefix, size f.fileName))
+		| startsWith fromprefix f
+			# sfile	= location </> f
+			# dfile = location </> toprefix +++ (f % (size fromprefix, size f))
 			# world	= fcopy sfile dfile world
 			= copy fromprefix toprefix fs world
 		| otherwise
@@ -253,13 +246,12 @@ where
 flushCache :: !*IWorld -> *IWorld
 flushCache iworld=:{world,store=store=:{cache,location}}
 	//Check if the location exists and create it otherwise
-	# ((ok,dir),world)	= pd_StringToPath location world
-	| not ok			= abort ("Cannot create storepath: " +++ location)
-	#(err,world)		= case getFileInfo dir world of
-							((DoesntExist,fileinfo),world)	= createDirectory dir world
-							(_,world)						= (NoDirError,world)
-	# ok				= case err of NoDirError = True; _ = False
-	| not ok			= abort ("Cannot create store: " +++ location)
+	# (exists,world)	= fileExists location world
+	# world				= if exists world
+							( case createDirectory location world of
+								(Ok Void, world) = world
+								(Error e, world) = abort ("Cannot create store: " +++ location +++ ": " +++ snd e)
+							)
 	//Write the states to disk
 	# (list, world) = flush (toList cache) world 
 	= {iworld & world = world, store = {store & cache = fromList list}}

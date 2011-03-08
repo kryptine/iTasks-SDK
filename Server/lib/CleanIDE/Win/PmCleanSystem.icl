@@ -1,10 +1,11 @@
 implementation module PmCleanSystem
 
 import StdEnv
-import Directory
-
-import OSError
+import File
 import FilePath
+import Directory
+import OSError
+
 from Maybe import qualified ::Maybe(..)
 from Process import qualified callProcess
 
@@ -286,21 +287,21 @@ Link linker` winfun path
 		optionspathname library_file_names object_file_names static_libraries static gen_relocs gen_linkmap
 		link_resources resource_path gen_dll dll_syms startupdir dynlstr _ use_64_bit_processor ps
 	# tooltempdir = maketempdir startupdir
-	# (ok,linker,linkerdir)				= mangleLinker linker` startupdir
+	# (ok,linker,linkerdir)		= mangleLinker linker` startupdir
 	| not ok
 		# ps					= winfun [linker] ps
 		= (ps,False)
 	# flags						= ApplicationOptionsToFlags applicationOptions
 	# optdirpath				= RemoveFilename optionspathname
-	# ((ok,pd_optdirpath),ps)	= accFiles (pd_StringToPath optdirpath) ps
-	| not ok
-		= (winfun ["Linker error: Unable to understand path: "+++optdirpath] ps,False)
-	# ((err,_),ps)				= accFiles (getDirectoryContents pd_optdirpath) ps
-	# (err,ps)					= case err of
-		DoesntExist		-> accFiles (createDirectory pd_optdirpath) ps
-		err  			-> (err,ps)
-	| err <> NoDirError
-		= (winfun ["Linker error: Unable to access or create: "+++optdirpath] ps,False)
+	# world						= ps.LogEnv.world
+	# (exists, world)			= fileExists optdirpath world
+	# (err, world)				= if exists (False, world)
+									( case createDirectory optdirpath world of
+										(Ok Void, world) = (False,world)
+										(Error _, world) = (True, world)
+									)
+	# ps = { ps & world = world }
+	| err = (winfun ["Linker error: Unable to access or create: "+++optdirpath] ps,False)
 	# (options_file_ok,ps)		= accFiles (write_options_file optionspathname flags hs ss initial_heap_size heap_size_multiple minheap use_64_bit_processor) ps
 	| not options_file_ok
 		= (winfun ["Linker error: Could not write the options object file: "+++optionspathname] ps,False)

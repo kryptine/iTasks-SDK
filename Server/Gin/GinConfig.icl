@@ -4,10 +4,10 @@ import Maybe
 import StdFile
 from StdFunc import iter
 
-from Directory import ::DiskName, ::Path(..), ::PathStep(..), getCurrentDirectory, pathToPD_String
-import Error
+import Directory
 from File import qualified fileExists, readFile, writeFile
 from FilePath import takeDirectory, </>
+import OSError
 
 import CommandLine
 from Engine import determineAppName
@@ -41,13 +41,13 @@ where
 
 	getITasksPath :: *World -> (String, *World)
 	getITasksPath world
-	# (currentPath, world) = currentDirectory world
-	= (iter 2 takeDirectory currentPath, world)
+	# (res, world) = getCurrentDirectory world
+	= (iter 2 takeDirectory (fromOk res), world)
 
 	getTempPath :: *World -> (String, *World)
 	getTempPath world
-	# (currentPath, world) = currentDirectory world
-	= (currentPath </> "Temp", world)
+	# (res, world) = getCurrentDirectory world
+	= (fromOk res </> "Temp", world)
 
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)
 ginLoadConfig world
@@ -85,8 +85,3 @@ ginCheckConfig config world
 # (ok, world) = 'File'.fileExists config.tempPath world
 | not ok = (Just "Temp path incorrect", world)
 = (Nothing, world)
-
-currentDirectory :: !*World -> (String, *World)
-currentDirectory world
-	# (path, world) = getCurrentDirectory world
-	= pathToPD_String path world	

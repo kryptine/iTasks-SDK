@@ -5,8 +5,7 @@ import StdInt
 import StdFile
 import StdTuple
 
-from Directory import ::Path, getCurrentDirectory, pathToPD_String //TODO: Replace by Clean-platform System.Directory
-
+import Directory
 import File
 import FilePath
 import JSON
@@ -68,9 +67,8 @@ where
 
 getITasksPath :: *World -> (String, *World)
 getITasksPath world
-# (path, world) = getCurrentDirectory world
-# (currentPath, world) = pathToPD_String path world	
-= (takeDirectory currentPath, world)			
+# (res, world) = getCurrentDirectory world
+= (takeDirectory (fromOk res), world)			
 
 curlError :: Int -> String
 curlError exitCode = 
