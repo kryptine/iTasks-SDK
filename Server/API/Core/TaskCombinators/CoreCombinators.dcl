@@ -125,9 +125,6 @@ container :: !TaskContainerType !(Task a) -> Task a | iTask a
 */
 parallel :: !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 
-// old-style parallel, all tasks are detached as separate processes & an overview table is shown in the parallel panel
-oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
-
 /**
 * Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
 * be influenced by assigning a GroupedBehaviour to sub-tasks using the annotation combinator. The group-combinator

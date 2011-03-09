@@ -214,9 +214,6 @@ where
 container :: !TaskContainerType !(Task a) -> Task a | iTask a
 container type task = {task & containerType = type}
 
-oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
-oldParallel parType d valueMerger initTasks = parallel d valueMerger [] (map (container (DetachedTask noMenu)) initTasks)
-
 parallel :: !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 parallel d (initState,accuFun,resultFun) initCTasks initTasks
 	= mkParallelTask d (parallelE,parallelC)
@@ -228,8 +225,8 @@ where
 		
 	processAllTasksE pst n tst=:{taskNr}
 		| (length pst.tasks) == n	= tst
-		# (_,(task,_))				= getTaskFromPSt taskNr n pst
-		# (_,tst)					= applyTaskEdit task {tst & taskNr = [n:taskNr]} 
+		# (idx,(task,_))			= getTaskFromPSt taskNr n pst
+		# (_,tst)					= applyTaskEdit task {tst & taskNr = [idx:taskNr]} 
 		= processAllTasksE pst (inc n) {tst & taskNr = taskNr}
 
 	parallelC tst=:{taskNr,properties}
@@ -269,7 +266,7 @@ where
 					},iworld)
 	
 	storePSt taskNr pst tst
-		# iworld = appIWorldTSt updateTimestamp tst
+		# tst = appIWorldTSt (updateTimestamp taskNr) tst
 		= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
 		
 	getTaskFromPSt taskNr n pst

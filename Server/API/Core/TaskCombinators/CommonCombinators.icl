@@ -67,7 +67,7 @@ where
 		
 		coloredLabel label color = toHtmlDisplay [SpanTag [StyleAttr ("color:" +++ color)] [Text label]]
 		
-	fromView {assignedTo,context,priority,deadline,tags} (_,[{managerProperties}:rest])
+	fromView {ProcessControlView|assignedTo,context,priority,deadline,tags} (_,[{managerProperties}:rest])
 		# newManagerProperties =	{ managerProperties
 									& worker	= assignedTo
 									, context	= fmap toString context
@@ -168,6 +168,31 @@ where
 					_				 = (state,Nothing)
 	parsefunc (Just (Just a), Just (Just b)) = Just (a,b)
 	parsefunc _								 = Nothing
+	
+oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+oldParallel parType d valueMerger initTasks = parallel d valueMerger [overviewControl] (map (container (DetachedTask noMenu)) initTasks)
+where
+	overviewControl shared =
+			updateSharedInformationA "" (toView,fromView) [] shared
+		>>|	return undef
+	
+	toView (_,props) = Table (map toView` props)
+	toView` {managerProperties=m=:{worker,taskDescription}} =
+		{ ProcessOverviewView
+		| subject		= Display taskDescription.TaskDescription.title
+		, assignedTo	= worker
+		}
+	
+	fromView (Table viewList) (_,props) = map fromView` (zip2 viewList props)
+	fromView` ({ProcessOverviewView|assignedTo},{managerProperties})
+		=	{ managerProperties
+			& worker = assignedTo				
+			}
+		
+:: ProcessOverviewView =	{ subject		:: !Display String
+							, assignedTo	:: !User
+							}
+derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask [] 		= getDefaultValue

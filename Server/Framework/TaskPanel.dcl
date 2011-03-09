@@ -46,16 +46,7 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 	, taskId		:: !String
 	, subject		:: !String
 	, description	:: !String
-	, subtaskInfo	:: ![TTCParallelContainerElement]
 	, content		:: ![TaskPanel]
-	}
-
-:: TTCParallelContainerElement =
-	{ finished		:: !Bool
-	, taskId		:: !String
-	, subject		:: !String
-	, description	:: !String
-	, delegatedTo	:: !String
 	}
 	
 :: TTCGroupContainer =

@@ -119,6 +119,10 @@ forever	t	:==	(<!) t (\_ -> False)
 * @param The result of both tasks if both finish with a result. Nothing otherwise.
 */
 (-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
+
+// old-style parallel, all tasks are detached as separate processes & an overview table is shown in the parallel panel
+oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+
 /**
 * Group a list of tasks in parallel.
 * The group stops as soon as one result is available which is returned.

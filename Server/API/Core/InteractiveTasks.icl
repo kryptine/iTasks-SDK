@@ -25,7 +25,7 @@ noAutoActionEvents :: AutoActionEvents a
 noAutoActionEvents = const Nothing
 
 makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(Maybe (AutoActionEvents i)) !(InteractiveTaskMode i o) -> TaskFunctions (!Action, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
-makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions mbAutoEventF informationTaskMode = (interactiveTaskE,interactiveTaskC)
+makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions mbAutoEventF interactiveTaskMode = (interactiveTaskE,interactiveTaskC)
 where
 	interactiveTaskE tst=:{taskNr}
 		# (edits,tst)						= getEditEvents tst
@@ -55,7 +55,7 @@ where
 				| isError conflict			= (False,tst)
 				# conflict					= fromOk conflict
 				| not (isValidValue nvmask) || conflict = (conflict,tst)
-				// update model if view is changed, not in enter mode, no edit conflict occurred & view is valid
+				// update model if not in enter mode, no edit conflict occurred & view is valid
 				# (oldModel,tst)			= accIWorldTSt (readModelValue taskNr) tst
 				| isError oldModel			= (False,tst)
 				# newModelValue				= bimapPutback nvalue (fst (fromOk oldModel))
@@ -121,23 +121,23 @@ where
 				= (Updates updates evalActions,iworld)
 
 	// for local mode use auto generated store name, for shared mode use given store
-	shared taskNr = case informationTaskMode of
+	shared taskNr = case interactiveTaskMode of
 		SharedUpdate shared	= shared
 		_					= mapSharedRead o2i (sharedStore (iTaskId taskNr "model"))
 	
-	o2i = case informationTaskMode of
+	o2i = case interactiveTaskMode of
 		LocalUpdateMode _ f	= f
 		EnterMode f			= f
 		_					= abort "no o2i function"
 		
-	enterMode = case informationTaskMode of
+	enterMode = case interactiveTaskMode of
 		EnterMode _	= True
 		_			= False
 			
 	// initialises the task the first time it is ran
 	initTask taskNr iworld
 		// auto generate model store if in local mode
-		# iworld = case informationTaskMode of
+		# iworld = case interactiveTaskMode of
 			LocalUpdateMode initial	_	= snd (writeShared (shared taskNr) initial iworld)
 			_							= iworld
 		// determine initial view value based on model if not in enter mode
@@ -187,7 +187,7 @@ where
 				= updateViewValue taskNr bimapGet new modelV modelT errors iworld
 			False
 				= (new,iworld)
-	
+
 // store for information provided to the commit pass
 setCommitStoreOld :: !TaskNr (!a,!UpdateMask,!VerifyMask) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setCommitStoreOld taskNr old iworld = setTaskStoreFor taskNr "commit-old" old iworld
@@ -250,7 +250,7 @@ setStores taskNr (value,umask,vmask) iworld
 
 getLocalTimestamp :: !TaskNr !*IWorld -> *(!Timestamp,!*IWorld)			
 getLocalTimestamp taskNr iworld
-	= appFst (fromMaybe (Timestamp 0)) (getTaskStoreTimestampFor taskNr "value" iworld)
+	= appFst fromJust (getTaskStoreTimestampFor taskNr "value" iworld)
 	
 applyUpdates :: ![(!DataPath,!String)] !a !UpdateMask !*TSt -> *(!a,!UpdateMask,!*TSt) | gUpdate{|*|} a							
 applyUpdates [] val umask tst = (val,umask,tst)

@@ -4,7 +4,7 @@ import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import JSON, HTML, TSt, TUIDefinition, Map, Util
 
 derive JSONEncode TTCInteractiveContainer, FormContent, InteractiveTaskType, TTCResultContainer
-derive JSONEncode TTCParallelContainer,TTCParallelContainerElement, TTCGroupContainer, TTCGroupContainerElement
+derive JSONEncode TTCParallelContainer, TTCGroupContainer, TTCGroupContainerElement
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (TaskDone)							= [JSONString "done"]
@@ -89,7 +89,6 @@ where
 										, taskId = ti.TaskInfo.taskId
 										, subject = ti.TaskInfo.subject
 										, description = ti.TaskInfo.description
-										, subtaskInfo = catMaybes (map buildSubtaskInfo tasks)
 										, content = catMaybes (map buildParallelElement tasks)
 										}
 	where			
@@ -124,19 +123,6 @@ where
 						Nothing		= False
 						Just tag	= isMember tag info.TaskInfo.tags
 					}]
-
-buildSubtaskInfo :: !UITree -> Maybe TTCParallelContainerElement
-buildSubtaskInfo (TTMainTask _ p _ _)
-	= Just {TTCParallelContainerElement	| taskId		= p.systemProperties.SystemProperties.taskId
-										, subject		= p.managerProperties.taskDescription.TaskDescription.title
-										, description	= toString p.managerProperties.taskDescription.TaskDescription.description
-										, delegatedTo	= toString p.managerProperties.worker
-										, finished		= case p.systemProperties.SystemProperties.status of
-												Finished	= True	//Possible improvement:			
-												Excepted	= True	//We could give more information to the client here!
-												_			= False
-										}
-buildSubtaskInfo _ = Nothing
 									
 buildResultPanel :: !UITree -> TaskPanel
 buildResultPanel tree = case tree of 
