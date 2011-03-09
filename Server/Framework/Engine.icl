@@ -150,7 +150,7 @@ initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
-	# appPath					= takeDirectory appPath
+	# appDir					= takeDirectory appPath
 	# (res,world)				= getFileInfo appPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
@@ -161,8 +161,8 @@ initTSt request config flows world
 								   (padZero tm.Tm.min)+++"."+++
 								   (padZero tm.Tm.sec
 								  )
-	# world						= ensureDir "data" (appPath </> appName) world
-	# tmpPath					= appName </> "tmp-" +++ datestr
+	# world						= ensureDir "data" (appDir </> appName) world
+	# tmpPath					= appDir </> appName </> "tmp-" +++ datestr
 	# world						= ensureDir "tmp" tmpPath world
 	# storePath					= appName </> datestr
 	= mkTSt appName config request flows (createStore storePath) tmpPath world
