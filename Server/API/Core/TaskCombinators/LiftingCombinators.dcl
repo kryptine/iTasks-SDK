@@ -4,6 +4,8 @@ definition module LiftingCombinators
 */
 
 import Task
+from Error import ::MaybeError(..)
+from OSError import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 from TSt import :: TSt
 
 /**
@@ -23,3 +25,15 @@ appWorld :: !(*World -> *World)			-> Task Void
 * @param A Void task that evaluates the function
 */
 accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
+
+/**
+* Evaluate a "World" function that also returns a MaybeError value.
+* If the MaybeError value is Error, the error is transformed.
+* @param The function to evaluate
+* @param Error transformation function
+*
+* @param A Void task that evaluates the function
+*/
+accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & iTask err
+
+accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a
