@@ -10,7 +10,7 @@ GOOGLE_API = "http://www.google.com/ig/api"
 
 weatherExample :: Task Void
 weatherExample = 
-	try ( 	  callRPCHTTP GET GOOGLE_API [("weather", "Nijmegen, Netherlands"),("unit_system","SI")] formatResponse
+	try ( 	  callRPCHTTP GET GOOGLE_API [("weather", "Nijmegen, Netherlands"),("hl","en-GB")] formatResponse
 		  >>= wait "Waiting for weather service" True
 		  >>= \weather -> showMessageAbout ("Weather", "Weather forecast is:") weather >>| stop
 		)
