@@ -292,7 +292,7 @@ mkSequenceTask		:: !d !(TaskFunctions a) -> Task a | descr d
 *
 * @return The newly constructed parallel task
 */
-mkParallelTask		:: !d !TaskParallelType !(TaskFunctions a) -> Task a | descr d
+mkParallelTask		:: !d !(TaskFunctions a) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that groups a number of 
 * tasks together. None of the subtasks is created in a separate process and no

@@ -139,3 +139,9 @@ gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
 	= (vis,vst)
 	
 gEq{|Task|} _ _ _ = False // tasks are never equal
+
+noMenu :: ActionMenu
+noMenu = const []
+
+staticMenu	:: !MenuDefinition -> ActionMenu
+staticMenu def = const def

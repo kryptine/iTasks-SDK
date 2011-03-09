@@ -42,7 +42,7 @@ transform f x = mkInstantTask ("Value transformation", "Value transformation wit
 * It is created once and loaded and evaluated on later runs.
 */
 assign :: !User !(Task a) -> Task a | iTask a	
-assign user task = parallel Closed ("Assign","Manage a task assigned to another user.") (Nothing,\_ r _ -> (Just r,Just Stop), \_ (Just r) -> r) [processControl] [task <<@ user]
+assign user task = parallel ("Assign","Manage a task assigned to another user.") (Nothing,\_ r _ -> (Just r,Just Stop), \_ (Just r) -> r) [processControl] [task <<@ user]
 where
 	processControl shared =
 			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
@@ -191,13 +191,13 @@ where
 	eitherfunc (val,idx) _  = abort "Multiple results in Either"
 
 orProc :: !(Task a) !(Task a) !TaskParallelType -> Task a | iTask a
-orProc taska taskb type = parallel type ("-|@|-", "Done if either subtask is finished.") (Nothing,orfunc,\_ (Just r) -> r) [] [taska,taskb] 
+orProc taska taskb type = oldParallel type ("-|@|-", "Done if either subtask is finished.") (Nothing,orfunc,\_ (Just r) -> r) [taska,taskb] 
 where
 	orfunc _ val Nothing	= (Just val,Just Stop)
 	orfunc _ val _ 			= abort "Multiple results in -|@|-"
 
 andProc :: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
-andProc taska taskb type = parallel type ("AndProc", "Done if both subtasks are finished.") ((Nothing,Nothing),andfunc,parseresult) [] [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))]
+andProc taska taskb type = oldParallel type ("AndProc", "Done if both subtasks are finished.") ((Nothing,Nothing),andfunc,parseresult) [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))]
 where
 	andfunc :: !Int !(Either a b) !(!Maybe a,!Maybe b) -> (!(!Maybe a,!Maybe b),!Maybe (PAction (Either a b) (!Maybe a,!Maybe b)))
 	andfunc _ val (left,right)
@@ -218,13 +218,13 @@ where
 
 anyProc :: ![Task a] !TaskParallelType -> Task a | iTask a
 anyProc [] 	  type = getDefaultValue
-anyProc tasks type = parallel type ("any", "Done when any subtask is finished.") (Nothing,anyfunc,\_ (Just r) -> r) [] tasks
+anyProc tasks type = oldParallel type ("any", "Done when any subtask is finished.") (Nothing,anyfunc,\_ (Just r) -> r) tasks
 where
 	anyfunc _ val Nothing	= (Just val,Just Stop)
 	anyfunc _ val _			= abort "Multiple results in ANY"
 
 allProc :: ![Task a] !TaskParallelType -> Task [a] | iTask a
-allProc tasks type = parallel type ("all", "Done when all subtasks are finished.") ([],allfunc (length tasks),\_ r -> sortByIndex r) [] tasks 
+allProc tasks type = oldParallel type ("all", "Done when all subtasks are finished.") ([],allfunc (length tasks),\_ r -> sortByIndex r) tasks 
 where
 	allfunc tlen idx val st 
 		# st = st ++ [(idx,val)]

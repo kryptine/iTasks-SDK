@@ -34,6 +34,10 @@ derive gEq			Task
 						| HiddenTask							// task not shown to the user
 						
 :: ActionMenu :== [MenuAction] -> MenuDefinition
+
+noMenu		:: ActionMenu
+staticMenu	:: !MenuDefinition -> ActionMenu
+
 :: WindowTitle :== String
 
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]

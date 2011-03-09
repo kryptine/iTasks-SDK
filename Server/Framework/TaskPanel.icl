@@ -83,7 +83,7 @@ where
 									 , menu = Just menuBar
 									 , bbar = Just buttons
 									 }
-			TTParallelTask ti tpi tasks
+			TTParallelTask ti tasks
 				= TTCParallelContainer {TTCParallelContainer 
 										| xtype = "itasks.ttc.parallel"
 										, taskId = ti.TaskInfo.taskId
@@ -163,7 +163,7 @@ getTaskInfo task
 	# info = case task of
 		TTInteractiveTask ti _ _ 	= ti
 		TTFinishedTask ti _			= ti
-		TTParallelTask ti _ _		= ti
+		TTParallelTask ti _			= ti
 		TTSequenceTask ti _			= ti
 		TTMainTask ti _ _ _			= ti
 		TTGroupedTask ti _ _ _		= ti

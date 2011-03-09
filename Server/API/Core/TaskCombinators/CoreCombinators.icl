@@ -214,9 +214,12 @@ where
 container :: !TaskContainerType !(Task a) -> Task a | iTask a
 container type task = {task & containerType = type}
 
-parallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
-parallel parType d (initState,accuFun,resultFun) initCTasks initTasks
-	= mkParallelTask d parType (parallelE,parallelC)
+oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+oldParallel parType d valueMerger initTasks = parallel d valueMerger [] (map (container (DetachedTask noMenu)) initTasks)
+
+parallel :: !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel d (initState,accuFun,resultFun) initCTasks initTasks
+	= mkParallelTask d (parallelE,parallelC)
 where
 	parallelE tst=:{taskNr}
 		| isEmpty initTasks = tst
@@ -248,7 +251,7 @@ where
 			//The accuFun returned a stop action, or all tasks are completed
 			TaskFinished (r,terminationStatus)
 				//Remove the extra workers for this parallel combination
-				# tst = clearSubTaskWorkers (taskNrToString taskNr) (Just parType) tst
+				//# tst = clearSubTaskWorkers (taskNrToString taskNr) (Just parType) tst
 				= (TaskFinished (resultFun terminationStatus r),tst)
 	
 	//Load or create the internal state
@@ -316,7 +319,7 @@ where
 				# (result,tst) = case createProcess of
 					True
 						//IMPORTANT: Task is evaluated with a shifted task number!!!
-						# (result,tree,tst)	= createOrEvaluateTaskInstance (Just parType) task {tst & taskNr = [idx:taskNr]}
+						# (result,tree,tst)	= createOrEvaluateTaskInstance Nothing task {tst & taskNr = [idx:taskNr]}
 						// Add the tree to the current node
 						# tst				= addTaskNode tree tst
 						= (result,tst)

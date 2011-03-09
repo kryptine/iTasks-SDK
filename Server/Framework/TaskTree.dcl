@@ -26,7 +26,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//A task that is composed of a number of sequentially executed subtasks
 	| TTSequenceTask	!.(TaskInfo menus) !.[TaskTree groupActionConditions interactiveOutput finishedOutput menus]
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
-	| TTParallelTask	!.(TaskInfo menus) !TaskParallelType !.[TaskTree groupActionConditions interactiveOutput finishedOutput menus]													 
+	| TTParallelTask	!.(TaskInfo menus) !.[TaskTree groupActionConditions interactiveOutput finishedOutput menus]													 
 	//A task that is composed of a number of grouped subtasks
 	| TTGroupedTask		!.(TaskInfo menus) !.[TaskTree groupActionConditions interactiveOutput finishedOutput menus] !.[.(!Action,!groupActionConditions)] !(Maybe String)
 	

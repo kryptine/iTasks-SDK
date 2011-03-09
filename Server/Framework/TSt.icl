@@ -603,12 +603,12 @@ mkSequenceTask description (taskfunE,taskfunC)
 		(\tst=:{taskNr}					-> taskfunE {tst & taskNr = [0:taskNr]})
 		(\tst=:{TSt|taskNr,taskInfo}	-> taskfunC {tst & taskNr = [0:taskNr], tree = TTSequenceTask taskInfo []})
 			
-mkParallelTask :: !d !TaskParallelType !(TaskFunctions a) -> Task a | descr d
-mkParallelTask description tpt (taskfunE,taskfunC)
+mkParallelTask :: !d !(TaskFunctions a) -> Task a | descr d
+mkParallelTask description (taskfunE,taskfunC)
 	= mkTask
 		description
 		taskfunE
-		(\tst=:{taskInfo} -> taskfunC {tst & tree = TTParallelTask taskInfo tpt []})
+		(\tst=:{taskInfo} -> taskfunC {tst & tree = TTParallelTask taskInfo []})
 
 mkGroupedTask :: !d !(TaskFunctions a) -> Task a | descr d
 mkGroupedTask description (taskfunE,taskfunC)
@@ -708,7 +708,7 @@ applyTaskCommit {taskProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWi
 where
 	//Perform reversal of lists that have been accumulated in reversed order
 	finalizeTaskNode (TTSequenceTask ti tasks) 					= TTSequenceTask	ti (reverse tasks)
-	finalizeTaskNode (TTParallelTask ti tpi tasks)				= TTParallelTask	ti tpi (reverse tasks)
+	finalizeTaskNode (TTParallelTask ti tasks)					= TTParallelTask	ti (reverse tasks)
 	finalizeTaskNode (TTGroupedTask ti tasks gActions mbFocus)	= TTGroupedTask		ti (reverse tasks) gActions mbFocus
 	finalizeTaskNode node										= node
 
@@ -717,7 +717,7 @@ addTaskNode :: !NonNormalizedTree !*TSt -> *TSt
 addTaskNode node tst=:{tree} = case tree of
 	TTMainTask ti mti inptype task			= {tst & tree = TTMainTask ti mti inptype node} 				//Just replace the subtree 
 	TTSequenceTask ti tasks					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
-	TTParallelTask ti tpi tasks				= {tst & tree = TTParallelTask ti tpi [node:tasks]}				//Add the node to the parallel set
+	TTParallelTask ti  tasks				= {tst & tree = TTParallelTask ti [node:tasks]}					//Add the node to the parallel set
 	TTGroupedTask ti tasks gActions mbFocus	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
 	_										= {tst & tree = tree}
 
