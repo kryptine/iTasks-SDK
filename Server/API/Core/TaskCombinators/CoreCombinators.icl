@@ -124,8 +124,8 @@ where
 			= case mbAction of
 				Nothing
 					= (False,Nothing,pst)
-				Just (action,data)
-					# (nSt,mbAct) = accuFun (groupAGenFunc (action,data),-1) pst.PSt.state
+				Just action
+					# (nSt,mbAct) = accuFun (groupAGenFunc action,-1) pst.PSt.state
 					# pst = {PSt | pst & state = nSt}
 					= case mbAct of
 						Nothing				= (False,Nothing,pst)
@@ -202,14 +202,13 @@ where
 		# res = case mbActionEvent of
 			Nothing
 				= Nothing
-			Just (name,data)
-				= case [(action, data) \\ (action,pred) <- groupActions | actionName action == name] of
+			Just name
+				= case [action \\ (action,pred) <- groupActions | actionName action == name] of
 					[actionEvent]	= Just actionEvent
 					_				= Nothing
 		= (res,tst)
 	where
-		getNameAndData (JSONString key) 							= Just (key, "")
-		getNameAndData (JSONArray [JSONString key,JSONString data])	= Just (key, data)
+		getNameAndData (JSONString key) 							= Just key
 		getNameAndData _											= Nothing
 
 container :: !TaskContainerType !(Task a) -> Task a | iTask a
@@ -436,7 +435,7 @@ where
 	actions = [(ActionCancel,always)] ++ if autoContinue [] [(ActionContinue,pred`)]
 	
 	autoEvents v
-		| autoContinue && pred` v	= Just (ActionContinue,"")
+		| autoContinue && pred` v	= Just ActionContinue
 		| otherwise					= Nothing
 		
 	pred` Invalid	= False

@@ -74,7 +74,7 @@ where
 			= 		updateSharedInformationA ("Request","Meeting requested") appointEditor [(ActionOk,ifvalid)] dbid
 				>>= switch 
 		where
-			switch  ((ActionOk,_),_)	= task n
+			switch  (ActionOk,_)	= task n
 			switch  (_,Just result)	  	= return result
 
 			appointEditor = (editorFrom,editorTo)
@@ -167,7 +167,7 @@ where
 		chatActions = [ (ActionNew, Always), (ActionQuit, Always)
 					, (ActionAddUser, SharedPredicate chatbox (\chat -> chat.Chat.initUser == user))
 					]
-		chatActionsGenFunc (action, _) = case action of
+		chatActionsGenFunc action = case action of
 			ActionNew		= GOExtend [newTopic chatbox user >>| stop]
 			ActionQuit		= GOStop
 			ActionAddUser	= GOExtend [addUsers chatbox >>| stop]
@@ -382,10 +382,10 @@ where
 		=						showMessageA ("Newsgroup reader","Newsgroup reader, select from menu...") (actions groups) Void
 			>>= switch
 	where
-		switch ((ActionCancel,_),_) 						= 															doMenu me groups
-		switch ((ActionNew,_),_) 							= addNewsGroup 												>>| handleMenu
-		//switch ((ActionParam "subscribe-to" _ group,_),_)	= subscribeProcess me group									>>| doMenu me groups
-		switch ((ActionAbout,_),_) 							= showMessage ("About","Newsgroup Reader vrs. 2.0") Void 	>>| doMenu me groups
+		switch (ActionCancel,_) 						= 															doMenu me groups
+		switch (ActionNew,_) 							= addNewsGroup 												>>| handleMenu
+		//switch (ActionParam "subscribe-to" _ group,_)	= subscribeProcess me group									>>| doMenu me groups
+		switch (ActionAbout,_) 							= showMessage ("About","Newsgroup Reader vrs. 2.0") Void 	>>| doMenu me groups
 		switch 	_ 											= return Void
 
 addNewsGroup :: (Task Void)
@@ -394,7 +394,7 @@ addNewsGroup
 		>>= \groups ->		enterInformationAboutA ("New group","Enter new news group name to add:") id okCancel groups 
 		>>= switch
 where
-	switch 	((ActionCancel,_),_) = return Void
+	switch 	(ActionCancel,_) = return Void
 	switch 	(_,Just newName) 	
 		= 					readNewsGroups
 		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
@@ -432,11 +432,11 @@ where
 		>>= \newsItems ->	showMessageAboutA ("Read news","Newsgroup " <+++ group) id (readactions nmessage index (length newsItems)) (messageList nmessage newsItems)
 		>>= switch
 	where
-		switch ((ActionPrevious,_),_) 	= readMoreNews (~nmessage) 	>>= readNews` nmessage me group
-		switch ((ActionRefresh,_),_) 	= 								readNews` nmessage me group index
-		switch ((ActionNext,_),_) 		= readMoreNews nmessage 	>>= readNews` nmessage me group
-		switch ((ActionCommit,_),_) 	= commitItem group 			>>| readNews` nmessage me group index
-		//switch ((ActionParam _ _ n,_),_)= 								readNews (toInt n) me group index
+		switch (ActionPrevious,_) 	= readMoreNews (~nmessage) 	>>= readNews` nmessage me group
+		switch (ActionRefresh,_) 	= 								readNews` nmessage me group index
+		switch (ActionNext,_) 		= readMoreNews nmessage 	>>= readNews` nmessage me group
+		switch (ActionCommit,_) 	= commitItem group 			>>| readNews` nmessage me group index
+		//switch (ActionParam _ _ n,_)= 								readNews (toInt n) me group index
 		switch _ 						= return Void
 
 		readMoreNews offset
@@ -458,7 +458,7 @@ where
 			=							enterInformationA ("Message","Type your message ...") id okCancel
 			 	>>= switch
 			where
-				switch ((ActionCancel,_),_) = return Void
+				switch (ActionCancel,_) = return Void
 				switch (_,Just note)
 					=					readNewsGroup  group 
 						>>= \news ->	writeNewsGroup group (news ++ [(me,note)]) 

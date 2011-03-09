@@ -24,7 +24,7 @@ where
 
 showDescription ref =
 										showMessageSharedA "Task description" view actions ref
-	>>= \(event,Just (_,_,Hidden idx)).	case fst event of
+	>>= \(action,Just (_,_,Hidden idx)). case action of
 											Action "start-task" _ =
 													startWorkflowByIndex idx
 												>>|	showDescription ref

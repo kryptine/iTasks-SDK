@@ -6,7 +6,7 @@ from Task				import class descr, :: Task
 from HTML				import :: HtmlTag
 from Shared				import :: Shared
 from StdFunc			import id, const
-from InteractiveTasks	import :: View, ::SymmetricView, :: TaskAction, :: ActionEvent, :: Verified
+from InteractiveTasks	import :: View, ::SymmetricView, :: TaskAction, :: Verified
 import iTaskClass
 
 //*** Input collection tasks ***//
@@ -20,8 +20,8 @@ import iTaskClass
 *
 * @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
 */
-enterInformation			:: !d 						    -> Task a						| descr d & iTask a
-enterInformationA			:: !d !(v -> a) ![TaskAction a] -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
+enterInformation			:: !d 						    -> Task a					| descr d & iTask a
+enterInformationA			:: !d !(v -> a) ![TaskAction a] -> Task (!Action, Maybe a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to enter information, given some additional context information
@@ -34,8 +34,8 @@ enterInformationA			:: !d !(v -> a) ![TaskAction a] -> Task (!ActionEvent, Maybe
 *
 * @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
 */
-enterInformationAbout		:: !d  				  		    !about -> Task a						| descr d  & iTask a & iTask about
-enterInformationAboutA		:: !d !(v -> a) ![TaskAction a] !about -> Task (!ActionEvent, Maybe a)	| descr d  & iTask a & iTask about & iTask v
+enterInformationAbout		:: !d  				  		    !about -> Task a					| descr d  & iTask a & iTask about
+enterInformationAboutA		:: !d !(v -> a) ![TaskAction a] !about -> Task (!Action, Maybe a)	| descr d  & iTask a & iTask about & iTask v
 
 /*
 * Ask the user to update predefined information. 
@@ -48,9 +48,9 @@ enterInformationAboutA		:: !d !(v -> a) ![TaskAction a] !about -> Task (!ActionE
 *
 * @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
 */
-updateInformation			:: !d										!a				-> Task a							| descr d & iTask a
-updateInformationA			:: !d !(SymmetricView a v)	![TaskAction a]	!a				-> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask v
-updateSharedInformationA	:: !d !(View i v o)			![TaskAction i]	!(Shared i o)	-> Task (!ActionEvent, !Maybe i)	| descr d & iTask i & iTask v & iTask o
+updateInformation			:: !d										!a				-> Task a					| descr d & iTask a
+updateInformationA			:: !d !(SymmetricView a v)	![TaskAction a]	!a				-> Task (!Action, !Maybe a)	| descr d & iTask a & iTask v
+updateSharedInformationA	:: !d !(View i v o)			![TaskAction i]	!(Shared i o)	-> Task (!Action, !Maybe i)	| descr d & iTask i & iTask v & iTask o
 
 /*
 * Ask the user to update predefined information, given some additonal context information
@@ -65,9 +65,9 @@ updateSharedInformationA	:: !d !(View i v o)			![TaskAction i]	!(Shared i o)	-> 
 * @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
 * @throws					SharedException (updateSharedInformationAboutA only)
 */
-updateInformationAbout			:: !d 										!about !a				-> Task a							| descr d & iTask a & iTask about
-updateInformationAboutA			:: !d !(SymmetricView a v)	![TaskAction a]	!about !a				-> Task (!ActionEvent, !Maybe a)	| descr d & iTask a & iTask about & iTask v
-updateSharedInformationAboutA	:: !d !(View i v o)			![TaskAction i] !about !(Shared i o)	-> Task (!ActionEvent, !Maybe i)	| descr d & iTask i & iTask v & iTask o & iTask about
+updateInformationAbout			:: !d 										!about !a				-> Task a					| descr d & iTask a & iTask about
+updateInformationAboutA			:: !d !(SymmetricView a v)	![TaskAction a]	!about !a				-> Task (!Action, !Maybe a)	| descr d & iTask a & iTask about & iTask v
+updateSharedInformationAboutA	:: !d !(View i v o)			![TaskAction i] !about !(Shared i o)	-> Task (!Action, !Maybe i)	| descr d & iTask i & iTask v & iTask o & iTask about
 
 /*
 * Asks the user to confirm or decline a question.
@@ -100,9 +100,9 @@ requestConfirmationAbout	:: !d !about -> Task Bool	| descr d & iTask about
 * @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
 * @throws					ChoiceException, SharedException (enterSharedChoiceA only)
 */
-enterChoice					:: !d 					  		![a]			-> Task a						| descr d & iTask a
-enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a]			-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
-enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
+enterChoice					:: !d 					  		![a]			-> Task a					| descr d & iTask a
+enterChoiceA				:: !d !(a -> v) ![TaskAction a] ![a]			-> Task (!Action, Maybe a)	| descr d & iTask a & iTask v
+enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	-> Task (!Action, Maybe a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select one item from a list of options, given some context information
@@ -117,9 +117,9 @@ enterSharedChoiceA			:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	-> Task (!A
 * @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
 * @throws					ChoiceException, SharedException (enterSharedChoiceAboutA only)
 */
-enterChoiceAbout			:: !d 							!about ![a]				-> Task a						| descr d & iTask a	& iTask about
-enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !about ![a]				-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask about & iTask v
-enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w)	-> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask about & iTask v
+enterChoiceAbout			:: !d 							!about ![a]				-> Task a					| descr d & iTask a	& iTask about
+enterChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !about ![a]				-> Task (!Action, Maybe a)	| descr d & iTask a & iTask about & iTask v
+enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w)	-> Task (!Action, Maybe a)	| descr d & iTask a & iTask about & iTask v
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected
@@ -134,9 +134,9 @@ enterSharedChoiceAboutA		:: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w)	
 * @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
 * @throws					ChoiceException, SharedException (updateSharedChoiceA only)
 */
-updateChoice				:: !d							![a]			!Int -> Task a							| descr d & iTask a	
-updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a]			!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v 
-updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask v
+updateChoice				:: !d							![a]			!Int -> Task a					| descr d & iTask a	
+updateChoiceA 				:: !d !(a -> v) ![TaskAction a]	![a]			!Int -> Task (!Action, Maybe a)	| descr d & iTask a & iTask v 
+updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	!Int -> Task (!Action, Maybe a)	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected, given some context information
@@ -152,9 +152,9 @@ updateSharedChoiceA 		:: !d !(a -> v) ![TaskAction a] !(Shared [a] w)	!Int -> Ta
 * @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
 * @throws					ChoiceException, SharedException (updateSharedChoiceAboutA only)
 */
-updateChoiceAbout			:: !d 							!about ![a]				!Int -> Task a							| descr d & iTask a	& iTask about
-updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !about ![a]				!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask about & iTask v
-updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w)	!Int -> Task (!ActionEvent, Maybe a)	| descr d & iTask a & iTask about & iTask v
+updateChoiceAbout			:: !d 							!about ![a]				!Int -> Task a					| descr d & iTask a	& iTask about
+updateChoiceAboutA			:: !d !(a -> v) ![TaskAction a] !about ![a]				!Int -> Task (!Action, Maybe a)	| descr d & iTask a & iTask about & iTask v
+updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w)	!Int -> Task (!Action, Maybe a)	| descr d & iTask a & iTask about & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options
@@ -169,9 +169,9 @@ updateSharedChoiceAboutA	:: !d !(a -> v) ![TaskAction a] !about !(Shared [a] w)	
 * @return 					Chosen values or chosen action with the chosen values.
 * @throws					SharedException (enterSharedMultipleChoiceA only)
 */
-enterMultipleChoice			:: !d 					  			![a]			-> Task [a]					| descr d & iTask a
-enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
-enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+enterMultipleChoice			:: !d 					  			![a]			-> Task [a]				| descr d & iTask a
+enterMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			-> Task (!Action, [a])	| descr d & iTask a & iTask v
+enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	-> Task (!Action, [a])	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options, given additional context information
@@ -186,9 +186,9 @@ enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	-> 
 * @return 					Chosen values or chosen action with the chosen values.
 * @throws					SharedException (enterSharedMultipleChoiceAboutA only)
 */
-enterMultipleChoiceAbout		:: !d 								!about ![a]				-> Task [a]							| descr d & iTask a	& iTask about
-enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!about ![a]				-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask about & iTask v
-enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!about !(Shared [a] w)	-> Task (!ActionEvent, [a])	| descr d & iTask a & iTask about & iTask v
+enterMultipleChoiceAbout		:: !d 								!about ![a]				-> Task [a]				| descr d & iTask a	& iTask about
+enterMultipleChoiceAboutA		:: !d !(a -> v) ![TaskAction [a]]	!about ![a]				-> Task (!Action, [a])	| descr d & iTask a & iTask about & iTask v
+enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!about !(Shared [a] w)	-> Task (!Action, [a])	| descr d & iTask a & iTask about & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options with already some options pre-selected
@@ -203,9 +203,9 @@ enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!about !(Share
 * @return 					Chosen values or chosen action with the chosen values.
 * @throws					SharedException (updateSharedMultipleChoiceA only)
 */
-updateMultipleChoice		:: !d 								![a]			![Int] -> Task [a]							| descr d & iTask a
-updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
-updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask v
+updateMultipleChoice		:: !d 								![a]			![Int] -> Task [a]				| descr d & iTask a
+updateMultipleChoiceA		:: !d !(a -> v) ![TaskAction [a]]	![a]			![Int] -> Task (!Action, [a])	| descr d & iTask a & iTask v
+updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	![Int] -> Task (!Action, [a])	| descr d & iTask a & iTask v
 
 /*
 * Ask the user to select a number of items from a list of options with already some options pre-selected, given additional context information
@@ -221,9 +221,9 @@ updateSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	![
 * @return 					Chosen values or chosen action with the chosen values.
 * @throws					SharedException (updateSharedMultipleChoiceAboutA only)
 */
-updateMultipleChoiceAbout		 :: !d 								!about ![a] 			![Int] -> Task [a]					| descr d & iTask a	& iTask about
-updateMultipleChoiceAboutA		 :: !d !(a -> v) ![TaskAction [a]]	!about ![a] 			![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask about & iTask v
-updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]]	!about !(Shared [a] w)	![Int] -> Task (!ActionEvent, [a])	| descr d & iTask a & iTask about & iTask v
+updateMultipleChoiceAbout		 :: !d 								!about ![a] 			![Int] -> Task [a]				| descr d & iTask a	& iTask about
+updateMultipleChoiceAboutA		 :: !d !(a -> v) ![TaskAction [a]]	!about ![a] 			![Int] -> Task (!Action, [a])	| descr d & iTask a & iTask about & iTask v
+updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]]	!about !(Shared [a] w)	![Int] -> Task (!Action, [a])	| descr d & iTask a & iTask about & iTask v
 
 //*** Output tasks ***//
 
@@ -237,8 +237,8 @@ updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]]	!about !(Shar
 *
 * @return					A copy of value a with (optionally) chosen action
 */
-showMessage		:: !d					a -> Task a					| descr d & iTask a
-showMessageA	:: !d ![TaskAction a]	a -> Task (!ActionEvent, a)	| descr d & iTask a
+showMessage		:: !d					a -> Task a				| descr d & iTask a
+showMessageA	:: !d ![TaskAction a]	a -> Task (!Action, a)	| descr d & iTask a
 
 /*
 * Show a basic message and additional context information to the user. The user can end the task after reading the message. 
@@ -252,9 +252,9 @@ showMessageA	:: !d ![TaskAction a]	a -> Task (!ActionEvent, a)	| descr d & iTask
 *
 * @return					A (copy of) value a with (optionally) chosen action
 */
-showMessageAbout	:: !d									!about			-> Task about					| descr d & iTask about
-showMessageAboutA	:: !d !(about -> v)	![TaskAction about]	!about			-> Task (!ActionEvent, about)	| descr d & iTask about & iTask v
-showMessageSharedA	:: !d !(i -> v)		![TaskAction i]		!(Shared i o)	-> Task (!ActionEvent, i)		| descr d & iTask i & iTask v
+showMessageAbout	:: !d									!about			-> Task about				| descr d & iTask about
+showMessageAboutA	:: !d !(about -> v)	![TaskAction about]	!about			-> Task (!Action, about)	| descr d & iTask about & iTask v
+showMessageSharedA	:: !d !(i -> v)		![TaskAction i]		!(Shared i o)	-> Task (!Action, i)		| descr d & iTask i & iTask v
 
 /*
 * Show a basic message to the user. The user cannot end the task after reading the message. 

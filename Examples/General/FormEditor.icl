@@ -84,7 +84,7 @@ where
 	title3 = "Define the initial value of form: \"" +++ name +++ "\""
 	
 switchAction (action, (nameform=:(name,form),mode))
-	=	case fst action of
+	=	case action of
 			ActionNew		-> 							newFormName emptyForm 	
 								>>= \nameform -> 		doMenu (nameform,EditType)	
 			ActionOpen		->							chooseForm 				

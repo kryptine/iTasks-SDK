@@ -37,11 +37,11 @@ where
 			>>= \choice ->		readAllForms
 			>>= \allForms 	->	readAllFlows
 			>>= \allFlows	->	case fst choice of
-									(ShowForms,_)	-> doMenu "Stored Forms" 				(myForm allForms)
-									(ShowFlows,_)	-> doMenu "Stored Workflows" 			(myFlows allFlows)
-									(ShowAll,_)		-> doMenu "Stored Forms and Workflows" 	(myForm allForms ++ myFlows allFlows)
-									(Refresh,_)		-> doMenu title val
-									(ActionQuit,_)	-> return Void
+									ShowForms	-> doMenu "Stored Forms" 				(myForm allForms)
+									ShowFlows	-> doMenu "Stored Workflows" 			(myFlows allFlows)
+									ShowAll		-> doMenu "Stored Forms and Workflows" 	(myForm allForms ++ myFlows allFlows)
+									Refresh		-> doMenu title val
+									ActionQuit	-> return Void
 
 	myForm allForms 	= ["Forms:", "" 	: [form.formName +++ " :: " +++ form.formType \\ form <- allForms]]
 	myFlows allFlows 	= ["Workflows:", "" : [flow.flowName +++ " :: " +++ flow.flowType \\ flow <- allFlows]]

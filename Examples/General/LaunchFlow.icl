@@ -31,11 +31,11 @@ where
 		=						doMenuEnter
 			>>= \(actions,_) ->	doActions actions
 			
-	doMenuEnter :: Task (ActionEvent,Maybe Void)
+	doMenuEnter :: Task (Action,Maybe Void)
 	doMenuEnter = enterInformationA ("Stored flow","Select \"File/Start Workflow... \" to run a stored workflow...") id actions
 
-	doActions (ActionStartFlow,_)	= startFlow	>>| doMenu 
-	doActions (ActionQuit,_)		= return Void
+	doActions ActionStartFlow	= startFlow	>>| doMenu 
+	doActions ActionQuit		= return Void
 
 startFlow :: Task Void
 startFlow

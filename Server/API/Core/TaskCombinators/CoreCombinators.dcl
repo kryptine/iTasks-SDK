@@ -107,7 +107,7 @@ derive class iTask PAction
 	| 	StatePredicate !(gState -> Bool)							// use predicate on internal state to determine if action is enabled
 	| E.s w:
 		SharedPredicate !(Shared s w) !(s -> Bool) & iTask s		// use predicate on given shared variable to determine if action is enabled
-:: GroupActionGenFunc result	:== (Action, ActionData) -> result	// function mapping task action events to result applied to the group
+:: GroupActionGenFunc result	:== Action -> result				// function mapping task action events to result applied to the group
 
 :: CTask a acc :== (Shared (acc,[TaskProperties]) [ManagerProperties]) -> Task (PAction a acc)
 

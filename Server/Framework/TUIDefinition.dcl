@@ -235,7 +235,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	, disabled		:: !Bool
 	, iconCls		:: !Maybe String
 	, hotkey		:: !Maybe Hotkey
-	, actionData	:: !Maybe String
 	}
 :: TUIGridControl =
 	{ name			:: !TUIName

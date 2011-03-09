@@ -13,7 +13,7 @@ itasks.ttc.MenuItem = Ext.extend(Ext.menu.Item, {
 	},
 	onActionClick: function() {
 		if(this.action) {
-			this.fireEvent('tuievent',this.target,'action',[this.action,this.actionData]);
+			this.fireEvent('tuievent',this.target,'action',this.action);
 		}
 	}
 });

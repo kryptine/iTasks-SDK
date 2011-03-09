@@ -60,7 +60,7 @@ where
 					(" :: " +++ typeErrorMess "Invalid Type, " flow.flowDyn)
 
 switchAction (action, (nameflow=:(name,flow),mode))
-	=	case fst action of
+	=	case action of
 			ActionNew		-> 						newFlowName emptyFlow 	
 								>>= \nameflow -> 	doMenu (nameflow,True)	
 			ActionOpen		->						chooseFlow 	

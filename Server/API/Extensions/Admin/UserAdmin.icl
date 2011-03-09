@@ -6,7 +6,7 @@ manageUsers :: Task Void
 manageUsers = 
 	(		getUsers
 		>>= overview
-		>>= \(action,item) -> case fst action of
+		>>= \(action,item) -> case action of
 			ActionNew		= createUserFlow				>>| return False
 			ActionOpen		= updateUserFlow (fromJust item)>>| return False
 			ActionDelete	= deleteUserFlow (fromJust item)>>|	return False
@@ -21,7 +21,7 @@ where
 createUserFlow :: Task Void
 createUserFlow = Title "Create user"
 	@>>	enterInformationA ("Create user","Enter user information") id [(ActionCancel, always), (ActionOk, ifvalid)]
-	>>=	\res -> case appFst fst res of
+	>>=	\res -> case res of
 		(ActionOk,Just user)	=	createUser user
 									>>|	showMessage ("User created","Successfully added new user") Void
 		(ActionCancel,_)		= stop
@@ -35,7 +35,7 @@ updateUserFlow user
 		Just oldDetails 						
 			= updateInformationA ("Editing " +++ displayName user,"Please make your changes")
 					idView [(ActionCancel, always), (ActionOk, ifvalid)] oldDetails
-			>>= \res -> case appFst fst res of
+			>>= \res -> case res of
 				(ActionOk,Just newDetails)	= updateUser user newDetails >>= showMessage ("User updated","Successfully updated " +++ newDetails.displayName)
 				(ActionCancel,_)			= return user					
 deleteUserFlow :: User -> Task User

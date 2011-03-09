@@ -18,7 +18,7 @@ manageGroups
 	=	Title "Manage groups" @>>
 	(	getMyGroups
 	>>=	overview 
-	>>= \res -> case appFst fst res of
+	>>= \res -> case res of
 		(ActionOpen,Just group)	= manageGroup group			>>| return False
 		(ActionNew,_)			= newGroup >>= manageGroup 	>>| return False
 		(ActionQuit,_)			= 								return True
@@ -53,7 +53,7 @@ manageGroup igroup
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
 		showMessageAboutA (toString group,"This group contains the following members:") id [aBack,aInvite,aLeave] group.Group.members
-	>>= \(action,_) -> case fst action of
+	>>= \action -> case fst action of
 		ActionClose					= 					return True
 		Action "invite" _			= invite group	>>| return False
 		Action "leave" _			= leave group	>>| return False

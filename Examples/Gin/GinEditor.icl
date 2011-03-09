@@ -146,8 +146,8 @@ codeView gMod = ( Note (tryRender gMod False), Note (tryRender gMod True))
 codeUpdate :: (Note, Note) GModule -> GModule
 codeUpdate _ gMod = gMod 
 
-switchAction :: (ActionEvent, EditorState) -> Task Void
-switchAction ((action, actiondata), state) = 
+switchAction :: (Action, EditorState) -> Task Void
+switchAction (action, state) = 
     case action of
         ActionNew              -> askSaveIfChanged state >>| doMenu emptyState
         ActionOpen             -> askSaveIfChanged state >>| open state >>= doMenu 

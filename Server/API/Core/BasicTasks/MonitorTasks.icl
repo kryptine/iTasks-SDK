@@ -8,7 +8,7 @@ monitor :: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & i
 monitor d view pred autoContinue shared
 	= mkInteractiveTask d Monitor (makeMonitorTask shared view pred autoContinue)
 
-monitorA :: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!ActionEvent,!Maybe m) | descr d & iTask m & iTask v
+monitorA :: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!Action,!Maybe m) | descr d & iTask m & iTask v
 monitorA d view actions autoEvents shared
 	= mkInteractiveTask d Monitor (makeMonitorTaskA shared view actions autoEvents)
 
@@ -29,10 +29,10 @@ where
 	
 	autoEvents Invalid				= Nothing
 	autoEvents (Valid v)
-		| autoContinue && pred v	= Just (ActionContinue,"")
+		| autoContinue && pred v	= Just ActionContinue
 		| otherwise					= Nothing
 		
-makeMonitorTaskA	:: !(Shared m w) !(m -> v) ![TaskAction m] !(AutoActionEvents m) -> TaskFunctions (!ActionEvent,!Maybe m) | iTask m & iTask v
+makeMonitorTaskA	:: !(Shared m w) !(m -> v) ![TaskAction m] !(AutoActionEvents m) -> TaskFunctions (!Action,!Maybe m) | iTask m & iTask v
 makeMonitorTaskA shared view actions autoEvents
 	# shared = toReadOnlyShared shared
 	= makeInteractiveTask (Just (SharedAbout shared)) view (Hidden,\_ _ -> Void) actions (Just autoEvents) (SharedUpdate shared)

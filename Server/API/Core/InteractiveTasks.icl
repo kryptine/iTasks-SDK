@@ -24,7 +24,7 @@ ifinvalid _			= False
 noAutoActionEvents :: AutoActionEvents a
 noAutoActionEvents = const Nothing
 
-makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(Maybe (AutoActionEvents i)) !(InteractiveTaskMode i o) -> TaskFunctions (!ActionEvent, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
+makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(Maybe (AutoActionEvents i)) !(InteractiveTaskMode i o) -> TaskFunctions (!Action, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
 makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions mbAutoEventF informationTaskMode = (interactiveTaskE,interactiveTaskC)
 where
 	interactiveTaskE tst=:{taskNr}
@@ -283,16 +283,15 @@ evaluateConditions :: ![(!Action, (Verified a) -> Bool)] !Bool a -> [(Action, Bo
 evaluateConditions actions valid value = [(action,pred (if valid (Valid value) Invalid)) \\ (action,pred) <- actions]
 
 //Get action event for current task if present & pred is true
-actionEvent :: !(Verified a) ![TaskAction a] !*TSt-> (!Maybe ActionEvent,!*TSt)
+actionEvent :: !(Verified a) ![TaskAction a] !*TSt-> (!Maybe Action,!*TSt)
 actionEvent v actions tst
 	# (mbActionEvent,tst) = getActionEvent tst
 	# mbEvent = case mbActionEvent of
-		Just (JSONString key)								= addData "" (mbAction key)
-		Just (JSONArray [JSONString key,JSONString data])	= addData data (mbAction key)
+		Just (JSONString aname)								= mbAction aname
 		_													= Nothing
 	= (mbEvent,tst)
 where
-	mbAction key = listToMaybe [action \\ (action,pred) <- actions | actionName action == key && pred v]
+	mbAction aname = listToMaybe [action \\ (action,pred) <- actions | actionName action == aname && pred v]
 	addData data mbAction = fmap (\a -> (a,data)) mbAction
 
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)

@@ -513,15 +513,15 @@ where
 
 instance menuAction Action
 where
-	menuAction action = (actionName action, "", "")
+	menuAction action = (actionName action, "")
 	
 instance menuAction ActionName
 where
-	menuAction name = (name, "", "")
+	menuAction name = (name, "")
 	
-instance menuAction (actionName, ActionLabel, ActionData) | actionName actionName
+instance menuAction (actionName, ActionLabel) | actionName actionName
 where
-	menuAction (name, label, data) = (actionName name, label, data)
+	menuAction (name, label) = (actionName name, label)
 	
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (actionName action) 

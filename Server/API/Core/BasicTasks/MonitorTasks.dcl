@@ -4,7 +4,7 @@ definition module MonitorTasks
 
 import Task
 from Shared				import :: Shared
-from InteractiveTasks	import :: TaskAction, :: ActionEvent, :: AutoActionEvents, :: Verified
+from InteractiveTasks	import :: TaskAction, :: AutoActionEvents, :: Verified
 
 /**
 * Monitors a shared state using a functional view.
@@ -30,7 +30,7 @@ monitor		:: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & 
 * @param A reference to the shared state
 * @return The last value of the monitored state + the generated action event
 */
-monitorA	:: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!ActionEvent,!Maybe m) | descr d & iTask m & iTask v
+monitorA	:: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!Action,!Maybe m) | descr d & iTask m & iTask v
 
 /**
 * Waits until a shared Maybe-state contains a value.

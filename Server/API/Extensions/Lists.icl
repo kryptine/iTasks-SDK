@@ -29,7 +29,7 @@ manageLists
 	=	Title "Manage lists" @>>
 	(	getMyLists
 	>>=	overview
-	>>= \res -> case appFst fst res of
+	>>= \res -> case res of
 		(ActionOpen,Just list)		= manageList list			>>| return False
 		(ActionDelete,Just list)	= delList list				>>| return False
 		(ActionNew,_)				= newList >>= manageList	>>| return False
@@ -61,7 +61,7 @@ manageList :: AnyList -> Task Void
 manageList list
 	=	
 	(	showItems list
-	>>= \(action,_) -> case fst action of
+	>>= \(action,_) -> case action of
 		ActionEdit			= editItems	list			>>| return False
 		Action "share" _	= manageListSharing list	>>| return False
 		ActionClose			=								return True
@@ -104,7 +104,7 @@ manageListSharing list
 				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] []
 				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id [aPrevious,aRemove,aAddPerson,aAddGroup] users
 			  )
-			>>= \res -> case appFst fst res of
+			>>= \res -> case res of
 				(ActionDelete,users)		= removeUsers users >>| return False
 				(Action "add-person" _,_)	= addUsers list		>>| return False
 				(Action "add-group" _,_)	= addGroup list		>>| return False

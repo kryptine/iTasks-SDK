@@ -10,15 +10,15 @@ textEditorApp :: Task Void
 textEditorApp = mdiApplication (AppState 0 []) groupActions actionGenFunc menuGenFunc
 where
 	groupActions = [(ActionNew, Always), (ActionOpen, Always), (Action OpenFile "", Always), (ActionAbout, Always), (ActionQuit, Always), (Action FocusWindow "", Always)]
-	actionGenFunc ref mdiTasks=:{createEditor, iterateEditors} (action, data)
+	actionGenFunc ref mdiTasks=:{createEditor, iterateEditors} action
 		# appStateRef = mapShared (fst,\app (_,editors) -> (app,editors)) ref
 		= case action of
 			ActionNew				= GExtend [newFile appStateRef createEditor]
 			ActionOpen				= GExtend [openDialog appStateRef mdiTasks]
-			Action OpenFile _		= GExtend [open (DBRef (toInt data)) mdiTasks Nothing]
+			//Action OpenFile _		= GExtend [open (DBRef (toInt data)) mdiTasks Nothing]
 			ActionAbout				= GExtend [about]
 			ActionQuit				= GExtend [quit iterateEditors]
-			Action FocusWindow _	= GFocus (Tag data)
+			//Action FocusWindow _	= GFocus (Tag data)
 		
 	hotkey :: !Key -> Maybe Hotkey
 	hotkey key = Just {ctrl = True, alt = False, shift = True, key = key}
@@ -44,8 +44,8 @@ where
 		, Menu "Window"	windowMenu
 		]
 	where
-		recentlyOpenedMenu = [MenuItem (OpenFile, toString name, toString id) Nothing \\ (DBRef id, name) <- recOpenedFiles]
-		windowMenu = [MenuItem (FocusWindow, titleListener est, toString eid) Nothing \\ (eid,est) <- toList editorCollection]
+		recentlyOpenedMenu = [MenuItem (OpenFile, toString name) Nothing \\ (DBRef id, name) <- recOpenedFiles]
+		windowMenu = [MenuItem (FocusWindow, titleListener est) Nothing \\ (eid,est) <- toList editorCollection]
 			
 Replace			:== "replace"
 Stats			:== "stats"
@@ -65,7 +65,7 @@ openDialog gid mdiTasks =
 	>>= \files.	if (isEmpty files)
 					(showMessage ("Open File","No files to open!") GContinue)
 					(				enterChoiceA ("Open file","Open File") id buttons files
-						>>= \res.	case appFst fst res of
+						>>= \res.	case res of
 										(ActionOk,Just (_, Hidden fid)) =
 											open fid mdiTasks (Just gid)
 										_ =
@@ -116,7 +116,7 @@ where
 				, (Action Replace "Replace", SharedPredicate ref contNotEmpty)
 				, (Action Stats "Statistics", Always), (ActionClose, Always)
 				]
-	actionsGenFunc (action, _) = case action of
+	actionsGenFunc action = case action of
 		ActionSave			= GExtend [save ref]
 		ActionSaveAs		= GExtend [saveAs ref]
 		Action Replace _	= GExtend [replaceT ref]
@@ -154,7 +154,7 @@ save eid =
 saveAs :: !EditorStateRef -> Task GAction
 saveAs eid =
 				enterInformationA ("Save as","Save As: enter name") id buttons <<@ NoMenus
-	>>= \res.	case appFst fst res of
+	>>= \res.	case res of
 					(ActionOk,Just name) =
 														readShared eid
 						>>= \(EditorState txt _).		storeFile name txt
@@ -175,7 +175,7 @@ where
 	replaceT` :: !Replace -> Task GAction
 	replaceT` repl =
 					updateInformationA ("Replace","Replace") idView buttons repl <<@ NoMenus
-		>>= \res.	case appFst fst res of
+		>>= \res.	case res of
 						(ActionReplaceAll,Just repl) =
 								updateShared (dbReplaceFunc repl) eid
 							>>|	replaceT` repl
@@ -231,10 +231,10 @@ requestClosingFile eid =
 										readShared eid
 	>>= \state=:(EditorState _ file).	if (hasUnsavedData state)
 										(					showMessageAboutA ("Save changes","Save changes?") id buttons (question file) <<@ NoMenus
-											>>= \action.	case fst action of
-																(ActionCancel,_)	= return True
-																(ActionNo,_)		= return False
-																(ActionYes,_)		= save eid >>| return False
+											>>= \(action,_). case action of
+																ActionCancel	= return True
+																ActionNo		= return False
+																ActionYes		= save eid >>| return False
 										)
 										(return False)
 where

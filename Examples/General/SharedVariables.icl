@@ -21,7 +21,7 @@ linesPar =
 where
 	noteE sid = 
 					updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, always), quitButton] sid
-		>>= \res.	case appFst fst res of
+		>>= \res.	case res of
 						(TrimAction,Just txt) =
 								writeShared sid (trim txt)
 							>>|	noteE sid
@@ -67,7 +67,7 @@ mergeTestList =
 	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
 	>>|			stop
 where
-	view :: (SymmetricShared [String]) -> Task (ActionEvent,Maybe [String])
+	view :: (SymmetricShared [String]) -> Task (Action,Maybe [String])
 	view sid = updateSharedInformationA ("List","Merging the lists") idView [quitButton] sid
 	
 mergeTestDocuments :: Task Void
@@ -113,7 +113,7 @@ googleMaps =
 where							
 	markersDisplay dbid =
 							showMessageSharedA "Markers" markersListener [(RemoveMarkersAction,always),quitButton] dbid
-		>>= \(action,map).	case fst action of
+		>>= \(action,map).	case action of
 								RemoveMarkersAction	= updateShared (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid
 								_					= return map
 
@@ -171,7 +171,7 @@ where
 		]
 		
 	actions = [(ActionQuit, Always)]
-	actionsGenFunc (ActionQuit,_) = GOStop
+	actionsGenFunc actionQuit = GOStop
 
 //Use a share to simplify data entry by allowing a choice from known values instead of entry
 :: Order =

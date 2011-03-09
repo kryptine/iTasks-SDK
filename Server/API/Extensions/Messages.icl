@@ -41,14 +41,14 @@ manageMessages :: Task Void
 manageMessages =
 	(	getMyMessages
 	>>= overview
-	>>= \res -> case appFst fst res of
+	>>= \res -> case res of
 		(ActionOpen,Just message)		= manageMessage message	>>|	return False
 		(Action "new-msg" _,_) 			= newMessage			>>|	return False
 		(Action "new-group-msg" _,_)	= newGroupMessage		>>| return False
 		(ActionQuit,_)					= 							return True
 	) <! id >>| stop
 where
-	overview :: [Message] -> Task (ActionEvent,Maybe Message)
+	overview :: [Message] -> Task (Action,Maybe Message)
 	overview []		= getDefaultValue >>= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] >>= transform (appSnd Just)
 	overview msgs	= enterChoiceA ("My messages","Your messages:") id [aOpen,aNew,aNewGroup,aQuit] msgs
 	
@@ -61,24 +61,24 @@ manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
 	= 	showMessageAboutA (subject,"You received a message") id [aClose,aReply,aReplyAll,aForward,aDelete] msg
 	>>= \act -> case act of
-		((ActionClose,_),_) 
+		(ActionClose,_) 
 			= return False
-		((Action "reply" _,_),message)
+		(Action "reply" _,message)
 			= 			getCurrentUser
 			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		((Action "reply-all" _,_),_)
+		(Action "reply-all" _,_)
 			= 			getCurrentUser
 			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		((Action "forward" _,_),_)
+		(Action "forward" _,_)
 			= 			getCurrentUser 
 			>>= \me -> 	writeMessage me ("Fw: " +++ msg.Message.subject) [] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return False
-		((ActionDelete,_),msg)
+		(ActionDelete,msg)
 			=			dbDeleteItem (getItemId msg)
 			>>|			showMessage ("Deleted","Message deleted") False	
 where

@@ -325,7 +325,6 @@ getRoles			:: !User -> [Role]
 
 :: ActionName	:== String	//Locally unique identifier for actions
 :: ActionLabel	:== String	//Textual label for the action
-:: ActionData	:== String	//Extra data to pass along with an action
 
 instance == Action
 
@@ -357,11 +356,11 @@ actionLabel	:: !Action -> String
 
 class menuAction a :: a -> MenuAction
 
-:: MenuAction :== (ActionName, ActionLabel, ActionData)
+:: MenuAction :== (ActionName, ActionLabel)
 
 instance menuAction Action
 instance menuAction ActionName
-instance menuAction (actionName, ActionLabel, ActionData) | actionName actionName
+instance menuAction (actionName, ActionLabel) | actionName actionName
 
 :: InteractiveTaskType = Information | Message | Instruction | Monitor
 

@@ -27,7 +27,7 @@ where
 	actions = [(ActionCancel, always), (ActionOk, always)]
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
 
-	handleMoney ((ActionCancel,_), _)
+	handleMoney (ActionCancel, _)
 					= show "Cancelled" paid
 	handleMoney (_, Just coin) 
 	| cost > coin	= getCoins product (cost-coin, paid+coin)

@@ -210,14 +210,14 @@ where
 	
 	mkMenuItems :: ![TUIDef] ![MenuItem] !Int ![ActionName] -> (![TUIDef], !Int, [ActionName])
 	mkMenuItems defs [MenuItem mAction mbHotkey : items] id usedActions
-		# (actionName, actionLabel, actionData) = menuAction mAction
+		# (actionName, actionLabel) = menuAction mAction
 		# (defs, usedActions) = case get actionName actions of
 			Nothing							= (defs, usedActions)
-			Just (action, taskId, enabled)	= ([mkMenuItem taskId actionName (mkLabel action actionLabel) (actionIcon action) actionData enabled:defs], [actionName:usedActions])
+			Just (action, taskId, enabled)	= ([mkMenuItem taskId actionName (mkLabel action actionLabel) (actionIcon action) enabled:defs], [actionName:usedActions])
 		= mkMenuItems defs items (inc id) usedActions
 	where
-		mkMenuItem :: !TaskId !ActionName !ActionLabel !String !ActionData !Bool -> TUIDef
-		mkMenuItem taskId name label icon data enabled =
+		mkMenuItem :: !TaskId !ActionName !ActionLabel !String !Bool -> TUIDef
+		mkMenuItem taskId name label icon enabled =
 			TUIMenuItem	{ TUIMenuItem	
 						| id = Just (taskId +++ "-menu-" +++ toString id)
 						, text = label
@@ -227,7 +227,6 @@ where
 						, menu = Nothing
 						, iconCls = Just icon
 						, hotkey = mbHotkey
-						, actionData = Just data
 						}
 		mkLabel :: !Action !ActionLabel -> ActionLabel
 		mkLabel action "" = actionLabel action
@@ -248,7 +247,6 @@ where
 														, target = Nothing
 														, iconCls = Nothing
 														, hotkey = Nothing
-														, actionData = Nothing
 														}
 							:defs] items id taskActions
 	mkMenuItems defs [MenuSeparator:items] id taskActions = mkMenuItems ndefs items id taskActions

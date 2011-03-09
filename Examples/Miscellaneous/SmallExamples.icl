@@ -25,17 +25,17 @@ where
 						  >>= \(_,Just num1`) -> step2First num1`
 	
 	step2First num1		= enterInformationA ("Number 2","Enter another number") id [(ActionPrevious, always), (ActionNext, ifvalid)]
-						  >>= \res -> case appFst fst res of
+						  >>= \res -> case res of
 						  	(ActionNext,Just num2)	= step3 num1 num2
 						  	(ActionPrevious,_)		= step1Back num1
 						  							
 	step2Back num1 num2	= updateInformationA ("Number 2","Enter another number") idView [(ActionPrevious, always), (ActionNext, ifvalid)] num2
-						  >>= \res -> case appFst fst res of
+						  >>= \res -> case res of
 						  	(ActionNext,Just num2`)	= step3 num1 num2`
 						  	(ActionPrevious,_)		= step1Back num1
 	
 	step3 num1 num2		= showMessageAboutA ("Sum","The sum of those numbers is:") id [(ActionPrevious, always), (ActionOk, always)] (num1 + num2)
-						>>= \res -> case appFst fst res of
+						>>= \res -> case res of
 							(ActionOk,sum)		= return sum
 							(ActionPrevious,_)	= step2Back num1 num2
 
