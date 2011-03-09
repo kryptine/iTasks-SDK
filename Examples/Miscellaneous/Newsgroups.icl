@@ -150,7 +150,7 @@ where
 	where
 		printFriends = join ", " (map toString friends)
 
-	menus :: Menus
+	menus :: MenuDefinition
 	menus =
 		[ Menu "File" [ MenuItem (Action "new" "New Topic") Nothing
 					  , MenuItem ActionAddUser				Nothing
@@ -162,7 +162,7 @@ where
 	chatSession chatbox user 
 		= 			readShared chatbox
 		>>= \chat -> writeShared chatbox {Chat | chat & users = chat.Chat.users++[user]}
-		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ Fixed] chatActions chatActionsGenFunc
+		>>|	dynamicGroupAOnly [chatEditor chatbox user] chatActions chatActionsGenFunc
 	where
 		chatActions = [ (ActionNew, Always), (ActionQuit, Always)
 					, (ActionAddUser, SharedPredicate chatbox (\chat -> chat.Chat.initUser == user))
@@ -345,7 +345,7 @@ ActionSubscribe		:== Action "subscribe" "Subscribe"
 ActionSubscribeTo	:== Action "subscribe-to" "SubscribeTo"
 ActionCommit		:== Action "commit" "Commit"
 
-initMenu :: NewsGroupNames -> Menus
+initMenu :: NewsGroupNames -> MenuDefinition
 initMenu groups
 	=
 		[ Menu "File"	[ MenuItem (Action "Add New Newsgroup..." "new")	Nothing
@@ -407,7 +407,7 @@ subscribeProcess me group = spawnProcess True True (readNews 1 me group 0 <<@ Ti
 
 ActionRefresh :== Action "refresh" "Refresh"
 
-readMenu :: Menus
+readMenu :: MenuDefinition
 readMenu =
 	[ Menu "Menu"	[ //SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (i +++> " messages") (toString i)) Nothing \\ i <- [1,5,10,30,50]]
 					 MenuItem ActionQuit Nothing

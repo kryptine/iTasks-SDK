@@ -12,7 +12,7 @@ emptyState = (("",emptyFlow),False)
 
 ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
 
-initMenu :: Menus
+initMenu :: MenuDefinition
 initMenu =
 	[ Menu "File"	[ MenuItem ActionNew		Nothing
 					, MenuItem ActionOpen		Nothing

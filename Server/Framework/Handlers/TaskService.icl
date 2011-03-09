@@ -3,7 +3,7 @@ implementation module TaskService
 import StdList, StdMisc, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel
 
 //Additional derives for debugging
-derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, GroupActionsBehaviour, GroupedBehaviour, InteractiveTask, Menu
+derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, InteractiveTask, Menu
 
 JSONEncode{|MenuItem|} v = case v of
 	MenuItem action mbHotkey	= [JSONArray [JSONString "MenuItem" : JSONEncode{|*|} (menuAction action) ++ JSONEncode{|*|} mbHotkey]]

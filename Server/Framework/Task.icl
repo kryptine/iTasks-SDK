@@ -1,6 +1,6 @@
 implementation module Task
 
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, HTML, Types, dynamic_string, Base64, HTTP, Util
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, Types, dynamic_string, Base64, HTTP, Util
 import GenVisualize
 from TSt import :: TSt
 
@@ -65,14 +65,20 @@ mapTaskResult f (TaskException e)	= TaskException e
 mapTask :: !(a -> b) !(Task a) -> Task b
 mapTask f t=:{taskFuncCommit} = {t & taskFuncCommit = appFst (mapTaskResult f) o taskFuncCommit}
 
-derive JSONEncode TaskResult, GroupedProperties, GroupActionsBehaviour, GroupedBehaviour
-derive JSONDecode TaskResult, GroupedProperties, GroupActionsBehaviour, GroupedBehaviour
+derive JSONEncode TaskResult, TaskContainerType
+derive JSONDecode TaskResult, TaskContainerType
 derive bimap Maybe, (,)
 
-JSONEncode{|Task|} _ {taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit}
+// JSON (de)serialisation of menus not needed because only function generating menus are serialised
+JSONEncode{|Menu|} _		= abort "not implemented"
+JSONEncode{|MenuItem|} _	= abort "not implemented"
+JSONDecode{|Menu|} _		= abort "not implemented"
+JSONDecode{|MenuItem|} _	= abort "not implemented"
+
+JSONEncode{|Task|} _ {taskProperties,containerType,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit}
 	= [JSONArray	[  JSONString "Task"
 					:  JSONEncode{|*|} taskProperties
-					++ JSONEncode{|*|} groupedProperties
+					++ JSONEncode{|*|} containerType
 					++ JSONEncode{|*|} mbTaskNr
 					++ encodeFunc mbMenuGenFunc
 					++ encodeFunc taskFuncEdit
@@ -80,21 +86,21 @@ JSONEncode{|Task|} _ {taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,ta
 					
 encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
 
-JSONDecode{|Task|} _ [JSONArray [JSONString "Task",taskProperties,groupedProperties,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
+JSONDecode{|Task|} _ [JSONArray [JSONString "Task",taskProperties,containerType,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
 	# mbTaskProperties		= fromJSON taskProperties
-	# mbGroupedProperties	= fromJSON groupedProperties
+	# mbContainerType		= fromJSON containerType
 	# mbMbTaskNr			= fromJSON mbTaskNr
 	# mbMbMenuGenFunc		= decodeFunc mbMenuGenFunc
 	# mbTaskFuncEdit		= decodeFunc taskFuncEdit
 	# mbTaskFuncCommit		= decodeFunc taskFuncCommit
 	|  isJust mbTaskProperties
-	&& isJust mbGroupedProperties
+	&& isJust mbContainerType
 	&& isJust mbMbTaskNr
 	&& isJust mbMbMenuGenFunc
 	&& isJust mbTaskFuncEdit
 	&& isJust mbTaskFuncCommit
 		= (Just	{ taskProperties	= fromJust mbTaskProperties
-				, groupedProperties	= fromJust mbGroupedProperties
+				, containerType		= fromJust mbContainerType
 				, formWidth			= Nothing
 				, mbTaskNr			= fromJust mbMbTaskNr
 				, mbMenuGenFunc		= fromJust mbMbMenuGenFunc
@@ -113,7 +119,7 @@ gUpdate{|Task|} fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ taskProperties	= {ManagerProperties | initManagerProperties & taskDescription = toDescr "return"}
-					, groupedProperties	= initGroupedProperties
+					, containerType		= InParallelBody
 					, formWidth			= Nothing
 					, mbTaskNr			= Nothing
 					, mbMenuGenFunc		= Nothing

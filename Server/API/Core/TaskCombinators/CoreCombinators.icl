@@ -211,7 +211,10 @@ where
 		getNameAndData (JSONString key) 							= Just (key, "")
 		getNameAndData (JSONArray [JSONString key,JSONString data])	= Just (key, data)
 		getNameAndData _											= Nothing
-		
+
+container :: !TaskContainerType !(Task a) -> Task a | iTask a
+container type task = {task & containerType = type}
+
 parallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 parallel parType d (initState,accuFun,resultFun) initCTasks initTasks
 	= mkParallelTask d parType (parallelE,parallelC)

@@ -71,7 +71,6 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 
 :: TTCGroupContainerElement =
 	{ panel		:: !TaskPanel
-	, behaviour	:: !GroupedBehaviour
 	, index		:: !String
 	, focus		:: !Bool
 	}

@@ -66,7 +66,7 @@ ActionEditCode         :== Action "editcode"		"Edit Code"
 ActionEnableSC         :== Action "sc_on"  			"Enable syntax checking"
 ActionDisableSC        :== Action "sc_off" 			"Disable syntax checking"
 
-initMenu :: Menus
+initMenu :: MenuDefinition
 initMenu =
     [ Menu "File"    [ MenuItem ActionNew				(Just { key = N, ctrl = True, alt = False, shift = False })
                      , MenuItem ActionOpen				(Just { key = N, ctrl = True, alt = False, shift = False })

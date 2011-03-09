@@ -19,13 +19,22 @@ derive gEq			Task
 
 :: Task a =
 	{ taskProperties	:: !ManagerProperties					// the task's manager properties
-	, groupedProperties	:: !GroupedProperties					// properties about how the tasks behaves inside of a group
+	, containerType		:: !TaskContainerType					// specified in which kind of container the task is shown inside of a parallel
 	, formWidth			:: !Maybe FormWidth						// Width of task form
 	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
 	, mbMenuGenFunc		:: !(Maybe MenuGenFunc)					// a function generating a menu structure
 	, taskFuncEdit		:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
 	, taskFuncCommit	:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
 	}
+	
+:: TaskContainerType	= DetachedTask !ActionMenu				// task detached as separate process
+						| WindowTask !WindowTitle !ActionMenu	// task shwon in a window (with own menu)
+						| DialogTask !WindowTitle				// task shwon as dialogue (without own menu)
+						| InParallelBody						// task shown in the body of the parallel container
+						| HiddenTask							// task not shown to the user
+						
+:: ActionMenu :== [MenuAction] -> MenuDefinition
+:: WindowTitle :== String
 
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
 

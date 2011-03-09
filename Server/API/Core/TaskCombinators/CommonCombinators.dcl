@@ -265,7 +265,7 @@ mdiApplication ::
 	!globalState
 	![GroupAction Void]
 	!((SymmetricShared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction))
-	!((globalState,EditorCollection editorState) -> Menus)
+	!((globalState,EditorCollection editorState) -> MenuDefinition)
 	->
 	Task Void | iTask globalState & iTask editorState & iTask iterationState
 

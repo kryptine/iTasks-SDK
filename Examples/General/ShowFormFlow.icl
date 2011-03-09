@@ -10,7 +10,7 @@ Refresh		:== Action "refresh" "Refresh"
 showStoredDefinitions :: Workflow
 showStoredDefinitions = workflow "Examples/Interactive Workflows/Show Stored Definitions" "Show stored form or workflow definitions" handleMenu
 
-initMenu :: Menus
+initMenu :: MenuDefinition
 initMenu =
 	[ Menu "File"	[ MenuItem ShowForms	Nothing
 					, MenuItem ShowFlows	Nothing

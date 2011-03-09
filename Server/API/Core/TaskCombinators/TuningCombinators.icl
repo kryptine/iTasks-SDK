@@ -1,8 +1,7 @@
 implementation module TuningCombinators
 
 import Types, StdList, StdMisc, Shared, HTML, Task
-from Time				import :: Timestamp, :: Tm(..), mkTime
-from TaskTree			import :: GroupedBehaviour, :: GroupActionsBehaviour
+from Time import :: Timestamp, :: Tm(..), mkTime
 
 class tune b :: !b !(Task a) -> Task a
 instance tune ManagerProperties
@@ -21,10 +20,6 @@ instance tune Tag
 where tune (Tag t) task=:{taskProperties}			= {task & taskProperties = {taskProperties & tags = [toString t : taskProperties.tags]}}
 instance tune Tags
 where tune (Tags ts) task=:{taskProperties}			= {task & taskProperties = {taskProperties & tags = (map toString ts) ++ taskProperties.tags}}
-instance tune GroupedBehaviour
-where tune gb task=:{groupedProperties}				= {task & groupedProperties = {groupedProperties & groupedBehaviour = gb}}
-instance tune GroupActionsBehaviour
-where tune ga task=:{groupedProperties}				= {task & groupedProperties = {groupedProperties & groupActionsBehaviour = ga}}
 instance tune MenuAnnotation
 where
 	tune ma task									= {task & mbMenuGenFunc = (Just menuGenFunc)}
@@ -40,7 +35,7 @@ where
 						Ok v	= (genF v,iworld)
 						Error _	= ([],iworld) // empty menus on error
 					
-instance tune Menus
+instance tune MenuDefinition
 where tune menus task = tune (StaticMenus menus) task
 instance tune FormWidth
 where tune fw task=:{taskProperties}				= {task & formWidth = Just fw}

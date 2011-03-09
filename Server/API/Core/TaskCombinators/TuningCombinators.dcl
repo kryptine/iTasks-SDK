@@ -10,9 +10,9 @@ import Task
 :: Tag				= E.s: Tag !s			& toString s
 :: Tags				= E.s: Tags ![s]		& toString s
 :: MenuAnnotation	= 	NoMenus
-					| 	StaticMenus !Menus
+					| 	StaticMenus !MenuDefinition
 					| E.s w:
-						DynamicMenus !(Shared s w) !(s -> Menus) & iTask s
+						DynamicMenus !(Shared s w) !(s -> MenuDefinition) & iTask s
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a
@@ -26,9 +26,7 @@ instance tune	Description				//Set initial subject
 instance tune	TaskPriority			//Set initial priority
 instance tune	DateTime				//Set initial deadline
 instance tune	Tag						//Append Tag
-instance tune	Tags					//Append List of Tags	
-instance tune	GroupedBehaviour		//Set grouped behaviour
-instance tune	GroupActionsBehaviour	//Set group actions behaviour
+instance tune	Tags					//Append List of Tags
 instance tune	MenuAnnotation			//Set menu structure for this task and all children
-instance tune	Menus					//Abbreviation for StaticMenus
+instance tune	MenuDefinition			//Abbreviation for StaticMenus
 instance tune	FormWidth				//Set form width for this task and all children

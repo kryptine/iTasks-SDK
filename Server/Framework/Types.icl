@@ -575,10 +575,3 @@ initManagerProperties =
 	, deadline = Nothing
 	, tags = []
 	}
-	
-initGroupedProperties :: GroupedProperties
-initGroupedProperties =
-	{ GroupedProperties
-	| groupedBehaviour		= Fixed
-	, groupActionsBehaviour	= IncludeGroupActions
-	}

@@ -58,8 +58,6 @@ initTaskInfo
 		, description = ""
 		, context = Nothing
 		, tags = []
-		, groupedBehaviour = Fixed
-		, groupActionsBehaviour = IncludeGroupActions
 		, menus = Nothing
 		, formWidth = Nothing
 		}
@@ -629,7 +627,7 @@ mkMainTask description taskfun
 mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkTask description taskFuncEdit taskFuncCommit =
 	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
-	, groupedProperties	= initGroupedProperties
+	, containerType		= InParallelBody
 	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
 	, mbMenuGenFunc		= Nothing
@@ -659,7 +657,7 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth} tst=:{taskNr,tree,properties}
+applyTaskCommit {taskProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth} tst=:{taskNr,tree,properties}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
@@ -668,8 +666,6 @@ applyTaskCommit {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, tas
 					, description			= toString taskProperties.ManagerProperties.taskDescription.TaskDescription.description
 					, context				= Nothing
 					, tags					= taskProperties.ManagerProperties.tags
-					, groupedBehaviour 		= groupedProperties.GroupedProperties.groupedBehaviour
-					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
 					, menus					= mbMenuGenFunc
 					, formWidth				= formWidth
 					}

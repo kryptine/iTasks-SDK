@@ -160,7 +160,7 @@ formattedText :: Task Void
 formattedText =
 				[Menu "Example" [MenuItem ActionQuit Nothing]]
 	@>>			createSharedStore (mkEmptyFormattedText {allControls & sourceEditControl = False})
-	>>= \sid.	dynamicGroupAOnly [t <<@ ExcludeGroupActions <<@ Floating \\ t <- tasks sid] actions actionsGenFunc
+	>>= \sid.	dynamicGroupAOnly [t \\ t <- tasks sid] actions actionsGenFunc
 	>>|			stop
 where
 	tasks sid =

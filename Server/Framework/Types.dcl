@@ -242,22 +242,6 @@ instance descr (String, descr) | html descr
 instance descr TaskDescription
 
 initManagerProperties :: ManagerProperties
-initGroupedProperties :: GroupedProperties
-
-// Properties of groups
-				
-:: GroupedProperties =
-	{ groupedBehaviour		:: !GroupedBehaviour
-	, groupActionsBehaviour	:: !GroupActionsBehaviour
-	}
-	
-:: GroupedBehaviour = Fixed 		//The editor is fixed in the main canvas of the parent task
-					| Floating		//The editor is shown in a floating window
-					| Modal			//The editor is shown in a modal dialog
-					
-// Determines if group-actions are added to actions of interactive task
-:: GroupActionsBehaviour	= IncludeGroupActions
-							| ExcludeGroupActions
 
 // Users	
 :: User
@@ -355,7 +339,7 @@ actionLabel	:: !Action -> String
 
 // Definition of menus
 
-:: Menus		:== [Menu]
+:: MenuDefinition :== [Menu]
 :: Menu 		= Menu !MenuLabel ![MenuItem]
 :: MenuItem 	= E.action:	MenuItem !action !(Maybe Hotkey) & menuAction action
 				| 			SubMenu !MenuLabel ![MenuItem]
@@ -369,7 +353,7 @@ actionLabel	:: !Action -> String
 			}	
 :: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
 
-:: MenuGenFunc :== *IWorld -> *(Menus, *IWorld)
+:: MenuGenFunc :== *IWorld -> *(MenuDefinition, *IWorld)
 
 class menuAction a :: a -> MenuAction
 

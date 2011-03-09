@@ -14,16 +14,16 @@ where
 		# appStateRef = mapShared (fst,\app (_,editors) -> (app,editors)) ref
 		= case action of
 			ActionNew				= GExtend [newFile appStateRef createEditor]
-			ActionOpen				= GExtend [openDialog appStateRef mdiTasks <<@ Floating]
+			ActionOpen				= GExtend [openDialog appStateRef mdiTasks]
 			Action OpenFile _		= GExtend [open (DBRef (toInt data)) mdiTasks Nothing]
-			ActionAbout				= GExtend [about <<@ Floating]
-			ActionQuit				= GExtend [quit iterateEditors <<@ Modal]
+			ActionAbout				= GExtend [about]
+			ActionQuit				= GExtend [quit iterateEditors]
 			Action FocusWindow _	= GFocus (Tag data)
 		
 	hotkey :: !Key -> Maybe Hotkey
 	hotkey key = Just {ctrl = True, alt = False, shift = True, key = key}
 	
-	menuGenFunc :: (AppState,EditorCollection EditorState) -> Menus
+	menuGenFunc :: (AppState,EditorCollection EditorState) -> MenuDefinition
 	menuGenFunc (AppState _ recOpenedFiles,editorCollection) =
 		[ Menu "File"	[ MenuItem ActionNew		(hotkey N)
 						, MenuItem ActionOpen		(hotkey O)
@@ -94,7 +94,7 @@ where
 		OpenedFile file	= (fid == file.fileId)
 	
 	editor :: !TextFile -> Task GAction					
-	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ Floating >>| continue
+	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile >>| continue
 
 about :: Task GAction
 about = showMessageA ("About","iTextEditor January 2011") [(ActionOk,always)] GContinue >>= transform snd
@@ -110,7 +110,7 @@ where
 	
 // editor workflows
 textEditorFile :: !(EditorId EditorState) !EditorStateRef -> Task Void
-textEditorFile eid ref = dynamicGroupA [editorWindow eid ref <<@ Floating] actions actionsGenFunc
+textEditorFile eid ref = dynamicGroupA [editorWindow eid ref] actions actionsGenFunc
 where
 	actions =	[ (ActionSave, SharedPredicate ref noNewFile), (ActionSaveAs, Always)
 				, (Action Replace "Replace", SharedPredicate ref contNotEmpty)
@@ -118,10 +118,10 @@ where
 				]
 	actionsGenFunc (action, _) = case action of
 		ActionSave			= GExtend [save ref]
-		ActionSaveAs		= GExtend [saveAs ref <<@ Modal]
-		Action Replace _	= GExtend [replaceT ref  <<@ Floating]
-		Action Stats _		= GExtend [statistics ref  <<@ Floating]
-		ActionClose			= GExtend [close ref <<@ Modal]
+		ActionSaveAs		= GExtend [saveAs ref]
+		Action Replace _	= GExtend [replaceT ref]
+		Action Stats _		= GExtend [statistics ref]
+		ActionClose			= GExtend [close ref]
 	
 	noNewFile :: !EditorState -> Bool					
 	noNewFile (EditorState _ file) = case file of

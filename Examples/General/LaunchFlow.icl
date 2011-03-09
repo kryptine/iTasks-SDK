@@ -10,7 +10,7 @@ launchFlow = workflow "Examples/Interactive Workflows/Run workflow" "Run a store
 
 ActionStartFlow 	:== Action "start" "Start Flow"
 
-initMenu :: Menus
+initMenu :: MenuDefinition
 initMenu =
 	[ Menu "File"	[ MenuItem ActionStartFlow	Nothing
 					, MenuSeparator

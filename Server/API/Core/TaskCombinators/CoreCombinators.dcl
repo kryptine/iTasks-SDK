@@ -4,7 +4,7 @@ definition module CoreCombinators
 * with which additional combinators can be defined.
 */
 from Time				import :: Timestamp
-from TaskTree			import :: TaskParallelType, :: GroupedBehaviour
+from TaskTree			import :: TaskParallelType
 from TuningCombinators	import :: Tag
 from Shared				import :: Shared, :: ReadOnlyShared
 import Task
@@ -110,6 +110,8 @@ derive class iTask PAction
 :: GroupActionGenFunc result	:== (Action, ActionData) -> result	// function mapping task action events to result applied to the group
 
 :: CTask a acc :== (Shared (acc,[TaskProperties]) [ManagerProperties]) -> Task (PAction a acc)
+
+container :: !TaskContainerType !(Task a) -> Task a | iTask a
 
 /**
 * All-in-one swiss-army-knife parallel task creation

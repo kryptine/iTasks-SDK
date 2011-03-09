@@ -10,8 +10,8 @@ from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: SpineTree					:== TaskTree Void Void Void Void
-:: UITree						:== TaskTree Bool InteractiveTask HtmlTag Menus
-:: JSONTree						:== TaskTree Bool JSONNode JSONNode Menus
+:: UITree						:== TaskTree Bool InteractiveTask HtmlTag MenuDefinition
+:: JSONTree						:== TaskTree Bool JSONNode JSONNode MenuDefinition
 :: NonNormalizedTree			:== TaskTree TTNNGroupActionConditions TTNNInteractiveTask TTNNFinished MenuGenFunc
 
 :: TTNNGroupActionConditions	:== *IWorld -> *(!Bool,!*IWorld)
@@ -39,15 +39,13 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 
 :: NonNormalizedTaskInfo	:== TaskInfo MenuGenFunc
-:: NormalizedTaskInfo		:== TaskInfo Menus
+:: NormalizedTaskInfo		:== TaskInfo MenuDefinition
 
 :: TaskInfo	menus =		{ taskId				:: !TaskId											//Task number in string format
 						, subject				:: !String											//Short subject of the task
 						, description			:: !String											//Description of the task (html)
 						, context				:: !Maybe String									//Optional context information for the task
 						, tags					:: ![String]
-						, groupedBehaviour		:: !GroupedBehaviour
-						, groupActionsBehaviour	:: !GroupActionsBehaviour
 						, menus					:: !.(Maybe menus)
 						, formWidth				:: !Maybe FormWidth
 						}

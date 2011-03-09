@@ -22,7 +22,7 @@ ActionEditType	:== Action "edit-type" "Edit Type"
 ActionEditValue	:== Action "edit-value" "Edit Value"
 ActionOpenValue	:== Action "open-value" "Open Value"
 
-initMenu :: Menus
+initMenu :: MenuDefinition
 initMenu  =
 	[ Menu "File"	[ MenuItem ActionNew		Nothing
 					, MenuItem ActionOpen		Nothing
