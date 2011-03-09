@@ -6,21 +6,26 @@ import StdList
 import StdMisc
 import StdTuple
 
-import Maybe
 import JSON
+import Map
+import Maybe
 import Text
 
-import GinBindings
-import GinFlowLibrary
-import GinSyntax
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
+from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+
 import GinAbstractSyntax
-import GinORYX
+import GinFlowLibrary
+import GinParser
+import GinSyntax
 
-import Map
-
-derive gEq		 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive JSONEncode	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive JSONDecode 	ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive gEq		 		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive JSONEncode		ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive JSONDecode 		ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive gVisualize  	 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, JSONNode
+derive gUpdate	    	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, JSONNode
+derive gDefaultMask		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, JSONNode
+derive gVerify  		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, JSONNode
 
 JSONEncode{|ORYXChildShape|} {resourceId, properties, stencil, childShapes, outgoing, bounds, dockers, target}
 	# target` = case target of
@@ -81,6 +86,16 @@ newORYXEditor stencilset
 		, toString = const "newORYXEditor: toString is undefined"
 		}
 		
+petriNetORYXEditor :: ORYXEditor
+petriNetORYXEditor = newORYXEditor petriNetStencilSet
+where
+	petriNetStencilSet :: ORYXStencilSetReference
+	petriNetStencilSet 
+		=	{ ORYXStencilSetReference 
+	   		| url = "petrinets/petrinet.json"
+			, namespace = "http://b3mn.org/stencilset/petrinet#"
+			}
+		
 newORYXDiagram :: ORYXStencilSetReference -> ORYXDiagram
 newORYXDiagram stencilset
 	=	{ ORYXDiagram
@@ -98,16 +113,15 @@ newORYXDiagram stencilset
 					, ssextensions = []
 					}
 					
-petriNetORYXEditor :: ORYXEditor
-petriNetORYXEditor = newORYXEditor petriNetStencilSet
-where
-	petriNetStencilSet :: ORYXStencilSetReference
-	petriNetStencilSet 
-		=	{ ORYXStencilSetReference 
-	   		| url = "petrinets/petrinet.json"
-			, namespace = "http://b3mn.org/stencilset/petrinet#"
-			}
-
+ginStencilSet :: ORYXStencilSetReference
+ginStencilSet 
+	=	{ ORYXStencilSetReference 
+   		| url = "/services/json/stencils/gin"
+		, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
+		}
+		
+newGinORYXDiagram :: ORYXDiagram
+newGinORYXDiagram = newORYXDiagram ginStencilSet
 
 bpmnORYXEditor :: ORYXEditor
 bpmnORYXEditor = newORYXEditor bpmnStencilSet
@@ -120,64 +134,40 @@ where
 			}
 
 //Gin specific:
-
-ginORYXEditor :: ORYXEditor
-ginORYXEditor = 
+ginORYXEditor :: ![GImport] ORYXDiagram -> ORYXEditor
+ginORYXEditor imports diagram = 
 	{ ORYXEditor
 	| newORYXEditor ginStencilSet
-	& toString = \editor -> tryRender (simpleGModule editor.ORYXEditor.diagram)
+	& diagram = diagram
+	, toString = \_ -> "TODO: Not yet implemented"
 	}
-where
-	ginStencilSet :: ORYXStencilSetReference
-	ginStencilSet
-		=	{ ORYXStencilSetReference 
-	   		| url = "/services/json/stencils/gin"
-			, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
-			}
-	
-	tryRender :: GModule -> String
-	tryRender gMod = 
-	    case runParse (gToAModule gMod) of
-	        GSuccess aMod -> renderAModule [] aMod
-	        GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))
 					
-simpleGModule :: !ORYXDiagram -> GModule
-simpleGModule diagram = 
-	{ GModule 
-	| newModule
-	& definitions = [ { GDefinition
-					  | newWorkflow
-					  & body = GGraphExpression (oryxDiagramToGraph diagram)
-					  }
-					]
-
-	}
-
-oryxDiagramToGraph :: !ORYXDiagram -> GGraph
-oryxDiagramToGraph diagram
-	# declMap = (fromList o map (\(bt,decl) -> (decl.GDeclaration.name, (bt,decl))) o flatten o map getModuleDeclarations) flowLibrary
+oryxDiagramToGraph :: !Bindings !ORYXDiagram -> GGraph
+oryxDiagramToGraph bindings diagram
 	# shapes = diagram.ORYXDiagram.childShapes
 	# shapeMap = (fromList o map (\shape -> (shapeId shape, shape)))  shapes
 	# nodes =  (zip2 [0..] o filter (not o isEdge)) shapes
 	# nodeMap = (fromList o map (\(index,node) -> (shapeId node, index))) nodes
 	=	{ GGraph
-		| nodes = map (oryxChildShapeToNode declMap o snd) nodes
+		| nodes = map (oryxChildShapeToNode bindings o snd) nodes
 		, edges = (flatten o map (oryxChildShapesToEdge shapeMap nodeMap)) nodes
 		, size = Nothing
 		}
 
-oryxChildShapeToNode :: (Map String (BranchType,GDeclaration)) !ORYXChildShape -> GNode
-oryxChildShapeToNode declMap shape
-	# mDecl = get (shapeName shape) declMap
-	| isNothing mDecl = abort ("oryxChildShapeToNode: Invalid shape " +++ shapeName shape)
-    =	{ GNode
-		| name = shapeName shape
-		, position =	{ GPosition 
-						| x = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.x
-						, y = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.y
-						}
-		, actualParams = oryxPropertiesToGExpressions (snd (fromJust mDecl)) shape.ORYXChildShape.properties 
-		}
+oryxChildShapeToNode :: !Bindings !ORYXChildShape -> GNode
+oryxChildShapeToNode bindings shape
+	# mDecl = runParse (getDeclaration (shapeName shape) bindings)
+	= case mDecl of 
+		GError [(_, err)] = abort ("oryxChildShapeToNode: Invalid shape " +++ shapeName shape)
+		GSuccess decl = 
+			{ GNode
+			| name = shapeName shape
+			, position =	{ GPosition 
+							| x = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.x
+							, y = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.y
+							}
+			, actualParams = oryxPropertiesToGExpressions (snd decl) shape.ORYXChildShape.properties 
+			}
 
 oryxPropertiesToGExpressions :: GDeclaration !ORYXProperties -> [GExpression]
 oryxPropertiesToGExpressions decl properties
@@ -231,3 +221,23 @@ shapeName shape = shape.ORYXChildShape.stencil.ORYXStencilReference.id
 isEdge :: !ORYXChildShape -> Bool
 isEdge shape = shapeName shape == "Arc"
 
+updateDiagramExtensions :: !GModule -> GModule
+updateDiagramExtensions gmod =: { moduleKind = GCleanModule _ }
+	= gmod //GCleanModule does not contain diagrams
+updateDiagramExtensions gmod =: { moduleKind = GGraphicalModule definitions }
+	=	{ GModule
+		| gmod
+		& moduleKind = GGraphicalModule (map updateDefinition definitions)
+		}
+where
+	updateDefinition :: !GDefinition -> GDefinition
+	updateDefinition gdef =
+		{ GDefinition | gdef & body = updateDiagram gdef.GDefinition.body }
+
+	updateDiagram :: !ORYXDiagram -> ORYXDiagram
+	updateDiagram diagram = 
+		{ ORYXDiagram
+		| diagram
+		& ssextensions = [ "http://mbsd.icis.ru.nl/itasks/gin/" +++ imp +++ "#"
+							\\ imp <- gmod.GModule.imports ]
+		}

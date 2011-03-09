@@ -7,7 +7,6 @@ import GenPrint
         
 import GinSyntax
 import GinParser
-import GinBindings
 
 graphToSPTree :: Bindings GGraph -> GParseState SPTree
 graphToSPTree bindings graph 
@@ -24,7 +23,7 @@ subgraphToTree :: Bindings GGraph Int Int -> GParseState SPTree
 subgraphToTree bindings graph source sink
 # aftersource = getSuccessors graph source
 # beforesink = getPredecessors graph sink
-= getBranchType (getNode graph source).GNode.name bindings >>> subgraphToTree` where
+= getDeclaration (getNode graph source).GNode.name bindings >>> \(branchtype, _) -> subgraphToTree` branchtype where
     aftersource :: [Int]
     aftersource = getSuccessors graph source
     beforesink :: [Int]
@@ -56,7 +55,7 @@ subgraphToTree bindings graph source sink
 
 findsink :: Bindings GGraph Int Int -> GParseState Int
 findsink bindings graph source level
-= getBranchType (getNode graph source).GNode.name bindings >>> findsink`  where
+= getDeclaration (getNode graph source).GNode.name bindings >>> \(branchtype, _) -> findsink` branchtype where
 	aftersource :: [Int]
     aftersource = getSuccessors graph source
     findsink` :: BranchType -> GParseState Int

@@ -1,55 +1,109 @@
 implementation module GinStorage
- 
+
+import StdFile
+from 	StdFunc import o, seqList, ::St
+import StdMisc
+
+from File import qualified fileExists, readFile
+import FilePath
+import Directory
+import Text
+import OSError
+
 import 	iTasks
-from 	StdFunc import o
-import	GinSyntax
 
-derive class iTask ModuleStore				
+import GinConfig
+import GinSyntax
+import GinFlowLibrary
 
-:: ModuleStore	= 	{ name  :: !String
-			  		, value :: !GModule
-			  		, dbref :: !DBRef ModuleStore
-			  		}
+EXTENSION = "gcl"
 
-// *************************************************
+derive class iTask MaybeError
 
-instance DB ModuleStore where
-	databaseId	:: SymmetricShared [ModuleStore]
-	databaseId = sharedStore "ModuleStore"
+listDirectory :: !String !*World -> (MaybeOSError [String], *World)
+listDirectory path world
+	# (res, world) = readDirectory path world
+	| isError res = (res, world)
+	= (Ok [ dropExtension m \\ m <- (fromOk res) | toLowerCase (takeExtension m) == EXTENSION ], world)
+
+listModules :: !GinConfig !*World -> (MaybeOSError [String], *World)
+listModules config world = listDirectory config.userPath world
+
+searchPathModules :: !GinConfig !*World -> ([String], *World)
+searchPathModules config world = sp [config.userPath : config.searchPaths] world
+where
+	sp :: [String] *World -> ([String], *World)
+	sp [] world = ([], world)
+	sp [path:paths] world
+		# (mFiles, world) = listDirectory path world
+		| isError mFiles = sp paths world
+		# (files`, world) = sp paths world
+		= (fromOk mFiles ++ files`, world)
+
+modulePath :: !GinConfig !String !*World -> (Maybe String, *World)
+modulePath config name world = mp [config.userPath : config.searchPaths] world
+where
+	mp :: [String] *World -> (Maybe String, *World)
+	mp []           world = (Nothing, world)
+	mp [path:paths] world 
+		# filepath = (addExtension (path </> name) EXTENSION)
+		# (exists, world) = 'File'.fileExists filepath world
+		| exists	= (Just filepath, world)
+		| otherwise	= mp paths world
+
+readModule :: !GinConfig !String !*World -> (MaybeErrorString GModule, *World)
+readModule config name world
+	# (mPath, world) = modulePath config name world
+	| isNothing mPath = (Error ("Module " +++ name +++ " not found in search path"), world)
+	# (res, world) = 'File'.readFile (fromJust mPath) world
+	| isError res = (Error ("Failed to read file " +++ fromJust mPath), world)
+	# mJson = readJSON (fromOk res)
+	| isNothing mJson = (Error ("Failed to parse file " +++ fromJust mPath), world)
+	= (Ok (fromJust mJson), world)
+where
+	readJSON :: !String -> Maybe GModule
+	readJSON s = fromJSON (fromString s)
+
+readModules :: !GinConfig ![String] !*World -> (MaybeErrorString [GModule], *World)
+readModules config [] world = (Ok [], world)
+readModules config [name:names] world
+	# (mMod, world) = readModule config name world
+	| isError mMod = (liftError mMod, world)
+	# (mMods, world) = readModules config names world
+	| isError mMods = (mMods, world)
+	= (Ok [fromOk mMod : fromOk mMods], world)
 	
-	getItemId	:: ModuleStore -> DBRef ModuleStore
-	getItemId a = a.dbref
+importModules :: !GinConfig ![String] !*World -> (MaybeErrorString [GModule], *World)
+importModules config [] world = (Ok [predefinedModule], world)
+importModules config names world
+	# (mMods, world) = readModules config names world
+	| isError mMods = (mMods, world)
+	= (Ok [predefinedModule : fromOk mMods], world)
+	
+writeModule :: !GinConfig !String !GModule -> Task Void
+writeModule config name gMod = exportJSONFile (addExtension (config.userPath </> name) EXTENSION) gMod >>| stop
 
-	setItemId	:: (DBRef ModuleStore) ModuleStore -> ModuleStore
-	setItemId dbref a = {a & dbref = dbref}
+moduleExists :: !GinConfig !String -> Task Bool
+moduleExists config name = accWorld (modulePath config name) >>= \path -> return (isJust path)
 
-readAllModules :: Task [ModuleStore]
-readAllModules = dbReadAll
+newModuleName :: !GinConfig -> Task String
+newModuleName config
+	=						enterInformation "Give name of new module:"
+		>>= \name ->		moduleExists config name
+		>>= \exists ->		if exists
+								( requestConfirmation ("Module " +++ name +++ " already exists, do you want to overwrite?")
+								  >>= \ok -> if ok (return name) (newModuleName config)
+								)
+								( return name )
 
-newModuleName :: !GModule -> Task (!String, !GModule)
-newModuleName value
-	=						enterInformation "Give name of new module:" 
-		>>= \name ->		readAllModules
-		>>= \allModules ->	case [this \\ this <- allModules | this.ModuleStore.name == name] of
-								[] -> 		getDefaultValue 
-											>>= \item -> 	dbCreateItem {ModuleStore | name = name, value = value, dbref = item} 
-											>>|				return (name,value) 
-								found ->	requestConfirmation ("Module " +++ (hd found).ModuleStore.name +++ " already exists, do you want to overwrite?")
-								 			>>= \ok -> if ok (return (name,value)) (newModuleName value)
+chooseModule :: !GinConfig -> Task (Maybe (!String, !GModule))
+chooseModule config  
+	=				accWorldOSError (listModules config)
+		>>= \all ->	case all of
+						[] ->		showMessage "Choose module" "No modules stored !" >>| return Nothing
+						names ->	enterChoice "Choose module you want to use:" names
+									>>= \choice -> accWorld (readModule config choice)
+									>>= \mg -> case mg of
+										Error e = showMessage "Error" ("Failed to read module " +++ choice +++ ":" +++ e) >>| return Nothing
+										Ok gMod = return (Just (choice, gMod))
 
-chooseModule ::  Task (!String, !GModule)
-chooseModule   
-	=						readAllModules
-		>>= \all ->			let names = [this.ModuleStore.name \\ this <- all] in
-								case names of
-								 [] ->					showMessage "Choose module" "No modules stored !" >>| stop 
-								 		>>|				return ("", newModule)
-								 names ->				enterChoice "Choose module you want to use:" names
-										>>= \choice ->	return (hd [(this.ModuleStore.name, this.ModuleStore.value) \\ this <- all | this.ModuleStore.name == choice])
-
-storeModule :: !(String, !GModule) -> Task (!String, !GModule) // item assumed to be in store
-storeModule (name, value)
-	=					readAllModules
-		>>= \all ->		return (hd [this \\ this <- all | this.ModuleStore.name == name])
-		>>= \store ->  	dbUpdateItem {ModuleStore | store & name = name, value = value}
-		>>|				return (name,value)

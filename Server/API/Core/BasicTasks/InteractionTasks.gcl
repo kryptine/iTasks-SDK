@@ -1,0 +1,252 @@
+{
+		"name": "InteractionTasks", 
+		"types": [ ], 
+		"moduleKind": [
+				"GCleanModule", 
+				[
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "enterInformation", 
+												"formalParams": [
+														{
+																"name": "description", 
+																"type": [
+																		"GTypeVariable", 
+																		"d"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "keyboard", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "updateInformation", 
+												"formalParams": [
+														{
+																"name": "description", 
+																"type": [
+																		"GTypeVariable", 
+																		"d"
+																]
+														}, 
+														{
+																"name": "initial", 
+																"type": [
+																		"GTypeVariable", 
+																		"a"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "keyboard", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "enterChoice", 
+												"formalParams": [
+														{
+																"name": "description", 
+																"type": [
+																		"GTypeVariable", 
+																		"d"
+																]
+														}, 
+														{
+																"name": "options", 
+																"type": [
+																		"GList", 
+																		[
+																				"GTypeVariable", 
+																				"a"
+																		]
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "choice", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "updateChoice", 
+												"formalParams": [
+														{
+																"name": "description", 
+																"type": [
+																		"GTypeVariable", 
+																		"d"
+																]
+														}, 
+														{
+																"name": "options", 
+																"type": [
+																		"GList", 
+																		[
+																				"GTypeVariable", 
+																				"a"
+																		]
+																]
+														}, 
+														{
+																"name": "index", 
+																"type": [
+																		"GConstructor", 
+																		"Int"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "choice", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "showMessage", 
+												"formalParams": [
+														{
+																"name": "message", 
+																"type": [
+																		"GTypeVariable", 
+																		"message"
+																]
+														}, 
+														{
+																"name": "value", 
+																"type": [
+																		"GTypeVariable", 
+																		"a"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "information", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "showInstruction", 
+												"formalParams": [
+														{
+																"name": "title", 
+																"type": [
+																		"GConstructor", 
+																		"String"
+																]
+														}, 
+														{
+																"name": "instruction", 
+																"type": [
+																		"GTypeVariable", 
+																		"Instruction"
+																]
+														}, 
+														{
+																"name": "value", 
+																"type": [
+																		"GTypeVariable", 
+																		"a"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "information", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						]
+				]
+		], 
+		"imports": [ ]
+}
+

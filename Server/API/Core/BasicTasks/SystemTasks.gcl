@@ -1,0 +1,135 @@
+{
+		"name": "SystemTasks", 
+		"types": [
+				{
+						"name": "User", 
+						"rhs": "GAbstractTypeRhs"
+				}, 
+				{
+						"name": "UserName", 
+						"rhs": "GAbstractTypeRhs"
+				}
+		], 
+		"moduleKind": [
+				"GCleanModule", 
+				[
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getCurrentUser", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"User"
+														]
+												], 
+												"icon": "user", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getCurrentProcessId", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"ProcessId"
+														]
+												], 
+												"icon": "cog", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getContextWorker", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"UserName"
+														]
+												], 
+												"icon": "user", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getContextManager", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"UserName"
+														]
+												], 
+												"icon": "user", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getDefaultValue", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "page_white", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						]
+				]
+		], 
+		"imports": [ ]
+}
+

@@ -3,6 +3,7 @@ definition module GinSPTree
 import GinSyntax
 import GinParser
 
+
 :: SPPathNode = SPPathNode GNode GPath
 
 :: SPTree = SPNode SPPathNode
@@ -14,3 +15,4 @@ import GinParser
 graphToSPTree :: Bindings GGraph -> GParseState SPTree
 
 //instance toString SPTree
+

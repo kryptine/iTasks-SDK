@@ -2,10 +2,10 @@ definition module GinAbstractSyntax
 
 import StdOverloaded
 import GinTypes
-from GinBindings import ::Bindings, ::Binding
-from GinSyntax import ::GModule
 
-import GinParser
+from iTaskClass import class iTask, gVisualize, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
+
+from GinParser import ::GPath, ::GParseState
 import Void
 
 :: AModule = { name        :: AIdentifier
@@ -22,7 +22,6 @@ import Void
                  , body         :: AExpression Void
                  , locals       :: [ADefinition]
                  }
-
 :: AExpression ex = 
     Unparsed String
     | Lit String
@@ -36,7 +35,7 @@ import Void
     | ListComprehension (AListComprehension ex)
     | PathContext GPath (AExpression ex)
     | Extension ex
-    
+
 :: ACaseAlt ex = CaseAlt APattern (AExpression ex)
 
 :: AListComprehension ex = { output :: (AExpression ex)
@@ -55,6 +54,7 @@ import Void
 :: AFix = Infixl | Infixr | Infix
 :: APrecedence :== Int
 
+derive class iTask AModule, ADefinition, AExpression, ACaseAlt, AListComprehension, AGeneratorList, AGenerator, AFix
 
 expandModule :: AModule -> AModule
 

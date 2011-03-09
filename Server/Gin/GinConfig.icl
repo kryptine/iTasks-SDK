@@ -11,6 +11,7 @@ import OSError
 
 import CommandLine
 from Engine import determineAppName
+
 import iTasks
 
 derive gEq			GinConfig	
@@ -19,9 +20,9 @@ derive gUpdate		GinConfig
 derive gDefaultMask	GinConfig
 derive JSONEncode	GinConfig
 derive JSONDecode	GinConfig
-	
-derive bimap Maybe, (,)
 
+derive bimap (,), Maybe
+	
 ginDefaultConfig :: *World -> (GinConfig, *World)
 ginDefaultConfig world
 # (cleanPath, world)	= getCleanPath world
@@ -30,6 +31,10 @@ ginDefaultConfig world
 # config = 	{ cleanPath		= cleanPath
           	, iTasksPath	= iTasksPath
 			, tempPath		= tempPath
+			, userPath		= iTasksPath </> "Examples" </> "Gin" </> "Workflows"
+			, searchPaths	= [ iTasksPath </> "Server" </> "API" </> "Core" </> "BasicTasks"
+							  , iTasksPath </> "Server" </> "API" </> "Core" </> "TaskCombinators"
+							  ]
 			}
 = (config, world)
 where
@@ -37,17 +42,19 @@ where
 	getCleanPath world
 	# (args,world) = getCommandLine world
 	# appPath = hd args
-	= (iter 4 takeDirectory appPath, world)
+	= (iter 3 takeDirectory appPath, world)
 
 	getITasksPath :: *World -> (String, *World)
 	getITasksPath world
 	# (res, world) = getCurrentDirectory world
-	= (iter 2 takeDirectory (fromOk res), world)
+	= (takeDirectory (fromOk res), world)
 
 	getTempPath :: *World -> (String, *World)
 	getTempPath world
 	# (res, world) = getCurrentDirectory world
 	= (fromOk res </> "Temp", world)
+	
+	
 
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)
 ginLoadConfig world

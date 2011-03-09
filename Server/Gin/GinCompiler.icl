@@ -67,14 +67,15 @@ derive JSONDecode CompilingInfo, CompilerProcess
 
 runCompiler :: !GModule (String String GinConfig *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
 runCompiler gMod compiler iworld
-//1. Parse and transform GModule
-# result = runParse (gToAModule gMod)
-| isParseError result = (CompilePathError (map (\(path,msg) = (toString path,msg)) (getParseError result)), iworld)
-# aMod = expandModule (getParseSuccess result)
-//2. Load configuration
+//1. Load configuration
 # (config,iworld) = accWorldIWorld ginLoadConfig iworld 
 | isNothing config = (CompileGlobalError "Configuration not found", iworld)
 # config = fromJust config
+//2. Parse and transform GModule
+# (st, iworld) = accWorldIWorld (gToAModule gMod config) iworld
+# result = runParse st
+| isParseError result = (CompilePathError (map (\(path,msg) = (toString path,msg)) (getParseError result)), iworld)
+# aMod = expandModule (getParseSuccess result)
 //3. Pretty-print module
 # (basename,iworld) = getUniqueBasename iworld
 # source = renderAModule [PathContexts] { AModule | aMod & name = basename }

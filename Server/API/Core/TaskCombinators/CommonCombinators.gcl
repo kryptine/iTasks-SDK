@@ -1,0 +1,334 @@
+{
+		"name": "CommonCombinators", 
+		"types": [ ], 
+		"moduleKind": [
+				"GCleanModule", 
+				[
+						[
+								"ParallelBinding", 
+								{
+										"split": {
+												"name": "split", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "split", 
+												"shape": "app:task"
+										}, 
+										"merge": {
+												"name": "first completed", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "filter", 
+												"shape": "app:task"
+										}, 
+										"type": [
+												"GTypeApplication", 
+												[
+														"GConstructor", 
+														"Task"
+												], 
+												[
+														"GTypeVariable", 
+														"a"
+												]
+										], 
+										"fixedNrBranches": null, 
+										"parameterMap": [
+												"App", 
+												[
+														[
+																"Lit", 
+																"anyTask"
+														], 
+														[
+																"Extension", 
+																"PBBranchList"
+														]
+												]
+										]
+								}
+						], 
+						[
+								"ParallelBinding", 
+								{
+										"split": {
+												"name": "split", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "split", 
+												"shape": "app:task"
+										}, 
+										"merge": {
+												"name": "filter left", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "filter", 
+												"shape": "app:task"
+										}, 
+										"type": [
+												"GTypeApplication", 
+												[
+														"GConstructor", 
+														"Task"
+												], 
+												[
+														"GTypeVariable", 
+														"a"
+												]
+										], 
+										"fixedNrBranches": 2, 
+										"parameterMap": [
+												"AppInfix", 
+												"-||", 
+												"Infixl", 
+												3, 
+												[
+														"Extension", 
+														[
+																"PBBranch", 
+																0
+														]
+												], 
+												[
+														"Extension", 
+														[
+																"PBBranch", 
+																1
+														]
+												]
+										]
+								}
+						], 
+						[
+								"ParallelBinding", 
+								{
+										"split": {
+												"name": "split", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "split", 
+												"shape": "app:task"
+										}, 
+										"merge": {
+												"name": "filter right", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "filter", 
+												"shape": "app:task"
+										}, 
+										"type": [
+												"GTypeApplication", 
+												[
+														"GConstructor", 
+														"Task"
+												], 
+												[
+														"GTypeVariable", 
+														"a"
+												]
+										], 
+										"fixedNrBranches": 2, 
+										"parameterMap": [
+												"AppInfix", 
+												"||-", 
+												"Infixr", 
+												3, 
+												[
+														"Extension", 
+														[
+																"PBBranch", 
+																0
+														]
+												], 
+												[
+														"Extension", 
+														[
+																"PBBranch", 
+																1
+														]
+												]
+										]
+								}
+						], 
+						[
+								"ParallelBinding", 
+								{
+										"split": {
+												"name": "split", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "split", 
+												"shape": "app:task"
+										}, 
+										"merge": {
+												"name": "merge (list)", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "merge", 
+												"shape": "app:task"
+										}, 
+										"type": [
+												"GTypeApplication", 
+												[
+														"GConstructor", 
+														"Task"
+												], 
+												[
+														"GList", 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												]
+										], 
+										"fixedNrBranches": null, 
+										"parameterMap": [
+												"App", 
+												[
+														[
+																"Lit", 
+																"allTasks"
+														], 
+														[
+																"Extension", 
+																"PBBranchList"
+														]
+												]
+										]
+								}
+						], 
+						[
+								"ParallelBinding", 
+								{
+										"split": {
+												"name": "split", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "split", 
+												"shape": "app:task"
+										}, 
+										"merge": {
+												"name": "merge (tuple)", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														"GUndefinedTypeExpression"
+												], 
+												"icon": "merge", 
+												"shape": "app:task"
+										}, 
+										"type": [
+												"GTypeApplication", 
+												[
+														"GConstructor", 
+														"Task"
+												], 
+												[
+														"GTuple", 
+														[
+																[
+																		"GTypeVariable", 
+																		"a"
+																], 
+																[
+																		"GTypeVariable", 
+																		"a"
+																]
+														]
+												]
+										], 
+										"fixedNrBranches": 2, 
+										"parameterMap": [
+												"AppInfix", 
+												"-&&-", 
+												"Infixr", 
+												4, 
+												[
+														"Extension", 
+														[
+																"PBBranch", 
+																0
+														]
+												], 
+												[
+														"Extension", 
+														[
+																"PBBranch", 
+																1
+														]
+												]
+										]
+								}
+						]
+				]
+		], 
+		"imports": [ ]
+}
+

@@ -7,10 +7,10 @@ import GenEq
 import JSON
 import Text
 
-import GinBindings
 import GinSyntax
 import GinORYX
 import GinSVG
+import GinFlowLibrary
 
 derive gEq		 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXConnect, ORYXContainmentRule, ORYXMorphingRule
 derive JSONEncode	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXContainmentRule, ORYXMorphingRule
@@ -33,15 +33,32 @@ JSONDecode{|ORYXConnect|} [node:nodes]
 			}
 	  , nodes)
 
-makeStencilSet :: [ModuleBindings] -> ORYXStencilSet
-makeStencilSet modulebindings
-	# decls = flatten [ [ (mb.ModuleBindings.name,bt,decl) \\ (bt,decl) <- getModuleDeclarations mb] \\ mb <- modulebindings ]
+makeStencilSet :: GModule -> ORYXStencilSet
+makeStencilSet gMod
+	# decls = [ (gMod.GModule.name,bt,decl) \\ (bt,decl) <- getModuleDeclarations gMod]
 	= 	{ ORYXStencilSet
+		| title 		= "Graphical iTask Notation"
+		, namespace		= "http://mbsd.icis.ru.nl/itasks/gin/" +++ gMod.GModule.name +++ "#"
+		, description	= "A graphical notation for iTask workflows"
+		, baseUrl		= Just "gin"
+		, extends		= Just "http://mbsd.icis.ru.nl/itasks/gin#"
+		, stencils		= map declToStencil decls
+		, rules			=	{ ORYXRules 
+							| connectionRules = []
+							, containmentRules = []
+							, morphingRules = []
+							}
+	}		
+		
+predefinedStencilSet :: ORYXStencilSet
+predefinedStencilSet
+	=	{ ORYXStencilSet
 		| title = "Graphical iTask Notation"
 		, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
 		, description = "A graphical notation for iTask workflows"
 		, baseUrl = Just "gin"
-		, stencils = [diagramStencil, arcStencil] ++ map declToStencil decls
+		, extends = Nothing
+		, stencils = [diagramStencil, arcStencil]// ++ map declToStencil decls
 		, rules =	{ ORYXRules
 					| connectionRules = 
 						[	{ ORYXConnectionRule
@@ -65,6 +82,10 @@ makeStencilSet modulebindings
 					, containmentRules = 
 						[	{ ORYXContainmentRule
 							| role		= "diagram"
+							, contains	= ["all"]
+							}
+						,	{ ORYXContainmentRule
+							| role		= "higherOrderTask"
 							, contains	= ["all"]
 							}
 						]
@@ -206,7 +227,7 @@ declToStencil (group,branchtype,gDecl)
 		, view			= toString (fromMaybe (taskShape gDecl) Nothing)//gDecl.GDeclaration.shape
 		, icon			= gDecl.GDeclaration.icon +++ ".png"
 		, mayBeRoot		= False
-		, roles			= ["all", morphrole]
+		, roles			= ["all", morphrole] ++ if (isHigherOrder gDecl) ["higherOrderTask"] []
 		, properties	= map formalParameterToProperty gDecl.GDeclaration.formalParams
 		}
 
@@ -222,26 +243,37 @@ formalParameterToProperty param = ORYXProperties
 	, { ORYXProperty| key = "optional"		, value = JSONBool True}
 	, { ORYXProperty| key = "refToView"		, value = JSONString param.GFormalParameter.name}
 	, { ORYXProperty| key = "length"		, value = JSONString ""}
-	, { ORYXProperty| key = "wrapLines"		, value = JSONBool False}
+	, { ORYXProperty| key = "wrapLines"		, value = JSONBool True}
 	]
+
+isHigherOrder :: GDeclaration -> Bool
+isHigherOrder decl = any higherOrderParam decl.GDeclaration.formalParams 
+
+higherOrderParam :: GFormalParameter -> Bool
+higherOrderParam param = case param.GFormalParameter.type of
+	(GTypeApplication (GConstructor "Task")  _)	= True
+	_											= False
 
 taskShape :: GDeclaration -> SVGShape	
 taskShape gDecl = 
 	{ SVGShape
-	| width = if (isEmpty gDecl.GDeclaration.formalParams) 80 200
+	| width = if (isEmpty gDecl.GDeclaration.formalParams) 140 300
 	, height = 20 + 20 * length gDecl.GDeclaration.formalParams
 	, defs = []
 	, magnets = True
 	, elements = 
-		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 [SVGStroke "black", SVGFill "white"]
-		, SVGImage Nothing ((X 2, Y 2), (X 18, Y 18)) (gDecl.GDeclaration.icon +++ ".png")
-		, SVGText Nothing (X 20, Y 13) gDecl.GDeclaration.name []
-	    , SVGLine Nothing ((X 80, Y 20), (X 80, YBottom)) []
+		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 [SVGStroke "black", SVGFill "white", SVGResize "horizontal vertical"]
+		, SVGImage Nothing ((X 2, Y 2), (X 18, Y 18)) (gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
+		, SVGText Nothing (X 20, Y 13) gDecl.GDeclaration.name [SVGAnchors "top left"]
+	    , SVGLine Nothing ((X 80, Y 20), (X 80, YBottom)) [SVGAnchors "top left bottom"]
 		] 
 		++ flatten (map
-			(\(nr,param) -> [ SVGLine Nothing ((XLeft, Y (20 * nr)), (XRight, Y (20 * nr))) []
+			(\(nr,param) -> [ SVGLine Nothing ((XLeft, Y (20 * nr)), (XRight, Y (20 * nr))) [SVGAnchors "left right"]
 					   		, SVGText Nothing (X 3, Y (13 + 20 * nr)) param.GFormalParameter.name []
-							, SVGText (Just param.GFormalParameter.name) (X 83, Y (13 + 20 * nr)) "" [] //TODO: Add support for higher order parameters
+							, SVGText (Just param.GFormalParameter.name) (X 83, Y (13 + 20 * nr)) "" [SVGAnchors "left"]
 							]
 			) (zip2 [1..] gDecl.GDeclaration.formalParams))
 	}
+
+
+

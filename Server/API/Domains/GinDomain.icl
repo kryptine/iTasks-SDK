@@ -56,8 +56,3 @@ gVerify{|ORYXEditor|} val vst = customWorldVerify Nothing check val vst where
   = (WPRValid hint, iworld )
 */
 
-tryRender :: GModule Bool -> String
-tryRender gMod expand = 
-    case runParse (gToAModule gMod) of
-        GSuccess aMod -> renderAModule [] ((if expand expandModule id) aMod) 
-        GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))

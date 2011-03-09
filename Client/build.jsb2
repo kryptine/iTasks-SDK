@@ -101,7 +101,7 @@
       ,{"text":"editpathhandler.js","path":"lib/oryx/scripts/Core/SVG/"}
       ,{"text":"minmaxpathhandler.js","path":"lib/oryx/scripts/Core/SVG/"}
       ,{"text":"pointspathhandler.js","path":"lib/oryx/scripts/Core/SVG/"}
-      ,{"text":"/svgmarker.js","path":"lib/oryx/scripts/Core/SVG/"}
+      ,{"text":"svgmarker.js","path":"lib/oryx/scripts/Core/SVG/"}
       ,{"text":"svgshape.js","path":"lib/oryx/scripts/Core/SVG/"}
       ,{"text":"label.js","path":"lib/oryx/scripts/Core/SVG/"}
       ,{"text":"math.js","path":"lib/oryx/scripts/Core/Math/"}
@@ -130,9 +130,11 @@
  	  ,{"text":"toolbar.js","path":"lib/oryx/scripts/Plugins/"}
       ,{"text":"shapemenu.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"shaperepository.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"canvasResize.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"renameShapes.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"dragdropresize.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"selectionframe.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"shapeHighlighting.js","path":"lib/oryx/scripts/Plugins/"}
       ,{"text":"undo.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"edit.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"view.js","path":"lib/oryx/scripts/Plugins/"}

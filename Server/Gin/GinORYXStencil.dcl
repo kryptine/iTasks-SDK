@@ -2,13 +2,14 @@ definition module GinORYXStencil
 
 import JSON
 
-from GinBindings import ::ModuleBindings
+from GinSyntax import :: GModule
 import GinORYX
 
 ::ORYXStencilSet =
 	{ title			:: !String
 	, namespace		:: !String
 	, description	:: !String
+	, extends		:: !Maybe String
 	, stencils		:: ![ORYXStencil]
 	, rules			:: !ORYXRules
 	, baseUrl		:: !Maybe String
@@ -57,7 +58,8 @@ derive gEq		 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXCo
 derive JSONEncode	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXConnect, ORYXContainmentRule, ORYXMorphingRule
 derive JSONDecode 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXConnect, ORYXContainmentRule, ORYXMorphingRule
 
-makeStencilSet :: [ModuleBindings] -> ORYXStencilSet
+makeStencilSet :: GModule -> ORYXStencilSet
+predefinedStencilSet :: ORYXStencilSet
 
 from GinSVG import :: SVGShape
 

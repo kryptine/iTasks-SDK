@@ -2,6 +2,7 @@ implementation module GinParser
 
 import StdArray
 import StdEnum
+from StdFunc import o
 import StdTuple
 
 import GenPrint
@@ -12,17 +13,16 @@ import JSON
 import GinSyntax
 import GinAbstractSyntax
 import GinFlowLibrary
-import GinBindings
 import GinSPTree
-
-:: GPath = GRoot | GChildNode String GPath | GChildNodeNr String Int GPath
-derive gPrint GPath
-derive JSONEncode GPath
+import GinORYX
+import GinStorage
 
 instance toString GPath where
     toString GRoot = "/"
     toString (GChildNode s p) = toString p +++ s +++ "/"
     toString (GChildNodeNr s i p) = toString p +++ s +++ "[" +++ toString i +++ "]/"
+    
+derive class iTask GPath, GParseResult, GParseState
 
 isParseError :: (GParseResult a) -> Bool
 isParseError (GError _) = True
@@ -34,8 +34,6 @@ getParseSuccess (GSuccess a) = a
 getParseError :: (GParseResult a) -> [(GPath, String)]
 getParseError (GError b) = b
 	
-:: GParseState a = GParseState (GPath -> GParseResult a)
-
 instance Monad GParseState
 where
 	ret :: a -> GParseState a
@@ -93,31 +91,37 @@ withPath path (GParseState f) = GParseState (\_ = f path)
 runParse :: (GParseState a) -> GParseResult a
 runParse (GParseState f) = f GRoot
 
-gToAModule :: GModule -> GParseState AModule
-gToAModule gmod 
-= let bindings` = map mkGDefinitionBinding gmod.GModule.definitions ++ flowLibraryBindings
-  in parseChildMap "definitions" (gToADefinition bindings`) gmod.GModule.definitions >>> \definitions = 
-  ret { AModule
-      | name = gmod.GModule.name
-      , types = gmod.GModule.types
-      , definitions = definitions
-      , imports = [imp.GImport.name \\ imp <- gmod.GModule.imports]
-      }
+gToAModule :: !GModule !GinConfig !*World -> (GParseState AModule, *World)
+gToAModule gmod =: { moduleKind = GCleanModule _ } config world
+	= (parseError "Module does not have a graphical representation", world)
+gToAModule gmod =: { moduleKind = GGraphicalModule definitions } config world
+	# (res, world) = importModules config gmod.GModule.imports world
+	| isError res = (parseError (fromError res), world)
+	# imports = fromOk res
+	# bindings = map getDefinitionBinding definitions
+				 ++ (flatten o map getModuleBindings) imports
+	= ( parseChildMap "definitions" (gToADefinition bindings) definitions >>> \definitions = 
+	    ret	{ AModule
+			| name = gmod.GModule.name
+			, types = gmod.GModule.types
+			, imports = gmod.GModule.imports
+			, definitions = definitions
+			}
+	  , world)
 
-gToADefinition :: Bindings GDefinition -> GParseState ADefinition
+gToADefinition :: !Bindings !GDefinition -> GParseState ADefinition
 gToADefinition bindings gdef
-#bindings` = map mkGDefinitionBinding gdef.GDefinition.locals ++ bindings 
-= parseChild "body" (gToAExpression bindings` gdef.GDefinition.body) >>> \body =
-  parseChildMap "locals" (gToADefinition bindings`) gdef.GDefinition.locals >>> \locals =
+# graph = GGraphExpression (oryxDiagramToGraph bindings gdef.GDefinition.body)
+= parseChild "body" (gToAExpression bindings graph) >>> \body =
   ret { ADefinition 
       | name         = gdef.GDefinition.declaration.GDeclaration.name
       , formalParams = gdef.GDefinition.declaration.GDeclaration.formalParams
       , returnType   = gdef.GDefinition.declaration.GDeclaration.returnType
       , body         = body        
-      , locals       = locals
+      , locals       = []
       }
 
-gToAExpression :: Bindings GExpression -> GParseState (AExpression Void)
+gToAExpression :: !Bindings !GExpression -> GParseState (AExpression Void)
 gToAExpression bindings (GUndefinedExpression) = parseError "Undefined expression"
 gToAExpression bindings (GGraphExpression graph) = graphToSPTree bindings graph >>> spTreeToAExpression bindings
 gToAExpression bindings (GListExpression gexps) =
@@ -128,16 +132,16 @@ gToAExpression bindings (GListComprehensionExpression glc) =
 gToAExpression bindings (GCleanExpression text) | size text == 0 = parseError "Clean expression is empty"
 gToAExpression bindings (GCleanExpression text)                  = ret (Unparsed text)
 
-gToAExpressionPath :: Bindings GExpression -> GParseState (AExpression Void)
+gToAExpressionPath :: !Bindings !GExpression -> GParseState (AExpression Void)
 gToAExpressionPath bindings exp = gToAExpression bindings exp >>> \exp` =
     getCurrentPath >>> \path =
     ret (PathContext path exp`)
 
-gToAMaybeExpression :: Bindings (Maybe GExpression) -> GParseState (Maybe (AExpression Void))
+gToAMaybeExpression :: !Bindings !(Maybe GExpression) -> GParseState (Maybe (AExpression Void))
 gToAMaybeExpression bindings (Just exp) = gToAExpression bindings exp >>> \exp` = ret (Just exp`)
 gToAMaybeExpression bindings Nothing = ret Nothing
     
-gToAListComprehension :: Bindings GListComprehension -> GParseState (AListComprehension Void)
+gToAListComprehension :: !Bindings !GListComprehension -> GParseState (AListComprehension Void)
 gToAListComprehension bindings glc = 
     gToAExpression bindings glc.GListComprehension.output >>> \output` =
     gToAExpression bindings glc.GListComprehension.input >>> \input` = 
@@ -146,7 +150,7 @@ gToAListComprehension bindings glc =
         , guards = map Unparsed (maybeToList glc.GListComprehension.guard)
         }
         
-spTreeToAExpression :: Bindings SPTree -> GParseState (AExpression Void)
+spTreeToAExpression :: !Bindings !SPTree -> GParseState (AExpression Void)
 spTreeToAExpression bindings (SPNode (SPPathNode node path)) = 
     withPath path (
         getNodeBinding node.GNode.name bindings >>> \nb = 
@@ -180,14 +184,14 @@ spTreeToAExpression bindings (SPParallel (SPPathNode split splitPath, SPPathNode
 	    ret (PathContext path exp)
     )
 
-checkNrBranches :: ParallelBinding Int -> GParseState Void
+checkNrBranches :: !ParallelBinding !Int -> GParseState Void
 checkNrBranches pb i = case pb.fixedNrBranches of
     Just n | n == i = ret Void
     Just n          = parseError ("(" +++ pb.split.GDeclaration.name  +++ "," +++ pb.merge.GDeclaration.name 
                       +++ ") must have " +++ fromInt n +++ " branches")
     Nothing = ret Void
 
-setParallelParams :: Bindings (GNode, GNode) [(SPPattern,SPTree)] (AExpression PBParameter) -> GParseState (AExpression Void)
+setParallelParams :: !Bindings !(GNode, GNode) ![(SPPattern,SPTree)] !(AExpression PBParameter) -> GParseState (AExpression Void)
 setParallelParams _ _ _ (Unparsed s) = ret (Unparsed s)
 setParallelParams _ _ _ (Lit s) = ret (Lit s)
 setParallelParams _ _ _ (Var i) = ret (Var i)
@@ -223,7 +227,7 @@ setParallelParams bindings (split,merge) branches (Extension ext) = case ext of
     	parseMap (spTreeToAExpression bindings) (map snd branches) >>> \branches` =
     	f splitParams` mergeParams` (zip2 (map fst branches) branches`)
     	
-setParallelParamsCase :: Bindings (GNode, GNode) [(SPPattern, SPTree)] (ACaseAlt PBParameter) -> GParseState (ACaseAlt Void)
+setParallelParamsCase :: !Bindings !(GNode, GNode) ![(SPPattern, SPTree)] !(ACaseAlt PBParameter) -> GParseState (ACaseAlt Void)
 setParallelParamsCase bindings (split,merge) branches (CaseAlt pat exp) =
 	setParallelParams bindings (split,merge) branches exp >>> \exp` =
 	ret (CaseAlt pat exp`)	

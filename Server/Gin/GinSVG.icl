@@ -103,11 +103,12 @@ elementToXMLNode width height node = case node of
 			 	]
  			    ++ map styleToXMLAttr styles
 			) [XMLText text]
-	(SVGImage sid bounds image) = 
+	(SVGImage sid bounds image styles) = 
 		XMLElem (uname "image")
 			( getID sid 
 			  ++ getBoundsWidth bounds
 			  ++ [ XMLAttr (qname "xlink" "href") image ]
+		      ++ map styleToXMLAttr styles
 			) []
 	(SVGGroup sid elements) = 
 		XMLElem (uname "g") (getID sid) (map (elementToXMLNode width height) elements)
@@ -145,3 +146,5 @@ styleToXMLAttr (SVGStrokeLineJoin s)	= XMLAttr (uname "stroke-linejoin") s
 styleToXMLAttr (SVGStrokeMiterLimit l)	= XMLAttr (uname "stroke-miterlimit") (toString l)
 styleToXMLAttr (SVGMarkerEnd m)			= XMLAttr (uname "marker-end") m
 styleToXMLAttr (SVGEdgePosition s)		= XMLAttr (qname "oryx" "edgePosition") s
+styleToXMLAttr (SVGResize s)			= XMLAttr (qname "oryx" "resize") s 
+styleToXMLAttr (SVGAnchors s)			= XMLAttr (qname "oryx" "anchors") s

@@ -89,6 +89,8 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
                 url: url
             }
         });
+        
+        this.facade.importJSON(this.value);
 
         var oryxControl = this;
         this.facade.registerOnEvent(ORYX.CONFIG.EVENT_AFTER_EXECUTE_COMMANDS, 

@@ -1,10 +1,7 @@
 definition module GinDomain
 
 import iTasks
-import GinSyntax
 import GinORYX
-
-tryRender :: GModule Bool -> String
 
 derive gEq ORYXEditor
 derive gVisualize ORYXEditor

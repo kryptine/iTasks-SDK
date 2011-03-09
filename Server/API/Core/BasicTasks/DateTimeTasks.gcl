@@ -1,0 +1,186 @@
+{
+		"name": "DateTimeTasks", 
+		"types": [
+				{
+						"name": "Time", 
+						"rhs": "GAbstractTypeRhs"
+				}, 
+				{
+						"name": "Date", 
+						"rhs": "GAbstractTypeRhs"
+				}, 
+				{
+						"name": "DateTime", 
+						"rhs": "GAbstractTypeRhs"
+				}
+		], 
+		"moduleKind": [
+				"GCleanModule", 
+				[
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getCurrentTime", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"Time"
+														]
+												], 
+												"icon": "clock", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getCurrentDate", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"Date"
+														]
+												], 
+												"icon": "date", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getCurrentDateTime", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"DateTime"
+														]
+												], 
+												"icon": "date", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "waitForTime", 
+												"formalParams": [
+														{
+																"name": "time", 
+																"type": [
+																		"GConstructor", 
+																		"Time"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"Void"
+														]
+												], 
+												"icon": "clock_go", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "waitForDate", 
+												"formalParams": [
+														{
+																"name": "date", 
+																"type": [
+																		"GConstructor", 
+																		"Date"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"Void"
+														]
+												], 
+												"icon": "date_go", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "waitForTimer", 
+												"formalParams": [
+														{
+																"name": "time", 
+																"type": [
+																		"GConstructor", 
+																		"Time"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GConstructor", 
+																"Void"
+														]
+												], 
+												"icon": "clock_go", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						]
+				]
+		], 
+		"imports": [ ]
+}
+

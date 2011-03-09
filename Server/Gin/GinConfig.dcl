@@ -1,12 +1,16 @@
 definition module GinConfig
 
 import Maybe
-import GenEq, GenPrint, GenVisualize, GenUpdate
+
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
+from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
 
 :: GinConfig =
 	{ cleanPath		:: !String
 	, iTasksPath    :: !String
 	, tempPath		:: !String
+	, userPath		:: !String
+	, searchPaths	:: ![String]
 	}
 
 derive gEq        	GinConfig	

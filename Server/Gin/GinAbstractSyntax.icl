@@ -5,14 +5,16 @@ import GenPrint
 
 import Void
 
-import GinBindings
-import GinFlowLibrary
 import GinSyntax 
 import GinParser
 import GinSPTree
 
 import PPrint
 import Text
+
+from iTaskClass import class iTask, gVisualize, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
+
+derive class iTask AModule, ADefinition, AExpression, ACaseAlt, AListComprehension, AGeneratorList, AGenerator, AFix
 
 instance == AFix
 where

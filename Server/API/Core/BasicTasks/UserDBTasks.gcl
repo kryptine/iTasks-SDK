@@ -1,0 +1,41 @@
+{
+		"name": "UserDBTasks", 
+		"types": [ ], 
+		"moduleKind": [
+				"GCleanModule", 
+				[
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "getUsers", 
+												"formalParams": [ ], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeApplication", 
+																[
+																		"GConstructor", 
+																		"_List"
+																], 
+																[
+																		"GConstructor", 
+																		"User"
+																]
+														]
+												], 
+												"icon": "user", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						]
+				]
+		], 
+		"imports": [ ]
+}
+

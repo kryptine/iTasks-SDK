@@ -4,16 +4,22 @@ import StdList
 import GenPrint
 import JSON
 import Monad
+
+import GinConfig
 import GinSyntax
 import GinAbstractSyntax
 
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
+from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+
 :: GPath = GRoot | GChildNode String GPath | GChildNodeNr String Int GPath
-derive gPrint GPath
-derive JSONEncode GPath
+
 instance toString GPath
 
 :: GParseResult a = GSuccess a | GError [(GPath, String)]
-:: GParseState a
+:: GParseState a = GParseState (GPath -> GParseResult a)
+
+derive class iTask GPath, GParseResult, GParseState
 
 isParseError :: (GParseResult a) -> Bool
 getParseSuccess :: (GParseResult a) -> a
@@ -37,7 +43,7 @@ withPath :: GPath (GParseState a) -> GParseState a
 
 runParse :: (GParseState a) -> GParseResult a
 
-gToAModule :: GModule -> GParseState AModule
+gToAModule :: !GModule !GinConfig !*World -> (GParseState AModule, *World)
 
 //Utils
 

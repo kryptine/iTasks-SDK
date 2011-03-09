@@ -3,23 +3,74 @@ definition module GinSyntax
 import Maybe
 import GenEq 
 
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
+from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+
+import GinAbstractSyntax
+from GinORYX import ::ORYXDiagram
+from GinSVG import ::SVGShape
 import GinTypes
 
 // Graph definition
 :: GModule = { name        :: GIdentifier
              , types       :: [GTypeDefinition]
-             , definitions :: [GDefinition]
+             , moduleKind  :: GModuleKind
              , imports     :: [GImport]
              }
              
-:: GImport = { name         :: GIdentifier
-             , types        :: [GTypeDefinition]
-             , declarations :: [GDeclaration]
-             }
+:: GImport :== String
+
+:: GModuleKind	= GCleanModule Bindings
+				| GGraphicalModule [GDefinition]
+				
+:: Bindings :== [Binding]
+				
+:: Binding = NodeBinding NodeBinding | ParallelBinding ParallelBinding
+
+//For GCleanModule:
+
+// NodeBinding: binds a single node declaration to a Clean function 
+:: NodeBinding = { declaration  :: GDeclaration
+                 , parameterMap :: NBParameterMap
+                 }
+                   
+:: NBParameterMap = NBPrefixApp  
+                  | NBInfixApp AFix APrecedence
+                  | NBCustom (AExpression ParameterPosition)
+
+//Sequential composition is hard coded, maps to either >>= (with pattern) or >>| (without pattern).
+//ParallelBinding: binds a parallel composition of nodes to a Clean function 
+:: ParallelBinding = { split           :: GDeclaration
+                     , merge           :: GDeclaration
+                     , type            :: GTypeExpression
+                     , fixedNrBranches :: Maybe Int
+                     , parameterMap    :: AExpression PBParameter
+                     }
+
+:: PBParameter = PBSplitParameter ParameterPosition
+               | PBMergeParameter ParameterPosition
+               | PBBranch BranchPosition
+               | PBBranchList
+               | PBApply ([AExpression Void] [AExpression Void] [(Maybe APattern, AExpression Void)] -> GParseState (AExpression Void))
+
+:: ParameterPosition :== Int
+:: BranchPosition :== Int
+
+getNodeBinding :: GIdentifier Bindings -> GParseState NodeBinding
+getParallelBinding :: GIdentifier GIdentifier Bindings -> GParseState ParallelBinding
+
+:: BranchType = BTSingle | BTSplit | BTMerge
+getDeclaration :: GIdentifier Bindings -> GParseState (BranchType, GDeclaration)
+
+getModuleBindings :: GModule -> Bindings
+getDefinitionBinding :: GDefinition -> Binding
+
+getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
+
+//For GGraphicalModule:
 
 :: GDefinition = { declaration :: GDeclaration
-                 , body        :: GExpression
-                 , locals      :: [GDefinition]
+                 , body        :: ORYXDiagram //GExpression
                  }
 
 :: GDeclaration = { name         :: GIdentifier
@@ -75,7 +126,8 @@ import GinTypes
 :: GDescription :== String
 
 // Generic functions
-derive class iTask GModule, GImport, GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize
+derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter
+derive class iTask GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize
 
 // Selection functions
 getPredecessors :: GGraph Int -> [Int]
@@ -92,4 +144,3 @@ gModuleFromJSON :: String -> Maybe GModule
 //Construction
 newWorkflow :: GDefinition
 newModule :: GModule
-

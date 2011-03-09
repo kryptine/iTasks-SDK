@@ -23,7 +23,7 @@ import XML
 				| SVGPolygon	SVGId [SVGCoordinate] ![SVGStyle]
 				| SVGPath		SVGId !String ![SVGStyle]
 				| SVGText 		SVGId !SVGCoordinate !String ![SVGStyle]
-				| SVGImage		SVGId !SVGBounds !String
+				| SVGImage		SVGId !SVGBounds !String ![SVGStyle]
 				| SVGGroup		SVGId [SVGElement]
 				
 :: SVGStyle = SVGStroke !String
@@ -34,6 +34,8 @@ import XML
 			| SVGStrokeMiterLimit !Int
 			| SVGMarkerEnd !String
 			| SVGEdgePosition !String
+			| SVGResize !String
+			| SVGAnchors !String
 
 :: SVGShape = 
 	{ width		:: !Int

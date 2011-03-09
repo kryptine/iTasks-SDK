@@ -1,19 +1,17 @@
 definition module GinStorage
  
-import 	iTasks
-import	GinSyntax
+import Error
+import OSError
+import Maybe
+import Void
+from Task import ::Task
+from GinSyntax import ::GModule
+from GinConfig import ::GinConfig
 
-derive class iTask ModuleStore				
+searchPathModules :: !GinConfig !*World -> ([String], *World)
 
-:: ModuleStore	= 	{ name  :: !String
-			  		, value :: !GModule
-			  		, dbref :: !DBRef ModuleStore
-			  		}
-
-instance DB ModuleStore 
-
-readAllModules 	:: Task [ModuleStore]
-newModuleName 	:: !GModule -> Task (!String, !GModule)				// creates new entry in store
-storeModule 	:: !(String, !GModule) -> Task (!String, !GModule) 	// item with name assumed to be in store
-chooseModule 	:: Task (!String, !GModule)
-
+readModule :: !GinConfig !String !*World -> (MaybeErrorString GModule, *World)
+importModules :: !GinConfig ![String] !*World -> (MaybeErrorString [GModule], *World)
+writeModule :: !GinConfig !String !GModule -> Task Void
+newModuleName :: !GinConfig -> Task String
+chooseModule :: !GinConfig -> Task (Maybe (!String, !GModule))

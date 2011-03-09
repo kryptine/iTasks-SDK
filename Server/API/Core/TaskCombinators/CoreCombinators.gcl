@@ -1,0 +1,128 @@
+{
+		"name": "CoreCombinators", 
+		"types": [ ], 
+		"moduleKind": [
+				"GCleanModule", 
+				[
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "return", 
+												"formalParams": [
+														{
+																"name": "a", 
+																"type": [
+																		"GTypeVariable", 
+																		"a"
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "return", 
+												"shape": "embed:ellipse"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "forever", 
+												"formalParams": [
+														{
+																"name": "task", 
+																"type": [
+																		"GTypeApplication", 
+																		[
+																				"GConstructor", 
+																				"Task"
+																		], 
+																		[
+																				"GTypeVariable", 
+																				"a"
+																		]
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "forever", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						], 
+						[
+								"NodeBinding", 
+								{
+										"declaration": {
+												"name": "sequence", 
+												"formalParams": [
+														{
+																"name": "label", 
+																"type": [
+																		"GConstructor", 
+																		"String"
+																]
+														}, 
+														{
+																"name": "task", 
+																"type": [
+																		"GList", 
+																		[
+																				"GTypeApplication", 
+																				[
+																						"GConstructor", 
+																						"Task"
+																				], 
+																				[
+																						"GTypeVariable", 
+																						"a"
+																				]
+																		]
+																]
+														}
+												], 
+												"returnType": [
+														"GTypeApplication", 
+														[
+																"GConstructor", 
+																"Task"
+														], 
+														[
+																"GTypeVariable", 
+																"a"
+														]
+												], 
+												"icon": "sequence", 
+												"shape": "app:task"
+										}, 
+										"parameterMap": "NBPrefixApp"
+								}
+						]
+				]
+		], 
+		"imports": [ ]
+}
+
