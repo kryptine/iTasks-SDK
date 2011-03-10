@@ -4,25 +4,19 @@ import Types, StdList, StdMisc, Shared, HTML, Task
 from Time import :: Timestamp, :: Tm(..), mkTime
 
 class tune b :: !b !(Task a) -> Task a
-instance tune ManagerProperties
-where tune props task								= {task & taskProperties = props}
-instance tune User
-where tune u task=:{taskProperties}					= {task & taskProperties = {taskProperties & worker = u}}
+instance tune TaskProperties
+where tune props task			= {Task|task & taskProperties = props}
 instance tune Title
-where tune (Title s) task=:{taskProperties}			= {task & taskProperties = {taskProperties & taskDescription = {TaskDescription|taskProperties.taskDescription & title = toString s}}}
+where tune (Title s) task		= let p = taskProperties task in {Task|task & taskProperties = {p & taskDescription = {TaskDescription|p.taskDescription & title = toString s}}}
 instance tune Description
-where tune (Description s) task=:{taskProperties}	= {task & taskProperties = {taskProperties & taskDescription = {TaskDescription|taskProperties.taskDescription & description = toString (html s)}}}
-instance tune TaskPriority
-where tune p task=:{taskProperties}					= {task & taskProperties = {taskProperties & priority = p}}
-instance tune DateTime
-where tune d task=:{taskProperties}					= {task & taskProperties = {taskProperties & deadline = Just d}}
+where tune (Description s) task	= let p = taskProperties task in {Task|task & taskProperties = {p & taskDescription = {TaskDescription|p.taskDescription & description = toString (html s)}}}
 instance tune Tag
-where tune (Tag t) task=:{taskProperties}			= {task & taskProperties = {taskProperties & tags = [toString t : taskProperties.tags]}}
+where tune (Tag t) task			= let p = taskProperties task in {Task|task & taskProperties = {p & tags = [toString t : p.tags]}}
 instance tune Tags
-where tune (Tags ts) task=:{taskProperties}			= {task & taskProperties = {taskProperties & tags = (map toString ts) ++ taskProperties.tags}}
+where tune (Tags ts) task		= let p = taskProperties task in {Task|task & taskProperties = {p & tags = (map toString ts) ++ p.tags}}
 instance tune MenuAnnotation
 where
-	tune ma task									= {task & mbMenuGenFunc = (Just menuGenFunc)}
+	tune ma task				= {task & mbMenuGenFunc = (Just menuGenFunc)}
 	where
 		menuGenFunc = case ma of
 			NoMenus						= \iworld -> ([], iworld)
@@ -36,9 +30,9 @@ where
 						Error _	= ([],iworld) // empty menus on error
 					
 instance tune MenuDefinition
-where tune menus task = tune (StaticMenus menus) task
+where tune menus task	= tune (StaticMenus menus) task
 instance tune FormWidth
-where tune fw task=:{taskProperties}				= {task & formWidth = Just fw}
+where tune fw task		= {task & formWidth = Just fw}
 
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (<<@) t a = tune a t

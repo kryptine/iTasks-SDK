@@ -3,7 +3,9 @@ implementation module ProcessDB
 import StdEnv, Maybe
 import TSt, Store, Util, Text
 
-derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive JSONEncode	Process
+derive JSONDecode	Process
+derive gEq			Process
 derive bimap Maybe, (,)
 
 instance ProcessDB IWorld
@@ -103,7 +105,7 @@ where
 			| x.Process.taskId == taskId	= (f x, True)
 			| otherwise						= (x, False)
 	
-	updateProcessProperties :: !TaskId (TaskProperties -> TaskProperties) !*IWorld -> (!Bool, !*IWorld)
+	updateProcessProperties :: !TaskId (ProcessProperties -> ProcessProperties) !*IWorld -> (!Bool, !*IWorld)
 	updateProcessProperties taskId f iworld = updateProcess taskId (\p -> {Process |p & properties = f p.Process.properties}) iworld
 	
 	removeFinishedProcesses :: !*IWorld -> (!Bool, !*IWorld)
@@ -192,7 +194,7 @@ where
 	setProcessStatus status processId tst = accIWorldTSt (setProcessStatus status processId) tst
 	updateProcess :: !TaskId (Process -> Process) !*TSt -> (!Bool,!*TSt)
 	updateProcess processId f tst = accIWorldTSt (updateProcess processId f) tst
-	updateProcessProperties :: !TaskId (TaskProperties -> TaskProperties) !*TSt -> (!Bool,!*TSt)
+	updateProcessProperties :: !TaskId (ProcessProperties -> ProcessProperties) !*TSt -> (!Bool,!*TSt)
 	updateProcessProperties processId f tst = accIWorldTSt (updateProcessProperties processId f) tst
 	removeFinishedProcesses :: !*TSt -> (!Bool,!*TSt)
 	removeFinishedProcesses tst = accIWorldTSt removeFinishedProcesses tst

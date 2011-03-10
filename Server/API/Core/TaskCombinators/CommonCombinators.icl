@@ -11,7 +11,7 @@ from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskParallelType{..}
 from Shared		import mapShared, :: SymmetricShared
-import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, InteractionTasks, SharedTasks
+import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, InteractionTasks, SharedTasks, ProcessDBTasks
 
 derive class iTask GAction, GOnlyAction
 
@@ -41,14 +41,14 @@ transform f x = mkInstantTask ("Value transformation", "Value transformation wit
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-assign :: !User !(Task a) -> Task a | iTask a	
-assign user task = parallel ("Assign","Manage a task assigned to another user.") (Nothing,\_ r _ -> (Just r,Just Stop), \_ (Just r) -> r) [processControl] [task <<@ user]
+assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a	
+assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") (Nothing,\_ r _ -> (Just r,Just Stop), \_ (Just r) -> r) [processControl] [container (DetachedTask props actionMenu) task]
 where
 	processControl shared =
 			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
 		>>|	return undef
 		
-	toView (_,[{progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker,priority,deadline,context,tags}}:_])=
+	toView (_,[{progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker,priority,deadline}}:_])=
 		{ assignedTo	= worker
 		, priority		= priority
 		, progress		= formatProgress progress
@@ -56,8 +56,6 @@ where
 		, firstWorkedOn	= Display firstEvent
 		, lastWorkedOn	= Display latestEvent
 		, deadline		= deadline
-		, context		= fmap Note context
-		, tags			= list2mb tags
 		}
 	where
 		formatProgress TPActive		= coloredLabel "Active" "green"
@@ -67,13 +65,11 @@ where
 		
 		coloredLabel label color = toHtmlDisplay [SpanTag [StyleAttr ("color:" +++ color)] [Text label]]
 		
-	fromView {ProcessControlView|assignedTo,context,priority,deadline,tags} (_,[{managerProperties}:rest])
+	fromView {ProcessControlView|assignedTo,priority,deadline} (_,[{managerProperties}:rest])
 		# newManagerProperties =	{ managerProperties
 									& worker	= assignedTo
-									, context	= fmap toString context
 									, priority	= priority
 									, deadline	= deadline
-									, tags		= mb2list tags
 									}
 		= [newManagerProperties:map (\{managerProperties} -> managerProperties) rest]
 	
@@ -84,13 +80,11 @@ where
 						, firstWorkedOn	:: !Display (Maybe Timestamp)
 						, lastWorkedOn	:: !Display (Maybe Timestamp)
 						, deadline		:: !Maybe DateTime
-						, context		:: !Maybe Note
-						, tags			:: !Maybe [String]
 						}
 derive class iTask ProcessControlView
 
 (@:) infix 3 :: !User !(Task a) -> Task a | iTask a
-(@:) user task = assign user task
+(@:) user task = assign {initManagerProperties & worker = user} noMenu task
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>= \_ -> return x
@@ -170,14 +164,14 @@ where
 	parsefunc _								 = Nothing
 	
 oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
-oldParallel parType d valueMerger initTasks = parallel d valueMerger [overviewControl] (map (container (DetachedTask noMenu)) initTasks)
+oldParallel parType d valueMerger initTasks = parallel d valueMerger [overviewControl] initTasks
 where
 	overviewControl shared =
 			updateSharedInformationA "" (toView,fromView) [] shared
 		>>|	return undef
 	
 	toView (_,props) = Table (map toView` props)
-	toView` {managerProperties=m=:{worker,taskDescription}} =
+	toView` {managerProperties=m=:{worker},taskProperties=t=:{taskDescription}} =
 		{ ProcessOverviewView
 		| subject		= Display taskDescription.TaskDescription.title
 		, assignedTo	= worker

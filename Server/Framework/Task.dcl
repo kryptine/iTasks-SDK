@@ -5,7 +5,7 @@ definition module Task
 */
 
 import Types, HTTP, GenVisualize, iTaskClass
-from TSt import :: TSt
+from TSt 		import :: TSt
 
 derive JSONEncode	Task, TaskResult
 derive JSONDecode	Task, TaskResult
@@ -18,7 +18,7 @@ derive gEq			Task
 // Tasks
 
 :: Task a =
-	{ taskProperties	:: !ManagerProperties					// the task's manager properties
+	{ taskProperties	:: !TaskProperties						// the task's general properties
 	, containerType		:: !TaskContainerType					// specified in which kind of container the task is shown inside of a parallel
 	, formWidth			:: !Maybe FormWidth						// Width of task form
 	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
@@ -27,11 +27,11 @@ derive gEq			Task
 	, taskFuncCommit	:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
 	}
 	
-:: TaskContainerType	= DetachedTask !ActionMenu				// task detached as separate process
-						| WindowTask !WindowTitle !ActionMenu	// task shwon in a window (with own menu)
-						| DialogTask !WindowTitle				// task shwon as dialogue (without own menu)
-						| InParallelBody						// task shown in the body of the parallel container
-						| HiddenTask							// task not shown to the user
+:: TaskContainerType	= DetachedTask !ManagerProperties !ActionMenu	// task detached as separate process
+						| WindowTask !WindowTitle !ActionMenu			// task shwon in a window (with own menu)
+						| DialogTask !WindowTitle						// task shwon as dialogue (without own menu)
+						| InParallelBody								// task shown in the body of the parallel container
+						| HiddenTask									// task not shown to the user
 						
 :: ActionMenu :== [MenuAction] -> MenuDefinition
 
@@ -85,7 +85,14 @@ taskUser			:: !(Task a)	-> User
 * @param The task
 * @return The task's initial properties
 */
-taskProperties		:: !(Task a)	-> ManagerProperties
+taskProperties		:: !(Task a)	-> TaskProperties
+/*
+* Extracts the initial manager properties of a task
+*
+* @param The task
+* @return The task's initial manager properties
+*/
+managerProperties	:: !(Task a)	-> ManagerProperties
 
 :: MenuId			:== Int
 
@@ -123,7 +130,7 @@ incTaskNr :: !TaskNr -> TaskNr
 :: ChangeDyn	:== Dynamic
 
 // A change function which may be used to change tasks at runtime
-:: Change a :== (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn))
+:: Change a :== (ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn))
 
 // Changes may be applied only once, or persist for future changes
 :: ChangeLifeTime	= CLTransient

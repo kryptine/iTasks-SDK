@@ -113,25 +113,25 @@ sendMessage msg
 	>>| stop
 where
 	notifyTask user msg =
-		user @>>
 		subject msg @>>
-		msg.Message.priority @>>
-		(manageMessage msg)
+		container
+			(DetachedTask {worker = user, priority = msg.Message.priority, deadline = Nothing} noMenu)
+			(manageMessage msg)
 
 	awaitReplies msg =
 		Title ("Waiting for reply on " +++ msg.Message.subject) @>>
 		case msg.Message.recipients of
-			[recipient]	= assign recipient (askReplyTask recipient msg) >>= \answer -> notifyNoReplies [recipient] [answer]
+			[recipient]	= recipient @: (askReplyTask recipient msg) >>= \answer -> notifyNoReplies [recipient] [answer]
 			recipients	= allProc [askReplyTask rcp msg \\ rcp <- recipients] Closed >>=  notifyNoReplies recipients
 	
 	askReplyTask user msg =
-		user @>>
 		subject msg @>>
-		msg.Message.priority @>>
-		(showStickyMessage ("Reply requested","The sender would like to receive a reply to this message.") False
-		 ||-
-		 manageMessage msg
-		 ) 
+		container
+			(DetachedTask {worker = user, priority = msg.Message.priority, deadline = Nothing} noMenu)
+			(showStickyMessage ("Reply requested","The sender would like to receive a reply to this message.") False
+			 ||-
+			 manageMessage msg
+			 ) 
 	subject msg
 		= Title ("Message from " +++ toString (fromDisplay msg.Message.sender)+++ ": "+++msg.Message.subject)
 	

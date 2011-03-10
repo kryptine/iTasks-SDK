@@ -2,7 +2,6 @@ implementation module SystemTasks
 
 import StdList, StdArray, TSt, Types, Config, Text, UserDB, GenVisualize, GenUpdate
 from TaskTree import :: TaskTree, :: TaskInfo,  :: TaskPriority(..), ::TaskParallelType(..)
-from TaskTree import :: TaskProperties(..), :: SystemProperties(..), :: ManagerProperties(..)
 from Time	import :: Timestamp, :: Clock(..), clock
 from Random	import genRandInt
 from ProcessDB import :: Menu

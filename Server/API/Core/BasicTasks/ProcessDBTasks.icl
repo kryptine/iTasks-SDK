@@ -16,6 +16,12 @@ where
 instance toProcessId (ProcessRef a)
 where
 	toProcessId (ProcessRef pid) = pid
+	
+derive gVisualize	Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive gUpdate		Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive gDefaultMask	Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive gVerify		Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive bimap Maybe,(,)
 
 getProcess :: !pid -> Task (Maybe Process) | toProcessId pid
 getProcess pid = mkInstantTask ("Get process", "Read a process from the database.")

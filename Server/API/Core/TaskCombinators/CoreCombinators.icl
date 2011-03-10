@@ -7,7 +7,7 @@ from StdFunc			import id, const, o, seq
 from TaskTree			import :: TaskParallelType
 from CommonCombinators	import transform
 
-derive class iTask SchedulerState, TaskStatus, PAction
+derive class iTask SchedulerState, PAction
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -446,7 +446,7 @@ where
 sharedDescriptionAndStatus pref = mapSharedRead f (sharedProcess pref)
 	where
 		f Nothing = Nothing
-		f (Just {Process|properties=p=:{systemProperties=s=:{status}, managerProperties=m=:{taskDescription}}}) = Just (taskDescription,status)
+		f (Just {Process|properties=p=:{systemProperties=s=:{status}, taskProperties=t=:{taskDescription}}}) = Just (taskDescription,status)
 
 waitForProcessView (Nothing,res) = finishedView res
 waitForProcessView (Just (desc,status),res) = case status of

@@ -9,6 +9,7 @@ from Shared		import :: Shared
 from HTML 		import class html
 from Time		import :: Timestamp
 from Config		import :: Config
+from TaskTree	import :: TaskParallelType
 
 derive JSONEncode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
@@ -19,6 +20,9 @@ derive JSONDecode	EmailAddress, Session, Action, ProcessRef, Table, Shared, Html
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, JSONNode, (->), Dynamic, Table, Shared, HtmlDisplay
+derive JSONEncode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive JSONDecode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive gEq			TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
 
 instance toString User
 instance toString Note
@@ -177,10 +181,11 @@ toHtmlDisplay	:: !h -> HtmlDisplay | html h
 fromHtmlDisplay	:: !HtmlDisplay -> String
 instance toString HtmlDisplay
 
-// Properties of tasks	
-:: TaskProperties =
-	{ systemProperties	:: !SystemProperties
+// Properties of processes	
+:: ProcessProperties =
+	{ taskProperties	:: !TaskProperties
 	, managerProperties	:: !ManagerProperties
+	, systemProperties	:: !SystemProperties
 	, progress			:: !TaskProgress
 	}
 
@@ -206,10 +211,12 @@ instance toString HtmlDisplay
 
 :: ManagerProperties =
 	{ worker			:: !User					// Who has to do the task? 
-	, taskDescription	:: !TaskDescription			// Description of the task
-	, context			:: !Maybe String			// Optional context information for doing the task (html)
 	, priority			:: !TaskPriority			// What is the current priority of this task?
 	, deadline			:: !Maybe DateTime			// When is the task due?
+	}
+	
+:: TaskProperties =
+	{ taskDescription	:: !TaskDescription			// Description of the task
 	, tags				:: ![String]				// A list of tags
 	}
 
@@ -241,6 +248,7 @@ instance descr String
 instance descr (String, descr) | html descr
 instance descr TaskDescription
 
+initTaskProperties :: TaskProperties
 initManagerProperties :: ManagerProperties
 
 // Users	

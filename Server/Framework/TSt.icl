@@ -14,11 +14,11 @@ mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !FilePath !*World -> *
 mkTSt appName config request workflows store tmpDir world
 	=	{ taskNr			= []
 		, taskInfo			= initTaskInfo
-		, tree				= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo (noOutput 1))
+		, tree				= TTMainTask initTaskInfo initProcessProperties Nothing (TTFinishedTask initTaskInfo (noOutput 1))
 		, newTask			= False
 		, events			= []
-		, properties		= initTaskProperties
-		, staticInfo		= initStaticInfo appName workflows
+		, properties		= initProcessProperties
+		, staticInfo		= initStaticInfo workflows
 		, currentChange		= Nothing
 		, pendingChanges	= []
 		, request			= request
@@ -28,10 +28,9 @@ mkTSt appName config request workflows store tmpDir world
 		, iterationCount	= 1
 		}
 
-initStaticInfo :: String ![Workflow] -> StaticInfo
-initStaticInfo appName workflows
-	=	{ appName			= appName
-		, currentProcessId	= ""
+initStaticInfo :: ![Workflow] -> StaticInfo
+initStaticInfo workflows
+	=	{ currentProcessId	= ""
 		, currentSession 	= {Session | sessionId = "", user = AnyUser, timestamp = Timestamp 0}
 		, staticWorkflows	= workflows
 		}
@@ -76,12 +75,13 @@ initSystemProperties =
 	, deleteWhenDone = False
 	}
 	
-initTaskProperties :: TaskProperties
-initTaskProperties
-	= { systemProperties	= initSystemProperties
-	  , managerProperties	= initManagerProperties
-	  , progress			= TPActive
-	  }
+initProcessProperties :: ProcessProperties
+initProcessProperties =
+	{ taskProperties	= initTaskProperties
+	, systemProperties	= initSystemProperties
+	, managerProperties	= initManagerProperties
+	, progress			= TPActive
+	}
 
 initSession :: !SessionId !*TSt -> (!Maybe String, !*TSt)
 initSession sessionId tst
@@ -102,9 +102,10 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# (manager,tst) 		= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)	
 	# taskId				= if toplevel "" (taskNrToString taskNr)
 	# parent				= if toplevel Nothing (Just properties.systemProperties.SystemProperties.taskId)
-	# managerProperties		= setUser manager (taskProperties originalTask)
+	# managerProperties		= setUser manager (managerProperties originalTask)
 	# properties =
-		{systemProperties =
+		{ taskProperties	= taskProperties originalTask
+		, systemProperties =
 			{ taskId		= taskId
 			, parent		= parent
 			, status		= if activate Active Suspended
@@ -148,7 +149,7 @@ where
 		# taskNr	= taskNrFromString taskId
 		# info =	{ TaskInfo|initTaskInfo
 					& taskId	= taskId
-					, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
+					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
 		= TTMainTask info properties mbParType (TTFinishedTask info noOutput)
 
@@ -203,14 +204,14 @@ applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) i
 			TaskFinished a	= (TaskFinished (dynamic a), tst)
 			TaskException e	= (TaskException e, tst)
 where
-	applyTaskCommit` tst=:{TSt|iterationCount,properties=properties=:{TaskProperties|systemProperties=s=:{SystemProperties|taskId}}}
+	applyTaskCommit` tst=:{TSt|iterationCount,properties=properties=:{ProcessProperties|systemProperties=s=:{SystemProperties|taskId}}}
 		// reset task nr
 		# processTaskNr									= taskNrFromString taskId
 		# tst											= {tst & taskNr = [taskNr !! (length taskNr - length processTaskNr - 1):processTaskNr]}
 		// reset tree
 		# info 											=	{ TaskInfo|initTaskInfo
 															& taskId	= taskId
-															, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
+															, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 															}
 		# tst											= {tst & tree = TTMainTask info properties inptype (TTFinishedTask info noOutput)}
 		# (result, tst=:{sharedChanged,triggerPresent})	= applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False}
@@ -304,17 +305,17 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
 			= (TaskException e, tree, tst)
 where
-	resetTSt :: !TaskId ![TaskEvent] !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
+	resetTSt :: !TaskId ![TaskEvent] !ProcessProperties !(Maybe TaskParallelType) !*TSt -> *TSt
 	resetTSt taskId events properties inptype tst
 		# taskNr	= taskNrFromString taskId
 		# info =	{ TaskInfo|initTaskInfo
 					& taskId	= taskId
-					, subject	= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
+					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
 		# tree		= TTMainTask info properties inptype (TTFinishedTask info noOutput)
 		= {TSt| tst & taskNr = taskNr, tree = tree, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
 	
-	restoreTSt :: !NonNormalizedTree ![TaskEvent] !TaskProperties !*TSt -> *TSt
+	restoreTSt :: !NonNormalizedTree ![TaskEvent] !ProcessProperties !*TSt -> *TSt
 	restoreTSt tree events properties tst = {TSt|tst & tree = tree, events = events, properties = properties}
 	/*
 	* Load all stored persistent changes that are applicable to the current (sub) process.
@@ -340,7 +341,7 @@ where
 	* Because applying a change may result in the creation of new sub processes, changes must be carefully applied
 	* in the right order. 
 	*/
-	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !TaskProperties !(Maybe TaskParallelType) !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
+	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !ProcessProperties !(Maybe TaskParallelType) !*TSt -> (!Int, !Dynamic, !ProcessProperties, !TaskResult Dynamic, !*TSt)
 	applyAllChanges processId changeCount [] thread properties inptype tst
 		//Only apply the current change
 		= applyCurrentChange processId changeCount thread properties inptype tst
@@ -367,7 +368,7 @@ where
 					//A change caused an exception. Stop, but keep pending changes
 					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
 
-	applyCurrentChange :: !ProcessId !Int !Dynamic !TaskProperties !(Maybe TaskParallelType) !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
+	applyCurrentChange :: !ProcessId !Int !Dynamic !ProcessProperties !(Maybe TaskParallelType) !*TSt -> (!Int, !Dynamic, !ProcessProperties, !TaskResult Dynamic, !*TSt)
 	applyCurrentChange processId changeCount thread properties inptype tst=:{currentChange}
 		= case currentChange of
 			Just (lifetime,change)
@@ -409,7 +410,7 @@ where
 					= applyThread thread inptype {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
 				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
 	
-	applyChange :: !TaskNr !Dynamic !Dynamic !TaskProperties -> (!Maybe Dynamic, !Maybe Dynamic, !TaskProperties)
+	applyChange :: !TaskNr !Dynamic !Dynamic !ProcessProperties -> (!Maybe Dynamic, !Maybe Dynamic, !ProcessProperties)
 	//Apply a change that matches a specific type
 	applyChange cxt (changeFun :: Change a) (Container (thread=:{TaskThread|originalTask,currentTask}) :: Container (TaskThread a) a) properties
 		# (mbProps,mbTask,mbChange) = changeFun properties (setTaskContext cxt currentTask) originalTask
@@ -509,7 +510,7 @@ calculateTaskTree taskId events tst
 						(Nothing)	= noProcessResult
 					# info =	{ TaskInfo| initTaskInfo
 								& taskId			= taskId
-								, subject			= properties.managerProperties.ManagerProperties.taskDescription.TaskDescription.title
+								, subject			= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 								, description		= "Task Result"
 								}
 					= (TTFinishedTask info result,tst)
@@ -622,11 +623,11 @@ mkMainTask description taskfun
 	= mkTask
 		description
 		id
-		(\tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo noOutput)})
+		(\tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo initProcessProperties Nothing (TTFinishedTask taskInfo noOutput)})
 
 mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkTask description taskFuncEdit taskFuncCommit =
-	{ taskProperties	= {ManagerProperties|initManagerProperties & taskDescription = toDescr description}
+	{ taskProperties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, containerType		= InParallelBody
 	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
@@ -662,10 +663,10 @@ applyTaskCommit {taskProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWi
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
 					| taskId				= taskNrToString taskNr
-					, subject				= taskProperties.ManagerProperties.taskDescription.TaskDescription.title
-					, description			= toString taskProperties.ManagerProperties.taskDescription.TaskDescription.description
+					, subject				= taskProperties.TaskProperties.taskDescription.TaskDescription.title
+					, description			= toString taskProperties.TaskProperties.taskDescription.TaskDescription.description
 					, context				= Nothing
-					, tags					= taskProperties.ManagerProperties.tags
+					, tags					= taskProperties.TaskProperties.tags
 					, menus					= mbMenuGenFunc
 					, formWidth				= formWidth
 					}

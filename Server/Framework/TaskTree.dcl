@@ -22,7 +22,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//NODE CONSTRUCTORS
 	
 	//A task that is treated as a main chunk of work
-	= TTMainTask		!.(TaskInfo menus) !TaskProperties !(Maybe TaskParallelType) !(TaskTree groupActionConditions interactiveOutput finishedOutput menus)
+	= TTMainTask		!.(TaskInfo menus) !ProcessProperties !(Maybe TaskParallelType) !(TaskTree groupActionConditions interactiveOutput finishedOutput menus)
 	//A task that is composed of a number of sequentially executed subtasks
 	| TTSequenceTask	!.(TaskInfo menus) !.[TaskTree groupActionConditions interactiveOutput finishedOutput menus]
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)

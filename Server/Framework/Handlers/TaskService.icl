@@ -240,12 +240,10 @@ where
 	taskItem process	= process.Process.properties	
 		
 	getManagerProperty :: !String !ManagerProperties -> JSONNode
-	getManagerProperty param {worker,taskDescription,priority,deadline,tags} = case param of
-		"worker" 	= JSONObject [("success",JSONBool True),(param,toJSON worker)]
-		"subject"	= JSONObject [("success",JSONBool True),(param,toJSON taskDescription.TaskDescription.title)]  
+	getManagerProperty param {worker,priority,deadline} = case param of
+		"worker" 	= JSONObject [("success",JSONBool True),(param,toJSON worker)] 
 		"priority"	= JSONObject [("success",JSONBool True),(param,toJSON priority)]
 		"deadline"	= JSONObject [("success",JSONBool True),(param,toJSON deadline)]
-		"tags"		= JSONObject [("success",JSONBool True),(param,toJSON tags)]
 		_		 	= JSONObject [("success",JSONBool False),("error",JSONString ("Property "+++param+++" does not exist"))]
 		
 	updateManagerProperty :: !String !String !Process !*TSt -> (JSONNode,*TSt)
@@ -255,18 +253,12 @@ where
 			"worker" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
 				Just upd = (True,{manProps & worker = upd})
-			"subject" = case fromJSON(fromString update) of
-				Nothing = (False,manProps)
-				Just upd = (True,{ManagerProperties | manProps & taskDescription = {TaskDescription | manProps.taskDescription & title = upd}})
 			"priority" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
 				Just upd = (True,{manProps & priority = upd})
 			"deadline" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
 				Just upd = (True,{manProps & deadline = upd})
-			"tags" = case fromJSON(fromString update) of
-				Nothing = (False,manProps)
-				Just upd = (True,{ManagerProperties | manProps & tags = upd})
 			_ = (False,manProps)
 		= case ok of
 			True

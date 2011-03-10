@@ -20,7 +20,7 @@ from HTTP		import :: HTTPRequest
 					, events			:: ![TaskEvent]										// The update events for interactive tasks
 																							// (task id, name, value)
 																						
-					, properties		:: !TaskProperties									// Properties of the current evaluated process
+					, properties		:: !ProcessProperties								// Properties of the current evaluated process
 					
 					, staticInfo		:: !StaticInfo										// info which does not change during a run
 										
@@ -37,8 +37,7 @@ from HTTP		import :: HTTPRequest
 					}
 					
 
-:: StaticInfo	=	{ appName			:: !String										// the name of the server executable
-					, currentProcessId	:: !ProcessId									// the id of the current process
+:: StaticInfo	=	{ currentProcessId	:: !ProcessId									// the id of the current process
 					, currentSession	:: !Session										// the current session			
 					, staticWorkflows	:: ![Workflow]									// the list of workflows supported by the application				
 					}

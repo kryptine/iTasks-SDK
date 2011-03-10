@@ -42,7 +42,7 @@ itasks.ResultPanel = Ext.extend(itasks.RemoteDataPanel, {
 		var rp = this.getComponent(1);
 		
 		var props = data.task;
-		var subject = props.managerProperties.taskDescription.title;
+		var subject = props.taskProperties.taskDescription.title;
 				
 		this.properties = props;
 		this.setTitle(Ext.util.Format.ellipsis(subject,10));		

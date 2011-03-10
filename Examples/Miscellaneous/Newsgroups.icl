@@ -67,7 +67,7 @@ where
 	startup n dbid [] _
 		= return Void
 	startup n dbid [u:us] data
-		= spawnProcess True True (u @>> Title "Meeting Request" @>> task n) >>| 	startup (n+1) dbid us data
+		= spawnProcess True True (container (DetachedTask {ManagerProperties|initManagerProperties & worker = u} noMenu) (Title "Meeting Request" @>> task n)) >>| 	startup (n+1) dbid us data
 	where
 		task :: Int -> Task MeetingDB
 		task n 
@@ -131,8 +131,8 @@ chat
 	=				getCurrentUser
 	>>= \me ->		selectFriends
 	>>= \friends -> createChatBox me
-	>>= \chatbox ->	allTasks ([spawnProcess True True (f @>> Title "Chat Request" @>> (initiateChat chatbox f [me:friends])) \\ f <- friends]
-							++ [spawnProcess True True (me @>> Title "Chat Request" @>> menus @>> chatSession chatbox (me))]) 						
+	>>= \chatbox ->	sequence "chat" ([spawnProcess True True (container (DetachedTask {ManagerProperties|initManagerProperties & worker = f} noMenu) (Title "Chat Request" @>> (initiateChat chatbox f [me:friends]))) \\ f <- friends]
+							++ [spawnProcess True True (container (DetachedTask {ManagerProperties|initManagerProperties & worker = me} noMenu) (Title "Chat Request" @>> menus @>> chatSession chatbox (me)))]) 						
 where
 	
 	createChatBox :: User -> (Task (SymmetricShared Chat))
@@ -240,7 +240,7 @@ where
 	addUsers chatbox
 		= 			 	enterInformation ("Select users","Select users to add to the chat")
 		>>= \users -> 	readShared chatbox
-		>>= \chat ->	allTasks ([spawnProcess True True (u @>> Title "Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users))) \\ u <- users])
+		>>= \chat ->	sequence "add users" [spawnProcess True True (container (DetachedTask {ManagerProperties|initManagerProperties & worker = u} noMenu) (Title "Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users)))) \\ u <- users]
 		>>| 		 	return Void
 //===============================================
 
@@ -284,7 +284,9 @@ where
 		=			return msg
 	broadcast me msg [u:us] 
 		=			spawnProcess True True
-						(showMessageAbout ("Broadcast message","You have received the following broadcast message from " <+++ displayName me) msg <<@ Title msg.Broadcast.subject <<@ u)
+						(container (DetachedTask {ManagerProperties|initManagerProperties & worker = u} noMenu)
+							(showMessageAbout ("Broadcast message","You have received the following broadcast message from " <+++ displayName me) msg <<@ Title msg.Broadcast.subject)
+						)
 			>>|			broadcast me msg us 
 				
 
@@ -292,7 +294,7 @@ internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation ("Compose","Type your email message ...")
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [who @>> (spawnProcess True True (mailMess me msg <<@ Title msg.EMail.subject) <<@ who) \\ who <- [msg.to:mbToList msg.cc]] Closed
+	>>= \me ->						sequence "send mail" [spawnProcess True True (container (DetachedTask {ManagerProperties|initManagerProperties & worker = who} noMenu) (mailMess me msg <<@ Title msg.EMail.subject)) \\ who <- [msg.to:mbToList msg.cc]]
 	>>|								return msg
 
 mailMess :: User EMail -> Task Void
@@ -302,14 +304,14 @@ internalEmailConf :: (Task EMail)
 internalEmailConf
 =						enterInformation ("Compose","Type your email message ...")
 	>>= \msg ->			getCurrentUser
-	>>= \me ->			allProc [who @>> (mailMess me msg <<@ Title msg.EMail.subject) \\ who <- [msg.to:mbToList msg.cc]] Closed
+	>>= \me ->			allProc [container (DetachedTask {ManagerProperties|initManagerProperties & worker = who} noMenu) (mailMess me msg <<@ Title msg.EMail.subject) \\ who <- [msg.to:mbToList msg.cc]] Closed
 	>>|					return msg
 	
 internalEmailReply :: (Task (EMail,[Reply])) 
 internalEmailReply
 =					enterInformation ("Compose","Type your email message ...")
 	>>= \msg ->		getCurrentUser
-	>>= \me ->		allProc [who @>> ( mailMess2 me msg <<@ Title msg.EMail.subject) \\ who <- [msg.to:mbToList msg.cc]] Closed
+	>>= \me ->		allProc [container (DetachedTask {ManagerProperties|initManagerProperties & worker = who} noMenu) (mailMess2 me msg <<@ Title msg.EMail.subject) \\ who <- [msg.to:mbToList msg.cc]] Closed
 	>>= \reply ->	showMessageAbout ("Replies","The following replies have been commited:") reply
 	>>|				return (msg,map snd reply)
 
@@ -401,7 +403,7 @@ where
 		>>= \groups ->		requestConfirmationAbout ("More groups?","Do you want to add more?") groups 
 		>>= \yn ->			if yn addNewsGroup (return Void)
 	
-subscribeProcess me group = spawnProcess True True (readNews 1 me group 0 <<@ Title (group <+++ " newsgroup reader") <<@ me)
+subscribeProcess me group = spawnProcess True True (container (DetachedTask {ManagerProperties|initManagerProperties & worker = me} noMenu) (readNews 1 me group 0 <<@ Title (group <+++ " newsgroup reader")))
 
 // news group reader
 

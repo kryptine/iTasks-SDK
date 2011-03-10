@@ -6,14 +6,16 @@ definition module ProcessDB
 import Maybe, Types, TSt, Task
 from Time import :: Timestamp
 
-derive class iTask Process, TaskPriority, TaskParallelType, TaskProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription
+derive JSONEncode	Process
+derive JSONDecode	Process
+derive gEq			Process
 
 /**
 * Our local process type
 */
 :: Process 		= {	taskId			:: !TaskId						// The process identification				  
 				  //Public process meta data
-				  , properties		:: !TaskProperties				// The properties of the main task node of this process
+				  , properties		:: !ProcessProperties			// The properties of the main task node of this process
 				  //System internal information
 				  , dependents		:: ![TaskId]					// Other process that are to be evaluated on completion of this task
 				  , changeCount		:: !Int							// The number of task changes that have been applied
@@ -36,7 +38,7 @@ where
 	setProcessStatus		:: !TaskStatus !TaskId									!*st -> (!Bool,				!*st)
 	
 	updateProcess			:: !TaskId (Process -> Process)							!*st -> (!Bool,				!*st)
-	updateProcessProperties	:: !TaskId (TaskProperties -> TaskProperties)			!*st -> (!Bool,				!*st)
+	updateProcessProperties	:: !TaskId (ProcessProperties -> ProcessProperties)		!*st -> (!Bool,				!*st)
 	
 	removeFinishedProcesses :: 														!*st -> (!Bool, 			!*st)
 	

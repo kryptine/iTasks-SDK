@@ -8,12 +8,17 @@ from ProcessDB	import :: Process(..)
 from TaskTree	import :: TaskParallelType
 from Time		import :: Timestamp 
 from Shared		import :: ReadOnlyShared
-import GenVisualize, GenUpdate, iTaskClass
+import iTaskClass
 
 //Allow either typed or untyped references to lookup a process table entry
 class toProcessId a where toProcessId :: a -> ProcessId
 instance toProcessId ProcessId
 instance toProcessId (ProcessRef a)
+
+derive gVisualize	Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive gUpdate		Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive gDefaultMask	Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive gVerify		Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
 
 /**
 * Retrieves a Process record from the process table

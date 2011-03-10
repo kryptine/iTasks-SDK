@@ -2,19 +2,26 @@ implementation module Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, Types, dynamic_string, Base64, HTTP, Util
 import GenVisualize
-from TSt import :: TSt
+from TSt 		import :: TSt
 
 taskTitle :: !(Task a) -> String
-taskTitle task = task.taskProperties.taskDescription.TaskDescription.title
+taskTitle task = task.Task.taskProperties.taskDescription.TaskDescription.title
 
 taskDescription	:: !(Task a) -> String
-taskDescription task = task.taskProperties.taskDescription.TaskDescription.description
+taskDescription task = task.Task.taskProperties.taskDescription.TaskDescription.description
 
 taskUser :: !(Task a) -> User
-taskUser task = task.taskProperties.worker
+taskUser {containerType} = case containerType of
+	DetachedTask {worker} _	= worker
+	_						= AnyUser
 
-taskProperties :: !(Task a) -> ManagerProperties
-taskProperties task = task.taskProperties
+taskProperties :: !(Task a) -> TaskProperties
+taskProperties {Task|taskProperties} = taskProperties
+
+managerProperties :: !(Task a) -> ManagerProperties
+managerProperties {containerType} = case containerType of
+	DetachedTask props _	= props
+	_						= initManagerProperties
 	
 instance iTaskId TaskNr
 where
@@ -118,7 +125,7 @@ gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
-	defaultTask a =	{ taskProperties	= {ManagerProperties | initManagerProperties & taskDescription = toDescr "return"}
+	defaultTask a =	{ taskProperties	= {initTaskProperties & taskDescription = toDescr "return"}
 					, containerType		= InParallelBody
 					, formWidth			= Nothing
 					, mbTaskNr			= Nothing
@@ -134,8 +141,8 @@ gVerify{|Task|} _ _ vst = alwaysValid vst
 
 gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
 	# vis = case mbVal of
-		Just {taskProperties}	= [TextFragment taskProperties.ManagerProperties.taskDescription.TaskDescription.title]
-		Nothing					= []
+		Just {Task|taskProperties}	= [TextFragment taskProperties.TaskProperties.taskDescription.TaskDescription.title]
+		Nothing						= []
 	= (vis,vst)
 	
 gEq{|Task|} _ _ _ = False // tasks are never equal

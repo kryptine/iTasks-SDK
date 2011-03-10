@@ -153,9 +153,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		//Update properties
 		this.properties = data.task;
 		//Update header
-		this.getComponent(0).setContent(this.taskId, data.task.managerProperties.taskDescription.title, data.task);
+		this.getComponent(0).setContent(this.taskId, data.task.taskProperties.taskDescription.title, data.task);
 		//Update title
-		this.updateTitle(data.task.managerProperties.taskDescription.title);
+		this.updateTitle(data.task.taskProperties.taskDescription.title);
 		//Update content
 		this.updateContent(data.tui);
 	

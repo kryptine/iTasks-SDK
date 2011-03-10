@@ -36,14 +36,15 @@ transform			:: !(a -> b) !a 									-> Task b | iTask b
 /**
 * Assign a task to a(nother) user.
 *
-* @param The initial UserId of the user to which the task is delegated
+* @param The initial manger properties indicating the user to which the task is delegated, a priority and possibly a deadline
+* @param A function generating a menu for the process delegated to the user
 * @param The task that is to be delegated.
 *
 * @return The combined task
 */ 
-assign :: !User !(Task a) -> Task a	| iTask a
+assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
 /**
-* Assign a task to a user. (synonym for assign)
+* Assign a task to a user. (no deadline, normal priority, no menu)
 *
 * @param The initial UserId of the user to which the task is delegated
 * @param The task that is to be delegated.

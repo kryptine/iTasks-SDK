@@ -107,7 +107,7 @@ inviteUserToGroup group user
 	=	getContextWorker
 	>>= \fromUser ->
 		spawnProcess True True (
-			assign user (invite fromUser group)
+			user @: (invite fromUser group)
 		>>= \accept ->
 			if accept
 				(addMemberToGroup group user 

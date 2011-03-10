@@ -2,7 +2,7 @@ implementation module MovingTask
 
 import iTasks
 
-derive class iTask	QForm, Person, Gender, TaskStatus
+derive class iTask	QForm, Person, Gender
 derive bimap (,), Maybe
 
 :: QForm = 	{ forCompany 		:: String
@@ -37,7 +37,7 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	spawnProcess True False (task <<@ Title label <<@ who)
+		>>= \who ->	spawnProcess True False (container (DetachedTask {initManagerProperties & worker = who} noMenu) task <<@ Title label)
 		>>= 		inspect
 
 	inspect wid

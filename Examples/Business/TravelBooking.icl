@@ -16,7 +16,7 @@ derive bimap	(,), Maybe
 BookTrip :: Task FlightHotel
 BookTrip
 	=						enterInformation ("Specify trip","Please fill in trip information to make booking")
-		>>= \info ->		assign info.delegateTo (enterInformationAbout ("Book trip","Please book the following trip") info)
+		>>= \info ->		info.delegateTo @: enterInformationAbout ("Book trip","Please book the following trip") info
 		>>= \booking ->		showMessageAbout ("Trip booked","The following trip has been booked") booking
 	
 

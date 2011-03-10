@@ -22,7 +22,7 @@ changePriority :: TaskPriority -> ChangeDyn
 changePriority priority =
 	dynamic change :: A.a: Change a | iTask a
 where
-	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change props t t0 = (Just {props & managerProperties = {props.managerProperties & priority = priority}},Nothing, Just (changePriority priority))
 
 //Add a big red warning message prompt to the running task
@@ -30,7 +30,7 @@ addWarning :: String -> ChangeDyn
 addWarning msg = 
 	dynamic change  :: A.a: Change a | iTask a
 where
-	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change props t t0 = (Nothing, Just (((getDefaultValue >>= showStickyMessage ("Warning!",redText msg)) -||- t)), Just (addWarning msg))
 
 redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
@@ -40,12 +40,12 @@ duplicate :: User User String -> ChangeDyn
 duplicate me user topics =
 	dynamic change me user topics :: A.a: Change a | iTask a
 where
-	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change :: User User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change me user topics props t t0 
 		= 	( Just {props & managerProperties = {props.managerProperties & worker = me}}
-			, Just (assign me
-							(anyProc 	[ props.managerProperties.ManagerProperties.worker @>> Title topics @>> t 
-										, user @>> Title topics @>> t
+			, Just (me @:
+							(anyProc 	[ container (DetachedTask {ManagerProperties|initManagerProperties & worker = props.managerProperties.ManagerProperties.worker} noMenu) (Title topics @>> t) 
+										, container (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu) (Title topics @>> t)
 										] Open
 							)
 							<<@ Title ("Duplicated " +++ topics))
@@ -56,16 +56,16 @@ inform :: User String -> ChangeDyn
 inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
-	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True True (user @>> showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
+	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True True (container (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu) (showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res)) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn
 check user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
-	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> assign user (HighPriority @>> (updateInformation ("Verification","Please verify result of " +++ procName) res))), Nothing)
+	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change user props t t0 = (Nothing, Just (t >>= \res -> assign {worker = user, priority = HighPriority, deadline = Nothing} noMenu (updateInformation ("Verification","Please verify result of " +++ procName) res)), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
 cancel ::  String ProcessId -> ChangeDyn
@@ -83,7 +83,7 @@ reassign :: User String ProcessId -> ChangeDyn
 reassign user procName pid  =
 	dynamic change user :: A.b: Change b | iTask b
 where
-	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 
 		= (Just {props & managerProperties = {props.managerProperties & worker = user}},Nothing, Nothing)
 
@@ -92,8 +92,8 @@ restart :: User String -> Dynamic
 restart user procName =
 	dynamic change user procName :: A.a: Change a | iTask a
 where
-	change :: User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user procName props t t0 = (Nothing, Just (assign user (Title procName @>> HighPriority @>> t0 )), Nothing)
+	change :: User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change user procName props t t0 = (Nothing, Just (assign {worker = user, priority = HighPriority, deadline = Nothing} noMenu (Title procName @>> t0)), Nothing)
 
 changePrio :: Task Void
 changePrio
@@ -113,41 +113,41 @@ duplicateTask
 	>>= \procId ->	getProcess procId
 	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
 	>>= \user ->	getCurrentUser
-	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).Process.properties.managerProperties.taskDescription.TaskDescription.title) CLTransient
+	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
 
 informTask :: Task Void
 informTask
 	=				chooseProcess "The result of which process do you want to show?"
 	>>= \procId ->	chooseUserA "Select the user you want this result to see:"
 	>>= \user ->	getProcess procId
-	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).Process.properties.managerProperties.taskDescription.TaskDescription.title) CLTransient
+	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
 	
 checkTask :: Task Void
 checkTask
 	=				chooseProcess "The result of which process do you want to be checked?"
 	>>= \procId ->	getProcess procId
 	>>= \process -> chooseUserA "Select the user which has to check it:"
-	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).Process.properties.managerProperties.taskDescription.TaskDescription.title) CLTransient
+	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
 	
 cancelTask :: Task Void
 cancelTask
 	=				chooseProcess "Select the task you want to cancel:"
 	>>= \procId ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).Process.properties.managerProperties.taskDescription.TaskDescription.title procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title procId) CLTransient
 
 reassignTask :: Task Void
 reassignTask
 	=				chooseProcess "Select the task you want to reassign to someone else:"
 	>>= \procId ->	chooseUserA "Who should continue with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).Process.properties.managerProperties.taskDescription.TaskDescription.title procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title procId) CLTransient
 
 restartTask :: Task Void
 restartTask
 	=				chooseProcess "Select the task you want to restart from scratch:"
 	>>= \procId ->	chooseUserA "Who should start with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).Process.properties.managerProperties.taskDescription.TaskDescription.title) CLTransient
+	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
 
 //Utility
 chooseUserA :: !question -> Task User | html question
@@ -165,7 +165,7 @@ chooseProcess question
 	>>= \mypid ->					getProcessesWithStatus [Active]
 	>>= \procs ->					enterChoiceA question id buttons
 										[	( proc.Process.taskId
-											, proc.Process.properties.managerProperties.taskDescription.TaskDescription.title
+											, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title
 											, proc.Process.properties.managerProperties.ManagerProperties.priority
 											, proc.Process.properties.managerProperties.ManagerProperties.worker)
 											\\ proc <- procs | proc.Process.taskId <> mypid]

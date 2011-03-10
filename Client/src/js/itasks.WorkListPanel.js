@@ -75,7 +75,7 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 				uiProvider: Ext.ux.tree.TreeGridNodeUI,
 				leaf: isLeaf,
 				iconCls: 'task-int',
-				subject: Ext.util.Format.htmlEncode(d.managerProperties.taskDescription.title),
+				subject: Ext.util.Format.htmlEncode(d.taskProperties.taskDescription.title),
 				priority: itasks.util.formatPriority(d.managerProperties.priority),
 				progress: itasks.util.formatProgress(d.progress),
 				manager: Ext.util.Format.htmlEncode(itasks.util.formatUser(d.systemProperties.manager)),

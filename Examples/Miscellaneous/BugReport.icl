@@ -54,14 +54,14 @@ reportBugVerySimple :: Task Note
 reportBugVerySimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found")
 	>>=	\report ->
-		assign (NamedUser "bas")
+		NamedUser "bas" @:
 			(Title "Bug Report" @>> showInstructionAbout "Fix bug" "The following bug has been reported, please fix it." report)
 
 reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found")
 	>>=	\report ->
-		assign (NamedUser "bas")
+		NamedUser "bas" @:
 			(Title "Bug Report" @>> showInstructionAbout "Fix bug" "The following bug has been reported, please fix it." report)
 	>>| return report
 
@@ -96,7 +96,7 @@ assignBug bug critical
 	>>=	\developer ->
 		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
 	>>= \bug ->
-		assign developer (Title subject @>> priority @>> resolveBug bug critical)
+		assign {worker = developer, priority = priority, deadline = Nothing} noMenu (Title subject @>> resolveBug bug critical)
 where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
@@ -137,9 +137,8 @@ confirmCritical :: BugReport -> Task Bool
 confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
-		assign assessor
+		assign {worker = assessor, priority = HighPriority, deadline = Nothing} noMenu
 			( Title "Bug report assessment" @>>
-			  HighPriority @>>
 			  requestConfirmationAbout ("Confirmation","Is this bug really critical?") report
 			)
 
