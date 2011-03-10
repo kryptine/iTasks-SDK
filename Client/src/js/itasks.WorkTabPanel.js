@@ -95,24 +95,16 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			this.getComponent(0).setBusy(false);
 		},this);
 	},
-	onTuiEvent: function(taskId, name, value) {
+	onTuiEvent: function(taskId, name, value, status) {
 		//TODO: reinstate slight delay between receive of task and sync
 		//      needed to capture edit->click sequences.
 		this.params["events"] = Ext.encode([[taskId,name,value]]);
 		this.refresh();
 		delete(this.params["events"]);
 	},
-	update: function(data,success) {
-		if (!success){
-			Ext.Msg.alert('Error',"Error updating task.");
-			return;
-		}
-		
-		//Store the timestamp of the current value
-		this.params["timestamp"] = data.timestamp;
+	update: function(data,success,status) {
 		//Check if the task is finished or became redundant
-		if(success == false || data.tui == "done" || data.tui == "redundant") {
-			
+		if(!success && status == 404/*not found response*/ || data && (data.tui == "done" || data.tui == "redundant")) {
 			var ct = this.getComponent(1);
 			
 			if(ct.items && ct.items.length) {
@@ -150,6 +142,15 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			);
 			return;
 		}
+
+		// error other than "not found"
+		if (!success){
+			Ext.Msg.alert('Error',"Error updating task: " + data);
+			return;
+		}
+		
+		//Store the timestamp of the current value
+		this.params["timestamp"] = data.timestamp;
 		//Update properties
 		this.properties = data.task;
 		//Update header

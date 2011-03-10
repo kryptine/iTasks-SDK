@@ -46,12 +46,12 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 							itasks.app.restart(data.error);
 							return;
 						}
-						callback.call(this,data,true);
+						callback.call(this,data,true,response.status);
 					} else {
-						callback.call(this,response.responseText,true);
+						callback.call(this,response.responseText,true,response.status);
 					}					
 				} else {
-					callback.call(this,response.error,false);
+					callback.call(this,response.statusText,false,response.status);
 				}
 				this.busy = false;
 				this.fireEvent("remoteCallEnd");
