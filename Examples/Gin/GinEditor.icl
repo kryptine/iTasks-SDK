@@ -67,8 +67,8 @@ ActionViewWorkflow     :== Action "viewworkflow"	"Workflow"
 ActionViewImports      :== Action "viewimports"		"Imports"
 ActionViewTypes        :== Action "viewtypes"		"Types"    
 ActionViewSource       :== Action "viewsource"		"Generated source"      
-ActionEnableSC         :== Action "sc_on"  			"Enable syntax checking"
-ActionDisableSC        :== Action "sc_off" 			"Disable syntax checking"
+//ActionEnableSC         :== Action "sc_on"  			"Enable syntax checking"
+//ActionDisableSC        :== Action "sc_off" 			"Disable syntax checking"
 
 initMenu :: MenuDefinition
 initMenu =
@@ -108,8 +108,8 @@ actions state = [ (ActionNew,              always)
                 , (ActionViewImports,      (\_ -> state.EditorState.mode =!= ViewImports))
                 , (ActionViewTypes,        (\_ -> state.EditorState.mode =!= ViewTypes))
                 , (ActionViewSource,         (\_ -> state.EditorState.mode =!= ViewSource))
-                , (ActionEnableSC,         (\_ -> not state.EditorState.checkSyntax))
-                , (ActionDisableSC,        (\_ -> state.EditorState.checkSyntax))
+//                , (ActionEnableSC,         (\_ -> not state.EditorState.checkSyntax))
+//                , (ActionDisableSC,        (\_ -> state.EditorState.checkSyntax))
                 ]
 
 handleMenu :: Task Void
@@ -138,7 +138,7 @@ doMenu state =: { EditorState | mode, config, gMod } =
 	                    case mbGMod of
 	                       	Nothing		-> return (action, state)
 	                       	Just gMod	-> return (action, setChanged state { EditorState | state & gMod = gMod})
-        ViewSource  -> accWorld (tryRender gMod config False) >>= \source ->
+        ViewSource  -> accWorld (tryRender gMod config POICL) >>= \source ->
         				showMessageA ("code view", formatSource source) (actions state) Void
                         >>= \(action, _) = return (action, state)                   
     >>= switchAction
@@ -190,8 +190,8 @@ switchAction (action, state) =
         ActionViewImports      -> doMenu { EditorState | state & mode = ViewImports }
         ActionViewTypes        -> doMenu { EditorState | state & mode = ViewTypes }
         ActionViewSource         -> doMenu { EditorState | state & mode = ViewSource }
-        ActionEnableSC         -> doMenu state //{ EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = True } }
-        ActionDisableSC        -> doMenu state //{ EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = False } }
+//        ActionEnableSC         -> doMenu state { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = True } }
+//        ActionDisableSC        -> doMenu state { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = False } }
 
 getName :: EditorState -> String
 getName state = case state.EditorState.name of
@@ -243,16 +243,13 @@ run state 					= case state.compiled of
 */
 
 formatSource :: String -> HtmlTag
-formatSource source = TtTag [] (flatten [ [ Text s, BrTag [] ]  \\ s <- split "\n" source ])
+formatSource source = TextareaTag [ColsAttr "80", RowsAttr "25"] [ Text source ]
 
-viewSource :: GModule -> Task Void
-viewSource gMod = showMessage "hoi" Void // Note (tryRender gMod False)	
-
-tryRender :: GModule GinConfig Bool *World -> (String, *World)
-tryRender gMod config expand world
+tryRender :: GModule GinConfig PrintOption *World -> (String, *World)
+tryRender gMod config printOption world
 # (st, world) = gToAModule gMod config world
 # source = case runParse st of
-	GSuccess aMod -> renderAModule [] ((if expand expandModule id) aMod) 
+	GSuccess aMod -> renderAModule printOption aMod
 	GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))
 = (source, world)
 

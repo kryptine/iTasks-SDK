@@ -65,8 +65,8 @@ derive class iTask CompileResult
 derive JSONEncode CompilingInfo, CompilerProcess
 derive JSONDecode CompilingInfo, CompilerProcess
 
-runCompiler :: !GModule (String String GinConfig *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
-runCompiler gMod compiler iworld
+runCompiler :: !GModule !PrintOption (String String GinConfig *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
+runCompiler gMod printOption compiler iworld
 //1. Load configuration
 # (config,iworld) = accWorldIWorld ginLoadConfig iworld 
 | isNothing config = (CompileGlobalError "Configuration not found", iworld)
@@ -78,7 +78,7 @@ runCompiler gMod compiler iworld
 # aMod = expandModule (getParseSuccess result)
 //3. Pretty-print module
 # (basename,iworld) = getUniqueBasename iworld
-# source = renderAModule [PathContexts] { AModule | aMod & name = basename }
+# source = renderAModule printOption { AModule | aMod & name = basename }
 //4. Write source code to temp icl file
 # fullname = (filenameFromConfig config basename "icl")
 # (result, iworld) = accWorldIWorld (writeFile fullname source) iworld
@@ -103,7 +103,7 @@ where
 	prefix = "temp"
 
 batchBuild :: !GModule *IWorld -> (CompileResult String, *IWorld)
-batchBuild gMod iworld = runCompiler gMod build iworld where
+batchBuild gMod iworld = runCompiler gMod POWriteDynamics build iworld where
 	build  :: !String !String !GinConfig *IWorld -> (CompileResult String, *IWorld)
 	build source basename config iworld
 	# (result, iworld) = compile Compilation source basename config iworld
@@ -119,7 +119,7 @@ batchBuild gMod iworld = runCompiler gMod build iworld where
     = (CompileSuccess dynfile, iworld)
     
 syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
-syntaxCheck gMod iworld = runCompiler gMod (compile SyntaxCheck) iworld
+syntaxCheck gMod iworld = runCompiler gMod POSyntaxCheck (compile SyntaxCheck) iworld
 
 // --------------------------------------------------------------------------------
 // Compiler interface

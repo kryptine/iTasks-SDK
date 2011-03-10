@@ -199,15 +199,18 @@ equals :: Doc
 equals          = char '='
 
 /* -----------------------------------------------------------
- * Combinators for prelude types
+ * Combinators for predefined types
  * ----------------------------------------------------------- */
 
 //string is like "text" but replaces '\n' by "line"
-//string ""       = empty
-//string ['\n':s] = line <-> string s
-//string s        = case (span (\c -> c <> '\n') s) of
-//                    (xs,ys) -> text xs <-> string ys
-                  
+string :: String -> Doc
+string s		= str s 0 0 (size s) empty
+where
+	str :: String Int Int Int Doc -> Doc
+	str s fr to len acc | to == len      = acc <-> text (s % (fr, to - 1))
+	str s fr to len acc | s.[to] == '\n' = str s (to + 1) (to + 1) len (acc <-> text (s % (fr, to - 1)) <-> line)
+						| otherwise      = str s fr (to + 1) len acc
+						
 bool :: Bool -> Doc
 bool b          = text (toString b)
 
@@ -372,9 +375,7 @@ renderPretty rfrac w x
     = best 0 0 (Cons 0 x Nil)                
     where
       // r :: the ribbon width in characters
-      //TODO: no round function in Clean?
-      //TODO: should be: r  = max 0 (min w (round (fromIntegral w * rfrac)))
-      r  = max 0 (min w (w * (toInt rfrac)))
+      r  = max 0 (min w (toInt (toReal w * rfrac))) 
       
       /* -----------------------------------------------------------
        * best :: n = indentation of current line

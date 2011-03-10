@@ -60,9 +60,10 @@ expandModule :: AModule -> AModule
 
 //instance toString AModule
 
-::PrintOption = PathContexts 
+:: PrintOption = PODCL | POICL | POSyntaxCheck | POWriteDynamics
+
 instance == PrintOption
 
-renderAModule :: [PrintOption] AModule -> String
+renderAModule :: PrintOption AModule -> String
 
 

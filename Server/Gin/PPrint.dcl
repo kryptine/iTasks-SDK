@@ -89,6 +89,7 @@ equals :: Doc
  * Combinators for prelude types
  * ----------------------------------------------------------- */
                  
+string :: String -> Doc
 bool :: Bool -> Doc
 int :: Int -> Doc                  
 real :: Real -> Doc

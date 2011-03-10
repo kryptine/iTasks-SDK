@@ -14,9 +14,12 @@ import 	iTasks
 
 import GinConfig
 import GinSyntax
+import GinParser
 import GinFlowLibrary
 
-EXTENSION = "gcl"
+GRAPHICAL_EXTENSION = "gcl"
+DEFINITION_EXTENSION = "dcl"
+IMPLEMENTATION_EXTENSION = "icl"
 
 derive class iTask MaybeError
 
@@ -24,7 +27,7 @@ listDirectory :: !String !*World -> (MaybeOSError [String], *World)
 listDirectory path world
 	# (res, world) = readDirectory path world
 	| isError res = (res, world)
-	= (Ok [ dropExtension m \\ m <- (fromOk res) | toLowerCase (takeExtension m) == EXTENSION ], world)
+	= (Ok [ dropExtension m \\ m <- (fromOk res) | toLowerCase (takeExtension m) == GRAPHICAL_EXTENSION ], world)
 
 listModules :: !GinConfig !*World -> (MaybeOSError [String], *World)
 listModules config world = listDirectory config.userPath world
@@ -46,7 +49,7 @@ where
 	mp :: [String] *World -> (Maybe String, *World)
 	mp []           world = (Nothing, world)
 	mp [path:paths] world 
-		# filepath = (addExtension (path </> name) EXTENSION)
+		# filepath = (addExtension (path </> name) GRAPHICAL_EXTENSION)
 		# (exists, world) = 'File'.fileExists filepath world
 		| exists	= (Just filepath, world)
 		| otherwise	= mp paths world
@@ -81,7 +84,26 @@ importModules config names world
 	= (Ok [predefinedModule : fromOk mMods], world)
 	
 writeModule :: !GinConfig !String !GModule -> Task Void
-writeModule config name gMod = exportJSONFile (addExtension (config.userPath </> name) EXTENSION) gMod >>| stop
+writeModule config name gMod 
+	# basename = (config.userPath </> name)
+	# gMod = { GModule | gMod & name = name }
+	= exportJSONFile (addExtension basename GRAPHICAL_EXTENSION) gMod >>|
+	  accWorld (gToAModule gMod config) >>= \st -> 
+	  case runParse st of
+		  GSuccess aMod = exportTextFile (addExtension basename     DEFINITION_EXTENSION) (renderAModule PODCL aMod) >>|
+		  				  exportTextFile (addExtension basename IMPLEMENTATION_EXTENSION) (renderAModule POICL aMod) >>|
+		  				  stop
+		  GError errors = stop
+
+tryRender gMod config printOption world
+# (st, world) = gToAModule gMod config world
+# source = case runParse st of
+	GSuccess aMod -> renderAModule printOption aMod
+	GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))
+= (source, world)
+
+
+
 
 moduleExists :: !GinConfig !String -> Task Bool
 moduleExists config name = accWorld (modulePath config name) >>= \path -> return (isJust path)
