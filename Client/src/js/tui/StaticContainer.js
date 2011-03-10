@@ -1,6 +1,6 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
+itasks.tui.StaticContainer = Ext.extend(Ext.Container,{
 
 	initComponent: function(){
 		
@@ -14,10 +14,10 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 		} else {
 			this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		}	
-		itasks.tui.TupleContainer.superclass.initComponent.apply(this,arguments);
+		itasks.tui.StaticContainer.superclass.initComponent.apply(this,arguments);
 	},
 	afterRender: function(){
-		itasks.tui.TupleContainer.superclass.afterRender.call(this,arguments);
+		itasks.tui.StaticContainer.superclass.afterRender.call(this,arguments);
 	},
 	getPreferredWidth : function(){
 		var w = 0;
@@ -39,4 +39,4 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 	}
 });
 
-Ext.reg('itasks.tui.Tuple',itasks.tui.TupleContainer);
+Ext.reg('itasks.tui.Static',itasks.tui.StaticContainer);

@@ -140,7 +140,7 @@ sameType (TUIORYXControl _)			(TUIORYXControl _)			= True
 sameType (TUIGridControl _)			(TUIGridControl _)        	= True
 sameType (TUITreeControl _)			(TUITreeControl _)        	= True
 
-sameType (TUITupleContainer _)		(TUITupleContainer _)		= True
+sameType (TUIStaticContainer _)		(TUIStaticContainer _)		= True
 sameType (TUIRecordContainer _)		(TUIRecordContainer _)		= True
 sameType (TUIListContainer _)		(TUIListContainer _)		= True
 sameType (TUIHtmlContainer _)		(TUIHtmlContainer _)		= True
@@ -217,7 +217,7 @@ hintOf _													= Nothing
 
 //Static containers are GUI elements that contain other elements, but who's structure does not change
 isStaticContainer :: TUIDef -> Bool
-isStaticContainer (TUITupleContainer _)		= True
+isStaticContainer (TUIStaticContainer _)	= True
 isStaticContainer _							= False
 
 //Dynamic containers are GUI elements that contain other elements that can be added, removed or reordered

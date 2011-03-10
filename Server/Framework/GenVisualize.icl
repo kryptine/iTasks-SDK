@@ -1,7 +1,7 @@
 implementation module GenVisualize
 
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc
-import GenUpdate, GenVerify, TUIDiff, Util, Maybe, Functor, Text, HTML, JSON, TUIDefinition, Types, HtmlUtil
+import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefinition, Types, HtmlUtil
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = startDataPath, label = Nothing, 
@@ -25,14 +25,6 @@ visualizeAsHtmlLabel x = html (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVS
 	
 visualizeAsTextLabel :: !a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
-
-determineEditorUpdates :: !String !(!a,!VerifyMask) !(!a,!VerifyMask) ![DataPath] -> [TUIUpdate] | gVisualize{|*|} a
-determineEditorUpdates name (oval,ovmask) (nval,nvmask) alwaysUpdate
-	# oldviz = visualizeAsEditor name oval ovmask
-	# newviz = visualizeAsEditor name nval nvmask
-	= case (oldviz,newviz) of
-		([oldviz],[newviz])	= diffEditorDefinitions oldviz newviz alwaysUpdate
-		_					= []
 	
 //IDEAS:
 // - ConstructorControl, should in same cases be a constructor container
@@ -66,7 +58,10 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,_)	= popMask verifyMask
 	# x			= fmap fromOBJECT val
-	//ADT's with multiple constructors: Add the creation of a control for choosing the constructor
+	//Record: just strip of the OBJECT constructor and pass through, record container is created when processing the CONS
+	| isRecord d
+		= fx x vst
+	//ADT with multiple constructors: Add the creation of a control for choosing the constructor
 	| d.gtd_num_conses > 1
 		= case vizType of 
 			VEditorDefinition
@@ -88,9 +83,14 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 			_
 				# (viz,vst) = fx x vst
 				= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
-	//Everything else, just strip of the OBJECT constructor and pass through
-	| otherwise = case val of
-		= fx x vst
+	//ADT with one constructor: put content into static container
+	| otherwise
+		# (vis,vst) = fx x {VSt|vst & useLabels = False, label = Nothing}
+		= ([TUIFragment (TUIStaticContainer	{ TUIStaticContainer
+											| id = ""
+											, fieldLabel = label
+											, optional = optional
+											, items = coerceToTUIDefs vis})],vst)
 			
 gVisualize{|CONS of d|} fx val vst=:{useLabels,optional} = visualizeCustom mkControl staticVis val False vst
 where
@@ -549,11 +549,11 @@ where
 // tuple util functions	
 tupleMkControl visChildren _ id val _ label optional _ _ _ vst
 		# (vis,vst) = visChildren val (map coerceToTUIDefs) vst
-		= ([TUITupleContainer	{ TUITupleContainer
+		= ([TUIStaticContainer	{ TUIStaticContainer
 								| id = id
 								, fieldLabel = label
 								, optional = optional
-								, items = vis}],vst)
+								, items = flatten vis}],vst)
 								
 tupleStaticVis visChildren v _ _ vst=:{useLabels} = visChildren v addSeparators vst
 where
@@ -757,19 +757,19 @@ verifyElementStr cmv = case cmv of
 //*********************************************************************************************************************
 
 //Coercion of visualizations
-coerceToTUIDefs :: [Visualization] -> [TUIDef]
+coerceToTUIDefs :: ![Visualization] -> [TUIDef]
 coerceToTUIDefs visualizations = [d \\ (TUIFragment d) <- visualizations]
 
-coerceToTUIUpdates :: [Visualization] -> [TUIUpdate]
+coerceToTUIUpdates :: ![Visualization] -> [TUIUpdate]
 coerceToTUIUpdates []					= []
 coerceToTUIUpdates [(TUIUpdate u):vs]	= [u:coerceToTUIUpdates vs]
 coerceToTUIUpdates [(TUIFragment d):vs]	= maybe (coerceToTUIUpdates vs) (\id -> [(TUIReplace id d):coerceToTUIUpdates vs]) (getTUIId d)
 coerceToTUIUpdates [v:vs]				= coerceToTUIUpdates vs
 
-coerceToStrings :: [Visualization] -> [String]
+coerceToStrings :: ![Visualization] -> [String]
 coerceToStrings visualizations = [s \\ (TextFragment s) <- visualizations]
 
-coerceToHtml :: [Visualization] -> [HtmlTag]
+coerceToHtml :: ![Visualization] -> [HtmlTag]
 coerceToHtml visualizations = [coerce h \\h <- visualizations | coercable h]
 where
 	coerce (TextFragment s)		= Text s

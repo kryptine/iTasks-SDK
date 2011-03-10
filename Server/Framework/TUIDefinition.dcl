@@ -7,9 +7,6 @@ definition module TUIDefinition
 import JSON, GenEq
 from Types import :: Document(..), :: DocumentId, :: Hotkey
 
-//Specialized JSON encoding of TUI definitions
-derive JSONEncode TUIDef, TUIUpdate
-
 :: TUIUpdate
 	= TUIAdd			!TUIId !TUIDef	// Add the additional component *after* the component with indicated id
 	| TUIAddTo			!TUIId !TUIDef	// Add the additional component as a child of the component with indicated id
@@ -61,7 +58,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIGridControl !TUIGridControl
 	| TUITreeControl !TUITreeControl
 	
-	| TUITupleContainer !TUITupleContainer
+	| TUIStaticContainer !TUIStaticContainer
 	| TUIRecordContainer !TUIRecordContainer
 	| TUIListContainer !TUIListContainer		
 	| TUIHtmlContainer !TUIHtmlContainer
@@ -151,9 +148,9 @@ derive JSONEncode TUIDef, TUIUpdate
 	, errorMsg		:: !String
 	, hintMsg		:: !String
 	}
-:: TUITupleContainer =
+:: TUIStaticContainer =
 	{ id			:: !TUIId
-	, items			:: ![[TUIDef]]
+	, items			:: ![TUIDef]
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
 	}

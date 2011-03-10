@@ -23,9 +23,6 @@ visualizeAsTextDisplay	:: !a						-> String	| gVisualize{|*|} a
 visualizeAsHtmlLabel	:: !a						-> HtmlTag	| gVisualize{|*|} a
 visualizeAsTextLabel	:: !a						-> String	| gVisualize{|*|} a
 
-//Wrapper function for calculating form delta's
-determineEditorUpdates	:: !String !(!a, !VerifyMask) !(!a, !VerifyMask) ![DataPath] -> [TUIUpdate] | gVisualize{|*|} a
-
 //Type definitions for visualization
 :: *VSt =
 	{ vizType			:: !VisualizationType			// Type of preferred visualization

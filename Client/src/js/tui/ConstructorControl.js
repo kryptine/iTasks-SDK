@@ -64,29 +64,23 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		, baseCls: 'x-constructor-panel'
 		, hidden: panelItems.length == 0	//Initially hide the itemPanel if there are no items 
 		});
-				
-		/*
-		this.itemPanel.on('add',function(){ this.showOrHide(); },this.itemPanel);
-		this.itemPanel.on('remove', function(){ this.showOrHide();  },this.itemPanel);
-		
-		this.itemPanel.showOrHide = function(){			
-			if(this.items && this.items.length > 0){
-				this.show();
-			}else{
-				this.hide();
-			}
-		};		
-		*/
 		
 		this.items = [this.consField, this.itemPanel];	
-			
+		this.oldConsIdx = this.consSelIdx + 1;
+		
 		itasks.tui.ConstructorControl.superclass.initComponent.apply(this,arguments);
 		
 		this.addEvents('tuichange');
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.name, this.consField.getValue());
+		var newConsIdx = this.consField.selectedIndex;
+
+		// only generate change event if different cons is chosen
+		if (newConsIdx != this.oldConsIdx){
+			this.oldConsIdx = newConsIdx;
+			this.fireEvent('tuichange',this.name,this.consField.getValue());
+		}
 	},
 	afterRender: function(){
 		itasks.tui.ConstructorControl.superclass.afterRender.call(this,arguments);

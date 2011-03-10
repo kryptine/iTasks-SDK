@@ -54,7 +54,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| Closed			//Only the manager can see the overview. For assigned users, it just looks like an ordinary task.
 
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
-:: InteractiveTask	= Definition	![TUIDef]		![(Action,Bool)]					//Definition for rendering a user interface
+:: InteractiveTask	= Definition	!TUIDef			![(Action,Bool)]					//Definition for rendering a user interface
 					| Updates		![TUIUpdate]	![(Action,Bool)]					//Update an already rendered user interface
 
 toSpineTree	:: !NonNormalizedTree			-> SpineTree

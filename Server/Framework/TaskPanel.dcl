@@ -2,7 +2,7 @@ definition module TaskPanel
 
 import JSON, TUIDefinition, Types, TaskTree
 
-derive JSONEncode TaskPanel, InteractiveTaskType
+derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 
 :: TaskPanel
 	= TaskDone
@@ -16,7 +16,7 @@ derive JSONEncode TaskPanel, InteractiveTaskType
 :: SubtaskNr :== [Int]
 
 :: FormContent =
-	{ form		:: ![TUIDef]
+	{ form		:: !TUIDef
 	, buttons	:: ![TUIDef]
 	}
 

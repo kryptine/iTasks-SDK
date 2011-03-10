@@ -1,13 +1,21 @@
 implementation module InteractiveTasks
 
 import StdTuple, StdBool, StdList, StdMisc, Maybe, Types, Util, Shared, HtmlUtil
-import iTaskClass, Task, TSt
+import iTaskClass, Task, TSt, TUIDiff
 from SharedTasks			import sharedStore, :: SharedStoreId
 from StdFunc				import id, const, o
 from ExceptionCombinators	import :: SharedException(..)
 
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
 derive JSONDecode UpdateMask, VerifyMask, ErrorMessage
+derive JSONEncode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
+derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
+derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
+derive JSONEncode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree
+derive JSONDecode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
+derive JSONDecode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
+derive JSONDecode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
+derive JSONDecode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree
 derive bimap Maybe,(,)
 
 always :: (Verified a) -> Bool
@@ -31,7 +39,6 @@ where
 		# (edits,tst)						= getEditEvents tst
 		# (mbValueEvent,tst)				= getValueEvent tst
 		# (old=:(ovalue,oumask,ovmask),tst)	= accIWorldTSt (readStores taskNr) tst
-		# tst								= appIWorldTSt (setCommitStoreOld taskNr old) tst
 		# (localTimestamp,tst)				= accIWorldTSt (getLocalTimestamp taskNr) tst
 		# (mbClientTimestamp,tst)			= clientTimestamp tst
 		# outdatedClient					= maybe False (\clientTimestamp -> clientTimestamp < localTimestamp) mbClientTimestamp
@@ -90,34 +97,22 @@ where
 			= (toJSON (fst3 new),iworld)
 			
 		tuiFunc iworld
-			# ((modelV,_),iworld)					= appFst fromOk (readModelValue taskNr iworld)
+			# ((modelV,_),iworld)				= appFst fromOk (readModelValue taskNr iworld)
 			# ((outdatedClient,_,updatedPaths,localTimestamp,clientTimestampSent),iworld) = getCommitStoreInfo taskNr iworld
-			# ((nvalue,numask,nvmask),iworld)		= newViewValue taskNr iworld
-			# editorId								= "tf-" +++ taskNrToString taskNr
-			# evalActions							= evaluateConditions actions (isValidValue nvmask) modelV
-			# (mbOld,iworld)						= getCommitStoreOld taskNr iworld
-			| not clientTimestampSent || outdatedClient || isNothing mbOld // refresh UI if client is outdated, no timestamp is send (refresh) or task is new for this request (no old value stored during edit phase)
-				# form 								= visualizeAsEditor editorId nvalue nvmask
-				# (mbContext,iworld) = case mbAbout of
-					Nothing							= (Nothing,iworld)
-					Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
-					Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (readShared ref iworld)
-				= (Definition (taskPanel taskNr mbContext (Just form)) evalActions,iworld)
+			# (mbOldViz,iworld)					= readTUIDef taskNr iworld
+			# ((nvalue,numask,nvmask),iworld)	= newViewValue taskNr iworld
+			# form 								= visualizeAsEditor (editorId taskNr) nvalue nvmask
+			# (mbContext,iworld) = case mbAbout of
+				Nothing							= (Nothing,iworld)
+				Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
+				Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (readShared ref iworld)
+			# tui								= taskPanel taskNr mbContext form
+			# iworld							= setTUIDef taskNr tui iworld
+			# evalActions						= evaluateConditions actions (isValidValue nvmask) modelV
+			| not clientTimestampSent || outdatedClient || isNothing mbOldViz // refresh UI if client is outdated, no timestamp is send (refresh) or task is new for this request (no old value stored)
+				= (Definition tui evalActions,iworld)
 			| otherwise	// update UI
-				// get stored old value, masks & errors
-				# (ovalue,oumask,ovmask)			= fromJust mbOld
-				# updates							= determineEditorUpdates editorId (ovalue,ovmask) (nvalue,nvmask) updatedPaths
-				// update context if shared & changed
-				# (updates,iworld) = case mbAbout of
-					Just (SharedAbout shared)
-						# (changed,iworld) = appFst fromOk (isSharedChanged shared localTimestamp iworld)
-						| changed
-							# (context,iworld) = appFst (visualizeAsHtmlDisplay o aboutView o fromOk) (readShared shared iworld)
-							= ([TUIReplace (contextId taskNr) (taskContextPanel taskNr context):updates],iworld)
-						| otherwise
-							= (updates,iworld)
-					_
-						= (updates,iworld)
+				# updates						= diffEditorDefinitions (fromJust mbOldViz) tui updatedPaths
 				= (Updates updates evalActions,iworld)
 
 	// for local mode use auto generated store name, for shared mode use given store
@@ -189,12 +184,6 @@ where
 				= (new,iworld)
 
 // store for information provided to the commit pass
-setCommitStoreOld :: !TaskNr (!a,!UpdateMask,!VerifyMask) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-setCommitStoreOld taskNr old iworld = setTaskStoreFor taskNr "commit-old" old iworld
-getCommitStoreOld :: !TaskNr !*IWorld -> (!Maybe (!a,!UpdateMask,!VerifyMask),!*IWorld) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-getCommitStoreOld taskNr iworld
-	# (mbOld,iworld) = getTaskStoreFor taskNr "commit-old" iworld
-	= (mbOld,iworld)
 // outdated client & conflict flag & update paths
 setCommitStoreInfo :: !TaskNr (!Bool,!Bool,![DataPath],!Timestamp,!Bool) !*IWorld -> *IWorld
 setCommitStoreInfo taskNr info iworld = setTaskStoreFor taskNr "commit-info" ((\(o,c,dps,t,ct) -> (o,c,map dataPathList dps,t,ct)) info) iworld
@@ -240,6 +229,9 @@ readUMask taskNr iworld = appFst fromJust (getTaskStoreFor taskNr "umask" iworld
 
 readVMask :: !TaskNr !*IWorld -> *(!VerifyMask,!*IWorld)	
 readVMask taskNr iworld = appFst fromJust (getTaskStoreFor taskNr "vmask" iworld)
+
+readTUIDef :: !TaskNr !*IWorld -> *(!Maybe TUIDef,!*IWorld)
+readTUIDef taskNr iworld = getTaskStoreFor taskNr "tui-def" iworld
 		
 setStores :: !TaskNr !(!a,!UpdateMask,!VerifyMask) !*IWorld -> *IWorld | JSONEncode{|*|} a & JSONDecode{|*|} a & TC a			
 setStores taskNr (value,umask,vmask) iworld
@@ -247,6 +239,9 @@ setStores taskNr (value,umask,vmask) iworld
 	# iworld			= setTaskStoreFor taskNr "umask" umask iworld
 	# iworld			= setTaskStoreFor taskNr "vmask" vmask iworld
 	= iworld
+	
+setTUIDef :: !TaskNr !TUIDef !*IWorld -> *IWorld	
+setTUIDef taskNr tuiDef iworld = setTaskStoreFor taskNr "tui-def" tuiDef iworld
 
 getLocalTimestamp :: !TaskNr !*IWorld -> *(!Timestamp,!*IWorld)			
 getLocalTimestamp taskNr iworld
@@ -265,9 +260,11 @@ clientTimestamp tst=:{request}
 	| otherwise	= (Nothing,tst)
 		
 //Build TUI definition for task with given context/form	
-taskPanel :: !TaskNr !(Maybe HtmlTag) !(Maybe [TUIDef]) -> [TUIDef]
-taskPanel taskNr mbContext mbForm = maybeToList (fmap (taskContextPanel taskNr) mbContext) ++ fromMaybe [] mbForm
-
+taskPanel :: !TaskNr !(Maybe HtmlTag) ![TUIDef] -> TUIDef
+taskPanel taskNr mbContext form = case maybeToList (fmap (taskContextPanel taskNr) mbContext) ++ form of
+	[item]	= item
+	items	= TUIStaticContainer {TUIStaticContainer|id = "", items = items, fieldLabel = Nothing, optional = False}
+	
 taskContextPanel :: !TaskNr !a -> TUIDef | toString a		
 taskContextPanel taskNr context = TUIHtmlContainer	{ TUIHtmlContainer
 													| id = (contextId taskNr)
@@ -277,6 +274,9 @@ taskContextPanel taskNr context = TUIHtmlContainer	{ TUIHtmlContainer
 
 contextId :: !TaskNr -> String											
 contextId taskNr = "context-" +++ taskNrToString taskNr
+
+editorId :: !TaskNr -> String
+editorId taskNr = "tf-" +++ taskNrToString taskNr
 	
 //Evaluate action's conditions
 evaluateConditions :: ![(!Action, (Verified a) -> Bool)] !Bool a -> [(Action, Bool)]
