@@ -115,7 +115,7 @@ taskService url html path req tst
 					# (tree,tst)		= calculateTaskTree taskId events tst
 					# (timestamp,tst)	= getTimestamp tst
 					= case tree of
-						TTMainTask ti properties _ content
+						TTMainTask ti _ content
 							# (uiContent,tst)	= accIWorldTSt (toUITree content) tst
 							# tui				= buildTaskPanel uiContent session.Session.user
 							# json				= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",toJSON tui)]
@@ -272,7 +272,7 @@ where
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
 
 	taskParts :: !JSONTree -> [JSONNode]
-	taskParts (TTMainTask _ _ _ tree)		= taskParts tree
+	taskParts (TTMainTask _ _ tree)			= taskParts tree
 	taskParts (TTSequenceTask _ trees)		= flatten (map taskParts trees)
 	taskParts (TTParallelTask _ trees)		= flatten (map taskParts trees)	
 	taskParts (TTGroupedTask _ trees _ _)	= flatten (map taskParts trees)

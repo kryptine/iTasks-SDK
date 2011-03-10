@@ -63,7 +63,7 @@ where
 					, formWidth		= Nothing
 					, type			= type
 					}
-			TTMainTask ti mti _ _
+			TTMainTask ti _ _
 				= abort "unexpected TTMainTask"
 			TTSequenceTask ti tasks
 				= case [t \\ t <- tasks | not (isFinished t)] of
@@ -96,8 +96,8 @@ where
 		mkTaskActionMap taskId actionList = fromList [(actionName action, (action, taskId, enabled)) \\ (action, enabled) <- actionList]
 	
 		buildParallelElement :: !UITree -> Maybe TaskPanel
-		buildParallelElement (TTMainTask _ _ _ _)	= Nothing
-		buildParallelElement tree					= Just (buildTaskPanel` tree menus formWidth)
+		buildParallelElement (TTMainTask _ _ _)	= Nothing
+		buildParallelElement tree				= Just (buildTaskPanel` tree menus formWidth)
 
 		buildGroupElements :: ![UITree] !User !TaskId !MenuDefinition !FormWidth !(Maybe String) -> [TTCGroupContainerElement]
 		buildGroupElements tasks currentUser parentId menus formWidth mbFocus
@@ -126,7 +126,7 @@ where
 									
 buildResultPanel :: !UITree -> TaskPanel
 buildResultPanel tree = case tree of 
-	(TTFinishedTask	ti result)
+	TTFinishedTask	ti result
 		= (TTCResultContainer {TTCResultContainer
 								| xtype 	= "itasks.ttc.result"
 								, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -134,9 +134,8 @@ buildResultPanel tree = case tree of
 								, subject	= ti.TaskInfo.subject
 								, result	= toString result
 								})
-	(TTMainTask ti p _ tt) //Pass through any finished main tasks, in case there is a finished task below (e.g. in case of a parallel)
-		| p.systemProperties.SystemProperties.status == Finished = buildResultPanel tt
-		| otherwise = TaskNotDone
+	TTMainTask _ _ tt //Pass through any main tasks, in case there is a finished task below (e.g. in case of a parallel)
+		= buildResultPanel tt
 	_	
 		= TaskNotDone
 
@@ -151,7 +150,7 @@ getTaskInfo task
 		TTFinishedTask ti _			= ti
 		TTParallelTask ti _			= ti
 		TTSequenceTask ti _			= ti
-		TTMainTask ti _ _ _			= ti
+		TTMainTask ti _ _			= ti
 		TTGroupedTask ti _ _ _		= ti
 		_ 							= abort "Unknown panel type in group"
 	= info
