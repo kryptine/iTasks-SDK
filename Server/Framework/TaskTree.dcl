@@ -20,10 +20,8 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TaskTree interactiveOutput finishedOutput menus
 	//NODE CONSTRUCTORS
 	
-	//A task that is treated as a main chunk of work
-	= TTMainTask		!.(TaskInfo menus) !(Maybe TaskParallelType) !(TaskTree interactiveOutput finishedOutput menus)
 	//A task that is composed of a number of sequentially executed subtasks
-	| TTSequenceTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
+	= TTSequenceTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
 	| TTParallelTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
 	
@@ -42,6 +40,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 						, subject				:: !String											//Short subject of the task
 						, description			:: !String											//Description of the task (html)
 						, tags					:: ![String]
+						, containerType			:: !TaskContainerType
 						, menus					:: !.(Maybe menus)
 						, formWidth				:: !Maybe FormWidth
 						}

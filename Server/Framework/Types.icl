@@ -582,3 +582,9 @@ initManagerProperties =
 	, priority = NormalPriority
 	, deadline = Nothing
 	}
+
+noMenu :: ActionMenu
+noMenu = const []
+
+staticMenu	:: !MenuDefinition -> ActionMenu
+staticMenu def = const def

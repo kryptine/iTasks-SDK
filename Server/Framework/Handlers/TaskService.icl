@@ -3,7 +3,7 @@ implementation module TaskService
 import StdList, StdMisc, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel
 
 //Additional derives for debugging
-derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, InteractiveTask, Menu
+derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, InteractiveTask, Menu, TaskContainerType
 
 JSONEncode{|MenuItem|} v = case v of
 	MenuItem action mbHotkey	= [JSONArray [JSONString "MenuItem" : JSONEncode{|*|} (menuAction action) ++ JSONEncode{|*|} mbHotkey]]
@@ -111,18 +111,12 @@ taskService url html path req tst
 					# events		= case (fromJSON (fromString eventsParam)) of
 						Just events		= events
 						Nothing			= []
-						
 					# (tree,tst)		= calculateTaskTree taskId events tst
 					# (timestamp,tst)	= getTimestamp tst
-					= case tree of
-						TTMainTask ti _ content
-							# (uiContent,tst)	= accIWorldTSt (toUITree content) tst
-							# tui				= buildTaskPanel uiContent session.Session.user
-							# json				= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",toJSON tui)]
-							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,tst)
-						_
-							# json				= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",JSONNull)]
-							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,tst)
+					# (uiContent,tst)	= accIWorldTSt (toUITree tree) tst
+					# tui				= buildTaskPanel uiContent session.Session.user
+					# json				= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",toJSON tui)]
+					= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,tst)
 		//Cancel / Abort / Delete the current task
 		[taskId,"cancel"]
 			| isJust mbSessionErr
@@ -272,7 +266,6 @@ where
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
 
 	taskParts :: !JSONTree -> [JSONNode]
-	taskParts (TTMainTask _ _ tree)			= taskParts tree
 	taskParts (TTSequenceTask _ trees)		= flatten (map taskParts trees)
 	taskParts (TTParallelTask _ trees)		= flatten (map taskParts trees)	
 	taskParts (TTInteractiveTask ti _ json)

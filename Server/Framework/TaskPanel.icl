@@ -63,8 +63,6 @@ where
 					, formWidth		= Nothing
 					, type			= type
 					}
-			TTMainTask ti _ _
-				= abort "unexpected TTMainTask"
 			TTSequenceTask ti tasks
 				= case [t \\ t <- tasks | not (isFinished t)] of
 					[]	= if (allFinished tasks) TaskDone TaskRedundant
@@ -82,9 +80,12 @@ where
 		mkTaskActionMap :: !TaskId ![(Action, Bool)] -> ActionMap
 		mkTaskActionMap taskId actionList = fromList [(actionName action, (action, taskId, enabled)) \\ (action, enabled) <- actionList]
 	
+		// don't build UI for detached & hidden tasks
 		buildParallelElement :: !UITree -> Maybe TaskPanel
-		buildParallelElement (TTMainTask _ _ _)	= Nothing
-		buildParallelElement tree				= Just (buildTaskPanel` tree menus formWidth)
+		buildParallelElement tree = case (getTaskInfo tree).TaskInfo.containerType of
+			DetachedTask _ _	= Nothing
+			HiddenTask			= Nothing
+			_					= Just (buildTaskPanel` tree menus formWidth)
 									
 buildResultPanel :: !UITree -> TaskPanel
 buildResultPanel tree = case tree of 
@@ -96,9 +97,7 @@ buildResultPanel tree = case tree of
 								, subject	= ti.TaskInfo.subject
 								, result	= toString result
 								})
-	TTMainTask _ _ tt //Pass through any main tasks, in case there is a finished task below (e.g. in case of a parallel)
-		= buildResultPanel tt
-	_	
+	_
 		= TaskNotDone
 
 filterFinished container = case container.panel of
@@ -112,7 +111,6 @@ getTaskInfo task
 		TTFinishedTask ti _			= ti
 		TTParallelTask ti _			= ti
 		TTSequenceTask ti _			= ti
-		TTMainTask ti _ _			= ti
 		_ 							= abort "Unknown panel type in group"
 	= info
 

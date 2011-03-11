@@ -105,7 +105,7 @@ derive bimap Maybe, (,)
 :: PStTask a acc = InitTask !Int | AddedTask !(Task a) | InitControlTask !Int | AddedControlTask !(CTask a acc)
 
 container :: !TaskContainerType !(Task a) -> Task a | iTask a
-container type task = {task & containerType = type}
+container type task = {Task|task & containerType = type}
 
 parallel :: !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 parallel d (initState,accuFun,resultFun) initCTasks initTasks
@@ -206,7 +206,7 @@ where
 			//Process another task
 			[t=:(idx,pstTask):ts]
 				# task = getPStTask taskNr pstTask
-				# (result,tst) = case task.containerType of
+				# (result,tst) = case task.Task.containerType of
 					DetachedTask _ _
 						//IMPORTANT: Task is evaluated with a shifted task number!!!
 						# (result,tree,tst)	= createOrEvaluateTaskInstance Nothing task {tst & taskNr = [idx:taskNr]}

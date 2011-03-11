@@ -14,7 +14,7 @@ mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !FilePath !*World -> *
 mkTSt appName config request workflows store tmpDir world
 	=	{ taskNr			= []
 		, taskInfo			= initTaskInfo
-		, tree				= TTMainTask initTaskInfo Nothing (TTFinishedTask initTaskInfo (noOutput 1))
+		, tree				= TTFinishedTask initTaskInfo noOutput
 		, newTask			= False
 		, events			= []
 		, properties		= initProcessProperties
@@ -56,6 +56,7 @@ initTaskInfo
 		, subject = ""
 		, description = ""
 		, tags = []
+		, containerType = InParallelBody
 		, menus = Nothing
 		, formWidth = Nothing
 		}
@@ -150,7 +151,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
-		= TTMainTask info mbParType (TTFinishedTask info noOutput)
+		= TTFinishedTask info noOutput
 
 deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
@@ -212,7 +213,7 @@ where
 															& taskId	= taskId
 															, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 															}
-		# tst											= {tst & tree = TTMainTask info inptype (TTFinishedTask info noOutput)}
+		# tst											= {tst & tree = TTFinishedTask info noOutput}
 		# (result, tst=:{sharedChanged,triggerPresent})	= applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False}
 		| triggerPresent && sharedChanged && iterationCount < ITERATION_THRESHOLD
 			= applyTaskCommit` {tst & iterationCount = inc iterationCount}
@@ -257,9 +258,7 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 										= if firstRun
 											(applyAllChanges taskId changeCount pendingChanges thread properties inParallelType tst)
 											(applyCurrentChange taskId changeCount thread properties inParallelType tst)
-	// The tasktree of this process is the tree as it has been constructed, but with updated properties
-	# (TTMainTask ti _ tasks,tst)		= getTaskTree tst
-	# tree								= TTMainTask ti inParallelType tasks
+	# (tree,tst)						= getTaskTree tst
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges taskId tst) tst
 	# tst								= restoreTSt parentTree parentEvents parentProperties tst
@@ -311,7 +310,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
-		# tree		= TTMainTask info inptype (TTFinishedTask info noOutput)
+		# tree		= TTFinishedTask info noOutput
 		= {TSt| tst & taskNr = taskNr, tree = tree, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
 	
 	restoreTSt :: !NonNormalizedTree ![TaskEvent] !ProcessProperties !*TSt -> *TSt
@@ -615,7 +614,7 @@ mkMainTask description taskfun
 	= mkTask
 		description
 		id
-		(\tst=:{taskInfo} -> taskfun {tst & tree = TTMainTask taskInfo Nothing (TTFinishedTask taskInfo noOutput)})
+		(\tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput})
 
 mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkTask description taskFuncEdit taskFuncCommit =
@@ -650,7 +649,7 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit {taskProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth} tst=:{taskNr,tree,properties}
+applyTaskCommit {taskProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth, containerType} tst=:{taskNr,tree,properties}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
@@ -658,6 +657,7 @@ applyTaskCommit {taskProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWi
 					, subject				= taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					, description			= toString taskProperties.TaskProperties.taskDescription.TaskDescription.description
 					, tags					= taskProperties.TaskProperties.tags
+					, containerType			= containerType
 					, menus					= mbMenuGenFunc
 					, formWidth				= formWidth
 					}
@@ -706,10 +706,10 @@ where
 //Add a new node to the current sequence or process
 addTaskNode :: !NonNormalizedTree !*TSt -> *TSt
 addTaskNode node tst=:{tree} = case tree of
-	TTMainTask ti inptype task				= {tst & tree = TTMainTask ti inptype node} 					//Just replace the subtree 
-	TTSequenceTask ti tasks					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
-	TTParallelTask ti  tasks				= {tst & tree = TTParallelTask ti [node:tasks]}					//Add the node to the parallel set
-	_										= {tst & tree = tree}
+	TTSequenceTask ti tasks		= {tst & tree = TTSequenceTask ti [node:tasks]}	//Add the node to the sequence
+	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti [node:tasks]}	//Add the node to the parallel set
+	TTFinishedTask _ _			= {tst & tree = node} 							//Just replace the node
+	_							= {tst & tree = tree}
 
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt
 setInteractiveFuncs funcs tst=:{tree}

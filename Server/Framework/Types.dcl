@@ -236,6 +236,19 @@ instance toString HtmlDisplay
 					| TPStuck			//Worker is stuck and needs assistence
 					| TPWaiting			//Worker is waiting, not actively working on the task
 					| TPReject			//Worker does not want to continue working on the task
+					
+:: TaskContainerType	= DetachedTask !ManagerProperties !ActionMenu	// task detached as separate process
+						| WindowTask !WindowTitle !ActionMenu			// task shwon in a window (with own menu)
+						| DialogTask !WindowTitle						// task shwon as dialogue (without own menu)
+						| InParallelBody								// task shown in the body of the parallel container
+						| HiddenTask									// task not shown to the user
+						
+:: ActionMenu :== [MenuAction] -> MenuDefinition
+
+noMenu		:: ActionMenu
+staticMenu	:: !MenuDefinition -> ActionMenu
+
+:: WindowTitle :== String
 
 instance toString TaskStatus
 instance == TaskStatus

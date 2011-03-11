@@ -26,19 +26,6 @@ derive gEq			Task
 	, taskFuncEdit		:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
 	, taskFuncCommit	:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
 	}
-	
-:: TaskContainerType	= DetachedTask !ManagerProperties !ActionMenu	// task detached as separate process
-						| WindowTask !WindowTitle !ActionMenu			// task shwon in a window (with own menu)
-						| DialogTask !WindowTitle						// task shwon as dialogue (without own menu)
-						| InParallelBody								// task shown in the body of the parallel container
-						| HiddenTask									// task not shown to the user
-						
-:: ActionMenu :== [MenuAction] -> MenuDefinition
-
-noMenu		:: ActionMenu
-staticMenu	:: !MenuDefinition -> ActionMenu
-
-:: WindowTitle :== String
 
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
 
