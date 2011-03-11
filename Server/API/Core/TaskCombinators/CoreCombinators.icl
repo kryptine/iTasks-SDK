@@ -123,13 +123,13 @@ where
 		= processAllTasksE pst (inc n) {tst & taskNr = taskNr}
 
 	parallelC tst=:{taskNr,properties}
-		// When the initial list of tasks is empty just return the transformed initial state
-		| isEmpty initTasks
-			= (TaskFinished (resultFun AllRunToCompletion initState), tst)
 		// Load the internal state
 		# (pst,tst)			= accIWorldTSt (loadPSt taskNr) tst
 		// Evaluate the subtasks for all currently active tasks
  		# (res,pst,tst)		= processAllTasksC pst tst
+ 		// If all tasks finished return the transformed initial state
+		| isEmpty pst.tasks
+			= (TaskFinished (resultFun AllRunToCompletion initState), tst)
 		// Store the internal state
 		# tst				= storePSt taskNr pst tst
 		// The result of the combined evaluation of all parallel subtasks
@@ -154,7 +154,7 @@ where
 				# iworld = updateTimestamp taskNr iworld
 				= (	{ PSt
 					| state = initState
-					, tasks = [(n,InitTask n) \\ n <- indexList initTasks] ++ [(n + length initTasks,InitControlTask n) \\ n <- indexList initCTasks]
+					, tasks = [(n,InitControlTask n) \\ n <- indexList initCTasks] ++ [(n + length initCTasks,InitTask n) \\ n <- indexList initTasks]
 					, nextIdx = length initTasks + length initCTasks
 					},iworld)
 	
@@ -213,10 +213,8 @@ where
 						// Add the tree to the current node
 						# tst				= addTaskNode tree tst
 						= (result,tst)
-					InParallelBody
-						= applyTaskCommit task {tst & taskNr = [idx:taskNr]}
 					_
-						= abort "not implemented"
+						= applyTaskCommit task {tst & taskNr = [idx:taskNr]}
 				= case result of
 					TaskBusy
 						//Process the other tasks
