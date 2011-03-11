@@ -275,7 +275,6 @@ where
 	taskParts (TTMainTask _ _ tree)			= taskParts tree
 	taskParts (TTSequenceTask _ trees)		= flatten (map taskParts trees)
 	taskParts (TTParallelTask _ trees)		= flatten (map taskParts trees)	
-	taskParts (TTGroupedTask _ trees _ _)	= flatten (map taskParts trees)
 	taskParts (TTInteractiveTask ti _ json)
 		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",json)]]
 	taskParts _								= []

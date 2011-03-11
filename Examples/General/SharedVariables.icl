@@ -156,7 +156,7 @@ where
 	emptyL = []
 
 //Different Views on Formatted Text
-formattedText :: Task Void
+/*formattedText :: Task Void
 formattedText =
 				[Menu "Example" [MenuItem ActionQuit Nothing]]
 	@>>			createSharedStore (mkEmptyFormattedText {allControls & sourceEditControl = False})
@@ -171,7 +171,7 @@ where
 		]
 		
 	actions = [(ActionQuit, Always)]
-	actionsGenFunc actionQuit = GOStop
+	actionsGenFunc actionQuit = GOStop*/
 
 //Use a share to simplify data entry by allowing a choice from known values instead of entry
 :: Order =
@@ -273,6 +273,6 @@ sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped 
 						, workflow "Examples/Shared Variables/Merge Test (Documents)"		"" (Title "Merge Test (Documents)"	@>> mergeTestDocuments)
 						, workflow "Examples/Shared Variables/Google Maps Example"			"" (Title "Google Maps Example"		@>> googleMaps)
 						, workflow "Examples/Shared Variables/Sorted List"					"" (Title "Sorted List"				@>> autoSortedList)
-						, workflow "Examples/Shared Variables/Formatted Text"				"" (Title "Formatted Text"			@>> formattedText)
+						//, workflow "Examples/Shared Variables/Formatted Text"				"" (Title "Formatted Text"			@>> formattedText)
 						, workflow "Examples/Shared Variables/Choose or add"				"" (Title "Choose or add"			@>> chooseOrAdd)
 						]

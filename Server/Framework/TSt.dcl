@@ -293,18 +293,6 @@ mkSequenceTask		:: !d !(TaskFunctions a) -> Task a | descr d
 */
 mkParallelTask		:: !d !(TaskFunctions a) -> Task a | descr d
 /**
-* Wrap a function of proper type to create a function that groups a number of 
-* tasks together. None of the subtasks is created in a separate process and no
-* overview window is shown. It is not considdered good practice to assign any of
-* the subtasks to other users. For that purpose the parallel-task has been introduced
-*
-* @param A description of the task
-* @param The function on the TSt that is the task
-*
-* @return The newly constructed grouped task
-*/
-mkGroupedTask		:: !d !(TaskFunctions a) -> Task a | descr d
-/**
 * Wrap a function of proper type to create a function that will make a
 * main task. This is a sequence node that keeps track of additional information
 * such as task status, event times and user/delegate information.
@@ -351,8 +339,6 @@ addTaskNode 		:: !NonNormalizedTree !*TSt -> *TSt
 
 //// TASK CONTENT
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt						-> *TSt // Only for interactive tasks
-setGroupActions		:: ![(!Action,*IWorld -> *(!Bool,!*IWorld))] !*TSt	-> *TSt // Only for group tasks
-setFocusCommand		:: !String !*TSt									-> *TSt //Only for group tasks
 
 //EVENTS
 //Get edit events for current task of which the name is a datapath

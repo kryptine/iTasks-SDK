@@ -609,13 +609,6 @@ mkParallelTask description (taskfunE,taskfunC)
 		description
 		taskfunE
 		(\tst=:{taskInfo} -> taskfunC {tst & tree = TTParallelTask taskInfo []})
-
-mkGroupedTask :: !d !(TaskFunctions a) -> Task a | descr d
-mkGroupedTask description (taskfunE,taskfunC)
-	= mkTask
-		description
-		taskfunE
-		(\tst=:{taskInfo,taskNr} -> taskfunC {tst & tree = TTGroupedTask taskInfo [] [] Nothing})
 			
 mkMainTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkMainTask description taskfun
@@ -708,7 +701,6 @@ where
 	//Perform reversal of lists that have been accumulated in reversed order
 	finalizeTaskNode (TTSequenceTask ti tasks) 					= TTSequenceTask	ti (reverse tasks)
 	finalizeTaskNode (TTParallelTask ti tasks)					= TTParallelTask	ti (reverse tasks)
-	finalizeTaskNode (TTGroupedTask ti tasks gActions mbFocus)	= TTGroupedTask		ti (reverse tasks) gActions mbFocus
 	finalizeTaskNode node										= node
 
 //Add a new node to the current sequence or process
@@ -717,25 +709,12 @@ addTaskNode node tst=:{tree} = case tree of
 	TTMainTask ti inptype task				= {tst & tree = TTMainTask ti inptype node} 					//Just replace the subtree 
 	TTSequenceTask ti tasks					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
 	TTParallelTask ti  tasks				= {tst & tree = TTParallelTask ti [node:tasks]}					//Add the node to the parallel set
-	TTGroupedTask ti tasks gActions mbFocus	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
 	_										= {tst & tree = tree}
 
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt
 setInteractiveFuncs funcs tst=:{tree}
 	= case tree of
 		TTInteractiveTask info type _		= {tst & tree = TTInteractiveTask info type funcs}
-		_									= tst
-
-setGroupActions	 :: ![(!Action,*IWorld -> *(!Bool,!*IWorld))] !*TSt -> *TSt
-setGroupActions actions tst=:{tree}
-	= case tree of
-		TTGroupedTask info tasks _ tag		= {tst & tree = TTGroupedTask info tasks actions tag}
-		_									= tst
-		
-setFocusCommand :: !String !*TSt -> *TSt
-setFocusCommand tag tst=:{tree}
-	= case tree of
-		TTGroupedTask info tasks actions _	= {tst & tree = TTGroupedTask info tasks actions (Just tag)}
 		_									= tst
 
 /**

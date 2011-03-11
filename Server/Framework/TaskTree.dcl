@@ -9,26 +9,23 @@ import Maybe, Either, HTML, Time, Types
 from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
-:: SpineTree					:== TaskTree Void Void Void Void
-:: UITree						:== TaskTree Bool InteractiveTask HtmlTag MenuDefinition
-:: JSONTree						:== TaskTree Bool JSONNode JSONNode MenuDefinition
-:: NonNormalizedTree			:== TaskTree TTNNGroupActionConditions TTNNInteractiveTask TTNNFinished MenuGenFunc
+:: SpineTree					:== TaskTree Void Void Void
+:: UITree						:== TaskTree InteractiveTask HtmlTag MenuDefinition
+:: JSONTree						:== TaskTree JSONNode JSONNode MenuDefinition
+:: NonNormalizedTree			:== TaskTree TTNNInteractiveTask TTNNFinished MenuGenFunc
 
-:: TTNNGroupActionConditions	:== *IWorld -> *(!Bool,!*IWorld)
 :: TTNNInteractiveTask			:== (*IWorld -> *(!InteractiveTask,!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished					:== (HtmlTag,JSONNode)
 
-:: TaskTree groupActionConditions interactiveOutput finishedOutput menus
+:: TaskTree interactiveOutput finishedOutput menus
 	//NODE CONSTRUCTORS
 	
 	//A task that is treated as a main chunk of work
-	= TTMainTask		!.(TaskInfo menus) !(Maybe TaskParallelType) !(TaskTree groupActionConditions interactiveOutput finishedOutput menus)
+	= TTMainTask		!.(TaskInfo menus) !(Maybe TaskParallelType) !(TaskTree interactiveOutput finishedOutput menus)
 	//A task that is composed of a number of sequentially executed subtasks
-	| TTSequenceTask	!.(TaskInfo menus) !.[TaskTree groupActionConditions interactiveOutput finishedOutput menus]
+	| TTSequenceTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
-	| TTParallelTask	!.(TaskInfo menus) !.[TaskTree groupActionConditions interactiveOutput finishedOutput menus]													 
-	//A task that is composed of a number of grouped subtasks
-	| TTGroupedTask		!.(TaskInfo menus) !.[TaskTree groupActionConditions interactiveOutput finishedOutput menus] !.[.(!Action,!groupActionConditions)] !(Maybe String)
+	| TTParallelTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
 	
 	//LEAF CONSTRUCTORS
 											

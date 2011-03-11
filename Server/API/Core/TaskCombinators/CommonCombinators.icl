@@ -103,33 +103,32 @@ justdo task
 	Nothing	= throw ("The task " +++ taskTitle task +++ " returned nothing.")
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
-(-||-) taska taskb = group ("-||-", "Done when either subtask is finished.") orfunc hd [] [taska,taskb] [] undef
+(-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") ([],orfunc,\_ l -> hd l) [] [taska,taskb]
 where
-	orfunc (val,_) [] = ([val],Just Stop)
-	orfunc (val,_) _  = abort "Multiple results in OR"
+	orfunc _ val [] = ([val],Just Stop)
+	orfunc _ val _  = abort "Multiple results in OR"
 
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= group ("||-", "Done when the second subtask is finished.") rorfunc hd [] [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))] [] undef
+	= parallel ("||-", "Done when the second subtask is finished.") ([],rorfunc,\_ l -> hd l) [] [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))]
 where
-	rorfunc (Right val,_) [] = ([val],Just Stop)
-	rorfunc (Left val, _) [] = ([],Nothing)
-	rorfunc _ _				 = abort "Illegal result in ||-"
+	rorfunc _ (Right val) []	= ([val],Just Stop)
+	rorfunc _ (Left val) []		= ([],Nothing)
+	rorfunc _ _ _				= abort "Illegal result in ||-"
 
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= group ("-||", "Done when the first subtask is finished") lorfunc hd [] [(taska >>= \a -> return (Left a)),(taskb >>= \b -> return (Right b))] [] undef
+	= parallel ("-||", "Done when the first subtask is finished") ([],lorfunc,\_ l -> hd l) [] [(taska >>= \a -> return (Left a)),(taskb >>= \b -> return (Right b))]
 where
-	lorfunc (Right val,_) [] = ([],Nothing)
-	lorfunc (Left val, _) [] = ([val],Just Stop)
-	lorfunc _ _				 = abort "Illegal result in -||"					
+	lorfunc _ (Right val) []	= ([],Nothing)
+	lorfunc _ (Left val) []		= ([val],Just Stop)
+	lorfunc _ _ _				= abort "Illegal result in -||"					
 
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
-(-&&-) taska taskb = group ("-&&-", "Done when both subtasks are finished") andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))] [] undef
+(-&&-) taska taskb = parallel ("-&&-", "Done when both subtasks are finished") ((Nothing,Nothing),andfunc,parseresult) [] [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))]
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),Maybe (PAction (Either a b) (Maybe a,Maybe b)))
-	andfunc (val,_) (left,right)
-	= case val of
+	andfunc :: !Int !(Either a b) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),Maybe (PAction (Either a b) (Maybe a,Maybe b)))
+	andfunc _ val (left,right) = case val of
 		(Left a)
 			# state = (Just a,right)
 			= case state of
@@ -141,27 +140,27 @@ where
 				(Just l, Just r) = (state,Just Stop)
 				_				 = (state,Nothing)		
 	
-	parseresult (Just a,Just b)	= (a,b)
-	parseresult _				= abort "AND not finished"
+	parseresult _ (Just a,Just b)	= (a,b)
+	parseresult _ _					= abort "AND not finished"
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
 (-&?&-) taska taskb 
-= group ("-&?&-", "Done when both subtasks are finished. Yields only a result of both subtasks have a result") mbandfunc parsefunc (Nothing,Nothing) [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))] [] undef
+= parallel ("-&?&-", "Done when both subtasks are finished. Yields only a result of both subtasks have a result") ((Nothing,Nothing),mbandfunc,parsefunc) [] [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))]
 where
-	mbandfunc (val,_) (left,right)
-		= case val of
-			Left v
-				# state = (Just v,right)
-				= case state of
-					(Just a, Just b) = (state,Just Stop)
-					_				 = (state,Nothing)				
-			Right v
-				# state = (left,Just v)
-				= case state of
-					(Just a, Just b) = (state,Just Stop)
-					_				 = (state,Nothing)
-	parsefunc (Just (Just a), Just (Just b)) = Just (a,b)
-	parsefunc _								 = Nothing
+	mbandfunc _ val (left,right) = case val of
+		Left v
+			# state = (Just v,right)
+			= case state of
+				(Just a, Just b) = (state,Just Stop)
+				_				 = (state,Nothing)				
+		Right v
+			# state = (left,Just v)
+			= case state of
+				(Just a, Just b) = (state,Just Stop)
+				_				 = (state,Nothing)
+				
+	parsefunc _ (Just (Just a), Just (Just b))	= Just (a,b)
+	parsefunc _ _								= Nothing
 	
 oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 oldParallel parType d valueMerger initTasks = parallel d valueMerger [overviewControl] initTasks
@@ -190,27 +189,27 @@ derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask [] 		= getDefaultValue
-anyTask tasks 	= group ("any", "Done when any subtask is finished") anyfunc hd [] tasks [] undef
+anyTask tasks 	= parallel ("any", "Done when any subtask is finished") ([],anyfunc,\_ l -> hd l) [] tasks
 where
-	anyfunc (val,_) [] = ([val],Just Stop)
-	anyfunc (val,_) _  = abort "Multiple results in ANY"
+	anyfunc _ val [] = ([val],Just Stop)
+	anyfunc _ val _  = abort "Multiple results in ANY"
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = group ("all", "Done when all subtasks are finished") (allfunc(length tasks)) sortByIndex [] tasks [] undef
+allTasks tasks = parallel ("all", "Done when all subtasks are finished") ([],allfunc (length tasks),\_ l -> sortByIndex l) [] tasks
 where
-	allfunc tlen (val,idx) st 
+	allfunc tlen idx val st 
 		# st = st ++ [(idx,val)]
 		| length st == tlen = (st,Just Stop)
 		| otherwise = (st,Nothing)
 			
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
-eitherTask taska taskb = group ("either", "Done when either subtask is finished") eitherfunc hd [] [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))] [] undef
+eitherTask taska taskb = parallel ("either", "Done when either subtask is finished") ([],eitherfunc,\_ l -> hd l) [] [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))]
 where
-	eitherfunc (val,idx) [] = ([val],Just Stop)
-	eitherfunc (val,idx) _  = abort "Multiple results in Either"
+	eitherfunc _ val [] = ([val],Just Stop)
+	eitherfunc _ val _  = abort "Multiple results in Either"
 
 orProc :: !(Task a) !(Task a) !TaskParallelType -> Task a | iTask a
-orProc taska taskb type = oldParallel type ("-|@|-", "Done if either subtask is finished.") (Nothing,orfunc,\_ (Just r) -> r) [taska,taskb] 
+orProc taska taskb type = oldParallel type ("-|@|-", "Done if either subtask is finished.") (Nothing,orfunc,\_ (Just r) -> r) [taska,taskb]
 where
 	orfunc _ val Nothing	= (Just val,Just Stop)
 	orfunc _ val _ 			= abort "Multiple results in -|@|-"
@@ -268,11 +267,11 @@ repeatTask task pred a =
 						(True,_) -> return r
 						(False,msg) -> showStickyMessage ("Feedback",msg) r -||- (taska <| pred)					
 
-dynamicGroup :: ![Task GAction] -> Task Void
+/*dynamicGroup :: ![Task GAction] -> Task Void
 dynamicGroup initTasks = dynamicGroupA initTasks [] (\_ -> GStop)
 
 dynamicGroupA :: ![Task GAction] ![GroupAction Void] !(GroupActionGenFunc GAction) -> Task Void
-dynamicGroupA initTasks gActions genFunc = group ("dynamicGroup", "A simple group with dynamically added tasks") procfun id Void initTasks gActions genFunc
+dynamicGroupA initTasks gActions genFunc = parallel ("dynamicGroup", "A simple parallel with dynamically added tasks") procfun id Void initTasks gActions genFunc
 where
 	procfun (action,_) _ = case action of
 		GStop			= (Void, Just Stop)
@@ -281,7 +280,7 @@ where
 		GFocus tag		= (Void, Just (Focus tag))
 		
 dynamicGroupAOnly :: ![Task Void] ![GroupAction Void] !(GroupActionGenFunc GOnlyAction) -> Task Void
-dynamicGroupAOnly initTasks gActions genFunc = group ("dynamicGroup", "A simple group with dynamically added tasks") procfun id Void (changeTasksType initTasks) gActions genFunc
+dynamicGroupAOnly initTasks gActions genFunc = parallel ("dynamicGroup", "A simple parallel with dynamically added tasks") procfun id Void (changeTasksType initTasks) gActions genFunc
 where
 	procfun (action,_) _ = case action of
 		GOStop			= (Void, Just Stop)
@@ -329,4 +328,4 @@ where
 				
 		sharedForEditor eid = mapShared (fromJust o (get eid) o snd, putInEditorStates eid) ref		
 		putInEditorStates eid est st = updateEditorStates (put eid est) st
-		updateEditorStates f st = appSnd f st
+		updateEditorStates f st = appSnd f st*/

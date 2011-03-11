@@ -17,9 +17,9 @@ import SmallExamples
 import GUIDemo
 import BugReport
 import Coffeemachine
-import Newsgroups
+//import Newsgroups
 import ChangeHandling
-import textEditor
+//import textEditor
 import CoffeeTime
 import TableExamples
 import GeoTracker
@@ -62,11 +62,11 @@ where
 						, guiDemoExample
 						, bugReportExample
 						, coffeemachineExample
-						, textEditor
+						//, textEditor
 						, coffeeTimeExample
 						, tableExamples
 						, geoTrackerExamples
-						, newsgroupsExample
+						//, newsgroupsExample
 						, exceptionHandlingExample
 						, changeHandlingExample
 						, ambulanceDispatchExamples

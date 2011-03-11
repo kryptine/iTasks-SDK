@@ -25,8 +25,8 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		
 		itasks.ttc.TTCBase.superclass.initComponent.apply(this,arguments);
 	
-		this.addEvents('tuievent');
-		this.enableBubble('tuievent');
+		this.addEvents('tuievent','taskRedundant','taskDone');
+		this.enableBubble('tuievent','taskRedundant','taskDone');
 	},
 	onTuiChange: function(name,value) {
 		//Re-fire 'tuichange' events as 'tuievent' with the task number added
@@ -96,5 +96,39 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		//Default update is to reconstruct the component
 		this.menu = data.menu;
 		this.rebuildComponents(data);
+	},
+	fadeOut: function(data) {
+		if(data == "redundant"){
+			msg = "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort.";
+			this.fireEvent("taskRedundant");
+		}else{
+			msg = "This task is completed. Thank you.";
+			this.fireEvent("taskDone");
+		}
+		
+		var par = this.findParentByType("itasks.ttc.parallel");
+		if(par){
+			var destroyCmp = this;
+		}else{
+			var destroyCmp = this.findParentByType("itasks.work");
+		}
+		
+		var height = this.descriptionpanel.getHeight() + (this.interactionpanel ? this.interactionpanel.getHeight() : 0);
+		this.removeAll();
+		this.add({
+			xtype: "itasks.ttc.finished",
+			subject: "Task completed",
+			description: msg,
+			descriptionHeight: height,
+			destroyCmp: destroyCmp
+		});
+		
+		this.getEl().fadeOut(
+			{ duration: itasks.ttc.TTC_FADE_DURATION
+			, useDisplay: true
+			}
+		);
+	
+		this.doLayout();
 	}
 });

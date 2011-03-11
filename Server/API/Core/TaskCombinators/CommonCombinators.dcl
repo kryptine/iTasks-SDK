@@ -241,7 +241,7 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 *
 * @param List of initial tasks
 */
-dynamicGroup		:: ![Task GAction]															-> Task Void
+/*dynamicGroup		:: ![Task GAction]															-> Task Void
 /**
 * Tasks and group-actions can dynamically add other tasks or stop execution of group.
 *
@@ -308,4 +308,4 @@ mdiApplication ::
 :: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (EditorId editorState))
 	
 :: EditorId est :== Int
-:: EditorCollection est :== Map (EditorId est) est
+:: EditorCollection est :== Map (EditorId est) est*/

@@ -70,19 +70,6 @@ where
 					[]	= if (allFinished tasks) TaskDone TaskRedundant
 					[t]	= buildTaskPanel` t menus formWidth
 					_	= (abort "Multiple simultaneously active tasks in a sequence!")
-			TTGroupedTask ti tasks actionList mbFocus
-				# groupActions			= fromList [(actionName action, (action, ti.TaskInfo.taskId, enabled)) \\ el=:(action,enabled) <- actionList]
-				# (buttons, menuBar)	= makeButtonsAndMenus groupActions menus
-				= TTCGroupContainer {TTCGroupContainer 
-							 		 | xtype = "itasks.ttc.group"
-									 , taskId = ti.TaskInfo.taskId
-									 , subject = ti.TaskInfo.subject
-									 , description = ti.TaskInfo.description
-									 , content = filter filterFinished (buildGroupElements tasks currentUser ti.TaskInfo.taskId menus formWidth mbFocus)
-									 , subtaskId = Nothing
-									 , menu = Just menuBar
-									 , bbar = Just buttons
-									 }
 			TTParallelTask ti tasks
 				= TTCParallelContainer {TTCParallelContainer 
 										| xtype = "itasks.ttc.parallel"
@@ -98,31 +85,6 @@ where
 		buildParallelElement :: !UITree -> Maybe TaskPanel
 		buildParallelElement (TTMainTask _ _ _)	= Nothing
 		buildParallelElement tree				= Just (buildTaskPanel` tree menus formWidth)
-
-		buildGroupElements :: ![UITree] !User !TaskId !MenuDefinition !FormWidth !(Maybe String) -> [TTCGroupContainerElement]
-		buildGroupElements tasks currentUser parentId menus formWidth mbFocus
-			= flatten [buildGroupElements` t [nr] mbFocus \\ t <- tasks & nr <- [1..]]
-		where
-			buildGroupElements` :: !UITree !SubtaskNr !(Maybe String) -> [TTCGroupContainerElement]
-			buildGroupElements` (TTGroupedTask {TaskInfo|taskId} tasks gActions mbFocus) stnr mbFocusParent
-				# mbFocus = case mbFocus of
-					Nothing		= mbFocusParent
-					_			= mbFocus
-				= flatten [buildGroupElements` t [nr:stnr] mbFocus \\ t <- tasks & nr <- [1..]]
-			buildGroupElements` (TTSequenceTask ti tasks) stnr mbFocus
-				= case filter (not o isFinished) tasks of
-					[]  = []
-					[t] = buildGroupElements` t stnr mbFocus
-					_	= abort "Multiple simultaneously active tasks in a sequence!"
-			buildGroupElements` t stnr mbFocus
-				# info		= getTaskInfo t
-				# panel		= buildTaskPanel` t menus formWidth
-				= [	{ panel = panel
-					, index = subtaskNrToString stnr
-					, focus = case mbFocus of
-						Nothing		= False
-						Just tag	= isMember tag info.TaskInfo.tags
-					}]
 									
 buildResultPanel :: !UITree -> TaskPanel
 buildResultPanel tree = case tree of 
@@ -151,7 +113,6 @@ getTaskInfo task
 		TTParallelTask ti _			= ti
 		TTSequenceTask ti _			= ti
 		TTMainTask ti _ _			= ti
-		TTGroupedTask ti _ _ _		= ti
 		_ 							= abort "Unknown panel type in group"
 	= info
 

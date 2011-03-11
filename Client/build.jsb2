@@ -47,7 +47,6 @@
 		,{"text":"FinishedContainer.js","path":"src/js/ttc/"}
 		,{"text":"ResultContainer.js","path":"src/js/ttc/"}
 		,{"text":"ParallelContainer.js","path":"src/js/ttc/"}
-		,{"text":"GroupContainer.js","path":"src/js/ttc/"}
 				
 		,{"text":"itasks.LoginWindow.js","path":"src/js/"}
 		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}
