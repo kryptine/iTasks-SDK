@@ -225,7 +225,7 @@ where
 		
 	processAllTasksE pst n tst=:{taskNr}
 		| (length pst.tasks) == n	= tst
-		# (idx,(task,_))			= getTaskFromPSt taskNr n pst
+		# (idx,task)				= getTaskFromPSt taskNr n pst
 		# (_,tst)					= applyTaskEdit task {tst & taskNr = [idx:taskNr]} 
 		= processAllTasksE pst (inc n) {tst & taskNr = taskNr}
 
@@ -273,10 +273,10 @@ where
 		# (idx,pstTask) = pst.tasks !! n
 		= (idx,getPStTask taskNr pstTask)
 			
-	getPStTask _		(InitTask n)			= (mapTask Left		(initTasks !! n),True)
-	getPStTask _		(AddedTask task)		= (mapTask Left		task,True)
-	getPStTask taskNr	(InitControlTask n)		= (mapTask Right	((initCTasks !! n) (sharedParallelState taskNr)),False)
-	getPStTask taskNr	(AddedControlTask task)	= (mapTask Right	(task (sharedParallelState taskNr)),False)
+	getPStTask _		(InitTask n)			= mapTask Left	(initTasks !! n)
+	getPStTask _		(AddedTask task)		= mapTask Left	task
+	getPStTask taskNr	(InitControlTask n)		= mapTask Right	((initCTasks !! n) (sharedParallelState taskNr))
+	getPStTask taskNr	(AddedControlTask task)	= mapTask Right	(task (sharedParallelState taskNr))
 	
 	updateTimestamp taskNr iworld=:{IWorld|timestamp} = setTaskStoreFor taskNr "lastUpdate" timestamp iworld
 	
@@ -312,16 +312,18 @@ where
 			[] = (TaskBusy, pst, tst)
 			//Process another task
 			[t=:(idx,pstTask):ts]
-				# (task,createProcess) = getPStTask taskNr pstTask
-				# (result,tst) = case createProcess of
-					True
+				# task = getPStTask taskNr pstTask
+				# (result,tst) = case task.containerType of
+					DetachedTask _ _
 						//IMPORTANT: Task is evaluated with a shifted task number!!!
 						# (result,tree,tst)	= createOrEvaluateTaskInstance Nothing task {tst & taskNr = [idx:taskNr]}
 						// Add the tree to the current node
 						# tst				= addTaskNode tree tst
 						= (result,tst)
-					False
+					InParallelBody
 						= applyTaskCommit task {tst & taskNr = [idx:taskNr]}
+					_
+						= abort "not implemented"
 				= case result of
 					TaskBusy
 						//Process the other tasks

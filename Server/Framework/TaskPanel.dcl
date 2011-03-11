@@ -23,7 +23,7 @@ derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 :: TTCInteractiveContainer = 
 	{ xtype			:: !String
 	, id			:: !String
-	, taskId		:: !String
+	, taskId		:: !TaskId
 	, content		:: !(Maybe FormContent)
 	, updates		:: !(Maybe [TUIUpdate])
 	, subject		:: !String
@@ -36,14 +36,14 @@ derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 :: TTCResultContainer =
 	{ xtype			:: !String
 	, id			:: !String
-	, taskId		:: !String
+	, taskId		:: !TaskId
 	, subject		:: !String
 	, result		:: !String
 	}
 	
 :: TTCParallelContainer =
 	{ xtype			:: !String
-	, taskId		:: !String
+	, taskId		:: !TaskId
 	, subject		:: !String
 	, description	:: !String
 	, content		:: ![TaskPanel]
@@ -51,7 +51,7 @@ derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 	
 :: TTCGroupContainer =
 	{ xtype			:: !String
-	, taskId		:: !String
+	, taskId		:: !TaskId
 	, subject		:: !String
 	, description	:: !String
 	, content		:: ![TTCGroupContainerElement]

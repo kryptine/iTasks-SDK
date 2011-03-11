@@ -40,6 +40,8 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		return false;
 	},
 	afterRender: function(){
+		this.getEl().fadeIn({duration: itasks.ttc.TTC_FADE_DURATION});
+	
 		itasks.ttc.TTCBase.superclass.afterRender.call(this,arguments);		
 		
 		//Update references to the rendered components
@@ -58,7 +60,8 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		//Standard task description panel
 		this.descriptionpanel = {
 			xtype: 'itasks.ttc.common.description',
-			description: this.description
+			description: this.description,
+			height: this.descriptionHeight
 		};
 		//Interaction panel, is not always used.
 		this.interactionpanel = null;

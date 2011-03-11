@@ -103,49 +103,24 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		delete(this.params["events"]);
 	},
 	update: function(data,success,status) {
-		//Check if the task is finished or became redundant
-		if(!success && status == 404/*not found response*/ || data && (data.tui == "done" || data.tui == "redundant")) {
-			var ct = this.getComponent(1);
-			
-			if(ct.items && ct.items.length) {
-				ct.remove(0);
-			}
-
-			if(!success || data.tui == "redundant"){
-				msg = "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort.";
+		if(!success) {
+			if (status == 404) {
+				// if process not found, fade out tab
 				this.fireEvent("taskRedundant");
-			}else{
-				msg = "This task is completed. Thank you.";
-				this.fireEvent("taskDone");
+				
+				var ct = this.get(1);
+				ct.removeAll();
+				ct.add({
+					xtype: "itasks.ttc.finished",
+					subject: "Task completed",
+					description: "This task is completed or it's completion is no longer required.<br />Thank you for your effort.",
+					destroyCmp: this
+				});
+				this.doLayout();
+			} else {
+				// error other than "not found"
+				Ext.Msg.alert('Error',"Error updating task: " + data);
 			}
-			
-			ct.add({
-				xtype: "itasks.ttc.finished",
-				subject: "Task completed",
-				description: msg
-			});
-		
-			ct.doLayout();			
-			
-			var tp = this.findParentByType("itasks.worktabs");
-			var tab = this;
-		
-			this.getEl().fadeOut(
-				{ scope: this
-				, duration: .75
-				, useDisplay: true
-				, callback: function()
-					{ 
-						tp.remove(tab);
-					}
-				}
-			);
-			return;
-		}
-
-		// error other than "not found"
-		if (!success){
-			Ext.Msg.alert('Error',"Error updating task: " + data);
 			return;
 		}
 		
@@ -172,8 +147,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		if(ct.items.getCount() > 0) {
 			//Recursively update tab content
 			var cur = ct.getComponent(0);
-			
-			if(cur.taskId == content.taskId && cur.xtype == content.xtype) {
+			if(!Ext.isDefined(content.taskId) || cur.taskId == content.taskId) {
 				cur.update(content);
 			} else {
 				ct.remove(0,true);
@@ -187,18 +161,20 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		}	
 		
 		//If the toplevel component has a menu, add it to the toolbar
-		var tbar = ct.getTopToolbar();
-		while(tbar.items.getCount() > 1) {
-			tbar.remove(tbar.get(1));
-		}
-		var menu = ct.getComponent(0).menu;
-		if(menu) {
-			for(var i = 0; i < menu.length; i++) {
-				tbar.add(menu[i]);
+		var comp = ct.getComponent(0);
+		if (Ext.isDefined(comp)){
+			var tbar = ct.getTopToolbar();
+			while(tbar.items.getCount() > 1) {
+				tbar.remove(tbar.get(1));
 			}
-			tbar.doLayout();
+			var menu = comp.menu;
+			if(menu) {
+				for(var i = 0; i < menu.length; i++) {
+					tbar.add(menu[i]);
+				}
+				tbar.doLayout();
+			}
 		}
-				
 	},
 	updateToolbar: function(properties) {		
 		var getUserName = function(name){
