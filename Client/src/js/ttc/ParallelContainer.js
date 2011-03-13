@@ -18,8 +18,18 @@ itasks.ttc.ParallelContainer = Ext.extend(itasks.ttc.TTCBase, {
 		} else {
 			var curItemCount = this.items.getCount()-2;
 			for(var i=0; i < curItemCount; i++) {
-				this.get(i+2).update(data.content[i]);
+				var idx = i+2;
+				var cur = this.get(idx);
+				var content = data.content[i];
+				
+				if(cur.taskId == content.taskId) {
+					cur.update(content);
+				} else {
+					this.remove(idx,true);
+					this.insert(idx,content);
+				}
 			}
+			this.doLayout();
 			
 			var add = function(){
 				for(var i=curItemCount; i < data.content.length; i++) {
