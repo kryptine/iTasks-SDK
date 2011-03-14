@@ -1,6 +1,5 @@
 implementation module RPCTasks
 
-from StdFunc import iter
 import StdInt
 import StdFile
 import StdTuple
@@ -8,9 +7,7 @@ import StdTuple
 import Directory
 import File
 import FilePath
-import JSON
 import OSError
-import Process
 import UrlEncoding
 
 import ExceptionCombinators
@@ -18,8 +15,10 @@ import MonitorTasks
 import Shared
 import TSt
 
-from CoreCombinators	import >>=
+from CoreCombinators	import >>=, >>|, return
 from CommonCombinators	import transform
+from ImportTasks		import importTextFile
+from OSTasks			import callProcess
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task (ReadOnlyShared (Maybe a)) | iTask a
 callRPCHTTP method url params transformResult
@@ -29,46 +28,45 @@ callRPCHTTP method url params transformResult
 	# args = urlEncodePairs params
 	= callRPC options url args transformResult
 
-callRPC :: !String !String !String !(String -> a) -> Task (ReadOnlyShared (Maybe a))			
-callRPC options url args transformResult = mkInstantTask ("Call RPC","Calls a method from a remote server") callRPC`
-where
-	callRPC` tst=:{taskNr}
-		# (iTasksPath, tst) = accWorldTSt getITasksPath tst
-		# infile  = mkFileName taskNr "request"
-		# outfile = mkFileName taskNr "response"
+callRPC :: !String !String !String !(String -> a) -> Task (ReadOnlyShared (Maybe a)) | iTask a			
+callRPC options url args transformResult =
+	mkInstantTask ("Call RPC", "Initializing") initRPC
+	>>= \(cmd,args,outfile) -> callProcess cmd args
+	>>= \sMbExitCode -> mkInstantTask ("Call RPC", "Waiting for remote server") (readRPC sMbExitCode outfile transformResult)
+	where
+		initRPC :: *TSt -> *(!TaskResult (String,[String],String),!*TSt)
+		initRPC tst=:{TSt|taskNr,iworld=iworld=:{IWorld|config,world,tmpDirectory},properties=p=:{systemProperties=s=:{SystemProperties|taskId}}}
+			# infile  = tmpDirectory </> (mkFileName taskId taskNr "request")
+			  outfile = tmpDirectory </> (mkFileName taskId taskNr "response")
+			  (res,tst) = accWorldTSt (writeFile infile args) tst
+			| isError res = (TaskException (dynamic (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res)))),tst)
+			# cmd = config.Config.curlPath
+			  args =	[ options
+						, "--data-binary @\"" +++ infile +++ "\""
+						, "-o \"" +++ outfile +++ "\""
+						, url
+						]
+			= (TaskFinished (cmd,args,outfile),tst)
 		
-		# (res,tst) = accWorldTSt (writeFile infile args) tst
-		| isError res = (TaskException (dynamic (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res)))),tst)
-		
-		# cmd = iTasksPath </> "Tools" </> "Curl" </> "Curl.exe"
-		# args = [ options
-				 , "--data-binary @\"" +++ infile +++ "\""
-				 , "-o \"" +++ outfile +++ "\""
-		         , url
-		         ]
-		# (res, tst) 		= accWorldTSt (runProcess cmd args Nothing) tst
-		| isError res		= (TaskException (dynamic (RPCException ("Calling " +++ cmd +++ " failed: " +++ snd (fromError res)))),tst)
-		= (TaskFinished (makeReadOnlySharedError (check (fromOk res) infile outfile transformResult)),tst)
-
-	mkFileName taskNr part = iTaskId taskNr ("rpc-" +++ part)
-
-	check handle infile outfile transformResult iworld=:{world}
-		# (res,world)	= checkProcess handle world
-		| isError res = (Error (snd (fromError res)), {iworld & world = world})
-		# mExitCode = fromOk res
-		| isNothing mExitCode = (Ok Nothing, {iworld & world = world}) //Curl still running
-		# exitCode = fromJust mExitCode
-		| exitCode > 0 = (Error ("Curl error: " +++ curlError exitCode), {iworld & world = world})
-		# (out,world) = readFile outfile world
-		# (_,world) = deleteFile infile world
-		# (_,world) = deleteFile outfile world
-		| isError out = (Error (toString (fromError out)), {iworld & world = world})
-		= (Ok (Just (transformResult (fromOk out))), {iworld & world = world})
-
-getITasksPath :: *World -> (String, *World)
-getITasksPath world
-# (res, world) = getCurrentDirectory world
-= (takeDirectory (fromOk res), world)			
+		readRPC :: (ReadOnlyShared (Maybe Int)) !String !(String -> a) *TSt -> *(TaskResult (ReadOnlyShared (Maybe a)),!*TSt)
+		readRPC sMbExitCode outfile transformResult tst
+			= (TaskFinished (makeReadOnlySharedError (read sMbExitCode outfile transformResult)),tst)
+			
+		read :: (ReadOnlyShared (Maybe Int)) !String !(String -> a) *IWorld -> *(!MaybeErrorString (Maybe a),!*IWorld)
+		read sMbExitCode outfile transformResult iworld
+		# (res, iworld) = readShared sMbExitCode iworld
+		| isError res = (liftError res, iworld)
+		# mbExitCode = fromOk res
+		| isNothing mbExitCode = (Ok Nothing, iworld) //Process still running
+		# exitCode = fromJust mbExitCode
+		| exitCode > 0 = (Error (curlError exitCode), iworld)
+		# (res, world) = readFile outfile iworld.IWorld.world
+		  iworld = {iworld & world = world}
+		| isError res = (Error (toString (fromError res)), iworld)
+		= (Ok (Just (transformResult (fromOk res))), iworld)		
+			
+		mkFileName :: !TaskId !TaskNr !String -> String
+		mkFileName taskId taskNr part = iTaskId taskId ("rpc-" +++ part +++ "-"  +++ taskNrToString taskNr)
 
 curlError :: Int -> String
 curlError exitCode = 
