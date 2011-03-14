@@ -11,7 +11,8 @@ GOOGLE_API = "http://www.google.com/ig/api"
 weatherExample :: Task Void
 weatherExample = 
 	try (					
-							enterLocation -||- markLocation
+							eitherTask enterLocation markLocation
+			>>=				getLocation
 			>>= \location.	callRPCHTTP GET GOOGLE_API [("weather", location),("hl","en-GB")] formatResponse
 			>>= 			wait "Waiting for weather service" True
 			>>= \weather -> showMessageAbout ("Weather", "Weather forecast is:") weather >>| stop
@@ -20,16 +21,20 @@ weatherExample =
 
 enterLocation = enterInformation ("Enter location", "Enter a location you want to retrieve the weather forecast for.")	
 markLocation =
-										updateInformationA ("Mark location","Mark the locations you want to retrieve the weather forecast for.") (toView,fromView) [(ActionOk,oneLocation)] mkMap
-	>>= \(_,Just {markers=ms=:[m:_]}).	reverse_geocoding (toString m.position.lat+++","+++toString m.position.lng) "json" False GOOGLE_API_KEY parseJSON
-	>>=									wait ("Address lookup","Address is being retrieved for coordinates: ("+++toString m.position.lat+++", "+++toString m.position.lng+++")") True
+		updateInformationA ("Mark location","Mark the locations you want to retrieve the weather forecast for.") (toView,fromView) [(ActionOk,oneLocation)] mkMap
+	>>=	transform (\(_,Just {markers=ms=:[m:_]}) -> m.position)
 where
 	toView = id
 	fromView map=:{markers} _ = {map & markers = if (isEmpty markers) [] [hd (reverse markers)]}
 	
 	oneLocation (Valid {markers}) = (length markers) == 1
 	oneLocation _ = False
-
+		
+getLocation (Left loc) = return loc
+getLocation (Right {lat,lng}) =
+		reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
+	>>=	wait ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")") True
+where
 	parseJSON info = case jsonQuery "Placemark/0/address" (fromString info) of
 		(Just addr) = replaceSubString ", " "\n" addr
 		_			= "Address Unknown"
