@@ -1,11 +1,12 @@
 implementation module CoreCombinators
 
 import StdList, StdArray, StdTuple, StdMisc, StdBool
-import TSt, Util, HTTP, GenUpdate, UserDB, ProcessDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks, InteractionTasks, CommonCombinators
-from ProcessDBTasks		import sharedProcess, sharedProcessResult, class toProcessId, instance toProcessId ProcessRef
+import TSt, Util, HTTP, GenUpdate, UserDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks, InteractionTasks, CommonCombinators
 from StdFunc			import id, const, o, seq
 from TaskTree			import :: TaskParallelType
 from CommonCombinators	import transform
+from ProcessDB			import :: Process{..}
+from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
 
 derive class iTask SchedulerState, PAction
 
@@ -57,7 +58,7 @@ where
 			TaskFinished a
 				| not (pred a)	
 					# tst = deleteTaskStates (tl taskNr) tst
-					# tst = deleteSubProcesses (taskNrToString (tl taskNr)) tst
+					# tst = 'ProcessDB'.deleteSubProcesses (taskNrToString (tl taskNr)) tst
 					# tst = resetSequence tst
 					# tst = {tst & taskNr = tl taskNr}	
 					# tst = setTaskStore "counter" (inc loop) tst
@@ -182,7 +183,7 @@ where
 		write mprops iworld
 			# iworld			= updateTimestamp taskNr iworld
 			# (_,procs,iworld)	= getProcessesAndState iworld
-			= (Ok Void,seq [\iworld ->  snd (updateProcessProperties taskId (\p -> {p & managerProperties = mprop}) iworld) \\ {Process|taskId} <- procs & mprop <- mprops] iworld)
+			= (Ok Void,seq [\iworld ->  snd ('ProcessDB'.updateProcessProperties taskId (\p -> {p & managerProperties = mprop}) iworld) \\ {Process|taskId} <- procs & mprop <- mprops] iworld)
 		
 		getTimestamp iworld
 			# (mbLastUpdate,iworld) = getTaskStoreFor taskNr "lastUpdate" iworld
@@ -193,7 +194,7 @@ where
 		getProcessesAndState iworld
 			# (pst,iworld)		= loadPSt taskNr iworld
 			# (tasks,state)		= getTasksAndState pst
-			# (procs,iworld)	= getProcessesById (map (\(idx,_) -> taskNrToString [idx:taskNr]) tasks) iworld
+			# (procs,iworld)	= 'ProcessDB'.getProcessesById (map (\(idx,_) -> taskNrToString [idx:taskNr]) tasks) iworld
 			= (state,procs,iworld)
 		
 		getTasksAndState :: !(PSt Void s) -> (![(!Int,!PStTask Void s)],s)
@@ -246,7 +247,7 @@ createOrEvaluateTaskInstance :: !(Maybe TaskParallelType) !(Task a) !*TSt -> (!T
 createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
 	//Try to load the stored process for this subtask
 	# taskId		 = taskNrToString taskNr
-	# (mbProc,tst)	 = getProcess taskId tst
+	# (mbProc,tst)	 = 'ProcessDB'.getProcess taskId tst
 	= case mbProc of
 		//Nothing found, create a task instance
 		Nothing	
@@ -301,64 +302,40 @@ clearSubTaskWorkers procId mbpartype tst
 		(Just Closed)	= tst
 		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProperties.subTaskWorkers | not (startsWith procId pId)] }}}
 
-spawnProcess :: !Bool !Bool !(Task a) -> Task (ProcessRef a) | iTask a
+spawnProcess :: !Bool !Bool !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
 spawnProcess activate gcWhenDone task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
 where
 	spawnProcess` tst
 		# (pid,_,_,tst)	= createTaskInstance (createThread task) True Nothing activate gcWhenDone tst
-		= (TaskFinished (ProcessRef pid), tst)
+		= (TaskFinished (pid,sharedProc pid,sharedRes pid), tst)
+	
+	sharedProc pid = makeReadOnlyShared ('ProcessDB'.getProcess pid)
+			
+	sharedRes pid = makeReadOnlyShared read
+	where
+		read iworld
+			# (mbProc,iworld) = 'ProcessDB'.getProcess pid iworld
+			= case mbProc of
+				Just {Process|properties} = case properties.systemProperties.status of
+					Finished		= loadResult iworld
+					_				= (Nothing,iworld)
+				Nothing				= loadResult iworld
+			
+		loadResult iworld
+			# (mbResult,iworld)	= loadProcessResult (taskNrFromString pid) iworld
+			# mbResult = case mbResult of
+				Just (TaskFinished a) = case a of
+					(a :: a^)	= Just (Just a)	// proc finished
+					_			= Just Nothing	// proc finished but invalid result
+				_				= Just Nothing	// proc finished but result deleted
+			= (mbResult,iworld)
 
-killProcess :: !(ProcessRef a) -> Task Void | iTask a
-killProcess (ProcessRef pid) = mkInstantTask ("Kill process", "Kill a running task instance") killProcess`
+killProcess :: !ProcessId -> Task Void
+killProcess pid = mkInstantTask ("Kill process", "Kill a running task instance") killProcess`
 where
 	killProcess` tst 
 		# tst = deleteTaskInstance pid tst
 		= (TaskFinished Void, tst)
 
-waitForProcess :: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
-waitForProcess autoContinue pref =
-		monitor ("Wait for task", "Wait for an external task to finish") waitForProcessView waitForProcessPred autoContinue (sharedDescriptionAndStatus pref |+| sharedProcessResult pref)
-	>>=	transform snd
-	
-waitForProcessCancel :: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
-waitForProcessCancel autoContinue pref =
-		monitorA ("Wait for task", "Wait for an external task to finish or cancel") waitForProcessView actions autoEvents (sharedDescriptionAndStatus pref |+| sharedProcessResult pref)
-	>>=	transform (maybe Nothing snd o snd)
-where
-	actions = [(ActionCancel,always)] ++ if autoContinue [] [(ActionContinue,pred`)]
-	
-	autoEvents v
-		| autoContinue && pred` v	= Just ActionContinue
-		| otherwise					= Nothing
-		
-	pred` Invalid	= False
-	pred` (Valid v)	= waitForProcessPred v
-
-// map entire process to only description & status before giving it to editor,
-// because empty lists in propreties lead to invalid editor states
-sharedDescriptionAndStatus pref = mapSharedRead f (sharedProcess pref)
-	where
-		f Nothing = Nothing
-		f (Just {Process|properties=p=:{systemProperties=s=:{status}, taskProperties=t=:{taskDescription}}}) = Just (taskDescription,status)
-
-waitForProcessView (Nothing,res) = finishedView res
-waitForProcessView (Just (desc,status),res) = case status of
-	Active		= toHtmlDisplay [Text "Waiting for result of task ",title]
-	Suspended	= toHtmlDisplay [Text "Task ", title ,Text" is suspended."]
-	_			= finishedView res
-where
-	title = StrongTag [] [Text "\"",Text desc.TaskDescription.title,Text "\""]
-	
-finishedView Nothing 	= toHtmlDisplay [Text "Task finished."]
-finishedView (Just res)	= toHtmlDisplay [Text "Task finished. Result: ", visualizeAsHtmlDisplay res]
-
-waitForProcessPred (Nothing,_) = True
-waitForProcessPred (Just (_,status),_) = case status of
-	Active		= False
-	Suspended	= False
-	_			= True
-
-getStatus {Process|properties=p=:{systemProperties=s=:{status}}} = status
-
-scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (ReadOnlyShared (SchedulerState,[ProcessRef a])) | iTask a
+scheduledSpawn	:: !(DateTime -> DateTime) !(Task a) -> Task (ReadOnlyShared (!SchedulerState,![ProcessId])) | iTask a
 scheduledSpawn when task = abort "not implemented"

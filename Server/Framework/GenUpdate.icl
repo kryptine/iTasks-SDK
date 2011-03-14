@@ -237,7 +237,7 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode, Table
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Table
 
 basicUpdateSimple :: !(UpdateMode a) (String -> a) a !*USt -> *(!a,!*USt)
 basicUpdateSimple mode toV def ust = case mode of
@@ -311,7 +311,7 @@ gDefaultMask{|Tree|} _ tree=:(Tree _ sel)
 	| sel >= 0	= [Touched []]
 	| otherwise	= [Untouched]
 
-derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, ProcessRef, TreeNode, Table
+derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Table
 
 //Utility functions
 dp2s :: !DataPath -> String

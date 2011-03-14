@@ -30,7 +30,7 @@ monitor		:: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & 
 * @param A reference to the shared state
 * @return The last value of the monitored state + the generated action event
 */
-monitorA	:: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!Action,!Maybe m) | descr d & iTask m & iTask v
+monitorA	:: !d !(m -> v) ![TaskAction m] !(AutoActionEvents m) !(Shared m w) -> Task (!Action,!m) | descr d & iTask m & iTask v
 
 /**
 * Waits until a shared Maybe-state contains a value.

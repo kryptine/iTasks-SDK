@@ -10,11 +10,6 @@ from Time		import :: Timestamp
 from Shared		import :: ReadOnlyShared
 import iTaskClass
 
-//Allow either typed or untyped references to lookup a process table entry
-class toProcessId a where toProcessId :: a -> ProcessId
-instance toProcessId ProcessId
-instance toProcessId (ProcessRef a)
-
 derive gVisualize	Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
 derive gUpdate		Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
 derive gDefaultMask	Process, TaskParallelType, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
@@ -27,7 +22,7 @@ derive gVerify		Process, TaskParallelType, ProcessProperties, TaskProgress, Syst
 *
 * @return When found, the Process record. Nothing when the process cannot be found.
 */
-getProcess				:: !pid 					-> Task (Maybe Process) | toProcessId pid
+getProcess				:: !ProcessId				-> Task (Maybe Process)
 /**
 * Retrieves a Process record with an additional check on the process owner. Only
 * when the process is owned by the indicated user it will be returned.
@@ -37,7 +32,7 @@ getProcess				:: !pid 					-> Task (Maybe Process) | toProcessId pid
 *
 * @return When found, the Process record. Nothing when the process cannot be found.
 */
-getProcessForUser		:: !User !pid				-> Task (Maybe Process)	| toProcessId pid
+getProcessForUser		:: !User !ProcessId			-> Task (Maybe Process)
 /**
 * Retrieves a Process record with an additional check on the process manager. Only
 * when the process is managed by the indicated user it will be returned.
@@ -47,7 +42,7 @@ getProcessForUser		:: !User !pid				-> Task (Maybe Process)	| toProcessId pid
 *
 * @return When found, the Process record. Nothing when the process cannot be found.
 */
-getProcessForManager 	:: !User !pid				-> Task (Maybe Process) | toProcessId pid
+getProcessForManager 	:: !User !ProcessId			-> Task (Maybe Process)
 /**
 * Retrieves the processes with indicated process ids
 *
@@ -55,7 +50,7 @@ getProcessForManager 	:: !User !pid				-> Task (Maybe Process) | toProcessId pid
 * 
 * @return The list of found processes
 */
-getProcesses			:: ![pid]					-> Task [Process] 		| toProcessId pid
+getProcesses			:: ![ProcessId]				-> Task [Process]
 /**
 * Retrieves all process that have one of the given statuses
 *
@@ -82,7 +77,7 @@ getProcessesForUser		:: !User ![TaskStatus]		-> Task [Process]
 *
 * @return A task that yields the owner if the referenced process is not deleted
 */
-getProcessOwner 		:: !pid 					-> Task (Maybe User) 	| toProcessId pid
+getProcessOwner 		:: !ProcessId 				-> Task (Maybe User)
 /**
 * Changes the owner of the indicated process. The current user is automatically set
 * as delegator of the process.
@@ -90,7 +85,7 @@ getProcessOwner 		:: !pid 					-> Task (Maybe User) 	| toProcessId pid
 * @param The new process owner
 * @param The process id
 */
-setProcessOwner			:: !User !pid				-> Task Void 			| toProcessId pid
+setProcessOwner			:: !User !ProcessId			-> Task Void
 /**
 * Poll the status of a process.
 *
@@ -98,7 +93,7 @@ setProcessOwner			:: !User !pid				-> Task Void 			| toProcessId pid
 *
 * @return A task that yields the status of the referenced process
 */
-getProcessStatus		:: !pid						-> Task TaskStatus		| toProcessId pid
+getProcessStatus		:: !ProcessId				-> Task TaskStatus
 /**
 * Change the process status to Active
 *
@@ -107,22 +102,18 @@ getProcessStatus		:: !pid						-> Task TaskStatus		| toProcessId pid
 * @return A task that yields True when the process was successfully activated
 *         and False when the process could not be found.
 */
-activateProcess			:: !pid						-> Task Void			| toProcessId pid
+activateProcess			:: !ProcessId				-> Task Void
 /**
 * Change the process status to suspended.
 * The tasks within this process will be inaccessible until the process is activated again.
 *
 * @param The process reference
 */
-suspendProcess			:: !pid						-> Task Void			| toProcessId pid
+suspendProcess			:: !ProcessId				-> Task Void
 /**
 * Delete a process from the process database
 * Once a process is deleted all of its results are lost.
 *
 * @param The process reference
 */
-deleteProcess			:: pid						-> Task Void			| toProcessId pid
-
-// shared process data
-sharedProcessResult		:: !(ProcessRef a)			-> ReadOnlyShared (Maybe a)			| iTask a
-sharedProcess			:: !pid						-> ReadOnlyShared (Maybe Process)	| toProcessId pid
+deleteProcess			:: !ProcessId				-> Task Void

@@ -8,13 +8,13 @@ from TaskTree	import :: TaskParallelType
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, ProcessRef, Table, HtmlDisplay
+derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, ProcessRef, Table, HtmlDisplay
+derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, ButtonState, JSONNode, Table, HtmlDisplay
+derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay
 derive gLexOrd		Currency
 derive JSONEncode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
 derive JSONDecode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus

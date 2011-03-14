@@ -14,7 +14,7 @@ derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Shared, Map, Tree, TreeNode
-derive gVisualize ProcessRef, EmailAddress, Action, Table, HtmlDisplay
+derive gVisualize EmailAddress, Action, Table, HtmlDisplay
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: !String !a !VerifyMask	-> [TUIDef]	| gVisualize{|*|} a

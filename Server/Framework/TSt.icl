@@ -4,9 +4,10 @@ import StdList, StdTuple, StdBool, StdMisc, Maybe, StdFile, File, Directory
 import HTTP, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import GenEq, GenVisualize, GenUpdate, Store, Config, dynamic_string
-import CoreCombinators, InteractionTasks
-from StdFunc	import id, const, o, seq
-from JSON		import JSONDecode, fromJSON
+from StdFunc			import id, const, o, seq
+from JSON				import JSONDecode, fromJSON
+from CoreCombinators	import >>=
+from InteractionTasks	import enterInformation
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
 

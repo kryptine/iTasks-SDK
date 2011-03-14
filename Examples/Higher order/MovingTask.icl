@@ -40,47 +40,47 @@ where
 		>>= \who ->	spawnProcess True False (container (DetachedTask {initManagerProperties & worker = who} noMenu) task <<@ Title label)
 		>>= 		inspect
 
-	inspect wid
+	inspect pref
 	=					enterChoice ("Task options","Go ahead impatient boss:")
-							[ getStatus wid <<@ Title "Get status"
-							, suspend wid <<@ Title "Suspend"
-							, activate wid <<@ Title "Activate"
-							, reassign wid <<@ Title "Reassign"
-							, delete wid <<@ Title "Delete task"
-							, waitForIt wid <<@ Title "Wait for task"
+							[ getStatus pref <<@ Title "Get status"
+							, suspend pref <<@ Title "Suspend"
+							, activate pref <<@ Title "Activate"
+							, reassign pref <<@ Title "Reassign"
+							, delete pref <<@ Title "Delete task"
+							, waitForIt pref <<@ Title "Wait for task"
 							]
 		>>= \action ->	action
-		>>= \finished -> if finished (return Void) (inspect wid)
+		>>= \finished -> if finished (return Void) (inspect pref)
 
-	getStatus wid
-	=						getProcessStatus wid
-		>>= \st	->			getProcessOwner wid
+	getStatus (pid,_,_)
+	=						getProcessStatus pid
+		>>= \st	->			getProcessOwner pid
 		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [toString (fromJust mbOwner)])
 		>>= \names ->		case st of
 								Finished	-> showMessage ("Task finished","It is finished") True
 								Deleted		-> showMessage ("Task deleted","It is deleted") True		
 								Active		-> showMessage ("Task busy","User " <+++ hd names <+++ " is working on it") False		
 								Suspended	-> showMessage ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") False		
-	suspend wid
-	=						suspendProcess wid
+	suspend (pid,_,_)
+	=						suspendProcess pid
 		>>|					showMessage ("Task suspended","workflow is suspended") False
 								
-	activate wid
-	=						activateProcess wid
+	activate (pid,_,_)
+	=						activateProcess pid
 		>>|					showMessage ("Task activated","workflow is activated") False
 
-	delete wid
-	=						killProcess wid 
+	delete (pid,_,_)
+	=						killProcess pid 
 		>>| 				showMessage ("Task deleted","workflow is deleted") True				
 
-	reassign wid
+	reassign (pid,_,_)
 	=						selectUser "Who is next?"
-		>>= \who ->			setProcessOwner who wid 
+		>>= \who ->			setProcessOwner who pid 
 		>>| 				return False
 
-	waitForIt wid
-	=						showStickyMessage ("Waiting","Waiting for the result...") Void ||- waitForProcess True wid
-		>>= \(Just res) -> 	deleteProcess wid 
+	waitForIt (pid,_,sharedRes)
+	=						showStickyMessage ("Waiting","Waiting for the result...") Void ||- wait ("Wait for task", "Wait for an external task to finish") True sharedRes
+		>>= \(Just res) -> 	deleteProcess pid 
 		>>| 				showMessageAbout ("Finished","Finished, the result = ") res 
 		>>|					return False
 

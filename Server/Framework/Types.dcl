@@ -13,13 +13,13 @@ from TaskTree	import :: TaskParallelType
 
 derive JSONEncode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, ProcessRef, Table, Shared, HtmlDisplay
+derive JSONEncode	EmailAddress, Session, Action, Table, Shared, HtmlDisplay
 derive JSONDecode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, ProcessRef, Table, Shared, HtmlDisplay
+derive JSONDecode	EmailAddress, Session, Action, Table, Shared, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, ProcessRef, Maybe, JSONNode, (->), Dynamic, Table, Shared, HtmlDisplay
+derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, Shared, HtmlDisplay
 derive JSONEncode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
 derive JSONDecode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
 derive gEq			TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
@@ -292,7 +292,6 @@ initManagerProperties :: ManagerProperties
 	}
 
 :: ProcessId		:== String
-:: ProcessRef a		= ProcessRef !ProcessId
 
 /*
 * Gives the unique username of a user

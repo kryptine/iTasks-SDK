@@ -631,7 +631,7 @@ gVisualize{|VisualizationHint|} fx val vst=:{currentPath, idPrefix, vizType, ori
 		(Just (VHEditable _))
 			= gVisualize{|* -> *|} fx (fmap Editable x) vst		
 
-derive gVisualize DateTime, Either, Void, UserDetails, Timestamp, Map, ProcessRef, EmailAddress, Action, TreeNode
+derive gVisualize DateTime, Either, Void, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

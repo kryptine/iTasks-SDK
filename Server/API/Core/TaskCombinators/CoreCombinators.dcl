@@ -7,7 +7,8 @@ from Time				import :: Timestamp
 from TaskTree			import :: TaskParallelType
 from TuningCombinators	import :: Tag
 from Shared				import :: Shared, :: ReadOnlyShared
-import Task
+from ProcessDB			import :: Process
+import Task, ProcessDBTasks
 
 //Standard monadic operations:
 
@@ -123,7 +124,11 @@ parallel :: !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pStat
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !Bool !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
+spawnProcess	:: !Bool !Bool !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
+
+:: SharedProc			:== ReadOnlyShared (Maybe Process)
+// the first maybe indicates if the process finished, the second if result is deleted
+:: SharedProcResult a	:== ReadOnlyShared (Maybe (Maybe a))
 
 /**
 * Kills a process disregarding any other references to this process.
@@ -132,21 +137,7 @@ spawnProcess	:: !Bool !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
 *
 * @return Void
 */
-killProcess 	:: !(ProcessRef a) -> Task Void | iTask a
-
-/**
-* Wait (blocking) for a process to complete.
-*
-* @param A flag indicating if to continue automatically after the process finished
-*        or to show the process result and let the user continue.
-* @param The process reference
-*
-* @return A task that maybe gives the result of the process.
-*         When a process is prematurely deleted, the task yields Nothing
-*         Possibly the user can also cancel the task.
-*/
-waitForProcess			:: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
-waitForProcessCancel	:: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
+killProcess 	:: !ProcessId -> Task Void
 
 /**
 * Spawn a process at regular times
@@ -156,7 +147,7 @@ waitForProcessCancel	:: !Bool !(ProcessRef a) -> Task (Maybe a) | iTask a
 *
 * @return A reference to a control memory this contains a schedulerstate to control the scheduler and a list of active processes.
 */
-scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (ReadOnlyShared (SchedulerState,[ProcessRef a])) | iTask a
+scheduledSpawn	:: !(DateTime -> DateTime) !(Task a) -> Task (ReadOnlyShared (!SchedulerState,![ProcessId])) | iTask a
 
 :: SchedulerState = SSActive //Keep monitoring time and spawn new tasks
 				  | SSFinish //Let the already running tasks finish, but don't start new ones anymore

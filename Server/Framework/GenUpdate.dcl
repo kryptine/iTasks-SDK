@@ -29,7 +29,7 @@ derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gUpdate Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Choice, MultipleChoice, Shared, Map, Tree, TreeNode
-derive gUpdate EmailAddress, Action, ProcessRef, Table, HtmlDisplay
+derive gUpdate EmailAddress, Action, Table, HtmlDisplay
 
 generic gDefaultMask a :: !a -> [UpdateMask]
 
@@ -37,7 +37,7 @@ derive gDefaultMask UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gDefaultMask Int, Real, Char, Bool, String
 derive gDefaultMask Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gDefaultMask Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Choice, MultipleChoice, Shared, Map, Tree, TreeNode
-derive gDefaultMask EmailAddress, Action, ProcessRef, Table, HtmlDisplay
+derive gDefaultMask EmailAddress, Action, Table, HtmlDisplay
 
 derive bimap UpdateMode
 
