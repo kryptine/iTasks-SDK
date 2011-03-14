@@ -100,9 +100,9 @@ gVerify{|VisualizationHint|}	fx v vst	= case v of
 	Just (VHHidden _)	= verifyHidden vst
 	_					= vst
 	
-verifyEditable	fx e vst=:{staticDisplay}	= (\vst -> {vst & staticDisplay = staticDisplay}) (fx e {vst & staticDisplay = False})
-verifyDisplay	fx d vst=:{staticDisplay}	= (\vst -> {vst & staticDisplay = staticDisplay}) (fx d {vst & staticDisplay = True})
-verifyHidden	vst=:{updateMask}			= {vst & updateMask = snd (popMask updateMask)}
+verifyEditable	fx e vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx e {vst & staticDisplay = False})
+verifyDisplay	fx d vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx d {vst & staticDisplay = True})
+verifyHidden	vst=:{verifyMask,updateMask}	= {vst & verifyMask = appendToMask verifyMask (VMValid Nothing []), updateMask = snd (popMask updateMask)}
 
 gVerify{|Int|}    			_ vst = simpleVerify "Enter a number" vst
 gVerify{|Real|}   			_ vst = simpleVerify "Enter a decimal number" vst

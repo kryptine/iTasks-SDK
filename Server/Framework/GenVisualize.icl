@@ -56,7 +56,7 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType}
 gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,verifyMask}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
-	# (cmv,_)	= popMask verifyMask
+	# (cmv,vm)	= popMask verifyMask
 	# x			= fmap fromOBJECT val
 	//Record: just strip of the OBJECT constructor and pass through, record container is created when processing the CONS
 	| isRecord d
@@ -79,7 +79,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 														, errorMsg = err
 														, hintMsg = hnt
 														})]
-				  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})					
+				  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
 			_
 				# (viz,vst) = fx x vst
 				= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
@@ -90,7 +90,8 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 											| id = ""
 											, fieldLabel = label
 											, optional = optional
-											, items = coerceToTUIDefs vis})],vst)
+											, items = coerceToTUIDefs vis})]
+			,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
 			
 gVisualize{|CONS of d|} fx val vst=:{useLabels,optional} = visualizeCustom mkControl staticVis val False vst
 where
@@ -105,7 +106,7 @@ where
 					= (recordContainer False [],vst)
 				Just x
 					# (viz,vst) = fx (Just x) {vst & useLabels = True, optional = False}
-					=(recordContainer True viz,{vst & headers = recordHeaders d.gcd_fields})
+					= (recordContainer True viz,{vst & headers = recordHeaders d.gcd_fields})
 		= (vis,{vst & optional = optional, useLabels = useLabels})
 	where
 		recordContainer hasValue viz = [TUIRecordContainer	{ TUIRecordContainer
@@ -590,7 +591,8 @@ gVisualize{|Maybe|} fx val vst=:{vizType,currentPath,optional}
 	
 // wrapper types changing visualization behaviour
 gVisualize{|Hidden|} fx val vst=:{VSt | currentPath, verifyMask}
-	= ([],{VSt | vst & currentPath = stepDataPath currentPath})
+	# (_,vm) = popMask verifyMask	
+	= ([],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
 gVisualize{|Display|} fx val vst=:{currentPath,renderAsStatic}
 	# x	= fmap fromDisplay val

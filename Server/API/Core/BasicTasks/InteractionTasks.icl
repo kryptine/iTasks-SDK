@@ -287,7 +287,7 @@ makeMessageTaskSticky about view
 	= mapTaskFunctions snd (makeMessageTaskA about view [])
 
 makeMessageTaskA :: !(AboutMsg a) !(a -> v) ![TaskAction a] -> TaskFunctions (!Action,!a) | iTask a & iTask v
-makeMessageTaskA about view actions = appSnd ((o) mapResult) (makeInteractiveTask mbAbout view (Hidden,\_ _ -> Void) actions Nothing mode)
+makeMessageTaskA about view actions = appSnd ((o) mapResult) (makeInteractiveTask mbAbout view (const Void,\_ _ -> Void) actions Nothing mode)
 where
 	mapResult (res,tst) = case res of
 		TaskFinished (event,_)
