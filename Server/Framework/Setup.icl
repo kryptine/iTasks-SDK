@@ -49,7 +49,9 @@ postedConfig req =
 	, debug = (fromMaybe "false" (get "debug" req.arg_post)) <> "false"
 	, smtpServer = fromMaybe "" (get "smtpServer" req.arg_post)
 	, generalWorkflows = (fromMaybe "false" (get "generalWorkflows" req.arg_post)) <> "false"
-	} 
+	, runAsyncPath = fromMaybe "" (get "runAsyncPath" req.arg_post)
+	, curlPath = fromMaybe "" (get "curlPath" req.arg_post)
+	}
 			 		 
 checkConfig :: !Config !*World -> (![Maybe String],!*World)
 checkConfig config world
@@ -64,6 +66,8 @@ checkConfig config world
 		 ,Nothing
 		 ,Nothing
 		 ,Nothing
+		 ,Nothing
+		 ,Nothing
 		 ],world)
 
 CLIENT_ERROR :== "The client framework could not be found at this location.<br />"
@@ -74,7 +78,7 @@ checkClientPath :: !String !*World -> (!Bool,!*World)
 checkClientPath clientPath world
 	# (res,world) = readFile (clientPath +++ "\\index.html") world
 	= (isOk res,world)
-
+	
 configFileAvailable :: !String !*World -> (!Bool,!*World)
 configFileAvailable appName world
 	# (res,world) = readFile (appName +++ "-config.json") world
@@ -135,6 +139,8 @@ where
 			 ,("Debug", toString config.debug)
 			 ,("Smtp server", config.smtpServer)
 			 ,("Enable general workflows", toString config.generalWorkflows)
+			 ,("RunAsync path", config.runAsyncPath)
+			 ,("Curl path", config.curlPath)
 			 ]
 editConfig :: !Config ![Maybe String] -> HtmlTag
 editConfig config errors = TableTag []
@@ -150,9 +156,10 @@ where
 			 ,("Debug",InputTag [TypeAttr "checkbox",NameAttr "debug":if config.debug [CheckedAttr] [] ])
 			 ,("Smtp server",InputTag [TypeAttr "text",NameAttr "smtpServer", ValueAttr config.smtpServer])
 			 ,("Enable general workflows",InputTag [TypeAttr "checkbox",NameAttr "generalWorkflows":if config.generalWorkflows [CheckedAttr] [] ])
+			 ,("RunAsync path",InputTag [TypeAttr "text",NameAttr "runAsyncPath", ValueAttr config.runAsyncPath])
+			 ,("Curl path",InputTag [TypeAttr "text",NameAttr "curlPath", ValueAttr config.curlPath])
 			 ]
 
 errclass error = if (isNothing error) "field-ok" "field-error"
 errmsg Nothing = []
 errmsg (Just msg) = [EmTag [] [RawText msg]]
-

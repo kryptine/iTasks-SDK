@@ -6,7 +6,7 @@ from StdFunc import o
 
 import	Store, UserDB, ProcessDB, SessionDB
 import	Util, HtmlUtil
-import	CommandLine, File, FilePath, Directory, HTTP, Text, MIME, UrlEncoding
+import	CommandLine, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
 
 import	TuningCombinators
 import	Setup

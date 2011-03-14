@@ -1,6 +1,7 @@
 implementation module TSt
 
-import StdList, StdTuple, StdBool, StdMisc, Maybe, StdFile, File, Directory
+import StdList, StdTuple, StdBool, StdMisc, Maybe, StdFile 
+import Directory, Error, File, OSError
 import HTTP, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import GenEq, GenVisualize, GenUpdate, Store, Config, dynamic_string

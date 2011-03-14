@@ -1,6 +1,6 @@
 implementation module Config
 
-import StdFile, Util, Error, File, JSON
+import StdFile, Util, Error, File, FilePath, JSON, OS
 
 derive JSONEncode Config
 derive JSONDecode Config
@@ -18,7 +18,10 @@ defaultConfig =
 	, debug				= False
 	, smtpServer		= "localhost"
 	, generalWorkflows	= False
+	, runAsyncPath		= ".." </> "Tools" </> "RunAsync" </> IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe"
+	, curlPath			= IF_POSIX_OR_WINDOWS "/usr/bin/curl" "..\\Tools\\Curl\\curl.exe"
 	}
+
 
 loadConfig :: !String !*World -> (!Maybe Config, !*World)
 loadConfig appName world

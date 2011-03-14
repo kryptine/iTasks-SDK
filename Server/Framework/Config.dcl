@@ -16,6 +16,8 @@ from Maybe import ::Maybe
 	, debug				:: !Bool			// Run the server in debug mode (default False).
 	, smtpServer		:: !String			// The smtp server to use for sending e-mails
 	, generalWorkflows	:: !Bool			// Enable the "general" workflows for managing ad-hoc work
+	, runAsyncPath		:: !String			// Path to RunAsync tool for running asynchronous OS tasks and timers.
+	, curlPath			:: !String			// Path to Curl needed for RPC tasks.
 	}
 
 /**
