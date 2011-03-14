@@ -14,6 +14,7 @@ import GenUpdate
 	{ updateMask	:: ![UpdateMask]
 	, verifyMask	:: ![VerifyMask]
 	, optional		:: !Bool
+	, staticDisplay	:: !Bool
 	, iworld        :: !*IWorld
 	}
 

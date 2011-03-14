@@ -8,7 +8,7 @@ derive bimap (,), Maybe
 
 verifyValue :: !a !UpdateMask !*IWorld -> (!VerifyMask, !*IWorld) | gVerify{|*|} a
 verifyValue val updateMask iworld
-	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, iworld = iworld}
+	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, staticDisplay = False, iworld = iworld}
 	= (hd verSt.verifyMask, verSt.VerSt.iworld)
 
 isValidValue :: !VerifyMask -> Bool
@@ -57,7 +57,7 @@ gVerify{|OBJECT of d|}	fx    obj					vst=:{updateMask,verifyMask,optional}
 			| otherwise						= (VMUntouched Nothing optional childMask,vst)		
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}
 
-gVerify{|[]|} fx mbL vst=:{optional,verifyMask,updateMask}
+gVerify{|[]|} fx mbL vst=:{optional,verifyMask,updateMask,staticDisplay}
 	# (cm,um)			= popMask updateMask
 	# l					= fromMaybe [] mbL
 	# (listMask,vst)	= verifyList l cm vst	
@@ -66,6 +66,8 @@ where
 	verifyList l cm vst
 		# vst=:{verifyMask=childMask} = verifyItems fx l {vst & verifyMask = [], updateMask = childMasks cm, optional = False}
 		# vst = {vst & verifyMask = childMask}
+		| staticDisplay
+				= (VMValid Nothing childMask,vst)
 		| not (isTouched cm)
 				= (VMUntouched Nothing optional childMask,vst)
 		| isEmpty l
@@ -89,10 +91,18 @@ gVerify{|Maybe|} fx mb vst=:{optional,verifyMask}
 	# vst=:{verifyMask} = fx (fromMaybe Nothing mb) {vst & optional = True}
 	= {vst & optional = optional}
 
-gVerify{|Hidden|}				fx h vst = fx (fmap fromHidden h) vst
-gVerify{|Editable|}				fx e vst = fx (fmap fromEditable e) vst
-gVerify{|Display|}				fx d vst = fx (fmap fromDisplay d) vst
-gVerify{|VisualizationHint|}	fx v vst = fx (fmap fromVisualizationHint v) vst
+gVerify{|Hidden|}				_ _ vst		= verifyHidden vst
+gVerify{|Editable|}				fx e vst	= verifyEditable fx (fmap fromEditable e) vst
+gVerify{|Display|}				fx d vst	= verifyDisplay fx (fmap fromDisplay d) vst
+gVerify{|VisualizationHint|}	fx v vst	= case v of
+	Just (VHEditable e)	= verifyEditable fx (Just e) vst
+	Just (VHDisplay d)	= verifyDisplay fx (Just d) vst
+	Just (VHHidden _)	= verifyHidden vst
+	_					= vst
+	
+verifyEditable	fx e vst=:{staticDisplay}	= (\vst -> {vst & staticDisplay = staticDisplay}) (fx e {vst & staticDisplay = False})
+verifyDisplay	fx d vst=:{staticDisplay}	= (\vst -> {vst & staticDisplay = staticDisplay}) (fx d {vst & staticDisplay = True})
+verifyHidden	vst=:{updateMask}			= {vst & updateMask = snd (popMask updateMask)}
 
 gVerify{|Int|}    			_ vst = simpleVerify "Enter a number" vst
 gVerify{|Real|}   			_ vst = simpleVerify "Enter a decimal number" vst
@@ -175,10 +185,12 @@ simpleVerify hint vst
 	= customWorldVerify (Just hint) (curry (appFst (const (WPRValid (Just hint))))) (Just (abort "no value needed for simple verify")) vst
 
 wrapperVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt -> *VerSt
-wrapperVerify mbHint pred parseErr mbVal vst=:{updateMask, verifyMask, optional} 
+wrapperVerify mbHint pred parseErr mbVal vst=:{updateMask, verifyMask, optional, staticDisplay} 
 	# (cm,um) = popMask updateMask
 	# vmask = case mbVal of
 		Just val
+			| staticDisplay
+							= VMValid Nothing [VMValid Nothing []]
 			| optional = case cm of
 				Touched _	= validateValue val
 				_			= VMValid Nothing [VMValid mbHint []]           
@@ -202,10 +214,12 @@ where
 		| otherwise	= (WPRInvalid (mkErrMsg val),iworld)
 
 customWorldVerify :: !(Maybe String) !(a *IWorld -> (!WorldPredicateResult,!*IWorld)) !(Maybe a) !*VerSt -> *VerSt
-customWorldVerify mbHint pred mbVal vst=:{updateMask, verifyMask, optional} 
+customWorldVerify mbHint pred mbVal vst=:{updateMask, verifyMask, optional, staticDisplay} 
 	# (cm,um) = popMask updateMask
 	# (vmask,vst) = case mbVal of
 		Just val
+			| staticDisplay
+								= (VMValid Nothing [],vst)
 			| optional
 				= case cm of
 					Touched _	= validateValue val vst

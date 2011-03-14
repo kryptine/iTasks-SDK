@@ -590,8 +590,7 @@ gVisualize{|Maybe|} fx val vst=:{vizType,currentPath,optional}
 	
 // wrapper types changing visualization behaviour
 gVisualize{|Hidden|} fx val vst=:{VSt | currentPath, verifyMask}
-	# (cmv,vm) = popMask verifyMask	
-	= ([],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+	= ([],{VSt | vst & currentPath = stepDataPath currentPath})
 
 gVisualize{|Display|} fx val vst=:{currentPath,renderAsStatic}
 	# x	= fmap fromDisplay val
