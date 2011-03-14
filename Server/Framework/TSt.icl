@@ -26,6 +26,7 @@ mkTSt appName config request workflows store tmpDir world
 		, request			= request
 		, iworld			= initIWorld appName config store tmpDir world
 		, sharedChanged		= False
+		, sharedDeleted		= False
 		, triggerPresent	= False
 		, iterationCount	= 1
 		}
@@ -216,8 +217,8 @@ where
 															, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 															}
 		# tst											= {tst & tree = TTFinishedTask info noOutput}
-		# (result, tst=:{sharedChanged,triggerPresent})	= applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False}
-		| triggerPresent && sharedChanged && iterationCount < ITERATION_THRESHOLD
+		# (result, tst=:{sharedChanged,triggerPresent,sharedDeleted}) = applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False, sharedDeleted = False}
+		| (triggerPresent && sharedChanged || sharedDeleted) && iterationCount < ITERATION_THRESHOLD
 			= applyTaskCommit` {tst & iterationCount = inc iterationCount}
 		| otherwise
 			= (result,tst)

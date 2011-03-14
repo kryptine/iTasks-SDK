@@ -32,6 +32,7 @@ from HTTP		import :: HTTPRequest
 					, iworld			:: !*IWorld											// The 'iTasks' world
 					
 					, sharedChanged		:: !Bool											// Is set to true if a Shared is changed
+					, sharedDeleted		:: !Bool											// Is set to true if a Shared is deleted
 					, triggerPresent	:: !Bool											// Is set to true if an editor with an auto event is present
 					, iterationCount	:: !Int												// Number of iterations in the commit phase
 					}

@@ -61,7 +61,7 @@ deleteSharedStore id
 where
 	deleteSharedStore` tst
 		# tst = appIWorldTSt (deleteValue id) tst
-		= (TaskFinished Void,tst)
+		= (TaskFinished Void,{tst & sharedDeleted = True})
 
 readShared :: !(Shared a w) -> Task a | iTask a
 readShared shared
