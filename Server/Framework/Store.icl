@@ -1,6 +1,6 @@
 implementation module Store
 
-import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTuple, StdMisc
+import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTuple, StdMisc, Void
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Types import :: IWorld{store,world,timestamp}, :: Config
