@@ -52,10 +52,12 @@ postedConfig req =
 	, runAsyncPath = fromMaybe "" (get "runAsyncPath" req.arg_post)
 	, curlPath = fromMaybe "" (get "curlPath" req.arg_post)
 	}
-			 		 
+
 checkConfig :: !Config !*World -> (![Maybe String],!*World)
 checkConfig config world
 	# (clientPathOk,world) = checkClientPath config.clientPath world
+	# (runAsyncOk,world) = fileExists config.runAsyncPath world
+	# (curlOk,world) = fileExists config.curlPath world
 	= 	([if clientPathOk Nothing (Just CLIENT_ERROR)
 		 ,Nothing
 		 ,Nothing
@@ -66,13 +68,20 @@ checkConfig config world
 		 ,Nothing
 		 ,Nothing
 		 ,Nothing
-		 ,Nothing
-		 ,Nothing
+		 ,if runAsyncOk Nothing (Just RUNASYNC_ERROR)
+		 ,if curlOk Nothing (Just CURL_ERROR)
 		 ],world)
 
 CLIENT_ERROR :== "The client framework could not be found at this location.<br />"
 			 +++ "Please fill in the full path where the client framework can be found.<br />"
 			 +++ "It can normally be found in the \"Client\\build\" folder of the SDK. For example C:\\iTasks-SDK\\Client\\build."
+
+RUNASYNC_ERROR :== "The RunAsync tool could not be found at this location.<br />"
+			   +++ "Please fill in the full path where the RunAsync tool can be found.<br />"
+			   +++ "It can be compiled from the module RunAsync.icl, which can be found in the \"Tools\\RunAsync\" folder of the SDK. "
+
+CURL_ERROR :== "The Curl tool could not be found at this location.<br />"
+			   +++ "Please fill in the full path where the Curl tool can be found.<br />"
 
 checkClientPath :: !String !*World -> (!Bool,!*World)
 checkClientPath clientPath world
