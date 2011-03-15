@@ -293,17 +293,6 @@ mkSequenceTask		:: !d !(TaskFunctions a) -> Task a | descr d
 * @return The newly constructed parallel task
 */
 mkParallelTask		:: !d !(TaskFunctions a) -> Task a | descr d
-/**
-* Wrap a function of proper type to create a function that will make a
-* main task. This is a sequence node that keeps track of additional information
-* such as task status, event times and user/delegate information.
-*
-* @param A description of the task
-* @param The task that will run inside the main task
-*
-* @return The newly constructed sequence task
-*/
-mkMainTask			:: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 
 //// TASK APPLICATION
 

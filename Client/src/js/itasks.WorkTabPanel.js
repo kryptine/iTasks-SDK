@@ -156,6 +156,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			}
 		} else {
 			//Build initial content
+			content.fadeIn = true;
 			ct.add(content);
 			ct.doLayout();
 		}	

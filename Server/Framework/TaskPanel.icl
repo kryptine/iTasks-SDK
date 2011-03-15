@@ -65,11 +65,6 @@ where
 					, formWidth		= Nothing
 					, type			= type
 					}
-			TTSequenceTask ti tasks
-				= case [t \\ t <- tasks | not (isFinished t)] of
-					[]	= if (allFinished tasks) TaskDone TaskRedundant
-					[t]	= buildTaskPanel` t menus formWidth
-					_	= (abort "Multiple simultaneously active tasks in a sequence!")
 			TTParallelTask ti tasks
 				= TTCParallelContainer {TTCParallelContainer 
 										| xtype = "itasks.ttc.parallel"
@@ -112,7 +107,6 @@ getTaskInfo task
 		TTInteractiveTask ti _ _ 	= ti
 		TTFinishedTask ti _ _		= ti
 		TTParallelTask ti _			= ti
-		TTSequenceTask ti _			= ti
 		_ 							= abort "Unknown panel type in group"
 	= info
 

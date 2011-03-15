@@ -20,10 +20,8 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TaskTree interactiveOutput finishedOutput menus
 	//NODE CONSTRUCTORS
 	
-	//A task that is composed of a number of sequentially executed subtasks
-	= TTSequenceTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
-	| TTParallelTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
+	= TTParallelTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
 	
 	//LEAF CONSTRUCTORS
 											

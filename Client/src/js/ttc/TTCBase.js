@@ -40,7 +40,7 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		return false;
 	},
 	afterRender: function(){
-		this.getEl().fadeIn({duration: itasks.ttc.TTC_FADE_DURATION});
+		if (this.fadeIn) this.getEl().fadeIn({duration: itasks.ttc.TTC_FADE_DURATION});
 	
 		itasks.ttc.TTCBase.superclass.afterRender.call(this,arguments);		
 		

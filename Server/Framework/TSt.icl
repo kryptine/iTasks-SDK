@@ -16,7 +16,7 @@ mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !FilePath !*World -> *
 mkTSt appName config request workflows store tmpDir world
 	=	{ taskNr			= []
 		, taskInfo			= initTaskInfo
-		, tree				= TTFinishedTask initTaskInfo noOutput False
+		, tree				= initTree initTaskInfo
 		, newTask			= False
 		, events			= []
 		, properties		= initProcessProperties
@@ -151,7 +151,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
-		= TTFinishedTask info noOutput False
+		= initTree info
 
 deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
@@ -213,7 +213,7 @@ where
 															& taskId	= taskId
 															, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 															}
-		# tst											= {tst & tree = TTFinishedTask info noOutput False}
+		# tst											= {tst & tree = initTree info}
 		# (result, tst=:{sharedChanged,triggerPresent,sharedDeleted}) = applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False, sharedDeleted = False}
 		| (triggerPresent && sharedChanged || sharedDeleted) && iterationCount < ITERATION_THRESHOLD
 			= applyTaskCommit` {tst & iterationCount = inc iterationCount}
@@ -310,7 +310,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
-		# tree		= TTFinishedTask info noOutput False
+		# tree		= initTree info
 		= {TSt| tst & taskNr = taskNr, tree = tree, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
 	
 	restoreTSt :: !NonNormalizedTree ![TaskEvent] !ProcessProperties !*TSt -> *TSt
@@ -608,14 +608,14 @@ mkInstantTask description taskfun
 	= mkTask
 		description
 		id
-		(\tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput False}) //We use a FinishedTask node because the task is finished after one evaluation
+		(\tst=:{taskInfo} -> taskfun {tst & tree = initTree taskInfo}) //We use a FinishedTask node because the task is finished after one evaluation
 		
 mkSequenceTask :: !d !(TaskFunctions a) -> Task a | descr d
 mkSequenceTask description (taskfunE,taskfunC)
 	= mkTask
 		description 
 		(\tst=:{taskNr}					-> taskfunE {tst & taskNr = [0:taskNr]})
-		(\tst=:{TSt|taskNr,taskInfo}	-> taskfunC {tst & taskNr = [0:taskNr], tree = TTSequenceTask taskInfo []})
+		(\tst=:{TSt|taskNr,taskInfo}	-> taskfunC {tst & taskNr = [0:taskNr], tree = initTree taskInfo})
 			
 mkParallelTask :: !d !(TaskFunctions a) -> Task a | descr d
 mkParallelTask description (taskfunE,taskfunC)
@@ -623,13 +623,6 @@ mkParallelTask description (taskfunE,taskfunC)
 		description
 		taskfunE
 		(\tst=:{taskInfo} -> taskfunC {tst & tree = TTParallelTask taskInfo []})
-			
-mkMainTask :: !d !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
-mkMainTask description taskfun
-	= mkTask
-		description
-		id
-		(\tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput False})
 
 mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkTask description taskFuncEdit taskFuncCommit =
@@ -714,14 +707,12 @@ applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth,
 					= (TaskException e str, tst)
 where
 	//Perform reversal of lists that have been accumulated in reversed order
-	finalizeTaskNode (TTSequenceTask ti tasks) 					= TTSequenceTask	ti (reverse tasks)
-	finalizeTaskNode (TTParallelTask ti tasks)					= TTParallelTask	ti (reverse tasks)
-	finalizeTaskNode node										= node
+	finalizeTaskNode (TTParallelTask ti tasks)	= TTParallelTask	ti (reverse tasks)
+	finalizeTaskNode node						= node
 
 //Add a new node to the current sequence or process
 addTaskNode :: !NonNormalizedTree !*TSt -> *TSt
 addTaskNode node tst=:{tree} = case tree of
-	TTSequenceTask ti tasks		= {tst & tree = TTSequenceTask ti [node:tasks]}	//Add the node to the sequence
 	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti [node:tasks]}	//Add the node to the parallel set
 	TTFinishedTask _ _ _		= {tst & tree = node} 							//Just replace the node
 	_							= {tst & tree = tree}
@@ -828,10 +819,7 @@ where
 	taskId = taskNrToString taskNr
 
 resetSequence :: !*TSt -> *TSt
-resetSequence tst=:{taskNr,tree}
-	= case tree of
-		(TTSequenceTask info sequence)	= {tst & taskNr = [0:tl taskNr], tree = TTSequenceTask info []}
-		_								= {tst & tree = tree}
+resetSequence tst = {tst & tree = initTree initTaskInfo}
 
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
 deleteTaskStates taskNr tst
@@ -868,3 +856,4 @@ where
 noOutput 				= abort "Task tree node without output."
 noProcessResult 		= finishedStrOutput "Cannot load result."
 finishedStrOutput str	= (Text str,JSONString str)
+initTree info = TTFinishedTask info noOutput False
