@@ -31,8 +31,10 @@ where
 			Nothing				= formWidth
 			Just formWidth		= formWidth
 		= case tree of
-			TTFinishedTask _ _
+			TTFinishedTask _ _ False
 				= TaskDone
+			TTFinishedTask _ _ True
+				= buildResultPanel tree
 			TTInteractiveTask ti type (Definition def taskActions)
 				# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
 				# (buttons, mbMenuBar) = appSnd Just (makeButtonsAndMenus taskActions menus)
@@ -89,7 +91,7 @@ where
 									
 buildResultPanel :: !UITree -> TaskPanel
 buildResultPanel tree = case tree of 
-	TTFinishedTask	ti result
+	TTFinishedTask	ti result _
 		= (TTCResultContainer {TTCResultContainer
 								| xtype 	= "itasks.ttc.result"
 								, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -108,7 +110,7 @@ getTaskInfo :: !UITree -> NormalizedTaskInfo
 getTaskInfo task
 	# info = case task of
 		TTInteractiveTask ti _ _ 	= ti
-		TTFinishedTask ti _			= ti
+		TTFinishedTask ti _ _		= ti
 		TTParallelTask ti _			= ti
 		TTSequenceTask ti _			= ti
 		_ 							= abort "Unknown panel type in group"
@@ -213,7 +215,7 @@ subtaskNrToString [i] 	 = toString i
 subtaskNrToString [i:is] = taskNrToString is +++ "." +++ toString i
 
 isFinished :: UITree -> Bool
-isFinished (TTFinishedTask	_ _)	= True
+isFinished (TTFinishedTask	_ _ _)	= True
 isFinished _						= False
 
 allFinished :: [UITree] -> Bool

@@ -99,8 +99,7 @@ taskService url html path req tst
 			| isJust mbSessionErr
 				= (serviceResponse html "Task user interface" tuiDescription url tuiParams (jsonSessionErr mbSessionErr), tst)	
 			# (mbProcess, tst)	= case session.Session.user of
-				RootUser
-								= getProcess taskId tst
+				RootUser		= getProcess taskId tst
 				user			= getProcessForUser user taskId tst
 			= case mbProcess of
 				Nothing

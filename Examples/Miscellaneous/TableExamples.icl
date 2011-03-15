@@ -27,7 +27,7 @@ where
 
 showFileError (FileException path _)	= showMessageAbout ("Error","Error reading dataset.") path >>| stop
 showParseError (CannotParse err)		= showMessageAbout ("Error","Error reading dataset.") err >>| stop
-showUnknownError						= showMessage "Unknown error" Void
+showUnknownError err					= showMessage ("Error",err) Void
 
 readDataset :: Task [Plant]
 readDataset =

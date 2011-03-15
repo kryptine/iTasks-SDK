@@ -10,16 +10,14 @@ from OSError	import :: OSError, :: OSErrorMessage, :: OSErrorCode
 import iTaskClass, GenVisualize, GenUpdate
 
 // some predefined exception types used by library tasks
-:: FileException = FileException !FilePath !FileError
-:: ParseException = CannotParse !String
-:: CallException = CallFailed !OSError
-:: DirectoryException = CannotCreate | CannotList
-:: SharedException = SharedException !String
-:: RPCException = RPCException !String
+:: FileException	= FileException !FilePath !FileError
+:: ParseException	= CannotParse !String
+:: CallException	= CallFailed !OSError
+:: SharedException	= SharedException !String
+:: RPCException		= RPCException !String
+:: OSException		= OSException !OSError
 
-:: OSException = OSException OSError
-
-derive class iTask FileException, ParseException, CallException, DirectoryException, SharedException, RPCException, OSException
+instance toString FileException, ParseException, CallException, SharedException, RPCException, OSException
 
 /**
 * Exception combinator.
@@ -28,7 +26,7 @@ derive class iTask FileException, ParseException, CallException, DirectoryExcept
 * @param The exception handling task which gets the exception as parameter
 * @return The combined task
 */
-try 		:: !(Task a) (e -> Task a) 	-> Task a 	| iTask a & iTask e
+try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & TC, toString e
 
 /**
 * Exception throwing. This will trough an exception of arbitrary type e which has to be caught
@@ -37,7 +35,7 @@ try 		:: !(Task a) (e -> Task a) 	-> Task a 	| iTask a & iTask e
 * @param The exception value
 * @return The combined task
 */
-throw		:: !e 						-> Task a 	| iTask a & TC e
+throw		:: !e 								-> Task a 	| iTask a & TC, toString e
 
 /**
 * Catches all exceptions.
@@ -45,4 +43,4 @@ throw		:: !e 						-> Task a 	| iTask a & TC e
 * @param The normal task which will possibly raise an exception of any type
 * @param The exception handling task
 */
-catchAll	:: !(Task a) (Task a)		-> Task a | iTask a
+catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a

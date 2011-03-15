@@ -15,7 +15,7 @@ import GinParser
 import GinStorage
 import GinSyntax
 
-import FilePath
+import FilePath, File
 
 ginEditor :: Task Void
 ginEditor = handleMenu <<@ FWFullWidth
@@ -34,7 +34,7 @@ where
 	
 	ginCheckApplet :: !GinConfig -> Task Void
 	ginCheckApplet config =
-		fileExists (config.iTasksPath </> "Client" </> "Build" </> "Gin.jar") >>= \exists	=
+		accWorld (fileExists (config.iTasksPath </> "Client" </> "Build" </> "Gin.jar")) >>= \exists	=
 		if exists stop (showInstruction "Gin Editor" instruction Void >>| ginCheckApplet config)
 	where
 		instruction = PTag [] [ Text "In order to run the Gin editor, make sure that"

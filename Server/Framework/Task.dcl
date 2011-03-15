@@ -31,7 +31,9 @@ derive gEq			Task
 
 :: TaskResult a		= TaskBusy
 					| TaskFinished !a
-					| TaskException !Dynamic
+					| TaskException !Dynamic !String
+					
+taskException :: !e -> TaskResult a | TC, toString e
 					
 mapTaskResult	:: !(a -> b) !(TaskResult a)	-> TaskResult b
 mapTask			:: !(a -> b) !(Task a)			-> Task b

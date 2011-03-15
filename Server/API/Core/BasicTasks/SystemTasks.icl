@@ -67,7 +67,7 @@ where
 				# tst 			= foldr (sendSingle server user.emailAddress) tst (map emailOf recipients)
 				= (TaskFinished recipients, tst)
 			Nothing
-				= (TaskException (dynamic "sendEmail: No e-mail address defined for the current user"),tst)
+				= (taskException "sendEmail: No e-mail address defined for the current user",tst)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) tst
 		//For correct e-mail addresses send immediately

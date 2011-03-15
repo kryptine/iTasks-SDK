@@ -9,15 +9,12 @@ rpcExamples = 	[ workflow	"Examples/Miscellaneous/Weather forecast" "Fetches the
 GOOGLE_API = "http://www.google.com/ig/api"
 
 weatherExample :: Task Void
-weatherExample = 
-	try (					
-							eitherTask enterLocation markLocation
-			>>=				getLocation
-			>>= \location.	callRPCHTTP GET GOOGLE_API [("weather", location),("hl","en-GB")] formatResponse
-			>>= 			wait "Waiting for weather service" True
-			>>= \weather -> showMessageAbout ("Weather", "Weather forecast is:") weather >>| stop
-		)
-		(\(RPCException message) -> showMessage ("RPC call failed", message) Void)
+weatherExample = 					
+					eitherTask enterLocation markLocation
+	>>=				getLocation
+	>>= \location.	callRPCHTTP GET GOOGLE_API [("weather", location),("hl","en-GB")] formatResponse
+	>>= 			wait "Waiting for weather service" True
+	>>= \weather -> showMessageAbout ("Weather", "Weather forecast is:") weather >>| stop
 
 enterLocation = enterInformation ("Enter location", "Enter a location you want to retrieve the weather forecast for.")	
 markLocation =
@@ -62,4 +59,3 @@ li = LiTag [StyleAttr "margin-left: 20px"]
 showElements = ["forecast_information","current_conditions","forecast_conditions"]
 
 formatName name = upperCaseFirst (replaceSubString "_" " " name)
-

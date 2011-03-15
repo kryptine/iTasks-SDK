@@ -4,7 +4,7 @@ import StdTuple, StdBool, StdList, StdMisc, Maybe, Types, Util, Shared, HtmlUtil
 import iTaskClass, Task, TSt, TUIDiff
 from SharedTasks			import sharedStore, :: SharedStoreId
 from StdFunc				import id, const, o
-from ExceptionCombinators	import :: SharedException(..)
+from ExceptionCombinators	import :: SharedException(..), instance toString SharedException
 
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
 derive JSONDecode UpdateMask, VerifyMask, ErrorMessage
@@ -295,4 +295,4 @@ where
 	addData data mbAction = fmap (\a -> (a,data)) mbAction
 
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
-sharedException err = TaskException (dynamic (SharedException (fromError err)))
+sharedException err = taskException (SharedException (fromError err))

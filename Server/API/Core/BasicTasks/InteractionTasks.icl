@@ -192,7 +192,7 @@ where
 	toView (choice,opts) = setOptions (map view opts) choice
 	getChoiceFromModel (choice,opts) = opts !! getChoiceIndex choice
 	
-choiceException description = TaskException (dynamic ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list"))
+choiceException description = taskException ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
 
 makeMultipleChoiceTask :: !(Maybe about) !(a -> v) ![a] !(Maybe [Int]) -> TaskFunctions [a] | iTask a & iTask v & iTask about
 makeMultipleChoiceTask mbContext view opts mbSel
@@ -299,7 +299,7 @@ where
 				Ok msgResult		= (TaskFinished (event,msgResult),tst)
 				Error e				= (sharedException e,tst)
 		TaskBusy					= (TaskBusy,tst)
-		TaskException e				= (TaskException e,tst)
+		TaskException e str			= (TaskException e str,tst)
 	
 	mbAbout = case about of
 		NoAboutMsg _		= Nothing
@@ -335,4 +335,4 @@ undefGet :: !a -> abort
 undefGet _ = abort "undefined view-get function"
 
 sharedException :: !String -> TaskResult a
-sharedException e = TaskException (dynamic (SharedException e))
+sharedException e = taskException (SharedException e)

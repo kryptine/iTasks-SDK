@@ -24,10 +24,10 @@ importJSONFileWith parsefun filename = mkInstantTask ("JSON file import", ("Impo
 
 fileTask filename f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (ok,file,world)	= fopen filename FReadData world
-	| not ok			= (TaskException (openException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (openException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# (res,file)		= f file
 	# (ok,world)		= fclose file world
-	| not ok			= (TaskException (closeException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	= (TaskFinished res, {TSt|tst & iworld={IWorld|iworld & world = world}})
 		
 readAll file
@@ -40,25 +40,25 @@ readAll file
 
 readJSON filename parsefun tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (ok,file,world)	= fopen filename FReadData world
-	| not ok			= (TaskException (openException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (openException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# (content,file)	= readAll file
 	# (ok,world)		= fclose file world
-	| not ok			= (TaskException (closeException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	= case (parsefun (fromString content)) of
 		Just a 	= (TaskFinished a, {TSt|tst & iworld={IWorld|iworld & world = world}})
-		Nothing	= (TaskException (parseException filename), {TSt|tst & iworld={IWorld|iworld & world = world}})
+		Nothing	= (parseException filename, {TSt|tst & iworld={IWorld|iworld & world = world}})
 		
 readDocument filename tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (ok,file,world)	= fopen filename FReadData world
-	| not ok			= (TaskException (openException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (openException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# (content,file)	= readAll file
 	# (ok,world)		= fclose file world
-	| not ok			= (TaskException (closeException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# name				= baseName filename 
 	# mime				= extensionToMimeType (fileExtension name)
 	# (document,tst)	= createDocument name mime content {TSt|tst & iworld={IWorld|iworld & world = world}}
 	= (TaskFinished document, tst)
 
-openException s		= dynamic (FileException s CannotOpen)
-closeException s	= dynamic (FileException s CannotClose)
-parseException s	= dynamic (CannotParse ("Cannot parse JSON file " +++ s))
+openException s		= taskException (FileException s CannotOpen)
+closeException s	= taskException (FileException s CannotClose)
+parseException s	= taskException (CannotParse ("Cannot parse JSON file " +++ s))

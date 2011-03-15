@@ -76,7 +76,7 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 	
 		this.subjectpanel = this.add(this.subjectpanel);
 		this.descriptionpanel = this.add(this.descriptionpanel);
-		this.interactionpanel = this.add(this.interactionpanel);
+		if (this.interactionpanel) this.interactionpanel = this.add(this.interactionpanel);
 			
 		this.doLayout();
 	},

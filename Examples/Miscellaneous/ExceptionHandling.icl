@@ -7,8 +7,13 @@ import iTasks
 :: NegativeValueException = NegativeValueException String
 :: TooLargeValueException = TooLargeValueException String
 
-derive class iTask	NegativeValueException, TooLargeValueException
-derive bimap (,), Maybe
+instance toString NegativeValueException
+where
+	toString (NegativeValueException err) = err
+	
+instance toString TooLargeValueException
+where
+	toString (TooLargeValueException err) = err
 
 exceptionHandlingExample :: [Workflow]
 exceptionHandlingExample
@@ -38,8 +43,8 @@ where
 		| otherwise	= return val
 
 
-catchNegativeValueTask :: (Task Int) NegativeValueException  -> Task Int
-catchNegativeValueTask task (NegativeValueException msg) 
+catchNegativeValueTask :: (Task Int) NegativeValueException -> Task Int
+catchNegativeValueTask task (NegativeValueException msg)
 	=	readShared db
 	>>=	\curval ->
 		showMessageAbout ("Exception!",

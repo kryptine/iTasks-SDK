@@ -30,7 +30,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//A task that can be worked on through a gui
 	| TTInteractiveTask	!.(TaskInfo menus) !InteractiveTaskType interactiveOutput								
 	//A completed task
-	| TTFinishedTask	!.(TaskInfo menus) finishedOutput
+	| TTFinishedTask	!.(TaskInfo menus) finishedOutput !Bool
 
 
 :: NonNormalizedTaskInfo	:== TaskInfo MenuGenFunc

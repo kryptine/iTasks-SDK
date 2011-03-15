@@ -65,9 +65,9 @@ incTaskNr [i:is] = [i+1:is]
 	
 //Applies given function to the result if task is finished
 mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
-mapTaskResult f (TaskFinished x)	= TaskFinished (f x) 
-mapTaskResult f (TaskBusy)			= TaskBusy
-mapTaskResult f (TaskException e)	= TaskException e
+mapTaskResult f (TaskFinished x)		= TaskFinished (f x) 
+mapTaskResult f (TaskBusy)				= TaskBusy
+mapTaskResult f (TaskException e str)	= TaskException e str
 
 mapTask :: !(a -> b) !(Task a) -> Task b
 mapTask f t=:{taskFuncCommit} = {t & taskFuncCommit = appFst (mapTaskResult f) o taskFuncCommit}
@@ -146,3 +146,6 @@ gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
 	= (vis,vst)
 	
 gEq{|Task|} _ _ _ = False // tasks are never equal
+
+taskException :: !e -> TaskResult a | TC, toString e
+taskException e = TaskException (dynamic e) (toString e)

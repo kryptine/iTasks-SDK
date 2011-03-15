@@ -39,7 +39,7 @@ callRPC options url args transformResult =
 			# infile  = tmpDirectory </> (mkFileName taskId taskNr "request")
 			  outfile = tmpDirectory </> (mkFileName taskId taskNr "response")
 			  (res,tst) = accWorldTSt (writeFile infile args) tst
-			| isError res = (TaskException (dynamic (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res)))),tst)
+			| isError res = (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),tst)
 			# cmd = config.Config.curlPath
 			  args =	[ options
 						, "--data-binary @\"" +++ infile +++ "\""

@@ -34,6 +34,6 @@ accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
 *
 * @param A Void task that evaluates the function
 */
-accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & iTask err
+accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a

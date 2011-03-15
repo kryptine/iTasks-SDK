@@ -53,7 +53,7 @@ where
 		# (wres,tst)	= accIWorldTSt ('Shared'.writeShared shared init) tst
 		= case wres of
 			Ok _	= (TaskFinished shared,tst)
-			Error e	= (TaskException (dynamic (SharedException e)),tst)
+			Error e	= (taskException (SharedException e),tst)
 			
 deleteSharedStore :: !SharedStoreId -> Task Void
 deleteSharedStore id
@@ -71,7 +71,7 @@ where
 		# (val,iworld) = 'Shared'.readShared shared iworld
 		# res = case val of
 			Ok val	= TaskFinished val
-			Error e	= TaskException (dynamic (SharedException e))
+			Error e	= taskException (SharedException e)
 		= (res,iworld)
 	
 writeShared :: !(Shared r a) !a -> Task a | iTask a
@@ -84,7 +84,7 @@ where
 		# (res,tst)	= accIWorldTSt ('Shared'.writeShared shared val) tst
 		# res = case res of
 			Ok _	= TaskFinished val
-			Error e	= TaskException (dynamic (SharedException e))
+			Error e	= taskException (SharedException e)
 		= (res,tst)
 
 updateShared :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
@@ -93,10 +93,10 @@ updateShared f shared
 where
 	updateShared` iworld
 		# (val,iworld)	= 'Shared'.readShared shared iworld
-		| isError val	= (TaskException (dynamic (SharedException (fromError val))),iworld)
+		| isError val	= (taskException (SharedException (fromError val)),iworld)
 		# val			= f (fromOk val)
 		# (wres,iworld)	= 'Shared'.writeShared shared val iworld
-		| isError wres	= (TaskException (dynamic (SharedException (fromError wres))),iworld)
+		| isError wres	= (taskException (SharedException (fromError wres)),iworld)
 		= (TaskFinished val,iworld)
 	
 //	Convenient operations on databases

@@ -16,7 +16,7 @@ mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !FilePath !*World -> *
 mkTSt appName config request workflows store tmpDir world
 	=	{ taskNr			= []
 		, taskInfo			= initTaskInfo
-		, tree				= TTFinishedTask initTaskInfo noOutput
+		, tree				= TTFinishedTask initTaskInfo noOutput False
 		, newTask			= False
 		, events			= []
 		, properties		= initProcessProperties
@@ -151,7 +151,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
-		= TTFinishedTask info noOutput
+		= TTFinishedTask info noOutput False
 
 deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
@@ -200,9 +200,9 @@ applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) t
 	# (_,tst)		= applyTaskEdit currentTask tst
 	# (result,tst)	= applyTaskCommit` tst
 	= case result of
-			TaskBusy		= (TaskBusy, tst)
-			TaskFinished a	= (TaskFinished (dynamic a), tst)
-			TaskException e	= (TaskException e, tst)
+			TaskBusy			= (TaskBusy, tst)
+			TaskFinished a		= (TaskFinished (dynamic a), tst)
+			TaskException e	str	= (TaskException e str, tst)
 where
 	applyTaskCommit` tst=:{TSt|iterationCount,properties=properties=:{ProcessProperties|systemProperties=s=:{SystemProperties|taskId}}}
 		// reset task nr
@@ -213,7 +213,7 @@ where
 															& taskId	= taskId
 															, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 															}
-		# tst											= {tst & tree = TTFinishedTask info noOutput}
+		# tst											= {tst & tree = TTFinishedTask info noOutput False}
 		# (result, tst=:{sharedChanged,triggerPresent,sharedDeleted}) = applyTaskCommit currentTask {tst & sharedChanged = False, triggerPresent = False, sharedDeleted = False}
 		| (triggerPresent && sharedChanged || sharedDeleted) && iterationCount < ITERATION_THRESHOLD
 			= applyTaskCommit` {tst & iterationCount = inc iterationCount}
@@ -295,13 +295,13 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 				# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Finished}}
 				# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
 				= (result,tree,tst)
-		TaskException e
+		TaskException e str
 			//Store exception
 			# tst 		= appIWorldTSt (storeProcessResult (taskNrFromString taskId) result) tst
 			//Update process table
 			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Excepted}}
 			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
-			= (TaskException e, tree, tst)
+			= (TaskException e str, tree, tst)
 where
 	resetTSt :: !TaskId ![TaskEvent] !ProcessProperties !*TSt -> *TSt
 	resetTSt taskId events properties tst
@@ -310,7 +310,7 @@ where
 					& taskId	= taskId
 					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
-		# tree		= TTFinishedTask info noOutput
+		# tree		= TTFinishedTask info noOutput False
 		= {TSt| tst & taskNr = taskNr, tree = tree, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
 	
 	restoreTSt :: !NonNormalizedTree ![TaskEvent] !ProcessProperties !*TSt -> *TSt
@@ -362,7 +362,7 @@ where
 				TaskFinished val
 					//A change caused the task to complete. Stop, but keep pending changes
 					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
-				TaskException e
+				TaskException _ _
 					//A change caused an exception. Stop, but keep pending changes
 					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
 
@@ -476,7 +476,7 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInfo,currentChange,pendingChanges, properties}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
-		(Just proc) 
+		Just proc
 			# (_,_,tst) = evaluateTaskInstance proc [] (Just (lifetime,change)) True False tst
 			= {tst & taskNr = taskNr, taskInfo = taskInfo,properties = properties
 			  , tree = tree, staticInfo = staticInfo, currentChange = currentChange, pendingChanges = pendingChanges}
@@ -493,31 +493,46 @@ calculateTaskTree taskId events tst
 						, subject			= "Deleted Process"
 						, description		= "Task Result"
 						}
-			= (TTFinishedTask info noProcessResult, tst)
+			= (TTFinishedTask info noProcessResult False, tst)
 		Just process=:{Process|properties}
 			= case properties.systemProperties.SystemProperties.status of
 				Active
 					//Evaluate the process
 					# (result,tree,tst) = evaluateTaskInstance process events Nothing True False tst
 					= (tree,tst)
+				Excepted
+					// show exception
+					# (mbResult,tst) = accIWorldTSt (loadProcessResult (taskNrFromString taskId)) tst
+					# output = case mbResult of
+						Just (TaskException _ err)	= renderException err
+						Nothing						= renderException ""
+					# info =	{ TaskInfo| initTaskInfo
+								& taskId			= taskId
+								, subject			= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
+								, description		= "Uncaught exception"
+								}
+					= (TTFinishedTask info output True,tst)
 				_		
 					//retrieve process result from store and show it??
 					# (mbContainer,tst) = accIWorldTSt (loadValue (taskId +++ "-container")) tst				
 					# result = case mbContainer of
-						(Just dyn)	= (renderResult dyn,jsonResult dyn)
-						(Nothing)	= noProcessResult
+						Just dyn	= (renderResult dyn,jsonResult dyn)
+						Nothing		= noProcessResult
 					# info =	{ TaskInfo| initTaskInfo
 								& taskId			= taskId
 								, subject			= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 								, description		= "Task Result"
 								}
-					= (TTFinishedTask info result,tst)
+					= (TTFinishedTask info result False,tst)
 
 renderResult :: !Dynamic -> HtmlTag
 renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value
 
 jsonResult :: !Dynamic -> JSONNode
 jsonResult (Container value :: Container a a) = toJSON value
+
+renderException :: !String -> TTNNFinished
+renderException err = (html [SpanTag [StyleAttr "color: red"] [Text "Uncaught exception"], BrTag [], Text err],JSONString ("Uncaught exception: " +++ err))
 
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)
@@ -593,7 +608,7 @@ mkInstantTask description taskfun
 	= mkTask
 		description
 		id
-		(\tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput}) //We use a FinishedTask node because the task is finished after one evaluation
+		(\tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput False}) //We use a FinishedTask node because the task is finished after one evaluation
 		
 mkSequenceTask :: !d !(TaskFunctions a) -> Task a | descr d
 mkSequenceTask description (taskfunE,taskfunC)
@@ -614,7 +629,7 @@ mkMainTask description taskfun
 	= mkTask
 		description
 		id
-		(\tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput})
+		(\tst=:{taskInfo} -> taskfun {tst & tree = TTFinishedTask taskInfo noOutput False})
 
 mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkTask description taskFuncEdit taskFuncCommit =
@@ -663,15 +678,15 @@ applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth,
 					}
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}
 	= case taskVal of
-		(Just (TaskFinished a))	
-			# tst = addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a)) tst
+		Just (TaskFinished a)
+			# tst = addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// Execute task function
 			# (result, tst=:{tree=node})	= taskFuncCommit tst
 			// Update task state
 			= case result of
-				(TaskFinished a)
+				TaskFinished a
 					//If a process is finished (tl taskNr == procId), remove the process from the process DB (if it's allowed to be deleted)
 					# procId				= taskNrToString (tl taskNr)
 					# (gc,tst)				= if(procId == tst.TSt.properties.systemProperties.SystemProperties.taskId)
@@ -681,22 +696,22 @@ applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth,
 					# tst					= deleteTaskStates taskNr tst					
 					// Store final value if the process is not garbage collected
 					# tst					= if (gc) tst (appIWorldTSt (storeValue taskId result) tst)
-					# tst					= addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a))
+					# tst					= addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskFinished a, tst)
-				(TaskBusy)
+				TaskBusy
 					// Store intermediate value
 					# procId				= taskNrToString (tl taskNr)	
 					# tst					= addTaskNode (finalizeTaskNode node)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					# tst					= appIWorldTSt (storeValue taskId result) tst
 					= (TaskBusy, tst)
-				(TaskException e)
+				TaskException e str
 					// Store exception
 					# tst					= appIWorldTSt (storeValue taskId result) tst
-					# tst					= addTaskNode (TTFinishedTask taskInfo (finishedStrOutput "Uncaught exception"))
+					# tst					= addTaskNode (TTFinishedTask taskInfo (renderException str) True)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
-					= (TaskException e, tst)
+					= (TaskException e str, tst)
 where
 	//Perform reversal of lists that have been accumulated in reversed order
 	finalizeTaskNode (TTSequenceTask ti tasks) 					= TTSequenceTask	ti (reverse tasks)
@@ -708,7 +723,7 @@ addTaskNode :: !NonNormalizedTree !*TSt -> *TSt
 addTaskNode node tst=:{tree} = case tree of
 	TTSequenceTask ti tasks		= {tst & tree = TTSequenceTask ti [node:tasks]}	//Add the node to the sequence
 	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti [node:tasks]}	//Add the node to the parallel set
-	TTFinishedTask _ _			= {tst & tree = node} 							//Just replace the node
+	TTFinishedTask _ _ _		= {tst & tree = node} 							//Just replace the node
 	_							= {tst & tree = tree}
 
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt

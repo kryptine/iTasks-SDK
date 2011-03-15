@@ -28,8 +28,8 @@ where
 			TaskFinished a
 				//Pass the argument and do the second part
 				= applyTaskCommit (taskb a) tst
-			TaskException e
-				= (TaskException e,tst)
+			TaskException e str
+				= (TaskException e str,tst)
 
 	dotdot s	= if (endsWith "..." s) s (s +++ "...")
 
@@ -65,8 +65,8 @@ where
 					= doTaskC {tst & taskNr = taskNr}
 				| otherwise
 					= (TaskFinished a, {tst & taskNr = taskNr})
-			TaskException e
-				= (TaskException e, {tst & taskNr = taskNr})
+			TaskException e str
+				= (TaskException e str, {tst & taskNr = taskNr})
 				
 	getCounter tst=:{taskNr}
 		# (mbLoop,tst)	= getTaskStore "counter" {tst & taskNr = tl taskNr}
@@ -89,7 +89,7 @@ where
 		= case result of
 			TaskBusy					= (TaskBusy,tst)
 			TaskFinished a				= doseqTasksC ts [a:accu] tst
-			TaskException e				= (TaskException e,tst)
+			TaskException e str			= (TaskException e str,tst)
 	
 	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
 	
@@ -139,7 +139,7 @@ where
 			//There are still active tasks
 			TaskBusy		= (TaskBusy,tst)
 			//One the tasks raised an execption
-			TaskException e	= (TaskException e, tst)
+			TaskException e	str = (TaskException e str, tst)
 			//The accuFun returned a stop action, or all tasks are completed
 			TaskFinished (r,terminationStatus)
 				//Remove the extra workers for this parallel combination
@@ -255,9 +255,9 @@ where
 							Just (Extend tasks)
 								# (result,pst,tst) = processAllTasksC {pst & state = state, tasks = ts ++ [(idx,AddedTask t) \\ t <- tasks & idx <- [pst.nextIdx..]], nextIdx = pst.nextIdx + length tasks + pst.nextIdx} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = pst.tasks}, {tst & taskNr = taskNr})
-					TaskException e
+					TaskException e str
 						//Don't process the other tasks, just let the exception through
-						= (TaskException e,pst,tst)
+						= (TaskException e str,pst,tst)
 
 createOrEvaluateTaskInstance :: !(Task a) !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
 createOrEvaluateTaskInstance task tst=:{TSt|taskNr,events}
@@ -271,8 +271,8 @@ createOrEvaluateTaskInstance task tst=:{TSt|taskNr,events}
 			= case result of
 				TaskBusy				= (TaskBusy, tree, tst)
 				TaskFinished (a :: a^)	= (TaskFinished a, tree, tst)
-				TaskFinished _			= (TaskException (dynamic "createOrEvaluateTaskIntance: task result of invalid type!"),tree,tst)
-				TaskException e			= (TaskException e, tree, tst)
+				TaskFinished _			= (taskException invalidType,tree,tst)
+				TaskException e str		= (TaskException e str, tree, tst)
 		//When found, evaluate
 		Just proc
 			# user				= proc.Process.properties.managerProperties.worker
@@ -284,9 +284,11 @@ createOrEvaluateTaskInstance task tst=:{TSt|taskNr,events}
 				TaskBusy				= (TaskBusy, tree, tst)
 				TaskFinished (a :: a^) 	= (TaskFinished a, tree, tst)
 				TaskFinished _			
-					= (TaskException (dynamic "assign: result of wrong type returned"), tree, tst)
-				TaskException e			
-					= (TaskException e, tree, tst)
+					= (taskException invalidType, tree, tst)
+				TaskException e	str		
+					= (TaskException e str, tree, tst)
+	where
+		invalidType = "createOrEvaluateTaskIntance: task result of invalid type!"
 
 spawnProcess :: !Bool !Bool !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
 spawnProcess activate gcWhenDone task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`

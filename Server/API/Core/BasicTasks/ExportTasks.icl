@@ -22,10 +22,10 @@ exportJSONFileWith encoder filename content = mkInstantTask ("JSON file export",
 
 fileTask filename content f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (ok,file,world)	= fopen filename FWriteData world
-	| not ok			= (TaskException (openException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (openException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# file				= f content file
 	# (ok,world)		= fclose file world
-	| not ok			= (TaskException (closeException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	= (TaskFinished content, {TSt|tst & iworld={IWorld|iworld & world = world}})
 	
 writeAll content file
@@ -37,14 +37,14 @@ writeJSON encoder content file
 writeDocument filename document tst
 	# (mbContent,tst=:{TSt|iworld=iworld=:{IWorld|world}})
 							= getDocumentContent document.Document.documentId tst
-	| isNothing mbContent	= (TaskException (ioException filename), {TSt|tst & iworld={IWorld|iworld & world = world}})
+	| isNothing mbContent	= (ioException filename, {TSt|tst & iworld={IWorld|iworld & world = world}})
 	# (ok,file,world)		= fopen filename FWriteData world
-	| not ok				= (TaskException (openException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok				= (openException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# file					= fwrites (fromJust mbContent) file
 	# (ok,world)			= fclose file world
-	| not ok				= (TaskException (closeException filename),{TSt|tst & iworld={IWorld|iworld & world = world}})	
+	| not ok				= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})	
 	= (TaskFinished document, {TSt|tst & iworld={IWorld|iworld & world = world}})
 
-ioException s		= dynamic (FileException s IOError)
-openException s		= dynamic (FileException s CannotOpen)
-closeException s	= dynamic (FileException s CannotClose)
+ioException s		= taskException (FileException s IOError)
+openException s		= taskException (FileException s CannotOpen)
+closeException s	= taskException (FileException s CannotClose)
