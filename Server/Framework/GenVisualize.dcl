@@ -37,7 +37,6 @@ visualizeAsTextLabel	:: !a						-> String	| gVisualize{|*|} a
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
 	, optional			:: !Bool						// Create optional form fields
 	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
-	, headers			:: [String]						// name of the fields of the topmost record, otherwise []
 	}
 
 :: VisualizationType

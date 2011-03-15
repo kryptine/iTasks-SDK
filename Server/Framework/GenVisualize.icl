@@ -5,7 +5,7 @@ import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefiniti
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = startDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], headers = []}
+		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = []}
 
 //Wrapper functions
 visualizeAsEditor :: !String !a !VerifyMask -> [TUIDef] | gVisualize{|*|} a
@@ -106,7 +106,7 @@ where
 					= (recordContainer False [],vst)
 				Just x
 					# (viz,vst) = fx (Just x) {vst & useLabels = True, optional = False}
-					= (recordContainer True viz,{vst & headers = recordHeaders d.gcd_fields})
+					= (recordContainer True viz,vst)
 		= (vis,{vst & optional = optional, useLabels = useLabels})
 	where
 		recordContainer hasValue viz = [TUIRecordContainer	{ TUIRecordContainer
@@ -117,8 +117,6 @@ where
 															, optional = (optional && (not renderAsStatic))
 															, hasValue = hasValue
 															}]
-															
-		recordHeaders fields = map (\{gfd_name} -> gfd_name) fields
 		
 	staticVis v _ _ vst=:{vizType}
 		# x = fmap (\(CONS c) -> c) v
@@ -413,16 +411,24 @@ where
 									, fieldLabel = label
 									}],vst)
 		Just (Table rows)
-			#( vis,vst=:{headers})	= gVisualize{|* -> *|} fx (Just rows) vst
-			# (htm,vst)				= childVisualizations fx rows (Just VHtmlDisplay) {VSt|vst & currentPath = currentPath, verifyMask = childMasks (fst (popMask verifyMask))}
+			#( vis,vst)	= gVisualize{|* -> *|} fx (Just rows) vst
+			# (htm,vst)	= childVisualizations fx rows (Just VHtmlDisplay) {VSt|vst & currentPath = currentPath, verifyMask = childMasks (fst (popMask verifyMask))}
 			= ([TUIGridControl	{ TUIGridControl
 								| name = dp2s currentPath
 								, id = id
-								, columns = toTUICols headers
+								, columns = toTUICols (if (isEmpty htm) [] (getHeaders (hd htm)))
 								, gridHtml = map getHtml htm
 								, gridEditors = getEditors vis
 								}],vst)
 	where
+		getHeaders :: [Visualization] -> [String]
+		getHeaders [HtmlFragment (TableTag [ClassAttr "viz-record"] cols)] = map getHeaders` cols
+		where
+			getHeaders` :: HtmlTag -> String
+			getHeaders` (TrTag _ [ThTag _ [Text header:_],_])	= header
+			getHeaders` _										= abort "get table headers: unexpected format of record table row"
+		getHeaders viz = []
+	
 		getHtml :: [Visualization] -> [String]
 		getHtml [HtmlFragment (TableTag [ClassAttr "viz-record"] cols)] = map getHtml` cols
 		where
