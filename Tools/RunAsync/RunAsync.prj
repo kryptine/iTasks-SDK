@@ -37,13 +37,13 @@ Global
 		GenerateDLL:	False
 		ExportedNames:	
 	Paths
-		Path:	{Application}\iTasks-SDK\Tools\RunAsync
+		Path:	{Project}
 		Path:	{Project}
 	Precompile:	
 	Postlink:	
 MainModule
 	Name:	RunAsync
-	Dir:	{Application}\iTasks-SDK\Tools\RunAsync
+	Dir:	{Project}
 	Compiler
 		NeverMemoryProfile:	False
 		NeverTimeProfile:	False

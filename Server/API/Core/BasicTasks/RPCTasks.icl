@@ -42,8 +42,10 @@ callRPC options url args transformResult =
 			| isError res = (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),tst)
 			# cmd = config.Config.curlPath
 			  args =	[ options
-						, "--data-binary @\"" +++ infile +++ "\""
-						, "-o \"" +++ outfile +++ "\""
+						, "--data-binary"
+						, "@" +++ infile
+						, "-o"
+						, outfile
 						, url
 						]
 			= (TaskFinished (cmd,args,outfile),tst)
