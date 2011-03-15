@@ -5,15 +5,15 @@ from Time import :: Timestamp, :: Tm(..), mkTime
 
 class tune b :: !b !(Task a) -> Task a
 instance tune TaskProperties
-where tune props task			= {Task|task & taskProperties = props}
+where tune props task			= {Task|task & properties = props}
 instance tune Title
-where tune (Title s) task		= let p = taskProperties task in {Task|task & taskProperties = {p & taskDescription = {TaskDescription|p.taskDescription & title = toString s}}}
+where tune (Title s) task		= let p = taskProperties task in {Task|task & properties = {p & taskDescription = {TaskDescription|p.taskDescription & title = toString s}}}
 instance tune Description
-where tune (Description s) task	= let p = taskProperties task in {Task|task & taskProperties = {p & taskDescription = {TaskDescription|p.taskDescription & description = toString (html s)}}}
+where tune (Description s) task	= let p = taskProperties task in {Task|task & properties = {p & taskDescription = {TaskDescription|p.taskDescription & description = toString (html s)}}}
 instance tune Tag
-where tune (Tag t) task			= let p = taskProperties task in {Task|task & taskProperties = {p & tags = [toString t : p.tags]}}
+where tune (Tag t) task			= let p = taskProperties task in {Task|task & properties = {p & tags = [toString t : p.tags]}}
 instance tune Tags
-where tune (Tags ts) task		= let p = taskProperties task in {Task|task & taskProperties = {p & tags = (map toString ts) ++ p.tags}}
+where tune (Tags ts) task		= let p = taskProperties task in {Task|task & properties = {p & tags = (map toString ts) ++ p.tags}}
 instance tune MenuAnnotation
 where
 	tune ma task				= {task & mbMenuGenFunc = (Just menuGenFunc)}

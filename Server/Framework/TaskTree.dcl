@@ -45,9 +45,6 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 						, formWidth				:: !Maybe FormWidth
 						}
 
-:: TaskParallelType = Open 				//Everybody to whom a subtask is assigned can see the full status of this parallel, including the results of others
-					| Closed			//Only the manager can see the overview. For assigned users, it just looks like an ordinary task.
-
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
 :: InteractiveTask	= Definition	!TUIDef			![(Action,Bool)]					//Definition for rendering a user interface
 					| Updates		![TUIUpdate]	![(Action,Bool)]					//Update an already rendered user interface

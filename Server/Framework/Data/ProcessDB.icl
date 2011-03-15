@@ -48,9 +48,8 @@ where
 	getProcessForUser user taskId iworld
 		# (procs,iworld) 	= processStore id iworld
 		= case [p\\ p <- procs |   p.Process.taskId == taskId
-							   && (user == p.Process.properties.managerProperties.worker
-							      || isMember user (map snd p.Process.properties.systemProperties.subTaskWorkers)
-							      )] of
+							   && user == p.Process.properties.managerProperties.worker
+							      ] of
 			[entry]	= (Just entry, iworld)
 			_		= (Nothing, iworld)
 		
@@ -83,8 +82,6 @@ where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task
 			=  ( properties.managerProperties.worker == user)
-			//Or you are working on a subtask of this task in an open collaboration
-			|| (isMember user (map snd properties.systemProperties.SystemProperties.subTaskWorkers))
 			
 	setProcessOwner	:: !User !TaskId !*IWorld	-> (!Bool, !*IWorld)
 	setProcessOwner worker taskId iworld

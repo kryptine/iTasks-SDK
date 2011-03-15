@@ -18,7 +18,7 @@ derive gEq			Task
 // Tasks
 
 :: Task a =
-	{ taskProperties	:: !TaskProperties						// the task's general properties
+	{ properties		:: !TaskProperties						// the task's general properties
 	, containerType		:: !TaskContainerType					// specified in which kind of container the task is shown inside of a parallel
 	, formWidth			:: !Maybe FormWidth						// Width of task form
 	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier

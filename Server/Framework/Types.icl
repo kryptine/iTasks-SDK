@@ -4,7 +4,6 @@ from StdFunc import until
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, dynamic_string, Base64, Shared
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
-from TaskTree	import :: TaskParallelType
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
@@ -16,9 +15,9 @@ derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display,
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay
 derive gLexOrd		Currency
-derive JSONEncode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
-derive JSONDecode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
-derive gEq			TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
 derive bimap		Maybe, (,)
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]

@@ -1,7 +1,7 @@
 implementation module SystemTasks
 
 import StdList, StdArray, TSt, Types, Config, Text, UserDB, GenVisualize, GenUpdate
-from TaskTree import :: TaskTree, :: TaskInfo,  :: TaskPriority(..), ::TaskParallelType(..)
+from TaskTree import :: TaskTree, :: TaskInfo,  :: TaskPriority(..)
 from Time	import :: Timestamp, :: Clock(..), clock
 from Random	import genRandInt
 from ProcessDB import :: Menu
@@ -58,7 +58,7 @@ where
 sendEmail :: !String !Note ![recipient] -> Task [recipient]	| emailOf recipient & iTask recipient
 sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send out an e-mail") sendEmail`
 where
-	sendEmail` tst=:{properties}
+	sendEmail` tst=:{TSt|properties}
 		//Find out the user details of the sending user
 		# (mbUser,tst)	= getUserDetails properties.managerProperties.worker tst
 		= case mbUser of

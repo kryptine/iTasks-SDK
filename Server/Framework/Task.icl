@@ -5,10 +5,10 @@ import GenVisualize
 from TSt 		import :: TSt
 
 taskTitle :: !(Task a) -> String
-taskTitle task = task.Task.taskProperties.taskDescription.TaskDescription.title
+taskTitle task = task.Task.properties.taskDescription.TaskDescription.title
 
 taskDescription	:: !(Task a) -> String
-taskDescription task = task.Task.taskProperties.taskDescription.TaskDescription.description
+taskDescription task = task.Task.properties.taskDescription.TaskDescription.description
 
 taskUser :: !(Task a) -> User
 taskUser {containerType} = case containerType of
@@ -16,7 +16,7 @@ taskUser {containerType} = case containerType of
 	_						= AnyUser
 
 taskProperties :: !(Task a) -> TaskProperties
-taskProperties {Task|taskProperties} = taskProperties
+taskProperties {Task|properties} = properties
 
 managerProperties :: !(Task a) -> ManagerProperties
 managerProperties {containerType} = case containerType of
@@ -82,9 +82,9 @@ JSONEncode{|MenuItem|} _	= abort "not implemented"
 JSONDecode{|Menu|} _		= abort "not implemented"
 JSONDecode{|MenuItem|} _	= abort "not implemented"
 
-JSONEncode{|Task|} _ {taskProperties,containerType,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit}
+JSONEncode{|Task|} _ {properties,containerType,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit}
 	= [JSONArray	[  JSONString "Task"
-					:  JSONEncode{|*|} taskProperties
+					:  JSONEncode{|*|} properties
 					++ JSONEncode{|*|} containerType
 					++ JSONEncode{|*|} mbTaskNr
 					++ encodeFunc mbMenuGenFunc
@@ -93,8 +93,8 @@ JSONEncode{|Task|} _ {taskProperties,containerType,mbTaskNr,mbMenuGenFunc,taskFu
 					
 encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
 
-JSONDecode{|Task|} _ [JSONArray [JSONString "Task",taskProperties,containerType,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
-	# mbTaskProperties		= fromJSON taskProperties
+JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,containerType,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
+	# mbTaskProperties		= fromJSON properties
 	# mbContainerType		= fromJSON containerType
 	# mbMbTaskNr			= fromJSON mbTaskNr
 	# mbMbMenuGenFunc		= decodeFunc mbMenuGenFunc
@@ -106,7 +106,7 @@ JSONDecode{|Task|} _ [JSONArray [JSONString "Task",taskProperties,containerType,
 	&& isJust mbMbMenuGenFunc
 	&& isJust mbTaskFuncEdit
 	&& isJust mbTaskFuncCommit
-		= (Just	{ taskProperties	= fromJust mbTaskProperties
+		= (Just	{ properties	= fromJust mbTaskProperties
 				, containerType		= fromJust mbContainerType
 				, formWidth			= Nothing
 				, mbTaskNr			= fromJust mbMbTaskNr
@@ -125,7 +125,7 @@ gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
-	defaultTask a =	{ taskProperties	= {initTaskProperties & taskDescription = toDescr "return"}
+	defaultTask a =	{ properties	= {initTaskProperties & taskDescription = toDescr "return"}
 					, containerType		= InParallelBody
 					, formWidth			= Nothing
 					, mbTaskNr			= Nothing
@@ -141,7 +141,7 @@ gVerify{|Task|} _ _ vst = alwaysValid vst
 
 gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
 	# vis = case mbVal of
-		Just {Task|taskProperties}	= [TextFragment taskProperties.TaskProperties.taskDescription.TaskDescription.title]
+		Just {Task|properties}	= [TextFragment properties.TaskProperties.taskDescription.TaskDescription.title]
 		Nothing						= []
 	= (vis,vst)
 	

@@ -54,7 +54,7 @@ taskService url html path req tst
 						Nothing
 							= (JSONObject [("success",JSONBool False),("error",JSONString "Invalid parameter")], tst)
 						Just thread
-							# (taskId,_,_,tst) = createTaskInstance thread True Nothing True True tst
+							# (taskId,_,_,tst) = createTaskInstance thread True True True tst
 							= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
 			= (serviceResponse html "Create task" createDescription url createParams json, tst)
 		//Show task details of an individual task

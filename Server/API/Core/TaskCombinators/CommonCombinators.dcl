@@ -122,7 +122,7 @@ forever	t	:==	(<!) t (\_ -> False)
 (-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
 
 // old-style parallel, all tasks are detached as separate processes & an overview table is shown in the parallel panel
-oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+oldParallel :: !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 
 /**
 * Group a list of tasks in parallel.
@@ -158,50 +158,38 @@ eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b
 *
 * @param The left task
 * @param The right task
-* @param The type of access that workers on the tasks in the composition have.
-*        'Open' means they can see the progress of the other workers,
-*        'Closed' means only the worker that is waiting for the result can see progress.
 *
 * @return The result of the first completed task.
 */
-orProc 				:: !(Task a) !(Task a) !TaskParallelType -> Task a 	 	| iTask a
+orProc 				:: !(Task a) !(Task a) -> Task a 	 	| iTask a
 /**
 * Execute two tasks as separate main tasks.
 * The composition is done when both tasks are finished.
 *
 * @param The left task
 * @param The right task
-* @param The type of access that workers on the tasks in the composition have.
-*        'Open' means they can see the progress of the other workers,
-*        'Closed' means only the worker that is waiting for the result can see progress.
 *
 * @return The results of both tasks
 */
-andProc 			:: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) 	| iTask a & iTask b
+andProc 			:: !(Task a) !(Task b) -> Task (a,b) 	| iTask a & iTask b
 /**
 * Execute a list of tasks as separate main tasks.
 * The composition is done as soon as one result is finished.
 *
 * @param The list of tasks
-* @param The type of access that workers on the tasks in the composition have.
-*        'Open' means they can see the progress of the other workers,
-*        'Closed' means only the worker that is waiting for the result can see progress.
 *
 * @return The result of the first completed task.
 */
-anyProc 			:: ![Task a] 		   !TaskParallelType -> Task a 	 	| iTask a
+anyProc 			:: ![Task a] 		   -> Task a 	 	| iTask a
 /**
 * Execute a list of tasks as separate main tasks.
 * The composition is done when all tasks are finished.
 *
 * @param The list of tasks
-* @param The type of access that workers on the tasks in the composition have.
-*        'Open' means they can see the progress of the other workers,
-*        'Closed' means only the worker that is waiting for the result can see progress.
 *
 * @return The list of results
 */
-allProc 			:: ![Task a] 		   !TaskParallelType -> Task [a] 	| iTask a
+allProc 			:: ![Task a] 		   -> Task [a] 	| iTask a
 /**
 * Just returns Void. Used as a last step in tasks of type Void in combination with the >>| combinator.
 *

@@ -109,7 +109,7 @@ toNonParamThreadEnter	:: !Dynamic			-> Dynamic
 * @return The task tree created at the first run
 * @return The modified task state
 */
-createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+createTaskInstance :: !Dynamic !Bool !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
 
 /**
 * Removes a running task instance from the list of processes and clears any associated data in the store

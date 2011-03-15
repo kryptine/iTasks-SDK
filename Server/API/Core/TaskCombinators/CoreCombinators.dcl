@@ -4,11 +4,12 @@ definition module CoreCombinators
 * with which additional combinators can be defined.
 */
 from Time				import :: Timestamp
-from TaskTree			import :: TaskParallelType
 from TuningCombinators	import :: Tag
 from Shared				import :: Shared, :: ReadOnlyShared
 from ProcessDB			import :: Process
 import Task, ProcessDBTasks
+
+derive class iTask ParallelTaskInfo
 
 //Standard monadic operations:
 
@@ -97,7 +98,13 @@ derive class iTask PAction
 :: TerminationStatus	=	AllRunToCompletion	// all parallel processes have ended their execution
 						|	Stopped				// the control signal StopParallel has been commited
 
-:: CTask a acc :== (Shared (acc,[ProcessProperties]) [ManagerProperties]) -> Task (PAction a acc)
+:: CTask a acc :== (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) -> Task (PAction a acc)
+
+:: ParallelTaskInfo =	{ index				:: !TaskIndex				// the task's index
+						, taskProperties	:: !TaskProperties			// task properties
+						, processProperties	:: !Maybe ProcessProperties	// process properties for tasks which are detached processes
+						, controlTask		:: !Bool					// is the task a control task?
+						}
 
 container :: !TaskContainerType !(Task a) -> Task a | iTask a
 

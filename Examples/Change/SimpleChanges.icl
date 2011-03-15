@@ -46,7 +46,7 @@ where
 			, Just (me @:
 							(anyProc 	[ container (DetachedTask {ManagerProperties|initManagerProperties & worker = props.managerProperties.ManagerProperties.worker} noMenu) (Title topics @>> t) 
 										, container (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu) (Title topics @>> t)
-										] Open
+										]
 							)
 							<<@ Title ("Duplicated " +++ topics))
 			, Nothing )

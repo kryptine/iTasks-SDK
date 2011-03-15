@@ -122,7 +122,7 @@ where
 		Title ("Waiting for reply on " +++ msg.Message.subject) @>>
 		case msg.Message.recipients of
 			[recipient]	= recipient @: (askReplyTask recipient msg) >>= \answer -> notifyNoReplies [recipient] [answer]
-			recipients	= allProc [askReplyTask rcp msg \\ rcp <- recipients] Closed >>=  notifyNoReplies recipients
+			recipients	= allProc [askReplyTask rcp msg \\ rcp <- recipients] >>=  notifyNoReplies recipients
 	
 	askReplyTask user msg =
 		subject msg @>>

@@ -58,7 +58,6 @@ from StdFunc import id, const, o
 //Types
 import Types
 from TSt				import :: Workflow{..}
-from TaskTree			import :: TaskParallelType(..)
 from Task				import :: Change(..), :: ChangeLifeTime(..)
 from Shared				import :: Shared, :: ReadOnlyShared, :: SymmetricShared, mapShared, toReadOnlyShared, >+<, |+<, >+|, |+|, >&<, symmetricLens
 from InteractiveTasks	import always, ifvalid, ifinvalid, idView, :: Verified(..)

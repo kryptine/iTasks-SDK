@@ -3,12 +3,12 @@ implementation module CoreCombinators
 import StdList, StdArray, StdTuple, StdMisc, StdBool
 import TSt, Util, HTTP, GenUpdate, UserDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks, InteractionTasks, CommonCombinators
 from StdFunc			import id, const, o, seq
-from TaskTree			import :: TaskParallelType
 from CommonCombinators	import transform
 from ProcessDB			import :: Process{..}
 from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
 
-derive class iTask SchedulerState, PAction
+derive class iTask ParallelTaskInfo, SchedulerState, PAction
+derive bimap Maybe, (,)
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -92,10 +92,10 @@ where
 			TaskException e				= (TaskException e,tst)
 	
 	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
-// Parallel / Grouped composition
+	
+// Parallel composition
 derive JSONEncode PSt, PStTask
 derive JSONDecode PSt, PStTask
-derive bimap Maybe, (,)
 
 :: PSt a b =
 	{ state 		:: !b
@@ -128,11 +128,12 @@ where
 		# (pst,tst)			= accIWorldTSt (loadPSt taskNr) tst
 		// Evaluate the subtasks for all currently active tasks
  		# (res,pst,tst)		= processAllTasksC pst tst
- 		// If all tasks finished return the transformed initial state
-		| isEmpty pst.tasks
+ 		// If all non-control tasks finished return the transformed initial state
+		| isEmpty (filter (\(_,task) -> not (isControlTask task)) pst.tasks)
 			= (TaskFinished (resultFun AllRunToCompletion initState), tst)
 		// Store the internal state
 		# tst				= storePSt taskNr pst tst
+		# tst = appIWorldTSt flushCache tst
 		// The result of the combined evaluation of all parallel subtasks
 		= case res of
 			//There are still active tasks
@@ -152,12 +153,17 @@ where
 			Just pst
 				= (pst,iworld)
 			Nothing
-				# iworld = updateTimestamp taskNr iworld
+				# iworld	= updateTimestamp taskNr iworld
+				# tasks		= [(n,InitControlTask n) \\ n <- indexList initCTasks] ++ [(n + length initCTasks,InitTask n) \\ n <- indexList initTasks]
 				= (	{ PSt
 					| state = initState
-					, tasks = [(n,InitControlTask n) \\ n <- indexList initCTasks] ++ [(n + length initCTasks,InitTask n) \\ n <- indexList initTasks]
+					, tasks = (filter isDetached tasks) ++ (filter (not o isDetached) tasks) // initially first start up processes
 					, nextIdx = length initTasks + length initCTasks
 					},iworld)
+	where
+		isDetached (_,pstTask) = case (getPStTask taskNr pstTask).Task.containerType of
+			DetachedTask _ _	= True
+			_					= False
 	
 	storePSt taskNr pst tst
 		# tst = appIWorldTSt (updateTimestamp taskNr) tst
@@ -172,18 +178,23 @@ where
 	getPStTask taskNr	(InitControlTask n)		= mapTask Right	((initCTasks !! n) (sharedParallelState taskNr))
 	getPStTask taskNr	(AddedControlTask task)	= mapTask Right	(task (sharedParallelState taskNr))
 	
+	isControlTask (InitControlTask _)	= True
+	isControlTask (AddedControlTask _)	= True
+	isControlTask _						= False
+	
 	updateTimestamp taskNr iworld=:{IWorld|timestamp} = setTaskStoreFor taskNr "lastUpdate" timestamp iworld
 	
 	sharedParallelState taskNr = Shared read write getTimestamp
 	where
 		read iworld
-			# (state,procs,iworld) = getProcessesAndState iworld
-			= (Ok (state,map (\{Process|properties} -> properties) procs),iworld)
+			# (pst,iworld)			= loadPSt taskNr iworld
+			# (taskInfos,iworld)	= mapSt toParallelTaskInfo pst.tasks iworld
+			= (Ok (pst.PSt.state,taskInfos),iworld)
 			
 		write mprops iworld
+			# iworld			= seq (map updateProcProps mprops) iworld
 			# iworld			= updateTimestamp taskNr iworld
-			# (_,procs,iworld)	= getProcessesAndState iworld
-			= (Ok Void,seq [\iworld ->  snd ('ProcessDB'.updateProcessProperties taskId (\p -> {p & managerProperties = mprop}) iworld) \\ {Process|taskId} <- procs & mprop <- mprops] iworld)
+			= (Ok Void,iworld)
 		
 		getTimestamp iworld
 			# (mbLastUpdate,iworld) = getTaskStoreFor taskNr "lastUpdate" iworld
@@ -191,14 +202,19 @@ where
 				Just lastUpdate	= (Ok lastUpdate,iworld)
 				Nothing			= (Error "no timestamp",iworld)
 			
-		getProcessesAndState iworld
-			# (pst,iworld)		= loadPSt taskNr iworld
-			# (tasks,state)		= getTasksAndState pst
-			# (procs,iworld)	= 'ProcessDB'.getProcessesById (map (\(idx,_) -> taskNrToString [idx:taskNr]) tasks) iworld
-			= (state,procs,iworld)
-		
-		getTasksAndState :: !(PSt Void s) -> (![(!Int,!PStTask Void s)],s)
-		getTasksAndState {tasks,state} = (tasks,state)
+		toParallelTaskInfo (idx,pstTask) iworld
+			# task							= getPStTask taskNr pstTask
+			# (mbProc,iworld)				= 'ProcessDB'.getProcess (taskNrToString [idx:taskNr]) iworld
+			# info =	{ index				= idx
+						, taskProperties	= task.Task.properties
+						, processProperties	= fmap (\{Process|properties} -> properties) mbProc
+						, controlTask		= isControlTask pstTask
+						}
+			= (info,iworld)
+				
+		updateProcProps (idx,mprops) iworld
+			# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {pprops & managerProperties = mprops}) iworld
+			= iworld
 		
 	processAllTasksC pst=:{PSt|state,tasks} tst=:{TSt|taskNr,properties}
 		= case tasks of
@@ -210,7 +226,7 @@ where
 				# (result,tst) = case task.Task.containerType of
 					DetachedTask _ _
 						//IMPORTANT: Task is evaluated with a shifted task number!!!
-						# (result,tree,tst)	= createOrEvaluateTaskInstance Nothing task {tst & taskNr = [idx:taskNr]}
+						# (result,tree,tst)	= createOrEvaluateTaskInstance task {tst & taskNr = [idx:taskNr]}
 						// Add the tree to the current node
 						# tst				= addTaskNode tree tst
 						= (result,tst)
@@ -243,16 +259,15 @@ where
 						//Don't process the other tasks, just let the exception through
 						= (TaskException e,pst,tst)
 
-createOrEvaluateTaskInstance :: !(Maybe TaskParallelType) !(Task a) !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
-createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
+createOrEvaluateTaskInstance :: !(Task a) !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
+createOrEvaluateTaskInstance task tst=:{TSt|taskNr,events}
 	//Try to load the stored process for this subtask
 	# taskId		 = taskNrToString taskNr
 	# (mbProc,tst)	 = 'ProcessDB'.getProcess taskId tst
 	= case mbProc of
 		//Nothing found, create a task instance
 		Nothing	
-			# tst				  		= addSubTaskWorker taskId (taskUser task) mbpartype tst
-			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False mbpartype True False tst
+			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False True False tst
 			= case result of
 				TaskBusy				= (TaskBusy, tree, tst)
 				TaskFinished (a :: a^)	= (TaskFinished a, tree, tst)
@@ -260,9 +275,7 @@ createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
 				TaskException e			= (TaskException e, tree, tst)
 		//When found, evaluate
 		Just proc
-			//add temp users before(!) the new proc is evaluated, because then the tst still contains the parent info
 			# user				= proc.Process.properties.managerProperties.worker
-			# tst				= addSubTaskWorker taskId user mbpartype tst
 			// -> TSt in subprocess
 			# (result,tree,tst)	= evaluateTaskInstance proc events Nothing False False tst
 			// <- TSt back to current process				
@@ -271,42 +284,15 @@ createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
 				TaskBusy				= (TaskBusy, tree, tst)
 				TaskFinished (a :: a^) 	= (TaskFinished a, tree, tst)
 				TaskFinished _			
-					# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
 					= (TaskException (dynamic "assign: result of wrong type returned"), tree, tst)
 				TaskException e			
-					# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
 					= (TaskException e, tree, tst)
-
-addSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt
-addSubTaskWorker procId user mbpartype tst
-		= case mbpartype of
-			Nothing 		= tst
-			(Just Closed) 	= tst
-			(Just Open)		= {TSt | tst & properties = 
-								{tst.TSt.properties & systemProperties = 
-									{tst.TSt.properties.systemProperties & subTaskWorkers = 
-										//filter the process from the current list of subtask workers before adding, as there can be only one worker on a subtask.
-										removeDup [(procId,user):(filter (\(pid,_) -> pid <> procId) tst.TSt.properties.systemProperties.subTaskWorkers)]}}} 
-
-removeSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt			
-removeSubTaskWorker procId user mbpartype tst
-		= case mbpartype of
-			Nothing 		= tst
-			(Just Closed) 	= tst
-			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = removeMember (procId,user) tst.TSt.properties.systemProperties.subTaskWorkers }}} 
-
-clearSubTaskWorkers :: !ProcessId !(Maybe TaskParallelType) !*TSt -> *TSt
-clearSubTaskWorkers procId mbpartype tst
-	= case mbpartype of
-		Nothing			= tst
-		(Just Closed)	= tst
-		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProperties.subTaskWorkers | not (startsWith procId pId)] }}}
 
 spawnProcess :: !Bool !Bool !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
 spawnProcess activate gcWhenDone task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
 where
 	spawnProcess` tst
-		# (pid,_,_,tst)	= createTaskInstance (createThread task) True Nothing activate gcWhenDone tst
+		# (pid,_,_,tst)	= createTaskInstance (createThread task) True activate gcWhenDone tst
 		= (TaskFinished (pid,sharedProc pid,sharedRes pid), tst)
 	
 	sharedProc pid = makeReadOnlyShared ('ProcessDB'.getProcess pid)

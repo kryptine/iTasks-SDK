@@ -61,7 +61,7 @@ startWorkflow :: !Workflow -> Task Void
 startWorkflow {thread} = mkInstantTask "create new task" (startWorkflow` thread)
 	
 startWorkflow` thread tst
-	# (_,_,_,tst) = createTaskInstance thread True Nothing True True tst
+	# (_,_,_,tst) = createTaskInstance thread True True True tst
 	= (TaskFinished Void,tst)
 	
 startWorkflowByIndex :: !Int -> Task Void

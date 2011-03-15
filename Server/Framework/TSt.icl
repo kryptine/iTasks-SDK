@@ -74,7 +74,6 @@ initSystemProperties =
 	, issuedAt = Timestamp 0
 	, firstEvent = Nothing
 	, latestEvent = Nothing
-	, subTaskWorkers = []
 	, deleteWhenDone = False
 	}
 	
@@ -95,11 +94,11 @@ initSession sessionId tst
 		Just session
 			= (Nothing, {tst & staticInfo = {staticInfo & currentSession = session}})
 
-createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
-createTaskInstance thread=:(_ :: Container (Container (TaskThreadParam a b) b) a) toplevel mbParType activate delete tst
-	= createTaskInstance (toNonParamThreadEnter thread) toplevel mbParType activate delete tst
+createTaskInstance :: !Dynamic !Bool !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+createTaskInstance thread=:(_ :: Container (Container (TaskThreadParam a b) b) a) toplevel activate delete tst
+	= createTaskInstance (toNonParamThreadEnter thread) toplevel activate delete tst
 
-createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
+createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel activate delete tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)	
@@ -116,7 +115,6 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 			, issuedAt		= currentTime
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
-			, subTaskWorkers = []
 			, deleteWhenDone = delete
 			}
 		, managerProperties	= managerProperties
@@ -129,7 +127,6 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 		, dependents	 = []
 		, changeCount	 = 0
 		, mutable		 = True
-		, inParallelType = mbParType
 		}
 	//Create an entry in the process table
 	# (processId, tst)		= createProcess process tst
@@ -198,8 +195,8 @@ toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,curren
 where		
 	enterParam paramTask = enterInformation ("Workflow parameter","Enter the parameter of the workflow") >>= paramTask
 
-applyThread :: !Dynamic !(Maybe TaskParallelType) !*TSt -> (!TaskResult Dynamic, !*TSt)
-applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) inptype tst=:{taskNr}
+applyThread :: !Dynamic !*TSt -> (!TaskResult Dynamic, !*TSt)
+applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst=:{taskNr}
 	# (_,tst)		= applyTaskEdit currentTask tst
 	# (result,tst)	= applyTaskCommit` tst
 	= case result of
@@ -238,7 +235,7 @@ loadThread processId tst
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !NonNormalizedTree, !*TSt)
-evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeCount, inParallelType} events newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,tree=parentTree,events=parentEvents,properties=parentProperties,iworld=iworld=:{IWorld|timestamp=now}}
+evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeCount} events newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,tree=parentTree,events=parentEvents,properties=parentProperties,iworld=iworld=:{IWorld|timestamp=now}}
 	// Update access timestamps in properties
 	# properties						= {properties & systemProperties = {properties.systemProperties
 															& latestEvent = Just now
@@ -246,7 +243,7 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 																Nothing	= Just now
 																Just t	= Just t }}
 	// Reset the task state
-	# tst								= resetTSt taskId events properties inParallelType tst
+	# tst								= resetTSt taskId events properties tst
 	// Queue all stored persistent changes (only when run as top node)
 	# tst								= if isTop (loadPersistentChanges taskId tst) tst
 	// When a change is injected set it as active change
@@ -259,8 +256,8 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 	// subject of later changes
 	# (changeCount,thread,properties,result,tst)
 										= if firstRun
-											(applyAllChanges taskId changeCount pendingChanges thread properties inParallelType tst)
-											(applyCurrentChange taskId changeCount thread properties inParallelType tst)
+											(applyAllChanges taskId changeCount pendingChanges thread properties tst)
+											(applyCurrentChange taskId changeCount thread properties tst)
 	# (tree,tst)						= getTaskTree tst
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges taskId tst) tst
@@ -306,8 +303,8 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
 			= (TaskException e, tree, tst)
 where
-	resetTSt :: !TaskId ![TaskEvent] !ProcessProperties !(Maybe TaskParallelType) !*TSt -> *TSt
-	resetTSt taskId events properties inptype tst
+	resetTSt :: !TaskId ![TaskEvent] !ProcessProperties !*TSt -> *TSt
+	resetTSt taskId events properties tst
 		# taskNr	= taskNrFromString taskId
 		# info =	{ TaskInfo|initTaskInfo
 					& taskId	= taskId
@@ -342,18 +339,18 @@ where
 	* Because applying a change may result in the creation of new sub processes, changes must be carefully applied
 	* in the right order. 
 	*/
-	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !ProcessProperties !(Maybe TaskParallelType) !*TSt -> (!Int, !Dynamic, !ProcessProperties, !TaskResult Dynamic, !*TSt)
-	applyAllChanges processId changeCount [] thread properties inptype tst
+	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !ProcessProperties !*TSt -> (!Int, !Dynamic, !ProcessProperties, !TaskResult Dynamic, !*TSt)
+	applyAllChanges processId changeCount [] thread properties tst
 		//Only apply the current change
-		= applyCurrentChange processId changeCount thread properties inptype tst
-	applyAllChanges processId changeCount changes thread properties inptype tst=:{currentChange}
+		= applyCurrentChange processId changeCount thread properties tst
+	applyAllChanges processId changeCount changes thread properties tst=:{currentChange}
 		//Add the pending changes one after another (start empty)
 		= applyAllChanges` processId changeCount currentChange changes thread properties {tst & pendingChanges = []} 
 	where
 		applyAllChanges` processId changeCount currentChange [] thread properties tst
-			= applyCurrentChange processId changeCount thread properties inptype {tst & currentChange = currentChange}
+			= applyCurrentChange processId changeCount thread properties {tst & currentChange = currentChange}
 		applyAllChanges` processId changeCount currentChange [c:cs] thread properties tst
-			# (changeCount,thread,properties,result,tst) = applyCurrentChange processId changeCount thread properties inptype {tst & currentChange = Just c} 
+			# (changeCount,thread,properties,result,tst) = applyCurrentChange processId changeCount thread properties {tst & currentChange = Just c} 
 			//Update pending changes list
 			# tst	= {tst & pendingChanges = (case tst.currentChange of
 														Nothing = tst.pendingChanges
@@ -369,8 +366,8 @@ where
 					//A change caused an exception. Stop, but keep pending changes
 					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
 
-	applyCurrentChange :: !ProcessId !Int !Dynamic !ProcessProperties !(Maybe TaskParallelType) !*TSt -> (!Int, !Dynamic, !ProcessProperties, !TaskResult Dynamic, !*TSt)
-	applyCurrentChange processId changeCount thread properties inptype tst=:{currentChange}
+	applyCurrentChange :: !ProcessId !Int !Dynamic !ProcessProperties !*TSt -> (!Int, !Dynamic, !ProcessProperties, !TaskResult Dynamic, !*TSt)
+	applyCurrentChange processId changeCount thread properties tst=:{currentChange}
 		= case currentChange of
 			Just (lifetime,change)
 				// Apply the active change
@@ -404,11 +401,11 @@ where
 				// Evaluate the thread
 				// IMPORTANT: The taskNr is reset with the latest change count
 				# (result,tst=:{TSt|properties})
-					= applyThread thread inptype {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
+					= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
 				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
 			Nothing
 				# (result,tst=:{TSt|properties})
-					= applyThread thread inptype {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
+					= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
 				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
 	
 	applyChange :: !TaskNr !Dynamic !Dynamic !ProcessProperties -> (!Maybe Dynamic, !Maybe Dynamic, !ProcessProperties)
@@ -621,7 +618,7 @@ mkMainTask description taskfun
 
 mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkTask description taskFuncEdit taskFuncCommit =
-	{ taskProperties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
+	{ properties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, containerType		= InParallelBody
 	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
@@ -652,14 +649,14 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit {taskProperties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth, containerType} tst=:{taskNr,tree,properties}
+applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth, containerType} tst=:{taskNr,tree}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
 					| taskId				= taskNrToString taskNr
-					, subject				= taskProperties.TaskProperties.taskDescription.TaskDescription.title
-					, description			= toString taskProperties.TaskProperties.taskDescription.TaskDescription.description
-					, tags					= taskProperties.TaskProperties.tags
+					, subject				= properties.TaskProperties.taskDescription.TaskDescription.title
+					, description			= toString properties.TaskProperties.taskDescription.TaskDescription.description
+					, tags					= properties.TaskProperties.tags
 					, containerType			= containerType
 					, menus					= mbMenuGenFunc
 					, formWidth				= formWidth

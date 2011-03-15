@@ -9,7 +9,7 @@ from StdFunc	import id, const, o
 from Types		import :: ProcessId, :: User(..), :: Note(..)
 from Store		import :: Store
 from SessionDB	import :: Session
-from TaskTree	import :: TaskTree, :: TaskParallelType{..}
+from TaskTree	import :: TaskTree
 from Shared		import mapShared, :: SymmetricShared
 import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, InteractionTasks, SharedTasks, ProcessDBTasks
 
@@ -41,14 +41,14 @@ transform f x = mkInstantTask ("Value transformation", "Value transformation wit
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a	
+assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
 assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") (Nothing,\_ r _ -> (Just r,Just Stop), \_ (Just r) -> r) [processControl] [container (DetachedTask props actionMenu) task]
 where
 	processControl shared =
 			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
 		>>|	return undef
 		
-	toView (_,[{progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker,priority,deadline}}:_])=
+	toView (_,[{processProperties=p=:Just {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker,priority,deadline}}}:_])=
 		{ assignedTo	= worker
 		, priority		= priority
 		, progress		= formatProgress progress
@@ -62,16 +62,23 @@ where
 		formatProgress TPStuck		= coloredLabel "Stuck" "purple"
 		formatProgress TPWaiting	= coloredLabel "Waiting" "blue"
 		formatProgress TPReject		= coloredLabel "Reject" "red"
-		
+	
 		coloredLabel label color = toHtmlDisplay [SpanTag [StyleAttr ("color:" +++ color)] [Text label]]
+	toView` _ =	{ assignedTo	= AnyUser
+				, priority		= NormalPriority
+				, progress		=toHtmlDisplay "hello"
+				, issuedAt		= Display (Timestamp 0)
+				, firstWorkedOn	= Display Nothing
+				, lastWorkedOn	= Display Nothing
+				, deadline		= Nothing
+				}
 		
-	fromView {ProcessControlView|assignedTo,priority,deadline} (_,[{managerProperties}:rest])
-		# newManagerProperties =	{ managerProperties
-									& worker	= assignedTo
+	fromView {ProcessControlView|assignedTo,priority,deadline} _
+		# newManagerProperties =	{ worker	= assignedTo
 									, priority	= priority
 									, deadline	= deadline
 									}
-		= [newManagerProperties:map (\{managerProperties} -> managerProperties) rest]
+		= [(1,newManagerProperties)]
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
@@ -162,27 +169,32 @@ where
 	parsefunc _ (Just (Just a), Just (Just b))	= Just (a,b)
 	parsefunc _ _								= Nothing
 	
-oldParallel :: !TaskParallelType !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
-oldParallel parType d valueMerger initTasks = parallel d valueMerger [overviewControl] initTasks
+oldParallel :: !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+oldParallel d valueMerger initTasks = parallel d valueMerger [overviewControl] initTasks
 where
 	overviewControl shared =
 			updateSharedInformationA "" (toView,fromView) [] shared
 		>>|	return undef
 	
-	toView (_,props) = Table (map toView` props)
-	toView` {managerProperties=m=:{worker},taskProperties=t=:{taskDescription}} =
+	toView (_,infos) = Table (map toView` (filter isProc infos))
+	toView` {index,processProperties=p=:Just {managerProperties=m=:{worker},taskProperties=t=:{taskDescription}}} =
 		{ ProcessOverviewView
-		| subject		= Display taskDescription.TaskDescription.title
+		| index			= Hidden index
+		, subject		= Display taskDescription.TaskDescription.title
 		, assignedTo	= worker
 		}
-	
-	fromView (Table viewList) (_,props) = map fromView` (zip2 viewList props)
-	fromView` ({ProcessOverviewView|assignedTo},{managerProperties})
-		=	{ managerProperties
-			& worker = assignedTo				
-			}
 		
-:: ProcessOverviewView =	{ subject		:: !Display String
+	isProc {processProperties} = isJust processProperties
+	
+	fromView (Table viewList) (_,infos) = map fromView` viewList
+	where
+		fromView` ({ProcessOverviewView|index=i=:Hidden index,assignedTo})
+			= case filter (\info -> info.ParallelTaskInfo.index == index) infos of
+				[{processProperties=p=:Just {managerProperties}}] = (index,{managerProperties & worker = assignedTo})
+				_ = abort "old parallel: no manager properties"
+			
+:: ProcessOverviewView =	{ index			:: !Hidden TaskIndex
+							, subject		:: !Display String
 							, assignedTo	:: !User
 							}
 derive class iTask ProcessOverviewView
@@ -208,14 +220,14 @@ where
 	eitherfunc _ val [] = ([val],Just Stop)
 	eitherfunc _ val _  = abort "Multiple results in Either"
 
-orProc :: !(Task a) !(Task a) !TaskParallelType -> Task a | iTask a
-orProc taska taskb type = oldParallel type ("-|@|-", "Done if either subtask is finished.") (Nothing,orfunc,\_ (Just r) -> r) [taska,taskb]
+orProc :: !(Task a) !(Task a) -> Task a | iTask a
+orProc taska taskb = oldParallel ("-|@|-", "Done if either subtask is finished.") (Nothing,orfunc,\_ (Just r) -> r) [taska,taskb]
 where
 	orfunc _ val Nothing	= (Just val,Just Stop)
 	orfunc _ val _ 			= abort "Multiple results in -|@|-"
 
-andProc :: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
-andProc taska taskb type = oldParallel type ("AndProc", "Done if both subtasks are finished.") ((Nothing,Nothing),andfunc,parseresult) [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))]
+andProc :: !(Task a) !(Task b) -> Task (a,b) | iTask a & iTask b
+andProc taska taskb = oldParallel ("AndProc", "Done if both subtasks are finished.") ((Nothing,Nothing),andfunc,parseresult) [(taska >>= \a -> return (Left a)), (taskb >>= \b -> return (Right b))]
 where
 	andfunc :: !Int !(Either a b) !(!Maybe a,!Maybe b) -> (!(!Maybe a,!Maybe b),!Maybe (PAction (Either a b) (!Maybe a,!Maybe b)))
 	andfunc _ val (left,right)
@@ -234,15 +246,15 @@ where
 	parseresult _ (Just a,Just b)	= (a,b)
 	parseresult _ _	 				= abort "AND not finished"
 
-anyProc :: ![Task a] !TaskParallelType -> Task a | iTask a
-anyProc [] 	  type = getDefaultValue
-anyProc tasks type = oldParallel type ("any", "Done when any subtask is finished.") (Nothing,anyfunc,\_ (Just r) -> r) tasks
+anyProc :: ![Task a] -> Task a | iTask a
+anyProc [] 	  = getDefaultValue
+anyProc tasks = oldParallel ("any", "Done when any subtask is finished.") (Nothing,anyfunc,\_ (Just r) -> r) tasks
 where
 	anyfunc _ val Nothing	= (Just val,Just Stop)
 	anyfunc _ val _			= abort "Multiple results in ANY"
 
-allProc :: ![Task a] !TaskParallelType -> Task [a] | iTask a
-allProc tasks type = oldParallel type ("all", "Done when all subtasks are finished.") ([],allfunc (length tasks),\_ r -> sortByIndex r) tasks 
+allProc :: ![Task a] -> Task [a] | iTask a
+allProc tasks = oldParallel ("all", "Done when all subtasks are finished.") ([],allfunc (length tasks),\_ r -> sortByIndex r) tasks 
 where
 	allfunc tlen idx val st 
 		# st = st ++ [(idx,val)]

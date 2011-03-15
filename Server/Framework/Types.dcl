@@ -9,7 +9,6 @@ from Shared		import :: Shared
 from HTML 		import class html
 from Time		import :: Timestamp
 from Config		import :: Config
-from TaskTree	import :: TaskParallelType
 
 derive JSONEncode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
@@ -20,9 +19,9 @@ derive JSONDecode	EmailAddress, Session, Action, Table, Shared, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, Shared, HtmlDisplay
-derive JSONEncode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
-derive JSONDecode	TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
-derive gEq			TaskPriority, TaskParallelType, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
 
 instance toString User
 instance toString Note
@@ -197,7 +196,6 @@ instance toString HtmlDisplay
 	, issuedAt			:: !Timestamp				// When was the task created
 	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
 	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	
-	, subTaskWorkers	:: ![(ProcessId, User)] 	// Users who have temporary access to the process because they work on a subprocess in an open parallel.
 	, deleteWhenDone	:: !Bool					// Delete the process after completion
 	}
 	

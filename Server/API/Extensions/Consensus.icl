@@ -73,7 +73,7 @@ collectOpinions :: Topic [a] [String] [User] -> Task (Results a) | iTask a
 collectOpinions topic items answers participants
 	= 	( Title "Collecting opinions..." @>> 
 		  Description "Waiting for everyone to give their opinion" @>> 
-		  allProc [collectOpinion topic user items answers \\ user <- participants ] Open
+		  allProc [collectOpinion topic user items answers \\ user <- participants ]
 		)
 	>>= transform (orderByItem items)
 where
