@@ -693,9 +693,8 @@ applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth,
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskFinished a, tst)
 				TaskBusy
-					// Store intermediate value
-					# procId				= taskNrToString (tl taskNr)	
-					# tst					= addTaskNode (finalizeTaskNode node)
+					// Store intermediate value	
+					# tst					= addTaskNode node
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					# tst					= appIWorldTSt (storeValue taskId result) tst
 					= (TaskBusy, tst)
@@ -705,16 +704,12 @@ applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth,
 					# tst					= addTaskNode (TTFinishedTask taskInfo (renderException str) True)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e str, tst)
-where
-	//Perform reversal of lists that have been accumulated in reversed order
-	finalizeTaskNode (TTParallelTask ti tasks)	= TTParallelTask	ti (reverse tasks)
-	finalizeTaskNode node						= node
 
 //Add a new node to the current sequence or process
 addTaskNode :: !NonNormalizedTree !*TSt -> *TSt
 addTaskNode node tst=:{tree} = case tree of
-	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti [node:tasks]}	//Add the node to the parallel set
-	TTFinishedTask _ _ _		= {tst & tree = node} 							//Just replace the node
+	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti (tasks ++ [node])}	//Add the node to the parallel set
+	TTFinishedTask _ _ _		= {tst & tree = node} 									//Just replace the node
 	_							= {tst & tree = tree}
 
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt
