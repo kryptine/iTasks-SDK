@@ -89,7 +89,7 @@ where
 		| isJust mbActionEvent				= (TaskFinished (fromJust mbActionEvent,if (isValidValue nvmask) (Just modelV) Nothing),tst)
 		// task is still busy, set trigger flag
 		# tst								= {tst & triggerPresent = triggerPresent || isJust mbAutoEventF}
-		# tst								= setInteractiveFuncs (appSnd (deleteCommitStores taskNr) o tuiFunc,appSnd (deleteCommitStores taskNr) o jsonFunc) tst
+		# tst								= setInteractiveFuncs (appThd3 (deleteCommitStores taskNr) o tuiFunc,appSnd (deleteCommitStores taskNr) o jsonFunc) tst
 		= (TaskBusy,tst)
 	where	
 		jsonFunc iworld
@@ -110,10 +110,10 @@ where
 			# iworld							= setTUIDef taskNr tui iworld
 			# evalActions						= evaluateConditions actions (isValidValue nvmask) modelV
 			| not clientTimestampSent || outdatedClient || isNothing mbOldViz // refresh UI if client is outdated, no timestamp is send (refresh) or task is new for this request (no old value stored)
-				= (Definition tui evalActions,iworld)
+				= (Definition tui [],evalActions,iworld)
 			| otherwise	// update UI
 				# updates						= diffEditorDefinitions (fromJust mbOldViz) tui updatedPaths
-				= (Updates updates evalActions,iworld)
+				= (Updates updates [],evalActions,iworld)
 
 	// for local mode use auto generated store name, for shared mode use given store
 	shared taskNr = case interactiveTaskMode of

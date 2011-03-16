@@ -1,9 +1,9 @@
 implementation module TaskService
 
-import StdList, StdMisc, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel
+import StdList, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel
 
 //Additional derives for debugging
-derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, InteractiveTask, Menu, TaskContainerType
+derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, InteractiveTask, Menu, TTContainerType, TaskTreeContainer
 
 JSONEncode{|MenuItem|} v = case v of
 	MenuItem action mbHotkey	= [JSONArray [JSONString "MenuItem" : JSONEncode{|*|} (menuAction action) ++ JSONEncode{|*|} mbHotkey]]
@@ -54,7 +54,7 @@ taskService url html path req tst
 						Nothing
 							= (JSONObject [("success",JSONBool False),("error",JSONString "Invalid parameter")], tst)
 						Just thread
-							# (taskId,_,_,tst) = createTaskInstance thread True True True tst
+							# (taskId,_,_,tst) = createTaskInstance thread True True True workflow.Workflow.containerType tst
 							= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
 			= (serviceResponse html "Create task" createDescription url createParams json, tst)
 		//Show task details of an individual task
@@ -73,8 +73,8 @@ taskService url html path req tst
 					# events		= case (fromJSON (fromString eventsParam)) of
 						Just events		= events
 						Nothing			= []
-					# (tree,tst)		= calculateTaskTree taskId events tst
-					# (jsonTree,tst)	= accIWorldTSt (toJSONTree tree) tst
+					# (cont,tst)		= calculateTaskTreeContainer taskId events tst
+					# (jsonTree,tst)	= accIWorldTSt (toJSONTreeContainer cont) tst
 					# task = JSONObject (taskProperties proc ++ [("parts", JSONArray (taskParts jsonTree))]) 
 					# json = JSONObject [("success",JSONBool True),("task",task)]
 					= (serviceResponse html "Task details" detailsDescription url detailsParams json, tst)
@@ -87,11 +87,11 @@ taskService url html path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					# (tree,tst) = calculateTaskTree taskId [] tst
+					# (cont,tst) = calculateTaskTreeContainer taskId [] tst
 					# (treeJson,tst) = case typeParam of
-						"ui"	= appFst toJSON (accIWorldTSt (toUITree tree) tst)
-						"json"	= appFst toJSON (accIWorldTSt (toJSONTree tree) tst)
-						_		= (toJSON (toSpineTree tree),tst)
+						"ui"	= appFst toJSON (accIWorldTSt (toUITreeContainer cont) tst)
+						"json"	= appFst toJSON (accIWorldTSt (toJSONTreeContainer cont) tst)
+						_		= (toJSON (toSpineTreeContainer cont),tst)
 					# json		= JSONObject [("success",JSONBool True),("task",toJSON proc),("tree",treeJson)]
 					= (serviceResponse html "Task debug" taskDebugDescription url debugParams json, tst)
 		//Show / Update task user interface definition
@@ -110,10 +110,10 @@ taskService url html path req tst
 					# events		= case (fromJSON (fromString eventsParam)) of
 						Just events		= events
 						Nothing			= []
-					# (tree,tst)		= calculateTaskTree taskId events tst
+					# (cont,tst)		= calculateTaskTreeContainer taskId events tst
 					# (timestamp,tst)	= getTimestamp tst
-					# (uiContent,tst)	= accIWorldTSt (toUITree tree) tst
-					# tui				= buildTaskPanel uiContent session.Session.user
+					# (uiContent,tst)	= accIWorldTSt (toUITreeContainer cont) tst
+					# tui				= buildTaskPanel uiContent
 					# json				= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",toJSON tui)]
 					= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,tst)
 		//Cancel / Abort / Delete the current task
@@ -188,9 +188,9 @@ taskService url html path req tst
 				= (notFoundResponse req, tst)
 			Just proc
 				# task			= taskItem proc
-				# (tree,tst)	= calculateTaskTree taskId [] tst
-				# (uiTree,tst)	= accIWorldTSt (toUITree tree) tst
-				# tui			= buildResultPanel uiTree
+				# (cont,tst)	= calculateTaskTreeContainer taskId [] tst
+				# (uiCont,tst)	= accIWorldTSt (toUITreeContainer cont) tst
+				# tui			= buildResultPanel uiCont
 				# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
 				= (serviceResponse html "Task result user interface" tuiResDescription url detailsParams json, tst)
 		[taskId,"refresh"]
@@ -199,7 +199,7 @@ taskService url html path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					# (_,tst) = calculateTaskTree taskId [] tst
+					# (_,tst) = calculateTaskTreeContainer taskId [] tst
 					# json = JSONObject [("success",JSONBool True)]
 					= (serviceResponse html "Task details" refreshDescription url [] json, tst)
 		_
@@ -264,11 +264,13 @@ where
 	taskProperties :: Process -> [(String,JSONNode)]
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
 
-	taskParts :: !JSONTree -> [JSONNode]
-	taskParts (TTParallelTask _ trees)		= flatten (map taskParts trees)	
-	taskParts (TTInteractiveTask ti _ json)
+	taskParts :: !JSONTreeContainer -> [JSONNode]
+	taskParts (TTContainer _ tree) = taskParts` tree
+	
+	taskParts` (TTParallelTask _ trees) = flatten (map taskParts trees)	
+	taskParts` (TTInteractiveTask ti _ json)
 		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",json)]]
-	taskParts _								= []
+	taskParts` _ = []
 	
 	getTimestamp :: !*TSt -> (!Timestamp,!*TSt)
 	getTimestamp tst=:{TSt|iworld=iworld=:{IWorld|timestamp}} = (timestamp,tst)

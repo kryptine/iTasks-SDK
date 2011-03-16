@@ -22,7 +22,6 @@ derive gEq			Task
 	, containerType		:: !TaskContainerType					// specified in which kind of container the task is shown inside of a parallel
 	, formWidth			:: !Maybe FormWidth						// Width of task form
 	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
-	, mbMenuGenFunc		:: !(Maybe MenuGenFunc)					// a function generating a menu structure
 	, taskFuncEdit		:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
 	, taskFuncCommit	:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
 	}

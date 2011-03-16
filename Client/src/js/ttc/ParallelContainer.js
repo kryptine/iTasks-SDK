@@ -39,6 +39,8 @@ itasks.ttc.ParallelContainer = Ext.extend(itasks.ttc.TTCBase, {
 				this.doLayout();
 			};
 			add.defer(itasks.ttc.TTC_FADE_DURATION * 1500,this);
+			
+			this.menu = data.menu;
 		}
 	}
 });

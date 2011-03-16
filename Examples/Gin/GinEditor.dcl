@@ -8,4 +8,3 @@ import GinDomain
 
 getConfig :: Task GinConfig
 ginEditor :: Task Void
-

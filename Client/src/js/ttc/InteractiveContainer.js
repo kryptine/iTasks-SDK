@@ -60,9 +60,6 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 					case "TUISetEnabled":
 						this.enableComponent(update[1],update[2]);
 						break;
-					case "TUIReplaceMenu":
-						this.menu = update[1];
-						break;
 					case "TUIReplaceButtons":
 						var fbar = this.interactionpanel.getFooterToolbar();
 						fbar.removeAll();
@@ -103,6 +100,8 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 			//Completely replace form
 			itasks.ttc.InteractiveContainer.superclass.update.apply(this,arguments);
 		}
+
+		this.menu = data.menu;
 	},
 	findComponentByPath: function(start, path) {
 		var path = path.split("-");

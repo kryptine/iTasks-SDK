@@ -113,7 +113,7 @@ actions state = [ (ActionNew,              always)
                 ]
 
 handleMenu :: Task Void
-handleMenu = emptyState >>= \state -> initMenu @>> doMenu state
+handleMenu = container (DetachedTask initManagerProperties (staticMenu initMenu)) (emptyState >>= \state -> doMenu state)
 
 emptyState :: Task EditorState 
 emptyState = getConfig >>= \config -> 

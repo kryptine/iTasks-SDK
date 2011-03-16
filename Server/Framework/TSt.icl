@@ -52,15 +52,13 @@ initIWorld application config store tmpDir world
 		, tmpDirectory		= tmpDir
 		}
 		
-initTaskInfo :: NonNormalizedTaskInfo
+initTaskInfo :: TaskInfo
 initTaskInfo
 	=	{ TaskInfo
 		| taskId = ""
 		, subject = ""
 		, description = ""
 		, tags = []
-		, containerType = InParallelBody
-		, menus = Nothing
 		, formWidth = Nothing
 		}
 
@@ -75,6 +73,7 @@ initSystemProperties =
 	, firstEvent = Nothing
 	, latestEvent = Nothing
 	, deleteWhenDone = False
+	, containerType = InBodyTask
 	}
 	
 initProcessProperties :: ProcessProperties
@@ -94,11 +93,11 @@ initSession sessionId tst
 		Just session
 			= (Nothing, {tst & staticInfo = {staticInfo & currentSession = session}})
 
-createTaskInstance :: !Dynamic !Bool !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
-createTaskInstance thread=:(_ :: Container (Container (TaskThreadParam a b) b) a) toplevel activate delete tst
-	= createTaskInstance (toNonParamThreadEnter thread) toplevel activate delete tst
+createTaskInstance :: !Dynamic !Bool !Bool !Bool !TaskContainerType !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+createTaskInstance thread=:(_ :: Container (Container (TaskThreadParam a b) b) a) toplevel activate delete containerType tst
+	= createTaskInstance (toNonParamThreadEnter thread) toplevel activate delete containerType tst
 
-createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel activate delete tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
+createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel activate delete containerType tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)	
@@ -108,14 +107,15 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# properties =
 		{ taskProperties	= taskProperties originalTask
 		, systemProperties =
-			{ taskId		= taskId
-			, parent		= parent
-			, status		= if activate Active Suspended
-			, manager		= manager
-			, issuedAt		= currentTime
-			, firstEvent	= Nothing
-			, latestEvent	= Nothing
-			, deleteWhenDone = delete
+			{ taskId			= taskId
+			, parent			= parent
+			, status			= if activate Active Suspended
+			, manager			= manager
+			, issuedAt			= currentTime
+			, firstEvent		= Nothing
+			, latestEvent		= Nothing
+			, deleteWhenDone	= delete
+			, containerType		= containerType
 			}
 		, managerProperties	= managerProperties
 		, progress 			= TPActive
@@ -483,8 +483,8 @@ applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInf
 		Nothing		
 			= tst
 
-calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!NonNormalizedTree, !*TSt)
-calculateTaskTree taskId events tst
+calculateTaskTreeContainer :: !TaskId ![TaskEvent] !*TSt -> (!NonNormalizedTreeContainer, !*TSt)
+calculateTaskTreeContainer taskId events tst
 	# (mbProcess,tst) = getProcess taskId tst
 	= case mbProcess of
 		Nothing
@@ -493,9 +493,9 @@ calculateTaskTree taskId events tst
 						, subject			= "Deleted Process"
 						, description		= "Task Result"
 						}
-			= (TTFinishedTask info noProcessResult False, tst)
+			= (TTContainer InBodyTask (TTFinishedTask info noProcessResult False), tst)
 		Just process=:{Process|properties}
-			= case properties.systemProperties.SystemProperties.status of
+			# (tree, tst) = case properties.systemProperties.SystemProperties.status of
 				Active
 					//Evaluate the process
 					# (result,tree,tst) = evaluateTaskInstance process events Nothing True False tst
@@ -524,6 +524,7 @@ calculateTaskTree taskId events tst
 								, description		= "Task Result"
 								}
 					= (TTFinishedTask info result False,tst)
+			= (TTContainer properties.systemProperties.SystemProperties.containerType tree,tst)
 
 renderResult :: !Dynamic -> HtmlTag
 renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value
@@ -580,7 +581,6 @@ accIWorldTSt f tst=:{TSt|iworld}
 	# (a,iworld) = f iworld
 	= (a,{TSt|tst & iworld = iworld})
 
-
 appWorldTSt	:: !.(*World -> *World) !*TSt -> *TSt
 appWorldTSt f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	= {TSt|tst & iworld = {IWorld|iworld & world = f world}}
@@ -627,10 +627,9 @@ mkParallelTask description (taskfunE,taskfunC)
 mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkTask description taskFuncEdit taskFuncCommit =
 	{ properties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
-	, containerType		= InParallelBody
+	, containerType		= InBodyTask
 	, formWidth			= Nothing
 	, mbTaskNr			= Nothing
-	, mbMenuGenFunc		= Nothing
 	, taskFuncEdit		= taskFuncEdit
 	, taskFuncCommit	= taskFuncCommit
 	}
@@ -657,7 +656,7 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth, containerType} tst=:{taskNr,tree}
+applyTaskCommit {properties, mbTaskNr, taskFuncCommit, formWidth, containerType} tst=:{taskNr,tree}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
@@ -665,14 +664,12 @@ applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth,
 					, subject				= properties.TaskProperties.taskDescription.TaskDescription.title
 					, description			= toString properties.TaskProperties.taskDescription.TaskDescription.description
 					, tags					= properties.TaskProperties.tags
-					, containerType			= containerType
-					, menus					= mbMenuGenFunc
 					, formWidth				= formWidth
 					}
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}
 	= case taskVal of
 		Just (TaskFinished a)
-			# tst = addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False) tst
+			# tst = addTaskNode containerType (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// Execute task function
@@ -689,27 +686,27 @@ applyTaskCommit {properties, mbMenuGenFunc, mbTaskNr, taskFuncCommit, formWidth,
 					# tst					= deleteTaskStates taskNr tst					
 					// Store final value if the process is not garbage collected
 					# tst					= if (gc) tst (appIWorldTSt (storeValue taskId result) tst)
-					# tst					= addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False)
+					# tst					= addTaskNode containerType (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskFinished a, tst)
 				TaskBusy
 					// Store intermediate value	
-					# tst					= addTaskNode node
+					# tst					= addTaskNode containerType node
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					# tst					= appIWorldTSt (storeValue taskId result) tst
 					= (TaskBusy, tst)
 				TaskException e str
 					// Store exception
 					# tst					= appIWorldTSt (storeValue taskId result) tst
-					# tst					= addTaskNode (TTFinishedTask taskInfo (renderException str) True)
+					# tst					= addTaskNode containerType (TTFinishedTask taskInfo (renderException str) True)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e str, tst)
 
 //Add a new node to the current sequence or process
-addTaskNode :: !NonNormalizedTree !*TSt -> *TSt
-addTaskNode node tst=:{tree} = case tree of
-	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti (tasks ++ [node])}	//Add the node to the parallel set
-	TTFinishedTask _ _ _		= {tst & tree = node} 									//Just replace the node
+addTaskNode :: !TaskContainerType !NonNormalizedTree !*TSt -> *TSt
+addTaskNode containerType node tst=:{tree} = case tree of
+	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti (tasks ++ [TTContainer containerType node])}	//Add the node to the parallel set
+	TTFinishedTask _ _ _		= {tst & tree = node} 															//Just replace the node
 	_							= {tst & tree = tree}
 
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt

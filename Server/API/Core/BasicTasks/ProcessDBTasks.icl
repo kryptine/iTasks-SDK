@@ -1,17 +1,27 @@
 implementation module ProcessDBTasks
 
-import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, StdList, Error, Shared
+import StdOverloaded, StdClass, StdInt, StdMisc, StdArray, StdTuple, StdList, Error, Shared
 import TSt, Time, Store
 from ProcessDB	import :: Process{..}, :: Menu
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
 from UserDB		import class UserDB(..), instance UserDB TSt
 from Types		import :: ProcessId
 	
-derive gVisualize	Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
-derive gUpdate		Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
-derive gDefaultMask	Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
-derive gVerify		Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive gVisualize	Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription, TaskContainerType
+derive gUpdate		Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription, TaskContainerType
+derive gDefaultMask	Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription, TaskContainerType
+derive gVerify		Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription, TaskContainerType
 derive bimap Maybe,(,)
+
+// generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
+gVisualize{|Menu|} _ _		= abort "not implemented"
+gVisualize{|MenuItem|} _ _	= abort "not implemented"
+gUpdate{|Menu|} _ _			= abort "not implemented"
+gUpdate{|MenuItem|} _ _		= abort "not implemented"
+gDefaultMask{|Menu|} _		= abort "not implemented"
+gDefaultMask{|MenuItem|} _	= abort "not implemented"
+gVerify{|Menu|} _ _			= abort "not implemented"
+gVerify{|MenuItem|} _ _		= abort "not implemented"
 
 getProcess :: !ProcessId -> Task (Maybe Process)
 getProcess pid = mkInstantTask ("Get process", "Read a process from the database.")

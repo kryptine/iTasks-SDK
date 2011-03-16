@@ -11,9 +11,6 @@ derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 	| TTCInteractiveContainer !TTCInteractiveContainer
 	| TTCResultContainer !TTCResultContainer
 	| TTCParallelContainer !TTCParallelContainer
-	| TTCGroupContainer !TTCGroupContainer
-
-:: SubtaskNr :== [Int]
 
 :: FormContent =
 	{ form		:: !TUIDef
@@ -28,7 +25,7 @@ derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 	, updates		:: !(Maybe [TUIUpdate])
 	, subject		:: !String
 	, description	:: !String
-	, menu			:: !Maybe [TUIDef]
+	, menu			:: ![TUIDef]
 	, formWidth		:: !Maybe FormWidth
 	, type			:: !InteractiveTaskType
 	}
@@ -47,24 +44,8 @@ derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 	, subject		:: !String
 	, description	:: !String
 	, content		:: ![TaskPanel]
-	}
-	
-:: TTCGroupContainer =
-	{ xtype			:: !String
-	, taskId		:: !TaskId
-	, subject		:: !String
-	, description	:: !String
-	, content		:: ![TTCGroupContainerElement]
-	, subtaskId		:: !(Maybe String)
-	, menu			:: !Maybe [TUIDef]
-	, bbar			:: !Maybe [TUIDef]
+	, menu			:: ![TUIDef]
 	}
 
-:: TTCGroupContainerElement =
-	{ panel		:: !TaskPanel
-	, index		:: !String
-	, focus		:: !Bool
-	}
-
-buildTaskPanel 		:: !UITree !User	-> TaskPanel
-buildResultPanel 	:: !UITree 			-> TaskPanel
+buildTaskPanel 		:: !UITreeContainer	-> TaskPanel
+buildResultPanel 	:: !UITreeContainer	-> TaskPanel

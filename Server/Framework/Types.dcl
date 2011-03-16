@@ -197,6 +197,7 @@ instance toString HtmlDisplay
 	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
 	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	
 	, deleteWhenDone	:: !Bool					// Delete the process after completion
+	, containerType		:: !TaskContainerType		// The maintask's container type
 	}
 	
 :: TaskId :== String		// String serialization of TaskNr values
@@ -238,10 +239,10 @@ instance toString HtmlDisplay
 :: TaskContainerType	= DetachedTask !ManagerProperties !ActionMenu	// task detached as separate process
 						| WindowTask !WindowTitle !ActionMenu			// task shwon in a window (with own menu)
 						| DialogTask !WindowTitle						// task shwon as dialogue (without own menu)
-						| InParallelBody								// task shown in the body of the parallel container
+						| InBodyTask									// task shown in the body of the parallel container
 						| HiddenTask									// task not shown to the user
 						
-:: ActionMenu :== [MenuAction] -> MenuDefinition
+:: ActionMenu :== [ActionName] -> MenuDefinition
 
 noMenu		:: ActionMenu
 staticMenu	:: !MenuDefinition -> ActionMenu
@@ -369,8 +370,6 @@ actionLabel	:: !Action -> String
 			, shift	:: !Bool
 			}	
 :: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
-
-:: MenuGenFunc :== *IWorld -> *(MenuDefinition, *IWorld)
 
 class menuAction a :: a -> MenuAction
 

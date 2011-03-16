@@ -10,43 +10,46 @@ from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: SpineTree					:== TaskTree Void Void Void
-:: UITree						:== TaskTree InteractiveTask HtmlTag MenuDefinition
-:: JSONTree						:== TaskTree JSONNode JSONNode MenuDefinition
-:: NonNormalizedTree			:== TaskTree TTNNInteractiveTask TTNNFinished MenuGenFunc
+:: UITree						:== TaskTree TTContainerType InteractiveTask HtmlTag
+:: JSONTree						:== TaskTree Void JSONNode JSONNode
+:: NonNormalizedTree			:== TaskTree TaskContainerType TTNNInteractiveTask TTNNFinished
 
-:: TTNNInteractiveTask			:== (*IWorld -> *(!InteractiveTask,!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
+:: SpineTreeContainer			:== TaskTreeContainer Void Void Void
+:: UITreeContainer				:== TaskTreeContainer TTContainerType InteractiveTask HtmlTag
+:: JSONTreeContainer			:== TaskTreeContainer Void JSONNode JSONNode
+:: NonNormalizedTreeContainer	:== TaskTreeContainer TaskContainerType TTNNInteractiveTask TTNNFinished
+
+:: TTNNInteractiveTask			:== (*IWorld -> *(!InteractiveTask,![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished					:== (HtmlTag,JSONNode)
 
-:: TaskTree interactiveOutput finishedOutput menus
-	//NODE CONSTRUCTORS
-	
+:: TaskTreeContainer containerType interactiveOutput finishedOutput = TTContainer !containerType !.(TaskTree containerType interactiveOutput finishedOutput)
+
+:: TaskTree containerType interactiveOutput finishedOutput
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
-	= TTParallelTask	!.(TaskInfo menus) !.[TaskTree interactiveOutput finishedOutput menus]
-	
-	//LEAF CONSTRUCTORS
-											
+	= TTParallelTask	!TaskInfo !.[.TaskTreeContainer containerType interactiveOutput finishedOutput]								
 	//A task that can be worked on through a gui
-	| TTInteractiveTask	!.(TaskInfo menus) !InteractiveTaskType interactiveOutput								
-	//A completed task
-	| TTFinishedTask	!.(TaskInfo menus) finishedOutput !Bool
+	| TTInteractiveTask	!TaskInfo !InteractiveTaskType interactiveOutput								
+	//A completed task (the flag indicates if the result is shown to the user)
+	| TTFinishedTask	!TaskInfo finishedOutput !Bool
 
+// similar to TaskContainerType but with calculated menus
+:: TTContainerType	= TTDetached ![TUIDef]				// task detached as separate process
+					| TTWindow !WindowTitle ![TUIDef]	// task shwon in a window (with own menu)
+					| TTDialog !WindowTitle				// task shwon as dialogue (without own menu)
+					| TTInBody							// task shown in the body of the parallel container
+					| TTHidden							// task not shown to the user
 
-:: NonNormalizedTaskInfo	:== TaskInfo MenuGenFunc
-:: NormalizedTaskInfo		:== TaskInfo MenuDefinition
+:: TaskInfo	=	{ taskId				:: !TaskId											//Task number in string format
+				, subject				:: !String											//Short subject of the task
+				, description			:: !String											//Description of the task (html)
+				, tags					:: ![String]
+				, formWidth				:: !Maybe FormWidth
+				}
 
-:: TaskInfo	menus =		{ taskId				:: !TaskId											//Task number in string format
-						, subject				:: !String											//Short subject of the task
-						, description			:: !String											//Description of the task (html)
-						, tags					:: ![String]
-						, containerType			:: !TaskContainerType
-						, menus					:: !.(Maybe menus)
-						, formWidth				:: !Maybe FormWidth
-						}
+// definition/updates for interactive tasks
+:: InteractiveTask	= Definition	!TUIDef			![TUIDef]	//Definition for rendering a user interface & buttons
+					| Updates		![TUIUpdate]	![TUIDef]	//Update an already rendered user interface & buttons
 
-// give definition/updates or determine it after entire tree is build, needed for updateShared, ...
-:: InteractiveTask	= Definition	!TUIDef			![(Action,Bool)]					//Definition for rendering a user interface
-					| Updates		![TUIUpdate]	![(Action,Bool)]					//Update an already rendered user interface
-
-toSpineTree	:: !NonNormalizedTree			-> SpineTree
-toUITree	:: !NonNormalizedTree !*IWorld	-> (!UITree,!*IWorld)
-toJSONTree	:: !NonNormalizedTree !*IWorld	-> (!JSONTree,!*IWorld)
+toSpineTreeContainer	:: !NonNormalizedTreeContainer			-> SpineTreeContainer
+toUITreeContainer		:: !NonNormalizedTreeContainer !*IWorld	-> (!UITreeContainer,!*IWorld)
+toJSONTreeContainer		:: !NonNormalizedTreeContainer !*IWorld	-> (!JSONTreeContainer,!*IWorld)

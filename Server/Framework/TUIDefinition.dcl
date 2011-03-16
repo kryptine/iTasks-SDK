@@ -12,8 +12,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	| TUIAddTo			!TUIId !TUIDef	// Add the additional component as a child of the component with indicated id
 	| TUIRemove			!TUIId			// Remove the component with indicated id
 	| TUIReplace		!TUIId !TUIDef	// Replace a component
-	| TUISetEnabled		!TUIId !Bool		// Enable/disable form elements
-	| TUIReplaceMenu	![TUIDef]		// Replace the task's menu bar
+	| TUISetEnabled		!TUIId !Bool	// Enable/disable form elements
 	| TUIReplaceButtons	![TUIDef]		// Replace all task's buttons
 	//NEW COMMANDS:
 	//Leaf updates
@@ -209,7 +208,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 
 :: TUIButton =
 	{ name			:: !TUIName
-	, id			:: !TUIId
 	, text			:: !String
 	, action		:: !String
 	, disabled		:: !Bool
@@ -224,8 +222,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, disabled		:: !Bool
 	}
 :: TUIMenuItem =
-	{ id			:: !Maybe TUIId
-	, text			:: !String
+	{ text			:: !String
 	, target		:: !Maybe String
 	, action		:: !Maybe String
 	, menu			:: !Maybe TUIMenu

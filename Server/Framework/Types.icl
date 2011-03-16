@@ -15,10 +15,18 @@ derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display,
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay
 derive gLexOrd		Currency
-derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
-derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
-derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType
+derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType
+derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType
 derive bimap		Maybe, (,)
+
+// JSON (de)serialisation & equality of menus not needed because only functions generating menus (no actual menu structures) are serialised
+JSONEncode{|Menu|} _		= abort "not implemented"
+JSONEncode{|MenuItem|} _	= abort "not implemented"
+JSONDecode{|Menu|} _		= abort "not implemented"
+JSONDecode{|MenuItem|} _	= abort "not implemented"
+gEq{|Menu|} _ _				= abort "not implemented"
+gEq{|MenuItem|} _ _			= abort "not implemented"
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)

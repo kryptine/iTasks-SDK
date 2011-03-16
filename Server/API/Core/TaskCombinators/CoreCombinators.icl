@@ -138,7 +138,7 @@ where
 		= case res of
 			//There are still active tasks
 			TaskBusy		= (TaskBusy,tst)
-			//One the tasks raised an execption
+			//One of the tasks raised an execption
 			TaskException e	str = (TaskException e str, tst)
 			//The accuFun returned a stop action, or all tasks are completed
 			TaskFinished (r,terminationStatus)
@@ -228,7 +228,7 @@ where
 						//IMPORTANT: Task is evaluated with a shifted task number!!!
 						# (result,tree,tst)	= createOrEvaluateTaskInstance task {tst & taskNr = [idx:taskNr]}
 						// Add the tree to the current node
-						# tst				= addTaskNode tree tst
+						# tst				= addTaskNode task.Task.containerType tree tst
 						= (result,tst)
 					_
 						= applyTaskCommit task {tst & taskNr = [idx:taskNr]}
@@ -260,14 +260,14 @@ where
 						= (TaskException e str,pst,tst)
 
 createOrEvaluateTaskInstance :: !(Task a) !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
-createOrEvaluateTaskInstance task tst=:{TSt|taskNr,events}
+createOrEvaluateTaskInstance task=:{Task|containerType} tst=:{TSt|taskNr,events}
 	//Try to load the stored process for this subtask
 	# taskId		 = taskNrToString taskNr
 	# (mbProc,tst)	 = 'ProcessDB'.getProcess taskId tst
 	= case mbProc of
 		//Nothing found, create a task instance
 		Nothing	
-			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False True False tst
+			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False True False containerType tst
 			= case result of
 				TaskBusy				= (TaskBusy, tree, tst)
 				TaskFinished (a :: a^)	= (TaskFinished a, tree, tst)
@@ -291,10 +291,10 @@ createOrEvaluateTaskInstance task tst=:{TSt|taskNr,events}
 		invalidType = "createOrEvaluateTaskIntance: task result of invalid type!"
 
 spawnProcess :: !Bool !Bool !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
-spawnProcess activate gcWhenDone task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
+spawnProcess activate gcWhenDone task=:{Task|containerType} = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
 where
 	spawnProcess` tst
-		# (pid,_,_,tst)	= createTaskInstance (createThread task) True activate gcWhenDone tst
+		# (pid,_,_,tst)	= createTaskInstance (createThread task) True activate gcWhenDone containerType tst
 		= (TaskFinished (pid,sharedProc pid,sharedRes pid), tst)
 	
 	sharedProc pid = makeReadOnlyShared ('ProcessDB'.getProcess pid)

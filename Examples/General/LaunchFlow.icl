@@ -25,7 +25,7 @@ actions
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu @>> doMenu
+	= container (DetachedTask initManagerProperties (staticMenu initMenu)) doMenu
 where
 	doMenu
 		=						doMenuEnter

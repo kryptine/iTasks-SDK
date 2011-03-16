@@ -58,18 +58,19 @@ where
 				insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
 
 startWorkflow :: !Workflow -> Task Void
-startWorkflow {thread} = mkInstantTask "create new task" (startWorkflow` thread)
+startWorkflow {thread,containerType} = mkInstantTask "create new task" (startWorkflow` thread containerType)
 	
-startWorkflow` thread tst
-	# (_,_,_,tst) = createTaskInstance thread True True True tst
+startWorkflow` thread containerType tst
+	# (_,_,_,tst) = createTaskInstance thread True True True containerType tst
 	= (TaskFinished Void,tst)
 	
 startWorkflowByIndex :: !Int -> Task Void
 startWorkflowByIndex idx = mkInstantTask "create new task by index in workflow list" startWorkflowByIndex`
 where
 	startWorkflowByIndex` tst
-		# (workflows,tst) = getAllowedWorkflows tst
-		= startWorkflow` (workflows !! idx).thread tst
+		# (workflows,tst)			= getAllowedWorkflows tst
+		# {thread,containerType}	= workflows !! idx
+		= startWorkflow` thread containerType tst
 
 getAllowedWorkflows tst
 	# (session,tst)		= getCurrentSession tst

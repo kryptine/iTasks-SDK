@@ -13,7 +13,7 @@ from HTTP		import :: HTTPRequest
 
 // The task state
 :: *TSt 		=	{ taskNr 			:: !TaskNr											// for generating unique form-id's
-					, taskInfo			:: !NonNormalizedTaskInfo							// task information available to tasks
+					, taskInfo			:: !TaskInfo										// task information available to tasks
 					, tree				:: !NonNormalizedTree								// accumulator for constructing a task tree
 					, newTask			:: !Bool											// does the task run for the first time
 					
@@ -48,6 +48,7 @@ from HTTP		import :: HTTPRequest
 					, roles			:: ![String]										// the roles that are allowed to initate this workflow
 					, thread		:: !Dynamic											// the thread of the main task of the workflow
 					, description	:: !String											// a description of the workflow
+					, containerType	:: !TaskContainerType								// the container type of the main task
 					}
 					
 /**
@@ -109,7 +110,7 @@ toNonParamThreadEnter	:: !Dynamic			-> Dynamic
 * @return The task tree created at the first run
 * @return The modified task state
 */
-createTaskInstance :: !Dynamic !Bool !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+createTaskInstance :: !Dynamic !Bool !Bool !Bool !TaskContainerType !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
 
 /**
 * Removes a running task instance from the list of processes and clears any associated data in the store
@@ -167,7 +168,7 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!NonNormalizedTree, !*TSt)
+calculateTaskTreeContainer :: !TaskId ![TaskEvent] !*TSt -> (!NonNormalizedTreeContainer, !*TSt)
 /**
 * Lists which workflows are available
 *
@@ -325,7 +326,7 @@ applyTaskCommit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 *
 * @return The modified task state
 */
-addTaskNode 		:: !NonNormalizedTree !*TSt -> *TSt
+addTaskNode 		:: !TaskContainerType !NonNormalizedTree !*TSt -> *TSt
 
 //// TASK CONTENT
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt						-> *TSt // Only for interactive tasks

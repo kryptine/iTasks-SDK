@@ -11,7 +11,7 @@ taskDescription	:: !(Task a) -> String
 taskDescription task = task.Task.properties.taskDescription.TaskDescription.description
 
 taskUser :: !(Task a) -> User
-taskUser {containerType} = case containerType of
+taskUser {Task|containerType} = case containerType of
 	DetachedTask {worker} _	= worker
 	_						= AnyUser
 
@@ -19,7 +19,7 @@ taskProperties :: !(Task a) -> TaskProperties
 taskProperties {Task|properties} = properties
 
 managerProperties :: !(Task a) -> ManagerProperties
-managerProperties {containerType} = case containerType of
+managerProperties {Task|containerType} = case containerType of
 	DetachedTask props _	= props
 	_						= initManagerProperties
 	
@@ -76,41 +76,37 @@ derive JSONEncode TaskResult, TaskContainerType
 derive JSONDecode TaskResult, TaskContainerType
 derive bimap Maybe, (,)
 
-// JSON (de)serialisation of menus not needed because only function generating menus are serialised
+// JSON (de)serialisation of menus not needed because only functions generating menus (no actual menu structures) are serialised
 JSONEncode{|Menu|} _		= abort "not implemented"
 JSONEncode{|MenuItem|} _	= abort "not implemented"
 JSONDecode{|Menu|} _		= abort "not implemented"
 JSONDecode{|MenuItem|} _	= abort "not implemented"
 
-JSONEncode{|Task|} _ {properties,containerType,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit}
+JSONEncode{|Task|} _ {properties,containerType,mbTaskNr,taskFuncEdit,taskFuncCommit}
 	= [JSONArray	[  JSONString "Task"
 					:  JSONEncode{|*|} properties
 					++ JSONEncode{|*|} containerType
 					++ JSONEncode{|*|} mbTaskNr
-					++ encodeFunc mbMenuGenFunc
 					++ encodeFunc taskFuncEdit
 					++ encodeFunc taskFuncCommit]]
 					
 encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
 
-JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,containerType,mbTaskNr,mbMenuGenFunc,taskFuncEdit,taskFuncCommit]:c]
+JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,containerType,mbTaskNr,taskFuncEdit,taskFuncCommit]:c]
 	# mbTaskProperties		= fromJSON properties
 	# mbContainerType		= fromJSON containerType
 	# mbMbTaskNr			= fromJSON mbTaskNr
-	# mbMbMenuGenFunc		= decodeFunc mbMenuGenFunc
 	# mbTaskFuncEdit		= decodeFunc taskFuncEdit
 	# mbTaskFuncCommit		= decodeFunc taskFuncCommit
 	|  isJust mbTaskProperties
 	&& isJust mbContainerType
 	&& isJust mbMbTaskNr
-	&& isJust mbMbMenuGenFunc
 	&& isJust mbTaskFuncEdit
 	&& isJust mbTaskFuncCommit
 		= (Just	{ properties	= fromJust mbTaskProperties
 				, containerType		= fromJust mbContainerType
 				, formWidth			= Nothing
 				, mbTaskNr			= fromJust mbMbTaskNr
-				, mbMenuGenFunc		= fromJust mbMbMenuGenFunc
 				, taskFuncEdit		= fromJust mbTaskFuncEdit
 				, taskFuncCommit	= fromJust mbTaskFuncCommit
 				},c)
@@ -126,10 +122,9 @@ gUpdate{|Task|} fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ properties	= {initTaskProperties & taskDescription = toDescr "return"}
-					, containerType		= InParallelBody
+					, containerType		= InBodyTask
 					, formWidth			= Nothing
 					, mbTaskNr			= Nothing
-					, mbMenuGenFunc		= Nothing
 					, taskFuncEdit		= id
 					, taskFuncCommit	= \tst -> (TaskFinished a,tst)
 					}

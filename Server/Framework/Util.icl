@@ -14,7 +14,7 @@ baseName path = last (split "\\" path)
 app :: !(.a -> .b) !.a -> .b
 app f x = f x
 
-mapSt :: (a *st -> (b,*st)) [a] *st -> ([b],*st)
+mapSt :: (a .st -> (b,.st)) [a] .st -> ([b],.st)
 mapSt f [] st = ([], st)
 mapSt f [x:xs] st
 	# (y, st) = f x st

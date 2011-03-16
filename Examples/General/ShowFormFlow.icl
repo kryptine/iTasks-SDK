@@ -29,7 +29,7 @@ actions
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu @>> doMenu "Select store to view..." (Hidden Void)
+	=	container (DetachedTask initManagerProperties (staticMenu initMenu)) (doMenu "Select store to view..." Void)
 where
 	doMenu :: String a -> Task Void | iTask a
 	doMenu title val

@@ -13,7 +13,7 @@ pad					:: Int Int -> String
 decFormat			:: Int -> String
 
 app					:: !(.a -> .b) !.a -> .b
-mapSt				:: (a *st -> (b,*st)) [a] *st -> ([b],*st)
+mapSt				:: (a .st -> (b,.st)) [a] .st -> ([b],.st)
 
 // Functions for accessing dates and times
 currentTime 		:: !*IWorld -> (!Time,!*IWorld)

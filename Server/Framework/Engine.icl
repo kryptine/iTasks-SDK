@@ -80,6 +80,7 @@ workflow path description task =
 	, roles	= []
 	, thread = createThread (task <<@ Title (path2name path))
 	, description = description
+	, containerType = task.Task.containerType
 	}
 	
 workflowParam :: !String !String !(a -> Task b)	-> Workflow | iTask a & iTask b
@@ -89,6 +90,7 @@ workflowParam path description task =
 	, roles	= []
 	, thread = createThreadParam ((@>>) (Title (path2name path)) o task)
 	, description = description
+	, containerType = InBodyTask
 	}
 
 restrictedWorkflow :: !String !String ![Role] !(Task a) -> Workflow | iTask a
@@ -98,6 +100,7 @@ restrictedWorkflow path description roles task =
 	, roles	= roles
 	, thread = createThread (task <<@ Title (path2name path))
 	, description = description
+	, containerType = task.Task.containerType
 	}
 	
 restrictedWorkflowParam :: !String !String ![Role] !(a -> Task b) -> Workflow | iTask a & iTask b
@@ -107,6 +110,7 @@ restrictedWorkflowParam path description roles task =
 	, roles	= roles
 	, thread = createThreadParam ((@>>) (Title (path2name path)) o task)
 	, description = description
+	, containerType = InBodyTask
 	}
 
 path2name path = last (split "/" path)

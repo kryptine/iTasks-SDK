@@ -14,23 +14,6 @@ instance tune Tag
 where tune (Tag t) task			= let p = taskProperties task in {Task|task & properties = {p & tags = [toString t : p.tags]}}
 instance tune Tags
 where tune (Tags ts) task		= let p = taskProperties task in {Task|task & properties = {p & tags = (map toString ts) ++ p.tags}}
-instance tune MenuAnnotation
-where
-	tune ma task				= {task & mbMenuGenFunc = (Just menuGenFunc)}
-	where
-		menuGenFunc = case ma of
-			NoMenus						= \iworld -> ([], iworld)
-			StaticMenus menus			= \iworld -> (menus, iworld)
-			DynamicMenus shared genF	= dynamicMenus
-			where
-				dynamicMenus iworld
-					# (v,iworld) = readShared shared iworld
-					= case v of
-						Ok v	= (genF v,iworld)
-						Error _	= ([],iworld) // empty menus on error
-					
-instance tune MenuDefinition
-where tune menus task	= tune (StaticMenus menus) task
 instance tune FormWidth
 where tune fw task		= {task & formWidth = Just fw}
 

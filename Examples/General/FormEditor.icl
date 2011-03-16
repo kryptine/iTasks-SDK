@@ -56,7 +56,7 @@ ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu @>> doMenu emptyState
+	= container (DetachedTask initManagerProperties (staticMenu initMenu)) (doMenu emptyState)
 
 doMenu state=:((name,form), mode)
 		=	case mode of
