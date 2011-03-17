@@ -150,6 +150,10 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			if(!Ext.isDefined(content.taskId) || cur.taskId == content.taskId) {
 				cur.update(content);
 			} else {
+				// fire done event because subprocesses of parallel possibly also stopped
+				if (cur.xtype == 'itasks.ttc.parallel')
+					this.fireEvent("taskDone");
+					
 				ct.remove(0,true);
 				ct.add(content);
 				ct.doLayout();

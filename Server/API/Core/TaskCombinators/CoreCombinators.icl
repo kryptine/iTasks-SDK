@@ -125,26 +125,29 @@ where
 
 	parallelC tst=:{taskNr,properties}
 		// Load the internal state
-		# (pst,tst)			= accIWorldTSt (loadPSt taskNr) tst
+		# (pst,tst)		= accIWorldTSt (loadPSt taskNr) tst
 		// Evaluate the subtasks for all currently active tasks
- 		# (res,pst,tst)		= processAllTasksC pst tst
- 		// If all non-control tasks finished return the transformed initial state
-		| isEmpty (filter (\(_,task) -> not (isControlTask task)) pst.tasks)
-			= (TaskFinished (resultFun AllRunToCompletion initState), tst)
-		// Store the internal state
-		# tst				= storePSt taskNr pst tst
-		# tst = appIWorldTSt flushCache tst
+ 		# (res,pst,tst)	= processAllTasksC pst tst
 		// The result of the combined evaluation of all parallel subtasks
 		= case res of
 			//There are still active tasks
-			TaskBusy		= (TaskBusy,tst)
+			TaskBusy
+				// If all non-control tasks finished return the transformed initial state
+				| isEmpty (filter (\(_,task) -> not (isControlTask task)) pst.tasks)
+					# tst = 'ProcessDB'.deleteSubProcesses (taskNrToString taskNr) tst
+					= (TaskFinished (resultFun AllRunToCompletion pst.PSt.state), tst)
+				| otherwise
+					// Store the internal state
+					# tst = storePSt taskNr pst tst
+					= (TaskBusy,tst)
 			//One of the tasks raised an execption
-			TaskException e	str = (TaskException e str, tst)
-			//The accuFun returned a stop action, or all tasks are completed
-			TaskFinished (r,terminationStatus)
-				//Remove the extra workers for this parallel combination
-				//# tst = clearSubTaskWorkers (taskNrToString taskNr) (Just parType) tst
-				= (TaskFinished (resultFun terminationStatus r),tst)
+			TaskException e	str
+				# tst = 'ProcessDB'.deleteSubProcesses (taskNrToString taskNr) tst
+				= (TaskException e str, tst)
+			//The accuFun returned a stop action
+			TaskFinished r
+				# tst = 'ProcessDB'.deleteSubProcesses (taskNrToString taskNr) tst
+				= (TaskFinished (resultFun Stopped r),tst)
 	
 	//Load or create the internal state
 	loadPSt taskNr iworld
@@ -247,12 +250,11 @@ where
 								//Process the other tasks
 								# (result,pst,tst) = processAllTasksC {pst & state = state, tasks = ts} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = pst.tasks}, {tst & taskNr = taskNr})
-								//Process the other tasks extended with the new tasks
 							Just Stop
 								//Don't process the other tasks, return the state as result
-								= (TaskFinished (state,Stopped),pst,tst)
-							
+								= (TaskFinished state,pst,tst)
 							Just (Extend tasks)
+								//Process the other tasks extended with the new tasks
 								# (result,pst,tst) = processAllTasksC {pst & state = state, tasks = ts ++ [(idx,AddedTask t) \\ t <- tasks & idx <- [pst.nextIdx..]], nextIdx = pst.nextIdx + length tasks + pst.nextIdx} {tst & taskNr = taskNr}
 								= (result, {PSt | pst & tasks = pst.tasks}, {tst & taskNr = taskNr})
 					TaskException e str
