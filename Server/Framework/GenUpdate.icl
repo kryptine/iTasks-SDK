@@ -218,9 +218,11 @@ gUpdate{|Time|} UDCreate ust=:{iworld}
 	= basicCreate time {ust & iworld = iworld}
 gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\str _ -> fromString str) ust
 
-gUpdate{|Dynamic|}			mode ust = basicUpdate mode unchanged (dynamic 42) ust
-gUpdate{|(->)|} _ _			mode ust = basicUpdate mode unchanged (abort "default function") ust
-gUpdate{|Shared|} _ _		mode ust = basicUpdate mode unchanged (abort "default shared") ust
+gUpdate{|Dynamic|}		mode ust = basicUpdate mode unchanged (dynamic 42) ust
+gUpdate{|(->)|} _ fy	mode ust
+	# (def,ust) = fy UDCreate ust
+	= basicUpdate mode unchanged (const def) ust
+gUpdate{|Shared|} _ _	mode ust = basicUpdate mode unchanged (abort "default shared") ust
 unchanged _ v = v
 
 gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust

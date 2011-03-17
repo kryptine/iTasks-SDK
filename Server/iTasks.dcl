@@ -56,7 +56,7 @@ import	Engine						// basic iTask system creator
 from StdFunc import id, const, o
 
 //Types
-import Types
+import Types, GenRecord
 from TSt				import :: Workflow{..}
 from Task				import :: Change(..), :: ChangeLifeTime(..)
 from Shared				import :: Shared, :: ReadOnlyShared, :: SymmetricShared, mapShared, toReadOnlyShared, >+<, |+<, >+|, |+|, >&<, symmetricLens

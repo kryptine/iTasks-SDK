@@ -3,7 +3,7 @@ implementation module CommonCombinators
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
+import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord
 import Util, Either, TSt, GenVisualize, GenUpdate, Map
 from StdFunc	import id, const, o
 from Types		import :: ProcessId, :: User(..), :: Note(..)
@@ -48,14 +48,13 @@ where
 			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
 		>>|	return undef
 		
-	toView (_,[{processProperties=p=:Just {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker,priority,deadline}}}:_])=
-		{ assignedTo	= worker
-		, priority		= priority
+	toView (_,[{processProperties=p=:Just {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}:_])=
+		{ mapRecord m
+		& assignedTo	= worker
 		, progress		= formatProgress progress
 		, issuedAt		= Display issuedAt
 		, firstWorkedOn	= Display firstEvent
 		, lastWorkedOn	= Display latestEvent
-		, deadline		= deadline
 		}
 	where
 		formatProgress TPActive		= coloredLabel "Active" "green"
@@ -64,21 +63,9 @@ where
 		formatProgress TPReject		= coloredLabel "Reject" "red"
 	
 		coloredLabel label color = toHtmlDisplay [SpanTag [StyleAttr ("color:" +++ color)] [Text label]]
-	toView` _ =	{ assignedTo	= AnyUser
-				, priority		= NormalPriority
-				, progress		=toHtmlDisplay "hello"
-				, issuedAt		= Display (Timestamp 0)
-				, firstWorkedOn	= Display Nothing
-				, lastWorkedOn	= Display Nothing
-				, deadline		= Nothing
-				}
 		
-	fromView {ProcessControlView|assignedTo,priority,deadline} _
-		# newManagerProperties =	{ worker	= assignedTo
-									, priority	= priority
-									, deadline	= deadline
-									}
-		= [(1,newManagerProperties)]
+	fromView view=:{ProcessControlView|assignedTo} _
+		= [(1,{mapRecord view & worker = assignedTo})]
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
@@ -89,6 +76,7 @@ where
 						, deadline		:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
+derive class GenRecord ProcessControlView, ManagerProperties, TaskPriority
 
 (@:) infix 3 :: !User !(Task a) -> Task a | iTask a
 (@:) user task = assign {initManagerProperties & worker = user} noMenu task
