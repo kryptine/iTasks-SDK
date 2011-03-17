@@ -35,7 +35,8 @@ noAutoActionEvents = const Nothing
 makeInteractiveTask :: !(Maybe (About about)) !(about -> aboutV) !(View i v o) ![TaskAction i] !(Maybe (AutoActionEvents i)) !(InteractiveTaskMode i o) -> TaskFunctions (!Action, !Maybe i) | iTask i & iTask v & iTask o & iTask about & iTask aboutV
 makeInteractiveTask mbAbout aboutView (bimapGet,bimapPutback) actions mbAutoEventF interactiveTaskMode = (interactiveTaskE,interactiveTaskC)
 where
-	interactiveTaskE tst=:{taskNr}
+	interactiveTaskE tst=:{taskNr,newTask}
+		| newTask							= tst
 		# (edits,tst)						= getEditEvents tst
 		# (mbValueEvent,tst)				= getValueEvent tst
 		# (old=:(ovalue,oumask,ovmask),tst)	= accIWorldTSt (readStores taskNr) tst

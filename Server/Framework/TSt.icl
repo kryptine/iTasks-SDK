@@ -636,23 +636,17 @@ mkTask description taskFuncEdit taskFuncCommit =
 
 applyTaskEdit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
-	# taskId								= iTaskId taskNr ""
-	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
-	= case (taskVal,mbTaskNr) of
-		(Just (TaskFinished a),_)
+	# (mbTaskVal,tst) = accIWorldTSt (loadValue (iTaskId taskNr "")) tst
+	= case mbTaskVal of
+		Just (TaskFinished a)
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
-		(Just _,_)
+		_
+			# tst = case (mbTaskVal,mbTaskNr) of
+				// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
+				(Nothing,Just initTaskNr)	= copyTaskStates initTaskNr taskNr tst
+				_							= tst
 			// Execute task function
-			# tst = taskFuncEdit tst
-			= (TaskBusy,tst)
-		(Nothing, Just initTaskNr)
-			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
-			# tst = copyTaskStates initTaskNr taskNr tst
-			// Execute task function
-			# tst = taskFuncEdit tst
-			= (TaskBusy,tst)
-		(Nothing,Nothing)
-			// no edit pass for new task
+			# tst = taskFuncEdit {tst & newTask = isNothing mbTaskVal && isNothing mbTaskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
