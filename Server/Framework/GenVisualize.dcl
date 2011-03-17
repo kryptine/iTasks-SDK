@@ -123,8 +123,8 @@ visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Mayb
 * @param The value of the TUI element (if present & touched)
 * @param The field label (if present)
 * @param A flag indicating if the value is optional
-* @param Hint message
 * @param Error message
+* @param Hint message
 *
 * @return The generated TUI definition
 */
@@ -139,8 +139,8 @@ visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Mayb
 * @param A flag indicating if the value is touched
 * @param The field label (if present)
 * @param A flag indicating if the value is optional
-* @param Hint message
 * @param Error message
+* @param Hint message
 * @param A flag indicating if a static editor should be generated
 * @param VSt (currentPath points to first child of element, updateMasks & verifyMasks are masks of children)
 *
