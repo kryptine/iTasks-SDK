@@ -15,9 +15,9 @@ graphToSPTree bindings graph
 	[start] = case filter (\n = isEmpty (getSuccessors graph n)) nodes of
 				  [end] = subgraphToTree bindings graph start end
 				  []    = parseError "No end node found"
-		          ends  = parseErrorInChildren "nodes" ends "End node is ambiguous"
+		          ends  = parseErrorInChildren PNNode ends "End node is ambiguous"
 	[]      = parseError "No start node found"  
-	starts  = parseErrorInChildren "nodes" starts "Start node is ambiguous"
+	starts  = parseErrorInChildren PNNode starts "Start node is ambiguous"
 
 subgraphToTree :: Bindings GGraph Int Int -> GParseState SPTree
 subgraphToTree bindings graph source sink
@@ -29,15 +29,15 @@ subgraphToTree bindings graph source sink
     beforesink :: [Int]
     beforesink = getPredecessors graph sink
     subgraphToTree` :: BranchType -> GParseState SPTree
-    subgraphToTree` BTMerge = parseErrorInChildN "nodes" source "Merge unexpected"
+    subgraphToTree` BTMerge = parseErrorInChild (PNNode source) "Merge unexpected"
     subgraphToTree` BTSingle | source == sink = getPathNode graph source >>> \source` = ret (SPNode source`)
     subgraphToTree` BTSingle | length aftersource == 1 = 
 			subgraphToTree bindings graph (hd aftersource) sink >>> \tree = 
 			getPathNode graph source >>> \source` = 
 			getEdgePatternAfter graph source >>> \patternPath = 
 			ret (SPSeries (SPNode source`) tree (getNodePatternAfter graph source) patternPath)
-	subgraphToTree` BTSingle = parseErrorInChildN "nodes" source "Multiple outgoing connections are not allowed here"
-	subgraphToTree` BTSplit | length aftersource == 0 = parseErrorInChildN "nodes" source "Missing outgoing connections"
+	subgraphToTree` BTSingle = parseErrorInChild (PNNode source) "Multiple outgoing connections are not allowed here"
+	subgraphToTree` BTSplit | length aftersource == 0 = parseErrorInChild (PNNode source) "Missing outgoing connections"
 	subgraphToTree` BTSplit =
 			findsink bindings graph (hd aftersource) 0 >>> \parsink =
 			matchPairs bindings graph aftersource (getPredecessors graph parsink) >>> \trees =
@@ -50,7 +50,7 @@ subgraphToTree bindings graph source sink
 				 	1 = subgraphToTree bindings graph (hd parsucc) sink >>> \tree = 
 						getEdgePatternAfter graph parsink >>> \patternPath = 
 						ret (SPSeries (SPParallel (source`,parsink`) trees) tree (getNodePatternAfter graph parsink) patternPath)
-					otherwise = parseErrorInChildN "nodes" parsink "Multiple outgoing connections are not allowed here")
+					otherwise = parseErrorInChild (PNNode parsink) "Multiple outgoing connections are not allowed here")
 
 
 findsink :: Bindings GGraph Int Int -> GParseState Int
@@ -60,16 +60,16 @@ findsink bindings graph source level
     aftersource = getSuccessors graph source
     findsink` :: BranchType -> GParseState Int
     findsink` BTMerge   | level == 0 = ret source
-    findsink` _         | length aftersource == 0 = parseErrorInChildN "nodes" source "Could not find matching end node"
+    findsink` _         | length aftersource == 0 = parseErrorInChild (PNNode source) "Could not find matching end node"
     findsink` BTSplit = findsink bindings graph (hd aftersource) (inc level)
     findsink` BTMerge = findsink bindings graph (hd aftersource) (dec level)
     findsink` BTSingle | length aftersource == 1 = findsink bindings graph (hd aftersource) level
-    findsink` BTSingle = parseErrorInChildN "nodes" source "Multiple outgoing connections are not allowed here"
+    findsink` BTSingle = parseErrorInChild (PNNode source) "Multiple outgoing connections are not allowed here"
 
 matchPairs :: Bindings GGraph [Int] [Int] -> GParseState [(SPPattern,SPTree)]
 matchPairs _ _     [] []                  = ret []
 matchPairs _ _     [] [sink:sinks]        = 
-	parseErrorInChildN "nodes" sink "Node is not reachable from start"
+	parseErrorInChild (PNNode sink) "Node is not reachable from start"
 matchPairs bindings graph [source:sources] sinks = 
 	matchsource bindings graph source sinks >>> \(sink,tree) =
 	matchPairs bindings graph sources (removeMember sink sinks) >>> \trees =
@@ -79,14 +79,14 @@ matchPairs bindings graph [source:sources] sinks =
 matchsource bindings graph source [sink:sinks] = 
 	orElse (subgraphToTree bindings graph source sink >>> \tree = ret (sink, tree))
 	       (matchsource bindings graph source sinks)
-matchsource bindings _ source [] = parseErrorInChildN "nodes" source "Node cannot reach end node"
+matchsource bindings _ source [] = parseErrorInChild (PNNode source) "Node cannot reach end node"
 
 getPathNode :: GGraph Int -> GParseState SPPathNode
-getPathNode graph index =  parseChildN "nodes" index getCurrentPath >>> \path = 
+getPathNode graph index =  parseChild (PNNode index) getCurrentPath >>> \path = 
 	ret (SPPathNode (getNode graph index) path)
 
 getEdgePatternAfter :: GGraph Int -> GParseState GPath
-getEdgePatternAfter graph index = parseChildN "edges" (hd (getSuccessorsEdges graph index)) (parseChild "pattern" getCurrentPath)
+getEdgePatternAfter graph index = parseChild (PNEdge (hd (getSuccessorsEdges graph index))) (parseChild PNPattern getCurrentPath)
 
 //instance toString SPTree where
 //	toString tree = printToString tree

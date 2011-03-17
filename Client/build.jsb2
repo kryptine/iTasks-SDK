@@ -139,6 +139,8 @@
 	  ,{"text":"view.js","path":"lib/oryx/scripts/Plugins/"}
       ,{"text":"addDocker.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"dragDocker.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"overlay.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"syntaxchecker.js","path":"lib/oryx/scripts/Plugins/"}
 
 	  ,{"text":"loader.js","path":"lib/oryx/scripts/"}
       ]

@@ -1,5 +1,6 @@
 implementation module GinORYX
 
+import StdBool
 import StdEnum
 from StdFunc import const,o
 import StdList
@@ -11,21 +12,20 @@ import Map
 import Maybe
 import Text
 
-from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
-from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+import iTasks
 
 import GinAbstractSyntax
 import GinFlowLibrary
 import GinParser
 import GinSyntax
 
-derive gEq		 		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive JSONEncode		ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive JSONDecode 		ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive gVisualize  	 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, JSONNode
-derive gUpdate	    	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, JSONNode
-derive gDefaultMask		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, JSONNode
-derive gVerify  		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, JSONNode
+derive gEq		 		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive JSONEncode		ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive JSONDecode 		ORYXBound, ORYXBounds, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive gVisualize  	 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError, JSONNode
+derive gUpdate	    	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError, JSONNode
+derive gDefaultMask		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError, JSONNode
+derive gVerify  		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError, JSONNode
 
 JSONEncode{|ORYXChildShape|} {resourceId, properties, stencil, childShapes, outgoing, bounds, dockers, target}
 	# target` = case target of
@@ -83,8 +83,21 @@ newORYXEditor stencilset
 	=	{ ORYXEditor
 		| diagram = newORYXDiagram stencilset
 		, stencilset = stencilset
-		, toString = const "newORYXEditor: toString is undefined"
+		, verify = oryxAlwaysValid
 		}
+where
+	oryxAlwaysValid :: !ORYXEditor *IWorld -> (!WorldPredicateResult,!*IWorld)
+	oryxAlwaysValid _ iworld = (WPRValid Nothing, iworld)
+		
+emptyORYXEditor :: ORYXEditor
+emptyORYXEditor = newORYXEditor emptyStencilSet
+where
+	emptyStencilSet :: ORYXStencilSetReference
+	emptyStencilSet 
+		=	{ ORYXStencilSetReference 
+			| url = ""
+			, namespace = ""
+			}
 		
 petriNetORYXEditor :: ORYXEditor
 petriNetORYXEditor = newORYXEditor petriNetStencilSet
@@ -113,16 +126,6 @@ newORYXDiagram stencilset
 					, ssextensions = []
 					}
 					
-ginStencilSet :: ORYXStencilSetReference
-ginStencilSet 
-	=	{ ORYXStencilSetReference 
-   		| url = "/services/json/stencils/gin"
-		, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
-		}
-		
-newGinORYXDiagram :: ORYXDiagram
-newGinORYXDiagram = newORYXDiagram ginStencilSet
-
 bpmnORYXEditor :: ORYXEditor
 bpmnORYXEditor = newORYXEditor bpmnStencilSet
 where
@@ -132,25 +135,38 @@ where
 	   		| url = "bpmn2.0/bpmn2.0.json"
 			, namespace = "http://b3mn.org/stencilset/bpmn2.0#"
 			}
+			
+ginORYXDiagram :: ORYXDiagram
+ginORYXDiagram = newORYXDiagram ginStencilSet
 
 //Gin specific:
-ginORYXEditor :: ![GImport] ORYXDiagram -> ORYXEditor
-ginORYXEditor imports diagram = 
+ginORYXEditor :: !ORYXDiagram !(ORYXEditor *IWorld -> *(WorldPredicateResult,*IWorld))-> ORYXEditor
+ginORYXEditor diagram verify = 
 	{ ORYXEditor
 	| newORYXEditor ginStencilSet
 	& diagram = diagram
-	, toString = \_ -> "TODO: Not yet implemented"
+	, verify = verify
 	}
+	
+ginStencilSet :: ORYXStencilSetReference
+ginStencilSet 
+	=	{ ORYXStencilSetReference 
+   		| url = "/services/json/stencils/gin"
+		, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
+		}
 					
 oryxDiagramToGraph :: !Bindings !ORYXDiagram -> GGraph
-oryxDiagramToGraph bindings diagram
-	# shapes = diagram.ORYXDiagram.childShapes
+oryxDiagramToGraph bindings diagram 
+	= oryxChildShapesToGraph bindings diagram.ORYXDiagram.childShapes
+
+oryxChildShapesToGraph :: !Bindings ![ORYXChildShape] -> GGraph
+oryxChildShapesToGraph bindings shapes
 	# shapeMap = (fromList o map (\shape -> (shapeId shape, shape)))  shapes
 	# nodes =  (zip2 [0..] o filter (not o isEdge)) shapes
 	# nodeMap = (fromList o map (\(index,node) -> (shapeId node, index))) nodes
 	=	{ GGraph
 		| nodes = map (oryxChildShapeToNode bindings o snd) nodes
-		, edges = (flatten o map (oryxChildShapesToEdge shapeMap nodeMap)) nodes
+		, edges = (flatten o map (oryxChildShapesToEdges shapeMap nodeMap)) nodes
 		, size = Nothing
 		}
 
@@ -166,22 +182,29 @@ oryxChildShapeToNode bindings shape
 							| x = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.x
 							, y = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.y
 							}
-			, actualParams = oryxPropertiesToGExpressions (snd decl) shape.ORYXChildShape.properties 
+			, actualParams = oryxChildShapeToActualParams bindings (snd decl) shape
 			}
 
-oryxPropertiesToGExpressions :: GDeclaration !ORYXProperties -> [GExpression]
-oryxPropertiesToGExpressions decl properties
-	# propMap = propertyMap properties
- 	= [ maybe GUndefinedExpression jsonNodetoGExpression (get param.GFormalParameter.name propMap)
- 	    \\ param <- decl.GDeclaration.formalParams 
- 	  ]
+oryxChildShapeToActualParams :: !Bindings GDeclaration !ORYXChildShape -> [GExpression]
+oryxChildShapeToActualParams bindings decl shape
+	# propMap = propertyMap (shape.ORYXChildShape.properties)
+	= map (oryxChildShapeToActualParam bindings shape propMap) decl.GDeclaration.formalParams
  	  
-jsonNodetoGExpression :: JSONNode -> GExpression
-jsonNodetoGExpression (JSONString s)	= GCleanExpression s
-jsonNodetoGExpression _				= GUndefinedExpression
+oryxChildShapeToActualParam :: !Bindings !ORYXChildShape (Map String JSONNode) !GFormalParameter -> GExpression
+oryxChildShapeToActualParam bindings childShape propMap formalParam
+	| isHigherOrderTask formalParam.GFormalParameter.type
+	  && (not o isEmpty) childShape.ORYXChildShape.childShapes
+	  = GGraphExpression (oryxChildShapesToGraph bindings childShape.ORYXChildShape.childShapes)
+	= case get formalParam.GFormalParameter.name propMap of
+		Just (JSONString value) = GCleanExpression value
+		otherwise	   			= GUndefinedExpression
 	
-oryxChildShapesToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) (!Int,!ORYXChildShape) -> [GEdge]
-oryxChildShapesToEdge shapeMap nodeMap (fromIndex,fromNode) = 
+isHigherOrderTask :: !GTypeExpression -> Bool
+isHigherOrderTask (GTypeApplication (GConstructor "Task") _) = True
+isHigherOrderTask _											 = False
+ 	  
+oryxChildShapesToEdges :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) (!Int,!ORYXChildShape) -> [GEdge]
+oryxChildShapesToEdges shapeMap nodeMap (fromIndex,fromNode) = 
 	catMaybes (map (oryxChildShapeToEdge shapeMap nodeMap fromIndex) fromNode.ORYXChildShape.outgoing)
 
 oryxChildShapeToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) !Int !ORYXOutgoing -> Maybe GEdge
@@ -241,3 +264,43 @@ where
 		& ssextensions = [ "http://mbsd.icis.ru.nl/itasks/gin/" +++ imp +++ "#"
 							\\ imp <- gmod.GModule.imports ]
 		}
+
+makeORYXError :: !ORYXDiagram !(GPath,String) -> Maybe ORYXError
+makeORYXError diagram (p,message) = makeORYXError` (reverse p)
+where
+	makeORYXError` :: [GPathNode] -> Maybe ORYXError
+	makeORYXError` [] = 
+		Just	{ ORYXError
+				| resourceId = diagram.ORYXDiagram.resourceId
+				, message = message
+				, paramIndex = Nothing
+				}
+	makeORYXError` [PNDefinition _ : path] = makeORYXError` path
+	makeORYXError` [PNBody:path] = makeORYXError` path
+	makeORYXError` [PNNode index:path]
+		# nodes = filter (not o isEdge) diagram.ORYXDiagram.childShapes
+		| index < 0 || index >= length nodes = Nothing
+		= makeORYXErrorChild (nodes !! index) path message
+	makeORYXError` [PNEdge index:path]
+		# edges = filter isEdge diagram.ORYXDiagram.childShapes
+		| index < 0 || index >= length edges = Nothing
+		= makeORYXErrorChild (edges !! index) path message
+
+makeORYXErrorChild :: !ORYXChildShape ![GPathNode] !String -> Maybe ORYXError
+makeORYXErrorChild shape [] message = 
+	Just	{ ORYXError
+			| resourceId = shape.ORYXChildShape.resourceId
+			, message = message
+			, paramIndex = Nothing
+			}
+makeORYXErrorChild shape [PNActualParam index] message = 
+	Just	{ ORYXError
+			| resourceId = shape.ORYXChildShape.resourceId
+			, message = message
+			, paramIndex = Just index
+			}
+makeORYXErrorChild shape [PNActualParam index: path] message
+	# params = shape.ORYXChildShape.childShapes
+	| index < 0 || index >= length params = Nothing
+	= makeORYXErrorChild (params !! index) path message
+makeORYXErrorChild _ path message = abort ("abort in makeORYXErrorChild: Path=" +++ toString path +++ ",message=" +++ message)

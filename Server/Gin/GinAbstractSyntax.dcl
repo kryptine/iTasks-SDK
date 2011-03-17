@@ -5,7 +5,8 @@ import GinTypes
 
 from iTaskClass import class iTask, gVisualize, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
 
-from GinParser import ::GPath, ::GParseState
+from GinParser import ::GPath, ::GPathNode, ::GParseState
+from GinPrinter import ::LineMap, ::Map
 import Void
 
 :: AModule = { name        :: AIdentifier
@@ -58,12 +59,11 @@ derive class iTask AModule, ADefinition, AExpression, ACaseAlt, AListComprehensi
 
 expandModule :: AModule -> AModule
 
-//instance toString AModule
-
 :: PrintOption = PODCL | POICL | POSyntaxCheck | POWriteDynamics
 
 instance == PrintOption
 
-renderAModule :: PrintOption AModule -> String
+prettyPrintAModule :: PrintOption AModule -> String
 
+syntaxCheckPrintAModule :: AModule -> (String, LineMap)
 

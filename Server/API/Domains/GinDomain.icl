@@ -8,18 +8,14 @@ import GinCompiler, GinParser
 
 import GinORYX
 
-derive gEq ORYXEditor
-derive JSONEncode ORYXEditor
-derive JSONDecode ORYXEditor
-
 gVisualize {|ORYXEditor|} val vst = visualizeControl mkControl (mkText,mkHtml) val vst
 where
-	mkControl name id val _ _ hnt err
+	mkControl name id val _ _ err hnt
 		= TUIORYXControl oryx
 	where
 	    oryx
 	    	# value = case val of
-				Nothing			= petriNetORYXEditor //TODO: Should not be fixed
+				Nothing			= emptyORYXEditor
 				Just editor		= editor
 	        =	{ TUIORYXControl
 		        | name = name
@@ -30,10 +26,10 @@ where
 		        , stencilsetURL = value.ORYXEditor.stencilset.ORYXStencilSetReference.url
 		        }
 		        
-	mkText v = toString (fmap (\oryxeditor -> oryxeditor.toString oryxeditor) v)
+	mkText v = "(ORYX editor: No textual representation available)"
 	mkHtml v _ = nl2br (mkText v)
-     
-gUpdate{|ORYXEditor|} mode ust = basicUpdate mode parseUpdate petriNetORYXEditor ust //TODO: should not be fixed
+
+gUpdate{|ORYXEditor|} mode ust = basicUpdate mode parseUpdate emptyORYXEditor ust
 where
 	parseUpdate update orig
 		= case fromJSON (fromString update) of	
@@ -42,17 +38,30 @@ where
 
 gDefaultMask{|ORYXEditor|} _ = [Touched []]
 
-gVerify{|ORYXEditor|} val vst = customWorldVerify Nothing check val vst where
-	check editor iworld = (WPRValid Nothing, iworld) //check nothing
-/*
-gVerify{|ORYXEditor|} val vst = customWorldVerify Nothing check val vst where
-  check editor iworld
-  | not editor.checkSyntax = (WPRValid Nothing, iworld)
-  #(compileresult, iworld) = syntaxCheck editor.gMod iworld
-  # hint = case compileresult of
-       CompileSuccess _ = Nothing
-       CompileGlobalError error = Just (toString (toJSON [("/", error)]))
-       CompilePathError errors = Just (toString (toJSON errors))
-  = (WPRValid hint, iworld )
-*/
+gVerify{|ORYXEditor|} Nothing vst = alwaysValid vst
+gVerify{|ORYXEditor|} val=:(Just {verify}) vst = customWorldVerify Nothing verify val vst
 
+JSONEncode {|ORYXEditor|} { diagram, stencilset, verify }
+	= [ JSONArray		[  JSONString "ORYXEditor"
+						:  JSONEncode{|*|} diagram
+						++ JSONEncode{|*|} stencilset
+						++ encodeFunc verify
+						]]
+
+JSONDecode{|ORYXEditor|} [JSONArray [JSONString "ORYXEditor",diagram,stencilset,verify]:c]
+	# mbDiagram		= fromJSON diagram
+	# mbStencilset	= fromJSON stencilset
+	# mbVerify		= decodeFunc verify
+	|  isJust mbDiagram
+	&& isJust mbStencilset
+	&& isJust mbVerify
+		= (Just	{ ORYXEditor
+				| diagram		= fromJust mbDiagram
+				, stencilset	= fromJust mbStencilset
+				, verify		= fromJust mbVerify
+				},c)
+	| otherwise
+		= (Nothing,c)
+JSONDecode{|ORYXEditor|} c = (Nothing,c)
+
+gEq{|ORYXEditor|} _ _ = False // ORYXEditors are never equal

@@ -115,10 +115,12 @@ CompilePersistent
 	#	out_file_name		=  out_file_path tooltempdir dummy_slot
 		errors_file_name	=  errors_file_path tooltempdir dummy_slot
 	# cocl_arguments
-		= options +++ write_module_times_string +++. CompileBuildCommand out_file_name errors_file_name compileOrCheckSyntax path paths
+		= [options]
+		  ++ write_module_times_string
+		  ++ CompileBuildCommand out_file_name errors_file_name compileOrCheckSyntax path paths
 			projectHeapProfiling projectTimeProfiling projectEagerOrDynamic co
 	
-	# (res, world) = 'Process'.callProcess cocl [cocl_arguments] ('Maybe'.Just cocl_dir) env.world
+	# (res, world) = 'Process'.callProcess cocl cocl_arguments ('Maybe'.Just cocl_dir) env.world
 	# env = { env & world = world }
 	# (compile_ok, exitcode,(cstate,env)) = case res of
 		Ok exitcode	= (True, exitcode, (cstate,env))
@@ -132,10 +134,10 @@ CompilePersistent
 	=	(cstate,(env,path,mess))
 where
 	dummy_slot = 0
-	write_module_times_string = if write_module_times " -wmt " " "
+	write_module_times_string = if write_module_times ["-wmt"] []
 
 CompileBuildCommand :: !String !String !CompileOrCheckSyntax !Pathname !(List Pathname) !Bool !Bool !Bool
-				!CompilerOptions -> String
+				!CompilerOptions -> [String]
 CompileBuildCommand out_file_name errors_file_name compileOrCheckSyntax path paths
 					projectHeapProfiling projectTimeProfiling projectEagerOrDynamic co
 	= MakeCompilerOptionsString
@@ -144,10 +146,15 @@ CompileBuildCommand out_file_name errors_file_name compileOrCheckSyntax path pat
 		projectTimeProfiling
 		projectEagerOrDynamic
 		co
-		+++ (quoted_string path)
-        +++ " -P " +++ quoted_string (ConcatenatePath paths)
-		+++ " -RE "+++ quoted_string errors_file_name
-		+++ " -RO "+++ quoted_string out_file_name;
+		++
+		[ path
+		, "-P"
+		, ConcatenatePath paths
+		, "-RE"
+		, errors_file_name
+		, "-RO"
+		, out_file_name
+		]
 		
 CompileHandleExitCode :: !Int !String !String !Int !(WindowFun *LogEnv) !(WindowFun *LogEnv) !Pathname
 				!ListTypes !*LogEnv -> (!Pathname,!CompilerMsg,!*LogEnv)
@@ -398,7 +405,7 @@ ReadErrorAndWarningMessages file
 	#	(path_error,_,errlist,file3) = ReadErrorAndWarningMessages file2
 	= (path_error,True,Strip string:!errlist,file3)
 
-MakeCompilerOptionsString :: !CompileOrCheckSyntax !Bool !Bool !Bool !CompilerOptions -> String
+MakeCompilerOptionsString :: !CompileOrCheckSyntax !Bool !Bool !Bool !CompilerOptions -> [String]
 MakeCompilerOptionsString compileOrCheckSyntax projectMemoryProfiling projectTimeProfiling projectEagerOrDynamic
 			{neverMemoryProfile, neverTimeProfile,sa,gw,gc,listTypes,attr,reuseUniqueNodes,fusion}
 	= options
@@ -406,53 +413,52 @@ where
 	memoryProfileSwitch
 		| (not neverMemoryProfile && projectMemoryProfiling)
 		|| projectEagerOrDynamic
-			= " -desc"
-			= ""
+			= ["-desc"]
+			= []
 	timeProfileSwitch
 		| not neverTimeProfile && projectTimeProfiling
-			= " -pt"
-			= ""
+			= ["-pt"]
+			= []
 	dynamicLinkSwitch
 		| projectEagerOrDynamic
-			= " -exl -dynamics"
-			= ""
+			= ["-exl","-dynamics"]
+			= []
 	strictness
 		| sa
-			= ""
-			= " -sa"
+			= []
+			= ["-sa"]
 	warnings
 		| gw
-			= ""
-			= " -w"
+			= []
+			= ["-w"]
 	comments
 		| gc
-			= " -d"
-			= ""
+			= ["-d"]
+			= []
 	listtypes
 		| listTypes == InferredTypes
-			= " -lt"
+			= ["-lt"]
 		| listTypes == AllTypes
-			= " -lat"
+			= ["-lat"]
 		| listTypes == StrictExportTypes
-			= " -lset"
-			= ""
+			= ["-lset"]
+			= []
 	show_attr
 		| attr
-			= ""
-			= " -lattr"
+			= []
+			= ["-lattr"]
 	checksyntax
 		| compileOrCheckSyntax == SyntaxCheck
-			= " -c"
-			= ""
+			= ["-c"]
+			= []
 	reuse
 		| reuseUniqueNodes
-			= " -ou"
-			= ""
-	add_fusion_option s = if fusion (s+++" -fusion") s;
+			= ["-ou"]
+			= []
+	add_fusion_option l = if fusion (l ++ ["-fusion"]) l;
 	
-	options		= add_fusion_option (checksyntax +++ timeProfileSwitch +++ memoryProfileSwitch +++ dynamicLinkSwitch
-									+++ strictness +++ warnings +++ comments +++listtypes+++show_attr+++reuse)
-				  +++" "
+	options		= add_fusion_option (checksyntax ++ timeProfileSwitch ++ memoryProfileSwitch ++ dynamicLinkSwitch
+									++ strictness ++ warnings ++ comments ++listtypes++show_attr++reuse)
 /*
 start_compile_with_cache :: String Int String String String CompilerProcessIds *env -> (!Bool,!CompilerProcessIds,!*env)
 start_compile_with_cache path slot directory startup_arguments arguments compiler_process_ids ps

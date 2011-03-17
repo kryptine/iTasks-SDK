@@ -18,11 +18,20 @@ import GinORYX
 import GinStorage
 
 instance toString GPath where
-    toString GRoot = "/"
-    toString (GChildNode s p) = toString p +++ s +++ "/"
-    toString (GChildNodeNr s i p) = toString p +++ s +++ "[" +++ toString i +++ "]/"
+	toString nodes = "/" +++ (((foldr (\a b -> a +++ "/" +++ b) "") o reverse o map toString) nodes)
+
+instance toString GPathNode where
+    toString (PNDefinition i)	= toS "definitions" i
+    toString PNBody				= "body"
+    toString (PNDefinition i)	= toS "nodes" i
+    toString (PNEdge i)			= toS "edges" i
+    toString (PNActualParam i)	= toS "actualParameters" i
+    toString (PNListItem i)		= toS "items" i
+
+toS :: !String Int -> String
+toS name index = name +++ "[" +++ toString index +++ "]"
     
-derive class iTask GPath, GParseResult, GParseState
+derive class iTask GPathNode, GParseResult, GParseState
 
 isParseError :: (GParseResult a) -> Bool
 isParseError (GError _) = True
@@ -45,11 +54,8 @@ where
                                          GSuccess a = strip (k a) path) where
           strip (GParseState f) = f
                                     
-parseChild :: String (GParseState a) -> GParseState a
-parseChild name (GParseState f) = GParseState (\path = f (GChildNode name path))
-
-parseChildN :: String Int (GParseState a) -> GParseState a
-parseChildN name nr (GParseState f) = GParseState (\path = f (GChildNodeNr name nr path))
+parseChild :: GPathNode (GParseState a) -> GParseState a
+parseChild child (GParseState f) = GParseState (\path = f [child:path])
 
 parseMap :: (a -> GParseState b) [a] -> GParseState [b]
 parseMap _ []     = ret []
@@ -57,11 +63,11 @@ parseMap f [x:xs] = f x >>> \x` =
 				                  parseMap f xs >>> \xs` = 
                                   ret [x`:xs`]
 
-parseChildMap :: String (a -> GParseState b) [a] -> GParseState [b]
-parseChildMap  name f xs = pm f (zip2 xs [0..]) where
+parseChildMap :: (Int -> GPathNode) (a -> GParseState b) [a] -> GParseState [b]
+parseChildMap  child f xs = pm f (zip2 xs [0..]) where
     pm _ []         = ret []
-    pm f [(x,n):xs] = parseChildN name n (f x) >>> \x` =
-                      pm f xs               >>> \xs` = 
+    pm f [(x,n):xs] = parseChild (child n) (f x) >>> \x` =
+                      pm f xs               	 >>> \xs` = 
                       ret [x`:xs`]
 
 orElse :: (GParseState a) (GParseState a) -> GParseState a
@@ -73,14 +79,11 @@ orElse (GParseState m) (GParseState k) =
 parseError :: String -> GParseState a
 parseError message = GParseState (\path = GError [(path,message)])
 
-parseErrorInChild :: String String -> GParseState a
-parseErrorInChild name message = parseChild name (parseError message)
+parseErrorInChild :: GPathNode String -> GParseState a
+parseErrorInChild child message = parseChild child (parseError message)
 
-parseErrorInChildN :: String Int String ->GParseState a
-parseErrorInChildN name nr message = parseChildN name nr (parseError message)
-
-parseErrorInChildren :: String [Int] String -> GParseState a
-parseErrorInChildren name nrs message = GParseState (\path = GError (map (\nr = (GChildNodeNr name nr path,message)) nrs))
+parseErrorInChildren :: (Int -> GPathNode) [Int] String -> GParseState a
+parseErrorInChildren child nrs message = GParseState (\path = GError (map (\nr = ([child nr:path],message)) nrs))
 
 getCurrentPath :: GParseState GPath
 getCurrentPath = GParseState (\path = GSuccess path)
@@ -89,7 +92,7 @@ withPath :: GPath (GParseState a) -> GParseState a
 withPath path (GParseState f) = GParseState (\_ = f path)
 
 runParse :: (GParseState a) -> GParseResult a
-runParse (GParseState f) = f GRoot
+runParse (GParseState f) = f []
 
 gToAModule :: !GModule !GinConfig !*World -> (GParseState AModule, *World)
 gToAModule gmod =: { moduleKind = GCleanModule _ } config world
@@ -100,7 +103,7 @@ gToAModule gmod =: { moduleKind = GGraphicalModule definitions } config world
 	# imports = fromOk res
 	# bindings = map getDefinitionBinding definitions
 				 ++ (flatten o map getModuleBindings) imports
-	= ( parseChildMap "definitions" (gToADefinition bindings) definitions >>> \definitions = 
+	= ( parseChildMap PNDefinition (gToADefinition bindings) definitions >>> \definitions = 
 	    ret	{ AModule
 			| name = gmod.GModule.name
 			, types = gmod.GModule.types
@@ -112,7 +115,7 @@ gToAModule gmod =: { moduleKind = GGraphicalModule definitions } config world
 gToADefinition :: !Bindings !GDefinition -> GParseState ADefinition
 gToADefinition bindings gdef
 # graph = GGraphExpression (oryxDiagramToGraph bindings gdef.GDefinition.body)
-= parseChild "body" (gToAExpression bindings graph) >>> \body =
+= parseChild PNBody (gToAExpression bindings graph) >>> \body =
   ret { ADefinition 
       | name         = gdef.GDefinition.declaration.GDeclaration.name
       , formalParams = gdef.GDefinition.declaration.GDeclaration.formalParams
@@ -125,7 +128,7 @@ gToAExpression :: !Bindings !GExpression -> GParseState (AExpression Void)
 gToAExpression bindings (GUndefinedExpression) = parseError "Undefined expression"
 gToAExpression bindings (GGraphExpression graph) = graphToSPTree bindings graph >>> spTreeToAExpression bindings
 gToAExpression bindings (GListExpression gexps) =
-    parseChildMap "items" (gToAExpression bindings) gexps >>> \aexps = 
+    parseChildMap PNListItem (gToAExpression bindings) gexps >>> \aexps = 
     ret (List aexps)
 gToAExpression bindings (GListComprehensionExpression glc) = 
     gToAListComprehension bindings glc >>> \alc = ret (ListComprehension alc)
@@ -158,7 +161,7 @@ spTreeToAExpression bindings (SPNode (SPPathNode node path)) =
             NBPrefixApp = 
                 if (isEmpty node.actualParams)
                     (ret (PathContext path (Var node.GNode.name)))
-                    (parseChildMap "actualParams" (gToAExpressionPath bindings) node.GNode.actualParams >>> \exps =
+                    (parseChildMap PNActualParam (gToAExpressionPath bindings) node.GNode.actualParams >>> \exps =
                      getCurrentPath >>> \path` =
                      ret (PathContext path` (App [(Var node.GNode.name) : exps])))
             NBInfixApp _ _ = parseError "Infix node binding not implemented yet :-("

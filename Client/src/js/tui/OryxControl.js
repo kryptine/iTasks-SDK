@@ -102,14 +102,30 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 		}).defer(50,this);
     },
 	
-	setError: function(msg){		
-        if (console != null)
-            console.log('OryxControl.setError: ' + msg);
-	},
+	setError: function(message){		
+        //OryxControl does not support error messages, only hints
+    },
 	
-	setHint: function(msg){
-        if (console != null)
-            console.log('OryxControl.setHint: ' + msg);
+	setHint: function(message){
+        this.facade.handleEvents({
+            type: ORYX.Plugins.SyntaxChecker.RESET_ERRORS_EVENT
+        });
+        if (message == '')
+            return;
+
+        json = Ext.decode(message);
+        var hints = {};
+        json.each(function(hint){
+                      hints[hint.resourceId] = (hint.paramIndex != null
+                                                ? 'Parameter ' + (hint.paramIndex + 1) + ': ' 
+                                                : ''
+                                               ) + hint.message;
+                  }.bind(this));
+        
+        this.facade.handleEvents({
+            type: ORYX.Plugins.SyntaxChecker.SHOW_ERRORS_EVENT,
+            errors: hints
+        });
 	}
 });
 

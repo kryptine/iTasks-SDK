@@ -3,15 +3,15 @@ definition module GinORYX
 import GenEq
 import JSON
 
-from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization, ::WorldPredicateResult, ::IWorld
 from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
 
 from GinSyntax import ::GDeclaration, ::GModule, ::GGraph, ::GImport, ::Binding, ::Bindings
+from GinParser import ::GPath, ::GPathNode
 
 ::ORYXEditor = { diagram	:: ORYXDiagram
 			   , stencilset	:: ORYXStencilSetReference
-			   
-			   , toString	:: (ORYXEditor -> String)
+			   , verify		:: !ORYXEditor *IWorld -> *(WorldPredicateResult,!*IWorld)
 			   }
 
 :: ORYXBound =	
@@ -77,27 +77,35 @@ from GinSyntax import ::GDeclaration, ::GModule, ::GGraph, ::GImport, ::Binding,
 :: ORYXTarget =
 	{ resourceId	:: !ORYXResourceId
 	}
+	
+:: ORYXError = 
+	{ resourceId	:: !ORYXResourceId
+	, message		:: !String
+	, paramIndex	:: !Maybe Int
+	}
 
 // Stencil definition types
 
-derive gEq		 		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive JSONEncode		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive JSONDecode 		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive gVisualize  	 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive gUpdate	    	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive gDefaultMask		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
-derive gVerify  		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget
+derive gEq		 		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive JSONEncode		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive JSONDecode 		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive gVisualize  	 	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive gUpdate	    	ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive gDefaultMask		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
+derive gVerify  		ORYXBound, ORYXBounds, ORYXChildShape, ORYXDiagram, ORYXDocker, ORYXOutgoing, ORYXProperties, ORYXProperty, ORYXStencilReference, ORYXStencilSetReference, ORYXTarget, ORYXError
 
 oryxDiagramToGraph :: !Bindings !ORYXDiagram -> GGraph
 
-newGinORYXDiagram :: ORYXDiagram
-
-newORYXDiagram :: ORYXStencilSetReference -> ORYXDiagram
+emptyORYXEditor :: ORYXEditor
 
 petriNetORYXEditor :: ORYXEditor
 
 bpmnORYXEditor :: ORYXEditor
 
-ginORYXEditor :: ![GImport] ORYXDiagram -> ORYXEditor
+ginORYXDiagram :: ORYXDiagram
+
+ginORYXEditor :: !ORYXDiagram !(ORYXEditor *IWorld -> *(WorldPredicateResult,*IWorld))-> ORYXEditor
 
 updateDiagramExtensions :: !GModule -> GModule
+
+makeORYXError :: !ORYXDiagram !(GPath,String) -> Maybe ORYXError

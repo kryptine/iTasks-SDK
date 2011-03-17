@@ -1,7 +1,9 @@
 implementation module Util
 
-import StdList, StdFile, StdMisc, StdArray, StdString, StdGeneric, Maybe, Time, Text
+import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, Maybe, Time, Text, JSON
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
+from dynamic_string import copy_to_string, copy_from_string
+from Base64 import base64Encode, base64Decode
 
 fileExtension :: !String -> String
 fileExtension filename = case (split "." filename) of
@@ -111,3 +113,10 @@ splitWith f [x:xs]
 sortByIndex :: ![(!Int,!a)] -> [a]
 sortByIndex [] = []
 sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortByIndex [(is,vs) \\ (is,vs) <- ps | is > i]
+
+encodeFunc :: a -> [JSONNode]
+encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
+
+decodeFunc :: JSONNode -> Maybe a
+decodeFunc (JSONString str)	= Just (fst(copy_from_string {s` \\ s` <-: base64Decode str}))
+decodeFunc _				= Nothing

@@ -90,8 +90,6 @@ JSONEncode{|Task|} _ {properties,containerType,mbTaskNr,taskFuncEdit,taskFuncCom
 					++ encodeFunc taskFuncEdit
 					++ encodeFunc taskFuncCommit]]
 					
-encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
-
 JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,containerType,mbTaskNr,taskFuncEdit,taskFuncCommit]:c]
 	# mbTaskProperties		= fromJSON properties
 	# mbContainerType		= fromJSON containerType
@@ -113,9 +111,6 @@ JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,containerType,mbTa
 	| otherwise
 		= (Nothing,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
-
-decodeFunc (JSONString str)	= Just (fst(copy_from_string {s` \\ s` <-: base64Decode str}))
-decodeFunc _				= Nothing
 
 gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust

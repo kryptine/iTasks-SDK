@@ -3,15 +3,15 @@ implementation module GinAbstractSyntax
 import StdBool
 from StdFunc import o
 import StdOrdList
-import GenPrint
+import StdList
+import StdString
 
 import Void
 
-import GinSyntax 
-import GinParser
-import GinSPTree
+from GinParser import ::GPath(..), instance toString GPath
+import GinTypes
+import GinPrinter
 
-import PPrint
 import Text
 
 from iTaskClass import class iTask, gVisualize, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
@@ -144,30 +144,37 @@ where
 * Pretty-printing of AModule's
 */
 
+
 derive gEq PrintOption
 instance == PrintOption where
 	(==) a b = a === b
 
-renderAModule :: PrintOption AModule -> String
-renderAModule opt def = display (renderPretty 0.9 80 (printAModule opt def))
+prettyPrintAModule :: PrintOption AModule -> String
+prettyPrintAModule opt aMod = prettyPrint (printAModule opt aMod)
 
-printAModule :: PrintOption AModule -> Doc
+syntaxCheckPrintAModule :: AModule -> (String, LineMap)
+syntaxCheckPrintAModule aMod = positionPrint (printAModule POSyntaxCheck (expandModule aMod))
+
+printAModule :: PrintOption AModule -> a | Printer a
 printAModule opt aMod =	
-	printAModuleHeader opt aMod <$>
-	printAImports opt aMod.AModule.imports <$>
-	printATypes opt aMod.AModule.types <$>
-	vsep (map (printADefinition opt) aMod.AModule.definitions) <$>
-	printAStart opt aMod.AModule.definitions
+	scope (	[ printAModuleHeader opt aMod ]
+			++ printAImports opt aMod.AModule.imports
+			++ printATypes opt aMod.AModule.types
+			++ flatten (map (printADefinition opt) aMod.AModule.definitions)
+			++ printAStart opt aMod.AModule.definitions
+		  )
 
-printAModuleHeader :: PrintOption AModule -> Doc
+printAModuleHeader :: PrintOption AModule -> a | Printer a
 printAModuleHeader opt aMod = 
-	( case opt of
-		PODCL = text "definition" 
-		POICL = text "implementation"
-		_	  = empty
-	) <+> text "module" <+> text aMod.AModule.name <$> empty
+	def (	( case opt of
+				PODCL = text "definition " 
+				POICL = text "implementation "
+				_	  = empty
+			)
+		  	<-> text "module" <+> text aMod.AModule.name
+		)
 
-printAImports :: PrintOption [AImport] -> Doc
+printAImports :: PrintOption [AImport] -> [a] | Printer a
 printAImports opt imports
 	# standardImports = [ "StdBool"
 						, "StdInt"
@@ -188,80 +195,88 @@ printAImports opt imports
 							[]
 						)
 	//CoreCombinators is necessary for >>= and >>|, which do not require explicit imports in Gin
-	= vsep (map (\i -> (text "import" <+> text i)) (standardImports ++ removeDup (sort ["CoreCombinators" : imports])))
+	= map (\i -> def (text "import" <+> text i)) (standardImports ++ removeDup (sort ["CoreCombinators" : imports]))
 
-printATypes :: PrintOption [GTypeDefinition] -> Doc
-printATypes opt _ | opt == POICL = empty
-printATypes opt types = vsep (map (nest 4 o printGTypeDefinition) types)
+printATypes :: PrintOption [GTypeDefinition] -> [a] | Printer a
+printATypes opt _ | opt == POICL = []
+printATypes opt types = map (printGTypeDefinition) types
 
-printADefinition :: PrintOption ADefinition -> Doc
-printADefinition opt def
-	= printADefinitionComment opt def <$> 
-	  printADefinitionType def <$> 
-	  printADefinitionBody opt def
+printADefinition :: PrintOption ADefinition -> [a] | Printer a
+printADefinition opt def =
+	printADefinitionComment opt def
+	++ printADefinitionType def
+	++ printADefinitionBody opt def
 
-printADefinitionComment :: PrintOption ADefinition -> Doc
-printADefinitionComment POICL _ = empty
-printADefinitionComment opt def =
-	text "/**" <$>
-	text "*" <+> text def.ADefinition.name <$>
-	text "*" <$>
-	(if (isEmpty def.ADefinition.formalParams) 
-		empty 
-		( vcat (map (\fp -> text "* @param" <+> text fp.GFormalParameter.name) 
-					def.ADefinition.formalParams
-			   )
-		  <-> line
-		)
-	) <$>
-//	text "* @return" <$>
-	text "*/"
+printADefinitionComment :: PrintOption ADefinition -> [a] | Printer a
+printADefinitionComment PODCL def =
+	[	text "/**" <$>
+		text "*" <+> text def.ADefinition.name <$>
+		text "*" <$>
+		(if (isEmpty def.ADefinition.formalParams) 
+			empty 
+			( foldr (<$>) empty (map (\fp -> text "* @param" <+> text fp.GFormalParameter.name) 
+						def.ADefinition.formalParams
+				   )
+			)
+		) <$>
+	//	text "* @return" <$>
+		text "*/"
+	]
+printADefinitionComment _ _ = []
 
-printADefinitionType :: ADefinition -> Doc
-printADefinitionType def =:{ ADefinition | name, formalParams, returnType }
+printADefinitionType :: ADefinition -> [a] | Printer a
+printADefinitionType { ADefinition | name, formalParams, returnType }
 	| typeIsDefined returnType && 
 	  and (map (\fp = typeIsDefined fp.GFormalParameter.type) formalParams)
-	  = nest 4 
-	  		( text name
+	  = [	def ( text name
 	    	  <+> text "::"
-		      </> fillSep (map (\fp = printGTypeExpression fp.GFormalParameter.type) formalParams) 
-		      </> if (isEmpty formalParams) empty (text "->" </> space)
-		      </> printGTypeExpression returnType
+	    	  </> if (isEmpty formalParams)
+	    	  	  empty
+		          ( fillSep (map (\fp = printGTypeExpression fp.GFormalParameter.type) formalParams) 
+		            </> (text "->" </> space) </> empty
+		          )
+		      <-> printGTypeExpression returnType
 		    )
+		]
 	| otherwise 
-	  = empty
+	  = []
 
-printADefinitionBody :: PrintOption ADefinition -> Doc
-printADefinitionBody PODCL _ = empty
+printADefinitionBody :: PrintOption ADefinition -> [a] | Printer a
+printADefinitionBody PODCL _ = []
 printADefinitionBody opt { ADefinition | name, formalParams, body, locals } = 
-	nest 4 
-		( text name
-	      <+> if (isEmpty formalParams) empty 
-                 (fillSep (map (\fp = text fp.GFormalParameter.name) formalParams) <-> space)
-	      <-> char '='
-	      </> printAExpression opt body
-	      <$> if (isEmpty locals) empty
-			  (text "where" <$> indent 4 (vsep (map (printADefinition opt) locals)))
-		)
-        
-printAStart :: PrintOption [ADefinition] -> Doc
+	[ def (	text name
+			<+> if (isEmpty formalParams) empty 
+			     (fillSep (map (\fp = text fp.GFormalParameter.name) formalParams) <-> space)
+			<-> char '='
+			</> printAExpression opt body
+		  )
+	] 
+	++ if (isEmpty locals) 
+			[]
+			[ text "where"
+			, newscope (flatten ((map (printADefinition opt) locals)))
+			]
+      
+printAStart :: PrintOption [ADefinition] -> [a] | Printer a
 printAStart POSyntaxCheck _ = 
-	text "Start :: Int" <$>
-	text "Start = 0"
+	[ def (text "Start :: Int")
+	, def (text "Start = 0")
+	]
 printAStart POWriteDynamics defs =
-   text "Start :: *World -> *World" <$>
-   text "Start world"  <$>
-   vsep ( map	(\def -> text "# (ok, world) = writeDynamic" </> dquotes (text def.ADefinition.name) 
+	[ def (text "Start :: *World -> *World")
+	, def (text "Start world")
+	]
+	++ ( map	(\def -> text "# (ok, world) = writeDynamic" </> dquotes (text def.ADefinition.name) 
 						 </> parens (text "dynamic" </> text (def.ADefinition.name))
 						 </> text "world"
 				) 
 				defs 
-		) <$>
-   text "= world"
-printAStart _ _ = empty
+		)
+	++ [def (text "= world")]
+printAStart _ _ = []
 
-printAExpression :: PrintOption (AExpression Void) -> Doc
-printAExpression opt (Unparsed s) = parens (text s)
+printAExpression :: PrintOption (AExpression Void) -> a | Printer a
+printAExpression opt (Unparsed s) = parens (string s)
 printAExpression opt (Lit s) = text s
 printAExpression opt (Var v) = text v
 printAExpression opt (App exps) = fillSep (map (printWithParens opt) exps)
@@ -274,15 +289,15 @@ printAExpression opt (AppInfix i fix prec e1 e2)
 		otherwise                       = printAExpression opt e2
 	= doc1 <$> text i </> doc2
 printAExpression opt (Lambda pat exp) = text "\\" <-> printAPattern opt pat </> text "=" </> printAExpression opt exp
-printAExpression opt (Case exp alts) = parens (text "case" </> (printAExpression opt exp) </> (text "of") <$> 
-    indent 4 (vsep (map (\alt = printACaseAlt opt alt) alts)))
+printAExpression opt (Case exp alts) = parens (text "case" </> (printAExpression opt exp) </> (text "of") <$>
+    newscope (map (\alt = printACaseAlt opt alt) alts))
 printAExpression opt (Tuple exps) = parens (fillSep (punctuate comma (map (printAExpression opt) exps)))
 printAExpression opt (List exps) = brackets (fillSep (punctuate comma (map (printAExpression opt) exps)))
 printAExpression opt (ListComprehension alc) = printAListComprehension opt alc
-printAExpression opt (PathContext path exp) | opt == POSyntaxCheck		= printComment opt ("PATH:" +++ (toString path)) <+> printAExpression opt exp
+printAExpression opt (PathContext path exp) | opt == POSyntaxCheck		= position path <-> printAExpression opt exp
                                             | otherwise                 = printAExpression opt exp
 
-printWithParens :: PrintOption (AExpression Void) -> Doc
+printWithParens :: PrintOption (AExpression Void) -> a | Printer a
 printWithParens opt exp | needsParens exp = parens (printAExpression opt exp)
                         | otherwise       = printAExpression opt exp where
     needsParens :: (AExpression Void) -> Bool
@@ -292,29 +307,29 @@ printWithParens opt exp | needsParens exp = parens (printAExpression opt exp)
     needsParens (Case _ _)           = True
     needsParens (PathContext _ exp)  = needsParens exp
     needsParens _                    = False
-    
-printAListComprehension  :: PrintOption (AListComprehension Void) -> Doc
+
+printAListComprehension  :: PrintOption (AListComprehension Void) -> a | Printer a
 printAListComprehension opt alc = brackets
     ( (printAExpression opt alc.AListComprehension.output) 
       </> text "\\\\" 
       </> printGeneratorList opt alc.AListComprehension.generators
       </> hsep (map (\guard -> text "|" </> printAExpression opt guard) alc.AListComprehension.guards))
     
-printGeneratorList :: PrintOption (AGeneratorList Void) -> Doc
+printGeneratorList :: PrintOption (AGeneratorList Void) -> a | Printer a
 printGeneratorList opt (ANestedGeneratorList generators) = fillSep (punctuate comma (map (printGenerator opt) generators))
 printGeneratorList opt (AParallelGeneratorList generators) = fillSep (punctuate (text "&") (map (printGenerator opt) generators))
 
-printGenerator :: PrintOption (AGenerator Void) -> Doc
+printGenerator :: PrintOption (AGenerator Void) -> a | Printer a
 printGenerator opt (Generator sel exp) = printAPattern opt sel </> text "<-" </> printAExpression opt exp
 
-printACaseAlt :: PrintOption (ACaseAlt Void) -> Doc
-printACaseAlt opt (CaseAlt pat exp) = printAPattern opt pat </> text "=" </> (indent 4 (printAExpression opt exp))
+printACaseAlt :: PrintOption (ACaseAlt Void) -> a | Printer a
+printACaseAlt opt (CaseAlt pat exp) = printAPattern opt pat </> text "=" </> printAExpression opt exp
 
-printAPattern :: PrintOption APattern -> Doc
+printAPattern :: PrintOption APattern -> a | Printer a
 printAPattern opt p = text p
 
-printAIdentifier :: PrintOption AIdentifier -> Doc
+printAIdentifier :: PrintOption AIdentifier -> a | Printer a
 printAIdentifier opt i = text i
 
-printComment :: PrintOption String -> Doc
+printComment :: PrintOption String -> a | Printer a
 printComment opt s = text "/*" </> text s </> text "*/"

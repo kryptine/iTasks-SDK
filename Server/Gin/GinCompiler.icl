@@ -65,8 +65,8 @@ derive class iTask CompileResult
 derive JSONEncode CompilingInfo, CompilerProcess
 derive JSONDecode CompilingInfo, CompilerProcess
 
-runCompiler :: !GModule !PrintOption (String String GinConfig *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
-runCompiler gMod printOption compiler iworld
+runCompiler :: !GModule !(AModule -> (String, LineMap)) (String String GinConfig LineMap *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
+runCompiler gMod printfun compiler iworld
 //1. Load configuration
 # (config,iworld) = accWorldIWorld ginLoadConfig iworld 
 | isNothing config = (CompileGlobalError "Configuration not found", iworld)
@@ -74,17 +74,17 @@ runCompiler gMod printOption compiler iworld
 //2. Parse and transform GModule
 # (st, iworld) = accWorldIWorld (gToAModule gMod config) iworld
 # result = runParse st
-| isParseError result = (CompilePathError (map (\(path,msg) = (toString path,msg)) (getParseError result)), iworld)
+| isParseError result = (CompilePathError (getParseError result), iworld)
 # aMod = expandModule (getParseSuccess result)
-//3. Pretty-print module
+//3. (Pretty-)print module
 # (basename,iworld) = getUniqueBasename iworld
-# source = renderAModule printOption { AModule | aMod & name = basename }
+# (source,lineMap) = printfun { AModule | aMod & name = basename }
 //4. Write source code to temp icl file
 # fullname = (filenameFromConfig config basename "icl")
 # (result, iworld) = accWorldIWorld (writeFile fullname source) iworld
 | isError result = (CompileGlobalError ("Write icl file failed: " +++ toString (fromError result)), iworld)
 //5. Call compiler function
-# (result, iworld) = compiler source basename config iworld
+# (result, iworld) = compiler source basename config lineMap iworld
 //6. Delete temp icl file
 # (deleted,iworld) = accWorldIWorld (deleteFile fullname) iworld
 | isError deleted = (CompileGlobalError ("Failed to delete file " +++ fullname +++ ": " +++ snd (fromError deleted)), iworld)
@@ -103,10 +103,13 @@ where
 	prefix = "temp"
 
 batchBuild :: !GModule *IWorld -> (CompileResult String, *IWorld)
-batchBuild gMod iworld = runCompiler gMod POWriteDynamics build iworld where
-	build  :: !String !String !GinConfig *IWorld -> (CompileResult String, *IWorld)
-	build source basename config iworld
-	# (result, iworld) = compile Compilation source basename config iworld
+batchBuild gMod iworld = runCompiler gMod printfun build iworld where
+	printfun :: AModule -> (String, LineMap)
+	printfun aMod = (prettyPrintAModule POWriteDynamics aMod, newMap)
+
+	build  :: !String !String !GinConfig LineMap *IWorld -> (CompileResult String, *IWorld)
+	build source basename config lineMap iworld
+	# (result, iworld) = compile Compilation source basename config lineMap iworld
 	| failed result = (convertFail result, iworld)
 	# (result, iworld) = codegen basename config iworld
 	| failed result = (convertFail result, iworld)
@@ -119,25 +122,25 @@ batchBuild gMod iworld = runCompiler gMod POWriteDynamics build iworld where
     = (CompileSuccess dynfile, iworld)
     
 syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
-syntaxCheck gMod iworld = runCompiler gMod POSyntaxCheck (compile SyntaxCheck) iworld
+syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile SyntaxCheck) iworld
 
 // --------------------------------------------------------------------------------
 // Compiler interface
 // --------------------------------------------------------------------------------
 
-compile :: CompileOrCheckSyntax !String !String !GinConfig *IWorld -> (CompileResult Void, *IWorld)
-compile compileOrCheckSyntax source basename config iworld
+compile :: CompileOrCheckSyntax !String !String !GinConfig LineMap *IWorld -> (CompileResult Void, *IWorld)
+compile compileOrCheckSyntax source basename config lineMap iworld
 # (mCompilingInfo, iworld) = loadCompilingInfo iworld
 # compilingInfo = case mCompilingInfo of
 	Just c = c
 	Nothing = InitCompilingInfo
-# ((compileResult, compilingInfo), iworld) = accWorldIWorld (compile` source basename config compilingInfo) iworld
+# ((compileResult, compilingInfo), iworld) = accWorldIWorld (compile` compilingInfo) iworld
 # iworld = storeCompilingInfo compilingInfo iworld
 # iworld = exitCompiler iworld //<- TODO: remove
 = (compileResult, iworld)
 where
-	compile` :: !String !String !GinConfig CompilingInfo *World -> ((CompileResult Void, CompilingInfo), *World)
-	compile` source basename config compilingInfo world
+	compile` :: CompilingInfo *World -> ((CompileResult Void, CompilingInfo), *World)
+	compile` compilingInfo world
 	# env = { errors = [], world = world }
 	# compilingInfo = InitCompilingInfo //<- TODO: remove
 	# (compilingInfo, (env, _, compilerMsg)) = 
@@ -161,7 +164,7 @@ where
 		= ((CompileGlobalError ("Calling Clean compiler failed: " +++ log), compilingInfo), env.LogEnv.world)
 	| compilerMsg == CompilerOK
 		= ((CompileSuccess Void, compilingInfo), env.LogEnv.world)
-	= ((CompilePathError (findPathErrors (parseCleanCompilerLog log) source), compilingInfo), env.LogEnv.world)
+	= ((CompilePathError (findPathErrors (parseCleanCompilerLog log) lineMap), compilingInfo), env.LogEnv.world)
 
 loadCompilingInfo :: *IWorld -> (Maybe CompilingInfo, *IWorld)
 loadCompilingInfo iworld = loadValue compilerId iworld
@@ -245,7 +248,7 @@ where
 		config.cleanPath								// startup directory
 		("Tools" </> "Dynamics" </> "DynamicLinker.exe")
 		DefaultProcessor
-		False						// 64 bit target processor
+		False											// 64 bit target processor
 		env
 	//Delete object file and link opts
 	# world = env.LogEnv.world

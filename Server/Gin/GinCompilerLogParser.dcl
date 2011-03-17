@@ -2,6 +2,9 @@ definition module GinCompilerLogParser
 
 import Maybe
 
+from GinParser import ::GPath, ::GPathNode
+from GinPrinter import ::LineMap, ::Map
+
 :: CompilerErrorContext :== (CompilerError, ErrorContext)
 
 :: CompilerError = ParseError String
@@ -10,24 +13,22 @@ import Maybe
                  | TypeError TypeError
                  | OtherError String
 
-:: ErrorContext = { filename :: String
-                  , line :: Int
-                  , pos :: Maybe Int
-                  , context :: String
-                  }
-                 
-:: TypeError = { expectedType :: String
-               , inferredType :: String
-               , position :: TypeErrorPosition
+:: TypeError = { expectedType  :: String
+               , inferredType  :: String
+               , position      :: TypeErrorPosition
                }
                
+:: ErrorContext = { filename  :: String
+                  , line      :: Int
+                  , pos       :: Maybe Int
+                  , context   :: String
+                  }
+
 :: TypeErrorPosition = TypeErrorArgument Int String | TypeErrorNear String
 
 parseCleanIDELog :: String -> [CompilerErrorContext]
 parseCleanCompilerLog :: String -> [CompilerErrorContext]
 
-printErrors :: [CompilerErrorContext] -> String
+:: PathError :== (GPath, String)
 
-:: PathError :== (String, String)
-
-findPathErrors :: [CompilerErrorContext] String -> [PathError]
+findPathErrors :: [CompilerErrorContext] LineMap -> [PathError]

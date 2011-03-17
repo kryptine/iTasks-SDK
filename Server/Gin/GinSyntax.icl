@@ -98,7 +98,7 @@ newWorkflow =	{ GDefinition
                               , icon         = "task"
                               , shape        = ""
                               }
-				, body = newGinORYXDiagram  //GGraphExpression {GGraph | nodes=[], edges=[], size=Nothing}
+				, body = ginORYXDiagram
 				}
               
 newModule :: GModule

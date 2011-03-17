@@ -262,18 +262,21 @@ taskShape gDecl =
 	, defs = []
 	, magnets = True
 	, elements = 
-		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 [SVGStroke "black", SVGFill "white", SVGResize "horizontal vertical"]
+		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 ([SVGStroke "black", SVGFill "white"] ++ ifParams [SVGResize "horizontal vertical"])
 		, SVGImage Nothing ((X 2, Y 2), (X 18, Y 18)) (gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
 		, SVGText Nothing (X 20, Y 13) gDecl.GDeclaration.name [SVGAnchors "top left"]
-	    , SVGLine Nothing ((X 80, Y 20), (X 80, YBottom)) [SVGAnchors "top left bottom"]
 		] 
+		++ ifParams [ SVGLine Nothing ((XLeft, Y 20), (XRight, Y 20)) [SVGAnchors "top left right"]
+			    	, SVGLine Nothing ((X 80, Y 20), (X 80, YBottom)) [SVGAnchors "top left bottom"]
+			    	]
 		++ flatten (map
-			(\(nr,param) -> [ SVGLine Nothing ((XLeft, Y (20 * nr)), (XRight, Y (20 * nr))) [SVGAnchors "left right"]
-					   		, SVGText Nothing (X 3, Y (13 + 20 * nr)) param.GFormalParameter.name []
+			(\(nr,param) -> [ SVGText Nothing (X 3, Y (13 + 20 * nr)) param.GFormalParameter.name []
 							, SVGText (Just param.GFormalParameter.name) (X 83, Y (13 + 20 * nr)) "" [SVGAnchors "left"]
 							]
+							++ if (nr > 1) [SVGLine Nothing ((XLeft, Y (20 * nr)), (XRight, Y (20 * nr))) [SVGAnchors "left right"]] []
 			) (zip2 [1..] gDecl.GDeclaration.formalParams))
 	}
-
-
-
+	where	
+		ifParams :: [a] -> [a]
+		ifParams x = if (isEmpty gDecl.GDeclaration.formalParams) [] x
+	

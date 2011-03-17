@@ -90,20 +90,10 @@ writeModule config name gMod
 	= exportJSONFile (addExtension basename GRAPHICAL_EXTENSION) gMod >>|
 	  accWorld (gToAModule gMod config) >>= \st -> 
 	  case runParse st of
-		  GSuccess aMod = exportTextFile (addExtension basename     DEFINITION_EXTENSION) (renderAModule PODCL aMod) >>|
-		  				  exportTextFile (addExtension basename IMPLEMENTATION_EXTENSION) (renderAModule POICL aMod) >>|
+		  GSuccess aMod = exportTextFile (addExtension basename     DEFINITION_EXTENSION) (prettyPrintAModule PODCL aMod) >>|
+		  				  exportTextFile (addExtension basename IMPLEMENTATION_EXTENSION) (prettyPrintAModule POICL aMod) >>|
 		  				  stop
 		  GError errors = stop
-
-tryRender gMod config printOption world
-# (st, world) = gToAModule gMod config world
-# source = case runParse st of
-	GSuccess aMod -> renderAModule printOption aMod
-	GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))
-= (source, world)
-
-
-
 
 moduleExists :: !GinConfig !String -> Task Bool
 moduleExists config name = accWorld (modulePath config name) >>= \path -> return (isJust path)

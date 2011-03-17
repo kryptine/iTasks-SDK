@@ -5,7 +5,8 @@ import Maybe
 
 from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
 from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
-from PPrint import ::Doc
+
+from GinPrinter import class Printer
 
 :: GTypeExpression = GConstructor GIdentifier
                    | GList GTypeExpression
@@ -46,9 +47,9 @@ derive class iTask      GTypeExpression, GTypeDefinition, GTypeRhs, GDataConstru
 
 typeIsDefined :: GTypeExpression -> Bool
 
-printGTypeExpression :: GTypeExpression -> Doc
+printGTypeExpression :: GTypeExpression -> a | Printer a
 
-printGTypeDefinition :: GTypeDefinition -> Doc
+printGTypeDefinition :: GTypeDefinition -> a | Printer a
 
 gTask :: GTypeExpression -> GTypeExpression
 

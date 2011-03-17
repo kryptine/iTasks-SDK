@@ -21,6 +21,8 @@
 		<plugin source="dragDocker.js" name="ORYX.Plugins.DragDocker"/>
 		<plugin source="shapeHighlighting.js" name="ORYX.Plugins.ShapeHighlighting"/>
 		<plugin source="shapeHighlighting.js" name="ORYX.Plugins.HighlightingSelectedShapes" />
+		<plugin source="overlay.js" name="ORYX.Plugins.Overlay" />		
+		<plugin source="syntaxchecker.js" name="ORYX.Plugins.SyntaxChecker"/>
 
 		<!-- <plugin source="Layouter/edgeLayouter.js" name="ORYX.Plugins.Layouter.EdgeLayouter"/> -->
 

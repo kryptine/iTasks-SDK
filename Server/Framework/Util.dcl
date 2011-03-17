@@ -44,3 +44,7 @@ isRecord :: !GenericTypeDefDescriptor -> Bool
 replaceInList	:: !(a a -> Bool) !a ![a] -> [a]
 splitWith		:: !(a -> Bool) ![a] -> (![a],![a])
 sortByIndex		:: ![(!Int,!a)] -> [a]
+
+//Utility functions for custom JSON encoding / decoding
+encodeFunc :: a -> [JSONNode]
+decodeFunc :: JSONNode -> Maybe a

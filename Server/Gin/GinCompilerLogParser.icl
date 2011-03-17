@@ -3,7 +3,12 @@ implementation module GinCompilerLogParser
 import StdEnv
 import Maybe
 import ParserCombinators
-import GenPrint
+//import GenPrint
+
+import Map
+
+from GinParser import ::GPath(..), ::GPathNode(..)
+from GinPrinter import ::LineMap, ::Map
 
 parseCleanIDELog :: String -> [CompilerErrorContext]
 parseCleanIDELog s = (snd o hd) (begin1 parser (fromString s))
@@ -86,11 +91,6 @@ parseErrorContext =
     parseStringUntilCut (symbol ']') <&> \context =
     yield { ErrorContext | filename = filename, line = line, pos = pos, context = context }
                         
-derive gPrint CompilerError, ErrorContext, TypeError, TypeErrorPosition, Maybe, (,)
-
-printErrors :: [CompilerErrorContext] -> String
-printErrors errs = printToString errs
-
 printError :: CompilerError -> String
 printError (ParseError err) = "Parse error: " +++ err
 printError (UndefinedError v) = "Undefined variable: " +++ v 
@@ -98,24 +98,13 @@ printError (OverloadingError err) = "Overloading error: " +++ err
 printError (TypeError te) = "Type error:\nExpected type:" +++ te.expectedType +++ "\nActual type:" +++ te.inferredType
 printError (OtherError err) = err
 
-findPathErrors :: [CompilerErrorContext] String -> [PathError]
-findPathErrors errorContexts source =  map findPathError errorContexts
+findPathErrors :: [CompilerErrorContext] LineMap -> [PathError]
+findPathErrors errorContexts lineMap = map (findPathError lineMap) errorContexts
 where
-	findPathError :: CompilerErrorContext -> (String,String)
-	findPathError (error,context) = case findPathCommentInSource context.line source of
+	findPathError :: LineMap CompilerErrorContext -> PathError
+	findPathError lineMap (error,context) = case get context.line lineMap of
 		Just path = (path, printError error)
-		Nothing = ("/", printError error)
-
-findPathCommentInSource :: Int String -> Maybe String
-findPathCommentInSource line source = (snd o hd) (begin1 (doFind 1 Nothing) (fromString source))
-where
-	doFind :: Int (Maybe String) -> CParser Char (Maybe String) t
-	doFind curline curpath = if (curline > line) 
-    	(yield curpath)
-    	(	(token ['/* PATH:'] &> parseUntilCut (token [' */']) <&> \newPath = doFind curline (Just (toString newPath)))
-    		<!> newlineOrEof &> doFind (inc curline) curpath
-    		<!> char &> doFind curline curpath
-    	)
+		Nothing   = ([], printError error)
 
 //Parse utilities
 char :: CParser Char Char t
