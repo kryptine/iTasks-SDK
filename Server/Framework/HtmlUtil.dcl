@@ -54,3 +54,7 @@ paramValue :: !String !HTTPRequest -> String
 * Convert newlines to br tags.
 */
 nl2br :: !String -> HtmlTag
+/**
+* Convert a html string to pure text.
+*/
+html2text :: !String -> String

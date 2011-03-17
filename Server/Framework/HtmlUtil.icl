@@ -1,7 +1,7 @@
 implementation module HtmlUtil
 
 import HTML, JSON, Text, HTTP
-import StdList
+import StdList, StdBool
 
 embeddedStyle :: HtmlTag
 embeddedStyle = StyleTag [TypeAttr "text/css"] [RawText css] 
@@ -113,3 +113,26 @@ NEWLINE	:== "\n"
 
 nl2br :: !String -> HtmlTag
 nl2br str = html [[Text line,BrTag []] \\ line <- split NEWLINE str]
+
+html2text :: !String -> String
+html2text s
+	# s	= replaceSubString "<br>" NEWLINE s
+	# s	= replaceSubString "<BR>" NEWLINE s
+	# s	= replaceSubString "<br/>" NEWLINE s
+	# s	= replaceSubString "<BR/>" NEWLINE s
+	# s	= replaceSubString "</li>" NEWLINE s
+	# s	= stripHtmlTags s
+	# s = replaceSubString "&nbsp;" " " s
+	# s = replaceSubString "&lt;" "<" s
+	# s = replaceSubString "&gt;" ">" s
+	# s = replaceSubString "&amp;" "&" s
+	= s
+where
+	stripHtmlTags s
+		# fstOpen	= indexOf "<" s
+		# fstClose	= indexOf ">" s
+		| fstOpen <> -1 && fstClose <> -1 && fstOpen < fstClose
+			= stripHtmlTags (subString 0 fstOpen s +++ subString (fstClose + 1) (textSize s - fstClose) s)
+		| otherwise
+			= s
+

@@ -202,7 +202,7 @@ where
 	curLabel (Just (JPY _)) = "&yen;"
 	curLabel _				= "&euro;" //Use the default currency
 	
-gVisualize{|HtmlDisplay|} val vst = visualizeControl mkControl (toString,\mbD _ -> html (fmap (RawText o fromHtmlDisplay) mbD)) val vst
+gVisualize{|HtmlDisplay|} val vst = visualizeControl mkControl (toString o fmap (html2text o fromHtmlDisplay),\mbD _ -> html (fmap (RawText o fromHtmlDisplay) mbD)) val vst
 where
 	mkControl _ id val label _ _ _
 		= TUIHtmlContainer	{ TUIHtmlContainer
