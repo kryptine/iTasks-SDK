@@ -33,10 +33,9 @@ config :: !*World -> (!Maybe Config,!*World)
 *
 * @param A label for the workflow. This may contain slashes to group workflows
 * @param A description of the workflow
-* @param The task (with or without parameter)
+* @param The task(container) (with or without parameter)
 */
-workflow		:: !String !String !(Task a)		-> Workflow | iTask a
-workflowParam	:: !String !String !(a -> Task b)	-> Workflow | iTask a & iTask b
+workflow :: !String !String !w -> Workflow | workflowTask w
 
 /**
 *
@@ -45,10 +44,16 @@ workflowParam	:: !String !String !(a -> Task b)	-> Workflow | iTask a & iTask b
 * @param A label for the workflow. This may contain slashes to group workflows
 * @param A description of the workflow
 * @param A list of roles. The workflow will be available to users with any of the specified roles
-* @param The task (with or without parameter)
+* @param The task(container) (with or without parameter)
 */
-restrictedWorkflow		:: !String !String ![Role] !(Task a)		-> Workflow | iTask a
-restrictedWorkflowParam	:: !String !String ![Role] !(a -> Task b)	-> Workflow | iTask a & iTask b
+restrictedWorkflow :: !String !String ![Role] !w -> Workflow | workflowTask w
+
+class workflowTask w :: !String !String ![Role] !w -> Workflow
+
+instance workflowTask (Task a)					| iTask a
+instance workflowTask (TaskContainer a)			| iTask a
+instance workflowTask (a -> Task b)				| iTask a & iTask b	
+instance workflowTask (ParamTaskContainer a b)	| iTask a & iTask b
 
 /**
 * Determines the server executables path

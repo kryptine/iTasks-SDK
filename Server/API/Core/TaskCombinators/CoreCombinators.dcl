@@ -62,9 +62,9 @@ return 		:: !a 										-> Task a 		| iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-:: PAction x acc	= Stop				// stop the entire parallel/grouped execution
-					| Extend ![Task x]	// dynamically extend list of tasks in parallel/group
-					| Focus Tag			// focus child-tasks with given tag
+:: PAction x acc	= Stop						// stop the entire parallel/grouped execution
+					| Extend ![TaskContainer x]	// dynamically extend list of tasks in parallel/group
+					| Focus Tag					// focus child-tasks with given tag
 					
 derive class iTask PAction
 
@@ -98,15 +98,13 @@ derive class iTask PAction
 :: TerminationStatus	=	AllRunToCompletion	// all parallel processes have ended their execution
 						|	Stopped				// the control signal StopParallel has been commited
 
-:: CTask a acc :== (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) -> Task (PAction a acc)
-
 :: ParallelTaskInfo =	{ index				:: !TaskIndex				// the task's index
 						, taskProperties	:: !TaskProperties			// task properties
 						, processProperties	:: !Maybe ProcessProperties	// process properties for tasks which are detached processes
 						, controlTask		:: !Bool					// is the task a control task?
 						}
 
-container :: !TaskContainerType !(Task a) -> Task a | iTask a
+:: ControlTaskContainer a acc :== ParamTaskContainer (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) (PAction a acc)
 
 /**
 * All-in-one swiss-army-knife parallel task creation
@@ -118,7 +116,7 @@ container :: !TaskContainerType !(Task a) -> Task a | iTask a
 * @param The list of ordinary tasks to run in parallel
 * @return The resulting value
 */
-parallel :: !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel :: !d !(ValueMerger taskResult pState pResult) ![ControlTaskContainer taskResult pState] ![TaskContainer taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 
 // Multi-user workflows
 
@@ -131,7 +129,7 @@ parallel :: !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pStat
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !Bool !Bool !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
+spawnProcess	:: !Bool !Bool !(TaskContainer a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
 
 :: SharedProc			:== ReadOnlyShared (Maybe Process)
 // the first maybe indicates if the process finished, the second if result is deleted

@@ -54,9 +54,9 @@ actions state=:((name,form),mode)
 
 ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
 
-handleMenu :: Task Void
+handleMenu :: TaskContainer Void
 handleMenu 
-	= container (DetachedTask initManagerProperties (staticMenu initMenu)) (doMenu emptyState)
+	= DetachedTask initManagerProperties (staticMenu initMenu) (doMenu emptyState)
 
 doMenu state=:((name,form), mode)
 		=	case mode of

@@ -3,9 +3,9 @@ implementation module SmallExamples
 import iTasks
 
 smallExamples :: [Workflow]
-smallExamples = [workflow		"Examples/Miscellaneous/Calculate sum" "Calculate the sum of two numbers" calculateSum
-				,workflow		"Examples/Miscellaneous/Calculate sum (with stepback)" "Calculate the sum of two numbers, with stepback possibility" calculateSumSteps
-				,workflowParam	"Examples/Miscellaneous/Calculate sum (parameterised)" "Calculate the sum of two numbers given as parameter" calculateSumParam
+smallExamples = [workflow	"Examples/Miscellaneous/Calculate sum" "Calculate the sum of two numbers" calculateSum
+				,workflow	"Examples/Miscellaneous/Calculate sum (with stepback)" "Calculate the sum of two numbers, with stepback possibility" calculateSumSteps
+				,workflow	"Examples/Miscellaneous/Calculate sum (parameterised)" "Calculate the sum of two numbers given as parameter" calculateSumParam
 				]
 
 calculateSum :: Task Int

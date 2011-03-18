@@ -316,19 +316,7 @@ applyTaskEdit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 * @return The value produced by the task
 * @return The modified task state
 */
-applyTaskCommit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-
-/**
-* Add a subnode to the current task tree
-*
-* @param The container type
-* @param Is the task a control task?
-* @param The sub node
-* @param The task state
-*
-* @return The modified task state
-*/
-addTaskNode 		:: !TaskContainerType !Bool !NonNormalizedTree !*TSt -> *TSt
+applyTaskCommit			:: !(Task a) !(Maybe TaskContainerType) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 
 //// TASK CONTENT
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt						-> *TSt // Only for interactive tasks

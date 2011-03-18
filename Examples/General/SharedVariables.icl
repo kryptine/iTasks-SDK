@@ -63,8 +63,8 @@ where
 mergeTestList :: Task Void
 mergeTestList =	
 				return (sharedStoreDefault "mergeTestLists")
-	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
-	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
+	>>= \sid.	spawnProcess True True (DetachedTask initManagerProperties noMenu (Title "1st View" @>> view sid))
+	>>|			spawnProcess True True (DetachedTask initManagerProperties noMenu (Title "2nd View" @>> view sid))
 	>>|			stop
 where
 	view :: (SymmetricShared [String]) -> Task (Action,Maybe [String])
@@ -73,9 +73,9 @@ where
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
 				return store
-	>>= \sid.	spawnProcess True True (Title "1st View" @>> view sid)
-	>>|			spawnProcess True True (Title "2nd View" @>> view sid)
-	>>|			spawnProcess True True (Title "3rd View" @>> showMessageSharedA "Documents" id [quitButton] sid)
+	>>= \sid.	spawnProcess True True (DetachedTask initManagerProperties noMenu (Title "1st View" @>> view sid))
+	>>|			spawnProcess True True (DetachedTask initManagerProperties noMenu (Title "2nd View" @>> view sid))
+	>>|			spawnProcess True True (DetachedTask initManagerProperties noMenu (Title "3rd View" @>> showMessageSharedA "Documents" id [quitButton] sid))
 	>>|			stop
 where
 	view sid = updateSharedInformationA ("List","Merging the documents") idView [quitButton] sid
@@ -266,13 +266,13 @@ where
 			| i == (length opts) - 1	= Right (fromVisualizationHint nc)
 										= Left (fst (getChoice (Choice opts i)))	
 sharedValueExamples :: [Workflow]
-sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)"	"" (Title "Text-Lines"				@>> linesPar)
-						, workflow "Examples/Shared Variables/Calculate Sum"				"" (Title "Calculate Sum"			@>> calculateSum)
-						, workflow "Examples/Shared Variables/Balanced Binary Tree"			"" (Title "Balanced Binary Tree"	@>> tree)
-						, workflow "Examples/Shared Variables/Merge Test (List)"			"" (Title "Merge Test (List)"		@>> mergeTestList)
-						, workflow "Examples/Shared Variables/Merge Test (Documents)"		"" (Title "Merge Test (Documents)"	@>> mergeTestDocuments)
-						, workflow "Examples/Shared Variables/Google Maps Example"			"" (Title "Google Maps Example"		@>> googleMaps)
-						, workflow "Examples/Shared Variables/Sorted List"					"" (Title "Sorted List"				@>> autoSortedList)
-						//, workflow "Examples/Shared Variables/Formatted Text"				"" (Title "Formatted Text"			@>> formattedText)
-						, workflow "Examples/Shared Variables/Choose or add"				"" (Title "Choose or add"			@>> chooseOrAdd)
+sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" linesPar
+						, workflow "Examples/Shared Variables/Calculate Sum"				"" calculateSum
+						, workflow "Examples/Shared Variables/Balanced Binary Tree"			"" tree
+						, workflow "Examples/Shared Variables/Merge Test (List)"			"" mergeTestList
+						, workflow "Examples/Shared Variables/Merge Test (Documents)"		"" mergeTestDocuments
+						, workflow "Examples/Shared Variables/Google Maps Example"			"" googleMaps
+						, workflow "Examples/Shared Variables/Sorted List"					"" autoSortedList
+						//, workflow "Examples/Shared Variables/Formatted Text"				"" formattedText
+						, workflow "Examples/Shared Variables/Choose or add"				"" chooseOrAdd
 						]

@@ -7,19 +7,30 @@ definition module Task
 import Types, HTTP, GenVisualize, iTaskClass
 from TSt 		import :: TSt
 
-derive JSONEncode	Task, TaskResult
-derive JSONDecode	Task, TaskResult
-derive gUpdate		Task
-derive gDefaultMask	Task
-derive gVerify		Task
-derive gVisualize	Task
-derive gEq			Task
+derive JSONEncode	TaskContainer, Task, TaskResult
+derive JSONDecode	TaskContainer, Task, TaskResult
+derive gUpdate		TaskContainer, Task, ManagerProperties, TaskPriority
+derive gDefaultMask	TaskContainer, Task, ManagerProperties, TaskPriority
+derive gVerify		TaskContainer, Task, ManagerProperties, TaskPriority
+derive gVisualize	TaskContainer, Task, ManagerProperties, TaskPriority
+derive gEq			TaskContainer, Task
 
 // Tasks
 
+:: TaskContainer a			= DetachedTask	!ManagerProperties !ActionMenu	!(Task a)
+							| WindowTask	!WindowTitle !ActionMenu		!(Task a)
+							| DialogTask	!WindowTitle					!(Task a)
+							| InBodyTask									!(Task a)
+							| HiddenTask									!(Task a)
+					
+:: ParamTaskContainer a b	= DetachedPTask	!ManagerProperties !ActionMenu	!(a -> Task b)
+							| WindowPTask	!WindowTitle !ActionMenu		!(a -> Task b)
+							| DialogPTask	!WindowTitle					!(a -> Task b)
+							| InBodyPTask									!(a -> Task b)
+							| HiddenPTask									!(a -> Task b)
+
 :: Task a =
 	{ properties		:: !TaskProperties						// the task's general properties
-	, containerType		:: !TaskContainerType					// specified in which kind of container the task is shown inside of a parallel
 	, formWidth			:: !Maybe FormWidth						// Width of task form
 	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
 	, taskFuncEdit		:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
@@ -34,8 +45,13 @@ derive gEq			Task
 					
 taskException :: !e -> TaskResult a | TC, toString e
 					
-mapTaskResult	:: !(a -> b) !(TaskResult a)	-> TaskResult b
-mapTask			:: !(a -> b) !(Task a)			-> Task b
+mapTaskResult				:: !(a -> b) !(TaskResult a)				-> TaskResult b
+mapTask						:: !(a -> b) !(Task a)						-> Task b
+mapTaskContainer			:: !(a -> b) !(TaskContainer a)			 	-> TaskContainer b
+fromContainerToTask			:: !(TaskContainer a)						-> (!Task a,TaskContainerType)
+fromContainerToTaskParam	:: !(ParamTaskContainer a b)				-> (!a -> Task b,TaskContainerType)
+applyParam					:: !a !(ParamTaskContainer a b)				-> TaskContainer b
+changeTask					:: !((Task a) -> Task a) !(TaskContainer a)	-> TaskContainer a
 
 :: TaskThread a		=
 	{ originalTask		:: !Task a
@@ -60,13 +76,6 @@ taskTitle			:: !(Task a)	-> String
 */
 taskDescription		:: !(Task a)	-> String
 
-/**
-* Extracts the initial worker of a task
-*
-* @param The task
-* @param The task's initial worker
-*/
-taskUser			:: !(Task a)	-> User
 /*
 * Extracts the initial properties of a task
 *
@@ -74,15 +83,6 @@ taskUser			:: !(Task a)	-> User
 * @return The task's initial properties
 */
 taskProperties		:: !(Task a)	-> TaskProperties
-/*
-* Extracts the initial manager properties of a task
-*
-* @param The task
-* @return The task's initial manager properties
-*/
-managerProperties	:: !(Task a)	-> ManagerProperties
-
-:: MenuId			:== Int
 
 class iTaskId a
 where

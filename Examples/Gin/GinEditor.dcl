@@ -7,4 +7,4 @@ import GinSyntax
 import GinDomain
 
 getConfig :: Task GinConfig
-ginEditor :: Task Void
+ginEditor :: TaskContainer Void

@@ -2,7 +2,7 @@ implementation module Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, Types, dynamic_string, Base64, HTTP, Util
 import GenVisualize
-from TSt 		import :: TSt
+from TSt import :: TSt
 
 taskTitle :: !(Task a) -> String
 taskTitle task = task.Task.properties.taskDescription.TaskDescription.title
@@ -10,18 +10,8 @@ taskTitle task = task.Task.properties.taskDescription.TaskDescription.title
 taskDescription	:: !(Task a) -> String
 taskDescription task = task.Task.properties.taskDescription.TaskDescription.description
 
-taskUser :: !(Task a) -> User
-taskUser {Task|containerType} = case containerType of
-	DetachedTask {worker} _	= worker
-	_						= AnyUser
-
 taskProperties :: !(Task a) -> TaskProperties
 taskProperties {Task|properties} = properties
-
-managerProperties :: !(Task a) -> ManagerProperties
-managerProperties {Task|containerType} = case containerType of
-	DetachedTask props _	= props
-	_						= initManagerProperties
 	
 instance iTaskId TaskNr
 where
@@ -72,37 +62,90 @@ mapTaskResult f (TaskException e str)	= TaskException e str
 mapTask :: !(a -> b) !(Task a) -> Task b
 mapTask f t=:{taskFuncCommit} = {t & taskFuncCommit = appFst (mapTaskResult f) o taskFuncCommit}
 
-derive JSONEncode TaskResult, TaskContainerType
-derive JSONDecode TaskResult, TaskContainerType
+mapTaskContainer :: !(a -> b) !(TaskContainer a) -> TaskContainer b
+mapTaskContainer f container = case container of
+	DetachedTask p m t	= DetachedTask p m (mapTask f t)
+	WindowTask w m t	= WindowTask w m (mapTask f t)
+	DialogTask w t		= DialogTask w (mapTask f t)
+	InBodyTask t		= InBodyTask (mapTask f t)
+	HiddenTask t		= HiddenTask (mapTask f t)
+	
+fromContainerToTask	:: !(TaskContainer a) -> (!Task a,TaskContainerType)
+fromContainerToTask container = case container of
+	DetachedTask p m t	= (t,CTDetached p m)
+	WindowTask w m t	= (t,CTWindow w m)
+	DialogTask w t		= (t,CTDialog w)
+	InBodyTask t		= (t,CTInBody)
+	HiddenTask t		= (t,CTHidden)
+	
+fromContainerToTaskParam :: !(ParamTaskContainer a b) -> (!a -> Task b,TaskContainerType)
+fromContainerToTaskParam container = case container of
+	DetachedPTask p m t	= (t,CTDetached p m)
+	WindowPTask w m t	= (t,CTWindow w m)
+	DialogPTask w t		= (t,CTDialog w)
+	InBodyPTask t		= (t,CTInBody)
+	HiddenPTask t		= (t,CTHidden)
+	
+applyParam :: !a !(ParamTaskContainer a b) -> TaskContainer b
+applyParam a container = case container of
+	DetachedPTask p m	ct = DetachedTask p m	(ct a)
+	WindowPTask w m		ct = WindowTask w m		(ct a)
+	DialogPTask w		ct = DialogTask w		(ct a)
+	InBodyPTask			ct = InBodyTask			(ct a)
+	HiddenPTask			ct = HiddenTask			(ct a)
+	
+changeTask :: !((Task a) -> Task a) !(TaskContainer a) -> TaskContainer a
+changeTask f container = case container of
+	DetachedTask p m t	= DetachedTask p m	(f t)
+	WindowTask w m t	= WindowTask w m	(f t)
+	DialogTask w t		= DialogTask w		(f t)
+	InBodyTask t		= InBodyTask		(f t)
+	HiddenTask t		= HiddenTask		(f t)
+
+derive JSONEncode	TaskContainer
+derive JSONDecode	TaskContainer
+derive gUpdate		TaskContainer, ManagerProperties, TaskPriority
+derive gDefaultMask	TaskContainer, ManagerProperties, TaskPriority
+derive gVerify		TaskContainer, ManagerProperties, TaskPriority
+derive gVisualize	TaskContainer, ManagerProperties, TaskPriority
+derive gEq			TaskContainer
+derive JSONEncode 	TaskResult, TaskContainerType
+derive JSONDecode 	TaskResult, TaskContainerType
 derive bimap Maybe, (,)
 
-// JSON (de)serialisation of menus not needed because only functions generating menus (no actual menu structures) are serialised
+// Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
 JSONEncode{|Menu|} _		= abort "not implemented"
 JSONEncode{|MenuItem|} _	= abort "not implemented"
 JSONDecode{|Menu|} _		= abort "not implemented"
 JSONDecode{|MenuItem|} _	= abort "not implemented"
+gUpdate{|Menu|} _ _			= abort "not implemented"
+gUpdate{|MenuItem|} _ _		= abort "not implemented"
+gDefaultMask{|Menu|} _		= abort "not implemented"
+gDefaultMask{|MenuItem|} _	= abort "not implemented"
+gVerify{|Menu|} _ _			= abort "not implemented"
+gVerify{|MenuItem|} _ _		= abort "not implemented"
+gVisualize{|Menu|} _ _		= abort "not implemented"
+gVisualize{|MenuItem|} _ _	= abort "not implemented"
+gEq{|Menu|} _ _				= abort "not implemented"
+gEq{|MenuItem|} _ _			= abort "not implemented"
 
-JSONEncode{|Task|} _ {properties,containerType,mbTaskNr,taskFuncEdit,taskFuncCommit}
+JSONEncode{|Task|} _ {properties,mbTaskNr,taskFuncEdit,taskFuncCommit}
 	= [JSONArray	[  JSONString "Task"
 					:  JSONEncode{|*|} properties
-					++ JSONEncode{|*|} containerType
 					++ JSONEncode{|*|} mbTaskNr
 					++ encodeFunc taskFuncEdit
 					++ encodeFunc taskFuncCommit]]
 					
-JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,containerType,mbTaskNr,taskFuncEdit,taskFuncCommit]:c]
+JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,mbTaskNr,taskFuncEdit,taskFuncCommit]:c]
 	# mbTaskProperties		= fromJSON properties
-	# mbContainerType		= fromJSON containerType
 	# mbMbTaskNr			= fromJSON mbTaskNr
 	# mbTaskFuncEdit		= decodeFunc taskFuncEdit
 	# mbTaskFuncCommit		= decodeFunc taskFuncCommit
 	|  isJust mbTaskProperties
-	&& isJust mbContainerType
 	&& isJust mbMbTaskNr
 	&& isJust mbTaskFuncEdit
 	&& isJust mbTaskFuncCommit
-		= (Just	{ properties	= fromJust mbTaskProperties
-				, containerType		= fromJust mbContainerType
+		= (Just	{ properties		= fromJust mbTaskProperties
 				, formWidth			= Nothing
 				, mbTaskNr			= fromJust mbMbTaskNr
 				, taskFuncEdit		= fromJust mbTaskFuncEdit
@@ -117,7 +160,6 @@ gUpdate{|Task|} fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
-					, containerType		= InBodyTask
 					, formWidth			= Nothing
 					, mbTaskNr			= Nothing
 					, taskFuncEdit		= id

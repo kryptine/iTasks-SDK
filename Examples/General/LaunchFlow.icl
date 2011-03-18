@@ -23,9 +23,9 @@ actions
 		, (ActionQuit,			always)
 		]
 
-handleMenu :: Task Void
+handleMenu :: TaskContainer Void
 handleMenu 
-	= container (DetachedTask initManagerProperties (staticMenu initMenu)) doMenu
+	= DetachedTask initManagerProperties (staticMenu initMenu) doMenu
 where
 	doMenu
 		=						doMenuEnter
@@ -49,7 +49,7 @@ where
 	taskFound d=:(DT t:: DT a) 
 		=					requestConfirmation ("Start workflow","Workflow of type :: " +++ showDynType d +++ "  can be started; Shall I ?")
 		>>= \ok ->			if ok (					updateInformation ("Name","Name of this workflow: ") "workflow"
-									>>= \name -> 	spawnProcess True True (t <<@ Title name)
+									>>= \name -> 	spawnProcess True True (DetachedTask initManagerProperties noMenu (t <<@ Title name))
 									>>| 			return Void)
 								  (return Void)	
 

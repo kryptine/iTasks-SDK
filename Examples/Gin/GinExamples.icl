@@ -16,7 +16,7 @@ ginExamples :: [Workflow]
 ginExamples = [ workflow "Examples/Graphical Editors/Graphical Editor" "Create or edit workflows in Gin notation" ginEditor
 			  , simpleEditorWorkflow "Petri net" petriNetORYXEditor
 			  , simpleEditorWorkflow "BPMN" bpmnORYXEditor
-			  //, simpleEditorWorkflow "Gin" (ginORYXEditor ["InteractionTasks"] newGinORYXDiagram)
+			  //, simpleEditorWorkflow "Gin" (defaultDetached (ginORYXEditor ["InteractionTasks"] newGinORYXDiagram))
               , workflow "Examples/Graphical Editors/Shared Petri net editors" "Two shared Petri net editors" petrinetShareExample
 			  ]
 			  

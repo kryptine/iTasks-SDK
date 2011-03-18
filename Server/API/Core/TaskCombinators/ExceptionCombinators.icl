@@ -46,16 +46,16 @@ where
 		# (mbEx,tst) = getException tst
 		= case mbEx of
 			Just ex	
-				= applyTaskCommit (handlerTask ex) {tst & taskNr = incTaskNr taskNr}
+				= applyTaskCommit (handlerTask ex) Nothing {tst & taskNr = incTaskNr taskNr}
 			Nothing			
-				# (result, tst)	= applyTaskCommit normalTask tst
+				# (result, tst)	= applyTaskCommit normalTask Nothing tst
 				= case result of
 					//Handle exception if it matches
 					TaskException (ex :: e^) _
 						# tst	= deleteTaskStates taskNr tst 													//Garbage collect
 						# tst	= deleteSubProcesses (taskNrToString taskNr) tst
 						# tst	= setException ex tst															//Store the exception
-						= applyTaskCommit (handlerTask ex) {(resetSequence tst) & taskNr = incTaskNr taskNr}	//Run the handler
+						= applyTaskCommit (handlerTask ex) Nothing {(resetSequence tst) & taskNr = incTaskNr taskNr}	//Run the handler
 					//Just pass through the result
 					_
 						= (result,tst)
@@ -79,16 +79,16 @@ where
 		# (mbEx,tst) = getException tst
 		= case mbEx of
 			Just err
-				= applyTaskCommit (handlerTask err) {tst & taskNr = incTaskNr taskNr}
+				= applyTaskCommit (handlerTask err) Nothing {tst & taskNr = incTaskNr taskNr}
 			Nothing
-				# (result, tst)	= applyTaskCommit normalTask tst
+				# (result, tst)	= applyTaskCommit normalTask Nothing tst
 				= case result of
 					//Handle exception
 					TaskException _ str
 						# tst	= deleteTaskStates taskNr tst 													//Garbage collect
 						# tst	= deleteSubProcesses (taskNrToString taskNr) tst
 						# tst	= setException str tst															//set exception string
-						= applyTaskCommit (handlerTask str) {(resetSequence tst) & taskNr = incTaskNr taskNr}	//Run the handler
+						= applyTaskCommit (handlerTask str) Nothing {(resetSequence tst) & taskNr = incTaskNr taskNr}	//Run the handler
 					//Just pass through the result
 					_
 						= (result,tst)

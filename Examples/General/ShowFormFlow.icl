@@ -27,9 +27,9 @@ actions
 		, (ActionQuit,	always)
 		]
 
-handleMenu :: Task Void
+handleMenu :: TaskContainer Void
 handleMenu 
-	=	container (DetachedTask initManagerProperties (staticMenu initMenu)) (doMenu "Select store to view..." Void)
+	=	DetachedTask initManagerProperties (staticMenu initMenu) (doMenu "Select store to view..." Void)
 where
 	doMenu :: String a -> Task Void | iTask a
 	doMenu title val

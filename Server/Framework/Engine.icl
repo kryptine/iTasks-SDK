@@ -73,44 +73,39 @@ where
 		# tst		= flushStore tst
 		= (response, finalizeTSt tst)
 
-workflow :: !String !String !(Task a) -> Workflow | iTask a
-workflow path description task =
-	{ Workflow
-	| path	= path
-	, roles	= []
-	, thread = createThread (task <<@ Title (path2name path))
-	, description = description
-	, containerType = task.Task.containerType
-	}
-	
-workflowParam :: !String !String !(a -> Task b)	-> Workflow | iTask a & iTask b
-workflowParam path description task =
-	{ Workflow
-	| path	= path
-	, roles	= []
-	, thread = createThreadParam ((@>>) (Title (path2name path)) o task)
-	, description = description
-	, containerType = InBodyTask
-	}
+workflow :: !String !String !w -> Workflow | workflowTask w
+workflow path description task = workflowTask path description [] task
 
-restrictedWorkflow :: !String !String ![Role] !(Task a) -> Workflow | iTask a
-restrictedWorkflow path description roles task =
-	{ Workflow
-	| path	= path
-	, roles	= roles
-	, thread = createThread (task <<@ Title (path2name path))
-	, description = description
-	, containerType = task.Task.containerType
-	}
+restrictedWorkflow :: !String !String ![Role] !w -> Workflow | workflowTask w
+restrictedWorkflow path description roles task = workflowTask path description roles task
 	
-restrictedWorkflowParam :: !String !String ![Role] !(a -> Task b) -> Workflow | iTask a & iTask b
-restrictedWorkflowParam path description roles task =
+instance workflowTask (Task a) | iTask a
+where
+	workflowTask path description roles task = workflowTask path description roles (DetachedTask initManagerProperties noMenu task)
+	
+instance workflowTask (TaskContainer a) | iTask a
+where
+	workflowTask path description roles container = mkWorkflow path description roles (createThread (task <<@ Title (path2name path))) type
+	where
+		(task,type) = fromContainerToTask container
+
+instance workflowTask (a -> Task b) | iTask a & iTask b
+where
+	workflowTask path description roles paramTask = workflowTask path description roles (DetachedPTask initManagerProperties noMenu paramTask)
+	
+instance workflowTask (ParamTaskContainer a b) | iTask a & iTask b
+where
+	workflowTask path description roles container = mkWorkflow path description roles (createThreadParam paramTask) type
+	where
+		(paramTask,type) = fromContainerToTaskParam container
+	
+mkWorkflow path description roles thread containerType =
 	{ Workflow
 	| path	= path
 	, roles	= roles
-	, thread = createThreadParam ((@>>) (Title (path2name path)) o task)
+	, thread = thread
 	, description = description
-	, containerType = InBodyTask
+	, containerType = containerType
 	}
 
 path2name path = last (split "/" path)

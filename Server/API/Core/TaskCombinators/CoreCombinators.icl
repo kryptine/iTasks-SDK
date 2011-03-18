@@ -21,13 +21,13 @@ where
 			_				= tst
 			
 	tbindC tst
-		# (result,tst) = applyTaskCommit taska tst
+		# (result,tst) = applyTaskCommit taska Nothing tst
 		= case result of
 			TaskBusy
 				= (TaskBusy, tst)
 			TaskFinished a
 				//Pass the argument and do the second part
-				= applyTaskCommit (taskb a) tst
+				= applyTaskCommit (taskb a) Nothing tst
 			TaskException e str
 				= (TaskException e str,tst)
 
@@ -51,7 +51,7 @@ where
 		
 	doTaskC tst=:{taskNr} 
 		# (loop,tst)	= getCounter tst
-		# (result,tst) 	= applyTaskCommit task {tst & taskNr = [loop:tl taskNr]}
+		# (result,tst) 	= applyTaskCommit task Nothing {tst & taskNr = [loop:tl taskNr]}
 		= case result of
 			TaskBusy
 				= (TaskBusy,tst)
@@ -85,7 +85,7 @@ where
 
 	doseqTasksC [] accu tst				= (TaskFinished (reverse accu), tst)
 	doseqTasksC [task:ts] accu tst 	
-		# (result,tst)					= applyTaskCommit task tst
+		# (result,tst)					= applyTaskCommit task Nothing tst
 		= case result of
 			TaskBusy					= (TaskBusy,tst)
 			TaskFinished a				= doseqTasksC ts [a:accu] tst
@@ -94,8 +94,14 @@ where
 	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
 	
 // Parallel composition
-derive JSONEncode PSt, PStTask
-derive JSONDecode PSt, PStTask
+derive JSONEncode PSt, PStTask, ParamTaskContainer
+derive JSONDecode PSt, PStTask, ParamTaskContainer
+
+// Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
+JSONEncode{|Menu|} _		= abort "not implemented"
+JSONEncode{|MenuItem|} _	= abort "not implemented"
+JSONDecode{|Menu|} _		= abort "not implemented"
+JSONDecode{|MenuItem|} _	= abort "not implemented"
 
 :: PSt a b =
 	{ state 		:: !b
@@ -103,12 +109,9 @@ derive JSONDecode PSt, PStTask
 	, nextIdx		:: !Int
 	}
 	
-:: PStTask a acc = InitTask !Int | AddedTask !(Task a) | InitControlTask !Int | AddedControlTask !(CTask a acc)
+:: PStTask a acc = InitTask !Int | AddedTask !(TaskContainer a) | InitControlTask !Int | AddedControlTask !(ControlTaskContainer a acc)
 
-container :: !TaskContainerType !(Task a) -> Task a | iTask a
-container type task = {Task|task & containerType = type}
-
-parallel :: !d !(ValueMerger taskResult pState pResult) ![CTask taskResult pState] ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel :: !d !(ValueMerger taskResult pState pResult) ![ControlTaskContainer taskResult pState] ![TaskContainer taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 parallel d (initState,accuFun,resultFun) initCTasks initTasks
 	= mkParallelTask d (parallelE,parallelC)
 where
@@ -119,10 +122,10 @@ where
 		
 	processAllTasksE pst n tst=:{taskNr}
 		| (length pst.tasks) == n	= tst
-		# (idx,task)				= getTaskFromPSt taskNr n pst
-		# tst = case task.Task.containerType of
-			DetachedTask _ _	= tst
-			_					= snd (applyTaskEdit task {tst & taskNr = [idx:taskNr]})
+		# (idx,(task,ctype))		= getTaskFromPSt taskNr n pst
+		# tst = case ctype of
+			CTDetached _ _	= tst
+			_				= snd (applyTaskEdit task {tst & taskNr = [idx:taskNr]})
 		= processAllTasksE pst (inc n) {tst & taskNr = taskNr}
 
 	parallelC tst=:{taskNr,properties}
@@ -166,9 +169,9 @@ where
 					, nextIdx = length initTasks + length initCTasks
 					},iworld)
 	where
-		isDetached (_,pstTask) = case (getPStTask taskNr pstTask).Task.containerType of
-			DetachedTask _ _	= True
-			_					= False
+		isDetached (_,pstTask) = case snd (getPStTask taskNr pstTask) of
+			CTDetached _ _	= True
+			_				= False
 	
 	storePSt taskNr pst tst
 		# tst = appIWorldTSt (updateTimestamp taskNr) tst
@@ -177,17 +180,24 @@ where
 	getTaskFromPSt taskNr n pst
 		# (idx,pstTask) = pst.tasks !! n
 		= (idx,getPStTask taskNr pstTask)
-			
-	getPStTask _		(InitTask n)			= mapTask Left	(initTasks !! n)
-	getPStTask _		(AddedTask task)		= mapTask Left	task
-	getPStTask taskNr	(InitControlTask n)		= mapTask Right	(setControlTask ((initCTasks !! n) (sharedParallelState taskNr)))
-	getPStTask taskNr	(AddedControlTask task)	= mapTask Right	(task (sharedParallelState taskNr))
+	
+	getPStTask taskNr pstTask
+		# container = case pstTask of		
+			InitTask n				= mapTaskContainer Left		(initTasks !! n)
+			AddedTask task			= mapTaskContainer Left		task
+			InitControlTask n		= mapTaskContainer Right	(toTaskContainer taskNr (initCTasks !! n))
+			AddedControlTask task	= mapTaskContainer Right	(toTaskContainer taskNr task)
+		= fromContainerToTask container
 	
 	setControlTask t=:{Task|properties} = {Task|t & properties = {TaskProperties|properties & isControlTask = True}}
 	
 	isControlTask (InitControlTask _)	= True
 	isControlTask (AddedControlTask _)	= True
 	isControlTask _						= False
+	
+	toTaskContainer taskNr cContainer = changeTask setControlFlag (applyParam (sharedParallelState taskNr) cContainer)
+	where
+		setControlFlag task = {Task|task & properties = {task.Task.properties & isControlTask = True}}
 	
 	updateTimestamp taskNr iworld=:{IWorld|timestamp} = setTaskStoreFor taskNr "lastUpdate" timestamp iworld
 	
@@ -210,7 +220,7 @@ where
 				Nothing			= (Error "no timestamp",iworld)
 			
 		toParallelTaskInfo (idx,pstTask) iworld
-			# task							= getPStTask taskNr pstTask
+			# (task,ctype)					= getPStTask taskNr pstTask
 			# (mbProc,iworld)				= 'ProcessDB'.getProcess (taskNrToString [idx:taskNr]) iworld
 			# info =	{ index				= idx
 						, taskProperties	= task.Task.properties
@@ -229,16 +239,14 @@ where
 			[] = (TaskBusy, pst, tst)
 			//Process another task
 			[t=:(idx,pstTask):ts]
-				# task = getPStTask taskNr pstTask
-				# (result,tst) = case task.Task.containerType of
-					DetachedTask _ _
+				# (task,ctype) = getPStTask taskNr pstTask
+				# (result,tst) = case ctype of
+					CTDetached _ _
 						//IMPORTANT: Task is evaluated with a shifted task number!!!
-						# (result,tree,tst)	= createOrEvaluateTaskInstance task {tst & taskNr = [idx:taskNr]}
-						// Add the tree to the current node
-						# tst				= addTaskNode task.Task.containerType task.Task.properties.TaskProperties.isControlTask tree tst
+						# (result,tree,tst)	= createOrEvaluateTaskInstance task ctype {tst & taskNr = [idx:taskNr]}
 						= (result,tst)
 					_
-						= applyTaskCommit task {tst & taskNr = [idx:taskNr]}
+						= applyTaskCommit task (Just ctype) {tst & taskNr = [idx:taskNr]}
 				= case result of
 					TaskBusy
 						//Process the other tasks
@@ -265,8 +273,8 @@ where
 						//Don't process the other tasks, just let the exception through
 						= (TaskException e str,pst,tst)
 
-createOrEvaluateTaskInstance :: !(Task a) !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
-createOrEvaluateTaskInstance task=:{Task|containerType} tst=:{TSt|taskNr,events}
+createOrEvaluateTaskInstance :: !(Task a) !TaskContainerType !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
+createOrEvaluateTaskInstance task containerType tst=:{TSt|taskNr,events}
 	//Try to load the stored process for this subtask
 	# taskId		 = taskNrToString taskNr
 	# (mbProc,tst)	 = 'ProcessDB'.getProcess taskId tst
@@ -296,12 +304,14 @@ createOrEvaluateTaskInstance task=:{Task|containerType} tst=:{TSt|taskNr,events}
 	where
 		invalidType = "createOrEvaluateTaskIntance: task result of invalid type!"
 
-spawnProcess :: !Bool !Bool !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
-spawnProcess activate gcWhenDone task=:{Task|containerType} = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
+spawnProcess :: !Bool !Bool !(TaskContainer a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
+spawnProcess activate gcWhenDone container = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
 where
 	spawnProcess` tst
 		# (pid,_,_,tst)	= createTaskInstance (createThread task) True activate gcWhenDone containerType tst
 		= (TaskFinished (pid,sharedProc pid,sharedRes pid), tst)
+		
+	(task,containerType) = fromContainerToTask container
 	
 	sharedProc pid = makeReadOnlyShared ('ProcessDB'.getProcess pid)
 			

@@ -23,24 +23,24 @@ where
 	toUITreeContainer` :: !Bool !NonNormalizedTreeContainer !*IWorld -> (!(!Maybe UITreeContainer,!SubtaskActions),!*IWorld)
 	toUITreeContainer` top (TTContainer type tree controlTask) iworld
 		= case type of
-		DetachedTask _ _ | not top // filter out detached task if it's not the top one, because it's not shown in a parallel panel
+		CTDetached _ _ | not top // filter out detached task if it's not the top one, because it's not shown in a parallel panel
 			= ((Nothing,[]),iworld)
 		_
 			// convert tree into UI tree & collect actions which are possibly used in container's menu
 			# (uiTree,actions,iworld) = toUITree tree iworld
 			// possibly build menu & put in TTContainerType
 			# (mbTTContainerType,remainingActions) = case type of
-				DetachedTask _ menuF
+				CTDetached _ menuF
 					# (tuiMenu,remainingActions) = mkMenu menuF actions
 					= (Just (TTDetached tuiMenu),remainingActions)
-				WindowTask title menuF
+				CTWindow title menuF
 					# (tuiMenu,remainingActions) = mkMenu menuF actions
 					= (Just (TTWindow title tuiMenu),remainingActions)
-				DialogTask title
+				CTDialog title
 					= (Just (TTDialog title),actions)
-				InBodyTask
+				CTInBody
 					= (Just TTInBody,actions)
-				HiddenTask
+				CTHidden
 					| top // filter out hidden task if it's not the top one
 						= (Just TTHidden,actions)
 					| otherwise // but pass actions upwards in any case

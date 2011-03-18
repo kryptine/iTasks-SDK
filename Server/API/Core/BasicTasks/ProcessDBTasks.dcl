@@ -9,10 +9,10 @@ from Time		import :: Timestamp
 from Shared		import :: ReadOnlyShared
 import iTaskClass
 
-derive gVisualize	Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
-derive gUpdate		Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
-derive gDefaultMask	Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
-derive gVerify		Process, ProcessProperties, TaskProgress, SystemProperties, ManagerProperties, TaskProperties, TaskStatus, TaskPriority, TaskDescription
+derive gVisualize	Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gUpdate		Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gDefaultMask	Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gVerify		Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription
 
 /**
 * Retrieves a Process record from the process table

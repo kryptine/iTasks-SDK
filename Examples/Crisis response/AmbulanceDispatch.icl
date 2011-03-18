@@ -166,7 +166,7 @@ resourceRequestTimeOut :: [(b,User,a)] Time ([(b,Maybe a)] -> Bool) ([(b,Maybe a
 resourceRequestTimeOut resources time_out check predf allf task
 	= oldParallel ("Resource requests","Waiting for resources...") ([],procfun,finalfun) tasks
 where		
-	tasks	=	[(delegateTaskTimeOut uid "Resource Request" amount task time_out >>= \mba -> return (resource, mba))
+	tasks	=	[DetachedTask initManagerProperties noMenu (delegateTaskTimeOut uid "Resource Request" amount task time_out >>= \mba -> return (resource, mba))
 				\\ (resource,uid,amount) <- resources]
 
   	procfun index result st

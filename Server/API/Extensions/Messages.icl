@@ -108,30 +108,28 @@ sendMessage msg
 	=	dbCreateItem msg
 	>>= \msg -> case msg.needsReply of
 			False	= allTasks [spawnProcess True True (notifyTask rcp msg) \\ rcp <- msg.Message.recipients] >>| stop
-			True	= spawnProcess True True (awaitReplies msg) >>| stop
+			True	= spawnProcess True True (DetachedTask initManagerProperties noMenu (awaitReplies msg)) >>| stop
 	>>| showMessageAbout ("Message sent","The following message has been sent:") msg
 	>>| stop
 where
 	notifyTask user msg =
-		subject msg @>>
-		container
-			(DetachedTask {worker = user, priority = msg.Message.priority, deadline = Nothing} noMenu)
-			(manageMessage msg)
+		DetachedTask
+			{worker = user, priority = msg.Message.priority, deadline = Nothing} noMenu
+			(subject msg @>> manageMessage msg)
 
 	awaitReplies msg =
 		Title ("Waiting for reply on " +++ msg.Message.subject) @>>
 		case msg.Message.recipients of
 			[recipient]	= recipient @: (askReplyTask recipient msg) >>= \answer -> notifyNoReplies [recipient] [answer]
-			recipients	= allProc [askReplyTask rcp msg \\ rcp <- recipients] >>=  notifyNoReplies recipients
+			recipients	= allProc [(askReplyTask rcp msg,initManagerProperties,noMenu) \\ rcp <- recipients] >>=  notifyNoReplies recipients
 	
 	askReplyTask user msg =
 		subject msg @>>
-		container
-			(DetachedTask {worker = user, priority = msg.Message.priority, deadline = Nothing} noMenu)
 			(showStickyMessage ("Reply requested","The sender would like to receive a reply to this message.") False
 			 ||-
 			 manageMessage msg
-			 ) 
+			 )
+
 	subject msg
 		= Title ("Message from " +++ toString (fromDisplay msg.Message.sender)+++ ": "+++msg.Message.subject)
 	

@@ -21,7 +21,7 @@ derive bimap (,), Maybe
 
 movingTaskExample :: [Workflow]
 movingTaskExample
-	= [ workflow "Examples/Higher order/Moving task" "Demo of a dynamic alteration of task properties" (Title "Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask ))]
+	= [ workflow "Examples/Higher order/Moving task" "Demo of a dynamic alteration of task properties" (Title "Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask))]
 
 trivialTask :: Task QForm
 trivialTask = getDefaultValue >>= fillInForm
@@ -37,7 +37,7 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	spawnProcess True False (container (DetachedTask {initManagerProperties & worker = who} noMenu) task <<@ Title label)
+		>>= \who ->	spawnProcess True False (DetachedTask {initManagerProperties & worker = who} noMenu (task <<@ Title label))
 		>>= 		inspect
 
 	inspect pref

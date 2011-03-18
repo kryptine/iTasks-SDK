@@ -4,14 +4,14 @@ import iTasks
 
 changeExamples :: [Workflow]
 changeExamples =
-	[ 	workflow "Examples/Changes/Change priority" "Change the priority of a task" (Title "Change priority" @>> (try changePrio catch))
-	,	workflow "Examples/Changes/Add warning" "Add a warning message to a task" (Title "Add warning" @>> (try changeWarningTask catch))
-	,	workflow "Examples/Changes/Duplicate task" "Duplicate a task" (Title "Duplicate task" @>> (try duplicateTask catch))
-	,	workflow "Examples/Changes/Show result" "Show result when task finishes" (Title "Show result when task finishes" @>> (try informTask catch))
-	,	workflow "Examples/Changes/Check task when finished" "Wait until a task is finished" (Title "Check task when finished" @>> (try checkTask catch))
-	,	workflow "Examples/Changes/Cancel task" "Cancel a task" (Title "Cancel task" @>> (try cancelTask catch))
- 	,	workflow "Examples/Changes/Reassign task" "Reassing the task to another user" (Title "Reassign task" @>> (try reassignTask catch))
- 	,	workflow "Examples/Changes/Restart task" "Restart a task from the beginning" (Title "Restart task" @>> (try restartTask catch))
+	[ 	workflow "Examples/Changes/Change priority" "Change the priority of a task"  (try changePrio catch)
+	,	workflow "Examples/Changes/Add warning" "Add a warning message to a task"  (try changeWarningTask catch)
+	,	workflow "Examples/Changes/Duplicate task" "Duplicate a task" (try duplicateTask catch)
+	,	workflow "Examples/Changes/Show result" "Show result when task finishes"  (try informTask catch)
+	,	workflow "Examples/Changes/Check task when finished" "Wait until a task is finished"  (try checkTask catch)
+	,	workflow "Examples/Changes/Cancel task" "Cancel a task" (try cancelTask catch)
+ 	,	workflow "Examples/Changes/Reassign task" "Reassing the task to another user"  (try reassignTask catch)
+ 	,	workflow "Examples/Changes/Restart task" "Restart a task from the beginning"  (try restartTask catch)
   	]
 where
 	catch :: String -> Task Void
@@ -44,8 +44,8 @@ where
 	change me user topics props t t0 
 		= 	( Just {props & managerProperties = {props.managerProperties & worker = me}}
 			, Just (me @:
-							(anyProc 	[ container (DetachedTask {ManagerProperties|initManagerProperties & worker = props.managerProperties.ManagerProperties.worker} noMenu) (Title topics @>> t) 
-										, container (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu) (Title topics @>> t)
+							(anyProc 	[ (Title topics @>> t,{ManagerProperties|initManagerProperties & worker = props.managerProperties.ManagerProperties.worker},noMenu) 
+										, (Title topics @>> t,{ManagerProperties|initManagerProperties & worker = user},noMenu)
 										]
 							)
 							<<@ Title ("Duplicated " +++ topics))
@@ -57,7 +57,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True True (container (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu) (showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res)) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True True (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu (showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res)) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn

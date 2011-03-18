@@ -121,8 +121,8 @@ forever	t	:==	(<!) t (\_ -> False)
 */
 (-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
 
-// old-style parallel, all tasks are detached as separate processes & an overview table is shown in the parallel panel
-oldParallel :: !d !(ValueMerger taskResult pState pResult) ![Task taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+// old-style parallel, an overview table of all detached processes is shown in the parallel panel
+oldParallel :: !d !(ValueMerger taskResult pState pResult) ![TaskContainer taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 
 /**
 * Group a list of tasks in parallel.
@@ -161,7 +161,7 @@ eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b
 *
 * @return The result of the first completed task.
 */
-orProc 				:: !(Task a) !(Task a) -> Task a 	 	| iTask a
+orProc 				:: !(ProcTask a) !(ProcTask a) -> Task a 	 	| iTask a
 /**
 * Execute two tasks as separate main tasks.
 * The composition is done when both tasks are finished.
@@ -171,7 +171,7 @@ orProc 				:: !(Task a) !(Task a) -> Task a 	 	| iTask a
 *
 * @return The results of both tasks
 */
-andProc 			:: !(Task a) !(Task b) -> Task (a,b) 	| iTask a & iTask b
+andProc 			:: !(ProcTask a) !(ProcTask b) -> Task (a,b) 	| iTask a & iTask b
 /**
 * Execute a list of tasks as separate main tasks.
 * The composition is done as soon as one result is finished.
@@ -180,7 +180,7 @@ andProc 			:: !(Task a) !(Task b) -> Task (a,b) 	| iTask a & iTask b
 *
 * @return The result of the first completed task.
 */
-anyProc 			:: ![Task a] 		   -> Task a 	 	| iTask a
+anyProc 			:: ![ProcTask a] 		   -> Task a 	 	| iTask a
 /**
 * Execute a list of tasks as separate main tasks.
 * The composition is done when all tasks are finished.
@@ -189,7 +189,10 @@ anyProc 			:: ![Task a] 		   -> Task a 	 	| iTask a
 *
 * @return The list of results
 */
-allProc 			:: ![Task a] 		   -> Task [a] 	| iTask a
+allProc 			:: ![ProcTask a] 		   -> Task [a] 	| iTask a
+
+:: ProcTask a :== (!Task a,!ManagerProperties,!ActionMenu)
+
 /**
 * Just returns Void. Used as a last step in tasks of type Void in combination with the >>| combinator.
 *

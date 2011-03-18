@@ -17,8 +17,8 @@ import GinSyntax
 
 import FilePath, File
 
-ginEditor :: Task Void
-ginEditor = container (DetachedTask initManagerProperties (staticMenu initMenu)) (emptyState >>= \state -> doMenu state)
+ginEditor :: TaskContainer Void
+ginEditor = DetachedTask initManagerProperties (staticMenu initMenu) (emptyState >>= \state -> doMenu state)
 
 getConfig :: Task GinConfig
 getConfig = accWorld ginLoadConfig >>= \maybeConfig = 
