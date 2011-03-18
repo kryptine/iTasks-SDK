@@ -29,7 +29,7 @@
 														]
 												], 
 												"icon": "user", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}

@@ -23,9 +23,10 @@ instance toString GPath where
 instance toString GPathNode where
     toString (PNDefinition i)	= toS "definitions" i
     toString PNBody				= "body"
-    toString (PNDefinition i)	= toS "nodes" i
+    toString (PNNode i)			= toS "nodes" i
     toString (PNEdge i)			= toS "edges" i
     toString (PNActualParam i)	= toS "actualParameters" i
+    toString PNPattern			= "pattern"
     toString (PNListItem i)		= toS "items" i
 
 toS :: !String Int -> String

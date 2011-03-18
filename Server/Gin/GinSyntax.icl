@@ -4,11 +4,11 @@ implementation module GinSyntax
 import iTasks
 import JSON
 
-import GinORYX
-import GinTypes
-import GinParser
 import GinAbstractSyntax
-from GinSVG import ::SVGShape
+import GinORYX
+import GinParser
+import GinSVG
+import GinTypes
 
 // Generic functions
 derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter
@@ -96,7 +96,7 @@ newWorkflow =	{ GDefinition
                               , formalParams = []
                               , returnType   = gTask gVoid
                               , icon         = "task"
-                              , shape        = ""
+                              , shape        = Nothing
                               }
 				, body = ginORYXDiagram
 				}

@@ -237,7 +237,7 @@ propertyMap (ORYXProperties properties) = fromList [ (p.ORYXProperty.key, p.ORYX
 
 shapeId :: !ORYXChildShape -> String
 shapeId shape = shape.ORYXChildShape.resourceId
-	
+
 shapeName :: !ORYXChildShape -> String
 shapeName shape = shape.ORYXChildShape.stencil.ORYXStencilReference.id
 

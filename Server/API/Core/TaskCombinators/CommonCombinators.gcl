@@ -19,7 +19,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "split", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"merge": {
 												"name": "first completed", 
@@ -33,7 +33,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "filter", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"type": [
 												"GTypeApplication", 
@@ -77,7 +77,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "split", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"merge": {
 												"name": "filter left", 
@@ -91,7 +91,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "filter", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"type": [
 												"GTypeApplication", 
@@ -142,7 +142,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "split", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"merge": {
 												"name": "filter right", 
@@ -156,7 +156,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "filter", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"type": [
 												"GTypeApplication", 
@@ -207,7 +207,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "split", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"merge": {
 												"name": "merge (list)", 
@@ -221,7 +221,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "merge", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"type": [
 												"GTypeApplication", 
@@ -268,7 +268,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "split", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"merge": {
 												"name": "merge (tuple)", 
@@ -282,7 +282,7 @@
 														"GUndefinedTypeExpression"
 												], 
 												"icon": "merge", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"type": [
 												"GTypeApplication", 

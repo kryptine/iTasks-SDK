@@ -52,13 +52,14 @@ makeStencilSet gMod
 		
 predefinedStencilSet :: ORYXStencilSet
 predefinedStencilSet
+	# decls = [ (predefinedModule.GModule.name,bt,decl) \\ (bt,decl) <- getModuleDeclarations predefinedModule]
 	=	{ ORYXStencilSet
 		| title = "Graphical iTask Notation"
 		, namespace = "http://mbsd.icis.ru.nl/itasks/gin#"
 		, description = "A graphical notation for iTask workflows"
 		, baseUrl = Just "gin"
 		, extends = Nothing
-		, stencils = [diagramStencil, arcStencil]// ++ map declToStencil decls
+		, stencils = [diagramStencil, arcStencil] ++ map declToStencil decls
 		, rules =	{ ORYXRules
 					| connectionRules = 
 						[	{ ORYXConnectionRule
@@ -142,7 +143,7 @@ diagramView =
 			, SVGStrokeWidth 2
 			, SVGFill "white"
 			]
-		, SVGText (Just "diagramtext") (X 400, Y 25) "" [SVGStroke "black"]
+		, SVGText (Just "diagramtext") (XAbs 400, YAbs 25) "" [SVGStroke "black"]
 		]
 	}
 
@@ -208,7 +209,7 @@ where
 			 	, SVGStrokeLineJoin "round"
 			 	, SVGMarkerEnd "url(#end)"
 			 	]
-			,	 SVGText (Just "pattern") (X 47, Y 7) "" [SVGEdgePosition "midtop"]
+			,	 SVGText (Just "pattern") (XAbs 47, YAbs 7) "" [SVGEdgePosition "midtop"]
 			]
 		}
 
@@ -224,7 +225,7 @@ declToStencil (group,branchtype,gDecl)
 		, title			= gDecl.GDeclaration.name
 		, groups		= [group]
 		, description	= gDecl.GDeclaration.name
-		, view			= toString (fromMaybe (taskShape gDecl) Nothing)//gDecl.GDeclaration.shape
+		, view			= toString (fromMaybe (defaultTaskShape gDecl) gDecl.GDeclaration.shape)
 		, icon			= gDecl.GDeclaration.icon +++ ".png"
 		, mayBeRoot		= False
 		, roles			= ["all", morphrole] ++ if (isHigherOrder gDecl) ["higherOrderTask"] []
@@ -254,8 +255,8 @@ higherOrderParam param = case param.GFormalParameter.type of
 	(GTypeApplication (GConstructor "Task")  _)	= True
 	_											= False
 
-taskShape :: GDeclaration -> SVGShape	
-taskShape gDecl = 
+defaultTaskShape :: GDeclaration -> SVGShape	
+defaultTaskShape gDecl = 
 	{ SVGShape
 	| width = if (isEmpty gDecl.GDeclaration.formalParams) 140 300
 	, height = 20 + 20 * length gDecl.GDeclaration.formalParams
@@ -263,17 +264,17 @@ taskShape gDecl =
 	, magnets = True
 	, elements = 
 		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 ([SVGStroke "black", SVGFill "white"] ++ ifParams [SVGResize "horizontal vertical"])
-		, SVGImage Nothing ((X 2, Y 2), (X 18, Y 18)) (gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
-		, SVGText Nothing (X 20, Y 13) gDecl.GDeclaration.name [SVGAnchors "top left"]
+		, SVGImage Nothing ((XAbs 2, YAbs 2), (XAbs 18, YAbs 18)) (gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
+		, SVGText Nothing (XAbs 20, YAbs 13) gDecl.GDeclaration.name [SVGAnchors "top left"]
 		] 
-		++ ifParams [ SVGLine Nothing ((XLeft, Y 20), (XRight, Y 20)) [SVGAnchors "top left right"]
-			    	, SVGLine Nothing ((X 80, Y 20), (X 80, YBottom)) [SVGAnchors "top left bottom"]
+		++ ifParams [ SVGLine Nothing ((XLeft, YAbs 20), (XRight, YAbs 20)) [SVGAnchors "top left right"]
+			    	, SVGLine Nothing ((XAbs 80, YAbs 20), (XAbs 80, YBottom)) [SVGAnchors "top left bottom"]
 			    	]
 		++ flatten (map
-			(\(nr,param) -> [ SVGText Nothing (X 3, Y (13 + 20 * nr)) param.GFormalParameter.name []
-							, SVGText (Just param.GFormalParameter.name) (X 83, Y (13 + 20 * nr)) "" [SVGAnchors "left"]
+			(\(nr,param) -> [ SVGText Nothing (XAbs 3, YAbs (13 + 20 * nr)) param.GFormalParameter.name []
+							, SVGText (Just param.GFormalParameter.name) (XAbs 83, YAbs (13 + 20 * nr)) "" [SVGAnchors "left"]
 							]
-							++ if (nr > 1) [SVGLine Nothing ((XLeft, Y (20 * nr)), (XRight, Y (20 * nr))) [SVGAnchors "left right"]] []
+							++ if (nr > 1) [SVGLine Nothing ((XLeft, YAbs (20 * nr)), (XRight, YAbs (20 * nr))) [SVGAnchors "left right"]] []
 			) (zip2 [1..] gDecl.GDeclaration.formalParams))
 	}
 	where	

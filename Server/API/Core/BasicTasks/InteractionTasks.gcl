@@ -30,7 +30,7 @@
 														]
 												], 
 												"icon": "keyboard", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -68,7 +68,7 @@
 														]
 												], 
 												"icon": "keyboard", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -109,7 +109,7 @@
 														]
 												], 
 												"icon": "choice", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -157,7 +157,7 @@
 														]
 												], 
 												"icon": "choice", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -195,7 +195,7 @@
 														]
 												], 
 												"icon": "information", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -240,7 +240,7 @@
 														]
 												], 
 												"icon": "information", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}

@@ -35,7 +35,7 @@
 														]
 												], 
 												"icon": "clock", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -58,7 +58,7 @@
 														]
 												], 
 												"icon": "date", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -81,7 +81,7 @@
 														]
 												], 
 												"icon": "date", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -112,7 +112,7 @@
 														]
 												], 
 												"icon": "clock_go", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -143,7 +143,7 @@
 														]
 												], 
 												"icon": "date_go", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -174,7 +174,7 @@
 														]
 												], 
 												"icon": "clock_go", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}

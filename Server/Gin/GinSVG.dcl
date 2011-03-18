@@ -3,14 +3,17 @@ definition module GinSVG
 import Maybe
 import XML
 
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
+from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+
 :: SVGPosX	= XLeft
 			| XRight
-			| X !Int
+			| XAbs !Int
 			| XPct !Int
 
 :: SVGPosY	= YTop
 			| YBottom
-			| Y !Int
+			| YAbs !Int
 			| YPct !Int
 
 :: SVGCoordinate :== (!SVGPosX, !SVGPosY)
@@ -26,16 +29,20 @@ import XML
 				| SVGImage		SVGId !SVGBounds !String ![SVGStyle]
 				| SVGGroup		SVGId [SVGElement]
 				
-:: SVGStyle = SVGStroke !String
+:: SVGStyle = 
+			//Basic SVG
+			  SVGStroke !String
 			| SVGFill !String
 			| SVGStrokeWidth Int
 			| SVGStrokeLineCap !String
 			| SVGStrokeLineJoin !String
 			| SVGStrokeMiterLimit !Int
 			| SVGMarkerEnd !String
+			// ORYX extensions
+			| SVGAlign !String
+			| SVGAnchors !String
 			| SVGEdgePosition !String
 			| SVGResize !String
-			| SVGAnchors !String
 
 :: SVGShape = 
 	{ width		:: !Int
@@ -47,5 +54,6 @@ import XML
 	
 :: SVGId :== Maybe String
 
+derive class iTask SVGShape
 
 instance toString SVGShape

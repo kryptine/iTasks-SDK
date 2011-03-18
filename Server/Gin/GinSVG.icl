@@ -1,11 +1,20 @@
 implementation module GinSVG
 
 import StdInt
+import StdGeneric
 import StdList
 import StdString
 
 import Maybe
 import XML
+
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
+from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
+
+derive class iTask SVGPosX, SVGPosY, SVGElement, SVGStyle, SVGShape
+derive class iTask XMLDoc, XMLNode, XMLAttr, XMLQName
+
+derive bimap Maybe, (,)
 
 instance toString SVGShape
 where
@@ -128,13 +137,13 @@ where
 	getX :: SVGPosX -> Int
 	getX XLeft = 0
 	getX XRight = width
-	getX (X x) = x
+	getX (XAbs x) = x
 	getX (XPct p) = (p * width / 100)
 	
 	getY :: SVGPosY -> Int
 	getY YTop = 0
 	getY YBottom = height
-	getY (Y y) = y
+	getY (YAbs y) = y
 	getY (YPct p) = (p * height / 100)
 	
 styleToXMLAttr :: SVGStyle -> XMLAttr
@@ -145,6 +154,7 @@ styleToXMLAttr (SVGStrokeLineCap s)		= XMLAttr (uname "stroke-linecap") s
 styleToXMLAttr (SVGStrokeLineJoin s)	= XMLAttr (uname "stroke-linejoin") s
 styleToXMLAttr (SVGStrokeMiterLimit l)	= XMLAttr (uname "stroke-miterlimit") (toString l)
 styleToXMLAttr (SVGMarkerEnd m)			= XMLAttr (uname "marker-end") m
+styleToXMLAttr (SVGAlign s)				= XMLAttr (qname "oryx" "align") s
+styleToXMLAttr (SVGAnchors s)			= XMLAttr (qname "oryx" "anchors") s
 styleToXMLAttr (SVGEdgePosition s)		= XMLAttr (qname "oryx" "edgePosition") s
 styleToXMLAttr (SVGResize s)			= XMLAttr (qname "oryx" "resize") s 
-styleToXMLAttr (SVGAnchors s)			= XMLAttr (qname "oryx" "anchors") s

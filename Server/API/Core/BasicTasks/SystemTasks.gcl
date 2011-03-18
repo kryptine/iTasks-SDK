@@ -31,7 +31,7 @@
 														]
 												], 
 												"icon": "user", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -54,7 +54,7 @@
 														]
 												], 
 												"icon": "cog", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -77,7 +77,7 @@
 														]
 												], 
 												"icon": "user", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -100,7 +100,7 @@
 														]
 												], 
 												"icon": "user", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -123,7 +123,7 @@
 														]
 												], 
 												"icon": "page_white", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}

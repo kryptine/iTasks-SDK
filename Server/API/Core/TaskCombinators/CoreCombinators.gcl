@@ -30,7 +30,7 @@
 														]
 												], 
 												"icon": "return", 
-												"shape": "embed:ellipse"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -68,7 +68,7 @@
 														]
 												], 
 												"icon": "forever", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
@@ -116,7 +116,7 @@
 														]
 												], 
 												"icon": "sequence", 
-												"shape": "app:task"
+												"shape": null
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}

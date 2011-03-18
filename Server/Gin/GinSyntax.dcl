@@ -77,11 +77,9 @@ getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
                   , formalParams :: [GFormalParameter]
                   , returnType   :: GTypeExpression
                   , icon         :: GIcon
-                  , shape        :: GShape
+                  , shape        :: Maybe SVGShape
                   }              
                   
-:: GShape :== String //TODO: Algebraic datatype for shapes
-
 :: GIcon :== String
 
 :: GExpression = GUndefinedExpression
