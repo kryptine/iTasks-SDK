@@ -581,6 +581,7 @@ initTaskProperties :: TaskProperties
 initTaskProperties =
 	{ taskDescription = toDescr ""
 	, tags = []
+	, isControlTask = False
 	}
 
 initManagerProperties :: ManagerProperties

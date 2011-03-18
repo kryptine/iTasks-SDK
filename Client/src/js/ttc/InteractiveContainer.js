@@ -6,19 +6,18 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		switch(this.type){
 			case 'Information':
 				this.cls		= 'TTCInformationContainer';
-				this.panelCls	= 'TTCInformationPanel';
 				break;
 			case 'Message':
 				this.cls		= 'TTCMessageContainer';
-				this.panelCls	= 'TTCMessagePanel';
 				break;
 			case 'Instruction':
 				this.cls		= 'TTCInstructionContainer';
-				this.panelCls	= 'TTCInstructionContainer-Context';
 				break;
 			case 'Monitor':
 				this.cls		= 'TTCMonitorContainer';
-				this.panelCls	= 'MonitorPanel';
+				break;
+			case 'Control':
+				this.cls		= 'TTCControlContainer';
 				break;
 		}
 		
@@ -27,7 +26,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 	buildComponents: function(data){
 		this.interactionpanel = {
 			xtype: 'panel',
-			cls: this.panelCls,
+			cls: 'TTCPanel',
 			layout: 'form',
 			unstyled: true,
 			autoScroll: true,

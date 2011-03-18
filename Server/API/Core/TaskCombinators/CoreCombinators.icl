@@ -120,7 +120,9 @@ where
 	processAllTasksE pst n tst=:{taskNr}
 		| (length pst.tasks) == n	= tst
 		# (idx,task)				= getTaskFromPSt taskNr n pst
-		# (_,tst)					= applyTaskEdit task {tst & taskNr = [idx:taskNr]} 
+		# tst = case task.Task.containerType of
+			DetachedTask _ _	= tst
+			_					= snd (applyTaskEdit task {tst & taskNr = [idx:taskNr]})
 		= processAllTasksE pst (inc n) {tst & taskNr = taskNr}
 
 	parallelC tst=:{taskNr,properties}
@@ -178,8 +180,10 @@ where
 			
 	getPStTask _		(InitTask n)			= mapTask Left	(initTasks !! n)
 	getPStTask _		(AddedTask task)		= mapTask Left	task
-	getPStTask taskNr	(InitControlTask n)		= mapTask Right	((initCTasks !! n) (sharedParallelState taskNr))
+	getPStTask taskNr	(InitControlTask n)		= mapTask Right	(setControlTask ((initCTasks !! n) (sharedParallelState taskNr)))
 	getPStTask taskNr	(AddedControlTask task)	= mapTask Right	(task (sharedParallelState taskNr))
+	
+	setControlTask t=:{Task|properties} = {Task|t & properties = {TaskProperties|properties & isControlTask = True}}
 	
 	isControlTask (InitControlTask _)	= True
 	isControlTask (AddedControlTask _)	= True
@@ -231,7 +235,7 @@ where
 						//IMPORTANT: Task is evaluated with a shifted task number!!!
 						# (result,tree,tst)	= createOrEvaluateTaskInstance task {tst & taskNr = [idx:taskNr]}
 						// Add the tree to the current node
-						# tst				= addTaskNode task.Task.containerType tree tst
+						# tst				= addTaskNode task.Task.containerType task.Task.properties.TaskProperties.isControlTask tree tst
 						= (result,tst)
 					_
 						= applyTaskCommit task {tst & taskNr = [idx:taskNr]}

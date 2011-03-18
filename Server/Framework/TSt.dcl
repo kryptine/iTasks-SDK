@@ -321,12 +321,14 @@ applyTaskCommit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 /**
 * Add a subnode to the current task tree
 *
+* @param The container type
+* @param Is the task a control task?
 * @param The sub node
 * @param The task state
 *
 * @return The modified task state
 */
-addTaskNode 		:: !TaskContainerType !NonNormalizedTree !*TSt -> *TSt
+addTaskNode 		:: !TaskContainerType !Bool !NonNormalizedTree !*TSt -> *TSt
 
 //// TASK CONTENT
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt						-> *TSt // Only for interactive tasks

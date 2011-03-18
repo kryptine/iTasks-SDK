@@ -493,7 +493,7 @@ calculateTaskTreeContainer taskId events tst
 						, subject			= "Deleted Process"
 						, description		= "Task Result"
 						}
-			= (TTContainer InBodyTask (TTFinishedTask info noProcessResult False), tst)
+			= (TTContainer InBodyTask (TTFinishedTask info noProcessResult False) False, tst)
 		Just process=:{Process|properties}
 			# (tree, tst) = case properties.systemProperties.SystemProperties.status of
 				Active
@@ -524,7 +524,7 @@ calculateTaskTreeContainer taskId events tst
 								, description		= "Task Result"
 								}
 					= (TTFinishedTask info result False,tst)
-			= (TTContainer properties.systemProperties.SystemProperties.containerType tree,tst)
+			= (TTContainer properties.systemProperties.SystemProperties.containerType tree properties.taskProperties.isControlTask,tst)
 
 renderResult :: !Dynamic -> HtmlTag
 renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value
@@ -650,7 +650,7 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit {properties, mbTaskNr, taskFuncCommit, formWidth, containerType} tst=:{taskNr,tree}
+applyTaskCommit {properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommit, formWidth, containerType} tst=:{taskNr,tree}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
@@ -663,7 +663,7 @@ applyTaskCommit {properties, mbTaskNr, taskFuncCommit, formWidth, containerType}
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}
 	= case taskVal of
 		Just (TaskFinished a)
-			# tst = addTaskNode containerType (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False) tst
+			# tst = addTaskNode containerType isControlTask (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// Execute task function
@@ -680,27 +680,27 @@ applyTaskCommit {properties, mbTaskNr, taskFuncCommit, formWidth, containerType}
 					# tst					= deleteTaskStates taskNr tst					
 					// Store final value if the process is not garbage collected
 					# tst					= if (gc) tst (appIWorldTSt (storeValue taskId result) tst)
-					# tst					= addTaskNode containerType (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False)
+					# tst					= addTaskNode containerType isControlTask (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskFinished a, tst)
 				TaskBusy
 					// Store intermediate value	
-					# tst					= addTaskNode containerType node
+					# tst					= addTaskNode containerType isControlTask node
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					# tst					= appIWorldTSt (storeValue taskId result) tst
 					= (TaskBusy, tst)
 				TaskException e str
 					// Store exception
 					# tst					= appIWorldTSt (storeValue taskId result) tst
-					# tst					= addTaskNode containerType (TTFinishedTask taskInfo (renderException str) True)
+					# tst					= addTaskNode containerType isControlTask (TTFinishedTask taskInfo (renderException str) True)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e str, tst)
 
 //Add a new node to the current sequence or process
-addTaskNode :: !TaskContainerType !NonNormalizedTree !*TSt -> *TSt
-addTaskNode containerType node tst=:{tree} = case tree of
-	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti (tasks ++ [TTContainer containerType node])}	//Add the node to the parallel set
-	TTFinishedTask _ _ _		= {tst & tree = node} 															//Just replace the node
+addTaskNode :: !TaskContainerType !Bool !NonNormalizedTree !*TSt -> *TSt
+addTaskNode containerType isControlTask node tst=:{tree} = case tree of
+	TTParallelTask ti  tasks	= {tst & tree = TTParallelTask ti (tasks ++ [TTContainer containerType node isControlTask])}	//Add the node to the parallel set
+	TTFinishedTask _ _ _		= {tst & tree = node} 																			//Just replace the node
 	_							= {tst & tree = tree}
 
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt

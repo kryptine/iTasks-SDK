@@ -116,7 +116,7 @@ gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
-	defaultTask a =	{ properties	= {initTaskProperties & taskDescription = toDescr "return"}
+	defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
 					, containerType		= InBodyTask
 					, formWidth			= Nothing
 					, mbTaskNr			= Nothing

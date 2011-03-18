@@ -22,7 +22,8 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TTNNInteractiveTask			:== (*IWorld -> *(!InteractiveTask,![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished					:== (HtmlTag,JSONNode)
 
-:: TaskTreeContainer containerType interactiveOutput finishedOutput = TTContainer !containerType !.(TaskTree containerType interactiveOutput finishedOutput)
+//A container used for subtrees representing top level tasks or subtasks or parallel (including the type, the actual tree & a flag indicating if the task is a control task)
+:: TaskTreeContainer containerType interactiveOutput finishedOutput = TTContainer !containerType !.(TaskTree containerType interactiveOutput finishedOutput) !Bool
 
 :: TaskTree containerType interactiveOutput finishedOutput
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)

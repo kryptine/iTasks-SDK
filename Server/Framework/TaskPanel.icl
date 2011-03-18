@@ -14,17 +14,17 @@ JSONEncode{|TaskPanel|} (TTCResultContainer x)		= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCParallelContainer x)	= JSONEncode{|*|} x
 
 buildTaskPanel :: !UITreeContainer -> TaskPanel
-buildTaskPanel cont=:(TTContainer type tree)
+buildTaskPanel cont=:(TTContainer type tree controlTask)
 	# menu = case type of
 		TTDetached menu	= menu
 		TTWindow _ menu	= menu
 		TTDialog _		= []
 		TTInBody		= []
 		TTHidden		= []
-	= buildTaskPanel` tree menu
+	= buildTaskPanel` tree menu controlTask
 where
-	buildTaskPanel` :: !UITree ![TUIDef] -> TaskPanel
-	buildTaskPanel` tree menu
+	buildTaskPanel` :: !UITree ![TUIDef] !Bool -> TaskPanel
+	buildTaskPanel` tree menu controlTask
 		= case tree of
 			TTFinishedTask _ _ False
 				= TaskDone
@@ -42,7 +42,7 @@ where
 					, updates 		= Nothing	
 					, menu			= menu
 					, formWidth		= ti.TaskInfo.formWidth
-					, type			= type
+					, type			= if controlTask Control type
 					}
 			TTInteractiveTask ti type (Updates upd buttons)
 				= TTCInteractiveContainer
@@ -56,7 +56,7 @@ where
 					, updates 		= Just (upd ++ [TUIReplaceButtons buttons])
 					, menu			= menu
 					, formWidth		= Nothing
-					, type			= type
+					, type			= if controlTask Control type
 					}
 			TTParallelTask ti containers
 				= TTCParallelContainer
@@ -71,16 +71,16 @@ where
 	where
 		// don't build UI for detached & hidden tasks
 		buildParallelElement :: !UITreeContainer -> Maybe TaskPanel
-		buildParallelElement (TTContainer type tree) = case type of
+		buildParallelElement (TTContainer type tree controlTask) = case type of
 			TTDetached _	= Nothing
-			TTWindow _ menu	= Just (buildTaskPanel` tree menu)
-			TTDialog _		= Just (buildTaskPanel` tree [])
-			TTInBody		= Just (buildTaskPanel` tree [])
+			TTWindow _ menu	= Just (buildTaskPanel` tree menu controlTask)
+			TTDialog _		= Just (buildTaskPanel` tree [] controlTask)
+			TTInBody		= Just (buildTaskPanel` tree [] controlTask)
 			TTHidden		= Nothing
 									
 buildResultPanel :: !UITreeContainer -> TaskPanel
 buildResultPanel tree = case tree of 
-	TTContainer _ (TTFinishedTask ti result _)
+	TTContainer _ (TTFinishedTask ti result _) _
 		= (TTCResultContainer {TTCResultContainer
 								| xtype 	= "itasks.ttc.result"
 								, id 		= "taskform-" +++ ti.TaskInfo.taskId

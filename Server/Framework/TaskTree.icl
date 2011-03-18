@@ -21,7 +21,8 @@ toUITreeContainer container iworld
 	= (uiContainer,iworld)
 where	
 	toUITreeContainer` :: !Bool !NonNormalizedTreeContainer !*IWorld -> (!(!Maybe UITreeContainer,!SubtaskActions),!*IWorld)
-	toUITreeContainer` top (TTContainer type tree) iworld = case type of
+	toUITreeContainer` top (TTContainer type tree controlTask) iworld
+		= case type of
 		DetachedTask _ _ | not top // filter out detached task if it's not the top one, because it's not shown in a parallel panel
 			= ((Nothing,[]),iworld)
 		_
@@ -44,7 +45,7 @@ where
 						= (Just TTHidden,actions)
 					| otherwise // but pass actions upwards in any case
 						= (Nothing,actions)
-			= ((fmap (\type -> TTContainer type uiTree) mbTTContainerType,remainingActions),iworld)
+			= ((fmap (\type -> TTContainer type uiTree controlTask) mbTTContainerType,remainingActions),iworld)
 
 	toUITree :: !NonNormalizedTree !*IWorld -> (!UITree,!SubtaskActions,!*IWorld)
 	toUITree tree iworld = case tree of
@@ -124,7 +125,7 @@ where
 		mkLabel Nothing appLabel = if (appLabel == "") "-" appLabel
 				
 	mkButtons :: !SubtaskActions !UITreeContainer -> UITreeContainer
-	mkButtons actions (TTContainer type tree) = TTContainer type (mkButtons` tree)
+	mkButtons actions (TTContainer type tree controlTask) = TTContainer type (mkButtons` tree) controlTask
 	where
 		mkButtons` :: !UITree -> UITree
 		mkButtons` tree = case tree of

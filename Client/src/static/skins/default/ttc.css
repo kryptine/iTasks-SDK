@@ -18,57 +18,41 @@
 	margin: 0px 10px 0px 10px;
 	padding: 5px;
 }
+.TTCPanel {
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	padding: 4px;
+	border-left: 1px solid #99BBE8;
+	border-bottom: 1px solid #99BBE8;
+	border-right: 1px solid #99BBE8;
+	margin: 0px 0px 0px 10px;
+	width: 700px;
+	background-repeat: repeat;
+}
 /* Form Container */
 .TTCInformationContainer {
 	background-color: #eee;
 	
 	background-image : url('img/ttc-icons/TTCFormContainer.png') !important;
-	background-repeat: no-repeat ;
+	background-repeat: no-repeat;
 	background-position: 3px 3px;
 }
-.TTCInformationPanel {
-	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
-	padding: 4px;
-	border: solid #99bbe8;
-	border-width: 0 1px 1px 1px;
-	margin: 0px 10px 0px 10px;
-}
+
 /* Message Container */
 .TTCMessageContainer {
 	background-color: #eee;
 	
 	background-image : url('img/ttc-icons/TTCMessageContainer.png') !important;
-	background-repeat: no-repeat ;
+	background-repeat: no-repeat;
 	background-position: 3px 3px;
 }
-.TTCMessagePanel {
-	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
-	padding: 4px;
-	border-left: 1px solid #99BBE8;
-	border-bottom: 1px solid #99BBE8;
-	border-right: 1px solid #99BBE8;
-	margin: 0px 0px 0px 10px;
-	width: 700px;
-	background-repeat: repeat;
-}
+
 /* Instruction Container */
 .TTCInstructionContainer{
 	background-color: #eee;
 	
 	background-image : url('img/ttc-icons/TTCInstructionContainer.png') !important;
-	background-repeat: no-repeat ;
+	background-repeat: no-repeat;
 	background-position: 3px 3px;
-}
-.TTCInstructionContainer-Context {
-	background-color: transparent;
-	background-image : url('img/ttc-icons/TTCBackground90.png') !important;
-	padding: 4px;
-	border-left: 1px solid #99BBE8;
-	border-bottom: 1px solid #99BBE8;
-	border-right: 1px solid #99BBE8;
-	width: 700px;
-	margin: 0px 0px 0px 10px;
-	background-repeat: repeat;
 }
 
 /* Parallel Container */
@@ -76,13 +60,26 @@
 	background-color: #eee;
 	
 	background-image : url('img/ttc-icons/TTCParallelContainer.png') !important;
-	background-repeat: no-repeat ;
+	background-repeat: no-repeat;
 	background-position: 3px 3px;
 }
-.TTCParallelControlPanel{
-	border: solid #99BBE8;
-	border-width: 0px 1px 1px 1px;
-	margin: 0px 0px 0px 10px;
+
+/* Monitor Container */
+.TTCMonitorContainer {
+	background-color: #eee;
+	
+	background-image : url('img/ttc-icons/TTCMonitorContainer.png') !important;
+	background-repeat: no-repeat;
+	background-position: 3px 3px;
+}
+
+/* Control task Container */
+.TTCControlContainer {
+	background-color: #eee;
+	
+	background-image : url('img/ttc-icons/TTCProcessControlContainer.png') !important;
+	background-repeat: no-repeat;
+	background-position: 3px 3px;
 }
 
 /* Result Container */
@@ -91,23 +88,4 @@
 	background-image : url('img/ttc-icons/TTCResultContainer.png') !important;
 	background-repeat: no-repeat ;
 	background-position: 3px 3px;
-}
-
-/* Monitor Container */
-.TTCMonitorContainer {
-	background-color: #eee;
-	background-image : url('img/ttc-icons/TTCMessageContainer.png') !important;
-	background-repeat: no-repeat ;
-	background-position: 3px 3px;
-}
-
-.MonitorPanel {
-	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
-	padding: 4px;
-	border-left: 1px solid #99BBE8;
-	border-bottom: 1px solid #99BBE8;
-	border-right: 1px solid #99BBE8;
-	margin: 0px 0px 0px 10px;
-	width: 700px;
-	background-repeat: repeat;
 }

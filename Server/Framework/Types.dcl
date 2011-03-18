@@ -217,6 +217,7 @@ instance toString HtmlDisplay
 :: TaskProperties =
 	{ taskDescription	:: !TaskDescription			// Description of the task
 	, tags				:: ![String]				// A list of tags
+	, isControlTask		:: !Bool					// is the task a control task?
 	}
 
 :: TaskDescription	=
@@ -379,7 +380,7 @@ instance menuAction Action
 instance menuAction ActionName
 instance menuAction (actionName, ActionLabel) | actionName actionName
 
-:: InteractiveTaskType = Information | Message | Instruction | Monitor
+:: InteractiveTaskType = Information | Message | Instruction | Monitor | Control
 
 // iWorld
 :: *IWorld		=	{ application	:: !String		// The name of the application	
