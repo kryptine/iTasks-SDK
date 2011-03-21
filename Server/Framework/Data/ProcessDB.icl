@@ -64,20 +64,20 @@ where
 		relevantProc targetId {Process|taskId}		= taskId == targetId
 		relevantProc _ _							= False
 				
-	getProcesses :: ![TaskStatus] !*IWorld -> (![Process], !*IWorld)
-	getProcesses statusses iworld 
+	getProcesses :: ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
+	getProcesses statusses runningStatusses iworld 
 		# (procs, iworld)	= processStore id iworld
-		= ([p \\ p <- procs | isMember p.Process.properties.systemProperties.SystemProperties.status statusses], iworld)
+		= ([p \\ p <- procs | isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.managerProperties.ManagerProperties.status runningStatusses], iworld)
 			
 	getProcessesById :: ![TaskId] !*IWorld -> (![Process], !*IWorld)
 	getProcessesById ids iworld
 		# (procs,iworld) 	= processStore id iworld
 		= ([process \\ process <- procs | isMember process.Process.taskId ids], iworld)
 	
-	getProcessesForUser	:: !User ![TaskStatus] !*IWorld -> (![Process], !*IWorld)
-	getProcessesForUser user statusses iworld
+	getProcessesForUser	:: !User ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
+	getProcessesForUser user statusses runningStatusses iworld
 		# (procs,iworld) 	= processStore id iworld
-		= ([p \\ p <- procs | p.Process.mutable && isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses ], iworld)
+		= ([p \\ p <- procs | p.Process.mutable && isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.managerProperties.ManagerProperties.status runningStatusses], iworld)
 	where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task
@@ -107,7 +107,7 @@ where
 	
 	removeFinishedProcesses :: !*IWorld -> (!Bool, !*IWorld)
 	removeFinishedProcesses iworld
-		# (proc,iworld) = getProcesses [Finished] iworld
+		# (proc,iworld) = getProcesses [Finished] [Active,Suspended] iworld
 		= removeFinishedProcesses` proc iworld
 	where
 		removeFinishedProcesses` :: ![Process] !*IWorld -> (!Bool, !*IWorld)
@@ -179,12 +179,12 @@ where
 	getProcessForUser user processId tst = accIWorldTSt (getProcessForUser user processId) tst
 	getProcessForManager :: !User !TaskId !*TSt -> (!Maybe Process,!*TSt)
 	getProcessForManager manager processId tst = accIWorldTSt (getProcessForManager manager processId) tst
-	getProcesses :: ![TaskStatus] !*TSt -> (![Process],!*TSt)
-	getProcesses statuses tst = accIWorldTSt (getProcesses statuses) tst
+	getProcesses :: ![TaskStatus] ![RunningTaskStatus] !*TSt -> (![Process],!*TSt)
+	getProcesses statuses runningStatusses tst = accIWorldTSt (getProcesses statuses runningStatusses) tst
 	getProcessesById :: ![TaskId] !*TSt -> (![Process],!*TSt)
 	getProcessesById processIds tst = accIWorldTSt (getProcessesById processIds) tst
-	getProcessesForUser :: !User ![TaskStatus] !*TSt -> (![Process],!*TSt)
-	getProcessesForUser user statuses tst = accIWorldTSt (getProcessesForUser user statuses) tst
+	getProcessesForUser :: !User ![TaskStatus] ![RunningTaskStatus] !*TSt -> (![Process],!*TSt)
+	getProcessesForUser user statuses runningStatusses tst = accIWorldTSt (getProcessesForUser user statuses runningStatusses) tst
 	setProcessOwner	:: !User !TaskId !*TSt -> (!Bool,!*TSt)
 	setProcessOwner user processId tst = accIWorldTSt (setProcessOwner user processId) tst
 	setProcessStatus :: !TaskStatus !TaskId !*TSt -> (!Bool,!*TSt)

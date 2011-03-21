@@ -106,7 +106,7 @@ inviteUserToGroup :: !Group !User -> Task Group
 inviteUserToGroup group user
 	=	getContextWorker
 	>>= \fromUser ->
-		spawnProcess True True (DetachedTask initManagerProperties noMenu (
+		spawnProcess True (DetachedTask initManagerProperties noMenu (
 			user @: (invite fromUser group)
 		>>= \accept ->
 			if accept

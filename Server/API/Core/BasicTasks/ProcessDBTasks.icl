@@ -39,13 +39,13 @@ getProcesses :: ![ProcessId] -> Task [Process]
 getProcesses ids = mkInstantTask ("Get processes", "Read a set of processes from the database.")
 	(mkTaskFunction (\tst -> 'ProcessDB'.getProcessesById ids tst))
 
-getProcessesWithStatus :: ![TaskStatus] -> Task [Process]
-getProcessesWithStatus statuses = mkInstantTask ("Get processes by status", "Read all processes from the database with a specific status.")
-	(mkTaskFunction (\tst -> 'ProcessDB'.getProcesses statuses tst))
+getProcessesWithStatus :: ![TaskStatus] ![RunningTaskStatus] -> Task [Process]
+getProcessesWithStatus statuses runningStatuses = mkInstantTask ("Get processes by status", "Read all processes from the database with a specific status.")
+	(mkTaskFunction (\tst -> 'ProcessDB'.getProcesses statuses runningStatuses tst))
 
-getProcessesForUser	:: !User ![TaskStatus] -> Task [Process]
-getProcessesForUser user statuses = mkInstantTask ("Get processes for user", "Read all processes from the database that a user needs to work on.")
-	(mkTaskFunction (\tst -> 'ProcessDB'.getProcessesForUser user statuses tst))
+getProcessesForUser	:: !User ![TaskStatus] ![RunningTaskStatus] -> Task [Process]
+getProcessesForUser user statuses runningStatuses = mkInstantTask ("Get processes for user", "Read all processes from the database that a user needs to work on.")
+	(mkTaskFunction (\tst -> 'ProcessDB'.getProcessesForUser user statuses runningStatuses tst))
 
 getProcessOwner :: !ProcessId -> Task (Maybe User)
 getProcessOwner pid = mkInstantTask ("Get process owner", "Determine the user working on the task.") getProcessStatus`
@@ -59,31 +59,24 @@ setProcessOwner :: !User !ProcessId -> Task Void
 setProcessOwner user pid = mkInstantTask ("Set process owner", "Set the user working on the task.") setProcessOwner`
 where
 	setProcessOwner` tst=:{staticInfo}
-		# (_,tst)			= 'ProcessDB'.setProcessOwner user pid tst
+		# (_,tst) = 'ProcessDB'.setProcessOwner user pid tst
 		= (TaskFinished Void,tst)
 
-getProcessStatus :: !ProcessId -> Task TaskStatus
+getProcessStatus :: !ProcessId -> Task (TaskStatus,RunningTaskStatus)
 getProcessStatus pid = mkInstantTask ("Get process status", "Determine the status of a process.") getProcessStatus`
 where
 	getProcessStatus` tst
 		# (mbProcess,tst)	= 'ProcessDB'.getProcess pid tst
 		= case mbProcess of
-			Just proc	= (TaskFinished proc.Process.properties.systemProperties.SystemProperties.status, tst)
-			Nothing		= (TaskFinished Deleted, tst)
+			Just proc	= (TaskFinished (proc.Process.properties.systemProperties.SystemProperties.status,proc.Process.properties.managerProperties.ManagerProperties.status), tst)
+			Nothing		= (TaskFinished (Deleted,Active), tst)
 			
 
-activateProcess	:: !ProcessId	-> Task Void
-activateProcess pid = mkInstantTask ("Activate process", "Set the status of a process to active.") activateProcess`
+updateManagerProperties :: !ProcessId !(ManagerProperties -> ManagerProperties) -> Task Void
+updateManagerProperties pid updateF = mkInstantTask ("Update manager properties","Update the manager properties of a process.") updateManagerProperties`
 where
-	activateProcess` tst
-		# (_,tst)	= 'ProcessDB'.setProcessStatus Active pid tst
-		= (TaskFinished Void,tst)
-		
-suspendProcess :: !ProcessId -> Task Void
-suspendProcess pid = mkInstantTask ("Suspend process", "Set the status of a process to suspended.") suspendProcess`
-where
-	suspendProcess` tst
-		# (_,tst)	= 'ProcessDB'.setProcessStatus Suspended pid tst
+	updateManagerProperties` tst
+		# (_,tst) = 'ProcessDB'.updateProcessProperties pid (\p -> {p & managerProperties = updateF p.managerProperties}) tst
 		= (TaskFinished Void,tst)
 		
 deleteProcess :: !ProcessId -> Task Void

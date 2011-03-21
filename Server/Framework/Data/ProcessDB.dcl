@@ -29,9 +29,9 @@ where
 	getProcess				:: !TaskId												!*st -> (!Maybe Process,	!*st)
 	getProcessForUser		:: !User !TaskId										!*st -> (!Maybe Process,	!*st)
 	getProcessForManager 	:: !User !TaskId 										!*st -> (!Maybe Process, 	!*st)
-	getProcesses 			:: ![TaskStatus] 										!*st -> (![Process], 		!*st)
+	getProcesses 			:: ![TaskStatus] ![RunningTaskStatus]					!*st -> (![Process], 		!*st)
 	getProcessesById		:: ![TaskId]											!*st -> (![Process],		!*st)
-	getProcessesForUser		:: !User ![TaskStatus]									!*st -> (![Process],		!*st)
+	getProcessesForUser		:: !User ![TaskStatus] ![RunningTaskStatus]				!*st -> (![Process],		!*st)
 	
 	setProcessOwner			:: !User !TaskId										!*st -> (!Bool,				!*st)
 	setProcessStatus		:: !TaskStatus !TaskId									!*st -> (!Bool,				!*st)

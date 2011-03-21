@@ -19,9 +19,9 @@ derive JSONDecode	EmailAddress, Session, Action, Table, Shared, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, Shared, HtmlDisplay
-derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
-derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
-derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus
+derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, RunningTaskStatus
+derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, RunningTaskStatus
+derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, RunningTaskStatus
 
 instance toString User
 instance toString Note
@@ -202,17 +202,20 @@ instance toString HtmlDisplay
 	
 :: TaskId :== String		// String serialization of TaskNr values
 
-:: TaskStatus =	Active			// A process is active and can be further evaluated
-			 |	Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
-			 |	Finished		// A process terminated normally
-			 |	Excepted		// A process terminated with an exception
-			 |	Deleted			// A process is deleted (never set, but returned when process can not be found)
+:: TaskStatus	= Running		// A process which is currently running (active or suspended)
+				| Finished		// A process terminated normally
+				| Excepted		// A process terminated with an exception
+				| Deleted		// A process is deleted (never set, but returned when process can not be found)
 
 :: ManagerProperties =
 	{ worker			:: !User					// Who has to do the task? 
 	, priority			:: !TaskPriority			// What is the current priority of this task?
 	, deadline			:: !Maybe DateTime			// When is the task due?
+	, status			:: !RunningTaskStatus
 	}
+	
+:: RunningTaskStatus	= Active		// A process is active and can be further evaluated
+						| Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
 	
 :: TaskProperties =
 	{ taskDescription	:: !TaskDescription			// Description of the task
@@ -255,6 +258,7 @@ staticMenu	:: !MenuDefinition -> ActionMenu
 
 instance toString TaskStatus
 instance == TaskStatus
+instance == RunningTaskStatus
 
 class descr d
 where

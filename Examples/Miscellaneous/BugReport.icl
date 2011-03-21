@@ -96,7 +96,7 @@ assignBug bug critical
 	>>=	\developer ->
 		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
 	>>= \bug ->
-		assign {worker = developer, priority = priority, deadline = Nothing} noMenu (Title subject @>> resolveBug bug critical)
+		assign {worker = developer, priority = priority, deadline = Nothing, status = Active} noMenu (Title subject @>> resolveBug bug critical)
 where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
@@ -137,7 +137,7 @@ confirmCritical :: BugReport -> Task Bool
 confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
-		assign {worker = assessor, priority = HighPriority, deadline = Nothing} noMenu
+		assign {worker = assessor, priority = HighPriority, deadline = Nothing, status = Active} noMenu
 			( Title "Bug report assessment" @>>
 			  requestConfirmationAbout ("Confirmation","Is this bug really critical?") report
 			)

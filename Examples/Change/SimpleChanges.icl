@@ -57,7 +57,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True True (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu (showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res)) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu (showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res)) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn
@@ -65,7 +65,7 @@ check user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> assign {worker = user, priority = HighPriority, deadline = Nothing} noMenu (updateInformation ("Verification","Please verify result of " +++ procName) res)), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> assign {worker = user, priority = HighPriority, deadline = Nothing, status = Active} noMenu (updateInformation ("Verification","Please verify result of " +++ procName) res)), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
 cancel ::  String ProcessId -> ChangeDyn
@@ -93,7 +93,7 @@ restart user procName =
 	dynamic change user procName :: A.a: Change a | iTask a
 where
 	change :: User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user procName props t t0 = (Nothing, Just (assign {worker = user, priority = HighPriority, deadline = Nothing} noMenu (Title procName @>> t0)), Nothing)
+	change user procName props t t0 = (Nothing, Just (assign {worker = user, priority = HighPriority, deadline = Nothing, status = Active} noMenu (Title procName @>> t0)), Nothing)
 
 changePrio :: Task Void
 changePrio
@@ -162,7 +162,7 @@ chooseUserA question
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
 	=								getCurrentProcessId
-	>>= \mypid ->					getProcessesWithStatus [Active]
+	>>= \mypid ->					getProcessesWithStatus [Running] [Active]
 	>>= \procs ->					enterChoiceA question id buttons
 										[	( proc.Process.taskId
 											, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title

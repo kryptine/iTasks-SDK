@@ -57,7 +57,7 @@ getProcesses			:: ![ProcessId]				-> Task [Process]
 * 
 * @return The list of processes having the given statuses
 */
-getProcessesWithStatus	:: ![TaskStatus]			-> Task [Process]
+getProcessesWithStatus	:: ![TaskStatus] ![RunningTaskStatus]		-> Task [Process]
 /**
 * Retrieves the processes that are owned by indicated user and have one of the
 * given statuses.
@@ -68,7 +68,7 @@ getProcessesWithStatus	:: ![TaskStatus]			-> Task [Process]
 *
 * @return The list of found processes
 */
-getProcessesForUser		:: !User ![TaskStatus]		-> Task [Process]
+getProcessesForUser		:: !User ![TaskStatus] ![RunningTaskStatus]	-> Task [Process]
 /**
 * Poll who is the owner of a process.
 *
@@ -92,23 +92,10 @@ setProcessOwner			:: !User !ProcessId			-> Task Void
 *
 * @return A task that yields the status of the referenced process
 */
-getProcessStatus		:: !ProcessId				-> Task TaskStatus
-/**
-* Change the process status to Active
-*
-* @param The process reference
-*
-* @return A task that yields True when the process was successfully activated
-*         and False when the process could not be found.
-*/
-activateProcess			:: !ProcessId				-> Task Void
-/**
-* Change the process status to suspended.
-* The tasks within this process will be inaccessible until the process is activated again.
-*
-* @param The process reference
-*/
-suspendProcess			:: !ProcessId				-> Task Void
+getProcessStatus		:: !ProcessId				-> Task (TaskStatus,RunningTaskStatus)
+
+updateManagerProperties :: !ProcessId !(ManagerProperties -> ManagerProperties) -> Task Void
+
 /**
 * Delete a process from the process database
 * Once a process is deleted all of its results are lost.

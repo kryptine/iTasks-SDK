@@ -107,14 +107,14 @@ sendMessage :: Message -> Task Void
 sendMessage msg
 	=	dbCreateItem msg
 	>>= \msg -> case msg.needsReply of
-			False	= allTasks [spawnProcess True True (notifyTask rcp msg) \\ rcp <- msg.Message.recipients] >>| stop
-			True	= spawnProcess True True (DetachedTask initManagerProperties noMenu (awaitReplies msg)) >>| stop
+			False	= allTasks [spawnProcess True (notifyTask rcp msg) \\ rcp <- msg.Message.recipients] >>| stop
+			True	= spawnProcess True (DetachedTask initManagerProperties noMenu (awaitReplies msg)) >>| stop
 	>>| showMessageAbout ("Message sent","The following message has been sent:") msg
 	>>| stop
 where
 	notifyTask user msg =
 		DetachedTask
-			{worker = user, priority = msg.Message.priority, deadline = Nothing} noMenu
+			{worker = user, priority = msg.Message.priority, deadline = Nothing, status = Active} noMenu
 			(subject msg @>> manageMessage msg)
 
 	awaitReplies msg =

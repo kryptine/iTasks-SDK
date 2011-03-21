@@ -37,7 +37,7 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	spawnProcess True False (DetachedTask {initManagerProperties & worker = who} noMenu (task <<@ Title label))
+		>>= \who ->	spawnProcess False (DetachedTask {initManagerProperties & worker = who} noMenu (task <<@ Title label))
 		>>= 		inspect
 
 	inspect pref
@@ -57,16 +57,16 @@ where
 		>>= \st	->			getProcessOwner pid
 		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [toString (fromJust mbOwner)])
 		>>= \names ->		case st of
-								Finished	-> showMessage ("Task finished","It is finished") True
-								Deleted		-> showMessage ("Task deleted","It is deleted") True		
-								Active		-> showMessage ("Task busy","User " <+++ hd names <+++ " is working on it") False		
-								Suspended	-> showMessage ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") False		
+								(Finished,_)		-> showMessage ("Task finished","It is finished") True
+								(Deleted,_)			-> showMessage ("Task deleted","It is deleted") True		
+								(Running,Active)	-> showMessage ("Task busy","User " <+++ hd names <+++ " is working on it") False		
+								(Running,Suspended)	-> showMessage ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") False		
 	suspend (pid,_,_)
-	=						suspendProcess pid
+	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
 		>>|					showMessage ("Task suspended","workflow is suspended") False
 								
 	activate (pid,_,_)
-	=						activateProcess pid
+	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Active})
 		>>|					showMessage ("Task activated","workflow is activated") False
 
 	delete (pid,_,_)

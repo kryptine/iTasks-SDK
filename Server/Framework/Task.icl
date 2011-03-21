@@ -104,10 +104,10 @@ changeTask f container = case container of
 
 derive JSONEncode	TaskContainer
 derive JSONDecode	TaskContainer
-derive gUpdate		TaskContainer, ManagerProperties, TaskPriority
-derive gDefaultMask	TaskContainer, ManagerProperties, TaskPriority
-derive gVerify		TaskContainer, ManagerProperties, TaskPriority
-derive gVisualize	TaskContainer, ManagerProperties, TaskPriority
+derive gUpdate		TaskContainer, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gDefaultMask	TaskContainer, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVerify		TaskContainer, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVisualize	TaskContainer, ManagerProperties, TaskPriority, RunningTaskStatus
 derive gEq			TaskContainer
 derive JSONEncode 	TaskResult, TaskContainerType
 derive JSONDecode 	TaskResult, TaskContainerType

@@ -24,9 +24,9 @@ taskService url html path req tst
 						
 			# (processes,tst)	= case session.Session.user of
 				RootUser
-					| userParam == ""	= getProcessesForUser RootUser [Active] tst
-					| otherwise			= getProcessesForUser (NamedUser userParam) [Active] tst
-				user			= getProcessesForUser session.Session.user [Active] tst		
+					| userParam == ""	= getProcessesForUser RootUser [Running] [Active] tst
+					| otherwise			= getProcessesForUser (NamedUser userParam) [Running] [Active] tst
+				user			= getProcessesForUser session.Session.user [Running] [Active] tst		
 			# items				= taskItems processes
 			# json				= JSONObject [("success",JSONBool True),("tasks",toJSON items)]
 			= (serviceResponse html "Task list" listDescription url listParams json, tst)
@@ -34,7 +34,7 @@ taskService url html path req tst
 		["debug"]
 			| isJust mbSessionErr
 				= (serviceResponse html "Task debug list" listDebugDescription url debugParams (jsonSessionErr mbSessionErr), tst)	
-			# (processes,tst)	= getProcesses [Active,Suspended,Finished,Excepted,Deleted] tst
+			# (processes,tst)	= getProcesses [Running,Finished,Excepted,Deleted] [Active,Suspended] tst
 			# json				= JSONObject [("success",JSONBool True),("tasks",toJSON processes)]
 			= (serviceResponse html "Task debug list" listDebugDescription url debugParams json, tst)
 		//Start a new task (create a process)
@@ -54,7 +54,7 @@ taskService url html path req tst
 						Nothing
 							= (JSONObject [("success",JSONBool False),("error",JSONString "Invalid parameter")], tst)
 						Just thread
-							# (taskId,_,_,tst) = createTaskInstance thread True True True workflow.Workflow.containerType tst
+							# (taskId,_,_,tst) = createTaskInstance thread True True workflow.Workflow.containerType tst
 							= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
 			= (serviceResponse html "Create task" createDescription url createParams json, tst)
 		//Show task details of an individual task

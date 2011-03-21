@@ -69,6 +69,7 @@ where
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
+						, status		:: !RunningTaskStatus
 						, progress		:: !HtmlDisplay
 						, issuedAt		:: !Display Timestamp
 						, firstWorkedOn	:: !Display (Maybe Timestamp)
@@ -76,7 +77,7 @@ where
 						, deadline		:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
-derive class GenRecord ProcessControlView, ManagerProperties, TaskPriority
+derive class GenRecord ProcessControlView, ManagerProperties, TaskPriority, RunningTaskStatus
 
 (@:) infix 3 :: !User !(Task a) -> Task a | iTask a
 (@:) user task = assign {initManagerProperties & worker = user} noMenu task

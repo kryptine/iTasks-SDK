@@ -67,7 +67,7 @@ initSystemProperties =
 	{SystemProperties
 	| taskId = ""
 	, parent = Nothing
-	, status = Active
+	, status = Running
 	, manager = AnyUser
 	, issuedAt = Timestamp 0
 	, firstEvent = Nothing
@@ -93,11 +93,11 @@ initSession sessionId tst
 		Just session
 			= (Nothing, {tst & staticInfo = {staticInfo & currentSession = session}})
 
-createTaskInstance :: !Dynamic !Bool !Bool !Bool !TaskContainerType !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
-createTaskInstance thread=:(_ :: Container (Container (TaskThreadParam a b) b) a) toplevel activate delete containerType tst
-	= createTaskInstance (toNonParamThreadEnter thread) toplevel activate delete containerType tst
+createTaskInstance :: !Dynamic !Bool !Bool !TaskContainerType !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+createTaskInstance thread=:(_ :: Container (Container (TaskThreadParam a b) b) a) toplevel delete containerType tst
+	= createTaskInstance (toNonParamThreadEnter thread) toplevel delete containerType tst
 
-createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel activate delete containerType tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
+createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel delete containerType tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)	
@@ -109,7 +109,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 		, systemProperties =
 			{ taskId			= taskId
 			, parent			= parent
-			, status			= if activate Active Suspended
+			, status			= Running
 			, manager			= manager
 			, issuedAt			= currentTime
 			, firstEvent		= Nothing
@@ -135,12 +135,13 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# process				= fromJust mbProcess
 	//Create a thread with task functions in the store
 	# tst					= storeThread processId thread tst
-	| activate
-		//If directly active, evaluate the process once to kickstart automated steps that can be set in motion immediately	
-		# (result,tree,tst)	= evaluateTaskInstance process [] Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
-		= (processId,result,tree,tst)
-	| otherwise
-		= (processId, TaskBusy, node properties processId, tst)
+	= case managerProperties.ManagerProperties.status of
+		Active
+			//If directly active, evaluate the process once to kickstart automated steps that can be set in motion immediately	
+			# (result,tree,tst)	= evaluateTaskInstance process [] Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
+			= (processId,result,tree,tst)
+		Suspended
+			= (processId, TaskBusy, node properties processId, tst)
 where
 	setUser manager props=:{worker=AnyUser} = {props & worker = manager}
 	setUser manager props = props
@@ -265,7 +266,7 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 	= case result of
 		TaskBusy
 			//Update process table (changeCount & properties)
-			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Active}}
+			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Running}}
 			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
 			= (TaskBusy, tree, tst)
 		TaskFinished dyn
@@ -495,12 +496,12 @@ calculateTaskTreeContainer taskId events tst
 						}
 			= (TTContainer CTInBody (TTFinishedTask info noProcessResult False) False, tst)
 		Just process=:{Process|properties}
-			# (tree, tst) = case properties.systemProperties.SystemProperties.status of
-				Active
+			# (tree, tst) = case (properties.systemProperties.SystemProperties.status,properties.managerProperties.ManagerProperties.status) of
+				(Running,Active)
 					//Evaluate the process
 					# (result,tree,tst) = evaluateTaskInstance process events Nothing True False tst
 					= (tree,tst)
-				Excepted
+				(Excepted,_)
 					// show exception
 					# (mbResult,tst) = accIWorldTSt (loadProcessResult (taskNrFromString taskId)) tst
 					# output = case mbResult of

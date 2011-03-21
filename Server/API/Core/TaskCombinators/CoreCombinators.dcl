@@ -123,13 +123,12 @@ parallel :: !d !(ValueMerger taskResult pState pResult) ![ControlTaskContainer t
 /**
 * Create a new process.
 *
-* @param Activate the process immediately (False creates the process in a suspended state)
 * @param Automatically garbage collect the process when it is finished (removing all references to the state of the process).
 * @param The task that is to be started in the new process.
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !Bool !Bool !(TaskContainer a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
+spawnProcess	:: !Bool !(TaskContainer a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
 
 :: SharedProc			:== ReadOnlyShared (Maybe Process)
 // the first maybe indicates if the process finished, the second if result is deleted

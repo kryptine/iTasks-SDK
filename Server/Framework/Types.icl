@@ -15,9 +15,9 @@ derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display,
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay
 derive gLexOrd		Currency
-derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType
-derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType
-derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType
+derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType, RunningTaskStatus
+derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType, RunningTaskStatus
+derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, FormWidth, TaskDescription, TaskStatus, TaskContainerType, RunningTaskStatus
 derive bimap		Maybe, (,)
 
 // JSON (de)serialisation & equality of menus not needed because only functions generating menus (no actual menu structures) are serialised
@@ -562,19 +562,23 @@ where
 
 instance toString TaskStatus
 where
-	toString Active		= "Active"
-	toString Suspended	= "Suspended"
+	toString Running	= "Running"
 	toString Finished	= "Finished"
 	toString Excepted	= "Excepted"
 	toString Deleted	= "Deleted"
 
 instance == TaskStatus
 where
-	(==) Active		Active		= True
-	(==) Suspended	Suspended	= True
+	(==) Running	Running		= True
 	(==) Finished	Finished	= True
 	(==) Excepted	Excepted	= True
 	(==) Deleted	Deleted		= True
+	(==) _			_			= False
+	
+instance == RunningTaskStatus
+where
+	(==) Active		Active		= True
+	(==) Suspended	Suspended	= True
 	(==) _			_			= False
 
 initTaskProperties :: TaskProperties
@@ -586,9 +590,10 @@ initTaskProperties =
 
 initManagerProperties :: ManagerProperties
 initManagerProperties =
-	{ worker = AnyUser
-	, priority = NormalPriority
-	, deadline = Nothing
+	{ worker	= AnyUser
+	, priority	= NormalPriority
+	, deadline	= Nothing
+	, status	= Active
 	}
 	
 managerProperties :: !TaskContainerType -> ManagerProperties

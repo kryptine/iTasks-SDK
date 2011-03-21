@@ -9,10 +9,10 @@ from TSt 		import :: TSt
 
 derive JSONEncode	TaskContainer, Task, TaskResult
 derive JSONDecode	TaskContainer, Task, TaskResult
-derive gUpdate		TaskContainer, Task, ManagerProperties, TaskPriority
-derive gDefaultMask	TaskContainer, Task, ManagerProperties, TaskPriority
-derive gVerify		TaskContainer, Task, ManagerProperties, TaskPriority
-derive gVisualize	TaskContainer, Task, ManagerProperties, TaskPriority
+derive gUpdate		TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gDefaultMask	TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVerify		TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVisualize	TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
 derive gEq			TaskContainer, Task
 
 // Tasks

@@ -281,7 +281,7 @@ createOrEvaluateTaskInstance task containerType tst=:{TSt|taskNr,events}
 	= case mbProc of
 		//Nothing found, create a task instance
 		Nothing	
-			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False True False containerType tst
+			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False False containerType tst
 			= case result of
 				TaskBusy				= (TaskBusy, tree, tst)
 				TaskFinished (a :: a^)	= (TaskFinished a, tree, tst)
@@ -304,11 +304,11 @@ createOrEvaluateTaskInstance task containerType tst=:{TSt|taskNr,events}
 	where
 		invalidType = "createOrEvaluateTaskIntance: task result of invalid type!"
 
-spawnProcess :: !Bool !Bool !(TaskContainer a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
-spawnProcess activate gcWhenDone container = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
+spawnProcess :: !Bool !(TaskContainer a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
+spawnProcess gcWhenDone container = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
 where
 	spawnProcess` tst
-		# (pid,_,_,tst)	= createTaskInstance (createThread task) True activate gcWhenDone containerType tst
+		# (pid,_,_,tst)	= createTaskInstance (createThread task) True gcWhenDone containerType tst
 		= (TaskFinished (pid,sharedProc pid,sharedRes pid), tst)
 		
 	(task,containerType) = fromContainerToTask container
@@ -320,7 +320,7 @@ where
 		read iworld
 			# (mbProc,iworld) = 'ProcessDB'.getProcess pid iworld
 			= case mbProc of
-				Just {Process|properties} = case properties.systemProperties.status of
+				Just {Process|properties} = case properties.systemProperties.SystemProperties.status of
 					Finished		= loadResult iworld
 					_				= (Nothing,iworld)
 				Nothing				= loadResult iworld
