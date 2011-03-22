@@ -68,7 +68,6 @@ initSystemProperties =
 	| taskId = ""
 	, parent = Nothing
 	, status = Running
-	, manager = AnyUser
 	, issuedAt = Timestamp 0
 	, firstEvent = Nothing
 	, latestEvent = Nothing
@@ -98,19 +97,17 @@ createTaskInstance thread=:(_ :: Container (Container (TaskThreadParam a b) b) a
 	= createTaskInstance (toNonParamThreadEnter thread) toplevel delete containerType tst
 
 createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel delete containerType tst=:{taskNr,properties,iworld=iworld=:{IWorld|timestamp=currentTime}}
-	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
-	# (manager,tst) 		= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)	
+	# (worker,tst) 			= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)
 	# taskId				= if toplevel "" (taskNrToString taskNr)
 	# parent				= if toplevel Nothing (Just properties.systemProperties.SystemProperties.taskId)
-	# managerProperties		= setUser manager (managerProperties containerType)
+	# managerProperties		= setUser worker (managerProperties containerType)
 	# properties =
 		{ taskProperties	= taskProperties originalTask
 		, systemProperties =
 			{ taskId			= taskId
 			, parent			= parent
 			, status			= Running
-			, manager			= manager
 			, issuedAt			= currentTime
 			, firstEvent		= Nothing
 			, latestEvent		= Nothing
@@ -143,8 +140,8 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 		Suspended
 			= (processId, TaskBusy, node properties processId, tst)
 where
-	setUser manager props=:{worker=AnyUser} = {props & worker = manager}
-	setUser manager props = props
+	setUser worker props=:{worker=AnyUser} = {props & worker = worker}
+	setUser worker props = props
 
 	node properties taskId
 		# taskNr	= taskNrFromString taskId

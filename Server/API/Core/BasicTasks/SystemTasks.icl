@@ -35,11 +35,6 @@ getContextWorker = mkInstantTask ("Get context worker", "Determine the worker as
 where
 	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.managerProperties.worker,tst)
 
-getContextManager :: Task User
-getContextManager = mkInstantTask ("Get context manager", "Determine the manager of the current task.") getContextManager`
-where
-	getContextManager` tst=:{TSt|properties} = (TaskFinished properties.systemProperties.manager, tst)
-
 getDefaultValue :: Task a | iTask a
 getDefaultValue = mkInstantTask ("Create default value", "Create a default data value.") getDefaultValue`
 where

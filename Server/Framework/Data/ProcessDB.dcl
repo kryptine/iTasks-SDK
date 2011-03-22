@@ -28,7 +28,6 @@ where
 	deleteProcess			:: !TaskId												!*st -> (!Bool,				!*st)
 	getProcess				:: !TaskId												!*st -> (!Maybe Process,	!*st)
 	getProcessForUser		:: !User !TaskId										!*st -> (!Maybe Process,	!*st)
-	getProcessForManager 	:: !User !TaskId 										!*st -> (!Maybe Process, 	!*st)
 	getProcesses 			:: ![TaskStatus] ![RunningTaskStatus]					!*st -> (![Process], 		!*st)
 	getProcessesById		:: ![TaskId]											!*st -> (![Process],		!*st)
 	getProcessesForUser		:: !User ![TaskStatus] ![RunningTaskStatus]				!*st -> (![Process],		!*st)

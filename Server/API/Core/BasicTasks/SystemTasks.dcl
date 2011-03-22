@@ -28,12 +28,6 @@ getCurrentProcessId		:: 	Task ProcessId
 */
 getContextWorker :: Task User
 /**
-* Gets the user that the current task is managed by
-*
-* @return the username of the user that manages the current task
-*/
-getContextManager :: Task User
-/**
 * Compute a default value 
 *
 * @return The default value

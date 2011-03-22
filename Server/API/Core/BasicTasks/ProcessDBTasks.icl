@@ -31,10 +31,6 @@ getProcessForUser :: !User !ProcessId -> Task (Maybe Process)
 getProcessForUser user pid = mkInstantTask ("Get process for user", "Read a process from the database with a check if a user needs to work on it.")
 	(mkTaskFunction (\tst -> 'ProcessDB'.getProcessForUser user pid tst))
 
-getProcessForManager :: !User !ProcessId -> Task (Maybe Process)
-getProcessForManager man pid = mkInstantTask ("Get process for manager", "Read a process from the database with a check if it is managed by a specific user.")
-	(mkTaskFunction (\tst -> 'ProcessDB'.getProcessForManager man pid tst))
-
 getProcesses :: ![ProcessId] -> Task [Process]
 getProcesses ids = mkInstantTask ("Get processes", "Read a set of processes from the database.")
 	(mkTaskFunction (\tst -> 'ProcessDB'.getProcessesById ids tst))

@@ -48,7 +48,7 @@ where
 			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
 		>>|	return undef
 		
-	toView (_,[{processProperties=p=:Just {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}:_])=
+	toView (_,[_,{processProperties=p=:Just {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}])=
 		{ mapRecord m
 		& assignedTo	= worker
 		, progress		= formatProgress progress

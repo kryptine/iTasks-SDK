@@ -192,7 +192,6 @@ instance toString HtmlDisplay
 	{ taskId			:: !TaskId					// Process table identification
 	, parent			:: !Maybe TaskId			// The (direct) parent process
 	, status			:: !TaskStatus				// Is a maintask active,suspended,finished or excepted
-	, manager			:: !User					// Who is managing this task
 	, issuedAt			:: !Timestamp				// When was the task created
 	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
 	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	

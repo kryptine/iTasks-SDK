@@ -33,16 +33,6 @@ getProcess				:: !ProcessId				-> Task (Maybe Process)
 */
 getProcessForUser		:: !User !ProcessId			-> Task (Maybe Process)
 /**
-* Retrieves a Process record with an additional check on the process manager. Only
-* when the process is managed by the indicated user it will be returned.
-*
-* @param The manager of the indicated process
-* @param The process id
-*
-* @return When found, the Process record. Nothing when the process cannot be found.
-*/
-getProcessForManager 	:: !User !ProcessId			-> Task (Maybe Process)
-/**
 * Retrieves the processes with indicated process ids
 *
 * @param A list of process ids to match on

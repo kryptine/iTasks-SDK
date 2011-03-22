@@ -125,55 +125,9 @@ taskService url html path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					// check whether the current user is allowed to cancel the task (user == manager)
-					# (mbUProcess, tst) = case session.Session.user of
-						RootUser = (Just proc,tst)
-						user	 = getProcessForManager user proc.Process.taskId tst
-					| not (isJust mbUProcess) 
-						= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool False),("error",JSONString "You do not have permission to cancel this task")]), tst)		
 					# tst = deleteTaskInstance proc.Process.taskId tst
 					= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), tst)	
 					
-		//Show / update Manager properties
-		[taskId,"managerProperties"]
-			| isJust mbSessionErr
-				= (serviceResponse html "Manager properties" manPropsDescription url propParams (jsonSessionErr mbSessionErr), tst)			
-			# (mbProcess, tst)	= case session.Session.user of
-				RootUser
-								= getProcess taskId tst
-				user			= getProcessForManager user taskId tst
-			= case mbProcess of
-				Nothing
-					= (notFoundResponse req, tst)
-				Just proc
-					//Update properties if "update" is set
-					# (json, tst) = case updateParam of
-						""	= (JSONObject [("success",JSONBool True),("managerProperties",toJSON proc.Process.properties.managerProperties)], tst)
-						update
-							= case (fromJSON (fromString update)) of
-								Just managerProperties
-									# (ok,tst) = updateProcessProperties taskId (\p -> {p & managerProperties = managerProperties}) tst
-									| ok	= (JSONObject [("success",JSONBool True),("managerProperties",toJSON proc.Process.properties.managerProperties)], tst)
-											= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
-								_
-									= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to parse update")],tst)
-					= (serviceResponse html "Manager properties" manPropsDescription url propParams json, tst)
-		[taskId,"managerProperties",_]
-			# param = last path
-			| isJust mbSessionErr
-				= (serviceResponse html ("Manager property: "+++param) manPropDescription url propParams (jsonSessionErr mbSessionErr), tst)
-			# (mbProcess, tst) = case session.Session.user of
-				RootUser 	= getProcess taskId tst
-				user		= getProcessForManager user taskId tst
-			= case mbProcess of
-				Nothing = (notFoundResponse req, tst)
-				Just proc
-					# (json, tst) = case updateParam of
-						"" 		= (getManagerProperty param proc.Process.properties.managerProperties,tst)
-						update 	= updateManagerProperty param update proc tst
-					# updateParam = "" //reset the update paramater
-					= (serviceResponse html ("Manager property: "+++param) manPropDescription url propParams json, tst)
-		
 		//TODO: Worker properties & System properties
 				
 		//taskId/result -> show result of a finished in serialized form (to be implemented)
