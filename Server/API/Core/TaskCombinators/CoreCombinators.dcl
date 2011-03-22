@@ -63,7 +63,7 @@ return 		:: !a 										-> Task a 		| iTask a
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
 :: Control a acc	= StopParallel												// stop the entire parallel execution
-					| AppendTasks	![TaskContainer a]							// append additional ordinary tasks to be run in parallel as well
+					| AppendTasks	![(!TaskContainer a,!AccuFun a acc)]		// append additional ordinary tasks to be run in parallel as well
 					| AppendCTasks	![ControlTaskContainer a acc]				// append additional contorl tasks to be run in parallel as well
 					| StopTasks		![TaskIndex]								// kill ordinary & control tasks with indicated index
 					| ResetTasks	![TaskIndex]								// start ordinary & control tasks with indicated index from scratch
@@ -73,21 +73,14 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 					
 derive class iTask Control
 
-// The ValueMerger consists of 
-// - an accumulator
-// - a function AccuFun which is called whn a ordinary task finishes defining how its result is added to the accumulator
-// - a function defining how to convert the accumulator tot the final result when the parallel task finishes
-:: ValueMerger taskResult pState pResult :== (!pState, !AccuFun taskResult pState, !ResultFun pState pResult)
-
 /**
-* AccuFun is called when an ordinary parallel iTask task (i.e. not a control task) terminates returning a value of type a 
+* AccuFun is called when an ordinary parallel iTask task (not a control task) terminates returning a value of type a 
 * 
-* @param The index of the terminated task 
 * @param The value returned by the terminated task
 * @param The current value of the accumulator 
 * @return Tuple with new value of the accumulator, and possibly an action
 */
-:: AccuFun taskResult pState :== TaskIndex taskResult pState -> (!pState, !Maybe (Control taskResult pState))
+:: AccuFun taskResult pState :== taskResult pState -> (!pState, !Maybe (Control taskResult pState))
 
 // Index of parallel executing processes, number of processes can dynamically increase
 :: TaskIndex :== Int
@@ -108,19 +101,27 @@ derive class iTask Control
 						, processProperties	:: !Maybe ProcessProperties	// process properties for tasks which are detached processes
 						}
 
+/**
+* A control task is a special task used to control and view the other tasks and their manager properties.
+* It can generate control signals, after which it will re-incarnate itself.
+*
+* @param The control view enabling to view the current state of the accumulator and the properties of all subtasks and change manager properties of detached tasks
+* @return A control signal
+*/
 :: ControlTaskContainer a acc :== ParamTaskContainer (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) (Control a acc)
 
 /**
 * All-in-one swiss-army-knife parallel task creation
 *
 * @param The (overloaded) task description
-* @param The Value merger: a set of functions defining how subtasks values are accumulated 
+* @param The accumulator
+* @param A function defining how to convert the accumulator tot the final result when the parallel task finishes
 * @param Layout merge function that layouts the user interfaces of tasks that are placed in the body
 * @param The list of Control tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
 * @param The list of ordinary tasks to run in parallel
 * @return The resulting value
 */
-parallel :: !d !(ValueMerger taskResult pState pResult) ![ControlTaskContainer taskResult pState] ![TaskContainer taskResult] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer taskResult pState] ![(!TaskContainer taskResult,!AccuFun taskResult pState)] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 
 // Multi-user workflows
 
