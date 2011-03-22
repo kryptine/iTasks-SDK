@@ -1,6 +1,6 @@
 implementation module TaskPanel
 
-import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
+import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc, StdOrdList
 import JSON, HTML, TSt, TUIDefinition, Map, Util
 
 derive JSONEncode TTCInteractiveContainer, FormContent, InteractiveTaskType, TTCResultContainer, TTCParallelContainer
@@ -14,7 +14,7 @@ JSONEncode{|TaskPanel|} (TTCResultContainer x)		= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCParallelContainer x)	= JSONEncode{|*|} x
 
 buildTaskPanel :: !UITreeContainer -> TaskPanel
-buildTaskPanel cont=:(TTContainer type tree controlTask)
+buildTaskPanel cont=:(TTContainer _ type tree controlTask)
 	# menu = case type of
 		TTDetached menu	= menu
 		TTWindow _ menu	= menu
@@ -32,7 +32,7 @@ where
 				= buildResultPanel cont
 			TTInteractiveTask ti type (Definition def buttons)
 				= TTCInteractiveContainer
-					{ TTCInteractiveContainer 
+					{ TTCInteractiveContainer
 					| xtype 		= "itasks.ttc.interactive"
 					, id 			= "taskform-" +++ ti.TaskInfo.taskId
 					, taskId 		= ti.TaskInfo.taskId
@@ -65,13 +65,13 @@ where
 					, taskId		= ti.TaskInfo.taskId
 					, subject		= ti.TaskInfo.subject
 					, description	= ti.TaskInfo.description
-					, content		= catMaybes (map buildParallelElement containers)
+					, content		= catMaybes (map buildParallelElement (sortBy (\(TTContainer idx0 _ _ _) (TTContainer idx1 _ _ _) -> idx0 < idx1) containers))
 					, menu			= menu
 					}
 	where
 		// don't build UI for detached & hidden tasks
 		buildParallelElement :: !UITreeContainer -> Maybe TaskPanel
-		buildParallelElement (TTContainer type tree controlTask) = case type of
+		buildParallelElement (TTContainer _ type tree controlTask) = case type of
 			TTDetached _	= Nothing
 			TTWindow _ menu	= Just (buildTaskPanel` tree menu controlTask)
 			TTDialog _		= Just (buildTaskPanel` tree [] controlTask)
@@ -80,7 +80,7 @@ where
 									
 buildResultPanel :: !UITreeContainer -> TaskPanel
 buildResultPanel tree = case tree of 
-	TTContainer _ (TTFinishedTask ti result _) _
+	TTContainer _ _ (TTFinishedTask ti result _) _
 		= (TTCResultContainer {TTCResultContainer
 								| xtype 	= "itasks.ttc.result"
 								, id 		= "taskform-" +++ ti.TaskInfo.taskId

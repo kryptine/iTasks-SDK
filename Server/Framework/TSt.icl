@@ -494,7 +494,7 @@ calculateTaskTreeContainer taskId events tst
 						, subject			= "Deleted Process"
 						, description		= "Task Result"
 						}
-			= (TTContainer CTInBody (TTFinishedTask info noProcessResult False) False, tst)
+			= (TTContainer -1 CTInBody (TTFinishedTask info noProcessResult False) False, tst)
 		Just process=:{Process|properties}
 			# (tree, tst) = case (properties.systemProperties.SystemProperties.status,properties.managerProperties.ManagerProperties.status) of
 				(Running,Active)
@@ -525,7 +525,7 @@ calculateTaskTreeContainer taskId events tst
 								, description		= "Task Result"
 								}
 					= (TTFinishedTask info result False,tst)
-			= (TTContainer properties.systemProperties.SystemProperties.containerType tree properties.taskProperties.isControlTask,tst)
+			= (TTContainer -1 properties.systemProperties.SystemProperties.containerType tree properties.taskProperties.isControlTask,tst)
 
 renderResult :: !Dynamic -> HtmlTag
 renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value
@@ -649,8 +649,8 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			# tst = taskFuncEdit {tst & newTask = isNothing mbTaskVal && isNothing mbTaskNr}
 			= (TaskBusy,tst)
 
-applyTaskCommit :: !(Task a) !(Maybe TaskContainerType) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit {properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommit, formWidth} mbContainerType tst=:{taskNr,tree}
+applyTaskCommit :: !(Task a) !(Maybe (!Int,!TaskContainerType)) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+applyTaskCommit {properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommit, formWidth} mbParChildInfo tst=:{taskNr,tree}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	# taskInfo =	{ TaskInfo
@@ -698,11 +698,11 @@ applyTaskCommit {properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommi
 where	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
-		TTParallelTask ti  tasks = case mbContainerType of
-			Just containerType		= {tst & tree = TTParallelTask ti (tasks ++ [TTContainer containerType node isControlTask])}	//Add the node to the parallel set
-			Nothing					= abort "can't add task node to Parallel without container type specified"
-		TTFinishedTask _ _ _		= {tst & tree = node} 																			//Just replace the node
-		_							= {tst & tree = tree}
+		TTParallelTask ti  tasks = case mbParChildInfo of
+			Just (idx,containerType)	= {tst & tree = TTParallelTask ti [TTContainer idx containerType node isControlTask:tasks]}	//Add the node to the parallel set
+			Nothing						= abort "can't add task node to Parallel without index and container type specified"
+		TTFinishedTask _ _ _			= {tst & tree = node} 																		//Just replace the node
+		_								= {tst & tree = tree}
 
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt
 setInteractiveFuncs funcs tst=:{tree}

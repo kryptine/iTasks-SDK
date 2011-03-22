@@ -265,7 +265,7 @@ where
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
 
 	taskParts :: !JSONTreeContainer -> [JSONNode]
-	taskParts (TTContainer _ tree _) = taskParts` tree
+	taskParts (TTContainer _ _ tree _) = taskParts` tree
 	
 	taskParts` (TTParallelTask _ trees) = flatten (map taskParts trees)	
 	taskParts` (TTInteractiveTask ti _ json)

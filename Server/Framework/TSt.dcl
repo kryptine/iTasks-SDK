@@ -315,7 +315,7 @@ applyTaskEdit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 * @return The value produced by the task
 * @return The modified task state
 */
-applyTaskCommit			:: !(Task a) !(Maybe TaskContainerType) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+applyTaskCommit			:: !(Task a) !(Maybe (!Int,!TaskContainerType)) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 
 //// TASK CONTENT
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt						-> *TSt // Only for interactive tasks

@@ -62,11 +62,16 @@ return 		:: !a 										-> Task a 		| iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-:: PAction x acc	= Stop						// stop the entire parallel/grouped execution
-					| Extend ![TaskContainer x]	// dynamically extend list of tasks in parallel/group
-					| Focus Tag					// focus child-tasks with given tag
+:: Control a acc	= StopParallel												// stop the entire parallel execution
+					| AppendTasks	![TaskContainer a]							// append additional ordinary tasks to be run in parallel as well
+					| AppendCTasks	![ControlTaskContainer a acc]				// append additional contorl tasks to be run in parallel as well
+					| StopTasks		![TaskIndex]								// kill ordinary & control tasks with indicated index
+					| ResetTasks	![TaskIndex]								// start ordinary & control tasks with indicated index from scratch
+					| ReplaceTasks	![(!TaskIndex,!TaskContainer a)]			// replace ordinary tasks with indicated index
+					| ReplaceCTasks	![(!TaskIndex,!ControlTaskContainer a acc)]	// replace control tasks with indicated index
+					| FocusTask		!TaskIndex									// set the window focus of indicated ordinary or control task
 					
-derive class iTask PAction
+derive class iTask Control
 
 // The ValueMerger consists of 
 // - an accumulator
@@ -82,9 +87,9 @@ derive class iTask PAction
 * @param The current value of the accumulator 
 * @return Tuple with new value of the accumulator, and possibly an action
 */
-:: AccuFun taskResult pState :== TaskIndex taskResult pState -> (!pState, !Maybe (PAction taskResult pState))
+:: AccuFun taskResult pState :== TaskIndex taskResult pState -> (!pState, !Maybe (Control taskResult pState))
 
-// Index in list of parallel executing processes, [0..length list -1]; number of processes can dynamically increase
+// Index of parallel executing processes, number of processes can dynamically increase
 :: TaskIndex :== Int
 
 /**
@@ -101,10 +106,9 @@ derive class iTask PAction
 :: ParallelTaskInfo =	{ index				:: !TaskIndex				// the task's index
 						, taskProperties	:: !TaskProperties			// task properties
 						, processProperties	:: !Maybe ProcessProperties	// process properties for tasks which are detached processes
-						, controlTask		:: !Bool					// is the task a control task?
 						}
 
-:: ControlTaskContainer a acc :== ParamTaskContainer (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) (PAction a acc)
+:: ControlTaskContainer a acc :== ParamTaskContainer (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) (Control a acc)
 
 /**
 * All-in-one swiss-army-knife parallel task creation

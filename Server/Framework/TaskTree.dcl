@@ -22,8 +22,8 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TTNNInteractiveTask			:== (*IWorld -> *(!InteractiveTask,![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished					:== (HtmlTag,JSONNode)
 
-//A container used for subtrees representing top level tasks or subtasks or parallel (including the type, the actual tree & a flag indicating if the task is a control task)
-:: TaskTreeContainer containerType interactiveOutput finishedOutput = TTContainer !containerType !.(TaskTree containerType interactiveOutput finishedOutput) !Bool
+//A container used for subtrees representing top level tasks or subtasks or parallel (including the type, the actual tree, an index determining the order of appearance & a flag indicating if the task is a control task)
+:: TaskTreeContainer containerType interactiveOutput finishedOutput = TTContainer !Int !containerType !.(TaskTree containerType interactiveOutput finishedOutput) !Bool
 
 :: TaskTree containerType interactiveOutput finishedOutput
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
@@ -31,7 +31,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//A task that can be worked on through a gui
 	| TTInteractiveTask	!TaskInfo !InteractiveTaskType interactiveOutput								
 	//A completed task (the flag indicates if the result is shown to the user)
-	| TTFinishedTask	!TaskInfo finishedOutput !Bool
+	| TTFinishedTask	TaskInfo finishedOutput !Bool
 
 // similar to TaskContainerType but with calculated menus
 :: TTContainerType	= TTDetached ![TUIDef]				// task detached as separate process
