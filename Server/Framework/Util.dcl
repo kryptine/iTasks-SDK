@@ -39,7 +39,8 @@ fromFIELD	:: (FIELD x)	-> x
 fromPAIRX	:: (PAIR x y)	-> x
 fromPAIRY	:: (PAIR x y)	-> y
 
-isRecord :: !GenericTypeDefDescriptor -> Bool
+isRecordType	:: !GenericTypeDefDescriptor	-> Bool
+isRecordCons	:: !GenericConsDescriptor		-> Bool
 
 //List utility functions
 replaceInList	:: !(a a -> Bool) !a ![a] -> [a]

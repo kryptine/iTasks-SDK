@@ -59,12 +59,12 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 	# (cmv,vm)	= popMask verifyMask
 	# x			= fmap fromOBJECT val
 	//Record: just strip of the OBJECT constructor and pass through, record container is created when processing the CONS
-	| isRecord d
+	| isRecordType d
 		= fx x vst
-	//ADT with multiple constructors: Add the creation of a control for choosing the constructor
-	| d.gtd_num_conses > 1
-		= case vizType of 
-			VEditorDefinition
+	= case vizType of
+		VEditorDefinition
+			//ADT with multiple constructors: Add the creation of a control for choosing the constructor
+			| d.gtd_num_conses > 1
 				# (err,hnt)	= verifyElementStr cmv
 				# (items, vst=:{selectedConsIndex}) = fx x {vst & useLabels = False, optional = False}
 				= ([TUIFragment (TUIConstructorControl	{TUIConstructorControl
@@ -80,24 +80,24 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 														, hintMsg = hnt
 														})]
 				  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
-			_
-				# (viz,vst) = fx x vst
-				= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
-	//ADT with one constructor: put content into static container
-	| otherwise
-		# (vis,vst) = fx x {VSt|vst & useLabels = False, label = Nothing}
-		= ([TUIFragment (TUIStaticContainer	{ TUIStaticContainer
-											| id = ""
-											, fieldLabel = label
-											, optional = optional
-											, items = coerceToTUIDefs vis})]
-			,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
+			//ADT with one constructor: put content into static container
+			| otherwise
+				# (vis,vst) = fx x {VSt|vst & useLabels = False, label = Nothing}
+				= ([TUIFragment (TUIStaticContainer	{ TUIStaticContainer
+													| id = ""
+													, fieldLabel = label
+													, optional = optional
+													, items = coerceToTUIDefs vis})]
+					,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
+		_
+			# (viz,vst) = fx x vst
+			= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
 			
 gVisualize{|CONS of d|} fx val vst=:{useLabels,optional} = visualizeCustom mkControl staticVis val False vst
 where
 	mkControl name id val _ label optional err hnt renderAsStatic vst
 		# x = fmap fromCONS val
-		# (vis,vst) = case isRecord d.gcd_type_def of
+		# (vis,vst) = case isRecordCons d of
 			False // normal ADT
 				# (viz,vst) = fx x vst
 				= (coerceToTUIDefs viz, {VSt | vst & selectedConsIndex = d.gcd_index})
@@ -124,24 +124,24 @@ where
 		= case vizType of
 			VHtmlDisplay
 				//Records
-				| not (isEmpty d.gcd_fields) 
+				| isRecordCons d
 					= ([HtmlFragment (TableTag [ClassAttr "viz-record"] (coerceToHtml viz))],vst)
 				| otherwise
 				= normalADTStaticViz viz vst
 			VHtmlLabel
 				//For records only show the first field
-				| not (isEmpty d.gcd_fields)
+				| isRecordCons d
 					= ([hd viz],vst)
 				| otherwise
 					= normalADTStaticViz viz vst
 			VTextLabel
 				//For records only show the first field
-				| not (isEmpty d.gcd_fields) 
+				| isRecordCons d 
 					= ([hd viz],vst)
 				| otherwise
 					= normalADTStaticViz viz vst	
 			VTextDisplay
-				| not (isEmpty d.gcd_fields) 
+				| isRecordCons d 
 					= (viz,vst)
 				| otherwise
 					= normalADTStaticViz viz vst

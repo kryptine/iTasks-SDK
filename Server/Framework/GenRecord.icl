@@ -15,8 +15,8 @@ mapRecord rec
 generic gGetRecordFields r :: !r ![GenType] !*RecordFields -> *RecordFields
 
 gGetRecordFields{|OBJECT of d|} fx (OBJECT o) _ fields
-	| isRecord d	= fx o (getFieldTypes d) fields
-	| otherwise		= fields
+	| isRecordType d	= fx o (getFieldTypes d) fields
+	| otherwise			= fields
 gGetRecordFields{|CONS|} fx (CONS c) types fields = fx c types fields
 gGetRecordFields{|EITHER|} fx fy either types fields = case either of
 	LEFT x	= fx x types fields
@@ -43,8 +43,8 @@ derive gGetRecordFields EmailAddress, Action, Table, HtmlDisplay, ButtonState
 generic gPutRecordFields r :: !r ![GenType] !*RecordFields -> (!r,!*RecordFields)
 
 gPutRecordFields{|OBJECT of d|} fx obj=:(OBJECT o) _ fields
-	| isRecord d	= appFst OBJECT (fx o (getFieldTypes d) fields)
-	| otherwise		= (obj,fields)
+	| isRecordType d	= appFst OBJECT (fx o (getFieldTypes d) fields)
+	| otherwise			= (obj,fields)
 gPutRecordFields{|CONS|} fx (CONS c) types fields = appFst CONS (fx c types fields)
 gPutRecordFields{|EITHER|} fx fy either types fields = case either of
 	LEFT x	= appFst LEFT (fx x types fields)

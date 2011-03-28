@@ -32,7 +32,7 @@ gVerify{|OBJECT of d|}	fx    obj					vst=:{updateMask,verifyMask,optional}
 	# val		= fmap fromOBJECT obj
 	# (cmu,um)	= popMask updateMask
 	# vst		= {vst & updateMask = childMasks cmu, verifyMask = []}
-	# (consMask,vst) = case (isRecord d,d.gtd_num_conses) of
+	# (consMask,vst) = case (isRecordType d,d.gtd_num_conses) of
 		(False,1) // ADT's with just one constructor
 			# vst=:{verifyMask = childMask} = fx val vst
 			# vst							= {vst & verifyMask = childMask}
