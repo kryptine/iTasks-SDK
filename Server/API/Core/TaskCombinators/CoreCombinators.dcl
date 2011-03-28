@@ -62,14 +62,14 @@ return 		:: !a 										-> Task a 		| iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-:: Control a acc	= StopParallel												// stop the entire parallel execution
-					| AppendTasks	![(!TaskContainer a,!AccuFun a acc)]		// append additional ordinary tasks to be run in parallel as well
-					| AppendCTasks	![ControlTaskContainer a acc]				// append additional contorl tasks to be run in parallel as well
-					| StopTasks		![TaskIndex]								// kill ordinary & control tasks with indicated index
-					| ResetTasks	![TaskIndex]								// start ordinary & control tasks with indicated index from scratch
-					| ReplaceTasks	![(!TaskIndex,!TaskContainer a)]			// replace ordinary tasks with indicated index
-					| ReplaceCTasks	![(!TaskIndex,!ControlTaskContainer a acc)]	// replace control tasks with indicated index
-					| FocusTask		!TaskIndex									// set the window focus of indicated ordinary or control task
+:: Control a acc	= StopParallel														// stop the entire parallel execution
+					| AppendTasks	![(!TaskContainer a,!AccuFun a acc)]				// append additional ordinary tasks to be run in parallel as well
+					| AppendCTasks	![ControlTaskContainer a acc]						// append additional contorl tasks to be run in parallel as well
+					| StopTasks		![TaskIndex]										// kill ordinary & control tasks with indicated index
+					| ResetTasks	![TaskIndex]										// start ordinary & control tasks with indicated index from scratch
+					| ReplaceTasks	![(!TaskIndex,!TaskContainer a,!AccuFun a acc)]		// replace ordinary tasks with indicated index
+					| ReplaceCTasks	![(!TaskIndex,!ControlTaskContainer a acc)]			// replace control tasks with indicated index
+					| FocusTask		!TaskIndex											// set the window focus of indicated ordinary or control task
 					
 derive class iTask Control
 

@@ -225,6 +225,28 @@ where
 					# tst		= addToTree [TTContainer idx CTInBody (TTFinishedTask (abort "undef task info") (Text "killed",JSONString "killed") False) False \\idx <- remIdxs] tst
 					# tst		= seqSt (\taskId tst -> snd ('ProcessDB'.deleteProcess taskId tst)) (map (\idx -> taskNrToString [idx:taskNr]) remIdxs) tst
 					= processControls cs ts pst tst
+				ResetTasks rIdxs
+					// reevaluate reset tasks which have already been evaluated
+					# reevalTs	= [getPStCTask taskNr t \\ t=:(idx`,_) <- pst.cTasks | isMember idx` rIdxs && idx` < idx] ++ [getPStTask t \\ t=:(idx`,_) <- pst.tasks | isMember idx` rIdxs && idx` < idx]
+					# tst		= removeFromTree rIdxs tst
+					# tst		= seqSt (\idx -> deleteTaskStates [idx:taskNr]) rIdxs tst
+					= processControls cs (ts ++ reevalTs) pst tst
+				ReplaceTasks rTasks
+					# newTasks	= [let (task,ctype) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ (idx,c,accuFun) <- rTasks]
+					# rIdxs		= map fst3 rTasks
+					# ts		= filter (\(idx,_,_,_) -> not (isMember idx rIdxs)) ts
+					# pst		= {pst & tasks = seqSt (replaceInList (\(idx0,_) (idx1,_) -> idx0 == idx1)) (map (\(idx,task,ctype,accuFun) -> (idx,AddedTask (task,ctype,accuFun))) newTasks) pst.tasks}
+					# tst		= removeFromTree rIdxs tst
+					# tst		= seqSt (\idx -> deleteTaskStates [idx:taskNr]) rIdxs tst
+					= processControls cs (ts ++ newTasks) pst tst
+				ReplaceCTasks rTasks
+					# newTasks	= [let (task,ctype) = fromContainerToTask (applyParam (sharedParallelState taskNr) c) in (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun) \\ (idx,c) <- rTasks]
+					# rIdxs		= map fst rTasks
+					# ts		= filter (\(idx,_,_,_) -> not (isMember idx rIdxs)) ts
+					# pst		= {pst & cTasks = seqSt (replaceInList (\(idx0,_) (idx1,_) -> idx0 == idx1)) (map (\(idx,task,ctype,accuFun) -> (idx,AddedCTask (task,ctype))) newTasks) pst.cTasks}
+					# tst		= removeFromTree rIdxs tst
+					# tst		= seqSt (\idx -> deleteTaskStates [idx:taskNr]) rIdxs tst
+					= processControls cs (ts ++ newTasks) pst tst
 				_
 					= abort "not implemented!"
 		
