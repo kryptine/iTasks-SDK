@@ -171,8 +171,8 @@ where
 
   	procfun index result st
   		# st = sortBy (\x y. snd x < snd y) [(result,index):st]
-  		| check (map fst st)	= (st,Just StopParallel)
-  								= (st,Nothing)
+  		| check (map fst st)	= (st,[StopParallel])
+  								= (st,[])
   
   	finalfun _ st
   		# results = map fst st

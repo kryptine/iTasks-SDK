@@ -119,8 +119,8 @@ derive JSONDecode PSt, PStTask, PStCTask, TaskContainerType
 	, nextIdx	:: !TaskIndex
 	}
 	
-:: PStTask a acc	= InitTask	!Int | AddedTask	!(!Task (Either a (Control a acc)),!TaskContainerType,!AccuFun a acc)
-:: PStCTask a acc	= InitCTask	!Int | AddedCTask	!(!Task (Either a (Control a acc)),!TaskContainerType)
+:: PStTask a acc	= InitTask	!Int | AddedTask	!(!Task (Either a [Control a acc]),!TaskContainerType,!AccuFun a acc)
+:: PStCTask a acc	= InitCTask	!Int | AddedCTask	!(!Task (Either a [Control a acc]),!TaskContainerType)
 
 parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer taskResult pState] ![(!TaskContainer taskResult,!AccuFun taskResult pState)] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 parallel d initState resultFun initCTasks initTasks
@@ -190,43 +190,44 @@ where
 					= processAllTasksC ts pst tst 
 				TaskFinished a
 					//Apply the process function
-					# (pst,mbAction,ts,tst) = case a of
+					# (pst,controls,ts,tst) = case a of
 						Left v // normal task: remove from pst & run accu fun
-							# (state,mbAction) = accuFun v pst.PSt.state
-							= ({pst & tasks = removeTaskPSt idx pst.tasks, state = state},mbAction,ts,tst)
-						Right a // control task: restart & generate action
+							# (state,controls) = accuFun v pst.PSt.state
+							= ({pst & tasks = removeTaskPSt idx pst.tasks, state = state},controls,ts,tst)
+						Right controls // control task: restart & process control signal
 							# tst = deleteTaskStates [idx:taskNr] tst
 							# tst = removeFromTree [idx] tst
-							= (pst,Just a,[t:ts],tst)
-					= case mbAction of
-						Nothing
-							//Process the other tasks
-							= processAllTasksC ts pst tst
-						Just StopParallel
-							//Don't process the other tasks, return the state as result
-							= (TaskFinished pst.PSt.state,pst,tst)
-						Just (AppendTasks appTasks)
-							//Process the other tasks extended with the new tasks
-							# newTasks	= [let (task,ctype) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ (c,accuFun) <- appTasks & idx <- [pst.nextIdx..]]
-							# pst		= {pst & tasks = pst.tasks ++ map (\(idx,task,ctype,accuFun) -> (idx,AddedTask (task,ctype,accuFun))) newTasks, nextIdx = pst.nextIdx + length appTasks}
-							= processAllTasksC (ts ++ newTasks) pst tst
-						Just (AppendCTasks newContainers)
-							# newTasks	= [let (task,ctype) = fromContainerToTask (applyParam (sharedParallelState taskNr) c) in (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun) \\ c <- newContainers & idx <- [pst.nextIdx..]]
-							# pst		= {pst & cTasks = pst.cTasks ++ map (\(idx,task,ctype,_) -> (idx,AddedCTask (task,ctype))) newTasks, nextIdx = pst.nextIdx + length newContainers}
-							= processAllTasksC (ts ++ newTasks) pst tst
-						Just (StopTasks remIdxs)
-							# ts		= filter (\(idx,_,_,_) -> not (isMember idx remIdxs)) ts
-							# pst		= {pst & tasks = filter (\(idx,_) -> not (isMember idx remIdxs)) pst.tasks, cTasks = filter (\(idx,_) -> not (isMember idx remIdxs)) pst.cTasks}
-							# tst		= removeFromTree remIdxs tst
-							# tst		= addToTree [TTContainer idx CTInBody (TTFinishedTask (abort "undef task info") (Text "killed",JSONString "killed") False) False \\idx <- remIdxs] tst
-							# tst		= seqSt (\taskId tst -> snd ('ProcessDB'.deleteProcess taskId tst)) (map (\idx -> taskNrToString [idx:taskNr]) remIdxs) tst
-							= processAllTasksC ts pst tst
-						_
-							= abort "not implemented!"
+							= (pst,controls,[t:ts],tst)
+					= processControls controls ts pst tst
+					
 				TaskException e str
 					//Don't process the other tasks, just let the exception through
 					= (TaskException e str,pst,tst)
 		where
+			processControls [] ts pst tst = processAllTasksC ts pst tst
+			processControls [c:cs] ts pst tst = case c of
+				StopParallel
+					//Don't process the other tasks, return the state as result
+					= (TaskFinished pst.PSt.state,pst,tst)
+				AppendTasks appTasks
+					//Process the other tasks extended with the new tasks
+					# newTasks	= [let (task,ctype) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ (c,accuFun) <- appTasks & idx <- [pst.nextIdx..]]
+					# pst		= {pst & tasks = pst.tasks ++ map (\(idx,task,ctype,accuFun) -> (idx,AddedTask (task,ctype,accuFun))) newTasks, nextIdx = pst.nextIdx + length appTasks}
+					= processControls cs (ts ++ newTasks) pst tst
+				AppendCTasks newContainers
+					# newTasks	= [let (task,ctype) = fromContainerToTask (applyParam (sharedParallelState taskNr) c) in (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun) \\ c <- newContainers & idx <- [pst.nextIdx..]]
+					# pst		= {pst & cTasks = pst.cTasks ++ map (\(idx,task,ctype,_) -> (idx,AddedCTask (task,ctype))) newTasks, nextIdx = pst.nextIdx + length newContainers}
+					= processControls cs (ts ++ newTasks) pst tst
+				StopTasks remIdxs
+					# ts		= filter (\(idx,_,_,_) -> not (isMember idx remIdxs)) ts
+					# pst		= {pst & tasks = filter (\(idx,_) -> not (isMember idx remIdxs)) pst.tasks, cTasks = filter (\(idx,_) -> not (isMember idx remIdxs)) pst.cTasks}
+					# tst		= removeFromTree remIdxs tst
+					# tst		= addToTree [TTContainer idx CTInBody (TTFinishedTask (abort "undef task info") (Text "killed",JSONString "killed") False) False \\idx <- remIdxs] tst
+					# tst		= seqSt (\taskId tst -> snd ('ProcessDB'.deleteProcess taskId tst)) (map (\idx -> taskNrToString [idx:taskNr]) remIdxs) tst
+					= processControls cs ts pst tst
+				_
+					= abort "not implemented!"
+		
 			removeTaskPSt delIdx tasks = filter (\(idx,_) -> idx <> delIdx) tasks
 			
 			addToTree containers tst=:{tree} = case tree of

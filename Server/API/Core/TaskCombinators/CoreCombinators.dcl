@@ -78,9 +78,9 @@ derive class iTask Control
 * 
 * @param The value returned by the terminated task
 * @param The current value of the accumulator 
-* @return Tuple with new value of the accumulator, and possibly an action
+* @return Tuple with new value of the accumulator, and a list of control signals
 */
-:: AccuFun taskResult pState :== taskResult pState -> (!pState, !Maybe (Control taskResult pState))
+:: AccuFun taskResult pState :== taskResult pState -> (!pState, ![Control taskResult pState])
 
 // Index of parallel executing processes, number of processes can dynamically increase
 :: TaskIndex :== Int
@@ -106,9 +106,9 @@ derive class iTask Control
 * It can generate control signals, after which it will re-incarnate itself.
 *
 * @param The control view enabling to view the current state of the accumulator and the properties of all subtasks and change manager properties of detached tasks
-* @return A control signal
+* @return A list of control signals
 */
-:: ControlTaskContainer a acc :== ParamTaskContainer (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) (Control a acc)
+:: ControlTaskContainer a acc :== ParamTaskContainer (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) [Control a acc]
 
 /**
 * All-in-one swiss-army-knife parallel task creation
