@@ -1,6 +1,6 @@
 implementation module TaskPanel
 
-import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc, StdOrdList
+import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import JSON, HTML, TSt, TUIDefinition, Map, Util
 
 derive JSONEncode TTCInteractiveContainer, FormContent, InteractiveTaskType, TTCResultContainer, TTCParallelContainer
@@ -58,7 +58,7 @@ where
 					, taskId		= ti.TaskInfo.taskId
 					, subject		= ti.TaskInfo.subject
 					, description	= ti.TaskInfo.description
-					, content		= map buildParallelElement (sortBy (\(TTParallelContainer idx0 _ _ _) (TTParallelContainer idx1 _ _ _) -> idx0 < idx1) containers)
+					, content		= map buildParallelElement containers
 					, menu			= menu
 					}
 	where

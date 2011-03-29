@@ -1,6 +1,6 @@
 implementation module TaskTree
 
-import StdTuple, StdList, Util, Maybe, Either, HTML, Time, Types, StdFunc, GenMap, GenMapSt, TUIDefinition
+import StdTuple, StdList, StdOrdList, Util, Maybe, Either, HTML, Time, Types, StdFunc, GenMap, GenMapSt, TUIDefinition
 from JSON 			import :: JSONNode
 
 derive gMap		TaskTreeContainer, ParallelTaskTreeContainer, TaskTree, TaskInfo, Maybe
@@ -32,6 +32,7 @@ where
 				Definition def _	= (TTInteractiveTask ti interactiveType (Definition def []),addTaskIds ti.TaskInfo.taskId actions,iworld)
 				Updates upd _		= (TTInteractiveTask ti interactiveType (Updates upd []),addTaskIds ti.TaskInfo.taskId actions,iworld)
 		TTParallelTask ti containers
+			# containers							= sortBy (\(TTParallelContainer idx0 _ _ _) (TTParallelContainer idx1 _ _ _) -> idx0 < idx1) containers
 			# (mbSubContainersAndActions,iworld)	= mapSt toUIParallelTreeContainer containers iworld
 			# (mbSubContainers,actions)				= unzip mbSubContainersAndActions
 			= (TTParallelTask ti (catMaybes mbSubContainers),flatten actions,iworld)
@@ -47,14 +48,14 @@ where
 				// convert tree into UI tree & collect actions which are possibly used in container's menu
 				# (uiTree,actions,iworld) = toUITree tree iworld
 				// possibly build menu & put in TTContainerType
-				# (mbTTContainerType,remainingActions) = case type of
+				# (mbTTContainerType,remainingActions,uiTree) = case type of
 					CTWindow title menuF
 						# (tuiMenu,remainingActions) = mkMenu menuF actions
-						= (Just (TTWindow title tuiMenu),remainingActions)
+						= (Just (TTWindow title tuiMenu),remainingActions,uiTree)
 					CTDialog title
-						= (Just (TTDialog title),actions)
+						= (Just (TTDialog title),[],mkButtons actions uiTree)
 					CTInBody
-						= (Just TTInBody,actions)
+						= (Just TTInBody,actions,uiTree)
 				= ((fmap (\type -> TTParallelContainer idx type uiTree controlTask) mbTTContainerType,remainingActions),iworld)
 	
 	mkMenu :: !ActionMenu !SubtaskActions -> (![TUIDef],!SubtaskActions)
@@ -125,8 +126,9 @@ where
 		TTInteractiveTask ti interactiveType output
 			# buttons = mkButtons` ti.TaskInfo.taskId
 			= case output of
-				Definition def _	= TTInteractiveTask ti interactiveType (Definition def buttons)
-				Updates upd _		= TTInteractiveTask ti interactiveType (Updates upd buttons)
+				Definition def []	= TTInteractiveTask ti interactiveType (Definition def buttons)
+				Updates upd []		= TTInteractiveTask ti interactiveType (Updates upd buttons)
+				_					= TTInteractiveTask ti interactiveType output
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
 		other
