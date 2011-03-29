@@ -48,7 +48,7 @@ where
 	getProcessForUser user taskId iworld
 		# (procs,iworld) 	= processStore id iworld
 		= case [p\\ p <- procs |   p.Process.taskId == taskId
-							   && user == p.Process.properties.managerProperties.worker
+							   && user == p.Process.properties.ProcessProperties.managerProperties.worker
 							      ] of
 			[entry]	= (Just entry, iworld)
 			_		= (Nothing, iworld)
@@ -56,7 +56,7 @@ where
 	getProcesses :: ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcesses statusses runningStatusses iworld 
 		# (procs, iworld)	= processStore id iworld
-		= ([p \\ p <- procs | isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.managerProperties.ManagerProperties.status runningStatusses], iworld)
+		= ([p \\ p <- procs | isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses], iworld)
 			
 	getProcessesById :: ![TaskId] !*IWorld -> (![Process], !*IWorld)
 	getProcessesById ids iworld
@@ -66,15 +66,15 @@ where
 	getProcessesForUser	:: !User ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcessesForUser user statusses runningStatusses iworld
 		# (procs,iworld) 	= processStore id iworld
-		= ([p \\ p <- procs | p.Process.mutable && isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.managerProperties.ManagerProperties.status runningStatusses], iworld)
+		= ([p \\ p <- procs | p.Process.mutable && isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses], iworld)
 	where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task
-			=  ( properties.managerProperties.worker == user)
+			=  ( properties.ProcessProperties.managerProperties.worker == user)
 			
 	setProcessOwner	:: !User !TaskId !*IWorld	-> (!Bool, !*IWorld)
 	setProcessOwner worker taskId iworld
-		= updateProcess taskId (\x -> {Process | x & properties = {x.Process.properties & managerProperties = {x.Process.properties.managerProperties & worker = worker}}}) iworld
+		= updateProcess taskId (\x -> {Process | x & properties = {ProcessProperties|x.Process.properties & managerProperties = {x.Process.properties.ProcessProperties.managerProperties & worker = worker}}}) iworld
 		
 	setProcessStatus :: !TaskStatus !TaskId !*IWorld -> (!Bool,!*IWorld)
 	setProcessStatus status taskId iworld

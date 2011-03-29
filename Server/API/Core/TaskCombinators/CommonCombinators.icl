@@ -166,7 +166,7 @@ where
 		>>|	return undef
 	
 	toView (_,infos) = Table (map toView` (filter isProc infos))
-	toView` {index,processProperties=p=:Just {managerProperties=m=:{worker},taskProperties=t=:{taskDescription}}} =
+	toView` {index,processProperties=p=:Just {ProcessProperties|managerProperties=m=:{worker},taskProperties=t=:{taskDescription}}} =
 		{ ProcessOverviewView
 		| index			= Hidden index
 		, subject		= Display taskDescription.TaskDescription.title
@@ -179,7 +179,7 @@ where
 	where
 		fromView` ({ProcessOverviewView|index=i=:Hidden index,assignedTo})
 			= case filter (\info -> info.ParallelTaskInfo.index == index) infos of
-				[{processProperties=p=:Just {managerProperties}}] = (index,{managerProperties & worker = assignedTo})
+				[{processProperties=p=:Just {ProcessProperties|managerProperties}}] = (index,{managerProperties & worker = assignedTo})
 				_ = abort "old parallel: no manager properties"
 			
 :: ProcessOverviewView =	{ index			:: !Hidden TaskIndex

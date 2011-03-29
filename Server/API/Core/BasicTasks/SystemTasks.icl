@@ -33,7 +33,7 @@ where
 getContextWorker :: Task User
 getContextWorker = mkInstantTask ("Get context worker", "Determine the worker assigned to the current task.") getContextWorker`
 where
-	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.managerProperties.worker,tst)
+	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.ProcessProperties.managerProperties.worker,tst)
 
 getDefaultValue :: Task a | iTask a
 getDefaultValue = mkInstantTask ("Create default value", "Create a default data value.") getDefaultValue`
@@ -55,7 +55,7 @@ sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send o
 where
 	sendEmail` tst=:{TSt|properties}
 		//Find out the user details of the sending user
-		# (mbUser,tst)	= getUserDetails properties.managerProperties.worker tst
+		# (mbUser,tst)	= getUserDetails properties.ProcessProperties.managerProperties.worker tst
 		= case mbUser of
 			Just user
 				# (server,tst)	= getConfigSetting (\config -> config.smtpServer) tst

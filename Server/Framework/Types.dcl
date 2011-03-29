@@ -196,7 +196,7 @@ instance toString HtmlDisplay
 	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
 	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	
 	, deleteWhenDone	:: !Bool					// Delete the process after completion
-	, containerType		:: !TaskContainerType		// The maintask's container type
+	, menu				:: !ActionMenu				// The maintask's menu
 	}
 	
 :: TaskId :== String		// String serialization of TaskNr values
@@ -244,9 +244,6 @@ instance toString HtmlDisplay
 						| CTDialog !WindowTitle						// task shwon as dialogue (without own menu)
 						| CTInBody									// task shown in the body of the parallel container
 						| CTHidden									// task not shown to the user
-						
-managerProperties	:: !TaskContainerType -> ManagerProperties
-taskUser			:: !TaskContainerType -> User
 						
 :: ActionMenu :== [ActionName] -> MenuDefinition
 

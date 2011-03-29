@@ -23,7 +23,7 @@ changePriority priority =
 	dynamic change :: A.a: Change a | iTask a
 where
 	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Just {props & managerProperties = {props.managerProperties & priority = priority}},Nothing, Just (changePriority priority))
+	change props t t0 = (Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & priority = priority}},Nothing, Just (changePriority priority))
 
 //Add a big red warning message prompt to the running task
 addWarning :: String -> ChangeDyn
@@ -42,9 +42,9 @@ duplicate me user topics =
 where
 	change :: User User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change me user topics props t t0 
-		= 	( Just {props & managerProperties = {props.managerProperties & worker = me}}
+		= 	( Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = me}}
 			, Just (me @:
-							(anyProc 	[ (Title topics @>> t,{ManagerProperties|initManagerProperties & worker = props.managerProperties.ManagerProperties.worker},noMenu) 
+							(anyProc 	[ (Title topics @>> t,{ManagerProperties|initManagerProperties & worker = props.ProcessProperties.managerProperties.ManagerProperties.worker},noMenu) 
 										, (Title topics @>> t,{ManagerProperties|initManagerProperties & worker = user},noMenu)
 										]
 							)
@@ -57,7 +57,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True (DetachedTask {ManagerProperties|initManagerProperties & worker = user} noMenu (showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res)) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True {ManagerProperties|initManagerProperties & worker = user} noMenu (showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn
@@ -85,7 +85,7 @@ reassign user procName pid  =
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 
-		= (Just {props & managerProperties = {props.managerProperties & worker = user}},Nothing, Nothing)
+		= (Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = user}},Nothing, Nothing)
 
 //restart starts the task from scratch and assigns it to the indicated user
 restart :: User String -> Dynamic
@@ -166,8 +166,8 @@ chooseProcess question
 	>>= \procs ->					enterChoiceA question id buttons
 										[	( proc.Process.taskId
 											, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title
-											, proc.Process.properties.managerProperties.ManagerProperties.priority
-											, proc.Process.properties.managerProperties.ManagerProperties.worker)
+											, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.priority
+											, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
 											\\ proc <- procs | proc.Process.taskId <> mypid]
 	>>= \res ->						case res of
 										(ActionOk,Just (pid,_,_,_))	-> return pid

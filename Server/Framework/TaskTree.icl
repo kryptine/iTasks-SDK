@@ -3,50 +3,25 @@ implementation module TaskTree
 import StdTuple, StdList, Util, Maybe, Either, HTML, Time, Types, StdFunc, GenMap, GenMapSt, TUIDefinition
 from JSON 			import :: JSONNode
 
-derive gMap		TaskTreeContainer, TaskTree, TaskInfo, Maybe
-derive gMapLSt	TaskTreeContainer, TaskTree, TaskInfo, Maybe
+derive gMap		TaskTreeContainer, ParallelTaskTreeContainer, TaskTree, TaskInfo, Maybe
+derive gMapLSt	TaskTreeContainer, ParallelTaskTreeContainer, TaskTree, TaskInfo, Maybe
 derive bimap (,)
 
 toSpineTreeContainer	:: !NonNormalizedTreeContainer			-> SpineTreeContainer
-toSpineTreeContainer tree		= gMap{|*->*->*->*|} (const Void) (const Void) (const Void) tree
+toSpineTreeContainer tree		= gMap{|*->*->*->*->*|} (const Void) (const Void) (const Void) (const Void) tree
 
 toJSONTreeContainer		:: !NonNormalizedTreeContainer !*IWorld	-> (!JSONTreeContainer,!*IWorld)
-toJSONTreeContainer tree iworld	= gMapLSt{|*->*->*->*|} (\_ w -> (Void,w)) (app o snd) (\(_,j) w -> (j,w)) tree iworld
+toJSONTreeContainer tree iworld	= gMapLSt{|*->*->*->*->*|} (\_ w -> (Void,w)) (\_ w -> (Void,w)) (app o snd) (\(_,j) w -> (j,w)) tree iworld
 
 toUITreeContainer		:: !NonNormalizedTreeContainer !*IWorld	-> (!UITreeContainer,!*IWorld)
-toUITreeContainer container iworld
-	# ((Just uiContainer,remainingActions),iworld) = toUITreeContainer` True container iworld
+toUITreeContainer (TTContainer menuF tree controlTask) iworld
+	# (uiTree,remainingActions,iworld)	= toUITree tree iworld
+	// generate top menu
+	# (menu,remainingActions)			= mkMenu menuF remainingActions
 	// generate buttons for remaining actions
-	# uiContainer = mkButtons remainingActions uiContainer
-	= (uiContainer,iworld)
+	# uiTree = mkButtons remainingActions uiTree
+	= (TTContainer menu uiTree controlTask,iworld)
 where	
-	toUITreeContainer` :: !Bool !NonNormalizedTreeContainer !*IWorld -> (!(!Maybe UITreeContainer,!SubtaskActions),!*IWorld)
-	toUITreeContainer` top (TTContainer idx type tree controlTask) iworld
-		= case type of
-		CTDetached _ _ | not top // filter out detached task if it's not the top one, because it's not shown in a parallel panel
-			= ((Nothing,[]),iworld)
-		_
-			// convert tree into UI tree & collect actions which are possibly used in container's menu
-			# (uiTree,actions,iworld) = toUITree tree iworld
-			// possibly build menu & put in TTContainerType
-			# (mbTTContainerType,remainingActions) = case type of
-				CTDetached _ menuF
-					# (tuiMenu,remainingActions) = mkMenu menuF actions
-					= (Just (TTDetached tuiMenu),remainingActions)
-				CTWindow title menuF
-					# (tuiMenu,remainingActions) = mkMenu menuF actions
-					= (Just (TTWindow title tuiMenu),remainingActions)
-				CTDialog title
-					= (Just (TTDialog title),actions)
-				CTInBody
-					= (Just TTInBody,actions)
-				CTHidden
-					| top // filter out hidden task if it's not the top one
-						= (Just TTHidden,actions)
-					| otherwise // but pass actions upwards in any case
-						= (Nothing,actions)
-			= ((fmap (\type -> TTContainer idx type uiTree controlTask) mbTTContainerType,remainingActions),iworld)
-
 	toUITree :: !NonNormalizedTree !*IWorld -> (!UITree,!SubtaskActions,!*IWorld)
 	toUITree tree iworld = case tree of
 		TTFinishedTask ti (result,_) show
@@ -57,9 +32,30 @@ where
 				Definition def _	= (TTInteractiveTask ti interactiveType (Definition def []),addTaskIds ti.TaskInfo.taskId actions,iworld)
 				Updates upd _		= (TTInteractiveTask ti interactiveType (Updates upd []),addTaskIds ti.TaskInfo.taskId actions,iworld)
 		TTParallelTask ti containers
-			# (mbSubContainersAndActions,iworld)	= mapSt (toUITreeContainer` False) containers iworld
+			# (mbSubContainersAndActions,iworld)	= mapSt toUIParallelTreeContainer containers iworld
 			# (mbSubContainers,actions)				= unzip mbSubContainersAndActions
 			= (TTParallelTask ti (catMaybes mbSubContainers),flatten actions,iworld)
+			
+	toUIParallelTreeContainer :: !NonNormalizedParallelTreeContainer !*IWorld -> (!(!Maybe UIParallelTreeContainer,!SubtaskActions),!*IWorld)
+	toUIParallelTreeContainer (TTParallelContainer idx type tree controlTask) iworld
+		= case type of
+			CTDetached _ _ // filter out detached tasks, because they're not shown in a parallel panel
+				= ((Nothing,[]),iworld)
+			CTHidden // filter out hidden tasks
+				= ((Nothing,[]),iworld)
+			_
+				// convert tree into UI tree & collect actions which are possibly used in container's menu
+				# (uiTree,actions,iworld) = toUITree tree iworld
+				// possibly build menu & put in TTContainerType
+				# (mbTTContainerType,remainingActions) = case type of
+					CTWindow title menuF
+						# (tuiMenu,remainingActions) = mkMenu menuF actions
+						= (Just (TTWindow title tuiMenu),remainingActions)
+					CTDialog title
+						= (Just (TTDialog title),actions)
+					CTInBody
+						= (Just TTInBody,actions)
+				= ((fmap (\type -> TTParallelContainer idx type uiTree controlTask) mbTTContainerType,remainingActions),iworld)
 	
 	mkMenu :: !ActionMenu !SubtaskActions -> (![TUIDef],!SubtaskActions)
 	mkMenu menuF actions = mkMenu` (menuF (map (actionName o snd3) actions)) actions
@@ -124,23 +120,22 @@ where
 				label	= label +++ " " +++ appLabel
 		mkLabel Nothing appLabel = if (appLabel == "") "-" appLabel
 				
-	mkButtons :: !SubtaskActions !UITreeContainer -> UITreeContainer
-	mkButtons actions (TTContainer type idx tree controlTask) = TTContainer type idx (mkButtons` tree) controlTask
+	mkButtons :: !SubtaskActions !UITree -> UITree
+	mkButtons actions tree = case tree of
+		TTInteractiveTask ti interactiveType output
+			# buttons = mkButtons` ti.TaskInfo.taskId
+			= case output of
+				Definition def _	= TTInteractiveTask ti interactiveType (Definition def buttons)
+				Updates upd _		= TTInteractiveTask ti interactiveType (Updates upd buttons)
+		TTParallelTask ti subContainers
+			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
+		other
+			= other
 	where
-		mkButtons` :: !UITree -> UITree
-		mkButtons` tree = case tree of
-			TTInteractiveTask ti interactiveType output
-				# buttons = mkButtons`` ti.TaskInfo.taskId
-				= case output of
-					Definition def _	= TTInteractiveTask ti interactiveType (Definition def buttons)
-					Updates upd _		= TTInteractiveTask ti interactiveType (Updates upd buttons)
-			TTParallelTask ti subContainers
-				= TTParallelTask ti (map (mkButtons actions) subContainers)
-			other
-				= other
-				
-		mkButtons`` :: !TaskId -> [TUIDef]
-		mkButtons`` taskId
+		mkButtonsPar actions (TTParallelContainer type idx tree controlTask) = TTParallelContainer type idx (mkButtons actions tree) controlTask
+	
+		mkButtons` :: !TaskId -> [TUIDef]
+		mkButtons` taskId
 			# buttonActions = filter (\(actionTaskId,_,_) -> actionTaskId == taskId) actions
 			= map mkButton buttonActions
 			

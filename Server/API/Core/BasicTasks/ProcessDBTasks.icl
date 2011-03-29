@@ -48,7 +48,7 @@ getProcessOwner pid = mkInstantTask ("Get process owner", "Determine the user wo
 where
 	getProcessStatus` tst 
 	# (process,tst)	= 'ProcessDB'.getProcess pid tst
-	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.managerProperties.worker)
+	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.ProcessProperties.managerProperties.worker)
 	= (TaskFinished owner,tst)
 	
 setProcessOwner :: !User !ProcessId -> Task Void
@@ -64,7 +64,7 @@ where
 	getProcessStatus` tst
 		# (mbProcess,tst)	= 'ProcessDB'.getProcess pid tst
 		= case mbProcess of
-			Just proc	= (TaskFinished (proc.Process.properties.systemProperties.SystemProperties.status,proc.Process.properties.managerProperties.ManagerProperties.status), tst)
+			Just proc	= (TaskFinished (proc.Process.properties.systemProperties.SystemProperties.status,proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status), tst)
 			Nothing		= (TaskFinished (Deleted,Active), tst)
 			
 
@@ -72,7 +72,7 @@ updateManagerProperties :: !ProcessId !(ManagerProperties -> ManagerProperties) 
 updateManagerProperties pid updateF = mkInstantTask ("Update manager properties","Update the manager properties of a process.") updateManagerProperties`
 where
 	updateManagerProperties` tst
-		# (_,tst) = 'ProcessDB'.updateProcessProperties pid (\p -> {p & managerProperties = updateF p.managerProperties}) tst
+		# (_,tst) = 'ProcessDB'.updateProcessProperties pid (\p -> {ProcessProperties|p & managerProperties = updateF p.ProcessProperties.managerProperties}) tst
 		= (TaskFinished Void,tst)
 		
 deleteProcess :: !ProcessId -> Task Void

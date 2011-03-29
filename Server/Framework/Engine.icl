@@ -81,31 +81,28 @@ restrictedWorkflow path description roles task = workflowTask path description r
 	
 instance workflowTask (Task a) | iTask a
 where
-	workflowTask path description roles task = workflowTask path description roles (DetachedTask initManagerProperties noMenu task)
+	workflowTask path description roles task = workflowTask path description roles (Workflow initManagerProperties noMenu task)
 	
-instance workflowTask (TaskContainer a) | iTask a
+instance workflowTask (WorkflowContainer a) | iTask a
 where
-	workflowTask path description roles container = mkWorkflow path description roles (createThread (task <<@ Title (path2name path))) type
-	where
-		(task,type) = fromContainerToTask container
+	workflowTask path description roles (Workflow managerP menu task) = mkWorkflow path description roles (createThread (task <<@ Title (path2name path))) managerP menu
 
 instance workflowTask (a -> Task b) | iTask a & iTask b
 where
-	workflowTask path description roles paramTask = workflowTask path description roles (DetachedPTask initManagerProperties noMenu paramTask)
+	workflowTask path description roles paramTask = workflowTask path description roles (ParamWorkflow initManagerProperties noMenu paramTask)
 	
-instance workflowTask (ParamTaskContainer a b) | iTask a & iTask b
+instance workflowTask (ParamWorkflowContainer a b) | iTask a & iTask b
 where
-	workflowTask path description roles container = mkWorkflow path description roles (createThreadParam (path2name path) paramTask) type
-	where
-		(paramTask,type) = fromContainerToTaskParam container
+	workflowTask path description roles (ParamWorkflow managerP menu paramTask) = mkWorkflow path description roles (createThreadParam (path2name path) paramTask) managerP menu
 	
-mkWorkflow path description roles thread containerType =
+mkWorkflow path description roles thread managerProps menu =
 	{ Workflow
 	| path	= path
 	, roles	= roles
 	, thread = thread
 	, description = description
-	, containerType = containerType
+	, managerProperties = managerProps
+	, menu = menu
 	}
 
 path2name path = last (split "/" path)

@@ -44,11 +44,12 @@ from HTTP		import :: HTTPRequest
 					}
 
 // A workflow specification
-:: Workflow		=	{ path			:: !String											// a unique name of this workflow
-					, roles			:: ![String]										// the roles that are allowed to initate this workflow
-					, thread		:: !Dynamic											// the thread of the main task of the workflow
-					, description	:: !String											// a description of the workflow
-					, containerType	:: !TaskContainerType								// the container type of the main task
+:: Workflow		=	{ path				:: !String										// a unique name of this workflow
+					, roles				:: ![String]									// the roles that are allowed to initate this workflow
+					, thread			:: !Dynamic										// the thread of the main task of the workflow
+					, description		:: !String										// a description of the workflow
+					, managerProperties	:: !ManagerProperties							// the initial manager properties of the main task
+					, menu				:: !ActionMenu									// the menu of the main task
 					}
 					
 /**
@@ -103,6 +104,8 @@ toNonParamThreadEnter	:: !Dynamic			-> Dynamic
 * @param Start as toplevel, or as subtask of another task (parent information is read from the task state)
 * @param Whether this process is part of a parallel
 * @param Delete the result and process record of the instance after completion
+* @param The initial manager properties
+* @param The main task's menu
 * @param The task state
 *
 * @return The process id of the new instance
@@ -110,7 +113,7 @@ toNonParamThreadEnter	:: !Dynamic			-> Dynamic
 * @return The task tree created at the first run
 * @return The modified task state
 */
-createTaskInstance :: !Dynamic !Bool !Bool !TaskContainerType !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+createTaskInstance :: !Dynamic !Bool !Bool !ManagerProperties !ActionMenu !*TSt -> (!ProcessId, !TaskResult Dynamic, !NonNormalizedTree, !*TSt)
 
 /**
 * Removes a running task instance from the list of processes and clears any associated data in the store

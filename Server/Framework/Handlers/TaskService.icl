@@ -3,7 +3,7 @@ implementation module TaskService
 import StdList, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel
 
 //Additional derives for debugging
-derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, InteractiveTask, Menu, TTContainerType, TaskTreeContainer
+derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, InteractiveTask, Menu, TTContainerType, TaskTreeContainer, ParallelTaskTreeContainer
 
 JSONEncode{|MenuItem|} v = case v of
 	MenuItem action mbHotkey	= [JSONArray [JSONString "MenuItem" : JSONEncode{|*|} (menuAction action) ++ JSONEncode{|*|} mbHotkey]]
@@ -54,7 +54,7 @@ taskService url html path req tst
 						Nothing
 							= (JSONObject [("success",JSONBool False),("error",JSONString "Invalid parameter")], tst)
 						Just thread
-							# (taskId,_,_,tst) = createTaskInstance thread True True workflow.Workflow.containerType tst
+							# (taskId,_,_,tst) = createTaskInstance thread True True workflow.Workflow.managerProperties workflow.Workflow.menu tst
 							= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
 			= (serviceResponse html "Create task" createDescription url createParams json, tst)
 		//Show task details of an individual task
@@ -195,7 +195,7 @@ where
 		
 	updateManagerProperty :: !String !String !Process !*TSt -> (JSONNode,*TSt)
 	updateManagerProperty param update proc tst
-		# manProps 		= proc.Process.properties.managerProperties
+		# manProps 		= proc.Process.properties.ProcessProperties.managerProperties
 		# (ok,newProps) = case param of
 			"worker" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
@@ -209,7 +209,7 @@ where
 			_ = (False,manProps)
 		= case ok of
 			True
-				# (ok,tst) = updateProcessProperties proc.Process.taskId (\p -> {p & managerProperties = newProps}) tst
+				# (ok,tst) = updateProcessProperties proc.Process.taskId (\p -> {ProcessProperties|p & managerProperties = newProps}) tst
 				| ok	= (getManagerProperty param newProps, tst)
 						= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
 			False 
@@ -219,12 +219,16 @@ where
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
 
 	taskParts :: !JSONTreeContainer -> [JSONNode]
-	taskParts (TTContainer _ _ tree _) = taskParts` tree
+	taskParts (TTContainer _ tree _) = taskParts` tree
 	
-	taskParts` (TTParallelTask _ trees) = flatten (map taskParts trees)	
+	taskParts` :: !JSONTree -> [JSONNode]
+	taskParts` (TTParallelTask _ trees) = flatten (map taskParts`` trees)	
 	taskParts` (TTInteractiveTask ti _ json)
 		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",json)]]
 	taskParts` _ = []
+	
+	taskParts`` :: !JSONParallelTreeContainer -> [JSONNode]
+	taskParts`` (TTParallelContainer _ _ tree _) = taskParts` tree
 	
 	getTimestamp :: !*TSt -> (!Timestamp,!*TSt)
 	getTimestamp tst=:{TSt|iworld=iworld=:{IWorld|timestamp}} = (timestamp,tst)

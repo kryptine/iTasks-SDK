@@ -14,14 +14,7 @@ JSONEncode{|TaskPanel|} (TTCResultContainer x)		= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCParallelContainer x)	= JSONEncode{|*|} x
 
 buildTaskPanel :: !UITreeContainer -> TaskPanel
-buildTaskPanel cont=:(TTContainer _ type tree controlTask)
-	# menu = case type of
-		TTDetached menu	= menu
-		TTWindow _ menu	= menu
-		TTDialog _		= []
-		TTInBody		= []
-		TTHidden		= []
-	= buildTaskPanel` tree menu controlTask
+buildTaskPanel cont=:(TTContainer menu tree controlTask) = buildTaskPanel` tree menu controlTask
 where
 	buildTaskPanel` :: !UITree ![TUIDef] !Bool -> TaskPanel
 	buildTaskPanel` tree menu controlTask
@@ -65,22 +58,19 @@ where
 					, taskId		= ti.TaskInfo.taskId
 					, subject		= ti.TaskInfo.subject
 					, description	= ti.TaskInfo.description
-					, content		= catMaybes (map buildParallelElement (sortBy (\(TTContainer idx0 _ _ _) (TTContainer idx1 _ _ _) -> idx0 < idx1) containers))
+					, content		= map buildParallelElement (sortBy (\(TTParallelContainer idx0 _ _ _) (TTParallelContainer idx1 _ _ _) -> idx0 < idx1) containers)
 					, menu			= menu
 					}
 	where
-		// don't build UI for detached & hidden tasks
-		buildParallelElement :: !UITreeContainer -> Maybe TaskPanel
-		buildParallelElement (TTContainer _ type tree controlTask) = case type of
-			TTDetached _	= Nothing
-			TTWindow _ menu	= Just (buildTaskPanel` tree menu controlTask)
-			TTDialog _		= Just (buildTaskPanel` tree [] controlTask)
-			TTInBody		= Just (buildTaskPanel` tree [] controlTask)
-			TTHidden		= Nothing
+		buildParallelElement :: !UIParallelTreeContainer -> TaskPanel
+		buildParallelElement (TTParallelContainer _ type tree controlTask) = case type of
+			TTWindow _ menu	= buildTaskPanel` tree menu controlTask
+			TTDialog _		= buildTaskPanel` tree [] controlTask
+			TTInBody		= buildTaskPanel` tree [] controlTask
 									
 buildResultPanel :: !UITreeContainer -> TaskPanel
 buildResultPanel tree = case tree of 
-	TTContainer _ _ (TTFinishedTask ti result _) _
+	TTContainer _ (TTFinishedTask ti result _) _
 		= (TTCResultContainer {TTCResultContainer
 								| xtype 	= "itasks.ttc.result"
 								, id 		= "taskform-" +++ ti.TaskInfo.taskId

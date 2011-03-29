@@ -37,9 +37,9 @@ actions ((name,flow), mode)
 validFlow name flowDyn = name <> "" && (validTaskFun flowDyn || validTask flowDyn)
 
 
-handleMenu :: TaskContainer Void
+handleMenu :: WorkflowContainer Void
 handleMenu 
-	=	DetachedTask initManagerProperties (staticMenu initMenu) (doMenu emptyState)
+	= Workflow initManagerProperties (staticMenu initMenu) (doMenu emptyState)
 
 doMenu state=:((name,flow), mode)
 		=	case mode of

@@ -63,8 +63,8 @@ where
 mergeTestList :: Task Void
 mergeTestList =	
 				return (sharedStoreDefault "mergeTestLists")
-	>>= \sid.	spawnProcess True (DetachedTask initManagerProperties noMenu (Title "1st View" @>> view sid))
-	>>|			spawnProcess True (DetachedTask initManagerProperties noMenu (Title "2nd View" @>> view sid))
+	>>= \sid.	spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view sid)
+	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
 	>>|			stop
 where
 	view :: (SymmetricShared [String]) -> Task (Action,Maybe [String])
@@ -73,9 +73,9 @@ where
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
 				return store
-	>>= \sid.	spawnProcess True (DetachedTask initManagerProperties noMenu (Title "1st View" @>> view sid))
-	>>|			spawnProcess True (DetachedTask initManagerProperties noMenu (Title "2nd View" @>> view sid))
-	>>|			spawnProcess True (DetachedTask initManagerProperties noMenu (Title "3rd View" @>> showMessageSharedA "Documents" id [quitButton] sid))
+	>>= \sid.	spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view sid)
+	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
+	>>|			spawnProcess True initManagerProperties noMenu (Title "3rd View" @>> showMessageSharedA "Documents" id [quitButton] sid)
 	>>|			stop
 where
 	view sid = updateSharedInformationA ("List","Merging the documents") idView [quitButton] sid

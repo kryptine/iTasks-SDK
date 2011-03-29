@@ -171,16 +171,16 @@ where
 			= tst
 		where
 			filterF getF task tst = case getF task of
-				(idx,task,ctype=:CTDetached _ _,_)	= thd3 (createOrEvaluateTaskInstance task ctype {tst & taskNr = [idx:taskNr]})
-				_									= tst
+				(idx,task,ctype=:CTDetached managerP menu,_)	= thd3 (createOrEvaluateTaskInstance task managerP menu {tst & taskNr = [idx:taskNr]})
+				_												= tst
 	
 		processAllTasksC [] pst tst = (TaskBusy,pst,tst)
 		
 		processAllTasksC [t=:(idx,task,ctype,accuFun):ts] pst tst
 			# tst = {tst & taskNr = [idx:taskNr]} // Task is evaluated with a shifted task number
 			# (result,tst) = case ctype of
-				CTDetached _ _
-					# (result,tree,tst)	= createOrEvaluateTaskInstance task ctype tst
+				CTDetached mProps menu
+					# (result,tree,tst)	= createOrEvaluateTaskInstance task mProps menu tst
 					= (result,tst)
 				_
 					= applyTaskCommit task (Just (idx,ctype)) tst
@@ -222,7 +222,7 @@ where
 					# ts		= filter (\(idx,_,_,_) -> not (isMember idx remIdxs)) ts
 					# pst		= {pst & tasks = filter (\(idx,_) -> not (isMember idx remIdxs)) pst.tasks, cTasks = filter (\(idx,_) -> not (isMember idx remIdxs)) pst.cTasks}
 					# tst		= removeFromTree remIdxs tst
-					# tst		= addToTree [TTContainer idx CTInBody (TTFinishedTask (abort "undef task info") (Text "killed",JSONString "killed") False) False \\idx <- remIdxs] tst
+					# tst		= addToTree [TTParallelContainer idx CTInBody (TTFinishedTask (abort "undef task info") (Text "killed",JSONString "killed") False) False \\idx <- remIdxs] tst
 					# tst		= seqSt (\taskId tst -> snd ('ProcessDB'.deleteProcess taskId tst)) (map (\idx -> taskNrToString [idx:taskNr]) remIdxs) tst
 					= processControls cs ts pst tst
 				ResetTasks rIdxs
@@ -257,7 +257,7 @@ where
 				_ = abort "parallel node expected"
 				
 			removeFromTree remIdxs tst=:{tree} = case tree of
-				TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTContainer idx _ _ _) -> not (isMember idx remIdxs)) children))}
+				TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _ _) -> not (isMember idx remIdxs)) children))}
 				_ = abort "parallel node expected"
 	
 	//Load or create the internal state
@@ -328,20 +328,20 @@ where
 			= (info,iworld)
 				
 		updateProcProps (idx,mprops) iworld
-			# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {pprops & managerProperties = mprops}) iworld
+			# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {ProcessProperties|pprops & managerProperties = mprops}) iworld
 			= iworld
 			
 	cTaskAccuFun = abort "no accu fun for control tasks"
 
-createOrEvaluateTaskInstance :: !(Task a) !TaskContainerType !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
-createOrEvaluateTaskInstance task containerType tst=:{TSt|taskNr,events}
+createOrEvaluateTaskInstance :: !(Task a) !ManagerProperties !ActionMenu !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
+createOrEvaluateTaskInstance task managerProperties menu tst=:{TSt|taskNr,events}
 	//Try to load the stored process for this subtask
 	# taskId		 = taskNrToString taskNr
 	# (mbProc,tst)	 = 'ProcessDB'.getProcess taskId tst
 	= case mbProc of
 		//Nothing found, create a task instance
 		Nothing	
-			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False False containerType tst
+			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False False managerProperties menu tst
 			= case result of
 				TaskBusy				= (TaskBusy, tree, tst)
 				TaskFinished (a :: a^)	= (TaskFinished a, tree, tst)
@@ -349,7 +349,7 @@ createOrEvaluateTaskInstance task containerType tst=:{TSt|taskNr,events}
 				TaskException e str		= (TaskException e str, tree, tst)
 		//When found, evaluate
 		Just proc
-			# user				= proc.Process.properties.managerProperties.worker
+			# user				= proc.Process.properties.ProcessProperties.managerProperties.worker
 			// -> TSt in subprocess
 			# (result,tree,tst)	= evaluateTaskInstance proc events Nothing False False tst
 			// <- TSt back to current process				
@@ -364,14 +364,12 @@ createOrEvaluateTaskInstance task containerType tst=:{TSt|taskNr,events}
 	where
 		invalidType = "createOrEvaluateTaskIntance: task result of invalid type!"
 
-spawnProcess :: !Bool !(TaskContainer a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
-spawnProcess gcWhenDone container = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
+spawnProcess :: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
+spawnProcess gcWhenDone managerProperties menu task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
 where
 	spawnProcess` tst
-		# (pid,_,_,tst)	= createTaskInstance (createThread task) True gcWhenDone containerType tst
+		# (pid,_,_,tst)	= createTaskInstance (createThread task) True gcWhenDone managerProperties menu tst
 		= (TaskFinished (pid,sharedProc pid,sharedRes pid), tst)
-		
-	(task,containerType) = fromContainerToTask container
 	
 	sharedProc pid = makeReadOnlyShared ('ProcessDB'.getProcess pid)
 			

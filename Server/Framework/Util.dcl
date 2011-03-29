@@ -48,5 +48,5 @@ splitWith		:: !(a -> Bool) ![a] -> (![a],![a])
 sortByIndex		:: ![(!Int,!a)] -> [a]
 
 //Utility functions for custom JSON encoding / decoding
-encodeFunc :: a -> [JSONNode]
-decodeFunc :: JSONNode -> Maybe a
+encodeFunc :: !a -> [JSONNode]
+decodeFunc :: !JSONNode -> Maybe a

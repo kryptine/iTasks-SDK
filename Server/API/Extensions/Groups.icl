@@ -106,7 +106,7 @@ inviteUserToGroup :: !Group !User -> Task Group
 inviteUserToGroup group user
 	=	getContextWorker
 	>>= \fromUser ->
-		spawnProcess True (DetachedTask initManagerProperties noMenu (
+		spawnProcess True initManagerProperties noMenu (
 			user @: (invite fromUser group)
 		>>= \accept ->
 			if accept
@@ -114,7 +114,7 @@ inviteUserToGroup group user
 				 >>= showMessage ("Invitation accepted",toString user +++ " accepted your invitation to join the group " +++ toString group)
 				)
 				(showMessage ("Invitation declined",toString user +++ " declined your invitation to join the group " +++ toString group) group)
-		))
+		)
 	>>| showMessage ("Invitation sent","An invitation to join the group has been sent to " +++ toString user) group
 where
 	invite user group

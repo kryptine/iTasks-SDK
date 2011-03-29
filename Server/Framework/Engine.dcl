@@ -50,10 +50,13 @@ restrictedWorkflow :: !String !String ![Role] !w -> Workflow | workflowTask w
 
 class workflowTask w :: !String !String ![Role] !w -> Workflow
 
-instance workflowTask (Task a)					| iTask a
-instance workflowTask (TaskContainer a)			| iTask a
-instance workflowTask (a -> Task b)				| iTask a & iTask b	
-instance workflowTask (ParamTaskContainer a b)	| iTask a & iTask b
+instance workflowTask (Task a)						| iTask a
+instance workflowTask (WorkflowContainer a)			| iTask a
+instance workflowTask (a -> Task b)					| iTask a & iTask b
+instance workflowTask (ParamWorkflowContainer a b)	| iTask a & iTask b
+
+:: WorkflowContainer a			= Workflow		!ManagerProperties !ActionMenu !(Task a)
+:: ParamWorkflowContainer a b	= ParamWorkflow	!ManagerProperties !ActionMenu !(a -> Task b)
 
 /**
 * Determines the server executables path

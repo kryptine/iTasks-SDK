@@ -129,11 +129,13 @@ parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer taskRe
 * Create a new process.
 *
 * @param Automatically garbage collect the process when it is finished (removing all references to the state of the process).
+* @param The initial manager properties
+* @param The task's menu
 * @param The task that is to be started in the new process.
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !Bool !(TaskContainer a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
+spawnProcess	:: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
 
 :: SharedProc			:== ReadOnlyShared (Maybe Process)
 // the first maybe indicates if the process finished, the second if result is deleted

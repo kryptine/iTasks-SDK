@@ -27,9 +27,9 @@ actions
 		, (ActionQuit,	always)
 		]
 
-handleMenu :: TaskContainer Void
+handleMenu :: WorkflowContainer Void
 handleMenu 
-	=	DetachedTask initManagerProperties (staticMenu initMenu) (doMenu "Select store to view..." Void)
+	= Workflow initManagerProperties (staticMenu initMenu) (doMenu "Select store to view..." Void)
 where
 	doMenu :: String a -> Task Void | iTask a
 	doMenu title val

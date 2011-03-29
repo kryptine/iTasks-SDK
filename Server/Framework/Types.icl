@@ -595,14 +595,6 @@ initManagerProperties =
 	, deadline	= Nothing
 	, status	= Active
 	}
-	
-managerProperties :: !TaskContainerType -> ManagerProperties
-managerProperties (CTDetached mp _)	= mp
-managerProperties _					= initManagerProperties
-
-taskUser :: !TaskContainerType -> User
-taskUser (CTDetached mp _)	= mp.worker
-taskUser _					= AnyUser
 
 noMenu :: ActionMenu
 noMenu = const []
