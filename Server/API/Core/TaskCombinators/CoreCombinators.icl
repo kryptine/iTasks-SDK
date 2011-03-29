@@ -279,7 +279,7 @@ where
 					
 	storePSt taskNr pst tst
 		# tst = appIWorldTSt (updateTimestamp taskNr) tst
-		= appIWorldTSt (setTaskStoreFor taskNr "pst" pst) tst
+		= appIWorldTSt (storeValueAs SFDynamic (iTaskId taskNr "pst") pst) tst
 			
 	updateTimestamp taskNr iworld=:{IWorld|timestamp} = setTaskStoreFor taskNr "lastUpdate" timestamp iworld
 	

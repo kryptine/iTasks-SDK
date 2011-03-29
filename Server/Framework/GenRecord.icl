@@ -1,6 +1,6 @@
 implementation module GenRecord
 
-import StdTuple, StdList, StdFunc, StdMisc, GenDefault, Util, dynamic_string, Task
+import StdTuple, StdList, StdFunc, GenDefault, Error, Util, Shared, dynamic_string
 
 copyRecord :: !a !b -> b | GenRecord a & GenRecord b
 copyRecord src dst
@@ -34,7 +34,6 @@ gGetRecordFields{|String|}	_ _ fields = fields
 gGetRecordFields{|(->)|} _ _ _ _ fields = fields
 gGetRecordFields{|Dynamic|} _ _ fields = fields
 gGetRecordFields{|Shared|} _ _ _ _ fields = fields
-gGetRecordFields{|Task|} _ _ _ fields = fields
 
 derive gGetRecordFields [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGetRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode
@@ -70,7 +69,6 @@ gPutRecordFields{|String|}	c _ fields = (c,fields)
 gPutRecordFields{|(->)|} _ _ f _ fields = (f,fields)
 gPutRecordFields{|Dynamic|} dyn _ fields = (dyn,fields)
 gPutRecordFields{|Shared|} _ _ sha _ fields = (sha,fields)
-gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 
 derive gPutRecordFields [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gPutRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode
@@ -111,8 +109,11 @@ gDefault{|Char|} = '\0'
 gDefault{|Bool|} = False
 gDefault{|(->)|} _ fy = const fy
 gDefault{|Dynamic|} = dynamic 42
-gDefault{|Shared|} _ _ = abort "default shared"
-gDefault{|Task|} _ = abort "default task"
+gDefault{|Shared|} fx _ = Shared read write getTimestamp
+where
+	read iworld								= (Ok fx,iworld)
+	write _ iworld							= (Ok Void,iworld)
+	getTimestamp iworld=:{IWorld|timestamp}	= (Ok timestamp,iworld)
 
 derive gDefault Maybe, Either, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gDefault Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode

@@ -21,18 +21,15 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 		this.addEvents('tuichange');
 		this.enableBubble('tuichange');
 	},
-	onRender: function(ct, position) {
-		itasks.tui.CurrencyControl.superclass.onRender.call(this,ct,position);
-		//Overlay currency symbol on top of input
-		var cl = ct.createChild({tag: 'span', style: 'position: absolute;', cn: this.currencyLabel});
-		cl.setLocation(this.getEl().getLeft() + 5, this.getEl().getTop() + 5);
-	},
 	onChange: function() {
 		this.fireEvent('tuichange',this.name,this.getValue());
 	},
-	afterRender: function(){
+	afterRender: function(ct){
 		itasks.tui.CurrencyControl.superclass.afterRender.call(this,arguments);
-	
+		
+		var cl = ct.createChild({tag: 'span', cn: this.currencyLabel});
+		cl.alignTo(this.getEl(),'tl',[5,5]);
+		
 		if(this.errorMsg)
 			this.markInvalid(this.errorMsg);
 		else if(this.hintMsg)

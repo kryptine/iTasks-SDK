@@ -5,7 +5,7 @@ definition module GenRecord
 * All fields with the same name & type can be copied automatically, only different fields have to be mapped manually.
 */
 
-import GenDefault, Types, Task
+import GenDefault, Types
 
 /**
 * Copies all fields with same name & type from one record to another.
@@ -39,16 +39,16 @@ derive gGetRecordFields UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gGetRecordFields Int, Real, Char, Bool, String
 derive gGetRecordFields Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGetRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Shared, Map, Tree, TreeNode
-derive gGetRecordFields EmailAddress, Action, Table, HtmlDisplay, Task
+derive gGetRecordFields EmailAddress, Action, Table, HtmlDisplay
 
 derive gPutRecordFields UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gPutRecordFields Int, Real, Char, Bool, String
 derive gPutRecordFields Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gPutRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Shared, Map, Tree, TreeNode
-derive gPutRecordFields EmailAddress, Action, Table, HtmlDisplay, Task
+derive gPutRecordFields EmailAddress, Action, Table, HtmlDisplay
 
 derive gDefault UNIT
 derive gDefault Char, Bool
 derive gDefault Dynamic, Maybe, Either, (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gDefault Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Shared, Map, Tree, TreeNode
-derive gDefault EmailAddress, Action, Table, HtmlDisplay, Task
+derive gDefault EmailAddress, Action, Table, HtmlDisplay

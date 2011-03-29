@@ -1,6 +1,6 @@
 implementation module Task
 
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, Types, dynamic_string, Base64, HTTP, Util
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, Types, GenRecord, dynamic_string, Base64, HTTP, Util
 import GenVisualize
 from TSt import :: TSt
 
@@ -157,14 +157,7 @@ JSONDecode{|Task|} _ c = (Nothing,c)
 
 gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
-	= basicCreate (defaultTask a) ust
-where
-	defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
-					, formWidth			= Nothing
-					, mbTaskNr			= Nothing
-					, taskFuncEdit		= id
-					, taskFuncCommit	= \tst -> (TaskFinished a,tst)
-					}
+	= basicCreate (defaultTask a) ust				
 gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\_ t -> t) ust
 
 gDefaultMask{|Task|} _ _ = [Touched []]
@@ -174,10 +167,21 @@ gVerify{|Task|} _ _ vst = alwaysValid vst
 gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
 	# vis = case mbVal of
 		Just {Task|properties}	= [TextFragment properties.TaskProperties.taskDescription.TaskDescription.title]
-		Nothing						= []
+		Nothing					= []
 	= (vis,vst)
 	
 gEq{|Task|} _ _ _ = False // tasks are never equal
+
+gDefault{|Task|} fx = defaultTask fx
+gGetRecordFields{|Task|} _ _ _ fields = fields
+gPutRecordFields{|Task|} _ t _ fields = (t,fields)
+
+defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
+				, formWidth			= Nothing
+				, mbTaskNr			= Nothing
+				, taskFuncEdit		= id
+				, taskFuncCommit	= \tst -> (TaskFinished a,tst)
+				}
 
 taskException :: !e -> TaskResult a | TC, toString e
 taskException e = TaskException (dynamic e) (toString e)

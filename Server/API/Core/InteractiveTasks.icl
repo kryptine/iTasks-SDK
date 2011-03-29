@@ -43,7 +43,7 @@ where
 		# (localTimestamp,tst)				= accIWorldTSt (getLocalTimestamp taskNr) tst
 		# (mbClientTimestamp,tst)			= clientTimestamp tst
 		# outdatedClient					= maybe False (\clientTimestamp -> clientTimestamp < localTimestamp) mbClientTimestamp
-		| outdatedClient					= appIWorldTSt (setCommitStoreInfo taskNr (outdatedClient,False,map fst edits,localTimestamp,isJust mbClientTimestamp)) tst // ignore edit events of outdated clients
+		| outdatedClient					= appIWorldTSt (setCommitPassInfo taskNr (commitPassInfo outdatedClient False edits localTimestamp mbClientTimestamp)) tst // ignore edit events of outdated clients
 		// check for edit/value event
 		# (mbNew,tst) = case (edits,mbValueEvent) of
 			(edits,_) | not (isEmpty edits) // edit event
@@ -71,7 +71,15 @@ where
 				= (conflict,tst)
 			Nothing
 				= (False,tst)
-		= appIWorldTSt (setCommitStoreInfo taskNr (outdatedClient,conflict,map fst edits,localTimestamp,isJust mbClientTimestamp)) tst
+		= appIWorldTSt (setCommitPassInfo taskNr (commitPassInfo outdatedClient conflict edits localTimestamp mbClientTimestamp)) tst
+	where
+		commitPassInfo outdatedClient editConflict edits localTimestamp mbClientTimestamp
+			=	{ outdatedClient		= outdatedClient
+				, editConflict			= editConflict
+				, updatedPaths			= map (dataPathList o fst) edits
+				, localTimestamp		= localTimestamp
+				, clientTimestampSent	= isJust mbClientTimestamp
+				}
 
 	interactiveTaskC tst=:{taskNr,newTask,triggerPresent}
 		// init task if it's new
@@ -99,7 +107,7 @@ where
 			
 		tuiFunc iworld
 			# ((modelV,_),iworld)				= appFst fromOk (readModelValue taskNr iworld)
-			# ((outdatedClient,_,updatedPaths,localTimestamp,clientTimestampSent),iworld) = getCommitStoreInfo taskNr iworld
+			# (info,iworld)						= getCommitPassInfo taskNr iworld
 			# (mbOldViz,iworld)					= readTUIDef taskNr iworld
 			# ((nvalue,numask,nvmask),iworld)	= newViewValue taskNr iworld
 			# form 								= visualizeAsEditor (editorId taskNr) nvalue nvmask
@@ -110,10 +118,10 @@ where
 			# tui								= taskPanel taskNr mbContext form
 			# iworld							= setTUIDef taskNr tui iworld
 			# evalActions						= evaluateConditions actions (isValidValue nvmask) modelV
-			| not clientTimestampSent || outdatedClient || isNothing mbOldViz // refresh UI if client is outdated, no timestamp is send (refresh) or task is new for this request (no old value stored)
+			| not info.clientTimestampSent || info.outdatedClient || isNothing mbOldViz // refresh UI if client is outdated, no timestamp is send (refresh) or task is new for this request (no old value stored)
 				= (Definition tui [],evalActions,iworld)
 			| otherwise	// update UI
-				# updates						= diffEditorDefinitions (fromJust mbOldViz) tui updatedPaths
+				# updates						= diffEditorDefinitions (fromJust mbOldViz) tui (map dataPathFromList info.updatedPaths)
 				= (Updates updates [],evalActions,iworld)
 
 	// for local mode use auto generated store name, for shared mode use given store
@@ -172,26 +180,42 @@ where
 		// read local value/masks & model value/timestamp
 		# (new=:(nvalue,numask,nvmask),iworld)	= readStores taskNr iworld
 		# ((modelV,modelT),iworld)				= appFst fromOk (readModelValue taskNr iworld)
-		# ((outdatedClient,conflict,updatedPaths,localTimestamp,_),iworld) = getCommitStoreInfo taskNr iworld
+		# (info,iworld)							= getCommitPassInfo taskNr iworld
 		// rebuild view value from model if not in enter mode, model is newer than local value or an error occurred and valid was not updated to an invalid one this request
-		= case not enterMode && (localTimestamp < modelT && (isEmpty updatedPaths || isValidValue nvmask) || conflict || outdatedClient) of
+		= case not enterMode && (info.localTimestamp < modelT && (isEmpty info.updatedPaths || isValidValue nvmask) || info.editConflict || info.outdatedClient) of
 			True
-				# errors = case (outdatedClient,conflict) of
-					(True,_)					= map (\p -> (p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) updatedPaths
-					(_,True)					= map (\p -> (p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) updatedPaths
+				# errors = case (info.outdatedClient,info.editConflict) of
+					(True,_)					= map (\p -> (dataPathFromList p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) info.updatedPaths
+					(_,True)					= map (\p -> (dataPathFromList p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) info.updatedPaths
 					_							= []
 				= updateViewValue taskNr bimapGet new modelV modelT errors iworld
 			False
 				= (new,iworld)
 
 // store for information provided to the commit pass
+:: CommitPassInfo =	{ outdatedClient		:: !Bool
+					, editConflict			:: !Bool
+					, updatedPaths			:: ![[Int]] // encoded as list of integers because DataPath can't be stored
+					, localTimestamp		:: !Timestamp
+					, clientTimestampSent	:: !Bool
+					}
+derive JSONEncode CommitPassInfo
+derive JSONDecode CommitPassInfo
+					
 // outdated client & conflict flag & update paths
-setCommitStoreInfo :: !TaskNr (!Bool,!Bool,![DataPath],!Timestamp,!Bool) !*IWorld -> *IWorld
-setCommitStoreInfo taskNr info iworld = setTaskStoreFor taskNr "commit-info" ((\(o,c,dps,t,ct) -> (o,c,map dataPathList dps,t,ct)) info) iworld
-getCommitStoreInfo :: !TaskNr !*IWorld -> (!(!Bool,!Bool,![DataPath],!Timestamp,!Bool),!*IWorld)
-getCommitStoreInfo taskNr iworld=:{IWorld|timestamp}
+setCommitPassInfo :: !TaskNr !CommitPassInfo !*IWorld -> *IWorld
+setCommitPassInfo taskNr info iworld = setTaskStoreFor taskNr "commit-info" info iworld
+getCommitPassInfo :: !TaskNr !*IWorld -> (!CommitPassInfo,!*IWorld)
+getCommitPassInfo taskNr iworld=:{IWorld|timestamp}
 	# (mbInfo,iworld) = getTaskStoreFor taskNr "commit-info" iworld
-	= (fromMaybe (False,False,[],timestamp,True) (fmap (\(o,c,dps,t,ct) -> (o,c,map dataPathFromList dps,t,ct)) mbInfo),iworld)
+	= (fromMaybe defaultInfo mbInfo,iworld)
+where
+	defaultInfo =	{ outdatedClient		= False
+					, editConflict			= False
+					, updatedPaths			= []
+					, localTimestamp		= timestamp
+					, clientTimestampSent	= True
+					}
 // delete stores providing information for commit pass
 deleteCommitStores :: !TaskNr !*IWorld -> *IWorld
 deleteCommitStores taskNr iworld

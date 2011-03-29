@@ -1,6 +1,6 @@
 implementation module Util
 
-import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, Maybe, Time, Text, JSON
+import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
 from dynamic_string import copy_to_string, copy_from_string
 from Base64 import base64Encode, base64Decode
@@ -118,12 +118,11 @@ splitWith f [x:xs]
 			= let (y,n)	= splitWith f xs in (y,[x:n])
 
 sortByIndex :: ![(!Int,!a)] -> [a]
-sortByIndex [] = []
-sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortByIndex [(is,vs) \\ (is,vs) <- ps | is > i]
+sortByIndex l = map snd (sortBy (\(a,_) (b,_) -> a < b) l)
 
-encodeFunc :: a -> [JSONNode]
+encodeFunc :: !a -> [JSONNode]
 encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
 
-decodeFunc :: JSONNode -> Maybe a
+decodeFunc :: !JSONNode -> Maybe a
 decodeFunc (JSONString str)	= Just (fst(copy_from_string {s` \\ s` <-: base64Decode str}))
 decodeFunc _				= Nothing

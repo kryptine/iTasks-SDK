@@ -18,7 +18,7 @@ from GenUpdate	import :: USt, :: UpdateMode, generic gUpdate
 :: SymmetricShared	a :== Shared a a
 :: ReadOnlyShared	a :== Shared a Void
 
-// functions used for the defining the basic operations provided by shared references
+// functions used for defining the basic operations provided by shared references
 :: SharedRead			a :== (*IWorld		-> *(!MaybeErrorString a,!*IWorld))
 :: SharedWrite			a :== (a *IWorld	-> *(!MaybeErrorString Void,!*IWorld))
 :: SharedGetTimestamp	  :== (*IWorld		-> *(!MaybeErrorString Timestamp,!*IWorld))

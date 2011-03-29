@@ -222,7 +222,13 @@ gUpdate{|Dynamic|}		mode ust = basicUpdate mode unchanged (dynamic 42) ust
 gUpdate{|(->)|} _ fy	mode ust
 	# (def,ust) = fy UDCreate ust
 	= basicUpdate mode unchanged (const def) ust
-gUpdate{|Shared|} _ _	mode ust = basicUpdate mode unchanged (abort "default shared") ust
+gUpdate{|Shared|} fx _	mode ust
+	# (def,ust) = fx UDCreate ust
+	= basicUpdate mode unchanged (Shared (read def) write getTimestamp) ust
+where
+	read v iworld							= (Ok v,iworld)
+	write _ iworld							= (Ok Void,iworld)
+	getTimestamp iworld=:{IWorld|timestamp}	= (Ok timestamp,iworld)
 unchanged _ v = v
 
 gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust

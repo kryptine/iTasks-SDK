@@ -4,16 +4,19 @@ definition module Task
 * This module provides types for the definition of tasks & changes.
 */
 
-import Types, HTTP, GenVisualize, iTaskClass
+import Types, HTTP, GenVisualize, iTaskClass, GenRecord
 from TSt 		import :: TSt
 
-derive JSONEncode	TaskContainer, Task, TaskResult
-derive JSONDecode	TaskContainer, Task, TaskResult
-derive gUpdate		TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gDefaultMask	TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVerify		TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVisualize	TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gEq			TaskContainer, Task
+derive JSONEncode		TaskContainer, Task, TaskResult
+derive JSONDecode		TaskContainer, Task, TaskResult
+derive gUpdate			TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gDefaultMask		TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVerify			TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVisualize		TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gEq				TaskContainer, Task
+derive gDefault			Task
+derive gGetRecordFields	Task
+derive gPutRecordFields	Task
 
 // Tasks
 
@@ -61,6 +64,7 @@ changeTask					:: !((Task a) -> Task a) !(TaskContainer a)	-> TaskContainer a
 :: TaskThreadParam a b	=
 	{ originalTask		:: !a -> Task b
 	, currentTask		:: !a -> Task b
+	, title				:: !String
 	}
 
 /**

@@ -81,12 +81,13 @@ initSession :: !SessionId !*TSt -> (!Maybe String, !*TSt)
 * Creates a dynamic containing a runnable task thread structure.
 * It contains the task plus the iTask context restrictions.
 *
+* @param The workflow title (for param only)
 * @param The task that is to be converted to a runnable thread (with ot without parameter)
 * 
 * @return A dynamic containing the thread
 */
-createThread		:: !(Task a)		-> Dynamic	| iTask a
-createThreadParam	:: !(a -> Task b)	-> Dynamic	| iTask a & iTask b
+createThread		:: !(Task a)				-> Dynamic	| iTask a
+createThreadParam	:: !String !(a -> Task b)	-> Dynamic	| iTask a & iTask b
 
 /**
 * Converts a parameterised thread into a non-parameterised one either by using a json encoded value or letting the user enter it.

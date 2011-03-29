@@ -9,6 +9,7 @@ from StdFunc			import id, const, o, seq
 from JSON				import JSONDecode, fromJSON
 from CoreCombinators	import >>=
 from InteractionTasks	import enterInformation
+from TuningCombinators	import @>>, <<@, class tune, instance tune Title, :: Title(..)
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
 
@@ -173,25 +174,25 @@ createThread task = (dynamic container :: Container (TaskThread a^) a^)
 where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
  	
-createThreadParam :: !(a -> Task b)	-> Dynamic | iTask a & iTask b
-createThreadParam task = (dynamic container :: Container (Container (TaskThreadParam a^ b^) b^) a^)
+createThreadParam :: !String !(a -> Task b)	-> Dynamic | iTask a & iTask b
+createThreadParam title task = (dynamic container :: Container (Container (TaskThreadParam a^ b^) b^) a^)
 where
- 	container = Container (Container ({TaskThreadParam|originalTask = task, currentTask = task}))
+ 	container = Container (Container ({TaskThreadParam|originalTask = task, currentTask = task, title = title}))
  	
 toNonParamThreadValue :: !String !Dynamic -> Maybe Dynamic
-toNonParamThreadValue vStr (Container (Container {TaskThreadParam|originalTask,currentTask}) :: Container (Container (TaskThreadParam a b) b) a)
+toNonParamThreadValue vStr (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
 	= case fromJSON (fromString vStr) of
 		Just v = 
-			Just (dynamic Container {TaskThread | originalTask = originalTask v, currentTask = currentTask v} :: Container (TaskThread b) b)
+			Just (dynamic Container {TaskThread | originalTask = originalTask v <<@ Title title, currentTask = currentTask v <<@ Title title} :: Container (TaskThread b) b)
 		Nothing =
 			Nothing
 toNonParamThreadValue _ _ = Nothing
 
 toNonParamThreadEnter :: !Dynamic -> Dynamic
-toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,currentTask}) :: Container (Container (TaskThreadParam a b) b) a)
+toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
 	= (dynamic Container {TaskThread | originalTask = enterParam originalTask, currentTask = enterParam currentTask} :: Container (TaskThread b) b)
 where		
-	enterParam paramTask = enterInformation ("Workflow parameter","Enter the parameter of the workflow") >>= paramTask
+	enterParam paramTask = Title title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") >>= paramTask)
 
 applyThread :: !Dynamic !*TSt -> (!TaskResult Dynamic, !*TSt)
 applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst=:{taskNr}

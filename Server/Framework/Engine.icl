@@ -95,7 +95,7 @@ where
 	
 instance workflowTask (ParamTaskContainer a b) | iTask a & iTask b
 where
-	workflowTask path description roles container = mkWorkflow path description roles (createThreadParam paramTask) type
+	workflowTask path description roles container = mkWorkflow path description roles (createThreadParam (path2name path) paramTask) type
 	where
 		(paramTask,type) = fromContainerToTaskParam container
 	
