@@ -22,7 +22,7 @@ itasks.ttc.ParallelContainer = Ext.extend(itasks.ttc.TTCBase, {
 				var cur = this.get(idx);
 				var content = data.content[i];
 				
-				if(!Ext.isDefined(content.taskId) || cur.taskId == content.taskId) {
+				if(!Ext.isDefined(content.taskId) || cur.xtype == content.xtype && cur.taskId == content.taskId && cur.type == content.type) {
 					cur.update(content);
 				} else {
 					this.remove(idx,true);

@@ -147,7 +147,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		if(ct.items.getCount() > 0) {
 			//Recursively update tab content
 			var cur = ct.getComponent(0);
-			if(!Ext.isDefined(content.taskId) || cur.xtype == content.xtype && cur.taskId == content.taskId) {
+			if(!Ext.isDefined(content.taskId) || cur.xtype == content.xtype && cur.taskId == content.taskId && cur.type == content.type) {
 				cur.update(content);
 			} else {
 				// fire done event because subprocesses of parallel possibly also stopped

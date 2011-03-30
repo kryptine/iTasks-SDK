@@ -1,6 +1,6 @@
 implementation module CoreCombinators
 
-import StdList, StdArray, StdTuple, StdMisc, StdBool
+import StdList, StdArray, StdTuple, StdMisc, StdBool, StdOrdList
 import TSt, Util, HTTP, GenUpdate, UserDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks, InteractionTasks, CommonCombinators
 from StdFunc			import id, const, o, seq
 from CommonCombinators	import transform
@@ -195,7 +195,7 @@ where
 							# (state,controls) = case accuFun of
 								Left fun	= fun v pst.PSt.state
 								Right fun	= fun (Just v) pst.PSt.state
-							= ({pst & tasks = removeTaskPSt idx pst.tasks, state = state},controls,ts,tst)
+							= ({PSt | removeTasksPSt [idx] pst & state = state},controls,ts,tst)
 						Right controls // control task: restart & process control signal
 							# tst = deleteTaskStates [idx:taskNr] tst
 							# tst = removeFromTree [idx] tst
@@ -206,58 +206,93 @@ where
 					//Don't process the other tasks, just let the exception through
 					= (TaskException e str,pst,tst)
 		where
-			processControls [] ts pst tst = processAllTasksC ts pst tst
-			processControls [c:cs] ts pst tst = case c of
+			processControls [] evalTs pst tst = processAllTasksC evalTs pst tst
+			processControls [c:cs] evalTs pst tst = case c of
 				StopParallel
-					//Don't process the other tasks, return the state as result
+					// don't process the other tasks, return the state as result
 					= (TaskFinished pst.PSt.state,pst,tst)
-				AppendTasks appTasks
-					//Process the other tasks extended with the new tasks
-					# newTasks	= [let (task,ctype,accuFun) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ c <- appTasks & idx <- [pst.nextIdx..]]
-					# pst		= {pst & tasks = pst.tasks ++ map (\(idx,task,ctype,accuFun) -> (idx,AddedTask (task,ctype,accuFun))) newTasks, nextIdx = pst.nextIdx + length appTasks}
-					= processControls cs (ts ++ newTasks) pst tst
-				/*AppendCTasks newContainers
-					# newTasks	= [let (task,ctype) = fromContainerToTask (applyParam (sharedParallelState taskNr) c) in (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun) \\ c <- newContainers & idx <- [pst.nextIdx..]]
-					# pst		= {pst & cTasks = pst.cTasks ++ map (\(idx,task,ctype,_) -> (idx,AddedCTask (task,ctype))) newTasks, nextIdx = pst.nextIdx + length newContainers}
-					= processControls cs (ts ++ newTasks) pst tst
-				StopTasks remIdxs
-					# ts		= filter (\(idx,_,_,_) -> not (isMember idx remIdxs)) ts
-					# pst		= {pst & tasks = filter (\(idx,_) -> not (isMember idx remIdxs)) pst.tasks, cTasks = filter (\(idx,_) -> not (isMember idx remIdxs)) pst.cTasks}
-					# tst		= removeFromTree remIdxs tst
-					# tst		= addToTree [TTParallelContainer idx CTInBody (TTFinishedTask (abort "undef task info") (Text "killed",JSONString "killed") False) False \\idx <- remIdxs] tst
-					# tst		= seqSt (\taskId tst -> snd ('ProcessDB'.deleteProcess taskId tst)) (map (\idx -> taskNrToString [idx:taskNr]) remIdxs) tst
-					= processControls cs ts pst tst
+				AppendTasks appContainers
+					// add new ordinary tasks to PSt & evaluate at end of this iteration
+					# newTasks			= mkTasks [(idx,c) \\ c <- appContainers & idx <- [pst.nextIdx..]]
+					# pst				= updateNextIdx newTasks pst
+					# pst				= addTasksPSt newTasks pst
+					= processControls cs (evalTs ++ newTasks) pst tst
+				AppendCTasks appCContainers
+					// add new control tasks to PSt & evaluate at end of this iteration
+					# newTasks			= mkCTasks [(idx,c) \\ c <- appCContainers & idx <- [pst.nextIdx..]]
+					# pst				= updateNextIdx newTasks pst
+					# pst				= addCTasksPSt newTasks pst
+					= processControls cs (evalTs ++ newTasks) pst tst
+				StopTasks rIdxs
+					// removes tasks & add finished nodes to task tree
+					# (evalTs,pst,tst)	= removeTasks rIdxs evalTs pst tst
+					# tst				= addToTree [TTParallelContainer idx CTInBody (TTFinishedTask (abort "undef task info") (Text "killed",JSONString "killed") False) False \\idx <- rIdxs] tst
+					= processControls cs evalTs pst tst
 				ResetTasks rIdxs
-					// reevaluate reset tasks which have already been evaluated
-					# reevalTs	= [getPStCTask taskNr t \\ t=:(idx`,_) <- pst.cTasks | isMember idx` rIdxs && idx` < idx] ++ [getPStTask t \\ t=:(idx`,_) <- pst.tasks | isMember idx` rIdxs && idx` < idx]
-					# tst		= removeFromTree rIdxs tst
-					# tst		= seqSt (\idx -> deleteTaskStates [idx:taskNr]) rIdxs tst
-					= processControls cs (ts ++ reevalTs) pst tst
+					// reevaluate reset tasks which have already been evaluated at end of iteration & delete states of all reset tasks
+					# reevalTs			= [getPStCTask taskNr t \\ t=:(idx`,_) <- pst.cTasks | isMember idx` rIdxs && idx` < idx] ++ [getPStTask t \\ t=:(idx`,_) <- pst.tasks | isMember idx` rIdxs && idx` < idx]
+					# tst				= removeFromTree rIdxs tst
+					# tst				= deleteStates rIdxs tst
+					= processControls cs (evalTs ++ reevalTs) pst tst
 				ReplaceTasks rTasks
-					# newTasks	= [let (task,ctype) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ (idx,c,accuFun) <- rTasks]
-					# rIdxs		= map fst3 rTasks
-					# ts		= filter (\(idx,_,_,_) -> not (isMember idx rIdxs)) ts
-					# pst		= {pst & tasks = seqSt (replaceInList (\(idx0,_) (idx1,_) -> idx0 == idx1)) (map (\(idx,task,ctype,accuFun) -> (idx,AddedTask (task,ctype,accuFun))) newTasks) pst.tasks}
-					# tst		= removeFromTree rIdxs tst
-					# tst		= seqSt (\idx -> deleteTaskStates [idx:taskNr]) rIdxs tst
-					= processControls cs (ts ++ newTasks) pst tst
+					// replace tasks in PSt & evaluate at end of this iteration
+					# newTasks			= mkTasks rTasks
+					# rIdxs				= map fst rTasks
+					# (evalTs,pst,tst)	= removeTasks rIdxs evalTs pst tst
+					# pst				= addTasksPSt newTasks pst
+					= processControls cs (evalTs ++ newTasks) pst tst
 				ReplaceCTasks rTasks
-					# newTasks	= [let (task,ctype) = fromContainerToTask (applyParam (sharedParallelState taskNr) c) in (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun) \\ (idx,c) <- rTasks]
-					# rIdxs		= map fst rTasks
-					# ts		= filter (\(idx,_,_,_) -> not (isMember idx rIdxs)) ts
-					# pst		= {pst & cTasks = seqSt (replaceInList (\(idx0,_) (idx1,_) -> idx0 == idx1)) (map (\(idx,task,ctype,accuFun) -> (idx,AddedCTask (task,ctype))) newTasks) pst.cTasks}
-					# tst		= removeFromTree rIdxs tst
-					# tst		= seqSt (\idx -> deleteTaskStates [idx:taskNr]) rIdxs tst
-					= processControls cs (ts ++ newTasks) pst tst*/
+					// replace tasks in PSt & evaluate at end of this iteration
+					# newTasks			= mkCTasks rTasks
+					# rIdxs				= map fst rTasks
+					# (evalTs,pst,tst)	= removeTasks rIdxs evalTs pst tst
+					# pst				= addCTasksPSt newTasks pst
+					= processControls cs (evalTs ++ newTasks) pst tst
 				_
 					= abort "not implemented!"
-		
-			removeTaskPSt delIdx tasks = filter (\(idx,_) -> idx <> delIdx) tasks
 			
+			// makes new ordinary tasks from containers
+			mkTasks containers = [let (task,ctype,accuFun) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ (idx,c) <- containers]
+			
+			// makes new control tasks from containers
+			mkCTasks containers = [let (task,ctype) = fromCContainerToTask (sharedParallelState taskNr) c in (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun) \\ (idx,c) <- containers]
+			
+			// removes tasks from list of tasks to evaluate in this iteration, from PSt& from tree and remove their states (and possibly processes)
+			removeTasks idxs evalTs pst tst
+				# evalTs	= removeFromEvalTasks idxs evalTs
+				# pst		= removeTasksPSt idxs pst
+				# tst		= removeFromTree idxs tst
+				# tst		= deleteStates idxs tst
+				= (evalTs,pst,tst)
+			
+			// removes tasks with given indexes from list of tasks to evaluate in this iteration
+			removeFromEvalTasks idxs ts = filter (\(idx,_,_,_) -> not (isMember idx idxs)) ts
+			
+			// deletes states of tasks (and possibly processes) with given indexes
+			deleteStates idxs tst
+				# taskNrs	= map (\idx -> [idx:taskNr]) idxs
+				# tst		= seqSt (\taskNr tst -> deleteTaskStates taskNr tst)									taskNrs tst
+				# tst		= seqSt (\taskNr tst -> snd ('ProcessDB'.deleteProcess (taskNrToString taskNr) tst))	taskNrs tst
+				= tst
+			
+			// adds ordinary tasks to PSt
+			addTasksPSt tasks pst = {pst & tasks = sortBy (\(a,_) (b,_) -> a < b) (pst.tasks ++ map (\(idx,task,ctype,accuFun) -> (idx,AddedTask (task,ctype,accuFun))) tasks)}
+			
+			// adds control tasks to PSt
+			addCTasksPSt cTasks pst = {pst & cTasks = sortBy (\(a,_) (b,_) -> a < b) (pst.cTasks ++ map (\(idx,task,ctype,_) -> (idx,AddedCTask (task,ctype))) cTasks)}
+			
+			// removes tasks with given indexes from PSt
+			removeTasksPSt idxs pst = {pst & tasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.tasks, cTasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.cTasks}
+			
+			// updates the next task index in PSt
+			updateNextIdx l pst = {pst & nextIdx = pst.nextIdx + length l}
+			
+			// adds given parallel task tree containers to tree
 			addToTree containers tst=:{tree} = case tree of
 				TTParallelTask ti children = {tst & tree = (TTParallelTask ti (children ++ containers))}
 				_ = abort "parallel node expected"
-				
+			
+			// removes given parallel task tree containers from tree	
 			removeFromTree remIdxs tst=:{tree} = case tree of
 				TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _ _) -> not (isMember idx remIdxs)) children))}
 				_ = abort "parallel node expected"
