@@ -62,55 +62,12 @@ mapTaskResult f (TaskException e str)	= TaskException e str
 mapTask :: !(a -> b) !(Task a) -> Task b
 mapTask f t=:{taskFuncCommit} = {t & taskFuncCommit = appFst (mapTaskResult f) o taskFuncCommit}
 
-mapTaskContainer :: !(a -> b) !(TaskContainer a) -> TaskContainer b
-mapTaskContainer f container = case container of
-	DetachedTask p m t	= DetachedTask p m (mapTask f t)
-	WindowTask w m t	= WindowTask w m (mapTask f t)
-	DialogTask w t		= DialogTask w (mapTask f t)
-	InBodyTask t		= InBodyTask (mapTask f t)
-	HiddenTask t		= HiddenTask (mapTask f t)
-	
-fromContainerToTask	:: !(TaskContainer a) -> (!Task a,TaskContainerType)
-fromContainerToTask container = case container of
-	DetachedTask p m t	= (t,CTDetached p m)
-	WindowTask w m t	= (t,CTWindow w m)
-	DialogTask w t		= (t,CTDialog w)
-	InBodyTask t		= (t,CTInBody)
-	HiddenTask t		= (t,CTHidden)
-	
-fromContainerToTaskParam :: !(ParamTaskContainer a b) -> (!a -> Task b,TaskContainerType)
-fromContainerToTaskParam container = case container of
-	DetachedPTask p m t	= (t,CTDetached p m)
-	WindowPTask w m t	= (t,CTWindow w m)
-	DialogPTask w t		= (t,CTDialog w)
-	InBodyPTask t		= (t,CTInBody)
-	HiddenPTask t		= (t,CTHidden)
-	
-applyParam :: !a !(ParamTaskContainer a b) -> TaskContainer b
-applyParam a container = case container of
-	DetachedPTask p m	ct = DetachedTask p m	(ct a)
-	WindowPTask w m		ct = WindowTask w m		(ct a)
-	DialogPTask w		ct = DialogTask w		(ct a)
-	InBodyPTask			ct = InBodyTask			(ct a)
-	HiddenPTask			ct = HiddenTask			(ct a)
-	
-changeTask :: !((Task a) -> Task a) !(TaskContainer a) -> TaskContainer a
-changeTask f container = case container of
-	DetachedTask p m t	= DetachedTask p m	(f t)
-	WindowTask w m t	= WindowTask w m	(f t)
-	DialogTask w t		= DialogTask w		(f t)
-	InBodyTask t		= InBodyTask		(f t)
-	HiddenTask t		= HiddenTask		(f t)
-
-derive JSONEncode	TaskContainer
-derive JSONDecode	TaskContainer
-derive gUpdate		TaskContainer, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gDefaultMask	TaskContainer, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVerify		TaskContainer, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVisualize	TaskContainer, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gEq			TaskContainer
-derive JSONEncode 	TaskResult, TaskContainerType
-derive JSONDecode 	TaskResult, TaskContainerType
+derive gUpdate		ManagerProperties, TaskPriority, RunningTaskStatus
+derive gDefaultMask	ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVerify		ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVisualize	ManagerProperties, TaskPriority, RunningTaskStatus
+derive JSONEncode 	TaskResult
+derive JSONDecode 	TaskResult
 derive bimap Maybe, (,)
 
 // Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised

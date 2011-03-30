@@ -40,7 +40,7 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//A completed task (the flag indicates if the result is shown to the user)
 	| TTFinishedTask	TaskInfo finishedOutput !Bool
 
-// similar to TaskContainerType but without tasksk not shown (detached & hidden) and with calculated menus
+// similar to TaskContainerType but without tasks not shown (detached & hidden) and with calculated menus
 :: TTContainerType	= TTWindow !WindowTitle ![TUIDef]	// task shwon in a window (with own menu)
 					| TTDialog !WindowTitle				// task shwon as dialogue (without own menu)
 					| TTInBody							// task shown in the body of the parallel container

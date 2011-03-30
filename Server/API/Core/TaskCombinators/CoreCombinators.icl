@@ -7,7 +7,7 @@ from CommonCombinators	import transform
 from ProcessDB			import :: Process{..}
 from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
 
-derive class iTask ParallelTaskInfo, SchedulerState, Control, ParamTaskContainer
+derive class iTask ParallelTaskInfo, SchedulerState, Control, ControlTaskContainer, TaskContainer
 // Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
 JSONEncode{|Menu|} _		= abort "not implemented"
 JSONEncode{|MenuItem|} _	= abort "not implemented"
@@ -119,10 +119,10 @@ derive JSONDecode PSt, PStTask, PStCTask, TaskContainerType
 	, nextIdx	:: !TaskIndex
 	}
 	
-:: PStTask a acc	= InitTask	!Int | AddedTask	!(!Task (Either a [Control a acc]),!TaskContainerType,!AccuFun a acc)
+:: PStTask a acc	= InitTask	!Int | AddedTask	!(!Task (Either a [Control a acc]),!TaskContainerType,!Either (AccuFun a acc) (AccuFunDetached a acc))
 :: PStCTask a acc	= InitCTask	!Int | AddedCTask	!(!Task (Either a [Control a acc]),!TaskContainerType)
 
-parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer taskResult pState] ![(!TaskContainer taskResult,!AccuFun taskResult pState)] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer taskResult pState] ![TaskContainer taskResult pState] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
 parallel d initState resultFun initCTasks initTasks
 	= mkParallelTask d (parallelE,parallelC)
 where
@@ -192,7 +192,9 @@ where
 					//Apply the process function
 					# (pst,controls,ts,tst) = case a of
 						Left v // normal task: remove from pst & run accu fun
-							# (state,controls) = accuFun v pst.PSt.state
+							# (state,controls) = case accuFun of
+								Left fun	= fun v pst.PSt.state
+								Right fun	= fun (Just v) pst.PSt.state
 							= ({pst & tasks = removeTaskPSt idx pst.tasks, state = state},controls,ts,tst)
 						Right controls // control task: restart & process control signal
 							# tst = deleteTaskStates [idx:taskNr] tst
@@ -211,10 +213,10 @@ where
 					= (TaskFinished pst.PSt.state,pst,tst)
 				AppendTasks appTasks
 					//Process the other tasks extended with the new tasks
-					# newTasks	= [let (task,ctype) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ (c,accuFun) <- appTasks & idx <- [pst.nextIdx..]]
+					# newTasks	= [let (task,ctype,accuFun) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ c <- appTasks & idx <- [pst.nextIdx..]]
 					# pst		= {pst & tasks = pst.tasks ++ map (\(idx,task,ctype,accuFun) -> (idx,AddedTask (task,ctype,accuFun))) newTasks, nextIdx = pst.nextIdx + length appTasks}
 					= processControls cs (ts ++ newTasks) pst tst
-				AppendCTasks newContainers
+				/*AppendCTasks newContainers
 					# newTasks	= [let (task,ctype) = fromContainerToTask (applyParam (sharedParallelState taskNr) c) in (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun) \\ c <- newContainers & idx <- [pst.nextIdx..]]
 					# pst		= {pst & cTasks = pst.cTasks ++ map (\(idx,task,ctype,_) -> (idx,AddedCTask (task,ctype))) newTasks, nextIdx = pst.nextIdx + length newContainers}
 					= processControls cs (ts ++ newTasks) pst tst
@@ -246,7 +248,7 @@ where
 					# pst		= {pst & cTasks = seqSt (replaceInList (\(idx0,_) (idx1,_) -> idx0 == idx1)) (map (\(idx,task,ctype,accuFun) -> (idx,AddedCTask (task,ctype))) newTasks) pst.cTasks}
 					# tst		= removeFromTree rIdxs tst
 					# tst		= seqSt (\idx -> deleteTaskStates [idx:taskNr]) rIdxs tst
-					= processControls cs (ts ++ newTasks) pst tst
+					= processControls cs (ts ++ newTasks) pst tst*/
 				_
 					= abort "not implemented!"
 		
@@ -285,15 +287,14 @@ where
 	
 	getPStTask (idx,pstTask) = case pstTask of
 		InitTask lidx
-			# (cont,accuFun)	= initTasks !! lidx
-			# (task,ctype)		= fromContainerToTask cont
+			# (task,ctype,accuFun) = fromContainerToTask (initTasks !! lidx)
 			= (idx,mapTask Left task,ctype,accuFun)
 		AddedTask (task,ctype,accuFun)
 			= (idx,task,ctype,accuFun)
 	
 	getPStCTask taskNr (idx,pstCTask) = case pstCTask of
 		InitCTask lidx
-			# (task,ctype) = fromContainerToTask (applyParam (sharedParallelState taskNr) (initCTasks !! lidx))
+			# (task,ctype) = fromCContainerToTask (sharedParallelState taskNr) (initCTasks !! lidx)
 			= (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun)
 		AddedCTask (task,ctype)
 			= (idx,task,ctype,cTaskAccuFun)
@@ -330,7 +331,23 @@ where
 		updateProcProps (idx,mprops) iworld
 			# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {ProcessProperties|pprops & managerProperties = mprops}) iworld
 			= iworld
-			
+	
+	fromCContainerToTask :: !(Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) !(ControlTaskContainer a acc) -> (!Task  [Control a acc],!TaskContainerType)
+	fromCContainerToTask s container = case container of
+		DetachedCTask p m	ct = (ct s,CTDetached p m)
+		WindowCTask w m		ct = (ct s,CTWindow w m)
+		DialogCTask w		ct = (ct s,CTDialog w)
+		InBodyCTask			ct = (ct s,CTInBody)
+		HiddenCTask			ct = (ct s,CTHidden)
+		
+	fromContainerToTask	:: !(TaskContainer a acc) -> (!Task a,!TaskContainerType,!Either (AccuFun a acc) (AccuFunDetached a acc))
+	fromContainerToTask container = case container of
+		DetachedTask p m t f	= (t,CTDetached p m,Right f)
+		WindowTask w m t f		= (t,CTWindow w m,Left f)
+		DialogTask w t f		= (t,CTDialog w,Left f)
+		InBodyTask t f			= (t,CTInBody,Left f)
+		HiddenTask t f			= (t,CTHidden,Left f)
+		
 	cTaskAccuFun = abort "no accu fun for control tasks"
 
 createOrEvaluateTaskInstance :: !(Task a) !ManagerProperties !ActionMenu !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a

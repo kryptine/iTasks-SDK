@@ -7,30 +7,18 @@ definition module Task
 import Types, HTTP, GenVisualize, iTaskClass, GenRecord
 from TSt 		import :: TSt
 
-derive JSONEncode		TaskContainer, Task, TaskResult
-derive JSONDecode		TaskContainer, Task, TaskResult
-derive gUpdate			TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gDefaultMask		TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVerify			TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVisualize		TaskContainer, Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gEq				TaskContainer, Task
+derive JSONEncode		Task, TaskResult
+derive JSONDecode		Task, TaskResult
+derive gUpdate			Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gDefaultMask		Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVerify			Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVisualize		Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gEq				Task
 derive gDefault			Task
 derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 
 // Tasks
-
-:: TaskContainer a			= DetachedTask	!ManagerProperties !ActionMenu	!(Task a)
-							| WindowTask	!WindowTitle !ActionMenu		!(Task a)
-							| DialogTask	!WindowTitle					!(Task a)
-							| InBodyTask									!(Task a)
-							| HiddenTask									!(Task a)
-					
-:: ParamTaskContainer a b	= DetachedPTask	!ManagerProperties !ActionMenu	!(a -> Task b)
-							| WindowPTask	!WindowTitle !ActionMenu		!(a -> Task b)
-							| DialogPTask	!WindowTitle					!(a -> Task b)
-							| InBodyPTask									!(a -> Task b)
-							| HiddenPTask									!(a -> Task b)
 
 :: Task a =
 	{ properties		:: !TaskProperties						// the task's general properties
@@ -50,11 +38,6 @@ taskException :: !e -> TaskResult a | TC, toString e
 					
 mapTaskResult				:: !(a -> b) !(TaskResult a)				-> TaskResult b
 mapTask						:: !(a -> b) !(Task a)						-> Task b
-mapTaskContainer			:: !(a -> b) !(TaskContainer a)			 	-> TaskContainer b
-fromContainerToTask			:: !(TaskContainer a)						-> (!Task a,TaskContainerType)
-fromContainerToTaskParam	:: !(ParamTaskContainer a b)				-> (!a -> Task b,TaskContainerType)
-applyParam					:: !a !(ParamTaskContainer a b)				-> TaskContainer b
-changeTask					:: !((Task a) -> Task a) !(TaskContainer a)	-> TaskContainer a
 
 :: TaskThread a		=
 	{ originalTask		:: !Task a
