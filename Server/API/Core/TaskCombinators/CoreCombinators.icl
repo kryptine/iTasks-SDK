@@ -140,9 +140,10 @@ where
 	parallelC tst=:{taskNr,properties,newTask}
 		// Load the internal state
 		# (pst,tst)		= accIWorldTSt (loadPSt taskNr) tst
-		# tst			= if newTask (initProcs pst tst) tst
+		# tasks			= map (getPStCTask taskNr) pst.cTasks ++ map getPStTask pst.tasks
+		# tst			= if newTask (createProcs tasks tst) tst
 		// Evaluate the subtasks for all currently active tasks (control tasks first)
- 		# (res,pst,tst)	= processAllTasksC (map (getPStCTask taskNr) pst.cTasks ++ map getPStTask pst.tasks) pst tst
+ 		# (res,pst,tst)	= processAllTasksC tasks pst tst
 		// The result of the combined evaluation of all parallel subtasks
 		# (res,tst) = case res of
 			//There are still active tasks
@@ -165,46 +166,43 @@ where
 				= (TaskFinished (resultFun Stopped r),tst)
 		= (res,{tst & taskNr = taskNr})
 	where
-		initProcs pst tst
-			# tst = seqSt (filterF getPStTask) pst.tasks tst
-			# tst = seqSt (filterF (getPStCTask taskNr)) pst.cTasks tst
-			= tst
-		where
-			filterF getF task tst = case getF task of
-				(idx,task,ctype=:CTDetached managerP menu,_)	= thd3 (createOrEvaluateTaskInstance task managerP menu {tst & taskNr = [idx:taskNr]})
-				_												= tst
-	
 		processAllTasksC [] pst tst = (TaskBusy,pst,tst)
-		
 		processAllTasksC [t=:(idx,task,ctype,accuFun):ts] pst tst
 			# tst = {tst & taskNr = [idx:taskNr]} // Task is evaluated with a shifted task number
-			# (result,tst) = case ctype of
-				CTDetached mProps menu
-					# (result,tree,tst)	= createOrEvaluateTaskInstance task mProps menu tst
-					= (result,tst)
-				_
-					= applyTaskCommit task (Just (idx,ctype)) tst
-			= case result of
-				TaskBusy
+			# (mbResult,tst) = case ctype of
+				CTDetached _ _	= evaluateDetached task tst
+				_				= appFst Just (applyTaskCommit task (Just (idx,ctype)) tst)
+			= case mbResult of
+				Just TaskBusy
 					//Process the other tasks
 					= processAllTasksC ts pst tst 
-				TaskFinished a
+				Just (TaskFinished a)
 					//Apply the process function
 					# (pst,controls,ts,tst) = case a of
-						Left v // normal task: remove from pst & run accu fun
+						Left v // ordinary task: remove from pst & run accu fun
 							# (state,controls) = case accuFun of
-								Left fun	= fun v pst.PSt.state
-								Right fun	= fun (Just v) pst.PSt.state
+								Just (Left fun)		= fun v pst.PSt.state
+								Just (Right fun)	= fun (Just v) pst.PSt.state
+								_					= abort "no accu fun for ordinary task"
 							= ({PSt | removeTasksPSt [idx] pst & state = state},controls,ts,tst)
 						Right controls // control task: restart & process control signal
 							# tst = deleteTaskStates [idx:taskNr] tst
 							# tst = removeFromTree [idx] tst
 							= (pst,controls,[t:ts],tst)
 					= processControls controls ts pst tst
-					
-				TaskException e str
+				Just (TaskException e str)
 					//Don't process the other tasks, just let the exception through
 					= (TaskException e str,pst,tst)
+				Nothing
+					// detached cancelled
+					# pst = removeTasksPSt [idx] pst
+					# (controls,pst) = case accuFun of
+						Just (Right accuFun)
+							# (state,controls) = accuFun Nothing pst.PSt.state
+							= (controls,{PSt|pst & state = state})
+						_ // cancelled control task has no effect
+							= ([],pst)
+					= processControls controls ts pst tst
 		where
 			processControls [] evalTs pst tst = processAllTasksC evalTs pst tst
 			processControls [c:cs] evalTs pst tst = case c of
@@ -215,13 +213,13 @@ where
 					// add new ordinary tasks to PSt & evaluate at end of this iteration
 					# newTasks			= mkTasks [(idx,c) \\ c <- appContainers & idx <- [pst.nextIdx..]]
 					# pst				= updateNextIdx newTasks pst
-					# pst				= addTasksPSt newTasks pst
+					# (pst,tst)			= addTasksPSt newTasks pst tst
 					= processControls cs (evalTs ++ newTasks) pst tst
 				AppendCTasks appCContainers
 					// add new control tasks to PSt & evaluate at end of this iteration
 					# newTasks			= mkCTasks [(idx,c) \\ c <- appCContainers & idx <- [pst.nextIdx..]]
 					# pst				= updateNextIdx newTasks pst
-					# pst				= addCTasksPSt newTasks pst
+					# (pst,tst)			= addCTasksPSt newTasks pst tst
 					= processControls cs (evalTs ++ newTasks) pst tst
 				StopTasks rIdxs
 					// removes tasks & add finished nodes to task tree
@@ -239,23 +237,23 @@ where
 					# newTasks			= mkTasks rTasks
 					# rIdxs				= map fst rTasks
 					# (evalTs,pst,tst)	= removeTasks rIdxs evalTs pst tst
-					# pst				= addTasksPSt newTasks pst
+					# (pst,tst)			= addTasksPSt newTasks pst tst
 					= processControls cs (evalTs ++ newTasks) pst tst
 				ReplaceCTasks rTasks
 					// replace tasks in PSt & evaluate at end of this iteration
 					# newTasks			= mkCTasks rTasks
 					# rIdxs				= map fst rTasks
 					# (evalTs,pst,tst)	= removeTasks rIdxs evalTs pst tst
-					# pst				= addCTasksPSt newTasks pst
+					# (pst,tst)			= addCTasksPSt newTasks pst tst
 					= processControls cs (evalTs ++ newTasks) pst tst
 				_
 					= abort "not implemented!"
 			
 			// makes new ordinary tasks from containers
-			mkTasks containers = [let (task,ctype,accuFun) = fromContainerToTask c in (idx,mapTask Left task,ctype,accuFun) \\ (idx,c) <- containers]
+			mkTasks containers = [let (task,ctype,accuFun) = fromContainerToTask c in (idx,mapTask Left task,ctype,Just accuFun) \\ (idx,c) <- containers]
 			
 			// makes new control tasks from containers
-			mkCTasks containers = [let (task,ctype) = fromCContainerToTask (sharedParallelState taskNr) c in (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun) \\ (idx,c) <- containers]
+			mkCTasks containers = [let (task,ctype) = fromCContainerToTask (sharedParallelState taskNr) c in (idx,mapTask Right (setControlTask task),ctype,Nothing) \\ (idx,c) <- containers]
 			
 			// removes tasks from list of tasks to evaluate in this iteration, from PSt& from tree and remove their states (and possibly processes)
 			removeTasks idxs evalTs pst tst
@@ -276,10 +274,14 @@ where
 				= tst
 			
 			// adds ordinary tasks to PSt
-			addTasksPSt tasks pst = {pst & tasks = sortBy (\(a,_) (b,_) -> a < b) (pst.tasks ++ map (\(idx,task,ctype,accuFun) -> (idx,AddedTask (task,ctype,accuFun))) tasks)}
+			addTasksPSt tasks pst tst
+				# tst = createProcs tasks tst
+				= ({pst & tasks = sortBy (\(a,_) (b,_) -> a < b) (pst.tasks ++ map (\(idx,task,ctype,Just accuFun) -> (idx,AddedTask (task,ctype,accuFun))) tasks)},tst)
 			
 			// adds control tasks to PSt
-			addCTasksPSt cTasks pst = {pst & cTasks = sortBy (\(a,_) (b,_) -> a < b) (pst.cTasks ++ map (\(idx,task,ctype,_) -> (idx,AddedCTask (task,ctype))) cTasks)}
+			addCTasksPSt cTasks pst tst
+				# tst = createProcs cTasks tst
+				= ({pst & cTasks = sortBy (\(a,_) (b,_) -> a < b) (pst.cTasks ++ map (\(idx,task,ctype,_) -> (idx,AddedCTask (task,ctype))) cTasks)},tst)
 			
 			// removes tasks with given indexes from PSt
 			removeTasksPSt idxs pst = {pst & tasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.tasks, cTasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.cTasks}
@@ -296,6 +298,15 @@ where
 			removeFromTree remIdxs tst=:{tree} = case tree of
 				TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _ _) -> not (isMember idx remIdxs)) children))}
 				_ = abort "parallel node expected"
+	
+		// create processes for detached tasks
+		createProcs tasks tst = seqSt createProc tasks tst
+		where
+			createProc (idx,task,CTDetached managerP menu,_) tst
+				# (_,_,_,tst) = createTaskInstance (createThread task) False False managerP menu {tst & taskNr = [idx:taskNr]}
+				= tst
+			createProc _ tst
+				= tst
 	
 	//Load or create the internal state
 	loadPSt taskNr iworld
@@ -323,16 +334,16 @@ where
 	getPStTask (idx,pstTask) = case pstTask of
 		InitTask lidx
 			# (task,ctype,accuFun) = fromContainerToTask (initTasks !! lidx)
-			= (idx,mapTask Left task,ctype,accuFun)
+			= (idx,mapTask Left task,ctype,Just accuFun)
 		AddedTask (task,ctype,accuFun)
-			= (idx,task,ctype,accuFun)
+			= (idx,task,ctype,Just accuFun)
 	
 	getPStCTask taskNr (idx,pstCTask) = case pstCTask of
 		InitCTask lidx
 			# (task,ctype) = fromCContainerToTask (sharedParallelState taskNr) (initCTasks !! lidx)
-			= (idx,mapTask Right (setControlTask task),ctype,cTaskAccuFun)
+			= (idx,mapTask Right (setControlTask task),ctype,Nothing)
 		AddedCTask (task,ctype)
-			= (idx,task,ctype,cTaskAccuFun)
+			= (idx,task,ctype,Nothing)
 			
 	setControlTask task=:{Task|properties} = {Task|task & properties = {properties & isControlTask = True}}
 				
@@ -382,37 +393,23 @@ where
 		DialogTask w t f		= (t,CTDialog w,Left f)
 		InBodyTask t f			= (t,CTInBody,Left f)
 		HiddenTask t f			= (t,CTHidden,Left f)
-		
-	cTaskAccuFun = abort "no accu fun for control tasks"
 
-createOrEvaluateTaskInstance :: !(Task a) !ManagerProperties !ActionMenu !*TSt -> (!TaskResult a, !NonNormalizedTree, !*TSt) | iTask a
-createOrEvaluateTaskInstance task managerProperties menu tst=:{TSt|taskNr,events}
-	//Try to load the stored process for this subtask
-	# taskId		 = taskNrToString taskNr
-	# (mbProc,tst)	 = 'ProcessDB'.getProcess taskId tst
-	= case mbProc of
-		//Nothing found, create a task instance
-		Nothing	
-			# (procId,result,tree,tst)	= createTaskInstance (createThread task) False False managerProperties menu tst
-			= case result of
-				TaskBusy				= (TaskBusy, tree, tst)
-				TaskFinished (a :: a^)	= (TaskFinished a, tree, tst)
-				TaskFinished _			= (taskException invalidType,tree,tst)
-				TaskException e str		= (TaskException e str, tree, tst)
-		//When found, evaluate
-		Just proc
-			# user				= proc.Process.properties.ProcessProperties.managerProperties.worker
-			// -> TSt in subprocess
-			# (result,tree,tst)	= evaluateTaskInstance proc events Nothing False False tst
-			// <- TSt back to current process				
-			//Add parallel type after the new proc is evaluated
-			= case result of
-				TaskBusy				= (TaskBusy, tree, tst)
-				TaskFinished (a :: a^) 	= (TaskFinished a, tree, tst)
-				TaskFinished _			
-					= (taskException invalidType, tree, tst)
-				TaskException e	str		
-					= (TaskException e str, tree, tst)
+	evaluateDetached :: !(Task a) !*TSt -> (!Maybe (TaskResult a), !*TSt) | iTask a
+	evaluateDetached task tst=:{TSt|taskNr,events}
+		//Try to load the stored process for this subtask
+		# (mbProc,tst)	 = 'ProcessDB'.getProcess (taskNrToString taskNr) tst
+		= case mbProc of
+			//Nothing found, process cancelled
+			Nothing	
+				= (Nothing,tst)
+			//When found, evaluate
+			Just proc
+				# (result,_,tst) = evaluateTaskInstance proc events Nothing False False tst
+				= case result of
+					TaskBusy				= (Just TaskBusy,tst)
+					TaskFinished (a :: a^) 	= (Just (TaskFinished a),tst)
+					TaskFinished _			= (Just (taskException invalidType),tst)
+					TaskException e	str		= (Just (TaskException e str),tst)
 	where
 		invalidType = "createOrEvaluateTaskIntance: task result of invalid type!"
 

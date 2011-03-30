@@ -102,7 +102,6 @@ toNonParamThreadEnter	:: !Dynamic			-> Dynamic
 *
 * @param A task thread of the task to create an instance of
 * @param Start as toplevel, or as subtask of another task (parent information is read from the task state)
-* @param Whether this process is part of a parallel
 * @param Delete the result and process record of the instance after completion
 * @param The initial manager properties
 * @param The main task's menu

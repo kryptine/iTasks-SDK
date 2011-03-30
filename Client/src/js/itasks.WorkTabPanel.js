@@ -106,17 +106,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		if(!success) {
 			if (status == 404) {
 				// if process not found, fade out tab
-				this.fireEvent("taskRedundant");
-				
-				var ct = this.get(1);
-				ct.removeAll();
-				ct.add({
-					xtype: "itasks.ttc.finished",
-					subject: "Task completed",
-					description: "This task is completed or it's completion is no longer required.<br />Thank you for your effort.",
-					destroyCmp: this
-				});
-				this.doLayout();
+				this.fadeOut();
 			} else {
 				// error other than "not found"
 				Ext.Msg.alert('Error',"Error updating task: " + data);
@@ -181,21 +171,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			}
 		}
 	},
-	updateToolbar: function(properties) {		
-		var getUserName = function(name){
-			if(name.match("(.+)<(.+)>"))
-				return name.replace("(.+)<(.+)>", "$2");
-			else
-				return name;
-		}
-		
-		var cancelMI = this.getComponent(1).getTopToolbar().getComponent(0).menu.getComponent(4);
-		if(getUserName(properties.managerProperties.worker) == getUserName(properties.systemProperties.manager)){
-			cancelMI.enable();
-		}else{
-			cancelMI.disable();
-		}
-	},
 	cancel: function(){
 		var me = this;
 		
@@ -205,7 +180,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				var params = {};
 				var cb = function(data){
 					if(data.success)
-						me.update({},false);
+						me.fadeOut();
 					else
 						Ext.Msg.alert('Error','Failed to cancel task: '+data.error);
 				};		
@@ -269,6 +244,20 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		});
 		
 		w.show();
+	},
+	
+	fadeOut: function() {
+		this.fireEvent("taskRedundant");
+				
+		var ct = this.get(1);
+		ct.removeAll();
+		ct.add({
+			xtype: "itasks.ttc.finished",
+			subject: "Task completed",
+			description: "This task is completed or it's completion is no longer required.<br />Thank you for your effort.",
+			destroyCmp: this
+		});
+		this.doLayout();
 	}
 });
 
