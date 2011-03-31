@@ -120,6 +120,11 @@ splitWith f [x:xs]
 sortByIndex :: ![(!Int,!a)] -> [a]
 sortByIndex l = map snd (sortBy (\(a,_) (b,_) -> a < b) l)
 
+intersperse :: !a ![a] -> [a]
+intersperse i [] = []
+intersperse i [x] = [x]
+intersperse i [x:xs] = [x,i:intersperse i xs]
+
 encodeFunc :: !a -> [JSONNode]
 encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
 

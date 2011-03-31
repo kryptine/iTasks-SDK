@@ -127,7 +127,7 @@ where
 				| isRecordCons d
 					= ([HtmlFragment (TableTag [ClassAttr "viz-record"] (coerceToHtml viz))],vst)
 				| otherwise
-				= normalADTStaticViz viz vst
+					= normalADTStaticViz viz vst
 			VHtmlLabel
 				//For records only show the first field
 				| isRecordCons d
@@ -149,9 +149,9 @@ where
 		normalADTStaticViz viz vst
 			//When there are multiple constructors, also show the name of the constructor
 			| d.gcd_type_def.gtd_num_conses > 1
-				= ([TextFragment d.gcd_name,TextFragment " " :viz],vst)
+				= (intersperse (TextFragment " ") [TextFragment d.gcd_name:viz],vst)
 			| otherwise
-				= (viz,vst)
+				= (intersperse (TextFragment " ") viz,vst)
 
 gVisualize{|PAIR|} fx fy val vst
 	# (x,y)			= (fmap fromPAIRX val, fmap fromPAIRY val)
@@ -524,61 +524,6 @@ where
 		
 	empty = "Empty list"
 	
-gVisualize{|(,)|} f1 f2 val vst = visualizeCustom (tupleMkControl visChildren) (tupleStaticVis visChildren) val False vst
-where
-	visChildren val combF vst=:{useLabels}
-		# (v1,v2)		= maybe (Nothing,Nothing) (app2 (Just,Just)) val
-		# (viz1,vst)	= f1 v1 {VSt| vst & useLabels = False, label = Nothing}
-		# (viz2,vst)	= f2 v2 vst
-		= (combF [viz1,viz2],{vst & useLabels = useLabels})
-		
-gVisualize{|(,,)|} f1 f2 f3 val vst = visualizeCustom (tupleMkControl visChildren) (tupleStaticVis visChildren) val False vst
-where
-	visChildren val combF vst=:{useLabels}
-		# (v1,v2,v3)	= maybe (Nothing,Nothing,Nothing) (app3 (Just,Just,Just)) val
-		# (viz1,vst)	= f1 v1 {VSt| vst & useLabels = False, label = Nothing}
-		# (viz2,vst)	= f2 v2 vst
-		# (viz3,vst)	= f3 v3 vst
-		= (combF [viz1,viz2,viz3],{vst & useLabels = useLabels})
-		
-gVisualize{|(,,,)|} f1 f2 f3 f4 val vst = visualizeCustom (tupleMkControl visChildren) (tupleStaticVis visChildren) val False vst
-where
-	visChildren val combF vst=:{useLabels}
-		# (v1,v2,v3,v4) = maybe (Nothing,Nothing,Nothing,Nothing) (app4 (Just,Just,Just,Just)) val
-		# (viz1,vst)			= f1 v1 {VSt| vst & useLabels = False, label = Nothing}
-		# (viz2,vst)			= f2 v2 vst
-		# (viz3,vst)			= f3 v3 vst
-		# (viz4,vst)			= f4 v4 vst
-		= (combF [viz1,viz2,viz3,viz4],{vst & useLabels = useLabels})
-
-	app4 (fa,fb,fc,fd) (a,b,c,d) = (fa a, fb b, fc c, fd d)
-
-// tuple util functions	
-tupleMkControl visChildren _ id val _ label optional _ _ _ vst
-		# (vis,vst) = visChildren val (map coerceToTUIDefs) vst
-		= ([TUIStaticContainer	{ TUIStaticContainer
-								| id = id
-								, fieldLabel = label
-								, optional = optional
-								, items = flatten vis}],vst)
-								
-tupleStaticVis visChildren v _ _ vst=:{useLabels} = visChildren v addSeparators vst
-where
-	addSeparators items = addSeparators` (filter (not o isEmpty) items) []
-	
-	addSeparators` [] acc = flatten (reverse acc)
-	addSeparators` [viz:nextV] acc
-		# addSep = case nextV of
-			[[TextFragment _]:_]		= True
-			[[HtmlFragment (Text _)]:_]	= True
-			_							= False
-		# acc = case addSep of
-			True	= [separator,viz:acc]
-			False	= [viz:acc]
-		= addSeparators` nextV acc
-	
-	separator = [TextFragment ", "]
-	
 gVisualize{|Dynamic|}			_ vst	= noVisualization vst
 gVisualize{|(->)|} _ _			_ vst	= noVisualization vst
 gVisualize{|Shared|} _ _		_ vst	= noVisualization vst
@@ -638,7 +583,7 @@ gVisualize{|VisualizationHint|} fx val vst=:{currentPath, idPrefix, vizType, ori
 		(Just (VHEditable _))
 			= gVisualize{|* -> *|} fx (fmap Editable x) vst		
 
-derive gVisualize DateTime, Either, Void, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode
+derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

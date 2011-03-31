@@ -43,9 +43,10 @@ isRecordType	:: !GenericTypeDefDescriptor	-> Bool
 isRecordCons	:: !GenericConsDescriptor		-> Bool
 
 //List utility functions
-replaceInList	:: !(a a -> Bool) !a ![a] -> [a]
-splitWith		:: !(a -> Bool) ![a] -> (![a],![a])
-sortByIndex		:: ![(!Int,!a)] -> [a]
+replaceInList	:: !(a a -> Bool) !a ![a]	-> [a]
+splitWith		:: !(a -> Bool) ![a]		-> (![a],![a])
+sortByIndex		:: ![(!Int,!a)]				-> [a]
+intersperse		:: !a ![a]					-> [a]
 
 //Utility functions for custom JSON encoding / decoding
 encodeFunc :: !a -> [JSONNode]
