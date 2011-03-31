@@ -13,8 +13,8 @@ import GinORYXExtensions
 
 from Util import mb2list
 
-stencilService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
-stencilService url html path req tst
+stencilService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+stencilService url format path req tst
 	// Restore the session if supplied
 	# (mbErr,tst) = if ( sessionParam <> "") (initSession sessionParam tst) (Nothing,tst)	
 	| isJust mbErr = (errorResponse (fromJust mbErr), tst)
@@ -32,8 +32,9 @@ stencilService url html path req tst
 		_
 			= (notFoundResponse req, tst)
 where
-	sessionParam= paramValue "session" req
-	params 		= [("session", sessionParam, False)]
+	html			= format == "html"
+	sessionParam	= paramValue "session" req
+	params			= [("session", sessionParam, False)]
 	
 	errorResponse message
 		# json	= JSONObject [("success",JSONBool False),("error", JSONString message)]

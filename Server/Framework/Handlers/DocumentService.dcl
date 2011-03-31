@@ -6,4 +6,4 @@ definition module DocumentService
 */
 import HTTP, TSt
 
-documentService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+documentService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

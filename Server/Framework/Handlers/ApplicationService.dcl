@@ -5,4 +5,4 @@ definition module ApplicationService
 */
 import HTTP, TSt
 
-applicationService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+applicationService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

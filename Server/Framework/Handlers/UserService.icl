@@ -5,8 +5,9 @@ import HtmlUtil
 import UserDB
 import StdOrdList
 
-userService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
-userService url html path req tst
+userService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+userService url format path req tst
+	# html					= format == "html"
 	# (mbSessionErr,tst)	= initSession sessionParam tst
 	# (session,tst)			= getCurrentSession tst
 	= case path of

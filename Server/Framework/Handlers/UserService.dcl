@@ -5,4 +5,4 @@ definition module UserService
 */
 import HTTP, TSt
 
-userService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+userService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

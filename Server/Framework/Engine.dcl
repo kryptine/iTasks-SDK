@@ -9,6 +9,10 @@ from TSt		import :: Workflow
 from HTTP		import :: HTTPRequest, :: HTTPResponse
 from Config		import :: Config
 
+:: HandlerFormat :== String
+
+:: Handler :== (!String,![HandlerFormat],!String HandlerFormat [String] HTTPRequest *TSt -> *(!HTTPResponse, !*TSt))
+
 /**
 * Creates the iTasks system from a set of workflow definitions
 *
@@ -16,7 +20,7 @@ from Config		import :: Config
 * @param  A list of workflow definitions
 * @return A list of predicate/handler pairs that can be plugged into a server
 */
-engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]
+engine :: !(Maybe Config) ![Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))]
 
 /**
 * Loads the itasks specific config

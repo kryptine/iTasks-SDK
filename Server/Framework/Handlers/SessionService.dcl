@@ -5,4 +5,4 @@ definition module SessionService
 */
 import HTTP, TSt
 
-sessionService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+sessionService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

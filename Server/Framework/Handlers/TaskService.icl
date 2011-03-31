@@ -12,8 +12,9 @@ JSONEncode{|MenuItem|} v = case v of
 	
 JSONEncode{|HtmlTag|} htm = [JSONString (toString htm)]
 
-taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
-taskService url html path req tst
+taskService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+taskService url format path req tst
+	# html					= format == "html"
 	# (mbSessionErr,tst)	= initSession sessionParam tst
 	# (session,tst)			= getCurrentSession tst
 	= case path of

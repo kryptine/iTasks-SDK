@@ -5,6 +5,8 @@ import Engine
 import HTTP, HttpServer
 import Config
 
+import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService, StencilService
+
 startEngine :: ![Workflow] !*World -> *World 
 startEngine flows world
 	# (mbConfig,world)	= config world
@@ -13,7 +15,7 @@ startEngine flows world
 	# options			= case mbConfig of
 							Just config = [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
 							Nothing		= []
-	= http_startServer options (engine mbConfig flows) world
+	= http_startServer options (engine mbConfig flows handlers) world
 where
 	instructions :: !String !(Maybe Config) *World -> *World
 	//Normal operation
@@ -35,3 +37,13 @@ where
 		# console			= fwrites ("Please open http://localhost/ and follow instructions\n") console
 		# (_,world)			= fclose console world
 		= world
+		
+	handlers :: [Handler]
+	handlers =	[ ("application",	["html","json"],	applicationService)
+				, ("sessions",		["html","json"],	sessionService)
+				, ("workflows",		["html","json"],	workflowService)
+				, ("tasks",			["html","json"],	taskService)
+				, ("users",			["html","json"],	userService)
+				, ("documents",		["html","json"],	documentService)
+				, ("stencils",		["html","json"],	stencilService)
+				]

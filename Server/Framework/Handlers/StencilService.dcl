@@ -5,4 +5,4 @@ definition module StencilService
 */
 import HTTP, TSt
 
-stencilService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+stencilService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

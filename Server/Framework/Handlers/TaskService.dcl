@@ -6,4 +6,4 @@ definition module TaskService
 */
 import HTTP, TSt
 
-taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+taskService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

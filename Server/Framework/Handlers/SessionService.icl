@@ -6,8 +6,9 @@ import StdBool, StdList
 import JSON
 import HtmlUtil, Text
 
-sessionService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
-sessionService url html path req tst
+sessionService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+sessionService url format path req tst
+	# html = format == "html"
 	= case path of
 		//List all sessions that you are allowed to view
 		//The root user can view all sessions and any other user can view sessions owned by her

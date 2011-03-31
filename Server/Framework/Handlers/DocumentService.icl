@@ -6,8 +6,8 @@ import StdInt, StdList
 import HtmlUtil
 import DocumentDB
 
-documentService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
-documentService url html path req tst
+documentService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+documentService url format path req tst
 	# (mbSessionErr,tst)	= initSession sessionParam tst
 	# (session,tst)			= getCurrentSession tst
 	= case path of
@@ -52,6 +52,7 @@ documentService url html path req tst
 		_
 			= (notFoundResponse req,tst)
 where
+	html			= format == "html"
 	sessionParam	= paramValue "session" req
 	params			= [("session",sessionParam,True)]
 					  

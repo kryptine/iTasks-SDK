@@ -1,18 +1,12 @@
 implementation module Engine
 
 import StdMisc, StdArray, StdList, StdTuple, StdChar, StdFile, StdBool
-
 from StdFunc import o
-
 import	Store, UserDB, ProcessDB, SessionDB
 import	Util, HtmlUtil
 import	CommandLine, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
-
 import	TuningCombinators
 import	Setup
-
-import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService, StencilService
-
 import Config, TSt
 
 from UserAdmin	import manageUsers
@@ -21,15 +15,15 @@ from Lists		import manageLists
 from Groups		import manageGroups
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
-engine mbConfig userWorkflows	
+engine :: !(Maybe Config) ![Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] 
+engine mbConfig userWorkflows handlers
 	= case mbConfig of
 		Just config
-			= handlers config
+			= handlers` config
 		Nothing
-			= [(\_ -> True, setupHandler handlers)]
+			= [(\_ -> True, setupHandler handlers`)]
 where
-	handlers config
+	handlers` config
 		# flows = adminWorkflows ++ (if config.generalWorkflows generalWorkflows [] ) ++ userWorkflows
 		= [
 		  // Handler to stop the server nicely
@@ -52,22 +46,9 @@ where
 		# (response,tst) = case (split "/" reqpath) of
 			[""]								= (redirectResponse (req.req_path +++ "/html"), tst)
 			["","html"]							= (overviewResponse, tst)
-			["",format:path]
-				# html = format == "html"
-				# json = format == "json"
-				| html || json
-					= case path of
-						
-						["application":path]	= applicationService req.req_path html path req tst
-						["sessions":path]		= sessionService req.req_path html path req tst
-						["workflows":path]		= workflowService req.req_path html path req tst
-						["tasks":path]			= taskService req.req_path html path req tst
-						["users":path]			= userService req.req_path html path req tst
-						["documents":path]		= documentService req.req_path html path req tst
-						["stencils":path]		= stencilService req.req_path html path req tst
-						_						= (notFoundResponse req, tst)
-				| otherwise
-					= (notFoundResponse req, tst)
+			["",format,name:path] = case filter (\(name`,formats,_) -> name` == name && isMember format formats) handlers of
+				[(_,_,handler):_]	= handler req.req_path format path req tst
+				[]					= (notFoundResponse req, tst)
 			_
 				= (notFoundResponse req, tst)
 		# tst		= flushStore tst
