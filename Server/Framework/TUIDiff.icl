@@ -28,6 +28,13 @@ where
 				//If not same value, error or hint, create set instructions
 				= valueUpdate path old new
 			= case (old,new) of //Special cases
+				(TUIButton o,TUIButton n)
+					| o.TUIButton.action <> n.TUIButton.action || o.TUIButton.text <> n.TUIButton.text || o.TUIButton.iconCls <> n.TUIButton.iconCls
+						= [TUIReplace_ (dp2s path) new]
+					| o.TUIButton.disabled <> n.TUIButton.disabled
+						= [TUISetEnabled_ (dp2s path) (not n.TUIButton.disabled)]
+					| otherwise
+						= []
 				// Records are static except if they are optional
 				(TUIRecordContainer o, TUIRecordContainer n)
 					| o.TUIRecordContainer.optional <> n.TUIRecordContainer.optional = [TUIReplace_ (dp2s path) new]

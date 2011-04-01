@@ -12,13 +12,12 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	| TUIAddTo			!TUIId !TUIDef	// Add the additional component as a child of the component with indicated id
 	| TUIRemove			!TUIId			// Remove the component with indicated id
 	| TUIReplace		!TUIId !TUIDef	// Replace a component
-	| TUISetEnabled		!TUIId !Bool	// Enable/disable form elements
-	| TUIReplaceButtons	![TUIDef]		// Replace all task's buttons
 	//NEW COMMANDS:
 	//Leaf updates
 	| TUISetValue_		!TUIPath !String	// Set the value of a component
 	| TUISetError_		!TUIPath !String	// Set the error messages on a component
 	| TUISetHint_		!TUIPath !String	// Set the hint messages on a component
+	| TUISetEnabled_	!TUIPath !Bool		// Enable/disable form elements
 	//| TUISetEnabled_	!TUIPath !Bool
 	//Complete replacement
 	| TUIReplace_		!TUIPath !TUIDef

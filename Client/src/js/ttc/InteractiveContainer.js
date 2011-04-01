@@ -53,16 +53,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 						break;
 					case "TUIReplace":
 						this.replaceComponent(update[1],update[2]);						
-						break;
-					case "TUISetEnabled":
-						this.enableComponent(update[1],update[2]);
-						break;
-					case "TUIReplaceButtons":
-						var fbar = this.interactionpanel.getFooterToolbar();
-						fbar.removeAll();
-						fbar.add(update[1]);
-						fbar.doLayout();
-						break;						
+						break;		
 					//New instructions:
 					case "TUISetValue_":
 						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
@@ -81,6 +72,11 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 					case "TUISetHint_":
 						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
 							cmp.setHint(update[2]);
+						}
+						break;
+					case "TUISetEnabled_":
+						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
+							cmp.setDisabled(!update[2]);
 						}
 						break;
 					case "TUIReplace_":
@@ -234,12 +230,6 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		oct.insert(index, cmp);
 	
 		oct.doLayout();	
-	},
-	enableComponent : function(id,enabled){
-		var ct = Ext.getCmp(id);
-		if(ct && ct.setDisabled) {
-			ct.setDisabled(!enabled);
-		}
 	}
 });
 
