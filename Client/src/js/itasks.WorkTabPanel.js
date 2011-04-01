@@ -127,6 +127,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	
 		//Enable download / preview links
 		itasks.ttc.common.attachDocumentLinkInformation();
+		
+		if (data.warning)
+			Ext.Msg.alert("Warning",data.warning);
 	},
 	updateTitle: function(subject) {
 		this.setTitle(Ext.util.Format.ellipsis(subject,10));

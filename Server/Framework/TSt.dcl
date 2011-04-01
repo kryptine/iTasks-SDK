@@ -321,7 +321,7 @@ applyTaskEdit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 applyTaskCommit			:: !(Task a) !(Maybe (!Int,!TaskContainerType)) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 
 //// TASK CONTENT
-setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt						-> *TSt // Only for interactive tasks
+setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt // Only for interactive tasks
 
 //EVENTS
 //Get edit events for current task of which the name is a datapath

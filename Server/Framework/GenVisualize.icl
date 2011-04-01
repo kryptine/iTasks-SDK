@@ -87,7 +87,8 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,idPrefix,label,currentPath,select
 													| id = ""
 													, fieldLabel = label
 													, optional = optional
-													, items = coerceToTUIDefs vis})]
+													, items = coerceToTUIDefs vis
+													, layout = Vertical})]
 					,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
 		_
 			# (viz,vst) = fx x vst

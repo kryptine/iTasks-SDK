@@ -1,7 +1,8 @@
 Ext.ns('itasks.ttc');
 
 itasks.ttc.Button = Ext.extend(Ext.Button, {
-
+	margins: {top:3, right:3, bottom:3, left:3},
+	minWidth: 75,
 	initComponent: function() {
 	
 		this.listeners = {click: {fn: this.onActionClick, scope: this}};

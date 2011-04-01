@@ -28,9 +28,7 @@ where
 			= (TTFinishedTask ti result show,[],iworld)
 		TTInteractiveTask ti interactiveType (tuiF,_)
 			# (tui,actions,iworld) = tuiF iworld
-			= case tui of
-				Definition def _	= (TTInteractiveTask ti interactiveType (Definition def []),addTaskIds ti.TaskInfo.taskId actions,iworld)
-				Updates upd _		= (TTInteractiveTask ti interactiveType (Updates upd []),addTaskIds ti.TaskInfo.taskId actions,iworld)
+			= (TTInteractiveTask ti interactiveType tui,addTaskIds ti.TaskInfo.taskId actions,iworld)
 		TTParallelTask ti containers
 			# containers							= sortBy (\(TTParallelContainer idx0 _ _ _) (TTParallelContainer idx1 _ _ _) -> idx0 < idx1) containers
 			# (mbSubContainersAndActions,iworld)	= mapSt toUIParallelTreeContainer containers iworld
@@ -123,12 +121,11 @@ where
 				
 	mkButtons :: !SubtaskActions !UITree -> UITree
 	mkButtons actions tree = case tree of
-		TTInteractiveTask ti interactiveType output
-			# buttons = mkButtons` ti.TaskInfo.taskId
-			= case output of
-				Definition def []	= TTInteractiveTask ti interactiveType (Definition def buttons)
-				Updates upd []		= TTInteractiveTask ti interactiveType (Updates upd buttons)
-				_					= TTInteractiveTask ti interactiveType output
+		interactiveNode=:(TTInteractiveTask ti interactiveType tui)
+			# buttons			= mkButtons` ti.TaskInfo.taskId
+			| isEmpty buttons	= interactiveNode
+			# buttonContainer	= TUIStaticContainer {TUIStaticContainer|id = "", items = buttons, fieldLabel = Nothing, optional = False, layout = Horizontal HRight}
+			= TTInteractiveTask ti interactiveType (addButtons buttonContainer tui)
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
 		other
@@ -149,6 +146,12 @@ where
 												, text = actionLabel action
 												, iconCls = actionIcon action
 												}
+		
+		addButtons :: !TUIDef !TUIDef -> TUIDef
+		addButtons buttons def = case def of
+			TUIStaticContainer c	= TUIStaticContainer {TUIStaticContainer|c & items = c.TUIStaticContainer.items ++ [buttons]}
+			tui						= TUIStaticContainer {TUIStaticContainer|id = "", items = [tui,buttons], fieldLabel = Nothing, optional = False, layout = Vertical}
+	
 			
 	addTaskIds :: !TaskId ![(!Action,!Bool)] -> SubtaskActions
 	addTaskIds taskId l = map (\(a,e) -> (taskId,a,e)) l

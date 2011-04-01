@@ -1,9 +1,23 @@
 implementation module TaskService
 
-import StdList, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel
+import StdList, StdBool, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel, TaskPanelClientEncode
+
+derive JSONEncode TaskPanel, TTCInteractiveContainer, InteractiveTaskType, TTCResultContainer, TTCParallelContainer
+derive JSONEncode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
+derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
+derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
+derive JSONEncode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree, TUILayout, HAlignment
+
+derive JSONDecode TaskPanel, TTCInteractiveContainer, InteractiveTaskType, TTCResultContainer, TTCParallelContainer
+derive JSONDecode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
+derive JSONDecode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
+derive JSONDecode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
+derive JSONDecode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree, TUILayout, HAlignment
+
+derive bimap Maybe, (,)
 
 //Additional derives for debugging
-derive JSONEncode TaskTree, TaskInfo, Hotkey, Key, InteractiveTask, Menu, TTContainerType, TaskTreeContainer, ParallelTaskTreeContainer
+derive JSONEncode TaskTree, TaskInfo, Menu, TTContainerType, TaskTreeContainer, ParallelTaskTreeContainer
 
 JSONEncode{|MenuItem|} v = case v of
 	MenuItem action mbHotkey	= [JSONArray [JSONString "MenuItem" : JSONEncode{|*|} (menuAction action) ++ JSONEncode{|*|} mbHotkey]]
@@ -106,16 +120,32 @@ taskService url format path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					# task			= taskItem proc
+					# task				= taskItem proc
+					# tuiStoreId		= iTaskId taskId "tui"
+					# (mbOld,tst)		= accIWorldTSt (loadValueAndTimestamp tuiStoreId) tst
+					# mbOutdatedWarning = case mbOld of
+						Just (_,oldTimestamp) | timestampParam <> "" && Timestamp (toInt timestampParam) < oldTimestamp
+										= Just ("warning",JSONString "The client is outdated. The form was refreshed with the most recent value.")
+						_
+										= Nothing
 					//Events are posted as a list of triplets
-					# events		= case (fromJSON (fromString eventsParam)) of
-						Just events		= events
-						Nothing			= []
+					# events = case fromJSON (fromString eventsParam) of
+						Just events | isNothing mbOutdatedWarning // ignore edit events of outdated clients
+										= events
+						_				
+										= []
 					# (cont,tst)		= calculateTaskTreeContainer taskId events tst
 					# (timestamp,tst)	= getTimestamp tst
 					# (uiContent,tst)	= accIWorldTSt (toUITreeContainer cont) tst
-					# tui				= buildTaskPanel uiContent
-					# json				= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",toJSON tui)]
+					# new				= buildTaskPanel uiContent
+					
+					# tst				= appIWorldTSt (storeValue tuiStoreId new) tst
+					# tui = case mbOld of
+						Just (old,_) | timestampParam <> "" && isNothing mbOutdatedWarning
+										= diffTaskPanels old new
+						_
+										= new
+					# json				= JSONObject ([("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",clientEncodeTaskPanel tui)] ++ maybeToList mbOutdatedWarning)
 					= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,tst)
 		//Cancel / Abort / Delete the current task
 		[taskId,"cancel"]
@@ -162,6 +192,7 @@ taskService url format path req tst
 where
 	sessionParam	= paramValue "session" req
 	userParam		= paramValue "user" req
+	timestampParam	= paramValue "timestamp" req
 	
 	createParams	= [("session",sessionParam,True),("workflow",workflowParam,True),("parameter",paramParam,False)]
 	workflowParam	= paramValue "workflow" req

@@ -1,7 +1,6 @@
 Ext.ns('itasks.ttc');
 
 itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
-	//hidden: true,
 	initComponent : function() {
 		switch(this.type){
 			case 'Information':
@@ -30,8 +29,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 			layout: 'form',
 			unstyled: true,
 			autoScroll: true,
-			items: data.content.form,
-			buttons: data.content.buttons
+			items: data.content
 		};
 	},
 	update: function(data) {

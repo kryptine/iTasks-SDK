@@ -10,21 +10,21 @@ from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: SpineTreeContainer					:== TaskTreeContainer Void Void Void Void
-:: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType InteractiveTask HtmlTag
+:: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType TUIDef HtmlTag
 :: JSONTreeContainer					:== TaskTreeContainer Void Void JSONNode JSONNode
 :: NonNormalizedTreeContainer			:== TaskTreeContainer ActionMenu TaskContainerType TTNNInteractiveTask TTNNFinished
 
 :: SpineParallelTreeContainer			:== ParallelTaskTreeContainer Void Void Void
-:: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType InteractiveTask HtmlTag
+:: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType TUIDef HtmlTag
 :: JSONParallelTreeContainer			:== ParallelTaskTreeContainer Void JSONNode JSONNode
 :: NonNormalizedParallelTreeContainer	:== ParallelTaskTreeContainer TaskContainerType TTNNInteractiveTask TTNNFinished
 
 :: SpineTree							:== TaskTree Void Void Void
-:: UITree								:== TaskTree TTContainerType InteractiveTask HtmlTag
+:: UITree								:== TaskTree TTContainerType TUIDef HtmlTag
 :: JSONTree								:== TaskTree Void JSONNode JSONNode
 :: NonNormalizedTree					:== TaskTree TaskContainerType TTNNInteractiveTask TTNNFinished
 
-:: TTNNInteractiveTask					:== (*IWorld -> *(!InteractiveTask,![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
+:: TTNNInteractiveTask					:== (*IWorld -> *(!TUIDef,![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished							:== (HtmlTag,JSONNode)
 
 //A container used for tree representing top level tasks (including the menu, the actual tree & a flag indicating if the task is a control task)
@@ -51,10 +51,6 @@ from TUIDefinition	import :: TUIDef, :: TUIUpdate
 				, tags					:: ![String]
 				, formWidth				:: !Maybe FormWidth
 				}
-
-// definition/updates for interactive tasks
-:: InteractiveTask	= Definition	!TUIDef			![TUIDef]	//Definition for rendering a user interface & buttons
-					| Updates		![TUIUpdate]	![TUIDef]	//Update an already rendered user interface & buttons
 
 toSpineTreeContainer	:: !NonNormalizedTreeContainer			-> SpineTreeContainer
 toUITreeContainer		:: !NonNormalizedTreeContainer !*IWorld	-> (!UITreeContainer,!*IWorld)

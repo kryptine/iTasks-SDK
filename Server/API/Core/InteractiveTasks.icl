@@ -8,14 +8,7 @@ from ExceptionCombinators	import :: SharedException(..), instance toString Share
 
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
 derive JSONDecode UpdateMask, VerifyMask, ErrorMessage
-derive JSONEncode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
-derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
-derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
-derive JSONEncode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree
-derive JSONDecode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
-derive JSONDecode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
-derive JSONDecode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
-derive JSONDecode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree
+
 derive bimap Maybe,(,)
 
 always :: (Verified a) -> Bool
@@ -42,8 +35,6 @@ where
 		# (old=:(ovalue,oumask,ovmask),tst)	= accIWorldTSt (readStores taskNr) tst
 		# (localTimestamp,tst)				= accIWorldTSt (getLocalTimestamp taskNr) tst
 		# (mbClientTimestamp,tst)			= clientTimestamp tst
-		# outdatedClient					= maybe False (\clientTimestamp -> clientTimestamp < localTimestamp) mbClientTimestamp
-		| outdatedClient					= appIWorldTSt (setCommitPassInfo taskNr (commitPassInfo outdatedClient False edits localTimestamp mbClientTimestamp)) tst // ignore edit events of outdated clients
 		// check for edit/value event
 		# (mbNew,tst) = case (edits,mbValueEvent) of
 			(edits,_) | not (isEmpty edits) // edit event
@@ -71,11 +62,10 @@ where
 				= (conflict,tst)
 			Nothing
 				= (False,tst)
-		= appIWorldTSt (setCommitPassInfo taskNr (commitPassInfo outdatedClient conflict edits localTimestamp mbClientTimestamp)) tst
+		= appIWorldTSt (setCommitPassInfo taskNr (commitPassInfo conflict edits localTimestamp mbClientTimestamp)) tst
 	where
-		commitPassInfo outdatedClient editConflict edits localTimestamp mbClientTimestamp
-			=	{ outdatedClient		= outdatedClient
-				, editConflict			= editConflict
+		commitPassInfo editConflict edits localTimestamp mbClientTimestamp
+			=	{ editConflict			= editConflict
 				, updatedPaths			= map (dataPathList o fst) edits
 				, localTimestamp		= localTimestamp
 				, clientTimestampSent	= isJust mbClientTimestamp
@@ -108,7 +98,6 @@ where
 		tuiFunc iworld
 			# ((modelV,_),iworld)				= appFst fromOk (readModelValue taskNr iworld)
 			# (info,iworld)						= getCommitPassInfo taskNr iworld
-			# (mbOldViz,iworld)					= readTUIDef taskNr iworld
 			# ((nvalue,numask,nvmask),iworld)	= newViewValue taskNr iworld
 			# form 								= visualizeAsEditor (editorId taskNr) nvalue nvmask
 			# (mbContext,iworld) = case mbAbout of
@@ -116,13 +105,8 @@ where
 				Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
 				Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (readShared ref iworld)
 			# tui								= taskPanel taskNr mbContext form
-			# iworld							= setTUIDef taskNr tui iworld
 			# evalActions						= evaluateConditions actions (isValidValue nvmask) modelV
-			| not info.clientTimestampSent || info.outdatedClient || isNothing mbOldViz // refresh UI if client is outdated, no timestamp is send (refresh) or task is new for this request (no old value stored)
-				= (Definition tui [],evalActions,iworld)
-			| otherwise	// update UI
-				# updates						= diffEditorDefinitions (fromJust mbOldViz) tui (map dataPathFromList info.updatedPaths)
-				= (Updates updates [],evalActions,iworld)
+			= (tui,evalActions,iworld)
 
 	// for local mode use auto generated store name, for shared mode use given store
 	shared taskNr = case interactiveTaskMode of
@@ -182,27 +166,24 @@ where
 		# ((modelV,modelT),iworld)				= appFst fromOk (readModelValue taskNr iworld)
 		# (info,iworld)							= getCommitPassInfo taskNr iworld
 		// rebuild view value from model if not in enter mode, model is newer than local value or an error occurred and valid was not updated to an invalid one this request
-		= case not enterMode && (info.localTimestamp < modelT && (isEmpty info.updatedPaths || isValidValue nvmask) || info.editConflict || info.outdatedClient) of
+		= case not enterMode && (info.localTimestamp < modelT && (isEmpty info.updatedPaths || isValidValue nvmask) || info.editConflict) of
 			True
-				# errors = case (info.outdatedClient,info.editConflict) of
-					(True,_)					= map (\p -> (dataPathFromList p,ErrorMessage "The client is outdated. The form was refreshed with the most recent value.")) info.updatedPaths
-					(_,True)					= map (\p -> (dataPathFromList p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) info.updatedPaths
-					_							= []
+				# errors = case info.editConflict of
+					True						= map (\p -> (dataPathFromList p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) info.updatedPaths
+					False						= []
 				= updateViewValue taskNr bimapGet new modelV modelT errors iworld
 			False
 				= (new,iworld)
 
 // store for information provided to the commit pass
-:: CommitPassInfo =	{ outdatedClient		:: !Bool
-					, editConflict			:: !Bool
+:: CommitPassInfo =	{ editConflict			:: !Bool
 					, updatedPaths			:: ![[Int]] // encoded as list of integers because DataPath can't be stored
 					, localTimestamp		:: !Timestamp
 					, clientTimestampSent	:: !Bool
 					}
 derive JSONEncode CommitPassInfo
 derive JSONDecode CommitPassInfo
-					
-// outdated client & conflict flag & update paths
+
 setCommitPassInfo :: !TaskNr !CommitPassInfo !*IWorld -> *IWorld
 setCommitPassInfo taskNr info iworld = setTaskStoreFor taskNr "commit-info" info iworld
 getCommitPassInfo :: !TaskNr !*IWorld -> (!CommitPassInfo,!*IWorld)
@@ -210,8 +191,7 @@ getCommitPassInfo taskNr iworld=:{IWorld|timestamp}
 	# (mbInfo,iworld) = getTaskStoreFor taskNr "commit-info" iworld
 	= (fromMaybe defaultInfo mbInfo,iworld)
 where
-	defaultInfo =	{ outdatedClient		= False
-					, editConflict			= False
+	defaultInfo =	{ editConflict			= False
 					, updatedPaths			= []
 					, localTimestamp		= timestamp
 					, clientTimestampSent	= True
@@ -254,9 +234,6 @@ readUMask taskNr iworld = appFst fromJust (getTaskStoreFor taskNr "umask" iworld
 
 readVMask :: !TaskNr !*IWorld -> *(!VerifyMask,!*IWorld)	
 readVMask taskNr iworld = appFst fromJust (getTaskStoreFor taskNr "vmask" iworld)
-
-readTUIDef :: !TaskNr !*IWorld -> *(!Maybe TUIDef,!*IWorld)
-readTUIDef taskNr iworld = getTaskStoreFor taskNr "tui-def" iworld
 		
 setStores :: !TaskNr !(!a,!UpdateMask,!VerifyMask) !*IWorld -> *IWorld | JSONEncode{|*|} a & JSONDecode{|*|} a & TC a			
 setStores taskNr (value,umask,vmask) iworld
@@ -264,9 +241,6 @@ setStores taskNr (value,umask,vmask) iworld
 	# iworld			= setTaskStoreFor taskNr "umask" umask iworld
 	# iworld			= setTaskStoreFor taskNr "vmask" vmask iworld
 	= iworld
-	
-setTUIDef :: !TaskNr !TUIDef !*IWorld -> *IWorld	
-setTUIDef taskNr tuiDef iworld = setTaskStoreFor taskNr "tui-def" tuiDef iworld
 
 getLocalTimestamp :: !TaskNr !*IWorld -> *(!Timestamp,!*IWorld)			
 getLocalTimestamp taskNr iworld
@@ -288,7 +262,7 @@ clientTimestamp tst=:{request}
 taskPanel :: !TaskNr !(Maybe HtmlTag) ![TUIDef] -> TUIDef
 taskPanel taskNr mbContext form = case maybeToList (fmap (taskContextPanel taskNr) mbContext) ++ form of
 	[item]	= item
-	items	= TUIStaticContainer {TUIStaticContainer|id = "", items = items, fieldLabel = Nothing, optional = False}
+	items	= TUIStaticContainer {TUIStaticContainer|id = "", items = items, fieldLabel = Nothing, optional = False, layout = Vertical}
 	
 taskContextPanel :: !TaskNr !a -> TUIDef | toString a		
 taskContextPanel taskNr context = TUIHtmlContainer	{ TUIHtmlContainer

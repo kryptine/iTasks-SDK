@@ -2,8 +2,6 @@ definition module TaskPanel
 
 import JSON, TUIDefinition, Types, TaskTree
 
-derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
-
 :: TaskPanel
 	= TaskDone
 	| TaskNotDone
@@ -12,16 +10,11 @@ derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 	| TTCResultContainer !TTCResultContainer
 	| TTCParallelContainer !TTCParallelContainer
 
-:: FormContent =
-	{ form		:: !TUIDef
-	, buttons	:: ![TUIDef]
-	}
-
 :: TTCInteractiveContainer = 
 	{ xtype			:: !String
 	, id			:: !String
 	, taskId		:: !TaskId
-	, content		:: !(Maybe FormContent)
+	, content		:: !(Maybe TUIDef)
 	, updates		:: !(Maybe [TUIUpdate])
 	, subject		:: !String
 	, description	:: !String
@@ -47,5 +40,7 @@ derive JSONEncode TaskPanel, InteractiveTaskType, TUIUpdate, TUIDef
 	, menu			:: ![TUIDef]
 	}
 
-buildTaskPanel 		:: !UITreeContainer	-> TaskPanel
-buildResultPanel 	:: !UITreeContainer	-> TaskPanel
+buildTaskPanel 		:: !UITreeContainer			-> TaskPanel
+buildResultPanel 	:: !UITreeContainer			-> TaskPanel
+diffTaskPanels		:: !TaskPanel !TaskPanel	-> TaskPanel
+

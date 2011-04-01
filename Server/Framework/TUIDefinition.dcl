@@ -152,6 +152,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, items			:: ![TUIDef]
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
+	, layout		:: !TUILayout
 	}
 :: TUIRecordContainer = 
 	{ id			:: !TUIId
@@ -244,3 +245,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 getTUIId	:: !TUIDef -> Maybe TUIId
 childrenOf	:: !TUIDef -> [TUIDef]
 valueOf		:: !TUIDef -> Maybe String
+
+:: TUILayout = Horizontal HAlignment | Vertical
+
+:: HAlignment = HLeft | HCenter | HRight

@@ -6,9 +6,7 @@ itasks.tui.StaticContainer = Ext.extend(Ext.Container,{
 		
 		this.unstyled = true;
 		this.autoHeight = true;
-		
-		this.layout = 'form';
-				
+
 		if(this.fieldLabel == null) {
 			delete this.fieldLabel;
 		} else {
