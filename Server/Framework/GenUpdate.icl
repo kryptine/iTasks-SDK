@@ -325,9 +325,6 @@ derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Times
 dp2s :: !DataPath -> String
 dp2s (DataPath path) = join "-" (map toString (reverse path))
 
-dp2id :: !String !DataPath -> String
-dp2id prefix path = prefix +++ "-" +++ dp2s path 
-
 s2dp :: !String -> DataPath
 s2dp str = DataPath (reverse (map toInt (split "-" str)))
 

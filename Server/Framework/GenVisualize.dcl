@@ -17,17 +17,16 @@ derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Cu
 derive gVisualize EmailAddress, Action, Table, HtmlDisplay
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !String !a !VerifyMask	-> [TUIDef]	| gVisualize{|*|} a
-visualizeAsHtmlDisplay	:: !a						-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextDisplay	:: !a						-> String	| gVisualize{|*|} a
-visualizeAsHtmlLabel	:: !a						-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextLabel	:: !a						-> String	| gVisualize{|*|} a
+visualizeAsEditor		:: !a !VerifyMask	-> [TUIDef]	| gVisualize{|*|} a
+visualizeAsHtmlDisplay	:: !a				-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextDisplay	:: !a				-> String	| gVisualize{|*|} a
+visualizeAsHtmlLabel	:: !a				-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextLabel	:: !a				-> String	| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
 	{ vizType			:: !VisualizationType			// Type of preferred visualization
 	, origVizType		:: !VisualizationType			// Type of the preferred visualization at initialization, this should not be edited.
-	, idPrefix			:: !String						// Prefix for all identity strings of editor fields 
 	, label				:: !Maybe String				// Optional label to attach to editor fields
 	
 	// Additional information for form generation
@@ -50,7 +49,6 @@ visualizeAsTextLabel	:: !a						-> String	| gVisualize{|*|} a
 	= TextFragment !String
 	| HtmlFragment !HtmlTag
 	| TUIFragment !TUIDef
-	| TUIUpdate !TUIUpdate
 
 //Utility functions making specializations of gVisualize
 
@@ -119,7 +117,6 @@ visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Mayb
 * A function for generating TUI definitions.
 *
 * @param The name of the TUI element
-* @param The id of the TUI element
 * @param The value of the TUI element (if present & touched)
 * @param The field label (if present)
 * @param A flag indicating if the value is optional
@@ -128,13 +125,12 @@ visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Mayb
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction				a :== 	(TUIName TUIId (Maybe a) (Maybe String) Bool String String -> TUIDef)
+:: TUIVizFunction				a :== 	(TUIName (Maybe a) (Maybe String) Bool String String -> TUIDef)
 
 /**
 * A function using VSt for generating TUI definitions.
 *
 * @param The name of the TUI element
-* @param The id of the TUI element
 * @param The value of the TUI element (if present)
 * @param A flag indicating if the value is touched
 * @param The field label (if present)
@@ -146,7 +142,7 @@ visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Mayb
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunctionCustom			a :==	(TUIName TUIId (Maybe a) Bool (Maybe String) Bool String String Bool -> .(*VSt -> *(![TUIDef],!*VSt)))
+:: TUIVizFunctionCustom			a :==	(TUIName (Maybe a) Bool (Maybe String) Bool String String Bool -> .(*VSt -> *(![TUIDef],!*VSt)))
 /**
 * Functions for string and html visualizations.
 *
@@ -156,21 +152,19 @@ visualizeCustom :: !(TUIVizFunctionCustom a) !(StaticVizFunctionCustom a) !(Mayb
 *
 * html function:
 * @param The value to visualize (if present)
-* @param The element's id
 * @return The generated html visualization
 */
-:: StaticVizFunctions			a :==	((Maybe a) -> String, (Maybe a) TUIId -> HtmlTag)
+:: StaticVizFunctions			a :==	((Maybe a) -> String, (Maybe a) -> HtmlTag)
 /**
 * A custom function for generating static visualizations.
 *
 * @param The value to visualize (if present)
 * @param A flag indicating if the value is touched
-* @param The element's id
 * @param VSt
 *
 * @return VSt
 */
-:: StaticVizFunctionCustom		a :==	((Maybe a) Bool TUIId -> .(*VSt -> *(![Visualization],!*VSt)))
+:: StaticVizFunctionCustom		a :==	((Maybe a) Bool -> .(*VSt -> *(![Visualization],!*VSt)))
 										
 /**
 * Generates functions for static visualizations a single function for text visualizations.

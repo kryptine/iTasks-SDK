@@ -62,7 +62,6 @@ dataPathList 			:: !DataPath 		-> [Int]
 dataPathFromList		:: ![Int]			-> DataPath
 
 dp2s			:: !DataPath			-> String
-dp2id			:: !String !DataPath	-> String
 s2dp			:: !String				-> DataPath
 isdps			:: !String				-> Bool
 

@@ -2,7 +2,6 @@ implementation module MonitorTasks
 
 import StdBool, StdTuple, StdFunc, Util, Shared, Task, TSt, InteractiveTasks
 from Shared				import :: Shared
-from TaskPanel			import :: InteractiveTaskType(..)
 
 monitor :: !d !(m -> v) !(m -> Bool) !Bool !(Shared m w) -> Task m | descr d & iTask m & iTask v
 monitor d view pred autoContinue shared

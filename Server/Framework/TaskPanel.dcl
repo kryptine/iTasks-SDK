@@ -1,6 +1,7 @@
 definition module TaskPanel
 
 import JSON, TUIDefinition, Types, TaskTree
+from TUIDiff import :: TUIUpdate
 
 :: TaskPanel
 	= TaskDone

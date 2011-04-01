@@ -30,7 +30,9 @@ documentService url format path req tst
 				= (serviceResponse html "Upload document" uploadDescription url params json, tst)		
 			# (documents, tst) = createDocuments uploads tst
 			# json = JSONObject [("success",JSONBool True),("documents", toJSON documents)]
-			= (serviceResponse html "Upload document" uploadDescription url params json, tst)
+			# resp = serviceResponse html "Upload document" uploadDescription url params json
+			// response of upload must use content-type "text/html"
+			= ({resp & rsp_headers = put "Content-Type" "text/html" resp.rsp_headers},tst)
 		//Requests for a single request
 		[documentId]
 			| isJust mbSessionErr

@@ -30,7 +30,7 @@ where
 	header = [H1Tag [] [Text title],PTag [] [DivTag [ClassAttr "description"] [RawText description]]]
 
 
-servicePage :: !String !String !String ![(String,String,Bool)] JSONNode -> HtmlTag
+servicePage :: !String !String !String ![(String,String,Bool)] !JSONNode -> HtmlTag
 servicePage title description url params json = pageLayout title description [parameters, message, alternatives]
 where
 	parameters	= pageSection "Parameters" [FormTag [ActionAttr url,MethodAttr "get"] [TableTag [ClassAttr "parameters"] (rows ++ send)]]
@@ -40,7 +40,7 @@ where
 	jsonurl		= replaceSubString "services/html" "services/json" url
 	alternatives= pageSection "Alternative representations" [PTag [] [Text "JSON: ", ATag [HrefAttr jsonurl] [Text jsonurl]]]
 	
-serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] JSONNode -> HTTPResponse
+serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] !JSONNode -> HTTPResponse
 serviceResponse html title description url params json =
 		if html	{newHTTPResponse & rsp_data = toString (servicePage title description url params json)}
 				{ newHTTPResponse
@@ -50,7 +50,7 @@ serviceResponse html title description url params json =
 				}
 
 
-formatJSON :: JSONNode -> [HtmlTag]
+formatJSON :: !JSONNode -> [HtmlTag]
 formatJSON (JSONNull)			= [Text "null"]
 formatJSON (JSONBool True)		= [Text "true"]
 formatJSON (JSONBool False)		= [Text "false"]

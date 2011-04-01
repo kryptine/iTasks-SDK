@@ -10,7 +10,7 @@ import GinORYX
 
 gVisualize {|ORYXEditor|} val vst = visualizeControl mkControl (mkText,mkHtml) val vst
 where
-	mkControl name id val _ _ err hnt
+	mkControl name val _ _ err hnt
 		= TUIORYXControl oryx
 	where
 	    oryx
@@ -19,7 +19,6 @@ where
 				Just editor		= editor
 	        =	{ TUIORYXControl
 		        | name = name
-		        , id = id
 		        , value = toString (toJSON value.ORYXEditor.diagram)
 		        , errorMsg = err
 		        , hintMsg = hnt
@@ -27,7 +26,7 @@ where
 		        }
 		        
 	mkText v = "(ORYX editor: No textual representation available)"
-	mkHtml v _ = nl2br (mkText v)
+	mkHtml v = nl2br (mkText v)
 
 gUpdate{|ORYXEditor|} mode ust = basicUpdate mode parseUpdate emptyORYXEditor ust
 where

@@ -7,28 +7,6 @@ definition module TUIDefinition
 import JSON, GenEq
 from Types import :: Document(..), :: DocumentId, :: Hotkey
 
-:: TUIUpdate
-	= TUIAdd			!TUIId !TUIDef	// Add the additional component *after* the component with indicated id
-	| TUIAddTo			!TUIId !TUIDef	// Add the additional component as a child of the component with indicated id
-	| TUIRemove			!TUIId			// Remove the component with indicated id
-	| TUIReplace		!TUIId !TUIDef	// Replace a component
-	//NEW COMMANDS:
-	//Leaf updates
-	| TUISetValue_		!TUIPath !String	// Set the value of a component
-	| TUISetError_		!TUIPath !String	// Set the error messages on a component
-	| TUISetHint_		!TUIPath !String	// Set the hint messages on a component
-	| TUISetEnabled_	!TUIPath !Bool		// Enable/disable form elements
-	//| TUISetEnabled_	!TUIPath !Bool
-	//Complete replacement
-	| TUIReplace_		!TUIPath !TUIDef
-	| TUIUpdate_		!TUIPath !TUIDef	// Let a component update itself with a new TUI definition (for custom components)
-	//Structure edits
-	//| TUIAdd_			!TUIPath Int !TUIDef	//Add child element after index
-	//| TUIRemove_		!TUIPath Int			//Remove child element at index
-	//| TUIReorder_		!TUIPath Int Int		//Move child element from index to index
-
-:: TUIId	:== String
-:: TUIPath	:== String
 :: TUIName	:== String
 
 :: TUIDef
@@ -68,7 +46,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 
 :: TUIBasicControl =
 	{ name			:: !TUIName
-	, id			:: !TUIId
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
@@ -76,9 +53,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, hintMsg		:: !String
 	}
 :: TUIChoiceControl =
-	{ name			:: !TUIName
-	, id			:: !TUIId
-	, dataPath		:: !String
+	{ dataPath		:: !String
 	, fieldLabel	:: !Maybe String
 	, allowMultiple	:: !Bool
 	, optional		:: !Bool
@@ -89,7 +64,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	}
 :: TUITreeControl =
 	{ name			:: !TUIName
-	, id			:: !TUIId
 	, tuiTree		:: ![TUITree]
 	, selIndex		:: !Maybe Int
 	, fieldLabel	:: !Maybe String
@@ -98,15 +72,13 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, hintMsg		:: !String
 	}
 :: TUITree =
-	{ id		:: !Maybe TUIId
-	, text		:: !String
+	{ text		:: !String
 	, children	:: !Maybe [TUITree]
 	, leaf		:: !Bool
 	, index		:: !Maybe Int
 	}
 :: TUICurrencyControl =
 	{ name			:: !TUIName
-	, id			:: !TUIId
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
 	, currencyLabel	:: !String
@@ -115,8 +87,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, hintMsg		:: !String
 	}
 :: TUIDocumentControl = 
-	{ id			:: !TUIId
-	, name			:: !TUIName
+	{ name			:: !TUIName
 	, document		:: !Document
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
@@ -125,7 +96,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	}
 :: TUIButtonControl =
 	{ name			:: !TUIName
-	, id			:: !TUIId
 	, value			:: !String
 	, label			:: !String
 	, iconCls		:: !String
@@ -135,8 +105,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, hintMsg		:: !String
 	}
 :: TUIConstructorControl =
-	{ id			:: !TUIId
-	, name			:: !TUIName
+	{ name			:: !TUIName
 	, fieldLabel	:: !Maybe String
 	, consSelIdx	:: !Int
 	, consValues	:: ![String]
@@ -147,15 +116,13 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, hintMsg		:: !String
 	}
 :: TUIStaticContainer =
-	{ id			:: !TUIId
-	, items			:: ![TUIDef]
+	{ items			:: ![TUIDef]
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
 	, layout		:: !TUILayout
 	}
 :: TUIRecordContainer = 
-	{ id			:: !TUIId
-	, name			:: !TUIName
+	{ name			:: !TUIName
 	, title			:: !Maybe String
 	, items			:: ![TUIDef]
 	, optional		:: !Bool
@@ -164,7 +131,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 :: TUIListContainer =
 	{ items			:: ![TUIDef]
 	, name			:: !TUIName
-	, id			:: !TUIId
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool
 	, staticDisplay	:: !Bool
@@ -174,7 +140,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	}
 :: TUIListItemControl =
 	{ name				:: !TUIName
-	, id				:: !TUIId
 	, items				:: ![TUIDef]
 	, index				:: !Int
 	}
@@ -185,7 +150,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
     , width             :: !String
     , height            :: !String
 	, name				:: !TUIName
-	, id				:: !String
 	, value             :: !String
     , errorMsg          :: !String
     , hintMsg           :: !String
@@ -193,7 +157,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	
 :: TUIORYXControl =
 	{ name				:: !TUIName
-	, id				:: !TUIId
 	, value				:: !String
     , errorMsg          :: !String
     , hintMsg           :: !String
@@ -201,8 +164,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	}
 	
 :: TUIHtmlContainer =
-	{ id			:: !TUIId
-	, html			:: !String
+	{ html			:: !String
 	, fieldLabel	:: !Maybe String
 	}
 
@@ -232,7 +194,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	}
 :: TUIGridControl =
 	{ name			:: !TUIName
-	, id			:: !TUIId
 	, columns		:: ![TUIGridColumn]
 	, gridHtml		:: ![[String]]
 	, gridEditors	:: ![[Maybe TUIDef]]
@@ -241,7 +202,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	{ header	:: !String
 	}
 
-getTUIId	:: !TUIDef -> Maybe TUIId
 childrenOf	:: !TUIDef -> [TUIDef]
 valueOf		:: !TUIDef -> Maybe String
 

@@ -2,6 +2,7 @@ Ext.ns('itasks.tui');
 
 itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	initComponent : function(){
+		this.name = this.getId();
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 		this.msgTarget = 'side';
 		this.hideLabel = this.fieldLabel == null;

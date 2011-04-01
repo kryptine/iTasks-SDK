@@ -15,7 +15,7 @@ where
 			= valueUpdates old new ++ hintUpdate path old new ++ errorUpdate path old new 
 		| otherwise
 			//If not the same type, just replace
-			= [TUIReplace_ (dp2s path) new]
+			= [TUIReplace (dp2s path) new]
 	where
 		valueUpdates old new
 			| isStaticContainer old
@@ -30,52 +30,52 @@ where
 			= case (old,new) of //Special cases
 				(TUIButton o,TUIButton n)
 					| o.TUIButton.action <> n.TUIButton.action || o.TUIButton.text <> n.TUIButton.text || o.TUIButton.iconCls <> n.TUIButton.iconCls
-						= [TUIReplace_ (dp2s path) new]
+						= [TUIReplace (dp2s path) new]
 					| o.TUIButton.disabled <> n.TUIButton.disabled
-						= [TUISetEnabled_ (dp2s path) (not n.TUIButton.disabled)]
+						= [TUISetEnabled (dp2s path) (not n.TUIButton.disabled)]
 					| otherwise
 						= []
 				// Records are static except if they are optional
 				(TUIRecordContainer o, TUIRecordContainer n)
-					| o.TUIRecordContainer.optional <> n.TUIRecordContainer.optional = [TUIReplace_ (dp2s path) new]
+					| o.TUIRecordContainer.optional <> n.TUIRecordContainer.optional = [TUIReplace (dp2s path) new]
 					= case (o.hasValue,n.hasValue) of
 						(True,True)		= staticContainerUpdate path old new
-						(False,True)	= [TUISetValue_ (dp2s path) "expand":map (TUIAddTo n.TUIRecordContainer.id) n.TUIRecordContainer.items]
+						(False,True)	= [TUISetValue (dp2s path) "expand":[TUIAdd (dp2s path) idx item \\ item <- n.TUIRecordContainer.items & idx <- [0..]]]
 						(False,False)	= []
-						(True,False)	= [TUISetValue_ (dp2s path) "collapse"]
+						(True,False)	= [TUISetValue (dp2s path) "collapse"]
 				// Documents are replaced when their value has changed
 				(TUIDocumentControl odoc, TUIDocumentControl ndoc)
 					| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
-					| otherwise																= [TUIReplace_ (dp2s path) new]
+					| otherwise																= [TUIReplace (dp2s path) new]
 				// Choices are replaced if the options are changed, otherwise their selection is updated
 				(TUIChoiceControl oc, TUIChoiceControl nc)
 					= if (oc.options == nc.options)
 						if (oc.selection == nc.selection)
 							[]
-							[TUISetValue_ (dp2s path) (toString (toJSON nc.selection))]
-						[TUIReplace_ (dp2s path) new]
+							[TUISetValue (dp2s path) (toString (toJSON nc.selection))]
+						[TUIReplace (dp2s path) new]
 				// Trees are replaced if the nodes are changed, otherwise their selection is updated
 				(TUITreeControl ot, TUITreeControl nt)
 					= if (ot.tuiTree === nt.tuiTree)
 						if (ot.selIndex == nt.selIndex)
 							[]
-							[TUISetValue_ (dp2s path) (toString nt.selIndex)]
-						[TUIReplace_ (dp2s path) new]
+							[TUISetValue (dp2s path) (toString nt.selIndex)]
+						[TUIReplace (dp2s path) new]
 				(TUIGridControl {gridEditors = oe,gridHtml = oh}, TUIGridControl {gridEditors = ne, gridHtml = nh}) | length oe == length ne
-					# htmlUpdates	= flatten [[TUISetValue_  (dp2s path) (toString (toJSON (i,j,n))) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
+					# htmlUpdates	= flatten [[TUISetValue  (dp2s path) (toString (toJSON (i,j,n))) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
 					# path			= shiftDataPath path
 					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
 					= htmlUpdates ++ editorUpdates
 				// Custom components need to figure out their own update on the client side
 				(TUICustom oc, TUICustom nc)
 					| oc === nc	= []
-					| otherwise	= [TUIUpdate_ (dp2s path) new]
+					| otherwise	= [TUIUpdate (dp2s path) new]
 				// Fallback: always replace
-				_	= [TUIReplace_ (dp2s path) new]
+				_	= [TUIReplace (dp2s path) new]
 	
-		valueUpdate path old new	= update (\o n -> sameValue o n && not (isMember path alwaysUpdatePaths)) valueOf TUISetValue_ path old new
-		hintUpdate path old new		= update sameHint hintOf TUISetHint_ path old new	
-		errorUpdate path old new	= update sameError errorOf TUISetError_ path old new
+		valueUpdate path old new	= update (\o n -> sameValue o n && not (isMember path alwaysUpdatePaths)) valueOf TUISetValue path old new
+		hintUpdate path old new		= update sameHint hintOf TUISetHint path old new
+		errorUpdate path old new	= update sameError errorOf TUISetError path old new
 		
 		update eqfun accfun consfun path old new
 			| not (eqfun old new)	= maybe [] (\prop -> [consfun (dp2s path) prop]) (accfun new)
@@ -88,11 +88,10 @@ where
 		dynamicContainerUpdate path (TUIListContainer lcOld) (TUIListContainer lcNew)
 			# valueUpdates	= diffListItemDefinitions (path) lcOld.TUIListContainer.items lcNew.TUIListContainer.items
 			# lengthUpdates	= if (numOld < numNew)
-				[TUIAddTo id item \\item <- drop numMin lcNew.TUIListContainer.items]
-				[TUIRemove (id +++ "#" +++ toString idx) \\ idx <- [numMin..numOld-1]]
+				[TUIAdd (dp2s path) idx item \\item <- drop numMin lcNew.TUIListContainer.items & idx <- [numMin..]]
+				[TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]]
 			= valueUpdates ++ lengthUpdates
 			where
-				id = lcNew.TUIListContainer.id
 				numOld = length lcOld.TUIListContainer.items
 				numNew = length lcNew.TUIListContainer.items
 				numMin = min numOld numNew
@@ -112,10 +111,10 @@ where
 						  & i <- [0..] ]
 			//Different constructor: replace everything
 			| otherwise
-				= [TUIReplace_ (dp2s path) new]
+				= [TUIReplace (dp2s path) new]
 			
 		dynamicContainerUpdate path old new
-			= [TUIReplace_ (dp2s path) new]	//Just replace, dynamic containers are too difficult to do at once :)
+			= [TUIReplace (dp2s path) new]	//Just replace, dynamic containers are too difficult to do at once :)
 		
 		// don't use index of column in datapath if there is only one column
 		tablePath l path i j

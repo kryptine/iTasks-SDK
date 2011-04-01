@@ -42,20 +42,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 			for (i = 0; i < num; i++) {
 				var update = data.updates[i];
 				switch(update[0]) {
-					case "TUIAdd":
-						this.addComponent(update[1],update[2]);
-						break;
-					case "TUIAddTo":
-						this.addComponentTo(update[1],update[2]);
-						break;					
-					case "TUIRemove":
-						this.removeComponent(update[1]);
-						break;
-					case "TUIReplace":
-						this.replaceComponent(update[1],update[2]);						
-						break;		
-					//New instructions:
-					case "TUISetValue_":
+					case "TUISetValue":
 						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
 							if(cmp.setValue){
 								cmp.setValue(update[2]);
@@ -64,31 +51,44 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 							}
 						}
 						break;
-					case "TUISetError_":
+					case "TUISetError":
 						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
 							cmp.setError(update[2]);
 						}
 						break;
-					case "TUISetHint_":
+					case "TUISetHint":
 						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
 							cmp.setHint(update[2]);
 						}
 						break;
-					case "TUISetEnabled_":
+					case "TUISetEnabled":
 						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
 							cmp.setDisabled(!update[2]);
 						}
 						break;
-					case "TUIReplace_":
+					case "TUIReplace":
 						cmp = this.replaceComponentByPath(this.interactionpanel, update[1], update[2]);
 						break;
-					case "TUIUpdate_":
+					case "TUIUpdate":
 						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
 							cmp.update(update[2]);
 						}
 						break;
+					case "TUIAdd":
+						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
+							cmp.insert(update[2],update[3]);
+							//cmp.doLayout();
+						}
+						break;
+					case "TUIRemove":
+						if(cmp = this.findComponentByPath(this.interactionpanel, update[1])) {
+							cmp.remove(update[2]);
+							//cmp.doLayout();
+						}
+						break;
 				}
 			}
+			this.doLayout();
 		} else {
 			//Completely replace form
 			itasks.ttc.InteractiveContainer.superclass.update.apply(this,arguments);
@@ -171,65 +171,6 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		cmp.doLayout();
 		
 		return cmp.items.get(target);
-	},
-	addComponent :  function (id, cmp){
-		var ct = Ext.getCmp(id);
-		var find = function(cmt,cnt,ind) {
-			if(cnt.items.get(ind) == undefined)
-				return ind;
-			if(cnt.items.get(ind) == cmt)
-				return ind;
-			else
-				return find(cmt,cnt,ind + 1);
-		}
-		
-		if(!ct) return;
-
-		var index = find(ct, ct.ownerCt, 0) + 1;
-		var newct = ct.ownerCt.insert(index, cmp);
-
-		ct.ownerCt.ownerCt.doLayout();
-	},
-	
-	addComponentTo : function(parent, cmp){
-		var ct = Ext.getCmp(parent);
-		if(!ct) return;
-		
-		ct.add(cmp);
-		ct.doLayout();
-	},
-	
-	removeComponent: function(id){
-		var ct = Ext.getCmp(id);
-		if(!ct) return;
-		
-		var oct = ct.ownerCt;
-		
-		oct.remove(ct);
-		oct.doLayout();
-	},
-	replaceComponent : function(id, cmp){	
-		var ct = Ext.getCmp(id);
-		if(!ct) return;
-		
-		var find = function(cmt,cnt,ind) {
-			if(cnt.items.get(ind) == undefined)
-				return ind;
-			if(cnt.items.get(ind) == cmt)
-				return ind;
-			else
-				return find(cmt,cnt,ind + 1);
-		}
-		
-		var oct = ct.ownerCt;
-		
-		//Find the index of the reference component
-		var index = find(ct, ct.ownerCt, 0);
-		
-		oct.remove(index);
-		oct.insert(index, cmp);
-	
-		oct.doLayout();	
 	}
 });
 

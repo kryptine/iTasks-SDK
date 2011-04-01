@@ -124,7 +124,7 @@ where
 		interactiveNode=:(TTInteractiveTask ti interactiveType tui)
 			# buttons			= mkButtons` ti.TaskInfo.taskId
 			| isEmpty buttons	= interactiveNode
-			# buttonContainer	= TUIStaticContainer {TUIStaticContainer|id = "", items = buttons, fieldLabel = Nothing, optional = False, layout = Horizontal HRight}
+			# buttonContainer	= TUIStaticContainer {TUIStaticContainer|items = buttons, fieldLabel = Nothing, optional = False, layout = Horizontal HRight}
 			= TTInteractiveTask ti interactiveType (addButtons buttonContainer tui)
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
@@ -150,7 +150,7 @@ where
 		addButtons :: !TUIDef !TUIDef -> TUIDef
 		addButtons buttons def = case def of
 			TUIStaticContainer c	= TUIStaticContainer {TUIStaticContainer|c & items = c.TUIStaticContainer.items ++ [buttons]}
-			tui						= TUIStaticContainer {TUIStaticContainer|id = "", items = [tui,buttons], fieldLabel = Nothing, optional = False, layout = Vertical}
+			tui						= TUIStaticContainer {TUIStaticContainer|items = [tui,buttons], fieldLabel = Nothing, optional = False, layout = Vertical}
 	
 			
 	addTaskIds :: !TaskId ![(!Action,!Bool)] -> SubtaskActions

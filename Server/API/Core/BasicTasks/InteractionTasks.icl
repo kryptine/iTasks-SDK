@@ -3,7 +3,6 @@ implementation module InteractionTasks
 import StdTuple, StdList, StdOrdList, StdBool, StdMisc, Functor
 import Types, Shared, Util, TSt, ExceptionCombinators, InteractiveTasks, CoreCombinators, CommonCombinators
 from StdFunc 		import id, const, o
-from TaskPanel		import :: InteractiveTaskType(..)
 from SharedTasks	import sharedStore, :: SharedStoreId
 from SharedTasks	import qualified readShared, writeShared
 

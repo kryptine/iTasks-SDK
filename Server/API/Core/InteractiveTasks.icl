@@ -1,7 +1,7 @@
 implementation module InteractiveTasks
 
 import StdTuple, StdBool, StdList, StdMisc, Maybe, Types, Util, Shared, HtmlUtil
-import iTaskClass, Task, TSt, TUIDiff
+import iTaskClass, Task, TSt
 from SharedTasks			import sharedStore, :: SharedStoreId
 from StdFunc				import id, const, o
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException
@@ -99,7 +99,7 @@ where
 			# ((modelV,_),iworld)				= appFst fromOk (readModelValue taskNr iworld)
 			# (info,iworld)						= getCommitPassInfo taskNr iworld
 			# ((nvalue,numask,nvmask),iworld)	= newViewValue taskNr iworld
-			# form 								= visualizeAsEditor (editorId taskNr) nvalue nvmask
+			# form 								= visualizeAsEditor nvalue nvmask
 			# (mbContext,iworld) = case mbAbout of
 				Nothing							= (Nothing,iworld)
 				Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
@@ -262,21 +262,14 @@ clientTimestamp tst=:{request}
 taskPanel :: !TaskNr !(Maybe HtmlTag) ![TUIDef] -> TUIDef
 taskPanel taskNr mbContext form = case maybeToList (fmap (taskContextPanel taskNr) mbContext) ++ form of
 	[item]	= item
-	items	= TUIStaticContainer {TUIStaticContainer|id = "", items = items, fieldLabel = Nothing, optional = False, layout = Vertical}
+	items	= TUIStaticContainer {TUIStaticContainer|items = items, fieldLabel = Nothing, optional = False, layout = Vertical}
 	
 taskContextPanel :: !TaskNr !a -> TUIDef | toString a		
 taskContextPanel taskNr context = TUIHtmlContainer	{ TUIHtmlContainer
-													| id = (contextId taskNr)
-													, html = toString context
+													| html = toString context
 													, fieldLabel = Nothing
 													}
 
-contextId :: !TaskNr -> String											
-contextId taskNr = "context-" +++ taskNrToString taskNr
-
-editorId :: !TaskNr -> String
-editorId taskNr = "tf-" +++ taskNrToString taskNr
-	
 //Evaluate action's conditions
 evaluateConditions :: ![(!Action, (Verified a) -> Bool)] !Bool a -> [(Action, Bool)]
 evaluateConditions actions valid value = [(action,pred (if valid (Valid value) Invalid)) \\ (action,pred) <- actions]

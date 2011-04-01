@@ -7,7 +7,7 @@ definition module TaskTree
 */
 import Maybe, Either, HTML, Time, Types
 from JSON 			import :: JSONNode
-from TUIDefinition	import :: TUIDef, :: TUIUpdate
+from TUIDefinition	import :: TUIDef
 
 :: SpineTreeContainer					:== TaskTreeContainer Void Void Void Void
 :: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType TUIDef HtmlTag

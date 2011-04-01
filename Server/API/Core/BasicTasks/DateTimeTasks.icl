@@ -1,7 +1,6 @@
 implementation module DateTimeTasks
 
 import StdInt, Error, TSt, Types, Void, Util, Time, Shared, CoreCombinators, MonitorTasks
-from TaskPanel			import :: InteractiveTaskType(..)
 from CommonCombinators	import stop
 
 getCurrentTime :: Task Time

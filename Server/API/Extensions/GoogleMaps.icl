@@ -28,7 +28,6 @@ derive bimap	Maybe, (,)
 	, mapType			:: GoogleMapType
 	, markers			:: [GoogleMapMarker]
 	, xtype				:: String
-	, id				:: String
 	, name				:: String
 	, fieldLabel		:: Maybe String
 	, hideLabel			:: Bool
@@ -51,7 +50,6 @@ derive bimap	Maybe, (,)
 	{ width				:: Int
 	, height			:: Int
 	, xtype				:: String
-	, id				:: String
 	, name				:: String
 	, url				:: String
 	}
@@ -63,14 +61,14 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} val vst=:{vizType, label, idPrefix, currentPath, optional, useLabels, verifyMask}
+gVisualize {|GoogleMap|} val vst=:{vizType, label, currentPath, optional, useLabels, verifyMask}
 	# (cmv,vm) = popMask verifyMask
 	= case vizType of
-		VEditorDefinition = ([TUIFragment (TUICustom   ((mapPanel val label (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+		VEditorDefinition = ([TUIFragment (TUICustom ((mapPanel val label (not useLabels) currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 		_				  = (staticMapPanel val, {VSt | vst & currentPath = stepDataPath currentPath})
 where
-	mapPanel Nothing fl hl 		  idp cp ed	= toJSON (tuidef mkMap fl hl idp cp ed)
-	mapPanel (Just map) fl hl idp cp ed		= toJSON (tuidef map   fl hl idp cp ed)
+	mapPanel Nothing	fl hl cp ed	= toJSON (tuidef mkMap fl hl cp ed)
+	mapPanel (Just map)	fl hl cp ed = toJSON (tuidef map   fl hl cp ed)
 
 	staticMapPanel Nothing
 		# (GoogleStaticMap w h u) = convertToStaticMap mkMap
@@ -79,14 +77,13 @@ where
 		# (GoogleStaticMap w h u) = convertToStaticMap map
 		= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])])
 
-	tuidef map fl hl idp cp ed =
+	tuidef map fl hl cp ed =
 		{ TUIGoogleMap
 		| center = map.GoogleMap.center
 		, mapType = map.GoogleMap.mapType
 		, markers = map.GoogleMap.markers
 		, xtype = "itasks.tui.GMapControl"
 		, name = dp2s cp
-		, id = dp2id idp cp
 		, fieldLabel = fl
 		, hideLabel = hl
 		, editor = ed
@@ -104,7 +101,7 @@ where
 		}
 
 gVisualize {|GoogleStaticMap|} Nothing vst = ([TextFragment "-"],vst)
-gVisualize {|GoogleStaticMap|} (Just (GoogleStaticMap w h u)) vst=:{vizType,idPrefix,currentPath}
+gVisualize {|GoogleStaticMap|} (Just (GoogleStaticMap w h u)) vst=:{vizType,currentPath}
 	= case vizType of
 		VHtmlDisplay	= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])],{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],{VSt | vst & currentPath = stepDataPath currentPath})
@@ -118,7 +115,6 @@ where
 		, height 	= h	
 		, xtype		= "itasks.gstaticmappanel"
 		, name		= dp2s currentPath
-		, id		= dp2id idPrefix currentPath
 		, url		= u
 		}	
 

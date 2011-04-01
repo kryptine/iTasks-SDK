@@ -17,12 +17,12 @@ pageLayout :: !String !String ![HtmlTag] -> HtmlTag
 /**
 * Creates a simple page for accessing a service
 */
-servicePage :: !String !String !String ![(String,String,Bool)] JSONNode -> HtmlTag
+servicePage :: !String !String !String ![(String,String,Bool)] !JSONNode -> HtmlTag
 
 /**
 * Creates an HTTP response of a service page
 */
-serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] JSONNode -> HTTPResponse
+serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] !JSONNode -> HTTPResponse
 
 /**
 * Creates a static page with information about the service API.
