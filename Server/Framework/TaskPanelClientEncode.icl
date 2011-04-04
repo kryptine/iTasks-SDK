@@ -1,16 +1,16 @@
 implementation module TaskPanelClientEncode
 
-import JSON, Types, TaskPanel
+import StdMisc, StdList, JSON, Types, TaskPanel
 
 clientEncodeTaskPanel :: !TaskPanel -> JSONNode
 clientEncodeTaskPanel p = toJSON p
 
 derive JSONEncode TTCInteractiveContainer, InteractiveTaskType, TTCResultContainer, TTCParallelContainer
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
-derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
-derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
-derive JSONEncode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer
-derive JSONEncode TUIGridControl, TUIGridColumn, TUITreeControl, TUITree
+derive JSONEncode TUIDocumentControl, TUIConstructorControl
+derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
+derive JSONEncode TUIStaticContainer, TUIRecordContainer, TUIListContainer
+derive JSONEncode TUIGridContainer, TUIGridColumn, TUITree, TUIControl
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (TaskDone)					= [JSONString "done"]
@@ -20,40 +20,44 @@ JSONEncode{|TaskPanel|} (TTCInteractiveContainer x)	= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCResultContainer x)		= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCParallelContainer x)	= JSONEncode{|*|} x
 
-//TODO: Separate control elements from form-widgets
-JSONEncode{|TUIDef|} (TUIButton r)				= addXType "itasks.ttc.Button" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIControl c b)			= merge (JSONEncode{|*|} c) (JSONEncode{|*|} b)
+where
+	merge [JSONObject obja] [JSONObject objb]	= [JSONObject (obja ++ objb)]
+	merge _ _									= abort "two JSON objects required"
+JSONEncode{|TUIDef|} (TUIButton r)				= addXType "itasks.tui.Button" (JSONEncode{|*|} r)
 
 JSONEncode{|TUIDef|} (TUIMenuButton r)			= addXType "button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuItem r)			= addXType "itasks.ttc.MenuItem" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuSeparator)			= [JSONRaw "{\"xtype\":\"menuseparator\"}"]
-JSONEncode{|TUIDef|} (TUICustom r)				= JSONEncode{|*|} r
 
-JSONEncode{|TUIDef|} (TUIStringControl r)		= addXType "itasks.tui.String" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUICharControl r)			= addXType "itasks.tui.Char" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIIntControl r)			= addXType "itasks.tui.Int" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIRealControl r)			= addXType "itasks.tui.Real" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIBoolControl r)			= addXType "itasks.tui.Bool" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIChoiceControl r)		= addXType "itasks.tui.Choice" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUINoteControl r)			= addXType "itasks.tui.Note" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIDateControl r)			= addXType "itasks.tui.Date" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUITimeControl r)			= addXType "itasks.tui.Time" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIHiddenControl r)		= addXType "itasks.tui.Hidden" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIFormButtonControl r)	= addXType "itasks.tui.FormButton" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUICurrencyControl r)		= addXType "itasks.tui.Currency" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIUserControl r)			= addXType "itasks.tui.Username" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIPasswordControl r)		= addXType "itasks.tui.Password" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIDocumentControl r)	 	= addXType "itasks.tui.Document" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIConstructorControl r)	= addXType "itasks.tui.Constructor" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIListItemControl r) 	= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIAppletControl r)		= addXType "itasks.tui.Applet" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIORYXControl r)			= addXType "itasks.tui.Oryx" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIGridControl r)			= addXType "itasks.tui.Grid" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUITreeControl r)			= addXType "itasks.tui.Tree" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIListItem r) 			= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIGridContainer r)		= addXType "itasks.tui.Grid" (JSONEncode{|*|} r)
 
 JSONEncode{|TUIDef|} (TUIStaticContainer r)		= addXType "itasks.tui.Static" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIListContainer r) 		= addXType "itasks.tui.List" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIHtmlContainer r)		= addXType "itasks.tui.Html" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUICustom r)				= [r]
+
+JSONEncode{|TUIControlType|} TUIStringControl			= justXType "itasks.tui.String"
+JSONEncode{|TUIControlType|} TUICharControl				= justXType "itasks.tui.Char"
+JSONEncode{|TUIControlType|} TUIIntControl				= justXType "itasks.tui.Int"
+JSONEncode{|TUIControlType|} TUIRealControl				= justXType "itasks.tui.Real"
+JSONEncode{|TUIControlType|} TUIBoolControl				= justXType "itasks.tui.Bool"
+JSONEncode{|TUIControlType|} TUINoteControl				= justXType "itasks.tui.Note"
+JSONEncode{|TUIControlType|} TUIDateControl				= justXType "itasks.tui.Date"
+JSONEncode{|TUIControlType|} TUITimeControl				= justXType "itasks.tui.Time"
+JSONEncode{|TUIControlType|} TUIHiddenControl			= justXType "itasks.tui.Hidden"
+JSONEncode{|TUIControlType|} TUIUserControl				= justXType "itasks.tui.Username"
+JSONEncode{|TUIControlType|} TUIPasswordControl			= justXType "itasks.tui.Password"
+JSONEncode{|TUIControlType|} (TUIChoiceControl r)		= addXType "itasks.tui.Choice" (JSONEncode{|*|} r)
+JSONEncode{|TUIControlType|} (TUICurrencyControl cur)	= addXType "itasks.tui.Currency" [JSONObject [("currencyLabel",JSONString cur)]]
+JSONEncode{|TUIControlType|} TUIHtmlDisplay				= justXType "itasks.tui.Html"
+JSONEncode{|TUIControlType|} (TUIButtonControl r)		= addXType "itasks.tui.FormButton" (JSONEncode{|*|} r)
+JSONEncode{|TUIControlType|} (TUIDocumentControl r)		= addXType "itasks.tui.Document" (JSONEncode{|*|} r)
+JSONEncode{|TUIControlType|} (TUIORYXControl url)		= addXType "itasks.tui.Oryx" [JSONObject [("stencilsetURL",JSONString url)]]
+JSONEncode{|TUIControlType|} (TUITreeControl tree)		= addXType "itasks.tui.Tree" [JSONObject [("tuiTree",toJSON tree)]]
+JSONEncode{|TUIControlType|} (TUICustomControl xtype r)	= addXType xtype [JSONObject r]
 
 JSONEncode{|TUILayout|} Vertical = [JSONString "form"]
 JSONEncode{|TUILayout|} (Horizontal al) = [JSONObject [("type",JSONString "hbox"),("pack",JSONString alignStr)]]
@@ -65,5 +69,7 @@ where
 
 addXType :: !String ![JSONNode] -> [JSONNode]
 addXType xtype [JSONObject fields: xs]	= [JSONObject [("xtype", JSONString xtype):fields] : xs]
-addXType xtype nodes					= nodes
+addXType _ _							= abort "cannot add xtype"
 
+justXType :: !String -> [JSONNode]
+justXType xtype = [JSONObject [("xtype",JSONString xtype)]]

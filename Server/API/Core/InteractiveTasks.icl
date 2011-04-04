@@ -265,10 +265,7 @@ taskPanel taskNr mbContext form = case maybeToList (fmap (taskContextPanel taskN
 	items	= TUIStaticContainer {TUIStaticContainer|items = items, fieldLabel = Nothing, optional = False, layout = Vertical}
 	
 taskContextPanel :: !TaskNr !a -> TUIDef | toString a		
-taskContextPanel taskNr context = TUIHtmlContainer	{ TUIHtmlContainer
-													| html = toString context
-													, fieldLabel = Nothing
-													}
+taskContextPanel taskNr context = htmlDisplay Nothing (toString context)
 
 //Evaluate action's conditions
 evaluateConditions :: ![(!Action, (Verified a) -> Bool)] !Bool a -> [(Action, Bool)]

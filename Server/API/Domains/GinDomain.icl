@@ -8,25 +8,16 @@ import GinCompiler, GinParser
 
 import GinORYX
 
-gVisualize {|ORYXEditor|} val vst = visualizeControl mkControl (mkText,mkHtml) val vst
+gVisualize {|ORYXEditor|} val vst = visualizeControl (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) (mkText,mkHtml) val vst
 where
-	mkControl name val _ _ err hnt
-		= TUIORYXControl oryx
-	where
-	    oryx
-	    	# value = case val of
-				Nothing			= emptyORYXEditor
-				Just editor		= editor
-	        =	{ TUIORYXControl
-		        | name = name
-		        , value = toString (toJSON value.ORYXEditor.diagram)
-		        , errorMsg = err
-		        , hintMsg = hnt
-		        , stencilsetURL = value.ORYXEditor.stencilset.ORYXStencilSetReference.url
-		        }
+	oryx = fromMaybe emptyORYXEditor val
 		        
 	mkText v = "(ORYX editor: No textual representation available)"
 	mkHtml v = nl2br (mkText v)
+	
+instance toString ORYXEditor
+where
+	toString {diagram} = toString (toJSON diagram)
 
 gUpdate{|ORYXEditor|} mode ust = basicUpdate mode parseUpdate emptyORYXEditor ust
 where

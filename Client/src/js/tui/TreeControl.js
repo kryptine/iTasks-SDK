@@ -26,8 +26,8 @@ itasks.tui.TreeControl = Ext.extend(Ext.tree.TreePanel,{
 	},
 	afterRender : function(){
 		itasks.tui.TreeControl.superclass.afterRender.call(this);
-		if(Ext.isNumber(this.selIndex)){
-			this.setValue(this.selIndex);
+		if(Ext.isNumber(this.value)){
+			this.setValue(this.value);
 		}
 	},
 	setValue : function(sel){

@@ -162,6 +162,10 @@ fromTable (Table t) = t
 instance == Document
 where
 	(==) doc0 doc1 = doc0.documentId == doc1.documentId
+	
+instance toString Document
+where
+	toString doc = ""
 
 // ******************************************************************************************************
 // Password
@@ -315,10 +319,7 @@ where
 
 instance toString Currency
 where
-	toString (EUR x) = "EUR " +++ decFormat x
-	toString (GBP x) = "GBP " +++ decFormat x
-	toString (USD x) = "USD " +++ decFormat x
-	toString (JPY x) = "JPY " +++ decFormat x
+	toString c = decFormat (toInt c)
 
 instance toInt Currency
 where
@@ -352,6 +353,14 @@ where
 	(-) (USD x) (USD y) = USD (x - y)
 	(-) (JPY x) (JPY y) = JPY (x - y)
 	(-) _ _ = abort "Trying to subtract money of different currencies!"
+	
+instance toString FormButton
+where
+	toString button = toString (pressed button)
+	where
+		pressed {state}= case state of
+			Pressed		= True
+			NotPressed	= False
 	
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a

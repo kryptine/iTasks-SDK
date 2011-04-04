@@ -8,6 +8,7 @@
 	,"fileIncludes" :
 		[{"text":"itasks.util.js","path":"src/js/"}
 		,{"text":"itasks.form.js","path":"src/js/"}
+		,{"text":"Button.js","path":"src/js/tui/"}
 		,{"text":"BoolControl.js","path":"src/js/tui/"}
 		,{"text":"CharControl.js","path":"src/js/tui/"}
 		,{"text":"ConstructorControl.js","path":"src/js/tui/"}
@@ -28,20 +29,18 @@
 		,{"text":"HiddenControl.js","path":"src/js/tui/"}
 		,{"text":"FormButtonControl.js","path":"src/js/tui/"}
 		,{"text":"ChoiceControl.js","path":"src/js/tui/"}
-		,{"text":"AppletControl.js","path":"src/js/tui/"}
 		,{"text":"OryxControl.js","path":"src/js/tui/"}
-		,{"text":"GridControl.js","path":"src/js/tui/"}
+		,{"text":"GridContainer.js","path":"src/js/tui/"}
 		,{"text":"TreeControl.js","path":"src/js/tui/"}
 		,{"text":"TUICommon.js","path":"src/js/tui/"}
 		
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
 		,{"text":"StaticContainer.js","path":"src/js/tui/"}
-		,{"text":"HtmlContainer.js","path":"src/js/tui/"}
+		,{"text":"HtmlDisplay.js","path":"src/js/tui/"}
 		
 		,{"text":"TTCCommon.js","path":"src/js/ttc/"}
 		,{"text":"TTCBase.js","path":"src/js/ttc/"}
-		,{"text":"Button.js","path":"src/js/ttc/"}
 		,{"text":"MenuItem.js","path":"src/js/ttc/"}
 		,{"text":"InteractiveContainer.js","path":"src/js/ttc/"}
 		,{"text":"FinishedContainer.js","path":"src/js/ttc/"}

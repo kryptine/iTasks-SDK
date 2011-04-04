@@ -2,6 +2,7 @@ Ext.ns("itasks.tui");
 
 itasks.tui.HtmlContainer = Ext.extend(Ext.Panel, {
 	initComponent: function() {
+		this.html = this.value;
 		this.unstyled = true;
 		this.border = false;
 				

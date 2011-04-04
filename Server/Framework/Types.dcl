@@ -31,6 +31,8 @@ instance toString Time
 instance toString DateTime
 instance toString Currency
 instance toString TaskPriority
+instance toString Document
+instance toString FormButton
 instance fromString Date
 instance fromString Time
 instance fromString DateTime

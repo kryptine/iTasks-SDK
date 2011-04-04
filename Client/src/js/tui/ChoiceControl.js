@@ -2,6 +2,8 @@ Ext.ns('itasks.tui');
 
 itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 	initComponent : function(){
+		// names of checkbox groups have to be unique, so use data path field for events
+		this.dataPath = this.name;
 		this.name = this.getId();
 		this.listeners = {change: {fn: this.onChange, scope: this}};
 		this.msgTarget = 'side';
@@ -16,8 +18,6 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 		this.fireEvent('tuichange',this.dataPath,Ext.encode(this.getValue()));
 	},
 	onRender: function(ct, position){
-		var me = this;
-		
 		if(!this.el){
 			var panelCfg = {
 				autoEl : { id: this.id },
@@ -30,9 +30,10 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 			
 			var items = [];
 			
+			var selection = Ext.decode(this.value);
 			var isSelected = function(idx){
-				for(var i=0; i<me.selection.length; i++){
-					if(idx == me.selection[i]) return true;
+				for(var i=0; i<selection.length; i++){
+					if(idx == selection[i]) return true;
 				}
 				
 				return false;

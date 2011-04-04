@@ -7,7 +7,7 @@ derive gDefaultMask		FormattedText, FormattedTextControls, SourceCode, SourceCod
 derive gVerify			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONEncode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONDecode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
-derive JSONEncode		TUIFormattedText, TUIColorChooser, TUISourceCode
+derive JSONEncode		TUIColorChooser, TUISourceCode
 derive gEq				FormattedText, SourceCode, Color, FormattedTextControls, SourceCodeLanguage
 derive bimap			Maybe, (,)
 
@@ -53,49 +53,25 @@ noControls =	{ alignmentControls	= False
 				, sourceEditControl	= False
 				}
 
-:: TUIFormattedText =
-	{ xtype				:: !String
-	, name				:: !String
-	, value				:: !String
-	, fieldLabel		:: !Maybe String
-	, optional			:: !Bool
-	, enableAlignments	:: !Bool
-	, enableColors		:: !Bool
-	, enableFont		:: !Bool
-	, enableFontSize	:: !Bool
-	, enableFormat		:: !Bool
-	, enableLinks		:: !Bool
-	, enableLists		:: !Bool
-	, enableSourceEdit	:: !Bool
-	}
-
-gVisualize{|FormattedText|} val vst = visualizeControl mkControl (toString,html) val vst
+gVisualize{|FormattedText|} val vst = visualizeControl (TUICustomControl "itasks.tui.FormattedText" (map (appSnd toJSON) info)) (toString,html) val vst
 where
-	mkControl name val label optional _ _
-		= TUICustom (toJSON	{ TUIFormattedText
-							| xtype				= "itasks.tui.FormattedText"
-							, name				= name
-							, value				= replaceMarkers (toString val)
-							, fieldLabel		= label
-							, optional			= optional
-							, enableAlignments	= controls.alignmentControls
-							, enableColors		= controls.colorControls
-							, enableFont		= controls.fontControl
-							, enableFontSize	= controls.fontSizeControls
-							, enableFormat		= controls.formatControls
-							, enableLinks		= controls.linkControl
-							, enableLists		= controls.listControls
-							, enableSourceEdit	= controls.sourceEditControl
-							})
-	where
-		controls = case val of
-			Nothing							= allControls
-			Just (FormattedText _ controls) = controls
-			
-		replaceMarkers v
-			//# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
-			//# v = replaceSubString SelectionEndMarker ("<markerend id='" +++ id +++ "_marker-end'></markerend>") v
-			= v
+	info =	[ ("enableAlignments",	controls.alignmentControls)
+			, ("enableColors",		controls.colorControls)
+			, ("enableFont",		controls.fontControl)
+			, ("enableFontSize",	controls.fontSizeControls)
+			, ("enableFormat",		controls.formatControls)
+			, ("enableLinks",		controls.linkControl)
+			, ("enableLists",		controls.listControls)
+			, ("enableSourceEdit",	controls.sourceEditControl)
+			]
+	controls = case val of
+		Nothing							= allControls
+		Just (FormattedText _ controls) = controls
+		
+	replaceMarkers v
+		//# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
+		//# v = replaceSubString SelectionEndMarker ("<markerend id='" +++ id +++ "_marker-end'></markerend>") v
+		= v
 		
 toUnformattedString :: !FormattedText !Bool -> String
 toUnformattedString (FormattedText s _) includeCursorMarkers
@@ -169,18 +145,8 @@ getSource (SourceCode src _) = src
 	, optional		:: !Bool
 	}
 	
-gVisualize{|SourceCode|} val vst = visualizeControl mkControl (textOnly toString) val vst
+gVisualize{|SourceCode|} val vst = visualizeControl (TUICustomControl "itasks.tui.SourceCode" [("language",JSONString language)]) (textOnly toString) val vst
 where
-	mkControl name val label optional _ _
-		= TUICustom (toJSON	{ TUISourceCode
-							| xtype			= "itasks.tui.SourceCode"
-							, name			= name
-							, value			= toString (fmap getSource val)
-							, fieldLabel	= label
-							, optional		= optional
-							, language		= language
-							})
-
 	language = case val of
 		Nothing							= ""
 		Just (SourceCode _ lang) 		= case lang of
@@ -199,16 +165,7 @@ instance toString SourceCode
 where
 	toString (SourceCode src _) = src
 
-gVisualize{|Color|} val vst = visualizeControl mkControl (toString,html) val vst
-where
-	mkControl name val label optional _ _
-		= TUICustom (toJSON	{ TUIColorChooser
-							| xtype			= "itasks.tui.ColorChooser"
-							, name			= name
-							, value			= toString (fmap (\(Color c) -> c) val)
-							, fieldLabel	= label
-							, optional		= optional
-							})
+gVisualize{|Color|} val vst = visualizeControl (TUICustomControl "itasks.tui.ColorChooser" []) (toString,html) val vst
 
 instance html Color
 where

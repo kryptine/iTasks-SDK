@@ -18,4 +18,4 @@ import GenUpdate, TUIDefinition
 	
 :: TUIPath	:== String
 
-diffEditorDefinitions :: !TUIDef !TUIDef ![DataPath] -> [TUIUpdate]
+diffEditorDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]

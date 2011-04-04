@@ -10,41 +10,42 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 :: TUIName	:== String
 
 :: TUIDef
-	= TUILabel
-	| TUIButton !TUIButton
-	| TUIStringControl !TUIBasicControl
-	| TUICharControl !TUIBasicControl
-	| TUIIntControl !TUIBasicControl
-	| TUIRealControl !TUIBasicControl
-	| TUIBoolControl !TUIBasicControl
-	| TUINoteControl !TUIBasicControl
-	| TUIDateControl !TUIBasicControl
-	| TUITimeControl !TUIBasicControl
-	| TUIPasswordControl !TUIBasicControl
-	| TUIChoiceControl !TUIChoiceControl	
-	| TUICurrencyControl !TUICurrencyControl
-	| TUIUserControl !TUIBasicControl
-	| TUIDocumentControl !TUIDocumentControl
+	= TUIControl !TUIControlType !TUIControl
+	| TUIButton !TUIButton	
 	| TUIConstructorControl !TUIConstructorControl
-	| TUIHiddenControl !TUIBasicControl
-	| TUIFormButtonControl !TUIButtonControl
-	| TUIListItemControl !TUIListItemControl
-	| TUIAppletControl !TUIAppletControl
-	| TUIORYXControl !TUIORYXControl
-	| TUIGridControl !TUIGridControl
-	| TUITreeControl !TUITreeControl
 	
 	| TUIStaticContainer !TUIStaticContainer
 	| TUIRecordContainer !TUIRecordContainer
-	| TUIListContainer !TUIListContainer		
-	| TUIHtmlContainer !TUIHtmlContainer
+	| TUIListContainer !TUIListContainer
+	| TUIListItem !TUIListItem
+	| TUIGridContainer !TUIGridContainer
 	
 	| TUIMenuButton !TUIMenuButton
 	| TUIMenuItem !TUIMenuItem
 	| TUIMenuSeparator
 	| TUICustom !JSONNode
+	
+:: TUIControlType	= TUIStringControl
+					| TUICharControl
+					| TUIRealControl
+					| TUIIntControl
+					| TUIBoolControl
+					| TUINoteControl
+					| TUIDateControl
+					| TUITimeControl
+					| TUIPasswordControl
+					| TUIUserControl
+					| TUIHiddenControl
+					| TUIChoiceControl !TUIChoiceControl
+					| TUICurrencyControl !String // currency label
+					| TUIDocumentControl !TUIDocumentControl
+					| TUIButtonControl !TUIButtonControl
+					| TUIHtmlDisplay
+					| TUIORYXControl !String // stencilset URL
+					| TUITreeControl ![TUITree]
+					| TUICustomControl !String ![(!String,!JSONNode)] // xtype + additional record fields
 
-:: TUIBasicControl =
+:: TUIControl =
 	{ name			:: !TUIName
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
@@ -53,56 +54,21 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, hintMsg		:: !String
 	}
 :: TUIChoiceControl =
-	{ dataPath		:: !String
-	, fieldLabel	:: !Maybe String
-	, allowMultiple	:: !Bool
-	, optional		:: !Bool
+	{ allowMultiple	:: !Bool
 	, options		:: ![String]
-	, selection		:: ![Int]
-	, errorMsg		:: !String
-	, hintMsg		:: !String
 	}
-:: TUITreeControl =
-	{ name			:: !TUIName
-	, tuiTree		:: ![TUITree]
-	, selIndex		:: !Maybe Int
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	, errorMsg		:: !String
-	, hintMsg		:: !String
+:: TUIDocumentControl = 
+	{ document		:: !Document
+	}
+:: TUIButtonControl =
+	{ label			:: !String
+	, iconCls		:: !String
 	}
 :: TUITree =
 	{ text		:: !String
 	, children	:: !Maybe [TUITree]
 	, leaf		:: !Bool
 	, index		:: !Maybe Int
-	}
-:: TUICurrencyControl =
-	{ name			:: !TUIName
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, currencyLabel	:: !String
-	, optional		:: !Bool
-	, errorMsg		:: !String
-	, hintMsg		:: !String
-	}
-:: TUIDocumentControl = 
-	{ name			:: !TUIName
-	, document		:: !Document
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	, errorMsg		:: !String
-	, hintMsg		:: !String
-	}
-:: TUIButtonControl =
-	{ name			:: !TUIName
-	, value			:: !String
-	, label			:: !String
-	, iconCls		:: !String
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	, errorMsg		:: !String
-	, hintMsg		:: !String
 	}
 :: TUIConstructorControl =
 	{ name			:: !TUIName
@@ -121,7 +87,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, optional		:: !Bool
 	, layout		:: !TUILayout
 	}
-:: TUIRecordContainer = 
+:: TUIRecordContainer =
 	{ name			:: !TUIName
 	, title			:: !Maybe String
 	, items			:: ![TUIDef]
@@ -138,36 +104,11 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, hintMsg		:: !String
 	, optional		:: !Bool
 	}
-:: TUIListItemControl =
+:: TUIListItem =
 	{ name				:: !TUIName
 	, items				:: ![TUIDef]
 	, index				:: !Int
 	}
-	
-:: TUIAppletControl =  
-    { appletcode        :: !String
-    , archives          :: ![String]
-    , width             :: !String
-    , height            :: !String
-	, name				:: !TUIName
-	, value             :: !String
-    , errorMsg          :: !String
-    , hintMsg           :: !String
-	}
-	
-:: TUIORYXControl =
-	{ name				:: !TUIName
-	, value				:: !String
-    , errorMsg          :: !String
-    , hintMsg           :: !String
-    , stencilsetURL		:: !String
-	}
-	
-:: TUIHtmlContainer =
-	{ html			:: !String
-	, fieldLabel	:: !Maybe String
-	}
-
 :: TUIButton =
 	{ name			:: !TUIName
 	, text			:: !String
@@ -192,7 +133,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, iconCls		:: !Maybe String
 	, hotkey		:: !Maybe Hotkey
 	}
-:: TUIGridControl =
+:: TUIGridContainer =
 	{ name			:: !TUIName
 	, columns		:: ![TUIGridColumn]
 	, gridHtml		:: ![[String]]
@@ -201,9 +142,6 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 :: TUIGridColumn =
 	{ header	:: !String
 	}
-
-childrenOf	:: !TUIDef -> [TUIDef]
-valueOf		:: !TUIDef -> Maybe String
 
 :: TUILayout = Horizontal HAlignment | Vertical
 

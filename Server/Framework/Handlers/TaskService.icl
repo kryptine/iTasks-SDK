@@ -4,15 +4,15 @@ import StdList, StdBool, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel, T
 
 derive JSONEncode TaskPanel, TTCInteractiveContainer, InteractiveTaskType, TTCResultContainer, TTCParallelContainer
 derive JSONEncode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
-derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
-derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
-derive JSONEncode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree, TUILayout, HAlignment
+derive JSONEncode TUIControlType, TUIDocumentControl, TUIConstructorControl
+derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
+derive JSONEncode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUILayout, HAlignment
 
 derive JSONDecode TaskPanel, TTCInteractiveContainer, InteractiveTaskType, TTCResultContainer, TTCParallelContainer
 derive JSONDecode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
-derive JSONDecode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
-derive JSONDecode TUIButtonControl, TUIListItemControl, TUIChoiceControl, TUIAppletControl, TUIORYXControl
-derive JSONDecode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, TUIGridControl, TUIGridColumn, TUITreeControl, TUITree, TUILayout, HAlignment
+derive JSONDecode TUIControlType, TUIDocumentControl, TUIConstructorControl
+derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
+derive JSONDecode TUIStaticContainer, TUIRecordContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUILayout, HAlignment
 
 derive bimap Maybe, (,)
 

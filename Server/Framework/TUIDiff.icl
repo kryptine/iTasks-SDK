@@ -5,116 +5,107 @@ import Util, GenUpdate, TUIDefinition
 
 derive gEq TUITree
 
-diffEditorDefinitions :: !TUIDef !TUIDef ![DataPath] -> [TUIUpdate]
-diffEditorDefinitions old new alwaysUpdatePaths
+diffEditorDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
+diffEditorDefinitions old new
 	= diffEditorDefinitions` startDataPath old new
 where
 	diffEditorDefinitions` :: !DataPath !TUIDef !TUIDef -> [TUIUpdate]
 	diffEditorDefinitions` path old new
 		| sameType old new
-			= valueUpdates old new ++ hintUpdate path old new ++ errorUpdate path old new 
+			= contentUpdates old new ++ hintUpdate path old new ++ errorUpdate path old new 
 		| otherwise
 			//If not the same type, just replace
 			= [TUIReplace (dp2s path) new]
 	where
-		valueUpdates old new
-			| isStaticContainer old
-				// Records and tuples have static children
-				= staticContainerUpdate path old new
-			| isDynamicContainer old
-				// List and Constructor are special: they have dynamic children
-				= dynamicContainerUpdate path old new
-			| isControl old
-				//If not same value, error or hint, create set instructions
-				= valueUpdate path old new
-			= case (old,new) of //Special cases
-				(TUIButton o,TUIButton n)
+		contentUpdates old new = case (old,new) of
+			// Documents are replaced when their value has changed
+			(TUIControl (TUIDocumentControl odoc) _, TUIControl (TUIDocumentControl ndoc) _)
+				| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
+				| otherwise																= [TUIReplace (dp2s path) new]
+			// Choices are replaced if the options are changed, otherwise their selection is updated
+			(TUIControl (TUIChoiceControl oc) ob, TUIControl (TUIChoiceControl nc) nb)
+				= if (oc.options == nc.options)
+					if (ob.value == nb.value)
+						[]
+						[TUISetValue (dp2s path) nb.value]
+					[TUIReplace (dp2s path) new]
+			// Trees are replaced if the nodes are changed, otherwise their selection is updated
+			(TUIControl (TUITreeControl oTree) ob, TUIControl (TUITreeControl nTree) nb)
+				= if (oTree === nTree)
+					if (ob.value == nb.value)
+						[]
+						[TUISetValue (dp2s path) nb.value]
+					[TUIReplace (dp2s path) new]
+			(TUIControl _ oc, TUIControl _ nc)
+				= controlUpdate path oc nc
+			(TUIButton o,TUIButton n)
 					| o.TUIButton.action <> n.TUIButton.action || o.TUIButton.text <> n.TUIButton.text || o.TUIButton.iconCls <> n.TUIButton.iconCls
 						= [TUIReplace (dp2s path) new]
 					| o.TUIButton.disabled <> n.TUIButton.disabled
 						= [TUISetEnabled (dp2s path) (not n.TUIButton.disabled)]
 					| otherwise
 						= []
-				// Records are static except if they are optional
-				(TUIRecordContainer o, TUIRecordContainer n)
-					| o.TUIRecordContainer.optional <> n.TUIRecordContainer.optional = [TUIReplace (dp2s path) new]
-					= case (o.hasValue,n.hasValue) of
-						(True,True)		= staticContainerUpdate path old new
-						(False,True)	= [TUISetValue (dp2s path) "expand":[TUIAdd (dp2s path) idx item \\ item <- n.TUIRecordContainer.items & idx <- [0..]]]
-						(False,False)	= []
-						(True,False)	= [TUISetValue (dp2s path) "collapse"]
-				// Documents are replaced when their value has changed
-				(TUIDocumentControl odoc, TUIDocumentControl ndoc)
-					| odoc.TUIDocumentControl.document == ndoc.TUIDocumentControl.document	= []
-					| otherwise																= [TUIReplace (dp2s path) new]
-				// Choices are replaced if the options are changed, otherwise their selection is updated
-				(TUIChoiceControl oc, TUIChoiceControl nc)
-					= if (oc.options == nc.options)
-						if (oc.selection == nc.selection)
-							[]
-							[TUISetValue (dp2s path) (toString (toJSON nc.selection))]
-						[TUIReplace (dp2s path) new]
-				// Trees are replaced if the nodes are changed, otherwise their selection is updated
-				(TUITreeControl ot, TUITreeControl nt)
-					= if (ot.tuiTree === nt.tuiTree)
-						if (ot.selIndex == nt.selIndex)
-							[]
-							[TUISetValue (dp2s path) (toString nt.selIndex)]
-						[TUIReplace (dp2s path) new]
-				(TUIGridControl {gridEditors = oe,gridHtml = oh}, TUIGridControl {gridEditors = ne, gridHtml = nh}) | length oe == length ne
-					# htmlUpdates	= flatten [[TUISetValue  (dp2s path) (toString (toJSON (i,j,n))) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
-					# path			= shiftDataPath path
-					# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
-					= htmlUpdates ++ editorUpdates
-				// Custom components need to figure out their own update on the client side
-				(TUICustom oc, TUICustom nc)
-					| oc === nc	= []
-					| otherwise	= [TUIUpdate (dp2s path) new]
-				// Fallback: always replace
-				_	= [TUIReplace (dp2s path) new]
+			(TUIConstructorControl ccOld, TUIConstructorControl ccNew)
+				//Same constructor: diff the children
+				| ccOld.TUIConstructorControl.consSelIdx == ccNew.TUIConstructorControl.consSelIdx
+					= flatten [  diffEditorDefinitions` (childDataPath path i) co cn
+							  \\ co <- ccOld.TUIConstructorControl.items
+							  &  cn <- ccNew.TUIConstructorControl.items
+							  & i <- [0..] ]
+				//Different constructor: replace everything
+				| otherwise
+					= [TUIReplace (dp2s path) new]
+			(TUIGridContainer {gridEditors = oe,gridHtml = oh}, TUIGridContainer {gridEditors = ne, gridHtml = nh}) | length oe == length ne
+				# htmlUpdates	= flatten [[TUISetValue  (dp2s path) (toString (toJSON (i,j,n))) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
+				# path			= shiftDataPath path
+				# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
+				= htmlUpdates ++ editorUpdates
+			//Simply update all child elements
+			(TUIStaticContainer o, TUIStaticContainer n)
+				= staticContainerUpdate path o.TUIStaticContainer.items n.TUIStaticContainer.items
+			// Records are static except if they are optional
+			(TUIRecordContainer o, TUIRecordContainer n)
+				| o.TUIRecordContainer.optional <> n.TUIRecordContainer.optional = [TUIReplace (dp2s path) new]
+				= case (o.hasValue,n.hasValue) of
+					(True,True)		= staticContainerUpdate path o.TUIRecordContainer.items n.TUIRecordContainer.items
+					(False,True)	= [TUISetValue (dp2s path) "expand":[TUIAdd (dp2s path) idx item \\ item <- n.TUIRecordContainer.items & idx <- [0..]]]
+					(False,False)	= []
+					(True,False)	= [TUISetValue (dp2s path) "collapse"]
+			(TUIListContainer lcOld, TUIListContainer lcNew)
+				# valueUpdates	= diffListItemDefinitions (path) lcOld.TUIListContainer.items lcNew.TUIListContainer.items
+				# lengthUpdates	= if (numOld < numNew)
+					[TUIAdd (dp2s path) idx item \\item <- drop numMin lcNew.TUIListContainer.items & idx <- [numMin..]]
+					[TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]]
+				= valueUpdates ++ lengthUpdates
+				where
+					numOld = length lcOld.TUIListContainer.items
+					numNew = length lcNew.TUIListContainer.items
+					numMin = min numOld numNew
+					
+					diffListItemDefinitions path old new
+						= flatten [ diffEditorDefinitions` (childDataPath path i) (hd co) (hd cn)
+						 		  \\(TUIListItem {TUIListItem|items=co}) <- old
+								  & (TUIListItem {TUIListItem|items=cn}) <- new
+								  & i <- [0..]]
+			// Custom components need to figure out their own update on the client side
+			(TUICustom oc, TUICustom nc)
+				| oc === nc	= []
+				| otherwise	= [TUIUpdate (dp2s path) new]
+			// Fallback: always replace
+			_	= [TUIReplace (dp2s path) new]
+			
+		//Simply update all child elements
+		staticContainerUpdate path old new = flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- old & cn <- new & i <- [0..] ]
 	
-		valueUpdate path old new	= update (\o n -> sameValue o n && not (isMember path alwaysUpdatePaths)) valueOf TUISetValue path old new
+		controlUpdate path old new = valueUpdate path old new
+	
+		valueUpdate path old new	= update (\o n -> o.value == n.value) (\{value} -> Just value) TUISetValue path old new
 		hintUpdate path old new		= update sameHint hintOf TUISetHint path old new
 		errorUpdate path old new	= update sameError errorOf TUISetError path old new
 		
 		update eqfun accfun consfun path old new
 			| not (eqfun old new)	= maybe [] (\prop -> [consfun (dp2s path) prop]) (accfun new)
 			| otherwise				= []
-	
-		staticContainerUpdate path old new
-			//Simply update all child elements
-			= flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- childrenOf old & cn <- childrenOf new & i <- [0..] ]
-		
-		dynamicContainerUpdate path (TUIListContainer lcOld) (TUIListContainer lcNew)
-			# valueUpdates	= diffListItemDefinitions (path) lcOld.TUIListContainer.items lcNew.TUIListContainer.items
-			# lengthUpdates	= if (numOld < numNew)
-				[TUIAdd (dp2s path) idx item \\item <- drop numMin lcNew.TUIListContainer.items & idx <- [numMin..]]
-				[TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]]
-			= valueUpdates ++ lengthUpdates
-			where
-				numOld = length lcOld.TUIListContainer.items
-				numNew = length lcNew.TUIListContainer.items
-				numMin = min numOld numNew
-				
-				diffListItemDefinitions path old new
-					= flatten [ diffEditorDefinitions` (childDataPath path i) (hd co) (hd cn)
-					 		  \\(TUIListItemControl {TUIListItemControl|items=co}) <- old
-							  & (TUIListItemControl {TUIListItemControl|items=cn}) <- new
-							  & i <- [0..]]
-				
-		dynamicContainerUpdate path (TUIConstructorControl ccOld) (TUIConstructorControl ccNew)
-			//Same constructor: diff the children
-			| ccOld.TUIConstructorControl.consSelIdx == ccNew.TUIConstructorControl.consSelIdx
-				= flatten [  diffEditorDefinitions` (childDataPath path i) co cn
-						  \\ co <- ccOld.TUIConstructorControl.items
-						  &  cn <- ccNew.TUIConstructorControl.items
-						  & i <- [0..] ]
-			//Different constructor: replace everything
-			| otherwise
-				= [TUIReplace (dp2s path) new]
-			
-		dynamicContainerUpdate path old new
-			= [TUIReplace (dp2s path) new]	//Just replace, dynamic containers are too difficult to do at once :)
 		
 		// don't use index of column in datapath if there is only one column
 		tablePath l path i j
@@ -122,112 +113,55 @@ where
 			| otherwise		= childDataPath (childDataPath path i) j
 
 //Boilerplate type equality
-sameType :: TUIDef TUIDef -> Bool
-sameType (TUIButton _)				(TUIButton _)				= True
-sameType (TUIStringControl _)		(TUIStringControl _)		= True
-sameType (TUICharControl _)			(TUICharControl _)			= True
-sameType (TUIIntControl _)			(TUIIntControl _)			= True
-sameType (TUIRealControl _)			(TUIRealControl _)			= True
-sameType (TUIBoolControl _)			(TUIBoolControl _)			= True
-sameType (TUINoteControl _)			(TUINoteControl _)			= True
-sameType (TUIDateControl _)			(TUIDateControl _)			= True
-sameType (TUITimeControl _)			(TUITimeControl _)			= True
-sameType (TUIPasswordControl _)		(TUIPasswordControl _)		= True
-sameType (TUIChoiceControl _)		(TUIChoiceControl _)		= True
-sameType (TUICurrencyControl _)		(TUICurrencyControl _)		= True
-sameType (TUIUserControl _)			(TUIUserControl _)			= True
-sameType (TUIDocumentControl _)		(TUIDocumentControl _)		= True
-sameType (TUIConstructorControl _)	(TUIConstructorControl _)	= True
-sameType (TUIHiddenControl _)		(TUIHiddenControl _)		= True
-sameType (TUIFormButtonControl _)	(TUIFormButtonControl _)	= True
-sameType (TUIListItemControl _)		(TUIListItemControl _)		= True
-sameType (TUIAppletControl _)       (TUIAppletControl _)        = True
-sameType (TUIORYXControl _)			(TUIORYXControl _)			= True
-sameType (TUIGridControl _)			(TUIGridControl _)        	= True
-sameType (TUITreeControl _)			(TUITreeControl _)        	= True
+sameType :: !TUIDef !TUIDef -> Bool
+sameType (TUIControl ca _)				(TUIControl cb _)			= sameType` ca cb
+where
+	sameType` :: !TUIControlType !TUIControlType -> Bool
+	sameType` TUIStringControl			TUIStringControl			= True
+	sameType` TUICharControl			TUICharControl				= True
+	sameType` TUIIntControl				TUIIntControl				= True
+	sameType` TUIRealControl			TUIRealControl				= True
+	sameType` TUIBoolControl			TUIBoolControl				= True
+	sameType` TUINoteControl			TUINoteControl				= True
+	sameType` TUIDateControl			TUIDateControl				= True
+	sameType` TUITimeControl			TUITimeControl				= True
+	sameType` TUIPasswordControl		TUIPasswordControl			= True
+	sameType` TUIUserControl			TUIUserControl				= True
+	sameType` TUIHiddenControl			TUIHiddenControl			= True
+	sameType` (TUIChoiceControl _)		(TUIChoiceControl _)		= True
+	sameType` (TUICurrencyControl _)	(TUICurrencyControl _)		= True
+	sameType` (TUIDocumentControl _)	(TUIDocumentControl _)		= True
+	sameType` (TUIButtonControl _)		(TUIButtonControl _)		= True
+	sameType` (TUIHtmlDisplay)			(TUIHtmlDisplay)			= True
+	sameType` (TUIORYXControl _)		(TUIORYXControl _)			= True
+	sameType` (TUITreeControl _)		(TUITreeControl _)      	= True
+	sameType` (TUICustomControl _ _)	(TUICustomControl _ _)		= True
+	sameType` _							_							= False
+sameType (TUIButton _)					(TUIButton _)				= True
+sameType (TUIConstructorControl _)		(TUIConstructorControl _)	= True
+sameType (TUIListItem _)				(TUIListItem _)				= True
+sameType (TUIGridContainer _)			(TUIGridContainer _)        = True
+sameType (TUIStaticContainer _)			(TUIStaticContainer _)		= True
+sameType (TUIRecordContainer _)			(TUIRecordContainer _)		= True
+sameType (TUIListContainer _)			(TUIListContainer _)		= True
+sameType (TUIMenuButton _)				(TUIMenuButton _)			= True
+sameType (TUIMenuItem _)				(TUIMenuItem _)				= True
+sameType (TUIMenuSeparator)				(TUIMenuSeparator)			= True
+sameType (TUICustom _)					(TUICustom _)				= True
+sameType _								_ 							= False
 
-sameType (TUIStaticContainer _)		(TUIStaticContainer _)		= True
-sameType (TUIRecordContainer _)		(TUIRecordContainer _)		= True
-sameType (TUIListContainer _)		(TUIListContainer _)		= True
-sameType (TUIHtmlContainer _)		(TUIHtmlContainer _)		= True
-
-sameType (TUIMenuButton _)			(TUIMenuButton _)			= True
-sameType (TUIMenuItem _)			(TUIMenuItem _)				= True
-sameType (TUIMenuSeparator)			(TUIMenuSeparator)			= True
-sameType (TUICustom _)				(TUICustom _)				= True
-
-sameType _							_ 							= False
-
-sameValue :: TUIDef TUIDef -> Bool
-sameValue a b = (valueOf a) == (valueOf b)
-
-sameError :: TUIDef TUIDef -> Bool
+sameError :: !TUIDef !TUIDef -> Bool
 sameError a b = (errorOf a) == (errorOf b)
 
-sameHint :: TUIDef TUIDef -> Bool
+sameHint :: !TUIDef !TUIDef -> Bool
 sameHint a b = (hintOf a) == (hintOf b)
 
-//Basic controls
-isControl :: TUIDef -> Bool
-isControl (TUIStringControl _)		= True
-isControl (TUICharControl _)		= True
-isControl (TUIIntControl _)			= True
-isControl (TUIRealControl _)		= True
-isControl (TUIBoolControl _)		= True
-isControl (TUINoteControl _)		= True
-isControl (TUIDateControl _)		= True
-isControl (TUITimeControl _)		= True
-isControl (TUIPasswordControl _)	= True
-isControl (TUICurrencyControl _)	= True
-isControl (TUIAppletControl _)		= True
-isControl (TUIORYXControl _)		= True
-isControl (TUIUserControl _)		= True
-isControl (TUIHtmlContainer _)		= True
-isControl _							= False
+errorOf :: !TUIDef -> Maybe String
+errorOf (TUIControl _ {TUIControl|errorMsg})			= Just errorMsg
+errorOf (TUIListContainer {TUIListContainer|errorMsg})	= Just errorMsg
+errorOf _												= Nothing
 
-errorOf :: TUIDef -> Maybe String
-errorOf (TUIStringControl {TUIBasicControl|errorMsg})		= Just errorMsg		
-errorOf (TUICharControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIIntControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIRealControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIBoolControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUINoteControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIDateControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUITimeControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIPasswordControl {TUIBasicControl|errorMsg})		= Just errorMsg
-errorOf (TUICurrencyControl {TUICurrencyControl|errorMsg})	= Just errorMsg
-errorOf (TUIAppletControl {TUIAppletControl|errorMsg})      = Just errorMsg
-errorOf (TUIORYXControl {TUIORYXControl|errorMsg})      	= Just errorMsg
-errorOf (TUIUserControl {TUIBasicControl|errorMsg})			= Just errorMsg
-errorOf (TUIListContainer {TUIListContainer|errorMsg})		= Just errorMsg
-errorOf (TUIChoiceControl {TUIChoiceControl|errorMsg})		= Just errorMsg
-errorOf _													= Nothing
-
-hintOf :: TUIDef -> Maybe String
-hintOf (TUIStringControl {TUIBasicControl|hintMsg})			= Just hintMsg		
-hintOf (TUICharControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIIntControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIRealControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIBoolControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUINoteControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIDateControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUITimeControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIPasswordControl {TUIBasicControl|hintMsg})		= Just hintMsg
-hintOf (TUICurrencyControl {TUICurrencyControl|hintMsg})	= Just hintMsg 
-hintOf (TUIAppletControl {TUIAppletControl|hintMsg})		= Just hintMsg
-hintOf (TUIORYXControl {TUIORYXControl|hintMsg})			= Just hintMsg
-hintOf (TUIUserControl {TUIBasicControl|hintMsg})			= Just hintMsg
-hintOf (TUIListContainer {TUIListContainer|hintMsg})		= Just hintMsg
-hintOf (TUIChoiceControl {TUIChoiceControl|hintMsg})		= Just hintMsg
-hintOf _													= Nothing
-
-//Static containers are GUI elements that contain other elements, but who's structure does not change
-isStaticContainer :: TUIDef -> Bool
-isStaticContainer (TUIStaticContainer _)	= True
-isStaticContainer _							= False
-
-//Dynamic containers are GUI elements that contain other elements that can be added, removed or reordered
-isDynamicContainer :: TUIDef -> Bool
-isDynamicContainer (TUIConstructorControl _)= True
-isDynamicContainer (TUIListContainer _)		= True
-isDynamicContainer _						= False
+hintOf :: !TUIDef -> Maybe String
+hintOf (TUIControl _ {TUIControl|hintMsg})				= Just hintMsg
+hintOf (TUIListContainer {TUIListContainer|hintMsg})	= Just hintMsg
+hintOf _												= Nothing

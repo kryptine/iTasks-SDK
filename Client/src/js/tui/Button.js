@@ -1,13 +1,13 @@
-Ext.ns('itasks.ttc');
+Ext.ns('itasks.tui');
 
-itasks.ttc.Button = Ext.extend(Ext.Button, {
+itasks.tui.Button = Ext.extend(Ext.Button, {
 	margins: {top:3, right:3, bottom:3, left:3},
 	minWidth: 75,
 	initComponent: function() {
 	
 		this.listeners = {click: {fn: this.onActionClick, scope: this}};
 		
-		itasks.ttc.Button.superclass.initComponent.apply(this,arguments);
+		itasks.tui.Button.superclass.initComponent.apply(this,arguments);
 		
 		this.addEvents('tuiaction');
 		this.enableBubble('tuiaction');
@@ -20,4 +20,4 @@ itasks.ttc.Button = Ext.extend(Ext.Button, {
 
 });
 
-Ext.reg('itasks.ttc.Button',itasks.ttc.Button);
+Ext.reg('itasks.tui.Button',itasks.tui.Button);

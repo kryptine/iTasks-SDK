@@ -1,6 +1,6 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
+itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
 	autoHeight: true,
 	htmlDirty: false,
 	stateful: false,
@@ -60,7 +60,7 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
 			fields: fieldsC
 		});
 	
-		itasks.tui.GridControl.superclass.initComponent.apply(this,arguments);
+		itasks.tui.GridContainer.superclass.initComponent.apply(this,arguments);
 		
 		this.selModel = new Ext.grid.CellSelectionModel();
 		this.activeEditor = null;
@@ -190,4 +190,4 @@ itasks.tui.GridControl = Ext.extend(Ext.grid.GridPanel,{
 	}
 });
 
-Ext.reg("itasks.tui.Grid",itasks.tui.GridControl);
+Ext.reg("itasks.tui.Grid",itasks.tui.GridContainer);

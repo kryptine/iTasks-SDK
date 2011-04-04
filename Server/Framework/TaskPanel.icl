@@ -59,7 +59,7 @@ buildResultPanel tree = case tree of
 		
 diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel
 diffTaskPanels (TTCInteractiveContainer old) (TTCInteractiveContainer new) | old.TTCInteractiveContainer.taskId == new.TTCInteractiveContainer.taskId
-	= TTCInteractiveContainer {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TTCInteractiveContainer.content) (fromJust new.TTCInteractiveContainer.content) [])}
+	= TTCInteractiveContainer {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TTCInteractiveContainer.content) (fromJust new.TTCInteractiveContainer.content))}
 diffTaskPanels (TTCParallelContainer old) (TTCParallelContainer new) | old.TTCParallelContainer.taskId == new.TTCParallelContainer.taskId && length old.TTCParallelContainer.content == length new.TTCParallelContainer.content
 	= TTCParallelContainer {TTCParallelContainer|new & content = map (uncurry diffTaskPanels) (zip2 old.TTCParallelContainer.content new.TTCParallelContainer.content)}
 diffTaskPanels _ new
