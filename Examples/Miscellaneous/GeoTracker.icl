@@ -24,21 +24,35 @@ where
 		| u == user	= [(user,position):ps]
 					= [(u,p):update (user,position) ps]
 	
-viewMap :: Task [(User,GoogleMapPosition)]
+viewMap :: Task Void
 viewMap
-	= showMessageSharedA "Look where everyone is" mapView [(ActionQuit,always)] locationStore >>= transform snd
+	=	getCurrentUser
+	>>= \user ->
+		createSharedStore nlMap	//Create a new map (local to this task) to put the markers on
+	>>= \map ->
+		updateSharedInformationA "Look where everyone is" (toView,fromView) [(ActionQuit,always)] (map >&< locationStore) <<@ FWFullWidth
+	>>|	stop
 where
-	mapView :: [(User,GoogleMapPosition)] -> GoogleMap
-	mapView locations = {GoogleMap| nlMap & mapType = ROADMAP, markers = map mkMarker locations}
+	nlMap :: GoogleMap		
+	nlMap = {GoogleMap| mkMap & zoom = 7, center = {lat = 52.396, lng = 5.21}}
 	
+	toView :: (GoogleMap, [(User,GoogleMapPosition)]) -> GoogleMap
+	toView (gmap,locations) = {GoogleMap|gmap & markers = map mkMarker locations}
+	
+	fromView :: GoogleMap (GoogleMap,[(User,GoogleMapPosition)]) -> (GoogleMap,[(User,GoogleMapPosition)])
+	fromView view (gmap,positions)	= ({GoogleMap|view & markers = []},positions)
+		
 	mkMarker :: (User,GoogleMapPosition) -> GoogleMapMarker
 	mkMarker (user,position)
 		=	{ GoogleMapMarker
 			| position		= position
 			, title			= Just (displayName user)
-			, infoWindow	= Just {GoogleMapInfoWindow|content = "<h1>" +++ displayName user +++ "</h1>" +++ visualizeAsTextLabel position}
+			, infoWindow	= Just {GoogleMapInfoWindow|content = toString info}
 			, draggable		= False
 			}
-			
-	nlMap :: GoogleMap		
-	nlMap = {GoogleMap| mkMap & zoom = 7, center = {lat = 52.396, lng = 5.21}}
+	where
+		info = SpanTag []
+			[H1Tag [] [Text (displayName user)],BrTag []
+			,Text "Lat:", Text (toString position.lat), BrTag []
+			,Text "Lng: ", Text (toString position.lng), BrTag []
+			]
