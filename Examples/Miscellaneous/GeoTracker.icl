@@ -9,18 +9,36 @@ geoTrackerExamples =
 	,workflow "Examples/Geo tracker/View map" "Look at the locations of users on the map." viewMap
 	]
 	
-reportPosition :: Task GoogleMapPosition
-reportPosition = enterInformation "Where are you now?"
-
-viewMap :: Task GoogleMap
-viewMap = updateInformation "Look where everyone is" initMap <<@ FWFullWidth
-where
-	initMap = {GoogleMap| mkMap & mapType = TERRAIN, markers = [uni]}
+locationStore :: SymmetricShared [(User,GoogleMapPosition)]
+locationStore = sharedStoreDefault "Locations"
 	
-	uni :: GoogleMapMarker
-	uni = 	{GoogleMapMarker
-			| position		= {lat = 51.82, lng = 5.86}
-			, title			= Just "Radboud University"
-			, infoWindow	= Just {GoogleMapInfoWindow|content = "Radboud University"}
+reportPosition :: GoogleMapPosition -> Task Void
+reportPosition position
+	=	getCurrentUser
+	>>= \user ->
+		updateShared (update (user,position)) locationStore
+	>>| stop
+where
+	update (user,position) [] = [(user,position)]
+	update (user,position) [(u,p):ps]
+		| u == user	= [(user,position):ps]
+					= [(u,p):update (user,position) ps]
+	
+viewMap :: Task [(User,GoogleMapPosition)]
+viewMap
+	= showMessageSharedA "Look where everyone is" mapView [(ActionQuit,always)] locationStore >>= transform snd
+where
+	mapView :: [(User,GoogleMapPosition)] -> GoogleMap
+	mapView locations = {GoogleMap| nlMap & mapType = ROADMAP, markers = map mkMarker locations}
+	
+	mkMarker :: (User,GoogleMapPosition) -> GoogleMapMarker
+	mkMarker (user,position)
+		=	{ GoogleMapMarker
+			| position		= position
+			, title			= Just (displayName user)
+			, infoWindow	= Just {GoogleMapInfoWindow|content = "<h1>" +++ displayName user +++ "</h1>" +++ visualizeAsTextLabel position}
 			, draggable		= False
 			}
+			
+	nlMap :: GoogleMap		
+	nlMap = {GoogleMap| mkMap & zoom = 7, center = {lat = 52.396, lng = 5.21}}
