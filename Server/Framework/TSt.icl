@@ -59,7 +59,6 @@ initTaskInfo
 		| taskId = ""
 		, subject = ""
 		, description = ""
-		, tags = []
 		, formWidth = Nothing
 		}
 
@@ -650,7 +649,6 @@ applyTaskCommit {properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommi
 					| taskId				= taskNrToString taskNr
 					, subject				= properties.TaskProperties.taskDescription.TaskDescription.title
 					, description			= toString properties.TaskProperties.taskDescription.TaskDescription.description
-					, tags					= properties.TaskProperties.tags
 					, formWidth				= formWidth
 					}
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}

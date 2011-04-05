@@ -42,7 +42,7 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange', this.name, this.getValue());	
+		this.fireEvent('tuichange', this.taskId, this.name, this.getValue());	
 	},
 	afterRender: function(ct,position){		
 		itasks.tui.UsernameControl.superclass.afterRender.call(this,ct,position);

@@ -15,7 +15,7 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.dataPath,Ext.encode(this.getValue()));
+		this.fireEvent('tuichange',this.taskId,this.dataPath,Ext.encode(this.getValue()));
 	},
 	onRender: function(ct, position){
 		if(!this.el){

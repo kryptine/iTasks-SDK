@@ -18,7 +18,7 @@ itasks.tui.StringControl = Ext.extend(Ext.form.TextField,{
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange', this.name, this.getValue());
+		this.fireEvent('tuichange', this.taskId, this.name, this.getValue());
 	},
 	afterRender: function() {
 		itasks.tui.StringControl.superclass.afterRender.call(this,arguments);

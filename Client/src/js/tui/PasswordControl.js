@@ -21,7 +21,7 @@ itasks.tui.PasswordControl = Ext.extend(Ext.form.TextField,{
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.name,this.getValue());
+		this.fireEvent('tuichange',this.taskId,this.name,this.getValue());
 	},	
 	afterRender: function(){
 		itasks.tui.PasswordControl.superclass.afterRender.call(this,arguments);

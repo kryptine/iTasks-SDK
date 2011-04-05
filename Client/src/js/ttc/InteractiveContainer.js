@@ -2,23 +2,7 @@ Ext.ns('itasks.ttc');
 
 itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 	initComponent : function() {
-		switch(this.type){
-			case 'Information':
-				this.cls		= 'TTCInformationContainer';
-				break;
-			case 'Message':
-				this.cls		= 'TTCMessageContainer';
-				break;
-			case 'Instruction':
-				this.cls		= 'TTCInstructionContainer';
-				break;
-			case 'Monitor':
-				this.cls		= 'TTCMonitorContainer';
-				break;
-			case 'Control':
-				this.cls		= 'TTCControlContainer';
-				break;
-		}
+		this.cls = this.getCls(this.type);
 		
 		itasks.ttc.InteractiveContainer.superclass.initComponent.apply(this,arguments);
 	},
@@ -33,10 +17,31 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		};
 	},
 	update: function(data) {
-		//var content = data.content;
 		if (data == "done" || data == "redundant"){
 			this.fadeOut(data);
-		} else if(data.updates) {
+			return;
+		}
+		
+		// update title and description
+		if (data.subject != this.subject) {
+			this.subject = data.subject;
+			this.subjectpanel.removeAll();
+			this.subjectpanel.update(this.subject);
+		}
+		if(data.description != this.description) {
+			this.description = data.description;
+			this.descriptionpanel.removeAll();
+			this.descriptionpanel.update(this.description);
+		}
+		
+		// update css class
+		if(data.type != this.type){
+			this.removeClass(this.getCls(this.type));
+			this.addClass(this.getCls(data.type));
+			this.type = data.type;
+		}
+		
+		if(data.updates) {
 			//errors and hints are updated separately
 			var num = data.updates.length;
 			for (i = 0; i < num; i++) {
@@ -171,6 +176,16 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		cmp.doLayout();
 		
 		return cmp.items.get(target);
+	},
+	
+	getCls: function(type) {
+		switch(type){
+			case 'Information':	return 'TTCInformationContainer';
+			case 'Message':		return 'TTCMessageContainer';
+			case 'Instruction':	return 'TTCInstructionContainer';
+			case 'Monitor':		return 'TTCMonitorContainer';
+			case 'Control':		return 'TTCControlContainer';
+		}
 	}
 });
 

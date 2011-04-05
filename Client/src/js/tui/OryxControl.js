@@ -56,7 +56,7 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 
 	onChange : function(){
         if (! this.inUpdate)
-		    this.fireEvent('tuichange',this.name,Ext.encode(this.facade.getJSON()));
+		    this.fireEvent('tuichange',this.taskId,this.name,Ext.encode(this.facade.getJSON()));
 	},
 	
 	afterRender : function(){

@@ -48,7 +48,6 @@ from TUIDefinition	import :: TUIDef
 :: TaskInfo	=	{ taskId				:: !TaskId											//Task number in string format
 				, subject				:: !String											//Short subject of the task
 				, description			:: !String											//Description of the task (html)
-				, tags					:: ![String]
 				, formWidth				:: !Maybe FormWidth
 				}
 

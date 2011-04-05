@@ -17,7 +17,7 @@ itasks.tui.IntControl = Ext.extend(Ext.form.NumberField,{
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.name,this.getValue().toString());
+		this.fireEvent('tuichange',this.taskId,this.name,this.getValue().toString());
 	},
 	afterRender: function(){
 		itasks.tui.IntControl.superclass.afterRender.call(this,arguments);

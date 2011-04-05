@@ -28,15 +28,15 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		this.addEvents('tuievent','taskRedundant','taskDone');
 		this.enableBubble('tuievent','taskRedundant','taskDone');
 	},
-	onTuiChange: function(name,value) {
+	onTuiChange: function(taskId,name,value) {
 		//Re-fire 'tuichange' events as 'tuievent' with the task number added
-		this.fireEvent('tuievent',this.taskId,name,value);
+		this.fireEvent('tuievent',taskId,name,value);
 		//Return such that 'higher' containers can't also try to handle this event.
 		return false;	
 	},
-	onTuiAction: function(value) {
+	onTuiAction: function(taskId,value) {
 		//Re-fire 'tuiaction' events as 'tuievent' with name and task number added
-		this.fireEvent('tuievent',this.taskId,'action',value);
+		this.fireEvent('tuievent',taskId,'action',value);
 		return false;
 	},
 	afterRender: function(){

@@ -124,7 +124,7 @@ where
 		interactiveNode=:(TTInteractiveTask ti interactiveType tui)
 			# buttons			= mkButtons` ti.TaskInfo.taskId
 			| isEmpty buttons	= interactiveNode
-			# buttonContainer	= TUIStaticContainer {TUIStaticContainer|items = buttons, fieldLabel = Nothing, optional = False, layout = Horizontal HRight}
+			# buttonContainer	= TUIContainer {TUIContainer|items = buttons, fieldLabel = Nothing, optional = False, layout = Horizontal HRight}
 			= TTInteractiveTask ti interactiveType (addButtons buttonContainer tui)
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
@@ -137,20 +137,21 @@ where
 		mkButtons` taskId
 			# buttonActions = filter (\(actionTaskId,_,_) -> actionTaskId == taskId) actions
 			= map mkButton buttonActions
+		where	
+			mkButton :: !SubtaskAction -> TUIDef
+			mkButton (_,action,enabled) = TUIButton	{ TUIButton
+													| name = "action"
+													, taskId = taskId
+													, action = actionName action
+													, disabled = not enabled
+													, text = actionLabel action
+													, iconCls = actionIcon action
+													}
 			
-		mkButton :: !SubtaskAction -> TUIDef
-		mkButton (_,action,enabled) = TUIButton	{ TUIButton
-												| name = "action"
-												, action = actionName action
-												, disabled = not enabled
-												, text = actionLabel action
-												, iconCls = actionIcon action
-												}
-		
 		addButtons :: !TUIDef !TUIDef -> TUIDef
 		addButtons buttons def = case def of
-			TUIStaticContainer c	= TUIStaticContainer {TUIStaticContainer|c & items = c.TUIStaticContainer.items ++ [buttons]}
-			tui						= TUIStaticContainer {TUIStaticContainer|items = [tui,buttons], fieldLabel = Nothing, optional = False, layout = Vertical}
+			TUIContainer c	= TUIContainer {TUIContainer|c & items = c.TUIContainer.items ++ [buttons]}
+			tui				= TUIContainer {TUIContainer|items = [tui,buttons], fieldLabel = Nothing, optional = False, layout = Vertical}
 	
 			
 	addTaskIds :: !TaskId ![(!Action,!Bool)] -> SubtaskActions

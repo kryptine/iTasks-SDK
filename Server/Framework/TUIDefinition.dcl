@@ -5,25 +5,23 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from Types import :: Document(..), :: DocumentId, :: Hotkey
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 
 :: TUIName	:== String
 
 :: TUIDef
-	= TUIControl !TUIControlType !TUIControl
-	| TUIButton !TUIButton	
-	| TUIConstructorControl !TUIConstructorControl
-	
-	| TUIStaticContainer !TUIStaticContainer
-	| TUIRecordContainer !TUIRecordContainer
-	| TUIListContainer !TUIListContainer
-	| TUIListItem !TUIListItem
-	| TUIGridContainer !TUIGridContainer
-	
-	| TUIMenuButton !TUIMenuButton
-	| TUIMenuItem !TUIMenuItem
+	= TUIControl			!TUIControlType !TUIControl
+	| TUIButton				!TUIButton	
+	| TUIConstructorControl	!TUIConstructorControl
+	| TUIContainer			!TUIContainer
+	| TUIRecordContainer	!TUIRecordContainer
+	| TUIListContainer		!TUIListContainer
+	| TUIListItem			!TUIListItem
+	| TUIGridContainer		!TUIGridContainer
+	| TUIMenuButton			!TUIMenuButton
+	| TUIMenuItem			!TUIMenuItem
 	| TUIMenuSeparator
-	| TUICustom !JSONNode
+	| TUICustom				!JSONNode
 	
 :: TUIControlType	= TUIStringControl
 					| TUICharControl
@@ -35,23 +33,24 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 					| TUITimeControl
 					| TUIPasswordControl
 					| TUIUserControl
-					| TUIHiddenControl
-					| TUIChoiceControl !TUIChoiceControl
-					| TUICurrencyControl !String // currency label
-					| TUIDocumentControl !TUIDocumentControl
-					| TUIButtonControl !TUIButtonControl
+					| TUIChoiceControl		!TUIChoiceControl
+					| TUICurrencyControl	!String // currency label
+					| TUIDocumentControl	!TUIDocumentControl
+					| TUIButtonControl		!TUIButtonControl
 					| TUIHtmlDisplay
-					| TUIORYXControl !String // stencilset URL
-					| TUITreeControl ![TUITree]
-					| TUICustomControl !String ![(!String,!JSONNode)] // xtype + additional record fields
+					| TUIORYXControl		!String // stencilset URL
+					| TUITreeControl		![TUITree]
+					| TUICustomControl		!String ![(!String,!JSONNode)] // xtype + additional record fields
 
 :: TUIControl =
 	{ name			:: !TUIName
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
+	, taskId		:: !TaskId
 	, optional		:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
+	, eventValue	:: !Maybe String
 	}
 :: TUIChoiceControl =
 	{ allowMultiple	:: !Bool
@@ -81,7 +80,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, errorMsg		:: !String
 	, hintMsg		:: !String
 	}
-:: TUIStaticContainer =
+:: TUIContainer =
 	{ items			:: ![TUIDef]
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
@@ -89,6 +88,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	}
 :: TUIRecordContainer =
 	{ name			:: !TUIName
+	, taskId		:: !TaskId
 	, title			:: !Maybe String
 	, items			:: ![TUIDef]
 	, optional		:: !Bool
@@ -97,6 +97,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 :: TUIListContainer =
 	{ items			:: ![TUIDef]
 	, name			:: !TUIName
+	, taskId		:: !TaskId
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool
 	, staticDisplay	:: !Bool
@@ -111,6 +112,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	}
 :: TUIButton =
 	{ name			:: !TUIName
+	, taskId		:: !TaskId
 	, text			:: !String
 	, action		:: !String
 	, disabled		:: !Bool
@@ -134,8 +136,7 @@ from Types import :: Document(..), :: DocumentId, :: Hotkey
 	, hotkey		:: !Maybe Hotkey
 	}
 :: TUIGridContainer =
-	{ name			:: !TUIName
-	, columns		:: ![TUIGridColumn]
+	{ columns		:: ![TUIGridColumn]
 	, gridHtml		:: ![[String]]
 	, gridEditors	:: ![[Maybe TUIDef]]
 	}

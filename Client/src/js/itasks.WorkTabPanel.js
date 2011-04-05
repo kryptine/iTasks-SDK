@@ -75,13 +75,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		itasks.WorkPanel.superclass.initComponent.apply(this, arguments);
 	
 		this.addEvents("taskRedundant","taskDone","propertyChanged","afterUpdateContent");
-	
-		//Attach tab change handler
-		this.getComponent(1).on("tabchange",function(ct,tab){
-			if(tab && tab.subtaskId){
-				this.activeSubtaskId = tab.subtaskId;
-			}
-		},this);
 		
 		this.on("afterUpdateContent",function(){
 			this.doLayout(false,true);
@@ -140,7 +133,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		if(ct.items.getCount() > 0) {
 			//Recursively update tab content
 			var cur = ct.getComponent(0);
-			if(!Ext.isDefined(content.taskId) || cur.xtype == content.xtype && cur.taskId == content.taskId && cur.type == content.type) {
+			
+			if(!Ext.isDefined(content.xtype) || cur.xtype == content.xtype) {
 				cur.update(content);
 			} else {
 				// fire done event because subprocesses of parallel possibly also stopped

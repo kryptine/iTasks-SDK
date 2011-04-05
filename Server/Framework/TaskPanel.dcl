@@ -13,8 +13,6 @@ from TUIDiff import :: TUIUpdate
 
 :: TTCInteractiveContainer = 
 	{ xtype			:: !String
-	, id			:: !String
-	, taskId		:: !TaskId
 	, content		:: !(Maybe TUIDef)
 	, updates		:: !(Maybe [TUIUpdate])
 	, subject		:: !String
@@ -26,15 +24,12 @@ from TUIDiff import :: TUIUpdate
 	
 :: TTCResultContainer =
 	{ xtype			:: !String
-	, id			:: !String
-	, taskId		:: !TaskId
 	, subject		:: !String
 	, result		:: !String
 	}
 	
 :: TTCParallelContainer =
 	{ xtype			:: !String
-	, taskId		:: !TaskId
 	, subject		:: !String
 	, description	:: !String
 	, content		:: ![TaskPanel]
@@ -44,4 +39,3 @@ from TUIDiff import :: TUIUpdate
 buildTaskPanel 		:: !UITreeContainer			-> TaskPanel
 buildResultPanel 	:: !UITreeContainer			-> TaskPanel
 diffTaskPanels		:: !TaskPanel !TaskPanel	-> TaskPanel
-

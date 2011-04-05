@@ -17,11 +17,11 @@ derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Cu
 derive gVisualize EmailAddress, Action, Table, HtmlDisplay
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !VerifyMask	-> [TUIDef]	| gVisualize{|*|} a
-visualizeAsHtmlDisplay	:: !a				-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextDisplay	:: !a				-> String	| gVisualize{|*|} a
-visualizeAsHtmlLabel	:: !a				-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextLabel	:: !a				-> String	| gVisualize{|*|} a
+visualizeAsEditor		:: !a !TaskId !VerifyMask ![(!DataPath,!String)]	-> [TUIDef]	| gVisualize{|*|} a
+visualizeAsHtmlDisplay	:: !a												-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextDisplay	:: !a												-> String	| gVisualize{|*|} a
+visualizeAsHtmlLabel	:: !a												-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextLabel	:: !a												-> String	| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -36,6 +36,8 @@ visualizeAsTextLabel	:: !a				-> String	| gVisualize{|*|} a
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
 	, optional			:: !Bool						// Create optional form fields
 	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
+	, editEvents		:: ![(!DataPath,!String)]		// The edit events for keeping track of values sent by the client (used for diff)
+	, taskId			:: !TaskId						// The id of the task the visualisation belongs to
 	}
 
 :: VisualizationType

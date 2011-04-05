@@ -16,7 +16,7 @@ itasks.tui.NoteControl = Ext.extend(Ext.form.TextArea,{
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.name,this.getValue());
+		this.fireEvent('tuichange',this.taskId,this.name,this.getValue());
 	},
 	afterRender: function(){
 		itasks.tui.NoteControl.superclass.afterRender.call(this,arguments);

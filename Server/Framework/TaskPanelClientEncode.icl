@@ -9,7 +9,7 @@ derive JSONEncode TTCInteractiveContainer, InteractiveTaskType, TTCResultContain
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIDocumentControl, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONEncode TUIStaticContainer, TUIRecordContainer, TUIListContainer
+derive JSONEncode TUIContainer, TUIRecordContainer, TUIListContainer
 derive JSONEncode TUIGridContainer, TUIGridColumn, TUITree, TUIControl
 
 //JSON specialization for TaskPanel: Ignore the union constructor
@@ -34,7 +34,7 @@ JSONEncode{|TUIDef|} (TUIConstructorControl r)	= addXType "itasks.tui.Constructo
 JSONEncode{|TUIDef|} (TUIListItem r) 			= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIGridContainer r)		= addXType "itasks.tui.Grid" (JSONEncode{|*|} r)
 
-JSONEncode{|TUIDef|} (TUIStaticContainer r)		= addXType "itasks.tui.Static" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIContainer r)			= addXType "itasks.tui.Container" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIListContainer r) 		= addXType "itasks.tui.List" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUICustom r)				= [r]
@@ -47,7 +47,6 @@ JSONEncode{|TUIControlType|} TUIBoolControl				= justXType "itasks.tui.Bool"
 JSONEncode{|TUIControlType|} TUINoteControl				= justXType "itasks.tui.Note"
 JSONEncode{|TUIControlType|} TUIDateControl				= justXType "itasks.tui.Date"
 JSONEncode{|TUIControlType|} TUITimeControl				= justXType "itasks.tui.Time"
-JSONEncode{|TUIControlType|} TUIHiddenControl			= justXType "itasks.tui.Hidden"
 JSONEncode{|TUIControlType|} TUIUserControl				= justXType "itasks.tui.Username"
 JSONEncode{|TUIControlType|} TUIPasswordControl			= justXType "itasks.tui.Password"
 JSONEncode{|TUIControlType|} (TUIChoiceControl r)		= addXType "itasks.tui.Choice" (JSONEncode{|*|} r)

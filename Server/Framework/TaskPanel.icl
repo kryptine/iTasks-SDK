@@ -17,8 +17,6 @@ where
 				= TTCInteractiveContainer
 					{ TTCInteractiveContainer
 					| xtype 		= "itasks.ttc.interactive"
-					, id 			= "taskform-" +++ ti.TaskInfo.taskId
-					, taskId 		= ti.TaskInfo.taskId
 					, subject		= ti.TaskInfo.subject
 					, description	= ti.TaskInfo.description
 					, content 		= Just tui
@@ -31,7 +29,6 @@ where
 				= TTCParallelContainer
 					{ TTCParallelContainer 
 					| xtype			= "itasks.ttc.parallel"
-					, taskId		= ti.TaskInfo.taskId
 					, subject		= ti.TaskInfo.subject
 					, description	= ti.TaskInfo.description
 					, content		= map buildParallelElement containers
@@ -49,8 +46,6 @@ buildResultPanel tree = case tree of
 	TTContainer _ (TTFinishedTask ti result _) _
 		= (TTCResultContainer {TTCResultContainer
 								| xtype 	= "itasks.ttc.result"
-								, id 		= "taskform-" +++ ti.TaskInfo.taskId
-								, taskId	= ti.TaskInfo.taskId
 								, subject	= ti.TaskInfo.subject
 								, result	= toString result
 								})
@@ -58,9 +53,9 @@ buildResultPanel tree = case tree of
 		= TaskNotDone
 		
 diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel
-diffTaskPanels (TTCInteractiveContainer old) (TTCInteractiveContainer new) | old.TTCInteractiveContainer.taskId == new.TTCInteractiveContainer.taskId
+diffTaskPanels (TTCInteractiveContainer old) (TTCInteractiveContainer new)
 	= TTCInteractiveContainer {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TTCInteractiveContainer.content) (fromJust new.TTCInteractiveContainer.content))}
-diffTaskPanels (TTCParallelContainer old) (TTCParallelContainer new) | old.TTCParallelContainer.taskId == new.TTCParallelContainer.taskId && length old.TTCParallelContainer.content == length new.TTCParallelContainer.content
+diffTaskPanels (TTCParallelContainer old) (TTCParallelContainer new)
 	= TTCParallelContainer {TTCParallelContainer|new & content = map (uncurry diffTaskPanels) (zip2 old.TTCParallelContainer.content new.TTCParallelContainer.content)}
 diffTaskPanels _ new
 	= new

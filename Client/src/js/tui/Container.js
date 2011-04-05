@@ -1,6 +1,6 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.StaticContainer = Ext.extend(Ext.Container,{
+itasks.tui.Container = Ext.extend(Ext.Container,{
 
 	initComponent: function(){
 		
@@ -12,10 +12,10 @@ itasks.tui.StaticContainer = Ext.extend(Ext.Container,{
 		} else {
 			this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		}	
-		itasks.tui.StaticContainer.superclass.initComponent.apply(this,arguments);
+		itasks.tui.Container.superclass.initComponent.apply(this,arguments);
 	},
 	afterRender: function(){
-		itasks.tui.StaticContainer.superclass.afterRender.call(this,arguments);
+		itasks.tui.Container.superclass.afterRender.call(this,arguments);
 	},
 	getPreferredWidth : function(){
 		var w = 0;
@@ -37,4 +37,4 @@ itasks.tui.StaticContainer = Ext.extend(Ext.Container,{
 	}
 });
 
-Ext.reg('itasks.tui.Static',itasks.tui.StaticContainer);
+Ext.reg('itasks.tui.Container',itasks.tui.Container);

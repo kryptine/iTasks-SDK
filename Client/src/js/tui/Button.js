@@ -14,7 +14,7 @@ itasks.tui.Button = Ext.extend(Ext.Button, {
 	},
 	onActionClick: function() {
 		if(this.action) {
-			this.fireEvent('tuiaction',this.action);
+			this.fireEvent('tuiaction',this.taskId,this.action);
 		}
 	}
 

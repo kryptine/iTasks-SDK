@@ -18,7 +18,7 @@ itasks.tui.TimeControl = Ext.extend(Ext.form.TimeField,{
 		this.enableBubble('tuichange');
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.name,this.getRawValue());
+		this.fireEvent('tuichange',this.taskId,this.name,this.getRawValue());
 	},
 	afterRender: function(ct,position){		
 		itasks.tui.TimeControl.superclass.afterRender.call(this,ct,position);

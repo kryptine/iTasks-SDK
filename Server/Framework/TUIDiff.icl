@@ -37,9 +37,9 @@ where
 						[TUISetValue (dp2s path) nb.value]
 					[TUIReplace (dp2s path) new]
 			(TUIControl _ oc, TUIControl _ nc)
-				= controlUpdate path oc nc
+				= controlUpdate path oc nc new
 			(TUIButton o,TUIButton n)
-					| o.TUIButton.action <> n.TUIButton.action || o.TUIButton.text <> n.TUIButton.text || o.TUIButton.iconCls <> n.TUIButton.iconCls
+					| o.TUIButton.taskId <> n.TUIButton.taskId || o.TUIButton.action <> n.TUIButton.action || o.TUIButton.text <> n.TUIButton.text || o.TUIButton.iconCls <> n.TUIButton.iconCls
 						= [TUIReplace (dp2s path) new]
 					| o.TUIButton.disabled <> n.TUIButton.disabled
 						= [TUISetEnabled (dp2s path) (not n.TUIButton.disabled)]
@@ -60,9 +60,16 @@ where
 				# path			= shiftDataPath path
 				# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
 				= htmlUpdates ++ editorUpdates
-			//Simply update all child elements
-			(TUIStaticContainer o, TUIStaticContainer n)
-				= staticContainerUpdate path o.TUIStaticContainer.items n.TUIStaticContainer.items
+			(TUIContainer o, TUIContainer n)
+				# valueUpdates	= staticContainerUpdate path o.TUIContainer.items n.TUIContainer.items
+				# lengthUpdates	= if (numOld < numNew)
+					[TUIAdd (dp2s path) idx item \\item <- drop numMin n.TUIContainer.items & idx <- [numMin..]]
+					(reverse [TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]])
+				= valueUpdates ++ lengthUpdates
+			where
+				numOld = length o.TUIContainer.items
+				numNew = length n.TUIContainer.items
+				numMin = min numOld numNew
 			// Records are static except if they are optional
 			(TUIRecordContainer o, TUIRecordContainer n)
 				| o.TUIRecordContainer.optional <> n.TUIRecordContainer.optional = [TUIReplace (dp2s path) new]
@@ -72,10 +79,10 @@ where
 					(False,False)	= []
 					(True,False)	= [TUISetValue (dp2s path) "collapse"]
 			(TUIListContainer lcOld, TUIListContainer lcNew)
-				# valueUpdates	= diffListItemDefinitions (path) lcOld.TUIListContainer.items lcNew.TUIListContainer.items
+				# valueUpdates	= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
 				# lengthUpdates	= if (numOld < numNew)
 					[TUIAdd (dp2s path) idx item \\item <- drop numMin lcNew.TUIListContainer.items & idx <- [numMin..]]
-					[TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]]
+					(reverse [TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]])
 				= valueUpdates ++ lengthUpdates
 				where
 					numOld = length lcOld.TUIListContainer.items
@@ -97,9 +104,18 @@ where
 		//Simply update all child elements
 		staticContainerUpdate path old new = flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- old & cn <- new & i <- [0..] ]
 	
-		controlUpdate path old new = valueUpdate path old new
+		controlUpdate path old new newTUI
+			| old.TUIControl.taskId == new.TUIControl.taskId && old.TUIControl.name == new.TUIControl.name	= valueUpdate path old new
+			| otherwise																						= [TUIReplace (dp2s path) newTUI]
 	
-		valueUpdate path old new	= update (\o n -> o.value == n.value) (\{value} -> Just value) TUISetValue path old new
+		valueUpdate path old new	= update doUpdate (\{value} -> Just value) TUISetValue path old new
+		where
+			doUpdate old new = ov == new.value
+			where
+				ov = case new.eventValue of
+					Just v	= v
+					Nothing	= old.value
+			
 		hintUpdate path old new		= update sameHint hintOf TUISetHint path old new
 		errorUpdate path old new	= update sameError errorOf TUISetError path old new
 		
@@ -127,7 +143,6 @@ where
 	sameType` TUITimeControl			TUITimeControl				= True
 	sameType` TUIPasswordControl		TUIPasswordControl			= True
 	sameType` TUIUserControl			TUIUserControl				= True
-	sameType` TUIHiddenControl			TUIHiddenControl			= True
 	sameType` (TUIChoiceControl _)		(TUIChoiceControl _)		= True
 	sameType` (TUICurrencyControl _)	(TUICurrencyControl _)		= True
 	sameType` (TUIDocumentControl _)	(TUIDocumentControl _)		= True
@@ -141,7 +156,7 @@ sameType (TUIButton _)					(TUIButton _)				= True
 sameType (TUIConstructorControl _)		(TUIConstructorControl _)	= True
 sameType (TUIListItem _)				(TUIListItem _)				= True
 sameType (TUIGridContainer _)			(TUIGridContainer _)        = True
-sameType (TUIStaticContainer _)			(TUIStaticContainer _)		= True
+sameType (TUIContainer _)				(TUIContainer _)			= True
 sameType (TUIRecordContainer _)			(TUIRecordContainer _)		= True
 sameType (TUIListContainer _)			(TUIListContainer _)		= True
 sameType (TUIMenuButton _)				(TUIMenuButton _)			= True

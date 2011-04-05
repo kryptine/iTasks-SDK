@@ -26,7 +26,6 @@
 		,{"text":"StringControl.js","path":"src/js/tui/"}
 		,{"text":"TimeControl.js","path":"src/js/tui/"}
 		,{"text":"UsernameControl.js","path":"src/js/tui/"}
-		,{"text":"HiddenControl.js","path":"src/js/tui/"}
 		,{"text":"FormButtonControl.js","path":"src/js/tui/"}
 		,{"text":"ChoiceControl.js","path":"src/js/tui/"}
 		,{"text":"OryxControl.js","path":"src/js/tui/"}
@@ -36,7 +35,7 @@
 		
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
-		,{"text":"StaticContainer.js","path":"src/js/tui/"}
+		,{"text":"Container.js","path":"src/js/tui/"}
 		,{"text":"HtmlDisplay.js","path":"src/js/tui/"}
 		
 		,{"text":"TTCCommon.js","path":"src/js/ttc/"}

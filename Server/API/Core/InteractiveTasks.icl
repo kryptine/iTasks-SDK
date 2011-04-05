@@ -66,7 +66,7 @@ where
 	where
 		commitPassInfo editConflict edits localTimestamp mbClientTimestamp
 			=	{ editConflict			= editConflict
-				, updatedPaths			= map (dataPathList o fst) edits
+				, editEvents			= map (appFst dataPathList) edits
 				, localTimestamp		= localTimestamp
 				, clientTimestampSent	= isJust mbClientTimestamp
 				}
@@ -99,7 +99,7 @@ where
 			# ((modelV,_),iworld)				= appFst fromOk (readModelValue taskNr iworld)
 			# (info,iworld)						= getCommitPassInfo taskNr iworld
 			# ((nvalue,numask,nvmask),iworld)	= newViewValue taskNr iworld
-			# form 								= visualizeAsEditor nvalue nvmask
+			# form 								= visualizeAsEditor nvalue (taskNrToString taskNr) nvmask (map (appFst dataPathFromList) info.CommitPassInfo.editEvents)
 			# (mbContext,iworld) = case mbAbout of
 				Nothing							= (Nothing,iworld)
 				Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
@@ -166,10 +166,10 @@ where
 		# ((modelV,modelT),iworld)				= appFst fromOk (readModelValue taskNr iworld)
 		# (info,iworld)							= getCommitPassInfo taskNr iworld
 		// rebuild view value from model if not in enter mode, model is newer than local value or an error occurred and valid was not updated to an invalid one this request
-		= case not enterMode && (info.localTimestamp < modelT && (isEmpty info.updatedPaths || isValidValue nvmask) || info.editConflict) of
+		= case not enterMode && (info.localTimestamp < modelT && (isEmpty info.CommitPassInfo.editEvents || isValidValue nvmask) || info.editConflict) of
 			True
 				# errors = case info.editConflict of
-					True						= map (\p -> (dataPathFromList p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) info.updatedPaths
+					True						= map (\(p,_) -> (dataPathFromList p,ErrorMessage "An edit conflict occurred. The field was reset to the most recent value.")) info.CommitPassInfo.editEvents
 					False						= []
 				= updateViewValue taskNr bimapGet new modelV modelT errors iworld
 			False
@@ -177,9 +177,9 @@ where
 
 // store for information provided to the commit pass
 :: CommitPassInfo =	{ editConflict			:: !Bool
-					, updatedPaths			:: ![[Int]] // encoded as list of integers because DataPath can't be stored
 					, localTimestamp		:: !Timestamp
 					, clientTimestampSent	:: !Bool
+					, editEvents			:: ![(![Int],!String)] // encoded as list of integers because DataPath can't be stored
 					}
 derive JSONEncode CommitPassInfo
 derive JSONDecode CommitPassInfo
@@ -192,7 +192,7 @@ getCommitPassInfo taskNr iworld=:{IWorld|timestamp}
 	= (fromMaybe defaultInfo mbInfo,iworld)
 where
 	defaultInfo =	{ editConflict			= False
-					, updatedPaths			= []
+					, editEvents			= []
 					, localTimestamp		= timestamp
 					, clientTimestampSent	= True
 					}
@@ -257,12 +257,12 @@ clientTimestamp tst=:{request}
 	# ts = paramValue "timestamp" request
 	| ts <> ""	= (Just (Timestamp (toInt ts)),tst)
 	| otherwise	= (Nothing,tst)
-		
+	
 //Build TUI definition for task with given context/form	
 taskPanel :: !TaskNr !(Maybe HtmlTag) ![TUIDef] -> TUIDef
 taskPanel taskNr mbContext form = case maybeToList (fmap (taskContextPanel taskNr) mbContext) ++ form of
 	[item]	= item
-	items	= TUIStaticContainer {TUIStaticContainer|items = items, fieldLabel = Nothing, optional = False, layout = Vertical}
+	items	= TUIContainer {TUIContainer|items = items, fieldLabel = Nothing, optional = False, layout = Vertical}
 	
 taskContextPanel :: !TaskNr !a -> TUIDef | toString a		
 taskContextPanel taskNr context = htmlDisplay Nothing (toString context)

@@ -246,7 +246,7 @@ itasks.tui.list.ListItemControl = Ext.extend(Ext.Panel,{
 	},
 	
 	handleClick: function(action,name,index){
-		this.fireEvent('tuichange',name, action + "_" + index);
+		this.fireEvent('tuichange',this.taskId,name, action + "_" + index);
 	},
 	
 	toggleLastItem : function(isLast){
