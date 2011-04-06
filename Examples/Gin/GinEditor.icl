@@ -1,7 +1,7 @@
 implementation module GinEditor
 
 import StdFile
-//import DynamicIO
+//import DynamicIOTasks 
 
 import GenEq
 import Text
@@ -260,7 +260,9 @@ run state = showMessage ("Error", "Runninig tasks requires dynamic linker") Void
 /*
 run state 					= case state.compiled of
 	Just dynfile -> readDynamicTask dynfile
-						>>= \(ok, task) = (if ok task (showMessage ("Error", "Failed to read task") Void)) >>| stop
+		>>= \mTask = case mTask of
+			Just task	-> task
+			Nothing		-> showMessage ("Error", "Failed to read task") Void
 	Nothing 	-> showMessage ("Error", "No compiled task") Void
 */
 

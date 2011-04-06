@@ -141,7 +141,7 @@ initTSt request config flows world
 	# world						= ensureDir "data" (appDir </> appName) world
 	# tmpPath					= appDir </> appName </> "tmp-" +++ datestr
 	# world						= ensureDir "tmp" tmpPath world
-	# storePath					= appName </> datestr
+	# storePath					= appDir </> appName </> datestr
 	= mkTSt appName config request flows (createStore storePath) tmpPath world
 where 
 	padZero :: !Int -> String

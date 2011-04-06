@@ -6,6 +6,9 @@ definition module iTasks
 import	Engine						// basic iTask system creator
 	,	EngineWrapperStandalone		// standalone wrapper
 	//,	EngineWrapperCGI			// CGI wrapper
+	
+	,	SerializationGraphCopy		// use serialization via graph_copy
+	//,	SerializationDynamicLinker	// use serialization via dynamic linker
 
 	//	Basic tasks
 	,	InteractionTasks			// tasks for interaction with users

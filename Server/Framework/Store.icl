@@ -4,7 +4,7 @@ import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTupl
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Types import :: IWorld{store,world,timestamp}, :: Config
-import dynamic_string //Static dynamic serialization
+from iTasks import serializeDynamic, deserializeDynamic
 
 :: *Store =
 	{ cache		:: !*(Map String (!Bool,!StoreItem))	//Cache for storage items, Bool is used to indicate a value in the cache is 'dirty'
@@ -38,7 +38,7 @@ storeValueAs format key value iworld=:{IWorld|timestamp}
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
-		SFDynamic	= dynamic_to_string (dynamic value)
+		SFDynamic	= serializeDynamic (dynamic value)
 
 loadDynamicValue :: !String !*IWorld -> (!Maybe Dynamic,!*IWorld)
 loadDynamicValue key iworld=:{store=store=:{location}}
@@ -56,7 +56,7 @@ loadDynamicValue key iworld=:{store=store=:{location}}
 					= (Nothing,iworld)
 where
 	unpackItem {StoreItem | format=SFPlain, content} = Nothing
-	unpackItem {StoreItem | format=SFDynamic, content} = Just (string_to_dynamic { s \\ s <-: content})
+	unpackItem {StoreItem | format=SFDynamic, content} = Just (deserializeDynamic { s \\ s <-: content})
 
 loadValueAsBlob :: !String !*IWorld -> (!Maybe String,!*IWorld)
 loadValueAsBlob key iworld=:{store=store=:{location}}
@@ -107,7 +107,7 @@ unpackValue {StoreItem|format=SFPlain,content}
 unpackValue {StoreItem|format=SFBlob,content}
 	= abort "use loadValueAsBlob"
 unpackValue {StoreItem|format=SFDynamic,content,timestamp}
-	= case string_to_dynamic {s` \\ s` <-: content} of
+	= case deserializeDynamic {s` \\ s` <-: content} of
 		(value :: a^)	= Just value
 		_				= Nothing	
 			

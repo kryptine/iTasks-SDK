@@ -4,9 +4,9 @@ import StdList, StdTuple, StdBool, StdMisc, Maybe, StdFile
 import Directory, Error, File, OSError
 import HTTP, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
-import GenEq, GenVisualize, GenUpdate, Store, Config, dynamic_string
+import GenEq, GenVisualize, GenUpdate, Store, Config
 from StdFunc			import id, const, o, seq
-from JSON				import JSONDecode, fromJSON
+from iTasks				import JSONDecode, fromJSON
 from CoreCombinators	import >>=
 from InteractionTasks	import enterInformation
 from TuningCombinators	import @>>, <<@, class tune, instance tune Title, :: Title(..)

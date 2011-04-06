@@ -1,6 +1,7 @@
 implementation module GenRecord
 
-import StdTuple, StdList, StdFunc, GenDefault, Error, Util, Shared, dynamic_string
+import StdTuple, StdList, StdFunc, GenDefault, Error, Util, Shared
+from iTasks import serialize, deserialize
 
 copyRecord :: !a !b -> b | GenRecord a & GenRecord b
 copyRecord src dst
@@ -24,7 +25,7 @@ gGetRecordFields{|EITHER|} fx fy either types fields = case either of
 gGetRecordFields{|PAIR|} fx fy (PAIR x y) types fields
 	# fields = fx x types fields
 	= fy y types fields
-gGetRecordFields{|FIELD of d|} _ f types fields = put d.gfd_name (GenericDyn (copy_to_string f) (types !! d.gfd_index)) fields
+gGetRecordFields{|FIELD of d|} _ f types fields = put d.gfd_name (GenericDyn (serialize f) (types !! d.gfd_index)) fields
 gGetRecordFields{|UNIT|} _ _ fields = fields
 gGetRecordFields{|Int|}		_ _ fields = fields
 gGetRecordFields{|Real|}	_ _ fields = fields
@@ -90,7 +91,7 @@ derive gPutRecordFields EmailAddress, Action, Table, HtmlDisplay, ButtonState
 */
 matchGenericDyn :: !*GenericDyn !GenType -> Maybe a
 matchGenericDyn (GenericDyn str dynType) reqType
-	| dynType === reqType	= Just (fst (copy_from_string str))
+	| dynType === reqType	= Just (deserialize str)
 	| otherwise				= Nothing
 
 // Retrieves the types of a record's fields.

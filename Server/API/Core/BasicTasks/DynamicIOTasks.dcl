@@ -1,4 +1,4 @@
-definition module DynamicIO
+definition module DynamicIOTasks
 /**
 * This module defines task for reading and writing dynamics to and from files
 * 
@@ -13,10 +13,8 @@ import iTasks
 *
 * @param The file name
 * @param The task
-*
-* @return Boolean indicating succesful write
 */
-writeDynamicTask 	:: !String !(Task a) 	-> Task Bool 			| iTask a
+writeDynamicTask 	:: !String !(Task a) 	-> Task Void	| iTask a
 /**
 * Read a dynamic (possibly created by another application) from a file
 *
@@ -25,4 +23,4 @@ writeDynamicTask 	:: !String !(Task a) 	-> Task Bool 			| iTask a
 * @return Boolean indicating succesful read
 * @return The task
 */
-readDynamicTask 	:: !String 				-> Task (Bool,Task a) 	| iTask a
+readDynamicTask 	:: !String 				-> Task (Maybe (Task a)) 	| iTask a

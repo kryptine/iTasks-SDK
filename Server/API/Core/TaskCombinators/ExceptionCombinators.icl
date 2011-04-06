@@ -4,6 +4,7 @@ implementation module ExceptionCombinators
 */
 import StdList, StdArray, StdTuple, OSError, File, FilePath
 import TSt, ProcessDB, Util
+from iTasks import JSONEncode, JSONDecode
 
 instance toString FileException
 where

@@ -1,8 +1,9 @@
 implementation module Task
 
-import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, Types, GenRecord, dynamic_string, Base64, HTTP, Util
+import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, Types, GenRecord, HTTP, Util
 import GenVisualize
 from TSt import :: TSt
+from iTasks import JSONEncode, JSONDecode
 
 taskTitle :: !(Task a) -> String
 taskTitle task = task.Task.properties.taskDescription.TaskDescription.title

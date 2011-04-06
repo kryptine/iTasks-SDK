@@ -2,7 +2,7 @@ implementation module Util
 
 import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
-from dynamic_string import copy_to_string, copy_from_string
+from iTasks import serialize, deserialize
 from Base64 import base64Encode, base64Decode
 
 fileExtension :: !String -> String
@@ -126,8 +126,8 @@ intersperse i [x] = [x]
 intersperse i [x:xs] = [x,i:intersperse i xs]
 
 encodeFunc :: !a -> [JSONNode]
-encodeFunc f = [JSONString (base64Encode (copy_to_string f))]
+encodeFunc f = [JSONString (base64Encode (serialize f))]
 
 decodeFunc :: !JSONNode -> Maybe a
-decodeFunc (JSONString str)	= Just (fst(copy_from_string {s` \\ s` <-: base64Decode str}))
+decodeFunc (JSONString str)	= Just (deserialize {s` \\ s` <-: base64Decode str})
 decodeFunc _				= Nothing

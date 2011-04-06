@@ -4,6 +4,7 @@ from StdFunc import until
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, dynamic_string, Base64, Shared
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
+from iTasks		import serialize, deserialize
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
@@ -32,10 +33,10 @@ JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
 
-JSONEncode{|Shared|} _ _ (Shared read write getTimestamp) = [JSONArray [JSONString "Shared", JSONString (base64Encode (copy_to_string (read,write,getTimestamp)))]]
+JSONEncode{|Shared|} _ _ (Shared read write getTimestamp) = [JSONArray [JSONString "Shared", JSONString (base64Encode (serialize (read,write,getTimestamp)))]]
 JSONDecode{|Shared|} _ _ [JSONArray [JSONString "Shared", JSONString funcs]:c] = (Just (Shared read write getTimestamp),c)
 where
-	(read,write,getTimestamp) = fst (copy_from_string {s` \\ s` <-: base64Decode funcs})
+	(read,write,getTimestamp) = fst (deserialize {s` \\ s` <-: base64Decode funcs})
 JSONDecode{|Shared|} _ _ c = (Nothing,c)
 
 gEq{|(->)|} _ _ _ _			= False	// functions are never equal

@@ -6,6 +6,7 @@ from StdFunc			import id, const, o, seq
 from CommonCombinators	import transform
 from ProcessDB			import :: Process{..}
 from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
+from iTasks				import JSONEncode, JSONDecode
 
 derive class iTask ParallelTaskInfo, SchedulerState, Control, ControlTaskContainer
 // Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
