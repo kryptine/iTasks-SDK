@@ -20,12 +20,11 @@
 }
 .TTCPanel {
 	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
-	padding: 4px;
+	padding: 5px;
 	border-left: 1px solid #99BBE8;
 	border-bottom: 1px solid #99BBE8;
 	border-right: 1px solid #99BBE8;
-	margin: 0px 0px 0px 10px;
-	width: 700px;
+	margin: 0px 10px 0px 10px;
 	background-repeat: repeat;
 }
 /* Form Container */

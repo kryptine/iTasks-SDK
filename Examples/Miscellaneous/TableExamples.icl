@@ -4,7 +4,7 @@ import iTasks, Text
 from StdFunc import seq
 
 tableExamples :: [Workflow]
-tableExamples =	[ workflow "Examples/Miscellaneous/Plant dataset table" "Uses the Table type to represent a simple plant dataset." (plantExample <<@ FWFullWidth)
+tableExamples =	[ workflow "Examples/Miscellaneous/Plant dataset table" "Uses the Table type to represent a simple plant dataset." plantExample
 				, workflow "Examples/Miscellaneous/Symmetric lens" "This example shows the usage of the symmetric lens combinator." symmetricLensExample
 				]
 
@@ -16,7 +16,7 @@ plantExample
 plantExample` =
 		readDataset
 	>>= transform Table
-	>>=	updateInformation ("Plant Dataset",description)
+	>>=	\table. updateInformation ("Plant Dataset",description) table <<@ FWFullWidth
 	>>= showMessageAbout "Updated dataset"
 	>>| stop
 where

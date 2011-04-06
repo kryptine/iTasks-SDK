@@ -31,6 +31,7 @@ where
 			= (TTInteractiveTask ti interactiveType tui,addTaskIds ti.TaskInfo.taskId actions,iworld)
 		TTParallelTask ti containers
 			# containers							= sortBy (\(TTParallelContainer idx0 _ _ _) (TTParallelContainer idx1 _ _ _) -> idx0 < idx1) containers
+			# containers							= filter (\(TTParallelContainer _ _ t _) -> case t of TTFinishedTask _ _ _ = False; _ = True) containers
 			# (mbSubContainersAndActions,iworld)	= mapSt toUIParallelTreeContainer containers iworld
 			# (mbSubContainers,actions)				= unzip mbSubContainersAndActions
 			= (TTParallelTask ti (catMaybes mbSubContainers),flatten actions,iworld)
@@ -124,7 +125,7 @@ where
 		interactiveNode=:(TTInteractiveTask ti interactiveType tui)
 			# buttons			= mkButtons` ti.TaskInfo.taskId
 			| isEmpty buttons	= interactiveNode
-			# buttonContainer	= TUIContainer {TUIContainer|items = buttons, fieldLabel = Nothing, optional = False, layout = Horizontal HRight}
+			# buttonContainer	= TUIContainer {TUIContainer|simpleContainer buttons & layout = Horizontal HRight}
 			= TTInteractiveTask ti interactiveType (addButtons buttonContainer tui)
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
@@ -151,7 +152,7 @@ where
 		addButtons :: !TUIDef !TUIDef -> TUIDef
 		addButtons buttons def = case def of
 			TUIContainer c	= TUIContainer {TUIContainer|c & items = c.TUIContainer.items ++ [buttons]}
-			tui				= TUIContainer {TUIContainer|items = [tui,buttons], fieldLabel = Nothing, optional = False, layout = Vertical}
+			tui				= TUIContainer (simpleContainer [tui,buttons])
 	
 			
 	addTaskIds :: !TaskId ![(!Action,!Bool)] -> SubtaskActions

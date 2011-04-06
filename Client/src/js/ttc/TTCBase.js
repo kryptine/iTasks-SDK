@@ -13,9 +13,6 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 			layout: 'anchor',
 			taskUpdates : {},
 			url: itasks.config.serverUrl + '/work/tab',
-			items: this.interactionpanel ? //Only add interactionpanel if defined in subclass
-				[this.subjectpanel,this.descriptionpanel,this.interactionpanel] :
-				[this.subjectpanel,this.descriptionpanel],
 			unstyled: true,
 			autoScroll: true,
 			listeners: {tuichange: {fn:this.onTuiChange, scope: this}
@@ -45,24 +42,11 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		itasks.ttc.TTCBase.superclass.afterRender.call(this,arguments);		
 		
 		//Update references to the rendered components
-		this.subjectpanel = this.getComponent(0);	
-		this.descriptionpanel = this.getComponent(1);
 		if(this.interactionpanel)
-			this.interactionpanel = this.getComponent(2);
+			this.interactionpanel = this.getComponent(0);
 			
 	},
 	initChildComponents: function() {
-		//Standard task header panel
-		this.subjectpanel = {
-			xtype: 'itasks.ttc.common.subject',
-			subject: this.subject
-		};
-		//Standard task description panel
-		this.descriptionpanel = {
-			xtype: 'itasks.ttc.common.description',
-			description: this.description,
-			height: this.descriptionHeight
-		};
 		//Interaction panel, is not always used.
 		this.interactionpanel = null;
 	},
@@ -74,23 +58,13 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 			this.buildComponents(data);
 		this.setChildComponentsWidth();
 	
-		this.subjectpanel = this.add(this.subjectpanel);
-		this.descriptionpanel = this.add(this.descriptionpanel);
 		if (this.interactionpanel) this.interactionpanel = this.add(this.interactionpanel);
 			
 		this.doLayout();
 	},
 	setChildComponentsWidth: function() {
-		this.setComponentWidth(this.subjectpanel);
-		this.setComponentWidth(this.descriptionpanel);
 		if (this.interactionpanel)
 			this.setComponentWidth(this.interactionpanel);
-	},
-	setComponentWidth: function(component) {
-		if (this.formWidth == 'FWFullWidth')
-			delete component.width;
-		else
-			component.width = 720;
 	},
 	update: function(data) {
 		//Default update is to reconstruct the component
@@ -113,7 +87,7 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 			var destroyCmp = this.findParentByType("itasks.work");
 		}
 		
-		var height = this.descriptionpanel.getHeight() + (this.interactionpanel ? this.interactionpanel.getHeight() : 0);
+		var height = (this.interactionpanel ? this.interactionpanel.getHeight() : 0);
 		this.removeAll();
 		this.add({
 			xtype: "itasks.ttc.finished",

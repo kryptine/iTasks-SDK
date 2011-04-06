@@ -24,41 +24,6 @@ itasks.ttc.common.attachDocumentLinkInformation = function() {
 	}
 };
 
-itasks.ttc.common.SubjectPanel = Ext.extend(Ext.Panel,{
-	initComponent : function(){
-		
-		Ext.apply(this,{
-			cls: 'TTCSubject',
-			unstyled: true
-		});
-		
-		if(Ext.isDefined(this.headerButton)) {
-			this.items = [{html: this.subject, unstyled: true, columnWidth: 1}, this.headerButton];
-			this.layout = 'column';
-		} else {
-			this.items = [{html: this.subject, unstyled: true}];
-		}
-
-		itasks.ttc.common.SubjectPanel.superclass.initComponent.apply(this,arguments);
-	}
-});
-
-itasks.ttc.common.DescriptionPanel = Ext.extend(Ext.Panel,{
-	initComponent : function(){
-		Ext.apply(this,{
-			cls: 'TTCDescription',
-			unstyled: true,
-			html: this.description
-		});
-		itasks.ttc.common.DescriptionPanel.superclass.initComponent.apply(this,arguments);
-	}
-});
-
-
-itasks.ttc.common.setFullscreen = function(ct){
-	ct.fullscreen = true;
-};
-
 itasks.ttc.common.setupHotkeys = function(tb, parent) {
 	// collect all hotkeys
 	var hotkeys = new Ext.util.MixedCollection();

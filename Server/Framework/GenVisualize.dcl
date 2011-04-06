@@ -148,7 +148,5 @@ visualizeCustom :: !(TUIVizFunction a) !(StaticVizFunctionCustom a) !(Maybe a) !
 */
 textOnly :: !((Maybe a) -> String) -> StaticVizFunctions a
 
-htmlDisplay :: !(Maybe String) !String -> TUIDef
-
 (+++>) infixr 5		:: !a	!String	-> String | gVisualize{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualize{|*|} a

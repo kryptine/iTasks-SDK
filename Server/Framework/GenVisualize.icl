@@ -84,11 +84,12 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 				# (vis,vst) = fx x {VSt|vst & useLabels = False, label = Nothing}
 				# vis = case vis of
 					[] = []
-					vis =	[TUIFragment (TUIContainer	{ TUIContainer
-							| fieldLabel = label
+					vis =	[TUIFragment (TUIContainer
+							{ TUIContainer
+							| simpleContainer (coerceToTUIDefs vis)
+							& fieldLabel = label
 							, optional = optional
-							, items = coerceToTUIDefs vis
-							, layout = Vertical})]
+							})]
 				= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
 		_
 			# (viz,vst) = fx x vst
@@ -632,18 +633,7 @@ verifyElementStr cmv = case cmv of
 	VMUntouched mbHnt _ _	= ("",toString mbHnt)
 	VMInvalid err _			= (toString err,"")
 	
-htmlDisplay :: !(Maybe String) !String -> TUIDef
-htmlDisplay mbLabel html = TUIControl TUIHtmlDisplay
-	{ TUIControl
-	| name			= ""
-	, value			= html
-	, fieldLabel	= mbLabel
-	, optional		= True
-	, errorMsg		= ""
-	, hintMsg		= ""
-	, eventValue	= Nothing
-	, taskId		= ""
-	}
+
 	
 eventValue :: !DataPath ![(!DataPath,!String)] -> Maybe String
 eventValue currentPath events = case filter (\(dp,val) -> dp == currentPath) events of

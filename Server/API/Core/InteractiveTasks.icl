@@ -262,7 +262,7 @@ clientTimestamp tst=:{request}
 taskPanel :: !TaskNr !(Maybe HtmlTag) ![TUIDef] -> TUIDef
 taskPanel taskNr mbContext form = case maybeToList (fmap (taskContextPanel taskNr) mbContext) ++ form of
 	[item]	= item
-	items	= TUIContainer {TUIContainer|items = items, fieldLabel = Nothing, optional = False, layout = Vertical}
+	items	= TUIContainer (simpleContainer items)
 	
 taskContextPanel :: !TaskNr !a -> TUIDef | toString a		
 taskContextPanel taskNr context = htmlDisplay Nothing (toString context)

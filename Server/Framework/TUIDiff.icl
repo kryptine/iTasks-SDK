@@ -3,7 +3,7 @@ implementation module TUIDiff
 import StdBool, StdClass, StdList
 import Util, GenUpdate, TUIDefinition
 
-derive gEq TUITree
+derive gEq TUITree, TUILayout, HAlignment
 
 diffEditorDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
 diffEditorDefinitions old new
@@ -60,7 +60,7 @@ where
 				# path			= shiftDataPath path
 				# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
 				= htmlUpdates ++ editorUpdates
-			(TUIContainer o, TUIContainer n)
+			(TUIContainer o, TUIContainer n) | o.TUIContainer.cls == n.TUIContainer.cls && o.TUIContainer.restrictedWidth == n.TUIContainer.restrictedWidth && o.TUIContainer.layout === n.TUIContainer.layout
 				# valueUpdates	= staticContainerUpdate path o.TUIContainer.items n.TUIContainer.items
 				# lengthUpdates	= if (numOld < numNew)
 					[TUIAdd (dp2s path) idx item \\item <- drop numMin n.TUIContainer.items & idx <- [numMin..]]

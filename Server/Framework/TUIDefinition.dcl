@@ -81,10 +81,12 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 	, hintMsg		:: !String
 	}
 :: TUIContainer =
-	{ items			:: ![TUIDef]
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	, layout		:: !TUILayout
+	{ items				:: ![TUIDef]
+	, fieldLabel		:: !Maybe String
+	, optional			:: !Bool
+	, cls				:: !Maybe String
+	, layout			:: !TUILayout
+	, restrictedWidth	:: !Bool
 	}
 :: TUIRecordContainer =
 	{ name			:: !TUIName
@@ -106,9 +108,9 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 	, optional		:: !Bool
 	}
 :: TUIListItem =
-	{ name				:: !TUIName
-	, items				:: ![TUIDef]
-	, index				:: !Int
+	{ name			:: !TUIName
+	, items			:: ![TUIDef]
+	, index			:: !Int
 	}
 :: TUIButton =
 	{ name			:: !TUIName
@@ -141,9 +143,12 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 	, gridEditors	:: ![[Maybe TUIDef]]
 	}
 :: TUIGridColumn =
-	{ header	:: !String
+	{ header		:: !String
 	}
 
 :: TUILayout = Horizontal HAlignment | Vertical
 
 :: HAlignment = HLeft | HCenter | HRight
+
+htmlDisplay		:: !(Maybe String) !String -> TUIDef
+simpleContainer	:: ![TUIDef] -> TUIContainer

@@ -71,12 +71,6 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 			itasks.tui.common.clearHint(this);
 		else
 			itasks.tui.common.markHint(this,msg);
-	},
-	getPreferredWidth : function(){
-		return 150;
-	},
-	setPreferredWidth : function(width){
-		this.setWidth(width);
 	}
 });
 
