@@ -78,6 +78,3 @@ itasks.ttc.common.setupHotkeys = function(tb, parent) {
 
 	parent.keyMap = new Ext.KeyMap(parent.getEl(), conf);
 };
-
-Ext.reg('itasks.ttc.common.subject', itasks.ttc.common.SubjectPanel);
-Ext.reg('itasks.ttc.common.description', itasks.ttc.common.DescriptionPanel);
