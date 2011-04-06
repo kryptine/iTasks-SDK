@@ -32,12 +32,6 @@ import AmbulanceDispatchMap
 //Change examples
 import SimpleChanges
 
-//Dynamic Forms and Flows
-import ShowFormFlow
-import FormEditor
-import FlowEditor
-import LaunchFlow
-
 //Shared Value Examples
 import SharedVariables
 
@@ -72,11 +66,6 @@ where
 						, ambulanceDispatchExamples
 						, ambulanceDispatchMapExamples
 						, changeExamples
-						,	[ formEditor
-							, flowEditor
-							, showStoredDefinitions
-							, launchFlow
-							]
 						, sharedValueExamples
 						,	[workflow "General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions
 							]
