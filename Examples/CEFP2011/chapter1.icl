@@ -6,16 +6,16 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ workflow "Summerschool/Int" 				"Fill in an integer value"  			taskIntForm
-				, workflow "Summerschool/Person"   			"Fill in person record" 				personForm
-				, workflow "Summerschool/[Person]"  		"Fill in list of persons" 				personAdmForm
-				, workflow "Summerschool/[Person] Check"   	"Fill in and check list of persons" 	personAdmForm
-//				, workflow "Demo Example Delegate" "Delegate filling in form Person" (delegate person)
+				[ workflow "Summerschool/1: Int" 				"Fill in an integer value"  			taskIntForm
+				, workflow "Summerschool/2: Person"   			"Fill in person record" 				personForm
+				, workflow "Summerschool/3: [Person]"  			"Fill in list of persons" 				personAdmForm
+				, workflow "Summerschool/4: [Person] Check"   	"Fill in and check list of persons" 	personAdmForm
+				, workflow "Summerschool/5: Delegate "   		"Delegate example 4" 					(delegate fillInAndCheckPersons)
 				] world
 
 			
 
-// example 1
+// example, simple form for integer
 
 taskIntForm :: Task Int
 taskIntForm = fillInForm "Please fill in an integer value:"
@@ -25,6 +25,8 @@ fillInForm prompt
 	= 					enterInformation prompt
 		>>=	\result ->	showMessage "The result is:" result
 
+// example, showing eta conversion
+
 taskIntForm2 :: Task Int
 taskIntForm2 = fillInForm2 "Please fill in an integer value:"
 
@@ -33,7 +35,7 @@ fillInForm2 prompt
 	= 					enterInformation prompt
 		>>=				showMessage "The result is:" 
 
-// example
+// example, a form for any type
 
 :: Person 	= 	{ firstName    	:: String
 		      	, surName  		:: String
@@ -48,12 +50,12 @@ derive class iTask Person, Gender
 personForm :: Task Person
 personForm = fillInForm "Please fill in the form:"
 
-// example
+// example, a form for any type
 
 personAdmForm :: Task [Person]
 personAdmForm = fillInForm "Please fill in the form:"
 
-// example
+// example, recursion
 
 fillInAndCheckPersons :: Task [Person]
 fillInAndCheckPersons =  fillInAndCheck "Please fill in the form:"
@@ -68,7 +70,7 @@ where
 			>>= \ok ->	if ok (return result)
 							  (updateInformation prompt result >>= checkInformation) 
 
-
+// example, delegate
 
 selectUsers
 		= 					getUsers
@@ -80,4 +82,21 @@ delegate task
 		>>= \worker ->		worker @: task
 		>>= \result ->		updateInformation "Check result" result
 		
-		 
+// example, delegate one of my workflows
+
+
+from WorkflowStarter import getMyWorkflows	// clearly NOT the place where does should have been defined....
+
+/* this needs more work...
+delegateWorkflow :: (Task a) | iTask a
+delegateWorkflow
+	=						getMyWorkflows
+		>>= 				enteChoice "Select the workflow to delegate"
+		
+*/		
+		
+
+
+
+
+
