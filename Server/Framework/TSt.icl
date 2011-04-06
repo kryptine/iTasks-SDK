@@ -127,8 +127,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	//Create an entry in the process table
 	# (processId, tst)		= createProcess process tst
 	//Load process as it is in the store
-	# (mbProcess,tst)		= getProcess processId tst
-	# process				= fromJust mbProcess
+	# (Just process,tst)	= getProcess processId tst
 	//Create a thread with task functions in the store
 	# tst					= storeThread processId thread tst
 	= case managerProperties.ManagerProperties.status of
@@ -155,7 +154,7 @@ deleteTaskInstance procId tst
 	# (_,tst) 	= deleteProcess procId tst
 	# tst		= deleteSubProcesses procId tst
 	# tst		= appIWorldTSt (deleteValues procId) tst
-	# tst		= appIWorldTSt (deleteTmpFiles procId) tst
+	# tst		= deleteTaskStates (taskNrFromString procId) tst
 	= tst
 
 garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
@@ -798,7 +797,6 @@ where
 
 resetSequence :: !*TSt -> *TSt
 resetSequence tst = {tst & tree = initTree initTaskInfo}
-
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
 deleteTaskStates taskNr tst
 	// Delete tmpFiles & values in the data store

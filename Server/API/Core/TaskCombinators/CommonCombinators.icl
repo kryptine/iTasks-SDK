@@ -106,59 +106,25 @@ where
 
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel ("||-", "Done when the second subtask is finished.") [] (\_ l -> hd l) [] [InBodyTask (taska >>= \a -> return (Left a)) rorfunc,InBodyTask (taskb >>= \b -> return (Right b)) rorfunc]
-where
-	rorfunc (Right val) []	= ([val],[StopParallel])
-	rorfunc (Left val) []	= ([],[])
-	rorfunc _ _				= abort "Illegal result in ||-"
+	= parallel ("||-", "Done when the second subtask is finished.") Nothing (\_ v -> fromJust v) [] [InBodyTask taska (\_ _ -> (Nothing,[])),InBodyTask taskb (\v _ -> (Just v,[StopParallel]))]
 
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel ("-||", "Done when the first subtask is finished") [] (\_ l -> hd l) [] [InBodyTask (taska >>= \a -> return (Left a)) lorfunc,InBodyTask (taskb >>= \b -> return (Right b)) lorfunc]
-where
-	lorfunc (Right val) []	= ([],[])
-	lorfunc (Left val) []	= ([val],[StopParallel])
-	lorfunc _ _				= abort "Illegal result in -||"					
+	= parallel ("-||", "Done when the first subtask is finished") Nothing (\_ v -> fromJust v) [] [InBodyTask taska (\v _ -> (Just v,[StopParallel])),InBodyTask taskb (\_ _ -> (Nothing,[]))]				
 
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
-(-&&-) taska taskb = parallel ("-&&-", "Done when both subtasks are finished") (Nothing,Nothing) parseresult [] [InBodyTask (taska >>= \a -> return (Left a)) andfunc,InBodyTask (taskb >>= \b -> return (Right b)) andfunc]
+(-&&-) taska taskb = parallel ("-&&-", "Done when both subtasks are finished") (Nothing,Nothing) parseresult [] [InBodyTask taska (\a (_,b) -> ((Just a,b),[])),InBodyTask taskb (\b (a,_) -> ((a,Just b),[]))]
 where
-	andfunc :: !(Either a b) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),[Control (Either a b) (Maybe a,Maybe b)])
-	andfunc val (left,right) = case val of
-		(Left a)
-			# state = (Just a,right)
-			= case state of
-				(Just l, Just r) = (state,[StopParallel])
-				_				 = (state,[])
-		(Right b)
-			# state = (left,Just b)
-			= case state of
-				(Just l, Just r) = (state,[StopParallel])
-				_				 = (state,[])		
-	
 	parseresult _ (Just a,Just b)	= (a,b)
 	parseresult _ _					= abort "AND not finished"
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
-(-&?&-) taska taskb 
-= parallel ("-&?&-", "Done when both subtasks are finished. Yields only a result of both subtasks have a result") (Nothing,Nothing) parsefunc [] [InBodyTask (taska >>= \a -> return (Left a)) mbandfunc,InBodyTask (taskb >>= \b -> return (Right b)) mbandfunc]
-where
-	mbandfunc val (left,right) = case val of
-		Left v
-			# state = (Just v,right)
-			= case state of
-				(Just a, Just b) = (state,[StopParallel])
-				_				 = (state,[])				
-		Right v
-			# state = (left,Just v)
-			= case state of
-				(Just a, Just b) = (state,[StopParallel])
-				_				 = (state,[])
-				
-	parsefunc _ (Just (Just a), Just (Just b))	= Just (a,b)
-	parsefunc _ _								= Nothing
+(-&?&-) taska taskb = parallel ("-&?&-", "Done when both subtasks are finished. Yields only a result of both subtasks have a result") (Nothing,Nothing) parsefunc [] [InBodyTask taska (\a (_,b) -> ((a,b),[])),InBodyTask taskb (\b (a,_) -> ((a,b),[]))]
+where			
+	parsefunc _ (Just a,Just b)	= Just (a,b)
+	parsefunc _ _				= Nothing
 	
-oldParallel :: !d !pState !(ResultFun pState pResult) ![TaskContainer taskResult pState] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+oldParallel :: !d !pState !(ResultFun pState pResult) ![TaskContainer pState] -> Task pResult | iTask pState & iTask pResult & descr d
 oldParallel d initState resultFun initTasks = parallel d initState resultFun [InBodyCTask overviewControl] initTasks
 where
 	overviewControl shared =
@@ -218,7 +184,7 @@ where
 andProc :: !(ProcTask a) !(ProcTask b) -> Task (a,b) | iTask a & iTask b
 andProc (taska,propa,menua) (taskb,propb,menub) = oldParallel ("AndProc", "Done if both subtasks are finished.") (Nothing,Nothing) parseresult [DetachedTask propa menua (taska >>= \a -> return (Left a)) andfunc,DetachedTask propb menub (taskb >>= \b -> return (Right b)) andfunc]
 where
-	andfunc :: !(Maybe (Either a b)) !(!Maybe a,!Maybe b) -> (!(!Maybe a,!Maybe b),![Control (Either a b) (!Maybe a,!Maybe b)])
+	andfunc :: !(Maybe (Either a b)) !(!Maybe a,!Maybe b) -> (!(!Maybe a,!Maybe b),![Control (!Maybe a,!Maybe b)])
 	andfunc (Just val) (left,right)
 	= case val of
 		(Left a)
@@ -250,7 +216,7 @@ where
 		| length st == tlen	= (st,[StopParallel])
 		| otherwise			= (st,[])
 		
-mkDetachedTask :: !(!Task a,!ManagerProperties,!ActionMenu) !(AccuFunDetached a acc) -> TaskContainer a acc
+mkDetachedTask :: !(!Task a,!ManagerProperties,!ActionMenu) !(AccuFunDetached a acc) -> TaskContainer acc | iTask a
 mkDetachedTask (task,prop,menu) fun = DetachedTask prop menu task fun
 
 stop :: Task Void

@@ -138,8 +138,10 @@ taskService url format path req tst
 					# (timestamp,tst)	= getTimestamp tst
 					# (uiContent,tst)	= accIWorldTSt (toUITreeContainer cont) tst
 					# new				= buildTaskPanel uiContent
-					
-					# tst				= appIWorldTSt (storeValue tuiStoreId new) tst
+					# tst = case new of
+						TaskDone		= tst
+						TaskRedundant	= tst
+						_				= appIWorldTSt (storeValue tuiStoreId new) tst
 					# tui = case mbOld of
 						Just (old,_) | timestampParam <> "" && isNothing mbOutdatedWarning
 										= diffTaskPanels old new

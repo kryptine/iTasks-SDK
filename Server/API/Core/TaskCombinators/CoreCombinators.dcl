@@ -9,7 +9,14 @@ from Shared				import :: Shared, :: ReadOnlyShared
 from ProcessDB			import :: Process
 import Task, ProcessDBTasks
 
-derive class iTask ParallelTaskInfo, TaskContainer, ControlTaskContainer
+derive class iTask ParallelTaskInfo, ControlTaskContainer
+derive JSONEncode	TaskContainer
+derive JSONDecode	TaskContainer
+derive gUpdate		TaskContainer
+derive gDefaultMask	TaskContainer
+derive gVerify		TaskContainer
+derive gVisualize	TaskContainer
+derive gEq			TaskContainer
 
 //Standard monadic operations:
 
@@ -62,14 +69,14 @@ return 		:: !a 										-> Task a 		| iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-:: Control a acc	= StopParallel														// stop the entire parallel execution
-					| AppendTasks	![TaskContainer a acc]								// append additional ordinary tasks to be run in parallel as well
-					| AppendCTasks	![ControlTaskContainer a acc]						// append additional contorl tasks to be run in parallel as well
-					| StopTasks		![TaskIndex]										// kill ordinary & control tasks with indicated index
-					| ResetTasks	![TaskIndex]										// start ordinary & control tasks with indicated index from scratch
-					| ReplaceTasks	![(!TaskIndex,!TaskContainer a acc)]				// replace ordinary tasks with indicated index
-					| ReplaceCTasks	![(!TaskIndex,!ControlTaskContainer a acc)]			// replace control tasks with indicated index
-					| FocusTask		!TaskIndex											// set the window focus of indicated ordinary or control task
+:: Control acc	= StopParallel												// stop the entire parallel execution
+				| AppendTasks	![TaskContainer acc]						// append additional ordinary tasks to be run in parallel as well
+				| AppendCTasks	![ControlTaskContainer acc]					// append additional contorl tasks to be run in parallel as well
+				| StopTasks		![TaskIndex]								// kill ordinary & control tasks with indicated index
+				| ResetTasks	![TaskIndex]								// start ordinary & control tasks with indicated index from scratch
+				| ReplaceTasks	![(!TaskIndex,!TaskContainer acc)]			// replace ordinary tasks with indicated index
+				| ReplaceCTasks	![(!TaskIndex,!ControlTaskContainer acc)]	// replace control tasks with indicated index
+				| FocusTask		!TaskIndex									// set the window focus of indicated ordinary or control task
 					
 derive class iTask Control
 
@@ -80,8 +87,8 @@ derive class iTask Control
 * @param The current value of the accumulator 
 * @return Tuple with new value of the accumulator, and a list of control signals
 */
-:: AccuFun			taskResult pState :== taskResult			pState -> (!pState, ![Control taskResult pState])
-:: AccuFunDetached	taskResult pState :== (Maybe taskResult)	pState -> (!pState, ![Control taskResult pState])
+:: AccuFun			taskResult pState :== taskResult			pState -> (!pState, ![Control pState])
+:: AccuFunDetached	taskResult pState :== (Maybe taskResult)	pState -> (!pState, ![Control pState])
 
 // Index of parallel executing processes, number of processes can dynamically increase
 :: TaskIndex :== Int
@@ -102,11 +109,11 @@ derive class iTask Control
 						, processProperties	:: !Maybe ProcessProperties	// process properties for tasks which are detached processes
 						}
 
-:: TaskContainer a acc	= DetachedTask	!ManagerProperties !ActionMenu	!(Task a) !(AccuFunDetached a acc)
-						| WindowTask	!WindowTitle !ActionMenu		!(Task a) !(AccuFun a acc)
-						| DialogTask	!WindowTitle					!(Task a) !(AccuFun a acc)
-						| InBodyTask									!(Task a) !(AccuFun a acc)
-						| HiddenTask									!(Task a) !(AccuFun a acc)
+:: TaskContainer acc	= E.a: DetachedTask	!ManagerProperties !ActionMenu	!(Task a) !(AccuFunDetached a acc)	& iTask a
+						| E.a: WindowTask	!WindowTitle !ActionMenu		!(Task a) !(AccuFun a acc)			& iTask a
+						| E.a: DialogTask	!WindowTitle					!(Task a) !(AccuFun a acc)			& iTask a
+						| E.a: InBodyTask									!(Task a) !(AccuFun a acc)			& iTask a
+						| E.a: HiddenTask									!(Task a) !(AccuFun a acc)			& iTask a
 /**
 * A control task is a special task used to control and view the other tasks and their manager properties.
 * It can generate control signals, after which it will re-incarnate itself.
@@ -114,25 +121,25 @@ derive class iTask Control
 * @param The control view enabling to view the current state of the accumulator and the properties of all subtasks and change manager properties of detached tasks
 * @return A list of control signals
 */
-:: ControlTaskContainer a acc	= DetachedCTask	!ManagerProperties !ActionMenu	!(CTask a acc)
-								| WindowCTask	!WindowTitle !ActionMenu		!(CTask a acc)
-								| DialogCTask	!WindowTitle					!(CTask a acc)
-								| InBodyCTask									!(CTask a acc)
-								| HiddenCTask									!(CTask a acc)
-:: CTask a acc :== (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) -> Task [Control a acc]
+:: ControlTaskContainer acc	= DetachedCTask	!ManagerProperties !ActionMenu	!(CTask acc)
+							| WindowCTask	!WindowTitle !ActionMenu		!(CTask acc)
+							| DialogCTask	!WindowTitle					!(CTask acc)
+							| InBodyCTask									!(CTask acc)
+							| HiddenCTask									!(CTask acc)
+:: CTask acc :== (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) -> Task [Control acc]
 
 /**
 * All-in-one swiss-army-knife parallel task creation
 *
 * @param The (overloaded) task description
 * @param The accumulator
-* @param A function defining how to convert the accumulator tot the final result when the parallel task finishes
+* @param A function defining how to convert the accumulator to the final result when the parallel task finishes
 * @param Layout merge function that layouts the user interfaces of tasks that are placed in the body
 * @param The list of Control tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
 * @param The list of ordinary tasks to run in parallel
 * @return The resulting value
 */
-parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer taskResult pState] ![TaskContainer taskResult pState] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer pState] ![TaskContainer pState] -> Task pResult | iTask pState & iTask pResult & descr d
 
 // Multi-user workflows
 

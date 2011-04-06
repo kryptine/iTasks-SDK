@@ -122,7 +122,7 @@ forever	t	:==	(<!) t (\_ -> False)
 (-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
 
 // old-style parallel, an overview table of all detached processes is shown in the parallel panel
-oldParallel :: !d !pState !(ResultFun pState pResult) ![TaskContainer taskResult pState] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+oldParallel :: !d !pState !(ResultFun pState pResult) ![TaskContainer pState] -> Task pResult | iTask pState & iTask pResult & descr d
 
 /**
 * Group a list of tasks in parallel.

@@ -56,6 +56,6 @@ diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel
 diffTaskPanels (TTCInteractiveContainer old) (TTCInteractiveContainer new)
 	= TTCInteractiveContainer {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TTCInteractiveContainer.content) (fromJust new.TTCInteractiveContainer.content))}
 diffTaskPanels (TTCParallelContainer old) (TTCParallelContainer new)
-	= TTCParallelContainer {TTCParallelContainer|new & content = map (uncurry diffTaskPanels) (zip2 old.TTCParallelContainer.content new.TTCParallelContainer.content)}
+	= TTCParallelContainer {TTCParallelContainer|new & content = map (uncurry diffTaskPanels) (zip2 old.TTCParallelContainer.content new.TTCParallelContainer.content) ++ drop (length old.TTCParallelContainer.content) new.TTCParallelContainer.content}
 diffTaskPanels _ new
 	= new

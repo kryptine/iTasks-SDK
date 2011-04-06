@@ -7,7 +7,7 @@ from CommonCombinators	import transform
 from ProcessDB			import :: Process{..}
 from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
 
-derive class iTask ParallelTaskInfo, SchedulerState, Control, ControlTaskContainer, TaskContainer
+derive class iTask ParallelTaskInfo, SchedulerState, Control, ControlTaskContainer
 // Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
 JSONEncode{|Menu|} _		= abort "not implemented"
 JSONEncode{|MenuItem|} _	= abort "not implemented"
@@ -23,6 +23,18 @@ gUpdate{|Menu|} _ _			= abort "not implemented"
 gUpdate{|MenuItem|} _ _		= abort "not implemented"
 gDefaultMask{|Menu|} _		= abort "not implemented"
 gDefaultMask{|MenuItem|} _	= abort "not implemented"
+
+JSONEncode{|TaskContainer|} _ c		= encodeFunc c
+JSONDecode{|TaskContainer|} _ [j:c]	= (decodeFunc j,c)
+gUpdate{|TaskContainer|} fx UDCreate ust
+	# (a,ust) = fx UDCreate ust
+	= (InBodyTask (return Void) (\_ _ -> (a,[])),ust)
+gUpdate{|TaskContainer|} _ (UDSearch t) ust = basicSearch t (\_ t -> t) ust
+gDefaultMask{|TaskContainer|} _ _ = [Touched []]
+gVerify{|TaskContainer|} _ _ vst = alwaysValid vst
+gVisualize{|TaskContainer|} _ _ vst = ([TextFragment "task container"],vst)
+gEq{|TaskContainer|} _ _ _ = False // containers are never equal
+
 derive bimap Maybe, (,)
 
 //Standard monadic operations:
@@ -109,20 +121,24 @@ where
 	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
 	
 // Parallel composition
-derive JSONEncode PSt, PStTask, PStCTask, TaskContainerType
-derive JSONDecode PSt, PStTask, PStCTask, TaskContainerType
+// JSON not need for PSt because it's stored as dynamic
+JSONEncode{|PSt|} _ _ = abort "not implemented"
+JSONDecode{|PSt|} _ _ = abort "not implemented"
 
-:: PSt a acc =
+:: PSt acc =
 	{ state 	:: !acc
-	, tasks 	:: ![(!TaskIndex,!PStTask a acc)]
-	, cTasks	:: ![(!TaskIndex,!PStCTask a acc)]
+	, tasks 	:: ![(!TaskIndex,!PStTask acc)]
+	, cTasks	:: ![(!TaskIndex,!PStCTask acc)]
 	, nextIdx	:: !TaskIndex
 	}
 	
-:: PStTask a acc	= InitTask	!Int | AddedTask	!(!Task (Either a [Control a acc]),!TaskContainerType,!Either (AccuFun a acc) (AccuFunDetached a acc))
-:: PStCTask a acc	= InitCTask	!Int | AddedCTask	!(!Task (Either a [Control a acc]),!TaskContainerType)
+:: PStTask acc	= InitTask	!Int | E.a:	AddedTask	!(Task a) !(Either (AccuFun a acc) (AccuFunDetached a acc)) !TaskContainerType & iTask a
+:: PStCTask acc	= InitCTask	!Int | 		AddedCTask	!(Task [Control acc]) !TaskContainerType
 
-parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer taskResult pState] ![TaskContainer taskResult pState] -> Task pResult | iTask taskResult & iTask pState & iTask pResult & descr d
+:: ParTaskInfo acc :== (!TaskIndex,!ParTask acc,!TaskContainerType)
+:: ParTask acc = E.a: PTask !(Task a) !(Either (AccuFun a acc) (AccuFunDetached a acc)) & iTask a | PCTask !(Task [Control acc])
+
+parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer pState] ![TaskContainer pState] -> Task pResult | iTask pState & iTask pResult & descr d
 parallel d initState resultFun initCTasks initTasks
 	= mkParallelTask d (parallelE,parallelC)
 where
@@ -133,15 +149,17 @@ where
 		# tst 		= seqSt (processTaskE o getPStTask)			pst.tasks tst
 		= {tst & taskNr = taskNr}
 	where
-		processTaskE (idx,task,ctype,_) tst = case ctype of
+		processTaskE (idx,task,ctype) tst = case ctype of
 			CTDetached _ _	= tst
-			_				= snd (applyTaskEdit task {tst & taskNr = [idx:taskNr]})
+			_ = case task of
+				PTask t _	= snd (applyTaskEdit t {tst & taskNr = [idx:taskNr]})
+				PCTask t	= snd (applyTaskEdit t {tst & taskNr = [idx:taskNr]})
 	
 	parallelC tst=:{taskNr,properties,newTask}
 		// Load the internal state
 		# (pst,tst)		= accIWorldTSt (loadPSt taskNr) tst
 		# tasks			= map (getPStCTask taskNr) pst.cTasks ++ map getPStTask pst.tasks
-		# tst			= if newTask (createProcs tasks tst) tst
+		# tst			= if newTask (createProcs taskNr tasks tst) tst
 		// Evaluate the subtasks for all currently active tasks (control tasks first)
  		# (res,pst,tst)	= processAllTasksC tasks pst tst
 		// The result of the combined evaluation of all parallel subtasks
@@ -167,42 +185,21 @@ where
 		= (res,{tst & taskNr = taskNr})
 	where
 		processAllTasksC [] pst tst = (TaskBusy,pst,tst)
-		processAllTasksC [t=:(idx,task,ctype,accuFun):ts] pst tst
+		processAllTasksC [t=:(idx,task,ctype):ts] pst tst
 			# tst = {tst & taskNr = [idx:taskNr]} // Task is evaluated with a shifted task number
-			# (mbResult,tst) = case ctype of
-				CTDetached _ _	= evaluateDetached task tst
-				_				= appFst Just (applyTaskCommit task (Just (idx,ctype)) tst)
-			= case mbResult of
-				Just TaskBusy
+			# (res,reeval,pst,tst) = case ctype of
+				CTDetached _ _	= evaluateDetached task idx ctype pst tst
+				_				= evaluateLocal task idx ctype pst tst
+			# ts = if reeval [t:ts] ts
+			= case res of
+				TaskBusy
 					//Process the other tasks
 					= processAllTasksC ts pst tst 
-				Just (TaskFinished a)
-					//Apply the process function
-					# (pst,controls,ts,tst) = case a of
-						Left v // ordinary task: remove from pst & run accu fun
-							# (state,controls) = case accuFun of
-								Just (Left fun)		= fun v pst.PSt.state
-								Just (Right fun)	= fun (Just v) pst.PSt.state
-								_					= abort "no accu fun for ordinary task"
-							= ({PSt | removeTasksPSt [idx] pst & state = state},controls,ts,tst)
-						Right controls // control task: restart & process control signal
-							# tst = deleteTaskStates [idx:taskNr] tst
-							# tst = removeFromTree [idx] tst
-							= (pst,controls,[t:ts],tst)
+				TaskFinished controls
 					= processControls controls ts pst tst
-				Just (TaskException e str)
+				TaskException e str
 					//Don't process the other tasks, just let the exception through
 					= (TaskException e str,pst,tst)
-				Nothing
-					// detached cancelled
-					# pst = removeTasksPSt [idx] pst
-					# (controls,pst) = case accuFun of
-						Just (Right accuFun)
-							# (state,controls) = accuFun Nothing pst.PSt.state
-							= (controls,{PSt|pst & state = state})
-						_ // cancelled control task has no effect
-							= ([],pst)
-					= processControls controls ts pst tst
 		where
 			processControls [] evalTs pst tst = processAllTasksC evalTs pst tst
 			processControls [c:cs] evalTs pst tst = case c of
@@ -219,7 +216,7 @@ where
 					// add new control tasks to PSt & evaluate at end of this iteration
 					# newTasks			= mkCTasks [(idx,c) \\ c <- appCContainers & idx <- [pst.nextIdx..]]
 					# pst				= updateNextIdx newTasks pst
-					# (pst,tst)			= addCTasksPSt newTasks pst tst
+					# (pst,tst)			= addTasksPSt newTasks pst tst
 					= processControls cs (evalTs ++ newTasks) pst tst
 				StopTasks rIdxs
 					// removes tasks & add finished nodes to task tree
@@ -244,16 +241,16 @@ where
 					# newTasks			= mkCTasks rTasks
 					# rIdxs				= map fst rTasks
 					# (evalTs,pst,tst)	= removeTasks rIdxs evalTs pst tst
-					# (pst,tst)			= addCTasksPSt newTasks pst tst
+					# (pst,tst)			= addTasksPSt newTasks pst tst
 					= processControls cs (evalTs ++ newTasks) pst tst
 				_
 					= abort "not implemented!"
 			
 			// makes new ordinary tasks from containers
-			mkTasks containers = [let (task,ctype,accuFun) = fromContainerToTask c in (idx,mapTask Left task,ctype,Just accuFun) \\ (idx,c) <- containers]
+			mkTasks containers = [let (task,ctype) = fromContainerToTask c in (idx,task,ctype) \\ (idx,c) <- containers]
 			
 			// makes new control tasks from containers
-			mkCTasks containers = [let (task,ctype) = fromCContainerToTask (sharedParallelState taskNr) c in (idx,mapTask Right (setControlTask task),ctype,Nothing) \\ (idx,c) <- containers]
+			mkCTasks containers = [let (task,ctype) = fromCContainerToTask (sharedParallelState taskNr) c in (idx,task,ctype) \\ (idx,c) <- containers]
 			
 			// removes tasks from list of tasks to evaluate in this iteration, from PSt& from tree and remove their states (and possibly processes)
 			removeTasks idxs evalTs pst tst
@@ -264,7 +261,7 @@ where
 				= (evalTs,pst,tst)
 			
 			// removes tasks with given indexes from list of tasks to evaluate in this iteration
-			removeFromEvalTasks idxs ts = filter (\(idx,_,_,_) -> not (isMember idx idxs)) ts
+			removeFromEvalTasks idxs ts = filter (\(idx,_,_) -> not (isMember idx idxs)) ts
 			
 			// deletes states of tasks (and possibly processes) with given indexes
 			deleteStates idxs tst
@@ -273,18 +270,16 @@ where
 				# tst		= seqSt (\taskNr tst -> snd ('ProcessDB'.deleteProcess (taskNrToString taskNr) tst))	taskNrs tst
 				= tst
 			
-			// adds ordinary tasks to PSt
+			// adds control and ordinary tasks to PSt
 			addTasksPSt tasks pst tst
-				# tst = createProcs tasks tst
-				= ({pst & tasks = sortBy (\(a,_) (b,_) -> a < b) (pst.tasks ++ map (\(idx,task,ctype,Just accuFun) -> (idx,AddedTask (task,ctype,accuFun))) tasks)},tst)
-			
-			// adds control tasks to PSt
-			addCTasksPSt cTasks pst tst
-				# tst = createProcs cTasks tst
-				= ({pst & cTasks = sortBy (\(a,_) (b,_) -> a < b) (pst.cTasks ++ map (\(idx,task,ctype,_) -> (idx,AddedCTask (task,ctype))) cTasks)},tst)
-			
-			// removes tasks with given indexes from PSt
-			removeTasksPSt idxs pst = {pst & tasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.tasks, cTasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.cTasks}
+				# tst = createProcs taskNr tasks tst
+				# pst = seqSt addTask tasks pst
+				# pst = {pst & tasks	= sortBy (\(a,_) (b,_) -> a < b) pst.tasks}
+				# pst = {pst & cTasks	= sortBy (\(a,_) (b,_) -> a < b) pst.cTasks}
+				= (pst,tst)
+			where
+				addTask (idx,PTask task accufun,ctype)	pst = {pst & tasks	= [(idx,AddedTask task accufun ctype):pst.tasks]}
+				addTask (idx,PCTask task,ctype)			pst = {pst & cTasks	= [(idx,AddedCTask task ctype):pst.cTasks]}
 			
 			// updates the next task index in PSt
 			updateNextIdx l pst = {pst & nextIdx = pst.nextIdx + length l}
@@ -293,20 +288,18 @@ where
 			addToTree containers tst=:{tree} = case tree of
 				TTParallelTask ti children = {tst & tree = (TTParallelTask ti (children ++ containers))}
 				_ = abort "parallel node expected"
-			
-			// removes given parallel task tree containers from tree	
-			removeFromTree remIdxs tst=:{tree} = case tree of
-				TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _ _) -> not (isMember idx remIdxs)) children))}
-				_ = abort "parallel node expected"
 	
-		// create processes for detached tasks
-		createProcs tasks tst = seqSt createProc tasks tst
-		where
-			createProc (idx,task,CTDetached managerP menu,_) tst
-				# (_,_,_,tst) = createTaskInstance (createThread task) False False managerP menu {tst & taskNr = [idx:taskNr]}
-				= tst
-			createProc _ tst
-				= tst
+	// create processes for detached tasks
+	createProcs taskNr tasks tst = seqSt createProc tasks tst
+	where
+		createProc (idx,ptask,CTDetached managerP menu) tst
+			# thread = case ptask of
+				PTask task _	= createThread task
+				PCTask task		= createThread task
+			# (_,_,_,tst) = createTaskInstance thread False False managerP menu {tst & taskNr = [idx:taskNr]}
+			= tst
+		createProc _ tst
+			= tst
 	
 	//Load or create the internal state
 	loadPSt taskNr iworld
@@ -327,23 +320,23 @@ where
 					
 	storePSt taskNr pst tst
 		# tst = appIWorldTSt (updateTimestamp taskNr) tst
-		= appIWorldTSt (storeValueAs SFDynamic (iTaskId taskNr "pst") pst) tst
+		= appIWorldTSt (storeValueAs SFDynamic(iTaskId taskNr "pst") pst) tst
 			
 	updateTimestamp taskNr iworld=:{IWorld|timestamp} = setTaskStoreFor taskNr "lastUpdate" timestamp iworld
 	
 	getPStTask (idx,pstTask) = case pstTask of
 		InitTask lidx
-			# (task,ctype,accuFun) = fromContainerToTask (initTasks !! lidx)
-			= (idx,mapTask Left task,ctype,Just accuFun)
-		AddedTask (task,ctype,accuFun)
-			= (idx,task,ctype,Just accuFun)
+			# (task,ctype) = fromContainerToTask (initTasks !! lidx)
+			= (idx,task,ctype)
+		AddedTask task accufun ctype
+			= (idx,PTask task accufun,ctype)
 	
 	getPStCTask taskNr (idx,pstCTask) = case pstCTask of
 		InitCTask lidx
 			# (task,ctype) = fromCContainerToTask (sharedParallelState taskNr) (initCTasks !! lidx)
-			= (idx,mapTask Right (setControlTask task),ctype,Nothing)
-		AddedCTask (task,ctype)
-			= (idx,task,ctype,Nothing)
+			= (idx,task,ctype)
+		AddedCTask task ctype
+			= (idx,PCTask task,ctype)
 			
 	setControlTask task=:{Task|properties} = {Task|task & properties = {properties & isControlTask = True}}
 				
@@ -366,10 +359,13 @@ where
 				Just lastUpdate	= (Ok lastUpdate,iworld)
 				Nothing			= (Error "no timestamp",iworld)
 			
-		toParallelTaskInfo (idx,task,ctype,_) iworld
+		toParallelTaskInfo (idx,task,ctype) iworld
 			# (mbProc,iworld)				= 'ProcessDB'.getProcess (taskNrToString [idx:taskNr]) iworld
+			# taskProps = case task of
+				PTask {Task|properties} _	= properties
+				PCTask {Task|properties}	= properties
 			# info =	{ index				= idx
-						, taskProperties	= task.Task.properties
+						, taskProperties	= taskProps
 						, processProperties	= fmap (\{Process|properties} -> properties) mbProc
 						}
 			= (info,iworld)
@@ -378,40 +374,90 @@ where
 			# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {ProcessProperties|pprops & managerProperties = mprops}) iworld
 			= iworld
 	
-	fromCContainerToTask :: !(Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) !(ControlTaskContainer a acc) -> (!Task  [Control a acc],!TaskContainerType)
-	fromCContainerToTask s container = case container of
-		DetachedCTask p m	ct = (ct s,CTDetached p m)
-		WindowCTask w m		ct = (ct s,CTWindow w m)
-		DialogCTask w		ct = (ct s,CTDialog w)
-		InBodyCTask			ct = (ct s,CTInBody)
-		HiddenCTask			ct = (ct s,CTHidden)
+	fromCContainerToTask :: !(Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) !(ControlTaskContainer acc) -> (!ParTask acc,!TaskContainerType)
+	fromCContainerToTask s container
+		# (ct,type)= case container of
+			DetachedCTask p m	ct = (ct,CTDetached p m)
+			WindowCTask w m		ct = (ct,CTWindow w m)
+			DialogCTask w		ct = (ct,CTDialog w)
+			InBodyCTask			ct = (ct,CTInBody)
+			HiddenCTask			ct = (ct,CTHidden)
+		= (PCTask (setControlTask (ct s)),type)
 		
-	fromContainerToTask	:: !(TaskContainer a acc) -> (!Task a,!TaskContainerType,!Either (AccuFun a acc) (AccuFunDetached a acc))
+	fromContainerToTask	:: !(TaskContainer acc) -> (!ParTask acc,!TaskContainerType)
 	fromContainerToTask container = case container of
-		DetachedTask p m t f	= (t,CTDetached p m,Right f)
-		WindowTask w m t f		= (t,CTWindow w m,Left f)
-		DialogTask w t f		= (t,CTDialog w,Left f)
-		InBodyTask t f			= (t,CTInBody,Left f)
-		HiddenTask t f			= (t,CTHidden,Left f)
+		DetachedTask p m t f	= (PTask t (Right f),CTDetached p m)
+		WindowTask w m t f		= (PTask t (Left f),CTWindow w m)
+		DialogTask w t f		= (PTask t (Left f),CTDialog w)
+		InBodyTask t f			= (PTask t (Left f),CTInBody)
+		HiddenTask t f			= (PTask t (Left f),CTHidden)
+		
+	evaluateLocal :: !(ParTask acc) !TaskIndex !TaskContainerType !(PSt acc) !*TSt -> (!TaskResult [Control acc],!Bool,!PSt acc,!*TSt) | iTask acc
+	evaluateLocal pTask idx ctype pst tst=:{taskNr} = case pTask of
+		PTask task accuFun = case applyTaskCommit task (Just (idx,ctype)) tst of
+			(TaskFinished r,tst) // finished ordinary task: remove from pst & calculate new acc
+				# pst			= removeTasksPSt [idx] pst
+				# (state,controls) = case accuFun of
+					Left fun	= fun r pst.PSt.state
+					Right _		= abort "detached accu fun for ordinary task"
+				= (TaskFinished controls,False,{PSt | pst & state = state},tst)
+			(TaskBusy,tst)
+				= (TaskBusy,False,pst,tst)
+			(TaskException e str,tst)
+				= (TaskException e str,False,pst,tst)
+		PCTask task = case applyTaskCommit task (Just (idx,ctype)) tst of
+			(TaskFinished controls,tst) // finished control task: restart & process control signal
+				# tst = deleteTaskStates taskNr tst
+				# tst = removeFromTree [idx] tst
+				= (TaskFinished controls,True,pst,tst)
+			(res,tst)
+				= (res,False,pst,tst)
 
-	evaluateDetached :: !(Task a) !*TSt -> (!Maybe (TaskResult a), !*TSt) | iTask a
-	evaluateDetached task tst=:{TSt|taskNr,events}
+	evaluateDetached :: !(ParTask acc) !TaskIndex !TaskContainerType !(PSt acc) !*TSt -> (!TaskResult [Control acc],!Bool,!PSt acc,!*TSt) | iTask acc
+	evaluateDetached task idx ctype pst tst=:{TSt|taskNr,events}
 		//Try to load the stored process for this subtask
-		# (mbProc,tst)	 = 'ProcessDB'.getProcess (taskNrToString taskNr) tst
+		# (mbProc,tst) = 'ProcessDB'.getProcess (taskNrToString taskNr) tst
 		= case mbProc of
 			//Nothing found, process cancelled
-			Nothing	
-				= (Nothing,tst)
+			Nothing
+				# pst = removeTasksPSt [idx] pst
+				# (acc,controls) = case task of
+					PTask _ (Right accufun)	= accufun Nothing pst.PSt.state
+					PCTask _				= (pst.PSt.state,[])
+				= (TaskFinished controls,False,{PSt | pst & state = acc},tst)
 			//When found, evaluate
 			Just proc
 				# (result,_,tst) = evaluateTaskInstance proc events Nothing False False tst
 				= case result of
-					TaskBusy				= (Just TaskBusy,tst)
-					TaskFinished (a :: a^) 	= (Just (TaskFinished a),tst)
-					TaskFinished _			= (Just (taskException invalidType),tst)
-					TaskException e	str		= (Just (TaskException e str),tst)
+					TaskBusy				= (TaskBusy,False,pst,tst)
+					TaskException e	str		= (TaskException e str,False,pst,tst)
+					_ // finished task
+						= case task of
+							PTask _ accufun = case (dynamic accufun,result) of
+								(Right fun :: Either (AccuFun a acc^) (AccuFunDetached a acc^),TaskFinished (r :: a))
+									# pst = removeTasksPSt [idx] pst
+									# (acc,controls) = fun (Just r) pst.PSt.state
+									= (TaskFinished controls,False,{PSt | pst & state = acc},tst)
+								_
+								 	= (taskException invalidType,False,pst,tst)
+							PCTask _ = case result of
+								TaskFinished (controls :: [Control acc^])
+									# tst = deleteTaskStates taskNr tst
+									# tst = deleteTaskInstance (taskNrToString taskNr) tst
+									# tst = createProcs (tl taskNr) [(idx,task,ctype)] tst
+									= (TaskFinished controls,False,pst,tst)
+								_
+									= (taskException invalidType,False,pst,tst)
 	where
-		invalidType = "createOrEvaluateTaskIntance: task result of invalid type!"
+		invalidType = "evaluateDetached: task result of invalid type!"
+		
+	// removes given parallel task tree containers from tree	
+	removeFromTree remIdxs tst=:{tree} = case tree of
+		TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _ _) -> not (isMember idx remIdxs)) children))}
+		_ = abort "parallel node expected"
+		
+	// removes tasks with given indexes from PSt
+	removeTasksPSt idxs pst = {pst & tasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.tasks, cTasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.cTasks}
 
 spawnProcess :: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
 spawnProcess gcWhenDone managerProperties menu task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`

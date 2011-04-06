@@ -12,9 +12,8 @@ instance ProcessDB IWorld
 where
 	createProcess :: !Process !*IWorld -> (!ProcessId,!*IWorld)
 	createProcess entry iworld
-		#(procs,iworld)		= processStore id iworld
 		# (pid,iworld)	 	= getPid iworld
-		# (procs,iworld)	= processStore (\_ -> procs ++ [{Process | entry & taskId = pid, properties = {entry.Process.properties & systemProperties = {SystemProperties|entry.Process.properties.systemProperties & taskId = pid}} }]) iworld
+		# (procs,iworld)	= processStore (\procs -> procs ++ [{Process | entry & taskId = pid, properties = {entry.Process.properties & systemProperties = {SystemProperties|entry.Process.properties.systemProperties & taskId = pid}} }]) iworld
 		= (pid, iworld)
 		where
 			getPid iworld
