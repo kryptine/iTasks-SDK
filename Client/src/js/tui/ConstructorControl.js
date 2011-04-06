@@ -79,7 +79,7 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		// only generate change event if different cons is chosen
 		if (newConsIdx != this.oldConsIdx){
 			this.oldConsIdx = newConsIdx;
-			this.fireEvent('tuichange',this.name,this.consField.getValue());
+			this.fireEvent('tuichange',this.taskId,this.name,this.consField.getValue());
 		}
 	},
 	afterRender: function(){

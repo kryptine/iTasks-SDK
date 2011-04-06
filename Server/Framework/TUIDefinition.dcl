@@ -71,6 +71,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 	}
 :: TUIConstructorControl =
 	{ name			:: !TUIName
+	, taskId		:: !TaskId
 	, fieldLabel	:: !Maybe String
 	, consSelIdx	:: !Int
 	, consValues	:: ![String]

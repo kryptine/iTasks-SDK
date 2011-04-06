@@ -53,7 +53,7 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType}
 			= (vizBody,vst)
 	= (vis,{VSt|vst & label = Nothing})
 			
-gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,verifyMask}
+gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,verifyMask,taskId}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
@@ -70,6 +70,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 				= ([TUIFragment (TUIConstructorControl	{TUIConstructorControl
 														| name = dp2s currentPath
 														, fieldLabel = labelAttr useLabels label
+														, taskId = taskId
 														, consSelIdx = if (isTouched cmv) selectedConsIndex -1
 														, consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
 														, items = if (isTouched cmv) (coerceToTUIDefs items) []
