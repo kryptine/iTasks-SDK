@@ -11,6 +11,7 @@ Start world = startEngine
 				, workflow "Summerschool/3: [Person]"  			"Fill in list of persons" 				personAdmForm
 				, workflow "Summerschool/4: [Person] Check"   	"Fill in and check list of persons" 	personAdmForm
 				, workflow "Summerschool/5: Delegate "   		"Delegate example 4" 					(delegate fillInAndCheckPersons)
+				, workflow "Summerschool/6: Chat "   			"Chat with someone" 					chat
 				] world
 
 			
@@ -95,6 +96,20 @@ delegateWorkflow
 		
 */		
 		
+// example, chat using shared state
+
+chat 
+    =               		getCurrentUser
+    	>>= \me ->			selectUsers
+		>>= \user ->		createSharedStore [("", "")]
+        >>= \chatstate -> 	(me @:    updateSharedInformationA ("Chat with " <+++ user) editor1 [(ActionQuit,always)] chatstate)
+                    		-||-
+                    		(user  @: updateSharedInformationA ("Chat with " <+++ me) editor2 [(ActionQuit,always)] chatstate)
+where
+  editor1 =  (map (\(x,y) -> (Note x,Display (Note y))), \list _ -> [(x,y) \\ (Note x, Display (Note y)) <- list])
+  editor2 =  (map (\(x,y) -> (Display (Note x),Note y)), \list _ -> [(x,y) \\ (Display (Note x), Note y) <- list])
+//  editor1 =  (\(note1, note2) -> (Display note2,note1), \(_,note1) (_, note2) -> (note1, note2))
+//  editor2 =  (\(note1, note2) -> (Display note1,note2), \(_,note2) (note1, _) -> (note1, note2))
 
 
 
