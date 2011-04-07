@@ -34,7 +34,7 @@ taskNrToString [i:is] 	= taskNrToString is +++ "." +++ toString i
 
 taskNrFromString :: !String -> TaskNr
 taskNrFromString "" 		= []
-taskNrFromString string	= reverse (parseTaskNr` [char \\ char <-: string])
+taskNrFromString string	= reverse (parseTaskNr` (fromString string))
 where
 	parseTaskNr` :: ![Char] -> TaskNr
 	parseTaskNr` [] = []
@@ -91,14 +91,14 @@ JSONEncode{|Task|} _ {properties,mbTaskNr,taskFuncEdit,taskFuncCommit}
 	= [JSONArray	[  JSONString "Task"
 					:  JSONEncode{|*|} properties
 					++ JSONEncode{|*|} mbTaskNr
-					++ encodeFunc taskFuncEdit
-					++ encodeFunc taskFuncCommit]]
+					++ dynamicJSONEncode taskFuncEdit
+					++ dynamicJSONEncode taskFuncCommit]]
 					
 JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,mbTaskNr,taskFuncEdit,taskFuncCommit]:c]
 	# mbTaskProperties		= fromJSON properties
 	# mbMbTaskNr			= fromJSON mbTaskNr
-	# mbTaskFuncEdit		= decodeFunc taskFuncEdit
-	# mbTaskFuncCommit		= decodeFunc taskFuncCommit
+	# mbTaskFuncEdit		= dynamicJSONDecode taskFuncEdit
+	# mbTaskFuncCommit		= dynamicJSONDecode taskFuncCommit
 	|  isJust mbTaskProperties
 	&& isJust mbMbTaskNr
 	&& isJust mbTaskFuncEdit

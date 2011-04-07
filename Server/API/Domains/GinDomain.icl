@@ -35,13 +35,13 @@ JSONEncode {|ORYXEditor|} { diagram, stencilset, verify }
 	= [ JSONArray		[  JSONString "ORYXEditor"
 						:  JSONEncode{|*|} diagram
 						++ JSONEncode{|*|} stencilset
-						++ encodeFunc verify
+						++ dynamicJSONEncode verify
 						]]
 
 JSONDecode{|ORYXEditor|} [JSONArray [JSONString "ORYXEditor",diagram,stencilset,verify]:c]
 	# mbDiagram		= fromJSON diagram
 	# mbStencilset	= fromJSON stencilset
-	# mbVerify		= decodeFunc verify
+	# mbVerify		= dynamicJSONDecode verify
 	|  isJust mbDiagram
 	&& isJust mbStencilset
 	&& isJust mbVerify

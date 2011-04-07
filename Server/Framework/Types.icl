@@ -33,10 +33,10 @@ JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
 
-JSONEncode{|Shared|} _ _ (Shared read write getTimestamp) = [JSONArray [JSONString "Shared", JSONString (base64Encode (serialize (read,write,getTimestamp)))]]
-JSONDecode{|Shared|} _ _ [JSONArray [JSONString "Shared", JSONString funcs]:c] = (Just (Shared read write getTimestamp),c)
-where
-	(read,write,getTimestamp) = fst (deserialize {s` \\ s` <-: base64Decode funcs})
+JSONEncode{|Shared|} _ _ (Shared read write getTimestamp) = [JSONArray [JSONString "Shared":dynamicJSONEncode (read,write,getTimestamp)]]
+JSONDecode{|Shared|} _ _ [JSONArray [JSONString "Shared",funcs]:c] = case dynamicJSONDecode funcs of
+	Just (read,write,getTimestamp)	= (Just (Shared read write getTimestamp),c)
+	Nothing							= (Nothing,c)
 JSONDecode{|Shared|} _ _ c = (Nothing,c)
 
 gEq{|(->)|} _ _ _ _			= False	// functions are never equal

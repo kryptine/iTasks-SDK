@@ -31,7 +31,7 @@ JSONDecode{|(->)|} _ _ c						= (Nothing,c)
 JSONEncode{|Dynamic|} dyn = [JSONString (base64Encode (serializeDynamic dyn))]
 JSONEncode{|(->)|} _ _ f = [JSONString (base64Encode (serialize f))]
 
-JSONDecode{|Dynamic|} [JSONString string:c]	= (Just (deserializeDynamic {s` \\ s` <-: base64Decode string}), c)
+JSONDecode{|Dynamic|} [JSONString string:c]	= (Just (deserializeDynamic (base64Decode string)), c)
 JSONDecode{|Dynamic|} c						= (Nothing, c)
 
 JSONDecode{|(->)|} _ _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 

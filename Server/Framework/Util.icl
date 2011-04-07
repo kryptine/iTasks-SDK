@@ -125,9 +125,9 @@ intersperse i [] = []
 intersperse i [x] = [x]
 intersperse i [x:xs] = [x,i:intersperse i xs]
 
-encodeFunc :: !a -> [JSONNode]
-encodeFunc f = [JSONString (base64Encode (serialize f))]
+dynamicJSONEncode :: !a -> [JSONNode]
+dynamicJSONEncode f = [JSONString (base64Encode (serialize f))]
 
-decodeFunc :: !JSONNode -> Maybe a
-decodeFunc (JSONString str)	= Just (deserialize {s` \\ s` <-: base64Decode str})
-decodeFunc _				= Nothing
+dynamicJSONDecode :: !JSONNode -> Maybe a
+dynamicJSONDecode (JSONString str)	= Just (deserialize (base64Decode str))
+dynamicJSONDecode _					= Nothing

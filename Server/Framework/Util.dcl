@@ -49,5 +49,5 @@ sortByIndex		:: ![(!Int,!a)]				-> [a]
 intersperse		:: !a ![a]					-> [a]
 
 //Utility functions for custom JSON encoding / decoding
-encodeFunc :: !a -> [JSONNode]
-decodeFunc :: !JSONNode -> Maybe a
+dynamicJSONEncode :: !a -> [JSONNode]
+dynamicJSONDecode :: !JSONNode -> Maybe a
