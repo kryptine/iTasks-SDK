@@ -8,7 +8,6 @@ from TUIDiff import :: TUIUpdate
 	| TaskNotDone
 	| TaskRedundant
 	| TTCInteractiveContainer !TTCInteractiveContainer
-	| TTCResultContainer !TTCResultContainer
 
 :: TTCInteractiveContainer = 
 	{ xtype			:: !String
@@ -16,12 +15,6 @@ from TUIDiff import :: TUIUpdate
 	, updates		:: !(Maybe [TUIUpdate])
 	, menu			:: ![TUIDef]
 	, type			:: !InteractiveTaskType
-	}
-	
-:: TTCResultContainer =
-	{ xtype			:: !String
-	, subject		:: !String
-	, result		:: !String
 	}
 
 buildTaskPanel 		:: !UITreeContainer			-> TaskPanel

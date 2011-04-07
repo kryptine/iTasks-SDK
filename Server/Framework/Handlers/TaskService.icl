@@ -2,13 +2,13 @@ implementation module TaskService
 
 import StdList, StdBool, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel, TaskPanelClientEncode
 
-derive JSONEncode TaskPanel, TTCInteractiveContainer, InteractiveTaskType, TTCResultContainer
+derive JSONEncode TaskPanel, TTCInteractiveContainer, InteractiveTaskType
 derive JSONEncode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIControlType, TUIDocumentControl, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONEncode TUIContainer, TUIRecordContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUILayout, HAlignment
 
-derive JSONDecode TaskPanel, TTCInteractiveContainer, InteractiveTaskType, TTCResultContainer
+derive JSONDecode TaskPanel, TTCInteractiveContainer, InteractiveTaskType
 derive JSONDecode TUIDef,TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONDecode TUIControlType, TUIDocumentControl, TUIConstructorControl
 derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl

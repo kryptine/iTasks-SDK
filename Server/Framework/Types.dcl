@@ -385,7 +385,7 @@ instance menuAction Action
 instance menuAction ActionName
 instance menuAction (actionName, ActionLabel) | actionName actionName
 
-:: InteractiveTaskType = Information | Message | Instruction | Monitor | Control | Parallel
+:: InteractiveTaskType = Information | Message | Instruction | Monitor | Control | Parallel | Result
 
 // iWorld
 :: *IWorld		=	{ application	:: !String		// The name of the application	

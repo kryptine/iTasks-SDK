@@ -63,13 +63,21 @@ where
 buildResultPanel :: !UITreeContainer -> TaskPanel
 buildResultPanel tree = case tree of 
 	TTContainer _ (TTFinishedTask ti result _) _
-		= (TTCResultContainer {TTCResultContainer
-								| xtype 	= "itasks.ttc.result"
-								, subject	= ti.TaskInfo.subject
-								, result	= toString result
-								})
+		= (TTCInteractiveContainer	{ TTCInteractiveContainer
+									| xtype 		= "itasks.ttc.interactive"
+									, content 		= Just (content ti result)
+									, updates 		= Nothing	
+									, menu			= []
+									, type			= Result
+									})
 	_
 		= TaskNotDone
+where
+	content ti result = TUIContainer {simpleContainer
+		[ TUIContainer {TUIContainer | simpleContainer [htmlDisplay Nothing ti.TaskInfo.subject]		& cls = Just "TTCSubject"}
+		, TUIContainer {TUIContainer | simpleContainer [htmlDisplay Nothing ti.TaskInfo.description]	& cls = Just "TTCDescription"}
+		, TUIContainer {TUIContainer | simpleContainer [htmlDisplay Nothing (toString result)]			& cls = Just "TTCPanel"}
+		] & restrictedWidth = True}
 		
 diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel
 diffTaskPanels (TTCInteractiveContainer old) (TTCInteractiveContainer new)

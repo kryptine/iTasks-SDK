@@ -43,7 +43,6 @@
 		,{"text":"MenuItem.js","path":"src/js/ttc/"}
 		,{"text":"InteractiveContainer.js","path":"src/js/ttc/"}
 		,{"text":"FinishedContainer.js","path":"src/js/ttc/"}
-		,{"text":"ResultContainer.js","path":"src/js/ttc/"}
 				
 		,{"text":"itasks.LoginWindow.js","path":"src/js/"}
 		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}

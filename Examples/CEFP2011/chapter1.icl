@@ -23,7 +23,7 @@ taskIntForm = fillInForm "Please fill in an integer value:"
 fillInForm :: String -> Task a | iTask a
 fillInForm prompt
 	= 					enterInformation prompt
-		>>=	\result ->	showMessage "The result is:" result
+		>>=	\result ->	showMessageAbout "The result is:" result
 
 // example, showing eta conversion
 
@@ -33,7 +33,7 @@ taskIntForm2 = fillInForm2 "Please fill in an integer value:"
 fillInForm2 :: String -> Task a | iTask a
 fillInForm2 prompt
 	= 					enterInformation prompt
-		>>=				showMessage "The result is:" 
+		>>=				showMessageAbout "The result is:" 
 
 // example, a form for any type
 
@@ -85,7 +85,7 @@ delegate task
 // example, delegate one of my workflows
 
 
-from WorkflowStarter import getMyWorkflows	// clearly NOT the place where does should have been defined....
+//from WorkflowStarter import getMyWorkflows	// clearly NOT the place where does should have been defined....
 
 /* this needs more work...
 delegateWorkflow :: (Task a) | iTask a

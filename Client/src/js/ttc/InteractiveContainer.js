@@ -167,6 +167,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 			case 'Monitor':		return 'TTCMonitorContainer';
 			case 'Control':		return 'TTCControlContainer';
 			case 'Parallel':	return 'TTCParallelControlContainer';
+			case 'Result':		return 'TTCResultContainer';
 		}
 	}
 });
