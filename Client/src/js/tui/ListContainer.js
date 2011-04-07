@@ -228,10 +228,10 @@ itasks.tui.list.ListItemControl = Ext.extend(Ext.Panel,{
 			this.addBtn = this.toolbox.createChild({ cls: 'list-toolbox-button list-button-add' });
 			this.remBtn = this.toolbox.createChild({ cls: 'list-toolbox-button list-button-rem' });
 			
-			this.upBtn.on('click',this.handleClick.createDelegate(this,['mup',this.name,this.index]));
-			this.dnBtn.on('click',this.handleClick.createDelegate(this,['mdn',this.name,this.index]));
-			this.addBtn.on('click',this.handleClick.createDelegate(this,['add',this.name,this.index]));
-			this.remBtn.on('click',this.handleClick.createDelegate(this,['rem',this.name,this.index]));
+			this.upBtn.on('click',this.handleClick.createDelegate(this,['mup']));
+			this.dnBtn.on('click',this.handleClick.createDelegate(this,['mdn']));
+			this.addBtn.on('click',this.handleClick.createDelegate(this,['add']));
+			this.remBtn.on('click',this.handleClick.createDelegate(this,['rem']));
 		}
 			
 		this.toolbox.fadeIn({ duration: 0.25 });	
@@ -245,8 +245,9 @@ itasks.tui.list.ListItemControl = Ext.extend(Ext.Panel,{
 		this.isExpanded = false;	
 	},
 	
-	handleClick: function(action,name,index){
-		this.fireEvent('tuichange',this.taskId,name, action + "_" + index);
+	handleClick: function(action){
+		var parent = this.findParentByType(itasks.tui.ListContainer);
+		this.fireEvent('tuichange',parent.taskId,parent.name, action + "_" + this.index);
 	},
 	
 	toggleLastItem : function(isLast){

@@ -442,19 +442,18 @@ where
 		where
 			TUIDef items vst=:{optional,useLabels}
 				# (itemsVis,vst)	= childVisualizations fx items Nothing {vst & optional = False, useLabels = False, label = Nothing}
-				# vis				= [listItemControl name idx (coerceToTUIDefs dx) \\ dx <- itemsVis & idx <- [0..]]
+				# vis				= [listItemControl idx (coerceToTUIDefs dx) \\ dx <- itemsVis & idx <- [0..]]
 				# (vis,vst)			= case renderAsStatic of
 					False
 						# (dx,vst)  = fx Nothing {VSt|vst & optional = True}
-						= (vis ++ [listItemControl name (length vis) (coerceToTUIDefs dx)],vst)
+						= (vis ++ [listItemControl (length vis) (coerceToTUIDefs dx)],vst)
 					True
 						= (vis,vst)
 				= (vis,{vst & optional = optional, useLabels = useLabels})
 						
-			listItemControl name idx defs
+			listItemControl idx defs
 				= TUIListItem	{ TUIListItem
-								| name = name
-								, index = idx
+								| index = idx
 								, items = defs
 								}
 							

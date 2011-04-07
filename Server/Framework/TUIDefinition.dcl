@@ -109,8 +109,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 	, optional		:: !Bool
 	}
 :: TUIListItem =
-	{ name			:: !TUIName
-	, items			:: ![TUIDef]
+	{ items			:: ![TUIDef]
 	, index			:: !Int
 	}
 :: TUIButton =
