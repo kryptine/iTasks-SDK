@@ -25,8 +25,8 @@ gUpdate{|MenuItem|} _ _		= abort "not implemented"
 gDefaultMask{|Menu|} _		= abort "not implemented"
 gDefaultMask{|MenuItem|} _	= abort "not implemented"
 
-JSONEncode{|TaskContainer|} _ c		= encodeFunc c
-JSONDecode{|TaskContainer|} _ [j:c]	= (decodeFunc j,c)
+JSONEncode{|TaskContainer|} _ c		= dynamicJSONEncode c
+JSONDecode{|TaskContainer|} _ [j:c]	= (dynamicJSONDecode j,c)
 gUpdate{|TaskContainer|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= (InBodyTask (return Void) (\_ _ -> (a,[])),ust)
