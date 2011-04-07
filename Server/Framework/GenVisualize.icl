@@ -186,7 +186,7 @@ gVisualize{|Date|}		val vst = visualizeControlSimple TUIDateControl val vst
 gVisualize{|Time|}		val vst = visualizeControlSimple TUITimeControl val vst
 gVisualize{|User|}		val vst = visualizeControlSimple TUIUserControl val vst
 
-gVisualize{|Currency|}	val vst = visualizeControl control (textOnly (toString o fmap (\c -> curLabel (Just c) +++ " " +++ toString c))) val vst
+gVisualize{|Currency|}	val vst = visualizeControl control (toString,RawText o toString o fmap (\c -> curLabel (Just c) +++ " " +++ toString c)) val vst
 where
 	control = TUICurrencyControl (curLabel val)
 		

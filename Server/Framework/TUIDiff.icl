@@ -24,14 +24,14 @@ where
 				| otherwise																= [TUIReplace (dp2s path) new]
 			// Choices are replaced if the options are changed, otherwise their selection is updated
 			(TUIControl (TUIChoiceControl oc) ob, TUIControl (TUIChoiceControl nc) nb)
-				= if (oc.options == nc.options)
+				= if (oc.options == nc.options && ob.TUIControl.taskId == nb.TUIControl.taskId && ob.TUIControl.name == nb.TUIControl.name)
 					if (ob.value == nb.value)
 						[]
 						[TUISetValue (dp2s path) nb.value]
 					[TUIReplace (dp2s path) new]
 			// Trees are replaced if the nodes are changed, otherwise their selection is updated
 			(TUIControl (TUITreeControl oTree) ob, TUIControl (TUITreeControl nTree) nb)
-				= if (oTree === nTree)
+				= if (oTree === nTree && ob.TUIControl.taskId == nb.TUIControl.taskId && ob.TUIControl.name == nb.TUIControl.name)
 					if (ob.value == nb.value)
 						[]
 						[TUISetValue (dp2s path) nb.value]

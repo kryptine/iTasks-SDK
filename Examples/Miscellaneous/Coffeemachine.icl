@@ -24,7 +24,7 @@ where
 					              ]) id actions coins 
 		>>= 	handleMoney
 
-	actions = [(ActionCancel, always), (ActionOk, always)]
+	actions = [(ActionCancel, always), (ActionOk, ifvalid)]
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
 
 	handleMoney (ActionCancel, _)
