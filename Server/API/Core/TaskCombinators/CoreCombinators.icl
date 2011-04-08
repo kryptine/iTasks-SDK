@@ -434,13 +434,15 @@ where
 					TaskException e	str		= (TaskException e str,False,pst,tst)
 					_ // finished task
 						= case task of
-							PTask _ accufun = case (dynamic accufun,result) of
-								(Right fun :: Either (AccuFun a acc^) (AccuFunDetached a acc^),TaskFinished (r :: a))
-									# pst = removeTasksPSt [idx] pst
-									# (acc,controls) = fun (Just r) pst.PSt.state
-									= (TaskFinished controls,False,{PSt | pst & state = acc},tst)
-								_
-								 	= (taskException invalidType,False,pst,tst)
+							PTask _ accufun = f
+							where
+								f => case (dynamic accufun,result) of
+									(Right fun :: Either (AccuFun a acc^) (AccuFunDetached a acc^),TaskFinished (r :: a))
+										# pst = removeTasksPSt [idx] pst
+										# (acc,controls) = fun (Just r) pst.PSt.state
+										= (TaskFinished controls,False,{PSt | pst & state = acc},tst)
+									_
+									 	= (taskException invalidType,False,pst,tst)
 							PCTask _ = case result of
 								TaskFinished (controls :: [Control acc^])
 									# tst = deleteTaskStates taskNr tst
