@@ -265,6 +265,62 @@ where
 		customerChoice (Choice opts i, nc)
 			| i == (length opts) - 1	= Right (fromVisualizationHint nc)
 										= Left (fst (getChoice (Choice opts i)))	
+
+phoneBookSearch :: Task (Name,PhoneNumber)
+phoneBookSearch
+	=	activeQuery Nothing queryPhoneBook
+	>>= showMessageAbout ("Result","You chose:")
+	
+//Abstract search task with a search that is repeated each time the query is altered
+activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
+activeQuery mbQuery queryTask
+	=	createSharedStore (initQuery,initDirty,[]) //In a local store we keep the query and a flag whether it has been updated (dirty) and a resultset
+	>>= \qstore ->
+		parallel "Active Query" (qstore,Nothing) (\_ (_,Just res) -> res)
+			[InBodyCTask (searchBox qstore),HiddenCTask (activator qstore)]
+			[InBodyTask (searchResults qstore) searchAcc]
+where
+	initQuery = case mbQuery of
+		Nothing = ""
+		Just q	= q
+	initDirty = isJust mbQuery
+	
+	searchBox qstore procstate
+		= updateSharedInformationA "Enter query:" (toView,fromView) [] qstore >>| return []
+	where
+		toView (q,d,r) = q
+		fromView q (_,d,r) = (q,True,r)
+	
+	activator qstore procstate
+		=	monitor "Query monitor" id (\(_,d,_) -> d) True qstore	//Look for the dirty flag to become True
+		>>= \(query,_,_) ->
+			queryTask query
+		>>= \results ->
+			updateShared (\(q,_,_) -> (q,False,results)) qstore	//Reset dirty flag
+		>>| return []
+	
+	searchResults qstore
+		=	enterSharedChoiceA ("Search results","The following results were found:") id [(ActionNext,ifvalid)] (mapSharedRead (\(_,_,r) -> r) qstore)
+		
+	searchAcc (_,Just x) (qstore,_)	= ((qstore,Just x),[])
+
+from Shared import mapSharedRead
+
+//Very simple CSV phonebook implementation
+:: Name :== String
+:: PhoneNumber :== String
+
+queryPhoneBook :: String -> Task [(Name,PhoneNumber)]
+queryPhoneBook query
+	=	importCSVFile "phonebook.txt"
+	>>= transform (matchQuery query)
+where
+	matchQuery query entries
+		= [(name,phoneNo) \\ [name,phoneNo] <- entries | match query name || match query phoneNo]
+
+	match query subject
+		= indexOf (toUpperCase (trim query)) (toUpperCase subject) <> -1
+
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" linesPar
 						, workflow "Examples/Shared Variables/Calculate Sum"				"" calculateSum
@@ -275,4 +331,5 @@ sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" l
 						, workflow "Examples/Shared Variables/Sorted List"					"" autoSortedList
 						//, workflow "Examples/Shared Variables/Formatted Text"				"" formattedText
 						, workflow "Examples/Shared Variables/Choose or add"				"" chooseOrAdd
+						, workflow "Examples/Shared Variables/Phonebook Search"				"" phoneBookSearch
 						]
