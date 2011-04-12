@@ -7,7 +7,7 @@ htmlDisplay :: !(Maybe String) !String -> TUIDef
 htmlDisplay mbLabel html = TUIControl TUIHtmlDisplay
 	{ TUIControl
 	| name			= ""
-	, value			= html
+	, value			= JSONString html
 	, fieldLabel	= mbLabel
 	, optional		= True
 	, errorMsg		= ""

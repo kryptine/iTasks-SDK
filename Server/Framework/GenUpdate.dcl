@@ -14,7 +14,7 @@ from Shared	import :: Shared
 :: *USt =
 	{ searchPath		:: !DataPath
 	, currentPath		:: !DataPath
-	, update			:: !String
+	, update			:: !JSONNode
 	, consPath			:: ![ConsPos]
 	, oldMask			:: ![UpdateMask]
 	, newMask			:: ![UpdateMask]
@@ -44,8 +44,7 @@ derive bimap UpdateMode
 //Wrapper functions for updating
 defaultValue			:: !*IWorld -> (!a,!*IWorld)												| gUpdate{|*|} a
 defaultMask				:: !a -> UpdateMask															| gDefaultMask{|*|} a
-updateValue				:: !DataPath !String !a !*IWorld -> (!a,!*IWorld)							| gUpdate{|*|} a 
-updateValueAndMask  	:: !DataPath !String !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld)	| gUpdate{|*|} a
+updateValueAndMask  	:: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld)	| gUpdate{|*|} a
 
 //Utility functions for working accessing the iWorld in a USt
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
@@ -79,32 +78,29 @@ where
 instance == DataPath
 instance GenMask UpdateMask
 
-toggleMask 			:: !String 		-> UpdateMask
-
 // utility functions for custom gUpdate definitions
 /**
 * Updates a value.
 *
 * @param The current update mode
-* @param A function defining how to update the value given an update-string
+* @param A function defining how to update the value given an update
 * @param A default value for creation
 * @param USt
 *
 * @return modified USt
 */
-basicUpdate :: !(UpdateMode a) (String a -> a) a !*USt -> *(!a,!*USt)
+basicUpdate :: !(UpdateMode a) (upd a -> a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} upd
 /**
-* Updates a value which's new value can be calculated from the update-string
+* Updates a value which's new value can be calculated from the update-json
 * without knowledge of the previous value.
 *
 * @param The current update mode
-* @param A function defining how calculate a new value from an update-string
 * @param A default value for creation
 * @param USt
 *
 * @return modified USt
 */
-basicUpdateSimple :: !(UpdateMode a) (String -> a) a !*USt -> *(!a,!*USt)
+basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
 /**
 * Creates a default value.
 * (Same as basicUpdate with UDCreate as first parameter.)
@@ -120,9 +116,9 @@ basicCreate :: !a !*USt -> *(!a,!*USt)
 * (Same as basicUpdate with (UDSearch a) as first parameter.)
 *
 * @param The value to search in
-* @param A function defining how calculate a new value from an update-string
+* @param A function defining how calculate a new value from an update
 * @param USt
 *
 * @return modified USt
 */
-basicSearch :: !a !(String a -> a) !*USt -> *(!a,!*USt)
+basicSearch :: !a !(upd a -> a) !*USt -> *(!a,!*USt) | JSONDecode{|*|} upd

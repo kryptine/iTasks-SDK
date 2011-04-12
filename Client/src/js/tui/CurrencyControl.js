@@ -1,39 +1,25 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
+itasks.tui.CurrencyControl = itasks.tui.extendBase(Ext.form.TextField,{
 	width: 100,
 	fieldClass: "x-form-field x-form-num-field",
 	style: "text-align: right",
-	initEvents: function () {
-		this.maskRe = new RegExp('[0123456789\\.]');
-		itasks.tui.CurrencyControl.superclass.initEvents.call(this);
-	},
-	initComponent: function() {
-		this.msgTarget = 'side';
-		this.listeners = {change: {fn: this.onChange, scope: this}};
-		
-		this.hideLabel = this.fieldLabel == null;
-		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-
-		if(this.value == "") delete this.value;
-		itasks.tui.CurrencyControl.superclass.initComponent.apply(this,arguments);
-	
-		this.addEvents('tuichange');
-		this.enableBubble('tuichange');
-	},
-	onChange: function() {
-		this.fireEvent('tuichange',this.name,this.getValue());
-	},
+	maskRe: new RegExp('[0123456789\\.]'),
 	afterRender: function(ct){
-		itasks.tui.CurrencyControl.superclass.afterRender.call(this,arguments);
+		itasks.tui.base.afterRender.call(this,arguments);
 		
-		var cl = ct.createChild({tag: 'span', cn: this.currencyLabel});
-		cl.alignTo(this.getEl(),'tl',[5,5]);
-		
-		if(this.errorMsg)
-			this.markInvalid(this.errorMsg);
-		else if(this.hintMsg)
-			itasks.tui.common.markHint(this,this.hintMsg);
+		this.currencyEl = ct.createChild({tag: 'span', cn: this.currencyLabel});
+		this.currencyEl.alignTo(this.getEl(),'tl',[5,5]);
+	},
+	setValue: function(v) {
+		if (Ext.isArray(v)) {
+			this.extSuperclass.setValue.call(this,v[1]/100);
+		} else {
+			this.extSuperclass.setValue.call(this,arguments);
+		}
+		this.determineCurrencyLabel(v);
+		if (this.currencyEl)
+			this.currencyEl.update(this.currencyLabel);
 	},
 	normalize: function(s) {
 		if(s == "")
@@ -57,25 +43,27 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 		
 	},
 	beforeBlur: function() {
-		this.setValue(this.normalize(this.getRawValue()));
+		this.extSuperclass.setValue.call(this,this.normalize(this.getRawValue()));
 	},
-	setValue: function(value){
-		itasks.tui.CurrencyControl.superclass.setValue.call(this,value);
-	
-		if(this.activeError)
-			this.setError(this.activeError);
-	},
-	setError: function(msg){		
-		if(msg == "")
-			itasks.tui.common.clearError(this);
-		else
-			itasks.tui.common.markError(this,msg);
-	},
-	setHint: function(msg){
-		if(msg == "")
-			itasks.tui.common.clearHint(this);
-		else
-			itasks.tui.common.markHint(this,msg);
+	determineCurrencyLabel: function(v) {
+		if (Ext.isArray(v)) {
+			switch (v[0]) {
+				case 'EUR':
+					this.currencyLabel = "&euro;";
+					break;
+				case 'GBP':
+					this.currencyLabel = "&pound;";
+					break;
+				case 'USD':
+					this.currencyLabel = "$";
+					break;
+				case 'JPY':
+					this.currencyLabel = "&yen;"
+					break;
+			}
+		} else {
+			this.currencyLabel = "&euro;"; //Use the default currency
+		}
 	}
 });
 

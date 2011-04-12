@@ -7,10 +7,10 @@ from Time 		import :: Timestamp(..)
 from iTasks		import serialize, deserialize
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
+derive JSONEncode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
 derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode	Password, Note, Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
+derive JSONDecode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
 derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
@@ -175,6 +175,14 @@ where
 instance == Password
 where
 	(==) (Password a) (Password b) = a == b
+	
+instance toString Password
+where
+	toString (Password p) = p
+	
+JSONEncode{|Password|} (Password txt) = [JSONString txt]
+JSONDecode{|Password|} [JSONString txt:c] = (Just (Password txt),c)
+JSONDecode{|Password|} c = (Nothing,c)
 
 // ******************************************************************************************************
 // Note
@@ -184,10 +192,9 @@ instance toString Note
 where
 	toString (Note s) = s
 
-instance toString Password
-where
-	toString (Password p) = p
-
+JSONEncode{|Note|} (Note txt) = [JSONString txt]
+JSONDecode{|Note|} [JSONString txt:c] = (Just (Note txt),c)
+JSONDecode{|Note|} c = (Nothing,c)
 
 instance == Note
 where

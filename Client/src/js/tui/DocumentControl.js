@@ -1,45 +1,42 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
-{	
+itasks.tui.DocumentControl = itasks.tui.extendBase(Ext.Panel, {
+	unstyled: true,
+	width: 500,
+	layout: 'card',
+	activeItem: 0,
+	autoHeight: true,
 	initComponent : function(){
+		this.listeners = {};
 		
-		if(this.fieldLabel == null) delete this.fieldLabel;
-		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		
-		this.uploadPanel = new itasks.tui.document.UploadPanel({name: this.name});
+		this.uploadPanel = new itasks.tui.document.UploadPanel();
 		this.downloadPanel = new itasks.tui.document.DownloadPanel();
 		
-		Ext.apply(this,
-		{ unstyled: true
-		, width: 500
-		, layout: 'card'
-		, activeItem: 0
-		, autoHeight: true
-		, items: [
+		this.items = [
 				this.uploadPanel,
 				this.downloadPanel
-			]
-		});
+		];
 	
-		itasks.tui.DocumentControl.superclass.initComponent.apply(this,arguments);
-	
-		this.addEvents('tuichange');
-		this.enableBubble('tuichange');
+		itasks.tui.base.initComponent.call(this,arguments);
 	},
 	afterRender : function(arguments){
-		itasks.tui.DocumentControl.superclass.afterRender.call(this,arguments);
+		itasks.tui.base.afterRender.call(this,arguments);
 		
 		if(this.document.size != 0){
 			this.showDownloadPanel(false);
 		}else{
 			this.showUploadPanel(false);
 		}
-		
-		this.setError(this.errorMsg);
-		this.setHint(this.hintMsg);
-		
-		this.doLayout();
+	},
+	setValue: function(value){
+		this.document = value;
+		if(!this.rendered) return;
+	
+		if(this.document.size == 0){
+			this.showUploadPanel(false);
+		}else{
+			this.showDownloadPanel(false);
+		}
 	},
 	
 	showDownloadPanel : function(isStatic){
@@ -52,27 +49,21 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 		this.uploadPanel.showCancel(showCancel);
 		this.getLayout().setActiveItem(0);
 	},
-	
-	setError: function(msg){
-		this.uploadPanel.setError(msg);
-		this.downloadPanel.setError(msg);
-	},
-	
-	setHint: function(msg){
+	markHint: function(msg) {
 		this.uploadPanel.setHint(msg);
 		this.downloadPanel.setHint(msg);
 	},
-	
-	setValue: function(value){
-		if(!this.rendered) return;
-		
-		this.document = Ext.decode(value);
-	
-		if(this.document.size == 0){
-			this.showUploadPanel(false);
-		}else{
-			this.showDownloadPanel(false);
-		}
+	markError: function(msg) {
+		this.uploadPanel.setError(msg);
+		this.downloadPanel.setError(msg);
+	},
+	clearHint: function() {
+		this.uploadPanel.setHint('');
+		this.downloadPanel.setHint('');
+	},
+	clearError: function() {
+		this.uploadPanel.setError('');
+		this.downloadPanel.setError('');
 	}
 });
 
@@ -242,7 +233,7 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 		var tf = this.findParentByType(itasks.ttc.FormContainer);
 		var dp = this.findParentByType('itasks.tui.Document');
 	
-		dp.fireEvent('tuichange',dp.name,"");
+		dp.fireEvent('tuichange',dp.taskId,dp.name,null);
 	},
 	
 	setValue: function(value){
@@ -332,7 +323,7 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 						try {
 							var resp = Ext.decode(response.response.responseText);
 	
-							dp.fireEvent('tuichange',dp.name, resp.documents[0].documentId);
+							dp.fireEvent('tuichange',dp.taskId,dp.name, resp.documents[0].documentId);
 						} catch(e) {
 							itasks.app.restart("Document transaction failed");
 							return;

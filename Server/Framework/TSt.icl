@@ -766,10 +766,10 @@ deleteTaskStoreFor taskNr key iworld
 	= deleteValue (iTaskId taskNr key) iworld
 
 //Get edit events for current task of which the name is a datapath
-getEditEvents :: !*TSt -> (![(!DataPath,!String)],!*TSt)
+getEditEvents :: !*TSt -> (![(!DataPath,!JSONNode)],!*TSt)
 getEditEvents tst
 	# (events,tst) = getEvents isdps tst
-	= ([(s2dp name,value) \\ (name,JSONString value) <- events],tst)
+	= ([(s2dp name,value) \\ (name,value) <- events],tst)
 
 //Get value event for current task if present
 getValueEvent :: !*TSt -> (!Maybe a,!*TSt) | JSONDecode{|*|} a

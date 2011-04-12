@@ -4,7 +4,7 @@ import GenUpdate, TUIDefinition
 
 :: TUIUpdate
 	//Leaf updates
-	= TUISetValue		!TUIPath !String		// Set the value of a component
+	= TUISetValue		!TUIPath !JSONNode		// Set the value of a component
 	| TUISetError		!TUIPath !String		// Set the error messages on a component
 	| TUISetHint		!TUIPath !String		// Set the hint messages on a component
 	| TUISetEnabled		!TUIPath !Bool			// Enable/disable form elements

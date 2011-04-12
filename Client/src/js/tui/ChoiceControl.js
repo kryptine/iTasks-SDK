@@ -1,21 +1,15 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
+itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
 	initComponent : function(){
 		// names of checkbox groups have to be unique, so use data path field for events
 		this.dataPath = this.name;
 		this.name = this.getId();
-		this.listeners = {change: {fn: this.onChange, scope: this}};
-		this.msgTarget = 'side';
-		this.hideLabel = this.fieldLabel == null;
-		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		
-		itasks.tui.ChoiceControl.superclass.initComponent.apply(this,arguments);
-		this.addEvents('tuichange');
-		this.enableBubble('tuichange');
+		itasks.tui.base.initComponent.call(this,arguments);
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.taskId,this.dataPath,Ext.encode(this.getValue()));
+		this.fireEvent('tuichange',this.taskId,this.dataPath,this.getValue());
 	},
 	onRender: function(ct, position){
 		if(!this.el){
@@ -29,8 +23,7 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 			};
 			
 			var items = [];
-			
-			var selection = Ext.decode(this.value);
+			var selection = this.value;
 			var isSelected = function(idx){
 				for(var i=0; i<selection.length; i++){
 					if(idx == selection[i]) return true;
@@ -77,11 +70,11 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 			this.items = new Ext.util.MixedCollection();
 			this.items.addAll(fields);
 		}
-		itasks.tui.ChoiceControl.superclass.onRender.call(this, ct, position);
+		this.extSuperclass.onRender.call(this, ct, position);
 	},
 	
 	afterRender : function(){
-		itasks.tui.ChoiceControl.superclass.afterRender.call(this);
+		itasks.tui.base.afterRender.call(this);
 		
 		this.eachItem(function(item){
 			item.on('check',this.fireChecked, this);
@@ -102,20 +95,8 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 			position: 'l-l',
 			offsets: [maxWidth + 10,0]
 		};
-		
-		if(this.errorMsg)
-			itasks.tui.common.markError(this,this.errorMsg);
-		else if(this.hintMsg)
-			itasks.tui.common.markHint(this,this.hintMsg);
 	},
-	//buffer to prevent radio group buttons firing twice (uncheck of previous -> check of new)
 	fireChecked : function() {
-		if(!this.checkTask){
-			this.checkTask = new Ext.util.DelayedTask(this.bufferChecked, this);
-		}
-		this.checkTask.delay(10);
-	},
-	bufferChecked : function(){
 		var arr = [];
 		this.eachItem(function(item){
 			if(item.checked){
@@ -144,8 +125,7 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 				
 		return out;
 	},
-	setValue : function(sel){	
-		var sel = Ext.decode(sel);
+	setValue : function(sel){
 		if(Ext.isArray(sel)){
 			var selection = new Ext.util.MixedCollection();
 			selection.addAll(sel);
@@ -158,18 +138,6 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 				}
 			}
 		}
-	},
-	setError: function(msg){		
-		if(msg == "")
-			itasks.tui.common.clearError(this);
-		else
-			itasks.tui.common.markError(this,msg);
-	},
-	setHint: function(msg){
-		if(msg == "")
-			itasks.tui.common.clearHint(this);
-		else
-			itasks.tui.common.markHint(this,msg);
 	}
 });
 

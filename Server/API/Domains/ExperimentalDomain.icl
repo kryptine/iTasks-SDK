@@ -7,7 +7,6 @@ derive gDefaultMask		FormattedText, FormattedTextControls, SourceCode, SourceCod
 derive gVerify			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONEncode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONDecode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
-derive JSONEncode		TUIColorChooser, TUISourceCode
 derive gEq				FormattedText, SourceCode, Color, FormattedTextControls, SourceCodeLanguage
 derive bimap			Maybe, (,)
 
@@ -53,21 +52,8 @@ noControls =	{ alignmentControls	= False
 				, sourceEditControl	= False
 				}
 
-gVisualize{|FormattedText|} val vst = visualizeControl (TUICustomControl "itasks.tui.FormattedText" (map (appSnd toJSON) info)) (toString,html) val vst
-where
-	info =	[ ("enableAlignments",	controls.alignmentControls)
-			, ("enableColors",		controls.colorControls)
-			, ("enableFont",		controls.fontControl)
-			, ("enableFontSize",	controls.fontSizeControls)
-			, ("enableFormat",		controls.formatControls)
-			, ("enableLinks",		controls.linkControl)
-			, ("enableLists",		controls.listControls)
-			, ("enableSourceEdit",	controls.sourceEditControl)
-			]
-	controls = case val of
-		Nothing							= allControls
-		Just (FormattedText _ controls) = controls
-		
+gVisualize{|FormattedText|} val vst = visualizeControl (TUICustomControl "itasks.tui.FormattedText") (toString,html) val vst
+where	
 	replaceMarkers v
 		//# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
 		//# v = replaceSubString SelectionEndMarker ("<markerend id='" +++ id +++ "_marker-end'></markerend>") v
@@ -127,35 +113,8 @@ setSource src (SourceCode _ lang) = SourceCode src lang
 
 getSource :: !SourceCode -> String
 getSource (SourceCode src _) = src
-
-:: TUISourceCode =
-	{ xtype			:: !String
-	, name			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	, language		:: !String //'js', 'css', 'php', 'htm', 'html', 'xml'
-	}
-
-:: TUIColorChooser =
-	{ xtype			:: !String
-	, name			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	}
 	
-gVisualize{|SourceCode|} val vst = visualizeControl (TUICustomControl "itasks.tui.SourceCode" [("language",JSONString language)]) (textOnly toString) val vst
-where
-	language = case val of
-		Nothing							= ""
-		Just (SourceCode _ lang) 		= case lang of
-			JS		= "js"
-			CSS		= "css"
-			PHP		= "php"
-			HTML	= "html"
-			XML		= "xml"
-			Clean	= "clean"
+gVisualize{|SourceCode|} val vst = visualizeControl (TUICustomControl "itasks.tui.SourceCode") (textOnly toString) val vst
 
 instance html SourceCode
 where
@@ -165,7 +124,7 @@ instance toString SourceCode
 where
 	toString (SourceCode src _) = src
 
-gVisualize{|Color|} val vst = visualizeControl (TUICustomControl "itasks.tui.ColorChooser" []) (toString,html) val vst
+gVisualize{|Color|} val vst = visualizeControl (TUICustomControl "itasks.tui.ColorChooser") (toString,html) val vst
 
 instance html Color
 where

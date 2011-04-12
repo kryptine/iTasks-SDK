@@ -325,7 +325,7 @@ setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt // Only for interactiv
 
 //EVENTS
 //Get edit events for current task of which the name is a datapath
-getEditEvents :: !*TSt -> (![(!DataPath,!String)],!*TSt)
+getEditEvents :: !*TSt -> (![(!DataPath,!JSONNode)],!*TSt)
 
 //Get value event for current task if present
 getValueEvent :: !*TSt -> (!Maybe a,!*TSt) | JSONDecode{|*|} a

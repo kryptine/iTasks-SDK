@@ -11,8 +11,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 
 :: TUIDef
 	= TUIControl			!TUIControlType !TUIControl
-	| TUIButton				!TUIButton	
-	| TUIConstructorControl	!TUIConstructorControl
+	| TUIButton				!TUIButton
 	| TUIContainer			!TUIContainer
 	| TUIRecordContainer	!TUIRecordContainer
 	| TUIListContainer		!TUIListContainer
@@ -33,31 +32,29 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 					| TUITimeControl
 					| TUIPasswordControl
 					| TUIUserControl
-					| TUIChoiceControl		!TUIChoiceControl
-					| TUICurrencyControl	!String // currency label
-					| TUIDocumentControl	!TUIDocumentControl
+					| TUICurrencyControl
+					| TUIDocumentControl	!Document
 					| TUIButtonControl		!TUIButtonControl
-					| TUIHtmlDisplay
-					| TUIORYXControl		!String // stencilset URL
+					| TUIChoiceControl		!TUIChoiceControl
 					| TUITreeControl		![TUITree]
-					| TUICustomControl		!String ![(!String,!JSONNode)] // xtype + additional record fields
+					| TUIORYXControl		!String // stencilset URL
+					| TUIHtmlDisplay
+					| TUIConstructorControl	!TUIConstructorControl
+					| TUICustomControl		!String // xtype
 
 :: TUIControl =
 	{ name			:: !TUIName
-	, value			:: !String
+	, value			:: !JSONNode
 	, fieldLabel	:: !Maybe String
 	, taskId		:: !TaskId
 	, optional		:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
-	, eventValue	:: !Maybe String
+	, eventValue	:: !Maybe JSONNode
 	}
 :: TUIChoiceControl =
 	{ allowMultiple	:: !Bool
 	, options		:: ![String]
-	}
-:: TUIDocumentControl = 
-	{ document		:: !Document
 	}
 :: TUIButtonControl =
 	{ label			:: !String
@@ -70,16 +67,8 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 	, index		:: !Maybe Int
 	}
 :: TUIConstructorControl =
-	{ name			:: !TUIName
-	, taskId		:: !TaskId
-	, fieldLabel	:: !Maybe String
-	, consSelIdx	:: !Int
-	, consValues	:: ![String]
+	{ consValues	:: ![String]
 	, items			:: ![TUIDef]
-	, staticDisplay	:: !Bool
-	, optional		:: !Bool
-	, errorMsg		:: !String
-	, hintMsg		:: !String
 	}
 :: TUIContainer =
 	{ items				:: ![TUIDef]

@@ -8,7 +8,7 @@ import GinCompiler, GinParser
 
 import GinORYX
 
-gVisualize {|ORYXEditor|} val vst = visualizeControl (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) (mkText,mkHtml) val vst
+gVisualize {|ORYXEditor|} val vst = visualizeControl (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) (mkText,mkHtml) (fmap (\{diagram} -> diagram) val) vst
 where
 	oryx = fromMaybe emptyORYXEditor val
 		        
@@ -21,10 +21,7 @@ where
 
 gUpdate{|ORYXEditor|} mode ust = basicUpdate mode parseUpdate emptyORYXEditor ust
 where
-	parseUpdate update orig
-		= case fromJSON (fromString update) of	
-			Just diagram = { ORYXEditor | orig & diagram = diagram }
-			Nothing = orig
+	parseUpdate diagram orig = { ORYXEditor | orig & diagram = diagram }
 
 gDefaultMask{|ORYXEditor|} _ = [Touched []]
 

@@ -79,6 +79,15 @@ if (!Array.prototype.filter)
   };
 };
 
+itasks.util.clone = function(obj) {
+	var newObj = (obj instanceof Array) ? [] : {};
+	for (i in obj) {
+		if (obj[i] && typeof obj[i] == "object") {
+			newObj[i] = itasks.util.clone(obj[i]);
+		} else newObj[i] = obj[i]
+	} return newObj;
+};
+
 //Open a preview window for (external) urls
 //--- Preview function ---
 itasks.util.preview = function(link){

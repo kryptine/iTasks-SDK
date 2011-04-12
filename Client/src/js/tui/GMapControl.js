@@ -53,7 +53,7 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 				zoom   : zm,
 				type   : cmp.gmap.getMapTypeId().toUpperCase()
 			}
-			cmp.fireEvent('tuichange', cmp.name, Ext.encode(value));
+			cmp.fireEvent('tuichange', cmp.taskId, cmp.name, value);
 		};
 		var lclickEventHandler = function(event){
 			var ll = event.latLng
@@ -63,7 +63,7 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 				source 	: "MAP",
 				point	: [ll.lat(),ll.lng()]
 			}
-			cmp.fireEvent('tuichange', cmp.name, Ext.encode(value));
+			cmp.fireEvent('tuichange', cmp.taskId, cmp.name, value);
 		};
 				
 		if(this.editor){
@@ -142,7 +142,7 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 					
 					var value = {index: markerId, point : [event.latLng.lat(),event.latLng.lng()]}
 					
-					cmp.fireEvent('tuichange', cmp.name, Ext.encode(value));
+					cmp.fireEvent('tuichange', cmp.taskId, cmp.name, value);
 				};};
 				
 				google.maps.event.addListener(markerObj,'dragend', handler(i));

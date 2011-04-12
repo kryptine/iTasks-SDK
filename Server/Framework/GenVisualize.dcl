@@ -17,7 +17,7 @@ derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Cu
 derive gVisualize EmailAddress, Action, Table, HtmlDisplay
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !TaskId !VerifyMask ![(!DataPath,!String)]	-> [TUIDef]	| gVisualize{|*|} a
+visualizeAsEditor		:: !a !TaskId !VerifyMask ![(!DataPath,!JSONNode)]	-> [TUIDef]	| gVisualize{|*|} a
 visualizeAsHtmlDisplay	:: !a												-> HtmlTag	| gVisualize{|*|} a
 visualizeAsTextDisplay	:: !a												-> String	| gVisualize{|*|} a
 visualizeAsHtmlLabel	:: !a												-> HtmlTag	| gVisualize{|*|} a
@@ -36,7 +36,7 @@ visualizeAsTextLabel	:: !a												-> String	| gVisualize{|*|} a
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
 	, optional			:: !Bool						// Create optional form fields
 	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
-	, editEvents		:: ![(!DataPath,!String)]		// The edit events for keeping track of values sent by the client (used for diff)
+	, editEvents		:: ![(!DataPath,!JSONNode)]		// The edit events for keeping track of values sent by the client (used for diff)
 	, taskId			:: !TaskId						// The id of the task the visualisation belongs to
 	}
 
@@ -73,7 +73,7 @@ noVisualization :: !*VSt -> *(![Visualization],!*VSt)
 *
 * @return The generated visualization
 */
-visualizeControlSimple :: !TUIControlType !(Maybe a) !*VSt -> *(![Visualization],!*VSt) | toString a
+visualizeControlSimple :: !TUIControlType !(Maybe a) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|}, toString a
 
 /**
 * Generates a control visualization.
@@ -86,7 +86,8 @@ visualizeControlSimple :: !TUIControlType !(Maybe a) !*VSt -> *(![Visualization]
 *
 * @return The generated visualization
 */
-visualizeControl :: !TUIControlType !(StaticVizFunctions a) !(Maybe a) !*VSt -> *(![Visualization],!*VSt) | toString a
+visualizeControl :: !TUIControlType !(StaticVizFunctions a) !(Maybe a) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|} a
+visualizeControl2 :: !TUIControlType !(StaticVizFunctions b) !(Maybe (!a,!b)) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|} a
 
 /**
 * Generates a basic control visualization.
@@ -94,14 +95,15 @@ visualizeControl :: !TUIControlType !(StaticVizFunctions a) !(Maybe a) !*VSt -> 
 *
 * @param Function for generating a TUI definition (see comment of TUIVizFunctionCustom for details)
 * @param Function for generating static visualizations (see comment of StaticVizFunctionCustom for details)
-* @param The current value to visualize (if present)
+* @param The current value to visualize (if present, possibly different types are used for TUI and static visualizations)
 * @param Indicates if for static editor definitions automatically a HTML container with a static representation should be generated
          (the TUIVizFunctionCustom is not called in this case)
 * @param VSt
 *
 * @return The generated visualization
-*/	
-visualizeCustom :: !(TUIVizFunction a) !(StaticVizFunctionCustom a) !(Maybe a) !Bool !*VSt -> *(![Visualization],!*VSt)
+*/
+visualizeCustomSimple	:: !(TUIVizFunction a) !(StaticVizFunctionCustom a) !(Maybe a)			!Bool !*VSt -> *(![Visualization],!*VSt)
+visualizeCustom			:: !(TUIVizFunction a) !(StaticVizFunctionCustom b) !(Maybe (!a,!b))	!Bool !*VSt -> *(![Visualization],!*VSt)
 
 
 /**

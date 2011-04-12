@@ -1,12 +1,13 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.HtmlContainer = Ext.extend(Ext.Panel, {
+itasks.tui.HtmlContainer = itasks.tui.extendBase(Ext.Panel, {
 	initComponent: function() {
 		this.html = this.value;
 		this.unstyled = true;
 		this.border = false;
+		this.listeners = {};
 				
-		itasks.tui.HtmlContainer.superclass.initComponent.apply(this,arguments);
+		itasks.tui.base.initComponent.call(this,arguments);
 	},
 	setValue: function(value) {
 		this.update(value);

@@ -21,7 +21,7 @@ where
 	toStr Nothing			= Nothing
 	toStr (Just (Tag t))	= Just (toString t)
 
-gUpdate{|Tag|} mode ust = basicUpdateSimple mode Tag (Tag "") ust
+gUpdate{|Tag|} mode ust = basicUpdateSimple mode (Tag "") ust
 gDefaultMask{|Tag|} _ = [Touched []]
 
 gVerify{|Tag|} _ vst = simpleVerify "Enter a tag" vst

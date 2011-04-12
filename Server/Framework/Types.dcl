@@ -10,10 +10,10 @@ from HTML 		import class html
 from Time		import :: Timestamp
 from Config		import :: Config
 
-derive JSONEncode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive JSONEncode	EmailAddress, Session, Action, Table, Shared, HtmlDisplay
-derive JSONDecode	Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive JSONDecode	EmailAddress, Session, Action, Table, Shared, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint

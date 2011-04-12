@@ -30,7 +30,7 @@ JSONDecode{|TaskContainer|} _ [j:c]	= (dynamicJSONDecode j,c)
 gUpdate{|TaskContainer|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= (InBodyTask (return Void) (\_ _ -> (a,[])),ust)
-gUpdate{|TaskContainer|} _ (UDSearch t) ust = basicSearch t (\_ t -> t) ust
+gUpdate{|TaskContainer|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
 gDefaultMask{|TaskContainer|} _ _ = [Touched []]
 gVerify{|TaskContainer|} _ _ vst = alwaysValid vst
 gVisualize{|TaskContainer|} _ _ vst = ([TextFragment "task container"],vst)
@@ -434,7 +434,7 @@ where
 					TaskException e	str		= (TaskException e str,False,pst,tst)
 					_ // finished task
 						= case task of
-							PTask _ accufun = f
+							PTask _ accufun = f 
 							where
 								f => case (dynamic accufun,result) of
 									(Right fun :: Either (AccuFun a acc^) (AccuFunDetached a acc^),TaskFinished (r :: a))

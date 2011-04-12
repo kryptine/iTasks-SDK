@@ -28,6 +28,7 @@ derive bimap	Maybe, (,)
 	, mapType			:: GoogleMapType
 	, markers			:: [GoogleMapMarker]
 	, xtype				:: String
+	, taskId			:: String
 	, name				:: String
 	, fieldLabel		:: Maybe String
 	, hideLabel			:: Bool
@@ -61,7 +62,7 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} val vst=:{vizType, label, currentPath, optional, useLabels, verifyMask}
+gVisualize {|GoogleMap|} val vst=:{vizType, label, currentPath, optional, useLabels, verifyMask, taskId}
 	# (cmv,vm) = popMask verifyMask
 	= case vizType of
 		VEditorDefinition = ([TUIFragment (TUICustom ((mapPanel val label (not useLabels) currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
@@ -84,6 +85,7 @@ where
 		, markers = map.GoogleMap.markers
 		, xtype = "itasks.tui.GMapControl"
 		, name = dp2s cp
+		, taskId = taskId
 		, fieldLabel = fl
 		, hideLabel = hl
 		, editor = ed
@@ -120,8 +122,7 @@ where
 
 gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate mkMap ust
 where
-	parseUpdate update orig
-		# json		= fromString update
+	parseUpdate json orig
 		# mbMVC		= fromJSON json
 		| isJust mbMVC
 			# mvc = fromJust mbMVC

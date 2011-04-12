@@ -1,6 +1,6 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
+itasks.tui.OryxControl = itasks.tui.extendBase(Ext.Panel,{
 	initComponent : function(){
 		Ext.apply(this,
 			{ url: "/handlers/work/tab"
@@ -11,10 +11,8 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
             , html: 'Loading...'
 			});
 
-		itasks.tui.OryxControl.superclass.initComponent.apply(this,arguments);
+		itasks.tui.base.initComponent.call(this,arguments);
 
-		this.addEvents('tuichange');
-		this.enableBubble('tuichange');
         this.inUpdate = false;
 
 		var oryxControl = this;
@@ -28,11 +26,11 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 		});
 	},
 
-	setValue : function(value){
-        json = Ext.decode(value);
+	setValue : function(json){
         if (! itasks.util.approxEquals(this.facade.getJSON(), json, 1E-6)) {
             this.inUpdate = true; //temporary ignore onChange events
             this.clearEditor();
+			
             this.facade.importJSON(json);
             this.inUpdate = false;
         }
@@ -56,7 +54,7 @@ itasks.tui.OryxControl = Ext.extend(Ext.Panel,{
 
 	onChange : function(){
         if (! this.inUpdate)
-		    this.fireEvent('tuichange',this.taskId,this.name,Ext.encode(this.facade.getJSON()));
+		    this.fireEvent('tuichange',this.taskId,this.name,this.facade.getJSON());
 	},
 	
 	afterRender : function(){

@@ -10,18 +10,13 @@ derive bimap (,), UpdateMode
 
 defaultValue :: !*IWorld -> (!a,!*IWorld) | gUpdate{|*|} a
 defaultValue iworld  
-	# (a,ust=:{iworld}) = gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = "", oldMask = [], newMask = [], iworld = iworld}
+	# (a,ust=:{iworld}) = gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = JSONNull, oldMask = [], newMask = [], iworld = iworld}
 	= (a,iworld)
 
 defaultMask :: !a -> UpdateMask | gDefaultMask{|*|} a	
 defaultMask a = hd (gDefaultMask{|*|} a)
 
-updateValue	:: !DataPath !String !a !*IWorld -> (!a,!*IWorld) | gUpdate{|*|} a 	
-updateValue path update a iworld
-	# (a,_,iworld) = updateValueAndMask path update a Untouched iworld
-	= (a,iworld)
-
-updateValueAndMask :: !DataPath !String !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld) | gUpdate{|*|} a
+updateValueAndMask :: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
 	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} (UDSearch a) {searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
 	= (a,hd newMask,iworld)
@@ -58,9 +53,11 @@ gUpdate{|OBJECT of d|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,upd
 		//Not on the path, so just put back the current mask (cm)	
 		= (OBJECT x, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
 where
-	path = case [cons \\ cons <- d.gtd_conses | cons.gcd_name == update] of
-		[cons]	= getConsPath cons
-		_		= []
+	path = case update of
+		JSONString cname = case [cons \\ cons <- d.gtd_conses | cons.gcd_name == cname] of
+			[cons]	= getConsPath cons
+			_		= []
+		_			= []
 		
 gUpdate{|CONS|}		fx UDCreate				ust = appFst CONS	(fx UDCreate ust)
 gUpdate{|CONS|}		fx (UDSearch (CONS c))	ust = appFst CONS	(fx (UDSearch c) ust)
@@ -101,7 +98,7 @@ gUpdate{|Maybe|} _ UDCreate ust=:{newMask}
 	= (Nothing,{ust & newMask = appendToMask newMask Untouched})
 gUpdate{|Maybe|} fx (UDSearch m) ust=:{currentPath,searchPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
-	| currentPath == searchPath && update == ""	
+	| currentPath == searchPath && update === JSONNull
 		= (Nothing, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask Blanked, oldMask = om}) //Reset
 	| otherwise
 		= case m of
@@ -133,7 +130,7 @@ gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMas
 	# ust = {ust & newMask = cMasks}
 	| currentPath == searchPath
 		//Process the reordering commands 
-		# split = split "_" update
+		# split = split "_" (fromMaybe "" (fromJSON update))
 		# index = toInt (last split)
 		# (lx,cMasks,ust) = case hd split of	
 			"mup" = (swap lx index,swap cMasks index,ust) 
@@ -185,19 +182,19 @@ wrapperUpdate fx mode get cons ust=:{currentPath} = case mode of
 		# (w,ust) = fx (UDSearch (get w)) ust
 		= (cons w,{ust & currentPath = stepDataPath currentPath})
 
-gUpdate{|Int|}				mode ust = basicUpdateSimple mode toInt 0 ust
-gUpdate{|Real|}				mode ust = basicUpdateSimple mode toReal 0.0 ust
-gUpdate{|Char|}				mode ust = basicUpdateSimple mode (\str -> if (size str > 0) str.[0] ' ') ' ' ust
-gUpdate{|Bool|}				mode ust = basicUpdateSimple mode ((==) "true") False ust
-gUpdate{|String|}			mode ust = basicUpdateSimple mode id "" ust
-gUpdate{|Note|}				mode ust = basicUpdateSimple mode Note (Note "") ust
-gUpdate{|Password|}			mode ust = basicUpdateSimple mode Password (Password "") ust
-gUpdate{|User|}				mode ust = basicUpdateSimple mode (\str -> if (userName (NamedUser str) == "root") RootUser (NamedUser str)) AnyUser ust
-gUpdate{|HtmlDisplay|}		mode ust = basicUpdateSimple mode (const (HtmlDisplay "")) (HtmlDisplay "") ust
-gUpdate{|FormButton|}		mode ust = basicUpdate mode (\str b -> {b & state = if (str == "true") Pressed NotPressed}) {FormButton | label = "Form Button", icon="", state = NotPressed} ust
-gUpdate{|Tree|} _			mode ust = basicUpdate mode (\str (Tree nodes _) -> Tree nodes (toInt str)) (Tree [] -1) ust
-gUpdate{|Choice|} _			mode ust = basicUpdate mode (\str c=:(Choice opts _) -> case fromJSON (fromString str) of Just [i] = Choice opts i; _ = Choice opts -1) (Choice [] -1) ust
-gUpdate{|MultipleChoice|} _	mode ust = basicUpdate mode (\str c=:(MultipleChoice opts _) -> case fromJSON (fromString str) of Just s = MultipleChoice opts s; _ = c) (MultipleChoice [] []) ust
+gUpdate{|Int|}				mode ust = basicUpdateSimple mode 0 ust
+gUpdate{|Real|}				mode ust = basicUpdateSimple mode 0.0 ust
+gUpdate{|Char|}				mode ust = basicUpdateSimple mode ' ' ust
+gUpdate{|Bool|}				mode ust = basicUpdateSimple mode False ust
+gUpdate{|String|}			mode ust = basicUpdateSimple mode "" ust
+gUpdate{|Note|}				mode ust = basicUpdateSimple mode (Note "") ust
+gUpdate{|Password|}			mode ust = basicUpdateSimple mode (Password "") ust
+gUpdate{|User|}				mode ust = basicUpdateSimple mode AnyUser ust
+gUpdate{|HtmlDisplay|}		mode ust = basicUpdate mode unchanged (HtmlDisplay "") ust
+gUpdate{|FormButton|}		mode ust = basicUpdate mode (\st b							-> {b & state = st})						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
+gUpdate{|Tree|} _			mode ust = basicUpdate mode (\json (Tree nodes _)			-> case fromJSON json of Just i = Tree nodes i;				_ = Tree nodes -1)	(Tree [] -1) ust
+gUpdate{|Choice|} _			mode ust = basicUpdate mode (\l c=:(Choice opts _)			-> case l of [i] = Choice opts i; _ = c)	(Choice [] -1)														ust
+gUpdate{|MultipleChoice|} _	mode ust = basicUpdate mode (\sel (MultipleChoice opts _)	-> MultipleChoice opts sel)					(MultipleChoice [] [])												ust
 gUpdate{|Currency|}			mode ust = basicUpdate mode parseUpdate (EUR 0) ust
 where
 	parseUpdate update orig = case split "." update of
@@ -212,11 +209,11 @@ where
 gUpdate{|Date|} UDCreate ust=:{iworld}
 	# (date,iworld) = currentDate iworld
 	= basicCreate date {ust & iworld = iworld}
-gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\str _ -> fromString str) ust
+gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\json old -> fromMaybe old (fromJSON json)) ust
 gUpdate{|Time|} UDCreate ust=:{iworld}
 	# (time,iworld) = currentTime iworld
 	= basicCreate time {ust & iworld = iworld}
-gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\str _ -> fromString str) ust
+gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\json old -> fromMaybe old (fromJSON json)) ust
 
 gUpdate{|Dynamic|}		mode ust = basicUpdate mode unchanged (dynamic 42) ust
 gUpdate{|(->)|} _ fy	mode ust
@@ -229,30 +226,30 @@ where
 	read v iworld							= (Ok v,iworld)
 	write _ iworld							= (Ok Void,iworld)
 	getTimestamp iworld=:{IWorld|timestamp}	= (Ok timestamp,iworld)
-unchanged _ v = v
 
 gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust
 gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask, newMask}
 	# (cm,om)	= popMask oldMask
 	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
 	| currentPath == searchPath
-		| update == "" // Reset
-			= ({Document|documentId = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
-		| otherwise // Look up meta-data in the store and update the document
-			# (mbDocument,ust)	= getDocument update ust
-			# ust				= {ust & newMask = appendToMask newMask (Touched [])}
-			= (fromMaybe s mbDocument,ust)
+		= case fromJSON update of
+			Nothing // Reset
+				= ({Document|documentId = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
+			Just docId // Look up meta-data in the store and update the document
+				# (mbDocument,ust)	= getDocument docId ust
+				# ust				= {ust & newMask = appendToMask newMask (Touched [])}
+				= (fromMaybe s mbDocument,ust)
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
 derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Table
 
-basicUpdateSimple :: !(UpdateMode a) (String -> a) a !*USt -> *(!a,!*USt)
-basicUpdateSimple mode toV def ust = case mode of
+basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
+basicUpdateSimple mode def ust = case mode of
 	UDCreate	= basicCreate def ust
-	UDSearch v	= basicSearch v (\str _ -> toV str) ust
+	UDSearch v	= basicSearch v (\json old -> fromMaybe old (fromJSON json)) ust
 	
-basicUpdate :: !(UpdateMode a) (String a -> a) a !*USt -> *(!a,!*USt)
+basicUpdate :: !(UpdateMode a) (upd a -> a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} upd
 basicUpdate mode toV def ust = case mode of
 	UDCreate	= basicCreate def ust
 	UDSearch v	= basicSearch v toV ust
@@ -260,12 +257,12 @@ basicUpdate mode toV def ust = case mode of
 basicCreate :: !a !*USt -> *(!a,!*USt)
 basicCreate def ust=:{newMask} = (def,{ust & newMask = appendToMask newMask Untouched})
 
-basicSearch :: !a !(String a -> a) !*USt -> *(!a,!*USt)
+basicSearch :: !a !(upd a -> a) !*USt -> *(!a,!*USt) | JSONDecode{|*|} upd
 basicSearch v toV ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm, om)	= popMask oldMask
 	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
 	| currentPath == searchPath
-		= (toV update v, {ust & newMask = appendToMask newMask (toggleMask update)})
+		= (fromMaybe v (fmap (\u -> toV u v) (fromJSON update)), {ust & newMask = appendToMask newMask (toggleMask update)})
 	| otherwise
 		= (v, {ust & newMask = appendToMask newMask cm})
 
@@ -370,10 +367,13 @@ where
 	tlEq [a:as] [b:bs] 	= (a == b) && (tlEq as bs)
 
 //Masking and unmasking of fields
-toggleMask :: !String -> UpdateMask
-toggleMask update
-	| update == ""	= Blanked
-	| otherwise		= Touched []
+toggleMask :: !JSONNode -> UpdateMask
+toggleMask update = case update of
+	JSONNull	= Blanked
+	_			= Touched []
+	
+unchanged :: !Void !a -> a
+unchanged _ v = v
 
 instance GenMask UpdateMask
 where

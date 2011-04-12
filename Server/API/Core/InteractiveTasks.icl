@@ -179,7 +179,7 @@ where
 :: CommitPassInfo =	{ editConflict			:: !Bool
 					, localTimestamp		:: !Timestamp
 					, clientTimestampSent	:: !Bool
-					, editEvents			:: ![(![Int],!String)] // encoded as list of integers because DataPath can't be stored
+					, editEvents			:: ![(![Int],!JSONNode)] // encoded as list of integers because DataPath can't be stored
 					}
 derive JSONEncode CommitPassInfo
 derive JSONDecode CommitPassInfo
@@ -246,7 +246,7 @@ getLocalTimestamp :: !TaskNr !*IWorld -> *(!Timestamp,!*IWorld)
 getLocalTimestamp taskNr iworld
 	= appFst fromJust (getTaskStoreTimestampFor taskNr "value" iworld)
 	
-applyUpdates :: ![(!DataPath,!String)] !a !UpdateMask !*TSt -> *(!a,!UpdateMask,!*TSt) | gUpdate{|*|} a							
+applyUpdates :: ![(!DataPath,!JSONNode)] !a !UpdateMask !*TSt -> *(!a,!UpdateMask,!*TSt) | gUpdate{|*|} a							
 applyUpdates [] val umask tst = (val,umask,tst)
 applyUpdates [(p,v):us] val umask tst=:{TSt|iworld}
 	# (val,umask,iworld) = updateValueAndMask p v val umask iworld

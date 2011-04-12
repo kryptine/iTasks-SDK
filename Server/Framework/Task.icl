@@ -116,7 +116,7 @@ JSONDecode{|Task|} _ c = (Nothing,c)
 gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= basicCreate (defaultTask a) ust				
-gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\_ t -> t) ust
+gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
 
 gDefaultMask{|Task|} _ _ = [Touched []]
 

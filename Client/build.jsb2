@@ -8,6 +8,7 @@
 	,"fileIncludes" :
 		[{"text":"itasks.util.js","path":"src/js/"}
 		,{"text":"itasks.form.js","path":"src/js/"}
+		,{"text":"TUIBase.js","path":"src/js/tui/"}
 		,{"text":"Button.js","path":"src/js/tui/"}
 		,{"text":"BoolControl.js","path":"src/js/tui/"}
 		,{"text":"CharControl.js","path":"src/js/tui/"}
@@ -31,7 +32,6 @@
 		,{"text":"OryxControl.js","path":"src/js/tui/"}
 		,{"text":"GridContainer.js","path":"src/js/tui/"}
 		,{"text":"TreeControl.js","path":"src/js/tui/"}
-		,{"text":"TUICommon.js","path":"src/js/tui/"}
 		
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
