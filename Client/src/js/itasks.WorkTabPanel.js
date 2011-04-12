@@ -44,8 +44,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 							iconCls: 'x-tbar-loading',
 							scope: this,
 							handler: function(item,evt){
-								delete this.params["timestamp"];
-								this.refresh();
+								this.refresh(false);
 							}
 						},{
 							text: 'Task Properties'	,
@@ -108,7 +107,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		}
 		
 		//Store the timestamp of the current value
-		this.params["timestamp"] = data.timestamp;
+		this.timestamp = data.timestamp;
 		//Update properties
 		this.properties = data.task;
 		//Update header

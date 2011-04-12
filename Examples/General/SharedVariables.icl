@@ -321,6 +321,11 @@ where
 	match query subject
 		= indexOf (toUpperCase (trim query)) (toUpperCase subject) <> -1
 
+
+timeShareView :: Task DateTime
+timeShareView
+	= showMessageSharedA "A view on the current time" id [(ActionClose,always)] sharedCurrentDateTime >>= transform snd
+
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" linesPar
 						, workflow "Examples/Shared Variables/Calculate Sum"				"" calculateSum
@@ -332,4 +337,5 @@ sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" l
 						//, workflow "Examples/Shared Variables/Formatted Text"				"" formattedText
 						, workflow "Examples/Shared Variables/Choose or add"				"" chooseOrAdd
 						, workflow "Examples/Shared Variables/Phonebook Search"				"" phoneBookSearch
+						, workflow "Examples/Shared Variables/Time share view"				"" timeShareView
 						]

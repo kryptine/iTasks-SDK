@@ -111,6 +111,19 @@ itasks.Application = function () {
 		restart: function (errorMsg) {
 			this.reset();
 			this.start(errorMsg);
+		},
+		
+		refresher: {
+			run: function() {
+				itasks.app.mainGui.refreshGUI();
+			},
+			interval: 5000
+		},
+		startAutoRefresh: function() {
+			Ext.TaskMgr.start(this.refresher);
+		},
+		stopAutoRefresh: function() {
+			Ext.TaskMgr.stop(this.refresher);
 		}
 	}
 };

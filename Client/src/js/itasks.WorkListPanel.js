@@ -56,6 +56,24 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 						}	
 					}
 				}
+			},{
+				id: 'autorefreshbutton',
+				xtype: 'tbbutton',
+				text: 'Auto refresh',
+				enableToggle: true,
+				iconCls: 'x-tbar-loading',
+				listeners: {
+					click: {
+						scope: this,
+						fn: function(e) {
+							if(e.pressed) {
+								itasks.app.startAutoRefresh();
+							} else {
+								itasks.app.stopAutoRefresh();
+							}
+						}
+					}
+				}
 			}]
 		});
 

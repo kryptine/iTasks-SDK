@@ -6,6 +6,7 @@ Ext.ns("itasks");
 itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 
 	url: undefined,
+	timestamp: undefined,
 	params: {},
 	busy: false,
 	
@@ -17,7 +18,7 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 	/*
 	* Requests a remote resource
 	*/
-	remoteCall: function(url,params,callback) {
+	remoteCall: function(url,params,callback,timestamp,incremental) {
 		if(this.busy)
 			return;
 			
@@ -26,6 +27,13 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 		
 		//Add session id parameter
 		params["session"] = itasks.app.session
+		
+		//Send timestamp for incremental refresh
+		if(incremental) {
+			params["timestamp"] = timestamp;
+		} else {
+			delete(params["timestamp"]);
+		}
 		
 		Ext.Ajax.request({
 			method: 'POST',
@@ -62,8 +70,8 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 	/*
 	* Refreshes this panel to update the remote information
 	*/
-	refresh: function() {
-		this.remoteCall(this.url,this.params,this.update);	
+	refresh: function(incremental) {
+		this.remoteCall(this.url,this.params,this.update,this.timestamp,incremental);	
 	},
 	/*
 	* This method must be implemented to handle a refresh event

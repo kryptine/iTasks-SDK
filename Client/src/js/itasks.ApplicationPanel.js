@@ -155,12 +155,14 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 	refreshGUI: function(){
 		//Refresh the worklist and the active tab
 		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
-		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');
-		var tab = worktabs.getActiveTab();
+		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');	
+		var tab			= worktabs.getActiveTab();
 		
+		worklist.refresh();	
 		
-		worklist.refresh();
-		tab.refresh();
+		if(tab != null && tab.refresh != null) {
+			tab.refresh(true);
+		}
 	}
 });
 
