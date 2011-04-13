@@ -5,32 +5,34 @@ import StdEnv
 import Base64
 import JSON
 import StdMisc
-import Maybe
+import Error
 from Serialization import qualified serialize, deserialize, serializeDynamic, deserializeDynamic
+from Store import ::StoreFormat(..)
 
 serialize :: !a -> String | TC a
 serialize value = 'Serialization'.serialize value
 
-deserialize	:: !String -> a | TC a
-deserialize str = 
-	case 'Serialization'.deserialize str of
-		Just value = value
-		Nothing = abort "SerializationDynamicLink module, deserializeDynamic: deserialization failed"
+deserialize	:: !String -> MaybeErrorString a | TC a
+deserialize str = 'Serialization'.deserialize str
 
 serializeDynamic :: !Dynamic -> String
 serializeDynamic dyn = 'Serialization'.serializeDynamic dyn
 
-deserializeDynamic :: !String -> Dynamic
-deserializeDynamic str = 
-	case 'Serialization'.deserialize str of
-		Just dyn = dyn
-		Nothing  = abort "SerializationDynamicLink module, deserializeDynamic: deserialization failed"
+deserializeDynamic :: !String -> MaybeErrorString Dynamic
+deserializeDynamic str = 'Serialization'.deserializeDynamic str
 
-JSONEncode{|Dynamic|} dyn = [JSONString (base64Encode (serializeDynamic dyn))]
-JSONEncode{|(->)|} _ _ f = [JSONString (base64Encode (serialize f))]
+JSONEncode{|Dynamic|} dyn = [JSONString ""]
+JSONEncode{|(->)|} _ _ f = [JSONString ""]
 
-JSONDecode{|Dynamic|} [JSONString string:c]	= (Just (deserializeDynamic {s` \\ s` <-: base64Decode string}), c)
-JSONDecode{|Dynamic|} c						= (Nothing, c)
+JSONDecode{|Dynamic|} _ = abort "SerializationDynamicLinker, JSONDecode(|Dynamic|} not supported"
 
-//JSONDecode{|(->)|} _ _ [JSONString string:c]	= (Just (fst(deserialize {s` \\ s` <-: base64Decode string})) ,c) 
-//JSONDecode{|(->)|} _ _ c						= (Nothing,c)
+JSONDecode{|(->)|} _ _ c = abort "SerializationDynamicLinker, JSONDecode(|(->)|} not supported"
+
+dynamicJSONEncode :: !a -> [JSONNode]
+dynamicJSONEncode _ = [JSONString ""]
+
+dynamicJSONDecode :: !JSONNode -> Maybe a
+dynamicJSONDecode _ = abort "SerializationDynamicLinker, dynamicJSONDecode not supported"
+
+defaultStoreFormat :: StoreFormat
+defaultStoreFormat = SFDynamic

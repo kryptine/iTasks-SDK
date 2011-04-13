@@ -218,7 +218,7 @@ where
 	
 storeThread :: !ProcessId !Dynamic !*TSt -> *TSt
 storeThread processId thread tst
-	= appIWorldTSt (storeValueAs SFDynamic (iTaskId processId "thread") thread) tst
+	= appIWorldTSt (storeValue (iTaskId processId "thread") thread) tst
 
 loadThread :: !ProcessId !*TSt -> (!Dynamic,!*TSt)
 loadThread processId tst
@@ -454,7 +454,7 @@ where
 	where
 		storeChanges [] tst = tst
 		storeChanges [(label,dyn):cs] tst
-			# tst = appIWorldTSt (storeValueAs SFDynamic ("iTask_change-" +++ label) dyn) tst
+			# tst = appIWorldTSt (storeValue ("iTask_change-" +++ label) dyn) tst
 			= storeChanges cs tst
 
 	evaluateDependent :: ![ProcessId] !*TSt -> *TSt
@@ -712,7 +712,7 @@ storeProcessResult :: !TaskNr !(TaskResult Dynamic) !*IWorld -> *IWorld
 storeProcessResult taskNr result iworld
 	// Only store process result if the process is not garbage collected (still exists in te process table)
 	# (storeResult,iworld) = storeResult iworld
-	= if (storeResult) (storeValueAs SFDynamic key result iworld) iworld
+	= if (storeResult) (storeValue key result iworld) iworld
 where
 	key = iTaskId taskNr "result"
 	
@@ -731,7 +731,7 @@ storeProcessContainer taskId result thread tst
 where
 	storeContainer :: !TaskId !a !*TSt -> *TSt | iTask a	
 	storeContainer taskId value tst
-		= appIWorldTSt (storeValueAs SFDynamic (taskId+++"-container") (dynamic (Container value) :: Container a^ a^)) tst
+		= appIWorldTSt (storeValue (taskId+++"-container") (dynamic (Container value) :: Container a^ a^)) tst
 
 setTaskStore :: !String !a !*TSt -> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setTaskStore key value tst=:{taskNr}

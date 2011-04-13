@@ -8,6 +8,9 @@ definition module DynamicIOTasks
 import 	StdDynamic
 import iTasks
 
+:: DynamicIOException = DynamicIOException !String
+instance toString DynamicIOException
+
 /**
 * Writes a task as dynamic to a file
 *

@@ -31,11 +31,6 @@ createStore		:: !String -> *Store
 storeValue				:: !String !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
 
 /**
-* Store a value in a specific format
-*/
-storeValueAs			:: 	!StoreFormat !String !a	!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
-
-/**
 * Store raw value
 */
 storeValueAsBlob 		:: !String !String			!*IWorld -> *IWorld
@@ -59,11 +54,6 @@ loadValueAndTimestamp	:: !String					!*IWorld -> (!Maybe (a,Timestamp),!*IWorld)
 * Load raw data from the store
 */
 loadValueAsBlob 		:: !String					!*IWorld -> (!Maybe String,!*IWorld)
-
-/**
-* Loads a dynamic from the store without unwrapping it
-*/
-loadDynamicValue 		:: !String					!*IWorld -> (!Maybe Dynamic,!*IWorld)
 
 /**
 * Deletes the value with given key from the store

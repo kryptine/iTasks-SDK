@@ -4,7 +4,7 @@ import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTupl
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from Types import :: IWorld{store,world,timestamp}, :: Config
-from iTasks import serializeDynamic, deserializeDynamic
+from iTasks import serialize, deserialize, defaultStoreFormat
 
 :: *Store =
 	{ cache		:: !*(Map String (!Bool,!StoreItem))	//Cache for storage items, Bool is used to indicate a value in the cache is 'dirty'
@@ -26,7 +26,8 @@ createStore	:: !String -> *Store
 createStore location = {Store|cache = newMap, location = location}
 
 storeValue :: !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValue key value iworld = storeValueAs SFPlain key value iworld
+storeValue key value iworld 
+	= storeValueAs defaultStoreFormat key value iworld
 
 storeValueAsBlob :: !String !String !*IWorld -> *IWorld
 storeValueAsBlob key value iworld=:{IWorld|timestamp}
@@ -38,25 +39,7 @@ storeValueAs format key value iworld=:{IWorld|timestamp}
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
-		SFDynamic	= serializeDynamic (dynamic value)
-
-loadDynamicValue :: !String !*IWorld -> (!Maybe Dynamic,!*IWorld)
-loadDynamicValue key iworld=:{store=store=:{location}}
-	# (mbItem,iworld) = accCache (getU key) iworld
-	= case mbItem of
-		Just (dirty,item)
-			= (unpackItem item,iworld)
-		Nothing
-			# (mbItem,iworld) = accWorld (loadFromDisk key location) iworld
-			= case mbItem of
-				Just item
-					# iworld = appCache (put key (False,item)) iworld
-					= (unpackItem item,iworld)
-				Nothing
-					= (Nothing,iworld)
-where
-	unpackItem {StoreItem | format=SFPlain, content} = Nothing
-	unpackItem {StoreItem | format=SFDynamic, content} = Just (deserializeDynamic { s \\ s <-: content})
+		SFDynamic	= serialize value
 
 loadValueAsBlob :: !String !*IWorld -> (!Maybe String,!*IWorld)
 loadValueAsBlob key iworld=:{store=store=:{location}}
@@ -107,9 +90,9 @@ unpackValue {StoreItem|format=SFPlain,content}
 unpackValue {StoreItem|format=SFBlob,content}
 	= abort "use loadValueAsBlob"
 unpackValue {StoreItem|format=SFDynamic,content,timestamp}
-	= case deserializeDynamic {s` \\ s` <-: content} of
-		(value :: a^)	= Just value
-		_				= Nothing	
+	= case deserialize {s` \\ s` <-: content} of
+		Ok value = Just value
+		Error _  = Nothing
 			
 loadStoreItem :: !String !*IWorld -> (!Maybe StoreItem,!*IWorld)
 loadStoreItem key iworld=:{store=store=:{location}}

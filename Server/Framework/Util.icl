@@ -2,8 +2,6 @@ implementation module Util
 
 import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
-from iTasks import serialize, deserialize
-from Base64 import base64Encode, base64Decode
 
 fileExtension :: !String -> String
 fileExtension filename = case (split "." filename) of
@@ -124,10 +122,3 @@ intersperse :: !a ![a] -> [a]
 intersperse i [] = []
 intersperse i [x] = [x]
 intersperse i [x:xs] = [x,i:intersperse i xs]
-
-dynamicJSONEncode :: !a -> [JSONNode]
-dynamicJSONEncode f = [JSONString (base64Encode (serialize f))]
-
-dynamicJSONDecode :: !JSONNode -> Maybe a
-dynamicJSONDecode (JSONString str)	= Just (deserialize (base64Decode str))
-dynamicJSONDecode _					= Nothing

@@ -6,7 +6,7 @@ from StdFunc			import id, const, o, seq
 from CommonCombinators	import transform
 from ProcessDB			import :: Process{..}
 from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
-from iTasks				import JSONEncode, JSONDecode
+from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
 derive class iTask ParallelTaskInfo, SchedulerState, Control, ControlTaskContainer
 // Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
@@ -122,9 +122,8 @@ where
 	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
 	
 // Parallel composition
-// JSON not need for PSt because it's stored as dynamic
-JSONEncode{|PSt|} _ _ = abort "not implemented"
-JSONDecode{|PSt|} _ _ = abort "not implemented"
+JSONEncode{|PSt|} _ c		= dynamicJSONEncode c
+JSONDecode{|PSt|} _ [j:c]	= (dynamicJSONDecode j,c)
 
 :: PSt acc =
 	{ state 	:: !acc
@@ -321,7 +320,7 @@ where
 					
 	storePSt taskNr pst tst
 		# tst = appIWorldTSt (updateTimestamp taskNr) tst
-		= appIWorldTSt (storeValueAs SFDynamic(iTaskId taskNr "pst") pst) tst
+		= appIWorldTSt (storeValue (iTaskId taskNr "pst") pst) tst
 			
 	updateTimestamp taskNr iworld=:{IWorld|timestamp} = setTaskStoreFor taskNr "lastUpdate" timestamp iworld
 	

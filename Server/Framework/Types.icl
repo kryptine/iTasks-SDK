@@ -4,7 +4,7 @@ from StdFunc import until
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, dynamic_string, Base64, Shared
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
-from iTasks		import serialize, deserialize
+from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
