@@ -91,7 +91,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		//TODO: reinstate slight delay between receive of task and sync
 		//      needed to capture edit->click sequences.
 		this.params["events"] = Ext.encode([[taskId,name,value]]);
-		this.refresh();
+		this.refresh(true);
 		delete(this.params["events"]);
 	},
 	update: function(data,success,status) {
