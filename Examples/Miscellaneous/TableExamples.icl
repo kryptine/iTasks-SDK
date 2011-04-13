@@ -16,7 +16,7 @@ plantExample
 plantExample` =
 		readDataset
 	>>= transform Table
-	>>=	\table. updateInformation ("Plant Dataset",description) table <<@ FWFullWidth
+	>>=	\table. updateInformation ("Plant Dataset",description) table <<@ fullWidthInteractiveLayout
 	>>= showMessageAbout "Updated dataset"
 	>>| stop
 where

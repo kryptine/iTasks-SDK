@@ -104,7 +104,7 @@ where
 				Nothing							= (Nothing,iworld)
 				Just (AboutValue a)				= (Just (visualizeAsHtmlDisplay (aboutView a)),iworld)
 				Just (SharedAbout ref)			= appFst (Just o visualizeAsHtmlDisplay o aboutView o fromOk) (readShared ref iworld)
-			# tui								= taskPanel taskNr mbContext form
+			# tui								= (form,fmap (\c -> htmlDisplay Nothing (toString c)) mbContext)
 			# evalActions						= evaluateConditions actions (isValidValue nvmask) modelV
 			= (tui,evalActions,iworld)
 
@@ -257,15 +257,6 @@ clientTimestamp tst=:{request}
 	# ts = paramValue "timestamp" request
 	| ts <> ""	= (Just (Timestamp (toInt ts)),tst)
 	| otherwise	= (Nothing,tst)
-	
-//Build TUI definition for task with given context/form	
-taskPanel :: !TaskNr !(Maybe HtmlTag) ![TUIDef] -> TUIDef
-taskPanel taskNr mbContext form = case maybeToList (fmap (taskContextPanel taskNr) mbContext) ++ form of
-	[item]	= item
-	items	= TUIContainer (simpleContainer items)
-	
-taskContextPanel :: !TaskNr !a -> TUIDef | toString a		
-taskContextPanel taskNr context = htmlDisplay Nothing (toString context)
 
 //Evaluate action's conditions
 evaluateConditions :: ![(!Action, (Verified a) -> Bool)] !Bool a -> [(Action, Bool)]

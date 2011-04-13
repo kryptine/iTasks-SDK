@@ -35,6 +35,10 @@ from HTTP		import :: HTTPRequest
 					, sharedDeleted		:: !Bool											// Is set to true if a Shared is deleted
 					, triggerPresent	:: !Bool											// Is set to true if an editor with an auto event is present
 					, iterationCount	:: !Int												// Number of iterations in the commit phase
+					
+					, interactiveLayout	:: !InteractiveLayoutMerger							// The layout for interactive tasks currently used
+					, parallelLayout	:: !ParallelLayoutMerger							// The layout for parallel tasks currently used
+					, resultLayout		:: !ResultLayoutMerger								// The layout for result panels currently used
 					}
 					
 

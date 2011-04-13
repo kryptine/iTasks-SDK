@@ -21,11 +21,13 @@ derive gPutRecordFields	Task
 // Tasks
 
 :: Task a =
-	{ properties		:: !TaskProperties						// the task's general properties
-	, formWidth			:: !Maybe FormWidth						// Width of task form
-	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
-	, taskFuncEdit		:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
-	, taskFuncCommit	:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
+	{ properties			:: !TaskProperties						// the task's general properties
+	, mbTaskNr				:: !(Maybe TaskNr)						// the task's identifier
+	, taskFuncEdit			:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
+	, taskFuncCommit		:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
+	, mbInteractiveLayout	:: !Maybe InteractiveLayoutMerger		// if present changes the layout of interactive tasks for this tasks and it's children
+	, mbParallelLayout		:: !Maybe ParallelLayoutMerger			// if present changes the layout of parallel tasks for this tasks and it's children
+	, mbResultLayout		:: !Maybe ResultLayoutMerger			// if present changes the layout of result panels for this tasks and it's children
 	}
 
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]

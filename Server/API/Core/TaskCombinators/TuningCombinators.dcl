@@ -15,9 +15,10 @@ class tune b :: !b !(Task a) -> Task a
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 
-instance tune	TaskProperties		//Set initial properties
 instance tune	Title				//Set initial title
 instance tune	Description			//Set initial subject
 instance tune	Tag					//Append Tag
 instance tune	Tags				//Append List of Tags
-instance tune	FormWidth			//Set form width for this task and all children
+instance tune	InteractiveLayoutMerger
+instance tune	ParallelLayoutMerger
+instance tune	ResultLayoutMerger

@@ -27,8 +27,8 @@ where
 		TTFinishedTask ti (result,_) show
 			= (TTFinishedTask ti result show,[],iworld)
 		TTInteractiveTask ti interactiveType (tuiF,_)
-			# (tui,actions,iworld) = tuiF iworld
-			= (TTInteractiveTask ti interactiveType tui,addTaskIds ti.TaskInfo.taskId actions,iworld)
+			# ((editor,mbContext),actions,iworld) = tuiF iworld
+			= (TTInteractiveTask ti interactiveType (editor,mbContext,[]),addTaskIds ti.TaskInfo.taskId actions,iworld)
 		TTParallelTask ti containers
 			# containers							= sortBy (\(TTParallelContainer idx0 _ _ _) (TTParallelContainer idx1 _ _ _) -> idx0 < idx1) containers
 			# containers							= filter (\(TTParallelContainer _ _ t _) -> case t of TTFinishedTask _ _ _ = False; _ = True) containers
@@ -125,8 +125,7 @@ where
 		interactiveNode=:(TTInteractiveTask ti interactiveType tui)
 			# buttons			= mkButtons` ti.TaskInfo.taskId
 			| isEmpty buttons	= interactiveNode
-			# buttonContainer	= TUIContainer {TUIContainer|simpleContainer buttons & layout = Horizontal HRight}
-			= TTInteractiveTask ti interactiveType (addButtons buttonContainer tui)
+			= TTInteractiveTask ti interactiveType (appThd3 (const buttons) tui)
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
 		other
@@ -141,9 +140,8 @@ where
 		where	
 			mkButton :: !SubtaskAction -> TUIDef
 			mkButton (_,action,enabled) = TUIButton	{ TUIButton
-													| name = "action"
+													| name = actionName action
 													, taskId = taskId
-													, action = actionName action
 													, disabled = not enabled
 													, text = actionLabel action
 													, iconCls = actionIcon action

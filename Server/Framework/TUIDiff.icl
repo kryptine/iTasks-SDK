@@ -29,17 +29,16 @@ where
 			| otherwise
 				= [TUIReplace (dp2s path) new]
 		(TUIControl otype oc, TUIControl ntype nc)
-			| otype === ntype && oc.TUIControl.taskId == nc.TUIControl.taskId && oc.TUIControl.name == nc.TUIControl.name
-				= valueUpdate path oc nc ++ hintUpdate path old new ++ errorUpdate path old new
+			| otype === ntype
+				= valueUpdate path oc nc ++ flatten [f path old new \\ f <- [hintUpdate,errorUpdate,taskIdUpdate,nameUpdate]]
 			| otherwise
 				= [TUIReplace (dp2s path) new]
 		(TUIButton o,TUIButton n)
-				| o.TUIButton.taskId <> n.TUIButton.taskId || o.TUIButton.action <> n.TUIButton.action || o.TUIButton.text <> n.TUIButton.text || o.TUIButton.iconCls <> n.TUIButton.iconCls
-					= [TUIReplace (dp2s path) new]
-				| o.TUIButton.disabled <> n.TUIButton.disabled
-					= [TUISetEnabled (dp2s path) (not n.TUIButton.disabled)]
+				| o.TUIButton.text == n.TUIButton.text && o.TUIButton.iconCls == n.TUIButton.iconCls
+					= update (\o n -> o.TUIButton.disabled == n.TUIButton.disabled) (\b -> Just (not b.TUIButton.disabled)) TUISetEnabled path o n
+						++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]]
 				| otherwise
-					= []
+					= [TUIReplace (dp2s path) new]
 		(TUIGridContainer {gridEditors = oe,gridHtml = oh}, TUIGridContainer {gridEditors = ne, gridHtml = nh}) | length oe == length ne
 			# htmlUpdates	= flatten [[TUISetValue  (dp2s path) (toJSON (i,j,n)) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
 			# path			= shiftDataPath path
@@ -89,14 +88,16 @@ where
 	//Simply update all child elements
 	staticContainerUpdate path old new = flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- old & cn <- new & i <- [0..] ]
 
-	valueUpdate path old new	= update doUpdate (\{value} -> Just value) TUISetValue path old new
+	valueUpdate path old new = update doUpdate (\{value} -> Just value) TUISetValue path old new
 	where
 		doUpdate old new = ov === new.value
 		where
 			ov = case new.eventValue of
 				Just v	= toJSON v
 				Nothing	= old.value
-		
+	
+	taskIdUpdate path old new	= update sameTaskId taskIdOf TUISetTaskId path old new
+	nameUpdate path old new		= update sameName nameOf TUISetName path old new
 	hintUpdate path old new		= update sameHint hintOf TUISetHint path old new
 	errorUpdate path old new	= update sameError errorOf TUISetError path old new
 	
@@ -109,18 +110,38 @@ where
 		| length l == 1	= childDataPath path i
 		| otherwise		= childDataPath (childDataPath path i) j
 
+sameTaskId :: !TUIDef !TUIDef -> Bool
+sameTaskId a b = (taskIdOf a) == (taskIdOf b)
+
+sameName :: !TUIDef !TUIDef -> Bool
+sameName a b = (nameOf a) == (nameOf b)
+
 sameError :: !TUIDef !TUIDef -> Bool
 sameError a b = (errorOf a) == (errorOf b)
 
 sameHint :: !TUIDef !TUIDef -> Bool
 sameHint a b = (hintOf a) == (hintOf b)
 
+taskIdOf :: !TUIDef -> Maybe String
+taskIdOf (TUIControl _ {TUIControl|taskId})					= Just taskId
+taskIdOf (TUIButton {TUIButton|taskId})						= Just taskId
+taskIdOf (TUIRecordContainer {TUIRecordContainer|taskId})	= Just taskId
+taskIdOf (TUIListContainer {TUIListContainer|taskId})		= Just taskId
+taskIdOf _													= Nothing
+
+nameOf :: !TUIDef -> Maybe String
+nameOf (TUIControl _ {TUIControl|name})						= Just name
+nameOf (TUIButton {TUIButton|name})							= Just name
+nameOf (TUIRecordContainer {TUIRecordContainer|name})		= Just name
+nameOf (TUIListContainer {TUIListContainer|name})			= Just name
+nameOf _													= Nothing
+
 errorOf :: !TUIDef -> Maybe String
-errorOf (TUIControl _ {TUIControl|errorMsg})			= Just errorMsg
-errorOf (TUIListContainer {TUIListContainer|errorMsg})	= Just errorMsg
-errorOf _												= Nothing
+errorOf (TUIControl _ {TUIControl|errorMsg})				= Just errorMsg
+errorOf (TUIListContainer {TUIListContainer|errorMsg})		= Just errorMsg
+errorOf _													= Nothing
 
 hintOf :: !TUIDef -> Maybe String
-hintOf (TUIControl _ {TUIControl|hintMsg})				= Just hintMsg
-hintOf (TUIListContainer {TUIListContainer|hintMsg})	= Just hintMsg
-hintOf _												= Nothing
+hintOf (TUIControl _ {TUIControl|hintMsg})					= Just hintMsg
+hintOf (TUIListContainer {TUIListContainer|hintMsg})		= Just hintMsg
+hintOf _													= Nothing

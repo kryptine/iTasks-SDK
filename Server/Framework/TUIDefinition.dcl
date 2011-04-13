@@ -7,6 +7,23 @@ definition module TUIDefinition
 import JSON, GenEq
 from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 
+:: TUIInteractive =	{ title			:: !TUIDef
+					, description	:: !TUIDef
+					, mbContext		:: !Maybe TUIDef
+					, editor		:: ![TUIDef]
+					, buttons		:: ![TUIDef]
+					}
+					
+:: TUIParallel =	{ title			:: !TUIDef
+					, description	:: !TUIDef
+					, items			:: ![TUIDef]
+					}
+					
+:: TUIResult =		{ title			:: !TUIDef
+					, description	:: !TUIDef
+					, result		:: !TUIDef
+					}
+
 :: TUIName	:== String
 
 :: TUIDef
@@ -105,7 +122,6 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 	{ name			:: !TUIName
 	, taskId		:: !TaskId
 	, text			:: !String
-	, action		:: !String
 	, disabled		:: !Bool
 	, iconCls		:: !String
 	}
@@ -141,3 +157,20 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 
 htmlDisplay		:: !(Maybe String) !String -> TUIDef
 simpleContainer	:: ![TUIDef] -> TUIContainer
+
+// Layouts
+
+:: InteractiveLayoutMerger	:== LayoutMerger TUIInteractive
+:: ParallelLayoutMerger		:== LayoutMerger TUIParallel
+:: ResultLayoutMerger		:== LayoutMerger TUIResult
+:: LayoutMerger a			:== a -> TUIDef
+
+defaultInteractiveLayout	:: InteractiveLayoutMerger
+fullWidthInteractiveLayout	:: InteractiveLayoutMerger
+defaultParallelLayout		:: ParallelLayoutMerger
+defaultResultLayout			:: ResultLayoutMerger
+
+defaultPanel				:: !TUIDef !TUIDef ![TUIDef]	-> TUIDef
+defaultTitlePanel			:: !TUIDef						-> TUIDef
+defaultDescriptionPanel		:: !TUIDef						-> TUIDef
+defaultContentPanel			:: ![TUIDef]					-> TUIDef

@@ -23,6 +23,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		}
 		
 		if(data.updates) {
+			var doLayout = false;
 			//errors and hints are updated separately
 			var num = data.updates.length;
 			for (i = 0; i < num; i++) {
@@ -35,6 +36,16 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 							}else{
 								cmp.value = update[2]; // cmp is not created yet
 							}
+						}
+						break;
+					case "TUISetTaskId":
+						if(cmp = this.findComponentByPath(this, update[1])) {
+							cmp.taskId = update[2];
+						}
+						break;
+					case "TUISetName":
+						if(cmp = this.findComponentByPath(this, update[1])) {
+							cmp.name = update[2];
 						}
 						break;
 					case "TUISetError":
@@ -54,6 +65,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 						break;
 					case "TUIReplace":
 						cmp = this.replaceComponentByPath(this, update[1], update[2]);
+						doLayout = true;
 						break;
 					case "TUIUpdate":
 						if(cmp = this.findComponentByPath(this, update[1])) {
@@ -63,18 +75,20 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 					case "TUIAdd":
 						if(cmp = this.findComponentByPath(this, update[1])) {
 							cmp.insert(update[2],update[3]);
-							//cmp.doLayout();
+							doLayout = true;
 						}
 						break;
 					case "TUIRemove":
 						if(cmp = this.findComponentByPath(this, update[1])) {
 							cmp.remove(update[2]);
-							//cmp.doLayout();
+							doLayout = true;
 						}
 						break;
 				}
 			}
-			this.doLayout();
+			
+			if (doLayout) this.doLayout();
+			
 		} else {
 			//Completely replace form
 			itasks.ttc.InteractiveContainer.superclass.update.apply(this,arguments);
@@ -153,8 +167,6 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 			cmp.remove(target);
 			cmp.insert(target, replacement);	
 		}
-		
-		cmp.doLayout();
 		
 		return cmp.items.get(target);
 	},

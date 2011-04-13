@@ -7,24 +7,24 @@ definition module TaskTree
 */
 import Maybe, Either, HTML, Time, Types
 from JSON 			import :: JSONNode
-from TUIDefinition	import :: TUIDef
+from TUIDefinition	import :: TUIDef, :: InteractiveLayoutMerger, :: ParallelLayoutMerger, :: ResultLayoutMerger, :: LayoutMerger, :: TUIInteractive, :: TUIParallel, :: TUIResult
 
 :: SpineTreeContainer					:== TaskTreeContainer Void Void Void Void
-:: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType TUIDef HtmlTag
+:: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType (![TUIDef],!Maybe TUIDef,![TUIDef]) HtmlTag
 :: JSONTreeContainer					:== TaskTreeContainer Void Void JSONNode JSONNode
 :: NonNormalizedTreeContainer			:== TaskTreeContainer ActionMenu TaskContainerType TTNNInteractiveTask TTNNFinished
 
 :: SpineParallelTreeContainer			:== ParallelTaskTreeContainer Void Void Void
-:: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType TUIDef HtmlTag
+:: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType (![TUIDef],!Maybe TUIDef,![TUIDef]) HtmlTag
 :: JSONParallelTreeContainer			:== ParallelTaskTreeContainer Void JSONNode JSONNode
 :: NonNormalizedParallelTreeContainer	:== ParallelTaskTreeContainer TaskContainerType TTNNInteractiveTask TTNNFinished
 
 :: SpineTree							:== TaskTree Void Void Void
-:: UITree								:== TaskTree TTContainerType TUIDef HtmlTag
+:: UITree								:== TaskTree TTContainerType (![TUIDef],!Maybe TUIDef,![TUIDef]) HtmlTag
 :: JSONTree								:== TaskTree Void JSONNode JSONNode
 :: NonNormalizedTree					:== TaskTree TaskContainerType TTNNInteractiveTask TTNNFinished
 
-:: TTNNInteractiveTask					:== (*IWorld -> *(!TUIDef,![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
+:: TTNNInteractiveTask					:== (*IWorld -> *(!(![TUIDef],!Maybe TUIDef),![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished							:== (HtmlTag,JSONNode)
 
 //A container used for tree representing top level tasks (including the menu, the actual tree & a flag indicating if the task is a control task)
@@ -41,15 +41,22 @@ from TUIDefinition	import :: TUIDef
 	| TTFinishedTask	TaskInfo finishedOutput !Bool
 
 // similar to TaskContainerType but without tasks not shown (detached & hidden) and with calculated menus
-:: TTContainerType	= TTWindow !WindowTitle ![TUIDef]	// task shwon in a window (with own menu)
-					| TTDialog !WindowTitle				// task shwon as dialogue (without own menu)
+:: TTContainerType	= TTWindow !WindowTitle ![TUIDef]	// task shown in a window (with own menu)
+					| TTDialog !WindowTitle				// task shown as dialogue (without own menu)
 					| TTInBody							// task shown in the body of the parallel container
 
 :: TaskInfo	=	{ taskId				:: !TaskId											//Task number in string format
 				, subject				:: !String											//Short subject of the task
 				, description			:: !String											//Description of the task (html)
-				, formWidth				:: !Maybe FormWidth
+				, interactiveLayout		:: !TIInteractiveLayoutMerger
+				, parallelLayout		:: !TIParallelLayoutMerger
+				, resultLayout			:: !TIResultLayoutMerger
 				}
+				
+ // special types for layout mergers, needed to be able to use generic map
+:: TIInteractiveLayoutMerger	= TIInteractiveLayoutMerger	!InteractiveLayoutMerger
+:: TIParallelLayoutMerger		= TIParallelLayoutMerger	!ParallelLayoutMerger
+:: TIResultLayoutMerger			= TIResultLayoutMerger		!ResultLayoutMerger
 
 toSpineTreeContainer	:: !NonNormalizedTreeContainer			-> SpineTreeContainer
 toUITreeContainer		:: !NonNormalizedTreeContainer !*IWorld	-> (!UITreeContainer,!*IWorld)

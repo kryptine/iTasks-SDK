@@ -29,30 +29,21 @@ buildTaskPanel cont=:(TTContainer menu tree controlTask) = case tree of
 			}
 where
 	buildTaskPanel` :: !UITree ![TUIDef] !Bool -> TUIDef
-	buildTaskPanel` tree menu controlTask
-		= case tree of
-			TTInteractiveTask ti type tui
-				# restrictedWidth = case ti.TaskInfo.formWidth of
-					Just FWFullWidth	= False
-					_					= True
-				= TUIContainer
-					{ TUIContainer
-					| simpleContainer
-						[ TUIContainer {TUIContainer | simpleContainer [htmlDisplay Nothing ti.TaskInfo.subject]		& cls = Just "TTCSubject"}
-						, TUIContainer {TUIContainer | simpleContainer [htmlDisplay Nothing ti.TaskInfo.description]	& cls = Just "TTCDescription"}
-						, TUIContainer {TUIContainer | simpleContainer [tui]											& cls = Just "TTCPanel"}
-						]
-					& restrictedWidth = restrictedWidth
-					}
-			TTParallelTask ti containers
-				# restrictedWidth = case ti.TaskInfo.formWidth of
-					Just FWFullWidth	= False
-					_					= True
-				= TUIContainer
-					{ TUIContainer
-					| simpleContainer (map buildParallelElement containers)
-					& restrictedWidth = restrictedWidth
-					}
+	buildTaskPanel` tree menu controlTask = case tree of
+		TTInteractiveTask {subject,description,interactiveLayout=l=:TIInteractiveLayoutMerger layout} type (editor,mbContext,buttons)
+			= layout	{ TUIInteractive
+						| title			= htmlDisplay Nothing subject
+						, description	= htmlDisplay Nothing description
+						, mbContext		= mbContext
+						, editor		= editor
+						, buttons		= buttons
+						}
+		TTParallelTask {subject,description,parallelLayout=l=:TIParallelLayoutMerger layout} containers
+			= layout	{ TUIParallel
+						| title			= htmlDisplay Nothing subject
+						, description	= htmlDisplay Nothing description
+						, items			= map buildParallelElement containers
+						}
 	where
 		buildParallelElement :: !UIParallelTreeContainer -> TUIDef
 		buildParallelElement (TTParallelContainer _ type tree controlTask) = case type of
@@ -73,11 +64,12 @@ buildResultPanel tree = case tree of
 	_
 		= TaskNotDone
 where
-	content ti result = TUIContainer {simpleContainer
-		[ TUIContainer {TUIContainer | simpleContainer [htmlDisplay Nothing ti.TaskInfo.subject]		& cls = Just "TTCSubject"}
-		, TUIContainer {TUIContainer | simpleContainer [htmlDisplay Nothing ti.TaskInfo.description]	& cls = Just "TTCDescription"}
-		, TUIContainer {TUIContainer | simpleContainer [htmlDisplay Nothing (toString result)]			& cls = Just "TTCPanel"}
-		] & restrictedWidth = True}
+	content {subject,description,resultLayout=l=:TIResultLayoutMerger layout} result
+		= layout	{ TUIResult
+					| title			= htmlDisplay Nothing subject
+					, description	= htmlDisplay Nothing description
+					, result		= htmlDisplay Nothing (toString result)
+					}
 		
 diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel
 diffTaskPanels (TTCInteractiveContainer old) (TTCInteractiveContainer new)

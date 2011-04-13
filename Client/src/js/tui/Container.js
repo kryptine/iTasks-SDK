@@ -1,11 +1,8 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.Container = Ext.extend(Ext.Container,{
-
+	unstyled: true,
 	initComponent: function(){
-		this.unstyled = true;
-		this.autoHeight = true;
-		
 		if(this.restrictedWidth)
 			this.width = 700;
 

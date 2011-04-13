@@ -18,6 +18,9 @@ derive bimap Maybe, (,)
 
 //Additional derives for debugging
 derive JSONEncode TaskTree, TaskInfo, Menu, TTContainerType, TaskTreeContainer, ParallelTaskTreeContainer
+JSONEncode{|TIInteractiveLayoutMerger|} _	= [JSONNull]
+JSONEncode{|TIParallelLayoutMerger|} _		= [JSONNull]
+JSONEncode{|TIResultLayoutMerger|} _		= [JSONNull]
 
 JSONEncode{|MenuItem|} v = case v of
 	MenuItem action mbHotkey	= [JSONArray [JSONString "MenuItem" : JSONEncode{|*|} (menuAction action) ++ JSONEncode{|*|} mbHotkey]]

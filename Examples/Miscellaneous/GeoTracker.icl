@@ -7,14 +7,7 @@ geoTrackerExamples :: [Workflow]
 geoTrackerExamples = 
 	[workflow "Examples/Geo tracker/View map" "Look at the locations of users on the map." viewMap
 	,workflow "Examples/Geo tracker/Report position" "Tell us where you are..." reportPosition
-	,workflow "Debug" "Debug" debugFlow
 	]
-	
-debugFlow :: Task (Maybe GoogleMapPosition)
-debugFlow = showMessageAbout "parse?" (fromJSON (fromString dbg))
-where
-	dbg = "{\"lat\": 56.4, \"lng\": 6.4}" 
-
 
 locationStore :: SymmetricShared [(User,GoogleMapPosition)]
 locationStore = sharedStoreDefault "Locations"
@@ -35,7 +28,7 @@ viewMap :: Task Void
 viewMap
 	=	createSharedStore nlMap	//Create a new map (local to this task) to put the markers on
 	>>= \map ->
-		updateSharedInformationA "Look where everyone is" (toView,fromView) [(ActionQuit,always)] (map >&< locationStore) <<@ FWFullWidth
+		updateSharedInformationA "Look where everyone is" (toView,fromView) [(ActionQuit,always)] (map >&< locationStore) <<@ fullWidthInteractiveLayout
 	>>|	stop
 where
 	nlMap :: GoogleMap		

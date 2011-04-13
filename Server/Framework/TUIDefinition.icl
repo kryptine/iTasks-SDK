@@ -1,6 +1,6 @@
 implementation module TUIDefinition
 
-import JSON, StdList, StdBool, GenEq, StdMisc
+import JSON, StdList, StdBool, GenEq, StdFunc
 from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 
 htmlDisplay :: !(Maybe String) !String -> TUIDef
@@ -24,3 +24,34 @@ simpleContainer items =	{ items				= items
 						, layout			= Vertical
 						, restrictedWidth	= False
 						}
+
+defaultInteractiveLayout :: InteractiveLayoutMerger
+defaultInteractiveLayout = (\{title,description,mbContext,editor,buttons} -> defaultPanel
+		title
+		description
+		(maybeToList mbContext ++ editor ++ [TUIContainer {simpleContainer buttons & layout = Horizontal HRight}])
+	)
+	
+fullWidthInteractiveLayout :: InteractiveLayoutMerger
+fullWidthInteractiveLayout = (\(TUIContainer c) -> TUIContainer {c & restrictedWidth = False}) o defaultInteractiveLayout
+
+defaultParallelLayout :: ParallelLayoutMerger
+defaultParallelLayout = (\{TUIParallel|title,description,items} -> TUIContainer
+	{ simpleContainer [TUIContainer {simpleContainer [defaultTitlePanel title, defaultDescriptionPanel description] & restrictedWidth = True} : items]
+	& restrictedWidth = True
+	})
+
+defaultResultLayout :: ResultLayoutMerger
+defaultResultLayout = (\{TUIResult|title,description,result} -> defaultPanel title description [result])
+
+defaultPanel :: !TUIDef !TUIDef ![TUIDef] -> TUIDef
+defaultPanel title description form = TUIContainer {simpleContainer [defaultTitlePanel title, defaultDescriptionPanel description, defaultContentPanel form] & restrictedWidth = True}
+
+defaultTitlePanel :: !TUIDef -> TUIDef
+defaultTitlePanel title = TUIContainer {TUIContainer | simpleContainer [title] & cls = Just "TTCSubject"}
+
+defaultDescriptionPanel :: !TUIDef -> TUIDef
+defaultDescriptionPanel descr = TUIContainer {TUIContainer | simpleContainer [descr] & cls = Just "TTCDescription"}
+
+defaultContentPanel :: ![TUIDef] -> TUIDef
+defaultContentPanel content = TUIContainer {TUIContainer | simpleContainer content & cls = Just "TTCPanel"}

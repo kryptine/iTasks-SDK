@@ -30,6 +30,9 @@ mkTSt appName config request workflows store tmpDir world
 		, sharedDeleted		= False
 		, triggerPresent	= False
 		, iterationCount	= 1
+		, interactiveLayout	= defaultInteractiveLayout
+		, parallelLayout	= defaultParallelLayout
+		, resultLayout		= defaultResultLayout
 		}
 
 initStaticInfo :: ![Workflow] -> StaticInfo
@@ -56,10 +59,12 @@ initIWorld application config store tmpDir world
 initTaskInfo :: TaskInfo
 initTaskInfo
 	=	{ TaskInfo
-		| taskId = ""
-		, subject = ""
-		, description = ""
-		, formWidth = Nothing
+		| taskId			= ""
+		, subject			= ""
+		, description		= ""
+		, interactiveLayout	= TIInteractiveLayoutMerger	defaultInteractiveLayout
+		, parallelLayout	= TIParallelLayoutMerger	defaultParallelLayout
+		, resultLayout		= TIResultLayoutMerger		defaultResultLayout
 		}
 
 initSystemProperties :: SystemProperties
@@ -618,11 +623,13 @@ mkParallelTask description (taskfunE,taskfunC)
 
 mkTask :: !d !(*TSt -> *TSt) !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a | descr d
 mkTask description taskFuncEdit taskFuncCommit =
-	{ properties		= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
-	, formWidth			= Nothing
-	, mbTaskNr			= Nothing
-	, taskFuncEdit		= taskFuncEdit
-	, taskFuncCommit	= taskFuncCommit
+	{ properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
+	, mbTaskNr				= Nothing
+	, taskFuncEdit			= taskFuncEdit
+	, taskFuncCommit		= taskFuncCommit
+	, mbInteractiveLayout	= Nothing
+	, mbParallelLayout		= Nothing
+	, mbResultLayout		= Nothing
 	}
 
 applyTaskEdit :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
@@ -641,17 +648,23 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !(Maybe (!Int,!TaskContainerType)) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit {properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommit, formWidth} mbParChildInfo tst=:{taskNr,tree}
+applyTaskCommit task=:{properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommit} mbParChildInfo tst=:{taskNr,tree,interactiveLayout=tstInteractiveLayout,parallelLayout=tstParallelLayout,resultLayout=tstResultLayout}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
+	// overwrite layouts if task defines new one, is inherited by children
+	# interactiveLayout						= fromMaybe tstInteractiveLayout task.mbInteractiveLayout
+	# parallelLayout						= fromMaybe tstParallelLayout task.mbParallelLayout
+	# resultLayout							= fromMaybe tstResultLayout task.mbResultLayout
 	# taskInfo =	{ TaskInfo
 					| taskId				= taskNrToString taskNr
 					, subject				= properties.TaskProperties.taskDescription.TaskDescription.title
 					, description			= toString properties.TaskProperties.taskDescription.TaskDescription.description
-					, formWidth				= formWidth
+					, interactiveLayout		= TIInteractiveLayoutMerger interactiveLayout
+					, parallelLayout		= TIParallelLayoutMerger parallelLayout
+					, resultLayout			= TIResultLayoutMerger resultLayout
 					}
-	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal}
-	= case taskVal of
+	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal, interactiveLayout = interactiveLayout, parallelLayout = parallelLayout, resultLayout = resultLayout}
+	# (res,tst) = case taskVal of
 		Just (TaskFinished a)
 			# tst = addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
@@ -685,6 +698,7 @@ applyTaskCommit {properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommi
 					# tst					= addTaskNode (TTFinishedTask taskInfo (renderException str) True)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e str, tst)
+	= (res,{TSt | tst & interactiveLayout = tstInteractiveLayout, parallelLayout = tstParallelLayout, resultLayout = tstResultLayout})
 where	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of

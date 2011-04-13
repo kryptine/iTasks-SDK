@@ -21,6 +21,7 @@ import Coffeemachine
 import ChangeHandling
 //import textEditor
 import CoffeeTime
+import Calculator
 import TableExamples
 import GeoTracker
 import RPCExamples
@@ -58,6 +59,7 @@ where
 						, coffeemachineExample
 						//, textEditor
 						, coffeeTimeExample
+						, calculatorExample
 						, tableExamples
 						, geoTrackerExamples
 						//, newsgroupsExample

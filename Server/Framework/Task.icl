@@ -72,42 +72,61 @@ derive JSONDecode 	TaskResult
 derive bimap Maybe, (,)
 
 // Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
-JSONEncode{|Menu|} _		= abort "not implemented"
-JSONEncode{|MenuItem|} _	= abort "not implemented"
-JSONDecode{|Menu|} _		= abort "not implemented"
-JSONDecode{|MenuItem|} _	= abort "not implemented"
-gUpdate{|Menu|} _ _			= abort "not implemented"
-gUpdate{|MenuItem|} _ _		= abort "not implemented"
-gDefaultMask{|Menu|} _		= abort "not implemented"
-gDefaultMask{|MenuItem|} _	= abort "not implemented"
-gVerify{|Menu|} _ _			= abort "not implemented"
-gVerify{|MenuItem|} _ _		= abort "not implemented"
-gVisualize{|Menu|} _ _		= abort "not implemented"
-gVisualize{|MenuItem|} _ _	= abort "not implemented"
-gEq{|Menu|} _ _				= abort "not implemented"
-gEq{|MenuItem|} _ _			= abort "not implemented"
+JSONEncode{|Menu|} _			= abort "not implemented"
+JSONEncode{|MenuItem|} _		= abort "not implemented"
+JSONDecode{|Menu|} _			= abort "not implemented"
+JSONDecode{|MenuItem|} _		= abort "not implemented"
+gUpdate{|Menu|} _ _				= abort "not implemented"
+gUpdate{|MenuItem|} _ _			= abort "not implemented"
+gDefaultMask{|Menu|} _			= abort "not implemented"
+gDefaultMask{|MenuItem|} _		= abort "not implemented"
+gVerify{|Menu|} _ _				= abort "not implemented"
+gVerify{|MenuItem|} _ _			= abort "not implemented"
+gVisualize{|Menu|} _ _			= abort "not implemented"
+gVisualize{|MenuItem|} _ _		= abort "not implemented"
+gEq{|Menu|} _ _					= abort "not implemented"
+gEq{|MenuItem|} _ _				= abort "not implemented"
+JSONEncode{|TUIInteractive|} _	= abort "not implemented"
+JSONDecode{|TUIInteractive|} _	= abort "not implemented"
+JSONEncode{|TUIParallel|} _		= abort "not implemented"
+JSONDecode{|TUIParallel|} _		= abort "not implemented"
+JSONEncode{|TUIResult|} _		= abort "not implemented"
+JSONDecode{|TUIResult|} _		= abort "not implemented"
+JSONEncode{|TUIDef|} _			= abort "not implemented"
+JSONDecode{|TUIDef|} _			= abort "not implemented"
 
-JSONEncode{|Task|} _ {properties,mbTaskNr,taskFuncEdit,taskFuncCommit}
+JSONEncode{|Task|} _ {properties,mbTaskNr,taskFuncEdit,taskFuncCommit,mbInteractiveLayout,mbParallelLayout,mbResultLayout}
 	= [JSONArray	[  JSONString "Task"
 					:  JSONEncode{|*|} properties
 					++ JSONEncode{|*|} mbTaskNr
 					++ dynamicJSONEncode taskFuncEdit
-					++ dynamicJSONEncode taskFuncCommit]]
+					++ dynamicJSONEncode taskFuncCommit
+					++ JSONEncode{|*|} mbInteractiveLayout
+					++ JSONEncode{|*|} mbParallelLayout
+					++ JSONEncode{|*|} mbResultLayout]]
 					
-JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,mbTaskNr,taskFuncEdit,taskFuncCommit]:c]
+JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,mbTaskNr,taskFuncEdit,taskFuncCommit,mbInteractiveLayout,mbParallelLayout,mbResultLayout]:c]
 	# mbTaskProperties		= fromJSON properties
 	# mbMbTaskNr			= fromJSON mbTaskNr
 	# mbTaskFuncEdit		= dynamicJSONDecode taskFuncEdit
 	# mbTaskFuncCommit		= dynamicJSONDecode taskFuncCommit
+	# mbMbInteractiveLayout	= fromJSON mbInteractiveLayout
+	# mbMbParallelLayout	= fromJSON mbParallelLayout
+	# mbMbResultLayout		= fromJSON mbResultLayout
 	|  isJust mbTaskProperties
 	&& isJust mbMbTaskNr
 	&& isJust mbTaskFuncEdit
 	&& isJust mbTaskFuncCommit
-		= (Just	{ properties		= fromJust mbTaskProperties
-				, formWidth			= Nothing
-				, mbTaskNr			= fromJust mbMbTaskNr
-				, taskFuncEdit		= fromJust mbTaskFuncEdit
-				, taskFuncCommit	= fromJust mbTaskFuncCommit
+	&& isJust mbMbInteractiveLayout
+	&& isJust mbMbParallelLayout
+	&& isJust mbMbResultLayout
+		= (Just	{ properties			= fromJust mbTaskProperties
+				, mbTaskNr				= fromJust mbMbTaskNr
+				, taskFuncEdit			= fromJust mbTaskFuncEdit
+				, taskFuncCommit		= fromJust mbTaskFuncCommit
+				, mbInteractiveLayout	= fromJust mbMbInteractiveLayout
+				, mbParallelLayout		= fromJust mbMbParallelLayout
+				, mbResultLayout		= fromJust mbMbResultLayout
 				},c)
 	| otherwise
 		= (Nothing,c)
@@ -135,10 +154,12 @@ gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 
 defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
-				, formWidth			= Nothing
 				, mbTaskNr			= Nothing
 				, taskFuncEdit		= id
 				, taskFuncCommit	= \tst -> (TaskFinished a,tst)
+				, mbInteractiveLayout	= Nothing
+				, mbParallelLayout	= Nothing
+				, mbResultLayout		= Nothing
 				}
 
 taskException :: !e -> TaskResult a | TC, toString e

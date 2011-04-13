@@ -10,11 +10,9 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		}			
 		this.setChildComponentsWidth();
 		Ext.apply(this, {
-			layout: 'anchor',
 			taskUpdates : {},
 			url: itasks.config.serverUrl + '/work/tab',
 			unstyled: true,
-			autoScroll: true,
 			listeners: {tuichange: {fn:this.onTuiChange, scope: this}
 			           ,tuiaction: {fn:this.onTuiAction, scope: this}
 			           }
