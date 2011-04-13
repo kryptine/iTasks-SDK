@@ -66,60 +66,6 @@ where
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,tst))
-
-//Repetition and loops:
-(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = mkSequenceTask (taskTitle task, taskDescription task) (doTaskE,doTaskC)
-where
-	doTaskE tst=:{taskNr}
-		# (loop,tst)				= getCounter tst
-		# (result,tst) 				= applyTaskEdit task {tst & taskNr = [loop:tl taskNr]}
-		= tst
-				
-		
-	doTaskC tst=:{taskNr} 
-		# (loop,tst)	= getCounter tst
-		# (result,tst) 	= applyTaskCommit task Nothing {tst & taskNr = [loop:tl taskNr]}
-		= case result of
-			TaskBusy
-				= (TaskBusy,tst)
-			TaskFinished a
-				| not (pred a)	
-					# tst = deleteTaskStates (tl taskNr) tst
-					# tst = 'ProcessDB'.deleteSubProcesses (taskNrToString (tl taskNr)) tst
-					# tst = resetSequence tst
-					# tst = {tst & taskNr = tl taskNr}	
-					# tst = setTaskStore "counter" (inc loop) tst
-					= doTaskC {tst & taskNr = taskNr}
-				| otherwise
-					= (TaskFinished a, {tst & taskNr = taskNr})
-			TaskException e str
-				= (TaskException e str, {tst & taskNr = taskNr})
-				
-	getCounter tst=:{taskNr}
-		# (mbLoop,tst)	= getTaskStore "counter" {tst & taskNr = tl taskNr}
-		= (fromMaybe 0 mbLoop,tst)
-		
-// Sequential composition
-sequence :: !String ![Task a] -> (Task [a])	| iTask a
-sequence label tasks = mkSequenceTask (label, description tasks) (doseqTasksE tasks,\tst -> doseqTasksC tasks [] tst)
-where
-	doseqTasksE [] tst			= tst
-	doseqTasksE [task:ts] tst
-		# (result,tst)			= applyTaskEdit task tst
-		= case result of
-			TaskFinished _		= doseqTasksE ts tst
-			_					= tst
-
-	doseqTasksC [] accu tst				= (TaskFinished (reverse accu), tst)
-	doseqTasksC [task:ts] accu tst 	
-		# (result,tst)					= applyTaskCommit task Nothing tst
-		= case result of
-			TaskBusy					= (TaskBusy,tst)
-			TaskFinished a				= doseqTasksC ts [a:accu] tst
-			TaskException e str			= (TaskException e str,tst)
-	
-	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
 	
 // Parallel composition
 JSONEncode{|PSt|} _ c		= dynamicJSONEncode c

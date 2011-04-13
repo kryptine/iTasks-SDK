@@ -3,7 +3,7 @@ implementation module CommonCombinators
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord
+import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text
 import Util, Either, TSt, GenVisualize, GenUpdate, Map
 from StdFunc	import id, const, o
 from Types		import :: ProcessId, :: User(..), :: Note(..)
@@ -97,6 +97,25 @@ justdo task
 = task >>= \r -> case r of
 	Just x	= return x
 	Nothing	= throw ("The task " +++ taskTitle task +++ " returned nothing.")
+
+sequence :: !String ![Task a]  -> Task [a] | iTask a
+sequence _ [] = return []
+sequence label tasks=:[first:rest] = parallel (label,RawText description) (rest,[]) (\_ (_,acc) -> reverse acc) [] [seqTask first]
+where
+	description = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
+	seqTask t = InBodyTask t accuFun
+	accuFun r (rest,acc)
+		# acc = [r:acc]
+		= case rest of
+			[]			= (([],acc),[])
+			[next:rest]	= ((rest,acc),[AppendTasks [seqTask next]])
+	
+(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
+(<!) task pred = parallel (taskTitle task,taskDescription task) Nothing (\_ (Just a) -> a) [] [InBodyTask task checkResult]
+where
+	checkResult a _
+		| pred a	= (Just a,[])
+		| otherwise	= (Nothing,[AppendTasks [InBodyTask task checkResult]])
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") [] (\_ l -> hd l) [] [InBodyTask taska orfunc,InBodyTask taskb orfunc]

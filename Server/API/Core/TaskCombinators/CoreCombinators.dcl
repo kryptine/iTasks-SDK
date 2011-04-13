@@ -46,29 +46,6 @@ derive gEq			TaskContainer
 */
 return 		:: !a 										-> Task a 		| iTask a
 
-//Repetition and loops:
-
-/**
-* Repeats a task until a given predicate holds. The predicate is tested as soon as the
-* given task is finished. When it does not hold, the task is restarted.
-*
-* @param The task to be looped
-* @param The predicate over the result of the task to determine if the combination is finished
-* @return The combined task
-*/
-(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
-
-// Sequential composition
-
-/**
-* Execute the list of tasks one after another.
-*
-* @param A label for tracing
-* @param The list of tasks to be executed sequentially
-* @return The combined task
-*/
-sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
-
 :: Control acc	= StopParallel												// stop the entire parallel execution
 				| AppendTasks	![TaskContainer acc]						// append additional ordinary tasks to be run in parallel as well
 				| AppendCTasks	![ControlTaskContainer acc]					// append additional contorl tasks to be run in parallel as well
