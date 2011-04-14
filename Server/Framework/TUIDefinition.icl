@@ -36,10 +36,7 @@ fullWidthInteractiveLayout :: InteractiveLayoutMerger
 fullWidthInteractiveLayout = (\(TUIContainer c) -> TUIContainer {c & restrictedWidth = False}) o defaultInteractiveLayout
 
 defaultParallelLayout :: ParallelLayoutMerger
-defaultParallelLayout = (\{TUIParallel|title,description,items} -> TUIContainer
-	{ simpleContainer [TUIContainer {simpleContainer [defaultTitlePanel title, defaultDescriptionPanel description] & restrictedWidth = True} : items]
-	& restrictedWidth = True
-	})
+defaultParallelLayout = (\{TUIParallel|title,description,items} -> TUIContainer (simpleContainer [defaultTitlePanel title, defaultDescriptionPanel description, defaultContentPanel items]))
 
 defaultResultLayout :: ResultLayoutMerger
 defaultResultLayout = (\{TUIResult|title,description,result} -> defaultPanel title description [result])
