@@ -383,7 +383,7 @@ where
 							where
 								f => case (dynamic accufun,result) of
 									(Right fun :: Either (AccuFun a acc^) (AccuFunDetached a acc^),TaskFinished (r :: a))
-										# pst = removeTasksPSt [idx] pst
+										//# pst = removeTasksPSt [idx] pst
 										# (acc,controls) = fun (Just r) pst.PSt.state
 										= (TaskFinished controls,False,{PSt | pst & state = acc},tst)
 									_
