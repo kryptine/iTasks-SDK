@@ -123,6 +123,30 @@ button.icon-expand-tree, .icon-expand-tree {
 	background-image: url('img/icons/expand-all.gif') !important;
 }
 
+.icon-interaction-task {
+	background-image: url('img/icons/pencil.png') !important;
+}
+
+.icon-parallel-task {
+	background-image: url('img/icons/application_double.png') !important;
+}
+
+.icon-message-task {
+	background-image: url('img/icons/information.png') !important;
+}
+
+.icon-instruction-task {
+	background-image: url('img/icons/instruction.png') !important;
+}
+
+.icon-monitor-task {
+	background-image: url('img/icons/hourglass.png') !important;
+}
+
+.icon-control-task {
+	background-image: url('img/icons/user_suit.png') !important;
+}
+
 .new-task-node { 
 	font-weight: bold;
 }
@@ -184,7 +208,7 @@ button.icon-expand-tree, .icon-expand-tree {
 }
 
 #userdisplay {
-	color: #3a81ad;
+	color: #333333;
 	font-weight: bold;
 	padding-right: 10px;
 }
@@ -228,7 +252,7 @@ div.newtask-description-container x-panel-body{
 
 div.newtask-description-container h3 {
 	margin-bottom: 4px;
-	color:#15428B;
+	color:#333333;
 	font-family:tahoma,arial,verdana,sans-serif;
 	font-size:11px;
 	font-weight:bold;
@@ -340,7 +364,7 @@ div.task-description {
 	padding: 3px 4px 3px 4px;
 	/*margin: 0px 0px 10px 0px;*/
 	font-weight: bold;
-	color: #1e3356;
+	color: #333333;
 }
 div.task-context {
 	padding: 2px;

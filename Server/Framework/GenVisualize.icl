@@ -62,7 +62,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 			| d.gtd_num_conses > 1 && not renderAsStatic
 				# (err,hnt)	= verifyElementStr cmv
 				# (items, vst=:{selectedConsIndex}) = fx x {vst & useLabels = False, optional = False}
-				= ([TUIFragment (TUIControl (TUIConstructorControl
+				= ([TUIFragment (defaultSizeControl (TUIConstructorControl
 						{TUIConstructorControl
 						| consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
 						, items = if (isTouched cmv) (coerceToTUIDefs items) []
@@ -79,17 +79,20 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 						}
 					)]
 				  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
-			//ADT with one constructor: put content into static container (if not empty)
+			//ADT with one constructor: put content into form container, if empty show cons name
 			| otherwise
 				# (vis,vst) = fx x {VSt|vst & useLabels = False, label = Nothing}
 				# vis = case vis of
-					[] = []
-					vis =	[TUIFragment (TUIContainer
-							{ TUIContainer
-							| simpleContainer (coerceToTUIDefs vis)
-							& fieldLabel = label
-							, optional = optional
-							})]
+					[]	= if (isTouched cmv) [TUIFragment (htmlDisplay label ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))] []
+					vis = [TUIFragment	{ content	= TUIFormContainer
+														{ TUIFormContainer
+														| items			= coerceToTUIDefs vis
+														, fieldLabel	= label
+														, optional		= optional
+														}
+										, width 	= Auto
+										, height	= Auto
+										}]
 				= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
 		_
 			# (viz,vst) = fx x vst
@@ -101,8 +104,9 @@ where
 		# x = fmap fromCONS val
 		# (vis,vst) = case isRecordCons d of
 			False // normal ADT
-				# (viz,vst) = fx x vst
-				= (coerceToTUIDefs viz, {VSt | vst & selectedConsIndex = d.gcd_index})
+				# (viz,vst)	= fx x vst
+				# vst		= {VSt | vst & selectedConsIndex = d.gcd_index}
+				= (coerceToTUIDefs viz,vst)
 			True = case x of // record
 				Nothing // Create an empty record container that can be expanded later
 					= (recordContainer False [],vst)
@@ -111,14 +115,18 @@ where
 					= (recordContainer True viz,vst)
 		= (vis,{vst & optional = optional, useLabels = useLabels})
 	where
-		recordContainer hasValue viz = [TUIRecordContainer	{ TUIRecordContainer
+		recordContainer hasValue viz = [	{ content	= TUIRecordContainer
+															{ TUIRecordContainer
 															| name = name
 															, title = label
 															, items = coerceToTUIDefs viz
 															, optional = (optional && (not renderAsStatic))
 															, hasValue = hasValue
 															, taskId = taskId
-															}]
+															}
+											, width		= Auto
+											, height	= Auto
+											}]
 		
 	staticVis v _ vst=:{vizType}
 		# x = fmap (\(CONS c) -> c) v
@@ -149,7 +157,10 @@ where
 					= normalADTStaticViz viz vst
 	where
 		normalADTStaticViz viz vst
-			//When there are multiple constructors, also show the name of the constructor
+			//If viz is empty, only show constructor name
+			| isEmpty viz
+				= ([TextFragment d.gcd_name],vst)
+			//If there are multiple constructors, also show the name of the constructor
 			| d.gcd_type_def.gtd_num_conses > 1
 				= (intersperse (TextFragment " ") [TextFragment d.gcd_name:viz],vst)
 			| otherwise
@@ -249,7 +260,7 @@ where
 			= ([htmlDisplay label noSelection],vst)
 		Just (Choice opts sel)
 			# (children,vst) = childVisualizations fx opts (Just VHtmlLabel) vst
-			= ([TUIControl (TUIChoiceControl
+			= ([defaultSizeControl (TUIChoiceControl
 				{ TUIChoiceControl
 				| allowMultiple = False
 				, options = map mkOptionLabel children
@@ -280,7 +291,7 @@ where
 			= ([htmlDisplay label empty],vst)
 		Just (MultipleChoice opts sel)
 			# (children,vst) = childVisualizations fx opts (Just VHtmlLabel) vst
-			= ([TUIControl (TUIChoiceControl
+			= ([defaultSizeControl (TUIChoiceControl
 				{ TUIChoiceControl
 				| allowMultiple = True
 				, options = map mkOptionLabel children
@@ -313,7 +324,7 @@ where
 			# vst = {vst & vizType = VTextLabel}
 			# (tree,_,vst) = mkTree nodes 0 vst
 			# vst = {vst & vizType = VEditorDefinition}
-			= ([TUIControl (TUITreeControl tree)
+			= ([defaultSizeControl (TUITreeControl tree)
 				{ TUIControl
 				| name = name
 				, value = if (touched && sel >= 0) (toJSON sel) JSONNull
@@ -375,11 +386,16 @@ where
 		Just (Table rows)
 			#( vis,vst)	= gVisualize{|* -> *|} fx (Just rows) vst
 			# (htm,vst)	= childVisualizations fx rows (Just VHtmlDisplay) {VSt|vst & currentPath = currentPath, verifyMask = childMasks (fst (popMask verifyMask))}
-			= ([TUIGridContainer	{ TUIGridContainer
+			= ([	{ content	= TUIGridContainer
+									{ TUIGridContainer
 									| columns = toTUICols (if (isEmpty htm) [] (getHeaders (hd htm)))
 									, gridHtml = map getHtml htm
 									, gridEditors = getEditors vis
-									}],vst)
+									}
+					, width		= Auto
+					, height	= Auto
+					}
+				],vst)
 	where
 		getHeaders :: [Visualization] -> [String]
 		getHeaders [HtmlFragment (TableTag [ClassAttr "viz-record"] cols)] = map getHeaders` cols
@@ -398,19 +414,19 @@ where
 		getHtml viz = [toString (html (coerceToHtml viz))]
 		
 		getEditors :: [Visualization] -> [[Maybe TUIDef]]
-		getEditors [TUIFragment (TUIListContainer {TUIListContainer|items})] = map (filterHtmlContainers o getEditors` o stripListItem) items
+		getEditors [TUIFragment {content=c=:(TUIListContainer {TUIListContainer|items})}] = map (filterHtmlContainers o getEditors` o stripListItem) items
 		where
 			stripListItem :: TUIDef -> [TUIDef]
-			stripListItem (TUIListItem {TUIListItem|items}) = items
+			stripListItem {content=c=:(TUIListItem {TUIListItem|items})} = items
 			stripListItem _ = abort "get table editors: list item container expected"
 			
 			getEditors` :: [TUIDef] -> [TUIDef]
 			getEditors` tui = case tui of
-				[TUIRecordContainer {TUIRecordContainer|items}]	= items
-				tui												= tui
+				[{content=c=:(TUIRecordContainer {TUIRecordContainer|items})}]	= items
+				tui																= tui
 				
 			filterHtmlContainers :: [TUIDef] -> [Maybe TUIDef]
-			filterHtmlContainers tuis = map (\tui -> case tui of (TUIControl TUIHtmlDisplay _) = Nothing; _ = Just tui) tuis
+			filterHtmlContainers tuis = map (\tui -> case tui.content of (TUIControl TUIHtmlDisplay _) = Nothing; _ = Just tui) tuis
 			
 		getEditors _ = abort "get table editors: list container expected"
 		
@@ -430,7 +446,8 @@ where
 	mkControl name val touched label optional err hnt renderAsStatic vst=:{useLabels,taskId}
 		# val = listValue val
 		# (items,vst) = TUIDef val vst
-		= ([TUIListContainer	{ TUIListContainer
+		= ([	{ content	= TUIListContainer
+								{ TUIListContainer
 								| items = items
 								, optional = optional
 								, name = name
@@ -439,7 +456,11 @@ where
 								, staticDisplay = renderAsStatic
 								, errorMsg = err
 								, hintMsg = hnt
-								, taskId = taskId}],vst)
+								, taskId = taskId}
+				, width		= Auto
+				, height	= Auto
+				}
+			],vst)
 		where
 			TUIDef items vst=:{optional,useLabels}
 				# (itemsVis,vst)	= childVisualizations fx items Nothing {vst & optional = False, useLabels = False, label = Nothing}
@@ -453,10 +474,14 @@ where
 				= (vis,{vst & optional = optional, useLabels = useLabels})
 						
 			listItemControl idx defs
-				= TUIListItem	{ TUIListItem
-								| index = idx
-								, items = defs
-								}
+				=	{ content	= TUIListItem
+									{ TUIListItem
+									| index = idx
+									, items = defs
+									}
+					, width		= Auto
+					, height	= Auto
+					}
 							
 	staticVis v _ vst=:{vizType}
 		# v = listValue v
@@ -538,16 +563,16 @@ visualizeControl2 control (strF,htmlF) v vst=:{editEvents,currentPath} = visuali
 where
 	tuiF name v touched label optional err hnt _ vst=:{VSt|taskId}
 		# v = checkMask touched v
-		# viz = TUIControl control	{ TUIControl
-									| name = name
-									, value = toJSON v
-									, fieldLabel = label
-									, optional = optional
-									, errorMsg = err
-									, hintMsg = hnt
-									, eventValue = eventValue currentPath editEvents
-									, taskId = taskId
-									}
+		# viz = defaultSizeControl control	{ TUIControl
+											| name = name
+											, value = toJSON v
+											, fieldLabel = label
+											, optional = optional
+											, errorMsg = err
+											, hintMsg = hnt
+											, eventValue = eventValue currentPath editEvents
+											, taskId = taskId
+											}
 	= ([viz],vst)
 								
 	staticF v touched vst=:{vizType}
@@ -633,6 +658,9 @@ where
 		| c == '_'			= [' ':addspace cs]
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
+
+defaultSizeControl :: !TUIControlType !TUIControl -> TUIDef
+defaultSizeControl type control = {content = TUIControl type control, width = Auto, height = Auto}
 
 verifyElementStr :: !VerifyMask -> (!String, !String)
 verifyElementStr cmv = case cmv of

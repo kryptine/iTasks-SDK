@@ -5,31 +5,39 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractiveTaskType
 
-:: TUIInteractive =	{ title			:: !TUIDef
+:: TUIInteractive =	{ title			:: !String
 					, description	:: !TUIDef
 					, mbContext		:: !Maybe TUIDef
 					, editor		:: ![TUIDef]
 					, buttons		:: ![TUIDef]
+					, type			:: !InteractiveTaskType
+					, isControlTask	:: !Bool
 					}
 					
-:: TUIParallel =	{ title			:: !TUIDef
+:: TUIParallel =	{ title			:: !String
 					, description	:: !TUIDef
 					, items			:: ![TUIDef]
 					}
 					
-:: TUIResult =		{ title			:: !TUIDef
+:: TUIResult =		{ title			:: !String
 					, description	:: !TUIDef
 					, result		:: !TUIDef
 					}
 
 :: TUIName	:== String
 
-:: TUIDef
+:: TUIDef =	{ content	:: !TUIDefContent
+			, width		:: !TUISize
+			, height	:: !TUISize
+			}
+
+:: TUIDefContent
 	= TUIControl			!TUIControlType !TUIControl
 	| TUIButton				!TUIButton
-	| TUIContainer			!TUIContainer
+	| TUIFormContainer		!TUIFormContainer
+	| TUILayoutContainer	!TUILayoutContainer
 	| TUIRecordContainer	!TUIRecordContainer
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
@@ -87,13 +95,20 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 	{ consValues	:: ![String]
 	, items			:: ![TUIDef]
 	}
-:: TUIContainer =
+:: TUIFormContainer =
 	{ items				:: ![TUIDef]
 	, fieldLabel		:: !Maybe String
 	, optional			:: !Bool
+	}
+:: TUILayoutContainer =
+	{ items				:: ![TUIDef]
 	, cls				:: !Maybe String
-	, layout			:: !TUILayout
-	, restrictedWidth	:: !Bool
+	, orientation		:: !TUIOrientation
+	, hGravity			:: !TUIHGravity
+	, vGravity			:: !TUIVGravity
+	, title				:: !Maybe PanelTitle
+	, frame				:: !Bool
+	, iconCls			:: !Maybe PanelIcon
 	}
 :: TUIRecordContainer =
 	{ name			:: !TUIName
@@ -150,13 +165,27 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId
 :: TUIGridColumn =
 	{ header		:: !String
 	}
+	
+:: PanelTitle	:== String
+:: PanelIcon	:== String
+	
+:: TUISize			= Wrap									// The tui element's size becomes the minimal size of its content
+					| FillParent !TUIWeight !TUIMinSize		// The tui element fills the entire parent container
+															// If there is more than one 'FillParent' element in one container the available space is distributed according to the weights (my size = my weight/sum of weights * available space)
+															// If the space becomes smaller than the minimal size, the element behaves as if its minimal size was its fixed size
+					| Fixed !TUIFixedSize					// The tui element has a fixed size
+					| Auto									// The actual size is one of the three options specified above, determined by the client
+					
+:: TUIFixedSize		:== Int
+:: TUIWeight		:== Int
+:: TUIMinSize		= ContentSize							// The container's minimal size is the minimal size of its content
+					| FixedMinWeight !TUIFixedSize			// The container has a fixed minimal size
+:: TUIHGravity		= HGLeft | HGCenter | HGRight
+:: TUIVGravity		= VGTop | VGCenter | VGBottom
+:: TUIOrientation	= Horizontal | Vertical
 
-:: TUILayout = Horizontal HAlignment | Vertical
-
-:: HAlignment = HLeft | HCenter | HRight
-
-htmlDisplay		:: !(Maybe String) !String -> TUIDef
-simpleContainer	:: ![TUIDef] -> TUIContainer
+htmlDisplay				:: !(Maybe String) !String -> TUIDef
+defaultLayoutContainer	:: ![TUIDef] -> TUILayoutContainer
 
 // Layouts
 
@@ -165,13 +194,16 @@ simpleContainer	:: ![TUIDef] -> TUIContainer
 :: ResultLayoutMerger		:== LayoutMerger TUIResult
 :: LayoutMerger a			:== a -> TUIDef
 
+// pre-defined layouts
 defaultInteractiveLayout	:: InteractiveLayoutMerger
 fullWidthInteractiveLayout	:: InteractiveLayoutMerger
 defaultParallelLayout		:: ParallelLayoutMerger
 minimalParallelLayout		:: ParallelLayoutMerger
 defaultResultLayout			:: ResultLayoutMerger
 
-defaultPanel				:: !TUIDef !TUIDef ![TUIDef]	-> TUIDef
-defaultTitlePanel			:: !TUIDef						-> TUIDef
-defaultDescriptionPanel		:: !TUIDef						-> TUIDef
-defaultContentPanel			:: ![TUIDef]					-> TUIDef
+// layout aux functions
+defaultPanelDescr			:: !PanelTitle !PanelIcon !TUIDef	![TUIDef] !TUISize	-> TUIDef
+defaultPanel				:: !PanelTitle !PanelIcon			![TUIDef] !TUISize	-> TUIDef
+defaultDescriptionPanel		:: !TUIDef												-> TUIDef
+defaultContentPanel			:: ![TUIDef]											-> TUIDef
+defaultInteractiveIcon		:: !InteractiveTaskType !Bool							-> PanelIcon

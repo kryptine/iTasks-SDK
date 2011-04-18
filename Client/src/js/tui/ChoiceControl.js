@@ -9,7 +9,12 @@ itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
 		itasks.tui.base.initComponent.call(this,arguments);
 	},
 	onChange: function() {
-		this.fireEvent('tuichange',this.taskId,this.dataPath,this.getValue());
+		if (this.allowMultiple || this.checkRadio) {
+			this.checkRadio = false;
+			this.fireEvent('tuichange',this.taskId,this.dataPath,this.getValue());
+		} else {
+			this.checkRadio = true;
+		}
 	},
 	onRender: function(ct, position){
 		if(!this.el){
@@ -112,7 +117,7 @@ itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
 		}
 	},
 	//returns a list of checked indices	
-	getValue : function(){	
+	getValue : function(){
 		var out = [];
 		var multiple = this.allowMultiple;
 			
@@ -122,7 +127,7 @@ itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
 				if(!multiple) return false;
 			}
 		});
-				
+
 		return out;
 	},
 	setValue : function(sel){

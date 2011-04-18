@@ -284,7 +284,7 @@ where
 		AddedCTask task ctype
 			= (idx,PCTask task,ctype)
 			
-	setControlTask task=:{Task|properties} = {Task|task & properties = {properties & isControlTask = True}}
+	setControlTask task=:{Task|properties} = {Task|task & properties = {TaskProperties|properties & isControlTask = True}}
 				
 	sharedParallelState taskNr = Shared read write getTimestamp
 	where

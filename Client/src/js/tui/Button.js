@@ -6,6 +6,7 @@ itasks.tui.Button = Ext.extend(Ext.Button, {
 	initComponent: function() {
 		if (!this.isIconPresent(this.iconCls)) delete this.iconCls;
 		this.listeners = {click: {fn: this.onActionClick, scope: this}};
+		delete this.width;
 		
 		itasks.tui.Button.superclass.initComponent.apply(this,arguments);
 		

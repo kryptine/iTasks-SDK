@@ -10,6 +10,7 @@ import GenUpdate, TUIDefinition
 	| TUISetError		!TUIPath !String			// Set the error messages on a component
 	| TUISetHint		!TUIPath !String			// Set the hint messages on a component
 	| TUISetEnabled		!TUIPath !Bool				// Enable/disable form elements
+	| TUISetTitle		!TUIPath !(String,String)	// Set title & icon of a layout container
 	//Complete replacement
 	| TUIReplace		!TUIPath !TUIDef
 	| TUIUpdate			!TUIPath !TUIDef			// Let a component update itself with a new TUI definition (for custom components)

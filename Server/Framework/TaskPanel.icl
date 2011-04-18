@@ -9,38 +9,38 @@ buildTaskPanel cont=:(TTContainer menu tree controlTask) = case tree of
 		= TaskDone
 	TTFinishedTask _ _ True
 		= buildResultPanel cont
-	TTInteractiveTask ti type tui
+	TTInteractiveTask _ _ _
 		= TTCInteractiveContainer
 			{ TTCInteractiveContainer
 			| xtype 		= "itasks.ttc.interactive"
 			, content 		= Just (buildTaskPanel` tree menu controlTask)
 			, updates 		= Nothing	
 			, menu			= menu
-			, type			= if controlTask Control type
 			}
-	TTParallelTask ti containers
+	TTParallelTask _ _
 		= TTCInteractiveContainer
 			{ TTCInteractiveContainer
 			| xtype 		= "itasks.ttc.interactive"
 			, content 		= Just (buildTaskPanel` tree menu controlTask)
 			, updates 		= Nothing	
 			, menu			= menu
-			, type			= if controlTask Control Parallel
 			}
 where
 	buildTaskPanel` :: !UITree ![TUIDef] !Bool -> TUIDef
 	buildTaskPanel` tree menu controlTask = case tree of
-		TTInteractiveTask {subject,description,interactiveLayout=l=:TIInteractiveLayoutMerger layout} type (editor,mbContext,buttons)
+		TTInteractiveTask {TaskInfo|title,description,interactiveLayout=l=:TIInteractiveLayoutMerger layout} type (editor,mbContext,buttons)
 			= layout	{ TUIInteractive
-						| title			= htmlDisplay Nothing subject
+						| title			= title
 						, description	= htmlDisplay Nothing description
 						, mbContext		= mbContext
 						, editor		= editor
 						, buttons		= buttons
+						, type			= type
+						, isControlTask	= controlTask
 						}
-		TTParallelTask {subject,description,parallelLayout=l=:TIParallelLayoutMerger layout} containers
+		TTParallelTask {TaskInfo|title,description,parallelLayout=l=:TIParallelLayoutMerger layout} containers
 			= layout	{ TUIParallel
-						| title			= htmlDisplay Nothing subject
+						| title			= title
 						, description	= htmlDisplay Nothing description
 						, items			= map buildParallelElement containers
 						}
@@ -59,14 +59,13 @@ buildResultPanel tree = case tree of
 									, content 		= Just (content ti result)
 									, updates 		= Nothing	
 									, menu			= []
-									, type			= Result
 									})
 	_
 		= TaskNotDone
 where
-	content {subject,description,resultLayout=l=:TIResultLayoutMerger layout} result
+	content {TaskInfo|title,description,resultLayout=l=:TIResultLayoutMerger layout} result
 		= layout	{ TUIResult
-					| title			= htmlDisplay Nothing subject
+					| title			= title
 					, description	= htmlDisplay Nothing description
 					, result		= htmlDisplay Nothing (toString result)
 					}

@@ -2,89 +2,10 @@
 	Layout Styles of TaskTree Components
 */
 
-/* Shared subject and description panels */
-.TTCSubject {
-	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
-	background-repeat: repeat-x;
-	border: 1px solid #99BBE8;
-	color: #000;
-	margin: 10px 10px 0px 10px;
-	font-weight: bold;
-	padding: 5px;
-}
-.TTCDescription  {
-	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
-	border: 1px solid #99BBE8;
-	margin: 0px 10px 0px 10px;
-	padding: 5px;
-}
 .TTCPanel {
-	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	margin: 10px;
+}
+
+.TTCPanelContent {
 	padding: 5px;
-	border-left: 1px solid #99BBE8;
-	border-bottom: 1px solid #99BBE8;
-	border-right: 1px solid #99BBE8;
-	margin: 0px 10px 0px 10px;
-	background-repeat: repeat;
-}
-/* Form Container */
-.TTCInformationContainer {
-	background-color: #eee;
-	
-	background-image : url('img/ttc-icons/TTCFormContainer.png') !important;
-	background-repeat: no-repeat;
-	background-position: 3px 3px;
-}
-
-/* Message Container */
-.TTCMessageContainer {
-	background-color: #eee;
-	
-	background-image : url('img/ttc-icons/TTCMessageContainer.png') !important;
-	background-repeat: no-repeat;
-	background-position: 3px 3px;
-}
-
-/* Instruction Container */
-.TTCInstructionContainer{
-	background-color: #eee;
-	
-	background-image : url('img/ttc-icons/TTCInstructionContainer.png') !important;
-	background-repeat: no-repeat;
-	background-position: 3px 3px;
-}
-
-/* Parallel Container */
-.TTCParallelControlContainer{
-	background-color: #eee;
-	
-	background-image : url('img/ttc-icons/TTCParallelContainer.png') !important;
-	background-repeat: no-repeat;
-	background-position: 3px 3px;
-}
-
-/* Monitor Container */
-.TTCMonitorContainer {
-	background-color: #eee;
-	
-	background-image : url('img/ttc-icons/TTCMonitorContainer.png') !important;
-	background-repeat: no-repeat;
-	background-position: 3px 3px;
-}
-
-/* Control task Container */
-.TTCControlContainer {
-	background-color: #eee;
-	
-	background-image : url('img/ttc-icons/TTCProcessControlContainer.png') !important;
-	background-repeat: no-repeat;
-	background-position: 3px 3px;
-}
-
-/* Result Container */
-.TTCResultContainer {
-	background-color: #eee;
-	background-image : url('img/ttc-icons/TTCResultContainer.png') !important;
-	background-repeat: no-repeat ;
-	background-position: 3px 3px;
 }

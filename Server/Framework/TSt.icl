@@ -60,7 +60,7 @@ initTaskInfo :: TaskInfo
 initTaskInfo
 	=	{ TaskInfo
 		| taskId			= ""
-		, subject			= ""
+		, title				= ""
 		, description		= ""
 		, interactiveLayout	= TIInteractiveLayoutMerger	defaultInteractiveLayout
 		, parallelLayout	= TIParallelLayoutMerger	defaultParallelLayout
@@ -150,7 +150,7 @@ where
 		# taskNr	= taskNrFromString taskId
 		# info =	{ TaskInfo|initTaskInfo
 					& taskId	= taskId
-					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
+					, title		= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
 		= initTree info
 
@@ -212,7 +212,7 @@ where
 		// reset tree
 		# info 											=	{ TaskInfo|initTaskInfo
 															& taskId	= taskId
-															, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
+															, title		= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 															}
 		# tst											= {tst & tree = initTree info}
 		# (result, tst=:{sharedChanged,triggerPresent,sharedDeleted}) = applyTaskCommit currentTask Nothing {tst & sharedChanged = False, triggerPresent = False, sharedDeleted = False}
@@ -309,7 +309,7 @@ where
 		# taskNr	= taskNrFromString taskId
 		# info =	{ TaskInfo|initTaskInfo
 					& taskId	= taskId
-					, subject	= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
+					, title		= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
 		# tree		= initTree info
 		= {TSt| tst & taskNr = taskNr, tree = tree, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
@@ -491,7 +491,7 @@ calculateTaskTreeContainer taskId events tst
 		Nothing
 			# info =	{ TaskInfo | initTaskInfo
 						& taskId			= taskId
-						, subject			= "Deleted Process"
+						, title				= "Deleted Process"
 						, description		= "Task Result"
 						}
 			= (TTContainer noMenu (TTFinishedTask info noProcessResult False) False, tst)
@@ -509,8 +509,8 @@ calculateTaskTreeContainer taskId events tst
 						Nothing						= renderException ""
 					# info =	{ TaskInfo| initTaskInfo
 								& taskId			= taskId
-								, subject			= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
-								, description		= "Uncaught exception"
+								, title				= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
+								, description		= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.description
 								}
 					= (TTFinishedTask info output True,tst)
 				_		
@@ -521,11 +521,11 @@ calculateTaskTreeContainer taskId events tst
 						Nothing		= noProcessResult
 					# info =	{ TaskInfo| initTaskInfo
 								& taskId			= taskId
-								, subject			= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
-								, description		= "Task Result"
+								, title				= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
+								, description		= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.description
 								}
 					= (TTFinishedTask info result False,tst)
-			= (TTContainer properties.systemProperties.SystemProperties.menu tree properties.taskProperties.isControlTask,tst)
+			= (TTContainer properties.systemProperties.SystemProperties.menu tree properties.taskProperties.TaskProperties.isControlTask,tst)
 
 renderResult :: !Dynamic -> HtmlTag
 renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value
@@ -534,7 +534,7 @@ jsonResult :: !Dynamic -> JSONNode
 jsonResult (Container value :: Container a a) = toJSON value
 
 renderException :: !String -> TTNNFinished
-renderException err = (html [SpanTag [StyleAttr "color: red"] [Text "Uncaught exception"], BrTag [], Text err],JSONString ("Uncaught exception: " +++ err))
+renderException err = (html [H1Tag [] [SpanTag [StyleAttr "color: red"] [Text "Uncaught exception"]], BrTag [], Text err],JSONString ("Uncaught exception: " +++ err))
 
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)
@@ -648,7 +648,7 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !(Maybe (!Int,!TaskContainerType)) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit task=:{properties=properties=:{isControlTask}, mbTaskNr, taskFuncCommit} mbParChildInfo tst=:{taskNr,tree,interactiveLayout=tstInteractiveLayout,parallelLayout=tstParallelLayout,resultLayout=tstResultLayout}
+applyTaskCommit task=:{properties=properties=:{TaskProperties|isControlTask}, mbTaskNr, taskFuncCommit} mbParChildInfo tst=:{taskNr,tree,interactiveLayout=tstInteractiveLayout,parallelLayout=tstParallelLayout,resultLayout=tstResultLayout}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	// overwrite layouts if task defines new one, is inherited by children
@@ -657,7 +657,7 @@ applyTaskCommit task=:{properties=properties=:{isControlTask}, mbTaskNr, taskFun
 	# resultLayout							= fromMaybe tstResultLayout task.mbResultLayout
 	# taskInfo =	{ TaskInfo
 					| taskId				= taskNrToString taskNr
-					, subject				= properties.TaskProperties.taskDescription.TaskDescription.title
+					, title					= properties.TaskProperties.taskDescription.TaskDescription.title
 					, description			= toString properties.TaskProperties.taskDescription.TaskDescription.description
 					, interactiveLayout		= TIInteractiveLayoutMerger interactiveLayout
 					, parallelLayout		= TIParallelLayoutMerger parallelLayout

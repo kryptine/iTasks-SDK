@@ -1,6 +1,9 @@
 Ext.ns('itasks.ttc');
 
-itasks.ttc.FinishedContainer = Ext.extend(itasks.ttc.TTCBase,{
+itasks.ttc.FinishedContainer = Ext.extend(Ext.Panel,{
+	width: 700,
+	height: 150,
+	margin: 10,
 	afterRender: function() {
 		this.getEl().fadeOut(
 			{ scope: this

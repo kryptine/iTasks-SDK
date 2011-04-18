@@ -46,7 +46,7 @@ from TUIDefinition	import :: TUIDef, :: InteractiveLayoutMerger, :: ParallelLayo
 					| TTInBody							// task shown in the body of the parallel container
 
 :: TaskInfo	=	{ taskId				:: !TaskId											//Task number in string format
-				, subject				:: !String											//Short subject of the task
+				, title					:: !String											//Short title of the task
 				, description			:: !String											//Description of the task (html)
 				, interactiveLayout		:: !TIInteractiveLayoutMerger
 				, parallelLayout		:: !TIParallelLayoutMerger

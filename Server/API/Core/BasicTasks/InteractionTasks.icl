@@ -191,7 +191,7 @@ where
 	toView (choice,opts) = setOptions (map view opts) choice
 	getChoiceFromModel (choice,opts) = opts !! getChoiceIndex choice
 	
-choiceException description = taskException ((toDescr description).TaskDescription.title +++ ": cannot choose from empty option list")
+choiceException description = taskException "Cannot choose from empty option list"
 
 makeMultipleChoiceTask :: !(Maybe about) !(a -> v) ![a] !(Maybe [Int]) -> TaskFunctions [a] | iTask a & iTask v & iTask about
 makeMultipleChoiceTask mbContext view opts mbSel
@@ -286,7 +286,7 @@ makeMessageTaskSticky about view
 	= mapTaskFunctions snd (makeMessageTaskA about view [])
 
 makeMessageTaskA :: !(AboutMsg a) !(a -> v) ![TaskAction a] -> TaskFunctions (!Action,!a) | iTask a & iTask v
-makeMessageTaskA about view actions = appSnd ((o) mapResult) (makeInteractiveTask mbAbout view (const Void,\_ _ -> Void) actions Nothing mode)
+makeMessageTaskA about view actions = appSnd ((o) mapResult) (makeInteractiveTask mbAbout view (const (Hidden Void),\_ _ -> Void) actions Nothing mode)
 where
 	mapResult (res,tst) = case res of
 		TaskFinished (event,_)
@@ -319,7 +319,7 @@ showInstructionAbout subject instruction context
 
 makeInstructionTask :: !(Maybe about) !a -> TaskFunctions a | iTask a & iTask about
 makeInstructionTask context value
-	= mapTaskFunctions (const value) (makeInteractiveTask (fmap AboutValue context) id idView [(ActionOk,always)] Nothing (LocalUpdate Void))
+	= mapTaskFunctions (const value) (makeInteractiveTask (fmap AboutValue context) id idView [(ActionOk,always)] Nothing (LocalUpdate (Hidden Void)))
 
 //Changes all predicates on values of type a to predicates on values of type about										
 mapTaskActionPredicates :: !(about -> a) ![TaskAction a] -> [TaskAction about]

@@ -14,7 +14,6 @@ from TUIDiff import :: TUIUpdate
 	, content		:: !(Maybe TUIDef)
 	, updates		:: !(Maybe [TUIUpdate])
 	, menu			:: ![TUIDef]
-	, type			:: !InteractiveTaskType
 	}
 
 buildTaskPanel 		:: !UITreeContainer			-> TaskPanel

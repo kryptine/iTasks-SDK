@@ -2,7 +2,7 @@ Ext.ns("itasks.tui");
 
 itasks.tui.TimeControl = itasks.tui.extendBase(Ext.form.TimeField,{
 	format: "H:i:s",
-	width: 100,
+	defaultWidth: 100,
 	onChange: function () {
 		if(this.isValid()) {
 			var v = this.getRawValue();

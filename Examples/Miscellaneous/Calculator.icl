@@ -38,11 +38,14 @@ where
 						,"0","+","-","="]
 				
 	calculatorLayout :: !TUIInteractive -> TUIDef
-	calculatorLayout {title,mbContext,editor,buttons}
-		= TUIContainer {simpleContainer [defaultTitlePanel title, defaultContentPanel (maybeToList mbContext ++ editor ++ [buttonPanel])] & restrictedWidth = True}
+	calculatorLayout {title,mbContext,buttons,type,isControlTask} = defaultPanel
+		title
+		(defaultInteractiveIcon type isControlTask)
+		[defaultContentPanel (maybeToList mbContext ++ buttonLayout buttons)]
+		Auto
 	where
-		buttonPanel = TUIContainer (simpleContainer (buttonPanel` buttons []))
-		buttonPanel` buttons acc = case splitAt 4 buttons of
-			([],_)		= reverse acc
-			([quit],_)	= reverse [TUIContainer {simpleContainer [quit] & layout = Horizontal HRight}:acc]
-			(row,r)		= buttonPanel` r [TUIContainer {simpleContainer row & layout = Horizontal HLeft}:acc]
+		buttonLayout buttons = buttonLayout` buttons []
+		buttonLayout` buttons acc = case splitAt 4 buttons of
+			([],_)		= reverse			acc
+			([quit],_)	= reverse			[{content = TUILayoutContainer {defaultLayoutContainer [quit] & orientation = Horizontal, hGravity = HGRight}, width = FillParent 1 ContentSize, height = Wrap}:acc]
+			(row,r)		= buttonLayout` r	[{content = TUILayoutContainer {defaultLayoutContainer row & orientation = Horizontal}, width = FillParent 1 ContentSize, height = Wrap}:acc]

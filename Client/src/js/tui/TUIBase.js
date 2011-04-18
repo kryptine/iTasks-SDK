@@ -15,6 +15,7 @@ itasks.tui.base = {
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		this.msgTargetField = this;
 		this.listeners = this.listeners || {change : {fn: this.onChange, scope: this}};
+		this.width = this.defaultWidth;
 		
 		this.extSuperclass.initComponent.call(this,arguments);
 

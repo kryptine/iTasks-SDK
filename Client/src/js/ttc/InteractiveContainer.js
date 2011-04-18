@@ -1,9 +1,7 @@
 Ext.ns('itasks.ttc');
 
 itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
-	initComponent : function() {
-		this.cls = this.getCls(this.type);
-		
+	initComponent : function() {		
 		itasks.ttc.InteractiveContainer.superclass.initComponent.apply(this,arguments);
 	},
 	buildComponents: function(data){
@@ -13,13 +11,6 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		if (data == "done" || data == "redundant"){
 			this.fadeOut(data);
 			return;
-		}
-		
-		// update css class
-		if(data.type != this.type){
-			this.removeClass(this.getCls(this.type));
-			this.addClass(this.getCls(data.type));
-			this.type = data.type;
 		}
 		
 		if(data.updates) {
@@ -61,6 +52,12 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 					case "TUISetEnabled":
 						if(cmp = this.findComponentByPath(this, update[1])) {
 							cmp.setDisabled(!update[2]);
+						}
+						break;
+					case "TUISetTitle":
+						if(cmp = this.findComponentByPath(this, update[1])) {
+							cmp.setTitle(update[2][0]);
+							cmp.setIconClass(update[2][1]);
 						}
 						break;
 					case "TUIReplace":
@@ -169,18 +166,6 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		}
 		
 		return cmp.items.get(target);
-	},
-	
-	getCls: function(type) {
-		switch(type){
-			case 'Information':	return 'TTCInformationContainer';
-			case 'Message':		return 'TTCMessageContainer';
-			case 'Instruction':	return 'TTCInstructionContainer';
-			case 'Monitor':		return 'TTCMonitorContainer';
-			case 'Control':		return 'TTCControlContainer';
-			case 'Parallel':	return 'TTCParallelControlContainer';
-			case 'Result':		return 'TTCResultContainer';
-		}
 	}
 });
 

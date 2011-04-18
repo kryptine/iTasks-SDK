@@ -84,17 +84,10 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		this.removeAll();
 		this.add({
 			xtype: "itasks.ttc.finished",
-			subject: "Task completed",
-			description: msg,
-			descriptionHeight: height,
+			title: "Task completed",
+			html: msg,
 			destroyCmp: destroyCmp
 		});
-		
-		this.getEl().fadeOut(
-			{ duration: itasks.ttc.TTC_FADE_DURATION
-			, useDisplay: true
-			}
-		);
 	
 		this.doLayout();
 	}

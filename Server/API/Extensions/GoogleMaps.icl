@@ -65,7 +65,7 @@ where
 gVisualize {|GoogleMap|} val vst=:{vizType, label, currentPath, optional, useLabels, verifyMask, taskId}
 	# (cmv,vm) = popMask verifyMask
 	= case vizType of
-		VEditorDefinition = ([TUIFragment (TUICustom ((mapPanel val label (not useLabels) currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+		VEditorDefinition = ([TUIFragment {TUIDef | content = TUICustom ((mapPanel val label (not useLabels) currentPath True)), width = Auto, height = Auto}],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 		_				  = (staticMapPanel val, {VSt | vst & currentPath = stepDataPath currentPath})
 where
 	mapPanel Nothing	fl hl cp ed	= toJSON (tuidef mkMap fl hl cp ed)
@@ -109,7 +109,7 @@ gVisualize {|GoogleStaticMap|} (Just (GoogleStaticMap w h u)) vst=:{vizType,curr
 		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],{VSt | vst & currentPath = stepDataPath currentPath})
 		VHtmlLabel		= ([HtmlFragment (Text "Static Map")],{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextLabel		= ([TextFragment "Static Map"],{VSt | vst & currentPath = stepDataPath currentPath})
-		_				= ([TUIFragment (TUICustom ((toJSON staticMap)))],{VSt | vst & currentPath = stepDataPath currentPath})
+		_				= ([TUIFragment {TUIDef | content = TUICustom ((toJSON staticMap)), width = Auto, height = Auto}],{VSt | vst & currentPath = stepDataPath currentPath})
 where
 	staticMap =
 		{ TUIGoogleStaticMap

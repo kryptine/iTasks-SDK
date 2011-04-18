@@ -66,11 +66,15 @@ where
 		mkMenu`` :: !Menu !SubtaskActions -> (!TUIDef,!SubtaskActions)
 		mkMenu`` (Menu label items) actions
 			# (itemDefs,actions) = mapSt mkMenuItem items actions
-			# def = TUIMenuButton	{ TUIMenuButton
+			# def =	{ content	= TUIMenuButton
+									{ TUIMenuButton
 									| text = label
 									, menu = {TUIMenu | items = itemDefs}
 									, disabled = isEmpty itemDefs
 									}
+					, width		= Auto
+					, height	= Auto
+					}
 			= (def,actions)
 			
 		mkMenuItem :: !MenuItem !SubtaskActions -> (!TUIDef,!SubtaskActions)
@@ -78,30 +82,38 @@ where
 			MenuItem menuA mbHotkey
 				# (menuActionName,menuActionLabel)	= menuAction menuA
 				# (mbAction,actions)				= getSubtaskAction menuActionName actions
-				# def = TUIMenuItem	{ TUIMenuItem	
-									| text = mkLabel mbAction menuActionLabel
-									, target = fmap fst3 mbAction
-									, action = Just menuActionName
-									, disabled = maybe True (not o thd3) mbAction
-									, menu = Nothing
-									, iconCls = fmap (actionIcon o snd3) mbAction
-									, hotkey = mbHotkey
-									}
+				# def =	{ content	= TUIMenuItem
+										{ TUIMenuItem	
+										| text = mkLabel mbAction menuActionLabel
+										, target = fmap fst3 mbAction
+										, action = Just menuActionName
+										, disabled = maybe True (not o thd3) mbAction
+										, menu = Nothing
+										, iconCls = fmap (actionIcon o snd3) mbAction
+										, hotkey = mbHotkey
+										}
+						, width		= Auto
+						, height	= Auto
+						}
 				= (def,actions)
 			SubMenu label items
 				# (itemDefs,actions) = mapSt mkMenuItem items actions
-				# def = TUIMenuItem	{ TUIMenuItem
-									| text = label
-									, menu = Just {TUIMenu | items = itemDefs}
-									, disabled = isEmpty itemDefs
-									, action = Nothing
-									, target = Nothing
-									, iconCls = Nothing
-									, hotkey = Nothing
-									}
+				# def =	{ content	= TUIMenuItem
+										{ TUIMenuItem
+										| text = label
+										, menu = Just {TUIMenu | items = itemDefs}
+										, disabled = isEmpty itemDefs
+										, action = Nothing
+										, target = Nothing
+										, iconCls = Nothing
+										, hotkey = Nothing
+										}
+						, width		= Auto
+						, height	= Auto
+						}
 				= (def,actions)
 			MenuSeparator
-				= (TUIMenuSeparator,actions)
+				= ({content = TUIMenuSeparator, width = Auto, height = Auto},actions)
 				
 		getSubtaskAction :: !ActionName !SubtaskActions -> (!Maybe SubtaskAction,!SubtaskActions)
 		getSubtaskAction name actions = getSubtaskAction` actions []
@@ -139,19 +151,17 @@ where
 			= map mkButton buttonActions
 		where	
 			mkButton :: !SubtaskAction -> TUIDef
-			mkButton (_,action,enabled) = TUIButton	{ TUIButton
-													| name = actionName action
-													, taskId = taskId
-													, disabled = not enabled
-													, text = actionLabel action
-													, iconCls = actionIcon action
-													}
-			
-		addButtons :: !TUIDef !TUIDef -> TUIDef
-		addButtons buttons def = case def of
-			TUIContainer c	= TUIContainer {TUIContainer|c & items = c.TUIContainer.items ++ [buttons]}
-			tui				= TUIContainer (simpleContainer [tui,buttons])
-	
+			mkButton (_,action,enabled) = 	{ content	= TUIButton
+															{ TUIButton
+															| name = actionName action
+															, taskId = taskId
+															, disabled = not enabled
+															, text = actionLabel action
+															, iconCls = actionIcon action
+															}
+											, width		= Auto
+											, height	= Auto
+											}
 			
 	addTaskIds :: !TaskId ![(!Action,!Bool)] -> SubtaskActions
 	addTaskIds taskId l = map (\(a,e) -> (taskId,a,e)) l

@@ -35,7 +35,8 @@
 		
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
-		,{"text":"Container.js","path":"src/js/tui/"}
+		,{"text":"FormContainer.js","path":"src/js/tui/"}
+		,{"text":"LayoutContainer.js","path":"src/js/tui/"}
 		,{"text":"HtmlDisplay.js","path":"src/js/tui/"}
 		
 		,{"text":"TTCCommon.js","path":"src/js/ttc/"}

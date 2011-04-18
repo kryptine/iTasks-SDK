@@ -1,7 +1,7 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.NoteControl = itasks.tui.extendBase(Ext.form.TextArea,{
-	width: 400,
+	defaultWidth: 400,
 	grow: true
 });
 
