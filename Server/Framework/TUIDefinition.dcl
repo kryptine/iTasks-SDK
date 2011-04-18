@@ -168,6 +168,7 @@ simpleContainer	:: ![TUIDef] -> TUIContainer
 defaultInteractiveLayout	:: InteractiveLayoutMerger
 fullWidthInteractiveLayout	:: InteractiveLayoutMerger
 defaultParallelLayout		:: ParallelLayoutMerger
+minimalParallelLayout		:: ParallelLayoutMerger
 defaultResultLayout			:: ResultLayoutMerger
 
 defaultPanel				:: !TUIDef !TUIDef ![TUIDef]	-> TUIDef

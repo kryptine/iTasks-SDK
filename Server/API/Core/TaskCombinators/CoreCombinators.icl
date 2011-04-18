@@ -310,9 +310,9 @@ where
 			# taskProps = case task of
 				PTask {Task|properties} _	= properties
 				PCTask {Task|properties}	= properties
-			# info =	{ index				= idx
-						, taskProperties	= taskProps
-						, processProperties	= fmap (\{Process|properties} -> properties) mbProc
+			# info =	{ ParallelTaskInfo
+						| index				= idx
+						, properties		= maybe (Left taskProps) (\{Process|properties} -> Right properties) mbProc
 						}
 			= (info,iworld)
 				

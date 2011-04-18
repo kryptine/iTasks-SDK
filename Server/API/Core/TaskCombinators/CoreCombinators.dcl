@@ -81,11 +81,10 @@ derive class iTask Control
 :: TerminationStatus	=	AllRunToCompletion	// all parallel processes have ended their execution
 						|	Stopped				// the control signal StopParallel has been commited
 
-:: ParallelTaskInfo =	{ index				:: !TaskIndex				// the task's index
-						, taskProperties	:: !TaskProperties			// task properties
-						, processProperties	:: !Maybe ProcessProperties	// process properties for tasks which are detached processes
-						}
-
+:: ParallelTaskInfo =	{ index				:: !TaskIndex								// the task's index
+						, properties		:: !Either TaskProperties ProcessProperties // Task properties for inbody tasks and process
+						}																// properties for detached tasks
+					
 :: TaskContainer acc	= E.a: DetachedTask	!ManagerProperties !ActionMenu	!(Task a) !(AccuFunDetached a acc)	& iTask a
 						| E.a: WindowTask	!WindowTitle !ActionMenu		!(Task a) !(AccuFun a acc)			& iTask a
 						| E.a: DialogTask	!WindowTitle					!(Task a) !(AccuFun a acc)			& iTask a

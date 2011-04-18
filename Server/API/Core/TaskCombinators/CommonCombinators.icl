@@ -48,7 +48,7 @@ where
 			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
 		>>|	return undef
 		
-	toView (_,[_,{processProperties=p=:Just {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}])=
+	toView (_,[_,{ParallelTaskInfo|properties=Right {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}])=
 		{ mapRecord m
 		& assignedTo	= worker
 		, progress		= formatProgress progress
@@ -151,20 +151,21 @@ where
 		>>|	return undef
 	
 	toView (_,infos) = Table (map toView` (filter isProc infos))
-	toView` {index,processProperties=p=:Just {ProcessProperties|managerProperties=m=:{worker},taskProperties=t=:{taskDescription}}} =
+	toView` {ParallelTaskInfo|index,properties=Right {ProcessProperties|managerProperties=m=:{worker},taskProperties=t=:{taskDescription}}} =
 		{ ProcessOverviewView
 		| index			= Hidden index
 		, subject		= Display taskDescription.TaskDescription.title
 		, assignedTo	= worker
 		}
 		
-	isProc {processProperties} = isJust processProperties
+	isProc {ParallelTaskInfo|properties = Right _} = True
+	isProc _ = False
 	
 	fromView (Table viewList) (_,infos) = map fromView` viewList
 	where
 		fromView` ({ProcessOverviewView|index=i=:Hidden index,assignedTo})
 			= case filter (\info -> info.ParallelTaskInfo.index == index) infos of
-				[{processProperties=p=:Just {ProcessProperties|managerProperties}}] = (index,{managerProperties & worker = assignedTo})
+				[{ParallelTaskInfo|properties=Right {ProcessProperties|managerProperties}}] = (index,{managerProperties & worker = assignedTo})
 				_ = abort "old parallel: no manager properties"
 			
 :: ProcessOverviewView =	{ index			:: !Hidden TaskIndex
