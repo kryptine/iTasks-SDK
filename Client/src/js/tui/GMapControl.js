@@ -6,11 +6,14 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 		
 		Ext.applyIf(this,
 			{ border: false
-			, height: 400
 			, scope: this
 			, displayedMarkers : new Array()
 			});
 
+		//Use default width and height
+		this.height = 400;
+		delete(this.width);
+	
 		itasks.tui.GMapControl.superclass.initComponent.apply(this,arguments);
 	
 		this.addEvents('tuichange');
