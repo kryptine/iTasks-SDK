@@ -110,22 +110,13 @@ chat1
                     		(you @: chatEditor you me chatState)
 where
 	chatEditor me you chatState
-		= 							updateSharedInformationA ("Chat list view") showChatState [] chatState
+		= 							showMessageSharedA ("Chat list view") id [] chatState
 									||-
-									enterInformationA ("Chat with " <+++ you) id actions
-		 >>= \(event,response) ->		case event of
-		 								 ActionQuit -> return Void
-		 								 ActionOk 	-> 					readShared chatState
-		 												>>= \list -> 	writeShared chatState (list ++ [me +++> ": " +++> fromJust response])
-		 													>>|			chatEditor me you chatState
-
-
-	showChatState 
-		=	( \list   -> Display list
-			, \_ list -> list 
-			)
-
-	actions = [(ActionQuit,always),(ActionOk,ifvalid)]
+									enterInformationA ("Chat with " <+++ you) id [(ActionQuit,always),(ActionOk,ifvalid)]
+		>>= \(event,response) ->		case event of
+		 								 ActionQuit -> stop
+		 								 ActionOk 	-> 		updateShared (\list -> list ++ [me +++> ": " +++> fromJust response]) chatState
+		 												>>|	chatEditor me you chatState
 
 initChatState :: [String]
 initChatState = []
