@@ -6,17 +6,12 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ workflow "Summerschool/1: Int" 				"Fill in an integer value"  			taskIntForm
-				, workflow "Summerschool/2: Person"   			"Fill in person record" 				personForm
-				, workflow "Summerschool/3: [Person]"  			"Fill in list of persons" 				personAdmForm
-				, workflow "Summerschool/4: [Person] Check"   	"Fill in and check list of persons" 	personAdmForm
-				, workflow "Summerschool/5: Delegate "   		"Delegate example 4" 					(delegate fillInAndCheckPersons)
-				, workflow "Summerschool/6: Chat "   			"Chat with someone" 					chat
+				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8//, w9
 				] world
 
-			
+// a simple form for an integer value
 
-// example, simple form for integer
+w1 = workflow "CEFP/1: Int" "Fill in an integer value" taskIntForm
 
 taskIntForm :: Task Int
 taskIntForm = fillInForm "Please fill in an integer value:"
@@ -26,7 +21,7 @@ fillInForm prompt
 	= 					enterInformation prompt
 		>>=	\result ->	showMessageAbout "The result is:" result
 
-// example, showing eta conversion
+// same, just to show eta conversion
 
 taskIntForm2 :: Task Int
 taskIntForm2 = fillInForm2 "Please fill in an integer value:"
@@ -36,7 +31,9 @@ fillInForm2 prompt
 	= 					enterInformation prompt
 		>>=				showMessageAbout "The result is:" 
 
-// example, a form for any type
+// show the power of generic functions: a form for type person
+
+w2 = workflow "CEFP/2: Person" "Fill in person record" personForm
 
 :: Person 	= 	{ firstName    	:: String
 		      	, surName  		:: String
@@ -51,67 +48,179 @@ derive class iTask Person, Gender
 personForm :: Task Person
 personForm = fillInForm "Please fill in the form:"
 
-// example, a form for any type
+// same, now for [Person]
+
+w3 = workflow "CEFP/3: [Person]" "Fill in list of persons" personAdmForm
 
 personAdmForm :: Task [Person]
 personAdmForm = fillInForm "Please fill in the form:"
 
-// example, recursion
+// example of a recursive definition
+
+w4 = workflow "CEFP/4: [Person] Check" "Fill in and check list of persons" 	fillInAndCheckPersons
 
 fillInAndCheckPersons :: Task [Person]
 fillInAndCheckPersons =  fillInAndCheck "Please fill in the form:"
 
 fillInAndCheck ::  String -> Task a | iTask a
 fillInAndCheck prompt
-	=				enterInformation prompt
-		>>=			checkInformation
-where
-	checkInformation result
+	=					enterInformation prompt
+		>>= \result ->	repeatUntilOK (updateInformation prompt) result
+
+repeatUntilOK :: (a -> Task a) a -> (Task a) | iTask a
+repeatUntilOK task result
 		=				requestConfirmationAbout "Is the result ok ?" result
 			>>= \ok ->	if ok (return result)
-							  (updateInformation prompt result >>= checkInformation) 
+							  (task result >>= repeatUntilOK task) 
 
-// example, delegate
+// delegate: example of a higher order task 
 
-selectUsers
+w5 = workflow "CEFP/5: Delegate" "Delegate CEFP/4" (delegate fillInAndCheckPersons)
+
+selectUser
 		= 					getUsers
 			>>=				enterChoice "Select a user:"
 
 delegate :: (Task a) -> (Task a) | iTask a
 delegate task
-	= 						selectUsers
+	= 						selectUser
 		>>= \worker ->		worker @: task
 		>>= \result ->		updateInformation "Check result" result
 		
-// example, delegate one of my workflows
-
-
-//from WorkflowStarter import getMyWorkflows	// clearly NOT the place where does should have been defined....
+// would be nice to play with workflows as tasks... not yet implemented
 
 /* this needs more work...
 delegateWorkflow :: (Task a) | iTask a
 delegateWorkflow
 	=						getMyWorkflows
-		>>= 				enteChoice "Select the workflow to delegate"
-		
+		>>= 				enterChoice "Select the workflow to delegate"
+		>>= \wfl ->			delegate wfl
 */		
 		
+// example, chat using a view on shared state and explicit recursion
+
+w6a = workflow "CEFP/6a: Chat" "Chat with one iTask user" chat1
+
+chat1 
+    =               		getCurrentUser
+    	>>= \me ->			selectUser
+		>>= \you ->			createSharedStore initChatState
+        >>= \chatState -> 	(me  @: chatEditor me you chatState)
+                    		-||-
+                    		(you @: chatEditor you me chatState)
+where
+	chatEditor me you chatState
+		= 							updateSharedInformationA ("Chat list view") showChatState [] chatState
+									||-
+									enterInformationA ("Chat with " <+++ you) id actions
+		 >>= \(event,response) ->		case event of
+		 								 ActionQuit -> return Void
+		 								 ActionOk 	-> 					readShared chatState
+		 												>>= \list -> 	writeShared chatState (list ++ [me +++> ": " +++> fromJust response])
+		 													>>|			chatEditor me you chatState
+
+
+	showChatState 
+		=	( \list   -> Display list
+			, \_ list -> list 
+			)
+
+	actions = [(ActionQuit,always),(ActionOk,ifvalid)]
+
+initChatState :: [String]
+initChatState = []
+
+// example, chat using modification of shared state
+
+w6b = workflow "CEFP/6b: Chat" "Chat with one iTask user, updating views" chat2
+
+chat2 
+    =               		getCurrentUser
+    	>>= \me ->			selectUser
+		>>= \you ->			createSharedStore initChatState
+        >>= \chatState -> 	(me @: chatEditor me you chatState)
+                    		-||-
+                    		(you @: chatEditor you me chatState)
+where
+	chatEditor me you chatState
+		= 	updateSharedInformationA ("Chat with " <+++ you) (view me) actions chatState
+
+	view user 
+		=	( \list -> (Display list,Note "")
+			, \(Display _,Note response) list -> list ++ [user +++> ": " +++> response]
+			)
+
+	actions = [(ActionQuit,always)]
+
 // example, chat using shared state
 
-chat 
+w6c = workflow "CEFP/6c: Chat" "Chat with several users" chat3
+
+chat3
     =               		getCurrentUser
-    	>>= \me ->			selectUsers
-		>>= \user ->		createSharedStore [("", "")]
-        >>= \chatstate -> 	(me @:    updateSharedInformationA ("Chat with " <+++ user) editor1 [(ActionQuit,always)] chatstate)
-                    		-||-
-                    		(user  @: updateSharedInformationA ("Chat with " <+++ me) editor2 [(ActionQuit,always)] chatstate)
+    	>>= \me ->			createSharedStore initChatState
+        >>= \chatState -> 	parallel "Chat application" chatState finishPar [initControl chatState] [initChat me chatState] 
 where
-  editor1 =  (map (\(x,y) -> (Note x,Display (Note y))), \list _ -> [(x,y) \\ (Note x, Display (Note y)) <- list])
-  editor2 =  (map (\(x,y) -> (Display (Note x),Note y)), \list _ -> [(x,y) \\ (Display (Note x), Note y) <- list])
-//  editor1 =  (\(note1, note2) -> (Display note2,note1), \(_,note1) (_, note2) -> (note1, note2))
-//  editor2 =  (\(note1, note2) -> (Display note1,note2), \(_,note2) (note1, _) -> (note1, note2))
 
+	finishPar _ _ = Void
 
+	initChat user chatState
+		=	InBodyTask (newChat user chatState) finishChat
+		
+	initControl chatState
+		=	InBodyCTask (appendChatter chatState)
 
+	appendChatter chatState _
+		=					selectUser
+			>>= \you ->		return [AppendTasks [initChat you chatState]]		
+
+	finishChat _ list 
+		=	(list,[])
+
+	newChat user chatState
+		= 	user @: updateSharedInformationA ("Chat with iTask users") (view user) actions chatState
+
+	view user 
+		=	( \list -> (Display list,Note "")
+			, \(Display _,Note response) list -> list ++ [user +++> ": " +++> response]
+			)
+
+	actions =  	[ (ActionQuit,always)]
+			 	
+
+// a simple button only valid when some predicates hold
+
+w7 = workflow "CEFP/7: Accept only an odd number" "Type in an odd positive number less than 100" getOddNumber
+
+getOddNumber :: Task Int
+getOddNumber 
+	=						enterInformationA "Type in an odd number" id [(ActionOk,predicate)]
+		>>= \(_,value) ->	showMessageAbout "You typed in:" (fromJust value)
+where
+	predicate (Valid n) = n > 0 && isOdd n && n < 100
+	predicate _ = False	
+
+// guarantee that a type has values with a certain property specializing gVerify
+
+w8 = workflow "CEFP/8: Specialized type only accepting an odd number" "Type in an odd number" getOddNumber2
+
+:: Odd = Odd Int
+
+derive gVisualize 	Odd
+derive gUpdate 		Odd
+derive gDefaultMask Odd
+derive JSONEncode 	Odd
+derive JSONDecode 	Odd
+derive gEq 			Odd
+
+gVerify{|Odd|} mba st
+	= wrapperVerify (Just "Type in an odd number") (\(Odd v) -> isOdd v) (\(Odd v) -> v +++> " is not an odd number") mba st
+
+getOddNumber2 :: Task Int
+getOddNumber2 
+	=						enterInformation "Type in an odd number" 
+		>>= \(Odd n) ->		showMessageAbout "You typed in:" n
+
+// pocket calculator
 
 
