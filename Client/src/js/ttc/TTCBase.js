@@ -37,7 +37,7 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 	afterRender: function(){
 		if (this.fadeIn) this.getEl().fadeIn({duration: itasks.ttc.TTC_FADE_DURATION});
 	
-		itasks.ttc.TTCBase.superclass.afterRender.call(this,arguments);		
+		itasks.ttc.TTCBase.superclass.afterRender.apply(this,arguments);
 		
 		//Update references to the rendered components
 		if(this.interactionpanel)

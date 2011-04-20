@@ -109,6 +109,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	, title				:: !Maybe PanelTitle
 	, frame				:: !Bool
 	, iconCls			:: !Maybe PanelIcon
+	, padding			:: !Maybe Int
 	}
 :: TUIRecordContainer =
 	{ name			:: !TUIName
@@ -179,7 +180,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 :: TUIFixedSize		:== Int
 :: TUIWeight		:== Int
 :: TUIMinSize		= ContentSize							// The container's minimal size is the minimal size of its content
-					| FixedMinWeight !TUIFixedSize			// The container has a fixed minimal size
+					| FixedMinSize !TUIFixedSize			// The container has a fixed minimal size
 :: TUIHGravity		= HGLeft | HGCenter | HGRight
 :: TUIVGravity		= VGTop | VGCenter | VGBottom
 :: TUIOrientation	= Horizontal | Vertical

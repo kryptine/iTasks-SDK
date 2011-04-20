@@ -44,7 +44,7 @@ itasks.tui.ConstructorControl = itasks.tui.extendBase(Ext.Panel,{
 		this.items = [this.consField, this.itemPanel];	
 		this.oldConsIdx = this.value + 1;
 		
-		itasks.tui.base.initComponent.call(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 		
 		this.msgTargetField = this.consField;
 	},
@@ -54,11 +54,11 @@ itasks.tui.ConstructorControl = itasks.tui.extendBase(Ext.Panel,{
 		// only generate change event if different cons is chosen
 		if (newConsIdx != this.oldConsIdx){
 			this.oldConsIdx = newConsIdx;
-			itasks.tui.base.onChange.call(this);
+			itasks.tui.base.onChange.apply(this,arguments);
 		}
 	},
 	afterRender: function() {
-		itasks.tui.base.afterRender.call(this,arguments);
+		itasks.tui.base.afterRender.apply(this,arguments);
 	
 		//Redirect addition method to the child panel
 		this.add = function(c) {

@@ -23,7 +23,7 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 	},
 	
 	afterRender: function(){
-		itasks.tui.RecordContainer.superclass.afterRender.call(this,arguments);
+		itasks.tui.RecordContainer.superclass.afterRender.apply(this,arguments);
 		
 		if(this.optional){
 			this[this.hasValue?'expand':'collapse']();

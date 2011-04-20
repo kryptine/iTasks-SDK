@@ -6,7 +6,7 @@ itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
 		this.dataPath = this.name;
 		this.name = this.getId();
 		
-		itasks.tui.base.initComponent.call(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 	},
 	onChange: function() {
 		if (this.allowMultiple || this.checkRadio) {
@@ -29,6 +29,7 @@ itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
 			
 			var items = [];
 			var selection = this.value;
+			this.checkRadio = selection.length == 0;
 			var isSelected = function(idx){
 				for(var i=0; i<selection.length; i++){
 					if(idx == selection[i]) return true;
@@ -79,7 +80,7 @@ itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
 	},
 	
 	afterRender : function(){
-		itasks.tui.base.afterRender.call(this);
+		itasks.tui.base.afterRender.apply(this,arguments);
 		
 		this.eachItem(function(item){
 			item.on('check',this.fireChecked, this);

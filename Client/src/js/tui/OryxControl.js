@@ -11,7 +11,7 @@ itasks.tui.OryxControl = itasks.tui.extendBase(Ext.Panel,{
             , html: 'Loading...'
 			});
 
-		itasks.tui.base.initComponent.call(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 
         this.inUpdate = false;
 
@@ -58,7 +58,7 @@ itasks.tui.OryxControl = itasks.tui.extendBase(Ext.Panel,{
 	},
 	
 	afterRender : function(){
-	    itasks.tui.OryxControl.superclass.afterRender.call(this);
+	    itasks.tui.OryxControl.superclass.afterRender.apply(this,arguments);
 
 		switch(itasks.app.oryxState) {
 			case 'loaded':

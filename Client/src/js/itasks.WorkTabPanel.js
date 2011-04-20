@@ -28,7 +28,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			},{
 				xtype: "panel",
 				region: "center",
-				autoScroll: true,
 				ctCls: "worktab-container",
 				bodyStyle: 'background-color: #eee',
 				tbar: [{

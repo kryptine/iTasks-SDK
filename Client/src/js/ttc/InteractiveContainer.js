@@ -1,6 +1,8 @@
 Ext.ns('itasks.ttc');
 
 itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
+	autoScroll: true,
+	layout: 'hbox',
 	initComponent : function() {		
 		itasks.ttc.InteractiveContainer.superclass.initComponent.apply(this,arguments);
 	},
@@ -166,6 +168,23 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		}
 		
 		return cmp.items.get(target);
+	},
+	
+	doLayout: function() {
+		var p = this.findParentByType('itasks.work').get(1);
+		var w = p.getWidth();
+		var h = p.getHeight() - p.getTopToolbar().getHeight();
+		
+		this.suspendEvents();
+		this.setSize(w,h);
+		this.resumeEvents();
+		
+		itasks.ttc.InteractiveContainer.superclass.doLayout.apply(this,arguments);
+		
+		if (Ext.isFunction(this.get(0).doTUILayout)) {
+			this.get(0).doTUILayout(w, h);
+			itasks.ttc.InteractiveContainer.superclass.doLayout.call(this);
+		}
 	}
 });
 

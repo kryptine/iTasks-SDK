@@ -26,7 +26,7 @@ itasks.tui.UsernameControl = itasks.tui.extendBase(Ext.form.ComboBox,{
 		};
 		this.tpl = new Ext.XTemplate('<tpl for="."><div class="x-combo-list-item">{username:htmlEncode}</div></tpl>');
 		
-		itasks.tui.base.initComponent.call(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 	}
 });
 

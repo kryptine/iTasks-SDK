@@ -4,7 +4,7 @@ itasks.tui.BoolControl = itasks.tui.extendBase(Ext.form.Checkbox,{
 	initComponent: function() {
 		this.checked = this.value;
 		this.listeners = {check: this.onChange, scope: this};
-		itasks.tui.base.initComponent.call(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 	}
 });
 

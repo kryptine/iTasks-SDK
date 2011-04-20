@@ -17,10 +17,10 @@ itasks.tui.TreeControl = itasks.tui.extendBase(Ext.tree.TreePanel,{
 			}
 		},this);
 		
-		itasks.tui.base.initComponent.call(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 	},
 	afterRender : function(){
-		itasks.tui.base.afterRender.call(this);
+		itasks.tui.base.afterRender.apply(this,arguments);
 		if(Ext.isNumber(this.value)){
 			this.setValue(this.value);
 		}

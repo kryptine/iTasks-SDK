@@ -50,7 +50,7 @@ itasks.ListPanel = Ext.extend(Ext.Panel,
 			}
 		}
 		
-		itasks.ListPanel.superclass.afterRender.call(this,arguments);
+		itasks.ListPanel.superclass.afterRender.apply(this,arguments);
 	}
 });
 
@@ -107,13 +107,13 @@ itasks.list.Toolbox = Ext.extend(Ext.Panel,{
 		formCt.sendUpdates(false);	
 	},
 	
-	afterRender: function(arguments){
+	afterRender: function() {
 		this.upButton.on('click',this.handleClick.createDelegate(this,['mup',this.name,this.index]));
 		this.downButton.on('click',this.handleClick.createDelegate(this,['mdn',this.name,this.index]));
 		this.addButton.on('click',this.handleClick.createDelegate(this,['add',this.name,this.index]));
 		this.remButton.on('click',this.handleClick.createDelegate(this,['rem',this.name,this.index]));
 	
-		itasks.list.Toolbox.superclass.afterRender.call(this,arguments);
+		itasks.list.Toolbox.superclass.afterRender.apply(this,arguments);
 	}
 });
 
@@ -140,7 +140,7 @@ itasks.list.Item = Ext.extend(Ext.Panel,{
 	
 	afterRender: function(){	
 		if(!this.ownerCt.staticDisplay) this.add(this.toolbox);
-		itasks.list.Item.superclass.afterRender.call(this,arguments);
+		itasks.list.Item.superclass.afterRender.apply(this,arguments);
 	}
 });
 

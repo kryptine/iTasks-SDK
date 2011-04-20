@@ -6,7 +6,7 @@ itasks.tui.CurrencyControl = itasks.tui.extendBase(Ext.form.TextField,{
 	style: "text-align: right",
 	maskRe: new RegExp('[0123456789\\.]'),
 	afterRender: function(ct){
-		itasks.tui.base.afterRender.call(this,arguments);
+		itasks.tui.base.afterRender.apply(this,arguments);
 		
 		this.currencyEl = ct.createChild({tag: 'span', cn: this.currencyLabel});
 		this.currencyEl.alignTo(this.getEl(),'tl',[5,5]);
@@ -15,7 +15,7 @@ itasks.tui.CurrencyControl = itasks.tui.extendBase(Ext.form.TextField,{
 		if (Ext.isArray(v)) {
 			this.extSuperclass.setValue.call(this,v[1]/100);
 		} else {
-			this.extSuperclass.setValue.call(this,arguments);
+			this.extSuperclass.setValue.call(this,v);
 		}
 		this.determineCurrencyLabel(v);
 		if (this.currencyEl)

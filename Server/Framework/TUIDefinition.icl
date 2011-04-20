@@ -28,6 +28,7 @@ defaultLayoutContainer items =	{ items			= items
 								, iconCls		= Nothing
 								, hGravity		= HGLeft
 								, vGravity		= VGTop
+								, padding		= Nothing
 								}
 
 defaultInteractiveLayout :: InteractiveLayoutMerger
@@ -49,9 +50,15 @@ fullWidthInteractiveLayout = \{title,description,mbContext,editor,buttons,type,i
 defaultContent :: !(Maybe TUIDef) ![TUIDef] ![TUIDef] -> [TUIDef]
 defaultContent mbContext editor buttons = content
 where
-	content = case maybeToList mbContext ++ editor ++ buttonContainer of
+	content = case maybeToList mbContext ++ editorContainer ++ buttonContainer of
 		[]					= []
 		content				= [defaultContentPanel content]
+	editorContainer
+		| isEmpty editor	= []
+		| otherwise			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editor, fieldLabel = Nothing, optional = False}
+								, width		= FillParent 1 ContentSize
+								, height	= Wrap
+								}]
 	buttonContainer
 		| isEmpty buttons	= []
 		| otherwise			= [	{ content	= TUILayoutContainer {defaultLayoutContainer buttons & orientation = Horizontal, hGravity = HGRight}
@@ -75,7 +82,7 @@ defaultPanelDescr :: !PanelTitle !PanelIcon !TUIDef ![TUIDef] !TUISize -> TUIDef
 defaultPanelDescr title iconCls description form width = defaultPanel title iconCls [defaultDescriptionPanel description:form] width
 
 defaultPanel :: !PanelTitle !PanelIcon ![TUIDef] !TUISize -> TUIDef
-defaultPanel title iconCls content width =	{ content	= TUILayoutContainer {defaultLayoutContainer content & title = Just title, cls = Just "TTCPanel", iconCls = Just iconCls}
+defaultPanel title iconCls content width =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer content & title = Just title, iconCls = Just iconCls}
 											, width		= width
 											, height	= Auto
 											}
@@ -87,7 +94,7 @@ defaultDescriptionPanel descr =		{ content	= TUILayoutContainer {TUILayoutContai
 									}
 
 defaultContentPanel :: ![TUIDef] -> TUIDef
-defaultContentPanel content =		{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer content & cls = Just "TTCPanelContent"}
+defaultContentPanel content =		{ content	= TUILayoutContainer {defaultLayoutContainer content & padding = Just 5}
 									, width		= FillParent 1 ContentSize
 									, height	= Wrap
 									}

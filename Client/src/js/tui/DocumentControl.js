@@ -17,10 +17,10 @@ itasks.tui.DocumentControl = itasks.tui.extendBase(Ext.Panel, {
 				this.downloadPanel
 		];
 	
-		itasks.tui.base.initComponent.call(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 	},
 	afterRender : function(arguments){
-		itasks.tui.base.afterRender.call(this,arguments);
+		itasks.tui.base.afterRender.apply(this,arguments);
 		
 		if(this.document.size != 0){
 			this.showDownloadPanel(false);

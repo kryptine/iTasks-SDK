@@ -17,13 +17,13 @@ itasks.tui.base = {
 		this.listeners = this.listeners || {change : {fn: this.onChange, scope: this}};
 		this.width = this.defaultWidth;
 		
-		this.extSuperclass.initComponent.call(this,arguments);
+		this.extSuperclass.initComponent.apply(this,arguments);
 
 		this.addEvents('tuichange');
 		this.enableBubble('tuichange');
 	},
 	afterRender: function() {
-		this.extSuperclass.afterRender.call(this,arguments);
+		this.extSuperclass.afterRender.apply(this,arguments);
 		
 		if(this.errorMsg)
 			this.markError(this.errorMsg);
