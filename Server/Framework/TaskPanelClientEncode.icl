@@ -60,8 +60,8 @@ addXType _ _							= abort "cannot add xtype"
 
 justXType :: !String -> [JSONNode]
 justXType xtype = [JSONObject [("xtype",JSONString xtype)]]
-import StdDebug
+
 merge :: ![JSONNode] ![JSONNode] -> [JSONNode]
 merge [JSONObject obja] [JSONObject objb]	= [JSONObject (obja ++ objb)]
-merge [a] [b]									= trace_n (toString a +++ " " +++ toString b) (abort "two JSON objects required")
+merge _ _									= abort "two JSON objects required"
 	
