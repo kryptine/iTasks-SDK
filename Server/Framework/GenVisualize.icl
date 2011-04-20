@@ -92,6 +92,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 														}
 										, width 	= Auto
 										, height	= Auto
+										, margins	= Nothing
 										}]
 				= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
 		_
@@ -126,6 +127,7 @@ where
 															}
 											, width		= Auto
 											, height	= Auto
+											, margins	= Nothing
 											}]
 		
 	staticVis v _ vst=:{vizType}
@@ -394,6 +396,7 @@ where
 									}
 					, width		= Auto
 					, height	= Auto
+					, margins	= Nothing
 					}
 				],vst)
 	where
@@ -459,6 +462,7 @@ where
 								, taskId = taskId}
 				, width		= Auto
 				, height	= Auto
+				, margins	= Nothing
 				}
 			],vst)
 		where
@@ -481,6 +485,7 @@ where
 									}
 					, width		= Auto
 					, height	= Auto
+					, margins	= Nothing
 					}
 							
 	staticVis v _ vst=:{vizType}
@@ -660,7 +665,7 @@ where
 		| otherwise			= [c:addspace cs]
 
 defaultSizeControl :: !TUIControlType !TUIControl -> TUIDef
-defaultSizeControl type control = {content = TUIControl type control, width = Auto, height = Auto}
+defaultSizeControl type control = {content = TUIControl type control, width = Auto, height = Auto, margins = Nothing}
 
 verifyElementStr :: !VerifyMask -> (!String, !String)
 verifyElementStr cmv = case cmv of

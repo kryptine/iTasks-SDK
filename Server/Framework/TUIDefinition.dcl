@@ -31,6 +31,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 :: TUIDef =	{ content	:: !TUIDefContent
 			, width		:: !TUISize
 			, height	:: !TUISize
+			, margins	:: !Maybe TUIMargins
 			}
 
 :: TUIDefContent
@@ -102,7 +103,6 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	}
 :: TUILayoutContainer =
 	{ items				:: ![TUIDef]
-	, cls				:: !Maybe String
 	, orientation		:: !TUIOrientation
 	, hGravity			:: !TUIHGravity
 	, vGravity			:: !TUIVGravity
@@ -176,6 +176,12 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 															// If the space becomes smaller than the minimal size, the element behaves as if its minimal size was its fixed size
 					| Fixed !TUIFixedSize					// The tui element has a fixed size
 					| Auto									// The actual size is one of the three options specified above, determined by the client
+
+:: TUIMargins =	{ top		:: !TUIFixedSize
+				, right		:: !TUIFixedSize
+				, bottom	:: !TUIFixedSize
+				, left		:: !TUIFixedSize
+				}
 					
 :: TUIFixedSize		:== Int
 :: TUIWeight		:== Int
@@ -187,6 +193,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 
 htmlDisplay				:: !(Maybe String) !String -> TUIDef
 defaultLayoutContainer	:: ![TUIDef] -> TUILayoutContainer
+sameMargins				:: !TUIFixedSize -> TUIMargins
 
 // Layouts
 

@@ -3,9 +3,6 @@ Ext.ns('itasks.tui');
 itasks.tui.LayoutContainer = Ext.extend(Ext.Panel,{
 	autoScroll: true,
 	initComponent: function(){
-		if (this.title) {
-			this.margins = {top: 10, right: 10, bottom: 10, left: 10};
-		}
 		if (this.padding) {
 			this.style = "padding: " + this.padding + "px;";
 			delete this.padding;

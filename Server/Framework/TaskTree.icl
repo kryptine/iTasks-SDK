@@ -74,6 +74,7 @@ where
 									}
 					, width		= Auto
 					, height	= Auto
+					, margins	= Nothing
 					}
 			= (def,actions)
 			
@@ -94,6 +95,7 @@ where
 										}
 						, width		= Auto
 						, height	= Auto
+						, margins	= Nothing
 						}
 				= (def,actions)
 			SubMenu label items
@@ -110,10 +112,11 @@ where
 										}
 						, width		= Auto
 						, height	= Auto
+						, margins	= Nothing
 						}
 				= (def,actions)
 			MenuSeparator
-				= ({content = TUIMenuSeparator, width = Auto, height = Auto},actions)
+				= ({content = TUIMenuSeparator, width = Auto, height = Auto, margins = Nothing},actions)
 				
 		getSubtaskAction :: !ActionName !SubtaskActions -> (!Maybe SubtaskAction,!SubtaskActions)
 		getSubtaskAction name actions = getSubtaskAction` actions []
@@ -161,6 +164,7 @@ where
 															}
 											, width		= Auto
 											, height	= Auto
+											, margins	= Just (sameMargins 3)
 											}
 			
 	addTaskIds :: !TaskId ![(!Action,!Bool)] -> SubtaskActions

@@ -17,11 +17,11 @@ htmlDisplay mbLabel html =	{ content	= TUIControl TUIHtmlDisplay
 											}
 							, width		= Wrap
 							, height	= Wrap
+							, margins	= Nothing
 							}
 
 defaultLayoutContainer :: ![TUIDef] -> TUILayoutContainer
 defaultLayoutContainer items =	{ items			= items
-								, cls			= Nothing
 								, orientation	= Vertical
 								, title			= Nothing
 								, frame			= False
@@ -30,6 +30,13 @@ defaultLayoutContainer items =	{ items			= items
 								, vGravity		= VGTop
 								, padding		= Nothing
 								}
+
+sameMargins :: !TUIFixedSize -> TUIMargins
+sameMargins m =	{ top		= m
+				, right		= m
+				, bottom	= m
+				, left		= m
+				}
 
 defaultInteractiveLayout :: InteractiveLayoutMerger
 defaultInteractiveLayout = \{title,description,mbContext,editor,buttons,type,isControlTask} -> defaultPanelDescr
@@ -58,12 +65,14 @@ where
 		| otherwise			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editor, fieldLabel = Nothing, optional = False}
 								, width		= FillParent 1 ContentSize
 								, height	= Wrap
+								, margins	= Nothing
 								}]
 	buttonContainer
 		| isEmpty buttons	= []
 		| otherwise			= [	{ content	= TUILayoutContainer {defaultLayoutContainer buttons & orientation = Horizontal, hGravity = HGRight}
 								, width		= FillParent 1 ContentSize
 								, height	= Wrap
+								, margins	= Nothing
 								}]
 
 defaultParallelLayout :: ParallelLayoutMerger
@@ -73,6 +82,7 @@ minimalParallelLayout :: ParallelLayoutMerger
 minimalParallelLayout = \{TUIParallel|title,description,items} ->	{ content	= TUILayoutContainer (defaultLayoutContainer items)
 																	, width		= Auto
 																	, height	= Auto
+																	, margins	= Nothing
 																	}
 
 defaultResultLayout :: ResultLayoutMerger
@@ -85,18 +95,21 @@ defaultPanel :: !PanelTitle !PanelIcon ![TUIDef] !TUISize -> TUIDef
 defaultPanel title iconCls content width =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer content & title = Just title, iconCls = Just iconCls}
 											, width		= width
 											, height	= Auto
+											, margins	= Just (sameMargins 10)
 											}
 
 defaultDescriptionPanel :: !TUIDef -> TUIDef
 defaultDescriptionPanel descr =		{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [descr] & frame = True}
 									, width		= FillParent 1 ContentSize
 									, height	= Wrap
+									, margins	= Nothing
 									}
 
 defaultContentPanel :: ![TUIDef] -> TUIDef
 defaultContentPanel content =		{ content	= TUILayoutContainer {defaultLayoutContainer content & padding = Just 5}
 									, width		= FillParent 1 ContentSize
 									, height	= Wrap
+									, margins	= Nothing
 									}
 
 defaultInteractiveIcon :: !InteractiveTaskType !Bool -> PanelIcon	

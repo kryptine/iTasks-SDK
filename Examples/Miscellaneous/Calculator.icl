@@ -47,5 +47,5 @@ where
 		buttonLayout buttons = buttonLayout` buttons []
 		buttonLayout` buttons acc = case splitAt 4 buttons of
 			([],_)		= reverse			acc
-			([quit],_)	= reverse			[{content = TUILayoutContainer {defaultLayoutContainer [quit] & orientation = Horizontal, hGravity = HGRight}, width = FillParent 1 ContentSize, height = Wrap}:acc]
-			(row,r)		= buttonLayout` r	[{content = TUILayoutContainer {defaultLayoutContainer row & orientation = Horizontal}, width = FillParent 1 ContentSize, height = Wrap}:acc]
+			([quit],_)	= reverse			[{content = TUILayoutContainer {defaultLayoutContainer [quit] & orientation = Horizontal, hGravity = HGRight}, width = FillParent 1 ContentSize, height = Wrap, margins = Nothing}:acc]
+			(row,r)		= buttonLayout` r	[{content = TUILayoutContainer {defaultLayoutContainer row & orientation = Horizontal}, width = FillParent 1 ContentSize, height = Wrap, margins = Nothing}:acc]

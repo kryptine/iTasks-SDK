@@ -11,7 +11,7 @@ derive JSONEncode TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONEncode TUIFormContainer, TUILayoutContainer, TUIRecordContainer, TUIListContainer
 derive JSONEncode TUIGridContainer, TUIGridColumn, TUITree, TUIControl
-derive JSONEncode TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize
+derive JSONEncode TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (TaskDone)					= [JSONString "done"]
@@ -19,7 +19,7 @@ JSONEncode{|TaskPanel|} (TaskRedundant)				= [JSONString "redundant"]
 JSONEncode{|TaskPanel|} (TaskNotDone)				= [JSONString "notdone"]
 JSONEncode{|TaskPanel|} (TTCInteractiveContainer x)	= JSONEncode{|*|} x
 
-JSONEncode{|TUIDef|}		{content,width,height}		= merge (JSONEncode{|*|} content) [JSONObject [("width",toJSON width),("height",toJSON height)]]
+JSONEncode{|TUIDef|}		{content,width,height,margins} = merge (JSONEncode{|*|} content) [JSONObject [("width",toJSON width),("height",toJSON height),("margins",toJSON margins)]]
 
 JSONEncode{|TUIDefContent|} (TUIControl c b)			= merge (JSONEncode{|*|} c) (JSONEncode{|*|} b)
 JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks.tui.Button" (JSONEncode{|*|} r)

@@ -26,6 +26,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 						if(cmp = this.findComponentByPath(this, update[1])) {
 							if(cmp.setValue){
 								cmp.setValue(update[2]);
+								doLayout = true;
 							}else{
 								cmp.value = update[2]; // cmp is not created yet
 							}

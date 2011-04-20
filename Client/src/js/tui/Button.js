@@ -1,7 +1,6 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.Button = Ext.extend(Ext.Button, {
-	margins: {top:3, right:3, bottom:3, left:3},
 	minWidth: 75,
 	initComponent: function() {
 		if (!this.isIconPresent(this.iconCls)) delete this.iconCls;

@@ -3,7 +3,7 @@ implementation module TUIDiff
 import StdBool, StdClass, StdList, StdMisc
 import Util, GenUpdate, TUIDefinition
 
-derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize
+derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
 gEq{|TUIConstructorControl|} _ _ = abort "not implemented"
 
@@ -12,7 +12,7 @@ diffEditorDefinitions old new = diffEditorDefinitions` startDataPath old new
 where
 	diffEditorDefinitions` :: !DataPath !TUIDef !TUIDef -> [TUIUpdate]
 	diffEditorDefinitions` path oldTui newTui
-		| oldTui.width === newTui.width && oldTui.height === newTui.height
+		| oldTui.width === newTui.width && oldTui.height === newTui.height && oldTui.margins === newTui.margins
 			= diffEditorDefinitions`` path oldTui.content newTui.content
 		| otherwise
 			= [TUIReplace (dp2s path) newTui]
@@ -61,8 +61,7 @@ where
 				numOld = length o.TUIFormContainer.items
 				numNew = length n.TUIFormContainer.items
 				numMin = min numOld numNew
-			(TUILayoutContainer o, TUILayoutContainer n)	|  o.TUILayoutContainer.cls == n.TUILayoutContainer.cls
-															&& o.TUILayoutContainer.orientation === n.TUILayoutContainer.orientation
+			(TUILayoutContainer o, TUILayoutContainer n)	|  o.TUILayoutContainer.orientation === n.TUILayoutContainer.orientation
 															&& o.TUILayoutContainer.hGravity === n.TUILayoutContainer.hGravity
 															&& o.TUILayoutContainer.vGravity === n.TUILayoutContainer.vGravity
 															&& o.TUILayoutContainer.frame === n.TUILayoutContainer.frame
