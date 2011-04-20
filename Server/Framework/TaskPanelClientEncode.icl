@@ -31,7 +31,7 @@ JSONEncode{|TUIDefContent|} (TUIRecordContainer r)		= addXType "itasks.tui.Recor
 JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "itasks.tui.List" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r)			= addXType "button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuItem r)				= addXType "itasks.ttc.MenuItem" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIMenuSeparator)			= [JSONRaw "{\"xtype\":\"menuseparator\"}"]
+JSONEncode{|TUIDefContent|} (TUIMenuSeparator)			= justXType "menuseparator"
 JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
 
 JSONEncode{|TUIControlType|} TUIStringControl			= justXType "itasks.tui.String"
@@ -60,8 +60,8 @@ addXType _ _							= abort "cannot add xtype"
 
 justXType :: !String -> [JSONNode]
 justXType xtype = [JSONObject [("xtype",JSONString xtype)]]
-
+import StdDebug
 merge :: ![JSONNode] ![JSONNode] -> [JSONNode]
 merge [JSONObject obja] [JSONObject objb]	= [JSONObject (obja ++ objb)]
-merge _ _									= abort "two JSON objects required"
+merge [a] [b]									= trace_n (toString a +++ " " +++ toString b) (abort "two JSON objects required")
 	
