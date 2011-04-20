@@ -5,6 +5,7 @@ itasks.tui.TreeControl = itasks.tui.extendBase(Ext.tree.TreePanel,{
 	loader: new Ext.tree.TreeLoader({preloadChildren: true}),
 	
 	initComponent : function(){
+		this.defaultWidth = 200;
 		this.root = {
 			xtype: 'treenode',
 			text:'tree',

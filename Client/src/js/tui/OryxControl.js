@@ -2,6 +2,8 @@ Ext.ns('itasks.tui');
 
 itasks.tui.OryxControl = itasks.tui.extendBase(Ext.Panel,{
 	initComponent : function(){
+		this.defaultWidth = 800;
+		this.defaultHeight = 600;
 		Ext.apply(this,
 			{ url: "/handlers/work/tab"
 			, border: false

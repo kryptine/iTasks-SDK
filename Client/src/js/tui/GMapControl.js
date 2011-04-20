@@ -1,7 +1,6 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
-
 	initComponent : function(){
 		
 		Ext.applyIf(this,
@@ -9,11 +8,8 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 			, scope: this
 			, displayedMarkers : new Array()
 			});
-
-		//Use default width and height
+		this.width = 500;
 		this.height = 400;
-		delete(this.width);
-	
 		itasks.tui.GMapControl.superclass.initComponent.apply(this,arguments);
 	
 		this.addEvents('tuichange');

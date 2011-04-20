@@ -1,7 +1,6 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
-	autoHeight: true,
 	htmlDirty: false,
 	stateful: false,
 	viewConfig: {
@@ -13,6 +12,7 @@ itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
 	},
 	
 	initComponent: function() {
+		this.height = 500;
 		var data = this.gridHtml;
 		var cols = this.columns;
 		var fields = [];
