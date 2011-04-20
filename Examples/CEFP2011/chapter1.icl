@@ -6,7 +6,7 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8//, w9
+				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9
 				] world
 
 // a simple form for an integer value
@@ -213,5 +213,69 @@ getOddNumber2
 		>>= \(Odd n) ->		showMessageAbout "You typed in:" n
 
 // pocket calculator
+
+// making an appointment
+
+w9 = workflow "CEFP/9: Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+
+:: MetingProposal 
+	=	{ date 		:: Date
+		, time		:: Time
+		, canMeet	:: [Attendee]
+		}
+:: Attendee
+	=	{ name		:: User
+		, canAttend :: Bool
+		, comment	:: Maybe Note
+		}	
+
+derive class iTask MetingProposal, Attendee
+
+mkAppointment :: Task Void
+mkAppointment
+	=					getUsers
+		>>= \all ->		enterMultipleChoice "Who should attend the meeting ?" all
+		>>= \users ->	enterInformation "Propose meeting dates"
+		>>= \dates ->	mapAll users dates
+where
+	mapAll users dates  
+		=						createSharedStore initMeetingState
+        >>= \meetingState -> 	parallel "Meeting Date Flow" meetingState finishPar [] [initMeeting user meetingState \\ user <- users] 
+	where
+		initMeetingState :: [MetingProposal]
+		initMeetingState =  [ { date 	= date
+							  , time 	= time
+							  , canMeet = [ { name 		= user
+							  			    , canAttend = False
+							  			    , comment 	= Nothing
+							  			    } 
+							  			  \\ user <- users
+							  			  ]
+							  }
+							\\ (date,time) <- dates
+							]
+
+	finishPar _ _ = Void
+
+	fun _ state 
+		=	(state,[])
+
+	initMeeting user meetingState
+		= DetachedTask	managerProperties actionMenu meetingTask fun
+	where
+		meetingTask
+			= updateSharedInformationA "When can we meet ?" (toView,fromView) [] meetingState
+
+		managerProperties
+			= { worker = user, priority	= NormalPriority, deadline = Nothing, status = Active }	
+		
+		actionMenu actions = []
+		
+		toView list = Table list
+		
+		fromView (Table mlist) list = mlist		
+		
+		
+		
 
 
