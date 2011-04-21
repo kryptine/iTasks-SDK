@@ -2,45 +2,25 @@ implementation module SharedTasks
 
 import StdList, StdOrdList, StdTuple, Error, Util
 import GenUpdate, GenVisualize, GenVerify, TSt, ExceptionCombinators
-from StdFunc			import id, o
+from StdFunc			import id, o, const
 from CoreCombinators	import >>|, >>=, return
 from Shared				import :: Shared(..), :: SharedWrite, :: SharedRead, :: SharedGetTimestamp, :: SymmetricShared
 from Shared				import qualified writeShared, readShared
 
-sharedStore :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId = Shared
-	(get loadValue ("cannot load value from store '" +++ storeId +++ "'"))
+sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore storeId defaultV = Shared
+	(get loadValue defaultV)
 	write
-	(get getStoreTimestamp ("cannot get timestamp of store '" +++ storeId +++ "'"))
+	(get getStoreTimestamp (Timestamp 0))
 where	
-	get f err iworld
+	get f defaultV iworld
 		# (mbV,iworld) = f storeId iworld
 		# res = case mbV of
-			Nothing	= Error err
+			Nothing	= Ok defaultV
 			Just v	= Ok v
 		= (res,iworld)
 		
 	write v iworld = (Ok Void,storeValue storeId v iworld)
-
-sharedStoreDefault :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, gUpdate{|*|}, TC a
-sharedStoreDefault storeId = Shared read write timestamp
-where
-	read iworld
-		# (mbV,iworld) = loadValue storeId iworld
-		= case mbV of
-			Nothing
-				# (v,iworld)	= defaultValue iworld
-				# iworld = storeValue storeId v iworld
-				= (Ok v,iworld)
-			Just v
-				= (Ok v,iworld)	
-	write v iworld
-		= (Ok Void,storeValue storeId v iworld)
-	timestamp iworld
-		# (mbV,iworld) = getStoreTimestamp storeId iworld
-		= case mbV of
-			Nothing	= (Error ("cannot get timestamp of store '" +++ storeId +++ "'"), iworld)
-			Just v	= (Ok v, iworld)
 	
 createSharedStore :: !a  -> Task (SymmetricShared a) | iTask a
 createSharedStore init
@@ -49,11 +29,8 @@ where
 	createSharedStore` tst=:{taskNr,properties=p=:{systemProperties=s=:{SystemProperties|taskId}}}
 		// store name starts with 'iTask_{id of main task}' to include it in garbage collection if process finishes
 		// in the rest of the name the id of the current task serves as unique id for the store
-		# shared		= sharedStore (iTaskId taskId (taskNrToString taskNr +++ "-shared"))
-		# (wres,tst)	= accIWorldTSt ('Shared'.writeShared shared init) tst
-		= case wres of
-			Ok _	= (TaskFinished shared,tst)
-			Error e	= (taskException (SharedException e),tst)
+		# shared		= sharedStore (iTaskId taskId (taskNrToString taskNr +++ "-shared")) init
+		= (TaskFinished shared,tst)
 			
 deleteSharedStore :: !SharedStoreId -> Task Void
 deleteSharedStore id

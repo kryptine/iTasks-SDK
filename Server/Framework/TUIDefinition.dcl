@@ -214,4 +214,5 @@ defaultPanelDescr			:: !PanelTitle !PanelIcon !TUIDef	![TUIDef] !TUISize	-> TUID
 defaultPanel				:: !PanelTitle !PanelIcon			![TUIDef] !TUISize	-> TUIDef
 defaultDescriptionPanel		:: !TUIDef												-> TUIDef
 defaultContentPanel			:: ![TUIDef]											-> TUIDef
+defaultContent				:: !(Maybe TUIDef) ![TUIDef] ![TUIDef]					-> [TUIDef]
 defaultInteractiveIcon		:: !InteractiveTaskType !Bool							-> PanelIcon

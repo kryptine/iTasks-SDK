@@ -134,7 +134,16 @@ JSONDecode{|Task|} _ c = (Nothing,c)
 
 gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
-	= basicCreate (defaultTask a) ust				
+	= basicCreate (defaultTask a) ust
+where
+	defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
+					, mbTaskNr			= Nothing
+					, taskFuncEdit		= id
+					, taskFuncCommit	= \tst -> (TaskFinished a,tst)
+					, mbInteractiveLayout	= Nothing
+					, mbParallelLayout	= Nothing
+					, mbResultLayout		= Nothing
+					}
 gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
 
 gDefaultMask{|Task|} _ _ = [Touched []]
@@ -149,18 +158,8 @@ gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
 	
 gEq{|Task|} _ _ _ = False // tasks are never equal
 
-gDefault{|Task|} fx = defaultTask fx
 gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
-
-defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
-				, mbTaskNr			= Nothing
-				, taskFuncEdit		= id
-				, taskFuncCommit	= \tst -> (TaskFinished a,tst)
-				, mbInteractiveLayout	= Nothing
-				, mbParallelLayout	= Nothing
-				, mbResultLayout		= Nothing
-				}
 
 taskException :: !e -> TaskResult a | TC, toString e
 taskException e = TaskException (dynamic e) (toString e)

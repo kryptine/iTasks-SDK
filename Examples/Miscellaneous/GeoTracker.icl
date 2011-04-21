@@ -10,7 +10,7 @@ geoTrackerExamples =
 	]
 
 locationStore :: SymmetricShared [(User,GoogleMapPosition)]
-locationStore = sharedStoreDefault "Locations"
+locationStore = sharedStore "Locations" []
 	
 reportPosition :: GoogleMapPosition -> Task Void
 reportPosition position

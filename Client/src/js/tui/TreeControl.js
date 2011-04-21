@@ -2,10 +2,11 @@ Ext.ns('itasks.tui');
 
 itasks.tui.TreeControl = itasks.tui.extendBase(Ext.tree.TreePanel,{
 	rootVisible: false,
+	border: false,
 	loader: new Ext.tree.TreeLoader({preloadChildren: true}),
 	
 	initComponent : function(){
-		this.defaultWidth = 200;
+		this.defaultWidth = 250;
 		this.root = {
 			xtype: 'treenode',
 			text:'tree',

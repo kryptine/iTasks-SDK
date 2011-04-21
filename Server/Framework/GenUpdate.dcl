@@ -18,7 +18,7 @@ from Shared	import :: Shared
 	, consPath			:: ![ConsPos]
 	, oldMask			:: ![UpdateMask]
 	, newMask			:: ![UpdateMask]
-	, iworld			:: !*IWorld
+	, iworld			:: !*Maybe IWorld
 	}
 
 :: UpdateMode a = UDSearch !a | UDCreate
@@ -42,7 +42,7 @@ derive gDefaultMask EmailAddress, Action, Table, HtmlDisplay
 derive bimap UpdateMode
 
 //Wrapper functions for updating
-defaultValue			:: !*IWorld -> (!a,!*IWorld)												| gUpdate{|*|} a
+defaultValue			:: a																		| gUpdate{|*|} a
 defaultMask				:: !a -> UpdateMask															| gDefaultMask{|*|} a
 updateValueAndMask  	:: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld)	| gUpdate{|*|} a
 

@@ -612,6 +612,21 @@ initManagerProperties =
 	, deadline	= Nothing
 	, status	= Active
 	}
+	
+formatPriority	:: !TaskPriority	-> HtmlDisplay
+formatPriority p = toHtmlDisplay (Text (toText p))
+where
+	toText HighPriority		= "High"
+	toText NormalPriority	= "Normal"
+	toText LowPriority		= "Low"
+		
+formatProgress	:: !TaskProgress	-> HtmlDisplay
+formatProgress TPActive		= coloredLabel "Active" "green"
+formatProgress TPStuck		= coloredLabel "Stuck" "purple"
+formatProgress TPWaiting	= coloredLabel "Waiting" "blue"
+formatProgress TPReject		= coloredLabel "Reject" "red"
+
+coloredLabel label color = toHtmlDisplay [SpanTag [StyleAttr ("color:" +++ color)] [Text label]]
 
 noMenu :: ActionMenu
 noMenu = const []

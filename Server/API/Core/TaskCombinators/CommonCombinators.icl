@@ -56,13 +56,6 @@ where
 		, firstWorkedOn	= Display firstEvent
 		, lastWorkedOn	= Display latestEvent
 		}
-	where
-		formatProgress TPActive		= coloredLabel "Active" "green"
-		formatProgress TPStuck		= coloredLabel "Stuck" "purple"
-		formatProgress TPWaiting	= coloredLabel "Waiting" "blue"
-		formatProgress TPReject		= coloredLabel "Reject" "red"
-	
-		coloredLabel label color = toHtmlDisplay [SpanTag [StyleAttr ("color:" +++ color)] [Text label]]
 		
 	fromView view=:{ProcessControlView|assignedTo} _
 		= [(1,{mapRecord view & worker = assignedTo})]

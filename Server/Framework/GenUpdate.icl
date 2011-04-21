@@ -8,27 +8,29 @@ derive bimap (,), UpdateMode
 
 :: DataPath = DataPath [Int]
 
-defaultValue :: !*IWorld -> (!a,!*IWorld) | gUpdate{|*|} a
-defaultValue iworld  
-	# (a,ust=:{iworld}) = gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = JSONNull, oldMask = [], newMask = [], iworld = iworld}
-	= (a,iworld)
+defaultValue :: a | gUpdate{|*|} a
+defaultValue = fst (gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = JSONNull, oldMask = [], newMask = [], iworld = Nothing})
 
 defaultMask :: !a -> UpdateMask | gDefaultMask{|*|} a	
 defaultMask a = hd (gDefaultMask{|*|} a)
 
 updateValueAndMask :: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
-	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} (UDSearch a) {searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
-	= (a,hd newMask,iworld)
+	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} (UDSearch a) {searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = Just iworld}
+	= (a,hd newMask,fromJust iworld)
 
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
-appIWorldUSt f ust=:{iworld}
-	= {ust & iworld = f iworld}
+appIWorldUSt f ust=:{iworld} = case iworld of
+	Just iworld	= {ust & iworld = Just (f iworld)}
+	Nothing		= abort "no IWorld in USt"
 	
 accIWorldUSt :: !.(*IWorld -> *(!.a,!*IWorld))!*USt -> (!.a,!*USt)
-accIWorldUSt f ust=:{iworld}
-	# (a,iworld) = f iworld
-	= (a,{ust & iworld = iworld})
+accIWorldUSt f ust=:{iworld} = case iworld of
+	Just iworld
+		# (a,iworld) = f iworld
+		= (a,{ust & iworld = Just iworld})
+	Nothing
+		= abort "no IWorld in USt"
 
 //Generic updater
 generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
@@ -206,13 +208,9 @@ where
 	replaceVal (USD _) x = (USD x)
 	replaceVal (JPY _) x = (JPY x)
 
-gUpdate{|Date|} UDCreate ust=:{iworld}
-	# (date,iworld) = currentDate iworld
-	= basicCreate date {ust & iworld = iworld}
+gUpdate{|Date|} UDCreate ust = basicCreate {day = 1, mon = 1, year = 1970} ust
 gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\json old -> fromMaybe old (fromJSON json)) ust
-gUpdate{|Time|} UDCreate ust=:{iworld}
-	# (time,iworld) = currentTime iworld
-	= basicCreate time {ust & iworld = iworld}
+gUpdate{|Time|} UDCreate ust = basicCreate {hour = 0, min = 0, sec = 0} ust
 gUpdate{|Time|} (UDSearch t) ust = basicSearch t (\json old -> fromMaybe old (fromJSON json)) ust
 
 gUpdate{|Dynamic|}		mode ust = basicUpdate mode unchanged (dynamic 42) ust

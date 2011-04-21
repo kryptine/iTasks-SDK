@@ -22,8 +22,8 @@ exceptionHandlingExample
 exceptionTask :: Task Int
 exceptionTask = Title "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
 
-db :: (SymmetricShared Int)
-db = sharedStore "MyIntDB"
+db :: SymmetricShared Int
+db = sharedStore "MyIntDB" 0
 
 normalTask :: Task Int
 normalTask

@@ -10,15 +10,9 @@ from Shared import :: Shared, :: SymmetricShared
 
 /**
 * Creates a reference to a store identified by a string identifier.
-* Initially no data is stored and reading data will cause an exception.
+* If no data is store the default value given as second argument is given as result.
 */
-sharedStore :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-
-/**
-* Creates a reference to a store identified by a string identifier.
-* Initially the share contains a default value.
-*/
-sharedStoreDefault :: !SharedStoreId -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, gUpdate{|*|}, TC a
+sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Create a shared store with automatically generated reference and given initial value.

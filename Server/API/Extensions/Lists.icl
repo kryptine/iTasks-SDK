@@ -20,7 +20,7 @@ derive bimap Maybe, (,)
 
 instance DB ListMeta
 where
-	databaseId 					= sharedStore "Lists"
+	databaseId 					= sharedStore "Lists" []
 	getItemId l					= DBRef l.ListMeta.listId
 	setItemId (DBRef listId) l	= {ListMeta| l & listId = listId}
 
@@ -69,16 +69,16 @@ manageList list
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= showMessageSharedA (l.List.name,l.List.description) simpleFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)))
-		(TodoList l)	= showMessageSharedA (l.List.name,l.List.description) todoFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)))
-		(DateList l)	= showMessageSharedA (l.List.name,l.List.description) dateFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)))
-		(DocumentList l)= showMessageSharedA (l.List.name,l.List.description) documentFrom	[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)))
+		(SimpleList l)	= showMessageSharedA (l.List.name,l.List.description) simpleFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(TodoList l)	= showMessageSharedA (l.List.name,l.List.description) todoFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DateList l)	= showMessageSharedA (l.List.name,l.List.description) dateFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DocumentList l)= showMessageSharedA (l.List.name,l.List.description) documentFrom	[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
 
 	editItems list = case list of
-		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)))
-		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)))
-		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)))
-		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)))
+		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
@@ -147,7 +147,7 @@ where
 	makeList _ name	desc listId					= SimpleList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	
 	storeList :: !Int !AnyList -> Task AnyList 
-	storeList listId list = writeShared (sharedStore ("List-" <+++ listId)) list
+	storeList listId list = writeShared (sharedStore ("List-" <+++ listId) defaultValue) list
 	
 getAllLists :: Task [AnyList]
 getAllLists = dbReadAll >>= getLists
@@ -160,7 +160,7 @@ where
 	
 getLists :: [ListMeta] -> Task [AnyList]
 getLists [] 	= return []
-getLists meta	= allTasks [readShared (sharedStore ("List-" <+++ m.ListMeta.listId)) \\ m <- meta]
+getLists meta	= allTasks [readShared (sharedStore ("List-" <+++ m.ListMeta.listId) defaultValue) \\ m <- meta]
 
 deleteList :: !AnyList -> Task AnyList
 deleteList list = return list/*deleteMeta listId  >>| deleteList listId >>| return list

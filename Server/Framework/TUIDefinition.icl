@@ -55,16 +55,12 @@ fullWidthInteractiveLayout = \{title,description,mbContext,editor,buttons,type,i
 	(FillParent 1 ContentSize)
 	
 defaultContent :: !(Maybe TUIDef) ![TUIDef] ![TUIDef] -> [TUIDef]
-defaultContent mbContext editor buttons = content
+defaultContent mbContext editor buttons = [defaultContentPanel (maybeToList mbContext ++ editorContainer ++ buttonContainer)]
 where
-	content = case maybeToList mbContext ++ editorContainer ++ buttonContainer of
-		[]					= []
-		content				= [defaultContentPanel content]
-	editorContainer
-		| isEmpty editor	= []
-		| otherwise			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editor, fieldLabel = Nothing, optional = False}
+	// also add editor container if editor is empty, it's needed as spacer such that buttons are placed at the bottom of the panel
+	editorContainer			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editor, fieldLabel = Nothing, optional = False}
 								, width		= FillParent 1 ContentSize
-								, height	= Wrap
+								, height	= FillParent 1 ContentSize
 								, margins	= Nothing
 								}]
 	buttonContainer
@@ -108,7 +104,7 @@ defaultDescriptionPanel descr =		{ content	= TUILayoutContainer {TUILayoutContai
 defaultContentPanel :: ![TUIDef] -> TUIDef
 defaultContentPanel content =		{ content	= TUILayoutContainer {defaultLayoutContainer content & padding = Just 5}
 									, width		= FillParent 1 ContentSize
-									, height	= Wrap
+									, height	= FillParent 1 ContentSize
 									, margins	= Nothing
 									}
 

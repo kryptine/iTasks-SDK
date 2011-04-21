@@ -238,6 +238,9 @@ instance toString HtmlDisplay
 					| TPWaiting			//Worker is waiting, not actively working on the task
 					| TPReject			//Worker does not want to continue working on the task
 					
+formatPriority	:: !TaskPriority	-> HtmlDisplay
+formatProgress	:: !TaskProgress	-> HtmlDisplay
+					
 :: TaskContainerType	= CTDetached !ManagerProperties !ActionMenu	// task detached as separate process
 						| CTWindow !WindowTitle !ActionMenu			// task shwon in a window (with own menu)
 						| CTDialog !WindowTitle						// task shwon as dialogue (without own menu)

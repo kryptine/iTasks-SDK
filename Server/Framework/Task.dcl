@@ -14,7 +14,6 @@ derive gDefaultMask		Task, ManagerProperties, TaskPriority, RunningTaskStatus
 derive gVerify			Task, ManagerProperties, TaskPriority, RunningTaskStatus
 derive gVisualize		Task, ManagerProperties, TaskPriority, RunningTaskStatus
 derive gEq				Task
-derive gDefault			Task
 derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 

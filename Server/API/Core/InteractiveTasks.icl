@@ -50,7 +50,7 @@ where
 				# (nvmask,tst)				= accIWorldTSt (verifyValue nvalue numask) tst
 				# tst						= appIWorldTSt (setStores taskNr (nvalue,numask,nvmask)) tst
 				| enterMode 				= (False,tst)
-				# (conflict,tst)			= accIWorldTSt (isSharedChanged (shared taskNr) localTimestamp) tst
+				# (conflict,tst)			= if localMode (Ok False,tst) (accIWorldTSt (isSharedChanged (shared taskNr) localTimestamp) tst)
 				| isError conflict			= (False,tst)
 				# conflict					= fromOk conflict
 				| not (isValidValue nvmask) || conflict = (conflict,tst)
@@ -111,7 +111,7 @@ where
 	// for local mode use auto generated store name, for shared mode use given store
 	shared taskNr = case interactiveTaskMode of
 		SharedUpdate shared	= shared
-		_					= mapSharedRead o2i (sharedStore (iTaskId taskNr "model"))
+		_					= mapSharedRead o2i (sharedStore (iTaskId taskNr "model") defaultValue)
 	
 	o2i = case interactiveTaskMode of
 		LocalUpdateMode _ f	= f
@@ -121,6 +121,10 @@ where
 	enterMode = case interactiveTaskMode of
 		EnterMode _	= True
 		_			= False
+		
+	localMode = case interactiveTaskMode of
+		SharedUpdateMode _	= False
+		_					= True
 			
 	// initialises the task the first time it is ran
 	initTask taskNr iworld
@@ -139,13 +143,12 @@ where
 			# iworld								= setStores taskNr (value,umask,vmask) iworld
 			= (Ok Void,iworld)
 		| otherwise
-			# (value,iworld)						= defaultValue iworld
+			# value									= defaultValue
 			# umask									= Untouched
 			# (vmask,iworld)						= verifyValue value umask iworld
 			# iworld								= setStores taskNr (value,umask,vmask) iworld
 			// make use of 'bimapPutback' to help compiler determining the type of the default value
-			# (defModel,iworld)						= defaultValue iworld
-			# (_,iworld) 							= (bimapPutback value defModel,iworld)
+			# (_,iworld) 							= (bimapPutback value defaultValue,iworld)
 			= (Ok Void,iworld)
 			
 	readModelValue taskNr iworld

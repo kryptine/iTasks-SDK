@@ -1,6 +1,6 @@
 implementation module GenRecord
 
-import StdTuple, StdList, StdFunc, GenDefault, Error, Util, Shared
+import StdTuple, StdList, StdFunc, Error, Util, Shared, GenUpdate
 from dynamic_string import copy_to_string, copy_from_string
 
 copyRecord :: !a !b -> b | GenRecord a & GenRecord b
@@ -8,10 +8,10 @@ copyRecord src dst
 	# srcFields = gGetRecordFields{|*|} src [] newMap
 	= fst (gPutRecordFields{|*|} dst [] srcFields)
 	
-mapRecord :: !a -> b | GenRecord a & GenRecord b
+mapRecord :: !a -> b | GenRecord a & GenRecord, gUpdate{|*|} b
 mapRecord rec
 	# fields = gGetRecordFields{|*|} rec [] newMap
-	= fst (gPutRecordFields{|*|} gDefault{|*|} [] fields)
+	= fst (gPutRecordFields{|*|} defaultValue [] fields)
 	
 generic gGetRecordFields r :: !r ![GenType] !*RecordFields -> *RecordFields
 
@@ -104,18 +104,3 @@ getFieldTypes _ = []
 	
 derive gEq GenType
 derive bimap (,)
-
-gDefault{|UNIT|} = UNIT
-gDefault{|Char|} = '\0'
-gDefault{|Bool|} = False
-gDefault{|(->)|} _ fy = const fy
-gDefault{|Dynamic|} = dynamic 42
-gDefault{|Shared|} fx _ = Shared read write getTimestamp
-where
-	read iworld								= (Ok fx,iworld)
-	write _ iworld							= (Ok Void,iworld)
-	getTimestamp iworld=:{IWorld|timestamp}	= (Ok timestamp,iworld)
-
-derive gDefault Maybe, Either, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gDefault Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode
-derive gDefault EmailAddress, Action, Table, HtmlDisplay, ButtonState

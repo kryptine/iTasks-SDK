@@ -38,9 +38,7 @@ where
 getDefaultValue :: Task a | iTask a
 getDefaultValue = mkInstantTask ("Create default value", "Create a default data value.") getDefaultValue`
 where
-	getDefaultValue` tst=:{TSt|iworld}
-		# (d,iworld)	= defaultValue iworld
-		= (TaskFinished d, {TSt|tst & iworld = iworld})
+	getDefaultValue` tst = (TaskFinished defaultValue,tst)
 
 
 getRandomInt :: Task Int

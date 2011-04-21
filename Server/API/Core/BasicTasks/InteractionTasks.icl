@@ -176,11 +176,10 @@ makeChoiceTaskA _ mbContext view actions opts mbSel
 
 sharedChoiceTask :: !d !(Maybe about) !(a -> v) ![TaskAction a] !(Shared [a] w) !(Maybe Int) -> Task (!Action,!Maybe a) | descr d & iTask a & iTask v & iTask about
 sharedChoiceTask description mbContext view actions sharedOpts mbSel =
-				choiceStore
-	>>= \store.	'SharedTasks'.readShared sharedOpts
+				'SharedTasks'.readShared sharedOpts
 	>>=		 	transform initChoice
-	>>=			'SharedTasks'.writeShared store
-	>>|			if (isJust mbContext) (updateSharedInformationAboutA description (toView,const) (mapTaskActionPredicates getChoiceFromModel actions) (fromJust mbContext) (store >+| sharedOpts)) (updateSharedInformationA description (toView,const) (mapTaskActionPredicates getChoiceFromModel actions) (store >+| sharedOpts))
+	>>=			choiceStore
+	>>= \store.	if (isJust mbContext) (updateSharedInformationAboutA description (toView,const) (mapTaskActionPredicates getChoiceFromModel actions) (fromJust mbContext) (store >+| sharedOpts)) (updateSharedInformationA description (toView,const) (mapTaskActionPredicates getChoiceFromModel actions) (store >+| sharedOpts))
 	>>=			transform (appSnd (fmap getChoiceFromModel))
 where
 	initChoice opts
@@ -207,11 +206,10 @@ makeMultipleChoiceTaskA mbContext view actions opts mbSel
 	
 sharedMultipleChoiceTask :: !d !(Maybe about) !(a -> v) ![TaskAction [a]] !(Shared [a] w) !(Maybe [Int]) -> Task (!Action,![a]) | descr d & iTask a & iTask v & iTask about
 sharedMultipleChoiceTask description mbContext view actions sharedOpts mbSel =
-				choiceStore
-	>>= \store.	'SharedTasks'.readShared sharedOpts
+				'SharedTasks'.readShared sharedOpts
 	>>=		 	transform initChoice
-	>>=			'SharedTasks'.writeShared store
-	>>|			if (isJust mbContext) (updateSharedInformationAboutA description (toView,const) (mapTaskActionPredicates getChoicesFromModel actions) (fromJust mbContext) (store >+| sharedOpts)) (updateSharedInformationA description (toView,const) (mapTaskActionPredicates getChoicesFromModel actions) (store >+| sharedOpts))
+	>>=			choiceStore
+	>>= \store.	if (isJust mbContext) (updateSharedInformationAboutA description (toView,const) (mapTaskActionPredicates getChoicesFromModel actions) (fromJust mbContext) (store >+| sharedOpts)) (updateSharedInformationA description (toView,const) (mapTaskActionPredicates getChoicesFromModel actions) (store >+| sharedOpts))
 	>>=			transform (appSnd (getChoicesFromModel o fromJust))
 where
 	initChoice opts
@@ -222,7 +220,7 @@ where
 	toView (choice,opts) = setOptionsM (map view opts) choice
 	getChoicesFromModel (choice,opts) = [opt \\ opt <- opts & i <- [0..] | isMember i (getChoiceIndexes choice)]
 
-choiceStore = mkInstantTask "Creates store for shared choice" (\tst=:{taskNr} -> (TaskFinished (sharedStore (iTaskId taskNr "choice")),tst))
+choiceStore init = mkInstantTask "Creates store for shared choice" (\tst=:{taskNr} -> (TaskFinished (sharedStore (iTaskId taskNr "choice") init),tst))
 
 showMessage :: !d a -> Task a | descr d & iTask a
 showMessage description value
