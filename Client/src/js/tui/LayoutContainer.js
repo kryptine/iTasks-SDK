@@ -101,8 +101,8 @@ itasks.tui.LayoutContainer = Ext.extend(Ext.Panel,{
 		this.setSize(myW,myH);
 		this.resumeEvents();
 		
-		var totalFillW	= myW - this.getFrameWidth()	- (this.title ? 2 : 0);
-		var totalFillH	= myH - this.getFrameHeight()	- (this.title ? 1 : 0);
+		var totalFillW	= myW - this.getFrameWidthCached()	- (this.title ? 2 : 0);
+		var totalFillH	= myH - this.getFrameHeightCached()	- (this.title ? 1 : 0);
 		var sizes		= this.getChildSizes();
 		var horizontal	= this.orientation == 'Horizontal';
 		
@@ -183,6 +183,9 @@ itasks.tui.LayoutContainer = Ext.extend(Ext.Panel,{
 	},
 	
 	getTUISize: function() {
+		var cached = this.getCache('size');
+		if (cached !== null) return cached;
+		
 		var tuiW		= this.tuiSize.width;
 		var tuiH		= this.tuiSize.height;
 		var size		= {};
@@ -210,10 +213,14 @@ itasks.tui.LayoutContainer = Ext.extend(Ext.Panel,{
 				break;
 		}
 		
+		this.setCache('size',size);
 		return size;
 	},
 	
 	getMinTUISize: function() {
+		var cached = this.getCache('minSize');
+		if (cached !== null) return cached;
+		
 		var tuiW		= this.tuiSize.width;
 		var tuiH		= this.tuiSize.height;
 		var minSize		= {};
@@ -235,30 +242,34 @@ itasks.tui.LayoutContainer = Ext.extend(Ext.Panel,{
 		};
 		
 		if (tuiW[0] == 'Wrap' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
-			minSize.width	= (this.orientation == 'Horizontal' ? sum : max) (function(i) {return i.minSize.width;}) + this.getFrameWidth() + (this.title ? 2 : 0);
+			minSize.width	= (this.orientation == 'Horizontal' ? sum : max) (function(i) {return i.minSize.width;}) + this.getFrameWidthCached() + (this.title ? 2 : 0);
 		} else {
 			minSize.width	= tuiW[0] == 'Fixed' ? tuiW[1] : tuiW[2][1];
 		}
 		minSize.width += this.getMarginsW();
 		
 		if (tuiH[0] == 'Wrap' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
-			minSize.height	= (this.orientation == 'Horizontal' ? max : sum) (function(i) {return i.minSize.height;}) + this.getFrameHeight();
+			minSize.height	= (this.orientation == 'Horizontal' ? max : sum) (function(i) {return i.minSize.height;}) + this.getFrameHeightCached();
 		} else {
 			minSize.height	= tuiH[0] == 'Fixed' ? tuiH[1] : tuiH[2][1];
 		}
 		minSize.height += this.getMarginsH();
 		
+		this.setCache('minSize',minSize);
 		return minSize;
 	},
 	
 	getChildSizes: function() {
+		var cached = this.getCache('childSizes');
+		if (cached !== null) return cached;
+	
 		var sizes = new Ext.util.MixedCollection();
 		this.items.each(function(item) {
 			if (Ext.isFunction(item.getTUISize) && Ext.isFunction(item.getMinTUISize)) {
 				var tuiSize	= item.getTUISize();
 				var minSize	= item.getMinTUISize();
 			} else {
-				var s		= item.getOuterSize();
+				var s		= item.getSize();
 				if(item.margins) {
 					s.width		+= (item.margins.left + item.margins.right);
 					s.height	+= (item.margins.top + item.margins.bottom);
@@ -274,6 +285,7 @@ itasks.tui.LayoutContainer = Ext.extend(Ext.Panel,{
 			});
 		});
 		
+		this.setCache('childSizes',sizes);
 		return sizes;
 	},
 	
@@ -282,6 +294,34 @@ itasks.tui.LayoutContainer = Ext.extend(Ext.Panel,{
 	},
 	getMarginsH: function() {
 		return (this.margins ? this.margins.top + this.margins.bottom : 0);
+	},
+	getFrameWidthCached: function() {
+		if(!Ext.isDefined(this.cachedFrameWidth))
+			this.cachedFrameWidth = this.getFrameWidth();
+			
+		return this.cachedFrameWidth;
+	},
+	getFrameHeightCached: function() {
+		if(!Ext.isDefined(this.cachedFrameHeight))
+			this.cachedFrameHeight = this.getFrameHeight();
+			
+		return this.cachedFrameHeight;
+	},
+	
+	getCache: function(key) {
+		var x = itasks.tui.cache[this.id];
+		if (Ext.isDefined(x) && Ext.isDefined(x[key])) {
+			return x[key];
+		} else {
+			return null;
+		}
+	},
+	setCache: function(key,v) {
+		var x = itasks.tui.cache[this.id];
+		if (!Ext.isDefined(x))
+			itasks.tui.cache[this.id] = {};
+			
+		itasks.tui.cache[this.id][key] = v;
 	}
 });
 

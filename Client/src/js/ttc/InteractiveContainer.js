@@ -3,6 +3,7 @@ Ext.ns('itasks.ttc');
 itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 	autoScroll: true,
 	layout: 'hbox',
+	dirty: true,
 	initComponent : function() {		
 		itasks.ttc.InteractiveContainer.superclass.initComponent.apply(this,arguments);
 	},
@@ -76,18 +77,20 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 						if(cmp = this.findComponentByPath(this, update[1])) {
 							cmp.insert(update[2],update[3]);
 							doLayout = true;
+							this.dirty = true;
 						}
 						break;
 					case "TUIRemove":
 						if(cmp = this.findComponentByPath(this, update[1])) {
 							cmp.remove(update[2]);
 							doLayout = true;
+							this.dirty = true;
 						}
 						break;
 				}
 			}
 			
-			if (doLayout) this.doLayout();
+			if (doLayout) this.doLayout(true);
 			
 		} else {
 			//Completely replace form
@@ -171,7 +174,11 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		return cmp.items.get(target);
 	},
 	
-	doLayout: function() {
+	doLayout: function(shallow) {
+		if (!Ext.isFunction(this.get(0).doTUILayout))
+			itasks.ttc.InteractiveContainer.superclass.doLayout.apply(this,arguments);
+		if(!shallow) return;
+		
 		var p = this.findParentByType('itasks.work').get(1);
 		var w = p.getWidth();
 		var h = p.getHeight() - p.getTopToolbar().getHeight();
@@ -180,12 +187,15 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		this.setSize(w,h);
 		this.resumeEvents();
 		
-		itasks.ttc.InteractiveContainer.superclass.doLayout.apply(this,arguments);
-		
-		if (Ext.isFunction(this.get(0).doTUILayout)) {
-			this.get(0).doTUILayout(w, h);
+		if (this.dirty) {
 			itasks.ttc.InteractiveContainer.superclass.doLayout.call(this);
+			this.dirty = false;
 		}
+		
+		itasks.tui.cache = {};
+		this.get(0).doTUILayout(w, h);
+
+		itasks.ttc.InteractiveContainer.superclass.doLayout.call(this);
 	}
 });
 
