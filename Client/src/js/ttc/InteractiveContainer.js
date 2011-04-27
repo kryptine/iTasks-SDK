@@ -67,6 +67,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 					case "TUIReplace":
 						cmp = this.replaceComponentByPath(this, update[1], update[2]);
 						doLayout = true;
+						this.dirty = true;
 						break;
 					case "TUIUpdate":
 						if(cmp = this.findComponentByPath(this, update[1])) {
@@ -175,8 +176,10 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 	},
 	
 	doLayout: function(shallow) {
-		if (!Ext.isFunction(this.get(0).doTUILayout))
+		if (!Ext.isFunction(this.get(0).doTUILayout)) {
 			itasks.ttc.InteractiveContainer.superclass.doLayout.apply(this,arguments);
+			return;
+		}
 		if (shallow === false) return;
 		
 		var p = this.findParentByType('itasks.work').get(1);
