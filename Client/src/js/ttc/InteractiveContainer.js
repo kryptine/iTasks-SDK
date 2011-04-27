@@ -177,7 +177,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 	doLayout: function(shallow) {
 		if (!Ext.isFunction(this.get(0).doTUILayout))
 			itasks.ttc.InteractiveContainer.superclass.doLayout.apply(this,arguments);
-		if(!shallow) return;
+		if (shallow === false) return;
 		
 		var p = this.findParentByType('itasks.work').get(1);
 		var w = p.getWidth();

@@ -52,7 +52,8 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		this.removeAll();
 		this.initChildComponents();
 		this.add(data.content);
-			
+		
+		this.dirty = true;
 		this.doLayout();
 	},
 	setChildComponentsWidth: function() {
