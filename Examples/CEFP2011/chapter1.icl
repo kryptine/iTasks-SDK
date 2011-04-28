@@ -218,18 +218,18 @@ getOddNumber2
 
 w9 = workflow "CEFP/9: Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 
-:: MetingProposal 
+:: MeetingProposal 
 	=	{ date 		:: Date
 		, time		:: Time
-		, canMeet	:: [Attendee]
+		, canMeet	:: [Participant]
 		}
-:: Attendee
+:: Participant
 	=	{ name		:: User
 		, canAttend :: Bool
 		, comment	:: Maybe Note
 		}	
 
-derive class iTask MetingProposal, Attendee
+derive class iTask MeetingProposal, Participant
 
 mkAppointment :: Task Void
 mkAppointment
@@ -240,9 +240,9 @@ mkAppointment
 where
 	mapAll users dates  
 		=						createSharedStore initMeetingState
-        >>= \meetingState -> 	parallel "Meeting Date Flow" meetingState finishPar [] [initMeeting user meetingState \\ user <- users] 
+        >>= \meetingState -> 	parallel "Meeting Date Flow" meetingState finishPar [] (map (initMeeting meetingState) users)
 	where
-		initMeetingState :: [MetingProposal]
+		initMeetingState :: [MeetingProposal]
 		initMeetingState =  [ { date 	= date
 							  , time 	= time
 							  , canMeet = [ { name 		= user
@@ -260,7 +260,7 @@ where
 	fun _ state 
 		=	(state,[])
 
-	initMeeting user meetingState
+	initMeeting meetingState user
 		= DetachedTask	managerProperties actionMenu meetingTask fun
 	where
 		meetingTask
@@ -274,8 +274,3 @@ where
 		toView list = Table list
 		
 		fromView (Table mlist) list = mlist		
-		
-		
-		
-
-
