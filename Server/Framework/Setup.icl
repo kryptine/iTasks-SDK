@@ -3,7 +3,7 @@ implementation module Setup
 import StdList,StdBool, StdInt, StdFile, StdFunc
 import HTTP
 import HTML, HtmlUtil
-import File, Error
+import File, Error, OS
 import Config
 import Engine, Util
 
@@ -25,8 +25,12 @@ setupHandler handlers req world
 //Initial config of the form
 initialConfig :: !*World -> (!Config,!*World)
 initialConfig world
-	# (clientPath,world) = findClientPath 10 "Client" world
-	= ({defaultConfig & clientPath = clientPath},world)
+	# (clientPath,world)	= findClientPath 10 "Client" world
+	# (runAsyncPath,world) 	= findPath 10 ("Tools" </> "RunAsync" </> IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe") 
+								defaultConfig.runAsyncPath world
+	# (curlPath,world)		= findPath 10 ("Tools" </> "Curl" </> (IF_POSIX_OR_WINDOWS "curl" "curl.exe"))
+								defaultConfig.curlPath world
+	= ({defaultConfig & clientPath = clientPath, runAsyncPath = runAsyncPath, curlPath = curlPath},world)
 where
 	findClientPath 0 path world = (".",world)
 	findClientPath i path world
@@ -36,7 +40,13 @@ where
 		# (ok,world)	= checkClientPath buildpath world
 		| ok			= (buildpath,world)
 		= findClientPath (dec i) ("..\\" +++ path) world
-
+		
+	findPath 0 path defaultPath world = (defaultPath, world)
+	findPath i path defaultPath world
+		# (ok,world)	= fileExists path world
+		| ok			= (path,world)
+		= findPath (dec i) (".." </> path) defaultPath world
+		
 postedConfig :: !HTTPRequest -> Config	
 postedConfig req = 
 	{ clientPath = fromMaybe "" (get "clientPath" req.arg_post)
