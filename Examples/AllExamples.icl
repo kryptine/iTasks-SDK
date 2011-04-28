@@ -42,8 +42,8 @@ import GinExamples
 //Ad-hoc work extensions
 import Groups, Lists, Messages, Consensus
 
-//Workflow starter
-import WorkflowStarter
+//Client
+import Client
 
 Start :: *World -> *World
 Start world = startEngine workflows world
@@ -73,5 +73,5 @@ where
 							]
 						, rpcExamples
 						, ginExamples
-						, workflowStarter
+						, clientExample
 						]
