@@ -23,8 +23,8 @@ ginEditor = Workflow initManagerProperties (staticMenu initMenu) (emptyState >>=
 getConfig :: Task GinConfig
 getConfig = accWorld ginLoadConfig >>= \maybeConfig = 
     case maybeConfig of 
-        Just config -> accWorld (ginCheckConfig config) >>= \error = (if (isNothing error) (return config) (setupDialog config))
-        Nothing     -> accWorld ginDefaultConfig >>= \config = setupDialog config
+        Just config = accWorld (ginCheckConfig config) >>= \error = (if (isNothing error) (return config) (setupDialog config))
+        Nothing     = accWorld ginDefaultConfig >>= \config = setupDialog config
 where
 	setupDialog :: GinConfig -> Task GinConfig
 	setupDialog config = dialog config >>= \newconfig = appWorld (ginStoreConfig newconfig) >>| return newconfig
@@ -124,8 +124,8 @@ doMenu state =: { EditorState | mode, config, gMod } =
     		(updateInformationA (getName state, name +++ " view") view (actions state) gMod)
             >>= \(action, mbGMod) -> 
             case mbGMod of
-               	Nothing		-> return (action, state)
-               	Just gMod	-> return (action, setChanged state { EditorState | state & gMod = gMod})
+               	Nothing		= return (action, state)
+               	Just gMod	= return (action, setChanged state { EditorState | state & gMod = gMod})
     
 
 //Bimaps on GModule
@@ -199,21 +199,21 @@ typeUpdate types gMod = { GModule | gMod & types = types }
 switchAction :: (Action, EditorState) -> Task Void
 switchAction (action, state) = 
     case action of
-        ActionNew              -> askSaveIfChanged state >>| emptyState >>= doMenu
-        ActionOpen             -> askSaveIfChanged state >>| open state >>= doMenu 
-        ActionSave             -> save state >>= doMenu
-        ActionSaveAs           -> saveAs state >>= doMenu 
-        ActionUpdate           -> update state >>= doMenu 
-        ActionRun              -> run state >>| doMenu state
-        ActionQuit             -> askSaveIfChanged state 
-        ActionAbout            -> showAbout >>| doMenu state
-        ActionViewDeclaration  -> doMenu { EditorState | state & mode = ViewDeclaration }
-        ActionViewWorkflow     -> doMenu { EditorState | state & mode = ViewWorkflow }
-        ActionViewImports      -> doMenu { EditorState | state & mode = ViewImports }
-        ActionViewTypes        -> doMenu { EditorState | state & mode = ViewTypes }
-        ActionViewSource         -> doMenu { EditorState | state & mode = ViewSource }
-//        ActionEnableSC         -> doMenu state { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = True } }
-//        ActionDisableSC        -> doMenu state { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = False } }
+        ActionNew              = askSaveIfChanged state >>| emptyState >>= doMenu
+        ActionOpen             = askSaveIfChanged state >>| open state >>= doMenu 
+        ActionSave             = save state >>= doMenu
+        ActionSaveAs           = saveAs state >>= doMenu 
+        ActionUpdate           = update state >>= doMenu 
+        ActionRun              = run state >>| doMenu state
+        ActionQuit             = askSaveIfChanged state 
+        ActionAbout            = showAbout >>| doMenu state
+        ActionViewDeclaration  = doMenu { EditorState | state & mode = ViewDeclaration }
+        ActionViewWorkflow     = doMenu { EditorState | state & mode = ViewWorkflow }
+        ActionViewImports      = doMenu { EditorState | state & mode = ViewImports }
+        ActionViewTypes        = doMenu { EditorState | state & mode = ViewTypes }
+        ActionViewSource         = doMenu { EditorState | state & mode = ViewSource }
+//        ActionEnableSC         = doMenu state { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = True } }
+//        ActionDisableSC        = doMenu state { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = False } }
 
 getName :: EditorState -> String
 getName state = case state.EditorState.name of
@@ -258,12 +258,13 @@ update state
 run :: EditorState -> Task Void
 run state = showMessage ("Error", "Runninig tasks requires dynamic linker") Void
 /*
-run state 					= case state.compiled of
-	Just dynfile -> readDynamicTask dynfile
-		>>= \mTask = case mTask of
-			Just task	-> task
-			Nothing		-> showMessage ("Error", "Failed to read task") Void
-	Nothing 	-> showMessage ("Error", "No compiled task") Void
+run state = getCurrentUser >>= \user -> 
+	case state.compiled of
+		Nothing 	 = showMessage ("Error", "No compiled task") Void
+		Just dynfile = readDynamicTask dynfile >>= \task = catchAll (stop2 task)  (\error -> showMessage ("Error", error) Void)
+	where		
+		stop2 :: !(Task Void) -> Task Void
+		stop2 x = stop
 */
 
 formatSource :: String -> HtmlTag

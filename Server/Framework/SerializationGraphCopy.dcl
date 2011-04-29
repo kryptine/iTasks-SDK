@@ -18,3 +18,4 @@ dynamicJSONDecode :: !JSONNode -> Maybe a
 
 defaultStoreFormat :: StoreFormat
 
+serializationModule :: String

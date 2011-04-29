@@ -4,75 +4,83 @@
 		"moduleKind": [
 				"GCleanModule", 
 				[
-						[
-								"NodeBinding", 
-								{
-										"declaration": {
-												"name": "return", 
-												"formalParams": [
-														{
-																"name": "a", 
-																"type": [
-																		"GTypeVariable", 
-																		"a"
-																]
-														}
-												], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														[
-																"GTypeVariable", 
-																"a"
-														]
-												], 
-												"icon": "return", 
-												"shape": null
-										}, 
-										"parameterMap": "NBPrefixApp"
-								}
-						], 
-						[
-								"NodeBinding", 
-								{
-										"declaration": {
-												"name": "forever", 
-												"formalParams": [
-														{
-																"name": "task", 
-																"type": [
-																		"GTypeApplication", 
-																		[
-																				"GConstructor", 
-																				"Task"
-																		], 
-																		[
-																				"GTypeVariable", 
-																				"a"
-																		]
-																]
-														}
-												], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														[
-																"GTypeVariable", 
-																"a"
-														]
-												], 
-												"icon": "forever", 
-												"shape": null
-										}, 
-										"parameterMap": "NBPrefixApp"
-								}
-						], 
+            [
+                "NodeBinding", 
+                {
+                    "declaration": {
+                        "name": "return", 
+                        "formalParams": [
+                            {
+                                "name": "a", 
+                                "type": [
+                                    "GTypeVariable", 
+                                    "a"
+                                ]
+                            }
+                        ], 
+                        "returnType": "GUndefinedTypeExpression", 
+                        "icon": "return", 
+                        "shape": {
+                            "width": 120, 
+                            "height": 60, 
+                            "defs": [ ], 
+                            "magnets": true, 
+                            "elements": [
+                                [
+                                    "SVGEllipse", 
+                                    null, 
+                                    [
+                                        [
+                                            "XLeft", 
+                                            "YTop"
+                                        ], 
+                                        [
+                                            "XRight", 
+                                            "YBottom"
+                                        ]
+                                    ], 
+                                    [
+                                        [
+                                            "SVGAnchors", 
+                                            "top left right bottom"
+                                        ], 
+                                        [
+                                            "SVGFill", 
+                                            "white"
+                                        ], 
+                                        [
+                                            "SVGResize", 
+                                            "horizontal vertical"
+                                        ]
+                                    ]
+                                ], 
+                                [
+                                    "SVGText", 
+                                    "a", 
+                                    [
+                                        [
+                                            "XPct", 
+                                            50
+                                        ], 
+                                        [
+                                            "YPct", 
+                                            50
+                                        ]
+                                    ], 
+                                    "", 
+                                    [
+                                        [
+                                            "SVGAlign", 
+                                            "middle center"
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        }
+                    }, 
+                    "parameterMap": "NBPrefixApp"
+                }
+            ], 
 						[
 								"NodeBinding", 
 								{
@@ -111,8 +119,11 @@
 																"Task"
 														], 
 														[
-																"GTypeVariable", 
-																"a"
+                                "GList",
+                                [
+                                    "GTypeVariable", 
+																    "a"
+                                ]
 														]
 												], 
 												"icon": "sequence", 

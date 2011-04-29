@@ -71,7 +71,7 @@ predefinedStencilSet
 									}
 								,	{ ORYXConnect
 									| from_ = "split"
-									, to	= ["single", "split"]
+									, to	= ["single", "split", "merge"]
 									}
 								,	{ ORYXConnect
 									| from_ = "merge"

@@ -30,6 +30,7 @@ import Void
     | App [AExpression ex]
     | AppInfix AIdentifier AFix APrecedence (AExpression ex) (AExpression ex) 
     | Lambda APattern (AExpression ex)
+    | Let [(APattern, (AExpression ex))] (AExpression ex)
     | Case (AExpression ex) [ACaseAlt ex]
     | Tuple [AExpression ex]
     | List [AExpression ex]

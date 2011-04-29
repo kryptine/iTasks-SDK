@@ -34,10 +34,12 @@ from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDe
 			  SVGStroke !String
 			| SVGFill !String
 			| SVGStrokeWidth Int
+			| SVGStrokeDashArray !String
 			| SVGStrokeLineCap !String
 			| SVGStrokeLineJoin !String
 			| SVGStrokeMiterLimit !Int
 			| SVGMarkerEnd !String
+			| SVGFontWeight !String
 			// ORYX extensions
 			| SVGAlign !String
 			| SVGAnchors !String

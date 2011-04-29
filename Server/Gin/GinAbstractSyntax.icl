@@ -57,6 +57,10 @@ expandExpression scope accLocals (AppInfix i fix prec e1 e2)
 expandExpression scope accLocals (Lambda pat exp) 
 	# (accLocals, exp`) = expandExpression (bind pat scope) accLocals exp
 	= (accLocals, Lambda pat exp`)
+expandExpression scope accLocals (Let defs exp)
+	# (accLocals, alts`) = expandMap scope accLocals expandLetDefs defs
+	# (accLocals, exp`) = expandExpression scope accLocals exp
+	= (accLocals, Let alts` exp`)
 expandExpression scope accLocals (Case exp alts)
 	# (accLocals, exp`) = expandExpression scope accLocals exp
 	# (accLocals, alts`) = expandMap scope accLocals expandCaseAlt alts
@@ -73,6 +77,11 @@ expandExpression scope accLocals (ListComprehension alc)
 expandExpression scope accLocals (PathContext path exp)
 	# (accLocals, exp`) = expandExpression scope accLocals exp
 	= makeLocal scope accLocals (PathContext path exp`)
+
+expandLetDefs :: Scope Locals (APattern, AExpression Void) -> (Locals, (APattern, AExpression Void))
+expandLetDefs scope accLocals (pat, exp) 
+	# (accLocals, exp`) = expandExpression (bind pat scope) accLocals exp
+	= (accLocals, (pat,exp`))
 
 expandCaseAlt :: Scope Locals (ACaseAlt Void) -> (Locals, ACaseAlt Void)
 expandCaseAlt scope accLocals (CaseAlt pat exp)
@@ -161,7 +170,7 @@ printAModule opt aMod =
 			++ printAImports opt aMod.AModule.imports
 			++ printATypes opt aMod.AModule.types
 			++ flatten (map (printADefinition opt) aMod.AModule.definitions)
-			++ printAStart opt aMod.AModule.definitions
+			++ printAStart opt aMod
 		  )
 
 printAModuleHeader :: PrintOption AModule -> a | Printer a
@@ -182,6 +191,7 @@ printAImports opt imports
 						, "StdChar"
 						, "StdArray"
 						, "StdString"
+						, "StdFile"
 						, "StdClass"
 						, "StdList"
 						, "StdOrdList"
@@ -191,7 +201,7 @@ printAImports opt imports
 						]
 						++
 						( if (opt == POWriteDynamics) 
-							["StdDynamic", "StdDynamicFileIO"] 
+							["File", "Serialization"] 
 							[]
 						)
 	//CoreCombinators is necessary for >>= and >>|, which do not require explicit imports in Gin
@@ -257,22 +267,20 @@ printADefinitionBody opt { ADefinition | name, formalParams, body, locals } =
 			, newscope (flatten ((map (printADefinition opt) locals)))
 			]
       
-printAStart :: PrintOption [ADefinition] -> [a] | Printer a
-printAStart POSyntaxCheck _ = 
-	[ def (text "Start :: Int")
-	, def (text "Start = 0")
-	]
-printAStart POWriteDynamics defs =
-	[ def (text "Start :: *World -> *World")
-	, def (text "Start world")
-	]
-	++ ( map	(\def -> text "# (ok, world) = writeDynamic" </> dquotes (text def.ADefinition.name) 
-						 </> parens (text "dynamic" </> text (def.ADefinition.name))
-						 </> text "world"
-				) 
-				defs 
-		)
-	++ [def (text "= world")]
+printAStart :: PrintOption AModule -> [a] | Printer a
+//printAStart POSyntaxCheck _ = 
+//	[ def (text "Start :: Int")
+//	, def (text "Start = 0")
+//	]
+printAStart POWriteDynamics aMod
+	# task = hd aMod.AModule.definitions
+	=	[ def (text "Start :: *World -> *World")
+	 	, def (text "Start world")
+		, text "# (_, world) = writeFile" </> dquotes (text (aMod.AModule.name +++ ".dyn")) 
+			</> parens (text "serialize" </> text (task.ADefinition.name))
+			</> text "world"
+		, text "= world"
+		]
 printAStart _ _ = []
 
 printAExpression :: PrintOption (AExpression Void) -> a | Printer a
@@ -288,7 +296,10 @@ printAExpression opt (AppInfix i fix prec e1 e2)
 		(AppInfix e2i e2fix e2prec _ _) = if (e2prec < prec || i == e2i && fix == Infixr) (printAExpression opt e2) (printWithParens opt e2)
 		otherwise                       = printAExpression opt e2
 	= doc1 <$> text i </> doc2
-printAExpression opt (Lambda pat exp) = text "\\" <-> printAPattern opt pat </> text "=" </> printAExpression opt exp
+printAExpression opt (Lambda pat exp) = text "\\" <-> printAPattern opt pat </> text "->" </> printAExpression opt exp
+printAExpression opt (Let defs inexp) = text "let" <-> 
+	newscope (map (\(pat,exp) -> text pat </> text "=" </> printAExpression opt exp) defs) <$>
+	text "in" </> printAExpression opt inexp
 printAExpression opt (Case exp alts) = parens (text "case" </> (printAExpression opt exp) </> (text "of") <$>
     newscope (map (\alt = printACaseAlt opt alt) alts))
 printAExpression opt (Tuple exps) = parens (fillSep (punctuate comma (map (printAExpression opt) exps)))

@@ -1,7 +1,7 @@
 definition module GinSyntax
 
+import Graph
 import Maybe
-import GenEq 
 
 from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
 from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
@@ -34,9 +34,10 @@ import GinTypes
                  , parameterMap :: NBParameterMap
                  }
                    
-:: NBParameterMap = NBPrefixApp  
+:: NBParameterMap = NBUndefined
+				  | NBPrefixApp  
                   | NBInfixApp AFix APrecedence
-                  | NBCustom (AExpression ParameterPosition)
+                  | NBApply ([AExpression Void] -> GParseState (AExpression Void))
 
 //Sequential composition is hard coded, maps to either >>= (with pattern) or >>| (without pattern).
 //ParallelBinding: binds a parallel composition of nodes to a Clean function 
@@ -51,13 +52,13 @@ import GinTypes
                | PBMergeParameter ParameterPosition
                | PBBranch BranchPosition
                | PBBranchList
-               | PBApply ([AExpression Void] [AExpression Void] [(Maybe APattern, AExpression Void)] -> GParseState (AExpression Void))
 
 :: ParameterPosition :== Int
 :: BranchPosition :== Int
 
 getNodeBinding :: GIdentifier Bindings -> GParseState NodeBinding
 getParallelBinding :: GIdentifier GIdentifier Bindings -> GParseState ParallelBinding
+isParallelBinding :: GIdentifier GIdentifier Bindings -> Bool
 
 :: BranchType = BTSingle | BTSplit | BTMerge
 getDeclaration :: GIdentifier Bindings -> GParseState (BranchType, GDeclaration)
@@ -94,20 +95,14 @@ getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
                         , input :: GExpression
                         }
 
-:: GGraph = { edges :: [GEdge]
-            , nodes :: [GNode]
-            , size  :: Maybe GSize
-            }
+:: GGraph = GGraph (Graph GNode GEdge)
 
 :: GNode = { actualParams :: [GExpression]
            , name         :: GIdentifier
            , position     :: GPosition
            }
 
-:: GEdge = { fromNode :: Int
-           , pattern  :: Maybe GPattern
-           , toNode   :: Int
-           }
+:: GEdge :== Maybe GPattern
            
 :: GPattern :== String
 
@@ -124,17 +119,8 @@ getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
 :: GDescription :== String
 
 // Generic functions
-derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter
-derive class iTask GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize
+derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter, GDefinition, GDeclaration
 
-// Selection functions
-getPredecessors :: GGraph Int -> [Int]
-getSuccessors :: GGraph Int -> [Int]
-getSuccessorsEdges :: GGraph Int -> [Int]
-getNode :: GGraph Int -> GNode
-getNodePatternBefore :: GGraph Int -> Maybe String
-getNodePatternAfter :: GGraph Int -> Maybe String
-       
 //JSON Serialization and deserialization
 gModuleToJSON :: GModule -> String
 gModuleFromJSON :: String -> Maybe GModule

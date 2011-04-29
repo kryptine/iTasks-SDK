@@ -36,3 +36,6 @@ dynamicJSONDecode _ = abort "SerializationDynamicLinker, dynamicJSONDecode not s
 
 defaultStoreFormat :: StoreFormat
 defaultStoreFormat = SFDynamic
+
+serializationModule :: String
+serializationModule = "SerializationDynamicLinker"

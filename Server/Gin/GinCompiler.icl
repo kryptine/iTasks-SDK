@@ -118,7 +118,7 @@ batchBuild gMod iworld = runCompiler gMod printfun build iworld where
 	# batchfile = (filenameFromConfig config basename "bat")
 	# (result, iworld) = accWorldIWorld ('Process'.callProcess batchfile [] Nothing) iworld
 	| isError result = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ snd (fromError result)), iworld)
-	# dynfile = (filenameFromConfig config basename "dyn")
+	# dynfile = filenameFromConfig config basename "dyn"
     = (CompileSuccess dynfile, iworld)
     
 syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
@@ -270,6 +270,7 @@ setLinkPaths config basename haystack
 # haystack = replaceSubString "{Project}" config.tempPath haystack
 # haystack = replaceSubString "{ITasks}" config.iTasksPath haystack
 # haystack = replaceSubString "{Application}" config.cleanPath haystack
+# haystack = replaceSubString "{Serialization}" serializationModule haystack
 = replaceSubString "{Basename}" basename haystack
 
 // --------------------------------------------------------------------------------
@@ -338,6 +339,7 @@ iTasksPaths =
 	, "Server\\lib\\Platform\\OS-Independent\\Test"
 	, "Server\\lib\\Platform\\OS-Independent\\Text"
 	, "Server\\lib\\Platform\\OS-Independent\\Text\\Encodings"
+	, "Server\\lib\\Platform\\OS-Windows\\Data"
 	, "Server\\lib\\Platform\\OS-Windows\\Network"
 	, "Server\\lib\\Platform\\OS-Windows\\System"
 	, "Server\\lib\\Platform\\OS-Windows\\Database"

@@ -23,7 +23,7 @@ where
 	(<->) a b = a 'PPrint'. <+> b
 	(<+>) a b = a 'PPrint'. <+> b
 	(</>) a b = a 'PPrint'. </> b
-	(<$>) a b = a 'PPrint'. </> b
+	(<$>) a b = a 'PPrint'. <$> b
 	empty = 'PPrint'.empty
 	space = 'PPrint'.space
 	comma = 'PPrint'.comma

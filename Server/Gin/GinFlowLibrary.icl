@@ -27,32 +27,70 @@ predefinedModule =
 		, { name = "Void"   , rhs = GAbstractTypeRhs }				  
 		]
 	, moduleKind = GCleanModule
-		[ bCase ]
+		[ bStartStop, bCase, bMerge, bLet ]
 	}
-
-bCase :: Binding
-bCase = ParallelBinding
+	
+bStartStop :: Binding
+bStartStop = ParallelBinding
 	{ split = { GDeclaration 
-	          | name = "case split"
-	          , returnType = GUndefinedTypeExpression
-	          , formalParams = [ { GFormalParameter 
-	                             | name = "a"
-	                             , type = GTypeVariable "a" 
-	                             }
-	                           ]
-	          , icon = "case"
-	          , shape = Just caseSplitShape
-	          }
-	, merge = { GDeclaration 
-	          | name = "case merge"
+	          | name = "start"
 	          , returnType = GUndefinedTypeExpression
 	          , formalParams = []
-	          , icon = "merge"
-	          , shape = Just caseMergeShape
+	          , icon = "start"
+	          , shape = Just startShape
 	          }
-	, type = GTypeVariable "b"
-	, fixedNrBranches = Nothing
-	, parameterMap = Extension (PBApply mkCase)
+	, merge = { GDeclaration 
+	          | name = "stop"
+	          , returnType = GUndefinedTypeExpression
+	          , formalParams = []
+	          , icon = "stop"
+	          , shape = Just stopShape
+	          }
+	, type = GTypeVariable "a"
+	, fixedNrBranches = Just 1
+	, parameterMap = Extension (PBBranch 0)
+	}
+where
+	startShape :: SVGShape
+	startShape = 
+	  	{ SVGShape
+		| width = 20
+		, height = 20
+		, defs = []
+		, magnets = True
+		, elements = 
+			[ SVGPolygon Nothing [ (XLeft, YTop), (XPct 66, YPct 50), (XLeft, YBottom)] []
+			]
+		}
+		
+	stopShape :: SVGShape
+	stopShape = 
+	  	{ SVGShape
+		| width = 20
+		, height = 20
+		, defs = []
+		, magnets = True
+		, elements = 
+			[ SVGRect Nothing ((XLeft, YTop), (XRight, YBottom)) 0 0 []
+			]
+		}
+
+bCase :: Binding
+bCase = NodeBinding
+	{ NodeBinding
+	| declaration = 
+		{ GDeclaration 
+		| name = "case split"
+		, returnType = GUndefinedTypeExpression
+		, formalParams = [ { GFormalParameter 
+		                 | name = "a"
+		                 , type = GTypeVariable "a" 
+		                 }
+		               ]
+		, icon = "case-split"
+		, shape = Just caseSplitShape
+		}
+	, parameterMap = NBUndefined
 	}
 where
 	caseSplitShape :: SVGShape
@@ -68,9 +106,23 @@ where
 			, SVGText (Just "a") (XPct 50, YPct 50) "" [SVGAlign "middle center"]
 			]
 		}
-		
-	caseMergeShape :: SVGShape
-	caseMergeShape = 
+
+bMerge :: Binding
+bMerge = NodeBinding
+	{ NodeBinding
+	| declaration = 
+		{ GDeclaration 
+		| name = "case merge"
+		, returnType = GUndefinedTypeExpression
+		, formalParams = []
+		, icon = "case-merge"
+		, shape = Just mergeShape
+		}
+	, parameterMap = NBUndefined
+	}
+where
+	mergeShape :: SVGShape
+	mergeShape = 
 	  	{ SVGShape
 		| width = 20
 		, height = 20
@@ -79,15 +131,40 @@ where
 		, elements = 
 			[ SVGPolygon Nothing [ (XPct 50, YTop), (XRight, YPct 50), (XPct 50, YBottom), (XLeft, YPct 50)] [SVGAnchors "top left right bottom"] ]
 		}
-    
-	mkCase :: [AExpression Void] [AExpression Void] [(Maybe APattern, AExpression Void)] -> GParseState (AExpression Void)
-	mkCase splitParams mergeParams alts = 
-		if (length (filter isNothing (map fst alts)) > 1)
-		(parseError "A case expression can have at most one default case")
-		//"otherwise" alternative is put at the end of the list
-		(ret (let sortalts = filter (isJust o fst) alts ++ filter (isNothing o fst) alts
-		    in  Case (splitParams !! 0) (map mkCaseAlt alts)))
-  
-	mkCaseAlt :: (Maybe APattern, AExpression Void) -> ACaseAlt Void
-	mkCaseAlt (Just pat, exp) = CaseAlt pat exp
-	mkCaseAlt (Nothing, exp)  = CaseAlt "otherwise" exp
+
+bLet :: Binding
+bLet = NodeBinding
+	{NodeBinding
+	| declaration = 
+		{ GDeclaration 
+		| name = "let"
+		, returnType = GUndefinedTypeExpression
+		, formalParams = [ { GFormalParameter 
+		                 | name = "pattern"
+		                 , type = GUndefinedTypeExpression
+		                 }
+		                 , { GFormalParameter 
+		                 | name = "expression"
+		                 , type = GTypeVariable "a" 
+		                 }
+		               ]
+		, icon = "let"
+		, shape = Just letShape
+		}
+	, parameterMap = NBUndefined
+	}
+where
+	letShape :: SVGShape
+	letShape = 
+	  	{ SVGShape
+		| width = 100
+		, height = 42
+		, defs = []
+		, magnets = True
+		, elements = 
+			[ SVGRect Nothing ((XLeft, YTop), (XRight, YBottom)) 0 0 [SVGAnchors "top left right bottom", SVGFill "white", SVGResize "horizontal vertical"]
+			, SVGText (Just "pattern")    (XAbs 5, YAbs 13) ""  [SVGAnchors "top left", SVGAlign "middle left"]
+			, SVGText Nothing             (XAbs 5, YAbs 33) "=" [SVGAnchors "top left", SVGAlign "middle left"]
+			, SVGText (Just "expression") (XAbs 18, YAbs 33) "" [SVGAnchors "top left", SVGAlign "middle left"]
+			]
+		}

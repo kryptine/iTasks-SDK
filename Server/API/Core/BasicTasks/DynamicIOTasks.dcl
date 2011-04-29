@@ -26,4 +26,4 @@ writeDynamicTask 	:: !String !(Task a) 	-> Task Void	| iTask a
 * @return Boolean indicating succesful read
 * @return The task
 */
-readDynamicTask 	:: !String 				-> Task (Maybe (Task a)) 	| iTask a
+readDynamicTask 	:: !String 				-> Task (Task a) 	| iTask a

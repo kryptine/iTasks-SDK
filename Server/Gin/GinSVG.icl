@@ -150,10 +150,12 @@ styleToXMLAttr :: SVGStyle -> XMLAttr
 styleToXMLAttr (SVGStroke s)			= XMLAttr (uname "stroke") s
 styleToXMLAttr (SVGFill s)				= XMLAttr (uname "fill") s
 styleToXMLAttr (SVGStrokeWidth w)		= XMLAttr (uname "stroke-width") (toString w)
+styleToXMLAttr (SVGStrokeDashArray a)	= XMLAttr (uname "stroke-dasharray") (toString a)
 styleToXMLAttr (SVGStrokeLineCap s)		= XMLAttr (uname "stroke-linecap") s
 styleToXMLAttr (SVGStrokeLineJoin s)	= XMLAttr (uname "stroke-linejoin") s
 styleToXMLAttr (SVGStrokeMiterLimit l)	= XMLAttr (uname "stroke-miterlimit") (toString l)
 styleToXMLAttr (SVGMarkerEnd m)			= XMLAttr (uname "marker-end") m
+styleToXMLAttr (SVGFontWeight w)        = XMLAttr (uname "font-weight") w
 styleToXMLAttr (SVGAlign s)				= XMLAttr (qname "oryx" "align") s
 styleToXMLAttr (SVGAnchors s)			= XMLAttr (qname "oryx" "anchors") s
 styleToXMLAttr (SVGEdgePosition s)		= XMLAttr (qname "oryx" "edgePosition") s

@@ -40,3 +40,6 @@ dynamicJSONDecode _					= Nothing
 
 defaultStoreFormat :: StoreFormat
 defaultStoreFormat = SFPlain
+
+serializationModule :: String
+serializationModule = "SerializationGraphCopy"

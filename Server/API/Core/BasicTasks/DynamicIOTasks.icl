@@ -15,7 +15,7 @@ writeDynamicTask :: !String !(Task a) -> Task Void | iTask a
 writeDynamicTask filename task 
 	= exportTextFile filename ('Serialization'.serialize task) >>| stop
 
-readDynamicTask :: !String -> Task (Maybe (Task a)) | iTask a
+readDynamicTask :: !String -> Task (Task a) | iTask a
 readDynamicTask filename = importTextFile filename >>= \dynString -> 
 	case 'Serialization'.deserialize dynString of
 		Ok value = return value

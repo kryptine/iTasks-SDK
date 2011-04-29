@@ -2,7 +2,7 @@ implementation module GinORYX
 
 import StdBool
 import StdEnum
-from StdFunc import const,o
+from StdFunc import const,o,flip
 import StdList
 import StdMisc
 import StdTuple
@@ -161,14 +161,26 @@ oryxDiagramToGraph bindings diagram
 
 oryxChildShapesToGraph :: !Bindings ![ORYXChildShape] -> GGraph
 oryxChildShapesToGraph bindings shapes
+	// shapeMap :: Map ORYXResourceId ORYXChildShape
 	# shapeMap = (fromList o map (\shape -> (shapeId shape, shape)))  shapes
-	# nodes =  (zip2 [0..] o filter (not o isEdge)) shapes
+	// nodes :: [(NodeIndex, ORYXChildShape)]
+	# (nodes, graph) = addShapes (filter (not o isEdge) shapes) emptyGraph
+	// nodeMap :: Map ORYXResourceId NodeIndex
 	# nodeMap = (fromList o map (\(index,node) -> (shapeId node, index))) nodes
-	=	{ GGraph
-		| nodes = map (oryxChildShapeToNode bindings o snd) nodes
-		, edges = (flatten o map (oryxChildShapesToEdges shapeMap nodeMap)) nodes
-		, size = Nothing
-		}
+	//find outgoing edges for each node
+	# edges = (flatten o map (oryxChildShapeToEdges shapeMap nodeMap)) nodes
+	= GGraph (addEdges edges graph)
+	where
+		addShapes :: ![ORYXChildShape] !(Graph GNode GEdge) -> ([(NodeIndex,ORYXChildShape)], Graph GNode GEdge)
+		addShapes [] graph = ([], graph)
+		addShapes [shape:shapes] graph
+			# (index, graph) = addNode (oryxChildShapeToNode bindings shape) graph
+			# (indexedShapes, graph) = addShapes shapes graph
+			= ([(index,shape):indexedShapes], graph)
+		
+		addEdges :: ![(EdgeIndex,GEdge)] !(Graph GNode GEdge) -> Graph GNode GEdge
+		addEdges []                       graph = graph
+		addEdges [(edgeIndex,edge):edges] graph = addEdges edges (addEdge edge edgeIndex graph)
 
 oryxChildShapeToNode :: !Bindings !ORYXChildShape -> GNode
 oryxChildShapeToNode bindings shape
@@ -202,24 +214,19 @@ oryxChildShapeToActualParam bindings childShape propMap formalParam
 isHigherOrderTask :: !GTypeExpression -> Bool
 isHigherOrderTask (GTypeApplication (GConstructor "Task") _) = True
 isHigherOrderTask _											 = False
- 	  
-oryxChildShapesToEdges :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) (!Int,!ORYXChildShape) -> [GEdge]
-oryxChildShapesToEdges shapeMap nodeMap (fromIndex,fromNode) = 
-	catMaybes (map (oryxChildShapeToEdge shapeMap nodeMap fromIndex) fromNode.ORYXChildShape.outgoing)
+ 
+oryxChildShapeToEdges :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) (!Int,!ORYXChildShape) -> [(EdgeIndex,GEdge)]
+oryxChildShapeToEdges shapeMap nodeMap (fromIndex,fromNode) = 
+	catMaybes (map (oryxOutgoingToEdge shapeMap nodeMap fromIndex) fromNode.ORYXChildShape.outgoing)
 
-oryxChildShapeToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) !Int !ORYXOutgoing -> Maybe GEdge
-oryxChildShapeToEdge shapeMap nodeMap fromIndex arcres =
+oryxOutgoingToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) !Int !ORYXOutgoing -> Maybe (EdgeIndex,GEdge)
+oryxOutgoingToEdge shapeMap nodeMap fromIndex arcres =
 	case get arcres.ORYXOutgoing.resourceId shapeMap of
 		Just arc 
 				 = case arc.ORYXChildShape.outgoing of
 			[toRes]	= case get toRes.ORYXOutgoing.resourceId nodeMap of
-						  Just toIndex = Just
-						  	{ GEdge
-						  	| fromNode = fromIndex
-						  	, pattern = oryxPropertiesToPattern arc.ORYXChildShape.properties
-						  	, toNode = toIndex
-						    }
-					  	  Nothing = abort "oryxChildShapeToEdge: Arc outgoing resourceId not found"
+						  Just toIndex = Just ((fromIndex,toIndex), oryxPropertiesToPattern arc.ORYXChildShape.properties)
+					  	  Nothing      = abort "oryxChildShapeToEdge: Arc outgoing resourceId not found"
 			[]		= Nothing //Arc not connected to node
 			_		= abort "oryxChildShapeToEdge: arc cannot point to multiple nodes"
 		Nothing = abort "oryxChildShapeToEdge: Node outgoing resourceId not found"
@@ -285,6 +292,7 @@ where
 		# edges = filter isEdge diagram.ORYXDiagram.childShapes
 		| index < 0 || index >= length edges = Nothing
 		= makeORYXErrorChild (edges !! index) path message
+	makeORYXError` path = Nothing //TODO
 
 makeORYXErrorChild :: !ORYXChildShape ![GPathNode] !String -> Maybe ORYXError
 makeORYXErrorChild shape [] message = 

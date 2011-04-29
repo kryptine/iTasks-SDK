@@ -231,14 +231,13 @@ CodeGen cgen` wf genAsmOrCode path timeprofile cgo tp ao startupdir ps
 
 	#	objpath				= MakeObjSystemPathname tp path
 		path_without_suffix	= RemoveSuffix path
-		args				= MakeCodeGenOptionsString genAsmOrCode timeprofile cgo tp
-//								+++ " " +++ (watcom_quoted_string path_without_suffix)
-								+++ " " +++ (quoted_string path_without_suffix)
+		args				= MakeCodeGenOptionsString genAsmOrCode timeprofile cgo
+  							  ++ [path_without_suffix]
 
 //TODO: restore error redirection to file
   		errorsfilename		= tooltempdir +++ DirSeparatorString +++ "errors"
   		
-		(res, world) 		= 'Process'.callProcess cgen [args] ('Maybe'.Just cgendir) ps.world
+		(res, world) 		= 'Process'.callProcess cgen args ('Maybe'.Just cgendir) ps.world
 		ps					= { ps & world = world }
 	| isError res
 		= (objpath,False,wf [  "Error: Unable to run code generator: "+++cgen
@@ -274,15 +273,18 @@ mangleGenerator cgen` startupdir
 	# cgendir = RemoveFilename (cgen % (0, size cgen - 2))
 	= (True,cgencom,cgendir)
 
-MakeCodeGenOptionsString genAsmOrCode timeprofile {ci,cs} tp
-	= checkindex+++checkstack+++genasm
+MakeCodeGenOptionsString :: CodeGenerateAsmOrCode Bool CodeGenOptions -> [String]
+MakeCodeGenOptionsString genAsmOrCode timeprofile {ci,cs}
+	= checkindex ++ checkstack ++ genasm
 where
-	checkindex	| ci = " -ci"; = ""
-	checkstack	| cs = " -os"; = ""
+	checkindex	| ci = ["-ci"]
+	            	 = []
+	checkstack	| cs = ["-os"]
+					 = []
 	genasm		| genAsmOrCode == AsmGeneration
-										= " -a"
-										= ""
-	
+					 = ["-a"]
+					 = []
+
 /* Links the given file:
 */
 
@@ -338,7 +340,7 @@ Link linker` winfun path
 	| isJust err
 		= (winfun (fromJust err) ps,False)
 
-	# linkopts = [" -I " +++ quoted_string linkoptspath, " -O " +++ quoted_string linkerrspath]
+	# linkopts = ["-I", linkoptspath, "-O", linkerrspath]
 	
 	# (res, world) = 'Process'.callProcess linker linkopts ('Maybe'.Just linkerdir) ps.world
 	# ps = { ps & world = world }

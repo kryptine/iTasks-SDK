@@ -4,173 +4,295 @@
 		"moduleKind": [
 				"GCleanModule", 
 				[
-						[
-								"ParallelBinding", 
-								{
-										"split": {
-												"name": "split", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "split", 
-												"shape": null
-										}, 
-										"merge": {
-												"name": "first completed", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "filter", 
-												"shape": null
-										}, 
-										"type": [
-												"GTypeApplication", 
-												[
-														"GConstructor", 
-														"Task"
-												], 
-												[
-														"GTypeVariable", 
-														"a"
-												]
-										], 
-										"fixedNrBranches": null, 
-										"parameterMap": [
-												"App", 
-												[
-														[
-																"Lit", 
-																"anyTask"
-														], 
-														[
-																"Extension", 
-																"PBBranchList"
-														]
-												]
-										]
-								}
-						], 
-						[
-								"ParallelBinding", 
-								{
-										"split": {
-												"name": "split", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "split", 
-												"shape": null
-										}, 
-										"merge": {
-												"name": "filter left", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "filter", 
-												"shape": null
-										}, 
-										"type": [
-												"GTypeApplication", 
-												[
-														"GConstructor", 
-														"Task"
-												], 
-												[
-														"GTypeVariable", 
-														"a"
-												]
-										], 
-										"fixedNrBranches": 2, 
-										"parameterMap": [
-												"AppInfix", 
-												"-||", 
-												"Infixl", 
-												3, 
-												[
-														"Extension", 
-														[
-																"PBBranch", 
-																0
-														]
-												], 
-												[
-														"Extension", 
-														[
-																"PBBranch", 
-																1
-														]
-												]
-										]
-								}
-						], 
-						[
-								"ParallelBinding", 
-								{
-										"split": {
-												"name": "split", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "split", 
-												"shape": null
-										}, 
-										"merge": {
-												"name": "filter right", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "filter", 
-												"shape": null
-										}, 
-										"type": [
-												"GTypeApplication", 
-												[
-														"GConstructor", 
-														"Task"
-												], 
-												[
-														"GTypeVariable", 
-														"a"
-												]
-										], 
-										"fixedNrBranches": 2, 
-										"parameterMap": [
+            [
+                "ParallelBinding", 
+                {
+                    "split": {
+                        "name": "parallel split", 
+                        "formalParams": [ ], 
+                        "returnType": "GUndefinedTypeExpression", 
+                        "icon": "parallel-split", 
+                        "shape": {
+                            "width": 22, 
+                            "height": 22, 
+                            "defs": [ ], 
+                            "magnets": true, 
+                            "elements": [
+                                [
+                                    "SVGEllipse", 
+                                    null, 
+                                    [
+                                        [
+                                            "XLeft", 
+                                            "YTop"
+                                        ], 
+                                        [
+                                            "XRight", 
+                                            "YBottom"
+                                        ]
+                                    ], 
+                                    [
+                                        [
+                                            "SVGFill", 
+                                            "white"
+                                        ]
+                                    ]
+                                ], 
+                                [
+                                    "SVGImage", 
+                                    null, 
+                                    [
+                                        [
+                                            [
+                                                "XAbs", 
+                                                3
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                3
+                                            ]
+                                        ], 
+                                        [
+                                            [
+                                                "XAbs", 
+                                                19
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                19
+                                            ]
+                                        ]
+                                    ], 
+                                    "parallel-split.png", 
+                                    [ ]
+                                ]
+                            ]
+                        }
+                    }, 
+                    "merge": {
+                        "name": "parallel merge 1st", 
+                        "formalParams": [ ], 
+                        "returnType": "GUndefinedTypeExpression", 
+                        "icon": "parallel-merge-first", 
+                        "shape": {
+                            "width": 22, 
+                            "height": 22, 
+                            "defs": [ ], 
+                            "magnets": true, 
+                            "elements": [
+                                [
+                                    "SVGEllipse", 
+                                    null, 
+                                    [
+                                        [
+                                            "XLeft", 
+                                            "YTop"
+                                        ], 
+                                        [
+                                            "XRight", 
+                                            "YBottom"
+                                        ]
+                                    ], 
+                                    [
+                                        [
+                                            "SVGFill", 
+                                            "white"
+                                        ]
+                                    ]
+                                ], 
+                                [
+                                    "SVGImage", 
+                                    null, 
+                                    [
+                                        [
+                                            [
+                                                "XAbs", 
+                                                3
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                3
+                                            ]
+                                        ], 
+                                        [
+                                            [
+                                                "XAbs", 
+                                                19
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                19
+                                            ]
+                                        ]
+                                    ], 
+                                    "parallel-merge-first.png", 
+                                    [ ]
+                                ]
+                            ]
+                        }
+                    }, 
+                    "type": [
+                        "GTypeVariable", 
+                        "b"
+                    ], 
+                    "fixedNrBranches": null, 
+                    "parameterMap": [
+                        "App", 
+                        [
+                            [
+                                "Var", 
+                                "anyTask"
+                            ], 
+                            [
+                                "Extension", 
+                                "PBBranchList"
+                            ]
+                        ]
+                    ]
+                }
+            ],
+            [
+                "ParallelBinding", 
+                {
+                    "split": {
+                        "name": "parallel split", 
+                        "formalParams": [ ], 
+                        "returnType": "GUndefinedTypeExpression", 
+                        "icon": "parallel-split", 
+                        "shape": {
+                            "width": 22, 
+                            "height": 22, 
+                            "defs": [ ], 
+                            "magnets": true, 
+                            "elements": [
+                                [
+                                    "SVGEllipse", 
+                                    null, 
+                                    [
+                                        [
+                                            "XLeft", 
+                                            "YTop"
+                                        ], 
+                                        [
+                                            "XRight", 
+                                            "YBottom"
+                                        ]
+                                    ], 
+                                    [
+                                        [
+                                            "SVGFill", 
+                                            "white"
+                                        ]
+                                    ]
+                                ], 
+                                [
+                                    "SVGImage", 
+                                    null, 
+                                    [
+                                        [
+                                            [
+                                                "XAbs", 
+                                                3
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                3
+                                            ]
+                                        ], 
+                                        [
+                                            [
+                                                "XAbs", 
+                                                19
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                19
+                                            ]
+                                        ]
+                                    ], 
+                                    "parallel-split.png", 
+                                    [ ]
+                                ]
+                            ]
+                        }
+                    }, 
+                    "merge": {
+                        "name": "parallel merge tuple", 
+                        "formalParams": [ ], 
+                        "returnType": "GUndefinedTypeExpression", 
+                        "icon": "parallel-merge-tuple", 
+                        "shape": {
+                            "width": 22, 
+                            "height": 22, 
+                            "defs": [ ], 
+                            "magnets": true, 
+                            "elements": [
+                                [
+                                    "SVGEllipse", 
+                                    null, 
+                                    [
+                                        [
+                                            "XLeft", 
+                                            "YTop"
+                                        ], 
+                                        [
+                                            "XRight", 
+                                            "YBottom"
+                                        ]
+                                    ], 
+                                    [
+                                        [
+                                            "SVGFill", 
+                                            "white"
+                                        ]
+                                    ]
+                                ], 
+                                [
+                                    "SVGImage", 
+                                    null, 
+                                    [
+                                        [
+                                            [
+                                                "XAbs", 
+                                                3
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                3
+                                            ]
+                                        ], 
+                                        [
+                                            [
+                                                "XAbs", 
+                                                19
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                19
+                                            ]
+                                        ]
+                                    ], 
+                                    "parallel-merge-tuple.png", 
+                                    [ ]
+                                ]
+                            ]
+                        }
+                    }, 
+                    "type": [
+                        "GTuple",
+                        [
+                            [ 
+                            "GTypeVariable",
+                            "a"
+                            ],
+                            [  
+                            "GTypeVariable",
+                            "b"
+                            ]
+                        ]
+                    ], 
+                    "fixedNrBranches": 2,
+                    "parameterMap": [
 												"AppInfix", 
 												"||-", 
 												"Infixr", 
@@ -190,143 +312,158 @@
 														]
 												]
 										]
-								}
-						], 
-						[
-								"ParallelBinding", 
-								{
-										"split": {
-												"name": "split", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "split", 
-												"shape": null
-										}, 
-										"merge": {
-												"name": "merge (list)", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "merge", 
-												"shape": null
-										}, 
-										"type": [
-												"GTypeApplication", 
-												[
-														"GConstructor", 
-														"Task"
-												], 
-												[
-														"GList", 
-														[
-																"GTypeVariable", 
-																"a"
-														]
-												]
-										], 
-										"fixedNrBranches": null, 
-										"parameterMap": [
-												"App", 
-												[
-														[
-																"Lit", 
-																"allTasks"
-														], 
-														[
-																"Extension", 
-																"PBBranchList"
-														]
-												]
-										]
-								}
-						], 
-						[
-								"ParallelBinding", 
-								{
-										"split": {
-												"name": "split", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "split", 
-												"shape": null
-										}, 
-										"merge": {
-												"name": "merge (tuple)", 
-												"formalParams": [ ], 
-												"returnType": [
-														"GTypeApplication", 
-														[
-																"GConstructor", 
-																"Task"
-														], 
-														"GUndefinedTypeExpression"
-												], 
-												"icon": "merge", 
-												"shape": null
-										}, 
-										"type": [
-												"GTypeApplication", 
-												[
-														"GConstructor", 
-														"Task"
-												], 
-												[
-														"GTuple", 
-														[
-																[
-																		"GTypeVariable", 
-																		"a"
-																], 
-																[
-																		"GTypeVariable", 
-																		"a"
-																]
-														]
-												]
-										], 
-										"fixedNrBranches": 2, 
-										"parameterMap": [
-												"AppInfix", 
-												"-&&-", 
-												"Infixr", 
-												4, 
-												[
-														"Extension", 
-														[
-																"PBBranch", 
-																0
-														]
-												], 
-												[
-														"Extension", 
-														[
-																"PBBranch", 
-																1
-														]
-												]
-										]
-								}
-						]
+                }
+            ],
+            [
+                "ParallelBinding", 
+                {
+                    "split": {
+                        "name": "parallel split", 
+                        "formalParams": [ ], 
+                        "returnType": "GUndefinedTypeExpression", 
+                        "icon": "parallel-split", 
+                        "shape": {
+                            "width": 22, 
+                            "height": 22, 
+                            "defs": [ ], 
+                            "magnets": true, 
+                            "elements": [
+                                [
+                                    "SVGEllipse", 
+                                    null, 
+                                    [
+                                        [
+                                            "XLeft", 
+                                            "YTop"
+                                        ], 
+                                        [
+                                            "XRight", 
+                                            "YBottom"
+                                        ]
+                                    ], 
+                                    [
+                                        [
+                                            "SVGFill", 
+                                            "white"
+                                        ]
+                                    ]
+                                ], 
+                                [
+                                    "SVGImage", 
+                                    null, 
+                                    [
+                                        [
+                                            [
+                                                "XAbs", 
+                                                3
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                3
+                                            ]
+                                        ], 
+                                        [
+                                            [
+                                                "XAbs", 
+                                                19
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                19
+                                            ]
+                                        ]
+                                    ], 
+                                    "parallel-split.png", 
+                                    [ ]
+                                ]
+                            ]
+                        }
+                    }, 
+                    "merge": {
+                        "name": "parallel merge list", 
+                        "formalParams": [ ], 
+                        "returnType": "GUndefinedTypeExpression", 
+                        "icon": "parallel-merge-list", 
+                        "shape": {
+                            "width": 22, 
+                            "height": 22, 
+                            "defs": [ ], 
+                            "magnets": true, 
+                            "elements": [
+                                [
+                                    "SVGEllipse", 
+                                    null, 
+                                    [
+                                        [
+                                            "XLeft", 
+                                            "YTop"
+                                        ], 
+                                        [
+                                            "XRight", 
+                                            "YBottom"
+                                        ]
+                                    ], 
+                                    [
+                                        [
+                                            "SVGFill", 
+                                            "white"
+                                        ]
+                                    ]
+                                ], 
+                                [
+                                    "SVGImage", 
+                                    null, 
+                                    [
+                                        [
+                                            [
+                                                "XAbs", 
+                                                3
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                3
+                                            ]
+                                        ], 
+                                        [
+                                            [
+                                                "XAbs", 
+                                                19
+                                            ], 
+                                            [
+                                                "YAbs", 
+                                                19
+                                            ]
+                                        ]
+                                    ], 
+                                    "parallel-merge-list.png", 
+                                    [ ]
+                                ]
+                            ]
+                        }
+                    }, 
+                    "type": [
+                        "GList",
+                        [
+                            "GTypeVariable",
+                            "b"
+                        ]
+                    ], 
+                    "fixedNrBranches": null, 
+                    "parameterMap": [
+                        "App", 
+                        [
+                            [
+                                "Var", 
+                                "allTasks"
+                            ], 
+                            [
+                                "Extension", 
+                                "PBBranchList"
+                            ]
+                        ]
+                    ]
+                }
+            ]
 				]
 		], 
 		"imports": [ ]

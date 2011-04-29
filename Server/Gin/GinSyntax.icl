@@ -1,6 +1,5 @@
 implementation module GinSyntax
 
-//import StdEnv
 import iTasks
 import JSON
 
@@ -11,8 +10,7 @@ import GinSVG
 import GinTypes
 
 // Generic functions
-derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter
-derive class iTask GDefinition, GDeclaration, GExpression, GListComprehension, GGraph, GNode, GEdge, GPosition, GSize
+derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter, GDefinition, GDeclaration
 
 getNodeBinding :: GIdentifier Bindings -> GParseState NodeBinding
 getNodeBinding name [] = parseError ("Node binding " +++ name +++ " not found")
@@ -21,12 +19,20 @@ getNodeBinding name [b:bs] = case b of
 	otherwise = getNodeBinding name bs
 
 getParallelBinding :: GIdentifier GIdentifier Bindings -> GParseState ParallelBinding
-getParallelBinding split merge [] = parseError ("Invalid split/merge combination (" +++ split +++ "," +++ merge +++ ")")
-getParallelBinding split merge [b:bs] = case b of
+getParallelBinding split merge bindings = case getParallelBinding` split merge bindings of
+	Just pb = ret pb
+	Nothing = parseError "Invalid split/merge combination"
+
+isParallelBinding :: GIdentifier GIdentifier Bindings -> Bool
+isParallelBinding split merge bindings = isJust (getParallelBinding` split merge bindings)
+
+getParallelBinding` :: GIdentifier GIdentifier Bindings -> Maybe ParallelBinding
+getParallelBinding` split merge [] = Nothing
+getParallelBinding` split merge [b:bs] = case b of
 	ParallelBinding pb | pb.ParallelBinding.split.GDeclaration.name == split 
-						 && pb.ParallelBinding.merge.GDeclaration.name == merge = ret pb
-	otherwise = getParallelBinding split merge bs
-	
+						 && pb.ParallelBinding.merge.GDeclaration.name == merge = Just pb
+	otherwise = getParallelBinding` split merge bs
+
 getDeclaration :: GIdentifier Bindings -> GParseState (BranchType, GDeclaration)
 getDeclaration name [] = parseError ("Node binding " +++ name  +++ " not found")
 getDeclaration name [b:bs] = case b of
@@ -56,31 +62,6 @@ where
 	get (NodeBinding nb) = [(BTSingle, nb.NodeBinding.declaration)]
 	get (ParallelBinding pb) = [ (BTSplit, pb.ParallelBinding.split)
 							   , (BTMerge, pb.ParallelBinding.merge) ]
-
-// Selection functions
-getPredecessors :: GGraph Int -> [Int]
-getPredecessors graph node = [ e.fromNode \\ e <- graph.edges | e.toNode == node ]
-
-getSuccessors :: GGraph Int -> [Int]
-getSuccessors graph node = [ e.toNode \\ e <- graph.edges | e.fromNode == node ]
-
-getSuccessorsEdges :: GGraph Int -> [Int]
-getSuccessorsEdges graph node = [ snd e \\ e <- zip2 graph.edges [0..] | (fst e).fromNode == node ]
-
-getNode :: GGraph Int -> GNode
-getNode graph index = graph.nodes !! index
-
-getNodePatternBefore :: GGraph Int -> Maybe String
-getNodePatternBefore graph node = 
-    case [ e.GEdge.pattern \\ e <- graph.edges | e.toNode == node ] of
-    []        = Nothing
-    [pattern] = pattern
-
-getNodePatternAfter :: GGraph Int -> Maybe String
-getNodePatternAfter graph node = 
-    case [ e.GEdge.pattern \\ e <- graph.edges | e.fromNode == node ] of
-    []        = Nothing
-    [pattern] = pattern
 
 //JSON Serialization and deserialization
 gModuleToJSON :: GModule -> String
