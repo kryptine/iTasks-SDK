@@ -80,7 +80,7 @@ parallel :: !d !s !(ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTas
 :: Control s			= StopParallel												// stop the entire parallel execution
 						| AppendTask		!(TaskContainer s)						// append and additional task to be run in parallel as well
 						| RemoveTask		!TaskIndex								// remove the task with indicated index from the set
-						//| UpdateProperties	!TaskIndex !ManagerProperties			// update the properties of a task
+						| UpdateProperties	!TaskIndex !ManagerProperties			// update the properties of a task
 						| FocusTask			!TaskIndex								// set the window focus of indicated ordinary or control task
 					
 :: TaskIndex			:== Int

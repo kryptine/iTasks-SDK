@@ -297,6 +297,10 @@ where
 					= processControls cs {PSt|pst & tasks = pst.tasks ++ [newtask], nextIdx = pst.nextIdx + 1} iworld
 				RemoveTask idx
 					= processControls cs {PSt|pst & tasks = [if (i == idx) (i,c,RemovedTask) (i,c,t) \\ (i,c,t) <- pst.tasks]} iworld
+				UpdateProperties idx mprops
+					//'dumb' update assuming that the task at index is a detached task. This can be improved.
+					# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {ProcessProperties|pprops & managerProperties = mprops}) iworld
+					= processControls cs pst iworld
 				_	
 					= processControls cs pst iworld
 
@@ -305,6 +309,12 @@ where
 			unpack s c i (DialogTask w t)		= (i, CTDialog w, ActiveTask (t s c))
 			unpack s c i (InBodyTask t)			= (i, CTInBody, ActiveTask (t s c))
 			unpack s c i (HiddenTask t)			= (i, CTHidden, ActiveTask (t s c))
+
+		/*
+		updateProcProps (idx,mprops) iworld
+			# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {ProcessProperties|pprops & managerProperties = mprops}) iworld
+			= iworld
+		*/
 
 		timestamp iworld
 			# (mbLastUpdate,iworld) = getTaskStoreFor taskNr "lastUpdate" iworld
