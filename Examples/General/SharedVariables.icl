@@ -5,7 +5,8 @@ from StdFunc import o
 
 derive bimap Maybe, (,)
 
-quitButton = (ActionQuit, always)
+quitButtonShared	= (ActionQuit, alwaysShared)
+quitButton			= (ActionQuit, always)
 
 //Text-Lines Examples
 noteEditor = (\txt -> Note txt,	\(Note txt) _ -> txt)
@@ -16,13 +17,13 @@ TrimAction :== Action "trim" "Trim"
 linesPar :: Task Void
 linesPar =
 				createSharedStore ""
-	>>= \sid.	noteE sid -|| updateSharedInformationA ("Lines","Edit lines") listEditor [quitButton] sid
+	>>= \sid.	noteE sid -|| updateSharedInformationA ("Lines","Edit lines") listEditor [quitButtonShared] sid
 	>>|			return Void
 where
 	noteE sid = 
-					updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, always), quitButton] sid
+					updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, alwaysShared), quitButtonShared] sid
 		>>= \res.	case res of
-						(TrimAction,Just txt) =
+						(TrimAction,txt) =
 								writeShared sid (trim txt)
 							>>|	noteE sid
 						_ =
@@ -67,18 +68,18 @@ mergeTestList =
 	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
 	>>|			stop
 where
-	view :: (SymmetricShared [String]) -> Task (Action,Maybe [String])
-	view sid = updateSharedInformationA ("List","Merging the lists") idView [quitButton] sid
+	view :: (SymmetricShared [String]) -> Task (Action,[String])
+	view sid = updateSharedInformationA ("List","Merging the lists") idView [quitButtonShared] sid
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
 				return store
 	>>= \sid.	spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view sid)
 	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
-	>>|			spawnProcess True initManagerProperties noMenu (Title "3rd View" @>> showMessageSharedA "Documents" id [quitButton] sid)
+	>>|			spawnProcess True initManagerProperties noMenu (Title "3rd View" @>> monitorA "Documents" id (const False) [(ActionQuit,const True)] sid)
 	>>|			stop
 where
-	view sid = updateSharedInformationA ("List","Merging the documents") idView [quitButton] sid
+	view sid = updateSharedInformationA ("List","Merging the documents") idView [quitButtonShared] sid
 	
 	store :: SymmetricShared [Document]
 	store = sharedStore "mergeTestDocs" []
@@ -112,10 +113,10 @@ googleMaps =
 				markersDisplay dbid
 where							
 	markersDisplay dbid =
-							showMessageSharedA "Markers" markersListener [(RemoveMarkersAction,always),quitButton] dbid
-		>>= \(action,map).	case action of
-								RemoveMarkersAction	= updateShared (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid
-								_					= return map
+								monitorA "Markers" markersListener (const False) [(RemoveMarkersAction,const True),(ActionQuit,const True)] dbid
+		>>= \(Just action,map).	case action of
+									RemoveMarkersAction	= updateShared (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid
+									_					= return map
 
 	optionsEditor	=	( \map ->		{ type = map.mapType
 										, showMapTypeControl = map.mapTypeControl
@@ -230,8 +231,8 @@ where
 		>>= \customers ->
 			(getDefaultValue >>= createSharedStore)
 		>>= \share ->
-			updateSharedInformationA "Enter order" view [(ActionOk,ifvalid)] (share >+| (products >+< customers))
-		>>= transform (fst o fromJust o snd)
+			updateSharedInformationA "Enter order" view [(ActionOk,ifvalidShared)] (share >+| (products >+< customers))
+		>>= transform (fst o snd)
 	where
 		view = (vfrom,vto)
 		vfrom (order,(products,customers))
@@ -323,7 +324,7 @@ where
 
 timeShareView :: Task DateTime
 timeShareView
-	= showMessageSharedA "A view on the current time" id [(ActionClose,always)] sharedCurrentDateTime >>= transform snd
+	= monitorA "A view on the current time" id (const False) [(ActionClose,const True)] sharedCurrentDateTime >>= transform snd
 
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" linesPar

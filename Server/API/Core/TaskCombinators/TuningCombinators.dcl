@@ -5,10 +5,12 @@ definition module TuningCombinators
 from Time	import :: Timestamp
 import Task
 
-:: Title			= E.s: Title !s			& toString s
-:: Description		= E.s: Description !s	& html s
-:: Tag				= E.s: Tag !s			& toString s
-:: Tags				= E.s: Tags ![s]		& toString s
+:: Title				= E.s: Title !s			& toString s
+:: Description			= E.s: Description !s	& html s
+:: Tag					= E.s: Tag !s			& toString s
+:: Tags					= E.s: Tags ![s]		& toString s
+:: ControlTask			= ControlTask
+:: LocalInteractionTask	= LocalInteractionTask
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a
@@ -19,6 +21,9 @@ instance tune	Title				//Set initial title
 instance tune	Description			//Set initial subject
 instance tune	Tag					//Append Tag
 instance tune	Tags				//Append List of Tags
+instance tune	InteractionTaskType
+instance tune	ControlTask
+instance tune	LocalInteractionTask
 instance tune	InteractiveLayoutMerger
 instance tune	ParallelLayoutMerger
 instance tune	ResultLayoutMerger

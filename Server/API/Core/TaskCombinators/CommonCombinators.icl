@@ -11,7 +11,7 @@ from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree
 from Shared		import mapShared, :: SymmetricShared
-import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, InteractionTasks, SharedTasks, ProcessDBTasks
+import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, SharedTasks, ProcessDBTasks, UpdateTasks, OutputTasks
 
 derive class iTask GAction, GOnlyAction
 
@@ -205,7 +205,7 @@ repeatTask task pred a =
 		=			taska
 		>>= \r -> 	case pred r of
 						(True,_) -> return r
-						(False,msg) -> showStickyMessage ("Feedback",msg) r -||- (taska <| pred)					
+						(False,msg) -> (showMessageA ("Feedback",msg) [] r >>= transform snd) -||- (taska <| pred)					
 
 /*dynamicGroup :: ![Task GAction] -> Task Void
 dynamicGroup initTasks = dynamicGroupA initTasks [] (\_ -> GStop)

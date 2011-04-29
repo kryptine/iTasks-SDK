@@ -12,27 +12,13 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 		Ext.apply(this, {
 			taskUpdates : {},
 			url: itasks.config.serverUrl + '/work/tab',
-			unstyled: true,
-			listeners: {tuichange: {fn:this.onTuiChange, scope: this}
-			           ,tuiaction: {fn:this.onTuiAction, scope: this}
-			           }
+			unstyled: true
 		});
 		
 		itasks.ttc.TTCBase.superclass.initComponent.apply(this,arguments);
 	
-		this.addEvents('tuievent','taskRedundant','taskDone');
-		this.enableBubble('tuievent','taskRedundant','taskDone');
-	},
-	onTuiChange: function(taskId,name,value) {
-		//Re-fire 'tuichange' events as 'tuievent' with the task number added
-		this.fireEvent('tuievent',taskId,name,value);
-		//Return such that 'higher' containers can't also try to handle this event.
-		return false;	
-	},
-	onTuiAction: function(taskId,value) {
-		//Re-fire 'tuiaction' events as 'tuievent' with name and task number added
-		this.fireEvent('tuievent',taskId,'action',value);
-		return false;
+		this.addEvents('taskRedundant','taskDone');
+		this.enableBubble('taskRedundant','taskDone');
 	},
 	afterRender: function(){
 		if (this.fadeIn) this.getEl().fadeIn({duration: itasks.ttc.TTC_FADE_DURATION});

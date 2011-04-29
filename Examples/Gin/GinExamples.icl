@@ -23,12 +23,11 @@ ginExamples = [ workflow "Examples/Graphical Editors/Graphical Editor" "Create o
 simpleEditorWorkflow :: !String !ORYXEditor -> Workflow
 simpleEditorWorkflow language editor = 
 	workflow ("Examples/Graphical Editors/" +++ language +++ " editor") ("Simple " +++ language +++ " editor")
-		(getConfig >>| updateInformationA ("Simple " +++ language +++ " editor") idView [quitButton] editor <<@ fullWidthInteractiveLayout)
+		(getConfig >>| updateInformationA ("Simple " +++ language +++ " editor") idView [(ActionQuit,always)] editor <<@ fullWidthInteractiveLayout)
 
 petrinetShareExample = createSharedStore petriNetORYXEditor
 	>>= \dbid -> updateSharedInformationA "Editor 1" idView [quitButton] dbid
 				 -||
 				 updateSharedInformationA "Editor 2" idView [quitButton] dbid
 
-quitButton :: (Action,(Verified a) -> Bool)
-quitButton = (ActionQuit,always)
+quitButton = (ActionQuit,alwaysShared)

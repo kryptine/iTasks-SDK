@@ -219,9 +219,11 @@ instance toString HtmlDisplay
 						| Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
 	
 :: TaskProperties =
-	{ taskDescription	:: !TaskDescription			// Description of the task
-	, tags				:: ![String]				// A list of tags
-	, isControlTask		:: !Bool					// is the task a control task?
+	{ taskDescription	:: !TaskDescription				// Description of the task
+	, tags				:: ![String]					// A list of tags
+	, isControlTask		:: !Bool						// is the task a control task?
+	, interactionType	:: !Maybe InteractionTaskType	// type of interaction (for interaction tasks)
+	, localInteraction	:: !Bool						// indicates that the task's interaction is restricted to local data while it is running
 	}
 
 :: TaskDescription	=
@@ -385,7 +387,8 @@ instance menuAction Action
 instance menuAction ActionName
 instance menuAction (actionName, ActionLabel) | actionName actionName
 
-:: InteractiveTaskType = Information | Message | Instruction | Monitor
+:: InteractionTaskType	= InputTask | UpdateTask | OutputTask !OutputTaskType
+:: OutputTaskType		= ActiveOutput | PassiveOutput
 
 // iWorld
 :: *IWorld		=	{ application	:: !String		// The name of the application	

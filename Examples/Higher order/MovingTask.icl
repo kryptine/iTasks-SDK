@@ -79,7 +79,7 @@ where
 		>>| 				return False
 
 	waitForIt (pid,_,sharedRes)
-	=						showStickyMessage ("Waiting","Waiting for the result...") Void ||- wait ("Wait for task", "Wait for an external task to finish") True sharedRes
+	=						showMessageA ("Waiting","Waiting for the result...") [] Void ||- wait ("Wait for task", "Wait for an external task to finish") sharedRes
 		>>= \(Just res) -> 	deleteProcess pid 
 		>>| 				showMessageAbout ("Finished","Finished, the result = ") res 
 		>>|					return False

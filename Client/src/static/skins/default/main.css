@@ -123,7 +123,11 @@ button.icon-expand-tree, .icon-expand-tree {
 	background-image: url('img/icons/expand-all.gif') !important;
 }
 
-.icon-interaction-task {
+.icon-update-task {
+	background-image: url('img/icons/page_edit.png') !important;
+}
+
+.icon-input-task {
 	background-image: url('img/icons/pencil.png') !important;
 }
 

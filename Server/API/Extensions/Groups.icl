@@ -25,7 +25,7 @@ manageGroups
 	) <! id
 	>>| return Void
 where
-	overview []		= getDefaultValue >>= showMessageA ("My groups",startMsg) [aNew,aQuit] >>= transform (appSnd Just)
+	overview []		= getDefaultValue >>= showMessageA ("My groups",startMsg) [ActionNew,ActionQuit] >>= transform (appSnd Just)
 	overview list	= enterChoiceA ("My groups",listMsg) id [aOpen,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)
@@ -59,9 +59,9 @@ manageGroup igroup
 		Action "leave" _			= leave group	>>| return False
 	) <! id >>| stop
 where
-	aBack	= (ActionClose, always)
-	aInvite	= (Action "invite" "Invite new member", always)
-	aLeave	= (Action "leave" "Leave group", always)
+	aBack	= ActionClose
+	aInvite	= Action "invite" "Invite new member"
+	aLeave	= Action "leave" "Leave group"
 		
 	invite group
 		= 	enterInformation ("Invite a someone to join " +++ toString group,"Please enter a user to invite to the group")

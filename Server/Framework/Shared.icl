@@ -85,8 +85,15 @@ where
 makeReadOnlyShared :: !(*IWorld -> *(!a,!*IWorld)) -> ReadOnlyShared a
 makeReadOnlyShared valueF = Shared (appFst Ok o valueF) roWrite roGetTimestamp
 
-makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld))	-> ReadOnlyShared a
+makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld)) -> ReadOnlyShared a
 makeReadOnlySharedError valueF = Shared valueF roWrite roGetTimestamp
 
 roWrite _ iworld = (Ok Void,iworld)
 roGetTimestamp iworld=:{IWorld|timestamp} = (Ok timestamp,iworld)
+
+nullShared :: Shared Void a
+nullShared = Shared read write getTimestamp
+where
+	read iworld			= (Ok Void,iworld)
+	write _ iworld		= (Ok Void,iworld)
+	getTimestamp iworld	= (Ok (Timestamp 0),iworld)

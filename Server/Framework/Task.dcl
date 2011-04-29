@@ -97,8 +97,6 @@ taskNrFromString 	:: !String -> TaskNr
 taskNrToString		:: !TaskNr -> String
 
 incTaskNr :: !TaskNr -> TaskNr
-				
-:: TaskEvent :== (!TaskId,!String,!JSONNode)	// taskid, name, value
 
 // Changes
 

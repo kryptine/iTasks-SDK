@@ -13,7 +13,7 @@ weatherExample =
 					eitherTask enterLocation markLocation
 	>>=				getLocation
 	>>= \location.	callRPCHTTP GET GOOGLE_API [("weather", location),("hl","en-GB")] formatResponse
-	>>= 			wait "Waiting for weather service" True
+	>>= 			wait "Waiting for weather service"
 	>>= \weather -> showMessageAbout ("Weather", "Weather forecast is:") weather >>| stop
 
 enterLocation = enterInformation ("Enter location", "Enter a location you want to retrieve the weather forecast for.")	
@@ -30,7 +30,7 @@ where
 getLocation (Left loc) = return loc
 getLocation (Right {lat,lng}) =
 		reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
-	>>=	wait ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")") True
+	>>=	wait ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")")
 where
 	parseJSON info = case jsonQuery "Placemark/0/address" (fromString info) of
 		(Just addr) = replaceSubString ", " "\n" addr

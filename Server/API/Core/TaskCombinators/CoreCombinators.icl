@@ -1,7 +1,7 @@
 implementation module CoreCombinators
 
 import StdList, StdArray, StdTuple, StdMisc, StdBool, StdOrdList
-import TSt, Util, HTTP, GenUpdate, UserDB, Store, Types, Text, TuningCombinators, Shared, MonitorTasks, InteractiveTasks, InteractionTasks, CommonCombinators
+import TSt, Util, HTTP, GenUpdate, UserDB, Store, Types, Text, TuningCombinators, Shared, OutputTasks, InteractionTasks, CommonCombinators
 from StdFunc			import id, const, o, seq
 from CommonCombinators	import transform
 from ProcessDB			import :: Process{..}
@@ -234,7 +234,7 @@ where
 				= (TaskException e str,tst)
 		
 	evaluateDetached :: !TaskIndex !TaskContainerType !*TSt -> (!TaskResult Void,!*TSt)
-	evaluateDetached idx ctype tst=:{TSt|taskNr,events}
+	evaluateDetached idx ctype tst=:{TSt|taskNr}
 		//Try to load the stored process for this subtask
 		# (mbProc,tst) = 'ProcessDB'.getProcess (taskNrToString taskNr) tst
 		= case mbProc of
@@ -243,7 +243,7 @@ where
 				= (TaskFinished Void,tst)
 			//When found, evaluate
 			Just proc
-				# (result,_,tst) = evaluateTaskInstance proc events Nothing False False tst
+				# (result,_,tst) = evaluateTaskInstance proc Nothing False False tst
 				= case result of
 					TaskBusy				= (TaskBusy,tst)
 					TaskException e	str		= (TaskException e str,tst)
@@ -396,7 +396,7 @@ where
 		
 	// removes given parallel task tree containers from tree	
 	removeFromTree remIdxs tst=:{tree} = case tree of
-		TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _ _) -> not (isMember idx remIdxs)) children))}
+		TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _) -> not (isMember idx remIdxs)) children))}
 		_ = abort "parallel node expected"
 		
 	// removes tasks with given indexes from PSt

@@ -9,11 +9,20 @@ itasks.tui.Button = Ext.extend(Ext.Button, {
 		
 		itasks.tui.Button.superclass.initComponent.apply(this,arguments);
 		
-		this.addEvents('tuiaction');
-		this.enableBubble('tuiaction');
+		if (this.actionButton) {
+			this.addEvents('tuiaction');
+			this.enableBubble('tuiaction');
+		} else {
+			this.addEvents('tuichange');
+			this.enableBubble('tuichange');
+		}
 	},
 	onActionClick: function() {
-		this.fireEvent('tuiaction',this.taskId,this.name);
+		if (this.actionButton) {
+			this.fireEvent('tuiaction',this.taskId,this.name);
+		} else {
+			this.fireEvent('tuichange',this.taskId,this.name,null);
+		}
 	},
 	isIconPresent: function(cls) {
 		for(x in Ext.util.CSS.getRules()) {

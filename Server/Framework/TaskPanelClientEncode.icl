@@ -5,7 +5,7 @@ import StdMisc, StdList, JSON, Types, TaskPanel
 clientEncodeTaskPanel :: !TaskPanel -> JSONNode
 clientEncodeTaskPanel p = toJSON p
 
-derive JSONEncode TTCInteractiveContainer, InteractiveTaskType
+derive JSONEncode TTCInteractiveContainer
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl

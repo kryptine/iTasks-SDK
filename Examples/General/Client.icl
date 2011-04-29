@@ -29,17 +29,15 @@ where
 							)
 
 showDescription ref =
-						showMessageSharedA "Task description" view actions ref
-	>>= \(action,r).	case action of
-							Action "start-task" _ =
-									startWorkflowByIndex (fromHidden (thd3 (fromJust r)))
-								>>|	showDescription ref
-							_ =
-									stop
+							monitorA "Task description" view (const False) actions ref
+	>>= \(Just action,r).	case action of
+								Action "start-task" _ =
+										startWorkflowByIndex (fromHidden (thd3 (fromJust r)))
+									>>|	showDescription ref
+								_ =
+										stop
 where
-	actions = [(Action "start-task" " Start task",startPred),(ActionQuit,always)]
-	startPred (Valid mbSel)	= isJust mbSel
-	startPred _				= False
+	actions = [(Action "start-task" " Start task",isJust),(ActionQuit,const True)]
 	
 	view (Just (_,Hidden desc,_))	= desc
 	view Nothing					= ""
@@ -65,7 +63,7 @@ where
 						}
 derive class iTask ProcessTableView
 
-treeLayout {title,mbContext,editor,buttons} =
+treeLayout {title,editorParts,buttons} =
 	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (editorContainer ++ buttonContainer) & title = Just title, iconCls = Just "icon-newwork"}
 	, width		= FillParent 1 (FixedMinSize 100)
 	, height	= FillParent 1 ContentSize
@@ -73,12 +71,12 @@ treeLayout {title,mbContext,editor,buttons} =
 	}
 where
 	editorContainer
-		| isEmpty editor	= []
-		| otherwise			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editor, fieldLabel = Nothing, optional = False}
-								, width		= FillParent 1 ContentSize
-								, height	= Wrap
-								, margins	= Nothing
-								}]
+		| isEmpty editorParts	= []
+			| otherwise			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editorParts, fieldLabel = Nothing, optional = False}
+									, width		= FillParent 1 ContentSize
+									, height	= Wrap
+									, margins	= Nothing
+									}]
 	buttonContainer
 		| isEmpty buttons	= []
 		| otherwise			= [	{ content	= TUILayoutContainer {defaultLayoutContainer buttons & orientation = Horizontal, hGravity = HGRight}
@@ -87,8 +85,8 @@ where
 								, margins	= Nothing
 								}]
 
-descriptionLayout {title,mbContext,editor,buttons} =
-	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (defaultContent mbContext editor buttons) & title = Just title, iconCls = Just "icon-description"}
+descriptionLayout {title,editorParts,buttons} =
+	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (defaultContent editorParts buttons) & title = Just title, iconCls = Just "icon-description"}
 	, width		= FillParent 1 (FixedMinSize 100)
 	, height	= Fixed 150
 	, margins	= Nothing
@@ -112,8 +110,8 @@ where
 			, margins	= Nothing
 			}
 			
-processTableLayout {editor} =
-	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer editor & frame = True}
+processTableLayout {editorParts} =
+	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer editorParts & frame = True}
 	, width		= FillParent 1 ContentSize
 	, height	= Fixed 200
 	, margins	= Nothing

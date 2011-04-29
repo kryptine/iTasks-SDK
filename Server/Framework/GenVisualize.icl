@@ -5,14 +5,16 @@ import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefiniti
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, currentPath = startDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvents = [], taskId = ""}
+		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = ""}
 
 //Wrapper functions
-visualizeAsEditor :: !a !TaskId !VerifyMask ![(!DataPath,!JSONNode)] -> [TUIDef] | gVisualize{|*|} a
-visualizeAsEditor x taskId vmask editEvents
-	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, verifyMask = [vmask], editEvents = editEvents, taskId = taskId}
+visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> TUIDef | gVisualize{|*|} a
+visualizeAsEditor x taskId idx vmask editEvent
+	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, verifyMask = [vmask], editEvent = editEvent, taskId = taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
 	# (defs,vst) = gVisualize{|*|} (Just x) vst
-	= coerceToTUIDefs defs	
+	= case coerceToTUIDefs defs of
+		[tui]	= tui
+		tuis	= {content = TUILayoutContainer (defaultLayoutContainer tuis), width = Wrap, height = Wrap, margins = Nothing}
 
 visualizeAsHtmlDisplay :: !a -> HtmlTag | gVisualize{|*|} a
 visualizeAsHtmlDisplay x = html (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay})))
@@ -48,7 +50,7 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType}
 			= (vizBody,vst)
 	= (vis,{VSt|vst & label = Nothing})
 			
-gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,verifyMask,taskId,editEvents}
+gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,verifyMask,taskId,editEvent}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
@@ -75,7 +77,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 						, optional = optional
 						, errorMsg = err
 						, hintMsg = hnt
-						, eventValue = eventValue currentPath editEvents
+						, eventValue = eventValue currentPath editEvent
 						}
 					)]
 				  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
@@ -255,7 +257,7 @@ where
 	buttonLabel	b = toString ((fmap (\b -> b.FormButton.label)) b)
 	icon		b = toString ((fmap (\b -> b.FormButton.icon)) b)
 		
-gVisualize{|Choice|} fx val vst=:{currentPath,editEvents,taskId} = visualizeCustomSimple mkControl staticVis val True vst
+gVisualize{|Choice|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
 where
 	mkControl name val touched label optional err hnt _ vst = case val of
 		Nothing
@@ -274,7 +276,7 @@ where
 				, hintMsg = hnt
 				, name = name
 				, value = toJSON (if (touched && sel >= 0 && sel < length opts) [sel] [])
-				, eventValue = eventValue currentPath editEvents
+				, eventValue = eventValue currentPath editEvent
 				, taskId = taskId
 				}
 				],vst)
@@ -286,7 +288,7 @@ where
 	mkOptionLabel vis = toString (SpanTag [ClassAttr "task-choice"] (coerceToHtml vis))
 	noSelection = "No item selected"
 
-gVisualize{|MultipleChoice|} fx val vst=:{currentPath,editEvents,taskId} = visualizeCustomSimple mkControl staticVis val True vst
+gVisualize{|MultipleChoice|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
 where
 	mkControl name val touched label optional err hnt _ vst = case val of
 		Nothing
@@ -305,7 +307,7 @@ where
 				, hintMsg = hnt
 				, name = name
 				, value = toJSON sel
-				, eventValue = eventValue currentPath editEvents
+				, eventValue = eventValue currentPath editEvent
 				, taskId = taskId
 				}
 				],vst)
@@ -317,7 +319,7 @@ where
 	mkOptionLabel vis = toString (SpanTag [ClassAttr "task-choice"] (coerceToHtml vis))
 	empty = "Empty multiple choice"
 
-gVisualize{|Tree|} fx val vst=:{currentPath,editEvents,taskId} = visualizeCustomSimple mkControl staticVis val True vst
+gVisualize{|Tree|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
 where
 	mkControl name val touched label optional err hnt _ vst = case val of
 		Nothing
@@ -334,7 +336,7 @@ where
 				, optional = optional
 				, errorMsg = err
 				, hintMsg = hnt
-				, eventValue = eventValue currentPath editEvents
+				, eventValue = eventValue currentPath editEvent
 				, taskId = taskId
 				}],vst)
 	where
@@ -564,7 +566,7 @@ visualizeControl :: !TUIControlType !(StaticVizFunctions a) !(Maybe a) !*VSt -> 
 visualizeControl control staticF v vst = visualizeControl2 control staticF (fmap (\a -> (a,a)) v) vst
 
 visualizeControl2 :: !TUIControlType !(StaticVizFunctions b) !(Maybe (!a,!b)) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|} a
-visualizeControl2 control (strF,htmlF) v vst=:{editEvents,currentPath} = visualizeCustom tuiF staticF v True vst
+visualizeControl2 control (strF,htmlF) v vst=:{editEvent,currentPath} = visualizeCustom tuiF staticF v True vst
 where
 	tuiF name v touched label optional err hnt _ vst=:{VSt|taskId}
 		# v = checkMask touched v
@@ -575,7 +577,7 @@ where
 											, optional = optional
 											, errorMsg = err
 											, hintMsg = hnt
-											, eventValue = eventValue currentPath editEvents
+											, eventValue = eventValue currentPath editEvent
 											, taskId = taskId
 											}
 	= ([viz],vst)
@@ -673,10 +675,10 @@ verifyElementStr cmv = case cmv of
 	VMUntouched mbHnt _ _	= ("",toString mbHnt)
 	VMInvalid err _			= (toString err,"")
 	
-eventValue :: !DataPath ![(!DataPath,!JSONNode)] -> Maybe JSONNode
-eventValue currentPath events = case filter (\(dp,val) -> dp == currentPath) events of
-	[(_,val)]	= Just val
-	_			= Nothing
+eventValue :: !DataPath !(Maybe (!DataPath,!JSONNode)) -> Maybe JSONNode
+eventValue currentPath mbEvent = case mbEvent of
+	Just (dp,val) | dp == currentPath	= Just val
+	_									= Nothing
 
 //*********************************************************************************************************************
 

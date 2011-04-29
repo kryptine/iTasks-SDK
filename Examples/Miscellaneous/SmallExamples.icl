@@ -34,7 +34,7 @@ where
 						  	(ActionNext,Just num2`)	= step3 num1 num2`
 						  	(ActionPrevious,_)		= step1Back num1
 	
-	step3 num1 num2		= showMessageAboutA ("Sum","The sum of those numbers is:") id [(ActionPrevious, always), (ActionOk, always)] (num1 + num2)
+	step3 num1 num2		= showMessageAboutA ("Sum","The sum of those numbers is:") id [ActionPrevious,ActionOk] (num1 + num2)
 						>>= \res -> case res of
 							(ActionOk,sum)		= return sum
 							(ActionPrevious,_)	= step2Back num1 num2

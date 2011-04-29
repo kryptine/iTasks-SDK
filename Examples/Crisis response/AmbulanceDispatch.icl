@@ -126,7 +126,7 @@ where
 	lonDist l1 l2 = (fromJust l1.Location.coordinates).lon - (fromJust l2.Location.coordinates).lon
 
 displayRequest :: [Provider] -> Task Void
-displayRequest providers = showStickyMessage ("Request",flatten [[Text (p.Provider.name +++ " is asked for " <+ p.capacity),BrTag []]\\p <- providers]) Void
+displayRequest providers = showMessageA ("Request",flatten [[Text (p.Provider.name +++ " is asked for " <+ p.capacity),BrTag []]\\p <- providers]) [] Void >>| stop
 
 // Calculates for a needed amount (left,providers,remainder)
 // left: is the amount that could not fulfilled (0 in case all can be supplied)

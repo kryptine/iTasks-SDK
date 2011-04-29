@@ -29,8 +29,8 @@ where
 		where
 			v = if (not showResult || alwaysCalc) (op x y) display
 				
-	actions :: [TaskAction Int]
-	actions = [(Action b b,always) \\ b <- calcButtons] ++ [(ActionQuit,always)]
+	actions :: [Action]
+	actions = [Action b b \\ b <- calcButtons] ++ [ActionQuit]
 	where
 		calcButtons =	["7","8","9","C"
 						,"4","5","6","/"
@@ -38,10 +38,10 @@ where
 						,"0","+","-","="]
 				
 	calculatorLayout :: !TUIInteractive -> TUIDef
-	calculatorLayout {title,mbContext,buttons,type,isControlTask} = defaultPanel
+	calculatorLayout {title,buttons,type,isControlTask,localInteraction} = defaultPanel
 		title
-		(defaultInteractiveIcon type isControlTask)
-		[defaultContentPanel (maybeToList mbContext ++ buttonLayout buttons)]
+		(defaultInteractiveIcon type isControlTask localInteraction)
+		[defaultContentPanel (buttonLayout buttons)]
 		Auto
 	where
 		buttonLayout buttons = buttonLayout` buttons []

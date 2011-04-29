@@ -17,8 +17,8 @@ from HTTP		import :: HTTPRequest
 					, tree				:: !NonNormalizedTree								// accumulator for constructing a task tree
 					, newTask			:: !Bool											// does the task run for the first time
 					
-					, events			:: ![TaskEvent]										// The update events for interactive tasks
-																							// (task id, name, value)
+					, editEvent			:: !(Maybe (!String,!String,!JSONNode))				// Edit event for an interactive task (taskId,data path,value)
+					, commitEvent		:: !(Maybe (!String,!String))						// Commit event for an insteractive task (taskId,action name)
 																						
 					, properties		:: !ProcessProperties								// Properties of the current evaluated process
 					
@@ -33,7 +33,6 @@ from HTTP		import :: HTTPRequest
 					
 					, sharedChanged		:: !Bool											// Is set to true if a Shared is changed
 					, sharedDeleted		:: !Bool											// Is set to true if a Shared is deleted
-					, triggerPresent	:: !Bool											// Is set to true if an editor with an auto event is present
 					, iterationCount	:: !Int												// Number of iterations in the commit phase
 					
 					, interactiveLayout	:: !InteractiveLayoutMerger							// The layout for interactive tasks currently used
@@ -144,7 +143,6 @@ garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
 *
 * @param Process information from the process database
 * @param The type of task tree to build
-* @param The value updates to apply
 * @param Optionally a new Change that is to be applied to this task instance
 * @param Is the instance evaluated as top node, or as subnode while evaluating a parent process
 * @param Is the task evaluated for the first time
@@ -152,7 +150,7 @@ garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
 *
 * @return The modified task state
 */
-evaluateTaskInstance :: !Process ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !NonNormalizedTree, !*TSt)
+evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !NonNormalizedTree, !*TSt)
 /**
 * Applies a change to a running task process task state.
 * 
@@ -168,13 +166,12 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 *
 * @param The task id of the process
 * @param The type of task tree to build
-* @param The value updates to apply
 * @param The task state
 *
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTreeContainer :: !TaskId ![TaskEvent] !*TSt -> (!NonNormalizedTreeContainer, !*TSt)
+calculateTaskTreeContainer :: !TaskId !*TSt -> (!NonNormalizedTreeContainer, !*TSt)
 /**
 * Lists which workflows are available
 *
@@ -237,11 +234,6 @@ getConfigSetting :: !(Config -> a) !*TSt -> (!a,!*TSt)
 :: TaskFunctions a		:== (!TaskFunctionEdit,!TaskFunctionCommit a)
 
 /**
-* Maps task functions to a different type.
-*/
-mapTaskFunctions :: !(a -> b) !(TaskFunctions a) -> TaskFunctions b
-
-/**
 * Lift a function that uses the TSt to a function that returns
 * a TaskResult value of TaskFinished with the value returned by the function.
 *
@@ -257,12 +249,11 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> TaskFunctionCommit a
 * sequence.
 *
 * @param A description of the task
-* @param The type of the interactive task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
 */
-mkInteractiveTask	:: !d !InteractiveTaskType !(TaskFunctions a) -> Task a | descr d
+mkInteractiveTask	:: !d !(TaskFunctions a) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
@@ -328,14 +319,14 @@ applyTaskCommit			:: !(Task a) !(Maybe (!Int,!TaskContainerType)) !*TSt -> (!Tas
 setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt // Only for interactive tasks
 
 //EVENTS
-//Get edit events for current task of which the name is a datapath
-getEditEvents :: !*TSt -> (![(!DataPath,!JSONNode)],!*TSt)
+//Get edit event for current task if present
+getEditEvent :: !*TSt -> (!Maybe (!DataPath,!JSONNode),!*TSt)
 
 //Get value event for current task if present
 getValueEvent :: !*TSt -> (!Maybe a,!*TSt) | JSONDecode{|*|} a
 
 //Get action event for current task if present
-getActionEvent :: !*TSt -> (!Maybe JSONNode,!*TSt)
+getActionEvent :: !*TSt -> (!Maybe String,!*TSt)
 
 /**
 * Writes a 'task scoped' value to the store

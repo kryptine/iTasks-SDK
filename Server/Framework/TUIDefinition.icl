@@ -1,7 +1,7 @@
 implementation module TUIDefinition
 
 import JSON, StdList, StdBool, GenEq, StdFunc
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractiveTaskType(..)
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..)
 
 htmlDisplay :: !(Maybe String) !String -> TUIDef
 htmlDisplay mbLabel html =	{ content	= TUIControl TUIHtmlDisplay
@@ -39,23 +39,23 @@ sameMargins m =	{ top		= m
 				}
 
 defaultInteractiveLayout :: InteractiveLayoutMerger
-defaultInteractiveLayout = \{title,description,mbContext,editor,buttons,type,isControlTask} -> defaultPanelDescr
+defaultInteractiveLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
 	title
-	(defaultInteractiveIcon type isControlTask)
+	(defaultInteractiveIcon type isControlTask localInteraction)
 	description
-	(defaultContent mbContext editor buttons)
+	(defaultContent editorParts buttons)
 	Auto
 	
 fullWidthInteractiveLayout :: InteractiveLayoutMerger
-fullWidthInteractiveLayout = \{title,description,mbContext,editor,buttons,type,isControlTask} -> defaultPanelDescr
+fullWidthInteractiveLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
 	title
-	(defaultInteractiveIcon type isControlTask)
+	(defaultInteractiveIcon type isControlTask localInteraction)
 	description
-	(defaultContent mbContext editor buttons)
+	(defaultContent editorParts buttons)
 	(FillParent 1 ContentSize)
 	
-defaultContent :: !(Maybe TUIDef) ![TUIDef] ![TUIDef] -> [TUIDef]
-defaultContent mbContext editor buttons = [defaultContentPanel (maybeToList mbContext ++ editorContainer ++ buttonContainer)]
+defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
+defaultContent editor buttons = [defaultContentPanel (editorContainer ++ buttonContainer)]
 where
 	// also add editor container if editor is empty, it's needed as spacer such that buttons are placed at the bottom of the panel
 	editorContainer			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editor, fieldLabel = Nothing, optional = False}
@@ -108,11 +108,14 @@ defaultContentPanel content =		{ content	= TUILayoutContainer {defaultLayoutCont
 									, margins	= Nothing
 									}
 
-defaultInteractiveIcon :: !InteractiveTaskType !Bool -> PanelIcon	
-defaultInteractiveIcon type isControlTask
+defaultInteractiveIcon :: !(Maybe InteractionTaskType) !Bool !Bool -> PanelIcon
+defaultInteractiveIcon type isControlTask localInteraction
 	| isControlTask	= "icon-control-task"
 	= case type of
-		Information	= "icon-interaction-task"
-		Message		= "icon-message-task"
-		Instruction	= "icon-instruction-task"
-		Monitor		= "icon-monitor-task"
+		Nothing = ""
+		Just type = case type of
+			OutputTask _ | not localInteraction	= "icon-monitor-task"
+			OutputTask PassiveOutput			= "icon-message-task"
+			OutputTask ActiveOutput				= "icon-instruction-task"
+			UpdateTask							= "icon-update-task"
+			InputTask							= "icon-input-task"

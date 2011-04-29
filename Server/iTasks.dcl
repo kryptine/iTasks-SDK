@@ -11,7 +11,10 @@ import	Engine						// basic iTask system creator
 	//,	SerializationDynamicLinker	// use serialization via dynamic linker
 
 	//	Basic tasks
-	,	InteractionTasks			// tasks for interaction with users
+	,	InteractionTasks			// core tasks for interaction with users
+	,	OutputTasks					// tasks for outputting informating to users
+	,	InputTasks					// tasks for letting users input information
+	,	UpdateTasks					// tasks for letting users update information
 	,	SystemTasks					// tasks for interaction with the iTasks system itself
 	,	SharedTasks					// tasks for accessing the generic store
 	
@@ -27,7 +30,6 @@ import	Engine						// basic iTask system creator
 	
 	,	OSTasks						// tasks for OS operations like reading/writing files or calling external processes
 	,	RPCTasks					// tasks for calling methods on remote servers
-	,	MonitorTasks
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
@@ -63,4 +65,3 @@ import Types, GenRecord
 from TSt				import :: Workflow{..}
 from Task				import :: Change(..), :: ChangeLifeTime(..)
 from Shared				import :: Shared, :: ReadOnlyShared, :: SymmetricShared, mapShared, toReadOnlyShared, >+<, |+<, >+|, |+|, >&<, symmetricLens
-from InteractiveTasks	import always, ifvalid, ifinvalid, idView, :: Verified(..)

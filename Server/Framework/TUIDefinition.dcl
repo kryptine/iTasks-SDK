@@ -5,15 +5,15 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractiveTaskType
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType
 
-:: TUIInteractive =	{ title			:: !String
-					, description	:: !TUIDef
-					, mbContext		:: !Maybe TUIDef
-					, editor		:: ![TUIDef]
-					, buttons		:: ![TUIDef]
-					, type			:: !InteractiveTaskType
-					, isControlTask	:: !Bool
+:: TUIInteractive =	{ title				:: !String
+					, description		:: !TUIDef
+					, editorParts		:: ![TUIDef]
+					, buttons			:: ![TUIDef]
+					, type				:: !Maybe InteractionTaskType
+					, isControlTask		:: !Bool
+					, localInteraction	:: !Bool
 					}
 					
 :: TUIParallel =	{ title			:: !String
@@ -140,6 +140,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	, text			:: !String
 	, disabled		:: !Bool
 	, iconCls		:: !String
+	, actionButton	:: !Bool
 	}
 :: TUIMenu =
 	{ items			:: ![TUIDef]
@@ -214,5 +215,5 @@ defaultPanelDescr			:: !PanelTitle !PanelIcon !TUIDef	![TUIDef] !TUISize	-> TUID
 defaultPanel				:: !PanelTitle !PanelIcon			![TUIDef] !TUISize	-> TUIDef
 defaultDescriptionPanel		:: !TUIDef												-> TUIDef
 defaultContentPanel			:: ![TUIDef]											-> TUIDef
-defaultContent				:: !(Maybe TUIDef) ![TUIDef] ![TUIDef]					-> [TUIDef]
-defaultInteractiveIcon		:: !InteractiveTaskType !Bool							-> PanelIcon
+defaultContent				:: ![TUIDef] ![TUIDef]									-> [TUIDef]
+defaultInteractiveIcon		:: !(Maybe InteractionTaskType) !Bool !Bool				-> PanelIcon

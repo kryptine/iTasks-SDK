@@ -40,7 +40,7 @@ specifiyIncidents map = sequence "Specify individual incident details" [ (addres
 addressLookup :: GoogleMapMarker -> Task String
 addressLookup marker = 
 		reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
-	>>=	wait ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")") True
+	>>=	wait ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")")
 where
 	{lat,lng} = marker.position
 	
@@ -59,11 +59,11 @@ specifyIncident addr marker
 			 , nrInjured = 0
 			 , description = Note ""
 			 }
-= showStickyMessageAbout ("Location","Incident location:") smap ||- updateInformation ("Details","Specify incident details") incident 
+= showMessageAboutA ("Location","Incident location:") id [] smap ||- updateInformation ("Details","Specify incident details") incident 
 
 //====
 showSources ::  Task Void
 showSources
 	=       importDocument "Crisis Response\\AmbulanceDispatchMap.icl" >>=
 	\icl -> importDocument "Crisis Response\\AmbulanceDispatchMap.dcl" >>=
-	\dcl -> showStickyMessageAbout ("Sources","View the source code of this example") [icl,dcl] >>| stop
+	\dcl -> showMessageAboutA ("Sources","View the source code of this example") id [] [icl,dcl] >>| stop

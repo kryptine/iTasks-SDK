@@ -112,3 +112,5 @@ symmetricLens :: !(a b -> b) !(b a -> a) !(SymmetricShared a) !(SymmetricShared 
 */
 makeReadOnlyShared		:: !(*IWorld -> *(!a,!*IWorld))						-> ReadOnlyShared a
 makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld))	-> ReadOnlyShared a
+
+nullShared :: Shared Void a

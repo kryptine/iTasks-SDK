@@ -37,7 +37,7 @@ manageLists
 	) <! id
 	>>| stop
 where
-	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [aNew,aQuit] >>= transform (appSnd Just)
+	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [ActionNew,ActionQuit] >>= transform (appSnd Just)
 	overview list	= enterChoiceA ("My lists","Select a list...") id [aOpen,aDelete,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)
@@ -61,7 +61,7 @@ manageList :: AnyList -> Task Void
 manageList list
 	=	
 	(	showItems list
-	>>= \(action,_) -> case action of
+	>>= \(Just action,_) -> case action of
 		ActionEdit			= editItems	list			>>| return False
 		Action "share" _	= manageListSharing list	>>| return False
 		ActionClose			=								return True
@@ -69,16 +69,16 @@ manageList list
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= showMessageSharedA (l.List.name,l.List.description) simpleFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(TodoList l)	= showMessageSharedA (l.List.name,l.List.description) todoFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(DateList l)	= showMessageSharedA (l.List.name,l.List.description) dateFrom		[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(DocumentList l)= showMessageSharedA (l.List.name,l.List.description) documentFrom	[(ActionClose,always),(ActionEdit,always),(Action "share" "Share",always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(SimpleList l)	= monitorA (l.List.name,l.List.description) simpleFrom		(const False) [(ActionClose,const True),(ActionEdit,const True),(Action "share" "Share",const True)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(TodoList l)	= monitorA (l.List.name,l.List.description) todoFrom		(const False) [(ActionClose,const True),(ActionEdit,const True),(Action "share" "Share",const True)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DateList l)	= monitorA (l.List.name,l.List.description) dateFrom		(const False) [(ActionClose,const True),(ActionEdit,const True),(Action "share" "Share",const True)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DocumentList l)= monitorA (l.List.name,l.List.description) documentFrom	(const False) [(ActionClose,const True),(ActionEdit,const True),(Action "share" "Share",const True)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
 
 	editItems list = case list of
-		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	[(ActionFinish,always)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		[(ActionFinish,alwaysShared)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			[(ActionFinish,alwaysShared)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			[(ActionFinish,alwaysShared)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	[(ActionFinish,alwaysShared)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
@@ -102,7 +102,7 @@ manageListSharing list
 		Just meta
 			= (case meta.ListMeta.sharedWith of
 				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] []
-				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id [aPrevious,aRemove,aAddPerson,aAddGroup] users
+				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id [(aPrevious,const True),(aRemove,const True),(aAddPerson,const True),(aAddGroup,const True)] users
 			  )
 			>>= \res -> case res of
 				(ActionDelete,users)		= removeUsers users >>| return False
@@ -112,10 +112,10 @@ manageListSharing list
 	) <! id >>| stop
 
 where
-	aPrevious	= (ActionPrevious, always)
-	aRemove		= (ActionDelete, ifvalid)
-	aAddPerson	= (Action "add-person" "Add person(s)", ifvalid)
-	aAddGroup	= (Action "add-group" "Add group", ifvalid)
+	aPrevious	= ActionPrevious
+	aRemove		= ActionDelete
+	aAddPerson	= Action "add-person" "Add person(s)"
+	aAddGroup	= Action "add-group" "Add group"
 
 	removeUsers users	= 	removeSharingForList list users
 	addUsers list		=	enterInformation ("Add person(s)","Enter the person(s) you want to share this list with")

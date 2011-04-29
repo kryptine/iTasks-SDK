@@ -50,12 +50,12 @@ manageMessages =
 where
 	overview :: [Message] -> Task (Action,Maybe Message)
 	overview []		= getDefaultValue >>= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] >>= transform (appSnd Just)
-	overview msgs	= enterChoiceA ("My messages","Your messages:") id [aOpen,aNew,aNewGroup,aQuit] msgs
+	overview msgs	= enterChoiceA ("My messages","Your messages:") id [(aOpen,ifvalid),(aNew,always),(aNewGroup,always),(aQuit,always)] msgs
 	
-	aOpen		= (ActionOpen,ifvalid)
-	aNew		= (Action "new-msg" "New message", always)
-	aNewGroup	= (Action "new-group-msg" "New group message", always)
-	aQuit		= (ActionQuit,always)
+	aOpen		= ActionOpen
+	aNew		= Action "new-msg" "New message"
+	aNewGroup	= Action "new-group-msg" "New group message"
+	aQuit		= ActionQuit
 
 manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
@@ -82,11 +82,11 @@ manageMessage msg=:{Message |subject}
 			=			dbDeleteItem (getItemId msg)
 			>>|			showMessage ("Deleted","Message deleted") False	
 where
-	aReply		= (Action "reply" "Reply",always)
-	aReplyAll	= (Action "reply-all" "Reply All",always)
-	aForward	= (Action "forward" "Forward",always)
-	aDelete		= (ActionDelete, always)
-	aClose		= (ActionClose, always)
+	aReply		= Action "reply" "Reply"
+	aReplyAll	= Action "reply-all" "Reply All"
+	aForward	= Action "forward" "Forward"
+	aDelete		= ActionDelete
+	aClose		= ActionClose
 
 newMessage :: Task Void
 newMessage
@@ -120,7 +120,7 @@ where
 	
 	askReplyTask user msg =
 		subject msg @>>
-			(showStickyMessage ("Reply requested","The sender would like to receive a reply to this message.") False
+			(showMessageA ("Reply requested","The sender would like to receive a reply to this message.") [] Void
 			 ||-
 			 manageMessage msg
 			 )

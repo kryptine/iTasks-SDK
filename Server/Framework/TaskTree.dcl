@@ -10,33 +10,33 @@ from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: InteractiveLayoutMerger, :: ParallelLayoutMerger, :: ResultLayoutMerger, :: LayoutMerger, :: TUIInteractive, :: TUIParallel, :: TUIResult
 
 :: SpineTreeContainer					:== TaskTreeContainer Void Void Void Void
-:: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType (![TUIDef],!Maybe TUIDef,![TUIDef]) HtmlTag
+:: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType (![TUIDef],![TUIDef]) HtmlTag
 :: JSONTreeContainer					:== TaskTreeContainer Void Void JSONNode JSONNode
 :: NonNormalizedTreeContainer			:== TaskTreeContainer ActionMenu TaskContainerType TTNNInteractiveTask TTNNFinished
 
 :: SpineParallelTreeContainer			:== ParallelTaskTreeContainer Void Void Void
-:: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType (![TUIDef],!Maybe TUIDef,![TUIDef]) HtmlTag
+:: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType (![TUIDef],![TUIDef]) HtmlTag
 :: JSONParallelTreeContainer			:== ParallelTaskTreeContainer Void JSONNode JSONNode
 :: NonNormalizedParallelTreeContainer	:== ParallelTaskTreeContainer TaskContainerType TTNNInteractiveTask TTNNFinished
 
 :: SpineTree							:== TaskTree Void Void Void
-:: UITree								:== TaskTree TTContainerType (![TUIDef],!Maybe TUIDef,![TUIDef]) HtmlTag
+:: UITree								:== TaskTree TTContainerType (![TUIDef],![TUIDef]) HtmlTag
 :: JSONTree								:== TaskTree Void JSONNode JSONNode
 :: NonNormalizedTree					:== TaskTree TaskContainerType TTNNInteractiveTask TTNNFinished
 
-:: TTNNInteractiveTask					:== (*IWorld -> *(!(![TUIDef],!Maybe TUIDef),![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
+:: TTNNInteractiveTask					:== (*IWorld -> *(![TUIDef],![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished							:== (HtmlTag,JSONNode)
 
-//A container used for tree representing top level tasks (including the menu, the actual tree & a flag indicating if the task is a control task)
-:: TaskTreeContainer menu containerType interactiveOutput finishedOutput = TTContainer !menu !.(TaskTree containerType interactiveOutput finishedOutput) !Bool
-//A container used for subtrees representing subtasks or parallel (including the type, the actual tree, an index determining the order of appearance & a flag indicating if the task is a control task)
-:: ParallelTaskTreeContainer containerType interactiveOutput finishedOutput = TTParallelContainer !Int !containerType !.(TaskTree containerType interactiveOutput finishedOutput) !Bool
+//A container used for tree representing top level tasks (including the menu & the actual tree)
+:: TaskTreeContainer menu containerType interactiveOutput finishedOutput = TTContainer !menu !.(TaskTree containerType interactiveOutput finishedOutput)
+//A container used for subtrees representing subtasks or parallel (including the type, the actual tree & an index determining the order of appearance)
+:: ParallelTaskTreeContainer containerType interactiveOutput finishedOutput = TTParallelContainer !Int !containerType !.(TaskTree containerType interactiveOutput finishedOutput)
 
 :: TaskTree containerType interactiveOutput finishedOutput
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
 	= TTParallelTask	!TaskInfo !.[.ParallelTaskTreeContainer containerType interactiveOutput finishedOutput]								
 	//A task that can be worked on through a gui
-	| TTInteractiveTask	!TaskInfo !InteractiveTaskType interactiveOutput								
+	| TTInteractiveTask	!TaskInfo interactiveOutput
 	//A completed task (the flag indicates if the result is shown to the user)
 	| TTFinishedTask	TaskInfo finishedOutput !Bool
 
@@ -48,6 +48,9 @@ from TUIDefinition	import :: TUIDef, :: InteractiveLayoutMerger, :: ParallelLayo
 :: TaskInfo	=	{ taskId				:: !TaskId											//Task number in string format
 				, title					:: !String											//Short title of the task
 				, description			:: !String											//Description of the task (html)
+				, type					:: !Maybe InteractionTaskType
+				, isControlTask			:: !Bool
+				, localInteraction		:: !Bool
 				, interactiveLayout		:: !TIInteractiveLayoutMerger
 				, parallelLayout		:: !TIParallelLayoutMerger
 				, resultLayout			:: !TIResultLayoutMerger

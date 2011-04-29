@@ -1,6 +1,6 @@
 implementation module Util
 
-import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON
+import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON, Void
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
 
 fileExtension :: !String -> String
@@ -33,6 +33,9 @@ list2mb	:: ![a] -> (Maybe [a])
 list2mb [] = Nothing
 list2mb a = (Just a)
 
+voidNothing :: Maybe Void
+voidNothing = Nothing
+
 pad :: Int Int -> String
 pad len num = (createArray (max 0 (len - size nums)) '0' ) +++ nums
 where 
@@ -64,6 +67,12 @@ instance toString (Maybe a) | toString a
 where
 	toString Nothing	= ""
 	toString (Just x)	= toString x
+
+tuple :: !a !b -> (!a,!b)
+tuple a b = (a,b)
+
+tuple3 :: !a !b !c -> (!a,!b,!c)
+tuple3 a b c = (a,b,c)
 
 appFst	:: (.a -> .c) (.a,.b) -> (.c,.b)
 appFst f (a,b) = (f a,b)
@@ -122,3 +131,6 @@ intersperse :: !a ![a] -> [a]
 intersperse i [] = []
 intersperse i [x] = [x]
 intersperse i [x:xs] = [x,i:intersperse i xs]
+
+getIndexes :: ![a] ![Int] -> [a]
+getIndexes list indexes = [x \\ x <- list & idx <- [0..] | isMember idx indexes]

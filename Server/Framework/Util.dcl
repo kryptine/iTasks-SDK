@@ -8,6 +8,7 @@ baseName			:: !String -> String
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
 instance toString (Maybe a) | toString a
+voidNothing 		:: Maybe Void
 
 pad					:: Int Int -> String
 decFormat			:: Int -> String
@@ -25,6 +26,9 @@ currentTimestamp	:: !*IWorld -> (!Timestamp,!*IWorld)
 currentDateTimeWorld :: !*World -> (!DateTime,!*World)
 
 // Utility functions for tuples
+tuple	:: !a !b	-> (!a,!b)
+tuple3	:: !a !b !c	-> (!a,!b,!c)
+
 appFst	:: (.a -> .c) (.a,.b) -> (.c,.b)
 appSnd	:: (.b -> .c) (.a,.b) -> (.a,.c)
 
@@ -47,3 +51,4 @@ replaceInList	:: !(a a -> Bool) !a ![a]	-> [a]
 splitWith		:: !(a -> Bool) ![a]		-> (![a],![a])
 sortByIndex		:: ![(!Int,!a)]				-> [a]
 intersperse		:: !a ![a]					-> [a]
+getIndexes		:: ![a] ![Int]				-> [a]

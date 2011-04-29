@@ -17,27 +17,27 @@ derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Cu
 derive gVisualize EmailAddress, Action, Table, HtmlDisplay
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !TaskId !VerifyMask ![(!DataPath,!JSONNode)]	-> [TUIDef]	| gVisualize{|*|} a
-visualizeAsHtmlDisplay	:: !a												-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextDisplay	:: !a												-> String	| gVisualize{|*|} a
-visualizeAsHtmlLabel	:: !a												-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextLabel	:: !a												-> String	| gVisualize{|*|} a
+visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> TUIDef	| gVisualize{|*|} a
+visualizeAsHtmlDisplay	:: !a															-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextDisplay	:: !a															-> String	| gVisualize{|*|} a
+visualizeAsHtmlLabel	:: !a															-> HtmlTag	| gVisualize{|*|} a
+visualizeAsTextLabel	:: !a															-> String	| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
-	{ vizType			:: !VisualizationType			// Type of preferred visualization
-	, origVizType		:: !VisualizationType			// Type of the preferred visualization at initialization, this should not be edited.
-	, label				:: !Maybe String				// Optional label to attach to editor fields
+	{ vizType			:: !VisualizationType				// Type of preferred visualization
+	, origVizType		:: !VisualizationType				// Type of the preferred visualization at initialization, this should not be edited.
+	, label				:: !Maybe String					// Optional label to attach to editor fields
 	
 	// Additional information for form generation
-	, currentPath		:: !DataPath					// Accumulated path through the data structure, used to identify sub-structures
+	, currentPath		:: !DataPath						// Accumulated path through the data structure, used to identify sub-structures
 	, verifyMask		:: ![VerifyMask]
-	, selectedConsIndex	:: !Int							// Index of the selected constructor in an Object
-	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
-	, optional			:: !Bool						// Create optional form fields
-	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
-	, editEvents		:: ![(!DataPath,!JSONNode)]		// The edit events for keeping track of values sent by the client (used for diff)
-	, taskId			:: !TaskId						// The id of the task the visualisation belongs to
+	, selectedConsIndex	:: !Int								// Index of the selected constructor in an Object
+	, useLabels			:: !Bool							// Indent for labels, whether there is a label or not
+	, optional			:: !Bool							// Create optional form fields
+	, renderAsStatic	:: !Bool							// If true, flag the form items as being static
+	, editEvent		:: !(Maybe (!DataPath,!JSONNode))		// The edit event (if present) for keeping track of values sent by the client (used for diff)
+	, taskId			:: !TaskId							// The id of the task the visualisation belongs to
 	}
 
 :: VisualizationType

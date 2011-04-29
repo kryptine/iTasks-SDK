@@ -1,7 +1,7 @@
 implementation module OSTasks
 
 import StdList, StdTuple
-import TSt, StdFile, Process, Text, ExceptionCombinators, MonitorTasks, Shared
+import TSt, StdFile, Process, Text, ExceptionCombinators, OutputTasks, Shared
 from Directory			import getCurrentDirectory
 from File				import qualified fileExists, readFile
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess

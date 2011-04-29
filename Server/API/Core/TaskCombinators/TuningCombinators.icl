@@ -5,13 +5,19 @@ from Time import :: Timestamp, :: Tm(..), mkTime
 
 class tune b :: !b !(Task a) -> Task a
 instance tune Title
-where tune (Title s) task		= let p = taskProperties task in {Task|task & properties = {p & taskDescription = {TaskDescription|p.taskDescription & title = toString s}}}
+where tune (Title s) task		= updateTaskProperties (\p -> {p & taskDescription = {TaskDescription|p.taskDescription & title = toString s}}) task
 instance tune Description
-where tune (Description s) task	= let p = taskProperties task in {Task|task & properties = {p & taskDescription = {TaskDescription|p.taskDescription & description = toString (html s)}}}
+where tune (Description s) task	= updateTaskProperties (\p -> {p & taskDescription = {TaskDescription|p.taskDescription & description = toString (html s)}}) task
 instance tune Tag
-where tune (Tag t) task			= let p = taskProperties task in {Task|task & properties = {p & tags = [toString t : p.tags]}}
+where tune (Tag t) task			= updateTaskProperties (\p -> {p & tags = [toString t : p.tags]}) task
 instance tune Tags
-where tune (Tags ts) task		= let p = taskProperties task in {Task|task & properties = {p & tags = (map toString ts) ++ p.tags}}
+where tune (Tags ts) task		= updateTaskProperties (\p -> {p & tags = (map toString ts) ++ p.tags}) task
+instance tune InteractionTaskType
+where tune t task				= updateTaskProperties (\p -> {p & interactionType = Just t}) task
+instance tune ControlTask
+where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & isControlTask = True}) task
+instance tune LocalInteractionTask
+where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & localInteraction = True}) task
 instance tune InteractiveLayoutMerger
 where tune l task				= {task & mbInteractiveLayout = Just l}
 instance tune ParallelLayoutMerger
@@ -24,3 +30,5 @@ where tune l task				= {task & mbResultLayout = Just l}
 
 (@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 (@>>) a t = tune a t
+
+updateTaskProperties updF task = let p = taskProperties task in {Task|task & properties = updF p}

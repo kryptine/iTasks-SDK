@@ -8,12 +8,12 @@ itasks.ttc.MenuItem = Ext.extend(Ext.menu.Item, {
 
 		itasks.ttc.MenuItem.superclass.initComponent.apply(this,arguments);
 		
-		this.addEvents('tuievent');
-		this.enableBubble('tuievent');
+		this.addEvents('tuiaction');
+		this.enableBubble('tuiaction');
 	},
 	onActionClick: function() {
 		if(this.action) {
-			this.fireEvent('tuievent',this.target,'action',this.action);
+			this.fireEvent('tuiaction',this.target,this.action);
 		}
 	}
 });

@@ -7,10 +7,10 @@ from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB TSt, ins
 from UserDB		import class UserDB(..), instance UserDB TSt
 from Types		import :: ProcessId
 	
-derive gVisualize	Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType
-derive gUpdate		Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType
-derive gDefaultMask	Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType
-derive gVerify		Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType
+derive gVisualize	Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
+derive gUpdate		Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
+derive gDefaultMask	Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
+derive gVerify		Process, ProcessProperties, TaskProgress, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
 derive bimap Maybe,(,)
 
 // generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised

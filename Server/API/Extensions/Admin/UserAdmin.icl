@@ -14,7 +14,7 @@ manageUsers =
 	) <! id >>| stop
 where
 	overview []		= showMessageA ("Users","There are no users yet")
-							[(ActionNew,always),(ActionQuit,always)] Nothing
+							[ActionNew,ActionQuit] Nothing
 	overview list	= enterChoiceA ("Users","The following users are available") id
 						[(ActionOpen,ifvalid),(ActionDelete,ifvalid),(ActionNew,always), (ActionQuit,always)] list
 

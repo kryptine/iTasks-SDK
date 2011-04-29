@@ -2,13 +2,13 @@ implementation module TaskService
 
 import StdList, StdBool, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel, TaskPanelClientEncode
 
-derive JSONEncode TaskPanel, TTCInteractiveContainer, InteractiveTaskType
+derive JSONEncode TaskPanel, TTCInteractiveContainer
 derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIControlType, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONEncode TUIFormContainer, TUILayoutContainer, TUIRecordContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 
-derive JSONDecode TaskPanel, TTCInteractiveContainer, InteractiveTaskType
+derive JSONDecode TaskPanel, TTCInteractiveContainer
 derive JSONDecode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONDecode TUIControlType, TUIConstructorControl
 derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
@@ -17,7 +17,7 @@ derive JSONDecode TUIFormContainer, TUILayoutContainer, TUIRecordContainer, TUIL
 derive bimap Maybe, (,)
 
 //Additional derives for debugging
-derive JSONEncode TaskTree, TaskInfo, Menu, TTContainerType, TaskTreeContainer, ParallelTaskTreeContainer
+derive JSONEncode TaskTree, TaskInfo, Menu, TTContainerType, TaskTreeContainer, ParallelTaskTreeContainer, InteractionTaskType, OutputTaskType
 JSONEncode{|TIInteractiveLayoutMerger|} _	= [JSONNull]
 JSONEncode{|TIParallelLayoutMerger|} _		= [JSONNull]
 JSONEncode{|TIResultLayoutMerger|} _		= [JSONNull]
@@ -87,11 +87,8 @@ taskService url format path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					//Events are posted as a list of triplets
-					# events		= case (fromJSON (fromString eventsParam)) of
-						Just events		= events
-						Nothing			= []
-					# (cont,tst)		= calculateTaskTreeContainer taskId events tst
+					# tst				= {tst & editEvent = fromJSON (fromString editEventParam), commitEvent = fromJSON (fromString commitEventParam)}
+					# (cont,tst)		= calculateTaskTreeContainer taskId tst
 					# (jsonTree,tst)	= accIWorldTSt (toJSONTreeContainer cont) tst
 					# task = JSONObject (taskProperties proc ++ [("parts", JSONArray (taskParts jsonTree))]) 
 					# json = JSONObject [("success",JSONBool True),("task",task)]
@@ -105,7 +102,7 @@ taskService url format path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					# (cont,tst) = calculateTaskTreeContainer taskId [] tst
+					# (cont,tst) = calculateTaskTreeContainer taskId tst
 					# (treeJson,tst) = case typeParam of
 						"ui"	= appFst toJSON (accIWorldTSt (toUITreeContainer cont) tst)
 						"json"	= appFst toJSON (accIWorldTSt (toJSONTreeContainer cont) tst)
@@ -131,13 +128,18 @@ taskService url format path req tst
 										= Just ("warning",JSONString "The client is outdated. The form was refreshed with the most recent value.")
 						_
 										= Nothing
-					//Events are posted as a list of triplets
-					# events = case fromJSON (fromString eventsParam) of
-						Just events | isNothing mbOutdatedWarning // ignore edit events of outdated clients
+					# mbEditEvent = case fromJSON (fromString editEventParam) of
+						Just events | isNothing mbOutdatedWarning || timestampParam == ""  // ignore edit events of outdated clients
 										= events
 						_				
-										= []
-					# (cont,tst)		= calculateTaskTreeContainer taskId events tst
+										= Nothing
+					# mbCommitEvent = case fromJSON (fromString commitEventParam) of
+						Just events | isNothing mbOutdatedWarning || timestampParam == "" // ignore commit events of outdated clients
+										= events
+						_				
+										= Nothing
+					# tst				= {tst & editEvent = mbEditEvent, commitEvent = mbCommitEvent}
+					# (cont,tst)		= calculateTaskTreeContainer taskId tst
 					# (timestamp,tst)	= getTimestamp tst
 					# (uiContent,tst)	= accIWorldTSt (toUITreeContainer cont) tst
 					# new				= buildTaskPanel uiContent
@@ -178,7 +180,7 @@ taskService url format path req tst
 				= (notFoundResponse req, tst)
 			Just proc
 				# task			= taskItem proc
-				# (cont,tst)	= calculateTaskTreeContainer taskId [] tst
+				# (cont,tst)	= calculateTaskTreeContainer taskId tst
 				# (uiCont,tst)	= accIWorldTSt (toUITreeContainer cont) tst
 				# tui			= buildResultPanel uiCont
 				# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
@@ -189,36 +191,37 @@ taskService url format path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					# (_,tst) = calculateTaskTreeContainer taskId [] tst
+					# (_,tst) = calculateTaskTreeContainer taskId tst
 					# json = JSONObject [("success",JSONBool True)]
 					= (serviceResponse html "Task details" refreshDescription url [] json, tst)
 		_
 			= (notFoundResponse req, tst)
 where
-	sessionParam	= paramValue "session" req
-	userParam		= paramValue "user" req
-	timestampParam	= paramValue "timestamp" req
+	sessionParam		= paramValue "session" req
+	userParam			= paramValue "user" req
+	timestampParam		= paramValue "timestamp" req
 	
-	createParams	= [("session",sessionParam,True),("workflow",workflowParam,True),("parameter",paramParam,False)]
-	workflowParam	= paramValue "workflow" req
-	paramParam		= paramValue "parameter" req
+	createParams		= [("session",sessionParam,True),("workflow",workflowParam,True),("parameter",paramParam,False)]
+	workflowParam		= paramValue "workflow" req
+	paramParam			= paramValue "parameter" req
 	
-	listParams		= [("session",sessionParam,True),("user",userParam,False)]
+	listParams			= [("session",sessionParam,True),("user",userParam,False)]
 	
-	debugParams		= [("session",sessionParam,True),("type",typeParam,False)]
-	typeParam		= paramValue "type" req
+	debugParams			= [("session",sessionParam,True),("type",typeParam,False)]
+	typeParam			= paramValue "type" req
 	
-	detailsParams	= [("session",sessionParam,True),("events",eventsParam,False)]
-	eventsParam		= paramValue "events" req
+	detailsParams		= [("session",sessionParam,True),("editEvent",editEventParam,False),("commitEvent",commitEventParam,False)]
+	editEventParam		= paramValue "editEvent" req
+	commitEventParam	= paramValue "commitEvent" req
 	
-	tuiParams		= [("session",sessionParam,True),("events",eventsParam,False),("since",sinceParam,False)]
-	sinceParam		= paramValue "since" req
+	tuiParams			= [("session",sessionParam,True),("editEvent",editEventParam,False),("commitEvent",commitEventParam,False),("since",sinceParam,False)]
+	sinceParam			= paramValue "since" req
 	
-	propParams		= [("session",sessionParam,True),("update",updateParam,False)]
-	updateParam		= paramValue "update" req
+	propParams			= [("session",sessionParam,True),("update",updateParam,False)]
+	updateParam			= paramValue "update" req
 	
 	jsonSessionErr (Just error)
-					= JSONObject [("success",JSONBool False),("error", JSONString error)]
+						= JSONObject [("success",JSONBool False),("error", JSONString error)]
 	
 	taskItems processes = map taskItem processes
 	taskItem process	= process.Process.properties	
@@ -256,16 +259,16 @@ where
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
 
 	taskParts :: !JSONTreeContainer -> [JSONNode]
-	taskParts (TTContainer _ tree _) = taskParts` tree
+	taskParts (TTContainer _ tree) = taskParts` tree
 	
 	taskParts` :: !JSONTree -> [JSONNode]
 	taskParts` (TTParallelTask _ trees) = flatten (map taskParts`` trees)	
-	taskParts` (TTInteractiveTask ti _ json)
+	taskParts` (TTInteractiveTask ti json)
 		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",json)]]
 	taskParts` _ = []
 	
 	taskParts`` :: !JSONParallelTreeContainer -> [JSONNode]
-	taskParts`` (TTParallelContainer _ _ tree _) = taskParts` tree
+	taskParts`` (TTParallelContainer _ _ tree) = taskParts` tree
 	
 	getTimestamp :: !*TSt -> (!Timestamp,!*TSt)
 	getTimestamp tst=:{TSt|iworld=iworld=:{IWorld|timestamp}} = (timestamp,tst)

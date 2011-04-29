@@ -14,30 +14,30 @@ toJSONTreeContainer		:: !NonNormalizedTreeContainer !*IWorld	-> (!JSONTreeContai
 toJSONTreeContainer tree iworld	= gMapLSt{|*->*->*->*->*|} (\_ w -> (Void,w)) (\_ w -> (Void,w)) (app o snd) (\(_,j) w -> (j,w)) tree iworld
 
 toUITreeContainer		:: !NonNormalizedTreeContainer !*IWorld	-> (!UITreeContainer,!*IWorld)
-toUITreeContainer (TTContainer menuF tree controlTask) iworld
+toUITreeContainer (TTContainer menuF tree) iworld
 	# (uiTree,remainingActions,iworld)	= toUITree tree iworld
 	// generate top menu
 	# (menu,remainingActions)			= mkMenu menuF remainingActions
 	// generate buttons for remaining actions
 	# uiTree = mkButtons remainingActions uiTree
-	= (TTContainer menu uiTree controlTask,iworld)
+	= (TTContainer menu uiTree,iworld)
 where	
 	toUITree :: !NonNormalizedTree !*IWorld -> (!UITree,!SubtaskActions,!*IWorld)
 	toUITree tree iworld = case tree of
 		TTFinishedTask ti (result,_) show
 			= (TTFinishedTask ti result show,[],iworld)
-		TTInteractiveTask ti interactiveType (tuiF,_)
-			# ((editor,mbContext),actions,iworld) = tuiF iworld
-			= (TTInteractiveTask ti interactiveType (editor,mbContext,[]),addTaskIds ti.TaskInfo.taskId actions,iworld)
+		TTInteractiveTask ti (tuiF,_)
+			# (editor,actions,iworld) = tuiF iworld
+			= (TTInteractiveTask ti (editor,[]),addTaskIds ti.TaskInfo.taskId actions,iworld)
 		TTParallelTask ti containers
-			# containers							= sortBy (\(TTParallelContainer idx0 _ _ _) (TTParallelContainer idx1 _ _ _) -> idx0 < idx1) containers
-			# containers							= filter (\(TTParallelContainer _ _ t _) -> case t of TTFinishedTask _ _ _ = False; _ = True) containers
+			# containers							= sortBy (\(TTParallelContainer idx0 _ _) (TTParallelContainer idx1 _ _) -> idx0 < idx1) containers
+			# containers							= filter (\(TTParallelContainer _ _ t) -> case t of TTFinishedTask _ _ _ = False; _ = True) containers
 			# (mbSubContainersAndActions,iworld)	= mapSt toUIParallelTreeContainer containers iworld
 			# (mbSubContainers,actions)				= unzip mbSubContainersAndActions
 			= (TTParallelTask ti (catMaybes mbSubContainers),flatten actions,iworld)
 			
 	toUIParallelTreeContainer :: !NonNormalizedParallelTreeContainer !*IWorld -> (!(!Maybe UIParallelTreeContainer,!SubtaskActions),!*IWorld)
-	toUIParallelTreeContainer (TTParallelContainer idx type tree controlTask) iworld
+	toUIParallelTreeContainer (TTParallelContainer idx type tree) iworld
 		= case type of
 			CTDetached _ _ // filter out detached tasks, because they're not shown in a parallel panel
 				= ((Nothing,[]),iworld)
@@ -55,7 +55,7 @@ where
 						= (Just (TTDialog title),[],mkButtons actions uiTree)
 					CTInBody
 						= (Just TTInBody,actions,uiTree)
-				= ((fmap (\type -> TTParallelContainer idx type uiTree controlTask) mbTTContainerType,remainingActions),iworld)
+				= ((fmap (\type -> TTParallelContainer idx type uiTree) mbTTContainerType,remainingActions),iworld)
 	
 	mkMenu :: !ActionMenu !SubtaskActions -> (![TUIDef],!SubtaskActions)
 	mkMenu menuF actions = mkMenu` (menuF (map (actionName o snd3) actions)) actions
@@ -137,16 +137,16 @@ where
 				
 	mkButtons :: !SubtaskActions !UITree -> UITree
 	mkButtons actions tree = case tree of
-		interactiveNode=:(TTInteractiveTask ti interactiveType tui)
+		interactiveNode=:(TTInteractiveTask ti tui)
 			# buttons			= mkButtons` ti.TaskInfo.taskId
 			| isEmpty buttons	= interactiveNode
-			= TTInteractiveTask ti interactiveType (appThd3 (const buttons) tui)
+			= TTInteractiveTask ti (appSnd (const buttons) tui)
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
 		other
 			= other
 	where
-		mkButtonsPar actions (TTParallelContainer type idx tree controlTask) = TTParallelContainer type idx (mkButtons actions tree) controlTask
+		mkButtonsPar actions (TTParallelContainer type idx tree) = TTParallelContainer type idx (mkButtons actions tree)
 	
 		mkButtons` :: !TaskId -> [TUIDef]
 		mkButtons` taskId
@@ -161,6 +161,7 @@ where
 															, disabled = not enabled
 															, text = actionLabel action
 															, iconCls = actionIcon action
+															, actionButton = True
 															}
 											, width		= Auto
 											, height	= Auto

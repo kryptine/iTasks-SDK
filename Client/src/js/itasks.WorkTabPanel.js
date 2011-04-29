@@ -19,7 +19,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			iconCls: "icon-task",
 			url: itasks.config.serviceUrl + "/json/tasks/" + this.taskId + "/tui",
 			params: {session: itasks.app.session},
-			listeners: {tuievent: {fn: this.onTuiEvent, scope: this}},
+			listeners:	{ tuichange: {fn:this.onTuiChange, scope: this}
+						, tuiaction: {fn:this.onTuiAction, scope: this}
+						},
 			layout: "border",
 			items: [{
 				xtype: "itasks.work-header",
@@ -83,12 +85,27 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			this.getComponent(0).setBusy(false);
 		},this);
 	},
-	onTuiEvent: function(taskId, name, value, status) {
-		//TODO: reinstate slight delay between receive of task and sync
-		//      needed to capture edit->click sequences.
-		this.params["events"] = Ext.encode([[taskId,name,value]]);
+	onTuiChange: function(taskId,name,value) {
+		if (!Ext.isDefined(this.params['editEvent'])) {
+			this.params['editEvent'] = Ext.encode([taskId,name,value]);
+			if (!Ext.isDefined(this.params['commitEvent'])) {
+				// introduce slight delay to possibly send commit event in same request
+				this.sendEvents.defer(100,this);
+			}
+		}	
+	},
+	onTuiAction: function(taskId,value) {
+		if (!Ext.isDefined(this.params['commitEvent'])) {
+			this.params['commitEvent'] = Ext.encode([taskId,value]);
+			if (!Ext.isDefined(this.params['editEvent'])) {
+				this.sendEvents();
+			}
+		}
+	},
+	sendEvents: function() {
 		this.refresh(true);
-		delete(this.params["events"]);
+		delete(this.params['editEvent']);
+		delete(this.params['commitEvent']);
 	},
 	update: function(data,success,status) {
 		if(!success) {

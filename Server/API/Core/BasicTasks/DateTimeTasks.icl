@@ -1,6 +1,6 @@
 implementation module DateTimeTasks
 
-import StdInt, Error, TSt, Types, Void, Util, Time, Shared, CoreCombinators, MonitorTasks
+import StdInt, Error, TSt, Types, Void, Util, Time, Shared, CoreCombinators, OutputTasks
 from CommonCombinators	import stop
 
 getCurrentTime :: Task Time
@@ -14,18 +14,16 @@ getCurrentDateTime = mkInstantTask ("Get current datetime", "Determine the curre
 
 waitForTime :: !Time -> Task Void
 waitForTime time =
-		monitor ("Wait for time", ("Wait until " +++ toString time)) view pred True sharedCurrentTime
+		waitUntil ("Wait for time", ("Wait until " +++ toString time)) pred sharedCurrentTime
 	>>| stop
 where	
-	view _ = toHtmlDisplay [Text "Waiting until ",visualizeAsHtmlLabel time]
 	pred now = time < now
 
 waitForDate :: !Date -> Task Void
 waitForDate date =
-		monitor ("Wait for date", ("Wait until " +++ toString date)) view pred True sharedCurrentDate
+		waitUntil ("Wait for date", ("Wait until " +++ toString date)) pred sharedCurrentDate
 	>>| stop
 where
-	view _ = toHtmlDisplay [Text "Waiting until ",visualizeAsHtmlLabel date]
 	pred now = date < now
 
 waitForTimer :: !Time -> Task Void

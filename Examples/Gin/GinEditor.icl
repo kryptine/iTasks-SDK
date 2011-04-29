@@ -83,7 +83,7 @@ initMenu =
                      ]
 	]
 
-actions :: EditorState -> [(TaskAction b)]
+actions :: EditorState -> [(PredAction (Verified b))]
 actions state = [ (ActionNew,              always)
                 , (ActionOpen,             always)
                 , (ActionSave,             (\_ -> state.EditorState.changed ))
@@ -114,7 +114,7 @@ doMenu state =: { EditorState | mode, config, gMod } =
 						  >>= \allModules -> mkUpdateTask "Imports" (importsView (sort allModules), importsUpdate) False
 		ViewTypes		= mkUpdateTask "Types" (typeView, typeUpdate) False
         ViewSource		= accWorld (tryRender gMod config POICL) 
-        				  >>= \source 		-> showMessageA ("code view", formatSource source) (actions state) Void
+        				  >>= \source 		-> showMessageA ("code view", formatSource source) [action \\ (action,pred) <- (actions state) | pred Invalid] Void
                           >>= \(action, _)	-> return (action, state)                   
     >>= switchAction
     
