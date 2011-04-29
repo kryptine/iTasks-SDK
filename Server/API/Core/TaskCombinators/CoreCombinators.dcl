@@ -46,15 +46,12 @@ derive gEq			TaskContainer
 */
 return 		:: !a 										-> Task a 		| iTask a
 
-
-
 /**
 * All-in-one swiss-army-knife parallel task creation
 *
 * @param The (overloaded) task description
 * @param The accumulator
 * @param A function defining how to convert the accumulator to the final result when the parallel task finishes
-* @param Layout merge function that layouts the user interfaces of tasks that are placed in the body
 * @param The list of tasks to run in parallel, each task is given a view on the status of all tasks in the set
 * @return The resulting value
 */

@@ -69,7 +69,7 @@ return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,tst))
 	
 // Parallel composition
-JSONEncode{|PSt|} c		= dynamicJSONEncode c
+JSONEncode{|PSt|} c		=  dynamicJSONEncode c
 JSONDecode{|PSt|} [j:c]	= (dynamicJSONDecode j,c)
 
 :: PSt =
@@ -85,7 +85,6 @@ JSONDecode{|PSt|} [j:c]	= (dynamicJSONDecode j,c)
 
 
 //TODO:
-// - remove flagged tasks from the set
 // - create processes for added tasks
 
 parallel :: !d !s !(ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
@@ -113,7 +112,8 @@ where
 		// Evaluate the subtasks for all currently active tasks
 		# (res,pst,tst)	= processAllTasksC taskNr 0 pst tst
 		// Remove tasks were marked as removed from the list and task tree
-		# (pst,tst)		= removeMarkedTasks pst tst
+		# (pst,tst)		= removeMarkedTasks taskNr pst tst
+		# tst 			= appIWorldTSt (storePSt taskNr pst) tst
 		// The result of the combined evaluation of all parallel subtasks
 		# (res,tst) = case res of
 			//There are still active tasks
@@ -167,7 +167,7 @@ where
 					= processAllTasksC taskNr (i + 1) pst tst
 				TaskFinished _
 					//Mark the task as finished
-					# pst = {PSt|pst & tasks = updateAt i (idx, ctype, markFinished task) pst.tasks}
+					# pst = {PSt|pst & tasks = [if (i == idx) (i,c,markFinished t) (i,c,t) \\ (i,c,t) <- pst.tasks]}
 					# tst = appIWorldTSt (storePSt taskNr pst) tst
 					//Process the other tasks
 					= processAllTasksC taskNr (i + 1) pst tst
@@ -182,6 +182,12 @@ where
 
 		markFinished (ActiveTask {Task|properties})	= FinishedTask properties
 		markFinished t								= t
+
+	print tasks = join "," (map print2 tasks)
+	where
+		print2 (_,_,ActiveTask _) = "active"
+		print2 (_,_,RemovedTask)	= "removed"
+		print2 (_,_,FinishedTask _)	= "finished"
 
 	//Create the initial parallel task set
 	initPSt	:: !s ![TaskContainer s] !TaskNr !*IWorld -> (!PSt,!*IWorld) | iTask s
@@ -284,7 +290,7 @@ where
 		write controls iworld
 			# (pst,iworld)		= loadPSt taskNr iworld
 			# (pst,iworld)		= processControls controls pst iworld
-			# iworld			= storePSt taskNr pst iworld 
+			# iworld			= storePSt taskNr pst iworld
 			= (Ok Void,iworld)
 		where
 			processControls [] pst iworld = (pst,iworld)
@@ -310,69 +316,48 @@ where
 			unpack s c i (InBodyTask t)			= (i, CTInBody, ActiveTask (t s c))
 			unpack s c i (HiddenTask t)			= (i, CTHidden, ActiveTask (t s c))
 
-		/*
-		updateProcProps (idx,mprops) iworld
-			# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {ProcessProperties|pprops & managerProperties = mprops}) iworld
-			= iworld
-		*/
-
 		timestamp iworld
 			# (mbLastUpdate,iworld) = getTaskStoreFor taskNr "lastUpdate" iworld
 			= case mbLastUpdate of
 				Just lastUpdate	= (Ok lastUpdate,iworld)
 				Nothing			= (Error "no timestamp",iworld)
 
+	updateTimestamp :: !TaskNr !*IWorld -> *IWorld
+	updateTimestamp taskNr iworld=:{IWorld|timestamp}
+		= setTaskStoreFor taskNr "lastUpdate" timestamp iworld
 
-	removeMarkedTasks :: !PSt !*TSt -> (!PSt,!*TSt)
-	removeMarkedTasks pst tst = (pst,tst) //TODO
+	removeMarkedTasks :: !TaskNr !PSt !*TSt -> (!PSt,!*TSt)
+	removeMarkedTasks taskNr pst tst
+		# (tasks,idxs,tst)	= remove pst.tasks tst
+		# tst				= removeFromTree idxs tst
+		# tst				= deleteStates idxs tst
+		= ({PSt|pst & tasks = tasks},tst)
+	where
+		remove [] tst = ([],[],tst)
+		remove [(idx,ctype,RemovedTask):ts] tst
+			# (ts,idxs,tst)	= remove ts tst
+			= (ts,[idx:idxs],tst)
+		remove [t:ts] tst
+			# (ts,idxs,tst)	= remove ts tst
+			= ([t:ts],idxs,tst)
+				
+		// removes given parallel task tree containers from tree	
+		removeFromTree remIdxs tst=:{tree} = case tree of
+			TTParallelTask ti children
+				= {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _) -> not (isMember idx remIdxs)) children))}
+			_	= abort "parallel node expected"	
 			
-/*
-	processControls [] evalTs pst tst = processAllTasksC evalTs pst tst
-	processControls [c:cs] evalTs pst tst = case c of
-		StopParallel
-			// don't process the other tasks, return the state as result
-			= (TaskFinished (abort "TODO"),pst,tst)
-		AppendTask appContainer
-			// add new ordinary tasks to PSt & evaluate at end of this iteration
-			# newTasks			= mkTasks taskNr [(pst.nextIdx,appContainer)]
-			# pst				= updateNextIdx newTasks pst
-			# (pst,tst)			= addTasksPSt newTasks pst tst
-			= processControls cs (evalTs ++ newTasks) pst tst
-		StopTask rIdx
-			// removes tasks & add finished nodes to task tree
-			# (evalTs,pst,tst)	= removeTasks [rIdx] evalTs pst tst
-			# tst				= addToTree [TTParallelContainer rIdx CTInBody (TTFinishedTask (abort "undef task info") (Text "killed",JSONString "killed") False) False] tst
-			= processControls cs evalTs pst tst
-		_
-			= abort "not implemented!"
-*/
-/*
-		updateProcProps (idx,mprops) iworld
-			# (_,iworld) = 'ProcessDB'.updateProcessProperties (taskNrToString [idx:taskNr]) (\pprops -> {ProcessProperties|pprops & managerProperties = mprops}) iworld
-			= iworld
-*/
+		// deletes states of tasks (and possibly processes) with given indexes
+		deleteStates idxs tst
+			# taskNrs	= map (\idx -> [idx:taskNr]) idxs
+			# tst		= seqSt (\taskNr tst -> deleteTaskStates taskNr tst)									taskNrs tst
+			# tst		= seqSt (\taskNr tst -> snd ('ProcessDB'.deleteProcess (taskNrToString taskNr) tst))	taskNrs tst
+			= tst
+				
 /*
 			// makes new tasks from containers
 			mkTasks taskNr containers = [let (task,ctype) = fromContainerToTask (stateShare initState taskNr) (controlShare initState initTasks taskNr) c in (idx,task,ctype) \\ (idx,c) <- containers]
 	
-			// removes tasks from list of tasks to evaluate in this iteration, from PSt& from tree and remove their states (and possibly processes)
-			removeTasks idxs evalTs pst tst
-				# evalTs	= removeFromEvalTasks idxs evalTs
-				# pst		= removeTasksPSt idxs pst
-				# tst		= removeFromTree idxs tst
-				# tst		= deleteStates idxs tst
-				= (evalTs,pst,tst)
-			
-			// removes tasks with given indexes from list of tasks to evaluate in this iteration
-			removeFromEvalTasks idxs ts = filter (\(idx,_,_) -> not (isMember idx idxs)) ts
-			
-			// deletes states of tasks (and possibly processes) with given indexes
-			deleteStates idxs tst
-				# taskNrs	= map (\idx -> [idx:taskNr]) idxs
-				# tst		= seqSt (\taskNr tst -> deleteTaskStates taskNr tst)									taskNrs tst
-				# tst		= seqSt (\taskNr tst -> snd ('ProcessDB'.deleteProcess (taskNrToString taskNr) tst))	taskNrs tst
-				= tst
-			
 			// adds tasks to PSt
 			addTasksPSt tasks pst tst
 				# tst = createProcs taskNr tasks tst
@@ -391,16 +376,6 @@ where
 				_ = abort "parallel node expected"
 			*/
 	
-	updateTimestamp taskNr iworld=:{IWorld|timestamp}
-		= setTaskStoreFor taskNr "lastUpdate" timestamp iworld
-		
-	// removes given parallel task tree containers from tree	
-	removeFromTree remIdxs tst=:{tree} = case tree of
-		TTParallelTask ti children = {tst & tree = (TTParallelTask ti (filter (\(TTParallelContainer idx _ _) -> not (isMember idx remIdxs)) children))}
-		_ = abort "parallel node expected"
-		
-	// removes tasks with given indexes from PSt
-	removeTasksPSt idxs pst = {pst & tasks = filter (\(idx,_) -> not (isMember idx idxs)) pst.tasks}
 
 spawnProcess :: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
 spawnProcess gcWhenDone managerProperties menu task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`

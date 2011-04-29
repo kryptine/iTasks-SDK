@@ -1,6 +1,7 @@
 module ParallelTest
 
 import iTasks
+from StdFunc import flip
 
 derive bimap Maybe
 
@@ -25,6 +26,14 @@ eitherTest = eitherTask (enterInformation ("Value 1","Enter value 1")) (enterInf
 maybeTest :: Task (Maybe (Int,Note))
 maybeTest = (enterInformation ("Value 1","Enter value 1") -&?&- enterInformation ("Value 2","Enter value 2"))
 
+complexTest :: Task Int
+complexTest
+	= parallel "Complex test" 42 (flip const) [InBodyTask adder]
+where
+	adder _ control
+		= forever (showMessage "Press Ok to start another task!" Void >>| writeShared control  [AppendTask (InBodyTask foo)])//[AppendTask (DetachedTask initManagerProperties noMenu foo)])
+	foo _ _
+		= showMessage "Foobar!" 42
 
 Start :: *World -> *World
 Start world = startEngine [
@@ -34,5 +43,6 @@ Start world = startEngine [
 			workflow "Any Test" "Any Test" (anyTest  >>= showMessageAbout ("Result","The result is:")),
 			workflow "All Test" "All Test" (allTest  >>= showMessageAbout ("Result","The result is:")),
 			workflow "Either Test" "Either Test" (eitherTest  >>= showMessageAbout ("Result","The result is:")),
-			workflow "Maybe Test" "Maybe Test" (maybeTest >>= showMessageAbout ("Result","The result is:"))
+			workflow "Maybe Test" "Maybe Test" (maybeTest >>= showMessageAbout ("Result","The result is:")),
+			workflow "Complex Test" "Complex Test" (complexTest >>= showMessageAbout ("Result","The result is:"))
 		] world 

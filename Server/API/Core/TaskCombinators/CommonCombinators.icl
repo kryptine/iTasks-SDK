@@ -56,7 +56,7 @@ transform f x = mkInstantTask ("Value transformation", "Value transformation wit
 */
 assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
 assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
-									[InBodyTask processControl, DetachedTask props actionMenu (accu accJust task)] <<@ minimalParallelLayout
+									[InBodyTask processControl, DetachedTask props actionMenu (accu accJust task)] <<@ layout
 where
 	processControl state control =
 			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] control
@@ -75,6 +75,8 @@ where
 		
 	fromView view=:{ProcessControlView|assignedTo} _
 		= [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
+	
+	layout {TUIParallel|items} = hd items
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
@@ -122,13 +124,15 @@ where
 		
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = parallel (taskTitle task,taskDescription task) Nothing (\_ (Just a) -> a) [InBodyTask (checked pred task)]
+(<!) task pred = parallel (taskTitle task,taskDescription task) Nothing (\_ (Just a) -> a) [InBodyTask (checked pred task)] <<@ layout
 where
 	checked pred task pstate pinfo
 		= task >>= \a -> if (pred a)
 			(writeShared pstate (Just a) >>|return a)
-			(writeShared pinfo [AppendTask (InBodyTask (checked pred task))] >>| return a)
-			
+			(updateShared (\[{ParallelTaskInfo|index}] -> [RemoveTask index, AppendTask (InBodyTask (checked pred task))]) pinfo >>| return a)
+
+	layout {TUIParallel|items} = hd items
+						
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") Nothing (\_ (Just a) -> a)
 						[InBodyTask (accu orfun taska), InBodyTask (accu orfun taskb)]
