@@ -140,9 +140,6 @@ forever	t	:==	(<!) t (\_ -> False)
 */
 (-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
 
-// old-style parallel, an overview table of all detached processes is shown in the parallel panel
-oldParallel :: !d !pState !(ResultFun pState pResult) ![TaskContainer pState] -> Task pResult | iTask pState & iTask pResult & descr d
-
 /**
 * Group a list of tasks in parallel.
 * The group stops as soon as one result is available which is returned.
@@ -171,6 +168,7 @@ allTasks			:: ![Task a]			-> Task [a]				| iTask a
 * @param The result of the first completed task wrapped in an 'Either'.
 */
 eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b	
+/*
 /**
 * Execute two tasks as separate main tasks.
 * The composition is done as soon as one result is finished.
@@ -211,7 +209,7 @@ anyProc 			:: ![ProcTask a] 		   -> Task a 	 	| iTask a
 allProc 			:: ![ProcTask a] 		   -> Task [a] 	| iTask a
 
 :: ProcTask a :== (!Task a,!ManagerProperties,!ActionMenu)
-
+*/
 /**
 * Just returns Void. Used as a last step in tasks of type Void in combination with the >>| combinator.
 *

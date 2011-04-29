@@ -34,6 +34,19 @@ gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
 
 derive bimap Maybe, (,)
 
+//Helper function for tasks in a parallel set
+accu :: (a acc -> (acc,Bool)) (Task a) (SymmetricShared acc) (ParallelInfo acc) -> Task a | iTask a & iTask acc
+accu accufun task pstate pcontrol
+	=	task
+	>>= \result ->
+		readShared pstate
+	>>= \state ->
+		let (nstate,stop) =  accufun result state in
+				writeShared pstate nstate
+			>>| if stop
+				(writeShared pcontrol [StopParallel] >>| return result)
+				(return result)
+			
 transform :: !(a -> b) !a -> Task b | iTask b
 transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") (\tst -> (TaskFinished (f x),tst))
 
@@ -42,13 +55,16 @@ transform f x = mkInstantTask ("Value transformation", "Value transformation wit
 * It is created once and loaded and evaluated on later runs.
 */
 assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
-assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r) [InBodyCTask processControl] [DetachedTask props actionMenu task (\(Just r) _ -> (Just r,[StopParallel]))]
+assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
+									[InBodyTask processControl, DetachedTask props actionMenu (accu accJust task)]
 where
-	processControl shared =
-			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] shared
-		>>|	return undef
-		
-	toView (_,[_,{ParallelTaskInfo|properties=Right {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}])=
+	processControl state control =
+			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] control
+		>>|	return 42
+	
+	accJust r _ = (Just r,True)
+			
+	toView [_,{ParallelTaskInfo|properties=Right {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}]=
 		{ mapRecord m
 		& assignedTo	= worker
 		, progress		= formatProgress progress
@@ -58,7 +74,7 @@ where
 		}
 		
 	fromView view=:{ProcessControlView|assignedTo} _
-		= [(1,{mapRecord view & worker = assignedTo})]
+		= [] //[(1,{mapRecord view & worker = assignedTo})] TODO
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
@@ -92,145 +108,86 @@ justdo task
 	Nothing	= throw ("The task " +++ taskTitle task +++ " returned nothing.")
 
 sequence :: !String ![Task a]  -> Task [a] | iTask a
-sequence _ [] = return []
-sequence label tasks=:[first:rest] = parallel (label,RawText description) (rest,[]) (\_ (_,acc) -> reverse acc) [] [seqTask first]
+sequence label tasks = parallel (label,RawText description) [] (\_ acc -> reverse acc) (seqTasks tasks)
 where
 	description = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
-	seqTask t = InBodyTask t accuFun
-	accuFun r (rest,acc)
-		# acc = [r:acc]
-		= case rest of
-			[]			= (([],acc),[])
-			[next:rest]	= ((rest,acc),[AppendTasks [seqTask next]])
 	
+	seqTasks []		= []
+	seqTasks [t:ts]	= [InBodyTask \pstate pinfo -> t >>= accResult pstate >>= startNext pinfo ts]
+	
+	accResult pstate a 		= updateShared (\acc -> [a:acc]) pstate >>| return a
+	
+	startNext pinfo [] a	= return a
+	startNext pinfo ts a	= writeShared pinfo [AppendTask t \\ t <- seqTasks ts] >>| return a
+		
+
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = parallel (taskTitle task,taskDescription task) Nothing (\_ (Just a) -> a) [] [InBodyTask task checkResult]
+(<!) task pred = parallel (taskTitle task,taskDescription task) Nothing (\_ (Just a) -> a) [InBodyTask (checked pred task)]
 where
-	checkResult a _
-		| pred a	= (Just a,[])
-		| otherwise	= (Nothing,[AppendTasks [InBodyTask task checkResult]])
-
+	checked pred task pstate pinfo
+		= task >>= \a -> if (pred a)
+			(writeShared pstate (Just a) >>|return a)
+			(writeShared pinfo [AppendTask (InBodyTask (checked pred task))] >>| return a)
+			
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
-(-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") [] (\_ l -> hd l) [] [InBodyTask taska orfunc,InBodyTask taskb orfunc]
+(-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") Nothing (\_ (Just a) -> a)
+						[InBodyTask (accu orfun taska), InBodyTask (accu orfun taskb)]
 where
-	orfunc val [] = ([val],[StopParallel])
-	orfunc val _  = abort "Multiple results in OR"
-
+	orfun a _ = (Just a,True)
+	
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel ("||-", "Done when the second subtask is finished.") Nothing (\_ v -> fromJust v) [] [InBodyTask taska (\_ _ -> (Nothing,[])),InBodyTask taskb (\v _ -> (Just v,[StopParallel]))]
-
+	= parallel ("||-", "Done when the second subtask is finished.") Nothing (\_ (Just b) -> b)
+		[InBodyTask (\_ _ -> taska), InBodyTask (accu orfun taskb)]
+where
+	orfun b _ = (Just b,True)
+	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel ("-||", "Done when the first subtask is finished") Nothing (\_ v -> fromJust v) [] [InBodyTask taska (\v _ -> (Just v,[StopParallel])),InBodyTask taskb (\_ _ -> (Nothing,[]))]				
-
-(-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
-(-&&-) taska taskb = parallel ("-&&-", "Done when both subtasks are finished") (Nothing,Nothing) parseresult [] [InBodyTask taska (\a (_,b) -> ((Just a,b),[])),InBodyTask taskb (\b (a,_) -> ((a,Just b),[]))]
+	= parallel ("-||", "Done when the first subtask is finished") Nothing (\_ (Just a) -> a)
+		[InBodyTask (accu orfun taska), InBodyTask (\_ _ -> taskb)]				
 where
-	parseresult _ (Just a,Just b)	= (a,b)
-	parseresult _ _					= abort "AND not finished"
+	orfun a _ = (Just a,True)
+	
+(-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
+(-&&-) taska taskb = parallel ("-&&-", "Done when both subtasks are finished") (Nothing,Nothing) resfun
+	[InBodyTask (accu (\a (_,b) -> ((Just a,b),False)) taska), InBodyTask (accu (\b (a,_) -> ((a,Just b),False)) taskb)]
+where
+	resfun _ (Just a,Just b)	= (a,b)
+	resfun _ _					= abort "AND not finished"
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
-(-&?&-) taska taskb = parallel ("-&?&-", "Done when both subtasks are finished. Yields only a result of both subtasks have a result") (Nothing,Nothing) parsefunc [] [InBodyTask taska (\a (_,b) -> ((a,b),[])),InBodyTask taskb (\b (a,_) -> ((a,b),[]))]
-where			
-	parsefunc _ (Just a,Just b)	= Just (a,b)
-	parsefunc _ _				= Nothing
-	
-oldParallel :: !d !pState !(ResultFun pState pResult) ![TaskContainer pState] -> Task pResult | iTask pState & iTask pResult & descr d
-oldParallel d initState resultFun initTasks = parallel d initState resultFun [InBodyCTask overviewControl] initTasks
-where
-	overviewControl shared =
-			updateSharedInformationA "" (toView,fromView) [] shared
-		>>|	return undef
-	
-	toView (_,infos) = Table (map toView` (filter isProc infos))
-	toView` {ParallelTaskInfo|index,properties=Right {ProcessProperties|managerProperties=m=:{worker},taskProperties=t=:{taskDescription}}} =
-		{ ProcessOverviewView
-		| index			= Hidden index
-		, subject		= Display taskDescription.TaskDescription.title
-		, assignedTo	= worker
-		}
-		
-	isProc {ParallelTaskInfo|properties = Right _} = True
-	isProc _ = False
-	
-	fromView (Table viewList) (_,infos) = map fromView` viewList
-	where
-		fromView` ({ProcessOverviewView|index=i=:Hidden index,assignedTo})
-			= case filter (\info -> info.ParallelTaskInfo.index == index) infos of
-				[{ParallelTaskInfo|properties=Right {ProcessProperties|managerProperties}}] = (index,{managerProperties & worker = assignedTo})
-				_ = abort "old parallel: no manager properties"
+(-&?&-) taska taskb = parallel ("-&?&-", "Done when both subtasks are finished. Yields only a result of both subtasks have a result") (Nothing,Nothing) resfun
+	[InBodyTask (accu (\a (_,b) -> ((a,b),False)) taska),InBodyTask (accu (\b (a,_) -> ((a,b),False)) taskb)]
+where				
+	resfun _ (Just a,Just b)	= Just (a,b)
+	resfun _ _					= Nothing
+
 			
 :: ProcessOverviewView =	{ index			:: !Hidden TaskIndex
 							, subject		:: !Display String
 							, assignedTo	:: !User
 							}
+
 derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask [] 		= getDefaultValue
-anyTask tasks 	= parallel ("any", "Done when any subtask is finished") [] (\_ l -> hd l) [] (map (\t -> (InBodyTask t anyfunc)) tasks)
+anyTask tasks 	= parallel ("any", "Done when any subtask is finished") Nothing (\_ (Just a) -> a) (map (\t -> (InBodyTask (accu anyfun t))) tasks)
 where
-	anyfunc val [] = ([val],[StopParallel])
-	anyfunc val _  = abort "Multiple results in ANY"
+	anyfun a _ = (Just a, True)
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = parallel ("all", "Done when all subtasks are finished") [] (\_ l -> sortByIndex l) [] (map (\(idx,t) -> (InBodyTask t (allfunc (length tasks) idx))) (zip (indexList tasks,tasks)))
+allTasks tasks = parallel ("all", "Done when all subtasks are finished") [] (\_ l -> sortByIndex l) [InBodyTask (accu (allfun i) t) \\ t <- tasks & i <- [0..]] 
 where
-	allfunc tlen idx val st 
-		# st = st ++ [(idx,val)]
-		| length st == tlen	= (st,[StopParallel])
-		| otherwise			= (st,[])
+	allfun i a acc = ([(i,a):acc],False)
 			
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
-eitherTask taska taskb = parallel ("either", "Done when either subtask is finished") [] (\_ l -> hd l) [] [InBodyTask (taska >>= \a -> return (Left a)) eitherfunc,InBodyTask (taskb >>= \b -> return (Right b)) eitherfunc]
+eitherTask taska taskb = parallel ("either", "Done when either subtask is finished") Nothing (\_ (Just a) -> a)
+	[InBodyTask (accu afun taska), InBodyTask (accu bfun taskb)]
 where
-	eitherfunc val [] = ([val],[StopParallel])
-	eitherfunc val _  = abort "Multiple results in Either"
-
-orProc :: !(ProcTask a) !(ProcTask a) -> Task a | iTask a
-orProc taska taskb = oldParallel ("-|@|-", "Done if either subtask is finished.") Nothing (\_ (Just r) -> r) [mkDetachedTask taska orfunc,mkDetachedTask taskb orfunc]
-where
-	orfunc (Just val) Nothing	= (Just val,[StopParallel])
-	orfunc val _ 				= abort "Multiple results in -|@|-"
-
-andProc :: !(ProcTask a) !(ProcTask b) -> Task (a,b) | iTask a & iTask b
-andProc (taska,propa,menua) (taskb,propb,menub) = oldParallel ("AndProc", "Done if both subtasks are finished.") (Nothing,Nothing) parseresult [DetachedTask propa menua (taska >>= \a -> return (Left a)) andfunc,DetachedTask propb menub (taskb >>= \b -> return (Right b)) andfunc]
-where
-	andfunc :: !(Maybe (Either a b)) !(!Maybe a,!Maybe b) -> (!(!Maybe a,!Maybe b),![Control (!Maybe a,!Maybe b)])
-	andfunc (Just val) (left,right)
-	= case val of
-		(Left a)
-			# state = (Just a,right)
-			= case state of
-				(Just l, Just r) = (state,[StopParallel])
-				_				 = (state,[])
-		(Right b)
-			# state = (left,Just b)
-			= case state of
-				(Just l, Just r) = (state,[StopParallel])
-				_				 = (state,[])		
-	
-	parseresult _ (Just a,Just b)	= (a,b)
-	parseresult _ _	 				= abort "AND not finished"
-
-anyProc :: ![ProcTask a] -> Task a | iTask a
-anyProc [] 	  = getDefaultValue
-anyProc tasks = oldParallel ("any", "Done when any subtask is finished.") Nothing (\_ (Just r) -> r) (map (\t -> (mkDetachedTask t anyfunc)) tasks)
-where
-	anyfunc (Just val) Nothing	= (Just val,[StopParallel])
-	anyfunc val _				= abort "Multiple results in ANY"
-
-allProc :: ![ProcTask a] -> Task [a] | iTask a
-allProc tasks = oldParallel ("all", "Done when all subtasks are finished.") [] (\_ r -> sortByIndex r) (map (\(idx,t) -> (mkDetachedTask t (allfunc (length tasks) idx))) (zip (indexList tasks,tasks)))
-where
-	allfunc tlen idx (Just val) st 
-		# st = st ++ [(idx,val)]
-		| length st == tlen	= (st,[StopParallel])
-		| otherwise			= (st,[])
-		
-mkDetachedTask :: !(!Task a,!ManagerProperties,!ActionMenu) !(AccuFunDetached a acc) -> TaskContainer acc | iTask a
-mkDetachedTask (task,prop,menu) fun = DetachedTask prop menu task fun
+	afun a _ = (Just (Left a),True)
+	bfun b _ = (Just (Right b),True)
 
 stop :: Task Void
 stop = return Void

@@ -5,11 +5,11 @@ definition module CoreCombinators
 */
 from Time				import :: Timestamp
 from TuningCombinators	import :: Tag
-from Shared				import :: Shared, :: ReadOnlyShared
+from Shared				import :: Shared, :: ReadOnlyShared, :: SymmetricShared
 from ProcessDB			import :: Process
 import Task, ProcessDBTasks
 
-derive class iTask ParallelTaskInfo, ControlTaskContainer
+derive class iTask ParallelTaskInfo
 derive JSONEncode	TaskContainer
 derive JSONDecode	TaskContainer
 derive gUpdate		TaskContainer
@@ -46,63 +46,7 @@ derive gEq			TaskContainer
 */
 return 		:: !a 										-> Task a 		| iTask a
 
-:: Control acc	= StopParallel												// stop the entire parallel execution
-				| AppendTasks	![TaskContainer acc]						// append additional ordinary tasks to be run in parallel as well
-				| AppendCTasks	![ControlTaskContainer acc]					// append additional contorl tasks to be run in parallel as well
-				| StopTasks		![TaskIndex]								// kill ordinary & control tasks with indicated index
-				| ResetTasks	![TaskIndex]								// start ordinary & control tasks with indicated index from scratch
-				| ReplaceTasks	![(!TaskIndex,!TaskContainer acc)]			// replace ordinary tasks with indicated index
-				| ReplaceCTasks	![(!TaskIndex,!ControlTaskContainer acc)]	// replace control tasks with indicated index
-				| FocusTask		!TaskIndex									// set the window focus of indicated ordinary or control task
-					
-derive class iTask Control
 
-/**
-* AccuFun is called when an ordinary parallel iTask task (not a control task) terminates returning a value of type a 
-* 
-* @param The value returned by the terminated task (Nothing if detached task is cancelled)
-* @param The current value of the accumulator 
-* @return Tuple with new value of the accumulator, and a list of control signals
-*/
-:: AccuFun			taskResult pState :== taskResult			pState -> (!pState, ![Control pState])
-:: AccuFunDetached	taskResult pState :== (Maybe taskResult)	pState -> (!pState, ![Control pState])
-
-// Index of parallel executing processes, number of processes can dynamically increase
-:: TaskIndex :== Int
-
-/**
-* ResultFun  is called when the parallel task is stopped
-* 
-* @param The termination status: why was the parallel task ended
-* @param The current value of the accumulator 
-* @return The resulting value of type b
-*/
-:: ResultFun pState pResult :== TerminationStatus pState -> pResult
-:: TerminationStatus	=	AllRunToCompletion	// all parallel processes have ended their execution
-						|	Stopped				// the control signal StopParallel has been commited
-
-:: ParallelTaskInfo =	{ index				:: !TaskIndex								// the task's index
-						, properties		:: !Either TaskProperties ProcessProperties // Task properties for inbody tasks and process
-						}																// properties for detached tasks
-					
-:: TaskContainer acc	= E.a: DetachedTask	!ManagerProperties !ActionMenu	!(Task a) !(AccuFunDetached a acc)	& iTask a
-						| E.a: WindowTask	!WindowTitle !ActionMenu		!(Task a) !(AccuFun a acc)			& iTask a
-						| E.a: DialogTask	!WindowTitle					!(Task a) !(AccuFun a acc)			& iTask a
-						| E.a: InBodyTask									!(Task a) !(AccuFun a acc)			& iTask a
-						| E.a: HiddenTask									!(Task a) !(AccuFun a acc)			& iTask a
-/**
-* A control task is a special task used to control and view the other tasks and their manager properties.
-* It can generate control signals, after which it will re-incarnate itself.
-*
-* @param The control view enabling to view the current state of the accumulator and the properties of all subtasks and change manager properties of detached tasks
-* @return A list of control signals
-*/
-:: ControlTaskContainer acc	= DetachedCTask	!ManagerProperties !ActionMenu	!(CTask acc)
-							| WindowCTask	!WindowTitle !ActionMenu		!(CTask acc)
-							| DialogCTask	!WindowTitle					!(CTask acc)
-							| InBodyCTask									!(CTask acc)
-							| HiddenCTask									!(CTask acc)
-:: CTask acc :== (Shared (!acc,![ParallelTaskInfo]) [(!TaskIndex,!ManagerProperties)]) -> Task [Control acc]
 
 /**
 * All-in-one swiss-army-knife parallel task creation
@@ -111,11 +55,37 @@ derive class iTask Control
 * @param The accumulator
 * @param A function defining how to convert the accumulator to the final result when the parallel task finishes
 * @param Layout merge function that layouts the user interfaces of tasks that are placed in the body
-* @param The list of Control tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
-* @param The list of ordinary tasks to run in parallel
+* @param The list of tasks to run in parallel, each task is given a view on the status of all tasks in the set
 * @return The resulting value
 */
-parallel :: !d !pState !(ResultFun pState pResult) ![ControlTaskContainer pState] ![TaskContainer pState] -> Task pResult | iTask pState & iTask pResult & descr d
+parallel :: !d !s !(ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
+
+:: ResultFun s a 		:== TerminationStatus s -> a	//ResultFun is called when the parallel task is stopped
+														//either because all tasks completed, or the set was stopped by a task
+
+:: TerminationStatus	=	AllRunToCompletion			// all parallel processes have ended their execution
+						|	Stopped						// the control signal StopParallel has been commited
+				
+:: TaskContainer s		= E.a: DetachedTask	!ManagerProperties !ActionMenu	!((SymmetricShared s) (ParallelInfo s) -> Task a) & iTask a
+						| E.a: WindowTask	!WindowTitle !ActionMenu		!((SymmetricShared s) (ParallelInfo s) -> Task a) & iTask a
+						| E.a: DialogTask	!WindowTitle					!((SymmetricShared s) (ParallelInfo s) -> Task a) & iTask a
+						| E.a: InBodyTask									!((SymmetricShared s) (ParallelInfo s) -> Task a) & iTask a
+						| E.a: HiddenTask									!((SymmetricShared s) (ParallelInfo s) -> Task a) & iTask a
+
+:: ParallelInfo s		:== Shared [ParallelTaskInfo] [Control s]
+:: ParallelTaskInfo =	{ index			:: !TaskIndex								// The task's index
+						, properties	:: !Either TaskProperties ProcessProperties // Task properties for inbody tasks and process
+						}															// properties for detached tasks
+
+:: Control s			= StopParallel												// stop the entire parallel execution
+						| AppendTask		!(TaskContainer s)						// append and additional task to be run in parallel as well
+						| RemoveTask		!TaskIndex								// remove the task with indicated index from the set
+						//| UpdateProperties	!TaskIndex !ManagerProperties			// update the properties of a task
+						| FocusTask			!TaskIndex								// set the window focus of indicated ordinary or control task
+					
+:: TaskIndex			:== Int
+
+derive class iTask Control
 
 // Multi-user workflows
 

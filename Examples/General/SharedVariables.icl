@@ -276,34 +276,33 @@ activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
 activeQuery mbQuery queryTask
 	=	createSharedStore (initQuery,initDirty,[]) //In a local store we keep the query and a flag whether it has been updated (dirty) and a resultset
 	>>= \qstore ->
-		parallel "Active Query" (qstore,Nothing) (\_ (_,Just res) -> res)
-			[InBodyCTask (searchBox qstore),HiddenCTask (activator qstore)]
-			[InBodyTask (searchResults qstore) searchAcc]
+		parallel "Active Query" Nothing (\_ (Just res) -> res)
+			[InBodyTask (searchBox qstore), HiddenTask (activator queryTask qstore), InBodyTask (searchResults qstore)]
 where
 	initQuery = case mbQuery of
 		Nothing = ""
 		Just q	= q
 	initDirty = isJust mbQuery
 	
-	searchBox qstore procstate
-		= updateSharedInformationA "Enter query:" (toView,fromView) [] qstore >>| return []
+	searchBox qstore pstate pinfo
+		= updateSharedInformationA "Enter query:" (toView,fromView) [] qstore >>| stop
 	where
 		toView (q,d,r) = q
 		fromView q (_,d,r) = (q,True,r)
 	
-	activator qstore procstate
+	activator queryTask qstore pstate pinfo
 		=	monitor "Query monitor" id (\(_,d,_) -> d) True qstore	//Look for the dirty flag to become True
 		>>= \(query,_,_) ->
 			queryTask query
 		>>= \results ->
 			updateShared (\(q,_,_) -> (q,False,results)) qstore	//Reset dirty flag
-		>>| return []
-	
-	searchResults qstore
-		=	enterSharedChoiceA ("Search results","The following results were found:") id [(ActionNext,ifvalid)] (mapSharedRead (\(_,_,r) -> r) qstore)
 		
-	searchAcc (_,Just x) (qstore,_)	= ((qstore,Just x),[])
 
+	searchResults qstore pstate pinfo
+		=	enterSharedChoiceA ("Search results","The following results were found:") id [(ActionNext,ifvalid)] (mapSharedRead (\(_,_,r) -> r) qstore)
+		>>= \(_,Just x) ->
+			writeShared pstate (Just x) 
+	
 from Shared import mapSharedRead
 
 //Very simple CSV phonebook implementation

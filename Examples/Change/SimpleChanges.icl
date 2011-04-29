@@ -44,8 +44,8 @@ where
 	change me user topics props t t0 
 		= 	( Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = me}}
 			, Just (me @:
-							(anyProc 	[ (Title topics @>> t,{ManagerProperties|initManagerProperties & worker = props.ProcessProperties.managerProperties.ManagerProperties.worker},noMenu) 
-										, (Title topics @>> t,{ManagerProperties|initManagerProperties & worker = user},noMenu)
+							(anyTask 	[ (Title topics @>> props.ProcessProperties.managerProperties.ManagerProperties.worker @: t) 
+										, (Title topics @>> user @: t)
 										]
 							)
 							<<@ Title ("Duplicated " +++ topics))
