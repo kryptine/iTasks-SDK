@@ -6,7 +6,7 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9
+				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8//, w9
 				] world
 
 // a simple form for an integer value
@@ -110,7 +110,8 @@ chat1
                     		(you @: chatEditor you me chatState)
 where
 	chatEditor me you chatState
-		= 							showMessageSharedA ("Chat list view") id [] chatState
+//		= 							showMessageSharedA ("Chat list view") id [] chatState
+		= 							(readShared chatState >>= showMessageAbout ("Chat list view"))
 									||-
 									enterInformationA ("Chat with " <+++ you) id [(ActionQuit,always),(ActionOk,ifvalid)]
 		>>= \(event,response) ->		case event of
@@ -133,6 +134,8 @@ chat2
                     		-||-
                     		(you @: chatEditor you me chatState)
 where
+//updateSharedInformationA		:: !d !(View r v w) ![PredAction (Valid,r)]			!(Shared r w) -> Task (!Action,!r)	| descr d & iTask r & iTask v & iTask w
+
 	chatEditor me you chatState
 		= 	updateSharedInformationA ("Chat with " <+++ you) (view me) actions chatState
 
@@ -141,7 +144,7 @@ where
 			, \(Display _,Note response) list -> list ++ [user +++> ": " +++> response]
 			)
 
-	actions = [(ActionQuit,always)]
+	actions = [(ActionQuit, \_ -> True)]
 
 // example, chat using shared state
 
@@ -149,34 +152,25 @@ w6c = workflow "CEFP/6c: Chat" "Chat with several users" chat3
 
 chat3
     =               		getCurrentUser
-    	>>= \me ->			createSharedStore initChatState
-        >>= \chatState -> 	parallel "Chat application" chatState finishPar [initControl chatState] [initChat me chatState] 
+    	>>= \me ->			parallel "Chat application" initChatState finished [chatTask me]
 where
 
-	finishPar _ _ = Void
+	finished _ _ = Void
 
-	initChat user chatState
-		=	InBodyTask (newChat user chatState) finishChat
-		
-	initControl chatState
-		=	InBodyCTask (appendChatter chatState)
+	chatTask user 
+		=	DetachedTask managerProp noMenu handlingTask
+	where
+		managerProp = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
-	appendChatter chatState _
-		=					selectUser
-			>>= \you ->		return [AppendTasks [initChat you chatState]]		
+		handlingTask chatState controlState
+			=		updateSharedInformationA ("Chat with iTask users") (view user) actions chatState	
+		where
+			view user 
+				=	( \list -> (Display list,Note "")
+					, \(Display _,Note response) list -> list ++ [user +++> ": " +++> response]
+					)
 
-	finishChat _ list 
-		=	(list,[])
-
-	newChat user chatState
-		= 	user @: updateSharedInformationA ("Chat with iTask users") (view user) actions chatState
-
-	view user 
-		=	( \list -> (Display list,Note "")
-			, \(Display _,Note response) list -> list ++ [user +++> ": " +++> response]
-			)
-
-	actions =  	[ (ActionQuit,always)]
+			actions =  	[(ActionQuit, \_ -> True)]
 			 	
 
 // a simple button only valid when some predicates hold
@@ -212,11 +206,11 @@ getOddNumber2
 	=						enterInformation "Type in an odd number" 
 		>>= \(Odd n) ->		showMessageAbout "You typed in:" n
 
-// pocket calculator
+// pocket calculator, see Steffens example...
 
 // making an appointment
 
-w9 = workflow "CEFP/9: Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+//w9 = workflow "CEFP/9: Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 
 :: MeetingProposal 
 	=	{ date 		:: Date
@@ -230,6 +224,8 @@ w9 = workflow "CEFP/9: Arrange a meeting date between several users" "Arrange me
 		}	
 
 derive class iTask MeetingProposal, Participant
+
+/*
 
 mkAppointment :: Task Void
 mkAppointment
@@ -274,3 +270,4 @@ where
 		toView list = Table list
 		
 		fromView (Table mlist) list = mlist		
+*/
