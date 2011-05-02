@@ -45,7 +45,7 @@ import Void
                            , guards :: [AExpression ex]
                            }
 
-:: AGeneratorList ex = ANestedGeneratorList [AGenerator ex] | AParallelGeneratorList [AGenerator ex]
+:: AGeneratorList ex = NestedGeneratorList [AGenerator ex] | ParallelGeneratorList [AGenerator ex]
 
 :: AGenerator ex = Generator APattern (AExpression ex)
 

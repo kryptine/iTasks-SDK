@@ -165,7 +165,7 @@ gToAListComprehension bindings glc =
     gToAExpression bindings glc.GListComprehension.output >>> \output` =
     gToAExpression bindings glc.GListComprehension.input >>> \input` = 
     ret { output = output`
-        , generators = ANestedGeneratorList [Generator glc.GListComprehension.selector input`]
+        , generators = NestedGeneratorList [Generator glc.GListComprehension.selector input`]
         , guards = map Unparsed (maybeToList glc.GListComprehension.guard)
         }
 
@@ -176,7 +176,7 @@ graphToAExpression :: !Bindings !GGraph -> GParseState (AExpression a)
 graphToAExpression bindings graph =
 	toTreeGraph graph >>> \tg ->
 	ret (decompose bindings (tg)) >>> \tg ->
-	//trace_n ("after decomp:" +++ showTreeGraph tg) (ret tg) >>> \tg -> 
+//	trace_n ("after decomp:" +++ showTreeGraph tg) (ret tg) >>> \tg -> 
 	treeGraphToAExpression bindings tg
 
 :: TreeGraph = TreeGraph (Graph TreeGraphNode GEdge) NodeIndex NodeIndex
@@ -217,25 +217,21 @@ where
 	decomp :: [(EdgeIndex,EdgeIndex)] EdgeIndex TreeGraph -> TreeGraph
 	decomp [] loop tg = tg
 	decomp [(fromEdge,toEdge):edges] loop tg=:(TreeGraph g source sink)
-		| not (   isParallelBinding (nodename (fst fromEdge)) (nodename (snd toEdge)) bindings
-			   || isParallelBinding (nodename (snd fromEdge)) (nodename (fst toEdge)) bindings
+		| not (   isParallelBinding (nodeName (fst fromEdge) g) (nodeName (snd toEdge) g) bindings
+			   || isParallelBinding (nodeName (snd fromEdge) g) (nodeName (fst toEdge) g) bindings
 			  ) = decomp edges loop tg
 		# comps = components (removeEdge fromEdge (removeEdge toEdge g))
 		| isEmpty (tl comps) = decomp edges loop tg //try next pair
 		# [g,s:_] = comps
 		# (g,s) = if (nodeExists source g) (g,s) (s,g)
+		| isTrivialGraph s = decomp edges loop tg
 		# g = removeEdge loop g
 		# (newNode,g) = addNode (TGSubgraph(decompose bindings (TreeGraph s (snd fromEdge) (fst toEdge)))) g //decompose subgraph s recursively
 		# g = addEdge Nothing (fst fromEdge,newNode) g
 		# g = addEdge Nothing (newNode, snd toEdge) g
 		# source = if (source == snd fromEdge) newNode source
 		# sink = if (sink == fst toEdge) newNode sink
-		= (TreeGraph g source sink)
-	where
-		nodename :: NodeIndex -> String
-		nodename nodeIndex = case fromJust (getNodeData nodeIndex g) of
-			TGNode    { GNode | name } = name
-			TGSubgraph _                = ""
+		= decompose bindings (TreeGraph g source sink)
 
 treeGraphNodeToAExpression :: !Bindings !TreeGraphNode -> GParseState (AExpression a)
 treeGraphNodeToAExpression bindings (TGNode node) = nodeToAExpression bindings node
@@ -259,31 +255,37 @@ nodeToAExpression :: !Bindings !GNode -> GParseState (AExpression a)
 nodeToAExpression bindings node =
     getNodeBinding node.GNode.name bindings >>> \nb = 
     case nb.NodeBinding.parameterMap of 
+        NBBuiltIn = parseError "Node not allowed here" 
         NBPrefixApp = 
-            if (isEmpty node.actualParams)
+            if (isEmpty node.GNode.actualParams)
                 (ret (Var node.GNode.name))
                 (parseChildMap PNActualParam (gToAExpressionPath bindings) node.GNode.actualParams >>> \exps =
                  ret (App [(Var node.GNode.name) : exps]))
-        NBInfixApp _ _ = parseError "Infix node binding not implemented yet"
-        NBApply _ = parseError "Custom node binding not implemented yet"      
+		NBInfixApp fix precedence =
+			if (length node.GNode.actualParams <> 2)
+				(parseError "Mapping to infix operator requires 2 parameters")
+				(	parseChild (PNActualParam 0) ((gToAExpressionPath bindings) (node.GNode.actualParams !! 0)) >>> \exp1 ->
+					parseChild (PNActualParam 1) ((gToAExpressionPath bindings) (node.GNode.actualParams !! 1)) >>> \exp2 -> 
+					ret (AppInfix node.GNode.name fix precedence exp1 exp2)
+				)
 
 isSequential :: TreeGraph -> Bool
 isSequential graph = True //TODO: check if graph does not contain any parallel split or parallel merge node.
 
-parallelDecompose :: !Bindings !TreeGraph -> Maybe (GNode, GNode, [(GEdge, TreeGraphNode)])
+parallelDecompose :: !Bindings !TreeGraph -> Maybe (GNode, GNode, [TreeGraphNode])
 parallelDecompose bindings (TreeGraph graph sourceIndex sinkIndex)
 	# branchIndices = directSuccessors sourceIndex graph
 	| sort branchIndices <> sort (directPredecessors sinkIndex graph) = Nothing
-	= case (getNodeData sourceIndex graph, getNodeData sinkIndex graph) of
-		(Just (TGNode source), Just (TGNode sink)) = 
-			Just (source, sink, [ (fromJust (getEdgeData (sourceIndex,n) graph), fromJust (getNodeData n graph)) \\ n <- branchIndices])
-		_ = Nothing
+	| not (isParallelBinding (nodeName sourceIndex graph) (nodeName sinkIndex graph) bindings) = Nothing
+	# source = fromNode (fromJust (getNodeData sourceIndex graph))
+	# sink = fromNode (fromJust (getNodeData sinkIndex graph))
+	= Just (source, sink, [ fromJust (getNodeData n graph) \\ n <- branchIndices])
 
-parallelToAExpression :: !Bindings (GNode, GNode, [(GEdge, TreeGraphNode)]) -> GParseState (AExpression a)
+parallelToAExpression :: !Bindings (GNode, GNode, [TreeGraphNode]) -> GParseState (AExpression a)
 parallelToAExpression bindings (split, merge, branches) =
 //    withPath splitPath (
         getParallelBinding split.GNode.name merge.GNode.name bindings >>> \pb = 
-        checkNrBranches pb (length branches) >>> \_ =     
+        checkNrBranches pb (length branches) >>> \_ =
         setParallelParams bindings (split,merge) branches pb.ParallelBinding.parameterMap >>> \exp = 
 	    getCurrentPath >>> \path =
 	    ret (PathContext path exp)
@@ -296,7 +298,7 @@ checkNrBranches pb i = case pb.fixedNrBranches of
                       +++ ") must have " +++ fromInt n +++ " branches")
     Nothing = ret Void
 
-setParallelParams :: !Bindings !(GNode, GNode) ![(GEdge, TreeGraphNode)] !(AExpression PBParameter) -> GParseState (AExpression a)
+setParallelParams :: !Bindings !(GNode, GNode) ![TreeGraphNode] !(AExpression PBParameter) -> GParseState (AExpression a)
 setParallelParams _ _ _ (Unparsed s) = ret (Unparsed s)
 setParallelParams _ _ _ (Lit s) = ret (Lit s)
 setParallelParams _ _ _ (Var i) = ret (Var i)
@@ -323,18 +325,42 @@ setParallelParams bindings (split,merge) branches (List exps) =
 setParallelParams bindings (split,merge) branches (Extension ext) = case ext of
     PBSplitParameter i = gToAExpression bindings (split.GNode.actualParams !! i)
     PBMergeParameter i = gToAExpression bindings (merge.GNode.actualParams !! i)
-    PBBranch i = treeGraphNodeToAExpression bindings (snd (branches !! i))
-    PBBranchList = parseMap (treeGraphNodeToAExpression bindings) (map snd branches) >>> \branches` =
-        ret (List branches`)
+    PBBranch i = 
+    	case branches of
+    		[TGNode node] = if (node.GNode.name == "list comprehension")
+    			(parseError "List comprehension not allowed here")
+    			(nodeToAExpression bindings node)
+    		_	= (treeGraphNodeToAExpression bindings (branches !! i))
+	PBBranchList = 
+		case branches of
+			[TGNode node]
+				= if (node.GNode.name == "list comprehension") (setListComprehension node) setList
+			_	= setList
+		where
+		setListComprehension node = 
+			getNodeParameter node 0 >>> \generatorPattern -> 
+			gToAExpression bindings (node.GNode.actualParams !! 1) >>> \generatorExpression ->
+			getNodeParameter node 2 >>> \guard ->
+			gToAExpression bindings (node.GNode.actualParams !! 3) >>> \output ->
+			ret
+				( ListComprehension 
+					{ AListComprehension
+					| output = output
+					, generators = NestedGeneratorList [Generator generatorPattern generatorExpression]
+					, guards = if (trim guard == "") [] [Unparsed guard]
+					}
+				)
+		setList = parseMap (treeGraphNodeToAExpression bindings) branches >>> \branches` ->
+     				      ret (List branches`)
 
-setParallelParamsCase :: !Bindings !(GNode, GNode) ![(GEdge, TreeGraphNode)] !(ACaseAlt PBParameter) -> GParseState (ACaseAlt a)
+setParallelParamsCase :: !Bindings !(GNode, GNode) ![TreeGraphNode] !(ACaseAlt PBParameter) -> GParseState (ACaseAlt a)
 setParallelParamsCase bindings (split,merge) branches (CaseAlt pat exp) =
 	setParallelParams bindings (split,merge) branches exp >>> \exp` =
 	ret (CaseAlt pat exp`)
 
 sequenceToAExpression :: !Bindings !TreeGraph -> GParseState (AExpression a) 	
 sequenceToAExpression bindings (TreeGraph graph source sink)
-	# mergeNodes = filter (\n -> nodeName n graph == Just "case merge" 
+	# mergeNodes = filter (\n -> nodeName n graph == "case merge" 
 	                       && not (isPathToMergeSink n sink)) (nodeIndices graph)
 	
 	= seqNodeToAExpr source sink mergeNodes >>> \sourceExp ->
@@ -424,17 +450,18 @@ where
 		  seqNodeToAExpr (hd successors) sink mergeNodes >>> \inExpr ->
 		  ret (Let [(pat,exp)] inExpr)
 
-	getNodeParameter :: GNode Int -> GParseState String
-	getNodeParameter { actualParams } index = getTextExpr (actualParams !! index)
-	where
-		getTextExpr :: GExpression -> GParseState String
-		getTextExpr (GCleanExpression exp) = ret exp
-		getTextExpr _ = parseError "Expected: textual parameter"
-
+nodeName :: NodeIndex (Graph TreeGraphNode e) -> String
 nodeName nodeIndex graph = case fromJust (getNodeData nodeIndex graph) of
-	TGNode{ GNode | name } = Just name
-	_                     = Nothing
+	TGNode{ GNode | name } = name
+	_                     = ""
 
+getNodeParameter :: GNode Int -> GParseState String
+getNodeParameter { actualParams } index = getTextExpr (actualParams !! index)
+where
+	getTextExpr :: GExpression -> GParseState String
+	getTextExpr (GCleanExpression exp) = ret exp
+	getTextExpr f = parseError "Expected: textual expression"
+	
 //--------------------------------------------------------------------------------------------------
 //Determine arguments of tail-recursive calls
 
@@ -574,7 +601,6 @@ setMap nvMap f [x:xs] = [f nvMap x: setMap nvMap f xs]
 
 //--------------------------------------------------------------------------------------------------
 // for debugging
-
 /*
 derive gPrint (,)
 derive gPrint NodeVariables
@@ -590,14 +616,13 @@ showTreeGraph (TreeGraph graph source sink) = "[" +++
 where
 	showTreeNodes :: [(NodeIndex,TreeGraphNode)] -> String
 	showTreeNodes [] = ""
-	showTreeNodes [(i,TGNoden):ns] = toString i +++ "=" +++ n.GNode.name +++ "," +++ showTreeNodes ns
-	showTreeNodes [(i,TGSubgraphtg):ns] = toString i +++ "=(" +++ showTreeGraph tg +++ ")" +++"," +++ showTreeNodes ns
+	showTreeNodes [(i,TGNode n):ns] = toString i +++ "=" +++ n.GNode.name +++ "," +++ showTreeNodes ns
+	showTreeNodes [(i,TGSubgraph tg):ns] = toString i +++ "=(" +++ showTreeGraph tg +++ ")" +++"," +++ showTreeNodes ns
 	
 	showEdges :: [EdgeIndex] -> String
 	showEdges [] = ""
 	showEdges [(fromNode,toNode):edges] = "(" +++ toString fromNode +++ "," +++ toString toNode +++ ")," +++ showEdges edges
 */
-
 //--------------------------------------------------------------------------------------------------
 //Utilities
     	

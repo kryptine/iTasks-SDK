@@ -34,10 +34,9 @@ import GinTypes
                  , parameterMap :: NBParameterMap
                  }
                    
-:: NBParameterMap = NBUndefined
-				  | NBPrefixApp  
-                  | NBInfixApp AFix APrecedence
-                  | NBApply ([AExpression Void] -> GParseState (AExpression Void))
+:: NBParameterMap = NBBuiltIn
+				  | NBPrefixApp
+				  | NBInfixApp AFix APrecedence
 
 //Sequential composition is hard coded, maps to either >>= (with pattern) or >>| (without pattern).
 //ParallelBinding: binds a parallel composition of nodes to a Clean function 
@@ -71,13 +70,13 @@ getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
 //For GGraphicalModule:
 
 :: GDefinition = { declaration :: GDeclaration
-                 , body        :: ORYXDiagram //GExpression
+                 , body        :: ORYXDiagram
                  }
 
 :: GDeclaration = { name         :: GIdentifier
                   , formalParams :: [GFormalParameter]
                   , returnType   :: GTypeExpression
-                  , icon         :: GIcon
+                  , icon         :: Maybe GIcon
                   , shape        :: Maybe SVGShape
                   }              
                   

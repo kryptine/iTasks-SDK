@@ -76,7 +76,7 @@ newWorkflow =	{ GDefinition
 				| declaration = { name         = "newWorkflow"
                               , formalParams = []
                               , returnType   = gTask gVoid
-                              , icon         = "task"
+                              , icon         = Nothing
                               , shape        = Nothing
                               }
 				, body = ginORYXDiagram

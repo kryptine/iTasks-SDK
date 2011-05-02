@@ -226,7 +226,7 @@ declToStencil (group,branchtype,gDecl)
 		, groups		= [group]
 		, description	= gDecl.GDeclaration.name
 		, view			= toString (fromMaybe (defaultTaskShape gDecl) gDecl.GDeclaration.shape)
-		, icon			= gDecl.GDeclaration.icon +++ ".png"
+		, icon			= fromMaybe "new-task" gDecl.GDeclaration.icon +++ ".png"
 		, mayBeRoot		= False
 		, roles			= ["all", morphrole] ++ if (isHigherOrder gDecl) ["higherOrderTask"] []
 		, properties	= map formalParameterToProperty gDecl.GDeclaration.formalParams
@@ -256,7 +256,7 @@ higherOrderParam param = case param.GFormalParameter.type of
 	_											= False
 
 defaultTaskShape :: GDeclaration -> SVGShape	
-defaultTaskShape gDecl = 
+defaultTaskShape gDecl =
 	{ SVGShape
 	| width = if (isEmpty gDecl.GDeclaration.formalParams) 140 300
 	, height = 20 + 20 * length gDecl.GDeclaration.formalParams
@@ -264,7 +264,7 @@ defaultTaskShape gDecl =
 	, magnets = True
 	, elements = 
 		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 ([SVGStroke "black", SVGFill "white"] ++ ifParams [SVGResize "horizontal vertical"])
-		, SVGImage Nothing ((XAbs 2, YAbs 2), (XAbs 18, YAbs 18)) (gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
+		, SVGImage Nothing ((XAbs 2, YAbs 2), (XAbs 18, YAbs 18)) (fromMaybe "new-task" gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
 		, SVGText Nothing (XAbs 20, YAbs 13) gDecl.GDeclaration.name [SVGAnchors "top left"]
 		] 
 		++ ifParams [ SVGLine Nothing ((XLeft, YAbs 20), (XRight, YAbs 20)) [SVGAnchors "top left right"]

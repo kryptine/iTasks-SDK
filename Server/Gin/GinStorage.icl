@@ -33,7 +33,10 @@ listModules :: !GinConfig !*World -> (MaybeOSError [String], *World)
 listModules config world = listDirectory config.userPath world
 
 searchPathModules :: !GinConfig !*World -> ([String], *World)
-searchPathModules config world = sp [config.userPath : config.searchPaths] world
+searchPathModules config world
+	# (searchPathModules, world) = sp config.searchPaths world
+	# (userModules, world) = sp [config.userPath] world
+	= (sort searchPathModules ++ sort userModules, world)
 where
 	sp :: [String] *World -> ([String], *World)
 	sp [] world = ([], world)

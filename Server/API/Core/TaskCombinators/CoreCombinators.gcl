@@ -131,7 +131,311 @@
 										}, 
 										"parameterMap": "NBPrefixApp"
 								}
-						]
+						],
+                        [
+                                "NodeBinding", 
+                                {
+                                        "declaration": {
+                                                "name": "@:", 
+                                                "formalParams": [
+                                                        {
+                                                                "name": "user", 
+                                                                "type": [
+                                                                        "GConstructor", 
+                                                                        "User"
+                                                                ]
+                                                        }, 
+                                                        {
+                                                                "name": "task", 
+                                                                "type": [
+                                                                        "GTypeApplication", 
+                                                                        [
+                                                                                "GConstructor", 
+                                                                                "Task"
+                                                                        ], 
+                                                                        [
+                                                                                "GTypeVariable", 
+                                                                                "a"
+                                                                        ]
+                                                                ]
+                                                        }
+                                                ], 
+                                                "returnType": "GUndefinedTypeExpression", 
+                                                "icon": "user", 
+                                                "shape": {
+                                                        "width": 160, 
+                                                        "height": 120, 
+                                                        "defs": [ ], 
+                                                        "magnets": true, 
+                                                        "elements": [
+                                                                [
+                                                                        "SVGEllipse", 
+                                                                        null, 
+                                                                        [
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                0
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                0
+                                                                                        ]
+                                                                                ], 
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                20
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                20
+                                                                                        ]
+                                                                                ]
+                                                                        ], 
+                                                                        [
+                                                                                [
+                                                                                        "SVGAnchors", 
+                                                                                        "top left"
+                                                                                ], 
+                                                                                [
+                                                                                        "SVGFill", 
+                                                                                        "white"
+                                                                                ]
+                                                                        ]
+                                                                ], 
+                                                                [
+                                                                        "SVGLine", 
+                                                                        null, 
+                                                                        [
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                10
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                20
+                                                                                        ]
+                                                                                ], 
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                10
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                50
+                                                                                        ]
+                                                                                ]
+                                                                        ], 
+                                                                        [
+                                                                                [
+                                                                                        "SVGAnchors", 
+                                                                                        "top left"
+                                                                                ]
+                                                                        ]
+                                                                ], 
+                                                                [
+                                                                        "SVGLine", 
+                                                                        null, 
+                                                                        [
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                0
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                30
+                                                                                        ]
+                                                                                ], 
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                20
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                30
+                                                                                        ]
+                                                                                ]
+                                                                        ], 
+                                                                        [
+                                                                                [
+                                                                                        "SVGAnchors", 
+                                                                                        "top left"
+                                                                                ]
+                                                                        ]
+                                                                ], 
+                                                                [
+                                                                        "SVGLine", 
+                                                                        null, 
+                                                                        [
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                10
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                50
+                                                                                        ]
+                                                                                ], 
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                0
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                60
+                                                                                        ]
+                                                                                ]
+                                                                        ], 
+                                                                        [
+                                                                                [
+                                                                                        "SVGAnchors", 
+                                                                                        "top left"
+                                                                                ]
+                                                                        ]
+                                                                ], 
+                                                                [
+                                                                        "SVGLine", 
+                                                                        null, 
+                                                                        [
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                10
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                50
+                                                                                        ]
+                                                                                ], 
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                20
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                60
+                                                                                        ]
+                                                                                ]
+                                                                        ], 
+                                                                        [
+                                                                                [
+                                                                                        "SVGAnchors", 
+                                                                                        "top left"
+                                                                                ]
+                                                                        ]
+                                                                ], 
+                                                                [
+                                                                        "SVGText", 
+                                                                        "user", 
+                                                                        [
+                                                                                [
+                                                                                        "XAbs", 
+                                                                                        10
+                                                                                ], 
+                                                                                [
+                                                                                        "YAbs", 
+                                                                                        70
+                                                                                ]
+                                                                        ], 
+                                                                        "", 
+                                                                        [
+                                                                                [
+                                                                                        "SVGAnchors", 
+                                                                                        "top left"
+                                                                                ], 
+                                                                                [
+                                                                                        "SVGAlign", 
+                                                                                        "middle center"
+                                                                                ]
+                                                                        ]
+                                                                ], 
+                                                                [
+                                                                        "SVGLine", 
+                                                                        null, 
+                                                                        [
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                30
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                25
+                                                                                        ]
+                                                                                ], 
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                40
+                                                                                        ], 
+                                                                                        [
+                                                                                                "YAbs", 
+                                                                                                25
+                                                                                        ]
+                                                                                ]
+                                                                        ], 
+                                                                        [
+                                                                                [
+                                                                                        "SVGAnchors", 
+                                                                                        "top left"
+                                                                                ]
+                                                                        ]
+                                                                ], 
+                                                                [
+                                                                        "SVGRect", 
+                                                                        null, 
+                                                                        [
+                                                                                [
+                                                                                        [
+                                                                                                "XAbs", 
+                                                                                                50
+                                                                                        ], 
+                                                                                        "YTop"
+                                                                                ], 
+                                                                                [
+                                                                                        "XRight", 
+                                                                                        "YBottom"
+                                                                                ]
+                                                                        ], 
+                                                                        0, 
+                                                                        0, 
+                                                                        [
+                                                                                [
+                                                                                        "SVGAnchors", 
+                                                                                        "top left right bottom"
+                                                                                ], 
+                                                                                [
+                                                                                        "SVGFill", 
+                                                                                        "white"
+                                                                                ], 
+                                                                                [
+                                                                                        "SVGResize", 
+                                                                                        "horizontal vertical"
+                                                                                ], 
+                                                                                [
+                                                                                        "SVGStrokeDashArray", 
+                                                                                        "5, 5"
+                                                                                ]
+                                                                        ]
+                                                                ]
+                                                        ]
+                                                }
+                                        }, 
+                                        "parameterMap": [
+                                                "NBInfixApp", 
+                                                "Infix", 
+                                                3
+                                        ]
+                                }
+                        ]
 				]
 		], 
 		"imports": [ ]

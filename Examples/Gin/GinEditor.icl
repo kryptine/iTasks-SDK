@@ -111,7 +111,7 @@ doMenu state =: { EditorState | mode, config, gMod } =
 		ViewDeclaration	= mkUpdateTask "declaration" (declarationView, declarationUpdate) False
 		ViewWorkflow	= mkUpdateTask "Workflow" (diagramView, diagramUpdate) True
 		ViewImports		= accWorld (searchPathModules config)
-						  >>= \allModules -> mkUpdateTask "Imports" (importsView (sort allModules), importsUpdate) False
+						  >>= \allModules -> mkUpdateTask "Imports" (importsView allModules, importsUpdate) False
 		ViewTypes		= mkUpdateTask "Types" (typeView, typeUpdate) False
         ViewSource		= accWorld (tryRender gMod config POICL) 
         				  >>= \source 		-> showMessageA ("code view", formatSource source) [action \\ (action,pred) <- (actions state) | pred Invalid] Void

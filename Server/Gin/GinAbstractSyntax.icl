@@ -98,12 +98,12 @@ expandListComprehension scope accLocals { AListComprehension | output, generator
 	= (accLocals, { AListComprehension | output = output`, generators = generators`, guards = guards` })
 
 expandGeneratorList :: Scope Locals (AGeneratorList Void) -> (Locals, AGeneratorList Void, [APattern])
-expandGeneratorList scope accLocals (ANestedGeneratorList generators)
+expandGeneratorList scope accLocals (NestedGeneratorList generators)
 	# (accLocals, generators`) = expandMap scope accLocals expandGenerator generators
-	= (accLocals, ANestedGeneratorList generators`, generatorPatterns generators)
-expandGeneratorList scope accLocals (AParallelGeneratorList generators)
+	= (accLocals, NestedGeneratorList generators`, generatorPatterns generators)
+expandGeneratorList scope accLocals (ParallelGeneratorList generators)
 	# (accLocals, generators`) = expandMap scope accLocals expandGenerator generators
-	= (accLocals, AParallelGeneratorList generators`, generatorPatterns generators)
+	= (accLocals, ParallelGeneratorList generators`, generatorPatterns generators)
 	
 generatorPatterns :: [AGenerator Void] -> [APattern]
 generatorPatterns generators = map (\(Generator pat _) = pat) generators
@@ -327,8 +327,8 @@ printAListComprehension opt alc = brackets
       </> hsep (map (\guard -> text "|" </> printAExpression opt guard) alc.AListComprehension.guards))
     
 printGeneratorList :: PrintOption (AGeneratorList Void) -> a | Printer a
-printGeneratorList opt (ANestedGeneratorList generators) = fillSep (punctuate comma (map (printGenerator opt) generators))
-printGeneratorList opt (AParallelGeneratorList generators) = fillSep (punctuate (text "&") (map (printGenerator opt) generators))
+printGeneratorList opt (NestedGeneratorList generators) = fillSep (punctuate comma (map (printGenerator opt) generators))
+printGeneratorList opt (ParallelGeneratorList generators) = fillSep (punctuate (text "&") (map (printGenerator opt) generators))
 
 printGenerator :: PrintOption (AGenerator Void) -> a | Printer a
 printGenerator opt (Generator sel exp) = printAPattern opt sel </> text "<-" </> printAExpression opt exp

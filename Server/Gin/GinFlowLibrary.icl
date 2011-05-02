@@ -27,7 +27,7 @@ predefinedModule =
 		, { name = "Void"   , rhs = GAbstractTypeRhs }				  
 		]
 	, moduleKind = GCleanModule
-		[ bStartStop, bCase, bMerge, bLet ]
+		[ bStartStop, bCase, bMerge, bLet, bListComprehension]
 	}
 	
 bStartStop :: Binding
@@ -36,14 +36,14 @@ bStartStop = ParallelBinding
 	          | name = "start"
 	          , returnType = GUndefinedTypeExpression
 	          , formalParams = []
-	          , icon = "start"
+	          , icon = Just "start"
 	          , shape = Just startShape
 	          }
 	, merge = { GDeclaration 
 	          | name = "stop"
 	          , returnType = GUndefinedTypeExpression
 	          , formalParams = []
-	          , icon = "stop"
+	          , icon = Just "stop"
 	          , shape = Just stopShape
 	          }
 	, type = GTypeVariable "a"
@@ -87,10 +87,10 @@ bCase = NodeBinding
 		                 , type = GTypeVariable "a" 
 		                 }
 		               ]
-		, icon = "case-split"
+		, icon = Just "case-split"
 		, shape = Just caseSplitShape
 		}
-	, parameterMap = NBUndefined
+	, parameterMap = NBBuiltIn
 	}
 where
 	caseSplitShape :: SVGShape
@@ -115,10 +115,10 @@ bMerge = NodeBinding
 		| name = "case merge"
 		, returnType = GUndefinedTypeExpression
 		, formalParams = []
-		, icon = "case-merge"
+		, icon = Just "case-merge"
 		, shape = Just mergeShape
 		}
-	, parameterMap = NBUndefined
+	, parameterMap = NBBuiltIn
 	}
 where
 	mergeShape :: SVGShape
@@ -148,10 +148,10 @@ bLet = NodeBinding
 		                 , type = GTypeVariable "a" 
 		                 }
 		               ]
-		, icon = "let"
+		, icon = Just "let"
 		, shape = Just letShape
 		}
-	, parameterMap = NBUndefined
+	, parameterMap = NBBuiltIn
 	}
 where
 	letShape :: SVGShape
@@ -166,5 +166,56 @@ where
 			, SVGText (Just "pattern")    (XAbs 5, YAbs 13) ""  [SVGAnchors "top left", SVGAlign "middle left"]
 			, SVGText Nothing             (XAbs 5, YAbs 33) "=" [SVGAnchors "top left", SVGAlign "middle left"]
 			, SVGText (Just "expression") (XAbs 18, YAbs 33) "" [SVGAnchors "top left", SVGAlign "middle left"]
+			]
+		}
+
+bListComprehension :: Binding
+bListComprehension = NodeBinding
+	{NodeBinding
+	| declaration = 
+		{ GDeclaration 
+		| name = "list comprehension"
+		, returnType = GTypeApplication (GConstructor "Task") (GTypeVariable "a")
+		, formalParams = [ { GFormalParameter 
+		                 | name = "generatorpattern"
+		                 , type = GUndefinedTypeExpression
+		                 }
+		                 , { GFormalParameter 
+		                 | name = "generatorexpression"
+		                 , type = GConstructor "a"
+		                 }
+		                 , { GFormalParameter 
+		                 | name = "guard"
+		                 , type = GConstructor "Bool"
+		                 }
+		                 , { GFormalParameter 
+		                 | name = "output"
+		                 , type = GTypeApplication (GConstructor "Task") (GTypeVariable "a")
+		                 }
+		               ]
+		, icon = Just "list-comprehension"
+		, shape = Just listComprehensionShape
+		}
+	, parameterMap = NBBuiltIn
+	}
+where
+	listComprehensionShape :: SVGShape
+	listComprehensionShape = 
+	  	{ SVGShape
+		| width = 150
+		, height = 150
+		, defs = []
+		, magnets = True
+		, elements = 
+			[ SVGRect Nothing ((XLeft, YTop), (XRight, YBottom)) 0 0 [SVGAnchors "top left right bottom", SVGFill "white", SVGResize "horizontal vertical"]
+			, SVGRect Nothing ((XAbs 3, YAbs 3), (XAbs 148, YAbs 148)) 0 0 [SVGAnchors "top left right bottom", SVGFill "white", SVGResize "horizontal vertical"]
+			, SVGText Nothing             (XAbs 7, YAbs 13) "foreach" [SVGAnchors "top left", SVGAlign "middle left"]
+			, SVGText (Just "generatorpattern")    (XAbs 60, YAbs 13) ""  [SVGAnchors "top left", SVGAlign "middle left"]
+			, SVGText Nothing             (XAbs 7, YAbs 33) "in" [SVGAnchors "top left", SVGAlign "middle left"]
+			, SVGText (Just "generatorexpression") (XAbs 60, YAbs 33) "" [SVGAnchors "top left", SVGAlign "middle left"]
+			, SVGText Nothing             (XAbs 7, YAbs 53) "given" [SVGAnchors "top left", SVGAlign "middle left"]
+			, SVGText (Just "guard") (XAbs 60, YAbs 53) "" [SVGAnchors "top left", SVGAlign "middle left"]
+			, SVGLine Nothing ((XAbs 3, YAbs 63),(XAbs 148, YAbs 63)) [SVGAnchors "top left right"]
+			, SVGText (Just "output") (XAbs 7, YAbs 73) "" [SVGAnchors "top left", SVGAlign "middle left"]
 			]
 		}

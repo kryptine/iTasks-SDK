@@ -209,7 +209,7 @@ oryxChildShapeToActualParam bindings childShape propMap formalParam
 	  = GGraphExpression (oryxChildShapesToGraph bindings childShape.ORYXChildShape.childShapes)
 	= case get formalParam.GFormalParameter.name propMap of
 		Just (JSONString value) = GCleanExpression value
-		otherwise	   			= GUndefinedExpression
+		Nothing	   				= abort ("oryxChildShapeToActualParam: " +++ formalParam.GFormalParameter.name +++ " paramter not found")
 	
 isHigherOrderTask :: !GTypeExpression -> Bool
 isHigherOrderTask (GTypeApplication (GConstructor "Task") _) = True
