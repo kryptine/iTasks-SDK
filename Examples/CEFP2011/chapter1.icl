@@ -110,7 +110,6 @@ chat1
                     		(you @: chatEditor you me chatState)
 where
 	chatEditor me you chatState
-//		= 							showMessageSharedA ("Chat list view") id [] chatState
 		= 							(readShared chatState >>= showMessageAbout ("Chat list view"))
 									||-
 									enterInformationA ("Chat with " <+++ you) id [(ActionQuit,always),(ActionOk,ifvalid)]
@@ -150,6 +149,8 @@ where
 
 w6c = workflow "CEFP/6c: Chat" "Chat with several users" chat3
 
+normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
+
 chat3
     =               		getCurrentUser
     	>>= \me ->			parallel "Chat application" initChatState finished [chatTask me]
@@ -158,19 +159,42 @@ where
 	finished _ _ = Void
 
 	chatTask user 
-		=	DetachedTask managerProp noMenu handlingTask
+		=	DetachedTask (normalTask user) noMenu handlingTask
 	where
-		managerProp = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
-		handlingTask chatState controlState
-			=		updateSharedInformationA ("Chat with iTask users") (view user) actions chatState	
+		handlingTask chatState osState
+			=		updateSharedInformationA` ("Chat with iTask users") (view user) stateActions termActions (chatState >+< osState)	
+				>>|	return Void
+				
 		where
 			view user 
-				=	( \list -> (Display list,Note "")
-					, \(Display _,Note response) list -> list ++ [user +++> ": " +++> response]
+				=	( \(list,osinfo) -> (Display list,Note "")
+					, \(Display _,Note response) (list,_) -> (list ++ [user +++> ": " +++> response],[])
 					)
 
-			actions =  	[(ActionQuit, \_ -> True)]
+			termActions =  	[(ActionQuit, \_ -> True)]
+
+			stateActions = [("Add Chatter", [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)])] // does not seem to work
+			where
+					handleNewChatter chatState osState
+						=						selectUser
+							>>= \someone ->		writeShared osState [AppendTask (chatTask someone)]
+
+ActionAdd :== Action "Add Chatter" "Add Chatter"
+
+
+//interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r Bool -> InteractiveTerminators a)	!l !(Shared r w) -> Task a
+
+updateSharedInformationA` d (get,putback) stateActions termActions shared 
+	= UpdateTask @>> interact
+		d
+		(\l r=:(ss,os) changed -> 	[ UpdateView (if changed (FormValue (get r)) Unchanged,\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))
+						 			: map (\(label,cs) -> Update label (l,Just (ss,cs))) stateActions
+						 			])
+		(fromPredActions (\valid r changed -> (valid || changed,r)) (\action _ r _ -> (action,r)) termActions)
+		True
+		shared
+
 			 	
 
 // a simple button only valid when some predicates hold
