@@ -72,6 +72,16 @@ where
 		, firstWorkedOn	= Display firstEvent
 		, lastWorkedOn	= Display latestEvent
 		}
+	toView [_,{ParallelTaskInfo|properties=Left p}]=
+		{ assignedTo = NamedUser "root"
+		, priority = NormalPriority
+		, status = Suspended
+		, progress = HtmlDisplay "Why??"
+		, issuedAt = Display (Timestamp 0)
+		, firstWorkedOn = Display Nothing
+		, lastWorkedOn = Display Nothing
+		, deadline = Nothing
+		}
 		
 	fromView view=:{ProcessControlView|assignedTo} _
 		= [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
@@ -132,7 +142,7 @@ where
 			(updateShared (\[{ParallelTaskInfo|index}] -> [RemoveTask index, AppendTask (InBodyTask (checked pred task))]) pinfo >>| return a)
 
 	layout {TUIParallel|items} = hd items
-						
+
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") Nothing (\_ (Just a) -> a)
 						[InBodyTask (accu orfun taska), InBodyTask (accu orfun taskb)]

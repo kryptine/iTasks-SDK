@@ -31,7 +31,8 @@ complexTest
 	= parallel "Complex test" 42 (flip const) [InBodyTask adder]
 where
 	adder _ control
-		= forever (showMessage "Press Ok to start another task!" Void >>| writeShared control  [AppendTask (InBodyTask foo)])//[AppendTask (DetachedTask initManagerProperties noMenu foo)])
+		//= forever (showMessage "Press Ok to start another task!" Void >>| writeShared control [AppendTask (DetachedTask initManagerProperties noMenu foo)])
+		= forever (showMessage "Press Ok to start another task!" Void >>| writeShared control [AppendTask (DetachedTask initManagerProperties noMenu foo)])
 	foo _ _
 		= showMessage "Foobar!" 42
 
