@@ -94,12 +94,12 @@ enterMultipleChoiceAboutA		:: !d !(a -> v) ![PredAction [a]]	!about ![a]				-> T
 * @param description 		A description of the task to display to the user
 * @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
 *							If not specified, a = v, and the view is the identity.
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
+* @param [PredAction a]		A list of buttons or menus, through which the user can submit the value. 
 * @param b					Additional information to display
 * @param [a]				A list of (shared) options
 *
 * @return 					Chosen values or chosen action with the chosen values.
 * @throws					SharedException (enterSharedMultipleChoiceAboutA only)
 */
-//enterSharedMultipleChoiceA	:: !d !(a -> v) ![TaskAction [a]]	!(Shared [a] w)	-> Task (!Action, [a])	| descr d & iTask a & iTask v
+enterSharedMultipleChoiceA	:: !d !(a -> v) ![PredAction [a]]	!(Shared [a] w)	-> Task (!Action, [a])	| descr d & iTask a & iTask v & iTask w
 //enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![TaskAction [a]]	!about !(Shared [a] w)	-> Task (!Action, [a])	| descr d & iTask a & iTask about & iTask v

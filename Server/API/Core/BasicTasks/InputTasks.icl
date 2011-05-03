@@ -92,7 +92,20 @@ makeChoiceTask _ mbContext view opts mbSel
 enterSharedChoiceA :: !d !(a -> v) ![PredAction (Verified a)] !(Shared [a] w) -> Task (!Action, Maybe a) | descr d & iTask a & iTask v
 enterSharedChoiceA description view actions shared = undef
 		
-
+enterSharedMultipleChoiceA	:: !d !(a -> v) ![PredAction [a]] !(Shared [a] w) -> Task (!Action, [a])	| descr d & iTask a & iTask v & iTask w
+enterSharedMultipleChoiceA description view actions shared 
+	= interact description interaction termination [] shared
+where
+	interaction local model changed
+		= [UpdateView (toView local model,fromView)]
+	where
+		toView local model	= FormValue (multipleChoiceSel (map view model) (if changed [] local))
+		fromView (Just mc)	= (getChoiceIndexes mc, Nothing)
+		fromView Nothing	= (local, Nothing)
+	
+	termination local model changed
+		# choices = [a \\ a <- model & i <- [0..] |isMember i local] //Inefficient :(
+		= UserActions [(action, if (pred choices) (Just (action,choices)) Nothing) \\ (action,pred) <- actions]
 		
 /*
 
