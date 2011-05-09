@@ -59,14 +59,14 @@ ActionViewSource       :== Action "viewsource"		"Generated source"
 
 initMenu :: MenuDefinition
 initMenu =
-    [ Menu "File"    [ MenuItem ActionNew				(Just { key = N, ctrl = True, alt = False, shift = False })
-                     , MenuItem ActionOpen				(Just { key = N, ctrl = True, alt = False, shift = False })
+    [ Menu "File"    [ MenuItem ActionNew				(Just { key = 'N', ctrl = True, alt = False, shift = False })
+                     , MenuItem ActionOpen				(Just { key = 'N', ctrl = True, alt = False, shift = False })
                      , MenuSeparator
-                     , MenuItem ActionSave				(Just { key = N, ctrl = True, alt = False, shift = False })
+                     , MenuItem ActionSave				(Just { key = 'N', ctrl = True, alt = False, shift = False })
                      , MenuItem ActionSaveAs			Nothing
                      , MenuSeparator
-                     , MenuItem ActionUpdate			(Just { key = U, ctrl = True, alt = False, shift = False })
-                     , MenuItem ActionRun				(Just { key = R, ctrl = True, alt = False, shift = False })
+                     , MenuItem ActionUpdate			(Just { key = 'U', ctrl = True, alt = False, shift = False })
+                     , MenuItem ActionRun				(Just { key = 'R', ctrl = True, alt = False, shift = False })
                      , MenuSeparator
                      , MenuItem ActionQuit				Nothing
                      ]

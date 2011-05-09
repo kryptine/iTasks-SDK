@@ -376,8 +376,8 @@ actionLabel	:: !Action -> String
 			, ctrl	:: !Bool
 			, alt	:: !Bool
 			, shift	:: !Bool
-			}	
-:: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
+			}
+:: Key :== Char
 
 class menuAction a :: a -> MenuAction
 
