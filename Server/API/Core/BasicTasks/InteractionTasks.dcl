@@ -12,27 +12,27 @@ from Types		import :: Action
 * When the tasks stop and it's result (a) is determined by dynamically calculated InteractionTerminators.
 *
 * @param A description of the task to display to the user
-* @param A function (on current local state, current shared state & flag indicating if shared state has changed)
+* @param A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
 *        dynamically generating the interaction parts shown to the user (parts can change the local state (l) & possibly also write to the shared (Maybe w))
-* @param A function (on current local state & current shared state)
+* @param A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
 *        dynamically calculating the terminators of the task
 * @param The initial local state
 * @param A reference to shared data the task works on
 * @return A result determined by the terminators
 */
-interact		:: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r -> InteractiveTerminators a)	!l !(Shared r w)	-> Task a | descr d & iTask l & iTask a & iTask w
+interact		:: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r Bool -> InteractiveTerminators a)	!l !(Shared r w)	-> Task a | descr d & iTask l & iTask a & iTask w
 /**
 * A derived version of 'interact' which only uses a local state.
 */
-interactLocal	:: !d !(l -> [InteractivePart l])						!(l -> InteractiveTerminators a)	!l					-> Task a | descr d & iTask l & iTask a
+interactLocal	:: !d !(l -> [InteractivePart l])						!(l -> InteractiveTerminators a)		!l					-> Task a | descr d & iTask l & iTask a
 
 :: InteractivePart o	= E.v:	UpdateView	!(!FormView v, !(Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayView	!v								& iTask v	// A static view displayed to the user
 						|		Update		!String !o									// A interaction element (typically a button with a string-label) allowing to directly change the states
 				
-:: FormView v	= FormValue !v	// A form representing a value
-				| Blank			// A blank form
-				| Unchanged		// Form is unchanged, if no view is stored the form becomes blank
+:: FormView v	= FormValue !v				// A form representing a value
+				| Blank						// A blank form
+				| Unchanged (FormView v)	// Form is unchanged, if no view is stored the given initial value is used
 				
 :: InteractiveTerminators a	= UserActions		![(!Action,!Maybe a)]	// A list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
 							| StopInteraction	!a						// The task stops and produces result a
@@ -65,5 +65,5 @@ ver2Mb :: !(Verified a) -> Maybe a
 okAction :: !(Maybe a) -> InteractiveTerminators a
 addAbout :: !(Maybe about) ![InteractivePart o] -> [InteractivePart o] | iTask about
 
-fromPredActions :: !(l r -> p) !(Action l r -> a) ![PredAction p] -> (l r -> InteractiveTerminators a)
-fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractiveTerminators a)
+fromPredActions			:: !(l r Bool -> p)	!(Action l r Bool -> a)	![PredAction p] -> (l r Bool -> InteractiveTerminators a)
+fromPredActionsLocal	:: !(l -> p)		!(Action l -> a)		![PredAction p] -> (l -> InteractiveTerminators a)

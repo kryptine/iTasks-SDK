@@ -3,7 +3,7 @@ definition module GinORYX
 import GenEq
 import JSON
 
-from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization, ::WorldPredicateResult, ::IWorld
+from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization, ::IWorld
 from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
 
 from GinSyntax import ::GDeclaration, ::GModule, ::GGraph, ::GImport, ::Binding, ::Bindings
@@ -11,7 +11,7 @@ from GinParser import ::GPath, ::GPathNode
 
 ::ORYXEditor = { diagram	:: ORYXDiagram
 			   , stencilset	:: ORYXStencilSetReference
-			   , verify		:: !ORYXEditor *IWorld -> *(WorldPredicateResult,!*IWorld)
+			   //, verify		:: !ORYXEditor *IWorld -> *(WorldPredicateResult,!*IWorld)
 			   }
 
 :: ORYXBound =	
@@ -104,7 +104,7 @@ bpmnORYXEditor :: ORYXEditor
 
 ginORYXDiagram :: ORYXDiagram
 
-ginORYXEditor :: !ORYXDiagram !(ORYXEditor *IWorld -> *(WorldPredicateResult,*IWorld))-> ORYXEditor
+ginORYXEditor :: !ORYXDiagram /*!(ORYXEditor *IWorld -> *(WorldPredicateResult,*IWorld))*/-> ORYXEditor
 
 updateDiagramExtensions :: !GModule -> GModule
 

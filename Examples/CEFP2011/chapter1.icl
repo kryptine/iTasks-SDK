@@ -188,10 +188,10 @@ ActionAdd :== Action "Add Chatter" "Add Chatter"
 updateSharedInformationA` d (get,putback) stateActions termActions shared 
 	= UpdateTask @>> interact
 		d
-		(\l r=:(ss,os) changed -> 	[ UpdateView (if changed (FormValue (get r)) Unchanged,\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))
+		(\l r=:(ss,os) changed -> 	[ UpdateView (if (l || changed) (FormValue (get r)) (Unchanged (FormValue (get r))),\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))
 						 			: map (\(label,cs) -> Update label (l,Just (ss,cs))) stateActions
 						 			])
-		(fromPredActions (\valid r -> (valid,r)) (\action _ r -> (action,r)) termActions)
+		(fromPredActions (\valid r changed -> ((valid || changed) && verifyValue (get r),r)) (\action _ r _ -> (action,r)) termActions)
 		True
 		shared
 

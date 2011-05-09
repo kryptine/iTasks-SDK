@@ -146,9 +146,9 @@ declarationUpdate decl gMod=:{moduleKind = (GGraphicalModule defs)} =
 
 diagramView :: !GModule -> ORYXEditor
 diagramView gMod =:{moduleKind = (GGraphicalModule defs)} 
-	= ginORYXEditor ((hd defs).GDefinition.body) check
-where
-	check :: !ORYXEditor *IWorld -> *(WorldPredicateResult, !*IWorld)
+	= ginORYXEditor ((hd defs).GDefinition.body) //check
+//where
+	/*check :: !ORYXEditor *IWorld -> *(WorldPredicateResult, !*IWorld)
 	check editor=:{diagram} iworld
 	# gMod` = { GModule 
 			  | gMod
@@ -166,7 +166,7 @@ where
 				CompileSuccess _ = Nothing
 				CompileGlobalError error = (Just o toString o toJSON) [(makeORYXError diagram ([], error))]
 				CompilePathError errors = (Just o toString o toJSON o catMaybes o map (makeORYXError diagram)) errors
-	= (WPRValid hint, iworld)
+	= (WPRValid hint, iworld)*/
 	
 diagramUpdate :: !ORYXEditor !GModule -> GModule
 diagramUpdate oryx gMod=:{moduleKind = (GGraphicalModule defs)} = 

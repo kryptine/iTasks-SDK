@@ -15,7 +15,6 @@ import GenUpdate
 	, verifyMask	:: ![VerifyMask]
 	, optional		:: !Bool
 	, staticDisplay	:: !Bool
-	, iworld        :: !*IWorld
 	}
 
 generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
@@ -29,9 +28,14 @@ derive gVerify Password, Date, Time, FormButton, Currency, User, UserDetails, No
 derive gVerify EmailAddress, Action, Table, HtmlDisplay
 
 /**
-* Verify a value based on the value and its update mask.
+* Verify a form based on the value and its update mask.
 */
-verifyValue :: !a !UpdateMask !*IWorld -> (!VerifyMask, !*IWorld) | gVerify{|*|} a
+verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
+
+/**
+* Verify a value (a form which is filled in completely).
+*/
+verifyValue :: !a -> Bool | gVerify{|*|}, gDefaultMask{|*|} a
 
 /**
 * Based on the verify mask of a value, determine if it is valid.
@@ -94,25 +98,6 @@ wrapperVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt 
 * @return	The modified verify-state
 */
 customVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt -> *VerSt
-
-/**
-* Verifies a custom ADT.
-* For this ADT also a custom visualization has to be implemented.
-* There is only one verify mask for the entire value.
-* For determining if a value is valid and generating a hint or error message
-* also world can be used (e.g. for calling a compiler).
-* 
-* @param	An optional default hint message used if no valid value is filled in
-* @param	A function for determining if a value is valid
-*			and generating an optional hint or an error message.
-* @param	The actual value (if present)
-* @param	The verify-state
-*
-* @return	The modified verify-state
-*/
-customWorldVerify :: !(Maybe String) !(a *IWorld -> (!WorldPredicateResult,!*IWorld)) !(Maybe a) !*VerSt -> *VerSt
-
-:: WorldPredicateResult = WPRValid !(Maybe String) | WPRInvalid !String
 
 /**
 * Sets a number of fields identified by data-paths in a verify mask to invalid.

@@ -56,11 +56,10 @@ transform f x = mkInstantTask ("Value transformation", "Value transformation wit
 */
 assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
 assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
-									[InBodyTask processControl, DetachedTask props actionMenu (accu accJust task)] <<@ layout
+									[InBodyTask processControl, DetachedTask props actionMenu (accu accJust task)] <<@ minimalParallelLayout
 where
 	processControl state control =
-			updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] control
-		>>|	return 42
+			ControlTask @>> updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] control
 	
 	accJust r _ = (Just r,True)
 			
@@ -85,8 +84,6 @@ where
 		
 	fromView view=:{ProcessControlView|assignedTo} _
 		= [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
-	
-	layout {TUIParallel|items} = hd items
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority

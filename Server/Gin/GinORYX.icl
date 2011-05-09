@@ -83,11 +83,11 @@ newORYXEditor stencilset
 	=	{ ORYXEditor
 		| diagram = newORYXDiagram stencilset
 		, stencilset = stencilset
-		, verify = oryxAlwaysValid
+		//, verify = oryxAlwaysValid
 		}
-where
-	oryxAlwaysValid :: !ORYXEditor *IWorld -> (!WorldPredicateResult,!*IWorld)
-	oryxAlwaysValid _ iworld = (WPRValid Nothing, iworld)
+//where
+	//oryxAlwaysValid :: !ORYXEditor *IWorld -> (!WorldPredicateResult,!*IWorld)
+	//oryxAlwaysValid _ iworld = (WPRValid Nothing, iworld)
 		
 emptyORYXEditor :: ORYXEditor
 emptyORYXEditor = newORYXEditor emptyStencilSet
@@ -140,12 +140,12 @@ ginORYXDiagram :: ORYXDiagram
 ginORYXDiagram = newORYXDiagram ginStencilSet
 
 //Gin specific:
-ginORYXEditor :: !ORYXDiagram !(ORYXEditor *IWorld -> *(WorldPredicateResult,*IWorld))-> ORYXEditor
-ginORYXEditor diagram verify = 
+ginORYXEditor :: !ORYXDiagram /*!(ORYXEditor *IWorld -> *(WorldPredicateResult,*IWorld))*/-> ORYXEditor
+ginORYXEditor diagram /*verify*/ = 
 	{ ORYXEditor
 	| newORYXEditor ginStencilSet
 	& diagram = diagram
-	, verify = verify
+	//, verify = verify
 	}
 	
 ginStencilSet :: ORYXStencilSetReference

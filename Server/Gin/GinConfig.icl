@@ -74,14 +74,15 @@ ginConfigFilename world
 # (appName, world) = determineAppName world
 = (appName +++ "-gin-config.json", world)
 
-gVerify{|GinConfig|} val vst = customWorldVerify Nothing check val vst
+derive gVerify GinConfig
+/*gVerify{|GinConfig|} val vst = customWorldVerify Nothing check val vst
 where
 	check config iworld =: { world }
 	# (mErr,world) = ginCheckConfig config world 
 	# wpr = case mErr of
 		Nothing  -> WPRValid Nothing
 		Just err -> WPRInvalid err
-	= (wpr, { iworld & world = world } )
+	= (wpr, { iworld & world = world } )*/
 
 ginCheckConfig :: !GinConfig !*World -> (Maybe String, *World)
 ginCheckConfig config world

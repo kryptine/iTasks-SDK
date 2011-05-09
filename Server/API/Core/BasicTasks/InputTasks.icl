@@ -19,8 +19,8 @@ enterInformationAbout d about = enterInformation` d (Just about)
 enterInformationAboutA :: !d !(v -> a) ![PredAction (Verified a)] !about -> Task (!Action,!Maybe a) | descr d  & iTask a & iTask about & iTask v
 enterInformationAboutA d view actions about = enterInformationA` d view actions (Just about)
 
-enterInformation` d mbAbout					= InputTask @>> interactLocal d (const (addAbout mbAbout [UpdateView (Unchanged,id)])) okAction Nothing
-enterInformationA` d view actions mbAbout	= InputTask @>> interactLocal d (const (addAbout mbAbout [UpdateView (Unchanged,fmap view)])) (fromPredActionsLocal mb2Ver tuple actions) Nothing
+enterInformation` d mbAbout					= InputTask @>> interactLocal d (const (addAbout mbAbout [UpdateView (Unchanged Blank,id)])) okAction Nothing
+enterInformationA` d view actions mbAbout	= InputTask @>> interactLocal d (const (addAbout mbAbout [UpdateView (Unchanged Blank,fmap view)])) (fromPredActionsLocal mb2Ver tuple actions) Nothing
 
 //Shared input
 enterSharedInformationA :: !d !(v -> w) ![PredAction (Valid,r)] !(Shared r w) -> Task (!Action,!r) | descr d & iTask r & iTask v & iTask w
@@ -29,7 +29,7 @@ enterSharedInformationA d view actions shared = enterSharedInformationA` d view 
 enterSharedInformationAboutA :: !d !(v -> w) ![PredAction (Valid,r)] !about !(Shared r w) -> Task (!Action,!r) | descr d  & iTask r & iTask about & iTask v & iTask w
 enterSharedInformationAboutA d view actions about shared = enterSharedInformationA` d view actions shared (Just about)
 
-enterSharedInformationA` d view actions shared mbAbout	= InputTask @>> interact d (\_ r _ -> addAbout mbAbout [UpdateView (Unchanged,\mbV -> (isJust mbV,fmap view mbV))]) (fromPredActions (\a r -> (a,r)) (\a _ r -> (a,r)) actions) False shared
+enterSharedInformationA` d view actions shared mbAbout	= InputTask @>> interact d (\_ r _ -> addAbout mbAbout [UpdateView (Unchanged Blank,\mbV -> (isJust mbV,fmap view mbV))]) (fromPredActions (\a r _ -> (a,r)) (\a _ r _ -> (a,r)) actions) False shared
 
 //Confirmation tasks
 requestConfirmation	:: !d -> Task Bool | descr d
@@ -55,7 +55,7 @@ enterChoiceAboutA d view actions about options = enterChoiceA` d view actions op
 
 enterChoice` d options mbAbout					= InputTask @>> interactLocal d (\mbC -> addAbout mbAbout [UpdateView (choiceFormView mbC options,fmap getChoice)]) okAction Nothing
 enterChoiceA` d view actions options mbAbout	= InputTask @>> interactLocal d (\mbC -> addAbout mbAbout [UpdateView (choiceFormView mbC (map view options),fmap getChoiceIndex)]) (fromPredActionsLocal (mb2Ver o fmap ((!!) options)) (\a mbIdx -> (a,fmap ((!!) options) mbIdx)) actions) Nothing
-choiceFormView mbC options = if (isNothing mbC) (FormValue (choice options)) Unchanged
+choiceFormView mbC options = if (isNothing mbC) (FormValue (choice options)) (Unchanged Blank)
 
 //Local multiple choice tasks
 enterMultipleChoice :: !d ![a] -> Task [a] | descr d & iTask a
@@ -77,7 +77,7 @@ enterMultipleChoiceA` d view actions options mbAbout
 		(\mbC -> addAbout mbAbout [UpdateView (multipleChoiceFormView mbC (map view options),\mbC -> Just (maybe [] getChoiceIndexes mbC))])
 		(fromPredActionsLocal (maybe [] (getIndexes options)) (\a mbIdx -> (a,maybe [] (getIndexes options) mbIdx)) actions)
 		Nothing
-multipleChoiceFormView mbC options = if (isNothing mbC) (FormValue (multipleChoice options)) Unchanged
+multipleChoiceFormView mbC options = if (isNothing mbC) (FormValue (multipleChoice options)) (Unchanged Blank)
 
 /*makeChoiceTask :: !d !(Maybe about) !(a -> v) ![a] !(Maybe Int) -> TaskFunctions a | descr d & iTask a & iTask v & iTask about
 makeChoiceTask description _ _ [] _
@@ -97,13 +97,13 @@ enterSharedMultipleChoiceA description view actions shared
 	= interact description interaction termination [] shared
 where
 	interaction local model changed
-		= [UpdateView (toView local model,fromView)]
+		= [UpdateView (toView,fromView)]
 	where
-		toView local model	= FormValue (multipleChoiceSel (map view model) (if changed [] local))
+		toView				= FormValue (multipleChoiceSel (map view model) (if changed [] local))
 		fromView (Just mc)	= (getChoiceIndexes mc, Nothing)
 		fromView Nothing	= (local, Nothing)
 	
-	termination local model
+	termination local model _
 		# choices = [a \\ a <- model & i <- [0..] |isMember i local] //Inefficient :(
 		= UserActions [(action, if (pred choices) (Just (action,choices)) Nothing) \\ (action,pred) <- actions]
 		

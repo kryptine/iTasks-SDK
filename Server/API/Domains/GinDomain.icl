@@ -25,27 +25,28 @@ where
 
 gDefaultMask{|ORYXEditor|} _ = [Touched []]
 
-gVerify{|ORYXEditor|} Nothing vst = alwaysValid vst
-gVerify{|ORYXEditor|} val=:(Just {verify}) vst = customWorldVerify Nothing verify val vst
+derive gVerify ORYXEditor
+//gVerify{|ORYXEditor|} Nothing vst = alwaysValid vst
+//gVerify{|ORYXEditor|} val=:(Just {verify}) vst = customWorldVerify Nothing verify val vst
 
-JSONEncode {|ORYXEditor|} { diagram, stencilset, verify }
+JSONEncode {|ORYXEditor|} { diagram, stencilset/*, verify*/ }
 	= [ JSONArray		[  JSONString "ORYXEditor"
 						:  JSONEncode{|*|} diagram
 						++ JSONEncode{|*|} stencilset
-						++ dynamicJSONEncode verify
+						//++ dynamicJSONEncode verify
 						]]
 
-JSONDecode{|ORYXEditor|} [JSONArray [JSONString "ORYXEditor",diagram,stencilset,verify]:c]
+JSONDecode{|ORYXEditor|} [JSONArray [JSONString "ORYXEditor",diagram,stencilset/*,verify*/]:c]
 	# mbDiagram		= fromJSON diagram
 	# mbStencilset	= fromJSON stencilset
-	# mbVerify		= dynamicJSONDecode verify
+	//# mbVerify		= dynamicJSONDecode verify
 	|  isJust mbDiagram
 	&& isJust mbStencilset
-	&& isJust mbVerify
+	//&& isJust mbVerify
 		= (Just	{ ORYXEditor
 				| diagram		= fromJust mbDiagram
 				, stencilset	= fromJust mbStencilset
-				, verify		= fromJust mbVerify
+				//, verify		= fromJust mbVerify
 				},c)
 	| otherwise
 		= (Nothing,c)

@@ -1,10 +1,11 @@
 implementation module UpdateTasks
 
 import StdTuple, StdList, StdOrdList, StdBool, StdMisc, Functor
-import Types, Shared, Util, TSt, ExceptionCombinators, CoreCombinators, CommonCombinators, InteractionTasks
+import Types, Util, TSt, ExceptionCombinators, CoreCombinators, CommonCombinators, InteractionTasks
 from StdFunc 		import id, const, o
 from SharedTasks	import sharedStore, :: SharedStoreId
 from SharedTasks	import qualified readShared, writeShared
+from GenVerify		import verifyValue
 
 //Local update
 updateInformation :: !d !a -> Task a | descr d & iTask a
@@ -22,16 +23,16 @@ updateInformationAboutA d view actions about a = updateInformationA` d view acti
 updateInformation` d a mbAbout
 	= UpdateTask @>> interactLocal
 		d
-		(\(valid,a) -> addAbout mbAbout [UpdateView (if valid (FormValue a) Unchanged,\mbA -> (isJust mbA,fromMaybe a mbA))])
+		(\(valid,a) -> addAbout mbAbout [UpdateView (if valid (FormValue a) (Unchanged (FormValue a)),\mbA -> (isJust mbA,fromMaybe a mbA))])
 		(\(valid,a) -> okAction (if valid (Just a) Nothing))
-		(True,a)
+		(verifyValue a,a)
 
 updateInformationA` d (get,putback) actions a mbAbout
 	= UpdateTask @>> interactLocal
 		d
-		(\(valid,a) -> addAbout mbAbout [UpdateView (if valid (FormValue (get a)) Unchanged,\mbV -> (isJust mbV,maybe a (\v -> putback v a) mbV))])
+		(\(valid,a) -> addAbout mbAbout [UpdateView (if valid (FormValue (get a)) (Unchanged (FormValue (get a))),\mbV -> (isJust mbV,maybe a (\v -> putback v a) mbV))])
 		(fromPredActionsLocal (\(valid,a) -> if valid (Valid a) Invalid) (\action (valid,a) -> (action,if valid (Just a) Nothing)) actions)
-		(True,a)
+		(verifyValue a,a)
 
 //Shared update
 updateSharedInformationA :: !d !(View r v w) ![PredAction (Valid,r)] !(Shared r w) -> Task (!Action,!r) | descr d & iTask r & iTask v & iTask w
@@ -41,10 +42,10 @@ updateSharedInformationAboutA :: !d !(View r v w) ![PredAction (Valid,r)] !about
 updateSharedInformationAboutA d view actions about shared = updateSharedInformationA` d view actions shared (Just about)
 
 updateSharedInformationA` d (get,putback) actions shared mbAbout
-	= UpdateTask @>> interact
+	=  UpdateTask @>> interact
 		d
-		(\_ r changed -> addAbout mbAbout [UpdateView (if changed (FormValue (get r)) Unchanged,\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))])
-		(fromPredActions (\valid r -> (valid,r)) (\action _ r -> (action,r)) actions)
+		(\valid r changed -> addAbout mbAbout [UpdateView (if (valid || changed) (FormValue (get r)) (Unchanged (FormValue (get r))),\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))])
+		(fromPredActions (\valid r changed -> ((valid || changed) && verifyValue (get r),r)) (\action _ r _ -> (action,r)) actions)
 		True
 		shared
 

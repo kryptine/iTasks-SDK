@@ -6,10 +6,13 @@ import GenUpdate, StdMisc
 derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, Table
 derive bimap (,), Maybe
 
-verifyValue :: !a !UpdateMask !*IWorld -> (!VerifyMask, !*IWorld) | gVerify{|*|} a
-verifyValue val updateMask iworld
-	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, staticDisplay = False, iworld = iworld}
-	= (hd verSt.verifyMask, verSt.VerSt.iworld)
+verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
+verifyForm val updateMask
+	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, staticDisplay = False}
+	= hd verSt.verifyMask
+
+verifyValue :: !a -> Bool | gVerify{|*|}, gDefaultMask{|*|} a
+verifyValue val = isValidValue (verifyForm val (defaultMask val))
 
 isValidValue :: !VerifyMask -> Bool
 isValidValue (VMUntouched _ optional cm)	= optional && (and (map isValidValue cm)) 
@@ -182,7 +185,7 @@ alwaysValid vst=:{verifyMask,updateMask}
 	
 simpleVerify :: !String !*VerSt -> *VerSt
 simpleVerify hint vst
-	= customWorldVerify (Just hint) (curry (appFst (const (WPRValid (Just hint))))) (Just (abort "no value needed for simple verify")) vst
+	= customVerify (Just hint) (const True) (const "") (Just (abort "no value needed for simple verify")) vst
 
 wrapperVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt -> *VerSt
 wrapperVerify mbHint pred parseErr mbVal vst=:{updateMask, verifyMask, optional, staticDisplay} 
@@ -207,38 +210,28 @@ where
 	    | otherwise = VMInvalid (ErrorMessage "") [VMInvalid (ErrorMessage (parseErr val)) []]
 
 customVerify :: !(Maybe String) !(a -> Bool) !(a -> String) !(Maybe a) !*VerSt -> *VerSt
-customVerify mbHint pred mkErrMsg mbVal vst = customWorldVerify mbHint pred` mbVal vst
-where
-	pred` val iworld
-		| pred val	= (WPRValid mbHint,iworld)
-		| otherwise	= (WPRInvalid (mkErrMsg val),iworld)
-
-customWorldVerify :: !(Maybe String) !(a *IWorld -> (!WorldPredicateResult,!*IWorld)) !(Maybe a) !*VerSt -> *VerSt
-customWorldVerify mbHint pred mbVal vst=:{updateMask, verifyMask, optional, staticDisplay} 
+customVerify mbHint pred mkErrMsg mbVal vst=:{updateMask, verifyMask, optional, staticDisplay} 
 	# (cm,um) = popMask updateMask
-	# (vmask,vst) = case mbVal of
+	# vmask = case mbVal of
 		Just val
 			| staticDisplay
-								= (VMValid Nothing [],vst)
+								= VMValid Nothing []
 			| optional
 				= case cm of
-					Touched _	= validateValue val vst
-					_			= (VMValid mbHint [],vst)
+					Touched _	= validateValue val
+					_			= VMValid mbHint []
 			| otherwise
 				= case cm of
-					Untouched	= (VMUntouched mbHint False [],vst)
-					Blanked		= (VMInvalid IsBlankError [],vst)
-					Touched _	= validateValue val vst
+					Untouched	= VMUntouched mbHint False []
+					Blanked		= VMInvalid IsBlankError []
+					Touched _	= validateValue val
 		Nothing
-								= (VMValid mbHint [],vst)
+								= VMValid mbHint []
 	= {vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
 where
-	validateValue val vst=:{VerSt|iworld}
-		# (res,iworld) = pred val iworld
-		# mask = case res of
-			WPRValid mbHint	= VMValid mbHint []
-			WPRInvalid err	= VMInvalid (ErrorMessage err) []
-		= (mask,{VerSt|vst & iworld = iworld})
+	validateValue val
+		| pred val	= VMValid mbHint []
+		| otherwise	= VMInvalid (ErrorMessage (mkErrMsg val)) []
 
 setInvalid :: ![(!DataPath,!ErrorMessage)] !VerifyMask -> VerifyMask
 setInvalid errors mask = seq (map setInvalid` errors) mask

@@ -14,10 +14,10 @@ JSONDecode{|InteractivePart|} _ _ 		= (Nothing,[])
 
 derive bimap Maybe,(,)
 
-interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)]) !(l r -> InteractiveTerminators a) !l !(Shared r w) -> Task a | descr d & iTask l & iTask a & iTask w
+interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)]) !(l r Bool -> InteractiveTerminators a) !l !(Shared r w) -> Task a | descr d & iTask l & iTask a & iTask w
 interact description partFunc termFunc initLocal shared = mkInteractiveTask description (editorE,editorC)
 where
-	editorE tst=:{taskNr}
+	editorE tst=:{taskNr,iworld=w=:{IWorld|timestamp}}
 		# (mbEdit,tst)					= getEdit tst
 		= case mbEdit of
 			Nothing						= tst
@@ -26,6 +26,8 @@ where
 				# (local,tst)			= readLocalState tst
 				# (views,tst)			= accIWorldTSt (readViews taskNr local) tst
 				| length views <= idx	= tst
+				// update last edit timestamp
+				# tst					= appIWorldTSt (setTaskStoreFor taskNr "lastEdit" timestamp) tst
 				# (mbV,part)			= views !! idx
 				= case part of
 					UpdateView (_,putback)
@@ -35,7 +37,7 @@ where
 						| isNothing value		= tst
 						// update value & masks
 						# (value,umask,iworld)	= updateValueAndMask dp editV (fromJust value) umask tst.TSt.iworld
-						# (vmask,iworld)		= verifyValue value umask iworld
+						# vmask					= verifyForm value umask
 						# tst					= {TSt|tst & iworld = iworld}
 						# views					= updateAt idx (Just (toJSON value,umask,vmask),part) views
 						# tst					= appIWorldTSt (writeViews taskNr views) tst
@@ -50,8 +52,11 @@ where
 	editorC tst=:{taskNr,newTask}
 		# (model,tst) 					= accIWorldTSt (readShared shared) tst
 		| isError model					= (sharedException model,tst)
+		# (localTimestamp,tst)			= accIWorldTSt (getLocalTimestamp taskNr) tst
+		# (changed,tst)					= accIWorldTSt (isSharedChanged shared localTimestamp) tst
+		| isError changed				= (sharedException changed,tst)
 		# (local,tst)					= readLocalState tst
-		= case termFunc local (fromOk model) of
+		= case termFunc local (fromOk model) (fromOk changed) of
 			StopInteraction result
 				= (TaskFinished result,tst)
 			UserActions actions
@@ -70,7 +75,7 @@ where
 			# (Ok changed,iworld)		= isSharedChanged shared localTimestamp iworld
 			# parts						= partFunc local model changed
 			# (oldVs,iworld)			= readViews taskNr local iworld
-			# (tui,newVs,iworld)		= visualizeParts taskNr parts oldVs mbEdit iworld
+			# (tui,newVs)				= visualizeParts taskNr parts oldVs mbEdit
 			# iworld					= writeViews taskNr (zip2 newVs parts) iworld
 			# buttons					= map (appSnd isJust) actions
 			= (tui,buttons,iworld)
@@ -92,8 +97,7 @@ where
 		= (fromMaybe initLocal mbL,tst)
 		
 	getLocalTimestamp taskNr iworld=:{IWorld|timestamp}
-		# (mbTs,iworld)	= getTaskStoreFor taskNr "timestamp" iworld
-		# iworld		= setTaskStoreFor taskNr "timestamp" timestamp iworld
+		# (mbTs,iworld)	= getTaskStoreFor taskNr "lastEdit" iworld
 		= (fromMaybe (Timestamp 0) mbTs,iworld)
 	
 	updateStates (local,mbModel) tst
@@ -103,7 +107,7 @@ where
 			Nothing		= tst
 
 interactLocal :: !d !(l -> [InteractivePart l]) !(l -> InteractiveTerminators a) !l -> Task a | descr d & iTask l & iTask a
-interactLocal d partFunc termFunc l = LocalInteractionTask @>> interact d (\l _ _ -> map toSharedRes (partFunc l)) (\l _ -> termFunc l) l nullShared`
+interactLocal d partFunc termFunc l = LocalInteractionTask @>> interact d (\l _ _ -> map toSharedRes (partFunc l)) (\l _ _ -> termFunc l) l nullShared`
 where
 	toSharedRes (UpdateView (formView,putback))	= UpdateView (formView,\mbV -> (putback mbV,Nothing))
 	toSharedRes (Update label l)				= Update label (l,Nothing)
@@ -135,28 +139,28 @@ getActionResult actions tst
 		Just name 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
 	= (mbRes,tst)
 		
-visualizeParts :: !TaskNr ![InteractivePart w] !(Views w) !(Maybe (!DataPath,!JSONNode)) !*IWorld -> (![TUIDef],![Maybe (!JSONNode,!UpdateMask,!VerifyMask)],!*IWorld)
-visualizeParts taskNr parts oldVs mbEdit iworld
-	# (res,iworld)	= mapSt visualizePart [(part,mbV,idx) \\ part <- parts & (mbV,_) <- (oldVs ++ repeat (Nothing,undef)) & idx <- [0..]] iworld
+visualizeParts :: !TaskNr ![InteractivePart w] !(Views w) !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![Maybe (!JSONNode,!UpdateMask,!VerifyMask)])
+visualizeParts taskNr parts oldVs mbEdit
+	# res			= [visualizePart (part,mbV,idx) \\ part <- parts & (mbV,_) <- (oldVs ++ repeat (Nothing,undef)) & idx <- [0..]]
 	# (tuis,views)	= unzip res
-	= (tuis,views,iworld)
+	= (tuis,views)
 where
-	visualizePart (part,mbV,idx) iworld
+	visualizePart (part,mbV,idx)
 		= case part of
-			UpdateView (formView,_) = case formView of
+			UpdateView (formView,putback) = case formView of
 				FormValue value
 					# umask				= defaultMask value
-					# (vmask,iworld)	= verifyValue value umask iworld
+					# vmask				= verifyForm value umask
 					# tui				= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit
-					= ((tui,Just (toJSON value,umask,vmask)),iworld)
-				Unchanged = case mbV of
-					Nothing				= blankForm formView mbEdit iworld
+					= (tui,Just (toJSON value,umask,vmask))
+				Unchanged init = case mbV of
+					Nothing				= visualizePart (UpdateView (init,putback),mbV,idx)
 					Just (jsonV,_,vmask) = case fromJSON` formView jsonV of
-						Nothing			= blankForm formView mbEdit iworld
-						Just value		= ((visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,mbV),iworld)
-				Blank					= blankForm formView mbEdit iworld
-			DisplayView v				= ((htmlDisplay Nothing (toString (visualizeAsHtmlDisplay v)),Nothing),iworld)
-			Update label _				=	(({ content = TUIButton	{ TUIButton
+						Nothing			= visualizePart (UpdateView (init,putback),mbV,idx)
+						Just value		= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,mbV)
+				Blank					= blankForm formView mbEdit
+			DisplayView v				= (htmlDisplay Nothing (toString (visualizeAsHtmlDisplay v)),Nothing)
+			Update label _				=	({ content = TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
 																	, text			= label
@@ -164,17 +168,17 @@ where
 																	, iconCls		= ""
 																	, actionButton	= False
 																	}
-											, width = Auto, height = Auto, margins = Nothing},Nothing),iworld)
+											, width = Auto, height = Auto, margins = Nothing},Nothing)
 	where
 		fromJSON` :: !(FormView v) !JSONNode -> (Maybe v) | JSONDecode{|*|} v
 		fromJSON` _ json = fromJSON json
 		
-		blankForm :: !(FormView v) !(Maybe (!DataPath,!JSONNode)) !*IWorld -> (!(!TUIDef,!Maybe (!JSONNode,!UpdateMask,!VerifyMask)),!*IWorld) | iTask v
-		blankForm formView mbEdit iworld
-			# value				= defaultValue` formView
-			# umask				= Untouched
-			# (vmask,iworld)	= verifyValue value umask iworld
-			= ((visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,Just (toJSON value,umask,vmask)),iworld)
+		blankForm :: !(FormView v) !(Maybe (!DataPath,!JSONNode)) -> (!TUIDef,!Maybe (!JSONNode,!UpdateMask,!VerifyMask)) | iTask v
+		blankForm formView mbEdit
+			# value	= defaultValue` formView
+			# umask	= Untouched
+			# vmask	= verifyForm value umask
+			= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,Just (toJSON value,umask,vmask))
 		
 		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
 		defaultValue` _ = defaultValue
@@ -217,8 +221,8 @@ okAction r = UserActions [(ActionOk,r)]
 addAbout :: !(Maybe about) ![InteractivePart o] -> [InteractivePart o] | iTask about
 addAbout mbAbout parts = maybe parts (\about -> [DisplayView about:parts]) mbAbout
 
-fromPredActions :: !(l r -> p) !(Action l r -> a) ![PredAction p] -> (l r -> InteractiveTerminators a)
-fromPredActions toP toR actions = \l r -> UserActions (map (\(a,pred) -> (a,if (pred (toP l r)) (Just (toR a l r)) Nothing)) actions)
+fromPredActions :: !(l r Bool -> p) !(Action l r Bool -> a) ![PredAction p] -> (l r Bool -> InteractiveTerminators a)
+fromPredActions toP toR actions = \l r c -> UserActions (map (\(a,pred) -> (a,if (pred (toP l r c)) (Just (toR a l r c)) Nothing)) actions)
 
 fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractiveTerminators a)
 fromPredActionsLocal toP toR actions = \l -> UserActions (map (\(a,pred) -> (a,if (pred (toP l)) (Just (toR a l)) Nothing)) actions)
