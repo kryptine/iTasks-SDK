@@ -14,7 +14,7 @@ JSONDecode{|InteractivePart|} _ _ 		= (Nothing,[])
 
 derive bimap Maybe,(,)
 
-interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)]) !(l r Bool -> InteractiveTerminators a) !l !(Shared r w) -> Task a | descr d & iTask l & iTask a & iTask w
+interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)]) !(l r -> InteractiveTerminators a) !l !(Shared r w) -> Task a | descr d & iTask l & iTask a & iTask w
 interact description partFunc termFunc initLocal shared = mkInteractiveTask description (editorE,editorC)
 where
 	editorE tst=:{taskNr}
@@ -51,9 +51,7 @@ where
 		# (model,tst) 					= accIWorldTSt (readShared shared) tst
 		| isError model					= (sharedException model,tst)
 		# (local,tst)					= readLocalState tst
-		# (localTimestamp,tst)			= accIWorldTSt (getLocalTimestamp taskNr) tst
-		# (Ok changed,tst)				= accIWorldTSt (isSharedChanged shared localTimestamp) tst
-		= case termFunc local (fromOk model) changed of
+		= case termFunc local (fromOk model) of
 			StopInteraction result
 				= (TaskFinished result,tst)
 			UserActions actions
@@ -93,8 +91,9 @@ where
 		# (mbL,tst) = getTaskStore "local" tst
 		= (fromMaybe initLocal mbL,tst)
 		
-	getLocalTimestamp taskNr iworld
-		# (mbTs,iworld) = getTaskStoreFor taskNr "timestamp" iworld
+	getLocalTimestamp taskNr iworld=:{IWorld|timestamp}
+		# (mbTs,iworld)	= getTaskStoreFor taskNr "timestamp" iworld
+		# iworld		= setTaskStoreFor taskNr "timestamp" timestamp iworld
 		= (fromMaybe (Timestamp 0) mbTs,iworld)
 	
 	updateStates (local,mbModel) tst
@@ -104,7 +103,7 @@ where
 			Nothing		= tst
 
 interactLocal :: !d !(l -> [InteractivePart l]) !(l -> InteractiveTerminators a) !l -> Task a | descr d & iTask l & iTask a
-interactLocal d partFunc termFunc l = LocalInteractionTask @>> interact d (\l _ _ -> map toSharedRes (partFunc l)) (\l _ _ -> termFunc l) l nullShared`
+interactLocal d partFunc termFunc l = LocalInteractionTask @>> interact d (\l _ _ -> map toSharedRes (partFunc l)) (\l _ -> termFunc l) l nullShared`
 where
 	toSharedRes (UpdateView (formView,putback))	= UpdateView (formView,\mbV -> (putback mbV,Nothing))
 	toSharedRes (Update label l)				= Update label (l,Nothing)
@@ -116,9 +115,7 @@ where
 :: Views a :== [(!Maybe (!JSONNode,!UpdateMask,!VerifyMask),!InteractivePart a)]
 	
 writeViews :: !TaskNr !(Views a) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-writeViews taskNr views iworld=:{IWorld|timestamp}
-	# iworld = setTaskStoreFor taskNr "views" views iworld
-	= setTaskStoreFor taskNr "timestamp" timestamp iworld
+writeViews taskNr views iworld = setTaskStoreFor taskNr "views" views iworld
 
 getEdit tst
 	# (mbEdit,tst)		= getEditEvent tst
@@ -220,8 +217,8 @@ okAction r = UserActions [(ActionOk,r)]
 addAbout :: !(Maybe about) ![InteractivePart o] -> [InteractivePart o] | iTask about
 addAbout mbAbout parts = maybe parts (\about -> [DisplayView about:parts]) mbAbout
 
-fromPredActions :: !(l r Bool -> p) !(Action l r Bool -> a) ![PredAction p] -> (l r Bool -> InteractiveTerminators a)
-fromPredActions toP toR actions = \l r changed -> UserActions (map (\(a,pred) -> (a,if (pred (toP l r changed)) (Just (toR a l r changed)) Nothing)) actions)
+fromPredActions :: !(l r -> p) !(Action l r -> a) ![PredAction p] -> (l r -> InteractiveTerminators a)
+fromPredActions toP toR actions = \l r -> UserActions (map (\(a,pred) -> (a,if (pred (toP l r)) (Just (toR a l r)) Nothing)) actions)
 
 fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractiveTerminators a)
 fromPredActionsLocal toP toR actions = \l -> UserActions (map (\(a,pred) -> (a,if (pred (toP l)) (Just (toR a l)) Nothing)) actions)

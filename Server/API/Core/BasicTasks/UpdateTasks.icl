@@ -44,7 +44,7 @@ updateSharedInformationA` d (get,putback) actions shared mbAbout
 	= UpdateTask @>> interact
 		d
 		(\_ r changed -> addAbout mbAbout [UpdateView (if changed (FormValue (get r)) Unchanged,\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))])
-		(fromPredActions (\valid r changed -> (valid || changed,r)) (\action _ r _ -> (action,r)) actions)
+		(fromPredActions (\valid r -> (valid,r)) (\action _ r -> (action,r)) actions)
 		True
 		shared
 

@@ -29,7 +29,7 @@ enterSharedInformationA d view actions shared = enterSharedInformationA` d view 
 enterSharedInformationAboutA :: !d !(v -> w) ![PredAction (Valid,r)] !about !(Shared r w) -> Task (!Action,!r) | descr d  & iTask r & iTask about & iTask v & iTask w
 enterSharedInformationAboutA d view actions about shared = enterSharedInformationA` d view actions shared (Just about)
 
-enterSharedInformationA` d view actions shared mbAbout	= InputTask @>> interact d (\_ r _ -> addAbout mbAbout [UpdateView (Unchanged,\mbV -> (isJust mbV,fmap view mbV))]) (fromPredActions (\a r _ -> (a,r)) (\a _ r _ -> (a,r)) actions) False shared
+enterSharedInformationA` d view actions shared mbAbout	= InputTask @>> interact d (\_ r _ -> addAbout mbAbout [UpdateView (Unchanged,\mbV -> (isJust mbV,fmap view mbV))]) (fromPredActions (\a r -> (a,r)) (\a _ r -> (a,r)) actions) False shared
 
 //Confirmation tasks
 requestConfirmation	:: !d -> Task Bool | descr d
@@ -103,7 +103,7 @@ where
 		fromView (Just mc)	= (getChoiceIndexes mc, Nothing)
 		fromView Nothing	= (local, Nothing)
 	
-	termination local model changed
+	termination local model
 		# choices = [a \\ a <- model & i <- [0..] |isMember i local] //Inefficient :(
 		= UserActions [(action, if (pred choices) (Just (action,choices)) Nothing) \\ (action,pred) <- actions]
 		

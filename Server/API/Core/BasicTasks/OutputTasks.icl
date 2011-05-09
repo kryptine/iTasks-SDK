@@ -60,7 +60,7 @@ waitUntilAbout d pred about shared = monitor` d noView pred True id (Just about)
 monitor` d mbView pred autoContinue transF mbAbout shared
 	= OutputTask PassiveOutput @>> interact d (maybe (\_ _ _ -> []) (\view _ m _ -> addAbout mbAbout [DisplayView (view m)]) mbView) termFunc Void shared
 where
-	termFunc _ m _
+	termFunc _ m
 		| autoContinue
 			| continue
 				= StopInteraction (transF m)
@@ -74,8 +74,8 @@ where
 monitorA` d view pred actions mbAbout shared
 	= OutputTask PassiveOutput @>> interact
 		d
-		(\_ r _ -> addAbout mbAbout [DisplayView (view r)])
-		(\_ r _ -> if (pred r) (StopInteraction (Nothing,r)) ((fromPredActionsLocal id (\action r -> (Just action,r)) actions) r))
+		(\_ r _	-> addAbout mbAbout [DisplayView (view r)])
+		(\_ r	-> if (pred r) (StopInteraction (Nothing,r)) ((fromPredActionsLocal id (\action r -> (Just action,r)) actions) r))
 		Void
 		shared
 

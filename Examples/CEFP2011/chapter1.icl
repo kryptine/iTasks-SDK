@@ -140,10 +140,10 @@ where
 
 	view user 
 		=	( \list -> (Display list,Note "")
-			, \(Display _,Note response) list -> list ++ [user +++> ": " +++> response]
+			, \(_,Note response) list -> list ++ [user +++> ": " +++> response]
 			)
 
-	actions = [(ActionQuit, \_ -> True)]
+	actions = [(ActionQuit, alwaysShared)]
 
 // example, chat using shared state
 
@@ -172,7 +172,7 @@ where
 					, \(Display _,Note response) (list,_) -> (list ++ [user +++> ": " +++> response],[])
 					)
 
-			termActions =  	[(ActionQuit, \_ -> True)]
+			termActions =  	[(ActionQuit, alwaysShared)]
 
 			stateActions = [("Add Chatter", [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)])] // does not seem to work
 			where
@@ -191,7 +191,7 @@ updateSharedInformationA` d (get,putback) stateActions termActions shared
 		(\l r=:(ss,os) changed -> 	[ UpdateView (if changed (FormValue (get r)) Unchanged,\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))
 						 			: map (\(label,cs) -> Update label (l,Just (ss,cs))) stateActions
 						 			])
-		(fromPredActions (\valid r changed -> (valid || changed,r)) (\action _ r _ -> (action,r)) termActions)
+		(fromPredActions (\valid r -> (valid,r)) (\action _ r -> (action,r)) termActions)
 		True
 		shared
 

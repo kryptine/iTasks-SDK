@@ -14,17 +14,17 @@ from Types		import :: Action
 * @param A description of the task to display to the user
 * @param A function (on current local state, current shared state & flag indicating if shared state has changed)
 *        dynamically generating the interaction parts shown to the user (parts can change the local state (l) & possibly also write to the shared (Maybe w))
-* @param A function (on current local state, current shared state & flag indicating if shared state has changed)
+* @param A function (on current local state & current shared state)
 *        dynamically calculating the terminators of the task
 * @param The initial local state
 * @param A reference to shared data the task works on
 * @return A result determined by the terminators
 */
-interact		:: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r Bool -> InteractiveTerminators a)	!l !(Shared r w)	-> Task a | descr d & iTask l & iTask a & iTask w
+interact		:: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r -> InteractiveTerminators a)	!l !(Shared r w)	-> Task a | descr d & iTask l & iTask a & iTask w
 /**
 * A derived version of 'interact' which only uses a local state.
 */
-interactLocal	:: !d !(l -> [InteractivePart l])						!(l -> InteractiveTerminators a)		!l					-> Task a | descr d & iTask l & iTask a
+interactLocal	:: !d !(l -> [InteractivePart l])						!(l -> InteractiveTerminators a)	!l					-> Task a | descr d & iTask l & iTask a
 
 :: InteractivePart o	= E.v:	UpdateView	!(!FormView v, !(Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayView	!v								& iTask v	// A static view displayed to the user
@@ -65,5 +65,5 @@ ver2Mb :: !(Verified a) -> Maybe a
 okAction :: !(Maybe a) -> InteractiveTerminators a
 addAbout :: !(Maybe about) ![InteractivePart o] -> [InteractivePart o] | iTask about
 
-fromPredActions :: !(l r Bool -> p) !(Action l r Bool -> a) ![PredAction p] -> (l r Bool -> InteractiveTerminators a)
+fromPredActions :: !(l r -> p) !(Action l r -> a) ![PredAction p] -> (l r -> InteractiveTerminators a)
 fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractiveTerminators a)
