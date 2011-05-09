@@ -7,36 +7,36 @@ definition module TaskTree
 */
 import Maybe, Either, HTML, Time, Types
 from JSON 			import :: JSONNode
-from TUIDefinition	import :: TUIDef, :: InteractiveLayoutMerger, :: ParallelLayoutMerger, :: ResultLayoutMerger, :: LayoutMerger, :: TUIInteractive, :: TUIParallel, :: TUIResult
+from TUIDefinition	import :: TUIDef, :: InteractionLayoutMerger, :: ParallelLayoutMerger, :: ResultLayoutMerger, :: LayoutMerger, :: TUIInteraction, :: TUIParallel, :: TUIResult
 
 :: SpineTreeContainer					:== TaskTreeContainer Void Void Void Void
 :: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType (![TUIDef],![TUIDef]) HtmlTag
 :: JSONTreeContainer					:== TaskTreeContainer Void Void JSONNode JSONNode
-:: NonNormalizedTreeContainer			:== TaskTreeContainer ActionMenu TaskContainerType TTNNInteractiveTask TTNNFinished
+:: NonNormalizedTreeContainer			:== TaskTreeContainer ActionMenu TaskContainerType TTNNInteractionTask TTNNFinished
 
 :: SpineParallelTreeContainer			:== ParallelTaskTreeContainer Void Void Void
 :: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType (![TUIDef],![TUIDef]) HtmlTag
 :: JSONParallelTreeContainer			:== ParallelTaskTreeContainer Void JSONNode JSONNode
-:: NonNormalizedParallelTreeContainer	:== ParallelTaskTreeContainer TaskContainerType TTNNInteractiveTask TTNNFinished
+:: NonNormalizedParallelTreeContainer	:== ParallelTaskTreeContainer TaskContainerType TTNNInteractionTask TTNNFinished
 
 :: SpineTree							:== TaskTree Void Void Void
 :: UITree								:== TaskTree TTContainerType (![TUIDef],![TUIDef]) HtmlTag
 :: JSONTree								:== TaskTree Void JSONNode JSONNode
-:: NonNormalizedTree					:== TaskTree TaskContainerType TTNNInteractiveTask TTNNFinished
+:: NonNormalizedTree					:== TaskTree TaskContainerType TTNNInteractionTask TTNNFinished
 
-:: TTNNInteractiveTask					:== (*IWorld -> *(![TUIDef],![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
+:: TTNNInteractionTask					:== (*IWorld -> *(![TUIDef],![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished							:== (HtmlTag,JSONNode)
 
 //A container used for tree representing top level tasks (including the menu & the actual tree)
-:: TaskTreeContainer menu containerType interactiveOutput finishedOutput = TTContainer !menu !.(TaskTree containerType interactiveOutput finishedOutput)
+:: TaskTreeContainer menu containerType interactionOutput finishedOutput = TTContainer !menu !.(TaskTree containerType interactionOutput finishedOutput)
 //A container used for subtrees representing subtasks or parallel (including the type, the actual tree & an index determining the order of appearance)
-:: ParallelTaskTreeContainer containerType interactiveOutput finishedOutput = TTParallelContainer !Int !containerType !.(TaskTree containerType interactiveOutput finishedOutput)
+:: ParallelTaskTreeContainer containerType interactionOutput finishedOutput = TTParallelContainer !Int !containerType !.(TaskTree containerType interactionOutput finishedOutput)
 
-:: TaskTree containerType interactiveOutput finishedOutput
+:: TaskTree containerType interactionOutput finishedOutput
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
-	= TTParallelTask	!TaskInfo !.[.ParallelTaskTreeContainer containerType interactiveOutput finishedOutput]								
+	= TTParallelTask	!TaskInfo !.[.ParallelTaskTreeContainer containerType interactionOutput finishedOutput]								
 	//A task that can be worked on through a gui
-	| TTInteractiveTask	!TaskInfo interactiveOutput
+	| TTInteractionTask	!TaskInfo interactionOutput
 	//A completed task (the flag indicates if the result is shown to the user)
 	| TTFinishedTask	TaskInfo finishedOutput !Bool
 
@@ -51,13 +51,13 @@ from TUIDefinition	import :: TUIDef, :: InteractiveLayoutMerger, :: ParallelLayo
 				, type					:: !Maybe InteractionTaskType
 				, isControlTask			:: !Bool
 				, localInteraction		:: !Bool
-				, interactiveLayout		:: !TIInteractiveLayoutMerger
+				, interactionLayout		:: !TIInteractionLayoutMerger
 				, parallelLayout		:: !TIParallelLayoutMerger
 				, resultLayout			:: !TIResultLayoutMerger
 				}
 				
  // special types for layout mergers, needed to be able to use generic map
-:: TIInteractiveLayoutMerger	= TIInteractiveLayoutMerger	!InteractiveLayoutMerger
+:: TIInteractionLayoutMerger	= TIInteractionLayoutMerger	!InteractionLayoutMerger
 :: TIParallelLayoutMerger		= TIParallelLayoutMerger	!ParallelLayoutMerger
 :: TIResultLayoutMerger			= TIResultLayoutMerger		!ResultLayoutMerger
 

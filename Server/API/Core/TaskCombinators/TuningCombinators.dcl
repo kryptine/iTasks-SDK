@@ -24,6 +24,6 @@ instance tune	Tags				//Append List of Tags
 instance tune	InteractionTaskType
 instance tune	ControlTask
 instance tune	LocalInteractionTask
-instance tune	InteractiveLayoutMerger
+instance tune	InteractionLayoutMerger
 instance tune	ParallelLayoutMerger
 instance tune	ResultLayoutMerger

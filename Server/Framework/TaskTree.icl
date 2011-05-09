@@ -26,9 +26,9 @@ where
 	toUITree tree iworld = case tree of
 		TTFinishedTask ti (result,_) show
 			= (TTFinishedTask ti result show,[],iworld)
-		TTInteractiveTask ti (tuiF,_)
+		TTInteractionTask ti (tuiF,_)
 			# (editor,actions,iworld) = tuiF iworld
-			= (TTInteractiveTask ti (editor,[]),addTaskIds ti.TaskInfo.taskId actions,iworld)
+			= (TTInteractionTask ti (editor,[]),addTaskIds ti.TaskInfo.taskId actions,iworld)
 		TTParallelTask ti containers
 			# containers							= sortBy (\(TTParallelContainer idx0 _ _) (TTParallelContainer idx1 _ _) -> idx0 < idx1) containers
 			# containers							= filter (\(TTParallelContainer _ _ t) -> case t of TTFinishedTask _ _ _ = False; _ = True) containers
@@ -137,10 +137,10 @@ where
 				
 	mkButtons :: !SubtaskActions !UITree -> UITree
 	mkButtons actions tree = case tree of
-		interactiveNode=:(TTInteractiveTask ti tui)
+		interactionNode=:(TTInteractionTask ti tui)
 			# buttons			= mkButtons` ti.TaskInfo.taskId
-			| isEmpty buttons	= interactiveNode
-			= TTInteractiveTask ti (appSnd (const buttons) tui)
+			| isEmpty buttons	= interactionNode
+			= TTInteractionTask ti (appSnd (const buttons) tui)
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
 		other

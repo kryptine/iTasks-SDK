@@ -24,7 +24,7 @@ derive gPutRecordFields	Task
 	, mbTaskNr				:: !(Maybe TaskNr)						// the task's identifier
 	, taskFuncEdit			:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
 	, taskFuncCommit		:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
-	, mbInteractiveLayout	:: !Maybe InteractiveLayoutMerger		// if present changes the layout of interactive tasks for this tasks and it's children
+	, mbInteractionLayout	:: !Maybe InteractionLayoutMerger		// if present changes the layout of interaction tasks for this tasks and it's children
 	, mbParallelLayout		:: !Maybe ParallelLayoutMerger			// if present changes the layout of parallel tasks for this tasks and it's children
 	, mbResultLayout		:: !Maybe ResultLayoutMerger			// if present changes the layout of result panels for this tasks and it's children
 	}

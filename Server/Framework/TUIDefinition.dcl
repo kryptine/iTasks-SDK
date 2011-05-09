@@ -7,7 +7,7 @@ definition module TUIDefinition
 import JSON, GenEq
 from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType
 
-:: TUIInteractive =	{ title				:: !String
+:: TUIInteraction =	{ title				:: !String
 					, description		:: !TUIDef
 					, editorParts		:: ![TUIDef]
 					, buttons			:: ![TUIDef]
@@ -198,14 +198,14 @@ sameMargins				:: !TUIFixedSize -> TUIMargins
 
 // Layouts
 
-:: InteractiveLayoutMerger	:== LayoutMerger TUIInteractive
+:: InteractionLayoutMerger	:== LayoutMerger TUIInteraction
 :: ParallelLayoutMerger		:== LayoutMerger TUIParallel
 :: ResultLayoutMerger		:== LayoutMerger TUIResult
 :: LayoutMerger a			:== a -> TUIDef
 
 // pre-defined layouts
-defaultInteractiveLayout	:: InteractiveLayoutMerger
-fullWidthInteractiveLayout	:: InteractiveLayoutMerger
+defaultInteractionLayout	:: InteractionLayoutMerger
+fullWidthInteractionLayout	:: InteractionLayoutMerger
 defaultParallelLayout		:: ParallelLayoutMerger
 minimalParallelLayout		:: ParallelLayoutMerger
 defaultResultLayout			:: ResultLayoutMerger
@@ -216,4 +216,4 @@ defaultPanel				:: !PanelTitle !PanelIcon			![TUIDef] !TUISize	-> TUIDef
 defaultDescriptionPanel		:: !TUIDef												-> TUIDef
 defaultContentPanel			:: ![TUIDef]											-> TUIDef
 defaultContent				:: ![TUIDef] ![TUIDef]									-> [TUIDef]
-defaultInteractiveIcon		:: !(Maybe InteractionTaskType) !Bool !Bool				-> PanelIcon
+defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool				-> PanelIcon

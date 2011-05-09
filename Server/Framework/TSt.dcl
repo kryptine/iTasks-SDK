@@ -17,7 +17,7 @@ from HTTP		import :: HTTPRequest
 					, tree				:: !NonNormalizedTree								// accumulator for constructing a task tree
 					, newTask			:: !Bool											// does the task run for the first time
 					
-					, editEvent			:: !(Maybe (!String,!String,!JSONNode))				// Edit event for an interactive task (taskId,data path,value)
+					, editEvent			:: !(Maybe (!String,!String,!JSONNode))				// Edit event for an interaction task (taskId,data path,value)
 					, commitEvent		:: !(Maybe (!String,!String))						// Commit event for an insteractive task (taskId,action name)
 																						
 					, properties		:: !ProcessProperties								// Properties of the current evaluated process
@@ -35,7 +35,7 @@ from HTTP		import :: HTTPRequest
 					, sharedDeleted		:: !Bool											// Is set to true if a Shared is deleted
 					, iterationCount	:: !Int												// Number of iterations in the commit phase
 					
-					, interactiveLayout	:: !InteractiveLayoutMerger							// The layout for interactive tasks currently used
+					, interactionLayout	:: !InteractionLayoutMerger							// The layout for interaction tasks currently used
 					, parallelLayout	:: !ParallelLayoutMerger							// The layout for parallel tasks currently used
 					, resultLayout		:: !ResultLayoutMerger								// The layout for result panels currently used
 					}
@@ -253,7 +253,7 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> TaskFunctionCommit a
 *
 * @return The newly constructed basic task
 */
-mkInteractiveTask	:: !d !(TaskFunctions a) -> Task a | descr d
+mkInteractionTask	:: !d !(TaskFunctions a) -> Task a | descr d
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
@@ -316,7 +316,7 @@ applyTaskEdit			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 applyTaskCommit			:: !(Task a) !(Maybe (!Int,!TaskContainerType)) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 
 //// TASK CONTENT
-setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt // Only for interactive tasks
+setInteractionFuncs	:: !TTNNInteractionTask !*TSt -> *TSt // Only for interaction tasks
 
 //EVENTS
 //Get edit event for current task if present

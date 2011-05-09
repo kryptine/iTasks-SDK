@@ -2,13 +2,13 @@ implementation module TaskService
 
 import StdList, StdBool, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel, TaskPanelClientEncode
 
-derive JSONEncode TaskPanel, TTCInteractiveContainer
+derive JSONEncode TaskPanel, TTCInteractionContainer
 derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIControlType, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONEncode TUIFormContainer, TUILayoutContainer, TUIRecordContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 
-derive JSONDecode TaskPanel, TTCInteractiveContainer
+derive JSONDecode TaskPanel, TTCInteractionContainer
 derive JSONDecode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONDecode TUIControlType, TUIConstructorControl
 derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
@@ -18,7 +18,7 @@ derive bimap Maybe, (,)
 
 //Additional derives for debugging
 derive JSONEncode TaskTree, TaskInfo, Menu, TTContainerType, TaskTreeContainer, ParallelTaskTreeContainer, InteractionTaskType, OutputTaskType
-JSONEncode{|TIInteractiveLayoutMerger|} _	= [JSONNull]
+JSONEncode{|TIInteractionLayoutMerger|} _	= [JSONNull]
 JSONEncode{|TIParallelLayoutMerger|} _		= [JSONNull]
 JSONEncode{|TIResultLayoutMerger|} _		= [JSONNull]
 
@@ -263,8 +263,8 @@ where
 	
 	taskParts` :: !JSONTree -> [JSONNode]
 	taskParts` (TTParallelTask _ trees) = flatten (map taskParts`` trees)	
-	taskParts` (TTInteractiveTask ti json)
-		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",json)]]
+	taskParts` (TTInteractionTask ti json)
+		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interaction"),("value",json)]]
 	taskParts` _ = []
 	
 	taskParts`` :: !JSONParallelTreeContainer -> [JSONNode]

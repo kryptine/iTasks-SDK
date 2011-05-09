@@ -30,7 +30,7 @@ mkTSt appName config request workflows store tmpDir world
 		, sharedChanged		= False
 		, sharedDeleted		= False
 		, iterationCount	= 1
-		, interactiveLayout	= defaultInteractiveLayout
+		, interactionLayout	= defaultInteractionLayout
 		, parallelLayout	= defaultParallelLayout
 		, resultLayout		= defaultResultLayout
 		}
@@ -65,7 +65,7 @@ initTaskInfo
 		, type				= Nothing
 		, isControlTask		= False
 		, localInteraction	= False
-		, interactiveLayout	= TIInteractiveLayoutMerger	defaultInteractiveLayout
+		, interactionLayout	= TIInteractionLayoutMerger	defaultInteractionLayout
 		, parallelLayout	= TIParallelLayoutMerger	defaultParallelLayout
 		, resultLayout		= TIResultLayoutMerger		defaultResultLayout
 		}
@@ -593,12 +593,12 @@ accWorldTSt f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> TaskFunctionCommit a
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
-mkInteractiveTask :: !d !(TaskFunctions a) -> Task a | descr d
-mkInteractiveTask description (taskfunE,taskfunC)
+mkInteractionTask :: !d !(TaskFunctions a) -> Task a | descr d
+mkInteractionTask description (taskfunE,taskfunC)
 	= mkTask
 		description
 		taskfunE
-		(\tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractiveTask taskInfo noOutput})
+		(\tst=:{taskInfo} -> taskfunC {tst & tree = TTInteractionTask taskInfo noOutput})
 
 mkInstantTask :: !d !(TaskFunctionCommit a) -> Task a | descr d
 mkInstantTask description taskfun
@@ -627,7 +627,7 @@ mkTask description taskFuncEdit taskFuncCommit =
 	, mbTaskNr				= Nothing
 	, taskFuncEdit			= taskFuncEdit
 	, taskFuncCommit		= taskFuncCommit
-	, mbInteractiveLayout	= Nothing
+	, mbInteractionLayout	= Nothing
 	, mbParallelLayout		= Nothing
 	, mbResultLayout		= Nothing
 	}
@@ -648,11 +648,11 @@ applyTaskEdit {taskFuncEdit,mbTaskNr} tst=:{taskNr}
 			= (TaskBusy,tst)
 
 applyTaskCommit :: !(Task a) !(Maybe (!Int,!TaskContainerType)) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTaskCommit task=:{properties=properties=:{TaskProperties|isControlTask}, mbTaskNr, taskFuncCommit} mbParChildInfo tst=:{taskNr,tree,interactiveLayout=tstInteractiveLayout,parallelLayout=tstParallelLayout,resultLayout=tstResultLayout}
+applyTaskCommit task=:{properties=properties=:{TaskProperties|isControlTask}, mbTaskNr, taskFuncCommit} mbParChildInfo tst=:{taskNr,tree,interactionLayout=tstInteractionLayout,parallelLayout=tstParallelLayout,resultLayout=tstResultLayout}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,tst)							= accIWorldTSt (loadValue taskId) tst
 	// overwrite layouts if task defines new one, is inherited by children
-	# interactiveLayout						= fromMaybe tstInteractiveLayout task.mbInteractiveLayout
+	# interactionLayout						= fromMaybe tstInteractionLayout task.mbInteractionLayout
 	# parallelLayout						= fromMaybe tstParallelLayout task.mbParallelLayout
 	# resultLayout							= fromMaybe tstResultLayout task.mbResultLayout
 	# taskInfo =	{ TaskInfo
@@ -662,11 +662,11 @@ applyTaskCommit task=:{properties=properties=:{TaskProperties|isControlTask}, mb
 					, type					= properties.TaskProperties.interactionType
 					, isControlTask			= properties.TaskProperties.isControlTask
 					, localInteraction		= properties.TaskProperties.localInteraction
-					, interactiveLayout		= TIInteractiveLayoutMerger interactiveLayout
+					, interactionLayout		= TIInteractionLayoutMerger interactionLayout
 					, parallelLayout		= TIParallelLayoutMerger parallelLayout
 					, resultLayout			= TIResultLayoutMerger resultLayout
 					}
-	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal, interactiveLayout = interactiveLayout, parallelLayout = parallelLayout, resultLayout = resultLayout}
+	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal, interactionLayout = interactionLayout, parallelLayout = parallelLayout, resultLayout = resultLayout}
 	# (res,tst) = case taskVal of
 		Just (TaskFinished a)
 			# tst = addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a,toJSON a) False) tst
@@ -701,7 +701,7 @@ applyTaskCommit task=:{properties=properties=:{TaskProperties|isControlTask}, mb
 					# tst					= addTaskNode (TTFinishedTask taskInfo (renderException str) True)
 												{tst & taskNr = incTaskNr taskNr, tree = tree}
 					= (TaskException e str, tst)
-	= (res,{TSt | tst & interactiveLayout = tstInteractiveLayout, parallelLayout = tstParallelLayout, resultLayout = tstResultLayout})
+	= (res,{TSt | tst & interactionLayout = tstInteractionLayout, parallelLayout = tstParallelLayout, resultLayout = tstResultLayout})
 where	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
@@ -711,10 +711,10 @@ where
 		TTFinishedTask _ _ _			= {tst & tree = node} 																	//Just replace the node
 		_								= {tst & tree = tree}
 
-setInteractiveFuncs	:: !TTNNInteractiveTask !*TSt -> *TSt
-setInteractiveFuncs funcs tst=:{tree}
+setInteractionFuncs	:: !TTNNInteractionTask !*TSt -> *TSt
+setInteractionFuncs funcs tst=:{tree}
 	= case tree of
-		TTInteractiveTask info _		= {tst & tree = TTInteractiveTask info funcs}
+		TTInteractionTask info _		= {tst & tree = TTInteractionTask info funcs}
 		_								= tst
 
 /**

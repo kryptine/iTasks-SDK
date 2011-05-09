@@ -7,9 +7,9 @@ from TUIDiff import :: TUIUpdate
 	= TaskDone
 	| TaskNotDone
 	| TaskRedundant
-	| TTCInteractiveContainer !TTCInteractiveContainer
+	| TTCInteractionContainer !TTCInteractionContainer
 
-:: TTCInteractiveContainer = 
+:: TTCInteractionContainer = 
 	{ xtype			:: !String
 	, content		:: !(Maybe TUIDef)
 	, updates		:: !(Maybe [TUIUpdate])

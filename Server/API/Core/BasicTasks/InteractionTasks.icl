@@ -8,14 +8,14 @@ from iTasks			import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
 derive JSONDecode UpdateMask, VerifyMask, ErrorMessage
-JSONEncode{|InteractivePart|} _ ip		= dynamicJSONEncode ip
-JSONDecode{|InteractivePart|} _ [json:r]= (dynamicJSONDecode json,r)
-JSONDecode{|InteractivePart|} _ _ 		= (Nothing,[])
+JSONEncode{|InteractionPart|} _ ip		= dynamicJSONEncode ip
+JSONDecode{|InteractionPart|} _ [json:r]= (dynamicJSONDecode json,r)
+JSONDecode{|InteractionPart|} _ _ 		= (Nothing,[])
 
 derive bimap Maybe,(,)
 
-interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)]) !(l r Bool -> InteractiveTerminators a) !l !(Shared r w) -> Task a | descr d & iTask l & iTask a & iTask w
-interact description partFunc termFunc initLocal shared = mkInteractiveTask description (editorE,editorC)
+interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) !(l r Bool -> InteractionTerminators a) !l !(Shared r w) -> Task a | descr d & iTask l & iTask a & iTask w
+interact description partFunc termFunc initLocal shared = mkInteractionTask description (editorE,editorC)
 where
 	editorE tst=:{taskNr,iworld=w=:{IWorld|timestamp}}
 		# (mbEdit,tst)					= getEdit tst
@@ -66,7 +66,7 @@ where
 						= (TaskFinished result,tst)
 					Nothing
 						# (mbEdit,tst)	= getEditEvent tst
-						# tst			= setInteractiveFuncs (tuiFunc local mbEdit actions,jsonFunc) tst
+						# tst			= setInteractionFuncs (tuiFunc local mbEdit actions,jsonFunc) tst
 						= (TaskBusy,tst)
 	where
 		tuiFunc local mbEdit actions iworld
@@ -106,7 +106,7 @@ where
 			Just model	= snd (accIWorldTSt (writeShared shared model) tst)
 			Nothing		= tst
 
-interactLocal :: !d !(l -> [InteractivePart l]) !(l -> InteractiveTerminators a) !l -> Task a | descr d & iTask l & iTask a
+interactLocal :: !d !(l -> [InteractionPart l]) !(l -> InteractionTerminators a) !l -> Task a | descr d & iTask l & iTask a
 interactLocal d partFunc termFunc l = LocalInteractionTask @>> interact d (\l _ _ -> map toSharedRes (partFunc l)) (\l _ _ -> termFunc l) l nullShared`
 where
 	toSharedRes (UpdateView (formView,putback))	= UpdateView (formView,\mbV -> (putback mbV,Nothing))
@@ -116,7 +116,7 @@ where
 	nullShared` :: SymmetricShared Void
 	nullShared` = nullShared
 	
-:: Views a :== [(!Maybe (!JSONNode,!UpdateMask,!VerifyMask),!InteractivePart a)]
+:: Views a :== [(!Maybe (!JSONNode,!UpdateMask,!VerifyMask),!InteractionPart a)]
 	
 writeViews :: !TaskNr !(Views a) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 writeViews taskNr views iworld = setTaskStoreFor taskNr "views" views iworld
@@ -139,7 +139,7 @@ getActionResult actions tst
 		Just name 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
 	= (mbRes,tst)
 		
-visualizeParts :: !TaskNr ![InteractivePart w] !(Views w) !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![Maybe (!JSONNode,!UpdateMask,!VerifyMask)])
+visualizeParts :: !TaskNr ![InteractionPart w] !(Views w) !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![Maybe (!JSONNode,!UpdateMask,!VerifyMask)])
 visualizeParts taskNr parts oldVs mbEdit
 	# res			= [visualizePart (part,mbV,idx) \\ part <- parts & (mbV,_) <- (oldVs ++ repeat (Nothing,undef)) & idx <- [0..]]
 	# (tuis,views)	= unzip res
@@ -215,16 +215,16 @@ ver2Mb ver = case ver of
 	Invalid	= Nothing
 	Valid v	= Just v
 
-okAction :: !(Maybe a) -> InteractiveTerminators a
+okAction :: !(Maybe a) -> InteractionTerminators a
 okAction r = UserActions [(ActionOk,r)]
 
-addAbout :: !(Maybe about) ![InteractivePart o] -> [InteractivePart o] | iTask about
+addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask about
 addAbout mbAbout parts = maybe parts (\about -> [DisplayView about:parts]) mbAbout
 
-fromPredActions :: !(l r Bool -> p) !(Action l r Bool -> a) ![PredAction p] -> (l r Bool -> InteractiveTerminators a)
+fromPredActions :: !(l r Bool -> p) !(Action l r Bool -> a) ![PredAction p] -> (l r Bool -> InteractionTerminators a)
 fromPredActions toP toR actions = \l r c -> UserActions (map (\(a,pred) -> (a,if (pred (toP l r c)) (Just (toR a l r c)) Nothing)) actions)
 
-fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractiveTerminators a)
+fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractionTerminators a)
 fromPredActionsLocal toP toR actions = \l -> UserActions (map (\(a,pred) -> (a,if (pred (toP l)) (Just (toR a l)) Nothing)) actions)
 
 :: Valid :== Bool

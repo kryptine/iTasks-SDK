@@ -5,7 +5,7 @@ import StdMisc, StdList, JSON, Types, TaskPanel
 clientEncodeTaskPanel :: !TaskPanel -> JSONNode
 clientEncodeTaskPanel p = toJSON p
 
-derive JSONEncode TTCInteractiveContainer
+derive JSONEncode TTCInteractionContainer
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
@@ -17,7 +17,7 @@ derive JSONEncode TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize,
 JSONEncode{|TaskPanel|} (TaskDone)					= [JSONString "done"]
 JSONEncode{|TaskPanel|} (TaskRedundant)				= [JSONString "redundant"]
 JSONEncode{|TaskPanel|} (TaskNotDone)				= [JSONString "notdone"]
-JSONEncode{|TaskPanel|} (TTCInteractiveContainer x)	= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCInteractionContainer x)	= JSONEncode{|*|} x
 
 JSONEncode{|TUIDef|}		{content,width,height,margins} = merge (JSONEncode{|*|} content) [JSONObject [("width",toJSON width),("height",toJSON height),("margins",toJSON margins)]]
 

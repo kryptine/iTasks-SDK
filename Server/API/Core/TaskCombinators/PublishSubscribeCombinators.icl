@@ -15,9 +15,9 @@ where
 	finished (ActionFinish,_) = True
 	finished _				= False
 
-//mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a 
+//mkInteractionTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a 
 subscribe :: message !(DBid a) -> Task a | html message & iTask a
-subscribe message dbid = mkInteractiveTask "Subscribe" subscribe`
+subscribe message dbid = mkInteractionTask "Subscribe" subscribe`
 where
 	subscribe` tst=:{dataStore,world}
 	# (mbVal,dstore,world) = loadValue dbid dataStore world

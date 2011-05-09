@@ -28,7 +28,7 @@ viewMap :: Task Void
 viewMap
 	=	createSharedStore nlMap	//Create a new map (local to this task) to put the markers on
 	>>= \map ->
-		updateSharedInformationA "Look where everyone is" (toView,fromView) [(ActionQuit,alwaysShared)] (map >&< locationStore) <<@ fullWidthInteractiveLayout
+		updateSharedInformationA "Look where everyone is" (toView,fromView) [(ActionQuit,alwaysShared)] (map >&< locationStore) <<@ fullWidthInteractionLayout
 	>>|	stop
 where
 	nlMap :: GoogleMap		

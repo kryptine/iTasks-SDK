@@ -120,7 +120,7 @@ doMenu state =: { EditorState | mode, config, gMod } =
     
     where 
     	mkUpdateTask name view fullwidth = 
-    		(if fullwidth ((@>>) fullWidthInteractiveLayout) id) 
+    		(if fullwidth ((@>>) fullWidthInteractionLayout) id) 
     		(updateInformationA (getName state, name +++ " view") view (actions state) gMod)
             >>= \(action, mbGMod) -> 
             case mbGMod of

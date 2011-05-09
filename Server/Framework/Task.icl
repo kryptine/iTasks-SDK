@@ -86,8 +86,8 @@ gVisualize{|Menu|} _ _			= abort "not implemented"
 gVisualize{|MenuItem|} _ _		= abort "not implemented"
 gEq{|Menu|} _ _					= abort "not implemented"
 gEq{|MenuItem|} _ _				= abort "not implemented"
-JSONEncode{|TUIInteractive|} _	= abort "not implemented"
-JSONDecode{|TUIInteractive|} _	= abort "not implemented"
+JSONEncode{|TUIInteraction|} _	= abort "not implemented"
+JSONDecode{|TUIInteraction|} _	= abort "not implemented"
 JSONEncode{|TUIParallel|} _		= abort "not implemented"
 JSONDecode{|TUIParallel|} _		= abort "not implemented"
 JSONEncode{|TUIResult|} _		= abort "not implemented"
@@ -95,36 +95,36 @@ JSONDecode{|TUIResult|} _		= abort "not implemented"
 JSONEncode{|TUIDef|} _			= abort "not implemented"
 JSONDecode{|TUIDef|} _			= abort "not implemented"
 
-JSONEncode{|Task|} _ {properties,mbTaskNr,taskFuncEdit,taskFuncCommit,mbInteractiveLayout,mbParallelLayout,mbResultLayout}
+JSONEncode{|Task|} _ {properties,mbTaskNr,taskFuncEdit,taskFuncCommit,mbInteractionLayout,mbParallelLayout,mbResultLayout}
 	= [JSONArray	[  JSONString "Task"
 					:  JSONEncode{|*|} properties
 					++ JSONEncode{|*|} mbTaskNr
 					++ dynamicJSONEncode taskFuncEdit
 					++ dynamicJSONEncode taskFuncCommit
-					++ JSONEncode{|*|} mbInteractiveLayout
+					++ JSONEncode{|*|} mbInteractionLayout
 					++ JSONEncode{|*|} mbParallelLayout
 					++ JSONEncode{|*|} mbResultLayout]]
 					
-JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,mbTaskNr,taskFuncEdit,taskFuncCommit,mbInteractiveLayout,mbParallelLayout,mbResultLayout]:c]
+JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,mbTaskNr,taskFuncEdit,taskFuncCommit,mbInteractionLayout,mbParallelLayout,mbResultLayout]:c]
 	# mbTaskProperties		= fromJSON properties
 	# mbMbTaskNr			= fromJSON mbTaskNr
 	# mbTaskFuncEdit		= dynamicJSONDecode taskFuncEdit
 	# mbTaskFuncCommit		= dynamicJSONDecode taskFuncCommit
-	# mbMbInteractiveLayout	= fromJSON mbInteractiveLayout
+	# mbMbInteractionLayout	= fromJSON mbInteractionLayout
 	# mbMbParallelLayout	= fromJSON mbParallelLayout
 	# mbMbResultLayout		= fromJSON mbResultLayout
 	|  isJust mbTaskProperties
 	&& isJust mbMbTaskNr
 	&& isJust mbTaskFuncEdit
 	&& isJust mbTaskFuncCommit
-	&& isJust mbMbInteractiveLayout
+	&& isJust mbMbInteractionLayout
 	&& isJust mbMbParallelLayout
 	&& isJust mbMbResultLayout
 		= (Just	{ properties			= fromJust mbTaskProperties
 				, mbTaskNr				= fromJust mbMbTaskNr
 				, taskFuncEdit			= fromJust mbTaskFuncEdit
 				, taskFuncCommit		= fromJust mbTaskFuncCommit
-				, mbInteractiveLayout	= fromJust mbMbInteractiveLayout
+				, mbInteractionLayout	= fromJust mbMbInteractionLayout
 				, mbParallelLayout		= fromJust mbMbParallelLayout
 				, mbResultLayout		= fromJust mbMbResultLayout
 				},c)
@@ -140,7 +140,7 @@ where
 					, mbTaskNr			= Nothing
 					, taskFuncEdit		= id
 					, taskFuncCommit	= \tst -> (TaskFinished a,tst)
-					, mbInteractiveLayout	= Nothing
+					, mbInteractionLayout	= Nothing
 					, mbParallelLayout	= Nothing
 					, mbResultLayout		= Nothing
 					}

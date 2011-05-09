@@ -324,7 +324,7 @@ getRoles			:: !User -> [Role]
 
 /*
 * To allow users to specify a followup action to their current task
-* most interactive tasks allow you to specify actions that can be chosen.
+* most interaction tasks allow you to specify actions that can be chosen.
 * These actions are either available as a button on the bottom of the task interface
 * or as an item in the task menu, or both.
 * Additionally conditions can be specified when the action is allowed to be performed.

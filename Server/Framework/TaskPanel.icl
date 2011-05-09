@@ -9,18 +9,18 @@ buildTaskPanel cont=:(TTContainer menu tree) = case tree of
 		= TaskDone
 	TTFinishedTask _ _ True
 		= buildResultPanel cont
-	TTInteractiveTask _ _
-		= TTCInteractiveContainer
-			{ TTCInteractiveContainer
-			| xtype 		= "itasks.ttc.interactive"
+	TTInteractionTask _ _
+		= TTCInteractionContainer
+			{ TTCInteractionContainer
+			| xtype 		= "itasks.ttc.interaction"
 			, content 		= Just (buildTaskPanel` tree menu)
 			, updates 		= Nothing	
 			, menu			= menu
 			}
 	TTParallelTask _ _
-		= TTCInteractiveContainer
-			{ TTCInteractiveContainer
-			| xtype 		= "itasks.ttc.interactive"
+		= TTCInteractionContainer
+			{ TTCInteractionContainer
+			| xtype 		= "itasks.ttc.interaction"
 			, content 		= Just (buildTaskPanel` tree menu)
 			, updates 		= Nothing	
 			, menu			= menu
@@ -28,8 +28,8 @@ buildTaskPanel cont=:(TTContainer menu tree) = case tree of
 where
 	buildTaskPanel` :: !UITree ![TUIDef] -> TUIDef
 	buildTaskPanel` tree menu = case tree of
-		TTInteractiveTask {TaskInfo|title,description,type,isControlTask,localInteraction,interactiveLayout=l=:TIInteractiveLayoutMerger layout} (editor,buttons)
-			= layout	{ TUIInteractive
+		TTInteractionTask {TaskInfo|title,description,type,isControlTask,localInteraction,interactionLayout=l=:TIInteractionLayoutMerger layout} (editor,buttons)
+			= layout	{ TUIInteraction
 						| title				= title
 						, description		= htmlDisplay Nothing description
 						, editorParts		= editor
@@ -54,8 +54,8 @@ where
 buildResultPanel :: !UITreeContainer -> TaskPanel
 buildResultPanel tree = case tree of 
 	TTContainer _ (TTFinishedTask ti result _)
-		= (TTCInteractiveContainer	{ TTCInteractiveContainer
-									| xtype 		= "itasks.ttc.interactive"
+		= (TTCInteractionContainer	{ TTCInteractionContainer
+									| xtype 		= "itasks.ttc.interaction"
 									, content 		= Just (content ti result)
 									, updates 		= Nothing	
 									, menu			= []
@@ -71,7 +71,7 @@ where
 					}
 		
 diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel
-diffTaskPanels (TTCInteractiveContainer old) (TTCInteractiveContainer new)
-	= TTCInteractiveContainer {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TTCInteractiveContainer.content) (fromJust new.TTCInteractiveContainer.content))}
+diffTaskPanels (TTCInteractionContainer old) (TTCInteractionContainer new)
+	= TTCInteractionContainer {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TTCInteractionContainer.content) (fromJust new.TTCInteractionContainer.content))}
 diffTaskPanels _ new
 	= new

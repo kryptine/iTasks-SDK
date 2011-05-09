@@ -18,8 +18,8 @@ instance tune ControlTask
 where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & isControlTask = True}) task
 instance tune LocalInteractionTask
 where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & localInteraction = True}) task
-instance tune InteractiveLayoutMerger
-where tune l task				= {task & mbInteractiveLayout = Just l}
+instance tune InteractionLayoutMerger
+where tune l task				= {task & mbInteractionLayout = Just l}
 instance tune ParallelLayoutMerger
 where tune l task				= {task & mbParallelLayout = Just l}
 instance tune ResultLayoutMerger

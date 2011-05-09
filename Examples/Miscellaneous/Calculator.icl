@@ -37,10 +37,10 @@ where
 						,"1","2","3","*"
 						,"0","+","-","="]
 				
-	calculatorLayout :: !TUIInteractive -> TUIDef
+	calculatorLayout :: !TUIInteraction -> TUIDef
 	calculatorLayout {title,buttons,type,isControlTask,localInteraction} = defaultPanel
 		title
-		(defaultInteractiveIcon type isControlTask localInteraction)
+		(defaultInteractionIcon type isControlTask localInteraction)
 		[defaultContentPanel (buttonLayout buttons)]
 		Auto
 	where

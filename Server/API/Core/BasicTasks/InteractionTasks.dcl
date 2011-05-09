@@ -20,13 +20,13 @@ from Types		import :: Action
 * @param A reference to shared data the task works on
 * @return A result determined by the terminators
 */
-interact		:: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r Bool -> InteractiveTerminators a)	!l !(Shared r w)	-> Task a | descr d & iTask l & iTask a & iTask w
+interact		:: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)])	!(l r Bool -> InteractionTerminators a)	!l !(Shared r w)	-> Task a | descr d & iTask l & iTask a & iTask w
 /**
 * A derived version of 'interact' which only uses a local state.
 */
-interactLocal	:: !d !(l -> [InteractivePart l])						!(l -> InteractiveTerminators a)		!l					-> Task a | descr d & iTask l & iTask a
+interactLocal	:: !d !(l -> [InteractionPart l])						!(l -> InteractionTerminators a)		!l					-> Task a | descr d & iTask l & iTask a
 
-:: InteractivePart o	= E.v:	UpdateView	!(!FormView v, !(Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
+:: InteractionPart o	= E.v:	UpdateView	!(!FormView v, !(Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayView	!v								& iTask v	// A static view displayed to the user
 						|		Update		!String !o									// A interaction element (typically a button with a string-label) allowing to directly change the states
 				
@@ -34,7 +34,7 @@ interactLocal	:: !d !(l -> [InteractivePart l])						!(l -> InteractiveTerminato
 				| Blank						// A blank form
 				| Unchanged (FormView v)	// Form is unchanged, if no view is stored the given initial value is used
 				
-:: InteractiveTerminators a	= UserActions		![(!Action,!Maybe a)]	// A list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
+:: InteractionTerminators a	= UserActions		![(!Action,!Maybe a)]	// A list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
 							| StopInteraction	!a						// The task stops and produces result a
 							
 // auxiliary types/function for derived interaction tasks
@@ -62,8 +62,8 @@ ifinvalidShared	:: !(!Valid,a) -> Bool
 mb2Ver :: !(Maybe a) -> Verified a
 ver2Mb :: !(Verified a) -> Maybe a
 
-okAction :: !(Maybe a) -> InteractiveTerminators a
-addAbout :: !(Maybe about) ![InteractivePart o] -> [InteractivePart o] | iTask about
+okAction :: !(Maybe a) -> InteractionTerminators a
+addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask about
 
-fromPredActions			:: !(l r Bool -> p)	!(Action l r Bool -> a)	![PredAction p] -> (l r Bool -> InteractiveTerminators a)
-fromPredActionsLocal	:: !(l -> p)		!(Action l -> a)		![PredAction p] -> (l -> InteractiveTerminators a)
+fromPredActions			:: !(l r Bool -> p)	!(Action l r Bool -> a)	![PredAction p] -> (l r Bool -> InteractionTerminators a)
+fromPredActionsLocal	:: !(l -> p)		!(Action l -> a)		![PredAction p] -> (l -> InteractionTerminators a)

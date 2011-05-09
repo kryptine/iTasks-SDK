@@ -115,11 +115,11 @@ enterSharedChoiceAboutA description view actions about shared
 
 enterMultipleChoice :: !d ![a] -> Task [a] | descr d & iTask a
 enterMultipleChoice description options
-	= mkInteractiveTask description Information (makeMultipleChoiceTask noAboutInfo id options Nothing)
+	= mkInteractionTask description Information (makeMultipleChoiceTask noAboutInfo id options Nothing)
 		
 enterMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] ![a] -> Task (!Action, [a]) | descr d & iTask a & iTask v
 enterMultipleChoiceA description view actions options
-	= mkInteractiveTask description Information (makeMultipleChoiceTaskA noAboutInfo view actions options Nothing)
+	= mkInteractionTask description Information (makeMultipleChoiceTaskA noAboutInfo view actions options Nothing)
 
 enterSharedMultipleChoiceA :: !d !(a -> v) ![TaskAction [a]] !(Shared [a] w) -> Task (!Action, [a]) | descr d & iTask a & iTask v
 enterSharedMultipleChoiceA description view actions shared
@@ -127,11 +127,11 @@ enterSharedMultipleChoiceA description view actions shared
 		
 enterMultipleChoiceAbout :: !d !about ![a] -> Task [a] | descr d & iTask a & iTask about
 enterMultipleChoiceAbout description about options
-	= mkInteractiveTask description Information (makeMultipleChoiceTask (Just about) id options Nothing)
+	= mkInteractionTask description Information (makeMultipleChoiceTask (Just about) id options Nothing)
 		
 enterMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about ![a] -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v
 enterMultipleChoiceAboutA description view actions about options
-	= mkInteractiveTask description Information (makeMultipleChoiceTaskA (Just about) view actions options Nothing)
+	= mkInteractionTask description Information (makeMultipleChoiceTaskA (Just about) view actions options Nothing)
 
 enterSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about !(Shared [a] w) -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v
 enterSharedMultipleChoiceAboutA description view actions about shared
@@ -139,11 +139,11 @@ enterSharedMultipleChoiceAboutA description view actions about shared
 		
 updateMultipleChoiceAbout :: !d !about ![a] ![Int] -> Task [a] | descr d & iTask a & iTask about
 updateMultipleChoiceAbout description about options sel
-	= mkInteractiveTask description Information (makeMultipleChoiceTask (Just about) id options (Just sel))
+	= mkInteractionTask description Information (makeMultipleChoiceTask (Just about) id options (Just sel))
 
 updateMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about ![a] ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v
 updateMultipleChoiceAboutA description view actions about options sel
-	= mkInteractiveTask description Information (makeMultipleChoiceTaskA (Just about) view actions options (Just sel))
+	= mkInteractionTask description Information (makeMultipleChoiceTaskA (Just about) view actions options (Just sel))
 
 updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![TaskAction [a]] !about !(Shared [a] w) ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v
 updateSharedMultipleChoiceAboutA description view actions about shared sel

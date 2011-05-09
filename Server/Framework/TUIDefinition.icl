@@ -38,18 +38,18 @@ sameMargins m =	{ top		= m
 				, left		= m
 				}
 
-defaultInteractiveLayout :: InteractiveLayoutMerger
-defaultInteractiveLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
+defaultInteractionLayout :: InteractionLayoutMerger
+defaultInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
 	title
-	(defaultInteractiveIcon type isControlTask localInteraction)
+	(defaultInteractionIcon type isControlTask localInteraction)
 	description
 	(defaultContent editorParts buttons)
 	Auto
 	
-fullWidthInteractiveLayout :: InteractiveLayoutMerger
-fullWidthInteractiveLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
+fullWidthInteractionLayout :: InteractionLayoutMerger
+fullWidthInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
 	title
-	(defaultInteractiveIcon type isControlTask localInteraction)
+	(defaultInteractionIcon type isControlTask localInteraction)
 	description
 	(defaultContent editorParts buttons)
 	(FillParent 1 ContentSize)
@@ -108,8 +108,8 @@ defaultContentPanel content =		{ content	= TUILayoutContainer {defaultLayoutCont
 									, margins	= Nothing
 									}
 
-defaultInteractiveIcon :: !(Maybe InteractionTaskType) !Bool !Bool -> PanelIcon
-defaultInteractiveIcon type isControlTask localInteraction
+defaultInteractionIcon :: !(Maybe InteractionTaskType) !Bool !Bool -> PanelIcon
+defaultInteractionIcon type isControlTask localInteraction
 	| isControlTask	= "icon-control-task"
 	= case type of
 		Nothing = ""
