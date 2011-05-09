@@ -74,5 +74,5 @@ where
 
 	choosePerson = getUsers >>= enterChoice ("User","Select a user") >>= \user -> return (Just user)
 
-	cancelTask task = task -||- (getDefaultValue >>= showMessage ("Cancel...","Cancel task?"))
+	cancelTask task = task -||- (showMessage ("Cancel...","Cancel task?") defaultValue)
 	

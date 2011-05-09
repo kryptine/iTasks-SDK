@@ -37,7 +37,7 @@ manageLists
 	) <! id
 	>>| stop
 where
-	overview []		= getDefaultValue >>= showMessageA ("My lists","You have no lists.") [ActionNew,ActionQuit] >>= transform (appSnd Just)
+	overview []		= showMessageA ("My lists","You have no lists.") [ActionNew,ActionQuit] Nothing
 	overview list	= enterChoiceA ("My lists","Select a list...") id [aOpen,aDelete,aNew,aQuit] list
 	
 	aOpen 			= (ActionOpen, ifvalid)

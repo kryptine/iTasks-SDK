@@ -24,13 +24,13 @@ movingTaskExample
 	= [ workflow "Examples/Higher order/Moving task" "Demo of a dynamic alteration of task properties" (Title "Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask))]
 
 trivialTask :: Task QForm
-trivialTask = getDefaultValue >>= fillInForm
+trivialTask = fillInForm 
 
-fillInForm :: QForm -> Task QForm
-fillInForm form	
-	= 				updateInformation ("Quote information","Please fill in quotation:") form 
+fillInForm :: Task QForm
+fillInForm	
+	= 				enterInformation ("Quote information","Please fill in quotation:") 
 	>>= \form ->	requestConfirmationAbout ("Check","Is everything filled in correctly?") form
-	>>= \ok	->		if ok (return form) (fillInForm form) 
+	>>= \ok	->		if ok (return form) fillInForm 
 
 movingTask (label,task)
 =					newmove

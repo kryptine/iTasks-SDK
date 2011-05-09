@@ -31,7 +31,7 @@ addWarning msg =
 	dynamic change  :: A.a: Change a | iTask a
 where
 	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Nothing, Just (((showMessageA ("Warning!",redText msg)) [] Void >>| getDefaultValue -||- t)), Just (addWarning msg))
+	change props t t0 = (Nothing, Just (((showMessageA ("Warning!",redText msg)) [] Void ||- t)), Just (addWarning msg))
 
 redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
@@ -73,10 +73,8 @@ cancel  procName pid  =
 	dynamic change  :: A.b: Change b | iTask b
 where
 	change p  t t0 = (Nothing, Just (		deleteProcess pid 
-										>>| 		mkDefault t
+										>>| 		return defaultValue
 										), Nothing)
-	mkDefault :: (Task a) -> (Task a) | iTask a
-	mkDefault _ = getDefaultValue
 
 //reassign the work to someone else
 reassign :: User String ProcessId -> ChangeDyn

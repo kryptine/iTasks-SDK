@@ -183,7 +183,7 @@ where
 derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
-anyTask [] 		= getDefaultValue
+anyTask [] 		= return defaultValue
 anyTask tasks 	= parallel ("any", "Done when any subtask is finished") Nothing (\_ (Just a) -> a) (map (\t -> (InBodyTask (accu anyfun t))) tasks)
 where
 	anyfun a _ = (Just a, True)

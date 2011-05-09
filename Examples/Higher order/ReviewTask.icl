@@ -43,7 +43,7 @@ reviewTaskExample
 = [workflow "Examples/Higher order/Review task" "Demo of an iterative process" (Title "Review the results of a task" @>> reviewtask)]
 
 reviewtask :: Task (QForm,Review)
-reviewtask = getDefaultValue >>= \def -> taskToReview AnyUser (def, mytask)
+reviewtask = taskToReview AnyUser (defaultValue, mytask)
 
 mytask :: a -> (Task a) | iTask a
 mytask v =	updateInformation ("Form","Fill in Form:") v
@@ -59,10 +59,8 @@ taskToReview reviewer (v`,task)
 
 review :: a -> Task Review | iTask a 
 review v
-	=	getDefaultValue
-	>>=	\def ->
-		enterChoiceAbout ("Review","What is your verdict?") v
-			[ updateInformation ("Comments","Please add your comments") (NeedsRework def) <<@ Title "Rework"
+	=	enterChoiceAbout ("Review","What is your verdict?") v
+			[ updateInformation ("Comments","Please add your comments") (NeedsRework (Note "")) <<@ Title "Rework"
 			, return Approved <<@ Title "Approved"
 			, return Rejected <<@ Title "Reject"
 			]

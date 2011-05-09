@@ -229,7 +229,7 @@ where
 		>>= \products ->
 			getCustomerDatabase
 		>>= \customers ->
-			(getDefaultValue >>= createSharedStore)
+			createSharedStore defaultValue
 		>>= \share ->
 			updateSharedInformationA "Enter order" view [(ActionOk,ifvalidShared)] (share >+| (products >+< customers))
 		>>= transform (fst o snd)

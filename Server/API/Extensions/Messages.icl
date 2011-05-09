@@ -49,7 +49,7 @@ manageMessages =
 	) <! id >>| stop
 where
 	overview :: [Message] -> Task (Action,Maybe Message)
-	overview []		= getDefaultValue >>= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] >>= transform (appSnd Just)
+	overview []		= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] Nothing
 	overview msgs	= enterChoiceA ("My messages","Your messages:") id [(aOpen,ifvalid),(aNew,always),(aNewGroup,always),(aQuit,always)] msgs
 	
 	aOpen		= ActionOpen

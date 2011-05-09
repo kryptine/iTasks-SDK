@@ -35,12 +35,6 @@ getContextWorker = mkInstantTask ("Get context worker", "Determine the worker as
 where
 	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.ProcessProperties.managerProperties.worker,tst)
 
-getDefaultValue :: Task a | iTask a
-getDefaultValue = mkInstantTask ("Create default value", "Create a default data value.") getDefaultValue`
-where
-	getDefaultValue` tst = (TaskFinished defaultValue,tst)
-
-
 getRandomInt :: Task Int
 getRandomInt = mkInstantTask ("Create random integer", "Create a random number.") getRandomInt`
 where
