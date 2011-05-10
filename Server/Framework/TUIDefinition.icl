@@ -117,3 +117,13 @@ defaultInteractionIcon type isControlTask localInteraction
 			OutputTask ActiveOutput				= "icon-instruction-task"
 			UpdateTask							= "icon-update-task"
 			InputTask							= "icon-input-task"
+columnLayout :: !Int ![TUIDef] -> TUIDef
+columnLayout nCols items
+	# cols = repeatn nCols []
+	# cols = columnLayout` items cols
+	# cols = map (\col -> {content = TUILayoutContainer {defaultLayoutContainer col & orientation = Vertical}, width = Wrap, height = Wrap, margins = Nothing}) cols
+	= {content = TUILayoutContainer {defaultLayoutContainer cols & orientation = Horizontal}, width = Wrap, height = Wrap, margins = Nothing}
+where
+	columnLayout` items cols = case splitAt nCols items of
+		([],_)	= map reverse cols
+		(row,r)	= columnLayout` r (map (\(item,col) -> [item:col]) (zip2 row cols))

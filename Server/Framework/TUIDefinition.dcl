@@ -217,3 +217,5 @@ defaultDescriptionPanel		:: !TUIDef										-> TUIDef
 defaultContentPanel			:: ![TUIDef]									-> TUIDef
 defaultContent				:: ![TUIDef] ![TUIDef] !TUISize					-> [TUIDef]
 defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool		-> PanelIcon
+
+columnLayout				:: !Int ![TUIDef] 								-> TUIDef
