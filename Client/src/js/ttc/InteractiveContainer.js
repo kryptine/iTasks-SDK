@@ -202,4 +202,4 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 	}
 });
 
-Ext.reg('itasks.ttc.interactive',itasks.ttc.InteractiveContainer);
+Ext.reg('itasks.ttc.interaction',itasks.ttc.InteractiveContainer);
