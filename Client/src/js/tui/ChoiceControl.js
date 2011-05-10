@@ -1,12 +1,12 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
+itasks.tui.ChoiceControl = itasks.tui.extendControl(Ext.form.CheckboxGroup,{
 	initComponent : function(){
 		// names of checkbox groups have to be unique, so use data path field for events
 		this.dataPath = this.name;
 		this.name = this.getId();
 		
-		itasks.tui.base.initComponent.apply(this,arguments);
+		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	onChange: function() {
 		if (this.allowMultiple || this.checkRadio) {
@@ -80,7 +80,7 @@ itasks.tui.ChoiceControl = itasks.tui.extendBase(Ext.form.CheckboxGroup,{
 	},
 	
 	afterRender : function(){
-		itasks.tui.base.afterRender.apply(this,arguments);
+		itasks.tui.control.afterRender.apply(this,arguments);
 		
 		this.eachItem(function(item){
 			item.on('check',this.fireChecked, this);

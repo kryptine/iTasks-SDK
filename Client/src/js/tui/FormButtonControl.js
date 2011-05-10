@@ -1,6 +1,6 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.FormButtonControl = itasks.tui.extendBase(Ext.Button,{
+itasks.tui.FormButtonControl = itasks.tui.extendControl(Ext.Button,{
 	enableToggle: true,
 	allowDepress: true,
 	initComponent: function() {
@@ -13,7 +13,7 @@ itasks.tui.FormButtonControl = itasks.tui.extendBase(Ext.Button,{
 			this.fireEvent('tuichange',this.taskId,this.name,pressed ? "Pressed" : "NotPressed");
 		});
 	
-		itasks.tui.base.initComponent.apply(this,arguments);
+		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	
 	setValue: function(value){

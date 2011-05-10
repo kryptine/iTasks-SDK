@@ -1,6 +1,6 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.OryxControl = itasks.tui.extendBase(Ext.Panel,{
+itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
 	initComponent : function(){
 		this.defaultWidth = 1000;
 		this.defaultHeight = 700;
@@ -13,7 +13,7 @@ itasks.tui.OryxControl = itasks.tui.extendBase(Ext.Panel,{
             , html: 'Loading...'
 			});
 
-		itasks.tui.base.initComponent.apply(this,arguments);
+		itasks.tui.control.initComponent.apply(this,arguments);
 
         this.inUpdate = false;
 	},

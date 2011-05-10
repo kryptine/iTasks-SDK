@@ -1,6 +1,6 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.StringControl = itasks.tui.extendBase(Ext.form.TextField,{
+itasks.tui.StringControl = itasks.tui.extendControl(Ext.form.TextField,{
 	defaultWidth: 330
 });
 

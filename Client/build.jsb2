@@ -8,7 +8,8 @@
 	,"fileIncludes" :
 		[{"text":"itasks.util.js","path":"src/js/"}
 		,{"text":"itasks.form.js","path":"src/js/"}
-		,{"text":"TUIBase.js","path":"src/js/tui/"}
+		,{"text":"TUIControl.js","path":"src/js/tui/"}
+		,{"text":"TUIContainer.js","path":"src/js/tui/"}
 		,{"text":"Button.js","path":"src/js/tui/"}
 		,{"text":"BoolControl.js","path":"src/js/tui/"}
 		,{"text":"CharControl.js","path":"src/js/tui/"}

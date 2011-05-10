@@ -10,7 +10,7 @@ itasks.tui.UsernameReader.readRecords = function(o) {
 	return {success: true, records: usernames, totalRecords: usernames.length};
 }
 
-itasks.tui.UsernameControl = itasks.tui.extendBase(Ext.form.ComboBox,{
+itasks.tui.UsernameControl = itasks.tui.extendControl(Ext.form.ComboBox,{
 	triggerAction:	'all',
 	valueField:		'username',
 	displayField:	'username',
@@ -26,7 +26,7 @@ itasks.tui.UsernameControl = itasks.tui.extendBase(Ext.form.ComboBox,{
 		};
 		this.tpl = new Ext.XTemplate('<tpl for="."><div class="x-combo-list-item">{username:htmlEncode}</div></tpl>');
 		
-		itasks.tui.base.initComponent.apply(this,arguments);
+		itasks.tui.control.initComponent.apply(this,arguments);
 	}
 });
 

@@ -1,6 +1,6 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.DateControl = itasks.tui.extendBase(Ext.form.DateField,{
+itasks.tui.DateControl = itasks.tui.extendControl(Ext.form.DateField,{
 	format: "Y-m-d",
 	onChange: function () {
 		if(this.isValid()) {

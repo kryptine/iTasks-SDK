@@ -1,6 +1,6 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.PasswordControl = itasks.tui.extendBase(Ext.form.TextField,{
+itasks.tui.PasswordControl = itasks.tui.extendControl(Ext.form.TextField,{
 	defaultWidth: 100,
 	fieldClass: 'x-form-field',
 	inputType: 'password'

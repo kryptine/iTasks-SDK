@@ -95,7 +95,6 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 						if(cmp = this.findComponentByPath(this, update[1])) {
 							cmp.remove(update[2]);
 							doLayout = true;
-							this.dirty = true;
 						}
 						break;
 				}
@@ -200,18 +199,19 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 		var p = this.findParentByType('itasks.work').get(1);
 		var w = p.getWidth();
 		var h = p.getHeight() - p.getTopToolbar().getHeight();
-		
+
 		this.suspendEvents();
+		this.cascade(function() {this.show();}); // show all child components to prevent errors
 		this.setSize(w,h);
 		this.resumeEvents();
-		
+
 		if (this.dirty) {
 			itasks.tui.TUIPanel.superclass.doLayout.call(this);
 			this.dirty = false;
 		}
-		
+
 		itasks.tui.cache = {};
-		this.get(0).doTUILayout(w, h);
+		this.get(0).doTUILayout(w,h);
 
 		itasks.tui.TUIPanel.superclass.doLayout.call(this);
 	},

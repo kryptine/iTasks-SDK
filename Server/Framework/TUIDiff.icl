@@ -6,7 +6,7 @@ import Util, GenUpdate, TUIDefinition
 derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
 gEq{|TUIConstructorControl|} _ _ = abort "not implemented"
-
+import StdDebug
 diffEditorDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
 diffEditorDefinitions old new = diffEditorDefinitions` startDataPath old new
 where
@@ -78,13 +78,8 @@ where
 				numNew = length n.TUILayoutContainer.items
 				numMin = min numOld numNew
 			// Records are static except if they are optional
-			(TUIRecordContainer o, TUIRecordContainer n)
-				| o.TUIRecordContainer.optional <> n.TUIRecordContainer.optional = [TUIReplace (dp2s path) newTui]
-				= case (o.hasValue,n.hasValue) of
-					(True,True)		= staticContainerUpdate path o.TUIRecordContainer.items n.TUIRecordContainer.items
-					(False,True)	= [TUISetValue (dp2s path) (JSONString "expand"):[TUIAdd (dp2s path) idx item \\ item <- n.TUIRecordContainer.items & idx <- [0..]]]
-					(False,False)	= []
-					(True,False)	= [TUISetValue (dp2s path) (JSONString "collapse")]
+			(TUIRecordContainer o, TUIRecordContainer n) | o.TUIRecordContainer.optional == n.TUIRecordContainer.optional && o.TUIRecordContainer.hasValue == n.TUIRecordContainer.hasValue
+				= staticContainerUpdate path o.TUIRecordContainer.items n.TUIRecordContainer.items
 			(TUIListContainer lcOld, TUIListContainer lcNew)
 				# valueUpdates	= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
 				# lengthUpdates	= if (numOld < numNew)

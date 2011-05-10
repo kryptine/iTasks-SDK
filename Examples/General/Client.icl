@@ -86,7 +86,7 @@ where
 								}]
 
 descriptionLayout {title,editorParts,buttons} =
-	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (defaultContent editorParts buttons) & title = Just title, iconCls = Just "icon-description"}
+	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (defaultContent editorParts buttons (FillParent 1 ContentSize)) & title = Just title, iconCls = Just "icon-description"}
 	, width		= FillParent 1 (FixedMinSize 100)
 	, height	= Fixed 150
 	, margins	= Nothing

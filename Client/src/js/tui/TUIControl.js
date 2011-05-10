@@ -1,12 +1,12 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.extendBase = function(extSuper,overrides) {
-	var newClass = Ext.extend(extSuper,Ext.apply(itasks.util.clone(itasks.tui.base),overrides));
+itasks.tui.extendControl = function(extSuper,overrides) {
+	var newClass = Ext.extend(extSuper,Ext.apply(itasks.util.clone(itasks.tui.control),overrides));
 	Ext.override(newClass,{extSuperclass: newClass.superclass});
 	return newClass;
 };
 
-itasks.tui.base = {
+itasks.tui.control = {
 	msgTarget:	'side',
 	allowBlank:	true,
 

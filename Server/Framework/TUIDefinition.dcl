@@ -211,9 +211,9 @@ minimalParallelLayout		:: ParallelLayoutMerger
 defaultResultLayout			:: ResultLayoutMerger
 
 // layout aux functions
-defaultPanelDescr			:: !PanelTitle !PanelIcon !TUIDef	![TUIDef] !TUISize	-> TUIDef
-defaultPanel				:: !PanelTitle !PanelIcon			![TUIDef] !TUISize	-> TUIDef
-defaultDescriptionPanel		:: !TUIDef												-> TUIDef
-defaultContentPanel			:: ![TUIDef]											-> TUIDef
-defaultContent				:: ![TUIDef] ![TUIDef]									-> [TUIDef]
-defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool				-> PanelIcon
+defaultPanelDescr			:: !PanelTitle !PanelIcon !TUIDef	![TUIDef]	-> TUIDef
+defaultPanel				:: !PanelTitle !PanelIcon			![TUIDef]	-> TUIDef
+defaultDescriptionPanel		:: !TUIDef										-> TUIDef
+defaultContentPanel			:: ![TUIDef]									-> TUIDef
+defaultContent				:: ![TUIDef] ![TUIDef] !TUISize					-> [TUIDef]
+defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool		-> PanelIcon

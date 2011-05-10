@@ -1,6 +1,6 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.DocumentControl = itasks.tui.extendBase(Ext.Panel, {
+itasks.tui.DocumentControl = itasks.tui.extendControl(Ext.Panel, {
 	unstyled: true,
 	width: 500,
 	layout: 'card',
@@ -17,10 +17,10 @@ itasks.tui.DocumentControl = itasks.tui.extendBase(Ext.Panel, {
 				this.downloadPanel
 		];
 	
-		itasks.tui.base.initComponent.apply(this,arguments);
+		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	afterRender : function(){
-		itasks.tui.base.afterRender.apply(this,arguments);
+		itasks.tui.control.afterRender.apply(this,arguments);
 		
 		if(this.document.size != 0){
 			this.showDownloadPanel(false);

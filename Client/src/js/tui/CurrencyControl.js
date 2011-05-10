@@ -1,12 +1,12 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.CurrencyControl = itasks.tui.extendBase(Ext.form.TextField,{
+itasks.tui.CurrencyControl = itasks.tui.extendControl(Ext.form.TextField,{
 	width: 100,
 	fieldClass: "x-form-field x-form-num-field",
 	style: "text-align: right",
 	maskRe: new RegExp('[0123456789\\.]'),
 	afterRender: function(ct){
-		itasks.tui.base.afterRender.apply(this,arguments);
+		itasks.tui.control.afterRender.apply(this,arguments);
 		
 		this.currencyEl = ct.createChild({tag: 'span', cn: this.currencyLabel});
 		this.currencyEl.alignTo(this.getEl(),'tl',[5,5]);

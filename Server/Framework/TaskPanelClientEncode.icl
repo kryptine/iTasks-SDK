@@ -30,7 +30,7 @@ JSONEncode{|TUIDefContent|} (TUILayoutContainer r)		= addXType "itasks.tui.Layou
 JSONEncode{|TUIDefContent|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "itasks.tui.List" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r)			= addXType "button" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIMenuItem r)				= addXType "itasks.ttc.MenuItem" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIMenuItem r)				= addXType "itasks.tui.MenuItem" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuSeparator)			= justXType "menuseparator"
 JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
 

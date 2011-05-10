@@ -42,7 +42,6 @@ where
 		title
 		(defaultInteractionIcon type isControlTask localInteraction)
 		[defaultContentPanel (buttonLayout buttons)]
-		Auto
 	where
 		buttonLayout buttons = buttonLayout` buttons []
 		buttonLayout` buttons acc = case splitAt 4 buttons of

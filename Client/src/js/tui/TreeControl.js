@@ -1,6 +1,6 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.TreeControl = itasks.tui.extendBase(Ext.tree.TreePanel,{
+itasks.tui.TreeControl = itasks.tui.extendControl(Ext.tree.TreePanel,{
 	rootVisible: false,
 	border: false,
 	loader: new Ext.tree.TreeLoader({preloadChildren: true}),
@@ -19,10 +19,10 @@ itasks.tui.TreeControl = itasks.tui.extendBase(Ext.tree.TreePanel,{
 			}
 		},this);
 		
-		itasks.tui.base.initComponent.apply(this,arguments);
+		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	afterRender : function(){
-		itasks.tui.base.afterRender.apply(this,arguments);
+		itasks.tui.control.afterRender.apply(this,arguments);
 		if(Ext.isNumber(this.value)){
 			this.setValue(this.value);
 		}

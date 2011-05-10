@@ -1,15 +1,17 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.FormContainer = Ext.extend(Ext.Container,{
+itasks.tui.FormContainer = itasks.tui.extendContainer(Ext.Container,{
 	unstyled: true,
 	layout: 'form',
+	defaultWidth: ['Fixed',700],
+	defaultHeight: ['Wrap'],
 	initComponent: function(){
 		if(this.fieldLabel == null) {
 			delete this.fieldLabel;
 		} else {
 			this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		}	
-		itasks.tui.FormContainer.superclass.initComponent.apply(this,arguments);
+		itasks.tui.container.initComponent.apply(this,arguments);
 	}
 });
 

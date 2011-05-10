@@ -43,23 +43,21 @@ defaultInteractionLayout = \{title,description,editorParts,buttons,type,isContro
 	title
 	(defaultInteractionIcon type isControlTask localInteraction)
 	description
-	(defaultContent editorParts buttons)
-	Auto
+	(defaultContent editorParts buttons Auto)
 	
 fullWidthInteractionLayout :: InteractionLayoutMerger
 fullWidthInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
 	title
 	(defaultInteractionIcon type isControlTask localInteraction)
 	description
-	(defaultContent editorParts buttons)
-	(FillParent 1 ContentSize)
+	(defaultContent editorParts buttons (FillParent 1 ContentSize))
 	
-defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
-defaultContent editor buttons = [defaultContentPanel (editorContainer ++ buttonContainer)]
+defaultContent :: ![TUIDef] ![TUIDef] !TUISize -> [TUIDef]
+defaultContent editor buttons width = [defaultContentPanel (editorContainer ++ buttonContainer)]
 where
 	// also add editor container if editor is empty, it's needed as spacer such that buttons are placed at the bottom of the panel
 	editorContainer			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editor, fieldLabel = Nothing, optional = False}
-								, width		= FillParent 1 ContentSize
+								, width		= width
 								, height	= FillParent 1 ContentSize
 								, margins	= Nothing
 								}]
@@ -72,7 +70,7 @@ where
 								}]
 
 defaultParallelLayout :: ParallelLayoutMerger
-defaultParallelLayout = \{TUIParallel|title,description,items} -> defaultPanelDescr title "icon-parallel-task" description items Wrap
+defaultParallelLayout = \{TUIParallel|title,description,items} -> defaultPanelDescr title "icon-parallel-task" description items
 
 minimalParallelLayout :: ParallelLayoutMerger
 minimalParallelLayout = \{TUIParallel|title,description,items} ->	{ content	= TUILayoutContainer (defaultLayoutContainer items)
@@ -82,17 +80,17 @@ minimalParallelLayout = \{TUIParallel|title,description,items} ->	{ content	= TU
 																	}
 
 defaultResultLayout :: ResultLayoutMerger
-defaultResultLayout = \{TUIResult|title,description,result} -> defaultPanelDescr title "icon-task-result" description [defaultContentPanel [result]] Auto
+defaultResultLayout = \{TUIResult|title,description,result} -> defaultPanelDescr title "icon-task-result" description [defaultContentPanel [result]]
 
-defaultPanelDescr :: !PanelTitle !PanelIcon !TUIDef ![TUIDef] !TUISize -> TUIDef
-defaultPanelDescr title iconCls description form width = defaultPanel title iconCls [defaultDescriptionPanel description:form] width
+defaultPanelDescr :: !PanelTitle !PanelIcon !TUIDef ![TUIDef] -> TUIDef
+defaultPanelDescr title iconCls description form = defaultPanel title iconCls [defaultDescriptionPanel description:form]
 
-defaultPanel :: !PanelTitle !PanelIcon ![TUIDef] !TUISize -> TUIDef
-defaultPanel title iconCls content width =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer content & title = Just title, iconCls = Just iconCls}
-											, width		= width
-											, height	= Auto
-											, margins	= Just (sameMargins 10)
-											}
+defaultPanel :: !PanelTitle !PanelIcon ![TUIDef] -> TUIDef
+defaultPanel title iconCls content =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer content & title = Just title, iconCls = Just iconCls}
+										, width		= Auto
+										, height	= Auto
+										, margins	= Just (sameMargins 10)
+										}
 
 defaultDescriptionPanel :: !TUIDef -> TUIDef
 defaultDescriptionPanel descr =		{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [descr] & frame = True}

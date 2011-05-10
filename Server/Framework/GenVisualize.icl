@@ -100,7 +100,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 		_
 			# (viz,vst) = fx x vst
 			= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
-			
+import StdDebug			
 gVisualize{|CONS of d|} fx val vst=:{useLabels,optional,taskId} = visualizeCustomSimple mkControl staticVis val False vst
 where
 	mkControl name val _ label optional err hnt renderAsStatic vst

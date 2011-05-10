@@ -1,6 +1,6 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.HtmlContainer = itasks.tui.extendBase(Ext.Container, {
+itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 	style: 'white-space: nowrap',
 	initComponent: function() {
 		this.html = this.value;
@@ -8,7 +8,7 @@ itasks.tui.HtmlContainer = itasks.tui.extendBase(Ext.Container, {
 		this.border = false;
 		this.listeners = {};
 				
-		itasks.tui.base.initComponent.apply(this,arguments);
+		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	setValue: function(value) {
 		this.update(value);

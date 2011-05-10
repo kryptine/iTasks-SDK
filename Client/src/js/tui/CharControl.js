@@ -1,6 +1,6 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.CharControl = itasks.tui.extendBase(Ext.form.TextField,{
+itasks.tui.CharControl = itasks.tui.extendControl(Ext.form.TextField,{
 	width: 40,
 	maxLength: 1
 });

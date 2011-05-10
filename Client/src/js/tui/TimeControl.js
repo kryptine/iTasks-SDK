@@ -1,6 +1,6 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.TimeControl = itasks.tui.extendBase(Ext.form.TimeField,{
+itasks.tui.TimeControl = itasks.tui.extendControl(Ext.form.TimeField,{
 	format: "H:i:s",
 	defaultWidth: 100,
 	onChange: function () {

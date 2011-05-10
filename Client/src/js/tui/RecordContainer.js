@@ -1,13 +1,9 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
-
+itasks.tui.RecordContainer = itasks.tui.extendContainer(Ext.form.FieldSet,{
+	defaultWidth: ['FillParent',1,'ContentSize'],
+	defaultHeight: ['Wrap'],
 	initComponent : function(){
-		
-		this.autoHeight = true;
-		this.boxMinWidth = 500;
-		this.autoWidth = true;
-		
 		if(this.title == null)
 			delete this.title
 	
@@ -16,14 +12,14 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 		this.checkboxName  = this.name+'-cb';
 		this.checkboxToggle = this.optional;
 		
-		itasks.tui.RecordContainer.superclass.initComponent.apply(this,arguments);
+		itasks.tui.container.initComponent.apply(this,arguments);
 		
 		this.addEvents('tuichange');
 		this.enableBubble('tuichange');
 	},
 	
 	afterRender: function(){
-		itasks.tui.RecordContainer.superclass.afterRender.apply(this,arguments);
+		this.extSuperclass.afterRender.apply(this,arguments);
 		
 		if(this.optional){
 			this[this.hasValue?'expand':'collapse']();
@@ -36,15 +32,15 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 		else
 			this.collapse();
 	
-		this.fireEvent('tuichange',this.taskId,this.name,(this.checkbox.dom.checked ? 'create' : ''));
+		this.fireEvent('tuichange',this.taskId,this.name,(this.checkbox.dom.checked ? 'create' : null));
 	},
-	setValue: function(action) {
-		if(action == 'expand'){
-			this.expand();
-		}else if(action == 'collapse'){
-			this.collapse();
-			this.removeAll();
-		}
+	getMarginsW: function() {
+		var el = this.getResizeEl();
+        return el.getMargins('lr');
+	},
+	getMarginsH: function() {
+		var el = this.getResizeEl();
+        return el.getMargins('tb');
 	}
 });
 
