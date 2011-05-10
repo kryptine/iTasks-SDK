@@ -39,11 +39,9 @@
 		,{"text":"LayoutContainer.js","path":"src/js/tui/"}
 		,{"text":"HtmlDisplay.js","path":"src/js/tui/"}
 		
-		,{"text":"TTCCommon.js","path":"src/js/ttc/"}
-		,{"text":"TTCBase.js","path":"src/js/ttc/"}
-		,{"text":"MenuItem.js","path":"src/js/ttc/"}
-		,{"text":"InteractiveContainer.js","path":"src/js/ttc/"}
-		,{"text":"FinishedContainer.js","path":"src/js/ttc/"}
+		,{"text":"MenuItem.js","path":"src/js/tui/"}
+		,{"text":"TUIPanel.js","path":"src/js/tui/"}
+		,{"text":"FinishedContainer.js","path":"src/js/"}
 				
 		,{"text":"itasks.LoginWindow.js","path":"src/js/"}
 		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}

@@ -16,16 +16,6 @@ itasks.tui.OryxControl = itasks.tui.extendBase(Ext.Panel,{
 		itasks.tui.base.initComponent.apply(this,arguments);
 
         this.inUpdate = false;
-
-		var oryxControl = this;
-		this.bubble(function(ct){ 
-			if (this.xtype == 'itasks.ttc.interactive') {
-				this.on ('resize', 
-					function(panel, w, h) {
-						oryxControl.setHeight(this.getHeight() - 90);
-					});
-			}
-		});
 	},
 
 	setValue : function(json){

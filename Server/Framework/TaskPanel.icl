@@ -9,19 +9,10 @@ buildTaskPanel cont=:(TTContainer menu tree) = case tree of
 		= TaskDone
 	TTFinishedTask _ _ True
 		= buildResultPanel cont
-	TTInteractionTask _ _
-		= TTCInteractionContainer
-			{ TTCInteractionContainer
-			| xtype 		= "itasks.ttc.interaction"
-			, content 		= Just (buildTaskPanel` tree menu)
-			, updates 		= Nothing	
-			, menu			= menu
-			}
-	TTParallelTask _ _
-		= TTCInteractionContainer
-			{ TTCInteractionContainer
-			| xtype 		= "itasks.ttc.interaction"
-			, content 		= Just (buildTaskPanel` tree menu)
+	_
+		= TUIPanel
+			{ TUIPanel
+			| content 		= Just (buildTaskPanel` tree menu)
 			, updates 		= Nothing	
 			, menu			= menu
 			}
@@ -54,12 +45,11 @@ where
 buildResultPanel :: !UITreeContainer -> TaskPanel
 buildResultPanel tree = case tree of 
 	TTContainer _ (TTFinishedTask ti result _)
-		= (TTCInteractionContainer	{ TTCInteractionContainer
-									| xtype 		= "itasks.ttc.interaction"
-									, content 		= Just (content ti result)
-									, updates 		= Nothing	
-									, menu			= []
-									})
+		= (TUIPanel	{ TUIPanel
+					| content 		= Just (content ti result)
+					, updates 		= Nothing	
+					, menu			= []
+					})
 	_
 		= TaskNotDone
 where
@@ -71,7 +61,7 @@ where
 					}
 		
 diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel
-diffTaskPanels (TTCInteractionContainer old) (TTCInteractionContainer new)
-	= TTCInteractionContainer {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TTCInteractionContainer.content) (fromJust new.TTCInteractionContainer.content))}
+diffTaskPanels (TUIPanel old) (TUIPanel new)
+	= TUIPanel {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TUIPanel.content) (fromJust new.TUIPanel.content))}
 diffTaskPanels _ new
 	= new

@@ -19,7 +19,7 @@ itasks.tui.DocumentControl = itasks.tui.extendBase(Ext.Panel, {
 	
 		itasks.tui.base.initComponent.apply(this,arguments);
 	},
-	afterRender : function(arguments){
+	afterRender : function(){
 		itasks.tui.base.afterRender.apply(this,arguments);
 		
 		if(this.document.size != 0){
@@ -229,8 +229,6 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 	},
 	
 	trashButtonHandler: function(src, evt){
-	
-		var tf = this.findParentByType(itasks.ttc.FormContainer);
 		var dp = this.findParentByType('itasks.tui.Document');
 	
 		dp.fireEvent('tuichange',dp.taskId,dp.name,null);

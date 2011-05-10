@@ -1,14 +1,24 @@
-Ext.ns('itasks.ttc');
+Ext.ns('itasks.tui');
 
-itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
+itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 	autoScroll: true,
 	layout: 'hbox',
 	dirty: true,
-	initComponent : function() {		
-		itasks.ttc.InteractiveContainer.superclass.initComponent.apply(this,arguments);
+	initComponent : function() {
+		this.items = this.content;
+		Ext.apply(this, {
+			taskUpdates : {},
+			url: itasks.config.serverUrl + '/work/tab',
+			unstyled: true
+		});
+		
+		itasks.tui.TUIPanel.superclass.initComponent.apply(this,arguments);
+		
+		this.addEvents('taskRedundant','taskDone');
+		this.enableBubble('taskRedundant','taskDone');
 	},
 	buildComponents: function(data){
-		this.items = data.content;
+		
 	},
 	update: function(data) {
 		if (data == "done" || data == "redundant"){
@@ -95,7 +105,12 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 			
 		} else {
 			//Completely replace form
-			itasks.ttc.InteractiveContainer.superclass.update.apply(this,arguments);
+			this.menu = data.menu;
+			this.removeAll();
+			this.add(data.content);
+			
+			this.dirty = true;
+			this.doLayout();
 		}
 
 		this.menu = data.menu;
@@ -177,7 +192,7 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 	
 	doLayout: function(shallow) {
 		if (!Ext.isFunction(this.get(0).doTUILayout)) {
-			itasks.ttc.InteractiveContainer.superclass.doLayout.apply(this,arguments);
+			itasks.tui.TUIPanel.superclass.doLayout.apply(this,arguments);
 			return;
 		}
 		if (shallow === false) return;
@@ -191,15 +206,36 @@ itasks.ttc.InteractiveContainer = Ext.extend(itasks.ttc.TTCBase, {
 		this.resumeEvents();
 		
 		if (this.dirty) {
-			itasks.ttc.InteractiveContainer.superclass.doLayout.call(this);
+			itasks.tui.TUIPanel.superclass.doLayout.call(this);
 			this.dirty = false;
 		}
 		
 		itasks.tui.cache = {};
 		this.get(0).doTUILayout(w, h);
 
-		itasks.ttc.InteractiveContainer.superclass.doLayout.call(this);
+		itasks.tui.TUIPanel.superclass.doLayout.call(this);
+	},
+	
+	fadeOut: function(data) {
+		if(data == "redundant"){
+			msg = "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort.";
+			this.fireEvent("taskRedundant");
+		}else{
+			msg = "This task is completed. Thank you.";
+			this.fireEvent("taskDone");
+		}
+		
+		var height = (this.interactionpanel ? this.interactionpanel.getHeight() : 0);
+		this.removeAll();
+		this.add({
+			xtype: "itasks.finished",
+			title: "Task completed",
+			html: msg,
+			destroyCmp: this.findParentByType("itasks.work")
+		});
+	
+		this.doLayout();
 	}
 });
 
-Ext.reg('itasks.ttc.interaction',itasks.ttc.InteractiveContainer);
+Ext.reg('itasks.tui.panel',itasks.tui.TUIPanel);

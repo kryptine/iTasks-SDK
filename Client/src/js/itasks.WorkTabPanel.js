@@ -131,7 +131,24 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.updateContent(data.tui);
 	
 		//Enable download / preview links
-		itasks.ttc.common.attachDocumentLinkInformation();
+		var links   = Ext.query("a[name=x-form-document-link]");
+		var plinks = Ext.query("a[name=x-form-document-preview-link]");
+		
+		for(var x=0; x < links.length; x++){
+			var link = links[x];
+			
+			link.href = Ext.urlAppend(link.href,'session='+itasks.app.session);
+			link.name = "";
+			
+			for(var y=0; y < plinks.length; y++){				
+				if(plinks[y].id == link.id){
+					var plink = plinks[y];		
+
+					plink.href="javascript:itasks.util.preview('"+link.href.replace( 'download','preview')+"')";
+					plink.name = "";
+				}
+			}
+		}
 		
 		if (data.warning)
 			Ext.Msg.alert("Warning",data.warning);
@@ -140,26 +157,17 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.setTitle(Ext.util.Format.ellipsis(subject,10));
 	},
 	updateContent: function(content) {
+		if (Ext.isObject(content)) {
+			content.xtype = 'itasks.tui.panel';
+		}
 		var ct = this.getComponent(1);
 
 		if(ct.items.getCount() > 0) {
 			//Recursively update tab content
 			var cur = ct.getComponent(0);
-			
-			if(!Ext.isDefined(content.xtype) || cur.xtype == content.xtype) {
-				cur.update(content);
-			} else {
-				// fire done event because subprocesses of parallel possibly also stopped
-				if (cur.xtype == 'itasks.ttc.parallel')
-					this.fireEvent("taskDone");
-					
-				ct.remove(0,true);
-				ct.add(content);
-				ct.doLayout();
-			}
+			cur.update(content);
 		} else {
 			//Build initial content
-			content.fadeIn = true;
 			ct.add(content);
 			ct.doLayout();
 		}	
@@ -261,7 +269,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		var ct = this.get(1);
 		ct.removeAll();
 		ct.add({
-			xtype: "itasks.ttc.finished",
+			xtype: "itasks.finished",
 			subject: "Task completed",
 			description: "This task is completed or it's completion is no longer required.<br />Thank you for your effort.",
 			destroyCmp: this
