@@ -110,7 +110,7 @@ chat1
                     		(you @: chatEditor you me chatState)
 where
 	chatEditor me you chatState
-		= 							(readShared chatState >>= showMessageAbout ("Chat list view"))
+		= 							(monitor ("Chat list view") id (const False) False chatState)
 									||-
 									enterInformationA ("Chat with " <+++ you) id [(ActionQuit,always),(ActionOk,ifvalid)]
 		>>= \(event,response) ->		case event of
