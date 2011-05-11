@@ -27,8 +27,8 @@ where
 		TTFinishedTask ti (result,_) show
 			= (TTFinishedTask ti result show,[],iworld)
 		TTInteractionTask ti (tuiF,_)
-			# (editor,actions,iworld) = tuiF iworld
-			= (TTInteractionTask ti (editor,[]),addTaskIds ti.TaskInfo.taskId actions,iworld)
+			# (editor,actions,warning,iworld) = tuiF iworld
+			= (TTInteractionTask ti (editor,[],warning),addTaskIds ti.TaskInfo.taskId actions,iworld)
 		TTParallelTask ti containers
 			# containers							= sortBy (\(TTParallelContainer idx0 _ _) (TTParallelContainer idx1 _ _) -> idx0 < idx1) containers
 			# containers							= filter (\(TTParallelContainer _ _ t) -> case t of TTFinishedTask _ _ _ = False; _ = True) containers
@@ -140,7 +140,7 @@ where
 		interactionNode=:(TTInteractionTask ti tui)
 			# buttons			= mkButtons` ti.TaskInfo.taskId
 			| isEmpty buttons	= interactionNode
-			= TTInteractionTask ti (appSnd (const buttons) tui)
+			= TTInteractionTask ti (appSnd3 (const buttons) tui)
 		TTParallelTask ti subContainers
 			= TTParallelTask ti (map (mkButtonsPar actions) subContainers)
 		other

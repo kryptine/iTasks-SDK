@@ -8,21 +8,22 @@ import JSON, GenEq
 from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType
 
 :: TUIInteraction =	{ title				:: !String
-					, description		:: !TUIDef
+					, description		:: !String
 					, editorParts		:: ![TUIDef]
 					, buttons			:: ![TUIDef]
 					, type				:: !Maybe InteractionTaskType
 					, isControlTask		:: !Bool
 					, localInteraction	:: !Bool
+					, warning			:: !Maybe String
 					}
 					
 :: TUIParallel =	{ title			:: !String
-					, description	:: !TUIDef
+					, description	:: !String
 					, items			:: ![TUIDef]
 					}
 					
 :: TUIResult =		{ title			:: !String
-					, description	:: !TUIDef
+					, description	:: !String
 					, result		:: !TUIDef
 					}
 
@@ -192,7 +193,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 :: TUIVGravity		= VGTop | VGCenter | VGBottom
 :: TUIOrientation	= Horizontal | Vertical
 
-htmlDisplay				:: !(Maybe String) !String -> TUIDef
+htmlDisplay				:: !(Maybe String) !html -> TUIDef | toString html
 defaultLayoutContainer	:: ![TUIDef] -> TUILayoutContainer
 sameMargins				:: !TUIFixedSize -> TUIMargins
 
@@ -211,11 +212,11 @@ minimalParallelLayout		:: ParallelLayoutMerger
 defaultResultLayout			:: ResultLayoutMerger
 
 // layout aux functions
-defaultPanelDescr			:: !PanelTitle !PanelIcon !TUIDef	![TUIDef]	-> TUIDef
-defaultPanel				:: !PanelTitle !PanelIcon			![TUIDef]	-> TUIDef
-defaultDescriptionPanel		:: !TUIDef										-> TUIDef
-defaultContentPanel			:: ![TUIDef]									-> TUIDef
-defaultContent				:: ![TUIDef] ![TUIDef] !TUISize					-> [TUIDef]
-defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool		-> PanelIcon
+defaultPanelDescr			:: !PanelTitle !PanelIcon !String !(Maybe String) 	![TUIDef]	-> TUIDef
+defaultPanel				:: !PanelTitle !PanelIcon							![TUIDef]	-> TUIDef
+defaultDescriptionPanel		:: !String !(Maybe String)										-> TUIDef
+defaultContentPanel			:: ![TUIDef]													-> TUIDef
+defaultContent				:: ![TUIDef] ![TUIDef] !TUISize									-> [TUIDef]
+defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool						-> PanelIcon
 
-columnLayout				:: !Int ![TUIDef] 								-> TUIDef
+columnLayout				:: !Int ![TUIDef] 												-> TUIDef

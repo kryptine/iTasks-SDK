@@ -925,25 +925,19 @@ button.x-form-document-trash-icon {
 	background-image: url('img/icons/information.png') !important;
 }
 
-.x-record-hint-icon {
+.x-hint-icon {
 	background:none no-repeat scroll 0 2px transparent;
 	background-image: url('img/icons/information.png') !important;
-	width: auto;
-	height: 18px;
 	padding: 2px 2px 2px 24px;
-	margin: 0px 0px 5px 0px;
 	z-index: 1;
 	color: #777777;
 	font-size: 11px;
 }
 
-.x-record-invalid-icon {
+.x-invalid-icon {
 	background:none no-repeat scroll 0 2px transparent;
 	background-image: url('img/icons/exclamation.png') !important;
-	width: auto;
-	height: 18px;
 	padding: 2px 2px 2px 24px;
-	margin: 0px 0px 5px 0px;
 	z-index: 1;
 	color: #E87979;
 	font-size: 11px;

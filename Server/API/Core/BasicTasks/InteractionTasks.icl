@@ -26,28 +26,35 @@ where
 				# (local,tst)			= readLocalState tst
 				# (views,tst)			= accIWorldTSt (readViews taskNr local) tst
 				| length views <= idx	= tst
-				// update last edit timestamp
-				# tst					= appIWorldTSt (setTaskStoreFor taskNr "lastEdit" timestamp) tst
-				# (mbV,part)			= views !! idx
-				= case part of
-					UpdateView (_,putback)
-						| isNothing mbV			= tst
-						# (jsonV,umask,_)		= fromJust mbV
-						# value					= fromJSON jsonV
-						| isNothing value		= tst
-						// update value & masks
-						# (value,umask,iworld)	= updateValueAndMask dp editV (fromJust value) umask tst.TSt.iworld
-						# vmask					= verifyForm value umask
-						# tst					= {TSt|tst & iworld = iworld}
-						# views					= updateAt idx (Just (toJSON value,umask,vmask),part) views
-						# tst					= appIWorldTSt (writeViews taskNr views) tst
-						// calculate new local & model value
-						# newStates				= putback (if (isValidValue vmask) (Just value) Nothing)
-						= updateStates newStates tst
-					Update _ newStates
-						= updateStates newStates tst
+				// check for edit conflict
+				# (mbT,tst)				= getTaskStoreTimestamp VIEWS_STORE tst
+				# (changed,tst)			= accIWorldTSt (isSharedChanged shared (fromMaybe (Timestamp 0) mbT)) tst
+				= case changed of
+					Ok True
+						= setTaskStore EDIT_CONFLICT_STORE True tst
 					_
-						= tst
+						// update last edit timestamp
+						# tst					= appIWorldTSt (setTaskStoreFor taskNr LAST_EDIT_STORE timestamp) tst
+						# (mbV,part)			= views !! idx
+						= case part of
+							UpdateView (_,putback)
+								| isNothing mbV			= tst
+								# (jsonV,umask,_)		= fromJust mbV
+								# value					= fromJSON jsonV
+								| isNothing value		= tst
+								// update value & masks
+								# (value,umask,iworld)	= updateValueAndMask dp editV (fromJust value) umask tst.TSt.iworld
+								# vmask					= verifyForm value umask
+								# tst					= {TSt|tst & iworld = iworld}
+								# views					= updateAt idx (Just (toJSON value,umask,vmask),part) views
+								# tst					= appIWorldTSt (writeViews taskNr views) tst
+								// calculate new local & model value
+								# newStates				= putback (if (isValidValue vmask) (Just value) Nothing)
+								= updateStates newStates tst
+							Update _ newStates
+								= updateStates newStates tst
+							_
+								= tst
 
 	editorC tst=:{taskNr,newTask}
 		# (model,tst) 					= accIWorldTSt (readShared shared) tst
@@ -78,12 +85,17 @@ where
 			# (tui,newVs)				= visualizeParts taskNr parts oldVs mbEdit
 			# iworld					= writeViews taskNr (zip2 newVs parts) iworld
 			# buttons					= map (appSnd isJust) actions
-			= (tui,buttons,iworld)
+			# (mbConflict,iworld)		= getTaskStoreFor taskNr EDIT_CONFLICT_STORE iworld
+			# iworld					= setTaskStoreFor taskNr EDIT_CONFLICT_STORE False iworld
+			# warning = case mbConflict of
+				Just True				= Just EDIT_CONFLICT_WARNING
+				_						= Nothing
+			= (tui,buttons,warning,iworld)
 	
 		jsonFunc iworld = (JSONNull,iworld)
 	
 	readViews taskNr local iworld
-		# (mbVs,iworld) = getTaskStoreFor taskNr "views" iworld
+		# (mbVs,iworld) = getTaskStoreFor taskNr VIEWS_STORE iworld
 		= case mbVs of
 			Just views
 				= (views,iworld)
@@ -93,15 +105,15 @@ where
 				= ([(Nothing,part) \\ part <- partFunc local (fromOk model) True],iworld)
 			
 	readLocalState tst
-		# (mbL,tst) = getTaskStore "local" tst
+		# (mbL,tst) = getTaskStore LOCAL_STORE tst
 		= (fromMaybe initLocal mbL,tst)
 		
 	getLocalTimestamp taskNr iworld=:{IWorld|timestamp}
-		# (mbTs,iworld)	= getTaskStoreFor taskNr "lastEdit" iworld
+		# (mbTs,iworld)	= getTaskStoreFor taskNr LAST_EDIT_STORE iworld
 		= (fromMaybe (Timestamp 0) mbTs,iworld)
 	
 	updateStates (local,mbModel) tst
-		# tst = setTaskStore "local" local tst
+		# tst = setTaskStore LOCAL_STORE local tst
 		= case mbModel of
 			Just model	= snd (accIWorldTSt (writeShared shared model) tst)
 			Nothing		= tst
@@ -119,7 +131,7 @@ where
 :: Views a :== [(!Maybe (!JSONNode,!UpdateMask,!VerifyMask),!InteractionPart a)]
 	
 writeViews :: !TaskNr !(Views a) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-writeViews taskNr views iworld = setTaskStoreFor taskNr "views" views iworld
+writeViews taskNr views iworld = setTaskStoreFor taskNr VIEWS_STORE views iworld
 
 getEdit tst
 	# (mbEdit,tst)		= getEditEvent tst
@@ -142,8 +154,7 @@ getActionResult actions tst
 visualizeParts :: !TaskNr ![InteractionPart w] !(Views w) !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![Maybe (!JSONNode,!UpdateMask,!VerifyMask)])
 visualizeParts taskNr parts oldVs mbEdit
 	# res			= [visualizePart (part,mbV,idx) \\ part <- parts & (mbV,_) <- (oldVs ++ repeat (Nothing,undef)) & idx <- [0..]]
-	# (tuis,views)	= unzip res
-	= (tuis,views)
+	= unzip res
 where
 	visualizePart (part,mbV,idx)
 		= case part of
@@ -186,6 +197,12 @@ where
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
 
+VIEWS_STORE				:== "views"
+LOCAL_STORE				:== "local"
+LAST_EDIT_STORE			:== "lastEdit"
+EDIT_CONFLICT_STORE		:== "editConflict"
+EDIT_CONFLICT_WARNING	:== "An edit conflict occurred. The form was refreshed with the most recent value."
+
 // auxiliary types/function for derived interaction tasks
 always :: (Verified a) -> Bool
 always _ = True
@@ -226,5 +243,3 @@ fromPredActions toP toR actions = \l r c -> UserActions (map (\(a,pred) -> (a,if
 
 fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractionTerminators a)
 fromPredActionsLocal toP toR actions = \l -> UserActions (map (\(a,pred) -> (a,if (pred (toP l)) (Just (toR a l)) Nothing)) actions)
-
-:: Valid :== Bool

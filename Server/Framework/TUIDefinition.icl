@@ -1,13 +1,13 @@
 implementation module TUIDefinition
 
-import JSON, StdList, StdBool, GenEq, StdFunc
+import JSON, StdList, StdBool, GenEq, StdFunc, HTML
 from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..)
 
-htmlDisplay :: !(Maybe String) !String -> TUIDef
+htmlDisplay :: !(Maybe String) !html -> TUIDef | toString html
 htmlDisplay mbLabel html =	{ content	= TUIControl TUIHtmlDisplay
 											{ TUIControl
 											| name			= ""
-											, value			= JSONString html
+											, value			= JSONString (toString html)
 											, fieldLabel	= mbLabel
 											, optional		= True
 											, errorMsg		= ""
@@ -39,17 +39,19 @@ sameMargins m =	{ top		= m
 				}
 
 defaultInteractionLayout :: InteractionLayoutMerger
-defaultInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
+defaultInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction,warning} -> defaultPanelDescr
 	title
 	(defaultInteractionIcon type isControlTask localInteraction)
 	description
+	warning
 	(defaultContent editorParts buttons Auto)
 	
 fullWidthInteractionLayout :: InteractionLayoutMerger
-fullWidthInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction} -> defaultPanelDescr
+fullWidthInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction,warning} -> defaultPanelDescr
 	title
 	(defaultInteractionIcon type isControlTask localInteraction)
 	description
+	warning
 	(defaultContent editorParts buttons (FillParent 1 ContentSize))
 	
 defaultContent :: ![TUIDef] ![TUIDef] !TUISize -> [TUIDef]
@@ -70,7 +72,7 @@ where
 								}]
 
 defaultParallelLayout :: ParallelLayoutMerger
-defaultParallelLayout = \{TUIParallel|title,description,items} -> defaultPanelDescr title "icon-parallel-task" description items
+defaultParallelLayout = \{TUIParallel|title,description,items} -> defaultPanelDescr title "icon-parallel-task" description Nothing items
 
 minimalParallelLayout :: ParallelLayoutMerger
 minimalParallelLayout = \{TUIParallel|title,description,items} ->	{ content	= TUILayoutContainer (defaultLayoutContainer items)
@@ -80,24 +82,26 @@ minimalParallelLayout = \{TUIParallel|title,description,items} ->	{ content	= TU
 																	}
 
 defaultResultLayout :: ResultLayoutMerger
-defaultResultLayout = \{TUIResult|title,description,result} -> defaultPanelDescr title "icon-task-result" description [defaultContentPanel [result]]
+defaultResultLayout = \{TUIResult|title,description,result} -> defaultPanelDescr title "icon-task-result" description Nothing [defaultContentPanel [result]]
 
-defaultPanelDescr :: !PanelTitle !PanelIcon !TUIDef ![TUIDef] -> TUIDef
-defaultPanelDescr title iconCls description form = defaultPanel title iconCls [defaultDescriptionPanel description:form]
+defaultPanelDescr :: !PanelTitle !PanelIcon !String !(Maybe String) ![TUIDef] -> TUIDef
+defaultPanelDescr title iconCls description mbWarning form = defaultPanel title iconCls [defaultDescriptionPanel description mbWarning:form]
 
 defaultPanel :: !PanelTitle !PanelIcon ![TUIDef] -> TUIDef
-defaultPanel title iconCls content =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer content & title = Just title, iconCls = Just iconCls}
+defaultPanel title iconCls  content =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer content & title = Just title, iconCls = Just iconCls}
 										, width		= Auto
 										, height	= Auto
 										, margins	= Just (sameMargins 10)
 										}
 
-defaultDescriptionPanel :: !TUIDef -> TUIDef
-defaultDescriptionPanel descr =		{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [descr] & frame = True}
-									, width		= FillParent 1 ContentSize
-									, height	= Wrap
-									, margins	= Nothing
-									}
+defaultDescriptionPanel :: !String !(Maybe String) -> TUIDef
+defaultDescriptionPanel descr mbWarning =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [htmlDisplay Nothing descr:warning] & frame = True}
+											, width		= FillParent 1 ContentSize
+											, height	= Wrap
+											, margins	= Nothing
+											}
+where
+	warning = maybe [] (\w -> [htmlDisplay Nothing (DivTag [ClassAttr "x-invalid-icon"] [Text w])]) mbWarning
 
 defaultContentPanel :: ![TUIDef] -> TUIDef
 defaultContentPanel content =		{ content	= TUILayoutContainer {defaultLayoutContainer content & padding = Just 5}

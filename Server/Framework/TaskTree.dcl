@@ -10,21 +10,21 @@ from JSON 			import :: JSONNode
 from TUIDefinition	import :: TUIDef, :: InteractionLayoutMerger, :: ParallelLayoutMerger, :: ResultLayoutMerger, :: LayoutMerger, :: TUIInteraction, :: TUIParallel, :: TUIResult
 
 :: SpineTreeContainer					:== TaskTreeContainer Void Void Void Void
-:: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType (![TUIDef],![TUIDef]) HtmlTag
+:: UITreeContainer						:== TaskTreeContainer [TUIDef] TTContainerType (![TUIDef],![TUIDef],!Maybe String) HtmlTag
 :: JSONTreeContainer					:== TaskTreeContainer Void Void JSONNode JSONNode
 :: NonNormalizedTreeContainer			:== TaskTreeContainer ActionMenu TaskContainerType TTNNInteractionTask TTNNFinished
 
 :: SpineParallelTreeContainer			:== ParallelTaskTreeContainer Void Void Void
-:: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType (![TUIDef],![TUIDef]) HtmlTag
+:: UIParallelTreeContainer				:== ParallelTaskTreeContainer TTContainerType (![TUIDef],![TUIDef],!Maybe String) HtmlTag
 :: JSONParallelTreeContainer			:== ParallelTaskTreeContainer Void JSONNode JSONNode
 :: NonNormalizedParallelTreeContainer	:== ParallelTaskTreeContainer TaskContainerType TTNNInteractionTask TTNNFinished
 
 :: SpineTree							:== TaskTree Void Void Void
-:: UITree								:== TaskTree TTContainerType (![TUIDef],![TUIDef]) HtmlTag
+:: UITree								:== TaskTree TTContainerType (![TUIDef],![TUIDef],!Maybe String) HtmlTag
 :: JSONTree								:== TaskTree Void JSONNode JSONNode
 :: NonNormalizedTree					:== TaskTree TaskContainerType TTNNInteractionTask TTNNFinished
 
-:: TTNNInteractionTask					:== (*IWorld -> *(![TUIDef],![(Action,Bool)],!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
+:: TTNNInteractionTask					:== (*IWorld -> *(![TUIDef],![(Action,Bool)],!Maybe String,!*IWorld),*IWorld -> *(!JSONNode,!*IWorld))
 :: TTNNFinished							:== (HtmlTag,JSONNode)
 
 //A container used for tree representing top level tasks (including the menu & the actual tree)

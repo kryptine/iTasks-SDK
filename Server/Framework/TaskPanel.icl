@@ -19,20 +19,21 @@ buildTaskPanel cont=:(TTContainer menu tree) = case tree of
 where
 	buildTaskPanel` :: !UITree ![TUIDef] -> TUIDef
 	buildTaskPanel` tree menu = case tree of
-		TTInteractionTask {TaskInfo|title,description,type,isControlTask,localInteraction,interactionLayout=l=:TIInteractionLayoutMerger layout} (editor,buttons)
+		TTInteractionTask {TaskInfo|title,description,type,isControlTask,localInteraction,interactionLayout=l=:TIInteractionLayoutMerger layout} (editor,buttons,warning)
 			= layout	{ TUIInteraction
 						| title				= title
-						, description		= htmlDisplay Nothing description
+						, description		= description
 						, editorParts		= editor
 						, buttons			= buttons
 						, type				= type
 						, isControlTask		= isControlTask
 						, localInteraction	= localInteraction
+						, warning			= warning
 						}
 		TTParallelTask {TaskInfo|title,description,parallelLayout=l=:TIParallelLayoutMerger layout} containers
 			= layout	{ TUIParallel
 						| title			= title
-						, description	= htmlDisplay Nothing description
+						, description	= description
 						, items			= map buildParallelElement containers
 						}
 	where
@@ -56,7 +57,7 @@ where
 	content {TaskInfo|title,description,resultLayout=l=:TIResultLayoutMerger layout} result
 		= layout	{ TUIResult
 					| title			= title
-					, description	= htmlDisplay Nothing description
+					, description	= description
 					, result		= htmlDisplay Nothing (toString result)
 					}
 		

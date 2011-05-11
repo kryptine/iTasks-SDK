@@ -153,7 +153,7 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 			
 			if(!this.hintIcon){
 				var ct = this.msgField.child('[class = list-msg-field]');
-				this.hintIcon = ct.createChild({cls: 'x-record-hint-icon'});
+				this.hintIcon = ct.createChild({cls: 'x-hint-icon'});
 				this.hintIcon.setVisibilityMode(Ext.Element.DISPLAY);
 			}
 			
@@ -174,7 +174,7 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 			
 			if(!this.errorIcon){
 				var ct = this.msgField.child('[class = list-msg-field]');
-				this.errorIcon = ct.createChild({cls: 'x-record-invalid-icon'});
+				this.errorIcon = ct.createChild({cls: 'x-invalid-icon'});
 				this.errorIcon.setVisibilityMode(Ext.Element.DISPLAY);
 			}
 			

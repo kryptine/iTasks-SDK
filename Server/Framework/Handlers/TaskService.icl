@@ -125,7 +125,7 @@ taskService url format path req tst
 					# (mbOld,tst)		= accIWorldTSt (loadValueAndTimestamp tuiStoreId) tst
 					# mbOutdatedWarning = case mbOld of
 						Just (_,oldTimestamp) | timestampParam <> "" && Timestamp (toInt timestampParam) < oldTimestamp
-										= Just ("warning",JSONString "The client is outdated. The form was refreshed with the most recent value.")
+										= Just ("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")
 						_
 										= Nothing
 					# mbEditEvent = case fromJSON (fromString editEventParam) of
