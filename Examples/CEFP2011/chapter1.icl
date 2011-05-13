@@ -1,12 +1,12 @@
 module chapter1
 
-import iTasks
+import iTasks, StdMisc
 
 derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8//, w9
+				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9
 				] world
 
 // a simple form for an integer value
@@ -234,7 +234,7 @@ getOddNumber2
 
 // making an appointment
 
-//w9 = workflow "CEFP/9: Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+w9 = workflow "CEFP/9: Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 
 :: MeetingProposal 
 	=	{ date 		:: Date
@@ -246,52 +246,85 @@ getOddNumber2
 		, canAttend :: Bool
 		, comment	:: Maybe Note
 		}	
+:: MeetingProposalView
+	=	{ date 		:: Date
+		, time		:: Time
+		, canMeet	:: [VisualizationHint ParticipantView]
+		}
+:: ParticipantView
+	=	{ name		:: Display User
+		, canAttend :: Bool
+		, comment	:: Maybe Note
+		}	
+derive class iTask MeetingProposal, Participant, MeetingProposalView, ParticipantView
 
-derive class iTask MeetingProposal, Participant
-
-/*
-
-mkAppointment :: Task Void
+mkAppointment :: Task [MeetingProposal]
 mkAppointment
 	=					getUsers
 		>>= \all ->		enterMultipleChoice "Who should attend the meeting ?" all
 		>>= \users ->	enterInformation "Propose meeting dates"
-		>>= \dates ->	mapAll users dates
+		>>= \dates ->	let initMeetingState = [ { MeetingProposal
+												 | date    = date
+												 , time    = time
+												 , canMeet = [ { Participant
+												               | name      = user
+												 			   , canAttend = False
+												 			   , comment   = Nothing
+												 			   } 
+												 			 \\ user <- users
+												 			 ]
+												 }
+											   \\ (date,time) <- dates
+											   ]
+		                 in parallel "Meeting Date Flow" initMeetingState finishPar [manage : map initMeeting users]
 where
-	mapAll users dates  
-		=						createSharedStore initMeetingState
-        >>= \meetingState -> 	parallel "Meeting Date Flow" meetingState finishPar [] (map (initMeeting meetingState) users)
+	finishPar _ s = s
+
+	initMeeting user
+		= DetachedTask managerProperties actionMenu meetingTask
 	where
-		initMeetingState :: [MeetingProposal]
-		initMeetingState =  [ { date 	= date
-							  , time 	= time
-							  , canMeet = [ { name 		= user
-							  			    , canAttend = False
-							  			    , comment 	= Nothing
-							  			    } 
-							  			  \\ user <- users
-							  			  ]
-							  }
-							\\ (date,time) <- dates
-							]
-
-	finishPar _ _ = Void
-
-	fun _ state 
-		=	(state,[])
-
-	initMeeting meetingState user
-		= DetachedTask	managerProperties actionMenu meetingTask fun
-	where
-		meetingTask
-			= updateSharedInformationA "When can we meet ?" (toView,fromView) [] meetingState
+		meetingTask meetingState _
+			= updateSharedInformationA "When can we meet ?" (viewForUser user,modelFromView) [] meetingState
 
 		managerProperties
 			= { worker = user, priority	= NormalPriority, deadline = Nothing, status = Active }	
 		
 		actionMenu actions = []
-		
-		toView list = Table list
-		
-		fromView (Table mlist) list = mlist		
-*/
+	
+	viewForUser :: User [MeetingProposal] -> [MeetingProposalView]
+	viewForUser user props
+		= [  {MeetingProposalView | date=date, time=time, canMeet=map (viewParticipant user) canMeet}
+		  \\ {MeetingProposal | date,time,canMeet} <- props
+		  ]
+	
+	modelFromView :: [MeetingProposalView] .a -> [MeetingProposal]
+	modelFromView props _
+		= [  {MeetingProposal | date=date, time=time, canMeet=map modelParticipant canMeet} 
+		  \\ {MeetingProposalView | date,time,canMeet} <- props
+		  ]
+	
+	viewParticipant :: User Participant -> VisualizationHint ParticipantView
+	viewParticipant user participant=:{Participant | name, canAttend, comment}
+		= if (user == name)	VHEditable VHDisplay view
+	where
+		view		= {ParticipantView | name = Display name
+	                                   , canAttend = canAttend
+	                                   , comment   = comment
+	                  }
+	
+	modelParticipant :: (VisualizationHint ParticipantView) -> Participant
+	modelParticipant view
+		= { Participant | name=name, canAttend=canAttend, comment=comment }
+	where
+		{ParticipantView | name=Display name,canAttend,comment}	= fromVisualizationHint view
+	
+	manage
+		= InBodyTask check
+	where
+		check meetingState controlState
+			=     updateSharedInformationA "Monitor answers" (viewForManager,\_ ps -> ps) [(ActionOk,const True)] meetingState
+			  >>= \(_,props) -> enterChoice "Choose meeting" props
+		where
+			viewForManager :: [MeetingProposal] -> [MeetingProposal]
+			viewForManager props
+				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
