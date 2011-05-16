@@ -18,18 +18,18 @@ import iTaskClass
 // The identity view
 idView :== (id,const)
 
-//Local update tasks
-
 /*
 * Ask the user to update predefined information. 
 *
-* @param description 		A description of the task to display to the user
-* @param View i v o			View defining how to convert i to the demanded view v and backwards to o.
-*							If not specified, i = v = o, and the view is the identity view.
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
-* @param a or (Shared a)	The initial value or shared value to use. 
+* @param description								A description of the task to display to the user
+* @param (SymmetricView a v) (optional)				View defining how to convert a to the demanded view v and backwards to a
+*													If not specified, a = v, and the view is the identity view
+* @param [PredAction (Verified a)]					A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
+*													If not specified an ok button is provided which is enabled if the editor is valid
+* @param about (optional)							Additional information to display
+* @param a											The initial value to use
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 											Resulting value or chosen action with the resulting value if editor was in valid state.
 */
 updateInformation			:: !d															!a -> Task a					| descr d & iTask a
 updateInformationA			:: !d !(SymmetricView a v)	![PredAction (Verified a)]			!a -> Task (!Action, !Maybe a)	| descr d & iTask a & iTask v
@@ -37,17 +37,17 @@ updateInformationAbout		:: !d !about													!a -> Task a					| descr d & iT
 updateInformationAboutA		:: !d !(SymmetricView a v)	![PredAction (Verified a)] !about	!a -> Task (!Action, !Maybe a)	| descr d & iTask a & iTask about & iTask v
 
 /*
-* Ask the user to update predefined information, given some additonal context information
+* Ask the user to update predefined shared information.
 *
-* @param description 		A description of the task to display to the user
-* @param View i v o			View defining how to convert i to the demanded view v and backwards to o.
-*							If not specified, i = v = o, and the view is the identity view.
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
-* @param b					Additional information to display
-* @param a or (Shared a)	The initial value or shared value to use. 
+* @param description 								A description of the task to display to the user
+* @param (View r v w)								View defining how to convert r to the demanded view v and backwards to w
+* @param [PredAction (Valid,r)]						A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
+*													If not specified an ok button is provided which is enabled if the editor is valid
+* @param about (optional)							Additional information to display
+* @param (Shared r w)								Reference to the shared state to update
 *
-* @return 					Resulting value or chosen action with the resulting value if editor was in valid state.
-* @throws					SharedException (updateSharedInformationAboutA only)
+* @return 											Chosen action with the value of the shared state at the moment the task stopped
+* @throws											SharedException
 */
 updateSharedInformationA		:: !d !(View r v w) ![PredAction (Valid,r)]			!(Shared r w) -> Task (!Action,!r)	| descr d & iTask r & iTask v & iTask w
 updateSharedInformationAboutA	:: !d !(View r v w) ![PredAction (Valid,r)] !about	!(Shared r w) -> Task (!Action,!r)	| descr d & iTask r & iTask v & iTask w & iTask about
@@ -55,7 +55,7 @@ updateSharedInformationAboutA	:: !d !(View r v w) ![PredAction (Valid,r)] !about
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected
 *
-* @param description 		A description of the task to display to the user
+* @param description								A description of the task to display to the user
 * @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
 *							If not specified, a = v, and the view is the identity.
 * @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
