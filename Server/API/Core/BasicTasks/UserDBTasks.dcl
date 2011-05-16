@@ -10,6 +10,12 @@ from TSt	import :: Task
 from Types	import :: UserId, :: User, :: UserDetails, :: Role
 
 /**
+* Gets the user that the current task is assigned to
+*
+* @return The current user
+*/
+getCurrentUser 		:: Task User
+/**
 * Finds a specific user
 * 
 * @param The username

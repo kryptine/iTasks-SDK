@@ -6,6 +6,11 @@ from Types import :: User, :: UserId, :: UserDetails, :: Role
 from UserDB import qualified class UserDB(..)
 from UserDB import qualified instance UserDB TSt
 
+getCurrentUser :: Task User
+getCurrentUser = mkInstantTask ("Get current user", "Determine the currently logged in user.") getCurrentUser`
+where
+	getCurrentUser` tst=:{TSt|properties} = (TaskFinished properties.ProcessProperties.managerProperties.worker,tst)
+
 getUser :: !UserId -> Task (Maybe User)
 getUser username = mkInstantTask ("Get user", "Read a user from the database.") (mkTaskFunction ('UserDB'.getUser username))
 

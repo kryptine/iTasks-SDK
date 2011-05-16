@@ -11,7 +11,7 @@ from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree
 from Shared		import mapShared, :: SymmetricShared
-import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, SharedTasks, ProcessDBTasks, UpdateTasks, OutputTasks, SystemData
+import CoreCombinators, ExceptionCombinators, TuningCombinators, SharedTasks, ProcessDBTasks, UpdateTasks, OutputTasks, SystemData
 
 derive class iTask GAction, GOnlyAction
 

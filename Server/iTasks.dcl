@@ -18,7 +18,6 @@ import	Engine						// basic iTask system creator
 	,	OutputTasks					// tasks for outputting informating to users
 	,	InputTasks					// tasks for letting users input information
 	,	UpdateTasks					// tasks for letting users update information
-	,	SystemTasks					// tasks for interaction with the iTasks system itself
 	,	SharedTasks					// tasks for accessing the generic store
 	
 	,	UserDBTasks					// tasks for accessing the user database
@@ -29,8 +28,7 @@ import	Engine						// basic iTask system creator
 	
 	,	ChangeTasks					// Tasks for changing existing workflows
 	
-	,	OSTasks						// tasks for OS operations like reading/writing files or calling external processes
-	,	RPCTasks					// tasks for calling methods on remote servers
+	,	IntegrationTasks			// Tasks for integration with other systems
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
