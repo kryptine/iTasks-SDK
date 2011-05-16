@@ -1,48 +1,16 @@
 implementation module SystemTasks
 
-import StdList, StdArray, TSt, Types, Config, Text, UserDB, GenVisualize, GenUpdate
-from TaskTree import :: TaskTree, :: TaskInfo,  :: TaskPriority(..)
-from Time	import :: Timestamp, :: Clock(..), clock
-from Random	import genRandInt
-from ProcessDB import :: Menu
+import StdList, StdArray, TSt, Types, Config, Text, UserDB
+
 from Email import qualified sendEmail
 from Email import :: Email(..), :: EmailOption(..)
-
-class emailOf r where emailOf :: r -> EmailAddress
-instance emailOf EmailAddress where emailOf e = e
-instance emailOf String where emailOf s = EmailAddress s
-instance emailOf User
-where
-	emailOf (NamedUser n)		= EmailAddress (userName (NamedUser n))
-	emailOf (RegisteredUser d)	= d.emailAddress
-	emailOf RootUser			= EmailAddress ""
-	emailOf AnyUser				= EmailAddress ""
 
 getCurrentUser :: Task User
 getCurrentUser = mkInstantTask ("Get current user", "Determine the currently logged in user.") getCurrentUser`
 where
-	getCurrentUser` tst=:{staticInfo}
-		= (TaskFinished staticInfo.currentSession.user,tst)
-
-getCurrentProcessId :: Task ProcessId
-getCurrentProcessId = mkInstantTask ("Get current process id", "Determine the process identifier of the current task instance.") getCurrentProcessId`
-where
-	getCurrentProcessId` tst=:{staticInfo}
-		= (TaskFinished staticInfo.currentProcessId,tst)
-
-getContextWorker :: Task User
-getContextWorker = mkInstantTask ("Get context worker", "Determine the worker assigned to the current task.") getContextWorker`
-where
-	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.ProcessProperties.managerProperties.worker,tst)
-
-getRandomInt :: Task Int
-getRandomInt = mkInstantTask ("Create random integer", "Create a random number.") getRandomInt`
-where
-	getRandomInt` tst
-		# (Clock seed, tst)	= accWorldTSt clock tst
-		= (TaskFinished (hd (genRandInt seed)), tst)
-
-sendEmail :: !String !Note ![recipient] -> Task [recipient]	| emailOf recipient & iTask recipient
+	getCurrentUser` tst=:{TSt|properties} = (TaskFinished properties.ProcessProperties.managerProperties.worker,tst)
+	
+sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
 sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send out an e-mail") sendEmail`
 where
 	sendEmail` tst=:{TSt|properties}
@@ -51,7 +19,7 @@ where
 		= case mbUser of
 			Just user
 				# (server,tst)	= getConfigSetting (\config -> config.smtpServer) tst
-				# tst 			= foldr (sendSingle server user.emailAddress) tst (map emailOf recipients)
+				# tst 			= foldr (sendSingle server user.emailAddress) tst recipients
 				= (TaskFinished recipients, tst)
 			Nothing
 				= (taskException "sendEmail: No e-mail address defined for the current user",tst)

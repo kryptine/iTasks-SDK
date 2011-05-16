@@ -166,5 +166,5 @@ where
 	isAllowed _ wf					= isEmpty wf.Workflow.roles
 	
 myProcesses =
-				getContextWorker
+				getCurrentUser
 	>>=	\user.	return (makeReadOnlyShared ('ProcessDB'.getProcessesForUser user [Running] [Active]))

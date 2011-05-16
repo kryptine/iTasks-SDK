@@ -1,10 +1,10 @@
 implementation module OutputTasks
 
 import StdTuple, StdList, StdOrdList, StdBool, StdMisc, Functor
-import Types, Shared, Util, TSt, ExceptionCombinators, InteractionTasks, CoreCombinators, CommonCombinators
+import Types, Util, TSt, ExceptionCombinators, InteractionTasks, CoreCombinators, CommonCombinators, SystemData
 from StdFunc 		import id, const, o
 from SharedTasks	import sharedStore, :: SharedStoreId
-from SharedTasks	import qualified readShared, writeShared
+from SharedTasks	import readShared, writeShared
 
 //Local output
 showMessage :: !d !a -> Task a | descr d & iTask a
@@ -78,6 +78,21 @@ monitorA` d view pred actions mbAbout shared
 		(\_ r _ -> if (pred r) (StopInteraction (Nothing,r)) ((fromPredActionsLocal id (\action r -> (Just action,r)) actions) r))
 		Void
 		shared
+
+waitForTime :: !Time -> Task Time
+waitForTime time =
+		waitUntil ("Wait for time", ("Wait until " +++ toString time)) pred sharedCurrentTime
+where	
+	pred now = time < now
+
+waitForDate :: !Date -> Task Date
+waitForDate date =
+		waitUntil ("Wait for date", ("Wait until " +++ toString date)) pred sharedCurrentDate
+where
+	pred now = date < now
+
+waitForTimer :: !Time -> Task Time
+waitForTimer time = readShared sharedCurrentTime >>= \now -> waitForTime (now + time)
 
 noView :: Maybe (a -> Void)
 noView = Nothing

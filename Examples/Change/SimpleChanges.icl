@@ -159,14 +159,13 @@ chooseUserA question
 
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
-	=								getCurrentProcessId
-	>>= \mypid ->					getProcessesWithStatus [Running] [Active]
+	=								getProcessesWithStatus [Running] [Active]
 	>>= \procs ->					enterChoiceA question id buttons
 										[	( proc.Process.taskId
 											, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title
 											, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.priority
 											, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
-											\\ proc <- procs | proc.Process.taskId <> mypid]
+											\\ proc <- procs]
 	>>= \res ->						case res of
 										(ActionOk,Just (pid,_,_,_))	-> return pid
 										_							-> throw "choosing a process has been cancelled"

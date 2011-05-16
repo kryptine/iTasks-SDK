@@ -7,6 +7,7 @@ from HTML				import :: HtmlTag
 from Shared				import :: Shared
 from StdFunc			import id, const
 from InteractionTasks	import :: Verified, :: PredAction
+from Types				import :: Date, :: Time, :: DateTime
 import iTaskClass
 
 /*
@@ -75,3 +76,29 @@ waitAbout	:: !d !about	!(Shared (Maybe r) w) -> Task r | descr d & iTask r & iTa
 */
 waitUntil		:: !d !(r -> Bool)			!(Shared r w) -> Task r | descr d & iTask r & iTask w
 waitUntilAbout	:: !d !(r -> Bool) !about	!(Shared r w) -> Task r | descr d & iTask r & iTask w & iTask about
+
+/**
+* Creates a task which blocks a workflow until a specified time.
+*
+* @param The specified time at which the task should complete
+*
+* @return The time to wait for
+*/
+waitForTime		:: !Time			-> Task Time
+/**
+* Creates a task which blocks a workflow until a specified date.
+*
+* @param The specified date at which the task should complete
+*
+* @return The date to wait for
+*/
+waitForDate		:: !Date			-> Task Date
+/**
+* Task completes after specified amount of time has passed
+* since the creation of the task.
+*
+* @param The time to wait before the task should complete
+*
+* @return The time the timer went off
+*/
+waitForTimer	:: !Time			-> Task Time

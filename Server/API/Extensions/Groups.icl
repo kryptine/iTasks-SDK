@@ -33,7 +33,7 @@ where
 	aQuit			= (ActionQuit, always)
 	newGroup		= 		enterInformation ("New group","Please enter a name for the new group")
 						>>= \name ->
-							getContextWorker
+							getCurrentUser
 						>>= \user -> 
 					  		createGroup name user
 	
@@ -68,7 +68,7 @@ where
 		>>=	inviteUserToGroup group
 			
 	leave group
-		=	getContextWorker
+		=	getCurrentUser
 		>>= removeMemberFromGroup group
 
 createGroup :: !String !User  -> Task Group
@@ -80,7 +80,7 @@ getAllGroups
 	= dbReadAll 
  
 getMyGroups :: Task [Group]
-getMyGroups = getContextWorker >>= \user -> dbReadAll >>= transform (filter (groupMember user))
+getMyGroups = getCurrentUser >>= \user -> dbReadAll >>= transform (filter (groupMember user))
 where
 	groupMember user {Group|members}	= isMember user members
 
@@ -104,7 +104,7 @@ removeMemberFromGroup group user
 		
 inviteUserToGroup :: !Group !User -> Task Group
 inviteUserToGroup group user
-	=	getContextWorker
+	=	getCurrentUser
 	>>= \fromUser ->
 		spawnProcess True initManagerProperties noMenu (
 			user @: (invite fromUser group)

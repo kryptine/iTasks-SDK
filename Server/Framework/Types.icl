@@ -598,6 +598,16 @@ where
 	(==) Suspended	Suspended	= True
 	(==) _			_			= False
 
+class toEmail r where toEmail :: r -> EmailAddress
+instance toEmail EmailAddress where toEmail e = e
+instance toEmail String where toEmail s = EmailAddress s
+instance toEmail User
+where
+	toEmail (NamedUser n)		= EmailAddress (userName (NamedUser n))
+	toEmail (RegisteredUser d)	= d.emailAddress
+	toEmail RootUser			= EmailAddress ""
+	toEmail AnyUser				= EmailAddress ""
+	
 initTaskProperties :: TaskProperties
 initTaskProperties =
 	{ taskDescription = toDescr ""

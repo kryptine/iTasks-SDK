@@ -136,7 +136,7 @@ createList type name description
 where 
 	storeMeta :: Task ListMeta
 	storeMeta
-		=	getContextWorker
+		=	getCurrentUser
 		>>= \owner ->
 			dbCreateItem {ListMeta| listId = 0, owner = owner, sharedWith =[]}
 			
@@ -154,7 +154,7 @@ getAllLists = dbReadAll >>= getLists
 
 getMyLists :: Task [AnyList]
 getMyLists
-	=	getContextWorker >>= \user -> dbReadAll >>= transform (filter (hasAccess user)) >>= getLists 
+	=	getCurrentUser >>= \user -> dbReadAll >>= transform (filter (hasAccess user)) >>= getLists 
 where
 	hasAccess user meta = user == meta.ListMeta.owner || isMember user meta.ListMeta.sharedWith
 	

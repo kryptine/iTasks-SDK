@@ -64,6 +64,12 @@ instance html Note
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress !String
+
+class toEmail r where toEmail :: r -> EmailAddress
+instance toEmail EmailAddress
+instance toEmail String
+instance toEmail User
+
 :: URL			= URL !String
 :: PhoneNr		= PhoneNr String
 :: Password		= Password !String

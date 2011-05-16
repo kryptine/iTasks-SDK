@@ -144,7 +144,7 @@ where
 	
 getMyMessages :: Task [Message]
 getMyMessages
-	=	getContextWorker
+	=	getCurrentUser
 	>>= \user ->
 		dbReadAll
 	>>= transform (filter (isRecipient user))

@@ -11,7 +11,7 @@ from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree
 from Shared		import mapShared, :: SymmetricShared
-import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, SharedTasks, ProcessDBTasks, UpdateTasks, OutputTasks
+import CoreCombinators, ExceptionCombinators, TuningCombinators, SystemTasks, SharedTasks, ProcessDBTasks, UpdateTasks, OutputTasks, SystemData
 
 derive class iTask GAction, GOnlyAction
 
@@ -205,7 +205,7 @@ stop = return Void
 
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"
-randomChoice list = getRandomInt >>= \i -> return (list !! ((abs i) rem (length list)))
+randomChoice list = readShared sharedRandomInt >>= \i -> return (list !! ((abs i) rem (length list)))
 
 repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
