@@ -11,8 +11,8 @@ htmlDisplay html =	{ content	= TUIControl TUIHtmlDisplay
 									, eventValue	= Nothing
 									, taskId		= ""
 									}
-					, width		= Wrap
-					, height	= Wrap
+					, width		= Auto
+					, height	= Auto
 					, margins	= Nothing
 					}
 

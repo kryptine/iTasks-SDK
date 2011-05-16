@@ -2,7 +2,7 @@ Ext.ns("itasks.tui");
 
 itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 	style: 'white-space: nowrap',
-	defaultWidth: ['Wrap'],
+	defaultWidth: ['FillParent',1,'ContentSize'],
 	defaultHeight: ['Wrap'],
 	initComponent: function() {
 		this.html = this.value;
@@ -13,6 +13,8 @@ itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	setValue: function(value) {
+		this.setWidth('auto');
+		this.setHeight('auto');
 		this.update(value);
 	}
 });

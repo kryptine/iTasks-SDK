@@ -32,6 +32,10 @@ where
 instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
+	
+instance toString ChoiceException
+where
+	toString _ = "Cannot choose from empty option list"
 
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & TC, toString e
 try normalTask handlerTask = mkSequenceTask (taskTitle normalTask, taskDescription normalTask) (exceptionTaskE,exceptionTaskC)
