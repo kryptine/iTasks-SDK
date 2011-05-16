@@ -36,7 +36,28 @@ interactLocal	:: !d !(l -> [InteractionPart l])						!(l -> InteractionTerminato
 				
 :: InteractionTerminators a	= UserActions		![(!Action,!Maybe a)]	// A list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
 							| StopInteraction	!a						// The task stops and produces result a
-							
+
+/*
+* Ask the user to choose an action. The list of actions is calculated dynamically.
+*
+* @param description 				A description of the task to display to the user
+* @param (r -> [(Action,Maybe a)]) 	A list of actions the user can choose from. Each actions yields the given result if it's chosen & result is present (Just). Otherwise (Nothing) action is disabled.
+* @param (Shared r w)				The shared value to use. 
+*
+* @return 							Value associated with chosen action.
+*/						
+chooseAction 		:: !d !(r -> [(!Action,!Maybe a)]) !(Shared r w)	-> Task a | descr d & iTask a & iTask w
+
+/*
+* Ask the user to choose an action. 
+*
+* @param description 		A description of the task to display to the user
+* @param [(Action,a)]		A list of actions the user can choose from. Each actions yields the given result if it's chosen. 
+*
+* @return 					Value associated with chosen action.
+*/
+chooseActionConst	:: !d ![(!Action,a)]								-> Task a | descr d & iTask a
+
 // auxiliary types/function for derived interaction tasks
 
 // This tuple is used to link actions to user interfaces.

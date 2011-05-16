@@ -203,6 +203,12 @@ LAST_EDIT_STORE			:== "lastEdit"
 EDIT_CONFLICT_STORE		:== "editConflict"
 EDIT_CONFLICT_WARNING	:== "An edit conflict occurred. The form was refreshed with the most recent value."
 
+chooseAction :: !d !(r -> [(!Action,!Maybe a)]) !(Shared r w) -> Task a | descr d & iTask a & iTask w
+chooseAction d actionsF shared = interact d (\_ _ _ -> []) (\_ r _ -> UserActions (actionsF r)) Void shared
+
+chooseActionConst :: !d ![(!Action,a)] -> Task a | descr d & iTask a
+chooseActionConst d actions = interactLocal d (const []) (const (UserActions (map (appSnd Just) actions))) Void
+
 // auxiliary types/function for derived interaction tasks
 always :: (Verified a) -> Bool
 always _ = True
