@@ -6,13 +6,13 @@ derive JSONEncode TaskPanel, TUIPanel
 derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIControlType, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONEncode TUIFormContainer, TUILayoutContainer, TUIRecordContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
+derive JSONEncode TUILayoutContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 
 derive JSONDecode TaskPanel, TUIPanel
 derive JSONDecode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONDecode TUIControlType, TUIConstructorControl
 derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONDecode TUIFormContainer, TUILayoutContainer, TUIRecordContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
+derive JSONDecode TUILayoutContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 
 derive bimap Maybe, (,)
 

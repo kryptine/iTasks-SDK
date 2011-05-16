@@ -1,7 +1,8 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.IntControl = itasks.tui.extendControl(Ext.form.NumberField,{
-	width: 100,
+	defaultWidth: ['Fixed',100],
+	defaultHeight: ['Fixed',25],
 	allowDecimals: false
 });
 

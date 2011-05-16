@@ -165,7 +165,7 @@ where
 															}
 											, width		= Auto
 											, height	= Auto
-											, margins	= Just (sameMargins 3)
+											, margins	= Nothing
 											}
 			
 	addTaskIds :: !TaskId ![(!Action,!Bool)] -> SubtaskActions

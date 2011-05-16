@@ -1,13 +1,21 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.Button = Ext.extend(Ext.Button, {
-	minWidth: 75,
+itasks.tui.Button = itasks.util.extend(Ext.Button, itasks.tui.base, {
+	defaultWidth: ['Wrap'],
+	defaultHeight: ['Fixed',25],
 	initComponent: function() {
 		if (!this.isIconPresent(this.iconCls)) delete this.iconCls;
 		this.listeners = {click: {fn: this.onActionClick, scope: this}};
-		delete this.width;
 		
-		itasks.tui.Button.superclass.initComponent.apply(this,arguments);
+		if (!this.margins) {
+			this.margins =	{ left		: 3
+							, top		: 3
+							, right		: 3
+							, bottom	: 3
+							};
+		}
+		
+		itasks.tui.base.initComponent.apply(this,arguments);
 		
 		if (this.actionButton) {
 			this.addEvents('tuiaction');

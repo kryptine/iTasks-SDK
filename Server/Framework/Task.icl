@@ -53,15 +53,6 @@ where
 incTaskNr :: !TaskNr -> TaskNr
 incTaskNr [] = [0]
 incTaskNr [i:is] = [i+1:is]
-	
-//Applies given function to the result if task is finished
-mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
-mapTaskResult f (TaskFinished x)		= TaskFinished (f x) 
-mapTaskResult f (TaskBusy)				= TaskBusy
-mapTaskResult f (TaskException e str)	= TaskException e str
-
-mapTask :: !(a -> b) !(Task a) -> Task b
-mapTask f t=:{taskFuncCommit} = {t & taskFuncCommit = appFst (mapTaskResult f) o taskFuncCommit}
 
 derive gUpdate		ManagerProperties, TaskPriority, RunningTaskStatus
 derive gDefaultMask	ManagerProperties, TaskPriority, RunningTaskStatus

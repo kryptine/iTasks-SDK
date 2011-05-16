@@ -1,6 +1,8 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.ChoiceControl = itasks.tui.extendControl(Ext.form.CheckboxGroup,{
+	defaultWidth: ['Wrap'],
+	defaultHeight: ['Wrap'],
 	initComponent : function(){
 		// names of checkbox groups have to be unique, so use data path field for events
 		this.dataPath = this.name;
@@ -80,27 +82,12 @@ itasks.tui.ChoiceControl = itasks.tui.extendControl(Ext.form.CheckboxGroup,{
 	},
 	
 	afterRender : function(){
-		itasks.tui.control.afterRender.apply(this,arguments);
+		this.extSuperclass.afterRender.apply(this,arguments);
 		
 		this.eachItem(function(item){
 			item.on('check',this.fireChecked, this);
 			item.inGroup = true;
 		});
-		
-		// determine max width of items used to align hint/error icon
-		var maxWidth = 0;
-		this.items.each(function(item) {
-			var el = item.getEl();
-			var width = el.getWidth() + el.next().getWidth();
-			if(width > maxWidth)
-				maxWidth = width;
-		});
-
-		this.customIconAlign = {
-			el: this.el,
-			position: 'l-l',
-			offsets: [maxWidth + 10,0]
-		};
 	},
 	fireChecked : function() {
 		var arr = [];

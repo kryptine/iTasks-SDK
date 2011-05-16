@@ -27,16 +27,13 @@ visualizeAsTextLabel	:: !a															-> String	| gVisualize{|*|} a
 :: *VSt =
 	{ vizType			:: !VisualizationType				// Type of preferred visualization
 	, origVizType		:: !VisualizationType				// Type of the preferred visualization at initialization, this should not be edited.
-	, label				:: !Maybe String					// Optional label to attach to editor fields
-	
 	// Additional information for form generation
 	, currentPath		:: !DataPath						// Accumulated path through the data structure, used to identify sub-structures
 	, verifyMask		:: ![VerifyMask]
 	, selectedConsIndex	:: !Int								// Index of the selected constructor in an Object
-	, useLabels			:: !Bool							// Indent for labels, whether there is a label or not
 	, optional			:: !Bool							// Create optional form fields
 	, renderAsStatic	:: !Bool							// If true, flag the form items as being static
-	, editEvent		:: !(Maybe (!DataPath,!JSONNode))		// The edit event (if present) for keeping track of values sent by the client (used for diff)
+	, editEvent			:: !(Maybe (!DataPath,!JSONNode))	// The edit event (if present) for keeping track of values sent by the client (used for diff)
 	, taskId			:: !TaskId							// The id of the task the visualisation belongs to
 	}
 
@@ -112,8 +109,6 @@ visualizeCustom			:: !(TUIVizFunction a) !(StaticVizFunctionCustom b) !(Maybe (!
 * @param The name of the TUI element
 * @param The value of the TUI element (if present)
 * @param A flag indicating if the value is touched
-* @param The field label (if present)
-* @param A flag indicating if the value is optional
 * @param Error message
 * @param Hint message
 * @param A flag indicating if a static editor should be generated
@@ -121,7 +116,7 @@ visualizeCustom			:: !(TUIVizFunction a) !(StaticVizFunctionCustom b) !(Maybe (!
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction				a :==	TUIName (Maybe a) Bool (Maybe String) Bool String String Bool -> .(*VSt -> *(![TUIDef],!*VSt))
+:: TUIVizFunction				a :==	TUIName (Maybe a) Bool String String Bool -> .(*VSt -> *(![TUIDef],!*VSt))
 /**
 * Functions for string and html visualizations.
 *

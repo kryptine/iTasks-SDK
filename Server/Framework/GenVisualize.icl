@@ -4,8 +4,8 @@ import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEn
 import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefinition, Types, HtmlUtil
 
 mkVSt :: *VSt
-mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, currentPath = startDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = ""}
+mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, currentPath = startDataPath,
+		selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = ""}
 
 //Wrapper functions
 visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> TUIDef | gVisualize{|*|} a
@@ -36,21 +36,24 @@ gVisualize{|UNIT|} _ vst
 	
 gVisualize{|FIELD of d|} fx val vst=:{vizType}
 	# x = fmap fromFIELD val
-	# (vis,vst) = case vizType of
+	= case vizType of
+		VEditorDefinition
+			# (vizBody,vst=:{VSt|optional})	= fx x {VSt|vst & optional = False}
+			# label							= {htmlDisplay (formatLabel d.gfd_name +++ if optional "" "*" +++ ":") & width = Fixed 100}
+			= ([TUIFragment {content = TUILayoutContainer {defaultLayoutContainer [label:coerceToTUIDefs vizBody] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = Wrap, margins = Nothing}],{VSt|vst & optional = optional})
 		VHtmlDisplay
-			# (vizBody,vst) 	= fx x {VSt |vst & label = Nothing}
+			# (vizBody,vst) 				= fx x vst
 			= case vizBody of
 			 [] = ([],vst)
 			 _  = ([HtmlFragment (TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (coerceToHtml vizBody)])],vst)
 		VTextDisplay
-			# (vizBody,vst) 	= fx x {VSt |vst & label = Just (formatLabel d.gfd_name)}
+			# (vizBody,vst) 				= fx x vst
 			= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody]++[TextFragment " "],vst)
 		_
-			# (vizBody,vst)		= fx x {VSt |vst & label = Just (formatLabel d.gfd_name)}
+			# (vizBody,vst)					= fx x vst
 			= (vizBody,vst)
-	= (vis,{VSt|vst & label = Nothing})
 			
-gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,optional,renderAsStatic,verifyMask,taskId,editEvent}
+gVisualize{|OBJECT of d|} fx val vst=:{vizType,currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
@@ -63,7 +66,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 			//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 			| d.gtd_num_conses > 1 && not renderAsStatic
 				# (err,hnt)	= verifyElementStr cmv
-				# (items, vst=:{selectedConsIndex}) = fx x {vst & useLabels = False, optional = False}
+				# (items, vst=:{selectedConsIndex}) = fx x vst
 				= ([TUIFragment (defaultSizeControl (TUIConstructorControl
 						{TUIConstructorControl
 						| consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
@@ -71,70 +74,59 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,label,currentPath,selectedConsInd
 						})
 						{ TUIControl
 						| name = dp2s currentPath
-						, fieldLabel = labelAttr useLabels label
 						, taskId = taskId
 						, value = toJSON (if (isTouched cmv) selectedConsIndex -1)
-						, optional = optional
-						, errorMsg = err
-						, hintMsg = hnt
 						, eventValue = eventValue currentPath editEvent
 						}
 					)]
-				  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
-			//ADT with one constructor: put content into form container, if empty show cons name
+				  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
+			//ADT with one constructor: put content into container, if empty show cons name
 			| otherwise
-				# (vis,vst) = fx x {VSt|vst & useLabels = False, label = Nothing}
+				# (vis,vst) = fx x vst
 				# vis = case vis of
-					[]	= if (isTouched cmv) [TUIFragment (htmlDisplay label ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))] []
-					vis = [TUIFragment	{ content	= TUIFormContainer
-														{ TUIFormContainer
-														| items			= coerceToTUIDefs vis
-														, fieldLabel	= label
-														, optional		= optional
-														}
+					[]	= if (isTouched cmv) [TUIFragment (htmlDisplay ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))] []
+					vis = [TUIFragment	{ content	= TUILayoutContainer (defaultLayoutContainer (coerceToTUIDefs vis))
 										, width 	= Auto
 										, height	= Auto
 										, margins	= Nothing
 										}]
-				= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
+				= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 		_
 			# (viz,vst) = fx x vst
 			= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
-import StdDebug			
-gVisualize{|CONS of d|} fx val vst=:{useLabels,optional,taskId} = visualizeCustomSimple mkControl staticVis val False vst
+	
+gVisualize{|CONS of d|} fx val vst=:{taskId,editEvent,currentPath,optional} = visualizeCustomSimple mkControl staticVis val False vst
 where
-	mkControl name val _ label optional err hnt renderAsStatic vst
+	mkControl name val _ _ _ renderAsStatic vst
 		# x = fmap fromCONS val
-		# (vis,vst) = case isRecordCons d of
+		 = case isRecordCons d of
 			False // normal ADT
 				# (viz,vst)	= fx x vst
 				# vst		= {VSt | vst & selectedConsIndex = d.gcd_index}
 				= (coerceToTUIDefs viz,vst)
 			True = case x of // record
-				Nothing // Create an empty record container that can be expanded later
-					= (recordContainer False [],vst)
+				Nothing // Create checkbox to create record
+					= ([checkbox False],vst)
 				Just x
-					# (viz,vst) = fx (Just x) {vst & useLabels = True, optional = False}
-					= (recordContainer True viz,vst)
-		= (vis,{vst & optional = optional, useLabels = useLabels})
+					# (viz,vst) = fx (Just x) vst
+					= ([recordContainer viz],vst)
 	where
-		recordContainer hasValue viz = [	{ content	= TUIRecordContainer
-															{ TUIRecordContainer
-															| name = name
-															, title = label
-															, items = coerceToTUIDefs viz
-															, optional = (optional && (not renderAsStatic))
-															, hasValue = hasValue
-															, taskId = taskId
-															}
-											, width		= Auto
-											, height	= Auto
-											, margins	= Nothing
-											}]
+		recordContainer viz =	{ content	= TUILayoutContainer (defaultLayoutContainer (if optional [checkbox True] [] ++ coerceToTUIDefs viz))
+								, width		= FillParent 1 ContentSize
+								, height	= Wrap
+								, margins	= Nothing
+								}
+											
+		checkbox c = defaultSizeControl TUIBoolControl
+			{ name			= name
+			, value			= toJSON c
+			, taskId		= taskId
+			, eventValue	= eventValue currentPath editEvent
+			}
 		
 	staticVis v _ vst=:{vizType}
 		# x = fmap (\(CONS c) -> c) v
-		# (viz,vst) = fx x {VSt|vst & label = Nothing}
+		# (viz,vst) = fx x vst
 		= case vizType of
 			VHtmlDisplay
 				//Records
@@ -259,9 +251,9 @@ where
 		
 gVisualize{|Choice|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
 where
-	mkControl name val touched label optional err hnt _ vst = case val of
+	mkControl name val touched err hnt _ vst = case val of
 		Nothing
-			= ([htmlDisplay label noSelection],vst)
+			= ([htmlDisplay noSelection],vst)
 		Just (Choice opts sel)
 			# (children,vst) = childVisualizations fx opts (Just VHtmlLabel) vst
 			= ([defaultSizeControl (TUIChoiceControl
@@ -270,11 +262,7 @@ where
 				, options = map mkOptionLabel children
 				})
 				{ TUIControl
-				| fieldLabel = label
-				, optional = optional
-				, errorMsg = err
-				, hintMsg = hnt
-				, name = name
+				| name = name
 				, value = toJSON (if (touched && sel >= 0 && sel < length opts) [sel] [])
 				, eventValue = eventValue currentPath editEvent
 				, taskId = taskId
@@ -290,9 +278,9 @@ where
 
 gVisualize{|MultipleChoice|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
 where
-	mkControl name val touched label optional err hnt _ vst = case val of
+	mkControl name val touched err hnt _ vst = case val of
 		Nothing
-			= ([htmlDisplay label empty],vst)
+			= ([htmlDisplay empty],vst)
 		Just (MultipleChoice opts sel)
 			# (children,vst) = childVisualizations fx opts (Just VHtmlLabel) vst
 			= ([defaultSizeControl (TUIChoiceControl
@@ -301,11 +289,7 @@ where
 				, options = map mkOptionLabel children
 				})
 				{ TUIControl
-				| fieldLabel = label
-				, optional = optional
-				, errorMsg = err
-				, hintMsg = hnt
-				, name = name
+				| name = name
 				, value = toJSON sel
 				, eventValue = eventValue currentPath editEvent
 				, taskId = taskId
@@ -321,9 +305,9 @@ where
 
 gVisualize{|Tree|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
 where
-	mkControl name val touched label optional err hnt _ vst = case val of
+	mkControl name val touched err hnt _ vst = case val of
 		Nothing
-			= ([htmlDisplay label empty],vst)
+			= ([htmlDisplay empty],vst)
 		Just (Tree nodes sel)
 			# vst = {vst & vizType = VTextLabel}
 			# (tree,_,vst) = mkTree nodes 0 vst
@@ -332,10 +316,6 @@ where
 				{ TUIControl
 				| name = name
 				, value = if (touched && sel >= 0) (toJSON sel) JSONNull
-				, fieldLabel = label
-				, optional = optional
-				, errorMsg = err
-				, hintMsg = hnt
 				, eventValue = eventValue currentPath editEvent
 				, taskId = taskId
 				}],vst)
@@ -384,9 +364,9 @@ where
 
 gVisualize{|Table|} fx val vst = visualizeCustomSimple mkControl staticVis val True vst
 where
-	mkControl name val touched label optional err hnt _ vst=:{VSt|currentPath,verifyMask} = case val of
+	mkControl name val touched err hnt _ vst=:{VSt|currentPath,verifyMask} = case val of
 		Nothing
-			= ([htmlDisplay label empty],vst)
+			= ([htmlDisplay empty],vst)
 		Just (Table rows)
 			#( vis,vst)	= gVisualize{|* -> *|} fx (Just rows) vst
 			# (htm,vst)	= childVisualizations fx rows (Just VHtmlDisplay) {VSt|vst & currentPath = currentPath, verifyMask = childMasks (fst (popMask verifyMask))}
@@ -427,7 +407,7 @@ where
 			
 			getEditors` :: [TUIDef] -> [TUIDef]
 			getEditors` tui = case tui of
-				[{content=c=:(TUIRecordContainer {TUIRecordContainer|items})}]	= items
+				[{content=c=:(TUILayoutContainer {TUILayoutContainer|items})}]	= items
 				tui																= tui
 				
 			filterHtmlContainers :: [TUIDef] -> [Maybe TUIDef]
@@ -448,16 +428,13 @@ where
 	
 gVisualize {|[]|} fx val vst = visualizeCustomSimple mkControl staticVis val False vst
 where
-	mkControl name val touched label optional err hnt renderAsStatic vst=:{useLabels,taskId}
+	mkControl name val touched err hnt renderAsStatic vst=:{VSt|taskId}
 		# val = listValue val
 		# (items,vst) = TUIDef val vst
 		= ([	{ content	= TUIListContainer
 								{ TUIListContainer
 								| items = items
-								, optional = optional
 								, name = name
-								, fieldLabel = label
-								, hideLabel = not useLabels
 								, staticDisplay = renderAsStatic
 								, errorMsg = err
 								, hintMsg = hnt
@@ -468,16 +445,16 @@ where
 				}
 			],vst)
 		where
-			TUIDef items vst=:{optional,useLabels}
-				# (itemsVis,vst)	= childVisualizations fx items Nothing {vst & optional = False, useLabels = False, label = Nothing}
+			TUIDef items vst
+				# (itemsVis,vst)	= childVisualizations fx items Nothing vst
 				# vis				= [listItemControl idx (coerceToTUIDefs dx) \\ dx <- itemsVis & idx <- [0..]]
 				# (vis,vst)			= case renderAsStatic of
 					False
-						# (dx,vst)  = fx Nothing {VSt|vst & optional = True}
+						# (dx,vst)  = fx Nothing vst
 						= (vis ++ [listItemControl (length vis) (coerceToTUIDefs dx)],vst)
 					True
 						= (vis,vst)
-				= (vis,{vst & optional = optional, useLabels = useLabels})
+				= (vis,vst)
 						
 			listItemControl idx defs
 				=	{ content	= TUIListItem
@@ -518,7 +495,7 @@ gVisualize{|Dynamic|}			_ vst	= noVisualization vst
 gVisualize{|(->)|} _ _			_ vst	= noVisualization vst
 gVisualize{|Shared|} _ _		_ vst	= noVisualization vst
 
-gVisualize{|Maybe|} fx val vst=:{vizType,currentPath,optional}
+gVisualize{|Maybe|} fx val vst=:{vizType,currentPath}
 	# vst = {VSt|vst & optional = True}
 	# (viz,vst) = case vizType of
 		VEditorDefinition = case val of
@@ -528,7 +505,7 @@ gVisualize{|Maybe|} fx val vst=:{vizType,currentPath,optional}
 			Just Nothing	= ([TextFragment "-"],vst)
 			Just (Just x)	= fx (Just x) vst
 			Nothing			= ([],vst)
-	= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
+	= (viz, {VSt|vst & optional = True, currentPath = stepDataPath currentPath})
 	
 // wrapper types changing visualization behaviour
 gVisualize{|Hidden|} fx val vst=:{VSt | currentPath, verifyMask}
@@ -545,7 +522,7 @@ gVisualize{|Editable|} fx val vst=:{currentPath, renderAsStatic}
 	# (def,vst) = fx x {VSt | vst & renderAsStatic = False}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 
-gVisualize{|VisualizationHint|} fx val vst=:{currentPath, vizType, origVizType, taskId}
+gVisualize{|VisualizationHint|} fx val vst=:{currentPath, vizType, taskId}
 	= case val of
 		Just (VHHidden x)	= gVisualize{|* -> *|} fx (Just (Hidden x)) vst
 		Just (VHDisplay x)	= gVisualize{|* -> *|} fx (Just (Display x)) vst
@@ -568,15 +545,11 @@ visualizeControl control staticF v vst = visualizeControl2 control staticF (fmap
 visualizeControl2 :: !TUIControlType !(StaticVizFunctions b) !(Maybe (!a,!b)) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|} a
 visualizeControl2 control (strF,htmlF) v vst=:{editEvent,currentPath} = visualizeCustom tuiF staticF v True vst
 where
-	tuiF name v touched label optional err hnt _ vst=:{VSt|taskId}
+	tuiF name v touched err hnt _ vst=:{VSt|taskId}
 		# v = checkMask touched v
 		# viz = defaultSizeControl control	{ TUIControl
 											| name = name
 											, value = toJSON v
-											, fieldLabel = label
-											, optional = optional
-											, errorMsg = err
-											, hintMsg = hnt
 											, eventValue = eventValue currentPath editEvent
 											, taskId = taskId
 											}
@@ -605,7 +578,7 @@ visualizeCustomSimple :: !(TUIVizFunction a) !(StaticVizFunctionCustom a) !(Mayb
 visualizeCustomSimple tuiF staticF v staticHtmlContainer vst = visualizeCustom tuiF staticF (fmap (\a -> (a,a)) v) staticHtmlContainer vst
 
 visualizeCustom :: !(TUIVizFunction a) !(StaticVizFunctionCustom b) !(Maybe (!a,!b)) !Bool !*VSt -> *(![Visualization],!*VSt)
-visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,origVizType,label,currentPath,useLabels,optional,renderAsStatic,verifyMask}
+visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,origVizType,currentPath,renderAsStatic,verifyMask}
 	# (cmv,vm)	= popMask verifyMask
 	// only check mask if generating editor definition & not for labels
 	# touched	= case origVizType of
@@ -617,15 +590,14 @@ visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,origVizType,lab
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# (vis,vst) = case vizType of
 		VEditorDefinition
-			# label = labelAttr useLabels label
 			# (vis,vst) = case (renderAsStatic,staticHtmlContainer) of
 				(True,True)
 					# (vis,vst)	= staticF (fmap snd v) touched {vst & vizType = VHtmlDisplay}
 					# vst		= {vst & vizType = vizType} 
-					= ([htmlDisplay label (toString (html (coerceToHtml vis)))],vst)
+					= ([htmlDisplay (toString (html (coerceToHtml vis)))],vst)
 				_
 					# (err,hnt) = verifyElementStr cmv
-					= tuiF (dp2s currentPath) (fmap fst v) touched label optional err hnt renderAsStatic vst
+					= tuiF (dp2s currentPath) (fmap fst v) touched err hnt renderAsStatic vst
 				
 			= (map TUIFragment vis,vst)
 		_
@@ -650,11 +622,6 @@ where
 	childVisualizations` [child:children] acc vst
 		# (childV,vst) = fx (Just child) vst
 		= childVisualizations` children [childV:acc] vst
-
-labelAttr :: !Bool !(Maybe String) -> Maybe String
-labelAttr False	_		= Nothing
-labelAttr True	Nothing	= Just ""
-labelAttr True	l		= l
 
 formatLabel :: !String -> String
 formatLabel label = {c \\ c <- [toUpper lname : addspace lnames]}

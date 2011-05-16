@@ -1,6 +1,9 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
+itasks.tui.GridContainer = itasks.util.extend(Ext.Button, itasks.tui.base, {
+	defaultWidth: ['FillParent',1,'ContentSize'],
+	defaultHeight: ['Wrap'],
+	
 	htmlDirty: false,
 	stateful: false,
 	viewConfig: {
@@ -12,7 +15,6 @@ itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
 	},
 	
 	initComponent: function() {
-		this.height = 500;
 		var data = this.gridHtml;
 		var cols = this.columns;
 		var fields = [];
@@ -60,7 +62,7 @@ itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
 			fields: fieldsC
 		});
 	
-		itasks.tui.GridContainer.superclass.initComponent.apply(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 		
 		this.selModel = new Ext.grid.CellSelectionModel();
 		this.activeEditor = null;
@@ -70,7 +72,7 @@ itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
 	},
 	
 	onRender : function(ct, position){
-		Ext.grid.GridPanel.superclass.onRender.apply(this, arguments);
+		this.extSuperclass.onRender.apply(this, arguments);
 
 		var c = this.getGridEl();
 
@@ -93,7 +95,7 @@ itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
 	},
 
 	initEvents: function(){
-		Ext.grid.EditorGridPanel.superclass.initEvents.call(this);
+		this.extSuperclass.initEvents.call(this);
 		this.on('celldblclick', this.onCellDblClick, this);
 		this.on('cellclick', this.onCellClick, this);
 	},
@@ -173,7 +175,6 @@ itasks.tui.GridContainer = Ext.extend(Ext.grid.GridPanel,{
 	},
 	
 	setValue: function(v){
-		var v = Ext.decode(v);
 		var	row = v[0],
 			col = v[1],
 			val = v[2];

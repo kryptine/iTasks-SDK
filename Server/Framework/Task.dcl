@@ -36,9 +36,6 @@ derive gPutRecordFields	Task
 					| TaskException !Dynamic !String
 					
 taskException :: !e -> TaskResult a | TC, toString e
-					
-mapTaskResult				:: !(a -> b) !(TaskResult a)				-> TaskResult b
-mapTask						:: !(a -> b) !(Task a)						-> Task b
 
 :: TaskThread a		=
 	{ originalTask		:: !Task a

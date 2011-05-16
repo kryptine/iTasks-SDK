@@ -11,6 +11,8 @@ itasks.tui.UsernameReader.readRecords = function(o) {
 }
 
 itasks.tui.UsernameControl = itasks.tui.extendControl(Ext.form.ComboBox,{
+	defaultWidth: ['Fixed',100],
+	defaultHeight: ['Fixed',25],
 	triggerAction:	'all',
 	valueField:		'username',
 	displayField:	'username',

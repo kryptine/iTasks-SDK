@@ -588,10 +588,6 @@ div.taskForestLegend{
 
 /* == ListPanel == */
 
-.list{
-	position: relative;
-}
-
 .list-sidebar{
 	width: 5px;
 	height: 100%;
@@ -599,7 +595,7 @@ div.taskForestLegend{
 	position: absolute;
 	float: right;
 	top: 0px;
-	right: 0px;
+	right: 5px;
 }
 
 .list-sidebar-collapsed{
@@ -652,15 +648,11 @@ div.taskForestLegend{
 }
 
 .list-item-light {
-	padding: 4px 8px 2px 0px;
 	background-image: url('img/light-blue-background.png') !important;
-	position: relative;
 }
 
 .list-item-dark {
-	padding: 4px 8px 2px 0px;
 	background-image: url('img/dark-blue-background.png') !important;
-	position: relative;
 }
 
 .list-item-dark.list-last-item {
@@ -702,36 +694,6 @@ div.taskForestLegend{
 	background-image: url('img/light-blue-background.png') !important;
 	padding: 2px 2px 0px 2px;
 	position: relative;
-}
-
-.list-record-hint-icon {
-	background:none no-repeat scroll 0 2px #eee;
-	background-image: url('img/icons/information.png') !important;
-	width: auto;
-	height: 18px;
-	padding: 2px 2px 2px 24px;
-	margin: 0px 0px 5px 0px;
-	z-index: 1;
-	color: #777777;
-	font-size: 11px;
-	position: absolute;
-	top: 0px;
-	left: 0px;
-}
-
-.list-record-invalid-icon {
-	background:none no-repeat scroll 0 2px #eee;
-	background-image: url('img/icons/exclamation.png') !important;
-	width: auto;
-	height: 18px;
-	padding: 2px 2px 2px 24px;
-	margin: 0px 0px 5px 0px;
-	z-index: 10;
-	color: #E87979;
-	font-size: 11px;
-	position: absolute;
-	top: 0px;
-	left: 0px;
 }
 
 /* == Tree Html Display == */

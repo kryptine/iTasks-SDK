@@ -6,7 +6,7 @@ import Util, GenUpdate, TUIDefinition
 derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
 gEq{|TUIConstructorControl|} _ _ = abort "not implemented"
-import StdDebug
+
 diffEditorDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
 diffEditorDefinitions old new = diffEditorDefinitions` startDataPath old new
 where
@@ -37,7 +37,7 @@ where
 					= [TUIReplace (dp2s path) newTui]
 			(TUIControl otype oc, TUIControl ntype nc)
 				| otype === ntype
-					= valueUpdate path oc nc ++ flatten [f path old new \\ f <- [hintUpdate,errorUpdate,taskIdUpdate,nameUpdate]]
+					= valueUpdate path oc nc ++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]]
 				| otherwise
 					= [TUIReplace (dp2s path) newTui]
 			(TUIButton o,TUIButton n)
@@ -51,16 +51,6 @@ where
 				# path			= shiftDataPath path
 				# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
 				= htmlUpdates ++ editorUpdates
-			(TUIFormContainer o, TUIFormContainer n)
-				# valueUpdates	= staticContainerUpdate path o.TUIFormContainer.items n.TUIFormContainer.items
-				# lengthUpdates	= if (numOld < numNew)
-					[TUIAdd (dp2s path) idx item \\item <- drop numMin n.TUIFormContainer.items & idx <- [numMin..]]
-					(reverse [TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]])
-				= valueUpdates ++ lengthUpdates
-			where
-				numOld = length o.TUIFormContainer.items
-				numNew = length n.TUIFormContainer.items
-				numMin = min numOld numNew
 			(TUILayoutContainer o, TUILayoutContainer n)	|  o.TUILayoutContainer.orientation === n.TUILayoutContainer.orientation
 															&& o.TUILayoutContainer.hGravity === n.TUILayoutContainer.hGravity
 															&& o.TUILayoutContainer.vGravity === n.TUILayoutContainer.vGravity
@@ -77,15 +67,12 @@ where
 				numOld = length o.TUILayoutContainer.items
 				numNew = length n.TUILayoutContainer.items
 				numMin = min numOld numNew
-			// Records are static except if they are optional
-			(TUIRecordContainer o, TUIRecordContainer n) | o.TUIRecordContainer.optional == n.TUIRecordContainer.optional && o.TUIRecordContainer.hasValue == n.TUIRecordContainer.hasValue
-				= staticContainerUpdate path o.TUIRecordContainer.items n.TUIRecordContainer.items
 			(TUIListContainer lcOld, TUIListContainer lcNew)
 				# valueUpdates	= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
 				# lengthUpdates	= if (numOld < numNew)
 					[TUIAdd (dp2s path) idx item \\item <- drop numMin lcNew.TUIListContainer.items & idx <- [numMin..]]
 					(reverse [TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]])
-				= valueUpdates ++ lengthUpdates ++ hintUpdate path old new ++ errorUpdate path old new
+				= valueUpdates ++ lengthUpdates
 				where
 					numOld = length lcOld.TUIListContainer.items
 					numNew = length lcNew.TUIListContainer.items
@@ -116,8 +103,6 @@ where
 	
 	taskIdUpdate path old new	= update sameTaskId taskIdOf TUISetTaskId path old new
 	nameUpdate path old new		= update sameName nameOf TUISetName path old new
-	hintUpdate path old new		= update sameHint hintOf TUISetHint path old new
-	errorUpdate path old new	= update sameError errorOf TUISetError path old new
 	
 	update eqfun accfun consfun path old new
 		| not (eqfun old new)	= maybe [] (\prop -> [consfun (dp2s path) prop]) (accfun new)
@@ -134,32 +119,14 @@ sameTaskId a b = (taskIdOf a) == (taskIdOf b)
 sameName :: !TUIDefContent !TUIDefContent -> Bool
 sameName a b = (nameOf a) == (nameOf b)
 
-sameError :: !TUIDefContent !TUIDefContent -> Bool
-sameError a b = (errorOf a) == (errorOf b)
-
-sameHint :: !TUIDefContent !TUIDefContent -> Bool
-sameHint a b = (hintOf a) == (hintOf b)
-
 taskIdOf :: !TUIDefContent -> Maybe String
 taskIdOf (TUIControl _ {TUIControl|taskId})					= Just taskId
 taskIdOf (TUIButton {TUIButton|taskId})						= Just taskId
-taskIdOf (TUIRecordContainer {TUIRecordContainer|taskId})	= Just taskId
 taskIdOf (TUIListContainer {TUIListContainer|taskId})		= Just taskId
 taskIdOf _													= Nothing
 
 nameOf :: !TUIDefContent -> Maybe String
 nameOf (TUIControl _ {TUIControl|name})						= Just name
 nameOf (TUIButton {TUIButton|name})							= Just name
-nameOf (TUIRecordContainer {TUIRecordContainer|name})		= Just name
 nameOf (TUIListContainer {TUIListContainer|name})			= Just name
 nameOf _													= Nothing
-
-errorOf :: !TUIDefContent -> Maybe String
-errorOf (TUIControl _ {TUIControl|errorMsg})				= Just errorMsg
-errorOf (TUIListContainer {TUIListContainer|errorMsg})		= Just errorMsg
-errorOf _													= Nothing
-
-hintOf :: !TUIDefContent -> Maybe String
-hintOf (TUIControl _ {TUIControl|hintMsg})					= Just hintMsg
-hintOf (TUIListContainer {TUIListContainer|hintMsg})		= Just hintMsg
-hintOf _													= Nothing

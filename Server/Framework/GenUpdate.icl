@@ -100,7 +100,7 @@ gUpdate{|Maybe|} _ UDCreate ust=:{newMask}
 	= (Nothing,{ust & newMask = appendToMask newMask Untouched})
 gUpdate{|Maybe|} fx (UDSearch m) ust=:{currentPath,searchPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
-	| currentPath == searchPath && update === JSONNull
+	| currentPath == searchPath && (update === JSONNull || update === JSONBool False)
 		= (Nothing, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask Blanked, oldMask = om}) //Reset
 	| otherwise
 		= case m of

@@ -27,8 +27,8 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 		}
 		
 		if(data.updates) {
+			this.suspendEvents();
 			var doLayout = false;
-			//errors and hints are updated separately
 			var num = data.updates.length;
 			for (i = 0; i < num; i++) {
 				var update = data.updates[i];
@@ -51,16 +51,6 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 					case "TUISetName":
 						if(cmp = this.findComponentByPath(this, update[1])) {
 							cmp.name = update[2];
-						}
-						break;
-					case "TUISetError":
-						if(cmp = this.findComponentByPath(this, update[1])) {
-							cmp.setError(update[2]);
-						}
-						break;
-					case "TUISetHint":
-						if(cmp = this.findComponentByPath(this, update[1])) {
-							cmp.setHint(update[2]);
 						}
 						break;
 					case "TUISetEnabled":
@@ -99,6 +89,7 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 						break;
 				}
 			}
+			this.resumeEvents();
 			
 			if (doLayout) this.doLayout(true);
 			
@@ -195,7 +186,7 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 			return;
 		}
 		if (shallow === false) return;
-		
+
 		var p = this.findParentByType('itasks.work').get(1);
 		var w = p.getWidth();
 		var h = p.getHeight() - p.getTopToolbar().getHeight();
@@ -204,13 +195,14 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 		this.cascade(function() {this.show();}); // show all child components to prevent errors
 		this.setSize(w,h);
 		this.resumeEvents();
-
+		
 		if (this.dirty) {
 			itasks.tui.TUIPanel.superclass.doLayout.call(this);
 			this.dirty = false;
 		}
 
 		itasks.tui.cache = {};
+		if (!Ext.isDefined(itasks.tui.permCache)) itasks.tui.permCache = {};
 		this.get(0).doTUILayout(w,h);
 
 		itasks.tui.TUIPanel.superclass.doLayout.call(this);

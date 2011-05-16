@@ -30,8 +30,6 @@ derive bimap	Maybe, (,)
 	, xtype				:: String
 	, taskId			:: String
 	, name				:: String
-	, fieldLabel		:: Maybe String
-	, hideLabel			:: Bool
 	, editor			:: Bool
 	, options			:: TUIGoogleMapOptions
 	}
@@ -62,14 +60,14 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} val vst=:{vizType, label, currentPath, optional, useLabels, verifyMask, taskId}
+gVisualize {|GoogleMap|} val vst=:{vizType, currentPath, optional, verifyMask, taskId}
 	# (cmv,vm) = popMask verifyMask
 	= case vizType of
-		VEditorDefinition = ([TUIFragment {TUIDef | content = TUICustom ((mapPanel val label (not useLabels) currentPath True)), width = Auto, height = Auto, margins = Nothing}],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+		VEditorDefinition = ([TUIFragment {TUIDef | content = TUICustom ((mapPanel val currentPath True)), width = Auto, height = Auto, margins = Nothing}],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 		_				  = (staticMapPanel val, {VSt | vst & currentPath = stepDataPath currentPath})
 where
-	mapPanel Nothing	fl hl cp ed	= toJSON (tuidef mkMap fl hl cp ed)
-	mapPanel (Just map)	fl hl cp ed = toJSON (tuidef map   fl hl cp ed)
+	mapPanel Nothing	cp ed	= toJSON (tuidef mkMap cp ed)
+	mapPanel (Just map)	cp ed = toJSON (tuidef map   cp ed)
 
 	staticMapPanel Nothing
 		# (GoogleStaticMap w h u) = convertToStaticMap mkMap
@@ -78,7 +76,7 @@ where
 		# (GoogleStaticMap w h u) = convertToStaticMap map
 		= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])])
 
-	tuidef map fl hl cp ed =
+	tuidef map cp ed =
 		{ TUIGoogleMap
 		| center = map.GoogleMap.center
 		, mapType = map.GoogleMap.mapType
@@ -86,8 +84,6 @@ where
 		, xtype = "itasks.tui.GMapControl"
 		, name = dp2s cp
 		, taskId = taskId
-		, fieldLabel = fl
-		, hideLabel = hl
 		, editor = ed
 		, options =
 			{ TUIGoogleMapOptions

@@ -38,9 +38,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 :: TUIDefContent
 	= TUIControl			!TUIControlType !TUIControl
 	| TUIButton				!TUIButton
-	| TUIFormContainer		!TUIFormContainer
 	| TUILayoutContainer	!TUILayoutContainer
-	| TUIRecordContainer	!TUIRecordContainer
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
 	| TUIGridContainer		!TUIGridContainer
@@ -72,11 +70,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 :: TUIControl =
 	{ name			:: !TUIName
 	, value			:: !JSONNode
-	, fieldLabel	:: !Maybe String
 	, taskId		:: !TaskId
-	, optional		:: !Bool
-	, errorMsg		:: !String
-	, hintMsg		:: !String
 	, eventValue	:: !Maybe JSONNode
 	}
 :: TUIChoiceControl =
@@ -97,11 +91,6 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	{ consValues	:: ![String]
 	, items			:: ![TUIDef]
 	}
-:: TUIFormContainer =
-	{ items				:: ![TUIDef]
-	, fieldLabel		:: !Maybe String
-	, optional			:: !Bool
-	}
 :: TUILayoutContainer =
 	{ items				:: ![TUIDef]
 	, orientation		:: !TUIOrientation
@@ -112,24 +101,13 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	, iconCls			:: !Maybe PanelIcon
 	, padding			:: !Maybe Int
 	}
-:: TUIRecordContainer =
-	{ name			:: !TUIName
-	, taskId		:: !TaskId
-	, title			:: !Maybe String
-	, items			:: ![TUIDef]
-	, optional		:: !Bool
-	, hasValue		:: !Bool
-	}
 :: TUIListContainer =
 	{ items			:: ![TUIDef]
 	, name			:: !TUIName
 	, taskId		:: !TaskId
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
 	, staticDisplay	:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
-	, optional		:: !Bool
 	}
 :: TUIListItem =
 	{ items			:: ![TUIDef]
@@ -193,7 +171,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 :: TUIVGravity		= VGTop | VGCenter | VGBottom
 :: TUIOrientation	= Horizontal | Vertical
 
-htmlDisplay				:: !(Maybe String) !html -> TUIDef | toString html
+htmlDisplay				:: !html -> TUIDef | toString html
 defaultLayoutContainer	:: ![TUIDef] -> TUILayoutContainer
 sameMargins				:: !TUIFixedSize -> TUIMargins
 
@@ -212,11 +190,11 @@ minimalParallelLayout		:: ParallelLayoutMerger
 defaultResultLayout			:: ResultLayoutMerger
 
 // layout aux functions
-defaultPanelDescr			:: !PanelTitle !PanelIcon !String !(Maybe String) 	![TUIDef]	-> TUIDef
-defaultPanel				:: !PanelTitle !PanelIcon							![TUIDef]	-> TUIDef
-defaultDescriptionPanel		:: !String !(Maybe String)										-> TUIDef
-defaultContentPanel			:: ![TUIDef]													-> TUIDef
-defaultContent				:: ![TUIDef] ![TUIDef] !TUISize									-> [TUIDef]
-defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool						-> PanelIcon
+defaultPanelDescr			:: !PanelTitle !PanelIcon !String !(Maybe String) 	!TUISize ![TUIDef]	-> TUIDef
+defaultPanel				:: !PanelTitle !PanelIcon							!TUISize ![TUIDef]	-> TUIDef
+defaultDescriptionPanel		:: !String !(Maybe String)												-> TUIDef
+defaultContentPanel			:: ![TUIDef]															-> TUIDef
+defaultContent				:: ![TUIDef] ![TUIDef]													-> [TUIDef]
+defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool								-> PanelIcon
 
-columnLayout				:: !Int ![TUIDef] 												-> TUIDef
+columnLayout				:: !Int ![TUIDef] 														-> TUIDef

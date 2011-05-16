@@ -1,21 +1,11 @@
 Ext.ns('itasks.tui');
 
-itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
+itasks.tui.ListContainer = itasks.tui.extendContainer(Ext.Container,{
+	defaultWidth: ['FillParent',1,'ContentSize'],
+	defaultHeight: ['Wrap'],
 
 	initComponent: function(){
-		
-		if(this.fieldLabel == null) delete this.fieldLabel;
-		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		
-		Ext.apply(this,
-		{ autoHeight: true
-		, layout: 'anchor'
-		, unstyled: true
-		, cls: 'list'
-		, autoWidth: true
-		});	
-		
-		itasks.tui.ListContainer.superclass.initComponent.apply(this,arguments);
+		itasks.tui.container.initComponent.apply(this,arguments);
 		
 		this.on('afterlayout', function(ct,cmp,pos) { 
 			if(this.staticDisplay) return;
@@ -32,13 +22,8 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 	},
 	
 	afterRender : function(ct,position){
-		itasks.tui.ListContainer.superclass.afterRender.call(this,ct,position);
+		this.extSuperclass.afterRender.call(this,ct,position);
 		this.initSidebar();
-		
-		if(this.errorMsg)
-			this.markError(this.errorMsg);
-		else if(this.hintMsg)
-			this.markHint(this.hintMsg);
 	},
 	
 	getSidebarEl : function(){		
@@ -122,95 +107,15 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 		});	
 		
 		this.sbExpanded = true;
-	},
-	setError: function(msg){
-		if(this.staticDisplay) return;
-		
-		if(msg == "")
-			this.clearError();
-		else
-			this.markError(msg);
-	},
-	setHint: function(msg){
-		if(msg == "")
-			this.clearHint();
-		else
-			this.markHint(msg);
-	},
-	makeMessageField : function(){
-		this.msgField = this.el.insertSibling({tag:'div'},'after');
-		this.msgField.createChild({cls: 'x-constructor-panel-tc'});
-		this.msgField.createChild({cls: 'list-msg-field'});
-	},
-	
-	markHint : function (msg){
-		if(this.rendered){
-			if(!this.msgField) {
-				this.makeMessageField();
-			}else{
-				this.msgField.show();
-			}
-			
-			if(!this.hintIcon){
-				var ct = this.msgField.child('[class = list-msg-field]');
-				this.hintIcon = ct.createChild({cls: 'x-hint-icon'});
-				this.hintIcon.setVisibilityMode(Ext.Element.DISPLAY);
-			}
-			
-			this.hintIcon.dom.innerHTML = msg;
-			this.hintIcon.setVisible(true);
-		}
-	},
-	
-	markError: function(msg){
-		if(this.rendered){
-			if(!this.msgField) {
-				this.makeMessageField();
-			}else{
-				this.msgField.show();
-			}
-			
-			if(this.hintIcon) this.hintIcon.hide();
-			
-			if(!this.errorIcon){
-				var ct = this.msgField.child('[class = list-msg-field]');
-				this.errorIcon = ct.createChild({cls: 'x-invalid-icon'});
-				this.errorIcon.setVisibilityMode(Ext.Element.DISPLAY);
-			}
-			
-			this.errorIcon.dom.innerHTML = msg;
-			this.errorIcon.setVisible(true);
-		}
-	},
-	
-	clearHint : function(){
-		if(this.hintIcon){
-			this.hintIcon.setVisible(false);
-			this.msgField.hide();
-		}
-	},
-	
-	clearError : function(){
-		if(this.errorIcon){
-			this.errorIcon.setVisible(false);
-			this.msgField.hide();
-		}
 	}
 });
 
 Ext.ns('itasks.tui.list');
 
-itasks.tui.list.ListItemControl = Ext.extend(Ext.Panel,{
-
+itasks.tui.list.ListItemControl = Ext.extend(Ext.Container,{
+	cls: ((this.index % 2) == 0)? "list-item-light" : "list-item-dark",
+	
 	initComponent : function(){	
-		Ext.apply(this,
-		{ unstyled: true
-		, autoHeight: true
-		, autoWidth: true
-		, layout: 'form'
-		, cls: ((this.index % 2) == 0)? "list-item-light" : "list-item-dark"
-		});
-			
 		itasks.tui.list.ListItemControl.superclass.initComponent.apply(this,arguments);
 		
 		this.addEvents('tuichange');
@@ -258,6 +163,16 @@ itasks.tui.list.ListItemControl = Ext.extend(Ext.Panel,{
 			this.removeClass('list-last-item');
 			this.isLast = false;
 		}
+	},
+	
+	doTUILayout: function() {
+		this.get(0).doTUILayout();
+	},
+	getTUISize: function() {
+		return this.get(0).getTUISize();
+	},
+	getMinTUISize: function() {
+		return this.get(0).getMinTUISize();
 	}
 });
 

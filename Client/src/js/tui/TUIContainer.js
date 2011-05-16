@@ -1,59 +1,15 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.extendContainer = function(extSuper,overrides) {
-	var newClass = Ext.extend(extSuper,Ext.apply(itasks.util.clone(itasks.tui.container),overrides));
-	Ext.override(newClass,{extSuperclass: newClass.superclass});
-	return newClass;
+	return itasks.util.extend(extSuper,itasks.tui.container,overrides);
 };
 
-itasks.tui.container = {
-	initComponent: function(){
-		this.tuiSize		= {};
-		this.tuiSize.width	= (this.width == 'Auto' ? this.defaultWidth : this.width);
-		this.tuiSize.height	= (this.height == 'Auto' ? this.defaultHeight : this.height);
-		if  (!Ext.isArray(this.tuiSize.width))
-			this.tuiSize.width	= [this.tuiSize.width];
-		if  (!Ext.isArray(this.tuiSize.height))
-			this.tuiSize.height	= [this.tuiSize.height];
-		delete this.width;
-		delete this.height;
-
-		this.extSuperclass.initComponent.apply(this,arguments);
-	},
-	
+itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 	doTUILayout: function(fillW,fillH) {
-		var tuiW	= this.tuiSize.width;
-		var tuiH	= this.tuiSize.height;
-		var minSize	= this.getMinTUISize();
+		var myS = itasks.tui.base.doTUILayout.apply(this,arguments);
 		
-		if (tuiW[0] == 'FillParent' && Ext.isDefined(fillW) && fillW >= minSize.width) {
-			var myW = fillW - this.getMarginsW();
-		} else if (tuiW[0] == 'Fixed') {
-			var myW = tuiW[1];
-		} else { // wrap or fillParent with insufficient space
-			var myW = minSize.width - this.getMarginsW();
-		}
-		
-		if (tuiH[0] == 'FillParent' && Ext.isDefined(fillH) && fillH >= minSize.height) {
-			var myH = fillH - this.getMarginsH();
-		} else if (tuiH[0] == 'Fixed') {
-			var myH = tuiH[1];
-		} else { // wrap or fillParent with insufficient space
-			var myH = minSize.height - this.getMarginsH();
-		}
-		
-		this.suspendEvents();
-		this.setSize(myW,myH);
-		if (myW > 0 && myH > 0) {
-			this.show();
-		} else {
-			// hide container if width/height = 0 to prevent layout problems
-			this.hide();
-		}
-		this.resumeEvents();
-		
-		var totalFillW	= myW - this.getFrameWidthCached()	- (this.title ? 2 : 0);
-		var totalFillH	= myH - this.getFrameHeightCached()	- (this.title ? 1 : 0);
+		var totalFillW	= myS.myW - this.getFrameWidthCached()	- (this.title ? 2 : 0);
+		var totalFillH	= myS.myH - this.getFrameHeightCached()	- (this.title ? 1 : 0);
 		var sizes		= this.getChildSizes();
 		var horizontal	= this.orientation == 'Horizontal';
 		
@@ -124,52 +80,15 @@ itasks.tui.container = {
 		}
 		
 		sizes.each(function(s) {
-			if (Ext.isFunction(s.item.doTUILayout)) {
-				s.item.doTUILayout(
-					horizontal ? s.fillW : totalFillW,
-					horizontal ? totalFillH : s.fillH
-				);
-			}
+			s.item.doTUILayout(
+				horizontal ? s.fillW : totalFillW,
+				horizontal ? totalFillH : s.fillH
+			);
 		});
 	},
 	
-	getTUISize: function() {
-		var cached = this.getCache('size');
-		if (cached !== null) return cached;
-		
-		var tuiW		= this.tuiSize.width;
-		var tuiH		= this.tuiSize.height;
-		var size		= {};
-		
-		switch (tuiW[0]) {
-			case 'Wrap':
-				size.width	= ['Fixed',this.getMinTUISize().width];
-				break;
-			case 'FillParent':
-				size.width	= ['Weight',tuiW[1]];
-				break;
-			case 'Fixed':
-				size.width	= ['Fixed',tuiW[1]];
-				break;
-		}
-		switch (tuiH[0]) {
-			case 'Wrap':
-				size.height	= ['Fixed',this.getMinTUISize().height];
-				break;
-			case 'FillParent':
-				size.height	= ['Weight',tuiH[1]];
-				break;
-			case 'Fixed':
-				size.height	= ['Fixed',tuiH[1]];
-				break;
-		}
-		
-		this.setCache('size',size);
-		return size;
-	},
-	
 	getMinTUISize: function() {
-		var cached = this.getCache('minSize');
+		var cached = this.getCache(this.id,'minSize');
 		if (cached !== null) return cached;
 		
 		var tuiW		= this.tuiSize.width;
@@ -206,28 +125,18 @@ itasks.tui.container = {
 		}
 		minSize.height += this.getMarginsH();
 		
-		this.setCache('minSize',minSize);
+		this.setCache(this.id,'minSize',minSize);
 		return minSize;
 	},
 	
 	getChildSizes: function() {
-		var cached = this.getCache('childSizes');
+		var cached = this.getCache(this.id,'childSizes');
 		if (cached !== null) return cached;
 	
 		var sizes = new Ext.util.MixedCollection();
 		this.items.each(function(item) {
-			if (Ext.isFunction(item.getTUISize) && Ext.isFunction(item.getMinTUISize)) {
-				var tuiSize	= item.getTUISize();
-				var minSize	= item.getMinTUISize();
-			} else {
-				var s		= item.getSize();
-				if(item.margins) {
-					s.width		+= (item.margins.left + item.margins.right);
-					s.height	+= (item.margins.top + item.margins.bottom);
-				}
-				var tuiSize	= {width: ['Fixed',s.width],	height: ['Fixed',s.height]};
-				var minSize	= {width: s.width,				height: s.height};
-			}
+			var tuiSize	= item.getTUISize();
+			var minSize	= item.getMinTUISize();
 			
 			sizes.add({
 				item:		item,
@@ -236,48 +145,32 @@ itasks.tui.container = {
 			});
 		});
 		
-		this.setCache('childSizes',sizes);
+		this.setCache(this.id,'childSizes',sizes);
 		return sizes;
 	},
 	
-	getMarginsW: function() {
-		return (this.margins ? this.margins.left + this.margins.right : 0);
-	},
-	getMarginsH: function() {
-		return (this.margins ? this.margins.top + this.margins.bottom : 0);
-	},
 	getFrameWidthCached: function() {
 		if(!Ext.isDefined(this.getFrameWidth))
 			return 0;
 		
-		if(!Ext.isDefined(this.cachedFrameWidth))
-			this.cachedFrameWidth = this.getFrameWidth();
-			
-		return this.cachedFrameWidth;
+		var type = this.xtype + '|' + (this.title === null) + '|' + this.frame + '|' + this.initialConfig.padding;
+		var cached = this.getCache(type,'frameWidth',true);
+		if (cached !== null) return cached;
+		
+		var frameWidth = this.getFrameWidth();
+		this.setCache(type,'frameWidth',frameWidth,true);
+		return frameWidth;
 	},
 	getFrameHeightCached: function() {
 		if(!Ext.isDefined(this.getFrameHeight))
 			return 0;
-	
-		if(!Ext.isDefined(this.cachedFrameHeight))
-			this.cachedFrameHeight = this.getFrameHeight();
 			
-		return this.cachedFrameHeight;
-	},
+		var type = this.xtype + '|' + (this.title === null) + '|' + this.frame + '|' + this.initialConfig.padding;
+		var cached = this.getCache(type,'frameHeight',true);
+		if (cached !== null) return cached;
 	
-	getCache: function(key) {
-		var x = itasks.tui.cache[this.id];
-		if (Ext.isDefined(x) && Ext.isDefined(x[key])) {
-			return x[key];
-		} else {
-			return null;
-		}
-	},
-	setCache: function(key,v) {
-		var x = itasks.tui.cache[this.id];
-		if (!Ext.isDefined(x))
-			itasks.tui.cache[this.id] = {};
-			
-		itasks.tui.cache[this.id][key] = v;
+		var frameHeight = this.getFrameHeight();
+		this.setCache(type,'frameHeight',frameHeight,true);
+		return frameHeight;
 	}
-};
+});

@@ -54,7 +54,8 @@ where
 	calculatorLayout {title,buttons,editorParts=p=:[display:stButtons]} = defaultPanel
 		title
 		""
-		(defaultContent [display,columnLayout 4 stButtons] buttons Wrap)
+		Wrap
+		(defaultContent [display,columnLayout 4 stButtons] buttons)
 	where
 		buttonLayout buttons = buttonLayout` buttons []
 		buttonLayout` buttons acc = case splitAt 4 buttons of

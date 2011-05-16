@@ -1,8 +1,9 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.DocumentControl = itasks.tui.extendControl(Ext.Panel, {
+	defaultWidth: ['Fixed',500],
+	defaultHeight: ['Fixed',25],
 	unstyled: true,
-	width: 500,
 	layout: 'card',
 	activeItem: 0,
 	autoHeight: true,
@@ -20,7 +21,7 @@ itasks.tui.DocumentControl = itasks.tui.extendControl(Ext.Panel, {
 		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	afterRender : function(){
-		itasks.tui.control.afterRender.apply(this,arguments);
+		this.extSuperclass.afterRender.apply(this,arguments);
 		
 		if(this.document.size != 0){
 			this.showDownloadPanel(false);
@@ -48,22 +49,6 @@ itasks.tui.DocumentControl = itasks.tui.extendControl(Ext.Panel, {
 	showUploadPanel : function(showCancel){
 		this.uploadPanel.showCancel(showCancel);
 		this.getLayout().setActiveItem(0);
-	},
-	markHint: function(msg) {
-		this.uploadPanel.setHint(msg);
-		this.downloadPanel.setHint(msg);
-	},
-	markError: function(msg) {
-		this.uploadPanel.setError(msg);
-		this.downloadPanel.setError(msg);
-	},
-	clearHint: function() {
-		this.uploadPanel.setHint('');
-		this.downloadPanel.setHint('');
-	},
-	clearError: function() {
-		this.uploadPanel.setError('');
-		this.downloadPanel.setError('');
 	}
 });
 
@@ -93,9 +78,6 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 			, handler : this.trashButtonHandler
 			});
 			
-		this.errorIcon = new Ext.Panel({cls: 'x-document-invalid-icon', width: 25, unstyled: true, hidden: true});
-		this.hintIcon = new Ext.Panel({cls: 'x-document-hint-icon', width: 25, unstyled: true, hidden: true});
-			
 		Ext.apply(this,
 		{ layout : 'hbox'
 		, unstyled : true
@@ -115,9 +97,7 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 			},
 			this.editButton,
 			this.trashButton,
-			this.dlButton,
-			this.hintIcon,
-			this.errorIcon
+			this.dlButton
 			]
 		});
 		
@@ -177,35 +157,6 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 		}
 	},
 	
-	setError : function(msg){
-		if(this.rendered){
-			if(msg == '' || msg == null){
-				this.errorIcon.hide();
-			}else{
-				this.hintIcon.hide();
-				this.errorIcon.show();
-				if(this.errorIcon.el) this.errorIcon.el.dom.qtip = msg;
-				if(this.errorIcon.el) this.errorIcon.el.dom.qclass = 'x-form-invalid-tip'
-			}
-		}	
-		
-		this.doLayout();
-	},
-	
-	setHint : function(msg){
-		if(this.rendered){
-			if(msg == '' || msg == null || this.errorIcon.isVisible()){
-				this.hintIcon.hide();
-			}else{
-				this.hintIcon.show();
-				if(this.hintIcon.el) this.hintIcon.el.dom.qtip = msg;
-				if(this.hintIcon.el) this.hintIcon.el.dom.qclass = 'x-form-hint-tip'
-			}
-		}	
-		
-		this.doLayout();
-	},
-	
 	dlButtonHandler: function(src, evt){
 		var form = this.findParentByType('itasks.tui.document.Download');
 		var dp = this.findParentByType('itasks.tui.Document');
@@ -249,9 +200,6 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 			, handler: this.cancelButtonHandler			
 			});
 			
-		this.errorIcon = new Ext.Panel({cls: 'x-document-invalid-icon', width: 25, unstyled: true, hidden: true});
-		this.hintIcon = new Ext.Panel({cls: 'x-document-hint-icon', width: 25, unstyled: true, hidden: true});
-			
 		Ext.apply(this,
 		{ fileUpload: true
 		, unstyled: true
@@ -267,42 +215,13 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 			, buttonCfg: { iconCls: 'x-form-document-browse-icon' }
 			, listeners: { fileselected : this.uplHandler }
 			},
-			this.cancelButton,
-			this.hintIcon,
-			this.errorIcon
+			this.cancelButton
 			]
 		});
 		
 		itasks.tui.document.UploadPanel.superclass.initComponent.apply(this,arguments);
 	},
 	
-	setError : function(msg){
-		if(this.rendered){
-			if(msg == '' || msg == null){
-				this.errorIcon.hide();
-			}else{
-				this.hintIcon.hide();
-				this.errorIcon.show();
-				if(this.errorIcon.el) this.errorIcon.el.dom.qtip = msg;
-				if(this.errorIcon.el) this.errorIcon.el.dom.qclass = 'x-form-invalid-tip'
-			}
-		}	
-		
-		this.doLayout();
-	},
-	setHint: function(msg){
-		if(this.rendered){
-			if(msg == '' || msg == null || this.errorIcon.isVisible()){
-				this.hintIcon.hide();
-			}else{
-				this.hintIcon.show();
-				if(this.hintIcon.el) this.hintIcon.el.dom.qtip = msg;
-				if(this.hintIcon.el) this.hintIcon.el.dom.qclass = 'x-form-hint-tip'
-			}
-		}	
-		
-		this.doLayout();
-	},
 	showCancel: function(cancel){
 		this.cancelButton.setVisible(cancel);
 	},

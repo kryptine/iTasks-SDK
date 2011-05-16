@@ -9,7 +9,7 @@ derive JSONEncode TUIPanel
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONEncode TUIFormContainer, TUILayoutContainer, TUIRecordContainer, TUIListContainer
+derive JSONEncode TUILayoutContainer, TUIListContainer
 derive JSONEncode TUIGridContainer, TUIGridColumn, TUITree, TUIControl
 derive JSONEncode TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
@@ -25,9 +25,7 @@ JSONEncode{|TUIDefContent|} (TUIControl c b)			= merge (JSONEncode{|*|} c) (JSON
 JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks.tui.Button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListItem r) 			= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIGridContainer r)		= addXType "itasks.tui.Grid" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIFormContainer r)		= addXType "itasks.tui.FormContainer" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUILayoutContainer r)		= addXType "itasks.tui.LayoutContainer" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "itasks.tui.List" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r)			= addXType "button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuItem r)				= addXType "itasks.tui.MenuItem" (JSONEncode{|*|} r)

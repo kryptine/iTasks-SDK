@@ -58,7 +58,7 @@ where
 		= layout	{ TUIResult
 					| title			= title
 					, description	= description
-					, result		= htmlDisplay Nothing (toString result)
+					, result		= htmlDisplay (toString result)
 					}
 		
 diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel

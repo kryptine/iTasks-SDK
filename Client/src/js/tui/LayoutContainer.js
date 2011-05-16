@@ -66,7 +66,7 @@ itasks.tui.LayoutContainer = itasks.tui.extendContainer(Ext.Panel,{
 				break;
 		}
 
-		itasks.tui.container.initComponent.apply(this,arguments);
+		itasks.tui.base.initComponent.apply(this,arguments);
 	}
 });
 

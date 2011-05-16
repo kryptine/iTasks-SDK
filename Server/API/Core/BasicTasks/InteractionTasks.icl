@@ -170,7 +170,7 @@ where
 						Nothing			= visualizePart (UpdateView (init,putback),mbV,idx)
 						Just value		= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,mbV)
 				Blank					= blankForm formView mbEdit
-			DisplayView v				= (htmlDisplay Nothing (toString (visualizeAsHtmlDisplay v)),Nothing)
+			DisplayView v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),Nothing)
 			Update label _				=	({ content = TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr

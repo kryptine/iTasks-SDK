@@ -46,14 +46,6 @@ itasks.util.formatUser = function (user) {
 	return user;
 }
 
-itasks.util.fieldLabel = function(optional, label) {
-	if(optional) {
-		return label
-	} else {
-		return label + "*"
-	}
-}
-
 //Filter method for arrays (IE does not natively support this method)
 if (!Array.prototype.filter)
 {
@@ -175,4 +167,10 @@ itasks.util.approxEquals = function(a,b,diff) {
     }
     else
         return true;
+};
+
+itasks.util.extend = function(extSuper,iTasksSuper,overrides) {
+	var newClass = Ext.extend(extSuper,Ext.apply(itasks.util.clone(iTasksSuper),overrides));
+	Ext.override(newClass,{extSuperclass: newClass.superclass});
+	return newClass;
 };

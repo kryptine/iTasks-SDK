@@ -1,8 +1,9 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.ConstructorControl = itasks.tui.extendControl(Ext.Panel,{
+	defaultWidth: ['Wrap'],
+	defaultHeight: ['Wrap'],
 	unstyled: true,
-	autoHeight: true,
 	initComponent: function() {
 		var store = [["","Select..."]];
 		for(var i=0; i<this.consValues.length; i++) {
@@ -33,7 +34,6 @@ itasks.tui.ConstructorControl = itasks.tui.extendControl(Ext.Panel,{
 		delete this.items;
 	
 		this.itemPanel = new Ext.Panel({
-			layout: 'form',
 			autoHeight: true,
 			items: panelItems,
 			frame: true,
@@ -58,7 +58,7 @@ itasks.tui.ConstructorControl = itasks.tui.extendControl(Ext.Panel,{
 		}
 	},
 	afterRender: function() {
-		itasks.tui.control.afterRender.apply(this,arguments);
+		this.extSuperclass.afterRender.apply(this,arguments);
 	
 		//Redirect addition method to the child panel
 		this.add = function(c) {

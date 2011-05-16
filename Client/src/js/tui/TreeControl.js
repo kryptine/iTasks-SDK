@@ -1,12 +1,13 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.TreeControl = itasks.tui.extendControl(Ext.tree.TreePanel,{
+	defaultWidth: ['FillParent',1,'ContentSize'],
+	defaultHeight: ['Wrap'],
 	rootVisible: false,
 	border: false,
 	loader: new Ext.tree.TreeLoader({preloadChildren: true}),
 	
 	initComponent : function(){
-		this.defaultWidth = 250;
 		this.root = {
 			xtype: 'treenode',
 			text:'tree',
@@ -22,7 +23,7 @@ itasks.tui.TreeControl = itasks.tui.extendControl(Ext.tree.TreePanel,{
 		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	afterRender : function(){
-		itasks.tui.control.afterRender.apply(this,arguments);
+		this.extSuperclass.afterRender.apply(this,arguments);
 		if(Ext.isNumber(this.value)){
 			this.setValue(this.value);
 		}

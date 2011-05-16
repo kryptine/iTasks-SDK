@@ -72,7 +72,7 @@ treeLayout {title,editorParts,buttons} =
 where
 	editorContainer
 		| isEmpty editorParts	= []
-			| otherwise			= [	{ content	= TUIFormContainer {TUIFormContainer | items = editorParts, fieldLabel = Nothing, optional = False}
+			| otherwise			= [	{ content	= TUILayoutContainer (defaultLayoutContainer editorParts)
 									, width		= FillParent 1 ContentSize
 									, height	= Wrap
 									, margins	= Nothing
@@ -86,7 +86,7 @@ where
 								}]
 
 descriptionLayout {title,editorParts,buttons} =
-	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (defaultContent editorParts buttons (FillParent 1 ContentSize)) & title = Just title, iconCls = Just "icon-description"}
+	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (defaultContent editorParts buttons) & title = Just title, iconCls = Just "icon-description"}
 	, width		= FillParent 1 (FixedMinSize 100)
 	, height	= Fixed 150
 	, margins	= Nothing
@@ -104,7 +104,7 @@ where
 			, height	= FillParent 1 ContentSize
 			, margins	= Nothing
 			}
-	right = { content	= TUILayoutContainer (defaultLayoutContainer [processTable,htmlDisplay Nothing "work tab panel"])
+	right = { content	= TUILayoutContainer (defaultLayoutContainer [processTable,htmlDisplay "work tab panel"])
 			, width		= FillParent 1 ContentSize
 			, height	= FillParent 1 ContentSize
 			, margins	= Nothing
