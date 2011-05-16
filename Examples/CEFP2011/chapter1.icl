@@ -133,8 +133,6 @@ chat2
                     		-||-
                     		(you @: chatEditor you me chatState)
 where
-//updateSharedInformationA		:: !d !(View r v w) ![PredAction (Valid,r)]			!(Shared r w) -> Task (!Action,!r)	| descr d & iTask r & iTask v & iTask w
-
 	chatEditor me you chatState
 		= 	updateSharedInformationA ("Chat with " <+++ you) (view me) actions chatState
 
@@ -151,51 +149,53 @@ w6c = workflow "CEFP/6c: Chat" "Chat with several users" chat3
 
 normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
+derive class iTask ChatState, Message
+
+:: ChatState	=	{ chatters  :: [User]
+				    , chats		:: [Message]
+				    }
+:: Message	=		{ chatting	:: User
+					, message	:: String
+					}
+emptyChatState = {chatters = [], chats = []}
+
 chat3
     =               		getCurrentUser
-    	>>= \me ->			parallel "Chat application" initChatState finished [chatTask me]
+    	>>= \me ->			parallel "Chat application" emptyChatState finished [InBodyTask (chatTask me)]
 where
 
 	finished _ _ = Void
 
-	chatTask user 
-		=	DetachedTask (normalTask user) noMenu handlingTask
+	chatTask user chatState os
+		=								updateShared addUser chatState
+			>>|							chatMore ""
 	where
-
-		handlingTask chatState osState
-			=		updateSharedInformationA` ("Chat with iTask users") (view user) stateActions termActions (chatState >+< osState)	
-				>>|	return Void
+		chatMore content =				(monitor ("Chat list view") id (const False) False chatState)
+										||-
+										updateInformationA ("Chat with iTask users") (toView,fromView) actions content	
+			>>= \(event,response) -> 	case event of
+											ActionAdd -> 			writeShared os [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)]
+															>>|		chatMore (fromJust response)
+											ActionOk ->				updateShared (addMessage (fromJust response)) chatState 
+															>>|		chatMore ""	
+											ActionQuit ->			updateShared (removeUser o addMessage "bye") chatState
+															>>|		return Void	
 				
-		where
-			view user 
-				=	( \(list,osinfo) -> (Display list,Note "")
-					, \(Display _,Note response) (list,_) -> (list ++ [user +++> ": " +++> response],[])
-					)
+		(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
 
-			termActions =  	[(ActionQuit, alwaysShared)]
+		actions =  	[(ActionOk,always),(ActionAdd, always),(ActionQuit, always)]
 
-			stateActions = [("Add Chatter", [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)])] // does not seem to work
-			where
-					handleNewChatter chatState osState
-						=						selectUser
-							>>= \someone ->		writeShared osState [AppendTask (chatTask someone)]
+		handleNewChatter chatState os
+			=						selectUser
+				>>= \someone ->		writeShared os [AppendTask (DetachedTask (normalTask someone) noMenu (chatTask someone))]
+
+		addMessage message 	cs = {cs & chats = cs.chats ++ [{chatting = user, message = message}]}
+		addUser 			cs = {cs & chatters = [user:cs.chatters]}
+		removeUser 			cs = {cs & chatters = removeMember user cs.chatters}
+
 
 ActionAdd :== Action "Add Chatter" "Add Chatter"
 
-
-//interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r Bool -> InteractiveTerminators a)	!l !(Shared r w) -> Task a
-
-updateSharedInformationA` d (get,putback) stateActions termActions shared 
-	= UpdateTask @>> interact
-		d
-		(\l r=:(ss,os) changed -> 	[ UpdateView (if (l || changed) (FormValue (get r)) (Unchanged (FormValue (get r))),\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))
-						 			: map (\(label,cs) -> Update label (l,Just (ss,cs))) stateActions
-						 			])
-		(fromPredActions (\valid r changed -> ((valid || changed) && verifyValue (get r),r)) (\action _ r _ -> (action,r)) termActions)
-		True
-		shared
-
-			 	
 
 // a simple button only valid when some predicates hold
 
@@ -328,3 +328,47 @@ where
 			viewForManager :: [MeetingProposal] -> [MeetingProposal]
 			viewForManager props
 				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
+
+
+/*
+
+chat3
+    =               		getCurrentUser
+    	>>= \me ->			parallel "Chat application" initChatState finished [chatTask me]
+where
+
+	finished _ _ = Void
+
+	chatTask user 
+		=	DetachedTask (normalTask user) noMenu handlingTask
+	where
+
+		handlingTask chatState osState
+			=		updateSharedInformationA` ("Chat with iTask users") (view user) stateActions termActions (chatState >+< osState)	
+				
+		where
+			view user 
+				=	( \(list,osinfo) -> (Display list,Note "")
+					, \(Display _,Note response) (list,_) -> (list ++ [user +++> ": " +++> response],[])
+					)
+
+			termActions =  	[(ActionQuit, alwaysShared)]
+
+			stateActions = [("Add Chatter", [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)])] 
+					handleNewChatter chatState osState
+						=						selectUser
+							>>= \someone ->		writeShared osState [AppendTask (chatTask someone)]
+
+
+//interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r Bool -> InteractiveTerminators a)	!l !(Shared r w) -> Task a
+
+updateSharedInformationA` d (get,putback) stateActions termActions shared 
+	= UpdateTask @>> interact
+		d
+		(\l r=:(ss,os) changed -> 	[ UpdateView (if (l || changed) (FormValue (get r)) (Unchanged (FormValue (get r))),\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))
+						 			: map (\(label,cs) -> Update label (l,Just (ss,cs))) stateActions
+						 			])
+		(fromPredActions (\valid r changed -> ((valid || changed) && verifyValue (get r),r)) (\action _ r _ -> (action,r)) termActions)
+		True
+		shared
+*/
