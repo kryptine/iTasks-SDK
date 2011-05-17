@@ -27,10 +27,10 @@ db = sharedStore "MyIntDB" 0
 
 normalTask :: Task Int
 normalTask
-	= forever (				readShared db
+	= forever (				get db
 		>>= \initval 	->	updateInformation (subj,msg) initval
 		>>= \setval		->	inspectVal setval
-		>>= \setval		->	writeShared db setval
+		>>= \setval		->	set db setval
 		)
 where
 	subj :: String
@@ -45,7 +45,7 @@ where
 
 catchNegativeValueTask :: (Task Int) NegativeValueException -> Task Int
 catchNegativeValueTask task (NegativeValueException msg)
-	=	readShared db
+	=	get db
 	>>=	\curval ->
 		showMessageAbout ("Exception!",
 			[Text "A NegativeValueException occurred: ",Text msg, BrTag []

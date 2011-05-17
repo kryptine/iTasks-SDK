@@ -2,7 +2,7 @@ implementation module HttpUtil
 
 import HTTP
 import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList, StdFunc, StdTuple
-import Time, Text, UrlEncoding
+import Time, Text, UrlEncoding, Map
 
 mkString	:: ![Char] -> *String
 mkString	listofchar				= {c \\ c <- listofchar }

@@ -1,6 +1,6 @@
 implementation module Engine
 
-import StdMisc, StdArray, StdList, StdTuple, StdChar, StdFile, StdBool
+import StdMisc, StdArray, StdList, StdTuple, StdChar, StdFile, StdBool, Map
 from StdFunc import o
 import	Store, UserDB, ProcessDB, SessionDB
 import	Util, HtmlUtil

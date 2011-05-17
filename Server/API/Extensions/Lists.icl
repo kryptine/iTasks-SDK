@@ -147,7 +147,7 @@ where
 	makeList _ name	desc listId					= SimpleList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	
 	storeList :: !Int !AnyList -> Task AnyList 
-	storeList listId list = writeShared (sharedStore ("List-" <+++ listId) defaultValue) list
+	storeList listId list = set (sharedStore ("List-" <+++ listId) defaultValue) list
 	
 getAllLists :: Task [AnyList]
 getAllLists = dbReadAll >>= getLists
@@ -160,7 +160,7 @@ where
 	
 getLists :: [ListMeta] -> Task [AnyList]
 getLists [] 	= return []
-getLists meta	= allTasks [readShared (sharedStore ("List-" <+++ m.ListMeta.listId) defaultValue) \\ m <- meta]
+getLists meta	= allTasks [get (sharedStore ("List-" <+++ m.ListMeta.listId) defaultValue) \\ m <- meta]
 
 deleteList :: !AnyList -> Task AnyList
 deleteList list = return list/*deleteMeta listId  >>| deleteList listId >>| return list

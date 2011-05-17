@@ -6,9 +6,8 @@ from StdFunc import const,o,flip
 import StdList
 import StdMisc
 import StdTuple
-
+from Map import qualified get, fromList
 import JSON
-import Map
 import Maybe
 import Text
 
@@ -162,11 +161,11 @@ oryxDiagramToGraph bindings diagram
 oryxChildShapesToGraph :: !Bindings ![ORYXChildShape] -> GGraph
 oryxChildShapesToGraph bindings shapes
 	// shapeMap :: Map ORYXResourceId ORYXChildShape
-	# shapeMap = (fromList o map (\shape -> (shapeId shape, shape)))  shapes
+	# shapeMap = ('Map'.fromList o map (\shape -> (shapeId shape, shape)))  shapes
 	// nodes :: [(NodeIndex, ORYXChildShape)]
 	# (nodes, graph) = addShapes (filter (not o isEdge) shapes) emptyGraph
 	// nodeMap :: Map ORYXResourceId NodeIndex
-	# nodeMap = (fromList o map (\(index,node) -> (shapeId node, index))) nodes
+	# nodeMap = ('Map'.fromList o map (\(index,node) -> (shapeId node, index))) nodes
 	//find outgoing edges for each node
 	# edges = (flatten o map (oryxChildShapeToEdges shapeMap nodeMap)) nodes
 	= GGraph (addEdges edges graph)
@@ -207,7 +206,7 @@ oryxChildShapeToActualParam bindings childShape propMap formalParam
 	| isHigherOrderTask formalParam.GFormalParameter.type
 	  && (not o isEmpty) childShape.ORYXChildShape.childShapes
 	  = GGraphExpression (oryxChildShapesToGraph bindings childShape.ORYXChildShape.childShapes)
-	= case get formalParam.GFormalParameter.name propMap of
+	= case 'Map'.get formalParam.GFormalParameter.name propMap of
 		Just (JSONString value) = GCleanExpression value
 		Nothing	   				= abort ("oryxChildShapeToActualParam: " +++ formalParam.GFormalParameter.name +++ " paramter not found")
 	
@@ -221,10 +220,10 @@ oryxChildShapeToEdges shapeMap nodeMap (fromIndex,fromNode) =
 
 oryxOutgoingToEdge :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) !Int !ORYXOutgoing -> Maybe (EdgeIndex,GEdge)
 oryxOutgoingToEdge shapeMap nodeMap fromIndex arcres =
-	case get arcres.ORYXOutgoing.resourceId shapeMap of
+	case 'Map'.get arcres.ORYXOutgoing.resourceId shapeMap of
 		Just arc 
 				 = case arc.ORYXChildShape.outgoing of
-			[toRes]	= case get toRes.ORYXOutgoing.resourceId nodeMap of
+			[toRes]	= case 'Map'.get toRes.ORYXOutgoing.resourceId nodeMap of
 						  Just toIndex = Just ((fromIndex,toIndex), oryxPropertiesToPattern arc.ORYXChildShape.properties)
 					  	  Nothing      = abort "oryxChildShapeToEdge: Arc outgoing resourceId not found"
 			[]		= Nothing //Arc not connected to node
@@ -233,14 +232,14 @@ oryxOutgoingToEdge shapeMap nodeMap fromIndex arcres =
 	
 oryxPropertiesToPattern :: !ORYXProperties -> Maybe GPattern
 oryxPropertiesToPattern properties
-	= case get "pattern" (propertyMap properties) of
+	= case 'Map'.get "pattern" (propertyMap properties) of
 		Just (JSONString s)  = case trim s of
 								   "" = Nothing
 							       s` = Just s`
 		_					 = Nothing
 
 propertyMap :: !ORYXProperties -> Map String JSONNode
-propertyMap (ORYXProperties properties) = fromList [ (p.ORYXProperty.key, p.ORYXProperty.value) \\ p <- properties ]
+propertyMap (ORYXProperties properties) = 'Map'.fromList [ (p.ORYXProperty.key, p.ORYXProperty.value) \\ p <- properties ]
 
 shapeId :: !ORYXChildShape -> String
 shapeId shape = shape.ORYXChildShape.resourceId

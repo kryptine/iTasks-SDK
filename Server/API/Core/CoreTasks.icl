@@ -1,12 +1,13 @@
 implementation module CoreTasks
 
 import TSt
-import StdList, StdBool, StdInt, StdTuple, Util, HtmlUtil, Error, StdMisc
-import iTaskClass, Task, Shared
+import StdList, StdBool, StdInt, StdTuple, Util, HtmlUtil, Error, StdMisc, OSError
+import iTaskClass, Task
+from Shared			import ::Shared(..), :: SymmetricShared, :: SharedGetTimestamp, :: SharedWrite, :: SharedRead
+from Shared			import qualified readShared, writeShared, isSharedChanged
 from StdFunc		import o
-from SharedTasks	import createSharedStore
 from iTasks			import dynamicJSONEncode, dynamicJSONDecode
-from ExceptionCombinators	import :: SharedException(..), instance toString SharedException
+from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException
 
 VIEWS_STORE				:== "views"
 LOCAL_STORE				:== "local"
@@ -25,6 +26,75 @@ derive bimap Maybe,(,)
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,tst))
 
+sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore storeId defaultV = Shared
+	(get loadValue defaultV)
+	write
+	(get getStoreTimestamp (Timestamp 0))
+where	
+	get f defaultV iworld
+		# (mbV,iworld) = f storeId iworld
+		# res = case mbV of
+			Nothing	= Ok defaultV
+			Just v	= Ok v
+		= (res,iworld)
+		
+	write v iworld = (Ok Void,storeValue storeId v iworld)
+	
+createSharedStore :: !a  -> Task (SymmetricShared a) | iTask a
+createSharedStore init
+	= mkInstantTask ("Create shared store", "Creates a shared store") createSharedStore`
+where
+	createSharedStore` tst=:{taskNr,properties=p=:{systemProperties=s=:{SystemProperties|taskId}}}
+		// store name starts with 'iTask_{id of main task}' to include it in garbage collection if process finishes
+		// in the rest of the name the id of the current task serves as unique id for the store
+		# shared		= sharedStore (iTaskId taskId (taskNrToString taskNr +++ "-shared")) init
+		= (TaskFinished shared,tst)
+			
+deleteSharedStore :: !SharedStoreId -> Task Void
+deleteSharedStore id
+	= mkInstantTask ("Delete shared store","Deletes a shared store with given identifier") deleteSharedStore`
+where
+	deleteSharedStore` tst
+		# tst = appIWorldTSt (deleteValue id) tst
+		= (TaskFinished Void,{tst & sharedDeleted = True})
+
+get :: !(Shared a w) -> Task a | iTask a
+get shared
+	= mkInstantTask ("Read shared", "Reads a shared value") (accIWorldTSt readShared`)
+where
+	readShared` iworld
+		# (val,iworld) = 'Shared'.readShared shared iworld
+		# res = case val of
+			Ok val	= TaskFinished val
+			Error e	= taskException (SharedException e)
+		= (res,iworld)
+	
+set :: !(Shared r a) !a -> Task a | iTask a
+set shared val
+	= mkInstantTask ("Write shared", "Writes a shared value") writeShared`
+where
+	writeShared` tst
+		// set shared changed flag
+		# tst		= {tst & sharedChanged = True}
+		# (res,tst)	= accIWorldTSt ('Shared'.writeShared shared val) tst
+		# res = case res of
+			Ok _	= TaskFinished val
+			Error e	= taskException (SharedException e)
+		= (res,tst)
+
+update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
+update f shared
+	= mkInstantTask ("Update shared", "Updates a shared value") (\tst -> accIWorldTSt updateShared` {tst & sharedChanged = True})
+where
+	updateShared` iworld
+		# (val,iworld)	= 'Shared'.readShared shared iworld
+		| isError val	= (taskException (SharedException (fromError val)),iworld)
+		# val			= f (fromOk val)
+		# (wres,iworld)	= 'Shared'.writeShared shared val iworld
+		| isError wres	= (taskException (SharedException (fromError wres)),iworld)
+		= (TaskFinished val,iworld)
+
 interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) !(l r Bool -> InteractionTerminators a) !l !(Shared r w) -> Task a | descr d & iTask l & iTask a & iTask w
 interact description partFunc termFunc initLocal shared = mkInteractionTask description (editorE,editorC)
 where
@@ -39,7 +109,7 @@ where
 				| length views <= idx	= tst
 				// check for edit conflict
 				# (mbT,tst)				= getTaskStoreTimestamp VIEWS_STORE tst
-				# (changed,tst)			= accIWorldTSt (isSharedChanged shared (fromMaybe (Timestamp 0) mbT)) tst
+				# (changed,tst)			= accIWorldTSt ('Shared'.isSharedChanged shared (fromMaybe (Timestamp 0) mbT)) tst
 				= case changed of
 					Ok True
 						= setTaskStore EDIT_CONFLICT_STORE True tst
@@ -68,10 +138,10 @@ where
 								= tst
 
 	editorC tst=:{taskNr,newTask}
-		# (model,tst) 					= accIWorldTSt (readShared shared) tst
+		# (model,tst) 					= accIWorldTSt ('Shared'.readShared shared) tst
 		| isError model					= (sharedException model,tst)
 		# (localTimestamp,tst)			= accIWorldTSt (getLocalTimestamp taskNr) tst
-		# (changed,tst)					= accIWorldTSt (isSharedChanged shared localTimestamp) tst
+		# (changed,tst)					= accIWorldTSt ('Shared'.isSharedChanged shared localTimestamp) tst
 		| isError changed				= (sharedException changed,tst)
 		# (local,tst)					= readLocalState tst
 		= case termFunc local (fromOk model) (fromOk changed) of
@@ -88,9 +158,9 @@ where
 						= (TaskBusy,tst)
 	where
 		tuiFunc local mbEdit actions iworld
-			# (Ok model,iworld)			= readShared shared iworld
+			# (Ok model,iworld)			= 'Shared'.readShared shared iworld
 			# (localTimestamp,iworld)	= getLocalTimestamp taskNr iworld
-			# (Ok changed,iworld)		= isSharedChanged shared localTimestamp iworld
+			# (Ok changed,iworld)		= 'Shared'.isSharedChanged shared localTimestamp iworld
 			# parts						= partFunc local model changed
 			# (oldVs,iworld)			= readViews taskNr local iworld
 			# (tui,newVs)				= visualizeParts taskNr parts oldVs mbEdit
@@ -111,7 +181,7 @@ where
 			Just views
 				= (views,iworld)
 			Nothing
-				# (model,iworld)= readShared shared iworld
+				# (model,iworld)= 'Shared'.readShared shared iworld
 				| isError model	= ([],iworld)
 				= ([(Nothing,part) \\ part <- partFunc local (fromOk model) True],iworld)
 			
@@ -126,7 +196,7 @@ where
 	updateStates (local,mbModel) tst
 		# tst = setTaskStore LOCAL_STORE local tst
 		= case mbModel of
-			Just model	= snd (accIWorldTSt (writeShared shared model) tst)
+			Just model	= snd (accIWorldTSt ('Shared'.writeShared shared model) tst)
 			Nothing		= tst
 			
 :: Views a :== [(!Maybe (!JSONNode,!UpdateMask,!VerifyMask),!InteractionPart a)]
@@ -238,3 +308,29 @@ fromPredActions toP toR actions = \l r c -> UserActions (map (\(a,pred) -> (a,if
 
 fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractionTerminators a)
 fromPredActionsLocal toP toR actions = \l -> UserActions (map (\(a,pred) -> (a,if (pred (toP l)) (Just (toR a l)) Nothing)) actions)
+
+applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
+applyChangeToProcess pid change lifetime
+	= mkInstantTask ("Apply a change to a process", ("Apply a " +++ lt +++ " change to task " +++ pid))
+		(\tst -> (TaskFinished Void, applyChangeToTaskTree pid (lifetime,change) tst))
+where
+	lt = case lifetime of
+		CLTransient = "transient"
+		CLPersistent _	= "persistent"
+		
+appWorld :: !(*World -> *World) -> Task Void
+appWorld fun = mkInstantTask ("Run world function", "Run a world function.") (\tst -> (TaskFinished Void,appWorldTSt fun tst))
+
+accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
+accWorld fun = mkInstantTask ("Run world function", "Run a world function and get result.") (mkTaskFunction (accWorldTSt fun))
+
+accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
+accWorldError fun errf = mkInstantTask ("Run a world function", "Run a world function with error handling.") f
+where
+	f tst
+	# (res, tst) 	= accWorldTSt fun tst
+	| isError res	= (taskException (errf (fromError res)), tst)
+	= (TaskFinished (fromOk res), tst)
+
+accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
+accWorldOSError fun = accWorldError fun OSException

@@ -16,7 +16,7 @@ import	Engine						// basic iTask system creator
 	//	Basic tasks
 	,	CoreTasks					// Core basic tasks
 	,	InteractionTasks			// tasks for interaction with users
-	,	SharedTasks					// tasks for accessing the generic store
+	,	DBTasks						// convenience wrapper functions for databases with multiple values of type a
 	
 	,	UserDBTasks					// tasks for accessing the user database
 	,	ProcessDBTasks				// tasks for accessing the process database
@@ -24,14 +24,11 @@ import	Engine						// basic iTask system creator
 	,	ImportTasks					// tasks for importing external data
 	,	ExportTasks					// tasks for exporting data
 	
-	,	ChangeTasks					// Tasks for changing existing workflows
-	
 	,	IntegrationTasks			// Tasks for integration with other systems
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
 	,	CommonCombinators			// Set of additional useful iTask combinators
-	,	LiftingCombinators			// Lifting of other domains (e.g. World) to the iTask domain
 	,	ExceptionCombinators		// Handling exceptional situations
 	,	TuningCombinators			// Fine tuning of tasks
 	
@@ -51,9 +48,6 @@ import	Engine						// basic iTask system creator
 	,	StdTuple
 	,	StdEnum
 	,	StdOverloaded
-	,	StdArray
-	,	StdGeneric
-	,	StdDynamic
 
 from StdFunc import id, const, o
 

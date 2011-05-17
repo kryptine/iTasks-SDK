@@ -3,8 +3,13 @@ definition module CoreTasks
 * This module provides the core 'basic tasks' from which more specialized tasks can be derived.
 */
 
-from Task import :: Task
 import iTaskClass
+from Error		import ::MaybeError(..)
+from OSError	import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
+from Shared		import :: SymmetricShared
+from Task		import :: Task
+from TSt		import ::ChangeLifeTime, :: ChangeDyn
+
 
 /**
 * Lifts a value to the task domain. The return_V task finishes immediately and yields its parameter
@@ -14,6 +19,53 @@ import iTaskClass
 * @return A task that will return the value defined by the parameter
 */
 return 		:: !a 										-> Task a 		| iTask a
+
+:: SharedStoreId :== String
+
+/**
+* Creates a reference to a store identified by a string identifier.
+* If no data is store the default value given as second argument is given as result.
+*/
+sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+
+/**
+* Create a shared store with automatically generated reference and given initial value.
+* The store is automatically garbage collected after the process it was generated in terminates.
+*
+* @param An inital value
+* @return A reference to the generated store
+* @throws SharedException
+*/
+createSharedStore :: !a  -> Task (SymmetricShared a) | iTask a
+
+/**
+* Reads shared data.
+*
+* @param A shared reference
+* @return The value read
+* @throws SharedException
+*/
+get :: !(Shared a w) -> Task a | iTask a
+
+/**
+* Writes shared data.
+*
+* @param A value to write
+* @param A shared reference
+* @return The value written
+* @throws SharedException
+*/
+set :: !(Shared r a) !a -> Task a | iTask a
+
+/**
+* Updates shared data in one atomic operation.
+*
+* @param A function modifying the shared value
+* @param A shared reference
+* @param The new value
+* @throws SharedException
+*/
+update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 
 /**
 * Swiss-army-knife interaction tasks. All other interaction tasks are derived from this one.
@@ -76,3 +128,44 @@ addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask a
 
 fromPredActions			:: !(l r Bool -> p)	!(Action l r Bool -> a)	![PredAction p] -> (l r Bool -> InteractionTerminators a)
 fromPredActionsLocal	:: !(l -> p)		!(Action l -> a)		![PredAction p] -> (l -> InteractionTerminators a)
+
+/**
+* Administer a change to another (running) workflow process
+*
+* @param A process id
+* @param The change
+* @param The change's lifetime
+*
+* @return The task that will do the change
+*/
+applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
+
+/**
+* Evaluate a "World" function that does not yield any result once.
+*
+* @param The function to evaluate
+*
+* @param A Void task that evaluates the function
+*/
+appWorld :: !(*World -> *World)			-> Task Void
+
+/**
+* Evaluate a "World" function that also returns a value once.
+*
+* @param The function to evaluate
+*
+* @param A Void task that evaluates the function
+*/
+accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
+
+/**
+* Evaluate a "World" function that also returns a MaybeError value.
+* If the MaybeError value is Error, the error is transformed.
+* @param The function to evaluate
+* @param Error transformation function
+*
+* @param A Void task that evaluates the function
+*/
+accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
+
+accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a

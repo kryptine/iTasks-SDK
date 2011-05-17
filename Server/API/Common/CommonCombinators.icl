@@ -4,14 +4,14 @@ implementation module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text
-import Util, Either, TSt, GenVisualize, GenUpdate, Map
+import Util, Either, TSt, GenVisualize, GenUpdate
 from StdFunc	import id, const, o
 from Types		import :: ProcessId, :: User(..), :: Note(..)
 from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree
 from Shared		import mapShared, :: SymmetricShared
-import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, SharedTasks, ProcessDBTasks, InteractionTasks, SystemData
+import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, ProcessDBTasks, InteractionTasks, SystemData
 
 derive class iTask GAction, GOnlyAction
 
@@ -39,12 +39,12 @@ accu :: (a acc -> (acc,Bool)) (Task a) (SymmetricShared acc) (ParallelInfo acc) 
 accu accufun task pstate pcontrol
 	=	task
 	>>= \result ->
-		readShared pstate
+		get pstate
 	>>= \state ->
 		let (nstate,stop) =  accufun result state in
-				writeShared pstate nstate
+				set pstate nstate
 			>>| if stop
-				(writeShared pcontrol [StopParallel] >>| return result)
+				(set pcontrol [StopParallel] >>| return result)
 				(return result)
 			
 transform :: !(a -> b) !a -> Task b | iTask b
@@ -124,10 +124,10 @@ where
 	seqTasks []		= []
 	seqTasks [t:ts]	= [InBodyTask \pstate pinfo -> t >>= accResult pstate >>= startNext pinfo ts]
 	
-	accResult pstate a 		= updateShared (\acc -> [a:acc]) pstate >>| return a
+	accResult pstate a 		= update (\acc -> [a:acc]) pstate >>| return a
 	
 	startNext pinfo [] a	= return a
-	startNext pinfo ts a	= writeShared pinfo [AppendTask t \\ t <- seqTasks ts] >>| return a
+	startNext pinfo ts a	= set pinfo [AppendTask t \\ t <- seqTasks ts] >>| return a
 		
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
@@ -135,8 +135,8 @@ where
 where
 	checked pred task pstate pinfo
 		= task >>= \a -> if (pred a)
-			(writeShared pstate (Just a) >>|return a)
-			(updateShared (\[{ParallelTaskInfo|index}] -> [RemoveTask index, AppendTask (InBodyTask (checked pred task))]) pinfo >>| return a)
+			(set pstate (Just a) >>|return a)
+			(update (\[{ParallelTaskInfo|index}] -> [RemoveTask index, AppendTask (InBodyTask (checked pred task))]) pinfo >>| return a)
 
 	layout {TUIParallel|items} = hd items
 
@@ -205,7 +205,7 @@ stop = return Void
 
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"
-randomChoice list = readShared sharedRandomInt >>= \i -> return (list !! ((abs i) rem (length list)))
+randomChoice list = get sharedRandomInt >>= \i -> return (list !! ((abs i) rem (length list)))
 
 repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
@@ -253,14 +253,14 @@ where
 		}
 	where
 		createEditor initState editorTask =
-						updateShared inc idref
-			>>= \eid.	updateShared (putInEditorStates eid initState) ref
+						update inc idref
+			>>= \eid.	update (putInEditorStates eid initState) ref
 			>>|			editorTask eid (sharedForEditor eid)
-			>>|			updateShared (updateEditorStates (del eid)) ref
+			>>|			update (updateEditorStates (del eid)) ref
 			>>|			stop
 			
 		iterateEditors initAcc f =
-						readShared ref
+						get ref
 			>>= \st.	iterate initAcc (map fst (toList (snd st))) f ref
 		where
 			iterate acc [] _ _= return acc
@@ -269,7 +269,7 @@ where
 				>>= \acc.	iterate acc eids f ref
 			
 		existsEditor pred =
-						readShared ref
+						get ref
 			>>= \st.	return (check (toList (snd st)))
 		where
 			check [] = Nothing

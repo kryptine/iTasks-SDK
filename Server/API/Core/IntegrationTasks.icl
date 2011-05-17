@@ -1,6 +1,6 @@
 implementation module IntegrationTasks
 
-import StdInt, StdFile, StdTuple, StdList, StdArray
+import StdInt, StdFile, StdTuple, StdList
 
 import Directory, File, FilePath, OSError, UrlEncoding, Text
 

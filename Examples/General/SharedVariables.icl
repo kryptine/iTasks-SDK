@@ -24,7 +24,7 @@ where
 					updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, alwaysShared), quitButtonShared] sid
 		>>= \res.	case res of
 						(TrimAction,txt) =
-								writeShared sid (trim txt)
+								set sid (trim txt)
 							>>|	noteE sid
 						_ =
 							stop
@@ -115,7 +115,7 @@ where
 	markersDisplay dbid =
 								monitorA "Markers" markersListener (const False) [(RemoveMarkersAction,const True),(ActionQuit,const True)] dbid
 		>>= \(Just action,map).	case action of
-									RemoveMarkersAction	= updateShared (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid
+									RemoveMarkersAction	= update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid
 									_					= return map
 
 	optionsEditor	=	( \map ->		{ type = map.mapType
@@ -296,13 +296,13 @@ where
 		>>= \(query,_,_) ->
 			queryTask query
 		>>= \results ->
-			updateShared (\(q,_,_) -> (q,False,results)) qstore	//Reset dirty flag
+			update (\(q,_,_) -> (q,False,results)) qstore	//Reset dirty flag
 		
 
 	searchResults qstore pstate pinfo
 		=	enterSharedChoiceA ("Search results","The following results were found:") id [(ActionNext,ifvalid)] (mapSharedRead (\(_,_,r) -> r) qstore)
 		>>= \(_,Just x) ->
-			writeShared pstate (Just x) 
+			set pstate (Just x) 
 	
 from Shared import mapSharedRead
 

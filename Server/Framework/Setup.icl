@@ -1,7 +1,7 @@
 implementation module Setup
 
 import StdList,StdBool, StdInt, StdFile, StdFunc
-import HTTP
+import HTTP, Map
 import HTML, HtmlUtil
 import File, Error, OS
 import Config

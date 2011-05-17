@@ -16,13 +16,13 @@ reportPosition :: GoogleMapPosition -> Task Void
 reportPosition position
 	=	getCurrentUser
 	>>= \user ->
-		updateShared (update (user,position)) locationStore
+		update (updatePos (user,position)) locationStore
 	>>| stop
 where
-	update (user,position) [] = [(user,position)]
-	update (user,position) [(u,p):ps]
+	updatePos (user,position) [] = [(user,position)]
+	updatePos (user,position) [(u,p):ps]
 		| u == user	= [(user,position):ps]
-					= [(u,p):update (user,position) ps]
+					= [(u,p):updatePos (user,position) ps]
 	
 viewMap :: Task Void
 viewMap

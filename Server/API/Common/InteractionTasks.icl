@@ -3,7 +3,7 @@ implementation module InteractionTasks
 from StdFunc import id, const, o
 from Shared import nullShared
 import StdBool, StdList, Util
-import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, SystemData, SharedTasks
+import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, SystemData
 import StdMisc
 
 interactLocal :: !d !(l -> [InteractionPart l]) !(l -> InteractionTerminators a) !l -> Task a | descr d & iTask l & iTask a
@@ -293,7 +293,7 @@ where
 	pred now = date < now
 
 waitForTimer :: !Time -> Task Time
-waitForTimer time = readShared sharedCurrentTime >>= \now -> waitForTime (now + time)
+waitForTimer time = get sharedCurrentTime >>= \now -> waitForTime (now + time)
 
 noView :: Maybe (a -> Void)
 noView = Nothing

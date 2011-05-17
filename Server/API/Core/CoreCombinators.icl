@@ -1,13 +1,12 @@
 implementation module CoreCombinators
 
-import StdList, StdArray, StdTuple, StdMisc, StdBool, StdOrdList
+import StdList, StdTuple, StdMisc, StdBool, StdOrdList
 import TSt, Util, HTTP, GenUpdate, UserDB, Store, Types, Text, TuningCombinators, Shared, InteractionTasks, CommonCombinators
 from StdFunc			import id, const, o, seq
 from CommonCombinators	import transform
 from ProcessDB			import :: Process{..}
 from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
-from SharedTasks		import sharedStore, :: SharedStoreId
 from CoreTasks			import return
 
 derive class iTask ParallelTaskInfo, SchedulerState, Control

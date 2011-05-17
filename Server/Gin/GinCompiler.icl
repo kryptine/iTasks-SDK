@@ -17,6 +17,7 @@ import OSError
 import FilePath
 from File import instance toString FileError, readFile, writeFile
 from Process import qualified callProcess
+from Map import newMap
 
 from PmCleanSystem import 
 	::CompileOrCheckSyntax(..),
