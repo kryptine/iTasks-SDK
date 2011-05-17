@@ -15,10 +15,7 @@ import	Engine						// basic iTask system creator
 
 	//	Basic tasks
 	,	CoreTasks					// Core basic tasks
-	,	InteractionTasks			// core tasks for interaction with users
-	,	OutputTasks					// tasks for outputting informating to users
-	,	InputTasks					// tasks for letting users input information
-	,	UpdateTasks					// tasks for letting users update information
+	,	InteractionTasks			// tasks for interaction with users
 	,	SharedTasks					// tasks for accessing the generic store
 	
 	,	UserDBTasks					// tasks for accessing the user database

@@ -8,7 +8,7 @@ import GenEq, GenVisualize, GenUpdate, Store, Config
 from StdFunc			import id, const, o, seq
 from iTasks				import JSONDecode, fromJSON
 from CoreCombinators	import >>=
-from InputTasks			import enterInformation
+from InteractionTasks	import enterInformation
 from TuningCombinators	import @>>, <<@, class tune, instance tune Title, :: Title(..)
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree

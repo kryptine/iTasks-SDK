@@ -5,7 +5,7 @@ import StdInt, StdFile, StdTuple, StdList, StdArray
 import Directory, File, FilePath, OSError, UrlEncoding, Text
 
 import ExceptionCombinators
-import OutputTasks
+import InteractionTasks
 import Shared
 import TSt
 import UserDB
