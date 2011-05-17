@@ -31,7 +31,7 @@ return 		:: !a 										-> Task a 		| iTask a
 * @param A reference to shared data the task works on
 *
 * @return A result determined by the terminators
-* @throws SharedException (non-local variant only)
+* @throws SharedException
 */
 interact		:: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)])	!(l r Bool -> InteractionTerminators a)	!l !(Shared r w)	-> Task a | descr d & iTask l & iTask a & iTask w
 

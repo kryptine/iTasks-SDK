@@ -52,85 +52,43 @@ requestConfirmation` d mbAbout = InputTask @>> interactLocal d (const (addAbout 
 
 //Local choice tasks
 enterChoice :: !d ![a] -> Task a | descr d & iTask a
-enterChoice _ [] = throw EmptyOptionList
-enterChoice d options = enterChoice` d options voidNothing
+enterChoice d options = localChoice d options voidNothing Nothing
 
 enterChoiceA :: !d !(a -> v) ![PredAction (Verified a)] ![a] -> Task (!Action,!Maybe a) | descr d & iTask a & iTask v
-enterChoiceA _ _ _ [] = throw EmptyOptionList
-enterChoiceA d view actions options = enterChoiceA` d view actions options voidNothing
+enterChoiceA d view actions options = localChoiceA d view actions options voidNothing Nothing
 
 enterChoiceAbout :: !d !about ![a] -> Task a | descr d & iTask a & iTask about
-enterChoiceAbout _ _ [] = throw EmptyOptionList
-enterChoiceAbout d about options = enterChoice` d options (Just about)
+enterChoiceAbout d about options = localChoice d options (Just about) Nothing
 
 enterChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about ![a] -> Task (!Action,!Maybe a) | descr d & iTask a & iTask about & iTask v
-enterChoiceAboutA _ _ _ _ [] = throw EmptyOptionList
-enterChoiceAboutA d view actions about options = enterChoiceA` d view actions options (Just about)
-
-enterChoice` d options mbAbout					= InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (choiceFormView options,fmap getChoice)]) okAction Nothing
-enterChoiceA` d view actions options mbAbout	= InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (choiceFormView (map view options),fmap getChoiceIndex)]) (fromPredActionsLocal (mb2Ver o fmap ((!!) options)) (\a mbIdx -> (a,fmap ((!!) options) mbIdx)) actions) Nothing
-choiceFormView options = Unchanged (FormValue (choice options))
+enterChoiceAboutA d view actions about options = localChoiceA d view actions options (Just about) Nothing
 
 //Shared choice tasks
 enterSharedChoiceA :: !d !(a -> v) ![PredAction (Verified a)] !(Shared [a] w) -> Task (!Action, Maybe a) | descr d & iTask a & iTask v & iTask w
-enterSharedChoiceA d view actions shared = enterSharedChoiceA` d view actions shared voidNothing
+enterSharedChoiceA d view actions shared = sharedChoiceA d view actions shared voidNothing Nothing
 
 enterSharedChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about !(Shared [a] w) -> Task (!Action, Maybe a) | descr d & iTask a & iTask about & iTask v & iTask w
-enterSharedChoiceAboutA d view actions about shared = enterSharedChoiceA` d view actions shared (Just about)
-
-enterSharedChoiceA` description view actions shared mbAbout
-	= interact description interaction termination Nothing shared
-where
-	interaction local model changed
-		= addAbout mbAbout [UpdateView (if changed initChoice (Unchanged initChoice),fromView)]
-	where
-		initChoice		= FormValue (choice (map view model))
-		fromView mbC 	= (fmap getChoiceIndex mbC, Nothing)
-	
-	termination = fromPredActions (\l model _ -> mb2Ver (fmap ((!!) model) l)) (\action mbIdx model _ -> (action,fmap ((!!) model) mbIdx)) actions
+enterSharedChoiceAboutA d view actions about shared = sharedChoiceA d view actions shared (Just about) Nothing
 
 //Local multiple choice tasks
 enterMultipleChoice :: !d ![a] -> Task [a] | descr d & iTask a
-enterMultipleChoice d options = enterMultipleChoice` d options voidNothing
+enterMultipleChoice d options = localMultipleChoice d options voidNothing Nothing
 
 enterMultipleChoiceA :: !d !(a -> v) ![PredAction [a]] ![a] -> Task (!Action,![a]) | descr d & iTask a & iTask v
-enterMultipleChoiceA d view actions options = enterMultipleChoiceA` d view actions options voidNothing
+enterMultipleChoiceA d view actions options = localMultipleChoiceA d view actions options voidNothing Nothing
 
 enterMultipleChoiceAbout :: !d !about ![a] -> Task [a] | descr d & iTask a & iTask about
-enterMultipleChoiceAbout d about options = enterMultipleChoice` d options (Just about)
+enterMultipleChoiceAbout d about options = localMultipleChoice d options (Just about) Nothing
 
 enterMultipleChoiceAboutA :: !d !(a -> v) ![PredAction [a]] !about ![a] -> Task (!Action,![a]) | descr d & iTask a & iTask about & iTask v
-enterMultipleChoiceAboutA d view actions about options = enterMultipleChoiceA` d view actions options (Just about)
-
-enterMultipleChoice` d options mbAbout = InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (multipleChoiceFormView options,maybe [] getChoices)]) (\choice -> okAction (Just choice)) []
-enterMultipleChoiceA` d view actions options mbAbout
-	= InputTask @>> interactLocal
-		d
-		(\_ -> addAbout mbAbout [UpdateView (multipleChoiceFormView (map view options),\mbC -> maybe [] getChoiceIndexes mbC)])
-		(fromPredActionsLocal (getIndexes options) (\a idxs -> (a,getIndexes options idxs)) actions)
-		[]
-multipleChoiceFormView options = Unchanged (FormValue (multipleChoice options))
+enterMultipleChoiceAboutA d view actions about options = localMultipleChoiceA d view actions options (Just about) Nothing
 
 //Shared multiple choice tasks
 enterSharedMultipleChoiceA	:: !d !(a -> v) ![PredAction [a]] !(Shared [a] w) -> Task (!Action, [a]) | descr d & iTask a & iTask v & iTask w
-enterSharedMultipleChoiceA description view actions shared = enterSharedMultipleChoiceA` description view actions shared voidNothing
+enterSharedMultipleChoiceA description view actions shared = sharedMultipleChoiceA description view actions shared voidNothing Nothing
 
 enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![PredAction [a]] !about !(Shared [a] w) -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v & iTask w
-enterSharedMultipleChoiceAboutA description view actions about shared = enterSharedMultipleChoiceA` description view actions shared (Just about)
-
-enterSharedMultipleChoiceA` description view actions shared mbAbout
-	= interact description interaction termination [] shared
-where
-	interaction local model changed
-		= addAbout mbAbout [UpdateView (toView,fromView)]
-	where
-		toView				= FormValue (multipleChoiceSel (map view model) (if changed [] local))
-		fromView (Just mc)	= (getChoiceIndexes mc, Nothing)
-		fromView Nothing	= (local, Nothing)
-	
-	termination local model _
-		# choices = [a \\ a <- model & i <- [0..] |isMember i local] //Inefficient :(
-		= UserActions [(action, if (pred choices) (Just (action,choices)) Nothing) \\ (action,pred) <- actions]
+enterSharedMultipleChoiceAboutA description view actions about shared = sharedMultipleChoiceA description view actions shared (Just about) Nothing
 		
 //Local update
 updateInformation :: !d !a -> Task a | descr d & iTask a
@@ -174,78 +132,80 @@ updateSharedInformationA` d (get,putback) actions shared mbAbout
 		True
 		shared
 
-/*
-* Ask the user to select one item from a list of options with already one option pre-selected
-*
-* @param description 		A description of the task to display to the user
-* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
-*							If not specified, a = v, and the view is the identity.
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
-* @param [a]				A list of (shared) options
-* @param Int				The index of the item which should be pre-selected
-*
-* @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
-* @throws					ChoiceException, SharedException (updateSharedChoiceA only)
-*/
-//updateChoice				:: !d							![a]			!Int -> Task a					| descr d & iTask a	
-//updateChoiceA 				:: !d !(a -> v) ![PredAction (Verified a)]	![a]			!Int -> Task (!Action, Maybe a)	| descr d & iTask a & iTask v 
-//updateChoiceAbout			:: !d 							!about ![a]				!Int -> Task a					| descr d & iTask a	& iTask about
-//updateChoiceAboutA			:: !d !(a -> v) ![PredAction (Verified a)] !about ![a]				!Int -> Task (!Action, Maybe a)	| descr d & iTask a & iTask about & iTask v
+updateChoice :: !d ![a] !Int -> Task a | descr d & iTask a
+updateChoice d options sel = localChoice d options voidNothing (Just sel)
 
+updateChoiceA :: !d !(a -> v) ![PredAction (Verified a)] ![a] !Int -> Task (!Action, Maybe a) | descr d & iTask a & iTask v 
+updateChoiceA d view actions options sel = localChoiceA d view actions options voidNothing (Just sel)
 
-/*
-* Ask the user to select one item from a list of options with already one option pre-selected, given some context information
-*
-* @param description 		A description of the task to display to the user
-* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
-*							If not specified, a = v, and the view is the identity.
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
-* @param b					Additional information to display
-* @param [a]				A list of (shared) options
-* @param Int				The index of the item which should be pre-selected
-*
-* @return 					Chosen value or chosen action with the chosen value if editor was in valid state.
-* @throws					ChoiceException, SharedException (updateSharedChoiceAboutA only)
-*/
-//updateSharedChoiceA 		:: !d !(a -> v) ![PredAction (Verified a)] !(Shared [a] w)	!Int -> Task (!Action, Maybe a)	| descr d & iTask a & iTask v
-//updateSharedChoiceAboutA	:: !d !(a -> v) ![PredAction (Verified a)] !about !(Shared [a] w)	!Int -> Task (!Action, Maybe a)	| descr d & iTask a & iTask about & iTask v
+updateChoiceAbout :: !d !about ![a] !Int -> Task a | descr d & iTask a & iTask about
+updateChoiceAbout d about options sel = localChoice d options (Just about) (Just sel)
 
-/*
-* Ask the user to select a number of items from a list of options with already some options pre-selected
-*
-* @param description 		A description of the task to display to the user
-* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
-*							If not specified, a = v, and the view is the identity.
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
-* @param [a]				A list of (shared) options
-* @param [Int]				The index of the items which should be pre-selected
-*
-* @return 					Chosen values or chosen action with the chosen values.
-* @throws					SharedException (updateSharedMultipleChoiceA only)
-*/
+updateChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about ![a] !Int -> Task (!Action, Maybe a) | descr d & iTask a & iTask about & iTask v
+updateChoiceAboutA d view actions about options sel = localChoiceA d view actions options (Just about) (Just sel)
+
+localChoice _ [] _ _								= throw EmptyOptionList
+localChoice d options mbAbout mbSel				= InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (choiceFormView options mbSel,fmap getChoice)]) okAction Nothing
+localChoiceA _ _ _ [] _ _							= throw EmptyOptionList
+localChoiceA d view actions options mbAbout mbSel	= InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (choiceFormView (map view options) mbSel,fmap getChoiceIndex)]) (fromPredActionsLocal (mb2Ver o fmap ((!!) options)) (\a mbIdx -> (a,fmap ((!!) options) mbIdx)) actions) Nothing
+choiceFormView options mbSel = Unchanged (FormValue (maybe (choice options) (choiceSel options) mbSel))
+
+updateSharedChoiceA :: !d !(a -> v) ![PredAction (Verified a)] !(Shared [a] w) !Int -> Task (!Action, Maybe a) | descr d & iTask a & iTask v & iTask w
+updateSharedChoiceA d view actions shared sel = sharedChoiceA d view actions shared voidNothing (Just sel)
+
+updateSharedChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about !(Shared [a] w) !Int -> Task (!Action, Maybe a) | descr d & iTask a & iTask about & iTask v & iTask w
+updateSharedChoiceAboutA d view actions about shared sel = sharedChoiceA d view actions shared (Just about) (Just sel)
+
+sharedChoiceA description view actions shared mbAbout mbSel = interact description interaction termination Nothing shared
+where
+	interaction local model changed
+		= addAbout mbAbout [UpdateView (if changed initChoice (Unchanged initChoice),fromView)]
+	where
+		initChoice		= FormValue (maybe (choice (map view model)) (choiceSel (map view model)) mbSel)
+		fromView mbC 	= (fmap getChoiceIndex mbC, Nothing)
+	
+	termination = fromPredActions (\l model _ -> mb2Ver (fmap ((!!) model) l)) (\action mbIdx model _ -> (action,fmap ((!!) model) mbIdx)) actions
+
 updateMultipleChoice :: !d ![a] ![Int] -> Task [a] | descr d & iTask a
-updateMultipleChoice _ _ _ = undef
+updateMultipleChoice d options sel = localMultipleChoice d options voidNothing (Just sel)
 
-//updateMultipleChoiceA		:: !d !(a -> v) ![PredAction [a]]	![a]			![Int] -> Task (!Action, [a])	| descr d & iTask a & iTask v
-//updateMultipleChoiceAbout		 :: !d 								!about ![a] 			![Int] -> Task [a]				| descr d & iTask a	& iTask about
-//updateMultipleChoiceAboutA		 :: !d !(a -> v) ![PredAction [a]]	!about ![a] 			![Int] -> Task (!Action, [a])	| descr d & iTask a & iTask about & iTask v
+updateMultipleChoiceA :: !d !(a -> v) ![PredAction [a]] ![a] ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask v
+updateMultipleChoiceA d view actions options sel = localMultipleChoiceA d view actions options voidNothing (Just sel)
 
-/*
-* Ask the user to select a number of items from a list of options with already some options pre-selected, given additional context information
-*
-* @param description 		A description of the task to display to the user
-* @param (a -> v)			A view for options of type a is generated; This function defines how to map an option to a view value of type v. 
-*							If not specified, a = v, and the view is the identity.
-* @param [TaskAction a]		A list of buttons or menus, through which the user can submit the value. 
-* @param b					Additional information to display
-* @param [a]				A list of (shared) options
-* @param [Int]				The index of the items which should be pre-selected
-*
-* @return 					Chosen values or chosen action with the chosen values.
-* @throws					SharedException (updateSharedMultipleChoiceAboutA only)
-*/
-//updateSharedMultipleChoiceA :: !d !(a -> v) ![PredAction [a]]	!(Shared [a] w)	![Int] -> Task (!Action, [a])	| descr d & iTask a & iTask v
-//updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![PredAction [a]]	!about !(Shared [a] w)	![Int] -> Task (!Action, [a])	| descr d & iTask a & iTask about & iTask v
+updateMultipleChoiceAbout :: !d !about ![a] ![Int] -> Task [a] | descr d & iTask a & iTask about
+updateMultipleChoiceAbout d about options sel = localMultipleChoice d options (Just about) (Just sel)
+
+updateMultipleChoiceAboutA :: !d !(a -> v) ![PredAction [a]] !about ![a] ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v
+updateMultipleChoiceAboutA d view actions about options sel = localMultipleChoiceA d view actions options (Just about) (Just sel)
+
+localMultipleChoice d options mbAbout mbSel = InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (multipleChoiceFormView options mbSel,maybe [] getChoices)]) (\choice -> okAction (Just choice)) []
+localMultipleChoiceA d view actions options mbAbout mbSel
+	= InputTask @>> interactLocal
+		d
+		(\_ -> addAbout mbAbout [UpdateView (multipleChoiceFormView (map view options) mbSel,\mbC -> maybe [] getChoiceIndexes mbC)])
+		(fromPredActionsLocal (getIndexes options) (\a idxs -> (a,getIndexes options idxs)) actions)
+		[]
+multipleChoiceFormView options mbSel = Unchanged (FormValue (maybe (multipleChoice options) (multipleChoiceSel options) mbSel))
+
+updateSharedMultipleChoiceA :: !d !(a -> v) ![PredAction [a]] !(Shared [a] w) ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask v & iTask w
+updateSharedMultipleChoiceA d view actions shared sel = sharedMultipleChoiceA d view actions shared voidNothing (Just sel)
+
+updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![PredAction [a]] !about !(Shared [a] w) ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v & iTask w
+updateSharedMultipleChoiceAboutA d view actions about shared sel = sharedMultipleChoiceA d view actions shared (Just about) (Just sel)
+
+sharedMultipleChoiceA description view actions shared mbAbout mbSel
+	= interact description interaction termination (fromMaybe [] mbSel) shared
+where
+	interaction local model changed
+		= addAbout mbAbout [UpdateView (toView,fromView)]
+	where
+		toView				= FormValue (multipleChoiceSel (map view model) (if changed [] local))
+		fromView (Just mc)	= (getChoiceIndexes mc, Nothing)
+		fromView Nothing	= (local, Nothing)
+	
+	termination local model _
+		# choices = [a \\ a <- model & i <- [0..] |isMember i local] //Inefficient :(
+		= UserActions [(action, if (pred choices) (Just (action,choices)) Nothing) \\ (action,pred) <- actions]
 
 //Local output
 showMessage :: !d !a -> Task a | descr d & iTask a
@@ -338,8 +298,8 @@ waitForTimer time = readShared sharedCurrentTime >>= \now -> waitForTime (now + 
 noView :: Maybe (a -> Void)
 noView = Nothing
 
-chooseAction :: !d !(r -> [(!Action,!Maybe a)]) !(Shared r w) -> Task a | descr d & iTask a & iTask w
-chooseAction d actionsF shared = interact d (\_ _ _ -> []) (\_ r _ -> UserActions (actionsF r)) Void shared
+chooseAction :: !d ![(!Action,a)] -> Task a | descr d & iTask a
+chooseAction d actions = interactLocal d (const []) (const (UserActions (map (appSnd Just) actions))) Void
 
-chooseActionConst :: !d ![(!Action,a)] -> Task a | descr d & iTask a
-chooseActionConst d actions = interactLocal d (const []) (const (UserActions (map (appSnd Just) actions))) Void
+chooseActionDyn :: !d !(r -> [(!Action,!Maybe a)]) !(Shared r w) -> Task a | descr d & iTask a & iTask w
+chooseActionDyn d actionsF shared = interact d (\_ _ _ -> []) (\_ r _ -> UserActions (actionsF r)) Void shared
