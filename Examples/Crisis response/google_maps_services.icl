@@ -1,6 +1,6 @@
 implementation module google_maps_services
 
-import RPCTasks
+import IntegrationTasks
 
 reverse_geocoding :: !String !String !Bool !String !(String -> a) -> Task (ReadOnlyShared (Maybe a)) | iTask a
 reverse_geocoding q output sensor api_key parsefun = callRPCHTTP GET url args parsefun

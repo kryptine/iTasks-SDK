@@ -64,6 +64,13 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 							cmp.setIconClass(update[2][1]);
 						}
 						break;
+					case "TUISetSize":
+						if(cmp = this.findComponentByPath(this, update[1])) {
+							cmp.setTuiWidth(update[2]);
+							cmp.setTuiHeight(update[3]);
+							doLayout = true;
+						}
+						break;
 					case "TUIReplace":
 						cmp = this.replaceComponentByPath(this, update[1], update[2]);
 						doLayout = true;

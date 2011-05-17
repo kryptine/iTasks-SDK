@@ -12,45 +12,43 @@ diffEditorDefinitions old new = diffEditorDefinitions` startDataPath old new
 where
 	diffEditorDefinitions` :: !DataPath !TUIDef !TUIDef -> [TUIUpdate]
 	diffEditorDefinitions` path oldTui newTui
-		| oldTui.width === newTui.width && oldTui.height === newTui.height && oldTui.margins === newTui.margins
-			= diffEditorDefinitions`` path oldTui.content newTui.content
+		| oldTui.margins === newTui.margins
+			= case diffEditorDefinitions`` oldTui.content newTui.content of
+				Just diff
+					| oldTui.width === newTui.width && oldTui.height === newTui.height
+						= diff
+					| otherwise
+						= [TUISetSize (dp2s path) newTui.width newTui.height:diff]
+				Nothing
+					= [TUIReplace (dp2s path) newTui]
 		| otherwise
 			= [TUIReplace (dp2s path) newTui]
 	where
-		diffEditorDefinitions`` :: !DataPath !TUIDefContent !TUIDefContent -> [TUIUpdate]
-		diffEditorDefinitions`` path old new = case (old,new) of
+		diffEditorDefinitions`` :: !TUIDefContent !TUIDefContent -> Maybe [TUIUpdate]
+		diffEditorDefinitions`` old new = case (old,new) of
 			(TUIControl (TUIConstructorControl ccOld) oc, TUIControl (TUIConstructorControl ccNew) nc)
 				//Same constructor: diff the children
 				| oc.value === nc.value && oc.TUIControl.taskId == nc.TUIControl.taskId && oc.TUIControl.name == nc.TUIControl.name
-					= flatten [  diffEditorDefinitions` (childDataPath path i) co cn
-							  \\ co <- ccOld.TUIConstructorControl.items
-							  &  cn <- ccNew.TUIConstructorControl.items
-							  & i <- [0..] ]
-				//Different constructor: replace everything
-				| otherwise
-					= [TUIReplace (dp2s path) newTui]
-			// Documents are replaced when their value has changed
+					= Just (flatten	[ diffEditorDefinitions` (childDataPath path i) co cn
+									\\ co <- ccOld.TUIConstructorControl.items
+									&  cn <- ccNew.TUIConstructorControl.items
+									& i <- [0..] ])
+			// Documents are replaced if their value has changed
 			(TUIControl (TUIDocumentControl odoc) oc, TUIControl (TUIDocumentControl ndoc) nc)
 				| odoc == ndoc && oc.TUIControl.taskId == nc.TUIControl.taskId && oc.TUIControl.name == nc.TUIControl.name
-					= []
-				| otherwise
-					= [TUIReplace (dp2s path) newTui]
+					= Just []
 			(TUIControl otype oc, TUIControl ntype nc)
 				| otype === ntype
-					= valueUpdate path oc nc ++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]]
-				| otherwise
-					= [TUIReplace (dp2s path) newTui]
+					= Just (valueUpdate path oc nc ++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
 			(TUIButton o,TUIButton n)
 					| o.TUIButton.text == n.TUIButton.text && o.TUIButton.iconCls == n.TUIButton.iconCls
-						= update (\o n -> o.TUIButton.disabled == n.TUIButton.disabled) (\b -> Just (not b.TUIButton.disabled)) TUISetEnabled path o n
-							++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]]
-					| otherwise
-						= [TUIReplace (dp2s path) newTui]
+						= Just (update (\o n -> o.TUIButton.disabled == n.TUIButton.disabled) (\b -> Just (not b.TUIButton.disabled)) TUISetEnabled path o n
+							++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
 			(TUIGridContainer {gridEditors = oe,gridHtml = oh}, TUIGridContainer {gridEditors = ne, gridHtml = nh}) | length oe == length ne
 				# htmlUpdates	= flatten [[TUISetValue  (dp2s path) (toJSON (i,j,n)) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
 				# path			= shiftDataPath path
 				# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
-				= htmlUpdates ++ editorUpdates
+				= Just (htmlUpdates ++ editorUpdates)
 			(TUILayoutContainer o, TUILayoutContainer n)	|  o.TUILayoutContainer.orientation === n.TUILayoutContainer.orientation
 															&& o.TUILayoutContainer.hGravity === n.TUILayoutContainer.hGravity
 															&& o.TUILayoutContainer.vGravity === n.TUILayoutContainer.vGravity
@@ -62,7 +60,7 @@ where
 				# lengthUpdates	= if (numOld < numNew)
 					[TUIAdd (dp2s path) idx item \\item <- drop numMin n.TUILayoutContainer.items & idx <- [numMin..]]
 					(reverse [TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]])
-				= titleUpdate ++ valueUpdates ++ lengthUpdates
+				= Just (titleUpdate ++ valueUpdates ++ lengthUpdates)
 			where
 				numOld = length o.TUILayoutContainer.items
 				numNew = length n.TUILayoutContainer.items
@@ -72,7 +70,7 @@ where
 				# lengthUpdates	= if (numOld < numNew)
 					[TUIAdd (dp2s path) idx item \\item <- drop numMin lcNew.TUIListContainer.items & idx <- [numMin..]]
 					(reverse [TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]])
-				= valueUpdates ++ lengthUpdates
+				= Just (valueUpdates ++ lengthUpdates)
 				where
 					numOld = length lcOld.TUIListContainer.items
 					numNew = length lcNew.TUIListContainer.items
@@ -85,10 +83,10 @@ where
 								  &  i <- [0..]]
 			// Custom components need to figure out their own update on the client side
 			(TUICustom oc, TUICustom nc)
-				| oc === nc	= []
-				| otherwise	= [TUIUpdate (dp2s path) newTui]
+				| oc === nc	= Just []
+				| otherwise	= Just [TUIUpdate (dp2s path) newTui]
 			// Fallback: always replace
-			_	= [TUIReplace (dp2s path) newTui]
+			_	= Nothing
 		
 	//Simply update all child elements
 	staticContainerUpdate path old new = flatten [diffEditorDefinitions` (childDataPath path i) co cn \\ co <- old & cn <- new & i <- [0..] ]

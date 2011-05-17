@@ -2,17 +2,24 @@ Ext.ns("itasks.tui");
 
 itasks.tui.base = {
 	initComponent: function() {
-		this.tuiSize		= {};
-		this.tuiSize.width	= (this.width == 'Auto' ? this.defaultWidth : this.width);
-		this.tuiSize.height	= (this.height == 'Auto' ? this.defaultHeight : this.height);
-		if  (!Ext.isArray(this.tuiSize.width))
-			this.tuiSize.width	= [this.tuiSize.width];
-		if  (!Ext.isArray(this.tuiSize.height))
-			this.tuiSize.height	= [this.tuiSize.height];
+		this.tuiSize = {};
+		this.setTuiWidth(this.width);
+		this.setTuiHeight(this.height);
 		delete this.width;
 		delete this.height;
 		
 		this.extSuperclass.initComponent.apply(this,arguments);
+	},
+	
+	setTuiWidth: function(w) {
+		this.tuiSize.width	= (w == 'Auto' ? this.defaultWidth : w);
+		if  (!Ext.isArray(this.tuiSize.width))
+			this.tuiSize.width	= [this.tuiSize.width];
+	},
+	setTuiHeight: function(h) {
+		this.tuiSize.height	= (h == 'Auto' ? this.defaultHeight : h);
+		if  (!Ext.isArray(this.tuiSize.height))
+			this.tuiSize.height	= [this.tuiSize.height];
 	},
 	
 	doTUILayout: function(fillW,fillH) {
