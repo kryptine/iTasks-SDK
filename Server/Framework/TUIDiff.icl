@@ -5,7 +5,7 @@ import Util, GenUpdate, TUIDefinition
 
 derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
-gEq{|TUIConstructorControl|} _ _ = abort "not implemented"
+gEq{|TUIConstructorControl|} _ _ = False
 
 diffEditorDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
 diffEditorDefinitions old new = diffEditorDefinitions` startDataPath old new
