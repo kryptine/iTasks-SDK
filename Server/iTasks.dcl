@@ -14,6 +14,7 @@ import	Engine						// basic iTask system creator
 	,	SystemData
 
 	//	Basic tasks
+	,	CoreTasks					// Core basic tasks
 	,	InteractionTasks			// core tasks for interaction with users
 	,	OutputTasks					// tasks for outputting informating to users
 	,	InputTasks					// tasks for letting users input information

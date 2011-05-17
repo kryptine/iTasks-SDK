@@ -10,7 +10,8 @@ import Shared
 import TSt
 import UserDB
 
-from CoreCombinators	import >>=, >>|, return
+from CoreCombinators	import >>=, >>|
+from CoreTasks			import return
 from CommonCombinators	import transform
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile

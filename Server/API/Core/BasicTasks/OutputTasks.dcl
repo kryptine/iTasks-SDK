@@ -6,7 +6,7 @@ from Task				import class descr, :: Task
 from HTML				import :: HtmlTag
 from Shared				import :: Shared
 from StdFunc			import id, const
-from InteractionTasks	import :: Verified, :: PredAction
+from CoreTasks			import :: Verified, :: PredAction
 from Types				import :: Date, :: Time, :: DateTime
 import iTaskClass
 

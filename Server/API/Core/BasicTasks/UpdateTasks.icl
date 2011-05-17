@@ -1,7 +1,7 @@
 implementation module UpdateTasks
 
 import StdTuple, StdList, StdOrdList, StdBool, StdMisc, Functor
-import Types, Util, TSt, ExceptionCombinators, CoreCombinators, CommonCombinators, InteractionTasks
+import Types, Util, TSt, ExceptionCombinators, CoreCombinators, CommonCombinators, CoreTasks, InteractionTasks
 from StdFunc 		import id, const, o
 from SharedTasks	import sharedStore, :: SharedStoreId
 from SharedTasks	import qualified readShared, writeShared

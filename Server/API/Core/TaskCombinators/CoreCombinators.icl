@@ -8,6 +8,7 @@ from ProcessDB			import :: Process{..}
 from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB TSt, instance ProcessDB IWorld
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from SharedTasks		import sharedStore, :: SharedStoreId
+from CoreTasks			import return
 
 derive class iTask ParallelTaskInfo, SchedulerState, Control
 // Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
@@ -64,9 +65,6 @@ where
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
-
-return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,tst))
 	
 // Parallel composition
 JSONEncode{|PSt|} c		=  dynamicJSONEncode c

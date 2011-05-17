@@ -3,7 +3,8 @@ implementation module SharedTasks
 import StdList, StdOrdList, StdTuple, Error, Util
 import GenUpdate, GenVisualize, GenVerify, TSt, ExceptionCombinators
 from StdFunc			import id, o, const
-from CoreCombinators	import >>|, >>=, return
+from CoreCombinators	import >>|, >>=
+from CoreTasks			import return
 from Shared				import :: Shared(..), :: SharedWrite, :: SharedRead, :: SharedGetTimestamp, :: SymmetricShared
 from Shared				import qualified writeShared, readShared
 

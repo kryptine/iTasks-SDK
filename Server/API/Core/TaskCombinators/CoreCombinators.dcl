@@ -37,14 +37,7 @@ derive gEq			TaskContainer
 * @return The combined task
 */
 (>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
-/**
-* Lifts a value to the task domain. The return_V task finishes immediately and yields its parameter
-* as result of the task.
-*
-* @param The value to be returned
-* @return A task that will return the value defined by the parameter
-*/
-return 		:: !a 										-> Task a 		| iTask a
+
 
 /**
 * All-in-one swiss-army-knife parallel task creation

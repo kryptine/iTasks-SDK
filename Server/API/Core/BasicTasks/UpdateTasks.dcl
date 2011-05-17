@@ -6,7 +6,7 @@ from Task				import class descr, :: Task
 from HTML				import :: HtmlTag
 from Shared				import :: Shared
 from StdFunc			import id, const
-from InteractionTasks	import :: Valid, :: PredAction, :: Verified
+from CoreTasks			import :: Valid, :: PredAction, :: Verified
 import iTaskClass
 
 // A view mapping an input from a shared data source (r)

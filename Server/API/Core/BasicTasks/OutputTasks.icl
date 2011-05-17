@@ -1,7 +1,7 @@
 implementation module OutputTasks
 
 import StdTuple, StdList, StdOrdList, StdBool, StdMisc, Functor
-import Types, Util, TSt, ExceptionCombinators, InteractionTasks, CoreCombinators, CommonCombinators, SystemData
+import Types, Util, TSt, ExceptionCombinators, CoreTasks, InteractionTasks, CoreCombinators, CommonCombinators, SystemData
 from StdFunc 		import id, const, o
 from SharedTasks	import sharedStore, :: SharedStoreId
 from SharedTasks	import readShared, writeShared
