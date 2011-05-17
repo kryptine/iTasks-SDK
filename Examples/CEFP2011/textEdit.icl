@@ -15,7 +15,7 @@ Start w = startEngine [ workflow "text editor1" "simple text editor" textEditor1
 
 import Text
 
-derive class iTask Replace, TextStatistics
+derive class iTask Replace, TextStatistics, EditorState
 
 :: Replace			=	{ search 		:: String
 						, replaceBy 	:: String
@@ -24,50 +24,70 @@ derive class iTask Replace, TextStatistics
 						, words			:: Int
 						, characters	:: Int
 						}
+:: EditorState		=	{ mytext		:: String
+						, replace		:: Bool
+						, statistics	:: Bool
+						}
+initEditorState 	= 	{mytext = "", replace = False, statistics = False}
+updateReplace b s	=  	{s & replace = b}
+updateStat b s		=	{s & statistics = b}
 
 ActionReplace 		:== Action "Replace" "Replace"
 ActionStatistics	:== Action "Statistics" "Statistics"
 
 textEditor2 :: String -> Task Void
 textEditor2 name
-	=					parallel ("Editor") "" voidResult [InBodyTask editor]
+	=					parallel ("Editor") initEditorState voidResult [InBodyTask editor, InBodyTask viewOptions]
 where
-	editor :: (SymmetricShared String) (ParallelInfo String) -> Task Void
+	editor :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 	editor s os 
 		= 						updateSharedInformationA (name,"Edit text...") (toView,fromView) actions s
 			>>= \(event,val) ->	case event of
-									ActionReplace -> 				writeShared os [AppendTask (InBodyTask (replace {search = "", replaceBy = ""}))]
-														>>|			editor s os
-									ActionStatistics -> 			writeShared os [AppendTask (InBodyTask statistics)]
-														>>|			editor s os
-									ActionSave -> 					writeShared (sharedStore name "") val
+									ActionSave -> 					writeShared (sharedStore name "") val.mytext
 														>>| 		editor s os
-									ActionQuit -> 		return Void
-		
-	toView text = Note text
-	fromView (Note text) _ = text 
+									ActionQuit -> 					writeShared os [StopParallel] 
+														>>| 		return Void
+	where	
+		toView state = Note state.mytext
+		fromView (Note text) state = {state & mytext = text} 
 
-	actions
-		= [ (ActionReplace,ifvalidShared)
-		  , (ActionStatistics,ifvalidShared)
-		  , (ActionSave,ifvalidShared)
-		  , (ActionQuit,alwaysShared)
-		  ]
+		actions
+			= [ (ActionSave,alwaysShared)
+			  , (ActionQuit,alwaysShared)
+			  ]
 
+	viewOptions :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
+	viewOptions s os
+		=				chooseAction "try" actions s
+			>>= \c -> 	case c of
+							"Replace" -> 				updateShared (updateReplace True) s
+												>>|		writeShared os [AppendTask (InBodyTask (replace {search = "", replaceBy = ""}))]
+												>>|		viewOptions s os
+							"Statistics" -> 			updateShared (updateStat True) s
+												>>|		writeShared os [AppendTask (InBodyTask statistics)]
+												>>|		viewOptions s os
+	where
+		actions s
+			= [ (ActionReplace, 	if s.replace Nothing (Just "Replace"))
+			  , (ActionStatistics,	if s.statistics Nothing (Just "Statistics"))
+			  ]
+
+	replace :: Replace (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 	replace replacement s os
 		=						updateInformationA ("Replace","Define replacement...") idView [(ActionOk,ifvalid),(ActionQuit,always)] replacement
 			>>= \(event,val) ->	case event of
 									ActionOk ->		let r = fromJust val in
-														updateShared (\text -> replaceSubString r.search r.replaceBy text) s
+														updateShared (\state -> {state & mytext = replaceSubString r.search r.replaceBy state.mytext}) s
 												>>|	replace r s os 
-									ActionQuit -> 	return Void
+									ActionQuit -> 	updateShared (updateReplace False) s >>| return Void
 
+	statistics :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 	statistics s os 
 		= 						monitorA ("Statistics","Statistics of your document") toView (\_->False) [(ActionQuit,\_->True)] s
 			>>|					return Void
 	where
-		toView txt 
-			=	 {lines = length (split "\n" txt), words = length (split " " (replaceSubString "\n" " " txt)), characters = textSize txt}
+		toView state=:{mytext} 
+			=	 {lines = length (split "\n" mytext), words = length (split " " (replaceSubString "\n" " " mytext)), characters = textSize mytext}
 					
 
 
