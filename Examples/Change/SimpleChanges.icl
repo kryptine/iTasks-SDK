@@ -110,7 +110,7 @@ duplicateTask
 	=				chooseProcess "Which process do you want to duplicate?"
 	>>= \procId ->	getProcess procId
 	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
-	>>= \user ->	getCurrentUser
+	>>= \user ->	get currentUser
 	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
 
 informTask :: Task Void
@@ -150,8 +150,7 @@ restartTask
 //Utility
 chooseUserA :: !question -> Task User | html question
 chooseUserA question
-	= 						getUsers
-	>>= \users ->			enterChoiceA ("Choose user",question) id buttons users
+	= 						enterSharedChoiceA ("Choose user",question) id buttons users
 	>>= \res ->				case res of
 								(ActionOk,Just user)	-> return user
 								_						-> throw "choosing a user has been cancelled"

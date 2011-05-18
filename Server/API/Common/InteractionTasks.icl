@@ -2,9 +2,9 @@ implementation module InteractionTasks
 
 from StdFunc import id, const, o
 from Shared import nullShared
-import StdBool, StdList, Util
+from Util import voidNothing, appSnd, tuple, getItems
+import StdBool, StdList
 import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, SystemData
-import StdMisc
 
 interactLocal :: !d !(l -> [InteractionPart l]) !(l -> InteractionTerminators a) !l -> Task a | descr d & iTask l & iTask a
 interactLocal d partFunc termFunc l = LocalInteractionTask @>> interact d (\l _ _ -> map toSharedRes (partFunc l)) (\l _ _ -> termFunc l) l nullShared`
@@ -64,6 +64,9 @@ enterChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about ![a] -> Task
 enterChoiceAboutA d view actions about options = localChoiceA d view actions options (Just about) Nothing
 
 //Shared choice tasks
+enterSharedChoice :: !d !(Shared [a] w) -> Task a | descr d & iTask a & iTask w
+enterSharedChoice d shared = sharedChoiceA d id [(ActionOk,ifvalid)] shared voidNothing Nothing >>= \(_,Just c) -> return c
+
 enterSharedChoiceA :: !d !(a -> v) ![PredAction (Verified a)] !(Shared [a] w) -> Task (!Action, Maybe a) | descr d & iTask a & iTask v & iTask w
 enterSharedChoiceA d view actions shared = sharedChoiceA d view actions shared voidNothing Nothing
 
@@ -183,7 +186,7 @@ localMultipleChoiceA d view actions options mbAbout mbSel
 	= InputTask @>> interactLocal
 		d
 		(\_ -> addAbout mbAbout [UpdateView (multipleChoiceFormView (map view options) mbSel,\mbC -> maybe [] getChoiceIndexes mbC)])
-		(fromPredActionsLocal (getIndexes options) (\a idxs -> (a,getIndexes options idxs)) actions)
+		(fromPredActionsLocal (getItems options) (\a idxs -> (a,getItems options idxs)) actions)
 		[]
 multipleChoiceFormView options mbSel = Unchanged (FormValue (maybe (multipleChoice options) (multipleChoiceSel options) mbSel))
 
@@ -282,18 +285,18 @@ monitorA` d view pred actions mbAbout shared
 
 waitForTime :: !Time -> Task Time
 waitForTime time =
-		waitUntil ("Wait for time", ("Wait until " +++ toString time)) pred sharedCurrentTime
+		waitUntil ("Wait for time", ("Wait until " +++ toString time)) pred currentTime
 where	
 	pred now = time < now
 
 waitForDate :: !Date -> Task Date
 waitForDate date =
-		waitUntil ("Wait for date", ("Wait until " +++ toString date)) pred sharedCurrentDate
+		waitUntil ("Wait for date", ("Wait until " +++ toString date)) pred currentDate
 where
 	pred now = date < now
 
 waitForTimer :: !Time -> Task Time
-waitForTimer time = get sharedCurrentTime >>= \now -> waitForTime (now + time)
+waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
 
 noView :: Maybe (a -> Void)
 noView = Nothing

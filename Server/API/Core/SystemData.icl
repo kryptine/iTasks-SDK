@@ -3,34 +3,47 @@ implementation module SystemData
 import Types, Time, Shared, Util, UserDB, SessionDB
 import Random
 import StdList
+from Util import qualified currentDate, currentTime, currentDateTime
 
-sharedCurrentDateTime :: ReadOnlyShared DateTime
-sharedCurrentDateTime = makeReadOnlyShared currentDateTime
+currentDateTime :: ReadOnlyShared DateTime
+currentDateTime = makeReadOnlyShared 'Util'.currentDateTime
 		
-sharedCurrentTime :: ReadOnlyShared Time
-sharedCurrentTime = makeReadOnlyShared currentTime
+currentTime :: ReadOnlyShared Time
+currentTime = makeReadOnlyShared 'Util'.currentTime
 		
-sharedCurrentDate :: ReadOnlyShared Date
-sharedCurrentDate = makeReadOnlyShared currentDate
+currentDate :: ReadOnlyShared Date
+currentDate = makeReadOnlyShared 'Util'.currentDate
 
 // Users
-sharedUsers :: ReadOnlyShared [User]
-sharedUsers = makeReadOnlyShared getUsers
+users :: ReadOnlyShared [User]
+users = makeReadOnlyShared getUsers
 
-sharedUsersWithRole	:: !Role -> ReadOnlyShared [User]
-sharedUsersWithRole role = makeReadOnlyShared (getUsersWithRole role)
+usersWithRole	:: !Role -> ReadOnlyShared [User]
+usersWithRole role = makeReadOnlyShared (getUsersWithRole role)
+
+userDetails :: !User -> SymmetricShared UserDetails
+userDetails user = Shared read write getTimestamp
+where
+	read iworld	= appFst (mb2error "user not in database") (getUserDetails user iworld)
+	write details iworld
+		# (_,iworld) = updateUser user details iworld
+		= (Ok Void,iworld)
+	getTimestamp iworld=:{IWorld|timestamp} = (Ok timestamp,iworld)
+	
+currentUser :: ReadOnlyShared User
+currentUser = makeReadOnlyShared (\iworld=:{currentUser} -> (currentUser,iworld))
 
 // Sessions
-sharedSessions :: ReadOnlyShared [Session]
-sharedSessions = makeReadOnlyShared getSessions
+sessions :: ReadOnlyShared [Session]
+sessions = makeReadOnlyShared getSessions
 
 // Available workflows
 
 // Workflow processes
 
 // Random source
-sharedRandomInt	:: ReadOnlyShared Int
-sharedRandomInt = makeReadOnlyShared randomInt
+randomInt	:: ReadOnlyShared Int
+randomInt = makeReadOnlyShared randomInt
 where
 	randomInt iworld=:{IWorld|world}
 		# (Clock seed, world)	= clock world

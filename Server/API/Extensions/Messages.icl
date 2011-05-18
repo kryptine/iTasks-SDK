@@ -64,17 +64,17 @@ manageMessage msg=:{Message |subject}
 		(ActionClose,_) 
 			= return False
 		(Action "reply" _,message)
-			= 			getCurrentUser
+			= 			get currentUser
 			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
 		(Action "reply-all" _,_)
-			= 			getCurrentUser
+			= 			get currentUser
 			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
 		(Action "forward" _,_)
-			= 			getCurrentUser 
+			= 			get currentUser 
 			>>= \me -> 	writeMessage me ("Fw: " +++ msg.Message.subject) [] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return False
@@ -90,12 +90,12 @@ where
 
 newMessage :: Task Void
 newMessage
-	=				getCurrentUser
+	=				get currentUser
 	>>= \me -> 		writeMessage me "" [] Nothing
 	>>= \msg -> 	sendMessage msg
 
 newGroupMessage :: Task Void
-newGroupMessage = getCurrentUser
+newGroupMessage = get currentUser
 	>>= \me ->		getMyGroups
 	>>= \groups ->	case groups of
 		[]	=	showMessage ("No groups","You are not a member of any group") Void
@@ -144,7 +144,7 @@ where
 	
 getMyMessages :: Task [Message]
 getMyMessages
-	=	getCurrentUser
+	=	get currentUser
 	>>= \user ->
 		dbReadAll
 	>>= transform (filter (isRecipient user))

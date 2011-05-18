@@ -406,4 +406,5 @@ instance menuAction (actionName, ActionLabel) | actionName actionName
 					, timestamp		:: !Timestamp	// The timestamp of the current request
 					, localDateTime	:: !DateTime	// The local date & time of the current request
 					, tmpDirectory	:: !FilePath	// The path for temporary files, the garbage collector also works on files in this dir
+					, currentUser	:: !User
 					}

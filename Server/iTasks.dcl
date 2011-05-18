@@ -33,7 +33,6 @@ import	Engine						// basic iTask system creator
 	,	TuningCombinators			// Fine tuning of tasks
 	
 	//	Miscellaneous machinery
-	,	Util
 	,	JSON						// Functions for serializing/deserializing strings
 	,	GenVisualize				// Functions for generating GUIs
 	,	GenUpdate					// Functions for updating arbitrary values

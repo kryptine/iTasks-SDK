@@ -1,14 +1,15 @@
 definition module Util
 
-import StdGeneric, Types
+import StdGeneric, Types, Error
 
-fileExtension		:: !String -> String
 baseName			:: !String -> String
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
 instance toString (Maybe a) | toString a
 voidNothing 		:: Maybe Void
+
+mb2error			:: !e !(Maybe a) -> MaybeError e a
 
 pad					:: Int Int -> String
 decFormat			:: Int -> String
@@ -51,4 +52,4 @@ replaceInList	:: !(a a -> Bool) !a ![a]	-> [a]
 splitWith		:: !(a -> Bool) ![a]		-> (![a],![a])
 sortByIndex		:: ![(!Int,!a)]				-> [a]
 intersperse		:: !a ![a]					-> [a]
-getIndexes		:: ![a] ![Int]				-> [a]
+getItems		:: ![a] ![Int]				-> [a]

@@ -1,6 +1,7 @@
 implementation module ExperimentalDomain
 
 import iTasks, Text, Functor
+from Util import instance toString Maybe
 
 derive gUpdate			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gDefaultMask		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color

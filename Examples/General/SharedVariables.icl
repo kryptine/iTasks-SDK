@@ -324,7 +324,7 @@ where
 
 timeShareView :: Task DateTime
 timeShareView
-	= monitorA "A view on the current time" id (const False) [(ActionClose,const True)] sharedCurrentDateTime >>= transform snd
+	= monitorA "A view on the current time" id (const False) [(ActionClose,const True)] currentDateTime >>= transform snd
 
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" linesPar

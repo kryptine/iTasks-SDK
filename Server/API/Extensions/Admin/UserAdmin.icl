@@ -4,7 +4,7 @@ import iTasks
 
 manageUsers :: Task Void
 manageUsers = 
-	(		getUsers
+	(		get users
 		>>= overview
 		>>= \(action,item) -> case action of
 			ActionNew		= createUserFlow				>>| return False
@@ -28,16 +28,12 @@ createUserFlow = Title "Create user"
 		
 updateUserFlow :: User -> Task User
 updateUserFlow user 
-	= getUserDetails user
-	>>= \(mbDetails) -> case mbDetails of
-		Nothing
-			= showMessage ("Error","Cannot update this user") user
-		Just oldDetails 						
-			= updateInformationA ("Editing " +++ displayName user,"Please make your changes")
-					idView [(ActionCancel, always), (ActionOk, ifvalid)] oldDetails
-			>>= \res -> case res of
-				(ActionOk,Just newDetails)	= updateUser user newDetails >>= showMessage ("User updated","Successfully updated " +++ newDetails.displayName)
-				(ActionCancel,_)			= return user					
+	= get (userDetails user)
+	>>= \oldDetails -> updateInformationA ("Editing " +++ displayName user,"Please make your changes")
+							idView [(ActionCancel, always), (ActionOk, ifvalid)] oldDetails
+	>>= \res -> case res of
+		(ActionOk,Just newDetails)	= set (userDetails user) newDetails >>| showMessage ("User updated","Successfully updated " +++ newDetails.displayName) user
+		(ActionCancel,_)			= return user					
 deleteUserFlow :: User -> Task User
 deleteUserFlow user
 	=	requestConfirmation ("Delete user","Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")

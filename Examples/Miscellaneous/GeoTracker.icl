@@ -14,7 +14,7 @@ locationStore = sharedStore "Locations" []
 	
 reportPosition :: GoogleMapPosition -> Task Void
 reportPosition position
-	=	getCurrentUser
+	=	get currentUser
 	>>= \user ->
 		update (updatePos (user,position)) locationStore
 	>>| stop

@@ -7,6 +7,7 @@ from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB IWorld
 from Shared import makeReadOnlyShared
 from StdFunc import o, seq
+from Util import mb2list
 
 derive bimap Maybe, (,)
 
@@ -166,5 +167,5 @@ where
 	isAllowed _ wf					= isEmpty wf.Workflow.roles
 	
 myProcesses =
-				getCurrentUser
+				get currentUser
 	>>=	\user.	return (makeReadOnlyShared ('ProcessDB'.getProcessesForUser user [Running] [Active]))

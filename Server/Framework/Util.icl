@@ -1,12 +1,7 @@
 implementation module Util
 
-import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON, Void
+import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON, Void, Error
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
-
-fileExtension :: !String -> String
-fileExtension filename = case (split "." filename) of
-	[_]		= ""
-	parts	= last parts
 	
 baseName :: !String -> String
 baseName path = last (split "\\" path)
@@ -35,6 +30,9 @@ list2mb a = (Just a)
 
 voidNothing :: Maybe Void
 voidNothing = Nothing
+
+mb2error :: !e !(Maybe a) -> MaybeError e a
+mb2error error mbV = maybe (Error error) Ok mbV
 
 pad :: Int Int -> String
 pad len num = (createArray (max 0 (len - size nums)) '0' ) +++ nums
@@ -132,5 +130,5 @@ intersperse i [] = []
 intersperse i [x] = [x]
 intersperse i [x:xs] = [x,i:intersperse i xs]
 
-getIndexes :: ![a] ![Int] -> [a]
-getIndexes list indexes = [x \\ x <- list & idx <- [0..] | isMember idx indexes]
+getItems :: ![a] ![Int] -> [a]
+getItems list indexes = [x \\ x <- list & idx <- [0..] | isMember idx indexes]

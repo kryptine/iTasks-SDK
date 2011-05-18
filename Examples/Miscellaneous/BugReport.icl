@@ -126,7 +126,7 @@ enterBugReport
 	
 fileBug :: BugReport -> Task Bug
 fileBug report
-	=	 getCurrentUser
+	=	 get currentUser
 	>>= \user ->
 		dbCreateItem {defaultValue & report = report, reportedBy = user}
 
@@ -146,7 +146,7 @@ selectDeveloper :: String -> Task User
 selectDeveloper application
 	=	findAppDevelopers application
 	>>= \developers -> case developers of
-		[]	= getCurrentUser
+		[]	= get currentUser
 		_	= selectLeastBusy developers
 where
 	findAppDevelopers :: String -> Task [User]
@@ -155,7 +155,7 @@ where
 		
 	selectLeastBusy :: [User] -> Task User
 	selectLeastBusy []
-		=	getCurrentUser
+		=	get currentUser
 	selectLeastBusy names
 		= 	allTasks [getNumTasksForUser name \\ name <- names]
 		>>= \activity -> 

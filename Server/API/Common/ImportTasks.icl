@@ -55,7 +55,7 @@ readDocument filename tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
 	# name				= baseName filename 
-	# mime				= extensionToMimeType (fileExtension name)
+	# mime				= extensionToMimeType (takeExtension name)
 	# (document,tst)	= createDocument name mime content {TSt|tst & iworld={IWorld|iworld & world = world}}
 	= (TaskFinished document, tst)
 

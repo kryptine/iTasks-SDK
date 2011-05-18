@@ -53,6 +53,7 @@ initIWorld application config store tmpDir world
 		, timestamp			= timestamp
 		, localDateTime		= dateTime
 		, tmpDirectory		= tmpDir
+		, currentUser		= AnyUser
 		}
 		
 initTaskInfo :: TaskInfo
@@ -307,14 +308,15 @@ evaluateTaskInstance process=:{Process | taskId, properties, dependents, changeC
 			= (TaskException e str, tree, tst)
 where
 	resetTSt :: !TaskId !ProcessProperties !*TSt -> *TSt
-	resetTSt taskId properties tst
+	resetTSt taskId properties tst=:{TSt|iworld}
 		# taskNr	= taskNrFromString taskId
 		# info =	{ TaskInfo|initTaskInfo
 					& taskId	= taskId
 					, title		= properties.ProcessProperties.taskProperties.TaskProperties.taskDescription.TaskDescription.title
 					}
 		# tree		= initTree info
-		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
+		# iworld	= {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
+		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = taskId}, iworld = iworld}	
 	
 	restoreTSt :: !NonNormalizedTree !ProcessProperties !*TSt -> *TSt
 	restoreTSt tree properties tst = {TSt|tst & tree = tree, properties = properties}

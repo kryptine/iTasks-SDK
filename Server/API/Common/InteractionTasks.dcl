@@ -89,9 +89,9 @@ enterChoiceAboutA			:: !d !(a -> v) ![PredAction (Verified a)]	!about	![a] -> Ta
 * @return 										Chosen action with the chosen option if present
 * @throws										SharedException
 */
-
-enterSharedChoiceA			:: !d !(a -> v) ![PredAction (Verified a)]			!(Shared [a] w) -> Task (!Action, Maybe a) | descr d & iTask a & iTask v & iTask w
-enterSharedChoiceAboutA		:: !d !(a -> v) ![PredAction (Verified a)] !about	!(Shared [a] w) -> Task (!Action, Maybe a) | descr d & iTask a & iTask about & iTask v & iTask w
+enterSharedChoice			:: !d												!(Shared [a] w) -> Task a					| descr d & iTask a & iTask w
+enterSharedChoiceA			:: !d !(a -> v) ![PredAction (Verified a)]			!(Shared [a] w) -> Task (!Action, Maybe a)	| descr d & iTask a & iTask v & iTask w
+enterSharedChoiceAboutA		:: !d !(a -> v) ![PredAction (Verified a)] !about	!(Shared [a] w) -> Task (!Action, Maybe a)	| descr d & iTask a & iTask about & iTask v & iTask w
 
 /*
 * Ask the user to select a number of items from a list of options

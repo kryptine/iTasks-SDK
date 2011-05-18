@@ -14,7 +14,7 @@ coffeeTimeExample = [workflow "Examples/Miscellaneous/Coffee time" "Determine wh
 */
 coffeeTime :: Task Void
 coffeeTime
-	=	getUsers
+	=	get users
 	>>= \users ->
 		collectOrders users 
 	>>= \orders ->

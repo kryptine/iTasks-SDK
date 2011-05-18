@@ -86,7 +86,4 @@ where
 
 	
 selectUser :: !String -> Task User
-selectUser question
-	= 						getUsers
-		>>= \users ->		enterChoice question users
-
+selectUser question = enterSharedChoice question users
