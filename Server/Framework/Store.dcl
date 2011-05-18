@@ -4,7 +4,6 @@ definition module Store
 * It is used to store the internal databases with users, sessions and workflow processes
 * and for storage of intermediate task results.
 *
-* The store has an in-memory cache which has to be flushed to disk after each http request.
 * Values can be stored either by generic serialization to plain text, or by writing a dynamic
 * to disk.
 * Dynamics are generally more expensive, so only when really necessary (for example to store tasks or
@@ -15,7 +14,7 @@ from Time import :: Timestamp
 from Types import :: IWorld
 
 // Abstract store
-:: *Store
+:: Store
 
 // Storage format
 :: StoreFormat = SFPlain | SFDynamic | SFBlob
@@ -23,7 +22,7 @@ from Types import :: IWorld
 /**
 * Create a store
 */
-createStore		:: !String -> *Store
+createStore		:: !String -> Store
 
 /**
 * Store a value in the default format
@@ -70,11 +69,6 @@ deleteValues			:: !String					!*IWorld -> *IWorld
 * a new name where the first prefix is replaced by the second.
 */
 copyValues				:: !String !String			!*IWorld -> *IWorld
-
-/**
-* Writes all values stored in the cache to disk
-*/
-flushCache				::							!*IWorld -> *IWorld
 
 /**
 * Determines if the store's value has been changed since given timestamp

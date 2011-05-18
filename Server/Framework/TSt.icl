@@ -13,8 +13,8 @@ from TuningCombinators	import @>>, <<@, class tune, instance tune Title, :: Titl
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
 
-mkTSt :: !String !Config !HTTPRequest ![Workflow] !*Store !FilePath !*World -> *TSt
-mkTSt appName config request workflows store tmpDir world
+mkTSt :: !String !Config ![Workflow] !Store !FilePath !*World -> *TSt
+mkTSt appName config workflows store tmpDir world
 	=	{ taskNr			= []
 		, taskInfo			= initTaskInfo
 		, tree				= initTree initTaskInfo
@@ -25,7 +25,6 @@ mkTSt appName config request workflows store tmpDir world
 		, staticInfo		= initStaticInfo workflows
 		, currentChange		= Nothing
 		, pendingChanges	= []
-		, request			= request
 		, iworld			= initIWorld appName config store tmpDir world
 		, sharedChanged		= False
 		, sharedDeleted		= False
@@ -42,7 +41,7 @@ initStaticInfo workflows
 		, staticWorkflows	= workflows
 		}
 
-initIWorld	:: !String !Config !*Store !FilePath !*World -> *IWorld
+initIWorld	:: !String !Config !Store !FilePath !*World -> *IWorld
 initIWorld application config store tmpDir world
 	# (timestamp,world)	= time world
 	# (dateTime,world)	= currentDateTimeWorld world
@@ -817,9 +816,6 @@ copyTaskStates fromtask totask tst
 	# tst	= copySubProcesses (taskNrToString fromtask) (taskNrToString totask) tst
 	= tst
 	
-flushStore :: !*TSt -> *TSt
-flushStore tst = appIWorldTSt flushCache tst
-
 deleteTmpFiles :: !id !*IWorld -> *IWorld | iTaskId id
 deleteTmpFiles taskId iworld=:{world,tmpDirectory}
 	# (res, world)			= readDirectory tmpDirectory world

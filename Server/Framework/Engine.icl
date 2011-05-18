@@ -51,7 +51,6 @@ where
 				[]					= (notFoundResponse req, tst)
 			_
 				= (notFoundResponse req, tst)
-		# tst		= flushStore tst
 		= (response, finalizeTSt tst)
 
 workflow :: !String !String !w -> Workflow | workflowTask w
@@ -142,7 +141,7 @@ initTSt request config flows world
 	# tmpPath					= appDir </> appName </> "tmp-" +++ datestr
 	# world						= ensureDir "tmp" tmpPath world
 	# storePath					= appDir </> appName </> datestr
-	= mkTSt appName config request flows (createStore storePath) tmpPath world
+	= mkTSt appName config flows (createStore storePath) tmpPath world
 where 
 	padZero :: !Int -> String
 	padZero number = (if (number < 10) "0" "") +++ toString number

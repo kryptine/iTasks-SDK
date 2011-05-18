@@ -5,7 +5,8 @@ definition module Task
 */
 
 import Types, HTTP, GenVisualize, iTaskClass, GenRecord
-from TSt 		import :: TSt
+from TSt 			import :: TSt
+from TaskContext	import :: TaskContext
 
 derive JSONEncode		Task, TaskResult
 derive JSONDecode		Task, TaskResult
@@ -22,6 +23,10 @@ derive gPutRecordFields	Task
 :: Task a =
 	{ properties			:: !TaskProperties						// the task's general properties
 	, mbTaskNr				:: !(Maybe TaskNr)						// the task's identifier
+	
+	//, editEventFun			:: !((Maybe TaskContext) *TSt -> (!TaskContext, !*TSt))	//Handler for 'edit' events
+	//, commitEventFun		:: !(TaskContext *TSt -> (!TaskResult a,!*TSt))			//Handler for 'commit' events
+	
 	, taskFuncEdit			:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
 	, taskFuncCommit		:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
 	, mbInteractionLayout	:: !Maybe InteractionLayoutMerger		// if present changes the layout of interaction tasks for this tasks and it's children

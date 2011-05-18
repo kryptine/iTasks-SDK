@@ -27,8 +27,6 @@ from HTTP		import :: HTTPRequest
 					, currentChange		:: !Maybe (!ChangeLifeTime,!ChangeDyn)				// An active change
 					, pendingChanges	:: ![(!ChangeLifeTime,!ChangeDyn)]					// Pending persistent changes
 					
-					, request			:: !HTTPRequest										// The current http request
-					
 					, iworld			:: !*IWorld											// The 'iTasks' world
 					
 					, sharedChanged		:: !Bool											// Is set to true if a Shared is changed
@@ -60,7 +58,6 @@ from HTTP		import :: HTTPRequest
 *
 * @param The application name
 * @param The server configuration
-* @param The current HTTP request
 * @param The workflows available in the application
 * @param The generic data store
 * @param The path for temporary files
@@ -68,7 +65,7 @@ from HTTP		import :: HTTPRequest
 *
 * @return a TSt iTask state
 */
-mkTSt :: !String !Config! HTTPRequest ![Workflow] !*Store !FilePath !*World -> *TSt
+mkTSt :: !String !Config ![Workflow] !Store !FilePath !*World -> *TSt
 
 /**
 * Initializes the session information.
@@ -378,7 +375,3 @@ deleteTaskStates	:: !TaskNr !*TSt			-> *TSt
 * @return The updated task state
 */
 copyTaskStates		:: !TaskNr !TaskNr !*TSt	-> *TSt
-/**
-* Writes all cached values in the store
-*/
-flushStore			:: !*TSt					-> *TSt

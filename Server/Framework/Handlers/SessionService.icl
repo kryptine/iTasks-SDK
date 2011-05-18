@@ -43,7 +43,6 @@ sessionService url format path req tst
 				= case mbUser of
 					Just user
 						# (session, tst)	= createSession (Just user) tst
-						# tst				= flushStore tst
 						# json				= JSONObject [("success",JSONBool True),("session",toJSON session)]
 						= (serviceResponse html "Create session" createDescription url createParams json, tst)
 					Nothing
@@ -63,7 +62,6 @@ sessionService url format path req tst
 		//Destroy an existing session
 		[sessionId,"delete"]
 			# (deleted,tst)	= deleteSession sessionId tst
-			# tst			= flushStore tst
 			# json			= JSONObject [("success", JSONBool True)]
 			| deleted
 				= (serviceResponse html "Delete session" deleteDescription url [] json, tst)
