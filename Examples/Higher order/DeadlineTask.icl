@@ -41,7 +41,7 @@ where
 					( waitForTimer time >>| return Nothing)									
 		 			-||-
 		 			// do task and return its result
-		  			( showMessageA ("Hurry!","You have to complete the task in " <+++ time <+++ " time") [] Void
+		  			( showMessageA ("Hurry!","You have to complete the task in " <+++ time <+++ " time") noActionsMsg
 		  			  ||- task 
 					  >>= \v -> return (Just v)
 					)				

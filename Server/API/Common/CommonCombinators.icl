@@ -59,8 +59,9 @@ assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
 assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
 									[InBodyTask processControl, DetachedTask props actionMenu (accu accJust task)] <<@ minimalParallelLayout
 where
-	processControl state control =
-			ControlTask @>> updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) [] control
+	processControl :: state !(Shared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
+	processControl _ control =
+			ControlTask @>> updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) (const []) control
 	
 	accJust r _ = (Just r,True)
 			
@@ -217,7 +218,7 @@ repeatTask task pred a =
 		=			taska
 		>>= \r -> 	case pred r of
 						(True,_) -> return r
-						(False,msg) -> (showMessageA ("Feedback",msg) [] r >>= transform snd) -||- (taska <| pred)					
+						(False,msg) -> (showMessageA ("Feedback",msg) noActionsMsg) ||- (taska <| pred)					
 
 /*dynamicGroup :: ![Task GAction] -> Task Void
 dynamicGroup initTasks = dynamicGroupA initTasks [] (\_ -> GStop)

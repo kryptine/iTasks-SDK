@@ -25,12 +25,12 @@ manageGroups
 	) <! id
 	>>| return Void
 where
-	overview []		= showMessageA ("My groups",startMsg) [ActionNew,ActionQuit] Nothing
-	overview list	= enterChoiceA ("My groups",listMsg) id [aOpen,aNew,aQuit] list
+	overview []		= showMessageA ("My groups",startMsg) [(ActionNew,(ActionNew,Nothing)),(ActionQuit,(ActionQuit,Nothing))]
+	overview list	= enterChoiceA ("My groups",listMsg) id (\mbG -> [aOpen mbG,aNew,aQuit]) list
 	
-	aOpen 			= (ActionOpen, ifvalid)
-	aNew			= (ActionNew, always)
-	aQuit			= (ActionQuit, always)
+	aOpen mbG		= (ActionOpen, maybe Nothing (\g -> Just (ActionOpen,Just g)) mbG)
+	aNew			= (ActionNew, Just (ActionNew,Nothing))
+	aQuit			= (ActionQuit, Just (ActionQuit,Nothing))
 	newGroup		= 		enterInformation ("New group","Please enter a name for the new group")
 						>>= \name ->
 							get currentUser
@@ -52,8 +52,8 @@ manageGroup igroup
 	= 	
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
-		showMessageAboutA (toString group,"This group contains the following members:") id [aBack,aInvite,aLeave] group.Group.members
-	>>= \action -> case fst action of
+		showMessageAboutA (toString group,"This group contains the following members:") id [(aBack,aBack),(aInvite,aInvite),(aLeave,aLeave)] group.members
+	>>= \action -> case action of
 		ActionClose					= 					return True
 		Action "invite" _			= invite group	>>| return False
 		Action "leave" _			= leave group	>>| return False

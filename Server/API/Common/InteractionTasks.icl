@@ -18,28 +18,35 @@ where
 	
 //Local input
 enterInformation :: !d -> Task a | descr d & iTask a
-enterInformation d = enterInformation` d voidNothing
-	
-enterInformationA :: !d !(v -> a) ![PredAction (Verified a)] -> Task (!Action,!Maybe a) | descr d & iTask a & iTask v
-enterInformationA d view actions = enterInformationA` d view actions voidNothing
-		
-enterInformationAbout :: !d !about -> Task a | descr d & iTask a & iTask about
-enterInformationAbout d about = enterInformation` d (Just about)
-	
-enterInformationAboutA :: !d !(v -> a) ![PredAction (Verified a)] !about -> Task (!Action,!Maybe a) | descr d  & iTask a & iTask about & iTask v
-enterInformationAboutA d view actions about = enterInformationA` d view actions (Just about)
+enterInformation d = enterInformation` d okActionLocal voidNothing
 
-enterInformation` d mbAbout					= InputTask @>> interactLocal d (const (addAbout mbAbout [UpdateView (Unchanged Blank,id)])) okAction Nothing
-enterInformationA` d view actions mbAbout	= InputTask @>> interactLocal d (const (addAbout mbAbout [UpdateView (Unchanged Blank,fmap view)])) (fromPredActionsLocal mb2Ver tuple actions) Nothing
+enterInformationAbout :: !d !about -> Task a | descr d & iTask a & iTask about
+enterInformationAbout d about = enterInformation` d okActionLocal (Just about)
+	
+enterInformationA :: !d !((Maybe v) -> [(!Action,!Maybe a)]) -> Task a | descr d & iTask a & iTask v
+enterInformationA d actions = enterInformation` d actions voidNothing
+	
+enterInformationAboutA :: !d !((Maybe v) -> [(!Action,!Maybe a)]) !about -> Task a | descr d  & iTask a & iTask v & iTask about
+enterInformationAboutA d actions about = enterInformation` d actions (Just about)
+
+enterInformation` d actions mbAbout = InputTask @>>
+	interactLocal d (const (addAbout mbAbout [UpdateView (Unchanged Blank,id)])) (\mbV -> UserActions (actions mbV)) Nothing
 
 //Shared input
-enterSharedInformationA :: !d !(v -> w) ![PredAction (!Valid,!r)] !(Shared r w) -> Task (!Action,!r) | descr d & iTask r & iTask v & iTask w
-enterSharedInformationA d view actions shared = enterSharedInformationA` d view actions shared voidNothing
-	
-enterSharedInformationAboutA :: !d !(v -> w) ![PredAction (!Valid,!r)] !about !(Shared r w) -> Task (!Action,!r) | descr d & iTask r & iTask about & iTask v & iTask w
-enterSharedInformationAboutA d view actions about shared = enterSharedInformationA` d view actions shared (Just about)
+enterSharedInformation :: !d !(v r -> w) !(Shared r w) -> Task r | descr d & iTask r & iTask v & iTask w
+enterSharedInformation d view shared = enterSharedInformation` d view okActionShared shared voidNothing
 
-enterSharedInformationA` d view actions shared mbAbout	= InputTask @>> interact d (\_ r _ -> addAbout mbAbout [UpdateView (Unchanged Blank,\mbV -> (isJust mbV,fmap view mbV))]) (fromPredActions (\a r _ -> (a,r)) (\a _ r _ -> (a,r)) actions) False shared
+enterSharedInformationA :: !d !(v r -> w) !((!Valid,!r) -> [(!Action,!Maybe a)]) !(Shared r w) -> Task a | descr d & iTask a & iTask r & iTask v & iTask w
+enterSharedInformationA d view actions shared = enterSharedInformation` d view actions shared voidNothing
+
+enterSharedInformationAbout :: !d !(v r -> w) !about !(Shared r w) -> Task r | descr d & iTask r & iTask v & iTask w & iTask about
+enterSharedInformationAbout d view about shared = enterSharedInformation` d view okActionShared shared (Just about)
+	
+enterSharedInformationAboutA :: !d !(v r -> w) !((!Valid,!r) -> [(!Action,!Maybe a)]) !about !(Shared r w) -> Task a | descr d & iTask a & iTask r & iTask v & iTask w & iTask about
+enterSharedInformationAboutA d view actions about shared = enterSharedInformation` d view actions shared (Just about)
+
+enterSharedInformation` d view actions shared mbAbout = InputTask @>>
+	interact d (\_ r _ -> addAbout mbAbout [UpdateView (Unchanged Blank,\mbV -> (isJust mbV,fmap (\v -> view v r) mbV))]) (\valid r _ -> UserActions (actions (valid,r))) False shared
 
 //Confirmation tasks
 requestConfirmation	:: !d -> Task Bool | descr d
@@ -48,118 +55,133 @@ requestConfirmation d = requestConfirmation` d voidNothing
 requestConfirmationAbout :: !d !about -> Task Bool | descr d & iTask about
 requestConfirmationAbout d about = requestConfirmation` d (Just about)
 
-requestConfirmation` d mbAbout = InputTask @>> interactLocal d (const (addAbout mbAbout [])) (const (UserActions [(ActionNo,Just False),(ActionYes,Just True)])) Void
+requestConfirmation` d mbAbout = InputTask @>>
+	interactLocal d (const (addAbout mbAbout [])) (const (UserActions [(ActionNo,Just False),(ActionYes,Just True)])) Void
 
 //Local choice tasks
-enterChoice :: !d ![a] -> Task a | descr d & iTask a
-enterChoice d options = localChoice d options voidNothing Nothing
+enterChoice :: !d ![o] -> Task o | descr d & iTask o
+enterChoice d options = localChoice d id okActionLocal options voidNothing Nothing
 
-enterChoiceA :: !d !(a -> v) ![PredAction (Verified a)] ![a] -> Task (!Action,!Maybe a) | descr d & iTask a & iTask v
-enterChoiceA d view actions options = localChoiceA d view actions options voidNothing Nothing
+enterChoiceAbout :: !d !about ![o] -> Task o | descr d & iTask o & iTask about
+enterChoiceAbout d about options = localChoice d id okActionLocal options (Just about) Nothing
 
-enterChoiceAbout :: !d !about ![a] -> Task a | descr d & iTask a & iTask about
-enterChoiceAbout d about options = localChoice d options (Just about) Nothing
+enterChoiceA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) ![o] -> Task a | descr d & iTask a & iTask v
+enterChoiceA d view actions options = localChoice d view actions options voidNothing Nothing
 
-enterChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about ![a] -> Task (!Action,!Maybe a) | descr d & iTask a & iTask about & iTask v
-enterChoiceAboutA d view actions about options = localChoiceA d view actions options (Just about) Nothing
+enterChoiceAboutA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) !about ![o] -> Task a | descr d & iTask a & iTask v & iTask about
+enterChoiceAboutA d view actions about options = localChoice d view actions options (Just about) Nothing
 
 //Shared choice tasks
-enterSharedChoice :: !d !(Shared [a] w) -> Task a | descr d & iTask a & iTask w
-enterSharedChoice d shared = sharedChoiceA d id [(ActionOk,ifvalid)] shared voidNothing Nothing >>= \(_,Just c) -> return c
+enterSharedChoice :: !d !(Shared [o] w) -> Task o | descr d & iTask o & iTask w
+enterSharedChoice d shared = sharedChoice d id okActionLocal shared voidNothing Nothing
 
-enterSharedChoiceA :: !d !(a -> v) ![PredAction (Verified a)] !(Shared [a] w) -> Task (!Action, Maybe a) | descr d & iTask a & iTask v & iTask w
-enterSharedChoiceA d view actions shared = sharedChoiceA d view actions shared voidNothing Nothing
+enterSharedChoiceAbout :: !d !about !(Shared [o] w) -> Task o | descr d & iTask o & iTask w & iTask about
+enterSharedChoiceAbout d about shared = sharedChoice d id okActionLocal shared (Just about) Nothing
 
-enterSharedChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about !(Shared [a] w) -> Task (!Action, Maybe a) | descr d & iTask a & iTask about & iTask v & iTask w
-enterSharedChoiceAboutA d view actions about shared = sharedChoiceA d view actions shared (Just about) Nothing
+enterSharedChoiceA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) !(Shared [o] w) -> Task a | descr d & iTask a & iTask w & iTask v
+enterSharedChoiceA d view actions shared = sharedChoice d view actions shared voidNothing Nothing
+
+enterSharedChoiceAboutA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) !about !(Shared [o] w) -> Task a | descr d & iTask a & iTask w & iTask v & iTask about
+enterSharedChoiceAboutA d view actions about shared = sharedChoice d view actions shared (Just about) Nothing
 
 //Local multiple choice tasks
-enterMultipleChoice :: !d ![a] -> Task [a] | descr d & iTask a
-enterMultipleChoice d options = localMultipleChoice d options voidNothing Nothing
+enterMultipleChoice :: !d ![o] -> Task [o] | descr d & iTask o
+enterMultipleChoice d options = localMultipleChoice d id okActionMultipleChoice options voidNothing Nothing
 
-enterMultipleChoiceA :: !d !(a -> v) ![PredAction [a]] ![a] -> Task (!Action,![a]) | descr d & iTask a & iTask v
-enterMultipleChoiceA d view actions options = localMultipleChoiceA d view actions options voidNothing Nothing
+enterMultipleChoiceAbout :: !d !about ![o] -> Task [o] | descr d & iTask o & iTask about
+enterMultipleChoiceAbout d about options = localMultipleChoice d id okActionMultipleChoice options (Just about) Nothing
 
-enterMultipleChoiceAbout :: !d !about ![a] -> Task [a] | descr d & iTask a & iTask about
-enterMultipleChoiceAbout d about options = localMultipleChoice d options (Just about) Nothing
+enterMultipleChoiceA :: !d !(o -> v) !([o] -> [(!Action,!Maybe a)]) ![o] -> Task a | descr d & iTask a & iTask v
+enterMultipleChoiceA d view actions options = localMultipleChoice d view actions options voidNothing Nothing
 
-enterMultipleChoiceAboutA :: !d !(a -> v) ![PredAction [a]] !about ![a] -> Task (!Action,![a]) | descr d & iTask a & iTask about & iTask v
-enterMultipleChoiceAboutA d view actions about options = localMultipleChoiceA d view actions options (Just about) Nothing
+enterMultipleChoiceAboutA :: !d !(o -> v) !([o] -> [(!Action,!Maybe a)]) !about ![o] -> Task a | descr d & iTask a & iTask v & iTask about
+enterMultipleChoiceAboutA d view actions about options = localMultipleChoice d view actions options (Just about) Nothing
 
 //Shared multiple choice tasks
-enterSharedMultipleChoiceA	:: !d !(a -> v) ![PredAction [a]] !(Shared [a] w) -> Task (!Action, [a]) | descr d & iTask a & iTask v & iTask w
-enterSharedMultipleChoiceA description view actions shared = sharedMultipleChoiceA description view actions shared voidNothing Nothing
+enterSharedMultipleChoice :: !d !(Shared [o] w) -> Task [o] | descr d & iTask o & iTask w
+enterSharedMultipleChoice d shared = sharedMultipleChoice d id okActionMultipleChoice shared voidNothing Nothing
 
-enterSharedMultipleChoiceAboutA	:: !d !(a -> v) ![PredAction [a]] !about !(Shared [a] w) -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v & iTask w
-enterSharedMultipleChoiceAboutA description view actions about shared = sharedMultipleChoiceA description view actions shared (Just about) Nothing
+enterSharedMultipleChoiceAbout :: !d !about !(Shared [o] w) -> Task [o] | descr d & iTask o & iTask w & iTask about
+enterSharedMultipleChoiceAbout d about shared = sharedMultipleChoice d id okActionMultipleChoice shared (Just about) Nothing
+
+enterSharedMultipleChoiceA :: !d !(o -> v) !([o] -> [(!Action,!Maybe a)]) !(Shared [o] w) -> Task a | descr d & iTask a & iTask v & iTask w
+enterSharedMultipleChoiceA d view actions shared = sharedMultipleChoice d view actions shared voidNothing Nothing
+
+enterSharedMultipleChoiceAboutA	:: !d !(o -> v) !([o] -> [(!Action,!Maybe a)]) !about !(Shared [o] w) -> Task a | descr d & iTask a & iTask v & iTask w & iTask about
+enterSharedMultipleChoiceAboutA d view actions about shared = sharedMultipleChoice d view actions shared (Just about) Nothing
 		
 //Local update
-updateInformation :: !d !a -> Task a | descr d & iTask a
-updateInformation d a = updateInformation` d a voidNothing
+updateInformation :: !d !m -> Task m | descr d & iTask m
+updateInformation d a = updateInformation` d idView okActionLocal a voidNothing
 
-updateInformationA :: !d !(SymmetricView a v) ![PredAction (Verified a)] !a -> Task (!Action, !Maybe a) | descr d & iTask a & iTask v
-updateInformationA d view actions a = updateInformationA` d view actions a voidNothing
+updateInformationAbout :: !d !about !m -> Task m | descr d & iTask m & iTask about
+updateInformationAbout d about a = updateInformation` d idView okActionLocal a (Just about)
 
-updateInformationAbout :: !d !about !a -> Task a | descr d & iTask a & iTask about
-updateInformationAbout d about a = updateInformation` d a (Just about)
+updateInformationA :: !d !(SymmetricView m v) !((Maybe m) -> [(!Action,!Maybe a)]) !m -> Task a | descr d & iTask a & iTask m & iTask v
+updateInformationA d view actions a = updateInformation` d view actions a voidNothing
 
-updateInformationAboutA :: !d !(SymmetricView a v) ![PredAction (Verified a)] !about !a -> Task (!Action, !Maybe a) | descr d & iTask a & iTask about & iTask v
-updateInformationAboutA d view actions about a = updateInformationA` d view actions a (Just about)
+updateInformationAboutA :: !d !(SymmetricView m v) !((Maybe m) -> [(!Action,!Maybe a)]) !about !m -> Task a | descr d & iTask a & iTask m & iTask v & iTask about
+updateInformationAboutA d view actions about a = updateInformation` d view actions a (Just about)
 
-updateInformation` d a mbAbout
-	= UpdateTask @>> interactLocal
-		d
-		(\(valid,a) -> addAbout mbAbout [UpdateView (if valid (FormValue a) (Unchanged (FormValue a)),\mbA -> (isJust mbA,fromMaybe a mbA))])
-		(\(valid,a) -> okAction (if valid (Just a) Nothing))
-		(verifyValue a,a)
-
-updateInformationA` d (get,putback) actions a mbAbout
+updateInformation` d (get,putback) actions a mbAbout
 	= UpdateTask @>> interactLocal
 		d
 		(\(valid,a) -> addAbout mbAbout [UpdateView (if valid (FormValue (get a)) (Unchanged (FormValue (get a))),\mbV -> (isJust mbV,maybe a (\v -> putback v a) mbV))])
-		(fromPredActionsLocal (\(valid,a) -> if valid (Valid a) Invalid) (\action (valid,a) -> (action,if valid (Just a) Nothing)) actions)
+		(\(valid,m) -> UserActions (actions (if valid (Just m) Nothing)))
 		(verifyValue a,a)
 
 //Shared update
-updateSharedInformationA :: !d !(View r v w) ![PredAction (Valid,r)] !(Shared r w) -> Task (!Action,!r) | descr d & iTask r & iTask v & iTask w
-updateSharedInformationA d view actions shared = updateSharedInformationA` d view actions shared voidNothing
+updateSharedInformation :: !d !(View r v w) !(Shared r w) -> Task r | descr d & iTask r & iTask v & iTask w
+updateSharedInformation d view shared = updateSharedInformation` d view okActionShared shared voidNothing
 
-updateSharedInformationAboutA :: !d !(View r v w) ![PredAction (Valid,r)] !about !(Shared r w) -> Task (!Action,!r) | descr d & iTask r & iTask v & iTask w & iTask about
-updateSharedInformationAboutA d view actions about shared = updateSharedInformationA` d view actions shared (Just about)
+updateSharedInformationAbout :: !d !(View r v w) !about !(Shared r w) -> Task r | descr d & iTask r & iTask v & iTask w & iTask about
+updateSharedInformationAbout d view about shared = updateSharedInformation` d view okActionShared shared (Just about)
 
-updateSharedInformationA` d (get,putback) actions shared mbAbout
+updateSharedInformationA :: !d !(View r v w) !((!Valid,!r) -> [(!Action,!Maybe a)]) !(Shared r w) -> Task a | descr d & iTask a & iTask r & iTask v & iTask w
+updateSharedInformationA d view actions shared = updateSharedInformation` d view actions shared voidNothing
+
+updateSharedInformationAboutA :: !d !(View r v w) !((!Valid,!r) -> [(!Action,!Maybe a)]) !about !(Shared r w) -> Task a | descr d & iTask a & iTask r & iTask v & iTask w & iTask about
+updateSharedInformationAboutA d view actions about shared = updateSharedInformation` d view actions shared (Just about)
+
+updateSharedInformation` d (get,putback) actions shared mbAbout
 	=  UpdateTask @>> interact
 		d
 		(\valid r changed -> addAbout mbAbout [UpdateView (if (valid || changed) (FormValue (get r)) (Unchanged (FormValue (get r))),\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))])
-		(fromPredActions (\valid r changed -> ((valid || changed) && verifyValue (get r),r)) (\action _ r _ -> (action,r)) actions)
+		(\valid r _ -> UserActions (actions (valid,r)))
 		True
 		shared
 
-updateChoice :: !d ![a] !Int -> Task a | descr d & iTask a
-updateChoice d options sel = localChoice d options voidNothing (Just sel)
+updateChoice :: !d ![o] !Int -> Task o | descr d & iTask o
+updateChoice d options sel = localChoice d id okActionLocal options voidNothing (Just sel)
 
-updateChoiceA :: !d !(a -> v) ![PredAction (Verified a)] ![a] !Int -> Task (!Action, Maybe a) | descr d & iTask a & iTask v 
-updateChoiceA d view actions options sel = localChoiceA d view actions options voidNothing (Just sel)
+updateChoiceAbout :: !d !about ![o] !Int -> Task o | descr d & iTask o & iTask about
+updateChoiceAbout d about options sel = localChoice d id okActionLocal options (Just about) (Just sel)
 
-updateChoiceAbout :: !d !about ![a] !Int -> Task a | descr d & iTask a & iTask about
-updateChoiceAbout d about options sel = localChoice d options (Just about) (Just sel)
+updateChoiceA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) ![o] !Int -> Task a | descr d & iTask a & iTask v
+updateChoiceA d view actions options sel = localChoice d view actions options voidNothing (Just sel)
 
-updateChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about ![a] !Int -> Task (!Action, Maybe a) | descr d & iTask a & iTask about & iTask v
-updateChoiceAboutA d view actions about options sel = localChoiceA d view actions options (Just about) (Just sel)
+updateChoiceAboutA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) !about ![o] !Int -> Task a | descr d & iTask a & iTask v & iTask about
+updateChoiceAboutA d view actions about options sel = localChoice d view actions options (Just about) (Just sel)
 
-localChoice _ [] _ _								= throw EmptyOptionList
-localChoice d options mbAbout mbSel				= InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (choiceFormView options mbSel,fmap getChoice)]) okAction Nothing
-localChoiceA _ _ _ [] _ _							= throw EmptyOptionList
-localChoiceA d view actions options mbAbout mbSel	= InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (choiceFormView (map view options) mbSel,fmap getChoiceIndex)]) (fromPredActionsLocal (mb2Ver o fmap ((!!) options)) (\a mbIdx -> (a,fmap ((!!) options) mbIdx)) actions) Nothing
-choiceFormView options mbSel = Unchanged (FormValue (maybe (choice options) (choiceSel options) mbSel))
+localChoice _ _ _ [] _ _							= throw EmptyOptionList
+localChoice d view actions options mbAbout mbSel	= InputTask @>>
+	interactLocal d (\_ -> addAbout mbAbout [UpdateView (choiceFormView (map view options) mbSel,fmap getChoiceIndex)]) (\mbIdx -> UserActions (actions (fmap ((!!) options) mbIdx))) Nothing
+where
+	choiceFormView options mbSel = Unchanged (FormValue (maybe (choice options) (choiceSel options) mbSel))
 
-updateSharedChoiceA :: !d !(a -> v) ![PredAction (Verified a)] !(Shared [a] w) !Int -> Task (!Action, Maybe a) | descr d & iTask a & iTask v & iTask w
-updateSharedChoiceA d view actions shared sel = sharedChoiceA d view actions shared voidNothing (Just sel)
+updateSharedChoice :: !d !(Shared [o] w) !Int -> Task o | descr d & iTask o & iTask w
+updateSharedChoice d shared sel = sharedChoice d id okActionLocal shared voidNothing (Just sel)
 
-updateSharedChoiceAboutA :: !d !(a -> v) ![PredAction (Verified a)] !about !(Shared [a] w) !Int -> Task (!Action, Maybe a) | descr d & iTask a & iTask about & iTask v & iTask w
-updateSharedChoiceAboutA d view actions about shared sel = sharedChoiceA d view actions shared (Just about) (Just sel)
+updateSharedChoiceAbout :: !d !about !(Shared [o] w) !Int -> Task o | descr d & iTask o & iTask w & iTask about
+updateSharedChoiceAbout d about shared sel = sharedChoice d id okActionLocal shared (Just about) (Just sel)
 
-sharedChoiceA description view actions shared mbAbout mbSel = interact description interaction termination Nothing shared
+updateSharedChoiceA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) !(Shared [o] w) !Int -> Task a | descr d & iTask a & iTask v & iTask w
+updateSharedChoiceA d view actions shared sel = sharedChoice d view actions shared voidNothing (Just sel)
+
+updateSharedChoiceAboutA	:: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)])	!about	!(Shared [o] w)	!Int -> Task a | descr d & iTask a & iTask v & iTask w & iTask about
+updateSharedChoiceAboutA d view actions about shared sel = sharedChoice d view actions shared (Just about) (Just sel)
+
+sharedChoice description view actions shared mbAbout mbSel = interact description interaction termination Nothing shared
 where
 	interaction local model changed
 		= addAbout mbAbout [UpdateView (if changed initChoice (Unchanged initChoice),fromView)]
@@ -167,36 +189,42 @@ where
 		initChoice		= FormValue (maybe (choice (map view model)) (choiceSel (map view model)) mbSel)
 		fromView mbC 	= (fmap getChoiceIndex mbC, Nothing)
 	
-	termination = fromPredActions (\l model _ -> mb2Ver (fmap ((!!) model) l)) (\action mbIdx model _ -> (action,fmap ((!!) model) mbIdx)) actions
+	termination mbSel options _ = UserActions (actions (fmap ((!!) options) mbSel))
 
-updateMultipleChoice :: !d ![a] ![Int] -> Task [a] | descr d & iTask a
-updateMultipleChoice d options sel = localMultipleChoice d options voidNothing (Just sel)
+updateMultipleChoice :: !d ![o] ![Int] -> Task [o] | descr d & iTask o
+updateMultipleChoice d options sel = localMultipleChoice d id okActionMultipleChoice options voidNothing (Just sel)
 
-updateMultipleChoiceA :: !d !(a -> v) ![PredAction [a]] ![a] ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask v
-updateMultipleChoiceA d view actions options sel = localMultipleChoiceA d view actions options voidNothing (Just sel)
+updateMultipleChoiceAbout :: !d !about	![o] ![Int] -> Task [o] | descr d & iTask o & iTask about
+updateMultipleChoiceAbout d about options sel = localMultipleChoice d id okActionMultipleChoice options (Just about) (Just sel)
 
-updateMultipleChoiceAbout :: !d !about ![a] ![Int] -> Task [a] | descr d & iTask a & iTask about
-updateMultipleChoiceAbout d about options sel = localMultipleChoice d options (Just about) (Just sel)
+updateMultipleChoiceA :: !d !(o -> v) !([o] -> [(!Action,!Maybe a)]) ![o] ![Int] -> Task a | descr d & iTask a & iTask v
+updateMultipleChoiceA d view actions options sel = localMultipleChoice d view actions options voidNothing (Just sel)
 
-updateMultipleChoiceAboutA :: !d !(a -> v) ![PredAction [a]] !about ![a] ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v
-updateMultipleChoiceAboutA d view actions about options sel = localMultipleChoiceA d view actions options (Just about) (Just sel)
+updateMultipleChoiceAboutA :: !d !(o -> v) !([o] -> [(!Action,!Maybe a)]) !about	![o] ![Int] -> Task a | descr d & iTask a & iTask v & iTask about
+updateMultipleChoiceAboutA d view actions about options sel = localMultipleChoice d view actions options (Just about) (Just sel)
 
-localMultipleChoice d options mbAbout mbSel = InputTask @>> interactLocal d (\_ -> addAbout mbAbout [UpdateView (multipleChoiceFormView options mbSel,maybe [] getChoices)]) (\choice -> okAction (Just choice)) []
-localMultipleChoiceA d view actions options mbAbout mbSel
+localMultipleChoice d view actions options mbAbout mbSel
 	= InputTask @>> interactLocal
 		d
 		(\_ -> addAbout mbAbout [UpdateView (multipleChoiceFormView (map view options) mbSel,\mbC -> maybe [] getChoiceIndexes mbC)])
-		(fromPredActionsLocal (getItems options) (\a idxs -> (a,getItems options idxs)) actions)
+		(\idxs -> UserActions (actions (getItems options idxs)))
 		[]
-multipleChoiceFormView options mbSel = Unchanged (FormValue (maybe (multipleChoice options) (multipleChoiceSel options) mbSel))
+where
+	multipleChoiceFormView options mbSel = Unchanged (FormValue (maybe (multipleChoice options) (multipleChoiceSel options) mbSel))
 
-updateSharedMultipleChoiceA :: !d !(a -> v) ![PredAction [a]] !(Shared [a] w) ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask v & iTask w
-updateSharedMultipleChoiceA d view actions shared sel = sharedMultipleChoiceA d view actions shared voidNothing (Just sel)
+updateSharedMultipleChoice :: !d !(Shared [o] w) ![Int] -> Task [o] | descr d & iTask o & iTask w
+updateSharedMultipleChoice d shared sel = sharedMultipleChoice d id okActionMultipleChoice shared voidNothing (Just sel)
 
-updateSharedMultipleChoiceAboutA :: !d !(a -> v) ![PredAction [a]] !about !(Shared [a] w) ![Int] -> Task (!Action, [a]) | descr d & iTask a & iTask about & iTask v & iTask w
-updateSharedMultipleChoiceAboutA d view actions about shared sel = sharedMultipleChoiceA d view actions shared (Just about) (Just sel)
+updateSharedMultipleChoiceAbout :: !d !about !(Shared [o] w) ![Int] -> Task [o] | descr d & iTask o & iTask w & iTask about
+updateSharedMultipleChoiceAbout d about shared sel = sharedMultipleChoice d id okActionMultipleChoice shared (Just about) (Just sel)
 
-sharedMultipleChoiceA description view actions shared mbAbout mbSel
+updateSharedMultipleChoiceA :: !d !(o -> v) !([o] -> [(!Action,!Maybe a)]) !(Shared [o] w) ![Int] -> Task a | descr d & iTask a & iTask v & iTask w
+updateSharedMultipleChoiceA d view actions shared sel = sharedMultipleChoice d view actions shared voidNothing (Just sel)
+
+updateSharedMultipleChoiceAboutA :: !d !(o -> v) !([o] -> [(!Action,!Maybe a)]) !about !(Shared [o] w) ![Int] -> Task a | descr d & iTask a & iTask v & iTask w & iTask about
+updateSharedMultipleChoiceAboutA d view actions about shared sel = sharedMultipleChoice d view actions shared (Just about) (Just sel)
+
+sharedMultipleChoice description view actions shared mbAbout mbSel
 	= interact description interaction termination (fromMaybe [] mbSel) shared
 where
 	interaction local model changed
@@ -208,46 +236,48 @@ where
 	
 	termination local model _
 		# choices = [a \\ a <- model & i <- [0..] |isMember i local] //Inefficient :(
-		= UserActions [(action, if (pred choices) (Just (action,choices)) Nothing) \\ (action,pred) <- actions]
+		= UserActions (actions choices)
 
 //Local output
 showMessage :: !d !a -> Task a | descr d & iTask a
-showMessage d a = showMessage` d a noView
-
-showMessageA :: !d ![Action] !a -> Task (!Action,!a) | descr d & iTask a
-showMessageA d actions a = showMessageA` d actions a noView
+showMessage d a = showMessage` d [(ActionOk,a)] voidNothing
 
 showMessageAbout :: !d !about -> Task about | descr d & iTask about
-showMessageAbout d about = showMessage` d about (Just id)
+showMessageAbout d about = showMessage` d [(ActionOk,about)] (Just about)
 
-showMessageAboutA :: !d !(about -> v) ![Action]	!about -> Task (!Action,!about) | descr d & iTask about & iTask v
-showMessageAboutA d aboutView actions about = showMessageA` d actions about (Just aboutView)
+showMessageA :: !d ![(!Action,!a)] -> Task a | descr d & iTask a
+showMessageA d actions = showMessage` d actions voidNothing
 
-showMessage` d a mbAboutView = OutputTask PassiveOutput @>> interactLocal d (msgAboutView a mbAboutView) (const (okAction (Just a))) Void
-showMessageA` d actions a mbAboutView
-	= OutputTask PassiveOutput @>> interactLocal d (msgAboutView a mbAboutView) (const (UserActions (map (\action -> (action,Just (action,a))) actions))) Void
-msgAboutView a mbAboutView _ = maybe [] (\view -> [DisplayView (view a)]) mbAboutView
+showMessageAboutA :: !d !(about -> v) ![(!Action,!a)]	!about -> Task a | descr d & iTask a & iTask v
+showMessageAboutA d view actions about = showMessage` d actions (Just (view about))
+
+showMessage` d actions mbAbout = OutputTask PassiveOutput @>>
+	interactLocal d (const (addAbout mbAbout [])) (const (UserActions (map (appSnd Just) actions))) Void
 
 showInstruction :: !String !instruction	!a -> Task a | html instruction & iTask a
-showInstruction title instr a = showInstruction` (title,instr) a noView
+showInstruction title instr a = showInstruction` (title,instr) a voidNothing
 
 showInstructionAbout :: !String !instruction !about -> Task about | html instruction & iTask about
-showInstructionAbout title instr about = showInstruction` (title,instr) about (Just id)
+showInstructionAbout title instr about = showInstruction` (title,instr) about (Just about)
 
-showInstruction` d a mbAboutView = OutputTask ActiveOutput @>> interactLocal d (msgAboutView a mbAboutView) (const (okAction (Just a))) Void
+showInstruction` d a mbAbout = OutputTask ActiveOutput @>>
+	interactLocal d (const (addAbout mbAbout [])) (const (okAction (Just a))) Void
 
 // Monitor (shared output) tasks
+
+import StdMisc
+
 monitor :: !d !(r -> v) !(r -> Bool) !Bool !(Shared r w) -> Task r | descr d & iTask r & iTask v & iTask w
 monitor d view pred autoContinue shared = monitor` d (Just view) pred autoContinue id voidNothing shared
-
-monitorA :: !d !(r -> v) !(r -> Bool) ![PredAction r] !(Shared r w) -> Task (!Maybe Action,!r) | descr d & iTask r & iTask v & iTask w
-monitorA d view pred actions shared = monitorA` d view pred actions voidNothing shared
 
 monitorAbout :: !d !(r -> v) !(r -> Bool) !Bool !about !(Shared r w) -> Task r | descr d & iTask r & iTask v & iTask w & iTask about
 monitorAbout d view pred autoContinue about shared = monitor` d (Just view) pred autoContinue id (Just about) shared
 
-monitorAboutA :: !d !(r -> v) !(r -> Bool) ![PredAction r] !about !(Shared r w) -> Task (!Maybe Action,!r) | descr d & iTask r & iTask v & iTask w & iTask about
-monitorAboutA d view pred actions about shared = monitorA` d view pred actions (Just about) shared
+monitorA :: !d !(r -> v) !(r -> InteractionTerminators a) !(Shared r w) -> Task a | descr d & iTask a & iTask v & iTask w
+monitorA d view terms shared = monitorA` d view terms voidNothing shared
+
+monitorAboutA :: !d !(r -> v) !(r -> InteractionTerminators a) !about !(Shared r w) -> Task a | descr d & iTask a & iTask v & iTask w & iTask about
+monitorAboutA d view terms about shared = monitorA` d view terms (Just about) shared
 
 wait :: !d !(Shared (Maybe r) w) -> Task r | descr d & iTask r & iTask w
 wait d shared = monitor` d noView isJust True fromJust voidNothing shared
@@ -275,11 +305,11 @@ where
 	where
 		continue = pred m
 		
-monitorA` d view pred actions mbAbout shared
+monitorA` d view terms mbAbout shared
 	= OutputTask PassiveOutput @>> interact
 		d
 		(\_ r _ -> addAbout mbAbout [DisplayView (view r)])
-		(\_ r _ -> if (pred r) (StopInteraction (Nothing,r)) ((fromPredActionsLocal id (\action r -> (Just action,r)) actions) r))
+		(\_ r _ -> terms r)
 		Void
 		shared
 
@@ -301,8 +331,20 @@ waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
 noView :: Maybe (a -> Void)
 noView = Nothing
 
-chooseAction :: !d ![(!Action,a)] -> Task a | descr d & iTask a
-chooseAction d actions = interactLocal d (const []) (const (UserActions (map (appSnd Just) actions))) Void
+chooseAction :: ![(!Action,a)] -> Task a | iTask a
+chooseAction actions = interactLocal chooseActionDescr (const []) (const (UserActions (map (appSnd Just) actions))) Void
 
-chooseActionDyn :: !d !(r -> [(!Action,!Maybe a)]) !(Shared r w) -> Task a | descr d & iTask a & iTask w
-chooseActionDyn d actionsF shared = interact d (\_ _ _ -> []) (\_ r _ -> UserActions (actionsF r)) Void shared
+chooseActionDyn :: !(r -> [(!Action,!Maybe a)]) !(Shared r w) -> Task a | iTask a & iTask w
+chooseActionDyn actionsF shared = interact chooseActionDescr (\_ _ _ -> []) (\_ r _ -> UserActions (actionsF r)) Void shared
+
+chooseActionDescr = "Choose an action"
+
+okActionLocal mbV			= [(ActionOk,mbV)]
+okActionShared (valid,r)	= [(ActionOk,if valid (Just r) Nothing)]
+okActionMultipleChoice sel	= [(ActionOk,Just sel)]
+
+noActions :: a -> [(!Action,!Maybe Void)]
+noActions _ = []
+
+noActionsMsg :: [(!Action,!Maybe Void)]
+noActionsMsg = []

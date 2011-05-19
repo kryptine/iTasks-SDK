@@ -81,7 +81,7 @@ symmetricLensExample =
 					createSharedStore initX
 	>>= \dbx.		createSharedStore initY
 	>>= \dby.		return (symmetricLens putr putl dbx dby)
-	>>= \(dbx,dby).	updateSharedInformationA ("Symmetric lens example",description) (toView,fromView) [(ActionQuit,alwaysShared)] (dbx >&< dby)
+	>>= \(dbx,dby).	updateSharedInformationA ("Symmetric lens example",description) (toView,fromView) (const [(ActionQuit,Just Void)]) (dbx >&< dby)
 where
 	description =
 		[ PTag []

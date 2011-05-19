@@ -83,20 +83,20 @@ initMenu =
                      ]
 	]
 
-actions :: EditorState -> [(PredAction (Verified b))]
-actions state = [ (ActionNew,              always)
-                , (ActionOpen,             always)
-                , (ActionSave,             (\_ -> state.EditorState.changed ))
-                , (ActionSaveAs,           always)
-                , (ActionUpdate,           always)
-                , (ActionRun,              (\_ -> isJust state.EditorState.compiled ))
-                , (ActionQuit,             always)
-                , (ActionAbout,            always)
-                , (ActionViewDeclaration,  (\_ -> state.EditorState.mode =!= ViewDeclaration))
-                , (ActionViewWorkflow,     (\_ -> state.EditorState.mode =!= ViewWorkflow))
-                , (ActionViewImports,      (\_ -> state.EditorState.mode =!= ViewImports))
-                , (ActionViewTypes,        (\_ -> state.EditorState.mode =!= ViewTypes))
-                , (ActionViewSource,         (\_ -> state.EditorState.mode =!= ViewSource))
+//actions :: EditorState -> [(PredAction (Verified b))]
+actions state = [ (ActionNew,              True)
+                , (ActionOpen,             True)
+                , (ActionSave,             state.EditorState.changed)
+                , (ActionSaveAs,           True)
+                , (ActionUpdate,           True)
+                , (ActionRun,              isJust state.EditorState.compiled)
+                , (ActionQuit,             True)
+                , (ActionAbout,            True)
+                , (ActionViewDeclaration,  state.EditorState.mode =!= ViewDeclaration)
+                , (ActionViewWorkflow,     state.EditorState.mode =!= ViewWorkflow)
+                , (ActionViewImports,      state.EditorState.mode =!= ViewImports)
+                , (ActionViewTypes,        state.EditorState.mode =!= ViewTypes)
+                , (ActionViewSource,         state.EditorState.mode =!= ViewSource)
 //                , (ActionEnableSC,         (\_ -> not state.EditorState.checkSyntax))
 //                , (ActionDisableSC,        (\_ -> state.EditorState.checkSyntax))
                 ]
@@ -114,14 +114,14 @@ doMenu state =: { EditorState | mode, config, gMod } =
 						  >>= \allModules -> mkUpdateTask "Imports" (importsView allModules, importsUpdate) False
 		ViewTypes		= mkUpdateTask "Types" (typeView, typeUpdate) False
         ViewSource		= accWorld (tryRender gMod config POICL) 
-        				  >>= \source 		-> showMessageA ("code view", formatSource source) [action \\ (action,pred) <- (actions state) | pred Invalid] Void
-                          >>= \(action, _)	-> return (action, state)                   
+        				  >>= \source 		-> showMessageA ("code view", formatSource source) [(action,action) \\ (action,enabled) <- (actions state) | enabled]
+                          >>= \action		-> return (action, state)                   
     >>= switchAction
     
     where 
     	mkUpdateTask name view fullwidth = 
     		(if fullwidth ((@>>) fullWidthInteractionLayout) id) 
-    		(updateInformationA (getName state, name +++ " view") view (actions state) gMod)
+    		(updateInformationA (getName state, name +++ " view") view (\mbGMod -> [(action,if enabled (Just (action,mbGMod)) Nothing) \\ (action,enabled) <- (actions state)]) gMod)
             >>= \(action, mbGMod) -> 
             case mbGMod of
                	Nothing		= return (action, state)

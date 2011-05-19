@@ -2,9 +2,6 @@ implementation module Util
 
 import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON, Void, Error
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
-	
-baseName :: !String -> String
-baseName path = last (split "\\" path)
 
 app :: !(.a -> .b) !.a -> .b
 app f x = f x

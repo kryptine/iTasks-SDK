@@ -59,11 +59,11 @@ specifyIncident addr marker
 			 , nrInjured = 0
 			 , description = Note ""
 			 }
-= showMessageAboutA ("Location","Incident location:") id [] smap ||- updateInformation ("Details","Specify incident details") incident 
+= showMessageAboutA ("Location","Incident location:") id noActionsMsg smap ||- updateInformation ("Details","Specify incident details") incident 
 
 //====
 showSources ::  Task Void
 showSources
 	=       importDocument "Crisis Response\\AmbulanceDispatchMap.icl" >>=
 	\icl -> importDocument "Crisis Response\\AmbulanceDispatchMap.dcl" >>=
-	\dcl -> showMessageAboutA ("Sources","View the source code of this example") id [] [icl,dcl] >>| stop
+	\dcl -> showMessageAboutA ("Sources","View the source code of this example") id noActionsMsg [icl,dcl] >>| stop

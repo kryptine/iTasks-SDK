@@ -101,33 +101,10 @@ interact		:: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)])	!(l r Bool -> Int
 							
 // auxiliary types/function for derived interaction tasks
 
-// This tuple is used to link actions to user interfaces.
-// Its two parts represent the (what , when) aspects of actions.
-// What: The conceptual action to be taken
-// When: The condition that determine if the action can be taken
-:: PredAction a :== (!Action, !a -> Bool)
-
-//Wrapper for task values that indicates if value passes the verification step
-:: Verified a	= Invalid | Valid !a
-
-always		:: (Verified a) -> Bool
-ifvalid		:: !(Verified a) -> Bool
-ifinvalid	:: !(Verified a) -> Bool
-
 :: Valid :== Bool
-
-alwaysShared	:: (Valid,a) -> Bool
-ifvalidShared	:: !(!Valid,a) -> Bool
-ifinvalidShared	:: !(!Valid,a) -> Bool
-
-mb2Ver :: !(Maybe a) -> Verified a
-ver2Mb :: !(Verified a) -> Maybe a
 
 okAction :: !(Maybe a) -> InteractionTerminators a
 addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask about
-
-fromPredActions			:: !(l r Bool -> p)	!(Action l r Bool -> a)	![PredAction p] -> (l r Bool -> InteractionTerminators a)
-fromPredActionsLocal	:: !(l -> p)		!(Action l -> a)		![PredAction p] -> (l -> InteractionTerminators a)
 
 /**
 * Administer a change to another (running) workflow process

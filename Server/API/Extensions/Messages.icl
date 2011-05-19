@@ -49,8 +49,8 @@ manageMessages =
 	) <! id >>| stop
 where
 	overview :: [Message] -> Task (Action,Maybe Message)
-	overview []		= showMessageA ("My messages","You have no messages") [aNew,aNewGroup,aQuit] Nothing
-	overview msgs	= enterChoiceA ("My messages","Your messages:") id [(aOpen,ifvalid),(aNew,always),(aNewGroup,always),(aQuit,always)] msgs
+	overview []		= showMessageA ("My messages","You have no messages") [(aNew,(aNew,Nothing)),(aNewGroup,(aNewGroup,Nothing)),(aQuit,(aQuit,Nothing))]
+	overview msgs	= enterChoiceA ("My messages","Your messages:") id (\mbM -> [(aOpen,maybe Nothing (\m -> Just (aOpen,Just m)) mbM),(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]) msgs
 	
 	aOpen		= ActionOpen
 	aNew		= Action "new-msg" "New message"
@@ -59,26 +59,26 @@ where
 
 manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
-	= 	showMessageAboutA (subject,"You received a message") id [aClose,aReply,aReplyAll,aForward,aDelete] msg
+	= 	showMessageAboutA (subject,"You received a message") id [(aClose,aClose),(aReply,aReply),(aReplyAll,aReplyAll),(aForward,aForward),(aDelete,aDelete)] msg
 	>>= \act -> case act of
-		(ActionClose,_) 
+		ActionClose
 			= return False
-		(Action "reply" _,message)
+		(Action "reply" _)
 			= 			get currentUser
 			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		(Action "reply-all" _,_)
+		(Action "reply-all" _)
 			= 			get currentUser
 			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		(Action "forward" _,_)
+		(Action "forward" _)
 			= 			get currentUser 
 			>>= \me -> 	writeMessage me ("Fw: " +++ msg.Message.subject) [] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return False
-		(ActionDelete,msg)
+		ActionDelete
 			=			dbDeleteItem (getItemId msg)
 			>>|			showMessage ("Deleted","Message deleted") False	
 where
@@ -120,7 +120,7 @@ where
 	
 	askReplyTask user msg =
 		subject msg @>>
-			(showMessageA ("Reply requested","The sender would like to receive a reply to this message.") [] Void
+			(showMessageA ("Reply requested","The sender would like to receive a reply to this message.") noActionsMsg
 			 ||-
 			 manageMessage msg
 			 )

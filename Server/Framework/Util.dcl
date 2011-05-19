@@ -2,8 +2,6 @@ definition module Util
 
 import StdGeneric, Types, Error
 
-baseName			:: !String -> String
-
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
 instance toString (Maybe a) | toString a

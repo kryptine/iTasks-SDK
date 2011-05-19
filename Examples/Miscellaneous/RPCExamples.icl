@@ -18,14 +18,13 @@ weatherExample =
 
 enterLocation = enterInformation ("Enter location", "Enter a location you want to retrieve the weather forecast for.")	
 markLocation =
-		updateInformationA ("Mark location","Mark a location you want to retrieve the weather forecast for.") (toView,fromView) [(ActionOk,oneLocation)] mkMap
-	>>=	transform (\(_,Just {markers=ms=:[m:_]}) -> m.position)
+		updateInformationA ("Mark location","Mark a location you want to retrieve the weather forecast for.") (toView,fromView) (\mbMap -> [(ActionOk,if (maybe False oneLocation mbMap) (Just (fromJust mbMap)) Nothing)]) mkMap
+	>>=	transform (\{markers=ms=:[m:_]} -> m.position)
 where
 	toView = id
 	fromView map=:{markers} _ = {map & markers = if (isEmpty markers) [] [hd (reverse markers)]}
 	
-	oneLocation (Valid {markers}) = (length markers) == 1
-	oneLocation _ = False
+	oneLocation {markers} = (length markers) == 1
 		
 getLocation (Left loc) = return loc
 getLocation (Right {lat,lng}) =

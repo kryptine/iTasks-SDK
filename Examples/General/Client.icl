@@ -20,8 +20,7 @@ client =
 	
 chooseWorkflow ref =
 					getWorkflowTreeNodes
-	>>= \workflows.	updateSharedInformationA "Tasks" (treeBimap workflows) [] ref
-	>>|				stop
+	>>= \workflows.	updateSharedInformationA "Tasks" (treeBimap workflows) noActions ref
 where
 	treeBimap workflows =	( \mbSel -> case mbSel of
 								Just sel 	= mkTreeSel workflows sel
@@ -30,22 +29,22 @@ where
 							)
 
 showDescription ref =
-							monitorA "Task description" view (const False) actions ref
-	>>= \(Just action,r).	case action of
+							monitorA "Task description" view actions ref
+	>>= \(action,r).	case action of
 								Action "start-task" _ =
 										startWorkflowByIndex (fromHidden (thd3 (fromJust r)))
 									>>|	showDescription ref
 								_ =
 										stop
 where
-	actions = [(Action "start-task" " Start task",isJust),(ActionQuit,const True)]
+	actions mbFlow = UserActions [(Action "start-task" " Start task",fmap (\flow -> (Action "start-task" " Start task",Just flow)) mbFlow),(ActionQuit,Just (ActionQuit,Nothing))]
 	
 	view (Just (_,Hidden desc,_))	= desc
 	view Nothing					= ""
 	
 processTable =
 		myProcesses
-	>>=	updateSharedInformationA "process table" (Table o map toView,\_ _ -> Void) []
+	>>=	updateSharedInformationA "process table" (Table o map toView,\_ _ -> Void) noActions
 	>>|	stop
 where
 	toView {Process|properties=p=:{taskProperties,managerProperties,systemProperties,progress}} =

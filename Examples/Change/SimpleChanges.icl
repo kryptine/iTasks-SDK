@@ -31,7 +31,7 @@ addWarning msg =
 	dynamic change  :: A.a: Change a | iTask a
 where
 	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Nothing, Just (((showMessageA ("Warning!",redText msg)) [] Void ||- t)), Just (addWarning msg))
+	change props t t0 = (Nothing, Just (((showMessageA ("Warning!",redText msg)) noActionsMsg ||- t)), Just (addWarning msg))
 
 redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
@@ -152,8 +152,8 @@ chooseUserA :: !question -> Task User | html question
 chooseUserA question
 	= 						enterSharedChoiceA ("Choose user",question) id buttons users
 	>>= \res ->				case res of
-								(ActionOk,Just user)	-> return user
-								_						-> throw "choosing a user has been cancelled"
+								(Just user)	-> return user
+								_			-> throw "choosing a user has been cancelled"
 										
 
 chooseProcess :: String -> Task ProcessId
@@ -166,10 +166,10 @@ chooseProcess question
 											, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
 											\\ proc <- procs]
 	>>= \res ->						case res of
-										(ActionOk,Just (pid,_,_,_))	-> return pid
-										_							-> throw "choosing a process has been cancelled"
+										(Just (pid,_,_,_))	-> return pid
+										_					-> throw "choosing a process has been cancelled"
 
-buttons = [(ActionCancel, always), (ActionOk, ifvalid)]	
+buttons mbC = [(ActionCancel, Just Nothing), (ActionOk, fmap Just mbC)]	
 	
 	
 	

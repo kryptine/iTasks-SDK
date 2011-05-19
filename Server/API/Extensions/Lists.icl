@@ -37,13 +37,13 @@ manageLists
 	) <! id
 	>>| stop
 where
-	overview []		= showMessageA ("My lists","You have no lists.") [ActionNew,ActionQuit] Nothing
-	overview list	= enterChoiceA ("My lists","Select a list...") id [aOpen,aDelete,aNew,aQuit] list
+	overview []		= showMessageA ("My lists","You have no lists.") [(ActionNew,(ActionNew,Nothing)),(ActionQuit,(ActionQuit,Nothing))]
+	overview list	= enterChoiceA ("My lists","Select a list...") id (\mbL -> [aOpen mbL,aDelete mbL,aNew,aQuit]) list
 	
-	aOpen 			= (ActionOpen, ifvalid)
-	aNew			= (ActionNew, always)
-	aQuit			= (ActionQuit, always)
-	aDelete			= (ActionDelete, ifvalid)
+	aOpen mbL 		= (ActionOpen, maybe Nothing (\l -> Just (ActionOpen,Just l)) mbL)
+	aNew			= (ActionNew, Just (ActionNew,Nothing))
+	aQuit			= (ActionQuit, Just (ActionQuit,Nothing))
+	aDelete mbL		= (ActionDelete, maybe Nothing (\l -> Just (ActionDelete,Just l)) mbL)
 	
 	newList			=	enterChoice ("List type","What type of list do you want to create?")
 						["Simple list", "Todo list", "Date list","Document list"]
@@ -61,7 +61,7 @@ manageList :: AnyList -> Task Void
 manageList list
 	=	
 	(	showItems list
-	>>= \(Just action,_) -> case action of
+	>>= \action -> case action of
 		ActionEdit			= editItems	list			>>| return False
 		Action "share" _	= manageListSharing list	>>| return False
 		ActionClose			=								return True
@@ -69,16 +69,16 @@ manageList list
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= monitorA (l.List.name,l.List.description) simpleFrom		(const False) [(ActionClose,const True),(ActionEdit,const True),(Action "share" "Share",const True)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(TodoList l)	= monitorA (l.List.name,l.List.description) todoFrom		(const False) [(ActionClose,const True),(ActionEdit,const True),(Action "share" "Share",const True)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(DateList l)	= monitorA (l.List.name,l.List.description) dateFrom		(const False) [(ActionClose,const True),(ActionEdit,const True),(Action "share" "Share",const True)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(DocumentList l)= monitorA (l.List.name,l.List.description) documentFrom	(const False) [(ActionClose,const True),(ActionEdit,const True),(Action "share" "Share",const True)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(SimpleList l)	= monitorA (l.List.name,l.List.description) simpleFrom		(const (UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))])) (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(TodoList l)	= monitorA (l.List.name,l.List.description) todoFrom		(const (UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))])) (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DateList l)	= monitorA (l.List.name,l.List.description) dateFrom		(const (UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))])) (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DocumentList l)= monitorA (l.List.name,l.List.description) documentFrom	(const (UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))])) (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
 
 	editItems list = case list of
-		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		[(ActionFinish,alwaysShared)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			[(ActionFinish,alwaysShared)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			[(ActionFinish,alwaysShared)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
-		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	[(ActionFinish,alwaysShared)] (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		(const [(ActionFinish,Just Void)]) (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			(const [(ActionFinish,Just Void)]) (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			(const [(ActionFinish,Just Void)]) (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
+		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	(const [(ActionFinish,Just Void)]) (sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue)
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
@@ -101,8 +101,8 @@ manageListSharing list
 		Nothing		= throw "Could not find list meta data"
 		Just meta
 			= (case meta.ListMeta.sharedWith of
-				[]		= showMessageA ("Sharing","This list is not shared") [aPrevious,aAddPerson,aAddGroup] []
-				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id [(aPrevious,const True),(aRemove,const True),(aAddPerson,const True),(aAddGroup,const True)] users
+				[]		= showMessageA ("Sharing","This list is not shared") [(aPrevious,(aPrevious,[])),(aAddPerson,(aAddPerson,[])),(aAddGroup,(aAddGroup,[]))]
+				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id (\users -> [(aPrevious,Just (aPrevious,users)),(aRemove,Just (aRemove,users)),(aAddPerson,Just (aAddPerson,users)),(aAddGroup,Just (aAddGroup,users))]) users
 			  )
 			>>= \res -> case res of
 				(ActionDelete,users)		= removeUsers users >>| return False

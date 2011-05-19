@@ -5,8 +5,8 @@ from StdFunc import o
 
 derive bimap Maybe, (,)
 
-quitButtonShared	= (ActionQuit, alwaysShared)
-quitButton			= (ActionQuit, always)
+quitButtonShared _	= [(ActionQuit, Just Void)]
+quitButton _		= [(ActionQuit, Just Void)]
 
 //Text-Lines Examples
 noteEditor = (\txt -> Note txt,	\(Note txt) _ -> txt)
@@ -17,11 +17,10 @@ TrimAction :== Action "trim" "Trim"
 linesPar :: Task Void
 linesPar =
 				createSharedStore ""
-	>>= \sid.	noteE sid -|| updateSharedInformationA ("Lines","Edit lines") listEditor [quitButtonShared] sid
-	>>|			return Void
+	>>= \sid.	noteE sid -|| updateSharedInformationA ("Lines","Edit lines") listEditor (const [(ActionQuit,Just Void)]) sid
 where
 	noteE sid = 
-					updateSharedInformationA ("Text","Edit text") noteEditor [(TrimAction, alwaysShared), quitButtonShared] sid
+					updateSharedInformationA ("Text","Edit text") noteEditor (\(valid,txt) -> [(TrimAction,if valid (Just (TrimAction,txt)) Nothing), (ActionQuit,Just (ActionQuit,txt))]) sid
 		>>= \res.	case res of
 						(TrimAction,txt) =
 								set sid (trim txt)
@@ -30,7 +29,7 @@ where
 							stop
 
 //Calculate Sum Example
-calculateSum = updateInformationA ("Sum","Auto compute sum") (\t=:(x,y) -> (t,Display (x+y)),\(t,_) _ -> t) [quitButton] (0,0)
+calculateSum = updateInformationA ("Sum","Auto compute sum") (\t=:(x,y) -> (t,Display (x+y)),\(t,_) _ -> t) quitButton (0,0)
 
 //Tree Example
 :: Tree` a = Leaf` | Node` (Node` a)
@@ -55,7 +54,7 @@ where
 		end			= drop (middlePos + 1) list
 
 tree = updateInformationA ("List & Balanced Binary Tree","Type something in the list and the tree will update as well.")
-			(\l -> (l,Display (toTree l)), \(l,_) _ -> l) [quitButton] emptyL
+			(\l -> (l,Display (toTree l)), \(l,_) _ -> l) quitButton emptyL
 where
 	emptyL :: [Int]
 	emptyL = []
@@ -68,18 +67,18 @@ mergeTestList =
 	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
 	>>|			stop
 where
-	view :: (SymmetricShared [String]) -> Task (Action,[String])
-	view sid = updateSharedInformationA ("List","Merging the lists") idView [quitButtonShared] sid
+	view :: (SymmetricShared [String]) -> Task Void
+	view sid = updateSharedInformationA ("List","Merging the lists") idView (const [(ActionQuit,Just Void)]) sid
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
 				return store
 	>>= \sid.	spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view sid)
 	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
-	>>|			spawnProcess True initManagerProperties noMenu (Title "3rd View" @>> monitorA "Documents" id (const False) [(ActionQuit,const True)] sid)
+	>>|			spawnProcess True initManagerProperties noMenu (Title "3rd View" @>> monitorA "Documents" id (const (UserActions [(ActionQuit,Just Void)])) sid)
 	>>|			stop
 where
-	view sid = updateSharedInformationA ("List","Merging the documents") idView [quitButtonShared] sid
+	view sid = updateSharedInformationA ("List","Merging the documents") idView (const [(ActionQuit,Just Void)]) sid
 	
 	store :: SymmetricShared [Document]
 	store = sharedStore "mergeTestDocs" []
@@ -104,17 +103,17 @@ RemoveMarkersAction :== Action "remove-markers" "Remove Markers"
 googleMaps :: Task GoogleMap
 googleMaps = 
 				createSharedStore mkMap
-	>>= \dbid.	updateSharedInformationA "Options" optionsEditor [] dbid
+	>>= \dbid.	updateSharedInformationA "Options" optionsEditor noActions dbid
 				||-
-				updateSharedInformationA "Google Map" idView [] dbid
+				updateSharedInformationA "Google Map" idView noActions dbid
 				||-
-				updateSharedInformationA "Overview Map" overviewEditor [] dbid
+				updateSharedInformationA "Overview Map" overviewEditor noActions dbid
 				||-
 				markersDisplay dbid
-where							
+where						
 	markersDisplay dbid =
-								monitorA "Markers" markersListener (const False) [(RemoveMarkersAction,const True),(ActionQuit,const True)] dbid
-		>>= \(Just action,map).	case action of
+								monitorA "Markers" markersListener (\map -> (UserActions [(RemoveMarkersAction,Just (RemoveMarkersAction,map)),(ActionQuit,Just (ActionQuit,map))])) dbid
+		>>= \(action,map).		case action of
 									RemoveMarkersAction	= update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid
 									_					= return map
 
@@ -151,7 +150,7 @@ where
 	markersListener	map = [{position = position, map = {GoogleMap| mkMap & center = position, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
-autoSortedList = updateInformationA ("Automatically Sorted List","You can edit the list, it will sort automatically.") (sort, const) [quitButton] emptyL
+autoSortedList = updateInformationA ("Automatically Sorted List","You can edit the list, it will sort automatically.") (sort, const) quitButton emptyL
 where
 	emptyL :: [String]
 	emptyL = []
@@ -231,8 +230,7 @@ where
 		>>= \customers ->
 			createSharedStore defaultValue
 		>>= \share ->
-			updateSharedInformationA "Enter order" view [(ActionOk,ifvalidShared)] (share >+| (products >+< customers))
-		>>= transform (fst o snd)
+			updateSharedInformationA "Enter order" view (\(valid,(order,_)) -> [(ActionOk,if valid (Just order) Nothing)]) (share >+| (products >+< customers))
 	where
 		view = (vfrom,vto)
 		vfrom (order,(products,customers))
@@ -286,7 +284,7 @@ where
 	initDirty = isJust mbQuery
 	
 	searchBox qstore pstate pinfo
-		= updateSharedInformationA "Enter query:" (toView,fromView) [] qstore >>| stop
+		= updateSharedInformationA "Enter query:" (toView,fromView) noActions qstore
 	where
 		toView (q,d,r) = q
 		fromView q (_,d,r) = (q,True,r)
@@ -300,9 +298,8 @@ where
 		
 
 	searchResults qstore pstate pinfo
-		=	enterSharedChoiceA ("Search results","The following results were found:") id [(ActionNext,ifvalid)] (mapSharedRead (\(_,_,r) -> r) qstore)
-		>>= \(_,Just x) ->
-			set pstate (Just x) 
+		=	enterSharedChoiceA ("Search results","The following results were found:") id (\mbR -> [(ActionNext,mbR)]) (mapSharedRead (\(_,_,r) -> r) qstore)
+		>>= \x. set pstate (Just x) 
 	
 from Shared import mapSharedRead
 
@@ -324,7 +321,7 @@ where
 
 timeShareView :: Task DateTime
 timeShareView
-	= monitorA "A view on the current time" id (const False) [(ActionClose,const True)] currentDateTime >>= transform snd
+	= monitorA "A view on the current time" id (\dateTime -> (UserActions [(ActionClose,Just dateTime)])) currentDateTime
 
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" linesPar
