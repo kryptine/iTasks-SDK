@@ -40,7 +40,6 @@ specifiyIncidents map = sequence "Specify individual incident details" [ (addres
 addressLookup :: GoogleMapMarker -> Task String
 addressLookup marker = 
 		reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
-	>>=	wait ("Address lookup","Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")")
 where
 	{lat,lng} = marker.position
 	

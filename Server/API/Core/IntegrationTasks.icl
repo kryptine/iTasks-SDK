@@ -28,8 +28,10 @@ from Email 				import :: Email(..), :: EmailOption(..)
 derive JSONDecode AsyncResult
 derive bimap Maybe, (,)
 
-callProcess :: !FilePath ![String] -> Task (ReadOnlyShared (Maybe Int))
-callProcess cmd args = mkInstantTask ("Call process","Calls a process and give shared reference to return code.") callProcess`
+callProcess :: !FilePath ![String] -> Task Int
+callProcess cmd args =
+					mkInstantTask ("Call process","Calls a process and give shared reference to return code.") callProcess`
+	>>= \outfile.	wait ("Call Process", "Waiting for external process (" +++ cmd +++ ")") (makeReadOnlySharedError (check outfile))
 where
 	callProcess` tst=:{TSt | taskNr, iworld = {IWorld | config, tmpDirectory} }
 		# outfile			= tmpDirectory </> (iTaskId taskNr "callprocess")
@@ -43,7 +45,7 @@ where
 								++ args
 		# (res, tst)		= accWorldTSt ('Process'.runProcess config.Config.runAsyncPath asyncArgs Nothing) tst
 		| isError res		= (callException res,tst)
-		= (TaskFinished (makeReadOnlySharedError (check outfile)),tst)
+		= (TaskFinished outfile,tst)
 	
 	check :: !String *IWorld -> *(!MaybeErrorString (Maybe Int),!*IWorld)
 	check outfile iworld=:{world}
@@ -62,7 +64,7 @@ where
 	callException res = taskException (CallFailed (fromError res))
 
 
-callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task (ReadOnlyShared (Maybe a)) | iTask a
+callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
 	# options = case method of
 		GET	 = "--get"
@@ -70,11 +72,13 @@ callRPCHTTP method url params transformResult
 	# args = urlEncodePairs params
 	= callRPC options url args transformResult
 
-callRPC :: !String !String !String !(String -> a) -> Task (ReadOnlyShared (Maybe a)) | iTask a			
+callRPC :: !String !String !String !(String -> a) -> Task a | iTask a			
 callRPC options url args transformResult =
 	mkInstantTask ("Call RPC", "Initializing") initRPC
 	>>= \(cmd,args,outfile) -> callProcess cmd args
-	>>= \sMbExitCode -> mkInstantTask ("Call RPC", "Waiting for remote server") (readRPC sMbExitCode outfile transformResult)
+	>>= \exitCode -> if (exitCode > 0)
+		(throw (SharedException (curlError exitCode)))
+		(importTextFile outfile >>= transform transformResult)
 	where
 		initRPC :: *TSt -> *(!TaskResult (String,[String],String),!*TSt)
 		initRPC tst=:{TSt|taskNr,iworld=iworld=:{IWorld|config,world,tmpDirectory},properties=p=:{systemProperties=s=:{SystemProperties|taskId}}}
@@ -90,24 +94,7 @@ callRPC options url args transformResult =
 						, outfile
 						, url
 						]
-			= (TaskFinished (cmd,args,outfile),tst)
-		
-		readRPC :: (ReadOnlyShared (Maybe Int)) !String !(String -> a) *TSt -> *(TaskResult (ReadOnlyShared (Maybe a)),!*TSt)
-		readRPC sMbExitCode outfile transformResult tst
-			= (TaskFinished (makeReadOnlySharedError (read sMbExitCode outfile transformResult)),tst)
-			
-		read :: (ReadOnlyShared (Maybe Int)) !String !(String -> a) *IWorld -> *(!MaybeErrorString (Maybe a),!*IWorld)
-		read sMbExitCode outfile transformResult iworld
-		# (res, iworld) = readShared sMbExitCode iworld
-		| isError res = (liftError res, iworld)
-		# mbExitCode = fromOk res
-		| isNothing mbExitCode = (Ok Nothing, iworld) //Process still running
-		# exitCode = fromJust mbExitCode
-		| exitCode > 0 = (Error (curlError exitCode), iworld)
-		# (res, world) = readFile outfile iworld.IWorld.world
-		  iworld = {iworld & world = world}
-		| isError res = (Error (toString (fromError res)), iworld)
-		= (Ok (Just (transformResult (fromOk res))), iworld)		
+			= (TaskFinished (cmd,args,outfile),tst)		
 			
 		mkFileName :: !TaskId !TaskNr !String -> String
 		mkFileName taskId taskNr part = iTaskId taskId ("rpc-" +++ part +++ "-"  +++ taskNrToString taskNr)

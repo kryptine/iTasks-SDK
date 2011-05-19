@@ -23,7 +23,7 @@ from Shared import ::Shared, ::ReadOnlyShared
 * @throws CallException
 * @return A shared reference in which the return code will be stored
 */
-callProcess :: !FilePath ![String] -> Task (ReadOnlyShared (Maybe Int))
+callProcess :: !FilePath ![String] -> Task Int
 
 /**
 * Calls an external HTTP webservice.
@@ -35,7 +35,7 @@ callProcess :: !FilePath ![String] -> Task (ReadOnlyShared (Maybe Int))
 * 
 * @return A shared reference in which the response will be stored
 */
-callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task (ReadOnlyShared (Maybe a)) | iTask a
+callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 
 /**
 * Send an e-mail message.
