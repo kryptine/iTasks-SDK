@@ -20,14 +20,15 @@ They are divided over multiple folders as follows:
              the server libraries, they need a client application. In this folder you find the
              default AJAX web client which your server application will serve at run time.
 
-             IMPORTANT: If you obtained iTasks directly from the subversion repository
-                        you need to run Client/build.bat to compile the client application.
-
 - Examples : Example workflow suites.
 
 - Tools    : Various build and code generation tools.
 
 === Getting started (examples suite) ===
+
+IMPORTANT: If you obtained iTasks directly from the subversion repository
+           you need to run Client/build.bat to compile the client application.
+
 The best way to get to know the iTasks SDK is by building and running the examples suite.
 To build this suite do the following steps:
 - Start the CleanIDE
