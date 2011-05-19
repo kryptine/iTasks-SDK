@@ -89,11 +89,7 @@ derive class iTask Control
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
-
-:: SharedProc			:== ReadOnlyShared (Maybe Process)
-// the first maybe indicates if the process finished, the second if result is deleted
-:: SharedProcResult a	:== ReadOnlyShared (Maybe (Maybe a))
+spawnProcess	:: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task ProcessId | iTask a
 
 /**
 * Kills a process disregarding any other references to this process.

@@ -78,10 +78,7 @@ derive class iTask Plant, PlantName, PlantLight
 derive bimap Maybe, (,)
 
 symmetricLensExample =
-					createSharedStore initX
-	>>= \dbx.		createSharedStore initY
-	>>= \dby.		return (symmetricLens putr putl dbx dby)
-	>>= \(dbx,dby).	updateSharedInformationA ("Symmetric lens example",description) (toView,fromView) (const [(ActionQuit,Just Void)]) (dbx >&< dby)
+	updateSharedInformationA ("Symmetric lens example",description) (toView,fromView) (const [(ActionQuit,Just Void)]) (dbx >&< dby)
 where
 	description =
 		[ PTag []
@@ -96,6 +93,8 @@ where
 			, Text "In ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages (POPL), Austin, Texas, January 2011."
 			]
 		]
+		
+	(dbx,dby) = symmetricLens putr putl (sharedStore "tableExampleX" initX) (sharedStore "tableExampleY" initY)
 
 	toView			= app2 (Table,Table)
 	fromView view _	= app2 (fromTable,fromTable) view

@@ -25,9 +25,9 @@ simpleEditorWorkflow language editor =
 	workflow ("Examples/Graphical Editors/" +++ language +++ " editor") ("Simple " +++ language +++ " editor")
 		(getConfig >>| updateInformationA ("Simple " +++ language +++ " editor") idView (const [(ActionQuit,Just Void)]) editor <<@ fullWidthInteractionLayout)
 
-petrinetShareExample = createSharedStore petriNetORYXEditor
-	>>= \dbid -> updateSharedInformationA "Editor 1" idView quitButton dbid
-				 -||
-				 updateSharedInformationA "Editor 2" idView quitButton dbid
+petrinetShareExample = parallel "Petrinet Share Example" petriNetORYXEditor (\_ _ -> Void)
+	[ InBodyTask (\s _ -> updateSharedInformationA "Editor 1" idView quitButton s)
+	, InBodyTask (\s _ -> updateSharedInformationA "Editor 2" idView quitButton s)
+	]
 
 quitButton _ = [(ActionQuit,Just Void)]

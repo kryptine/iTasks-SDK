@@ -1,6 +1,6 @@
 definition module DBTasks
 
-from Shared import :: SymmetricShared
+from Shared import :: SymmetricShared, :: Shared
 import iTaskClass, Task
 
 //Convenience wrapper functions for databases with multiple values of type a 

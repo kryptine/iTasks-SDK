@@ -40,24 +40,6 @@ where
 		= (res,iworld)
 		
 	write v iworld = (Ok Void,storeValue storeId v iworld)
-	
-createSharedStore :: !a  -> Task (SymmetricShared a) | iTask a
-createSharedStore init
-	= mkInstantTask ("Create shared store", "Creates a shared store") createSharedStore`
-where
-	createSharedStore` tst=:{taskNr,properties=p=:{systemProperties=s=:{SystemProperties|taskId}}}
-		// store name starts with 'iTask_{id of main task}' to include it in garbage collection if process finishes
-		// in the rest of the name the id of the current task serves as unique id for the store
-		# shared		= sharedStore (iTaskId taskId (taskNrToString taskNr +++ "-shared")) init
-		= (TaskFinished shared,tst)
-			
-deleteSharedStore :: !SharedStoreId -> Task Void
-deleteSharedStore id
-	= mkInstantTask ("Delete shared store","Deletes a shared store with given identifier") deleteSharedStore`
-where
-	deleteSharedStore` tst
-		# tst = appIWorldTSt (deleteValue id) tst
-		= (TaskFinished Void,{tst & sharedDeleted = True})
 
 get :: !(Shared a w) -> Task a | iTask a
 get shared

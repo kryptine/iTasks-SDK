@@ -15,16 +15,14 @@ listEditor = (split "\n" ,		\l _ -> join "\n" l)
 TrimAction :== Action "trim" "Trim"
 
 linesPar :: Task Void
-linesPar =
-				createSharedStore ""
-	>>= \sid.	noteE sid -|| updateSharedInformationA ("Lines","Edit lines") listEditor (const [(ActionQuit,Just Void)]) sid
+linesPar = parallel "Lines Example" "" (\_ _ -> Void) [InBodyTask noteE, InBodyTask (\sid _ -> updateSharedInformationA ("Lines","Edit lines") listEditor (const [(ActionQuit,Just Void)]) sid)]
 where
-	noteE sid = 
+	noteE sid os = 
 					updateSharedInformationA ("Text","Edit text") noteEditor (\(valid,txt) -> [(TrimAction,if valid (Just (TrimAction,txt)) Nothing), (ActionQuit,Just (ActionQuit,txt))]) sid
 		>>= \res.	case res of
 						(TrimAction,txt) =
 								set sid (trim txt)
-							>>|	noteE sid
+							>>|	noteE sid os
 						_ =
 							stop
 
@@ -62,21 +60,21 @@ where
 //Merge Tests
 mergeTestList :: Task Void
 mergeTestList =	
-				return (sharedStore "mergeTestLists" [])
-	>>= \sid.	spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view sid)
+				spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view sid)
 	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
 	>>|			stop
 where
+	sid = sharedStore "mergeTestLists" []
+
 	view :: (SymmetricShared [String]) -> Task Void
 	view sid = updateSharedInformationA ("List","Merging the lists") idView (const [(ActionQuit,Just Void)]) sid
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
-				return store
-	>>= \sid.	spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view sid)
-	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
-	>>|			spawnProcess True initManagerProperties noMenu (Title "3rd View" @>> monitorA "Documents" id (const (UserActions [(ActionQuit,Just Void)])) sid)
-	>>|			stop
+		spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view store)
+	>>|	spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view store)
+	>>|	spawnProcess True initManagerProperties noMenu (Title "3rd View" @>> monitorA "Documents" id (const (UserActions [(ActionQuit,Just Void)])) store)
+	>>|	stop
 where
 	view sid = updateSharedInformationA ("List","Merging the documents") idView (const [(ActionQuit,Just Void)]) sid
 	
@@ -101,15 +99,12 @@ derive class iTask MarkerInfo, MapOptions
 RemoveMarkersAction :== Action "remove-markers" "Remove Markers"
 
 googleMaps :: Task GoogleMap
-googleMaps = 
-				createSharedStore mkMap
-	>>= \dbid.	updateSharedInformationA "Options" optionsEditor noActions dbid
-				||-
-				updateSharedInformationA "Google Map" idView noActions dbid
-				||-
-				updateSharedInformationA "Overview Map" overviewEditor noActions dbid
-				||-
-				markersDisplay dbid
+googleMaps = parallel "Map Example" mkMap (\_ m -> m)
+	[ InBodyTask (\s _ -> updateSharedInformationA "Options" optionsEditor noActions s)
+	, InBodyTask (\s _ -> updateSharedInformationA "Google Map" idView noActions s)
+	, InBodyTask (\s _ -> updateSharedInformationA "Overview Map" overviewEditor noActions s)
+	, InBodyTask (\s _ -> markersDisplay s)
+	]
 where						
 	markersDisplay dbid =
 								monitorA "Markers" markersListener (\map -> (UserActions [(RemoveMarkersAction,Just (RemoveMarkersAction,map)),(ActionQuit,Just (ActionQuit,map))])) dbid
@@ -206,31 +201,25 @@ derive class iTask Order, Customer, NewCustomer, Product, OrderForm
 chooseOrAdd :: Task Order
 chooseOrAdd = enterOrder >>= showMessageAbout "You created the order:"
 where
-	getProductDatabase :: Task (ReadOnlyShared [Product])
-	getProductDatabase = createSharedStore
+	productDatabase :: ReadOnlyShared [Product]
+	productDatabase = toReadOnlyShared (sharedStore "chooseOrAddProductDB"
 						[{productId = 1, description = "Apples"}
 						,{productId = 2, description = "Oranges"}
 						,{productId = 3, description = "Pears"}
-						] >>= transform toReadOnlyShared
+						])
 	
-	getCustomerDatabase :: Task (ReadOnlyShared [Customer])
-	getCustomerDatabase = createSharedStore
+	customerDatabase :: ReadOnlyShared [Customer]
+	customerDatabase = toReadOnlyShared (sharedStore "chooseOrAddCustomerDB"
 						[{customerId = 1, name = "Homer"}
 						,{customerId = 2, name = "Marge"}
 						,{customerId = 3, name = "Bart"}
 						,{customerId = 4, name = "Lisa"}
 						,{customerId = 5, name = "Maggie"}
-						] >>= transform toReadOnlyShared
-	
+						])
+	form = sharedStore "chooseOrAddForm" defaultValue
 	enterOrder :: Task Order
 	enterOrder
-		=	getProductDatabase 
-		>>= \products ->
-			getCustomerDatabase
-		>>= \customers ->
-			createSharedStore defaultValue
-		>>= \share ->
-			updateSharedInformationA "Enter order" view (\(valid,(order,_)) -> [(ActionOk,if valid (Just order) Nothing)]) (share >+| (products >+< customers))
+		= updateSharedInformationA "Enter order" view (\(valid,(order,_)) -> [(ActionOk,if valid (Just order) Nothing)]) (form >+| (productDatabase >+< customerDatabase))
 	where
 		view = (vfrom,vto)
 		vfrom (order,(products,customers))
@@ -273,33 +262,31 @@ phoneBookSearch
 //Abstract search task with a search that is repeated each time the query is altered
 activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
 activeQuery mbQuery queryTask
-	=	createSharedStore (initQuery,initDirty,[]) //In a local store we keep the query and a flag whether it has been updated (dirty) and a resultset
-	>>= \qstore ->
-		parallel "Active Query" Nothing (\_ (Just res) -> res)
-			[InBodyTask (searchBox qstore), HiddenTask (activator queryTask qstore), InBodyTask (searchResults qstore)]
+	=	parallel "Active Query" (initQuery,initDirty,[],Nothing) (\_ (_,_,_,Just res) -> res)
+			[InBodyTask searchBox, HiddenTask (activator queryTask), InBodyTask searchResults]
 where
 	initQuery = case mbQuery of
 		Nothing = ""
 		Just q	= q
 	initDirty = isJust mbQuery
 	
-	searchBox qstore pstate pinfo
-		= updateSharedInformationA "Enter query:" (toView,fromView) noActions qstore
+	searchBox pstate pinfo
+		= updateSharedInformationA "Enter query:" (toView,fromView) noActions pstate
 	where
-		toView (q,d,r) = q
-		fromView q (_,d,r) = (q,True,r)
+		toView (q,d,r,_) = q
+		fromView q (_,d,r,res) = (q,True,r,res)
 	
-	activator queryTask qstore pstate pinfo
-		=	monitor "Query monitor" id (\(_,d,_) -> d) True qstore	//Look for the dirty flag to become True
-		>>= \(query,_,_) ->
+	activator queryTask pstate pinfo
+		=	monitor "Query monitor" id (\(_,d,_,_) -> d) True pstate	//Look for the dirty flag to become True
+		>>= \(query,_,_,_) ->
 			queryTask query
 		>>= \results ->
-			update (\(q,_,_) -> (q,False,results)) qstore	//Reset dirty flag
+			update (\(q,_,_,res) -> (q,False,results,res)) pstate	//Reset dirty flag
 		
 
-	searchResults qstore pstate pinfo
-		=	enterSharedChoiceA ("Search results","The following results were found:") id (\mbR -> [(ActionNext,mbR)]) (mapSharedRead (\(_,_,r) -> r) qstore)
-		>>= \x. set pstate (Just x) 
+	searchResults pstate pinfo
+		=	enterSharedChoiceA ("Search results","The following results were found:") id (\mbR -> [(ActionNext,mbR)]) (mapSharedRead (\(_,_,r,_) -> r) pstate)
+		>>= \x. update (\(q,d,r,_) -> (q,d,r,Just x)) pstate
 	
 from Shared import mapSharedRead
 

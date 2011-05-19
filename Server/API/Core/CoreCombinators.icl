@@ -381,33 +381,12 @@ where
 			# tst		= seqSt (\taskNr tst -> snd ('ProcessDB'.deleteProcess (taskNrToString taskNr) tst))	taskNrs tst
 			= tst
 
-spawnProcess :: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task (!ProcessId,!SharedProc,!SharedProcResult a) | iTask a
+spawnProcess :: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task ProcessId | iTask a
 spawnProcess gcWhenDone managerProperties menu task = mkInstantTask ("Spawn process", "Spawn a new task instance") spawnProcess`
 where
 	spawnProcess` tst
 		# (pid,_,_,tst)	= createTaskInstance (createThread task) True gcWhenDone managerProperties menu tst
-		= (TaskFinished (pid,sharedProc pid,sharedRes pid), tst)
-	
-	sharedProc pid = makeReadOnlyShared ('ProcessDB'.getProcess pid)
-			
-	sharedRes pid = makeReadOnlyShared read
-	where
-		read iworld
-			# (mbProc,iworld) = 'ProcessDB'.getProcess pid iworld
-			= case mbProc of
-				Just {Process|properties} = case properties.systemProperties.SystemProperties.status of
-					Finished		= loadResult iworld
-					_				= (Nothing,iworld)
-				Nothing				= loadResult iworld
-			
-		loadResult iworld
-			# (mbResult,iworld)	= loadProcessResult (taskNrFromString pid) iworld
-			# mbResult = case mbResult of
-				Just (TaskFinished a) = case a of
-					(a :: a^)	= Just (Just a)	// proc finished
-					_			= Just Nothing	// proc finished but invalid result
-				_				= Just Nothing	// proc finished but result deleted
-			= (mbResult,iworld)
+		= (TaskFinished pid, tst)
 
 killProcess :: !ProcessId -> Task Void
 killProcess pid = mkInstantTask ("Kill process", "Kill a running task instance") killProcess`

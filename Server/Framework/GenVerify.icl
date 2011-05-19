@@ -127,7 +127,6 @@ gVerify{|HtmlDisplay|}		_ vst = alwaysValid vst
 
 gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst
-gVerify{|Shared|} _ _		_ vst = alwaysValid vst
 
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool

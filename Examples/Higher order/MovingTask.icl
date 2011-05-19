@@ -39,7 +39,7 @@ where
 	=				selectUser "Assign a user to perform the task"
 		>>= \who ->	spawnProcess False {initManagerProperties & worker = who} noMenu (task <<@ Title label)
 		>>= 		inspect
-
+	
 	inspect pref
 	=					enterChoice ("Task options","Go ahead impatient boss:")
 							[ getStatus pref <<@ Title "Get status"
@@ -47,12 +47,12 @@ where
 							, activate pref <<@ Title "Activate"
 							, reassign pref <<@ Title "Reassign"
 							, delete pref <<@ Title "Delete task"
-							, waitForIt pref <<@ Title "Wait for task"
+							//, waitForIt pref <<@ Title "Wait for task"
 							]
 		>>= \action ->	action
 		>>= \finished -> if finished (return Void) (inspect pref)
 
-	getStatus (pid,_,_)
+	getStatus pid
 	=						getProcessStatus pid
 		>>= \st	->			getProcessOwner pid
 		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [toString (fromJust mbOwner)])
@@ -61,28 +61,28 @@ where
 								(Deleted,_)			-> showMessage ("Task deleted","It is deleted") True		
 								(Running,Active)	-> showMessage ("Task busy","User " <+++ hd names <+++ " is working on it") False		
 								(Running,Suspended)	-> showMessage ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") False		
-	suspend (pid,_,_)
+	suspend pid
 	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
 		>>|					showMessage ("Task suspended","workflow is suspended") False
 								
-	activate (pid,_,_)
+	activate pid
 	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Active})
 		>>|					showMessage ("Task activated","workflow is activated") False
 
-	delete (pid,_,_)
+	delete pid
 	=						killProcess pid 
 		>>| 				showMessage ("Task deleted","workflow is deleted") True				
 
-	reassign (pid,_,_)
+	reassign pid
 	=						selectUser "Who is next?"
 		>>= \who ->			setProcessOwner who pid 
 		>>| 				return False
-
-	waitForIt (pid,_,sharedRes)
-	=						showMessageA ("Waiting","Waiting for the result...") noActionsMsg ||- wait ("Wait for task", "Wait for an external task to finish") sharedRes
+	
+	/*waitForIt pid
+	=						showMessageA ("Waiting","Waiting for the result...") noActionsMsg ||- wait ("Wait for task", "Wait for an external task to finish") (sharedProcResult pid)
 		>>= \(Just res) -> 	deleteProcess pid 
 		>>| 				showMessageAbout ("Finished","Finished, the result = ") res 
-		>>|					return False
+		>>|					return False*/
 
 	
 selectUser :: !String -> Task User

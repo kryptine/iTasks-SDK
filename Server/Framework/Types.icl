@@ -1,7 +1,7 @@
 implementation module Types
 from StdFunc import until
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, dynamic_string, Base64, Shared
+import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, dynamic_string, Base64
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from iTasks		import dynamicJSONEncode, dynamicJSONDecode
@@ -33,16 +33,9 @@ JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
 
-JSONEncode{|Shared|} _ _ (Shared read write getTimestamp) = [JSONArray [JSONString "Shared":dynamicJSONEncode (read,write,getTimestamp)]]
-JSONDecode{|Shared|} _ _ [JSONArray [JSONString "Shared",funcs]:c] = case dynamicJSONDecode funcs of
-	Just (read,write,getTimestamp)	= (Just (Shared read write getTimestamp),c)
-	Nothing							= (Nothing,c)
-JSONDecode{|Shared|} _ _ c = (Nothing,c)
-
 gEq{|(->)|} _ _ _ _			= False	// functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 //gEq{|Dynamic|} (x :: a | gEq{|*|} a) (y :: a | gEq{|*|} a) = x === y
-gEq{|Shared|} _ _ _ _		= False
 
 choice :: ![a] -> Choice a
 choice l = Choice l -1

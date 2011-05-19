@@ -25,11 +25,12 @@ where
 					= [(u,p):updatePos (user,position) ps]
 	
 viewMap :: Task Void
-viewMap
-	=	createSharedStore nlMap	//Create a new map (local to this task) to put the markers on
-	>>= \map ->
-		updateSharedInformationA "Look where everyone is" (toView,fromView) (const [(ActionQuit,Just Void)]) (map >&< locationStore) <<@ fullWidthInteractionLayout
-	>>|	stop
+viewMap = interact
+			"Look where everyone is"
+			(\gmap locations _ -> [UpdateView (FormValue {GoogleMap|gmap & markers = map mkMarker locations},\mbMap -> ({GoogleMap|fromMaybe gmap mbMap & markers = []},Nothing))])
+			(\_ _ _ -> UserActions [(ActionQuit,Just Void)])
+			nlMap
+			locationStore
 where
 	nlMap :: GoogleMap		
 	nlMap = {GoogleMap| mkMap & zoom = 7, center = {lat = 52.396, lng = 5.21}}

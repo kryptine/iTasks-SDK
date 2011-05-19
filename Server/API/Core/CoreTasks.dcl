@@ -6,7 +6,7 @@ definition module CoreTasks
 import iTaskClass
 from Error		import ::MaybeError(..)
 from OSError	import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
-from Shared		import :: SymmetricShared
+from Shared		import :: SymmetricShared, :: Shared
 from Task		import :: Task
 from TSt		import ::ChangeLifeTime, :: ChangeDyn
 
@@ -27,16 +27,6 @@ return 		:: !a 										-> Task a 		| iTask a
 * If no data is store the default value given as second argument is given as result.
 */
 sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-
-/**
-* Create a shared store with automatically generated reference and given initial value.
-* The store is automatically garbage collected after the process it was generated in terminates.
-*
-* @param An inital value
-* @return A reference to the generated store
-* @throws SharedException
-*/
-createSharedStore :: !a  -> Task (SymmetricShared a) | iTask a
 
 /**
 * Reads shared data.

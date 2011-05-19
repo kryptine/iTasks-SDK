@@ -493,7 +493,6 @@ where
 	
 gVisualize{|Dynamic|}			_ vst	= noVisualization vst
 gVisualize{|(->)|} _ _			_ vst	= noVisualization vst
-gVisualize{|Shared|} _ _		_ vst	= noVisualization vst
 
 gVisualize{|Maybe|} fx val vst=:{vizType,currentPath}
 	# vst = {VSt|vst & optional = True}

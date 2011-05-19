@@ -14,9 +14,11 @@ derive bimap Maybe, (,)
 clientExample :: [Workflow]
 clientExample = [workflow "Examples/Client" "This task rebuilds the client." (Workflow initManagerProperties (staticMenu [Menu "Example" [MenuItem ActionQuit Nothing]]) client)]
 
-client =
-					createSharedStore Nothing
-	>>= \ref.		(anyTask [chooseWorkflow ref <<@ treeLayout, showDescription ref <<@ descriptionLayout, processTable <<@ processTableLayout]) <<@ parallelLayout
+client = parallelLayout @>> parallel "Client" Nothing (\_ _ -> Void)
+	[ InBodyTask (\s _ -> chooseWorkflow s <<@ treeLayout)
+	, InBodyTask (\s _ -> showDescription s <<@ descriptionLayout)
+	, InBodyTask (\_ _ -> processTable <<@ processTableLayout)
+	]
 	
 chooseWorkflow ref =
 					getWorkflowTreeNodes
@@ -43,8 +45,8 @@ where
 	view Nothing					= ""
 	
 processTable =
-		myProcesses
-	>>=	updateSharedInformationA "process table" (Table o map toView,\_ _ -> Void) noActions
+		get currentUser
+	>>=	\user. updateSharedInformationA "process table" (Table o map toView,\_ _ -> Void) noActions (myProcesses user)
 	>>|	stop
 where
 	toView {Process|properties=p=:{taskProperties,managerProperties,systemProperties,progress}} =
@@ -165,6 +167,4 @@ where
 	//Allow workflows without required roles
 	isAllowed _ wf					= isEmpty wf.Workflow.roles
 	
-myProcesses =
-				get currentUser
-	>>=	\user.	return (makeReadOnlyShared ('ProcessDB'.getProcessesForUser user [Running] [Active]))
+myProcesses user = makeReadOnlyShared ('ProcessDB'.getProcessesForUser user [Running] [Active])

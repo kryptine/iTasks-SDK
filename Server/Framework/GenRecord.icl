@@ -1,6 +1,6 @@
 implementation module GenRecord
 
-import StdTuple, StdList, StdFunc, Error, Util, Shared, GenUpdate, Map
+import StdTuple, StdList, StdFunc, Error, Util, GenUpdate, Map
 from dynamic_string import copy_to_string, copy_from_string
 
 copyRecord :: !a !b -> b | GenRecord a & GenRecord b
@@ -34,7 +34,6 @@ gGetRecordFields{|Bool|}	_ _ fields = fields
 gGetRecordFields{|String|}	_ _ fields = fields
 gGetRecordFields{|(->)|} _ _ _ _ fields = fields
 gGetRecordFields{|Dynamic|} _ _ fields = fields
-gGetRecordFields{|Shared|} _ _ _ _ fields = fields
 
 derive gGetRecordFields [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGetRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode
@@ -69,7 +68,6 @@ gPutRecordFields{|Bool|}	c _ fields = (c,fields)
 gPutRecordFields{|String|}	c _ fields = (c,fields)
 gPutRecordFields{|(->)|} _ _ f _ fields = (f,fields)
 gPutRecordFields{|Dynamic|} dyn _ fields = (dyn,fields)
-gPutRecordFields{|Shared|} _ _ sha _ fields = (sha,fields)
 
 derive gPutRecordFields [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gPutRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode

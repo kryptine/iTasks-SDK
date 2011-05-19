@@ -7,20 +7,19 @@ definition module Types
 import GenEq, Maybe, JSON, Store, Void, Either, FilePath
 from Map import :: Map
 from Map import qualified get
-from Shared		import :: Shared
 from HTML 		import class html
 from Time		import :: Timestamp
 from Config		import :: Config
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, Table, Shared, HtmlDisplay
+derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, Table, Shared, HtmlDisplay
+derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, Shared, HtmlDisplay
+derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
 derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
