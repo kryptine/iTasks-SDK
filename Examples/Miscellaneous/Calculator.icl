@@ -6,7 +6,7 @@ calculatorExample :: [Workflow]
 calculatorExample = [workflow "Examples/Miscellaneous/Calculator" "A simple calculator demonstrating how to layout buttons." calculator]
 
 calculator :: Task Int
-calculator = interactLocal "Calculator" parts terms initSt <<@ calculatorLayout
+calculator = interactLocal "Calculator" parts initSt terms <<@ calculatorLayout
 where
 	initSt =	{ display		= 0
 				, x				= 0

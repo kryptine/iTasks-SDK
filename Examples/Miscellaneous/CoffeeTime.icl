@@ -33,10 +33,10 @@ collectOrders users = allTasks [u @: (Title "Coffee time!" @>> getOrder) \\ u <-
 */
 getOrder :: Task (Maybe String)
 getOrder
-	=	requestConfirmation ("Coffee time","It is coffee time, do you want something?")
-	>>= \yes -> if yes
-		(enterChoice ("Product choice","What do you want") ["Coffee","Tea","Chocolate"] >>= \choice -> return (Just choice))
-		(return Nothing)
+	=		showMessageA ("Coffee time","It is coffee time, do you want something?")
+		>>*	[ (ActionNo,	return Nothing)
+			, (ActionYes,	enterChoice ("Product choice","What do you want") ["Coffee","Tea","Chocolate"] >>= transform Just)
+			]
 /*
 * Determine who has to go get coffee
 * A random choice is made between the people who want something

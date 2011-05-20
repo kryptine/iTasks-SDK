@@ -23,11 +23,11 @@ ginExamples = [ workflow "Examples/Graphical Editors/Graphical Editor" "Create o
 simpleEditorWorkflow :: !String !ORYXEditor -> Workflow
 simpleEditorWorkflow language editor = 
 	workflow ("Examples/Graphical Editors/" +++ language +++ " editor") ("Simple " +++ language +++ " editor")
-		(getConfig >>| updateInformationA ("Simple " +++ language +++ " editor") idView (const [(ActionQuit,Just Void)]) editor <<@ fullWidthInteractionLayout)
+		(getConfig >>| updateInformationA ("Simple " +++ language +++ " editor") idView editor (const [(ActionQuit,Just Void)]) <<@ fullWidthInteractionLayout)
 
 petrinetShareExample = parallel "Petrinet Share Example" petriNetORYXEditor (\_ _ -> Void)
-	[ InBodyTask (\s _ -> updateSharedInformationA "Editor 1" idView quitButton s)
-	, InBodyTask (\s _ -> updateSharedInformationA "Editor 2" idView quitButton s)
+	[ InBodyTask (\s _ -> updateSharedInformationA "Editor 1" idView s quitButton)
+	, InBodyTask (\s _ -> updateSharedInformationA "Editor 2" idView s quitButton)
 	]
 
 quitButton _ = [(ActionQuit,Just Void)]

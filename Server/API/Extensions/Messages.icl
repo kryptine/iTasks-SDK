@@ -50,7 +50,7 @@ manageMessages =
 where
 	overview :: [Message] -> Task (Action,Maybe Message)
 	overview []		= showMessageA ("My messages","You have no messages") [(aNew,(aNew,Nothing)),(aNewGroup,(aNewGroup,Nothing)),(aQuit,(aQuit,Nothing))]
-	overview msgs	= enterChoiceA ("My messages","Your messages:") id (\mbM -> [(aOpen,maybe Nothing (\m -> Just (aOpen,Just m)) mbM),(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]) msgs
+	overview msgs	= enterChoiceA ("My messages","Your messages:") id msgs (\mbM -> [(aOpen,maybe Nothing (\m -> Just (aOpen,Just m)) mbM),(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))])
 	
 	aOpen		= ActionOpen
 	aNew		= Action "new-msg" "New message"
@@ -59,7 +59,7 @@ where
 
 manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
-	= 	showMessageAboutA (subject,"You received a message") id [(aClose,aClose),(aReply,aReply),(aReplyAll,aReplyAll),(aForward,aForward),(aDelete,aDelete)] msg
+	= 	showMessageAboutA (subject,"You received a message") id msg [(aClose,aClose),(aReply,aReply),(aReplyAll,aReplyAll),(aForward,aForward),(aDelete,aDelete)]
 	>>= \act -> case act of
 		ActionClose
 			= return False

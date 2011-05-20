@@ -77,8 +77,8 @@ where
 		| isError wres	= (taskException (SharedException (fromError wres)),iworld)
 		= (TaskFinished val,iworld)
 
-interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) !(l r Bool -> InteractionTerminators a) !l !(Shared r w) -> Task a | descr d & iTask l & iTask a & iTask w
-interact description partFunc termFunc initLocal shared = mkInteractionTask description (editorE,editorC)
+interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) !l !(Shared r w) !(l r Bool -> InteractionTerminators a) -> Task a | descr d & iTask l & iTask a & iTask w
+interact description partFunc initLocal shared termFunc = mkInteractionTask description (editorE,editorC)
 where
 	editorE tst=:{taskNr,iworld=w=:{IWorld|timestamp}}
 		# (mbEdit,tst)					= getEdit tst

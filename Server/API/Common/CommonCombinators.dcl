@@ -6,16 +6,17 @@ definition module CommonCombinators
 
 import CoreCombinators, TuningCombinators
 import Either
-from Types	import :: User, :: SessionId
-from Map	import :: Map
-from Shared	import :: SymmetricShared
+from InteractionTasks	import class editorState
+from Types				import :: User, :: SessionId
+from Map				import :: Map
+from Shared				import :: SymmetricShared
 
 // Additional types for grouping
 // These types are similar to PAction but are needed to avoid circular definitions
-:: GAction		= GStop  | GContinue | GExtend [Task GAction] | GFocus Tag
-:: GOnlyAction	= GOStop | GOExtend [Task Void] | GOFocus Tag
+//:: GAction		= GStop  | GContinue | GExtend [Task GAction] | GFocus Tag
+//:: GOnlyAction	= GOStop | GOExtend [Task Void] | GOFocus Tag
 
-derive class iTask GAction, GOnlyAction
+//derive class iTask GAction, GOnlyAction
 derive gVisualize	Tag
 derive gUpdate		Tag
 derive gDefaultMask	Tag
@@ -23,6 +24,33 @@ derive gVerify		Tag
 derive JSONEncode	Tag
 derive JSONDecode	Tag
 derive gEq			Tag
+
+/**
+* General multi-bind used to define continuations for an interaction task
+* using an terminator function (interact, interactLocal, 'A' variants of interaction tasks).
+*
+* @param A function from a terminator function to a task returning a continuation (Typically an interaction task without last argument)
+* @param The terminator function to apply
+*
+* @return The continuation's result
+*/
+(>>*) infixl 1 :: !(termF -> Task (Task a)) !termF -> Task a | iTask a
+
+
+/**
+* Special multi-bind used to define continuations for an enter/update-information/choice interaction task.
+* A list of continuation with conditions (always, ifvalid, sometimes) has to be provided.
+*
+* @param A function from a terminator function to a task returning a continuation (Typically an enter/update-information task without last argument)
+* @param A list of continuations
+*
+* @return The continuation's result
+*/
+(>?*) infixl 1 :: !(((state v) -> [(!Action,!Maybe (Task a))]) -> Task (Task a)) ![(!Action,!EditorTaskContinuation state v a)] -> Task a | editorState state v & iTask a & iTask v
+
+:: EditorTaskContinuation state v result	= Always	!(Task result)						// continuation which can always be taken
+											| IfValid	!(v -> Task result)					// continuation which can be taken if the local editor is in a valid state, the current value is given as input
+											| Sometimes	!((state v) -> Maybe (Task result))	// continuation which can sometimes be taken depending on the editor's current state
 
 /**
 * Transform a value with a custom function

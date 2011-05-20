@@ -78,7 +78,7 @@ derive class iTask Plant, PlantName, PlantLight
 derive bimap Maybe, (,)
 
 symmetricLensExample =
-	updateSharedInformationA ("Symmetric lens example",description) (toView,fromView) (const [(ActionQuit,Just Void)]) (dbx >&< dby)
+	updateSharedInformationA ("Symmetric lens example",description) (toView,fromView) (dbx >&< dby) (const [(ActionQuit,Just Void)])
 where
 	description =
 		[ PTag []

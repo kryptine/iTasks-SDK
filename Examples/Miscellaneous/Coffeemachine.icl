@@ -21,15 +21,13 @@ where
 		=			enterChoiceA  ("Insert coins",[ Text ("Chosen product: " <+++ product), BrTag[]
 					              , Text ("To pay: " <+++ cost), BrTag []
 					              , Text "Please insert a coin..."
-					              ]) id actions coins 
-		>>= 	handleMoney
-
-	actions mbCoin = [(ActionCancel, Just Nothing), (ActionOk, fmap Just mbCoin)]
+					              ]) id coins
+			>?*		[ (ActionCancel,	Always	(show "Cancelled" paid))
+					, (ActionOk,		IfValid handleMoney)
+					]
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
 
-	handleMoney Nothing
-					= show "Cancelled" paid
-	handleMoney (Just coin) 
+	handleMoney coin 
 	| cost > coin	= getCoins product (cost-coin, paid+coin)
 	| otherwise		= show product (coin-cost)
 	

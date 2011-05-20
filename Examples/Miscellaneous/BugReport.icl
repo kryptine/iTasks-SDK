@@ -139,7 +139,7 @@ confirmCritical report
 	>>= \assessor ->
 		assign {worker = assessor, priority = HighPriority, deadline = Nothing, status = Active} noMenu
 			( Title "Bug report assessment" @>>
-			  requestConfirmationAbout ("Confirmation","Is this bug really critical?") report
+			  showMessageAboutA ("Confirmation","Is this bug really critical?") id report [(ActionNo, False),(ActionYes, True)]
 			)
 
 selectDeveloper :: String -> Task User

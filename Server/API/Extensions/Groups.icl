@@ -26,7 +26,7 @@ manageGroups
 	>>| return Void
 where
 	overview []		= showMessageA ("My groups",startMsg) [(ActionNew,(ActionNew,Nothing)),(ActionQuit,(ActionQuit,Nothing))]
-	overview list	= enterChoiceA ("My groups",listMsg) id (\mbG -> [aOpen mbG,aNew,aQuit]) list
+	overview list	= enterChoiceA ("My groups",listMsg) id list (\mbG -> [aOpen mbG,aNew,aQuit])
 	
 	aOpen mbG		= (ActionOpen, maybe Nothing (\g -> Just (ActionOpen,Just g)) mbG)
 	aNew			= (ActionNew, Just (ActionNew,Nothing))
@@ -52,7 +52,7 @@ manageGroup igroup
 	= 	
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
-		showMessageAboutA (toString group,"This group contains the following members:") id [(aBack,aBack),(aInvite,aInvite),(aLeave,aLeave)] group.members
+		showMessageAboutA (toString group,"This group contains the following members:") id group.members [(aBack,aBack),(aInvite,aInvite),(aLeave,aLeave)]
 	>>= \action -> case action of
 		ActionClose					= 					return True
 		Action "invite" _			= invite group	>>| return False
@@ -118,9 +118,10 @@ inviteUserToGroup group user
 	>>| showMessage ("Invitation sent","An invitation to join the group has been sent to " +++ toString user) group
 where
 	invite user group
-		= requestConfirmation (
+		= showMessageA (
 			"Invitation to join group " +++ toString group,
 			[Text (toString user +++ " invites you to join the group " +++ toString group +++ "."),BrTag [], Text "Do you accept this invitation?"])
+			[(ActionNo,False),(ActionYes,True)]
 
 
 			

@@ -106,8 +106,10 @@ newModuleName config
 	=						enterInformation "Give name of new module:"
 		>>= \name ->		moduleExists config name
 		>>= \exists ->		if exists
-								( requestConfirmation ("Module " +++ name +++ " already exists, do you want to overwrite?")
-								  >>= \ok -> if ok (return name) (newModuleName config)
+								(		showMessageA ("Module " +++ name +++ " already exists, do you want to overwrite?")
+									>>* [ (ActionNo,	return name)
+										, (ActionYes,	newModuleName config)
+										]
 								)
 								( return name )
 

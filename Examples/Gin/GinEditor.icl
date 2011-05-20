@@ -121,7 +121,7 @@ doMenu state =: { EditorState | mode, config, gMod } =
     where 
     	mkUpdateTask name view fullwidth = 
     		(if fullwidth ((@>>) fullWidthInteractionLayout) id) 
-    		(updateInformationA (getName state, name +++ " view") view (\mbGMod -> [(action,if enabled (Just (action,mbGMod)) Nothing) \\ (action,enabled) <- (actions state)]) gMod)
+    		(updateInformationA (getName state, name +++ " view") view gMod (\{modelValue=gMod} -> [(action,if enabled (Just (action,Just gMod)) Nothing) \\ (action,enabled) <- (actions state)]))
             >>= \(action, mbGMod) -> 
             case mbGMod of
                	Nothing		= return (action, state)
@@ -241,8 +241,10 @@ saveAs state = newModuleName state.EditorState.config >>= \name =
 
 askSaveIfChanged :: EditorState -> Task Void
 askSaveIfChanged state = if state.changed
-    (requestConfirmation ("File " +++ (getName state) +++ " has changed, save changes?") >>= \confirm =
-        if confirm (save state >>| return Void) (return Void)
+    (		showMessageA ("File " +++ (getName state) +++ " has changed, save changes?")
+        >>*	[ (ActionNo,	return Void)
+        	, (ActionYes,	save state >>| return Void)
+        	]
     )
     (return Void)
 

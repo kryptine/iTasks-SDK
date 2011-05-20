@@ -14,8 +14,6 @@ from Shared		import mapShared, :: SymmetricShared
 from SystemData	import randomInt
 import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, ProcessDBTasks, InteractionTasks
 
-derive class iTask GAction, GOnlyAction
-
 // use string instances of generic function for Tag values 
 gVisualize{|Tag|} val vst = gVisualize{|*|} (toStr val) vst
 where
@@ -34,6 +32,16 @@ JSONDecode{|Tag|} nodes = case nodes of
 gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
 
 derive bimap Maybe, (,)
+
+(>>*) infixl 1 :: !(termF -> Task (Task a)) !termF -> Task a | iTask a
+(>>*) task termF = task termF >>= id
+
+(>?*) infixl 1 :: !(((state v) -> [(!Action,!Maybe (Task a))]) -> Task (Task a)) ![(!Action,!EditorTaskContinuation state v a)] -> Task a | editorState state v & iTask a & iTask v
+(>?*) task continuations = task >>* (\state -> map (appSnd (mapContinuation state)) continuations)
+where
+	mapContinuation _ (Always task)		= Just task
+	mapContinuation s (IfValid taskF)	= fmap taskF (editorState s)
+	mapContinuation s (Sometimes f)		= f s
 
 //Helper function for tasks in a parallel set
 accu :: (a acc -> (acc,Bool)) (Task a) (SymmetricShared acc) (ParallelInfo acc) -> Task a | iTask a & iTask acc
@@ -61,7 +69,7 @@ assign props actionMenu task = parallel ("Assign","Manage a task assigned to ano
 where
 	processControl :: state !(Shared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
 	processControl _ control =
-			ControlTask @>> updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) (const []) control
+			ControlTask @>> updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) control (const [])
 	
 	accJust r _ = (Just r,True)
 			

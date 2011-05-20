@@ -29,8 +29,10 @@ trivialTask = fillInForm
 fillInForm :: Task QForm
 fillInForm	
 	= 				enterInformation ("Quote information","Please fill in quotation:") 
-	>>= \form ->	requestConfirmationAbout ("Check","Is everything filled in correctly?") form
-	>>= \ok	->		if ok (return form) fillInForm 
+	>>= \form ->	showMessageAboutA ("Check","Is everything filled in correctly?") id form
+	>>*				[ (ActionNo,	fillInForm)
+					, (ActionYes,	return form)
+					] 
 
 movingTask (label,task)
 =					newmove

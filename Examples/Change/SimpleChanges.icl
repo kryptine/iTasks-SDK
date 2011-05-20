@@ -150,26 +150,24 @@ restartTask
 //Utility
 chooseUserA :: !question -> Task User | html question
 chooseUserA question
-	= 						enterSharedChoiceA ("Choose user",question) id buttons users
-	>>= \res ->				case res of
-								(Just user)	-> return user
-								_			-> throw "choosing a user has been cancelled"
-										
+	=		enterSharedChoiceA ("Choose user",question) id users
+		>?*	[ (ActionCancel,	Always	(throw "choosing a user has been cancelled"))
+			, (ActionOk,		IfValid	(\user -> return user))
+			]							
 
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
-	=								getProcessesWithStatus [Running] [Active]
-	>>= \procs ->					enterChoiceA question id buttons
-										[	( proc.Process.taskId
-											, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title
-											, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.priority
-											, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
-											\\ proc <- procs]
-	>>= \res ->						case res of
-										(Just (pid,_,_,_))	-> return pid
-										_					-> throw "choosing a process has been cancelled"
+	=				getProcessesWithStatus [Running] [Active]
+	>>= \procs ->	enterChoiceA question id
+					[	( proc.Process.taskId
+						, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title
+						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.priority
+						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
+						\\ proc <- procs]
+	>?*				[ (ActionCancel,	Always	(throw "choosing a process has been cancelled"))
+					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return pid))
+					]
 
-buttons mbC = [(ActionCancel, Just Nothing), (ActionOk, fmap Just mbC)]	
 	
 	
 	

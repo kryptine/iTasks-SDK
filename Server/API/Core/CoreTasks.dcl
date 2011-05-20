@@ -75,7 +75,7 @@ update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 * @return A result determined by the terminators
 * @throws SharedException
 */
-interact		:: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)])	!(l r Bool -> InteractionTerminators a)	!l !(Shared r w)	-> Task a | descr d & iTask l & iTask a & iTask w
+interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) !l !(Shared r w) !(l r Bool -> InteractionTerminators a) -> Task a | descr d & iTask l & iTask a & iTask w
 
 :: InteractionPart o	= E.v:	UpdateView	!(!FormView v, !(Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayView	!v								& iTask v	// A static view displayed to the user
@@ -90,9 +90,6 @@ interact		:: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)])	!(l r Bool -> Int
 							
 							
 // auxiliary types/function for derived interaction tasks
-
-:: Valid :== Bool
-
 okAction :: !(Maybe a) -> InteractionTerminators a
 addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask about
 
