@@ -78,7 +78,7 @@ repeatUntilOK task result
 w5 = workflow "CEFP/5: Delegate" "Delegate CEFP/4" (delegate fillInAndCheckPersons)
 
 selectUser
-		= 					getUsers
+		= 					get users
 			>>=				enterChoice "Select a user:"
 
 delegate :: (Task a) -> (Task a) | iTask a
@@ -101,39 +101,57 @@ delegateWorkflow
 
 w6a = workflow "CEFP/6a: Chat" "Chat with one iTask user" chat1
 
-chat1 
-    =               		getCurrentUser
-    	>>= \me ->			selectUser
-		>>= \you ->			createSharedStore initChatState
-        >>= \chatState -> 	(me  @: chatEditor me you chatState)
-                    		-||-
-                    		(you @: chatEditor you me chatState)
-where
-	chatEditor me you chatState
-		= 							(monitor ("Chat list view") id (const False) False chatState)
-									||-
-									enterInformationA ("Chat with " <+++ you) id [(ActionQuit,always),(ActionOk,ifvalid)]
-		>>= \(event,response) ->		case event of
-		 								 ActionQuit -> stop
-		 								 ActionOk 	-> 		updateShared (\list -> list ++ [me +++> ": " +++> fromJust response]) chatState
-		 												>>|	chatEditor me you chatState
+mapMaybe ::  (a -> b) (Maybe a) -> Maybe b
+mapMaybe f (Just a)  = Just (f a)
+mapMaybe _ Nothing  = Nothing
+
+noResult _ _ = Void
+noActions _ = []
+
+
+onlyIf :: (a -> Bool) (Maybe a) -> Maybe a
+onlyIf pred (Just a)
+	| pred a = Just a
+onlyIf _ _ = Nothing
+
 
 initChatState :: [String]
 initChatState = []
+
+chat1 
+    =               		get currentUser
+    	>>= \me ->			selectUser
+		>>= \you ->			parallel "2 Chatters" initChatState noResult
+								[DetachedTask (normalTask me)  noMenu (chatEditor me you)
+								,DetachedTask (normalTask you) noMenu (chatEditor you me)
+								]
+where
+	chatEditor me you chatState os
+		= 				(monitor ("Chat list view") id (const False) False chatState)
+						||-
+						enterInformationA ("Chat with " <+++ you) 
+						(\a ->	[ (ActionQuit, Just (return Void))
+								, (ActionOk,   mapMaybe (\(Note a) ->	update (\list -> list ++ [me +++> ": " +++ a]) chatState
+															>>|	chatEditor me you chatState os 
+															>>| return Void) a)
+								]
+						) 
+										
+			>>= 		id
 
 // example, chat using modification of shared state
 
 w6b = workflow "CEFP/6b: Chat" "Chat with one iTask user, updating views" chat2
 
 chat2 
-    =               		getCurrentUser
+    =   get currentUser
     	>>= \me ->			selectUser
-		>>= \you ->			createSharedStore initChatState
-        >>= \chatState -> 	(me @: chatEditor me you chatState)
-                    		-||-
-                    		(you @: chatEditor you me chatState)
+		>>= \you ->			parallel "2 Chatters" initChatState noResult
+								[DetachedTask (normalTask me)  noMenu (chatEditor me you)
+								,DetachedTask (normalTask you) noMenu (chatEditor you me)
+								]
 where
-	chatEditor me you chatState
+	chatEditor me you chatState os
 		= 	updateSharedInformationA ("Chat with " <+++ you) (view me) actions chatState
 
 	view user 
@@ -141,7 +159,7 @@ where
 			, \(_,Note response) list -> list ++ [user +++> ": " +++> response]
 			)
 
-	actions = [(ActionQuit, alwaysShared)]
+	actions _ = [(ActionQuit, Just Void)]
 
 // example, chat using shared state
 
@@ -160,34 +178,39 @@ derive class iTask ChatState, Message
 emptyChatState = {chatters = [], chats = []}
 
 chat3
-    =               		getCurrentUser
+    =               		get currentUser
     	>>= \me ->			parallel "Chat application" emptyChatState finished [InBodyTask (chatTask me)]
 where
 
 	finished _ _ = Void
 
 	chatTask user chatState os
-		=								updateShared addUser chatState
+		=								update addUser chatState
 			>>|							chatMore ""
 	where
 		chatMore content =				(monitor ("Chat list view") id (const False) False chatState)
 										||-
 										updateInformationA ("Chat with iTask users") (toView,fromView) actions content	
 			>>= \(event,response) -> 	case event of
-											ActionAdd -> 			writeShared os [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)]
+											ActionAdd -> 			set os [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)]
 															>>|		chatMore (fromJust response)
-											ActionOk ->				updateShared (addMessage (fromJust response)) chatState 
+											ActionOk ->				update (addMessage (fromJust response)) chatState 
 															>>|		chatMore ""	
-											ActionQuit ->			updateShared (removeUser o addMessage "bye") chatState
+											ActionQuit ->			update (removeUser o addMessage "bye") chatState
 															>>|		return Void	
 				
 		(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
 
-		actions =  	[(ActionOk,always),(ActionAdd, always),(ActionQuit, always)]
+		actions r =  	[(ActionOk,  Just (ActionOk,r))
+						,(ActionAdd, Just (ActionAdd,r))
+						,(ActionQuit,Just (ActionQuit,r))
+						]
+
+
 
 		handleNewChatter chatState os
 			=						selectUser
-				>>= \someone ->		writeShared os [AppendTask (DetachedTask (normalTask someone) noMenu (chatTask someone))]
+				>>= \someone ->		set os [AppendTask (DetachedTask (normalTask someone) noMenu (chatTask someone))]
 
 		addMessage message 	cs = {cs & chats = cs.chats ++ [{chatting = user, message = message}]}
 		addUser 			cs = {cs & chatters = [user:cs.chatters]}
@@ -203,11 +226,10 @@ w7 = workflow "CEFP/7: Accept only an odd number" "Type in an odd positive numbe
 
 getOddNumber :: Task Int
 getOddNumber 
-	=						enterInformationA "Type in an odd number" id [(ActionOk,predicate)]
-		>>= \(_,value) ->	showMessageAbout "You typed in:" (fromJust value)
+	=					enterInformationA "Type in an odd number" action 
+		>>= \value ->	showMessageAbout "You typed in:" value
 where
-	predicate (Valid n) = n > 0 && isOdd n && n < 100
-	predicate _ = False	
+	action n	= [ (ActionOk, onlyIf (\n -> (n > 0 && isOdd n && n < 100)) n)]
 
 // guarantee that a type has values with a certain property specializing gVerify
 
@@ -260,7 +282,7 @@ derive class iTask MeetingProposal, Participant, MeetingProposalView, Participan
 
 mkAppointment :: Task [MeetingProposal]
 mkAppointment
-	=					getUsers
+	=					get users
 		>>= \all ->		enterMultipleChoice "Who should attend the meeting ?" all
 		>>= \users ->	enterInformation "Propose meeting dates"
 		>>= \dates ->	let initMeetingState = [ { MeetingProposal
@@ -281,15 +303,16 @@ where
 	finishPar _ s = s
 
 	initMeeting user
-		= DetachedTask managerProperties actionMenu meetingTask
+		= DetachedTask managerProperties noMenu meetingTask
 	where
+
+		meetingTask :: (SymmetricShared [MeetingProposal]) (ParallelInfo [MeetingProposal]) -> Task [MeetingProposal]
 		meetingTask meetingState _
-			= updateSharedInformationA "When can we meet ?" (viewForUser user,modelFromView) [] meetingState
+			= updateSharedInformationA "When can we meet ?" (viewForUser user,modelFromView) noActions meetingState
 
 		managerProperties
 			= { worker = user, priority	= NormalPriority, deadline = Nothing, status = Active }	
 		
-		actionMenu actions = []
 	
 	viewForUser :: User [MeetingProposal] -> [MeetingProposalView]
 	viewForUser user props
@@ -322,9 +345,12 @@ where
 		= InBodyTask check
 	where
 		check meetingState controlState
-			=     updateSharedInformationA "Monitor answers" (viewForManager,\_ ps -> ps) [(ActionOk,const True)] meetingState
-			  >>= \(_,props) -> enterChoice "Choose meeting" props
+			=     updateSharedInformationA "Monitor answers" (viewForManager,\_ ps -> ps)  actions meetingState
+			  >>= \props -> enterChoice "Choose meeting" props
 		where
+			actions (True,r)  = [(ActionOk,Just r)]
+			actions (False,r) = [(ActionOk,Nothing)]
+
 			viewForManager :: [MeetingProposal] -> [MeetingProposal]
 			viewForManager props
 				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
