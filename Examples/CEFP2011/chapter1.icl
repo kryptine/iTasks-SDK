@@ -172,7 +172,7 @@ where
 				  \\ i <- [0..9] 
 				  ]
 				] 
-	onOff fun i = if (fun i) (Just (Just i)) Nothing
+	onOff pred i = if (pred i) (Just (Just i)) Nothing
 
 // guarantee that a type has values with a certain property specializing gVerify
 
@@ -254,7 +254,7 @@ where
 w6b = workflow "CEFP/6b: Chat" "Chat with one iTask user, updating views" chat2
 
 chat2 
-    =   get currentUser
+    =   					get currentUser
     	>>= \me ->			selectUser
 		>>= \you ->			parallel "2 Chatters" initChatState noResult
 								[DetachedTask (normalTask me)  noMenu (chatEditor me you)
@@ -287,49 +287,40 @@ derive class iTask ChatState, Message
 					}
 emptyChatState = {chatters = [], chats = []}
 
+addMessage user message cs = {cs & chats = cs.chats ++ [{chatting = user, message = message}]}
+addUser user			cs = {cs & chatters = [user:cs.chatters]}
+removeUser user			cs = {cs & chatters = removeMember user cs.chatters}
+
 chat3
     =               		get currentUser
-    	>>= \me ->			parallel "Chat application" emptyChatState finished [InBodyTask (chatTask me)]
+    	>>= \me ->			parallel "Chat application" emptyChatState noResult [InBodyTask (chatTask me)]
 where
 
-	finished _ _ = Void
-
 	chatTask user chatState os
-		=								update addUser chatState
+		=								update (addUser user) chatState
 			>>|							chatMore ""
 	where
 		chatMore content =				(monitor ("Chat list view") id (const False) False chatState)
 										||-
 										updateInformationA ("Chat with iTask users") (toView,fromView) actions content	
-			>>= \(event,response) -> 	case event of
-											ActionAdd -> 			set os [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)]
-															>>|		chatMore (fromJust response)
-											ActionOk ->				update (addMessage (fromJust response)) chatState 
-															>>|		chatMore ""	
-											ActionQuit ->			update (removeUser o addMessage "bye") chatState
-															>>|		return Void	
+			>>= 						id
+		
+		actions (Just response)
+			=	[(ActionAdd,  Just (		set os [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)]
+									>>|		chatMore response))
+				,(ActionOk,   Just (		update (addMessage user response) chatState 
+									>>|		chatMore ""))
+				,(ActionQuit, Just (		update (removeUser user o addMessage user "bye") chatState
+									>>|		return Void	))
+				]
 				
 		(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
-
-		actions r =  	[(ActionOk,  Just (ActionOk,r))
-						,(ActionAdd, Just (ActionAdd,r))
-						,(ActionQuit,Just (ActionQuit,r))
-						]
-
-
 
 		handleNewChatter chatState os
 			=						selectUser
 				>>= \someone ->		set os [AppendTask (DetachedTask (normalTask someone) noMenu (chatTask someone))]
 
-		addMessage message 	cs = {cs & chats = cs.chats ++ [{chatting = user, message = message}]}
-		addUser 			cs = {cs & chatters = [user:cs.chatters]}
-		removeUser 			cs = {cs & chatters = removeMember user cs.chatters}
-
-
 ActionAdd :== Action "Add Chatter" "Add Chatter"
-
-
 
 // pocket calculator, see Steffens example...
 
