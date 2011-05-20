@@ -76,7 +76,7 @@ personAdmForm :: Task [Person]
 personAdmForm = fillInForm "Please fill in the form:"
 
 // example of a recursive definition
-/*
+
 w4 = workflow "CEFP/4: [Person] Check" "Fill in and check list of persons" 	fillInAndCheckPersons
 
 fillInAndCheckPersons :: Task [Person]
@@ -90,10 +90,11 @@ fillInAndCheck prompt
 
 repeatUntilOK :: (a -> Task a) a -> (Task a) | iTask a
 repeatUntilOK task result
-		=				requestConfirmationAbout "Is the result ok ?" result
-			>>= \ok ->	if ok (return result)
-							  (task result >>= repeatUntilOK task) 
-*/
+		=				enterInformationAboutA "Is the result ok ?" result
+			>?*			[(ActionNo,  IfValid (\Void -> task result >>= repeatUntilOK task))  // ?????
+						,(ActionYes, Always (return result))
+						]
+
 // Choice, Multiple Choice, 
 
 w41 = workflow "CEFP/4.1: Tea or Coffee" "Choose a product"  teaOrCoffee
