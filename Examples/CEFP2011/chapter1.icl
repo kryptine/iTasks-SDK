@@ -6,7 +6,7 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w0, w1, w2, w3, w5, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42, w71, w72
+				[ w0, w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42, w71, w72, w10
 				] world
 
 
@@ -88,7 +88,7 @@ fillInAndCheck prompt
 	=					enterInformation prompt
 		>>= \result ->	repeatUntilOK (updateInformation prompt) result
 
-repeatUntilOK :: (a -> Task a) a -> (Task a) | iTask a
+repeatUntilOK :: (a -> Task a) a -> Task a | iTask a
 repeatUntilOK task result
 		=				enterInformationAboutA "Is the result ok ?" result
 			>?*			[(ActionNo,  IfValid (\Void -> task result >>= repeatUntilOK task))  // ?????
@@ -119,8 +119,14 @@ chooseTasks options
 
 // delegate: example of a higher order task 
 
+showAllUserNames :: Task [String]
+showAllUserNames 
+		=					get users 
+			>>= \ws ->		showMessageAbout "The current users are: " (map displayName ws)
+
 w5 = workflow "CEFP/5: Delegate" "Delegate CEFP/4" (delegate teaOrCoffee)
 
+selectUser :: Task User
 selectUser
 		= 					get users
 			>>=				enterChoice "Select a user:"
@@ -129,7 +135,7 @@ selectUser2
 		= 					enterSharedChoice "Select a user:" users
 
 
-delegate :: (Task a) -> (Task a) | iTask a
+delegate :: (Task a) -> Task a | iTask a
 delegate task
 	= 						selectUser
 		>>= \worker ->		worker @: task
@@ -422,3 +428,12 @@ where
 			viewForManager props
 				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
 
+
+w10 = workflow "CEFP/10: Guess" "Number guessing game" guessGame
+
+guessGame
+      =                enterInformation "Please enter a number"
+        >>= \secret -> (guess secret -||- guess secret)
+        >>= \winner -> showMessage (userName winner +++ " has won") winner
+where
+	guess secret = delegate (updateInformation "Guess a number" 0 <! (==) secret >>| get currentUser)
