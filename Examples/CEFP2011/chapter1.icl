@@ -6,12 +6,19 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42
+				[ w0, w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42
 				] world
 
 
 // Intro: simple "traditional" iTask workflows.
 //
+// hello world
+
+w0 = workflow "CEFP/0: Hello" "My first iTask" hello
+
+hello :: Task String
+hello =              enterInformation "Please enter your name"
+        >>= \name -> showMessage ("Hello " +++ name +++ "!") name
 
 // a simple form for an integer value
 
