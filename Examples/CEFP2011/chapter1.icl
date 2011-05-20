@@ -6,7 +6,7 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w0, w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42, w71, w72
+				[ w0, w1, w2, w3, w5, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42, w71, w72
 				] world
 
 
@@ -76,11 +76,12 @@ personAdmForm :: Task [Person]
 personAdmForm = fillInForm "Please fill in the form:"
 
 // example of a recursive definition
-
+/*
 w4 = workflow "CEFP/4: [Person] Check" "Fill in and check list of persons" 	fillInAndCheckPersons
 
 fillInAndCheckPersons :: Task [Person]
 fillInAndCheckPersons =  fillInAndCheck "Please fill in the form:"
+
 
 fillInAndCheck ::  String -> Task a | iTask a
 fillInAndCheck prompt
@@ -92,7 +93,7 @@ repeatUntilOK task result
 		=				requestConfirmationAbout "Is the result ok ?" result
 			>>= \ok ->	if ok (return result)
 							  (task result >>= repeatUntilOK task) 
-
+*/
 // Choice, Multiple Choice, 
 
 w41 = workflow "CEFP/4.1: Tea or Coffee" "Choose a product"  teaOrCoffee
@@ -103,7 +104,7 @@ teaOrCoffee = showResult (chooseOptions ["Tea","Coffee"])
 chooseOptions :: [a] -> Task a | iTask a
 chooseOptions options = enterChoice "Choose an option" options
 
-personFlows = showResult (chooseOptions [personAdmForm,fillInAndCheckPersons])
+personFlows = showResult (chooseOptions [personAdmForm,personAdmForm])
 
 chooseTasks :: [Task a] -> Task a | iTask a
 chooseTasks options 
@@ -117,7 +118,7 @@ chooseTasks options
 
 // delegate: example of a higher order task 
 
-w5 = workflow "CEFP/5: Delegate" "Delegate CEFP/4" (delegate fillInAndCheckPersons)
+w5 = workflow "CEFP/5: Delegate" "Delegate CEFP/4" (delegate teaOrCoffee)
 
 selectUser
 		= 					get users
@@ -262,7 +263,7 @@ chat2
 								]
 where
 	chatEditor me you chatState os
-		= 	updateSharedInformationA ("Chat with " <+++ you) (view me) actions chatState
+		= 	updateSharedInformationA ("Chat with " <+++ you) (view me) chatState actions 
 
 	view user 
 		=	( \list -> (Display list,Note "")
@@ -302,17 +303,14 @@ where
 	where
 		chatMore content =				(monitor ("Chat list view") id (const False) False chatState)
 										||-
-										updateInformationA ("Chat with iTask users") (toView,fromView) actions content	
-			>>= 						id
-		
-		actions (Just response)
-			=	[(ActionAdd,  Just (		set os [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)]
-									>>|		chatMore response))
-				,(ActionOk,   Just (		update (addMessage user response) chatState 
-									>>|		chatMore ""))
-				,(ActionQuit, Just (		update (removeUser user o addMessage user "bye") chatState
-									>>|		return Void	))
-				]
+			(							updateInformationA ("Chat with iTask users") (toView,fromView) content  	
+			>?*	[(ActionAdd,  IfValid (\response  ->		set os [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)]
+														>>|	chatMore response))
+				,(ActionOk,   IfValid (\response  ->		update (addMessage user response) chatState 
+														>>|	chatMore ""))
+				,(ActionQuit, Always (						update (removeUser user o addMessage user "bye") chatState
+														>>| return Void	))
+				])
 				
 		(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
 
@@ -378,7 +376,7 @@ where
 
 		meetingTask :: (SymmetricShared [MeetingProposal]) (ParallelInfo [MeetingProposal]) -> Task [MeetingProposal]
 		meetingTask meetingState _
-			= updateSharedInformationA "When can we meet ?" (viewForUser user,modelFromView) noActions meetingState
+			= updateSharedInformationA "When can we meet ?" (viewForUser user,modelFromView) meetingState noActions 
 
 		managerProperties
 			= { worker = user, priority	= NormalPriority, deadline = Nothing, status = Active }	
@@ -415,12 +413,10 @@ where
 		= InBodyTask check
 	where
 		check meetingState controlState
-			=     updateSharedInformationA "Monitor answers" (viewForManager,\_ ps -> ps)  actions meetingState
-			  >>= \props -> enterChoice "Choose meeting" props
+			=     				updateSharedInformationA "Monitor answers" (viewForManager,\_ ps -> ps)  meetingState 
+				>?*	 			[(ActionOk,IfValid return)]
+			  	>>= \props -> enterChoice "Choose meeting" props
 		where
-			actions (True,r)  = [(ActionOk,Just r)]
-			actions (False,r) = [(ActionOk,Nothing)]
-
 			viewForManager :: [MeetingProposal] -> [MeetingProposal]
 			viewForManager props
 				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
