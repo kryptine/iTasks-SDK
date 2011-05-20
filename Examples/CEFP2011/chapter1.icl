@@ -6,7 +6,7 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w0, w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42
+				[ w0, w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42, w71, w72
 				] world
 
 
@@ -146,6 +146,33 @@ getOddNumber
 		>>= \value ->	showMessageAbout "You typed in:" value
 where
 	action n	= [ (ActionOk, onlyIf (\n -> (n > 0 && isOdd n && n < 100)) n)]
+	
+w71 = workflow "CEFP/7: dynamic buttons" "dynamic number of buttons" (showResult (dynButtons [1..10] []))
+
+dynButtons :: [Int] [Int] -> Task [Int]
+dynButtons [] accu = return accu
+dynButtons numbers accu
+	=					enterInformationA "Choose a button" action
+		>>= \index ->	dynButtons (removeAt index numbers) [numbers!!index:accu]
+where
+	action :: (Maybe Void) -> [(Action,Maybe Int)]
+	action n = [(Action (toString i) (toString i), Just index) \\ i <- numbers & index <- [0..]] 
+
+w72 = workflow "CEFP/7: odd or even buttons" "either the odd or even buttons can be chosen" (showResult (oddOrEvenButtons True))
+
+oddOrEvenButtons :: Bool ->Task Int
+oddOrEvenButtons even
+	=					enterInformationA "Choose a button" action
+		>>= \mbInt ->	if (isNothing mbInt) (oddOrEvenButtons (not even)) (return (fromJust mbInt))
+where
+	action :: (Maybe Void) -> [(Action,Maybe (Maybe Int))]
+	action n =  [ (Action "Odd" "Odd",  if even 	  (Just Nothing) Nothing)
+				, (Action "Even" "Even",if (not even) (Just Nothing) Nothing)
+				: [ (Action (toString i) (toString i), if even (onOff isEven i) (onOff isOdd i))
+				  \\ i <- [0..9] 
+				  ]
+				] 
+	onOff fun i = if (fun i) (Just (Just i)) Nothing
 
 // guarantee that a type has values with a certain property specializing gVerify
 
@@ -188,6 +215,7 @@ mapMaybe f (Just a)  = Just (f a)
 mapMaybe _ Nothing  = Nothing
 
 noResult _ _ = Void
+
 noActions _ = []
 
 
