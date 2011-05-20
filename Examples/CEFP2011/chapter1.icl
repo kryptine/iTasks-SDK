@@ -6,8 +6,12 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9
+				[ w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42
 				] world
+
+
+// Intro: simple "traditional" iTask workflows.
+//
 
 // a simple form for an integer value
 
@@ -29,7 +33,16 @@ taskIntForm2 = fillInForm2 "Please fill in an integer value:"
 fillInForm2 :: String -> Task a | iTask a
 fillInForm2 prompt
 	= 					enterInformation prompt
-		>>=				showMessageAbout "The result is:" 
+		>>=				showMessageAbout "The result is:"
+		
+// same, showing higher order tasks
+
+fillInForm3 :: String -> Task a | iTask a
+fillInForm3 prompt
+	=					showResult (enterInformation prompt)
+
+showResult :: (Task a) -> Task a | iTask a
+showResult ta = ta >>=  showMessageAbout "The result is:"
 
 // show the power of generic functions: a form for type person
 
@@ -73,6 +86,28 @@ repeatUntilOK task result
 			>>= \ok ->	if ok (return result)
 							  (task result >>= repeatUntilOK task) 
 
+// Choice, Multiple Choice, 
+
+w41 = workflow "CEFP/4.1: Tea or Coffee" "Choose a product"  teaOrCoffee
+w42 = workflow "CEFP/4.2: personflows" 	"Choose a workflow" personFlows
+
+teaOrCoffee = showResult (chooseOptions ["Tea","Coffee"])
+
+chooseOptions :: [a] -> Task a | iTask a
+chooseOptions options = enterChoice "Choose an option" options
+
+personFlows = showResult (chooseOptions [personAdmForm,fillInAndCheckPersons])
+
+chooseTasks :: [Task a] -> Task a | iTask a
+chooseTasks options 
+	=				enterChoice "Choose an option" options			// BUG !!
+		>>=			id 
+
+// Chapter 2: More than one user
+// iTask Variables
+// System variables, read only: get users, ... 
+
+
 // delegate: example of a higher order task 
 
 w5 = workflow "CEFP/5: Delegate" "Delegate CEFP/4" (delegate fillInAndCheckPersons)
@@ -81,12 +116,52 @@ selectUser
 		= 					get users
 			>>=				enterChoice "Select a user:"
 
+selectUser2
+		= 					enterSharedChoice "Select a user:" users
+
+
 delegate :: (Task a) -> (Task a) | iTask a
 delegate task
 	= 						selectUser
 		>>= \worker ->		worker @: task
 		>>= \result ->		updateInformation "Check result" result
 		
+
+// Button actions
+
+// a simple button only valid when some predicates hold
+
+w7 = workflow "CEFP/7: Accept only an odd number" "Type in an odd positive number less than 100" getOddNumber
+
+getOddNumber :: Task Int
+getOddNumber 
+	=					enterInformationA "Type in an odd number" action 
+		>>= \value ->	showMessageAbout "You typed in:" value
+where
+	action n	= [ (ActionOk, onlyIf (\n -> (n > 0 && isOdd n && n < 100)) n)]
+
+// guarantee that a type has values with a certain property specializing gVerify
+
+w8 = workflow "CEFP/8: Specialized type only accepting an odd number" "Type in an odd number" getOddNumber2
+
+:: Odd = Odd Int
+
+derive gVisualize 	Odd
+derive gUpdate 		Odd
+derive gDefaultMask Odd
+derive JSONEncode 	Odd
+derive JSONDecode 	Odd
+derive gEq 			Odd
+
+gVerify{|Odd|} mba st
+	= wrapperVerify (Just "Type in an odd number") (\(Odd v) -> isOdd v) (\(Odd v) -> v +++> " is not an odd number") mba st
+
+getOddNumber2 :: Task Int
+getOddNumber2 
+	=						enterInformation "Type in an odd number" 
+		>>= \(Odd n) ->		showMessageAbout "You typed in:" n
+
+
 // would be nice to play with workflows as tasks... not yet implemented
 
 /* this needs more work...
@@ -220,37 +295,6 @@ where
 ActionAdd :== Action "Add Chatter" "Add Chatter"
 
 
-// a simple button only valid when some predicates hold
-
-w7 = workflow "CEFP/7: Accept only an odd number" "Type in an odd positive number less than 100" getOddNumber
-
-getOddNumber :: Task Int
-getOddNumber 
-	=					enterInformationA "Type in an odd number" action 
-		>>= \value ->	showMessageAbout "You typed in:" value
-where
-	action n	= [ (ActionOk, onlyIf (\n -> (n > 0 && isOdd n && n < 100)) n)]
-
-// guarantee that a type has values with a certain property specializing gVerify
-
-w8 = workflow "CEFP/8: Specialized type only accepting an odd number" "Type in an odd number" getOddNumber2
-
-:: Odd = Odd Int
-
-derive gVisualize 	Odd
-derive gUpdate 		Odd
-derive gDefaultMask Odd
-derive JSONEncode 	Odd
-derive JSONDecode 	Odd
-derive gEq 			Odd
-
-gVerify{|Odd|} mba st
-	= wrapperVerify (Just "Type in an odd number") (\(Odd v) -> isOdd v) (\(Odd v) -> v +++> " is not an odd number") mba st
-
-getOddNumber2 :: Task Int
-getOddNumber2 
-	=						enterInformation "Type in an odd number" 
-		>>= \(Odd n) ->		showMessageAbout "You typed in:" n
 
 // pocket calculator, see Steffens example...
 
@@ -355,46 +399,3 @@ where
 			viewForManager props
 				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
 
-
-/*
-
-chat3
-    =               		getCurrentUser
-    	>>= \me ->			parallel "Chat application" initChatState finished [chatTask me]
-where
-
-	finished _ _ = Void
-
-	chatTask user 
-		=	DetachedTask (normalTask user) noMenu handlingTask
-	where
-
-		handlingTask chatState osState
-			=		updateSharedInformationA` ("Chat with iTask users") (view user) stateActions termActions (chatState >+< osState)	
-				
-		where
-			view user 
-				=	( \(list,osinfo) -> (Display list,Note "")
-					, \(Display _,Note response) (list,_) -> (list ++ [user +++> ": " +++> response],[])
-					)
-
-			termActions =  	[(ActionQuit, alwaysShared)]
-
-			stateActions = [("Add Chatter", [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)])] 
-					handleNewChatter chatState osState
-						=						selectUser
-							>>= \someone ->		writeShared osState [AppendTask (chatTask someone)]
-
-
-//interact :: !d !(l r Bool -> [InteractivePart (!l,!Maybe w)])	!(l r Bool -> InteractiveTerminators a)	!l !(Shared r w) -> Task a
-
-updateSharedInformationA` d (get,putback) stateActions termActions shared 
-	= UpdateTask @>> interact
-		d
-		(\l r=:(ss,os) changed -> 	[ UpdateView (if (l || changed) (FormValue (get r)) (Unchanged (FormValue (get r))),\mbV -> (isJust mbV,fmap (\v -> putback v r) mbV))
-						 			: map (\(label,cs) -> Update label (l,Just (ss,cs))) stateActions
-						 			])
-		(fromPredActions (\valid r changed -> ((valid || changed) && verifyValue (get r),r)) (\action _ r _ -> (action,r)) termActions)
-		True
-		shared
-*/
