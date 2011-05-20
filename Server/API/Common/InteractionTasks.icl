@@ -60,9 +60,11 @@ requestConfirmation` d mbAbout = InputTask @>>
 
 //Local choice tasks
 enterChoice :: !d ![o] -> Task o | descr d & iTask o
+enterChoice _ [] = throw EmptyOptionList
 enterChoice d options = localChoice d id okActionLocal options voidNothing Nothing
 
 enterChoiceAbout :: !d !about ![o] -> Task o | descr d & iTask o & iTask about
+enterChoiceAbout _ _ [] = throw EmptyOptionList
 enterChoiceAbout d about options = localChoice d id okActionLocal options (Just about) Nothing
 
 enterChoiceA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) ![o] -> Task a | descr d & iTask a & iTask v
@@ -152,9 +154,11 @@ updateSharedInformation` d (get,putback) actions shared mbAbout
 		shared
 
 updateChoice :: !d ![o] !Int -> Task o | descr d & iTask o
+updateChoice _ [] _ = throw EmptyOptionList
 updateChoice d options sel = localChoice d id okActionLocal options voidNothing (Just sel)
 
 updateChoiceAbout :: !d !about ![o] !Int -> Task o | descr d & iTask o & iTask about
+updateChoiceAbout _ _ [] _ = throw EmptyOptionList
 updateChoiceAbout d about options sel = localChoice d id okActionLocal options (Just about) (Just sel)
 
 updateChoiceA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) ![o] !Int -> Task a | descr d & iTask a & iTask v
@@ -163,7 +167,6 @@ updateChoiceA d view actions options sel = localChoice d view actions options vo
 updateChoiceAboutA :: !d !(o -> v) !((Maybe o) -> [(!Action,!Maybe a)]) !about ![o] !Int -> Task a | descr d & iTask a & iTask v & iTask about
 updateChoiceAboutA d view actions about options sel = localChoice d view actions options (Just about) (Just sel)
 
-localChoice _ _ _ [] _ _							= throw EmptyOptionList
 localChoice d view actions options mbAbout mbSel	= InputTask @>>
 	interactLocal d (\_ -> addAbout mbAbout [UpdateView (choiceFormView (map view options) mbSel,fmap getChoiceIndex)]) (\mbIdx -> UserActions (actions (fmap ((!!) options) mbIdx))) Nothing
 where
