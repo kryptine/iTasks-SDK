@@ -1,6 +1,8 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
+itasks.tui.GMapControl = itasks.tui.extendControl (Ext.Panel, {
+	defaultWidth: ['Fixed', 500],
+	defaultHeight: ['Fixed', 400],
 	initComponent : function(){
 		
 		Ext.applyIf(this,
@@ -8,9 +10,7 @@ itasks.tui.GMapControl = Ext.extend( Ext.Panel, {
 			, scope: this
 			, displayedMarkers : new Array()
 			});
-		this.width = 500;
-		this.height = 400;
-		itasks.tui.GMapControl.superclass.initComponent.apply(this,arguments);
+        itasks.tui.control.initComponent.apply(this,arguments);
 	
 		this.addEvents('tuichange');
 		this.enableBubble('tuichange');
