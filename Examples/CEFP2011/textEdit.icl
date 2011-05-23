@@ -4,11 +4,16 @@ import iTasks
 
 derive bimap (,), Maybe
 
-Start w = startEngine [ //workflow "text editor1" "simple text editor" textEditor1 // bug: don't use the same name twice !!!
-//					  , workflow "shell" "simple shell" (shell [])
-	//				  , 
-					  workflow "text2" "advanced text editor" (textEditor2 "aap")
+Start w = startEngine [ workflow "text editor1" "simple text editor" textEditor1 // bug: don't use the same name twice !!!
+					  , workflow "text editor2" "advanced text editor" (textEditor2 "aap.txt")
+					  , workflow "shell" "simple shell" shell
 					  ] w
+
+// ---------
+
+textEditor1 
+	= 					updateInformation "Edit the text:" (Note "")
+		>>= 			showMessage "Resulting text is:"
 
 // ---------
 
@@ -37,7 +42,7 @@ normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing
 						, replace		:: Bool
 						, statistics	:: Bool
 						}
-initEditorState 	= 	{mytext = "", replace = False, statistics = False}
+initEditorState text 	= 	{mytext = text, replace = False, statistics = False}
 updateReplace b  	=  	update (\s ->{s & replace = b}) 
 updateStat b 		=	update (\s -> {s & statistics = b}) 
 updateText f 		=	update (\s -> {s & mytext = f s.mytext}) 
@@ -46,8 +51,10 @@ ActionReplace 		:== Action "Replace" "Replace"
 ActionStatistics	:== Action "Statistics" "Statistics"
 
 textEditor2 :: String -> Task Void
-textEditor2 name
-	=					parallel "Editor" initEditorState voidResult [taskKind editor]
+textEditor2 fileName
+	=						getPresentPath
+		>>= \pwd ->			readFile pwd fileName
+		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [taskKind (editor pwd fileName)]
 where
 
 	taskKind = InBodyTask
@@ -65,11 +72,9 @@ where
 	where
 		ctrl c = Just {key=c,ctrl=True,alt=False,shift=False}
 
-
-
-	editor :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
-	editor ls os 
-		= 			updateSharedInformationA (name,"Edit text...") (toView,fromView) ls
+	editor :: DirPath String (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
+	editor pwd fileName ls os 
+		= 			updateSharedInformationA (fileName,"Edit text file " +++ fileName) (toView,fromView) ls
 			>?* 	[ (ActionSave, 		IfValid	save)
 			  		, (ActionQuit,		Always 	quit)
 			  		, (ActionReplace,	Sometimes (\s -> onlyIf (not s.modelValue.replace)    replace))
@@ -80,8 +85,8 @@ where
 		fromView (Note text) state = {state & mytext = text} 
 
 		save val
-			=		safeFile name val.mytext
-				>>| editor ls os
+			=		safeFile pwd fileName val.mytext
+				>>|	editor pwd fileName ls os
 		quit
 			=		set os [StopParallel] 
 				>>| return Void
@@ -89,12 +94,12 @@ where
 		replace 
 			=		updateReplace True ls
 				>>| set os [AppendTask (InBodyTask (replaceTask {search = "", replaceBy = ""}))]
-				>>| editor ls os
+				>>| editor pwd fileName ls os
 
 		statistics 
 			=		updateStat True ls
 				>>|	set os [AppendTask (InBodyTask statisticsTask)]
-				>>| editor ls os
+				>>| editor pwd fileName ls os
 
 	replaceTask :: Replace (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 	replaceTask replacement ls os
@@ -116,79 +121,74 @@ where
 				, characters = textSize mytext
 				}
 					
-/*
-// ---------
 
-textEditor1 
-	= 					updateInformation "Edit the text:" (Note "")
-		>>= 			showMessage "Resulting text is:"
 
 // ---------
 
 derive class iTask IFile
+:: DirPath :== (String,[String])
 
-:: Directory 	:== [IFile]
 :: IFile 		= 	FileName FileName 			// File is already taken as a name
 				|	Directory FileName
 :: FileName		:== String
 :: DirectoryName:== [String]
 :: FileContent	:== String
 
-	
-
-shell :: DirectoryName ->Task Void
-shell pwd
-	=					get currentUser
-			>>= \me ->	parallel  ("Shell","pwd = " <+++ pwd)  Void voidResult [newShell me initDirectory]
-where
-	newShell me pwd
-		= 				DetachedTask (normalTask me) noMenu (shellInterpreter me pwd)
-			
 ActionNewFile 		:== Action "New File" "New File"
 ActionNewDirectory	:== Action "New Directory" "New Directory"
 ActionUp			:== Action "Up" "Up"
 ActionDelete		:== Action "Delete" "Delete"
 ActionNewShell		:== Action "New Shell" "New Shell"
+ActionRefresh		:== Action "Refresh" "Refresh"
+
+shell :: Task Void
+shell 
+	=					get currentUser
+			>>= \me ->	getPresentPath
+			>>= \pwd -> parallel  ("Shell","pwd = " <+++ pwd)  Void voidResult [newShell me pwd]
+where
+	newShell me pwd
+		= 				DetachedTask (normalTask me) noMenu (shellInterpreter me pwd)
 
 shellInterpreter :: User DirPath (SymmetricShared Void) (ParallelInfo Void) -> Task Void
 shellInterpreter me pwd ls os
 	= 					shellCommand pwd
-		>>= \pwd ->		shellInterpreter me pwd os
+		>>= \pwd ->		shellInterpreter me pwd ls os
 where
-	shellCommand pwd
-		=						readDirectory pwd
-		>>= \(myFiles,dir) -> 	updateInformationA ("Current directory: " <+++ pwd) idView (actions dir) (choice myFiles)
-		>>=						id
-	where
-		actions dir (Just val)
-			= 	[(ActionOpen, 		Just (					open pwd (getChoice val)))
-				,(ActionDelete,		Just (					delete val dir 
+	shellCommand pwd=:(abs,rel)
+		=					readDir pwd
+		>>= \(ok,names) -> 	updateInformationA ("Current directory: " <+++ pwd) idView (choice names)
+		>?*		[ (ActionOpen, 		IfValid    (\val -> 	open pwd (getChoice val)))
+				, (ActionUp, 		Sometimes  (\_ -> 		onlyIf (length rel > 0) (return (abs,init rel))))
+				, (ActionNewFile, 	Always (				updateInformation "Choose file name:" ""
+											>>= \newName -> safeFile pwd (newName +++ ".txt") ""
+											>>|				return pwd)) 
+				, (ActionRefresh,	Always (				return pwd))
+				, (ActionDelete,	IfValid (\val ->		delete pwd (getChoice val)
 											>>| 			return pwd))
-				,(ActionNewFile, 	Just (					updateInformation "Choose file name:" ""
-											>>= \newName -> update (\dir -> dir ++ [FileName newName]) dir
+				,(ActionNewDirectory, Always (				updateInformation "Choose directory name:" ""
+											>>= \dirName -> newDir (abs,rel++[dirName])
 											>>|				return pwd)) 
-				,(ActionNewDirectory, Just(					updateInformation "Choose directory name:" ""
-											>>= \newName -> update (\dir -> dir ++ [Directory newName]) dir 
-											>>|				return pwd)) 
-				,(ActionUp, 		Just(					return (init pwd)))
-				,(ActionNewShell, 	Just (					set os [AppendTask (DetachedTask (normalTask me) noMenu (shellInterpreter me pwd))] 
-											>>|				return (init pwd)))
+//				,(ActionNewShell, 	Just (					set os [AppendTask (DetachedTask (normalTask me) noMenu (shellInterpreter me pwd))] 
+//											>>|				return (init pwd)))
 				]
-
-		
-
-	open pwd (FileName name) 
-		=				set os [AppendTask (DetachedTask (normalTask me) noMenu (editor (openFile pwd name) pwd name))] 
-			>>|			return pwd
-	where
-		openFile pwd name 	= sharedStore (foldl (+++) "_" (pwd ++ [name])) ""
-
-	open pwd (Directory name ) =	return (pwd ++ [name]) 
-	
-	delete (Choice elem i) dir = update (\dir -> removeAt i dir) dir
 
 	getChoice (Choice elem i) = elem!!i
 
+	open pwd (FileName name) 
+		=				set os [AppendTask (DetachedTask (normalTask me) noMenu (\ls os -> textEditor2 name))] 
+			>>|			return pwd
+	open (path,pwd) (Directory name ) =	return (path,pwd ++ [name]) 
+	
+	delete pwd (FileName name)
+		=				deleteFile pwd name
+			>>|			return pwd
+	delete pwd (Directory name)
+		= 				removeDir pwd name
+			>>|			return pwd
+
+
+/*
 editor file pwd name s os
 	= 	updateSharedInformationA ("Dir: " <+++ pwd <+++ "; File: " <+++ name) (toView,fromView) actions file
 where
@@ -197,9 +197,9 @@ where
 
  	actions _
  		=	[(ActionQuit,Just Void)]
-
-
 */
+
+
 // -------------
 
 
@@ -214,43 +214,76 @@ readDirectory :: !FilePath !*World -> (!MaybeOSError [FilePath], !*World)
 getCurrentDirectory :: !*World -> (!MaybeOSError FilePath, !*World)
 setCurrentDirectory :: !FilePath !*World -> (!MaybeOSError Void, !*World)
 */
+// utility function for reading files
+
 import StdFile
-
-safeFile :: String String -> Task Bool
-safeFile fileName text 
-	= 						accWorld (safeFileMonad fileName text)
-
-safeFileMonad :: String String *World -> (Bool,*World)
-safeFileMonad fileName text world 
-# (ok,file,world)  	= fopen fileName FWriteText world
-# file				= fwrites text file
-= fclose file world
-
-
-:: DirPath :== (String,[String])
-
 import FilePath, Directory, StdString
+import _WinBase
 
 derive class iTask MaybeError
 
-initDirectory :: Task DirPath
-initDirectory 
+instance toString DirPath 
+where
+	toString (absPath,names) = absPath +++ relativePath names
+	where
+		relativePath names = foldl (\x y -> x +++ (toString pathSeparator) +++ y) ""  names
+
+getPresentPath :: Task DirPath
+getPresentPath 
 	=						accWorld getCurrentDirectory 
 		>>= \(Ok dir) ->	return (dir,[])
 
-newDirectory :: DirPath -> Task Bool
-newDirectory (prefix,names)
-	=						accWorld (createDirectory (prefix +++ dirName))
+safeFile :: DirPath String String -> Task Bool
+safeFile dirPath fileName text 
+	= 						accWorld (safeFileMonad dirPath fileName text)
+where
+	safeFileMonad :: DirPath String String *World -> (Bool,*World)
+	safeFileMonad dirPath fileName text world 
+	# (ok,file,world)  	= fopen (toString dirPath +++ toString pathSeparator +++ fileName) FWriteText world
+	| not ok			= (False,world)
+	# file				= fwrites text file
+	= fclose file world
+
+readFile :: DirPath String  -> Task (Bool,String)
+readFile dirPath fileName  
+	= 						accWorld (readFileMonad (toString dirPath +++ toString pathSeparator +++ fileName))
+where
+	readFileMonad :: String  *World -> ((Bool,String),*World)
+	readFileMonad fileName world 
+	# (ok,file,world)  	= fopen fileName FReadText world
+	| not ok			= ((False,""),world)
+	# (text,file)		= freads file 1000000
+	| text == ""		= ((False,""),world)
+	# (ok,world)		= fclose file world
+	| not ok			= ((False,""),world)
+	= ((True,text),world)
+
+deleteFile :: DirPath String  -> Task Bool
+deleteFile dirPath fileName 
+	=				accWorld (deleteFileA (toString dirPath +++ toString pathSeparator +++ fileName))
+		>>= \i ->	return (i == 0)
+
+newDir :: DirPath -> Task Bool
+newDir dirPath
+	=						accWorld (createDirectory (toString dirPath))
 		>>= \result ->		case result of
 								(Ok _) -> return True
 								_	-> return False
-								
-where
-	dirName = foldl (\x y -> x +++ (toString pathSeparator) +++ y) ""  names
 
+removeDir :: DirPath String -> Task Bool
+removeDir dirPath dirName
+	=						accWorld (removeDirectory (toString dirPath +++ toString pathSeparator +++ dirName))
+		>>= \result ->		case result of
+								(Ok _) -> return True
+								_	-> return False
 
-
-
+readDir :: DirPath -> Task (Bool,[IFile])
+readDir dirPath 
+	=						accWorld (readDirectory (toString dirPath))
+		>>= \result ->		case result of
+								(Error _) -> return (False,[])
+								(Ok names) -> return (True,[FileName name \\ name <- names | takeExtension name == "txt"] ++
+														   [Directory name \\ name <- names | takeExtension name == "" && name <> "." && name <> ".."])
 
 
 
