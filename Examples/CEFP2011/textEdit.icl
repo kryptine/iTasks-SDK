@@ -113,15 +113,13 @@ where
 	statisticsTask :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 	statisticsTask ls os 
 		= 			monitorA ("Statistics","Statistics of your document") toView ls
-					(\_ -> UserActions [(ActionQuit, Just Void)]) 
+					(\_ -> UserActions [(ActionQuit, Just (updateStat False ls >>| return Void))]) >>= id
 	where
 		toView state=:{mytext} 
 			=	{ lines 	 = length (split "\n" mytext)
 				, words 	 = length (split " " (replaceSubString "\n" " " mytext))
 				, characters = textSize mytext
 				}
-					
-
 
 // ---------
 
@@ -169,8 +167,8 @@ where
 				,(ActionNewDirectory, Always (				updateInformation "Choose directory name:" ""
 											>>= \dirName -> newDir (abs,rel++[dirName])
 											>>|				return pwd)) 
-//				,(ActionNewShell, 	Just (					set os [AppendTask (DetachedTask (normalTask me) noMenu (shellInterpreter me pwd))] 
-//											>>|				return (init pwd)))
+				,(ActionNewShell, 	Always (				set os [AppendTask (DetachedTask (normalTask me) noMenu (shellInterpreter me pwd))] 
+											>>|				return pwd))
 				]
 
 	getChoice (Choice elem i) = elem!!i
