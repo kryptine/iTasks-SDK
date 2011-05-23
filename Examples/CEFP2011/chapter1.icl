@@ -6,9 +6,59 @@ derive bimap (,), Maybe
 
 Start :: *World -> *World
 Start world = startEngine 
-				[ w0, w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42, w71, w72, w10
+				[ w, w0, w1, w2, w3, w4, w5, w6a, w6b, w6c, w7, w8, w9, w41, w42, w71, w72, w10
 				] world
 
+// local tests by Peter for CEFP lecture notes
+w = workflow "CEFP/test" "test" question
+
+question :: Task (User,Approve)
+question
+	=     selectUser 
+	  >>= ask "Do you like iTask?"
+	  >>= showMessageAbout "The answer was:"
+
+getDateAndTimes :: Task DateTime
+getDateAndTimes
+	= repeatUntilApproved getDateAndTime
+
+getDateAndTime :: Task DateTime
+getDateAndTime
+	= get currentDateTime >>= showMessageAbout "The current date and time is: "
+
+repeatUntilApproved :: (Task a) -> Task a | iTask, html a
+repeatUntilApproved task
+	=            task
+	  >>= \v  -> enterChoice ("Approve result: ", v) [Yes,No]
+	  >>= \ok -> case ok of
+	                Yes -> return v
+	                No  -> repeatUntilApproved task
+
+:: Approve = Yes | No
+derive class iTask Approve
+instance html DateTime where html (DateTime d t) = Text (toString d +++ " " +++ toString t)
+
+::	Questionnaire
+	= { question :: !Display  String
+	  , user     :: !Hidden   User
+	  , answer   :: !Editable Approve
+	  }
+derive class iTask Questionnaire
+
+pose :: String User -> Questionnaire
+pose question user
+	= { question = Display  question
+	  , user     = Hidden   user
+	  , answer   = Editable Yes
+	  }
+
+response :: Questionnaire -> Approve
+response {answer} = fromEditable answer
+
+ask :: String User -> Task (User,Approve)
+ask question user
+	=           user @: updateInformation "Please answer the question" (pose question user)
+	  >>= \q -> return (user,response q)
 
 // Intro: simple "traditional" iTask workflows.
 //
@@ -380,14 +430,12 @@ where
 	initMeeting user
 		= DetachedTask managerProperties noMenu meetingTask
 	where
-
 		meetingTask :: (SymmetricShared [MeetingProposal]) (ParallelInfo [MeetingProposal]) -> Task [MeetingProposal]
 		meetingTask meetingState _
 			= updateSharedInformationA "When can we meet ?" (viewForUser user,modelFromView) meetingState noActions 
 
 		managerProperties
 			= { worker = user, priority	= NormalPriority, deadline = Nothing, status = Active }	
-		
 	
 	viewForUser :: User [MeetingProposal] -> [MeetingProposalView]
 	viewForUser user props
