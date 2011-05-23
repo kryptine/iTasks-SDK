@@ -173,16 +173,16 @@ fromTable :: !(Table a) -> [a]
 :: Hidden a 			= Hidden a			// Variable is never rendered
 
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
-toVisualizationHint :: !.a -> (VisualizationHint .a)
+toVisualizationHint :: !.a -> VisualizationHint .a
 
 fromEditable :: !(Editable .a) -> .a
-toEditable :: !.a -> (Editable .a)
+toEditable :: !.a -> Editable .a
 
 fromDisplay :: !(Display .a) -> .a
-toDisplay :: !.a -> (Display .a)
+toDisplay :: !.a -> Display .a
 
 fromHidden :: !(Hidden .a) -> .a
-toHidden :: !.a -> (Hidden .a)
+toHidden :: !.a -> Hidden .a
 
 :: HtmlDisplay = HtmlDisplay !String
 toHtmlDisplay	:: !h -> HtmlDisplay | html h
