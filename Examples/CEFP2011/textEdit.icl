@@ -24,6 +24,8 @@ onlyIf b do
 
 derive class iTask Replace, TextStatistics, EditorState
 
+normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
+
 :: Replace			=	{ search 		:: String
 						, replaceBy 	:: String
 						}
@@ -36,17 +38,35 @@ derive class iTask Replace, TextStatistics, EditorState
 						, statistics	:: Bool
 						}
 initEditorState 	= 	{mytext = "", replace = False, statistics = False}
-updateReplace b s 	=  	update {s & replace = b} 
-updateStat b s		=	update {s & statistics = b} 
-updateText f s		=	update {s & mytext = f s.mytext} 
+updateReplace b  	=  	update (\s ->{s & replace = b}) 
+updateStat b 		=	update (\s -> {s & statistics = b}) 
+updateText f 		=	update (\s -> {s & mytext = f s.mytext}) 
 
 ActionReplace 		:== Action "Replace" "Replace"
 ActionStatistics	:== Action "Statistics" "Statistics"
 
 textEditor2 :: String -> Task Void
 textEditor2 name
-	=					parallel "Editor" initEditorState voidResult [InBodyTask editor]
+	=					parallel "Editor" initEditorState voidResult [taskKind editor]
 where
+
+	taskKind = InBodyTask
+	
+	taskKind2 = DetachedTask (normalTask  RootUser) myMenu // window does not work yet
+	
+	myMenu s =  [ Menu "File" 	[ MenuItem ActionSave (ctrl 's')
+								, MenuSeparator
+								, MenuItem ActionQuit (ctrl 'q')
+								]
+				, Menu "Edit" 	[ MenuItem "Replace"  (ctrl 'r')
+								, MenuItem "Statistics" (ctrl 's')
+								]				
+				]
+	where
+		ctrl c = Just {key=c,ctrl=True,alt=False,shift=False}
+
+
+
 	editor :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 	editor ls os 
 		= 			updateSharedInformationA (name,"Edit text...") (toView,fromView) ls
@@ -96,7 +116,6 @@ where
 				, characters = textSize mytext
 				}
 					
-
 /*
 // ---------
 
@@ -116,7 +135,6 @@ derive class iTask IFile
 :: FileContent	:== String
 
 	
-normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
 shell :: DirectoryName ->Task Void
 shell pwd
