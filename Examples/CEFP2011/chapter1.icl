@@ -10,7 +10,18 @@ Start world = startEngine
 				] world
 
 // local tests by Peter for CEFP lecture notes
-w = workflow "CEFP/test" "test" question
+w = workflow "CEFP/test" "test" dialogue
+
+dialogue :: Task [(User,String)]
+dialogue 
+	=               selectUser
+	  >>= \other -> get currentUser
+	  >>= \me    -> talk (me,other) []
+where
+	talk (a,b) conversation
+		=                  a @: updateInformation "please enter text" (Display conversation,"")
+		  >>= \(_,line) -> if (line == "") (return conversation)
+		                                   (talk (b,a) [(a,line):conversation])
 
 question :: Task (User,Approve)
 question
@@ -394,8 +405,8 @@ w9 = workflow "CEFP/9: Arrange a meeting date between several users" "Arrange me
 		, comment	:: Maybe Note
 		}	
 :: MeetingProposalView
-	=	{ date 		:: Date
-		, time		:: Time
+	=	{ date 		:: Display Date
+		, time		:: Display Time
 		, canMeet	:: [VisualizationHint ParticipantView]
 		}
 :: ParticipantView
@@ -439,13 +450,13 @@ where
 	
 	viewForUser :: User [MeetingProposal] -> [MeetingProposalView]
 	viewForUser user props
-		= [  {MeetingProposalView | date=date, time=time, canMeet=map (viewParticipant user) canMeet}
+		= [  {MeetingProposalView | date=toDisplay date, time=toDisplay time, canMeet=map (viewParticipant user) canMeet}
 		  \\ {MeetingProposal | date,time,canMeet} <- props
 		  ]
 	
 	modelFromView :: [MeetingProposalView] .a -> [MeetingProposal]
 	modelFromView props _
-		= [  {MeetingProposal | date=date, time=time, canMeet=map modelParticipant canMeet} 
+		= [  {MeetingProposal | date=fromDisplay date, time=fromDisplay time, canMeet=map modelParticipant canMeet} 
 		  \\ {MeetingProposalView | date,time,canMeet} <- props
 		  ]
 	
@@ -453,7 +464,7 @@ where
 	viewParticipant user participant=:{Participant | name, canAttend, comment}
 		= if (user == name)	VHEditable VHDisplay view
 	where
-		view		= {ParticipantView | name = Display name
+		view		= {ParticipantView | name      = Display name
 	                                   , canAttend = canAttend
 	                                   , comment   = comment
 	                  }
