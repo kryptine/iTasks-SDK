@@ -16,6 +16,12 @@ import Text
 
 voidResult _ _ = Void 
 
+
+onlyIf :: Bool a -> Maybe a
+onlyIf b do
+	| b 		= Just do
+	| otherwise	= Nothing
+
 derive class iTask Replace, TextStatistics, EditorState
 
 :: Replace			=	{ search 		:: String
@@ -30,9 +36,9 @@ derive class iTask Replace, TextStatistics, EditorState
 						, statistics	:: Bool
 						}
 initEditorState 	= 	{mytext = "", replace = False, statistics = False}
-updateReplace b s	=  	{s & replace = b}
-updateStat b s		=	{s & statistics = b}
-updateText f s		=	{s & mytext = f s.mytext}
+updateReplace b s 	=  	update {s & replace = b} 
+updateStat b s		=	update {s & statistics = b} 
+updateText f s		=	update {s & mytext = f s.mytext} 
 
 ActionReplace 		:== Action "Replace" "Replace"
 ActionStatistics	:== Action "Statistics" "Statistics"
@@ -44,35 +50,38 @@ where
 	editor :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 	editor ls os 
 		= 			updateSharedInformationA (name,"Edit text...") (toView,fromView) ls
-			>?* 	[ (ActionSave, 		IfValid	(\val ->	safeFile name val.mytext
-														>>| editor ls os)
-												)
-			  		, (ActionQuit,		Always 	(			set os [StopParallel] 
-														>>| return Void)
-												)
-			  		, (ActionReplace,	Sometimes (\state -> if state.modelValue.replace    Nothing (Just replace)))
-			  		, (ActionStatistics,Sometimes (\state -> if state.modelValue.statistics Nothing (Just statistics)))
+			>?* 	[ (ActionSave, 		IfValid	save)
+			  		, (ActionQuit,		Always 	quit)
+			  		, (ActionReplace,	Sometimes (\s -> onlyIf (not s.modelValue.replace)    replace))
+			  		, (ActionStatistics,Sometimes (\s -> onlyIf (not s.modelValue.statistics) statistics))
 			  		]
 	where	
 		toView state = Note state.mytext
 		fromView (Note text) state = {state & mytext = text} 
 
-		replace 
-			=		update (updateReplace True) ls
-				>>| set os [AppendTask (InBodyTask (replaceTask {search = "", replaceBy = ""}))]
+		save val
+			=		safeFile name val.mytext
+				>>| editor ls os
+		quit
+			=		set os [StopParallel] 
 				>>| return Void
 
+		replace 
+			=		updateReplace True ls
+				>>| set os [AppendTask (InBodyTask (replaceTask {search = "", replaceBy = ""}))]
+				>>| editor ls os
+
 		statistics 
-			=		update (updateStat True) ls
+			=		updateStat True ls
 				>>|	set os [AppendTask (InBodyTask statisticsTask)]
-				>>| return Void
+				>>| editor ls os
 
 	replaceTask :: Replace (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 	replaceTask replacement ls os
 		=			updateInformationA ("Replace","Define replacement...") idView replacement
-			>?*		[(ActionOk,   IfValid 	(\r -> 		update (updateText (replaceSubString r.search r.replaceBy)) ls
+			>?*		[(ActionOk,   IfValid 	(\r -> 		updateText (replaceSubString r.search r.replaceBy) ls
 								 					>>|	replaceTask r ls os))
-					,(ActionQuit, Always 	(	update (updateReplace False) ls 
+					,(ActionQuit, Always 	(	updateReplace False ls 
 												>>| return Void))
 					]
 
@@ -82,7 +91,10 @@ where
 					(\_ -> UserActions [(ActionQuit, Just Void)]) 
 	where
 		toView state=:{mytext} 
-			=	 {lines = length (split "\n" mytext), words = length (split " " (replaceSubString "\n" " " mytext)), characters = textSize mytext}
+			=	{ lines 	 = length (split "\n" mytext)
+				, words 	 = length (split " " (replaceSubString "\n" " " mytext))
+				, characters = textSize mytext
+				}
 					
 
 /*
