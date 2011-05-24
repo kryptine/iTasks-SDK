@@ -110,7 +110,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	, hintMsg		:: !String
 	}
 :: TUIListItem =
-	{ items			:: ![TUIDef]
+	{ items			:: !TUIDef
 	, index			:: !Int
 	}
 :: TUIButton =

@@ -77,7 +77,7 @@ where
 					numMin = min numOld numNew
 					
 					diffListItemDefinitions path old new
-						= flatten [  diffEditorDefinitions` (childDataPath path i) (hd co) (hd cn)
+						= flatten [  diffEditorDefinitions` (childDataPath path i) co cn
 						 		  \\ {content=c=:(TUIListItem {TUIListItem|items=co})} <- old
 								  &  {content=c=:(TUIListItem {TUIListItem|items=cn})} <- new
 								  &  i <- [0..]]

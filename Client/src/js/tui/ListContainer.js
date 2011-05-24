@@ -3,7 +3,7 @@ Ext.ns('itasks.tui');
 itasks.tui.ListContainer = itasks.tui.extendContainer(Ext.Container,{
 	defaultWidth: ['FillParent',1,'ContentSize'],
 	defaultHeight: ['Wrap'],
-
+	
 	initComponent: function(){
 		itasks.tui.container.initComponent.apply(this,arguments);
 		
@@ -113,9 +113,10 @@ itasks.tui.ListContainer = itasks.tui.extendContainer(Ext.Container,{
 Ext.ns('itasks.tui.list');
 
 itasks.tui.list.ListItemControl = Ext.extend(Ext.Container,{
-	cls: ((this.index % 2) == 0)? "list-item-light" : "list-item-dark",
-	
+	layout: 'vbox',
 	initComponent : function(){	
+		this.cls = (this.index % 2) == 0 ? "list-item-light" : "list-item-dark";
+	
 		itasks.tui.list.ListItemControl.superclass.initComponent.apply(this,arguments);
 		
 		this.addEvents('tuichange');
@@ -165,8 +166,16 @@ itasks.tui.list.ListItemControl = Ext.extend(Ext.Container,{
 		}
 	},
 	
-	doTUILayout: function() {
-		this.get(0).doTUILayout();
+	doTUILayout: function(fillW,fillH) {
+		var minSize = this.getMinTUISize();
+		var fillW = Ext.isDefined(fillW) ? fillW : minSize.width;
+		var fillH = Ext.isDefined(fillH) ? fillH : minSize.height;
+	
+		this.suspendEvents();
+		this.setSize(fillW,fillH);
+		this.resumeEvents();
+		
+		this.get(0).doTUILayout(fillW,fillH);
 	},
 	getTUISize: function() {
 		return this.get(0).getTUISize();

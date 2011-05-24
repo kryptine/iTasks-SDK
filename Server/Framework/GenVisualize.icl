@@ -402,7 +402,7 @@ where
 		getEditors [TUIFragment {content=c=:(TUIListContainer {TUIListContainer|items})}] = map (filterHtmlContainers o getEditors` o stripListItem) items
 		where
 			stripListItem :: TUIDef -> [TUIDef]
-			stripListItem {content=c=:(TUIListItem {TUIListItem|items})} = items
+			stripListItem {content=c=:(TUIListItem {TUIListItem|items})} = [items]
 			stripListItem _ = abort "get table editors: list item container expected"
 			
 			getEditors` :: [TUIDef] -> [TUIDef]
@@ -460,7 +460,9 @@ where
 				=	{ content	= TUIListItem
 									{ TUIListItem
 									| index = idx
-									, items = defs
+									, items = case defs of
+										[def]	= def
+										defs	= {content = TUILayoutContainer (defaultLayoutContainer defs), width = FillParent 1 ContentSize, height = Wrap, margins = Nothing}
 									}
 					, width		= Auto
 					, height	= Auto
