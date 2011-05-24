@@ -7,7 +7,7 @@ import ParserCombinators
 
 import Map
 
-from GinParser import ::GPath(..), ::GPathNode(..)
+from GinParser import ::GPath(..), ::GPathNode(..), ::GResourceId(..)
 from GinPrinter import ::LineMap, ::Map
 
 parseCleanIDELog :: String -> [CompilerErrorContext]
@@ -99,12 +99,12 @@ printError (TypeError te) = "Type error:\nExpected type:" +++ te.expectedType ++
 printError (OtherError err) = err
 
 findPathErrors :: [CompilerErrorContext] LineMap -> [PathError]
-findPathErrors errorContexts lineMap = map (findPathError lineMap) errorContexts
+findPathErrors errorContexts lineMap = catMaybes (map (findPathError lineMap) errorContexts)
 where
-	findPathError :: LineMap CompilerErrorContext -> PathError
+	findPathError :: LineMap CompilerErrorContext -> Maybe PathError
 	findPathError lineMap (error,context) = case get context.line lineMap of
-		Just path = (path, printError error)
-		Nothing   = ([], printError error)
+		Just path = Just (path, printError error)
+		Nothing   = Nothing
 
 //Parse utilities
 char :: CParser Char Char t

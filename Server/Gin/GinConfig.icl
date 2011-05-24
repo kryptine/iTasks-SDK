@@ -32,8 +32,8 @@ ginDefaultConfig world
           	, iTasksPath	= iTasksPath
 			, tempPath		= tempPath
 			, userPath		= iTasksPath </> "Examples" </> "Gin" </> "Workflows"
-			, searchPaths	= [ iTasksPath </> "Server" </> "API" </> "Core" </> "BasicTasks"
-							  , iTasksPath </> "Server" </> "API" </> "Core" </> "TaskCombinators"
+			, searchPaths	= [ iTasksPath </> "Server" </> "API" </> "Core"
+							  , iTasksPath </> "Server" </> "API" </> "Common"
 							  ]
 			}
 = (config, world)

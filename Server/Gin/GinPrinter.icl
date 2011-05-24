@@ -10,7 +10,7 @@ from PPrint import qualified <$>, <+>, </>, empty, space, comma, line, char, tex
 from PPrint import qualified parens, braces, brackets, dquotes, tupled
 from PPrint import qualified punctuate, hsep, vsep, vcat, fillSep, indent, nest, renderPretty, display
 
-from GinParser import :: GPath(..), ::GPathNode(..)
+from GinParser import ::GPath(..), :: GPathNode(..), ::GResourceId(..)
 
 prettyPrint :: Doc -> String
 prettyPrint doc = 'PPrint'.display ('PPrint'.renderPretty 0.9 80 doc)

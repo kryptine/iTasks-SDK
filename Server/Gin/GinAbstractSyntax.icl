@@ -8,7 +8,7 @@ import StdString
 
 import Void
 
-from GinParser import ::GPath(..), instance toString GPath
+from GinParser import ::GPath(..)
 import GinTypes
 import GinPrinter
 
@@ -185,19 +185,14 @@ printAModuleHeader opt aMod =
 
 printAImports :: PrintOption [AImport] -> [a] | Printer a
 printAImports opt imports
-	# standardImports = [ "StdBool"
-						, "StdInt"
-						, "StdReal"
-						, "StdChar"
-						, "StdArray"
+	# standardImports = [ "StdInt"
+						, "StdBool"
 						, "StdString"
-						, "StdFile"
-						, "StdClass"
 						, "StdList"
 						, "StdOrdList"
 						, "StdTuple"
-						, "StdCharList"
 						, "StdEnum"
+						, "StdOverloaded"
 						]
 						++
 						( if (opt == POWriteDynamics) 
@@ -268,10 +263,10 @@ printADefinitionBody opt { ADefinition | name, formalParams, body, locals } =
 			]
       
 printAStart :: PrintOption AModule -> [a] | Printer a
-//printAStart POSyntaxCheck _ = 
-//	[ def (text "Start :: Int")
-//	, def (text "Start = 0")
-//	]
+printAStart POSyntaxCheck _ = 
+	[ def (text "Start :: Int")
+	, def (text "Start = 0")
+	]
 printAStart POWriteDynamics aMod
 	# task = hd aMod.AModule.definitions
 	=	[ def (text "Start :: *World -> *World")

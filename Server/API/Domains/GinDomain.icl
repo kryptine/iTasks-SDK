@@ -2,13 +2,15 @@ implementation module GinDomain
 
 from StdEnv import id
 
+import StdDebug
+
 import iTasks, Text, HtmlUtil
 import GinSyntax, GinFlowLibrary
 import GinCompiler, GinParser
 
 import GinORYX
 
-gVisualize {|ORYXEditor|} val vst = visualizeControl (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) (mkText,mkHtml) (fmap (\{diagram} -> diagram) val) vst
+gVisualize {|ORYXEditor|} val vst = visualizeControl (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) (mkText,mkHtml) (trace_n (toString (toJSON val)) val) vst
 where
 	oryx = fromMaybe emptyORYXEditor val
 		        
@@ -24,32 +26,8 @@ where
 	parseUpdate diagram orig = { ORYXEditor | orig & diagram = diagram }
 
 gDefaultMask{|ORYXEditor|} _ = [Touched []]
-
-derive gVerify ORYXEditor
-//gVerify{|ORYXEditor|} Nothing vst = alwaysValid vst
-//gVerify{|ORYXEditor|} val=:(Just {verify}) vst = customWorldVerify Nothing verify val vst
-
-JSONEncode {|ORYXEditor|} { diagram, stencilset/*, verify*/ }
-	= [ JSONArray		[  JSONString "ORYXEditor"
-						:  JSONEncode{|*|} diagram
-						++ JSONEncode{|*|} stencilset
-						//++ dynamicJSONEncode verify
-						]]
-
-JSONDecode{|ORYXEditor|} [JSONArray [JSONString "ORYXEditor",diagram,stencilset/*,verify*/]:c]
-	# mbDiagram		= fromJSON diagram
-	# mbStencilset	= fromJSON stencilset
-	//# mbVerify		= dynamicJSONDecode verify
-	|  isJust mbDiagram
-	&& isJust mbStencilset
-	//&& isJust mbVerify
-		= (Just	{ ORYXEditor
-				| diagram		= fromJust mbDiagram
-				, stencilset	= fromJust mbStencilset
-				//, verify		= fromJust mbVerify
-				},c)
-	| otherwise
-		= (Nothing,c)
-JSONDecode{|ORYXEditor|} c = (Nothing,c)
+gVerify{|ORYXEditor|} _ vst = alwaysValid vst
+derive JSONEncode ORYXEditor
+derive JSONDecode ORYXEditor
 
 gEq{|ORYXEditor|} _ _ = False // ORYXEditors are never equal

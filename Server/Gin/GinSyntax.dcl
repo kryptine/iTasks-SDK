@@ -96,12 +96,26 @@ getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
 
 :: GGraph = GGraph (Graph GNode GEdge)
 
-:: GNode = { actualParams :: [GExpression]
-           , name         :: GIdentifier
-           , position     :: GPosition
+:: GNode = { identifier   :: !GResourceId
+		   , name         :: !GIdentifier
+		   , actualParams :: ![GExpression]
+           , position     :: !GPosition
            }
 
-:: GEdge :== Maybe GPattern
+/*
+:: GNodeKind = GStart
+			 | GStop
+			 | GDecision !GCleanExpression
+			 | GMerge
+			 | GLet
+			 | GParallelSplit !GIdentifier
+			 | GParallelJoin !GIdentifier
+			 | GTask !GIdentifier ![GExpression]
+*/
+           
+:: GEdge = { identifier :: !GResourceId
+           , pattern    :: !Maybe GPattern
+           }
            
 :: GPattern :== String
 
@@ -117,12 +131,16 @@ getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
            
 :: GDescription :== String
 
+:: GResourceId :== String
+
 // Generic functions
 derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter, GDefinition, GDeclaration
 
 //JSON Serialization and deserialization
 gModuleToJSON :: GModule -> String
 gModuleFromJSON :: String -> Maybe GModule
+
+emptyEdge :: GEdge
 
 //Construction
 newWorkflow :: GDefinition

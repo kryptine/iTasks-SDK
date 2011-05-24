@@ -82,7 +82,7 @@ newORYXEditor stencilset
 	=	{ ORYXEditor
 		| diagram = newORYXDiagram stencilset
 		, stencilset = stencilset
-		//, verify = oryxAlwaysValid
+		, errors = []
 		}
 //where
 	//oryxAlwaysValid :: !ORYXEditor *IWorld -> (!WorldPredicateResult,!*IWorld)
@@ -138,13 +138,11 @@ where
 ginORYXDiagram :: ORYXDiagram
 ginORYXDiagram = newORYXDiagram ginStencilSet
 
-//Gin specific:
-ginORYXEditor :: !ORYXDiagram /*!(ORYXEditor *IWorld -> *(WorldPredicateResult,*IWorld))*/-> ORYXEditor
-ginORYXEditor diagram /*verify*/ = 
+ginORYXEditor :: !ORYXDiagram -> ORYXEditor
+ginORYXEditor diagram = 
 	{ ORYXEditor
 	| newORYXEditor ginStencilSet
 	& diagram = diagram
-	//, verify = verify
 	}
 	
 ginStencilSet :: ORYXStencilSetReference
@@ -188,7 +186,8 @@ oryxChildShapeToNode bindings shape
 		GError [(_, err)] = abort ("oryxChildShapeToNode: Invalid shape " +++ shapeName shape)
 		GSuccess decl = 
 			{ GNode
-			| name = shapeName shape
+			| identifier = shape.ORYXChildShape.resourceId
+			, name = shapeName shape
 			, position =	{ GPosition 
 							| x = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.x
 							, y = shape.ORYXChildShape.bounds.ORYXBounds.upperLeft.ORYXBound.y
@@ -224,7 +223,12 @@ oryxOutgoingToEdge shapeMap nodeMap fromIndex arcres =
 		Just arc 
 				 = case arc.ORYXChildShape.outgoing of
 			[toRes]	= case 'Map'.get toRes.ORYXOutgoing.resourceId nodeMap of
-						  Just toIndex = Just ((fromIndex,toIndex), oryxPropertiesToPattern arc.ORYXChildShape.properties)
+						  Just toIndex = Just ((fromIndex,toIndex), 
+						  					   { GEdge
+											   | identifier = arc.ORYXChildShape.resourceId
+											   , pattern = oryxPropertiesToPattern arc.ORYXChildShape.properties
+											   }
+											  )
 					  	  Nothing      = abort "oryxChildShapeToEdge: Arc outgoing resourceId not found"
 			[]		= Nothing //Arc not connected to node
 			_		= abort "oryxChildShapeToEdge: arc cannot point to multiple nodes"
@@ -271,43 +275,12 @@ where
 							\\ imp <- gmod.GModule.imports ]
 		}
 
-makeORYXError :: !ORYXDiagram !(GPath,String) -> Maybe ORYXError
-makeORYXError diagram (p,message) = makeORYXError` (reverse p)
-where
-	makeORYXError` :: [GPathNode] -> Maybe ORYXError
-	makeORYXError` [] = 
-		Just	{ ORYXError
-				| resourceId = diagram.ORYXDiagram.resourceId
-				, message = message
-				, paramIndex = Nothing
-				}
-	makeORYXError` [PNDefinition _ : path] = makeORYXError` path
-	makeORYXError` [PNBody:path] = makeORYXError` path
-	makeORYXError` [PNNode index:path]
-		# nodes = filter (not o isEdge) diagram.ORYXDiagram.childShapes
-		| index < 0 || index >= length nodes = Nothing
-		= makeORYXErrorChild (nodes !! index) path message
-	makeORYXError` [PNEdge index:path]
-		# edges = filter isEdge diagram.ORYXDiagram.childShapes
-		| index < 0 || index >= length edges = Nothing
-		= makeORYXErrorChild (edges !! index) path message
-	makeORYXError` path = Nothing //TODO
-
-makeORYXErrorChild :: !ORYXChildShape ![GPathNode] !String -> Maybe ORYXError
-makeORYXErrorChild shape [] message = 
-	Just	{ ORYXError
-			| resourceId = shape.ORYXChildShape.resourceId
-			, message = message
-			, paramIndex = Nothing
-			}
-makeORYXErrorChild shape [PNActualParam index] message = 
-	Just	{ ORYXError
-			| resourceId = shape.ORYXChildShape.resourceId
-			, message = message
-			, paramIndex = Just index
-			}
-makeORYXErrorChild shape [PNActualParam index: path] message
-	# params = shape.ORYXChildShape.childShapes
-	| index < 0 || index >= length params = Nothing
-	= makeORYXErrorChild (params !! index) path message
-makeORYXErrorChild _ path message = abort ("abort in makeORYXErrorChild: Path=" +++ toString path +++ ",message=" +++ message)
+makeORYXError :: !ORYXDiagram !(GPath,String) -> ORYXError
+makeORYXError diagram ([],message) = 
+	{ ORYXError | resourceId = "", message = message, paramIndex = Nothing }
+makeORYXError _ ([NodePath p:_],message) = 
+	{ ORYXError | resourceId = p, message = message, paramIndex = Nothing }
+makeORYXError _ ([ParamPath index:NodePath p:_],message) = 
+	{ ORYXError | resourceId = p, message = message, paramIndex = Just index }
+makeORYXError _ ([EdgePath p:_],message) = 
+	{ ORYXError | resourceId = p, message = message, paramIndex = Nothing }

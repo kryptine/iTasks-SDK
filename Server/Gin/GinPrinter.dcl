@@ -2,7 +2,7 @@ definition module GinPrinter
 
 from Map import ::Map
 
-from GinParser import :: GPath(..), ::GPathNode
+from GinParser import :: GPath(..), ::GPathNode(..), :: GResourceId(..)
 
 from PPrint import ::Doc
 class Printer a

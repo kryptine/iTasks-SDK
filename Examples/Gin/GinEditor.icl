@@ -18,7 +18,7 @@ import GinSyntax
 import FilePath, File
 
 ginEditor :: WorkflowContainer Void
-ginEditor = Workflow initManagerProperties (staticMenu initMenu) (emptyState >>= \state -> doMenu state)
+ginEditor = Workflow initManagerProperties (staticMenu initMenu) ginEditor`
 
 getConfig :: Task GinConfig
 getConfig = accWorld ginLoadConfig >>= \maybeConfig = 
@@ -29,25 +29,38 @@ where
 	setupDialog :: GinConfig -> Task GinConfig
 	setupDialog config = dialog config >>= \newconfig = appWorld (ginStoreConfig newconfig) >>| return newconfig
 	where
-	    dialog config = updateInformation "Gin editor setup" config >>= \config = 
+	    dialog config = updateInformation "GiN editor setup" config >>= \config = 
 	                    accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) (dialog config)
-	
-:: Mode = ViewDeclaration | ViewWorkflow | ViewImports | ViewTypes | ViewSource
+
 
 :: EditorState = 
-    { name			:: !Maybe String
-    , changed		:: !Bool
-    , mode			:: !Mode
-    , checkSyntax 	:: !Bool
+    { config		:: !GinConfig
+    , name			:: !Maybe String
     , gMod			:: !GModule
+    , changed		:: !Bool
+    , dirty			:: !Bool
+    , errors		:: ![ORYXError]
+    , source		:: !String
     , compiled		:: !Maybe String
-    , config		:: !GinConfig
     }
 
-derive class iTask EditorState, Mode
+derive class iTask EditorState
+    
+getInitialState :: Task EditorState 
+getInitialState = getConfig >>= \config -> return
+	{ EditorState
+	| config		= config
+	, name			= Nothing
+	, gMod			= updateDiagramExtensions newModule
+	, changed		= False
+	, dirty			= False
+	, errors		= []
+	, source		= ""
+	, compiled		= Nothing
+	}
 
 //-----------------------------------------------------------------------------------        
-ActionUpdate           :== Action "update"			"Update"
+ActionCompile          :== Action "compile"			"Compile"
 ActionRun              :== Action "run"				"Run"
 ActionViewDeclaration  :== Action "viewdeclaration"	"Declaration"
 ActionViewWorkflow     :== Action "viewworkflow"	"Workflow"
@@ -60,18 +73,17 @@ ActionViewSource       :== Action "viewsource"		"Generated source"
 initMenu :: MenuDefinition
 initMenu =
     [ Menu "File"    [ MenuItem ActionNew				(Just { key = 'N', ctrl = True, alt = False, shift = False })
-                     , MenuItem ActionOpen				(Just { key = 'N', ctrl = True, alt = False, shift = False })
+                     , MenuItem ActionOpen				(Just { key = 'O', ctrl = True, alt = False, shift = False })
                      , MenuSeparator
-                     , MenuItem ActionSave				(Just { key = 'N', ctrl = True, alt = False, shift = False })
+                     , MenuItem ActionSave				(Just { key = 'S', ctrl = True, alt = False, shift = False })
                      , MenuItem ActionSaveAs			Nothing
                      , MenuSeparator
-                     , MenuItem ActionUpdate			(Just { key = 'U', ctrl = True, alt = False, shift = False })
+                     , MenuItem ActionCompile			(Just { key = 'U', ctrl = True, alt = False, shift = False })
                      , MenuItem ActionRun				(Just { key = 'R', ctrl = True, alt = False, shift = False })
                      , MenuSeparator
                      , MenuItem ActionQuit				Nothing
                      ]
     , Menu "View"    [ MenuItem ActionViewDeclaration	Nothing
-					 , MenuItem ActionViewWorkflow		Nothing
                      , MenuItem ActionViewImports		Nothing
                      , MenuItem ActionViewTypes			Nothing
                      , MenuItem ActionViewSource		Nothing
@@ -83,98 +95,120 @@ initMenu =
                      ]
 	]
 
-//actions :: EditorState -> [(PredAction (Verified b))]
-actions state = [ (ActionNew,              True)
-                , (ActionOpen,             True)
-                , (ActionSave,             state.EditorState.changed)
-                , (ActionSaveAs,           True)
-                , (ActionUpdate,           True)
-                , (ActionRun,              isJust state.EditorState.compiled)
-                , (ActionQuit,             True)
-                , (ActionAbout,            True)
-                , (ActionViewDeclaration,  state.EditorState.mode =!= ViewDeclaration)
-                , (ActionViewWorkflow,     state.EditorState.mode =!= ViewWorkflow)
-                , (ActionViewImports,      state.EditorState.mode =!= ViewImports)
-                , (ActionViewTypes,        state.EditorState.mode =!= ViewTypes)
-                , (ActionViewSource,         state.EditorState.mode =!= ViewSource)
-//                , (ActionEnableSC,         (\_ -> not state.EditorState.checkSyntax))
-//                , (ActionDisableSC,        (\_ -> state.EditorState.checkSyntax))
-                ]
+ginEditor` :: Task Void
+ginEditor` = 
+	getInitialState >>= \initialState -> 
+	ginParallelLayout @>> parallel
+		"GiN Editor"
+		initialState
+		(\_ _ -> Void)
+		[ HiddenTask activator
+		, InBodyTask \s p -> forever (ginInteractionLayout @>>
+				(updateSharedInformationA "Workflow diagram" (diagramView, diagramUpdate) s >?* actions s p))
+		]
 
-emptyState :: Task EditorState 
-emptyState = getConfig >>= \config -> 
-	return { name = Nothing, changed = False, mode = ViewWorkflow, checkSyntax = False, gMod = newModule, compiled = Nothing, config = config}
-    
-doMenu :: EditorState -> Task Void
-doMenu state =: { EditorState | mode, config, gMod } =
-	case mode of
-		ViewDeclaration	= mkUpdateTask "declaration" (declarationView, declarationUpdate) False
-		ViewWorkflow	= mkUpdateTask "Workflow" (diagramView, diagramUpdate) True
-		ViewImports		= accWorld (searchPathModules config)
-						  >>= \allModules -> mkUpdateTask "Imports" (importsView allModules, importsUpdate) False
-		ViewTypes		= mkUpdateTask "Types" (typeView, typeUpdate) False
-        ViewSource		= accWorld (tryRender gMod config POICL) 
-        				  >>= \source 		-> showMessageA ("code view", formatSource source) [(action,action) \\ (action,enabled) <- (actions state) | enabled]
-                          >>= \action		-> return (action, state)                   
-    >>= switchAction
-    
-    where 
-    	mkUpdateTask name view fullwidth = 
-    		(if fullwidth ((@>>) fullWidthInteractionLayout) id) 
-    		(updateInformationA (getName state, name +++ " view") view gMod (\{modelValue=gMod} -> [(action,if enabled (Just (action,Just gMod)) Nothing) \\ (action,enabled) <- (actions state)]))
-            >>= \(action, mbGMod) -> 
-            case mbGMod of
-               	Nothing		= return (action, state)
-               	Just gMod	= return (action, setChanged state { EditorState | state & gMod = gMod})
-    
+ginParallelLayout :: ParallelLayoutMerger
+ginParallelLayout = \{TUIParallel|title,description,items} -> 
+	if (length items == 1) 
+		(last items) 
+		(defaultPanelDescr title "icon-parallel-task" description Nothing Wrap (tl items ++ [hd items]))
 
-//Bimaps on GModule
+ginInteractionLayout :: InteractionLayoutMerger
+ginInteractionLayout = \{TUIInteraction|editorParts} -> {TUIDef | hd editorParts & width = FillParent 1 (FixedMinSize 400)}
 
+diagramView :: EditorState -> ORYXEditor
+diagramView { EditorState | gMod = { moduleKind = GGraphicalModule defs }, errors } = 
+	{ ORYXEditor 
+	| (ginORYXEditor (hd defs).GDefinition.body)
+	& errors = errors 
+	}
+
+diagramUpdate :: ORYXEditor EditorState -> EditorState
+diagramUpdate editor state = { EditorState | state & gMod = setDiagram state.gMod editor, dirty = True}
+where
+	setDiagram :: !GModule !ORYXEditor -> GModule
+	setDiagram gMod =:{moduleKind = (GGraphicalModule defs)} editor=:{diagram}
+		=	{ GModule 
+			| gMod
+			& moduleKind = GGraphicalModule
+				( [ { GDefinition 
+					| hd defs 
+					& body = diagram
+					}
+					: tl defs
+				  ]
+				)
+			}
+
+activator :: (SymmetricShared EditorState) (ParallelInfo s) -> Task Void
+activator stateShared parallelInfo = forever activator`
+where
+	activator` :: Task Void
+	activator` =	monitor "Diagram monitor" id (\state -> state.dirty) True stateShared //Look for the dirty flag to become True
+					>>= \state -> generateSource state
+					>>= \state -> checkErrors state
+					>>= \state -> update (\_ -> { state & dirty = False } ) stateShared //Reset dirty flag
+					>>| stop
+
+generateSource :: EditorState -> Task EditorState
+generateSource state = accWorld (tryRender state.EditorState.gMod state.EditorState.config POICL) 
+	>>= \source -> return { EditorState | state & source = source }
+
+checkErrors :: EditorState -> Task EditorState
+checkErrors state=:{ EditorState | gMod = { moduleKind = GGraphicalModule defs } }
+	= accIWorld (syntaxCheck state.EditorState.gMod)
+	  >>= transform (\compileResult -> { EditorState | state & errors = makeErrorString compileResult })
+where
+	makeErrorString :: (CompileResult a) -> [ORYXError]
+	makeErrorString (CompileSuccess _) = []
+	makeErrorString (CompileGlobalError error) = [makeORYXError ((hd defs).GDefinition.body) ([], error)]
+	makeErrorString (CompilePathError errors) = map (makeORYXError ((hd defs).GDefinition.body)) errors
+	
+actions :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> [(!Action,!EditorTaskContinuation state v Void)]
+actions stateShared parallelInfo
+	=	[ (ActionNew,              Always stop)
+		, (ActionOpen,             Always (actionTask "Open" open))
+		, (ActionSave,             Always (actionTask "Save" save))
+		, (ActionSaveAs,           Always (actionTask "Save as" saveAs))
+		, (ActionCompile,          Always (actionTask "Compile" compile))
+		, (ActionRun,              Always (actionTask "Run" run))
+		, (ActionQuit,             Always (set parallelInfo [StopParallel] >>| stop))
+		, (ActionAbout,            Always (actionTask "About" showAbout))
+		, (ActionViewDeclaration,  Always (moduleEditor "Declaration" (declarationView, declarationUpdate)))
+		, (ActionViewImports,      Always importsEditor)
+		, (ActionViewTypes,        Always (moduleEditor "Types" (typesView, typesUpdate)))
+		, (ActionViewSource,       Always sourceView)
+		]
+	where
+		actionTask title task = get stateShared >>= task >>= set stateShared >>| stop
+	
+		addTask title task = set parallelInfo 
+			[AppendTask (WindowTask title noMenu (\s _ -> task))] >>| stop
+		moduleEditor title v = addTask title (updateSharedInformation title (liftModuleView v) stateShared)
+		
+		declarationEditor = moduleEditor "declaration" (declarationView, declarationUpdate)
+		importsEditor = addTask "imports" 
+			(					get stateShared 
+				>>= \state	 ->	accWorld (searchPathModules state.EditorState.config)
+				>>= \modules ->	moduleEditor "imports" (importsView modules, importsUpdate)
+			)
+		sourceView = addTask "source" (monitor "source view" (\s -> Note s.EditorState.source) (const True) False stateShared)
+
+liftModuleView :: (GModule -> a, a GModule -> GModule) -> (EditorState -> a, a EditorState -> EditorState)
+liftModuleView (toView, fromView) = 
+	( \model -> toView model.gMod
+	, \view model -> { model & gMod = fromView view model.gMod, changed = True }
+	)
+	
 declarationView :: !GModule -> GDeclaration
-declarationView {imports, moduleKind = (GGraphicalModule defs)} = (hd defs).GDefinition.declaration
-
+declarationView {moduleKind = (GGraphicalModule defs)} = (hd defs).GDefinition.declaration
+	
 declarationUpdate :: !GDeclaration !GModule -> GModule
-declarationUpdate decl gMod=:{moduleKind = (GGraphicalModule defs)} = 
-	{ GModule 
-	| gMod 
+declarationUpdate decl gMod=:{moduleKind = (GGraphicalModule defs)} =
+	{ gMod
 	& moduleKind = GGraphicalModule 
 		[	{ GDefinition 
 			| hd defs & declaration = decl
-			} 
-		]
-	}
-
-diagramView :: !GModule -> ORYXEditor
-diagramView gMod =:{moduleKind = (GGraphicalModule defs)} 
-	= ginORYXEditor ((hd defs).GDefinition.body) //check
-//where
-	/*check :: !ORYXEditor *IWorld -> *(WorldPredicateResult, !*IWorld)
-	check editor=:{diagram} iworld
-	# gMod` = { GModule 
-			  | gMod
-			  & moduleKind = GGraphicalModule
-			 	( [ { GDefinition 
-			 		| hd defs 
-			 		& body = diagram
-			 		}
-			 		: tl defs
-			 	  ]
-			 	)
-			 }
-	# (compileresult, iworld) = syntaxCheck gMod` iworld
-	  hint = case compileresult of
-				CompileSuccess _ = Nothing
-				CompileGlobalError error = (Just o toString o toJSON) [(makeORYXError diagram ([], error))]
-				CompilePathError errors = (Just o toString o toJSON o catMaybes o map (makeORYXError diagram)) errors
-	= (WPRValid hint, iworld)*/
-	
-diagramUpdate :: !ORYXEditor !GModule -> GModule
-diagramUpdate oryx gMod=:{moduleKind = (GGraphicalModule defs)} = 
-	{ GModule 
-	| gMod 
-	& moduleKind = GGraphicalModule 
-		[	{ GDefinition 
-			| hd defs & body = oryx.ORYXEditor.diagram
 			} 
 		]
 	}
@@ -191,29 +225,10 @@ importsUpdate :: (MultipleChoice String) GModule -> GModule
 importsUpdate (MultipleChoice imports indices) gMod =
 	updateDiagramExtensions { GModule | gMod & imports = map (\i-> imports !! i) indices }
 
-typeView :: !GModule -> [GTypeDefinition]
-typeView gMod = gMod.GModule.types
-typeUpdate :: ![GTypeDefinition] !GModule -> GModule
-typeUpdate types gMod = { GModule | gMod & types = types }
-
-switchAction :: (Action, EditorState) -> Task Void
-switchAction (action, state) = 
-    case action of
-        ActionNew              = askSaveIfChanged state >>| emptyState >>= doMenu
-        ActionOpen             = askSaveIfChanged state >>| open state >>= doMenu 
-        ActionSave             = save state >>= doMenu
-        ActionSaveAs           = saveAs state >>= doMenu 
-        ActionUpdate           = update state >>= doMenu 
-        ActionRun              = run state >>| doMenu state
-        ActionQuit             = askSaveIfChanged state 
-        ActionAbout            = showAbout >>| doMenu state
-        ActionViewDeclaration  = doMenu { EditorState | state & mode = ViewDeclaration }
-        ActionViewWorkflow     = doMenu { EditorState | state & mode = ViewWorkflow }
-        ActionViewImports      = doMenu { EditorState | state & mode = ViewImports }
-        ActionViewTypes        = doMenu { EditorState | state & mode = ViewTypes }
-        ActionViewSource         = doMenu { EditorState | state & mode = ViewSource }
-//        ActionEnableSC         = doMenu state { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = True } }
-//        ActionDisableSC        = doMenu state { EditorState | state & editor = { GinEditor | state.EditorState.editor & checkSyntax = False } }
+typesView :: !GModule -> [GTypeDefinition]
+typesView gMod = gMod.GModule.types
+typesUpdate :: ![GTypeDefinition] !GModule -> GModule
+typesUpdate types gMod = { GModule | gMod & types = types }
 
 getName :: EditorState -> String
 getName state = case state.EditorState.name of
@@ -224,9 +239,9 @@ setChanged :: EditorState EditorState -> EditorState
 setChanged old new = if (old.EditorState.gMod =!= new.EditorState.gMod) { new & changed = True } new        
 
 open :: EditorState -> Task EditorState 
-open state = emptyState >>= \newState -> chooseModule state.EditorState.config >>= \mMod = 
+open state = getInitialState >>= \initialState -> chooseModule state.EditorState.config >>= \mMod = 
 	case mMod of
-		Just (name, gMod) = return { EditorState | newState & name = Just name, gMod = gMod }
+		Just (name, gMod) = return { EditorState | initialState & name = Just name, gMod = gMod }
 		Nothing			  = return state
 
 save :: EditorState -> Task EditorState
@@ -247,9 +262,12 @@ askSaveIfChanged state = if state.changed
         	]
     )
     (return Void)
+where
+	requestConfirmation :: !String -> Task Bool 
+	requestConfirmation message = showMessageA message [(ActionYes, True), (ActionNo, False)]
 
-update :: EditorState -> Task EditorState
-update state
+compile :: EditorState -> Task EditorState
+compile state
 # state = { state & compiled = Nothing }
 = accIWorld (batchBuild state.EditorState.gMod)
   >>= \result = case result of
@@ -257,8 +275,8 @@ update state
    				  								>>| return { state & compiled = Just dynfile }
     			  error						-> showMessageAbout "Compiler output" error >>| return state
 
-run :: EditorState -> Task Void
-run state = showMessage ("Error", "Runninig tasks requires dynamic linker") Void
+run :: EditorState -> Task EditorState
+run state = showMessage ("Error", "Runninig tasks requires dynamic linker") state
 /*
 run state = getCurrentUser >>= \user -> 
 	case state.compiled of
@@ -277,11 +295,11 @@ tryRender gMod config printOption world
 # (st, world) = gToAModule gMod config world
 # source = case runParse st of
 	GSuccess aMod -> prettyPrintAModule printOption aMod
-	GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = toString path +++ ":" +++ msg) errors)))
+	GError errors -> "Parse error:\n" +++ ((join "\n" (map (\(path,msg) = msg) errors)))
 = (source, world)
 
-showAbout :: Task Void
-showAbout = showMessage ("Gin workflow editor", "version 0.1") Void
+showAbout :: EditorState -> Task EditorState
+showAbout state = showMessage ("Gin workflow editor", "version 0.1") state
 
 accIWorld :: !(*IWorld -> *(!a,!*IWorld)) -> Task a | iTask a
 accIWorld fun = mkInstantTask ("Run Iworld function", "Run a IWorld function and get result.") (mkTaskFunction (accIWorldTSt fun))

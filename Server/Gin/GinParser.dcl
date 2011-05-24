@@ -12,17 +12,11 @@ import GinAbstractSyntax
 from iTasks import ::JSONNode, ::VerSt, ::UpdateMask, ::USt, ::UpdateMode, ::VSt, ::Visualization
 from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDefaultMask, generic gVerify, generic JSONEncode, generic JSONDecode, generic gEq
 
-:: GPath	:== [GPathNode]
+:: GPath :== [GPathNode]
 
-:: GPathNode	= PNDefinition Int
-				| PNBody
-				| PNNode Int
-				| PNEdge Int
-				| PNActualParam Int
-				| PNPattern
-				| PNListItem Int
-				
-instance toString GPath
+:: GPathNode	= NodePath GResourceId
+				| ParamPath Int
+				| EdgePath GResourceId
 
 :: GParseResult a = GSuccess a | GError [(GPath, String)]
 :: GParseState a = GParseState (GPath -> GParseResult a)
@@ -35,17 +29,25 @@ getParseError :: (GParseResult a) -> [(GPath, String)]
 
 instance Monad GParseState
 
-parseChild :: GPathNode (GParseState a) -> GParseState a
+class PathNode a 
+where
+	getPathNode :: a GPath -> GPath
+
+instance PathNode GNode
+instance PathNode GEdge
+instance PathNode (Int,GExpression)
+
+parseChild :: a (GParseState b) -> GParseState b | PathNode a
 parseMap :: (a -> GParseState b) [a] -> GParseState [b]
-parseChildMap :: (Int -> GPathNode) (a -> GParseState b) [a] -> GParseState [b]
+parseChildMap :: (a -> GParseState b) [a] -> GParseState [b] | PathNode a
 orElse :: (GParseState a) (GParseState a) -> GParseState a
 
 parseError :: String -> GParseState a
-parseErrorInChild :: GPathNode String -> GParseState a
-parseErrorInChildren :: (Int -> GPathNode) [Int] String -> GParseState a
+parseErrorInChild :: a String -> GParseState b | PathNode a
+parseErrorInChildren :: [a] String -> GParseState b | PathNode a
 
 getCurrentPath :: GParseState GPath
-withPath :: GPath (GParseState a) -> GParseState a
+//withPath :: GPath (GParseState a) -> GParseState a
 
 runParse :: (GParseState a) -> GParseResult a
 

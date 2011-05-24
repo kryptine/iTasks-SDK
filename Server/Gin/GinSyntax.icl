@@ -81,11 +81,18 @@ newWorkflow =	{ GDefinition
                               }
 				, body = ginORYXDiagram
 				}
+				
+emptyEdge :: GEdge
+emptyEdge = 
+	{ GEdge
+	| identifier = ""
+	, pattern    = Nothing
+	}
               
 newModule :: GModule
 newModule = { GModule
 			| name = "newModule"
 			, types = []
 			, moduleKind = GGraphicalModule [newWorkflow]
-			, imports = []
+			, imports = [ "CommonCombinators", "CoreCombinators", "InteractionTasks" ]
 			}

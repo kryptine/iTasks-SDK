@@ -1,14 +1,13 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
+	defaultWidth: ['FillParent', 1, ['FixedMinSize', 300]],
+	defaultHeight: ['FillParent', 1, ['FixedMinSize', 200]],
 	initComponent : function(){
-		this.defaultWidth = 1000;
-		this.defaultHeight = 700;
 		Ext.apply(this,
 			{ url: "/handlers/work/tab"
 			, border: false
             , layout: 'fit'
-            , height: 320
             , cls: 'oryxcontrol'
             , html: 'Loading...'
 			});
@@ -19,13 +18,14 @@ itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
 	},
 
 	setValue : function(json){
-        if (! itasks.util.approxEquals(this.facade.getJSON(), json, 1E-6)) {
+        if (! itasks.util.approxEquals(this.facade.getJSON(), json.diagram, 1E-6)) {
             this.inUpdate = true; //temporary ignore onChange events
             this.clearEditor();
 			
-            this.facade.importJSON(json);
+            this.facade.importJSON(json.diagram);
             this.inUpdate = false;
         }
+        this.showErrors(json.errors);
 	},
 
     clearEditor : function(){
@@ -73,6 +73,7 @@ itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
                   ? this.stencilsetURL
                   : ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetURL;
 
+        this.setSize (300,200);
 		this.facade = new ORYX.Editor({
             parentContainer: this,
             stencilset: {
@@ -80,30 +81,23 @@ itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
             }
         });
         
-        this.facade.importJSON(this.value);
+        this.facade.importJSON(this.value.diagram);
 
         var oryxControl = this;
         this.facade.registerOnEvent(ORYX.CONFIG.EVENT_AFTER_EXECUTE_COMMANDS, 
                                     function(){ oryxControl.onChange(); });
-
-		(function(){
-			this.setError(this.errorMsg);
-			this.setHint(this.hintMsg);
-		}).defer(50,this);
     },
 	
 	setError: function(message){		
-        //OryxControl does not support error messages, only hints
     },
-	
 	setHint: function(message){
+    },
+
+	showErrors: function(json){
         this.facade.handleEvents({
             type: ORYX.Plugins.SyntaxChecker.RESET_ERRORS_EVENT
         });
-        if (message == '')
-            return;
 
-        json = Ext.decode(message);
         var hints = {};
         json.each(function(hint){
                       hints[hint.resourceId] = (hint.paramIndex != null

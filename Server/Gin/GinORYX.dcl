@@ -11,7 +11,7 @@ from GinParser import ::GPath, ::GPathNode
 
 ::ORYXEditor = { diagram	:: ORYXDiagram
 			   , stencilset	:: ORYXStencilSetReference
-			   //, verify		:: !ORYXEditor *IWorld -> *(WorldPredicateResult,!*IWorld)
+			   , errors		:: [ORYXError]
 			   }
 
 :: ORYXBound =	
@@ -108,4 +108,4 @@ ginORYXEditor :: !ORYXDiagram /*!(ORYXEditor *IWorld -> *(WorldPredicateResult,*
 
 updateDiagramExtensions :: !GModule -> GModule
 
-makeORYXError :: !ORYXDiagram !(GPath,String) -> Maybe ORYXError
+makeORYXError :: !ORYXDiagram !(GPath,String) -> ORYXError

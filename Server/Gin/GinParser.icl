@@ -3,7 +3,7 @@ implementation module GinParser
 import StdBool
 import StdArray
 import StdEnum
-from StdFunc import o,flip
+from StdFunc import o,flip,seq
 import StdMisc
 import StdList
 import StdOrdList
@@ -29,21 +29,6 @@ import GinStorage
 //--------------------------------------------------------------------------------------------------
 //GParseState monadic combinators
 
-instance toString GPath where
-	toString nodes = "/" +++ (((foldr (\a b -> a +++ "/" +++ b) "") o reverse o map toString) nodes)
-
-instance toString GPathNode where
-    toString (PNDefinition i)	= toS "definitions" i
-    toString PNBody				= "body"
-    toString (PNNode i)			= toS "nodes" i
-    toString (PNEdge i)			= toS "edges" i
-    toString (PNActualParam i)	= toS "actualParameters" i
-    toString PNPattern			= "pattern"
-    toString (PNListItem i)		= toS "items" i
-
-toS :: !String Int -> String
-toS name curNode= name +++ "[" +++ toString curNode+++ "]"
-    
 derive class iTask GPathNode, GParseResult, GParseState
 
 isParseError :: (GParseResult a) -> Bool
@@ -55,7 +40,7 @@ getParseSuccess (GSuccess a) = a
 
 getParseError :: (GParseResult a) -> [(GPath, String)]
 getParseError (GError b) = b
-	
+
 instance Monad GParseState
 where
 	ret :: a -> GParseState a
@@ -66,9 +51,35 @@ where
                                          GError errors = GError errors
                                          GSuccess a = strip (k a) path) where
           strip (GParseState f) = f
-                                    
-parseChild :: GPathNode (GParseState a) -> GParseState a
-parseChild child (GParseState f) = GParseState (\path = f [child:path])
+          
+instance PathNode GNode
+where
+	getPathNode :: GNode GPath -> GPath
+	getPathNode { GNode | identifier } _ = [NodePath identifier]
+
+instance PathNode GEdge
+where
+	getPathNode :: GEdge GPath -> GPath
+	getPathNode { GEdge | identifier} _ = [EdgePath identifier]
+	
+instance PathNode (Int,GExpression)
+where
+	getPathNode :: (Int,GExpression) GPath -> GPath
+	getPathNode (i,_) path = [ParamPath i : path]
+	
+instance PathNode TreeGraph
+where
+	getPathNode :: TreeGraph GPath -> GPath
+	getPathNode (TreeGraph graph source sink) path = getPathNode (fromJust (getNodeData source graph)) path
+
+instance PathNode TreeGraphNode
+where
+	getPathNode :: TreeGraphNode GPath -> GPath
+	getPathNode (TGNode node)         path = getPathNode node path 
+	getPathNode (TGSubgraph subgraph) path = getPathNode subgraph path
+	
+parseChild :: a (GParseState b) -> GParseState b| PathNode a
+parseChild child (GParseState f) = GParseState (\path = f (getPathNode child path))
 
 parseMap :: (a -> GParseState b) [a] -> GParseState [b]
 parseMap _ []     = ret []
@@ -76,12 +87,11 @@ parseMap f [x:xs] = f x >>> \x` =
 				                  parseMap f xs >>> \xs` = 
                                   ret [x`:xs`]
 
-parseChildMap :: (Int -> GPathNode) (a -> GParseState b) [a] -> GParseState [b]
-parseChildMap  child f xs = pm f (zip2 xs [0..]) where
-    pm _ []         = ret []
-    pm f [(x,n):xs] = parseChild (child n) (f x) >>> \x` =
-                      pm f xs               	 >>> \xs` = 
-                      ret [x`:xs`]
+parseChildMap :: (a -> GParseState b) [a] -> GParseState [b]| PathNode a
+parseChildMap f [] = ret []
+parseChildMap f [x:xs] = parseChild x (f x) >>> \x` ->
+						 parseChildMap f xs >>> \xs` ->
+						 ret [x`:xs`]
 
 orElse :: (GParseState a) (GParseState a) -> GParseState a
 orElse (GParseState m) (GParseState k) = 
@@ -92,17 +102,14 @@ orElse (GParseState m) (GParseState k) =
 parseError :: String -> GParseState a
 parseError message = GParseState (\path = GError [(path,message)])
 
-parseErrorInChild :: GPathNode String -> GParseState a
+parseErrorInChild :: a String -> GParseState b| PathNode a
 parseErrorInChild child message = parseChild child (parseError message)
 
-parseErrorInChildren :: (Int -> GPathNode) [Int] String -> GParseState a
-parseErrorInChildren child nrs message = GParseState (\path = GError (map (\nr = ([child nr:path],message)) nrs))
+parseErrorInChildren :: [a] String -> GParseState b| PathNode a
+parseErrorInChildren children message = GParseState (\path = GError [(getPathNode child path, message) \\ child <- children])
 
 getCurrentPath :: GParseState GPath
 getCurrentPath = GParseState (\path = GSuccess path)
-
-withPath :: GPath (GParseState a) -> GParseState a
-withPath path (GParseState f) = GParseState (\_ = f path)
 
 runParse :: (GParseState a) -> GParseResult a
 runParse (GParseState f) = f []
@@ -119,7 +126,7 @@ gToAModule gmod =: { moduleKind = GGraphicalModule definitions } config world
 	# imports = fromOk res
 	# bindings = map getDefinitionBinding definitions
 				 ++ (flatten o map getModuleBindings) imports
-	= ( parseChildMap PNDefinition (gToADefinition bindings) definitions >>> \definitions = 
+	= ( parseMap (gToADefinition bindings) definitions >>> \definitions = 
 	    ret	{ AModule
 			| name = gmod.GModule.name
 			, types = gmod.GModule.types
@@ -131,7 +138,7 @@ gToAModule gmod =: { moduleKind = GGraphicalModule definitions } config world
 gToADefinition :: !Bindings !GDefinition -> GParseState ADefinition
 gToADefinition bindings gdef
 # graph = GGraphExpression (oryxDiagramToGraph bindings gdef.GDefinition.body)
-= parseChild PNBody (gToAExpression bindings graph) >>> \body =
+= gToAExpression bindings graph >>> \body =
   ret { ADefinition 
       | name         = gdef.GDefinition.declaration.GDeclaration.name
       , formalParams = gdef.GDefinition.declaration.GDeclaration.formalParams
@@ -140,27 +147,27 @@ gToADefinition bindings gdef
       , locals       = []
       }
       
-gToAExpression :: !Bindings !GExpression -> GParseState (AExpression a)
+gToAExpression :: !Bindings !GExpression -> GParseState (AExpression Void)
 gToAExpression bindings (GUndefinedExpression) = parseError "Undefined expression"
 gToAExpression bindings (GGraphExpression graph) = graphToAExpression bindings graph
 gToAExpression bindings (GListExpression gexps) =
-    parseChildMap PNListItem (gToAExpression bindings) gexps >>> \aexps = 
+    parseMap (gToAExpression bindings) gexps >>> \aexps = 
     ret (List aexps)
 gToAExpression bindings (GListComprehensionExpression glc) = 
     gToAListComprehension bindings glc >>> \alc = ret (ListComprehension alc)
 gToAExpression bindings (GCleanExpression text) | size text == 0 = parseError "Clean expression is empty"
 gToAExpression bindings (GCleanExpression text)                  = ret (Unparsed text)
 
-gToAExpressionPath :: !Bindings !GExpression -> GParseState (AExpression a)
+gToAExpressionPath :: !Bindings !GExpression -> GParseState (AExpression Void)
 gToAExpressionPath bindings exp = gToAExpression bindings exp >>> \exp` =
     getCurrentPath >>> \path =
     ret (PathContext path exp`)
 
-gToAMaybeExpression :: !Bindings !(Maybe GExpression) -> GParseState (Maybe (AExpression a))
+gToAMaybeExpression :: !Bindings !(Maybe GExpression) -> GParseState (Maybe (AExpression Void))
 gToAMaybeExpression bindings (Just exp) = gToAExpression bindings exp >>> \exp` = ret (Just exp`)
 gToAMaybeExpression bindings Nothing = ret Nothing
     
-gToAListComprehension :: !Bindings !GListComprehension -> GParseState (AListComprehension a)
+gToAListComprehension :: !Bindings !GListComprehension -> GParseState (AListComprehension Void)
 gToAListComprehension bindings glc = 
     gToAExpression bindings glc.GListComprehension.output >>> \output` =
     gToAExpression bindings glc.GListComprehension.input >>> \input` = 
@@ -172,11 +179,10 @@ gToAListComprehension bindings glc =
 //--------------------------------------------------------------------------------------------------------------
 //GGraph decomposition
 
-graphToAExpression :: !Bindings !GGraph -> GParseState (AExpression a)
+graphToAExpression :: !Bindings !GGraph -> GParseState (AExpression Void)
 graphToAExpression bindings graph =
 	toTreeGraph graph >>> \tg ->
 	ret (decompose bindings (tg)) >>> \tg ->
-//	trace_n ("after decomp:" +++ showTreeGraph tg) (ret tg) >>> \tg -> 
 	treeGraphToAExpression bindings tg
 
 :: TreeGraph = TreeGraph (Graph TreeGraphNode GEdge) NodeIndex NodeIndex
@@ -198,11 +204,13 @@ fromSubgraph (TGSubgraph t) = t
 
 toTreeGraph :: GGraph -> GParseState TreeGraph
 toTreeGraph (GGraph graph)
-# mbSource = sourceNode graph
-  mbSink   = sinkNode graph
-| isNothing mbSource = parseError "No unique source node"
-| isNothing mbSink = parseError "No unique sink node"
-= ret (TreeGraph (mapNodes (\n -> TGNode n) graph) (fromJust mbSource) (fromJust mbSink))
+# sources = filterNodes (\pred _ _ -> isEmpty pred) graph 
+| isEmpty sources = parseError "No source node found"
+| (not o isEmpty) (tl sources) = parseErrorInChildren (getNodes sources graph) "Source node is not unique" 
+# sinks = filterNodes (\_ succ _ -> isEmpty succ) graph 
+| isEmpty sinks = parseError "No sink node found"
+| (not o isEmpty) (tl sinks) = parseErrorInChildren (getNodes sinks graph) "Sink node is not unique" 
+= ret (TreeGraph (mapNodes (\n -> TGNode n) graph) (hd sources) (hd sinks))
 
 edgePairs :: (Graph n e) EdgeIndex -> [(EdgeIndex,EdgeIndex)]
 edgePairs graph startEdge = (diag2 (successorEdges startEdge graph) (predecessorEdges startEdge graph))
@@ -212,10 +220,10 @@ decompose bindings tg=:(TreeGraph g source sink)
 	| nodeCount g == 1 = tg //Trivial graph: No decomposition possible
 	# loop = (sink,source) 
 	# pairs = edgePairs g loop
-	= decomp (edgePairs g loop) loop (TreeGraph (addEdge Nothing loop g) source sink)
+	= decomp (edgePairs g loop) loop (TreeGraph (addEdge emptyEdge loop g) source sink)
 where
 	decomp :: [(EdgeIndex,EdgeIndex)] EdgeIndex TreeGraph -> TreeGraph
-	decomp [] loop tg = tg
+	decomp [] loop (TreeGraph g source sink) = TreeGraph (removeEdge loop g) source sink
 	decomp [(fromEdge,toEdge):edges] loop tg=:(TreeGraph g source sink)
 		| not (   isParallelBinding (nodeName (fst fromEdge) g) (nodeName (snd toEdge) g) bindings
 			   || isParallelBinding (nodeName (snd fromEdge) g) (nodeName (fst toEdge) g) bindings
@@ -227,19 +235,19 @@ where
 		| isTrivialGraph s = decomp edges loop tg
 		# g = removeEdge loop g
 		# (newNode,g) = addNode (TGSubgraph(decompose bindings (TreeGraph s (snd fromEdge) (fst toEdge)))) g //decompose subgraph s recursively
-		# g = addEdge Nothing (fst fromEdge,newNode) g
-		# g = addEdge Nothing (newNode, snd toEdge) g
+		# g = addEdge emptyEdge (fst fromEdge,newNode) g
+		# g = addEdge emptyEdge (newNode, snd toEdge) g
 		# source = if (source == snd fromEdge) newNode source
 		# sink = if (sink == fst toEdge) newNode sink
 		= decompose bindings (TreeGraph g source sink)
 
-treeGraphNodeToAExpression :: !Bindings !TreeGraphNode -> GParseState (AExpression a)
+treeGraphNodeToAExpression :: !Bindings !TreeGraphNode -> GParseState (AExpression Void)
 treeGraphNodeToAExpression bindings (TGNode node) = nodeToAExpression bindings node
 treeGraphNodeToAExpression bindings (TGSubgraph graph) = treeGraphToAExpression bindings graph
 
-treeGraphToAExpression :: !Bindings !TreeGraph -> GParseState (AExpression a)
+treeGraphToAExpression :: !Bindings !TreeGraph -> GParseState (AExpression Void)
 treeGraphToAExpression bindings tg=:(TreeGraph graph source sink)
-	| isEmptyGraph graph = parseError "Empty graph"
+	| isEmptyGraph graph = parseErrorInChild tg "Empty graph"
 	//Trivial subgraphs
 	| isTrivialGraph graph
 		= treeGraphNodeToAExpression bindings (fromJust (getNodeData (hd (nodeIndices graph)) graph))
@@ -249,28 +257,23 @@ treeGraphToAExpression bindings tg=:(TreeGraph graph source sink)
 	//Sequential subgraphs
 	| isSequential tg = sequenceToAExpression bindings tg
 	//Other graphs
-	= parseError "Mapping not supported"
+	= parseErrorInChild tg "Mapping not supported"
 
-nodeToAExpression :: !Bindings !GNode -> GParseState (AExpression a)
-nodeToAExpression bindings node =
-    getNodeBinding node.GNode.name bindings >>> \nb = 
-    case nb.NodeBinding.parameterMap of 
-        NBBuiltIn = parseError "Node not allowed here" 
-        NBPrefixApp = 
-            if (isEmpty node.GNode.actualParams)
-                (ret (Var node.GNode.name))
-                (parseChildMap PNActualParam (gToAExpressionPath bindings) node.GNode.actualParams >>> \exps =
-                 ret (App [(Var node.GNode.name) : exps]))
-		NBInfixApp fix precedence =
-			if (length node.GNode.actualParams <> 2)
-				(parseError "Mapping to infix operator requires 2 parameters")
-				(	parseChild (PNActualParam 0) ((gToAExpressionPath bindings) (node.GNode.actualParams !! 0)) >>> \exp1 ->
-					parseChild (PNActualParam 1) ((gToAExpressionPath bindings) (node.GNode.actualParams !! 1)) >>> \exp2 -> 
-					ret (AppInfix node.GNode.name fix precedence exp1 exp2)
-				)
+nodeToAExpression :: !Bindings !GNode -> GParseState (AExpression Void)
+nodeToAExpression bindings node = 
+	parseChild node
+	    ( getNodeBinding node.GNode.name bindings >>> \nb = 
+	    case nb.NodeBinding.parameterMap of 
+	        NBBuiltIn = parseError "Node not allowed here"
+	        NBPrefixApp = 
+	            if (isEmpty node.GNode.actualParams)
+	                (ret (Var node.GNode.name))
+	                (parseChildMap (gToAExpressionPath bindings o snd) (zip2 [0..] node.GNode.actualParams) >>> \exps =
+	                 ret (App [(Var node.GNode.name) : exps]))
+		)
 
-isSequential :: TreeGraph -> Bool
-isSequential graph = True //TODO: check if graph does not contain any parallel split or parallel merge node.
+//-------------------------------------------------------------------------------------------
+//Mapping of parallel subgraphs
 
 parallelDecompose :: !Bindings !TreeGraph -> Maybe (GNode, GNode, [TreeGraphNode])
 parallelDecompose bindings (TreeGraph graph sourceIndex sinkIndex)
@@ -281,15 +284,15 @@ parallelDecompose bindings (TreeGraph graph sourceIndex sinkIndex)
 	# sink = fromNode (fromJust (getNodeData sinkIndex graph))
 	= Just (source, sink, [ fromJust (getNodeData n graph) \\ n <- branchIndices])
 
-parallelToAExpression :: !Bindings (GNode, GNode, [TreeGraphNode]) -> GParseState (AExpression a)
+parallelToAExpression :: !Bindings (GNode, GNode, [TreeGraphNode]) -> GParseState (AExpression Void)
 parallelToAExpression bindings (split, merge, branches) =
-//    withPath splitPath (
+    parseChild split (
         getParallelBinding split.GNode.name merge.GNode.name bindings >>> \pb = 
         checkNrBranches pb (length branches) >>> \_ =
         setParallelParams bindings (split,merge) branches pb.ParallelBinding.parameterMap >>> \exp = 
 	    getCurrentPath >>> \path =
 	    ret (PathContext path exp)
-//    )
+    )
 
 checkNrBranches :: !ParallelBinding !Int -> GParseState Void
 checkNrBranches pb i = case pb.fixedNrBranches of
@@ -298,7 +301,7 @@ checkNrBranches pb i = case pb.fixedNrBranches of
                       +++ ") must have " +++ fromInt n +++ " branches")
     Nothing = ret Void
 
-setParallelParams :: !Bindings !(GNode, GNode) ![TreeGraphNode] !(AExpression PBParameter) -> GParseState (AExpression a)
+setParallelParams :: !Bindings !(GNode, GNode) ![TreeGraphNode] !(AExpression PBParameter) -> GParseState (AExpression Void)
 setParallelParams _ _ _ (Unparsed s) = ret (Unparsed s)
 setParallelParams _ _ _ (Lit s) = ret (Lit s)
 setParallelParams _ _ _ (Var i) = ret (Var i)
@@ -338,9 +341,9 @@ setParallelParams bindings (split,merge) branches (Extension ext) = case ext of
 			_	= setList
 		where
 		setListComprehension node = 
-			getNodeParameter node 0 >>> \generatorPattern -> 
+			getNodePattern node 0 >>> \generatorPattern -> 
 			gToAExpression bindings (node.GNode.actualParams !! 1) >>> \generatorExpression ->
-			getNodeParameter node 2 >>> \guard ->
+			getNodePattern node 2 >>> \guard ->
 			gToAExpression bindings (node.GNode.actualParams !! 3) >>> \output ->
 			ret
 				( ListComprehension 
@@ -353,28 +356,73 @@ setParallelParams bindings (split,merge) branches (Extension ext) = case ext of
 		setList = parseMap (treeGraphNodeToAExpression bindings) branches >>> \branches` ->
      				      ret (List branches`)
 
-setParallelParamsCase :: !Bindings !(GNode, GNode) ![TreeGraphNode] !(ACaseAlt PBParameter) -> GParseState (ACaseAlt a)
+setParallelParamsCase :: !Bindings !(GNode, GNode) ![TreeGraphNode] !(ACaseAlt PBParameter) -> GParseState (ACaseAlt Void)
 setParallelParamsCase bindings (split,merge) branches (CaseAlt pat exp) =
 	setParallelParams bindings (split,merge) branches exp >>> \exp` =
 	ret (CaseAlt pat exp`)
 
-sequenceToAExpression :: !Bindings !TreeGraph -> GParseState (AExpression a) 	
+//-------------------------------------------------------------------------------------------
+//Mapping of sequential subgraphs
+
+isSequential :: TreeGraph -> Bool
+isSequential graph = True //TODO: check if graph does not contain any parallel split or parallel merge node.
+
+:: Scope :== [GIdentifier]
+
+bindVar :: !GIdentifier !Scope -> Scope
+bindVar var scope = [var : filter (\p = p <> var) scope]
+
+bindVars :: ![GIdentifier] !Scope -> Scope
+bindVars vars scope = foldr bindVar scope vars
+
+:: ScopeMap :== Map NodeIndex Scope
+updateScopeMap :: ![NodeIndex] ![GIdentifier] !ScopeMap -> ScopeMap
+updateScopeMap [] _ scopeMap = scopeMap
+updateScopeMap [n:ns] vars scopeMap
+	= updateScopeMap ns vars (put n (bindVars vars (fromMaybe [] (get n scopeMap))) scopeMap)
+
+getScope :: !NodeIndex !ScopeMap -> [GIdentifier]
+getScope n scopeMap = fromMaybe [] (get n scopeMap)
+
+sequenceToAExpression :: !Bindings !TreeGraph -> GParseState (AExpression Void) 	
 sequenceToAExpression bindings (TreeGraph graph source sink)
-	# mergeNodes = filter (\n -> nodeName n graph == "case merge" 
+	# (updateMap, graph) = mapIndicesReversePostorder graph source
+	# source = fromJust (get source updateMap)
+	# sink = fromJust (get sink updateMap)
+	# tg = (TreeGraph graph source sink)
+	= parseChild tg (sequenceToAExpression` bindings tg)
+
+sequenceToAExpression` :: !Bindings !TreeGraph -> GParseState (AExpression Void)
+sequenceToAExpression` bindings (TreeGraph graph source sink)
+	# mergeNodes = filter (\n -> nodeName n graph == "case merge"
 	                       && not (isPathToMergeSink n sink)) (nodeIndices graph)
-	
-	= seqNodeToAExpr source sink mergeNodes >>> \sourceExp ->
-	  parseMap (\i -> seqNodeToAExpr (hd (directSuccessors i graph)) sink mergeNodes >>> \exp -> ret (i,exp)) 
-	           mergeNodes >>> \letExps ->
-   
-	 let variableMap = collectVariableExps letExps
-	 in ret (	if (isEmpty letExps)
-				(setParams variableMap sourceExp)
-			 	(Let	(map (\(i,exp) -> ("merge" +++ toString i +++ " " +++ unwords (getNodeVariables i variableMap), setParams variableMap exp)) letExps) 
-						(setParams variableMap sourceExp)
-				)
-			)
+	# doms = dominators graph source
+	# df = dominanceFrontiers` graph doms source
+	= collectScopes [source] [] df newMap >>> \scopeMap -> 
+	  translate source sink mergeNodes doms scopeMap
 where
+	collectScopes :: [NodeIndex] [NodeIndex] DFNodes ScopeMap -> GParseState ScopeMap
+	collectScopes [] _ _ scopeMap= ret scopeMap
+	collectScopes [node:rest] visited df scopeMap
+		| isMember node visited = collectScopes rest visited df scopeMap
+		= boundVariables node graph >>> \vars -> 
+		  collectScopes (rest ++ directSuccessors node graph) [node:visited] df (updateScopeMap (fromMaybe [] (get node df)) vars scopeMap)
+
+	boundVariables :: NodeIndex (Graph TreeGraphNode GEdge) -> GParseState [GIdentifier]
+	boundVariables node graph
+		# nodeData = fromJust (getNodeData node graph)
+		# name = nodeName node graph
+		| name == "let" = 
+			getNodePattern (fromNode nodeData) 0 >>> \param -> ret (extractVariables param)
+		# preds = directPredecessors node graph
+		| length preds <> 1 = ret []
+		# mPattern = (fromJust (getEdgeData (hd preds, node) graph)).GEdge.pattern
+		| isNothing mPattern = ret []
+		= ret (extractVariables (fromJust mPattern))
+
+	domTreeChildren :: NodeIndex {#Int} -> [NodeIndex]
+	domTreeChildren node doms = [ i \\ i <- [0.. size doms - 1] | doms.[i] == node && i <> node]
+
 	isPathToMergeSink :: NodeIndex NodeIndex -> Bool
 	isPathToMergeSink current sink
 		# nodeData = fromJust (getNodeData current graph)
@@ -385,69 +433,84 @@ where
 		= case directSuccessors current graph of
 			[n] = isPathToMergeSink n sink
 			_   = False
+
+	translate :: NodeIndex NodeIndex [NodeIndex] {#Int} ScopeMap -> GParseState (AExpression Void)
+	translate current sink mergeNodes doms scopeMap
+		# c = domTreeChildren current doms
+		# ps = filter (\p -> isMember p mergeNodes) [current:c]
+		= parseMap (\i -> translate (hd (directSuccessors i graph)) sink mergeNodes doms scopeMap >>> \iexp -> 
+		            ret ("f" +++ toString i +++ " " +++ unwords (getScope i scopeMap), iexp)) ps >>> \letExps ->
+		  seqNodeToAExpr current sink mergeNodes doms scopeMap >>> \exp -> 
+		  ret if (isEmpty letExps) exp (Let letExps exp)
 			
-	seqNodeToAExpr :: NodeIndex NodeIndex [NodeIndex] -> GParseState (AExpression NodeIndex)
-	seqNodeToAExpr current sink mergeNodes
+	seqNodeToAExpr :: NodeIndex NodeIndex [NodeIndex] {#Int} ScopeMap -> GParseState (AExpression Void)
+	seqNodeToAExpr current sink mergeNodes doms scopeMap
 		# nodeData = (fromJust (getNodeData current graph))
 		| current == sink = treeGraphNodeToAExpression bindings nodeData                    //1
 		| isNode nodeData
 			# node = fromNode nodeData
 			# nodename = node.GNode.name
-			| isMember current mergeNodes = ret (Extension current)                         //2: recursive call
-			| nodename == "case split" = caseNodeToAExpr current sink mergeNodes            //3
-			| nodename == "let" = letNodeToAExpr current sink mergeNodes                    //4
+			| isMember current mergeNodes = 
+				let f = Var ("f" +++ toString current) in 
+				ret (case fromMaybe [] (get current scopeMap) of
+						[] = f
+						xs = App [f : map Var xs]
+					)
+			| nodename == "case split" = caseNodeToAExpr current sink mergeNodes doms scopeMap //3
+			| nodename == "let" = letNodeToAExpr current sink mergeNodes doms scopeMap      //4
 			= seqNode` nodeData 
 		= seqNode` nodeData
 	where
 		seqNode` nodeData
 			# successors = directSuccessors current graph
-			| not (isEmpty (tl successors)) = parseError "Node cannot be used as split node"    //7
+			| not (isEmpty (tl successors)) = parseErrorInChild nodeData "Node cannot be used as split node"    //7
 			# successor = hd successors
-			| isPathToMergeSink successor sink = seqNodeToAExpr current current mergeNodes
-			# edgePattern = fromJust (getEdgeData (current, successor) graph)                   //5,6
-		    = treeGraphNodeToAExpression bindings nodeData >>> \first`  -> 
-		      seqNodeToAExpr successor sink mergeNodes     >>> \second` ->
+			| isPathToMergeSink successor sink = seqNodeToAExpr current current mergeNodes doms scopeMap
+			# edgePattern = (fromJust (getEdgeData (current, successor) graph)).pattern                   //5,6
+		    = treeGraphNodeToAExpression bindings nodeData      >>> \first`  -> 
+		      seqNodeToAExpr successor sink mergeNodes doms scopeMap >>> \second` ->
 			    ret (case edgePattern of 
 		    			Just p  = (AppInfix ">>=" Infixl 1 first` (Lambda p second`))
 				    	Nothing = (AppInfix ">>|" Infixl 1 first` second`)
 			    	)
 
-	caseNodeToAExpr :: NodeIndex NodeIndex [NodeIndex] -> GParseState (AExpression NodeIndex)
-	caseNodeToAExpr current sink mergeNodes
-		# nodeData = (fromJust (getNodeData current graph))
+	caseNodeToAExpr :: NodeIndex NodeIndex [NodeIndex] {#Int} ScopeMap -> GParseState (AExpression Void)
+	caseNodeToAExpr current sink mergeNodes doms scopeMap
+		# nodeData = fromJust (getNodeData current graph)
 		# node = fromNode nodeData
 		# successors = directSuccessors current graph
-		| isEmpty successors = parseError "Missing node(s) after case split"
-		| any (flip isPathToMergeSink sink) successors = parseError "Missing task in branch"
+		| isEmpty successors = parseErrorInChild node "Missing node(s) after case split"
+		| any (flip isPathToMergeSink sink) successors = parseErrorInChild node "Missing task in branch" //TODO: Highlight branch
 		# caseExpression = node.GNode.actualParams
-		= gToAExpression bindings (node.GNode.actualParams !! 0) >>> \caseExpr -> 
-		  parseMap (\n -> seqNodeToAExpr n sink mergeNodes >>> \exp -> 
+		= parseChild node (gToAExpression bindings (node.GNode.actualParams !! 0)) >>> \caseExpr -> 
+		  parseMap (\n -> seqNodeToAExpr n sink mergeNodes doms scopeMap >>> \exp -> 
 		            ret (fromJust (getEdgeData (current,n) graph), exp)) successors >>> \caseAlts ->
-		  if (length (filter isNothing (map fst caseAlts)) > 1)
-			(parseError "A case expression can have at most one default case")
+		  if (length (filter (\{pattern} -> isNothing pattern) (map fst caseAlts)) > 1)
+			(parseErrorInChild node "A case expression can have at most one default case")
 			//"otherwise" alternative is put at the end of the list
-			(ret (let sortalts = filter (not o isEmptyEdge o fst) caseAlts ++ filter (isEmptyEdge o fst) caseAlts
-			    in Case caseExpr (map mkCaseAlt caseAlts)))
+			//TODO: Sort according to diagram layout.
+			(ret (let sortAlts = filter (not o isEmptyEdge o fst) caseAlts ++ filter (isEmptyEdge o fst) caseAlts
+			    in Case caseExpr (map mkCaseAlt sortAlts)))
 	where
 		isEmptyEdge :: GEdge -> Bool
-		isEmptyEdge Nothing = True
-		isEmptyEdge (Just pat) = size (trim pat) == 0
+		isEmptyEdge {pattern = Nothing  } = True
+		isEmptyEdge {pattern = Just pat } = size (trim pat) == 0
 	
-		mkCaseAlt :: (GEdge, AExpression NodeIndex) -> ACaseAlt NodeIndex
-		mkCaseAlt (Just pat, exp) = CaseAlt pat exp
-		mkCaseAlt (Nothing, exp)  = CaseAlt "otherwise" exp
+		mkCaseAlt :: (GEdge, AExpression Void) -> ACaseAlt Void
+		mkCaseAlt ({pattern = Just pat}, exp) = CaseAlt pat exp
+		mkCaseAlt ({pattern = Nothing }, exp)  = CaseAlt "otherwise" exp
 		  
-	letNodeToAExpr :: NodeIndex NodeIndex [NodeIndex] -> GParseState (AExpression NodeIndex)
-	letNodeToAExpr current sink mergeNodes 
+	letNodeToAExpr :: NodeIndex NodeIndex [NodeIndex] {#Int} ScopeMap -> GParseState (AExpression Void)
+	letNodeToAExpr current sink mergeNodes doms scopeMap
 		# nodeData = (fromJust (getNodeData current graph))
 		# node = fromNode nodeData
 		# successors = directSuccessors current graph
-		| isEmpty successors = parseError "Missing node after let"
-		| not (isEmpty (tl successors)) = parseError "Let cannot be used as split node"
-		| isPathToMergeSink (hd successors) sink = parseError "Missing task in branch"
-		= getNodeParameter node 0 >>> \pat ->
+		| isEmpty successors = parseErrorInChild node "Missing node after let"
+		| not (isEmpty (tl successors)) = parseErrorInChild node "Let cannot be used as split node"
+		| isPathToMergeSink (hd successors) sink = parseErrorInChild node "Missing task in branch"
+		= getNodePattern node 0 >>> \pat ->
 		  gToAExpression bindings (node.GNode.actualParams !! 1) >>> \exp -> 
-		  seqNodeToAExpr (hd successors) sink mergeNodes >>> \inExpr ->
+		  seqNodeToAExpr (hd successors) sink mergeNodes doms scopeMap >>> \inExpr ->
 		  ret (Let [(pat,exp)] inExpr)
 
 nodeName :: NodeIndex (Graph TreeGraphNode e) -> String
@@ -455,91 +518,115 @@ nodeName nodeIndex graph = case fromJust (getNodeData nodeIndex graph) of
 	TGNode{ GNode | name } = name
 	_                     = ""
 
-getNodeParameter :: GNode Int -> GParseState String
-getNodeParameter { actualParams } index = getTextExpr (actualParams !! index)
+getNodePattern :: GNode Int -> GParseState String
+getNodePattern node index = parseChild node (getTextExpr (node.GNode.actualParams !! index))
 where
 	getTextExpr :: GExpression -> GParseState String
-	getTextExpr (GCleanExpression exp) = ret exp
+	getTextExpr (GCleanExpression exp) | exp == "" = parseError "Pattern is empty"
+									   | otherwise = ret exp
 	getTextExpr f = parseError "Expected: textual expression"
 	
+getNodes :: [NodeIndex] (Graph n e) -> [n]
+getNodes nodes graph = catMaybes [ getNodeData n graph\\ n <- nodes ]
+
 //--------------------------------------------------------------------------------------------------
-//Determine arguments of tail-recursive calls
+/* 
+ * Implementation of "A Simple, Fast Dominance Algorithm"
+ * by Keith D. Cooper, Timothy J. Harvey, and Ken Kennedy, 2001. 
+ * Available at: http://www.cs.rice.edu/~keith/EMBED/dom.pdf
+ */
 
-:: Scope :== [GIdentifier]
+/* 
+ * mapIndicesReversePostorder: sort node indices of graph reverse postorder,
+ * which is a prerequisite for dominance and dominanceFrontier functions
+ */
+mapIndicesReversePostorder :: (Graph n e) NodeIndex -> (Map NodeIndex NodeIndex, Graph n e)
+mapIndicesReversePostorder graph startNode
+	# indices = [ (i,j) \\ i <- reversePostorder graph startNode & j <- reverse [1 .. nodeCount graph] ]
+	= (fromList indices, mapIndices indices graph)
 
-bind :: !GIdentifier !Scope -> Scope
-bind i scope = [i : filter (\p = p <> i) scope]
+reversePostorder :: (Graph n e) NodeIndex -> [NodeIndex]
+reversePostorder graph startIndex = bfs graph [startIndex] []
+where
+	bfs :: (Graph n e) [NodeIndex] [NodeIndex] -> [NodeIndex]
+	bfs graph [] visited = []
+	bfs graph [n:ns] visited
+		| isMember n visited = bfs graph ns visited
+		= [n : bfs graph (ns ++ directSuccessors n graph) [n: visited]]
 
-bindPattern :: !GPattern Scope -> Scope
-bindPattern pattern scope = foldr bind scope (extractVariables pattern)
+dominators :: (Graph n e) NodeIndex -> {#Int}
+dominators graph startNode
+	# allNodes = tl (reversePostorder graph startNode) // tl (reverse (sort (nodeIndices graph)))
+	# doms = { createArray (maxList (nodeIndices graph) + 1) -1 & [startNode] = startNode }
+	# (_, doms) = forAllNodes graph allNodes allNodes (False, doms)
+	= doms
 
-:: NodeVariables = 
-	{ freeVariables		:: [GIdentifier] // free variables in expression (free variables in all successors should be added as well...)
-	, boundVariables	:: [GIdentifier] // union of bound variables of all *incoming* branches
-	}
-:: NodeVariableMap :== Map NodeIndex NodeVariables
+forAllNodes :: (Graph n e) ![Int] ![Int] (Bool, *{#Int}) -> (Bool, *{#Int})
+forAllNodes graph [] allNodes (False,doms) = (False, doms)
+forAllNodes graph [] allNodes (True,doms) = forAllNodes graph allNodes allNodes (False, doms)
+forAllNodes graph [b:bs] allNodes (changed,doms)
+	# ([new_idom:preds], doms) = filterProcessed (directPredecessors b graph) doms
+	# (new_idom, doms) = forAllPredecessors preds (new_idom, doms)
+	= if (doms.[b] <> new_idom)
+		(forAllNodes graph bs allNodes (True   , { doms & [b] = new_idom }))
+		(forAllNodes graph bs allNodes (changed, doms                     ))
+where
+	filterProcessed :: [Int] *{#Int} -> ([Int], *{#Int})
+	filterProcessed [] doms = ([], doms)
+	filterProcessed [n:ns] doms = 
+		let (n`, doms`) = uselect doms n
+	    in if (n` == -1)
+			(filterProcessed ns doms`)
+	        (let (ns`, doms``) = filterProcessed ns doms` in ([n:ns`], doms``))
 
-getNodeVariables :: NodeIndex NodeVariableMap -> [GIdentifier]
-getNodeVariables nodeIndex nvMap
-	= case get nodeIndex nvMap of
-		Nothing = []
-		Just nv = sort [ v \\ v <- nv.freeVariables | isMember v nv.boundVariables ]
+forAllPredecessors :: ![Int] !(Int, *{#Int}) -> (Int, *{#Int})
+forAllPredecessors [] (new_idom, doms) = (new_idom, doms)
+forAllPredecessors [p:ps] (new_idom, doms)
+	= 	let (p`, doms`) = uselect doms p
+	    in if (p` == -1) 
+	    		(forAllPredecessors ps (new_idom,doms`)) 
+	    		(forAllPredecessors ps (intersect p new_idom doms`))
 
-updateNodeVariableMap :: NodeIndex (NodeVariables -> NodeVariables) NodeVariableMap -> NodeVariableMap
-updateNodeVariableMap index f nvMap
-	# nv = case get index nvMap of 
-		Nothing = { NodeVariables | freeVariables = [], boundVariables = [] }
-		Just nv = nv
-	= put index (f nv) nvMap
+intersect :: !Int !Int !*{#Int} -> (Int, *{#Int})
+intersect finger1 finger2 doms
+	| finger1 == finger2 = (finger1, doms)
+	# (finger1, doms) = reduce finger1 finger2 doms
+	# (finger2, doms) = reduce finger2 finger1 doms
+	= intersect finger1 finger2 doms
+	
+reduce :: !Int !Int !*{#Int} -> (Int, *{#Int})
+reduce node stop doms
+	| node >= stop = (node, doms)
+	# (node`,doms`) = uselect doms node
+	= reduce node` stop doms`
 
-addFreeVariables :: NodeIndex [GIdentifier] NodeVariableMap -> NodeVariableMap
-addFreeVariables nodeIndex vars nvMap = updateNodeVariableMap nodeIndex (\nv -> { nv & freeVariables = foldr bind nv.freeVariables vars }) nvMap
+/*
+dominates :: NodeIndex NodeIndex {#Int} -> Bool
+dominates i j doms | i == j = True
+                   | doms.[j] == i = True
+                   | doms.[j] == j = False
+                   = dominates i doms.[j] doms
+*/
 
-addBoundVariables :: NodeIndex [GIdentifier] NodeVariableMap -> NodeVariableMap
-addBoundVariables nodeIndex vars nvMap = updateNodeVariableMap nodeIndex (\nv -> { nv & boundVariables = foldr bind nv.boundVariables vars }) nvMap
+:: DFNodes :== Map NodeIndex [NodeIndex]
 
-collectVariableExps ::  [(NodeIndex, AExpression NodeIndex)] -> NodeVariableMap
-collectVariableExps [] = newMap
-collectVariableExps [(index, exp): exps] = collectVariables index [] (collectVariableExps exps) exp
+dominanceFrontiers :: (Graph n e) NodeIndex -> DFNodes
+dominanceFrontiers graph startNode 
+	# doms = dominators graph startNode
+	= dominanceFrontiers` graph doms startNode
 
-collectVariables :: NodeIndex Scope NodeVariableMap (AExpression NodeIndex) -> NodeVariableMap
-collectVariables curNode scope acc (Unparsed s) = addFreeVariables curNode (freeVariablesInCleanExpr scope s) acc
-collectVariables curNode scope acc (Lit s) = acc
-collectVariables curNode scope acc (Var v) = if (isMember v scope) acc (addFreeVariables curNode [v] acc)
-collectVariables curNode scope acc (App exps) 
-	= collectMap curNode scope acc collectVariables exps
-collectVariables curNode scope acc (AppInfix i fix prec e1 e2) = 
-	collectVariables curNode scope (collectVariables curNode scope acc e1) e2
-collectVariables curNode scope acc (Lambda pat exp) 
-	= collectVariables curNode (bindPattern pat scope) acc exp
-collectVariables curNode scope acc (Let defs exp)
-	# scope = foldr bindPattern scope (map fst defs)
-	= collectVariables curNode scope (collectMap curNode scope acc collectLetDefs defs) exp
-collectVariables curNode scope acc (Case exp alts)
-	= collectMap curNode scope (collectVariables curNode scope acc exp) collectCaseAlt alts
-collectVariables curNode scope acc (Tuple exps) 
-	= collectMap curNode scope acc collectVariables exps
-collectVariables curNode scope acc (List exps)
-	= collectMap curNode scope acc collectVariables exps
-//collectVariables curNode scope acc (ListComprehension alc)
-//	= collectListComprehension curNode scope acc alc
-collectVariables curNode scope acc (PathContext path exp) = collectVariables curNode scope acc exp
-collectVariables curNode scope acc (Extension toNode) = addBoundVariables toNode scope acc
+dominanceFrontiers` :: (Graph n e) {#Int} NodeIndex -> DFNodes
+dominanceFrontiers` graph doms startNode
+	= seq [ dfPred b doms \\ b <- filterNodes (\pred _ _ -> length pred >= 2) graph ] newMap
+	where
+		dfPred :: NodeIndex {#Int} DFNodes -> DFNodes
+		dfPred b doms dfNodes = seq [run b doms p \\ p <- directPredecessors b graph] dfNodes
 
-collectLetDefs :: NodeIndex Scope NodeVariableMap (APattern, AExpression NodeIndex) -> NodeVariableMap
-collectLetDefs curNode scope acc (pat, exp) = collectVariables curNode scope acc exp //!!
-
-collectCaseAlt :: NodeIndex Scope NodeVariableMap (ACaseAlt NodeIndex) -> NodeVariableMap
-collectCaseAlt curNode scope acc (CaseAlt pat exp)
-	# scope` = if (trim pat == "_") scope (bindPattern pat scope)
-	= collectVariables curNode scope` acc exp
-
-collectMap :: NodeIndex Scope NodeVariableMap (NodeIndex Scope NodeVariableMap a -> NodeVariableMap) [a] -> NodeVariableMap
-collectMap curNode scope acc f []     = acc
-collectMap curNode scope acc f [x:xs] = collectMap curNode scope (f curNode scope acc x) f xs
-
-freeVariablesInCleanExpr :: Scope !String -> [GIdentifier]
-freeVariablesInCleanExpr scope expr = filter (\v -> not (isMember v scope)) (extractVariables expr)
+		run :: NodeIndex {#Int} NodeIndex DFNodes -> DFNodes
+		run b doms runner dfNodes
+			| runner <> doms.[b] = run b doms doms.[runner] 
+				(put runner ((\dfs -> [b:removeMember b dfs]) (fromMaybe [] (get runner dfNodes))) dfNodes)
+			| otherwise = dfNodes
 
 extractVariables :: !String -> [String] //TODO: Replace by a real parser
 extractVariables s = filter isVariable (splitOn (not o variableChar) s)
@@ -562,51 +649,33 @@ where
 		isVar i | i == size s = isLower s.[0]
 	                          = variableChar s.[i] && isVar (i+1)
 
-setParams :: NodeVariableMap (AExpression NodeIndex) -> AExpression a
-setParams nvMap (Unparsed s) = Unparsed s
-setParams nvMap (Lit s) = Lit s
-setParams nvMap (Var v) = Var v
-setParams nvMap (App exps) 
-	= App (setMap nvMap setParams exps)
-setParams nvMap (AppInfix i fix prec e1 e2) = 
-	AppInfix i fix prec (setParams nvMap e1) (setParams nvMap e2)
-setParams nvMap (Lambda pat exp)
-	= Lambda pat (setParams nvMap exp)
-setParams nvMap (Let defs exp)
-	= Let (setMap nvMap setLetDefsParams defs) (setParams nvMap exp)
-setParams nvMap (Case exp alts)
-	= Case (setParams nvMap exp) (setMap nvMap setCaseAltParams alts)
-setParams nvMap (Tuple exps) 
-	= Tuple (setMap nvMap setParams exps)
-setParams nvMap (List exps)
-	= List (setMap nvMap setParams exps)
-//setParams nvMap (ListComprehension alc)
-//	= collectListComprehension nvMap alc
-setParams nvMap (PathContext path exp) = setParams nvMap exp
-setParams nvMap (Extension toNode)
-	# fun = Var ("merge" +++ toString toNode)
-	# args = getNodeVariables toNode nvMap
-	| isEmpty args = fun
-	= App [fun : map Var args]
-
-setLetDefsParams :: NodeVariableMap (APattern, AExpression NodeIndex) -> (APattern, AExpression a)
-setLetDefsParams nvMap (pat, exp) = (pat, setParams nvMap exp)
-
-setCaseAltParams :: NodeVariableMap (ACaseAlt NodeIndex) -> (ACaseAlt a)
-setCaseAltParams nvMap (CaseAlt pat exp) = CaseAlt pat (setParams nvMap exp)
-
-setMap :: NodeVariableMap (NodeVariableMap a -> b) [a] -> [b]
-setMap nvMap f []     = []
-setMap nvMap f [x:xs] = [f nvMap x: setMap nvMap f xs]
-
 //--------------------------------------------------------------------------------------------------
-// for debugging
-/*
-derive gPrint (,)
-derive gPrint NodeVariables
+// Debugging
 
-printNodeVariableMap :: NodeVariableMap -> String
-printNodeVariableMap nvMap = printToString (toList nvMap)
+/*
+traceDoms :: *{#Int} -> *{#Int}
+traceDoms doms
+	# (items, doms) = usize doms
+	= trace "\nDoms:" seq [traceDoms` i \\ i <- [0..items - 1]] doms
+where	
+	traceDoms` :: Int *{#Int} -> *{#Int}
+	traceDoms` index doms
+		# (item, doms) = uselect doms index
+		= trace (toString index +++ " -> " +++ toString item +++ " , ") doms
+
+instance toString TreeGraphNode
+where
+	toString (TGNode {GNode | name}) = name
+	toString (TGSubgraph s) = "(subgraph)"
+
+instance toString (Maybe String)
+where
+	toString m = printToString m
+
+derive gPrint Maybe
+
+derive gPrint (,)
+
 showTreeGraph :: TreeGraph -> String
 showTreeGraph (TreeGraph graph source sink) = "[" +++ 
 	toString (length (nodeIndices graph)) +++ " nodes, " +++ toString (length (edgeIndices graph)) +++ " edges, source=" +++ 
@@ -622,7 +691,12 @@ where
 	showEdges :: [EdgeIndex] -> String
 	showEdges [] = ""
 	showEdges [(fromNode,toNode):edges] = "(" +++ toString fromNode +++ "," +++ toString toNode +++ ")," +++ showEdges edges
+
+instance toString GEdge
+where
+	toString edge = "GEdge"
 */
+
 //--------------------------------------------------------------------------------------------------
 //Utilities
     	

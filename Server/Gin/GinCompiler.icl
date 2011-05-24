@@ -317,9 +317,8 @@ searchPaths config =
 iTasksPaths :: [String]
 iTasksPaths = 
 	[ "Server"
+	, "Server\\API\\Common"
 	, "Server\\API\\Core"
-	, "Server\\API\\Core\\BasicTasks"
-	, "Server\\API\\Core\\TaskCombinators"
 	, "Server\\API\\Extensions"
 	, "Server\\API\\Extensions\\Admin"
 	, "Server\\Framework"
