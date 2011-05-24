@@ -13,13 +13,13 @@ from Config		import :: Config
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay
+derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, Workflow
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay
+derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, Workflow
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay
+derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay, Workflow
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
 derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
@@ -398,12 +398,22 @@ instance menuAction (actionName, ActionLabel) | actionName actionName
 :: OutputTaskType		= ActiveOutput | PassiveOutput
 
 // iWorld
-:: *IWorld		=	{ application	:: !String		// The name of the application	
-					, store			:: !Store		// The generic data store
-					, config		:: !Config		// The server configuration
-					, world			:: !*World		// The outside world
-					, timestamp		:: !Timestamp	// The timestamp of the current request
-					, localDateTime	:: !DateTime	// The local date & time of the current request
-					, tmpDirectory	:: !FilePath	// The path for temporary files, the garbage collector also works on files in this dir
-					, currentUser	:: !User
+:: *IWorld		=	{ application		:: !String		// The name of the application	
+					, store				:: !Store		// The generic data store
+					, config			:: !Config		// The server configuration
+					, world				:: !*World		// The outside world
+					, timestamp			:: !Timestamp	// The timestamp of the current request
+					, localDateTime		:: !DateTime	// The local date & time of the current request
+					, tmpDirectory		:: !FilePath	// The path for temporary files, the garbage collector also works on files in this dir
+					, currentUser		:: !User
+					, staticWorkflows	:: ![Workflow]	// the list of workflows supported by the application
+					}
+
+// A workflow specification
+:: Workflow		=	{ path				:: String									// a unique name of this workflow
+					, roles				:: [String]									// the roles that are allowed to initate this workflow
+					, thread			:: Dynamic									// the thread of the main task of the workflow
+					, description		:: String									// a description of the workflow
+					, managerProperties	:: ManagerProperties						// the initial manager properties of the main task
+					, menu				:: ActionMenu								// the menu of the main task
 					}

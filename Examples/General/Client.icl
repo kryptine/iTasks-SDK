@@ -44,7 +44,7 @@ where
 	
 processTable =
 		get currentUser
-	>>=	\user. updateSharedInformationA "process table" (Table o map toView,\_ _ -> Void) (myProcesses user) noActions
+	>>=	\user. updateSharedInformationA "process table" (Table o map toView,\_ _ -> Void) (currentProcessesForUser user) noActions
 where
 	toView {Process|properties=p=:{taskProperties,managerProperties,systemProperties,progress}} =
 		{ title		= Display taskProperties.taskDescription.TaskDescription.title
@@ -164,4 +164,4 @@ where
 	//Allow workflows without required roles
 	isAllowed _ wf					= isEmpty wf.Workflow.roles
 	
-myProcesses user = makeReadOnlyShared ('ProcessDB'.getProcessesForUser user [Running] [Active])
+

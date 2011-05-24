@@ -233,7 +233,9 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Table
+gUpdate {|Menu|} _ _ = abort "not implemented"
+
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Table, Workflow
 
 basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
 basicUpdateSimple mode def ust = case mode of
@@ -305,8 +307,9 @@ gDefaultMask{|Tree|} _ tree=:(Tree _ sel)
 	// if no valid selection is made, start with untouched mask
 	| sel >= 0	= [Touched []]
 	| otherwise	= [Untouched]
+gDefaultMask{|Menu|} _ = abort "not implemented"
 
-derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Table
+derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Table, Workflow
 
 //Utility functions
 dp2s :: !DataPath -> String

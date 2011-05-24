@@ -84,6 +84,15 @@ where
 	* @retrun The database handle 
 	*/
 	deleteUser :: !User !*st -> (!User,!*st)
+	/**
+	* Gets the timestamp of the last change of the user database.
+	*
+	* @param A unique database handle
+	*
+	* @return The timestamp
+	* @retrun The database handle 
+	*/
+	lastChange :: !*st -> (!Timestamp,!*st)
 
 instance UserDB IWorld
 instance UserDB TSt

@@ -3,7 +3,7 @@ implementation module TSt
 import StdList, StdTuple, StdBool, StdMisc, Maybe, StdFile 
 import Directory, Error, File, OSError
 import HTTP, Util, Text
-import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
+import ProcessDB, ChangeDB, DocumentDB, TaskTree, SessionDB
 import GenEq, GenVisualize, GenUpdate, Store, Config
 from StdFunc			import id, const, o, seq
 from iTasks				import JSONDecode, fromJSON
@@ -22,10 +22,10 @@ mkTSt appName config workflows store tmpDir world
 		, editEvent			= Nothing
 		, commitEvent		= Nothing
 		, properties		= initProcessProperties
-		, staticInfo		= initStaticInfo workflows
+		, staticInfo		= initStaticInfo
 		, currentChange		= Nothing
 		, pendingChanges	= []
-		, iworld			= initIWorld appName config store tmpDir world
+		, iworld			= initIWorld appName config store tmpDir workflows world
 		, sharedChanged		= False
 		, sharedDeleted		= False
 		, iterationCount	= 1
@@ -34,15 +34,14 @@ mkTSt appName config workflows store tmpDir world
 		, resultLayout		= defaultResultLayout
 		}
 
-initStaticInfo :: ![Workflow] -> StaticInfo
-initStaticInfo workflows
+initStaticInfo :: StaticInfo
+initStaticInfo
 	=	{ currentProcessId	= ""
 		, currentSession 	= {Session | sessionId = "", user = AnyUser, timestamp = Timestamp 0}
-		, staticWorkflows	= workflows
 		}
 
-initIWorld	:: !String !Config !Store !FilePath !*World -> *IWorld
-initIWorld application config store tmpDir world
+initIWorld	:: !String !Config !Store !FilePath ![Workflow] !*World -> *IWorld
+initIWorld application config store tmpDir workflows world
 	# (timestamp,world)	= time world
 	# (dateTime,world)	= currentDateTimeWorld world
 	= 	{ IWorld
@@ -54,6 +53,7 @@ initIWorld application config store tmpDir world
 		, localDateTime		= dateTime
 		, tmpDirectory		= tmpDir
 		, currentUser		= AnyUser
+		, staticWorkflows	= workflows
 		}
 		
 initTaskInfo :: TaskInfo
@@ -174,12 +174,12 @@ garbageCollectTaskInstance procId tst
 	= (False,tst)
 
 //NEW THREAD FUNCTIONS
-createThread :: !(Task a) -> Dynamic | iTask a
+createThread :: (Task a) -> Dynamic | iTask a
 createThread task = (dynamic container :: Container (TaskThread a^) a^)
 where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
  	
-createThreadParam :: !String !(a -> Task b)	-> Dynamic | iTask a & iTask b
+createThreadParam :: !String (a -> Task b)	-> Dynamic | iTask a & iTask b
 createThreadParam title task = (dynamic container :: Container (Container (TaskThreadParam a^ b^) b^) a^)
 where
  	container = Container (Container ({TaskThreadParam|originalTask = task, currentTask = task, title = title}))
@@ -563,8 +563,8 @@ where
 		= (f config, {IWorld|iworld & config = config})
 
 getWorkflows :: !*TSt -> (![Workflow],!*TSt)
-getWorkflows tst=:{staticInfo = staticInfo =:{staticWorkflows}}
-	= (staticWorkflows, {tst & staticInfo = {staticInfo & staticWorkflows = staticWorkflows}})
+getWorkflows tst=:{TSt|iworld=iworld =:{staticWorkflows}}
+	= (staticWorkflows,tst)
 
 getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
 getWorkflowByName name tst

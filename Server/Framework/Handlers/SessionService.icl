@@ -1,10 +1,11 @@
 implementation module SessionService
 
 import HTTP
-import TSt, UserDB, SessionDB
+import TSt, SessionDB
 import StdBool, StdList
 import JSON
 import HtmlUtil, Text
+from UserDB import qualified class UserDB(..), instance UserDB TSt
 
 sessionService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 sessionService url format path req tst
@@ -39,7 +40,7 @@ sessionService url format path req tst
 				= (serviceResponse html "Create session" createDescription url createParams json, tst)
 			//Authenticated session
 			| otherwise
-				# (mbUser, tst) = authenticateUser usernameParam passwordParam tst
+				# (mbUser, tst) = 'UserDB'.authenticateUser usernameParam passwordParam tst
 				= case mbUser of
 					Just user
 						# (session, tst)	= createSession (Just user) tst

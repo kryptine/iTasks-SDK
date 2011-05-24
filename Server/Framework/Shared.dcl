@@ -107,10 +107,7 @@ toReadOnlyShared :: !(Shared r w) -> ReadOnlyShared r
 symmetricLens :: !(a b -> b) !(b a -> a) !(SymmetricShared a) !(SymmetricShared b) -> (!SymmetricShared a,!SymmetricShared b)
 
 /**
-* Creates a simple read-only shared which's value is computed by a function on IWorld (which can optionally give an error).
-* The timestamp of the shared is the current one.
+* Creates a read-only shared which's value & timestamp is computed by a function on IWorld (which can optionally give an error).
 */
-makeReadOnlyShared		:: !(*IWorld -> *(!a,!*IWorld))						-> ReadOnlyShared a
-makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld))	-> ReadOnlyShared a
-
-nullShared :: Shared Void a
+makeReadOnlyShared		:: !(*IWorld -> *(!a,!*IWorld))						!(*IWorld -> *(!Timestamp,!*IWorld))					-> ReadOnlyShared a
+makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld))	!(*IWorld -> *(!MaybeErrorString Timestamp,!*IWorld))	-> ReadOnlyShared a

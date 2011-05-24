@@ -10,6 +10,7 @@ import Shared
 import TSt
 import UserDB
 
+from Util				import currentTimestampError
 from CoreCombinators	import >>=, >>|
 from CoreTasks			import return
 from CommonCombinators	import transform
@@ -31,7 +32,7 @@ derive bimap Maybe, (,)
 callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args =
 					mkInstantTask ("Call process","Calls a process and give shared reference to return code.") callProcess`
-	>>= \outfile.	wait ("Call Process", "Waiting for external process (" +++ cmd +++ ")") (makeReadOnlySharedError (check outfile))
+	>>= \outfile.	wait ("Call Process", "Waiting for external process (" +++ cmd +++ ")") (makeReadOnlySharedError (check outfile) currentTimestampError)
 where
 	callProcess` tst=:{TSt | taskNr, iworld = {IWorld | config, tmpDirectory} }
 		# outfile			= tmpDirectory </> (iTaskId taskNr "callprocess")

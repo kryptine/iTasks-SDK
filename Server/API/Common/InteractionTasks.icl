@@ -1,7 +1,7 @@
 implementation module InteractionTasks
 
 from StdFunc import id, const, o
-from Shared import nullShared
+from SystemData import null
 from Util import voidNothing, appSnd, tuple, getItems
 import StdBool, StdList
 import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, SystemData
@@ -22,7 +22,7 @@ where
 	toSharedRes (DisplayView v)					= DisplayView v
 	
 	nullShared` :: SymmetricShared Void
-	nullShared` = nullShared
+	nullShared` = null
 	
 //Local input
 enterInformation :: !d -> Task a | descr d & iTask a

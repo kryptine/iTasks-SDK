@@ -51,6 +51,9 @@ currentDateTime iworld=:{localDateTime} = (localDateTime,iworld)
 currentTimestamp :: !*IWorld -> (!Timestamp,!*IWorld)
 currentTimestamp iworld=:{timestamp} = (timestamp,iworld)
 
+currentTimestampError :: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
+currentTimestampError iworld=:{timestamp} = (Ok timestamp,iworld)
+
 currentDateTimeWorld :: !*World -> (!DateTime,!*World)
 currentDateTimeWorld world
 	# (tm,world)	= localTime world

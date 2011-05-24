@@ -43,13 +43,13 @@ derive gPutRecordFields	Task
 taskException :: !e -> TaskResult a | TC, toString e
 
 :: TaskThread a		=
-	{ originalTask		:: !Task a
-	, currentTask		:: !Task a
+	{ originalTask		:: Task a
+	, currentTask		:: Task a
 	}
 	
 :: TaskThreadParam a b	=
-	{ originalTask		:: !a -> Task b
-	, currentTask		:: !a -> Task b
+	{ originalTask		:: a -> Task b
+	, currentTask		:: a -> Task b
 	, title				:: !String
 	}
 

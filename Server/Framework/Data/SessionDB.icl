@@ -9,16 +9,16 @@ instance SessionDB IWorld
 where
 	getSessions	:: !*IWorld -> (![Session], !*IWorld)
 	getSessions iworld
-		= sessionStore id iworld
+		= readSessionStore iworld
 	
 	getSessionsForUser :: !User !*IWorld -> (![Session], !*IWorld)
 	getSessionsForUser user iworld
-		# (sessions, iworld)				= sessionStore id iworld
+		# (sessions, iworld)				= readSessionStore iworld
 		= ([s \\ s <- sessions | s.Session.user == user], iworld)
 	
 	getSession :: !SessionId !*IWorld -> (!Maybe Session, !*IWorld)
 	getSession sid iworld
-		# (sessions, iworld)				= sessionStore id iworld
+		# (sessions, iworld)				= readSessionStore iworld
 		= case [s \\ s <- sessions | s.Session.sessionId == sid] of
 			[s]	= (Just s, iworld)
 			_	= (Nothing, iworld)
@@ -33,7 +33,7 @@ where
 	
 	restoreSession	:: !SessionId !*IWorld -> (!Maybe Session, !Bool, !*IWorld)
 	restoreSession sid iworld =:{IWorld|timestamp}
-		# (sessions, iworld)			= sessionStore id iworld
+		# (sessions, iworld)			= readSessionStore iworld
 		# (mbSession, before, after)	= findSession sid [] sessions
 		= case mbSession of
 			Nothing
@@ -46,15 +46,20 @@ where
 					# (_, iworld)	= sessionStore (\_ -> (before ++ [{Session|s & timestamp = timestamp}: after])) iworld
 				 	= (Just s, False, iworld)
 		
-	deleteSession	:: !SessionId !*IWorld -> (!Bool,!*IWorld)
+	deleteSession :: !SessionId !*IWorld -> (!Bool,!*IWorld)
 	deleteSession sid iworld
-		# (sessions, iworld)		= sessionStore id iworld
+		# (sessions, iworld)		= readSessionStore iworld
 		# (mbSession, before, after)= findSession sid [] sessions
 		| isJust mbSession
 			# (_, iworld)			= sessionStore (\_ -> (before ++ after)) iworld
 			= (True,iworld)
 		| otherwise
 			= (False, iworld)
+			
+	lastChange :: !*IWorld -> (!Timestamp,!*IWorld)
+	lastChange iworld
+		# (mbTs,iworld) = getStoreTimestamp "SessionDB" iworld
+		= (fromMaybe (Timestamp 0) mbTs,iworld)
 	
 findSession :: !String ![Session] ![Session] -> (!Maybe Session, ![Session], ![Session]) 
 findSession sid before [] = (Nothing, reverse before, [])
@@ -73,6 +78,11 @@ sessionStore fn iworld
 	# list 				= fn (case mbList of Nothing = []; Just list = list)
 	# iworld			= storeValue "SessionDB" list iworld
 	= (list,iworld)
+	
+readSessionStore :: !*IWorld -> (![Session],!*IWorld) 
+readSessionStore iworld
+	# (mbList,iworld)	= loadValue "SessionDB" iworld
+	= (fromMaybe [] mbList,iworld)
 
 instance SessionDB TSt
 where
@@ -90,3 +100,5 @@ where
 		= (mbSession,timeout,{TSt|tst & iworld = iworld})
 	deleteSession :: !SessionId !*TSt -> (!Bool,!*TSt)
 	deleteSession sessionId tst = accIWorldTSt (deleteSession sessionId) tst
+	lastChange :: !*TSt -> (!Timestamp,!*TSt)
+	lastChange tst = accIWorldTSt lastChange tst

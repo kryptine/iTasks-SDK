@@ -40,6 +40,15 @@ where
 	* @param session id
 	*/
 	deleteSession	:: !SessionId !*st -> (!Bool, !*st)
+	/**
+	* Gets the timestamp of the last change of the session database.
+	*
+	* @param A unique database handle
+	*
+	* @return The timestamp
+	* @retrun The database handle 
+	*/
+	lastChange :: !*st -> (!Timestamp,!*st)
 	
 instance SessionDB IWorld
 instance SessionDB TSt

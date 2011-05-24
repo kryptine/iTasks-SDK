@@ -17,12 +17,12 @@ seqSt				:: !(a .st -> .st)			![a] !.st -> .st
 mapSt				:: !(a .st -> (!b,!.st))	![a] !.st -> (![b],!.st)
 
 // Functions for accessing dates and times
-currentTime 		:: !*IWorld -> (!Time,!*IWorld)
-currentDate 		:: !*IWorld -> (!Date,!*IWorld)
-currentDateTime 	:: !*IWorld -> (!DateTime,!*IWorld)
-currentTimestamp	:: !*IWorld -> (!Timestamp,!*IWorld)
-
-currentDateTimeWorld :: !*World -> (!DateTime,!*World)
+currentTime 			:: !*IWorld -> (!Time,!*IWorld)
+currentDate 			:: !*IWorld -> (!Date,!*IWorld)
+currentDateTime 		:: !*IWorld -> (!DateTime,!*IWorld)
+currentTimestamp		:: !*IWorld -> (!Timestamp,!*IWorld)
+currentTimestampError	:: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
+currentDateTimeWorld	:: !*World	-> (!DateTime,!*World)
 
 // Utility functions for tuples
 tuple	:: !a !b	-> (!a,!b)

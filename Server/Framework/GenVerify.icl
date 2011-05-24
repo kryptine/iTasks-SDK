@@ -3,7 +3,7 @@ implementation module GenVerify
 import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text
 import GenUpdate, StdMisc
 
-derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, Table
+derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, Table, Workflow, ManagerProperties, RunningTaskStatus, TaskPriority
 derive bimap (,), Maybe
 
 verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
@@ -127,6 +127,8 @@ gVerify{|HtmlDisplay|}		_ vst = alwaysValid vst
 
 gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst
+
+gVerify{|Menu|} _ _ = abort "not implemented"
 
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool

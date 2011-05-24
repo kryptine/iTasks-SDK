@@ -59,8 +59,8 @@ instance workflowTask (WorkflowContainer a)			| iTask a
 instance workflowTask (a -> Task b)					| iTask a & iTask b
 instance workflowTask (ParamWorkflowContainer a b)	| iTask a & iTask b
 
-:: WorkflowContainer a			= Workflow		!ManagerProperties !ActionMenu !(Task a)
-:: ParamWorkflowContainer a b	= ParamWorkflow	!ManagerProperties !ActionMenu !(a -> Task b)
+:: WorkflowContainer a			= Workflow		ManagerProperties ActionMenu (Task a)
+:: ParamWorkflowContainer a b	= ParamWorkflow	ManagerProperties ActionMenu (a -> Task b)
 
 /**
 * Determines the server executables path

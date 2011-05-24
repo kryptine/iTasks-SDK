@@ -82,18 +82,10 @@ where
 	newSharedA = mapShared (fst,\a (_,b) -> (a,putr a b)) sharedAll
 	newSharedB = mapShared (snd,\b (a,_) -> (putl b a,b)) sharedAll
 
-makeReadOnlyShared :: !(*IWorld -> *(!a,!*IWorld)) -> ReadOnlyShared a
-makeReadOnlyShared valueF = Shared (appFst Ok o valueF) roWrite roGetTimestamp
+makeReadOnlyShared :: !(*IWorld -> *(!a,!*IWorld)) !(*IWorld -> *(!Timestamp,!*IWorld)) -> ReadOnlyShared a
+makeReadOnlyShared valueF tsF = Shared (appFst Ok o valueF) roWrite (appFst Ok o tsF)
 
-makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld)) -> ReadOnlyShared a
-makeReadOnlySharedError valueF = Shared valueF roWrite roGetTimestamp
+makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld)) !(*IWorld -> *(!MaybeErrorString Timestamp,!*IWorld)) -> ReadOnlyShared a
+makeReadOnlySharedError valueF tsF = Shared valueF roWrite tsF
 
 roWrite _ iworld = (Ok Void,iworld)
-roGetTimestamp iworld=:{IWorld|timestamp} = (Ok timestamp,iworld)
-
-nullShared :: Shared Void a
-nullShared = Shared read write getTimestamp
-where
-	read iworld			= (Ok Void,iworld)
-	write _ iworld		= (Ok Void,iworld)
-	getTimestamp iworld	= (Ok (Timestamp 0),iworld)

@@ -527,8 +527,10 @@ gVisualize{|VisualizationHint|} fx val vst=:{currentPath, vizType, taskId}
 		Just (VHDisplay x)	= gVisualize{|* -> *|} fx (Just (Display x)) vst
 		Just (VHEditable x)	= gVisualize{|* -> *|} fx (Just (Editable x)) vst
 		Nothing				= fx Nothing vst
+		
+gVisualize{|Menu|} _ _ = abort "not implemented"
 
-derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode
+derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Workflow, ManagerProperties, TaskPriority, RunningTaskStatus
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

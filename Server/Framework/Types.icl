@@ -8,13 +8,13 @@ from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay
+derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, Workflow
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay
+derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, Workflow
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay
+derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay, Workflow
 derive gLexOrd		Currency
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
@@ -485,7 +485,7 @@ where
 displayName _ = ""
 
 getRoles :: !User -> [Role]
-getRoles (RegisteredUser details) = mb2list details.roles
+getRoles (RegisteredUser details) = mb2list details.UserDetails.roles
 getRoles _ = []
 
 JSONEncode{|Time|} t		= [JSONString (toString t)]
