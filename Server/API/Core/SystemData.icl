@@ -48,7 +48,7 @@ sessions = makeReadOnlyShared 'SessionDB'.getSessions 'SessionDB'.lastChange
 
 // Available workflows
 workflows :: ReadOnlyShared [WorkflowDescription]
-workflows = makeReadOnlyShared 'WorkflowDB'.getWorkflowDescriptions 'Util'.currentTimestamp
+workflows = makeReadOnlyShared 'WorkflowDB'.getWorkflowDescriptions 'WorkflowDB'.lastChange
 
 allowedWorkflows :: ReadOnlyShared [WorkflowDescription]
 allowedWorkflows = mapSharedRead filterAllowed (workflows >+| (currentUser >+| currentUserDetails))

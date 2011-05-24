@@ -48,6 +48,11 @@ where
 			# wid				= fromMaybe 0 mbWid
 			# iworld			= storeValue NEXT_ID_DB (inc wid) iworld
 			= (wid,iworld)
+			
+	lastChange :: !*IWorld -> (!Timestamp,!*IWorld)
+	lastChange iworld
+		# (mbTs,iworld) = getStoreTimestamp WORKFLOW_DB iworld
+		= (fromMaybe (Timestamp 0) mbTs,iworld)
 
 workflowStore :: !([WorkflowDescription] -> [WorkflowDescription]) !*IWorld -> (![WorkflowDescription],!*IWorld)
 workflowStore f iworld
@@ -75,6 +80,8 @@ where
 	getWorkflow id tst = accIWorldTSt (getWorkflow id) tst
 	addWorkflow :: !Workflow !*TSt -> (!WorkflowDescription,!*TSt)
 	addWorkflow workflow tst = accIWorldTSt (addWorkflow workflow) tst
+	lastChange :: !*TSt -> (!Timestamp,!*TSt)
+	lastChange tst = accIWorldTSt lastChange tst
 	
 JSONEncode{|Menu|} _		= abort "not implemented"
 JSONDecode{|Menu|} _		= abort "not implemented"
