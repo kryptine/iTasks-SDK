@@ -8,14 +8,14 @@ import	TuningCombinators
 import	Setup
 import Config, TSt
 
-
+from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB TSt
 from UserAdmin	import manageUsers
 from Messages	import manageMessages
 from Lists		import manageLists
 from Groups		import manageGroups
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !(Maybe Config) ![Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] 
+engine :: !(Maybe Config) [Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] 
 engine mbConfig userWorkflows handlers
 	= case mbConfig of
 		Just config
@@ -53,10 +53,10 @@ where
 				= (notFoundResponse req, tst)
 		= (response, finalizeTSt tst)
 
-workflow :: !String !String !w -> Workflow | workflowTask w
+workflow :: String String w -> Workflow | workflowTask w
 workflow path description task = workflowTask path description [] task
 
-restrictedWorkflow :: !String !String ![Role] !w -> Workflow | workflowTask w
+restrictedWorkflow :: String String [Role] w -> Workflow | workflowTask w
 restrictedWorkflow path description roles task = workflowTask path description roles task
 	
 instance workflowTask (Task a) | iTask a
@@ -122,7 +122,7 @@ where
 handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!*World)
 handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, world) //Stop
 
-initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
+initTSt :: !HTTPRequest !Config [Workflow] !*World -> *TSt
 initTSt request config flows world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
@@ -137,22 +137,29 @@ initTSt request config flows world
 								   (padZero tm.Tm.min)+++"."+++
 								   (padZero tm.Tm.sec
 								  )
-	# world						= ensureDir "data" (appDir </> appName) world
+	# (_,world)					= ensureDir "data" (appDir </> appName) world
 	# tmpPath					= appDir </> appName </> "tmp-" +++ datestr
-	# world						= ensureDir "tmp" tmpPath world
+	# (_,world)					= ensureDir "tmp" tmpPath world
 	# storePath					= appDir </> appName </> datestr
-	= mkTSt appName config flows (createStore storePath) tmpPath world
+	# (exists,world)			= ensureDir "store" storePath world
+	# tst						= mkTSt appName config (createStore storePath) tmpPath world
+	| exists
+		= tst
+	| otherwise
+		// add static workflows
+		# (_,tst)				= mapSt ('WorkflowDB'.addWorkflow) flows tst
+		= tst
 where 
 	padZero :: !Int -> String
 	padZero number = (if (number < 10) "0" "") +++ toString number
 
-	ensureDir :: !String !FilePath *World -> *World
+	ensureDir :: !String !FilePath *World -> (!Bool,!*World)
 	ensureDir name path world
 	# (exists, world) = fileExists path world
-	| exists = world
+	| exists = (True,world)
 	# (res, world) = createDirectory path world
 	| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
-	= world
+	= (False,world)
 
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|iworld={IWorld|world}} = world

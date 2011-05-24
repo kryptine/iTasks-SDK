@@ -13,4 +13,4 @@ import Engine
 * @param The world
 * @return The world
 */
-startEngine :: ![Workflow] !*World -> *World
+startEngine :: [Workflow] !*World -> *World

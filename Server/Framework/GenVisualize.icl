@@ -530,7 +530,7 @@ gVisualize{|VisualizationHint|} fx val vst=:{currentPath, vizType, taskId}
 		
 gVisualize{|Menu|} _ _ = abort "not implemented"
 
-derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, Workflow, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

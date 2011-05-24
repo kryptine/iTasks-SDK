@@ -1,6 +1,7 @@
 implementation module TaskService
 
 import StdList, StdBool, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel, TaskPanelClientEncode
+from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB TSt
 
 derive JSONEncode TaskPanel, TUIPanel
 derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
@@ -59,8 +60,9 @@ taskService url format path req tst
 		["create"]
 			| isJust mbSessionErr
 				= (serviceResponse html "Create task" createDescription url createParams (jsonSessionErr mbSessionErr), tst)	
-			
-			# (mbWorkflow, tst)	= getWorkflowByName workflowParam tst
+			# (mbWorkflow,tst) = case fromJSON (fromString workflowParam) of
+				Just id	= 'WorkflowDB'.getWorkflow id tst
+				Nothing	= (Nothing,tst)
 			# (json,tst) = case mbWorkflow of
 				Nothing
 					= (JSONObject [("success",JSONBool False),("error",JSONString "No such workflow")], tst)

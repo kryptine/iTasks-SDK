@@ -8,6 +8,7 @@ from Shared			import qualified readShared, writeShared, isSharedChanged
 from StdFunc		import o
 from iTasks			import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException
+from WorkflowDB		import qualified class WorkflowDB(..), instance WorkflowDB TSt
 
 VIEWS_STORE				:== "views"
 LOCAL_STORE				:== "local"
@@ -250,47 +251,15 @@ where
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
 
-// auxiliary types/function for derived interaction tasks
-/*always :: (Verified a) -> Bool
-always _ = True
-
-ifvalid :: !(Verified a) -> Bool
-ifvalid (Valid _) 	= True
-ifvalid _			= False 
-
-ifinvalid :: !(Verified a) -> Bool
-ifinvalid Invalid	= True
-ifinvalid _			= False
-
-alwaysShared :: (Valid,a) -> Bool
-alwaysShared _ = True
-
-ifvalidShared :: !(!Valid,a) -> Bool
-ifvalidShared (valid,_) = valid
-
-ifinvalidShared :: !(!Valid,a) -> Bool
-ifinvalidShared (valid,a) = not valid
-
-mb2Ver :: !(Maybe a) -> Verified a
-mb2Ver mb = maybe Invalid (\v -> Valid v) mb
-
-ver2Mb :: !(Verified a) -> Maybe a
-ver2Mb ver = case ver of
-	Invalid	= Nothing
-	Valid v	= Just v*/
-
 okAction :: !(Maybe a) -> InteractionTerminators a
 okAction r = UserActions [(ActionOk,r)]
 
 addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask about
 addAbout mbAbout parts = maybe parts (\about -> [DisplayView about:parts]) mbAbout
 
-/*fromPredActions :: !(l r Bool -> p) !(Action l r Bool -> a) ![PredAction p] -> (l r Bool -> InteractionTerminators a)
-fromPredActions toP toR actions = \l r c -> UserActions (map (\(a,pred) -> (a,if (pred (toP l r c)) (Just (toR a l r c)) Nothing)) actions)
+addWorkflow :: !Workflow -> Task WorkflowDescription
+addWorkflow workflow = mkInstantTask "Adds a workflow to the system" (\tst -> appFst TaskFinished ('WorkflowDB'.addWorkflow workflow tst))
 
-fromPredActionsLocal :: !(l -> p) !(Action l -> a) ![PredAction p] -> (l -> InteractionTerminators a)
-fromPredActionsLocal toP toR actions = \l -> UserActions (map (\(a,pred) -> (a,if (pred (toP l)) (Just (toR a l)) Nothing)) actions)
-*/
 applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 applyChangeToProcess pid change lifetime
 	= mkInstantTask ("Apply a change to a process", ("Apply a " +++ lt +++ " change to task " +++ pid))

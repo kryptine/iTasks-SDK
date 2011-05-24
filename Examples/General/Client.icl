@@ -33,7 +33,7 @@ where
 showDescription ref =
 				monitorA "Task description" view ref
 	>>* \mbR.	UserActions	[ (Action "start-task" "Start task",	fmap (\r ->
-																		startWorkflowByIndex (fromHidden (thd3 r))
+																		stop//startWorkflowByIndex (fromHidden (thd3 r))
 																	>>|	showDescription ref
 																) mbR)
 						, (ActionQuit,							Just stop)
@@ -120,12 +120,12 @@ getWorkflowTreeNodes :: Task [TreeNode (!String,!Hidden String,!Hidden Int)]
 getWorkflowTreeNodes = mkInstantTask "get a tree of workflows" getWorkflowTree`
 where
 	getWorkflowTree` tst
-		# (workflows,tst) = getAllowedWorkflows tst
+		# (workflows,tst) = ([],tst)//get workflows tst
 		= (TaskFinished (mkFlowTree workflows),tst)
 		
 	mkFlowTree workflows = seq (map insertWorkflow (zip2 workflows (indexList workflows))) []
 		where
-			insertWorkflow ({path,description},idx) nodeList = insertWorkflow` (split "/" path) nodeList
+			insertWorkflow ({Workflow|path,description},idx) nodeList = insertWorkflow` (split "/" path) nodeList
 			where
 				insertWorkflow` [] nodeList = nodeList
 				insertWorkflow` [title] nodeList = nodeList ++ [Leaf (title,Hidden description,Hidden idx)]
@@ -141,27 +141,3 @@ startWorkflow {thread,managerProperties,menu} = mkInstantTask "create new task" 
 startWorkflow` thread managerProperties menu tst
 	# (_,_,_,tst) = createTaskInstance thread True True managerProperties menu tst
 	= (TaskFinished Void,tst)
-	
-startWorkflowByIndex :: !Int -> Task Void
-startWorkflowByIndex idx = mkInstantTask "create new task by index in workflow list" startWorkflowByIndex`
-where
-	startWorkflowByIndex` tst
-		# (workflows,tst)					= getAllowedWorkflows tst
-		# {thread,managerProperties,menu}	= workflows !! idx
-		= startWorkflow` thread managerProperties menu tst
-
-getAllowedWorkflows tst
-	# (session,tst)		= getCurrentSession tst
-	# (mbDetails,tst)	= 'UserDB'.getUserDetails session.Session.user tst
-	# (workflows,tst)	= getWorkflows tst
-	# workflows 		= filter (isAllowed (session.Session.user,mbDetails)) workflows
-	= (workflows,tst)
-where
-	//Allow the root user
-	isAllowed (RootUser,_)	_		= True
-	//Allow workflows for which the user has permission
-	isAllowed (_,Just details) wf	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- wf.Workflow.roles] || isEmpty wf.Workflow.roles
-	//Allow workflows without required roles
-	isAllowed _ wf					= isEmpty wf.Workflow.roles
-	
-

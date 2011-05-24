@@ -10,10 +10,10 @@ from TaskContext	import :: TaskContext
 
 derive JSONEncode		Task, TaskResult
 derive JSONDecode		Task, TaskResult
-derive gUpdate			Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gDefaultMask		Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVerify			Task, ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVisualize		Task, ManagerProperties, TaskPriority, RunningTaskStatus
+derive gUpdate			Task
+derive gDefaultMask		Task
+derive gVerify			Task
+derive gVisualize		Task
 derive gEq				Task
 derive gGetRecordFields	Task
 derive gPutRecordFields	Task

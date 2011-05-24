@@ -7,7 +7,7 @@ import Config
 
 import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService, StencilService
 
-startEngine :: ![Workflow] !*World -> *World 
+startEngine :: [Workflow] !*World -> *World 
 startEngine flows world
 	# (mbConfig,world)	= config world
 	# (app,world)		= determineAppName world

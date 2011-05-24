@@ -94,6 +94,14 @@ okAction :: !(Maybe a) -> InteractionTerminators a
 addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask about
 
 /**
+* Dynamically adds a workflow to the system.
+*
+* @param The workflow to add
+* @return The description of the added workflow
+*/
+addWorkflow :: !Workflow -> Task WorkflowDescription
+
+/**
 * Administer a change to another (running) workflow process
 *
 * @param A process id

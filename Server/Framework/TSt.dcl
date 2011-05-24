@@ -48,14 +48,13 @@ from HTTP		import :: HTTPRequest
 *
 * @param The application name
 * @param The server configuration
-* @param The workflows available in the application
 * @param The generic data store
 * @param The path for temporary files
 * @param The world
 *
 * @return a TSt iTask state
 */
-mkTSt :: !String !Config ![Workflow] !Store !FilePath !*World -> *TSt
+mkTSt :: !String !Config !Store !FilePath !*World -> *TSt
 
 /**
 * Initializes the session information.
@@ -159,25 +158,6 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 * @return The modified task state
 */
 calculateTaskTreeContainer :: !TaskId !*TSt -> (!NonNormalizedTreeContainer, !*TSt)
-/**
-* Lists which workflows are available
-*
-* @param The task state
-*
-* @return The list of workflows
-* @return The modified task state
-*/
-getWorkflows :: !*TSt -> (![Workflow],!*TSt)
-/**
-* Looks up a specific workflow by name
-*
-* @param The unique workflow name
-* @param The task state
-*
-* @return Maybe the workflow definition
-* @return The modified task state
-*/
-getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
 
 /**
 * Apply a function on IWorld on a TSt

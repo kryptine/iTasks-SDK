@@ -4,11 +4,13 @@ import HTTP, TSt, UserDB
 import HtmlUtil, Text
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
 import GenEq
+from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB TSt
+from WorkflowDB import :: WorkflowDescription{..}, :: WorkflowId
 
 from Util import mb2list
 
 :: WorkflowItem =
-	{ name 			:: !String 	//Full name of the workflow
+	{ name 			:: !String	//Identifier of the workflow
 	, label			:: !String	//Displayed label of the workflow
 	, description	:: !String	//Description of the workflow
 	, folder		:: !Bool	//Is the item a folder of other workflows
@@ -30,8 +32,8 @@ workflowService url format path req tst
 	// List available flows
 	# (session,tst)		= getCurrentSession tst
 	# (mbDetails,tst)	= getUserDetails session.Session.user tst
-	# (workflows,tst)	= getWorkflows tst
-	# items				= workflowItems path (session.Session.user,mbDetails) workflows
+	# (workflows,tst)	= 'WorkflowDB'.getAllowedWorkflowDescriptions session.Session.user mbDetails tst
+	# items				= workflowItems path workflows
 	# json 				= JSONObject [("success",JSONBool True),("workflows",toJSON items)]
 	= (serviceResponse html "workflows" description url params json, tst)
 where
@@ -39,23 +41,16 @@ where
 	
 	params 		= [("session", sessionParam, False)]
 	
-	onPath paths wf = paths == "" || (wf.Workflow.path % (0, (size paths))) == paths +++ "/"
+	onPath paths wf = paths == "" || (wf.WorkflowDescription.path % (0, (size paths))) == paths +++ "/"
 	
-	//Allow the root user
-	isAllowed (RootUser,_)	_		= True
-	//Allow workflows for which the user has permission
-	isAllowed (_,Just details) wf	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- wf.Workflow.roles] || isEmpty wf.Workflow.roles
-	//Allow workflows without required roles
-	isAllowed _ wf					= isEmpty wf.Workflow.roles		
-	
-	workflowItems path user workflows
+	workflowItems path workflows
 		# paths				= join "/" path
-		= sortWorkflowItems (removeDup [workflowItem paths wf \\ wf <- workflows | onPath paths wf && isAllowed user wf])
+		= sortWorkflowItems (removeDup [workflowItem paths wf \\ wf <- workflows | onPath paths wf])
 	workflowItem paths wf
-		# shortPath = wf.Workflow.path % (if (paths == "") 0 (size paths + 1), size wf.Workflow.path)
+		# shortPath = wf.WorkflowDescription.path % (if (paths == "") 0 (size paths + 1), size wf.WorkflowDescription.path)
 		# slashPos	= indexOf "/" shortPath
 		| slashPos == -1
-			= {WorkflowItem | name = wf.Workflow.path, label = shortPath, description = wf.Workflow.description, folder = False}
+			= {WorkflowItem | name = toString wf.WorkflowDescription.workflowId, label = shortPath, description = wf.WorkflowDescription.description, folder = False}
 		| otherwise
 			# label = shortPath % (0, slashPos - 1)
 			= {WorkflowItem | name = if (paths == "") label (paths +++ "/" +++ label), label = label, description = "", folder = True}

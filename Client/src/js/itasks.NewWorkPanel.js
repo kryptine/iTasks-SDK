@@ -34,7 +34,6 @@ itasks.NewWorkTreeLoader = Ext.extend(Ext.tree.TreeLoader, {
 });
 
 itasks.NewWorkPanel = Ext.extend(Ext.Panel, {
-
 	initComponent: function() {
 		
 		var startButton = new Ext.Button({ xtype: 'button'
@@ -51,7 +50,21 @@ itasks.NewWorkPanel = Ext.extend(Ext.Panel, {
 			iconCls: "icon-newwork",
 			layout: "border",
 			border: false,
-			items: [wtpanel,wdpanel]
+			items: [wtpanel,wdpanel],
+			tbar: [{
+				xtype: 'tbbutton',
+				text: 'Refresh workflows',
+				iconCls: 'x-tbar-loading',
+				listeners: {
+					click: {
+						scope: this,
+						fn: function () {
+							var tree = this.get(0);
+							tree.getLoader().load(tree.getRootNode());
+						}
+					}
+				}
+			}]
 		});
 		
 		itasks.NewWorkPanel.superclass.initComponent.apply(this,arguments);

@@ -20,7 +20,7 @@ from Config		import :: Config
 * @param  A list of workflow definitions
 * @return A list of predicate/handler pairs that can be plugged into a server
 */
-engine :: !(Maybe Config) ![Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))]
+engine :: !(Maybe Config) [Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))]
 
 /**
 * Loads the itasks specific config
@@ -39,7 +39,7 @@ config :: !*World -> (!Maybe Config,!*World)
 * @param A description of the workflow
 * @param The task(container) (with or without parameter)
 */
-workflow :: !String !String !w -> Workflow | workflowTask w
+workflow :: String String w -> Workflow | workflowTask w
 
 /**
 *
@@ -50,9 +50,9 @@ workflow :: !String !String !w -> Workflow | workflowTask w
 * @param A list of roles. The workflow will be available to users with any of the specified roles
 * @param The task(container) (with or without parameter)
 */
-restrictedWorkflow :: !String !String ![Role] !w -> Workflow | workflowTask w
+restrictedWorkflow :: String String [Role] w -> Workflow | workflowTask w
 
-class workflowTask w :: !String !String ![Role] !w -> Workflow
+class workflowTask w :: String String [Role] w -> Workflow
 
 instance workflowTask (Task a)						| iTask a
 instance workflowTask (WorkflowContainer a)			| iTask a

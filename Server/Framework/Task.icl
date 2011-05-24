@@ -54,10 +54,6 @@ incTaskNr :: !TaskNr -> TaskNr
 incTaskNr [] = [0]
 incTaskNr [i:is] = [i+1:is]
 
-derive gUpdate		ManagerProperties, TaskPriority, RunningTaskStatus
-derive gDefaultMask	ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVerify		ManagerProperties, TaskPriority, RunningTaskStatus
-derive gVisualize	ManagerProperties, TaskPriority, RunningTaskStatus
 derive JSONEncode 	TaskResult
 derive JSONDecode 	TaskResult
 derive bimap Maybe, (,)

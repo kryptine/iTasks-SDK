@@ -13,8 +13,8 @@ from TuningCombinators	import @>>, <<@, class tune, instance tune Title, :: Titl
 
 ITERATION_THRESHOLD :== 10 // maximal number of allowed iterations during calculation of task tree
 
-mkTSt :: !String !Config ![Workflow] !Store !FilePath !*World -> *TSt
-mkTSt appName config workflows store tmpDir world
+mkTSt :: !String !Config !Store !FilePath !*World -> *TSt
+mkTSt appName config store tmpDir world
 	=	{ taskNr			= []
 		, taskInfo			= initTaskInfo
 		, tree				= initTree initTaskInfo
@@ -25,7 +25,7 @@ mkTSt appName config workflows store tmpDir world
 		, staticInfo		= initStaticInfo
 		, currentChange		= Nothing
 		, pendingChanges	= []
-		, iworld			= initIWorld appName config store tmpDir workflows world
+		, iworld			= initIWorld appName config store tmpDir world
 		, sharedChanged		= False
 		, sharedDeleted		= False
 		, iterationCount	= 1
@@ -40,8 +40,8 @@ initStaticInfo
 		, currentSession 	= {Session | sessionId = "", user = AnyUser, timestamp = Timestamp 0}
 		}
 
-initIWorld	:: !String !Config !Store !FilePath ![Workflow] !*World -> *IWorld
-initIWorld application config store tmpDir workflows world
+initIWorld	:: !String !Config !Store !FilePath !*World -> *IWorld
+initIWorld application config store tmpDir world
 	# (timestamp,world)	= time world
 	# (dateTime,world)	= currentDateTimeWorld world
 	= 	{ IWorld
@@ -53,7 +53,6 @@ initIWorld application config store tmpDir workflows world
 		, localDateTime		= dateTime
 		, tmpDirectory		= tmpDir
 		, currentUser		= AnyUser
-		, staticWorkflows	= workflows
 		}
 		
 initTaskInfo :: TaskInfo
@@ -561,17 +560,6 @@ getConfigSetting f tst
 where
 	getFromIWorld iworld=:{IWorld|config}
 		= (f config, {IWorld|iworld & config = config})
-
-getWorkflows :: !*TSt -> (![Workflow],!*TSt)
-getWorkflows tst=:{TSt|iworld=iworld =:{staticWorkflows}}
-	= (staticWorkflows,tst)
-
-getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
-getWorkflowByName name tst
-	# (workflows, tst)	= getWorkflows tst
-	= case filter (\wf -> wf.Workflow.path == name) workflows of
-		[workflow]	= (Just workflow, tst)
-		_			= (Nothing,tst)
 
 appIWorldTSt :: !.(*IWorld -> *IWorld) !*TSt -> *TSt
 appIWorldTSt f tst=:{TSt|iworld}

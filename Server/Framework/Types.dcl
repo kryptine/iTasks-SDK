@@ -13,13 +13,13 @@ from Config		import :: Config
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, Workflow
+derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, Workflow
+derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay, Workflow
+derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay, WorkflowDescription
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
 derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
@@ -397,6 +397,15 @@ instance menuAction (actionName, ActionLabel) | actionName actionName
 :: InteractionTaskType	= InputTask | UpdateTask | OutputTask !OutputTaskType
 :: OutputTaskType		= ActiveOutput | PassiveOutput
 
+:: WorkflowDescription =	{ workflowId		:: !WorkflowId
+							, path				:: !String
+							, roles				:: ![String]
+							, description		:: !String
+							, managerProperties	:: !ManagerProperties
+							}
+							
+:: WorkflowId :== Int
+
 // iWorld
 :: *IWorld		=	{ application		:: !String		// The name of the application	
 					, store				:: !Store		// The generic data store
@@ -406,14 +415,15 @@ instance menuAction (actionName, ActionLabel) | actionName actionName
 					, localDateTime		:: !DateTime	// The local date & time of the current request
 					, tmpDirectory		:: !FilePath	// The path for temporary files, the garbage collector also works on files in this dir
 					, currentUser		:: !User
-					, staticWorkflows	:: ![Workflow]	// the list of workflows supported by the application
 					}
 
 // A workflow specification
-:: Workflow		=	{ path				:: String									// a unique name of this workflow
-					, roles				:: [String]									// the roles that are allowed to initate this workflow
-					, thread			:: Dynamic									// the thread of the main task of the workflow
-					, description		:: String									// a description of the workflow
-					, managerProperties	:: ManagerProperties						// the initial manager properties of the main task
-					, menu				:: ActionMenu								// the menu of the main task
+:: Workflow		=	{ path				:: String				// a unique name of this workflow
+					, roles				:: [String]				// the roles that are allowed to initate this workflow
+					, thread			:: Dynamic				// the thread of the main task of the workflow
+					, description		:: String				// a description of the workflow
+					, managerProperties	:: ManagerProperties	// the initial manager properties of the main task
+					, menu				:: ActionMenu			// the menu of the main task
 					}
+					
+isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool

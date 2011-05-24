@@ -8,13 +8,13 @@ from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, Workflow
+derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, Workflow
+derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay, Workflow
+derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay, WorkflowDescription
 derive gLexOrd		Currency
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
@@ -638,3 +638,13 @@ noMenu = const []
 
 staticMenu	:: !MenuDefinition -> ActionMenu
 staticMenu def = const def
+
+isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool
+//Allow the root user
+isAllowedWorkflow RootUser _ _									= True
+//Allow workflows without required roles
+isAllowedWorkflow _ _ {WorkflowDescription|roles=r=:[]}			= True
+//Allow workflows for which the user has permission
+isAllowedWorkflow _ (Just details) {WorkflowDescription|roles}	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- roles]
+//Don't allow workflows in other cases
+isAllowedWorkflow _ _ _											= False

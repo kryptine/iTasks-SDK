@@ -9,6 +9,8 @@ from UserDB		import qualified class UserDB(..), instance UserDB IWorld
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
 from ProcessDB	import :: Process
 from SessionDB	import qualified class SessionDB(..), instance SessionDB IWorld
+from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
+from WorkflowDB	import :: WorkflowDescription
 
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = makeReadOnlyShared 'Util'.currentDateTime 'Util'.currentTimestamp
@@ -33,17 +35,25 @@ where
 	write details iworld
 		# (_,iworld) = 'UserDB'.updateUser user details iworld
 		= (Ok Void,iworld)
-	
+
 currentUser :: ReadOnlyShared User
 currentUser = makeReadOnlyShared (\iworld=:{currentUser} -> (currentUser,iworld)) 'Util'.currentTimestamp
+	
+currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
+currentUserDetails = makeReadOnlyShared (\iworld=:{currentUser} -> 'UserDB'.getUserDetails currentUser iworld) 'Util'.currentTimestamp
 
 // Sessions
 sessions :: ReadOnlyShared [Session]
 sessions = makeReadOnlyShared 'SessionDB'.getSessions 'SessionDB'.lastChange
 
 // Available workflows
-workflows :: ReadOnlyShared [Workflow]
-workflows = makeReadOnlyShared (\iworld=:{staticWorkflows} -> (staticWorkflows,iworld)) 'Util'.currentTimestamp
+workflows :: ReadOnlyShared [WorkflowDescription]
+workflows = makeReadOnlyShared 'WorkflowDB'.getWorkflowDescriptions 'Util'.currentTimestamp
+
+allowedWorkflows :: ReadOnlyShared [WorkflowDescription]
+allowedWorkflows = mapSharedRead filterAllowed (workflows >+| (currentUser >+| currentUserDetails))
+where
+	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
 
 // Workflow processes
 currentProcesses ::ReadOnlyShared [Process]
