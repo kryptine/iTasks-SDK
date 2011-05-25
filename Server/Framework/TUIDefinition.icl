@@ -65,12 +65,12 @@ where
 		| isEmpty buttons	= []
 		| otherwise			= [	{ content	= TUILayoutContainer {defaultLayoutContainer buttons & orientation = Horizontal, hGravity = HGRight}
 								, width		= FillParent 1 ContentSize
-								, height	= Wrap
+								, height	= (WrapContent 0)
 								, margins	= Nothing
 								}]
 
 defaultParallelLayout :: ParallelLayoutMerger
-defaultParallelLayout = \{TUIParallel|title,description,items} -> defaultPanelDescr title "icon-parallel-task" description Nothing Wrap items
+defaultParallelLayout = \{TUIParallel|title,description,items} -> defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 0) items
 
 minimalParallelLayout :: ParallelLayoutMerger
 minimalParallelLayout = \{TUIParallel|title,description,items} ->	{ content	= TUILayoutContainer (defaultLayoutContainer items)
@@ -95,7 +95,7 @@ defaultPanel title iconCls width content =	{ content	= TUILayoutContainer {TUILa
 defaultDescriptionPanel :: !String !(Maybe String) -> TUIDef
 defaultDescriptionPanel descr mbWarning =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [htmlDisplay descr:warning] & frame = True}
 											, width		= FillParent 1 ContentSize
-											, height	= Wrap
+											, height	= (WrapContent 0)
 											, margins	= Nothing
 											}
 where
@@ -123,8 +123,8 @@ columnLayout :: !Int ![TUIDef] -> TUIDef
 columnLayout nCols items
 	# cols = repeatn nCols []
 	# cols = columnLayout` items cols
-	# cols = map (\col -> {content = TUILayoutContainer {defaultLayoutContainer col & orientation = Vertical}, width = Wrap, height = Wrap, margins = Nothing}) cols
-	= {content = TUILayoutContainer {defaultLayoutContainer cols & orientation = Horizontal}, width = Wrap, height = Wrap, margins = Nothing}
+	# cols = map (\col -> {content = TUILayoutContainer {defaultLayoutContainer col & orientation = Vertical}, width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}) cols
+	= {content = TUILayoutContainer {defaultLayoutContainer cols & orientation = Horizontal}, width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}
 where
 	columnLayout` items cols = case splitAt nCols items of
 		([],_)	= map reverse cols

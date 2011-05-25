@@ -2,7 +2,7 @@ Ext.ns('itasks.tui');
 
 itasks.tui.ListContainer = itasks.tui.extendContainer(Ext.Container,{
 	defaultWidth: ['FillParent',1,'ContentSize'],
-	defaultHeight: ['Wrap'],
+	defaultHeight: ['WrapContent',0],
 	
 	initComponent: function(){
 		itasks.tui.container.initComponent.apply(this,arguments);

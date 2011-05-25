@@ -1,8 +1,8 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.ConstructorControl = itasks.tui.extendControl(Ext.Panel,{
-	defaultWidth: ['Wrap'],
-	defaultHeight: ['Wrap'],
+	defaultWidth: ['WrapContent',0],
+	defaultHeight: ['WrapContent',0],
 	unstyled: true,
 	initComponent: function() {
 		var store = [["","Select..."]];

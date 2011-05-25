@@ -2,7 +2,7 @@ Ext.ns("itasks.tui");
 
 itasks.tui.GridContainer = itasks.util.extend(Ext.Button, itasks.tui.base, {
 	defaultWidth: ['FillParent',1,'ContentSize'],
-	defaultHeight: ['Wrap'],
+	defaultHeight: ['WrapContent',0],
 	
 	htmlDirty: false,
 	stateful: false,

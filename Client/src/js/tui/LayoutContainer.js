@@ -2,8 +2,8 @@ Ext.ns('itasks.tui');
 
 itasks.tui.LayoutContainer = itasks.tui.extendContainer(Ext.Panel,{
 	autoScroll: true,
-	defaultWidth: ['Wrap'],
-	defaultHeight: ['Wrap'],
+	defaultWidth: ['WrapContent',0],
+	defaultHeight: ['WrapContent',0],
 	initComponent: function(){
 		if (this.padding) {
 			this.style = "padding: " + this.padding + "px;";

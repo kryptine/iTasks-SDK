@@ -13,13 +13,9 @@ itasks.tui.base = {
 	
 	setTuiWidth: function(w) {
 		this.tuiSize.width	= (w == 'Auto' ? this.defaultWidth : w);
-		if  (!Ext.isArray(this.tuiSize.width))
-			this.tuiSize.width	= [this.tuiSize.width];
 	},
 	setTuiHeight: function(h) {
 		this.tuiSize.height	= (h == 'Auto' ? this.defaultHeight : h);
-		if  (!Ext.isArray(this.tuiSize.height))
-			this.tuiSize.height	= [this.tuiSize.height];
 	},
 	
 	doTUILayout: function(fillW,fillH) {
@@ -86,15 +82,27 @@ itasks.tui.base = {
 		var tuiH		= this.tuiSize.height;
 		var minSize		= {};
 
-		if (tuiW[0] == 'Wrap' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
-			minSize.width	= this.getWidth();
+		if (tuiW[0] == 'WrapContent' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
+			var minW = this.getWidth();
+			
+			if (tuiW[0] == 'WrapContent' && minW < tuiW[1]) {
+				minSize.width	= tuiW[1];
+			} else {
+				minSize.width	= minW;
+			}
 		} else {
 			minSize.width	= tuiW[0] == 'Fixed' ? tuiW[1] : tuiW[2][1];
 		}
 		minSize.width += this.getMarginsW();
 		
-		if (tuiH[0] == 'Wrap' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
-			minSize.height	= this.getHeight();
+		if (tuiH[0] == 'WrapContent' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
+			var minH = this.getHeight();
+			
+			if (tuiH[0] == 'WrapContent' && minH < tuiH[1]) {
+				minSize.height	= tuiH[1];
+			} else {
+				minSize.height	= minH;
+			}
 		} else {
 			minSize.height	= tuiH[0] == 'Fixed' ? tuiH[1] : tuiH[2][1];
 		}

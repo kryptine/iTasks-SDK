@@ -1,7 +1,7 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.FormButtonControl = itasks.tui.extendControl(Ext.Button,{
-	defaultWidth: ['Wrap'],
+	defaultWidth: ['WrapContent',0],
 	defaultHeight: ['Fixed',25],
 	enableToggle: true,
 	allowDepress: true,

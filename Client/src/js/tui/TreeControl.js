@@ -2,7 +2,7 @@ Ext.ns('itasks.tui');
 
 itasks.tui.TreeControl = itasks.tui.extendControl(Ext.tree.TreePanel,{
 	defaultWidth: ['FillParent',1,'ContentSize'],
-	defaultHeight: ['Wrap'],
+	defaultHeight: ['WrapContent',0],
 	rootVisible: false,
 	border: false,
 	loader: new Ext.tree.TreeLoader({preloadChildren: true}),

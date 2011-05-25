@@ -111,15 +111,27 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 			return sum;
 		};
 		
-		if (tuiW[0] == 'Wrap' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
-			minSize.width	= (this.orientation == 'Horizontal' ? sum : max) (function(i) {return i.minSize.width;}) + this.getFrameWidthCached() + (this.title ? 2 : 0);
+		if (tuiW[0] == 'WrapContent' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
+			var minW = (this.orientation == 'Horizontal' ? sum : max) (function(i) {return i.minSize.width;}) + this.getFrameWidthCached() + (this.title ? 2 : 0);
+			
+			if (tuiW[0] == 'WrapContent' && minW < tuiW[1]) {
+				minSize.width	= tuiW[1];
+			} else {
+				minSize.width	= minW;
+			}
 		} else {
 			minSize.width	= tuiW[0] == 'Fixed' ? tuiW[1] : tuiW[2][1];
 		}
 		minSize.width += this.getMarginsW();
 		
-		if (tuiH[0] == 'Wrap' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
-			minSize.height	= (this.orientation == 'Horizontal' ? max : sum) (function(i) {return i.minSize.height;}) + this.getFrameHeightCached();
+		if (tuiH[0] == 'WrapContent' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
+			var minH = (this.orientation == 'Horizontal' ? max : sum) (function(i) {return i.minSize.height;}) + this.getFrameHeightCached();
+			
+			if (tuiH[0] == 'WrapContent' && minH < tuiH[1]) {
+				minSize.height	= tuiH[1];
+			} else {
+				minSize.height	= minH;
+			}
 		} else {
 			minSize.height	= tuiH[0] == 'Fixed' ? tuiH[1] : tuiH[2][1];
 		}

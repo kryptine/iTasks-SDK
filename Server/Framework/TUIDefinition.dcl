@@ -150,7 +150,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 :: PanelTitle	:== String
 :: PanelIcon	:== String
 	
-:: TUISize			= Wrap									// The tui element's size becomes the minimal size of its content
+:: TUISize			= WrapContent !TUIFixedSize				// The tui element's size becomes the minimal size of its content, but can't become smaller than the given minimal size
 					| FillParent !TUIWeight !TUIMinSize		// The tui element fills the entire parent container
 															// If there is more than one 'FillParent' element in one container the available space is distributed according to the weights (my size = my weight/sum of weights * available space)
 															// If the space becomes smaller than the minimal size, the element behaves as if its minimal size was its fixed size

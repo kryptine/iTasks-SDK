@@ -1,8 +1,8 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.ChoiceControl = itasks.tui.extendControl(Ext.form.CheckboxGroup,{
-	defaultWidth: ['Wrap'],
-	defaultHeight: ['Wrap'],
+	defaultWidth: ['WrapContent',0],
+	defaultHeight: ['WrapContent',0],
 	initComponent : function(){
 		// names of checkbox groups have to be unique, so use data path field for events
 		this.dataPath = this.name;

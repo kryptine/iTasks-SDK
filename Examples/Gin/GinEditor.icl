@@ -111,7 +111,7 @@ ginParallelLayout :: ParallelLayoutMerger
 ginParallelLayout = \{TUIParallel|title,description,items} -> 
 	if (length items == 1) 
 		(last items) 
-		(defaultPanelDescr title "icon-parallel-task" description Nothing Wrap (tl items ++ [hd items]))
+		(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 0) (tl items ++ [hd items]))
 
 ginInteractionLayout :: InteractionLayoutMerger
 ginInteractionLayout = \{TUIInteraction|editorParts} -> {TUIDef | hd editorParts & width = FillParent 1 (FixedMinSize 400)}

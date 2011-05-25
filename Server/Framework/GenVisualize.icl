@@ -7,14 +7,14 @@ mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, currentPath = startDataPath,
 		selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = ""}
 
-//Wrapper functions
+//(WrapContent 0)per functions
 visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> TUIDef | gVisualize{|*|} a
 visualizeAsEditor x taskId idx vmask editEvent
 	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, verifyMask = [vmask], editEvent = editEvent, taskId = taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
 	# (defs,vst) = gVisualize{|*|} (Just x) vst
 	= case coerceToTUIDefs defs of
 		[tui]	= tui
-		tuis	= {content = TUILayoutContainer (defaultLayoutContainer tuis), width = Wrap, height = Wrap, margins = Nothing}
+		tuis	= {content = TUILayoutContainer (defaultLayoutContainer tuis), width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}
 
 visualizeAsHtmlDisplay :: !a -> HtmlTag | gVisualize{|*|} a
 visualizeAsHtmlDisplay x = html (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay})))
@@ -40,7 +40,7 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType}
 		VEditorDefinition
 			# (vizBody,vst=:{VSt|optional})	= fx x {VSt|vst & optional = False}
 			# label							= {htmlDisplay (formatLabel d.gfd_name +++ if optional "" "*" +++ ":") & width = Fixed 100}
-			= ([TUIFragment {content = TUILayoutContainer {defaultLayoutContainer [label:coerceToTUIDefs vizBody] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = Wrap, margins = Nothing}],{VSt|vst & optional = optional})
+			= ([TUIFragment {content = TUILayoutContainer {defaultLayoutContainer [label:coerceToTUIDefs vizBody] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
 		VHtmlDisplay
 			# (vizBody,vst) 				= fx x vst
 			= case vizBody of
@@ -113,7 +113,7 @@ where
 	where
 		recordContainer viz =	{ content	= TUILayoutContainer (defaultLayoutContainer (if optional [checkbox True] [] ++ coerceToTUIDefs viz))
 								, width		= FillParent 1 ContentSize
-								, height	= Wrap
+								, height	= (WrapContent 0)
 								, margins	= Nothing
 								}
 											
@@ -462,7 +462,7 @@ where
 									| index = idx
 									, items = case defs of
 										[def]	= def
-										defs	= {content = TUILayoutContainer (defaultLayoutContainer defs), width = FillParent 1 ContentSize, height = Wrap, margins = Nothing}
+										defs	= {content = TUILayoutContainer (defaultLayoutContainer defs), width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}
 									}
 					, width		= Auto
 					, height	= Auto

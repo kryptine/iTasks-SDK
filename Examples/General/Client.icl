@@ -73,14 +73,14 @@ where
 		| isEmpty editorParts	= []
 			| otherwise			= [	{ content	= TUILayoutContainer (defaultLayoutContainer editorParts)
 									, width		= FillParent 1 ContentSize
-									, height	= Wrap
+									, height	= (WrapContent 0)
 									, margins	= Nothing
 									}]
 	buttonContainer
 		| isEmpty buttons	= []
 		| otherwise			= [	{ content	= TUILayoutContainer {defaultLayoutContainer buttons & orientation = Horizontal, hGravity = HGRight}
 								, width		= FillParent 1 ContentSize
-								, height	= Wrap
+								, height	= (WrapContent 0)
 								, margins	= Nothing
 								}]
 
