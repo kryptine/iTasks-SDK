@@ -17,118 +17,126 @@ instance editorState InformationState a
 *
 * @param A description of the task to display to the user
 * @param A function (on the current local state) dynamically generating the interaction parts shown to the user (parts can change the local state (l))
-* @param A function (on the current local state) dynamically calculating the terminators of the task
 * @param The initial local state
+* @param A function (on the current local state) dynamically calculating the terminators of the task
 *
 * @return A result determined by the terminators
 */
 interactLocal :: !d !(l -> [InteractionPart l]) !l !(l -> InteractionTerminators a) -> Task a | descr d & iTask l & iTask a
 
+// A function dynamically generating actions from input i for terminating an interaction task.
+// The output consists of an action, which is either enabled and yields a result (Just o) or disabled (Nothing).
+:: ActionFunc i o :== i -> [(!Action,!Maybe o)]
+
 /*
 * Ask the user to enter information.
 *
-* @param description 							A description of the task to display to the user
-* @param (v -> a) (optional)					A view for type v is generated; This function defines how to map view v back to a value of type a
-*												If not specified, v = a, and the map back is the identity
-* @param [PredAction (Verified a)] (optional)	A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value.
-*												If not specified an ok button is provided which is enabled if the editor is valid
-* @param about (optional)						Additional information to display
+* @param description 									A description of the task to display to the user
+* @param about (optional)								Additional information to display
+* @param (ActionFunc (Maybe v) a) (optional)			A function (on the current local value (if present)) dynamically calculating actions for the task
+*														If not specified an ok action is provided which is enabled if the editor is valid and yields the current local value
 *
-* @return 										Resulting value or chosen action with the resulting value if editor was in valid state
+* @return 												Value yielded by the terminating action
 */
-enterInformation			:: !d 						    						-> Task a | descr d & iTask a
-enterInformationAbout		:: !d !about											-> Task a | descr d & iTask a & iTask about
-enterInformationA			:: !d 			!((Maybe v) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask v
-enterInformationAboutA		:: !d !about	!((Maybe v) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask v & iTask about
+enterInformation			:: !d 						    			-> Task a | descr d & iTask a
+enterInformationAbout		:: !d !about								-> Task a | descr d & iTask a & iTask about
+enterInformationA			:: !d 			!(ActionFunc (Maybe v) a)	-> Task a | descr d & iTask a & iTask v
+enterInformationAboutA		:: !d !about	!(ActionFunc (Maybe v) a)	-> Task a | descr d & iTask a & iTask v & iTask about
 
 /*
 * Ask the user to enter information which is written to a shared.
 *
-* @param description 							A description of the task to display to the user
-* @param (v r -> w)								A view for type v is generated; This function defines how to map view v back to a value of type w
-* @param [PredAction (Valid,r)]					A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-* @param about (optional)						Additional information to display
-* @param (Shared r w)							Reference to shared data the input is written to
+* @param description 									A description of the task to display to the user
+* @param (v r -> w)										A view for type v is generated; This function defines how to map view v back to a value of type w
+* @param about (optional)								Additional information to display
+* @param (Shared r w)									Reference to shared data the input is written to
+* @param (ActionFunc (InformationState r) a) (optional)	A function (on the current information task state) dynamically calculating actions for the task
+*														If not specified an ok action is provided which is enabled if the editor is valid and yields the current shared value
 *
-* @return 										Chosen action with the current shared value
-* @throws										SharedException
+* @return 												Value yielded by the terminating action
+* @throws												SharedException
 */
-enterSharedInformation			:: !d !(v r -> w)			!(Shared r w)													-> Task r | descr d & iTask r & iTask v & iTask w
-enterSharedInformationAbout		:: !d !(v r -> w) !about	!(Shared r w)													-> Task r | descr d & iTask r & iTask v & iTask w & iTask about
-enterSharedInformationA			:: !d !(v r -> w) 			!(Shared r w) !((InformationState r) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask r & iTask v & iTask w
-enterSharedInformationAboutA	:: !d !(v r -> w) !about	!(Shared r w) !((InformationState r) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask r & iTask v & iTask w & iTask about
+enterSharedInformation			:: !d !(v r -> w)			!(Shared r w)										-> Task r | descr d & iTask r & iTask v & iTask w
+enterSharedInformationAbout		:: !d !(v r -> w) !about	!(Shared r w)										-> Task r | descr d & iTask r & iTask v & iTask w & iTask about
+enterSharedInformationA			:: !d !(v r -> w) 			!(Shared r w) !(ActionFunc (InformationState r) a)	-> Task a | descr d & iTask a & iTask r & iTask v & iTask w
+enterSharedInformationAboutA	:: !d !(v r -> w) !about	!(Shared r w) !(ActionFunc (InformationState r) a)	-> Task a | descr d & iTask a & iTask r & iTask v & iTask w & iTask about
 
 /*
 * Ask the user to select one item from a list of options.
 *
-* @param description 							A description of the task to display to the user
-* @param (a -> v) (optional)					A view for options of type a is generated; This function defines how to map an option to a view value of type v
-*												If not specified, a = v, and the view is the identity
-* @param [PredAction (Verified a)] (optional)	A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-												If not specified an ok button is provided which is enabled if an option is chosen
-* @param about (optional)						Additional information to display
-* @param [a]									A list of options
+* @param description 									A description of the task to display to the user
+* @param (o -> v) (optional)							A view for options of type o is generated; This function defines how to map an option to a view value of type v
+*														If not specified, o = v, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param (ActionFunc (Maybe o) a) (optional)			A function (on the currently selected option (if present)) dynamically calculating actions for the task
+														If not specified an ok action is provided which is enabled if an option is chosen and yields that option
+
+* @param [o]											A list of options
 *
-* @return 										Chosen option or chosen action with the chosen option if present
-* @throws										ChoiceException
+* @return 												Value yielded by the terminating action
+* @throws												ChoiceException
 */
-enterChoice					:: !d 					![o]										-> Task o | descr d & iTask o
-enterChoiceAbout			:: !d 			!about	![o]										-> Task o | descr d & iTask o & iTask about
-enterChoiceA				:: !d !(o -> v)  		![o] !((Maybe o) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask v
-enterChoiceAboutA			:: !d !(o -> v)	!about	![o] !((Maybe o) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask v & iTask about
+enterChoice					:: !d 					![o]							-> Task o | descr d & iTask o
+enterChoiceAbout			:: !d 			!about	![o]							-> Task o | descr d & iTask o & iTask about
+enterChoiceA				:: !d !(o -> v)  		![o] !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v
+enterChoiceAboutA			:: !d !(o -> v)	!about	![o] !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v & iTask about
 
 /*
 * Ask the user to select one item from a list of shared options.
 *
-* @param description 							A description of the task to display to the user
-* @param (a -> v)								A view for options of type a is generated; This function defines how to map an option to a view value of type v
-* @param [PredAction (Verified a)]				A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-* @param about (optional)						Additional information to display
-* @param (Shared [a] w)							A reference to the shared options
+* @param description 									A description of the task to display to the user
+* @param (o -> v) (optional)							A view for options of type o is generated; This function defines how to map an option to a view value of type v
+														If not specified, o = v, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param (Shared [a] w)									A reference to the shared options
+* @param (ActionFunc (Maybe o) a) (optional)			A function (on the currently selected option (if present)) dynamically calculating actions for the task
+*														If not specified an ok action is provided which is enabled if an option is chosen and yields that option
 *
-* @return 										Chosen action with the chosen option if present
-* @throws										SharedException
+* @return 												Value yielded by the terminating action
+* @throws												SharedException
 */
-enterSharedChoice			:: !d					!(Shared [o] w)											-> Task o | descr d & iTask o & iTask w
-enterSharedChoiceAbout		:: !d			!about	!(Shared [o] w)											-> Task o | descr d & iTask o & iTask w & iTask about
-enterSharedChoiceA			:: !d !(o -> v) 		!(Shared [o] w) !((Maybe o) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask w & iTask v
-enterSharedChoiceAboutA		:: !d !(o -> v)	!about	!(Shared [o] w) !((Maybe o) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask w & iTask v & iTask about
+enterSharedChoice			:: !d					!(Shared [o] w)								-> Task o | descr d & iTask o & iTask w
+enterSharedChoiceAbout		:: !d			!about	!(Shared [o] w)								-> Task o | descr d & iTask o & iTask w & iTask about
+enterSharedChoiceA			:: !d !(o -> v) 		!(Shared [o] w) !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask w & iTask v
+enterSharedChoiceAboutA		:: !d !(o -> v)	!about	!(Shared [o] w) !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask w & iTask v & iTask about
 
 /*
 * Ask the user to select a number of items from a list of options
 *
 *
-* @param description 							A description of the task to display to the user
-* @param (a -> v) (optional)					A view for options of type a is generated; This function defines how to map an option to a view value of type v
-*												If not specified, a = v, and the view is the identity
-* @param [PredAction [a]] (optional)			A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-												If not specified an ok button is provided
-* @param about (optional)						Additional information to display
-* @param [a]									A list of options
+* @param description 									A description of the task to display to the user
+* @param (o -> v) (optional)							A view for options of type o is generated; This function defines how to map an option to a view value of type v
+*														If not specified, o = v, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param [o]											A list of options
+* @param (ActionFunc [o] a) (optional)					A function (on the currently selected options) dynamically calculating actions for the task
+*														If not specified an ok action is provided which always enabled and yields the currently selected options
 *
-* @return 										Chosen values or chosen action with the chosen options
+* @return 												Value yielded by the terminating action
 */
-enterMultipleChoice			:: !d 					![o]								-> Task [o]	| descr d & iTask o
-enterMultipleChoiceAbout	:: !d 			!about	![o]								-> Task [o]	| descr d & iTask o	& iTask about
-enterMultipleChoiceA		:: !d !(o -> v) 		![o] !([o] -> [(!Action,!Maybe a)])	-> Task a	| descr d & iTask a & iTask v
-enterMultipleChoiceAboutA	:: !d !(o -> v)	!about	![o] !([o] -> [(!Action,!Maybe a)])	-> Task a	| descr d & iTask a & iTask v & iTask about
+enterMultipleChoice			:: !d 					![o]						-> Task [o]	| descr d & iTask o
+enterMultipleChoiceAbout	:: !d 			!about	![o]						-> Task [o]	| descr d & iTask o	& iTask about
+enterMultipleChoiceA		:: !d !(o -> v) 		![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v
+enterMultipleChoiceAboutA	:: !d !(o -> v)	!about	![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask about
 
 /*
 * Ask the user to select a number of items from a list of shared options.
 *
-* @param description 							A description of the task to display to the user
-* @param (a -> v)								A view for options of type a is generated; This function defines how to map an option to a view value of type v
-* @param [PredAction [a]]						A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-* @param about (optional)						Additional information to display
-* @param (Shared [a] w)							A reference to the shared options
+* @param description 									A description of the task to display to the user
+* @param (o -> v) (optional)							A view for options of type o is generated; This function defines how to map an option to a view value of type v
+*														If not specified, o = v, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param (Shared [a] w)									A reference to the shared options
+* @param (ActionFunc [o] a) (optional)					A function (on the currently selected options) dynamically calculating actions for the task
+*														If not specified an ok action is provided which always enabled and yields the currently selected options
 *
-* @return 										Chosen action with the chosen options
-* @throws										SharedException
+* @return 												Value yielded by the terminating action
+* @throws												SharedException
 */
-enterSharedMultipleChoice		:: !d					!(Shared [o] w)									-> Task [o]	| descr d & iTask o & iTask w
-enterSharedMultipleChoiceAbout	:: !d			!about	!(Shared [o] w)									-> Task [o]	| descr d & iTask o & iTask w & iTask about
-enterSharedMultipleChoiceA		:: !d !(o -> v) 		!(Shared [o] w)	!([o] -> [(!Action,!Maybe a)])	-> Task a	| descr d & iTask a & iTask v & iTask w
-enterSharedMultipleChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!([o] -> [(!Action,!Maybe a)])	-> Task a	| descr d & iTask a & iTask v & iTask w & iTask about
+enterSharedMultipleChoice		:: !d					!(Shared [o] w)						-> Task [o]	| descr d & iTask o & iTask w
+enterSharedMultipleChoiceAbout	:: !d			!about	!(Shared [o] w)						-> Task [o]	| descr d & iTask o & iTask w & iTask about
+enterSharedMultipleChoiceA		:: !d !(o -> v) 		!(Shared [o] w)	!(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask w
+enterSharedMultipleChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask w & iTask about
 
 // A view mapping an input from a shared data source (r)
 // to a view shown to the user (v)
@@ -142,127 +150,130 @@ idView :== (id,const)
 /*
 * Ask the user to update predefined information. 
 *
-* @param description							A description of the task to display to the user
-* @param (SymmetricView a v) (optional)			View defining how to convert a to the demanded view v and backwards to a
-*												If not specified, a = v, and the view is the identity view
-* @param [PredAction (Verified a)]				A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-*												If not specified an ok button is provided which is enabled if the editor is valid
-* @param about (optional)						Additional information to display
-* @param a										The initial value to use
+* @param description									A description of the task to display to the user
+* @param (SymmetricView m v) (optional)					View defining how to convert m to the demanded view v and backwards to m
+*														If not specified, m = v, and the view is the identity view
+* @param about (optional)								Additional information to display
+* @param (ActionFunc (InformationState m) a) (optional)	A function (on the current information task state) dynamically calculating actions for the task
+*														If not specified an ok action is provided which is enabled if the editor is valid and yields the current value of the updated information
+* @param m												The value to update
 *
-* @return 										Resulting value or chosen action with the resulting value if editor was in valid state.
+* @return 												Value yielded by the terminating action
 */
-updateInformation			:: !d								!m													-> Task m | descr d & iTask m
-updateInformationAbout		:: !d						!about	!m													-> Task m | descr d & iTask m & iTask about
-updateInformationA			:: !d !(SymmetricView m v) 			!m !((InformationState m) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask m & iTask v
-updateInformationAboutA		:: !d !(SymmetricView m v) 	!about	!m !((InformationState m) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask m & iTask v & iTask about
+updateInformation			:: !d								!m										-> Task m | descr d & iTask m
+updateInformationAbout		:: !d						!about	!m										-> Task m | descr d & iTask m & iTask about
+updateInformationA			:: !d !(SymmetricView m v) 			!m !(ActionFunc (InformationState m) a)	-> Task a | descr d & iTask a & iTask m & iTask v
+updateInformationAboutA		:: !d !(SymmetricView m v) 	!about	!m !(ActionFunc (InformationState m) a)	-> Task a | descr d & iTask a & iTask m & iTask v & iTask about
 
 /*
 * Ask the user to update predefined shared information.
 *
-* @param description 							A description of the task to display to the user
-* @param (View r v w)							View defining how to convert r to the demanded view v and backwards to w
-* @param [PredAction (Valid,r)]					A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-*												If not specified an ok button is provided which is enabled if the editor is valid
-* @param about (optional)						Additional information to display
-* @param (Shared r w)							Reference to the shared state to update
+* @param description 									A description of the task to display to the user
+* @param (View r v w)									View defining how to convert r to the demanded view v and backwards to w
+* @param about (optional)								Additional information to display
+* @param (Shared r w)									Reference to the shared state to update
+* @param (ActionFunc (InformationState r) a) (optional)	A function (on the current information task state) dynamically calculating actions for the task
+*														If not specified an ok action is provided which is enabled if the editor is valid and yields the current shared value
 *
-* @return 										Chosen action with the value of the shared state at the moment the task stopped
-* @throws										SharedException
+* @return 												Value yielded by the terminating action
+* @throws												SharedException
 */
-updateSharedInformation			:: !d !(View r v w)			!(Shared r w)													-> Task r | descr d & iTask r & iTask v & iTask w
-updateSharedInformationAbout	:: !d !(View r v w) !about	!(Shared r w)													-> Task r | descr d & iTask r & iTask v & iTask w & iTask about
-updateSharedInformationA		:: !d !(View r v w) 		!(Shared r w)!((InformationState r) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask r & iTask v & iTask w
-updateSharedInformationAboutA	:: !d !(View r v w) !about	!(Shared r w)!((InformationState r) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask r & iTask v & iTask w & iTask about
+updateSharedInformation			:: !d !(View r v w)			!(Shared r w)										-> Task r | descr d & iTask r & iTask v & iTask w
+updateSharedInformationAbout	:: !d !(View r v w) !about	!(Shared r w)										-> Task r | descr d & iTask r & iTask v & iTask w & iTask about
+updateSharedInformationA		:: !d !(View r v w) 		!(Shared r w) !(ActionFunc (InformationState r) a)	-> Task a | descr d & iTask a & iTask r & iTask v & iTask w
+updateSharedInformationAboutA	:: !d !(View r v w) !about	!(Shared r w) !(ActionFunc (InformationState r) a)	-> Task a | descr d & iTask a & iTask r & iTask v & iTask w & iTask about
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected.
 *
-* @param description 							A description of the task to display to the user
-* @param (a -> v) (optional)					A view for options of type a is generated; This function defines how to map an option to a view value of type v
-*												If not specified, a = v, and the view is the identity
-* @param [PredAction (Verified a)] (optional)	A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-												If not specified an ok button is provided which is enabled if an option is chosen
-* @param about (optional)						Additional information to display
-* @param [a]									A list of options
-* @param Int									The index of the item which should be pre-selected
+* @param description 									A description of the task to display to the user
+* @param (o -> v) (optional)							A view for options of type o is generated; This function defines how to map an option to a view value of type v
+*														If not specified, o = v, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param [o]											A list of options
+* @param Int											The index of the item which should be pre-selected
+* @param (ActionFunc (Maybe o) a) (optional)			A function (on the currently selected option (if present)) dynamically calculating actions for the task
+*														If not specified an ok action is provided which is enabled if an option is chosen and yields that option
 *
-* @return 										Chosen option or chosen action with the chosen option if present
-* @throws										ChoiceException
+* @return 												Value yielded by the terminating action
+* @throws												ChoiceException
 */
-updateChoice				:: !d					![o] !Int										-> Task o | descr d & iTask o
-updateChoiceAbout			:: !d 			!about	![o] !Int										-> Task o | descr d & iTask o & iTask about
-updateChoiceA 				:: !d !(o -> v) 		![o] !Int !((Maybe o) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask v
-updateChoiceAboutA			:: !d !(o -> v)	!about	![o] !Int !((Maybe o) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask v & iTask about
+updateChoice				:: !d					![o] !Int							-> Task o | descr d & iTask o
+updateChoiceAbout			:: !d 			!about	![o] !Int							-> Task o | descr d & iTask o & iTask about
+updateChoiceA 				:: !d !(o -> v) 		![o] !Int !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v
+updateChoiceAboutA			:: !d !(o -> v)	!about	![o] !Int !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v & iTask about
 
 /*
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
 *
-* @param description 							A description of the task to display to the user
-* @param (a -> v)								A view for options of type a is generated; This function defines how to map an option to a view value of type v
-* @param [PredAction (Verified a)]				A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-* @param about (optional)						Additional information to display
-* @param (Shared [a] w)							A reference to the shared options
-* @param Int									The index of the item which should be pre-selected
+* @param description 									A description of the task to display to the user
+* @param (o -> v) (optional)							A view for options of type o is generated; This function defines how to map an option to a view value of type v
+*														If not specified, o = v, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param (Shared [o] w)									A reference to the shared options
+* @param Int											The index of the item which should be pre-selected
+* @param (ActionFunc (Maybe o) a) (optional)			A function (on the currently selected option (if present)) dynamically calculating actions for the task
+*														If not specified an ok action is provided which is enabled if an option is chosen and yields that option
 *
-* @return 										Chosen action with the chosen option if present
-* @throws										SharedException
+* @return 												Value yielded by the terminating action
+* @throws												SharedException
 */
-updateSharedChoice			:: !d					!(Shared [o] w) !Int										-> Task o | descr d & iTask o & iTask w
-updateSharedChoiceAbout		:: !d			!about	!(Shared [o] w) !Int										-> Task o | descr d & iTask o & iTask w & iTask about
-updateSharedChoiceA 		:: !d !(o -> v) 		!(Shared [o] w)	!Int !((Maybe o) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask v & iTask w
-updateSharedChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!Int !((Maybe o) -> [(!Action,!Maybe a)])	-> Task a | descr d & iTask a & iTask v & iTask w & iTask about
+updateSharedChoice			:: !d					!(Shared [o] w) !Int							-> Task o | descr d & iTask o & iTask w
+updateSharedChoiceAbout		:: !d			!about	!(Shared [o] w) !Int							-> Task o | descr d & iTask o & iTask w & iTask about
+updateSharedChoiceA 		:: !d !(o -> v) 		!(Shared [o] w)	!Int !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v & iTask w
+updateSharedChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!Int !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v & iTask w & iTask about
 
 /*
 * Ask the user to select a number of items from a list of options with already a number of options pre-selected.
 *
 *
-* @param description 							A description of the task to display to the user
-* @param (a -> v) (optional)					A view for options of type a is generated; This function defines how to map an option to a view value of type v
-*												If not specified, a = v, and the view is the identity
-* @param [PredAction [a]] (optional)			A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-												If not specified an ok button is provided
-* @param about (optional)						Additional information to display
-* @param [a]									A list of options
-* @param [Int]									The indexes of the items which should be pre-selected
+* @param description 									A description of the task to display to the user
+* @param (o -> v) (optional)							A view for options of type o is generated; This function defines how to map an option to a view value of type v
+*														If not specified, o = v, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param [o]											A list of options
+* @param [Int]											The indexes of the items which should be pre-selected
+* @param (ActionFunc [o] a) (optional)					A function (on the currently selected options) dynamically calculating actions for the task
+*														If not specified an ok action is provided which always enabled and yields the currently selected options
 *
-* @return 										Chosen values or chosen action with the chosen options
+* @return 												Value yielded by the terminating action
 */
-updateMultipleChoice		:: !d 					![o] ![Int] 								-> Task [o]	| descr d & iTask o
-updateMultipleChoiceAbout	:: !d 			!about	![o] ![Int] 								-> Task [o]	| descr d & iTask o & iTask about
-updateMultipleChoiceA		:: !d !(o -> v) 		![o] ![Int] !([o] -> [(!Action,!Maybe a)])	-> Task a	| descr d & iTask a & iTask v
-updateMultipleChoiceAboutA	:: !d !(o -> v) !about	![o] ![Int] !([o] -> [(!Action,!Maybe a)])	-> Task a	| descr d & iTask a & iTask v & iTask about
+updateMultipleChoice		:: !d 					![o] ![Int] 					-> Task [o]	| descr d & iTask o
+updateMultipleChoiceAbout	:: !d 			!about	![o] ![Int] 					-> Task [o]	| descr d & iTask o & iTask about
+updateMultipleChoiceA		:: !d !(o -> v) 		![o] ![Int] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v
+updateMultipleChoiceAboutA	:: !d !(o -> v) !about	![o] ![Int] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask about
 
 /*
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
 *
-* @param description 							A description of the task to display to the user
-* @param (a -> v)								A view for options of type a is generated; This function defines how to map an option to a view value of type v
-* @param [PredAction (Verified a)]				A list of action/predicate pairs (mapped to buttons or menus) through which the user can submit the value
-* @param about (optional)						Additional information to display
-* @param (Shared [a] w)							A reference to the shared options
-* @param [Int]									The indexes of the items which should be pre-selected
+* @param description 									A description of the task to display to the user
+* @param (o -> v) (optional)							A view for options of type o is generated; This function defines how to map an option to a view value of type v
+														If not specified, o = v, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param (Shared [o] w)									A reference to the shared options
+* @param [Int]											The indexes of the items which should be pre-selected
+* @param (ActionFunc [o] a) (optional)					A function (on the currently selected options) dynamically calculating actions for the task
+*														If not specified an ok action is provided which always enabled and yields the currently selected options
 *
-* @return 										Chosen action with the chosen option if present
-* @throws										SharedException
+* @return 												Value yielded by the terminating action
 */
-updateSharedMultipleChoice			:: !d					!(Shared [o] w) ![Int]									-> Task [o]	| descr d & iTask o & iTask w
-updateSharedMultipleChoiceAbout		:: !d			!about	!(Shared [o] w) ![Int]									-> Task [o]	| descr d & iTask o & iTask w & iTask about
-updateSharedMultipleChoiceA			:: !d !(o -> v) 		!(Shared [o] w) ![Int] !([o] -> [(!Action,!Maybe a)])	-> Task a	| descr d & iTask a & iTask v & iTask w
-updateSharedMultipleChoiceAboutA	:: !d !(o -> v) !about	!(Shared [o] w) ![Int] !([o] -> [(!Action,!Maybe a)])	-> Task a	| descr d & iTask a & iTask v & iTask w & iTask about
+updateSharedMultipleChoice			:: !d					!(Shared [o] w) ![Int]						-> Task [o]	| descr d & iTask o & iTask w
+updateSharedMultipleChoiceAbout		:: !d			!about	!(Shared [o] w) ![Int]						-> Task [o]	| descr d & iTask o & iTask w & iTask about
+updateSharedMultipleChoiceA			:: !d !(o -> v) 		!(Shared [o] w) ![Int] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask w
+updateSharedMultipleChoiceAboutA	:: !d !(o -> v) !about	!(Shared [o] w) ![Int] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask w & iTask about
 
 /*
 * Show a basic message to the user. The user can end the task after reading the message. 
 *
-* @param description 							A description of the task to display to the user
-* @param (about -> v) (optional)				A view on the about value, defining how it is shown to the user
-												If not specified, v = a, and the view is the identity
-* @param [Action] (optional)					A list of buttons or menus, through which the user can submit the value
-												All actions are always possible since there is no changing state
-												If not specified an ok button is provided
-* @param a OR about								The value is just passed for convenience or shown as context information
+* @param description 									A description of the task to display to the user
+* @param (about -> v) (optional)						A view on the about value, defining how it is shown to the user
+														If not specified, v = about, and the view is the identity
+* @param about (optional)								Additional information to display
+* @param [Action] OR a (optional)						A list of actions, through which the user can submit the value
+														All actions are always possible since there is no changing state
+														If not specified an ok action yielding the about OR the given value is provided
 *
-* @return										A copy of value a or about with (optionally) chosen action
+* @return												Value yielded by the terminating action
 */
 showMessage			:: !d						!a				-> Task a		| descr d & iTask a
 showMessageAbout	:: !d				!about					-> Task about	| descr d & iTask about
@@ -272,11 +283,11 @@ showMessageAboutA	:: !d !(about -> v)	!about	![(!Action,!a)]	-> Task a		| descr 
 /* 
 * Shows a instruction to the user. The user can dismiss the instruction.
 *
-* @param String									A short descriptive subject
-* @param instruction							The instruction
-* @param a or about								The value is just passed for convenience or shown as context information		
+* @param String											A short descriptive subject
+* @param instruction									The instruction
+* @param a or about										The value is just passed for convenience or shown as context information		
 *
-* @return										A copy of value a or about
+* @return												A copy of value a or about
 */
 showInstruction 			:: !String !instruction	!a		-> Task a		| html instruction & iTask a
 showInstructionAbout 		:: !String !instruction !about 	-> Task about	| html instruction & iTask about
@@ -285,16 +296,16 @@ showInstructionAbout 		:: !String !instruction !about 	-> Task about	| html inst
 * Monitors a shared state using a functional view.
 * A predicate determines when to continue.
 *
-* @param description							A description of the task to display to the user
-* @param (r -> v)								A view function
-* @param (r -> Bool)							A predicate determining when to continue
-* @param Bool OR [PredAction r]					A flag indicating if to finish the task automatically if condition is true or let the user press a continue-button
-												OR
-												a list of actions the user can take before the predicate holds
-* @param about (optional)						Additional information to display
-* @param (Shared r w)							A reference to the shared state
+* @param description									A description of the task to display to the user
+* @param (r -> v)										A view function
+* @param (r -> Bool) (optional)							A predicate determining when to continue
+* @param Bool (optional)								A flag indicating if to finish the task automatically if condition is true or let the user trigger a continue-action
+* @param about (optional)								Additional information to display
+* @param (Shared r w)									A reference to the shared state
+* @param (r -> InteractionTerminators a) (optional)		A function computing the terminators for the task
+*														If not specified the task automatically continues or provides a continue-action, depending on the predicate and continue-flag argument; in this case the current shared value is yielded
 *
-* @return										The last value of the monitored state with (optionally) chosen action
+* @return												The last value of the monitored state with (optionally) chosen action
 */
 monitor			:: !d !(r -> v) !(r -> Bool) !Bool			!(Shared r w)									-> Task r | descr d & iTask r & iTask v & iTask w
 monitorAbout	:: !d !(r -> v) !(r -> Bool) !Bool 	!about	!(Shared r w)									-> Task r | descr d & iTask r & iTask v & iTask w & iTask about
@@ -304,11 +315,11 @@ monitorAboutA	:: !d !(r -> v) 					!about	!(Shared r w) !(r -> InteractionTermin
 /**
 * Waits until a shared Maybe-state contains a value.
 *
-* @param description							A description of the task to display to the user
-* @param about (optional)						Additional information to display
-* @param (Shared (Maybe r) w)					A reference to the shared Maybe-state
+* @param description									A description of the task to display to the user
+* @param about (optional)								Additional information to display
+* @param (Shared (Maybe r) w)							A reference to the shared Maybe-state
 *
-* @return										The last value of the monitored state
+* @return												The last value of the monitored state
 */
 wait		:: !d			!(Shared (Maybe r) w) -> Task r | descr d & iTask r & iTask w
 waitAbout	:: !d !about	!(Shared (Maybe r) w) -> Task r | descr d & iTask r & iTask w & iTask about
@@ -316,12 +327,12 @@ waitAbout	:: !d !about	!(Shared (Maybe r) w) -> Task r | descr d & iTask r & iTa
 /**
 * Waits until a predicate on a shared state holds.
 *
-* @param description							A description of the task to display to the user
-* @param (r -> Bool)							A predicate on the monitored state
-* @param about (optional)						Additional information to display
-* @param (Shared r w)							A reference to the shared state
+* @param description									A description of the task to display to the user
+* @param (r -> Bool)									A predicate on the monitored state
+* @param about (optional)								Additional information to display
+* @param (Shared r w)									A reference to the shared state
 *
-* @return										The last value of the monitored state
+* @return												The last value of the monitored state
 */
 waitUntil		:: !d !(r -> Bool)			!(Shared r w) -> Task r | descr d & iTask r & iTask w
 waitUntilAbout	:: !d !(r -> Bool) !about	!(Shared r w) -> Task r | descr d & iTask r & iTask w & iTask about
@@ -364,12 +375,12 @@ chooseAction		:: ![(!Action,a)]								-> Task a | iTask a
 /*
 * Ask the user to choose an action. The list of actions is calculated dynamically.
 *
-* @param (r -> [(Action,Maybe a)]) 				A list of actions the user can choose from. Each actions yields the given result if it's chosen & result is present (Just). Otherwise (Nothing) action is disabled.
+* @param (r -> [(Action,Maybe a)]) 				A function generating a list of actions the user can choose from. Each actions yields the given result if it's chosen & result is present (Just). Otherwise (Nothing) action is disabled.
 * @param (Shared r w)							The shared value to use. 
 *
 * @return 										Value associated with chosen action.
 */						
-chooseActionDyn 	:: !(Shared r w) !(r -> [(!Action,!Maybe a)])	-> Task a | iTask a & iTask w
+chooseActionDyn 	:: !(Shared r w) !(ActionFunc r a)	-> Task a | iTask a & iTask w
 
-noActions		:: a -> [(!Action,!Maybe Void)]
+noActions		:: ActionFunc a Void
 noActionsMsg	:: [(!Action,!Maybe Void)]
