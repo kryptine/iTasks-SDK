@@ -62,27 +62,16 @@ itasks.tui.base = {
 		var tuiH		= this.tuiSize.height;
 		var size		= {};
 		
-		switch (tuiW[0]) {
-			case 'Wrap':
-				size.width	= ['Fixed',this.getMinTUISize().width];
-				break;
-			case 'FillParent':
-				size.width	= ['Weight',tuiW[1]];
-				break;
-			case 'Fixed':
-				size.width	= ['Fixed',tuiW[1]];
-				break;
+		if (tuiW[0] == 'FillParent') {
+			size.width	= ['Weight',tuiW[1]];
+		} else {
+			size.width	= ['Fixed',this.getMinTUISize().width];
 		}
-		switch (tuiH[0]) {
-			case 'Wrap':
-				size.height	= ['Fixed',this.getMinTUISize().height];
-				break;
-			case 'FillParent':
-				size.height	= ['Weight',tuiH[1]];
-				break;
-			case 'Fixed':
-				size.height	= ['Fixed',tuiH[1]];
-				break;
+		
+		if (tuiH[0] == 'FillParent') {
+			size.height	= ['Weight',tuiH[1]];
+		} else {
+			size.height	= ['Fixed',this.getMinTUISize().height];
 		}
 		
 		this.setCache(this.id,'size',size);

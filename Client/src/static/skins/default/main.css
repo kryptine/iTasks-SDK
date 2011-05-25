@@ -593,9 +593,8 @@ div.taskForestLegend{
 	height: 100%;
 	background: transparent none no-repeat scroll 0 0;
 	position: absolute;
-	float: right;
 	top: 0px;
-	right: 5px;
+	right: 0px;
 }
 
 .list-sidebar-collapsed{
@@ -648,10 +647,12 @@ div.taskForestLegend{
 }
 
 .list-item-light {
+	position: relative;
 	background-image: url('img/light-blue-background.png') !important;
 }
 
 .list-item-dark {
+	position: relative;
 	background-image: url('img/dark-blue-background.png') !important;
 }
 
