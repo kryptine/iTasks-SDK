@@ -3,6 +3,7 @@ implementation module GenUpdate
 import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum
 import Types, Text, Util, DocumentDB
 from StdFunc import id, const, o
+from TUIDefinition import :: TUISize(..), :: TUIFixedSize, :: TUIWeight
 
 derive bimap (,), UpdateMode
 
@@ -169,13 +170,18 @@ where
 			# l = list !! (index)
 			= updateAt (index-1) l (updateAt index f list)
 
-gUpdate{|Display|}				fx mode							ust = wrapperUpdate fx mode fromDisplay Display ust
-gUpdate{|Editable|}				fx mode							ust = wrapperUpdate fx mode fromEditable Editable ust
-gUpdate{|Hidden|}				fx mode							ust = wrapperUpdate fx mode fromHidden Hidden ust
-gUpdate {|VisualizationHint|} 	fx UDCreate						ust = wrapperUpdate fx UDCreate undef VHEditable ust 
-gUpdate {|VisualizationHint|} 	fx m=:(UDSearch (VHEditable s))	ust = wrapperUpdate fx m fromVisualizationHint VHEditable ust
-gUpdate {|VisualizationHint|} 	fx m=:(UDSearch (VHDisplay s))	ust = wrapperUpdate fx m fromVisualizationHint VHDisplay ust
-gUpdate {|VisualizationHint|} 	fx m=:(UDSearch (VHHidden s))	ust = wrapperUpdate fx m fromVisualizationHint VHHidden ust
+gUpdate{|Display|}				fx mode										ust = wrapperUpdate fx mode fromDisplay Display ust
+gUpdate{|Editable|}				fx mode										ust = wrapperUpdate fx mode fromEditable Editable ust
+gUpdate{|Hidden|}				fx mode										ust = wrapperUpdate fx mode fromHidden Hidden ust
+gUpdate{|VisualizationHint|} 	fx UDCreate									ust = wrapperUpdate fx UDCreate undef VHEditable ust 
+gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHEditable s))			ust = wrapperUpdate fx mode fromVisualizationHint VHEditable ust
+gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHDisplay s))			ust = wrapperUpdate fx mode fromVisualizationHint VHDisplay ust
+gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHHidden s))			ust = wrapperUpdate fx mode fromVisualizationHint VHHidden ust
+gUpdate{|ControlSize|} 			fx UDCreate									ust = wrapperUpdate fx UDCreate undef (ControlSize Auto Auto Nothing) ust 
+gUpdate{|ControlSize|}			fx mode=:(UDSearch (ControlSize w h m _))	ust = wrapperUpdate fx mode fromControlSize (ControlSize w h m) ust
+gUpdate{|FillControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillControlSize FillControlSize ust
+gUpdate{|FillWControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillWControlSize FillWControlSize ust
+gUpdate{|FillHControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillHControlSize FillHControlSize ust
 
 wrapperUpdate fx mode get cons ust=:{currentPath} = case mode of
 	UDCreate
@@ -275,12 +281,16 @@ gDefaultMask{|Maybe|} fx mbVal = maybe [Untouched] fx mbVal
 gDefaultMask{|[]|} _ [] = [Untouched]
 gDefaultMask{|[]|} fx l = [Touched (map (hd o fx) l)]
 
-gDefaultMask {|Display|}			fx (Display d)		= fx d
-gDefaultMask {|Editable|}			fx (Editable e)		= fx e
-gDefaultMask {|Hidden|}				fx (Hidden h)		= fx h
-gDefaultMask {|VisualizationHint|}	fx (VHEditable e)	= fx e
-gDefaultMask {|VisualizationHint|}	fx (VHDisplay d)	= fx d
-gDefaultMask {|VisualizationHint|}	fx (VHHidden h)		= fx h
+gDefaultMask {|Display|}			fx (Display d)				= fx d
+gDefaultMask {|Editable|}			fx (Editable e)				= fx e
+gDefaultMask {|Hidden|}				fx (Hidden h)				= fx h
+gDefaultMask {|VisualizationHint|}	fx (VHEditable e)			= fx e
+gDefaultMask {|VisualizationHint|}	fx (VHDisplay d)			= fx d
+gDefaultMask {|VisualizationHint|}	fx (VHHidden h)				= fx h
+gDefaultMask {|ControlSize|}		fx (ControlSize _ _ _ v)	= fx v
+gDefaultMask {|FillControlSize|}	fx (FillControlSize v)		= fx v
+gDefaultMask {|FillWControlSize|}	fx (FillWControlSize v)		= fx v
+gDefaultMask {|FillHControlSize|}	fx (FillHControlSize v)		= fx v
 
 gDefaultMask{|Int|}					_ = [Touched []]
 gDefaultMask{|Real|}				_ = [Touched []]

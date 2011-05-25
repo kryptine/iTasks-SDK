@@ -5,21 +5,22 @@ definition module Types
 */
 
 import GenEq, Maybe, JSON, Store, Void, Either, FilePath
-from Map import :: Map
-from Map import qualified get
-from HTML 		import class html
-from Time		import :: Timestamp
-from Config		import :: Config
+from Map 			import :: Map
+from Map 			import qualified get
+from HTML 			import class html
+from Time			import :: Timestamp
+from Config			import :: Config
+from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription
+derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription
+derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay, WorkflowDescription
+derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
 derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
@@ -188,6 +189,21 @@ toHidden :: !.a -> Hidden .a
 toHtmlDisplay	:: !h -> HtmlDisplay | html h
 fromHtmlDisplay	:: !HtmlDisplay -> String
 instance toString HtmlDisplay
+
+// Wrapper types for changing the control's sizes
+:: ControlSize a		= ControlSize		!TUISize !TUISize !(Maybe TUIMargins) !a	// all controls generated for a have specified sizes
+:: FillControlSize a	= FillControlSize	!a											// all controls generated for a fill the parent
+:: FillWControlSize a	= FillWControlSize	!a											// all controls generated for a fill the parent's width
+:: FillHControlSize a	= FillHControlSize	!a											// all controls generated for a fill the parent's height
+
+toControlSize :: !TUISize !TUISize !(Maybe TUIMargins) !.a -> ControlSize .a
+fromControlSize :: !(ControlSize .a) -> .a
+toFillControlSize :: !.a -> FillControlSize .a
+fromFillControlSize :: !(FillControlSize .a) -> .a
+toFillWControlSize :: !.a -> FillWControlSize .a
+fromFillWControlSize :: !(FillWControlSize .a) -> .a
+toFillHControlSize :: !.a -> FillHControlSize .a
+fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
 // Properties of processes	
 :: ProcessProperties =

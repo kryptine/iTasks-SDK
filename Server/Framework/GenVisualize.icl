@@ -5,7 +5,8 @@ import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefiniti
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, currentPath = startDataPath,
-		selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = ""}
+		selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = "",
+		controlSize = (Auto,Auto,Nothing)}
 
 //(WrapContent 0)per functions
 visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> TUIDef | gVisualize{|*|} a
@@ -53,7 +54,7 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType}
 			# (vizBody,vst)					= fx x vst
 			= (vizBody,vst)
 			
-gVisualize{|OBJECT of d|} fx val vst=:{vizType,currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent}
+gVisualize{|OBJECT of d|} fx val vst=:{vizType,currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent,controlSize}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
@@ -67,7 +68,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,currentPath,selectedConsIndex = o
 			| d.gtd_num_conses > 1 && not renderAsStatic
 				# (err,hnt)	= verifyElementStr cmv
 				# (items, vst=:{selectedConsIndex}) = fx x vst
-				= ([TUIFragment (defaultSizeControl (TUIConstructorControl
+				= ([TUIFragment (sizedControl controlSize (TUIConstructorControl
 						{TUIConstructorControl
 						| consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
 						, items = if (isTouched cmv) (coerceToTUIDefs items) []
@@ -86,7 +87,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,currentPath,selectedConsIndex = o
 				# vis = case vis of
 					[]	= if (isTouched cmv) [TUIFragment (htmlDisplay ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))] []
 					vis = [TUIFragment	{ content	= TUILayoutContainer (defaultLayoutContainer (coerceToTUIDefs vis))
-										, width 	= Auto
+										, width 	= FillParent 1 ContentSize
 										, height	= Auto
 										, margins	= Nothing
 										}]
@@ -95,7 +96,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,currentPath,selectedConsIndex = o
 			# (viz,vst) = fx x vst
 			= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
 	
-gVisualize{|CONS of d|} fx val vst=:{taskId,editEvent,currentPath,optional} = visualizeCustomSimple mkControl staticVis val False vst
+gVisualize{|CONS of d|} fx val vst=:{taskId,editEvent,currentPath,optional,controlSize} = visualizeCustomSimple mkControl staticVis val False vst
 where
 	mkControl name val _ _ _ renderAsStatic vst
 		# x = fmap fromCONS val
@@ -117,7 +118,7 @@ where
 								, margins	= Nothing
 								}
 											
-		checkbox c = defaultSizeControl TUIBoolControl
+		checkbox c = sizedControl controlSize TUIBoolControl
 			{ name			= name
 			, value			= toJSON c
 			, taskId		= taskId
@@ -249,14 +250,14 @@ where
 	buttonLabel	b = toString ((fmap (\b -> b.FormButton.label)) b)
 	icon		b = toString ((fmap (\b -> b.FormButton.icon)) b)
 		
-gVisualize{|Choice|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
+gVisualize{|Choice|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
 where
 	mkControl name val touched err hnt _ vst = case val of
 		Nothing
 			= ([htmlDisplay noSelection],vst)
 		Just (Choice opts sel)
 			# (children,vst) = childVisualizations fx opts (Just VHtmlLabel) vst
-			= ([defaultSizeControl (TUIChoiceControl
+			= ([sizedControl controlSize (TUIChoiceControl
 				{ TUIChoiceControl
 				| allowMultiple = False
 				, options = map mkOptionLabel children
@@ -276,14 +277,14 @@ where
 	mkOptionLabel vis = toString (SpanTag [ClassAttr "task-choice"] (coerceToHtml vis))
 	noSelection = "No item selected"
 
-gVisualize{|MultipleChoice|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
+gVisualize{|MultipleChoice|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
 where
 	mkControl name val touched err hnt _ vst = case val of
 		Nothing
 			= ([htmlDisplay empty],vst)
 		Just (MultipleChoice opts sel)
 			# (children,vst) = childVisualizations fx opts (Just VHtmlLabel) vst
-			= ([defaultSizeControl (TUIChoiceControl
+			= ([sizedControl controlSize (TUIChoiceControl
 				{ TUIChoiceControl
 				| allowMultiple = True
 				, options = map mkOptionLabel children
@@ -303,7 +304,7 @@ where
 	mkOptionLabel vis = toString (SpanTag [ClassAttr "task-choice"] (coerceToHtml vis))
 	empty = "Empty multiple choice"
 
-gVisualize{|Tree|} fx val vst=:{currentPath,editEvent,taskId} = visualizeCustomSimple mkControl staticVis val True vst
+gVisualize{|Tree|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
 where
 	mkControl name val touched err hnt _ vst = case val of
 		Nothing
@@ -312,7 +313,7 @@ where
 			# vst = {vst & vizType = VTextLabel}
 			# (tree,_,vst) = mkTree nodes 0 vst
 			# vst = {vst & vizType = VEditorDefinition}
-			= ([defaultSizeControl (TUITreeControl tree)
+			= ([sizedControl controlSize (TUITreeControl tree)
 				{ TUIControl
 				| name = name
 				, value = if (touched && sel >= 0) (toJSON sel) JSONNull
@@ -514,13 +515,11 @@ gVisualize{|Hidden|} fx val vst=:{VSt | currentPath, verifyMask}
 	= ([],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
 gVisualize{|Display|} fx val vst=:{currentPath,renderAsStatic}
-	# x	= fmap fromDisplay val
-	# (def,vst) = fx x {VSt | vst &  renderAsStatic = True}
+	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  renderAsStatic = True}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 
 gVisualize{|Editable|} fx val vst=:{currentPath, renderAsStatic}
-	# x	= fmap fromEditable val
-	# (def,vst) = fx x {VSt | vst & renderAsStatic = False}
+	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & renderAsStatic = False}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 
 gVisualize{|VisualizationHint|} fx val vst=:{currentPath, vizType, taskId}
@@ -529,7 +528,27 @@ gVisualize{|VisualizationHint|} fx val vst=:{currentPath, vizType, taskId}
 		Just (VHDisplay x)	= gVisualize{|* -> *|} fx (Just (Display x)) vst
 		Just (VHEditable x)	= gVisualize{|* -> *|} fx (Just (Editable x)) vst
 		Nothing				= fx Nothing vst
-		
+
+gVisualize{|ControlSize|} fx val vst=:{controlSize}
+	= case val of
+		Nothing
+			= fx Nothing vst
+		(Just (ControlSize width height margins v))
+			# (def,vst) = fx (Just v) {VSt | vst &  controlSize = (width,height,margins)}
+			= (def,{VSt | vst & controlSize = controlSize})
+			
+gVisualize{|FillControlSize|} fx val vst=:{controlSize=controlSize=:(_,_,margins)}
+	# (def,vst) = fx (fmap fromFillControlSize val) {vst & controlSize = (FillParent 1 ContentSize,FillParent 1 ContentSize,margins)}
+	= (def,{vst & controlSize = controlSize})
+
+gVisualize{|FillWControlSize|} fx val vst=:{controlSize=controlSize=:(_,height,margins)}
+	# (def,vst) = fx (fmap fromFillWControlSize val) {vst & controlSize = (FillParent 1 ContentSize,height,margins)}
+	= (def,{vst & controlSize = controlSize})
+	
+gVisualize{|FillHControlSize|} fx val vst=:{controlSize=controlSize=:(width,_,margins)}
+	# (def,vst) = fx (fmap fromFillHControlSize val) {vst & controlSize = (width,FillParent 1 ContentSize,margins)}
+	= (def,{vst & controlSize = controlSize})
+	
 gVisualize{|Menu|} _ _ = abort "not implemented"
 
 derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority
@@ -546,16 +565,16 @@ visualizeControl :: !TUIControlType !(StaticVizFunctions a) !(Maybe a) !*VSt -> 
 visualizeControl control staticF v vst = visualizeControl2 control staticF (fmap (\a -> (a,a)) v) vst
 
 visualizeControl2 :: !TUIControlType !(StaticVizFunctions b) !(Maybe (!a,!b)) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|} a
-visualizeControl2 control (strF,htmlF) v vst=:{editEvent,currentPath} = visualizeCustom tuiF staticF v True vst
+visualizeControl2 control (strF,htmlF) v vst=:{editEvent,currentPath,controlSize} = visualizeCustom tuiF staticF v True vst
 where
 	tuiF name v touched err hnt _ vst=:{VSt|taskId}
 		# v = checkMask touched v
-		# viz = defaultSizeControl control	{ TUIControl
-											| name = name
-											, value = toJSON v
-											, eventValue = eventValue currentPath editEvent
-											, taskId = taskId
-											}
+		# viz = sizedControl controlSize control	{ TUIControl
+													| name = name
+													, value = toJSON v
+													, eventValue = eventValue currentPath editEvent
+													, taskId = taskId
+													}
 	= ([viz],vst)
 								
 	staticF v touched vst=:{vizType}
@@ -636,8 +655,8 @@ where
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
 
-defaultSizeControl :: !TUIControlType !TUIControl -> TUIDef
-defaultSizeControl type control = {content = TUIControl type control, width = Auto, height = Auto, margins = Nothing}
+sizedControl :: !(!TUISize,!TUISize,!(Maybe TUIMargins)) !TUIControlType !TUIControl -> TUIDef
+sizedControl (width,height,mbMargins) type control = {content = TUIControl type control, width = width, height = height, margins = mbMargins}
 
 verifyElementStr :: !VerifyMask -> (!String, !String)
 verifyElementStr cmv = case cmv of

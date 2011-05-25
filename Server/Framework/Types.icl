@@ -8,13 +8,13 @@ from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription
+derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription
+derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay, WorkflowDescription
+derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
@@ -398,6 +398,30 @@ fromHtmlDisplay (HtmlDisplay h) = h
 instance toString HtmlDisplay
 where
 	toString (HtmlDisplay h) = h
+
+toControlSize :: !TUISize !TUISize !(Maybe TUIMargins) !.a -> ControlSize .a
+toControlSize width height margins a = ControlSize width height margins a
+
+fromControlSize :: !(ControlSize .a) -> .a
+fromControlSize (ControlSize _ _ _ a) = a
+
+toFillControlSize :: !.a -> FillControlSize .a
+toFillControlSize a = FillControlSize a
+
+fromFillControlSize :: !(FillControlSize .a) -> .a
+fromFillControlSize (FillControlSize a) = a
+
+toFillWControlSize :: !.a -> FillWControlSize .a
+toFillWControlSize a = FillWControlSize a
+
+fromFillWControlSize :: !(FillWControlSize .a) -> .a
+fromFillWControlSize (FillWControlSize a) = a
+
+toFillHControlSize :: !.a -> FillHControlSize .a
+toFillHControlSize a = FillHControlSize a
+
+fromFillHControlSize :: !(FillHControlSize .a) -> .a
+fromFillHControlSize (FillHControlSize a) = a
 
 // ******************************************************************************************************
 // User

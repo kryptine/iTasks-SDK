@@ -13,7 +13,7 @@ derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode
-derive gVisualize EmailAddress, Action, Table, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority
+derive gVisualize EmailAddress, Action, Table, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> TUIDef	| gVisualize{|*|} a
@@ -24,16 +24,17 @@ visualizeAsTextLabel	:: !a															-> String	| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
-	{ vizType			:: !VisualizationType				// Type of preferred visualization
-	, origVizType		:: !VisualizationType				// Type of the preferred visualization at initialization, this should not be edited.
+	{ vizType			:: !VisualizationType						// Type of preferred visualization
+	, origVizType		:: !VisualizationType						// Type of the preferred visualization at initialization, this should not be edited.
 	// Additional information for form generation
-	, currentPath		:: !DataPath						// Accumulated path through the data structure, used to identify sub-structures
+	, currentPath		:: !DataPath								// Accumulated path through the data structure, used to identify sub-structures
 	, verifyMask		:: ![VerifyMask]
-	, selectedConsIndex	:: !Int								// Index of the selected constructor in an Object
-	, optional			:: !Bool							// Create optional form fields
-	, renderAsStatic	:: !Bool							// If true, flag the form items as being static
-	, editEvent			:: !(Maybe (!DataPath,!JSONNode))	// The edit event (if present) for keeping track of values sent by the client (used for diff)
-	, taskId			:: !TaskId							// The id of the task the visualisation belongs to
+	, selectedConsIndex	:: !Int										// Index of the selected constructor in an Object
+	, optional			:: !Bool									// Create optional form fields
+	, renderAsStatic	:: !Bool									// If true, flag the form items as being static
+	, editEvent			:: !(Maybe (!DataPath,!JSONNode))			// The edit event (if present) for keeping track of values sent by the client (used for diff)
+	, taskId			:: !TaskId									// The id of the task the visualisation belongs to
+	, controlSize		:: !(!TUISize,!TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
 	}
 
 :: VisualizationType
