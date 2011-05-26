@@ -1,5 +1,7 @@
 definition module Chapter7
 
+// Examples showing distributed tasks
+
 import iTasks
 
 flows7 :: [Workflow]

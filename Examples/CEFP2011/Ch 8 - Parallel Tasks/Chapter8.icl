@@ -1,4 +1,4 @@
-implementation module Chapter7
+implementation module Chapter8
 
 // Examples showing the usage of frequently used iTask combinators
 
@@ -7,11 +7,10 @@ import iTasks, StdMisc
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine 	[ 
-							] world
+Start world = startEngine flows8 world
 
-flows7 :: [Workflow]
-flows7 =  [w1, w2]
+flows8 :: [Workflow]
+flows8 =  [w1, w2]
 
 w1 = workflow "CEFP/Chap 7/1. Chat" 		"Chat with one iTask user" 						chat1
 w2 = workflow "CEFP/Chap 7/2. Shared Chat" 	"Chat with one iTask user, updating views" 		chat2

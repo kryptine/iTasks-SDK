@@ -1,6 +1,6 @@
 definition module Chapter6
 
-// Examples showing distributed tasks
+// Examples showing the usage of shared data
 
 import iTasks
 

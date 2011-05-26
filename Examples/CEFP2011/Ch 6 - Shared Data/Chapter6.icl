@@ -1,4 +1,4 @@
-implementation module Chapter5
+implementation module Chapter6
 
 // Examples showing the usage of shared data
 
@@ -9,10 +9,10 @@ import iTasks
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows5 world
+Start world = startEngine flows6 world
 
-flows5 :: [Workflow]
-flows5 =  [w1, w2, w3, w4, w6]
+flows6 :: [Workflow]
+flows6 =  [w1, w2, w3, w4, w6]
 
 w1 = workflow "CEFP/Chap 5/1. Date and Time" 				"Shows current date and time" 						getDateAndTime
 w2 = workflow "CEFP/Chap 5/2. Administrated users" 			"Shows currently administrated users" 				getUsers

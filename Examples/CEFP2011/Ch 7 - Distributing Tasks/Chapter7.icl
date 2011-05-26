@@ -1,4 +1,4 @@
-implementation module Chapter6
+implementation module Chapter7
 
 // Examples showing distributed tasks
 
@@ -7,10 +7,10 @@ import iTasks
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows6 world
+Start world = startEngine flows7 world
 
-flows6 :: [Workflow]
-flows6 =  [w1, w2]
+flows7 :: [Workflow]
+flows7 =  [w1, w2]
 
 w1 = workflow "CEFP/Chap 6/1. Delegate a task" 	"Delegate a task to some administrated user" 	(delegate someTask)
 w2 = workflow "CEFP/Chap 6/2. Guess" 			"Number guessing game" 							guessGame
