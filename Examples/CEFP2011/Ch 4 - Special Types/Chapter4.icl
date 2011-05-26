@@ -15,6 +15,7 @@ flows4 =  [w1, w2, w3]
 w1 = workflow "CEFP/Chap 4/1. Question"    		"Question" 								(show (question "Do you like iTask?" 42))
 w2 = workflow "CEFP/Chap 4/2. List Choices" 	"Different ways to select a list" 		(show (selectList [1..5]))
 w3 = workflow "CEFP/Chap 4/3. Text editor"  	"Simple way to enter a piece of text" 	(show (textEditor "some text"))
+w8 = workflow "CEFP/Chap 4/4: Specialized type only accepting an odd number" "Type in an odd number" (show getOddNumber)
 
 show :: (Task a) -> Task a | iTask a
 show task = task >>= showMessageAbout "The result is:"
@@ -61,3 +62,22 @@ selectList list = updateInformation "Strange"
 
 textEditor text = updateInformation "Enter text" (Note text)
 
+// guarantee that a type has values with a certain property specializing gVerify
+
+
+:: Odd = Odd Int
+
+derive gVisualize 	Odd
+derive gUpdate 		Odd
+derive gDefaultMask Odd
+derive JSONEncode 	Odd
+derive JSONDecode 	Odd
+derive gEq 			Odd
+
+gVerify{|Odd|} mba st
+	= wrapperVerify (Just "Type in an odd number") (\(Odd v) -> isOdd v) (\(Odd v) -> v +++> " is not an odd number") mba st
+
+getOddNumber :: Task Int
+getOddNumber 
+	=						enterInformation "Type in an odd number" 
+		>>= \(Odd n) ->		return n
