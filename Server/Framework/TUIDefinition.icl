@@ -4,7 +4,7 @@ import JSON, StdList, StdBool, GenEq, StdFunc, HTML
 from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..)
 
 htmlDisplay :: !html -> TUIDef | toString html
-htmlDisplay html =	{ content	= TUIControl TUIHtmlDisplay
+htmlDisplay html =	{ content	= TUIControl (TUIHtmlDisplay Nothing)
 									{ TUIControl
 									| name			= ""
 									, value			= JSONString (toString html)

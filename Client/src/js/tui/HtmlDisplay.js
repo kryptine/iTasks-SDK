@@ -12,6 +12,13 @@ itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 				
 		itasks.tui.control.initComponent.apply(this,arguments);
 	},
+	afterRender: function() {
+		if (this.tooltip) {
+			new Ext.ToolTip({html: this.tooltip, target: this.getEl()});
+		}
+		
+		this.extSuperclass.afterRender.apply(this,arguments);
+	},
 	setValue: function(value) {
 		this.setWidth('auto');
 		this.setHeight('auto');

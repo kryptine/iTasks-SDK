@@ -63,7 +63,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 					| TUIChoiceControl		!TUIChoiceControl
 					| TUITreeControl		![TUITree]
 					| TUIORYXControl		!String // stencilset URL
-					| TUIHtmlDisplay
+					| TUIHtmlDisplay		!(Maybe Tooltip)
 					| TUIConstructorControl	!TUIConstructorControl
 					| TUICustomControl		!String // xtype
 
@@ -106,8 +106,6 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	, name			:: !TUIName
 	, taskId		:: !TaskId
 	, staticDisplay	:: !Bool
-	, errorMsg		:: !String
-	, hintMsg		:: !String
 	}
 :: TUIListItem =
 	{ items			:: !TUIDef
@@ -170,6 +168,8 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 :: TUIHGravity		= HGLeft | HGCenter | HGRight
 :: TUIVGravity		= VGTop | VGCenter | VGBottom
 :: TUIOrientation	= Horizontal | Vertical
+
+:: Tooltip :== String
 
 htmlDisplay				:: !html -> TUIDef | toString html
 defaultLayoutContainer	:: ![TUIDef] -> TUILayoutContainer

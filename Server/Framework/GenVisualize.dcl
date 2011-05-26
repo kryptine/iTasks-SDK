@@ -48,6 +48,8 @@ visualizeAsTextLabel	:: !a															-> String	| gVisualize{|*|} a
 	= TextFragment !String
 	| HtmlFragment !HtmlTag
 	| TUIFragment !TUIDef
+	
+:: VerifyResult = HintMsg !String | ErrorMsg !String | NoMsg
 
 //Utility functions making specializations of gVisualize
 
@@ -109,14 +111,13 @@ visualizeCustom			:: !(TUIVizFunction a) !(StaticVizFunctionCustom b) !(Maybe (!
 * @param The name of the TUI element
 * @param The value of the TUI element (if present)
 * @param A flag indicating if the value is touched
-* @param Error message
-* @param Hint message
+* @param Hint or Error message
 * @param A flag indicating if a static editor should be generated
 * @param VSt (currentPath points to first child of element, updateMasks & verifyMasks are masks of children)
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction				a :==	TUIName (Maybe a) Bool String String Bool -> .(*VSt -> *(![TUIDef],!*VSt))
+:: TUIVizFunction				a :==	TUIName (Maybe a) Bool VerifyResult Bool -> .(*VSt -> *(![TUIDef],!*VSt))
 /**
 * Functions for string and html visualizations.
 *

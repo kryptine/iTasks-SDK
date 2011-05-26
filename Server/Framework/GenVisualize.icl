@@ -98,7 +98,7 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,currentPath,selectedConsIndex = o
 	
 gVisualize{|CONS of d|} fx val vst=:{taskId,editEvent,currentPath,optional,controlSize} = visualizeCustomSimple mkControl staticVis val False vst
 where
-	mkControl name val _ _ _ renderAsStatic vst
+	mkControl name val _ _ renderAsStatic vst
 		# x = fmap fromCONS val
 		 = case isRecordCons d of
 			False // normal ADT
@@ -205,7 +205,7 @@ where
 	curLabel (Just (JPY _)) = "&yen;"
 	curLabel _				= "&euro;" //Use the default currency
 	
-gVisualize{|HtmlDisplay|} val vst = visualizeControl TUIHtmlDisplay (toString o fmap html2text,\mbD -> html (fmap RawText mbD)) (fmap fromHtmlDisplay val) vst
+gVisualize{|HtmlDisplay|} val vst = visualizeControl (TUIHtmlDisplay Nothing) (toString o fmap html2text,\mbD -> html (fmap RawText mbD)) (fmap fromHtmlDisplay val) vst
 
 gVisualize {|Document|}	val vst = visualizeControl control (mkText,mkHtml) val vst
 where
@@ -252,7 +252,7 @@ where
 		
 gVisualize{|Choice|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
 where
-	mkControl name val touched err hnt _ vst = case val of
+	mkControl name val touched _ _ vst = case val of
 		Nothing
 			= ([htmlDisplay noSelection],vst)
 		Just (Choice opts sel)
@@ -279,7 +279,7 @@ where
 
 gVisualize{|MultipleChoice|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
 where
-	mkControl name val touched err hnt _ vst = case val of
+	mkControl name val touched _ _ vst = case val of
 		Nothing
 			= ([htmlDisplay empty],vst)
 		Just (MultipleChoice opts sel)
@@ -306,7 +306,7 @@ where
 
 gVisualize{|Tree|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
 where
-	mkControl name val touched err hnt _ vst = case val of
+	mkControl name val touched _ _ vst = case val of
 		Nothing
 			= ([htmlDisplay empty],vst)
 		Just (Tree nodes sel)
@@ -365,7 +365,7 @@ where
 
 gVisualize{|Table|} fx val vst = visualizeCustomSimple mkControl staticVis val True vst
 where
-	mkControl name val touched err hnt _ vst=:{VSt|currentPath,verifyMask} = case val of
+	mkControl name val touched _ _ vst=:{VSt|currentPath,verifyMask} = case val of
 		Nothing
 			= ([htmlDisplay empty],vst)
 		Just (Table rows)
@@ -412,7 +412,7 @@ where
 				tui																= tui
 				
 			filterHtmlContainers :: [TUIDef] -> [Maybe TUIDef]
-			filterHtmlContainers tuis = map (\tui -> case tui.content of (TUIControl TUIHtmlDisplay _) = Nothing; _ = Just tui) tuis
+			filterHtmlContainers tuis = map (\tui -> case tui.content of (TUIControl (TUIHtmlDisplay _) _) = Nothing; _ = Just tui) tuis
 			
 		getEditors _ = abort "get table editors: list container expected"
 		
@@ -429,22 +429,21 @@ where
 	
 gVisualize {|[]|} fx val vst = visualizeCustomSimple mkControl staticVis val False vst
 where
-	mkControl name val touched err hnt renderAsStatic vst=:{VSt|taskId}
+	mkControl name val touched verRes renderAsStatic vst=:{VSt|taskId}
 		# val = listValue val
 		# (items,vst) = TUIDef val vst
-		= ([	{ content	= TUIListContainer
-								{ TUIListContainer
-								| items = items
-								, name = name
-								, staticDisplay = renderAsStatic
-								, errorMsg = err
-								, hintMsg = hnt
-								, taskId = taskId}
-				, width		= Auto
-				, height	= Auto
-				, margins	= Nothing
-				}
-			],vst)
+		= (addMsg verRes
+			{ content	= TUIListContainer
+							{ TUIListContainer
+							| items = items
+							, name = name
+							, staticDisplay = renderAsStatic
+							, taskId = taskId}
+			, width		= Auto
+			, height	= Auto
+			, margins	= Nothing
+			}
+			,vst)
 		where
 			TUIDef items vst
 				# (itemsVis,vst)	= childVisualizations fx items Nothing vst
@@ -469,6 +468,18 @@ where
 					, height	= Auto
 					, margins	= Nothing
 					}
+			
+			addMsg verSt list = case verSt of
+				NoMsg			= [list]
+				HintMsg	msg		= addMsg` "x-hint-icon" msg list
+				ErrorMsg msg	= addMsg` "x-invalid-icon" msg list
+			addMsg` cls msg list = [	{ content	= TUILayoutContainer (defaultLayoutContainer [list,mkMessage cls msg])
+										, width		= FillParent 1 ContentSize
+										, height	= WrapContent 0
+										, margins	= Nothing
+										}]
+			mkMessage cls msg =	htmlDisplay (DivTag [ClassAttr "list-msg-field"] [DivTag [ClassAttr cls] [Text msg]])
+								
 							
 	staticVis v _ vst=:{vizType}
 		# v = listValue v
@@ -567,7 +578,7 @@ visualizeControl control staticF v vst = visualizeControl2 control staticF (fmap
 visualizeControl2 :: !TUIControlType !(StaticVizFunctions b) !(Maybe (!a,!b)) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|} a
 visualizeControl2 control (strF,htmlF) v vst=:{editEvent,currentPath,controlSize} = visualizeCustom tuiF staticF v True vst
 where
-	tuiF name v touched err hnt _ vst=:{VSt|taskId}
+	tuiF name v touched verRes _ vst=:{VSt|taskId}
 		# v = checkMask touched v
 		# viz = sizedControl controlSize control	{ TUIControl
 													| name = name
@@ -575,7 +586,24 @@ where
 													, eventValue = eventValue currentPath editEvent
 													, taskId = taskId
 													}
-	= ([viz],vst)
+		# viz = case verRes of
+			NoMsg			= [viz]
+			HintMsg msg		= addMsg "x-hint-icon" msg viz
+			ErrorMsg msg	= addMsg "x-invalid-icon" msg viz
+		= (viz,vst)
+	
+	addMsg cls msg viz= [{content = TUILayoutContainer {defaultLayoutContainer [viz,mkIcon cls msg] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}]	
+	mkIcon cls msg = { content	= TUIControl (TUIHtmlDisplay (Just msg))
+									{ TUIControl
+									| name			= ""
+									, value			= JSONString (toString (DivTag [ClassAttr cls] []))
+									, eventValue	= Nothing
+									, taskId		= ""
+									}
+					, width		= WrapContent 0
+					, height	= WrapContent 0
+					, margins	= Nothing
+					}
 								
 	staticF v touched vst=:{vizType}
 		# v = checkMask touched v
@@ -618,8 +646,7 @@ visualizeCustom tuiF staticF v staticHtmlContainer vst=:{vizType,origVizType,cur
 					# vst		= {vst & vizType = vizType} 
 					= ([htmlDisplay (toString (html (coerceToHtml vis)))],vst)
 				_
-					# (err,hnt) = verifyElementStr cmv
-					= tuiF (dp2s currentPath) (fmap fst v) touched err hnt renderAsStatic vst
+					= tuiF (dp2s currentPath) (fmap fst v) touched (verifyElementStr cmv) renderAsStatic vst
 				
 			= (map TUIFragment vis,vst)
 		_
@@ -658,11 +685,11 @@ where
 sizedControl :: !(!TUISize,!TUISize,!(Maybe TUIMargins)) !TUIControlType !TUIControl -> TUIDef
 sizedControl (width,height,mbMargins) type control = {content = TUIControl type control, width = width, height = height, margins = mbMargins}
 
-verifyElementStr :: !VerifyMask -> (!String, !String)
+verifyElementStr :: !VerifyMask -> VerifyResult
 verifyElementStr cmv = case cmv of
-	VMValid mbHnt _			= ("",toString mbHnt)
-	VMUntouched mbHnt _ _	= ("",toString mbHnt)
-	VMInvalid err _			= (toString err,"")
+	VMValid mbHnt _			= maybe NoMsg HintMsg mbHnt
+	VMUntouched mbHnt _ _	= maybe NoMsg HintMsg mbHnt
+	VMInvalid err _			= ErrorMsg (toString err)
 	
 eventValue :: !DataPath !(Maybe (!DataPath,!JSONNode)) -> Maybe JSONNode
 eventValue currentPath mbEvent = case mbEvent of
