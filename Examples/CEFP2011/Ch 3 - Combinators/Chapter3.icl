@@ -95,4 +95,10 @@ repeatUntilApproved task
                     Yes -> return v
                     No  -> repeatUntilApproved task
 
-		
+positive :: Task Int
+positive = while ((>=) 0) (updateInformation "Please enter a positive number") 0
+
+while :: (a -> Bool) (a -> Task a) a -> Task a | iTask a
+while cond task v
+| cond v	= task v >>= while cond task
+| otherwise	= return v

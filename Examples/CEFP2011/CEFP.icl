@@ -8,6 +8,8 @@ import iTasks
 
 import Chapter2, Chapter3, Chapter4, Chapter5, Chapter6, Chapter7, Chapter8, Chapter9, Chapter10
 
+derive bimap (,), Maybe
+
 allFlows = 	flows2 ++ 
 			flows3 ++
 			flows4 ++

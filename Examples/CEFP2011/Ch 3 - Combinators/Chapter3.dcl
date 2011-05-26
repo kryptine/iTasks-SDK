@@ -5,3 +5,5 @@ definition module Chapter3
 import iTasks
 
 flows3 :: [Workflow]
+
+positive :: Task Int
