@@ -13,7 +13,8 @@ flows6 :: [Workflow]
 flows6 =  [w1, w2]
 
 w1 = workflow "CEFP/Chap 6/1. Delegate a task" 	"Delegate a task to some administrated user" 	(delegate someTask)
-w2 = workflow "CEFP/Chap 6/2. Appointment" 		"Try to make an appointment with several user" 	mkAppointment
+w2 = workflow "CEFP/Chap 6/2. Guess" 			"Number guessing game" 							guessGame
+w3 = workflow "CEFP/Chap 6/3. Appointment" 		"Try to make an appointment with several user" 	mkAppointment
 
 // Delegating a task to someone
 
@@ -26,6 +27,16 @@ delegate task
 
 someTask :: Task Note
 someTask = enterInformation "Enter Information"
+
+// Number guessing game
+
+guessGame
+      =                enterInformation "Please enter a number"
+        >>= \secret -> (guess secret -||- guess secret)
+        >>= \winner -> showMessage (userName winner +++ " has won") winner
+where
+	guess secret = delegate (updateInformation "Guess a number" 0 <! (==) secret >>| get currentUser)
+
 
 // Ask everyone if they can meet on acertain time and date
 
@@ -53,3 +64,5 @@ mapTask f [a:as]
 	=				f a
 		>>= \b ->	mapTask f as
 		>>= \bs ->  return [b:bs]
+		
+
