@@ -9,8 +9,8 @@ voidNothing 		:: Maybe Void
 
 mb2error			:: !e !(Maybe a) -> MaybeError e a
 
-pad					:: Int Int -> String
-decFormat			:: Int -> String
+pad					:: !Int !Int -> String
+decFormat			:: !Int -> String
 
 app					:: !(.a -> .b) !.a -> .b
 seqSt				:: !(a .st -> .st)			![a] !.st -> .st
@@ -28,19 +28,19 @@ currentDateTimeWorld	:: !*World	-> (!DateTime,!*World)
 tuple	:: !a !b	-> (!a,!b)
 tuple3	:: !a !b !c	-> (!a,!b,!c)
 
-appFst	:: (.a -> .c) (.a,.b) -> (.c,.b)
-appSnd	:: (.b -> .c) (.a,.b) -> (.a,.c)
+appFst	:: (.a -> .c) !(.a,.b) -> (.c,.b)
+appSnd	:: (.b -> .c) !(.a,.b) -> (.a,.c)
 
-appFst3 :: (.a -> .d) (.a,.b,.c) -> (.d,.b,.c)
-appSnd3 :: (.b -> .d) (.a,.b,.c) -> (.a,.d,.c)
-appThd3 :: (.c -> .d) (.a,.b,.c) -> (.a,.b,.d)
+appFst3 :: (.a -> .d) !(.a,.b,.c) -> (.d,.b,.c)
+appSnd3 :: (.b -> .d) !(.a,.b,.c) -> (.a,.d,.c)
+appThd3 :: (.c -> .d) !(.a,.b,.c) -> (.a,.b,.d)
 
 // Utility functions for generics
-fromOBJECT	:: (OBJECT x)	-> x
-fromCONS	:: (CONS x)		-> x
-fromFIELD	:: (FIELD x)	-> x
-fromPAIRX	:: (PAIR x y)	-> x
-fromPAIRY	:: (PAIR x y)	-> y
+fromOBJECT	:: !(OBJECT x)	-> x
+fromCONS	:: !(CONS x)	-> x
+fromFIELD	:: !(FIELD x)	-> x
+fromPAIRX	:: !(PAIR x y)	-> x
+fromPAIRY	:: !(PAIR x y)	-> y
 
 isRecordType	:: !GenericTypeDefDescriptor	-> Bool
 isRecordCons	:: !GenericConsDescriptor		-> Bool

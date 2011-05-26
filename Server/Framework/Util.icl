@@ -31,12 +31,12 @@ voidNothing = Nothing
 mb2error :: !e !(Maybe a) -> MaybeError e a
 mb2error error mbV = maybe (Error error) Ok mbV
 
-pad :: Int Int -> String
+pad :: !Int !Int -> String
 pad len num = (createArray (max 0 (len - size nums)) '0' ) +++ nums
 where 
 	nums = toString num
 	
-decFormat :: Int -> String
+decFormat :: !Int -> String
 decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
 
 currentTime :: !*IWorld -> (!Time,!*IWorld)
@@ -72,34 +72,34 @@ tuple a b = (a,b)
 tuple3 :: !a !b !c -> (!a,!b,!c)
 tuple3 a b c = (a,b,c)
 
-appFst	:: (.a -> .c) (.a,.b) -> (.c,.b)
+appFst	:: (.a -> .c) !(.a,.b) -> (.c,.b)
 appFst f (a,b) = (f a,b)
 
-appSnd	:: (.b -> .c) (.a,.b) -> (.a,.c)
+appSnd	:: (.b -> .c) !(.a,.b) -> (.a,.c)
 appSnd f (a,b) = (a,f b)
 
-appFst3 :: (.a -> .d) (.a,.b,.c) -> (.d,.b,.c)
+appFst3 :: (.a -> .d) !(.a,.b,.c) -> (.d,.b,.c)
 appFst3 f (a,b,c) = (f a,b,c)
 
-appSnd3 :: (.b -> .d) (.a,.b,.c) -> (.a,.d,.c)
+appSnd3 :: (.b -> .d) !(.a,.b,.c) -> (.a,.d,.c)
 appSnd3 f (a,b,c) = (a,f b,c)
 
-appThd3 :: (.c -> .d) (.a,.b,.c) -> (.a,.b,.d)
+appThd3 :: (.c -> .d) !(.a,.b,.c) -> (.a,.b,.d)
 appThd3 f (a,b,c) = (a,b,f c)
 
-fromOBJECT	:: (OBJECT x)	-> x
+fromOBJECT	:: !(OBJECT x)	-> x
 fromOBJECT	(OBJECT x)	= x
 
-fromCONS	:: (CONS x)		-> x
+fromCONS	:: !(CONS x)	-> x
 fromCONS	(CONS x)	= x
 
-fromFIELD	:: (FIELD x)	-> x
+fromFIELD	:: !(FIELD x)	-> x
 fromFIELD	(FIELD x)	= x
 
-fromPAIRX	:: (PAIR x y)	-> x
+fromPAIRX	:: !(PAIR x y)	-> x
 fromPAIRX	(PAIR x _)	= x
 
-fromPAIRY	:: (PAIR x y)	-> y
+fromPAIRY	:: !(PAIR x y)	-> y
 fromPAIRY	(PAIR _ y)	= y
 
 isRecordType :: !GenericTypeDefDescriptor -> Bool
