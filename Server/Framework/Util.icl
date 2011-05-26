@@ -1,6 +1,6 @@
 implementation module Util
 
-import StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON, Void, Error
+import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON, Void, Error, GenEq
 from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
 
 app :: !(.a -> .b) !.a -> .b
@@ -132,3 +132,7 @@ intersperse i [x:xs] = [x,i:intersperse i xs]
 
 getItems :: ![a] ![Int] -> [a]
 getItems list indexes = [x \\ x <- list & idx <- [0..] | isMember idx indexes]
+
+isMemberGen :: !a !.[a] -> Bool | gEq{|*|} a
+isMemberGen x [hd:tl]	= hd === x || isMemberGen x tl
+isMemberGen x []		= False

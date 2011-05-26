@@ -1,6 +1,6 @@
 definition module Util
 
-import StdGeneric, Types, Error
+import StdGeneric, Types, Error, GenEq
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
@@ -51,3 +51,4 @@ splitWith		:: !(a -> Bool) ![a]		-> (![a],![a])
 sortByIndex		:: ![(!Int,!a)]				-> [a]
 intersperse		:: !a ![a]					-> [a]
 getItems		:: ![a] ![Int]				-> [a]
+isMemberGen		:: !a !.[a]					-> Bool | gEq{|*|} a

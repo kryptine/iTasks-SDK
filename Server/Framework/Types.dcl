@@ -122,13 +122,11 @@ instance toEmail User
 // Generates a choice with given options
 choice 				:: ![a]								-> Choice a
 // Generates a choice with given options and preselected item
-choiceSel			:: ![a] !Int						-> Choice a
+choiceSel			:: ![a] !a							-> Choice a | gEq{|*|} a
 // Gets the currently chosen item
 getChoice			:: !(Choice a)						-> a
-// Gets the index of the currently chosen item
-getChoiceIndex		:: !(Choice a)						-> Int
-// Sets the index of the currently chosen item
-setChoiceIndex		:: !Int !(Choice a)					-> Choice a
+// Gets the currently chosen item if present
+getMbChoice			:: !(Choice a)						-> Maybe a
 // Transforms the choice's options
 mapOptions			:: !(a -> b) !(Choice a)			-> Choice b
 // Sets the choice's options, tries to keep the selection as intact as possible
@@ -137,13 +135,9 @@ setOptions			:: ![a] !(Choice a)					-> Choice a | gEq{|*|} a
 // Generates a multiple choice with given options
 multipleChoice		:: ![a] 							-> MultipleChoice a
 // Generates a multiple choice with given options and preselected items
-multipleChoiceSel	:: ![a] ![Int]						-> MultipleChoice a
+multipleChoiceSel	:: ![a] ![a]						-> MultipleChoice a | gEq{|*|} a
 // Get the currently chosen items
 getChoices			:: !(MultipleChoice a)				-> [a]
-// Gets the indexes of the currently chosen items
-getChoiceIndexes	:: !(MultipleChoice a)				-> [Int]
-// Sets the indexes of the currently chosen items
-setChoiceIndexes	:: ![Int] !(MultipleChoice a)		-> MultipleChoice a
 // Transforms the multiple choice's options
 mapOptionsM			:: !(a -> b) !(MultipleChoice a)	-> MultipleChoice b
 // Sets the multiple choice's options, tries to keep the selection as intact as possible

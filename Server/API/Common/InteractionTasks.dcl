@@ -22,7 +22,7 @@ instance editorState InformationState a
 *
 * @return A result determined by the terminators
 */
-interactLocal :: !d !(l -> [InteractionPart l]) !l !(l -> InteractionTerminators a) -> Task a | descr d & iTask l & iTask a
+interactLocal :: !d !(l -> [InteractionPart l]) l !(l -> InteractionTerminators a) -> Task a | descr d & iTask l & iTask a
 
 // A function dynamically generating actions from input i for terminating an interaction task.
 // The output consists of an action, which is either enabled and yields a result (Just o) or disabled (Nothing).
@@ -78,8 +78,8 @@ enterSharedInformationAboutA	:: !d !(v r -> w) !about	!(Shared r w) !(ActionFunc
 */
 enterChoice					:: !d 					![o]							-> Task o | descr d & iTask o
 enterChoiceAbout			:: !d 			!about	![o]							-> Task o | descr d & iTask o & iTask about
-enterChoiceA				:: !d !(o -> v)  		![o] !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v
-enterChoiceAboutA			:: !d !(o -> v)	!about	![o] !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v & iTask about
+enterChoiceA				:: !d !(o -> v)  		![o] !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask o & iTask v
+enterChoiceAboutA			:: !d !(o -> v)	!about	![o] !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask o & iTask v & iTask about
 
 /*
 * Ask the user to select one item from a list of shared options.
@@ -97,8 +97,8 @@ enterChoiceAboutA			:: !d !(o -> v)	!about	![o] !(ActionFunc (Maybe o) a)	-> Tas
 */
 enterSharedChoice			:: !d					!(Shared [o] w)								-> Task o | descr d & iTask o & iTask w
 enterSharedChoiceAbout		:: !d			!about	!(Shared [o] w)								-> Task o | descr d & iTask o & iTask w & iTask about
-enterSharedChoiceA			:: !d !(o -> v) 		!(Shared [o] w) !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask w & iTask v
-enterSharedChoiceAboutA		:: !d !(o -> v)	!about	!(Shared [o] w) !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask w & iTask v & iTask about
+enterSharedChoiceA			:: !d !(o -> v) 		!(Shared [o] w) !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask o & iTask w & iTask v
+enterSharedChoiceAboutA		:: !d !(o -> v)	!about	!(Shared [o] w) !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask o & iTask w & iTask v & iTask about
 
 /*
 * Ask the user to select a number of items from a list of options
@@ -116,8 +116,8 @@ enterSharedChoiceAboutA		:: !d !(o -> v)	!about	!(Shared [o] w) !(ActionFunc (Ma
 */
 enterMultipleChoice			:: !d 					![o]						-> Task [o]	| descr d & iTask o
 enterMultipleChoiceAbout	:: !d 			!about	![o]						-> Task [o]	| descr d & iTask o	& iTask about
-enterMultipleChoiceA		:: !d !(o -> v) 		![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v
-enterMultipleChoiceAboutA	:: !d !(o -> v)	!about	![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask about
+enterMultipleChoiceA		:: !d !(o -> v) 		![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask o & iTask v
+enterMultipleChoiceAboutA	:: !d !(o -> v)	!about	![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask o & iTask v & iTask about
 
 /*
 * Ask the user to select a number of items from a list of shared options.
@@ -135,8 +135,8 @@ enterMultipleChoiceAboutA	:: !d !(o -> v)	!about	![o] !(ActionFunc [o] a)	-> Tas
 */
 enterSharedMultipleChoice		:: !d					!(Shared [o] w)						-> Task [o]	| descr d & iTask o & iTask w
 enterSharedMultipleChoiceAbout	:: !d			!about	!(Shared [o] w)						-> Task [o]	| descr d & iTask o & iTask w & iTask about
-enterSharedMultipleChoiceA		:: !d !(o -> v) 		!(Shared [o] w)	!(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask w
-enterSharedMultipleChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask w & iTask about
+enterSharedMultipleChoiceA		:: !d !(o -> v) 		!(Shared [o] w)	!(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask o & iTask w & iTask v
+enterSharedMultipleChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask o & iTask w & iTask v & iTask about
 
 // A view mapping an input from a shared data source (r)
 // to a view shown to the user (v)
@@ -191,17 +191,17 @@ updateSharedInformationAboutA	:: !d !(View r v w) !about	!(Shared r w) !(ActionF
 *														If not specified, o = v, and the view is the identity
 * @param about (optional)								Additional information to display
 * @param [o]											A list of options
-* @param Int											The index of the item which should be pre-selected
+* @param o												The value of the item which should be pre-selected, if it's not member of the option list no item is selected
 * @param (ActionFunc (Maybe o) a) (optional)			A function (on the currently selected option (if present)) dynamically calculating actions for the task
 *														If not specified an ok action is provided which is enabled if an option is chosen and yields that option
 *
 * @return 												Value yielded by the terminating action
 * @throws												ChoiceException
 */
-updateChoice				:: !d					![o] !Int							-> Task o | descr d & iTask o
-updateChoiceAbout			:: !d 			!about	![o] !Int							-> Task o | descr d & iTask o & iTask about
-updateChoiceA 				:: !d !(o -> v) 		![o] !Int !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v
-updateChoiceAboutA			:: !d !(o -> v)	!about	![o] !Int !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v & iTask about
+updateChoice				:: !d					![o] !o								-> Task o | descr d & iTask o
+updateChoiceAbout			:: !d 			!about	![o] !o								-> Task o | descr d & iTask o & iTask about
+updateChoiceA 				:: !d !(o -> v) 		![o] !o !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask o & iTask v
+updateChoiceAboutA			:: !d !(o -> v)	!about	![o] !o !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask o & iTask v & iTask about
 
 /*
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
@@ -211,17 +211,17 @@ updateChoiceAboutA			:: !d !(o -> v)	!about	![o] !Int !(ActionFunc (Maybe o) a)	
 *														If not specified, o = v, and the view is the identity
 * @param about (optional)								Additional information to display
 * @param (Shared [o] w)									A reference to the shared options
-* @param Int											The index of the item which should be pre-selected
+* @param o												The value of the item which should be pre-selected, if it's not member of the option list no item is selected
 * @param (ActionFunc (Maybe o) a) (optional)			A function (on the currently selected option (if present)) dynamically calculating actions for the task
 *														If not specified an ok action is provided which is enabled if an option is chosen and yields that option
 *
 * @return 												Value yielded by the terminating action
 * @throws												SharedException
 */
-updateSharedChoice			:: !d					!(Shared [o] w) !Int							-> Task o | descr d & iTask o & iTask w
-updateSharedChoiceAbout		:: !d			!about	!(Shared [o] w) !Int							-> Task o | descr d & iTask o & iTask w & iTask about
-updateSharedChoiceA 		:: !d !(o -> v) 		!(Shared [o] w)	!Int !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v & iTask w
-updateSharedChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!Int !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask v & iTask w & iTask about
+updateSharedChoice			:: !d					!(Shared [o] w) !o								-> Task o | descr d & iTask o & iTask w
+updateSharedChoiceAbout		:: !d			!about	!(Shared [o] w) !o								-> Task o | descr d & iTask o & iTask w & iTask about
+updateSharedChoiceA 		:: !d !(o -> v) 		!(Shared [o] w)	!o !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask o & iTask w & iTask v
+updateSharedChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!o !(ActionFunc (Maybe o) a)	-> Task a | descr d & iTask a & iTask o & iTask w & iTask v & iTask about
 
 /*
 * Ask the user to select a number of items from a list of options with already a number of options pre-selected.
@@ -232,16 +232,16 @@ updateSharedChoiceAboutA	:: !d !(o -> v)	!about	!(Shared [o] w)	!Int !(ActionFun
 *														If not specified, o = v, and the view is the identity
 * @param about (optional)								Additional information to display
 * @param [o]											A list of options
-* @param [Int]											The indexes of the items which should be pre-selected
+* @param [o]											The values of the items which should be pre-selected if they are present in the option list
 * @param (ActionFunc [o] a) (optional)					A function (on the currently selected options) dynamically calculating actions for the task
 *														If not specified an ok action is provided which always enabled and yields the currently selected options
 *
 * @return 												Value yielded by the terminating action
 */
-updateMultipleChoice		:: !d 					![o] ![Int] 					-> Task [o]	| descr d & iTask o
-updateMultipleChoiceAbout	:: !d 			!about	![o] ![Int] 					-> Task [o]	| descr d & iTask o & iTask about
-updateMultipleChoiceA		:: !d !(o -> v) 		![o] ![Int] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v
-updateMultipleChoiceAboutA	:: !d !(o -> v) !about	![o] ![Int] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask about
+updateMultipleChoice		:: !d 					![o] ![o] 						-> Task [o]	| descr d & iTask o
+updateMultipleChoiceAbout	:: !d 			!about	![o] ![o] 						-> Task [o]	| descr d & iTask o & iTask about
+updateMultipleChoiceA		:: !d !(o -> v) 		![o] ![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask o & iTask v
+updateMultipleChoiceAboutA	:: !d !(o -> v) !about	![o] ![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask o & iTask v & iTask about
 
 /*
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
@@ -251,16 +251,16 @@ updateMultipleChoiceAboutA	:: !d !(o -> v) !about	![o] ![Int] !(ActionFunc [o] a
 														If not specified, o = v, and the view is the identity
 * @param about (optional)								Additional information to display
 * @param (Shared [o] w)									A reference to the shared options
-* @param [Int]											The indexes of the items which should be pre-selected
+* @param [o]											The values of the items which should be pre-selected if they are present in the option list
 * @param (ActionFunc [o] a) (optional)					A function (on the currently selected options) dynamically calculating actions for the task
 *														If not specified an ok action is provided which always enabled and yields the currently selected options
 *
 * @return 												Value yielded by the terminating action
 */
-updateSharedMultipleChoice			:: !d					!(Shared [o] w) ![Int]						-> Task [o]	| descr d & iTask o & iTask w
-updateSharedMultipleChoiceAbout		:: !d			!about	!(Shared [o] w) ![Int]						-> Task [o]	| descr d & iTask o & iTask w & iTask about
-updateSharedMultipleChoiceA			:: !d !(o -> v) 		!(Shared [o] w) ![Int] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask w
-updateSharedMultipleChoiceAboutA	:: !d !(o -> v) !about	!(Shared [o] w) ![Int] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask v & iTask w & iTask about
+updateSharedMultipleChoice			:: !d					!(Shared [o] w) ![o]						-> Task [o]	| descr d & iTask o & iTask w
+updateSharedMultipleChoiceAbout		:: !d			!about	!(Shared [o] w) ![o]						-> Task [o]	| descr d & iTask o & iTask w & iTask about
+updateSharedMultipleChoiceA			:: !d !(o -> v) 		!(Shared [o] w) ![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask o & iTask w & iTask v 
+updateSharedMultipleChoiceAboutA	:: !d !(o -> v) !about	!(Shared [o] w) ![o] !(ActionFunc [o] a)	-> Task a	| descr d & iTask a & iTask o & iTask w & iTask v & iTask about
 
 /*
 * Show a basic message to the user. The user can end the task after reading the message. 
@@ -370,7 +370,7 @@ waitForTimer	:: !Time			-> Task Time
 *
 * @return 										Value associated with chosen action.
 */
-chooseAction		:: ![(!Action,a)]								-> Task a | iTask a
+chooseAction		:: ![(!Action,a)]					-> Task a | iTask a
 
 /*
 * Ask the user to choose an action. The list of actions is calculated dynamically.

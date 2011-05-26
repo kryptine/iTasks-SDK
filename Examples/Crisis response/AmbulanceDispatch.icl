@@ -79,9 +79,9 @@ where
     options = [f incident \\ f <- [sendPolice,sendMedics,sendFireBrigade]]
 
     //Compute the indexes in the options list that are initially selected
-    suggestion Accident = [0,1]
-    suggestion Fire     = [0,2]
-    suggestion Fight    = [0]
+    suggestion Accident = [sendPolice incident,sendMedics incident]
+    suggestion Fire     = [sendPolice incident,sendFireBrigade incident]
+    suggestion Fight    = [sendPolice incident]
     suggestion _        = []
 
 sendPolice :: Incident -> Task Void

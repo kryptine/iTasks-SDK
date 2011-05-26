@@ -40,19 +40,20 @@ gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 choice :: ![a] -> Choice a
 choice l = Choice l -1
 
-choiceSel :: ![a] !Int -> Choice a
-choiceSel l s = Choice l s
+choiceSel :: ![a] !a -> Choice a | gEq{|*|} a
+choiceSel l s = case [i \\ e <- l & i <- [0..] | e === s] of
+	[idx:_]	= Choice l idx
+	_		= Choice l -1
 
 getChoice :: !(Choice a) -> a
 getChoice (Choice l i)
 	| i >= 0 &&  i < (length l)	= l !! i
 	| otherwise					= l !! 0
 	
-getChoiceIndex :: !(Choice a) -> Int
-getChoiceIndex (Choice _ sel) = sel
-
-setChoiceIndex :: !Int !(Choice a) -> Choice a
-setChoiceIndex sel (Choice opts _) = Choice opts sel
+getMbChoice :: !(Choice a) -> Maybe a
+getMbChoice (Choice l i)
+	| i >= 0 &&  i < (length l)	= Just (l !! i)
+	| otherwise					= Nothing
 
 mapOptions :: !(a -> b) !(Choice a) -> Choice b
 mapOptions f (Choice opts sel) = Choice (map f opts) sel
@@ -66,18 +67,12 @@ setOptions newOpts (Choice oldOpts s)
 multipleChoice :: ![a] -> MultipleChoice a
 multipleChoice l = MultipleChoice l []
 
-multipleChoiceSel :: ![a] ![Int] -> MultipleChoice a
-multipleChoiceSel l sel = MultipleChoice l sel
+multipleChoiceSel :: ![a] ![a] -> MultipleChoice a | gEq{|*|} a
+multipleChoiceSel l sel = MultipleChoice l [i \\ e <- l & i <- [0..] | isMemberGen e sel]
 
 getChoices :: !(MultipleChoice a) -> [a]
 getChoices (MultipleChoice l is)
 	= [l !! i \\ i <- is | i >= 0 && i < (length l)]
-	
-getChoiceIndexes :: !(MultipleChoice a) -> [Int]
-getChoiceIndexes (MultipleChoice _ sel) = sel
-
-setChoiceIndexes :: ![Int] !(MultipleChoice a) -> MultipleChoice a
-setChoiceIndexes sel (MultipleChoice opts _) = MultipleChoice opts sel
 
 mapOptionsM :: !(a -> b) !(MultipleChoice a) -> MultipleChoice b
 mapOptionsM f (MultipleChoice opts sel) = MultipleChoice (map f opts) sel
