@@ -64,5 +64,14 @@ mapTask f [a:as]
 	=				f a
 		>>= \b ->	mapTask f as
 		>>= \bs ->  return [b:bs]
-		
 
+//	Utility functions:
+showAllUserNames :: Task [String]
+showAllUserNames
+    =            get users
+      >>= \us -> showMessageAbout "The current users are: " (map displayName us)
+
+selectUser :: Task User
+selectUser
+    =     get users
+      >>= enterChoice "Select a user:"

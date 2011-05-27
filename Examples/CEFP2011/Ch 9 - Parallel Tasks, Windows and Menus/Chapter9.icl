@@ -3,6 +3,8 @@ implementation module Chapter9
 // Examples showing the usage of editors with multiple buttons
 
 import iTasks
+from Chapter7 import selectUser
+from Chapter8 import normalTask, const2
 
 derive bimap (,), Maybe
 
@@ -14,14 +16,6 @@ flows9 =  [w1, w2]
 
 w1 = workflow "CEFP/Chap 9/1. Chat with several users"    	"Chat with several users" chat3
 w2 = workflow "CEFP/Chap 9/2. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
-
-// - utility
-
-normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
-
-noResult _ _ = Void
-
-selectUser	= get users	>>= enterChoice "Select a user:"
 
 
 // chat with several users
@@ -42,7 +36,7 @@ removeUser user			cs = {cs & chatters = removeMember user cs.chatters}
 
 chat3
     =               		get currentUser
-    	>>= \me ->			parallel "Chat application" emptyChatState noResult [InBodyTask (chatTask me)]
+    	>>= \me ->			parallel "Chat application" emptyChatState (const2 Void) [InBodyTask (chatTask me)]
 where
 
 	chatTask user chatState os

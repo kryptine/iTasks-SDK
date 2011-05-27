@@ -3,6 +3,7 @@ implementation module Chapter8
 // Examples showing the usage of frequently used iTask combinators
 
 import iTasks, StdMisc
+from Chapter7 import selectUser
 
 derive bimap (,), Maybe
 
@@ -10,27 +11,38 @@ Start :: *World -> *World
 Start world = startEngine flows8 world
 
 flows8 :: [Workflow]
-flows8 =  [w1, w2]
+flows8 =  [w0, w1, w2]
 
+w0 = workflow "CEFP/Chap 7/0. Simple Chat"	"Chat with one iTask user, no menus"			chat0
 w1 = workflow "CEFP/Chap 7/1. Chat" 		"Chat with one iTask user" 						chat1
 w2 = workflow "CEFP/Chap 7/2. Shared Chat" 	"Chat with one iTask user, updating views" 		chat2
 
 // --- some handy functions
 
+normalTask :: !User -> ManagerProperties
 normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
-mapMaybe ::  (a -> b) (Maybe a) -> Maybe b
-mapMaybe f (Just a)  = Just (f a)
-mapMaybe _ Nothing  = Nothing
+const2 :: a b !c -> c
+const2 _ _ x = x
 
 noResult _ _ = Void
 
 
-selectUser :: Task User
-selectUser
-		= 					get users
-			>>=				enterChoice "Select a user:"
-
+// 2 users chatting with each other
+chat0
+    =               		get currentUser
+    	>>= \me ->			selectUser
+		>>= \you ->			parallel "2 Chatters" [(me,"enter chat"),(you,"enter chat")] (\_ chat -> chat)
+								[DetachedTask (normalTask me)  noMenu (chaT me you)
+								,DetachedTask (normalTask you) noMenu (chaT you me)
+								]
+where
+	chaT :: User User (SymmetricShared [(User,String)]) parinfo -> Task Void
+	chaT me you state parinfo
+		=               get state
+		  >>= \c     -> updateInformation ("Chat with " <+++ you) (Display c,"")
+		  >>= \(_,l) -> set state [(you,l):c]
+		  >>| chaT me you state parinfo
 
 // 2 users chatting with each other
 
@@ -42,7 +54,7 @@ initChatState = []
 chat1 
     =               		get currentUser
     	>>= \me ->			selectUser
-		>>= \you ->			parallel "2 Chatters" initChatState noResult
+		>>= \you ->			parallel "2 Chatters" initChatState (const2 Void)
 								[DetachedTask (normalTask me)  noMenu (chatEditor me you)
 								,DetachedTask (normalTask you) noMenu (chatEditor you me)
 								]
@@ -65,7 +77,7 @@ where
 chat2 
     =   					get currentUser
     	>>= \me ->			selectUser
-		>>= \you ->			parallel "2 Chatters" initChatState noResult
+		>>= \you ->			parallel "2 Chatters" initChatState (const2 Void)
 								[DetachedTask (normalTask me)  noMenu (chatEditor me you)
 								,DetachedTask (normalTask you) noMenu (chatEditor you me)
 								]
@@ -79,6 +91,3 @@ where
 			)
 
 	actions _ = [(ActionQuit, Just  Void)]
-	
-	
-	

@@ -4,4 +4,7 @@ definition module Chapter7
 
 import iTasks
 
-flows7 :: [Workflow]
+flows7				:: [Workflow]
+
+showAllUserNames	:: Task [String]
+selectUser			:: Task User
