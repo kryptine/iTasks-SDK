@@ -35,30 +35,35 @@ addUser user			cs = {cs & chatters = [user:cs.chatters]}
 removeUser user			cs = {cs & chatters = removeMember user cs.chatters}
 
 chat3
-    =               		get currentUser
-    	>>= \me ->			parallel "Chat application" emptyChatState (const2 Void) [InBodyTask (chatTask me)]
+    =               get currentUser
+    	>>= \me ->	parallel "Chat application" emptyChatState (const2 Void) [InBodyTask (chatTask me)]
+
+chatTask user cs os
+	=			update (addUser user) cs
+		>>|		monitor ("Chat list view") id (const False) False cs
+				||- 
+				chatMore user "" cs os
+
+chatMore user s cs os 
+	= 	updateInformationA ("Chat with iTask users") (toView,fromView) s  	
+		>?*	[(ActionAdd,  IfValid (\r  ->	  set os [AppendTask newChatter]
+										  >>| chatMore user r cs os))
+			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) cs 
+										  >>| chatMore user "" cs os))
+			,(ActionQuit, Always (			  update (removeUser user o addMessage user "bye") cs 
+										  >>| return Void	))
+			]
+where		
+	(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
+
+newChatter = WindowTask "Append Chatter" noMenu handleNewChatter
+
+handleNewChatter cs os
+	=						selectUser
+		>>= \someone ->		set os [AppendTask (newChatTask someone)]
 where
+	newChatTask someone = DetachedTask (normalTask someone) noMenu (chatTask someone)
 
-	chatTask user chatState os
-		=								update (addUser user) chatState
-			>>|							chatMore ""
-	where
-		chatMore content =				(monitor ("Chat list view") id (const False) False chatState)
-										||-
-			(							updateInformationA ("Chat with iTask users") (toView,fromView) content  	
-			>?*	[(ActionAdd,  IfValid (\response  ->		set os [AppendTask (WindowTask "Append Chatter" noMenu handleNewChatter)]
-														>>|	chatMore response))
-				,(ActionOk,   IfValid (\response  ->		update (addMessage user response) chatState 
-														>>|	chatMore ""))
-				,(ActionQuit, Always (						update (removeUser user o addMessage user "bye") chatState
-														>>| return Void	))
-				])
-				
-		(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
-
-		handleNewChatter chatState os
-			=						selectUser
-				>>= \someone ->		set os [AppendTask (DetachedTask (normalTask someone) noMenu (chatTask someone))]
 
 ActionAdd :== Action "Add Chatter" "Add Chatter"
 
