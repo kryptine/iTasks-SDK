@@ -41,7 +41,7 @@ where
 	chaT me you state parinfo
 		=               get state
 		  >>= \c     -> updateInformation ("Chat with " <+++ you) (Display c,"")
-		  >>= \(_,l) -> set state [(you,l):c]
+		  >>= \(_,l) -> update (\s -> s ++ [(me,l)]) state
 		  >>| chaT me you state parinfo
 
 // 2 users chatting with each other
