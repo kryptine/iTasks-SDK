@@ -12,9 +12,9 @@ Start world = startEngine flows7 world
 flows7 :: [Workflow]
 flows7 =  [w1, w2]
 
-w1 = workflow "CEFP/Chap 6/1. Delegate a task" 	"Delegate a task to some administrated user" 	(delegate someTask)
-w2 = workflow "CEFP/Chap 6/2. Guess" 			"Number guessing game" 							guessGame
-w3 = workflow "CEFP/Chap 6/3. Appointment" 		"Try to make an appointment with several user" 	mkAppointment
+w1 = workflow "CEFP/Chap 7/1. Delegate a task" 	"Delegate a task to some administrated user" 	(delegate someTask)
+w2 = workflow "CEFP/Chap 7/2. Guess" 			"Number guessing game" 							guessGame
+w3 = workflow "CEFP/Chap 7/3. Appointment" 		"Try to make an appointment with several user" 	mkAppointment
 
 // Delegating a task to someone
 
@@ -75,3 +75,8 @@ selectUser :: Task User
 selectUser
     =     get users
       >>= enterChoice "Select a user:"
+
+selectUsers :: Task [User]
+selectUsers
+	=     get users
+	  >>= enterMultipleChoice "Select users:"

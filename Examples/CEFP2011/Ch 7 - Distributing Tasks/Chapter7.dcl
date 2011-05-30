@@ -7,4 +7,5 @@ import iTasks
 flows7				:: [Workflow]
 
 showAllUserNames	:: Task [String]
-selectUser			:: Task User
+selectUser			:: Task  User
+selectUsers			:: Task [User]
