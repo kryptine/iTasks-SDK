@@ -5,11 +5,10 @@ definition module Task
 */
 
 import Types, HTTP, GenVisualize, iTaskClass, GenRecord
-from TSt 			import :: TSt
 from TaskContext	import :: TaskContext
 
-derive JSONEncode		Task, TaskResult
-derive JSONDecode		Task, TaskResult
+derive JSONEncode		Task
+derive JSONDecode		Task
 derive gUpdate			Task
 derive gDefaultMask		Task
 derive gVerify			Task
@@ -19,29 +18,29 @@ derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 
 // Tasks
-
 :: Task a =
 	{ properties			:: !TaskProperties						// the task's general properties
-	, mbTaskNr				:: !(Maybe TaskNr)						// the task's identifier
+	, mbTaskNr				:: !(Maybe TaskNr)						// the task's identifier TODO: May be removed
 	
-	//, editEventFun			:: !((Maybe TaskContext) *TSt -> (!TaskContext, !*TSt))	//Handler for 'edit' events
-	//, commitEventFun		:: !(TaskContext *TSt -> (!TaskResult a,!*TSt))			//Handler for 'commit' events
-	
-	, taskFuncEdit			:: !(*TSt -> *TSt)						// a function on TSt implementing the task (process edit events pass)
-	, taskFuncCommit		:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task (process commit events pass)
-	, mbInteractionLayout	:: !Maybe InteractionLayoutMerger		// if present changes the layout of interaction tasks for this tasks and it's children
-	, mbParallelLayout		:: !Maybe ParallelLayoutMerger			// if present changes the layout of parallel tasks for this tasks and it's children
-	, mbResultLayout		:: !Maybe ResultLayoutMerger			// if present changes the layout of result panels for this tasks and it's children
+	, initFun				:: TaskInitFun
+	, editEventFun			:: TaskEditEventFun
+	, evalTaskFun			:: TaskEvalFun a
 	}
 
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
 
-:: TaskResult a		= TaskBusy
+:: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContext,!*IWorld)
+:: TaskEditEventFun	:== TaskNr EditEvent TaskContext *IWorld -> *(!TaskContext,!*IWorld)
+:: TaskEvalFun a	:== TaskNr (Maybe CommitEvent) ReversedTaskNr InteractionLayoutMerger ParallelLayoutMerger TaskContext *IWorld -> *(!TaskResult a, !*IWorld)
+
+:: ReversedTaskNr	:== [Int]									//Reversed tasks nr used to locate a subtask in a composition  
+:: EditEvent		:== (!ReversedTaskNr, !String, !JSONNode)	//Location, Datapath and new value
+:: CommitEvent		:== (!ReversedTaskNr, !String)				//Location and action name
+
+:: TaskResult a		= TaskBusy !(Maybe TUIDef) !TaskContext
 					| TaskFinished !a
 					| TaskException !Dynamic !String
 					
-taskException :: !e -> TaskResult a | TC, toString e
-
 :: TaskThread a		=
 	{ originalTask		:: Task a
 	, currentTask		:: Task a
@@ -52,6 +51,18 @@ taskException :: !e -> TaskResult a | TC, toString e
 	, currentTask		:: a -> Task b
 	, title				:: !String
 	}
+	
+taskException :: !e -> TaskResult a | TC, toString e
+/**
+* Create a task from a description and a pair of task functions
+*
+*/
+mkTask :: !d !TaskInitFun !TaskEditEventFun !(TaskEvalFun a) -> Task a | descr d
+
+/**
+* Create a task that is immediately finished
+*/
+mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
 
 /**
 * Extracts the subject of a task
@@ -98,7 +109,14 @@ taskNrFromString 	:: !String -> TaskNr
 */
 taskNrToString		:: !TaskNr -> String
 
-incTaskNr :: !TaskNr -> TaskNr
+/**
+* Helper function for directing possible commit events to the right location
+* in a TaskContext. If there is a commit event and it is on the right path
+* make a 'step' towards its destination by removing a segment from the path
+*/
+stepCommitEvent :: !Int !(Maybe CommitEvent) -> Maybe CommitEvent 
+
+stepTUITaskNr :: !Int !ReversedTaskNr -> ReversedTaskNr
 
 // Changes
 

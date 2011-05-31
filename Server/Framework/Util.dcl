@@ -4,8 +4,10 @@ import StdGeneric, Types, Error, GenEq
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
-instance toString (Maybe a) | toString a
+
 voidNothing 		:: Maybe Void
+
+instance toString (Maybe a) | toString a
 
 mb2error			:: !e !(Maybe a) -> MaybeError e a
 

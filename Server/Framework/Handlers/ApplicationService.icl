@@ -1,16 +1,16 @@
 implementation module ApplicationService
 
-import HTTP, TSt
-import HtmlUtil
+import HTTP
+import Types, HtmlUtil
 
-applicationService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-applicationService url format path req tst=:{TSt|iworld=iworld=:{application}}
+applicationService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+applicationService url format path req iworld=:{application}
 	= case path of
 		[] 
 			# json = JSONObject [("success", JSONBool True)
 								,("application", JSONString application)
 								]
-			= (serviceResponse (format == "html") "Application info" description url [] json, tst)
-		_	= (notFoundResponse req, tst)
+			= (serviceResponse (format == "html") "Application info" description url [] json, iworld)
+		_	= (notFoundResponse req, iworld)
 		
 description :== "This service provides basic information about the application such as it's name."

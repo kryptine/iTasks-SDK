@@ -3,8 +3,11 @@ implementation module TaskPanel
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import JSON, HTML, TSt, TUIDefinition, Map, Util, TUIDiff
 
-buildTaskPanel :: !UITreeContainer -> TaskPanel
-buildTaskPanel cont=:(TTContainer menu tree) = case tree of
+buildTaskPanel :: !(TaskResult a) -> TaskPanel
+//buildTaskPanel cont=:(TTContainer menu tree) = case tree of
+buildTaskPanel (TaskFinished _)	= TaskDone
+/*
+
 	TTFinishedTask _ _ False
 		= TaskDone
 	TTFinishedTask _ _ True
@@ -16,6 +19,7 @@ buildTaskPanel cont=:(TTContainer menu tree) = case tree of
 			, updates 		= Nothing	
 			, menu			= menu
 			}
+*/
 where
 	buildTaskPanel` :: !UITree ![TUIDef] -> TUIDef
 	buildTaskPanel` tree menu = case tree of
@@ -43,7 +47,9 @@ where
 			TTDialog _		= buildTaskPanel` tree []
 			TTInBody		= buildTaskPanel` tree []
 									
-buildResultPanel :: !UITreeContainer -> TaskPanel
+buildResultPanel :: !(TaskResult a) -> TaskPanel
+buildResultPanel (TaskFinished _) = undef
+/*
 buildResultPanel tree = case tree of 
 	TTContainer _ (TTFinishedTask ti result _)
 		= (TUIPanel	{ TUIPanel
@@ -53,6 +59,7 @@ buildResultPanel tree = case tree of
 					})
 	_
 		= TaskNotDone
+*/
 where
 	content {TaskInfo|title,description,resultLayout=l=:TIResultLayoutMerger layout} result
 		= layout	{ TUIResult
@@ -63,6 +70,6 @@ where
 		
 diffTaskPanels :: !TaskPanel !TaskPanel -> TaskPanel
 diffTaskPanels (TUIPanel old) (TUIPanel new)
-	= TUIPanel {new & content = Nothing, updates = Just (diffEditorDefinitions (fromJust old.TUIPanel.content) (fromJust new.TUIPanel.content))}
+	= TUIPanel {new & content = Nothing, updates = Just (diffTUIDefinitions (fromJust old.TUIPanel.content) (fromJust new.TUIPanel.content))}
 diffTaskPanels _ new
 	= new

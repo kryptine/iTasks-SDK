@@ -9,7 +9,6 @@ import Task
 :: Description			= E.s: Description !s	& html s
 :: Tag					= E.s: Tag !s			& toString s
 :: Tags					= E.s: Tags ![s]		& toString s
-:: ControlTask			= ControlTask
 :: LocalInteractionTask	= LocalInteractionTask
 
 //Annotation combinator
@@ -22,7 +21,6 @@ instance tune	Description			//Set initial subject
 instance tune	Tag					//Append Tag
 instance tune	Tags				//Append List of Tags
 instance tune	InteractionTaskType
-instance tune	ControlTask
 instance tune	LocalInteractionTask
 instance tune	InteractionLayoutMerger
 instance tune	ParallelLayoutMerger

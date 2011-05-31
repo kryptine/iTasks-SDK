@@ -7,8 +7,8 @@ derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrien
 
 gEq{|TUIConstructorControl|} _ _ = False
 
-diffEditorDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
-diffEditorDefinitions old new = diffEditorDefinitions` startDataPath old new
+diffTUIDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
+diffTUIDefinitions old new = diffEditorDefinitions` startDataPath old new
 where
 	diffEditorDefinitions` :: !DataPath !TUIDef !TUIDef -> [TUIUpdate]
 	diffEditorDefinitions` path oldTui newTui

@@ -4,6 +4,7 @@ definition module WorkflowService
 * for execution.
 * The workflows are organized in a folder hierarchy.
 */
-import HTTP, TSt
+from HTTP	import :: HTTPRequest, :: HTTPResponse
+from Types	import :: IWorld
 
-workflowService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+workflowService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

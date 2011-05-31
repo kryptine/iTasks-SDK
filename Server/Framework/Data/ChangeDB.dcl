@@ -22,4 +22,3 @@ where
 	getChangesForProcess	:: !ProcessId											!*st -> (![PersistentChange],!*st)
 
 instance ChangeDB IWorld
-instance ChangeDB TSt

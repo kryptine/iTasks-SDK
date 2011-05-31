@@ -1,11 +1,12 @@
 implementation module WorkflowService
 
-import HTTP, TSt, UserDB
-import HtmlUtil, Text
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
+import HTTP, Error, Text
+import Types, HtmlUtil, UserDB
 import GenEq
-from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB TSt
+from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from WorkflowDB import :: WorkflowDescription{..}, :: WorkflowId
+from SessionDB import qualified class SessionDB(..), instance SessionDB IWorld
 
 from Util import mb2list
 
@@ -21,21 +22,21 @@ derive gEq WorkflowItem
 
 instance == WorkflowItem where (==) x y = x === y
 
-workflowService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-workflowService url format path req tst
+workflowService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+workflowService url format path req iworld
 	# html = format == "html"
 	// Restore the session if supplied
-	# (mbErr,tst)		= if ( sessionParam <> "") (initSession sessionParam tst) (Nothing,tst)	
-	| isJust mbErr
-		# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbErr))]
-		= (serviceResponse html "workflows" description url params json, tst)
+	# (mbSession,iworld)	= 'SessionDB'.restoreSession sessionParam iworld	
+	| isError mbSession
+		# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromError mbSession))]
+		= (serviceResponse html "workflows" description url params json, iworld)
 	// List available flows
-	# (session,tst)		= getCurrentSession tst
-	# (mbDetails,tst)	= getUserDetails session.Session.user tst
-	# (workflows,tst)	= 'WorkflowDB'.getAllowedWorkflowDescriptions session.Session.user mbDetails tst
-	# items				= workflowItems path workflows
-	# json 				= JSONObject [("success",JSONBool True),("workflows",toJSON items)]
-	= (serviceResponse html "workflows" description url params json, tst)
+	# session				= fromOk mbSession
+	# (mbDetails,iworld)	= getUserDetails session.Session.user iworld
+	# (workflows,iworld)	= 'WorkflowDB'.getAllowedWorkflowDescriptions session.Session.user mbDetails iworld
+	# items					= workflowItems path workflows
+	# json 					= JSONObject [("success",JSONBool True),("workflows",toJSON items)]
+	= (serviceResponse html "workflows" description url params json, iworld)
 where
 	sessionParam= paramValue "session" req
 	

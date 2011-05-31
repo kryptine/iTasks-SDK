@@ -3,7 +3,7 @@ implementation module Store
 import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTuple, StdMisc, Void
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 from Time import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
-from Types import :: IWorld{store,world,timestamp}, :: Config
+from Types import :: IWorld{storeDirectory,timestamp,world}, :: Config
 from iTasks import serialize, deserialize, defaultStoreFormat
 
 :: Store =
@@ -18,24 +18,19 @@ from iTasks import serialize, deserialize, defaultStoreFormat
 
 :: StoreFormat = SFPlain | SFDynamic | SFBlob
 
-/**
-* Create a store
-*/
-createStore	:: !String -> Store
-createStore location = {Store| location = location}
 
 storeValue :: !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValue key value iworld 
 	= storeValueAs defaultStoreFormat key value iworld
 
 storeValueAsBlob :: !String !String !*IWorld -> *IWorld
-storeValueAsBlob key value iworld=:{IWorld|timestamp,world,store=store=:{location}}
-	# world = writeToDisk key {StoreItem|format=SFBlob,content=value,timestamp=timestamp} location world
+storeValueAsBlob key value iworld=:{IWorld|storeDirectory,timestamp,world}
+	# world = writeToDisk key {StoreItem|format=SFBlob,content=value,timestamp=timestamp} storeDirectory world
 	= {iworld & world = world}
 
 storeValueAs :: !StoreFormat !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValueAs format key value iworld=:{IWorld|timestamp,world,store=store=:{location}}
-	# world = writeToDisk key {StoreItem|format=format,content=content,timestamp=timestamp} location world
+storeValueAs format key value iworld=:{IWorld|timestamp,world,storeDirectory}
+	# world = writeToDisk key {StoreItem|format=format,content=content,timestamp=timestamp} storeDirectory world
 	= {iworld & world = world}
 where
 	content = case format of	
@@ -63,8 +58,8 @@ writeToDisk key {StoreItem|format,content,timestamp} location world
 
 
 loadValueAsBlob :: !String !*IWorld -> (!Maybe String,!*IWorld)
-loadValueAsBlob key iworld=:{store=store=:{location}}
-	# (mbItem,iworld) = accWorld (loadFromDisk key location) iworld
+loadValueAsBlob key iworld=:{storeDirectory}
+	# (mbItem,iworld) = accWorld (loadFromDisk key storeDirectory) iworld
 	= case mbItem of
 		Just item	= (unpackValue item,iworld)
 		Nothing		= (Nothing,iworld)
@@ -109,8 +104,8 @@ unpackValue {StoreItem|format=SFDynamic,content,timestamp}
 		Error _  = Nothing
 
 loadStoreItem :: !String !*IWorld -> (!Maybe StoreItem,!*IWorld)
-loadStoreItem key iworld=:{store=store=:{location}}
-	= accWorld (loadFromDisk key location) iworld
+loadStoreItem key iworld=:{storeDirectory}
+	= accWorld (loadFromDisk key storeDirectory) iworld
 		
 loadFromDisk :: !String !String !*World -> (Maybe StoreItem, !*World)	
 loadFromDisk key location world			
@@ -160,15 +155,15 @@ deleteValues :: !String !*IWorld -> *IWorld
 deleteValues delKey iworld = deleteValues` delKey startsWith startsWith iworld
 
 deleteValues` :: !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
-deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{store=store=:{location}}
+deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{storeDirectory}
 	//Delete items from disk
 	# iworld = appWorld deleteFromDisk iworld
 	= iworld
 where
 	deleteFromDisk world
-		# (res, world) = readDirectory location world
-		| isError res = abort ("Cannot read store directory " +++ location +++ ": " +++ snd (fromError res))
-		= unlink location (fromOk res) world
+		# (res, world) = readDirectory storeDirectory world
+		| isError res = abort ("Cannot read store directory " +++ storeDirectory +++ ": " +++ snd (fromError res))
+		= unlink storeDirectory (fromOk res) world
 		where
 			unlink _ [] world
 				= world
@@ -180,9 +175,9 @@ where
 					= unlink dir fs world
 
 copyValues :: !String !String !*IWorld -> *IWorld
-copyValues fromprefix toprefix iworld=:{store=store=:{location}}
+copyValues fromprefix toprefix iworld=:{storeDirectory}
 	//Copy items on disk
-	# iworld = appWorld (copyOnDisk fromprefix toprefix location) iworld
+	# iworld = appWorld (copyOnDisk fromprefix toprefix storeDirectory) iworld
 	= iworld
 where
 	newKey key	= toprefix +++ (key % (size fromprefix, size key))
@@ -195,8 +190,8 @@ where
 	copy fromprefix toprefix [] world = world
 	copy fromprefix toprefix [f:fs] world
 		| startsWith fromprefix f
-			# sfile	= location </> f
-			# dfile = location </> toprefix +++ (f % (size fromprefix, size f))
+			# sfile	= storeDirectory </> f
+			# dfile = storeDirectory </> toprefix +++ (f % (size fromprefix, size f))
 			# world	= fcopy sfile dfile world
 			= copy fromprefix toprefix fs world
 		| otherwise

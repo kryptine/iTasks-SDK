@@ -21,9 +21,9 @@ derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDes
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
-derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
-derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus
+derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
+derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
+derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
 
 instance toString User
 instance toString Note
@@ -204,17 +204,26 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	{ taskProperties	:: !TaskProperties
 	, managerProperties	:: !ManagerProperties
 	, systemProperties	:: !SystemProperties
-	, progress			:: !TaskProgress
+	}
+	
+:: TaskProperties =
+	{ taskDescription	:: !TaskDescription				// Description of the task
+	, tags				:: ![String]					// A list of tags
+	, interactionType	:: !Maybe InteractionTaskType	// type of interaction (for interaction tasks)
+	, localInteraction	:: !Bool						// indicates that the task's interaction is restricted to local data while it is running
 	}
 
+:: TaskDescription	=
+	{ title				:: !String					// The task's title
+	, description		:: !String					// A longer description of the task (HTML string)
+	}
+	
 :: SystemProperties =
-	{ taskId			:: !TaskId					// Process table identification
-	, parent			:: !Maybe TaskId			// The (direct) parent process
+	{ taskId			:: !TaskId					// Task identification
 	, status			:: !TaskStatus				// Is a maintask active,suspended,finished or excepted
 	, issuedAt			:: !Timestamp				// When was the task created
 	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
 	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	
-	, deleteWhenDone	:: !Bool					// Delete the process after completion
 	, menu				:: !ActionMenu				// The maintask's menu
 	}
 	
@@ -235,31 +244,14 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 :: RunningTaskStatus	= Active		// A process is active and can be further evaluated
 						| Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
 	
-:: TaskProperties =
-	{ taskDescription	:: !TaskDescription				// Description of the task
-	, tags				:: ![String]					// A list of tags
-	, isControlTask		:: !Bool						// is the task a control task?
-	, interactionType	:: !Maybe InteractionTaskType	// type of interaction (for interaction tasks)
-	, localInteraction	:: !Bool						// indicates that the task's interaction is restricted to local data while it is running
-	}
 
-:: TaskDescription	=
-	{ title				:: !String					// The task's title
-	, description		:: !String					// A longer description of the task (HTML string)
-	}
 	
 :: TaskPriority		= HighPriority					// tasks can have three levels of priority
 					| NormalPriority
 					| LowPriority
-	
-:: TaskProgress		= TPActive			//Worker is happily working on the task
-					| TPStuck			//Worker is stuck and needs assistence
-					| TPWaiting			//Worker is waiting, not actively working on the task
-					| TPReject			//Worker does not want to continue working on the task
 					
 formatPriority	:: !TaskPriority	-> HtmlDisplay
-formatProgress	:: !TaskProgress	-> HtmlDisplay
-					
+
 :: TaskContainerType	= CTDetached !ManagerProperties !ActionMenu	// task detached as separate process
 						| CTWindow !WindowTitle !ActionMenu			// task shwon in a window (with own menu)
 						| CTDialog !WindowTitle						// task shwon as dialogue (without own menu)
@@ -315,7 +307,7 @@ initManagerProperties :: ManagerProperties
 	, timestamp	::	!Timestamp
 	}
 
-:: ProcessId		:== String
+:: ProcessId		:== Int
 
 /*
 * Gives the unique username of a user
@@ -417,16 +409,17 @@ instance menuAction (actionName, ActionLabel) | actionName actionName
 :: WorkflowId :== Int
 
 // iWorld
-:: *IWorld		=	{ application		:: !String		// The name of the application	
-					, store				:: !Store		// The generic data store
-					, config			:: !Config		// The server configuration
-					, world				:: !*World		// The outside world
-					, timestamp			:: !Timestamp	// The timestamp of the current request
-					, localDateTime		:: !DateTime	// The local date & time of the current request
-					, tmpDirectory		:: !FilePath	// The path for temporary files, the garbage collector also works on files in this dir
-					, currentUser		:: !User
+:: *IWorld		=	{ application		:: !String				// The name of the application	
+					, storeDirectory	:: !FilePath			// The generic data store
+					, tmpDirectory		:: !FilePath			// The path for temporary files, the garbage collector also works on files in this dir
+					, config			:: !Config				// The server configuration
+					, timestamp			:: !Timestamp			// The timestamp of the current request
+					, localDateTime		:: !DateTime			// The local date & time of the current request
+					, currentUser		:: !User				// The currently logged in user
+					, parallelVars		:: !Map String Dynamic	// The set of shared state variables used during parallel task execution
+					, world				:: !*World				// The outside world
 					}
-
+					
 // A workflow specification
 :: Workflow		=	{ path				:: String				// a unique name of this workflow
 					, roles				:: [String]				// the roles that are allowed to initate this workflow

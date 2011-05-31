@@ -3,15 +3,15 @@ implementation module CommonCombinators
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text
-import Util, Either, TSt, GenVisualize, GenUpdate
+import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text, Time
+import Util, Either, GenVisualize, GenUpdate
 from StdFunc	import id, const, o
 from Types		import :: ProcessId, :: User(..), :: Note(..)
-from Store		import :: Store
 from SessionDB	import :: Session
-from TaskTree	import :: TaskTree
+from TaskContext	import :: TaskContext(..), :: TopTaskContext, :: SubTaskContext, :: ParallelMeta
 from Shared		import mapShared, :: SymmetricShared
 from SystemData	import randomInt
+from Map		import qualified newMap
 import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, ProcessDBTasks, InteractionTasks
 
 // use string instances of generic function for Tag values 
@@ -57,8 +57,10 @@ accu accufun task pstate pcontrol
 				(return result)
 			
 transform :: !(a -> b) !a -> Task b | iTask b
-transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") (\tst -> (TaskFinished (f x),tst))
-
+transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") eval
+where
+	eval taskNr iworld = (TaskFinished (f x), iworld)
+	
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
@@ -69,14 +71,13 @@ assign props actionMenu task = parallel ("Assign","Manage a task assigned to ano
 where
 	processControl :: state !(Shared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
 	processControl _ control =
-			ControlTask @>> updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) control (const [])
+		updateSharedInformationA (taskTitle task,"Waiting for " +++ taskTitle task) (toView,fromView) control (const [])
 	
 	accJust r _ = (Just r,True)
 			
-	toView [_,{ParallelTaskInfo|properties=Right {progress,systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}]=
+	toView [_,{ParallelTaskInfo|properties=Right {systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}]=
 		{ mapRecord m
 		& assignedTo	= worker
-		, progress		= formatProgress progress
 		, issuedAt		= Display issuedAt
 		, firstWorkedOn	= Display firstEvent
 		, lastWorkedOn	= Display latestEvent
@@ -85,7 +86,6 @@ where
 		{ assignedTo = NamedUser "root"
 		, priority = NormalPriority
 		, status = Suspended
-		, progress = HtmlDisplay "Why??"
 		, issuedAt = Display (Timestamp 0)
 		, firstWorkedOn = Display Nothing
 		, lastWorkedOn = Display Nothing
@@ -98,7 +98,6 @@ where
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
 						, status		:: !RunningTaskStatus
-						, progress		:: !HtmlDisplay
 						, issuedAt		:: !Display Timestamp
 						, firstWorkedOn	:: !Display (Maybe Timestamp)
 						, lastWorkedOn	:: !Display (Maybe Timestamp)

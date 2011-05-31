@@ -176,7 +176,6 @@ defaultLayoutContainer	:: ![TUIDef] -> TUILayoutContainer
 sameMargins				:: !TUIFixedSize -> TUIMargins
 
 // Layouts
-
 :: InteractionLayoutMerger	:== LayoutMerger TUIInteraction
 :: ParallelLayoutMerger		:== LayoutMerger TUIParallel
 :: ResultLayoutMerger		:== LayoutMerger TUIResult

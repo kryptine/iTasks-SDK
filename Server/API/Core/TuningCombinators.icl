@@ -14,16 +14,14 @@ instance tune Tags
 where tune (Tags ts) task		= updateTaskProperties (\p -> {p & tags = (map toString ts) ++ p.tags}) task
 instance tune InteractionTaskType
 where tune t task				= updateTaskProperties (\p -> {p & interactionType = Just t}) task
-instance tune ControlTask
-where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & isControlTask = True}) task
 instance tune LocalInteractionTask
 where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & localInteraction = True}) task
 instance tune InteractionLayoutMerger
-where tune l task				= {task & mbInteractionLayout = Just l}
+where tune l task				= {task & evalTaskFun = \taskNr event tuiTaskNr imerge pmerge context iworld = task.evalTaskFun taskNr event tuiTaskNr l pmerge context iworld}
 instance tune ParallelLayoutMerger
-where tune l task				= {task & mbParallelLayout = Just l}
+where tune l task				= {task & evalTaskFun = \taskNr event tuiTaskNr imerge pmerge context iworld = task.evalTaskFun taskNr event tuiTaskNr imerge l context iworld}
 instance tune ResultLayoutMerger
-where tune l task				= {task & mbResultLayout = Just l}
+where tune l task				= task
 
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
 (<<@) t a = tune a t

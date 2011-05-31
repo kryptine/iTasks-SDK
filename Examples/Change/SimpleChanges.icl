@@ -159,13 +159,13 @@ chooseProcess :: String -> Task ProcessId
 chooseProcess question
 	=				getProcessesWithStatus [Running] [Active]
 	>>= \procs ->	enterChoiceA question id
-					[	( proc.Process.taskId
+					[	( proc.Process.properties.ProcessProperties.systemProperties.SystemProperties.taskId
 						, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title
 						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.priority
 						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
 						\\ proc <- procs]
 	>?*				[ (ActionCancel,	Always	(throw "choosing a process has been cancelled"))
-					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return pid))
+					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return (toInt pid)))
 					]
 
 	

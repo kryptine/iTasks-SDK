@@ -34,7 +34,7 @@ where
 	getChangesForProcess :: !ProcessId !*IWorld -> (![PersistentChange],!*IWorld)
 	getChangesForProcess processId iworld
 		# (list,iworld) = changeStore id iworld
-		= ([c \\ c <- list | startsWith c.PersistentChange.scope processId],iworld)
+		= ([c \\ c <- list | startsWith (toString c.PersistentChange.scope) (toString processId)],iworld)
 
 changeStore ::  !([PersistentChange] -> [PersistentChange]) !*IWorld -> (![PersistentChange],!*IWorld) 
 changeStore fn iworld
@@ -43,23 +43,5 @@ changeStore fn iworld
 	# store				= storeValue "ChangeDB" list iworld 
 	= (list,iworld)
 
-instance ChangeDB TSt
-where
-	createChange :: !PersistentChange !*TSt -> *TSt
-	createChange change tst = appIWorldTSt (createChange change) tst
-	
-	updateChange :: !ChangeLabel !(PersistentChange -> PersistentChange) !*TSt -> *TSt
-	updateChange label f tst = appIWorldTSt (updateChange label f) tst
-	
-	deleteChange :: !ChangeLabel !*TSt -> *TSt
-	deleteChange label tst = appIWorldTSt (deleteChange label) tst
-	
-	getChange :: !ChangeLabel !*TSt -> (!Maybe PersistentChange,!*TSt)
-	getChange label tst = accIWorldTSt (getChange label) tst
-	
-	getChanges :: !*TSt -> (![PersistentChange],!*TSt)
-	getChanges tst = accIWorldTSt getChanges tst
-	
-	getChangesForProcess :: !ProcessId !*TSt -> (![PersistentChange],!*TSt)
-	getChangesForProcess processId tst = accIWorldTSt (getChangesForProcess processId) tst
+
 	

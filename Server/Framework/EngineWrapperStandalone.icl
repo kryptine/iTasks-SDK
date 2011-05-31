@@ -1,9 +1,8 @@
 implementation module EngineWrapperStandalone
 
 import StdFile, StdInt
-import Engine
+import Engine, Config
 import HTTP, HttpServer
-import Config
 
 import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService, StencilService
 

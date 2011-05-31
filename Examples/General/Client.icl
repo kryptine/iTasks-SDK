@@ -1,13 +1,14 @@
 implementation module Client
 
-import iTasks, TSt, Text
+import iTasks, Text
 from UserDB import qualified class UserDB(..)
-from UserDB import qualified instance UserDB TSt
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB IWorld
 from Shared import makeReadOnlyShared
 from StdFunc import o, seq
 from Util import mb2list
+
+import StdMisc
 
 derive bimap Maybe, (,)
 
@@ -46,17 +47,15 @@ processTable =
 		get currentUser
 	>>=	\user. updateSharedInformationA "process table" (Table o map toView,\_ _ -> Void) (currentProcessesForUser user) noActions
 where
-	toView {Process|properties=p=:{taskProperties,managerProperties,systemProperties,progress}} =
+	toView {Process|properties=p=:{taskProperties,managerProperties,systemProperties}} =
 		{ title		= Display taskProperties.taskDescription.TaskDescription.title
 		, priority	= formatPriority managerProperties.ManagerProperties.priority
-		, progress	= formatProgress progress
 		, date		= Display systemProperties.issuedAt
 		, deadline	= Display managerProperties.ManagerProperties.deadline
 		}
 
 :: ProcessTableView =	{ title		:: !Display String
 						, priority	:: !HtmlDisplay
-						, progress	:: !HtmlDisplay
 						, date		:: !Display Timestamp
 						, deadline	:: !Display (Maybe DateTime)
 						}
@@ -117,12 +116,12 @@ processTableLayout {editorParts} =
 	}
 
 getWorkflowTreeNodes :: Task [TreeNode (!String,!Hidden String,!Hidden Int)]
-getWorkflowTreeNodes = mkInstantTask "get a tree of workflows" getWorkflowTree`
+getWorkflowTreeNodes = abort "TODO" //mkInstantTask "get a tree of workflows" getWorkflowTree`
+/*
 where
-	getWorkflowTree` tst
-		# (workflows,tst) = ([],tst)//get workflows tst
-		= (TaskFinished (mkFlowTree workflows),tst)
-		
+	getWorkflowTree` iworld
+		# (workflows,iworld) = getAllowedWorkflows iworld
+		= (TaskFinished (mkFlowTree workflows),iworld)	
 	mkFlowTree workflows = seq (map insertWorkflow (zip2 workflows (indexList workflows))) []
 		where
 			insertWorkflow ({Workflow|path,description},idx) nodeList = insertWorkflow` (split "/" path) nodeList
@@ -134,10 +133,32 @@ where
 					| otherwise			= [node:insertWorkflow` path nodesR]
 				insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
 				insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
-
+*/
 startWorkflow :: !Workflow -> Task Void
-startWorkflow {thread,managerProperties,menu} = mkInstantTask "create new task" (startWorkflow` thread managerProperties menu)
-	
-startWorkflow` thread managerProperties menu tst
-	# (_,_,_,tst) = createTaskInstance thread True True managerProperties menu tst
-	= (TaskFinished Void,tst)
+startWorkflow {thread,managerProperties,menu} = abort "TODO"
+
+startWorkflowByIndex :: !Int -> Task Void
+startWorkflowByIndex idx = abort "TODO" 
+/*
+= mkInstantTask "create new task by index in workflow list" startWorkflowByIndex`
+where
+	startWorkflowByIndex` tst
+		# (workflows,tst)					= getAllowedWorkflows tst
+		# {thread,managerProperties,menu}	= workflows !! idx
+		= startWorkflow` thread managerProperties menu tst
+
+
+getAllowedWorkflows tst
+	# (session,tst)		= getCurrentSession tst
+	# (mbDetails,tst)	= 'UserDB'.getUserDetails session.Session.user tst
+	# (workflows,tst)	= getWorkflows tst
+	# workflows 		= filter (isAllowed (session.Session.user,mbDetails)) workflows
+	= (workflows,tst)
+where
+	//Allow the root user
+	isAllowed (RootUser,_)	_		= True
+	//Allow workflows for which the user has permission
+	isAllowed (_,Just details) wf	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- wf.Workflow.roles] || isEmpty wf.Workflow.roles
+	//Allow workflows without required roles
+	isAllowed _ wf					= isEmpty wf.Workflow.roles
+*/

@@ -7,8 +7,9 @@ from Time				import :: Timestamp
 from TuningCombinators	import :: Tag
 from Shared				import :: Shared, :: ReadOnlyShared, :: SymmetricShared
 from ProcessDB			import :: Process
-import Task, ProcessDBTasks
+import Task
 
+import iTaskClass
 derive class iTask ParallelTaskInfo
 derive JSONEncode	TaskContainer
 derive JSONDecode	TaskContainer
@@ -48,7 +49,7 @@ derive gEq			TaskContainer
 * @param The list of tasks to run in parallel, each task is given a view on the status of all tasks in the set
 * @return The resulting value
 */
-parallel :: !d !s !(ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
+parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
 
 :: ResultFun s a 		:== TerminationStatus s -> a	//ResultFun is called when the parallel task is stopped
 														//either because all tasks completed, or the set was stopped by a task
@@ -71,7 +72,6 @@ parallel :: !d !s !(ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTas
 						| AppendTask		!(TaskContainer s)						// append and additional task to be run in parallel as well
 						| RemoveTask		!TaskIndex								// remove the task with indicated index from the set
 						| UpdateProperties	!TaskIndex !ManagerProperties			// update the properties of a task
-						| FocusTask			!TaskIndex								// set the window focus of indicated ordinary or control task
 					
 :: TaskIndex			:== Int
 
@@ -99,17 +99,3 @@ spawnProcess	:: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task ProcessId
 * @return Void
 */
 killProcess 	:: !ProcessId -> Task Void
-
-/**
-* Spawn a process at regular times
-*
-* @param A function that computes the next time a new instance to be spawned
-* @param The task to spawn as process
-*
-* @return A reference to a control memory this contains a schedulerstate to control the scheduler and a list of active processes.
-*/
-scheduledSpawn	:: !(DateTime -> DateTime) !(Task a) -> Task (ReadOnlyShared (!SchedulerState,![ProcessId])) | iTask a
-
-:: SchedulerState = SSActive //Keep monitoring time and spawn new tasks
-				  | SSFinish //Let the already running tasks finish, but don't start new ones anymore
-				  | SSCancel //Stop immediately, cancel all active tasks.

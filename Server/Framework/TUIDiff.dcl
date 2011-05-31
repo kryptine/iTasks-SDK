@@ -22,4 +22,4 @@ import GenUpdate, TUIDefinition
 	
 :: TUIPath	:== String
 
-diffEditorDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
+diffTUIDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]

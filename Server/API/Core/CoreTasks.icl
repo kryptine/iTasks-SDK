@@ -1,14 +1,13 @@
 implementation module CoreTasks
 
-import TSt
-import StdList, StdBool, StdInt, StdTuple, Util, HtmlUtil, Error, StdMisc, OSError
-import iTaskClass, Task
+import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map
+import iTaskClass, Task, TaskContext
 from Shared			import ::Shared(..), :: SymmetricShared, :: SharedGetTimestamp, :: SharedWrite, :: SharedRead
 from Shared			import qualified readShared, writeShared, isSharedChanged
-from StdFunc		import o
+from StdFunc		import o, id
 from iTasks			import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException
-from WorkflowDB		import qualified class WorkflowDB(..), instance WorkflowDB TSt
+from WorkflowDB		import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 
 VIEWS_STORE				:== "views"
 LOCAL_STORE				:== "local"
@@ -25,7 +24,7 @@ JSONDecode{|InteractionPart|} _ _ 		= (Nothing,[])
 derive bimap Maybe,(,)
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask ("return", "Return a value") (\tst -> (TaskFinished a,tst))
+return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinished a,iworld))
 
 sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = Shared
@@ -43,168 +42,184 @@ where
 	write v iworld = (Ok Void,storeValue storeId v iworld)
 
 get :: !(Shared a w) -> Task a | iTask a
-get shared
-	= mkInstantTask ("Read shared", "Reads a shared value") (accIWorldTSt readShared`)
+get shared = mkInstantTask ("Read shared", "Reads a shared value") eval
 where
-	readShared` iworld
+	eval taskNr iworld
 		# (val,iworld) = 'Shared'.readShared shared iworld
 		# res = case val of
 			Ok val	= TaskFinished val
 			Error e	= taskException (SharedException e)
-		= (res,iworld)
-	
+		= (res, iworld)
+
+//TODO: Mark (smartly) that a particular share has been updated	
 set :: !(Shared r a) !a -> Task a | iTask a
-set shared val
-	= mkInstantTask ("Write shared", "Writes a shared value") writeShared`
+set shared val = mkInstantTask ("Write shared", "Writes a shared value") eval
 where
-	writeShared` tst
-		// set shared changed flag
-		# tst		= {tst & sharedChanged = True}
-		# (res,tst)	= accIWorldTSt ('Shared'.writeShared shared val) tst
+	eval taskNr iworld
+		# (res,iworld)	='Shared'.writeShared shared val iworld
 		# res = case res of
 			Ok _	= TaskFinished val
 			Error e	= taskException (SharedException e)
-		= (res,tst)
+		= (res, iworld)
 
+//TODO: Mark (smartly) that a particular share has been updated	
 update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
-update f shared
-	= mkInstantTask ("Update shared", "Updates a shared value") (\tst -> accIWorldTSt updateShared` {tst & sharedChanged = True})
+update f shared = mkInstantTask ("Update shared", "Updates a shared value") eval
 where
-	updateShared` iworld
+	eval taskNr iworld
 		# (val,iworld)	= 'Shared'.readShared shared iworld
-		| isError val	= (taskException (SharedException (fromError val)),iworld)
+		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		# val			= f (fromOk val)
 		# (wres,iworld)	= 'Shared'.writeShared shared val iworld
-		| isError wres	= (taskException (SharedException (fromError wres)),iworld)
-		= (TaskFinished val,iworld)
+		| isError wres	= (taskException (SharedException (fromError wres)), iworld)
+		= (TaskFinished val, iworld)
 
 interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) !l !(Shared r w) !(l r Bool -> InteractionTerminators a) -> Task a | descr d & iTask l & iTask a & iTask w
-interact description partFunc initLocal shared termFunc = mkInteractionTask description (editorE,editorC)
+interact description partFunc initLocal shared termFunc = mkTask description init edit eval
 where
-	editorE tst=:{taskNr,iworld=w=:{IWorld|timestamp}}
-		# (mbEdit,tst)					= getEdit tst
-		= case mbEdit of
-			Nothing						= tst
-			Just (idx,dp,editV)
-				// check if part with target idx is present & update(view) part
-				# (local,tst)			= readLocalState tst
-				# (views,tst)			= accIWorldTSt (readViews taskNr local) tst
-				| length views <= idx	= tst
-				// check for edit conflict
-				# (mbT,tst)				= getTaskStoreTimestamp VIEWS_STORE tst
-				# (changed,tst)			= accIWorldTSt ('Shared'.isSharedChanged shared (fromMaybe (Timestamp 0) mbT)) tst
-				= case changed of
-					Ok True
-						= setTaskStore EDIT_CONFLICT_STORE True tst
+	init taskNr iworld
+		= (TCBasic newMap, iworld)
+	
+	//There is an edit event for this task (because the location part of the event is the empty list)
+	edit taskNr ([],dps,editV) context iworld=:{IWorld|timestamp}
+		//Split datapath into datapath & part index
+		# (idx,dp)					= splitDataPath dps
+		//Read latest versions of states
+		# (model,iworld) 			= 'Shared'.readShared shared iworld
+		| isError model				= (context, iworld)
+		# local						= getLocalState context
+		# views						= getViews local (fromOk model) context
+		| idx >= length views		= (context, iworld) 
+		# (localTimestamp,iworld)	= getLocalTimestamp context iworld
+		# (changed,iworld)			= 'Shared'.isSharedChanged shared localTimestamp iworld
+		= case changed of
+			Ok True
+				//The share has changed since we last edited it
+				= (setLocalVar EDIT_CONFLICT_STORE True context, iworld) 
+			_
+				# (mbV,part)	= views !! idx
+				= case part of
+					UpdateView (_,putback)
+						| isNothing mbV			= (context,iworld)
+						# (jsonV,umask,_)		= fromJust mbV
+						# value					= fromJSON jsonV
+						| isNothing value		= (context,iworld)
+						// update value & masks
+						# (value,umask,iworld)	= updateValueAndMask dp editV (fromJust value) umask iworld
+						# vmask					= verifyForm value umask
+						# views					= updateAt idx (Just (toJSON value,umask,vmask),part) views
+						# context				= setViews views context
+						// calculate new local & model value
+						# (local,mbModel)		= putback (if (isValidValue vmask) (Just value) Nothing)
+						# context				= setLocalState local context
+						= case mbModel of
+							Just model
+								# (_,iworld) = 'Shared'.writeShared shared model iworld
+								= (context,iworld)
+							Nothing	
+								= (context, iworld)
+					Update _ (local,mbModel)			
+						# context				= setLocalState local context
+						= case mbModel of
+							Just model	= (context, snd ('Shared'.writeShared shared model iworld))
+							Nothing		= (context, iworld)
 					_
-						// update last edit timestamp
-						# tst					= appIWorldTSt (setTaskStoreFor taskNr LAST_EDIT_STORE timestamp) tst
-						# (mbV,part)			= views !! idx
-						= case part of
-							UpdateView (_,putback)
-								| isNothing mbV			= tst
-								# (jsonV,umask,_)		= fromJust mbV
-								# value					= fromJSON jsonV
-								| isNothing value		= tst
-								// update value & masks
-								# (value,umask,iworld)	= updateValueAndMask dp editV (fromJust value) umask tst.TSt.iworld
-								# vmask					= verifyForm value umask
-								# tst					= {TSt|tst & iworld = iworld}
-								# views					= updateAt idx (Just (toJSON value,umask,vmask),part) views
-								# tst					= appIWorldTSt (writeViews taskNr views) tst
-								// calculate new local & model value
-								# newStates				= putback (if (isValidValue vmask) (Just value) Nothing)
-								= updateStates newStates tst
-							Update _ newStates
-								= updateStates newStates tst
-							_
-								= tst
-
-	editorC tst=:{taskNr,newTask}
-		# (model,tst) 					= accIWorldTSt ('Shared'.readShared shared) tst
-		| isError model					= (sharedException model,tst)
-		# (localTimestamp,tst)			= accIWorldTSt (getLocalTimestamp taskNr) tst
-		# (changed,tst)					= accIWorldTSt ('Shared'.isSharedChanged shared localTimestamp) tst
-		| isError changed				= (sharedException changed,tst)
-		# (local,tst)					= readLocalState tst
+						= (context,iworld)
+				
+	edit taskNr _ context iworld = (context,iworld)
+	
+	eval taskNr event tuiTaskNr imerge pmerge context iworld=:{IWorld|timestamp}
+		# (model,iworld) 				= 'Shared'.readShared shared iworld
+		| isError model					= (sharedException model, iworld)
+		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
+		# (changed,iworld)				= 'Shared'.isSharedChanged shared localTimestamp iworld
+		| isError changed				= (sharedException changed, iworld)
+		# local							= getLocalState context
 		= case termFunc local (fromOk model) (fromOk changed) of
 			StopInteraction result
-				= (TaskFinished result,tst)
+				= (TaskFinished result,iworld)
 			UserActions actions
-				# (mbResult,tst)		= getActionResult actions tst
-				= case mbResult of
+				= case getActionResult event actions of
 					Just result
-						= (TaskFinished result,tst)
+						= (TaskFinished result, iworld)
 					Nothing
-						# (mbEdit,tst)	= getEditEvent tst
-						# tst			= setInteractionFuncs (tuiFunc local mbEdit actions,jsonFunc) tst
-						= (TaskBusy,tst)
+						# context				= setLocalVar LAST_EDIT_STORE timestamp context
+						# (tui,context,iworld)	= renderTUI taskNr imerge local (fromOk model) (fromOk changed) actions context iworld
+						= (TaskBusy (Just tui) context, iworld)
+						
+	getLocalTimestamp context iworld=:{IWorld|timestamp}
+		= case getLocalVar LAST_EDIT_STORE context of
+			Just ts	= (ts,iworld)
+			Nothing	= (Timestamp 0,iworld)
+	
+	getLocalState context
+		= fromMaybe initLocal (getLocalVar LOCAL_STORE context)
+
+	setLocalState state context
+		= setLocalVar LOCAL_STORE state context
+	
+	splitDataPath dp
+		= (hd dplist, dataPathFromList (reverse (tl dplist)))
 	where
-		tuiFunc local mbEdit actions iworld
-			# (Ok model,iworld)			= 'Shared'.readShared shared iworld
-			# (localTimestamp,iworld)	= getLocalTimestamp taskNr iworld
-			# (Ok changed,iworld)		= 'Shared'.isSharedChanged shared localTimestamp iworld
-			# parts						= partFunc local model changed
-			# (oldVs,iworld)			= readViews taskNr local iworld
-			# (tui,newVs)				= visualizeParts taskNr parts oldVs mbEdit
-			# iworld					= writeViews taskNr (zip2 newVs parts) iworld
-			# buttons					= map (appSnd isJust) actions
-			# (mbConflict,iworld)		= getTaskStoreFor taskNr EDIT_CONFLICT_STORE iworld
-			# iworld					= setTaskStoreFor taskNr EDIT_CONFLICT_STORE False iworld
-			# warning = case mbConflict of
-				Just True				= Just EDIT_CONFLICT_WARNING
-				_						= Nothing
-			= (tui,buttons,warning,iworld)
+		dplist = reverse (dataPathList (s2dp dp))
+
+	getActionResult (Just ([],name)) actions
+		= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
+	getActionResult _ actions
+		= Nothing
+
+	renderTUI taskNr imerge local model changed actions context iworld
+		# parts					= partFunc local model changed
+		# oldVs					= getViews local model context
+		# (tuis,newVs)			= visualizeParts taskNr parts oldVs Nothing //TODO: get rid of useless constant Nothing
+		# context 				= setViews (zip2 newVs parts) context
+		# buttons				= renderButtons taskNr (map (appSnd isJust) actions)
+		# warning				= case (getLocalVar EDIT_CONFLICT_STORE context) of
+			Just True	= Just EDIT_CONFLICT_WARNING
+			_			= Nothing
+		# tui					= mergeTUI imerge (toDescr description) tuis buttons warning
+		= (tui,context,iworld)
 	
-		jsonFunc iworld = (JSONNull,iworld)
+	renderButtons taskNr actions
+		# taskId = taskNrToString taskNr
+		= [mkButton taskId action enabled \\ (action,enabled) <- actions]
+	where
+		mkButton taskId action enabled
+			= { content	= TUIButton
+					{ TUIButton
+					| name = actionName action
+					, taskId = taskId
+					, disabled = not enabled
+					, text = actionLabel action
+					, iconCls = actionIcon action
+					, actionButton = True
+					}
+			  , width		= Auto
+			  , height	= Auto
+			  , margins	= Nothing
+			  }
+				
+	mergeTUI imerge {TaskDescription|title,description} tuis buttons warning
+		= imerge { title = title
+				 , description = description
+				 , editorParts = tuis
+				 , buttons = buttons
+				 , type = Nothing //TODO get these types merged in here
+				 , isControlTask = False
+				 , localInteraction = False
+				 , warning = warning
+				 }
 	
-	readViews taskNr local iworld
-		# (mbVs,iworld) = getTaskStoreFor taskNr VIEWS_STORE iworld
-		= case mbVs of
-			Just views
-				= (views,iworld)
-			Nothing
-				# (model,iworld)= 'Shared'.readShared shared iworld
-				| isError model	= ([],iworld)
-				= ([(Nothing,part) \\ part <- partFunc local (fromOk model) True],iworld)
+	getViews local model context 
+		= case getLocalVar VIEWS_STORE context of
+			Just views	= views
+			Nothing		= [(Nothing,part) \\ part <- partFunc local model True]
 			
-	readLocalState tst
-		# (mbL,tst) = getTaskStore LOCAL_STORE tst
-		= (fromMaybe initLocal mbL,tst)
-		
-	getLocalTimestamp taskNr iworld=:{IWorld|timestamp}
-		# (mbTs,iworld)	= getTaskStoreFor taskNr LAST_EDIT_STORE iworld
-		= (fromMaybe (Timestamp 0) mbTs,iworld)
-	
-	updateStates (local,mbModel) tst
-		# tst = setTaskStore LOCAL_STORE local tst
-		= case mbModel of
-			Just model	= snd (accIWorldTSt ('Shared'.writeShared shared model) tst)
-			Nothing		= tst
+	setViews views context
+		= setLocalVar VIEWS_STORE views context
 			
 :: Views a :== [(!Maybe (!JSONNode,!UpdateMask,!VerifyMask),!InteractionPart a)]
-	
-writeViews :: !TaskNr !(Views a) !*IWorld -> *IWorld | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-writeViews taskNr views iworld = setTaskStoreFor taskNr VIEWS_STORE views iworld
 
-getEdit tst
-	# (mbEdit,tst)		= getEditEvent tst
-	= case mbEdit of
-		Nothing			= (Nothing,tst)
-		Just (editDp,val)
-			# dpList	= reverse (dataPathList editDp)
-			# idx		= hd dpList
-			# dp		= dataPathFromList (reverse (tl dpList))
-			= (Just (idx,dp,val),tst)
-
-getActionResult :: ![(!Action,!Maybe a)] !*TSt -> (!Maybe a,!*TSt)
-getActionResult actions tst
-	# (mbActionEvent,tst) = getActionEvent tst
-	# mbRes = case mbActionEvent of
-		Nothing		= Nothing
-		Just name 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
-	= (mbRes,tst)
-		
 visualizeParts :: !TaskNr ![InteractionPart w] !(Views w) !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![Maybe (!JSONNode,!UpdateMask,!VerifyMask)])
 visualizeParts taskNr parts oldVs mbEdit
 	# res			= [visualizePart (part,mbV,idx) \\ part <- parts & (mbV,_) <- (oldVs ++ repeat (Nothing,undef)) & idx <- [0..]]
@@ -258,30 +273,56 @@ addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask a
 addAbout mbAbout parts = maybe parts (\about -> [DisplayView about:parts]) mbAbout
 
 addWorkflow :: !Workflow -> Task WorkflowDescription
-addWorkflow workflow = mkInstantTask "Adds a workflow to the system" (\tst -> appFst TaskFinished ('WorkflowDB'.addWorkflow workflow tst))
+addWorkflow workflow = mkInstantTask "Adds a workflow to the system" eval
+where
+	eval taskNr iworld = appFst TaskFinished ('WorkflowDB'.addWorkflow workflow iworld)
 
 applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 applyChangeToProcess pid change lifetime
-	= mkInstantTask ("Apply a change to a process", ("Apply a " +++ lt +++ " change to task " +++ pid))
-		(\tst -> (TaskFinished Void, applyChangeToTaskTree pid (lifetime,change) tst))
+	= mkInstantTask ("Apply a change to a process", ("Apply a " +++ lt +++ " change to task " +++ toString pid)) eval
 where
+	eval taskNr iworld = (TaskException (dynamic "TODO") "TODO", iworld)
+
+//id (\tst -> (TaskFinished Void, applyChangeToTaskTree pid (lifetime,change) tst))
+//Interesting one, we need the tst somehow :)
 	lt = case lifetime of
 		CLTransient = "transient"
 		CLPersistent _	= "persistent"
-		
+	
 appWorld :: !(*World -> *World) -> Task Void
-appWorld fun = mkInstantTask ("Run world function", "Run a world function.") (\tst -> (TaskFinished Void,appWorldTSt fun tst))
-
-accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
-accWorld fun = mkInstantTask ("Run world function", "Run a world function and get result.") (mkTaskFunction (accWorldTSt fun))
-
-accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
-accWorldError fun errf = mkInstantTask ("Run a world function", "Run a world function with error handling.") f
+appWorld fun = mkInstantTask ("Run world function", "Run a world function.") eval
 where
-	f tst
-	# (res, tst) 	= accWorldTSt fun tst
-	| isError res	= (taskException (errf (fromError res)), tst)
-	= (TaskFinished (fromOk res), tst)
-
+	eval taskNr iworld=:{IWorld|world}
+		= (TaskFinished Void, {IWorld|iworld & world = fun world})
+		
+accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
+accWorld fun = mkInstantTask ("Run world function", "Run a world function and get result.") eval
+where
+	eval taskNr iworld=:{IWorld|world}
+		# (res,world) = fun world
+		= (TaskFinished res, {IWorld|iworld & world = world})
+	
+accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
+accWorldError fun errf = mkInstantTask ("Run a world function", "Run a world function with error handling.") eval
+where
+	eval taskNr iworld=:{IWorld|world}
+		# (res,world)	= fun world
+		= case res of
+			Error e		= (taskException (errf e),{IWorld|iworld & world = world})
+			Ok v		= (TaskFinished v,{IWorld|iworld & world = world})
+	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException
+
+appIWorld :: !(*IWorld -> *IWorld) -> Task Void 
+appIWorld fun = mkInstantTask ("Run Iworld function", "Run an IWorld function.") eval
+where
+	eval taskNr iworld = (TaskFinished Void, fun iworld)
+
+accIWorld :: !(*IWorld -> *(!a,!*IWorld)) -> Task a | iTask a
+accIWorld fun = mkInstantTask ("Run Iworld function", "Run an IWorld function and get result.") eval
+where
+	eval taskNr iworld
+		# (res,iworld)	= fun iworld
+		= (TaskFinished res,iworld)
+

@@ -1,25 +1,22 @@
-implementation module TaskPanelClientEncode
+implementation module TUIEncode
 
-import StdMisc, StdList, JSON, Types, TaskPanel
+import StdMisc, StdList, JSON, Types, TUIDefinition, TUIDiff
 
-clientEncodeTaskPanel :: !TaskPanel -> JSONNode
-clientEncodeTaskPanel p = toJSON p
+encodeTUIDefinition :: !TUIDef -> JSONNode
+encodeTUIDefinition d = toJSON d
 
-derive JSONEncode TUIPanel
-derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
+encodeTUIUpdates :: ![TUIUpdate] -> JSONNode
+encodeTUIUpdates u = toJSON u
+
+derive JSONEncode TUIUpdate
+derive JSONEncode TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONEncode TUILayoutContainer, TUIListContainer
 derive JSONEncode TUIGridContainer, TUIGridColumn, TUITree, TUIControl
 derive JSONEncode TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
-//JSON specialization for TaskPanel: Ignore the union constructor
-JSONEncode{|TaskPanel|} (TaskDone)					= [JSONString "done"]
-JSONEncode{|TaskPanel|} (TaskRedundant)				= [JSONString "redundant"]
-JSONEncode{|TaskPanel|} (TaskNotDone)				= [JSONString "notdone"]
-JSONEncode{|TaskPanel|} (TUIPanel x)				= JSONEncode{|*|} x
-
-JSONEncode{|TUIDef|}		{content,width,height,margins} = merge (JSONEncode{|*|} content) [JSONObject [("width",toJSON width),("height",toJSON height),("margins",toJSON margins)]]
+JSONEncode{|TUIDef|} {content,width,height,margins} = merge (JSONEncode{|*|} content) [JSONObject [("width",toJSON width),("height",toJSON height),("margins",toJSON margins)]]
 
 JSONEncode{|TUIDefContent|} (TUIControl c b)			= merge (JSONEncode{|*|} c) (JSONEncode{|*|} b)
 JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks.tui.Button" (JSONEncode{|*|} r)

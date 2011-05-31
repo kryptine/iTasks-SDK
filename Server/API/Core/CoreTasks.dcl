@@ -7,9 +7,9 @@ import iTaskClass
 from Error		import ::MaybeError(..)
 from OSError	import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 from Shared		import :: SymmetricShared, :: Shared
-from Task		import :: Task
-from TSt		import ::ChangeLifeTime, :: ChangeDyn
+from Task		import :: Task, ::ChangeLifeTime, :: ChangeDyn
 
+:: SharedStoreId :== String
 
 /**
 * Lifts a value to the task domain. The return_V task finishes immediately and yields its parameter
@@ -19,8 +19,6 @@ from TSt		import ::ChangeLifeTime, :: ChangeDyn
 * @return A task that will return the value defined by the parameter
 */
 return 		:: !a 										-> Task a 		| iTask a
-
-:: SharedStoreId :== String
 
 /**
 * Creates a reference to a store identified by a string identifier.
@@ -141,3 +139,7 @@ accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
 accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a
+
+appIWorld		:: !(*IWorld -> *IWorld)								-> Task Void
+
+accIWorld		:: !(*IWorld -> *(!a,!*IWorld))							-> Task a | iTask a

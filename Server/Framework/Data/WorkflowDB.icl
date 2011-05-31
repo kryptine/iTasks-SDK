@@ -1,7 +1,6 @@
 implementation module WorkflowDB
 
-import StdClass, StdList, StdBool, StdMisc, Util
-import TSt
+import StdClass, StdList, StdBool, StdMisc, Time, Util
 from iTasks import serialize, deserialize, defaultStoreFormat
 
 instance WorkflowDB IWorld
@@ -45,7 +44,7 @@ where
 	where
 		getWid iworld
 			# (mbWid,iworld)	= loadValue NEXT_ID_DB iworld
-			# wid				= fromMaybe 0 mbWid
+			# wid				= fromMaybe 1 mbWid
 			# iworld			= storeValue NEXT_ID_DB (inc wid) iworld
 			= (wid,iworld)
 			
@@ -69,19 +68,6 @@ readWorkflowStore iworld
 WORKFLOW_DB		:== "WorkflowDB"
 NEXT_ID_DB		:== "NextWorkflowID"
 THREAD_DB id	:== "Workflow-" +++ toString id
-
-instance WorkflowDB TSt
-where
-	getWorkflowDescriptions :: !*TSt -> (![WorkflowDescription], !*TSt)
-	getWorkflowDescriptions tst = accIWorldTSt getWorkflowDescriptions tst
-	getAllowedWorkflowDescriptions :: !User !(Maybe UserDetails) !*TSt -> (![WorkflowDescription], !*TSt)
-	getAllowedWorkflowDescriptions user mbDetails tst = accIWorldTSt (getAllowedWorkflowDescriptions user mbDetails) tst
-	getWorkflow :: !WorkflowId	!*TSt -> (!Maybe Workflow, !*TSt)
-	getWorkflow id tst = accIWorldTSt (getWorkflow id) tst
-	addWorkflow :: !Workflow !*TSt -> (!WorkflowDescription,!*TSt)
-	addWorkflow workflow tst = accIWorldTSt (addWorkflow workflow) tst
-	lastChange :: !*TSt -> (!Timestamp,!*TSt)
-	lastChange tst = accIWorldTSt lastChange tst
 	
 JSONEncode{|Menu|} _		= abort "not implemented"
 JSONDecode{|Menu|} _		= abort "not implemented"

@@ -16,9 +16,9 @@ derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display,
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
-derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
-derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
-derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskProgress, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
+derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
+derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
+derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive bimap		Maybe, (,)
 
 // JSON (de)serialisation & equality of menus not needed because only functions generating menus (no actual menu structures) are serialised
@@ -624,7 +624,6 @@ initTaskProperties :: TaskProperties
 initTaskProperties =
 	{ taskDescription = toDescr ""
 	, tags = []
-	, isControlTask = False
 	, interactionType = Nothing
 	, localInteraction = False
 	}
@@ -644,14 +643,6 @@ where
 	toText NormalPriority	= "Normal"
 	toText LowPriority		= "Low"
 		
-formatProgress	:: !TaskProgress	-> HtmlDisplay
-formatProgress TPActive		= coloredLabel "Active" "green"
-formatProgress TPStuck		= coloredLabel "Stuck" "purple"
-formatProgress TPWaiting	= coloredLabel "Waiting" "blue"
-formatProgress TPReject		= coloredLabel "Reject" "red"
-
-coloredLabel label color = toHtmlDisplay [SpanTag [StyleAttr ("color:" +++ color)] [Text label]]
-
 noMenu :: ActionMenu
 noMenu = const []
 

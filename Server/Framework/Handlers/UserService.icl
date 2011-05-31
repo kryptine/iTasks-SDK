@@ -1,50 +1,49 @@
 implementation module UserService
 
-import HTTP, TSt
-import HtmlUtil
-import UserDB
 import StdOrdList
+import HTTP, Error, HtmlUtil
+import Types, UserDB
+from SessionDB import qualified class SessionDB(..), instance SessionDB IWorld
 
-userService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-userService url format path req tst
+userService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+userService url format path req iworld
 	# html					= format == "html"
-	# (mbSessionErr,tst)	= initSession sessionParam tst
-	# (session,tst)			= getCurrentSession tst
+	# (mbSession,iworld)	= 'SessionDB'.restoreSession sessionParam iworld
 	= case path of
 		//List users
 		[]
-			| isJust mbSessionErr
-				= (serviceResponse html "User list" listDescription url params (jsonSessionErr mbSessionErr), tst)	
+			| isError mbSession
+				= (serviceResponse html "User list" listDescription url params (jsonSessionErr mbSession), iworld)	
 			
-			# (users,tst)	= getUsers tst
-			# items			= [details \\ RegisteredUser details <- users]
-			# json			= JSONObject [("success",JSONBool True),("users",toJSON items)]
-			= (serviceResponse html "User list" listDescription url params json, tst)
+			# (users,iworld)	= getUsers iworld
+			# items				= [details \\ RegisteredUser details <- users]
+			# json				= JSONObject [("success",JSONBool True),("users",toJSON items)]
+			= (serviceResponse html "User list" listDescription url params json, iworld)
 		//List usernames
 		["names"]
-			| isJust mbSessionErr
-				= (serviceResponse html "User name list" nameListDescription url params (jsonSessionErr mbSessionErr), tst)	
-			# (users,tst)	= getUsers tst
-			# json			= JSONObject [("success",JSONBool True),("users",toJSON (sort [toString u \\ u <- users]))]
-			= (serviceResponse html "User name list" nameListDescription url params json, tst)
+			| isError mbSession
+				= (serviceResponse html "User name list" nameListDescription url params (jsonSessionErr mbSession), iworld)	
+			# (users,iworld)	= getUsers iworld
+			# json				= JSONObject [("success",JSONBool True),("users",toJSON (sort [toString u \\ u <- users]))]
+			= (serviceResponse html "User name list" nameListDescription url params json, iworld)
 		//Show user details
 		[userId]
-			| isJust mbSessionErr
-				= (serviceResponse html "User details" detailsDescription url params (jsonSessionErr mbSessionErr), tst)
-			# (mbUser,tst)	= getUser userId tst
+			| isError mbSession
+				= (serviceResponse html "User details" detailsDescription url params (jsonSessionErr mbSession), iworld)
+			# (mbUser,iworld)	= getUser userId iworld
 			= case mbUser of
 				Just (RegisteredUser details)
 					# json	= JSONObject [("success",JSONBool True),("user",toJSON details)]
-					= (serviceResponse html "User details" detailsDescription url params json, tst)
+					= (serviceResponse html "User details" detailsDescription url params json, iworld)
 				_
-					= (notFoundResponse req,tst)
+					= (notFoundResponse req,iworld)
 		_
-			= (notFoundResponse req,tst)
+			= (notFoundResponse req,iworld)
 where
 	sessionParam	= paramValue "session" req
 	params			= [("session",sessionParam,True)]
 	
-	jsonSessionErr (Just error)
+	jsonSessionErr (Error error)
 					= JSONObject [("success",JSONBool False),("error", JSONString error)]
 					
 listDescription		:== "This service lists the details of all users."

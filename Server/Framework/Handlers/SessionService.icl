@@ -1,75 +1,74 @@
 implementation module SessionService
 
-import HTTP
-import TSt, SessionDB
 import StdBool, StdList
-import JSON
-import HtmlUtil, Text
-from UserDB import qualified class UserDB(..), instance UserDB TSt
+import HTTP, Text, JSON
+import Types, SessionDB, HtmlUtil
+from UserDB import qualified class UserDB(..), instance UserDB IWorld
 
-sessionService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-sessionService url format path req tst
+sessionService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+sessionService url format path req iworld
 	# html = format == "html"
 	= case path of
 		//List all sessions that you are allowed to view
-		//The root user can view all sessions and any other user can view sessions owned by her
+		//The root user can view all sessions and any other user can view sessions owned by him/her
 		[]
-			# (mbErr,tst)		= if ( sessionParam <> "") (initSession sessionParam tst) (Nothing,tst)	
-			| isJust mbErr
-				# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbErr))]
-				= (serviceResponse html "Session list" listDetails url listParams json, tst)
-			# (session,tst)		= getCurrentSession tst
-			# (sessions,tst)	= case session.Session.user of
+			# (mbSession,iworld)	= restoreSession sessionParam iworld
+			| isError mbSession
+				# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromError mbSession))]
+				= (serviceResponse html "Session list" listDetails url listParams json, iworld)
+			
+			# session = fromOk mbSession	
+			# (sessions,iworld)	= case session.Session.user of
 				RootUser
 					| userParam == ""
-						= getSessions tst
+						= getSessions iworld
 					| otherwise
-						= getSessionsForUser (NamedUser userParam) tst
+						= getSessionsForUser (NamedUser userParam) iworld
 				user
-					= getSessionsForUser user tst
+					= getSessionsForUser user iworld
 					
 			# json = JSONObject [("success",JSONBool True),("sessions", toJSON sessions)]
-			= (serviceResponse html "Session list" listDetails url listParams json, tst)
+			= (serviceResponse html "Session list" listDetails url listParams json, iworld)
 				
 		//Create a new session
 		["create"]			
 			//Anonymous session
 			| usernameParam == "" && passwordParam == ""
-				# (session, tst)	= createSession Nothing tst
+				# (session, iworld)	= createSession Nothing iworld
 				# json				= JSONObject [("success",JSONBool True),("session",toJSON session)]
-				= (serviceResponse html "Create session" createDescription url createParams json, tst)
+				= (serviceResponse html "Create session" createDescription url createParams json, iworld)
 			//Authenticated session
 			| otherwise
-				# (mbUser, tst) = 'UserDB'.authenticateUser usernameParam passwordParam tst
+				# (mbUser, iworld) = 'UserDB'.authenticateUser usernameParam passwordParam iworld
 				= case mbUser of
 					Just user
-						# (session, tst)	= createSession (Just user) tst
+						# (session, iworld)	= createSession (Just user) iworld
 						# json				= JSONObject [("success",JSONBool True),("session",toJSON session)]
-						= (serviceResponse html "Create session" createDescription url createParams json, tst)
+						= (serviceResponse html "Create session" createDescription url createParams json, iworld)
 					Nothing
 						# json	= JSONObject [("success",JSONBool False),("error",JSONString "Incorrect username or password")]
-						= (serviceResponse html "Create session" createDescription url createParams json, tst)
+						= (serviceResponse html "Create session" createDescription url createParams json, iworld)
 			
 		//Show details of an existing sessions
 		[sessionId]		
-			# (mbSession, tst) = getSession sessionId tst
+			# (mbSession, iworld) = getSession sessionId iworld
 			= case mbSession of
 				Just session
 					# json		= JSONObject [("success",JSONBool True),("session",toJSON session)]
-					= (serviceResponse html "Session details" detailsDescription url [] json, tst)
+					= (serviceResponse html "Session details" detailsDescription url [] json, iworld)
 				Nothing
-					= (notFoundResponse req, tst)
+					= (notFoundResponse req, iworld)
 			
 		//Destroy an existing session
 		[sessionId,"delete"]
-			# (deleted,tst)	= deleteSession sessionId tst
+			# (deleted,iworld)	= deleteSession sessionId iworld
 			# json			= JSONObject [("success", JSONBool True)]
 			| deleted
-				= (serviceResponse html "Delete session" deleteDescription url [] json, tst)
+				= (serviceResponse html "Delete session" deleteDescription url [] json, iworld)
 			| otherwise
-				= (notFoundResponse req, tst)
+				= (notFoundResponse req, iworld)
 				
-		_		= (notFoundResponse req, tst)
+		_		= (notFoundResponse req, iworld)
 where
 	listParams		= [("session",sessionParam,False),("user", userParam, False)]
 	sessionParam	= paramValue "session" req

@@ -5,7 +5,7 @@ import StdFile
 
 import GenEq
 import Text
-import iTasks, TSt
+import iTasks
 
 import GinAbstractSyntax
 import GinConfig
@@ -300,6 +300,3 @@ tryRender gMod config printOption world
 
 showAbout :: EditorState -> Task EditorState
 showAbout state = showMessage ("Gin workflow editor", "version 0.1") state
-
-accIWorld :: !(*IWorld -> *(!a,!*IWorld)) -> Task a | iTask a
-accIWorld fun = mkInstantTask ("Run Iworld function", "Run a IWorld function and get result.") (mkTaskFunction (accIWorldTSt fun))

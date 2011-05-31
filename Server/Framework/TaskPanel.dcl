@@ -1,6 +1,7 @@
 definition module TaskPanel
 
 import JSON, TUIDefinition, Types, TaskTree
+from Task import :: TaskResult
 from TUIDiff import :: TUIUpdate
 
 :: TaskPanel
@@ -15,6 +16,6 @@ from TUIDiff import :: TUIUpdate
 	, menu			:: ![TUIDef]
 	}
 
-buildTaskPanel 		:: !UITreeContainer			-> TaskPanel
-buildResultPanel 	:: !UITreeContainer			-> TaskPanel
+buildTaskPanel 		:: !(TaskResult a)			-> TaskPanel
+buildResultPanel 	:: !(TaskResult a)			-> TaskPanel
 diffTaskPanels		:: !TaskPanel !TaskPanel	-> TaskPanel

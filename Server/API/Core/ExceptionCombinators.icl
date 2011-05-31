@@ -2,9 +2,12 @@ implementation module ExceptionCombinators
 /**
 * This module contains iTask combinators for Exception Handling
 */
-import StdList, StdArray, StdTuple, OSError, File, FilePath
-import TSt, ProcessDB, Util
-from iTasks import JSONEncode, JSONDecode
+import StdList, StdArray, StdTuple, OSError, File, FilePath, Map, JSON
+import Task, TaskContext, ProcessDB, Util
+
+derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, ChoiceException
+derive class iTask FileError
+derive bimap Maybe,(,)
 
 instance toString FileException
 where
@@ -37,76 +40,128 @@ instance toString ChoiceException
 where
 	toString _ = "Cannot choose from empty option list"
 
-try :: !(Task a) (e -> Task a) -> Task a | iTask a & TC, toString e
-try normalTask handlerTask = mkSequenceTask (taskTitle normalTask, taskDescription normalTask) (exceptionTaskE,exceptionTaskC)
+try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
+try normalTask handlerTaskFun = mkTask (taskTitle normalTask, taskDescription normalTask) init edit eval
 where
-	exceptionTaskE tst=:{taskNr}
-		# (mbEx,tst) = getException tst
-		# (_,tst) = case mbEx of
-			Just ex	= applyTaskEdit (handlerTask ex) {tst & taskNr = incTaskNr taskNr}
-			Nothing = applyTaskEdit normalTask tst
-		= tst
+	init taskNr iworld
+		= normalTask.initFun [0:taskNr] iworld
 
-	exceptionTaskC tst=:{taskNr}
-		# (mbEx,tst) = getException tst
-		= case mbEx of
-			Just ex	
-				= applyTaskCommit (handlerTask ex) Nothing {tst & taskNr = incTaskNr taskNr}
-			Nothing			
-				# (result, tst)	= applyTaskCommit normalTask Nothing tst
-				= case result of
-					//Handle exception if it matches
-					TaskException (ex :: e^) _
-						# tst	= deleteTaskStates taskNr tst 													//Garbage collect
-						# tst	= deleteSubProcesses (taskNrToString taskNr) tst
-						# tst	= setException ex tst															//Store the exception
-						= applyTaskCommit (handlerTask ex) Nothing {(resetSequence tst) & taskNr = incTaskNr taskNr}	//Run the handler
-					//Just pass through the result
-					_
-						= (result,tst)
-									
-throw :: !e -> Task a | iTask a & TC, toString e
-throw e = mkInstantTask "Throw an exception" throw`
-where
-	throw` tst = (TaskException (dynamic e) (toString e),tst)
+	edit taskNr ([0:steps],path,val) context=:(TCTry (Left cxtNormal)) iworld
+		# (newCxtNormal,iworld) = normalTask.editEventFun [0:taskNr] (steps,path,val) cxtNormal iworld
+		= (TCTry (Left newCxtNormal), iworld)
 
-catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
-catchAll normalTask handlerTask = mkSequenceTask (taskTitle normalTask, taskDescription normalTask) (exceptionTaskE,exceptionTaskC)
-where
-	exceptionTaskE tst=:{taskNr}
-		# (mbEx,tst) = getException tst
-		# (_,tst) = case mbEx of
-			Just err	= applyTaskEdit (handlerTask err) {tst & taskNr = incTaskNr taskNr}
-			Nothing		= applyTaskEdit normalTask tst
-		= tst
-
-	exceptionTaskC tst=:{taskNr}
-		# (mbEx,tst) = getException tst
-		= case mbEx of
-			Just err
-				= applyTaskCommit (handlerTask err) Nothing {tst & taskNr = incTaskNr taskNr}
+	edit taskNr ([1:steps],path,val) context=:(TCTry (Right (encEx, cxtHandler))) iworld
+		= case (fromJSON encEx) of
+			Just e
+				# handler = handlerTaskFun e
+				# (newCxtHandler,iworld) = handler.editEventFun [1:taskNr] (steps,path,val) cxtHandler iworld
+				= (TCTry (Right (encEx, newCxtHandler)), iworld)
 			Nothing
-				# (result, tst)	= applyTaskCommit normalTask Nothing tst
-				= case result of
-					//Handle exception
-					TaskException _ str
-						# tst	= deleteTaskStates taskNr tst 													//Garbage collect
-						# tst	= deleteSubProcesses (taskNrToString taskNr) tst
-						# tst	= setException str tst															//set exception string
-						= applyTaskCommit (handlerTask str) Nothing {(resetSequence tst) & taskNr = incTaskNr taskNr}	//Run the handler
-					//Just pass through the result
-					_
-						= (result,tst)
+				= (context, iworld)
+	edit taskNr event context iworld
+		= (context, iworld)
 
-getException :: !*TSt -> (!Maybe e,!*TSt) | TC  e
-getException tst=:{taskNr}
-	# (mbEx,tst) = accIWorldTSt (getTaskStoreFor (tl taskNr) "exception") tst
-	# mbEx = case mbEx of
-		Nothing			= Nothing
-		Just ex = case ex of
-			(ex :: e^)	= Just ex
-			_			= Nothing
-	= (mbEx,tst)
+	//Normal execution still possible
+	eval taskNr event tuiTaskNr imerge pmerge context=:(TCTry (Left cxtNormal)) iworld
+		# (result, iworld) = normalTask.evalTaskFun [0:taskNr] (stepCommitEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge cxtNormal iworld
+		= case result of
+			TaskBusy tui newCxtNormal
+				= (TaskBusy (tuiOk 0 tuiTaskNr tui) (TCTry (Left newCxtNormal)), iworld)
+			TaskFinished a
+				= (TaskFinished a, iworld)
+			//Matching exception
+			TaskException (ex :: e^) str 
+				//Run the handler immediately
+				# handler = handlerTaskFun ex
+				# (cxtHandler,iworld) = handler.initFun [1:taskNr] iworld
+				# (result,iworld) = handler.evalTaskFun [1:taskNr] (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge cxtHandler iworld
+				= case result of
+					TaskBusy tui newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) (TCTry (Right (toJSON ex,newCxtHandler))), iworld)
+					TaskFinished a				= (TaskFinished a,iworld)
+					TaskException e str			= (TaskException e str, iworld)
+			//Other exception (pass through
+			TaskException ex str
+				= (TaskException ex str, iworld)
 			
-setException :: !e !*TSt -> *TSt | TC e
-setException ex tst=:{taskNr} = appIWorldTSt (setTaskStoreFor (tl taskNr) "exception" (dynamic ex)) tst
+	//Handling the exception
+	eval taskNr event tuiTaskNr imerge pmerge context=:(TCTry (Right (encEx,cxtHandler))) iworld
+		= case fromJSON encEx of
+			Just e
+				# handler = handlerTaskFun e
+				# (result,iworld) = handler.evalTaskFun [1:taskNr] (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge cxtHandler iworld
+				= case result of
+					TaskBusy tui newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) (TCTry (Right (encEx,newCxtHandler))), iworld)
+					TaskFinished a				= (TaskFinished a,iworld)
+					TaskException e str			= (TaskException e str, iworld)
+			Nothing
+				= (taskException "Corrupt exception value in try" ,iworld)
+	eval taskNr event tuiTaskNr imerge pmerge context iworld
+		= (taskException "Corrupt task context in try", iworld)
+	
+tuiOk i [] tui		= tui
+tuiOk i [t:ts] tui	
+	| i == t	= tui
+	| otherwise	= Nothing
+									
+throw :: !e -> Task a | iTask a & iTask, toString e
+throw e = mkInstantTask "Throw an exception" eval
+where
+	eval taskNr iworld = (TaskException (dynamic e) (toString e),iworld)
+
+
+//TODO: Rewrite to a common base function for try and catchAll 	
+catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
+catchAll normalTask handlerTaskFun = mkTask (taskTitle normalTask, taskDescription normalTask) init edit eval
+where
+	init taskNr iworld
+		= normalTask.initFun [0:taskNr] iworld
+
+	edit taskNr ([0:steps],path,val) context=:(TCTry (Left cxtNormal)) iworld
+		# (newCxtNormal,iworld) = normalTask.editEventFun [0:taskNr] (steps,path,val) cxtNormal iworld
+		= (TCTry (Left newCxtNormal), iworld)
+
+	edit taskNr ([1:steps],path,val) context=:(TCTry (Right (encEx, cxtHandler))) iworld
+		= case (fromJSON encEx) of
+			Just e
+				# handler = handlerTaskFun e
+				# (newCxtHandler,iworld) = handler.editEventFun [1:taskNr] (steps,path,val) cxtHandler iworld
+				= (TCTry (Right (encEx, newCxtHandler)), iworld)
+			Nothing
+				= (context, iworld)
+	edit taskNr event context iworld
+		= (context, iworld)
+
+	//Normal execution still possible
+	eval taskNr event tuiTaskNr imerge pmerge context=:(TCTry (Left cxtNormal)) iworld
+		# (result, iworld) = normalTask.evalTaskFun [0:taskNr] (stepCommitEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge cxtNormal iworld
+		= case result of
+			TaskBusy tui newCxtNormal
+				= (TaskBusy (tuiOk 0 tuiTaskNr tui) (TCTry (Left newCxtNormal)), iworld)
+			TaskFinished a
+				= (TaskFinished a, iworld)
+			//Matching exception
+			TaskException _ str 
+				//Run the handler immediately
+				# handler = handlerTaskFun str
+				# (cxtHandler,iworld) = handler.initFun [1:taskNr] iworld
+				# (result,iworld) = handler.evalTaskFun [1:taskNr] (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge cxtHandler iworld
+				= case result of
+					TaskBusy tui newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) (TCTry (Right (toJSON str,newCxtHandler))), iworld)
+					TaskFinished a				= (TaskFinished a,iworld)
+					TaskException e str			= (TaskException e str, iworld)
+
+	//Handling the exception
+	eval taskNr event tuiTaskNr imerge pmerge context=:(TCTry (Right (encEx,cxtHandler))) iworld
+		= case fromJSON encEx of
+			Just e
+				# handler = handlerTaskFun e
+				# (result,iworld) = handler.evalTaskFun [1:taskNr] (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge cxtHandler iworld
+				= case result of
+					TaskBusy tui newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) (TCTry (Right (encEx,newCxtHandler))), iworld)
+					TaskFinished a				= (TaskFinished a,iworld)
+					TaskException e str			= (TaskException e str, iworld)
+			Nothing
+				= (taskException "Corrupt exception value in try" ,iworld)
+	eval taskNr event tuiTaskNr imerge pmerge context iworld
+		= (taskException "Corrupt task context in try", iworld)
+									

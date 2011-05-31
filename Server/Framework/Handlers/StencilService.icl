@@ -1,8 +1,8 @@
 implementation module StencilService
 
-import HTTP, TSt, UserDB
-import HtmlUtil, Text
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
+import Types, SessionDB, HtmlUtil
+import HTTP, Text, Error
 import GenEq
 
 import GinConfig
@@ -13,24 +13,28 @@ import GinORYXExtensions
 
 from Util import mb2list
 
-stencilService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-stencilService url format path req tst
+stencilService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+stencilService url format path req iworld
 	// Restore the session if supplied
-	# (mbErr,tst) = if ( sessionParam <> "") (initSession sessionParam tst) (Nothing,tst)	
-	| isJust mbErr = (errorResponse (fromJust mbErr), tst)
-	# (mConfig,tst) = accWorldTSt ginLoadConfig tst
-	| isNothing mConfig = (errorResponse "Failed to load configuration", tst)
-	= case path of
+	# (mbSession,iworld)	= restoreSession sessionParam iworld
+	| isError mbSession		= (errorResponse (fromError mbSession), iworld)
+	# iworld=:{world}		= iworld
+	# (mConfig,world)		= ginLoadConfig world	
+	| isNothing mConfig
+		= (errorResponse "Failed to load configuration", {iworld & world = world})
+	| otherwise
+		= case path of
 		[]
-			# (modules, tst) = accWorldTSt (searchPathModules (fromJust mConfig)) tst  
-			= (okResponse (makeORYXExtensionsFile modules), tst)
-		["gin"] = (okResponse predefinedStencilSet, tst)
+			# (modules, world) = searchPathModules (fromJust mConfig) world  
+			= (okResponse (makeORYXExtensionsFile modules), {iworld & world = world})
+		["gin"]
+			= (okResponse predefinedStencilSet, iworld)
 		["gin", name]
-			# (mbContents, tst) = accWorldTSt (readModule (fromJust mConfig) name) tst  
-			| isError mbContents = (errorResponse (fromError mbContents), tst)
-			= (okResponse (makeStencilSet (fromOk mbContents)), tst)
+			# (mbContents, world) =  readModule (fromJust mConfig) name world  
+			| isError mbContents = (errorResponse (fromError mbContents), {iworld & world = world})
+			= (okResponse (makeStencilSet (fromOk mbContents)), {iworld & world = world})
 		_
-			= (notFoundResponse req, tst)
+			= (notFoundResponse req, {iworld & world = world})
 where
 	html			= format == "html"
 	sessionParam	= paramValue "session" req

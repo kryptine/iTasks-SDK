@@ -2,7 +2,6 @@ definition module DocumentDB
 
 import Maybe, Types
 from GenUpdate	import :: DataPath, :: USt
-from Task		import :: TSt
 
 class DocumentDB st
 where
@@ -42,5 +41,4 @@ where
 	deleteDocument			:: !DocumentId !*st -> (Maybe Document, !*st)
 
 instance DocumentDB IWorld
-instance DocumentDB TSt
 instance DocumentDB USt

@@ -3,7 +3,7 @@ definition module ExceptionCombinators
 * This module contains iTask combinators for Exception Handling
 */
 
-from TSt		import :: Task
+from Task		import :: Task
 from FilePath	import :: FilePath
 from File		import :: FileError
 from OSError	import :: OSError, :: OSErrorMessage, :: OSErrorCode
@@ -18,6 +18,7 @@ import iTaskClass, GenVisualize, GenUpdate
 :: OSException		= OSException !OSError
 :: ChoiceException	= EmptyOptionList
 
+derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, ChoiceException
 instance toString FileException, ParseException, CallException, SharedException, RPCException, OSException, ChoiceException
 
 /**
@@ -27,7 +28,7 @@ instance toString FileException, ParseException, CallException, SharedException,
 * @param The exception handling task which gets the exception as parameter
 * @return The combined task
 */
-try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & TC, toString e
+try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & iTask, toString e
 
 /**
 * Exception throwing. This will trough an exception of arbitrary type e which has to be caught
@@ -36,7 +37,7 @@ try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & TC, toString e
 * @param The exception value
 * @return The combined task
 */
-throw		:: !e 								-> Task a 	| iTask a & TC, toString e
+throw		:: !e 								-> Task a 	| iTask a & iTask, toString e
 
 /**
 * Catches all exceptions.

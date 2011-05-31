@@ -1,7 +1,8 @@
 implementation module DocumentDB
 
-import Types, TSt, Store, Random, Text
 import StdList, StdArray, StdBool
+import Types, Store, Random, Text, Time
+import GenUpdate
 from StdFunc import id
 
 instance DocumentDB IWorld
@@ -56,23 +57,6 @@ genDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
 genDocumentId iworld=:{world,timestamp}
 	# (Clock c,world)	= clock world
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) ,{iworld & world = world})
-
-instance DocumentDB TSt
-where
-	getDocuments :: !*TSt -> (![Document],!*TSt)
-	getDocuments tst = accIWorldTSt getDocuments tst
-	
-	getDocument	:: !DocumentId !*TSt -> (!Maybe Document, !*TSt)
-	getDocument documentId tst = accIWorldTSt (getDocument documentId) tst
-	
-	getDocumentContent :: !DocumentId !*TSt -> (!Maybe String, !*TSt)
-	getDocumentContent documentId tst = accIWorldTSt (getDocumentContent documentId) tst
-	
-	createDocument :: !String !String !String !*TSt -> (!Document, !*TSt)
-	createDocument name mime content tst = accIWorldTSt (createDocument name mime content) tst
-	
-	deleteDocument :: !DocumentId !*TSt -> (Maybe Document, !*TSt)
-	deleteDocument documentId tst = accIWorldTSt (deleteDocument documentId) tst
 
 instance DocumentDB USt
 where

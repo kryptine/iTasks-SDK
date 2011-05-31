@@ -6,7 +6,7 @@ definition module UserDBTasks
 */
 import Maybe, Void
 
-from TSt	import :: Task
+from Task	import :: Task
 from Types	import :: UserId, :: User, :: UserDetails, :: Role
 
 /**

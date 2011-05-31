@@ -5,13 +5,13 @@ definition module Engine
 * environment in which worfklow specifications can be executed.
 */
 import Maybe, JSON, Task
-from TSt		import :: Workflow
+from Types		import :: IWorld, :: Workflow
 from HTTP		import :: HTTPRequest, :: HTTPResponse
 from Config		import :: Config
 
 :: HandlerFormat :== String
 
-:: Handler :== (!String,![HandlerFormat],!String HandlerFormat [String] HTTPRequest *TSt -> *(!HTTPResponse, !*TSt))
+:: Handler :== (!String,![HandlerFormat],!String HandlerFormat [String] HTTPRequest *IWorld -> *(!HTTPResponse, !*IWorld))
 
 /**
 * Creates the iTasks system from a set of workflow definitions

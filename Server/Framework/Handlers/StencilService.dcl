@@ -3,6 +3,7 @@ definition module StencilService
 * This module provides the Stencil service. It lists the possible stencils that are available
 * for placement in graphical workflow diagrams.
 */
-import HTTP, TSt
+from HTTP	import :: HTTPRequest, :: HTTPResponse
+from Types	import :: IWorld
 
-stencilService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+stencilService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

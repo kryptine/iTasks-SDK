@@ -3,8 +3,9 @@ definition module UserDB
 * This module provides the iTasks user database. It provides
 * functions for accessing information about system users.
 */
-import Maybe
-import TSt
+from Maybe	import :: Maybe
+from Types	import :: User, :: UserDetails, :: UserId, :: IWorld
+from Time	import :: Timestamp
 
 class UserDB st
 where
@@ -95,4 +96,3 @@ where
 	lastChange :: !*st -> (!Timestamp,!*st)
 
 instance UserDB IWorld
-instance UserDB TSt

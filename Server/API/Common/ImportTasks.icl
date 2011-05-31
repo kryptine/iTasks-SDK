@@ -1,34 +1,47 @@
 implementation module ImportTasks
  
-import StdBool, _SystemArray, StdInt, TSt, DocumentDB, MIME, Text, Util, CSV, File, ExceptionCombinators
+import StdBool, _SystemArray, StdInt, Task, TaskContext, DocumentDB, MIME, Text, Util, CSV, File, Map, ExceptionCombinators
+from StdFunc import id
 
 CHUNK_SIZE :== 1024
 
 importDocument :: !FilePath -> Task Document
-importDocument filename = mkInstantTask ("Document import", ("Import of document " +++ filename)) (readDocument filename)
-
+importDocument filename = mkInstantTask ("Document import", ("Import of document " +++ filename)) eval
+where
+	eval taskNr iworld =  readDocument filename iworld
+	
 importTextFile :: !FilePath -> Task String
-importTextFile filename = mkInstantTask  ("Text file import", ("Import of text file " +++ filename)) (fileTask filename readAll)
-
+importTextFile filename = mkInstantTask  ("Text file import", ("Import of text file " +++ filename)) eval
+where
+	eval taskNr iworld = fileTask filename readAll iworld
+	
 importCSVFile :: !FilePath -> Task [[String]]
-importCSVFile filename = mkInstantTask ("CSV file import", ("Import of CSV file " +++ filename)) (fileTask filename readCSVFile)
-
+importCSVFile filename = mkInstantTask ("CSV file import", ("Import of CSV file " +++ filename)) eval
+where
+	eval taskNr iworld = fileTask filename readCSVFile iworld
+	
 importCSVFileWith :: !Char !Char !Char !FilePath -> Task [[String]]
-importCSVFileWith delimitChar quoteChar escapeChar filename = mkInstantTask ("CSV file import", ("Import of CSV file " +++ filename)) (fileTask filename (readCSVFileWith delimitChar quoteChar escapeChar))
-
+importCSVFileWith delimitChar quoteChar escapeChar filename = mkInstantTask ("CSV file import", ("Import of CSV file " +++ filename)) eval
+where
+	eval taskNr iworld = fileTask filename (readCSVFileWith delimitChar quoteChar escapeChar) iworld
+	
 importJSONFile :: !FilePath -> Task a | JSONDecode{|*|} a
-importJSONFile filename = mkInstantTask ("JSON file import", ("Import of JSON file " +++ filename)) (readJSON filename fromJSON)
-
+importJSONFile filename = mkInstantTask ("JSON file import", ("Import of JSON file " +++ filename)) eval
+where
+	eval taskNr iworld = readJSON filename fromJSON iworld
+	
 importJSONFileWith :: !(JSONNode -> Maybe a) !FilePath -> Task a
-importJSONFileWith parsefun filename = mkInstantTask ("JSON file import", ("Import of JSON file " +++ filename)) (readJSON filename parsefun)
-
-fileTask filename f tst=:{TSt|iworld=iworld=:{IWorld|world}}
+importJSONFileWith parsefun filename = mkInstantTask ("JSON file import", ("Import of JSON file " +++ filename)) eval
+where
+	eval taskNr iworld = readJSON filename parsefun iworld
+	
+fileTask filename f iworld=:{IWorld|world}
 	# (ok,file,world)	= fopen filename FReadData world
-	| not ok			= (openException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (res,file)		= f file
 	# (ok,world)		= fclose file world
-	| not ok			= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
-	= (TaskFinished res, {TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (closeException filename,{IWorld|iworld & world = world})
+	= (TaskFinished res, {IWorld|iworld & world = world})
 		
 readAll file
 	# (chunk,file) = freads file CHUNK_SIZE
@@ -38,26 +51,26 @@ readAll file
 		# (rest,file) = readAll file
 		= (chunk +++ rest,file)
 
-readJSON filename parsefun tst=:{TSt|iworld=iworld=:{IWorld|world}}
+readJSON filename parsefun iworld=:{IWorld|world}
 	# (ok,file,world)	= fopen filename FReadData world
-	| not ok			= (openException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (content,file)	= readAll file
 	# (ok,world)		= fclose file world
-	| not ok			= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (closeException filename,{IWorld|iworld & world = world})
 	= case (parsefun (fromString content)) of
-		Just a 	= (TaskFinished a, {TSt|tst & iworld={IWorld|iworld & world = world}})
-		Nothing	= (parseException filename, {TSt|tst & iworld={IWorld|iworld & world = world}})
+		Just a 	= (TaskFinished a, {IWorld|iworld & world = world})
+		Nothing	= (parseException filename, {IWorld|iworld & world = world})
 		
-readDocument filename tst=:{TSt|iworld=iworld=:{IWorld|world}}
+readDocument filename iworld=:{IWorld|world}
 	# (ok,file,world)	= fopen filename FReadData world
-	| not ok			= (openException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (content,file)	= readAll file
 	# (ok,world)		= fclose file world
-	| not ok			= (closeException filename,{TSt|tst & iworld={IWorld|iworld & world = world}})
+	| not ok			= (closeException filename,{IWorld|iworld & world = world})
 	# name				= dropDirectory filename 
 	# mime				= extensionToMimeType (takeExtension name)
-	# (document,tst)	= createDocument name mime content {TSt|tst & iworld={IWorld|iworld & world = world}}
-	= (TaskFinished document, tst)
+	# (document,iworld)	= createDocument name mime content {IWorld|iworld & world = world}
+	= (TaskFinished document, iworld)
 
 openException s		= taskException (FileException s CannotOpen)
 closeException s	= taskException (FileException s CannotClose)

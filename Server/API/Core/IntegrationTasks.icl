@@ -4,10 +4,10 @@ import StdInt, StdFile, StdTuple, StdList
 
 import Directory, File, FilePath, OSError, UrlEncoding, Text
 
+import Types, Task, TaskContext, Config
 import ExceptionCombinators
 import InteractionTasks
 import Shared
-import TSt
 import UserDB
 
 from Util				import currentTimestampError
@@ -17,52 +17,78 @@ from CommonCombinators	import transform
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess
+from Map				import qualified get, fromList, newMap
 from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
+
+import StdMisc
 
 :: AsyncResult = 
 	{ success	:: !Bool
 	, exitcode	:: !Int
 	, message	:: !String
 	}
-	
+
+derive JSONEncode MaybeError
+derive JSONDecode MaybeError
+
 derive JSONDecode AsyncResult
 derive bimap Maybe, (,)
 
-callProcess :: !FilePath ![String] -> Task Int
-callProcess cmd args =
-					mkInstantTask ("Call process","Calls a process and give shared reference to return code.") callProcess`
-	>>= \outfile.	wait ("Call Process", "Waiting for external process (" +++ cmd +++ ")") (makeReadOnlySharedError (check outfile) currentTimestampError)
-where
-	callProcess` tst=:{TSt | taskNr, iworld = {IWorld | config, tmpDirectory} }
-		# outfile			= tmpDirectory </> (iTaskId taskNr "callprocess")
-		# asyncArgs			=	[ "--taskid"
-								, toString (last taskNr)
-								, "--outfile"
-								, outfile
-								, "--process"
-								, cmd
-								]
-								++ args
-		# (res, tst)		= accWorldTSt ('Process'.runProcess config.Config.runAsyncPath asyncArgs Nothing) tst
-		| isError res		= (callException res,tst)
-		= (TaskFinished outfile,tst)
-	
-	check :: !String *IWorld -> *(!MaybeErrorString (Maybe Int),!*IWorld)
-	check outfile iworld=:{world}
-		# (exists,world) = 'File'.fileExists outfile world
-		| not exists = (Ok Nothing, {iworld & world = world})
-		# (res, world) = 'File'.readFile outfile world
-		| isError res = (Error ("callProcess: Failed to read file " +++ outfile), {iworld & world = world})
-		# mbAsync = fromJSON (fromString (fromOk res))
-		# callResult = case mbAsync of
-			Nothing		= Error ("callProcess: Failed to parse JSON in file " +++ outfile)
-			Just async	= if async.AsyncResult.success 
-							(Ok (Just async.AsyncResult.exitcode))
-							(Error async.AsyncResult.message)
-		= (callResult, {iworld & world = world})
 
-	callException res = taskException (CallFailed (fromError res))
+callProcess :: !FilePath ![String] -> Task Int
+callProcess cmd args 
+	= mkTask ("Call process","Calls a process and give shared reference to return code.") init edit eval
+where
+	//Start the process
+	init :: TaskNr *IWorld -> (!TaskContext,!*IWorld)
+	init taskNr iworld =:{IWorld | config, tmpDirectory, world}
+		# outfile 		= tmpDirectory </> (iTaskId taskNr "callprocess")
+		# context		= TCBasic 'Map'.newMap
+		# asyncArgs		=	[ "--taskid"
+							, toString (last taskNr)
+							, "--outfile"
+							, outfile
+							, "--process"
+							, cmd
+							]
+							++ args
+		# (res,world)	= 'Process'.runProcess config.Config.runAsyncPath asyncArgs Nothing world
+		= case res of
+			Error e	= (setLocalVar "error" e context, {IWorld|iworld & world = world})
+			Ok _	= (setLocalVar "outfile" outfile context, {IWorld|iworld & world = world})
+			
+	edit taskNr event context iworld = (context,iworld)
+	
+	eval taskNr event tuiTaskNr imerge pmerge context=:(TCBasic _) iworld=:{world}
+		= case getLocalVar "outfile" context of
+			Just outfile
+				//Check status
+				# (exists,world) = 'File'.fileExists outfile world
+				| not exists
+					//Still busy
+					= (TaskBusy Nothing context,{IWorld|iworld & world = world})
+				# (res, world) = 'File'.readFile outfile world
+				| isError res
+					//Failed to read file
+					= (taskException (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
+				= case fromJSON (fromString (fromOk res)) of
+					//Failed to parse file
+					Nothing
+						= (taskException (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
+					Just async	
+						| async.AsyncResult.success
+							= (TaskFinished async.AsyncResult.exitcode, {IWorld|iworld & world = world})
+						| otherwise
+							= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
+			//Error during initialization
+			Nothing
+				= case getLocalVar "error" context of
+					Just e
+						= (taskException (CallFailed e),  {IWorld|iworld & world = world})
+					Nothing
+						= (taskException (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
+				
 
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
@@ -75,30 +101,32 @@ callRPCHTTP method url params transformResult
 
 callRPC :: !String !String !String !(String -> a) -> Task a | iTask a			
 callRPC options url args transformResult =
-	mkInstantTask ("Call RPC", "Initializing") initRPC
+		initRPC
 	>>= \(cmd,args,outfile) -> callProcess cmd args
 	>>= \exitCode -> if (exitCode > 0)
 		(throw (SharedException (curlError exitCode)))
 		(importTextFile outfile >>= transform transformResult)
-	where
-		initRPC :: *TSt -> *(!TaskResult (String,[String],String),!*TSt)
-		initRPC tst=:{TSt|taskNr,iworld=iworld=:{IWorld|config,world,tmpDirectory},properties=p=:{systemProperties=s=:{SystemProperties|taskId}}}
-			# infile  = tmpDirectory </> (mkFileName taskId taskNr "request")
-			  outfile = tmpDirectory </> (mkFileName taskId taskNr "response")
-			  (res,tst) = accWorldTSt (writeFile infile args) tst
-			| isError res = (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),tst)
-			# cmd = config.Config.curlPath
-			  args =	[ options
+where
+	initRPC = mkInstantTask("Call RPC", "Initializing") eval
+	
+	eval taskNr iworld=:{IWorld|config,tmpDirectory,world}
+		# infile  = tmpDirectory </> (mkFileName taskNr "request")
+		# outfile = tmpDirectory </> (mkFileName taskNr "response")
+		# (res,world) = writeFile infile args world
+		| isError res
+			= (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
+		# cmd	= config.Config.curlPath
+		# args	=	[ options
 						, "--data-binary"
 						, "@" +++ infile
 						, "-o"
 						, outfile
 						, url
 						]
-			= (TaskFinished (cmd,args,outfile),tst)		
-			
-		mkFileName :: !TaskId !TaskNr !String -> String
-		mkFileName taskId taskNr part = iTaskId taskId ("rpc-" +++ part +++ "-"  +++ taskNrToString taskNr)
+		= (TaskFinished (cmd,args,outfile),{IWorld|iworld & world = world})
+	
+	mkFileName :: !TaskNr !String -> String
+	mkFileName taskNr part = iTaskId taskNr ("-rpc-" +++ part)
 
 curlError :: Int -> String
 curlError exitCode = 
@@ -180,34 +208,17 @@ curlError exitCode =
 
 
 sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
-sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send out an e-mail") sendEmail`
+sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send out an e-mail") eval
 where
-	sendEmail` tst=:{TSt|properties}
-		//Find out the user details of the sending user
-		# (mbUser,tst)	= getUserDetails properties.ProcessProperties.managerProperties.worker tst
-		= case mbUser of
-			Just user
-				# (server,tst)	= getConfigSetting (\config -> config.smtpServer) tst
-				# tst 			= foldr (sendSingle server user.emailAddress) tst recipients
-				= (TaskFinished recipients, tst)
-			Nothing
-				= (taskException "sendEmail: No e-mail address defined for the current user",tst)
+	eval taskNr iworld=:{IWorld|currentUser,config}
+		# iworld = foldr (sendSingle config.smtpServer (toEmail currentUser)) iworld recipients
+		= (TaskFinished recipients, iworld)
 				
-	sendSingle server (EmailAddress sender) (EmailAddress address) tst
-		//For correct e-mail addresses send immediately
-		| indexOf "@" address <> -1
-			= sendSingle` server sender (EmailAddress address) tst
-		//Lookup user details
-		# (mbUser,tst)	= getUserDetails (NamedUser address) tst
-		= case mbUser of
-			(Just user)	= sendSingle` server sender user.emailAddress tst //Send
-			Nothing		= tst //Don't send
-			
-	sendSingle` server sender (EmailAddress address) tst	
-		# (_,tst)	= accWorldTSt ('Email'.sendEmail [EmailOptSMTPServer server]
+	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
+		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]
 						{email_from = sender
 						,email_to = address
 						,email_subject = subject
 						,email_body = body
-						}) tst
-		= tst		
+						} world
+		= {IWorld|iworld & world = world}		

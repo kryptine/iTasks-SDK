@@ -1,6 +1,8 @@
 definition module WorkflowDB
 
-import Maybe, TSt
+from Maybe	import :: Maybe
+from Types	import :: Workflow, :: WorkflowDescription, :: WorkflowId, :: User, :: UserDetails, :: IWorld
+from Time	import :: Timestamp
 
 class WorkflowDB st
 where
@@ -19,4 +21,3 @@ where
 	lastChange :: !*st -> (!Timestamp,!*st)
 	
 instance WorkflowDB IWorld
-instance WorkflowDB TSt

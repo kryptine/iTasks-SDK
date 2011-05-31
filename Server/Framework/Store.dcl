@@ -13,16 +13,8 @@ import JSON
 from Time import :: Timestamp
 from Types import :: IWorld
 
-// Abstract store
-:: Store
-
 // Storage format
 :: StoreFormat = SFPlain | SFDynamic | SFBlob
-
-/**
-* Create a store
-*/
-createStore		:: !String -> Store
 
 /**
 * Store a value in the default format

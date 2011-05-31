@@ -1,27 +1,26 @@
 implementation module TaskService
 
-import StdList, StdBool, Util, HtmlUtil, JSON, TaskTree, ProcessDB, TaskPanel, TaskPanelClientEncode
-from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB TSt
+import StdList, StdBool
+import Time, JSON
+import Types, Task, TaskInstance, TaskContext, TUIDiff, TUIEncode, Util, HtmlUtil
 
-derive JSONEncode TaskPanel, TUIPanel
+from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
+from SessionDB	import qualified class SessionDB(..), instance SessionDB IWorld
+from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB IWorld
+
+import StdDebug
+
+derive bimap Maybe, (,)
+
 derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIControlType, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONEncode TUILayoutContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 
-derive JSONDecode TaskPanel, TUIPanel
 derive JSONDecode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONDecode TUIControlType, TUIConstructorControl
 derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONDecode TUILayoutContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
-
-derive bimap Maybe, (,)
-
-//Additional derives for debugging
-derive JSONEncode TaskTree, TaskInfo, Menu, TTContainerType, TaskTreeContainer, ParallelTaskTreeContainer, InteractionTaskType, OutputTaskType
-JSONEncode{|TIInteractionLayoutMerger|} _	= [JSONNull]
-JSONEncode{|TIParallelLayoutMerger|} _		= [JSONNull]
-JSONEncode{|TIResultLayoutMerger|} _		= [JSONNull]
 
 JSONEncode{|MenuItem|} v = case v of
 	MenuItem action mbHotkey	= [JSONArray [JSONString "MenuItem" : JSONEncode{|*|} (menuAction action) ++ JSONEncode{|*|} mbHotkey]]
@@ -30,174 +29,169 @@ JSONEncode{|MenuItem|} v = case v of
 	
 JSONEncode{|HtmlTag|} htm = [JSONString (toString htm)]
 
-taskService :: !String !String ![String] !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-taskService url format path req tst
+taskService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+taskService url format path req iworld
 	# html					= format == "html"
-	# (mbSessionErr,tst)	= initSession sessionParam tst
-	# (session,tst)			= getCurrentSession tst
+	# (mbSession,iworld)	= 'SessionDB'.restoreSession sessionParam iworld
 	= case path of
 		//List tasks
 		[]
-			| isJust mbSessionErr
-				= (serviceResponse html "Task list" listDescription url listParams (jsonSessionErr mbSessionErr), tst)	
-						
-			# (processes,tst)	= case session.Session.user of
+			| isError mbSession
+				= (serviceResponse html "Task list" listDescription url listParams (jsonSessionErr mbSession), iworld)					
+			# (processes,iworld)	= case (fromOk mbSession).user of
 				RootUser
-					| userParam == ""	= getProcessesForUser RootUser [Running] [Active] tst
-					| otherwise			= getProcessesForUser (NamedUser userParam) [Running] [Active] tst
-				user			= getProcessesForUser session.Session.user [Running] [Active] tst		
+					| userParam == ""	= 'ProcessDB'.getProcessesForUser RootUser [Running] [Active] iworld
+					| otherwise			= 'ProcessDB'.getProcessesForUser (NamedUser userParam) [Running] [Active] iworld
+				user			= 'ProcessDB'.getProcessesForUser (fromOk mbSession).user [Running] [Active] iworld		
 			# items				= taskItems processes
-			# json				= JSONObject [("success",JSONBool True),("tasks",toJSON items)]
-			= (serviceResponse html "Task list" listDescription url listParams json, tst)
+			# json				= JSONObject [("success",JSONBool True),("tasks",JSONArray items)]
+			= (serviceResponse html "Task list" listDescription url listParams json, iworld)
 		//For debugging, list all tasks in the process table
 		["debug"]
-			| isJust mbSessionErr
-				= (serviceResponse html "Task debug list" listDebugDescription url debugParams (jsonSessionErr mbSessionErr), tst)	
-			# (processes,tst)	= getProcesses [Running,Finished,Excepted,Deleted] [Active,Suspended] tst
-			# json				= JSONObject [("success",JSONBool True),("tasks",toJSON processes)]
-			= (serviceResponse html "Task debug list" listDebugDescription url debugParams json, tst)
+			| isError mbSession
+				= (serviceResponse html "Task debug list" listDebugDescription url debugParams (jsonSessionErr mbSession), iworld)	
+			# (processes,iworld)	= 'ProcessDB'.getProcesses [Running,Finished,Excepted,Deleted] [Active,Suspended] iworld
+			# json					= JSONObject [("success",JSONBool True),("tasks",toJSON processes)]
+			= (serviceResponse html "Task debug list" listDebugDescription url debugParams json, iworld)
 		//Start a new task (create a process)
 		["create"]
-			| isJust mbSessionErr
-				= (serviceResponse html "Create task" createDescription url createParams (jsonSessionErr mbSessionErr), tst)	
-			# (mbWorkflow,tst) = case fromJSON (fromString workflowParam) of
-				Just id	= 'WorkflowDB'.getWorkflow id tst
-				Nothing	= (Nothing,tst)
-			# (json,tst) = case mbWorkflow of
-				Nothing
-					= (JSONObject [("success",JSONBool False),("error",JSONString "No such workflow")], tst)
-				Just workflow
-					# mbThread = case paramParam of
-						""		= Just workflow.Workflow.thread
-						param	= toNonParamThreadValue param workflow.Workflow.thread
-					= case mbThread of
-						Nothing
-							= (JSONObject [("success",JSONBool False),("error",JSONString "Invalid parameter")], tst)
-						Just thread
-							# (taskId,_,_,tst) = createTaskInstance thread True True workflow.Workflow.managerProperties workflow.Workflow.menu tst
-							= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
-			= (serviceResponse html "Create task" createDescription url createParams json, tst)
-		//Show task details of an individual task
+			| isError mbSession
+				= (serviceResponse html "Create task" createDescription url createParams (jsonSessionErr mbSession), iworld)	 
+			# (mbResult,iworld)	= createWorkflowInstance (toInt workflowParam) (fromOk mbSession).user iworld
+			# json = case mbResult of
+				Error err
+					= JSONObject [("success",JSONBool False),("error",JSONString err)]
+				Ok (TaskException _ err,_)
+					= JSONObject [("success",JSONBool False),("error",JSONString err)]
+				Ok (_,properties)
+					= JSONObject [("success",JSONBool True),("taskId",JSONInt (toInt properties.systemProperties.SystemProperties.taskId))]
+			= (serviceResponse html "Create task" createDescription url createParams json, iworld)
+		
+		//Show properties of an individual task without further evaluating it.	
 		[taskId]
-			| isJust mbSessionErr
-				= (serviceResponse html "Task details" detailsDescription url detailsParams (jsonSessionErr mbSessionErr), tst)	
-			# (mbProcess, tst)	= case session.Session.user of
-				RootUser
-								= getProcess taskId tst
-				user			= getProcessForUser user taskId tst
+			| isError mbSession
+				= (serviceResponse html "Task details" detailsDescription url detailsParams (jsonSessionErr mbSession), iworld)
+			# (mbProcess, iworld)	= 'ProcessDB'.getProcess (processOf taskId) iworld
 			= case mbProcess of
 				Nothing
-					= (notFoundResponse req, tst)
+					= (notFoundResponse req, iworld)
 				Just proc
-					# tst				= {tst & editEvent = fromJSON (fromString editEventParam), commitEvent = fromJSON (fromString commitEventParam)}
-					# (cont,tst)		= calculateTaskTreeContainer taskId tst
-					# (jsonTree,tst)	= accIWorldTSt (toJSONTreeContainer cont) tst
-					# task = JSONObject (taskProperties proc ++ [("parts", JSONArray (taskParts jsonTree))]) 
-					# json = JSONObject [("success",JSONBool True),("task",task)]
-					= (serviceResponse html "Task details" detailsDescription url detailsParams json, tst)
-		//Dump the raw tasktree datastructure
+					# json = JSONObject [("success",JSONBool True),("task",toJSON proc.Process.properties)]
+					= (serviceResponse html "Task details" detailsDescription url detailsParams json, iworld)
+		//Evaluates a workflow instance (does not require being logged in) 
+		[taskId,"refresh"]
+			//Evaluate with
+			# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) Nothing Nothing [] iworld
+			# json = case mbResult of
+				Error err
+					= JSONObject [("success",JSONBool False),("error",JSONString err)]
+				Ok (TaskException _ err,_)
+					= JSONObject [("success",JSONBool False),("error",JSONString err)]	
+				_
+					= JSONObject [("success",JSONBool True)]
+			= (serviceResponse html "Task details" refreshDescription url [] json, iworld)
+		//Dump the raw task context datastructure
 		[taskId,"debug"]
-			| isJust mbSessionErr
-				= (serviceResponse html "Task debug" taskDebugDescription url debugParams (jsonSessionErr mbSessionErr), tst)
-			# (mbProcess, tst)	= getProcess taskId tst
-			= case mbProcess of
-				Nothing
-					= (notFoundResponse req, tst)
-				Just proc
-					# (cont,tst) = calculateTaskTreeContainer taskId tst
-					# (treeJson,tst) = case typeParam of
-						"ui"	= appFst toJSON (accIWorldTSt (toUITreeContainer cont) tst)
-						"json"	= appFst toJSON (accIWorldTSt (toJSONTreeContainer cont) tst)
-						_		= (toJSON (toSpineTreeContainer cont),tst)
-					# json		= JSONObject [("success",JSONBool True),("task",toJSON proc),("tree",treeJson)]
-					= (serviceResponse html "Task debug" taskDebugDescription url debugParams json, tst)
+			| isError mbSession
+				= (serviceResponse html "Task debug" taskDebugDescription url debugParams (jsonSessionErr mbSession), iworld)
+			# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) Nothing Nothing [] iworld
+			# json = case mbResult of
+				Error err
+					= JSONObject [("success",JSONBool False),("error",JSONString err)]
+				Ok (TaskBusy _ context, properties)
+					= JSONObject [("success",JSONBool False),("tree",toJSON context)]
+				Ok (TaskFinished _, properties)
+					= JSONObject [("success",JSONBool True),("result",JSONString "finished")]
+				Ok (TaskException _ err, properties)
+					= JSONObject [("success",JSONBool False),("error",JSONString err)]
+			= (serviceResponse html "Task debug" taskDebugDescription url debugParams json, iworld)	
 		//Show / Update task user interface definition
 		[taskId,"tui"]
-			| isJust mbSessionErr
-				= (serviceResponse html "Task user interface" tuiDescription url tuiParams (jsonSessionErr mbSessionErr), tst)	
-			# (mbProcess, tst)	= case session.Session.user of
-				RootUser		= getProcess taskId tst
-				user			= getProcessForUser user taskId tst
-			= case mbProcess of
-				Nothing
-					= (notFoundResponse req, tst)
-				Just proc
-					# task				= taskItem proc
-					# tuiStoreId		= iTaskId taskId "tui"
-					# (mbOld,tst)		= accIWorldTSt (loadValueAndTimestamp tuiStoreId) tst
-					# mbOutdatedWarning = case mbOld of
-						Just (_,oldTimestamp) | timestampParam <> "" && Timestamp (toInt timestampParam) < oldTimestamp
-										= Just ("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")
+			| isError mbSession
+				= (serviceResponse html "Task user interface" tuiDescription url tuiParams (jsonSessionErr mbSession), iworld)
+			//Load previous user interface to enable incremental updates
+			# tuiStoreId				= iTaskId taskId "tui"
+			# (mbPreviousTui,iworld)	= loadValueAndTimestamp tuiStoreId iworld
+			//Check if the version of the user interface the client has is still fresh
+			# outdated	= case mbPreviousTui of
+				Just (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
+				Nothing					= False
+			//Determine possible edit and commit events
+			# editEvent = case fromJSON (fromString editEventParam) of
+				Just (target,path,value)
+					// ignore edit events of outdated clients
+				 	| not outdated || timestampParam == ""  
+						= Just (reverse (taskNrFromString target),path,value)
+					| otherwise
+						= Nothing
+				Nothing = Nothing			
+			# commitEvent = case fromJSON (fromString commitEventParam) of
+				Just (target,action)
+					// ignore commit events of outdated clients
+					| not outdated || timestampParam == "" 
+						= Just (reverse (taskNrFromString target),action)
+					| otherwise
+						= Nothing
+				Nothing	= Nothing
+			//We need the current timestamp to include in the response
+			# (timestamp,iworld)	= getTimestamp iworld
+			//Evaluate the workflow instance
+			# tuiTaskNr			= taskNrFromString taskId
+			# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) editEvent commitEvent tuiTaskNr iworld
+			# (json,iworld) = case mbResult of
+				Error err
+					= (JSONObject [("succes",JSONBool False),("error",JSONString err)],iworld)
+					
+				Ok (TaskBusy mbCurrentTui context, properties)
+					//Determine content or updates
+					# tui = case (mbPreviousTui,mbCurrentTui) of
+						(Just (previousTui,previousTimestamp),Just currentTui)
+							| previousTimestamp == Timestamp (toInt timestampParam) 
+								= JSONObject [("updates",encodeTUIUpdates (diffTUIDefinitions previousTui currentTui))]
+							| otherwise
+								= JSONObject [("content",encodeTUIDefinition currentTui)]
+						(Nothing, Just currentTui)
+							= JSONObject [("content",encodeTUIDefinition currentTui)]
 						_
-										= Nothing
-					# mbEditEvent = case fromJSON (fromString editEventParam) of
-						Just events | isNothing mbOutdatedWarning || timestampParam == ""  // ignore edit events of outdated clients
-										= events
-						_				
-										= Nothing
-					# mbCommitEvent = case fromJSON (fromString commitEventParam) of
-						Just events | isNothing mbOutdatedWarning || timestampParam == "" // ignore commit events of outdated clients
-										= events
-						_				
-										= Nothing
-					# tst				= {tst & editEvent = mbEditEvent, commitEvent = mbCommitEvent}
-					# (cont,tst)		= calculateTaskTreeContainer taskId tst
-					# (timestamp,tst)	= getTimestamp tst
-					# (uiContent,tst)	= accIWorldTSt (toUITreeContainer cont) tst
-					# new				= buildTaskPanel uiContent
-					# tst = case new of
-						TaskDone		= tst
-						TaskRedundant	= tst
-						_				= appIWorldTSt (storeValue tuiStoreId new) tst
-					# tui = case mbOld of
-						Just (old,_) | timestampParam <> "" && isNothing mbOutdatedWarning
-										= diffTaskPanels old new
-						_
-										= new
-					# json				= JSONObject ([("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",clientEncodeTaskPanel tui)] ++ maybeToList mbOutdatedWarning)
-					= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,tst)
+							= JSONObject [("content",JSONNull)]
+							
+					//Store tui for later incremental requests
+					# iworld = case mbCurrentTui of
+						Just currentTui	= storeValue tuiStoreId currentTui iworld
+						Nothing			= iworld
+						
+					//If a subtask is requested search for the properties of the subtask
+					//HACK: todo, redesign to get a proper solution
+					# mbSubProps		= findSubProps taskId context
+					= case mbSubProps of
+						Just properties
+							//Build output structure
+							# json	= JSONObject ([("success",JSONBool True)
+												  ,("timestamp",toJSON timestamp)
+												  ,("task", toJSON properties)
+										 		  ,("tui",tui)
+										 		  :if outdated [("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")] []])
+							= (json, iworld)
+						Nothing
+							//HACK: assume the task is done if the properties are not in the context
+							= (JSONObject ([("success",JSONBool True),("timestamp",toJSON timestamp),("task",toJSON properties),("tui",JSONString "done")]), iworld)
+				Ok (TaskFinished _, properties)
+					= (JSONObject ([("success",JSONBool True),("timestamp",toJSON timestamp),("task",toJSON properties),("tui",JSONString "done")]), iworld)
+				Ok (TaskException _ err, _)
+					= (JSONObject [("succes",JSONBool False),("error",JSONString err)], iworld)
+				_
+					= (JSONObject [("succes",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
+					 
+			= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,iworld) 
+	
 		//Cancel / Abort / Delete the current task
 		[taskId,"cancel"]
-			| isJust mbSessionErr
-				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (jsonSessionErr mbSessionErr), tst)
-			# (mbProcess, tst) = getProcess taskId tst
-			= case mbProcess of
-				Nothing
-					= (notFoundResponse req, tst)
-				Just proc
-					# tst = deleteTaskInstance proc.Process.taskId tst
-					= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), tst)	
-					
-		//TODO: Worker properties & System properties
-				
-		//taskId/result -> show result of a finished in serialized form (to be implemented)
-		//Show the result of a finished task as interface definition	
-		//TODO: Prevent access in case of a faulty user
-		[taskId,"result","tui"]
-		| isJust mbSessionErr
-				= (serviceResponse html "Task result user interface" tuiResDescription url detailsParams (jsonSessionErr mbSessionErr), tst)
-		# (mbProcess, tst) = getProcess taskId tst
-		= case mbProcess of
-			Nothing 
-				= (notFoundResponse req, tst)
-			Just proc
-				# task			= taskItem proc
-				# (cont,tst)	= calculateTaskTreeContainer taskId tst
-				# (uiCont,tst)	= accIWorldTSt (toUITreeContainer cont) tst
-				# tui			= buildResultPanel uiCont
-				# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
-				= (serviceResponse html "Task result user interface" tuiResDescription url detailsParams json, tst)
-		[taskId,"refresh"]
-			# (mbProcess, tst)	= getProcess taskId tst
-			= case mbProcess of
-				Nothing
-					= (notFoundResponse req, tst)
-				Just proc
-					# (_,tst) = calculateTaskTreeContainer taskId tst
-					# json = JSONObject [("success",JSONBool True)]
-					= (serviceResponse html "Task details" refreshDescription url [] json, tst)
+			| isError mbSession
+				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (jsonSessionErr mbSession), iworld)
+			# (_,iworld) = 'ProcessDB'.deleteProcess (processOf taskId) iworld
+			= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), iworld)	
 		_
-			= (notFoundResponse req, tst)
+			= (notFoundResponse req, iworld)
 where
 	sessionParam		= paramValue "session" req
 	userParam			= paramValue "user" req
@@ -222,58 +216,73 @@ where
 	propParams			= [("session",sessionParam,True),("update",updateParam,False)]
 	updateParam			= paramValue "update" req
 	
-	jsonSessionErr (Just error)
+	jsonSessionErr (Error error)
 						= JSONObject [("success",JSONBool False),("error", JSONString error)]
 	
-	taskItems processes = map taskItem processes
-	taskItem process	= process.Process.properties	
-		
-	getManagerProperty :: !String !ManagerProperties -> JSONNode
-	getManagerProperty param {worker,priority,deadline} = case param of
-		"worker" 	= JSONObject [("success",JSONBool True),(param,toJSON worker)] 
-		"priority"	= JSONObject [("success",JSONBool True),(param,toJSON priority)]
-		"deadline"	= JSONObject [("success",JSONBool True),(param,toJSON deadline)]
-		_		 	= JSONObject [("success",JSONBool False),("error",JSONString ("Property "+++param+++" does not exist"))]
-		
-	updateManagerProperty :: !String !String !Process !*TSt -> (JSONNode,*TSt)
-	updateManagerProperty param update proc tst
-		# manProps 		= proc.Process.properties.ProcessProperties.managerProperties
-		# (ok,newProps) = case param of
-			"worker" = case fromJSON(fromString update) of
-				Nothing = (False,manProps)
-				Just upd = (True,{manProps & worker = upd})
-			"priority" = case fromJSON(fromString update) of
-				Nothing = (False,manProps)
-				Just upd = (True,{manProps & priority = upd})
-			"deadline" = case fromJSON(fromString update) of
-				Nothing = (False,manProps)
-				Just upd = (True,{manProps & deadline = upd})
-			_ = (False,manProps)
-		= case ok of
-			True
-				# (ok,tst) = updateProcessProperties proc.Process.taskId (\p -> {ProcessProperties|p & managerProperties = newProps}) tst
-				| ok	= (getManagerProperty param newProps, tst)
-						= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
-			False 
-				= (JSONObject [("success", JSONBool False),("error", JSONString ("Cannot update '"+++param+++"' property"))],tst) 
-
+	//TODO: Refactor this mechanism.
+	//It is a bit of a shame that the tree structure is flattened here and
+	//then reconstructed again on the client...
+	//And very ugly and inefficient :)
+	taskItems processes = items Nothing processes
+	where
+		items parent processes
+			= flatten (map (item parent) processes)
+		item parent process
+			# json = case parent of
+				Nothing = toJSON process.Process.properties
+				Just taskId
+					# json = toJSON process.Process.properties
+					= addParent taskId json
+			= [json: items (Just process.Process.properties.systemProperties.SystemProperties.taskId) process.Process.subprocesses]
+	
+		addParent taskId (JSONObject [("taskProperties",taskProperties),("managerProperties",managerProperties),("systemProperties",JSONObject systemProperties)])
+			= JSONObject [("taskProperties",taskProperties),("managerProperties",managerProperties),("systemProperties",JSONObject [("parent",JSONString taskId):systemProperties])]
+	
+	
+	processOf taskId	= case taskNrFromString taskId of
+		[]		= 0
+		taskNr	= last taskNr
+	
 	taskProperties :: Process -> [(String,JSONNode)]
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
 
-	taskParts :: !JSONTreeContainer -> [JSONNode]
-	taskParts (TTContainer _ tree) = taskParts` tree
+	getTimestamp :: !*IWorld -> (!Timestamp,!*IWorld)
+	getTimestamp iworld=:{IWorld|timestamp} = (timestamp,iworld)
+
+	//HACK function (we definitely don't want to do this lookup here!)
+	findSubProps taskId (TCTop properties _ ttcontext)
+		| properties.systemProperties.SystemProperties.taskId == taskId
+														= Just properties
+		| otherwise										= findSubPropsTop taskId ttcontext
+	findSubProps taskId (TCBasic _)	= Nothing
+	findSubProps taskId (TCBind (Left context))			= findSubProps taskId context
+	findSubProps taskId (TCBind (Right (_,context)))	= findSubProps taskId context
+	findSubProps taskId (TCTry (Left context))			= findSubProps taskId context
+	findSubProps taskId (TCTry (Right (_,context)))		= findSubProps taskId context
+	findSubProps taskId (TCParallel _ _ subs)			= findSubPropsPar taskId subs
 	
-	taskParts` :: !JSONTree -> [JSONNode]
-	taskParts` (TTParallelTask _ trees) = flatten (map taskParts`` trees)	
-	taskParts` (TTInteractionTask ti json)
-		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interaction"),("value",json)]]
-	taskParts` _ = []
-	
-	taskParts`` :: !JSONParallelTreeContainer -> [JSONNode]
-	taskParts`` (TTParallelContainer _ _ tree) = taskParts` tree
-	
-	getTimestamp :: !*TSt -> (!Timestamp,!*TSt)
-	getTimestamp tst=:{TSt|iworld=iworld=:{IWorld|timestamp}} = (timestamp,tst)
+	findSubPropsTop taskId (TTCActive context)			= findSubProps taskId context
+	findSubPropsTop taskId _							= Nothing 
+
+	findSubPropsPar taskId [(_,STCHidden _ (Just (_,context))):ts]
+		= case findSubProps taskId context of
+			Just p	= Just p
+			Nothing	= findSubPropsPar taskId ts
+	findSubPropsPar taskId [(_,STCBody _ (Just (_,context))):ts]
+		= case findSubProps taskId context of
+			Just p	= Just p
+			Nothing	= findSubPropsPar taskId ts
+	findSubPropsPar taskId [(_,STCDetached properties mbContext):ts]
+		| properties.systemProperties.SystemProperties.taskId == taskId
+			= Just properties
+		= case mbContext of
+			Nothing	= findSubPropsPar taskId ts
+			Just (_,context) = case findSubProps taskId context of
+				Just p	= Just p
+				Nothing	= findSubPropsPar taskId ts
+	findSubPropsPar taskId _ = Nothing
+		
+
 
 listDescription			:== "This service lists all tasks for the user of the provided session."
 listDebugDescription	:== "This service dumps all information currently in the process database of running instances."
@@ -282,9 +291,6 @@ createDescription		:== "This service let's you create new instances of a workflo
 						+++ "The 'workflow' parameter is the path of a workflow (separated by slashes) as listed by the workflow directory service. "
 						+++ "E.g. Foo/Bar/Baz"
 taskDebugDescription	:== "This service dumps all information about a running task instance. Both its meta-properties and its task tree."
-manPropsDescription		:== "This service displays the properties of a task instance that can be modified by a manager." 
-manPropDescription		:== "This service displays a single manager property."
 cancelDescription		:== "This service let's you cancel (delete) a running task instance."
 tuiDescription 			:== "This yields an abstract user interface description for the current task."
-tuiResDescription		:== "This yields an abstract user interface description that displays the current value of the task."
 refreshDescription		:== "This service recalculates the task tree of a running task instance."

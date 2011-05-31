@@ -1,16 +1,30 @@
 implementation module UserDBTasks
 
-from Task import class descr, instance descr (String,String)
-import TSt, StdList, Maybe, HTML
-from Types import :: User, :: UserId, :: UserDetails, :: Role
+import StdList, Maybe, HTML, Map, Either, JSON
+import Task
+from TaskContext import :: TaskContext(..), :: TopTaskContext, :: SubTaskContext, :: ParallelMeta
+from StdFunc import id
+from Types import :: User, :: UserId, :: UserDetails, :: Role, :: ProcessProperties
 from UserDB import qualified class UserDB(..)
-from UserDB import qualified instance UserDB TSt
+from UserDB import qualified instance UserDB IWorld
 
 authenticateUser :: !String !String	-> Task (Maybe User)
-authenticateUser username password = mkInstantTask ("Authenticate user", "Verify if there is a user with the supplied credentials.") (mkTaskFunction ('UserDB'.authenticateUser username password))
+authenticateUser username password = mkInstantTask ("Authenticate user", "Verify if there is a user with the supplied credentials.") eval
+where
+	eval taskNr iworld
+		# (mbUser,iworld) = 'UserDB'.authenticateUser username password iworld
+		= (TaskFinished mbUser,iworld)
 
 createUser :: !UserDetails -> Task User
-createUser user = mkInstantTask ("Create user", "Create a new user in the database.") (mkTaskFunction ('UserDB'.createUser user))
+createUser user = mkInstantTask ("Create user", "Create a new user in the database.") eval
+where
+	eval taskNr iworld
+		# (user,iworld) = 'UserDB'.createUser user iworld
+		= (TaskFinished user,iworld)
 
 deleteUser :: !User -> Task User
-deleteUser user = mkInstantTask ("Delete user", "Delete a user from the database.") (mkTaskFunction ('UserDB'.deleteUser user))
+deleteUser user = mkInstantTask ("Delete user", "Delete a user from the database.") eval
+where
+	eval taskNr iworld
+		# (user,iworld) = 'UserDB'.deleteUser user iworld
+		= (TaskFinished user,iworld)

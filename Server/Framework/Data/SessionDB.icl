@@ -2,8 +2,7 @@ implementation module SessionDB
 
 import StdEnv, Maybe
 import StdGeneric
-import TSt, Store
-import Random, Time
+import Types, Config, Store, Random, Time, Error
 
 instance SessionDB IWorld
 where
@@ -31,20 +30,20 @@ where
 		# (sessions, iworld)= sessionStore (\l -> [session:l]) iworld
 		= (session,iworld)
 	
-	restoreSession	:: !SessionId !*IWorld -> (!Maybe Session, !Bool, !*IWorld)
+	restoreSession	:: !SessionId !*IWorld -> (!MaybeErrorString Session,!*IWorld)
 	restoreSession sid iworld =:{IWorld|timestamp}
 		# (sessions, iworld)			= readSessionStore iworld
 		# (mbSession, before, after)	= findSession sid [] sessions
 		= case mbSession of
 			Nothing
-				= (Nothing, False, iworld)												// Not found and no timeout
+				= (Error "Failed to load session", iworld)												// Not found and no timeout
 			Just s
 				| (diffTime timestamp s.Session.timestamp) > iworld.config.sessionTime	// Session found but timed out
 					# (_, iworld)	= sessionStore (\_ -> (before ++ after)) iworld
-					= (Nothing, True, iworld)
+					= (Error "Session timed out", iworld)
 				| otherwise																// Session found and still valid
 					# (_, iworld)	= sessionStore (\_ -> (before ++ [{Session|s & timestamp = timestamp}: after])) iworld
-				 	= (Just s, False, iworld)
+				 	= (Ok s, iworld)
 		
 	deleteSession :: !SessionId !*IWorld -> (!Bool,!*IWorld)
 	deleteSession sid iworld
@@ -83,22 +82,3 @@ readSessionStore :: !*IWorld -> (![Session],!*IWorld)
 readSessionStore iworld
 	# (mbList,iworld)	= loadValue "SessionDB" iworld
 	= (fromMaybe [] mbList,iworld)
-
-instance SessionDB TSt
-where
-	getSessions	:: !*TSt -> (![Session], !*TSt)
-	getSessions tst = accIWorldTSt getSessions tst
-	getSessionsForUser :: !User !*TSt -> (![Session], !*TSt)
-	getSessionsForUser user tst = accIWorldTSt (getSessionsForUser user) tst
-	getSession :: !SessionId !*TSt -> (!Maybe Session, !*TSt)
-	getSession sessionId tst = accIWorldTSt (getSession sessionId) tst
-	createSession :: !(Maybe User) !*TSt -> (!Session,!*TSt)
-	createSession user tst = accIWorldTSt (createSession user) tst
-	restoreSession :: !SessionId !*TSt -> (!Maybe Session, !Bool, !*TSt)
-	restoreSession sessionId tst=:{TSt|iworld}
-		# (mbSession,timeout,iworld) = restoreSession sessionId iworld
-		= (mbSession,timeout,{TSt|tst & iworld = iworld})
-	deleteSession :: !SessionId !*TSt -> (!Bool,!*TSt)
-	deleteSession sessionId tst = accIWorldTSt (deleteSession sessionId) tst
-	lastChange :: !*TSt -> (!Timestamp,!*TSt)
-	lastChange tst = accIWorldTSt lastChange tst

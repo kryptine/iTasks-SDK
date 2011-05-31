@@ -1,0 +1,147 @@
+implementation module TaskInstance
+
+import StdList
+import Error
+import Types, Task, TaskContext, WorkflowDB, ProcessDB
+
+from CoreCombinators import >>=
+from TuningCombinators import class tune, instance tune Title, <<@, @>>, :: Title(..)
+from InteractionTasks import enterInformation
+import iTaskClass
+
+createThread :: (Task a) -> Dynamic | iTask a
+createThread task = (dynamic container :: Container (TaskThread a^) a^)
+where
+ 	container = Container {TaskThread|originalTask = task, currentTask = task}
+ 	
+createThreadParam :: !String (a -> Task b)	-> Dynamic | iTask a & iTask b
+createThreadParam title task = (dynamic container :: Container (Container (TaskThreadParam a^ b^) b^) a^)
+where
+ 	container = Container (Container ({TaskThreadParam|originalTask = task, currentTask = task, title = title}))
+
+toNonParamThreadValue :: !String !Dynamic -> Maybe Dynamic
+toNonParamThreadValue vStr (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
+	= case fromJSON (fromString vStr) of
+		Just v = 
+			Just (dynamic Container {TaskThread | originalTask = originalTask v <<@ Title title, currentTask = currentTask v <<@ Title title} :: Container (TaskThread b) b)
+		Nothing =
+			Nothing
+toNonParamThreadValue _ _ = Nothing
+
+toNonParamThreadEnter :: !Dynamic -> Dynamic
+toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
+	= (dynamic Container {TaskThread | originalTask = enterParam originalTask, currentTask = enterParam currentTask} :: Container (TaskThread b) b)
+where		
+	enterParam paramTask = Title title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") >>= paramTask)
+
+
+createWorkflowInstance :: !WorkflowId !User !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
+createWorkflowInstance workflowId user iworld 
+	//Lookup workflow
+	# (mbWorkflow,iworld)	= getWorkflow workflowId iworld
+	= case mbWorkflow of
+		Nothing
+			= (Error "No such workflow",iworld)
+		Just {Workflow|thread,managerProperties,menu}
+			//Get next process id
+			# (processId,iworld)		= getNextProcessId iworld
+			//Create initial task context
+			# (context,iworld)			= initTaskContext processId thread managerProperties menu iworld
+			//Store thread
+			# iworld					= setProcessThread processId thread iworld
+			//Evaluate task once
+			# (result,properties,iworld)= evalTask processId thread context iworld		
+			= (Ok (result,properties), iworld)
+where
+	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} menu iworld=:{currentUser,timestamp}
+		# (tcontext,iworld) = originalTask.initFun [0,processId] iworld		
+		# properties =
+			{ taskProperties	= taskProperties originalTask
+			, systemProperties	=
+				{ taskId		= toString processId
+				, status		= Running
+				, issuedAt		= timestamp
+				, firstEvent	= Nothing
+				, latestEvent	= Nothing
+				, menu			= menu
+				}
+			, managerProperties	= {managerProperties & worker = if (worker == AnyUser) user worker}
+			}
+		= (TCTop properties 0 (TTCActive tcontext),iworld)
+
+	evalTask processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) (TCTop properties changeNo (TTCActive tcontext)) iworld
+		# (tresult, iworld)	= originalTask.evalTaskFun [changeNo,processId] Nothing [] defaultInteractionLayout defaultParallelLayout tcontext iworld
+		= case tresult of
+			TaskBusy tui tcontext
+				# properties	= setRunning properties 
+				# context 		= TCTop properties changeNo (TTCActive tcontext)
+				# iworld		= setProcessContext processId context iworld
+				= (TaskBusy tui context, properties, iworld)
+			TaskFinished val	
+				# properties	= setFinished properties
+				# context		= TCTop properties  changeNo (TTCFinished (toJSON val))
+				# iworld		= setProcessContext processId context iworld
+				= (TaskFinished (dynamic val :: a), properties, iworld)
+			TaskException e str
+				# properties	= setExcepted properties
+				# context		= TCTop properties changeNo (TTCExcepted str)
+				# iworld		= setProcessContext processId context iworld
+				= (TaskException e str, properties, iworld)
+
+evaluateWorkflowInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !TaskNr !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
+evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld
+	//Load thread
+	# (mbThread,iworld)		= getProcessThread processId iworld
+	| isNothing mbThread
+		= (Error "Could not load task definition", iworld)
+	//Load task context
+	# (mbContext,iworld)	= getProcessContext processId iworld
+	| isNothing mbThread
+		= (Error "Could not load task context", iworld)
+	//Evaluate
+	# (result,properties,iworld) = evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbThread) (fromJust mbContext) iworld
+	= (Ok (result,properties), iworld)
+where
+	evalTask processId mbEdit mbCommit tuiTaskNr thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) context=:(TCTop properties changeNo tcontext) iworld
+		= case tcontext of
+			//Evaluate further
+			TTCActive scontext
+				//Apply edit event
+				# (scontext,iworld) = case mbEdit of
+					//The firts two steps in an edit event path have to be the processId and changeNo
+					Just ([processId,changeNo:steps],path,val)	= originalTask.editEventFun [changeNo,processId] (steps,path,val) scontext iworld
+					_											= (scontext, iworld)
+				//Evaluate
+				//The first two steps in a commit event path have to be the processId and changeNo
+				# commitEvent		= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
+				# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr) 
+				# (sresult,iworld)	= originalTask.evalTaskFun [changeNo,processId] commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout scontext iworld
+				= case sresult of
+					TaskBusy tui scontext
+						# properties	= setRunning properties 
+						# context		= TCTop properties changeNo (TTCActive scontext)
+						# iworld		= setProcessContext processId context iworld
+						= (TaskBusy tui context, properties, iworld)
+					TaskFinished val
+						# properties	= setFinished properties
+						# context		= TCTop properties changeNo (TTCFinished (toJSON val))
+						# iworld		= setProcessContext processId context iworld
+						= (TaskFinished (dynamic val :: a), properties, iworld)
+					TaskException _ e
+						# properties	= setExcepted properties
+						# context		= TCTop properties changeNo (TTCExcepted e)
+						# iworld		= setProcessContext processId context iworld
+						= (taskException e, properties, iworld)
+			//Don't evaluate, just yield TaskBusy without user interface and original context
+			TTCSuspended scontext
+				= (TaskBusy Nothing context, properties, iworld)
+			TTCFinished encval
+				= case fromJSON encval of
+					Just val	= (TaskFinished (dynamic val :: a), properties, iworld)
+					Nothing		= (taskException "Could not decode result", properties, iworld)
+			TTCExcepted e
+				= (taskException e, properties, iworld)
+
+setRunning properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Running}}
+setFinished properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Finished}}
+setExcepted properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}

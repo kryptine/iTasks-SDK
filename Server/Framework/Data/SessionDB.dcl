@@ -3,7 +3,9 @@ definition module SessionDB
 * This module provides the iTasks session database. It provides 
 * functions for creating and restoring user sessions.
 */
-import Maybe, TSt
+import Maybe, Error
+from Types	import :: User, :: Session, :: SessionId, :: IWorld
+from Time	import :: Timestamp
 
 class SessionDB st
 where
@@ -33,7 +35,7 @@ where
 	* @return session if found
 	* @return whether a session timeout occurred
 	*/
-	restoreSession	:: !SessionId !*st -> (!Maybe Session, !Bool, !*st)	
+	restoreSession	:: !SessionId !*st -> (!MaybeErrorString Session, !*st)	
 	/**
 	* Explicitly destroy an existing session.
 	*
@@ -51,4 +53,3 @@ where
 	lastChange :: !*st -> (!Timestamp,!*st)
 	
 instance SessionDB IWorld
-instance SessionDB TSt

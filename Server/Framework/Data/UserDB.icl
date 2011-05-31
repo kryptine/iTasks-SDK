@@ -2,8 +2,7 @@ implementation module UserDB
 
 import StdEnv, Maybe
 import StdGeneric
-import File, Error
-import TSt, Util
+import Time, File, Error, Config, Util
 
 from Types import :: Password(..)
 
@@ -118,23 +117,3 @@ readUserFile appName world
 		
 USER_FILE_POSTFIX :== "-users.json"
 		
-instance UserDB TSt
-where
-	getUser :: !UserId !*TSt -> (!Maybe User,!*TSt)	
-	getUser userId tst = accIWorldTSt (getUser userId) tst
-	getUserDetails :: !User !*TSt -> (!Maybe UserDetails,!*TSt)
-	getUserDetails user tst = accIWorldTSt (getUserDetails user) tst
-	getUsers :: !*TSt -> (![User], !*TSt)
-	getUsers tst = accIWorldTSt getUsers tst
-	getUsersWithRole :: !String !*TSt -> (![User], !*TSt)
-	getUsersWithRole role tst = accIWorldTSt (getUsersWithRole role) tst
-	authenticateUser :: !String !String	!*TSt -> (!Maybe User, !*TSt)
-	authenticateUser username password tst = accIWorldTSt (authenticateUser username password) tst
-	createUser :: !UserDetails !*TSt -> (!User,!*TSt)
-	createUser details tst = accIWorldTSt (createUser details) tst
-	updateUser :: !User !UserDetails !*TSt -> (!User,!*TSt)
-	updateUser user details tst = accIWorldTSt (updateUser user details) tst
-	deleteUser :: !User !*TSt -> (!User,!*TSt)
-	deleteUser user tst = accIWorldTSt (deleteUser user) tst
-	lastChange :: !*TSt -> (!Timestamp,!*TSt)
-	lastChange tst = accIWorldTSt lastChange tst
