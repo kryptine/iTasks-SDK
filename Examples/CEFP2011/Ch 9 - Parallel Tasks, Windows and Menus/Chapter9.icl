@@ -191,7 +191,7 @@ where
 	| not ok			= (False,world)
 	# file				= fwrites text file
 	= fclose file world
-safeTextFile _ _  = return False 
+//safeTextFile _ _  = return False 		alternative will never match
 
 readTextFile ::  FileName  -> Task (Bool,String)
 readTextFile  fileName  
@@ -206,7 +206,7 @@ where
 	# (ok,world)		= fclose file world
 	| not ok			= ((False,""),world)
 	= ((True,text),world)
-readTextFile _  = return (False,"")
+//readTextFile _  = return (False,"") 	alternative will never match
 
 // making an appointment
 

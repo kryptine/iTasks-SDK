@@ -46,15 +46,15 @@ naive_chat
     =               		get currentUser
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = concatWith "," (map userName [me : others])
-							in  parallel "Naive chat" [""] (\_ chat -> chat)
+							in  parallel "Naive chat" initChatState (\_ chat -> chat)
 								   [  DetachedTask (normalTask person) noMenu (chatEditor names person)
 								   \\ person <- [me : others]
 								   ]
 where
-	chatEditor :: String User (SymmetricShared ChatState) parinfo -> Task ChatState
-	chatEditor names me chatState parinfo
+	chatEditor :: String User (SymmetricShared ChatState) info -> Task ChatState
+	chatEditor names me chatState info
 		= forever (              get chatState
-		      >>= \list       -> updateInformation headerEditor (Display list,Note "")
+		      >>= \xs         -> updateInformation headerEditor (Display xs,Note "")
 		      >>= \(_,Note a) -> update (addLine me a) chatState
 		  )
 	where
@@ -66,13 +66,13 @@ monitor_chat
     =               		get currentUser
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = concatWith "," (map userName [me : others])
-							in  parallel "Monitored chat" [] (\_ chat -> chat)
+							in  parallel "Monitored chat" initChatState (\_ chat -> chat)
 								   [  DetachedTask (normalTask person) noMenu (chatEditor names person)
 								   \\ person <- [me : others]
 								   ]
 where
-	chatEditor :: String User (SymmetricShared ChatState) parinfo -> Task ChatState
-	chatEditor names me chatState parinfo
+	chatEditor :: String User (SymmetricShared ChatState) info -> Task ChatState
+	chatEditor names me chatState info
 		= (monitor headerMonitor id (const False) False chatState) ||- (forever enterLine)
 	where
 		headerEditor	= "Chat with "       +++ names
@@ -94,7 +94,7 @@ where
 		= 	updateSharedInformationA headerEditor (view me) chatState actions
 	where
 		headerEditor	= "Chat with " +++ names
-		view me 		=	( \list -> (Display list,Note "")
+		view me 		=	( \xs -> (Display xs,Note "")
 							, \(_,Note a) -> addLine me a
 							)
 		actions _		= [(ActionQuit,Just Void)]
