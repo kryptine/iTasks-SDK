@@ -11,9 +11,7 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 			border: false,
 			columns: [
 				{id: 'subject', header: 'Subject', dataIndex: 'subject', width: 300},
-				{id: 'priority', header: 'Priority', dataIndex: 'priority', width: 100},
-				{id: 'progress', header: 'Progress', dataIndex: 'progress', width: 100},
-				{id: 'manager', header: 'Managed by', dataIndex: 'manager', width: 150},
+				{id: 'priority', header: 'Priority', dataIndex: 'priority', width: 100},	
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', width: 120},
 				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', width: 100}
 			],
@@ -95,8 +93,6 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 				iconCls: 'task-int',
 				subject: Ext.util.Format.htmlEncode(d.taskProperties.taskDescription.title),
 				priority: itasks.util.formatPriority(d.managerProperties.priority),
-				progress: itasks.util.formatProgress(d.progress),
-				manager: Ext.util.Format.htmlEncode(itasks.util.formatUser(d.systemProperties.manager)),
 				timestamp: itasks.util.formatDate(d.systemProperties.issuedAt),
 				deadline: itasks.util.formatDeadline(d.managerProperties.deadline),
 				taskId: d.systemProperties.taskId

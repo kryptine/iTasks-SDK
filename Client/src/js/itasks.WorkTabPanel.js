@@ -314,11 +314,11 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 			this.body.update( String.format(
 				'<div class="worktab-header {1}">'+
 					'<div class="worktab-header-status {0}"></div><div class="worktab-header-separator"></div><div class="worktab-header-text">'+
-						'<table><tr><th>Subject:</th><td>{2}</td><th>Managed by:</th><td>{3}</td><th>Deadline:</th><td>{4}</td></table>'+
+						'<table><tr><th>Subject:</th><td>{2}</td><th>Deadline:</th><td>{3}</td></table>'+
 					'</div>'+
 				'</div>'+
 				'<div class="worktab-header-indicator">'
-				, worktabStatus(properties.progress),worktabBackground(properties.managerProperties.priority),subject, itasks.util.formatUser(properties.systemProperties.manager)
+				, worktabStatus(properties.progress),worktabBackground(properties.managerProperties.priority),subject
 				, itasks.util.formatDeadline(properties.managerProperties.deadline)
 				));
 	},
