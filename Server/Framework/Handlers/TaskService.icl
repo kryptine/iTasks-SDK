@@ -110,7 +110,7 @@ taskService url format path req iworld
 			| isError mbSession
 				= (serviceResponse html "Task user interface" tuiDescription url tuiParams (jsonSessionErr mbSession), iworld)
 			//Load previous user interface to enable incremental updates
-			# tuiStoreId				= iTaskId taskId "tui"
+			# tuiStoreId				= "Process-" +++ taskId +++ "-tui"
 			# (mbPreviousTui,iworld)	= loadValueAndTimestamp tuiStoreId iworld
 			//Check if the version of the user interface the client has is still fresh
 			# outdated	= case mbPreviousTui of

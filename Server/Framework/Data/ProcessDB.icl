@@ -111,6 +111,9 @@ where
 
 	deleteProcess :: !ProcessId !*IWorld	-> (!Bool, !*IWorld)
 	deleteProcess processId iworld 
+		//Delete values from store
+		# iworld = deleteValues ("Process-" +++ toString processId) iworld
+		//Delete from process table
 		# (procs,iworld) 	= processStore id iworld
 		# (nprocs,iworld)	= processStore (\_ -> [process \\ process <- procs | process.Process.processId <> processId]) iworld
 		= (length procs <> length nprocs, iworld)
@@ -150,7 +153,4 @@ where
 					 
 
 filterProcs :: (Process -> Bool) [Process] -> [Process]
-filterProcs pred procs = procs //TODO
-
- 
-
+filterProcs pred procs = flatten [if (pred p) [{p & subprocesses = filterProcs pred p.subprocesses}] (filterProcs pred p.subprocesses) \\  p <- procs]
