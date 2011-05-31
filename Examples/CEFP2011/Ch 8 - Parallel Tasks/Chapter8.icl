@@ -2,7 +2,7 @@ implementation module Chapter8
 
 // Examples showing the usage of frequently used iTask combinators
 
-import iTasks, StdMisc
+import iTasks, Text, StdMisc
 from Chapter7 import selectUser, selectUsers
 
 derive bimap (,), Maybe
@@ -28,11 +28,6 @@ const2 _ _ x = x
 
 noResult _ _ = Void
 
-concatWith :: !String ![String] -> String
-concatWith sep []	= ""
-concatWith sep [x]	= x
-concatWith sep xs	= foldr (\a as -> a +++ sep +++ as) (last xs) (init xs)
-
 // N users chatting with each other
 :: ChatState :== [String]
 
@@ -42,17 +37,18 @@ addLine me line s = s ++ [me +++> ": " +++ line]
 initChatState :: ChatState
 initChatState = []
 
+naive_chat :: Task ChatState
 naive_chat
     =               		get currentUser
     	>>= \me     ->		selectUsers
-		>>= \others ->		let names = concatWith "," (map userName [me : others])
+		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Naive chat" initChatState (\_ chat -> chat)
-								   [  DetachedTask (normalTask person) noMenu (chatEditor names person)
-								   \\ person <- [me : others]
+								   [  DetachedTask (normalTask who) noMenu (chat names who)
+								   \\ who <- [me : others]
 								   ]
 where
-	chatEditor :: String User (SymmetricShared ChatState) info -> Task ChatState
-	chatEditor names me chatState info
+	chat :: String User (SymmetricShared ChatState) info -> Task ChatState
+	chat names me chatState info
 		= forever (              get chatState
 		      >>= \xs         -> updateInformation headerEditor (Display xs,Note "")
 		      >>= \(_,Note a) -> update (addLine me a) chatState
@@ -62,17 +58,18 @@ where
 
 
 //	N users chatting with each other, now with monitor task
+monitor_chat :: Task ChatState
 monitor_chat
     =               		get currentUser
     	>>= \me     ->		selectUsers
-		>>= \others ->		let names = concatWith "," (map userName [me : others])
+		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Monitored chat" initChatState (\_ chat -> chat)
-								   [  DetachedTask (normalTask person) noMenu (chatEditor names person)
-								   \\ person <- [me : others]
+								   [  DetachedTask (normalTask who) noMenu (chat names who)
+								   \\ who <- [me : others]
 								   ]
 where
-	chatEditor :: String User (SymmetricShared ChatState) info -> Task ChatState
-	chatEditor names me chatState info
+	chat :: String User (SymmetricShared ChatState) info -> Task ChatState
+	chat names me chatState info
 		= (monitor headerMonitor id (const False) False chatState) ||- (forever enterLine)
 	where
 		headerEditor	= "Chat with "       +++ names
@@ -81,16 +78,17 @@ where
 						  >>= \(Note a) -> update (addLine me a) chatState
 
 // example, chat using modification of shared state, works funny with current implementation....
+shared_chat :: Task ChatState
 shared_chat
     =   					get currentUser
     	>>= \me     ->		selectUsers
-		>>= \others ->		let names = concatWith "," (map userName [me : others]) 
+		>>= \others ->		let names = join "," (map toString [me : others]) 
 							in  parallel "Shared chat" initChatState (const2 Void)
-								   [  DetachedTask (normalTask person) noMenu (chatEditor names person)
-								   \\ person <- [me : others]
+								   [  DetachedTask (normalTask who) noMenu (chat names who)
+								   \\ who <- [me : others]
 								   ]
 where
-	chatEditor names me chatState os
+	chat names me chatState os
 		= 	updateSharedInformationA headerEditor (view me) chatState actions
 	where
 		headerEditor	= "Chat with " +++ names
@@ -100,17 +98,18 @@ where
 		actions _		= [(ActionQuit,Just Void)]
 
 // N users chatting with each other
+multibind_chat :: Task ChatState
 multibind_chat 
     =               		get currentUser
     	>>= \me     ->		selectUsers
-		>>= \others ->		let names = concatWith "," (map userName [me : others])
+		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Multibind chat" initChatState (const2 Void)
-								   [  DetachedTask (normalTask person) noMenu (chatEditor names person)
-								   \\ person <- [me : others]
+								   [  DetachedTask (normalTask who) noMenu (chat names who)
+								   \\ who <- [me : others]
 								   ]
 where
-	chatEditor :: String User (SymmetricShared ChatState) (ParallelInfo ChatState) -> Task Void
-	chatEditor names me chatState os
+	chat :: String User (SymmetricShared ChatState) (ParallelInfo ChatState) -> Task Void
+	chat names me chatState os
 		= (monitor headerMonitor id (const False) False chatState) ||- enterLine
 	where
 		headerEditor	= "Chat with "       +++ names
