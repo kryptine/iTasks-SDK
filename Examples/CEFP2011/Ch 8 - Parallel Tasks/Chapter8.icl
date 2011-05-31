@@ -34,9 +34,6 @@ noResult _ _ = Void
 addLine :: User String ChatState -> ChatState
 addLine me line s = s ++ [me +++> ": " +++ line]
 
-initChatState :: ChatState
-initChatState = []
-
 naive_chat :: Task ChatState
 naive_chat
     =               		get currentUser
@@ -55,6 +52,9 @@ where
 		  )
 	where
 		headerEditor	= "Chat with " +++ names
+
+	initChatState :: ChatState
+	initChatState = []
 
 
 //	N users chatting with each other, now with monitor task
@@ -77,27 +77,60 @@ where
 		enterLine		=                  enterInformation headerEditor
 						  >>= \(Note a) -> update (addLine me a) chatState
 
-// example, chat using modification of shared state, works funny with current implementation....
-shared_chat :: Task ChatState
+	initChatState :: ChatState
+	initChatState = []
+
+
+
+:: ChatState2 = { buffer :: [String]
+			    , chats  :: [String]
+			    }
+derive class iTask ChatState2
+
+
+initChatState2 = { buffer = ["",""], chats = []}
+
+
+shared_chat :: Task ChatState2
 shared_chat
     =   					get currentUser
-    	>>= \me     ->		selectUsers
-		>>= \others ->		let names = join "," (map toString [me : others]) 
-							in  parallel "Shared chat" initChatState (const2 Void)
-								   [  DetachedTask (normalTask who) noMenu (chat names who)
-								   \\ who <- [me : others]
-								   ]
+    	>>= \me ->			selectUser
+		>>= \you ->			parallel "2 Chatters" initChatState2 (const2 Void)
+								[DetachedTask (normalTask me)  noMenu (chatEditor me you 0 1)
+								,DetachedTask (normalTask you) noMenu (chatEditor you me 1 0)
+								]
 where
-	chat names me chatState os
-		= 	updateSharedInformationA headerEditor (view me) chatState actions
+	chatEditor me you mine yours cs os
+		= 	updateSharedInformationA ("Chat with " <+++ you) view cs actions 
 	where
-		headerEditor	= "Chat with " +++ names
-		view me 		=	( \xs -> (Display xs,Note "")
-							, \(_,Note a) -> addLine me a
-							)
+		view 
+			=	( \state			               -> ( Display (you +++> if (state.buffer!!yours <> "") 
+																				" is typing..."  
+																				" is waiting...")
+													  , Display state.chats
+													  , Note (state.buffer!!mine)
+													  )
+				, \(_,_,Note response) state -> 	handleResponse response state
+				)
+		where
+			handleResponse response state 
+			# responseList 		= fromString response
+			| not (isMember '\n' responseList)	= {state & buffer = updateAt mine response state.buffer}
+			# (before,after) 	= span (\c -> c <> '\n') responseList 
+			# beforeS 			= toString before
+			# afterS 			= toString (tl after) 
+			= { state & buffer	= updateAt mine afterS state.buffer
+					  , chats	= state.chats ++ [me +++> ": " +++> beforeS]
+			  }
+				
 		actions _		= [(ActionQuit,Just Void)]
 
+
+	actions _ = [(ActionQuit, Just  Void)]
+	
+
 // N users chatting with each other
+
 multibind_chat :: Task ChatState
 multibind_chat 
     =               		get currentUser
@@ -120,3 +153,6 @@ where
 																		 >>| return False))
 									]
 						  >>= \stop -> if stop (set os [StopParallel] >>| return Void) enterLine
+
+	initChatState :: ChatState
+	initChatState = []
