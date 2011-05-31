@@ -244,8 +244,8 @@ where
 				# (_,iworld)		= switchCurrentUser curUser iworld
 				= case result of
 					TaskBusy tui context	= (TaskBusy tui context, STCDetached props (Just (hd (dynamicJSONEncode task), context)), iworld)
-					TaskFinished _			= (TaskFinished Void, STCDetached props Nothing, iworld)
-					TaskException e str		= (TaskException e str, STCDetached props Nothing, iworld)		
+					TaskFinished _			= (TaskFinished Void, STCDetached (markFinished props) Nothing, iworld)
+					TaskException e str		= (TaskException e str, STCDetached (markExcepted props) Nothing, iworld)		
 			_
 				//This task is already completed
 				= (TaskFinished Void, stcontext, iworld)
@@ -393,6 +393,11 @@ where
 	allFinished []							= True
 	allFinished [(_,TaskFinished _,_):rs]	= allFinished rs
 	allFinished _							= False
+	
+	markFinished properties=:{ProcessProperties|systemProperties}
+		= {ProcessProperties|properties & systemProperties = {SystemProperties|systemProperties & status = Finished}}
+	markExcepted properties=:{ProcessProperties|systemProperties}
+		= {ProcessProperties|properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}
 	
 	updateProperties mprops (STCDetached props scontext)
 		= (STCDetached {ProcessProperties|props & managerProperties = mprops} scontext)

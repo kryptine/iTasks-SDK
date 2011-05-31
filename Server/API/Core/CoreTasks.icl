@@ -12,6 +12,7 @@ from WorkflowDB		import qualified class WorkflowDB(..), instance WorkflowDB IWor
 VIEWS_STORE				:== "views"
 LOCAL_STORE				:== "local"
 LAST_EDIT_STORE			:== "lastEdit"
+LAST_TUI_STORE			:== "lastTui"
 EDIT_CONFLICT_STORE		:== "editConflict"
 EDIT_CONFLICT_WARNING	:== "An edit conflict occurred. The form was refreshed with the most recent value."
 
@@ -90,8 +91,8 @@ where
 		# local						= getLocalState context
 		# views						= getViews local (fromOk model) context
 		| idx >= length views		= (context, iworld) 
-		# (localTimestamp,iworld)	= getLocalTimestamp context iworld
-		# (changed,iworld)			= 'Shared'.isSharedChanged shared localTimestamp iworld
+		# lastTuiGen				= getLocalVar LAST_TUI_STORE context
+		# (changed,iworld)			= 'Shared'.isSharedChanged shared (fromMaybe (Timestamp 0) lastTuiGen) iworld
 		= case changed of
 			Ok True
 				//The share has changed since we last edited it
@@ -114,7 +115,8 @@ where
 						# context				= setLocalState local context
 						= case mbModel of
 							Just model
-								# (_,iworld) = 'Shared'.writeShared shared model iworld
+								# (_,iworld) 	= 'Shared'.writeShared shared model iworld
+								# context		= setLocalVar LAST_EDIT_STORE timestamp context
 								= (context,iworld)
 							Nothing	
 								= (context, iworld)
@@ -143,7 +145,7 @@ where
 					Just result
 						= (TaskFinished result, iworld)
 					Nothing
-						# context				= setLocalVar LAST_EDIT_STORE timestamp context
+						# context				= setLocalVar LAST_TUI_STORE timestamp context
 						# (tui,context,iworld)	= renderTUI taskNr imerge local (fromOk model) (fromOk changed) actions context iworld
 						= (TaskBusy (Just tui) context, iworld)
 						
