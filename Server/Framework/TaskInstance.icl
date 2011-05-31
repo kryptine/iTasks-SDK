@@ -50,10 +50,10 @@ createWorkflowInstance workflowId user iworld
 			//Store thread
 			# iworld					= setProcessThread processId thread iworld
 			//Evaluate task once
-			# (result,properties,iworld)= evalTask processId thread context iworld		
+			# (result,properties,iworld)= evalTask processId thread context iworld 
 			= (Ok (result,properties), iworld)
 where
-	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} menu iworld=:{currentUser,timestamp}
+	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} menu iworld=:{IWorld|timestamp}
 		# (tcontext,iworld) = originalTask.initFun [0,processId] iworld		
 		# properties =
 			{ taskProperties	= taskProperties originalTask
@@ -70,6 +70,9 @@ where
 		= (TCTop properties 0 (TTCActive tcontext),iworld)
 
 	evalTask processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) (TCTop properties changeNo (TTCActive tcontext)) iworld
+		//Set current worker
+		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
+		//Evaluate
 		# (tresult, iworld)	= originalTask.evalTaskFun [changeNo,processId] Nothing [] defaultInteractionLayout defaultParallelLayout tcontext iworld
 		= case tresult of
 			TaskBusy tui tcontext
@@ -103,6 +106,8 @@ evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld
 	= (Ok (result,properties), iworld)
 where
 	evalTask processId mbEdit mbCommit tuiTaskNr thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) context=:(TCTop properties changeNo tcontext) iworld
+		//Set current worker
+		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
 		= case tcontext of
 			//Evaluate further
 			TTCActive scontext

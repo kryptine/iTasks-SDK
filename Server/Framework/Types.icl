@@ -481,7 +481,6 @@ JSONDecode{|User|} json	= (Nothing,json)
 
 userName :: !User -> String
 userName RootUser = "root"
-userName (SessionUser sid) = ""
 userName (NamedUser name)
 	| end > start && start > -1	= name % (start + 1,end - 1)	//Named user of form "Joe Smith <joe>" (with display name)
 	| otherwise					= name							//Other named users (without display name)
