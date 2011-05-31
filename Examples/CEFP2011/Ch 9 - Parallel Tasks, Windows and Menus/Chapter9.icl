@@ -15,7 +15,8 @@ flows9 :: [Workflow]
 flows9 =  [w1, w2]
 
 w1 = workflow "CEFP/Chap 9/1. Chat with several users"    	"Chat with several users" chat3
-w2 = workflow "CEFP/Chap 9/2. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+w2 = workflow "CEFP/Chap 9/2. Editing a text file" "Editing a text file" textEditor2
+w3 = workflow "CEFP/Chap 9/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 
 
 // chat with several users
@@ -69,6 +70,143 @@ ActionAdd :== Action "Add Chatter" "Add Chatter"
 
 // pocket calculator, see Steffens example...
 
+
+import Text
+
+derive class iTask Replace, TextStatistics, EditorState
+
+:: Replace			=	{ search 		:: String
+						, replaceBy 	:: String
+						}
+:: TextStatistics 	=	{ lines			:: Int
+						, words			:: Int
+						, characters	:: Int
+						}
+:: EditorState		=	{ mytext		:: String
+						, replace		:: Bool
+						, statistics	:: Bool
+						}
+
+:: FileName		:== String
+
+initEditorState text 	= 	{mytext = text, replace = False, statistics = False}
+updateReplace b  		=  	update (\s ->{s & replace = b}) 
+updateStat b 			=	update (\s -> {s & statistics = b}) 
+updateText f 			=	update (\s -> {s & mytext = f s.mytext}) 
+
+voidResult _ _ = Void 
+
+onlyIf :: Bool a -> Maybe a
+onlyIf b do
+	| b 		= Just do
+	| otherwise	= Nothing
+
+normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
+
+ActionReplace 		:== Action "Replace" "Replace"
+ActionStatistics	:== Action "Statistics" "Statistics"
+
+textEditor2 ::  Task Void
+textEditor2 
+	=						enterInformation "Give name of text file you want to edit..."
+		>>= \fileName ->	readTextFile fileName
+		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [taskKind (editor fileName)]
+
+taskKind = InBodyTask
+
+taskKind2 = DetachedTask (normalTask  RootUser) myMenu // window does not work yet
+
+myMenu s =  [ Menu "File" 	[ MenuItem ActionSave (ctrl 's')
+							, MenuSeparator
+							, MenuItem ActionQuit (ctrl 'q')
+							]
+			, Menu "Edit" 	[ MenuItem "Replace"  (ctrl 'r')
+							, MenuItem "Statistics" (ctrl 's')
+							]				
+			]
+where
+	ctrl c = Just {key=c,ctrl=True,alt=False,shift=False}
+
+editor :: String (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
+editor fileName ls os 
+	= 			updateSharedInformationA (fileName,"Edit text file \"" +++ fileName +++ "\"") (toView,fromView) ls
+		>?* 	[ (ActionSave, 		IfValid	save)
+		  		, (ActionQuit,		Always 	quit)
+		  		, (ActionReplace,	Sometimes (\s -> onlyIf (not s.modelValue.replace)    replace))
+		  		, (ActionStatistics,Sometimes (\s -> onlyIf (not s.modelValue.statistics) statistics))
+		  		]
+where	
+	toView state = Note state.mytext
+	fromView (Note text) state = {state & mytext = text} 
+
+	save val
+		=		safeTextFile fileName val.mytext
+			>>|	editor fileName ls os
+	quit
+		=		set os [StopParallel] 
+			>>| return Void
+
+	replace 
+		=		updateReplace True ls
+			>>| set os [AppendTask (InBodyTask (replaceTask {search = "", replaceBy = ""}))]
+			>>| editor fileName ls os
+
+	statistics 
+		=		updateStat True ls
+			>>|	set os [AppendTask (InBodyTask statisticsTask)]
+			>>| editor fileName ls os
+
+replaceTask :: Replace (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
+replaceTask replacement ls os
+	=			updateInformationA ("Replace","Define replacement...") idView replacement
+		>?*		[(ActionOk,   IfValid 	(\r -> 		updateText (replaceSubString r.search r.replaceBy) ls
+							 					>>|	replaceTask r ls os))
+				,(ActionQuit, Always 	(	updateReplace False ls 
+											>>| return Void))
+				]
+
+statisticsTask :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
+statisticsTask ls os 
+	= 			monitorA ("Statistics","Statistics of your document") toView ls
+				(\_ -> UserActions [(ActionQuit, Just (updateStat False ls >>| return Void))]) >>= id
+where
+	toView state=:{mytext} 
+		=	{ lines 	 = length (split "\n" mytext)
+			, words 	 = length (split " " (replaceSubString "\n" " " mytext))
+			, characters = textSize mytext
+			}
+
+// --- file access utility
+
+import StdFile
+
+
+safeTextFile ::  FileName String -> Task Bool
+safeTextFile  fileName text 
+	= 						accWorld (safeFileMonad  fileName text)
+where
+	safeFileMonad ::  String String *World -> (Bool,*World)
+	safeFileMonad  fileName text world 
+	# (ok,file,world)  	= fopen fileName FWriteText world
+	| not ok			= (False,world)
+	# file				= fwrites text file
+	= fclose file world
+safeTextFile _ _  = return False 
+
+readTextFile ::  FileName  -> Task (Bool,String)
+readTextFile  fileName  
+	= 						accWorld (readFileMonad fileName)
+where
+	readFileMonad :: String  *World -> ((Bool,String),*World)
+	readFileMonad fileName world 
+	# (ok,file,world)  	= fopen fileName FReadText world
+	| not ok			= ((False,""),world)
+	# (text,file)		= freads file 1000000
+	| text == ""		= ((False,""),world)
+	# (ok,world)		= fclose file world
+	| not ok			= ((False,""),world)
+	= ((True,text),world)
+readTextFile _  = return (False,"")
 
 // making an appointment
 
