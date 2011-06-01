@@ -164,7 +164,7 @@ where
 	makeErrorString (CompileGlobalError error) = [makeORYXError ((hd defs).GDefinition.body) ([], error)]
 	makeErrorString (CompilePathError errors) = map (makeORYXError ((hd defs).GDefinition.body)) errors
 	
-actions :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> [(!Action,!ActionTaskContinuation state Void)]
+actions :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> [(!Action,!TaskContinuation state Void)]
 actions stateShared parallelInfo
 	=	[ (ActionNew,              Always stop)
 		, (ActionOpen,             Always (actionTask "Open" open))
