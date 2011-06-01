@@ -6,7 +6,7 @@ from Util import voidNothing, appSnd, tuple, getItems, isMemberGen
 import StdBool, StdList, StdMisc
 import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, SystemData, CommonCombinators
 
-enterInformation :: !d ![LocalInteractionOption a] -> Task a | descr d & iTask a
+enterInformation :: !d ![LocalInteractionOption m] -> Task m | descr d & iTask m
 enterInformation d options = InputTask @>> interactLocalAction d interaction Nothing toInfoSt
 where
 	interaction mbV						= mkParts False (toInfoSt mbV) mkPutback (filterOptions filterInputOptions (Just (Putback const)) options)

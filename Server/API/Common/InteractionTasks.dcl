@@ -3,164 +3,180 @@ definition module InteractionTasks
 from StdFunc	import id, const
 import CoreTasks
 
-:: InteractionOption r w	= E.v: About	!v						& iTask v
-							| E.v: View		!(!r -> v,!v r -> w)	& iTask v
-							| E.v: Get		!(r -> v)				& iTask v
-							| E.v: Putback	!(v r -> w)				& iTask v
+:: InteractionOption r w	= E.v: About	!v						& iTask v // additional information independent from the data model the interaction task works on
+							| E.v: View		!(!r -> v,!v r -> w)	& iTask v // a complete lens on the data model, making it possible to update it
+							| E.v: Get		!(r -> v)				& iTask v // a get function on the data model, showing it
+							| E.v: Putback	!(v r -> w)				& iTask v // a putback function to put information into the data model
+							
 :: LocalInteractionOption a :== InteractionOption a a
 
 /*** General input/update/output tasks ***/
 
-/*
+/**
 * Ask the user to enter information.
 *
-* @param description 									A description of the task to display to the user
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used
 *
-* @return 												Value yielded by the terminating action
+* @return					Value entered by the user
 */
-enterInformation :: !d ![LocalInteractionOption a] -> Task a | descr d & iTask a
+enterInformation :: !d ![LocalInteractionOption m] -> Task m | descr d & iTask m
 
-/*
+/**
 * Ask the user to update predefined information. 
 *
-* @param description									A description of the task to display to the user
-* @param m												The value to update
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; if no view is defined a default view with the id lens is used
+* @param Data model:		The data updated by the user
 *
-* @return 												Value yielded by the terminating action
+* @return					Value updated by the user
 */
 updateInformation :: !d ![LocalInteractionOption m] m -> Task m | descr d & iTask m
 
-/*
+/**
 * Show a basic message to the user. The user can end the task after reading the message. 
 *
-* @param description 									A description of the task to display to the user
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only get parts of Views are used, Putbacks are ignored; if no get is defined the value is not shown to the user
+* @param Data model:		The data shown to the user
 *
-* @return												Value yielded by the terminating action
+* @return					Value shown by the user, the value is not modified
 */
 showMessage :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask m
 
-/*
+/**
 * Ask the user to enter information which is written to a shared.
 *
-* @param description 									A description of the task to display to the user
-* @param (Shared r w)									Reference to shared data the input is written to
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used
+* @param Shared:			Reference to the shared state to which the entered information is written
 *
-* @return 												Value yielded by the terminating action
-* @throws												SharedException
+* @return					Last value of the shared state to which the user added information
+* @throws					SharedException
 */
 enterSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
-/*
+/**
 * Ask the user to update predefined shared information.
 *
-* @param description 									A description of the task to display to the user
-* @param (Shared r w)									Reference to the shared state to update
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; if no view is defined the value of the shared state (r) is shown to the user
+* @param Shared:			Reference to the shared state to update
 *
-* @return 												Value yielded by the terminating action
-* @throws												SharedException
+* @return 					Last value of the shared state the user updated
+* @throws					SharedException
 */
 updateSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
 /**
-* Monitors a shared state using a functional view.
-* A predicate determines when to continue.
+* Monitor a shared state.
 *
-* @param description									A description of the task to display to the user
-* @param (Shared r w)									A reference to the shared state
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used
+* @param Shared:			Reference to the shared state to monitor
 *
-* @return												The last value of the monitored state with (optionally) chosen action
+* @return					Last value of the monitored state
+* @throws					SharedException
 */
 monitor :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
 
 /*** Special tasks for choices ***/
 
-/*
+/**
 * Ask the user to select one item from a list of options.
 *
-* @param description 									A description of the task to display to the user
-* @param [o]											A list of options
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Choice options:	A list of options the user can choose from
 *
-* @return 												Value yielded by the terminating action
+* @return					The option chosen by the user
 */
 enterChoice :: !d ![LocalInteractionOption o] ![o] -> Task o | descr d & iTask o
 
-/*
+/**
 * Ask the user to select one item from a list of options with already one option pre-selected.
 *
-* @param description 									A description of the task to display to the user
-* @param [o]											A list of options
-* @param o												The value of the item which should be pre-selected, if it's not member of the option list no item is selected
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Choice options:	A list of options the user can choose from
+* @param Selection:			The pre-selected item; if it is not member of the options list no options is pre-selected
 *
-* @return 												Value yielded by the terminating action
+* @return 					The option chosen by the user
 */
 updateChoice :: !d ![LocalInteractionOption o] ![o] o -> Task o | descr d & iTask o
 
-/*
+/**
 * Ask the user to select one item from a list of shared options.
 *
-* @param description 									A description of the task to display to the user
-* @param (Shared [o] w)									A reference to the shared options
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Shared:			Reference to the shared state including the options the user can choose from
 *
-* @return 												Value yielded by the terminating action
-* @throws												SharedException
+* @return 					The option chosen by the user
+* @throws					SharedException
 */
 enterSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task o | descr d & iTask o & iTask w
 
-/*
+/**
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
 *
-* @param description 									A description of the task to display to the user
-* @param (Shared [o] w)									A reference to the shared options
-* @param o												The value of the item which should be pre-selected, if it's not member of the option list no item is selected
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Shared:			Reference to the shared state including the options the user can choose from
+* @param Selection:			The pre-selected item; if it is not member of the options list no options is pre-selected
 *
-* @return 												Value yielded by the terminating action
-* @throws												SharedException
+* @return 					The option chosen by the user
+* @throws					SharedException
 */
 updateSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) o -> Task o | descr d & iTask o & iTask w
 
-/*
+/**
 * Ask the user to select a number of items from a list of options
 *
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Choice options:	A list of options the user can choose from
 *
-* @param description 									A description of the task to display to the user
-* @param [o]											A list of options
-*
-* @return 												Value yielded by the terminating action
+* @return					The options chosen by the user
 */
 enterMultipleChoice :: !d ![LocalInteractionOption o] ![o] -> Task [o] | descr d & iTask o
 
-/*
+/**
 * Ask the user to select a number of items from a list of options with already a number of options pre-selected.
 *
 *
-* @param description 									A description of the task to display to the user
-* @param [o]											A list of options
-* @param [o]											The values of the items which should be pre-selected if they are present in the option list
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Choice options:	A list of options the user can choose from
+* @param Selection:			The pre-selected items; items which are not member of the option list are ignored
 *
-* @return 												Value yielded by the terminating action
+* @return 					The options chosen by the user
 */
 updateMultipleChoice :: !d ![LocalInteractionOption o] ![o] [o] -> Task [o] | descr d & iTask o
 
-/*
+/**
 * Ask the user to select a number of items from a list of shared options.
 *
-* @param description 									A description of the task to display to the user
-* @param (Shared [a] w)									A reference to the shared options
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Shared:			Reference to the shared state including the options the user can choose from
 *
-* @return 												Value yielded by the terminating action
-* @throws												SharedException
+* @return 					The options chosen by the user
+* @throws					SharedException
 */
 enterSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task [o] | descr d & iTask o & iTask w
 
-/*
+/**
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
 *
-* @param description 									A description of the task to display to the user
-* @param (Shared [o] w)									A reference to the shared options
-* @param [o]											The values of the items which should be pre-selected if they are present in the option list
+* @param Description:		A description of the task to display to the user
+* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Shared:			Reference to the shared state including the options the user can choose from
+* @param Selection:			The pre-selected items; items which are not member of the option list are ignored
 *
-* @return 												Value yielded by the terminating action
+* @return 					The options chosen by the user
+* @throws					SharedException
 */
 updateSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
 
@@ -170,7 +186,7 @@ updateSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) [o] ->
 /**
 * Creates a task which blocks a workflow until a specified time.
 *
-* @param The specified time at which the task should complete
+* @param: Time: The specified time at which the task should complete
 *
 * @return The time to wait for
 */
@@ -178,7 +194,7 @@ waitForTime		:: !Time			-> Task Time
 /**
 * Creates a task which blocks a workflow until a specified date.
 *
-* @param The specified date at which the task should complete
+* @param Date: The specified date at which the task should complete
 *
 * @return The date to wait for
 */
@@ -187,7 +203,7 @@ waitForDate		:: !Date			-> Task Date
 * Task completes after specified amount of time has passed
 * since the creation of the task.
 *
-* @param The time to wait before the task should complete
+* @param Time: The time to wait before the task should complete
 *
 * @return The time the timer went off
 */
@@ -196,33 +212,33 @@ waitForTimer	:: !Time			-> Task Time
 
 /*** Special tasks for choosing actions ***/
 
-/*
+/**
 * Ask the user to choose an action. 
 *
-* @param [(Action,a)]							A list of actions the user can choose from. Each actions yields the given result if it's chosen. 
+* @param Action list:	A list of actions the user can choose from. Each actions yields the given result if it's chosen. 
 *
-* @return 										Value associated with chosen action.
+* @return 				Value associated with chosen action
 */
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 
-/*
+/**
 * Ask the user to choose an action. The list of actions is calculated dynamically.
 *
-* @param (r -> [(Action,Maybe a)]) 				A function generating a list of actions the user can choose from. Each actions yields the given result if it's chosen & result is present (Just). Otherwise (Nothing) action is disabled.
-* @param (Shared r w)							The shared value to use. 
+* @param Action function:	A function generating a list of actions the user can choose from. Each actions yields the given result if it's chosen & result is present (Just). Otherwise (Nothing) action is disabled.
+* @param Shared:			Reference to a shared state the actions depend on
 *
-* @return 										Value associated with chosen action.
+* @return 					Value associated with chosen action
+* @throws					SharedException
 */						
 chooseActionDyn :: !(Shared r w) !(r -> [(!Action,Maybe a)]) -> Task a | iTask a & iTask r & iTask w
 
 /**
 * A derived version of 'interact' which only uses a local state.
 *
-* @param A description of the task to display to the user
-* @param A function (on the current local state) dynamically generating the interaction parts shown to the user (parts can change the local state (l))
-* @param The initial local state
-* @param A function (on the current local state) dynamically calculating the terminators of the task
+* @param Description:			A description of the task to display to the user
+* @param Terminator function:	A function (on the current local state) dynamically generating the interaction parts shown to the user (parts can change the local state (l))
+* @param Local state:			The initial local state
 *
-* @return A result determined by the terminators
+* @return						The last value of the local state
 */
 interactLocal :: !d !(l -> [InteractionPart l]) l -> Task l | descr d & iTask l
