@@ -66,7 +66,6 @@ where
 	getProcessesForUser user statusses runningStatusses iworld
 		# (procs,iworld) 	= processStore id iworld
 		= (filterProcs (\p -> isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses) procs, iworld)
-		//= ([p \\ p <- procs | isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses], iworld)
 	where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task
@@ -151,6 +150,5 @@ where
 	subprocsp [(_,STCHidden _ Nothing):subs]		= subprocsp subs
 	subprocsp [(_,STCHidden _ (Just (_,c))):subs]	= subprocs c ++ subprocsp subs
 					 
-
 filterProcs :: (Process -> Bool) [Process] -> [Process]
 filterProcs pred procs = flatten [if (pred p) [{p & subprocesses = filterProcs pred p.subprocesses}] (filterProcs pred p.subprocesses) \\  p <- procs]
