@@ -38,7 +38,11 @@ itasks.tui.control = Ext.apply(itasks.util.clone(itasks.tui.base),{
 		
 		if(this.isValid()) {
 			var v = this.getValue();
-			this.fireEvent('tuichange',this.taskId,this.name,v === "" ? null : v);
+			v = v === "" ? null : v;
+			if (v !== this.lastEventValue) {
+				this.fireEvent('tuichange',this.taskId,this.name,v);
+			}
+			this.lastEventValue = v;
 		}
 	},
 	onKeypress: function() {

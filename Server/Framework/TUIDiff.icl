@@ -37,7 +37,7 @@ where
 			(TUIControl (TUIDocumentControl odoc) oc, TUIControl (TUIDocumentControl ndoc) nc)
 				| odoc == ndoc && oc.TUIControl.taskId == nc.TUIControl.taskId && oc.TUIControl.name == nc.TUIControl.name
 					= Just []
-			(TUIControl (TUIHtmlDisplay tto) _, TUIControl (TUIHtmlDisplay ttn) _) | tto === ttn
+			(TUIControl (TUIHtmlDisplay tto) _, TUIControl (TUIHtmlDisplay ttn) _) | tto =!= ttn
 				= Nothing
 			(TUIControl otype oc, TUIControl ntype nc)
 				| otype === ntype
