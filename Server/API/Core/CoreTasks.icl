@@ -13,6 +13,7 @@ VIEWS_STORE				:== "views"
 LOCAL_STORE				:== "local"
 LAST_EDIT_STORE			:== "lastEdit"
 LAST_TUI_STORE			:== "lastTui"
+EVENT_STORE				:== "event"
 EDIT_CONFLICT_STORE		:== "editConflict"
 EDIT_CONFLICT_WARNING	:== "An edit conflict occurred. The form was refreshed with the most recent value."
 
@@ -91,6 +92,9 @@ where
 		# local						= getLocalState context
 		# views						= getViews local (fromOk model) context
 		| idx >= length views		= (context, iworld) 
+		//Save event for use in the visualization of the task
+		# context					= setEvent (dps,editV) context
+		//Check if the share has changed since we last generated the visualization
 		# lastTuiGen				= getLocalVar LAST_TUI_STORE context
 		# (changed,iworld)			= 'Shared'.isSharedChanged shared (fromMaybe (Timestamp 0) lastTuiGen) iworld
 		= case changed of
@@ -173,7 +177,8 @@ where
 	renderTUI taskNr imerge local model changed actions context iworld
 		# parts					= partFunc local model changed
 		# oldVs					= getViews local model context
-		# (tuis,newVs)			= visualizeParts taskNr parts oldVs Nothing //TODO: get rid of useless constant Nothing
+		# (mbEvent,context)		= getEvent context
+		# (tuis,newVs)			= visualizeParts taskNr parts oldVs mbEvent
 		# context 				= setViews (zip2 newVs parts) context
 		# buttons				= renderButtons taskNr (map (appSnd isJust) actions)
 		# warning				= case (getLocalVar EDIT_CONFLICT_STORE context) of
@@ -219,6 +224,14 @@ where
 			
 	setViews views context
 		= setLocalVar VIEWS_STORE views context
+
+	setEvent event context
+		= setLocalVar EVENT_STORE event context
+		
+	getEvent context
+		= case getLocalVar EVENT_STORE context of
+			Just (dp,val)	= (Just (s2dp dp, val), delLocalVar EVENT_STORE context)
+			Nothing			= (Nothing, context)
 			
 :: Views a :== [(!Maybe (!JSONNode,!UpdateMask,!VerifyMask),!InteractionPart a)]
 

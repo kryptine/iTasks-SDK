@@ -36,3 +36,4 @@ derive JSONDecode TaskContext, TopTaskContext, SubTaskContext, ParallelMeta
 //Access functions for basic tasks
 getLocalVar :: !String !TaskContext -> Maybe a | JSONDecode{|*|} a
 setLocalVar :: !String !a !TaskContext -> TaskContext | JSONEncode{|*|} a
+delLocalVar :: !String !TaskContext -> TaskContext

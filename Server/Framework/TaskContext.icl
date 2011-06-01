@@ -16,5 +16,9 @@ getLocalVar key (TCBasic vars)
 getLocalVar _ _ = Nothing
 
 setLocalVar :: !String !a !TaskContext -> TaskContext | JSONEncode{|*|} a
-setLocalVar key val (TCBasic vars)  = TCBasic (put key (toJSON val) vars)
+setLocalVar key val (TCBasic vars) = TCBasic (put key (toJSON val) vars)
 setLocalVar key val context = context
+
+delLocalVar :: !String !TaskContext -> TaskContext
+delLocalVar key (TCBasic vars) = TCBasic (del key vars)
+delLocalVar key context = context
