@@ -12,13 +12,38 @@ Start :: *World -> *World
 Start world = startEngine flows5 world
 
 flows5 :: [Workflow]
-flows5 =  [w1,w2,w3,w4,w5]
+flows5 =  [w0, w1,w2,w3,w4,w5]
 
-w1 = workflow "CEFP/Chap 5/1. Dynamic number of buttons" "Dynamic number of buttons to choose from" (forever (show (positive >>= actions)))
-w2 = workflow "CEFP/Chap 5/2. Dynamic number of buttons" "Order pressed is remembered" (show (dynButtons [1..10] []))
-w3 = workflow "CEFP/Chap 5/3. Accept only an odd number" "Type in an odd positive number less than 100" (show getOddNumber)
-w4 = workflow "CEFP/Chap 5/4. Odd or Even" "Either the odd or even buttons can be chosen" (show (oddOrEvenButtons True))
+w0 = workflow "CEFP/Chap 5/0. Simple Question" "Only one answer possible..." (show ask)
+w1 = workflow "CEFP/Chap 5/1. Accept only an even number" "Type in an even number" (show askEven)
+w2 = workflow "CEFP/Chap 5/2. Only even" "Either the odd or even buttons can be chosen" (show (oddOrEvenButtons True))
+w3 = workflow "CEFP/Chap 5/3. Dynamic number of buttons" "Dynamic number of buttons to choose from" (forever (show (positive >>= actions)))
+w4 = workflow "CEFP/Chap 5/4. Dynamic number of buttons" "Order pressed is remembered" (show (dynButtons [1..10] []))
 w5 = workflow "CEFP/Chap 5/5. Palindrome exercise" "Palindrome" palindrome
+
+// simple question with buttons
+
+ask :: Task Bool
+ask
+	=		showMessage "Do you like the iTask system ?" [] Void
+		>?* [(ActionYes, Always (showMessage "Thank you !" [] True))
+			,(ActionNo,  Always (showMessage "Perhaps you did not onderstand the question" [] False >>| ask))
+			]
+
+// accept only an even number 
+
+askEven :: Task Int
+askEven
+	=		enterInformation "Please type in an even number..." [] 
+		>?* [(ActionOk, Sometimes (onlyIf isEven return))
+			]
+
+onlyIf :: (a -> Bool) (a -> Task b) (InformationState a) -> Maybe (Task b)
+onlyIf pred taskf  s
+| not 	s.localValid  = Nothing
+| pred  s.modelValue  = Just (taskf s.modelValue)
+= Nothing
+
 
 // create n buttons
 
@@ -37,18 +62,7 @@ dynButtons numbers accu
 		>?* 			[(Action (toString i) (toString i), Always (return index)) \\ i <- numbers & index <- [0..]] 
 		>>= \index ->	dynButtons (removeAt index numbers) [numbers!!index:accu]
 
-// accept only an odd number 
-
-getOddNumber :: Task Int
-getOddNumber 
-	=			enterInformation "Type in an odd number" [] 
-		>?*  	[(ActionOk, Sometimes (onlyIf (\n -> n > 0 && isOdd n && n < 100) return))]
 	
-onlyIf :: (a -> Bool) (a -> Task b) (InformationState a) -> Maybe (Task b)
-onlyIf pred taskf  s
-| not 	s.localValid  = Nothing
-| pred  s.modelValue  = Just (taskf s.modelValue)
-= Nothing
 
 // show only the even or odd buttons
 
