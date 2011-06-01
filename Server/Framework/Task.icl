@@ -28,7 +28,7 @@ mkInstantTask description iworldfun =
 		}
 	}
 	
-mkActionTask :: !d !(A.b: (ITaskDict b) (TermFunc a b) -> TaskFuncs b) -> Task a | descr d
+mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task a | descr d
 mkActionTask description actionTaskFun =
 	{ properties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, mbTaskNr		= Nothing
@@ -37,7 +37,7 @@ mkActionTask description actionTaskFun =
 
 mapActionTask :: !((InformationState a) -> (InformationState b)) !(Task a) -> Task b
 mapActionTask f task=:{Task|type} = case type of
-	ActionTask actionF	= {Task | task & type = ActionTask (\dict termF -> actionF dict (termF o f))}
+	ActionTask actionF	= {Task | task & type = ActionTask (\termF -> actionF (termF o f))}
 	_					= abort "mapActionTask: no action task"
 	
 taskTitle :: !(Task a) -> String
@@ -161,7 +161,7 @@ gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 toTaskFuncs :: !(Task a) -> TaskFuncs a | iTask a
 toTaskFuncs {Task|type} = case type of
 	NormalTask funcs	= funcs
-	ActionTask actionF	= actionF ITaskDict (\{modelValue,localValid} -> UserActions [(ActionOk,if localValid (Just modelValue) Nothing)])
+	ActionTask actionF	= actionF (\{modelValue,localValid} -> UserActions [(ActionOk,if localValid (Just modelValue) Nothing)])
 
 taskException :: !e -> TaskResult a | TC, toString e
 taskException e = TaskException (dynamic e) (toString e)

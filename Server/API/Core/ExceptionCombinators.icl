@@ -5,7 +5,7 @@ implementation module ExceptionCombinators
 import StdList, StdArray, StdTuple, OSError, File, FilePath, Map, JSON
 import Task, TaskContext, ProcessDB, Util
 
-derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, ChoiceException
+derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException
 derive class iTask FileError
 derive bimap Maybe,(,)
 
@@ -36,10 +36,6 @@ instance toString OSException
 where
 	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
 	
-instance toString ChoiceException
-where
-	toString _ = "Cannot choose from empty option list"
-
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
 try normalTask handlerTaskFun = mkTask (taskTitle normalTask, taskDescription normalTask) init edit eval
 where

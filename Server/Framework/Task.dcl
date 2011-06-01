@@ -25,7 +25,7 @@ derive gPutRecordFields	Task
 	, type					:: !(TaskType a)
 	}
 	
-:: TaskType a = NormalTask !(TaskFuncs a) | ActionTask !(A.b: (ITaskDict b) (TermFunc a b) -> TaskFuncs b)
+:: TaskType a = NormalTask !(TaskFuncs a) | ActionTask !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b)
 :: TaskFuncs a =	{ initFun				:: TaskInitFun
 					, editEventFun			:: TaskEditEventFun
 					, evalTaskFun			:: TaskEvalFun a
@@ -45,8 +45,6 @@ derive gPutRecordFields	Task
 					| TaskFinished !a
 					| TaskException !Dynamic !String
 					
-
-:: ITaskDict a = ITaskDict & iTask a
 :: InformationState s =	{ modelValue	:: !s		// the value of the data model the editor is working on
 						, localValid	:: !Bool	// a flag indicating if the editor's local view is valid
 						}
@@ -86,7 +84,7 @@ mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | des
 * Create a task which can be continued by different actions from another task.
 *
 */
-mkActionTask :: !d !(A.b: (ITaskDict b) (TermFunc a b) -> TaskFuncs b) -> Task  a | descr d
+mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task  a | descr d
 
 mapActionTask :: !((InformationState a) -> (InformationState b)) !(Task a) -> Task b
 

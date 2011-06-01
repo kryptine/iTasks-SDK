@@ -77,7 +77,7 @@ where
 		= (TaskFinished val, iworld)
 
 interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-interact description partFunc initLocal shared = mkActionTask description (\ITaskDict termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
+interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
 where
 	init taskNr iworld
 		= (TCBasic newMap, iworld)

@@ -16,10 +16,9 @@ import iTaskClass, GenVisualize, GenUpdate
 :: SharedException	= SharedException !String
 :: RPCException		= RPCException !String
 :: OSException		= OSException !OSError
-:: ChoiceException	= EmptyOptionList
 
-derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, ChoiceException
-instance toString FileException, ParseException, CallException, SharedException, RPCException, OSException, ChoiceException
+derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException
+instance toString FileException, ParseException, CallException, SharedException, RPCException, OSException
 
 /**
 * Exception combinator.

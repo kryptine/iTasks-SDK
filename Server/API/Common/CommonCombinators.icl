@@ -35,7 +35,7 @@ derive bimap Maybe, (,)
 
 (>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
 (>>+) task=:{Task|type} termF = case type of
-	ActionTask actionTaskF	= {Task|task & type = NormalTask (actionTaskF ITaskDict termF)}
+	ActionTask actionTaskF	= {Task|task & type = NormalTask (actionTaskF termF)}
 	_						= task >>= \r -> showMessage (taskTitle task,taskDescription task) [Get id] r >>+ termF
 
 (>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
