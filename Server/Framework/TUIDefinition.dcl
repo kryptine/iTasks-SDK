@@ -5,7 +5,7 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: ActionTrigger, :: Action
 
 :: TUIInteraction =	{ title				:: !String
 					, description		:: !String
@@ -188,6 +188,7 @@ defaultParallelLayout		:: ParallelLayoutMerger
 minimalParallelLayout		:: ParallelLayoutMerger
 defaultResultLayout			:: ResultLayoutMerger
 
+
 // layout aux functions
 defaultPanelDescr			:: !PanelTitle !PanelIcon !String !(Maybe String) 	!TUISize ![TUIDef]	-> TUIDef
 defaultPanel				:: !PanelTitle !PanelIcon							!TUISize ![TUIDef]	-> TUIDef
@@ -195,5 +196,7 @@ defaultDescriptionPanel		:: !String !(Maybe String)												-> TUIDef
 defaultContentPanel			:: ![TUIDef]															-> TUIDef
 defaultContent				:: ![TUIDef] ![TUIDef]													-> [TUIDef]
 defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool								-> PanelIcon
+defaultButtons				:: ![ActionTrigger]														-> (![TUIDef],![ActionTrigger])
+defaultMenus				:: ![ActionTrigger]														-> (![TUIDef],![ActionTrigger])
 
 columnLayout				:: !Int ![TUIDef] 														-> TUIDef

@@ -1,7 +1,8 @@
 implementation module TUIDefinition
 
-import JSON, StdList, StdBool, GenEq, StdFunc, HTML
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..)
+import JSON, StdList, StdBool, GenEq, StdFunc, HTML, Text
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionLabel, :: ActionName, :: ActionTrigger
+from Types import class actionName(..), instance actionName Action, actionLabel, actionIcon
 
 htmlDisplay :: !html -> TUIDef | toString html
 htmlDisplay html =	{ content	= TUIControl (TUIHtmlDisplay Nothing)
@@ -119,6 +120,88 @@ defaultInteractionIcon type isControlTask localInteraction
 			OutputTask ActiveOutput				= "icon-instruction-task"
 			UpdateTask							= "icon-update-task"
 			InputTask							= "icon-input-task"
+			
+			
+defaultButtons :: ![ActionTrigger] -> (![TUIDef],![ActionTrigger])
+defaultButtons [] = ([],[])
+defaultButtons [a=:(taskId,action,enabled):as]
+	# (buttons,actions)	= defaultButtons as 
+	= case split "/" (actionName action) of
+		//Action name consist of only one part -> make a button
+		[name]	= ([mkButton taskId action enabled : buttons],actions)
+		//Action name consists of multiple parts -> pass through
+		_		= (buttons,[a:actions])
+where
+	mkButton taskId action enabled
+		= { content	= TUIButton
+			{ TUIButton
+			| name			= actionName action
+			, taskId		= taskId
+			, disabled		= not enabled
+			, text			= actionLabel action
+			, iconCls 		= actionIcon action
+			, actionButton	= True
+			}
+	 	  , width	= Auto
+		  , height	= Auto
+		  , margins	= Nothing
+		  }
+
+defaultMenus :: ![ActionTrigger]	-> (![TUIDef],![ActionTrigger])
+defaultMenus actions 
+	# (menus,actions) = makeMenus [] actions
+	= ([{TUIDef|content = TUIMenuButton m, width=Auto, height=Auto, margins = Nothing} \\ m <- menus],actions)
+where
+	makeMenus :: [TUIMenuButton] [ActionTrigger] -> ([TUIMenuButton],[ActionTrigger])
+	makeMenus menus []	= (menus,[])	
+	makeMenus menus [a=:(taskId,action,enabled):as]
+		= case split "/" (actionName action) of
+			//Action name consist of only one part -> pass through
+			[name]	
+				# (menus,actions)	= makeMenus menus as
+				= (menus,[a:actions])
+			//Action name consists of multiple parts -> add to menus
+			path
+				= makeMenus (addToMenus path taskId action enabled menus) as
+			
+	addToMenus [main:item] taskId action enabled [] //Create menu
+		= [{TUIMenuButton|text = main, disabled = False, menu = {TUIMenu|items = addToItems item taskId action enabled []}}]
+	addToMenus [main:item] taskId action enabled [m:ms] //Add to existing menu if it exists
+		| m.TUIMenuButton.text == main //Found!
+			= [{TUIMenuButton|m & menu = {TUIMenu|items = addToItems item taskId action enabled m.TUIMenuButton.menu.TUIMenu.items}}:ms]
+		| otherwise
+			= [m:addToMenus [main:item] taskId action enabled ms]
+			
+	addToItems [item:sub] taskId action enabled [] //Create item
+		= [createItem item sub taskId action enabled]
+	addToItems [item:sub] taskId action enabled [i:is]
+		| itemText i == item
+			| isEmpty sub	//Duplicate item (just add it)
+				= [i,createItem item sub taskId action enabled:is]
+			| otherwise		//Add to the found item
+				= [addToItem sub taskId action enabled i:is]
+		| otherwise
+			= [i:addToItems [item:sub] taskId action enabled is]
+
+	itemText {TUIDef|content=TUIMenuItem {TUIMenuItem|text}}	= text
+	itemText _													= ""
+
+	createItem item sub taskId action enabled
+		= {TUIDef |content= TUIMenuItem
+		   	 {TUIMenuItem
+		   	 |text 		= item
+		   	 ,target	= if (isEmpty sub) (Just taskId) Nothing
+		   	 ,action	= if (isEmpty sub) (Just (actionName action)) Nothing
+		   	 ,menu		= if (isEmpty sub) Nothing (Just {TUIMenu|items = addToItems sub taskId action enabled []})
+		   	 ,disabled	= False
+		   	 ,iconCls	= if (isEmpty sub) (Just (actionIcon action)) Nothing
+		   	 ,hotkey	= Nothing
+		     },width=Auto, height=Auto, margins=Nothing}
+
+	addToItem sub taskId action enabled def=:{TUIDef|content=TUIMenuItem item}
+		= {TUIDef|def & content = TUIMenuItem {TUIMenuItem|item & menu = Just {TUIMenu|items = addToItems sub taskId action enabled []}}}
+
+
 columnLayout :: !Int ![TUIDef] -> TUIDef
 columnLayout nCols items
 	# cols = repeatn nCols []

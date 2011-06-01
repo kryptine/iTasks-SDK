@@ -372,6 +372,8 @@ instance actionName ActionName
 actionIcon 	:: !Action -> String
 actionLabel	:: !Action -> String
 
+:: ActionTrigger :== (TaskId,Action,Bool)
+
 // Definition of menus
 
 :: MenuDefinition :== [Menu]
