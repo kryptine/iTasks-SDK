@@ -47,7 +47,7 @@ where
 	chat :: String User (SymmetricShared ChatState) info -> Task ChatState
 	chat names me chatState info
 		= forever (              get chatState
-		      >>= \xs         -> updateInformation headerEditor (Display xs,Note "")
+		      >>= \xs         -> updateInformation headerEditor [] (Display xs, Note "")
 		      >>= \(_,Note a) -> update (addLine me a) chatState
 		  )
 	where
@@ -70,17 +70,15 @@ monitor_chat
 where
 	chat :: String User (SymmetricShared ChatState) info -> Task ChatState
 	chat names me chatState info
-		= (monitor headerMonitor id (const False) False chatState) ||- (forever enterLine)
+		= (monitor headerMonitor [] chatState) ||- (forever enterLine)
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names
-		enterLine		=                  enterInformation headerEditor
+		enterLine		=                  enterInformation headerEditor []
 						  >>= \(Note a) -> update (addLine me a) chatState
 
 	initChatState :: ChatState
 	initChatState = []
-
-
 
 :: ChatState2 = { buffer :: [String]
 			    , chats  :: [String]
@@ -101,7 +99,8 @@ shared_chat
 								]
 where
 	chatEditor me you mine yours cs os
-		= 	updateSharedInformationA ("Chat with " <+++ you) view cs actions 
+		= 					updateSharedInformation ("Chat with " <+++ you) [View view] cs  
+			>?*				[(ActionQuit, Always (return Void))]
 	where
 		view 
 			=	( \state			               -> ( Display (you +++> if (state.buffer!!yours <> "") 
@@ -143,16 +142,16 @@ multibind_chat
 where
 	chat :: String User (SymmetricShared ChatState) (ParallelInfo ChatState) -> Task Void
 	chat names me chatState os
-		= (monitor headerMonitor id (const False) False chatState) ||- enterLine
+		= (monitor headerMonitor [] chatState) ||- enterLine
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names
-		enterLine		=     enterInformationA headerEditor 
-								>?* [ (ActionQuit, Always (return True))
-									, (ActionOk,   IfValid (\(Note a) ->	 update (addLine me a) chatState
-																		 >>| return False))
-									]
-						  >>= \stop -> if stop (set os [StopParallel] >>| return Void) enterLine
+		enterLine		=     	enterInformation headerEditor []
+							>?* [ (ActionQuit, Always (return True))
+								, (ActionOk,   IfValid (\(Note a) ->	 update (addLine me a) chatState
+																	 >>| return False))
+								]
+						  	>>= \stop -> if stop (set os [StopParallel] >>| return Void) enterLine
 
 	initChatState :: ChatState
 	initChatState = []

@@ -10,7 +10,7 @@ Start :: *World -> *World
 Start world = startEngine flows7 world
 
 flows7 :: [Workflow]
-flows7 =  [w1, w2]
+flows7 =  [w1, w2, w3]
 
 w1 = workflow "CEFP/Chap 7/1. Delegate a task" 	"Delegate a task to some administrated user" 	(delegate someTask)
 w2 = workflow "CEFP/Chap 7/2. Guess" 			"Number guessing game" 							guessGame
@@ -20,22 +20,21 @@ w3 = workflow "CEFP/Chap 7/3. Appointment" 		"Try to make an appointment with se
 
 delegate :: (Task a) -> Task a | iTask a
 delegate task
-    =                	get users
-      >>= 				enterChoice "Select a user"
+    =                	enterSharedChoice "Select a user" [] users
       >>= \user   -> 	user @: task
-      >>= \result -> 	updateInformation "Check result" result
+      >>= 				updateInformation "Check result" [] 
 
 someTask :: Task Note
-someTask = enterInformation "Enter Information"
+someTask = enterInformation "Enter Information" []
 
 // Number guessing game
 
 guessGame
-      =                enterInformation "Please enter a number"
+      =                enterInformation "Please enter a number" []
         >>= \secret -> (guess secret -||- guess secret)
-        >>= \winner -> showMessage (userName winner +++ " has won") winner
+        >>= \winner -> showMessage (userName winner +++ " has won") [] winner
 where
-	guess secret = delegate (updateInformation "Guess a number" 0 <! (==) secret >>| get currentUser)
+	guess secret = delegate (updateInformation "Guess a number" [] 0 <! (==) secret >>| get currentUser)
 
 
 // Ask everyone if they can meet on acertain time and date
@@ -50,12 +49,11 @@ derive class iTask Enquire, YesNoBecause
 
 mkAppointment ::  Task [Enquire]
 mkAppointment 
-    =                	enterInformation "Which date do you want to meet ?"
-      >>= \date ->		enterInformation "Which time do you want to meet ?"
-      >>= \time ->		get users
-      >>= \users ->		enterMultipleChoice "Which users need to join the meeting ?" users
-      >>= \selected  -> mapTask  (\u -> u @: updateInformation "Can we meet ?" {date=Display date, time= Display time, canJoin=Yes}) selected
-      >>= \answers ->	showMessageAbout "Users answered" answers
+    =                	enterInformation "Which date do you want to meet ?" []
+      >>= \date ->		enterInformation "Which time do you want to meet ?" []
+      >>= \time ->		enterSharedMultipleChoice "Which users need to join the meeting ?" [] users
+      >>= \selected  -> mapTask  (\u -> u @: updateInformation "Can we meet ?" [] {date=Display date, time= Display time, canJoin=Yes}) selected
+      >>= \answers ->	showMessage "Users answered" [About answers] answers
       
 mapTask :: (a -> Task b) [a] -> Task [b] | iTask b
 mapTask f []  			
@@ -69,14 +67,13 @@ mapTask f [a:as]
 showAllUserNames :: Task [String]
 showAllUserNames
     =            get users
-      >>= \us -> showMessageAbout "The current users are: " (map displayName us)
+      >>= \us -> let showUsers = map displayName us in
+      				showMessage "The current users are: " [About showUsers] showUsers
 
 selectUser :: Task User
 selectUser
-    =     get users
-      >>= enterChoice "Select a user:"
+    =     enterSharedChoice "Select a user:" [] users
 
 selectUsers :: Task [User]
 selectUsers
-	=     get users
-	  >>= enterMultipleChoice "Select users:"
+	=     enterSharedMultipleChoice "Select users:" [] users

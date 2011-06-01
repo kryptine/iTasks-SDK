@@ -55,7 +55,7 @@ onlyIf pred taskf  s
 oddOrEvenButtons :: Bool ->Task Int
 oddOrEvenButtons even
 	=			updateInformation "Choose a button" [] Void
-		>?*		[ (Action "Odd" "Odd",  				Sometimes (onlyIf (\_ -> even)      (\_ -> oddOrEvenButtons (not even))))
+		>?*		[ (Action "Odd" "Odd",  				Sometimes (onlyIf (\_ -> even)     (\_ -> oddOrEvenButtons (not even))))
 				, (Action "Even" "Even",				Sometimes (onlyIf (\_ -> not even) (\_ -> oddOrEvenButtons (not even))))
 				: [ (Action (toString i) (toString i),  Always (return i))
 				  \\ i <- [0..9] | if even (isEven i) (isOdd i)

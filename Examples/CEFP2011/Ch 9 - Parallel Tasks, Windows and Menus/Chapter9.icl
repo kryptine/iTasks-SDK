@@ -12,7 +12,7 @@ Start :: *World -> *World
 Start world = startEngine flows9 world
 
 flows9 :: [Workflow]
-flows9 =  [w1, w2]
+flows9 =  [w1, w2, w3]
 
 w1 = workflow "CEFP/Chap 9/1. Chat with several users"    	"Chat with several users" chat3
 w2 = workflow "CEFP/Chap 9/2. Editing a text file" "Editing a text file" textEditor2
@@ -41,12 +41,12 @@ chat3
 
 chatTask user cs os
 	=			update (addUser user) cs
-		>>|		monitor ("Chat list view") id (const False) False cs
+		>>|		monitor ("Chat list view") [] cs
 				||- 
 				chatMore user "" cs os
 
 chatMore user s cs os 
-	= 	updateInformationA ("Chat with iTask users") (toView,fromView) s  	
+	= 	updateInformation ("Chat with iTask users") [View (toView,fromView)] s  	
 		>?*	[(ActionAdd,  IfValid (\r  ->	  set os [AppendTask newChatter]
 										  >>| chatMore user r cs os))
 			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) cs 
@@ -108,7 +108,7 @@ ActionStatistics	:== Action "Statistics" "Statistics"
 
 textEditor2 ::  Task Void
 textEditor2 
-	=						enterInformation "Give name of text file you want to edit..."
+	=						enterInformation "Give name of text file you want to edit..." []
 		>>= \fileName ->	readTextFile fileName
 		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [taskKind (editor fileName)]
 
@@ -129,7 +129,7 @@ where
 
 editor :: String (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 editor fileName ls os 
-	= 			updateSharedInformationA (fileName,"Edit text file \"" +++ fileName +++ "\"") (toView,fromView) ls
+	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") [View (toView,fromView)] ls
 		>?* 	[ (ActionSave, 		IfValid	save)
 		  		, (ActionQuit,		Always 	quit)
 		  		, (ActionReplace,	Sometimes (\s -> onlyIf (not s.modelValue.replace)    replace))
@@ -158,7 +158,7 @@ where
 
 replaceTask :: Replace (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 replaceTask replacement ls os
-	=			updateInformationA ("Replace","Define replacement...") idView replacement
+	=			updateInformation ("Replace","Define replacement...") [] replacement
 		>?*		[(ActionOk,   IfValid 	(\r -> 		updateText (replaceSubString r.search r.replaceBy) ls
 							 					>>|	replaceTask r ls os))
 				,(ActionQuit, Always 	(	updateReplace False ls 
@@ -167,8 +167,8 @@ replaceTask replacement ls os
 
 statisticsTask :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 statisticsTask ls os 
-	= 			monitorA ("Statistics","Statistics of your document") toView ls
-				(\_ -> UserActions [(ActionQuit, Just (updateStat False ls >>| return Void))]) >>= id
+	= 			monitor ("Statistics","Statistics of your document") [Get toView] ls
+		>?*		[(ActionQuit, Always (updateStat False ls >>| return Void))]
 where
 	toView state=:{mytext} 
 		=	{ lines 	 = length (split "\n" mytext)
@@ -235,8 +235,8 @@ derive class iTask MeetingProposal, Participant, MeetingProposalView, Participan
 mkAppointment :: Task [MeetingProposal]
 mkAppointment
 	=					get users
-		>>= \all ->		enterMultipleChoice "Who should attend the meeting ?" all
-		>>= \users ->	enterInformation "Propose meeting dates"
+		>>= \all ->		enterMultipleChoice "Who should attend the meeting ?" [] all
+		>>= \users ->	enterInformation "Propose meeting dates" []
 		>>= \dates ->	let initMeetingState = [ { MeetingProposal
 												 | date    = date
 												 , time    = time
@@ -259,7 +259,7 @@ where
 	where
 //		meetingTask :: (SymmetricShared [MeetingProposal]) (ParallelInfo [MeetingProposal]) -> Task [MeetingProposal]
 		meetingTask meetingState _
-			= updateSharedInformationA "When can we meet ?" (viewForUser user,modelFromView) meetingState noActions 
+			= updateSharedInformation "When can we meet ?" [View (viewForUser user,modelFromView)] meetingState  
 
 		managerProperties
 			= { worker = user, priority	= NormalPriority, deadline = Nothing, status = Active }	
@@ -295,9 +295,9 @@ where
 		= InBodyTask check
 	where
 		check meetingState controlState
-			=     				updateSharedInformationA "Monitor answers" (viewForManager,\_ ps -> ps)  meetingState 
+			=     				updateSharedInformation "Monitor answers" [View (viewForManager,\_ ps -> ps)]  meetingState 
 				>?*	 			[(ActionOk,IfValid return)]
-			  	>>= \props -> enterChoice "Choose meeting" props
+			  	>>= \props -> 	enterChoice "Choose meeting" [] props
 		where
 			viewForManager :: [MeetingProposal] -> [MeetingProposal]
 			viewForManager props
