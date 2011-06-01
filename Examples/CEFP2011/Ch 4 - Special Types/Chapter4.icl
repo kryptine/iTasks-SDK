@@ -19,7 +19,7 @@ w4 = workflow "CEFP/Chap 4/4. Google map"  	    "Edit a Google Map" 					(show g
 w8 = workflow "CEFP/Chap 4/5: Specialized type only accepting an odd number" "Type in an odd number" (show getOddNumber)
 
 show :: (Task a) -> Task a | iTask a
-show task = task >>= showMessageAbout "The result is:"
+show task = task >>= \r -> showMessage "The result is:" [About r] r
 
 // Hello World
 
@@ -40,11 +40,11 @@ pose q i = { question = toDisplay q, qid = toHidden i, answer = toEditable Yes }
 question :: String QID -> Task (QID,Approve)
 question txt i
     =     ask txt i
-      >>= showMessageAbout "The answer was:"
+      >>= \r -> showMessage "The answer was:" [About r] r
 
 ask :: String QID -> Task (QID,Approve)
 ask q i
-    =           updateInformation "Please answer the question" (pose q i)
+    =           updateInformation "Please answer the question" [] (pose q i)
       >>= \r -> return (i,response r)
 
 response :: Questionnaire -> Approve
@@ -52,7 +52,7 @@ response {answer} = fromEditable answer
 
 // Different ways to edit a list
 
-selectList list = updateInformation "Strange" 
+selectList list = updateInformation "Strange" []
 						( list
 						, Display list
 						, Choice list 1
@@ -61,14 +61,14 @@ selectList list = updateInformation "Strange"
 
 // Edit a piece of text
 
-textEditor text = updateInformation "Enter text" (Note text)
+textEditor text = updateInformation "Enter text" [] (Note text)
 
 // google map
 
 import GoogleMaps
 
 googleMap :: Task GoogleMap
-googleMap = enterInformation "Google map "
+googleMap = enterInformation "Google map " []
 
 // guarantee that a type has values with a certain property specializing gVerify
 
@@ -87,5 +87,5 @@ gVerify{|Odd|} mba st
 
 getOddNumber :: Task Int
 getOddNumber 
-	=						enterInformation "Type in an odd number" 
+	=						enterInformation "Type in an odd number" []
 		>>= \(Odd n) ->		return n

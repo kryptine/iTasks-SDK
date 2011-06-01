@@ -12,7 +12,7 @@ Start :: *World -> *World
 Start world = startEngine flows5 world
 
 flows5 :: [Workflow]
-flows5 =  [w1,w2]
+flows5 =  [w1,w2,w3,w4,w5]
 
 w1 = workflow "CEFP/Chap 5/1. Dynamic number of buttons" "Dynamic number of buttons to choose from" (forever (show (positive >>= actions)))
 w2 = workflow "CEFP/Chap 5/2. Dynamic number of buttons" "Order pressed is remembered" (show (dynButtons [1..10] []))
@@ -33,50 +33,43 @@ actions n = chooseAction
 dynButtons :: [Int] [Int] -> Task [Int]
 dynButtons [] accu = return accu
 dynButtons numbers accu
-	=					enterInformationA "Choose a button" action
+	=					updateInformation "Choose a button" [] Void
+		>?* 			[(Action (toString i) (toString i), Always (return index)) \\ i <- numbers & index <- [0..]] 
 		>>= \index ->	dynButtons (removeAt index numbers) [numbers!!index:accu]
-where
-	action :: (Maybe Void) -> [(Action,Maybe Int)]
-	action n = [(Action (toString i) (toString i), Just index) \\ i <- numbers & index <- [0..]] 
 
 // accept only an odd number 
 
 getOddNumber :: Task Int
 getOddNumber 
-	=					enterInformationA "Type in an odd number" action 
-where
-	action n	= [(ActionOk, onlyIf (\n -> (n > 0 && isOdd n && n < 100)) n)]
+	=			enterInformation "Type in an odd number" [] 
+		>?*  	[(ActionOk, Sometimes (onlyIf (\n -> n > 0 && isOdd n && n < 100) return))]
 	
-onlyIf :: (a -> Bool) (Maybe a) -> Maybe a
-onlyIf pred (Just a)
-	| pred a = Just a
-onlyIf _ _ = Nothing
+onlyIf :: (a -> Bool) (a -> Task b) (InformationState a) -> Maybe (Task b)
+onlyIf pred taskf  s
+| not 	s.localValid  = Nothing
+| pred  s.modelValue  = Just (taskf s.modelValue)
+= Nothing
 
 // show only the even or odd buttons
 
 oddOrEvenButtons :: Bool ->Task Int
 oddOrEvenButtons even
-	=					enterInformationA "Choose a button" action
-		>>= \mbInt ->	if (isNothing mbInt) (oddOrEvenButtons (not even)) (return (fromJust mbInt))
-where
-	action :: (Maybe Void) -> [(Action,Maybe (Maybe Int))]
-	action n =  [ (Action "Odd" "Odd",  if even 	  (Just Nothing) Nothing)
-				, (Action "Even" "Even",if (not even) (Just Nothing) Nothing)
-				: [ (Action (toString i) (toString i), if even (onOff isEven i) (onOff isOdd i))
-				  \\ i <- [0..9] 
+	=			updateInformation "Choose a button" [] Void
+		>?*		[ (Action "Odd" "Odd",  				Sometimes (onlyIf (\_ -> even)      (\_ -> oddOrEvenButtons (not even))))
+				, (Action "Even" "Even",				Sometimes (onlyIf (\_ -> not even) (\_ -> oddOrEvenButtons (not even))))
+				: [ (Action (toString i) (toString i),  Always (return i))
+				  \\ i <- [0..9] | if even (isEven i) (isOdd i)
 				  ]
 				] 
-	onOff pred i = if (pred i) (Just (Just i)) Nothing
 	
 // palindrome	
 
-palindrome = enterInformationA "Please enter a text" actionf
-where
-	actionf Nothing = [(Action "none" "No text entered", Nothing)]
-	actionf (Just x)= [(Action "palin"   "Palindrome!",if      (isPalindrome x)  (Just x) Nothing)
-					  ,(Action "nopalin" "Nope!",      if (not (isPalindrome x)) (Just x) Nothing)
-					  ]
-	
+palindrome 
+	= 				enterInformation "Please enter a text" []
+		>?*	 		[(Action "palin"   "Palindrome!",Sometimes (onlyIf isPalindrome return))
+					,(Action "nopalin" "Nope!",      Sometimes (onlyIf (not o isPalindrome) return))
+					]
+where	
 	isPalindrome :: String -> Bool
 	isPalindrome str	= chars == reverse chars
 	where

@@ -22,17 +22,15 @@ w7 = workflow "CEFP/Chap 3/7. Form for [Person]+check" 		"Form for [Person] and 
 w8 = workflow "CEFP/Chap 3/8. Form for [Person]+check" 		"Form for [Person] and check result" 	(show fillInAndCheckPersons2)
 
 show :: (Task a) -> Task a | iTask a
-show task = task >>= \result -> showMessageAbout "The result is:" result
+show task = task >>= \result -> showMessage "The result is:" [About result] result
 
-show2 :: (Task a) -> Task a | iTask a
-show2 task = task >>= showMessageAbout "The result is:"
 
 // Hello World
 
 hello :: Task String
 hello 
-	=              		enterInformation "Please enter your name"
-        >>= \name -> 	showMessage ("Hello " +++ name +++ "!") name
+	=              		enterInformation "Please enter your name" []
+        >>= \name -> 	showMessage ("Hello " +++ name +++ "!") [] name
         
 // Typing in a [Person], showing the result
 
@@ -47,55 +45,55 @@ derive class iTask Person, Gender
 
 personList :: Task [Person]
 personList
-	=              		enterInformation "Please fill in the form"
+	=              		enterInformation "Please fill in the form" []
 		
 // Same as w32, showing eta conversion
 
 personList2 :: Task Person
 personList2
 	=              		personList
-		>>= 			enterChoice "Choose one: "
+		>>= 			enterChoice "Choose one: " []
 		
 // Same as w32, showing higher order functions
 
 personList3 :: Task [Person]
 personList3
 	=              		personList
-		>>=				enterMultipleChoice "Select one or more: "
+		>>=				enterMultipleChoice "Select one or more: " []
 
 // Same as w32, showing recursive variant
 
 personList4 :: Task [Person]
 personList4
 	=          			fillOne
-		>>= \person ->  enterChoice "One more ? "  ["Yes","No"]
+		>>= \person ->  enterChoice "One more ? "  [] ["Yes","No"]
 		>>= \answer ->	case answer of
 							"Yes" -> 					personList4 
 										>>= \persons ->	return [person:persons]
 							"No" ->						return [person]
 where
 	fillOne :: Task Person
-	fillOne = enterInformation "Please fill in the form"
+	fillOne = enterInformation "Please fill in the form" []
 
 // Simple choice
 
-teaOrCoffee = enterChoice "Choose an option" ["Tea","Coffee"]
+teaOrCoffee = enterChoice "Choose an option" [] ["Tea","Coffee"]
 
 // Check result afterwards, not happy: do it again
 
 fillInAndCheckPersons :: Task [Person]
-fillInAndCheckPersons =  repeatUntilApproved (enterInformation "Please fill in the form:")
+fillInAndCheckPersons =  repeatUntilApproved (enterInformation "Please fill in the form:" [])
 
 repeatUntilApproved :: (Task a) -> Task a | iTask a
 repeatUntilApproved task
     =            task
-      >>= \v  -> enterChoiceAbout "Approve result: "  v ["Yes","No"]
+      >>= \v  -> enterChoice "Approve result: "  [About v] ["Yes","No"]
       >>= \ok -> case ok of
                     "Yes" -> return v
                     "No"  -> repeatUntilApproved task
                     
 fillInAndCheckPersons2 :: Task [Person]
-fillInAndCheckPersons2 =  repeatUntilApproved2 (enterInformation "Please fill in the form:")
+fillInAndCheckPersons2 =  repeatUntilApproved2 (enterInformation "Please fill in the form:" [])
 
 :: Approve = Yes | No
 
@@ -103,13 +101,13 @@ derive class iTask Approve
 repeatUntilApproved2 :: (Task a) -> Task a | iTask a
 repeatUntilApproved2 task
     =            task
-      >>= \v  -> enterChoiceAbout "Approve result: "  v [Yes,No]
+      >>= \v  -> enterChoice "Approve result: "  [About v] [Yes,No]
       >>= \ok -> case ok of
                     Yes -> return v
                     No  -> repeatUntilApproved2 task
 
 positive :: Task Int
-positive = while ((>=) 0) (updateInformation "Please enter a positive number") 0
+positive = while ((>=) 0) (updateInformation "Please enter a positive number" []) 0
 
 while :: (a -> Bool) (a -> Task a) a -> Task a | iTask a
 while cond task v
