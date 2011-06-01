@@ -25,29 +25,34 @@ derive gEq			TaskContainer
 * Combines two tasks sequentially. The first task is executed first. When it is finished
 * the second task is executed with the result of the first task as parameter.
 *
-* @param The first task to be executed
-* @param The second task, which receives the result of the first task
+* @param First: The first task to be executed
+* @param Second: The second task, which receives the result of the first task
 * @return The combined task
+* 
+* @gin False
 */
 (>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 /**
 * Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
 *
-* @param The first task to be executed
-* @param The second task to be executed
+* @param First: The first task to be executed
+* @param Second: The second task to be executed
 * @return The combined task
+*
+* @gin False
 */
 (>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
-
 
 /**
 * All-in-one swiss-army-knife parallel task creation
 *
-* @param The (overloaded) task description
-* @param The accumulator
-* @param A function defining how to convert the accumulator to the final result when the parallel task finishes
-* @param The list of tasks to run in parallel, each task is given a view on the status of all tasks in the set
+* @param Description: The (overloaded) task description
+* @param Accumulator: The accumulator
+* @param Merge: Function defining how to convert the accumulator to the final result when the parallel task finishes
+* @param Tasks: The list of tasks to run in parallel, each task is given a view on the status of all tasks in the set
 * @return The resulting value
+* 
+* @gin False
 */
 parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
 
@@ -82,20 +87,24 @@ derive class iTask Control
 /**
 * Create a new process.
 *
-* @param Automatically garbage collect the process when it is finished (removing all references to the state of the process).
-* @param The initial manager properties
-* @param The task's menu
-* @param The task that is to be started in the new process.
+* @param Gargabe collect: Automatically garbage collect the process when it is finished (removing all references to the state of the process).
+* @param Manager properties : The initial manager properties
+* @param Menu: The task's menu
+* @param Task: The task that is to be started in the new process.
 *
 * @return A reference to the newly created process
+* 
+* @gin-icon process_add
 */
 spawnProcess	:: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task ProcessId | iTask a
 
 /**
 * Kills a process disregarding any other references to this process.
 *
-* @param The process reference
+* @param Process: The process reference
 *
 * @return Void
+* 
+* @gin-icon process_delete
 */
 killProcess 	:: !ProcessId -> Task Void

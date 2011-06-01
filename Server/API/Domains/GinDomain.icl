@@ -2,15 +2,13 @@ implementation module GinDomain
 
 from StdEnv import id
 
-import StdDebug
-
 import iTasks, Text, HtmlUtil
 import GinSyntax, GinFlowLibrary
 import GinCompiler, GinParser
 
 import GinORYX
 
-gVisualize {|ORYXEditor|} val vst = visualizeControl (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) (mkText,mkHtml) (trace_n (toString (toJSON val)) val) vst
+gVisualize {|ORYXEditor|} val vst = visualizeControl (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) (mkText,mkHtml) val vst
 where
 	oryx = fromMaybe emptyORYXEditor val
 		        

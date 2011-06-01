@@ -16,34 +16,41 @@ from Shared import ::Shared, ::ReadOnlyShared
 /**
 * Calls an external executable. The call is non-blocking.
 *
-* @param a message shown to the user while the process is running
-* @param path to the executable
-* @param a list of command-line arguments
+* @param Executable: path to the executable
+* @param Arguments: a list of command-line arguments
 * @return return-code of the process
 * @throws CallException
-* @return A shared reference in which the return code will be stored
+* 
+* @gin-title Start executable
+* @gin-icon executable
 */
 callProcess :: !FilePath ![String] -> Task Int
 
 /**
 * Calls an external HTTP webservice.
 *
-* @param the HTTP method (GET or POST) to use
-* @param The URL of the webservice
-* @param A list of name/value pairs
-* @param A parse function that parses the response
+* @param HTTP Method: the HTTP method (GET or POST) to use
+* @param URL: The URL of the webservice
+* @param Parameters: A list of name/value pairs
+* @param Response handler: A parse function that parses the response
 * 
 * @return A shared reference in which the response will be stored
+* 
+* @gin-title Call web service
+* @gin-icon webservice
 */
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 
 /**
 * Send an e-mail message.
 *
-* @param The subject line of the e-mail
-* @param The body of the e-mail
-* @param The list of recipients. This can be either e-mail addresses or existing system users.
+* @param Subject: The subject line of the e-mail
+* @param Body: The body of the e-mail
+* @param Recipients: The list of recipients. This can be either e-mail addresses or existing system users.
 *
 * @return The recipients to which the email was sent
+
+* @gin-title Send e-mail
+* @gin-icon email
 */
 sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]

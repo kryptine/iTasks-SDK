@@ -12,15 +12,17 @@ from Task		import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTermina
 :: SharedStoreId :== String
 
 /**
-* Lifts a value to the task domain. The return_V task finishes immediately and yields its parameter
+* Lifts a value to the task domain. The task finishes immediately and yields its parameter
 * as result of the task.
 *
-* @param The value to be returned
+* @param Value: The value to be returned
 * @return A task that will return the value defined by the parameter
+* 
+* @gin-icon return
 */
 return 		:: !a 										-> Task a 		| iTask a
 
-/**
+/*
 * Creates a reference to a store identified by a string identifier.
 * If no data is store the default value given as second argument is given as result.
 */
@@ -29,29 +31,38 @@ sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDec
 /**
 * Reads shared data.
 *
-* @param A shared reference
+* @param Shared: A shared reference
 * @return The value read
 * @throws SharedException
+*
+* @gin-title Read shared
+* @gin-icon shared_read
 */
 get :: !(Shared a w) -> Task a | iTask a
 
 /**
 * Writes shared data.
 *
-* @param A value to write
-* @param A shared reference
+* @param Shared: A shared reference
+* @param Value: A value to write
 * @return The value written
 * @throws SharedException
+*
+* @gin-title Write shared
+* @gin-icon shared_update
 */
 set :: !(Shared r a) !a -> Task a | iTask a
 
 /**
 * Updates shared data in one atomic operation.
 *
-* @param A function modifying the shared value
-* @param A shared reference
-* @param The new value
+* @param Update function: A function modifying the shared value
+* @param Shared: A shared reference
+* @return The value written
 * @throws SharedException
+*
+* @gin-title Update shared
+* @gin-icon shared_update
 */
 update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 
@@ -62,16 +73,18 @@ update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 * How the data model is displayed/updated/changed is defined by means of dynamically calculated InteractionParts.
 * When the tasks stop and it's result (a) is determined by dynamically calculated InteractionTerminators.
 *
-* @param A description of the task to display to the user
-* @param A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
+* @param Description: A description of the task to display to the user
+* @param Interaction function: A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
 *        dynamically generating the interaction parts shown to the user (parts can change the local state (l) & possibly also write to the shared (Maybe w))
-* @param A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
+* @param Terminator function: A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
 *        dynamically calculating the terminators of the task
-* @param The initial local state
-* @param A reference to shared data the task works on
+* @param Initial state: The initial local state
+* @param Shared: A reference to shared data the task works on
 *
 * @return A result determined by the terminators
 * @throws SharedException
+*
+* @gin False
 */
 interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
@@ -86,52 +99,66 @@ interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(Shared r w) ->
 /**
 * Dynamically adds a workflow to the system.
 *
-* @param The workflow to add
+* @param Workflow: The workflow to add
 * @return The description of the added workflow
+* 
+* @gin False
 */
 addWorkflow :: !Workflow -> Task WorkflowDescription
 
 /**
 * Administer a change to another (running) workflow process
 *
-* @param A process id
-* @param The change
-* @param The change's lifetime
+* @param Process ID: A process id
+* @param Change dynamic: The change
+* @param Lifetime: The change's lifetime
 *
 * @return The task that will do the change
+* 
+* @gin False
 */
 applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 
 /**
 * Evaluate a "World" function that does not yield any result once.
 *
-* @param The function to evaluate
-*
-* @param A Void task that evaluates the function
+* @param World function: The function to evaluate
+* @return A Void task that evaluates the function
+* 
+* @gin False
 */
 appWorld :: !(*World -> *World)			-> Task Void
 
 /**
 * Evaluate a "World" function that also returns a value once.
 *
-* @param The function to evaluate
-*
-* @param A Void task that evaluates the function
+* @param World function: The function to evaluate
+* @return A task that evaluates the function and yield a
+* 
+* @gin False
 */
 accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
 
 /**
 * Evaluate a "World" function that also returns a MaybeError value.
 * If the MaybeError value is Error, the error is transformed.
-* @param The function to evaluate
-* @param Error transformation function
+* @param World function: The function to evaluate
+* @param Error function: Error transformation function
 *
-* @param A Void task that evaluates the function
+* @return A Void task that evaluates the function
+* 
+* @gin False
 */
 accWorldError   :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 
+/**
+* Evaluate a "World" function that also returns a MaybeOSError value.
+* If the MaybeError value is Error, the error is transformed.
+* @param World function: The function to evaluate
+* @param Error function: Error transformation function
+*
+* @return A Void task that evaluates the function
+* 
+* @gin False
+*/
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World))             -> Task a | iTask a
-
-appIWorld		:: !(*IWorld -> *IWorld)								-> Task Void
-
-accIWorld		:: !(*IWorld -> *(!a,!*IWorld))							-> Task a | iTask a

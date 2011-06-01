@@ -19,6 +19,8 @@ import CoreTasks
 * @param Options:			Interaction options; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used
 *
 * @return					Value entered by the user
+* 
+* @gin-icon page_white
 */
 enterInformation :: !d ![LocalInteractionOption m] -> Task m | descr d & iTask m
 
@@ -30,6 +32,8 @@ enterInformation :: !d ![LocalInteractionOption m] -> Task m | descr d & iTask m
 * @param Data model:		The data updated by the user
 *
 * @return					Value updated by the user
+* 
+* @gin-icon page_edit
 */
 updateInformation :: !d ![LocalInteractionOption m] m -> Task m | descr d & iTask m
 
@@ -41,6 +45,8 @@ updateInformation :: !d ![LocalInteractionOption m] m -> Task m | descr d & iTas
 * @param Data model:		The data shown to the user
 *
 * @return					Value shown by the user, the value is not modified
+* 
+* @gin-icon information
 */
 showMessage :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask m
 
@@ -53,6 +59,8 @@ showMessage :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask m
 *
 * @return					Last value of the shared state to which the user added information
 * @throws					SharedException
+* 
+* @gin-icon page_white
 */
 enterSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
@@ -65,6 +73,8 @@ enterSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | 
 *
 * @return 					Last value of the shared state the user updated
 * @throws					SharedException
+* 
+* @gin-icon page_edit
 */
 updateSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
@@ -77,6 +87,8 @@ updateSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r |
 *
 * @return					Last value of the monitored state
 * @throws					SharedException
+* 
+* @gin-icon monitor
 */
 monitor :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
@@ -91,6 +103,8 @@ monitor :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask
 * @param Choice options:	A list of options the user can choose from
 *
 * @return					The option chosen by the user
+* 
+* @gin-icon choice
 */
 enterChoice :: !d ![LocalInteractionOption o] ![o] -> Task o | descr d & iTask o
 
@@ -103,6 +117,8 @@ enterChoice :: !d ![LocalInteractionOption o] ![o] -> Task o | descr d & iTask o
 * @param Selection:			The pre-selected item; if it is not member of the options list no options is pre-selected
 *
 * @return 					The option chosen by the user
+* 
+* @gin-icon choice
 */
 updateChoice :: !d ![LocalInteractionOption o] ![o] o -> Task o | descr d & iTask o
 
@@ -115,6 +131,8 @@ updateChoice :: !d ![LocalInteractionOption o] ![o] o -> Task o | descr d & iTas
 *
 * @return 					The option chosen by the user
 * @throws					SharedException
+* 
+* @gin-icon choice
 */
 enterSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task o | descr d & iTask o & iTask w
 
@@ -128,6 +146,8 @@ enterSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task o | des
 *
 * @return 					The option chosen by the user
 * @throws					SharedException
+* 
+* @gin-icon choice
 */
 updateSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) o -> Task o | descr d & iTask o & iTask w
 
@@ -139,6 +159,8 @@ updateSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) o -> Task o | 
 * @param Choice options:	A list of options the user can choose from
 *
 * @return					The options chosen by the user
+* 
+* @gin-icon choice
 */
 enterMultipleChoice :: !d ![LocalInteractionOption o] ![o] -> Task [o] | descr d & iTask o
 
@@ -152,6 +174,8 @@ enterMultipleChoice :: !d ![LocalInteractionOption o] ![o] -> Task [o] | descr d
 * @param Selection:			The pre-selected items; items which are not member of the option list are ignored
 *
 * @return 					The options chosen by the user
+* 
+* @gin-icon choice
 */
 updateMultipleChoice :: !d ![LocalInteractionOption o] ![o] [o] -> Task [o] | descr d & iTask o
 
@@ -164,6 +188,8 @@ updateMultipleChoice :: !d ![LocalInteractionOption o] ![o] [o] -> Task [o] | de
 *
 * @return 					The options chosen by the user
 * @throws					SharedException
+* 
+* @gin-icon choice
 */
 enterSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task [o] | descr d & iTask o & iTask w
 
@@ -177,6 +203,8 @@ enterSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task
 *
 * @return 					The options chosen by the user
 * @throws					SharedException
+* 
+* @gin-icon choice
 */
 updateSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
 
@@ -186,9 +214,11 @@ updateSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) [o] ->
 /**
 * Creates a task which blocks a workflow until a specified time.
 *
-* @param: Time: The specified time at which the task should complete
+* @param Time: The specified time at which the task should complete
 *
 * @return The time to wait for
+* 
+* @gin-icon clock_go
 */
 waitForTime		:: !Time			-> Task Time
 /**
@@ -197,6 +227,8 @@ waitForTime		:: !Time			-> Task Time
 * @param Date: The specified date at which the task should complete
 *
 * @return The date to wait for
+* 
+* @gin-icon date_go
 */
 waitForDate		:: !Date			-> Task Date
 /**
@@ -206,6 +238,8 @@ waitForDate		:: !Date			-> Task Date
 * @param Time: The time to wait before the task should complete
 *
 * @return The time the timer went off
+* 
+* @gin-icon clock_go
 */
 waitForTimer	:: !Time			-> Task Time
 
@@ -218,6 +252,8 @@ waitForTimer	:: !Time			-> Task Time
 * @param Action list:	A list of actions the user can choose from. Each actions yields the given result if it's chosen. 
 *
 * @return 				Value associated with chosen action
+* 
+* @gin False
 */
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 
@@ -229,6 +265,8 @@ chooseAction :: ![(!Action,a)] -> Task a | iTask a
 *
 * @return 					Value associated with chosen action
 * @throws					SharedException
+* 
+* @gin False
 */						
 chooseActionDyn :: !(Shared r w) !(r -> [(!Action,Maybe a)]) -> Task a | iTask a & iTask r & iTask w
 
@@ -240,5 +278,7 @@ chooseActionDyn :: !(Shared r w) !(r -> [(!Action,Maybe a)]) -> Task a | iTask a
 * @param Local state:			The initial local state
 *
 * @return						The last value of the local state
+* 
+* @gin False
 */
 interactLocal :: !d !(l -> [InteractionPart l]) l -> Task l | descr d & iTask l

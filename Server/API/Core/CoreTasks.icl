@@ -322,16 +322,3 @@ where
 	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException
-
-appIWorld :: !(*IWorld -> *IWorld) -> Task Void 
-appIWorld fun = mkInstantTask ("Run Iworld function", "Run an IWorld function.") eval
-where
-	eval taskNr iworld = (TaskFinished Void, fun iworld)
-
-accIWorld :: !(*IWorld -> *(!a,!*IWorld)) -> Task a | iTask a
-accIWorld fun = mkInstantTask ("Run Iworld function", "Run an IWorld function and get result.") eval
-where
-	eval taskNr iworld
-		# (res,iworld)	= fun iworld
-		= (TaskFinished res,iworld)
-

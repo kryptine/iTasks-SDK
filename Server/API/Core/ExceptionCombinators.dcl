@@ -23,25 +23,34 @@ instance toString FileException, ParseException, CallException, SharedException,
 /**
 * Exception combinator.
 *
-* @param The normal task which will possibly raise an exception of type e
-* @param The exception handling task which gets the exception as parameter
+* @param Task: The normal task which will possibly raise an exception of type e
+* @param Handler: The exception handling task which gets the exception as parameter
 * @return The combined task
+*
+* @gin-title Try block
+* @gin-icon catch
 */
 try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & iTask, toString e
 
 /**
-* Exception throwing. This will trough an exception of arbitrary type e which has to be caught
+* Exception throwing. This will throw an exception of arbitrary type e which has to be caught
 * by a higher level exception handler combinator.
 *
-* @param The exception value
+* @param Value: The exception value
 * @return The combined task
+* 
+* @gin-title Raise exception
+* @gin-icon error
 */
 throw		:: !e 								-> Task a 	| iTask a & iTask, toString e
 
 /**
 * Catches all exceptions.
 *
-* @param The normal task which will possibly raise an exception of any type
-* @param The exception handling task
+* @param Task: The normal task which will possibly raise an exception of any type
+* @param Handler: The exception handling task
+* 
+* @gin-title Catch all exceptions
+* @gin-icon catch
 */
 catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a
