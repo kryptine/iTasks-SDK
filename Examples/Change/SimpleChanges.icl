@@ -15,7 +15,7 @@ changeExamples =
   	]
 where
 	catch :: String -> Task Void
-	catch message  = showMessage ("Error!",message) Void
+	catch message  = showMessage ("Error!",message) [] Void
 
 //Simple change which will run once and change the priority of all tasks to high
 changePriority :: TaskPriority -> ChangeDyn
@@ -31,7 +31,7 @@ addWarning msg =
 	dynamic change  :: A.a: Change a | iTask a
 where
 	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Nothing, Just (((showMessageA ("Warning!",redText msg)) noActionsMsg ||- t)), Just (addWarning msg))
+	change props t t0 = (Nothing, Just (((showMessage ("Warning!",redText msg) [] Void >>+ noActions) ||- t)), Just (addWarning msg))
 
 redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
@@ -57,7 +57,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True {ManagerProperties|initManagerProperties & worker = user} noMenu (showMessageAbout ("Process ended","Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess True {ManagerProperties|initManagerProperties & worker = user} noMenu (showMessage ("Process ended","Process " +++ procName +++ " ended!") [Get id] res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn
@@ -65,7 +65,7 @@ check user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> assign {worker = user, priority = HighPriority, deadline = Nothing, status = Active} noMenu (updateInformation ("Verification","Please verify result of " +++ procName) res)), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> assign {worker = user, priority = HighPriority, deadline = Nothing, status = Active} noMenu (updateInformation ("Verification","Please verify result of " +++ procName) [] res)), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
 cancel ::  String ProcessId -> ChangeDyn
@@ -96,12 +96,12 @@ where
 changePrio :: Task Void
 changePrio
 	=				chooseProcess "Of which process do you want to change the priority?"			
-	>>= \proc -> 	enterInformation ("New priority","What should the new priority be?")
+	>>= \proc -> 	enterInformation ("New priority","What should the new priority be?") []
 	>>= \priority ->applyChangeToProcess proc (changePriority priority) (CLPersistent "priority")
 
 changeWarningTask :: Task Void
 changeWarningTask
-	=				enterInformation ("Warning","Type in warning you want to show to all:")
+	=				enterInformation ("Warning","Type in warning you want to show to all:") []
 	>>= \warning ->	chooseProcess "Which process do you want to change?"			
 	>>= \proc ->	applyChangeToProcess proc (addWarning warning) (CLPersistent "warning")
 
@@ -150,7 +150,7 @@ restartTask
 //Utility
 chooseUserA :: !question -> Task User | html question
 chooseUserA question
-	=		enterSharedChoiceA ("Choose user",question) id users
+	=		enterSharedChoice ("Choose user",question) [] users
 		>?*	[ (ActionCancel,	Always	(throw "choosing a user has been cancelled"))
 			, (ActionOk,		IfValid	(\user -> return user))
 			]							
@@ -158,7 +158,7 @@ chooseUserA question
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
 	=				getProcessesWithStatus [Running] [Active]
-	>>= \procs ->	enterChoiceA question id
+	>>= \procs ->	enterChoice question []
 					[	( proc.Process.properties.ProcessProperties.systemProperties.SystemProperties.taskId
 						, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title
 						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.priority

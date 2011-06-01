@@ -50,21 +50,23 @@ derive bimap Maybe, (,)
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>=) taska taskbfun = mkTask (taskTitle taska, taskDescription taska) init edit eval
 where
+	taskaFuncs = toTaskFuncs taska
+	
 	init taskNr iworld
-		# (inita,iworld) = taska.initFun [0:taskNr] iworld
+		# (inita,iworld) = taskaFuncs.initFun [0:taskNr] iworld
 		= (TCBind (Left inita), iworld)
 		
 	//Event is targeted at first task of the bind
 	edit taskNr ([0:steps],path,val) context=:(TCBind (Left cxta)) iworld	
-		# (newCxta,iworld) = taska.editEventFun [0:taskNr] (steps,path,val) cxta iworld
+		# (newCxta,iworld) = taskaFuncs.editEventFun [0:taskNr] (steps,path,val) cxta iworld
 		= (TCBind (Left newCxta), iworld)
 	//Event is targeted at second task of the bind
 	edit taskNr ([1:steps],path,val) context=:(TCBind (Right (vala,cxtb))) iworld
 		//Compute the second task based on the result of the first
 		= case fromJSON vala of
 			Just a
-				# taskb = taskbfun a
-				# (newCxtb,iworld)	= taskb.editEventFun [1:taskNr] (steps,path,val) cxtb iworld
+				# taskbfun = toTaskFuncs (taskbfun a)
+				# (newCxtb,iworld)	= taskbfun.editEventFun [1:taskNr] (steps,path,val) cxtb iworld
 				= (TCBind (Right (vala,newCxtb)), iworld)
 			Nothing
 				= (context,iworld)
@@ -74,15 +76,15 @@ where
 	//Evaluate first task
 	eval taskNr event tuiTaskNr imerge pmerge (TCBind (Left cxta)) iworld 
 		//Adjust the target of a possible event
-		# (resa, iworld) = taska.evalTaskFun [0:taskNr] (stepCommitEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge cxta iworld
+		# (resa, iworld) = taskaFuncs.evalTaskFun [0:taskNr] (stepCommitEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge cxta iworld
 		= case resa of
 			TaskBusy tui newCxta
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) (TCBind (Left newCxta)), iworld)
 			TaskFinished a
 				//Directly continue with the second task
-				# taskb = taskbfun a
-				# (cxtb,iworld)		= taskb.initFun [1:taskNr] iworld
-				# (resb,iworld)		= taskb.evalTaskFun [1:taskNr] Nothing (stepTUITaskNr 1 tuiTaskNr) imerge pmerge cxtb iworld 
+				# taskbfun = toTaskFuncs (taskbfun a)
+				# (cxtb,iworld)		= taskbfun.initFun [1:taskNr] iworld
+				# (resb,iworld)		= taskbfun.evalTaskFun [1:taskNr] Nothing (stepTUITaskNr 1 tuiTaskNr) imerge pmerge cxtb iworld 
 				= case resb of
 					TaskBusy tui newCxtb	= (TaskBusy (tuiOk 1 tuiTaskNr tui) (TCBind (Right (toJSON a,newCxtb))),iworld)
 					TaskFinished b			= (TaskFinished b, iworld)
@@ -93,8 +95,8 @@ where
 	eval taskNr event tuiTaskNr imerge pmerge (TCBind (Right (vala,cxtb))) iworld
 		= case fromJSON vala of
 			Just a
-				# taskb				= taskbfun a
-				# (resb, iworld)	= taskb.evalTaskFun [1:taskNr] (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge cxtb iworld 
+				# taskbfun			= toTaskFuncs (taskbfun a)
+				# (resb, iworld)	= taskbfun.evalTaskFun [1:taskNr] (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge cxtb iworld 
 				= case resb of
 					TaskBusy tui newCxtb	= (TaskBusy (tuiOk 1 tuiTaskNr tui) (TCBind (Right (vala,newCxtb))),iworld)
 					TaskFinished b			= (TaskFinished b, iworld)
@@ -141,7 +143,7 @@ where
 			= ([(i,s):ss], nextIdx, iworld)
 			
 	//Direct the event to the right place
-	edit taskNr ([s:steps],path,val) context=:(TCParallel encState meta subs) iworld	
+	edit taskNr ([s:steps],path,val) context=:(TCParallel encState meta subs) iworld
 		//Add the current state to the parallelVars scope in iworld
 		# state							= decodeState encState initState 
 		# iworld						= addParState taskNr state meta iworld
@@ -154,14 +156,16 @@ where
 				//Active InBody task
 				STCBody props (Just (encTask,subCxt))
 					# task = fromJust (dynamicJSONDecode encTask)	//TODO: Add case for error
-					# (newSubCxt,iworld) = task.editEventFun [s:taskNr] (steps,path,val) subCxt iworld
+					# taskfuncs = toTaskFuncs` task
+					# (newSubCxt,iworld) = taskfuncs.editEventFun [s:taskNr] (steps,path,val) subCxt iworld
 					# newSub = STCBody props (Just (encTask,newSubCxt))
 					= (TCParallel encState meta [if (i == s) (i,newSub) (i,sub) \\(i,sub) <- subs],iworld)
 				//Active Detached task
 				STCDetached props (Just (encTask,subCxt))
 					//Same pattern as inbody tasks
 					# task = fromJust (dynamicJSONDecode encTask)	//TODO: Also add case for error
-					# (newSubCxt,iworld) = task.editEventFun [s:taskNr] (steps,path,val) subCxt iworld
+					# taskfuncs = toTaskFuncs` task
+					# (newSubCxt,iworld) = taskfuncs.editEventFun [s:taskNr] (steps,path,val) subCxt iworld
 					# newSub = STCDetached props (Just (encTask,newSubCxt))
 					= (TCParallel encState meta [if (i == s) (i,newSub) (i,sub) \\(i,sub) <- subs],iworld)
 				//Task is either completed already or hidden
@@ -224,26 +228,29 @@ where
 		# (result,stcontext,iworld)	= case stcontext of
 			(STCHidden props (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
-				# (result,iworld)	= task.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge context iworld 
+				# taskfuncs			= toTaskFuncs` task
+				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge context iworld 
 				= case result of
-					TaskBusy tui context	= (TaskBusy tui context, STCHidden props (Just (hd (dynamicJSONEncode task), context)), iworld)
+					TaskBusy tui context	= (TaskBusy tui context, STCHidden props (Just (encTask, context)), iworld)
 					TaskFinished _			= (TaskFinished Void, STCHidden props Nothing, iworld)
 					TaskException e str		= (TaskException e str, STCHidden props Nothing, iworld)
 			(STCBody props (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
-				# (result,iworld)	= task.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge context iworld 
+				# taskfuncs			= toTaskFuncs` task
+				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge context iworld 
 				= case result of
-					TaskBusy tui context	= (TaskBusy tui context, STCBody props (Just (hd (dynamicJSONEncode task), context)), iworld)
+					TaskBusy tui context	= (TaskBusy tui context, STCBody props (Just (encTask, context)), iworld)
 					TaskFinished _			= (TaskFinished Void, STCBody props Nothing, iworld)
 					TaskException e str		= (TaskException e str, STCBody props Nothing, iworld)
 			(STCDetached props (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
+				# taskfuncs			= toTaskFuncs` task
 				//Evaluate the task with a different current worker set
 				# (curUser,iworld)	= switchCurrentUser props.ProcessProperties.managerProperties.worker iworld
-				# (result,iworld)	= task.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge context iworld 
+				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge context iworld 
 				# (_,iworld)		= switchCurrentUser curUser iworld
 				= case result of
-					TaskBusy tui context	= (TaskBusy tui context, STCDetached props (Just (hd (dynamicJSONEncode task), context)), iworld)
+					TaskBusy tui context	= (TaskBusy tui context, STCDetached props (Just (encTask, context)), iworld)
 					TaskFinished _			= (TaskFinished Void, STCDetached (markFinished props) Nothing, iworld)
 					TaskException e str		= (TaskException e str, STCDetached (markExcepted props) Nothing, iworld)		
 			_
@@ -263,35 +270,42 @@ where
 		
 	initSubContext taskNr i taskContainer iworld=:{IWorld|timestamp}
 		# subTaskNr = [i:taskNr]
-		# stateShare = mkStateShare taskNr
-		# controlShare = mkControlShare taskNr
 		= case taskContainer of
 			DetachedTask managerProps menu taskfun
-				# task			= taskfun stateShare controlShare
+				# (task,funcs)	= mkSubTask taskfun
 				# processProps	= initProcessProperties subTaskNr timestamp managerProps menu task
-				# (cxt,iworld)	= task.initFun subTaskNr iworld
+				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCDetached processProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 			//Window & dialogue now implemented as simple InBody tasks
 			WindowTask title menu taskfun 
-				# task			= taskfun stateShare controlShare
+				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
-				# (cxt,iworld)	= task.initFun subTaskNr iworld
+				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 			DialogTask title taskfun
-				# task			= taskfun stateShare controlShare
+				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
-				# (cxt,iworld)	= task.initFun subTaskNr iworld
+				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 			InBodyTask taskfun
-				# task			= taskfun stateShare controlShare
+				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
-				# (cxt,iworld)	= task.initFun subTaskNr iworld
+				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 			HiddenTask taskfun
-				# task			= taskfun stateShare controlShare
+				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
-				# (cxt,iworld)	= task.initFun subTaskNr iworld
-				= (STCHidden taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)	
+				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
+				= (STCHidden taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
+	where
+		// apply shared to taskfun & convert to 'normal' (non-action) tasks
+		mkSubTask taskfun
+			# stateShare	= mkStateShare taskNr
+			# controlShare	= mkControlShare taskNr
+			# task			= taskfun stateShare controlShare
+			# funcs			= toTaskFuncs task
+			# task			= {Task|task & type = NormalTask funcs}
+			= (task,funcs)
 
 	//Initialize a process properties record for administration of detached tasks
 	initProcessProperties taskNr timestamp managerProps menu {Task|properties}
@@ -453,6 +467,10 @@ where
 				Just ((_,ts) :: ([ParallelTaskInfo],Timestamp))	= (Ok ts, iworld)
 				_												= (Error ("Could not read timestamp for parallel task info of " +++ taskNrToString taskNr), iworld)
 			
+	toTaskFuncs` {Task|type} = case type of
+		NormalTask fs	= fs
+		_				= abort "action task in parallel"
+
 spawnProcess :: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task ProcessId | iTask a
 spawnProcess gcWhenDone managerProperties menu task = undef /*TODO mkTask ("Spawn process", "Spawn a new task instance") id spawnProcess`
 where

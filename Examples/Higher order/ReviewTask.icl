@@ -46,21 +46,21 @@ reviewtask :: Task (QForm,Review)
 reviewtask = taskToReview AnyUser (defaultValue, mytask)
 
 mytask :: a -> (Task a) | iTask a
-mytask v =	updateInformation ("Form","Fill in Form:") v
+mytask v =	updateInformation ("Form","Fill in Form:") [] v
 
 taskToReview :: User (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
 	=					task v`               
 		>>= \v ->		reviewer @: (Title "Review" @>> review v) 
-		>>= \r ->		showMessageAbout ("Review",[Text ("Reviewer " <+++ reviewer <+++ " says ")]) r 
+		>>= \r ->		showMessage ("Review",[Text ("Reviewer " <+++ reviewer <+++ " says ")]) [About r] Void
 		>>|				case r of
 							(NeedsRework _) -> taskToReview reviewer (v,task) 	
 							else            -> return (v,r)
 
 review :: a -> Task Review | iTask a 
 review v
-	=	enterChoiceAbout ("Review","What is your verdict?") v
-			[ updateInformation ("Comments","Please add your comments") (NeedsRework (Note "")) <<@ Title "Rework"
+	=	enterChoice ("Review","What is your verdict?") [About v]
+			[ updateInformation ("Comments","Please add your comments") [] (NeedsRework (Note "")) <<@ Title "Rework"
 			, return Approved <<@ Title "Approved"
 			, return Rejected <<@ Title "Reject"
 			]

@@ -28,10 +28,10 @@ delegateTaskExample
   ]
 */
 trivialTask :: Task Int
-trivialTask =			enterInformation ("Nr 1","Enter nr 1") 
-			>>= \v1 ->	enterInformation ("Nr 2","Enter nr 2")
-			>>= \v2 ->	enterInformation ("Nr 3","Enter nr 3")
-			>>= \v3 -> 	updateInformation ("Result","Your result is:") (v1 + v2 + v3)
+trivialTask =			enterInformation ("Nr 1","Enter nr 1") []
+			>>= \v1 ->	enterInformation ("Nr 2","Enter nr 2") []
+			>>= \v2 ->	enterInformation ("Nr 3","Enter nr 3") []
+			>>= \v3 -> 	updateInformation ("Result","Your result is:") [] (v1 + v2 + v3)
 
 /*
 delegateTask :: (Task a) HtmlTime -> (Task a) | iData a
@@ -63,7 +63,7 @@ determineSet :: [User] -> Task [User]
 determineSet people = determineSet`
 where
 	determineSet`	
-	=					enterChoiceAbout ("Choose people","Current set:") people
+	=					enterChoice ("Choose people","Current set:") [About people]
 						[ cancelTask choosePerson <<@ Title "Add Person"
 						, return Nothing <<@ Title "Finished"
 						] 	
@@ -72,7 +72,7 @@ where
 							(Just new)  -> determineSet (sort (removeDup [new:people])) 
 							Nothing		-> if (people == []) (determineSet people) (return people)
 
-	choosePerson = enterSharedChoice ("User","Select a user") users >>= \user -> return (Just user)
+	choosePerson = enterSharedChoice ("User","Select a user") [] users >>= \user -> return (Just user)
 
-	cancelTask task = task -||- (showMessage ("Cancel...","Cancel task?") defaultValue)
+	cancelTask task = task -||- (showMessage ("Cancel...","Cancel task?") [] defaultValue)
 	

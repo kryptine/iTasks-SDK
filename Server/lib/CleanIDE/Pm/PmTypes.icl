@@ -62,7 +62,7 @@ ProcessorSuffix I386				= ".o"
 
 instance == Processor
 where
-	(==) :: Processor Processor -> Bool
+	(==) :: !Processor !Processor -> Bool
 	(==) CurrentProcessor CurrentProcessor		=	True
 	(==) MC68000 MC68000						=	True
 	(==) MC68020 MC68020						=	True
@@ -75,7 +75,7 @@ where
 
 instance fromString Processor
 where
-	fromString :: {#Char} -> Processor
+	fromString :: !{#Char} -> Processor
 	fromString "CurrentProcessor"		=	CurrentProcessor
 	fromString "MC68000"				=	MC68000
 	fromString "MC68020"				=	MC68020
@@ -88,7 +88,7 @@ where
 
 instance toString Processor
 where
-	toString :: Processor -> {#Char}
+	toString :: !Processor -> {#Char}
 	toString MC68000				=	"MC68000"
 	toString MC68020				=	"MC68020"
 	toString MC68020_and_68881		=	"MC68020_and_68881"
@@ -345,7 +345,7 @@ DefApplicationOptions =
 
 instance == Output
 where
-	(==) :: Output Output -> Bool
+	(==) :: !Output !Output -> Bool
 	(==) BasicValuesOnly BasicValuesOnly
 		=	True
 	(==) ShowConstructors ShowConstructors
@@ -359,7 +359,7 @@ where
 
 instance fromString Output
 where
-	fromString :: {#Char} -> Output
+	fromString :: !{#Char} -> Output
 	fromString "BasicValuesOnly"
 		=	BasicValuesOnly
 	fromString "ShowConstructors"
@@ -373,7 +373,7 @@ where
 
 instance toString Output
 where
-	toString :: Output -> {#Char}
+	toString :: !Output -> {#Char}
 	toString BasicValuesOnly
 		=	"BasicValuesOnly"
 	toString ShowConstructors

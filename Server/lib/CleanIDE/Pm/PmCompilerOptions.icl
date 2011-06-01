@@ -22,7 +22,7 @@ UnexpectedReport message
 
 instance == ListTypes
 where
-	(==) :: ListTypes ListTypes -> Bool
+	(==) :: !ListTypes !ListTypes -> Bool
 	(==) NoTypes NoTypes
 		=	True
 	(==) InferredTypes InferredTypes
@@ -48,7 +48,7 @@ where
 
 instance fromString ListTypes
 where
-	fromString :: {#Char} -> ListTypes
+	fromString :: !{#Char} -> ListTypes
 	fromString "NoTypes"
 		=	NoTypes
 	fromString "InferredTypes"

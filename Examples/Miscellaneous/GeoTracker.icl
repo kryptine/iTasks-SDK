@@ -27,10 +27,10 @@ where
 viewMap :: Task Void
 viewMap = interact
 			"Look where everyone is"
-			(\gmap locations _ -> [UpdateView (FormValue {GoogleMap|gmap & markers = map mkMarker locations},\mbMap -> ({GoogleMap|fromMaybe gmap mbMap & markers = []},Nothing))])
+			(\gmap locations _ -> [UpdateView (FormValue {GoogleMap|gmap & markers = map mkMarker locations}) (\mbMap -> ({GoogleMap|fromMaybe gmap mbMap & markers = []},Nothing))])
 			nlMap
 			locationStore
-			(\_ _ _ -> UserActions [(ActionQuit,Just Void)])
+			>>+ \_ -> UserActions [(ActionQuit,Just Void)]
 where
 	nlMap :: GoogleMap		
 	nlMap = {GoogleMap| mkMap & zoom = 7, center = {lat = 52.396, lng = 5.21}}

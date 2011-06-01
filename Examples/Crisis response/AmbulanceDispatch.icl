@@ -68,11 +68,11 @@ reportIncident
   = enterIncident >>= chooseResponse >>= allTasks
 where
   enterIncident :: Task Incident
-  enterIncident = enterInformation ("Incident report","Describe the incident")
+  enterIncident = enterInformation ("Incident report","Describe the incident") []
 
   chooseResponse :: Incident -> Task [Task Void]
   chooseResponse incident
-    = updateMultipleChoice ("Response","Choose response") options (suggestion incident.Incident.type)
+    = updateMultipleChoice ("Response","Choose response") [] options (suggestion incident.Incident.type)
 
   where
     //Generate the list of possible tasks to choose from
@@ -85,17 +85,17 @@ where
     suggestion _        = []
 
 sendPolice :: Incident -> Task Void
-sendPolice incident = showMessage ("Send police","Please send police") Void
+sendPolice incident = showMessage ("Send police","Please send police") [] Void
 
 sendMedics :: Incident -> Task Void
 sendMedics incident = Title "Send ambulances" @>> requestAmbulances incident.Incident.nrInjured incident.Incident.location
 
 sendFireBrigade :: Incident -> Task Void
-sendFireBrigade incident = showMessage ("Send fire brigade","Please send fire brigade") Void
+sendFireBrigade incident = showMessage ("Send fire brigade","Please send fire brigade") [] Void
 
 dispatchAmbulances :: Task Void
 dispatchAmbulances
-	=					enterInformation ("Dispatch ambulances","How many ambulances do you need at what location?")
+	=					enterInformation ("Dispatch ambulances","How many ambulances do you need at what location?") []
 	>>= \(nr,loc) ->	requestAmbulances nr loc
  
 // Request for amount ambulances from list of candidate providers
@@ -126,7 +126,7 @@ where
 	lonDist l1 l2 = (fromJust l1.Location.coordinates).lon - (fromJust l2.Location.coordinates).lon
 
 displayRequest :: [Provider] -> Task Void
-displayRequest providers = showMessageA ("Request",flatten [[Text (p.Provider.name +++ " is asked for " <+ p.capacity),BrTag []]\\p <- providers]) noActionsMsg >>| stop
+displayRequest providers = showMessage ("Request",flatten [[Text (p.Provider.name +++ " is asked for " <+ p.capacity),BrTag []]\\p <- providers]) [] Void >>+ noActions
 
 // Calculates for a needed amount (left,providers,remainder)
 // left: is the amount that could not fulfilled (0 in case all can be supplied)
@@ -193,10 +193,10 @@ timeOutTask task time
 
 ambulanceTask :: Int -> Task Int
 ambulanceTask amount
-	= updateInformation ("Amount","I need " <+ amount <+ " ambulances, how much can you provide?") amount
+	= updateInformation ("Amount","I need " <+ amount <+ " ambulances, how much can you provide?") [] amount
 
 showAmbulances :: [(Provider, Maybe Int)] -> Task Void
-showAmbulances providers = showMessage ("Summary","Ambulances are on their way") Void
+showAmbulances providers = showMessage ("Summary","Ambulances are on their way") [] Void
 
 //Utilities
 (<+) infixl :: !String !a -> String | toString a

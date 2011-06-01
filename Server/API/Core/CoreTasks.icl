@@ -75,8 +75,8 @@ where
 		| isError wres	= (taskException (SharedException (fromError wres)), iworld)
 		= (TaskFinished val, iworld)
 
-interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) !l !(Shared r w) !(l r Bool -> InteractionTerminators a) -> Task a | descr d & iTask l & iTask a & iTask w
-interact description partFunc initLocal shared termFunc = mkTask description init edit eval
+interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact description partFunc initLocal shared = mkActionTask description (\ITaskDict termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
 where
 	init taskNr iworld
 		= (TCBasic newMap, iworld)
@@ -100,7 +100,7 @@ where
 			_
 				# (mbV,part)	= views !! idx
 				= case part of
-					UpdateView (_,putback)
+					UpdateView _ putback
 						| isNothing mbV			= (context,iworld)
 						# (jsonV,umask,_)		= fromJust mbV
 						# value					= fromJSON jsonV
@@ -130,14 +130,14 @@ where
 				
 	edit taskNr _ context iworld = (context,iworld)
 	
-	eval taskNr event tuiTaskNr imerge pmerge context iworld=:{IWorld|timestamp}
+	eval termFunc taskNr event tuiTaskNr imerge pmerge context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
 		# (changed,iworld)				= 'Shared'.isSharedChanged shared localTimestamp iworld
 		| isError changed				= (sharedException changed, iworld)
 		# local							= getLocalState context
-		= case termFunc local (fromOk model) (fromOk changed) of
+		= case termFunc {modelValue = (local,fromOk model), localValid = fromOk changed} of
 			StopInteraction result
 				= (TaskFinished result,iworld)
 			UserActions actions
@@ -229,16 +229,16 @@ visualizeParts taskNr parts oldVs mbEdit
 where
 	visualizePart (part,mbV,idx)
 		= case part of
-			UpdateView (formView,putback) = case formView of
+			UpdateView formView putback = case formView of
 				FormValue value
 					# umask				= defaultMask value
 					# vmask				= verifyForm value umask
 					# tui				= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit
 					= (tui,Just (toJSON value,umask,vmask))
 				Unchanged init = case mbV of
-					Nothing				= visualizePart (UpdateView (init,putback),mbV,idx)
+					Nothing				= visualizePart (UpdateView init putback,mbV,idx)
 					Just (jsonV,_,vmask) = case fromJSON` formView jsonV of
-						Nothing			= visualizePart (UpdateView (init,putback),mbV,idx)
+						Nothing			= visualizePart (UpdateView init putback,mbV,idx)
 						Just value		= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,mbV)
 				Blank					= blankForm formView mbEdit
 			DisplayView v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),Nothing)
@@ -267,12 +267,6 @@ where
 	
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
-
-okAction :: !(Maybe a) -> InteractionTerminators a
-okAction r = UserActions [(ActionOk,r)]
-
-addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask about
-addAbout mbAbout parts = maybe parts (\about -> [DisplayView about:parts]) mbAbout
 
 addWorkflow :: !Workflow -> Task WorkflowDescription
 addWorkflow workflow = mkInstantTask "Adds a workflow to the system" eval

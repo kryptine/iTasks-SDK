@@ -103,12 +103,12 @@ moduleExists config name = accWorld (modulePath config name) >>= \path -> return
 
 newModuleName :: !GinConfig -> Task String
 newModuleName config
-	=						enterInformation "Give name of new module:"
+	=						enterInformation "Give name of new module:" []
 		>>= \name ->		moduleExists config name
 		>>= \exists ->		if exists
-								(		showMessageA ("Module " +++ name +++ " already exists, do you want to overwrite?")
-									>>* [ (ActionNo,	return name)
-										, (ActionYes,	newModuleName config)
+								(		showMessage ("Module " +++ name +++ " already exists, do you want to overwrite?") [] Void
+									>?*	[ (ActionNo,	Always (return name))
+										, (ActionYes,	Always (newModuleName config))
 										]
 								)
 								( return name )
@@ -117,10 +117,10 @@ chooseModule :: !GinConfig -> Task (Maybe (!String, !GModule))
 chooseModule config  
 	=				accWorldOSError (listModules config)
 		>>= \all ->	case all of
-						[] ->		showMessage "Choose module" "No modules stored !" >>| return Nothing
-						names ->	enterChoice "Choose module you want to use:" names
+						[] ->		showMessage ("Choose module","No modules stored !") [] Nothing
+						names ->	enterChoice "Choose module you want to use:" [] names
 									>>= \choice -> accWorld (readModule config choice)
 									>>= \mg -> case mg of
-										Error e = showMessage "Error" ("Failed to read module " +++ choice +++ ":" +++ e) >>| return Nothing
+										Error e = showMessage ("Error","Failed to read module " +++ choice +++ ":" +++ e) [] Nothing
 										Ok gMod = return (Just (choice, gMod))
 

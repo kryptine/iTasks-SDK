@@ -28,10 +28,10 @@ trivialTask = fillInForm
 
 fillInForm :: Task QForm
 fillInForm	
-	= 				enterInformation ("Quote information","Please fill in quotation:") 
-	>>= \form ->	showMessageAboutA ("Check","Is everything filled in correctly?") id form
-	>>*				[ (ActionNo,	fillInForm)
-					, (ActionYes,	return form)
+	= 				enterInformation ("Quote information","Please fill in quotation:") []
+	>>= \form ->	showMessage ("Check","Is everything filled in correctly?") [About form] Void
+	>?*				[ (ActionNo,	Always fillInForm)
+					, (ActionYes,	Always (return form))
 					] 
 
 movingTask (label,task)
@@ -43,7 +43,7 @@ where
 		>>= 		inspect
 	
 	inspect pref
-	=					enterChoice ("Task options","Go ahead impatient boss:")
+	=					enterChoice ("Task options","Go ahead impatient boss:") []
 							[ getStatus pref <<@ Title "Get status"
 							, suspend pref <<@ Title "Suspend"
 							, activate pref <<@ Title "Activate"
@@ -59,21 +59,21 @@ where
 		>>= \st	->			getProcessOwner pid
 		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [toString (fromJust mbOwner)])
 		>>= \names ->		case st of
-								(Finished,_)		-> showMessage ("Task finished","It is finished") True
-								(Deleted,_)			-> showMessage ("Task deleted","It is deleted") True		
-								(Running,Active)	-> showMessage ("Task busy","User " <+++ hd names <+++ " is working on it") False		
-								(Running,Suspended)	-> showMessage ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") False		
+								(Finished,_)		-> showMessage ("Task finished","It is finished") [] True
+								(Deleted,_)			-> showMessage ("Task deleted","It is deleted") [] True		
+								(Running,Active)	-> showMessage ("Task busy","User " <+++ hd names <+++ " is working on it") [] False		
+								(Running,Suspended)	-> showMessage ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") [] False		
 	suspend pid
 	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
-		>>|					showMessage ("Task suspended","workflow is suspended") False
+		>>|					showMessage ("Task suspended","workflow is suspended") [] False
 								
 	activate pid
 	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Active})
-		>>|					showMessage ("Task activated","workflow is activated") False
+		>>|					showMessage ("Task activated","workflow is activated") [] False
 
 	delete pid
 	=						killProcess pid 
-		>>| 				showMessage ("Task deleted","workflow is deleted") True				
+		>>| 				showMessage ("Task deleted","workflow is deleted") [] True				
 
 	reassign pid
 	=						selectUser "Who is next?"
@@ -88,4 +88,4 @@ where
 
 	
 selectUser :: !String -> Task User
-selectUser question = enterSharedChoice question users
+selectUser question = enterSharedChoice question [] users

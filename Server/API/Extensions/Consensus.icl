@@ -43,31 +43,31 @@ askOpinionsOther topic = askOpinionsGeneric topic
 
 defineTopic :: Task Topic
 defineTopic
-	= enterInformation ("Define topic","Please define the topic that you would like to get opinions about")
+	= enterInformation ("Define topic","Please define the topic that you would like to get opinions about") []
 
 defineItemType :: Task String
 defineItemType
-	= enterChoice ("Define item type","What type of item(s) would you like to get opinions about") ["Date","Document","Other"]
+	= enterChoice ("Define item type","What type of item(s) would you like to get opinions about") [] ["Date","Document","Other"]
 	
 defineItems :: Task [a] | iTask a
 defineItems
-	= enterInformation ("Define items","Enter the item(s) you would like to get opinions about")
+	= enterInformation ("Define items","Enter the item(s) you would like to get opinions about") []
 	
 defineAnswers :: Task [String]
 defineAnswers
-	= enterInformation ("Define answers","Please define the available answer choices")
+	= enterInformation ("Define answers","Please define the available answer choices") []
 	  -||-
-	  enterChoice ("Common answers","Or select one of these common answer sets")
+	  enterChoice ("Common answers","Or select one of these common answer sets") []
 	  	[["Yes","No"],["Yes","No","Maybe"],["I agree","I disagree"],["1","2","3","4","5"]]
 	  	
 defineParticipants :: Task [User]
 defineParticipants
 	=	getMyGroups
 	>>= \groups -> case groups of
-		[]	= enterInformation ("Define people","Enter the people you would like to ask for an opinion")
-		_	=	(enterChoice ("Choose a group","Choose a group...") groups >>= \group -> return group.members)
+		[]	= enterInformation ("Define people","Enter the people you would like to ask for an opinion") []
+		_	=	(enterChoice ("Choose a group","Choose a group...") [] groups >>= transform (\group -> group.members))
 	  			-||-
-	  			(enterInformation ("Define people","Or enter individual people to ask for an opinion")) 
+	  			(enterInformation ("Define people","Or enter individual people to ask for an opinion") []) 
 
 collectOpinions :: Topic [a] [String] [User] -> Task (Results a) | iTask a
 collectOpinions topic items answers participants
@@ -84,11 +84,11 @@ collectOpinion :: Topic User [a] [String] -> Task (User,[(a,String)]) | iTask a
 collectOpinion topic user items answers
 	=	user @:
 		(Title ("Your opinion about: " +++ topic.topic) @>>
- 		(allTasks [enterChoiceAbout ("Option " <+++ i,"What is your opinion about:") item answers  \\ item <- items & i <- [1..]] >>= transform (merge items)))
+ 		(allTasks [enterChoice ("Option " <+++ i,"What is your opinion about:") [About item] answers  \\ item <- items & i <- [1..]] >>= transform (merge items)))
 where
 	merge items opinions = (user,zip (items,opinions))
 
 showResult :: (Results a) -> Task (Results a) | iTask a
-showResult result = showMessageAbout ("Opinions","The results of your opinion request:") result
+showResult result = showMessage ("Opinions","The results of your opinion request:") [Get id] result
 
 

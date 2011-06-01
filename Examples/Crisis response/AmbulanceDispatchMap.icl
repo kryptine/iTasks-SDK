@@ -32,7 +32,7 @@ reportIncident
 	
 markLocations :: Task GoogleMap
 markLocations = 
-	enterInformation ("Locations","Mark all locations where incidents have occurred")
+	enterInformation ("Locations","Mark all locations where incidents have occurred") []
 	
 specifiyIncidents :: GoogleMap -> Task [Incident]
 specifiyIncidents map = sequence "Specify individual incident details" [ (addressLookup m) >>= \addr -> (specifyIncident addr m) \\ m <- (reverse map.GoogleMap.markers) ]
@@ -58,11 +58,11 @@ specifyIncident addr marker
 			 , nrInjured = 0
 			 , description = Note ""
 			 }
-= showMessageAboutA ("Location","Incident location:") id smap noActionsMsg ||- updateInformation ("Details","Specify incident details") incident 
+= (showMessage ("Location","Incident location:") [Get id] smap >>+ noActions) ||- updateInformation ("Details","Specify incident details") [] incident
 
 //====
 showSources ::  Task Void
 showSources
 	=       importDocument "Crisis Response\\AmbulanceDispatchMap.icl" >>=
 	\icl -> importDocument "Crisis Response\\AmbulanceDispatchMap.dcl" >>=
-	\dcl -> showMessageAboutA ("Sources","View the source code of this example") id [icl,dcl] noActionsMsg >>| stop
+	\dcl -> showMessage("Sources","View the source code of this example") [Get id] [icl,dcl] >>+ noActions >>| stop

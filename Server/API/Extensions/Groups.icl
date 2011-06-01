@@ -25,13 +25,13 @@ manageGroups
 	) <! id
 	>>| return Void
 where
-	overview []		= showMessageA ("My groups",startMsg) [(ActionNew,(ActionNew,Nothing)),(ActionQuit,(ActionQuit,Nothing))]
-	overview list	= enterChoiceA ("My groups",listMsg) id list (\mbG -> [aOpen mbG,aNew,aQuit])
+	overview []		= showMessage ("My groups",startMsg) [] Void >>+ \_ -> UserActions [(ActionNew,Just (ActionNew,Nothing)),(ActionQuit,Just (ActionQuit,Nothing))]
+	overview list	= enterChoice ("My groups",listMsg) [] list >>+ (\{modelValue,localValid} -> let mbG = if localValid (Just modelValue) Nothing in UserActions [aOpen mbG,aNew,aQuit])
 	
 	aOpen mbG		= (ActionOpen, maybe Nothing (\g -> Just (ActionOpen,Just g)) mbG)
 	aNew			= (ActionNew, Just (ActionNew,Nothing))
 	aQuit			= (ActionQuit, Just (ActionQuit,Nothing))
-	newGroup		= 		enterInformation ("New group","Please enter a name for the new group")
+	newGroup		= 		enterInformation ("New group","Please enter a name for the new group") []
 						>>= \name ->
 							get currentUser
 						>>= \user -> 
@@ -52,7 +52,7 @@ manageGroup igroup
 	= 	
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
-		showMessageAboutA (toString group,"This group contains the following members:") id group.members [(aBack,aBack),(aInvite,aInvite),(aLeave,aLeave)]
+		showMessage (toString group,"This group contains the following members:") [Get id] group.members >>+ (\_ -> UserActions [(aBack,Just aBack),(aInvite,Just aInvite),(aLeave,Just aLeave)])
 	>>= \action -> case action of
 		ActionClose					= 					return True
 		Action "invite" _			= invite group	>>| return False
@@ -64,7 +64,7 @@ where
 	aLeave	= Action "leave" "Leave group"
 		
 	invite group
-		= 	enterInformation ("Invite a someone to join " +++ toString group,"Please enter a user to invite to the group")
+		= 	enterInformation ("Invite a someone to join " +++ toString group,"Please enter a user to invite to the group") []
 		>>=	inviteUserToGroup group
 			
 	leave group
@@ -111,18 +111,15 @@ inviteUserToGroup group user
 		>>= \accept ->
 			if accept
 				(addMemberToGroup group user 
-				 >>= showMessage ("Invitation accepted",toString user +++ " accepted your invitation to join the group " +++ toString group)
+				 >>= showMessage ("Invitation accepted",toString user +++ " accepted your invitation to join the group " +++ toString group) []
 				)
-				(showMessage ("Invitation declined",toString user +++ " declined your invitation to join the group " +++ toString group) group)
+				(showMessage ("Invitation declined",toString user +++ " declined your invitation to join the group " +++ toString group) [] group)
 		)
-	>>| showMessage ("Invitation sent","An invitation to join the group has been sent to " +++ toString user) group
+	>>| showMessage ("Invitation sent","An invitation to join the group has been sent to " +++ toString user) [] group
 where
 	invite user group
-		= showMessageA (
+		= showMessage (
 			"Invitation to join group " +++ toString group,
 			[Text (toString user +++ " invites you to join the group " +++ toString group +++ "."),BrTag [], Text "Do you accept this invitation?"])
-			[(ActionNo,False),(ActionYes,True)]
-
-
-			
-
+			[] Void
+			>>+ \_ -> UserActions [(ActionNo,Just False),(ActionYes,Just True)]

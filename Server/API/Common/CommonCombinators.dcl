@@ -6,7 +6,6 @@ definition module CommonCombinators
 
 import CoreCombinators, TuningCombinators
 import Either
-from InteractionTasks	import class editorState
 from Types				import :: User, :: SessionId
 from Map				import :: Map
 from Shared				import :: SymmetricShared
@@ -25,6 +24,8 @@ derive JSONEncode	Tag
 derive JSONDecode	Tag
 derive gEq			Tag
 
+(>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
+
 /**
 * General multi-bind used to define continuations for an interaction task
 * using an terminator function (interact, interactLocal, 'A' variants of interaction tasks).
@@ -34,7 +35,7 @@ derive gEq			Tag
 *
 * @return The continuation's result
 */
-(>>*) infixl 1 :: !(termF -> Task (Task a)) !termF -> Task a | iTask a
+(>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
 
 
 /**
@@ -46,11 +47,15 @@ derive gEq			Tag
 *
 * @return The continuation's result
 */
-(>?*) infixl 1 :: !(((state v) -> [(!Action,!Maybe (Task a))]) -> Task (Task a)) ![(!Action,!EditorTaskContinuation state v a)] -> Task a | editorState state v & iTask a & iTask v
+(>?*) infixl 1 :: !(Task a) ![(!Action,!TaskContinuation a b)] -> Task b | iTask a & iTask b
 
-:: EditorTaskContinuation state v result	= Always	!(Task result)						// continuation which can always be taken
-											| IfValid	!(v -> Task result)					// continuation which can be taken if the local editor is in a valid state, the current value is given as input
-											| Sometimes	!((state v) -> Maybe (Task result))	// continuation which can sometimes be taken depending on the editor's current state
+(>?) infixl 1 :: !(Task a) !(a -> Bool) -> Task a | iTask a
+
+:: TaskContinuation a b	= Always	!(Task b)									// continuation which can always be taken
+						| IfValid	!(a -> Task b)								// continuation which can be taken if the local editor is in a valid state, the current value is given as input
+						| Sometimes	!((InformationState a) -> Maybe (Task b))	// continuation which can sometimes be taken depending on the editor's current state
+
+noActions :: (TermFunc a Void) | iTask a
 
 /**
 * Transform a value with a custom function

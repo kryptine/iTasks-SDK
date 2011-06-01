@@ -10,36 +10,36 @@ smallExamples = [workflow	"Examples/Miscellaneous/Calculate sum" "Calculate the 
 
 calculateSum :: Task Int
 calculateSum
-  =   enterInformation ("Number 1","Enter a number")
+  =   enterInformation ("Number 1","Enter a number") []
   >>= \num1 ->
-      enterInformation ("Number 2","Enter another number")
+      enterInformation ("Number 2","Enter another number") []
   >>= \num2 ->
-      showMessageAbout ("Sum","The sum of those numbers is:") (num1 + num2)
+      showMessage ("Sum","The sum of those numbers is:") [Get id] (num1 + num2)
         
 calculateSumSteps :: Task Int
 calculateSumSteps = step1First
 where
-	step1First			=		enterInformationA ("Number 1","Enter a number")
+	step1First			=		enterInformation ("Number 1","Enter a number") []
 						  >?*	[(ActionNext, IfValid (\num -> step2First num))]
 						  
-	step1Back num1		=		updateInformationA ("Number 1","Enter a number") idView num1
+	step1Back num1		=		updateInformation ("Number 1","Enter a number") [] num1
 						  >?*	[(ActionNext, IfValid (\num -> step2First num))]
 	
-	step2First num1		=		enterInformationA ("Number 2","Enter another number")
+	step2First num1		=		enterInformation ("Number 2","Enter another number") []
 						  	>?*	[ (ActionPrevious,	Always	(step1Back num1))
 						  		, (ActionNext,		IfValid (\num2 -> step3 num1 num2))
 						  		]
 						  							
-	step2Back num1 num2	=		updateInformationA ("Number 2","Enter another number") idView num2
+	step2Back num1 num2	=		updateInformation ("Number 2","Enter another number") [] num2
 							>?*	[ (ActionPrevious,	Always	(step1Back num1))
 								, (ActionNext,		IfValid	(\num2` -> step3 num1 num2`))
 								]
 	
 	step3 num1 num2		= return (num1 + num2)
-						>>= \sum -> showMessageAboutA ("Sum","The sum of those numbers is:") id sum
-						>>*	[ (ActionPrevious,	step2Back num1 num2)
-							, (ActionOk,		return sum)
+						>>= \sum -> showMessage ("Sum","The sum of those numbers is:") [About sum] Void
+						>?*	[ (ActionPrevious,	Always (step2Back num1 num2))
+							, (ActionOk,		Always (return sum))
 							]
 
 calculateSumParam :: !(Int,Int) -> Task Int
-calculateSumParam (num1,num2) = showMessageAbout ("Sum","The sum of those numbers is:") (num1 + num2)
+calculateSumParam (num1,num2) = showMessage ("Sum","The sum of those numbers is:") [Get id] (num1 + num2)

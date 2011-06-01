@@ -31,7 +31,7 @@ db = sharedStore "MyIntDB" 0
 normalTask :: Task Int
 normalTask
 	= forever (				get db
-		>>= \initval 	->	updateInformation (subj,msg) initval
+		>>= \initval 	->	updateInformation (subj,msg) [] initval
 		>>= \setval		->	inspectVal setval
 		>>= \setval		->	set db setval
 		)
@@ -50,13 +50,13 @@ catchNegativeValueTask :: (Task Int) NegativeValueException -> Task Int
 catchNegativeValueTask task (NegativeValueException msg)
 	=	get db
 	>>=	\curval ->
-		showMessageAbout ("Exception!",
+		showMessage ("Exception!",
 			[Text "A NegativeValueException occurred: ",Text msg, BrTag []
 			,Text "The current stored value is: "
-			]) curval
+			]) [About curval] curval
 		
 
 catchTooLargeValueTask :: (Task Int) TooLargeValueException  -> Task Int
 catchTooLargeValueTask task (TooLargeValueException msg) 
-	=	showMessage ("Exception!","A TooLargeValueException occurred, please try again") Void
+	=	showMessage ("Exception!","A TooLargeValueException occurred, please try again") [] Void
 	>>| try (try task (catchNegativeValueTask task)) (catchTooLargeValueTask task)	

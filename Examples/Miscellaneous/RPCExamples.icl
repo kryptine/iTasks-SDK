@@ -13,11 +13,11 @@ weatherExample =
 					eitherTask enterLocation markLocation
 	>>=				getLocation
 	>>= \location.	callRPCHTTP GET GOOGLE_API [("weather", location),("hl","en-GB")] formatResponse
-	>>= \weather -> showMessageAbout ("Weather", "Weather forecast is:") weather >>| stop
+	>>= \weather -> showMessage ("Weather", "Weather forecast is:") [About weather] Void
 
-enterLocation = enterInformation ("Enter location", "Enter a location you want to retrieve the weather forecast for.")	
+enterLocation = enterInformation ("Enter location", "Enter a location you want to retrieve the weather forecast for.") []
 markLocation =
-		updateInformationA ("Mark location","Mark a location you want to retrieve the weather forecast for.") (toView,fromView) mkMap (\{modelValue} -> [(ActionOk,if (oneLocation modelValue) (Just modelValue) Nothing)])
+		updateInformation ("Mark location","Mark a location you want to retrieve the weather forecast for.") [View (toView,fromView)] mkMap >>+ (\{modelValue} -> UserActions [(ActionOk,if (oneLocation modelValue) (Just modelValue) Nothing)])
 	>>=	transform (\{markers=ms=:[m:_]} -> m.position)
 where
 	toView = id

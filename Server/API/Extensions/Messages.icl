@@ -49,8 +49,8 @@ manageMessages =
 	) <! id >>| stop
 where
 	overview :: [Message] -> Task (Action,Maybe Message)
-	overview []		= showMessageA ("My messages","You have no messages") [(aNew,(aNew,Nothing)),(aNewGroup,(aNewGroup,Nothing)),(aQuit,(aQuit,Nothing))]
-	overview msgs	= enterChoiceA ("My messages","Your messages:") id msgs (\mbM -> [(aOpen,maybe Nothing (\m -> Just (aOpen,Just m)) mbM),(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))])
+	overview []		= showMessage ("My messages","You have no messages") [] Void >>+ \_ -> UserActions [(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]
+	overview msgs	= enterChoice ("My messages","Your messages:") [] msgs >>+ \{modelValue,localValid} -> let mbM = if localValid (Just modelValue) Nothing in UserActions [(aOpen,maybe Nothing (\m -> Just (aOpen,Just m)) mbM),(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]
 	
 	aOpen		= ActionOpen
 	aNew		= Action "new-msg" "New message"
@@ -59,7 +59,7 @@ where
 
 manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
-	= 	showMessageAboutA (subject,"You received a message") id msg [(aClose,aClose),(aReply,aReply),(aReplyAll,aReplyAll),(aForward,aForward),(aDelete,aDelete)]
+	= 	showMessage (subject,"You received a message") [About msg] Void >>+ (\_ -> UserActions [(aClose,Just aClose),(aReply,Just aReply),(aReplyAll,Just aReplyAll),(aForward,Just aForward),(aDelete,Just aDelete)])
 	>>= \act -> case act of
 		ActionClose
 			= return False
@@ -80,7 +80,7 @@ manageMessage msg=:{Message |subject}
 			>>| return False
 		ActionDelete
 			=			dbDeleteItem (getItemId msg)
-			>>|			showMessage ("Deleted","Message deleted") False	
+			>>|			showMessage ("Deleted","Message deleted") [] False	
 where
 	aReply		= Action "reply" "Reply"
 	aReplyAll	= Action "reply-all" "Reply All"
@@ -98,8 +98,8 @@ newGroupMessage :: Task Void
 newGroupMessage = get currentUser
 	>>= \me ->		getMyGroups
 	>>= \groups ->	case groups of
-		[]	=	showMessage ("No groups","You are not a member of any group") Void
-		_	=	enterChoice ("Choose group","Select group") groups
+		[]	=	showMessage ("No groups","You are not a member of any group") [] Void
+		_	=	enterChoice ("Choose group","Select group") [] groups
 			>>= \group ->	writeMessage me "" group.members Nothing
 			>>= \msg ->		sendMessage msg
 	
@@ -109,8 +109,7 @@ sendMessage msg
 	>>= \msg -> case msg.needsReply of
 			False	= allTasks [spawnProcess True {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} noMenu (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| stop
 			True	= spawnProcess True initManagerProperties noMenu (awaitReplies msg) >>| stop
-	>>| showMessageAbout ("Message sent","The following message has been sent:") msg
-	>>| stop
+	>>| showMessage ("Message sent","The following message has been sent:") [About msg] Void
 where
 	awaitReplies msg =
 		Title ("Waiting for reply on " +++ msg.Message.subject) @>>
@@ -120,7 +119,7 @@ where
 	
 	askReplyTask user msg =
 		subject msg @>>
-			(showMessageA ("Reply requested","The sender would like to receive a reply to this message.") noActionsMsg
+			((showMessage ("Reply requested","The sender would like to receive a reply to this message.") [] Void >>+ noActions)
 			 ||-
 			 manageMessage msg
 			 )
@@ -131,11 +130,11 @@ where
 	notifyNoReplies recipients answers
 		= case [rcp \\ rcp <- recipients & ans <- answers | not ans] of
 			[]		= stop
-			users	= showMessageAbout ("Reply request ignored","The following users ignored your request for a reply:") users >>| stop
+			users	= showMessage ("Reply request ignored","The following users ignored your request for a reply:") [About users] Void
 			
 writeMessage :: User String [User] (Maybe Message) -> Task Message
 writeMessage sender subj recipients mbThread
-	= updateInformation ("Compose","Enter your message")
+	= updateInformation ("Compose","Enter your message") []
 		{Message | (mkMsg sender) & subject = subj, recipients = recipients,thread = updateThread mbThread}
 where
 	updateThread :: (Maybe Message) -> Display [Message] 

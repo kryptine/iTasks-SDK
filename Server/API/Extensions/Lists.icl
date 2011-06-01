@@ -37,24 +37,24 @@ manageLists
 	) <! id
 	>>| stop
 where
-	overview []		= showMessageA ("My lists","You have no lists.") [(ActionNew,(ActionNew,Nothing)),(ActionQuit,(ActionQuit,Nothing))]
-	overview list	= enterChoiceA ("My lists","Select a list...") id list (\mbL -> [aOpen mbL,aDelete mbL,aNew,aQuit])
+	overview []		= showMessage ("My lists","You have no lists.") [] Void >>+ \_ -> UserActions [(ActionNew,Just (ActionNew,Nothing)),(ActionQuit,Just (ActionQuit,Nothing))]
+	overview list	= enterChoice ("My lists","Select a list...") [] list >>+ \{modelValue,localValid} -> let mbL = if localValid (Just modelValue) Nothing in UserActions [aOpen mbL,aDelete mbL,aNew,aQuit]
 	
 	aOpen mbL 		= (ActionOpen, maybe Nothing (\l -> Just (ActionOpen,Just l)) mbL)
 	aNew			= (ActionNew, Just (ActionNew,Nothing))
 	aQuit			= (ActionQuit, Just (ActionQuit,Nothing))
 	aDelete mbL		= (ActionDelete, maybe Nothing (\l -> Just (ActionDelete,Just l)) mbL)
 	
-	newList			=	enterChoice ("List type","What type of list do you want to create?")
+	newList			=	enterChoice ("List type","What type of list do you want to create?") []
 						["Simple list", "Todo list", "Date list","Document list"]
 					>>= \type ->
-						enterInformation ("Name","Please enter a name, and if you like, a description for the list")
+						enterInformation ("Name","Please enter a name, and if you like, a description for the list") []
 					>>= \desc ->
 						createList type desc.ListDescription.name desc.ListDescription.description
 	
-	delList	list	=		showMessageA ("Delete list","Are you sure you want to delete '" +++ nameOf list +++ "'?")
-						>>*	[ (ActionNo,	return list)
-							, (ActionYes,	deleteList list)
+	delList	list	=		showMessage ("Delete list","Are you sure you want to delete '" +++ nameOf list +++ "'?") [] Void
+						>?*	[ (ActionNo,	Always (return list))
+							, (ActionYes,	Always (deleteList list))
 							]
 									
 manageList :: AnyList -> Task Void
@@ -69,16 +69,16 @@ manageList list
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= monitorA (l.List.name,l.List.description) simpleFrom		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) (const (UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]))
-		(TodoList l)	= monitorA (l.List.name,l.List.description) todoFrom		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) (const (UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]))
-		(DateList l)	= monitorA (l.List.name,l.List.description) dateFrom		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) (const (UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]))
-		(DocumentList l)= monitorA (l.List.name,l.List.description) documentFrom	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) (const (UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]))
+		(SimpleList l)	= monitor (l.List.name,l.List.description) [Get simpleFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]
+		(TodoList l)	= monitor (l.List.name,l.List.description) [Get todoFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]
+		(DateList l)	= monitor (l.List.name,l.List.description) [Get dateFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]
+		(DocumentList l)= monitor (l.List.name,l.List.description) [Get documentFrom]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]
 
 	editItems list = case list of
-		(SimpleList l)	= updateSharedInformationA (l.List.name,l.List.description) (simpleFrom,simpleTo)		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) (const [(ActionFinish,Just Void)])
-		(TodoList l)	= updateSharedInformationA (l.List.name,l.List.description) (todoFrom,todoTo)			(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) (const [(ActionFinish,Just Void)])
-		(DateList l)	= updateSharedInformationA (l.List.name,l.List.description) (dateFrom,dateTo)			(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) (const [(ActionFinish,Just Void)])
-		(DocumentList l)= updateSharedInformationA (l.List.name,l.List.description) (documentFrom,documentTo)	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) (const [(ActionFinish,Just Void)])
+		(SimpleList l)	= updateSharedInformation (l.List.name,l.List.description) [View (simpleFrom,simpleTo)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionFinish,Just Void)]
+		(TodoList l)	= updateSharedInformation (l.List.name,l.List.description) [View (todoFrom,todoTo)]			(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionFinish,Just Void)]
+		(DateList l)	= updateSharedInformation (l.List.name,l.List.description) [View (dateFrom,dateTo)]			(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionFinish,Just Void)]
+		(DocumentList l)= updateSharedInformation (l.List.name,l.List.description) [View (documentFrom,documentTo)]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionFinish,Just Void)]
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
@@ -101,8 +101,8 @@ manageListSharing list
 		Nothing		= throw "Could not find list meta data"
 		Just meta
 			= (case meta.ListMeta.sharedWith of
-				[]		= showMessageA ("Sharing","This list is not shared") [(aPrevious,(aPrevious,[])),(aAddPerson,(aAddPerson,[])),(aAddGroup,(aAddGroup,[]))]
-				users	= enterMultipleChoiceA ("Sharing","This list is shared with the following people") id users (\users -> [(aPrevious,Just (aPrevious,users)),(aRemove,Just (aRemove,users)),(aAddPerson,Just (aAddPerson,users)),(aAddGroup,Just (aAddGroup,users))])
+				[]		= showMessage ("Sharing","This list is not shared") [] Void >>+ \_ -> UserActions [(aPrevious,Just (aPrevious,[])),(aAddPerson,Just (aAddPerson,[])),(aAddGroup,Just (aAddGroup,[]))]
+				users	= enterMultipleChoice ("Sharing","This list is shared with the following people") [] users >>+ \{modelValue = users} -> UserActions [(aPrevious,Just (aPrevious,users)),(aRemove,Just (aRemove,users)),(aAddPerson,Just (aAddPerson,users)),(aAddGroup,Just (aAddGroup,users))]
 			  )
 			>>= \res -> case res of
 				(ActionDelete,users)		= removeUsers users >>| return False
@@ -118,13 +118,13 @@ where
 	aAddGroup	= Action "add-group" "Add group"
 
 	removeUsers users	= 	removeSharingForList list users
-	addUsers list		=	enterInformation ("Add person(s)","Enter the person(s) you want to share this list with")
+	addUsers list		=	enterInformation ("Add person(s)","Enter the person(s) you want to share this list with") []
 						>>= addSharingForList list 
 					
 	addGroup list		= 	getMyGroups
 						>>= \groups -> case groups of
-							[]		= showMessage ("Add group","You have no groups that you are member of") list
-							groups	= enterChoice ("Add group","Which group do you want to share this list with?") groups
+							[]		= showMessage ("Add group","You have no groups that you are member of") [] list
+							groups	= enterChoice ("Add group","Which group do you want to share this list with?") [] groups
 									>>= \group ->
 										addSharingForList list group.members
 

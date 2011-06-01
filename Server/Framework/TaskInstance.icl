@@ -6,7 +6,7 @@ import Types, Task, TaskContext, WorkflowDB, ProcessDB
 
 from CoreCombinators import >>=
 from TuningCombinators import class tune, instance tune Title, <<@, @>>, :: Title(..)
-from InteractionTasks import enterInformation
+from InteractionTasks import enterInformation, :: LocalInteractionOption, :: InteractionOption
 import iTaskClass
 
 createThread :: (Task a) -> Dynamic | iTask a
@@ -32,7 +32,7 @@ toNonParamThreadEnter :: !Dynamic -> Dynamic
 toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
 	= (dynamic Container {TaskThread | originalTask = enterParam originalTask, currentTask = enterParam currentTask} :: Container (TaskThread b) b)
 where		
-	enterParam paramTask = Title title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") >>= paramTask)
+	enterParam paramTask = Title title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask)
 
 
 createWorkflowInstance :: !WorkflowId !User !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
@@ -54,7 +54,8 @@ createWorkflowInstance workflowId user iworld
 			= (Ok (result,properties), iworld)
 where
 	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} menu iworld=:{IWorld|timestamp}
-		# (tcontext,iworld) = originalTask.initFun [0,processId] iworld		
+		# originalTaskFuncs = toTaskFuncs originalTask
+		# (tcontext,iworld) = originalTaskFuncs.initFun [0,processId] iworld		
 		# properties =
 			{ taskProperties	= taskProperties originalTask
 			, systemProperties	=
@@ -70,10 +71,11 @@ where
 		= (TCTop properties 0 (TTCActive tcontext),iworld)
 
 	evalTask processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) (TCTop properties changeNo (TTCActive tcontext)) iworld
+		# originalTaskFuncs = toTaskFuncs originalTask
 		//Set current worker
 		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
 		//Evaluate
-		# (tresult, iworld)	= originalTask.evalTaskFun [changeNo,processId] Nothing [] defaultInteractionLayout defaultParallelLayout tcontext iworld
+		# (tresult, iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] Nothing [] defaultInteractionLayout defaultParallelLayout tcontext iworld
 		= case tresult of
 			TaskBusy tui tcontext
 				# properties	= setRunning properties 
@@ -106,6 +108,7 @@ evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld
 	= (Ok (result,properties), iworld)
 where
 	evalTask processId mbEdit mbCommit tuiTaskNr thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) context=:(TCTop properties changeNo tcontext) iworld
+		# originalTaskFuncs = toTaskFuncs originalTask
 		//Set current worker
 		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
 		= case tcontext of
@@ -114,13 +117,13 @@ where
 				//Apply edit event
 				# (scontext,iworld) = case mbEdit of
 					//The firts two steps in an edit event path have to be the processId and changeNo
-					Just ([processId,changeNo:steps],path,val)	= originalTask.editEventFun [changeNo,processId] (steps,path,val) scontext iworld
+					Just ([processId,changeNo:steps],path,val)	= originalTaskFuncs.editEventFun [changeNo,processId] (steps,path,val) scontext iworld
 					_											= (scontext, iworld)
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
 				# commitEvent		= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
 				# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr) 
-				# (sresult,iworld)	= originalTask.evalTaskFun [changeNo,processId] commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout scontext iworld
+				# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout scontext iworld
 				= case sresult of
 					TaskBusy tui scontext
 						# properties	= setRunning properties 

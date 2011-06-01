@@ -7,7 +7,7 @@ import iTaskClass
 from Error		import ::MaybeError(..)
 from OSError	import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 from Shared		import :: SymmetricShared, :: Shared
-from Task		import :: Task, ::ChangeLifeTime, :: ChangeDyn
+from Task		import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
 
 :: SharedStoreId :== String
 
@@ -73,23 +73,15 @@ update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 * @return A result determined by the terminators
 * @throws SharedException
 */
-interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) !l !(Shared r w) !(l r Bool -> InteractionTerminators a) -> Task a | descr d & iTask l & iTask a & iTask w
+interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
-:: InteractionPart o	= E.v:	UpdateView	!(!FormView v, !(Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
+:: InteractionPart o	= E.v:	UpdateView	!(FormView v) !((Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayView	!v								& iTask v	// A static view displayed to the user
 						|		Update		!String !o									// A interaction element (typically a button with a string-label) allowing to directly change the states
 				
 :: FormView v	= FormValue !v				// A form representing a value
 				| Blank						// A blank form
 				| Unchanged (FormView v)	// Form is unchanged, if no view is stored the given initial value is used
-				
-:: InteractionTerminators a	= UserActions		![(!Action,!Maybe a)]	// A list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
-							| StopInteraction	!a						// The task stops and produces result a
-							
-							
-// auxiliary types/function for derived interaction tasks
-okAction :: !(Maybe a) -> InteractionTerminators a
-addAbout :: !(Maybe about) ![InteractionPart o] -> [InteractionPart o] | iTask about
 
 /**
 * Dynamically adds a workflow to the system.

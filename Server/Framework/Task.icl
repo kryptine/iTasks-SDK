@@ -10,19 +10,35 @@ mkTask :: !d !TaskInitFun !TaskEditEventFun !(TaskEvalFun a) -> Task a | descr d
 mkTask description initFun editEventFun evalTaskFun =
 	{ properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, mbTaskNr				= Nothing
-	, initFun				= initFun
-	, editEventFun			= editEventFun
-	, evalTaskFun			= evalTaskFun
+	, type = NormalTask
+		{ initFun			= initFun
+		, editEventFun		= editEventFun
+		, evalTaskFun		= evalTaskFun
+		}
 	}
 	
 mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
 mkInstantTask description iworldfun =
 	{ properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, mbTaskNr				= Nothing
-	, initFun				= \_ iworld -> (TCBasic newMap,iworld)
-	, editEventFun			= \_ _ context iworld -> (context,iworld)
-	, evalTaskFun			= \taskNr _ _ _ _ _ iworld -> iworldfun taskNr iworld
+	, type = NormalTask
+		{ initFun			= \_ iworld -> (TCBasic newMap,iworld)
+		, editEventFun		= \_ _ context iworld -> (context,iworld)
+		, evalTaskFun		= \taskNr _ _ _ _ _ iworld -> iworldfun taskNr iworld
+		}
 	}
+	
+mkActionTask :: !d !(A.b: (ITaskDict b) (TermFunc a b) -> TaskFuncs b) -> Task a | descr d
+mkActionTask description actionTaskFun =
+	{ properties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
+	, mbTaskNr		= Nothing
+	, type			= ActionTask actionTaskFun
+	}
+
+mapActionTask :: !((InformationState a) -> (InformationState b)) !(Task a) -> Task b
+mapActionTask f task=:{Task|type} = case type of
+	ActionTask actionF	= {Task | task & type = ActionTask (\dict termF -> actionF dict (termF o f))}
+	_					= abort "mapActionTask: no action task"
 	
 taskTitle :: !(Task a) -> String
 taskTitle task = task.Task.properties.taskDescription.TaskDescription.title
@@ -80,7 +96,8 @@ stepTUITaskNr i [t:ts]
 	| i == t			= ts
 	| otherwise			= []
 
-
+derive JSONEncode Task
+derive JSONDecode Task
 derive bimap Maybe, (,)
 
 // Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
@@ -107,47 +124,24 @@ JSONDecode{|TUIResult|} _		= abort "not implemented"
 JSONEncode{|TUIDef|} _			= abort "not implemented"
 JSONDecode{|TUIDef|} _			= abort "not implemented"
 
-JSONEncode{|Task|} _ {properties,mbTaskNr,initFun,editEventFun,evalTaskFun}
-	= [JSONArray	[  JSONString "Task"
-					:  JSONEncode{|*|} properties
-					++ JSONEncode{|*|} mbTaskNr
-					++ dynamicJSONEncode initFun
-					++ dynamicJSONEncode editEventFun
-					++ dynamicJSONEncode evalTaskFun]]
+JSONEncode{|TaskType|} _ tt = dynamicJSONEncode tt
 					
-JSONDecode{|Task|} _ [JSONArray [JSONString "Task",properties,mbTaskNr,initFun,editEventFun,evalTaskFun]:c]
-	# mbTaskProperties		= fromJSON properties
-	# mbMbTaskNr			= fromJSON mbTaskNr
-	# mbInitFun				= dynamicJSONDecode initFun
-	# mbEditEventFun		= dynamicJSONDecode editEventFun
-	# mbEvalTaskFun			= dynamicJSONDecode evalTaskFun
-	|  isJust mbTaskProperties
-	&& isJust mbMbTaskNr
-	&& isJust mbInitFun
-	&& isJust mbEditEventFun
-	&& isJust mbEvalTaskFun
-		= (Just	{ properties			= fromJust mbTaskProperties
-				, mbTaskNr				= fromJust mbMbTaskNr
-				, initFun				= fromJust mbInitFun
-				, editEventFun			= fromJust mbEditEventFun
-				, evalTaskFun			= fromJust mbEvalTaskFun
-				},c)
-	| otherwise
-		= (Nothing,c)
-JSONDecode{|Task|} _ c = (Nothing,c)
+JSONDecode{|TaskType|} _ [tt:c] = (dynamicJSONDecode tt,c)
+JSONDecode{|TaskType|} _ c = (Nothing,c)
 
 gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
-					, mbTaskNr				= Nothing
-					, initFun				= undef
-					, editEventFun			= undef
-					, evalTaskFun			= undef 
+					, mbTaskNr			= Nothing
+					, type = NormalTask
+						{ initFun		= undef
+						, editEventFun	= undef
+						, evalTaskFun	= undef
+						}
 					}
 gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
-
 
 gDefaultMask{|Task|} _ _ = [Touched []]
 
@@ -163,6 +157,11 @@ gEq{|Task|} _ _ _ = False // tasks are never equal
 
 gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
+
+toTaskFuncs :: !(Task a) -> TaskFuncs a | iTask a
+toTaskFuncs {Task|type} = case type of
+	NormalTask funcs	= funcs
+	ActionTask actionF	= actionF ITaskDict (\{modelValue,localValid} -> UserActions [(ActionOk,if localValid (Just modelValue) Nothing)])
 
 taskException :: !e -> TaskResult a | TC, toString e
 taskException e = TaskException (dynamic e) (toString e)

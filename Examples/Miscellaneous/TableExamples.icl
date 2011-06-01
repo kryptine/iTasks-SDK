@@ -16,8 +16,8 @@ plantExample
 plantExample` =
 		readDataset
 	>>= transform Table
-	>>=	\table. updateInformation ("Plant Dataset",description) table <<@ fullWidthInteractionLayout
-	>>= showMessageAbout "Updated dataset"
+	>>=	\table. updateInformation ("Plant Dataset",description) [] table <<@ fullWidthInteractionLayout
+	>>= showMessage "Updated dataset" [Get id]
 	>>| stop
 where
 	description =
@@ -25,9 +25,9 @@ where
 		, Text "The dataset is taken from an ", ATag [HrefAttr "http://dev.sencha.com/deploy/dev/examples/grid/edit-grid.html"] [Text "Ext JS Grid Example"], Text "."
 		]
 
-showFileError (FileException path _)	= showMessageAbout ("Error","Error reading dataset.") path >>| stop
-showParseError (CannotParse err)		= showMessageAbout ("Error","Error reading dataset.") err >>| stop
-showUnknownError err					= showMessage ("Error",err) Void
+showFileError (FileException path _)	= showMessage ("Error","Error reading dataset.") [Get id] path >>| stop
+showParseError (CannotParse err)		= showMessage ("Error","Error reading dataset.") [Get id] err >>| stop
+showUnknownError err					= showMessage ("Error",err) [] Void
 
 readDataset :: Task [Plant]
 readDataset =
@@ -78,7 +78,7 @@ derive class iTask Plant, PlantName, PlantLight
 derive bimap Maybe, (,)
 
 symmetricLensExample =
-	updateSharedInformationA ("Symmetric lens example",description) (toView,fromView) (dbx >&< dby) (const [(ActionQuit,Just Void)])
+	updateSharedInformation ("Symmetric lens example",description) [View (toView,fromView)] (dbx >&< dby) >>+ \_ -> UserActions [(ActionQuit,Just Void)]
 where
 	description =
 		[ PTag []

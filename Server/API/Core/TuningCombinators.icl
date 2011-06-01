@@ -17,9 +17,19 @@ where tune t task				= updateTaskProperties (\p -> {p & interactionType = Just t
 instance tune LocalInteractionTask
 where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & localInteraction = True}) task
 instance tune InteractionLayoutMerger
-where tune l task				= {task & evalTaskFun = \taskNr event tuiTaskNr imerge pmerge context iworld = task.evalTaskFun taskNr event tuiTaskNr l pmerge context iworld}
+where
+	tune l task=:{Task|type} = case type of
+		NormalTask funcs	= {Task|task & type = NormalTask (changeLayout funcs)}
+		ActionTask actionF	= {Task|task & type = ActionTask (\dict termF -> changeLayout (actionF dict termF))}
+	where	
+		changeLayout funcs = {funcs & evalTaskFun = \taskNr event tuiTaskNr _ pmerge context iworld -> funcs.evalTaskFun taskNr event tuiTaskNr l pmerge context iworld}
 instance tune ParallelLayoutMerger
-where tune l task				= {task & evalTaskFun = \taskNr event tuiTaskNr imerge pmerge context iworld = task.evalTaskFun taskNr event tuiTaskNr imerge l context iworld}
+where
+	tune l task=:{Task|type} = case type of
+		NormalTask funcs	= {Task|task & type = NormalTask (changeLayout funcs)}
+		ActionTask actionF	= {Task|task & type = ActionTask (\dict termF -> changeLayout (actionF dict termF))}
+	where	
+		changeLayout funcs = {funcs & evalTaskFun = \taskNr event tuiTaskNr imerge _ context iworld -> funcs.evalTaskFun taskNr event tuiTaskNr imerge l context iworld}
 instance tune ResultLayoutMerger
 where tune l task				= task
 

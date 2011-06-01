@@ -29,7 +29,7 @@ where
 	setupDialog :: GinConfig -> Task GinConfig
 	setupDialog config = dialog config >>= \newconfig = appWorld (ginStoreConfig newconfig) >>| return newconfig
 	where
-	    dialog config = updateInformation "GiN editor setup" config >>= \config = 
+	    dialog config = updateInformation "GiN editor setup" [] config >>= \config = 
 	                    accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) (dialog config)
 
 
@@ -104,7 +104,7 @@ ginEditor` =
 		(\_ _ -> Void)
 		[ HiddenTask activator
 		, InBodyTask \s p -> forever (ginInteractionLayout @>>
-				(updateSharedInformationA "Workflow diagram" (diagramView, diagramUpdate) s >?* actions s p))
+				(updateSharedInformation "Workflow diagram" [View (diagramView, diagramUpdate)] s >?* actions s p))
 		]
 
 ginParallelLayout :: ParallelLayoutMerger
@@ -144,7 +144,7 @@ activator :: (SymmetricShared EditorState) (ParallelInfo s) -> Task Void
 activator stateShared parallelInfo = forever activator`
 where
 	activator` :: Task Void
-	activator` =	monitor "Diagram monitor" id (\state -> state.dirty) True stateShared //Look for the dirty flag to become True
+	activator` =	(monitor "Diagram monitor" [] stateShared >? \state -> state.dirty) //Look for the dirty flag to become True
 					>>= \state -> generateSource state
 					>>= \state -> checkErrors state
 					>>= \state -> update (\_ -> { state & dirty = False } ) stateShared //Reset dirty flag
@@ -164,7 +164,7 @@ where
 	makeErrorString (CompileGlobalError error) = [makeORYXError ((hd defs).GDefinition.body) ([], error)]
 	makeErrorString (CompilePathError errors) = map (makeORYXError ((hd defs).GDefinition.body)) errors
 	
-actions :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> [(!Action,!EditorTaskContinuation state v Void)]
+actions :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> [(!Action,!ActionTaskContinuation state Void)]
 actions stateShared parallelInfo
 	=	[ (ActionNew,              Always stop)
 		, (ActionOpen,             Always (actionTask "Open" open))
@@ -184,7 +184,7 @@ actions stateShared parallelInfo
 	
 		addTask title task = set parallelInfo 
 			[AppendTask (WindowTask title noMenu (\s _ -> task))] >>| stop
-		moduleEditor title v = addTask title (updateSharedInformation title (liftModuleView v) stateShared)
+		moduleEditor title v = addTask title (updateSharedInformation title [View (liftModuleView v)] stateShared)
 		
 		declarationEditor = moduleEditor "declaration" (declarationView, declarationUpdate)
 		importsEditor = addTask "imports" 
@@ -192,7 +192,7 @@ actions stateShared parallelInfo
 				>>= \state	 ->	accWorld (searchPathModules state.EditorState.config)
 				>>= \modules ->	moduleEditor "imports" (importsView modules, importsUpdate)
 			)
-		sourceView = addTask "source" (monitor "source view" (\s -> Note s.EditorState.source) (const True) False stateShared)
+		sourceView = addTask "source" (monitor "source view" [Get (\s -> Note s.EditorState.source)] stateShared)
 
 liftModuleView :: (GModule -> a, a GModule -> GModule) -> (EditorState -> a, a EditorState -> EditorState)
 liftModuleView (toView, fromView) = 
@@ -256,27 +256,27 @@ saveAs state = newModuleName state.EditorState.config >>= \name =
 
 askSaveIfChanged :: EditorState -> Task Void
 askSaveIfChanged state = if state.changed
-    (		showMessageA ("File " +++ (getName state) +++ " has changed, save changes?")
-        >>*	[ (ActionNo,	return Void)
-        	, (ActionYes,	save state >>| return Void)
+    (		showMessage ("File " +++ (getName state) +++ " has changed, save changes?") [] Void
+        >?*	[ (ActionNo,	Always (return Void))
+        	, (ActionYes,	Always (save state >>| return Void))
         	]
     )
     (return Void)
 where
 	requestConfirmation :: !String -> Task Bool 
-	requestConfirmation message = showMessageA message [(ActionYes, True), (ActionNo, False)]
+	requestConfirmation message = showMessage message Void >>+ \_ -> UserActions [(ActionYes, True), (ActionNo, False)]
 
 compile :: EditorState -> Task EditorState
 compile state
 # state = { state & compiled = Nothing }
 = accIWorld (batchBuild state.EditorState.gMod)
   >>= \result = case result of
-   				  CompileSuccess dynfile 	-> (showMessage ("Compiler output", "Compiled successfully") Void) 
+   				  CompileSuccess dynfile 	-> showMessage ("Compiler output", "Compiled successfully") [] Void 
    				  								>>| return { state & compiled = Just dynfile }
-    			  error						-> showMessageAbout "Compiler output" error >>| return state
+    			  error						-> showMessage "Compiler output" [About error] state
 
 run :: EditorState -> Task EditorState
-run state = showMessage ("Error", "Runninig tasks requires dynamic linker") state
+run state = showMessage ("Error", "Runninig tasks requires dynamic linker") [] state
 /*
 run state = getCurrentUser >>= \user -> 
 	case state.compiled of
@@ -299,4 +299,4 @@ tryRender gMod config printOption world
 = (source, world)
 
 showAbout :: EditorState -> Task EditorState
-showAbout state = showMessage ("Gin workflow editor", "version 0.1") state
+showAbout state = showMessage ("Gin workflow editor", "version 0.1") [] state

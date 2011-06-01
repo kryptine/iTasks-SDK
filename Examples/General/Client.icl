@@ -23,7 +23,7 @@ client = parallelLayout @>> parallel "Client" Nothing (\_ _ -> Void)
 	
 chooseWorkflow ref =
 					getWorkflowTreeNodes
-	>>= \workflows.	updateSharedInformationA "Tasks" (treeBimap workflows) ref noActions
+	>>= \workflows.	updateSharedInformation "Tasks" [View (treeBimap workflows)] ref >>+ noActions
 where
 	treeBimap workflows =	( \mbSel -> case mbSel of
 								Just sel 	= mkTreeSel workflows sel
@@ -32,20 +32,20 @@ where
 							)
 
 showDescription ref =
-				monitorA "Task description" view ref
-	>>* \mbR.	UserActions	[ (Action "start-task" "Start task",	fmap (\r ->
-																		stop//startWorkflowByIndex (fromHidden (thd3 r))
-																	>>|	showDescription ref
-																) mbR)
-						, (ActionQuit,							Just stop)
-						]
+								monitor "Task description" [Get view] ref
+	>>* \{modelValue = mbR}.	UserActions	[ (Action "start-task" "Start task",	fmap (\r ->
+																				stop//startWorkflowByIndex (fromHidden (thd3 r))
+																			>>|	showDescription ref
+																		) mbR)
+								, (ActionQuit,							Just stop)
+								]
 where						
 	view (Just (_,Hidden desc,_))	= desc
 	view Nothing					= ""
 	
 processTable =
 		get currentUser
-	>>=	\user. updateSharedInformationA "process table" (Table o map toView,\_ _ -> Void) (currentProcessesForUser user) noActions
+	>>=	\user. updateSharedInformation "process table" [View (Table o map toView,\_ _ -> Void)] (currentProcessesForUser user) >>+ noActions
 where
 	toView {Process|properties=p=:{taskProperties,managerProperties,systemProperties}} =
 		{ title		= Display taskProperties.taskDescription.TaskDescription.title
