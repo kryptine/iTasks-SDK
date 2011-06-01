@@ -39,6 +39,16 @@ where
 decFormat :: !Int -> String
 decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
 
+camelCaseToWords :: !String -> String
+camelCaseToWords label = {c \\ c <- [toUpper lname : addspace lnames]}
+where
+	[lname:lnames]		= fromString label
+	addspace []			= []
+	addspace [c:cs]
+		| c == '_'			= [' ':addspace cs]
+		| isUpper c			= [' ',toLower c:addspace cs]
+		| otherwise			= [c:addspace cs]
+
 currentTime :: !*IWorld -> (!Time,!*IWorld)
 currentTime iworld=:{localDateTime=l=:(DateTime _ time)} = (time,iworld)
 

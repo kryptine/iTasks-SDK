@@ -39,6 +39,7 @@ Global
 	Paths
 		Path:	{Project}
 		Path:	{Project}
+		Path:	{Application}\Libraries\ArgEnv
 	Precompile:	
 	Postlink:	
 MainModule

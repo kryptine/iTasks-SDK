@@ -7,6 +7,8 @@ list2mb				:: ![a] -> (Maybe [a])
 
 voidNothing 		:: Maybe Void
 
+camelCaseToWords 	:: !String -> String
+
 instance toString (Maybe a) | toString a
 
 mb2error			:: !e !(Maybe a) -> MaybeError e a

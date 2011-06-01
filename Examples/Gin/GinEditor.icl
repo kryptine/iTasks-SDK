@@ -1,7 +1,6 @@
 implementation module GinEditor
 
 import StdFile
-//import DynamicIOTasks 
 
 import GenEq
 import Text
@@ -17,8 +16,10 @@ import GinSyntax
 
 import FilePath, File
 
+//from Serialization import qualified serialize, deserialize
+
 ginEditor :: WorkflowContainer Void
-ginEditor = Workflow initManagerProperties (staticMenu initMenu) ginEditor`
+ginEditor = Workflow initManagerProperties noMenu /*(staticMenu initMenu)*/ ginEditor`
 
 getConfig :: Task GinConfig
 getConfig = accWorld ginLoadConfig >>= \maybeConfig = 
@@ -103,7 +104,7 @@ ginEditor` =
 		initialState
 		(\_ _ -> Void)
 		[ HiddenTask activator
-		, InBodyTask \s p -> forever (ginInteractionLayout @>>
+		, InBodyTask \s p -> forever (/*ginInteractionLayout @>>*/ 
 				(updateSharedInformation "Workflow diagram" [View (diagramView, diagramUpdate)] s >?* actions s p))
 		]
 
@@ -114,7 +115,11 @@ ginParallelLayout = \{TUIParallel|title,description,items} ->
 		(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 0) (tl items ++ [hd items]))
 
 ginInteractionLayout :: InteractionLayoutMerger
-ginInteractionLayout = \{TUIInteraction|editorParts} -> {TUIDef | hd editorParts & width = FillParent 1 (FixedMinSize 400)}
+ginInteractionLayout = \interaction = 
+	case interaction.editorParts of
+		[{TUIDef | content = TUIControl (TUIORYXControl _) _}] =
+			{TUIDef | hd interaction.editorParts & width = FillParent 1 (FixedMinSize 400)}
+		_ 	= defaultInteractionLayout interaction
 
 diagramView :: EditorState -> ORYXEditor
 diagramView { EditorState | gMod = { moduleKind = GGraphicalModule defs }, errors } = 
@@ -153,6 +158,7 @@ where
 generateSource :: EditorState -> Task EditorState
 generateSource state = accWorld (tryRender state.EditorState.gMod state.EditorState.config POICL) 
 	>>= \source -> return { EditorState | state & source = source }
+
 
 checkErrors :: EditorState -> Task EditorState
 checkErrors state=:{ EditorState | gMod = { moduleKind = GGraphicalModule defs } }
@@ -278,13 +284,24 @@ compile state
 run :: EditorState -> Task EditorState
 run state = showMessage ("Error", "Runninig tasks requires dynamic linker") [] state
 /*
-run state = getCurrentUser >>= \user -> 
+run state = 
 	case state.compiled of
-		Nothing 	 = showMessage ("Error", "No compiled task") Void
-		Just dynfile = readDynamicTask dynfile >>= \task = catchAll (stop2 task)  (\error -> showMessage ("Error", error) Void)
-	where		
-		stop2 :: !(Task Void) -> Task Void
-		stop2 x = stop
+		Nothing 	 = showMessage ("Error", "No compiled task") [] state
+		Just dynfile = readDynamicTask dynfile >>= \task = catchAll task  (\error -> showMessage ("Error", error) [] Void)
+						>>| return state
+where
+	readDynamicTask :: !String -> Task (Task a) | iTask a
+	readDynamicTask filename = importTextFile filename >>= \dynString -> 
+		case 'Serialization'.deserialize dynString of
+			Ok value = return value
+			Error errorString = throw (DynamicIOException errorString)
+
+:: DynamicIOException = DynamicIOException !String
+derive class iTask DynamicIOException
+
+instance toString DynamicIOException
+where
+	toString (DynamicIOException errorString) = errorString
 */
 
 formatSource :: String -> HtmlTag
@@ -300,3 +317,11 @@ tryRender gMod config printOption world
 
 showAbout :: EditorState -> Task EditorState
 showAbout state = showMessage ("Gin workflow editor", "version 0.1") [] state
+
+accIWorld :: !(*IWorld -> *(!a,!*IWorld)) -> Task a | iTask a
+accIWorld fun = mkInstantTask ("Run Iworld function", "Run an IWorld function and get result.") eval
+where
+	eval taskNr iworld
+		# (res,iworld)	= fun iworld
+		= (TaskFinished res,iworld)
+

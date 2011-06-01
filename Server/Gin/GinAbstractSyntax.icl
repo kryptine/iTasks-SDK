@@ -131,7 +131,7 @@ makeLocal scope accLocals exp
 #var = freeVariable scope accLocals
 #def = { ADefinition 
        | name = var
-       , formalParams = reverse [ { GFormalParameter | name = x , type = GUndefinedTypeExpression } \\ x <- scope ]
+       , formalParams = reverse [ { GFormalParameter | name = x , title = Nothing, description = Nothing, type = GUndefinedTypeExpression } \\ x <- scope ]
        , returnType = GUndefinedTypeExpression
        , body = exp
        , locals = []
@@ -193,6 +193,7 @@ printAImports opt imports
 						, "StdTuple"
 						, "StdEnum"
 						, "StdOverloaded"
+						, "StdFile"
 						]
 						++
 						( if (opt == POWriteDynamics) 

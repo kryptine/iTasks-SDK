@@ -34,14 +34,20 @@ bStartStop :: Binding
 bStartStop = ParallelBinding
 	{ split = { GDeclaration 
 	          | name = "start"
+	          , title = Just "Start"
+	          , description = Just "Unique starting point of a workflow diagram"
 	          , returnType = GUndefinedTypeExpression
+	          , returnDescription = Nothing
 	          , formalParams = []
 	          , icon = Just "start"
 	          , shape = Just startShape
 	          }
 	, merge = { GDeclaration 
 	          | name = "stop"
+	          , title = Just "Stop"
+	          , description = Just "Unique endpoint of a workflow diagram"
 	          , returnType = GUndefinedTypeExpression
+	          , returnDescription = Nothing
 	          , formalParams = []
 	          , icon = Just "stop"
 	          , shape = Just stopShape
@@ -81,9 +87,14 @@ bCase = NodeBinding
 	| declaration = 
 		{ GDeclaration 
 		| name = "case split"
+		, title = Just "Choice"
+		, description = Just "Makes an exclusive choice between different branches"
 		, returnType = GUndefinedTypeExpression
+	          , returnDescription = Nothing
 		, formalParams = [ { GFormalParameter 
 		                 | name = "a"
+		                 , title = Nothing
+		                 , description = Nothing
 		                 , type = GTypeVariable "a" 
 		                 }
 		               ]
@@ -113,7 +124,10 @@ bMerge = NodeBinding
 	| declaration = 
 		{ GDeclaration 
 		| name = "case merge"
+		, title = Just "Merge" 
+		, description = Just "Merges multiple exclusive branches into a single branch"
 		, returnType = GUndefinedTypeExpression
+        , returnDescription = Nothing
 		, formalParams = []
 		, icon = Just "case-merge"
 		, shape = Just mergeShape
@@ -138,13 +152,20 @@ bLet = NodeBinding
 	| declaration = 
 		{ GDeclaration 
 		| name = "let"
+		, title = Just "Let"
+		, description = Just "Defines a new variable scope"
 		, returnType = GUndefinedTypeExpression
+        , returnDescription = Nothing
 		, formalParams = [ { GFormalParameter 
 		                 | name = "pattern"
+		                 , title = Nothing
+		                 , description = Nothing
 		                 , type = GUndefinedTypeExpression
 		                 }
 		                 , { GFormalParameter 
 		                 | name = "expression"
+		                 , title = Nothing
+		                 , description = Nothing
 		                 , type = GTypeVariable "a" 
 		                 }
 		               ]
@@ -175,22 +196,33 @@ bListComprehension = NodeBinding
 	| declaration = 
 		{ GDeclaration 
 		| name = "list comprehension"
-		, returnType = GTypeApplication (GConstructor "Task") (GTypeVariable "a")
+		, title = Just "Task comprehension"
+		, description = Just "Construct a list of tasks based on runtime data"
+		, returnType = gTask (GTypeVariable "a")
+        , returnDescription = Nothing
 		, formalParams = [ { GFormalParameter 
 		                 | name = "generatorpattern"
+		                 , title = Nothing
+		                 , description = Nothing
 		                 , type = GUndefinedTypeExpression
 		                 }
 		                 , { GFormalParameter 
 		                 | name = "generatorexpression"
+		                 , title = Nothing
+		                 , description = Nothing
 		                 , type = GConstructor "a"
 		                 }
 		                 , { GFormalParameter 
 		                 | name = "guard"
+		                 , title = Nothing
+		                 , description = Nothing
 		                 , type = GConstructor "Bool"
 		                 }
 		                 , { GFormalParameter 
 		                 | name = "output"
-		                 , type = GTypeApplication (GConstructor "Task") (GTypeVariable "a")
+		                 , title = Nothing
+		                 , description = Nothing
+		                 , type = gTask (GTypeVariable "a")
 		                 }
 		               ]
 		, icon = Just "list-comprehension"

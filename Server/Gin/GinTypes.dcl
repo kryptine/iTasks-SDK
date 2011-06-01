@@ -11,8 +11,9 @@ from GinPrinter import class Printer
 :: GTypeExpression = GConstructor GIdentifier
                    | GList GTypeExpression
                    | GTuple [GTypeExpression]
-                   | GTypeApplication GTypeExpression GTypeExpression
+                   | GTypeApplication [GTypeExpression]
                    | GTypeVariable GTypeVariable
+                   | GFunction GTypeExpression GTypeExpression
                    | GUndefinedTypeExpression
                    
 :: GTypeVariable :== String 
@@ -34,8 +35,10 @@ from GinPrinter import class Printer
                   , type :: GTypeExpression
                   }
 
-:: GFormalParameter = { name :: GIdentifier
-                      , type :: GTypeExpression
+:: GFormalParameter = { name		:: GIdentifier
+					  , title		:: Maybe String
+					  , description	:: Maybe String
+                      , type		:: GTypeExpression
                       } 
 
 :: GIdentifier :== String
@@ -51,6 +54,11 @@ printGTypeExpression :: GTypeExpression -> a | Printer a
 
 printGTypeDefinition :: GTypeDefinition -> a | Printer a
 
+instance toString GTypeExpression
+
+isTask :: !GTypeExpression -> Bool
+
 gTask :: GTypeExpression -> GTypeExpression
 
 gVoid :: GTypeExpression
+

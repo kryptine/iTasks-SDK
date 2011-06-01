@@ -40,16 +40,16 @@ gVisualize{|FIELD of d|} fx val vst=:{vizType}
 	= case vizType of
 		VEditorDefinition
 			# (vizBody,vst=:{VSt|optional})	= fx x {VSt|vst & optional = False}
-			# label							= {htmlDisplay (formatLabel d.gfd_name +++ if optional "" "*" +++ ":") & width = Fixed 100}
+			# label							= {htmlDisplay (camelCaseToWords d.gfd_name +++ if optional "" "*" +++ ":") & width = Fixed 100}
 			= ([TUIFragment {content = TUILayoutContainer {defaultLayoutContainer [label:coerceToTUIDefs vizBody] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
 		VHtmlDisplay
 			# (vizBody,vst) 				= fx x vst
 			= case vizBody of
 			 [] = ([],vst)
-			 _  = ([HtmlFragment (TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (coerceToHtml vizBody)])],vst)
+			 _  = ([HtmlFragment (TrTag [] [ThTag [] [Text (camelCaseToWords d.gfd_name),Text ": "],TdTag [] (coerceToHtml vizBody)])],vst)
 		VTextDisplay
 			# (vizBody,vst) 				= fx x vst
-			= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody]++[TextFragment " "],vst)
+			= ([TextFragment (camelCaseToWords d.gfd_name),TextFragment ": " : vizBody]++[TextFragment " "],vst)
 		_
 			# (vizBody,vst)					= fx x vst
 			= (vizBody,vst)
@@ -419,7 +419,7 @@ where
 		toTUICols []		= [{header = ""}]
 		toTUICols headers	= map toTUICol headers
 		where
-			toTUICol header = {header = (formatLabel header)}
+			toTUICol header = {header = (camelCaseToWords header)}
 			
 	staticVis v touched vst = case (v,touched) of
 		(Just (Table rows),True)	= gVisualize{|* -> *|} fx (Just rows) vst
@@ -671,16 +671,6 @@ where
 	childVisualizations` [child:children] acc vst
 		# (childV,vst) = fx (Just child) vst
 		= childVisualizations` children [childV:acc] vst
-
-formatLabel :: !String -> String
-formatLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
-where
-	[lname:lnames]		= fromString label
-	addspace []			= []
-	addspace [c:cs]
-		| c == '_'			= [' ':addspace cs]
-		| isUpper c			= [' ',toLower c:addspace cs]
-		| otherwise			= [c:addspace cs]
 
 sizedControl :: !(!TUISize,!TUISize,!(Maybe TUIMargins)) !TUIControlType !TUIControl -> TUIDef
 sizedControl (width,height,mbMargins) type control = {content = TUIControl type control, width = width, height = height, margins = mbMargins}

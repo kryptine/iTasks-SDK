@@ -73,11 +73,14 @@ getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
                  , body        :: ORYXDiagram
                  }
 
-:: GDeclaration = { name         :: GIdentifier
-                  , formalParams :: [GFormalParameter]
-                  , returnType   :: GTypeExpression
-                  , icon         :: Maybe GIcon
-                  , shape        :: Maybe SVGShape
+:: GDeclaration = { name				:: GIdentifier
+				  , title				:: Maybe String
+				  , description  		:: Maybe String
+                  , formalParams 		:: [GFormalParameter]
+                  , returnType   		:: GTypeExpression
+                  , returnDescription 	:: Maybe String
+                  , icon         		:: Maybe GIcon
+                  , shape        		:: Maybe SVGShape
                   }              
                   
 :: GIcon :== String

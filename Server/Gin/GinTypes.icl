@@ -20,16 +20,17 @@ typeIsDefined GUndefinedTypeExpression	= False
 typeIsDefined (GList e)					= typeIsDefined e
 typeIsDefined (GTuple es)				= all typeIsDefined es
 typeIsDefined (GConstructor t)			= True
-typeIsDefined (GTypeApplication a b)	= typeIsDefined a && typeIsDefined b
+typeIsDefined (GTypeApplication es)		= all typeIsDefined es
 typeIsDefined (GTypeVariable v)			= True
 
 printGTypeExpression :: GTypeExpression -> a | Printer a
-printGTypeExpression GUndefinedTypeExpression	= text "<<undefined type expression>>"
+printGTypeExpression (GConstructor t)			= text t
 printGTypeExpression (GList e)					= brackets (printGTypeExpression e)
 printGTypeExpression (GTuple es)				= tupled (map printGTypeExpression es)
-printGTypeExpression (GConstructor t)			= text t
-printGTypeExpression (GTypeApplication a b)		= parens (printGTypeExpression a </> printGTypeExpression b)
+printGTypeExpression (GTypeApplication es)		= parens (fillSep (punctuate space (map printGTypeExpression es)))
 printGTypeExpression (GTypeVariable v)			= text v
+printGTypeExpression (GFunction e1 e2)			= parens (printGTypeExpression e1 </> text "->" </> printGTypeExpression e2)
+printGTypeExpression GUndefinedTypeExpression	= text "<<undefined type expression>>"
 
 printGTypeDefinition :: GTypeDefinition -> a | Printer a
 printGTypeDefinition gt = def (	text "::" </> text gt.GTypeDefinition.name
@@ -50,8 +51,16 @@ printGRecordField :: GRecordField -> a | Printer a
 printGRecordField field = text field.GRecordField.name
                           </> text "::" </> printGTypeExpression field.GRecordField.type
 
+instance toString GTypeExpression
+where
+	toString typeExp = prettyPrint (printGTypeExpression typeExp)
+
+isTask :: !GTypeExpression -> Bool
+isTask (GTypeApplication [GConstructor "Task", _])	= True
+isTask _										 	= False
+
 gTask :: GTypeExpression -> GTypeExpression
-gTask e = GTypeApplication (GConstructor "Task") e
+gTask e = GTypeApplication [GConstructor "Task", e]
 
 gVoid :: GTypeExpression
 gVoid = GConstructor "Void"

@@ -15,3 +15,4 @@ importModules :: !GinConfig ![String] !*World -> (MaybeErrorString [GModule], *W
 writeModule :: !GinConfig !String !GModule -> Task Void
 newModuleName :: !GinConfig -> Task String
 chooseModule :: !GinConfig -> Task (Maybe (!String, !GModule))
+

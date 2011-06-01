@@ -15,9 +15,6 @@ from Util import mb2list
 
 stencilService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
 stencilService url format path req iworld
-	// Restore the session if supplied
-	# (mbSession,iworld)	= restoreSession sessionParam iworld
-	| isError mbSession		= (errorResponse (fromError mbSession), iworld)
 	# iworld=:{world}		= iworld
 	# (mConfig,world)		= ginLoadConfig world	
 	| isNothing mConfig

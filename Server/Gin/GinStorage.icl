@@ -17,31 +17,37 @@ import GinSyntax
 import GinParser
 import GinFlowLibrary
 
-GRAPHICAL_EXTENSION = "gcl"
-DEFINITION_EXTENSION = "dcl"
-IMPLEMENTATION_EXTENSION = "icl"
+import GinDCLImport
+
+GRAPHICAL_EXTENSION :== "gcl"
+DEFINITION_EXTENSION :== "dcl"
+IMPLEMENTATION_EXTENSION :== "icl"
 
 derive class iTask MaybeError
 
-listDirectory :: !String !*World -> (MaybeOSError [String], *World)
-listDirectory path world
+import StdDebug
+
+listDirectory :: !String !String !*World -> (MaybeOSError [String], *World)
+listDirectory path extension world
 	# (res, world) = readDirectory path world
 	| isError res = (res, world)
-	= (Ok [ dropExtension m \\ m <- (fromOk res) | toLowerCase (takeExtension m) == GRAPHICAL_EXTENSION ], world)
+	= (Ok [ dropExtension m \\ m <- (fromOk res) | toLowerCase (takeExtension m) == extension ], world)
 
 listModules :: !GinConfig !*World -> (MaybeOSError [String], *World)
-listModules config world = listDirectory config.userPath world
+listModules config world = listDirectory config.userPath GRAPHICAL_EXTENSION world
 
 searchPathModules :: !GinConfig !*World -> ([String], *World)
 searchPathModules config world
+	# (res, world) = listDirectory config.userPath GRAPHICAL_EXTENSION world
+	| isError res = ([], world)
+	# userModules = fromOk res
 	# (searchPathModules, world) = sp config.searchPaths world
-	# (userModules, world) = sp [config.userPath] world
 	= (sort searchPathModules ++ sort userModules, world)
 where
 	sp :: [String] *World -> ([String], *World)
 	sp [] world = ([], world)
 	sp [path:paths] world
-		# (mFiles, world) = listDirectory path world
+		# (mFiles, world) = listDirectory path DEFINITION_EXTENSION world
 		| isError mFiles = sp paths world
 		# (files`, world) = sp paths world
 		= (fromOk mFiles ++ files`, world)
@@ -55,17 +61,25 @@ where
 		# filepath = (addExtension (path </> name) GRAPHICAL_EXTENSION)
 		# (exists, world) = 'File'.fileExists filepath world
 		| exists	= (Just filepath, world)
-		| otherwise	= mp paths world
+		# filepath = (addExtension (path </> name) DEFINITION_EXTENSION)
+		# (exists, world) = 'File'.fileExists filepath world
+		| exists	= (Just filepath, world)
+		= mp paths world
 
 readModule :: !GinConfig !String !*World -> (MaybeErrorString GModule, *World)
 readModule config name world
 	# (mPath, world) = modulePath config name world
 	| isNothing mPath = (Error ("Module " +++ name +++ " not found in search path"), world)
-	# (res, world) = 'File'.readFile (fromJust mPath) world
+	# path = fromJust mPath
+	# (res, world) = 'File'.readFile path world
 	| isError res = (Error ("Failed to read file " +++ fromJust mPath), world)
-	# mJson = readJSON (fromOk res)
-	| isNothing mJson = (Error ("Failed to parse file " +++ fromJust mPath), world)
-	= (Ok (fromJust mJson), world)
+	# contents = fromOk res
+	= case toLowerCase (takeExtension path) of
+		GRAPHICAL_EXTENSION = 
+			case readJSON contents of
+				Nothing = (Error ("Failed to parse file " +++ fromJust mPath), world)
+				Just json = (Ok json, world)
+		DEFINITION_EXTENSION = importDCL path contents world
 where
 	readJSON :: !String -> Maybe GModule
 	readJSON s = fromJSON (fromString s)

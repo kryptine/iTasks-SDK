@@ -202,17 +202,13 @@ oryxChildShapeToActualParams bindings decl shape
  	  
 oryxChildShapeToActualParam :: !Bindings !ORYXChildShape (Map String JSONNode) !GFormalParameter -> GExpression
 oryxChildShapeToActualParam bindings childShape propMap formalParam
-	| isHigherOrderTask formalParam.GFormalParameter.type
+	| isTask formalParam.GFormalParameter.type
 	  && (not o isEmpty) childShape.ORYXChildShape.childShapes
 	  = GGraphExpression (oryxChildShapesToGraph bindings childShape.ORYXChildShape.childShapes)
 	= case 'Map'.get formalParam.GFormalParameter.name propMap of
 		Just (JSONString value) = GCleanExpression value
-		Nothing	   				= abort ("oryxChildShapeToActualParam: " +++ formalParam.GFormalParameter.name +++ " paramter not found")
+		Nothing	   				= abort ("oryxChildShapeToActualParam: " +++ formalParam.GFormalParameter.name +++ " parameter not found")
 	
-isHigherOrderTask :: !GTypeExpression -> Bool
-isHigherOrderTask (GTypeApplication (GConstructor "Task") _) = True
-isHigherOrderTask _											 = False
- 
 oryxChildShapeToEdges :: (Map ORYXResourceId ORYXChildShape) (Map ORYXResourceId Int) (!Int,!ORYXChildShape) -> [(EdgeIndex,GEdge)]
 oryxChildShapeToEdges shapeMap nodeMap (fromIndex,fromNode) = 
 	catMaybes (map (oryxOutgoingToEdge shapeMap nodeMap fromIndex) fromNode.ORYXChildShape.outgoing)

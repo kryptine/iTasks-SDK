@@ -11,6 +11,7 @@ import GinSyntax
 import GinORYX
 import GinSVG
 import GinFlowLibrary
+import Util
 
 derive gEq		 	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXConnect, ORYXContainmentRule, ORYXMorphingRule
 derive JSONEncode	ORYXStencilSet, ORYXStencil, ORYXRules, ORYXConnectionRule, ORYXContainmentRule, ORYXMorphingRule
@@ -222,11 +223,11 @@ declToStencil (group,branchtype,gDecl)
 	=	{ ORYXStencil
 		| type			= "node"
 		, id			= gDecl.GDeclaration.name
-		, title			= gDecl.GDeclaration.name
+		, title			= fromMaybe (camelCaseToWords gDecl.GDeclaration.name) gDecl.GDeclaration.title
 		, groups		= [group]
-		, description	= gDecl.GDeclaration.name
+		, description	= fromMaybe "" gDecl.GDeclaration.description
 		, view			= toString (fromMaybe (defaultTaskShape gDecl) gDecl.GDeclaration.shape)
-		, icon			= fromMaybe "new-task" gDecl.GDeclaration.icon +++ ".png"
+		, icon			= fromMaybe "task" gDecl.GDeclaration.icon +++ ".png"
 		, mayBeRoot		= False
 		, roles			= ["all", morphrole] ++ if (isHigherOrder gDecl) ["higherOrderTask"] []
 		, properties	= map formalParameterToProperty gDecl.GDeclaration.formalParams
@@ -236,9 +237,9 @@ formalParameterToProperty :: GFormalParameter -> ORYXProperties
 formalParameterToProperty param = ORYXProperties
 	[ { ORYXProperty| key = "id"			, value = JSONString param.GFormalParameter.name}
 	, { ORYXProperty| key = "type"			, value = JSONString "String"}
-	, { ORYXProperty| key = "title"			, value = JSONString param.GFormalParameter.name}
+	, { ORYXProperty| key = "title"			, value = JSONString (fromMaybe param.GFormalParameter.name param.GFormalParameter.title) }
 	, { ORYXProperty| key = "value"			, value = JSONString ""}
-	, { ORYXProperty| key = "description"	, value = JSONString ""}
+	, { ORYXProperty| key = "description"	, value = JSONString (fromMaybe "" param.GFormalParameter.description) }
 	, { ORYXProperty| key = "tooltip"		, value = JSONString ""}
 	, { ORYXProperty| key = "readonly"		, value = JSONBool False}
 	, { ORYXProperty| key = "optional"		, value = JSONBool True}
@@ -252,7 +253,7 @@ isHigherOrder decl = any higherOrderParam decl.GDeclaration.formalParams
 
 higherOrderParam :: GFormalParameter -> Bool
 higherOrderParam param = case param.GFormalParameter.type of
-	(GTypeApplication (GConstructor "Task")  _)	= True
+	GTypeApplication [GConstructor "Task":  _]	= True
 	_											= False
 
 defaultTaskShape :: GDeclaration -> SVGShape	
@@ -264,15 +265,15 @@ defaultTaskShape gDecl =
 	, magnets = True
 	, elements = 
 		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 ([SVGStroke "black", SVGFill "white"] ++ ifParams [SVGResize "horizontal vertical"])
-		, SVGImage Nothing ((XAbs 2, YAbs 2), (XAbs 18, YAbs 18)) (fromMaybe "new-task" gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
-		, SVGText Nothing (XAbs 20, YAbs 13) gDecl.GDeclaration.name [SVGAnchors "top left"]
+		, SVGImage Nothing ((XAbs 2, YAbs 2), (XAbs 18, YAbs 18)) (fromMaybe "task" gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
+		, SVGText Nothing (XAbs 20, YAbs 13) (fromMaybe (camelCaseToWords gDecl.GDeclaration.name) gDecl.GDeclaration.title) [SVGAnchors "top left"]
 		] 
 		++ ifParams [ SVGLine Nothing ((XLeft, YAbs 20), (XRight, YAbs 20)) [SVGAnchors "top left right"]
 			    	, SVGLine Nothing ((XAbs 80, YAbs 20), (XAbs 80, YBottom)) [SVGAnchors "top left bottom"]
 			    	]
 		++ flatten (map
-			(\(nr,param) -> [ SVGText Nothing (XAbs 3, YAbs (13 + 20 * nr)) param.GFormalParameter.name []
-							, SVGText (Just param.GFormalParameter.name) (XAbs 83, YAbs (13 + 20 * nr)) "" [SVGAnchors "left"]
+			(\(nr,param) -> [ SVGText Nothing (XAbs 3, YAbs (13 + 20 * nr)) (fromMaybe param.GFormalParameter.name param.GFormalParameter.title) []
+							, SVGText (Just param.GFormalParameter.name ) (XAbs 83, YAbs (13 + 20 * nr)) "" [SVGAnchors "left"]
 							]
 							++ if (nr > 1) [SVGLine Nothing ((XLeft, YAbs (20 * nr)), (XRight, YAbs (20 * nr))) [SVGAnchors "left right"]] []
 			) (zip2 [1..] gDecl.GDeclaration.formalParams))

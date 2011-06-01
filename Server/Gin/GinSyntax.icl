@@ -13,10 +13,10 @@ import GinTypes
 derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter, GDefinition, GDeclaration
 
 getNodeBinding :: GIdentifier Bindings -> GParseState NodeBinding
-getNodeBinding name [] = parseError ("Node binding " +++ name +++ " not found")
-getNodeBinding name [b:bs] = case b of
-	NodeBinding sb | sb.NodeBinding.declaration.GDeclaration.name == name = ret sb
-	otherwise = getNodeBinding name bs
+getNodeBinding ident [] = parseError ("Node binding " +++ ident +++ " not found")
+getNodeBinding ident [b:bs] = case b of
+	NodeBinding sb | sb.NodeBinding.declaration.GDeclaration.name == ident = ret sb
+	otherwise = getNodeBinding ident bs
 
 getParallelBinding :: GIdentifier GIdentifier Bindings -> GParseState ParallelBinding
 getParallelBinding split merge bindings = case getParallelBinding` split merge bindings of
@@ -34,12 +34,12 @@ getParallelBinding` split merge [b:bs] = case b of
 	otherwise = getParallelBinding` split merge bs
 
 getDeclaration :: GIdentifier Bindings -> GParseState (BranchType, GDeclaration)
-getDeclaration name [] = parseError ("Node binding " +++ name  +++ " not found")
-getDeclaration name [b:bs] = case b of
-	NodeBinding sb     | sb.NodeBinding.declaration.GDeclaration.name == name = ret (BTSingle, sb.NodeBinding.declaration)
-	ParallelBinding pb | pb.ParallelBinding.split.GDeclaration.name   == name = ret (BTSplit,  pb.ParallelBinding.split)
-	ParallelBinding pb | pb.ParallelBinding.merge.GDeclaration.name   == name = ret (BTMerge,  pb.ParallelBinding.merge)
-	otherwise = getDeclaration name bs
+getDeclaration ident [] = parseError ("Node binding " +++ ident  +++ " not found")
+getDeclaration ident [b:bs] = case b of
+	NodeBinding sb     | sb.NodeBinding.declaration.GDeclaration.name == ident = ret (BTSingle, sb.NodeBinding.declaration)
+	ParallelBinding pb | pb.ParallelBinding.split.GDeclaration.name   == ident = ret (BTSplit,  pb.ParallelBinding.split)
+	ParallelBinding pb | pb.ParallelBinding.merge.GDeclaration.name   == ident = ret (BTMerge,  pb.ParallelBinding.merge)
+	otherwise = getDeclaration ident bs
 
 getModuleBindings :: GModule -> Bindings
 getModuleBindings gMod =: { moduleKind = GCleanModule bindings } = bindings
@@ -73,12 +73,16 @@ gModuleFromJSON s = fromJSON (fromString s)
 //Construction
 newWorkflow :: GDefinition
 newWorkflow =	{ GDefinition
-				| declaration = { name         = "newWorkflow"
-                              , formalParams = []
-                              , returnType   = gTask gVoid
-                              , icon         = Nothing
-                              , shape        = Nothing
-                              }
+				| declaration =	{ GDeclaration 
+								| name        		= "newWorkflow"
+								, title				= Nothing
+								, description		= Nothing
+                              	, formalParams 		= []
+	                            , returnType   		= gTask gVoid
+	                            , returnDescription	= Nothing
+	                            , icon     			= Nothing
+	                            , shape    		    = Nothing
+	                            }
 				, body = ginORYXDiagram
 				}
 				
@@ -94,5 +98,5 @@ newModule = { GModule
 			| name = "newModule"
 			, types = []
 			, moduleKind = GGraphicalModule [newWorkflow]
-			, imports = [ "CommonCombinators", "CoreCombinators", "InteractionTasks" ]
+			, imports = [ ]
 			}
