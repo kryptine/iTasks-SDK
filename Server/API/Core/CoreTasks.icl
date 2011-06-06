@@ -75,7 +75,7 @@ where
 		| isError wres	= (taskException (SharedException (fromError wres)), iworld)
 		= (TaskFinished val, iworld)
 
-interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> (![InteractionPart (!l,!Maybe w)],!l)) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
 where
 	init taskNr iworld
@@ -114,10 +114,10 @@ where
 						// calculate new local & model value
 						# (local,mbModel)		= putback (if (isValidValue vmask) (Just value) Nothing)
 						# context				= setLocalState initLocal local context
+						# context				= setLocalVar LAST_EDIT_STORE timestamp context
 						= case mbModel of
 							Just model
 								# (_,iworld) 	= 'Shared'.writeShared shared model iworld
-								# context		= setLocalVar LAST_EDIT_STORE timestamp context
 								= (context,iworld)
 							Nothing	
 								= (context, iworld)
@@ -138,6 +138,8 @@ where
 		# (changed,iworld)				= 'Shared'.isSharedChanged shared localTimestamp iworld
 		| isError changed				= (sharedException changed, iworld)
 		# local							= getLocalState context
+		# (parts,local)					= partFunc local (fromOk model) (fromOk changed)
+		# context						= setLocalState initLocal local context
 		= case termFunc {modelValue = (local,fromOk model), localValid = fromOk changed} of
 			StopInteraction result
 				= (TaskFinished result,iworld)
@@ -147,7 +149,7 @@ where
 						= (TaskFinished result, iworld)
 					Nothing
 						# context				= setLocalVar LAST_TUI_STORE timestamp context
-						# (tui,context,iworld)	= renderTUI taskNr imerge local (fromOk model) (fromOk changed) actions context iworld
+						# (tui,context,iworld)	= renderTUI taskNr imerge parts actions context iworld
 						= (TaskBusy (Just tui) context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
@@ -172,8 +174,7 @@ where
 	getActionResult _ actions
 		= Nothing
 
-	renderTUI taskNr imerge local model changed actions context iworld
-		# parts					= partFunc local model changed
+	renderTUI taskNr imerge parts actions context iworld
 		# storedParts			= getParts context
 		# (mbEvent,context)		= getEvent context
 		# (tuis,newParts)		= visualizeParts taskNr parts storedParts mbEvent

@@ -75,9 +75,8 @@ update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 *
 * @param Description: A description of the task to display to the user
 * @param Interaction function: A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
-*        dynamically generating the interaction parts shown to the user (parts can change the local state (l) & possibly also write to the shared (Maybe w))
-* @param Terminator function: A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
-*        dynamically calculating the terminators of the task
+*        dynamically generating the interaction parts shown to the user (parts can change the local state (l) & possibly also write to the shared (Maybe w));
+*        Additionally the local state can be updated
 * @param Initial state: The initial local state
 * @param Shared: A reference to shared data the task works on
 *
@@ -86,7 +85,7 @@ update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 *
 * @gin False
 */
-interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> (![InteractionPart (!l,!Maybe w)],!l)) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 :: InteractionPart o	= E.v:	UpdateView	!(FormView v) !((Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayView	!v								& iTask v	// A static view displayed to the user

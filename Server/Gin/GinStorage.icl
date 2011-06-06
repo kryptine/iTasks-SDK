@@ -25,8 +25,6 @@ IMPLEMENTATION_EXTENSION :== "icl"
 
 derive class iTask MaybeError
 
-import StdDebug
-
 listDirectory :: !String !String !*World -> (MaybeOSError [String], *World)
 listDirectory path extension world
 	# (res, world) = readDirectory path world

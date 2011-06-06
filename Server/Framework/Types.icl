@@ -1,7 +1,7 @@
 implementation module Types
 from StdFunc import until
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, dynamic_string, Base64
+import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, dynamic_string, Base64
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from iTasks		import dynamicJSONEncode, dynamicJSONDecode
@@ -12,7 +12,7 @@ derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDes
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
 derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
 derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
@@ -72,7 +72,7 @@ multipleChoiceSel l sel = MultipleChoice l [i \\ e <- l & i <- [0..] | isMemberG
 
 getChoices :: !(MultipleChoice a) -> [a]
 getChoices (MultipleChoice l is)
-	= [l !! i \\ i <- is | i >= 0 && i < (length l)]
+	= [l !! i \\ i <- sort is | i >= 0 && i < (length l)]
 
 mapOptionsM :: !(a -> b) !(MultipleChoice a) -> MultipleChoice b
 mapOptionsM f (MultipleChoice opts sel) = MultipleChoice (map f opts) sel
@@ -431,6 +431,8 @@ where
 		dname = displayName user
 		uname = userName user
 
+gEq{|User|} x y = x == y
+
 instance == User
 where
 	(==) AnyUser AnyUser						= True
@@ -572,11 +574,11 @@ actionLabel action				= upperCaseFirst (actionName action)
 
 instance descr String
 where
-	toDescr str = {title = str, description = toString (html str)}
+	toDescr str = {TaskDescription|title = str, description = toString (html str)}
 	
 instance descr (String, descr) | html descr
 where
-	toDescr (title,descr) = {title = title, description = toString (html descr)}
+	toDescr (title,descr) = {TaskDescription|title = title, description = toString (html descr)}
 	
 instance descr TaskDescription
 where

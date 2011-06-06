@@ -562,7 +562,7 @@ gVisualize{|FillHControlSize|} fx val vst=:{controlSize=controlSize=:(width,_,ma
 	
 gVisualize{|Menu|} _ _ = abort "not implemented"
 
-derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority
+derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

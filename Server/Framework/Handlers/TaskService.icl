@@ -8,8 +8,6 @@ from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
 from SessionDB	import qualified class SessionDB(..), instance SessionDB IWorld
 from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 
-import StdDebug
-
 derive bimap Maybe, (,)
 
 derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
