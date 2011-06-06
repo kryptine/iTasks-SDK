@@ -89,7 +89,7 @@ transform			:: !(a -> b) !a 									-> Task b | iTask b
 *
 * @gin False
 */ 
-assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
+assign :: !ManagerProperties !(Task a) -> Task a | iTask a
 
 /**
 * Assign a task to a user. (no deadline, normal priority, no menu)

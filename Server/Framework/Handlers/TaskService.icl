@@ -13,17 +13,12 @@ derive bimap Maybe, (,)
 derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIControlType, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONEncode TUILayoutContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
+derive JSONEncode TUILayoutContainer, TUIMainContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 
 derive JSONDecode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONDecode TUIControlType, TUIConstructorControl
 derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONDecode TUILayoutContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
-
-JSONEncode{|MenuItem|} v = case v of
-	MenuItem action mbHotkey	= [JSONArray [JSONString "MenuItem" : JSONEncode{|*|} (menuAction action) ++ JSONEncode{|*|} mbHotkey]]
-	SubMenu label items			= [JSONArray [JSONString "SubMenu" : JSONEncode{|*|} label ++ JSONEncode{|*|} items]]
-	MenuSeparator				= [JSONString "MenuSeparator"]
+derive JSONDecode TUILayoutContainer, TUIMainContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 	
 JSONEncode{|HtmlTag|} htm = [JSONString (toString htm)]
 
@@ -96,7 +91,7 @@ taskService url format path req iworld
 			# json = case mbResult of
 				Error err
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]
-				Ok (TaskBusy _ context, properties)
+				Ok (TaskBusy _ _ context, properties)
 					= JSONObject [("success",JSONBool False),("tree",toJSON context)]
 				Ok (TaskFinished _, properties)
 					= JSONObject [("success",JSONBool True),("result",JSONString "finished")]
@@ -139,8 +134,8 @@ taskService url format path req iworld
 			# (json,iworld) = case mbResult of
 				Error err
 					= (JSONObject [("succes",JSONBool False),("error",JSONString err)],iworld)
-					
-				Ok (TaskBusy mbCurrentTui context, properties)
+								
+				Ok (TaskBusy mbCurrentTui actions context, properties)
 					//Determine content or updates
 					# tui = case (mbPreviousTui,mbCurrentTui) of
 						(Just (previousTui,previousTimestamp),Just currentTui)
@@ -149,32 +144,25 @@ taskService url format path req iworld
 							| otherwise
 								= JSONObject [("content",encodeTUIDefinition currentTui)]
 						(Nothing, Just currentTui)
-							= JSONObject [("content",encodeTUIDefinition currentTui)]
+							= JSONObject [("content", encodeTUIDefinition currentTui)]
 						_
-							= JSONObject [("content",JSONNull)]
+							= JSONString "done"
 							
 					//Store tui for later incremental requests
 					# iworld = case mbCurrentTui of
 						Just currentTui	= storeValue tuiStoreId currentTui iworld
 						Nothing			= iworld
 						
-					//If a subtask is requested search for the properties of the subtask
-					//HACK: todo, redesign to get a proper solution
-					# mbSubProps		= findSubProps taskId context
-					= case mbSubProps of
-						Just properties
-							//Build output structure
-							# json	= JSONObject ([("success",JSONBool True)
-												  ,("timestamp",toJSON timestamp)
-												  ,("task", toJSON properties)
-										 		  ,("tui",tui)
-										 		  :if outdated [("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")] []])
-							= (json, iworld)
-						Nothing
-							//HACK: assume the task is done if the properties are not in the context
-							= (JSONObject ([("success",JSONBool True),("timestamp",toJSON timestamp),("task",toJSON properties),("tui",JSONString "done")]), iworld)
+					//Build output structure
+					# json	= JSONObject [("success",JSONBool True)
+										 ,("timestamp",toJSON timestamp)
+								 		 ,("tui",tui)
+								 		 :if outdated [("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")] []
+								 		 ]
+					= (json, iworld)
+					
 				Ok (TaskFinished _, properties)
-					= (JSONObject ([("success",JSONBool True),("timestamp",toJSON timestamp),("task",toJSON properties),("tui",JSONString "done")]), iworld)
+					= (JSONObject ([("success",JSONBool True),("timestamp",toJSON timestamp),("tui",JSONString "done")]), iworld)
 				Ok (TaskException _ err, _)
 					= (JSONObject [("succes",JSONBool False),("error",JSONString err)], iworld)
 				_
@@ -247,41 +235,7 @@ where
 	getTimestamp :: !*IWorld -> (!Timestamp,!*IWorld)
 	getTimestamp iworld=:{IWorld|timestamp} = (timestamp,iworld)
 
-	//HACK function (we definitely don't want to do this lookup here!)
-	findSubProps taskId (TCTop properties _ ttcontext)
-		| properties.systemProperties.SystemProperties.taskId == taskId
-														= Just properties
-		| otherwise										= findSubPropsTop taskId ttcontext
-	findSubProps taskId (TCBasic _)	= Nothing
-	findSubProps taskId (TCBind (Left context))			= findSubProps taskId context
-	findSubProps taskId (TCBind (Right (_,context)))	= findSubProps taskId context
-	findSubProps taskId (TCTry (Left context))			= findSubProps taskId context
-	findSubProps taskId (TCTry (Right (_,context)))		= findSubProps taskId context
-	findSubProps taskId (TCParallel _ _ subs)			= findSubPropsPar taskId subs
 	
-	findSubPropsTop taskId (TTCActive context)			= findSubProps taskId context
-	findSubPropsTop taskId _							= Nothing 
-
-	findSubPropsPar taskId [(_,STCHidden _ (Just (_,context))):ts]
-		= case findSubProps taskId context of
-			Just p	= Just p
-			Nothing	= findSubPropsPar taskId ts
-	findSubPropsPar taskId [(_,STCBody _ (Just (_,context))):ts]
-		= case findSubProps taskId context of
-			Just p	= Just p
-			Nothing	= findSubPropsPar taskId ts
-	findSubPropsPar taskId [(_,STCDetached properties mbContext):ts]
-		| properties.systemProperties.SystemProperties.taskId == taskId
-			= Just properties
-		= case mbContext of
-			Nothing	= findSubPropsPar taskId ts
-			Just (_,context) = case findSubProps taskId context of
-				Just p	= Just p
-				Nothing	= findSubPropsPar taskId ts
-	findSubPropsPar taskId _ = Nothing
-		
-
-
 listDescription			:== "This service lists all tasks for the user of the provided session."
 listDebugDescription	:== "This service dumps all information currently in the process database of running instances."
 detailsDescription		:== "This service provides all meta-properties of a running task instance."

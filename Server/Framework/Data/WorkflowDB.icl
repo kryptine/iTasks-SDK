@@ -18,19 +18,18 @@ where
 		# (mbThread,iworld)		= loadValue (THREAD_DB id) iworld
 		# (workflows,iworld)	= readWorkflowStore iworld
 		# res = case (mbThread,filter (\{workflowId} -> workflowId == id) workflows) of
-			(Just (thread,menu),[{WorkflowDescription|path,roles,description,managerProperties}]) = Just
+			(Just thread,[{WorkflowDescription|path,roles,description,managerProperties}]) = Just
 				{ path				= path
 				, roles				= roles
 				, thread			= thread
 				, description		= description
 				, managerProperties	= managerProperties
-				, menu				= menu
 				}
 			_ = Nothing
 		= (res,iworld)
 			 
 	addWorkflow :: !Workflow !*IWorld -> (!WorkflowDescription,!*IWorld)
-	addWorkflow {path,roles,thread,description,managerProperties,menu} iworld
+	addWorkflow {path,roles,thread,description,managerProperties} iworld
 		# (wid,iworld)	= getWid iworld
 		# descr =		{ workflowId		= wid
 						, path				= path
@@ -39,7 +38,7 @@ where
 						, managerProperties	= managerProperties
 						}
 		# (_,iworld)	= workflowStore (\ws -> ws ++ [descr]) iworld
-		# iworld		= storeValue (THREAD_DB wid) (thread,menu) iworld
+		# iworld		= storeValue (THREAD_DB wid) thread iworld
 		= (descr,iworld)
 	where
 		getWid iworld
@@ -68,6 +67,3 @@ readWorkflowStore iworld
 WORKFLOW_DB		:== "WorkflowDB"
 NEXT_ID_DB		:== "NextWorkflowID"
 THREAD_DB id	:== "Workflow-" +++ toString id
-	
-JSONEncode{|Menu|} _		= abort "not implemented"
-JSONDecode{|Menu|} _		= abort "not implemented"

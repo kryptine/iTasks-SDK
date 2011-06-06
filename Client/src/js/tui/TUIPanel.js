@@ -167,8 +167,7 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 				if(!cmp) {
 					return null;
 				}
-			}
-			
+			}	
 		}
 		//Update component
 		if(cmp.isXType('itasks.tui.Constructor')) {
@@ -193,9 +192,9 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 		}
 		if (shallow === false) return;
 
-		var p = this.findParentByType('itasks.work').get(1);
+		var p = this.findParentByType('itasks.work');
 		var w = p.getWidth();
-		var h = p.getHeight() - p.getTopToolbar().getHeight();
+		var h = p.getHeight();
 
 		this.suspendEvents();
 		this.cascade(function() {this.show();}); // show all child components to prevent errors

@@ -37,6 +37,7 @@
 		
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"LayoutContainer.js","path":"src/js/tui/"}
+		,{"text":"MainContainer.js","path":"src/js/tui/"}
 		,{"text":"HtmlDisplay.js","path":"src/js/tui/"}
 		
 		,{"text":"MenuItem.js","path":"src/js/tui/"}

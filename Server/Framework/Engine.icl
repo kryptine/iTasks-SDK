@@ -135,28 +135,27 @@ restrictedWorkflow path description roles task = workflowTask path description r
 	
 instance workflowTask (Task a) | iTask a
 where
-	workflowTask path description roles task = workflowTask path description roles (Workflow initManagerProperties noMenu task)
+	workflowTask path description roles task = workflowTask path description roles (Workflow initManagerProperties task)
 	
 instance workflowTask (WorkflowContainer a) | iTask a
 where
-	workflowTask path description roles (Workflow managerP menu task) = mkWorkflow path description roles (createThread (task <<@ Title (path2name path))) managerP menu
+	workflowTask path description roles (Workflow managerP task) = mkWorkflow path description roles (createThread (task <<@ Title (path2name path))) managerP
 
 instance workflowTask (a -> Task b) | iTask a & iTask b
 where
-	workflowTask path description roles paramTask = workflowTask path description roles (ParamWorkflow initManagerProperties noMenu paramTask)
+	workflowTask path description roles paramTask = workflowTask path description roles (ParamWorkflow initManagerProperties paramTask)
 	
 instance workflowTask (ParamWorkflowContainer a b) | iTask a & iTask b
 where
-	workflowTask path description roles (ParamWorkflow managerP menu paramTask) = mkWorkflow path description roles (createThreadParam (path2name path) paramTask) managerP menu
+	workflowTask path description roles (ParamWorkflow managerP paramTask) = mkWorkflow path description roles (createThreadParam (path2name path) paramTask) managerP
 	
-mkWorkflow path description roles thread managerProps menu =
+mkWorkflow path description roles thread managerProps =
 	{ Workflow
 	| path	= path
 	, roles	= roles
 	, thread = thread
 	, description = description
 	, managerProperties = managerProps
-	, menu = menu
 	}
 
 path2name path = last (split "/" path)

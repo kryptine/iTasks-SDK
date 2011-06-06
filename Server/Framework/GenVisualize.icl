@@ -400,19 +400,19 @@ where
 		getHtml viz = [toString (html (coerceToHtml viz))]
 		
 		getEditors :: [Visualization] -> [[Maybe TUIDef]]
-		getEditors [TUIFragment {content=c=:(TUIListContainer {TUIListContainer|items})}] = map (filterHtmlContainers o getEditors` o stripListItem) items
+		getEditors [TUIFragment {TUIDef|content=c=:(TUIListContainer {TUIListContainer|items})}] = map (filterHtmlContainers o getEditors` o stripListItem) items
 		where
 			stripListItem :: TUIDef -> [TUIDef]
-			stripListItem {content=c=:(TUIListItem {TUIListItem|items})} = [items]
+			stripListItem {TUIDef|content=c=:(TUIListItem {TUIListItem|items})} = [items]
 			stripListItem _ = abort "get table editors: list item container expected"
 			
 			getEditors` :: [TUIDef] -> [TUIDef]
 			getEditors` tui = case tui of
-				[{content=c=:(TUILayoutContainer {TUILayoutContainer|items})}]	= items
+				[{TUIDef|content=c=:(TUILayoutContainer {TUILayoutContainer|items})}]	= items
 				tui																= tui
 				
 			filterHtmlContainers :: [TUIDef] -> [Maybe TUIDef]
-			filterHtmlContainers tuis = map (\tui -> case tui.content of (TUIControl (TUIHtmlDisplay _) _) = Nothing; _ = Just tui) tuis
+			filterHtmlContainers tuis = map (\tui -> case tui.TUIDef.content of (TUIControl (TUIHtmlDisplay _) _) = Nothing; _ = Just tui) tuis
 			
 		getEditors _ = abort "get table editors: list container expected"
 		
@@ -560,8 +560,6 @@ gVisualize{|FillHControlSize|} fx val vst=:{controlSize=controlSize=:(width,_,ma
 	# (def,vst) = fx (fmap fromFillHControlSize val) {vst & controlSize = (width,FillParent 1 ContentSize,margins)}
 	= (def,{vst & controlSize = controlSize})
 	
-gVisualize{|Menu|} _ _ = abort "not implemented"
-
 derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session
 derive bimap Maybe
 

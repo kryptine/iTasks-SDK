@@ -43,8 +43,8 @@ manageMessages =
 	>>= overview
 	>>= \res -> case res of
 		(ActionOpen,Just message)		= manageMessage message	>>|	return False
-		(Action "new-msg" _,_) 			= newMessage			>>|	return False
-		(Action "new-group-msg" _,_)	= newGroupMessage		>>| return False
+		(Action "New message",_) 		= newMessage			>>|	return False
+		(Action "New group message",_)	= newGroupMessage		>>| return False
 		(ActionQuit,_)					= 							return True
 	) <! id >>| stop
 where
@@ -53,8 +53,8 @@ where
 	overview msgs	= enterChoice ("My messages","Your messages:") [] msgs >>+ \{modelValue,localValid} -> let mbM = if localValid (Just modelValue) Nothing in UserActions [(aOpen,maybe Nothing (\m -> Just (aOpen,Just m)) mbM),(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]
 	
 	aOpen		= ActionOpen
-	aNew		= Action "new-msg" "New message"
-	aNewGroup	= Action "new-group-msg" "New group message"
+	aNew		= Action "New message"
+	aNewGroup	= Action "New group message"
 	aQuit		= ActionQuit
 
 manageMessage :: Message -> Task Bool
@@ -63,17 +63,17 @@ manageMessage msg=:{Message |subject}
 	>>= \act -> case act of
 		ActionClose
 			= return False
-		(Action "reply" _)
+		(Action "Reply")
 			= 			get currentUser
 			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		(Action "reply-all" _)
+		(Action "Reply All")
 			= 			get currentUser
 			>>= \me	->	writeMessage me ("Re: " +++ msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		(Action "forward" _)
+		(Action "Forward")
 			= 			get currentUser 
 			>>= \me -> 	writeMessage me ("Fw: " +++ msg.Message.subject) [] (Just msg)
 			>>= \msg -> sendMessage msg
@@ -82,9 +82,9 @@ manageMessage msg=:{Message |subject}
 			=			dbDeleteItem (getItemId msg)
 			>>|			showInformation ("Deleted","Message deleted") [] False	
 where
-	aReply		= Action "reply" "Reply"
-	aReplyAll	= Action "reply-all" "Reply All"
-	aForward	= Action "forward" "Forward"
+	aReply		= Action "Reply"
+	aReplyAll	= Action "Reply All"
+	aForward	= Action "Forward"
 	aDelete		= ActionDelete
 	aClose		= ActionClose
 
@@ -107,8 +107,8 @@ sendMessage :: Message -> Task Void
 sendMessage msg
 	=	dbCreateItem msg
 	>>= \msg -> case msg.needsReply of
-			False	= allTasks [spawnProcess True {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} noMenu (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| stop
-			True	= spawnProcess True initManagerProperties noMenu (awaitReplies msg) >>| stop
+			False	= allTasks [spawnProcess True {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| stop
+			True	= spawnProcess True initManagerProperties (awaitReplies msg) >>| stop
 	>>| showInformation ("Message sent","The following message has been sent:") [About msg] Void
 where
 	awaitReplies msg =

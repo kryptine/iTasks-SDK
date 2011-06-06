@@ -4,7 +4,7 @@ import StdOverloaded, StdClass, StdInt, StdMisc, StdArray, StdTuple, StdList, Er
 import Task, Store, TaskContext, Shared, Util
 from Types		import :: ProcessId
 from StdFunc	import id
-from ProcessDB	import :: Process{..}, :: Menu
+from ProcessDB	import :: Process{..}
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
 
 import GenVisualize
@@ -14,16 +14,6 @@ derive gUpdate		Process, ProcessProperties, SystemProperties, TaskProperties, Ta
 derive gDefaultMask	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
 derive gVerify		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
 derive bimap Maybe,(,)
-
-// generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
-gVisualize{|Menu|} _ _		= abort "not implemented"
-gVisualize{|MenuItem|} _ _	= abort "not implemented"
-gUpdate{|Menu|} _ _			= abort "not implemented"
-gUpdate{|MenuItem|} _ _		= abort "not implemented"
-gDefaultMask{|Menu|} _		= abort "not implemented"
-gDefaultMask{|MenuItem|} _	= abort "not implemented"
-gVerify{|Menu|} _ _			= abort "not implemented"
-gVerify{|MenuItem|} _ _		= abort "not implemented"
 	
 getProcess :: !ProcessId -> Task (Maybe Process)
 getProcess pid = mkInstantTask ("Get process", "Read a process from the database.") eval

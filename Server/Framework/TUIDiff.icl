@@ -13,7 +13,7 @@ where
 	diffEditorDefinitions` :: !DataPath !TUIDef !TUIDef -> [TUIUpdate]
 	diffEditorDefinitions` path oldTui newTui
 		| oldTui.margins === newTui.margins
-			= case diffEditorDefinitions`` oldTui.content newTui.content of
+			= case diffEditorDefinitions`` oldTui.TUIDef.content newTui.TUIDef.content of
 				Just diff
 					| oldTui.width === newTui.width && oldTui.height === newTui.height
 						= diff
@@ -80,8 +80,8 @@ where
 					
 					diffListItemDefinitions path old new
 						= flatten [  diffEditorDefinitions` (childDataPath path i) co cn
-						 		  \\ {content=c=:(TUIListItem {TUIListItem|items=co})} <- old
-								  &  {content=c=:(TUIListItem {TUIListItem|items=cn})} <- new
+						 		  \\ {TUIDef|content=c=:(TUIListItem {TUIListItem|items=co})} <- old
+								  &  {TUIDef|content=c=:(TUIListItem {TUIListItem|items=cn})} <- new
 								  &  i <- [0..]]
 			// Custom components need to figure out their own update on the client side
 			(TUICustom oc, TUICustom nc)

@@ -42,18 +42,18 @@ createWorkflowInstance workflowId user iworld
 	= case mbWorkflow of
 		Nothing
 			= (Error "No such workflow",iworld)
-		Just {Workflow|thread,managerProperties,menu}
+		Just {Workflow|thread,managerProperties}
 			//Get next process id
 			# (processId,iworld)		= getNextProcessId iworld
 			//Create initial task context
-			# (context,iworld)			= initTaskContext processId thread managerProperties menu iworld
+			# (context,iworld)			= initTaskContext processId thread managerProperties iworld
 			//Store thread
 			# iworld					= setProcessThread processId thread iworld
 			//Evaluate task once
 			# (result,properties,iworld)= evalTask processId thread context iworld 
 			= (Ok (result,properties), iworld)
 where
-	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} menu iworld=:{IWorld|timestamp}
+	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} iworld=:{IWorld|timestamp}
 		# originalTaskFuncs = toTaskFuncs originalTask
 		# (tcontext,iworld) = originalTaskFuncs.initFun [0,processId] iworld		
 		# properties =
@@ -64,7 +64,6 @@ where
 				, issuedAt		= timestamp
 				, firstEvent	= Nothing
 				, latestEvent	= Nothing
-				, menu			= menu
 				}
 			, managerProperties	= {managerProperties & worker = if (worker == AnyUser) user worker}
 			}
@@ -75,13 +74,14 @@ where
 		//Set current worker
 		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
 		//Evaluate
-		# (tresult, iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] Nothing [] defaultInteractionLayout defaultParallelLayout tcontext iworld
+		# (tresult, iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] Nothing [] defaultInteractionLayout defaultParallelLayout defaultMainLayout tcontext iworld
 		= case tresult of
-			TaskBusy tui tcontext
-				# properties	= setRunning properties 
+			TaskBusy tui actions tcontext
+				# properties	= setRunning properties
+				# tui			= defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties} 
 				# context 		= TCTop properties changeNo (TTCActive tcontext)
 				# iworld		= setProcessContext processId context iworld
-				= (TaskBusy tui context, properties, iworld)
+				= (TaskBusy (Just tui) [] context, properties, iworld)
 			TaskFinished val	
 				# properties	= setFinished properties
 				# context		= TCTop properties  changeNo (TTCFinished (toJSON val))
@@ -123,13 +123,14 @@ where
 				//The first two steps in a commit event path have to be the processId and changeNo
 				# commitEvent		= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
 				# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr) 
-				# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout scontext iworld
+				# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext iworld
 				= case sresult of
-					TaskBusy tui scontext
+					TaskBusy tui actions scontext
 						# properties	= setRunning properties 
+						# tui			= defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties}
 						# context		= TCTop properties changeNo (TTCActive scontext)
 						# iworld		= setProcessContext processId context iworld
-						= (TaskBusy tui context, properties, iworld)
+						= (TaskBusy (Just tui) [] context, properties, iworld)
 					TaskFinished val
 						# properties	= setFinished properties
 						# context		= TCTop properties changeNo (TTCFinished (toJSON val))
@@ -142,7 +143,7 @@ where
 						= (taskException e, properties, iworld)
 			//Don't evaluate, just yield TaskBusy without user interface and original context
 			TTCSuspended scontext
-				= (TaskBusy Nothing context, properties, iworld)
+				= (TaskBusy Nothing [] context, properties, iworld)
 			TTCFinished encval
 				= case fromJSON encval of
 					Just val	= (TaskFinished (dynamic val :: a), properties, iworld)

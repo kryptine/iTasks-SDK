@@ -25,7 +25,9 @@ derive gPutRecordFields	Task
 	, type					:: !(TaskType a)
 	}
 	
-:: TaskType a = NormalTask !(TaskFuncs a) | ActionTask !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b)
+:: TaskType a	= NormalTask !(TaskFuncs a)
+				| ActionTask !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b)
+				
 :: TaskFuncs a =	{ initFun				:: TaskInitFun
 					, editEventFun			:: TaskEditEventFun
 					, evalTaskFun			:: TaskEvalFun a
@@ -35,13 +37,13 @@ derive gPutRecordFields	Task
 
 :: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContext,!*IWorld)
 :: TaskEditEventFun	:== TaskNr EditEvent TaskContext *IWorld -> *(!TaskContext,!*IWorld)
-:: TaskEvalFun a	:== TaskNr (Maybe CommitEvent) ReversedTaskNr InteractionLayoutMerger ParallelLayoutMerger TaskContext *IWorld -> *(!TaskResult a, !*IWorld)
+:: TaskEvalFun a	:== TaskNr (Maybe CommitEvent) ReversedTaskNr InteractionLayouter ParallelLayouter MainLayouter TaskContext *IWorld -> *(!TaskResult a, !*IWorld)
 
 :: ReversedTaskNr	:== [Int]									//Reversed tasks nr used to locate a subtask in a composition  
 :: EditEvent		:== (!ReversedTaskNr, !String, !JSONNode)	//Location, Datapath and new value
 :: CommitEvent		:== (!ReversedTaskNr, !String)				//Location and action name
 
-:: TaskResult a		= TaskBusy !(Maybe TUIDef) !TaskContext
+:: TaskResult a		= TaskBusy !(Maybe TUIDef) ![TaskAction] !TaskContext
 					| TaskFinished !a
 					| TaskException !Dynamic !String
 					

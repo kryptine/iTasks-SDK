@@ -21,14 +21,6 @@ derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProper
 derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive bimap		Maybe, (,)
 
-// JSON (de)serialisation & equality of menus not needed because only functions generating menus (no actual menu structures) are serialised
-JSONEncode{|Menu|} _		= abort "not implemented"
-JSONEncode{|MenuItem|} _	= abort "not implemented"
-JSONDecode{|Menu|} _		= abort "not implemented"
-JSONDecode{|MenuItem|} _	= abort "not implemented"
-gEq{|Menu|} _ _				= abort "not implemented"
-gEq{|MenuItem|} _ _			= abort "not implemented"
-
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
@@ -522,55 +514,41 @@ JSONDecode{|DateTime|} c				= (Nothing, c)
 instance == Action
 where
 	(==) :: !Action !Action -> Bool
-	(==) (Action name0 _) (Action name1 _) = name0 == name1
+	(==) (Action name0) (Action name1) = name0 == name1
 	(==) a b = a === b
 
 instance actionName Action
 where
-	actionName (Action name _)		= name
-	actionName ActionOk				= "ok"
-	actionName ActionCancel			= "cancel"
-	actionName ActionYes			= "yes"
-	actionName ActionNo				= "no"
-	actionName ActionNext			= "next"
-	actionName ActionPrevious		= "previous"
-	actionName ActionFinish			= "finish"
-	actionName ActionContinue		= "continue"
-	actionName ActionNew			= "new"
-	actionName ActionOpen			= "open"
-	actionName ActionSave			= "save"
-	actionName ActionSaveAs			= "save-as"
-	actionName ActionClose			= "close"
-	actionName ActionQuit			= "quit"
-	actionName ActionHelp			= "help"
-	actionName ActionAbout			= "about"
-	actionName ActionFind			= "find"
-	actionName ActionEdit			= "edit"
-	actionName ActionDelete			= "delete"
+	actionName (Action name)		= name
+	actionName ActionOk				= "Ok"
+	actionName ActionCancel			= "Cancel"
+	actionName ActionYes			= "Yes"
+	actionName ActionNo				= "No"
+	actionName ActionNext			= "Next"
+	actionName ActionPrevious		= "Previous"
+	actionName ActionFinish			= "Finish"
+	actionName ActionContinue		= "Continue"
+	actionName ActionNew			= "File/New"
+	actionName ActionOpen			= "File/Open"
+	actionName ActionSave			= "File/Save"
+	actionName ActionSaveAs			= "File/Save as"
+	actionName ActionClose			= "File/Close"
+	actionName ActionQuit			= "File/Quit"
+	actionName ActionHelp			= "Help/Help"
+	actionName ActionAbout			= "Help/About"
+	actionName ActionFind			= "Edit/find"
+	actionName ActionEdit			= "Edit/Edit"
+	actionName ActionDelete			= "Edit/Delete"
 	
 instance actionName ActionName	
 where
 	actionName name = name
 
-instance menuAction Action
-where
-	menuAction action = (actionName action, "")
-	
-instance menuAction ActionName
-where
-	menuAction name = (name, "")
-	
-instance menuAction (actionName, ActionLabel) | actionName actionName
-where
-	menuAction (name, label) = (actionName name, label)
-	
 actionIcon :: !Action -> String
-actionIcon action = "icon-" +++ (actionName action) 
+actionIcon action = "icon-" +++ toLowerCase (actionName action) 
 
 actionLabel :: !Action -> String
-actionLabel (Action _ label)	= label
-actionLabel (ActionSaveAs)		= "Save as"
-actionLabel action				= upperCaseFirst (actionName action)
+actionLabel a = actionName a
 
 instance descr String
 where
@@ -644,12 +622,6 @@ where
 	toText NormalPriority	= "Normal"
 	toText LowPriority		= "Low"
 		
-noMenu :: ActionMenu
-noMenu = const []
-
-staticMenu	:: !MenuDefinition -> ActionMenu
-staticMenu def = const def
-
 isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool
 //Allow the root user
 isAllowedWorkflow RootUser _ _									= True

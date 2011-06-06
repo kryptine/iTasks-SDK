@@ -50,12 +50,13 @@ where
 			
 	terms {modelValue=v=:{x}} = UserActions [(ActionQuit,Just x)]
 	
-	calculatorLayout :: !TUIInteraction -> TUIDef
-	calculatorLayout {title,buttons,editorParts=p=:[display:stButtons]} = defaultPanel
+	calculatorLayout {title,editorParts=p=:[display:stButtons],actions}
+		# (buttons,actions) = defaultButtons actions
+		= (defaultPanel
 		title
 		""
 		(WrapContent 0)
-		(defaultContent [display,columnLayout 4 stButtons] buttons)
+		(defaultContent [display,columnLayout 4 stButtons] buttons), actions)
 	where
 		buttonLayout buttons = buttonLayout` buttons []
 		buttonLayout` buttons acc = case splitAt 4 buttons of

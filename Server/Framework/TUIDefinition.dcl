@@ -5,28 +5,27 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: ActionTrigger, :: Action
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: TaskAction, :: Action, :: ProcessProperties
 
 :: TUIInteraction =	{ title				:: !String
 					, description		:: !String
 					, editorParts		:: ![TUIDef]
-					, buttons			:: ![TUIDef]
+					, actions			:: ![TaskAction]
 					, type				:: !Maybe InteractionTaskType
 					, isControlTask		:: !Bool
 					, localInteraction	:: !Bool
 					, warning			:: !Maybe String
 					}
 					
-:: TUIParallel =	{ title			:: !String
-					, description	:: !String
-					, items			:: ![TUIDef]
+:: TUIParallel =	{ title				:: !String
+					, description		:: !String
+					, items				:: ![(TUIDef,[TaskAction])]
+					}
+:: TUIMain = 		{ properties		:: !ProcessProperties
+					, content			:: !TUIDef
+					, actions			:: ![TaskAction]
 					}
 					
-:: TUIResult =		{ title			:: !String
-					, description	:: !String
-					, result		:: !TUIDef
-					}
-
 :: TUIName	:== String
 
 :: TUIDef =	{ content	:: !TUIDefContent
@@ -39,6 +38,7 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	= TUIControl			!TUIControlType !TUIControl
 	| TUIButton				!TUIButton
 	| TUILayoutContainer	!TUILayoutContainer
+	| TUIMainContainer		!TUIMainContainer
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
 	| TUIGridContainer		!TUIGridContainer
@@ -100,6 +100,11 @@ from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Interacti
 	, frame				:: !Bool
 	, iconCls			:: !Maybe PanelIcon
 	, padding			:: !Maybe Int
+	}
+:: TUIMainContainer = 
+	{ items				:: ![TUIDef]
+	, menus				:: ![TUIDef]
+	, properties		:: !ProcessProperties
 	}
 :: TUIListContainer =
 	{ items			:: ![TUIDef]
@@ -176,18 +181,16 @@ defaultLayoutContainer	:: ![TUIDef] -> TUILayoutContainer
 sameMargins				:: !TUIFixedSize -> TUIMargins
 
 // Layouts
-:: InteractionLayoutMerger	:== LayoutMerger TUIInteraction
-:: ParallelLayoutMerger		:== LayoutMerger TUIParallel
-:: ResultLayoutMerger		:== LayoutMerger TUIResult
-:: LayoutMerger a			:== a -> TUIDef
+:: InteractionLayouter	:== TUIInteraction	-> (TUIDef, [TaskAction]) 
+:: ParallelLayouter		:== TUIParallel		-> (TUIDef, [TaskAction])
+:: MainLayouter			:== TUIMain			-> TUIDef
 
 // pre-defined layouts
-defaultInteractionLayout	:: InteractionLayoutMerger
-fullWidthInteractionLayout	:: InteractionLayoutMerger
-defaultParallelLayout		:: ParallelLayoutMerger
-minimalParallelLayout		:: ParallelLayoutMerger
-defaultResultLayout			:: ResultLayoutMerger
-
+defaultInteractionLayout	:: InteractionLayouter
+fullWidthInteractionLayout	:: InteractionLayouter
+defaultParallelLayout		:: ParallelLayouter
+minimalParallelLayout		:: ParallelLayouter
+defaultMainLayout			:: MainLayouter
 
 // layout aux functions
 defaultPanelDescr			:: !PanelTitle !PanelIcon !String !(Maybe String) 	!TUISize ![TUIDef]	-> TUIDef
@@ -196,7 +199,7 @@ defaultDescriptionPanel		:: !String !(Maybe String)												-> TUIDef
 defaultContentPanel			:: ![TUIDef]															-> TUIDef
 defaultContent				:: ![TUIDef] ![TUIDef]													-> [TUIDef]
 defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool								-> PanelIcon
-defaultButtons				:: ![ActionTrigger]														-> (![TUIDef],![ActionTrigger])
-defaultMenus				:: ![ActionTrigger]														-> (![TUIDef],![ActionTrigger])
+defaultButtons				:: ![TaskAction]														-> (![TUIDef],![TaskAction])
+defaultMenus				:: ![TaskAction]														-> (![TUIDef],![TaskAction])
 
 columnLayout				:: !Int ![TUIDef] 														-> TUIDef

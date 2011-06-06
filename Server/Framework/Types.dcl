@@ -224,7 +224,6 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	, issuedAt			:: !Timestamp				// When was the task created
 	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
 	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	
-	, menu				:: !ActionMenu				// The maintask's menu
 	}
 	
 :: TaskId :== String		// String serialization of TaskNr values
@@ -252,17 +251,12 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 					
 formatPriority	:: !TaskPriority	-> HtmlDisplay
 
-:: TaskContainerType	= CTDetached !ManagerProperties !ActionMenu	// task detached as separate process
-						| CTWindow !WindowTitle !ActionMenu			// task shwon in a window (with own menu)
-						| CTDialog !WindowTitle						// task shwon as dialogue (without own menu)
-						| CTInBody									// task shown in the body of the parallel container
-						| CTHidden									// task not shown to the user
+:: TaskContainerType	= CTDetached	!ManagerProperties	// task detached as separate process
+						| CTWindow		!WindowTitle 		// task shwon in a window (with own menu)
+						| CTDialog		!WindowTitle		// task shwon as dialogue (without own menu)
+						| CTInBody							// task shown in the body of the parallel container
+						| CTHidden							// task not shown to the user
 						
-:: ActionMenu :== [ActionName] -> MenuDefinition
-
-noMenu		:: ActionMenu
-staticMenu	:: !MenuDefinition -> ActionMenu
-
 :: WindowTitle :== String
 
 instance toString TaskStatus
@@ -338,7 +332,7 @@ getRoles			:: !User -> [Role]
 * or as an item in the task menu, or both.
 * Additionally conditions can be specified when the action is allowed to be performed.
 */
-:: Action	= Action !ActionName !ActionLabel
+:: Action	= Action !ActionName
 			| ActionOk
 			| ActionCancel
 			| ActionYes
@@ -362,41 +356,23 @@ getRoles			:: !User -> [Role]
 :: ActionName	:== String	//Locally unique identifier for actions
 :: ActionLabel	:== String	//Textual label for the action
 
+:: TaskAction :== (TaskId,Action,Bool)
+
 instance == Action
 
 class actionName a :: a -> String
-
 instance actionName Action
 instance actionName ActionName
 
 actionIcon 	:: !Action -> String
 actionLabel	:: !Action -> String
-
-:: ActionTrigger :== (TaskId,Action,Bool)
-
-// Definition of menus
-
-:: MenuDefinition :== [Menu]
-:: Menu 		= Menu !MenuLabel ![MenuItem]
-:: MenuItem 	= E.action:	MenuItem !action !(Maybe Hotkey) & menuAction action
-				| 			SubMenu !MenuLabel ![MenuItem]
-				| 			MenuSeparator
-:: MenuLabel	:== String
-				
+			
 :: Hotkey =	{ key	:: !Key
 			, ctrl	:: !Bool
 			, alt	:: !Bool
 			, shift	:: !Bool
 			}
 :: Key :== Char
-
-class menuAction a :: a -> MenuAction
-
-:: MenuAction :== (ActionName, ActionLabel)
-
-instance menuAction Action
-instance menuAction ActionName
-instance menuAction (actionName, ActionLabel) | actionName actionName
 
 :: InteractionTaskType	= InputTask | UpdateTask | OutputTask !OutputTaskType
 :: OutputTaskType		= ActiveOutput | PassiveOutput
@@ -428,7 +404,6 @@ instance menuAction (actionName, ActionLabel) | actionName actionName
 					, thread			:: Dynamic				// the thread of the main task of the workflow
 					, description		:: String				// a description of the workflow
 					, managerProperties	:: ManagerProperties	// the initial manager properties of the main task
-					, menu				:: ActionMenu			// the menu of the main task
 					}
 					
 isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool

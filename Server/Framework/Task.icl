@@ -23,8 +23,8 @@ mkInstantTask description iworldfun =
 	, mbTaskNr				= Nothing
 	, type = NormalTask
 		{ initFun			= \_ iworld -> (TCBasic newMap,iworld)
-		, editEventFun		= \_ _ context iworld -> (context,iworld)
-		, evalTaskFun		= \taskNr _ _ _ _ _ iworld -> iworldfun taskNr iworld
+		, editEventFun		= \_ _  context iworld -> (context,iworld)
+		, evalTaskFun		= \taskNr _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}
 	}
 	
@@ -100,32 +100,8 @@ derive JSONEncode Task
 derive JSONDecode Task
 derive bimap Maybe, (,)
 
-// Generic functions for menus not needed because only functions generating menus (no actual menu structures) are serialised
-JSONEncode{|Menu|} _			= abort "not implemented"
-JSONEncode{|MenuItem|} _		= abort "not implemented"
-JSONDecode{|Menu|} _			= abort "not implemented"
-JSONDecode{|MenuItem|} _		= abort "not implemented"
-gUpdate{|Menu|} _ _				= abort "not implemented"
-gUpdate{|MenuItem|} _ _			= abort "not implemented"
-gDefaultMask{|Menu|} _			= abort "not implemented"
-gDefaultMask{|MenuItem|} _		= abort "not implemented"
-gVerify{|Menu|} _ _				= abort "not implemented"
-gVerify{|MenuItem|} _ _			= abort "not implemented"
-gVisualize{|Menu|} _ _			= abort "not implemented"
-gVisualize{|MenuItem|} _ _		= abort "not implemented"
-gEq{|Menu|} _ _					= abort "not implemented"
-gEq{|MenuItem|} _ _				= abort "not implemented"
-JSONEncode{|TUIInteraction|} _	= abort "not implemented"
-JSONDecode{|TUIInteraction|} _	= abort "not implemented"
-JSONEncode{|TUIParallel|} _		= abort "not implemented"
-JSONDecode{|TUIParallel|} _		= abort "not implemented"
-JSONEncode{|TUIResult|} _		= abort "not implemented"
-JSONDecode{|TUIResult|} _		= abort "not implemented"
-JSONEncode{|TUIDef|} _			= abort "not implemented"
-JSONDecode{|TUIDef|} _			= abort "not implemented"
-
-JSONEncode{|TaskType|} _ tt = dynamicJSONEncode tt
-					
+	
+JSONEncode{|TaskType|} _ tt = dynamicJSONEncode tt			
 JSONDecode{|TaskType|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|TaskType|} _ c = (Nothing,c)
 

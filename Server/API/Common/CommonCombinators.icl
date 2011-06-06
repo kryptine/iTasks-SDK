@@ -68,9 +68,10 @@ where
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
-assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
-									[ShowAs BodyTask processControl, ShowAs (DetachedTask props actionMenu) (accu accJust task)] <<@ minimalParallelLayout
+
+assign :: !ManagerProperties !(Task a) -> Task a | iTask a
+assign props task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
+									[ShowAs BodyTask processControl, ShowAs (DetachedTask props) (accu accJust task)] <<@ minimalParallelLayout
 where
 	processControl :: state !(Shared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
 	processControl _ control =
@@ -110,7 +111,7 @@ derive class iTask ProcessControlView
 derive class GenRecord ProcessControlView, ManagerProperties, TaskPriority, RunningTaskStatus
 
 (@:) infix 3 :: !User !(Task a) -> Task a | iTask a
-(@:) user task = assign {initManagerProperties & worker = user} noMenu task
+(@:) user task = assign {initManagerProperties & worker = user} task
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>= \_ -> return x
@@ -150,6 +151,7 @@ where
 			(set pstate (Just a) >>|return a)
 			(update (\[{ParallelTaskInfo|index}] -> [RemoveTask index, AppendTask (ShowAs BodyTask (checked pred task))]) pinfo >>| return a)
 
+	layout :: TUIParallel -> (TUIDef,[TaskAction])
 	layout {TUIParallel|items} = hd items
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a

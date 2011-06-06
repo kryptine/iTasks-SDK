@@ -63,16 +63,16 @@ manageList list
 	(	showItems list
 	>>= \action -> case action of
 		ActionEdit			= editItems	list			>>| return False
-		Action "share" _	= manageListSharing list	>>| return False
+		Action "Share"		= manageListSharing list	>>| return False
 		ActionClose			=								return True
 	) <! id
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= monitor (l.List.name,l.List.description) [Get simpleFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]
-		(TodoList l)	= monitor (l.List.name,l.List.description) [Get todoFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]
-		(DateList l)	= monitor (l.List.name,l.List.description) [Get dateFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]
-		(DocumentList l)= monitor (l.List.name,l.List.description) [Get documentFrom]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "share" "Share",Just (Action "share" "Share"))]
+		(SimpleList l)	= monitor (l.List.name,l.List.description) [Get simpleFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
+		(TodoList l)	= monitor (l.List.name,l.List.description) [Get todoFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
+		(DateList l)	= monitor (l.List.name,l.List.description) [Get dateFrom]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
+		(DocumentList l)= monitor (l.List.name,l.List.description) [Get documentFrom]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
 
 	editItems list = case list of
 		(SimpleList l)	= updateSharedInformation (l.List.name,l.List.description) [View (simpleFrom,simpleTo)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) >>+ \_ -> UserActions [(ActionFinish,Just Void)]
@@ -106,16 +106,16 @@ manageListSharing list
 			  )
 			>>= \res -> case res of
 				(ActionDelete,users)		= removeUsers users >>| return False
-				(Action "add-person" _,_)	= addUsers list		>>| return False
-				(Action "add-group" _,_)	= addGroup list		>>| return False
+				(Action "Add person(s)",_)	= addUsers list		>>| return False
+				(Action "Add group",_)		= addGroup list		>>| return False
 				(ActionPrevious,_)			=						return True
 	) <! id >>| stop
 
 where
 	aPrevious	= ActionPrevious
 	aRemove		= ActionDelete
-	aAddPerson	= Action "add-person" "Add person(s)"
-	aAddGroup	= Action "add-group" "Add group"
+	aAddPerson	= Action "Add person(s)"
+	aAddGroup	= Action "Add group"
 
 	removeUsers users	= 	removeSharingForList list users
 	addUsers list		=	enterInformation ("Add person(s)","Enter the person(s) you want to share this list with") []

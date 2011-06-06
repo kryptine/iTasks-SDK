@@ -83,13 +83,13 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 :: TerminationStatus	=	AllRunToCompletion			// all parallel processes have ended their execution
 						|	Stopped						// the control signal StopParallel has been commited
 				
-
 :: TaskContainer s		= E.a: ShowAs !TaskGUI !(TaskFunction s a) & iTask a
-:: TaskGUI				= DetachedTask !ManagerProperties !ActionMenu
-						| WindowTask   !WindowTitle       !ActionMenu
+:: TaskGUI				= DetachedTask !ManagerProperties
+						| WindowTask   !WindowTitle
 						| DialogTask   !WindowTitle
 						| BodyTask
 						| HiddenTask
+						
 :: TaskFunction s a		:== (SymmetricShared s) (ParallelInfo s) -> Task a
 
 :: ParallelInfo s		:== Shared [ParallelTaskInfo] [Control s]
@@ -120,7 +120,7 @@ derive class iTask Control
 * 
 * @gin-icon process_add
 */
-spawnProcess	:: !Bool !ManagerProperties !ActionMenu !(Task a) -> Task ProcessId | iTask a
+spawnProcess	:: !Bool !ManagerProperties !(Task a) -> Task ProcessId | iTask a
 
 /**
 * Kills a process disregarding any other references to this process.

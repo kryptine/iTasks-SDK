@@ -13,7 +13,7 @@ import StdMisc
 derive bimap Maybe, (,)
 
 clientExample :: [Workflow]
-clientExample = [workflow "Examples/Client" "This task rebuilds the client." (Workflow initManagerProperties (staticMenu [Menu "Example" [MenuItem ActionQuit Nothing]]) client)]
+clientExample = [workflow "Examples/Client" "This task rebuilds the client." (Workflow initManagerProperties client)]
 
 client = parallelLayout @>> parallel "Client" Nothing (\_ _ -> Void)
 	[ ShowAs BodyTask (\s _ -> chooseWorkflow s <<@ treeLayout)
@@ -33,7 +33,7 @@ where
 
 showDescription ref =
 								monitor "Task description" [Get view] ref
-	>>* \{modelValue = mbR}.	UserActions	[ (Action "start-task" "Start task",	fmap (\r ->
+	>>* \{modelValue = mbR}.	UserActions	[ (Action "Start task",	fmap (\r ->
 																				stop//startWorkflowByIndex (fromHidden (thd3 r))
 																			>>|	showDescription ref
 																		) mbR)
@@ -61,12 +61,14 @@ where
 						}
 derive class iTask ProcessTableView
 
-treeLayout {title,editorParts,buttons} =
-	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (editorContainer ++ buttonContainer) & title = Just title, iconCls = Just "icon-newwork"}
+treeLayout {title,editorParts,actions} 
+	# (buttons,actions) = defaultButtons actions
+	= (
+	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (editorContainer ++ buttonContainer buttons) & title = Just title, iconCls = Just "icon-newwork"}
 	, width		= FillParent 1 (FixedMinSize 100)
 	, height	= FillParent 1 ContentSize
 	, margins	= Nothing
-	}
+	}, actions)
 where
 	editorContainer
 		| isEmpty editorParts	= []
@@ -75,7 +77,7 @@ where
 									, height	= (WrapContent 0)
 									, margins	= Nothing
 									}]
-	buttonContainer
+	buttonContainer buttons
 		| isEmpty buttons	= []
 		| otherwise			= [	{ content	= TUILayoutContainer {defaultLayoutContainer buttons & orientation = Horizontal, hGravity = HGRight}
 								, width		= FillParent 1 ContentSize
@@ -83,19 +85,22 @@ where
 								, margins	= Nothing
 								}]
 
-descriptionLayout {title,editorParts,buttons} =
-	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (defaultContent editorParts buttons) & title = Just title, iconCls = Just "icon-description"}
+descriptionLayout {title,editorParts,actions}
+	# (buttons,actions) = defaultButtons actions
+	=
+	({ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (defaultContent editorParts buttons) & title = Just title, iconCls = Just "icon-description"}
 	, width		= FillParent 1 (FixedMinSize 100)
 	, height	= Fixed 150
 	, margins	= Nothing
-	}
-	
-parallelLayout {TUIParallel | items=i=:[tree,description,processTable]} =
-	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [left,right] & orientation = Horizontal}
+	},actions)
+
+parallelLayout :: TUIParallel -> (TUIDef,[TaskAction])	
+parallelLayout {TUIParallel | items=i=:[(tree,tactions),(description,dactions),(processTable,pactions)]} =
+	({ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [left,right] & orientation = Horizontal}
 	, width		= FillParent 1 ContentSize
 	, height	= FillParent 1 ContentSize
 	, margins	= Nothing
-	}
+	},tactions ++ dactions ++ pactions)
 where
 	left =	{ content	= TUILayoutContainer (defaultLayoutContainer [tree,description])
 			, width		= Fixed 260
@@ -107,13 +112,14 @@ where
 			, height	= FillParent 1 ContentSize
 			, margins	= Nothing
 			}
-			
-processTableLayout {editorParts} =
-	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer editorParts & frame = True}
+
+processTableLayout :: TUIInteraction -> (TUIDef,[TaskAction])	
+processTableLayout {editorParts,actions} =
+	({ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer editorParts & frame = True}
 	, width		= FillParent 1 ContentSize
 	, height	= Fixed 200
 	, margins	= Nothing
-	}
+	},actions)
 
 getWorkflowTreeNodes :: Task [TreeNode (!String,!Hidden String,!Hidden Int)]
 getWorkflowTreeNodes = abort "TODO" //mkInstantTask "get a tree of workflows" getWorkflowTree`
@@ -135,7 +141,7 @@ where
 				insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
 */
 startWorkflow :: !Workflow -> Task Void
-startWorkflow {thread,managerProperties,menu} = abort "TODO"
+startWorkflow {thread,managerProperties} = abort "TODO"
 
 startWorkflowByIndex :: !Int -> Task Void
 startWorkflowByIndex idx = abort "TODO" 

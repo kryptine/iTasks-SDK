@@ -60,14 +60,14 @@ where
 			
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr event tuiTaskNr imerge pmerge context=:(TCBasic _) iworld=:{world}
+	eval taskNr event tuiTaskNr imerge pmerge mmerge context=:(TCBasic _) iworld=:{world}
 		= case getLocalVar "outfile" context of
 			Just outfile
 				//Check status
 				# (exists,world) = 'File'.fileExists outfile world
 				| not exists
 					//Still busy
-					= (TaskBusy Nothing context,{IWorld|iworld & world = world})
+					= (TaskBusy Nothing [] context,{IWorld|iworld & world = world})
 				# (res, world) = 'File'.readFile outfile world
 				| isError res
 					//Failed to read file

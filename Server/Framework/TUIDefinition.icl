@@ -1,7 +1,7 @@
 implementation module TUIDefinition
 
 import JSON, StdList, StdBool, GenEq, StdFunc, HTML, Text
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionLabel, :: ActionName, :: ActionTrigger
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionLabel, :: ActionName, :: TaskAction, :: ProcessProperties
 from Types import class actionName(..), instance actionName Action, actionLabel, actionIcon
 
 htmlDisplay :: !html -> TUIDef | toString html
@@ -35,23 +35,33 @@ sameMargins m =	{ top		= m
 				, left		= m
 				}
 
-defaultInteractionLayout :: InteractionLayoutMerger
-defaultInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction,warning} -> defaultPanelDescr
-	title
-	(defaultInteractionIcon type isControlTask localInteraction)
-	description
-	warning
-	(Fixed 700)
-	(defaultContent editorParts buttons)
+defaultInteractionLayout :: InteractionLayouter
+defaultInteractionLayout = \i -> layout i
+where
+	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+		# (buttons,actions) = defaultButtons actions
+		= (defaultPanelDescr
+				title
+				(defaultInteractionIcon type isControlTask localInteraction)
+				description
+				warning
+				(Fixed 700)
+				(defaultContent editorParts buttons)
+		  ,actions)
 	
-fullWidthInteractionLayout :: InteractionLayoutMerger
-fullWidthInteractionLayout = \{title,description,editorParts,buttons,type,isControlTask,localInteraction,warning} -> defaultPanelDescr
-	title
-	(defaultInteractionIcon type isControlTask localInteraction)
-	description
-	warning
-	(FillParent 1 ContentSize)
-	(defaultContent editorParts buttons)
+fullWidthInteractionLayout :: InteractionLayouter
+fullWidthInteractionLayout = \i -> layout i
+where
+	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+		# (buttons,actions) = defaultButtons actions
+		= (defaultPanelDescr
+				title
+				(defaultInteractionIcon type isControlTask localInteraction)
+				description
+				warning
+				(FillParent 1 ContentSize)
+				(defaultContent editorParts buttons)
+		  ,actions)
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
 defaultContent editor buttons = [defaultContentPanel (editorContainer ++ buttonContainer)]
@@ -70,18 +80,28 @@ where
 								, margins	= Nothing
 								}]
 
-defaultParallelLayout :: ParallelLayoutMerger
-defaultParallelLayout = \{TUIParallel|title,description,items} -> defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 0) items
+defaultParallelLayout :: ParallelLayouter
+defaultParallelLayout = \{TUIParallel|title,description,items}->
+	let (tuis,actions) = unzip items in
+		(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 0) tuis, flatten actions)
 
-minimalParallelLayout :: ParallelLayoutMerger
-minimalParallelLayout = \{TUIParallel|title,description,items} ->	{ content	= TUILayoutContainer (defaultLayoutContainer items)
-																	, width		= Auto
-																	, height	= Auto
-																	, margins	= Nothing
-																	}
+minimalParallelLayout :: ParallelLayouter
+minimalParallelLayout = \{TUIParallel|title,description,items} ->
+	let (tuis,actions) = unzip items in
+	({ content	= TUILayoutContainer (defaultLayoutContainer tuis)
+	 , width	= Auto
+	 , height	= Auto
+	 , margins	= Nothing
+	 }, flatten actions)
 
-defaultResultLayout :: ResultLayoutMerger
-defaultResultLayout = \{TUIResult|title,description,result} -> defaultPanelDescr title "icon-task-result" description Nothing (Fixed 700) [defaultContentPanel [result]]
+defaultMainLayout :: MainLayouter
+defaultMainLayout = \{TUIMain|properties,content,actions} ->
+	let (menus,_) = defaultMenus actions in
+		{ content	= TUIMainContainer {TUIMainContainer|items = [content], menus = menus, properties = properties}
+		, width		= Auto
+		, height	= Auto
+		, margins	= Nothing
+		}
 
 defaultPanelDescr :: !PanelTitle !PanelIcon !String !(Maybe String) !TUISize ![TUIDef] -> TUIDef
 defaultPanelDescr title iconCls description mbWarning width form = defaultPanel title iconCls width [defaultDescriptionPanel description mbWarning:form]
@@ -122,7 +142,7 @@ defaultInteractionIcon type isControlTask localInteraction
 			InputTask							= "icon-input-task"
 			
 			
-defaultButtons :: ![ActionTrigger] -> (![TUIDef],![ActionTrigger])
+defaultButtons :: ![TaskAction] -> (![TUIDef],![TaskAction])
 defaultButtons [] = ([],[])
 defaultButtons [a=:(taskId,action,enabled):as]
 	# (buttons,actions)	= defaultButtons as 
@@ -147,12 +167,12 @@ where
 		  , margins	= Nothing
 		  }
 
-defaultMenus :: ![ActionTrigger]	-> (![TUIDef],![ActionTrigger])
+defaultMenus :: ![TaskAction]	-> (![TUIDef],![TaskAction])
 defaultMenus actions 
 	# (menus,actions) = makeMenus [] actions
 	= ([{TUIDef|content = TUIMenuButton m, width=Auto, height=Auto, margins = Nothing} \\ m <- menus],actions)
 where
-	makeMenus :: [TUIMenuButton] [ActionTrigger] -> ([TUIMenuButton],[ActionTrigger])
+	makeMenus :: [TUIMenuButton] [TaskAction] -> ([TUIMenuButton],[TaskAction])
 	makeMenus menus []	= (menus,[])	
 	makeMenus menus [a=:(taskId,action,enabled):as]
 		= case split "/" (actionName action) of
@@ -193,7 +213,7 @@ where
 		   	 ,target	= if (isEmpty sub) (Just taskId) Nothing
 		   	 ,action	= if (isEmpty sub) (Just (actionName action)) Nothing
 		   	 ,menu		= if (isEmpty sub) Nothing (Just {TUIMenu|items = addToItems sub taskId action enabled []})
-		   	 ,disabled	= False
+		   	 ,disabled	= if (isEmpty sub) (not enabled) False
 		   	 ,iconCls	= if (isEmpty sub) (Just (actionIcon action)) Nothing
 		   	 ,hotkey	= Nothing
 		     },width=Auto, height=Auto, margins=Nothing}

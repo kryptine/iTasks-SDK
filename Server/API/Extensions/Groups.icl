@@ -52,17 +52,13 @@ manageGroup igroup
 	= 	
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
-		showInformation (toString group,"This group contains the following members:") [Get id] group.members >>+ (\_ -> UserActions [(aBack,Just aBack),(aInvite,Just aInvite),(aLeave,Just aLeave)])
-	>>= \action -> case action of
-		ActionClose					= 					return True
-		Action "invite" _			= invite group	>>| return False
-		Action "leave" _			= leave group	>>| return False
+		showInformation (toString group,"This group contains the following members:") [Get id] group.members 
+	>?* [(ActionClose, Always (return True))
+		,(Action "Invite new member", Always (invite group	>>| return False))
+		,(Action "Leave group", Always (leave group >>| return False))
+		]
 	) <! id >>| stop
 where
-	aBack	= ActionClose
-	aInvite	= Action "invite" "Invite new member"
-	aLeave	= Action "leave" "Leave group"
-		
 	invite group
 		= 	enterInformation ("Invite a someone to join " +++ toString group,"Please enter a user to invite to the group") []
 		>>=	inviteUserToGroup group
@@ -106,7 +102,7 @@ inviteUserToGroup :: !Group !User -> Task Group
 inviteUserToGroup group user
 	=	get currentUser
 	>>= \fromUser ->
-		spawnProcess True initManagerProperties noMenu (
+		spawnProcess True initManagerProperties (
 			user @: (invite fromUser group)
 		>>= \accept ->
 			if accept

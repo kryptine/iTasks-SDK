@@ -39,7 +39,7 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	spawnProcess False {initManagerProperties & worker = who} noMenu (task <<@ Title label)
+		>>= \who ->	spawnProcess False {initManagerProperties & worker = who} (task <<@ Title label)
 		>>= 		inspect
 	
 	inspect pref

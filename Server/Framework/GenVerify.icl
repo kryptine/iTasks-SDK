@@ -133,8 +133,6 @@ gVerify{|HtmlDisplay|}		_ vst = alwaysValid vst
 gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst
 
-gVerify{|Menu|} _ _ = abort "not implemented"
-
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool
 anyError children = or [isError c \\ c <- children]

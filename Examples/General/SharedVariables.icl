@@ -11,7 +11,7 @@ quitButton _ = UserActions [(ActionQuit, Just Void)]
 noteEditor = (\txt -> Note txt,	\(Note txt) _ -> txt)
 listEditor = (split "\n" ,		\l _ -> join "\n" l)
 
-TrimAction :== Action "trim" "Trim"
+TrimAction :== Action "Trim"
 
 linesPar :: Task Void
 linesPar = parallel "Lines Example" "" (\_ _ -> Void) [ShowAs BodyTask noteE, ShowAs BodyTask (\sid _ -> updateSharedInformation ("Lines","Edit lines") [View listEditor] sid >>+ quitButton)]
@@ -56,8 +56,8 @@ where
 //Merge Tests
 mergeTestList :: Task Void
 mergeTestList =	
-				spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view sid)
-	>>|			spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view sid)
+				spawnProcess True initManagerProperties (Title "1st View" @>> view sid)
+	>>|			spawnProcess True initManagerProperties (Title "2nd View" @>> view sid)
 	>>|			stop
 where
 	sid = sharedStore "mergeTestLists" []
@@ -67,9 +67,9 @@ where
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
-		spawnProcess True initManagerProperties noMenu (Title "1st View" @>> view store)
-	>>|	spawnProcess True initManagerProperties noMenu (Title "2nd View" @>> view store)
-	>>|	spawnProcess True initManagerProperties noMenu (Title "3rd View" @>> monitor "Documents" [] store >>+ quitButton)
+		spawnProcess True initManagerProperties (Title "1st View" @>> view store)
+	>>|	spawnProcess True initManagerProperties (Title "2nd View" @>> view store)
+	>>|	spawnProcess True initManagerProperties (Title "3rd View" @>> monitor "Documents" [] store >>+ quitButton)
 	>>|	stop
 where
 	view sid = updateSharedInformation ("List","Merging the documents") [] sid >>+ quitButton
@@ -91,7 +91,7 @@ where
 
 derive class iTask MarkerInfo, MapOptions
 
-RemoveMarkersAction :== Action "remove-markers" "Remove Markers"
+RemoveMarkersAction :== Action "Remove Markers"
 
 googleMaps :: Task GoogleMap
 googleMaps = parallel "Map Example" mkMap (\_ m -> m)

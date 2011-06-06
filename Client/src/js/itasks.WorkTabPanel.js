@@ -13,7 +13,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	
 	initComponent: function() {
 		Ext.apply(this, {
-			title: "Loading task...",
+			title: this.taskId,
 			closable: true,
 			autoDestroy: true,
 			iconCls: "icon-task",
@@ -21,54 +21,10 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			params: {session: itasks.app.session},
 			listeners:	{ tuichange: {fn:this.onTuiChange, scope: this}
 						, tuiaction: {fn:this.onTuiAction, scope: this}
-						},
-			layout: "border",
-			items: [{
-				xtype: "itasks.work-header",
-				region: "north",
-				height: 25
-			},{
-				xtype: "panel",
-				region: "center",
-				ctCls: "worktab-container",
-				bodyStyle: 'background-color: #eee',
-				tbar: [{
-					text: 'Task Actions',
-					iconCls: 'icon-properties',
-					menu: {
-						id: 'taskMenu',
-						items: [{
-							text: 'Refresh Task',
-							iconCls: 'x-tbar-loading',
-							scope: this,
-							handler: function(item,evt){
-								this.refresh(false);
-							}
-						},{
-							text: 'Task Properties'	,
-							iconCls: 'icon-properties',
-							scope: this,
-							handler: function(item,evt){
-								this.showProperties();
-							}
-						},{
-							text: 'Discuss Task',
-							iconCls: 'icon-chat',
-							disabled: true
-						},'-',{
-							text: 'Cancel Task',
-							iconCls: 'icon-trash',
-							scope: this,
-							handler: function(item,evt){
-								this.cancel();
-							}
-						}]
-					}					
-				}]
-			}]
+						}
+			
 		});
 			
-	
 		itasks.WorkPanel.superclass.initComponent.apply(this, arguments);
 	
 		this.addEvents("taskRedundant","taskDone","propertyChanged","afterUpdateContent");
@@ -79,10 +35,10 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		
 		//Attach event handlers for the loading indicator
 		this.on("remoteCallStart",function() {
-			this.getComponent(0).setBusy(true);
+			this.setIconClass("icon-waiting");
 		},this);
 		this.on("remoteCallEnd",function() {
-			this.getComponent(0).setBusy(false);
+			this.setIconClass("icon-task");
 		},this);
 	},
 	onTuiChange: function(taskId,name,value) {
@@ -121,12 +77,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		
 		//Store the timestamp of the current value
 		this.timestamp = data.timestamp;
-		//Update properties
-		this.properties = data.task;
-		//Update header
-		this.getComponent(0).setContent(this.taskId, data.task.taskProperties.taskDescription.title, data.task);
-		//Update title
-		this.updateTitle(data.task.taskProperties.taskDescription.title);
 		//Update content
 		this.updateContent(data.tui);
 	
@@ -160,33 +110,15 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		if (Ext.isObject(content)) {
 			content.xtype = 'itasks.tui.panel';
 		}
-		var ct = this.getComponent(1);
-
-		if(ct.items.getCount() > 0) {
+		if(this.items.getCount() > 0) {
 			//Recursively update tab content
-			var cur = ct.getComponent(0);
+			var cur = this.getComponent(0);
 			cur.update(content);
 		} else {
 			//Build initial content
-			ct.add(content);
-			ct.doLayout();
+			this.add(content);
+			this.doLayout();
 		}	
-		
-		//If the toplevel component has a menu, add it to the toolbar
-		var comp = ct.getComponent(0);
-		if (Ext.isDefined(comp)){
-			var tbar = ct.getTopToolbar();
-			while(tbar.items.getCount() > 1) {
-				tbar.remove(tbar.get(1));
-			}
-			var menu = comp.menu;
-			if(menu) {
-				for(var i = 0; i < menu.length; i++) {
-					tbar.add(menu[i]);
-				}
-				tbar.doLayout();
-			}
-		}
 	},
 	cancel: function(){
 		var me = this;
@@ -231,11 +163,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				, layout: 'form'
 				, defaultType: "staticfield"
 				, items: [{
-					name: "progress",
-					fieldLabel: "Progress",
-					format: itasks.util.formatProgress,
-					value: p.progress
-				},{
 					name: "priority",
 					fieldLabel: "Priority",
 					format: itasks.util.formatPriority,
@@ -266,9 +193,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	fadeOut: function() {
 		this.fireEvent("taskRedundant");
 				
-		var ct = this.get(1);
-		ct.removeAll();
-		ct.add({
+		this.removeAll();
+		this.add({
 			xtype: "itasks.finished",
 			subject: "Task completed",
 			description: "This task is completed or it's completion is no longer required.<br />Thank you for your effort.",
@@ -278,56 +204,4 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	}
 });
 
-itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
-				
-	initComponent: function() {
-		Ext.apply(this, {
-			deferredRender: false,
-			html: "Loading...",
-			baseCls: "worktab-header-normal-priority"
-		});
-		itasks.WorkHeaderPanel.superclass.initComponent.apply(this,arguments);
-		
-	},
-	setContent: function(taskid, subject, properties) {		
-			worktabStatus = function(progress){
-				switch(progress){
-					case null : return "";
-					case "TPActive" : return "worktab-header-progress-active";
-					case "TPStuck" : return "worktab-header-progress-stuck";
-					case "TPWaiting": return "worktab-header-progress-waiting";
-					case "TPReject": return "worktab-header-progress-reject";
-				}
-			}
-			
-			worktabBackground = function(priority){
-				switch(priority) {
-					case null : return "";
-					case "LowPriority":
-					case "NormalPriority": return "worktab-header-normal-priority";
-					case "HighPriority": return "worktab-header-high-priority";
-				}		
-			}
-			
-			var subject = subject + (itasks.config.debug ? (" (" + taskid + ")") : "");
-			
-			this.body.update( String.format(
-				'<div class="worktab-header {1}">'+
-					'<div class="worktab-header-status {0}"></div><div class="worktab-header-separator"></div><div class="worktab-header-text">'+
-						'<table><tr><th>Subject:</th><td>{2}</td><th>Deadline:</th><td>{3}</td></table>'+
-					'</div>'+
-				'</div>'+
-				'<div class="worktab-header-indicator">'
-				, worktabStatus(properties.progress),worktabBackground(properties.managerProperties.priority),subject
-				, itasks.util.formatDeadline(properties.managerProperties.deadline)
-				));
-	},
-	setBusy: function(busy) {
-		var indicator = this.getEl().child(".worktab-header-indicator");
-		if(indicator)
-			indicator.setVisible(busy);
-	}	
-});
-
 Ext.reg("itasks.work",itasks.WorkPanel);
-Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);

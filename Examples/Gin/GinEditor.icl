@@ -19,7 +19,7 @@ import FilePath, File
 //from Serialization import qualified serialize, deserialize
 
 ginEditor :: WorkflowContainer Void
-ginEditor = Workflow initManagerProperties noMenu /*(staticMenu initMenu)*/ ginEditor`
+ginEditor = Workflow initManagerProperties ginEditor`
 
 getConfig :: Task GinConfig
 getConfig = accWorld ginLoadConfig >>= \maybeConfig = 
@@ -61,40 +61,15 @@ getInitialState = getConfig >>= \config -> return
 	}
 
 //-----------------------------------------------------------------------------------        
-ActionCompile          :== Action "compile"			"Compile"
-ActionRun              :== Action "run"				"Run"
-ActionViewDeclaration  :== Action "viewdeclaration"	"Declaration"
-ActionViewWorkflow     :== Action "viewworkflow"	"Workflow"
-ActionViewImports      :== Action "viewimports"		"Imports"
-ActionViewTypes        :== Action "viewtypes"		"Types"    
-ActionViewSource       :== Action "viewsource"		"Generated source"      
+ActionCompile          :== Action "File/Compile"			
+ActionRun              :== Action "File/Run"				
+ActionViewDeclaration  :== Action "View/Declaration"		
+ActionViewWorkflow     :== Action "View/Workflow"			
+ActionViewImports      :== Action "View/Imports"			
+ActionViewTypes        :== Action "View/Types"				   
+ActionViewSource       :== Action "View/Generated source"   
 //ActionEnableSC         :== Action "sc_on"  			"Enable syntax checking"
 //ActionDisableSC        :== Action "sc_off" 			"Disable syntax checking"
-
-initMenu :: MenuDefinition
-initMenu =
-    [ Menu "File"    [ MenuItem ActionNew				(Just { key = 'N', ctrl = True, alt = False, shift = False })
-                     , MenuItem ActionOpen				(Just { key = 'O', ctrl = True, alt = False, shift = False })
-                     , MenuSeparator
-                     , MenuItem ActionSave				(Just { key = 'S', ctrl = True, alt = False, shift = False })
-                     , MenuItem ActionSaveAs			Nothing
-                     , MenuSeparator
-                     , MenuItem ActionCompile			(Just { key = 'U', ctrl = True, alt = False, shift = False })
-                     , MenuItem ActionRun				(Just { key = 'R', ctrl = True, alt = False, shift = False })
-                     , MenuSeparator
-                     , MenuItem ActionQuit				Nothing
-                     ]
-    , Menu "View"    [ MenuItem ActionViewDeclaration	Nothing
-                     , MenuItem ActionViewImports		Nothing
-                     , MenuItem ActionViewTypes			Nothing
-                     , MenuItem ActionViewSource		Nothing
-                     ]
-//	, Menu "Options" [ MenuItem ActionEnableSC 	        Nothing
-//                     , MenuItem ActionDisableSC			Nothing
-//                     ]
-    , Menu "Help"    [ MenuItem ActionAbout        		Nothing
-                     ]
-	]
 
 ginEditor` :: Task Void
 ginEditor` = 
@@ -108,17 +83,19 @@ ginEditor` =
 				(updateSharedInformation "Workflow diagram" [View (diagramView, diagramUpdate)] s >?* actions s p))
 		]
 
-ginParallelLayout :: ParallelLayoutMerger
+ginParallelLayout :: ParallelLayouter
 ginParallelLayout = \{TUIParallel|title,description,items} -> 
 	if (length items == 1) 
 		(last items) 
-		(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 0) (tl items ++ [hd items]))
+		(let (tuis,actions) = unzip (tl items ++ [hd items]) in
+			(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 0) tuis, flatten actions))
 
-ginInteractionLayout :: InteractionLayoutMerger
+
+ginInteractionLayout :: InteractionLayouter
 ginInteractionLayout = \interaction = 
 	case interaction.editorParts of
 		[{TUIDef | content = TUIControl (TUIORYXControl _) _}] =
-			{TUIDef | hd interaction.editorParts & width = FillParent 1 (FixedMinSize 400)}
+			({TUIDef | hd interaction.editorParts & width = FillParent 1 (FixedMinSize 400)},interaction.TUIInteraction.actions)
 		_ 	= defaultInteractionLayout interaction
 
 diagramView :: EditorState -> ORYXEditor
@@ -188,8 +165,8 @@ actions stateShared parallelInfo
 	where
 		actionTask title task = get stateShared >>= task >>= set stateShared >>| stop
 	
-		addTask title task = set parallelInfo 
-			[AppendTask (ShowAs (WindowTask title noMenu) (\s _ -> task))] >>| stop
+		addTask title task = set parallelInfo [AppendTask (ShowAs (WindowTask title) (\s _ -> task))] >>| stop
+
 		moduleEditor title v = addTask title (updateSharedInformation title [View (liftModuleView v)] stateShared)
 		
 		declarationEditor = moduleEditor "declaration" (declarationView, declarationUpdate)

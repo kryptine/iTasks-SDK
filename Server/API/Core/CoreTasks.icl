@@ -131,7 +131,7 @@ where
 				
 	edit taskNr _ context iworld = (context,iworld)
 	
-	eval termFunc taskNr event tuiTaskNr imerge pmerge context iworld=:{IWorld|timestamp}
+	eval termFunc taskNr event tuiTaskNr imerge pmerge mmerge context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
@@ -148,9 +148,9 @@ where
 					Just result
 						= (TaskFinished result, iworld)
 					Nothing
-						# context				= setLocalVar LAST_TUI_STORE timestamp context
-						# (tui,context,iworld)	= renderTUI taskNr imerge parts actions context iworld
-						= (TaskBusy (Just tui) context, iworld)
+						# context						= setLocalVar LAST_TUI_STORE timestamp context
+						# (tui,actions,context,iworld)	= renderTUI taskNr imerge parts actions context iworld
+						= (TaskBusy (Just tui) actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
 		= case getLocalVar LAST_EDIT_STORE context of
@@ -175,41 +175,23 @@ where
 		= Nothing
 
 	renderTUI taskNr imerge parts actions context iworld
+		# taskId				= taskNrToString taskNr
 		# storedParts			= getParts context
 		# (mbEvent,context)		= getEvent context
 		# (tuis,newParts)		= visualizeParts taskNr parts storedParts mbEvent
 		# context 				= setLocalVar PARTS_STORE newParts context
-		# buttons				= renderButtons taskNr (map (appSnd isJust) actions)
+		# tactions				= [(taskId,action,isJust val) \\ (action,val) <- actions]
 		# warning				= case (getLocalVar EDIT_CONFLICT_STORE context) of
 			Just True	= Just EDIT_CONFLICT_WARNING
 			_			= Nothing
-		# tui					= mergeTUI imerge (toDescr description) tuis buttons warning
-		= (tui,context,iworld)
+		# (tui,actions)			= mergeTUI imerge (toDescr description) tuis warning tactions 
+		= (tui,actions,context,iworld)
 	
-	renderButtons taskNr actions
-		# taskId = taskNrToString taskNr
-		= [mkButton taskId action enabled \\ (action,enabled) <- actions]
-	where
-		mkButton taskId action enabled
-			= { content	= TUIButton
-					{ TUIButton
-					| name = actionName action
-					, taskId = taskId
-					, disabled = not enabled
-					, text = actionLabel action
-					, iconCls = actionIcon action
-					, actionButton = True
-					}
-			  , width		= Auto
-			  , height	= Auto
-			  , margins	= Nothing
-			  }
-				
-	mergeTUI imerge {TaskDescription|title,description} tuis buttons warning
+	mergeTUI imerge {TaskDescription|title,description} tuis warning actions
 		= imerge { title = title
 				 , description = description
 				 , editorParts = tuis
-				 , buttons = buttons
+				 , actions = actions
 				 , type = Nothing //TODO get these types merged in here
 				 , isControlTask = False
 				 , localInteraction = False
