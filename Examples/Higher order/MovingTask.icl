@@ -29,7 +29,7 @@ trivialTask = fillInForm
 fillInForm :: Task QForm
 fillInForm	
 	= 				enterInformation ("Quote information","Please fill in quotation:") []
-	>>= \form ->	showMessage ("Check","Is everything filled in correctly?") [About form] Void
+	>>= \form ->	showInformation ("Check","Is everything filled in correctly?") [About form] Void
 	>?*				[ (ActionNo,	Always fillInForm)
 					, (ActionYes,	Always (return form))
 					] 
@@ -59,21 +59,21 @@ where
 		>>= \st	->			getProcessOwner pid
 		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [toString (fromJust mbOwner)])
 		>>= \names ->		case st of
-								(Finished,_)		-> showMessage ("Task finished","It is finished") [] True
-								(Deleted,_)			-> showMessage ("Task deleted","It is deleted") [] True		
-								(Running,Active)	-> showMessage ("Task busy","User " <+++ hd names <+++ " is working on it") [] False		
-								(Running,Suspended)	-> showMessage ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") [] False		
+								(Finished,_)		-> showInformation ("Task finished","It is finished") [] True
+								(Deleted,_)			-> showInformation ("Task deleted","It is deleted") [] True		
+								(Running,Active)	-> showInformation ("Task busy","User " <+++ hd names <+++ " is working on it") [] False		
+								(Running,Suspended)	-> showInformation ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") [] False		
 	suspend pid
 	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
-		>>|					showMessage ("Task suspended","workflow is suspended") [] False
+		>>|					showInformation ("Task suspended","workflow is suspended") [] False
 								
 	activate pid
 	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Active})
-		>>|					showMessage ("Task activated","workflow is activated") [] False
+		>>|					showInformation ("Task activated","workflow is activated") [] False
 
 	delete pid
 	=						killProcess pid 
-		>>| 				showMessage ("Task deleted","workflow is deleted") [] True				
+		>>| 				showInformation ("Task deleted","workflow is deleted") [] True				
 
 	reassign pid
 	=						selectUser "Who is next?"
@@ -81,9 +81,9 @@ where
 		>>| 				return False
 	
 	/*waitForIt pid
-	=						showMessageA ("Waiting","Waiting for the result...") noActionsMsg ||- wait ("Wait for task", "Wait for an external task to finish") (sharedProcResult pid)
+	=						showInformationA ("Waiting","Waiting for the result...") noActionsMsg ||- wait ("Wait for task", "Wait for an external task to finish") (sharedProcResult pid)
 		>>= \(Just res) -> 	deleteProcess pid 
-		>>| 				showMessageAbout ("Finished","Finished, the result = ") res 
+		>>| 				showInformationAbout ("Finished","Finished, the result = ") res 
 		>>|					return False*/
 
 	

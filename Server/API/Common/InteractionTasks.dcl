@@ -38,17 +38,17 @@ enterInformation :: !d ![LocalInteractionOption m] -> Task m | descr d & iTask m
 updateInformation :: !d ![LocalInteractionOption m] m -> Task m | descr d & iTask m
 
 /**
-* Show a basic message to the user. The user can end the task after reading the message. 
+* Show information to the user. 
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only get parts of Views are used, Putbacks are ignored; if no get is defined the value is not shown to the user
+* @param Options:			Interaction options; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used
 * @param Data model:		The data shown to the user
 *
-* @return					Value shown by the user, the value is not modified
+* @return					Value shown to the user, the value is not modified
 * 
 * @gin-icon information
 */
-showMessage :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask m
+showInformation :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask m
 
 /**
 * Ask the user to enter information which is written to a shared.

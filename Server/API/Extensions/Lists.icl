@@ -37,7 +37,7 @@ manageLists
 	) <! id
 	>>| stop
 where
-	overview []		= showMessage ("My lists","You have no lists.") [] Void >>+ \_ -> UserActions [(ActionNew,Just (ActionNew,Nothing)),(ActionQuit,Just (ActionQuit,Nothing))]
+	overview []		= showInformation ("My lists","You have no lists.") [] Void >>+ \_ -> UserActions [(ActionNew,Just (ActionNew,Nothing)),(ActionQuit,Just (ActionQuit,Nothing))]
 	overview list	= enterChoice ("My lists","Select a list...") [] list >>+ \{modelValue,localValid} -> let mbL = if localValid (Just modelValue) Nothing in UserActions [aOpen mbL,aDelete mbL,aNew,aQuit]
 	
 	aOpen mbL 		= (ActionOpen, maybe Nothing (\l -> Just (ActionOpen,Just l)) mbL)
@@ -52,7 +52,7 @@ where
 					>>= \desc ->
 						createList type desc.ListDescription.name desc.ListDescription.description
 	
-	delList	list	=		showMessage ("Delete list","Are you sure you want to delete '" +++ nameOf list +++ "'?") [] Void
+	delList	list	=		showInformation ("Delete list","Are you sure you want to delete '" +++ nameOf list +++ "'?") [] Void
 						>?*	[ (ActionNo,	Always (return list))
 							, (ActionYes,	Always (deleteList list))
 							]
@@ -101,7 +101,7 @@ manageListSharing list
 		Nothing		= throw "Could not find list meta data"
 		Just meta
 			= (case meta.ListMeta.sharedWith of
-				[]		= showMessage ("Sharing","This list is not shared") [] Void >>+ \_ -> UserActions [(aPrevious,Just (aPrevious,[])),(aAddPerson,Just (aAddPerson,[])),(aAddGroup,Just (aAddGroup,[]))]
+				[]		= showInformation ("Sharing","This list is not shared") [] Void >>+ \_ -> UserActions [(aPrevious,Just (aPrevious,[])),(aAddPerson,Just (aAddPerson,[])),(aAddGroup,Just (aAddGroup,[]))]
 				users	= enterMultipleChoice ("Sharing","This list is shared with the following people") [] users >>+ \{modelValue = users} -> UserActions [(aPrevious,Just (aPrevious,users)),(aRemove,Just (aRemove,users)),(aAddPerson,Just (aAddPerson,users)),(aAddGroup,Just (aAddGroup,users))]
 			  )
 			>>= \res -> case res of
@@ -123,7 +123,7 @@ where
 					
 	addGroup list		= 	getMyGroups
 						>>= \groups -> case groups of
-							[]		= showMessage ("Add group","You have no groups that you are member of") [] list
+							[]		= showInformation ("Add group","You have no groups that you are member of") [] list
 							groups	= enterChoice ("Add group","Which group do you want to share this list with?") [] groups
 									>>= \group ->
 										addSharingForList list group.members

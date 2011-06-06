@@ -74,5 +74,5 @@ where
 
 	choosePerson = enterSharedChoice ("User","Select a user") [] users >>= \user -> return (Just user)
 
-	cancelTask task = task -||- (showMessage ("Cancel...","Cancel task?") [] defaultValue)
+	cancelTask task = task -||- (showInformation "Cancel..." [] "Cancel task?" >>| return defaultValue)
 	

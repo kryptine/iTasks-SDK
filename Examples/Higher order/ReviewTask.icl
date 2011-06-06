@@ -52,7 +52,7 @@ taskToReview :: User (a,a -> Task a) -> Task (a,Review) | iTask a
 taskToReview reviewer (v`,task) 
 	=					task v`               
 		>>= \v ->		reviewer @: (Title "Review" @>> review v) 
-		>>= \r ->		showMessage ("Review",[Text ("Reviewer " <+++ reviewer <+++ " says ")]) [About r] Void
+		>>= \r ->		showInformation ("Review",[Text ("Reviewer " <+++ reviewer <+++ " says ")]) [About r] Void
 		>>|				case r of
 							(NeedsRework _) -> taskToReview reviewer (v,task) 	
 							else            -> return (v,r)

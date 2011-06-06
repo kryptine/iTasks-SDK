@@ -18,7 +18,8 @@ createUserFlow =
 	>?*	[ (ActionCancel,	Always	stop)
 		, (ActionOk,		IfValid (\user ->
 											createUser user
-										>>|	showMessage ("User created","Successfully added new user") [] Void
+										>>|	showInformation "User created" [] "Successfully added new user"
+										>>| return Void
 									))
 		]
 		
@@ -29,7 +30,8 @@ updateUserFlow user  =
 	>?*	[ (ActionCancel,	Always	(return user))
 		, (ActionOk,		IfValid (\newDetails ->
 											set sharedDetails newDetails
-										>>|	showMessage ("User updated","Successfully updated " +++ newDetails.displayName) [] user
+										>>=	showInformation "User updated" [Get (\{displayName} -> "Successfully updated " +++ displayName)]
+										>>| return user
 									))
 		]
 where
@@ -37,9 +39,9 @@ where
 					
 deleteUserFlow :: User -> Task User
 deleteUserFlow user =
-		showMessage ("Delete user","Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.") [] Void
+		showInformation "Delete user" [] ("Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")
 	>?*	[ (ActionNo,	Always		(return user))
 		, (ActionYes,	Always (		deleteUser user
-									>>=	showMessage ("User deleted","Successfully deleted " +++ displayName user +++ ".") []
+									>>=	showInformation "User deleted" [Get (\user -> "Successfully deleted " +++ displayName user +++ ".")]
 						))
 		]

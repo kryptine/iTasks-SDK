@@ -262,7 +262,7 @@ saveAs state = newModuleName state.EditorState.config >>= \name =
 
 askSaveIfChanged :: EditorState -> Task Void
 askSaveIfChanged state = if state.changed
-    (		showMessage ("File " +++ (getName state) +++ " has changed, save changes?") [] Void
+    (		showInformation ("File " +++ (getName state) +++ " has changed, save changes?") [] Void
         >?*	[ (ActionNo,	Always (return Void))
         	, (ActionYes,	Always (save state >>| return Void))
         	]
@@ -270,24 +270,24 @@ askSaveIfChanged state = if state.changed
     (return Void)
 where
 	requestConfirmation :: !String -> Task Bool 
-	requestConfirmation message = showMessage message Void >>+ \_ -> UserActions [(ActionYes, True), (ActionNo, False)]
+	requestConfirmation message = showInformation message Void >>+ \_ -> UserActions [(ActionYes, True), (ActionNo, False)]
 
 compile :: EditorState -> Task EditorState
 compile state
 # state = { state & compiled = Nothing }
 = accIWorld (batchBuild state.EditorState.gMod)
   >>= \result = case result of
-   				  CompileSuccess dynfile 	-> showMessage ("Compiler output", "Compiled successfully") [] Void 
+   				  CompileSuccess dynfile 	-> showInformation ("Compiler output", "Compiled successfully") [] Void 
    				  								>>| return { state & compiled = Just dynfile }
-    			  error						-> showMessage "Compiler output" [About error] state
+    			  error						-> showInformation "Compiler output" [About error] state
 
 run :: EditorState -> Task EditorState
-run state = showMessage ("Error", "Runninig tasks requires dynamic linker") [] state
+run state = showInformation ("Error", "Runninig tasks requires dynamic linker") [] state
 /*
 run state = 
 	case state.compiled of
-		Nothing 	 = showMessage ("Error", "No compiled task") [] state
-		Just dynfile = readDynamicTask dynfile >>= \task = catchAll task  (\error -> showMessage ("Error", error) [] Void)
+		Nothing 	 = showInformation ("Error", "No compiled task") [] state
+		Just dynfile = readDynamicTask dynfile >>= \task = catchAll task  (\error -> showInformation ("Error", error) [] Void)
 						>>| return state
 where
 	readDynamicTask :: !String -> Task (Task a) | iTask a
@@ -316,7 +316,7 @@ tryRender gMod config printOption world
 = (source, world)
 
 showAbout :: EditorState -> Task EditorState
-showAbout state = showMessage ("Gin workflow editor", "version 0.1") [] state
+showAbout state = showInformation ("Gin workflow editor", "version 0.1") [] state
 
 accIWorld :: !(*IWorld -> *(!a,!*IWorld)) -> Task a | iTask a
 accIWorld fun = mkInstantTask ("Run Iworld function", "Run an IWorld function and get result.") eval

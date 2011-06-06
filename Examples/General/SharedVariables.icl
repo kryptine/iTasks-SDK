@@ -156,8 +156,8 @@ where
 	tasks sid =
 		[ updateSharedInformationA "WYSIWYG Editor" idView [] sid >>| return Void
 		, updateSharedInformationA "HTML-Source Editor" (\ft -> Note (getFormattedTextSrc ft), \(Note src) ft -> setFormattedTextSrc src ft) [] sid >>| return Void
-		, showMessageSharedA "Formatted Preview" id [] sid >>| return Void
-		, showMessageSharedA "Unformatted Preview" (\ft -> Note (toUnformattedString ft False)) [] sid >>| return Void
+		, showInformationSharedA "Formatted Preview" id [] sid >>| return Void
+		, showInformationSharedA "Unformatted Preview" (\ft -> Note (toUnformattedString ft False)) [] sid >>| return Void
 		]
 		
 	actions = [(ActionQuit, Always)]
@@ -194,7 +194,7 @@ where
 derive class iTask Order, Customer, NewCustomer, Product, OrderForm
 
 chooseOrAdd :: Task Order
-chooseOrAdd = enterOrder >>= showMessage "You created the order:" [Get id]
+chooseOrAdd = enterOrder >>= showInformation "You created the order:" []
 where
 	productDatabase :: ReadOnlyShared [Product]
 	productDatabase = toReadOnlyShared (sharedStore "chooseOrAddProductDB"
@@ -252,7 +252,7 @@ where
 phoneBookSearch :: Task (Name,PhoneNumber)
 phoneBookSearch
 	=	activeQuery Nothing queryPhoneBook
-	>>= showMessage ("Result","You chose:") [Get id]
+	>>= showInformation ("Result","You chose:") []
 	
 //Abstract search task with a search that is repeated each time the query is altered
 activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a

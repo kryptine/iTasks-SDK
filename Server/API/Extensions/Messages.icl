@@ -49,7 +49,7 @@ manageMessages =
 	) <! id >>| stop
 where
 	overview :: [Message] -> Task (Action,Maybe Message)
-	overview []		= showMessage ("My messages","You have no messages") [] Void >>+ \_ -> UserActions [(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]
+	overview []		= showInformation ("My messages","You have no messages") [] Void >>+ \_ -> UserActions [(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]
 	overview msgs	= enterChoice ("My messages","Your messages:") [] msgs >>+ \{modelValue,localValid} -> let mbM = if localValid (Just modelValue) Nothing in UserActions [(aOpen,maybe Nothing (\m -> Just (aOpen,Just m)) mbM),(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]
 	
 	aOpen		= ActionOpen
@@ -59,7 +59,7 @@ where
 
 manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
-	= 	showMessage (subject,"You received a message") [About msg] Void >>+ (\_ -> UserActions [(aClose,Just aClose),(aReply,Just aReply),(aReplyAll,Just aReplyAll),(aForward,Just aForward),(aDelete,Just aDelete)])
+	= 	showInformation (subject,"You received a message") [About msg] Void >>+ (\_ -> UserActions [(aClose,Just aClose),(aReply,Just aReply),(aReplyAll,Just aReplyAll),(aForward,Just aForward),(aDelete,Just aDelete)])
 	>>= \act -> case act of
 		ActionClose
 			= return False
@@ -80,7 +80,7 @@ manageMessage msg=:{Message |subject}
 			>>| return False
 		ActionDelete
 			=			dbDeleteItem (getItemId msg)
-			>>|			showMessage ("Deleted","Message deleted") [] False	
+			>>|			showInformation ("Deleted","Message deleted") [] False	
 where
 	aReply		= Action "reply" "Reply"
 	aReplyAll	= Action "reply-all" "Reply All"
@@ -98,7 +98,7 @@ newGroupMessage :: Task Void
 newGroupMessage = get currentUser
 	>>= \me ->		getMyGroups
 	>>= \groups ->	case groups of
-		[]	=	showMessage ("No groups","You are not a member of any group") [] Void
+		[]	=	showInformation ("No groups","You are not a member of any group") [] Void
 		_	=	enterChoice ("Choose group","Select group") [] groups
 			>>= \group ->	writeMessage me "" group.members Nothing
 			>>= \msg ->		sendMessage msg
@@ -109,7 +109,7 @@ sendMessage msg
 	>>= \msg -> case msg.needsReply of
 			False	= allTasks [spawnProcess True {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} noMenu (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| stop
 			True	= spawnProcess True initManagerProperties noMenu (awaitReplies msg) >>| stop
-	>>| showMessage ("Message sent","The following message has been sent:") [About msg] Void
+	>>| showInformation ("Message sent","The following message has been sent:") [About msg] Void
 where
 	awaitReplies msg =
 		Title ("Waiting for reply on " +++ msg.Message.subject) @>>
@@ -119,7 +119,7 @@ where
 	
 	askReplyTask user msg =
 		subject msg @>>
-			((showMessage ("Reply requested","The sender would like to receive a reply to this message.") [] Void >>+ noActions)
+			((showInformation ("Reply requested","The sender would like to receive a reply to this message.") [] Void >>+ noActions)
 			 ||-
 			 manageMessage msg
 			 )
@@ -130,7 +130,7 @@ where
 	notifyNoReplies recipients answers
 		= case [rcp \\ rcp <- recipients & ans <- answers | not ans] of
 			[]		= stop
-			users	= showMessage ("Reply request ignored","The following users ignored your request for a reply:") [About users] Void
+			users	= showInformation ("Reply request ignored","The following users ignored your request for a reply:") [About users] Void
 			
 writeMessage :: User String [User] (Maybe Message) -> Task Message
 writeMessage sender subj recipients mbThread

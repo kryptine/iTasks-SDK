@@ -85,13 +85,13 @@ where
     suggestion _        = []
 
 sendPolice :: Incident -> Task Void
-sendPolice incident = showMessage ("Send police","Please send police") [] Void
+sendPolice incident = showInformation ("Send police","Please send police") [] Void
 
 sendMedics :: Incident -> Task Void
 sendMedics incident = Title "Send ambulances" @>> requestAmbulances incident.Incident.nrInjured incident.Incident.location
 
 sendFireBrigade :: Incident -> Task Void
-sendFireBrigade incident = showMessage ("Send fire brigade","Please send fire brigade") [] Void
+sendFireBrigade incident = showInformation ("Send fire brigade","Please send fire brigade") [] Void
 
 dispatchAmbulances :: Task Void
 dispatchAmbulances
@@ -126,7 +126,7 @@ where
 	lonDist l1 l2 = (fromJust l1.Location.coordinates).lon - (fromJust l2.Location.coordinates).lon
 
 displayRequest :: [Provider] -> Task Void
-displayRequest providers = showMessage ("Request",flatten [[Text (p.Provider.name +++ " is asked for " <+ p.capacity),BrTag []]\\p <- providers]) [] Void >>+ noActions
+displayRequest providers = showInformation ("Request",flatten [[Text (p.Provider.name +++ " is asked for " <+ p.capacity),BrTag []]\\p <- providers]) [] Void >>+ noActions
 
 // Calculates for a needed amount (left,providers,remainder)
 // left: is the amount that could not fulfilled (0 in case all can be supplied)
@@ -196,7 +196,7 @@ ambulanceTask amount
 	= updateInformation ("Amount","I need " <+ amount <+ " ambulances, how much can you provide?") [] amount
 
 showAmbulances :: [(Provider, Maybe Int)] -> Task Void
-showAmbulances providers = showMessage ("Summary","Ambulances are on their way") [] Void
+showAmbulances providers = showInformation ("Summary","Ambulances are on their way") [] Void
 
 //Utilities
 (<+) infixl :: !String !a -> String | toString a

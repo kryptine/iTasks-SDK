@@ -8,12 +8,12 @@ rpcExamples = 	[ workflow	"Examples/Miscellaneous/Weather forecast" "Fetches the
 
 GOOGLE_API = "http://www.google.com/ig/api"
 
-weatherExample :: Task Void
+weatherExample :: Task HtmlDisplay
 weatherExample = 					
 					eitherTask enterLocation markLocation
 	>>=				getLocation
 	>>= \location.	callRPCHTTP GET GOOGLE_API [("weather", location),("hl","en-GB")] formatResponse
-	>>= \weather -> showMessage ("Weather", "Weather forecast is:") [About weather] Void
+	>>= 			showInformation ("Weather", "Weather forecast is:") []
 
 enterLocation = enterInformation ("Enter location", "Enter a location you want to retrieve the weather forecast for.") []
 markLocation =

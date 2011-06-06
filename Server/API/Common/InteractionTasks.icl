@@ -9,34 +9,34 @@ import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, Syst
 enterInformation :: !d ![LocalInteractionOption m] -> Task m | descr d & iTask m
 enterInformation d options = InputTask @>> interactLocalAction d interaction Nothing toInfoSt
 where
-	interaction mbV						= mkParts False (toInfoSt mbV) mkPutback (filterOptions filterInputOptions (Just (Putback const)) options)
+	interaction mbV						= mkParts False (toInfoSt mbV) mkPutback (filterOptions filterInputOptions (Putback const) options)
 	toInfoSt mbV						= {modelValue = fromMaybe defaultValue mbV, localValid = isJust mbV}
 	mkPutback putback modelValue mbV	= fmap (\v -> putback v modelValue) mbV
 	
 updateInformation :: !d ![LocalInteractionOption m] m -> Task m | descr d & iTask m
 updateInformation d options initM = UpdateTask @>> interactLocalAction d interaction (verifyValue initM,initM) toInfoSt
 where
-	interaction st=:(valid,_)			= mkParts valid (toInfoSt st) mkPutback (filterOptions noFilter (Just (View (id,const))) options)
+	interaction st=:(valid,_)			= mkParts valid (toInfoSt st) mkPutback (filterOptions noFilter (View (id,const)) options)
 	toInfoSt (valid,m)					= {localValid = valid, modelValue = m}
 	mkPutback putback modelValue mbV	= (isJust mbV,maybe modelValue (\v -> putback v modelValue) mbV)
 	
-showMessage :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask m
-showMessage d options m = OutputTask PassiveOutput @>> interactLocalAction d interaction m toInfoSt
+showInformation :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask m
+showInformation d options m = OutputTask PassiveOutput @>> interactLocalAction d interaction m toInfoSt
 where
-	interaction m	= mkParts False (toInfoSt m) undef (filterOptions filterOutputOptions Nothing options)
+	interaction m	= mkParts False (toInfoSt m) undef (filterOptions filterOutputOptions (Get id) options)
 	toInfoSt _		= {localValid = True, modelValue = m}
 
 enterSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 enterSharedInformation d options shared = InputTask @>> interactAction d interaction False shared toInfoSt
 where
-	interaction valid r changed			= mkParts changed (toInfoSt valid r) mkPutback (filterOptions filterInputOptions (Just (Putback const)) options)
+	interaction valid r changed			= mkParts changed (toInfoSt valid r) mkPutback (filterOptions filterInputOptions (Putback const) options)
 	toInfoSt valid r					= {localValid = valid, modelValue = r}
 	mkPutback putback modelValue mbV	= (isJust mbV,fmap (\v -> putback v modelValue) mbV)
 	
 updateSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 updateSharedInformation d options shared = UpdateTask @>> interactAction d interaction True shared toInfoSt
 where
-	interaction valid r changed			= mkParts changed (toInfoSt valid r) mkPutback (filterOptions noFilter (Just defaultOpt) options)
+	interaction valid r changed			= mkParts changed (toInfoSt valid r) mkPutback (filterOptions noFilter defaultOpt options)
 	toInfoSt valid r					= {localValid = valid, modelValue = r}
 	mkPutback putback modelValue mbV	= (isJust mbV,fmap (\v -> putback v modelValue) mbV)
 	defaultOpt = Get id
@@ -44,7 +44,7 @@ where
 monitor :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 monitor d options shared = OutputTask PassiveOutput @>> interactAction d interaction Void shared toInfoSt
 where
-	interaction _ r changed	= mkParts False (toInfoSt Void r) undef (filterOptions filterOutputOptions (Just (Get id)) options)
+	interaction _ r changed	= mkParts False (toInfoSt Void r) undef (filterOptions filterOutputOptions (Get id) options)
 	toInfoSt _ r			= {localValid = True, modelValue = r}
 
 enterChoice :: !d ![LocalInteractionOption o] ![o] -> Task o | descr d & iTask o
@@ -124,13 +124,11 @@ where
 
 addAbouts options parts = [DisplayView a \\ About a <- options] ++ parts
 
-filterOptions filterF mbDefaultOpt options = addDefault (catMaybes (map filterF options))
+filterOptions filterF defaultOpt options = addDefault (catMaybes (map filterF options))
 where	
-	addDefault options = case mbDefaultOpt of
-		Nothing = options
-		Just defaultOpt
-			| any (\o -> case o of (About _) = False; _ = True) options	= options
-			| otherwise													= options ++ [defaultOpt]
+	addDefault options
+		| any (\o -> case o of (About _) = False; _ = True) options	= options
+		| otherwise													= options ++ [defaultOpt]
 		
 filterInputOptions option = case option of
 		(View (_,putback))	= Just (Putback putback)

@@ -50,13 +50,13 @@ catchNegativeValueTask :: (Task Int) NegativeValueException -> Task Int
 catchNegativeValueTask task (NegativeValueException msg)
 	=	get db
 	>>=	\curval ->
-		showMessage ("Exception!",
+		showInformation ("Exception!",
 			[Text "A NegativeValueException occurred: ",Text msg, BrTag []
 			,Text "The current stored value is: "
-			]) [About curval] curval
+			]) [] curval
 		
 
 catchTooLargeValueTask :: (Task Int) TooLargeValueException  -> Task Int
 catchTooLargeValueTask task (TooLargeValueException msg) 
-	=	showMessage ("Exception!","A TooLargeValueException occurred, please try again") [] Void
+	=	showInformation ("Exception!","A TooLargeValueException occurred, please try again") [] Void
 	>>| try (try task (catchNegativeValueTask task)) (catchTooLargeValueTask task)	

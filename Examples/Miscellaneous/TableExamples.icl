@@ -17,7 +17,7 @@ plantExample` =
 		readDataset
 	>>= transform Table
 	>>=	\table. updateInformation ("Plant Dataset",description) [] table <<@ fullWidthInteractionLayout
-	>>= showMessage "Updated dataset" [Get id]
+	>>= showInformation "Updated dataset" []
 	>>| stop
 where
 	description =
@@ -25,9 +25,9 @@ where
 		, Text "The dataset is taken from an ", ATag [HrefAttr "http://dev.sencha.com/deploy/dev/examples/grid/edit-grid.html"] [Text "Ext JS Grid Example"], Text "."
 		]
 
-showFileError (FileException path _)	= showMessage ("Error","Error reading dataset.") [Get id] path >>| stop
-showParseError (CannotParse err)		= showMessage ("Error","Error reading dataset.") [Get id] err >>| stop
-showUnknownError err					= showMessage ("Error",err) [] Void
+showFileError (FileException path _)	= showInformation ("Error","Error reading dataset.") [] path >>| stop
+showParseError (CannotParse err)		= showInformation ("Error","Error reading dataset.") [] err >>| stop
+showUnknownError err					= showInformation "Error" [] err >>| stop
 
 readDataset :: Task [Plant]
 readDataset =

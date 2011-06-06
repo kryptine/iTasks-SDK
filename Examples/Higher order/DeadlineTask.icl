@@ -25,13 +25,13 @@ deadline task
 	>>= \whom ->	enterInformation ("Wait time","How long do you want to wait?") []
 	>>= \time ->	(delegateTask whom time task)
 					-||-
-					(showMessage ("Cancel...","Cancel delegated work if you are getting impatient:") [] Nothing)
+					(showInformation ("Cancel...","Cancel delegated work if you are getting impatient:") [] Nothing)
 	>>= 			checkDone
 where
 	checkDone (Just value)
-		= showMessage ("Task result","Result of task:") [About value] value
+		= showInformation ("Task result","Result of task:") [About value] value
 	checkDone Nothing
-		= showMessage ("No result","Task expired or canceled, you have to do it yourself!") [] Void >>| task
+		= showInformation ("No result","Task expired or canceled, you have to do it yourself!") [] Void >>| task
 
 	delegateTask who time task
 	= who  @: (Title "Timed Task" @>> mytask)
@@ -41,7 +41,7 @@ where
 					( waitForTimer time >>| return Nothing)									
 		 			-||-
 		 			// do task and return its result
-		  			( (showMessage ("Hurry!","You have to complete the task in " <+++ time <+++ " time") [] Void >>+ noActions)
+		  			( (showInformation ("Hurry!","You have to complete the task in " <+++ time <+++ " time") [] Void >>+ noActions)
 		  			  ||- task 
 					  >>= \v -> return (Just v)
 					)				
