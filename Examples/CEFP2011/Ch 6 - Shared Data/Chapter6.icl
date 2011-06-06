@@ -21,7 +21,7 @@ w4 = workflow "CEFP/Chap 5/4. Current Workflows" 			"Which workflows are know he
 w6 = workflow "CEFP/Chap 5/6. To Do List" 				    "Create and store a to do list" 					(show updateMyStore)
 
 show :: (Task a) -> Task a | iTask a
-show task = task >>= \r -> showMessage "The result is:" [About r] r
+show task = task >>= \r -> showInformation "The result is:" [] r
 
 // Date and Time
 

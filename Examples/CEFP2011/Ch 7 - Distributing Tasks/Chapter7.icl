@@ -53,7 +53,7 @@ mkAppointment
       >>= \date ->		enterInformation "Which time do you want to meet ?" []
       >>= \time ->		enterSharedMultipleChoice "Which users need to join the meeting ?" [] users
       >>= \selected  -> mapTask  (\u -> u @: updateInformation "Can we meet ?" [] {date=Display date, time= Display time, canJoin=Yes}) selected
-      >>= \answers ->	showInformation "Users answered" [About answers] answers
+      >>= \answers ->	showInformation "Users answered" [] answers
       
 mapTask :: (a -> Task b) [a] -> Task [b] | iTask b
 mapTask f []  			
@@ -68,7 +68,7 @@ showAllUserNames :: Task [String]
 showAllUserNames
     =            get users
       >>= \us -> let showUsers = map displayName us in
-      				showInformation "The current users are: " [About showUsers] showUsers
+      				showInformation "The current users are: " [] showUsers
 
 selectUser :: Task User
 selectUser

@@ -22,7 +22,7 @@ w7 = workflow "CEFP/Chap 3/7. Form for [Person]+check" 		"Form for [Person] and 
 w8 = workflow "CEFP/Chap 3/8. Form for [Person]+check" 		"Form for [Person] and check result" 	(show fillInAndCheckPersons2)
 
 show :: (Task a) -> Task a | iTask a
-show task = task >>= \result -> showInformation "The result is:" [About result] result
+show task = task >>= \result -> showInformation "The result is:" [] result
 
 
 // Hello World
