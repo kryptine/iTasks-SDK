@@ -68,7 +68,7 @@ enterSharedInformation :: !d ![ViewOn r w] !(Shared r w) -> Task r | descr d & i
 * Ask the user to update predefined shared information.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; if no view is defined the value of the shared state (r) is shown to the user
+* @param Options:			Interaction options; if no view is defined & w = r a default view with the id lens is used, if r <> w the value of the shared state (r) is shown to the user
 * @param Shared:			Reference to the shared state to update
 *
 * @return 					Last value of the shared state the user updated

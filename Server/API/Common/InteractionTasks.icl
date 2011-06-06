@@ -42,7 +42,9 @@ where
 	interaction valid r changed			= mkParts changed (toInfoSt valid r) mkPutback options
 	toInfoSt valid r					= {localValid = valid, modelValue = r}
 	mkPutback putback modelValue mbV	= (isJust mbV,fmap (\v -> putback v modelValue) mbV)
-	defaultOpt = Get id
+	defaultOpt = case dynamic const :: A.a: (a a -> a) of
+		(putback :: (r^ r^ -> w^))	= View (id,putback)
+		_							= Get id
 
 monitor :: !d ![ViewOn r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 monitor d options shared = OutputTask PassiveOutput @>> interact` d updL interaction Void shared toInfoSt
