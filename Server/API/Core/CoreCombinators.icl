@@ -32,7 +32,7 @@ JSONEncode{|TaskContainer|} _ c		= dynamicJSONEncode c
 JSONDecode{|TaskContainer|} _ [j:c]	= (dynamicJSONDecode j,c)
 gUpdate{|TaskContainer|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
-	= (InBodyTask (\_ _ -> return Void), ust)
+	= (ShowAs BodyTask (\_ _ -> return Void), ust)
 gUpdate{|TaskContainer|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
 gDefaultMask{|TaskContainer|} _ _ = [Touched []]
 gVerify{|TaskContainer|} _ _ vst = alwaysValid vst
@@ -271,28 +271,28 @@ where
 	initSubContext taskNr i taskContainer iworld=:{IWorld|timestamp}
 		# subTaskNr = [i:taskNr]
 		= case taskContainer of
-			DetachedTask managerProps menu taskfun
+			ShowAs (DetachedTask managerProps menu) taskfun
 				# (task,funcs)	= mkSubTask taskfun
 				# processProps	= initProcessProperties subTaskNr timestamp managerProps menu task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCDetached processProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 			//Window & dialogue now implemented as simple InBody tasks
-			WindowTask title menu taskfun 
+			ShowAs (WindowTask title menu) taskfun 
 				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
-			DialogTask title taskfun
+			ShowAs (DialogTask title) taskfun
 				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
-			InBodyTask taskfun
+			ShowAs BodyTask taskfun
 				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
-			HiddenTask taskfun
+			ShowAs HiddenTask taskfun
 				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld

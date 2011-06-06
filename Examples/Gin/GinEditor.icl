@@ -103,8 +103,8 @@ ginEditor` =
 		"GiN Editor"
 		initialState
 		(\_ _ -> Void)
-		[ HiddenTask activator
-		, InBodyTask \s p -> forever (/*ginInteractionLayout @>>*/ 
+		[ ShowAs HiddenTask activator
+		, ShowAs BodyTask \s p -> forever (/*ginInteractionLayout @>>*/ 
 				(updateSharedInformation "Workflow diagram" [View (diagramView, diagramUpdate)] s >?* actions s p))
 		]
 
@@ -189,7 +189,7 @@ actions stateShared parallelInfo
 		actionTask title task = get stateShared >>= task >>= set stateShared >>| stop
 	
 		addTask title task = set parallelInfo 
-			[AppendTask (WindowTask title noMenu (\s _ -> task))] >>| stop
+			[AppendTask (ShowAs (WindowTask title noMenu) (\s _ -> task))] >>| stop
 		moduleEditor title v = addTask title (updateSharedInformation title [View (liftModuleView v)] stateShared)
 		
 		declarationEditor = moduleEditor "declaration" (declarationView, declarationUpdate)

@@ -18,7 +18,7 @@ w6 = workflow "CEFP/Chap 2/6. Choose one item" 		"Choice of one" 				(show choic
 w7 = workflow "CEFP/Chap 2/7. Choose several items" "Multiple choice" 				(show mchoiceExample)
 
 show :: (Task a) -> Task a | iTask a
-show task = task >>= \r -> showMessage "The result is:" [About r] r
+show task = task >>= \r -> showInformation "The result is:" [About r] r
 
 // a simple form to type in an integer value
 

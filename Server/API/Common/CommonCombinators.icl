@@ -78,7 +78,7 @@ where
 */
 assign :: !ManagerProperties !ActionMenu !(Task a) -> Task a | iTask a
 assign props actionMenu task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
-									[InBodyTask processControl, DetachedTask props actionMenu (accu accJust task)] <<@ minimalParallelLayout
+									[ShowAs BodyTask processControl, ShowAs (DetachedTask props actionMenu) (accu accJust task)] <<@ minimalParallelLayout
 where
 	processControl :: state !(Shared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
 	processControl _ control =
@@ -142,7 +142,7 @@ where
 	description = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskTitle tasks)) +++ "</li></ul>"
 	
 	seqTasks []		= []
-	seqTasks [t:ts]	= [InBodyTask \pstate pinfo -> t >>= accResult pstate >>= startNext pinfo ts]
+	seqTasks [t:ts]	= [ShowAs BodyTask \pstate pinfo -> t >>= accResult pstate >>= startNext pinfo ts]
 	
 	accResult pstate a 		= update (\acc -> [a:acc]) pstate >>| return a
 	
@@ -151,45 +151,45 @@ where
 		
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = parallel (taskTitle task,taskDescription task) Nothing (\_ (Just a) -> a) [InBodyTask (checked pred task)] <<@ layout
+(<!) task pred = parallel (taskTitle task,taskDescription task) Nothing (\_ (Just a) -> a) [ShowAs BodyTask (checked pred task)] <<@ layout
 where
 	checked pred task pstate pinfo
 		= task >>= \a -> if (pred a)
 			(set pstate (Just a) >>|return a)
-			(update (\[{ParallelTaskInfo|index}] -> [RemoveTask index, AppendTask (InBodyTask (checked pred task))]) pinfo >>| return a)
+			(update (\[{ParallelTaskInfo|index}] -> [RemoveTask index, AppendTask (ShowAs BodyTask (checked pred task))]) pinfo >>| return a)
 
 	layout {TUIParallel|items} = hd items
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") Nothing (\_ (Just a) -> a)
-						[InBodyTask (accu orfun taska), InBodyTask (accu orfun taskb)]
+						[ShowAs BodyTask (accu orfun taska), ShowAs BodyTask (accu orfun taskb)]
 where
 	orfun a _ = (Just a,True)
 	
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
 	= parallel ("||-", "Done when the second subtask is finished.") Nothing (\_ (Just b) -> b)
-		[InBodyTask (\_ _ -> taska), InBodyTask (accu orfun taskb)]
+		[ShowAs BodyTask (\_ _ -> taska), ShowAs BodyTask (accu orfun taskb)]
 where
 	orfun b _ = (Just b,True)
 	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
 	= parallel ("-||", "Done when the first subtask is finished") Nothing (\_ (Just a) -> a)
-		[InBodyTask (accu orfun taska), InBodyTask (\_ _ -> taskb)]				
+		[ShowAs BodyTask (accu orfun taska), ShowAs BodyTask (\_ _ -> taskb)]				
 where
 	orfun a _ = (Just a,True)
 	
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb = parallel ("-&&-", "Done when both subtasks are finished") (Nothing,Nothing) resfun
-	[InBodyTask (accu (\a (_,b) -> ((Just a,b),False)) taska), InBodyTask (accu (\b (a,_) -> ((a,Just b),False)) taskb)]
+	[ShowAs BodyTask (accu (\a (_,b) -> ((Just a,b),False)) taska), ShowAs BodyTask (accu (\b (a,_) -> ((a,Just b),False)) taskb)]
 where
 	resfun _ (Just a,Just b)	= (a,b)
 	resfun _ _					= abort "AND not finished"
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
 (-&?&-) taska taskb = parallel ("-&?&-", "Done when both subtasks are finished. Yields only a result of both subtasks have a result") (Nothing,Nothing) resfun
-	[InBodyTask (accu (\a (_,b) -> ((a,b),False)) taska),InBodyTask (accu (\b (a,_) -> ((a,b),False)) taskb)]
+	[ShowAs BodyTask (accu (\a (_,b) -> ((a,b),False)) taska),ShowAs BodyTask (accu (\b (a,_) -> ((a,b),False)) taskb)]
 where				
 	resfun _ (Just a,Just b)	= Just (a,b)
 	resfun _ _					= Nothing
@@ -204,18 +204,18 @@ derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask [] 		= return defaultValue
-anyTask tasks 	= parallel ("any", "Done when any subtask is finished") Nothing (\_ (Just a) -> a) (map (\t -> (InBodyTask (accu anyfun t))) tasks)
+anyTask tasks 	= parallel ("any", "Done when any subtask is finished") Nothing (\_ (Just a) -> a) (map (\t -> (ShowAs BodyTask (accu anyfun t))) tasks)
 where
 	anyfun a _ = (Just a, True)
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = parallel ("all", "Done when all subtasks are finished") [] (\_ l -> sortByIndex l) [InBodyTask (accu (allfun i) t) \\ t <- tasks & i <- [0..]] 
+allTasks tasks = parallel ("all", "Done when all subtasks are finished") [] (\_ l -> sortByIndex l) [ShowAs BodyTask (accu (allfun i) t) \\ t <- tasks & i <- [0..]] 
 where
 	allfun i a acc = ([(i,a):acc],False)
 			
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb = parallel ("either", "Done when either subtask is finished") Nothing (\_ (Just a) -> a)
-	[InBodyTask (accu afun taska), InBodyTask (accu bfun taskb)]
+	[ShowAs BodyTask (accu afun taska), ShowAs BodyTask (accu bfun taskb)]
 where
 	afun a _ = (Just (Left a),True)
 	bfun b _ = (Just (Right b),True)

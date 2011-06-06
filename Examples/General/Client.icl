@@ -16,9 +16,9 @@ clientExample :: [Workflow]
 clientExample = [workflow "Examples/Client" "This task rebuilds the client." (Workflow initManagerProperties (staticMenu [Menu "Example" [MenuItem ActionQuit Nothing]]) client)]
 
 client = parallelLayout @>> parallel "Client" Nothing (\_ _ -> Void)
-	[ InBodyTask (\s _ -> chooseWorkflow s <<@ treeLayout)
-	, InBodyTask (\s _ -> showDescription s <<@ descriptionLayout)
-	, InBodyTask (\_ _ -> processTable <<@ processTableLayout)
+	[ ShowAs BodyTask (\s _ -> chooseWorkflow s <<@ treeLayout)
+	, ShowAs BodyTask (\s _ -> showDescription s <<@ descriptionLayout)
+	, ShowAs BodyTask (\_ _ -> processTable <<@ processTableLayout)
 	]
 	
 chooseWorkflow ref =

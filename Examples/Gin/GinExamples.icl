@@ -27,8 +27,8 @@ simpleEditorWorkflow language editor =
 
 petrinetShareExample :: Task Void
 petrinetShareExample = parallel "Petrinet Share Example" petriNetORYXEditor (\_ _ -> Void)
-	[ InBodyTask (\s _ -> updateSharedInformation "Editor 1" [] s >>+ quitButton)
-	, InBodyTask (\s _ -> updateSharedInformation "Editor 2" [] s >>+ quitButton)
+	[ ShowAs BodyTask (\s _ -> updateSharedInformation "Editor 1" [] s >>+ quitButton)
+	, ShowAs BodyTask (\s _ -> updateSharedInformation "Editor 2" [] s >>+ quitButton)
 	]
 
 quitButton _ = UserActions [(ActionQuit,Just Void)]

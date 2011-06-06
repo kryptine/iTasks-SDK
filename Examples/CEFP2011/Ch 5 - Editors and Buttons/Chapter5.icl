@@ -25,9 +25,9 @@ w5 = workflow "CEFP/Chap 5/5. Palindrome exercise" "Palindrome" palindrome
 
 ask :: Task Bool
 ask
-	=		showMessage "Do you like the iTask system ?" [] Void
-		>?* [(ActionYes, Always (showMessage "Thank you !" [] True))
-			,(ActionNo,  Always (showMessage "Perhaps you did not onderstand the question" [] False >>| ask))
+	=		showInformation "Do you like the iTask system ?" [] Void
+		>?* [(ActionYes, Always (showInformation "Thank you !" [] True))
+			,(ActionNo,  Always (showInformation "Perhaps you did not onderstand the question" [] False >>| ask))
 			]
 
 // accept only an even number 

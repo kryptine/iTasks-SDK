@@ -37,7 +37,7 @@ removeUser user			cs = {cs & chatters = removeMember user cs.chatters}
 
 chat3
     =               get currentUser
-    	>>= \me ->	parallel "Chat application" emptyChatState (const2 Void) [InBodyTask (chatTask me)]
+    	>>= \me ->	parallel "Chat application" emptyChatState (const2 Void) [ShowAs BodyTask (chatTask me)]
 
 chatTask user cs os
 	=			update (addUser user) cs
@@ -57,13 +57,13 @@ chatMore user s cs os
 where		
 	(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
 
-newChatter = WindowTask "Append Chatter" noMenu handleNewChatter
+newChatter = ShowAs (WindowTask "Append Chatter" noMenu) handleNewChatter
 
 handleNewChatter cs os
 	=						selectUser
 		>>= \someone ->		set os [AppendTask (newChatTask someone)]
 where
-	newChatTask someone = DetachedTask (normalTask someone) noMenu (chatTask someone)
+	newChatTask someone = ShowAs (DetachedTask (normalTask someone) noMenu) (chatTask someone)
 
 
 ActionAdd :== Action "Add Chatter" "Add Chatter"
@@ -112,7 +112,7 @@ textEditor2
 		>>= \fileName ->	readTextFile fileName
 		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [taskKind (editor fileName)]
 
-taskKind = InBodyTask
+taskKind = ShowAs BodyTask
 
 taskKind2 = DetachedTask (normalTask  RootUser) myMenu // window does not work yet
 
@@ -148,12 +148,12 @@ where
 
 	replace 
 		=		updateReplace True ls
-			>>| set os [AppendTask (InBodyTask (replaceTask {search = "", replaceBy = ""}))]
+			>>| set os [AppendTask (ShowAs BodyTask (replaceTask {search = "", replaceBy = ""}))]
 			>>| editor fileName ls os
 
 	statistics 
 		=		updateStat True ls
-			>>|	set os [AppendTask (InBodyTask statisticsTask)]
+			>>|	set os [AppendTask (ShowAs BodyTask statisticsTask)]
 			>>| editor fileName ls os
 
 replaceTask :: Replace (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
@@ -255,7 +255,7 @@ where
 	finishPar _ s = s
 
 	initMeeting user
-		= DetachedTask managerProperties noMenu meetingTask
+		= ShowAs (DetachedTask managerProperties noMenu) meetingTask
 	where
 //		meetingTask :: (SymmetricShared [MeetingProposal]) (ParallelInfo [MeetingProposal]) -> Task [MeetingProposal]
 		meetingTask meetingState _
@@ -292,7 +292,7 @@ where
 		{ParticipantView | name=Display name,canAttend,comment}	= fromVisualizationHint view
 	
 	manage
-		= InBodyTask check
+		= ShowAs BodyTask check
 	where
 		check meetingState controlState
 			=     				updateSharedInformation "Monitor answers" [View (viewForManager,\_ ps -> ps)]  meetingState 

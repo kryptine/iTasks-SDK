@@ -14,7 +14,7 @@ listEditor = (split "\n" ,		\l _ -> join "\n" l)
 TrimAction :== Action "trim" "Trim"
 
 linesPar :: Task Void
-linesPar = parallel "Lines Example" "" (\_ _ -> Void) [InBodyTask noteE, InBodyTask (\sid _ -> updateSharedInformation ("Lines","Edit lines") [View listEditor] sid >>+ quitButton)]
+linesPar = parallel "Lines Example" "" (\_ _ -> Void) [ShowAs BodyTask noteE, ShowAs BodyTask (\sid _ -> updateSharedInformation ("Lines","Edit lines") [View listEditor] sid >>+ quitButton)]
 where
 	noteE sid os = 
 			updateSharedInformation ("Text","Edit text") [View noteEditor] sid
@@ -95,10 +95,10 @@ RemoveMarkersAction :== Action "remove-markers" "Remove Markers"
 
 googleMaps :: Task GoogleMap
 googleMaps = parallel "Map Example" mkMap (\_ m -> m)
-	[ InBodyTask (\s _ -> updateSharedInformation "Options" [View optionsEditor] s >>+ noActions)
-	, InBodyTask (\s _ -> updateSharedInformation "Google Map" [] s >>+ noActions)
-	, InBodyTask (\s _ -> updateSharedInformation "Overview Map" [View overviewEditor] s >>+ noActions)
-	, InBodyTask (\s _ -> markersDisplay s)
+	[ ShowAs BodyTask (\s _ -> updateSharedInformation "Options" [View optionsEditor] s >>+ noActions)
+	, ShowAs BodyTask (\s _ -> updateSharedInformation "Google Map" [] s >>+ noActions)
+	, ShowAs BodyTask (\s _ -> updateSharedInformation "Overview Map" [View overviewEditor] s >>+ noActions)
+	, ShowAs BodyTask (\s _ -> markersDisplay s)
 	]
 where						
 	markersDisplay dbid =
@@ -258,7 +258,7 @@ phoneBookSearch
 activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
 activeQuery mbQuery queryTask
 	=	parallel "Active Query" (initQuery,initDirty,[],Nothing) (\_ (_,_,_,Just res) -> res)
-			[InBodyTask searchBox, HiddenTask (activator queryTask), InBodyTask searchResults]
+			[ShowAs BodyTask searchBox, ShowAs HiddenTask (activator queryTask), ShowAs BodyTask searchResults]
 where
 	initQuery = case mbQuery of
 		Nothing = ""
