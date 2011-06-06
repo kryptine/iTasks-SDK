@@ -33,11 +33,6 @@ gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
 
 derive bimap Maybe, (,)
 
-(>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
-(>>+) task=:{Task|type} termF = case type of
-	ActionTask actionTaskF	= {Task|task & type = NormalTask (actionTaskF termF)}
-	_						= task >>= \r -> showInformation (taskTitle task,taskDescription task) [] r >>+ termF
-
 (>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
 (>>*) task termF = task >>+ termF >>= id
 
@@ -50,9 +45,6 @@ where
 	
 (>?) infixl 1 :: !(Task a) !(a -> Bool) -> Task a | iTask a
 (>?) task pred = task >>+ \{modelValue} -> if (pred modelValue) (StopInteraction modelValue) (UserActions [])
-	
-noActions :: (TermFunc a Void) | iTask a
-noActions = const (UserActions [])
 
 //Helper function for tasks in a parallel set
 accu :: (a acc -> (acc,Bool)) (Task a) (SymmetricShared acc) (ParallelInfo acc) -> Task a | iTask a & iTask acc

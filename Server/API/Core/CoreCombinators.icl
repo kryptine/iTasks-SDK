@@ -2,7 +2,7 @@ implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
 import Task, TaskContext, Util, HTTP, GenUpdate, UserDB, Store, Types, Time, Text, Shared
-import iTaskClass
+import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
 from ProcessDB			import :: Process{..}
@@ -115,6 +115,14 @@ where
 	
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
+
+(>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
+(>>+) task=:{Task|type} termF = case type of
+	ActionTask actionTaskF	= {Task|task & type = NormalTask (actionTaskF termF)}
+	_						= task >>= \r -> showInformation (taskTitle task,taskDescription task) [] r >>+ termF
+	
+noActions :: (TermFunc a Void) | iTask a
+noActions = const (UserActions [])
 
 // Parallel composition
 STATEKEY id 	:== iTaskId id "-state"

@@ -44,6 +44,27 @@ derive gEq			TaskContainer
 (>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
 
 /**
+* Adds terminator generator (yielding user actions or trigger) to task.
+* The input of the function is the current state of the task.
+* The state of interaction tasks is changing during execution.
+* Other tasks are first executed, their constant state is their result.
+* The new return type of the task is determined by the type yieded by the generated terminators.
+*
+* @param Task: The task to which terminators are added
+* @param Terminator generator function: The function generating the terminators
+* @return The task which added terminators
+*
+* @gin False
+*/
+(>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
+
+/*
+* Empty list of actions.
+* 'task >>+ noActions' never terminated.
+*/
+noActions :: (TermFunc a Void) | iTask a
+
+/**
 * All-in-one swiss-army-knife parallel task creation
 *
 * @param Description: The (overloaded) task description

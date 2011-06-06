@@ -24,26 +24,24 @@ derive JSONEncode	Tag
 derive JSONDecode	Tag
 derive gEq			Tag
 
-(>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
-
 /**
-* General multi-bind used to define continuations for an interaction task
-* using an terminator function (interact, interactLocal, 'A' variants of interaction tasks).
+* General multi-bind used to define continuations.
+* Similar to (>>+) but terminators yield a continuation which is executed directly.
 *
-* @param Task function: A function from a terminator function to a task returning a continuation (Typically an interaction task without last argument)
-* @param Terminator function: The terminator function to apply
+* @param Task: The task for which continuations are defined
+* @param Continuation terminator generator function: The functions generating the terminators yielding continuations
 * @return The continuation's result
-
+*
 * @gin False
 */
 (>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
 
 
 /**
-* Special multi-bind used to define continuations for an enter/update-information/choice interaction task.
+* Special multi-bind used to define continuations using a list of user action with constant length.
 * A list of continuation with conditions (always, ifvalid, sometimes) has to be provided.
 *
-* @param Task function: A function from a terminator function to a task returning a continuation (Typically an enter/update-information task without last argument)
+* @param Task: The task for which continuations are defined
 * @param Continuations: A list of continuations
 *
 * @return The continuation's result
@@ -52,13 +50,21 @@ derive gEq			Tag
 */
 (>?*) infixl 1 :: !(Task a) ![(!Action,!TaskContinuation a b)] -> Task b | iTask a & iTask b
 
+/**
+* Adds a trigger to a task. The task automatically terminates as soon as the predicate holds.
+*
+* @param Task: The task to which the trigger is added
+* @param Predicate: A predicate on the task's state
+*
+* @return The task's result
+*
+* @gin False
+*/
 (>?) infixl 1 :: !(Task a) !(a -> Bool) -> Task a | iTask a
 
 :: TaskContinuation a b	= Always	!(Task b)									// continuation which can always be taken
 						| IfValid	!(a -> Task b)								// continuation which can be taken if the local editor is in a valid state, the current value is given as input
 						| Sometimes	!((InformationState a) -> Maybe (Task b))	// continuation which can sometimes be taken depending on the editor's current state
-
-noActions :: (TermFunc a Void) | iTask a
 
 /**
 * Transform a value with a custom function
