@@ -15,8 +15,8 @@ w2 = workflow "CEFP/Chap 2/1. Enter Int value"    	"Form for an integer value" 	
 w3 = workflow "CEFP/Chap 2/2. Enter String value" 	"Form for entering a string"	(show taskString)
 w4 = workflow "CEFP/Chap 2/3. Enter Person data"  	"Form for entering person data" (show taskPerson)
 w5 = workflow "CEFP/Chap 2/4. Enter [Person]" 		"Fill in person data" 			(show taskPersonList)
-w6 = workflow "CEFP/Chap 2/6. Choose one item" 		"Choice of one" 				(show choiceExample)
-w7 = workflow "CEFP/Chap 2/7. Choose several items" "Multiple choice" 				(show mchoiceExample)
+w6 = workflow "CEFP/Chap 2/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
+w7 = workflow "CEFP/Chap 2/7. Choose several items" "Multiple choice" 				(show pizzaWith)
 
 show :: (Task a) -> Task a | iTask a
 show task = task >>= \r -> showInformation "The result is:" [] r
@@ -53,13 +53,12 @@ taskPerson = enterInformation "Please enter a value" []
 taskPersonList :: Task [Person]
 taskPersonList = enterInformation "Please enter a value" []
 
+//
+
+chooseNumber :: Task Int
+chooseNumber = enterChoice "Choose a number" [] [0..9]
 
 //
 
-choiceExample :: Task Int
-choiceExample = enterChoice "Choose a number" [] [0..9]
-
-//
-
-mchoiceExample :: Task [Char]
-mchoiceExample = enterMultipleChoice "Choose a number" [] ['a'..'z']
+pizzaWith :: Task [String]
+pizzaWith = enterMultipleChoice "What do you like on your pizza" [] ["Cheese","Tomato","Ansjofish","salami"]
