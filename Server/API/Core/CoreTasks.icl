@@ -9,7 +9,7 @@ from iTasks			import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException
 from WorkflowDB		import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 
-VIEWS_STORE				:== "views"
+PARTS_STORE				:== "parts"
 LOCAL_STORE				:== "local"
 LAST_EDIT_STORE			:== "lastEdit"
 LAST_TUI_STORE			:== "lastTui"
@@ -17,12 +17,11 @@ EVENT_STORE				:== "event"
 EDIT_CONFLICT_STORE		:== "editConflict"
 EDIT_CONFLICT_WARNING	:== "An edit conflict occurred. The form was refreshed with the most recent value."
 
-derive JSONEncode UpdateMask, VerifyMask, ErrorMessage
-derive JSONDecode UpdateMask, VerifyMask, ErrorMessage
-JSONEncode{|InteractionPart|} _ ip		= dynamicJSONEncode ip
-JSONDecode{|InteractionPart|} _ [json:r]= (dynamicJSONDecode json,r)
-JSONDecode{|InteractionPart|} _ _ 		= (Nothing,[])
-
+derive JSONEncode StoredPart, UpdateMask
+derive JSONDecode StoredPart, UpdateMask
+JSONEncode{|StoredPutback|} _ _ p			= dynamicJSONEncode p
+JSONDecode{|StoredPutback|} _ _ [json:r]	= (dynamicJSONDecode json,r)
+JSONDecode{|StoredPutback|} _ _ _			= (Nothing,[])
 derive bimap Maybe,(,)
 
 return :: !a -> (Task a) | iTask a
@@ -90,8 +89,8 @@ where
 		# (model,iworld) 			= 'Shared'.readShared shared iworld
 		| isError model				= (context, iworld)
 		# local						= getLocalState context
-		# views						= getViews local (fromOk model) context
-		| idx >= length views		= (context, iworld) 
+		# parts						= getParts context
+		| idx >= length parts		= (context, iworld) 
 		//Save event for use in the visualization of the task
 		# context					= setEvent (dps,editV) context
 		//Check if the share has changed since we last generated the visualization
@@ -102,21 +101,19 @@ where
 				//The share has changed since we last edited it
 				= (setLocalVar EDIT_CONFLICT_STORE True context, iworld) 
 			_
-				# (mbV,part)	= views !! idx
-				= case part of
-					UpdateView _ putback
-						| isNothing mbV			= (context,iworld)
-						# (jsonV,umask,_)		= fromJust mbV
-						# value					= fromJSON jsonV
-						| isNothing value		= (context,iworld)
+				= case parts !! idx of
+					StoredUpdateView jsonV umask (StoredPutback putback)
+						# mbValue				= fromJSON jsonV
+						| isNothing mbValue		= (context,iworld)
+						# value					= fromJust mbValue
 						// update value & masks
-						# (value,umask,iworld)	= updateValueAndMask dp editV (fromJust value) umask iworld
+						# (value,umask,iworld)	= updateValueAndMask dp editV value umask iworld
 						# vmask					= verifyForm value umask
-						# views					= updateAt idx (Just (toJSON value,umask,vmask),part) views
-						# context				= setViews views context
+						# parts					= updateAt idx (StoredUpdateView (toJSON value) umask (StoredPutback putback)) parts
+						# context				= setLocalVar PARTS_STORE parts context
 						// calculate new local & model value
 						# (local,mbModel)		= putback (if (isValidValue vmask) (Just value) Nothing)
-						# context				= setLocalState local context
+						# context				= setLocalState initLocal local context
 						= case mbModel of
 							Just model
 								# (_,iworld) 	= 'Shared'.writeShared shared model iworld
@@ -124,8 +121,8 @@ where
 								= (context,iworld)
 							Nothing	
 								= (context, iworld)
-					Update _ (local,mbModel)			
-						# context				= setLocalState local context
+					StoredUpdate (local,mbModel)			
+						# context				= setLocalState initLocal local context
 						= case mbModel of
 							Just model	= (context, snd ('Shared'.writeShared shared model iworld))
 							Nothing		= (context, iworld)
@@ -161,7 +158,8 @@ where
 	getLocalState context
 		= fromMaybe initLocal (getLocalVar LOCAL_STORE context)
 
-	setLocalState state context
+	setLocalState :: l !l !TaskContext -> TaskContext | JSONEncode{|*|} l
+	setLocalState _ state context
 		= setLocalVar LOCAL_STORE state context
 	
 	splitDataPath dp
@@ -176,10 +174,10 @@ where
 
 	renderTUI taskNr imerge local model changed actions context iworld
 		# parts					= partFunc local model changed
-		# oldVs					= getViews local model context
+		# storedParts			= getParts context
 		# (mbEvent,context)		= getEvent context
-		# (tuis,newVs)			= visualizeParts taskNr parts oldVs mbEvent
-		# context 				= setViews (zip2 newVs parts) context
+		# (tuis,newParts)		= visualizeParts taskNr parts storedParts mbEvent
+		# context 				= setLocalVar PARTS_STORE newParts context
 		# buttons				= renderButtons taskNr (map (appSnd isJust) actions)
 		# warning				= case (getLocalVar EDIT_CONFLICT_STORE context) of
 			Just True	= Just EDIT_CONFLICT_WARNING
@@ -217,13 +215,10 @@ where
 				 , warning = warning
 				 }
 	
-	getViews local model context 
-		= case getLocalVar VIEWS_STORE context of
-			Just views	= views
-			Nothing		= [(Nothing,part) \\ part <- partFunc local model True]
-			
-	setViews views context
-		= setLocalVar VIEWS_STORE views context
+	getParts context 
+		= case getLocalVar PARTS_STORE context of
+			Just parts	= parts
+			Nothing		= []
 
 	setEvent event context
 		= setLocalVar EVENT_STORE event context
@@ -233,11 +228,14 @@ where
 			Just (dp,val)	= (Just (s2dp dp, val), delLocalVar EVENT_STORE context)
 			Nothing			= (Nothing, context)
 			
-:: Views a :== [(!Maybe (!JSONNode,!UpdateMask,!VerifyMask),!InteractionPart a)]
+:: StoredPart l w	= StoredUpdateView	!JSONNode !UpdateMask !(StoredPutback l w)
+					| StoredDisplayView
+					| StoredUpdate		!(!l,!Maybe w)
+:: StoredPutback l w = E.v: StoredPutback !((Maybe v) -> (!l,!Maybe w)) & iTask v
 
-visualizeParts :: !TaskNr ![InteractionPart w] !(Views w) !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![Maybe (!JSONNode,!UpdateMask,!VerifyMask)])
-visualizeParts taskNr parts oldVs mbEdit
-	# res			= [visualizePart (part,mbV,idx) \\ part <- parts & (mbV,_) <- (oldVs ++ repeat (Nothing,undef)) & idx <- [0..]]
+visualizeParts :: !TaskNr ![InteractionPart (!l,!Maybe w)] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![StoredPart l w])
+visualizeParts taskNr parts oldParts mbEdit
+	# res			= [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]
 	= unzip res
 where
 	visualizePart (part,mbV,idx)
@@ -247,15 +245,15 @@ where
 					# umask				= defaultMask value
 					# vmask				= verifyForm value umask
 					# tui				= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit
-					= (tui,Just (toJSON value,umask,vmask))
+					= (tui,StoredUpdateView (toJSON value) umask (StoredPutback putback))
 				Unchanged init = case mbV of
-					Nothing				= visualizePart (UpdateView init putback,mbV,idx)
-					Just (jsonV,_,vmask) = case fromJSON` formView jsonV of
-						Nothing			= visualizePart (UpdateView init putback,mbV,idx)
-						Just value		= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,mbV)
-				Blank					= blankForm formView mbEdit
-			DisplayView v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),Nothing)
-			Update label _				=	({ content = TUIButton	{ TUIButton
+					Just (StoredUpdateView jsonV umask storedPutback) = case fromJSON` formView jsonV of
+						Just value		= (visualizeAsEditor value (taskNrToString taskNr) idx (verifyForm value umask) mbEdit,StoredUpdateView jsonV umask storedPutback)
+						Nothing			= visualizePart (UpdateView init putback,Nothing,idx)
+					_					= visualizePart (UpdateView init putback,Nothing,idx)
+				Blank					= blankForm formView putback mbEdit
+			DisplayView v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),StoredDisplayView)
+			Update label w				=	({ content = TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
 																	, text			= label
@@ -263,17 +261,16 @@ where
 																	, iconCls		= ""
 																	, actionButton	= False
 																	}
-											, width = Auto, height = Auto, margins = Nothing},Nothing)
+											, width = Auto, height = Auto, margins = Nothing},StoredUpdate w)
 	where
 		fromJSON` :: !(FormView v) !JSONNode -> (Maybe v) | JSONDecode{|*|} v
 		fromJSON` _ json = fromJSON json
-		
-		blankForm :: !(FormView v) !(Maybe (!DataPath,!JSONNode)) -> (!TUIDef,!Maybe (!JSONNode,!UpdateMask,!VerifyMask)) | iTask v
-		blankForm formView mbEdit
+
+		blankForm formView putback mbEdit
 			# value	= defaultValue` formView
 			# umask	= Untouched
 			# vmask	= verifyForm value umask
-			= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,Just (toJSON value,umask,vmask))
+			= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,StoredUpdateView (toJSON value) umask (StoredPutback putback))
 		
 		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
 		defaultValue` _ = defaultValue
