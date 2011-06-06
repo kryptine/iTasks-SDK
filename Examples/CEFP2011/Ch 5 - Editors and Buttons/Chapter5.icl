@@ -49,7 +49,7 @@ onlyIf pred taskf  s
 
 actions :: Int -> Task Int
 actions n = chooseAction
-            [  (Action ("action" +++ toString i) ("label " +++ toString i),i)
+            [  (Action ("label " +++ toString i),i)
             \\ i <- [1..n]
             ]
 
@@ -59,7 +59,7 @@ dynButtons :: [Int] [Int] -> Task [Int]
 dynButtons [] accu = return accu
 dynButtons numbers accu
 	=					updateInformation "Choose a button" [] Void
-		>?* 			[(Action (toString i) (toString i), Always (return index)) \\ i <- numbers & index <- [0..]] 
+		>?* 			[(Action (toString i), Always (return index)) \\ i <- numbers & index <- [0..]] 
 		>>= \index ->	dynButtons (removeAt index numbers) [numbers!!index:accu]
 
 	
@@ -69,9 +69,9 @@ dynButtons numbers accu
 oddOrEvenButtons :: Bool ->Task Int
 oddOrEvenButtons even
 	=			updateInformation "Choose a button" [] Void
-		>?*		[ (Action "Odd" "Odd",  				Sometimes (onlyIf (\_ -> even)     (\_ -> oddOrEvenButtons (not even))))
-				, (Action "Even" "Even",				Sometimes (onlyIf (\_ -> not even) (\_ -> oddOrEvenButtons (not even))))
-				: [ (Action (toString i) (toString i),  Always (return i))
+		>?*		[ (Action "Odd",  				Sometimes (onlyIf (\_ -> even)     (\_ -> oddOrEvenButtons (not even))))
+				, (Action "Even",				Sometimes (onlyIf (\_ -> not even) (\_ -> oddOrEvenButtons (not even))))
+				: [ (Action (toString i),  Always (return i))
 				  \\ i <- [0..9] | if even (isEven i) (isOdd i)
 				  ]
 				] 
@@ -80,8 +80,8 @@ oddOrEvenButtons even
 
 palindrome 
 	= 				enterInformation "Please enter a text" []
-		>?*	 		[(Action "palin"   "Palindrome!",Sometimes (onlyIf isPalindrome return))
-					,(Action "nopalin" "Nope!",      Sometimes (onlyIf (not o isPalindrome) return))
+		>?*	 		[(Action "Palindrome!",Sometimes (onlyIf isPalindrome return))
+					,(Action "Nope!",      Sometimes (onlyIf (not o isPalindrome) return))
 					]
 where	
 	isPalindrome :: String -> Bool

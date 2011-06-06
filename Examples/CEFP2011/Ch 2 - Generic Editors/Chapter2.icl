@@ -61,4 +61,4 @@ chooseNumber = enterChoice "Choose a number" [] [0..9]
 //
 
 pizzaWith :: Task [String]
-pizzaWith = enterMultipleChoice "What do you like on your pizza" [] ["Cheese","Tomato","Ansjofish","salami"]
+pizzaWith = enterMultipleChoice "What do you like on your pizza ?" [] ["Cheese","Tomato","Ansjofish","Salami"]

@@ -57,16 +57,16 @@ chatMore user s cs os
 where		
 	(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
 
-newChatter = ShowAs (WindowTask "Append Chatter" noMenu) handleNewChatter
+newChatter = ShowAs (WindowTask "Append Chatter") handleNewChatter
 
 handleNewChatter cs os
 	=						selectUser
 		>>= \someone ->		set os [AppendTask (newChatTask someone)]
 where
-	newChatTask someone = ShowAs (DetachedTask (normalTask someone) noMenu) (chatTask someone)
+	newChatTask someone = ShowAs (DetachedTask (normalTask someone)) (chatTask someone)
 
 
-ActionAdd :== Action "Add Chatter" "Add Chatter"
+ActionAdd :== Action "Add Chatter" 
 
 // pocket calculator, see Steffens example...
 
@@ -103,8 +103,8 @@ onlyIf b do
 
 normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
-ActionReplace 		:== Action "Replace" "Replace"
-ActionStatistics	:== Action "Statistics" "Statistics"
+ActionReplace 		:== Action "Replace" 
+ActionStatistics	:== Action "Statistics" 
 
 textEditor2 ::  Task Void
 textEditor2 
@@ -114,18 +114,7 @@ textEditor2
 
 taskKind = ShowAs BodyTask
 
-taskKind2 = DetachedTask (normalTask  RootUser) myMenu // window does not work yet
-
-myMenu s =  [ Menu "File" 	[ MenuItem ActionSave (ctrl 's')
-							, MenuSeparator
-							, MenuItem ActionQuit (ctrl 'q')
-							]
-			, Menu "Edit" 	[ MenuItem "Replace"  (ctrl 'r')
-							, MenuItem "Statistics" (ctrl 's')
-							]				
-			]
-where
-	ctrl c = Just {key=c,ctrl=True,alt=False,shift=False}
+taskKind2 = DetachedTask (normalTask  RootUser)  // window does not work yet
 
 editor :: String (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
 editor fileName ls os 
@@ -255,7 +244,7 @@ where
 	finishPar _ s = s
 
 	initMeeting user
-		= ShowAs (DetachedTask managerProperties noMenu) meetingTask
+		= ShowAs (DetachedTask managerProperties) meetingTask
 	where
 //		meetingTask :: (SymmetricShared [MeetingProposal]) (ParallelInfo [MeetingProposal]) -> Task [MeetingProposal]
 		meetingTask meetingState _

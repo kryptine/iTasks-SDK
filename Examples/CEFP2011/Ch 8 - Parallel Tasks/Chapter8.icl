@@ -40,7 +40,7 @@ naive_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Naive chat" initChatState (\_ chat -> chat)
-								   [  ShowAs (DetachedTask (normalTask who) noMenu) (chat names who)
+								   [  ShowAs (DetachedTask (normalTask who)) (chat names who)
 								   \\ who <- [me : others]
 								   ]
 where
@@ -64,7 +64,7 @@ monitor_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Monitored chat" initChatState (\_ chat -> chat)
-								   [  ShowAs (DetachedTask (normalTask who) noMenu) (chat names who)
+								   [  ShowAs (DetachedTask (normalTask who)) (chat names who)
 								   \\ who <- [me : others]
 								   ]
 where
@@ -94,8 +94,8 @@ shared_chat
     =   					get currentUser
     	>>= \me ->			selectUser
 		>>= \you ->			parallel "2 Chatters" initChatState2 (const2 Void)
-								[ShowAs (DetachedTask (normalTask me)  noMenu) (chatEditor me you 0 1)
-								,ShowAs (DetachedTask (normalTask you) noMenu) (chatEditor you me 1 0)
+								[ShowAs (DetachedTask (normalTask me) ) (chatEditor me you 0 1)
+								,ShowAs (DetachedTask (normalTask you)) (chatEditor you me 1 0)
 								]
 where
 	chatEditor me you mine yours cs os
@@ -136,7 +136,7 @@ multibind_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Multibind chat" initChatState (const2 Void)
-								   [  ShowAs (DetachedTask (normalTask who) noMenu) (chat names who)
+								   [  ShowAs (DetachedTask (normalTask who)) (chat names who)
 								   \\ who <- [me : others]
 								   ]
 where
