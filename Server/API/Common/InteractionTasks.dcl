@@ -3,12 +3,12 @@ definition module InteractionTasks
 from StdFunc	import id, const
 import CoreTasks
 
-:: InteractionOption r w	= E.v: About	!v						& iTask v // additional information independent from the data model the interaction task works on
-							| E.v: View		!(!r -> v,!v r -> w)	& iTask v // a complete lens on the data model, making it possible to update it
-							| E.v: Get		!(r -> v)				& iTask v // a get function on the data model, showing it
-							| E.v: Putback	!(v r -> w)				& iTask v // a putback function to put information into the data model
+:: ViewOn r w		= E.v: About	!v						& iTask v // additional information independent from the data model the interaction task works on
+					| E.v: View		!(!r -> v,!v r -> w)	& iTask v // a complete lens on the data model, making it possible to update it
+					| E.v: Get		!(r -> v)				& iTask v // a get function on the data model, showing it
+					| E.v: Putback	!(v r -> w)				& iTask v // a putback function to put information into the data model
 							
-:: LocalInteractionOption a :== InteractionOption a a
+:: LocalViewOn a :== ViewOn a a
 
 /*** General input/update/output tasks ***/
 
@@ -22,7 +22,7 @@ import CoreTasks
 * 
 * @gin-icon page_white
 */
-enterInformation :: !d ![LocalInteractionOption m] -> Task m | descr d & iTask m
+enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
 
 /**
 * Ask the user to update predefined information. 
@@ -35,7 +35,7 @@ enterInformation :: !d ![LocalInteractionOption m] -> Task m | descr d & iTask m
 * 
 * @gin-icon page_edit
 */
-updateInformation :: !d ![LocalInteractionOption m] m -> Task m | descr d & iTask m
+updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
 
 /**
 * Show information to the user. 
@@ -48,7 +48,7 @@ updateInformation :: !d ![LocalInteractionOption m] m -> Task m | descr d & iTas
 * 
 * @gin-icon information
 */
-showInformation :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask m
+showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 
 /**
 * Ask the user to enter information which is written to a shared.
@@ -62,7 +62,7 @@ showInformation :: !d ![LocalInteractionOption m] !m -> Task m | descr d & iTask
 * 
 * @gin-icon page_white
 */
-enterSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
+enterSharedInformation :: !d ![ViewOn r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
 /**
 * Ask the user to update predefined shared information.
@@ -76,7 +76,7 @@ enterSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | 
 * 
 * @gin-icon page_edit
 */
-updateSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
+updateSharedInformation :: !d ![ViewOn r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
 /**
 * Monitor a shared state.
@@ -90,7 +90,7 @@ updateSharedInformation :: !d ![InteractionOption r w] !(Shared r w) -> Task r |
 * 
 * @gin-icon monitor
 */
-monitor :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
+monitor :: !d ![ViewOn r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
 
 
 /*** Special tasks for choices ***/
@@ -106,7 +106,7 @@ monitor :: !d ![InteractionOption r w] !(Shared r w) -> Task r | descr d & iTask
 * 
 * @gin-icon choice
 */
-enterChoice :: !d ![LocalInteractionOption o] ![o] -> Task o | descr d & iTask o
+enterChoice :: !d ![LocalViewOn o] ![o] -> Task o | descr d & iTask o
 
 /**
 * Ask the user to select one item from a list of options with already one option pre-selected.
@@ -120,7 +120,7 @@ enterChoice :: !d ![LocalInteractionOption o] ![o] -> Task o | descr d & iTask o
 * 
 * @gin-icon choice
 */
-updateChoice :: !d ![LocalInteractionOption o] ![o] o -> Task o | descr d & iTask o
+updateChoice :: !d ![LocalViewOn o] ![o] o -> Task o | descr d & iTask o
 
 /**
 * Ask the user to select one item from a list of shared options.
@@ -134,7 +134,7 @@ updateChoice :: !d ![LocalInteractionOption o] ![o] o -> Task o | descr d & iTas
 * 
 * @gin-icon choice
 */
-enterSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task o | descr d & iTask o & iTask w
+enterSharedChoice :: !d ![ViewOn o w] !(Shared [o] w) -> Task o | descr d & iTask o & iTask w
 
 /**
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
@@ -149,7 +149,7 @@ enterSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task o | des
 * 
 * @gin-icon choice
 */
-updateSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) o -> Task o | descr d & iTask o & iTask w
+updateSharedChoice :: !d ![ViewOn o w] !(Shared [o] w) o -> Task o | descr d & iTask o & iTask w
 
 /**
 * Ask the user to select a number of items from a list of options
@@ -162,7 +162,7 @@ updateSharedChoice :: !d ![InteractionOption o w] !(Shared [o] w) o -> Task o | 
 * 
 * @gin-icon choice
 */
-enterMultipleChoice :: !d ![LocalInteractionOption o] ![o] -> Task [o] | descr d & iTask o
+enterMultipleChoice :: !d ![LocalViewOn o] ![o] -> Task [o] | descr d & iTask o
 
 /**
 * Ask the user to select a number of items from a list of options with already a number of options pre-selected.
@@ -177,7 +177,7 @@ enterMultipleChoice :: !d ![LocalInteractionOption o] ![o] -> Task [o] | descr d
 * 
 * @gin-icon choice
 */
-updateMultipleChoice :: !d ![LocalInteractionOption o] ![o] [o] -> Task [o] | descr d & iTask o
+updateMultipleChoice :: !d ![LocalViewOn o] ![o] [o] -> Task [o] | descr d & iTask o
 
 /**
 * Ask the user to select a number of items from a list of shared options.
@@ -191,7 +191,7 @@ updateMultipleChoice :: !d ![LocalInteractionOption o] ![o] [o] -> Task [o] | de
 * 
 * @gin-icon choice
 */
-enterSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task [o] | descr d & iTask o & iTask w
+enterSharedMultipleChoice :: !d ![ViewOn o w] !(Shared [o] w) -> Task [o] | descr d & iTask o & iTask w
 
 /**
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
@@ -206,7 +206,7 @@ enterSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) -> Task
 * 
 * @gin-icon choice
 */
-updateSharedMultipleChoice :: !d ![InteractionOption o w] !(Shared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
+updateSharedMultipleChoice :: !d ![ViewOn o w] !(Shared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
 
 
 /*** Special wait tasks ***/

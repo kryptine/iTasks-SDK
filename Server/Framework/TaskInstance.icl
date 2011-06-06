@@ -6,7 +6,7 @@ import Types, Task, TaskContext, WorkflowDB, ProcessDB
 
 from CoreCombinators import >>=
 from TuningCombinators import class tune, instance tune Title, <<@, @>>, :: Title(..)
-from InteractionTasks import enterInformation, :: LocalInteractionOption, :: InteractionOption
+from InteractionTasks import enterInformation, :: LocalViewOn, :: ViewOn
 import iTaskClass
 
 createThread :: (Task a) -> Dynamic | iTask a

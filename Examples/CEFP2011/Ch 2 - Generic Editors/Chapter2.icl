@@ -8,17 +8,21 @@ Start :: *World -> *World
 Start world = startEngine flows2 world
 
 flows2 :: [Workflow]
-flows2 =  [w1, w2, w3, w4, w6, w7]
+flows2 =  [w1, w2, w3, w4, w5, w6, w7]
 
-w1 = workflow "CEFP/Chap 2/1. Enter Int value"    	"Form for an integer value" 	(show taskInt)
-w2 = workflow "CEFP/Chap 2/2. Enter String value" 	"Form for entering a string"	(show taskString)
-w3 = workflow "CEFP/Chap 2/3. Enter Person data"  	"Form for entering person data" (show taskPerson)
-w4 = workflow "CEFP/Chap 2/4. Enter [Person]" 		"Fill in person data" 			(show taskPersonList)
+w1 = workflow "CEFP/Chap 2/1. Hello world!"         "The infamous hello world"      hello
+w2 = workflow "CEFP/Chap 2/1. Enter Int value"    	"Form for an integer value" 	(show taskInt)
+w3 = workflow "CEFP/Chap 2/2. Enter String value" 	"Form for entering a string"	(show taskString)
+w4 = workflow "CEFP/Chap 2/3. Enter Person data"  	"Form for entering person data" (show taskPerson)
+w5 = workflow "CEFP/Chap 2/4. Enter [Person]" 		"Fill in person data" 			(show taskPersonList)
 w6 = workflow "CEFP/Chap 2/6. Choose one item" 		"Choice of one" 				(show choiceExample)
 w7 = workflow "CEFP/Chap 2/7. Choose several items" "Multiple choice" 				(show mchoiceExample)
 
 show :: (Task a) -> Task a | iTask a
 show task = task >>= \r -> showInformation "The result is:" [] r
+
+hello :: Task String
+hello = showInformation "Press Ok to terminate" [] "Hello world!"
 
 // a simple form to type in an integer value
 
