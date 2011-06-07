@@ -12,27 +12,26 @@ Start :: *World -> *World
 Start world = startEngine flows3 world
 
 flows3 :: [Workflow]
-flows3 =  [w1, w2, w3, w4, w5, w5a, w6, w7, w8, w9, w10]
+flows3 =  [w1, w2, w3, w4, w5, w6, w7, w8, w9, w10]
 
 w1	= workflow "CEFP/Sect 3/1. Hello"    					"\"Hello World\" in iTask" 				hello
 w2	= workflow "CEFP/Sect 3/2. Numbers"						"Enter a number of numbers"				numbers
 w3	= workflow "CEFP/Sect 3/3. Form for [Person]" 			"Form for [Person]"						(show personList)
 w4	= workflow "CEFP/Sect 3/4. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
 w5	= workflow "CEFP/Sect 3/5. Choose one or more [Person]" "Select from a list" 					(show personList3)
-w5a = workflow "CEFP/Sect 3/5a. Form for [Person]" 			"Form for [Person]" 					(show personList5)
 w6	= workflow "CEFP/Sect 3/6. Form for [Person]" 			"Form for [Person]" 					(show personList4)
-w7	= workflow "CEFP/Sect 3/7. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
-w8	= workflow "CEFP/Sect 3/8. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons)
-w9	= workflow "CEFP/Sect 3/9. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons2)
+w7	= workflow "CEFP/Sect 3/7. Form for [Person]" 			"Form for [Person]" 					(show personList5)
+w8	= workflow "CEFP/Sect 3/8. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
+w9	= workflow "CEFP/Sect 3/9. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons)
 w10	= workflow "CEFP/Sect 3/10. Test while"					"Test while"							positive
 
 // show combinator function that displays result of argument task:
 
-show :: (Task a) -> Task a | iTask a
+show :: !(Task a) -> Task a | iTask a
 show task = task >>= \result -> showInformation "The result is:" [] result
 
 // show combinator, after eta-conversion:
-show2 :: (Task a) -> Task a | iTask a
+show2 :: !(Task a) -> Task a | iTask a
 show2 t = t >>= showInformation "The result is:" []
 
 // show combinator in point-free style:
@@ -105,12 +104,11 @@ personList4
 personList5 :: Task [Person]
 personList5
 	=          			enterInformation "Please fill in the form" []
-		>>= \person ->  enterChoice "One more ? "  [] [("yes",morePersons person),("No",return [person])]
-		>>= \(answer,continuation) -> continuation
-where
-		morePersons person
-			=					personList5
-				>>= \persons -> return [person:persons]
+		>>= \p -> 		enterChoice "One more ? "  [] 
+							[("Yes",Hidden (personList5 >>= \ps -> return [p:ps]))
+							,("No", Hidden                        (return [p]   ))
+							]
+		>>= \(_,Hidden continuation) -> continuation
 
 
 select1of t = t >>= enterChoice "Choose one: " []
@@ -123,33 +121,20 @@ teaOrCoffee = enterChoice "Choose an option" [] ["Tea","Coffee"]
 // Check result afterwards, not happy: do it again
 
 fillInAndCheckPersons :: Task [Person]
-fillInAndCheckPersons =  repeatUntilApproved (enterInformation "Please fill in the form:" [])
+fillInAndCheckPersons = repeatUntilApproved (enterInformation "Please fill in the form:" [])
 
 repeatUntilApproved :: (Task a) -> Task a | iTask a
 repeatUntilApproved task
     =            task
-      >>= \v  -> enterChoice "Approve result: "  [About v] ["Yes","No"]
-      >>= \ok -> case ok of
-                    "Yes" -> return v
-                    "No"  -> repeatUntilApproved task
+      >>= \v  -> enterChoice "Approve result: " [About v] 
+      				[("Yes",Hidden (return v))
+      				,("No", Hidden (repeatUntilApproved task))
+      				]
+      >>= \(_,Hidden c) -> c
                     
-fillInAndCheckPersons2 :: Task [Person]
-fillInAndCheckPersons2 =  repeatUntilApproved2 (enterInformation "Please fill in the form:" [])
-
-:: Approve = Yes | No
-
-derive class iTask Approve
-repeatUntilApproved2 :: (Task a) -> Task a | iTask a
-repeatUntilApproved2 task
-    =            task
-      >>= \v  -> enterChoice "Approve result: "  [About v] [Yes,No]
-      >>= \ok -> case ok of
-                    Yes -> return v
-                    No  -> repeatUntilApproved2 task
-
 positive :: Task Int
 positive = while ((>=) 0) (updateInformation "Please enter a positive number" []) 0
 
 while :: (a -> Bool) (a -> Task a) a -> Task a | iTask a
 while cond task v
-	= abort "You have not yet implemented this task pattern. Please consult exercise 10 of lecture notes."
+	= abort "You have not yet implemented this task pattern. Please consult exercise 12 of lecture notes."
