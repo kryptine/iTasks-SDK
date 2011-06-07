@@ -6,7 +6,7 @@ module CEFP
 
 import iTasks
 
-import Chapter2, Chapter3, Chapter4, Chapter5, Chapter6, Chapter7, Chapter8, Chapter9, Chapter10
+import Section2, Section3, Section4, Section5, Section6, Section7, Section8, Section9
 
 derive bimap (,), Maybe
 
