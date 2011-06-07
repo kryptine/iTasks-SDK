@@ -1,8 +1,8 @@
-definition module Chapter9
+definition module Section8
 
 // Examples showing the usage of editors with multiple buttons
 
 import iTasks
 
-flows9 :: [Workflow]
+flows8 :: [Workflow]
 

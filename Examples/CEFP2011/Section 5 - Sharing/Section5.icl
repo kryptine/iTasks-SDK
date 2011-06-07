@@ -1,11 +1,11 @@
-implementation module Chapter6
+implementation module Section5
 
 import iTasks
 
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows6 world
+Start world = startEngine flows5 world
 
-flows6 :: [Workflow]
-flows6 =  []
+flows5 :: [Workflow]
+flows5 =  []

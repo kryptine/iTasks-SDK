@@ -1,4 +1,4 @@
-definition module Chapter2
+definition module Section2
 
 import iTasks
 

@@ -1,8 +1,8 @@
-definition module Chapter8
+definition module Section7
 
 import iTasks
 
-flows8		:: [Workflow]
+flows7		:: [Workflow]
 
 normalTask	:: !User -> ManagerProperties
 const2		:: a b !c -> c

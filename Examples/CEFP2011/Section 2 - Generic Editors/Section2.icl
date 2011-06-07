@@ -1,7 +1,7 @@
-implementation module Chapter2
+implementation module Section2
 
 import iTasks
-from Chapter3 import show
+from Section3 import show
 
 derive bimap (,), Maybe
 
@@ -11,16 +11,16 @@ Start world = startEngine flows2 world
 flows2 :: [Workflow]
 flows2 =  [w1, w2, w3, w4, w5, w6, w7, w8, w9, w10]
 
-w1 = workflow "CEFP/Chap 2/1. Hello world!"         "The infamous hello world"      hello
-w2 = workflow "CEFP/Chap 2/2. Enter Int value"    	"Form for an integer value" 	(show taskInt)
-w3 = workflow "CEFP/Chap 2/3. Enter String value" 	"Form for entering a string"	(show taskString)
-w4 = workflow "CEFP/Chap 2/4. Enter Person data"  	"Form for entering person data" (show taskPerson)
-w5 = workflow "CEFP/Chap 2/5. Enter [Person]" 		"Fill in person data" 			(show taskPersonList)
-w6 = workflow "CEFP/Chap 2/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
-w7 = workflow "CEFP/Chap 2/7. Choose several items" "Multiple choice" 				(show pizzaWith)
-w8 = workflow "CEFP/Chap 2/8. Simple Editor" 		"Using type Note" 				(show simpleEditor)
-w9 = workflow "CEFP/Chap 2/9. Pick a Date" 			"Using type Date" 				(show chooseDate)
-w10 = workflow "CEFP/Chap 2/10. Point on a map" 		"Using type GoogleMap" 		(show pointOnMap)
+w1	= workflow "CEFP/Sect 2/1. Hello world!"        	"The infamous hello world"      hello
+w2	= workflow "CEFP/Sect 2/2. Enter Int value"    		"Form for an integer value" 	(show taskInt)
+w3	= workflow "CEFP/Sect 2/3. Enter String value" 		"Form for entering a string"	(show taskString)
+w4	= workflow "CEFP/Sect 2/4. Enter Person data"  		"Form for entering person data" (show taskPerson)
+w5	= workflow "CEFP/Sect 2/5. Enter [Person]" 			"Fill in person data" 			(show taskPersonList)
+w6	= workflow "CEFP/Sect 2/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
+w7	= workflow "CEFP/Sect 2/7. Choose several items"	"Multiple choice" 				(show pizzaWith)
+w8	= workflow "CEFP/Sect 2/8. Simple Editor" 			"Using type Note" 				(show simpleEditor)
+w9	= workflow "CEFP/Sect 2/9. Pick a Date" 			"Using type Date" 				(show chooseDate)
+w10	= workflow "CEFP/Sect 2/10. Point on a map" 		"Using type GoogleMap" 			(show pointOnMap)
 
 
 // the ubiquitous hello world example

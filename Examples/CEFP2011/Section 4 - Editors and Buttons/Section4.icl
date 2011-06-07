@@ -1,25 +1,25 @@
-implementation module Chapter5
+implementation module Section4
 
 // Examples showing the extension of editors with buttons
 
 import iTasks
-from Chapter3 import show, positive
+from Section3 import show, positive
 
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows5 world
+Start world = startEngine flows4 world
 
-flows5 :: [Workflow]
-flows5 =  [w0, w1,w2,w3,w4,w5]
+flows4 :: [Workflow]
+flows4 =  [w0, w1,w2,w3,w4,w5]
 
-w0 = workflow "CEFP/Chap 5/0. Simple Question" 				"Only one answer possible..." 					(show ask)
-w1 = workflow "CEFP/Chap 3/1. Form for [Person]" 			"Form for [Person]" 							(show personList6)
-w2 = workflow "CEFP/Chap 5/2. Accept only an even number" 	"Type in an even number" 						(show askEven)
-w3 = workflow "CEFP/Chap 5/3. Only even" 					"Either the odd or even buttons can be chosen" 	(show (oddOrEvenButtons True))
-w4 = workflow "CEFP/Chap 5/4. Dynamic number of buttons" 	"Dynamic number of buttons to choose from" 		(forever (show (positive >>= actions)))
-w5 = workflow "CEFP/Chap 5/5. Dynamic number of buttons" 	"Order pressed is remembered" 					(show (dynButtons [1..10] []))
-w6 = workflow "CEFP/Chap 5/6. Palindrome exercise" 			"Palindrome" 									palindrome
+w0 = workflow "CEFP/Sect 4/0. Simple Question" 				"Only one answer possible..." 					(show ask)
+w1 = workflow "CEFP/Sect 4/1. Form for [Person]" 			"Form for [Person]" 							(show personList6)
+w2 = workflow "CEFP/Sect 4/2. Accept only an even number" 	"Type in an even number" 						(show askEven)
+w3 = workflow "CEFP/Sect 4/3. Only even" 					"Either the odd or even buttons can be chosen" 	(show (oddOrEvenButtons True))
+w4 = workflow "CEFP/Sect 4/4. Dynamic number of buttons" 	"Dynamic number of buttons to choose from" 		(forever (show (positive >>= actions)))
+w5 = workflow "CEFP/Sect 4/5. Dynamic number of buttons" 	"Order pressed is remembered" 					(show (dynButtons [1..10] []))
+w6 = workflow "CEFP/Sect 4/6. Palindrome exercise" 			"Palindrome" 									palindrome
 
 // simple question with buttons
 

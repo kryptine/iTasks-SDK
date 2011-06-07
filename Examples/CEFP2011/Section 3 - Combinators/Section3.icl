@@ -1,4 +1,4 @@
-implementation module Chapter3
+implementation module Section3
 
 // Examples showing the usage of frequently used iTask combinators
 
@@ -14,17 +14,17 @@ Start world = startEngine flows3 world
 flows3 :: [Workflow]
 flows3 =  [w1, w2, w3, w4, w5, w5a, w6, w7, w8, w9, w10]
 
-w1	= workflow "CEFP/Chap 3/1. Hello"    					"\"Hello World\" in iTask" 				hello
-w2	= workflow "CEFP/Chap 3/2. Numbers"						"Enter a number of numbers"				numbers
-w3	= workflow "CEFP/Chap 3/3. Form for [Person]" 			"Form for [Person]"						(show personList)
-w4	= workflow "CEFP/Chap 3/4. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
-w5	= workflow "CEFP/Chap 3/5. Choose one or more [Person]" "Select from a list" 					(show personList3)
-w5a = workflow "CEFP/Chap 3/5a. Form for [Person]" 			"Form for [Person]" 					(show personList5)
-w6	= workflow "CEFP/Chap 3/6. Form for [Person]" 			"Form for [Person]" 					(show personList4)
-w7	= workflow "CEFP/Chap 3/7. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
-w8	= workflow "CEFP/Chap 3/8. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons)
-w9	= workflow "CEFP/Chap 3/9. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons2)
-w10	= workflow "CEFP/Chap 3/10. Test while"					"Test while"							positive
+w1	= workflow "CEFP/Sect 3/1. Hello"    					"\"Hello World\" in iTask" 				hello
+w2	= workflow "CEFP/Sect 3/2. Numbers"						"Enter a number of numbers"				numbers
+w3	= workflow "CEFP/Sect 3/3. Form for [Person]" 			"Form for [Person]"						(show personList)
+w4	= workflow "CEFP/Sect 3/4. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
+w5	= workflow "CEFP/Sect 3/5. Choose one or more [Person]" "Select from a list" 					(show personList3)
+w5a = workflow "CEFP/Sect 3/5a. Form for [Person]" 			"Form for [Person]" 					(show personList5)
+w6	= workflow "CEFP/Sect 3/6. Form for [Person]" 			"Form for [Person]" 					(show personList4)
+w7	= workflow "CEFP/Sect 3/7. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
+w8	= workflow "CEFP/Sect 3/8. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons)
+w9	= workflow "CEFP/Sect 3/9. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons2)
+w10	= workflow "CEFP/Sect 3/10. Test while"					"Test while"							positive
 
 // show combinator function that displays result of argument task:
 

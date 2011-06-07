@@ -1,7 +1,7 @@
-definition module Chapter6
+definition module Section5
 
 // Examples showing the usage of shared data
 
 import iTasks
 
-flows6 :: [Workflow]
+flows5 :: [Workflow]

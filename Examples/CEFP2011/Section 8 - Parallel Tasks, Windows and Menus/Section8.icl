@@ -1,22 +1,22 @@
-implementation module Chapter9
+implementation module Section8
 
 // Examples showing the usage of editors with multiple buttons
 
 import iTasks
-from Chapter7 import selectUser
-from Chapter8 import normalTask, const2
+from Section6 import selectUser
+from Section7 import normalTask, const2
 
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows9 world
+Start world = startEngine flows8 world
 
-flows9 :: [Workflow]
-flows9 =  [w1, w2, w3]
+flows8 :: [Workflow]
+flows8 =  [w1, w2, w3]
 
-w1 = workflow "CEFP/Chap 9/1. Chat with several users"    	"Chat with several users" chat3
-w2 = workflow "CEFP/Chap 9/2. Editing a text file" "Editing a text file" textEditor2
-w3 = workflow "CEFP/Chap 9/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+w1 = workflow "CEFP/Sect 8/1. Chat with several users"    	"Chat with several users" chat3
+w2 = workflow "CEFP/Sect 8/2. Editing a text file" "Editing a text file" textEditor2
+w3 = workflow "CEFP/Sect 8/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 
 
 // chat with several users

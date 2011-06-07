@@ -1,5 +1,5 @@
-definition module Chapter6
+definition module Section5
 
 import iTasks
 
-flows6 :: [Workflow]
+flows5 :: [Workflow]

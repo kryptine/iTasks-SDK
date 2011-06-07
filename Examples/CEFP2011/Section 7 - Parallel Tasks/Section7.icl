@@ -1,22 +1,22 @@
-implementation module Chapter8
+implementation module Section7
 
 // Examples showing the usage of frequently used iTask combinators
 
 import iTasks, Text, StdMisc
-from Chapter7 import selectUser, selectUsers
+from Section6 import selectUser, selectUsers
 
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows8 world
+Start world = startEngine flows7 world
 
-flows8 :: [Workflow]
-flows8 =  [w1, w2, w3, w4]
+flows7 :: [Workflow]
+flows7 =  [w1, w2, w3, w4]
 
-w1 = workflow "CEFP/Chap 8/1. Naive Chat"		"Naive chat with many users"		naive_chat
-w2 = workflow "CEFP/Chap 8/2. Monitored Chat" 	"Monitored chat with many users"	monitor_chat
-w3 = workflow "CEFP/Chap 8/3. Shared Chat"	 	"Shared chat with many users"		shared_chat
-w4 = workflow "CEFP/Chap 8/4. Multibind Chat" 	"Multibind chat with many users"	multibind_chat
+w1 = workflow "CEFP/Sect 7/1. Naive Chat"		"Naive chat with many users"		naive_chat
+w2 = workflow "CEFP/Sect 7/2. Monitored Chat" 	"Monitored chat with many users"	monitor_chat
+w3 = workflow "CEFP/Sect 7/3. Shared Chat"	 	"Shared chat with many users"		shared_chat
+w4 = workflow "CEFP/Sect 7/4. Multibind Chat" 	"Multibind chat with many users"	multibind_chat
 
 // --- some handy functions
 

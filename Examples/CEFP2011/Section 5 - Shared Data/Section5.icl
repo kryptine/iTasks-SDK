@@ -1,4 +1,4 @@
-implementation module Chapter6
+implementation module Section5
 
 // Examples showing the usage of shared data
 
@@ -9,16 +9,16 @@ import iTasks
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows6 world
+Start world = startEngine flows5 world
 
-flows6 :: [Workflow]
-flows6 =  [w1, w2, w3, w4, w6]
+flows5 :: [Workflow]
+flows5 =  [w1, w2, w3, w4, w6]
 
-w1 = workflow "CEFP/Chap 5/1. Date and Time" 				"Shows current date and time" 						(show getDateAndTime)
-w2 = workflow "CEFP/Chap 5/2. Administrated users" 			"Shows currently administrated users" 				(show getUsers)
-w3 = workflow "CEFP/Chap 5/3. Administrated users details"	"Shows details of currently administrated users"	(show getUserDetails)
-w4 = workflow "CEFP/Chap 5/4. Current Workflows" 			"Which workflows are know here ?" 					(show getWorkflows)
-w6 = workflow "CEFP/Chap 5/6. To Do List" 				    "Create and store a to do list" 					(show updateMyStore)
+w1 = workflow "CEFP/Sect 5/1. Date and Time" 				"Shows current date and time" 						(show getDateAndTime)
+w2 = workflow "CEFP/Sect 5/2. Administrated users" 			"Shows currently administrated users" 				(show getUsers)
+w3 = workflow "CEFP/Sect 5/3. Administrated users details"	"Shows details of currently administrated users"	(show getUserDetails)
+w4 = workflow "CEFP/Sect 5/4. Current Workflows" 			"Which workflows are know here ?" 					(show getWorkflows)
+w6 = workflow "CEFP/Sect 5/6. To Do List" 				    "Create and store a to do list" 					(show updateMyStore)
 
 show :: (Task a) -> Task a | iTask a
 show task = task >>= \r -> showInformation "The result is:" [] r

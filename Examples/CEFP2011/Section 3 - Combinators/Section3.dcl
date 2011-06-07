@@ -1,4 +1,4 @@
-definition module Chapter3
+definition module Section3
 
 // Examples showing the usage of frequently used iTask combinators
 
