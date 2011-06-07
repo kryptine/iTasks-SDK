@@ -79,6 +79,7 @@ initIWorld config flows world
 								  ,localDateTime	= localDateTime
 								  ,currentUser		= AnyUser
 								  ,parallelVars		= newMap
+								  ,readShares		= Nothing
 								  ,world			= world
 								  }
 	= if exists iworld (snd (mapSt ('WorkflowDB'.addWorkflow) flows iworld)) 

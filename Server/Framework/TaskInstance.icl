@@ -1,6 +1,6 @@
 implementation module TaskInstance
 
-import StdList
+import StdList, StdBool
 import Error
 import Types, Task, TaskContext, WorkflowDB, ProcessDB
 
@@ -8,6 +8,8 @@ from CoreCombinators import >>=
 from TuningCombinators import class tune, instance tune Title, <<@, @>>, :: Title(..)
 from InteractionTasks import enterInformation, :: LocalViewOn, :: ViewOn
 import iTaskClass
+
+ITERATION_THRESHOLD :== 10
 
 createThread :: (Task a) -> Dynamic | iTask a
 createThread task = (dynamic container :: Container (TaskThread a^) a^)
@@ -122,25 +124,7 @@ where
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
 				# commitEvent		= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
-				# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr) 
-				# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext iworld
-				= case sresult of
-					TaskBusy tui actions scontext
-						# properties	= setRunning properties 
-						# tui			= defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties}
-						# context		= TCTop properties changeNo (TTCActive scontext)
-						# iworld		= setProcessContext processId context iworld
-						= (TaskBusy (Just tui) [] context, properties, iworld)
-					TaskFinished val
-						# properties	= setFinished properties
-						# context		= TCTop properties changeNo (TTCFinished (toJSON val))
-						# iworld		= setProcessContext processId context iworld
-						= (TaskFinished (dynamic val :: a), properties, iworld)
-					TaskException _ e
-						# properties	= setExcepted properties
-						# context		= TCTop properties changeNo (TTCExcepted e)
-						# iworld		= setProcessContext processId context iworld
-						= (taskException e, properties, iworld)
+				= evalTask` changeNo scontext commitEvent originalTaskFuncs properties 1 iworld
 			//Don't evaluate, just yield TaskBusy without user interface and original context
 			TTCSuspended scontext
 				= (TaskBusy Nothing [] context, properties, iworld)
@@ -149,6 +133,30 @@ where
 					Just val	= (TaskFinished (dynamic val :: a), properties, iworld)
 					Nothing		= (taskException "Could not decode result", properties, iworld)
 			TTCExcepted e
+				= (taskException e, properties, iworld)
+			
+	evalTask` changeNo scontext commitEvent originalTaskFuncs properties iterationCount iworld
+		# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr)
+		# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext {iworld & readShares = Just []}
+		= case sresult of
+			TaskBusy tui actions scontext
+				# properties	= setRunning properties 
+				# tui			= defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties}
+				# context		= TCTop properties changeNo (TTCActive scontext)
+				# iworld		= setProcessContext processId context iworld
+				| isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
+					= evalTask` changeNo scontext Nothing originalTaskFuncs properties (inc iterationCount) iworld
+				| otherwise
+					= (TaskBusy (Just tui) [] context, properties, iworld)
+			TaskFinished val
+				# properties	= setFinished properties
+				# context		= TCTop properties changeNo (TTCFinished (toJSON val))
+				# iworld		= setProcessContext processId context iworld
+				= (TaskFinished (dynamic val :: a^), properties, iworld)
+			TaskException _ e
+				# properties	= setExcepted properties
+				# context		= TCTop properties changeNo (TTCExcepted e)
+				# iworld		= setProcessContext processId context iworld
 				= (taskException e, properties, iworld)
 
 setRunning properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Running}}

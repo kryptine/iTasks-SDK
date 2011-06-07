@@ -4,17 +4,27 @@ import StdTuple, StdFunc, Void, Maybe, Time, Error, GenUpdate, Util, Functor, St
 from Types import :: IWorld
 
 readShared :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString r,!*IWorld)
-readShared (ReadWriteShared _ read _ _) iworld = read iworld
+readShared (ReadWriteShared myIds read _ _) iworld=:{readShares}
+	# readShares = case readShares of
+		Nothing		= Nothing
+		Just ids	= Just (removeDup (ids ++ myIds))
+	= read {iworld & readShares = readShares}
 
 writeShared :: !(ReadWriteShared r w) !w !*IWorld -> (!MaybeErrorString Void,!*IWorld)
-writeShared (ReadWriteShared _ _ write _) val iworld = write val iworld
+writeShared (ReadWriteShared myIds _ write _) val iworld=:{readShares}
+	# readShares = case readShares of
+		Nothing		= Nothing
+		Just ids
+			| isAnyMember myIds ids	= Nothing
+			| otherwise				= readShares
+	= write val {iworld & readShares = readShares}
 
 updateShared :: !(ReadWriteShared r w) !(r -> w) !*IWorld -> (!MaybeErrorString w,!*IWorld)
-updateShared (ReadWriteShared _ read write _) updF iworld
+updateShared shared=:(ReadWriteShared _ read _ _) updF iworld
 	# (val,iworld)	= read iworld
 	| isError val	= (liftError val,iworld)
 	# wval			= updF (fromOk val)
-	# (wres,iworld)	= write wval iworld
+	# (wres,iworld)	= writeShared shared wval iworld
 	| isError wres	= (liftError wres,iworld)
 	= (Ok wval,iworld)
 

@@ -395,6 +395,7 @@ actionLabel	:: !Action -> String
 					, localDateTime		:: !DateTime			// The local date & time of the current request
 					, currentUser		:: !User				// The currently logged in user
 					, parallelVars		:: !Map String Dynamic	// The set of shared state variables used during parallel task execution
+					, readShares		:: !Maybe [String]		// The IDs of shares from which was read
 					, world				:: !*World				// The outside world
 					}
 					
