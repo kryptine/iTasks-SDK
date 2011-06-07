@@ -20,7 +20,7 @@ engine mbConfig userWorkflows handlers
 		Just config
 			= handlers` config
 		Nothing
-			= [(\_ -> True, setupHandler handlers`)]
+			= [(\_ -> True, setupHandler)]
 where
 	handlers` config
 		# flows = adminWorkflows  ++ userWorkflows

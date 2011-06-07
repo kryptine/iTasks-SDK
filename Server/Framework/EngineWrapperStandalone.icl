@@ -14,7 +14,14 @@ startEngine flows world
 	# options			= case mbConfig of
 							Just config = [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
 							Nothing		= []
-	= http_startServer options (engine mbConfig flows handlers) world
+	# world				= http_startServer options (engine mbConfig flows handlers) world
+	| isJust mbConfig
+		= world // normal operation: stop server
+	| otherwise
+		# (console,world)	= stdio world
+		# console			= fwrites ("\n\n") console
+		# (_,world)			= fclose console world
+		= startEngine flows world // setup mode: restart server
 where
 	instructions :: !String !(Maybe Config) *World -> *World
 	//Normal operation

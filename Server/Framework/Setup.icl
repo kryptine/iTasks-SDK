@@ -7,20 +7,18 @@ import File, Error, OS
 import Config
 import Engine, Util
 
-setupHandler :: !(Config -> [(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!*World)))]) !HTTPRequest !*World -> (!HTTPResponse, !*World)
-setupHandler handlers req world	
+setupHandler :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+setupHandler req world	
 	# (appName,world)	= determineAppName world
-	# (finished,world)	= configFileAvailable appName world
-	| finished
-		= finishPage appName world
 	# (config,world)	= if (isEmpty (toList req.arg_post)) (initialConfig world) (postedConfig req, world)
 	# (errors,world)	= checkConfig config world
 	= case req.req_path of
-		"/edit"	= editConfigPage appName config errors world
-		"/save"
-			| noErrors errors	= saveConfigPage appName config (handlers config) world
+		"/edit"					= editConfigPage appName config errors world
+		"/root"
+			| noErrors errors	= rootPasswordPage appName config world
 			| otherwise			= editConfigPage appName config errors world
-		_		= choicePage appName config errors world
+		"/save" 				= saveConfigPage appName config world
+		_						= choicePage appName config errors world
 
 //Initial config of the form
 initialConfig :: !*World -> (!Config,!*World)
@@ -70,8 +68,6 @@ checkConfig config world
 	# (curlOk,world) = fileExists config.curlPath world
 	= 	([if clientPathOk Nothing (Just CLIENT_ERROR)
 		 ,Nothing
-		 ,Nothing
-		 ,Nothing
 		 ,if (config.sessionTime < 60) (Just "Session time should be at least 60 seconds") Nothing
 		 ,if ((config.serverPort < 0) || (config.serverPort > 60000)) (Just "Server port should be between 1 and 60000") Nothing
 		 ,Nothing
@@ -115,34 +111,43 @@ where
 	instructions
 		= PTag []
 		[Text "Welcome, you are running ",StrongTag [] [Text appName],Text " for the first time.", BrTag[]
-		,Text "You may run this application with the following default configuration, or edit it first"
+		,Text "You may run this application with the following default configuration, or edit it first."
 		]
 	buttons = DivTag [ClassAttr "buttons"]
-			  [ButtonTag [TypeAttr "submit",OnclickAttr "window.location = '/save';"] [Text "Use this default configuration"]
+			  [ButtonTag [TypeAttr "submit",OnclickAttr "window.location = '/root';"] [Text "Use this default configuration"]
 			  ,ButtonTag [TypeAttr "submit",OnclickAttr "window.location = '/edit';"] [Text "Edit the configuration first"]
 			  ]
 		
 editConfigPage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!*World)
 editConfigPage appName config errors world = page appName [form] world
 where
-	form = FormTag [MethodAttr "post",ActionAttr "/save"] [DivTag [IdAttr "content"] [editConfig config errors],submit]
-	submit = DivTag [ClassAttr "buttons"] [ButtonTag [TypeAttr "submit"] [Text "Save configuration and restart"]]
+	form = FormTag [MethodAttr "post",ActionAttr "/root"] [DivTag [IdAttr "content"] (editConfig config errors),submit]
+	submit = DivTag [ClassAttr "buttons"] [ButtonTag [TypeAttr "submit"] [Text "Save configuration"]]
 
 	instructions
 		= PTag [] [Text "Please confirm the configuration settings below and save them."]
-
-saveConfigPage :: !String !Config ![(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!*World)))] !*World -> (!HTTPResponse,!*World)
-saveConfigPage appName config handlers world
-	# world 		= storeConfig appName config world
-	# redirectUrl	= if (config.serverPort == 80) "http://localhost/" ("http://localhost:" +++ toString config.serverPort +++ "/")
-	= ({newHTTPResponse & rsp_headers = fromList [("Status","302"),("Location",redirectUrl)]}, world) //Restart
-
-finishPage :: !String !*World -> (!HTTPResponse, !*World)
-finishPage appName world = page appName [instructions] world
+		
+rootPasswordPage :: !String !Config !*World -> (!HTTPResponse,!*World)
+rootPasswordPage appName config world = page appName [form] world
 where
+	form = FormTag [MethodAttr "post",ActionAttr "/save"] [DivTag [IdAttr "content"] (editRoot config),submit]
+	submit = DivTag [ClassAttr "buttons"] [ButtonTag [TypeAttr "submit"] [Text "Save configuration"]]
+
 	instructions
-		= DivTag [IdAttr "content"] [Text "The configuration file has been written.",BrTag []
-				  ,Text "Please restart the server to start ",StrongTag [] [Text appName]]	
+		= PTag [] [Text "Please confirm the root e-mail address and password."]
+
+saveConfigPage :: !String !Config !*World -> (!HTTPResponse,!*World)
+saveConfigPage appName config world
+	# world = storeConfig appName config world
+	= ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = toString (pageLayout (appName +++ " setup") "" content)}, world)
+where
+	content =	[ DivTag [IdAttr "content"]
+					[ Text "The configuration file has been written.", BrTag []
+					, Text "You can now run ", StrongTag [] [Text appName], Text ".", BrTag []
+					]
+				, DivTag [ClassAttr "buttons"] [ButtonTag [TypeAttr "submit",OnclickAttr ("window.location = '" +++ redirectUrl +++ "';")] [Text ("Run " +++ appName)]]
+				]
+	redirectUrl	= if (config.serverPort == 80) "http://localhost/" ("http://localhost:" +++ toString config.serverPort +++ "/")
 			  
 showConfig :: Config [Maybe String] -> HtmlTag
 showConfig config errors = TableTag []
@@ -150,8 +155,6 @@ showConfig config errors = TableTag []
 where
 	fields = [("Client path", config.clientPath)
 			 ,("Static path", config.staticPath)
-			 ,("Root password", config.rootPassword)
-			 ,("Root e-mail", config.rootEmail)
 			 ,("Session time", toString config.sessionTime)
 			 ,("Server port", toString config.serverPort)
 			 ,("Server path", config.serverPath)
@@ -161,23 +164,45 @@ where
 			 ,("RunAsync path", config.runAsyncPath)
 			 ,("Curl path", config.curlPath)
 			 ]
-editConfig :: !Config ![Maybe String] -> HtmlTag
-editConfig config errors = TableTag []
+editConfig :: !Config ![Maybe String] -> [HtmlTag]
+editConfig config errors = [TableTag []
 	[TrTag [ClassAttr (errclass error)] [ThTag [] [Text label,Text":"],TdTag [] [input],TdTag [] (errmsg error)] \\ (label,input) <- fields & error <- errors]
+	: hidden]
 where
-	fields = [("Client path",InputTag [TypeAttr "text",NameAttr "clientPath", ValueAttr config.clientPath])
-			 ,("Static path",InputTag [TypeAttr "text",NameAttr "staticPath", ValueAttr config.staticPath])
-			 ,("Root password",InputTag [TypeAttr "text",NameAttr "rootPassword", ValueAttr config.rootPassword])
-			 ,("Root e-mail",InputTag [TypeAttr "text",NameAttr "rootEmail", ValueAttr config.rootEmail])
-			 ,("Session time",InputTag [TypeAttr "text",NameAttr "sessionTime",SizeAttr "2", ValueAttr (toString config.sessionTime)])
-			 ,("Server port",InputTag [TypeAttr "text",NameAttr "serverPort",SizeAttr "2", ValueAttr (toString config.serverPort)])
-			 ,("Server path",InputTag [TypeAttr "text",NameAttr "serverPath", ValueAttr config.serverPath])
-			 ,("Debug",InputTag [TypeAttr "checkbox",NameAttr "debug":if config.debug [CheckedAttr] [] ])
-			 ,("Smtp server",InputTag [TypeAttr "text",NameAttr "smtpServer", ValueAttr config.smtpServer])
-			 ,("Enable general workflows",InputTag [TypeAttr "checkbox",NameAttr "generalWorkflows":if config.generalWorkflows [CheckedAttr] [] ])
-			 ,("RunAsync path",InputTag [TypeAttr "text",NameAttr "runAsyncPath", ValueAttr config.runAsyncPath])
-			 ,("Curl path",InputTag [TypeAttr "text",NameAttr "curlPath", ValueAttr config.curlPath])
-			 ]
+	fields =	[("Client path",InputTag [TypeAttr "text",NameAttr "clientPath", ValueAttr config.clientPath])
+				,("Static path",InputTag [TypeAttr "text",NameAttr "staticPath", ValueAttr config.staticPath])
+				,("Session time",InputTag [TypeAttr "text",NameAttr "sessionTime",SizeAttr "2", ValueAttr (toString config.sessionTime)])
+				,("Server port",InputTag [TypeAttr "text",NameAttr "serverPort",SizeAttr "2", ValueAttr (toString config.serverPort)])
+				,("Server path",InputTag [TypeAttr "text",NameAttr "serverPath", ValueAttr config.serverPath])
+				,("Debug",InputTag [TypeAttr "checkbox",NameAttr "debug":if config.debug [CheckedAttr] [] ])
+				,("Smtp server",InputTag [TypeAttr "text",NameAttr "smtpServer", ValueAttr config.smtpServer])
+				,("Enable general workflows",InputTag [TypeAttr "checkbox",NameAttr "generalWorkflows":if config.generalWorkflows [CheckedAttr] [] ])
+				,("RunAsync path",InputTag [TypeAttr "text",NameAttr "runAsyncPath", ValueAttr config.runAsyncPath])
+				,("Curl path",InputTag [TypeAttr "text",NameAttr "curlPath", ValueAttr config.curlPath])
+				]
+	hidden =	[ InputTag [TypeAttr "hidden",NameAttr "rootPassword", ValueAttr config.rootPassword]
+				, InputTag [TypeAttr "hidden",NameAttr "rootEmail", ValueAttr config.rootEmail]
+				]
+			 
+editRoot :: !Config -> [HtmlTag]
+editRoot config = [TableTag []
+	[TrTag [ClassAttr (errclass Nothing)] [ThTag [] [Text label,Text":"],TdTag [] [input]] \\ (label,input) <- fields]
+	: hidden]
+where
+	fields =	[ ("Root password",InputTag [TypeAttr "text",NameAttr "rootPassword", ValueAttr config.rootPassword])
+				, ("Root e-mail",InputTag [TypeAttr "text",NameAttr "rootEmail", ValueAttr config.rootEmail])
+				]
+	hidden =	[ InputTag [TypeAttr "hidden",NameAttr "clientPath", ValueAttr config.clientPath]
+				, InputTag [TypeAttr "hidden",NameAttr "staticPath", ValueAttr config.staticPath]
+				, InputTag [TypeAttr "hidden",NameAttr "sessionTime",ValueAttr (toString config.sessionTime)]
+				, InputTag [TypeAttr "hidden",NameAttr "serverPort",ValueAttr (toString config.serverPort)]
+				, InputTag [TypeAttr "hidden",NameAttr "serverPath", ValueAttr config.serverPath]
+				, InputTag [TypeAttr "hidden",NameAttr "debug", ValueAttr (if config.debug "true" "false")]
+				, InputTag [TypeAttr "hidden",NameAttr "smtpServer", ValueAttr config.smtpServer]
+				, InputTag [TypeAttr "hidden",NameAttr "generalWorkflows", ValueAttr (if config.generalWorkflows "true" "false")]
+				, InputTag [TypeAttr "hidden",NameAttr "runAsyncPath", ValueAttr config.runAsyncPath]
+				, InputTag [TypeAttr "hidden",NameAttr "curlPath", ValueAttr config.curlPath]
+				]
 
 errclass error = if (isNothing error) "field-ok" "field-error"
 errmsg Nothing = []
