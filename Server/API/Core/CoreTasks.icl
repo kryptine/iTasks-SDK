@@ -2,8 +2,8 @@ implementation module CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map
 import iTaskClass, Task, TaskContext
-from Shared			import ::Shared(..), :: SymmetricShared, :: SharedGetTimestamp, :: SharedWrite, :: SharedRead
-from Shared			import qualified readShared, writeShared, isSharedChanged
+from Shared			import ::ReadWriteShared(..), :: Shared, :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId
+from Shared			import qualified readShared, writeShared, isSharedChanged, updateShared
 from StdFunc		import o, id
 from iTasks			import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException
@@ -27,8 +27,9 @@ derive bimap Maybe,(,)
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinished a,iworld))
 
-sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = Shared
+sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore storeId defaultV = ReadWriteShared
+	["sharedStore_" +++ storeId]
 	(get loadValue defaultV)
 	write
 	(get getStoreTimestamp (Timestamp 0))
@@ -42,7 +43,7 @@ where
 		
 	write v iworld = (Ok Void,storeValue storeId v iworld)
 
-get :: !(Shared a w) -> Task a | iTask a
+get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask ("Read shared", "Reads a shared value") eval
 where
 	eval taskNr iworld
@@ -52,8 +53,7 @@ where
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
-//TODO: Mark (smartly) that a particular share has been updated	
-set :: !(Shared r a) !a -> Task a | iTask a
+set :: !(ReadWriteShared r a) !a -> Task a | iTask a
 set shared val = mkInstantTask ("Write shared", "Writes a shared value") eval
 where
 	eval taskNr iworld
@@ -63,19 +63,15 @@ where
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
-//TODO: Mark (smartly) that a particular share has been updated	
-update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
+update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 update f shared = mkInstantTask ("Update shared", "Updates a shared value") eval
 where
 	eval taskNr iworld
-		# (val,iworld)	= 'Shared'.readShared shared iworld
+		# (val,iworld)	= 'Shared'.updateShared shared f iworld
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
-		# val			= f (fromOk val)
-		# (wres,iworld)	= 'Shared'.writeShared shared val iworld
-		| isError wres	= (taskException (SharedException (fromError wres)), iworld)
-		= (TaskFinished val, iworld)
+		= (TaskFinished (fromOk val), iworld)
 
-interact :: !d !(l r Bool -> (![InteractionPart (!l,!Maybe w)],!l)) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> (![InteractionPart (!l,!Maybe w)],!l)) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
 where
 	init taskNr iworld

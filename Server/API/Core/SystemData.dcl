@@ -4,7 +4,7 @@ definition module SystemData
 * a set of shared data structures.
 */
 import Maybe
-from Shared		import :: ReadOnlyShared, :: Shared, :: SymmetricShared
+from Shared		import :: ReadOnlyShared, :: Shared, :: ReadWriteShared
 from Types		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: Session, :: UserDetails, :: Workflow
 from Void		import :: Void
 from ProcessDB	import :: Process
@@ -18,7 +18,7 @@ currentDate				:: ReadOnlyShared Date
 // Users
 users					:: 			ReadOnlyShared [User]
 usersWithRole			:: !Role ->	ReadOnlyShared [User]
-userDetails				:: !User ->	SymmetricShared UserDetails
+userDetails				:: !User ->	Shared UserDetails
 currentUser				::			ReadOnlyShared User
 currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
 				
@@ -37,4 +37,4 @@ currentProcessesForUser	:: !User ->	ReadOnlyShared [Process]
 randomInt				:: ReadOnlyShared Int
 
 // Null data source (writing has no effect)
-null					:: Shared Void a
+null					:: ReadWriteShared Void a

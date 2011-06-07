@@ -6,7 +6,6 @@ import Maybe, Types
 from Task		import :: Task
 from ProcessDB	import :: Process(..)
 from Time		import :: Timestamp 
-from Shared		import :: ReadOnlyShared, :: Shared
 import iTaskClass
 
 derive gVisualize	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription

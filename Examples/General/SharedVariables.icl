@@ -62,7 +62,7 @@ mergeTestList =
 where
 	sid = sharedStore "mergeTestLists" []
 
-	view :: (SymmetricShared [String]) -> Task Void
+	view :: (Shared [String]) -> Task Void
 	view sid = updateSharedInformation ("List","Merging the lists") [] sid >>+ quitButton
 	
 mergeTestDocuments :: Task Void
@@ -73,7 +73,7 @@ mergeTestDocuments =
 	>>|	stop
 where
 	view sid = updateSharedInformation ("List","Merging the documents") [] sid >>+ quitButton
-	store :: SymmetricShared [Document]
+	store :: Shared [Document]
 	store = sharedStore "mergeTestDocs" []
 
 //Google Map Example

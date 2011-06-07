@@ -4,7 +4,6 @@ import iTasks, Text
 from UserDB import qualified class UserDB(..)
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB IWorld
-from Shared import makeReadOnlyShared
 from StdFunc import o, seq
 from Util import mb2list
 

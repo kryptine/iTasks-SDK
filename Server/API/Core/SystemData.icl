@@ -13,23 +13,23 @@ from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorl
 from WorkflowDB	import :: WorkflowDescription
 
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = makeReadOnlyShared 'Util'.currentDateTime 'Util'.currentTimestamp
+currentDateTime = makeReadOnlyShared "SystemData_currentDateTime" 'Util'.currentDateTime 'Util'.currentTimestamp
 		
 currentTime :: ReadOnlyShared Time
-currentTime = makeReadOnlyShared 'Util'.currentTime 'Util'.currentTimestamp
+currentTime = makeReadOnlyShared "SystemData_currentTime" 'Util'.currentTime 'Util'.currentTimestamp
 		
 currentDate :: ReadOnlyShared Date
-currentDate = makeReadOnlyShared 'Util'.currentDate 'Util'.currentTimestamp
+currentDate = makeReadOnlyShared "SystemData_currentDate" 'Util'.currentDate 'Util'.currentTimestamp
 
 // Users
 users :: ReadOnlyShared [User]
-users = makeReadOnlyShared 'UserDB'.getUsers 'UserDB'.lastChange
+users = makeReadOnlyShared "SystemData_users" 'UserDB'.getUsers 'UserDB'.lastChange
 
 usersWithRole	:: !Role -> ReadOnlyShared [User]
-usersWithRole role = makeReadOnlyShared ('UserDB'.getUsersWithRole role) 'UserDB'.lastChange
+usersWithRole role = makeReadOnlyShared ("SystemData_usersWithRole-" +++ toString role) ('UserDB'.getUsersWithRole role) 'UserDB'.lastChange
 
-userDetails :: !User -> SymmetricShared UserDetails
-userDetails user = Shared read write (appFst Ok o 'UserDB'.lastChange)
+userDetails :: !User -> Shared UserDetails
+userDetails user = ReadWriteShared ["userDetails-" +++ toString user] read write (appFst Ok o 'UserDB'.lastChange)
 where
 	read iworld	= appFst (mb2error "user not in database") ('UserDB'.getUserDetails user iworld)
 	write details iworld
@@ -37,18 +37,18 @@ where
 		= (Ok Void,iworld)
 
 currentUser :: ReadOnlyShared User
-currentUser = makeReadOnlyShared (\iworld=:{currentUser} -> (currentUser,iworld)) 'Util'.currentTimestamp
+currentUser = makeReadOnlyShared "SystemData_currentUser" (\iworld=:{currentUser} -> (currentUser,iworld)) 'Util'.currentTimestamp
 	
 currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
-currentUserDetails = makeReadOnlyShared (\iworld=:{currentUser} -> 'UserDB'.getUserDetails currentUser iworld) 'Util'.currentTimestamp
+currentUserDetails = makeReadOnlyShared "SystemData_currentUserDetails" (\iworld=:{currentUser} -> 'UserDB'.getUserDetails currentUser iworld) 'Util'.currentTimestamp
 
 // Sessions
 sessions :: ReadOnlyShared [Session]
-sessions = makeReadOnlyShared 'SessionDB'.getSessions 'SessionDB'.lastChange
+sessions = makeReadOnlyShared "SystemData_sessions" 'SessionDB'.getSessions 'SessionDB'.lastChange
 
 // Available workflows
 workflows :: ReadOnlyShared [WorkflowDescription]
-workflows = makeReadOnlyShared 'WorkflowDB'.getWorkflowDescriptions 'WorkflowDB'.lastChange
+workflows = makeReadOnlyShared "SystemData_workflows" 'WorkflowDB'.getWorkflowDescriptions 'WorkflowDB'.lastChange
 
 allowedWorkflows :: ReadOnlyShared [WorkflowDescription]
 allowedWorkflows = mapSharedRead filterAllowed (workflows >+| (currentUser >+| currentUserDetails))
@@ -57,21 +57,21 @@ where
 
 // Workflow processes
 currentProcesses ::ReadOnlyShared [Process]
-currentProcesses = makeReadOnlyShared ('ProcessDB'.getProcesses [Running] [Active]) 'Util'.currentTimestamp
+currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running] [Active]) 'Util'.currentTimestamp
 
 currentProcessesForUser :: !User -> ReadOnlyShared [Process]
-currentProcessesForUser user = makeReadOnlyShared ('ProcessDB'.getProcessesForUser user [Running] [Active]) 'Util'.currentTimestamp
+currentProcessesForUser user = makeReadOnlyShared ("SystemData_processesForUser" +++ toString user) ('ProcessDB'.getProcessesForUser user [Running] [Active]) 'Util'.currentTimestamp
 
 // Random source
 randomInt	:: ReadOnlyShared Int
-randomInt = makeReadOnlyShared randomInt 'Util'.currentTimestamp
+randomInt = makeReadOnlyShared "SystemData_randomInt" randomInt 'Util'.currentTimestamp
 where
 	randomInt iworld=:{IWorld|world}
 		# (Clock seed, world)	= clock world
 		= (hd (genRandInt seed), {IWorld|iworld & world = world})
 		
-null :: Shared Void a
-null = Shared read write getTimestamp
+null :: ReadWriteShared Void a
+null = ReadWriteShared ["SystemData_null"] read write getTimestamp
 where
 	read iworld			= (Ok Void,iworld)
 	write _ iworld		= (Ok Void,iworld)

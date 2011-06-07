@@ -26,7 +26,7 @@ where
 	interaction m						= mkParts False (toInfoSt m) undef (filterOptions filterOutputOptions (Get id) options)
 	toInfoSt _							= {localValid = True, modelValue = m}
 
-enterSharedInformation :: !d ![ViewOn r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
+enterSharedInformation :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
 enterSharedInformation d options shared = InputTask @>> interact` d updL interaction False shared toInfoSt
 where
 	updL l r c							= l
@@ -34,7 +34,7 @@ where
 	toInfoSt valid r					= {localValid = valid, modelValue = r}
 	mkPutback putback modelValue mbV	= (isJust mbV,fmap (\v -> putback v modelValue) mbV)
 	
-updateSharedInformation :: !d ![ViewOn r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
+updateSharedInformation :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
 updateSharedInformation d options` shared = UpdateTask @>> interact` d updL interaction True shared toInfoSt
 where
 	options								= filterOptions noFilter defaultOpt options`
@@ -46,7 +46,7 @@ where
 		(putback :: (r^ r^ -> w^))	= View (id,putback)
 		_							= Get id
 
-monitor :: !d ![ViewOn r w] !(Shared r w) -> Task r | descr d & iTask r & iTask w
+monitor :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
 monitor d options shared = OutputTask PassiveOutput @>> interact` d updL interaction Void shared toInfoSt
 where
 	updL _ _ _							= Void
@@ -68,10 +68,10 @@ where
 	viewOptions			= toViewOptions options choiceOpts
 	
 
-enterSharedChoice :: !d ![ViewOn o w] !(Shared [o] w) -> Task o | descr d & iTask o & iTask w
+enterSharedChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) -> Task o | descr d & iTask o & iTask w
 enterSharedChoice d options shared = sharedChoice InputTask d options shared Nothing
 
-updateSharedChoice :: !d ![ViewOn o w] !(Shared [o] w) o -> Task o | descr d & iTask o & iTask w
+updateSharedChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) o -> Task o | descr d & iTask o & iTask w
 updateSharedChoice d options shared initC = sharedChoice UpdateTask d options shared (Just initC)
 
 sharedChoice type d options shared mbSel = type @>> interact` d updL interaction Nothing shared toInfoSt
@@ -106,10 +106,10 @@ where
 	initMultipleChoice	= multipleChoiceSel viewOptions (toViewOptions options sel)
 	viewOptions			= toViewOptions options choiceOpts
 
-enterSharedMultipleChoice :: !d ![ViewOn o w] !(Shared [o] w) -> Task [o] | descr d & iTask o & iTask w
+enterSharedMultipleChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) -> Task [o] | descr d & iTask o & iTask w
 enterSharedMultipleChoice d options shared = sharedMultipleChoice InputTask d options shared []
 
-updateSharedMultipleChoice :: !d ![ViewOn o w] !(Shared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
+updateSharedMultipleChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
 updateSharedMultipleChoice d options shared sel = sharedMultipleChoice UpdateTask d options shared sel
 
 sharedMultipleChoice type d options shared sel = type @>> interact` d updL interaction Nothing shared toInfoSt
@@ -194,7 +194,7 @@ waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions = interactLocal chooseActionDescr (const []) Void >>+ \_ -> UserActions (map (appSnd Just) actions)
 
-chooseActionDyn :: !(Shared r w) !(r -> [(!Action,Maybe a)]) -> Task a | iTask a & iTask r & iTask w
+chooseActionDyn :: !(ReadWriteShared r w) !(r -> [(!Action,Maybe a)]) -> Task a | iTask a & iTask r & iTask w
 chooseActionDyn shared actionsF = interact chooseActionDescr (\l _ _ -> ([],l)) Void shared >>+ \{modelValue=v=:(_,r)} -> UserActions (actionsF r)
 
 chooseActionDescr = "Choose an action"
@@ -208,13 +208,13 @@ where
 	toSharedRes (Update label l)				= Update label (l,Nothing)
 	toSharedRes (DisplayView v)					= DisplayView v
 	
-	nullShared` :: SymmetricShared Void
+	nullShared` :: Shared Void
 	nullShared` = null
 
 interactLocal` :: !d !(l -> [InteractionPart l]) l !(l -> InformationState a) -> Task a | descr d & iTask l & iTask a
 interactLocal` d partFunc l toInfoSt = mapActionTask (\{modelValue} -> toInfoSt modelValue) (interactLocal d partFunc l)
 	
-interact` :: !d !(l r Bool -> l) !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(Shared r w) !(l r -> InformationState a) -> Task a | descr d & iTask l & iTask r & iTask w & iTask a
+interact` :: !d !(l r Bool -> l) !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(ReadWriteShared r w) !(l r -> InformationState a) -> Task a | descr d & iTask l & iTask r & iTask w & iTask a
 interact` d updL partFunc l shared toInfoSt = mapActionTask (\{modelValue=v=:(l,r)} -> toInfoSt l r) (interact d partFunc` l shared)
 where
 	partFunc` l r c

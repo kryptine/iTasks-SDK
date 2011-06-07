@@ -53,4 +53,4 @@ from StdFunc import id, const, o
 //Types
 import Types, GenRecord
 from Task				import :: Change(..), :: ChangeLifeTime(..)
-from Shared				import :: Shared, :: ReadOnlyShared, :: SymmetricShared, mapShared, mapSharedRead, mapSharedWrite, toReadOnlyShared, >+<, |+<, >+|, |+|, >&<, symmetricLens
+from Shared				import :: Shared, :: ReadOnlyShared, :: ReadWriteShared, mapShared, mapSharedRead, mapSharedWrite, toReadOnlyShared, >+<, |+<, >+|, |+|, >&<, symmetricLens

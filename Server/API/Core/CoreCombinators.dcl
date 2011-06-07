@@ -5,7 +5,7 @@ definition module CoreCombinators
 */
 from Time				import :: Timestamp
 from TuningCombinators	import :: Tag
-from Shared				import :: Shared, :: ReadOnlyShared, :: SymmetricShared
+from Shared				import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
 from ProcessDB			import :: Process
 import Task
 
@@ -90,9 +90,9 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 						| BodyTask
 						| HiddenTask
 						
-:: TaskFunction s a		:== (SymmetricShared s) (ParallelInfo s) -> Task a
+:: TaskFunction s a		:== (Shared s) (ParallelInfo s) -> Task a
 
-:: ParallelInfo s		:== Shared [ParallelTaskInfo] [Control s]
+:: ParallelInfo s		:== ReadWriteShared [ParallelTaskInfo] [Control s]
 :: ParallelTaskInfo =	{ index			:: !TaskIndex								// The task's index
 						, properties	:: !Either TaskProperties ProcessProperties // Task properties for inbody tasks and process
 						}															// properties for detached tasks

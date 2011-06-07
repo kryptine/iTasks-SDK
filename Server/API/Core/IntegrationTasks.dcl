@@ -9,7 +9,6 @@ from Void import ::Void
 import iTaskClass
 from Task import ::Task
 from Types import ::Note, ::EmailAddress
-from Shared import ::Shared, ::ReadOnlyShared
 
 ::HTTPMethod = GET | POST
 

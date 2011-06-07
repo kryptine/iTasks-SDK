@@ -8,7 +8,6 @@ import CoreCombinators, TuningCombinators
 import Either
 from Types				import :: User, :: SessionId
 from Map				import :: Map
-from Shared				import :: SymmetricShared
 
 // Additional types for grouping
 // These types are similar to PAction but are needed to avoid circular definitions
@@ -362,76 +361,3 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 * @gin False
 */
 (<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, [HtmlTag])) 	-> Task a 					| iTask a
-/**
-* Tasks can dynamically add other tasks or stop execution of group.
-*
-* @param List of initial tasks
-*/
-/*dynamicGroup		:: ![Task GAction]															-> Task Void
-/**
-* Tasks and group-actions can dynamically add other tasks or stop execution of group.
-*
-* @param List of initial tasks
-* @param List of group-actions
-*/
-dynamicGroupA		:: ![Task GAction]	![GroupAction Void] !(GroupActionGenFunc GAction)		-> Task Void
-/**
-* Only group-actions can dynamically add other tasks or stop execution of group.
-*
-* @param List of initial tasks
-* @param List of group-actions
-*/
-dynamicGroupAOnly	:: ![Task Void]		![GroupAction Void] !(GroupActionGenFunc GOnlyAction)	-> Task Void
-/**
-* Combinator for creating Multiple Document Interface (MDI) applications.
-*
-* @param An initial state for global application data
-* @param A list of global application group actions
-* @param A function generating a global application group action generation function.
-*        The first parameter is a reference to the global state store.
-*        The second parameter is a collection of tasks for dealing with editors.
-* @param A global menu generation function, mapping the global state to a menu structure.
-*/
-mdiApplication ::
-	!globalState
-	![GroupAction Void]
-	!((SymmetricShared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction))
-	!((globalState,EditorCollection editorState) -> MenuDefinition)
-	->
-	Task Void | iTask globalState & iTask editorState & iTask iterationState
-
-// A collection of tasks for dealing with editors within an MDI application.
-:: MDITasks editorState iterationState = {
-	/**
-	* Creates a new editor.
-	*
-	* @param An initial editor state, stored as long as the editor task is running
-	* @param The editor task using a reference to the editor's state
-	* @return The created editor task
-	*/
-	createEditor :: MDICreateEditor editorState,
-	
-	/**
-	* Iterates over all editors using an accumulator tasks to transform an state.
-	*
-	* @param The initial value of the accumulated state
-	* @param The accumulator task, getting the current state and a reference to the current editor's state and returning a new value of the state
-	* @param The final value of the accumulated state
-	*/
-	iterateEditors :: MDIIterateEditors editorState iterationState,
-	
-	/**
-	* Check if an editor for which a given predicate holds exists and a reference to its state.
-	*
-	* @param The predicate on the editor state
-	* @return Nothing if the predicate holds for no editor; A refenrece to the first editor's state for which the predicate holds
-	*/
-	existsEditor :: MDIExistsEditor editorState
-	}
-	
-:: MDICreateEditor editorState					:== editorState ((EditorId editorState) (SymmetricShared editorState) -> Task Void) -> Task Void
-:: MDIIterateEditors editorState iterationState :== iterationState (iterationState (SymmetricShared editorState) -> Task iterationState) -> Task iterationState
-:: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (EditorId editorState))
-	
-:: EditorId est :== Int
-:: EditorCollection est :== Map (EditorId est) est*/

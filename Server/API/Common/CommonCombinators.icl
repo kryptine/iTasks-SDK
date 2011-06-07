@@ -9,7 +9,7 @@ from StdFunc	import id, const, o
 from Types		import :: ProcessId, :: User(..), :: Note(..)
 from SessionDB	import :: Session
 from TaskContext	import :: TaskContext(..), :: TopTaskContext, :: SubTaskContext, :: ParallelMeta
-from Shared		import mapShared, :: SymmetricShared
+from Shared		import mapShared, :: Shared, :: ReadWriteShared
 from SystemData	import randomInt
 from Map		import qualified newMap
 import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, ProcessDBTasks, InteractionTasks
@@ -47,7 +47,7 @@ where
 (>?) task pred = task >>+ \{modelValue} -> if (pred modelValue) (StopInteraction modelValue) (UserActions [])
 
 //Helper function for tasks in a parallel set
-accu :: (a acc -> (acc,Bool)) (Task a) (SymmetricShared acc) (ParallelInfo acc) -> Task a | iTask a & iTask acc
+accu :: (a acc -> (acc,Bool)) (Task a) (Shared acc) (ParallelInfo acc) -> Task a | iTask a & iTask acc
 accu accufun task pstate pcontrol
 	=	task
 	>>= \result ->
@@ -73,7 +73,7 @@ assign :: !ManagerProperties !(Task a) -> Task a | iTask a
 assign props task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
 									[ShowAs BodyTask processControl, ShowAs (DetachedTask props) (accu accJust task)] <<@ minimalParallelLayout
 where
-	processControl :: state !(Shared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
+	processControl :: state !(ReadWriteShared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
 	processControl _ control =
 		updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [View (toView,fromView)] control >>+ noActions
 	
@@ -230,67 +230,4 @@ repeatTask task pred a =
 		=			taska
 		>>= \r -> 	case pred r of
 						(True,_) -> return r
-						(False,msg) -> (showInformation "Feedback" [] (toHtmlDisplay msg) >>+ noActions) ||- (taska <| pred)					
-
-/*dynamicGroup :: ![Task GAction] -> Task Void
-dynamicGroup initTasks = dynamicGroupA initTasks [] (\_ -> GStop)
-
-dynamicGroupA :: ![Task GAction] ![GroupAction Void] !(GroupActionGenFunc GAction) -> Task Void
-dynamicGroupA initTasks gActions genFunc = parallel ("dynamicGroup", "A simple parallel with dynamically added tasks") procfun id Void initTasks gActions genFunc
-where
-	procfun (action,_) _ = case action of
-		GStop			= (Void, Just StopParallel)
-		GContinue		= (Void, Nothing)
-		GExtend tasks	= (Void, Just (Extend tasks))
-		GFocus tag		= (Void, Just (Focus tag))
-		
-dynamicGroupAOnly :: ![Task Void] ![GroupAction Void] !(GroupActionGenFunc GOnlyAction) -> Task Void
-dynamicGroupAOnly initTasks gActions genFunc = parallel ("dynamicGroup", "A simple parallel with dynamically added tasks") procfun id Void (changeTasksType initTasks) gActions genFunc
-where
-	procfun (action,_) _ = case action of
-		GOStop			= (Void, Just StopParallel)
-		GOExtend tasks	= (Void, Just (Extend (changeTasksType tasks)))
-		GOFocus tag		= (Void, Just (Focus tag))
-	changeTasksType tasks = map (\t -> (t >>| return (GOExtend []))) tasks
-		
-mdiApplication :: !globalState ![GroupAction Void] !((SymmetricShared (globalState,EditorCollection editorState)) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !((globalState,EditorCollection editorState) -> MenuDefinition) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
-mdiApplication initAppState gActions gActionsGenFunc menuGenFunc =
-				createSharedStore (initAppState,newMap)
-	>>= \ref.	createSharedStore 0
-	>>= \idref.	dynamicGroupA [] gActions (gActionsGenFunc ref (globalTasks ref idref)) <<@ DynamicMenus ref menuGenFunc
-	>>|			stop
-where
-	globalTasks ref idref =
-		{ createEditor		= createEditor
-		, iterateEditors	= iterateEditors
-		, existsEditor		= existsEditor
-		}
-	where
-		createEditor initState editorTask =
-						update inc idref
-			>>= \eid.	update (putInEditorStates eid initState) ref
-			>>|			editorTask eid (sharedForEditor eid)
-			>>|			update (updateEditorStates (del eid)) ref
-			>>|			stop
-			
-		iterateEditors initAcc f =
-						get ref
-			>>= \st.	iterate initAcc (map fst (toList (snd st))) f ref
-		where
-			iterate acc [] _ _= return acc
-			iterate acc [eid:eids] f ref =
-							f acc (sharedForEditor eid)
-				>>= \acc.	iterate acc eids f ref
-			
-		existsEditor pred =
-						get ref
-			>>= \st.	return (check (toList (snd st)))
-		where
-			check [] = Nothing
-			check [(eid,editor):ests]
-				| pred editor	= Just eid
-				| otherwise		= check ests
-				
-		sharedForEditor eid = mapShared (fromJust o (get eid) o snd, putInEditorStates eid) ref		
-		putInEditorStates eid est st = updateEditorStates (put eid est) st
-		updateEditorStates f st = appSnd f st*/
+						(False,msg) -> (showInformation "Feedback" [] (toHtmlDisplay msg) >>+ noActions) ||- (taska <| pred)

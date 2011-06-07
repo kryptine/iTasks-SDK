@@ -441,8 +441,8 @@ where
 					_				= (Nothing,[])
 					
 	//Create the access share for the shared state in the iworld's parallelVars
-	mkStateShare :: TaskNr -> SymmetricShared s | iTask s
-	mkStateShare taskNr = Shared read write timestamp
+	mkStateShare :: TaskNr -> Shared s | iTask s
+	mkStateShare taskNr = ReadWriteShared ["parallel_" +++ taskNrToString taskNr] read write timestamp
 	where
 		read iworld=:{parallelVars}
 			= case 'Map'.get (STATEKEY taskNr) parallelVars of
@@ -458,8 +458,8 @@ where
 				_									= (Error ("Could not read timestamp for shared parallel state of task " +++ taskNrToString taskNr),iworld)
 
 	//Create the info/control share in the iworld's parallelVars
-	mkControlShare :: TaskNr -> Shared [ParallelTaskInfo] [Control s] | iTask s
-	mkControlShare taskNr = Shared read write timestamp
+	mkControlShare :: TaskNr -> ReadWriteShared [ParallelTaskInfo] [Control s] | iTask s
+	mkControlShare taskNr = ReadWriteShared ["parallelControl_" +++ taskNrToString taskNr] read write timestamp
 	where
 		read iworld=:{parallelVars}
 			= case 'Map'.get (INFOKEY taskNr) parallelVars of

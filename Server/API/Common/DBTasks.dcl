@@ -1,6 +1,6 @@
 definition module DBTasks
 
-from Shared import :: SymmetricShared, :: Shared
+from Shared import :: Shared, :: ReadWriteShared
 import iTaskClass, Task
 
 //Convenience wrapper functions for databases with multiple values of type a 
@@ -8,7 +8,7 @@ class DB a where
 	/*
 	* Retrieve the database handle
 	*/
-	databaseId	:: SymmetricShared [a]
+	databaseId	:: Shared [a]
 	/*
 	* Retrieve the reference to a stored instance
 	*/

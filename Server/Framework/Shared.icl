@@ -3,57 +3,66 @@ implementation module Shared
 import StdTuple, StdFunc, Void, Maybe, Time, Error, GenUpdate, Util, Functor, StdList
 from Types import :: IWorld
 
-readShared :: !(Shared r w) !*IWorld -> (!MaybeErrorString r,!*IWorld)
-readShared (Shared read _ _) iworld = read iworld
+readShared :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString r,!*IWorld)
+readShared (ReadWriteShared _ read _ _) iworld = read iworld
 
-writeShared :: !(Shared r w) !w !*IWorld -> (!MaybeErrorString Void,!*IWorld)
-writeShared (Shared _ write _) val iworld = write val iworld
+writeShared :: !(ReadWriteShared r w) !w !*IWorld -> (!MaybeErrorString Void,!*IWorld)
+writeShared (ReadWriteShared _ _ write _) val iworld = write val iworld
 
-getSharedTimestamp :: !(Shared r w) !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
-getSharedTimestamp (Shared _ _ getTimestamp) iworld = getTimestamp iworld
+updateShared :: !(ReadWriteShared r w) !(r -> w) !*IWorld -> (!MaybeErrorString w,!*IWorld)
+updateShared (ReadWriteShared _ read write _) updF iworld
+	# (val,iworld)	= read iworld
+	| isError val	= (liftError val,iworld)
+	# wval			= updF (fromOk val)
+	# (wres,iworld)	= write wval iworld
+	| isError wres	= (liftError wres,iworld)
+	= (Ok wval,iworld)
 
-mapSharedRead :: !(r -> r`) !(Shared r w) -> (Shared r` w)
-mapSharedRead f (Shared read write getTimestamp) = Shared (appFst (fmap f) o read) write getTimestamp
+getSharedTimestamp :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
+getSharedTimestamp (ReadWriteShared _ _ _ getTimestamp) iworld = getTimestamp iworld
 
-mapSharedWrite :: !(w` r -> w) !(Shared r w) -> (Shared r w`)
-mapSharedWrite f (Shared read write getTimestamp) = Shared read newWrite getTimestamp
+mapSharedRead :: !(r -> r`) !(ReadWriteShared r w) -> (ReadWriteShared r` w)
+mapSharedRead f (ReadWriteShared id read write getTimestamp) = ReadWriteShared id (appFst (fmap f) o read) write getTimestamp
+
+mapSharedWrite :: !(w` r -> w) !(ReadWriteShared r w) -> (ReadWriteShared r w`)
+mapSharedWrite f (ReadWriteShared id read write getTimestamp) = ReadWriteShared id read newWrite getTimestamp
 where
 	newWrite v iworld
 		# (m,iworld) = read iworld
 		| isError m = (liftError m,iworld)
 		= write (f v (fromOk m)) iworld
 		
-mapShared :: !(r -> r`,w` r -> w) !(Shared r w) -> Shared r` w`
+mapShared :: !(!r -> r`,!w` r -> w) !(ReadWriteShared r w) -> ReadWriteShared r` w`
 mapShared (readMap,writeMap) shared = mapSharedRead readMap (mapSharedWrite writeMap shared)
 
-isSharedChanged :: !(Shared r w) !Timestamp !*IWorld -> (!MaybeErrorString Bool,!*IWorld)
-isSharedChanged (Shared _ _ getTimestamp) t0 iworld
+isSharedChanged :: !(ReadWriteShared r w) !Timestamp !*IWorld -> (!MaybeErrorString Bool,!*IWorld)
+isSharedChanged (ReadWriteShared _ _ _ getTimestamp) t0 iworld
 	# (t1,iworld) = getTimestamp iworld
 	| isError t1 = (liftError t1,iworld)
 	= (Ok (t0 < fromOk t1),iworld)
 
-toReadOnlyShared :: !(Shared r w) -> ReadOnlyShared r
-toReadOnlyShared (Shared read write getTimestamp) = Shared read (\_ iworld -> (Ok Void,iworld)) getTimestamp
+toReadOnlyShared :: !(ReadWriteShared r w) -> ReadOnlyShared r
+toReadOnlyShared (ReadWriteShared id read write getTimestamp) = ReadWriteShared id read (\_ iworld -> (Ok Void,iworld)) getTimestamp
 
-(>+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) (w0,w1)
-(>+<) (Shared read0 write0 getTimestamp0) (Shared read1 write1 getTimestamp1)
-	= Shared (composeReads read0 read1) (composeWrites write0 write1) (composeGetTimestamps getTimestamp0 getTimestamp1)
+(>+<) infixl 6 :: !(ReadWriteShared r0 w0) !(ReadWriteShared r1 w1) -> ReadWriteShared (r0,r1) (w0,w1)
+(>+<) (ReadWriteShared id0 read0 write0 getTimestamp0) (ReadWriteShared id1 read1 write1 getTimestamp1)
+	= ReadWriteShared (composeIds id0 id1) (composeReads read0 read1) (composeWrites write0 write1) (composeGetTimestamps getTimestamp0 getTimestamp1)
 	
-(>+|) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w0
-(>+|) (Shared read0 write0 getTimestamp0) (Shared read1 _ getTimestamp1)
-	= Shared (composeReads read0 read1) write0 (composeGetTimestamps getTimestamp0 getTimestamp1)
+(>+|) infixl 6 :: !(ReadWriteShared r0 w0) !(ReadWriteShared r1 w1) -> ReadWriteShared (r0,r1) w0
+(>+|) (ReadWriteShared id0 read0 write0 getTimestamp0) (ReadWriteShared id1 read1 _ getTimestamp1)
+	= ReadWriteShared (composeIds id0 id1) (composeReads read0 read1) write0 (composeGetTimestamps getTimestamp0 getTimestamp1)
 
-(|+<) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> Shared (r0,r1) w1
-(|+<) (Shared read0 _ getTimestamp0) (Shared read1 write1 getTimestamp1)
-	= Shared (composeReads read0 read1) write1 (composeGetTimestamps getTimestamp0 getTimestamp1)
+(|+<) infixl 6 :: !(ReadWriteShared r0 w0) !(ReadWriteShared r1 w1) -> ReadWriteShared (r0,r1) w1
+(|+<) (ReadWriteShared id0 read0 _ getTimestamp0) (ReadWriteShared id1 read1 write1 getTimestamp1)
+	= ReadWriteShared (composeIds id0 id1) (composeReads read0 read1) write1 (composeGetTimestamps getTimestamp0 getTimestamp1)
 	
-(|+|) infixl 6 :: !(Shared r0 w0) !(Shared r1 w1) -> ReadOnlyShared (r0,r1)
-(|+|) (Shared read0 write0 getTimestamp0) (Shared read1 write1 getTimestamp1)
-	= Shared (composeReads read0 read1) (\_ iworld -> (Ok Void,iworld)) (composeGetTimestamps getTimestamp0 getTimestamp1)
+(|+|) infixl 6 :: !(ReadWriteShared r0 w0) !(ReadWriteShared r1 w1) -> ReadOnlyShared (r0,r1)
+(|+|) (ReadWriteShared id0 read0 write0 getTimestamp0) (ReadWriteShared id1 read1 write1 getTimestamp1)
+	= ReadWriteShared (composeIds id0 id1) (composeReads read0 read1) (\_ iworld -> (Ok Void,iworld)) (composeGetTimestamps getTimestamp0 getTimestamp1)
 	
-(>&<) infixl 6 :: !(SymmetricShared a) !(SymmetricShared b) -> (SymmetricShared (a,b)) | gEq{|*|} a & gEq{|*|} b
-(>&<) (Shared read0 write0 getTimestamp0) (Shared read1 write1 getTimestamp1)
-	= Shared (composeReads read0 read1) writeC (composeGetTimestamps getTimestamp0 getTimestamp1)
+(>&<) infixl 6 :: !(Shared a) !(Shared b) -> (Shared (a,b)) | gEq{|*|} a & gEq{|*|} b
+(>&<) (ReadWriteShared id0 read0 write0 getTimestamp0) (ReadWriteShared id1 read1 write1 getTimestamp1)
+	= ReadWriteShared (composeIds id0 id1) (composeReads read0 read1) writeC (composeGetTimestamps getTimestamp0 getTimestamp1)
 where
 	writeC (na,nb) iworld
 		# (oa,iworld)	= read0 iworld
@@ -64,6 +73,7 @@ where
 		| isError r = (liftError r,iworld)
 		= if (fromOk ob =!= nb) (write1 nb iworld) (Ok Void,iworld)
 
+composeIds id0 id1					= removeDup (id0 ++ id1)
 composeReads						= compose (\a b -> (a,b))
 composeGetTimestamps				= compose max
 composeWrites write0 write1 (v0,v1)	= compose const (write0 v0) (write1 v1)
@@ -75,17 +85,17 @@ compose compF f0 f1 iworld
 	| isError res1	= (liftError res1,iworld)
 	= (Ok (compF (fromOk res0) (fromOk res1)),iworld)
 	
-symmetricLens :: !(a b -> b) !(b a -> a) !(SymmetricShared a) !(SymmetricShared b) -> (!SymmetricShared a,!SymmetricShared b)
+symmetricLens :: !(a b -> b) !(b a -> a) !(Shared a) !(Shared b) -> (!Shared a,!Shared b)
 symmetricLens putr putl sharedA sharedB = (newSharedA,newSharedB)
 where
 	sharedAll = sharedA >+< sharedB 
 	newSharedA = mapShared (fst,\a (_,b) -> (a,putr a b)) sharedAll
 	newSharedB = mapShared (snd,\b (a,_) -> (putl b a,b)) sharedAll
 
-makeReadOnlyShared :: !(*IWorld -> *(!a,!*IWorld)) !(*IWorld -> *(!Timestamp,!*IWorld)) -> ReadOnlyShared a
-makeReadOnlyShared valueF tsF = Shared (appFst Ok o valueF) roWrite (appFst Ok o tsF)
+makeReadOnlyShared :: !SharedId !(*IWorld -> *(!a,!*IWorld)) !(*IWorld -> *(!Timestamp,!*IWorld)) -> ReadOnlyShared a
+makeReadOnlyShared id valueF tsF = ReadWriteShared [id] (appFst Ok o valueF) roWrite (appFst Ok o tsF)
 
-makeReadOnlySharedError	:: !(*IWorld -> *(!MaybeErrorString a,!*IWorld)) !(*IWorld -> *(!MaybeErrorString Timestamp,!*IWorld)) -> ReadOnlyShared a
-makeReadOnlySharedError valueF tsF = Shared valueF roWrite tsF
+makeReadOnlySharedError	:: !SharedId !(*IWorld -> *(!MaybeErrorString a,!*IWorld)) !(*IWorld -> *(!MaybeErrorString Timestamp,!*IWorld)) -> ReadOnlyShared a
+makeReadOnlySharedError id valueF tsF = ReadWriteShared [id] valueF roWrite tsF
 
 roWrite _ iworld = (Ok Void,iworld)

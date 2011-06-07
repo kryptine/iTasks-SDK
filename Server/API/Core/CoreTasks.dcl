@@ -6,7 +6,7 @@ definition module CoreTasks
 import iTaskClass
 from Error		import ::MaybeError(..)
 from OSError	import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
-from Shared		import :: SymmetricShared, :: Shared
+from Shared		import :: ReadWriteShared, :: Shared
 from Task		import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
 
 :: SharedStoreId :== String
@@ -26,24 +26,24 @@ return 		:: !a 										-> Task a 		| iTask a
 * Creates a reference to a store identified by a string identifier.
 * If no data is store the default value given as second argument is given as result.
 */
-sharedStore :: !SharedStoreId !a -> SymmetricShared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Reads shared data.
 *
-* @param Shared: A shared reference
+* @param ReadWriteShared: A shared reference
 * @return The value read
 * @throws SharedException
 *
 * @gin-title Read shared
 * @gin-icon shared_read
 */
-get :: !(Shared a w) -> Task a | iTask a
+get :: !(ReadWriteShared a w) -> Task a | iTask a
 
 /**
 * Writes shared data.
 *
-* @param Shared: A shared reference
+* @param ReadWriteShared: A shared reference
 * @param Value: A value to write
 * @return The value written
 * @throws SharedException
@@ -51,20 +51,20 @@ get :: !(Shared a w) -> Task a | iTask a
 * @gin-title Write shared
 * @gin-icon shared_update
 */
-set :: !(Shared r a) !a -> Task a | iTask a
+set :: !(ReadWriteShared r a) !a -> Task a | iTask a
 
 /**
 * Updates shared data in one atomic operation.
 *
 * @param Update function: A function modifying the shared value
-* @param Shared: A shared reference
+* @param ReadWriteShared: A shared reference
 * @return The value written
 * @throws SharedException
 *
 * @gin-title Update shared
 * @gin-icon shared_update
 */
-update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
+update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 
 /**
 * Swiss-army-knife interaction tasks. All other interaction tasks are derived from this one.
@@ -78,14 +78,14 @@ update :: !(r -> w) !(Shared r w) -> Task w | iTask r & iTask w
 *        dynamically generating the interaction parts shown to the user (parts can change the local state (l) & possibly also write to the shared (Maybe w));
 *        Additionally the local state can be updated
 * @param Initial state: The initial local state
-* @param Shared: A reference to shared data the task works on
+* @param ReadWriteShared: A reference to shared data the task works on
 *
 * @return A result determined by the terminators
 * @throws SharedException
 *
 * @gin False
 */
-interact :: !d !(l r Bool -> (![InteractionPart (!l,!Maybe w)],!l)) l !(Shared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> (![InteractionPart (!l,!Maybe w)],!l)) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 :: InteractionPart o	= E.v:	UpdateView	!(FormView v) !((Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayView	!v								& iTask v	// A static view displayed to the user

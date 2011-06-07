@@ -9,7 +9,7 @@ geoTrackerExamples =
 	,workflow "Examples/Geo tracker/Report position" "Tell us where you are..." reportPosition
 	]
 
-locationStore :: SymmetricShared [(User,GoogleMapPosition)]
+locationStore :: Shared [(User,GoogleMapPosition)]
 locationStore = sharedStore "Locations" []
 	
 reportPosition :: GoogleMapPosition -> Task Void
