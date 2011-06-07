@@ -130,15 +130,22 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 				}
 			} else if(cmp.xtype == 'itasks.tui.Constructor') {
 				cmp = cmp.itemPanel.items.get(steps);
+			} else if(cmp.xtype == 'itasks.tui.MainContainer') {
+				//Choose between menu or items
+				if(steps == 0) {
+					cmp = cmp.get(1).getTopToolBar();
+					path[i+1] = parseInt(path[i+1]) + 1; //HACK
+				} else {
+					cmp = cmp.get(1).items.get(parseInt(path[i+1]));
+					i++;
+				}
 			} else {
 				cmp = cmp.items.get(steps);
 			}
-			
 			if(cmp.xtype == 'itasks.tui.list.Item') {
 				//Skip list items in the counting
 				cmp = cmp.items.get(0);
 			}
-			
 			if(!cmp) {
 				return null;
 			}
@@ -147,17 +154,26 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 		return cmp;
 	},
 	replaceComponentByPath: function(start, path, replacement) {
-		var steps = path.split("-");
-		var target = parseInt(steps.pop());	
+		
 		var cmp = start;
 		//Find parent element
-		for(var i = 0; i < steps.length; i++) {	
+		var steps = path.split("-");
+		for(var i = 0; i < steps.length - 1; i++) {	
 			
 			if(cmp.isXType('itasks.tui.Constructor')) {
 				cmp = cmp.itemPanel.items.get(parseInt(steps[i]));
+			} else if(cmp.isXType('itasks.tui.MainContainer')) {
+				if(parseInt(steps[i]) == 0) {
+					cmp = cmp.get(1).getTopToolbar();
+					steps[i+1] = parseInt(steps[i+1]) + 1; //HACK 
+				} else {
+					cmp = cmp.get(1).items.get(parseInt(steps[i+1]));
+					i++;
+				}
 			} else {
 				cmp = cmp.items.get(parseInt(steps[i]));
 			}
+			
 			if(!cmp) {
 				return null;
 			}
@@ -169,6 +185,9 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 				}
 			}	
 		}
+		//Determine target
+		var target = parseInt(steps.pop());	
+		
 		//Update component
 		if(cmp.isXType('itasks.tui.Constructor')) {
 			cmp.itemPanel.remove(target);
