@@ -17,6 +17,8 @@ import SmallExamples
 import GUIDemo
 import BugReport
 import Coffeemachine
+import APIDocumentation
+
 //import Newsgroups
 import ChangeHandling
 //import textEditor
@@ -73,5 +75,6 @@ where
 							]
 						, rpcExamples
 						, ginExamples
+						, apiDocumentationExamples
 						, clientExample
 						]

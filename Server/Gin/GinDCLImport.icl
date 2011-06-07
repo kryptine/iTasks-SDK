@@ -8,61 +8,59 @@ import Error
 import Text
 import ParserCombinators
 
-import GinCleanParser
+import CleanDocParser
 import GinSyntax
 
 from general 	import 	::Optional(..)
 from Heap 		import 	::Ptr
+
 from scanner	import
 						::Assoc(..),
 						::Priority(..)
 from syntax		import	
+						::AttributeVar, 
+						::AttrInequality, 
 						::AType(..), 
 						::ATypeVar,
-						::AttrInequality, 
-						::AttributeVar, 
 						::BasicType,
+						::ClassDef,
 						::ConsVariable,
 						::DefinedSymbol,
+						::FunKind,
+						::FunSpecials,
+						::GenericCaseDef,
+						::GenericDef,
 						::Global,
 						::GlobalIndex,
 						::Ident(..), 
+						::Import,
+						::ImportedObject,
 						::Index,
 						::ParsedDefinition(..),
+						::ParsedExpr,
+						::ParsedImport,
+						::ParsedInstanceAndMembers,
+						::ParsedTypeDef,
+						::Position,
+						::Rhs,
+						::RhsDefsOfType,
 						::StrictnessList, 
-						::SymbolTableEntry,
 						::SymbolPtr,
+						::SymbolTableEntry,
 						::SymbolType(..), 
 						::TempVarId,
 						::Type(..),
 						::TypeAttribute(..),
 						::TypeContext, 
-						::TypeKind,
-						::TypeSymbIdent,
-						::TypeVar,
-						::GenericCaseDef,
-						::GenericDef,
-						::ImportedObject,
-						::ParsedImport,
-						::ParsedInstanceAndMembers,
-						::ClassDef,
-						::FunSpecials,
-						::Priority,
-						::Position,
-						::ParsedTypeDef,
-						::Rhs,
-						::ParsedExpr,
-						::FunKind,
-						::Import,
 						::TypeDef,
+						::TypeKind,
 						::TypeSymbIdent(..),
 						::TypeSymbProperties,
 						::TypeVar(..),
-						::TypeVarInfoPtr,
 						::TypeVarInfo,
-						::RhsDefsOfType,
+						::TypeVarInfoPtr,
 						instance toString BasicType
-						
+
 importDCL :: !String !String *World -> (MaybeErrorString GModule, *World)
 importDCL filename source world
 # errorFilename 		= "errors"
@@ -192,127 +190,5 @@ mapType (--> a b) = GFunction (mapAType a) (mapAType b)
 mapType (TB bt) = GConstructor (toString bt)
 mapType _ = GTypeVariable "(Unknown type)"
 
-//Lexer for documentation blocks
-:: Token	= ParamToken
-			| ThrowsToken
-			| ReturnToken
-			| GinToken
-			| TitleToken
-			| IconToken
-			| ParallelSplitToken
-			| ParallelToken
-			| ColonToken
-			| TextToken !String
-			| NewLineToken
-			
-derive gEq Token
-instance == Token
-where
-	(==) a b = a === b
-
-isText :: !Token -> Bool
-isText (TextToken _) = True
-isText _ = False
-
-:: LexFunction :== String Int -> Maybe (Token, Int)
-lex :: !String -> [Token]
-lex input = (lex` 0 0 lexFunctions)
-where
-	lexFunctions :: [LexFunction]
-	lexFunctions	=	[ lexFixed "@param "				ParamToken
-						, lexFixed "@throws "				ThrowsToken
-						, lexFixed "@return "				ReturnToken
-						, lexFixed "@gin "					GinToken
-						, lexFixed "@gin-title "			TitleToken
-						, lexFixed "@gin-icon " 			IconToken
-						, lexFixed "@gin-parallel "	 		ParallelToken
-						, lexFixed ":"						ColonToken
-						, lexFixed "\n*"					NewLineToken
-						]
-						
-	lex` :: !Int !Int ![LexFunction] -> [Token]
-	lex` offset start _ | offset >= size input
-		= if (offset <> start) [TextToken (trim (input % (start, offset - 1)))] []
-	lex` offset start [] = lex` (offset + 1) start lexFunctions 
-	lex` offset start [f:fs]
-		# text = if (offset <> start) [TextToken (trim (input % (start, offset - 1)))] []
-		= case f input offset of
-			Just (NewLineToken,offset) = text ++ lex` offset offset lexFunctions
-			Just (token,offset) = text ++ [token : lex` offset offset lexFunctions]
-			Nothing = lex` offset start fs
-	 
-	//Lex token of fixed size
-	lexFixed chars token input offset
-		| input % (offset,offset + (size chars) - 1) == chars	= Just (token, offset + size chars)
-																= Nothing
-
-
-//Parser for documentation blocks
-:: DocBlock = 
-	{ description	:: !Maybe String
-	, params		:: ![ParamDoc]
-	, return		:: !Maybe String
-	, throws	 	:: ![String]
-	, gin			:: !Bool
-	, title			:: !Maybe String
-	, icon			:: !Maybe String
-	, parallel		:: !Bool
-	, shape			:: !Maybe String
-	}
-
-:: ParamDoc = 
-	{ name			:: !String
-	, title			:: !Maybe String
-	, description	:: !Maybe String																
-	}
-
-emptyDocBlock :: DocBlock
-emptyDocBlock = 
-	{ DocBlock
-	| description	= Nothing
-	, params		= []
-	, return		= Nothing
-	, throws		= []
-	, gin			= True
-	, title			= Nothing
-	, icon			= Nothing
-	, parallel		= False
-	, shape			= Nothing
-	}
-
-parseDocBlock :: !String -> MaybeErrorString DocBlock
-parseDocBlock str
-# doc = pDocBlock (lex str)
-| isEmpty doc = Error "Parse error"
-= Ok (snd (hd doc))
-
-pDocBlock :: Parser Token DocBlock
-pDocBlock = begin1 pDocBlock`
-where
-	pDocBlock` = 
-		pDescription <&> \description ->
-		(<*> (pParam <!> pReturn <!> pThrows <!> pGin <!> pTitle <!> pIcon <!> pParallel)) <&> \args ->
-		yield	((seq args) (description emptyDocBlock))
-	
-	pDescription = pText <&> \description ->
-		yield (\doc -> { DocBlock | doc & description = Just description })
-	pParam = symbol ParamToken &> pText <&> \title -> symbol ColonToken &> pText <&> \description -> 
-		yield (\doc -> { DocBlock | doc & params = doc.params 
-		++ [{ ParamDoc | name = makeIdent title, title = Just title, description = Just description }] })
-	where
-		makeIdent s = replaceSubString " " "_" (toLowerCase s)
-	pReturn = symbol ReturnToken &> pText <&> \return ->
-		yield (\doc -> { DocBlock | doc & return = Just return })
-	pThrows = symbol ThrowsToken &> pText <&> \throws ->
-		yield (\doc -> { DocBlock | doc & throws = doc.throws ++ [throws]})
-	pGin = symbol GinToken &> pText <&> \gin ->
-		yield (\doc -> { DocBlock | doc & gin = toLowerCase gin == "true" })
-	pTitle = symbol TitleToken &> pText <&> \title ->
-		yield (\doc -> { DocBlock | doc & title = Just title })
-	pIcon = symbol IconToken &> pText <&> \icon ->
-		yield (\doc -> { DocBlock | doc & icon = Just icon })
-	pParallel = symbol ParallelToken &> pText <&> \parallel -> 
-		yield (\doc -> { DocBlock | doc & parallel = toLowerCase parallel == "true" })
-	pText = satisfy isText <@ \(TextToken t) -> t
 	
 
