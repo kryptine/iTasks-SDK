@@ -12,7 +12,7 @@ import FilePath
 import Directory
 import Text
 
-from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Emph, Index, Itemize, Item, NewParagraph, Section, Subsection), printLaTeX
+from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Emph, Index, Itemize, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
 from LaTeX import qualified :: LaTeX (Text)
 
 import iTasks
@@ -20,12 +20,13 @@ import DocumentDB
 import CleanDocParser
 
 from general 	import 	qualified ::Optional(..)
-from general	import	::Bind(..), ::Env(..)
+from general	import	::Bind(..), ::Env(..), ::BITVECT
 from Heap 		import 	::Ptr
 from scanner	import
 						::Assoc(..),
 						::Priority(..)
 from syntax		import	
+						::Annotation,
 						::AttributeVar, 
 						::AttrInequality, 
 						::AType(..), 
@@ -45,14 +46,16 @@ from syntax		import
 						::Import,
 						::ImportedObject,
 						::Index,
+						::ParsedConstructor(..),
 						::ParsedDefinition(..),
 						::ParsedExpr,
 						::ParsedImport,
 						::ParsedInstanceAndMembers,
+						::ParsedSelector(..),
 						::ParsedTypeDef,
 						::Position,
 						::Rhs,
-						::RhsDefsOfType,
+						::RhsDefsOfType(..),
 						::Special(..),
 						::SpecialSubstitution(..),
 						::StrictnessList, 
@@ -64,7 +67,7 @@ from syntax		import
 						::Type(..),
 						::TypeAttribute(..),
 						::TypeContext(..), 
-						::TypeDef,
+						::TypeDef(..),
 						::TypeKind,
 						::TypeSymbIdent(..),
 						::TypeSymbProperties,
@@ -83,7 +86,7 @@ generateTeXExample :: Task Void
 generateTeXExample = updateInformation "Enter API Directory:" [] (".." </> "Server" </> "API")
 	>>= \directory -> generateTeX directory >>= transform printLaTeX 
 	>>= \tex -> createDocumentTask "iTasks_API_documentation.tex" "application/x-tex" tex
-	>>= showInformation "Download iTasks API documentation in TeX format" []
+	>>= showInformation "Download iTasks API documentation in LaTeX format" []
 	>>| stop
 	
 derive class iTask LaTeX
@@ -110,6 +113,7 @@ where
 
 :: ModuleDoc = 
 	{ ident			:: !String
+	, types			:: ![TypeDefDoc]
 	, functions		:: ![FunctionDoc]
 	}
 	
@@ -130,13 +134,28 @@ where
 	, description	:: !String
 	, type			:: !TypeDoc
 	}
+	
+:: TypeDefDoc = 
+	{ ident				:: !String
+	, def				:: !String
+	}
 
 :: TypeDoc :== String
 
-derive class iTask ModuleDoc, FunctionDoc, ParameterDoc
+derive class iTask ModuleDoc, FunctionDoc, ParameterDoc, TypeDefDoc
 
 moduleToTeX :: !ModuleDoc -> [LaTeX]
-moduleToTeX {ModuleDoc | ident, functions} = [ Section ident : flatten (map functionToTeX functions) ]
+moduleToTeX {ModuleDoc | ident, types, functions} = 
+	[ Section ident ]
+	++ flatten (map typedefToTeX types)
+	++ flatten (map functionToTeX functions)
+
+typedefToTeX :: !TypeDefDoc -> [LaTeX]
+typedefToTeX { ident, def }
+	=	[ Subsection (":: " +++ ident)
+		, Index ident
+		, CleanCode [ def ]
+		]
 
 functionToTeX :: !FunctionDoc -> [LaTeX]
 functionToTeX {FunctionDoc | ident, operator, params, description, returnType, returnDescription, context, throws }
@@ -144,7 +163,7 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 			Just op = ident +++ " operator"
 			Nothing = ident)
 		, Index ident
-		, CleanCode 
+		, CleanCode
 			[	(case operator of
 					Just op = parens ident +++ " " +++ op
 					Nothing = ident
@@ -157,14 +176,12 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 					Just c = " | " +++ c)
 		    ]
 		, 'LaTeX'.Text description
-		, NewParagraph
-		, Emph ['LaTeX'.Text "Parameters:"]
+		, Paragraph "Parameters"
 		, (if (isEmpty params)
 			('LaTeX'.Text "(none)")
 			(Itemize (map parameterToTeX params))
 		  )
-		, NewParagraph
-		, Emph ['LaTeX'.Text "Returns:"]
+		, Paragraph "Returns"
 		, CleanInline returnType
 		, EmDash
 		, 'LaTeX'.Text returnDescription
@@ -172,8 +189,7 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 		++
 		(if (isEmpty throws)
 			[]
-			[ NewParagraph
-			, Emph ['LaTeX'.Text "Possible exceptions:"]
+			[ Paragraph "Possible exceptions"
 			, (Itemize [ Item ['LaTeX'.Text e] \\ e <- throws ])
 			]			
 		)
@@ -185,7 +201,7 @@ parameterToTeX {ParameterDoc | title, type, description} =
 			, EmDash
 			, 'LaTeX'.Text description
 			]
-
+			
 documentDCL :: !FilePath *World -> (MaybeErrorString ModuleDoc, *World)
 documentDCL filename world
 	# (res, world)				= readFile filename world
@@ -198,21 +214,22 @@ documentDCL filename world
 	# (_,world)					= deleteFile "errors.txt" world
 	= (Ok	{ ModuleDoc 
 			| ident = dropExtension (dropDirectory filename) 
-			, functions = documentDefinitions defs
+			, functions = documentFunctions defs
+			, types = documentTypeDefs defs
 			}
 	  , world)
 	  
-documentDefinitions :: ![ParsedDefinition] -> [FunctionDoc]
-documentDefinitions [] = []
-documentDefinitions [PD_Documentation docstr: PD_TypeSpec pos ident prio optSymbtype specials: defs]
+documentFunctions :: ![ParsedDefinition] -> [FunctionDoc]
+documentFunctions [] = []
+documentFunctions [PD_Documentation docstr: PD_TypeSpec pos ident prio optSymbtype specials: defs]
 	# res = parseDocBlock docstr
 	# doc = case res of
 		Ok doc = doc
 		Error err = emptyDocBlock
 	= case documentFunction doc ident prio optSymbtype of
-		Just fd = [fd:documentDefinitions defs]
-		Nothing = documentDefinitions defs
-documentDefinitions [def:defs] = documentDefinitions defs
+		Just fd = [fd:documentFunctions defs]
+		Nothing = documentFunctions defs
+documentFunctions [def:defs] = documentFunctions defs
 
 documentFunction :: !DocBlock Ident Priority ('general'.Optional SymbolType) -> Maybe FunctionDoc
 documentFunction doc ident prio 'general'.No = Nothing
@@ -239,6 +256,19 @@ documentParameter  doc type =
 	| title			= fromMaybe "(No title)" doc.ParamDoc.title
 	, description	= fromMaybe "(No description)" doc.ParamDoc.description
 	, type			= printAType True type
+	}
+	
+documentTypeDefs :: ![ParsedDefinition] -> [TypeDefDoc]
+documentTypeDefs [] = []
+documentTypeDefs [PD_Type typedef: defs] = 
+	[documentTypeDef typedef: documentTypeDefs defs]
+documentTypeDefs [def: defs] = documentTypeDefs defs
+
+documentTypeDef :: !ParsedTypeDef -> TypeDefDoc
+documentTypeDef { td_ident, td_rhs } = 
+	{ TypeDefDoc
+	| ident	= td_ident.id_name
+	, def	= ":: " +++ td_ident.id_name +++ " = " +++ printRhsDefsOfType td_rhs
 	}
 
 printAType :: !Bool !AType  -> String
@@ -270,6 +300,25 @@ printTCClass (TCGeneric {GenericTypeContext | gtc_class}) = printGlobalDefinedSy
 
 printGlobalDefinedSymbol :: !(Global DefinedSymbol) -> String
 printGlobalDefinedSymbol { Global | glob_object = { DefinedSymbol | ds_ident }} = ds_ident.id_name
+
+printTypeDef :: ParsedTypeDef -> String
+printTypeDef { td_ident, td_rhs } = ":: " +++ printRhsDefsOfType td_rhs
+
+printRhsDefsOfType :: RhsDefsOfType -> String
+printRhsDefsOfType	(ConsList parsedConstructors) = join "\n    | " (map printParsedConstructor parsedConstructors)
+printRhsDefsOfType	(SelectorList ident typeVars isBoxed selectors) 
+	= "\n {" +++ join "\n ," (map printParsedSelector selectors) +++ "}"
+printRhsDefsOfType	(TypeSpec atype) = printAType False atype
+printRhsDefsOfType (EmptyRhs _) = ""
+printRhsDefsOfType	_ = "(Unknown type definition)"
+
+printParsedConstructor :: ParsedConstructor -> String
+printParsedConstructor { ParsedConstructor | pc_cons_ident, pc_arg_types }
+	= join " " [pc_cons_ident.id_name : map (printAType False) pc_arg_types ]
+	
+printParsedSelector :: ParsedSelector -> String
+printParsedSelector { ParsedSelector | ps_field_ident, ps_field_type } 
+	= ps_field_ident.id_name +++ " :: " +++ printAType False ps_field_type
 
 parens :: !String -> String
 parens s = "(" +++ s +++ ")"
