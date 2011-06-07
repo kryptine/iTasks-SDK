@@ -70,7 +70,7 @@ derive class iTask Person, Gender
 personList :: Task [Person]
 personList
 	=              		enterInformation "Please fill in the form" []
-		
+
 // Same as w32, showing eta conversion
 
 chooseOneAndEdit:: [a] -> Task a | iTask a
@@ -83,7 +83,7 @@ personList2 :: Task Person
 personList2
 	=              		personList
 		>>= 			chooseOneAndEdit
-		
+
 // Same as w32, showing higher order functions
 
 personList3 :: Task [Person]
@@ -111,8 +111,8 @@ where
 		morePersons person
 			=					personList5
 				>>= \persons -> return [person:persons]
-		
-		
+
+
 select1of t = t >>= enterChoice "Choose one: " []
 selectNof t = t >>= enterMultipleChoice "Select one or more: " []
 
