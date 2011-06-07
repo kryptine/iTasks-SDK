@@ -10,13 +10,14 @@ Start :: *World -> *World
 Start world = startEngine flows3 world
 
 flows3 :: [Workflow]
-flows3 =  [w1, w2, w3, w4, w5, w6, w7, w8]
+flows3 =  [w1, w2, w3, w4, w5, w5a, w6, w7, w8]
 
 w1 = workflow "CEFP/Chap 3/1. Hello"    					"\"Hello World\" in iTask" 				hello
 w2 = workflow "CEFP/Chap 3/2. Form for [Person]" 			"Form for [Person]"						(show personList)
 w3 = workflow "CEFP/Chap 3/3. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
 w4 = workflow "CEFP/Chap 3/4. Choose one or more [Person]" 	"Select from a list" 					(show personList3)
 w5 = workflow "CEFP/Chap 3/5. Form for [Person]" 			"Form for [Person]" 					(show personList4)
+w5a = workflow "CEFP/Chap 3/5a. Form for [Person]" 			"Form for [Person]" 					(show personList5)
 w6 = workflow "CEFP/Chap 3/6. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
 w7 = workflow "CEFP/Chap 3/7. Form for [Person]+check" 		"Form for [Person] and check result" 	(show fillInAndCheckPersons)
 w8 = workflow "CEFP/Chap 3/8. Form for [Person]+check" 		"Form for [Person] and check result" 	(show fillInAndCheckPersons2)
@@ -49,10 +50,16 @@ personList
 		
 // Same as w32, showing eta conversion
 
+chooseOneAndEdit:: [a] -> Task a | iTask a
+chooseOneAndEdit  list
+	=					enterChoice "Choose an item to edit" [] list
+ 		 >>= \choice ->	updateInformation "Edit item" [] choice
+		 >>= \elem -> 	showInformation "Result:" [] elem
+
 personList2 :: Task Person
 personList2
 	=              		personList
-		>>= 			enterChoice "Choose one: " []
+		>>= 			chooseOneAndEdit
 		
 // Same as w32, showing higher order functions
 
@@ -65,16 +72,24 @@ personList3
 
 personList4 :: Task [Person]
 personList4
-	=          			fillOne
+	=          			enterInformation "Please fill in the form" []
 		>>= \person ->  enterChoice "One more ? "  [] ["Yes","No"]
 		>>= \answer ->	case answer of
 							"Yes" -> 					personList4 
 										>>= \persons ->	return [person:persons]
 							"No" ->						return [person]
-where
-	fillOne :: Task Person
-	fillOne = enterInformation "Please fill in the form" []
 
+personList5 :: Task [Person]
+personList5
+	=          			enterInformation "Please fill in the form" []
+		>>= \person ->  enterChoice "One more ? "  [] [("yes",morePersons person),("No",return [person])]
+		>>= \(answer,continuation) -> continuation
+where
+		morePersons person
+			=					personList5
+				>>= \persons -> return [person:persons]
+		
+		
 // Simple choice
 
 teaOrCoffee = enterChoice "Choose an option" [] ["Tea","Coffee"]

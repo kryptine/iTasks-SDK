@@ -8,7 +8,7 @@ Start :: *World -> *World
 Start world = startEngine flows2 world
 
 flows2 :: [Workflow]
-flows2 =  [w1, w2, w3, w4, w5, w6, w7]
+flows2 =  [w1, w2, w3, w4, w5, w6, w7, w8, w9, w10]
 
 w1 = workflow "CEFP/Chap 2/1. Hello world!"         "The infamous hello world"      hello
 w2 = workflow "CEFP/Chap 2/1. Enter Int value"    	"Form for an integer value" 	(show taskInt)
@@ -17,6 +17,9 @@ w4 = workflow "CEFP/Chap 2/3. Enter Person data"  	"Form for entering person dat
 w5 = workflow "CEFP/Chap 2/4. Enter [Person]" 		"Fill in person data" 			(show taskPersonList)
 w6 = workflow "CEFP/Chap 2/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
 w7 = workflow "CEFP/Chap 2/7. Choose several items" "Multiple choice" 				(show pizzaWith)
+w8 = workflow "CEFP/Chap 2/8. Simple Editor" 		"Using type Note" 				(show simpleEditor)
+w9 = workflow "CEFP/Chap 2/9. Pick a Date" 			"Using type Date" 				(show chooseDate)
+w10 = workflow "CEFP/Chap 2/10. Point on a map" 		"Using type GoogleMap" 		(show pointOnMap)
 
 show :: (Task a) -> Task a | iTask a
 show task = task >>= \r -> showInformation "The result is:" [] r
@@ -54,11 +57,24 @@ taskPersonList :: Task [Person]
 taskPersonList = enterInformation "Please enter a value" []
 
 //
-
 chooseNumber :: Task Int
 chooseNumber = enterChoice "Choose a number" [] [0..9]
 
 //
-
 pizzaWith :: Task [String]
 pizzaWith = enterMultipleChoice "What do you like on your pizza ?" [] ["Cheese","Tomato","Ansjofish","Salami"]
+
+//
+simpleEditor :: Task Note
+simpleEditor = enterInformation "Enter a piece of text" []
+
+//
+chooseDate :: Task Date
+chooseDate = enterInformation "Choose a date" []
+
+//
+import GoogleMaps
+
+pointOnMap :: Task GoogleMap
+pointOnMap = enterInformation "Show me the location" []
+
