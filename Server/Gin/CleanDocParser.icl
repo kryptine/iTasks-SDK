@@ -138,15 +138,15 @@ lex :: !String -> [DocToken]
 lex input = (lex` 0 0 lexFunctions)
 where
 	lexFunctions :: [LexFunction]
-	lexFunctions	=	[ lexFixed "@param "				ParamDocToken
-						, lexFixed "@throws "				ThrowsDocToken
-						, lexFixed "@return "				ReturnDocToken
-						, lexFixed "@gin "					GinDocToken
-						, lexFixed "@gin-title "			TitleDocToken
-						, lexFixed "@gin-icon " 			IconDocToken
-						, lexFixed "@gin-parallel "	 		ParallelDocToken
-						, lexFixed ":"						ColonDocToken
-						, lexFixed "\n*"					NewLineDocToken
+	lexFunctions	=	[ lexFixed "@param"			ParamDocToken
+						, lexFixed "@throws"		ThrowsDocToken
+						, lexFixed "@return"		ReturnDocToken
+						, lexFixed "@gin-title"		TitleDocToken
+						, lexFixed "@gin-icon" 		IconDocToken
+						, lexFixed "@gin-parallel"	ParallelDocToken
+						, lexFixed "@gin"			GinDocToken
+						, lexFixed ":"				ColonDocToken
+						, lexFixed "\n*"			NewLineDocToken
 						]
 						
 	lex` :: !Int !Int ![LexFunction] -> [DocToken]

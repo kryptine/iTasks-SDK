@@ -122,6 +122,7 @@ where
 	, returnType		:: !TypeDoc
 	, returnDescription	:: !String
 	, context			:: !Maybe String
+	, throws			:: ![String]
 	}
 
 :: ParameterDoc = 
@@ -138,7 +139,7 @@ moduleToTeX :: !ModuleDoc -> [LaTeX]
 moduleToTeX {ModuleDoc | ident, functions} = [ Section ident : flatten (map functionToTeX functions) ]
 
 functionToTeX :: !FunctionDoc -> [LaTeX]
-functionToTeX {FunctionDoc | ident, operator, params, description, returnType, returnDescription, context }
+functionToTeX {FunctionDoc | ident, operator, params, description, returnType, returnDescription, context, throws }
 	=	[ Subsection (case operator of
 			Just op = ident +++ " operator"
 			Nothing = ident)
@@ -150,10 +151,10 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 				)
 			    +++ " :: " 
 				+++ join " " [p.ParameterDoc.type \\ p <- params]
-				+++ " -> " +++ returnType
+				+++ (if (isEmpty params) "" " -> ") +++ returnType
 				+++ (case context of
 					Nothing = ""
-					Just c = "| " +++ c)
+					Just c = " | " +++ c)
 		    ]
 		, 'LaTeX'.Text description
 		, NewParagraph
@@ -168,6 +169,14 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 		, EmDash
 		, 'LaTeX'.Text returnDescription
 		]
+		++
+		(if (isEmpty throws)
+			[]
+			[ NewParagraph
+			, Emph ['LaTeX'.Text "Possible exceptions:"]
+			, (Itemize [ Item ['LaTeX'.Text e] \\ e <- throws ])
+			]			
+		)
 
 parameterToTeX :: !ParameterDoc -> LaTeX
 parameterToTeX {ParameterDoc | title, type, description} = 
@@ -221,6 +230,7 @@ documentFunction doc ident prio ('general'.Yes st) = Just
 	, returnType		= printAType False st.st_result
 	, returnDescription	= fromMaybe "(No return)" doc.DocBlock.return
 	, context			= printContexts st.st_context
+	, throws			= doc.DocBlock.throws
 	}
 
 documentParameter :: !ParamDoc AType -> ParameterDoc
