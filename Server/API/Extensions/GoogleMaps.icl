@@ -176,10 +176,10 @@ convertToStaticMap map =:{GoogleMap | center = {lat,lng}, zoom, mapType, markers
 # url 		= "http://maps.google.com/maps/api/staticmap?"
 # cntr		= "center="+++(toString lat)+++","+++(toString lng)
 # zm		= "zoom="+++(toString zoom)
-# sz		= "size=800x600"
+# sz		= "size=650x600"
 # tp		= "maptype="+++(toString mapType)
 # mrkrs		= "markers="+++(convertMarkers markers)
-= GoogleStaticMap 800 600 (url+++cntr+++"&"+++zm+++"&"+++sz+++"&"+++tp+++"&"+++mrkrs+++"&sensor=false&key="+++GOOGLE_API_KEY)
+= GoogleStaticMap 650 600 (url+++cntr+++"&"+++zm+++"&"+++sz+++"&"+++tp+++"&"+++mrkrs+++"&sensor=false&key="+++GOOGLE_API_KEY)
 where
 	convertMarkers :: [GoogleMapMarker] -> String
 	convertMarkers [] = "";
