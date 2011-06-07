@@ -116,7 +116,7 @@ taskKind = ShowAs BodyTask
 
 taskKind2 = DetachedTask (normalTask  RootUser)  // window does not work yet
 
-editor :: String (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
+editor :: String (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 editor fileName ls os 
 	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") [View (toView,fromView)] ls
 		>?* 	[ (ActionSave, 		IfValid	save)
@@ -145,7 +145,7 @@ where
 			>>|	set os [AppendTask (ShowAs BodyTask statisticsTask)]
 			>>| editor fileName ls os
 
-replaceTask :: Replace (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
+replaceTask :: Replace (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 replaceTask replacement ls os
 	=			updateInformation ("Replace","Define replacement...") [] replacement
 		>?*		[(ActionOk,   IfValid 	(\r -> 		updateText (replaceSubString r.search r.replaceBy) ls
@@ -154,7 +154,7 @@ replaceTask replacement ls os
 											>>| return Void))
 				]
 
-statisticsTask :: (SymmetricShared EditorState) (ParallelInfo EditorState) -> Task Void
+statisticsTask :: (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 statisticsTask ls os 
 	= 			monitor ("Statistics","Statistics of your document") [Get toView] ls
 		>?*		[(ActionQuit, Always (updateStat False ls >>| return Void))]

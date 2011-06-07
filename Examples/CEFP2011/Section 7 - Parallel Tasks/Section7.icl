@@ -44,7 +44,7 @@ naive_chat
 								   \\ who <- [me : others]
 								   ]
 where
-	chat :: String User (SymmetricShared ChatState) info -> Task ChatState
+	chat :: String User (Shared ChatState) info -> Task ChatState
 	chat names me chatState info
 		= forever (              get chatState
 		      >>= \xs         -> updateInformation headerEditor [] (Display xs, Note "")
@@ -68,7 +68,7 @@ monitor_chat
 								   \\ who <- [me : others]
 								   ]
 where
-	chat :: String User (SymmetricShared ChatState) info -> Task ChatState
+	chat :: String User (Shared ChatState) info -> Task ChatState
 	chat names me chatState info
 		= (monitor headerMonitor [] chatState) ||- (forever enterLine)
 	where
@@ -140,7 +140,7 @@ multibind_chat
 								   \\ who <- [me : others]
 								   ]
 where
-	chat :: String User (SymmetricShared ChatState) (ParallelInfo ChatState) -> Task Void
+	chat :: String User (Shared ChatState) (ParallelInfo ChatState) -> Task Void
 	chat names me chatState os
 		= (monitor headerMonitor [] chatState) ||- enterLine
 	where

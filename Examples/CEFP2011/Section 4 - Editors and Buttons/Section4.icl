@@ -11,7 +11,7 @@ Start :: *World -> *World
 Start world = startEngine flows4 world
 
 flows4 :: [Workflow]
-flows4 =  [w0, w1,w2,w3,w4,w5]
+flows4 =  [w0, w1,w2,w3,w4,w5,w6]
 
 w0 = workflow "CEFP/Sect 4/0. Simple Question" 				"Only one answer possible..." 					(show ask)
 w1 = workflow "CEFP/Sect 4/1. Form for [Person]" 			"Form for [Person]" 							(show personList6)
@@ -102,10 +102,11 @@ oddOrEvenButtons even
 	
 // palindrome	
 
+palindrome :: Task (Maybe String)
 palindrome 
 	= 				enterInformation "Please enter a text" []
-		>?*	 		[(Action "Palindrome!",Sometimes (onlyIf isPalindrome return))
-					,(Action "Nope!",      Sometimes (onlyIf (not o isPalindrome) return))
+		>?*	 		[(ActionOk,   Sometimes (onlyIf isPalindrome (return o Just)))
+					,(ActionQuit, Always (return Nothing))
 					]
 where	
 	isPalindrome :: String -> Bool
