@@ -3,8 +3,7 @@ implementation module Chapter5
 // Examples showing the extension of editors with buttons
 
 import iTasks
-from Chapter2 import show
-from Chapter3 import positive
+from Chapter3 import show, positive
 
 derive bimap (,), Maybe
 
