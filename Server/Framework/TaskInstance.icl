@@ -117,6 +117,8 @@ where
 		# properties = case tuiTaskNr of
 			[_]	= {properties & systemProperties = {properties.systemProperties & firstEvent = Just (fromMaybe timestamp properties.systemProperties.firstEvent), latestEvent = Just timestamp}}
 			_	= properties
+		//Remove first parts of tui task number
+		# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr)
 		= case tcontext of
 			//Evaluate further
 			TTCActive scontext
@@ -128,7 +130,7 @@ where
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
 				# commitEvent					= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
-				= evalTask` originalTask.Task.properties changeNo scontext commitEvent originalTaskFuncs properties 1 iworld
+				= evalTask` originalTask.Task.properties changeNo scontext commitEvent tuiTaskNr originalTaskFuncs properties 1 iworld
 			//Don't evaluate, just yield TaskBusy without user interface and original context
 			TTCSuspended scontext
 				= (TaskBusy Nothing [] context, properties, iworld)
@@ -139,8 +141,7 @@ where
 			TTCExcepted e
 				= (taskException e, properties, iworld)
 			
-	evalTask` props changeNo scontext commitEvent originalTaskFuncs properties iterationCount iworld
-		# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr)
+	evalTask` props changeNo scontext commitEvent tuiTaskNr originalTaskFuncs properties iterationCount iworld
 		# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] props commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext {iworld & readShares = Just []}
 		= case sresult of
 			TaskBusy tui actions scontext
@@ -149,7 +150,7 @@ where
 				# context		= TCTop properties changeNo (TTCActive scontext)
 				# iworld		= setProcessContext processId context iworld
 				| isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
-					= evalTask` props changeNo scontext Nothing originalTaskFuncs properties (inc iterationCount) iworld
+					= evalTask` props changeNo scontext Nothing tuiTaskNr originalTaskFuncs properties (inc iterationCount) iworld
 				| otherwise
 					= (TaskBusy (Just tui) [] context, properties, iworld)
 			TaskFinished val

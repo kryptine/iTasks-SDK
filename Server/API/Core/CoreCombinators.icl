@@ -99,7 +99,7 @@ where
 	tuiOk i [t:ts] tui	
 		| i == t	= tui
 		| otherwise	= Nothing 
-	
+
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
 
