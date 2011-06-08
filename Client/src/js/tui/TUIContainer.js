@@ -165,7 +165,7 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 		if(!Ext.isDefined(this.getFrameWidth))
 			return 0;
 		
-		var type = this.xtype + '|' + (this.title === null) + '|' + this.frame + '|' + this.initialConfig.padding;
+		var type = this.xtype + '|' + Ext.isString(this.title) + '|' + this.frame + '|' + this.initialConfig.padding;
 		var cached = this.getCache(type,'frameWidth',true);
 		if (cached !== null) return cached;
 		
@@ -177,7 +177,7 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 		if(!Ext.isDefined(this.getFrameHeight))
 			return 0;
 			
-		var type = this.xtype + '|' + (this.title === null) + '|' + this.frame + '|' + this.initialConfig.padding;
+		var type = this.xtype + '|' + Ext.isString(this.title) + '|' + this.frame + '|' + this.initialConfig.padding;
 		var cached = this.getCache(type,'frameHeight',true);
 		if (cached !== null) return cached;
 	
