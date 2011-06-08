@@ -28,13 +28,15 @@ someTask :: Task Note
 someTask = enterInformation "Enter Information" []
 
 // Number guessing game
+from Section4 import onlyIf
 
 guessGame
-      =                enterInformation "Please enter a number" []
-        >>= \secret -> (guess secret -||- guess secret)
+      =                enterInformation "Please enter a number between 1 and 10 that has to be guessed" [] 
+        >?*			   [(ActionOk, Sometimes (onlyIf (\n -> n > 0 && n <= 10) return))]
+        >>= \secret -> (delegate (guess secret) -||- delegate (guess secret))
         >>= \winner -> showInformation (userName winner +++ " has won") [] winner
 where
-	guess secret = delegate (updateInformation "Guess a number" [] 0 <! (==) secret >>| get currentUser)
+	guess secret = updateInformation "Guess a number between 1 and 10" [] 0 <! (==) secret >>| get currentUser
 
 
 // Ask everyone if they can meet on acertain time and date

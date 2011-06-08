@@ -5,3 +5,6 @@ definition module Section4
 import iTasks
 
 flows4 :: [Workflow]
+
+onlyIf :: (a -> Bool) (a -> Task b) (InformationState a) -> Maybe (Task b)
+
