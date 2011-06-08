@@ -19,7 +19,6 @@ itasks.tui.ConstructorControl = itasks.tui.extendControl(Ext.Panel,{
 			value: store[(this.value+1)][1],
 			hideLabel: true,
 			style: 'margin-bottom: 4px',
-			msgTarget: 'side',
 			valueNotFoundText: 'Value not found...',
 			listeners: {select: {fn: this.onChange, scope: this}}
 		});
@@ -34,11 +33,11 @@ itasks.tui.ConstructorControl = itasks.tui.extendControl(Ext.Panel,{
 		delete this.items;
 	
 		this.itemPanel = new Ext.Panel({
-			autoHeight: true,
 			items: panelItems,
 			frame: true,
 			baseCls: 'x-constructor-panel',
-			hidden: panelItems.length == 0	//Initially hide the itemPanel if there are no items 
+			hidden: panelItems.length == 0,	//Initially hide the itemPanel if there are no items
+			show: function() {}
 		});
 		
 		this.items = [this.consField, this.itemPanel];	
@@ -67,9 +66,6 @@ itasks.tui.ConstructorControl = itasks.tui.extendControl(Ext.Panel,{
 	},
 	getValue: function() {
 		return this.consField.getValue();
-	},
-	getMessageHandler: function() {
-		return this.consField.getMessageHandler();
 	},
 	isValid: function() {
 		return this.consField.isValid();
