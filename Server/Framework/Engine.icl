@@ -76,6 +76,7 @@ initIWorld config flows world
 								  ,tmpDirectory		= tmpPath
 								  ,config			= config
 								  ,timestamp		= timestamp
+								  ,latestEvent		= Nothing
 								  ,localDateTime	= localDateTime
 								  ,currentUser		= AnyUser
 								  ,parallelVars		= newMap

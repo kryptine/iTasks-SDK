@@ -12,7 +12,6 @@ from WorkflowDB		import qualified class WorkflowDB(..), instance WorkflowDB IWor
 PARTS_STORE				:== "parts"
 LOCAL_STORE				:== "local"
 LAST_EDIT_STORE			:== "lastEdit"
-LAST_TUI_STORE			:== "lastTui"
 EVENT_STORE				:== "event"
 EDIT_CONFLICT_STORE		:== "editConflict"
 EDIT_CONFLICT_WARNING	:== "An edit conflict occurred. The form was refreshed with the most recent value."
@@ -78,7 +77,7 @@ where
 		= (TCBasic newMap, iworld)
 	
 	//There is an edit event for this task (because the location part of the event is the empty list)
-	edit taskNr ([],dps,editV) context iworld=:{IWorld|timestamp}
+	edit taskNr ([],dps,editV) context iworld=:{IWorld|timestamp,latestEvent}
 		//Split datapath into datapath & part index
 		# (idx,dp)					= splitDataPath dps
 		//Read latest versions of states
@@ -89,14 +88,16 @@ where
 		| idx >= length parts		= (context, iworld) 
 		//Save event for use in the visualization of the task
 		# context					= setEvent (dps,editV) context
-		//Check if the share has changed since we last generated the visualization
-		# lastTuiGen				= getLocalVar LAST_TUI_STORE context
-		# (changed,iworld)			= 'Shared'.isSharedChanged shared (fromMaybe (Timestamp 0) lastTuiGen) iworld
+		//Check if the share has changed since the last event
+		# (changed,iworld) = case latestEvent of
+			Nothing			= (Ok False,iworld)
+			Just lastEvent	= 'Shared'.isSharedChanged shared lastEvent iworld
 		= case changed of
 			Ok True
-				//The share has changed since we last edited it
+				//Edit conflict
 				= (setLocalVar EDIT_CONFLICT_STORE True context, iworld) 
 			_
+				# context = delLocalVar EDIT_CONFLICT_STORE context 
 				= case parts !! idx of
 					StoredUpdateView jsonV umask (StoredPutback putback)
 						# mbValue				= fromJSON jsonV
@@ -144,8 +145,7 @@ where
 					Just result
 						= (TaskFinished result, iworld)
 					Nothing
-						# context						= setLocalVar LAST_TUI_STORE timestamp context
-						# (tui,actions,context,iworld)	= renderTUI taskNr imerge parts actions context iworld
+						# (tui,actions,context,iworld) = renderTUI taskNr imerge parts actions context iworld
 						= (TaskBusy (Just tui) actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}

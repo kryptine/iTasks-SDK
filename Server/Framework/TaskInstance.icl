@@ -109,10 +109,14 @@ evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld
 	# (result,properties,iworld) = evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbThread) (fromJust mbContext) iworld
 	= (Ok (result,properties), iworld)
 where
-	evalTask processId mbEdit mbCommit tuiTaskNr thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) context=:(TCTop properties changeNo tcontext) iworld
+	evalTask processId mbEdit mbCommit tuiTaskNr thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) context=:(TCTop properties changeNo tcontext) iworld=:{IWorld|timestamp}
 		# originalTaskFuncs = toTaskFuncs originalTask
-		//Set current worker
-		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
+		//Set current worker & last event timestamp
+		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker, latestEvent = properties.systemProperties.SystemProperties.latestEvent}
+		//If target is not detached process, set first event timestamp if not set yet & latest update
+		# properties = case tuiTaskNr of
+			[_]	= {properties & systemProperties = {properties.systemProperties & firstEvent = Just (fromMaybe timestamp properties.systemProperties.firstEvent), latestEvent = Just timestamp}}
+			_	= properties
 		= case tcontext of
 			//Evaluate further
 			TTCActive scontext
@@ -123,7 +127,7 @@ where
 					_											= (scontext, iworld)
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
-				# commitEvent		= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
+				# commitEvent					= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
 				= evalTask` changeNo scontext commitEvent originalTaskFuncs properties 1 iworld
 			//Don't evaluate, just yield TaskBusy without user interface and original context
 			TTCSuspended scontext

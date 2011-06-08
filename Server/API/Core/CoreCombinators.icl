@@ -136,7 +136,7 @@ where
 			= ([(i,s):ss], nextIdx, iworld)
 			
 	//Direct the event to the right place
-	edit taskNr ([s:steps],path,val) context=:(TCParallel encState meta subs) iworld
+	edit taskNr ([s:steps],path,val) context=:(TCParallel encState meta subs) iworld=:{IWorld|latestEvent=parentLatestEvent}
 		//Add the current state to the parallelVars scope in iworld
 		# state							= decodeState encState initState 
 		# iworld						= addParState taskNr state meta iworld
@@ -158,7 +158,10 @@ where
 					//Same pattern as inbody tasks
 					# task = fromJust (dynamicJSONDecode encTask)	//TODO: Also add case for error
 					# taskfuncs = toTaskFuncs` task
+					// change latest event timestamp for detached process
+					# iworld = {IWorld|iworld & latestEvent = props.systemProperties.SystemProperties.latestEvent}
 					# (newSubCxt,iworld) = taskfuncs.editEventFun [s:taskNr] (steps,path,val) subCxt iworld
+					# iworld = {IWorld|iworld & latestEvent = parentLatestEvent}
 					# newSub = STCDetached props (Just (encTask,newSubCxt))
 					= (TCParallel encState meta [if (i == s) (i,newSub) (i,sub) \\(i,sub) <- subs],iworld)
 				//Task is either completed already or hidden
@@ -214,7 +217,7 @@ where
 		//Check the stop flag
 		| meta.stop = (RSStopped, iworld)
 		| otherwise	= (RSResults meta results, iworld)
-	evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta results [(idx,stcontext):stasks] iworld
+	evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta results [(idx,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,timestamp}
 		//Check the stop flag
 		| meta.stop	= (RSStopped, iworld)
 		//Evaluate subtask
@@ -238,10 +241,20 @@ where
 			(STCDetached props (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= toTaskFuncs` task
-				//Evaluate the task with a different current worker set
+				//Evaluate the task with a different current worker set & changed latest event timestamp
 				# (curUser,iworld)	= switchCurrentUser props.ProcessProperties.managerProperties.worker iworld
+				# iworld			= {IWorld|iworld & latestEvent = props.systemProperties.SystemProperties.latestEvent}
 				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
 				# (_,iworld)		= switchCurrentUser curUser iworld
+				# iworld			= {IWorld|iworld & latestEvent = parentLatestEvent}
+				//Update first/latest event if request is targeted at this detached process
+				# props = case tuiTaskNr of
+					[t] | t == idx	=	{props & systemProperties =
+						{ props.systemProperties
+						& firstEvent	= Just (fromMaybe timestamp props.systemProperties.firstEvent)
+						, latestEvent	= Just timestamp
+						}}
+					_				= props
 				= case result of
 					TaskBusy tui actions context	= (TaskBusy tui actions context, STCDetached props (Just (encTask, context)), iworld)
 					TaskFinished _					= (TaskFinished Void, STCDetached (markFinished props) Nothing, iworld)
