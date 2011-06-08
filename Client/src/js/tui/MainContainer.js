@@ -28,31 +28,11 @@ itasks.tui.MainContainer = itasks.tui.extendContainer(Ext.Panel,{
 				layout: "hbox",
 				autoScroll: true,
 				items: this.items,
-				tbar : this.menus /*[{text: 'Task Actions',
-						 iconCls: 'icon-properties',
-						 menu: {items: [{
-							text: 'Refresh Task',
-							iconCls: 'x-tbar-loading',
-							scope: this,
-							handler: function(item,evt){
-								this.findParentByType(itasks.WorkPanel).refresh(false);
-							}},{
-							text: 'Task Properties'	,
-							iconCls: 'icon-properties',
-							scope: this,
-							handler: function(item,evt){
-								this.findParentByType(itasks.WorkPanel).showProperties();
-							}},'-',{
-							text: 'Cancel Task',
-							iconCls: 'icon-trash',
-							scope: this,
-							handler: function(item,evt){
-								this.findParentByType(itasks.WorkPanel).cancel();
-							}}]
-						 }}].concat(this.menus)*/
+				tbar : this.menus
 			}],
-		});	
+		});
 		itasks.tui.base.initComponent.apply(this,arguments);
+		this.setTabTitle(this.properties.taskProperties.taskDescription.title);
 	},
 	doTUILayout: function(fillW,fillH) {
 		this.setWidth(fillW);
@@ -70,6 +50,9 @@ itasks.tui.MainContainer = itasks.tui.extendContainer(Ext.Panel,{
 			case "NormalPriority": return "worktab-header-normal-priority";
 			case "HighPriority": return "worktab-header-high-priority";
 		}		
+	},
+	setTabTitle: function(title) {
+		this.findParentByType(itasks.WorkPanel).setTitle(Ext.util.Format.ellipsis(title,10));
 	}
 });
 

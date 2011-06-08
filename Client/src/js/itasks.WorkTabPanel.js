@@ -13,7 +13,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	
 	initComponent: function() {
 		Ext.apply(this, {
-			title: this.taskId,
+			title: "Loading...",
 			closable: true,
 			autoDestroy: true,
 			iconCls: "icon-task",
@@ -138,58 +138,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		}
 		
 		Ext.Msg.confirm("Cancel Task","Are you sure you wish to cancel this task?",doCancel);
-	},
-	showProperties: function(){
-		var p = this.properties;
-	
-		var w = new Ext.Window({
-			title : 'Task Properties',
-			iconCls: 'icon-properties',
-			resizable: false,
-			width: 500,
-			height: 300,
-			layout: 'accordion',
-			cls: 'task-properties-window',
-			defaults: {
-				bodyStyle: 'padding: 10px'
-			},
-			layoutConfig: {
-				titleCollapse: false,
-				hideCollapseTool: true
-			},
-			items: [
-				{ title: 'Runtime Properties'
-				, iconCls: 'icon-currentwork'
-				, layout: 'form'
-				, defaultType: "staticfield"
-				, items: [{
-					name: "priority",
-					fieldLabel: "Priority",
-					format: itasks.util.formatPriority,
-					value: p.managerProperties.priority
-				},{
-					name: "issuedAt",
-					fieldLabel: "Issued at",
-					format: itasks.util.formatDate,
-					value: p.systemProperties.issuedAt
-				},{
-					name: "firstEvent",
-					fieldLabel: "First worked on",
-					format: itasks.util.formatStartDate,
-					value: p.systemProperties.firstEvent
-				},{
-					name: "latestEvent",
-					fieldLabel: "Last worked on",
-					format: itasks.util.formatStartDate,
-					value: p.systemProperties.latestEvent
-				}]
-				}
-			]
-		});
-		
-		w.show();
-	},
-	
+	},	
 	fadeOut: function() {
 		this.fireEvent("taskRedundant");
 				
