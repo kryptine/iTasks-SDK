@@ -15,14 +15,14 @@ Start world = startEngine flows5 world
 flows5 :: [Workflow]
 flows5 =  [w1, w2, w3, w4, w5, w6, w7, w8]
 
-w1 = workflow "CEFP/Sect 5/1. Date and Time" 					"Shows current date and time"							(repeatUntilApproved (show getDateAndTime))
+w1 = workflow "CEFP/Sect 5/1. Date and Time" 					"Shows current date and time"							(show getDateAndTime)
 w2 = workflow "CEFP/Sect 5/2. Administrated users" 				"Shows currently administrated users"					(show getUsers)
 w3 = workflow "CEFP/Sect 5/3. Administrated users details"		"Shows details of all currently administrated users"	(show getUsersDetails)
 w4 = workflow "CEFP/Sect 5/4. Show details of a user"			"Select administrated user and show administration"		selectUserDetails 
 w5 = workflow "CEFP/Sect 5/5. Current Workflows" 				"Which workflows are known here ?"						(show getWorkflows)
-w6 = workflow "CEFP/Sect 5/6. To Do List" 						"Create and store a to do list"							(show updateMyStore)
+w6 = workflow "CEFP/Sect 5/6. To Do List" 						"Create and store a to do list"							(show updateToDoList)
 w7 = workflow "CEFP/Sect 5/7. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
-w8 = workflow "CEFP/Sect 5/8. To Do List, vrs 2" 				"Create and store a to do list" 						(show updateMyStore2)
+w8 = workflow "CEFP/Sect 5/8. To Do List, vrs 2" 				"Create and store a to do list" 						(show updateToDoList2)
 
 // Date and Time
 
@@ -68,22 +68,22 @@ getWorkflows
 
 // Make my own shared store
 
-:: ToDoList =	{ name :: String
-				, deadline :: Date
-				, remark :: Maybe Note
-				, done :: Bool
+:: ToDo		=	{ name		:: !String
+				, deadline	:: !Date
+				, remark	:: !Maybe Note
+				, done		:: !Bool
 				}
+derive class iTask ToDo
 
-derive class iTask ToDoList
+toDoList :: Shared [ToDo]
+toDoList = sharedStore "My To Do List" []
 
-updateMyStore :: Task [ToDoList]
-updateMyStore
-    =     	get myStore
+updateToDoList :: Task [ToDo]
+updateToDoList
+    =     	get toDoList
       >>= 	updateInformation "Your To Do List" []
-      >>=	set myStore
-where
-	myStore = sharedStore "My To Do List Store" [] 
-	
+      >>=	set toDoList
+
 // using interactions on shared data
 
 selectUserDetails2 :: Task UserDetails
@@ -93,8 +93,6 @@ selectUserDetails2
       >>= \details -> 	showInformation ("Details of user " <+++ user) [] details
 
 
-updateMyStore2 :: Task [ToDoList]
-updateMyStore2
-    =     	updateSharedInformation "Your To Do List" [] myStore
-where
-	myStore = sharedStore "My To Do List Store" [] 
+updateToDoList2 :: Task [ToDo]
+updateToDoList2
+    =     	updateSharedInformation "Your To Do List" [] toDoList
