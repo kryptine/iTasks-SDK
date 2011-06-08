@@ -1,2 +1,0 @@
-USER32.DLL
-FindWindowA@8
