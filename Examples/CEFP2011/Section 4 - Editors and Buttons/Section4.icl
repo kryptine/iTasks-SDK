@@ -11,15 +11,29 @@ Start :: *World -> *World
 Start world = startEngine flows4 world
 
 flows4 :: [Workflow]
-flows4 =  [w0, w1,w2,w3,w4,w5,w6]
+flows4 =  [w1, w2, w3, w4, w5, w6, w7, w8]
 
-w0 = workflow "CEFP/Sect 4/0. Simple Question" 				"Only one answer possible..." 					(show ask)
-w1 = workflow "CEFP/Sect 4/1. Form for [Person]" 			"Form for [Person]" 							(show personList6)
-w2 = workflow "CEFP/Sect 4/2. Accept only an even number" 	"Type in an even number" 						(show askEven)
-w3 = workflow "CEFP/Sect 4/3. Only even" 					"Either the odd or even buttons can be chosen" 	(show (oddOrEvenButtons True))
-w4 = workflow "CEFP/Sect 4/4. Dynamic number of buttons" 	"Dynamic number of buttons to choose from" 		(forever (show (positive >>= actions)))
-w5 = workflow "CEFP/Sect 4/5. Dynamic number of buttons" 	"Order pressed is remembered" 					(show (dynButtons [1..10] []))
-w6 = workflow "CEFP/Sect 4/6. Palindrome exercise" 			"Palindrome" 									palindrome
+w1	= workflow "CEFP/Sect 4/1. Absolutely 42"				"Yield 42 or absolute value"					absolute
+w2	= workflow "CEFP/Sect 4/2. Simple Question" 			"Only one answer possible..." 					(show ask)
+w3	= workflow "CEFP/Sect 4/3. Form for [Person]" 			"Form for [Person]" 							(show personList6)
+w4	= workflow "CEFP/Sect 4/4. Accept only an even number" 	"Type in an even number" 						(show askEven)
+w5	= workflow "CEFP/Sect 4/5. Only even" 					"Either the odd or even buttons can be chosen" 	(show (oddOrEvenButtons True))
+w6	= workflow "CEFP/Sect 4/6. Dynamic number of buttons" 	"Dynamic number of buttons to choose from" 		(forever (show (positive >>= actions)))
+w7	= workflow "CEFP/Sect 4/7. Dynamic number of buttons" 	"Order pressed is remembered" 					(show (dynButtons [1..10] []))
+w8	= workflow "CEFP/Sect 4/8. Palindrome exercise" 		"Palindrome" 									palindrome
+
+// return 42 or absolute value of input
+absolute :: Task Int
+absolute = enterInformation "Enter a number" []
+     >?* [(Action "Always",    Always   (return 42))
+         ,(Action "If valid",  IfValid  (\x -> return (abs x)))
+         ,(Action "Sometimes", Sometimes check_positive)
+         ]
+where
+	check_positive :: (InformationState Int) -> Maybe (Task Int)
+	check_positive {localValid,modelValue}
+	| localValid && modelValue > 0	= Just (return modelValue)
+	| otherwise						= Nothing
 
 // simple question with buttons
 
@@ -46,7 +60,7 @@ personList6 :: Task [Person]
 personList6
 	=         enterInformation "Please fill in the form" []
 		>?*  [(Action "Add one ", IfValid morePersons)  
-			 ,(Action "Quit", IfValid (\person -> return [person]))
+			 ,(Action "Quit",     IfValid (\person -> return [person]))
 			 ]
 where
 		morePersons person
