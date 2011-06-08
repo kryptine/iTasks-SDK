@@ -355,7 +355,6 @@ getRoles			:: !User -> [Role]
 			| ActionEdit
 
 :: ActionName	:== String	//Locally unique identifier for actions
-:: ActionLabel	:== String	//Textual label for the action
 
 :: TaskAction :== (TaskId,Action,Bool)
 
@@ -366,7 +365,6 @@ instance actionName Action
 instance actionName ActionName
 
 actionIcon 	:: !Action -> String
-actionLabel	:: !Action -> String
 			
 :: Hotkey =	{ key	:: !Key
 			, ctrl	:: !Bool

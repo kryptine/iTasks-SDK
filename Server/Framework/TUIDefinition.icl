@@ -1,8 +1,8 @@
 implementation module TUIDefinition
 
 import JSON, StdList, StdBool, GenEq, StdFunc, HTML, Text
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionLabel, :: ActionName, :: TaskAction, :: ProcessProperties
-from Types import class actionName(..), instance actionName Action, actionLabel, actionIcon
+from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionName, :: TaskAction, :: ProcessProperties
+from Types import class actionName(..), instance actionName Action, actionIcon
 
 htmlDisplay :: !html -> TUIDef | toString html
 htmlDisplay html =	{ content	= TUIControl (TUIHtmlDisplay Nothing)
@@ -158,7 +158,7 @@ where
 			| name			= actionName action
 			, taskId		= taskId
 			, disabled		= not enabled
-			, text			= actionLabel action
+			, text			= actionName action
 			, iconCls 		= actionIcon action
 			, actionButton	= True
 			}

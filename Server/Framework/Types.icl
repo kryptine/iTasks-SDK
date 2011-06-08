@@ -536,19 +536,16 @@ where
 	actionName ActionQuit			= "File/Quit"
 	actionName ActionHelp			= "Help/Help"
 	actionName ActionAbout			= "Help/About"
-	actionName ActionFind			= "Edit/find"
-	actionName ActionEdit			= "Edit/Edit"
-	actionName ActionDelete			= "Edit/Delete"
+	actionName ActionFind			= "Edit/Find"
+	actionName ActionEdit			= "Edit"
+	actionName ActionDelete			= "Delete"
 	
 instance actionName ActionName	
 where
 	actionName name = name
 
 actionIcon :: !Action -> String
-actionIcon action = "icon-" +++ toLowerCase (actionName action) 
-
-actionLabel :: !Action -> String
-actionLabel a = actionName a
+actionIcon action = "icon-" +++ toLowerCase (last (split "/" (actionName action))) 
 
 instance descr String
 where

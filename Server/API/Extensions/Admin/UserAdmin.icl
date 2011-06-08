@@ -6,7 +6,7 @@ manageUsers :: Task Void
 manageUsers =
 	(		enterSharedChoice ("Users","The following users are available") [] users
 		>?*	[ (ActionNew,		Always	(			createUserFlow		>>|	return False))
-			, (ActionOpen,		IfValid (\user -> 	updateUserFlow user	>>|	return False))
+			, (ActionEdit,		IfValid (\user -> 	updateUserFlow user	>>|	return False))
 			, (ActionDelete,	IfValid (\user ->	deleteUserFlow user	>>|	return False))
 			, (ActionQuit,		Always	(									return True))
 			]

@@ -130,11 +130,10 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 				}
 			} else if(cmp.xtype == 'itasks.tui.Constructor') {
 				cmp = cmp.itemPanel.items.get(steps);
-			} else if(cmp.xtype == 'itasks.tui.MainContainer') {
+			} else if(cmp.isXType('itasks.tui.MainContainer')) {
 				//Choose between menu or items
 				if(steps == 0) {
-					cmp = cmp.get(1).getTopToolBar();
-					path[i+1] = parseInt(path[i+1]) + 1; //HACK
+					cmp = cmp.get(1).getTopToolbar();
 				} else {
 					cmp = cmp.get(1).items.get(parseInt(path[i+1]));
 					i++;
@@ -165,7 +164,6 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 			} else if(cmp.isXType('itasks.tui.MainContainer')) {
 				if(parseInt(steps[i]) == 0) {
 					cmp = cmp.get(1).getTopToolbar();
-					steps[i+1] = parseInt(steps[i+1]) + 1; //HACK 
 				} else {
 					cmp = cmp.get(1).items.get(parseInt(steps[i+1]));
 					i++;

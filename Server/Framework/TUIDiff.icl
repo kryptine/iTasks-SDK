@@ -1,6 +1,6 @@
 implementation module TUIDiff
 
-import StdBool, StdClass, StdList, StdMisc
+import StdBool, StdClass, StdList, StdEnum, StdMisc
 import Util, GenUpdate, TUIDefinition
 
 derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
@@ -124,9 +124,9 @@ diffTUIDefinitionSets path old new = diffTUIDefinitionSets` path 0 old new
 where
 	diffTUIDefinitionSets` path i [] []
 		= []
-	diffTUIDefinitionSets` path i [] old
-		= [TUIRemove (dp2s path) n \\ n <- [i.. i + length old - 1]] //Less items in new than old
-	diffTUIDefinitionSets` path i new []
+	diffTUIDefinitionSets` path i old [] 
+		= [TUIRemove (dp2s path) n \\ n <- reverse [i.. i + length old - 1 ]] //Less items in new than old (remove starting with the last item)
+	diffTUIDefinitionSets` path i [] new
 		= [TUIAdd (dp2s path) n def \\ n <- [i..] & def <- new] //More items in new than old
 	diffTUIDefinitionSets` path i [n:ns] [o:os]
 		=	(diffEditorDefinitions` (childDataPath path i) n o)

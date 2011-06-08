@@ -28,7 +28,7 @@ itasks.tui.MainContainer = itasks.tui.extendContainer(Ext.Panel,{
 				layout: "hbox",
 				autoScroll: true,
 				items: this.items,
-				tbar : [{text: 'Task Actions',
+				tbar : this.menus /*[{text: 'Task Actions',
 						 iconCls: 'icon-properties',
 						 menu: {items: [{
 							text: 'Refresh Task',
@@ -49,7 +49,7 @@ itasks.tui.MainContainer = itasks.tui.extendContainer(Ext.Panel,{
 							handler: function(item,evt){
 								this.findParentByType(itasks.WorkPanel).cancel();
 							}}]
-						 }}].concat(this.menus)
+						 }}].concat(this.menus)*/
 			}],
 		});	
 		itasks.tui.base.initComponent.apply(this,arguments);

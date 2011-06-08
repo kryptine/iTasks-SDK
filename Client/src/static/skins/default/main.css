@@ -201,7 +201,7 @@ button.icon-expand-tree, .icon-expand-tree {
 .icon-chat{
 	background-image: url('img/icons/comment.png') !important;
 }
-.icon-trash {
+.icon-trash, button.icon-delete, .icon-delete {
 	background-image: url('img/icons/trash.png') !important;
 }
 .icon-description {
