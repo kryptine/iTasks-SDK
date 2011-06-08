@@ -7,6 +7,7 @@ import	Util, HtmlUtil
 import	TuningCombinators
 import	Setup
 import	Config
+import	IWorld
 
 from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from UserAdmin	import manageUsers

@@ -3,8 +3,9 @@ implementation module UserDB
 import StdEnv, Maybe
 import StdGeneric
 import Time, File, Error, Config, Util
+import IWorld
 
-from Types import :: Password(..)
+from SystemTypes import :: Password(..)
 
 derive bimap (,), Maybe
 

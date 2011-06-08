@@ -6,7 +6,7 @@ definition module CommonCombinators
 
 import CoreCombinators, TuningCombinators
 import Either
-from Types				import :: User, :: SessionId
+from SystemTypes		import :: User, :: SessionId
 from Map				import :: Map
 
 // Additional types for grouping

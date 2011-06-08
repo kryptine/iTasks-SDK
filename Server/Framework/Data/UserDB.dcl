@@ -3,9 +3,9 @@ definition module UserDB
 * This module provides the iTasks user database. It provides
 * functions for accessing information about system users.
 */
-from Maybe	import :: Maybe
-from Types	import :: User, :: UserDetails, :: UserId, :: IWorld
-from Time	import :: Timestamp
+from Maybe			import :: Maybe
+from SystemTypes	import :: User, :: UserDetails, :: UserId, :: IWorld
+from Time			import :: Timestamp
 
 class UserDB st
 where

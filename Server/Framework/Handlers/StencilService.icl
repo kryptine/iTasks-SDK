@@ -1,7 +1,7 @@
 implementation module StencilService
 
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
-import Types, SessionDB, HtmlUtil
+import SystemTypes, IWorld, SessionDB, HtmlUtil
 import HTTP, Text, Error
 import GenEq
 

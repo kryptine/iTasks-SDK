@@ -2,7 +2,8 @@ implementation module SessionService
 
 import StdBool, StdList
 import HTTP, Text, JSON
-import Types, SessionDB, HtmlUtil
+import SystemTypes, SessionDB, HtmlUtil
+import IWorld
 from UserDB import qualified class UserDB(..), instance UserDB IWorld
 
 sessionService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

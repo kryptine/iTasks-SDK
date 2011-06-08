@@ -3,7 +3,7 @@ definition module ProcessDB
 * This module provides an abstract process database
 * 
 */
-import Maybe, Types, Task, TaskContext
+import Maybe, SystemTypes, Task, TaskContext
 from Time import :: Timestamp
 
 derive JSONEncode	Process

@@ -4,7 +4,7 @@ import StdInt, StdFile, StdTuple, StdList
 
 import Directory, File, FilePath, OSError, UrlEncoding, Text
 
-import Types, Task, TaskContext, Config
+import SystemTypes, IWorld, Task, TaskContext, Config
 import ExceptionCombinators
 import InteractionTasks
 import Shared

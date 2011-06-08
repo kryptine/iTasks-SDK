@@ -1,6 +1,6 @@
 implementation module TaskContext
 
-import Types
+import SystemTypes
 from ProcessDB import ::Process(..)
 import JSON, Map
 

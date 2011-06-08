@@ -7,8 +7,8 @@ from Maybe import ::Maybe
 from Void import ::Void
 
 import iTaskClass
-from Task import ::Task
-from Types import ::Note, ::EmailAddress
+from Task 			import ::Task
+from SystemTypes	import ::Note, ::EmailAddress
 
 ::HTTPMethod = GET | POST
 

@@ -2,17 +2,17 @@ implementation module ProcessDBTasks
 
 import StdOverloaded, StdClass, StdInt, StdMisc, StdArray, StdTuple, StdList, Error, Map, Time
 import Task, Store, TaskContext, Shared, Util
-from Types		import :: ProcessId
-from StdFunc	import id
-from ProcessDB	import :: Process{..}
-from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
+from SystemTypes	import :: ProcessId
+from StdFunc		import id
+from ProcessDB		import :: Process{..}
+from ProcessDB		import qualified class ProcessDB(..), instance ProcessDB IWorld
 
 import GenVisualize
 	
-derive gVisualize	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
-derive gUpdate		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
-derive gDefaultMask	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
-derive gVerify		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, TaskContainerType, InteractionTaskType, OutputTaskType
+derive gVisualize	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gUpdate		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gDefaultMask	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVerify		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
 derive bimap Maybe,(,)
 	
 getProcess :: !ProcessId -> Task (Maybe Process)

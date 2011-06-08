@@ -2,7 +2,7 @@ implementation module UserService
 
 import StdOrdList
 import HTTP, Error, HtmlUtil
-import Types, UserDB
+import SystemTypes, UserDB
 from SessionDB import qualified class SessionDB(..), instance SessionDB IWorld
 
 userService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

@@ -5,6 +5,6 @@ definition module TaskService
 * and the active tasks belonging to them.
 */
 from HTTP	import :: HTTPRequest, :: HTTPResponse
-from Types	import :: IWorld
+from IWorld	import :: IWorld
 
 taskService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

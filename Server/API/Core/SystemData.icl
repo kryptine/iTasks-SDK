@@ -1,9 +1,10 @@
 implementation module SystemData
 
-import Types, Time, Shared, Util
+import SystemTypes, Time, Shared, Util
 import Random
 import StdList
 from StdFunc	import o
+from IWorld		import :: IWorld(..)
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
 from UserDB		import qualified class UserDB(..), instance UserDB IWorld
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld

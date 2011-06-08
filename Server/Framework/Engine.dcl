@@ -5,9 +5,10 @@ definition module Engine
 * environment in which worfklow specifications can be executed.
 */
 import Maybe, JSON, Task
-from Types		import :: IWorld, :: Workflow
-from HTTP		import :: HTTPRequest, :: HTTPResponse
-from Config		import :: Config
+from SystemTypes	import :: Workflow
+from IWorld			import :: IWorld
+from HTTP			import :: HTTPRequest, :: HTTPResponse
+from Config			import :: Config
 
 :: HandlerFormat :== String
 

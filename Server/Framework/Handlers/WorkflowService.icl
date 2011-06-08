@@ -2,7 +2,7 @@ implementation module WorkflowService
 
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
 import HTTP, Error, Text
-import Types, HtmlUtil, UserDB
+import SystemTypes, IWorld, HtmlUtil, UserDB
 import GenEq
 from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from WorkflowDB import :: WorkflowDescription{..}, :: WorkflowId

@@ -1,8 +1,8 @@
 definition module WorkflowDB
 
-from Maybe	import :: Maybe
-from Types	import :: Workflow, :: WorkflowDescription, :: WorkflowId, :: User, :: UserDetails, :: IWorld
-from Time	import :: Timestamp
+from Maybe			import :: Maybe
+from SystemTypes	import :: Workflow, :: WorkflowDescription, :: WorkflowId, :: User, :: UserDetails, :: IWorld
+from Time			import :: Timestamp
 
 class WorkflowDB st
 where

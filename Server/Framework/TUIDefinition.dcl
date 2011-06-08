@@ -5,8 +5,8 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: TaskAction, :: Action, :: ProcessProperties
-
+from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: Action, :: ProcessProperties
+from Task			import :: TaskAction
 :: TUIInteraction =	{ title				:: !String
 					, description		:: !String
 					, editorParts		:: ![TUIDef]

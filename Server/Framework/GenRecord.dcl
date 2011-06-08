@@ -5,7 +5,7 @@ definition module GenRecord
 * All fields with the same name & type can be copied automatically, only different fields have to be mapped manually.
 */
 
-import Types, GenUpdate
+import SystemTypes, GenUpdate
 
 /**
 * Copies all fields with same name & type from one record to another.

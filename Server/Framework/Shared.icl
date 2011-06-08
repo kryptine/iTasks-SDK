@@ -1,7 +1,7 @@
 implementation module Shared
 
 import StdTuple, StdFunc, Void, Maybe, Time, Error, GenUpdate, Util, Functor, StdList
-from Types import :: IWorld
+from IWorld import :: IWorld(..)
 
 readShared :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString r,!*IWorld)
 readShared (ReadWriteShared myIds read _ _) iworld=:{readShares}

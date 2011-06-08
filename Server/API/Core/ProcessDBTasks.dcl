@@ -2,7 +2,7 @@ definition module ProcessDBTasks
 /**
 * This module provides access to the process database
 */
-import Maybe, Types
+import Maybe, SystemTypes
 from Task		import :: Task
 from ProcessDB	import :: Process(..)
 from Time		import :: Timestamp 

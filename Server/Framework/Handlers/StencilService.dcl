@@ -4,6 +4,6 @@ definition module StencilService
 * for placement in graphical workflow diagrams.
 */
 from HTTP	import :: HTTPRequest, :: HTTPResponse
-from Types	import :: IWorld
+from IWorld	import :: IWorld
 
 stencilService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

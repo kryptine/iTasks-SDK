@@ -2,7 +2,8 @@ implementation module SessionDB
 
 import StdEnv, Maybe
 import StdGeneric
-import Types, Config, Store, Random, Time, Error
+import SystemTypes, Config, Store, Random, Time, Error
+import IWorld
 
 instance SessionDB IWorld
 where

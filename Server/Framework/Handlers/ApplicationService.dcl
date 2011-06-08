@@ -4,6 +4,6 @@ definition module ApplicationService
 * It serves basic meta data about the application such as name and build.
 */
 from HTTP import :: HTTPRequest, :: HTTPResponse
-from Types import :: IWorld
+from IWorld import :: IWorld
 
 applicationService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

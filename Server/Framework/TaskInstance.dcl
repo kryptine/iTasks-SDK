@@ -3,8 +3,8 @@ definition module TaskInstance
 * This module provides functions for creation, evaluation and removal of task/workflow instances.
 */
 
-from Types		import :: IWorld, :: WorkflowId, :: ProcessId, :: ProcessProperties, :: User
-from Task		import :: TaskNr, :: Task, :: TaskResult, :: EditEvent, :: CommitEvent, :: ReversedTaskNr
+from SystemTypes	import :: IWorld, :: WorkflowId, :: ProcessId, :: ProcessProperties, :: User
+from Task			import :: TaskNr, :: Task, :: TaskResult, :: EditEvent, :: CommitEvent, :: ReversedTaskNr
 
 import Maybe, JSON, Error
 import iTaskClass

@@ -4,7 +4,7 @@ definition module Task
 * This module provides types for the definition of tasks & changes.
 */
 
-import Types, HTTP, GenVisualize, iTaskClass, GenRecord
+import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
 from TaskContext	import :: TaskContext
 
 derive JSONEncode		Task
@@ -46,6 +46,8 @@ derive gPutRecordFields	Task
 :: TaskResult a		= TaskBusy !(Maybe TUIDef) ![TaskAction] !TaskContext
 					| TaskFinished !a
 					| TaskException !Dynamic !String
+
+:: TaskAction :== (TaskId,Action,Bool)
 					
 :: InformationState s =	{ modelValue	:: !s		// the value of the data model the editor is working on
 						, localValid	:: !Bool	// a flag indicating if the editor's local view is valid

@@ -1,6 +1,6 @@
 implementation module TuningCombinators
 
-import Types, StdList, StdMisc, Shared, HTML, Task
+import SystemTypes, StdList, StdMisc, Shared, HTML, Task
 from Time import :: Timestamp, :: Tm(..), mkTime
 
 class tune b :: !b !(Task a) -> Task a

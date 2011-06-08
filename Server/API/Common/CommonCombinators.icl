@@ -5,13 +5,13 @@ implementation module CommonCombinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text, Time
 import Util, Either, GenVisualize, GenUpdate
-from StdFunc	import id, const, o
-from Types		import :: ProcessId, :: User(..), :: Note(..)
-from SessionDB	import :: Session
+from StdFunc		import id, const, o
+from SystemTypes	import :: ProcessId, :: User(..), :: Note(..)
+from SessionDB		import :: Session
 from TaskContext	import :: TaskContext(..), :: TopTaskContext, :: SubTaskContext, :: ParallelMeta
-from Shared		import mapShared, :: Shared, :: ReadWriteShared
-from SystemData	import randomInt
-from Map		import qualified newMap
+from Shared			import mapShared, :: Shared, :: ReadWriteShared
+from SystemData		import randomInt
+from Map			import qualified newMap
 import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, ProcessDBTasks, InteractionTasks
 
 // use string instances of generic function for Tag values 

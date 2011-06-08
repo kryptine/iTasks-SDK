@@ -2,7 +2,7 @@ implementation module TaskInstance
 
 import StdList, StdBool
 import Error
-import Types, Task, TaskContext, WorkflowDB, ProcessDB
+import SystemTypes, IWorld, Task, TaskContext, WorkflowDB, ProcessDB
 
 from CoreCombinators import >>=
 from TuningCombinators import class tune, instance tune Title, <<@, @>>, :: Title(..)

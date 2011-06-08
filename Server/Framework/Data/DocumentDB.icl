@@ -1,9 +1,10 @@
 implementation module DocumentDB
 
 import StdList, StdArray, StdBool
-import Types, Store, Random, Text, Time
+import SystemTypes, Store, Random, Text, Time
 import GenUpdate
-from StdFunc import id
+from StdFunc	import id
+from IWorld		import ::IWorld(..)
 
 instance DocumentDB IWorld
 where

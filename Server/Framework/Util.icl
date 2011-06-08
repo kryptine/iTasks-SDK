@@ -1,7 +1,8 @@
 implementation module Util
 
 import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON, Void, Error, GenEq
-from Types	import :: Date{..}, :: Time{..}, :: DateTime(..), :: IWorld{localDateTime,timestamp}
+from SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
+from IWorld 		import :: IWorld{localDateTime,timestamp}
 
 app :: !(.a -> .b) !.a -> .b
 app f x = f x

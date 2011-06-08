@@ -5,6 +5,6 @@ definition module DocumentService
 * processed by workflows.
 */
 from HTTP	import :: HTTPRequest, :: HTTPResponse
-from Types	import :: IWorld
+from IWorld	import :: IWorld
 
 documentService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

@@ -8,7 +8,7 @@ definition module Shared
 
 import Void, Maybe, Error, GenEq
 from StdFunc	import id, const
-from Types		import :: IWorld
+from IWorld		import :: IWorld
 from Time		import :: Timestamp
 from GenUpdate	import :: USt, :: UpdateMode, generic gUpdate
 

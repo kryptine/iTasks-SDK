@@ -4,6 +4,6 @@ definition module SessionService
 * creates temporary access codes with which the other services can be accessed.
 */
 from HTTP	import :: HTTPRequest, :: HTTPResponse
-from Types	import :: IWorld
+from IWorld	import :: IWorld
 
 sessionService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

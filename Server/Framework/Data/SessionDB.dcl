@@ -4,8 +4,8 @@ definition module SessionDB
 * functions for creating and restoring user sessions.
 */
 import Maybe, Error
-from Types	import :: User, :: Session, :: SessionId, :: IWorld
-from Time	import :: Timestamp
+from SystemTypes	import :: User, :: Session, :: SessionId, :: IWorld
+from Time			import :: Timestamp
 
 class SessionDB st
 where

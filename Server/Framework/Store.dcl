@@ -11,7 +11,7 @@ definition module Store
 */
 import JSON
 from Time import :: Timestamp
-from Types import :: IWorld
+from IWorld import :: IWorld
 
 // Storage format
 :: StoreFormat = SFPlain | SFDynamic | SFBlob

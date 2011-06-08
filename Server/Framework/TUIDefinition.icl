@@ -1,8 +1,9 @@
 implementation module TUIDefinition
 
 import JSON, StdList, StdBool, GenEq, StdFunc, HTML, Text
-from Types import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionName, :: TaskAction, :: ProcessProperties
-from Types import class actionName(..), instance actionName Action, actionIcon
+from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionName, :: ProcessProperties
+from SystemTypes	import class actionName(..), instance actionName Action, actionIcon
+from Task			import  :: TaskAction
 
 htmlDisplay :: !html -> TUIDef | toString html
 htmlDisplay html =	{ content	= TUIControl (TUIHtmlDisplay Nothing)

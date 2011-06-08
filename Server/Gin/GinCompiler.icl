@@ -2,6 +2,7 @@ implementation module GinCompiler
 
 import StdFile
 import iTasks
+import IWorld
 
 import GinSyntax
 import GinAbstractSyntax

@@ -2,7 +2,7 @@ implementation module DocumentService
 
 import StdInt, StdList
 import HTTP, Map, Error
-import Types, HtmlUtil, DocumentDB, SessionDB
+import SystemTypes, HtmlUtil, DocumentDB, SessionDB
 
 documentService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
 documentService url format path req iworld

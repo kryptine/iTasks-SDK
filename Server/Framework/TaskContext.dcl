@@ -1,6 +1,6 @@
 definition module TaskContext
 
-import Types
+import SystemTypes
 from ProcessDB import :: Process(..)
 
 derive JSONEncode TaskContext, TopTaskContext, SubTaskContext, ParallelMeta

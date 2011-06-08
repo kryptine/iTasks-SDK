@@ -1,7 +1,9 @@
 implementation module ApplicationService
 
 import HTTP
-import Types, HtmlUtil
+import HtmlUtil
+import SystemTypes
+from IWorld	import :: IWorld(..)
 
 applicationService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
 applicationService url format path req iworld=:{application}
