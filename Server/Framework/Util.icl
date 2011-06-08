@@ -66,10 +66,17 @@ currentTimestampError iworld=:{timestamp} = (Ok timestamp,iworld)
 
 currentDateTimeWorld :: !*World -> (!DateTime,!*World)
 currentDateTimeWorld world
-	# (tm,world)	= localTime world
-	# date			= {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year}
-	# time			= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
-	= (DateTime date time,world)
+	# (tm,world) = localTime world
+	= (tmToDateTime tm,world)
+	
+timestampToGmDateTime :: !Timestamp -> DateTime
+timestampToGmDateTime timestamp = tmToDateTime (toGmTime timestamp)
+
+tmToDateTime :: !Tm -> DateTime
+tmToDateTime tm
+	# date	= {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year}
+	# time	= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
+	= DateTime date time
 
 instance toString (Maybe a) | toString a
 where

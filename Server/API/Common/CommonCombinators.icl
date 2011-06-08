@@ -82,15 +82,15 @@ where
 	toView [_,{ParallelTaskInfo|properties=Right {systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}]=
 		{ mapRecord m
 		& assignedTo	= worker
-		, issuedAt		= Display issuedAt
-		, firstWorkedOn	= Display firstEvent
-		, lastWorkedOn	= Display latestEvent
+		, issuedAt		= Display (formatTimestamp issuedAt)
+		, firstWorkedOn	= Display (fmap formatTimestamp firstEvent)
+		, lastWorkedOn	= Display (fmap formatTimestamp latestEvent)
 		}
 	toView [_,{ParallelTaskInfo|properties=Left p}]=
 		{ assignedTo = NamedUser "root"
 		, priority = NormalPriority
 		, status = Suspended
-		, issuedAt = Display (Timestamp 0)
+		, issuedAt = Display (formatTimestamp (Timestamp 0))
 		, firstWorkedOn = Display Nothing
 		, lastWorkedOn = Display Nothing
 		, deadline = Nothing
@@ -98,13 +98,15 @@ where
 		
 	fromView view=:{ProcessControlView|assignedTo} _
 		= [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
+		
+	formatTimestamp timestamp = timestampToGmDateTime timestamp
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
 						, status		:: !RunningTaskStatus
-						, issuedAt		:: !Display Timestamp
-						, firstWorkedOn	:: !Display (Maybe Timestamp)
-						, lastWorkedOn	:: !Display (Maybe Timestamp)
+						, issuedAt		:: !Display DateTime
+						, firstWorkedOn	:: !Display (Maybe DateTime)
+						, lastWorkedOn	:: !Display (Maybe DateTime)
 						, deadline		:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView

@@ -27,6 +27,7 @@ currentDateTime 		:: !*IWorld -> (!DateTime,!*IWorld)
 currentTimestamp		:: !*IWorld -> (!Timestamp,!*IWorld)
 currentTimestampError	:: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
 currentDateTimeWorld	:: !*World	-> (!DateTime,!*World)
+timestampToGmDateTime	:: !Timestamp -> DateTime
 
 // Utility functions for tuples
 tuple	:: !a !b	-> (!a,!b)
