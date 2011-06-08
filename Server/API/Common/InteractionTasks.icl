@@ -14,11 +14,13 @@ where
 	mkPutback putback modelValue mbV	= fmap (\v -> putback v modelValue) mbV
 	
 updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
-updateInformation d options initM = UpdateTask @>> interactLocal` d interaction (verifyValue initM,initM) toInfoSt
+updateInformation d options initM = UpdateTask @>> interactLocal` d interaction (verifyViews options initM,initM) toInfoSt
 where
 	interaction st=:(valid,_)			= mkParts valid (toInfoSt st) mkPutback (filterOptions noFilter (View (id,const)) options)
 	toInfoSt (valid,m)					= {localValid = valid, modelValue = m}
-	mkPutback putback modelValue mbV	= (isJust mbV,maybe modelValue (\v -> putback v modelValue) mbV)
+	mkPutback putback modelValue mbV = case mbV of
+		Just newV	= let newMV = putback newV modelValue in (verifyViews options newMV,newMV)
+		Nothing		= (False,modelValue)
 	
 showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 showInformation d options m = OutputTask PassiveOutput @>> interactLocal` d interaction m toInfoSt
@@ -30,18 +32,18 @@ enterSharedInformation :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | de
 enterSharedInformation d options shared = InputTask @>> interact` d updL interaction False shared toInfoSt
 where
 	updL l r c							= l
-	interaction valid r changed			= mkParts changed (toInfoSt valid r) mkPutback (filterOptions filterInputOptions (Putback const) options)
+	interaction valid r changed			= mkParts (changed || valid) (toInfoSt valid r) mkPutback (filterOptions filterInputOptions (Putback const) options)
 	toInfoSt valid r					= {localValid = valid, modelValue = r}
 	mkPutback putback modelValue mbV	= (isJust mbV,fmap (\v -> putback v modelValue) mbV)
-	
+
 updateSharedInformation :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
 updateSharedInformation d options` shared = UpdateTask @>> interact` d updL interaction True shared toInfoSt
 where
 	options								= filterOptions noFilter defaultOpt options`
-	updL valid r changed				= if changed (verifyValue r) valid
-	interaction valid r changed			= mkParts changed (toInfoSt valid r) mkPutback options
+	updL valid r changed				= verifyViews options r
+	interaction valid r changed			= mkParts (changed || valid) (toInfoSt valid r) mkPutback options
 	toInfoSt valid r					= {localValid = valid, modelValue = r}
-	mkPutback putback modelValue mbV	= (isJust mbV,fmap (\v -> putback v modelValue) mbV)
+	mkPutback putback modelValue mbV	= (False,fmap (\v -> putback v modelValue) mbV)
 	defaultOpt = case dynamic const :: A.a: (a a -> a) of
 		(putback :: (r^ r^ -> w^))	= View (id,putback)
 		_							= Get id
