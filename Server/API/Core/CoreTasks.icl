@@ -128,7 +128,7 @@ where
 				
 	edit taskNr _ context iworld = (context,iworld)
 	
-	eval termFunc taskNr event tuiTaskNr imerge pmerge mmerge context iworld=:{IWorld|timestamp}
+	eval termFunc taskNr props event tuiTaskNr imerge pmerge mmerge context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
@@ -147,6 +147,30 @@ where
 					Nothing
 						# (tui,actions,context,iworld) = renderTUI taskNr imerge parts actions context iworld
 						= (TaskBusy (Just tui) actions context, iworld)
+	where
+		renderTUI taskNr imerge parts actions context iworld
+			# taskId				= taskNrToString taskNr
+			# storedParts			= getParts context
+			# (mbEvent,context)		= getEvent context
+			# (tuis,newParts)		= visualizeParts taskNr parts storedParts mbEvent
+			# context 				= setLocalVar PARTS_STORE newParts context
+			# tactions				= [(taskId,action,isJust val) \\ (action,val) <- actions]
+			# warning				= case (getLocalVar EDIT_CONFLICT_STORE context) of
+				Just True	= Just EDIT_CONFLICT_WARNING
+				_			= Nothing
+			# (tui,actions)			= mergeTUI imerge tuis warning tactions 
+			= (tui,actions,context,iworld)
+		
+		mergeTUI imerge tuis warning actions
+			= imerge { title = props.taskDescription.TaskDescription.title
+					 , description = props.taskDescription.TaskDescription.description
+					 , editorParts = tuis
+					 , actions = actions
+					 , type = props.interactionType
+					 , isControlTask = props.controlTask
+					 , localInteraction = props.TaskProperties.localInteraction
+					 , warning = warning
+					 }
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
 		= case getLocalVar LAST_EDIT_STORE context of
@@ -169,30 +193,6 @@ where
 		= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
 	getActionResult _ actions
 		= Nothing
-
-	renderTUI taskNr imerge parts actions context iworld
-		# taskId				= taskNrToString taskNr
-		# storedParts			= getParts context
-		# (mbEvent,context)		= getEvent context
-		# (tuis,newParts)		= visualizeParts taskNr parts storedParts mbEvent
-		# context 				= setLocalVar PARTS_STORE newParts context
-		# tactions				= [(taskId,action,isJust val) \\ (action,val) <- actions]
-		# warning				= case (getLocalVar EDIT_CONFLICT_STORE context) of
-			Just True	= Just EDIT_CONFLICT_WARNING
-			_			= Nothing
-		# (tui,actions)			= mergeTUI imerge (toDescr description) tuis warning tactions 
-		= (tui,actions,context,iworld)
-	
-	mergeTUI imerge {TaskDescription|title,description} tuis warning actions
-		= imerge { title = title
-				 , description = description
-				 , editorParts = tuis
-				 , actions = actions
-				 , type = Nothing //TODO get these types merged in here
-				 , isControlTask = False
-				 , localInteraction = False
-				 , warning = warning
-				 }
 	
 	getParts context 
 		= case getLocalVar PARTS_STORE context of

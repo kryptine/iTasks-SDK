@@ -24,7 +24,7 @@ mkInstantTask description iworldfun =
 	, type = NormalTask
 		{ initFun			= \_ iworld -> (TCBasic newMap,iworld)
 		, editEventFun		= \_ _  context iworld -> (context,iworld)
-		, evalTaskFun		= \taskNr _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
+		, evalTaskFun		= \taskNr _ _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}
 	}
 	

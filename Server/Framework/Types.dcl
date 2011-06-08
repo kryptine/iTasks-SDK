@@ -211,6 +211,7 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	, tags				:: ![String]					// A list of tags
 	, interactionType	:: !Maybe InteractionTaskType	// type of interaction (for interaction tasks)
 	, localInteraction	:: !Bool						// indicates that the task's interaction is restricted to local data while it is running
+	, controlTask		:: !Bool						// indicates that the task is used to control another one
 	}
 
 :: TaskDescription	=

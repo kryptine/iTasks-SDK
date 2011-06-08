@@ -605,6 +605,7 @@ initTaskProperties =
 	, tags = []
 	, interactionType = Nothing
 	, localInteraction = False
+	, controlTask = False
 	}
 
 initManagerProperties :: ManagerProperties

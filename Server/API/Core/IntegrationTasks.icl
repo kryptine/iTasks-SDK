@@ -60,7 +60,7 @@ where
 			
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr event tuiTaskNr imerge pmerge mmerge context=:(TCBasic _) iworld=:{world}
+	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context=:(TCBasic _) iworld=:{world}
 		= case getLocalVar "outfile" context of
 			Just outfile
 				//Check status

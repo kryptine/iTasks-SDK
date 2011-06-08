@@ -75,7 +75,7 @@ assign props task = parallel ("Assign","Manage a task assigned to another user."
 where
 	processControl :: state !(ReadWriteShared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
 	processControl _ control =
-		updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [View (toView,fromView)] control >>+ noActions
+		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [View (toView,fromView)] control >>+ noActions) <<@ ControlTask
 	
 	accJust r _ = (Just r,True)
 			

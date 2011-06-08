@@ -59,17 +59,18 @@ where
 	edit taskNr event context iworld = (context, iworld)
 	
 	//Evaluate first task
-	eval taskNr event tuiTaskNr imerge pmerge mmerge (TCBind (Left cxta)) iworld 
+	eval taskNr _ event tuiTaskNr imerge pmerge mmerge (TCBind (Left cxta)) iworld 
 		//Adjust the target of a possible event
-		# (resa, iworld) = taskaFuncs.evalTaskFun [0:taskNr] (stepCommitEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge mmerge cxta iworld
+		# (resa, iworld) = taskaFuncs.evalTaskFun [0:taskNr] taska.Task.properties (stepCommitEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge mmerge cxta iworld
 		= case resa of
 			TaskBusy tui actions newCxta
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCBind (Left newCxta)), iworld)
 			TaskFinished a
 				//Directly continue with the second task
-				# taskbfun = toTaskFuncs (taskbfun a)
-				# (cxtb,iworld)		= taskbfun.initFun [1:taskNr] iworld
-				# (resb,iworld)		= taskbfun.evalTaskFun [1:taskNr] Nothing (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtb iworld 
+				# taskb				= taskbfun a
+				# taskbfuncs		= toTaskFuncs taskb
+				# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
+				# (resb,iworld)		= taskbfuncs.evalTaskFun [1:taskNr] taskb.Task.properties Nothing (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtb iworld 
 				= case resb of
 					TaskBusy tui actions newCxtb	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCBind (Right (toJSON a,newCxtb))),iworld)
 					TaskFinished b					= (TaskFinished b, iworld)
@@ -77,11 +78,12 @@ where
 			TaskException e str
 				= (TaskException e str, iworld)	
 	//Evaluate second task
-	eval taskNr event tuiTaskNr imerge pmerge mmerge (TCBind (Right (vala,cxtb))) iworld
+	eval taskNr _ event tuiTaskNr imerge pmerge mmerge (TCBind (Right (vala,cxtb))) iworld
 		= case fromJSON vala of
 			Just a
-				# taskbfun			= toTaskFuncs (taskbfun a)
-				# (resb, iworld)	= taskbfun.evalTaskFun [1:taskNr] (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtb iworld 
+				# taskb				= taskbfun a
+				# taskbfuncs		= toTaskFuncs taskb
+				# (resb, iworld)	= taskbfuncs.evalTaskFun [1:taskNr] taskb.Task.properties (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtb iworld 
 				= case resb of
 					TaskBusy tui actions newCxtb	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCBind (Right (vala,newCxtb))),iworld)
 					TaskFinished b					= (TaskFinished b, iworld)
@@ -89,7 +91,7 @@ where
 			Nothing
 				= (taskException "Corrupt task value in bind", iworld)
 	//Incorred state
-	eval taskNr event tuiTaskNr imerge pmerge mmerge context iworld
+	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context iworld
 		= (taskException "Corrupt task context in bind", iworld)
 	
 	//Check that when we want the TUI of a sub task that it is on the path
@@ -185,7 +187,7 @@ where
 		= (context,iworld)
 	
 	//Eval all tasks in the set (in left to right order)
-	eval taskNr event tuiTaskNr imerge pmerge mmerge context=:(TCParallel encState meta subs) iworld
+	eval taskNr {taskDescription} event tuiTaskNr imerge pmerge mmerge context=:(TCParallel encState meta subs) iworld
 		//Add the current state to the parallelVars scope in iworld
 		# state							= decodeState encState initState 
 		# iworld						= addParState taskNr state meta iworld
@@ -207,7 +209,7 @@ where
 					= (TaskFinished (resultFun AllRunToCompletion state), iworld)
 				| otherwise
 					# encState			= encodeState state initState
-					# (tui,actions)		= mergeTUIs pmerge mmerge tuiTaskNr (toDescr description) results
+					# (tui,actions)		= mergeTUIs pmerge mmerge tuiTaskNr taskDescription results
 					# subs				= mergeContexts results
 					= (TaskBusy tui actions (TCParallel encState meta subs), iworld)
 		
@@ -225,7 +227,7 @@ where
 			(STCHidden props (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= toTaskFuncs` task
-				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
+				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] task.Task.properties (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
 				= case result of
 					TaskBusy tui actions context	= (TaskBusy tui actions context, STCHidden props (Just (encTask, context)), iworld)
 					TaskFinished _					= (TaskFinished Void, STCHidden props Nothing, iworld)
@@ -233,7 +235,7 @@ where
 			(STCBody props (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= toTaskFuncs` task
-				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
+				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] task.Task.properties (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
 				= case result of
 					TaskBusy tui actions context	= (TaskBusy tui actions context, STCBody props (Just (encTask, context)), iworld)
 					TaskFinished _					= (TaskFinished Void, STCBody props Nothing, iworld)
@@ -244,7 +246,7 @@ where
 				//Evaluate the task with a different current worker set & changed latest event timestamp
 				# (curUser,iworld)	= switchCurrentUser props.ProcessProperties.managerProperties.worker iworld
 				# iworld			= {IWorld|iworld & latestEvent = props.systemProperties.SystemProperties.latestEvent}
-				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
+				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] task.Task.properties (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
 				# (_,iworld)		= switchCurrentUser curUser iworld
 				# iworld			= {IWorld|iworld & latestEvent = parentLatestEvent}
 				//Update first/latest event if request is targeted at this detached process

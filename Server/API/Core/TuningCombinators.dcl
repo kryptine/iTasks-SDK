@@ -10,6 +10,7 @@ import Task
 :: Tag					= E.s: Tag !s			& toString s
 :: Tags					= E.s: Tags ![s]		& toString s
 :: LocalInteractionTask	= LocalInteractionTask
+:: ControlTask			= ControlTask
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a
@@ -22,5 +23,6 @@ instance tune	Tag					//Append Tag
 instance tune	Tags				//Append List of Tags
 instance tune	InteractionTaskType
 instance tune	LocalInteractionTask
+instance tune	ControlTask
 instance tune	InteractionLayouter
 instance tune	ParallelLayouter

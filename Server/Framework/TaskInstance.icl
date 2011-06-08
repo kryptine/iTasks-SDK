@@ -76,7 +76,7 @@ where
 		//Set current worker
 		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
 		//Evaluate
-		# (tresult, iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] Nothing [] defaultInteractionLayout defaultParallelLayout defaultMainLayout tcontext iworld
+		# (tresult, iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] originalTask.Task.properties Nothing [] defaultInteractionLayout defaultParallelLayout defaultMainLayout tcontext iworld
 		= case tresult of
 			TaskBusy tui actions tcontext
 				# properties	= setRunning properties
@@ -128,7 +128,7 @@ where
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
 				# commitEvent					= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
-				= evalTask` changeNo scontext commitEvent originalTaskFuncs properties 1 iworld
+				= evalTask` originalTask.Task.properties changeNo scontext commitEvent originalTaskFuncs properties 1 iworld
 			//Don't evaluate, just yield TaskBusy without user interface and original context
 			TTCSuspended scontext
 				= (TaskBusy Nothing [] context, properties, iworld)
@@ -139,9 +139,9 @@ where
 			TTCExcepted e
 				= (taskException e, properties, iworld)
 			
-	evalTask` changeNo scontext commitEvent originalTaskFuncs properties iterationCount iworld
+	evalTask` props changeNo scontext commitEvent originalTaskFuncs properties iterationCount iworld
 		# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr)
-		# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext {iworld & readShares = Just []}
+		# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] props commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext {iworld & readShares = Just []}
 		= case sresult of
 			TaskBusy tui actions scontext
 				# properties	= setRunning properties 
@@ -149,7 +149,7 @@ where
 				# context		= TCTop properties changeNo (TTCActive scontext)
 				# iworld		= setProcessContext processId context iworld
 				| isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
-					= evalTask` changeNo scontext Nothing originalTaskFuncs properties (inc iterationCount) iworld
+					= evalTask` props changeNo scontext Nothing originalTaskFuncs properties (inc iterationCount) iworld
 				| otherwise
 					= (TaskBusy (Just tui) [] context, properties, iworld)
 			TaskFinished val
