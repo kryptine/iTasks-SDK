@@ -2,11 +2,14 @@ implementation module CleanPrettyPrinter
 
 import syntax
 
-from PPrint import	class Pretty(..), ::Doc, ::SimpleDoc, <->, </>, align, brackets, comma, display,
-					empty, fillSep, hcat, linebreak, nest, parens, punctuate, renderPretty, text, tupled, vsep
+from PPrint import	class Pretty(..), ::Doc, ::SimpleDoc, <->, </>, <$>, align, brackets, comma, display, empty, fill, fillSep, 
+					hang, hcat, hsep, lbrace, linebreak, nest, parens, punctuate, rbrace, renderPretty, text, tupled, vsep
 
 instance Pretty AType where
 	pretty atype = printAType False atype 
+	
+instance Pretty ATypeVar where
+	pretty {atv_variable} = pretty atv_variable
 
 printAType :: !Bool !AType  -> Doc
 printAType withParens atype = printType withParens atype.at_type
@@ -31,20 +34,21 @@ instance Pretty ParsedDefinition
 where
 	pretty pd = empty
 
-instance Pretty ParsedSelector where
-	pretty {ps_field_ident, ps_field_type } = pretty ps_field_ident </> text "::" <-> pretty ps_field_type
+printSelector :: !Int !ParsedSelector -> Doc
+printSelector len {ps_field_ident, ps_field_type } = fill len (pretty ps_field_ident) </> text "::" </> pretty ps_field_type
 
 instance Pretty ParsedTypeDef where
-	pretty { td_ident, td_rhs } = text "::" </> pretty td_ident </> text "=" </> pretty td_rhs
+	pretty { td_ident, td_args, td_rhs } = text "::" </> pretty td_ident </> hsep (map pretty td_args) </> pretty td_rhs
 
 instance Pretty RhsDefsOfType where
 	pretty (ConsList constructors) 
-		= align (vsep [pretty (hd constructors) : [ text "|" </> pretty c \\ c <- tl constructors ]])
+		= text "=" </> hang -2 (vsep [pretty (hd constructors) : [ text "|" </> pretty c \\ c <- tl constructors ]])
 	pretty (SelectorList ident typeVars isBoxed selectors) 
-		= linebreak <-> brackets (intersperse (text "\n ," )(map pretty selectors))
-	pretty (TypeSpec atype) = pretty atype
+		# len = maxList [ size s.ps_field_ident.id_name \\ s <- selectors ]
+		= text "=" </> align ((vsep [lbrace </> printSelector len (hd selectors) : [ comma </> printSelector len c \\ c <- tl selectors]]) <$> rbrace)
+	pretty (TypeSpec atype) = text ":==" </> pretty atype
 	pretty (EmptyRhs _) = empty
-	pretty 	_ = text "(Unknown type definition)"
+	pretty 	_ = text "= ??"
 
 instance Pretty TCClass where
 	pretty (TCClass global) = pretty global
