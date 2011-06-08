@@ -4,8 +4,10 @@ definition module Section3
 
 import iTasks
 
-flows3   :: [Workflow]
+flows3				:: [Workflow]
 
-show     :: !(Task a) -> Task a | iTask a
+show			    :: !(Task a) -> Task a | iTask a
 
-positive :: Task Int
+repeatUntilApproved	:: !(Task a) -> Task a | iTask a
+
+positive			:: Task Int

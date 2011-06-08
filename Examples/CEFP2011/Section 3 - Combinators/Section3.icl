@@ -123,7 +123,7 @@ teaOrCoffee = enterChoice "Choose an option" [] ["Tea","Coffee"]
 fillInAndCheckPersons :: Task [Person]
 fillInAndCheckPersons = repeatUntilApproved (enterInformation "Please fill in the form:" [])
 
-repeatUntilApproved :: (Task a) -> Task a | iTask a
+repeatUntilApproved :: !(Task a) -> Task a | iTask a
 repeatUntilApproved task
     =            task
       >>= \v  -> enterChoice "Approve result: " [About v] 
