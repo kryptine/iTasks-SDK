@@ -15,10 +15,13 @@ import Text
 from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Emph, Index, Itemize, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
 from LaTeX import qualified :: LaTeX (Text)
 
+from PPrint import class Pretty(..), ::Doc, <+>, empty, int, hsep, parens, text
+
 import iTasks
 import DocumentDB
 import CleanDocParser
-
+import CleanPrettyPrinter
+	
 from general 	import 	qualified ::Optional(..)
 from general	import	::Bind(..), ::Env(..), ::BITVECT
 from Heap 		import 	::Ptr
@@ -94,8 +97,7 @@ derive class iTask LaTeX
 generateTeX :: !FilePath -> Task [LaTeX]
 generateTeX path
 | endsWith ".dcl" path =
-	accWorldError (documentDCL path) id >>= \moduleDoc ->
-	return (moduleToTeX moduleDoc)
+	accWorldError (dclToTeX path) id
 | otherwise = 
 	accWorldOSError (isSubDirectory path) >>= \isSubDir ->
 	if isSubDir
@@ -119,30 +121,33 @@ where
 	
 :: FunctionDoc = 
 	{ ident				:: !String
-	, operator			:: !Maybe String
+	, operator			:: !Maybe Doc
 	, title				:: !String
 	, params			:: ![ParameterDoc]
 	, description		:: !String
-	, returnType		:: !TypeDoc
+	, returnType		:: !Doc
+	, context			:: !Doc
 	, returnDescription	:: !String
-	, context			:: !Maybe String
 	, throws			:: ![String]
 	}
 
 :: ParameterDoc = 
 	{ title			:: !String
 	, description	:: !String
-	, type			:: !TypeDoc
+	, type			:: !Doc
 	}
 	
 :: TypeDefDoc = 
 	{ ident				:: !String
-	, def				:: !String
+	, type				:: !Doc
 	}
+	
+dclToTeX :: !FilePath *World -> (MaybeErrorString [LaTeX], *World)
+dclToTeX filename world
+# (res, world) = documentDCL filename world
+| isError res = (liftError res, world)
+= (Ok (moduleToTeX (fromOk res)), world)
 
-:: TypeDoc :== String
-
-derive class iTask ModuleDoc, FunctionDoc, ParameterDoc, TypeDefDoc
 
 moduleToTeX :: !ModuleDoc -> [LaTeX]
 moduleToTeX {ModuleDoc | ident, types, functions} = 
@@ -151,29 +156,30 @@ moduleToTeX {ModuleDoc | ident, types, functions} =
 	++ flatten (map functionToTeX functions)
 
 typedefToTeX :: !TypeDefDoc -> [LaTeX]
-typedefToTeX { ident, def }
+typedefToTeX { TypeDefDoc | ident, type }
 	=	[ Subsection (":: " +++ ident)
 		, Index ident
-		, CleanCode [ def ]
+		, CleanCode [ prettyPrint type ]
 		]
 
 functionToTeX :: !FunctionDoc -> [LaTeX]
 functionToTeX {FunctionDoc | ident, operator, params, description, returnType, returnDescription, context, throws }
 	=	[ Subsection (case operator of
-			Just op = ident +++ " operator"
+			Just _  = ident +++ " operator"
 			Nothing = ident)
 		, Index ident
 		, CleanCode
-			[	(case operator of
-					Just op = parens ident +++ " " +++ op
-					Nothing = ident
+			[	prettyPrint 
+				(	(case operator of
+						Just op = parens (text ident <+> op)
+						Nothing = text ident
+					)
+					<+> text "::"
+					<+> hsep [p.ParameterDoc.type \\ p <- params]
+					<+> (if (isEmpty params) empty (text " -> ")) 
+					<+> returnType
+					<+> context
 				)
-			    +++ " :: " 
-				+++ join " " [p.ParameterDoc.type \\ p <- params]
-				+++ (if (isEmpty params) "" " -> ") +++ returnType
-				+++ (case context of
-					Nothing = ""
-					Just c = " | " +++ c)
 		    ]
 		, 'LaTeX'.Text description
 		, Paragraph "Parameters"
@@ -182,7 +188,7 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 			(Itemize (map parameterToTeX params))
 		  )
 		, Paragraph "Returns"
-		, CleanInline returnType
+		, CleanInline (prettyPrint returnType)
 		, EmDash
 		, 'LaTeX'.Text returnDescription
 		]
@@ -197,7 +203,7 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 parameterToTeX :: !ParameterDoc -> LaTeX
 parameterToTeX {ParameterDoc | title, type, description} = 
 	Item	[ 'LaTeX'.Text title
-			, CleanInline (" :: " +++ type)
+			, CleanInline (" :: " +++ prettyPrint type)
 			, EmDash
 			, 'LaTeX'.Text description
 			]
@@ -237,16 +243,16 @@ documentFunction doc ident prio ('general'.Yes st) = Just
 	{ FunctionDoc
 	| ident				= ident.id_name
 	, operator			= case prio of
-							Prio LeftAssoc i = Just ("infixl " +++ toString i)
-							Prio RightAssoc i = Just ("infixr " +++ toString i)
-							Prio NoAssoc i = Just ("infix " +++ toString i)
+							Prio LeftAssoc i = Just (text "infixl" <+> int i)
+							Prio RightAssoc i = Just (text "infixr" <+> int i)
+							Prio NoAssoc i = Just (text "infix" <+> int i)
 							NoPrio = Nothing
 	, title				= ""
 	, params			= [documentParameter d p \\ d <- doc.DocBlock.params & p <- st.st_args ]
 	, description		= fromMaybe "(No description)" doc.DocBlock.description
 	, returnType		= printAType False st.st_result
 	, returnDescription	= fromMaybe "(No return)" doc.DocBlock.return
-	, context			= printContexts st.st_context
+	, context			= pretty st.st_context
 	, throws			= doc.DocBlock.throws
 	}
 
@@ -265,63 +271,11 @@ documentTypeDefs [PD_Type typedef: defs] =
 documentTypeDefs [def: defs] = documentTypeDefs defs
 
 documentTypeDef :: !ParsedTypeDef -> TypeDefDoc
-documentTypeDef { td_ident, td_rhs } = 
+documentTypeDef td=:{td_ident} = 
 	{ TypeDefDoc
 	| ident	= td_ident.id_name
-	, def	= ":: " +++ td_ident.id_name +++ " = " +++ printRhsDefsOfType td_rhs
+	, type	= pretty td
 	}
-
-printAType :: !Bool !AType  -> String
-printAType withParens atype = printType withParens atype.at_type
-
-printType :: !Bool !Type -> String
-printType withParens (TA ident []) = ident.type_ident.id_name
-printType withParens (TA ident [param])
-	| ident.type_ident.id_name == "_List" = "[" +++ printAType False param +++ "]"
-printType withParens (TA ident params)
-	| ident.type_ident.id_name % (0,5) == "_Tuple" = parens (join "," (map (printAType False) params))
-printType withParens (TA ident params) = (if withParens parens id) (join " " [ident.type_ident.id_name : map (printAType True) params])
-printType withParens (TAS ident params _) = printType withParens (TA ident params) // skip strictness annotations
-printType withParens (TV tv) = tv.tv_ident.id_name
-printType withParens (--> a b) = parens (printAType False a +++ "->" +++ printAType False b)
-printType withParens (TB bt) = toString bt
-printType _ _ = "(unknown type)"
-
-printContexts :: [TypeContext] -> Maybe String
-printContexts [] = Nothing
-printContexts contexts = Just (join " & " (map printContext contexts))
-
-printContext :: TypeContext -> String
-printContext { tc_class, tc_types } = printTCClass tc_class +++ " " +++ join "," (map (printType False) tc_types)
-
-printTCClass :: TCClass -> String
-printTCClass (TCClass global) = printGlobalDefinedSymbol global
-printTCClass (TCGeneric {GenericTypeContext | gtc_class}) = printGlobalDefinedSymbol gtc_class
-
-printGlobalDefinedSymbol :: !(Global DefinedSymbol) -> String
-printGlobalDefinedSymbol { Global | glob_object = { DefinedSymbol | ds_ident }} = ds_ident.id_name
-
-printTypeDef :: ParsedTypeDef -> String
-printTypeDef { td_ident, td_rhs } = ":: " +++ printRhsDefsOfType td_rhs
-
-printRhsDefsOfType :: RhsDefsOfType -> String
-printRhsDefsOfType	(ConsList parsedConstructors) = join "\n    | " (map printParsedConstructor parsedConstructors)
-printRhsDefsOfType	(SelectorList ident typeVars isBoxed selectors) 
-	= "\n {" +++ join "\n ," (map printParsedSelector selectors) +++ "}"
-printRhsDefsOfType	(TypeSpec atype) = printAType False atype
-printRhsDefsOfType (EmptyRhs _) = ""
-printRhsDefsOfType	_ = "(Unknown type definition)"
-
-printParsedConstructor :: ParsedConstructor -> String
-printParsedConstructor { ParsedConstructor | pc_cons_ident, pc_arg_types }
-	= join " " [pc_cons_ident.id_name : map (printAType False) pc_arg_types ]
-	
-printParsedSelector :: ParsedSelector -> String
-printParsedSelector { ParsedSelector | ps_field_ident, ps_field_type } 
-	= ps_field_ident.id_name +++ " :: " +++ printAType False ps_field_type
-
-parens :: !String -> String
-parens s = "(" +++ s +++ ")"
 
 createDocumentTask :: !String !String !String -> Task Document
 createDocumentTask name mime content = mkInstantTask "Create document" create
