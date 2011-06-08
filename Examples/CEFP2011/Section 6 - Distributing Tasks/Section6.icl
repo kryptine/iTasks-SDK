@@ -30,13 +30,17 @@ someTask = enterInformation "Enter Information" []
 // Number guessing game
 from Section4 import onlyIf
 
+guessGame :: Task User
 guessGame
       =                enterInformation "Please enter a number between 1 and 10 that has to be guessed" [] 
         >?*			   [(ActionOk, Sometimes (onlyIf (\n -> n > 0 && n <= 10) return))]
         >>= \secret -> (delegate (guess secret) -||- delegate (guess secret))
         >>= \winner -> showInformation (userName winner +++ " has won") [] winner
 where
-	guess secret = updateInformation "Guess a number between 1 and 10" [] 0 <! (==) secret >>| get currentUser
+	guess :: Int -> Task User
+	guess secret = 		enterInformation "Guess a number between 1 and 10" [] 
+						>>= \n -> if (n == secret)  (showInformation "Welldone, you guessed it" [] n >>| get currentUser)
+													(showInformation "Nope, try again" [] n >>| guess secret)
 
 
 // Ask everyone if they can meet on acertain time and date
