@@ -145,7 +145,7 @@ where
 		= case sresult of
 			TaskBusy tui actions scontext
 				# properties	= setRunning properties 
-				# tui			= defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties}
+				# tui			= if (isEmpty tuiTaskNr) (defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties}) (fromJust tui)
 				# context		= TCTop properties changeNo (TTCActive scontext)
 				# iworld		= setProcessContext processId context iworld
 				| isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
