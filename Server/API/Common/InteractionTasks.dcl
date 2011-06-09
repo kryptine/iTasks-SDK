@@ -1,14 +1,17 @@
 definition module InteractionTasks
 
-from StdFunc	import id, const
 import CoreTasks
 
-:: ViewOn r w		= E.v: About	!v						& iTask v // additional information independent from the data model the interaction task works on
-					| E.v: View		!(!r -> v,!v r -> w)	& iTask v // a complete lens on the data model, making it possible to update it
-					| E.v: Get		!(r -> v)				& iTask v // a get function on the data model, showing it
-					| E.v: Putback	!(v r -> w)				& iTask v // a putback function to put information into the data model
-							
-:: LocalViewOn a :== ViewOn a a
+:: ViewOn l r w	= E.v: About	!v														& iTask v // additional information independent from the data model the interaction task works on
+				| E.v: View		!(!Maybe (GetFunc l r v),!Maybe (PutbackFunc l r w v))	& iTask v // a view on the data model
+				
+:: GetFunc l r v	= GetLocal			!(l		-> v) // a get function on the local part of the data model
+					| GetShared			!(r		-> v) // a get function on the shared part of the data model
+					| GetLocalAndShared	!(l r	-> v) // a get function on both parts of the data model
+					
+:: PutbackFunc l r w v :== v l r -> (!Maybe l,!Maybe w) // a putback function to put information into the data model
+
+:: LocalViewOn a :== ViewOn a Void Void
 
 /*** General input/update/output tasks ***/
 
@@ -62,21 +65,21 @@ showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 * 
 * @gin-icon page_white
 */
-enterSharedInformation :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
+enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 /**
 * Ask the user to update predefined shared information.
 *
 * @param Description:		A description of the task to display to the user
 * @param Options:			Interaction options; if no view is defined & w = r a default view with the id lens is used, if r <> w the value of the shared state (r) is shown to the user
-* @param ReadWriteShared:			Reference to the shared state to update
+* @param Shared:			Reference to the shared state to update
 *
 * @return 					Last value of the shared state the user updated
 * @throws					SharedException
 * 
 * @gin-icon page_edit
 */
-updateSharedInformation :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
+updateSharedInformation :: !d ![ViewOn l r w] l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 /**
 * Monitor a shared state.
@@ -90,7 +93,7 @@ updateSharedInformation :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | d
 * 
 * @gin-icon monitor
 */
-monitor :: !d ![ViewOn r w] !(ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
+showSharedInformation :: !d ![ViewOn l r w] !l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 
 /*** Special tasks for choices ***/
@@ -134,7 +137,7 @@ updateChoice :: !d ![LocalViewOn o] ![o] o -> Task o | descr d & iTask o
 * 
 * @gin-icon choice
 */
-enterSharedChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) -> Task o | descr d & iTask o & iTask w
+enterSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) -> Task o | descr d & iTask o & iTask w
 
 /**
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
@@ -149,7 +152,7 @@ enterSharedChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) -> Task o | descr
 * 
 * @gin-icon choice
 */
-updateSharedChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) o -> Task o | descr d & iTask o & iTask w
+updateSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) o -> Task o | descr d & iTask o & iTask w
 
 /**
 * Ask the user to select a number of items from a list of options
@@ -191,7 +194,7 @@ updateMultipleChoice :: !d ![LocalViewOn o] ![o] [o] -> Task [o] | descr d & iTa
 * 
 * @gin-icon choice
 */
-enterSharedMultipleChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) -> Task [o] | descr d & iTask o & iTask w
+enterSharedMultipleChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) -> Task [o] | descr d & iTask o & iTask w
 
 /**
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
@@ -206,7 +209,7 @@ enterSharedMultipleChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) -> Task [
 * 
 * @gin-icon choice
 */
-updateSharedMultipleChoice :: !d ![ViewOn o w] !(ReadWriteShared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
+updateSharedMultipleChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
 
 
 /*** Special wait tasks ***/

@@ -40,6 +40,9 @@ mapActionTask f task=:{Task|type} = case type of
 	ActionTask actionF	= {Task | task & type = ActionTask (\termF -> actionF (termF o f))}
 	_					= abort "mapActionTask: no action task"
 	
+mapActionTaskModelValue	:: !(a -> b) !(Task a) -> Task b
+mapActionTaskModelValue f task = mapActionTask (\st=:{modelValue} -> {st & modelValue = f modelValue}) task
+	
 taskTitle :: !(Task a) -> String
 taskTitle task = task.Task.properties.taskDescription.TaskDescription.title
 

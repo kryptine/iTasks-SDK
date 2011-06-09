@@ -128,6 +128,12 @@ isRecordType {gtd_conses} = case gtd_conses of
 isRecordCons :: !GenericConsDescriptor -> Bool
 isRecordCons {gcd_fields} = not (isEmpty gcd_fields)
 
+unzip3 :: ![(.a,.b,.c)] -> ([.a],[.b],[.c])
+unzip3 []				= ([], [], [])
+unzip3 [(x,y,z) : xyzs]	= ([x : xs],[y : ys],[z : zs])
+where
+	(xs,ys,zs) = unzip3 xyzs
+
 replaceInList :: !(a a -> Bool) !a ![a] -> [a]
 replaceInList cond new []         = [new]
 replaceInList cond new [x:xs]

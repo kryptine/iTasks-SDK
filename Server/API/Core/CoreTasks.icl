@@ -71,7 +71,7 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskFinished (fromOk val), iworld)
 
-interact :: !d !(l r Bool -> (![InteractionPart (!l,!Maybe w)],!l)) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
 where
 	init taskNr iworld
@@ -136,32 +136,25 @@ where
 		# (changed,iworld)				= 'Shared'.isSharedChanged shared localTimestamp iworld
 		| isError changed				= (sharedException changed, iworld)
 		# local							= getLocalState context
-		# (parts,local)					= partFunc local (fromOk model) (fromOk changed)
-		# context						= setLocalState initLocal local context
-		= case termFunc {modelValue = (local,fromOk model), localValid = fromOk changed} of
-			StopInteraction result
-				= (TaskFinished result,iworld)
+		# parts							= partFunc local (fromOk model) (fromOk changed)
+		# taskId						= taskNrToString taskNr
+		# storedParts					= getParts context
+		# (mbEvent,context)				= getEvent context
+		# (tuis,newParts,valid)			= visualizeParts taskNr parts storedParts mbEvent
+		# context 						= setLocalVar PARTS_STORE newParts context
+		= case termFunc {modelValue 	= (local,fromOk model), localValid = valid} of
+			StopInteraction result		= (TaskFinished result,iworld)
 			UserActions actions
 				= case getActionResult event actions of
-					Just result
-						= (TaskFinished result, iworld)
+					Just result			= (TaskFinished result, iworld)
 					Nothing
-						# (tui,actions,context,iworld) = renderTUI taskNr imerge parts actions context iworld
+						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
+						# warning = case (getLocalVar EDIT_CONFLICT_STORE context) of
+							Just True	= Just EDIT_CONFLICT_WARNING
+							_			= Nothing
+						# (tui,actions)	= mergeTUI imerge tuis warning tactions 
 						= (TaskBusy (Just tui) actions context, iworld)
 	where
-		renderTUI taskNr imerge parts actions context iworld
-			# taskId				= taskNrToString taskNr
-			# storedParts			= getParts context
-			# (mbEvent,context)		= getEvent context
-			# (tuis,newParts)		= visualizeParts taskNr parts storedParts mbEvent
-			# context 				= setLocalVar PARTS_STORE newParts context
-			# tactions				= [(taskId,action,isJust val) \\ (action,val) <- actions]
-			# warning				= case (getLocalVar EDIT_CONFLICT_STORE context) of
-				Just True	= Just EDIT_CONFLICT_WARNING
-				_			= Nothing
-			# (tui,actions)			= mergeTUI imerge tuis warning tactions 
-			= (tui,actions,context,iworld)
-		
 		mergeTUI imerge tuis warning actions
 			= imerge { title = props.taskDescription.TaskDescription.title
 					 , description = props.taskDescription.TaskDescription.description
@@ -213,10 +206,10 @@ where
 					| StoredUpdate		!(!l,!Maybe w)
 :: StoredPutback l w = E.v: StoredPutback !((Maybe v) -> (!l,!Maybe w)) & iTask v
 
-visualizeParts :: !TaskNr ![InteractionPart (!l,!Maybe w)] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![StoredPart l w])
+visualizeParts :: !TaskNr ![InteractionPart (!l,!Maybe w)] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![StoredPart l w],!Bool)
 visualizeParts taskNr parts oldParts mbEdit
-	# res			= [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]
-	= unzip res
+	# res = [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]
+	= appThd3 and (unzip3 res)
 where
 	visualizePart (part,mbV,idx)
 		= case part of
@@ -225,14 +218,16 @@ where
 					# umask				= defaultMask value
 					# vmask				= verifyForm value umask
 					# tui				= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit
-					= (tui,StoredUpdateView (toJSON value) umask (StoredPutback putback))
+					= (tui,StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask)
 				Unchanged init = case mbV of
-					Just (StoredUpdateView jsonV umask storedPutback) = case fromJSON` formView jsonV of
-						Just value		= (visualizeAsEditor value (taskNrToString taskNr) idx (verifyForm value umask) mbEdit,StoredUpdateView jsonV umask storedPutback)
+					Just (StoredUpdateView jsonV umask _) = case fromJSON` formView jsonV of
+						Just value
+										# vmask = verifyForm value umask
+										= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,StoredUpdateView jsonV umask (StoredPutback putback), isValidValue vmask)
 						Nothing			= visualizePart (UpdateView init putback,Nothing,idx)
 					_					= visualizePart (UpdateView init putback,Nothing,idx)
 				Blank					= blankForm formView putback mbEdit
-			DisplayView v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),StoredDisplayView)
+			DisplayView v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),StoredDisplayView, True)
 			Update label w				=	({ content = TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
@@ -241,7 +236,7 @@ where
 																	, iconCls		= ""
 																	, actionButton	= False
 																	}
-											, width = Auto, height = Auto, margins = Nothing},StoredUpdate w)
+											, width = Auto, height = Auto, margins = Nothing},StoredUpdate w, True)
 	where
 		fromJSON` :: !(FormView v) !JSONNode -> (Maybe v) | JSONDecode{|*|} v
 		fromJSON` _ json = fromJSON json
@@ -250,7 +245,7 @@ where
 			# value	= defaultValue` formView
 			# umask	= Untouched
 			# vmask	= verifyForm value umask
-			= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,StoredUpdateView (toJSON value) umask (StoredPutback putback))
+			= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask)
 		
 		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
 		defaultValue` _ = defaultValue

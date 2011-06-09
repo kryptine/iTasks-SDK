@@ -51,6 +51,7 @@ isRecordType	:: !GenericTypeDefDescriptor	-> Bool
 isRecordCons	:: !GenericConsDescriptor		-> Bool
 
 //List utility functions
+unzip3			:: ![(.a,.b,.c)]			-> ([.a],[.b],[.c])
 replaceInList	:: !(a a -> Bool) !a ![a]	-> [a]
 splitWith		:: !(a -> Bool) ![a]		-> (![a],![a])
 sortByIndex		:: ![(!Int,!a)]				-> [a]

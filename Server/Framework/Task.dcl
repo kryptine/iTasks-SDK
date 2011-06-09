@@ -90,7 +90,8 @@ mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | des
 */
 mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task  a | descr d
 
-mapActionTask :: !((InformationState a) -> (InformationState b)) !(Task a) -> Task b
+mapActionTask			:: !((InformationState a) -> (InformationState b))	!(Task a) -> Task b
+mapActionTaskModelValue	:: !(a -> b)										!(Task a) -> Task b
 
 /**
 * Extracts the subject of a task

@@ -85,7 +85,7 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 *
 * @gin False
 */
-interact :: !d !(l r Bool -> (![InteractionPart (!l,!Maybe w)],!l)) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 :: InteractionPart o	= E.v:	UpdateView	!(FormView v) !((Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayView	!v								& iTask v	// A static view displayed to the user
