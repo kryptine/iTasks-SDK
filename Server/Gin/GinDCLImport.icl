@@ -86,22 +86,22 @@ mapModule name defs =
 mapDefinitions :: [ParsedDefinition] -> [Binding]
 mapDefinitions [] = []
 mapDefinitions [PD_Documentation docstr: PD_TypeSpec pos ident prio optSymbtype specials: defs]
-	# res = parseDocBlock docstr
+	# res = parseFunctionComment docstr
 	# doc = case res of
 		Ok doc = doc
-		Error err = emptyDocBlock
+		Error err = emptyFunctionComment
 	= case mapFunction doc ident prio optSymbtype of
 		Just binding = [binding:mapDefinitions defs]
 		Nothing = mapDefinitions defs
 mapDefinitions [def:defs] = mapDefinitions defs
 
-mapFunction :: !DocBlock Ident Priority (Optional SymbolType) -> Maybe Binding
+mapFunction :: !FunctionComment Ident Priority (Optional SymbolType) -> Maybe Binding
 mapFunction _ _	_ No       = Nothing
 mapFunction _ _ _ (Yes st) | not (isTask (mapAType st.st_result)) = Nothing
 mapFunction doc _ _ _
-	| not doc.DocBlock.gin = Nothing
+	| not doc.FunctionComment.gin = Nothing
 mapFunction doc ident prio (Yes st) 
-	| doc.DocBlock.parallel && isJust doc.DocBlock.title && isJust doc.DocBlock.icon
+	| doc.FunctionComment.parallel && isJust doc.FunctionComment.title && isJust doc.FunctionComment.icon
 	= Just	( ParallelBinding	{ split =	{ GDeclaration
 											| name = "_split"
 											, title = Just "Parallel split"
@@ -114,12 +114,12 @@ mapFunction doc ident prio (Yes st)
 											}
 								, merge =	{ GDeclaration
 											| name = ident.id_name
-											, title = doc.DocBlock.title
-											, description = doc.DocBlock.description
+											, title = doc.FunctionComment.title
+											, description = doc.FunctionComment.description
 											, formalParams = []
 											, returnType = GUndefinedTypeExpression
 											, returnDescription = Nothing
-											, icon = doc.DocBlock.icon
+											, icon = doc.FunctionComment.icon
 											, shape = Nothing
 											}
 								, type = mapAType st.st_result
@@ -137,17 +137,17 @@ mapFunction doc ident prio (Yes st)
 		mapAssoc RightAssoc = Infixr
 		mapAssoc NoAssoc    = Infix
 mapFunction doc ident _ (Yes st)
-	| not doc.DocBlock.parallel
+	| not doc.FunctionComment.parallel
 	= (Just	( NodeBinding	
 				{ NodeBinding 
 				| declaration = 
 					{ GDeclaration
 					| name = ident.id_name
-					, title = doc.DocBlock.title
-					, description = doc.DocBlock.description
-					, formalParams = if (length doc.DocBlock.params == length st.st_args)
-						[ mapFormalParameter d p \\ d <- doc.DocBlock.params & p <- st.st_args ]
-						[ mapFormalParameter	{ ParamDoc
+					, title = doc.FunctionComment.title
+					, description = doc.FunctionComment.description
+					, formalParams = if (length doc.FunctionComment.params == length st.st_args)
+						[ mapFormalParameter d p \\ d <- doc.FunctionComment.params & p <- st.st_args ]
+						[ mapFormalParameter	{ ParamComment
 												| name = "param" +++ toString i
 												, title = Just (toString (mapAType p))
 												, description = Nothing 
@@ -155,9 +155,9 @@ mapFunction doc ident _ (Yes st)
 												p 
 						  \\ p <- st.st_args & i <- [1..] ]
 					, returnType = mapAType st.st_result
-					, returnDescription = doc.DocBlock.return
-					, icon = doc.DocBlock.icon
-					, shape = Nothing//doc.DocBlock.shape
+					, returnDescription = doc.FunctionComment.return
+					, icon = doc.FunctionComment.icon
+					, shape = Nothing//doc.FunctionComment.shape
 					}				
 				, parameterMap = NBPrefixApp
 				}
@@ -166,12 +166,12 @@ mapFunction doc ident _ (Yes st)
 
 mapFunction _ _ _ _ = Nothing
 
-mapFormalParameter :: !ParamDoc AType -> GFormalParameter
+mapFormalParameter :: !ParamComment AType -> GFormalParameter
 mapFormalParameter doc type = 
 	{ GFormalParameter
-	| name			= doc.ParamDoc.name
-	, title			= doc.ParamDoc.title
-	, description 	= doc.ParamDoc.description
+	| name			= doc.ParamComment.name
+	, title			= doc.ParamComment.title
+	, description 	= doc.ParamComment.description
 	, type			= mapAType type
 	}
 

@@ -7,9 +7,16 @@ from syntax		import	::ParsedDefinition
 
 parseModule :: !String !Bool *File -> ([ParsedDefinition], *File)
 
-:: DocBlock = 
+:: ModuleComment = 
 	{ description	:: !Maybe String
-	, params		:: ![ParamDoc]
+	}
+
+emptyModuleComment :: ModuleComment
+parseModuleComment :: !String -> MaybeErrorString ModuleComment
+
+:: FunctionComment = 
+	{ description	:: !Maybe String
+	, params		:: ![ParamComment]
 	, return		:: !Maybe String
 	, throws	 	:: ![String]
 	, gin			:: !Bool
@@ -19,12 +26,14 @@ parseModule :: !String !Bool *File -> ([ParsedDefinition], *File)
 	, shape			:: !Maybe String
 	}
 
-:: ParamDoc = 
+:: ParamComment = 
 	{ name			:: !String
 	, title			:: !Maybe String
 	, description	:: !Maybe String																
 	}
+	
+emptyFunctionComment :: FunctionComment
+parseFunctionComment :: !String -> MaybeErrorString FunctionComment
 
-emptyDocBlock :: DocBlock
 
-parseDocBlock :: !String -> MaybeErrorString DocBlock
+

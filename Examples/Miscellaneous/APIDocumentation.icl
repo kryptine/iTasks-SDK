@@ -84,28 +84,29 @@ from syntax		import
 apiDocumentationExamples :: [Workflow]
 apiDocumentationExamples = 
 	[ workflow	"Examples/Miscellaneous/Generate API documentation" "Generate iTasks API documentation in LaTeX format" generateTeXExample ]
-
+		
 generateTeXExample :: Task Void	
 generateTeXExample = updateInformation "Enter API Directory:" [] (".." </> "Server" </> "API")
-	>>= \directory -> generateTeX directory >>= transform printLaTeX 
+	>>= \path			-> findAllFiles path ".dcl"
+	>>= \dclFiles 		-> updateMultipleChoice "Select modules to include in documentation" [] dclFiles (filterDefault dclFiles)
+	>>= \selectedFiles	-> sequence "Generating LaTeX" (map generateTeX selectedFiles) >>= transform (printLaTeX o flatten)
 	>>= \tex -> createDocumentTask "iTasks_API_documentation.tex" "application/x-tex" tex
 	>>= showInformation "Download iTasks API documentation in LaTeX format" []
 	>>| stop
-	
-derive class iTask LaTeX
+	where
+		filterDefault = filter (\f -> indexOf "\\Core" f >= 0 || indexOf "\\Common" f >= 0)
 
-generateTeX :: !FilePath -> Task [LaTeX]
-generateTeX path
-| endsWith ".dcl" path =
-	accWorldError (dclToTeX path) id
-| otherwise = 
-	accWorldOSError (isSubDirectory path) >>= \isSubDir ->
-	if isSubDir
-		(accWorldOSError (readDirectory path) >>= \entries ->
-		 sequence ("Generating TeX documentation in " +++ path)
-		 	[ generateTeX (path </> e) \\ e <- entries | e <> "." && e <> ".."] >>= transform flatten
-		)
-		(return [])
+findAllFiles :: !FilePath !String -> Task [FilePath]
+findAllFiles path extension
+	| endsWith extension path = return [path]
+	| otherwise = 
+		accWorldOSError (isSubDirectory path) >>= \isSubDir ->
+		if isSubDir
+			(accWorldOSError (readDirectory path) >>= \entries ->
+			 sequence ("Searching directory " +++ path) 
+				[ findAllFiles (path </> e) extension \\ e <- entries | e <> "." && e <> ".." ] >>= transform flatten
+			)
+			(return [])
 where
 	isSubDirectory :: !String *World -> (MaybeOSError Bool, *World)
 	isSubDirectory filename world
@@ -113,8 +114,16 @@ where
 	| isError res = (liftError res, world)
 	= (Ok (fromOk res).directory, world)
 
+derive class iTask LaTeX
+
+generateTeX :: !FilePath -> Task [LaTeX]
+generateTeX path = accWorldError (dclToTeX path) id
+
+
+
 :: ModuleDoc = 
 	{ ident			:: !String
+	, description	:: !String
 	, types			:: ![TypeDefDoc]
 	, functions		:: ![FunctionDoc]
 	}
@@ -150,14 +159,16 @@ dclToTeX filename world
 
 
 moduleToTeX :: !ModuleDoc -> [LaTeX]
-moduleToTeX {ModuleDoc | ident, types, functions} = 
-	[ Section ident ]
+moduleToTeX {ModuleDoc | ident, description, types, functions} = 
+	[ Section ident
+	, 'LaTeX'.Text description
+	]
 	++ flatten (map typedefToTeX types)
 	++ flatten (map functionToTeX functions)
 
 typedefToTeX :: !TypeDefDoc -> [LaTeX]
 typedefToTeX { TypeDefDoc | ident, type }
-	=	[ Subsection (":: " +++ ident)
+	=	[ Subsection (ident +++ " type")
 		, Index ident
 		, CleanCode [ prettyPrint type ]
 		]
@@ -218,8 +229,14 @@ documentDCL filename world
 	# (ok,world)				= fclose errorFile world
 	| not ok					= (Error "Failed to close errors.txt file", world)
 	# (_,world)					= deleteFile "errors.txt" world
+	# res						= case defs of
+									[PD_Documentation docstr:_]	= parseModuleComment docstr
+									_							= Ok emptyModuleComment
+	| isError res 				= (liftError res, world)
+	# moduleComment 			= fromOk res
 	= (Ok	{ ModuleDoc 
 			| ident = dropExtension (dropDirectory filename) 
+			, description = fromMaybe "" moduleComment.ModuleComment.description 
 			, functions = documentFunctions defs
 			, types = documentTypeDefs defs
 			}
@@ -228,16 +245,16 @@ documentDCL filename world
 documentFunctions :: ![ParsedDefinition] -> [FunctionDoc]
 documentFunctions [] = []
 documentFunctions [PD_Documentation docstr: PD_TypeSpec pos ident prio optSymbtype specials: defs]
-	# res = parseDocBlock docstr
+	# res = parseFunctionComment docstr
 	# doc = case res of
 		Ok doc = doc
-		Error err = emptyDocBlock
+		Error err = emptyFunctionComment
 	= case documentFunction doc ident prio optSymbtype of
 		Just fd = [fd:documentFunctions defs]
 		Nothing = documentFunctions defs
 documentFunctions [def:defs] = documentFunctions defs
 
-documentFunction :: !DocBlock Ident Priority ('general'.Optional SymbolType) -> Maybe FunctionDoc
+documentFunction :: !FunctionComment Ident Priority ('general'.Optional SymbolType) -> Maybe FunctionDoc
 documentFunction doc ident prio 'general'.No = Nothing
 documentFunction doc ident prio ('general'.Yes st) = Just
 	{ FunctionDoc
@@ -248,22 +265,21 @@ documentFunction doc ident prio ('general'.Yes st) = Just
 							Prio NoAssoc i = Just (text "infix" <+> int i)
 							NoPrio = Nothing
 	, title				= ""
-	, params			= [documentParameter d p \\ d <- doc.DocBlock.params & p <- st.st_args ]
-	, description		= fromMaybe "(No description)" doc.DocBlock.description
+	, params			= [documentParameter d p \\ d <- doc.FunctionComment.params & p <- st.st_args ]
+	, description		= fromMaybe "" doc.FunctionComment.description
 	, returnType		= printAType False st.st_result
-	, returnDescription	= fromMaybe "(No return)" doc.DocBlock.return
+	, returnDescription	= fromMaybe "" doc.FunctionComment.return
 	, context			= pretty st.st_context
-	, throws			= doc.DocBlock.throws
+	, throws			= doc.FunctionComment.throws
 	}
 
-documentParameter :: !ParamDoc AType -> ParameterDoc
+documentParameter :: !ParamComment AType -> ParameterDoc
 documentParameter  doc type = 
 	{ ParameterDoc
-	| title			= fromMaybe "(No title)" doc.ParamDoc.title
-	, description	= fromMaybe "(No description)" doc.ParamDoc.description
+	| title			= fromMaybe "(No title)" doc.ParamComment.title
+	, description	= fromMaybe "(No description)" doc.ParamComment.description
 	, type			= printAType True type
 	}
-	
 documentTypeDefs :: ![ParsedDefinition] -> [TypeDefDoc]
 documentTypeDefs [] = []
 documentTypeDefs [PD_Type typedef: defs] = 

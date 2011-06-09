@@ -165,29 +165,35 @@ where
 		| input % (offset,offset + (size chars) - 1) == chars	= Just (token, offset + size chars)
 																= Nothing
 
+parseWith :: (Parser DocToken a) !String  -> MaybeErrorString a
+parseWith parser str
+# doc = parser (lex str)
+| isEmpty doc = Error "Parse error"
+= Ok (snd (hd doc))
 
-//Parser for documentation blocks
-:: DocBlock = 
+//Parser for module comments
+
+:: ModuleComment = 
 	{ description	:: !Maybe String
-	, params		:: ![ParamDoc]
-	, return		:: !Maybe String
-	, throws	 	:: ![String]
-	, gin			:: !Bool
-	, title			:: !Maybe String
-	, icon			:: !Maybe String
-	, parallel		:: !Bool
-	, shape			:: !Maybe String
 	}
 
-:: ParamDoc = 
-	{ name			:: !String
-	, title			:: !Maybe String
-	, description	:: !Maybe String																
-	}
+emptyModuleComment :: ModuleComment
+emptyModuleComment = 
+	{ ModuleComment | description = Nothing }
 
-emptyDocBlock :: DocBlock
-emptyDocBlock = 
-	{ DocBlock
+parseModuleComment :: !String -> MaybeErrorString ModuleComment
+parseModuleComment str = parseWith pModuleComment str
+
+pModuleComment :: Parser DocToken ModuleComment
+pModuleComment = begin1 pModuleComment`
+where
+	pModuleComment` = pText <&> \description -> yield { ModuleComment | emptyModuleComment & description = Just description }
+
+//Parser for function comments
+
+emptyFunctionComment :: FunctionComment
+emptyFunctionComment = 
+	{ FunctionComment
 	| description	= Nothing
 	, params		= []
 	, return		= Nothing
@@ -199,38 +205,36 @@ emptyDocBlock =
 	, shape			= Nothing
 	}
 
-parseDocBlock :: !String -> MaybeErrorString DocBlock
-parseDocBlock str
-# doc = pDocBlock (lex str)
-| isEmpty doc = Error "Parse error"
-= Ok (snd (hd doc))
+parseFunctionComment :: !String -> MaybeErrorString FunctionComment
+parseFunctionComment str = parseWith pFunctionComment str
 
-pDocBlock :: Parser DocToken DocBlock
-pDocBlock = begin1 pDocBlock`
+pFunctionComment :: Parser DocToken FunctionComment
+pFunctionComment = begin1 pFunctionComment`
 where
-	pDocBlock` = 
+	pFunctionComment` = 
 		pDescription <&> \description ->
 		(<*> (pParam <!> pReturn <!> pThrows <!> pGin <!> pTitle <!> pIcon <!> pParallel)) <&> \args ->
-		yield	((seq args) (description emptyDocBlock))
+		yield	((seq args) (description emptyFunctionComment))
 	
 	pDescription = pText <&> \description ->
-		yield (\doc -> { DocBlock | doc & description = Just description })
+		yield (\doc -> { FunctionComment | doc & description = Just description })
 	pParam = symbol ParamDocToken &> pText <&> \title -> symbol ColonDocToken &> pText <&> \description -> 
-		yield (\doc -> { DocBlock | doc & params = doc.params 
-		++ [{ ParamDoc | name = makeIdent title, title = Just title, description = Just description }] })
+		yield (\doc -> { FunctionComment | doc & params = doc.params 
+		++ [{ ParamComment | name = makeIdent title, title = Just title, description = Just description }] })
 	where
 		makeIdent s = replaceSubString " " "_" (toLowerCase s)
 	pReturn = symbol ReturnDocToken &> pText <&> \return ->
-		yield (\doc -> { DocBlock | doc & return = Just return })
+		yield (\doc -> { FunctionComment | doc & return = Just return })
 	pThrows = symbol ThrowsDocToken &> pText <&> \throws ->
-		yield (\doc -> { DocBlock | doc & throws = doc.throws ++ [throws]})
+		yield (\doc -> { FunctionComment | doc & throws = doc.throws ++ [throws]})
 	pGin = symbol GinDocToken &> pText <&> \gin ->
-		yield (\doc -> { DocBlock | doc & gin = toLowerCase gin == "true" })
+		yield (\doc -> { FunctionComment | doc & gin = toLowerCase gin == "true" })
 	pTitle = symbol TitleDocToken &> pText <&> \title ->
-		yield (\doc -> { DocBlock | doc & title = Just title })
+		yield (\doc -> { FunctionComment | doc & title = Just title })
 	pIcon = symbol IconDocToken &> pText <&> \icon ->
-		yield (\doc -> { DocBlock | doc & icon = Just icon })
+		yield (\doc -> { FunctionComment | doc & icon = Just icon })
 	pParallel = symbol ParallelDocToken &> pText <&> \parallel -> 
-		yield (\doc -> { DocBlock | doc & parallel = toLowerCase parallel == "true" })
-	pText = satisfy isText <@ \(TextDocToken t) -> t
+		yield (\doc -> { FunctionComment | doc & parallel = toLowerCase parallel == "true" })
+
+pText = satisfy isText <@ \(TextDocToken t) -> t
 
