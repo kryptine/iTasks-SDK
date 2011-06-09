@@ -93,13 +93,20 @@ shared_chat :: Task ChatState2
 shared_chat
     =   					get currentUser
     	>>= \me ->			selectUser
-		>>= \you ->			parallel "2 Chatters" initChatState2 (const2 Void)
+		>>= \you ->			parallel "2 Chatters" initChatState2 (\_ s -> s)
 								[ShowAs (DetachedTask (normalTask me) ) (chatEditor me you 0 1)
 								,ShowAs (DetachedTask (normalTask you)) (chatEditor you me 1 0)
 								]
 where
+	chatEditor :: User User Int Int (Shared ChatState2) (ParallelInfo ChatState2) -> Task Void
 	chatEditor me you mine yours cs os
-		= 					updateSharedInformation ("Chat with " <+++ you) [View view] cs  
+//		= 					updateSharedInformation ("Chat with " <+++ you) [] cs  
+/*		=					get cs
+			>>= \state ->	updateInformation ("Chat with " <+++ you) [] (Display state.chats, Note "")
+			>>= \(_,Note response) -> update (\state -> { state &  chats = state.chats ++ [me +++> ": " +++> response]}) cs
+			>>|				chatEditor me you mine yours cs os
+
+*/		= 					updateSharedInformation ("Chat with " <+++ you) [View view] cs  
 			>?*				[(ActionQuit, Always (return Void))]
 	where
 		view 
@@ -121,12 +128,6 @@ where
 			= { state & buffer	= updateAt mine afterS state.buffer
 					  , chats	= state.chats ++ [me +++> ": " +++> beforeS]
 			  }
-				
-		actions _		= [(ActionQuit,Just Void)]
-
-
-	actions _ = [(ActionQuit, Just  Void)]
-	
 
 // N users chatting with each other
 
