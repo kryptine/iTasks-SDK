@@ -146,13 +146,15 @@ where
 		= case sresult of
 			TaskBusy tui actions scontext
 				# properties	= setRunning properties 
-				# tui			= if (isEmpty tuiTaskNr) (defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties}) (fromJust tui)
+				# tui			= if (isEmpty tuiTaskNr)
+					(fmap (\t -> defaultMainLayout {TUIMain|content = t,actions = actions, properties = properties}) tui)
+					tui
 				# context		= TCTop properties changeNo (TTCActive scontext)
 				# iworld		= setProcessContext processId context iworld
 				| isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
 					= evalTask` props changeNo scontext Nothing tuiTaskNr originalTaskFuncs properties (inc iterationCount) iworld
 				| otherwise
-					= (TaskBusy (Just tui) [] context, properties, iworld)
+					= (TaskBusy tui [] context, properties, iworld)
 			TaskFinished val
 				# properties	= setFinished properties
 				# context		= TCTop properties changeNo (TTCFinished (toJSON val))
