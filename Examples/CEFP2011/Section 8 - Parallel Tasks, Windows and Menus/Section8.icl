@@ -12,13 +12,11 @@ Start :: *World -> *World
 Start world = startEngine flows8 world
 
 flows8 :: [Workflow]
-flows8 =  [w1, w2, w3]
-
-w1	= workflow "CEFP/Sect 8/1. Chat with several users" "Chat with several users"	chat3
-w2	= workflow "CEFP/Sect 8/2. Editing a text file"		"Editing a text file"		textEditor2
-w3	= workflow "CEFP/Sect 8/3. Arrange a meeting date between several users"
-														"Arrange meeting"			mkAppointment
-
+flows8 
+	=   [ workflow "CEFP/Sect 8/1. Chat with several users"    	"Chat with several users" chat3
+		, workflow "CEFP/Sect 8/2. Editing a text file" "Editing a text file" textEditor2
+		, workflow "CEFP/Sect 8/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+		]
 
 // chat with several users
 

@@ -19,24 +19,11 @@ flows5
 		, workflow "CEFP/Sect 5/3. Administrated users details"		"Shows details of all currently administrated users"	(show getUsersDetails)
 		, workflow "CEFP/Sect 5/4. Show details of a user"			"Select administrated user and show administration"		selectUserDetails 
 		, workflow "CEFP/Sect 5/5. Current Workflows" 				"Which workflows are known here ?"						(show getWorkflows)
-		, workflow "CEFP/Sect 5/6. To Do List" 						"Create and store a to do list"							(show updateMyStore)
+		, workflow "CEFP/Sect 5/6. To Do List" 						"Create and store a to do list"							(show updateToDoList)
 		, workflow "CEFP/Sect 5/7. Shared To Do List" 				"Update a shared to do list"							(show updateMySharedStore)
 		, workflow "CEFP/Sect 5/8. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
-		, workflow "CEFP/Sect 5/9. To Do List, vrs 2" 				"Create and store a to do list" 						(show updateMyStore2)
 		]
 
-<<<<<<< .mine
-=======
-w1 = workflow "CEFP/Sect 5/1. Date and Time" 					"Shows current date and time"							(show getDateAndTime)
-w2 = workflow "CEFP/Sect 5/2. Administrated users" 				"Shows currently administrated users"					(show getUsers)
-w3 = workflow "CEFP/Sect 5/3. Administrated users details"		"Shows details of all currently administrated users"	(show getUsersDetails)
-w4 = workflow "CEFP/Sect 5/4. Show details of a user"			"Select administrated user and show administration"		selectUserDetails 
-w5 = workflow "CEFP/Sect 5/5. Current Workflows" 				"Which workflows are known here ?"						(show getWorkflows)
-w6 = workflow "CEFP/Sect 5/6. To Do List" 						"Create and store a to do list"							(show updateToDoList)
-w7 = workflow "CEFP/Sect 5/7. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
-w8 = workflow "CEFP/Sect 5/8. To Do List, vrs 2" 				"Create and store a to do list" 						(show updateToDoList2)
-
->>>>>>> .r1715
 // Date and Time
 
 getDateAndTime :: Task DateTime
@@ -81,18 +68,11 @@ getWorkflows
 
 // Make my own shared store
 
-<<<<<<< .mine
-:: ToDoList =	{ name :: String
-				, deadline :: Maybe Date
-				, remark :: Maybe Note
-				, done :: Bool
-=======
-:: ToDo		=	{ name		:: !String
-				, deadline	:: !Date
-				, remark	:: !Maybe Note
-				, done		:: !Bool
->>>>>>> .r1715
-				}
+:: ToDo =	{ name :: String
+			, deadline :: Maybe Date
+			, remark :: Maybe Note
+			, done :: Bool
+			}
 derive class iTask ToDo
 
 toDoList :: Shared [ToDo]
@@ -104,7 +84,7 @@ updateToDoList
       >>= 	updateInformation "Your To Do List" []
       >>=	set toDoList
 
-updateMySharedStore :: Task [ToDoList]
+updateMySharedStore :: Task [ToDo]
 updateMySharedStore
     =     	updateSharedInformation "Your To Do List" [] myStore
 where
@@ -121,6 +101,3 @@ selectUserDetails2
       >>= \details -> 	showInformation ("Details of user " <+++ user) [] details
 
 
-updateToDoList2 :: Task [ToDo]
-updateToDoList2
-    =     	updateSharedInformation "Your To Do List" [] toDoList
