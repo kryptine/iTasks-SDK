@@ -9,19 +9,18 @@ Start :: *World -> *World
 Start world = startEngine flows2 world
 
 flows2 :: [Workflow]
-flows2 =  [w1, w2, w3, w4, w5, w6, w7, w8, w9, w10]
-
-w1	= workflow "CEFP/Sect 2/1. Hello world!"        	"The infamous hello world"      hello
-w2	= workflow "CEFP/Sect 2/2. Enter Int value"    		"Form for an integer value" 	(show taskInt)
-w3	= workflow "CEFP/Sect 2/3. Enter String value" 		"Form for entering a string"	(show taskString)
-w4	= workflow "CEFP/Sect 2/4. Enter Person data"  		"Form for entering person data" (show taskPerson)
-w5	= workflow "CEFP/Sect 2/5. Enter [Person]" 			"Fill in person data" 			(show taskPersonList)
-w6	= workflow "CEFP/Sect 2/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
-w7	= workflow "CEFP/Sect 2/7. Choose several items"	"Multiple choice" 				(show pizzaWith)
-w8	= workflow "CEFP/Sect 2/8. Simple Editor" 			"Using type Note" 				(show simpleEditor)
-w9	= workflow "CEFP/Sect 2/9. Pick a Date" 			"Using type Date" 				(show chooseDate)
-w10	= workflow "CEFP/Sect 2/10. Point on a map" 		"Using type GoogleMap" 			(show pointOnMap)
-
+flows2 
+	=   [ workflow "CEFP/Sect 2/1. Hello world!"        	"The infamous hello world"      hello
+		, workflow "CEFP/Sect 2/2. Enter Int value"    		"Form for an integer value" 	(show taskInt)
+		, workflow "CEFP/Sect 2/3. Enter String value" 		"Form for entering a string"	(show taskString)
+		, workflow "CEFP/Sect 2/4. Enter Person data"  		"Form for entering person data" (show taskPerson)
+		, workflow "CEFP/Sect 2/5. Enter [Person]" 			"Fill in person data" 			(show taskPersonList)
+		, workflow "CEFP/Sect 2/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
+		, workflow "CEFP/Sect 2/7. Choose several items"	"Multiple choice" 				(show pizzaWith)
+		, workflow "CEFP/Sect 2/8. Simple Editor" 			"Using type Note" 				(show simpleEditor)
+		, workflow "CEFP/Sect 2/9. Pick a Date" 			"Using type Date" 				(show chooseDate)
+		, workflow "CEFP/Sect 2/10. Point on a map" 		"Using type GoogleMap" 			(show pointOnMap)
+		]
 
 // the ubiquitous hello world example
 

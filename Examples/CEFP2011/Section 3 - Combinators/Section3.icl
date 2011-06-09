@@ -12,19 +12,19 @@ Start :: *World -> *World
 Start world = startEngine flows3 world
 
 flows3 :: [Workflow]
-flows3 =  [w1, w2, w3, w4, w5, w6, w7, w8, w9, w10]
-
-w1	= workflow "CEFP/Sect 3/1. Hello"    					"\"Hello World\" in iTask" 				hello
-w2	= workflow "CEFP/Sect 3/2. Numbers"						"Enter a number of numbers"				numbers
-w3	= workflow "CEFP/Sect 3/3. Form for [Person]" 			"Form for [Person]"						(show personList)
-w4	= workflow "CEFP/Sect 3/4. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
-w5	= workflow "CEFP/Sect 3/5. Choose one or more [Person]" "Select from a list" 					(show personList3)
-w6	= workflow "CEFP/Sect 3/6. Form for [Person]" 			"Form for [Person]" 					(show personList4)
-w7	= workflow "CEFP/Sect 3/7. Form for [Person]" 			"Form for [Person]" 					(show personList5)
-w8	= workflow "CEFP/Sect 3/8. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
-w9	= workflow "CEFP/Sect 3/9. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons)
-w10	= workflow "CEFP/Sect 3/10. Test while"					"Test while"							positive
-
+flows3 
+	=	[ workflow "CEFP/Sect 3/1. Hello"    					"\"Hello World\" in iTask" 				hello
+		, workflow "CEFP/Sect 3/2. Numbers"						"Enter a number of numbers"				numbers
+		, workflow "CEFP/Sect 3/3. Form for [Person]" 			"Form for [Person]"						(show personList)
+		, workflow "CEFP/Sect 3/4. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
+		, workflow "CEFP/Sect 3/5. Choose one or more [Person]" "Select from a list" 					(show personList3)
+		, workflow "CEFP/Sect 3/6. Form for [Person]" 			"Form for [Person]" 					(show personList4)
+		, workflow "CEFP/Sect 3/7. Form for [Person]" 			"Form for [Person]" 					(show personList5)
+		, workflow "CEFP/Sect 3/8. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
+		, workflow "CEFP/Sect 3/9. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons)
+		, workflow "CEFP/Sect 3/10. Test while"					"Test while"							positive
+		]
+		
 // show combinator function that displays result of argument task:
 
 show :: !(Task a) -> Task a | iTask a
