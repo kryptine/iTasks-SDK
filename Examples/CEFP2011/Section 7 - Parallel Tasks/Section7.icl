@@ -93,7 +93,7 @@ monitor_chat
 where
 	chat :: String User (Shared ChatState) info -> Task ChatState
 	chat names me chatState info
-		= (monitor headerMonitor [] chatState) ||- (forever enterLine)
+		= (showSharedInformation headerMonitor [] Void chatState) ||- (forever enterLine)
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names
@@ -103,54 +103,51 @@ where
 	initChatState :: ChatState
 	initChatState = []
 
-:: ChatState2 = { buffer :: [String]
-			    , chats  :: [String]
+:: ChatState2 = { typing	:: [Bool]   	// is chatter i busy with typing
+			    , history	:: [String]		// chats so far ....
 			    }
 derive class iTask ChatState2
 
+initChatState2 n = { typing = repeatn n False, history = []}
 
-initChatState2 = { buffer = ["",""], chats = []}
+setTyping n "" state 	= {state & typing  = updateAt n False state.typing}
+setTyping n _ state 	= {state & typing  = updateAt n True  state.typing}
+
+setHistory text state 	= {state & history = state.history ++ [text]}
 
 
 shared_chat :: Task ChatState2
 shared_chat
     =   					get currentUser
     	>>= \me ->			selectUser
-		>>= \you ->			parallel "2 Chatters" initChatState2 (\_ s -> s)
-								[ShowAs (DetachedTask (normalTask me) ) (chatEditor me you 0 1)
-								,ShowAs (DetachedTask (normalTask you)) (chatEditor you me 1 0)
+		>>= \you ->			parallel "2 Chatters" (initChatState2 2) (\_ s -> s)
+								[ShowAs (DetachedTask (normalTask me) ) (chatEditor (me,0) (you,1))
+								,ShowAs (DetachedTask (normalTask you)) (chatEditor (you,1) (me,0))
 								]
 where
-	chatEditor :: User User Int Int (Shared ChatState2) (ParallelInfo ChatState2) -> Task Void
-	chatEditor me you mine yours cs os
+	chatEditor :: (User,Int) (User,Int) (Shared ChatState2) (ParallelInfo ChatState2) -> Task Void
+	chatEditor (me,mine) (you,yours) cs os
 //		= 					updateSharedInformation ("Chat with " <+++ you) [] cs  
 /*		=					get cs
 			>>= \state ->	updateInformation ("Chat with " <+++ you) [] (Display state.chats, Note "")
 			>>= \(_,Note response) -> update (\state -> { state &  chats = state.chats ++ [me +++> ": " +++> response]}) cs
 			>>|				chatEditor me you mine yours cs os
 
-*/		= 					updateSharedInformation ("Chat with " <+++ you) [View view] cs  
+*/		= 					updateSharedInformation ("Chat with " <+++ you) [View views] (Note "") cs  
 			>?*				[(ActionQuit, Always (return Void))]
 	where
-		view 
-			=	( \state			               -> ( Display (you +++> if (state.buffer!!yours <> "") 
-																				" is typing..."  
-																				" is waiting...")
-													  , Display state.chats
-													  , Note (state.buffer!!mine)
-													  )
-				, \(_,_,Note response) state -> 	handleResponse response state
-				)
-		where
-			handleResponse response state 
-			# responseList 		= fromString response
-			| not (isMember '\n' responseList)	= {state & buffer = updateAt mine response state.buffer}
-			# (before,after) 	= span (\c -> c <> '\n') responseList 
-			# beforeS 			= toString before
-			# afterS 			= toString (tl after) 
-			= { state & buffer	= updateAt mine afterS state.buffer
-					  , chats	= state.chats ++ [me +++> ": " +++> beforeS]
-			  }
+		views =  (Just (GetShared getState),Just putState)
+
+		getState state
+			=	Display (you +++> if (state.typing!!yours) " is typing..." " is waiting...", state.history)
+
+		putState _ (Note response) state 
+		# responseList 		= fromString response
+		| not (isMember '\n' responseList)	= (Nothing, Just (setTyping mine response state))
+		# (before,after) 	= span (\c -> c <> '\n') responseList 
+		# beforeS 			= toString before
+		# afterS 			= toString (tl after) 
+		= (Just (Note afterS), Just (setTyping mine afterS (setHistory (me +++> ": " +++> beforeS) state)))
 
 // N users chatting with each other
 
@@ -166,7 +163,7 @@ multibind_chat
 where
 	chat :: String User (Shared ChatState) (ParallelInfo ChatState) -> Task Void
 	chat names me chatState os
-		= (monitor headerMonitor [] chatState) ||- enterLine
+		= (showSharedInformation headerMonitor [] Void chatState) ||- enterLine
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names

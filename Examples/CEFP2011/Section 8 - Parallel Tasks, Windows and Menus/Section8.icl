@@ -14,8 +14,8 @@ Start world = startEngine flows8 world
 flows8 :: [Workflow]
 flows8 
 	=   [ workflow "CEFP/Sect 8/1. Chat with several users"    	"Chat with several users" chat3
-		, workflow "CEFP/Sect 8/2. Editing a text file" "Editing a text file" textEditor2
-		, workflow "CEFP/Sect 8/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+//		, workflow "CEFP/Sect 8/2. Editing a text file" "Editing a text file" textEditor2
+//		, workflow "CEFP/Sect 8/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 		]
 
 // chat with several users
@@ -40,12 +40,12 @@ chat3
 
 chatTask user cs os
 	=			update (addUser user) cs
-		>>|		monitor ("Chat list view") [] cs
+		>>|		showSharedInformation ("Chat list view") [] Void cs
 				||- 
 				chatMore user "" cs os
 
 chatMore user s cs os 
-	= 	updateInformation ("Chat with iTask users") [View (toView,fromView)] s  	
+	= 	updateInformation ("Chat with iTask users") [View (Just (GetLocal toView),Just fromView)] s  	
 		>?*	[(ActionAdd,  IfValid (\r  ->	  set os [AppendTask newChatter]
 										  >>| chatMore user r cs os))
 			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) cs 
@@ -54,7 +54,7 @@ chatMore user s cs os
 										  >>| return Void	))
 			]
 where		
-	(toView, fromView) = (\c -> Note c, \(Note c) _ -> c) 
+	(toView, fromView) = (\c -> Note c, \(Note c) _ _ -> (Just c,Nothing)) 
 
 newChatter = ShowAs (WindowTask "Append Chatter") handleNewChatter
 
@@ -104,7 +104,7 @@ normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing
 
 ActionReplace 		:== Action "Replace" 
 ActionStatistics	:== Action "Statistics" 
-
+/*
 textEditor2 ::  Task Void
 textEditor2 
 	=						enterInformation "Give name of text file you want to edit..." []
@@ -117,15 +117,15 @@ taskKind2 = DetachedTask (normalTask  RootUser)  // window does not work yet
 
 editor :: String (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 editor fileName ls os 
-	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") [View (toView,fromView)] ls
+	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") [View (Just (GetShared toView),Just fromView)] Void ls
 		>?* 	[ (ActionSave, 		IfValid	save)
 		  		, (ActionQuit,		Always 	quit)
-		  		, (ActionReplace,	Sometimes (\s -> onlyIf (not s.modelValue.replace)    replace))
-		  		, (ActionStatistics,Sometimes (\s -> onlyIf (not s.modelValue.statistics) statistics))
+//		  		, (ActionReplace,	Sometimes (\s -> onlyIf (not (snd s).modelValue.replace)    replace))
+//		  		, (ActionStatistics,Sometimes (\s -> onlyIf (not (snd s).modelValue.statistics) statistics))
 		  		]
 where	
 	toView state = Note state.mytext
-	fromView (Note text) state = {state & mytext = text} 
+	fromView (Note text) state = (Nothing, Just {state & mytext = text})
 
 	save val
 		=		safeTextFile fileName val.mytext
@@ -155,7 +155,7 @@ replaceTask replacement ls os
 
 statisticsTask :: (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 statisticsTask ls os 
-	= 			monitor ("Statistics","Statistics of your document") [Get toView] ls
+	= 			showSharedInformation ("Statistics","Statistics of your document") [View (Just (GetShared toView),Nothing)] Void ls
 		>?*		[(ActionQuit, Always (updateStat False ls >>| return Void))]
 where
 	toView state=:{mytext} 
@@ -219,7 +219,7 @@ where
 		, comment	:: Maybe Note
 		}	
 derive class iTask MeetingProposal, Participant, MeetingProposalView, ParticipantView
-
+/*
 mkAppointment :: Task [MeetingProposal]
 mkAppointment
 	=					get users
@@ -290,3 +290,4 @@ where
 			viewForManager :: [MeetingProposal] -> [MeetingProposal]
 			viewForManager props
 				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
+*/*/
