@@ -3,6 +3,7 @@ implementation module Section7
 // Examples showing the usage of frequently used iTask combinators
 
 import iTasks, Text, StdMisc
+from Section3 import show
 from Section6 import selectUser, selectUsers
 
 derive bimap (,), Maybe
@@ -12,7 +13,9 @@ Start world = startEngine flows7 world
 
 flows7 :: [Workflow]
 flows7 
-	=   [ workflow "CEFP/Sect 7/1. Naive Chat"		"Naive chat with many users"		naive_chat
+	=   [ workflow "CEFP/Sect 7/1. Questionnaire"   "Question N users"					(show questions)
+	    , workflow "CEFP/Sect 7/2. Number guessing" "First person to guess wins"		guess
+	    , workflow "CEFP/Sect 7/1. Naive Chat"		"Naive chat with many users"		naive_chat
 		, workflow "CEFP/Sect 7/2. Monitored Chat" 	"Monitored chat with many users"	monitor_chat
 		, workflow "CEFP/Sect 7/3. Shared Chat"	 	"Shared chat with many users"		shared_chat
 		, workflow "CEFP/Sect 7/4. Multibind Chat" 	"Multibind chat with many users"	multibind_chat
@@ -27,6 +30,26 @@ const2 :: a b !c -> c
 const2 _ _ x = x
 
 noResult _ _ = Void
+
+// A simple application of parallel: all tasks run to completion (generalized variant of exercise 18)
+questions :: Task [(User,String)]
+questions
+	=                  updateInformation "Pose a question" [] "...?"
+	  >>= \question -> selectUsers
+	  >>= \users    -> parallel "parallel" [] (\_ s -> s) 
+	  						[  ShowAs (DetachedTask (normalTask u)) 
+	  						          (answer u question) 
+	  						\\ u <- users
+	  						]
+where
+	answer u question shared info
+		=           updateInformation question [] "...!"
+		  >>= \a -> update (\answers -> [(u,a):answers]) shared
+
+// A simple application of parallel: first task to complete terminates parallel (generalized variant of exercise 19)
+guess :: Task String
+guess
+	= return "variant of exercise 19 to do"
 
 // N users chatting with each other
 :: ChatState :== [String]

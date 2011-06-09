@@ -45,8 +45,8 @@ derive class iTask Person, Gender
 personList6 :: Task [Person]
 personList6
 	=         enterInformation "Please fill in the form" []
-		>?*  [(Action "Add one ", IfValid morePersons)  
-			 ,(Action "Quit", IfValid (\person -> return [person]))
+		>?*  [(Action "File", IfValid morePersons)  
+			 ,(Action "File", Always (return []))
 			 ]
 where
 		morePersons person
