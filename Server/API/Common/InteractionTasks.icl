@@ -117,11 +117,11 @@ updateSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) o -> Task o
 updateSharedChoice d options shared initC = UpdateTask @>> choice` d options shared (Just initC)
 
 choice` d options shared mbSel =
-	mapActionTaskModelValue (\(mbC,_) -> maybe defaultValue (\c -> maybe defaultValue fromViewOption (getMbChoice c)) mbC) (interact d interaction Nothing shared)
+	mapActionTaskModelValue (\(mbC,choiceOpts) -> maybe defaultValue (\c -> maybe defaultValue fromViewOption (getMbChoice c)) (fmap (setOptions (toViewOptions options choiceOpts)) mbC)) (interact d interaction Nothing shared)
 where
-	interaction mbLocal choiceOpts changed = addAbouts options [UpdateView toView fromView]
+	interaction mbLocal choiceOpts _ = addAbouts options [UpdateView toView fromView]
 	where
-		toView				= FormValue (fromMaybe (initChoice choiceOpts) mbLocal)
+		toView				= FormValue (setOptions (viewOptions choiceOpts) (fromMaybe (initChoice choiceOpts) mbLocal))
 		fromView c			= (c, Nothing)
 	initChoice choiceOpts	= maybe (choice (viewOptions choiceOpts)) (\sel -> choiceSel (viewOptions choiceOpts) (toViewOption options sel)) mbSel
 	viewOptions choiceOpts	= toViewOptions options choiceOpts
@@ -141,11 +141,11 @@ updateSharedMultipleChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) [o]
 updateSharedMultipleChoice d options shared sel = UpdateTask @>> multipleChoice` d options shared sel
 
 multipleChoice` d options shared sel =
-	mapActionTaskModelValue (\(mbLocal,_) -> fromViewOptions (maybe [] getChoices mbLocal)) (interact d interaction Nothing shared)
+	mapActionTaskModelValue (\(mbLocal,choiceOpts) -> fromViewOptions (maybe [] getChoices (fmap (setOptionsM (toViewOptions options choiceOpts)) mbLocal))) (interact d interaction Nothing shared)
 where	
 	interaction mbLocal choiceOpts _	= addAbouts options [UpdateView toView fromView]
 	where
-		toView							= FormValue (fromMaybe (initMultipleChoice choiceOpts) mbLocal)
+		toView							= FormValue (setOptionsM (toViewOptions options choiceOpts) (fromMaybe (initMultipleChoice choiceOpts) mbLocal))
 		fromView mc						= (mc, Nothing)
 	initMultipleChoice choiceOpts		= multipleChoiceSel (toViewOptions options choiceOpts) (toViewOptions options sel)
 
