@@ -12,7 +12,9 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 			layoutOnTabChange: true,
 			items: {xtype: "itasks.hometab"},
 			bodyCssClass: "worktabs-body",
-			listeners: {taskresult: {fn: this.openResultTab, scope: this}}
+			listeners: {taskresult: {fn: this.openResultTab, scope: this}
+					   ,tabchange: {fn: this.focusTab, scope: this}
+					   }
 		});
 		
 		this.addEvents("taskOpened");
@@ -83,6 +85,11 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		}
 		this.activate(tab);
 		return tab;
+	},
+	focusTab: function(tabs, tab) {
+		if(tab.refresh != undefined) {
+			tab.refresh(true);
+		}
 	}
 });
 
