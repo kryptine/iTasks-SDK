@@ -4,11 +4,11 @@ definition module SystemData
 * a set of shared data structures.
 */
 import Maybe
-from Shared			import :: ReadOnlyShared, :: Shared, :: ReadWriteShared
-from SystemTypes	import :: DateTime, :: Date, :: Time, :: User, :: Role, :: Session, :: UserDetails, :: Workflow
-from Void			import :: Void
-from ProcessDB		import :: Process
-from WorkflowDB		import :: WorkflowDescription
+from SharedCombinators	import :: ReadOnlyShared, :: Shared, :: ReadWriteShared
+from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: Session, :: UserDetails, :: Workflow
+from Void				import :: Void
+from ProcessDB			import :: Process
+from WorkflowDB			import :: WorkflowDescription
 
 // Date & time
 currentDateTime			:: ReadOnlyShared DateTime

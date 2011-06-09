@@ -5,7 +5,7 @@ definition module CoreCombinators
 */
 from Time				import :: Timestamp
 from TuningCombinators	import :: Tag
-from Shared				import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
+from SharedCombinators	import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
 from ProcessDB			import :: Process
 import Task
 

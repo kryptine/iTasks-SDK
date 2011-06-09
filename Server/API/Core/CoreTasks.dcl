@@ -4,10 +4,10 @@ definition module CoreTasks
 */
 
 import iTaskClass
-from Error		import ::MaybeError(..)
-from OSError	import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
-from Shared		import :: ReadWriteShared, :: Shared
-from Task		import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
+from Error				import ::MaybeError(..)
+from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
+from SharedCombinators	import :: ReadWriteShared, :: Shared
+from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
 
 :: SharedStoreId :== String
 
