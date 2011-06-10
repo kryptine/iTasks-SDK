@@ -20,6 +20,7 @@ itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 		this.extSuperclass.afterRender.apply(this,arguments);
 	},
 	setValue: function(value) {
+		itasks.tui.forceLayout = true;
 		this.setWidth('auto');
 		this.setHeight('auto');
 		this.update(value);

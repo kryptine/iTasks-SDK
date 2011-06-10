@@ -73,6 +73,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				Ext.Msg.alert('Error',"Error updating task: " + data);
 			}
 			return;
+		} else if (data.tui == "done" || data.tui == "redundant") {
+			this.fadeOut();
+			return;
 		}
 		
 		//Store the timestamp of the current value
@@ -145,8 +148,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.removeAll();
 		this.add({
 			xtype: "itasks.finished",
-			subject: "Task completed",
-			description: "This task is completed or it's completion is no longer required.<br />Thank you for your effort.",
+			title: "Task completed",
+			html: "This task is completed or it's completion is no longer required.<br />Thank you for your effort.",
 			destroyCmp: this
 		});
 		this.doLayout();

@@ -30,6 +30,7 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 			this.suspendEvents();
 			var doLayout = false;
 			var num = data.updates.length;
+			itasks.tui.forceLayout = false;
 			for (i = 0; i < num; i++) {
 				var update = data.updates[i];
 				switch(update[0]) {
@@ -97,7 +98,7 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 			}
 			this.resumeEvents();
 			
-			if (doLayout) this.doLayout(true);
+			if (doLayout || itasks.tui.forceLayout) this.doLayout(true);
 			
 		} else {
 			//Completely replace form
