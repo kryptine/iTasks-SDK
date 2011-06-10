@@ -75,7 +75,7 @@ assign props task = parallel ("Assign","Manage a task assigned to another user."
 where
 	processControl :: state !(ReadWriteShared [ParallelTaskInfo] [Control c]) -> Task Void | iTask c
 	processControl _ control =
-		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [View (Just (GetShared toView),Just fromView)] Void control >>+ noActions) <<@ ControlTask
+		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, PutbackShared fromView)] control Void >>+ noActions) <<@ ControlTask
 	
 	accJust r _ = (Just r,True)
 			
@@ -97,7 +97,7 @@ where
 		}
 		
 	fromView view=:{ProcessControlView|assignedTo} _ _
-		= (Nothing,Just [UpdateProperties 1 {mapRecord view & worker = assignedTo}])
+		= [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
 		
 	formatTimestamp timestamp = timestampToGmDateTime timestamp
 	

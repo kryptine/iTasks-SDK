@@ -214,7 +214,7 @@ visualizeParts taskNr parts oldParts mbEdit
 where
 	visualizePart (part,mbV,idx)
 		= case part of
-			UpdateView formView putback = case formView of
+			FormPart formView putback = case formView of
 				FormValue value
 					# umask				= defaultMask value
 					# vmask				= verifyForm value umask
@@ -225,11 +225,11 @@ where
 						Just value
 										# vmask = verifyForm value umask
 										= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,StoredUpdateView jsonV umask (StoredPutback putback), isValidValue vmask)
-						Nothing			= visualizePart (UpdateView init putback,Nothing,idx)
-					_					= visualizePart (UpdateView init putback,Nothing,idx)
+						Nothing			= visualizePart (FormPart init putback,Nothing,idx)
+					_					= visualizePart (FormPart init putback,Nothing,idx)
 				Blank					= blankForm formView putback mbEdit
-			DisplayView v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),StoredDisplayView, True)
-			Update label w				=	({ content = TUIButton	{ TUIButton
+			DisplayPart v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),StoredDisplayView, True)
+			UpdatePart label w			=	({ content = TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
 																	, text			= label

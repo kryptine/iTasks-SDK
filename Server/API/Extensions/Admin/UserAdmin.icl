@@ -30,7 +30,7 @@ updateUserFlow user  =
 	>?*	[ (ActionCancel,	Always	(return user))
 		, (ActionOk,		IfValid (\newDetails ->
 											set sharedDetails newDetails
-										>>=	showInformation "User updated" [View (Just (GetLocal (\{displayName} -> "Successfully updated " +++ displayName)),Nothing)]
+										>>=	showInformation "User updated" [ShowView (GetLocal (\{displayName} -> "Successfully updated " +++ displayName))]
 										>>| return user
 									))
 		]
@@ -42,6 +42,6 @@ deleteUserFlow user =
 		showInformation "Delete user" [] ("Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")
 	>?*	[ (ActionNo,	Always		(return user))
 		, (ActionYes,	Always (		deleteUser user
-									>>=	showInformation "User deleted" [View (Just (GetLocal (\user -> "Successfully deleted " +++ displayName user +++ ".")),Nothing)]
+									>>=	showInformation "User deleted" [ShowView (GetLocal (\user -> "Successfully deleted " +++ displayName user +++ "."))]
 						))
 		]
