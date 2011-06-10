@@ -5,7 +5,7 @@ import StdInt, StdFile, StdTuple, StdList
 import Directory, File, FilePath, OSError, UrlEncoding, Text
 
 import SystemTypes, IWorld, Task, TaskContext, Config
-import ExceptionCombinators
+import ExceptionCombinators, TuningCombinators
 import InteractionTasks
 import Shared
 import UserDB
@@ -38,7 +38,7 @@ derive bimap Maybe, (,)
 
 callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args 
-	= mkTask ("Call process","Calls a process and give shared reference to return code.") init edit eval
+	= mkTask ("Call process","Waiting for external process.") init edit eval
 where
 	//Start the process
 	init :: TaskNr *IWorld -> (!TaskContext,!*IWorld)
@@ -60,14 +60,23 @@ where
 			
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context=:(TCBasic _) iworld=:{world}
+	eval taskNr props event tuiTaskNr imerge pmerge mmerge context=:(TCBasic _) iworld=:{world}
 		= case getLocalVar "outfile" context of
 			Just outfile
 				//Check status
 				# (exists,world) = 'File'.fileExists outfile world
 				| not exists
 					//Still busy
-					= (TaskBusy Nothing [] context,{IWorld|iworld & world = world})
+					# (tui,actions) = imerge	{ title = props.taskDescription.TaskDescription.title
+								 				, description = props.taskDescription.TaskDescription.description
+												, editorParts = []
+												, actions = []
+												, type = props.interactionType
+												, isControlTask = props.controlTask
+												, localInteraction = props.TaskProperties.localInteraction
+												, warning = Nothing
+												}
+					= (TaskBusy (Just tui) actions context,{IWorld|iworld & world = world})
 				# (res, world) = 'File'.readFile outfile world
 				| isError res
 					//Failed to read file
@@ -102,7 +111,7 @@ callRPCHTTP method url params transformResult
 callRPC :: !String !String !String !(String -> a) -> Task a | iTask a			
 callRPC options url args transformResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess cmd args
+	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Description ("Call RPC", "Waiting for external service.")
 	>>= \exitCode -> if (exitCode > 0)
 		(throw (SharedException (curlError exitCode)))
 		(importTextFile outfile >>= transform transformResult)

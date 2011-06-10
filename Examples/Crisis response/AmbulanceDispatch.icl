@@ -88,7 +88,7 @@ sendPolice :: Incident -> Task Void
 sendPolice incident = showInformation ("Send police","Please send police") [] Void
 
 sendMedics :: Incident -> Task Void
-sendMedics incident = Title "Send ambulances" @>> requestAmbulances incident.Incident.nrInjured incident.Incident.location
+sendMedics incident = Description "Send ambulances" @>> requestAmbulances incident.Incident.nrInjured incident.Incident.location
 
 sendFireBrigade :: Incident -> Task Void
 sendFireBrigade incident = showInformation ("Send fire brigade","Please send fire brigade") [] Void
@@ -185,7 +185,7 @@ where
                    
 delegateTaskTimeOut :: User String a (a -> Task a) Time -> Task (Maybe a) | iTask a
 delegateTaskTimeOut who description value task time_out 
-	= timeOutTask (who @: (Title description @>> task value)) time_out 
+	= timeOutTask (who @: (Description description @>> task value)) time_out 
    			  
 timeOutTask :: (Task a) Time -> Task (Maybe a) | iTask a
 timeOutTask task time

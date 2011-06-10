@@ -5,7 +5,7 @@ import Error
 import SystemTypes, IWorld, Task, TaskContext, WorkflowDB, ProcessDB
 
 from CoreCombinators import >>=
-from TuningCombinators import class tune, instance tune Title, <<@, @>>, :: Title(..)
+from TuningCombinators import class tune, instance tune Description, <<@, @>>, :: Description(..)
 from InteractionTasks import enterInformation, :: LocalViewOn, :: ViewOn
 import iTaskClass
 
@@ -25,7 +25,7 @@ toNonParamThreadValue :: !String !Dynamic -> Maybe Dynamic
 toNonParamThreadValue vStr (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
 	= case fromJSON (fromString vStr) of
 		Just v = 
-			Just (dynamic Container {TaskThread | originalTask = originalTask v <<@ Title title, currentTask = currentTask v <<@ Title title} :: Container (TaskThread b) b)
+			Just (dynamic Container {TaskThread | originalTask = originalTask v <<@ Description title, currentTask = currentTask v <<@ Description title} :: Container (TaskThread b) b)
 		Nothing =
 			Nothing
 toNonParamThreadValue _ _ = Nothing
@@ -34,7 +34,7 @@ toNonParamThreadEnter :: !Dynamic -> Dynamic
 toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
 	= (dynamic Container {TaskThread | originalTask = enterParam originalTask, currentTask = enterParam currentTask} :: Container (TaskThread b) b)
 where		
-	enterParam paramTask = Title title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask)
+	enterParam paramTask = Description title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask)
 
 
 createWorkflowInstance :: !WorkflowId !User !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)

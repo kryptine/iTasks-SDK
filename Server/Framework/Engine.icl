@@ -136,7 +136,7 @@ where
 	
 instance workflowTask (WorkflowContainer a) | iTask a
 where
-	workflowTask path description roles (Workflow managerP task) = mkWorkflow path description roles (createThread (task <<@ Title (path2name path))) managerP
+	workflowTask path description roles (Workflow managerP task) = mkWorkflow path description roles (createThread (task <<@ Description (path2name path))) managerP
 
 instance workflowTask (a -> Task b) | iTask a & iTask b
 where

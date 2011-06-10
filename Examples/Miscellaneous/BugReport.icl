@@ -55,14 +55,14 @@ reportBugVerySimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found") []
 	>>=	\report ->
 		NamedUser "bas" @:
-			(Title "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
+			(Description "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
 
 reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found") []
 	>>=	\report ->
 		NamedUser "bas" @:
-			(Title "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
+			(Description "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
 	>>| return report
 
 //Different variant of simple reportBug
@@ -73,7 +73,7 @@ where
 	reportBug = enterInformation ("Describe bug","Please describe the bug you found") []
 	
 	fixBug :: BugReport -> Task BugReport
-	fixBug bug = NamedUser "bas" @: (Title "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] bug)
+	fixBug bug = NamedUser "bas" @: (Description "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] bug)
 
 //Main workflow	  
 reportBug :: Task Bug
@@ -96,7 +96,7 @@ assignBug bug critical
 	>>=	\developer ->
 		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
 	>>= \bug ->
-		assign {worker = developer, priority = priority, deadline = Nothing, status = Active} (Title subject @>> resolveBug bug critical)
+		assign {worker = developer, priority = priority, deadline = Nothing, status = Active} (Description subject @>> resolveBug bug critical)
 where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
@@ -138,7 +138,7 @@ confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
 		assign {worker = assessor, priority = HighPriority, deadline = Nothing, status = Active}
-			( Title "Bug report assessment" @>>
+			( Description "Bug report assessment" @>>
 			  showInformation ("Confirmation","Is this bug really critical?") [] report >>+ \_ -> UserActions [(ActionNo, Just False),(ActionYes, Just True)]
 			)
 

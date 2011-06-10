@@ -15,7 +15,7 @@ instance toString Group where toString g = g.Group.name
 
 manageGroups :: Task Void
 manageGroups
-	=	Title "Manage groups" @>>
+	=	Description "Manage groups" @>>
 	(	getMyGroups
 	>>=	overview 
 	>>= \res -> case res of

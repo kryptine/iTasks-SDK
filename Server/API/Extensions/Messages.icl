@@ -112,7 +112,7 @@ sendMessage msg
 	>>| showInformation ("Message sent","The following message has been sent:") [About msg] Void
 where
 	awaitReplies msg =
-		Title ("Waiting for reply on " +++ msg.Message.subject) @>>
+		Description ("Waiting for reply on " +++ msg.Message.subject) @>>
 		case msg.Message.recipients of
 			[recipient]	= recipient @: (askReplyTask recipient msg) >>= \answer -> notifyNoReplies [recipient] [answer]
 			recipients	= allTasks [askReplyTask rcp msg \\ rcp <- recipients] >>=  notifyNoReplies recipients
@@ -125,7 +125,7 @@ where
 			 )
 
 	subject msg
-		= Title ("Message from " +++ toString (fromDisplay msg.Message.sender)+++ ": "+++msg.Message.subject)
+		= Description ("Message from " +++ toString (fromDisplay msg.Message.sender)+++ ": "+++msg.Message.subject)
 	
 	notifyNoReplies recipients answers
 		= case [rcp \\ rcp <- recipients & ans <- answers | not ans] of

@@ -26,7 +26,7 @@ where
 
 manageLists :: Task Void
 manageLists 
-	=	Title "Manage lists" @>>
+	=	Description "Manage lists" @>>
 	(	getMyLists
 	>>=	overview
 	>>= \res -> case res of

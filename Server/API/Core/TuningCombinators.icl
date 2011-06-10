@@ -4,10 +4,8 @@ import SystemTypes, StdList, StdMisc, Shared, HTML, Task
 from Time import :: Timestamp, :: Tm(..), mkTime
 
 class tune b :: !b !(Task a) -> Task a
-instance tune Title
-where tune (Title s) task		= updateTaskProperties (\p -> {p & taskDescription = {TaskDescription|p.taskDescription & title = toString s}}) task
 instance tune Description
-where tune (Description s) task	= updateTaskProperties (\p -> {p & taskDescription = {TaskDescription|p.taskDescription & description = toString (html s)}}) task
+where tune (Description d) task	= updateTaskProperties (\p -> {p & taskDescription = toDescr d}) task
 instance tune Tag
 where tune (Tag t) task			= updateTaskProperties (\p -> {p & tags = [toString t : p.tags]}) task
 instance tune Tags

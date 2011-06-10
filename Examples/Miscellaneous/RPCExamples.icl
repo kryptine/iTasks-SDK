@@ -42,7 +42,7 @@ formatXML (XMLDoc _ _ e) = [ul [formatElem e]]
 formatElem (XMLElem (XMLQName _ n) [XMLAttr (XMLQName _ "data") data] children) = li [formattedData,ul (map formatElem children)]
 where
 	formattedData
-		| n == "icon"	= ImgTag [SrcAttr ("http://www.google.com" +++ data)]
+		| n == "icon"	= ImgTag [SrcAttr ("http://www.google.com" +++ data), HeightAttr "80"]
 		| otherwise		= Text (formatName n +++ ": " +++ data)
 formatElem (XMLElem (XMLQName _ n) attr children)
 	# childrenHtml = map formatElem children

@@ -51,13 +51,13 @@ travel
 where
 	makeBookings :: Task [Booking]
 	makeBookings
-		=	Title "Step 1: Make Bookings:"
+		=	Description "Step 1: Make Bookings:"
 		@>> enterMultipleChoice ("Booking options","Choose Booking options:") [] [BookFlight,BookHotel,BookCar]
 		>>= sequence "Bookings"
 
 	confirmBookings :: Task [Booking]
  	confirmBookings 
- 		=	Title "Step 2: Confirm Bookings:"
+ 		=	Description "Step 2: Confirm Bookings:"
  		@>> showInformation ("Confirmation","Confirm") [] []
  	
 	handleBookings :: [[Booking]] -> Task Void

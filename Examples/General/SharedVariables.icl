@@ -56,8 +56,8 @@ where
 //Merge Tests
 mergeTestList :: Task Void
 mergeTestList =	
-				spawnProcess True initManagerProperties (Title "1st UpdateView" @>> view sid)
-	>>|			spawnProcess True initManagerProperties (Title "2nd UpdateView" @>> view sid)
+				spawnProcess True initManagerProperties (Description "1st UpdateView" @>> view sid)
+	>>|			spawnProcess True initManagerProperties (Description "2nd UpdateView" @>> view sid)
 	>>|			stop
 where
 	sid = sharedStore "mergeTestLists" []
@@ -67,9 +67,9 @@ where
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
-		spawnProcess True initManagerProperties (Title "1st UpdateView" @>> view store)
-	>>|	spawnProcess True initManagerProperties (Title "2nd UpdateView" @>> view store)
-	>>|	spawnProcess True initManagerProperties (Title "3rd UpdateView" @>> showSharedInformation "Documents" [] store Void >>+ quitButton)
+		spawnProcess True initManagerProperties (Description "1st UpdateView" @>> view store)
+	>>|	spawnProcess True initManagerProperties (Description "2nd UpdateView" @>> view store)
+	>>|	spawnProcess True initManagerProperties (Description "3rd UpdateView" @>> showSharedInformation "Documents" [] store Void >>+ quitButton)
 	>>|	stop
 where
 	view sid = updateSharedInformation ("List","Merging the documents") [] sid Void >>+ quitButton

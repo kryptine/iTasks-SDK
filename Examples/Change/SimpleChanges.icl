@@ -44,11 +44,11 @@ where
 	change me user topics props t t0 
 		= 	( Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = me}}
 			, Just (me @:
-							(anyTask 	[ (Title topics @>> props.ProcessProperties.managerProperties.ManagerProperties.worker @: t) 
-										, (Title topics @>> user @: t)
+							(anyTask 	[ (Description topics @>> props.ProcessProperties.managerProperties.ManagerProperties.worker @: t) 
+										, (Description topics @>> user @: t)
 										]
 							)
-							<<@ Title ("Duplicated " +++ topics))
+							<<@ Description ("Duplicated " +++ topics))
 			, Nothing )
 
 //inform will inform a user that some process has ended.
@@ -91,7 +91,7 @@ restart user procName =
 	dynamic change user procName :: A.a: Change a | iTask a
 where
 	change :: User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user procName props t t0 = (Nothing, Just (assign {worker = user, priority = HighPriority, deadline = Nothing, status = Active} (Title procName @>> t0)), Nothing)
+	change user procName props t t0 = (Nothing, Just (assign {worker = user, priority = HighPriority, deadline = Nothing, status = Active} (Description procName @>> t0)), Nothing)
 
 changePrio :: Task Void
 changePrio

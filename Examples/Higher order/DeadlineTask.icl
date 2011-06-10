@@ -14,7 +14,7 @@ npersons = 6
 
 deadlineTaskExample :: [Workflow]
 deadlineTaskExample
-	= [ workflow "Examples/Higher order/Deadline task" "Demo of the deadline property for tasks" (Title "Do task before deadline" @>> (deadline trivialTask))]
+	= [ workflow "Examples/Higher order/Deadline task" "Demo of the deadline property for tasks" (Description "Do task before deadline" @>> (deadline trivialTask))]
 
 trivialTask :: Task Int
 trivialTask = enterInformation ("Initial number","Enter a number larger than 42") [] <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
@@ -34,7 +34,7 @@ where
 		= showInformation ("No result","Task expired or canceled, you have to do it yourself!") [] Void >>| task
 
 	delegateTask who time task
-	= who  @: (Title "Timed Task" @>> mytask)
+	= who  @: (Description "Timed Task" @>> mytask)
 	where
 		mytask
 		=			// wait for timeout and return nothing

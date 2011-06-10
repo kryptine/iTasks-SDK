@@ -71,7 +71,7 @@ defineParticipants
 
 collectOpinions :: Topic [a] [String] [User] -> Task (Results a) | iTask a
 collectOpinions topic items answers participants
-	= 	( Title "Collecting opinions..." @>> 
+	= 	( Description "Collecting opinions..." @>> 
 		  Description "Waiting for everyone to give their opinion" @>> 
 		  allTasks [collectOpinion topic user items answers \\ user <- participants ]
 		)
@@ -83,7 +83,7 @@ where
 collectOpinion :: Topic User [a] [String] -> Task (User,[(a,String)]) | iTask a
 collectOpinion topic user items answers
 	=	user @:
-		(Title ("Your opinion about: " +++ topic.topic) @>>
+		(Description ("Your opinion about: " +++ topic.topic) @>>
  		(allTasks [enterChoice ("Option " <+++ i,"What is your opinion about:") [About item] answers  \\ item <- items & i <- [1..]] >>= transform (merge items)))
 where
 	merge items opinions = (user,zip (items,opinions))
