@@ -20,8 +20,8 @@ flows5
 		, workflow "CEFP/Sect 5/4. Show details of a user"			"Select administrated user and show administration"		selectUserDetails 
 		, workflow "CEFP/Sect 5/5. Current Workflows" 				"Which workflows are known here ?"						(show getWorkflows)
 		, workflow "CEFP/Sect 5/6. Update To Do List" 				"Edit local copy of To Do list"							(show updateToDoList)
-		, workflow "CEFP/Sect 5/7. Update Shared To Do List " 		"Edit To Do list, and share it right away"				(show updateMySharedStore)
-		, workflow "CEFP/Sect 5/8. View the Shared To Do List" 		"View will be adjusted when updated elsewhere"			viewToDo 
+		, workflow "CEFP/Sect 5/7. Update Shared To Do List " 		"Edit To Do list, and share it right away"				(show updateToDoList2)
+		, workflow "CEFP/Sect 5/8. View the Shared To Do List" 		"View will be adjusted when updated elsewhere"			viewToDoList 
 		, workflow "CEFP/Sect 5/9. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
 		]
 
@@ -85,13 +85,13 @@ updateToDoList
       >>= 	updateInformation "Your To Do List" []
       >>=	set toDoList
 
-updateMySharedStore :: Task ([ToDo], Void)
-updateMySharedStore
+updateToDoList2 :: Task ([ToDo], Void)
+updateToDoList2
     =     	updateSharedInformation "Your To Do List" []  toDoList Void 
 
 
-viewToDo :: Task ([ToDo], Void)
-viewToDo
+viewToDoList :: Task ([ToDo], Void)
+viewToDoList
 	=		showSharedInformation "Your To Do List" []  toDoList Void 
 
 
