@@ -40,12 +40,12 @@ chat3
 
 chatTask user cs os
 	=			update (addUser user) cs
-		>>|		showSharedInformation ("Chat list view") [] Void cs
+		>>|		showSharedInformation ("Chat list view") [] cs Void
 				||- 
 				chatMore user "" cs os
 
 chatMore user s cs os 
-	= 	updateInformation ("Chat with iTask users") [View (Just (GetLocal toView),Just fromView)] s  	
+	= 	updateInformation ("Chat with iTask users") [UpdateView (GetLocal toView,PutbackLocal fromView)] s  	
 		>?*	[(ActionAdd,  IfValid (\r  ->	  set os [AppendTask newChatter]
 										  >>| chatMore user r cs os))
 			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) cs 
@@ -54,7 +54,8 @@ chatMore user s cs os
 										  >>| return Void	))
 			]
 where		
-	(toView, fromView) = (\c -> Note c, \(Note c) _ _ -> (Just c,Nothing)) 
+	toView c =  Note c 
+	fromView (Note c) _ _ = c
 
 newChatter = ShowAs (WindowTask "Append Chatter") handleNewChatter
 

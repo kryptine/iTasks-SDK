@@ -93,7 +93,7 @@ monitor_chat
 where
 	chat :: String User (Shared ChatState) info -> Task ChatState
 	chat names me chatState info
-		= (showSharedInformation headerMonitor [] Void chatState) ||- (forever enterLine)
+		= (showSharedInformation headerMonitor [] chatState Void) ||- (forever enterLine)
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names
@@ -115,7 +115,6 @@ setTyping n _ state 	= {state & typing  = updateAt n True  state.typing}
 
 setHistory text state 	= {state & history = state.history ++ [text]}
 
-
 shared_chat :: Task ChatState2
 shared_chat
     =   					get currentUser
@@ -133,15 +132,13 @@ where
 			>>= \(_,Note response) -> update (\state -> { state &  chats = state.chats ++ [me +++> ": " +++> response]}) cs
 			>>|				chatEditor me you mine yours cs os
 
-*/		= 					updateSharedInformation ("Chat with " <+++ you) [View views] (Note "") cs  
+*/		= 					updateSharedInformation ("Chat with " <+++ you) [UpdateView (GetShared toView,Putback fromView)] cs (Note "")
 			>?*				[(ActionQuit, Always (return Void))]
 	where
-		views =  (Just (GetShared getState),Just putState)
-
-		getState state
+		toView state
 			=	Display (you +++> if (state.typing!!yours) " is typing..." " is waiting...", state.history)
 
-		putState _ (Note response) state 
+		fromView _ (Note response) state 
 		# responseList 		= fromString response
 		| not (isMember '\n' responseList)	= (Nothing, Just (setTyping mine response state))
 		# (before,after) 	= span (\c -> c <> '\n') responseList 
@@ -163,7 +160,7 @@ multibind_chat
 where
 	chat :: String User (Shared ChatState) (ParallelInfo ChatState) -> Task Void
 	chat names me chatState os
-		= (showSharedInformation headerMonitor [] Void chatState) ||- enterLine
+		= (showSharedInformation headerMonitor [] chatState Void) ||- enterLine
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names

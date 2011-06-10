@@ -19,9 +19,10 @@ flows5
 		, workflow "CEFP/Sect 5/3. Administrated users details"		"Shows details of all currently administrated users"	(show getUsersDetails)
 		, workflow "CEFP/Sect 5/4. Show details of a user"			"Select administrated user and show administration"		selectUserDetails 
 		, workflow "CEFP/Sect 5/5. Current Workflows" 				"Which workflows are known here ?"						(show getWorkflows)
-		, workflow "CEFP/Sect 5/6. To Do List" 						"Create and store a to do list"							(show updateToDoList)
-		, workflow "CEFP/Sect 5/7. Shared To Do List" 				"Update a shared to do list"							(show updateMySharedStore)
-		, workflow "CEFP/Sect 5/8. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
+		, workflow "CEFP/Sect 5/6. Update To Do List" 				"Edit local copy of To Do list"							(show updateToDoList)
+		, workflow "CEFP/Sect 5/7. Update Shared To Do List " 		"Edit To Do list, and share it right away"				(show updateMySharedStore)
+		, workflow "CEFP/Sect 5/8. View the Shared To Do List" 		"View will be adjusted when updated elsewhere"			viewToDo 
+		, workflow "CEFP/Sect 5/9. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
 		]
 
 // Date and Time
@@ -75,20 +76,23 @@ getWorkflows
 			}
 derive class iTask ToDo
 
-toDoList :: Shared [ToDo]
-toDoList = sharedStore "My To Do List" []
+toDoListStore :: Shared [ToDo]
+toDoListStore = sharedStore "My To Do List" []
 
 updateToDoList :: Task [ToDo]
 updateToDoList
-    =     	get toDoList
+    =     	get toDoListStore
       >>= 	updateInformation "Your To Do List" []
-      >>=	set toDoList
+      >>=	set toDoListStore
 
-updateMySharedStore :: Task (Void,[ToDo])
+updateMySharedStore :: Task (Void, [ToDo])
 updateMySharedStore
-    =     	updateSharedInformation "Your To Do List" [] Void myStore
-where
-	myStore = sharedStore "My To Do List Store" [] 
+    =     	updateSharedInformation "Your To Do List" []  toDoListStore Void 
+
+
+viewToDo :: Task (Void, [ToDo])
+viewToDo
+	=		showSharedInformation "Your To Do List" []  toDoListStore Void 
 
 
 
