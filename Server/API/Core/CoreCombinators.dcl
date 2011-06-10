@@ -85,21 +85,40 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 
 :: TerminationStatus	=	AllRunToCompletion			//* all parallel processes have ended their execution
 						|	Stopped						//* the control signal StopParallel has been commited
-				
+/**
+* A container for a child task of a parallel.
+*/				
 :: TaskContainer s		= E.a: ShowAs !TaskGUI !(ParallelTask s a) & iTask a
+
+/**
+* Defines how a task is shown inside of a parallel.
+*/
 :: TaskGUI				= DetachedTask !ManagerProperties						//* displays the task computed by the function as a distinct new task for the user identified in the worker field of ManagerProperties
 						| WindowTask   !WindowTitle								//* displays the task computed by the function in a window
 						| DialogTask   !WindowTitle								//* displays the task computed by the function in a dialog (a dialog can not have a menu)
 						| BodyTask												//* inlines the task in the current task
 						| HiddenTask											//* does not display the task at all
-						
+
+/**
+* A task inside of a parallel. The first parameter is a reference to the shared data state. The second one is a reference to the shared parallel info.
+*/
 :: ParallelTask s a		:== (Shared s) (ParallelInfo s) -> Task a
 
+/**
+* A reference to the shared parallel info.
+*/
 :: ParallelInfo s		:== ReadWriteShared [ParallelTaskInfo] [Control s]
+
+/**
+* Information about a task in a parallel set.
+*/
 :: ParallelTaskInfo =	{ index			:: !TaskIndex								//* The task's index
 						, properties	:: !Either TaskProperties ProcessProperties //* Task properties for inbody tasks and process properties for detached tasks
 						}
 
+/**
+* A control signal for changing a running parallel.
+*/
 :: Control s			= StopParallel												//* stop the entire parallel execution
 						| AppendTask		!(TaskContainer s)						//* append and additional task to be run in parallel as well
 						| RemoveTask		!TaskIndex								//* remove the task with indicated index from the set

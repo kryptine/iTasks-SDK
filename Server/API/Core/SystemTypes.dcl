@@ -259,12 +259,6 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 					| LowPriority
 					
 formatPriority	:: !TaskPriority	-> HtmlDisplay
-
-:: TaskContainerType	= CTDetached	!ManagerProperties	//* task detached as separate process
-						| CTWindow		!WindowTitle 		//* task shwon in a window (with own menu)
-						| CTDialog		!WindowTitle		//* task shwon as dialogue (without own menu)
-						| CTInBody							//* task shown in the body of the parallel container
-						| CTHidden							//* task not shown to the user
 						
 :: WindowTitle :== String
 
@@ -334,7 +328,9 @@ displayName			:: !User -> String
 */
 getRoles			:: !User -> [Role]
 
-
+/**
+* The information state of a running task.
+*/
 :: InformationState s =	{ modelValue	:: !s		// the value of the data model the editor is working on
 						, localValid	:: !Bool	// a flag indicating if the editor's local view is valid
 						}
