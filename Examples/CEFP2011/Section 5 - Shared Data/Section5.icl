@@ -85,12 +85,12 @@ updateToDoList
       >>= 	updateInformation "Your To Do List" []
       >>=	set toDoListStore
 
-updateMySharedStore :: Task (Void, [ToDo])
+updateMySharedStore :: Task ([ToDo], Void)
 updateMySharedStore
     =     	updateSharedInformation "Your To Do List" []  toDoListStore Void 
 
 
-viewToDo :: Task (Void, [ToDo])
+viewToDo :: Task ([ToDo], Void)
 viewToDo
 	=		showSharedInformation "Your To Do List" []  toDoListStore Void 
 
