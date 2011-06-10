@@ -203,7 +203,7 @@ moduleToTeX {ModuleDoc | ident, description, types, functions} =
 typeDocToTeX :: !TypeDoc -> [LaTeX]
 typeDocToTeX { TypeDoc | ident, type, description, typeRhsDoc }
 	=	[ Subsection (ident +++ " type")
-		, Index ident
+		, Index (ident +++ " type")
 		, CleanCode [ prettyPrint type ]
 		, 'LaTeX'.Text description
 		] ++ typeRhsToTeX typeRhsDoc
@@ -243,10 +243,11 @@ typeRhsToTeX _ = []
 
 functionToTeX :: !FunctionDoc -> [LaTeX]
 functionToTeX {FunctionDoc | ident, operator, params, description, returnType, returnDescription, context, throws }
-	=	[ Subsection (case operator of
+	# name = case operator of
 			Just _  = ident +++ " operator"
-			Nothing = ident)
-		, Index ident
+			Nothing = ident
+	=	[ Subsection name
+		, Index name
 		, CleanCode
 			[	prettyPrint 
 				(	(case operator of

@@ -164,9 +164,15 @@ fromTable :: !(Table a) -> [a]
 :: VisualizationHint a 	= VHEditable a
 					   	| VHDisplay a
 					   	| VHHidden a
-:: Editable a 			= Editable a		//* Variable is always rendered within a form as editor field
-:: Display a 			= Display a			//* Variable is always rendered within a form as a static element
-:: Hidden a 			= Hidden a			//* Variable is never rendered
+
+//* Variable is always rendered within a form as editor field
+:: Editable a 			= Editable a		
+
+//* Variable is always rendered within a form as a static element
+:: Display a 			= Display a			
+
+//* Variable is never rendered
+:: Hidden a 			= Hidden a			
 
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 toVisualizationHint :: !.a -> VisualizationHint .a
