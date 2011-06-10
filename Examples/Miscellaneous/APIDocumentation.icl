@@ -12,7 +12,7 @@ import FilePath
 import Directory
 import Text
 
-from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Index, Itemize, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
+from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Environment, Index, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
 from LaTeX import qualified :: LaTeX (Text)
 
 from PPrint import class Pretty(..), ::Doc, <+>, empty, int, hsep, parens, text
@@ -213,7 +213,7 @@ typeRhsToTeX (AlgebraicTypeRhsDoc { AlgebraicTypeRhsDoc | constructors })
 	| and [isNothing c.ConstructorDoc.description \\ c <- constructors] = []
 typeRhsToTeX (AlgebraicTypeRhsDoc { AlgebraicTypeRhsDoc | constructors }) = 
 	[ Paragraph "Constructors"
-	, Itemize (flatten (map constructorToTeX constructors))
+	, Environment "itemize*" (flatten (map constructorToTeX constructors))
 	] where
 	constructorToTeX :: ConstructorDoc -> [LaTeX]
 	constructorToTeX { ConstructorDoc | ident, description }
@@ -228,7 +228,7 @@ typeRhsToTeX (RecordTypeRhsDoc { RecordTypeRhsDoc | fields })
 	| and [isNothing f.FieldDoc.description \\ f <- fields] = []
 typeRhsToTeX (RecordTypeRhsDoc { RecordTypeRhsDoc | fields }) = 
 	[ Paragraph "Fields"
-	, Itemize (flatten (map fieldToTeX fields))
+	, Environment "itemize*" (flatten (map fieldToTeX fields))
 	] where
 	fieldToTeX :: FieldDoc -> [LaTeX]
 	fieldToTeX { FieldDoc | ident, description }
@@ -265,7 +265,7 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 		, Paragraph "Parameters"
 		, (if (isEmpty params)
 			('LaTeX'.Text "(none)")
-			(Itemize (map parameterToTeX params))
+			(Environment "itemize*" (map parameterToTeX params))
 		  )
 		, Paragraph "Returns"
 		, CleanInline (prettyPrint returnType)
@@ -276,7 +276,7 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 		(if (isEmpty throws)
 			[]
 			[ Paragraph "Possible exceptions"
-			, (Itemize [ Item ['LaTeX'.Text e] \\ e <- throws ])
+			, (Environment "itemize*" [ Item ['LaTeX'.Text e] \\ e <- throws ])
 			]			
 		)
 

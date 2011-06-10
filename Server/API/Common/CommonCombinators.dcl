@@ -62,7 +62,7 @@ derive gEq			Tag
 (>?) infixl 1 :: !(Task a) !(a -> Bool) -> Task a | iTask a
 
 /** 
-* Continuation, used as second argument of multi-bind >?*
+* Continuation, used as second argument of multi-bind.
 */
 :: TaskContinuation a b	= Always	!(Task b)									//* continuation which can always be taken
 						| IfValid	!(a -> Task b)								//* continuation which can be taken if the local editor is in a valid state, the current value is given as input
