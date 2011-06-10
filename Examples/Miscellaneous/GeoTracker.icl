@@ -27,7 +27,7 @@ where
 viewMap :: Task Void
 viewMap = interact
 			"Look where everyone is"
-			(\gmap locations _ -> ([UpdateView (FormValue {GoogleMap|gmap & markers = map mkMarker locations}) (\mbMap -> ({GoogleMap|fromMaybe gmap mbMap & markers = []},Nothing))],gmap))
+			(\gmap locations _ -> [FormPart (FormValue {GoogleMap|gmap & markers = map mkMarker locations}) (\mbMap -> ({GoogleMap|fromMaybe gmap mbMap & markers = []},Nothing))])
 			nlMap
 			locationStore
 			>>+ \_ -> UserActions [(ActionQuit,Just Void)]

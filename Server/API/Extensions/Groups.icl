@@ -52,7 +52,7 @@ manageGroup igroup
 	= 	
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
-		showInformation (toString group,"This group contains the following members:") [Get id] group.members 
+		showInformation (toString group,"This group contains the following members:") [] group.members 
 	>?* [(ActionClose, Always (return True))
 		,(Action "Invite new member", Always (invite group	>>| return False))
 		,(Action "Leave group", Always (leave group >>| return False))

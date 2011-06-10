@@ -78,7 +78,7 @@ derive class iTask Plant, PlantName, PlantLight
 derive bimap Maybe, (,)
 
 symmetricLensExample =
-	updateSharedInformation ("Symmetric lens example",description) [View (toView,fromView)] (dbx >&< dby) >>+ \_ -> UserActions [(ActionQuit,Just Void)]
+	updateSharedInformation ("Symmetric lens example",description) [UpdateView (GetShared toView,PutbackShared fromView)] (dbx >&< dby) Void >>+ \_ -> UserActions [(ActionQuit,Just Void)]
 where
 	description =
 		[ PTag []
@@ -96,8 +96,8 @@ where
 		
 	(dbx,dby) = symmetricLens putr putl (sharedStore "tableExampleX" initX) (sharedStore "tableExampleY" initY)
 
-	toView			= app2 (Table,Table)
-	fromView view _	= app2 (fromTable,fromTable) view
+	toView				= app2 (Table,Table)
+	fromView view _	_	= app2 (fromTable,fromTable) view
 
 initX :: [DBX]
 initX =	[	{ DBX

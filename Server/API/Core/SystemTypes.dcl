@@ -327,6 +327,15 @@ displayName			:: !User -> String
 */
 getRoles			:: !User -> [Role]
 
+
+:: InformationState s =	{ modelValue	:: !s		// the value of the data model the editor is working on
+						, localValid	:: !Bool	// a flag indicating if the editor's local view is valid
+						}
+:: TermFunc a b :== (InformationState a) -> InteractionTerminators b
+
+:: InteractionTerminators a	= UserActions		![(!Action,!Maybe a)]	// A list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
+							| StopInteraction	!a						// The task stops and produces result a
+							
 /*
 * To allow users to specify a followup action to their current task
 * most interaction tasks allow you to specify actions that can be chosen.

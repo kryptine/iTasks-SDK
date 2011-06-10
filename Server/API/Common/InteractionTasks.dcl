@@ -69,7 +69,7 @@ showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 * 
 * @gin-icon page_white
 */
-enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 
 /**
 * Ask the user to update predefined local and shared information.
@@ -84,7 +84,7 @@ enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (l,r
 * 
 * @gin-icon page_edit
 */
-updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 
 /**
 * Show a local and shared state.
@@ -99,7 +99,7 @@ updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (
 * 
 * @gin-icon monitor
 */
-showSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+showSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 
 
 /*** Special tasks for choices ***/

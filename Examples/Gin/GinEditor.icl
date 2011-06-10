@@ -80,7 +80,7 @@ ginEditor` =
 		(\_ _ -> Void)
 		[ ShowAs HiddenTask activator
 		, ShowAs BodyTask \s p -> forever (/*ginInteractionLayout @>>*/ 
-				(updateSharedInformation "Workflow diagram" [View (diagramView, diagramUpdate)] s >?* actions s p))
+				(updateSharedInformation "Workflow diagram" [UpdateView (GetShared diagramView, PutbackShared diagramUpdate)] s Void >?* actions s p))
 		]
 
 ginParallelLayout :: ParallelLayouter
@@ -105,8 +105,8 @@ diagramView { EditorState | gMod = { moduleKind = GGraphicalModule defs }, error
 	& errors = errors 
 	}
 
-diagramUpdate :: ORYXEditor EditorState -> EditorState
-diagramUpdate editor state = { EditorState | state & gMod = setDiagram state.gMod editor, dirty = True}
+diagramUpdate :: ORYXEditor Void EditorState -> EditorState
+diagramUpdate editor _ state = { EditorState | state & gMod = setDiagram state.gMod editor, dirty = True}
 where
 	setDiagram :: !GModule !ORYXEditor -> GModule
 	setDiagram gMod =:{moduleKind = (GGraphicalModule defs)} editor=:{diagram}
@@ -126,8 +126,8 @@ activator :: (Shared EditorState) (ParallelInfo s) -> Task Void
 activator stateShared parallelInfo = forever activator`
 where
 	activator` :: Task Void
-	activator` =	(monitor "Diagram monitor" [] stateShared >? \state -> state.dirty) //Look for the dirty flag to become True
-					>>= \state -> generateSource state
+	activator` =	(showSharedInformation "Diagram monitor" [] stateShared Void >? \(state,_) -> state.dirty) //Look for the dirty flag to become True
+					>>= \(state,_) -> generateSource state
 					>>= \state -> checkErrors state
 					>>= \state -> update (\_ -> { state & dirty = False } ) stateShared //Reset dirty flag
 					>>| stop
@@ -167,7 +167,7 @@ actions stateShared parallelInfo
 	
 		addTask title task = set parallelInfo [AppendTask (ShowAs (WindowTask title) (\s _ -> task))] >>| stop
 
-		moduleEditor title v = addTask title (updateSharedInformation title [View (liftModuleView v)] stateShared)
+		moduleEditor title v = addTask title (updateSharedInformation title [UpdateView (app2 (GetShared,\f -> PutbackShared (\a _ e -> f a e)) (liftModuleView v))] stateShared Void)
 		
 		declarationEditor = moduleEditor "declaration" (declarationView, declarationUpdate)
 		importsEditor = addTask "imports" 
@@ -175,7 +175,7 @@ actions stateShared parallelInfo
 				>>= \state	 ->	accWorld (searchPathModules state.EditorState.config)
 				>>= \modules ->	moduleEditor "imports" (importsView modules, importsUpdate)
 			)
-		sourceView = addTask "source" (monitor "source view" [Get (\s -> Note s.EditorState.source)] stateShared)
+		sourceView = addTask "source" (showSharedInformation "source view" [ShowView (GetShared (\s -> Note s.EditorState.source))] stateShared Void)
 
 liftModuleView :: (GModule -> a, a GModule -> GModule) -> (EditorState -> a, a EditorState -> EditorState)
 liftModuleView (toView, fromView) = 

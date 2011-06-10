@@ -16,23 +16,23 @@ where
 				}
 				
 	parts st =
-		[ DisplayView st.display
-		, Update "7" (enterDigit 7)
-		, Update "8" (enterDigit 8)
-		, Update "9" (enterDigit 9)
-		, Update "C" initSt
-		, Update "4" (enterDigit 4)
-		, Update "5" (enterDigit 5)
-		, Update "6" (enterDigit 6)
-		, Update "/" (calc (/) False)
-		, Update "1" (enterDigit 1)
-		, Update "2" (enterDigit 2)
-		, Update "3" (enterDigit 3)
-		, Update "*" (calc (*) False)
-		, Update "0" (enterDigit 0)
-		, Update "+" (calc (+) False)
-		, Update "-" (calc (-) False)
-		, Update "=" (calc st.op True)
+		[ DisplayPart st.display
+		, UpdatePart "7" (enterDigit 7)
+		, UpdatePart "8" (enterDigit 8)
+		, UpdatePart "9" (enterDigit 9)
+		, UpdatePart "C" initSt
+		, UpdatePart "4" (enterDigit 4)
+		, UpdatePart "5" (enterDigit 5)
+		, UpdatePart "6" (enterDigit 6)
+		, UpdatePart "/" (calc (/) False)
+		, UpdatePart "1" (enterDigit 1)
+		, UpdatePart "2" (enterDigit 2)
+		, UpdatePart "3" (enterDigit 3)
+		, UpdatePart "*" (calc (*) False)
+		, UpdatePart "0" (enterDigit 0)
+		, UpdatePart "+" (calc (+) False)
+		, UpdatePart "-" (calc (-) False)
+		, UpdatePart "=" (calc st.op True)
 		]
 	where
 		enterDigit d = {st & display = newV, y = newV, showsResult = False}

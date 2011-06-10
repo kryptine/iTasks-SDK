@@ -31,4 +31,4 @@ where
 	| cost > coin	= getCoins product (cost-coin, paid+coin)
 	| otherwise		= show product (coin-cost)
 	
-	show product money = showInformation"Coffemaker+" [Get (\(product,money) -> toHtmlDisplay [Text ("product = " <+++ product), BrTag [], Text ("money returned = " <+++ money)])] (product,money)
+	show product money = showInformation"Coffemaker+" [ShowView (GetLocal (\(product,money) -> toHtmlDisplay [Text ("product = " <+++ product), BrTag [], Text ("money returned = " <+++ money)]))] (product,money)

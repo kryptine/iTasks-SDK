@@ -48,14 +48,6 @@ derive gPutRecordFields	Task
 					| TaskException !Dynamic !String
 
 :: TaskAction :== (TaskId,Action,Bool)
-					
-:: InformationState s =	{ modelValue	:: !s		// the value of the data model the editor is working on
-						, localValid	:: !Bool	// a flag indicating if the editor's local view is valid
-						}
-:: TermFunc a b :== (InformationState a) -> InteractionTerminators b
-
-:: InteractionTerminators a	= UserActions		![(!Action,!Maybe a)]	// A list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
-							| StopInteraction	!a						// The task stops and produces result a
 
 // Converts to task functions, ok action is added to action tasks
 toTaskFuncs :: !(Task a) -> TaskFuncs a | iTask a

@@ -10,35 +10,35 @@ import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, Syst
 
 enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
 enterInformation d options` = InputTask @>> LocalInteractionTask @>>
-	mapToLocalState (updateSharedInformation` d options defaultValue voidNull)
+	mapToLocalState (updateSharedInformation` d options voidNull defaultValue)
 where
 	options		= filterOptions filterInputOptions defaultOpts options`
 	defaultOpts	= [EnterView (PutbackLocal (\l _ _ -> l))]
 	
 updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
 updateInformation d options` m = UpdateTask @>> LocalInteractionTask @>>
-	mapToLocalState (updateSharedInformation` d options m voidNull)
+	mapToLocalState (updateSharedInformation` d options voidNull m)
 where
 	options		= filterOptions noFilter defaultOpts options`
 	defaultOpts	= [UpdateView (GetLocal id, PutbackLocal (\l _ _ -> l))]
 	
 showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 showInformation d options` m = OutputTask PassiveOutput @>> LocalInteractionTask @>>
-	mapToLocalState (updateSharedInformation` d options m voidNull)
+	mapToLocalState (updateSharedInformation` d options voidNull m)
 where
 	options		= filterOptions filterOutputOptions defaultOpts options`
 	defaultOpts	= [ShowView (GetLocal id)]
 	
-mapToLocalState = mapActionTaskModelValue (\(l,_) -> l)
+mapToLocalState = mapActionTaskModelValue (\(_,l) -> l)
 
-enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-enterSharedInformation d options` shared = InputTask @>> updateSharedInformation` d options defaultValue shared
+enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+enterSharedInformation d options` shared = InputTask @>> updateSharedInformation` d options shared defaultValue
 where
 	options		= filterOptions filterInputOptions defaultOpts options`
 	defaultOpts	= [EnterView (PutbackLocal (\l _ _ -> l)), EnterView (PutbackShared (\w _ _ -> w))]
 	
-updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-updateSharedInformation d options` shared initLocal = UpdateTask @>> updateSharedInformation` d options initLocal shared
+updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+updateSharedInformation d options` shared initLocal = UpdateTask @>> updateSharedInformation` d options shared initLocal
 where
 	options								= filterOptions noFilter defaultOpts options`
 	defaultOpts							= [defaultLocalView,defaultSharedView]
@@ -47,14 +47,14 @@ where
 		(putback :: (r^ -> w^))			= UpdateView	(GetShared id,PutbackShared (\r _ _ -> (putback r)))
 		_								= ShowView		(GetShared id)
 
-showSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-showSharedInformation d options` shared local = OutputTask PassiveOutput @>> updateSharedInformation` d options local shared
+showSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+showSharedInformation d options` shared local = OutputTask PassiveOutput @>> updateSharedInformation` d options shared local
 where
 	options		= filterOptions filterOutputOptions defaultOpts options`
 	defaultOpts	= [ShowView (GetLocal id), ShowView (GetShared id)]
 
-updateSharedInformation` :: !d ![ViewOn l r w] l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-updateSharedInformation` d options initLocal shared = mapActionTaskModelValue (\((l,_,_),r) -> (l,r)) (interact d interaction (initLocal,False,False) shared)
+updateSharedInformation` :: !d ![ViewOn l r w] !(ReadWriteShared r w)  l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+updateSharedInformation` d options shared initLocal = mapActionTaskModelValue (\((l,_,_),r) -> (r,l)) (interact d interaction (initLocal,False,False) shared)
 where
 	interaction (l,updateLocalViews,updateSharedViews) r changed = map mkPart options
 	where
@@ -189,11 +189,11 @@ gVisualize{|ChoiceOption|} _ mbV vst = case mbV of
 
 waitForTime :: !Time -> Task Time
 waitForTime time =
-	(showSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime Void >? \(_,now) -> time < now) >>= transform snd
+	(showSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime Void >? \(now,_) -> time < now) >>= transform fst
 
 waitForDate :: !Date -> Task Date
 waitForDate date =
-	(showSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate Void >? \(_,now) -> date < now) >>= transform snd
+	(showSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate Void >? \(now,_) -> date < now) >>= transform fst
 
 waitForTimer :: !Time -> Task Time
 waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)

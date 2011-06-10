@@ -17,11 +17,11 @@ weatherExample =
 
 enterLocation = enterInformation ("Enter location", "Enter a location you want to retrieve the weather forecast for.") []
 markLocation =
-		updateInformation ("Mark location","Mark a location you want to retrieve the weather forecast for.") [View (toView,fromView)] mkMap >>+ (\{modelValue} -> UserActions [(ActionOk,if (oneLocation modelValue) (Just modelValue) Nothing)])
+		updateInformation ("Mark location","Mark a location you want to retrieve the weather forecast for.") [UpdateView (GetLocal toView, PutbackLocal fromView)] mkMap >>+ (\{modelValue} -> UserActions [(ActionOk,if (oneLocation modelValue) (Just modelValue) Nothing)])
 	>>=	transform (\{markers=ms=:[m:_]} -> m.position)
 where
 	toView = id
-	fromView map=:{markers} _ = {map & markers = if (isEmpty markers) [] [hd (reverse markers)]}
+	fromView map=:{markers} _ _ = {map & markers = if (isEmpty markers) [] [hd (reverse markers)]}
 	
 	oneLocation {markers} = (length markers) == 1
 		
