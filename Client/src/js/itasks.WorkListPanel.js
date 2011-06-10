@@ -37,6 +37,23 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 						}
 					}
 				}	
+			},{
+				id: 'deletebutton',
+				xtype: 'tbbutton',
+				text: 'Delete task',
+				iconCls: 'icon-trash',
+				listeners: {
+					click: { 
+						scope: this,
+						fn: function (btn) {
+							var node = this.treeGrid.getSelectionModel().getSelectedNode();
+							if (node) {
+								Ext.getCmp("worktab-"+node.attributes.taskId).cancel();
+								//this.deleteTask(node.attributes.taskId);
+							}
+						}
+					}
+				}	
 			},'->',{
 				id: 'userdisplay',
 				xtype: 'label',

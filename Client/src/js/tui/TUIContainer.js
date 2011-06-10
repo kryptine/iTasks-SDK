@@ -5,6 +5,7 @@ itasks.tui.extendContainer = function(extSuper,overrides) {
 };
 
 itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
+	headerStyle: 'white-space: nowrap',
 	doTUILayout: function(fillW,fillH) {
 		var myS = itasks.tui.base.doTUILayout.apply(this,arguments);
 		

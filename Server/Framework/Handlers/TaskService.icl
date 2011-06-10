@@ -175,6 +175,8 @@ taskService url format path req iworld
 		[taskId,"cancel"]
 			| isError mbSession
 				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (jsonSessionErr mbSession), iworld)
+			| length (taskNrFromString taskId) > 1 // don't delete detached
+				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("succes",JSONBool False),("error",JSONString  "Cannot delete detached process")]), iworld)
 			# (_,iworld) = 'ProcessDB'.deleteProcess (processOf taskId) iworld
 			= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), iworld)	
 		_
