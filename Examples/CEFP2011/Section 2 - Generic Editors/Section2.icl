@@ -24,7 +24,7 @@ flows2
 
 // the ubiquitous hello world example
 
-hello = updateInformation "Press Ok to terminate" [] "Hello world!"
+hello = showInformation "Press Ok to terminate" [] "Hello world!"
 
 // a simple form to type in an integer value
 
