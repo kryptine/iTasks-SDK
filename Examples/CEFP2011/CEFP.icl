@@ -16,8 +16,7 @@ allFlows = 	flows2 ++
 			flows5 ++
 			flows6 ++
 			flows7 ++
-			flows8 ++
-			flows9
+			flows8
 
 Start :: *World -> *World
 Start world = startEngine allFlows world
