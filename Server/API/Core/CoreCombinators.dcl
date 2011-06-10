@@ -83,14 +83,14 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 :: TerminationStatus	=	AllRunToCompletion			// all parallel processes have ended their execution
 						|	Stopped						// the control signal StopParallel has been commited
 				
-:: TaskContainer s		= E.a: ShowAs !TaskGUI !(TaskFunction s a) & iTask a
+:: TaskContainer s		= E.a: ShowAs !TaskGUI !(ParallelTask s a) & iTask a
 :: TaskGUI				= DetachedTask !ManagerProperties
 						| WindowTask   !WindowTitle
 						| DialogTask   !WindowTitle
 						| BodyTask
 						| HiddenTask
 						
-:: TaskFunction s a		:== (Shared s) (ParallelInfo s) -> Task a
+:: ParallelTask s a		:== (Shared s) (ParallelInfo s) -> Task a
 
 :: ParallelInfo s		:== ReadWriteShared [ParallelTaskInfo] [Control s]
 :: ParallelTaskInfo =	{ index			:: !TaskIndex								// The task's index
