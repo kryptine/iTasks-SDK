@@ -88,7 +88,8 @@ apiDocumentationExamples =
 
 generateTeXExample :: Task Void	
 generateTeXExample = updateInformation "Enter API Directory:" [] (".." </> "Server" </> "API")
-	>>= \path			-> try (importJSONFile (path </> settingsFile)) (\(FileException _ _) -> return ([],[]))
+//	>>= \path			-> catchAll (importJSONFile (path </> settingsFile)) (\_ -> return ([],[]))
+	>>= \path			-> importJSONFile (path </> settingsFile)
 	>>= \(selectedFiles, selectedIdents) -> 
 							findAllFiles path ".dcl"
 	>>= \dclFiles 		-> 	updateMultipleChoice "Select modules to include in documentation" [] dclFiles selectedFiles
@@ -164,7 +165,7 @@ derive class iTask LaTeX
 	
 :: ConstructorDoc = 
 	{ ident				:: !String
-	, description		:: !String
+	, description		:: !Maybe String
 	}
 
 :: RecordTypeRhsDoc = 
@@ -174,7 +175,7 @@ derive class iTask LaTeX
 :: FieldDoc = 
 	{ ident				:: !String
 	, type				:: !Doc
-	, description		:: !String
+	, description		:: !Maybe String
 	}
 
 dclToTeX :: ![String] !FilePath *World -> (MaybeErrorString [LaTeX], *World)
@@ -208,30 +209,36 @@ typeDocToTeX { TypeDoc | ident, type, description, typeRhsDoc }
 		] ++ typeRhsToTeX typeRhsDoc
 
 typeRhsToTeX :: !TypeRhsDoc -> [LaTeX]
+typeRhsToTeX (AlgebraicTypeRhsDoc { AlgebraicTypeRhsDoc | constructors })
+	| and [isNothing c.ConstructorDoc.description \\ c <- constructors] = []
 typeRhsToTeX (AlgebraicTypeRhsDoc { AlgebraicTypeRhsDoc | constructors }) = 
 	[ Paragraph "Constructors"
 	, Itemize (flatten (map constructorToTeX constructors))
 	] where
 	constructorToTeX :: ConstructorDoc -> [LaTeX]
+	constructorToTeX { ConstructorDoc | ident, description }
+		| isNothing description = []
 	constructorToTeX { ConstructorDoc | ident, description } = 
 		[ Item	[ CleanInline ident
 				, EmDash
-				, 'LaTeX'.Text description
+				, 'LaTeX'.Text (fromJust description)
 				]
 		]
-	
+typeRhsToTeX (RecordTypeRhsDoc { RecordTypeRhsDoc | fields })
+	| and [isNothing f.FieldDoc.description \\ f <- fields] = []
 typeRhsToTeX (RecordTypeRhsDoc { RecordTypeRhsDoc | fields }) = 
 	[ Paragraph "Fields"
 	, Itemize (flatten (map fieldToTeX fields))
 	] where
 	fieldToTeX :: FieldDoc -> [LaTeX]
+	fieldToTeX { FieldDoc | ident, description }
+		| isNothing description = []
 	fieldToTeX { FieldDoc | ident, description } = 
 		[ Item	[ CleanInline ident
 				, EmDash
-				, 'LaTeX'.Text description
+				, 'LaTeX'.Text (fromJust description)
 				]
 		]
-		
 typeRhsToTeX _ = []
 
 functionToTeX :: !FunctionDoc -> [LaTeX]
@@ -384,9 +391,7 @@ documentTypeRhs (ConsList constructors)
 	documentConstructor { ParsedConstructor | pc_cons_ident, pc_docblock } = 
 		{ ConstructorDoc 
 		| ident = pc_cons_ident.id_name
-		, description = case pc_docblock of
-			'general'.Yes desc = desc
-			'general'.No = ""
+		, description = optionalToMaybe pc_docblock
 		}
 documentTypeRhs (SelectorList ident typeVars isBoxed selectors) 
 	= RecordTypeRhsDoc { RecordTypeRhsDoc | fields = map documentField selectors } 
@@ -395,11 +400,13 @@ documentTypeRhs (SelectorList ident typeVars isBoxed selectors)
 		{ FieldDoc 
 		| ident = ps_field_ident.id_name
 		, type = pretty ps
-		, description = case ps_docblock of
-			'general'.Yes desc = desc
-			'general'.No = ""
+		, description = optionalToMaybe ps_docblock
 		}	
 documentTypeRhs _ = EmptyTypeRhsDoc
+
+optionalToMaybe :: ('general'.Optional a) -> Maybe a
+optionalToMaybe ('general'.Yes x)	= Just x
+optionalToMaybe 'general'.No		= Nothing
 
 createDocumentTask :: !String !String !String -> Task Document
 createDocumentTask name mime content = mkInstantTask "Create document" create
