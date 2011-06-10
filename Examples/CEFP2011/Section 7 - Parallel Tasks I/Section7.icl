@@ -13,12 +13,12 @@ Start world = startEngine flows7 world
 
 flows7 :: [Workflow]
 flows7 
-	=   [ workflow "CEFP/Sect 7/1. Questionnaire"   "Question N users"					(show questions)
-	    , workflow "CEFP/Sect 7/2. Number guessing" "First person to guess wins"		guess
-	    , workflow "CEFP/Sect 7/1. Naive Chat"		"Naive chat with many users"		naive_chat
-		, workflow "CEFP/Sect 7/2. Monitored Chat" 	"Monitored chat with many users"	monitor_chat
-		, workflow "CEFP/Sect 7/3. Shared Chat"	 	"Shared chat with many users"		shared_chat
-		, workflow "CEFP/Sect 7/4. Multibind Chat" 	"Multibind chat with many users"	multibind_chat
+	=   [ workflow "CEFP/Section 7 - Parallel Tasks I/1. Questionnaire"		"Question N users"					(show questions)
+	    , workflow "CEFP/Section 7 - Parallel Tasks I/2. Number guessing"	"First person to guess wins"		guess
+	    , workflow "CEFP/Section 7 - Parallel Tasks I/3. Naive Chat"		"Naive chat with many users"		naive_chat
+		, workflow "CEFP/Section 7 - Parallel Tasks I/4. Monitored Chat" 	"Monitored chat with many users"	monitor_chat
+		, workflow "CEFP/Section 7 - Parallel Tasks I/5. Shared Chat"	 	"Shared chat with many users"		shared_chat
+		, workflow "CEFP/Section 7 - Parallel Tasks I/6. Multibind Chat" 	"Multibind chat with many users"	multibind_chat
 		]
 		
 // --- some handy functions

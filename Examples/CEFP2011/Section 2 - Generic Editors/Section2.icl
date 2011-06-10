@@ -10,16 +10,16 @@ Start world = startEngine flows2 world
 
 flows2 :: [Workflow]
 flows2 
-	=   [ workflow "CEFP/Sect 2/1. Hello world!"        	"The infamous hello world"      hello
-		, workflow "CEFP/Sect 2/2. Enter Int value"    		"Form for an integer value" 	(show taskInt)
-		, workflow "CEFP/Sect 2/3. Enter String value" 		"Form for entering a string"	(show taskString)
-		, workflow "CEFP/Sect 2/4. Enter Person data"  		"Form for entering person data" (show taskPerson)
-		, workflow "CEFP/Sect 2/5. Enter [Person]" 			"Fill in person data" 			(show taskPersonList)
-		, workflow "CEFP/Sect 2/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
-		, workflow "CEFP/Sect 2/7. Choose several items"	"Multiple choice" 				(show pizzaWith)
-		, workflow "CEFP/Sect 2/8. Simple Editor" 			"Using type Note" 				(show simpleEditor)
-		, workflow "CEFP/Sect 2/9. Pick a Date" 			"Using type Date" 				(show chooseDate)
-		, workflow "CEFP/Sect 2/10. Point on a map" 		"Using type GoogleMap" 			(show pointOnMap)
+	=   [ workflow "CEFP/Section 2 - Generic Editors/1. Hello world!"        	"The infamous hello world"      hello
+		, workflow "CEFP/Section 2 - Generic Editors/2. Enter Int value"    	"Form for an integer value" 	(show taskInt)
+		, workflow "CEFP/Section 2 - Generic Editors/3. Enter String value" 	"Form for entering a string"	(show taskString)
+		, workflow "CEFP/Section 2 - Generic Editors/4. Enter Person data"  	"Form for entering person data" (show taskPerson)
+		, workflow "CEFP/Section 2 - Generic Editors/5. Enter [Person]" 		"Fill in person data" 			(show taskPersonList)
+		, workflow "CEFP/Section 2 - Generic Editors/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
+		, workflow "CEFP/Section 2 - Generic Editors/7. Choose several items"	"Multiple choice" 				(show pizzaWith)
+		, workflow "CEFP/Section 2 - Generic Editors/8. Simple Editor" 			"Using type Note" 				(show simpleEditor)
+		, workflow "CEFP/Section 2 - Generic Editors/9. Pick a Date" 			"Using type Date" 				(show chooseDate)
+		, workflow "CEFP/Section 2 - Generic Editors/10. Point on a map" 		"Using type GoogleMap" 			(show pointOnMap)
 		]
 
 // the ubiquitous hello world example

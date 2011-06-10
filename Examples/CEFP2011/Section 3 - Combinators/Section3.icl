@@ -13,16 +13,16 @@ Start world = startEngine flows3 world
 
 flows3 :: [Workflow]
 flows3 
-	=	[ workflow "CEFP/Sect 3/1. Hello"    					"\"Hello World\" in iTask" 				hello
-		, workflow "CEFP/Sect 3/2. Numbers"						"Enter a number of numbers"				numbers
-		, workflow "CEFP/Sect 3/3. Form for [Person]" 			"Form for [Person]"						(show personList)
-		, workflow "CEFP/Sect 3/4. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
-		, workflow "CEFP/Sect 3/5. Choose one or more [Person]" "Select from a list" 					(show personList3)
-		, workflow "CEFP/Sect 3/6. Form for [Person]" 			"Form for [Person]" 					(show personList4)
-		, workflow "CEFP/Sect 3/7. Form for [Person]" 			"Form for [Person]" 					(show personList5)
-		, workflow "CEFP/Sect 3/8. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
-		, workflow "CEFP/Sect 3/9. Form for [Person]+check" 	"Form for [Person] and check result" 	(show fillInAndCheckPersons)
-		, workflow "CEFP/Sect 3/10. Test while"					"Test while"							positive
+	=	[ workflow "CEFP/Section 3 - Combinators/1. Hello"    						"\"Hello World\" in iTask" 				hello
+		, workflow "CEFP/Section 3 - Combinators/2. Numbers"						"Enter a number of numbers"				numbers
+		, workflow "CEFP/Section 3 - Combinators/3. Form for [Person]" 			"Form for [Person]"						(show personList)
+		, workflow "CEFP/Section 3 - Combinators/4. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
+		, workflow "CEFP/Section 3 - Combinators/5. Choose one or more [Person]"	"Select from a list" 					(show personList3)
+		, workflow "CEFP/Section 3 - Combinators/6. Form for [Person]" 			"Form for [Person]" 					(show personList4)
+		, workflow "CEFP/Section 3 - Combinators/7. Form for [Person]" 			"Form for [Person]" 					(show personList5)
+		, workflow "CEFP/Section 3 - Combinators/8. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
+		, workflow "CEFP/Section 3 - Combinators/9. Form for [Person]+check" 		"Form for [Person] and check result" 	(show fillInAndCheckPersons)
+		, workflow "CEFP/Section 3 - Combinators/10. Test while"					"Test while"							positive
 		]
 		
 // show combinator function that displays result of argument task:

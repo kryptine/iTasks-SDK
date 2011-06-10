@@ -11,9 +11,9 @@ Start world = startEngine flows6 world
 
 flows6 :: [Workflow]
 flows6 
-	=   [ workflow "CEFP/Sect 6/1. Delegate a task" 	"Delegate a task to some administrated user" 	(delegate someTask)
-		, workflow "CEFP/Sect 6/2. Guess" 			"Number guessing game" 							guessGame
-		, workflow "CEFP/Sect 6/3. Appointment" 		"Try to make an appointment with several user" 	mkAppointment
+	=   [ workflow "CEFP/Section 6 - Task Distribution/1. Delegate a task"	"Delegate a task to some administrated user" 	(delegate someTask)
+		, workflow "CEFP/Section 6 - Task Distribution/2. Guess" 			"Number guessing game" 							guessGame
+		, workflow "CEFP/Section 6 - Task Distribution/3. Appointment" 		"Try to make an appointment with several user" 	mkAppointment
 		]
 		
 

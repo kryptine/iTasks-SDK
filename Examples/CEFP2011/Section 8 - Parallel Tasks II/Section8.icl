@@ -13,9 +13,9 @@ Start world = startEngine flows8 world
 
 flows8 :: [Workflow]
 flows8 
-	=   [ workflow "CEFP/Sect 8/1. Chat with several users"    	"Chat with several users" chat3
-//		, workflow "CEFP/Sect 8/2. Editing a text file" "Editing a text file" textEditor2
-//		, workflow "CEFP/Sect 8/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users"    	"Chat with several users" chat3
+//		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" "Editing a text file" textEditor2
+//		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 		]
 
 // chat with several users

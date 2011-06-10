@@ -12,14 +12,14 @@ Start world = startEngine flows4 world
 
 flows4 :: [Workflow]
 flows4 
-	=   [ workflow "CEFP/Sect 4/0. Simple Question" 			"Only one answer possible..." 					(show ask)
-		, workflow "CEFP/Sect 4/1. Absolute Int"				"Guaranteed absolute integer"					(show absolute)
-		, workflow "CEFP/Sect 4/2. Form for [Person]" 			"Form for [Person]" 							(show personList6)
-		, workflow "CEFP/Sect 4/3. Accept only an even number" 	"Type in an even number" 						(show askEven)
-		, workflow "CEFP/Sect 4/4. Only even" 					"Either the odd or even buttons can be chosen" 	(show (oddOrEvenButtons True))
-		, workflow "CEFP/Sect 4/5. Dynamic number of buttons" 	"Dynamic number of buttons to choose from" 		(forever (show (positive >>= actions)))
-		, workflow "CEFP/Sect 4/6. Dynamic number of buttons" 	"Order pressed is remembered" 					(show (dynButtons [1..10] []))
-		, workflow "CEFP/Sect 4/7. Palindrome exercise" 		"Palindrome" 									palindrome
+	=   [ workflow "CEFP/Section 4 - Enriching Tasks with GUI/1. Simple Question" 				"Only one answer possible..." 					(show ask)
+		, workflow "CEFP/Section 4 - Enriching Tasks with GUI/2. Absolute Int"					"Guaranteed absolute integer"					(show absolute)
+		, workflow "CEFP/Section 4 - Enriching Tasks with GUI/3. Form for [Person]" 			"Form for [Person]" 							(show personList6)
+		, workflow "CEFP/Section 4 - Enriching Tasks with GUI/4. Accept only an even number" 	"Type in an even number" 						(show askEven)
+		, workflow "CEFP/Section 4 - Enriching Tasks with GUI/5. Only even" 					"Either the odd or even buttons can be chosen" 	(show (oddOrEvenButtons True))
+		, workflow "CEFP/Section 4 - Enriching Tasks with GUI/6. Dynamic number of buttons" 	"Dynamic number of buttons to choose from" 		(forever (show (positive >>= actions)))
+		, workflow "CEFP/Section 4 - Enriching Tasks with GUI/7. Dynamic number of buttons" 	"Order pressed is remembered" 					(show (dynButtons [1..10] []))
+		, workflow "CEFP/Section 4 - Enriching Tasks with GUI/8. Palindrome exercise" 			"Palindrome" 									palindrome
 		]
 		
 // simple question with buttons
