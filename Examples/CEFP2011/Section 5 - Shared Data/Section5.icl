@@ -14,22 +14,28 @@ Start world = startEngine flows5 world
 
 flows5 :: [Workflow]
 flows5 
-	=   [ workflow "CEFP/Sect 5/1. Date and Time" 					"Shows current date and time"							(repeatUntilApproved (show getDateAndTime))
-		, workflow "CEFP/Sect 5/2. Administrated users" 			"Shows currently administrated users"					(show getUsers)
-		, workflow "CEFP/Sect 5/3. Administrated users details"		"Shows details of all currently administrated users"	(show getUsersDetails)
-		, workflow "CEFP/Sect 5/4. Show details of a user"			"Select administrated user and show administration"		selectUserDetails 
-		, workflow "CEFP/Sect 5/5. Current Workflows" 				"Which workflows are known here ?"						(show getWorkflows)
-		, workflow "CEFP/Sect 5/6. Update To Do List" 				"Edit local copy of To Do list"							(show updateToDoList)
-		, workflow "CEFP/Sect 5/7. Update Shared To Do List " 		"Edit To Do list, and share it right away"				(show updateToDoList2)
-		, workflow "CEFP/Sect 5/8. View the Shared To Do List" 		"View will be adjusted when updated elsewhere"			viewToDoList 
-		, workflow "CEFP/Sect 5/9. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
+	=   [ workflow "CEFP/Sect 5/1. Date and Time" 					"Shows current date and time"							(show getDateAndTime)
+		, workflow "CEFP/Sect 5/2. Continuous Date and Time"		"Keep showing date and time" 							repeatDateAndTime
+		, workflow "CEFP/Sect 5/3. Administrated users" 			"Shows currently administrated users"					(show getUsers)
+		, workflow "CEFP/Sect 5/4. Administrated users details"		"Shows details of all currently administrated users"	(show getUsersDetails)
+		, workflow "CEFP/Sect 5/5. Show details of a user"			"Select administrated user and show administration"		selectUserDetails 
+		, workflow "CEFP/Sect 5/6. Current Workflows" 				"Which workflows are known here ?"						(show getWorkflows)
+		, workflow "CEFP/Sect 5/7. Update To Do List" 				"Edit local copy of To Do list"							(show updateToDoList)
+		, workflow "CEFP/Sect 5/8. Update Shared To Do List " 		"Edit To Do list, and share it right away"				(show updateToDoList2)
+		, workflow "CEFP/Sect 5/9. View the Shared To Do List" 		"View will be adjusted when updated elsewhere"			viewToDoList 
+		, workflow "CEFP/Sect 5/10. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
 		]
-
+		
 // Date and Time
-
 getDateAndTime :: Task DateTime
 getDateAndTime
     =     		get currentDateTime
+
+repeatDateAndTime :: Task DateTime
+repeatDateAndTime
+	=			repeatUntilApproved (show getDateAndTime)
+
+
 
 // Administrated users
 

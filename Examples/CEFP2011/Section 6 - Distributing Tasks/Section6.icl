@@ -23,7 +23,7 @@ delegate :: (Task a) -> Task a | iTask a
 delegate task
     =                	selectUser
       >>= \user   -> 	user @: task
-      >>= 				updateInformation "Check result" [] 
+      >>= \result ->	updateInformation "Check result" [] result
 
 someTask :: Task Note
 someTask = enterInformation "Enter Information" []
