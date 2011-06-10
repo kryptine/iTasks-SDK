@@ -120,7 +120,7 @@ updateSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) o -> Task o
 updateSharedChoice d options shared initC = UpdateTask @>> choice` d options shared (Just initC)
 
 choice` d options shared mbSel =
-	mapActionTaskModelValue (\(mbC,choiceOpts) -> maybe defaultValue (\c -> maybe defaultValue fromViewOption (getMbChoice c)) (fmap (setOptions (toViewOptions options choiceOpts)) mbC)) (interact d interaction Nothing shared)
+	mapActionTaskModelValue (\(mbC,choiceOpts) -> maybe (fromMaybe defaultValue mbSel) (\c -> maybe defaultValue fromViewOption (getMbChoice c)) (fmap (setOptions (toViewOptions options choiceOpts)) mbC)) (interact d interaction Nothing shared)
 where
 	interaction mbLocal choiceOpts _ = addAbouts options [FormPart toView fromView]
 	where
@@ -144,7 +144,7 @@ updateSharedMultipleChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) [o]
 updateSharedMultipleChoice d options shared sel = UpdateTask @>> multipleChoice` d options shared sel
 
 multipleChoice` d options shared sel =
-	mapActionTaskModelValue (\(mbLocal,choiceOpts) -> fromViewOptions (maybe [] getChoices (fmap (setOptionsM (toViewOptions options choiceOpts)) mbLocal))) (interact d interaction Nothing shared)
+	mapActionTaskModelValue (\(mbLocal,choiceOpts) -> maybe sel (fromViewOptions o getChoices) (fmap (setOptionsM (toViewOptions options choiceOpts)) mbLocal)) (interact d interaction Nothing shared)
 where	
 	interaction mbLocal choiceOpts _	= addAbouts options [FormPart toView fromView]
 	where
