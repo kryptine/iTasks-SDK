@@ -17,7 +17,7 @@ flows7
 	    , workflow "CEFP/Section 7 - Parallel Tasks I/2. Number guessing"	"First person to guess wins"		guess
 	    , workflow "CEFP/Section 7 - Parallel Tasks I/3. Naive Chat"		"Naive chat with many users"		naive_chat
 		, workflow "CEFP/Section 7 - Parallel Tasks I/4. Monitored Chat" 	"Monitored chat with many users"	monitor_chat
-		, workflow "CEFP/Section 7 - Parallel Tasks I/5. Shared Chat"	 	"Shared chat with many users"		shared_chat
+		, workflow "CEFP/Section 7 - Parallel Tasks I/5. Shared Chat"	 	"Shared chat with two users"		shared_chat
 		, workflow "CEFP/Section 7 - Parallel Tasks I/6. Multibind Chat" 	"Multibind chat with many users"	multibind_chat
 		]
 		
@@ -126,25 +126,24 @@ shared_chat
 where
 	chatEditor :: (User,Int) (User,Int) (Shared ChatState2) (ParallelInfo ChatState2) -> Task Void
 	chatEditor (me,mine) (you,yours) cs os
-//		= 					updateSharedInformation ("Chat with " <+++ you) [] cs  
-/*		=					get cs
-			>>= \state ->	updateInformation ("Chat with " <+++ you) [] (Display state.chats, Note "")
-			>>= \(_,Note response) -> update (\state -> { state &  chats = state.chats ++ [me +++> ": " +++> response]}) cs
-			>>|				chatEditor me you mine yours cs os
-
-*/		= 					updateSharedInformation ("Chat with " <+++ you) [UpdateView (GetShared toView,Putback fromView)] cs (Note "")
+		= 					updateSharedInformation ("Chat with " <+++ you) [views] cs (Note "")
 			>?*				[(ActionQuit, Always (return Void))]
 	where
+		views = UpdateView (GetShared toView, Putback fromView)
+
 		toView state
 			=	Display (you +++> if (state.typing!!yours) " is typing..." " is waiting...", state.history)
 
 		fromView _ (Note response) state 
 		# responseList 		= fromString response
 		| not (isMember '\n' responseList)	= (Nothing, Just (setTyping mine response state))
-		# (before,after) 	= span (\c -> c <> '\n') responseList 
-		# beforeS 			= toString before
-		# afterS 			= toString (tl after) 
-		= (Just (Note afterS), Just (setTyping mine afterS (setHistory (me +++> ": " +++> beforeS) state)))
+		# (before,after) 	= split (\c -> c <> '\n') response 
+		= (Just (Note after), Just (setTyping mine after (setHistory (me +++> ": " +++> before) state)))
+
+		split pred string 
+		# (before,after) 	= span (\c -> c <> '\n') (fromString string)
+		= (toString before, toString (tl after)) 
+		
 
 // N users chatting with each other
 

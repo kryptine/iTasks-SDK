@@ -15,14 +15,14 @@ Start world = startEngine flows5 world
 flows5 :: [Workflow]
 flows5 
 	=   [ workflow "CEFP/Section 5 - Shared Data/1. Date and Time" 					"Shows current date and time"							(show getDateAndTime)
-		, workflow "CEFP/Section 5 - Shared Data/2. Continuous Date and Time"			"Keep showing date and time" 							repeatDateAndTime
-		, workflow "CEFP/Section 5 - Shared Data/3. Administrated users" 				"Shows currently administrated users"					(show getUsers)
-		, workflow "CEFP/Section 5 - Shared Data/4. Administrated users details"		"Shows details of all currently administrated users"	(show getUsersDetails)
+		, workflow "CEFP/Section 5 - Shared Data/2. Continuous Date and Time"		"Keep showing date and time" 							showDateAndTime
+		, workflow "CEFP/Section 5 - Shared Data/3. Administrated users" 			"Shows currently administrated users"					(show getUsers)
+		, workflow "CEFP/Section 5 - Shared Data/4. Administrated users details"	"Shows details of all currently administrated users"	(show getUsersDetails)
 		, workflow "CEFP/Section 5 - Shared Data/5. Show details of a user"			"Select administrated user and show administration"		selectUserDetails 
 		, workflow "CEFP/Section 5 - Shared Data/6. Current Workflows" 				"Which workflows are known here ?"						(show getWorkflows)
 		, workflow "CEFP/Section 5 - Shared Data/7. Update To Do List" 				"Edit local copy of To Do list"							(show updateToDoList)
 		, workflow "CEFP/Section 5 - Shared Data/8. Update Shared To Do List " 		"Edit To Do list, and share it right away"				(show updateToDoList2)
-		, workflow "CEFP/Section 5 - Shared Data/9. View the Shared To Do List" 		"View will be adjusted when updated elsewhere"			viewToDoList 
+		, workflow "CEFP/Section 5 - Shared Data/9. View the Shared To Do List" 	"View will be adjusted when updated elsewhere"			showToDoList 
 		, workflow "CEFP/Section 5 - Shared Data/10. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
 		]
 		
@@ -31,9 +31,9 @@ getDateAndTime :: Task DateTime
 getDateAndTime
     =     		get currentDateTime
 
-repeatDateAndTime :: Task DateTime
-repeatDateAndTime
-	=			repeatUntilApproved (show getDateAndTime)
+showDateAndTime :: Task (DateTime,Void)  // better switch on automatic refresh
+showDateAndTime
+	=			showSharedInformation "The current date and time is: " [] currentDateTime Void
 
 
 
@@ -96,8 +96,8 @@ updateToDoList2
     =     	updateSharedInformation "Your To Do List" []  toDoList Void 
 
 
-viewToDoList :: Task ([ToDo], Void)
-viewToDoList
+showToDoList :: Task ([ToDo], Void)
+showToDoList
 	=		showSharedInformation "Your To Do List" []  toDoList Void 
 
 
