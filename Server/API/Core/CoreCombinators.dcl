@@ -77,11 +77,14 @@ noActions :: (TermFunc a Void) | iTask a
 */
 parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
 
-:: ResultFun s a 		:== TerminationStatus s -> a	//ResultFun is called when the parallel task is stopped
-														//either because all tasks completed, or the set was stopped by a task
+/** 
+* ResultFun is called when the parallel task is stopped, either because all tasks completed, 
+* or the set was stopped by a task
+*/
+:: ResultFun s a 		:== TerminationStatus s -> a	
 
-:: TerminationStatus	=	AllRunToCompletion			// all parallel processes have ended their execution
-						|	Stopped						// the control signal StopParallel has been commited
+:: TerminationStatus	=	AllRunToCompletion			//* all parallel processes have ended their execution
+						|	Stopped						//* the control signal StopParallel has been commited
 				
 :: TaskContainer s		= E.a: ShowAs !TaskGUI !(ParallelTask s a) & iTask a
 :: TaskGUI				= DetachedTask !ManagerProperties
@@ -93,14 +96,14 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 :: ParallelTask s a		:== (Shared s) (ParallelInfo s) -> Task a
 
 :: ParallelInfo s		:== ReadWriteShared [ParallelTaskInfo] [Control s]
-:: ParallelTaskInfo =	{ index			:: !TaskIndex								// The task's index
-						, properties	:: !Either TaskProperties ProcessProperties // Task properties for inbody tasks and process
-						}															// properties for detached tasks
+:: ParallelTaskInfo =	{ index			:: !TaskIndex								//* The task's index
+						, properties	:: !Either TaskProperties ProcessProperties //* Task properties for inbody tasks and process properties for detached tasks
+						}
 
-:: Control s			= StopParallel												// stop the entire parallel execution
-						| AppendTask		!(TaskContainer s)						// append and additional task to be run in parallel as well
-						| RemoveTask		!TaskIndex								// remove the task with indicated index from the set
-						| UpdateProperties	!TaskIndex !ManagerProperties			// update the properties of a task
+:: Control s			= StopParallel												//* stop the entire parallel execution
+						| AppendTask		!(TaskContainer s)						//* append and additional task to be run in parallel as well
+						| RemoveTask		!TaskIndex								//* remove the task with indicated index from the set
+						| UpdateProperties	!TaskIndex !ManagerProperties			//* update the properties of a task
 					
 :: TaskIndex			:== Int
 

@@ -1944,8 +1944,9 @@ where
 		# (pc_cons_ident,  pc_cons_prio, pc_cons_pos, pState) = want_cons_name_and_prio token pState
 		  (pc_arg_types, pState) = parseList tryBrackSAType pState
 		  (pc_context,pState) = optional_constructor_context pState
+		# (pc_docblock,pState) = tryDocBlock pState
 		  cons = {	pc_cons_ident = pc_cons_ident, pc_arg_types = atypes_from_satypes pc_arg_types, pc_args_strictness=strictness_from_satypes pc_arg_types,
-		  			pc_context = pc_context, pc_cons_arity = length pc_arg_types, pc_cons_prio = pc_cons_prio, pc_exi_vars = exi_vars, pc_cons_pos = pc_cons_pos}
+		  			pc_context = pc_context, pc_cons_arity = length pc_arg_types, pc_cons_prio = pc_cons_prio, pc_exi_vars = exi_vars, pc_cons_pos = pc_cons_pos, pc_docblock = pc_docblock }
 		= (cons,pState)
 
 	want_newtype_constructor :: ![ATypeVar] !Token !ParseState -> (.ParsedConstructor,!ParseState)
@@ -1953,8 +1954,9 @@ where
 		# token = basic_type_to_constructor token
 		  (pc_cons_ident,  pc_cons_prio, pc_cons_pos, pState) = want_cons_name_and_prio token pState
 		  (succ, pc_arg_type, pState) = trySimpleType TA_Anonymous pState
+		# (pc_docblock, pState) = tryDocBlock pState
 		  cons = {	pc_cons_ident = pc_cons_ident, pc_arg_types = [pc_arg_type], pc_args_strictness = NotStrict,
-		  			pc_context = [], pc_cons_arity = 1, pc_cons_prio = pc_cons_prio, pc_exi_vars = exi_vars, pc_cons_pos = pc_cons_pos}
+		  			pc_context = [], pc_cons_arity = 1, pc_cons_prio = pc_cons_prio, pc_exi_vars = exi_vars, pc_cons_pos = pc_cons_pos, pc_docblock = pc_docblock }
 		| succ
 			= (cons,pState)
 			= (cons,parseError "newtype definition" No "type" pState)
@@ -2102,9 +2104,10 @@ wantFields record_type pState
 			  pState          				= wantToken TypeContext "record field" DoubleColonToken pState
 //			  (ps_field_type, pState)  		= want pState // wantAType
 			  (annotation,ps_field_type, pState) = wantAnnotatedAType pState
+			# (ps_docblock, pState)			= tryDocBlock pState
 			= ({ ps_field_ident = ps_field_ident, ps_selector_ident = ps_selector_ident, ps_field_type = ps_field_type,
 					ps_field_annotation = annotation,
-					ps_field_var = ps_field_var, ps_field_pos = LinePos fname linenr}, pState)
+					ps_field_var = ps_field_var, ps_field_pos = LinePos fname linenr, ps_docblock = ps_docblock}, pState)
 
 atypes_from_sptypes_and_warn_if_strict :: ![SATypeWithPosition] !ParseState -> (![AType],!ParseState)
 atypes_from_sptypes_and_warn_if_strict [] pState
@@ -4452,6 +4455,17 @@ tryTypeVarT (IdentToken name) pState
 		= (False, abort "no UC ident", tokenBack pState)
 tryTypeVarT token pState
 		= (False, abort "no type variable", tokenBack pState)
+
+tryDocBlock :: !ParseState -> (!OptionalDocBlock, !ParseState)
+tryDocBlock pState 
+	# (token, pState) = nextToken GeneralContext pState
+	= tryDocBlockT token pState
+	
+tryDocBlockT :: !Token !ParseState -> (!OptionalDocBlock, !ParseState)
+tryDocBlockT (DocBlockToken doc) pState 
+		= (Yes doc, pState)
+tryDocBlockT token pState
+		= (No, tokenBack pState)
 
 wantUpperCaseName :: !String !ParseState -> (!String, !ParseState)
 wantUpperCaseName string pState

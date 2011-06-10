@@ -238,3 +238,20 @@ where
 
 pText = satisfy isText <@ \(TextDocToken t) -> t
 
+//Parser for Type comments
+
+:: TypeComment = 
+	{ description	:: !Maybe String
+	}
+
+emptyTypeComment :: TypeComment
+emptyTypeComment = 
+	{ TypeComment | description = Nothing }
+
+parseTypeComment :: !String -> MaybeErrorString TypeComment
+parseTypeComment str = parseWith pTypeComment str
+
+pTypeComment :: Parser DocToken TypeComment
+pTypeComment = begin1 pTypeComment`
+where
+	pTypeComment` = pText <&> \description -> yield { TypeComment | emptyTypeComment & description = Just description }

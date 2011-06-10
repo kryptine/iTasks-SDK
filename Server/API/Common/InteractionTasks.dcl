@@ -2,18 +2,18 @@ definition module InteractionTasks
 
 import CoreTasks
 
-:: ViewOn l r w	= E.v: About		!v										& iTask v // additional information independent from the data model the interaction task works on
-				| E.v: EnterView	!(PutbackFunc l r w v)					& iTask v // a view to put information into the data model
-				| E.v: UpdateView	!(!GetFunc l r v, !PutbackFunc l r w v)	& iTask v // a view to update the data model
-				| E.v: ShowView		!(GetFunc l r v)						& iTask v // a view to show the data model
-				
-:: GetFunc l r v	= GetLocal			!(l		-> v) // a get function on the local part of the data model
-					| GetShared			!(r		-> v) // a get function on the shared part of the data model
-					| GetLocalAndShared	!(l r	-> v) // a get function on both parts of the data model
+:: ViewOn l r w	= E.v: About		!v										& iTask v //* additional information independent from the data model the interaction task works on
+				| E.v: EnterView	!(PutbackFunc l r w v)					& iTask v //* a view to put information into the data model
+				| E.v: UpdateView	!(!GetFunc l r v, !PutbackFunc l r w v)	& iTask v //* a view to update the data model
+				| E.v: ShowView		!(GetFunc l r v)						& iTask v //* a view to show the data model
+
+:: GetFunc l r v	= GetLocal			!(l		-> v) //* a get function on the local part of the data model
+					| GetShared			!(r		-> v) //* a get function on the shared part of the data model
+					| GetLocalAndShared	!(l r	-> v) //* a get function on both parts of the data model
 					
-:: PutbackFunc l r w v	= Putback		!(v l r -> (!Maybe l,!Maybe w)) // a putback function to possibly put information into the local/shared data model
-						| PutbackLocal	!(v l r -> l)					// a putback function to put information into the local data model
-						| PutbackShared	!(v l r -> w)					// a putback function to put information into the shared data model
+:: PutbackFunc l r w v	= Putback		!(v l r -> (!Maybe l,!Maybe w)) //* a putback function to possibly put information into the local/shared data model
+						| PutbackLocal	!(v l r -> l)					//* a putback function to put information into the local data model
+						| PutbackShared	!(v l r -> w)					//* a putback function to put information into the shared data model
 
 :: LocalViewOn a :== ViewOn a Void Void
 

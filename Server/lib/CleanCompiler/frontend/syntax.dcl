@@ -283,6 +283,7 @@ cNameLocationDependent :== True
 	,	ps_field_type		:: !AType
 	,	ps_field_var		:: !Ident
 	,	ps_field_pos		:: !Position
+	,	ps_docblock			:: !OptionalDocBlock
 	}
 
 ::	ParsedConstructor =
@@ -294,6 +295,7 @@ cNameLocationDependent :== True
 	,	pc_context		:: ![TypeContext]
 	,	pc_cons_prio	:: !Priority
 	,	pc_cons_pos		:: !Position
+	,	pc_docblock		:: !OptionalDocBlock
 	}
 
 ::	ParsedInstance =
@@ -1454,6 +1456,8 @@ instance == OverloadedListType
 	,	dp_rhs					:: !Expression
 	,	dp_position				:: !Position
 	}
+	
+::	OptionalDocBlock :== Optional String
 	
 /*
 	error handling

@@ -29,10 +29,10 @@ instance Pretty Ident where
 instance Pretty ParsedConstructor where
 	pretty { pc_cons_ident, pc_arg_types }
 		= fillSep [ pretty pc_cons_ident : map pretty pc_arg_types ]
-
-instance Pretty ParsedDefinition
+	
+instance Pretty ParsedSelector
 where
-	pretty pd = empty
+	pretty ps = printSelector 0 ps
 
 printSelector :: !Int !ParsedSelector -> Doc
 printSelector len {ps_field_ident, ps_field_type } = fill len (pretty ps_field_ident) </> text "::" </> pretty ps_field_type

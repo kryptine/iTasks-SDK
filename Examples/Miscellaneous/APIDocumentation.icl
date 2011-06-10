@@ -12,7 +12,7 @@ import FilePath
 import Directory
 import Text
 
-from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Emph, Index, Itemize, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
+from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Index, Itemize, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
 from LaTeX import qualified :: LaTeX (Text)
 
 from PPrint import class Pretty(..), ::Doc, <+>, empty, int, hsep, parens, text
@@ -49,6 +49,7 @@ from syntax		import
 						::Import,
 						::ImportedObject,
 						::Index,
+						::OptionalDocBlock(..),
 						::ParsedConstructor(..),
 						::ParsedDefinition(..),
 						::ParsedExpr,
@@ -84,18 +85,23 @@ from syntax		import
 apiDocumentationExamples :: [Workflow]
 apiDocumentationExamples = 
 	[ workflow	"Examples/Miscellaneous/Generate API documentation" "Generate iTasks API documentation in LaTeX format" generateTeXExample ]
-		
+
 generateTeXExample :: Task Void	
 generateTeXExample = updateInformation "Enter API Directory:" [] (".." </> "Server" </> "API")
-	>>= \path			-> findAllFiles path ".dcl"
-	>>= \dclFiles 		-> updateMultipleChoice "Select modules to include in documentation" [] dclFiles (filterDefault dclFiles)
-	>>= \selectedFiles	-> sequence "Generating LaTeX" (map generateTeX selectedFiles) >>= transform (printLaTeX o flatten)
+	>>= \path			-> try (importJSONFile (path </> settingsFile)) (\(FileException _ _) -> return ([],[]))
+	>>= \(selectedFiles, selectedIdents) -> 
+							findAllFiles path ".dcl"
+	>>= \dclFiles 		-> 	updateMultipleChoice "Select modules to include in documentation" [] dclFiles selectedFiles
+	>>= \selectedFiles 	->	sequence "Parsing modules" [ accWorldError (getIdentifiers file) id \\ file <- selectedFiles ] >>= transform (sort o flatten)
+	>>= \idents			-> 	updateMultipleChoice "Select definitions to include in documentation" [] idents selectedIdents
+	>>= \selectedIdents ->	exportJSONFile (path </> settingsFile) (selectedFiles, selectedIdents)
+	>>| sequence "Generating LaTeX" [ accWorldError (dclToTeX selectedIdents file) id \\ file <- selectedFiles ] >>= transform (printLaTeX o flatten)
 	>>= \tex -> createDocumentTask "iTasks_API_documentation.tex" "application/x-tex" tex
 	>>= showInformation "Download iTasks API documentation in LaTeX format" []
 	>>| stop
 	where
-		filterDefault = filter (\f -> indexOf "\\Core" f >= 0 || indexOf "\\Common" f >= 0)
-
+		settingsFile =  "selectedAPIDocumentation.json"
+			
 findAllFiles :: !FilePath !String -> Task [FilePath]
 findAllFiles path extension
 	| endsWith extension path = return [path]
@@ -116,15 +122,10 @@ where
 
 derive class iTask LaTeX
 
-generateTeX :: !FilePath -> Task [LaTeX]
-generateTeX path = accWorldError (dclToTeX path) id
-
-
-
 :: ModuleDoc = 
 	{ ident			:: !String
 	, description	:: !String
-	, types			:: ![TypeDefDoc]
+	, types			:: ![TypeDoc]
 	, functions		:: ![FunctionDoc]
 	}
 	
@@ -146,32 +147,92 @@ generateTeX path = accWorldError (dclToTeX path) id
 	, type			:: !Doc
 	}
 	
-:: TypeDefDoc = 
+:: TypeDoc = 
 	{ ident				:: !String
 	, type				:: !Doc
+	, description		:: !String
+	, typeRhsDoc		:: !TypeRhsDoc
 	}
 	
-dclToTeX :: !FilePath *World -> (MaybeErrorString [LaTeX], *World)
-dclToTeX filename world
+:: TypeRhsDoc	= AlgebraicTypeRhsDoc AlgebraicTypeRhsDoc
+				| RecordTypeRhsDoc RecordTypeRhsDoc
+				| EmptyTypeRhsDoc
+			
+:: AlgebraicTypeRhsDoc = 
+	{ constructors		:: ![ConstructorDoc]
+	}
+	
+:: ConstructorDoc = 
+	{ ident				:: !String
+	, description		:: !String
+	}
+
+:: RecordTypeRhsDoc = 
+	{ fields			:: ![FieldDoc]
+	}
+
+:: FieldDoc = 
+	{ ident				:: !String
+	, type				:: !Doc
+	, description		:: !String
+	}
+
+dclToTeX :: ![String] !FilePath *World -> (MaybeErrorString [LaTeX], *World)
+dclToTeX idents filename world
 # (res, world) = documentDCL filename world
 | isError res = (liftError res, world)
-= (Ok (moduleToTeX (fromOk res)), world)
-
+= (Ok (moduleToTeX (filterIdentifiers idents (fromOk res))), world)
+where
+ 	filterIdentifiers :: [String] ModuleDoc -> ModuleDoc
+	filterIdentifiers selected doc =
+	 	{ ModuleDoc 
+		| doc 
+		& types		= filter (\t -> isMember ("::" +++ t.TypeDoc.ident) selected) doc.ModuleDoc.types
+		, functions	= filter (\t -> isMember t.FunctionDoc.ident selected) doc.ModuleDoc.functions
+		} 
 
 moduleToTeX :: !ModuleDoc -> [LaTeX]
 moduleToTeX {ModuleDoc | ident, description, types, functions} = 
 	[ Section ident
 	, 'LaTeX'.Text description
 	]
-	++ flatten (map typedefToTeX types)
+	++ flatten (map typeDocToTeX types)
 	++ flatten (map functionToTeX functions)
 
-typedefToTeX :: !TypeDefDoc -> [LaTeX]
-typedefToTeX { TypeDefDoc | ident, type }
+typeDocToTeX :: !TypeDoc -> [LaTeX]
+typeDocToTeX { TypeDoc | ident, type, description, typeRhsDoc }
 	=	[ Subsection (ident +++ " type")
 		, Index ident
 		, CleanCode [ prettyPrint type ]
+		, 'LaTeX'.Text description
+		] ++ typeRhsToTeX typeRhsDoc
+
+typeRhsToTeX :: !TypeRhsDoc -> [LaTeX]
+typeRhsToTeX (AlgebraicTypeRhsDoc { AlgebraicTypeRhsDoc | constructors }) = 
+	[ Paragraph "Constructors"
+	, Itemize (flatten (map constructorToTeX constructors))
+	] where
+	constructorToTeX :: ConstructorDoc -> [LaTeX]
+	constructorToTeX { ConstructorDoc | ident, description } = 
+		[ Item	[ CleanInline ident
+				, EmDash
+				, 'LaTeX'.Text description
+				]
 		]
+	
+typeRhsToTeX (RecordTypeRhsDoc { RecordTypeRhsDoc | fields }) = 
+	[ Paragraph "Fields"
+	, Itemize (flatten (map fieldToTeX fields))
+	] where
+	fieldToTeX :: FieldDoc -> [LaTeX]
+	fieldToTeX { FieldDoc | ident, description } = 
+		[ Item	[ CleanInline ident
+				, EmDash
+				, 'LaTeX'.Text description
+				]
+		]
+		
+typeRhsToTeX _ = []
 
 functionToTeX :: !FunctionDoc -> [LaTeX]
 functionToTeX {FunctionDoc | ident, operator, params, description, returnType, returnDescription, context, throws }
@@ -218,7 +279,17 @@ parameterToTeX {ParameterDoc | title, type, description} =
 			, EmDash
 			, 'LaTeX'.Text description
 			]
-			
+
+getIdentifiers :: !FilePath *World -> (MaybeErrorString [String], *World)
+getIdentifiers filename world
+# (res, world) = documentDCL filename world
+| isError res = (liftError res, world)
+# doc = fromOk res
+= (Ok (map (\t -> "::" +++ t.TypeDoc.ident ) doc.ModuleDoc.types 
+       ++ map (\t -> t.FunctionDoc.ident) doc.ModuleDoc.functions
+       )
+  , world)
+  
 documentDCL :: !FilePath *World -> (MaybeErrorString ModuleDoc, *World)
 documentDCL filename world
 	# (res, world)				= readFile filename world
@@ -241,7 +312,7 @@ documentDCL filename world
 			, types = documentTypeDefs defs
 			}
 	  , world)
-	  
+
 documentFunctions :: ![ParsedDefinition] -> [FunctionDoc]
 documentFunctions [] = []
 documentFunctions [PD_Documentation docstr: PD_TypeSpec pos ident prio optSymbtype specials: defs]
@@ -250,6 +321,10 @@ documentFunctions [PD_Documentation docstr: PD_TypeSpec pos ident prio optSymbty
 		Ok doc = doc
 		Error err = emptyFunctionComment
 	= case documentFunction doc ident prio optSymbtype of
+		Just fd = [fd:documentFunctions defs]
+		Nothing = documentFunctions defs
+documentFunctions [PD_TypeSpec pos ident prio optSymbtype specials: defs]
+	= case documentFunction emptyFunctionComment ident prio optSymbtype of
 		Just fd = [fd:documentFunctions defs]
 		Nothing = documentFunctions defs
 documentFunctions [def:defs] = documentFunctions defs
@@ -280,18 +355,51 @@ documentParameter  doc type =
 	, description	= fromMaybe "(No description)" doc.ParamComment.description
 	, type			= printAType True type
 	}
-documentTypeDefs :: ![ParsedDefinition] -> [TypeDefDoc]
+
+documentTypeDefs :: ![ParsedDefinition] -> [TypeDoc]
 documentTypeDefs [] = []
+documentTypeDefs [PD_Documentation docstr: PD_Type typedef: defs]
+	# res = parseTypeComment docstr
+	# doc = case res of
+		Ok doc = doc
+		Error err = emptyTypeComment
+	= [documentTypeDef doc typedef : documentTypeDefs defs]
 documentTypeDefs [PD_Type typedef: defs] = 
-	[documentTypeDef typedef: documentTypeDefs defs]
+	[documentTypeDef emptyTypeComment typedef: documentTypeDefs defs]
 documentTypeDefs [def: defs] = documentTypeDefs defs
 
-documentTypeDef :: !ParsedTypeDef -> TypeDefDoc
-documentTypeDef td=:{td_ident} = 
-	{ TypeDefDoc
+documentTypeDef :: !TypeComment !ParsedTypeDef -> TypeDoc
+documentTypeDef doc td=:{td_ident,td_rhs} = 
+	{ TypeDoc
 	| ident	= td_ident.id_name
 	, type	= pretty td
+	, description = fromMaybe "" doc.TypeComment.description
+	, typeRhsDoc = documentTypeRhs td_rhs
 	}
+
+documentTypeRhs :: !RhsDefsOfType -> TypeRhsDoc
+documentTypeRhs (ConsList constructors) 
+	= AlgebraicTypeRhsDoc { AlgebraicTypeRhsDoc | constructors = map documentConstructor constructors } 
+	where
+	documentConstructor { ParsedConstructor | pc_cons_ident, pc_docblock } = 
+		{ ConstructorDoc 
+		| ident = pc_cons_ident.id_name
+		, description = case pc_docblock of
+			'general'.Yes desc = desc
+			'general'.No = ""
+		}
+documentTypeRhs (SelectorList ident typeVars isBoxed selectors) 
+	= RecordTypeRhsDoc { RecordTypeRhsDoc | fields = map documentField selectors } 
+	where
+	documentField ps=:{ ParsedSelector | ps_field_ident, ps_docblock } = 
+		{ FieldDoc 
+		| ident = ps_field_ident.id_name
+		, type = pretty ps
+		, description = case ps_docblock of
+			'general'.Yes desc = desc
+			'general'.No = ""
+		}	
+documentTypeRhs _ = EmptyTypeRhsDoc
 
 createDocumentTask :: !String !String !String -> Task Document
 createDocumentTask name mime content = mkInstantTask "Create document" create

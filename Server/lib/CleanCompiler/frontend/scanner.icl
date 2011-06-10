@@ -492,7 +492,12 @@ TryScanComment :: !Char !Input -> (!Optional String, !Char, !Input)
 TryScanComment c1=:'/' input
 	# (eof,c2, input)		= ReadNormalChar input
 	| eof					= (No, c1, input)
-	| c2 == '/'				= SkipWhites (SkipToEndOfLine input)
+	| c2 == '/'				
+		# (eof,c3,input) = ReadNormalChar input
+		# input = charBack input
+		= case c3 of
+			'*' -> (No, c1, charBack input)
+			_   -> SkipWhites (SkipToEndOfLine input)
 	| c2 == '*'
 		# (eof,c3,input) = ReadNormalChar input
 		# input = charBack input
@@ -757,6 +762,10 @@ Scan '/' input co
 		# (_,c2,input)		= ReadNormalChar input
 		| c2 == '*'			= ScanDocBlock input
 		= abort "Scanner: Error in Scan" //already caught by TryScanComment
+	| c1 == '/'
+		# (_,c2,input)		= ReadNormalChar input
+		| c2 == '*'			= ScanDocLine input
+		= abort "Scanner: Error in Scan" //already caught by TryScanComment
 Scan c    input co
 	| IsDigit c				= ScanNumeral 0 input [c]
 	| IsIdentChar c	co	
@@ -995,6 +1004,17 @@ where
 				= (ErrorToken "end of file encountered inside documentation block", input)
 			= scan_doc_block [c:acc] input
 		= scan_doc_block [c:acc] input
+
+ScanDocLine :: !Input -> (!Token, !Input)
+ScanDocLine input
+	= scan_doc_line [] input
+where
+	scan_doc_line :: ![Char] !Input -> (!Token,!Input)
+	scan_doc_line acc input
+		# (eof, c, input)	= ReadChar input
+		| isNewLine c
+			= (DocBlockToken (toString (reverse acc)), input)
+		= scan_doc_line [c:acc] input
 
 ScanNumeral	:: !Int !Input [Char] -> (!Token, !Input)
 ScanNumeral n input chars=:['0':r]

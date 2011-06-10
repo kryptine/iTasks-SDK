@@ -1,6 +1,7 @@
 definition module CleanPrettyPrinter
 
 from syntax import	::AType,
+					::ParsedSelector,
 					::ParsedTypeDef,
 					::RhsDefsOfType,
 					::TypeContext,
@@ -15,6 +16,7 @@ printAType :: !Bool !AType  -> Doc
 instance Pretty [TypeContext]
 
 instance Pretty ParsedTypeDef
+instance Pretty ParsedSelector
 
 instance Pretty Doc
 

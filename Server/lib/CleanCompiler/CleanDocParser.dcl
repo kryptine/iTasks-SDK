@@ -35,5 +35,9 @@ parseModuleComment :: !String -> MaybeErrorString ModuleComment
 emptyFunctionComment :: FunctionComment
 parseFunctionComment :: !String -> MaybeErrorString FunctionComment
 
+:: TypeComment = 
+	{ description	:: !Maybe String
+	}
 
-
+emptyTypeComment :: TypeComment
+parseTypeComment :: !String -> MaybeErrorString TypeComment
