@@ -3,7 +3,7 @@ Ext.ns('itasks');
 itasks.FinishedContainer = Ext.extend(Ext.Panel,{
 	width: 700,
 	height: 150,
-	margins: {left: 10, top: 10, right: 10, bottom: 10},
+	style: {margin: "10px"},
 	afterRender: function() {
 		this.getEl().fadeOut(
 			{ scope: this
