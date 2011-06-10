@@ -559,8 +559,10 @@ gVisualize{|FillWControlSize|} fx val vst=:{controlSize=controlSize=:(_,height,m
 gVisualize{|FillHControlSize|} fx val vst=:{controlSize=controlSize=:(width,_,margins)}
 	# (def,vst) = fx (fmap fromFillHControlSize val) {vst & controlSize = (width,FillParent 1 ContentSize,margins)}
 	= (def,{vst & controlSize = controlSize})
+
+gVisualize{|Void|} _ vst = noVisualization vst
 	
-derive gVisualize DateTime, Either, Void, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session
+derive gVisualize DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
