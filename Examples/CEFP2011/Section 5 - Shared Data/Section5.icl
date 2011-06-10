@@ -69,30 +69,30 @@ getWorkflows
 
 // Make my own shared store
 
-:: ToDo =	{ name :: String
+:: ToDo =	{ name     :: String
 			, deadline :: Maybe Date
-			, remark :: Maybe Note
-			, done :: Bool
+			, remark   :: Maybe Note
+			, done     :: Bool
 			}
 derive class iTask ToDo
 
-toDoListStore :: Shared [ToDo]
-toDoListStore = sharedStore "My To Do List" []
+toDoList :: Shared [ToDo]
+toDoList = sharedStore "My To Do List" []
 
 updateToDoList :: Task [ToDo]
 updateToDoList
-    =     	get toDoListStore
+    =     	get toDoList
       >>= 	updateInformation "Your To Do List" []
-      >>=	set toDoListStore
+      >>=	set toDoList
 
 updateMySharedStore :: Task ([ToDo], Void)
 updateMySharedStore
-    =     	updateSharedInformation "Your To Do List" []  toDoListStore Void 
+    =     	updateSharedInformation "Your To Do List" []  toDoList Void 
 
 
 viewToDo :: Task ([ToDo], Void)
 viewToDo
-	=		showSharedInformation "Your To Do List" []  toDoListStore Void 
+	=		showSharedInformation "Your To Do List" []  toDoList Void 
 
 
 
