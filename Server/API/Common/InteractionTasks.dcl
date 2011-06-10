@@ -23,7 +23,7 @@ import CoreTasks
 * Ask the user to enter information.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used
+* @param Views:				Interaction views; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used
 *
 * @return					Value entered by the user
 * 
@@ -35,7 +35,7 @@ enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
 * Ask the user to update predefined information. 
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; if no view is defined a default view with the id lens is used
+* @param Views:				Interaction views; if no view is defined a default view with the id lens is used
 * @param Data model:		The data updated by the user
 *
 * @return					Value updated by the user
@@ -48,7 +48,7 @@ updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
 * Show information to the user. 
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used
+* @param Views:				Interaction views; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used
 * @param Data model:		The data shown to the user
 *
 * @return					Value shown to the user, the value is not modified
@@ -58,11 +58,11 @@ updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
 showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 
 /**
-* Ask the user to enter information which is written to a shared.
+* Ask the user to enter local information and information which is written to a shared.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used
-* @param ReadWriteShared:			Reference to the shared state to which the entered information is written
+* @param Views:				Interaction views; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used for the local and shared part
+* @param Shared:			Reference to the shared state to which the entered information is written
 *
 * @return					Last value of the shared state to which the user added information
 * @throws					SharedException
@@ -72,11 +72,12 @@ showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 /**
-* Ask the user to update predefined shared information.
+* Ask the user to update predefined local and shared information.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; if no view is defined & w = r a default view with the id lens is used, if r <> w the value of the shared state (r) is shown to the user
+* @param Views:				Interaction views; if no view is defined & w = r a default view with the id lens is used, if r <> w the value of the shared state (r) is shown to the user; the default for the local data is always the id lens
 * @param Shared:			Reference to the shared state to update
+* @param Local:				The local data updated by the user
 *
 * @return 					Last value of the shared state the user updated
 * @throws					SharedException
@@ -86,11 +87,12 @@ enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (l,r
 updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 /**
-* Monitor a shared state.
+* Show a local and shared state.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used
-* @param ReadWriteShared:			Reference to the shared state to monitor
+* @param Views:				Interaction views; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used for the local and shared part
+* @param Shared:			Reference to the shared state to monitor
+* @param Local:				The local data shown to the user
 *
 * @return					Last value of the monitored state
 * @throws					SharedException
@@ -106,7 +108,7 @@ showSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (l
 * Ask the user to select one item from a list of options.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
 * @param Choice options:	A list of options the user can choose from
 *
 * @return					The option chosen by the user
@@ -119,7 +121,7 @@ enterChoice :: !d ![LocalViewOn o] ![o] -> Task o | descr d & iTask o
 * Ask the user to select one item from a list of options with already one option pre-selected.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
 * @param Choice options:	A list of options the user can choose from
 * @param Selection:			The pre-selected item; if it is not member of the options list no options is pre-selected
 *
@@ -133,8 +135,8 @@ updateChoice :: !d ![LocalViewOn o] ![o] o -> Task o | descr d & iTask o
 * Ask the user to select one item from a list of shared options.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-* @param ReadWriteShared:			Reference to the shared state including the options the user can choose from
+* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Shared:			Reference to the shared state including the options the user can choose from
 *
 * @return 					The option chosen by the user
 * @throws					SharedException
@@ -147,8 +149,8 @@ enterSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) -> Task o | 
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-* @param ReadWriteShared:			Reference to the shared state including the options the user can choose from
+* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Shared:			Reference to the shared state including the options the user can choose from
 * @param Selection:			The pre-selected item; if it is not member of the options list no options is pre-selected
 *
 * @return 					The option chosen by the user
@@ -162,7 +164,7 @@ updateSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) o -> Task o
 * Ask the user to select a number of items from a list of options
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
 * @param Choice options:	A list of options the user can choose from
 *
 * @return					The options chosen by the user
@@ -176,7 +178,7 @@ enterMultipleChoice :: !d ![LocalViewOn o] ![o] -> Task [o] | descr d & iTask o
 *
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
 * @param Choice options:	A list of options the user can choose from
 * @param Selection:			The pre-selected items; items which are not member of the option list are ignored
 *
@@ -190,8 +192,8 @@ updateMultipleChoice :: !d ![LocalViewOn o] ![o] [o] -> Task [o] | descr d & iTa
 * Ask the user to select a number of items from a list of shared options.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-* @param ReadWriteShared:			Reference to the shared state including the options the user can choose from
+* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Shared:			Reference to the shared state including the options the user can choose from
 *
 * @return 					The options chosen by the user
 * @throws					SharedException
@@ -204,8 +206,8 @@ enterSharedMultipleChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) -> T
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
 *
 * @param Description:		A description of the task to display to the user
-* @param Options:			Interaction options; only the first Get/get part of View has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
-* @param ReadWriteShared:			Reference to the shared state including the options the user can choose from
+* @param Views:				Interaction views; only the first ShowView has an effect, it is used to map all options (o) to a view type (v); if no get is defined the id get is used
+* @param Shared:			Reference to the shared state including the options the user can choose from
 * @param Selection:			The pre-selected items; items which are not member of the option list are ignored
 *
 * @return 					The options chosen by the user
