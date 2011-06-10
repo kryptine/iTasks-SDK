@@ -1,8 +1,8 @@
 definition module CommonCombinators
 /**
-* This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
-* with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
+* This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators.
 */
+/* with Thanks to Erik Zuurbier for suggesting some of the advanced combinators */
 
 import CoreCombinators, TuningCombinators
 import Either

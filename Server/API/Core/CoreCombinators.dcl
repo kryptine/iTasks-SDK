@@ -87,11 +87,11 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 						|	Stopped						//* the control signal StopParallel has been commited
 				
 :: TaskContainer s		= E.a: ShowAs !TaskGUI !(ParallelTask s a) & iTask a
-:: TaskGUI				= DetachedTask !ManagerProperties
-						| WindowTask   !WindowTitle
-						| DialogTask   !WindowTitle
-						| BodyTask
-						| HiddenTask
+:: TaskGUI				= DetachedTask !ManagerProperties						//* displays the task computed by the function as a distinct new task for the user identified in the worker field of ManagerProperties
+						| WindowTask   !WindowTitle								//* displays the task computed by the function in a window
+						| DialogTask   !WindowTitle								//* displays the task computed by the function in a dialog (a dialog can not have a menu)
+						| BodyTask												//* inlines the task in the current task
+						| HiddenTask											//* does not display the task at all
 						
 :: ParallelTask s a		:== (Shared s) (ParallelInfo s) -> Task a
 

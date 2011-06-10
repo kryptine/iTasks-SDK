@@ -107,7 +107,7 @@ instance toEmail User
 	}
 :: DocumentId :== String
 
-// Form buttons
+//* Form buttons
 :: FormButton 		= 
 	{ label			:: !String
 	, icon			:: !String
@@ -115,52 +115,52 @@ instance toEmail User
 	}
 :: ButtonState		= NotPressed | Pressed
 
-// Represents the choice of one element from a list
+//* Represents the choice of one element from a list
 :: Choice			a = Choice			![a] !Int
-// Represents the choice of a number of items from a list
+//* Represents the choice of a number of items from a list
 :: MultipleChoice	a = MultipleChoice	![a] ![Int]
 
-// Generates a choice with given options
+//* Generates a choice with given options
 choice 				:: ![a]								-> Choice a
-// Generates a choice with given options and preselected item
+//* Generates a choice with given options and preselected item
 choiceSel			:: ![a] !a							-> Choice a | gEq{|*|} a
-// Gets the currently chosen item
+//* Gets the currently chosen item
 getChoice			:: !(Choice a)						-> a
-// Gets the currently chosen item if present
+//* Gets the currently chosen item if present
 getMbChoice			:: !(Choice a)						-> Maybe a
-// Transforms the choice's options
+//* Transforms the choice's options
 mapOptions			:: !(a -> b) !(Choice a)			-> Choice b
-// Sets the choice's options, tries to keep the selection as intact as possible
+//* Sets the choice's options, tries to keep the selection as intact as possible
 setOptions			:: ![a] !(Choice a)					-> Choice a | gEq{|*|} a
 
-// Generates a multiple choice with given options
+//* Generates a multiple choice with given options
 multipleChoice		:: ![a] 							-> MultipleChoice a
-// Generates a multiple choice with given options and preselected items
+//* Generates a multiple choice with given options and preselected items
 multipleChoiceSel	:: ![a] ![a]						-> MultipleChoice a | gEq{|*|} a
-// Get the currently chosen items
+//* Get the currently chosen items
 getChoices			:: !(MultipleChoice a)				-> [a]
-// Transforms the multiple choice's options
+//* Transforms the multiple choice's options
 mapOptionsM			:: !(a -> b) !(MultipleChoice a)	-> MultipleChoice b
-// Sets the multiple choice's options, tries to keep the selection as intact as possible
+//* Sets the multiple choice's options, tries to keep the selection as intact as possible
 setOptionsM			:: ![a] !(MultipleChoice a)			-> MultipleChoice a | gEq{|*|} a
 
-// Represents a tree from with the user can choose one leaf
+//* Represents a tree from with the user can choose one leaf
 :: Tree a = Tree ![TreeNode a] !Int
 :: TreeNode a = Leaf !a | Node !TreeLabel ![TreeNode a]
 :: TreeLabel :== String
 
-// Generates a tree with initially no chosen item
+//* Generates a tree with initially no chosen item
 mkTree		:: ![TreeNode a]	-> Tree a
-// Generates a tree with initially chosen item
+//* Generates a tree with initially chosen item
 mkTreeSel	:: ![TreeNode a] !a	-> Tree a | gEq{|*|} a
-// Gets the currently selected leaf of a VALID tree
+//* Gets the currently selected leaf of a VALID tree
 getSelectedLeaf :: !(Tree a) -> a
 
 :: Table a = Table ![a]
 
 fromTable :: !(Table a) -> [a]
 
-// Field behaviour extensions
+//* Field behaviour extensions
 :: VisualizationHint a 	= VHEditable a
 					   	| VHDisplay a
 					   	| VHHidden a
@@ -200,7 +200,7 @@ fromFillWControlSize :: !(FillWControlSize .a) -> .a
 toFillHControlSize :: !.a -> FillHControlSize .a
 fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
-// Properties of processes	
+//* Properties of processes	
 :: ProcessProperties =
 	{ taskProperties	:: !TaskProperties
 	, managerProperties	:: !ManagerProperties
@@ -228,7 +228,8 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	, latestEvent		:: !Maybe Timestamp			//* When was the latest event on this task	
 	}
 	
-:: TaskId :== String		// String serialization of TaskNr values
+//* String serialization of TaskNr values	
+:: TaskId :== String		
 
 :: TaskStatus	= Running		//* A process which is currently running (active or suspended)
 				| Finished		//* A process terminated normally
@@ -246,8 +247,8 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 						| Suspended		//* A process is (temporarily) suspended and will not be evaluated until it is activated 
 	
 
-	
-:: TaskPriority		= HighPriority					//* tasks can have three levels of priority
+//* tasks can have three levels of priority
+:: TaskPriority		= HighPriority					
 					| NormalPriority
 					| LowPriority
 					
