@@ -23,7 +23,8 @@ flows5
 		, workflow "CEFP/Section 5 - Shared Data/7. Update To Do List" 				"Edit local copy of To Do list"							(show updateToDoList)
 		, workflow "CEFP/Section 5 - Shared Data/8. Update Shared To Do List " 		"Edit To Do list, and share it right away"				(show updateToDoList2)
 		, workflow "CEFP/Section 5 - Shared Data/9. View the Shared To Do List" 	"View will be adjusted when updated elsewhere"			showToDoList 
-		, workflow "CEFP/Section 5 - Shared Data/10. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
+		, workflow "CEFP/Section 5 - Shared Data/10. Twitter" 						"Follow a Tweet"										lookAtATweet  
+		, workflow "CEFP/Section 5 - Shared Data/11. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
 		]
 		
 // Date and Time
@@ -100,8 +101,6 @@ showToDoList :: Task ([ToDo], Void)
 showToDoList
 	=		showSharedInformation "Your To Do List" []  toDoList Void 
 
-
-
 // using interactions on shared data
 
 selectUserDetails2 :: Task UserDetails
@@ -109,5 +108,37 @@ selectUserDetails2
     =     				enterSharedChoice "Select a user" [] users
       >>= \user -> 		get (userDetails user)
       >>= \details -> 	showInformation ("Details of user " <+++ user) [] details
+
+// 
+
+:: Tweet  :== (User,String)
+:: Tweets :== [Tweet]
+
+twitterId :: String -> Shared Tweets
+twitterId name  = sharedStore ("Twitter with " +++ name) []
+
+lookAtATweet = lookAtTweet (twitterId "CEFP")
+
+lookAtTweet :: (Shared Tweets) -> Task Void
+lookAtTweet account
+	=				get currentUser
+		>>= \me ->	updateSharedInformation "Enter tweet" [views] account (Note "")
+		>?*			[(ActionQuit,Always (return Void))
+					,(ActionOk, IfValid (\(_, (Note reaction)) -> 	update (\t -> t ++ [(me,reaction)]) account 
+																>>| lookAtTweet account))
+					]
+
+where
+//		views = ShowView (GetShared toView)
+		views = ShowView (GetLocalAndShared toView)
+
+		toView editor tweets
+			=	(Display tweets,editor)
+
+	
+
+
+
+
 
 
