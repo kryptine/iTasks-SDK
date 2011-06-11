@@ -113,7 +113,7 @@ initChatState2 n = { typing = repeatn n False, history = []}
 setTyping n "" state 	= {state & typing  = updateAt n False state.typing}
 setTyping n _ state 	= {state & typing  = updateAt n True  state.typing}
 
-setHistory text state 	= {state & history = state.history ++ [text]}
+addHistory u lines state = {state & history = state.history ++ [u +++> ": " +++ l \\ l <- lines]}
 
 shared_chat :: Task ChatState2
 shared_chat
@@ -126,25 +126,24 @@ shared_chat
 where
 	chatEditor :: (User,Int) (User,Int) (Shared ChatState2) (ParallelInfo ChatState2) -> Task Void
 	chatEditor (me,mine) (you,yours) cs os
-		= 					updateSharedInformation ("Chat with " <+++ you) [views] cs (Note "")
+		= 					updateSharedInformation ("Chat with " <+++ you) [chatView,entryView] cs (Note "")
 			>?*				[(ActionQuit, Always (return Void))]
 	where
-		views = UpdateView (GetShared toView, Putback fromView)
-
-		toView state
-			=	Display (you +++> if (state.typing!!yours) " is typing..." " is waiting...", state.history)
-
-		fromView _ (Note response) state 
-		# responseList 		= fromString response
-		| not (isMember '\n' responseList)	= (Nothing, Just (setTyping mine response state))
-		# (before,after) 	= split (\c -> c <> '\n') response 
-		= (Just (Note after), Just (setTyping mine after (setHistory (me +++> ": " +++> before) state)))
-
-		split pred string 
-		# (before,after) 	= span (\c -> c <> '\n') (fromString string)
-		= (toString before, toString (tl after)) 
+		chatView	= ShowView (GetShared toView)
+		where
+			toView state
+				= (you +++> if (state.typing!!yours) " is typing..." " is waiting...", state.history)
 		
-
+		entryView	= UpdateView (GetLocal id, Putback fromView)
+		where
+			fromView (Note response) _ state 
+				= case split "\n" response of
+					[line]		= (Nothing, Just (setTyping mine response state))
+					lines
+						# newlines	= init lines
+						# newentry	= last lines
+						= (Just (Note newentry), Just (setTyping mine newentry (addHistory me newlines state)))
+				
 // N users chatting with each other
 
 multibind_chat :: Task ChatState
