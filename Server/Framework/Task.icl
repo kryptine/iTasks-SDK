@@ -132,7 +132,7 @@ gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
 		Nothing					= []
 	= (vis,vst)
 	
-gEq{|Task|} _ _ _ = False // tasks are never equal
+gEq{|Task|} _ _ _ = True // tasks are always equal
 
 gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
