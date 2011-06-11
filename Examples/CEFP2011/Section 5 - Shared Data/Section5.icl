@@ -23,8 +23,9 @@ flows5
 		, workflow "CEFP/Section 5 - Shared Data/7. Update To Do List" 				"Edit local copy of To Do list"							(show updateToDoList)
 		, workflow "CEFP/Section 5 - Shared Data/8. Update Shared To Do List " 		"Edit To Do list, and share it right away"				(show updateToDoList2)
 		, workflow "CEFP/Section 5 - Shared Data/9. View the Shared To Do List" 	"View will be adjusted when updated elsewhere"			showToDoList 
-		, workflow "CEFP/Section 5 - Shared Data/10. Twitter" 						"Follow a Tweet"										lookAtATweet  
+		, workflow "CEFP/Section 5 - Shared Data/10. Twitter" 						"Follow a Tweet"										joinCEFPtweets  
 		, workflow "CEFP/Section 5 - Shared Data/11. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
+		, workflow "CEFP/Section 5 - Shared Data/12. Chatting"						"Chat with a selected number of users"		chatting
 		]
 		
 // Date and Time
@@ -116,12 +117,12 @@ selectUserDetails2
 twitterId :: String -> Shared [Tweet]
 twitterId name  = sharedStore ("Twitter with " +++ name) []
 
-lookAtATweet 
-	= lookAtTweet (twitterId "CEFP")
+joinCEFPtweets 
+	= joinTweets "CEFP" (twitterId "CEFP")
 
-lookAtTweet :: (Shared [Tweet]) -> Task Void
-lookAtTweet account
-	=				enterSharedInformation "Enter tweet" views account 
+joinTweets  :: String (Shared [Tweet]) -> Task Void
+joinTweets name tweets
+	=				updateSharedInformation ("Enter tweet for " +++ name) views tweets ""
 		>?*			[(ActionQuit,Always (return Void))
 					,(ActionOk, IfValid commitTweetAndContinue)
 					]
@@ -129,32 +130,28 @@ where
 	commitTweetAndContinue :: ([Tweet],String) -> Task Void
 	commitTweetAndContinue (_, reaction) 
 		=				get currentUser
-			>>= \me ->	update (\tweets -> tweets ++ [(me,reaction)]) account 
-			>>| 		lookAtTweet account
+			>>= \me ->	update (\tweets -> tweets ++ [(me,reaction)]) tweets 
+			>>| 		joinTweets name tweets
 
-	views = [ UpdateView   (  GetLocalAndShared (\string tweets -> (Display tweets, Note string))
-							, PutbackLocal   (\(_,Note reaction) _ _	-> reaction))
+	views = [ UpdateView   (  GetLocalAndShared (\string t -> (Display t,  string))
+							, PutbackLocal   (\(_, reaction) _ _	-> reaction))
 			]
 
-/*
-lookAtTweet :: (Shared [Tweet]) -> Task Void
-lookAtTweet account
-	=				updateSharedInformation "Enter tweet" views account (Note "")
-		>?*			[(ActionQuit,Always (return Void))
-					,(ActionOk, IfValid commitTweetAndContinue)
-					]
+chatting :: Task Void
+chatting 
+    =               		enterSharedMultipleChoice "Select chatters" [] users
+    	>>= \users     ->	parallel "Chatting" [] (\_ _ -> Void)
+								   [  ShowAs (DetachedTask (normalTask user)) chatting
+								   \\ user <- users
+								   ]
 where
-	commitTweetAndContinue :: ([Tweet],Note) -> Task Void
-	commitTweetAndContinue (_, (Note reaction)) 
-		=				get currentUser
-			>>= \me ->	update (\tweets -> tweets ++ [(me,reaction)]) account 
-			>>| 		lookAtTweet account
+	chatting chats os = joinTweets "local chat" chats									  
 
-	views = []
-	views2 = [ ShowView (GetShared id)
-			, EnterView (PutbackLocal \newTweet _ _	-> newTweet)
-			]
-*/
+	normalTask :: !User -> ManagerProperties
+	normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
+	
+	const2 :: a b !c -> c
+	const2 _ _ x = x
 
 
 
