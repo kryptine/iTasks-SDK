@@ -112,31 +112,49 @@ selectUserDetails2
 // 
 
 :: Tweet  :== (User,String)
-:: Tweets :== [Tweet]
 
-twitterId :: String -> Shared Tweets
+twitterId :: String -> Shared [Tweet]
 twitterId name  = sharedStore ("Twitter with " +++ name) []
 
-lookAtATweet = lookAtTweet (twitterId "CEFP")
+lookAtATweet 
+	= lookAtTweet (twitterId "CEFP")
 
-lookAtTweet :: (Shared Tweets) -> Task Void
+lookAtTweet :: (Shared [Tweet]) -> Task Void
 lookAtTweet account
-	=				get currentUser
-		>>= \me ->	updateSharedInformation "Enter tweet" [views] account (Note "")
+	=				enterSharedInformation "Enter tweet" views account 
 		>?*			[(ActionQuit,Always (return Void))
-					,(ActionOk, IfValid (\(_, (Note reaction)) -> 	update (\t -> t ++ [(me,reaction)]) account 
-																>>| lookAtTweet account))
+					,(ActionOk, IfValid commitTweetAndContinue)
 					]
-
 where
-//		views = ShowView (GetShared toView)
-		views = ShowView (GetLocalAndShared toView)
+	commitTweetAndContinue :: ([Tweet],String) -> Task Void
+	commitTweetAndContinue (_, reaction) 
+		=				get currentUser
+			>>= \me ->	update (\tweets -> tweets ++ [(me,reaction)]) account 
+			>>| 		lookAtTweet account
 
-		toView editor tweets
-			=	(Display tweets,editor)
+	views = [ UpdateView   (  GetLocalAndShared (\string tweets -> (Display tweets, Note string))
+							, PutbackLocal   (\(_,Note reaction) _ _	-> reaction))
+			]
 
-	
+/*
+lookAtTweet :: (Shared [Tweet]) -> Task Void
+lookAtTweet account
+	=				updateSharedInformation "Enter tweet" views account (Note "")
+		>?*			[(ActionQuit,Always (return Void))
+					,(ActionOk, IfValid commitTweetAndContinue)
+					]
+where
+	commitTweetAndContinue :: ([Tweet],Note) -> Task Void
+	commitTweetAndContinue (_, (Note reaction)) 
+		=				get currentUser
+			>>= \me ->	update (\tweets -> tweets ++ [(me,reaction)]) account 
+			>>| 		lookAtTweet account
 
+	views = []
+	views2 = [ ShowView (GetShared id)
+			, EnterView (PutbackLocal \newTweet _ _	-> newTweet)
+			]
+*/
 
 
 
