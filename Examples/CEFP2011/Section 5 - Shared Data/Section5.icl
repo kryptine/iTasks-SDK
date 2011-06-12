@@ -25,7 +25,6 @@ flows5
 		, workflow "CEFP/Section 5 - Shared Data/9. View the Shared To Do List" 	"View will be adjusted when updated elsewhere"			showToDoList 
 		, workflow "CEFP/Section 5 - Shared Data/10. Twitter" 						"Follow a Tweet"										joinCEFPtweets  
 		, workflow "CEFP/Section 5 - Shared Data/11. Show details of a user, vrs 2"	"Select administrated user and show administration"		selectUserDetails2
-		, workflow "CEFP/Section 5 - Shared Data/12. Chatting"						"Chat with a selected number of users"		chatting
 		]
 		
 // Date and Time
@@ -133,26 +132,9 @@ where
 			>>= \me ->	update (\tweets -> tweets ++ [(me,reaction)]) tweets 
 			>>| 		joinTweets name tweets
 
-	views = [ UpdateView   (  GetLocalAndShared (\string t -> (Display t,  string))
-							, PutbackLocal   (\(_, reaction) _ _	-> reaction))
+	views = [ UpdateView   (  GetLocalAndShared (\string t -> (Display t, Note string))
+							, PutbackLocal   (\(_, Note reaction) _ _	-> reaction))
 			]
-
-chatting :: Task Void
-chatting 
-    =               		enterSharedMultipleChoice "Select chatters" [] users
-    	>>= \users     ->	parallel "Chatting" [] (\_ _ -> Void)
-								   [  ShowAs (DetachedTask (normalTask user)) chatting
-								   \\ user <- users
-								   ]
-where
-	chatting chats os = joinTweets "local chat" chats									  
-
-	normalTask :: !User -> ManagerProperties
-	normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
-	
-	const2 :: a b !c -> c
-	const2 _ _ x = x
-
 
 
 

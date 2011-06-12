@@ -3,6 +3,7 @@ implementation module Section8
 // Examples showing the usage of editors with multiple buttons
 
 import iTasks
+from Section4 import onlyIf
 from Section6 import selectUser
 from Section7 import normalTask, const2
 
@@ -13,8 +14,8 @@ Start world = startEngine flows8 world
 
 flows8 :: [Workflow]
 flows8 
-	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users"    	"Chat with several users" chat3
-//		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" "Editing a text file" textEditor2
+	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users"    	"Chat with several users" 	chat3
+		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" 			"Editing a text file" 		textEditor2
 //		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 		]
 
@@ -96,16 +97,11 @@ updateText f 			=	update (\s -> {s & mytext = f s.mytext})
 
 voidResult _ _ = Void 
 
-onlyIf :: Bool a -> Maybe a
-onlyIf b do
-	| b 		= Just do
-	| otherwise	= Nothing
-
 normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
-ActionReplace 		:== Action "Replace" 
-ActionStatistics	:== Action "Statistics" 
-/*
+ActionReplace 		:== Action "File/Replace" 
+ActionStatistics	:== Action "File/Statistics" 
+
 textEditor2 ::  Task Void
 textEditor2 
 	=						enterInformation "Give name of text file you want to edit..." []
@@ -118,29 +114,31 @@ taskKind2 = DetachedTask (normalTask  RootUser)  // window does not work yet
 
 editor :: String (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 editor fileName ls os 
-	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") [View (Just (GetShared toView),Just fromView)] Void ls
+	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") views ls Void
 		>?* 	[ (ActionSave, 		IfValid	save)
 		  		, (ActionQuit,		Always 	quit)
-//		  		, (ActionReplace,	Sometimes (\s -> onlyIf (not (snd s).modelValue.replace)    replace))
-//		  		, (ActionStatistics,Sometimes (\s -> onlyIf (not (snd s).modelValue.statistics) statistics))
+		  		, (ActionReplace,	Sometimes (onlyIf (\(s,_) -> not s.replace)    replace))
+		  		, (ActionStatistics,Sometimes (onlyIf (\(s,_) -> not s.statistics) statistics))
 		  		]
 where	
-	toView state = Note state.mytext
-	fromView (Note text) state = (Nothing, Just {state & mytext = text})
+	views = [UpdateView ( GetShared (\s -> Note s.mytext)
+					    , PutbackShared (\(Note text) _ s -> {s & mytext = text}) 
+					    )
+			]
 
-	save val
+	save (val,_)
 		=		safeTextFile fileName val.mytext
 			>>|	editor fileName ls os
 	quit
 		=		set os [StopParallel] 
 			>>| return Void
 
-	replace 
+	replace _
 		=		updateReplace True ls
-			>>| set os [AppendTask (ShowAs BodyTask (replaceTask {search = "", replaceBy = ""}))]
+			>>| set os [AppendTask (ShowAs (DialogTask "Find and Replace") (replaceTask {search = "", replaceBy = ""}))]
 			>>| editor fileName ls os
 
-	statistics 
+	statistics _
 		=		updateStat True ls
 			>>|	set os [AppendTask (ShowAs BodyTask statisticsTask)]
 			>>| editor fileName ls os
@@ -150,25 +148,26 @@ replaceTask replacement ls os
 	=			updateInformation ("Replace","Define replacement...") [] replacement
 		>?*		[(ActionOk,   IfValid 	(\r -> 		updateText (replaceSubString r.search r.replaceBy) ls
 							 					>>|	replaceTask r ls os))
-				,(ActionQuit, Always 	(	updateReplace False ls 
+				,(Action "Close", Always 	(	updateReplace False ls 
 											>>| return Void))
 				]
 
 statisticsTask :: (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 statisticsTask ls os 
-	= 			showSharedInformation ("Statistics","Statistics of your document") [View (Just (GetShared toView),Nothing)] Void ls
-		>?*		[(ActionQuit, Always (updateStat False ls >>| return Void))]
+	= 			showSharedInformation ("Statistics","Statistics of your document") views ls Void
+		>?*		[(Action "Close", Always (updateStat False ls >>| return Void))]
 where
-	toView state=:{mytext} 
-		=	{ lines 	 = length (split "\n" mytext)
-			, words 	 = length (split " " (replaceSubString "\n" " " mytext))
-			, characters = textSize mytext
+	views = [ShowView (GetShared showStatistics)]
+
+	showStatistics state 
+		=	{ lines 	 = length (split "\n" state.mytext)
+			, words 	 = length (split " " (replaceSubString "\n" " " state.mytext))
+			, characters = textSize state.mytext
 			}
 
 // --- file access utility
 
 import StdFile
-
 
 safeTextFile ::  FileName String -> Task Bool
 safeTextFile  fileName text 
@@ -180,7 +179,6 @@ where
 	| not ok			= (False,world)
 	# file				= fwrites text file
 	= fclose file world
-//safeTextFile _ _  = return False 		alternative will never match
 
 readTextFile ::  FileName  -> Task (Bool,String)
 readTextFile  fileName  
@@ -195,7 +193,8 @@ where
 	# (ok,world)		= fclose file world
 	| not ok			= ((False,""),world)
 	= ((True,text),world)
-//readTextFile _  = return (False,"") 	alternative will never match
+
+/*
 
 // making an appointment
 
@@ -220,7 +219,7 @@ where
 		, comment	:: Maybe Note
 		}	
 derive class iTask MeetingProposal, Participant, MeetingProposalView, ParticipantView
-/*
+
 mkAppointment :: Task [MeetingProposal]
 mkAppointment
 	=					get users
@@ -291,4 +290,4 @@ where
 			viewForManager :: [MeetingProposal] -> [MeetingProposal]
 			viewForManager props
 				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
-*/*/
+*/

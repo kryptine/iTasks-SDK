@@ -5,6 +5,7 @@ implementation module Section7
 import iTasks, Text, StdMisc
 from Section3 import show
 from Section6 import selectUser, selectUsers
+from Section5 import joinTweets, ::Tweet
 
 derive bimap (,), Maybe
 
@@ -15,10 +16,11 @@ flows7 :: [Workflow]
 flows7 
 	=   [ workflow "CEFP/Section 7 - Parallel Tasks I/1. Questionnaire"		"Question N users"					(show questions)
 	    , workflow "CEFP/Section 7 - Parallel Tasks I/2. Number guessing"	"First person to guess wins"		guess
-	    , workflow "CEFP/Section 7 - Parallel Tasks I/3. Naive Chat"		"Naive chat with many users"		naive_chat
-		, workflow "CEFP/Section 7 - Parallel Tasks I/4. Monitored Chat" 	"Monitored chat with many users"	monitor_chat
-		, workflow "CEFP/Section 7 - Parallel Tasks I/5. Shared Chat"	 	"Shared chat with two users"		shared_chat
-		, workflow "CEFP/Section 7 - Parallel Tasks I/6. Multibind Chat" 	"Multibind chat with many users"	multibind_chat
+		, workflow "CEFP/Section 7 - Parallel Tasks I/3. N Chatters"		"Chat with a selected number of users"		chatting
+	    , workflow "CEFP/Section 7 - Parallel Tasks I/4. Naive Chat"		"Naive chat with many users"		naive_chat
+		, workflow "CEFP/Section 7 - Parallel Tasks I/5. Monitored Chat" 	"Monitored chat with many users"	monitor_chat
+		, workflow "CEFP/Section 7 - Parallel Tasks I/6. Shared Chat"	 	"Shared chat with two users"		shared_chat
+		, workflow "CEFP/Section 7 - Parallel Tasks I/7. Multibind Chat" 	"Multibind chat with many users"	multibind_chat
 		]
 		
 // --- some handy functions
@@ -50,6 +52,21 @@ where
 guess :: Task String
 guess
 	= return "variant of exercise 19 to do"
+
+// N users chatting reusing the tweet example from section 5
+
+chatting :: Task Void
+chatting 
+    =               		enterSharedMultipleChoice "Select chatters" [] users
+    	>>= \users     ->	parallel "Chatting" [] (\_ _ -> Void)
+								   [  ShowAs (DetachedTask (normalTask user)) chatting
+								   \\ user <- users
+								   ]
+where
+	chatting chats os = joinTweets "Chatting together..." chats									  
+
+	secret :: (Shared [Tweet]) (ParallelInfo [Tweet]) -> Task Void
+	secret chats os = chooseAction [(Action "File/Append Chatter",  Void)]
 
 // N users chatting with each other
 :: ChatState :== [String]

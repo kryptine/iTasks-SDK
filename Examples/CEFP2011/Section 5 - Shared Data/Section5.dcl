@@ -5,3 +5,7 @@ definition module Section5
 import iTasks
 
 flows5 :: [Workflow]
+
+:: Tweet  :== (User,String)
+joinTweets  :: String (Shared [Tweet]) -> Task Void
+
