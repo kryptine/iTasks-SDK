@@ -15,7 +15,7 @@ Start world = startEngine flows8 world
 flows8 :: [Workflow]
 flows8 
 	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users"    	"Chat with several users" 	chat3
-		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" 			"Editing a text file" 		textEditor2
+		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" 			"Editing a text file" 		editorApplication
 //		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 		]
 
@@ -102,15 +102,11 @@ normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing
 ActionReplace 		:== Action "File/Replace" 
 ActionStatistics	:== Action "File/Statistics" 
 
-textEditor2 ::  Task Void
-textEditor2 
+editorApplication ::  Task Void
+editorApplication 
 	=						enterInformation "Give name of text file you want to edit..." []
 		>>= \fileName ->	readTextFile fileName
-		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [taskKind (editor fileName)]
-
-taskKind = ShowAs BodyTask
-
-taskKind2 = DetachedTask (normalTask  RootUser)  // window does not work yet
+		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [ShowAs BodyTask (editor fileName)]
 
 editor :: String (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 editor fileName ls os 
@@ -140,22 +136,28 @@ where
 
 	statistics _
 		=		updateStat True ls
-			>>|	set os [AppendTask (ShowAs BodyTask statisticsTask)]
+			>>|	set os [AppendTask (ShowAs (DialogTask "Statistics") statisticsTask)]
 			>>| editor fileName ls os
 
 replaceTask :: Replace (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 replaceTask replacement ls os
 	=			updateInformation ("Replace","Define replacement...") [] replacement
-		>?*		[(ActionOk,   IfValid 	(\r -> 		updateText (replaceSubString r.search r.replaceBy) ls
-							 					>>|	replaceTask r ls os))
-				,(Action "Close", Always 	(	updateReplace False ls 
-											>>| return Void))
+		>?*		[(ActionOk,   IfValid replace)
+				,(Action "Close", Always close)
 				]
+where
+	replace repl
+		=		updateText (replaceSubString repl.search repl.replaceBy) ls
+			>>|	replaceTask repl ls os
+	close
+		=		updateReplace False ls 
+			>>| return Void
+
 
 statisticsTask :: (Shared EditorState) (ParallelInfo EditorState) -> Task Void
 statisticsTask ls os 
 	= 			showSharedInformation ("Statistics","Statistics of your document") views ls Void
-		>?*		[(Action "Close", Always (updateStat False ls >>| return Void))]
+		>?*		[(Action "Close", Always close)]
 where
 	views = [ShowView (GetShared showStatistics)]
 
@@ -164,6 +166,9 @@ where
 			, words 	 = length (split " " (replaceSubString "\n" " " state.mytext))
 			, characters = textSize state.mytext
 			}
+	close
+		=		updateStat False ls 
+			>>| return Void
 
 // --- file access utility
 
