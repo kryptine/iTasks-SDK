@@ -92,10 +92,11 @@ where
 		| otherwise													= options ++ defaultOpts
 		
 filterInputOptions option = case option of
-		About a				= Just (About a)
-		EnterView e			= Just (EnterView e)
-		UpdateView (_,e)	= Just (EnterView e)
-		_					= Nothing
+		About a						= Just (About a)
+		EnterView e					= Just (EnterView e)
+		UpdateView (_,e)			= Just (EnterView e)
+		ShowView (GetShared get)	= Just (ShowView (GetShared get))
+		_							= Nothing
 		
 filterOutputOptions option = case option of
 		About a				= Just (About a)

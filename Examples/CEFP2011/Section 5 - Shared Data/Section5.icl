@@ -121,7 +121,7 @@ joinCEFPtweets
 
 joinTweets  :: String (Shared [Tweet]) -> Task Void
 joinTweets name tweets
-	=				updateSharedInformation ("Enter tweet for " +++ name) views tweets ""
+	=				enterSharedInformation ("Enter tweet for " +++ name) views tweets
 		>?*			[(ActionQuit,Always (return Void))
 					,(ActionOk, IfValid commitTweetAndContinue)
 					]
@@ -132,10 +132,6 @@ where
 			>>= \me ->	update (\tweets -> tweets ++ [(me,reaction)]) tweets 
 			>>| 		joinTweets name tweets
 
-	views = [ UpdateView   (  GetLocalAndShared (\string t -> (Display t, Note string))
-							, PutbackLocal   (\(_, Note reaction) _ _	-> reaction))
+	views = [ ShowView (GetShared id)
+			, EnterView (PutbackLocal \(Note reaction) _ _ -> reaction)
 			]
-
-
-
-
