@@ -1,14 +1,16 @@
 implementation module UserAdmin
 
-import iTasks
+import iTasks, Text
 
 manageUsers :: Task Void
 manageUsers =
 	(		enterSharedChoice ("Users","The following users are available") [] users
-		>?*	[ (ActionNew,		Always	(			createUserFlow		>>|	return False))
-			, (ActionEdit,		IfValid (\user -> 	updateUserFlow user	>>|	return False))
-			, (ActionDelete,	IfValid (\user ->	deleteUserFlow user	>>|	return False))
-			, (ActionQuit,		Always	(									return True))
+		>?*	[ (ActionNew,									Always	(createUserFlow			>>|	return False))
+			, (ActionEdit,									IfValid (\u -> updateUserFlow u	>>|	return False))
+			, (ActionDelete,								IfValid (\u -> deleteUserFlow u	>>|	return False))
+			//, (Action "Import & export/Import user file...",Always	(importUserFileFlow		>>| return False))
+			, (Action "Import & export/Import demo users",	Always	(importDemoUsersFlow	>>| return False))
+			, (ActionQuit,									Always	(							return True))
 			]
 	) <! id >>| stop
 
@@ -45,3 +47,20 @@ deleteUserFlow user =
 									>>=	showInformation "User deleted" [ShowView (GetLocal (\user -> "Successfully deleted " +++ displayName user +++ "."))]
 						))
 		]
+		
+importUserFileFlow :: Task Void
+importUserFileFlow = return Void
+
+importDemoUsersFlow :: Task [User]
+importDemoUsersFlow =
+	allTasks [catchAll (createUser (demoUser n)) (\_ -> return (RegisteredUser (demoUser n))) \\ n <- names]
+where
+	demoUser name
+		= {UserDetails
+		  | userName = toLowerCase name
+		  , password = Password (toLowerCase name)
+		  , displayName = name
+		  , emailAddress = EmailAddress (name +++ "@example.com")
+		  , roles = Nothing
+		  }
+	names = ["Alice","Bob","Carol","Dave","Eve","Fred"]

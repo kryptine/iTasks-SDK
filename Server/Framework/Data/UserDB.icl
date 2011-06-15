@@ -60,11 +60,13 @@ where
 				[user]	= (Just user, iworld)		
 				_		= (Nothing, iworld)
 	
-	createUser :: !UserDetails !*IWorld -> (!User,!*IWorld)
+	createUser :: !UserDetails !*IWorld -> (!MaybeErrorString User,!*IWorld)
 	createUser details iworld
 		# (store, iworld)		= readUserStore iworld
-		# (store, iworld)		= userStore (\_-> [details:store]) iworld
-		= (RegisteredUser details,iworld)
+		| isMember (details.userName) [u.userName \\ u <- store]
+			= (Error ("A user with username '" +++ details.userName +++ "' already exists."), iworld)
+		# (store, iworld)		= userStore (\_-> store ++ [details]) iworld
+		= (Ok (RegisteredUser details),iworld)
 		
 	updateUser :: !User !UserDetails !*IWorld -> (!User,!*IWorld)
 	updateUser match details iworld

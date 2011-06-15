@@ -6,6 +6,7 @@ definition module UserDB
 from Maybe			import :: Maybe
 from SystemTypes	import :: User, :: UserDetails, :: UserId, :: IWorld
 from Time			import :: Timestamp
+from Error			import :: MaybeErrorString, :: MaybeError
 
 class UserDB st
 where
@@ -63,7 +64,7 @@ where
 	* @return A user
 	* @return The database handle
 	*/
-	createUser :: !UserDetails !*st -> (!User,!*st)
+	createUser :: !UserDetails !*st -> (!MaybeErrorString User,!*st)
 	/**
 	* Update an existing user
 	* 

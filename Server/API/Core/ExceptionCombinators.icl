@@ -42,8 +42,9 @@ where
 	normalTaskFuncs = toTaskFuncs normalTask
 	
 	init taskNr iworld
-		= normalTaskFuncs.initFun [0:taskNr] iworld
-
+		# (cxt,iworld)	= normalTaskFuncs.initFun [0:taskNr] iworld
+		= (TCTry (Left cxt), iworld)
+		
 	edit taskNr ([0:steps],path,val) context=:(TCTry (Left cxtNormal)) iworld
 		# (newCxtNormal,iworld) = normalTaskFuncs.editEventFun [0:taskNr] (steps,path,val) cxtNormal iworld
 		= (TCTry (Left newCxtNormal), iworld)
@@ -116,8 +117,9 @@ where
 	normalTaskFuncs = toTaskFuncs normalTask
 
 	init taskNr iworld
-		= normalTaskFuncs.initFun [0:taskNr] iworld
-
+		# (cxt, iworld) = normalTaskFuncs.initFun [0:taskNr] iworld
+		= (TCTry (Left cxt), iworld)
+		
 	edit taskNr ([0:steps],path,val) context=:(TCTry (Left cxtNormal)) iworld
 		# (newCxtNormal,iworld) = normalTaskFuncs.editEventFun [0:taskNr] (steps,path,val) cxtNormal iworld
 		= (TCTry (Left newCxtNormal), iworld)
@@ -165,7 +167,8 @@ where
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 			Nothing
-				= (taskException "Corrupt exception value in try" ,iworld)
+				= (taskException "Corrupt exception value in catchAll" ,iworld)
+				
 	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context iworld
-		= (taskException "Corrupt task context in try", iworld)
-									
+		= (taskException "Corrupt task context in catchAll", iworld)
+			

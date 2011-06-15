@@ -1,6 +1,6 @@
 implementation module UserDBTasks
 
-import StdList, Maybe, HTML, Map, Either, JSON
+import StdList, Maybe, HTML, Map, Either, Error, JSON
 import Task
 from TaskContext import :: TaskContext(..), :: TopTaskContext, :: SubTaskContext, :: ParallelMeta
 from StdFunc import id
@@ -19,9 +19,12 @@ createUser :: !UserDetails -> Task User
 createUser user = mkInstantTask ("Create user", "Create a new user in the database.") eval
 where
 	eval taskNr iworld
+	
 		# (user,iworld) = 'UserDB'.createUser user iworld
-		= (TaskFinished user,iworld)
-
+		= case user of
+			(Ok user)	= (TaskFinished user,iworld)
+			(Error e)	= (taskException e, iworld)
+			
 deleteUser :: !User -> Task User
 deleteUser user = mkInstantTask ("Delete user", "Delete a user from the database.") eval
 where
