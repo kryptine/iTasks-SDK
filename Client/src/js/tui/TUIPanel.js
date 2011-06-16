@@ -166,8 +166,12 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 				if(parseInt(steps[i]) == 0) {
 					cmp = cmp.get(1).getTopToolbar();
 				} else {
-					cmp = cmp.get(1).items.get(parseInt(steps[i+1]));
-					i++;
+					if (i < steps.length - 2) {
+						cmp = cmp.get(1).items.get(parseInt(steps[i+1]));
+						i++;
+					} else {
+						cmp = cmp.get(1);
+					}
 				}
 			} else {
 				cmp = cmp.items.get(parseInt(steps[i]));

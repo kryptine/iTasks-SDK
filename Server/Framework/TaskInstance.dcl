@@ -24,7 +24,7 @@ createThreadParam	:: !String (a -> Task b)	-> Dynamic	| iTask a & iTask b
 /**
 * Create a new instance (process) of a workflow in the workflow database
 */
-createWorkflowInstance :: !WorkflowId !User !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
+createWorkflowInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
 /**
 * Evaluate an existing workflow instance.
 */

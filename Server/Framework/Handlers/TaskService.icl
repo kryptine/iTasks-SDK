@@ -51,7 +51,7 @@ taskService url format path req iworld
 		["create"]
 			| isError mbSession
 				= (serviceResponse html "Create task" createDescription url createParams (jsonSessionErr mbSession), iworld)	 
-			# (mbResult,iworld)	= createWorkflowInstance (toInt workflowParam) (fromOk mbSession).user iworld
+			# (mbResult,iworld)	= createWorkflowInstance (toInt workflowParam) (fromOk mbSession).user (if (paramParam == "") Nothing (Just (fromString paramParam))) iworld
 			# json = case mbResult of
 				Error err
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]

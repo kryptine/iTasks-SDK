@@ -21,9 +21,9 @@ createThreadParam title task = (dynamic container :: Container (Container (TaskT
 where
  	container = Container (Container ({TaskThreadParam|originalTask = task, currentTask = task, title = title}))
 
-toNonParamThreadValue :: !String !Dynamic -> Maybe Dynamic
-toNonParamThreadValue vStr (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
-	= case fromJSON (fromString vStr) of
+toNonParamThreadValue :: !JSONNode !Dynamic -> Maybe Dynamic
+toNonParamThreadValue jsonV (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
+	= case fromJSON jsonV of
 		Just v = 
 			Just (dynamic Container {TaskThread | originalTask = originalTask v <<@ Description title, currentTask = currentTask v <<@ Description title} :: Container (TaskThread b) b)
 		Nothing =
@@ -37,23 +37,38 @@ where
 	enterParam paramTask = Description title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask)
 
 
-createWorkflowInstance :: !WorkflowId !User !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
-createWorkflowInstance workflowId user iworld 
+createWorkflowInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
+createWorkflowInstance workflowId user mbParam iworld 
 	//Lookup workflow
 	# (mbWorkflow,iworld)	= getWorkflow workflowId iworld
 	= case mbWorkflow of
 		Nothing
 			= (Error "No such workflow",iworld)
 		Just {Workflow|thread,managerProperties}
-			//Get next process id
-			# (processId,iworld)		= getNextProcessId iworld
-			//Create initial task context
-			# (context,iworld)			= initTaskContext processId thread managerProperties iworld
-			//Store thread
-			# iworld					= setProcessThread processId thread iworld
-			//Evaluate task once
-			# (result,properties,iworld)= evalTask processId thread context iworld 
-			= (Ok (result,properties), iworld)
+			# mbThread = case thread of
+				(_ :: Container (TaskThread a) a)
+					| isNothing mbParam	= Ok thread
+					| otherwise			= Error "Workflow has no parameter"
+				_ = case mbParam of
+					Just param = case toNonParamThreadValue param thread of
+						Just thread		= Ok thread
+						Nothing			= Error "Invalid argument"
+						
+					Nothing				= Ok (toNonParamThreadEnter thread)
+			= case mbThread of
+				Ok thread
+					//Get next process id
+					# (processId,iworld)		= getNextProcessId iworld
+					//Create initial task context
+					# (context,iworld)			= initTaskContext processId thread managerProperties iworld
+					//Store thread
+					# iworld					= setProcessThread processId thread iworld
+					//Evaluate task once
+					# (result,properties,iworld)= evalTask processId thread context iworld 
+					= (Ok (result,properties), iworld)
+				Error err
+					= (Error err,iworld)
+			
 where
 	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} iworld=:{IWorld|timestamp}
 		# originalTaskFuncs = toTaskFuncs originalTask
@@ -139,7 +154,7 @@ where
 					Just val	= (TaskFinished (dynamic val :: a), properties, iworld)
 					Nothing		= (taskException "Could not decode result", properties, iworld)
 			TTCExcepted e
-				= (taskException e, properties, iworld)
+				= (taskException e, properties, iworld)		
 			
 	evalTask` props changeNo scontext commitEvent tuiTaskNr originalTaskFuncs properties iterationCount iworld
 		# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] props commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext {iworld & readShares = Just []}
