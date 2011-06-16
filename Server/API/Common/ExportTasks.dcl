@@ -31,6 +31,17 @@ exportDocument		:: !FilePath !Document -> Task Document
 exportTextFile		:: !FilePath !String -> Task String
 
 /**
+* Export a list of rows of fields to a comma separated vector (CSV) document.
+*
+* @param File name: A name of the created CSV file
+* @param Cells: The content to export as a list of rows of lists of fields
+*
+* @return The exported content as a document
+* 
+* @gin-icon page_white_csv
+*/
+createCSVFile		:: !String ![[String]] -> Task Document
+/**
 * Export a list of rows of fields to a comma separated vector (CSV) file on the server's filesystem.
 *
 * @param File path: The path of the exported file

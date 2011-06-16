@@ -25,11 +25,6 @@ storeValue :: !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValue key value iworld 
 	= storeValueAs defaultStoreFormat key value iworld
 
-storeValueAsBlob :: !String !String !*IWorld -> *IWorld
-storeValueAsBlob key value iworld=:{IWorld|storeDirectory,timestamp,world}
-	# world = writeToDisk key {StoreItem|format=SFBlob,content=value,timestamp=timestamp} storeDirectory world
-	= {iworld & world = world}
-
 storeValueAs :: !StoreFormat !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValueAs format key value iworld=:{IWorld|timestamp,world,storeDirectory}
 	# world = writeToDisk key {StoreItem|format=format,content=content,timestamp=timestamp} storeDirectory world
@@ -57,16 +52,6 @@ writeToDisk key {StoreItem|format,content,timestamp} location world
 	# file				= fwrites content file
 	# (ok,world)		= fclose file world
 	= world
-
-
-loadValueAsBlob :: !String !*IWorld -> (!Maybe String,!*IWorld)
-loadValueAsBlob key iworld=:{storeDirectory}
-	# (mbItem,iworld) = accWorld (loadFromDisk key storeDirectory) iworld
-	= case mbItem of
-		Just item	= (unpackValue item,iworld)
-		Nothing		= (Nothing,iworld)
-where
-	unpackValue {StoreItem|content} = Just content
 
 loadValue :: !String !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
 loadValue key iworld

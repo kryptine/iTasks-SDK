@@ -22,11 +22,6 @@ from IWorld import :: IWorld
 storeValue				:: !String !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
 
 /**
-* Store raw value
-*/
-storeValueAsBlob 		:: !String !String			!*IWorld -> *IWorld
-
-/**
 * Load a value from the store
 */
 loadValue				:: !String					!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}, TC a
@@ -40,11 +35,6 @@ getStoreTimestamp		:: !String					!*IWorld -> (!Maybe Timestamp,!*IWorld)
 * Load a value from the store, additionally a timestamp is given
 */
 loadValueAndTimestamp	:: !String					!*IWorld -> (!Maybe (a,Timestamp),!*IWorld)	| JSONDecode{|*|}, TC a
-
-/**
-* Load raw data from the store
-*/
-loadValueAsBlob 		:: !String					!*IWorld -> (!Maybe String,!*IWorld)
 
 /**
 * Deletes the value with given key from the store

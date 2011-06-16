@@ -63,6 +63,11 @@ currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getPro
 currentProcessesForUser :: !User -> ReadOnlyShared [Process]
 currentProcessesForUser user = makeReadOnlyShared ("SystemData_processesForUser" +++ toString user) ('ProcessDB'.getProcessesForUser user [Running] [Active]) 'Util'.currentTimestamp
 
+applicationName :: ReadOnlyShared String
+applicationName = makeReadOnlyShared "SystemData_applicationName" appName 'Util'.currentTimestamp
+where
+	appName iworld=:{IWorld|application} = (application,iworld)
+
 // Random source
 randomInt	:: ReadOnlyShared Int
 randomInt = makeReadOnlyShared "SystemData_randomInt" randomInt 'Util'.currentTimestamp

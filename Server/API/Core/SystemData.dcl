@@ -33,6 +33,9 @@ allowedWorkflows		:: ReadOnlyShared [WorkflowDescription]
 currentProcesses		::			ReadOnlyShared [Process]
 currentProcessesForUser	:: !User ->	ReadOnlyShared [Process]
 
+// Application name
+applicationName			:: ReadOnlyShared String
+
 // Random source
 randomInt				:: ReadOnlyShared Int
 

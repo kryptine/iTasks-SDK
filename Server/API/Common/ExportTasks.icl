@@ -1,6 +1,7 @@
 implementation module ExportTasks
 
 import StdBool, FilePath, CSV, File, Map, DocumentDB, IWorld, Task, TaskContext, ExceptionCombinators
+import DocumentDB
 
 exportDocument :: !FilePath !Document -> Task Document
 exportDocument filename document = mkInstantTask ("Document export", ("Export of document " +++ filename)) eval
@@ -11,6 +12,13 @@ exportTextFile :: !FilePath !String -> Task String
 exportTextFile filename content = mkInstantTask ("Text file export", ("Export of text file " +++ filename)) eval
 where
 	eval taskNr iworld = fileTask filename content writeAll iworld
+
+createCSVFile :: !String ![[String]] -> Task Document
+createCSVFile filename content = mkInstantTask ("CSV file creation", ("Export of CSV file " +++ filename)) eval
+where
+	eval taskNr iworld
+		# (doc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
+		= (TaskFinished doc, iworld)
 
 exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask ("CSV file export", ("Export of CSV file " +++ filename)) eval

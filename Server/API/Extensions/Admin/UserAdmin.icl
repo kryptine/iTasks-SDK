@@ -8,7 +8,8 @@ manageUsers =
 		>?*	[ (ActionNew,									Always	(createUserFlow			>>|	return False))
 			, (ActionEdit,									IfValid (\u -> updateUserFlow u	>>|	return False))
 			, (ActionDelete,								IfValid (\u -> deleteUserFlow u	>>|	return False))
-			//, (Action "Import & export/Import user file...",Always	(importUserFileFlow		>>| return False))
+			, (Action "Import & export/Import CSV file...",	Always	(importUserFileFlow		>>| return False))
+			, (Action "Import & export/Export CSV file...",	Always	(exportUserFileFlow		>>| return False))
 			, (Action "Import & export/Import demo users",	Always	(importDemoUsersFlow	>>| return False))
 			, (ActionQuit,									Always	(							return True))
 			]
@@ -49,8 +50,18 @@ deleteUserFlow user =
 		]
 		
 importUserFileFlow :: Task Void
-importUserFileFlow = return Void
+importUserFileFlow = showInformation "Not implemented" [] Void
 
+exportUserFileFlow :: Task Document
+exportUserFileFlow
+	=	get users -&&- get applicationName
+	>>= \(list,app) ->
+		createCSVFile (app +++ "-users.csv") [toRow u \\ (RegisteredUser u) <- list] 
+	>>=	showInformation ("Export users file","A CSV file containing the users of this application has been created for you to download.") []
+where
+	toRow {userName, password = (Password password), displayName, emailAddress = (EmailAddress email), roles}
+		= [displayName,userName,password,email: fromMaybe [] roles]
+	
 importDemoUsersFlow :: Task [User]
 importDemoUsersFlow =
 	allTasks [catchAll (createUser (demoUser n)) (\_ -> return (RegisteredUser (demoUser n))) \\ n <- names]

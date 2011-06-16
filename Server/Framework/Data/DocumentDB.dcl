@@ -19,7 +19,6 @@ where
 	* Read the document content.
 	*/
 	getDocumentContent		:: !DocumentId !*st -> (!Maybe String, !*st)
-	
 	/**
 	* Create a new document from uploaded data.
 	*
@@ -30,7 +29,10 @@ where
 	* @return The meta-data of the document
 	*/
 	createDocument 			:: !String !String !String !*st -> (!Document, !*st)
-	
+	/**
+	* Create a document with a function that writes to a file.
+	*/
+	createDocumentWith 		:: !String !String (*File -> *File) !*st -> (!Document, !*st)
 	/**
 	* Delete an existing document.
 	*
