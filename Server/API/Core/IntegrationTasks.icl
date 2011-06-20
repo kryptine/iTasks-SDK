@@ -41,7 +41,7 @@ callProcess cmd args
 	= mkTask ("Call process","Waiting for external process.") init edit eval
 where
 	//Start the process
-	init :: TaskNr *IWorld -> (!TaskContext,!*IWorld)
+	init :: TaskNr *IWorld -> (!TaskContextTree,!*IWorld)
 	init taskNr iworld =:{IWorld | config, tmpDirectory, world}
 		# outfile 		= tmpDirectory </> (iTaskId taskNr "callprocess")
 		# context		= TCBasic 'Map'.newMap

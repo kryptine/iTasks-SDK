@@ -5,7 +5,7 @@ definition module Task
 */
 
 import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
-from TaskContext	import :: TaskContext
+from TaskContext	import :: TaskContextTree
 
 derive JSONEncode		Task
 derive JSONDecode		Task
@@ -35,15 +35,15 @@ derive gPutRecordFields	Task
 
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
 
-:: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContext,!*IWorld)
-:: TaskEditEventFun	:== TaskNr EditEvent TaskContext *IWorld -> *(!TaskContext,!*IWorld)
-:: TaskEvalFun a	:== TaskNr TaskProperties (Maybe CommitEvent) ReversedTaskNr InteractionLayouter ParallelLayouter MainLayouter TaskContext *IWorld -> *(!TaskResult a, !*IWorld)
+:: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContextTree,!*IWorld)
+:: TaskEditEventFun	:== TaskNr EditEvent TaskContextTree *IWorld -> *(!TaskContextTree,!*IWorld)
+:: TaskEvalFun a	:== TaskNr TaskProperties (Maybe CommitEvent) ReversedTaskNr InteractionLayouter ParallelLayouter MainLayouter TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
 :: ReversedTaskNr	:== [Int]									//Reversed tasks nr used to locate a subtask in a composition  
 :: EditEvent		:== (!ReversedTaskNr, !String, !JSONNode)	//Location, Datapath and new value
 :: CommitEvent		:== (!ReversedTaskNr, !String)				//Location and action name
 
-:: TaskResult a		= TaskBusy !(Maybe TUIDef) ![TaskAction] !TaskContext
+:: TaskResult a		= TaskBusy !(Maybe TUIDef) ![TaskAction] !TaskContextTree
 					| TaskFinished !a
 					| TaskException !Dynamic !String
 

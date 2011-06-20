@@ -10,7 +10,7 @@ smallExamples = [workflow	"Examples/Miscellaneous/Calculate sum" "Calculate the 
 
 calculateSum :: Task Int
 calculateSum
-  =   enterInformation ("Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1Number 1","Enter a number") []
+  =   enterInformation ("Number 1","Enter a number") []
   >>= \num1 ->
       enterInformation ("Number 2","Enter another number") []
   >>= \num2 ->

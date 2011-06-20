@@ -2,7 +2,7 @@ implementation module UserDBTasks
 
 import StdList, Maybe, HTML, Map, Either, Error, JSON
 import Task
-from TaskContext import :: TaskContext(..), :: TopTaskContext, :: SubTaskContext, :: ParallelMeta
+from TaskContext import :: TaskContextTree(..), :: SubTaskContext, :: ParallelMeta
 from StdFunc import id
 from SystemTypes import :: User, :: UserId, :: UserDetails, :: Role, :: ProcessProperties
 from UserDB import qualified class UserDB(..)

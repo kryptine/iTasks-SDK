@@ -2,11 +2,12 @@ implementation module TaskInstance
 
 import StdList, StdBool
 import Error
-import SystemTypes, IWorld, Task, TaskContext, WorkflowDB, ProcessDB
+import SystemTypes, IWorld, Task, TaskContext, WorkflowDB
 
 from CoreCombinators import >>=
 from TuningCombinators import class tune, instance tune Description, <<@, @>>, :: Description(..)
 from InteractionTasks import enterInformation, :: LocalViewOn, :: ViewOn
+from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
 import iTaskClass
 
 ITERATION_THRESHOLD :== 10
@@ -58,11 +59,11 @@ createWorkflowInstance workflowId user mbParam iworld
 			= case mbThread of
 				Ok thread
 					//Get next process id
-					# (processId,iworld)		= getNextProcessId iworld
+					# (processId,iworld)		= 'ProcessDB'.getNextProcessId iworld
 					//Create initial task context
 					# (context,iworld)			= initTaskContext processId thread managerProperties iworld
 					//Store thread
-					# iworld					= setProcessThread processId thread iworld
+					# iworld					= 'ProcessDB'.setProcessThread processId thread iworld
 					//Evaluate task once
 					# (result,properties,iworld)= evalTask processId thread context iworld 
 					= (Ok (result,properties), iworld)
@@ -84,9 +85,9 @@ where
 				}
 			, managerProperties	= {managerProperties & worker = if (worker == AnyUser) user worker}
 			}
-		= (TCTop properties 0 (TTCActive tcontext),iworld)
+		= (TaskContext properties 0 (TTCActive tcontext),iworld)
 
-	evalTask processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) (TCTop properties changeNo (TTCActive tcontext)) iworld
+	evalTask processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) (TaskContext properties changeNo (TTCActive tcontext)) iworld
 		# originalTaskFuncs = toTaskFuncs originalTask
 		//Set current worker
 		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
@@ -96,35 +97,35 @@ where
 			TaskBusy tui actions tcontext
 				# properties	= setRunning properties
 				# tui			= defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties} 
-				# context 		= TCTop properties changeNo (TTCActive tcontext)
-				# iworld		= setProcessContext processId context iworld
-				= (TaskBusy (Just tui) [] context, properties, iworld)
+				# context 		= TaskContext properties changeNo (TTCActive tcontext)
+				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
+				= (TaskBusy (Just tui) [] tcontext, properties, iworld)
 			TaskFinished val	
 				# properties	= setFinished properties
-				# context		= TCTop properties  changeNo (TTCFinished (toJSON val))
-				# iworld		= setProcessContext processId context iworld
+				# context		= TaskContext properties  changeNo (TTCFinished (toJSON val))
+				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
 				= (TaskFinished (dynamic val :: a), properties, iworld)
 			TaskException e str
 				# properties	= setExcepted properties
-				# context		= TCTop properties changeNo (TTCExcepted str)
-				# iworld		= setProcessContext processId context iworld
+				# context		= TaskContext properties changeNo (TTCExcepted str)
+				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
 				= (TaskException e str, properties, iworld)
 
 evaluateWorkflowInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !TaskNr !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
 evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld
 	//Load thread
-	# (mbThread,iworld)		= getProcessThread processId iworld
+	# (mbThread,iworld)		= 'ProcessDB'.getProcessThread processId iworld
 	| isNothing mbThread
 		= (Error "Could not load task definition", iworld)
 	//Load task context
-	# (mbContext,iworld)	= getProcessContext processId iworld
+	# (mbContext,iworld)	= 'ProcessDB'.getProcessContext processId iworld
 	| isNothing mbThread
 		= (Error "Could not load task context", iworld)
 	//Evaluate
 	# (result,properties,iworld) = evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbThread) (fromJust mbContext) iworld
 	= (Ok (result,properties), iworld)
 where
-	evalTask processId mbEdit mbCommit tuiTaskNr thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) context=:(TCTop properties changeNo tcontext) iworld=:{IWorld|timestamp}
+	evalTask processId mbEdit mbCommit tuiTaskNr thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) context=:(TaskContext properties changeNo tcontext) iworld=:{IWorld|timestamp}
 		# originalTaskFuncs = toTaskFuncs originalTask
 		//Set current worker & last event timestamp
 		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker, latestEvent = properties.systemProperties.SystemProperties.latestEvent}
@@ -148,7 +149,7 @@ where
 				= evalTask` originalTask.Task.properties changeNo scontext commitEvent tuiTaskNr originalTaskFuncs properties 1 iworld
 			//Don't evaluate, just yield TaskBusy without user interface and original context
 			TTCSuspended scontext
-				= (TaskBusy Nothing [] context, properties, iworld)
+				= (TaskBusy Nothing [] scontext, properties, iworld)
 			TTCFinished encval
 				= case fromJSON encval of
 					Just val	= (TaskFinished (dynamic val :: a), properties, iworld)
@@ -164,21 +165,21 @@ where
 				# tui			= if (isEmpty tuiTaskNr)
 					(fmap (\t -> defaultMainLayout {TUIMain|content = t,actions = actions, properties = properties}) tui)
 					tui
-				# context		= TCTop properties changeNo (TTCActive scontext)
-				# iworld		= setProcessContext processId context iworld
+				# context		= TaskContext properties changeNo (TTCActive scontext)
+				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
 				| isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
 					= evalTask` props changeNo scontext Nothing tuiTaskNr originalTaskFuncs properties (inc iterationCount) iworld
 				| otherwise
-					= (TaskBusy tui [] context, properties, iworld)
+					= (TaskBusy tui [] scontext, properties, iworld)
 			TaskFinished val
 				# properties	= setFinished properties
-				# context		= TCTop properties changeNo (TTCFinished (toJSON val))
-				# iworld		= setProcessContext processId context iworld
+				# context		= TaskContext properties changeNo (TTCFinished (toJSON val))
+				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
 				= (TaskFinished (dynamic val :: a^), properties, iworld)
 			TaskException _ e
 				# properties	= setExcepted properties
-				# context		= TCTop properties changeNo (TTCExcepted e)
-				# iworld		= setProcessContext processId context iworld
+				# context		= TaskContext properties changeNo (TTCExcepted e)
+				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
 				= (taskException e, properties, iworld)
 
 setRunning properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Running}}

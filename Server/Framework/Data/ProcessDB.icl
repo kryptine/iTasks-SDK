@@ -2,12 +2,12 @@ implementation module ProcessDB
 
 import StdEnv, Maybe
 
-import TaskContext, Store, Util, Text
+import TaskContext, Store, Util, Text, Time
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
  
 derive JSONEncode	Process
 derive JSONDecode	Process
-derive gEq			Process
+gEq{|Process|} {processId = pid0} {processId = pid1} = pid0 == pid1
 derive bimap Maybe, (,)
 
 NEXT_ID_DB		:== "NextProcessID"
@@ -30,7 +30,7 @@ where
 			
 	getProcess :: !ProcessId !*IWorld -> (!Maybe Process,!*IWorld)
 	getProcess processId iworld
-		# (procs,iworld) 	= processStore id iworld
+		# (procs,iworld) 	= readProcessStore iworld
 		= case [process \\ process <- procs | process.Process.processId == processId] of
 			[entry]	= (Just entry, iworld)
 			_		= (Nothing, iworld)
@@ -45,7 +45,7 @@ where
 
 	getProcessForUser :: !User !ProcessId !*IWorld -> (!Maybe Process,!*IWorld)
 	getProcessForUser user processId iworld
-		# (procs,iworld) 	= processStore id iworld
+		# (procs,iworld) 	= readProcessStore iworld
 		= case [p\\ p <- procs |   p.Process.processId == processId
 							   && user == p.Process.properties.ProcessProperties.managerProperties.worker
 							      ] of
@@ -54,17 +54,17 @@ where
 				
 	getProcesses :: ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcesses statusses runningStatusses iworld 
-		# (procs, iworld)	= processStore id iworld
+		# (procs, iworld)	= readProcessStore iworld
 		= ([p \\ p <- procs | isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses], iworld)
 			
 	getProcessesById :: ![ProcessId] !*IWorld -> (![Process], !*IWorld)
 	getProcessesById ids iworld
-		# (procs,iworld) 	= processStore id iworld
+		# (procs,iworld) 	= readProcessStore iworld
 		= ([process \\ process <- procs | isMember process.Process.processId ids], iworld)
 	
 	getProcessesForUser	:: !User ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcessesForUser user statusses runningStatusses iworld
-		# (procs,iworld) 	= processStore id iworld
+		# (procs,iworld) 	= readProcessStore iworld
 		= (filterProcs (\p -> isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses) procs, iworld)
 	where
 		isRelevant user {Process | properties}	
@@ -96,7 +96,7 @@ where
 
 	updateProcess :: !ProcessId (Process -> Process) !*IWorld -> (!Bool, !*IWorld)
 	updateProcess processId f iworld
-		# (procs,iworld) 	= processStore id iworld
+		# (procs,iworld) 	= readProcessStore iworld
 		# (nprocs,upd)		= unzip (map (update f) procs)
 		# (nprocs,iworld)	= processStore (\_ -> nprocs) iworld
 		= (or upd, iworld)
@@ -113,20 +113,30 @@ where
 		//Delete values from store
 		# iworld = deleteValues ("Process-" +++ toString processId) iworld
 		//Delete from process table
-		# (procs,iworld) 	= processStore id iworld
+		# (procs,iworld) 	= readProcessStore iworld
 		# (nprocs,iworld)	= processStore (\_ -> [process \\ process <- procs | process.Process.processId <> processId]) iworld
 		= (length procs <> length nprocs, iworld)
+		
+	lastChange :: !*IWorld -> (!Timestamp,!*IWorld)
+	lastChange iworld
+		# (mbTs,iworld) = getStoreTimestamp PROCESS_DB iworld
+		= (fromMaybe (Timestamp 0) mbTs,iworld)
 
 
 processStore ::  !([Process] -> [Process]) !*IWorld -> (![Process],!*IWorld) 
 processStore fn iworld
-	# (mbList,iworld)	= loadValue "ProcessDB" iworld
-	# list 				= fn (case mbList of Nothing = []; Just list = list)
+	# (list,iworld)		= readProcessStore iworld
+	# list 				= fn list
 	# iworld			= storeValue "ProcessDB" list iworld 
 	= (list,iworld)
+	
+readProcessStore :: !*IWorld -> (![Process],!*IWorld) 
+readProcessStore iworld
+	# (mbList,iworld)	= loadValue "ProcessDB" iworld
+	= (fromMaybe [] mbList,iworld)
 
 contextToProcess :: !ProcessId !TaskContext -> Process
-contextToProcess processId (TCTop properties _ scontext)
+contextToProcess processId (TaskContext properties _ scontext)
 	= {processId = processId, properties = properties, subprocesses = tsubprocs scontext}
 where
 	tsubprocs (TTCActive context)			= subprocs context

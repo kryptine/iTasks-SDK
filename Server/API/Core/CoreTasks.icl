@@ -175,7 +175,7 @@ where
 	getLocalState context
 		= fromMaybe initLocal (getLocalVar LOCAL_STORE context)
 
-	setLocalState :: l !l !TaskContext -> TaskContext | JSONEncode{|*|} l
+	setLocalState :: l !l !TaskContextTree -> TaskContextTree | JSONEncode{|*|} l
 	setLocalState _ state context
 		= setLocalVar LOCAL_STORE state context
 	

@@ -58,13 +58,13 @@ where
 
 // Workflow processes
 currentProcesses ::ReadOnlyShared [Process]
-currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running] [Active]) 'Util'.currentTimestamp
+currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running] [Active]) 'ProcessDB'.lastChange
 
 currentProcessesForUser :: !User -> ReadOnlyShared [Process]
-currentProcessesForUser user = makeReadOnlyShared ("SystemData_processesForUser" +++ toString user) ('ProcessDB'.getProcessesForUser user [Running] [Active]) 'Util'.currentTimestamp
+currentProcessesForUser user = makeReadOnlyShared ("SystemData_processesForUser" +++ toString user) ('ProcessDB'.getProcessesForUser user [Running] [Active]) 'ProcessDB'.lastChange
 
 applicationName :: ReadOnlyShared String
-applicationName = makeReadOnlyShared "SystemData_applicationName" appName 'Util'.currentTimestamp
+applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))
 where
 	appName iworld=:{IWorld|application} = (application,iworld)
 

@@ -35,6 +35,16 @@ where
 	setProcessContext		:: !ProcessId !TaskContext								!*st -> *st
 
 	deleteProcess			:: !ProcessId											!*st -> (!Bool,				!*st)
+	
+	/**
+	* Gets the timestamp of the last change of the workflow database.
+	*
+	* @param A unique database handle
+	*
+	* @return The timestamp
+	* @retrun The database handle 
+	*/
+	lastChange				::														!*st -> (!Timestamp,!*st)
 
 	
 	//DEPRECATED

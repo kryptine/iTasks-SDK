@@ -8,7 +8,7 @@ import Util, Either, GenVisualize, GenUpdate
 from StdFunc			import id, const, o
 from SystemTypes		import :: ProcessId, :: User(..), :: Note(..)
 from SessionDB			import :: Session
-from TaskContext		import :: TaskContext(..), :: TopTaskContext, :: SubTaskContext, :: ParallelMeta
+from TaskContext		import :: TaskContextTree(..), :: SubTaskContext, :: ParallelMeta
 from SharedCombinators	import mapShared, :: Shared, :: ReadWriteShared
 from SystemData			import randomInt
 from Map				import qualified newMap
