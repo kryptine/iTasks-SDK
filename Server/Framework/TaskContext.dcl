@@ -10,9 +10,8 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 :: TaskContext = TaskContext !ProcessProperties !Int !ProcessState
 
 :: ProcessState
-	= TTCActive !TaskContextTree
-	| TTCSuspended !TaskContextTree
-	| TTCFinished !JSONNode
+	= TTCRunning !Dynamic !TaskContextTree
+	| TTCFinished !Dynamic
 	| TTCExcepted !String
 
 :: TaskContextTree
@@ -20,6 +19,7 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 	| TCBind !(Either TaskContextTree (!JSONNode,!TaskContextTree))
 	| TCParallel !JSONNode !ParallelMeta ![(!Int,!SubTaskContext)]
 	| TCTry !(Either TaskContextTree (!JSONNode,!TaskContextTree))
+	| TCEmpty
 
 :: SubTaskContext
 	= STCHidden !TaskProperties !(Maybe (!JSONNode,!TaskContextTree))		//Properties, Task (encoded), Context or JSON node

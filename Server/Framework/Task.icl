@@ -22,7 +22,7 @@ mkInstantTask description iworldfun =
 	{ properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, mbTaskNr				= Nothing
 	, type = NormalTask
-		{ initFun			= \_ iworld -> (TCBasic newMap,iworld)
+		{ initFun			= \_ iworld -> (TCEmpty,iworld)
 		, editEventFun		= \_ _  context iworld -> (context,iworld)
 		, evalTaskFun		= \taskNr _ _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}

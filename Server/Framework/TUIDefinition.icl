@@ -63,6 +63,21 @@ where
 				(FillParent 1 ContentSize)
 				(defaultContent editorParts buttons)
 		  ,actions)
+
+wrapWidthInteractionLayout :: InteractionLayouter
+wrapWidthInteractionLayout = \i -> layout i
+where
+	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+		# (buttons,actions) = defaultButtons actions
+		= (defaultPanelDescr
+				title
+				(defaultInteractionIcon type isControlTask localInteraction)
+				description
+				warning
+				(WrapContent 0)
+				(defaultContent editorParts buttons)
+		  ,actions)
+
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
 defaultContent editor buttons = [defaultContentPanel (editorContainer ++ buttonContainer)]

@@ -12,7 +12,6 @@ derive bimap Maybe, (,)
 
 NEXT_ID_DB		:== "NextProcessID"
 PROCESS_DB		:== "ProcessDB"
-THREAD_DB id	:== "Process-" +++ toString id +++ "-thread"
 CONTEXT_DB id	:== "Process-" +++ toString id +++ "-context"
 
 instance ProcessDB IWorld
@@ -34,10 +33,6 @@ where
 		= case [process \\ process <- procs | process.Process.processId == processId] of
 			[entry]	= (Just entry, iworld)
 			_		= (Nothing, iworld)
-
-	getProcessThread :: !ProcessId !*IWorld -> (!Maybe Dynamic,	!*IWorld)
-	getProcessThread pid iworld
-		= loadValue (THREAD_DB pid) iworld
 	
 	getProcessContext :: !ProcessId !*IWorld -> (!Maybe TaskContext, !*IWorld)
 	getProcessContext pid iworld
@@ -70,10 +65,6 @@ where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task
 			=  ( properties.ProcessProperties.managerProperties.worker == user)
-	
-	setProcessThread :: !ProcessId !Dynamic !*IWorld -> *IWorld
-	setProcessThread pid thread iworld
-		= storeValue (THREAD_DB pid) thread iworld
 		
 	setProcessContext :: !ProcessId !TaskContext !*IWorld -> *IWorld
 	setProcessContext processId context iworld
@@ -139,9 +130,10 @@ contextToProcess :: !ProcessId !TaskContext -> Process
 contextToProcess processId (TaskContext properties _ scontext)
 	= {processId = processId, properties = properties, subprocesses = tsubprocs scontext}
 where
-	tsubprocs (TTCActive context)			= subprocs context
+	tsubprocs (TTCRunning _ context)		= subprocs context
 	tsubprocs _								= []
 
+	subprocs (TCEmpty)						= []
 	subprocs (TCBasic _)					= []
 	subprocs (TCBind (Left context))		= subprocs context
 	subprocs (TCBind (Right (_,context)))	= subprocs context

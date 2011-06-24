@@ -79,7 +79,7 @@ taskService url format path req iworld
 			# json = case mbResult of
 				Error err
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]
-				Ok (TaskException _ err,_)
+				Ok (TaskException _ err)
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]	
 				_
 					= JSONObject [("success",JSONBool True)]
@@ -92,11 +92,11 @@ taskService url format path req iworld
 			# json = case mbResult of
 				Error err
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]
-				Ok (TaskBusy _ _ context, properties)
+				Ok (TaskBusy _ _ context)
 					= JSONObject [("success",JSONBool False),("tree",toJSON context)]
-				Ok (TaskFinished _, properties)
+				Ok (TaskFinished _)
 					= JSONObject [("success",JSONBool True),("result",JSONString "finished")]
-				Ok (TaskException _ err, properties)
+				Ok (TaskException _ err)
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]
 			= (serviceResponse html "Task debug" taskDebugDescription url debugParams json, iworld)	
 		//Show / Update task user interface definition
@@ -136,7 +136,7 @@ taskService url format path req iworld
 				Error err
 					= (JSONObject [("succes",JSONBool False),("error",JSONString err)],iworld)
 								
-				Ok (TaskBusy mbCurrentTui actions context, properties)
+				Ok (TaskBusy mbCurrentTui actions context)
 					//Determine content or updates
 					# tui = case (mbPreviousTui,mbCurrentTui) of
 						(Just (previousTui,previousTimestamp),Just currentTui)
@@ -162,9 +162,9 @@ taskService url format path req iworld
 								 		 ]
 					= (json, iworld)
 					
-				Ok (TaskFinished _, properties)
+				Ok (TaskFinished _)
 					= (JSONObject ([("success",JSONBool True),("timestamp",toJSON timestamp),("tui",JSONString "done")]), iworld)
-				Ok (TaskException _ err, _)
+				Ok (TaskException _ err)
 					= (JSONObject [("succes",JSONBool False),("error",JSONString err)], iworld)
 				_
 					= (JSONObject [("succes",JSONBool False),("error",JSONString  "Unknown exception")],iworld)

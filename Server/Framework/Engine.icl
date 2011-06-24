@@ -66,17 +66,19 @@ initIWorld config flows world
 	# storePath					= appDir </> appName </> "store-"+++ datestr
 	# (exists,world)			= ensureDir "store" storePath world
 	# iworld					= {IWorld
-								  |application		= appName
-								  ,storeDirectory	= storePath
-								  ,tmpDirectory		= tmpPath
-								  ,config			= config
-								  ,timestamp		= timestamp
-								  ,latestEvent		= Nothing
-								  ,localDateTime	= localDateTime
-								  ,currentUser		= AnyUser
-								  ,parallelVars		= newMap
-								  ,readShares		= Nothing
-								  ,world			= world
+								  |application			= appName
+								  ,storeDirectory		= storePath
+								  ,tmpDirectory			= tmpPath
+								  ,config				= config
+								  ,timestamp			= timestamp
+								  ,latestEvent			= Nothing
+								  ,localDateTime		= localDateTime
+								  ,currentUser			= AnyUser
+								  ,currentProcess		= defaultValue
+								  ,parallelVars			= newMap
+								  ,readShares			= Nothing
+								  ,workOnDependencies	= []
+								  ,world				= world
 								  }
 	= if exists iworld (snd (mapSt ('WorkflowDB'.addWorkflow) flows iworld)) 
 where 

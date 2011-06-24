@@ -9,6 +9,8 @@ from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 from SharedCombinators	import :: ReadWriteShared, :: Shared
 from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
 
+derive class iTask WorkOnProcessState
+
 :: SharedStoreId :== String
 
 /**
@@ -94,6 +96,25 @@ interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(ReadWriteShare
 :: FormView v	= FormValue !v				// A form representing a value
 				| Blank						// A blank form
 				| Unchanged (FormView v)	// Form is unchanged, if no view is stored the given initial value is used
+
+/**
+* State of another process the user works on.
+*/
+:: WorkOnProcessState
+	= WOActive		//* the process is active, the user can work on it
+	| WOSuspended	//* the process is suspended
+	| WOFinished	//* the process is finished
+	| WOExcepted	//* an uncaught exception was thrown inside of the process
+
+/**
+* Work on another process.
+*
+* @param Process ID: The ID of the process to work on
+* 
+* @return The state of the process to work on
+* @throws WorkOnException
+*/
+workOn :: !ProcessId -> Task WorkOnProcessState
 
 /**
 * Dynamically adds a workflow to the system.

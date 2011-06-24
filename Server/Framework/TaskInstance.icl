@@ -62,8 +62,6 @@ createWorkflowInstance workflowId user mbParam iworld
 					# (processId,iworld)		= 'ProcessDB'.getNextProcessId iworld
 					//Create initial task context
 					# (context,iworld)			= initTaskContext processId thread managerProperties iworld
-					//Store thread
-					# iworld					= 'ProcessDB'.setProcessThread processId thread iworld
 					//Evaluate task once
 					# (result,properties,iworld)= evalTask processId thread context iworld 
 					= (Ok (result,properties), iworld)
@@ -85,24 +83,24 @@ where
 				}
 			, managerProperties	= {managerProperties & worker = if (worker == AnyUser) user worker}
 			}
-		= (TaskContext properties 0 (TTCActive tcontext),iworld)
+		= (TaskContext properties 0 (TTCRunning thread tcontext),iworld)
 
-	evalTask processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) (TaskContext properties changeNo (TTCActive tcontext)) iworld
+	evalTask processId t=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) (TaskContext properties changeNo (TTCRunning thread tcontext)) iworld
 		# originalTaskFuncs = toTaskFuncs originalTask
 		//Set current worker
-		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker}
+		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker, currentProcess = processId}
 		//Evaluate
 		# (tresult, iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] originalTask.Task.properties Nothing [] defaultInteractionLayout defaultParallelLayout defaultMainLayout tcontext iworld
 		= case tresult of
 			TaskBusy tui actions tcontext
 				# properties	= setRunning properties
 				# tui			= defaultMainLayout {TUIMain|content = fromJust tui,actions = actions, properties = properties} 
-				# context 		= TaskContext properties changeNo (TTCActive tcontext)
+				# context 		= TaskContext properties changeNo (TTCRunning thread tcontext)
 				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
 				= (TaskBusy (Just tui) [] tcontext, properties, iworld)
 			TaskFinished val	
 				# properties	= setFinished properties
-				# context		= TaskContext properties  changeNo (TTCFinished (toJSON val))
+				# context		= TaskContext properties  changeNo (TTCFinished (dynamic val))
 				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
 				= (TaskFinished (dynamic val :: a), properties, iworld)
 			TaskException e str
@@ -111,24 +109,19 @@ where
 				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
 				= (TaskException e str, properties, iworld)
 
-evaluateWorkflowInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !TaskNr !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
+evaluateWorkflowInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !TaskNr !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld
-	//Load thread
-	# (mbThread,iworld)		= 'ProcessDB'.getProcessThread processId iworld
-	| isNothing mbThread
-		= (Error "Could not load task definition", iworld)
 	//Load task context
 	# (mbContext,iworld)	= 'ProcessDB'.getProcessContext processId iworld
-	| isNothing mbThread
+	| isNothing mbContext
 		= (Error "Could not load task context", iworld)
 	//Evaluate
-	# (result,properties,iworld) = evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbThread) (fromJust mbContext) iworld
-	= (Ok (result,properties), iworld)
+	# (result,iworld) = evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbContext) iworld
+	= (Ok result, iworld)
 where
-	evalTask processId mbEdit mbCommit tuiTaskNr thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) context=:(TaskContext properties changeNo tcontext) iworld=:{IWorld|timestamp}
-		# originalTaskFuncs = toTaskFuncs originalTask
+	evalTask processId mbEdit mbCommit tuiTaskNr context=:(TaskContext properties changeNo tcontext) iworld=:{IWorld|timestamp}
 		//Set current worker & last event timestamp
-		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker, latestEvent = properties.systemProperties.SystemProperties.latestEvent}
+		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker, currentProcess = processId, latestEvent = properties.systemProperties.SystemProperties.latestEvent}
 		//If target is not detached process, set first event timestamp if not set yet & latest update
 		# properties = case tuiTaskNr of
 			[_]	= {properties & systemProperties = {properties.systemProperties & firstEvent = Just (fromMaybe timestamp properties.systemProperties.firstEvent), latestEvent = Just timestamp}}
@@ -137,51 +130,50 @@ where
 		# tuiTaskNr			= stepTUITaskNr changeNo (stepTUITaskNr processId tuiTaskNr)
 		= case tcontext of
 			//Evaluate further
-			TTCActive scontext
+			TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext
+				# taskFuncs = toTaskFuncs currentTask
 				//Apply edit event
 				# (scontext,iworld) = case mbEdit of
 					//The firts two steps in an edit event path have to be the processId and changeNo
-					Just ([processId,changeNo:steps],path,val)	= originalTaskFuncs.editEventFun [changeNo,processId] (steps,path,val) scontext iworld
+					Just ([processId,changeNo:steps],path,val)	= taskFuncs.editEventFun [changeNo,processId] (steps,path,val) scontext iworld
 					_											= (scontext, iworld)
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
 				# commitEvent					= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
-				= evalTask` originalTask.Task.properties changeNo scontext commitEvent tuiTaskNr originalTaskFuncs properties 1 iworld
-			//Don't evaluate, just yield TaskBusy without user interface and original context
-			TTCSuspended scontext
-				= (TaskBusy Nothing [] scontext, properties, iworld)
-			TTCFinished encval
-				= case fromJSON encval of
-					Just val	= (TaskFinished (dynamic val :: a), properties, iworld)
-					Nothing		= (taskException "Could not decode result", properties, iworld)
+				= evalTask` currentTask.Task.properties changeNo scontext commitEvent tuiTaskNr thread properties 1 iworld
+			TTCFinished result
+				= (TaskFinished result, iworld)
 			TTCExcepted e
-				= (taskException e, properties, iworld)		
+				= (taskException e, iworld)		
 			
-	evalTask` props changeNo scontext commitEvent tuiTaskNr originalTaskFuncs properties iterationCount iworld
-		# (sresult,iworld)	= originalTaskFuncs.evalTaskFun [changeNo,processId] props commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext {iworld & readShares = Just []}
-		= case sresult of
-			TaskBusy tui actions scontext
-				# properties	= setRunning properties 
-				# tui			= if (isEmpty tuiTaskNr)
-					(fmap (\t -> defaultMainLayout {TUIMain|content = t,actions = actions, properties = properties}) tui)
-					tui
-				# context		= TaskContext properties changeNo (TTCActive scontext)
-				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
-				| isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
-					= evalTask` props changeNo scontext Nothing tuiTaskNr originalTaskFuncs properties (inc iterationCount) iworld
-				| otherwise
-					= (TaskBusy tui [] scontext, properties, iworld)
-			TaskFinished val
-				# properties	= setFinished properties
-				# context		= TaskContext properties changeNo (TTCFinished (toJSON val))
-				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
-				= (TaskFinished (dynamic val :: a^), properties, iworld)
-			TaskException _ e
-				# properties	= setExcepted properties
-				# context		= TaskContext properties changeNo (TTCExcepted e)
-				# iworld		= 'ProcessDB'.setProcessContext processId context iworld
-				= (taskException e, properties, iworld)
+	evalTask` props changeNo scontext commitEvent tuiTaskNr thread properties iterationCount iworld
+		# (res,iworld) = evaluateWorkflowInstanceEval processId props changeNo [changeNo,processId] properties thread scontext commitEvent tuiTaskNr iworld
+		= case res of
+			TaskBusy _ _ _ | isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
+				= evalTask` props changeNo scontext Nothing tuiTaskNr thread properties (inc iterationCount) iworld
+			_
+				= (res, iworld)
 
-setRunning properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Running}}
-setFinished properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Finished}}
-setExcepted properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}
+evaluateWorkflowInstanceEval :: !ProcessId !TaskProperties !Int !TaskNr !ProcessProperties !Dynamic !TaskContextTree !(Maybe CommitEvent) !TaskNr !*IWorld -> (!TaskResult Dynamic, !*IWorld)
+evaluateWorkflowInstanceEval processId props changeNo taskNr properties thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext commitEvent tuiTaskNr iworld
+	# evalTaskFun		= (toTaskFuncs currentTask).evalTaskFun
+	# (sresult,iworld)	= evalTaskFun taskNr props commitEvent tuiTaskNr defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext {iworld & readShares = Just []}
+	= case sresult of
+		TaskBusy tui actions scontext
+			# properties	= setRunning properties 
+			# tui			= if (isEmpty tuiTaskNr)
+				(fmap (\t -> defaultMainLayout {TUIMain|content = t,actions = actions, properties = properties}) tui)
+				tui
+			# context		= TaskContext properties changeNo (TTCRunning thread scontext)
+			# iworld		= 'ProcessDB'.setProcessContext processId context iworld
+			= (TaskBusy tui [] scontext, iworld)
+		TaskFinished val
+			# properties	= setFinished properties
+			# context		= TaskContext properties changeNo (TTCFinished (dynamic val))
+			# iworld		= 'ProcessDB'.setProcessContext processId context iworld
+			= (TaskFinished (dynamic val :: a), iworld)
+		TaskException _ e
+			# properties	= setExcepted properties
+			# context		= TaskContext properties changeNo (TTCExcepted e)
+			# iworld		= 'ProcessDB'.setProcessContext processId context iworld
+			= (taskException e, iworld)

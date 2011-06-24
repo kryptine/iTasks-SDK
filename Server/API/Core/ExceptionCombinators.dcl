@@ -16,9 +16,10 @@ import iTaskClass, GenVisualize, GenUpdate
 :: SharedException	= SharedException !String
 :: RPCException		= RPCException !String
 :: OSException		= OSException !OSError
+:: WorkOnException	= WorkOnProcessNotFound | WorkOnDependencyCycle
 
-derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException
-instance toString FileException, ParseException, CallException, SharedException, RPCException, OSException
+derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
+instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 
 /**
 * Exception combinator.

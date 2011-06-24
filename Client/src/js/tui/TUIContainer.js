@@ -170,7 +170,7 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 		var cached = this.getCache(type,'frameWidth',true);
 		if (cached !== null) return cached;
 		
-		var frameWidth = this.getFrameWidth();
+		var frameWidth = this.getTUIFrameWidth();
 		this.setCache(type,'frameWidth',frameWidth,true);
 		return frameWidth;
 	},
@@ -182,8 +182,15 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 		var cached = this.getCache(type,'frameHeight',true);
 		if (cached !== null) return cached;
 	
-		var frameHeight = this.getFrameHeight();
+		var frameHeight = this.getTUIFrameHeight();
 		this.setCache(type,'frameHeight',frameHeight,true);
 		return frameHeight;
+	},
+	
+	getTUIFrameWidth: function() {
+		return this.getFrameWidth();
+	},
+	getTUIFrameHeight: function() {
+		return this.getFrameHeight();
 	}
 });

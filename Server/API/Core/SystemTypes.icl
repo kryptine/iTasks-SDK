@@ -547,6 +547,11 @@ where
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ toLowerCase (last (split "/" (actionName action))) 
 
+isActive:: !ProcessProperties -> Bool
+isActive properties = case properties.ProcessProperties.managerProperties.ManagerProperties.status of
+	Active	= True
+	_		= False
+
 instance descr String
 where
 	toDescr str = {TaskDescription|title = str, description = toString (html str)}
@@ -612,6 +617,15 @@ initManagerProperties =
 	, deadline	= Nothing
 	, status	= Active
 	}
+
+setRunning :: !ProcessProperties -> ProcessProperties
+setRunning properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Running}}
+
+setFinished :: !ProcessProperties -> ProcessProperties
+setFinished properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Finished}}
+
+setExcepted :: !ProcessProperties -> ProcessProperties
+setExcepted properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}
 	
 formatPriority	:: !TaskPriority	-> HtmlDisplay
 formatPriority p = toHtmlDisplay (Text (toText p))

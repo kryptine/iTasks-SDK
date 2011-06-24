@@ -23,7 +23,6 @@ where
 	getNextProcessId 		::														!*st -> (!ProcessId,		!*st)
 
 	getProcess				:: !ProcessId											!*st -> (!Maybe Process,	!*st)
-	getProcessThread		:: !ProcessId											!*st -> (!Maybe Dynamic,	!*st)
 	getProcessContext		:: !ProcessId											!*st -> (!Maybe TaskContext,!*st)
 	
 	getProcessForUser		:: !User !ProcessId										!*st -> (!Maybe Process,	!*st)
@@ -31,7 +30,6 @@ where
 	getProcessesById		:: ![ProcessId]											!*st -> (![Process],		!*st)
 	getProcessesForUser		:: !User ![TaskStatus] ![RunningTaskStatus]				!*st -> (![Process],		!*st)
 	
-	setProcessThread		:: !ProcessId !Dynamic									!*st -> *st
 	setProcessContext		:: !ProcessId !TaskContext								!*st -> *st
 
 	deleteProcess			:: !ProcessId											!*st -> (!Bool,				!*st)

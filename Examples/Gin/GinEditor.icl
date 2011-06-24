@@ -79,7 +79,7 @@ ginEditor` =
 		initialState
 		(\_ _ -> Void)
 		[ ShowAs HiddenTask activator
-		, ShowAs BodyTask \s p -> forever (/*ginInteractionLayout @>>*/ 
+		, ShowAs BodyTask \s p -> forever (ginInteractionLayout @>>
 				(updateSharedInformation "Workflow diagram" [UpdateView (GetShared diagramView, PutbackShared diagramUpdate)] s Void >?* actions s p))
 		]
 

@@ -1,7 +1,8 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.MainContainer = itasks.tui.extendContainer(Ext.Panel,{
-	
+	defaultWidth: ['FillParent', 1, 'ContentSize'],
+	defaultHeight: ['FillParent', 1, 'ContentSize'],
 	initComponent: function(){
 		Ext.apply(this, {
 			layout : "border",
@@ -34,14 +35,20 @@ itasks.tui.MainContainer = itasks.tui.extendContainer(Ext.Panel,{
 		itasks.tui.base.initComponent.apply(this,arguments);
 		this.setTabTitle(this.properties.taskProperties.taskDescription.title);
 	},
-	doTUILayout: function(fillW,fillH) {
-		this.setWidth(fillW);
-		this.setHeight(fillH);
+	getChildSizes: function() {
+		var cached = this.getCache(this.id,'childSizes');
+		if (cached !== null) return cached;
+	
+		var item = this.items.get(1).items.get(0);
+		var sizes = new Ext.util.MixedCollection();
+		sizes.add({
+			item:		item,
+			tuiSize:	item.getTUISize(),
+			minSize:	item.getMinTUISize()
+		});
 		
-		headerHeight = this.items.get(0).getHeight();
-		tbarHeight = this.items.get(1).getTopToolbar().getHeight();
-		
-		this.items.get(1).items.get(0).doTUILayout(fillW,fillH - headerHeight - tbarHeight);
+		this.setCache(this.id,'childSizes',sizes);
+		return sizes;
 	},
 	worktabBackground: function(priority){
 		switch(priority) {
@@ -53,6 +60,13 @@ itasks.tui.MainContainer = itasks.tui.extendContainer(Ext.Panel,{
 	},
 	setTabTitle: function(title) {
 		this.findParentByType(itasks.WorkPanel).setTitle(Ext.util.Format.ellipsis(title,10));
+	},
+	
+	getTUIFrameHeight: function() {
+		headerHeight = this.items.get(0).getHeight();
+		tbarHeight = this.items.get(1).getTopToolbar().getHeight();
+		
+		return itasks.tui.container.getTUIFrameHeight.call(this) + headerHeight + tbarHeight + 4;
 	}
 });
 

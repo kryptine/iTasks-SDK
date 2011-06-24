@@ -233,6 +233,8 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	, firstEvent		:: !Maybe Timestamp			//* When was the first work done on this task
 	, latestEvent		:: !Maybe Timestamp			//* When was the latest event on this task	
 	}
+
+isActive :: !ProcessProperties -> Bool
 	
 //* String serialization of TaskNr values	
 :: TaskId :== String		
@@ -276,6 +278,10 @@ instance descr TaskDescription
 
 initTaskProperties :: TaskProperties
 initManagerProperties :: ManagerProperties
+
+setRunning	:: !ProcessProperties -> ProcessProperties
+setFinished	:: !ProcessProperties -> ProcessProperties
+setExcepted	:: !ProcessProperties -> ProcessProperties
 
 // Users	
 :: User
