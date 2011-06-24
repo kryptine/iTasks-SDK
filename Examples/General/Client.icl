@@ -44,7 +44,7 @@ where
 	
 processTable =
 		get currentUser
-	>>=	\user. updateSharedInformation "process table" [UpdateView (GetShared (Table o map toView), PutbackShared \_ _ _ -> Void)] (currentProcessesForUser user) Void >>+ noActions
+	//>>=	\user. updateSharedInformation "process table" [UpdateView (GetShared (Table o map toView), PutbackShared \_ _ _ -> Void)] (currentProcessesForUser user) Void >>+ noActions
 where
 	toView {Process|properties=p=:{taskProperties,managerProperties,systemProperties}} =
 		{ title		= Display taskProperties.taskDescription.TaskDescription.title

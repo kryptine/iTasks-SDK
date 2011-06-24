@@ -4,6 +4,9 @@ import iTasks, Text
 from StdFunc import seq
 
 tableExamples :: [Workflow]
+tableExamples = []
+
+/*tableExamples :: [Workflow]
 tableExamples =	[ workflow "Examples/Miscellaneous/Plant dataset table" "Uses the Table type to represent a simple plant dataset." plantExample
 				, workflow "Examples/Miscellaneous/Symmetric lens" "This example shows the usage of the symmetric lens combinator." symmetricLensExample
 				]
@@ -145,4 +148,4 @@ instance < (Maybe a) | < a
 where
 	(<) (Just x) (Just y)	= x < y
 	(<) Nothing (Just _) 	= True
-	(<) _ _					= False
+	(<) _ _					= False*/

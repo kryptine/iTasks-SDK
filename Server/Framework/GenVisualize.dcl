@@ -13,7 +13,7 @@ derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode
-derive gVisualize EmailAddress, Action, Table, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
+derive gVisualize EmailAddress, Action, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> TUIDef	| gVisualize{|*|} a

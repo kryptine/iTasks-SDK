@@ -15,13 +15,13 @@ from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONEncode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive JSONDecode	EmailAddress, Session, Action, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
-derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, Table, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
 derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
@@ -155,10 +155,6 @@ mkTree		:: ![TreeNode a]	-> Tree a
 mkTreeSel	:: ![TreeNode a] !a	-> Tree a | gEq{|*|} a
 //* Gets the currently selected leaf of a VALID tree
 getSelectedLeaf :: !(Tree a) -> a
-
-:: Table a = Table ![a]
-
-fromTable :: !(Table a) -> [a]
 
 //* Field behaviour extensions
 :: VisualizationHint a 	= VHEditable a
