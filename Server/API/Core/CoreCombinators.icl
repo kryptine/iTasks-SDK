@@ -494,14 +494,14 @@ where
 		_				= abort "action task in parallel"
 
 spawnProcess :: !Bool !ManagerProperties !(Task a) -> Task ProcessId | iTask a
-spawnProcess gcWhenDone managerProperties task = undef /*TODO mkTask ("Spawn process", "Spawn a new task instance") id spawnProcess`
+spawnProcess gcWhenDone managerProperties task = abort "spawn process is broken" /*TODO mkTask ("Spawn process", "Spawn a new task instance") id spawnProcess`
 where
 	spawnProcess` tst
 		# (pid,_,tst)	= createTaskInstance (createThread task) True gcWhenDone managerProperties menu tst
 		= (TaskFinished pid, tst)
 */
 killProcess :: !ProcessId -> Task Void
-killProcess pid = undef
+killProcess pid = abort "kill process is broken"
 /* TODO mkTask ("Kill process", "Kill a running task instance") init
 where
 	killProcess` tst 

@@ -115,11 +115,13 @@ where
 	defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
 					, mbTaskNr			= Nothing
 					, type = NormalTask
-						{ initFun		= undef
-						, editEventFun	= undef
-						, evalTaskFun	= undef
+						{ initFun		= abort funerror
+						, editEventFun	= abort funerror
+						, evalTaskFun	= abort funerror
 						}
 					}
+	funerror = "Creating default task functions is impossible"
+	
 gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
 
 gDefaultMask{|Task|} _ _ = [Touched []]
