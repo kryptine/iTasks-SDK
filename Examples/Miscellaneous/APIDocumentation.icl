@@ -204,8 +204,8 @@ typeDocToTeX :: !TypeDoc -> [LaTeX]
 typeDocToTeX { TypeDoc | ident, type, description, typeRhsDoc }
 	=	[ Subsection (ident +++ " type")
 		, Index (ident +++ " type")
-		, CleanCode [ prettyPrint type ]
 		, 'LaTeX'.Text description
+		, CleanCode [ prettyPrint 120 type ]
 		] ++ typeRhsToTeX typeRhsDoc
 
 typeRhsToTeX :: !TypeRhsDoc -> [LaTeX]
@@ -248,8 +248,9 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 			Nothing = ident
 	=	[ Subsection name
 		, Index name
+		, 'LaTeX'.Text description
 		, CleanCode
-			[	prettyPrint 
+			[	prettyPrint 120
 				(	(case operator of
 						Just op = parens (text ident <+> op)
 						Nothing = text ident
@@ -261,14 +262,13 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 					<+> context
 				)
 		    ]
-		, 'LaTeX'.Text description
 		, Paragraph "Parameters"
 		, (if (isEmpty params)
 			('LaTeX'.Text "(none)")
 			(Environment "itemize*" (map parameterToTeX params))
 		  )
 		, Paragraph "Returns"
-		, CleanInline (prettyPrint returnType)
+		, CleanInline (prettyPrint 120 returnType)
 		, EmDash
 		, 'LaTeX'.Text returnDescription
 		]
@@ -283,7 +283,7 @@ functionToTeX {FunctionDoc | ident, operator, params, description, returnType, r
 parameterToTeX :: !ParameterDoc -> LaTeX
 parameterToTeX {ParameterDoc | title, type, description} = 
 	Item	[ 'LaTeX'.Text title
-			, CleanInline (" :: " +++ prettyPrint type)
+			, CleanInline (" :: " +++ prettyPrint 120 type)
 			, EmDash
 			, 'LaTeX'.Text description
 			]
