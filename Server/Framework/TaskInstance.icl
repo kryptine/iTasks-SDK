@@ -149,7 +149,7 @@ where
 	evalTask` props changeNo scontext commitEvent tuiTaskNr thread properties iterationCount iworld
 		# (res,iworld) = evaluateWorkflowInstanceEval processId props changeNo [changeNo,processId] properties thread scontext commitEvent tuiTaskNr iworld
 		= case res of
-			TaskBusy _ _ _ | isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
+			TaskBusy _ _ scontext | isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
 				= evalTask` props changeNo scontext Nothing tuiTaskNr thread properties (inc iterationCount) iworld
 			_
 				= (res, iworld)
