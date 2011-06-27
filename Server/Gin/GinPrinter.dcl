@@ -10,6 +10,7 @@ where
 	def :: a -> a
 	scope :: [a] -> a
 	newscope :: [a] -> a
+	align :: a -> a
 	(<->) infixr 6 :: a a -> a
 	(<+>) infixr 6 :: a a -> a
 	(</>) infixr 5 :: a a -> a

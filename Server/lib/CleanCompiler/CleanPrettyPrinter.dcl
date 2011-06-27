@@ -20,6 +20,6 @@ instance Pretty ParsedSelector
 
 instance Pretty Doc
 
-prettyPrint :: a -> String | Pretty a
+prettyPrint :: Int a -> String | Pretty a
 
 

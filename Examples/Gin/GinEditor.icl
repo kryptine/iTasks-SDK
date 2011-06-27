@@ -15,6 +15,7 @@ import GinStorage
 import GinSyntax
 
 import FilePath, File
+from Util import appFst
 
 //from Serialization import qualified serialize, deserialize
 
@@ -33,11 +34,11 @@ where
 	    dialog config = updateInformation "GiN editor setup" [] config >>= \config = 
 	                    accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) (dialog config)
 
-
 :: EditorState = 
     { config		:: !GinConfig
     , name			:: !Maybe String
     , gMod			:: !GModule
+    , checkSyntax	:: !Bool
     , changed		:: !Bool
     , dirty			:: !Bool
     , errors		:: ![ORYXError]
@@ -53,6 +54,7 @@ getInitialState = getConfig >>= \config -> return
 	| config		= config
 	, name			= Nothing
 	, gMod			= updateDiagramExtensions newModule
+	, checkSyntax	= False
 	, changed		= False
 	, dirty			= False
 	, errors		= []
@@ -68,28 +70,31 @@ ActionViewWorkflow     :== Action "View/Workflow"
 ActionViewImports      :== Action "View/Imports"			
 ActionViewTypes        :== Action "View/Types"				   
 ActionViewSource       :== Action "View/Generated source"   
-//ActionEnableSC         :== Action "sc_on"  			"Enable syntax checking"
-//ActionDisableSC        :== Action "sc_off" 			"Disable syntax checking"
+ActionEnableSC         :== Action "Options/Enable syntax checking"
+ActionDisableSC        :== Action "Options/Disable syntax checking"
 
 ginEditor` :: Task Void
 ginEditor` = 
 	getInitialState >>= \initialState -> 
-	ginParallelLayout @>> parallel
+	ginParallelLayout @>> 
+	parallel
 		"GiN Editor"
 		initialState
 		(\_ _ -> Void)
-		[ ShowAs HiddenTask activator
-		, ShowAs BodyTask \s p -> forever (ginInteractionLayout @>>
-				(updateSharedInformation "Workflow diagram" [UpdateView (GetShared diagramView, PutbackShared diagramUpdate)] s Void >?* actions s p))
+		[ ShowAs BodyTask \s p -> forever (ginInteractionLayout @>>
+				(updateSharedInformation "Workflow diagram" 
+					[UpdateView (GetShared diagramView, PutbackShared diagramUpdate)] 
+					s Void) >>+ noActions
+				)
+		, ShowAs HiddenTask \s p -> forever (chooseAction (actions s p) >>= id)
+		, ShowAs HiddenTask activator		
 		]
 
 ginParallelLayout :: ParallelLayouter
-ginParallelLayout = \{TUIParallel|title,description,items} -> 
-	if (length items == 1) 
-		(last items) 
-		(let (tuis,actions) = unzip (tl items ++ [hd items]) in
-			(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 0) tuis, flatten actions))
-
+ginParallelLayout = \par=:{TUIParallel|title,description,items}-> 
+	case items of
+		[(Just editor,_),(_,actions),activator]	= (editor,actions)
+		_ 										= defaultParallelLayout par
 
 ginInteractionLayout :: InteractionLayouter
 ginInteractionLayout = \interaction = 
@@ -123,14 +128,16 @@ where
 			}
 
 activator :: (Shared EditorState) (ParallelInfo s) -> Task Void
-activator stateShared parallelInfo = forever activator`
+activator stateShared parallelInfo = forever activator` 
 where
 	activator` :: Task Void
 	activator` =	(showSharedInformation "Diagram monitor" [] stateShared Void >? \(state,_) -> state.dirty) //Look for the dirty flag to become True
-					>>= \(state,_) -> generateSource state
-					>>= \state -> checkErrors state
-					>>= \state -> update (\_ -> { state & dirty = False } ) stateShared //Reset dirty flag
-					>>| stop
+					>>= \(state,_) -> return { EditorState | state & dirty = False, changed = True }
+					>>= generateSource
+					>>= \state -> (if state.EditorState.checkSyntax 
+									(checkErrors state)
+									(return state))
+					>>= set stateShared >>| stop
 
 generateSource :: EditorState -> Task EditorState
 generateSource state = accWorld (tryRender state.EditorState.gMod state.EditorState.config POICL) 
@@ -146,36 +153,39 @@ where
 	makeErrorString (CompileSuccess _) = []
 	makeErrorString (CompileGlobalError error) = [makeORYXError ((hd defs).GDefinition.body) ([], error)]
 	makeErrorString (CompilePathError errors) = map (makeORYXError ((hd defs).GDefinition.body)) errors
-	
-actions :: (Shared EditorState) (ParallelInfo EditorState) -> [(!Action,!TaskContinuation state Void)]
+
+actions :: (Shared EditorState) (ParallelInfo EditorState) -> [(Action, Task Void)]
 actions stateShared parallelInfo
-	=	[ (ActionNew,              Always stop)
-		, (ActionOpen,             Always (actionTask "Open" open))
-		, (ActionSave,             Always (actionTask "Save" save))
-		, (ActionSaveAs,           Always (actionTask "Save as" saveAs))
-		, (ActionCompile,          Always (actionTask "Compile" compile))
-		, (ActionRun,              Always (actionTask "Run" run))
-		, (ActionQuit,             Always (set parallelInfo [StopParallel] >>| stop))
-		, (ActionAbout,            Always (actionTask "About" showAbout))
-		, (ActionViewDeclaration,  Always (moduleEditor "Declaration" (declarationView, declarationUpdate)))
-		, (ActionViewImports,      Always importsEditor)
-		, (ActionViewTypes,        Always (moduleEditor "Types" (typesView, typesUpdate)))
-		, (ActionViewSource,       Always sourceView)
+	=	[ (ActionNew,              actionTask (\s -> askSaveIfChanged s >>| getInitialState))
+		, (ActionOpen,             actionTask open)
+		, (ActionSave,             actionTask save)
+		, (ActionSaveAs,           actionTask saveAs)
+		, (ActionCompile,          actionTask compile)
+		, (ActionRun,              actionTask run)
+		, (ActionQuit,             set parallelInfo [StopParallel] >>| stop)
+		, (ActionViewDeclaration,  moduleEditor "Declaration" (declarationView, declarationUpdate))
+		, (ActionViewImports,      importsEditor)
+		, (ActionViewTypes,        moduleEditor "Types" (typesView, typesUpdate))
+		, (ActionViewSource,       sourceView)
+		, (ActionEnableSC,	       actionTask (\s -> checkErrors { s & checkSyntax = True }))
+		, (ActionDisableSC,	       actionTask (\s -> return { s & checkSyntax = False }))
+		, (ActionAbout,            actionTask showAbout)
 		]
 	where
-		actionTask title task = get stateShared >>= task >>= set stateShared >>| stop
-	
-		addTask title task = set parallelInfo [AppendTask (ShowAs (WindowTask title) (\s _ -> task))] >>| stop
+		addTask task = defaultInteractionLayout @>>
+			set parallelInfo [AppendTask (ShowAs BodyTask (\s _ -> task))] >>| stop
 
-		moduleEditor title v = addTask title (updateSharedInformation title [UpdateView (app2 (GetShared,\f -> PutbackShared (\a _ e -> f a e)) (liftModuleView v))] stateShared Void)
+		actionTask task = addTask (get stateShared >>= task >>= set stateShared)
+
+		moduleEditor title v = addTask (updateSharedInformation title [UpdateView (app2 (GetShared,\f -> PutbackShared (\a _ e -> f a e)) (liftModuleView v))] stateShared Void)
 		
 		declarationEditor = moduleEditor "declaration" (declarationView, declarationUpdate)
-		importsEditor = addTask "imports" 
+		importsEditor = addTask 
 			(					get stateShared 
 				>>= \state	 ->	accWorld (searchPathModules state.EditorState.config)
 				>>= \modules ->	moduleEditor "imports" (importsView modules, importsUpdate)
 			)
-		sourceView = addTask "source" (showSharedInformation "source view" [ShowView (GetShared (\s -> Note s.EditorState.source))] stateShared Void)
+		sourceView = addTask (showSharedInformation "source view" [ShowView (GetShared (\s -> formatSource s.EditorState.source))] stateShared Void)
 
 liftModuleView :: (GModule -> a, a GModule -> GModule) -> (EditorState -> a, a EditorState -> EditorState)
 liftModuleView (toView, fromView) = 
@@ -224,7 +234,7 @@ setChanged old new = if (old.EditorState.gMod =!= new.EditorState.gMod) { new & 
 open :: EditorState -> Task EditorState 
 open state = getInitialState >>= \initialState -> chooseModule state.EditorState.config >>= \mMod = 
 	case mMod of
-		Just (name, gMod) = return { EditorState | initialState & name = Just name, gMod = gMod }
+		Just (name, gMod) = return { EditorState | initialState & name = Just name, gMod = gMod } >>= generateSource
 		Nothing			  = return state
 
 save :: EditorState -> Task EditorState
@@ -280,9 +290,8 @@ instance toString DynamicIOException
 where
 	toString (DynamicIOException errorString) = errorString
 */
-
-formatSource :: String -> HtmlTag
-formatSource source = TextareaTag [ColsAttr "80", RowsAttr "25"] [ Text source ]
+formatSource :: String -> HtmlDisplay
+formatSource source = toHtmlDisplay (TextareaTag [ColsAttr "80", RowsAttr "25"] [ Text source ])
 
 tryRender :: GModule GinConfig PrintOption *World -> (String, *World)
 tryRender gMod config printOption world
@@ -293,7 +302,7 @@ tryRender gMod config printOption world
 = (source, world)
 
 showAbout :: EditorState -> Task EditorState
-showAbout state = showInformation ("Gin workflow editor", "version 0.1") [] state
+showAbout state = showInformation "Gin workflow editor" [] "version 0.2" >>| return state
 
 accIWorld :: !(*IWorld -> *(!a,!*IWorld)) -> Task a | iTask a
 accIWorld fun = mkInstantTask ("Run Iworld function", "Run an IWorld function and get result.") eval

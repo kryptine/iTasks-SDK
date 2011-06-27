@@ -147,7 +147,7 @@ where
 	# compilingInfo = InitCompilingInfo //<- TODO: remove
 	# (compilingInfo, (env, _, compilerMsg)) = 
 		CompilePersistent
-				("Tools" </> "Clean System" </> "CleanCompiler.exe : -h 64M")
+				("iTasks-SDK" </> "Compiler" </> "CleanCompiler.exe" +++ " : -h 64M -dynamics -generics")
 		        False                                      //Don't write module times
 		        addError                                   //Error display function
 		        (\_ x -> x)                                //Types display function

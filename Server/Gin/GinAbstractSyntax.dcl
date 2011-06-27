@@ -23,6 +23,9 @@ import Void
                  , body         :: AExpression Void
                  , locals       :: [ADefinition]
                  }
+
+:: Locals :== [ADefinition]
+                 
 :: AExpression ex = 
     Unparsed String
     | Lit String
@@ -30,7 +33,7 @@ import Void
     | App [AExpression ex]
     | AppInfix AIdentifier AFix APrecedence (AExpression ex) (AExpression ex) 
     | Lambda APattern (AExpression ex)
-    | Let [(APattern, (AExpression ex))] (AExpression ex)
+    | Let 	 [(APattern, (AExpression ex))] (AExpression ex)
     | Case (AExpression ex) [ACaseAlt ex]
     | Tuple [AExpression ex]
     | List [AExpression ex]
@@ -55,6 +58,19 @@ import Void
 
 :: AFix = Infixl | Infixr | Infix
 :: APrecedence :== Int
+
+:: Vars :== [AIdentifier]
+
+emptyVars :: Vars
+addVar :: AIdentifier Vars -> Vars
+addVars :: [AIdentifier] Vars -> Vars
+mergeVars :: [Vars] -> Vars
+inVars :: AIdentifier Vars -> Bool
+
+:: Scope :== Vars
+emptyScope :== emptyVars
+bind :== addVar
+inScope :== inVars
 
 derive class iTask AModule, ADefinition, AExpression, ACaseAlt, AListComprehension, AGeneratorList, AGenerator, AFix
 

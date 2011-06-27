@@ -98,5 +98,5 @@ newModule = { GModule
 			| name = "newModule"
 			, types = []
 			, moduleKind = GGraphicalModule [newWorkflow]
-			, imports = [ ]
+			, imports = [ "CommonCombinators", "CoreTasks", "InteractionTasks" ]
 			}

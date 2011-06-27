@@ -50,7 +50,7 @@ derive class iTask      GTypeExpression, GTypeDefinition, GTypeRhs, GDataConstru
 
 typeIsDefined :: GTypeExpression -> Bool
 
-printGTypeExpression :: GTypeExpression -> a | Printer a
+printGTypeExpression :: Bool GTypeExpression -> a | Printer a
 
 printGTypeDefinition :: GTypeDefinition -> a | Printer a
 

@@ -3,10 +3,10 @@ definition module PmTypes
 // The types for the Project Manager
 
 from	StdPathname			import :: Pathname
-//from	UtilNewlinesFile	import :: NewlineConvention(..)
+from	UtilNewlinesFile	import :: NewlineConvention(..)
 import	PmCompilerOptions
 from	UtilStrictLists		import :: List
-//import	UtilDate
+import	UtilDate
 
 ::	Modulename			:== String
 
@@ -66,7 +66,6 @@ instance == OptionalWindowPosAndSize
 
 DefWindowPos_and_Size	:: WindowPos_and_Size
 
-/*
 ::	EditOptions	=
 	{ newlines	:: !NewlineConvention	// newline convention
 /*	
@@ -80,18 +79,15 @@ DefWindowPos_and_Size	:: WindowPos_and_Size
 	, showsync	:: !Bool
 */
 	}
-*/
 
-//instance == EditOptions
+instance == EditOptions
 
 //	The Edit Window parameters: edit options and window position and size
 
-/*
 ::	EditWdOptions	=
 	{ eo			:: !EditOptions
 	, pos_size		:: !OptionalWindowPosAndSize 
 	}
-*/
 
 //	The Code Generator Options: default settings for the code generator
 
@@ -142,7 +138,7 @@ DefApplicationOptions	:: ApplicationOptions
 instance == Output
 instance toString Output
 instance fromString Output
-/*
+
 :: ModInfoAndName =
 	{ info	:: ModInfo
 	, name	:: {#Char}
@@ -155,14 +151,12 @@ instance fromString Output
 	, abcLinkInfo		:: !ABCLinkInfo			// found dependant libs and objs
 	}
 
-
 ::	ModEditOptions = {
 		defeo 		:: !EditWdOptions,		// definition module edit options
 		impeo		:: !EditWdOptions,		// implementation module edit options
 		defopen 	:: !Bool,				// definition module is open
 		impopen 	:: !Bool				// implementation module is open
 	}
-*/	
 
 :: ABCLinkInfo =
 	{ linkObjFileNames :: !List LinkObjFileName

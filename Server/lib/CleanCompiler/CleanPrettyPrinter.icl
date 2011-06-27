@@ -90,8 +90,8 @@ instance Pretty TypeVar where
 intersperse :: Doc [Doc] -> Doc
 intersperse sep xs = hcat (punctuate sep xs)
 
-prettyPrint :: a -> String | Pretty a
-prettyPrint x = display (renderPretty 0.9 80 (nest 4 (pretty x)))
+prettyPrint :: Int a -> String | Pretty a
+prettyPrint width x = display (renderPretty 0.9 width (nest 4 (pretty x)))
 
 instance Pretty Doc where
 	pretty doc = doc

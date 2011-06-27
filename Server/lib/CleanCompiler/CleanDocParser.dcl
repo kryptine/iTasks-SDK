@@ -3,9 +3,12 @@ definition module CleanDocParser
 from Maybe		import	::Maybe
 from Error		import	::MaybeErrorString, ::MaybeError
 from hashtable	import	::HashTable
-from syntax		import	::ParsedDefinition
+from syntax		import	::ParsedDefinition, ::ParsedExpr
 
 parseModule :: !String !Bool *File -> ([ParsedDefinition], *File)
+
+parseExpression :: !String *File -> (ParsedExpr, *File)
+parseExpressionUnsafe :: !String -> Maybe ParsedExpr
 
 :: ModuleComment = 
 	{ description	:: !Maybe String

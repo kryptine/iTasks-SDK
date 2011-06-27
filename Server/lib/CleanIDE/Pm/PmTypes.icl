@@ -4,7 +4,7 @@ implementation module PmTypes
 
 import StdBool, StdInt
 import UtilStrictLists
-//from UtilNewlinesFile import :: NewlineConvention(..)
+from UtilNewlinesFile import :: NewlineConvention(..)
 import PmCompilerOptions
 from StdPathname import :: Pathname
 import StdFile
@@ -97,7 +97,7 @@ where
 	toString PowerPC_MachO			=	"PowerPC_MachO"
 	toString I386					=	"I386"
 	toString CurrentProcessor		=	"CurrentProcessor"
-/*
+
 :: ModInfoAndName =
 	{
 		info	:: ModInfo,
@@ -117,7 +117,7 @@ where
 		defopen 	:: !Bool,				// definition module is open
 		impopen 	:: !Bool				// implementation module is open
 	}
-*/
+
 :: ABCLinkInfo = {linkObjFileNames :: !List LinkObjFileName, linkLibraryNames :: !List LinkLibraryName}
 
 :: LinkObjFileName	:== String
@@ -244,7 +244,7 @@ DefWindowPos_and_Size =
 
 
 //	The Editor Options: default settings for the EditWindows.
-/*
+
 ::	EditOptions	=
 	{/*	tabs		:: !Int
 	,	fontname	:: !String				// !FontName
@@ -274,7 +274,7 @@ where
 	,	pos_size	:: !OptionalWindowPosAndSize 
 	}
 	// edit options, window pos&size
-*/	
+	
 //	The Code Generator Options: default settings for the code generator
 ::	CodeGenOptions =
 	{ cs	:: !Bool

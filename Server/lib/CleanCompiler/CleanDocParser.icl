@@ -1,11 +1,13 @@
 implementation module CleanDocParser
 
 import StdEnv
-import Text
 
+import File
+import Text
 import Maybe
 import Error
 import ParserCombinators
+import _Unsafe
 
 import GenEq
 
@@ -42,14 +44,39 @@ from scanner	import
 from syntax		import
 						::SymbolTable,
 						::SymbolTableEntry,
+						::SymbolPtr,
 						::ModuleKind(..),
-						::ParsedDefinition
+						::ParsedDefinition,
+						::ParsedExpr(..),
+						::ArrayKind,
+						::TypeKind,
+						::Ident(..),
+						::Env,
+						::FieldNameOrQualifiedFieldName,
+						::Bind,
+						::DynamicType,
+						::CodeBinding,
+						::Global,
+						::FieldSymbol,
+						::Sequence,
+						::Qualifier,
+						::LocalDefs,
+						::CaseAlt,
+						::ParsedSelection,
+						::ParsedSelectorKind,
+						::ElemAssignment,
+						::FieldAssignment,
+						::OptionalRecordName,
+						::Position,
+						::BoundExpr,
+						::BasicValue
 from parse		import	
 						::ParseErrorAdmin(..),
 						::ParseState(..),
 						::ParseContext(..),					
 						SetGlobalContext,
 						wantDefinitions,
+						wantExpression,
 						PS_SupportGenericsMask
 						
 parseModule :: !String !Bool *File -> ([ParsedDefinition], *File)
@@ -110,6 +137,34 @@ stringScanner input
 					,	ss_tokenBuffer	=	Buffer0
 					}
 
+parseExpression :: !String *File -> (ParsedExpr, *File)
+parseExpression input error
+# hash_table = newHashTable newHeap
+# scanState = stringScanner input
+# hash_table = set_hte_mark 1 hash_table
+# parseState =
+	{ ps_scanState = scanState
+	, ps_error = { pea_file = error, pea_ok = True }
+	, ps_flags = PS_SupportGenericsMask
+	, ps_hash_table = hash_table
+	}
+# (expr,parseState) = wantExpression False parseState
+= (expr, parseState.ps_error.pea_file)
+
+parseExpressionUnsafe :: !String -> Maybe ParsedExpr
+parseExpressionUnsafe input = accUnsafe parse
+where
+	parse :: *World -> (Maybe ParsedExpr, *World)
+	parse world
+	# errorFilename = "errors.txt"
+	# (ok, file, world) = fopen errorFilename FWriteText world
+	| not ok = (Nothing, world)
+	# (exp, file) = parseExpression input file
+	# (ok,world) = fclose file world
+	| not ok = (Nothing, world)
+	# (res,world) = deleteFile errorFilename world
+	| isError res = (Nothing, world)
+	= (Just exp, world)
 
 //Lexer for documentation blocks
 :: DocToken	= ParamDocToken
@@ -255,3 +310,12 @@ pTypeComment :: Parser DocToken TypeComment
 pTypeComment = begin1 pTypeComment`
 where
 	pTypeComment` = pText <&> \description -> yield { TypeComment | emptyTypeComment & description = Just description }
+
+allTokens :: ScanState -> [Token]
+allTokens sState
+# (token, sState) = nextToken GeneralContext sState
+= case token of
+	EndOfFileToken = [EndOfFileToken]
+	t = [t : allTokens sState]
+	
+Start = allTokens (stringScanner "a")

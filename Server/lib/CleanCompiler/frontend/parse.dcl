@@ -30,3 +30,6 @@ wantModule :: !Bool !Ident !Position !Bool !*HashTable !*File !SearchPaths (ModT
 
 wantDefinitions :: !ParseContext !ParseState -> (![ParsedDefinition], !ParseState)
 
+wantExpression :: !Bool !ParseState -> (!ParsedExpr, !ParseState)
+
+

@@ -40,9 +40,6 @@ expandDefinition aDef =: { ADefinition | body }
                 , locals = map expandDefinition aDef.ADefinition.locals ++ reverse accLocals
                 }
 
-:: Scope :== [AIdentifier]
-:: Locals :== [ADefinition]
-
 expandExpression :: Scope Locals (AExpression Void)  -> (Locals, AExpression Void)
 expandExpression scope accLocals (Unparsed s) = (accLocals, Unparsed s)
 expandExpression scope accLocals (Lit s) = (accLocals, Lit s)
@@ -120,11 +117,20 @@ expandMap scope accLocals f [x:xs]
 	# (accLocals, xs`) = expandMap scope accLocals f xs
 	= (accLocals, [x`:xs`])
 
-/**
-* Adds a new identifier to scope
-*/
-bind :: GIdentifier Scope -> Scope
-bind i scope = [i : filter (\p = p <> i) scope]
+emptyVars :: Vars
+emptyVars = []
+
+addVar :: AIdentifier Vars -> Vars
+addVar i vars = [i : filter (\p = p <> i) vars]
+
+addVars :: [AIdentifier] Vars -> Vars
+addVars is vars = foldr addVar vars is
+
+mergeVars :: [Vars] -> Vars
+mergeVars vs = foldr addVars emptyVars vs
+
+inVars :: AIdentifier Vars -> Bool
+inVars ident vars = isMember ident vars
 
 makeLocal :: Scope Locals (AExpression Void) -> (Locals, (AExpression Void))
 makeLocal scope accLocals exp
@@ -201,7 +207,9 @@ printAImports opt imports
 							[]
 						)
 	//CoreCombinators is necessary for >>= and >>|, which do not require explicit imports in Gin
-	= map (\i -> def (text "import" <+> text i)) (standardImports ++ removeDup (sort ["CoreCombinators" : imports]))
+	=	[ def (text "import" <+> align (fillSep (punctuate comma [ text i \\ i <- standardImports ])))
+		, def (text "import" <+> align (fillSep (punctuate comma [ text i \\ i <- removeDup (sort ["CoreCombinators" : imports])])))
+		] 
 
 printATypes :: PrintOption [GTypeDefinition] -> [a] | Printer a
 printATypes opt _ | opt == POICL = []
@@ -238,10 +246,10 @@ printADefinitionType { ADefinition | name, formalParams, returnType }
 	    	  <+> text "::"
 	    	  </> if (isEmpty formalParams)
 	    	  	  empty
-		          ( fillSep (map (\fp = printGTypeExpression fp.GFormalParameter.type) formalParams) 
+		          ( fillSep (map (\fp = printGTypeExpression True fp.GFormalParameter.type) formalParams) 
 		            </> (text "->" </> space) </> empty
 		          )
-		      <-> printGTypeExpression returnType
+		      <-> printGTypeExpression False returnType
 		    )
 		]
 	| otherwise 
@@ -254,9 +262,9 @@ printADefinitionBody opt { ADefinition | name, formalParams, body, locals } =
 			<+> if (isEmpty formalParams) empty 
 			     (fillSep (map (\fp = text fp.GFormalParameter.name) formalParams) <-> space)
 			<-> char '='
-			</> printAExpression opt body
+			</> printAExpression opt False body
 		  )
-	] 
+	]
 	++ if (isEmpty locals) 
 			[]
 			[ text "where"
@@ -279,58 +287,57 @@ printAStart POWriteDynamics aMod
 		]
 printAStart _ _ = []
 
-printAExpression :: PrintOption (AExpression Void) -> a | Printer a
-printAExpression opt (Unparsed s) = parens (string s)
-printAExpression opt (Lit s) = text s
-printAExpression opt (Var v) = text v
-printAExpression opt (App exps) = fillSep (map (printWithParens opt) exps)
-printAExpression opt (AppInfix i fix prec e1 e2)
-	# doc1 = case e1 of
-		(AppInfix e1i e1fix e1prec _ _) = if (e1prec < prec || i == e1i && fix == Infixl) (printAExpression opt e1) (printWithParens opt e1)
-		otherwise                       = printAExpression opt e1
-	# doc2 = case e2 of
-		(AppInfix e2i e2fix e2prec _ _) = if (e2prec < prec || i == e2i && fix == Infixr) (printAExpression opt e2) (printWithParens opt e2)
-		otherwise                       = printAExpression opt e2
-	= doc1 <$> text i </> doc2
-printAExpression opt (Lambda pat exp) = text "\\" <-> printAPattern opt pat </> text "->" </> printAExpression opt exp
-printAExpression opt (Let defs inexp) = text "let" <-> 
-	newscope (map (\(pat,exp) -> text pat </> text "=" </> printAExpression opt exp) defs) <$>
-	text "in" </> printAExpression opt inexp
-printAExpression opt (Case exp alts) = parens (text "case" </> (printAExpression opt exp) </> (text "of") <$>
-    newscope (map (\alt = printACaseAlt opt alt) alts))
-printAExpression opt (Tuple exps) = parens (fillSep (punctuate comma (map (printAExpression opt) exps)))
-printAExpression opt (List exps) = brackets (fillSep (punctuate comma (map (printAExpression opt) exps)))
-printAExpression opt (ListComprehension alc) = printAListComprehension opt alc
-printAExpression opt (PathContext path exp) | opt == POSyntaxCheck		= position path <-> printAExpression opt exp
-                                            | otherwise                 = printAExpression opt exp
 
-printWithParens :: PrintOption (AExpression Void) -> a | Printer a
-printWithParens opt exp | needsParens exp = parens (printAExpression opt exp)
-                        | otherwise       = printAExpression opt exp where
-    needsParens :: (AExpression Void) -> Bool
-    needsParens (App _ )             = True
-    needsParens (AppInfix _ _ _ _ _) = True
-    needsParens (Lambda _ _)         = True
-    needsParens (Case _ _)           = True
-    needsParens (PathContext _ exp)  = needsParens exp
-    needsParens _                    = False
+printAExpression :: PrintOption Bool (AExpression Void) -> a | Printer a
+printAExpression opt withParens (Unparsed s) = parens (string s)
+printAExpression opt withParens (Lit s) = text s
+printAExpression opt withParens (Var v) = text v
+printAExpression opt withParens (App exps) = addParens withParens (fillSep (map (printAExpression opt True) exps))
+printAExpression opt withParens (AppInfix i fix prec e1 e2)
+	# doc1 = case e1 of
+		(AppInfix e1i e1fix e1prec _ _) = printAExpression opt (e1prec < prec || i == e1i && fix == Infixl) e1
+		otherwise                       = printAExpression opt False e1
+	# doc2 = case e2 of
+		(AppInfix e2i e2fix e2prec _ _) = printAExpression opt (e2prec < prec || i == e2i && fix == Infixr) e2
+		otherwise                       = printAExpression opt False e2
+	= doc1 <$> text i </> doc2
+printAExpression opt withParens (Lambda pat exp)
+	= addParens withParens (text "\\" <-> printAPattern opt pat </> text "->" </> printAExpression opt False exp)
+printAExpression opt withParens (Let defs inexp) = addParens withParens (align (text "let" <+> 
+	newscope (map (\(pat,exp) -> text pat </> text "=" </> align (printAExpression opt False exp)) defs) <$>
+	text "in" </> align (printAExpression opt False inexp)))
+printAExpression opt withParens (Case exp alts) 
+	= addParens withParens 
+		(	align	(text "case" </> (printAExpression opt False exp) </> (text "of") <$>
+						newscope (map (\alt = printACaseAlt opt alt) alts)
+					)
+    	)
+printAExpression opt withParens (Tuple exps) = parens (fillSep (punctuate comma (map (printAExpression opt False) exps)))
+printAExpression opt withParens (List exps) = brackets (fillSep (punctuate comma (map (printAExpression opt False) exps)))
+printAExpression opt withParens (ListComprehension alc) = printAListComprehension opt alc
+printAExpression opt withParens (PathContext path exp) 
+	| opt == POSyntaxCheck	= position path <-> printAExpression opt withParens exp
+	| otherwise				= printAExpression opt withParens exp
+
+addParens :: Bool a -> a | Printer a
+addParens withParens a = if withParens (parens a) a
 
 printAListComprehension  :: PrintOption (AListComprehension Void) -> a | Printer a
 printAListComprehension opt alc = brackets
-    ( (printAExpression opt alc.AListComprehension.output) 
+    ( (printAExpression opt False alc.AListComprehension.output) 
       </> text "\\\\" 
       </> printGeneratorList opt alc.AListComprehension.generators
-      </> hsep (map (\guard -> text "|" </> printAExpression opt guard) alc.AListComprehension.guards))
+      </> hsep (map (\guard -> text "|" </> printAExpression opt False guard) alc.AListComprehension.guards))
     
 printGeneratorList :: PrintOption (AGeneratorList Void) -> a | Printer a
 printGeneratorList opt (NestedGeneratorList generators) = fillSep (punctuate comma (map (printGenerator opt) generators))
 printGeneratorList opt (ParallelGeneratorList generators) = fillSep (punctuate (text "&") (map (printGenerator opt) generators))
 
 printGenerator :: PrintOption (AGenerator Void) -> a | Printer a
-printGenerator opt (Generator sel exp) = printAPattern opt sel </> text "<-" </> printAExpression opt exp
+printGenerator opt (Generator sel exp) = printAPattern opt sel </> text "<-" </> printAExpression opt False exp
 
 printACaseAlt :: PrintOption (ACaseAlt Void) -> a | Printer a
-printACaseAlt opt (CaseAlt pat exp) = printAPattern opt pat </> text "=" </> printAExpression opt exp
+printACaseAlt opt (CaseAlt pat exp) = def (printAPattern opt pat </> text "=" </> align (printAExpression opt False exp))
 
 printAPattern :: PrintOption APattern -> a | Printer a
 printAPattern opt p = text p

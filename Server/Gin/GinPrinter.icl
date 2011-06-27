@@ -6,21 +6,22 @@ import StdString
 import Map
 
 from PPrint import ::Doc, ::SimpleDoc, display, renderPretty
-from PPrint import qualified <$>, <+>, </>, empty, space, comma, line, char, text, string
+from PPrint import qualified <$>, <+>, <->, </>, align, empty, space, comma, line, char, text, string
 from PPrint import qualified parens, braces, brackets, dquotes, tupled
-from PPrint import qualified punctuate, hsep, vsep, vcat, fillSep, indent, nest, renderPretty, display
+from PPrint import qualified punctuate, hsep, vsep, vcat, fillSep, hang, indent, renderPretty, display
 
 from GinParser import ::GPath(..), :: GPathNode(..), ::GResourceId(..)
 
 prettyPrint :: Doc -> String
-prettyPrint doc = 'PPrint'.display ('PPrint'.renderPretty 0.9 80 doc)
+prettyPrint doc = 'PPrint'.display ('PPrint'.renderPretty 0.9 120 doc)
 
 instance Printer Doc
 where
-	def a = 'PPrint'.nest 4 a
+	def a = a
 	scope docs = 'PPrint'.vsep docs
 	newscope docs = 'PPrint'.indent 4 (scope docs)
-	(<->) a b = a 'PPrint'. <+> b
+	align a = 'PPrint'.align a
+	(<->) a b = a 'PPrint'. <-> b
 	(<+>) a b = a 'PPrint'. <+> b
 	(</>) a b = a 'PPrint'. </> b
 	(<$>) a b = a 'PPrint'. <$> b
@@ -60,12 +61,13 @@ where
 							# (s2, nr, paths2) = pp b nr
 							= (s1 +++ s2, nr, paths1 ++ paths2)
 	pp (Position path) nr	= ("", nr, [(nr,path)])
-			
+
 instance Printer PDoc
 where
 	def a = Cat a (char ';')
 	scope docs = fold (<$>) docs
 	newscope docs = braces (scope docs)
+	align a = a
 	(<->) a b = Cat a b
 	(<+>) a b = Cat a (Cat space b)
 	(</>) a b = a <+> b
