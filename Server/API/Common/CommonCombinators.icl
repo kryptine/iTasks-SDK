@@ -154,7 +154,7 @@ where
 			(update (\[{ParallelTaskInfo|index}] -> [RemoveTask index, AppendTask (ShowAs BodyTask (checked pred task))]) pinfo >>| return a)
 
 	layout :: TUIParallel -> (TUIDef,[TaskAction])
-	layout {TUIParallel|items} = hd items
+	layout {TUIParallel|items} = appFst fromJust (hd items)
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") Nothing (\_ (Just a) -> a)

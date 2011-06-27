@@ -99,12 +99,12 @@ where
 defaultParallelLayout :: ParallelLayouter
 defaultParallelLayout = \{TUIParallel|title,description,items}->
 	let (tuis,actions) = unzip items in
-		(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 700) tuis, flatten actions)
+		(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 700) (catMaybes tuis), flatten actions)
 
 minimalParallelLayout :: ParallelLayouter
 minimalParallelLayout = \{TUIParallel|title,description,items} ->
 	let (tuis,actions) = unzip items in
-	({ content	= TUILayoutContainer (defaultLayoutContainer tuis)
+	({ content	= TUILayoutContainer (defaultLayoutContainer (catMaybes tuis))
 	 , width	= Auto
 	 , height	= Auto
 	 , margins	= Nothing

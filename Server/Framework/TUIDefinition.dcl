@@ -19,7 +19,7 @@ from Task			import :: TaskAction
 					
 :: TUIParallel =	{ title				:: !String
 					, description		:: !String
-					, items				:: ![(TUIDef,[TaskAction])]
+					, items				:: ![(!Maybe TUIDef,![TaskAction])]
 					}
 :: TUIMain = 		{ properties		:: !ProcessProperties
 					, content			:: !TUIDef

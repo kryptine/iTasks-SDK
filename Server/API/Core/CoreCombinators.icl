@@ -432,8 +432,8 @@ where
 	mergeTUIs pmerge mmerge tuiTaskNr desc contexts
 		= case tuiTaskNr of
 			[]
-				# tuis		= [tui \\ (i,TaskBusy (Just tui) _ _,STCBody _ _) <- contexts]
-				# actions	= [a \\ (i,TaskBusy (Just tui) a _,STCBody _ _) <- contexts]
+				# tuis		= [if (isHidden subContext) Nothing (Just tui) \\ (i,TaskBusy (Just tui) _ _,subContext) <- contexts | not (isDetached subContext)]
+				# actions	= [a \\ (i,TaskBusy (Just tui) a _,subContext) <- contexts | not (isDetached subContext)]
 				# (tui,actions) =
 					pmerge {TUIParallel
 				 		 |title = desc.TaskDescription.title
@@ -441,6 +441,11 @@ where
 				 		 ,items = zip (tuis,actions)
 				 		 }
 				= (Just tui, actions)
+				where
+					isHidden (STCHidden _ _) = True
+					isHidden _ = False
+					isDetached (STCDetached _ _) = True
+					isDetached _ = False
 			//We want to show the TUI of one of the detached tasks in this set
 			[t]
 				= case [(tui,actions,props) \\ (i,TaskBusy (Just tui) actions _,STCDetached props _) <- contexts | i == t] of

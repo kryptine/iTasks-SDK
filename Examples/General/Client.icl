@@ -94,7 +94,7 @@ descriptionLayout {title,editorParts,actions}
 	},actions)
 
 parallelLayout :: TUIParallel -> (TUIDef,[TaskAction])	
-parallelLayout {TUIParallel | items=i=:[(tree,tactions),(description,dactions),(processTable,pactions)]} =
+parallelLayout {TUIParallel | items=i=:[(Just tree,tactions),(Just description,dactions),(Just processTable,pactions)]} =
 	({ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [left,right] & orientation = Horizontal}
 	, width		= FillParent 1 ContentSize
 	, height	= FillParent 1 ContentSize
