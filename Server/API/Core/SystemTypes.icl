@@ -7,13 +7,13 @@ from Time 		import :: Timestamp(..)
 from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
+derive JSONEncode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode
+derive JSONDecode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType

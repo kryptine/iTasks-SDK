@@ -200,7 +200,8 @@ gUpdate{|Password|}			mode ust = basicUpdateSimple mode (Password "") ust
 gUpdate{|User|}				mode ust = basicUpdateSimple mode AnyUser ust
 gUpdate{|HtmlDisplay|}		mode ust = basicUpdate mode unchanged (HtmlDisplay "") ust
 gUpdate{|FormButton|}		mode ust = basicUpdate mode (\st b							-> {b & state = st})						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
-gUpdate{|Tree|} _			mode ust = basicUpdate mode (\json (Tree nodes _)			-> case fromJSON json of Just i = Tree nodes i;				_ = Tree nodes -1)	(Tree [] -1) ust
+gUpdate{|Table|}			mode ust = basicUpdate mode (\json (Table headers cells _)	-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing) (Table [] [] Nothing) ust
+gUpdate{|Tree|} _			mode ust = basicUpdate mode (\json (Tree nodes _)			-> case fromJSON json of Just i = Tree nodes i; _ = Tree nodes -1) (Tree [] -1) ust
 gUpdate{|Choice|} _			mode ust = basicUpdate mode (\l c=:(Choice opts _)			-> case l of [i] = Choice opts i; _ = c)	(Choice [] -1)														ust
 gUpdate{|MultipleChoice|} _	mode ust = basicUpdate mode (\sel (MultipleChoice opts _)	-> MultipleChoice opts sel)					(MultipleChoice [] [])												ust
 gUpdate{|Currency|}			mode ust = basicUpdate mode parseUpdate (EUR 0) ust
@@ -311,6 +312,7 @@ gDefaultMask{|Choice|} _ (Choice opts sel)
 	// if no valid selection is made, start with untouched mask
 	| sel >= 0 && sel < length opts	= [Touched []]
 	| otherwise						= [Untouched]
+gDefaultMask{|Table|} _ = [Touched []]
 gDefaultMask{|Tree|} _ tree=:(Tree _ sel)
 	// if no valid selection is made, start with untouched mask
 	| sel >= 0	= [Touched []]

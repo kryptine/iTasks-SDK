@@ -32,7 +32,7 @@
 		,{"text":"FormButtonControl.js","path":"src/js/tui/"}
 		,{"text":"ChoiceControl.js","path":"src/js/tui/"}
 		,{"text":"OryxControl.js","path":"src/js/tui/"}
-		,{"text":"GridContainer.js","path":"src/js/tui/"}
+		,{"text":"GridControl.js","path":"src/js/tui/"}
 		,{"text":"TreeControl.js","path":"src/js/tui/"}
 		
 		,{"text":"ListContainer.js","path":"src/js/tui/"}

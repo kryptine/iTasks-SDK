@@ -39,15 +39,19 @@ itasks.tui.base = {
 			var myH = minSize.height - this.getMarginsH();
 		}
 		
-		this.suspendEvents();
 		this.setSize(myW,myH);
 		if (myW == 0 || myH == 0) {
 			// hide element if width/height = 0 to prevent layout problems
 			this.hide();
 		}
-		this.resumeEvents();
 		
 		return {myW: myW, myH: myH};
+	},
+	
+	setSize: function(w,h) {
+		this.suspendEvents();
+		this.extSuperclass.setSize.call(this,w,h);
+		this.resumeEvents();
 	},
 	
 	getTUISize: function() {

@@ -14,12 +14,12 @@ derive bimap Maybe, (,)
 derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIControlType, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONEncode TUILayoutContainer, TUIMainContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
+derive JSONEncode TUILayoutContainer, TUIMainContainer, TUIListContainer, TUIGridControl, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 
 derive JSONDecode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONDecode TUIControlType, TUIConstructorControl
 derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONDecode TUILayoutContainer, TUIMainContainer, TUIListContainer, TUIGridContainer, TUIGridColumn, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
+derive JSONDecode TUILayoutContainer, TUIMainContainer, TUIListContainer, TUIGridControl, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
 	
 JSONEncode{|HtmlTag|} htm = [JSONString (toString htm)]
 

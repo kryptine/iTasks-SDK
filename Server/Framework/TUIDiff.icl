@@ -3,7 +3,7 @@ implementation module TUIDiff
 import StdBool, StdClass, StdList, StdEnum, StdMisc
 import Util, GenUpdate, TUIDefinition
 
-derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
+derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins, TUIGridControl
 
 gEq{|TUIConstructorControl|} _ _ = False
 
@@ -46,11 +46,11 @@ where
 				| o.TUIButton.text == n.TUIButton.text && o.TUIButton.iconCls == n.TUIButton.iconCls
 					= Just (update (\o n -> o.TUIButton.disabled == n.TUIButton.disabled) (\b -> Just (not b.TUIButton.disabled)) TUISetEnabled path o n
 						++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
-		(TUIGridContainer {gridEditors = oe,gridHtml = oh}, TUIGridContainer {gridEditors = ne, gridHtml = nh}) | length oe == length ne
+		/*(TUIGridContainer {gridEditors = oe,gridHtml = oh}, TUIGridContainer {gridEditors = ne, gridHtml = nh}) | length oe == length ne
 			# htmlUpdates	= flatten [[TUISetValue  (dp2s path) (toJSON (i,j,n)) \\ o <- or & n <- nr & j <- [0..] | o <> n] \\ or <- oh & nr <- nh & i <- [0..]]
 			# path			= shiftDataPath path
 			# editorUpdates	= flatten (flatten [[diffEditorDefinitions` (tablePath or path i j) o n \\ Just o <- or & Just n <- nr & j <- [0..]] \\ or <- oe & nr <- ne & i <- [0..]])
-			= Just (htmlUpdates ++ editorUpdates)
+			= Just (htmlUpdates ++ editorUpdates)*/
 		(TUILayoutContainer o, TUILayoutContainer n)	|  o.TUILayoutContainer.orientation === n.TUILayoutContainer.orientation
 														&& o.TUILayoutContainer.hGravity === n.TUILayoutContainer.hGravity
 														&& o.TUILayoutContainer.vGravity === n.TUILayoutContainer.vGravity

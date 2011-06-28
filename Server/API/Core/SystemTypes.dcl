@@ -4,7 +4,7 @@ definition module SystemTypes
 * of the iTasks framework.
 */
 
-import GenEq, Maybe, JSON, Store, Void, Either, FilePath
+import GenEq, Maybe, JSON, Store, Void, Either, FilePath, HTML
 from Map 			import :: Map
 from Map 			import qualified get
 from HTML 			import class html
@@ -14,13 +14,13 @@ from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode
+derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
@@ -143,6 +143,9 @@ getChoices			:: !(MultipleChoice a)				-> [a]
 mapOptionsM			:: !(a -> b) !(MultipleChoice a)	-> MultipleChoice b
 //* Sets the multiple choice's options, tries to keep the selection as intact as possible
 setOptionsM			:: ![a] !(MultipleChoice a)			-> MultipleChoice a | gEq{|*|} a
+
+//* Represents a table consisting of headers, the displayed data cells & possibly a selection
+:: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
 
 //* Represents a tree from with the user can choose one leaf
 :: Tree a = Tree ![TreeNode a] !Int

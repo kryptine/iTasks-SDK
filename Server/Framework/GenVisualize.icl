@@ -303,6 +303,17 @@ where
 	
 	mkOptionLabel vis = toString (SpanTag [ClassAttr "task-choice"] (coerceToHtml vis))
 	empty = "Empty multiple choice"
+	
+gVisualize{|Table|} val vst = visualizeControl2 (TUIGridControl (toGrid val)) (toString`,toHtml) (fmap (\t=:(Table _ _ mbSel) -> (mbSel,t)) val) vst
+where
+	toGrid Nothing							= {cells = [], headers = []}
+	toGrid (Just (Table headers cells _))	= {headers = headers, cells = map (map toString) cells}
+	
+	toString` _ = "Table"
+
+	toHtml Nothing = Text "Empty table"
+	toHtml (Just (Table headers cells mbSel)) = TableTag [] [TrTag [] [ThTag [] [Text header] \\ header <- headers]:map mkRow cells]
+	mkRow row = TrTag [] [TdTag [] [cel] \\ cel <- row]
 
 gVisualize{|Tree|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
 where

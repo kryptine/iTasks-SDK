@@ -41,7 +41,6 @@ from Task			import :: TaskAction
 	| TUIMainContainer		!TUIMainContainer
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
-	| TUIGridContainer		!TUIGridContainer
 	| TUIMenuButton			!TUIMenuButton
 	| TUIMenuItem			!TUIMenuItem
 	| TUIMenuSeparator
@@ -61,6 +60,7 @@ from Task			import :: TaskAction
 					| TUIDocumentControl	!Document
 					| TUIButtonControl		!TUIButtonControl
 					| TUIChoiceControl		!TUIChoiceControl
+					| TUIGridControl		!TUIGridControl
 					| TUITreeControl		![TUITree]
 					| TUIORYXControl		!String // stencilset URL
 					| TUIHtmlDisplay		!(Maybe Tooltip)
@@ -141,13 +141,9 @@ from Task			import :: TaskAction
 	, iconCls		:: !Maybe String
 	, hotkey		:: !Maybe Hotkey
 	}
-:: TUIGridContainer =
-	{ columns		:: ![TUIGridColumn]
-	, gridHtml		:: ![[String]]
-	, gridEditors	:: ![[Maybe TUIDef]]
-	}
-:: TUIGridColumn =
-	{ header		:: !String
+:: TUIGridControl =
+	{ headers		:: ![String]
+	, cells			:: ![[String]]
 	}
 	
 :: PanelTitle	:== String
