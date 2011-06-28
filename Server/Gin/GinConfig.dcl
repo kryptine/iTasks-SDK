@@ -8,7 +8,6 @@ from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDe
 :: GinConfig =
 	{ cleanPath		:: !String
 	, iTasksPath    :: !String
-	, tempPath		:: !String
 	, userPath		:: !String
 	, searchPaths	:: ![String]
 	}
@@ -21,7 +20,7 @@ derive gVerify    	GinConfig
 derive JSONEncode 	GinConfig
 derive JSONDecode 	GinConfig
 
-ginDefaultConfig :: *World -> (GinConfig, *World)
+ginDefaultConfig :: !*World -> (GinConfig, *World)
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)
 ginStoreConfig :: !GinConfig !*World -> *World
 ginCheckConfig :: !GinConfig !*World -> (Maybe String, *World)

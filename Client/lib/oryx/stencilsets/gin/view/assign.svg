@@ -1,0 +1,23 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:oryx="http://www.b3mn.org/oryx" xmlns:xlink="http://www.w3.org/1999/xlink" width="160" height="120">
+  <defs/>
+  <oryx:magnets>
+    <oryx:magnet oryx:cx="1" oryx:cy="60" oryx:anchor="left"/>
+    <oryx:magnet oryx:cx="80" oryx:cy="120" oryx:anchor="bottom"/>
+    <oryx:magnet oryx:cx="160" oryx:cy="60" oryx:anchor="right"/>
+    <oryx:magnet oryx:cx="80" oryx:cy="1" oryx:anchor="top"/>
+    <oryx:magnet oryx:cx="80" oryx:cy="60" oryx:default="yes"/>
+  </oryx:magnets>
+  <g pointer-events="fill">
+    <ellipse cx="10" cy="10" rx="10" ry="10" oryx:anchors="top left" fill="white"/>
+    <line x1="10" y1="20" x2="10" y2="50" oryx:anchors="top left"/>
+    <line x1="0" y1="30" x2="20" y2="30" oryx:anchors="top left"/>
+    <line x1="10" y1="50" x2="0" y2="60" oryx:anchors="top left"/>
+    <line x1="10" y1="50" x2="20" y2="60" oryx:anchors="top left"/>
+    <text id="user" x="10" y="70" oryx:anchors="top left" oryx:align="middle center">
+    </text>
+    <line x1="30" y1="25" x2="40" y2="25" oryx:anchors="top left"/>
+    <rect x="50" y="0" width="110" height="120" rx="0" ry="0" oryx:anchors="top left right bottom" fill="white" 
+          oryx:resize="horizontal vertical" stroke-dasharray="5,5"/>
+</g>
+</svg>

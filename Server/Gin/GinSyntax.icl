@@ -10,7 +10,7 @@ import GinSVG
 import GinTypes
 
 // Generic functions
-derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter, GDefinition, GDeclaration
+derive class iTask GModule, GModuleKind, Binding, NodeBinding, NBParameterMap, ParallelBinding, PBParameter, GDefinition, GDeclaration, GShape
 
 getNodeBinding :: GIdentifier Bindings -> GParseState NodeBinding
 getNodeBinding ident [] = parseError ("Node binding " +++ ident +++ " not found")
@@ -81,7 +81,7 @@ newWorkflow =	{ GDefinition
 	                            , returnType   		= gTask gVoid
 	                            , returnDescription	= Nothing
 	                            , icon     			= Nothing
-	                            , shape    		    = Nothing
+	                            , shape    		    = GDefaultShape
 	                            }
 				, body = ginORYXDiagram
 				}

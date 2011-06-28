@@ -22,17 +22,19 @@ from Util import appFst
 ginEditor :: WorkflowContainer Void
 ginEditor = Workflow initManagerProperties ginEditor`
 
+getAndSetupConfig :: Task GinConfig
+getAndSetupConfig = getConfig >>= \config -> accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) setupDialog 
+        
 getConfig :: Task GinConfig
-getConfig = accWorld ginLoadConfig >>= \maybeConfig = 
-    case maybeConfig of 
-        Just config = accWorld (ginCheckConfig config) >>= \error = (if (isNothing error) (return config) (setupDialog config))
-        Nothing     = accWorld ginDefaultConfig >>= \config = setupDialog config
+getConfig = accWorld ginLoadConfig >>= \mbConfig -> case mbConfig of
+	Just config = return config
+    Nothing = accWorld ginDefaultConfig >>= \config -> appWorld (ginStoreConfig config) >>| return config
+
+setupDialog :: Task GinConfig
+setupDialog = getConfig >>= dialog >>= \config -> appWorld (ginStoreConfig config) >>|return config
 where
-	setupDialog :: GinConfig -> Task GinConfig
-	setupDialog config = dialog config >>= \newconfig = appWorld (ginStoreConfig newconfig) >>| return newconfig
-	where
-	    dialog config = updateInformation "GiN editor setup" [] config >>= \config = 
-	                    accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) (dialog config)
+    dialog config = updateInformation "GiN editor setup" [] config >>= \config = 
+                    accWorld (ginCheckConfig config) >>= \error = if (isNothing error) (return config) (dialog config)
 
 :: EditorState = 
     { config		:: !GinConfig
@@ -49,7 +51,7 @@ where
 derive class iTask EditorState
     
 getInitialState :: Task EditorState 
-getInitialState = getConfig >>= \config -> return
+getInitialState = getAndSetupConfig >>= \config -> return
 	{ EditorState
 	| config		= config
 	, name			= Nothing
@@ -72,9 +74,11 @@ ActionViewTypes        :== Action "View/Types"
 ActionViewSource       :== Action "View/Generated source"   
 ActionEnableSC         :== Action "Options/Enable syntax checking"
 ActionDisableSC        :== Action "Options/Disable syntax checking"
+ActionConfiguration    :== Action "Options/Configuration"
 
 ginEditor` :: Task Void
 ginEditor` = 
+	getAndSetupConfig >>|
 	getInitialState >>= \initialState -> 
 	ginParallelLayout @>> 
 	parallel
@@ -169,6 +173,7 @@ actions stateShared parallelInfo
 		, (ActionViewSource,       sourceView)
 		, (ActionEnableSC,	       actionTask (\s -> checkErrors { s & checkSyntax = True }))
 		, (ActionDisableSC,	       actionTask (\s -> return { s & checkSyntax = False }))
+		, (ActionConfiguration,	   addTask setupDialog)
 		, (ActionAbout,            actionTask showAbout)
 		]
 	where

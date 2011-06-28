@@ -110,7 +110,7 @@ mapFunction doc ident prio (Yes st)
 											, returnType = GUndefinedTypeExpression
 											, returnDescription = Nothing
 											, icon = Just "parallel-split"
-											, shape = Nothing
+											, shape = GDefaultShape
 											}
 								, merge =	{ GDeclaration
 											| name = ident.id_name
@@ -120,7 +120,7 @@ mapFunction doc ident prio (Yes st)
 											, returnType = GUndefinedTypeExpression
 											, returnDescription = Nothing
 											, icon = doc.FunctionComment.icon
-											, shape = Nothing
+											, shape = GDefaultShape
 											}
 								, type = mapAType st.st_result
 								, fixedNrBranches = case prio of
@@ -157,7 +157,9 @@ mapFunction doc ident _ (Yes st)
 					, returnType = mapAType st.st_result
 					, returnDescription = doc.FunctionComment.return
 					, icon = doc.FunctionComment.icon
-					, shape = Nothing//doc.FunctionComment.shape
+					, shape = case doc.FunctionComment.shape of
+						Just filename	= GExternalShape filename
+						Nothing 		= GDefaultShape 
 					}				
 				, parameterMap = NBPrefixApp
 				}

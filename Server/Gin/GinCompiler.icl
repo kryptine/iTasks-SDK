@@ -68,7 +68,7 @@ derive JSONEncode CompilingInfo, CompilerProcess
 derive JSONDecode CompilingInfo, CompilerProcess
 
 runCompiler :: !GModule !(AModule -> (String, LineMap)) (String String GinConfig LineMap *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
-runCompiler gMod printfun compiler iworld
+runCompiler gMod printfun compiler iworld=:{tmpDirectory}
 //1. Load configuration
 # (config,iworld) = accWorldIWorld ginLoadConfig iworld 
 | isNothing config = (CompileGlobalError "Configuration not found", iworld)
@@ -82,7 +82,7 @@ runCompiler gMod printfun compiler iworld
 # (basename,iworld) = getUniqueBasename iworld
 # (source,lineMap) = printfun { AModule | aMod & name = basename }
 //4. Write source code to temp icl file
-# fullname = (filenameFromConfig config basename "icl")
+# fullname = (filenameFromConfig config tmpDirectory basename "icl")
 # (result, iworld) = accWorldIWorld (writeFile fullname source) iworld
 | isError result = (CompileGlobalError ("Write icl file failed: " +++ toString (fromError result)), iworld)
 //5. Call compiler function
@@ -105,7 +105,7 @@ where
 	prefix = "temp"
 
 batchBuild :: !GModule *IWorld -> (CompileResult String, *IWorld)
-batchBuild gMod iworld = runCompiler gMod printfun build iworld where
+batchBuild gMod iworld=:{tmpDirectory} = runCompiler gMod printfun build iworld where
 	printfun :: AModule -> (String, LineMap)
 	printfun aMod = (prettyPrintAModule POWriteDynamics aMod, newMap)
 
@@ -117,10 +117,10 @@ batchBuild gMod iworld = runCompiler gMod printfun build iworld where
 	| failed result = (convertFail result, iworld)
 	# (result, iworld) = link basename config iworld
 	| failed result = (convertFail result, iworld)
-	# batchfile = (filenameFromConfig config basename "bat")
+	# batchfile = (filenameFromConfig config tmpDirectory basename "bat")
 	# (result, iworld) = accWorldIWorld ('Process'.callProcess batchfile [] Nothing) iworld
 	| isError result = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ snd (fromError result)), iworld)
-	# dynfile = filenameFromConfig config basename "dyn"
+	# dynfile = filenameFromConfig config tmpDirectory basename "dyn"
     = (CompileSuccess dynfile, iworld)
     
 syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
@@ -131,7 +131,7 @@ syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile Synt
 // --------------------------------------------------------------------------------
 
 compile :: CompileOrCheckSyntax !String !String !GinConfig LineMap *IWorld -> (CompileResult Void, *IWorld)
-compile compileOrCheckSyntax source basename config lineMap iworld
+compile compileOrCheckSyntax source basename config lineMap iworld=:{tmpDirectory}
 # (mCompilingInfo, iworld) = loadCompilingInfo iworld
 # compilingInfo = case mCompilingInfo of
 	Just c = c
@@ -153,7 +153,7 @@ where
 		        (\_ x -> x)                                //Types display function
 		        compileOrCheckSyntax
 		        (basename +++ ".icl")
-		        (ListToStrictList (searchPaths config))
+		        (ListToStrictList (searchPaths config tmpDirectory))
 		        False                                      //No memory profiling
 		        False                                      //No time profiling
 		        True                                       //Eager or dynamic linking
@@ -193,12 +193,12 @@ exitCompiler iworld
 // --------------------------------------------------------------------------------
 
 codegen :: !String !GinConfig *IWorld -> (CompileResult Void, *IWorld) 
-codegen basename config iworld = accWorldIWorld codegen` iworld
+codegen basename config iworld=:{tmpDirectory} = accWorldIWorld codegen` iworld
 where
 	codegen` :: !*World -> (CompileResult Void, *World)	
 	codegen` world
 	# env = { errors = [], world = world }
-	# abcfile = MakeABCSystemPathname (filenameFromConfig config basename "icl")
+	# abcfile = MakeABCSystemPathname (filenameFromConfig config tmpDirectory basename "icl")
 	# (pathname, ok, env) = CodeGen
 		("Tools" </> "Clean System" </> "CodeGenerator.exe")
 		addError
@@ -222,7 +222,7 @@ where
 // --------------------------------------------------------------------------------
 
 link :: String !GinConfig *IWorld -> (CompileResult Void, *IWorld) 
-link basename config iworld = accWorldIWorld (link` basename config) iworld
+link basename config iworld=:{tmpDirectory} = accWorldIWorld (link` basename config) iworld
 where
 	link` :: !String !GinConfig *World -> (CompileResult Void, *World)	
 	link` basename config world
@@ -230,46 +230,46 @@ where
 	| not ok = (CompileGlobalError ("Linker error: Failed to read linker options file: " +++ err), world)
 	
 	# env = { errors = [], world = world }
-	# linkopts = MakeObjSystemPathname DefaultProcessor (filenameFromConfig config (basename +++ "_options") "icl")
+	# linkopts = MakeObjSystemPathname DefaultProcessor (filenameFromConfig config tmpDirectory (basename +++ "_options") "icl")
 	# (env, ok) = Link
 		("Tools" </> "Clean System" </> "StaticLinker.exe")
 		addError
-		(filenameFromConfig config basename "exe")
+		(filenameFromConfig config tmpDirectory basename "exe")
 		ginApplicationOptions
-		linkopts										// linker obtions file
-		(dynamicLibs config basename linkinfo)			// dynamic library file names
-		(objectPaths config basename linkinfo)			// object file names
-		Nil												// static library file names
-		False											// link statically
-		False											// generate relocations
-		False											// generate link map
-		False											// link in resources
-		""												// source of resources to link in
-		False											// generate dll?
-		""												// dll export symbols
-		config.cleanPath								// startup directory
+		linkopts										    // linker obtions file
+		(dynamicLibs config tmpDirectory basename linkinfo)	// dynamic library file names
+		(objectPaths config tmpDirectory basename linkinfo)	// object file names
+		Nil													// static library file names
+		False												// link statically
+		False												// generate relocations
+		False												// generate link map
+		False												// link in resources
+		""													// source of resources to link in
+		False												// generate dll?
+		""													// dll export symbols
+		config.cleanPath									// startup directory
 		("Tools" </> "Dynamics" </> "DynamicLinker.exe")
 		DefaultProcessor
-		False											// 64 bit target processor
+		False												// 64 bit target processor
 		env
 	//Delete object file and link opts
 	# world = env.LogEnv.world
-	# (_, world) = deleteFile (MakeObjSystemPathname DefaultProcessor (filenameFromConfig config basename "obj")) world
+	# (_, world) = deleteFile (MakeObjSystemPathname DefaultProcessor (filenameFromConfig config tmpDirectory basename "obj")) world
 	# (_, world) = deleteFile linkopts world
 	# log = join "\n" (map (join "\n") env.LogEnv.errors)
 	| not ok
 		= (CompileGlobalError (log), world)
 	= (CompileSuccess Void, world)
 
-dynamicLibs :: !GinConfig !String !LinkInfo` -> List LPathname
-dynamicLibs config basename linkinfo = Map (setLinkPaths config basename) linkinfo.dynamic_libs
+dynamicLibs :: !GinConfig !String !String !LinkInfo` -> List LPathname
+dynamicLibs config tempPath basename linkinfo = Map (setLinkPaths config tempPath basename) linkinfo.dynamic_libs
 
-objectPaths :: !GinConfig !String !LinkInfo` -> List LPathname
-objectPaths config basename linkinfo = Map (setLinkPaths config basename) linkinfo.object_paths
+objectPaths :: !GinConfig !String !String !LinkInfo` -> List LPathname
+objectPaths config tempPath basename linkinfo = Map (setLinkPaths config tempPath basename) linkinfo.object_paths
 	
-setLinkPaths :: !GinConfig !String !String -> String
-setLinkPaths config basename haystack
-# haystack = replaceSubString "{Project}" config.tempPath haystack
+setLinkPaths :: !GinConfig !String String !String -> String
+setLinkPaths config tempPath basename haystack
+# haystack = replaceSubString "{Project}" tempPath haystack
 # haystack = replaceSubString "{ITasks}" config.iTasksPath haystack
 # haystack = replaceSubString "{Application}" config.cleanPath haystack
 # haystack = replaceSubString "{Serialization}" serializationModule haystack
@@ -298,8 +298,8 @@ accWorldIWorld f iworld
 appWorldIWorld :: (*World -> *World) *IWorld -> *IWorld
 appWorldIWorld f iworld = { IWorld | iworld & world = f iworld.IWorld.world }
 	
-filenameFromConfig :: !GinConfig !String !String -> String
-filenameFromConfig config basename extension = config.tempPath </> basename +++ "." +++ extension
+filenameFromConfig :: !GinConfig !String !String !String -> String
+filenameFromConfig config tempPath basename extension = tempPath </> basename +++ "." +++ extension
 
 // --------------------------------------------------------------------------------
 // Project settings
@@ -308,9 +308,9 @@ filenameFromConfig config basename extension = config.tempPath </> basename +++ 
 ginApplicationOptions :: ApplicationOptions
 ginApplicationOptions = { DefApplicationOptions & o = NoConsole}
 
-searchPaths :: GinConfig -> [String]
-searchPaths config = 
-	[ config.tempPath
+searchPaths :: !GinConfig !String -> [String]
+searchPaths config tempPath = 
+	[ tempPath
 	: map ((</>) config.iTasksPath) iTasksPaths
 	++ map ((</>) config.cleanPath) cleanPaths
 	]

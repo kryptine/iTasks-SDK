@@ -21,6 +21,7 @@ derive class iTask WorkOnProcessState
 * @return A task that will return the value defined by the parameter
 * 
 * @gin-icon return
+* @gin-shape return
 */
 return 		:: !a 										-> Task a 		| iTask a
 

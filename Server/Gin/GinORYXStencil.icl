@@ -1,7 +1,9 @@
 implementation module GinORYXStencil
 
+import StdArray
 import StdEnum
 import StdList
+import StdOrdList
 import GenEq
 
 import JSON
@@ -220,14 +222,23 @@ declToStencil (group,branchtype,gDecl)
 		BTSingle	= "single"
 		BTSplit		= "split"
 		BTMerge		= "merge"
+	# icon = fromMaybe "task" gDecl.GDeclaration.icon
 	=	{ ORYXStencil
 		| type			= "node"
 		, id			= gDecl.GDeclaration.name
 		, title			= fromMaybe (camelCaseToWords gDecl.GDeclaration.name) gDecl.GDeclaration.title
 		, groups		= [group]
 		, description	= fromMaybe "" gDecl.GDeclaration.description
-		, view			= toString (fromMaybe (defaultTaskShape gDecl) gDecl.GDeclaration.shape)
-		, icon			= fromMaybe "task" gDecl.GDeclaration.icon +++ ".png"
+		, view			= case gDecl.GDeclaration.shape of
+							GDefaultShape = toString 
+								(case branchtype of 
+									BTSingle = defaultTaskShape gDecl
+									BTSplit  = defaultConnectorShape icon
+									BTMerge  = defaultConnectorShape icon
+								)
+							GBuiltInShape shape = toString shape
+							GExternalShape filename = filename +++ ".svg"
+		, icon			= icon +++ ".png"
 		, mayBeRoot		= False
 		, roles			= ["all", morphrole] ++ if (isHigherOrder gDecl) ["higherOrderTask"] []
 		, properties	= map formalParameterToProperty gDecl.GDeclaration.formalParams
@@ -257,28 +268,48 @@ higherOrderParam param = case param.GFormalParameter.type of
 	_											= False
 
 defaultTaskShape :: GDeclaration -> SVGShape	
-defaultTaskShape gDecl =
+defaultTaskShape gDecl
+	# title = fromMaybe (camelCaseToWords gDecl.GDeclaration.name) gDecl.GDeclaration.title
+	# paramWidth = strWidth [ fromMaybe p.GFormalParameter.name p.GFormalParameter.title 
+							\\ p <- gDecl.GDeclaration.formalParams 
+							]
+	=	{ SVGShape
+		| width = maxList [20 + strWidth [title], paramWidth + 100]
+		, height = 20 + 20 * length gDecl.GDeclaration.formalParams
+		, defs = []
+		, magnets = True
+		, elements = 
+			[ SVGRect Nothing ((XLeft, YTop),(XRight, YBottom)) 5 5 ([SVGStroke "black", SVGFill "white"] ++ ifParams [SVGResize "horizontal vertical"])
+			, SVGImage Nothing ((XAbs 2, YAbs 2), (XAbs 18, YAbs 18)) (fromMaybe "task" gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
+			, SVGText Nothing (XAbs 20, YAbs 13) title [SVGAnchors "top left"]
+			] 
+			++ ifParams [ SVGLine Nothing ((XLeft, YAbs 20), (XRight, YAbs 20)) [SVGAnchors "top left right"]
+				    	, SVGLine Nothing ((XAbs paramWidth, YAbs 20), (XAbs paramWidth, YBottom)) [SVGAnchors "top left bottom"]
+				    	]
+			++ flatten (map
+				(\(nr,param) -> [ SVGText Nothing (XAbs 3, YAbs (13 + 20 * nr)) (fromMaybe param.GFormalParameter.name param.GFormalParameter.title) []
+								, SVGText (Just param.GFormalParameter.name ) (XAbs (paramWidth + 3), YAbs (13 + 20 * nr)) "" [SVGAnchors "left"]
+								]
+								++ if (nr > 1) [SVGLine Nothing ((XLeft, YAbs (20 * nr)), (XRight, YAbs (20 * nr))) [SVGAnchors "left right"]] []
+				) (zip2 [1..] gDecl.GDeclaration.formalParams))
+		}
+		where
+			strWidth :: [String] -> Int
+			strWidth [] = 0
+			strWidth ss = maxList [ 8 * size s \\ s <- ss ]
+		
+			ifParams :: [a] -> [a]
+			ifParams x = if (isEmpty gDecl.GDeclaration.formalParams) [] x
+
+defaultConnectorShape :: String -> SVGShape	
+defaultConnectorShape icon =
 	{ SVGShape
-	| width = if (isEmpty gDecl.GDeclaration.formalParams) 140 300
-	, height = 20 + 20 * length gDecl.GDeclaration.formalParams
+	| width = 20
+	, height = 20
 	, defs = []
 	, magnets = True
 	, elements = 
-		[ SVGRect (Just "taskrect") ((XLeft, YTop),(XRight, YBottom)) 5 5 ([SVGStroke "black", SVGFill "white"] ++ ifParams [SVGResize "horizontal vertical"])
-		, SVGImage Nothing ((XAbs 2, YAbs 2), (XAbs 18, YAbs 18)) (fromMaybe "task" gDecl.GDeclaration.icon +++ ".png") [SVGAnchors "top left"]
-		, SVGText Nothing (XAbs 20, YAbs 13) (fromMaybe (camelCaseToWords gDecl.GDeclaration.name) gDecl.GDeclaration.title) [SVGAnchors "top left"]
+		[ SVGEllipse Nothing ((XLeft, YTop),(XRight, YBottom)) ([SVGStroke "black", SVGFill "white"])
+		, SVGImage Nothing ((XAbs 2, YAbs 2), (XAbs 18, YAbs 18)) (icon +++ ".png") []
 		] 
-		++ ifParams [ SVGLine Nothing ((XLeft, YAbs 20), (XRight, YAbs 20)) [SVGAnchors "top left right"]
-			    	, SVGLine Nothing ((XAbs 80, YAbs 20), (XAbs 80, YBottom)) [SVGAnchors "top left bottom"]
-			    	]
-		++ flatten (map
-			(\(nr,param) -> [ SVGText Nothing (XAbs 3, YAbs (13 + 20 * nr)) (fromMaybe param.GFormalParameter.name param.GFormalParameter.title) []
-							, SVGText (Just param.GFormalParameter.name ) (XAbs 83, YAbs (13 + 20 * nr)) "" [SVGAnchors "left"]
-							]
-							++ if (nr > 1) [SVGLine Nothing ((XLeft, YAbs (20 * nr)), (XRight, YAbs (20 * nr))) [SVGAnchors "left right"]] []
-			) (zip2 [1..] gDecl.GDeclaration.formalParams))
 	}
-	where	
-		ifParams :: [a] -> [a]
-		ifParams x = if (isEmpty gDecl.GDeclaration.formalParams) [] x
-	

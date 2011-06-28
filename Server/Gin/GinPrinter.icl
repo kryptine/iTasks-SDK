@@ -17,7 +17,7 @@ prettyPrint doc = 'PPrint'.display ('PPrint'.renderPretty 0.9 120 doc)
 
 instance Printer Doc
 where
-	def a = a
+	def a = 'PPrint'.hang 4 a
 	scope docs = 'PPrint'.vsep docs
 	newscope docs = 'PPrint'.indent 4 (scope docs)
 	align a = 'PPrint'.align a

@@ -23,14 +23,12 @@ derive JSONDecode	GinConfig
 
 derive bimap (,), Maybe
 	
-ginDefaultConfig :: *World -> (GinConfig, *World)
+ginDefaultConfig :: !*World -> (GinConfig, *World)
 ginDefaultConfig world
 # (cleanPath, world)	= getCleanPath world
 # (iTasksPath, world)	= getITasksPath world
-# (tempPath, world)		= getTempPath world
 # config = 	{ cleanPath		= cleanPath
           	, iTasksPath	= iTasksPath
-			, tempPath		= tempPath
 			, userPath		= iTasksPath </> "Examples" </> "Gin" </> "Workflows"
 			, searchPaths	= [ iTasksPath </> "Server" </> "API" </> "Core"
 							  , iTasksPath </> "Server" </> "API" </> "Common"
@@ -48,13 +46,6 @@ where
 	getITasksPath world
 	# (res, world) = getCurrentDirectory world
 	= (takeDirectory (fromOk res), world)
-
-	getTempPath :: *World -> (String, *World)
-	getTempPath world
-	# (res, world) = getCurrentDirectory world
-	= (fromOk res </> "Temp", world)
-	
-	
 
 ginLoadConfig :: !*World -> (!Maybe GinConfig, !*World)
 ginLoadConfig world
@@ -90,6 +81,6 @@ ginCheckConfig config world
 | not ok = (Just "Clean path incorrect", world) 
 # (ok, world) = 'File'.fileExists (config.iTasksPath </> "Server" </> "iTasks.dcl") world
 | not ok = (Just "iTasks path incorrect", world)
-# (ok, world) = 'File'.fileExists config.tempPath world
-| not ok = (Just "Temp path incorrect", world)
+# (ok, world) = 'File'.fileExists config.userPath world
+| not ok = (Just "user path incorrect", world)
 = (Nothing, world)

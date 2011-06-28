@@ -80,8 +80,10 @@ getModuleDeclarations :: GModule -> [(BranchType,GDeclaration)]
                   , returnType   		:: GTypeExpression
                   , returnDescription 	:: Maybe String
                   , icon         		:: Maybe GIcon
-                  , shape        		:: Maybe SVGShape
-                  }              
+                  , shape        		:: GShape
+                  }
+
+:: GShape = GDefaultShape | GBuiltInShape SVGShape | GExternalShape !String
                   
 :: GIcon :== String
 

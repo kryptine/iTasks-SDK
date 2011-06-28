@@ -40,7 +40,7 @@ bStartStop = ParallelBinding
 	          , returnDescription = Nothing
 	          , formalParams = []
 	          , icon = Just "start"
-	          , shape = Just startShape
+	          , shape = GBuiltInShape startShape
 	          }
 	, merge = { GDeclaration 
 	          | name = "stop"
@@ -50,7 +50,7 @@ bStartStop = ParallelBinding
 	          , returnDescription = Nothing
 	          , formalParams = []
 	          , icon = Just "stop"
-	          , shape = Just stopShape
+	          , shape = GBuiltInShape stopShape
 	          }
 	, type = GTypeVariable "a"
 	, fixedNrBranches = Just 1
@@ -99,7 +99,7 @@ bCase = NodeBinding
 		                 }
 		               ]
 		, icon = Just "case-split"
-		, shape = Just caseSplitShape
+		, shape = GBuiltInShape caseSplitShape
 		}
 	, parameterMap = NBBuiltIn
 	}
@@ -130,7 +130,7 @@ bMerge = NodeBinding
         , returnDescription = Nothing
 		, formalParams = []
 		, icon = Just "case-merge"
-		, shape = Just mergeShape
+		, shape = GBuiltInShape mergeShape
 		}
 	, parameterMap = NBBuiltIn
 	}
@@ -170,7 +170,7 @@ bLet = NodeBinding
 		                 }
 		               ]
 		, icon = Just "let"
-		, shape = Just letShape
+		, shape = GBuiltInShape letShape
 		}
 	, parameterMap = NBBuiltIn
 	}
@@ -226,7 +226,7 @@ bListComprehension = NodeBinding
 		                 }
 		               ]
 		, icon = Just "list-comprehension"
-		, shape = Just listComprehensionShape
+		, shape = GBuiltInShape listComprehensionShape
 		}
 	, parameterMap = NBBuiltIn
 	}

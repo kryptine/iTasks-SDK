@@ -103,6 +103,7 @@ assign :: !ManagerProperties !(Task a) -> Task a | iTask a
 *
 * @gin-title Assign to user
 * @gin-icon user
+* @gin-shape assign
 */
 (@:) infix 3		:: !User !(Task a) -> Task a | iTask a
 

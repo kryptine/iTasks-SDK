@@ -173,6 +173,7 @@ where
 			| GinDocToken
 			| TitleDocToken
 			| IconDocToken
+			| ShapeDocToken
 			| ParallelSplitDocToken
 			| ParallelDocToken
 			| ColonDocToken
@@ -198,6 +199,7 @@ where
 						, lexFixed "@return"		ReturnDocToken
 						, lexFixed "@gin-title"		TitleDocToken
 						, lexFixed "@gin-icon" 		IconDocToken
+						, lexFixed "@gin-shape"		ShapeDocToken
 						, lexFixed "@gin-parallel"	ParallelDocToken
 						, lexFixed "@gin"			GinDocToken
 						, lexFixed ":"				ColonDocToken
@@ -268,7 +270,7 @@ pFunctionComment = begin1 pFunctionComment`
 where
 	pFunctionComment` = 
 		pDescription <&> \description ->
-		(<*> (pParam <!> pReturn <!> pThrows <!> pGin <!> pTitle <!> pIcon <!> pParallel)) <&> \args ->
+		(<*> (pParam <!> pReturn <!> pThrows <!> pGin <!> pTitle <!> pIcon <!> pShape <!> pParallel)) <&> \args ->
 		yield	((seq args) (description emptyFunctionComment))
 	
 	pDescription = pText <&> \description ->
@@ -288,6 +290,8 @@ where
 		yield (\doc -> { FunctionComment | doc & title = Just title })
 	pIcon = symbol IconDocToken &> pText <&> \icon ->
 		yield (\doc -> { FunctionComment | doc & icon = Just icon })
+	pShape = symbol ShapeDocToken &> pText <&> \shape ->
+		yield (\doc -> { FunctionComment | doc & shape = Just shape })
 	pParallel = symbol ParallelDocToken &> pText <&> \parallel -> 
 		yield (\doc -> { FunctionComment | doc & parallel = toLowerCase parallel == "true" })
 
