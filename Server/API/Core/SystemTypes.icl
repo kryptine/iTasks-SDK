@@ -624,8 +624,8 @@ setFinished properties=:{systemProperties} = {properties & systemProperties = {S
 setExcepted :: !ProcessProperties -> ProcessProperties
 setExcepted properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}
 	
-formatPriority	:: !TaskPriority	-> HtmlDisplay
-formatPriority p = toHtmlDisplay (Text (toText p))
+formatPriority	:: !TaskPriority	-> HtmlTag
+formatPriority p = Text (toText p)
 where
 	toText HighPriority		= "High"
 	toText NormalPriority	= "Normal"

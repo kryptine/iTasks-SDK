@@ -5,7 +5,7 @@ from UserDB import qualified class UserDB(..)
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB IWorld
 from StdFunc import o, seq
-from Util import mb2list
+from Util import mb2list, timestampToGmDateTime
 
 import StdMisc
 
@@ -19,9 +19,9 @@ client = parallelLayout @>> parallel "Client" Nothing (\_ _ -> Void)
 	, ShowAs BodyTask (\s _ -> showDescription s <<@ descriptionLayout)
 	, ShowAs BodyTask (\_ _ -> processTable <<@ processTableLayout)
 	]
-	
-chooseWorkflow ref =
-					getWorkflowTreeNodes
+
+chooseWorkflow ref = showInformation "choose workflow" [] Void
+	>>|				getWorkflowTreeNodes
 	>>= \workflows.	updateSharedInformation "Tasks" [UpdateView (treeBimap workflows)] ref Void >>+ noActions
 where
 	treeBimap workflows =	( GetShared \mbSel -> case mbSel of
@@ -44,8 +44,15 @@ where
 	
 processTable =
 		get currentUser
-	//>>=	\user. updateSharedInformation "process table" [UpdateView (GetShared (Table o map toView), PutbackShared \_ _ _ -> Void)] (currentProcessesForUser user) Void >>+ noActions
+	>>=	\user. updateSharedInformation "process table" [UpdateView (GetLocalAndShared mkTable, PutbackLocal \(FillControlSize (Table _ _ mbSel)) _ _ -> mbSel)] (currentProcessesForUser user) Nothing >>+ noActions
 where
+	mkTable mbSel procs = FillControlSize (Table ["Title", "Priority", "Date", "Deadline"] (map mkRow procs) mbSel)
+	mkRow {Process|properties=p=:{taskProperties,managerProperties,systemProperties}} =
+		[ html taskProperties.taskDescription.TaskDescription.title
+		, formatPriority managerProperties.ManagerProperties.priority
+		, visualizeAsHtmlDisplay (timestampToGmDateTime systemProperties.issuedAt)
+		, visualizeAsHtmlDisplay managerProperties.ManagerProperties.deadline
+		]
 	toView {Process|properties=p=:{taskProperties,managerProperties,systemProperties}} =
 		{ title		= Display taskProperties.taskDescription.TaskDescription.title
 		, priority	= formatPriority managerProperties.ManagerProperties.priority
@@ -114,14 +121,14 @@ where
 
 processTableLayout :: TUIInteraction -> (TUIDef,[TaskAction])	
 processTableLayout {editorParts,actions} =
-	({ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer editorParts & frame = True}
+	({ content	= TUILayoutContainer (defaultLayoutContainer editorParts)
 	, width		= FillParent 1 ContentSize
 	, height	= Fixed 200
 	, margins	= Nothing
 	},actions)
 
 getWorkflowTreeNodes :: Task [TreeNode (!String,!Hidden String,!Hidden Int)]
-getWorkflowTreeNodes = abort "TODO" //mkInstantTask "get a tree of workflows" getWorkflowTree`
+getWorkflowTreeNodes = return defaultValue //mkInstantTask "get a tree of workflows" getWorkflowTree`
 /*
 where
 	getWorkflowTree` iworld

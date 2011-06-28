@@ -259,7 +259,7 @@ isActive :: !ProcessProperties -> Bool
 					| NormalPriority
 					| LowPriority
 					
-formatPriority	:: !TaskPriority	-> HtmlDisplay
+formatPriority	:: !TaskPriority	-> HtmlTag
 						
 :: WindowTitle :== String
 
