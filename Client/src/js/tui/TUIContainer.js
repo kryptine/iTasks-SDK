@@ -6,87 +6,6 @@ itasks.tui.extendContainer = function(extSuper,overrides) {
 
 itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 	headerStyle: 'white-space: nowrap',
-	doTUILayout: function(fillW,fillH) {
-		var myS = itasks.tui.base.doTUILayout.apply(this,arguments);
-		
-		var totalFillW	= myS.myW - this.getFrameWidthCached()	- (this.title ? 2 : 0);
-		var totalFillH	= myS.myH - this.getFrameHeightCached()	- (this.title ? 1 : 0);
-		var sizes		= this.getChildSizes();
-		var horizontal	= this.orientation == 'Horizontal';
-		
-		if (horizontal) {
-			do {
-				var changedFillParent = false;
-				var sumWeights	= 0;
-				
-				sizes.each(function(s) {
-					if (Ext.isDefined(s.tuiSize.width)) {
-						var w = s.tuiSize.width;
-						if (w[0] == 'Fixed') {
-							totalFillW -= w[1];
-							delete s.tuiSize.width;
-						} else {
-							sumWeights += w[1];
-						}
-					}
-				});
-				sizes.each(function(s) {
-					if (Ext.isDefined(s.tuiSize.width)) {
-						var w = s.tuiSize.width;
-						var fillW = w[1] / sumWeights * totalFillW;
-						
-						if (fillW < s.minSize.width) {
-							s.tuiSize.width = ['Fixed',s.minSize.width];
-							delete s.fillW;
-							changedFillParent = true;
-							return false; // stop iteration
-						}
-
-						s.fillW = fillW;
-					}
-				});
-			} while (changedFillParent);
-		} else {
-			do {
-				var changedFillParent = false;
-				var sumWeights	= 0;
-				
-				sizes.each(function(s) {
-					if (Ext.isDefined(s.tuiSize.height)) {
-						var h = s.tuiSize.height;
-						if (h[0] == 'Fixed') {
-							totalFillH -= h[1];
-							delete s.tuiSize.height;
-						} else {
-							sumWeights += h[1];
-						}
-					}
-				});
-				sizes.each(function(s) {
-					if (Ext.isDefined(s.tuiSize.height)) {
-						var h = s.tuiSize.height;
-						var fillH = h[1] / sumWeights * totalFillH;
-						
-						if (fillH < s.minSize.height) {
-							s.tuiSize.height = ['Fixed',s.minSize.height];
-							delete s.fillH;
-							changedFillParent = true;
-							return false; // stop iteration
-						}
-						
-						s.fillH = fillH;
-					}
-				});
-			} while (changedFillParent);
-		}
-		
-		sizes.each(function(s) {
-			s.item.doTUILayout(
-				horizontal ? s.fillW : totalFillW,
-				horizontal ? totalFillH : s.fillH
-			);
-		});
-	},
 	
 	getMinTUISize: function() {
 		var cached = this.getCache(this.id,'minSize');
@@ -113,7 +32,7 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 		};
 		
 		if (tuiW[0] == 'WrapContent' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
-			var minW = (this.orientation == 'Horizontal' ? sum : max) (function(i) {return i.minSize.width;}) + this.getFrameWidthCached() + (this.title ? 2 : 0);
+			var minW = (this.sumW ? sum : max) (function(i) {return i.minSize.width;}) + this.getFrameWidthCached() + (this.title ? 2 : 0);
 			
 			if (tuiW[0] == 'WrapContent' && minW < tuiW[1]) {
 				minSize.width	= tuiW[1];
@@ -126,7 +45,7 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 		minSize.width += this.getMarginsW();
 		
 		if (tuiH[0] == 'WrapContent' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
-			var minH = (this.orientation == 'Horizontal' ? max : sum) (function(i) {return i.minSize.height;}) + this.getFrameHeightCached();
+			var minH = (this.sumH ? sum : max) (function(i) {return i.minSize.height;}) + this.getFrameHeightCached();
 			
 			if (tuiH[0] == 'WrapContent' && minH < tuiH[1]) {
 				minSize.height	= tuiH[1];

@@ -38,6 +38,8 @@ from Task			import :: TaskAction
 	= TUIControl			!TUIControlType !TUIControl
 	| TUIButton				!TUIButton
 	| TUILayoutContainer	!TUILayoutContainer
+	| TUITabContainer		!TUITabContainer
+	| TUITab				!TUITab
 	| TUIMainContainer		!TUIMainContainer
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
@@ -100,6 +102,14 @@ from Task			import :: TaskAction
 	, frame				:: !Bool
 	, iconCls			:: !Maybe PanelIcon
 	, padding			:: !Maybe Int
+	}
+:: TUITabContainer =
+	{ items				:: ![TUIDef]
+	}
+:: TUITab =
+	{ title				:: !String
+	, iconCls			:: !Maybe String
+	, items				:: !TUIDef
 	}
 :: TUIMainContainer = 
 	{ items				:: ![TUIDef]
@@ -187,6 +197,7 @@ fullWidthInteractionLayout	:: InteractionLayouter
 wrapWidthInteractionLayout	:: InteractionLayouter
 defaultParallelLayout		:: ParallelLayouter
 minimalParallelLayout		:: ParallelLayouter
+tabParallelLayout			:: ParallelLayouter
 defaultMainLayout			:: MainLayouter
 
 // layout aux functions

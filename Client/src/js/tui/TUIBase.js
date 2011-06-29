@@ -40,11 +40,7 @@ itasks.tui.base = {
 		}
 		
 		this.setSize(myW,myH);
-		if (myW == 0 || myH == 0) {
-			// hide element if width/height = 0 to prevent layout problems
-			this.hide();
-		}
-		
+
 		return {myW: myW, myH: myH};
 	},
 	
@@ -75,6 +71,7 @@ itasks.tui.base = {
 		}
 		
 		this.setCache(this.id,'size',size);
+
 		return size;
 	},
 	
@@ -87,8 +84,8 @@ itasks.tui.base = {
 		var minSize		= {};
 
 		if (tuiW[0] == 'WrapContent' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
-			var minW = this.getWidth();
-			
+			var minW = this.getContentWidth();
+
 			if (tuiW[0] == 'WrapContent' && minW < tuiW[1]) {
 				minSize.width	= tuiW[1];
 			} else {
@@ -98,10 +95,10 @@ itasks.tui.base = {
 			minSize.width	= tuiW[0] == 'Fixed' ? tuiW[1] : tuiW[2][1];
 		}
 		minSize.width += this.getMarginsW();
-		
+
 		if (tuiH[0] == 'WrapContent' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
-			var minH = this.getHeight();
-			
+			var minH = this.getContentHeight();
+
 			if (tuiH[0] == 'WrapContent' && minH < tuiH[1]) {
 				minSize.height	= tuiH[1];
 			} else {
@@ -113,7 +110,15 @@ itasks.tui.base = {
 		minSize.height += this.getMarginsH();
 		
 		this.setCache(this.id,'minSize',minSize);
+
 		return minSize;
+	},
+	
+	getContentHeight: function() {
+		return this.getHeight();
+	},
+	getContentWidth: function() {
+		return this.getWidth();
 	},
 	
 	getMarginsW: function() {

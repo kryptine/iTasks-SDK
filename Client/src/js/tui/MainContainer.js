@@ -35,6 +35,13 @@ itasks.tui.MainContainer = itasks.tui.extendContainer(Ext.Panel,{
 		itasks.tui.base.initComponent.apply(this,arguments);
 		this.setTabTitle(this.properties.taskProperties.taskDescription.title);
 	},
+	doTUILayout: function(fillW,fillH) {
+		var myS = itasks.tui.base.doTUILayout.apply(this,arguments);
+		var totalFillW	= myS.myW - this.getFrameWidthCached();
+		var totalFillH	= myS.myH - this.getFrameHeightCached();
+		
+		this.items.get(1).items.get(0).doTUILayout(totalFillW, totalFillH);
+	},
 	getChildSizes: function() {
 		var cached = this.getCache(this.id,'childSizes');
 		if (cached !== null) return cached;

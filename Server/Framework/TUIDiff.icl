@@ -1,6 +1,6 @@
 implementation module TUIDiff
 
-import StdBool, StdClass, StdList, StdEnum, StdMisc
+import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple
 import Util, GenUpdate, TUIDefinition
 
 derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins, TUIGridControl
@@ -58,15 +58,29 @@ where
 														&& isJust o.TUILayoutContainer.title == isJust n.TUILayoutContainer.title
 														&& isJust o.TUILayoutContainer.iconCls == isJust n.TUILayoutContainer.iconCls
 			# valueUpdates	= staticContainerUpdate path o.TUILayoutContainer.items n.TUILayoutContainer.items
-			# titleUpdate	= update (\o n -> o.TUILayoutContainer.title == n.TUILayoutContainer.title && o.TUILayoutContainer.iconCls == n.TUILayoutContainer.iconCls) (\{TUILayoutContainer|title,iconCls} -> fmap (\t -> (t,toString iconCls)) title) TUISetTitle path o n
+			# titleUpdate	= update (\o n -> o.TUILayoutContainer.title == n.TUILayoutContainer.title && o.TUILayoutContainer.iconCls == n.TUILayoutContainer.iconCls) (\{TUILayoutContainer|title,iconCls} -> fmap (\t -> (t,iconCls)) title) TUISetTitle path o n
 			# lengthUpdates	= if (numOld < numNew)
 				[TUIAdd (dp2s path) idx item \\item <- drop numMin n.TUILayoutContainer.items & idx <- [numMin..]]
 				(reverse [TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]])
-			= Just (titleUpdate ++ valueUpdates ++ lengthUpdates)			
+			= Just (titleUpdate ++ valueUpdates ++ lengthUpdates)
 		where
 			numOld = length o.TUILayoutContainer.items
 			numNew = length n.TUILayoutContainer.items
 			numMin = min numOld numNew
+		(TUITabContainer o, TUITabContainer n)
+			# valueUpdates	= staticContainerUpdate path o.TUITabContainer.items n.TUITabContainer.items
+			# lengthUpdates	= if (numOld < numNew)
+				[TUIAdd (dp2s path) idx item \\item <- drop numMin n.TUITabContainer.items & idx <- [numMin..]]
+				(reverse [TUIRemove (dp2s path) idx \\ idx <- [numMin..numOld-1]])
+			= Just (valueUpdates ++ lengthUpdates)
+		where
+			numOld = length o.TUITabContainer.items
+			numNew = length n.TUITabContainer.items
+			numMin = min numOld numNew
+		(TUITab o, TUITab n)
+			# valueUpdates	= staticContainerUpdate path [o.TUITab.items] [n.TUITab.items]
+			# titleUpdate	= update (\o n -> o.TUITab.title == n.TUITab.title && o.TUITab.iconCls == n.TUITab.iconCls) (\{TUITab|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
+			= Just (titleUpdate ++ valueUpdates)
 		(TUIListContainer lcOld, TUIListContainer lcNew)
 			# valueUpdates	= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
 			# lengthUpdates	= if (numOld < numNew)

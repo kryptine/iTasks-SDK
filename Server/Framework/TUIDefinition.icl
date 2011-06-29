@@ -109,6 +109,15 @@ minimalParallelLayout = \{TUIParallel|title,description,items} ->
 	 , height	= Auto
 	 , margins	= Nothing
 	 }, flatten actions)
+	 
+tabParallelLayout :: ParallelLayouter
+tabParallelLayout = \{TUIParallel|title,items} ->
+	let (tuis,actions) = unzip items in
+		({ content	= TUITabContainer {TUITabContainer | items = [{content = TUITab {TUITab|title = title +++ " " +++ toString n, iconCls = Nothing, items = tui}, margins = Nothing, width = Auto, height = Auto} \\ tui <- catMaybes tuis & n <- [1..]]}
+		 , width	= Auto
+		 , height	= Auto
+		 , margins	= Nothing
+		 }, flatten actions)
 
 defaultMainLayout :: MainLayouter
 defaultMainLayout = \{TUIMain|properties,content,actions} ->
@@ -183,7 +192,7 @@ where
 		  , margins	= Nothing
 		  }
 
-defaultMenus :: ![TaskAction]	-> (![TUIDef],![TaskAction])
+defaultMenus :: ![TaskAction] -> (![TUIDef],![TaskAction])
 defaultMenus actions 
 	# (menus,actions) = makeMenus [] actions
 	= ([{TUIDef|content = TUIMenuButton m, width=Auto, height=Auto, margins = Nothing} \\ m <- menus],actions)

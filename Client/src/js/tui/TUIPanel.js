@@ -30,17 +30,14 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 			this.suspendEvents();
 			var doLayout = false;
 			var num = data.updates.length;
+			var cmp = null;
 			itasks.tui.forceLayout = false;
 			for (i = 0; i < num; i++) {
 				var update = data.updates[i];
 				switch(update[0]) {
 					case "TUISetValue":
 						if(cmp = this.findComponentByPath(this, update[1])) {
-							if(cmp.setValue){
-								cmp.setValue(update[2]);
-							}else{
-								cmp.value = update[2]; // cmp is not created yet
-							}
+							cmp.setValue(update[2]);
 						}
 						break;
 					case "TUISetTaskId":
@@ -60,8 +57,7 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 						break;
 					case "TUISetTitle":
 						if(cmp = this.findComponentByPath(this, update[1])) {
-							cmp.setTitle(update[2][0]);
-							cmp.setIconClass(update[2][1]);
+							cmp.setTitle(update[2][0],update[2][1]);
 						}
 						break;
 					case "TUISetSize":
@@ -72,7 +68,7 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 						}
 						break;
 					case "TUIReplace":
-						cmp = this.replaceComponentByPath(this, update[1], update[2]);
+						this.replaceComponentByPath(this, update[1], update[2]);
 						doLayout = true;
 						this.dirty = true;
 						break;
@@ -97,9 +93,9 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 				}
 			}
 			this.resumeEvents();
-			
+
 			if (doLayout || itasks.tui.forceLayout) this.doLayout(true);
-			
+
 		} else {
 			//Completely replace form
 			this.menu = data.menu;
@@ -219,10 +215,9 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 		var h = p.getHeight();
 
 		this.suspendEvents();
-		this.cascade(function() {this.show();}); // show all child components to prevent errors
 		this.setSize(w,h);
 		this.resumeEvents();
-		
+
 		if (this.dirty) {
 			itasks.tui.TUIPanel.superclass.doLayout.call(this);
 			this.dirty = false;

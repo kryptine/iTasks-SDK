@@ -4,6 +4,7 @@ itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 	style: 'white-space: nowrap',
 	defaultWidth: ['FillParent',1,'ContentSize'],
 	defaultHeight: ['WrapContent',0],
+	
 	initComponent: function() {
 		this.html = this.value;
 		this.unstyled = true;
@@ -13,6 +14,7 @@ itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	afterRender: function() {
+		this.contentSize = Ext.util.TextMetrics.measure(this.el.dom,this.value);
 		if (this.tooltip) {
 			new Ext.ToolTip({html: this.tooltip, target: this.getEl()});
 		}
@@ -24,6 +26,13 @@ itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 		this.setWidth('auto');
 		this.setHeight('auto');
 		this.update(value);
+	},
+	
+	getContentWidth: function() {
+		return this.contentSize.width;
+	},
+	getContentHeight: function() {
+		return this.contentSize.height;
 	}
 });
 
