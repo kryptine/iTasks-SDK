@@ -239,7 +239,7 @@ sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
 
 workOn :: !ProcessId -> Task WorkOnProcessState
-workOn pid = wrapWidthInteractionLayout @>>
+workOn pid = //wrapWidthInteractionLayout @>>
 	mkActionTask ("Work on","Work on another workflow instance.") (\termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
 where
 	init taskNr iworld = (TCEmpty, iworld)
