@@ -28,10 +28,6 @@ import TableExamples
 import GeoTracker
 import RPCExamples
 
-//Crisis response examples
-import AmbulanceDispatch
-import AmbulanceDispatchMap
-
 //Change examples
 import SimpleChanges
 
@@ -67,8 +63,6 @@ where
 						//, newsgroupsExample
 						, exceptionHandlingExample
 						, changeHandlingExample
-						, ambulanceDispatchExamples
-						, ambulanceDispatchMapExamples
 						, changeExamples
 						, sharedValueExamples
 						,	[workflow "General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions
