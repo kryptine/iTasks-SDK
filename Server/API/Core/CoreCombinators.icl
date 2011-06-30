@@ -104,7 +104,7 @@ where
 	ActionTask actionTaskF	= {Task|task & type = NormalTask (actionTaskF termF)}
 	_						= task >>= \r -> showInformation (taskTitle task,taskDescription task) [] r >>+ termF
 	
-noActions :: (TermFunc a Void) | iTask a
+noActions :: (TermFunc a b) | iTask a & iTask b
 noActions = const (UserActions [])
 
 // Parallel composition

@@ -88,11 +88,14 @@ ginEditor` =
 		[ (BodyTask, \s -> forever (ginInteractionLayout @>>
 				(updateSharedInformation "Workflow diagram" 
 					[UpdateView (GetShared diagramView, PutbackShared diagramUpdate)] 
-					(taskListState s) Void) >>+ noActions >>| return Continue
+					(taskListState s) Void) >>+ noActions`
 				))
 		, (HiddenTask, \s -> forever (chooseAction (actions s) >>= id >>| return Continue))
 		, (HiddenTask, activator)		
 		]
+where
+	noActions` :: (TermFunc a Void) | iTask a
+	noActions` = noActions
 
 ginParallelLayout :: ParallelLayouter
 ginParallelLayout = \par=:{TUIParallel|title,description,items}-> 

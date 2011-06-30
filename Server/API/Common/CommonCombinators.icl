@@ -73,7 +73,7 @@ assign props task = parallel ("Assign","Manage a task assigned to another user."
 where
 	processControl :: !(TaskList a) -> Task ParallelControl
 	processControl tlist =
-		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, PutbackShared fromView)] control Void >>+ noActions >>| return Continue) <<@ ControlTask
+		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, PutbackShared fromView)] control Void >>+ noActions) <<@ ControlTask
 	where
 		control = taskListProperties tlist
 		
@@ -150,6 +150,9 @@ where
 	layout :: TUIParallel -> (TUIDef,[TaskAction])
 	layout {TUIParallel|items} = appFst fromJust (hd items)
 
+forever :: !(Task a) -> Task b | iTask a & iTask b	
+forever	t = (<!) t (\_ -> False) >>| return defaultValue
+
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") Nothing (\_ (Just a) -> a)
 						[(BodyTask, accu orfun taska), (BodyTask, accu orfun taskb)]
@@ -223,4 +226,7 @@ repeatTask task pred a =
 		=			taska
 		>>= \r -> 	case pred r of
 						(True,_) -> return r
-						(False,msg) -> (showInformation "Feedback" [] (toHtmlDisplay msg) >>+ noActions) ||- (taska <| pred)
+						(False,msg) -> (showInformation "Feedback" [] (toHtmlDisplay msg) >>+ noActions`) ||- (taska <| pred)
+where
+	noActions` :: (TermFunc a Void) | iTask a
+	noActions` = noActions

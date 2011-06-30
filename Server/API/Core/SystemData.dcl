@@ -7,7 +7,7 @@ import Maybe
 from SharedCombinators	import :: ReadOnlyShared, :: Shared, :: ReadWriteShared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: Session, :: UserDetails, :: Workflow
 from Void				import :: Void
-from ProcessDB			import :: Process
+from ProcessDB			import :: Process, :: ProcessId
 from WorkflowDB			import :: WorkflowDescription
 
 // Date & time
@@ -30,8 +30,9 @@ workflows				:: ReadOnlyShared [WorkflowDescription]
 allowedWorkflows		:: ReadOnlyShared [WorkflowDescription]
 
 // Workflow processes
-currentProcesses		::			ReadOnlyShared [Process]
-currentProcessesForUser	:: !User ->	ReadOnlyShared [Process]
+currentProcessId		:: ReadOnlyShared ProcessId
+currentProcesses		:: ReadOnlyShared [Process]
+processesForCurrentUser	:: ReadOnlyShared [Process]
 
 // Application name
 applicationName			:: ReadOnlyShared String

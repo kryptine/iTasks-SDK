@@ -57,11 +57,14 @@ where
 	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
 
 // Workflow processes
+currentProcessId :: ReadOnlyShared ProcessId
+currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{currentProcess} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
+
 currentProcesses ::ReadOnlyShared [Process]
 currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running] [Active]) 'ProcessDB'.lastChange
 
-currentProcessesForUser :: !User -> ReadOnlyShared [Process]
-currentProcessesForUser user = makeReadOnlyShared ("SystemData_processesForUser" +++ toString user) ('ProcessDB'.getProcessesForUser user [Running] [Active]) 'ProcessDB'.lastChange
+processesForCurrentUser	:: ReadOnlyShared [Process]
+processesForCurrentUser = makeReadOnlyShared ("SystemData_processesForCurrentUser") (\iworld=:{currentUser} -> 'ProcessDB'.getProcessesForUser currentUser [Running] [Active] iworld) 'ProcessDB'.lastChange
 
 applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))

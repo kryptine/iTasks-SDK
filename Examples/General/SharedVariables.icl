@@ -95,9 +95,9 @@ RemoveMarkersAction :== Action "Remove Markers"
 
 googleMaps :: Task GoogleMap
 googleMaps = parallel "Map Example" mkMap (\_ m -> m)
-	[ (BodyTask, \s -> updateSharedInformation "Options" [UpdateView optionsEditor] (taskListState s) Void >>+ noActions >>| return Continue)
-	, (BodyTask, \s -> updateSharedInformation "Google Map" [] (taskListState s) Void >>+ noActions >>| return Continue)
-	, (BodyTask, \s -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] (taskListState s) Void >>+ noActions >>| return Continue)
+	[ (BodyTask, \s -> updateSharedInformation "Options" [UpdateView optionsEditor] (taskListState s) Void >>+ noActions)
+	, (BodyTask, \s -> updateSharedInformation "Google Map" [] (taskListState s) Void >>+ noActions)
+	, (BodyTask, \s -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] (taskListState s) Void >>+ noActions)
 	, (BodyTask, \s -> markersDisplay (taskListState s))
 	]
 where						
@@ -267,7 +267,6 @@ where
 	
 	searchBox tlist
 		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView, PutbackShared fromUpdateView)] (taskListState tlist) Void >>+ noActions
-		>>| return Continue
 	where
 		toUpdateView (q,d,r,_) = q
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)

@@ -7,7 +7,9 @@ itasks.tui.GridContainer = itasks.util.extend(Ext.grid.GridPanel, itasks.tui.con
 	stateful: false,
 	listeners: {viewready: function() {
 		if (Ext.isNumber(this.value)) {
+			this.suspendEvents();
 			this.getSelectionModel().selectRow(this.value);
+			this.resumeEvents();
 		}
 	}},
 	

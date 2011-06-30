@@ -56,7 +56,7 @@ derive class iTask ParallelTaskInfo, ParallelControl, TaskList
 * Empty list of actions.
 * 'task >>+ noActions' never terminates.
 */
-noActions :: (TermFunc a Void) | iTask a
+noActions :: (TermFunc a b) | iTask a & iTask b
 
 /**
 * All-in-one swiss-army-knife parallel task creation

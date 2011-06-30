@@ -7,8 +7,13 @@ itasks.tui.TabContainer = itasks.tui.extendContainer(Ext.TabPanel,{
 	sumH: false,
 	deferredRender: false,
 	forceLayout: true,
-	activeTab: 0,
 	layoutOnTabChange: true,
+	listeners: { add: function() {
+		// activate tab if there is only a single one
+		if (this.items.getCount() == 1) {
+			this.setActiveTab(0);
+		}
+	}},
 	
 	doTUILayout: function(fillW,fillH) {
 		var activeTab = this.getActiveTab();

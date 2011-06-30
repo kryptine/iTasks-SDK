@@ -119,7 +119,7 @@ where
 	
 	askReplyTask user msg =
 		subject msg @>>
-			((showInformation ("Reply requested","The sender would like to receive a reply to this message.") [] Void >>+ noActions)
+			((showInformation ("Reply requested","The sender would like to receive a reply to this message.") [] Void >>+ noActions`)
 			 ||-
 			 manageMessage msg
 			 )
@@ -131,6 +131,9 @@ where
 		= case [rcp \\ rcp <- recipients & ans <- answers | not ans] of
 			[]		= return Void
 			users	= showInformation ("Reply request ignored","The following users ignored your request for a reply:") [About users] Void
+
+	noActions` :: (TermFunc a Void) | iTask a
+	noActions` = noActions
 			
 writeMessage :: User String [User] (Maybe Message) -> Task Message
 writeMessage sender subj recipients mbThread

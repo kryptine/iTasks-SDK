@@ -174,7 +174,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-forever	t	:==	(<!) t (\_ -> False)
+forever :: !(Task a) -> Task b | iTask a & iTask b
 
 /**
 * Group two tasks in parallel, return the result of the first completed task.
