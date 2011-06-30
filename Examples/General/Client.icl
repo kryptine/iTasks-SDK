@@ -69,7 +69,7 @@ where
 		_ = abort "getProcId"
 
 workTabPanel :: !(TaskList ClientState) -> Task ParallelControl
-workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(BodyTask,\_ -> showInformation "test" [] Continue),(HiddenTask, controlWorkTabs (taskListState taskList))]
+workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList))]
 
 controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
 controlWorkTabs state taskList = forever (
