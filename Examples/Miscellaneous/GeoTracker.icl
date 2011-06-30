@@ -12,12 +12,11 @@ geoTrackerExamples =
 locationStore :: Shared [(User,GoogleMapPosition)]
 locationStore = sharedStore "Locations" []
 	
-reportPosition :: GoogleMapPosition -> Task Void
+reportPosition :: GoogleMapPosition -> Task [(User,GoogleMapPosition)]
 reportPosition position
 	=	get currentUser
 	>>= \user ->
 		update (updatePos (user,position)) locationStore
-	>>| stop
 where
 	updatePos (user,position) [] = [(user,position)]
 	updatePos (user,position) [(u,p):ps]

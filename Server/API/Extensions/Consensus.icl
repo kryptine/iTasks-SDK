@@ -16,9 +16,9 @@ askOpinions
 	>>= \topic ->
 		defineItemType
 	>>= \type -> case type of
-		"Date" 		= askOpinionsDate topic		>>| stop
-		"Document"	= askOpinionsDocument topic	>>| stop
-		"Other"		= askOpinionsOther topic	>>| stop
+		"Date" 		= askOpinionsDate topic		>>| return Void
+		"Document"	= askOpinionsDocument topic	>>| return Void
+		"Other"		= askOpinionsOther topic	>>| return Void
 		
 //The type dependent second part of the flow
 askOpinionsGeneric :: Topic -> Task (Results a) | iTask a

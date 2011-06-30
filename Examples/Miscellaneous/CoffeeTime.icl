@@ -47,4 +47,4 @@ determineWhoGoes orders = randomChoice [user \\ (user,_) <- orders]
 * Give someone directions to go get coffee for everyone
 */
 goGetCoffee :: User [(User,String)] -> Task Void
-goGetCoffee user orders = user @: (Description "Get coffee" @>> OutputTask ActiveOutput @>> showInformation ("Coffee orders","You have been chosen to get the following drinks") [] orders >>| stop)
+goGetCoffee user orders = user @: (Description "Get coffee" @>> OutputTask ActiveOutput @>> showInformation ("Coffee orders","You have been chosen to get the following drinks") [] orders >>| return Void)

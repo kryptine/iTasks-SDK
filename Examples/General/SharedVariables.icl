@@ -5,7 +5,7 @@ from StdFunc import o
 
 derive bimap Maybe, (,)
 
-quitButton _ = UserActions [(ActionQuit, Just Void)]
+quitButton _ = UserActions [(ActionQuit, Just Stop)]
 
 //Text-Lines Examples
 noteEditor = (GetShared \txt -> Note txt,	PutbackShared \(Note txt) _ _ -> txt)
@@ -14,12 +14,12 @@ listEditor = (GetShared (split "\n"),		PutbackShared \l _ _ -> join "\n" l)
 TrimAction :== Action "Trim"
 
 linesPar :: Task Void
-linesPar = parallel "Lines Example" "" (\_ _ -> Void) [ShowAs BodyTask noteE, ShowAs BodyTask (\sid _ -> updateSharedInformation ("Lines","Edit lines") [UpdateView listEditor] sid Void >>+ quitButton)]
+linesPar = parallel "Lines Example" "" (\_ _ -> Void) [(BodyTask, noteE), (BodyTask, \sid -> updateSharedInformation ("Lines","Edit lines") [UpdateView listEditor] (taskListState sid) Void >>+ quitButton)]
 where
-	noteE sid os = 
-			updateSharedInformation ("Text","Edit text") [UpdateView noteEditor] sid Void
-		>?*	[ (TrimAction,	IfValid	(\(txt,_) -> update trim sid >>| noteE sid os))
-			, (ActionQuit,	Always	stop)
+	noteE sid = 
+			updateSharedInformation ("Text","Edit text") [UpdateView noteEditor] (taskListState sid) Void
+		>?*	[ (TrimAction,	IfValid	(\(txt,_) -> update trim (taskListState sid) >>| noteE sid))
+			, (ActionQuit,	Always	(return Stop))
 			]
 
 //Calculate Sum Example
@@ -58,11 +58,11 @@ mergeTestList :: Task Void
 mergeTestList =	
 				spawnProcess True initManagerProperties (Description "1st UpdateView" @>> view sid)
 	>>|			spawnProcess True initManagerProperties (Description "2nd UpdateView" @>> view sid)
-	>>|			stop
+	>>|			return Void
 where
 	sid = sharedStore "mergeTestLists" []
 
-	view :: (Shared [String]) -> Task Void
+	view :: (Shared [String]) -> Task ParallelControl
 	view sid = updateSharedInformation ("List","Merging the lists") [] sid Void >>+ quitButton
 	
 mergeTestDocuments :: Task Void
@@ -70,7 +70,7 @@ mergeTestDocuments =
 		spawnProcess True initManagerProperties (Description "1st UpdateView" @>> view store)
 	>>|	spawnProcess True initManagerProperties (Description "2nd UpdateView" @>> view store)
 	>>|	spawnProcess True initManagerProperties (Description "3rd UpdateView" @>> showSharedInformation "Documents" [] store Void >>+ quitButton)
-	>>|	stop
+	>>|	return Void
 where
 	view sid = updateSharedInformation ("List","Merging the documents") [] sid Void >>+ quitButton
 	store :: Shared [Document]
@@ -95,16 +95,16 @@ RemoveMarkersAction :== Action "Remove Markers"
 
 googleMaps :: Task GoogleMap
 googleMaps = parallel "Map Example" mkMap (\_ m -> m)
-	[ ShowAs BodyTask (\s _ -> updateSharedInformation "Options" [UpdateView optionsEditor] s Void >>+ noActions)
-	, ShowAs BodyTask (\s _ -> updateSharedInformation "Google Map" [] s Void >>+ noActions)
-	, ShowAs BodyTask (\s _ -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] s Void >>+ noActions)
-	, ShowAs BodyTask (\s _ -> markersDisplay s)
+	[ (BodyTask, \s -> updateSharedInformation "Options" [UpdateView optionsEditor] (taskListState s) Void >>+ noActions >>| return Continue)
+	, (BodyTask, \s -> updateSharedInformation "Google Map" [] (taskListState s) Void >>+ noActions >>| return Continue)
+	, (BodyTask, \s -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] (taskListState s) Void >>+ noActions >>| return Continue)
+	, (BodyTask, \s -> markersDisplay (taskListState s))
 	]
 where						
 	markersDisplay dbid =
 								showSharedInformation "Markers" [ShowView (GetShared markersListener)] dbid Void
 		>>*	\{modelValue=map}.	UserActions	[ (RemoveMarkersAction,	Just (update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid))
-											, (ActionQuit,			Just (return map))
+											, (ActionQuit,			Just (return Stop))
 											]
 
 	optionsEditor	=	( GetShared \map ->				{ type = map.mapType
@@ -258,30 +258,32 @@ phoneBookSearch
 activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
 activeQuery mbQuery queryTask
 	=	parallel "Active Query" (initQuery,initDirty,[],Nothing) (\_ (_,_,_,Just res) -> res)
-			[ShowAs BodyTask searchBox, ShowAs HiddenTask (activator queryTask), ShowAs BodyTask searchResults]
+			[(BodyTask, searchBox), (HiddenTask, activator queryTask), (BodyTask, searchResults)]
 where
 	initQuery = case mbQuery of
 		Nothing = ""
 		Just q	= q
 	initDirty = isJust mbQuery
 	
-	searchBox pstate pinfo
-		= updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView, PutbackShared fromUpdateView)] pstate Void >>+ noActions
+	searchBox tlist
+		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView, PutbackShared fromUpdateView)] (taskListState tlist) Void >>+ noActions
+		>>| return Continue
 	where
 		toUpdateView (q,d,r,_) = q
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)
 	
-	activator queryTask pstate pinfo
-		=	showSharedInformation "Query showSharedInformation" [] pstate Void >? (\((_,d,_,_),_) -> d)	//Look for the dirty flag to become True
+	activator queryTask tlist
+		=	showSharedInformation "Query showSharedInformation" [] (taskListState tlist) Void >? (\((_,d,_,_),_) -> d)	//Look for the dirty flag to become True
 		>>= \((query,_,_,_),_) ->
 			queryTask query
 		>>= \results ->
-			update (\(q,_,_,res) -> (q,False,results,res)) pstate	//Reset dirty flag
-		
+			update (\(q,_,_,res) -> (q,False,results,res)) (taskListState tlist)	//Reset dirty flag
+		>>| return Continue
 
-	searchResults pstate pinfo
-		=	enterSharedChoice ("Search results","The following results were found:") [] (mapSharedRead (\(_,_,r,_) -> r) pstate) >?* [(ActionNext,IfValid return)]
-		>>= \x. update (\(q,d,r,_) -> (q,d,r,Just x)) pstate
+	searchResults tlist
+		=	enterSharedChoice ("Search results","The following results were found:") [] (mapSharedRead (\(_,_,r,_) -> r) (taskListState tlist)) >?* [(ActionNext,IfValid return)]
+		>>= \x. update (\(q,d,r,_) -> (q,d,r,Just x)) (taskListState tlist)
+		>>|	return Stop
 
 //Very simple CSV phonebook implementation
 :: Name :== String

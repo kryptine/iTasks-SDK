@@ -13,12 +13,12 @@ manageUsers =
 			, (Action "Import & export/Import demo users",	Always	(importDemoUsersFlow	>>| return False))
 			, (ActionQuit,									Always	(							return True))
 			]
-	) <! id >>| stop
+	) <! id >>| return Void
 
 createUserFlow :: Task Void
 createUserFlow =
 		enterInformation ("Create user","Enter user information") []
-	>?*	[ (ActionCancel,	Always	stop)
+	>?*	[ (ActionCancel,	Always	(return Void))
 		, (ActionOk,		IfValid (\user ->
 											createUser user
 										>>|	showInformation "User created" [] "Successfully added new user"

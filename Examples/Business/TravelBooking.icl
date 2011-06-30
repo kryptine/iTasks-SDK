@@ -62,8 +62,8 @@ where
  	
 	handleBookings :: [[Booking]] -> Task Void
 	handleBookings booking
-		| isEmpty	booking	= showInformation "Summary" [] "Cancelled" >>| stop
-		| otherwise			= (updateInformation ("Payment","Pay") [] (calcCosts booking) >>| showInformation "Summary" [] "Paid" >>| stop)
+		| isEmpty	booking	= showInformation "Summary" [] "Cancelled" >>| return Void
+		| otherwise			= (updateInformation ("Payment","Pay") [] (calcCosts booking) >>| showInformation "Summary" [] "Paid" >>| return Void)
 	where
 		calcCosts booked = sum [cost \\ (_,_,_,cost) <- hd booked]
 

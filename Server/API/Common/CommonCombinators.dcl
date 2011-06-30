@@ -324,15 +324,6 @@ allProc 			:: ![ProcTask a] 		   -> Task [a] 	| iTask a
 */
 
 /**
-* Just returns Void. Used as a last step in tasks of type Void in combination with the >>| combinator.
-*
-* @return Void
-* 
-* @gin-title Void
-*/
-stop				:: Task Void
-
-/**
 * Randomly selects one item from a list.
 *
 * @param Options: The list of options

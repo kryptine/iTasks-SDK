@@ -10,14 +10,8 @@ from ProcessDB			import :: Process
 import Task
 
 import iTaskClass
-derive class iTask ParallelTaskInfo
-derive JSONEncode	TaskContainer
-derive JSONDecode	TaskContainer
-derive gUpdate		TaskContainer
-derive gDefaultMask	TaskContainer
-derive gVerify		TaskContainer
-derive gVisualize	TaskContainer
-derive gEq			TaskContainer
+derive class iTask ParallelTaskInfo, ParallelControl, TaskList
+
 
 //Standard monadic operations:
 
@@ -60,7 +54,7 @@ derive gEq			TaskContainer
 
 /*
 * Empty list of actions.
-* 'task >>+ noActions' never terminated.
+* 'task >>+ noActions' never terminates.
 */
 noActions :: (TermFunc a Void) | iTask a
 
@@ -88,7 +82,15 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 /**
 * A container for a child task of a parallel.
 */				
-:: TaskContainer s		= E.a: ShowAs !TaskGUI !(ParallelTask s a) & iTask a
+:: TaskContainer s		:== (TaskGUI, (ParallelTask s))
+
+/**
+* An abstract handle representing a list of tasks
+*/
+:: TaskList s
+
+//* Constant task list denoting all top level processes (defined here because TaskList is abstract)
+topLevelTasks :: (TaskList Void)
 
 /**
 * Defines how a task is shown inside of a parallel.
@@ -102,31 +104,44 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 /**
 * A task inside of a parallel. The first parameter is a reference to the shared data state. The second one is a reference to the shared parallel info.
 */
-:: ParallelTask s a		:== (Shared s) (ParallelInfo s) -> Task a
+:: ParallelTask s		:== (TaskList s) -> Task ParallelControl
 
 /**
-* A reference to the shared parallel info.
+* Control flow type for parallel sets. Tasks running in parallel have to indicate whether
+* to continue the parallel set or to stop the set when they complete.
 */
-:: ParallelInfo s		:== ReadWriteShared [ParallelTaskInfo] [Control s]
+:: ParallelControl			= Stop | Continue
 
 /**
 * Information about a task in a parallel set.
 */
-:: ParallelTaskInfo =	{ index			:: !TaskIndex								//* The task's index
+:: ParallelTaskInfo =	{ index			:: !Int										//* The task's index
 						, properties	:: !Either TaskProperties ProcessProperties //* Task properties for inbody tasks and process properties for detached tasks
 						}
 
 /**
-* A control signal for changing a running parallel.
+* Get the shared state of a task list
 */
-:: Control s			= StopParallel												//* stop the entire parallel execution
-						| AppendTask		!(TaskContainer s)						//* append and additional task to be run in parallel as well
-						| RemoveTask		!TaskIndex								//* remove the task with indicated index from the set
-						| UpdateProperties	!TaskIndex !ManagerProperties			//* update the properties of a task
-					
-:: TaskIndex			:== Int
+taskListState		:: (TaskList s) -> Shared s | TC s
 
-derive class iTask Control
+/**
+* Get the properties share of a task list
+*/
+taskListProperties	:: (TaskList s) -> Shared [ParallelTaskInfo]
+
+//Manipulation 
+
+/**
+* Add a task to a task list
+*/
+appendTask :: !(TaskContainer s) !(TaskList s)	-> Task Int | TC s
+
+/**
+* Removes (and stops) a task from a task list
+*/
+removeTask :: !Int !(TaskList s)				-> Task Void | TC s
+
+//DEPRECATED
 
 // Multi-user workflows
 

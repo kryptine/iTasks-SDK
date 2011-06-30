@@ -35,7 +35,7 @@ manageLists
 		(ActionNew,_)				= newList >>= manageList	>>| return False
 		(ActionQuit,_)				=								return True
 	) <! id
-	>>| stop
+	>>| return Void
 where
 	overview []		= showInformation ("My lists","You have no lists.") [] Void >>+ \_ -> UserActions [(ActionNew,Just (ActionNew,Nothing)),(ActionQuit,Just (ActionQuit,Nothing))]
 	overview list	= enterChoice ("My lists","Select a list...") [] list >>+ \{modelValue,localValid} -> let mbL = if localValid (Just modelValue) Nothing in UserActions [aOpen mbL,aDelete mbL,aNew,aQuit]
@@ -66,7 +66,7 @@ manageList list
 		Action "Share"		= manageListSharing list	>>| return False
 		ActionClose			=								return True
 	) <! id
-	>>| stop
+	>>| return Void
 where
 	showItems l = case l of
 		(SimpleList l)	= showSharedInformation (l.List.name,l.List.description) [ShowView (GetShared simpleFrom)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
@@ -109,7 +109,7 @@ manageListSharing list
 				(Action "Add person(s)",_)	= addUsers list		>>| return False
 				(Action "Add group",_)		= addGroup list		>>| return False
 				(ActionPrevious,_)			=						return True
-	) <! id >>| stop
+	) <! id >>| return Void
 
 where
 	aPrevious	= ActionPrevious

@@ -46,7 +46,7 @@ manageMessages =
 		(Action "New message",_) 		= newMessage			>>|	return False
 		(Action "New group message",_)	= newGroupMessage		>>| return False
 		(ActionQuit,_)					= 							return True
-	) <! id >>| stop
+	) <! id >>| return Void
 where
 	overview :: [Message] -> Task (Action,Maybe Message)
 	overview []		= showInformation ("My messages","You have no messages") [] Void >>+ \_ -> UserActions [(aNew,Just (aNew,Nothing)),(aNewGroup,Just (aNewGroup,Nothing)),(aQuit,Just (aQuit,Nothing))]
@@ -107,8 +107,8 @@ sendMessage :: Message -> Task Void
 sendMessage msg
 	=	dbCreateItem msg
 	>>= \msg -> case msg.needsReply of
-			False	= allTasks [spawnProcess True {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| stop
-			True	= spawnProcess True initManagerProperties (awaitReplies msg) >>| stop
+			False	= allTasks [spawnProcess True {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| return Void
+			True	= spawnProcess True initManagerProperties (awaitReplies msg) >>| return Void
 	>>| showInformation ("Message sent","The following message has been sent:") [About msg] Void
 where
 	awaitReplies msg =
@@ -129,7 +129,7 @@ where
 	
 	notifyNoReplies recipients answers
 		= case [rcp \\ rcp <- recipients & ans <- answers | not ans] of
-			[]		= stop
+			[]		= return Void
 			users	= showInformation ("Reply request ignored","The following users ignored your request for a reply:") [About users] Void
 			
 writeMessage :: User String [User] (Maybe Message) -> Task Message

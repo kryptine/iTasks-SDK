@@ -12,26 +12,21 @@ from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDeco
 from CoreTasks			import return
 from TuningCombinators	import :: Tag
 
-derive class iTask ParallelTaskInfo, Control
+:: TaskList s
+	= GlobalTaskList			//The global list of task instances
+	| ParallelTaskList !TaskId	//The list of task instances of a parallel node
 
-JSONEncode{|TaskContainer|} _ c		= dynamicJSONEncode c
-JSONDecode{|TaskContainer|} _ [j:c]	= (dynamicJSONDecode j,c)
-gUpdate{|TaskContainer|} fx UDCreate ust
-	# (a,ust) = fx UDCreate ust
-	= (ShowAs BodyTask (\_ _ -> return Void), ust)
-gUpdate{|TaskContainer|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
-gDefaultMask{|TaskContainer|} _ _ = [Touched []]
-gVerify{|TaskContainer|} _ _ vst = alwaysValid vst
-gVisualize{|TaskContainer|} _ _ vst = ([TextFragment "task container"],vst)
-gEq{|TaskContainer|} _ _ _ = False // containers are never equal
+topLevelTasks :: (TaskList Void)
+topLevelTasks = GlobalTaskList
 
-//Partial definition of equality of Control used only by (isMember StopParallel controls)
-instance == (Control a) where
-	(==) StopParallel	StopParallel	= True
-	(==) _				_				= False
-
+derive class iTask ParallelTaskInfo, ParallelControl, Control, TaskList, TaskGUI
 derive bimap Maybe, (,)
 
+instance toString (TaskList s)
+where
+	toString GlobalTaskList				= "global"
+	toString (ParallelTaskList taskid)	= "parallel_" +++ taskid
+	
 //Standard monadic bind
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>=) taska taskbfun = mkTask (taskTitle taska, taskDescription taska) init edit eval
@@ -113,14 +108,20 @@ noActions :: (TermFunc a Void) | iTask a
 noActions = const (UserActions [])
 
 // Parallel composition
-STATEKEY id 	:== iTaskId id "-state"
-INFOKEY id		:== iTaskId id "-info"
-CONTROLKEY id	:== iTaskId id "-control"
+STATEKEY id 	:== "parallel_" +++ taskNrToString id +++ "-state"
+INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
+CONTROLKEY id	:== "parallel_" +++ taskNrToString id +++ "-control"
 
 :: ResultSet
 	= RSException !Dynamic !String
 	| RSStopped
-	| RSResults !ParallelMeta ![(!Int, !TaskResult Void, !SubTaskContext)]
+	| RSResults !ParallelMeta ![(!Int, !TaskResult ParallelControl, !SubTaskContext)]
+	
+:: Control s
+	= AppendTask		!Int !(TaskContainer s)			// append and additional task to be run in parallel as well
+	| RemoveTask		!Int							// remove the task with indicated index from the set
+	| UpdateProperties	!Int !ManagerProperties			// update the properties of a task
+
 
 parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
 parallel description initState resultFun initTasks = mkTask description init edit eval 
@@ -128,7 +129,7 @@ where
 	//Create initial set of tasks and initial state
 	init taskNr iworld=:{IWorld|timestamp}
 		# (subContexts, nextIdx, iworld)	= initSubContexts taskNr 0 initTasks iworld  
-		# meta								= {nextIdx = nextIdx, stop = False, stateChanged = timestamp, infoChanged = timestamp}
+		# meta								= {nextIdx = nextIdx, stateChanged = timestamp, infoChanged = timestamp}
 		# encState							= encodeState initState initState
 		= (TCParallel encState meta subContexts, iworld)
 	where
@@ -174,12 +175,9 @@ where
 			_
 				= (context,iworld)
 		//Remove the current state from the parallelVars scope in iworld
-		# (state,meta,iworld)	= removeParState taskNr meta iworld
+		# (state,meta,iworld)			= removeParState taskNr meta iworld
 		//Remove the task info overview
 		# iworld						= removeParTaskInfo taskNr iworld
-		//Process controls
-		# (controls, iworld)			= removeControls initState taskNr iworld
-		# (meta,_,subs,iworld)			= processControls taskNr meta controls [] subs iworld
 		//Encode state
 		# encState	= encodeState state initState
 		= (TCParallel encState meta subs,iworld)
@@ -192,15 +190,19 @@ where
 		//Add the current state to the parallelVars scope in iworld
 		# state							= decodeState encState initState 
 		# iworld						= addParState taskNr state meta iworld
+		//Add the initial control structure to the parallelVars scope in iworld
+		# iworld						= addParControl state taskNr meta iworld
 		//Put the initial parallel task info overview in the parallelVars scope in iworld
-		# iworld						= addParTaskInfo taskNr subs meta.infoChanged iworld 
+		# iworld						= addParTaskInfo taskNr subs meta.infoChanged iworld
 		//Evaluate the sub tasks
 		# (resultset,iworld)			= evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta [] subs iworld
 		//Remove the current state from the parallelVars scope in iworld
 		# (state,meta,iworld)			= removeParState taskNr meta iworld
-		//Remove the task info overview
+		//Remove the control structure from the parallelVars scope in iworld
+		# (meta,iworld)					= removeParControl state taskNr meta iworld
+		//Remove the task info overview from the parallelVars scropr in iworld
 		# iworld						= removeParTaskInfo taskNr iworld 
-		//Remove parallel task info from the iworld
+		//Remove parallel task info
 		= case resultset of
 			//Exception
 			RSException e str	= (TaskException e str, iworld)
@@ -217,12 +219,8 @@ where
 	//Keep evaluating tasks and updating the state until there are no more subtasks
 	//subtasks
 	evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta results [] iworld
-		//Check the stop flag
-		| meta.stop = (RSStopped, iworld)
-		| otherwise	= (RSResults meta results, iworld)
+		= (RSResults meta results, iworld)
 	evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta results [(idx,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,timestamp}
-		//Check the stop flag
-		| meta.stop	= (RSStopped, iworld)
 		//Evaluate subtask
 		# (result,stcontext,iworld)	= case stcontext of
 			(STCHidden props (Just (encTask,context)))
@@ -231,7 +229,7 @@ where
 				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] task.Task.properties (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
 				= case result of
 					TaskBusy tui actions context	= (TaskBusy tui actions context, STCHidden props (Just (encTask, context)), iworld)
-					TaskFinished _					= (TaskFinished Void, STCHidden props Nothing, iworld)
+					TaskFinished r					= (TaskFinished r, STCHidden props Nothing, iworld)
 					TaskException e str				= (TaskException e str, STCHidden props Nothing, iworld)
 			(STCBody props (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
@@ -239,7 +237,7 @@ where
 				# (result,iworld)	= taskfuncs.evalTaskFun [idx:taskNr] task.Task.properties (stepCommitEvent idx event) (stepTUITaskNr idx tuiTaskNr) imerge pmerge mmerge context iworld 
 				= case result of
 					TaskBusy tui actions context	= (TaskBusy tui actions context, STCBody props (Just (encTask, context)), iworld)
-					TaskFinished _					= (TaskFinished Void, STCBody props Nothing, iworld)
+					TaskFinished r					= (TaskFinished r, STCBody props Nothing, iworld)
 					TaskException e str				= (TaskException e str, STCBody props Nothing, iworld)
 			(STCDetached props (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
@@ -260,19 +258,22 @@ where
 					_				= props
 				= case result of
 					TaskBusy tui actions context	= (TaskBusy tui actions context, STCDetached props (Just (encTask, context)), iworld)
-					TaskFinished _					= (TaskFinished Void, STCDetached (markFinished props) Nothing, iworld)
+					TaskFinished r					= (TaskFinished r, STCDetached (markFinished props) Nothing, iworld)
 					TaskException e str				= (TaskException e str, STCDetached (markExcepted props) Nothing, iworld)		
 			_
 				//This task is already completed
-				= (TaskFinished Void, stcontext, iworld)
+				= (TaskFinished Continue, stcontext, iworld)
 		//Check for exception
 		| isException result
 			# (TaskException dyn str) = result
 			= (RSException dyn str, iworld)
+		//Check for stop result (discards any pending additions/removals to the set, since they will be pointless anyway)
+		| isStopped result
+			= (RSStopped, iworld)
 		//Append current result to results so far
 		# results	= results ++ [(idx,result,stcontext)]
 		//Process controls
-		# (controls, iworld)			= removeControls initState taskNr iworld
+		# (controls, iworld)			= getControls initState taskNr iworld
 		# (meta,results,stasks,iworld)	= processControls taskNr meta controls results stasks iworld
 		//Evaluate remaining subtasks
 		= evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta results stasks iworld
@@ -280,38 +281,36 @@ where
 	initSubContext taskNr i taskContainer iworld=:{IWorld|timestamp}
 		# subTaskNr = [i:taskNr]
 		= case taskContainer of
-			ShowAs (DetachedTask managerProps) taskfun
+			(DetachedTask managerProps, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
 				# processProps	= initProcessProperties subTaskNr timestamp managerProps task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCDetached processProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 			//Window & dialogue now implemented as simple InBody tasks
-			ShowAs (WindowTask title) taskfun 
+			(WindowTask title, taskfun) 
 				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
-			ShowAs (DialogTask title) taskfun
+			(DialogTask title, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
-			ShowAs BodyTask taskfun
+			(BodyTask, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCBody taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
-			ShowAs HiddenTask taskfun
+			(HiddenTask, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
 				# taskProps		= initTaskProperties task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCHidden taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 	where
-		// apply shared to taskfun & convert to 'normal' (non-action) tasks
+		// apply task list reference to taskfun & convert to 'normal' (non-action) tasks
 		mkSubTask taskfun
-			# stateShare	= mkStateShare taskNr
-			# controlShare	= mkControlShare taskNr
-			# task			= taskfun stateShare controlShare
+			# task			= taskfun (ParallelTaskList (taskNrToString taskNr)) 
 			# funcs			= toTaskFuncs task
 			# task			= {Task|task & type = NormalTask funcs}
 			= (task,funcs)
@@ -352,8 +351,20 @@ where
 	removeParState :: !TaskNr !ParallelMeta !*IWorld -> (!s,!ParallelMeta,!*IWorld) | TC s
 	removeParState taskNr meta iworld=:{parallelVars}
 		= case 'Map'.get (STATEKEY taskNr) parallelVars of
-			Just ((state,ts) :: (s^,Timestamp))	= (state,{meta & stateChanged = ts},iworld)
+			Just ((state,ts) :: (s^,Timestamp))	= (state,{meta & stateChanged = ts},{iworld & parallelVars = 'Map'.del (STATEKEY taskNr) parallelVars})
 			_									= abort "Could not read parallel state"
+	
+	//IMPORTANT: first argument is never used, but passed just to solve overloading
+	//Put the initial control structure in the scope
+	addParControl :: s !TaskNr !ParallelMeta *IWorld -> *IWorld | TC s
+	addParControl _ taskNr meta=:{nextIdx} iworld=:{parallelVars}
+		= {iworld & parallelVars = 'Map'.put (CONTROLKEY taskNr) (dynamic (nextIdx,[]) :: (Int,[Control s^])) parallelVars}
+
+	removeParControl :: s !TaskNr !ParallelMeta *IWorld -> (!ParallelMeta,!*IWorld) | TC s
+	removeParControl _ taskNr meta iworld=:{parallelVars}
+		= case 'Map'.get (CONTROLKEY taskNr) parallelVars of
+			Just ((nextIdx,_) :: (Int,[Control s^]))	= ({meta & nextIdx = nextIdx},{iworld & parallelVars = 'Map'.del (CONTROLKEY taskNr) parallelVars})
+			_											= abort "Could not read parallel control"
 	
 	//Put a datastructure in the scope with info on all processes in this set
 	addParTaskInfo :: !TaskNr ![(!Int,!SubTaskContext)] !Timestamp !*IWorld -> *IWorld
@@ -373,26 +384,23 @@ where
 	switchCurrentUser newUser iworld=:{IWorld|currentUser}
 		= (currentUser,{IWorld|iworld & currentUser = newUser})
 	
-	//IMPORTANT: first argument is never used, but passed just to solve overloading
 	//Remove and return control values from the scope
-	removeControls :: s !TaskNr !*IWorld -> ([Control s],!*IWorld) | iTask s
-	removeControls _ taskNr iworld=:{parallelVars}
+	//IMPORTANT: first argument is never used, but passed just to solve overloading
+	getControls :: s !TaskNr !*IWorld -> ([Control s], !*IWorld) | TC s
+	getControls _ taskNr iworld=:{parallelVars}
 		= case 'Map'.get (CONTROLKEY taskNr) parallelVars of
-			Just (controls :: [Control s^])
-				= (controls, {iworld & parallelVars = 'Map'.del (CONTROLKEY taskNr) parallelVars})
+			Just ((nextIdx, controls) :: (Int,[Control s^]))
+				= (controls, {iworld & parallelVars = 'Map'.put (CONTROLKEY taskNr) (dynamic (nextIdx,[]) :: (Int,[Control s^])) parallelVars})
 			_
-				= ([],iworld)
-		
-	processControls :: !TaskNr !ParallelMeta [Control s] [(!Int, !TaskResult Void, !SubTaskContext)] [(Int,!SubTaskContext)] !*IWorld -> (!ParallelMeta,![(!Int, !TaskResult Void, !SubTaskContext)], ![(Int,!SubTaskContext)],!*IWorld) | iTask s
+				= abort "Could not load parallel control data"
+	
+	processControls :: !TaskNr !ParallelMeta [Control s] [(!Int, !TaskResult ParallelControl, !SubTaskContext)] [(Int,!SubTaskContext)] !*IWorld -> (!ParallelMeta,![(!Int, !TaskResult ParallelControl, !SubTaskContext)], ![(Int,!SubTaskContext)],!*IWorld) | iTask s
 	processControls taskNr meta [] results remaining iworld = (meta,results,remaining,iworld)
-	processControls taskNr meta=:{nextIdx} [c:cs] results remaining iworld
+	processControls taskNr meta [c:cs] results remaining iworld
 		= case c of
-			StopParallel
-				= ({meta & stop = True},results,remaining,iworld)	//We don't process the remaining controls!
-			AppendTask taskContainer
-				# (context,iworld)	= initSubContext taskNr nextIdx taskContainer iworld
-				# meta				= {meta & nextIdx = nextIdx + 1}
-				# remaining			= remaining ++ [(nextIdx,context)]
+			AppendTask idx taskContainer
+				# (context,iworld)	= initSubContext taskNr idx taskContainer iworld
+				# remaining			= remaining ++ [(idx,context)]
 				= processControls taskNr meta cs results remaining iworld
 			RemoveTask idx
 				# results			= [result \\ result=:(i,_,_) <- results | i <> idx]
@@ -411,6 +419,9 @@ where
 	
 	isException (TaskException _ _)	= True
 	isException _					= False
+	
+	isStopped	(TaskFinished Stop)	= True
+	isStopped	_					= False
 	
 	allFinished []							= True
 	allFinished [(_,TaskFinished _,_):rs]	= allFinished rs
@@ -461,25 +472,8 @@ where
 					[(tui,actions)]	= (Just tui,actions)
 					_				= (Nothing,[])
 					
-	//Create the access share for the shared state in the iworld's parallelVars
-	mkStateShare :: TaskNr -> Shared s | iTask s
-	mkStateShare taskNr = ReadWriteShared ["parallel_" +++ taskNrToString taskNr] read write timestamp
-	where
-		read iworld=:{parallelVars}
-			= case 'Map'.get (STATEKEY taskNr) parallelVars of
-				Just ((val,_) :: (s^,Timestamp))	= (Ok val, iworld)
-				_									= (Error ("Could not read shared parallel state of task " +++ taskNrToString taskNr),iworld)
-
-		write val iworld=:{parallelVars,timestamp}
-			= (Ok Void, {iworld & parallelVars = 'Map'.put (STATEKEY taskNr) (dynamic (val,timestamp) :: (s^,Timestamp)) parallelVars })
-		
-		timestamp iworld=:{parallelVars}
-			= case 'Map'.get (STATEKEY taskNr) parallelVars of
-				Just ((_,ts) :: (s,Timestamp))		= (Ok ts, iworld)
-				_									= (Error ("Could not read timestamp for shared parallel state of task " +++ taskNrToString taskNr),iworld)
-
 	//Create the info/control share in the iworld's parallelVars
-	mkControlShare :: TaskNr -> ReadWriteShared [ParallelTaskInfo] [Control s] | iTask s
+	mkControlShare :: TaskNr -> ReadOnlyShared [ParallelTaskInfo]
 	mkControlShare taskNr = ReadWriteShared ["parallelControl_" +++ taskNrToString taskNr] read write timestamp
 	where
 		read iworld=:{parallelVars}
@@ -487,8 +481,9 @@ where
 				Just ((val,_) :: ([ParallelTaskInfo],Timestamp))	= (Ok val, iworld)
 				_													= (Error ("Could not read parallel task info of " +++ taskNrToString taskNr), iworld)
 		
-		write val iworld=:{parallelVars}
-			= (Ok Void, {iworld & parallelVars = 'Map'.put (CONTROLKEY taskNr) (dynamic val :: [Control s^]) parallelVars })				
+		write _ iworld
+			= (Ok Void, iworld)
+						
 		timestamp iworld=:{parallelVars}
 			= case 'Map'.get (INFOKEY taskNr) parallelVars of
 				Just ((_,ts) :: ([ParallelTaskInfo],Timestamp))	= (Ok ts, iworld)
@@ -498,18 +493,86 @@ where
 		NormalTask fs	= fs
 		_				= abort "action task in parallel"
 
-spawnProcess :: !Bool !ManagerProperties !(Task a) -> Task ProcessId | iTask a
-spawnProcess gcWhenDone managerProperties task = abort "spawn process is broken" /*TODO mkTask ("Spawn process", "Spawn a new task instance") id spawnProcess`
-where
-	spawnProcess` tst
-		# (pid,_,tst)	= createTaskInstance (createThread task) True gcWhenDone managerProperties menu tst
-		= (TaskFinished pid, tst)
+
+/**
+* Get the shared state of a task list
 */
+taskListState :: (TaskList s) -> Shared s | TC s
+taskListState tasklist = ReadWriteShared [identity] read write timestamp
+where
+	identity 	= toString tasklist +++ "-state"
+	
+	read iworld=:{parallelVars}
+		= case 'Map'.get identity parallelVars of
+				Just ((val,_) :: (s^,Timestamp))	= (Ok val, iworld)
+				_									= (Error ("Could not read shared parallel state of task list " +++ identity),iworld)
+	
+	write val iworld=:{parallelVars,timestamp}
+			= (Ok Void, {iworld & parallelVars = 'Map'.put identity (dynamic (val,timestamp) :: (s^,Timestamp)) parallelVars })
+	
+	timestamp iworld=:{parallelVars}
+			= case 'Map'.get identity parallelVars of
+				Just ((_,ts) :: (s,Timestamp))		= (Ok ts, iworld)
+				_									= (Error ("Could not read timestamp for shared state of task list " +++ identity),iworld)
+
+/**
+* Get the properties share of a task list
+*/
+taskListProperties	:: (TaskList s) -> Shared [ParallelTaskInfo]
+taskListProperties tasklist = ReadWriteShared [identity] read write timestamp
+where
+	identity	= toString tasklist +++ "-info"
+	
+	read iworld=:{parallelVars}
+		= case 'Map'.get identity parallelVars of
+			Just ((val,_) :: ([ParallelTaskInfo],Timestamp))	= (Ok val, iworld)
+			_													= (Error ("Could not read parallel task info of " +++ identity), iworld)
+		
+	write val iworld=:{parallelVars,timestamp} //TODO
+		= (Ok Void, iworld)
+			
+	timestamp iworld=:{parallelVars}
+		= case 'Map'.get identity parallelVars of
+			Just ((_,ts) :: ([ParallelTaskInfo],Timestamp))	= (Ok ts, iworld)
+			_												= (Error ("Could not read timestamp for parallel task info of " +++ identity), iworld)
+		
+
+
+/**
+* Add a task to a task list
+*/
+appendTask :: !(TaskContainer s) !(TaskList s)	-> Task Int | TC s
+appendTask container tasklist = mkInstantTask "Append a task to a task list" appendTask`
+where
+	identity	= toString tasklist
+	key			= identity +++ "-control"
+	
+	appendTask` taskNr iworld=:{parallelVars}
+		= case 'Map'.get key parallelVars of
+			Just ((nextIdx,controls) :: (Int,[Control s^])) 
+				= (TaskFinished nextIdx, {iworld & parallelVars = 'Map'.put key (dynamic (nextIdx + 1, controls ++ [AppendTask nextIdx container] ) :: (Int,[Control s^])) parallelVars })
+			_
+				= (taskException ("Task list " +++ identity +++ " is not in scope"), iworld)
+	
+/**
+* Removes (and stops) a task from a task list
+*/
+removeTask :: !Int !(TaskList s) -> Task Void | TC s
+removeTask idx tasklist = mkInstantTask "Append a task to a task list" (removeTask` idx tasklist)
+where
+	removeTask` :: !Int !(TaskList s) TaskNr *IWorld -> (!TaskResult Void,!*IWorld) | TC s
+	removeTask` idx tasklist taskNr iworld=:{parallelVars}
+		= case 'Map'.get key parallelVars of
+			Just ((nextIdx,controls) :: (Int,[Control s^])) 
+				= (TaskFinished Void, {iworld & parallelVars = 'Map'.put key (dynamic (nextIdx, controls ++ [RemoveTask idx] ) :: (Int,[Control s^])) parallelVars })
+			_
+				= (taskException ("Task list " +++ identity +++ " is not in scope"), iworld)
+	where
+		identity	= toString tasklist
+		key			= identity +++ "-control"
+		
+spawnProcess :: !Bool !ManagerProperties !(Task a) -> Task ProcessId | iTask a
+spawnProcess gcWhenDone managerProperties task = abort "spawn process is broken"
+
 killProcess :: !ProcessId -> Task Void
 killProcess pid = abort "kill process is broken"
-/* TODO mkTask ("Kill process", "Kill a running task instance") init
-where
-	killProcess` tst 
-		# tst = deleteTaskInstance pid tst
-		= (TaskFinished Void, tst)
-*/

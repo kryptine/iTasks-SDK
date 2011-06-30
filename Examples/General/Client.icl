@@ -15,14 +15,14 @@ clientExample :: [Workflow]
 clientExample = [workflow "Examples/Client" "This task rebuilds the client." (Workflow initManagerProperties client)]
 
 client = parallelLayout @>> parallel "Client" {selectedProcess = Nothing} (\_ _ -> Void)
-	[ ShowAs BodyTask 	(\_ _ -> chooseWorkflow <<@ treeLayout)
-	, ShowAs BodyTask 	(\_ _ -> showDescription <<@ descriptionLayout)
-	, ShowAs BodyTask 	processTable
-	, ShowAs BodyTask 	(\state _ -> workTabPanel state <<@ workTabPanelLayout)
-	, ShowAs HiddenTask	controlClient
+	[ (BodyTask, \_ -> chooseWorkflow <<@ treeLayout)
+	, (BodyTask, \_ -> showDescription <<@ descriptionLayout)
+	, (BodyTask, processTable)
+	, (BodyTask, \list -> workTabPanel list <<@ workTabPanelLayout)
+	, (HiddenTask, controlClient)
 	]
 
-chooseWorkflow = showInformation "choose workflow" [] "choose workflow"
+chooseWorkflow = showInformation "choose workflow" [] "choose workflow" >>| return Continue
 	/*>>|				getWorkflowTreeNodes
 	>>= \workflows.	updateSharedInformation "Tasks" [UpdateView (treeBimap workflows)] ref Void >>+ noActions
 where
@@ -32,7 +32,7 @@ where
 							, PutbackShared \tree _ _ -> Just (getSelectedLeaf tree)
 							)*/
 
-showDescription = showInformation "show description" [] "show description"
+showDescription = showInformation "show description" [] "show description" >>| return Continue
 									/*showSharedInformation "Task description" [ShowView (GetShared view)] ref Void
 	>>* \{modelValue = (mbR,_)}.	UserActions	[ (Action "Start task",	fmap (\r ->
 																					stop//startWorkflowByIndex (fromHidden (thd3 r))
@@ -43,10 +43,12 @@ where
 	view (Just (_,Hidden desc,_))	= desc
 	view Nothing					= ""*/
 	
-processTable state _ =
+processTable taskList =
 		get currentUser
 	>>=	\user. processTableLayout @>> updateSharedInformation "process table" [UpdateView (GetLocalAndShared mkTable, Putback \(FillControlSize (Table _ cells mbSel)) _ (_,state) -> (Just mbSel,Just {state & selectedProcess = fmap (getProcId cells) mbSel}))] (currentProcessesForUser user |+< state) Nothing >>+ noActions
+	>>| return Continue
 where
+	state = taskListState taskList
 	mkTable mbSel (procs,_) = FillControlSize (Table ["Title", "Priority", "Date", "Deadline"] (map mkRow procs) mbSel)
 	mkRow {Process|properties=p=:{taskProperties,managerProperties,systemProperties},processId} =
 		[ html taskProperties.taskDescription.TaskDescription.title
@@ -59,15 +61,17 @@ where
 		Text procId	= toInt procId
 		_ = abort "getProcId"
 
-workTabPanel state = parallel "Work tab panel" Void (\_ _ -> Void) [ShowAs HiddenTask (controlWorkTabs state)]
+workTabPanel taskList = parallel "Work tab panel" Void (\_ _ -> Void) [(HiddenTask, controlWorkTabs (taskListState taskList))] >>| return Continue
 
-controlWorkTabs state _ taskSet = forever (													(showSharedInformation "waiting for trigger" [] state Void >? (\({selectedProcess},_) -> isJust selectedProcess))
-											>>= \({selectedProcess=s=:(Just proc)},_) ->	set taskSet [AppendTask (ShowAs BodyTask (workTab proc))]
-											>>|												update (\state -> {state & selectedProcess = Nothing}) state)
+controlWorkTabs state taskList = forever (													(showSharedInformation "waiting for trigger" [] state Void >? (\({selectedProcess},_) -> isJust selectedProcess))
+											>>= \({selectedProcess=s=:(Just proc)},_) ->	appendTask (BodyTask, workTab proc) taskList
+											>>|												update (\state -> {state & selectedProcess = Nothing}) state
+											>>|												return Continue
+										)
 											
-workTab procId _ _ = workOn procId <<@ workTabLayout >? (\taskState -> taskState =!= WOActive)
+workTab procId _ = workOn procId <<@ workTabLayout >? (\taskState -> taskState =!= WOActive) >>| return Continue
 										
-controlClient _ taskSet = forever (showInformation "waiting for event" [] Void >?* [(ActionQuit, Always (set taskSet [StopParallel]))])
+controlClient _ = showInformation "waiting for event" [] Void >?* [(ActionQuit, Always (return Stop))]
 
 :: ClientState =
 	{ selectedProcess	:: !Maybe ProcessId

@@ -77,7 +77,7 @@ instance toEmail User
 :: PhoneNr		= PhoneNr String
 :: Password		= Password !String
 // Plain text notes
-:: Note = Note !String
+:: Note			= Note !String
 
 // Money
 :: Currency		// Type of currency and amount in cents. ISO4217 currency codes are used
@@ -205,7 +205,7 @@ fromFillWControlSize :: !(FillWControlSize .a) -> .a
 toFillHControlSize :: !.a -> FillHControlSize .a
 fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
-//* Properties of processes	
+//* Properties of task processes	
 :: ProcessProperties =
 	{ taskProperties	:: !TaskProperties
 	, managerProperties	:: !ManagerProperties

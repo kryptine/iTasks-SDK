@@ -623,7 +623,8 @@ setFinished properties=:{systemProperties} = {properties & systemProperties = {S
 
 setExcepted :: !ProcessProperties -> ProcessProperties
 setExcepted properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}
-	
+
+
 formatPriority	:: !TaskPriority	-> HtmlTag
 formatPriority p = Text (toText p)
 where

@@ -44,9 +44,10 @@ questions
 	  						\\ u <- users
 	  						]
 where
-	answer u question shared info
+	answer u question shared
 		=           updateInformation question [] "...!"
-		  >>= \a -> update (\answers -> [(u,a):answers]) shared
+		  >>= \a -> update (\answers -> [(u,a):answers]) (taskListState shared)
+		  >>| return Continue
 
 // A simple application of parallel: first task to complete terminates parallel (generalized variant of exercise 19)
 guess :: Task String
@@ -63,10 +64,10 @@ chatting
 								   \\ user <- users
 								   ]
 where
-	chatting chats os = joinTweets "Chatting together..." chats									  
+	chatting cs = joinTweets "Chatting together..." (taskListState cs) >>| return Continue								  
 
-	secret :: (Shared [Tweet]) (ParallelInfo [Tweet]) -> Task Void
-	secret chats os = chooseAction [(Action "File/Append Chatter",  Void)]
+	secret :: (TaskList [Tweet]) -> Task Void
+	secret chats = chooseAction [(Action "File/Append Chatter",  Void)]
 
 // N users chatting with each other
 :: ChatState :== [String]
@@ -84,13 +85,15 @@ naive_chat
 								   \\ who <- [me : others]
 								   ]
 where
-	chat :: String User (Shared ChatState) info -> Task ChatState
-	chat names me chatState info
+	chat :: String User (TaskList ChatState) -> Task ParallelControl
+	chat names me tlist
 		= forever (              get chatState
 		      >>= \xs         -> updateInformation headerEditor [] (Display xs, Note "")
 		      >>= \(_,Note a) -> update (addLine me a) chatState
 		  )
+		>>| return Stop
 	where
+		chatState		= taskListState tlist
 		headerEditor	= "Chat with " +++ names
 
 	initChatState :: ChatState
@@ -108,14 +111,17 @@ monitor_chat
 								   \\ who <- [me : others]
 								   ]
 where
-	chat :: String User (Shared ChatState) info -> Task ChatState
-	chat names me chatState info
+	chat :: String User (TaskList ChatState) -> Task ParallelControl
+	chat names me tlist
 		= (showSharedInformation headerMonitor [] chatState Void) ||- (forever enterLine)
+		>>| return Continue
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names
 		enterLine		=                  enterInformation headerEditor []
 						  >>= \(Note a) -> update (addLine me a) chatState
+
+		chatState		= taskListState tlist
 
 	initChatState :: ChatState
 	initChatState = []
@@ -141,10 +147,10 @@ shared_chat
 								,ShowAs (DetachedTask (normalTask you)) (chatEditor (you,1) (me,0))
 								]
 where
-	chatEditor :: (User,Int) (User,Int) (Shared ChatState2) (ParallelInfo ChatState2) -> Task Void
-	chatEditor (me,mine) (you,yours) cs os
-		= 					updateSharedInformation ("Chat with " <+++ you) [chatView,entryView] cs (Note "")
-			>?*				[(ActionQuit, Always (return Void))]
+	chatEditor :: (User,Int) (User,Int) (TaskList ChatState2) -> Task ParallelControl
+	chatEditor (me,mine) (you,yours) cs
+		= 					updateSharedInformation ("Chat with " <+++ you) [chatView,entryView] (taskListState cs) (Note "")
+			>?*				[(ActionQuit, Always (return Stop))]
 	where
 		chatView	= ShowView (GetShared toView)
 		where
@@ -173,18 +179,18 @@ multibind_chat
 								   \\ who <- [me : others]
 								   ]
 where
-	chat :: String User (Shared ChatState) (ParallelInfo ChatState) -> Task Void
-	chat names me chatState os
+	chat :: String User (TaskList ChatState) -> Task ParallelControl
+	chat names me cs
 		= (showSharedInformation headerMonitor [] chatState Void) ||- enterLine
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names
 		enterLine		=     	enterInformation headerEditor []
-							>?* [ (ActionQuit, Always (return True))
+							>?* [ (ActionQuit, Always (return Stop))
 								, (ActionOk,   IfValid (\(Note a) ->	 update (addLine me a) chatState
-																	 >>| return False))
+																	 >>| enterLine))
 								]
-						  	>>= \stop -> if stop (set os [StopParallel] >>| return Void) enterLine
-
+		chatState		= taskListState cs
+		
 	initChatState :: ChatState
 	initChatState = []

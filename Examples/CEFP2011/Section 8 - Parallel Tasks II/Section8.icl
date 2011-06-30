@@ -39,20 +39,20 @@ chat3
     =               get currentUser
     	>>= \me ->	parallel "Chat application" emptyChatState (const2 Void) [ShowAs BodyTask (chatTask me)]
 
-chatTask user cs os
-	=			update (addUser user) cs
-		>>|		showSharedInformation ("Chat list view") [] cs Void
+chatTask user cs
+	=			update (addUser user) (taskListState cs)
+		>>|		showSharedInformation ("Chat list view") [] (taskListState cs) Void
 				||- 
-				chatMore user "" cs os
+				chatMore user "" cs
 
-chatMore user s cs os 
+chatMore user s cs 
 	= 	updateInformation ("Chat with iTask users") [UpdateView (GetLocal toView,PutbackLocal fromView)] s  	
-		>?*	[(ActionAdd,  IfValid (\r  ->	  set os [AppendTask newChatter]
-										  >>| chatMore user r cs os))
-			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) cs 
-										  >>| chatMore user "" cs os))
-			,(ActionQuit, Always (			  update (removeUser user o addMessage user "bye") cs 
-										  >>| return Void	))
+		>?*	[(ActionAdd,  IfValid (\r  ->	  appendTask newChatter cs
+										  >>| chatMore user r cs))
+			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) (taskListState cs) 
+										  >>| chatMore user "" cs))
+			,(ActionQuit, Always (			  update (removeUser user o addMessage user "bye") (taskListState cs) 
+										  >>| return Stop	))
 			]
 where		
 	toView c =  Note c 
@@ -60,9 +60,10 @@ where
 
 newChatter = ShowAs (WindowTask "Append Chatter") handleNewChatter
 
-handleNewChatter cs os
+handleNewChatter cs
 	=						selectUser
-		>>= \someone ->		set os [AppendTask (newChatTask someone)]
+		>>= \someone ->		appendTask (newChatTask someone) cs
+		>>|					return Continue
 where
 	newChatTask someone = ShowAs (DetachedTask (normalTask someone)) (chatTask someone)
 
@@ -108,9 +109,9 @@ editorApplication
 		>>= \fileName ->	readTextFile fileName
 		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [ShowAs BodyTask (editor fileName)]
 
-editor :: String (Shared EditorState) (ParallelInfo EditorState) -> Task Void
-editor fileName ls os 
-	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") views ls Void
+editor :: String (TaskList EditorState) -> Task ParallelControl
+editor fileName ls
+	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") views (taskListState ls) Void
 		>?* 	[ (ActionSave, 		IfValid	save)
 		  		, (ActionQuit,		Always 	quit)
 		  		, (ActionReplace,	Sometimes (onlyIf (\(s,_) -> not s.replace)    replace))
@@ -124,39 +125,38 @@ where
 
 	save (val,_)
 		=		safeTextFile fileName val.mytext
-			>>|	editor fileName ls os
+			>>|	editor fileName ls
 	quit
-		=		set os [StopParallel] 
-			>>| return Void
+		=		 return Stop
 
 	replace _
-		=		updateReplace True ls
-			>>| set os [AppendTask (ShowAs (DialogTask "Find and Replace") (replaceTask {search = "", replaceBy = ""}))]
-			>>| editor fileName ls os
+		=		updateReplace True (taskListState ls)
+			>>| appendTask (ShowAs (DialogTask "Find and Replace") (replaceTask {search = "", replaceBy = ""})) ls
+			>>| editor fileName ls
 
 	statistics _
-		=		updateStat True ls
-			>>|	set os [AppendTask (ShowAs (DialogTask "Statistics") statisticsTask)]
-			>>| editor fileName ls os
+		=		updateStat True (taskListState ls)
+			>>|	appendTask (ShowAs (DialogTask "Statistics") statisticsTask) ls
+			>>| editor fileName ls
 
-replaceTask :: Replace (Shared EditorState) (ParallelInfo EditorState) -> Task Void
-replaceTask replacement ls os
+replaceTask :: Replace (TaskList EditorState) -> Task ParallelControl
+replaceTask replacement ls
 	=			updateInformation ("Replace","Define replacement...") [] replacement
 		>?*		[(ActionOk,   IfValid replace)
 				,(Action "Close", Always close)
 				]
 where
 	replace repl
-		=		updateText (replaceSubString repl.search repl.replaceBy) ls
-			>>|	replaceTask repl ls os
+		=		updateText (replaceSubString repl.search repl.replaceBy) (taskListState ls)
+			>>|	replaceTask repl ls
 	close
-		=		updateReplace False ls 
-			>>| return Void
+		=		updateReplace False (taskListState ls) 
+			>>| return Continue
 
 
-statisticsTask :: (Shared EditorState) (ParallelInfo EditorState) -> Task Void
-statisticsTask ls os 
-	= 			showSharedInformation ("Statistics","Statistics of your document") views ls Void
+statisticsTask :: (TaskList EditorState) -> Task ParallelControl
+statisticsTask ls
+	= 			showSharedInformation ("Statistics","Statistics of your document") views (taskListState ls) Void
 		>?*		[(Action "Close", Always close)]
 where
 	views = [ShowView (GetShared showStatistics)]
@@ -167,8 +167,8 @@ where
 			, characters = textSize state.mytext
 			}
 	close
-		=		updateStat False ls 
-			>>| return Void
+		=		updateStat False (taskListState ls) 
+			>>| return Continue
 
 // --- file access utility
 

@@ -85,13 +85,13 @@ ginEditor` =
 		"GiN Editor"
 		initialState
 		(\_ _ -> Void)
-		[ ShowAs BodyTask \s p -> forever (ginInteractionLayout @>>
+		[ (BodyTask, \s -> forever (ginInteractionLayout @>>
 				(updateSharedInformation "Workflow diagram" 
 					[UpdateView (GetShared diagramView, PutbackShared diagramUpdate)] 
-					s Void) >>+ noActions
-				)
-		, ShowAs HiddenTask \s p -> forever (chooseAction (actions s p) >>= id)
-		, ShowAs HiddenTask activator		
+					(taskListState s) Void) >>+ noActions >>| return Continue
+				))
+		, (HiddenTask, \s -> forever (chooseAction (actions s) >>= id >>| return Continue))
+		, (HiddenTask, activator)		
 		]
 
 ginParallelLayout :: ParallelLayouter
@@ -131,17 +131,20 @@ where
 				)
 			}
 
-activator :: (Shared EditorState) (ParallelInfo s) -> Task Void
-activator stateShared parallelInfo = forever activator` 
+activator :: (TaskList EditorState) -> Task ParallelControl
+activator taskList = forever activator` 
 where
-	activator` :: Task Void
+	stateShared = taskListState taskList
+	
+	activator` :: Task ParallelControl
 	activator` =	(showSharedInformation "Diagram monitor" [] stateShared Void >? \(state,_) -> state.dirty) //Look for the dirty flag to become True
 					>>= \(state,_) -> return { EditorState | state & dirty = False, changed = True }
 					>>= generateSource
 					>>= \state -> (if state.EditorState.checkSyntax 
 									(checkErrors state)
 									(return state))
-					>>= set stateShared >>| stop
+					>>= set stateShared
+					>>| return Continue
 
 generateSource :: EditorState -> Task EditorState
 generateSource state = accWorld (tryRender state.EditorState.gMod state.EditorState.config POICL) 
@@ -158,15 +161,15 @@ where
 	makeErrorString (CompileGlobalError error) = [makeORYXError ((hd defs).GDefinition.body) ([], error)]
 	makeErrorString (CompilePathError errors) = map (makeORYXError ((hd defs).GDefinition.body)) errors
 
-actions :: (Shared EditorState) (ParallelInfo EditorState) -> [(Action, Task Void)]
-actions stateShared parallelInfo
+actions :: (TaskList EditorState) -> [(Action, Task ParallelControl)]
+actions taskList
 	=	[ (ActionNew,              actionTask (\s -> askSaveIfChanged s >>| getInitialState))
 		, (ActionOpen,             actionTask open)
 		, (ActionSave,             actionTask save)
 		, (ActionSaveAs,           actionTask saveAs)
 		, (ActionCompile,          actionTask compile)
 		, (ActionRun,              actionTask run)
-		, (ActionQuit,             set parallelInfo [StopParallel] >>| stop)
+		, (ActionQuit,             return Stop)
 		, (ActionViewDeclaration,  moduleEditor "Declaration" (declarationView, declarationUpdate))
 		, (ActionViewImports,      importsEditor)
 		, (ActionViewTypes,        moduleEditor "Types" (typesView, typesUpdate))
@@ -177,8 +180,11 @@ actions stateShared parallelInfo
 		, (ActionAbout,            actionTask showAbout)
 		]
 	where
-		addTask task = defaultInteractionLayout @>>
-			set parallelInfo [AppendTask (ShowAs BodyTask (\s _ -> task))] >>| stop
+		stateShared = taskListState taskList
+		
+		addTask task
+			=	defaultInteractionLayout
+			@>> appendTask (BodyTask, \_ -> task >>| return Continue) taskList >>| return Continue
 
 		actionTask task = addTask (get stateShared >>= task >>= set stateShared)
 

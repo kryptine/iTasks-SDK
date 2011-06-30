@@ -57,7 +57,7 @@ manageGroup igroup
 		,(Action "Invite new member", Always (invite group	>>| return False))
 		,(Action "Leave group", Always (leave group >>| return False))
 		]
-	) <! id >>| stop
+	) <! id >>| return Void
 where
 	invite group
 		= 	enterInformation ("Invite a someone to join " +++ toString group,"Please enter a user to invite to the group") []

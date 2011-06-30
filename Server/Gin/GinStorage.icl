@@ -107,8 +107,8 @@ writeModule config name gMod
 	  case runParse st of
 		  GSuccess aMod = exportTextFile (addExtension basename     DEFINITION_EXTENSION) (prettyPrintAModule PODCL aMod) >>|
 		  				  exportTextFile (addExtension basename IMPLEMENTATION_EXTENSION) (prettyPrintAModule POICL aMod) >>|
-		  				  stop
-		  GError errors = stop
+		  				  return Void
+		  GError errors = return Void
 
 moduleExists :: !GinConfig !String -> Task Bool
 moduleExists config name = accWorld (modulePath config name) >>= \path -> return (isJust path)
