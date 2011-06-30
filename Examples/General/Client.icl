@@ -14,7 +14,7 @@ client :: Task Void
 client = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
 	[ (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
 	, (BodyTask,	\list	-> showDescription (taskListState list)	<<@ descriptionLayout)
-	, (BodyTask,	\list	-> workTabPanel list					<<@ workTabPanelLayout)
+	, (BodyTask,	\list	-> workTabPanel list					<<@ tabParallelLayout (Just "icon-task"))
 	, (BodyTask,	\list	-> processTable list					<<@ processTableLayout)
 	, (HiddenTask,	\_		-> controlClient)
 	]
@@ -75,13 +75,14 @@ controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task Paralle
 controlWorkTabs state taskList = forever (
 														showSharedInformation "waiting for trigger" [] (state >+< openProcs) Void >? (\(({selectedProcess},procs),_) -> isJust selectedProcess && not (isMember (fromJust selectedProcess) procs))
 	>>= \(({selectedProcess=s=:(Just proc)},_),_) ->	appendTask (BodyTask, \_ -> workTab proc openProcs <<@ singleControlLayout) taskList
+	>>|													update (\state -> {state & selectedProcess = Nothing}) state
 	>>|													update (\procs -> [proc:procs]) openProcs)
 where
 	openProcs = taskListState taskList
 
 workTab :: !ProcessId !(Shared [ProcessId]) -> Task ParallelControl											
 workTab procId openProcs =
-		workOn procId >? ((=!=) WOActive)
+		(workOn procId >>+ \{modelValue} -> if (modelValue =!= WOActive) (StopInteraction Void) (UserActions [(ActionClose, Just Void)]))
 	>>|	update (filter ((<>) procId)) openProcs
 	>>|	return Continue
 
@@ -126,14 +127,6 @@ descriptionLayout {title,editorParts,actions} = (	{ content	= TUILayoutContainer
 													, height	= Fixed 150
 													, margins	= Nothing
 													}, actions)
-	
-workTabPanelLayout {TUIParallel|title,items} =
-	let (tuis,actions) = unzip items in
-		({ content	= TUITabContainer {TUITabContainer | items = [{content = TUITab {TUITab|title = title +++ " " +++ toString n, iconCls = (Just "icon-task"), items = tui}, margins = Nothing, width = Auto, height = Auto} \\ tui <- catMaybes tuis & n <- [1..]]}
-		 , width	= Auto
-		 , height	= Auto
-		 , margins	= Nothing
-		 }, flatten actions)
 
 processTableLayout interaction	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = Fixed 200},interaction.TUIInteraction.actions)	 
 singleControlLayout interaction	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize},interaction.TUIInteraction.actions)

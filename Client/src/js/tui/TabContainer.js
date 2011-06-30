@@ -34,6 +34,23 @@ itasks.tui.Tab = Ext.extend(Ext.Panel, {
 	layout: 'hbox',
 	unstyled: true,
 	
+	listeners: { beforeclose: function() {
+		var ca = this.closeAction;
+		this.fireEvent('tuiaction',ca[1],ca[0]);
+		return false;
+	}},
+	
+	initComponent: function() {
+		if (Ext.isArray(this.closeAction)) {
+			this.closable = true;
+		}
+	
+		itasks.tui.Tab.superclass.initComponent.apply(this,arguments);
+		
+		this.addEvents('tuiaction');
+		this.enableBubble('tuiaction');
+	},
+	
 	doTUILayout: function(w,h) {
 		return this.get(0).doTUILayout(w,h);
 	},

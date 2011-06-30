@@ -7,6 +7,7 @@ definition module TUIDefinition
 import JSON, GenEq
 from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: Action, :: ProcessProperties
 from Task			import :: TaskAction
+
 :: TUIInteraction =	{ title				:: !String
 					, description		:: !String
 					, editorParts		:: ![TUIDef]
@@ -110,6 +111,7 @@ from Task			import :: TaskAction
 	{ title				:: !String
 	, iconCls			:: !Maybe String
 	, items				:: !TUIDef
+	, closeAction		:: !Maybe (!TUIName,!TaskId)
 	}
 :: TUIMainContainer = 
 	{ items				:: ![TUIDef]
@@ -197,7 +199,7 @@ fullWidthInteractionLayout	:: InteractionLayouter
 wrapWidthInteractionLayout	:: InteractionLayouter
 defaultParallelLayout		:: ParallelLayouter
 minimalParallelLayout		:: ParallelLayouter
-tabParallelLayout			:: ParallelLayouter
+tabParallelLayout			:: !(Maybe PanelIcon) -> ParallelLayouter
 defaultMainLayout			:: MainLayouter
 
 // layout aux functions

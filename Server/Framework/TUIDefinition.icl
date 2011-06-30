@@ -109,15 +109,31 @@ minimalParallelLayout = \{TUIParallel|title,description,items} ->
 	 , height	= Auto
 	 , margins	= Nothing
 	 }, flatten actions)
-	 
-tabParallelLayout :: ParallelLayouter
-tabParallelLayout = \{TUIParallel|title,items} ->
-	let (tuis,actions) = unzip items in
-		({ content	= TUITabContainer {TUITabContainer | items = [{content = TUITab {TUITab|title = title +++ " " +++ toString n, iconCls = Nothing, items = tui}, margins = Nothing, width = Auto, height = Auto} \\ tui <- catMaybes tuis & n <- [1..]]}
+
+tabParallelLayout :: !(Maybe PanelIcon) -> ParallelLayouter
+tabParallelLayout mbIcon = \{TUIParallel|title,items} ->
+	let (tuis,actions) = unzip (map mkTabTui items) in
+		({ content	= TUITabContainer	{ TUITabContainer
+										| items =	[{ content	= TUITab {TUITab|title = title +++ " " +++ toString n, iconCls = mbIcon, items = tui, closeAction = closeAction}
+													,  margins	= Nothing
+													,  width	= Auto
+													,  height	= Auto
+													} \\ (tui,closeAction) <- catMaybes tuis & n <- [1..]]
+										}
 		 , width	= Auto
 		 , height	= Auto
 		 , margins	= Nothing
 		 }, flatten actions)
+where
+	mkTabTui (Nothing, actions) = (Nothing,actions)
+	mkTabTui (Just tui, actions)
+		# (mbCloseAction,actions) = findCloseAction actions []
+		= (Just (tui,mbCloseAction),actions)
+		
+	findCloseAction [] acc = (Nothing,reverse acc)
+	findCloseAction [taskAction=:(taskId,action,enabled):actions] acc
+		| enabled && action === ActionClose	= (Just (actionName action,taskId), (reverse acc) ++ actions)
+		| otherwise							= findCloseAction actions [taskAction:acc]
 
 defaultMainLayout :: MainLayouter
 defaultMainLayout = \{TUIMain|properties,content,actions} ->

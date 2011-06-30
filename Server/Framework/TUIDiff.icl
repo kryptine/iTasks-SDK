@@ -77,7 +77,7 @@ where
 			numOld = length o.TUITabContainer.items
 			numNew = length n.TUITabContainer.items
 			numMin = min numOld numNew
-		(TUITab o, TUITab n)
+		(TUITab o, TUITab n) | o.closeAction === n.closeAction
 			# valueUpdates	= staticContainerUpdate path [o.TUITab.items] [n.TUITab.items]
 			# titleUpdate	= update (\o n -> o.TUITab.title == n.TUITab.title && o.TUITab.iconCls == n.TUITab.iconCls) (\{TUITab|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
 			= Just (titleUpdate ++ valueUpdates)
