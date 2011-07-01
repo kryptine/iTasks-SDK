@@ -35,10 +35,12 @@ from GinPrinter import class Printer
                   , type :: GTypeExpression
                   }
 
-:: GFormalParameter = { name		:: GIdentifier
-					  , title		:: Maybe String
-					  , description	:: Maybe String
-                      , type		:: GTypeExpression
+:: GFormalParameter = { name			:: GIdentifier
+					  , title			:: Maybe String
+					  , description		:: Maybe String
+                      , type			:: GTypeExpression
+                      , defaultValue	:: Maybe String
+                      , visible			:: Bool
                       } 
 
 :: GIdentifier :== String

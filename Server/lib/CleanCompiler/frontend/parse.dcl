@@ -32,4 +32,5 @@ wantDefinitions :: !ParseContext !ParseState -> (![ParsedDefinition], !ParseStat
 
 wantExpression :: !Bool !ParseState -> (!ParsedExpr, !ParseState)
 
+wantType :: !ParseState -> (!Type,!ParseState)
 

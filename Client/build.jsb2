@@ -138,6 +138,7 @@
 	  ,{"text":"dragDocker.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"overlay.js","path":"lib/oryx/scripts/Plugins/"}
 	  ,{"text":"syntaxchecker.js","path":"lib/oryx/scripts/Plugins/"}
+	  ,{"text":"propertywindow.js","path":"lib/oryx/scripts/Plugins/"}
 
 	  ,{"text":"loader.js","path":"lib/oryx/scripts/"}
       ]

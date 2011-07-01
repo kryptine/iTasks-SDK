@@ -105,23 +105,33 @@ where
 	prefix = "temp"
 
 batchBuild :: !GModule *IWorld -> (CompileResult String, *IWorld)
-batchBuild gMod iworld=:{tmpDirectory} = runCompiler gMod printfun build iworld where
+batchBuild gMod iworld=:{tmpDirectory} = runCompiler gMod printfun build iworld
+where
 	printfun :: AModule -> (String, LineMap)
 	printfun aMod = (prettyPrintAModule POWriteDynamics aMod, newMap)
 
-	build  :: !String !String !GinConfig LineMap *IWorld -> (CompileResult String, *IWorld)
+	build :: !String !String !GinConfig LineMap *IWorld -> (CompileResult String, *IWorld)
 	build source basename config lineMap iworld
-	# (result, iworld) = compile Compilation source basename config lineMap iworld
-	| failed result = (convertFail result, iworld)
-	# (result, iworld) = codegen basename config iworld
-	| failed result = (convertFail result, iworld)
-	# (result, iworld) = link basename config iworld
-	| failed result = (convertFail result, iworld)
-	# batchfile = (filenameFromConfig config tmpDirectory basename "bat")
-	# (result, iworld) = accWorldIWorld ('Process'.callProcess batchfile [] Nothing) iworld
-	| isError result = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ snd (fromError result)), iworld)
-	# dynfile = filenameFromConfig config tmpDirectory basename "dyn"
-    = (CompileSuccess dynfile, iworld)
+	# (res, iworld) = accWorldIWorld (readFile (config.iTasksPath </> "Server" </> "Gin" </> "project-template")) iworld
+	| isError res = (CompileGlobalError ("Failed to read project template file: " +++ toString (fromError res)), iworld)
+	# projectFile = replaceSubString "{Basename}" basename (fromOk res)
+	# (res, iworld) = accWorldIWorld (writeFile (filenameFromConfig config tmpDirectory basename "prj") projectFile) iworld
+	| isError res = (CompileGlobalError ("Failed to write project file: " +++ toString (fromError res)), iworld)
+	# projectFile = filenameFromConfig config tmpDirectory basename "prj"
+	# (res, iworld) = accWorldIWorld ('Process'.callProcess (config.cleanPath </> "CleanIDE.exe") ["--batch-build", projectFile] (Just config.cleanPath)) iworld
+	# (deleted,iworld) = accWorldIWorld (deleteFile projectFile) iworld
+	| isError deleted = (CompileGlobalError ("Failed to delete file " +++ projectFile +++ ": " +++ snd (fromError deleted)), iworld)
+	| isError res = (CompileGlobalError ("Calling Clean IDE failed: " +++ snd (fromError res)), iworld)
+	| fromOk res == 0
+		# batchfile = (filenameFromConfig config tmpDirectory basename "bat")
+		# (res, iworld) = accWorldIWorld ('Process'.callProcess batchfile [] Nothing) iworld
+		| isError res = (CompileGlobalError ("Failed to run dynamic linker batch file: " +++ snd (fromError res)), iworld)
+		# dynfile = filenameFromConfig config tmpDirectory basename "dyn"
+	    = (CompileSuccess dynfile, iworld)
+	# (res, iworld) = accWorldIWorld (readFile (filenameFromConfig config tmpDirectory basename "log")) iworld
+	| isError res = (CompileGlobalError ("Read log file failed: " +++ toString (fromError res)), iworld)
+	# log = fromOk res
+	= (CompileGlobalError log, iworld)
     
 syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
 syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile SyntaxCheck) iworld
@@ -166,6 +176,8 @@ where
 		= ((CompileGlobalError ("Calling Clean compiler failed: " +++ log), compilingInfo), env.LogEnv.world)
 	| compilerMsg == CompilerOK
 		= ((CompileSuccess Void, compilingInfo), env.LogEnv.world)
+	# errors = (findPathErrors (parseCleanCompilerLog log) lineMap)
+	| isEmpty errors = ((CompileGlobalError log, compilingInfo), env.LogEnv.world) 
 	= ((CompilePathError (findPathErrors (parseCleanCompilerLog log) lineMap), compilingInfo), env.LogEnv.world)
 
 loadCompilingInfo :: *IWorld -> (Maybe CompilingInfo, *IWorld)
@@ -188,6 +200,7 @@ exitCompiler iworld
 # (_, iworld) = accWorldIWorld (curry ExitCleanCompiler (fromJust mCompilingInfo)) iworld
 = deleteCompilingInfo iworld
 
+/*
 // --------------------------------------------------------------------------------
 // Code generator interface
 // --------------------------------------------------------------------------------
@@ -274,6 +287,7 @@ setLinkPaths config tempPath basename haystack
 # haystack = replaceSubString "{Application}" config.cleanPath haystack
 # haystack = replaceSubString "{Serialization}" serializationModule haystack
 = replaceSubString "{Basename}" basename haystack
+*/
 
 // --------------------------------------------------------------------------------
 // Utility functions

@@ -69,6 +69,7 @@ from syntax		import
 						::OptionalRecordName,
 						::Position,
 						::BoundExpr,
+						::Type(TE),
 						::BasicValue
 from parse		import	
 						::ParseErrorAdmin(..),
@@ -77,6 +78,7 @@ from parse		import
 						SetGlobalContext,
 						wantDefinitions,
 						wantExpression,
+						wantType,
 						PS_SupportGenericsMask
 						
 parseModule :: !String !Bool *File -> ([ParsedDefinition], *File)
@@ -136,9 +138,24 @@ stringScanner input
 					,	ss_scanOptions	=	0
 					,	ss_tokenBuffer	=	Buffer0
 					}
+					
+parseUnsafe :: !String (*ParseState -> (a, *ParseState)) (a -> Bool) -> Maybe a
+parseUnsafe input parser isValid = accUnsafe parseUnsafe`
+where
+	parseUnsafe` world
+	# errorFilename = "errors.txt"
+	# (ok, file, world) = fopen errorFilename FWriteText world
+	| not ok = (Nothing, world)
+	# (exp, file) = parse input parser file
+	# (ok,world) = fclose file world
+	| not ok = (Nothing, world)
+	# (res,world) = deleteFile errorFilename world
+	| isError res = (Nothing, world)
+	| not (isValid exp) = (Nothing, world)
+	= (Just exp, world)
 
-parseExpression :: !String *File -> (ParsedExpr, *File)
-parseExpression input error
+parse :: !String (*ParseState -> (a, *ParseState)) *File -> (a, *File)
+parse input parser error
 # hash_table = newHashTable newHeap
 # scanState = stringScanner input
 # hash_table = set_hte_mark 1 hash_table
@@ -148,34 +165,27 @@ parseExpression input error
 	, ps_flags = PS_SupportGenericsMask
 	, ps_hash_table = hash_table
 	}
-# (expr,parseState) = wantExpression False parseState
-= (expr, parseState.ps_error.pea_file)
+# (result,parseState) = parser parseState
+= (result,parseState.ps_error.pea_file)
 
 parseExpressionUnsafe :: !String -> Maybe ParsedExpr
-parseExpressionUnsafe input = accUnsafe parse
-where
-	parse :: *World -> (Maybe ParsedExpr, *World)
-	parse world
-	# errorFilename = "errors.txt"
-	# (ok, file, world) = fopen errorFilename FWriteText world
-	| not ok = (Nothing, world)
-	# (exp, file) = parseExpression input file
-	# (ok,world) = fclose file world
-	| not ok = (Nothing, world)
-	# (res,world) = deleteFile errorFilename world
-	| isError res = (Nothing, world)
-	= (Just exp, world)
+parseExpressionUnsafe input = parseUnsafe input (wantExpression False) (\p -> case p of PE_Empty = False; _ = True)
+
+parseTypeUnsafe :: !String -> Maybe Type
+parseTypeUnsafe input = parseUnsafe input wantType (\t -> case t of TE = False; _ = True)
 
 //Lexer for documentation blocks
 :: DocToken	= ParamDocToken
+			| DefaultDocToken
 			| ThrowsDocToken
 			| ReturnDocToken
-			| GinDocToken
 			| TitleDocToken
 			| IconDocToken
 			| ShapeDocToken
 			| ParallelSplitDocToken
 			| ParallelDocToken
+			| VisibleDocToken
+			| GinDocToken
 			| ColonDocToken
 			| TextDocToken !String
 			| NewLineDocToken
@@ -195,12 +205,14 @@ lex input = (lex` 0 0 lexFunctions)
 where
 	lexFunctions :: [LexFunction]
 	lexFunctions	=	[ lexFixed "@param"			ParamDocToken
+						, lexFixed "@default"		DefaultDocToken
 						, lexFixed "@throws"		ThrowsDocToken
 						, lexFixed "@return"		ReturnDocToken
 						, lexFixed "@gin-title"		TitleDocToken
 						, lexFixed "@gin-icon" 		IconDocToken
 						, lexFixed "@gin-shape"		ShapeDocToken
 						, lexFixed "@gin-parallel"	ParallelDocToken
+						, lexFixed "@gin-visible"	VisibleDocToken
 						, lexFixed "@gin"			GinDocToken
 						, lexFixed ":"				ColonDocToken
 						, lexFixed "\n*"			NewLineDocToken
@@ -276,25 +288,34 @@ where
 	pDescription = pText <&> \description ->
 		yield (\doc -> { FunctionComment | doc & description = Just description })
 	pParam = symbol ParamDocToken &> pText <&> \title -> symbol ColonDocToken &> pText <&> \description -> 
+		(<?@> (symbol DefaultDocToken &> pText) Just Nothing) <&> \defaultValue ->
+		((symbol VisibleDocToken &> pBool) <!> yield True) <&> \visible ->
 		yield (\doc -> { FunctionComment | doc & params = doc.params 
-		++ [{ ParamComment | name = makeIdent title, title = Just title, description = Just description }] })
+		++ [{ ParamComment 
+			| name 			= makeIdent title
+			, title			= Just title
+			, description	= Just description 
+			, defaultValue	= defaultValue
+			, visible		= visible
+			}] })
 	where
 		makeIdent s = replaceSubString " " "_" (toLowerCase s)
 	pReturn = symbol ReturnDocToken &> pText <&> \return ->
 		yield (\doc -> { FunctionComment | doc & return = Just return })
 	pThrows = symbol ThrowsDocToken &> pText <&> \throws ->
 		yield (\doc -> { FunctionComment | doc & throws = doc.throws ++ [throws]})
-	pGin = symbol GinDocToken &> pText <&> \gin ->
-		yield (\doc -> { FunctionComment | doc & gin = toLowerCase gin == "true" })
+	pGin = symbol GinDocToken &> pBool <&> \gin ->
+		yield (\doc -> { FunctionComment | doc & gin = gin })
 	pTitle = symbol TitleDocToken &> pText <&> \title ->
 		yield (\doc -> { FunctionComment | doc & title = Just title })
 	pIcon = symbol IconDocToken &> pText <&> \icon ->
 		yield (\doc -> { FunctionComment | doc & icon = Just icon })
 	pShape = symbol ShapeDocToken &> pText <&> \shape ->
 		yield (\doc -> { FunctionComment | doc & shape = Just shape })
-	pParallel = symbol ParallelDocToken &> pText <&> \parallel -> 
-		yield (\doc -> { FunctionComment | doc & parallel = toLowerCase parallel == "true" })
+	pParallel = symbol ParallelDocToken &> pBool <&> \parallel -> 
+		yield (\doc -> { FunctionComment | doc & parallel = parallel })
 
+pBool = pText <&> \value -> yield (toLowerCase value == "true")
 pText = satisfy isText <@ \(TextDocToken t) -> t
 
 //Parser for Type comments

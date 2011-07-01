@@ -7,6 +7,7 @@
  		<plugin source="canvasResize.js" name="ORYX.Plugins.CanvasResize" />
 		<plugin source="renameShapes.js" name="ORYX.Plugins.RenameShapes" />
 		<plugin source="dragdropresize.js" name="ORYX.Plugins.DragDropResize" />
+		<plugin source="propertywindow.js" name="ORYX.Plugins.PropertyWindow" />
 
 		<plugin source="selectionframe.js" name="ORYX.Plugins.SelectionFrame" />
 

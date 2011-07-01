@@ -11,13 +11,31 @@ import GinConfig
 import GinCompiler
 import GinDomain
 import GinParser
+from GinPrinter import ::Doc, prettyPrint, instance Printer Doc
 import GinStorage
 import GinSyntax
+
+import CleanDocParser
+import GinDCLImport
 
 import FilePath, File
 from Util import appFst
 
-//from Serialization import qualified serialize, deserialize
+
+/*
+* NOTE: In order to add compiled tasks to a running server, 
+*       check "Enable dynamics" in Project -> Project options,
+*       and replace the readDynamicTask function by the lines below:
+*/
+/*
+from Serialization import qualified serialize, deserialize
+readDynamicTask :: !String -> Task (Task a) | iTask a
+readDynamicTask filename = importTextFile filename >>= \dynString -> 
+	case 'Serialization'.deserialize dynString of
+		Ok value = return value
+		Error errorString = throw (DynamicIOException errorString)
+*/
+readDynamicTask filename = return (showInformation "Error: dynamic linker not enabled" [] Void)
 
 ginEditor :: WorkflowContainer Void
 ginEditor = Workflow initManagerProperties ginEditor`
@@ -171,7 +189,6 @@ actions taskList
 		, (ActionSave,             actionTask save)
 		, (ActionSaveAs,           actionTask saveAs)
 		, (ActionCompile,          actionTask compile)
-		, (ActionRun,              actionTask run)
 		, (ActionQuit,             return Stop)
 		, (ActionViewDeclaration,  moduleEditor "Declaration" (declarationView, declarationUpdate))
 		, (ActionViewImports,      importsEditor)
@@ -207,17 +224,96 @@ liftModuleView (toView, fromView) =
 	, \view model -> { model & gMod = fromView view model.gMod, changed = True }
 	)
 	
-declarationView :: !GModule -> GDeclaration
-declarationView {moduleKind = (GGraphicalModule defs)} = (hd defs).GDefinition.declaration
+:: DeclarationView =
+	{ title			:: !Maybe String
+	, description	:: !Maybe String
+	, parameters	:: !Maybe [FormalParameterView]
+	, returnType 	:: !TypeExpressionView
+	}
 	
-declarationUpdate :: !GDeclaration !GModule -> GModule
-declarationUpdate decl gMod=:{moduleKind = (GGraphicalModule defs)} =
+:: FormalParameterView = 
+	{ name	:: !String
+	, type	:: !TypeExpressionView
+	}
+
+derive class iTask DeclarationView, FormalParameterView
+
+:: TypeExpressionView = TypeExpressionView String
+
+toTypeExpressionView :: GTypeExpression -> TypeExpressionView
+toTypeExpressionView te = TypeExpressionView (prettyPrint (printGTypeExpression False te))
+
+fromTypeExpressionView :: TypeExpressionView -> GTypeExpression
+fromTypeExpressionView (TypeExpressionView tev) = 
+	case parseTypeUnsafe tev of
+		Nothing = GUndefinedTypeExpression
+		Just te = mapType te
+
+gVisualize{|TypeExpressionView|} val vst = visualizeControl TUIStringControl (print,RawText o print) val vst
+where
+	print Nothing = ""
+	print (Just (TypeExpressionView v)) = v
+gUpdate{|TypeExpressionView|} mode ust = basicUpdate mode parseUpdate (TypeExpressionView "") ust
+where
+	parseUpdate update orig = fromMaybe orig (fmap TypeExpressionView update)
+derive gDefaultMask TypeExpressionView
+gVerify{|TypeExpressionView|} val vst = wrapperVerify Nothing
+	(\(TypeExpressionView value) -> isJust (parseTypeUnsafe value)) (\_ -> "Invalid type") val vst
+JSONEncode{|TypeExpressionView|} (TypeExpressionView x) = [JSONString x]
+JSONDecode{|TypeExpressionView|} [JSONString s:xs]	= (Just (TypeExpressionView s), xs)
+JSONDecode{|TypeExpressionView|} l					= (Nothing, l)
+derive gEq TypeExpressionView
+
+declarationView :: !GModule -> DeclarationView
+declarationView {moduleKind = (GGraphicalModule [{GDefinition | declaration = 
+		{GDeclaration | name, title, description, formalParams, returnType = GTypeApplication [GConstructor "Task",rt] }}:_])} =
+	{ DeclarationView
+	| title = title
+	, description = description
+	, parameters = if (isEmpty formalParams) Nothing (Just (map formalParameterView formalParams))
+	, returnType = toTypeExpressionView rt
+	}
+	
+declarationUpdate :: !DeclarationView !GModule -> GModule
+declarationUpdate {DeclarationView | title, description, parameters, returnType} 
+	gMod=:{moduleKind = (GGraphicalModule [def=:{GDefinition | declaration}:defs])} =
 	{ gMod
 	& moduleKind = GGraphicalModule 
 		[	{ GDefinition 
-			| hd defs & declaration = decl
-			} 
+			| def & declaration = 
+				{ GDeclaration
+				| declaration
+				& title = title
+				, description = description
+				, formalParams = case parameters of
+					Nothing = []
+					Just pars =	map formalParameterUpdate pars
+				, returnType = GTypeApplication [GConstructor "Task", fromTypeExpressionView returnType]
+					
+				}
+			}
+			: defs
 		]
+	}
+
+formalParameterView :: !GFormalParameter -> FormalParameterView
+formalParameterView { GFormalParameter | name, type} = 
+	{ FormalParameterView
+	| name = name
+	, type = TypeExpressionView (prettyPrint (printGTypeExpression False type))
+	}
+	
+formalParameterUpdate :: !FormalParameterView -> GFormalParameter
+formalParameterUpdate { FormalParameterView | name, type = (TypeExpressionView t) } =
+	{ GFormalParameter
+	| name = name
+	, title = Just name
+	, description = Nothing
+	, type = case parseTypeUnsafe t of
+		Nothing = GUndefinedTypeExpression
+		Just te = mapType te
+	, defaultValue = Nothing
+	, visible = True
 	}
 
 importsView :: ![String] !GModule -> MultipleChoice String
@@ -231,11 +327,14 @@ where
 importsUpdate :: (MultipleChoice String) GModule -> GModule
 importsUpdate (MultipleChoice imports indices) gMod =
 	updateDiagramExtensions { GModule | gMod & imports = map (\i-> imports !! i) indices }
+	
+typesView :: !GModule -> Maybe [GTypeDefinition]
+typesView gMod = case gMod.GModule.types of
+	[] = Nothing
+	t  = Just t
 
-typesView :: !GModule -> [GTypeDefinition]
-typesView gMod = gMod.GModule.types
-typesUpdate :: ![GTypeDefinition] !GModule -> GModule
-typesUpdate types gMod = { GModule | gMod & types = types }
+typesUpdate :: !(Maybe [GTypeDefinition]) !GModule -> GModule
+typesUpdate mbTypes gMod = { GModule | gMod & types = fromMaybe [] mbTypes }
 
 getName :: EditorState -> String
 getName state = case state.EditorState.name of
@@ -278,24 +377,16 @@ compile state
 # state = { state & compiled = Nothing }
 = accIWorld (batchBuild state.EditorState.gMod)
   >>= \result = case result of
-   				  CompileSuccess dynfile 	-> showInformation ("Compiler output", "Compiled successfully") [] Void 
-   				  								>>| return { state & compiled = Just dynfile }
-    			  error						-> showInformation "Compiler output" [About error] state
-
-run :: EditorState -> Task EditorState
-run state = showInformation ("Error", "Runninig tasks requires dynamic linker") [] state
-/*
-run state = 
-	case state.compiled of
-		Nothing 	 = showInformation ("Error", "No compiled task") [] state
-		Just dynfile = readDynamicTask dynfile >>= \task = catchAll task  (\error -> showInformation ("Error", error) [] Void)
-						>>| return state
+	CompileSuccess dynfile 	->	showInformation ("Compiler output", "Compiled successfully. Click \"Refresh workflows\" to view the task") [] Void 
+								>>| readDynamicTask dynfile 
+								>>= \task -> addWorkflow (makeWorkflow state task)
+   				  				>>| return { state & compiled = Just dynfile }
+    error					-> showInformation "Compiler output" [About error] Void >>| return state
 where
-	readDynamicTask :: !String -> Task (Task a) | iTask a
-	readDynamicTask filename = importTextFile filename >>= \dynString -> 
-		case 'Serialization'.deserialize dynString of
-			Ok value = return value
-			Error errorString = throw (DynamicIOException errorString)
+	makeWorkflow :: EditorState (Task Void) -> Workflow
+	makeWorkflow {EditorState | gMod = { GModule | moduleKind = GGraphicalModule [def:_]}} dyn
+	# decl = def.GDefinition.declaration
+	= workflow (fromMaybe "(no title)" decl.GDeclaration.title) (fromMaybe "(no description)" decl.GDeclaration.description) dyn
 
 :: DynamicIOException = DynamicIOException !String
 derive class iTask DynamicIOException
@@ -303,7 +394,7 @@ derive class iTask DynamicIOException
 instance toString DynamicIOException
 where
 	toString (DynamicIOException errorString) = errorString
-*/
+
 formatSource :: String -> HtmlDisplay
 formatSource source = toHtmlDisplay (TextareaTag [ColsAttr "80", RowsAttr "25"] [ Text source ])
 

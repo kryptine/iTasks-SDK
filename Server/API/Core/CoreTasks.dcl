@@ -18,6 +18,7 @@ derive class iTask WorkOnProcessState
 * as result of the task.
 *
 * @param Value: The value to be returned
+*				@default Void
 * @return A task that will return the value defined by the parameter
 * 
 * @gin-icon return

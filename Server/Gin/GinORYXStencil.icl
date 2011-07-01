@@ -249,7 +249,7 @@ formalParameterToProperty param = ORYXProperties
 	[ { ORYXProperty| key = "id"			, value = JSONString param.GFormalParameter.name}
 	, { ORYXProperty| key = "type"			, value = JSONString "String"}
 	, { ORYXProperty| key = "title"			, value = JSONString (fromMaybe param.GFormalParameter.name param.GFormalParameter.title) }
-	, { ORYXProperty| key = "value"			, value = JSONString ""}
+	, { ORYXProperty| key = "value"			, value = JSONString (fromMaybe "" param.GFormalParameter.defaultValue) }
 	, { ORYXProperty| key = "description"	, value = JSONString (fromMaybe "" param.GFormalParameter.description) }
 	, { ORYXProperty| key = "tooltip"		, value = JSONString ""}
 	, { ORYXProperty| key = "readonly"		, value = JSONBool False}
@@ -269,13 +269,14 @@ higherOrderParam param = case param.GFormalParameter.type of
 
 defaultTaskShape :: GDeclaration -> SVGShape	
 defaultTaskShape gDecl
+	# visibleParams = [ p \\ p <- gDecl.GDeclaration.formalParams | p.GFormalParameter.visible ]
 	# title = fromMaybe (camelCaseToWords gDecl.GDeclaration.name) gDecl.GDeclaration.title
 	# paramWidth = strWidth [ fromMaybe p.GFormalParameter.name p.GFormalParameter.title 
-							\\ p <- gDecl.GDeclaration.formalParams 
+							\\ p <- visibleParams
 							]
 	=	{ SVGShape
 		| width = maxList [20 + strWidth [title], paramWidth + 100]
-		, height = 20 + 20 * length gDecl.GDeclaration.formalParams
+		, height = 20 + 20 * length visibleParams
 		, defs = []
 		, magnets = True
 		, elements = 
@@ -291,7 +292,7 @@ defaultTaskShape gDecl
 								, SVGText (Just param.GFormalParameter.name ) (XAbs (paramWidth + 3), YAbs (13 + 20 * nr)) "" [SVGAnchors "left"]
 								]
 								++ if (nr > 1) [SVGLine Nothing ((XLeft, YAbs (20 * nr)), (XRight, YAbs (20 * nr))) [SVGAnchors "left right"]] []
-				) (zip2 [1..] gDecl.GDeclaration.formalParams))
+				) (zip2 [1..] visibleParams))
 		}
 		where
 			strWidth :: [String] -> Int
@@ -299,7 +300,7 @@ defaultTaskShape gDecl
 			strWidth ss = maxList [ 8 * size s \\ s <- ss ]
 		
 			ifParams :: [a] -> [a]
-			ifParams x = if (isEmpty gDecl.GDeclaration.formalParams) [] x
+			ifParams x = if (isEmpty [ p \\ p <- gDecl.GDeclaration.formalParams | p.GFormalParameter.visible ]) [] x
 
 defaultConnectorShape :: String -> SVGShape	
 defaultConnectorShape icon =

@@ -9,10 +9,10 @@ from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDe
 from GinSyntax import ::GDeclaration, ::GModule, ::GGraph, ::GImport, ::Binding, ::Bindings
 from GinParser import ::GPath, ::GPathNode
 
-::ORYXEditor = { diagram	:: ORYXDiagram
-			   , stencilset	:: ORYXStencilSetReference
-			   , errors		:: [ORYXError]
-			   }
+:: ORYXEditor =	{ diagram		:: ORYXDiagram
+				, stencilset	:: ORYXStencilSetReference
+				, errors		:: [ORYXError]
+				}
 
 :: ORYXBound =	
 	{ x :: !Real

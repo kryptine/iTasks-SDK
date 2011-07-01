@@ -27,5 +27,4 @@ gDefaultMask{|ORYXEditor|} _ = [Touched []]
 gVerify{|ORYXEditor|} _ vst = alwaysValid vst
 derive JSONEncode ORYXEditor
 derive JSONDecode ORYXEditor
-
-gEq{|ORYXEditor|} _ _ = False // ORYXEditors are never equal
+derive gEq ORYXEditor

@@ -151,6 +151,8 @@ mapFunction doc ident _ (Yes st)
 												| name = "param" +++ toString i
 												, title = Just (toString (mapAType p))
 												, description = Nothing 
+												, defaultValue = Nothing
+												, visible = True
 												} 
 												p 
 						  \\ p <- st.st_args & i <- [1..] ]
@@ -175,6 +177,8 @@ mapFormalParameter doc type =
 	, title			= doc.ParamComment.title
 	, description 	= doc.ParamComment.description
 	, type			= mapAType type
+	, defaultValue	= doc.ParamComment.defaultValue
+	, visible		= doc.ParamComment.visible
 	}
 
 mapAType :: AType -> GTypeExpression

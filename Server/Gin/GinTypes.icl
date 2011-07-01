@@ -16,12 +16,13 @@ derive bimap Maybe
 derive class iTask      GTypeExpression, GTypeDefinition, GTypeRhs, GDataConstructor, GRecordField, GFormalParameter
 
 typeIsDefined :: GTypeExpression -> Bool
-typeIsDefined GUndefinedTypeExpression	= False
+typeIsDefined (GConstructor t)			= True
 typeIsDefined (GList e)					= typeIsDefined e
 typeIsDefined (GTuple es)				= all typeIsDefined es
-typeIsDefined (GConstructor t)			= True
 typeIsDefined (GTypeApplication es)		= all typeIsDefined es
 typeIsDefined (GTypeVariable v)			= True
+typeIsDefined (GFunction a b)			= typeIsDefined a && typeIsDefined b
+typeIsDefined GUndefinedTypeExpression	= False
 
 printGTypeExpression :: Bool GTypeExpression -> a | Printer a
 printGTypeExpression withParens (GConstructor t)			= text t

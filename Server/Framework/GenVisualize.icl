@@ -173,7 +173,7 @@ gVisualize{|EITHER|} fx fy val vst = case val of
 		Nothing			= fx Nothing vst
 		Just (LEFT x)	= fx (Just x) vst
 		Just (RIGHT y)	= fy (Just y) vst
-	
+
 gVisualize{|Int|}		val vst = visualizeControlSimple TUIIntControl val vst
 gVisualize{|Real|}		val vst = visualizeControlSimple TUIRealControl val vst
 gVisualize{|Char|}		val vst = visualizeControlSimple TUICharControl val vst
