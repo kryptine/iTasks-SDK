@@ -1,9 +1,9 @@
 implementation module SystemData
 
-import SystemTypes, Time, Shared, SharedCombinators, Util
+import SystemTypes, Time, Shared, SharedCombinators, Util, Text
 import Random
 import StdList
-from StdFunc	import o
+from StdFunc	import o, seq
 from IWorld		import :: IWorld(..)
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
 from UserDB		import qualified class UserDB(..), instance UserDB IWorld
@@ -55,6 +55,25 @@ allowedWorkflows :: ReadOnlyShared [WorkflowDescription]
 allowedWorkflows = mapSharedRead filterAllowed (workflows >+| (currentUser >+| currentUserDetails))
 where
 	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
+	
+workflowTree :: ReadOnlyShared [TreeNode WorkflowDescription]
+workflowTree = mapSharedRead mkFlowTree workflows
+
+allowedWorkflowTree :: ReadOnlyShared [TreeNode WorkflowDescription]
+allowedWorkflowTree = mapSharedRead mkFlowTree allowedWorkflows
+
+mkFlowTree :: ![WorkflowDescription] -> [TreeNode WorkflowDescription]
+mkFlowTree workflows = seq (map insertWorkflow workflows) []
+where
+	insertWorkflow descr=:{WorkflowDescription|path} nodeList = insertWorkflow` (split "/" path) nodeList
+	where
+		insertWorkflow` [] nodeList = nodeList
+		insertWorkflow` [title] nodeList = nodeList ++ [Leaf descr]
+		insertWorkflow` path=:[nodeP:pathR] [node=:(Node nodeL nodes):nodesR]
+			| nodeP == nodeL	= [Node nodeL (insertWorkflow` pathR nodes):nodesR]
+			| otherwise			= [node:insertWorkflow` path nodesR]
+		insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
+		insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
 
 // Workflow processes
 currentProcessId :: ReadOnlyShared ProcessId

@@ -132,6 +132,12 @@ where
 			= case searchV` children c of
 				(Nothing,c)	= searchV` r c
 				v			= v
+				
+instance Functor TreeNode
+where
+	fmap f node = case node of
+		Leaf a				= Leaf (f a)
+		Node label nodes	= Node label [fmap f node \\ node <- nodes]
 
 // ******************************************************************************************************
 // Document
@@ -514,32 +520,27 @@ where
 	(==) (Action name0) (Action name1) = name0 == name1
 	(==) a b = a === b
 
-instance actionName Action
-where
-	actionName (Action name)		= name
-	actionName ActionOk				= "Ok"
-	actionName ActionCancel			= "Cancel"
-	actionName ActionYes			= "Yes"
-	actionName ActionNo				= "No"
-	actionName ActionNext			= "Next"
-	actionName ActionPrevious		= "Previous"
-	actionName ActionFinish			= "Finish"
-	actionName ActionContinue		= "Continue"
-	actionName ActionNew			= "File/New"
-	actionName ActionOpen			= "File/Open"
-	actionName ActionSave			= "File/Save"
-	actionName ActionSaveAs			= "File/Save as"
-	actionName ActionClose			= "File/Close"
-	actionName ActionQuit			= "File/Quit"
-	actionName ActionHelp			= "Help/Help"
-	actionName ActionAbout			= "Help/About"
-	actionName ActionFind			= "Edit/Find"
-	actionName ActionEdit			= "Edit"
-	actionName ActionDelete			= "Delete"
-	
-instance actionName ActionName	
-where
-	actionName name = name
+actionName :: !Action -> ActionName
+actionName (Action name)		= name
+actionName ActionOk				= "Ok"
+actionName ActionCancel			= "Cancel"
+actionName ActionYes			= "Yes"
+actionName ActionNo				= "No"
+actionName ActionNext			= "Next"
+actionName ActionPrevious		= "Previous"
+actionName ActionFinish			= "Finish"
+actionName ActionContinue		= "Continue"
+actionName ActionNew			= "File/New"
+actionName ActionOpen			= "File/Open"
+actionName ActionSave			= "File/Save"
+actionName ActionSaveAs			= "File/Save as"
+actionName ActionClose			= "File/Close"
+actionName ActionQuit			= "File/Quit"
+actionName ActionHelp			= "Help/Help"
+actionName ActionAbout			= "Help/About"
+actionName ActionFind			= "Edit/Find"
+actionName ActionEdit			= "Edit"
+actionName ActionDelete			= "Delete"
 
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ toLowerCase (last (split "/" (actionName action))) 
@@ -553,7 +554,7 @@ instance descr String
 where
 	toDescr str = {TaskDescription|title = str, description = toString (html str)}
 	
-instance descr (String, descr) | html descr
+instance descr (!String, !descr) | html descr
 where
 	toDescr (title,descr) = {TaskDescription|title = title, description = toString (html descr)}
 	
@@ -588,7 +589,6 @@ where
 	(==) Suspended	Suspended	= True
 	(==) _			_			= False
 
-class toEmail r where toEmail :: r -> EmailAddress
 instance toEmail EmailAddress where toEmail e = e
 instance toEmail String where toEmail s = EmailAddress s
 instance toEmail User

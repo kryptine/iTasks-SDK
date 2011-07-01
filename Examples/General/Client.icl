@@ -2,8 +2,7 @@ implementation module Client
 
 import iTasks
 import StdMisc, Text
-from StdFunc	import seq
-from Util		import timestampToGmDateTime
+from Util import timestampToGmDateTime
 
 clientExample :: [Workflow]
 clientExample = [workflow "Examples/Client" "This task rebuilds the client." client]
@@ -20,25 +19,13 @@ client = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selectedWo
 	]
 
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
-chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetLocalAndShared mkTree, Putback putback)] (state >+| allowedWorkflows) -1 >>+ noActions
+chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetLocalAndShared mkTree, Putback putback)] (state >+| allowedWorkflowTree) -1 >>+ noActions
 where
-	mkTree sel (_,flows) = Tree (mkFlowTree flows) sel
+	mkTree sel (_,flows) = Tree [fmap (\{path,description,workflowId} -> (last (split "/" path),Hidden description,Hidden workflowId)) node \\ node <- flows] sel
 	putback tree=:(Tree _ sel) _ (state,_) = (Just sel, Just {state & selectedWorkflow = Just (flowId, descr)})
 	where
 		(_, Hidden descr, Hidden flowId) = getSelectedLeaf tree
-	
-	mkFlowTree workflows = seq (map insertWorkflow workflows) []
-	where
-		insertWorkflow {WorkflowDescription|path,description,workflowId} nodeList = insertWorkflow` (split "/" path) nodeList
-		where
-			insertWorkflow` [] nodeList = nodeList
-			insertWorkflow` [title] nodeList = nodeList ++ [Leaf (title,Hidden description,Hidden workflowId)]
-			insertWorkflow` path=:[nodeP:pathR] [node=:(Node nodeL nodes):nodesR]
-				| nodeP == nodeL	= [Node nodeL (insertWorkflow` pathR nodes):nodesR]
-				| otherwise			= [node:insertWorkflow` path nodesR]
-			insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
-			insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
-							
+
 showDescription :: !(Shared ClientState) -> Task ParallelControl
 showDescription state =
 	showSharedInformation "Task description" [ShowView (GetShared view)] state Void >>+ noActions

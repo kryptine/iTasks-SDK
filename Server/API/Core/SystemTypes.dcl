@@ -68,7 +68,7 @@ instance html Note
 // Strings with special meanings
 :: EmailAddress	= EmailAddress !String
 
-class toEmail r where toEmail :: r -> EmailAddress
+class toEmail r where toEmail :: !r -> EmailAddress
 instance toEmail EmailAddress
 instance toEmail String
 instance toEmail User
@@ -149,8 +149,10 @@ setOptionsM			:: ![a] !(MultipleChoice a)			-> MultipleChoice a | gEq{|*|} a
 
 //* Represents a tree from with the user can choose one leaf
 :: Tree a = Tree ![TreeNode a] !Int
-:: TreeNode a = Leaf !a | Node !TreeLabel ![TreeNode a]
+:: TreeNode a = Leaf !a | Node !TreeLabel !.[TreeNode a]
 :: TreeLabel :== String
+
+instance Functor TreeNode
 
 //* Generates a tree with initially no chosen item
 mkTree		:: ![TreeNode a]	-> Tree a
@@ -269,10 +271,10 @@ instance == RunningTaskStatus
 
 class descr d
 where
-	toDescr :: d -> TaskDescription
+	toDescr :: !d -> TaskDescription
 
 instance descr String
-instance descr (String, descr) | html descr
+instance descr (!String, !descr) | html descr
 instance descr TaskDescription
 
 initTaskProperties :: TaskProperties
@@ -375,10 +377,7 @@ getRoles			:: !User -> [Role]
 :: ActionName	:== String	//Locally unique identifier for actions
 
 instance == Action
-
-class actionName a :: a -> String
-instance actionName Action
-instance actionName ActionName
+actionName :: !Action -> ActionName
 
 actionIcon 	:: !Action -> String
 			

@@ -5,6 +5,7 @@ itasks.tui.GridContainer = itasks.util.extend(Ext.grid.GridPanel, itasks.tui.con
 	defaultHeight: ['FillParent',1,['FixedMinSize',150]],
 	recordCache: {},
 	stateful: false,
+	viewConfig: {forceFit: true},
 	listeners: {viewready: function() {
 		if (Ext.isNumber(this.value)) {
 			this.suspendEvents();
@@ -77,16 +78,23 @@ itasks.tui.GridContainer = itasks.util.extend(Ext.grid.GridPanel, itasks.tui.con
 		itasks.tui.control.initComponent.apply(this,arguments);
 	},
 	
-	setSize: function(w,h) {
-		this.extSuperclass.setSize.call(this,w,h);
-	},
-	
 	setValue: function(v) {
 		if (Ext.isNumber(v)) {
 			this.getSelectionModel().selectRow(v);
 		} else {
 			this.getSelectionModel().clearSelections();
 		}
+	},
+	
+	setSize: function(w,h) {
+		this.extSuperclass.setSize.call(this,w,h);
+	},
+	// use default content size until a better way is found to determine it
+	getContentHeight: function() {
+		return 100;
+	},
+	getContentWidth: function() {
+		return 200;
 	}
 });
 

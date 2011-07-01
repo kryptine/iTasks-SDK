@@ -2,7 +2,7 @@ implementation module TUIDefinition
 
 import JSON, StdList, StdBool, GenEq, StdFunc, HTML, Text
 from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionName, :: ProcessProperties
-from SystemTypes	import class actionName(..), instance actionName Action, actionIcon
+from SystemTypes	import actionIcon, actionName
 from Task			import  :: TaskAction
 
 htmlDisplay :: !html -> TUIDef | toString html
@@ -139,7 +139,7 @@ defaultMainLayout :: MainLayouter
 defaultMainLayout = \{TUIMain|properties,content,actions} ->
 	let (menus,_) = defaultMenus actions in
 		{ content	= TUIMainContainer {TUIMainContainer|items = [content], menus = menus, properties = properties}
-		, width		= Auto
+		, width		= FillParent 1 (FixedMinSize 0)
 		, height	= Auto
 		, margins	= Nothing
 		}
