@@ -25,8 +25,8 @@ delegate task
       >>= \user   -> 	user @: task
       >>= \result ->	updateInformation "Check result" [] result
 
-someTask :: Task Note
-someTask = enterInformation "Enter Information" []
+someTask :: Task [DateTime]
+someTask = enterInformation "Please propose some dates for a meeting..." []
 
 // Number guessing game
 from Section4 import onlyIf

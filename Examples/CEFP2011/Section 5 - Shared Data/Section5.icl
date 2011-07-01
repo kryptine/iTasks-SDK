@@ -121,7 +121,7 @@ joinCEFPtweets
 
 joinTweets  :: String (Shared [Tweet]) -> Task Void
 joinTweets name tweets
-	=				enterSharedInformation ("Enter tweet for " +++ name) views tweets
+	=				updateSharedInformation ("Enter tweet for " +++ name) views tweets ""
 		>?*			[(ActionQuit,Always (return Void))
 					,(ActionOk, IfValid commitTweetAndContinue)
 					]

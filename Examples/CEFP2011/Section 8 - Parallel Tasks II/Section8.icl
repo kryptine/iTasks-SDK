@@ -37,7 +37,7 @@ removeUser user			cs = {cs & chatters = removeMember user cs.chatters}
 
 chat3
     =               get currentUser
-    	>>= \me ->	parallel "Chat application" emptyChatState (const2 Void) [ShowAs BodyTask (chatTask me)]
+    	>>= \me ->	parallel "Chat application" emptyChatState (const2 Void) [(BodyTask, chatTask me)]
 
 chatTask user cs
 	=			update (addUser user) (taskListState cs)
@@ -58,14 +58,14 @@ where
 	toView c =  Note c 
 	fromView (Note c) _ _ = c
 
-newChatter = ShowAs (WindowTask "Append Chatter") handleNewChatter
+newChatter = (WindowTask "Append Chatter", handleNewChatter)
 
 handleNewChatter cs
 	=						selectUser
 		>>= \someone ->		appendTask (newChatTask someone) cs
 		>>|					return Continue
 where
-	newChatTask someone = ShowAs (DetachedTask (normalTask someone)) (chatTask someone)
+	newChatTask someone = (DetachedTask (normalTask someone), chatTask someone)
 
 
 ActionAdd :== Action "Add Chatter" 
@@ -107,7 +107,7 @@ editorApplication ::  Task Void
 editorApplication 
 	=						enterInformation "Give name of text file you want to edit..." []
 		>>= \fileName ->	readTextFile fileName
-		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [ShowAs BodyTask (editor fileName)]
+		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [(BodyTask, editor fileName)]
 
 editor :: String (TaskList EditorState) -> Task ParallelControl
 editor fileName ls
@@ -131,12 +131,12 @@ where
 
 	replace _
 		=		updateReplace True (taskListState ls)
-			>>| appendTask (ShowAs (DialogTask "Find and Replace") (replaceTask {search = "", replaceBy = ""})) ls
+			>>| appendTask (DialogTask "Find and Replace", replaceTask {search = "", replaceBy = ""}) ls
 			>>| editor fileName ls
 
 	statistics _
 		=		updateStat True (taskListState ls)
-			>>|	appendTask (ShowAs (DialogTask "Statistics") statisticsTask) ls
+			>>|	appendTask (DialogTask "Statistics", statisticsTask) ls
 			>>| editor fileName ls
 
 replaceTask :: Replace (TaskList EditorState) -> Task ParallelControl

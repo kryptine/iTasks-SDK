@@ -33,14 +33,16 @@ const2 _ _ x = x
 
 noResult _ _ = Void
 
+forever` :: !(Task a) -> Task Void | iTask a 
+forever` t = forever t
+
 // A simple application of parallel: all tasks run to completion (generalized variant of exercise 18)
 questions :: Task [(User,String)]
 questions
 	=                  updateInformation "Pose a question" [] "...?"
 	  >>= \question -> selectUsers
 	  >>= \users    -> parallel "parallel" [] (\_ s -> s) 
-	  						[  ShowAs (DetachedTask (normalTask u)) 
-	  						          (answer u question) 
+	  						[ (DetachedTask (normalTask u), answer u question) 
 	  						\\ u <- users
 	  						]
 where
@@ -60,7 +62,7 @@ chatting :: Task Void
 chatting 
     =               		enterSharedMultipleChoice "Select chatters" [] users
     	>>= \users     ->	parallel "Chatting" [] (\_ _ -> Void)
-								   [  ShowAs (DetachedTask (normalTask user)) chatting
+								   [  (DetachedTask (normalTask user), chatting)
 								   \\ user <- users
 								   ]
 where
@@ -81,13 +83,13 @@ naive_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Naive chat" initChatState (\_ chat -> chat)
-								   [  ShowAs (DetachedTask (normalTask who)) (chat names who)
+								   [  (DetachedTask (normalTask who), chat names who)
 								   \\ who <- [me : others]
 								   ]
 where
 	chat :: String User (TaskList ChatState) -> Task ParallelControl
 	chat names me tlist
-		= forever (              get chatState
+		= forever` (              get chatState
 		      >>= \xs         -> updateInformation headerEditor [] (Display xs, Note "")
 		      >>= \(_,Note a) -> update (addLine me a) chatState
 		  )
@@ -107,13 +109,13 @@ monitor_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Monitored chat" initChatState (\_ chat -> chat)
-								   [  ShowAs (DetachedTask (normalTask who)) (chat names who)
+								   [  (DetachedTask (normalTask who), chat names who)
 								   \\ who <- [me : others]
 								   ]
 where
 	chat :: String User (TaskList ChatState) -> Task ParallelControl
 	chat names me tlist
-		= (showSharedInformation headerMonitor [] chatState Void) ||- (forever enterLine)
+		= (showSharedInformation headerMonitor [] chatState Void) ||- (forever` enterLine)
 		>>| return Continue
 	where
 		headerEditor	= "Chat with "       +++ names
@@ -143,8 +145,8 @@ shared_chat
     =   					get currentUser
     	>>= \me ->			selectUser
 		>>= \you ->			parallel "2 Chatters" (initChatState2 2) (\_ s -> s)
-								[ShowAs (DetachedTask (normalTask me) ) (chatEditor (me,0) (you,1))
-								,ShowAs (DetachedTask (normalTask you)) (chatEditor (you,1) (me,0))
+								[ (DetachedTask (normalTask me) , chatEditor (me,0) (you,1))
+								, (DetachedTask (normalTask you), chatEditor (you,1) (me,0))
 								]
 where
 	chatEditor :: (User,Int) (User,Int) (TaskList ChatState2) -> Task ParallelControl
@@ -175,7 +177,7 @@ multibind_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Multibind chat" initChatState (const2 Void)
-								   [  ShowAs (DetachedTask (normalTask who)) (chat names who)
+								   [  (DetachedTask (normalTask who), chat names who)
 								   \\ who <- [me : others]
 								   ]
 where
