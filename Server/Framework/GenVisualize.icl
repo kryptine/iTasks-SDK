@@ -508,6 +508,7 @@ gVisualize{|FillHControlSize|} fx val vst=:{controlSize=controlSize=:(width,_,ma
 	= (def,{vst & controlSize = controlSize})
 
 gVisualize{|Void|} _ vst = noVisualization vst
+gVisualize{|WorkflowTaskContainer|} _ vst = noVisualization vst
 	
 derive gVisualize DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session
 derive bimap Maybe

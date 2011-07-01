@@ -40,7 +40,7 @@ config :: !*World -> (!Maybe Config,!*World)
 * @param A description of the workflow
 * @param The task(container) (with or without parameter)
 */
-workflow :: String String w -> Workflow | workflowTask w
+workflow :: String String w -> Workflow | toWorkflow w
 
 /**
 *
@@ -51,14 +51,14 @@ workflow :: String String w -> Workflow | workflowTask w
 * @param A list of roles. The workflow will be available to users with any of the specified roles
 * @param The task(container) (with or without parameter)
 */
-restrictedWorkflow :: String String [Role] w -> Workflow | workflowTask w
+restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
 
-class workflowTask w :: String String [Role] w -> Workflow
+class toWorkflow w :: String String [Role] w -> Workflow
 
-instance workflowTask (Task a)						| iTask a
-instance workflowTask (WorkflowContainer a)			| iTask a
-instance workflowTask (a -> Task b)					| iTask a & iTask b
-instance workflowTask (ParamWorkflowContainer a b)	| iTask a & iTask b
+instance toWorkflow (Task a)						| iTask a
+instance toWorkflow (WorkflowContainer a)			| iTask a
+instance toWorkflow (a -> Task b)					| iTask a & iTask b
+instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
 
 :: WorkflowContainer a			= Workflow		ManagerProperties (Task a)
 :: ParamWorkflowContainer a b	= ParamWorkflow	ManagerProperties (a -> Task b)

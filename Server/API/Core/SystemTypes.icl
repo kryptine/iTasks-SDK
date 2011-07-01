@@ -25,6 +25,11 @@ JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
 
+JSONEncode{|WorkflowTaskContainer|} c		= dynamicJSONEncode c
+JSONDecode{|WorkflowTaskContainer|} [c:r]	= (dynamicJSONDecode c,r)
+JSONDecode{|WorkflowTaskContainer|} r		= (Nothing,r)
+gEq{|WorkflowTaskContainer|} _ _			= True
+
 gEq{|(->)|} _ _ _ _			= False	// functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 //gEq{|Dynamic|} (x :: a | gEq{|*|} a) (y :: a | gEq{|*|} a) = x === y

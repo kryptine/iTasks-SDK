@@ -10,7 +10,7 @@ from ProcessDB			import :: Process
 import Task
 
 import iTaskClass
-derive class iTask ParallelTaskInfo, ParallelControl
+derive class iTask ParallelTaskInfo, ParallelControl, TaskGUI
 
 
 //Standard monadic operations:

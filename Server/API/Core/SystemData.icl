@@ -1,6 +1,6 @@
 implementation module SystemData
 
-import SystemTypes, Time, Shared, SharedCombinators, Util, Text
+import SystemTypes, Time, Shared, SharedCombinators, Util, Text, Task
 import Random
 import StdList
 from StdFunc	import o, seq
@@ -38,10 +38,10 @@ where
 		= (Ok Void,iworld)
 
 currentUser :: ReadOnlyShared User
-currentUser = makeReadOnlyShared "SystemData_currentUser" (\iworld=:{currentUser} -> (currentUser,iworld)) 'Util'.currentTimestamp
+currentUser = makeReadOnlyShared "SystemData_currentUser" (\iworld=:{currentUser} -> (currentUser,iworld)) (\iworld -> (Timestamp 0, iworld))
 	
 currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
-currentUserDetails = makeReadOnlyShared "SystemData_currentUserDetails" (\iworld=:{currentUser} -> 'UserDB'.getUserDetails currentUser iworld) 'Util'.currentTimestamp
+currentUserDetails = makeReadOnlyShared "SystemData_currentUserDetails" (\iworld=:{currentUser} -> 'UserDB'.getUserDetails currentUser iworld) (\iworld -> (Timestamp 0, iworld))
 
 // Sessions
 sessions :: ReadOnlyShared [Session]
@@ -52,7 +52,7 @@ workflows :: ReadOnlyShared [WorkflowDescription]
 workflows = makeReadOnlyShared "SystemData_workflows" 'WorkflowDB'.getWorkflowDescriptions 'WorkflowDB'.lastChange
 
 allowedWorkflows :: ReadOnlyShared [WorkflowDescription]
-allowedWorkflows = mapSharedRead filterAllowed (workflows >+| (currentUser >+| currentUserDetails))
+allowedWorkflows = mapSharedRead filterAllowed (workflows |+| (currentUser |+| currentUserDetails))
 where
 	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
 	
@@ -74,7 +74,16 @@ where
 			| otherwise			= [node:insertWorkflow` path nodesR]
 		insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
 		insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
-
+		
+workflowTask :: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
+workflowTask wid = makeReadOnlySharedError ("SystemData_workflowTask_" +++ (toString wid)) getTask ((appFst Ok) o 'WorkflowDB'.lastChange)
+where
+	getTask iworld
+		# (mbWorkflow,iworld) = 'WorkflowDB'.getWorkflow wid iworld
+		= case mbWorkflow of
+			Just {thread=t=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a)} = (Ok (WorkflowTaskContainer originalTask), iworld)
+			_ = (Error ("could not find workflow " +++ (toString wid)), iworld)
+		
 // Workflow processes
 topLevelTasks :: (TaskList Void)
 topLevelTasks = GlobalTaskList
@@ -86,7 +95,7 @@ currentProcesses ::ReadOnlyShared [Process]
 currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running] [Active]) 'ProcessDB'.lastChange
 
 processesForCurrentUser	:: ReadOnlyShared [Process]
-processesForCurrentUser = makeReadOnlyShared ("SystemData_processesForCurrentUser") (\iworld=:{currentUser} -> 'ProcessDB'.getProcessesForUser currentUser [Running] [Active] iworld) 'ProcessDB'.lastChange
+processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" (\iworld=:{currentUser} -> 'ProcessDB'.getProcessesForUser currentUser [Running] [Active] iworld) 'ProcessDB'.lastChange
 
 applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))

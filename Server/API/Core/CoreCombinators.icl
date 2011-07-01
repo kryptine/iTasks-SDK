@@ -515,7 +515,7 @@ where
 					GlobalTaskList	= 'ProcessDB'.getNextProcessId iworld
 					_				= (nextIdx,iworld)
 				# parallelControls = 'Map'.put identity (nextIdx + 1, controls ++ [AppendTask nextIdx (dynamic container :: TaskContainer s^)]) parallelControls 
-				= (TaskFinished nextIdx, {iworld & parallelControls = parallelControls})
+				= (TaskFinished nextIdx, {iworld & parallelControls = parallelControls, readShares = Nothing})
 			_
 				= (taskException ("Task list " +++ identity +++ " is not in scope"), iworld)
 	

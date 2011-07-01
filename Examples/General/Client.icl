@@ -27,12 +27,18 @@ where
 		(_, Hidden descr, Hidden flowId) = getSelectedLeaf tree
 
 showDescription :: !(Shared ClientState) -> Task ParallelControl
-showDescription state =
-	showSharedInformation "Task description" [ShowView (GetShared view)] state Void >>+ noActions
-where						
+showDescription state = forever (
+		showSharedInformation "Task description" [ShowView (GetShared view)] state Void
+	>?*	[(Action "Start workflow", Sometimes \{modelValue=m=:({selectedWorkflow},_)} -> if (isJust selectedWorkflow) (Just (addWorkflow (fromJust selectedWorkflow))) Nothing)])
+where			
 	view {selectedWorkflow} = case selectedWorkflow of
 		Nothing			= ""
 		Just (_,descr)	= descr
+		
+	addWorkflow (wid,_) =
+												get (workflowTask wid)
+		>>=	\(WorkflowTaskContainer task) ->	get currentUser
+		>>= \user ->							appendTask (DetachedTask {initManagerProperties & worker = user}, \_ -> task >>| return Continue) topLevelTasks
 
 processTable :: !(TaskList ClientState) -> Task ParallelControl	
 processTable taskList = updateSharedInformation "process table" [UpdateView (GetLocalAndShared mkTable, Putback putback)] (processes |+< state) Nothing >>+ noActions
@@ -69,12 +75,13 @@ where
 
 workTab :: !ProcessId !(Shared [ProcessId]) -> Task ParallelControl											
 workTab procId openProcs =
-		(workOn procId >>+ \{modelValue} -> if (modelValue =!= WOActive) (StopInteraction Void) (UserActions [(ActionClose, Just Void)]))
+		update (\procs -> [procId:procs]) openProcs
+	>>|	(workOn procId >>+ \{modelValue} -> if (modelValue =!= WOActive) (StopInteraction Void) (UserActions [(ActionClose, Just Void)]))
 	>>|	update (filter ((<>) procId)) openProcs
 	>>|	return Continue
 
 controlClient :: Task ParallelControl										
-controlClient = showInformation "waiting for event" [] Void >>+ \_ -> UserActions [(ActionQuit, Just Stop)]
+controlClient = chooseAction [(ActionQuit, Stop)]
 
 :: ClientState =
 	{ selectedProcess	:: !Maybe ProcessId

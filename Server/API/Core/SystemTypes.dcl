@@ -12,6 +12,8 @@ from Time			import :: Timestamp
 from Config			import :: Config
 from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
+from Task			import :: Task
+from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualize, :: VSt, :: Visualization
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
@@ -22,9 +24,9 @@ derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescriptio
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
-derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
-derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
+derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
+derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
+derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
 
 instance toString User
 instance toString Note
@@ -406,6 +408,8 @@ actionIcon 	:: !Action -> String
 							}
 							
 :: WorkflowId :== Int
+
+:: WorkflowTaskContainer = E.a: WorkflowTaskContainer !(Task a) & iTask a
 				
 // A workflow specification
 :: Workflow		=	{ path				:: String				//* a unique name of this workflow

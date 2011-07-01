@@ -127,27 +127,27 @@ where
 handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!*World)
 handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, world) //Stop
 
-workflow :: String String w -> Workflow | workflowTask w
-workflow path description task = workflowTask path description [] task
+workflow :: String String w -> Workflow | toWorkflow w
+workflow path description task = toWorkflow path description [] task
 
-restrictedWorkflow :: String String [Role] w -> Workflow | workflowTask w
-restrictedWorkflow path description roles task = workflowTask path description roles task
+restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
+restrictedWorkflow path description roles task = toWorkflow path description roles task
 	
-instance workflowTask (Task a) | iTask a
+instance toWorkflow (Task a) | iTask a
 where
-	workflowTask path description roles task = workflowTask path description roles (Workflow initManagerProperties task)
+	toWorkflow path description roles task = toWorkflow path description roles (Workflow initManagerProperties task)
 	
-instance workflowTask (WorkflowContainer a) | iTask a
+instance toWorkflow (WorkflowContainer a) | iTask a
 where
-	workflowTask path description roles (Workflow managerP task) = mkWorkflow path description roles (createThread (task <<@ Description (path2name path))) managerP
+	toWorkflow path description roles (Workflow managerP task) = mkWorkflow path description roles (createThread (task <<@ Description (path2name path))) managerP
 
-instance workflowTask (a -> Task b) | iTask a & iTask b
+instance toWorkflow (a -> Task b) | iTask a & iTask b
 where
-	workflowTask path description roles paramTask = workflowTask path description roles (ParamWorkflow initManagerProperties paramTask)
+	toWorkflow path description roles paramTask = toWorkflow path description roles (ParamWorkflow initManagerProperties paramTask)
 	
-instance workflowTask (ParamWorkflowContainer a b) | iTask a & iTask b
+instance toWorkflow (ParamWorkflowContainer a b) | iTask a & iTask b
 where
-	workflowTask path description roles (ParamWorkflow managerP paramTask) = mkWorkflow path description roles (createThreadParam (path2name path) paramTask) managerP
+	toWorkflow path description roles (ParamWorkflow managerP paramTask) = mkWorkflow path description roles (createThreadParam (path2name path) paramTask) managerP
 	
 mkWorkflow path description roles thread managerProps =
 	{ Workflow

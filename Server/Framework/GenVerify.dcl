@@ -26,7 +26,7 @@ derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS, FIELD, Int, Real, Char, Bool, S
 derive gVerify Maybe, Dynamic, Void, Document, Either, Editable, Hidden, Display, VisualizationHint, Timestamp
 derive gVerify Password, Date, Time, FormButton, Currency, User, UserDetails, Note, DateTime, Choice, MultipleChoice, Map, Tree, TreeNode, Table
 derive gVerify EmailAddress, Action, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority
-derive gVerify ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
+derive gVerify ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
 
 /**
 * Verify a form based on the value and its update mask.

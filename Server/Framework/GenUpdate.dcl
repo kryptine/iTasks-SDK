@@ -29,7 +29,7 @@ derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gUpdate Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode, Table
 derive gUpdate EmailAddress, Action, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority
-derive gUpdate ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
+derive gUpdate ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
 
 generic gDefaultMask a :: !a -> [UpdateMask]
 
@@ -38,7 +38,7 @@ derive gDefaultMask Int, Real, Char, Bool, String
 derive gDefaultMask Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gDefaultMask Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode, Table
 derive gDefaultMask EmailAddress, Action, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority
-derive gDefaultMask ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
+derive gDefaultMask ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
 
 derive bimap UpdateMode
 

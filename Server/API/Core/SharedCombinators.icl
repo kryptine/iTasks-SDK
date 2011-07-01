@@ -22,7 +22,7 @@ toReadOnlyShared (ReadWriteShared id read write getTimestamp) = ReadWriteShared 
 (>+<) infixl 6 :: !(ReadWriteShared r0 w0) !(ReadWriteShared r1 w1) -> ReadWriteShared (r0,r1) (w0,w1)
 (>+<) (ReadWriteShared id0 read0 write0 getTimestamp0) (ReadWriteShared id1 read1 write1 getTimestamp1)
 	= ReadWriteShared (composeIds id0 id1) (composeReads read0 read1) (composeWrites write0 write1) (composeGetTimestamps getTimestamp0 getTimestamp1)
-	
+
 (>+|) infixl 6 :: !(ReadWriteShared r0 w0) !(ReadWriteShared r1 w1) -> ReadWriteShared (r0,r1) w0
 (>+|) (ReadWriteShared id0 read0 write0 getTimestamp0) (ReadWriteShared id1 read1 _ getTimestamp1)
 	= ReadWriteShared (composeIds id0 id1) (composeReads read0 read1) write0 (composeGetTimestamps getTimestamp0 getTimestamp1)

@@ -14,7 +14,7 @@ defaultValue = fst (gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPa
 
 defaultMask :: !a -> UpdateMask | gDefaultMask{|*|} a	
 defaultMask a = hd (gDefaultMask{|*|} a)
-
+derive JSONEncode DataPath
 updateValueAndMask :: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
 	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} (UDSearch a) {searchPath = path, currentPath = startDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = Just iworld}
@@ -183,12 +183,12 @@ gUpdate{|FillControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFil
 gUpdate{|FillWControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillWControlSize FillWControlSize ust
 gUpdate{|FillHControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillHControlSize FillHControlSize ust
 
-wrapperUpdate fx mode get cons ust=:{currentPath} = case mode of
+wrapperUpdate fx mode get cons ust=:{USt|currentPath} = case mode of
 	UDCreate
 		= appFst cons (fx UDCreate ust)
 	UDSearch w
 		# (w,ust) = fx (UDSearch (get w)) ust
-		= (cons w,{ust & currentPath = stepDataPath currentPath})
+		= (cons w,{USt|ust & currentPath = stepDataPath currentPath})
 
 gUpdate{|Int|}				mode ust = basicUpdateSimple mode 0 ust
 gUpdate{|Real|}				mode ust = basicUpdateSimple mode 0.0 ust
@@ -224,6 +224,10 @@ gUpdate{|Dynamic|}		mode ust = basicUpdate mode unchanged (dynamic 42) ust
 gUpdate{|(->)|} _ fy	mode ust
 	# (def,ust) = fy UDCreate ust
 	= basicUpdate mode unchanged (const def) ust
+gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode unchanged (WorkflowTaskContainer defTask) ust
+where
+	defTask :: Task Void
+	defTask = abort "default task container"
 
 gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust
 gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask, newMask}
@@ -298,6 +302,7 @@ gDefaultMask{|Bool|}				_ = [Touched []]
 gDefaultMask{|String|}				_ = [Touched []]
 gDefaultMask{|Dynamic|}				_ = [Touched []]
 gDefaultMask{|(->)|} _ _			_ = [Touched []]
+gDefaultMask{|WorkflowTaskContainer|}_ = [Touched []]
 gDefaultMask{|Document|}			_ = [Touched []]			
 gDefaultMask{|FormButton|}			_ = [Touched []]
 gDefaultMask{|Note|}				_ = [Touched []]
