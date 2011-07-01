@@ -273,10 +273,10 @@ where
 
 makeORYXError :: !ORYXDiagram !(GPath,String) -> ORYXError
 makeORYXError diagram ([],message) = 
-	{ ORYXError | resourceId = "", message = message, paramIndex = Nothing }
+	{ ORYXError | resourceId = "", message = message, paramName = Nothing }
 makeORYXError _ ([NodePath p:_],message) = 
-	{ ORYXError | resourceId = p, message = message, paramIndex = Nothing }
-makeORYXError _ ([ParamPath index:NodePath p:_],message) = 
-	{ ORYXError | resourceId = p, message = message, paramIndex = Just index }
+	{ ORYXError | resourceId = p, message = message, paramName = Nothing }
+makeORYXError _ ([ParamPath name:NodePath p:_],message) = 
+	{ ORYXError | resourceId = p, message = message, paramName = Just name }
 makeORYXError _ ([EdgePath p:_],message) = 
-	{ ORYXError | resourceId = p, message = message, paramIndex = Nothing }
+	{ ORYXError | resourceId = p, message = message, paramName = Nothing }

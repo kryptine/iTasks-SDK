@@ -81,7 +81,7 @@ from GinParser import ::GPath, ::GPathNode
 :: ORYXError = 
 	{ resourceId	:: !ORYXResourceId
 	, message		:: !String
-	, paramIndex	:: !Maybe Int
+	, paramName		:: !Maybe String
 	}
 
 // Stencil definition types

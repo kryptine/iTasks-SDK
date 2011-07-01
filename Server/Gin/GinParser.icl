@@ -4,7 +4,7 @@ import StdBool
 import StdArray
 import StdEnum
 from StdFunc import o,flip,seq
-import StdMisc
+//import StdMisc
 import StdList
 import StdOrdList
 import StdTuple
@@ -93,10 +93,10 @@ where
 	getPathNode :: GEdge GPath -> GPath
 	getPathNode { GEdge | identifier} _ = [EdgePath identifier]
 	
-instance PathNode (Int,GExpression)
+instance PathNode (String,GExpression)
 where
-	getPathNode :: (Int,GExpression) GPath -> GPath
-	getPathNode (i,_) path = [ParamPath i : path]
+	getPathNode :: (String,GExpression) GPath -> GPath
+	getPathNode (s,_) path = [ParamPath s : path]
 	
 instance PathNode TreeGraph
 where
@@ -259,6 +259,8 @@ where
 		| not (   isParallelBinding (nodeName (fst fromEdge) g) (nodeName (snd toEdge) g) bindings
 			   || isParallelBinding (nodeName (snd fromEdge) g) (nodeName (fst toEdge) g) bindings
 			  ) = decomp edges loop tg
+		# fromData = fromJust (getEdgeData fromEdge g)
+		  toData   = fromJust (getEdgeData toEdge g)
 		# comps = components (removeEdge fromEdge (removeEdge toEdge g))
 		| isEmpty (tl comps) = decomp edges loop tg //try next pair
 		# [g,s:_] = comps
@@ -266,8 +268,8 @@ where
 		| isTrivialGraph s = decomp edges loop tg
 		# g = removeEdge loop g
 		# (newNode,g) = addNode (TGSubgraph(decompose bindings (TreeGraph s (snd fromEdge) (fst toEdge)))) g //decompose subgraph s recursively
-		# g = addEdge emptyEdge (fst fromEdge,newNode) g
-		# g = addEdge emptyEdge (newNode, snd toEdge) g
+		# g = addEdge fromData (fst fromEdge,newNode) g
+		# g = addEdge toData (newNode, snd toEdge) g
 		# source = if (source == snd fromEdge) newNode source
 		# sink = if (sink == fst toEdge) newNode sink
 		= decompose bindings (TreeGraph g source sink)
@@ -299,9 +301,15 @@ nodeToAExpression bindings node =
 	        NBPrefixApp = 
 	            if (isEmpty node.GNode.actualParams)
 	                (ret (Var node.GNode.name))
-	                (parseChildMap (gToAExpressionPath bindings o snd) (zip2 [0..] node.GNode.actualParams) >>> \exps =
+	                (parseChildMap (gToAExpressionPath bindings o snd) 
+	                	[(fromMaybe formalParam.GFormalParameter.name formalParam.GFormalParameter.title, actualParam) 
+	                	\\ formalParam <- nb.NodeBinding.declaration.GDeclaration.formalParams 
+	                	 & actualParam <- node.GNode.actualParams
+	                	] >>> \exps =
 	                 ret (App [(Var node.GNode.name) : exps]))
 		)
+
+
 
 //-------------------------------------------------------------------------------------------
 //Mapping of parallel subgraphs
@@ -593,32 +601,33 @@ where
 	freeVars scope (PE_List exprs) = mergeVars (map (freeVars scope) exprs)
 	freeVars scope (PE_Ident ident) = if (inScope ident.id_name scope) [] [ident.id_name]
 	freeVars scope (PE_Basic _) = []
-	freeVars scope (PE_Bound boundExpr) = abort "freeVars PE_Bound"
-	freeVars scope (PE_Lambda _ pat exp _) = abort "freeVars PE_Lambda"
+//	freeVars scope (PE_Bound boundExpr) = abort "freeVars PE_Bound"
+//	freeVars scope (PE_Lambda _ pat exp _) = abort "freeVars PE_Lambda"
 	freeVars scope (PE_Tuple exprs) = flatten (map (freeVars scope) exprs)
-	freeVars scope (PE_Record expr optionalRecordName fieldAssignments) = abort "freeVars PE_Record"
-	freeVars scope (PE_ArrayPattern elemAssignments) = abort "freeVars PE_UpdateComprehension"
-	freeVars scope (PE_UpdateComprehension expr1 expr2 expr3 qualifiers) = abort "freeVars PE_ArrayDenot"
-	freeVars scope (PE_ArrayDenot kind exprs) = abort "freeVars PE_ArrayDenot"
+//	freeVars scope (PE_Record expr optionalRecordName fieldAssignments) = abort "freeVars PE_Record"
+//	freeVars scope (PE_ArrayPattern elemAssignments) = abort "freeVars PE_UpdateComprehension"
+//	freeVars scope (PE_UpdateComprehension expr1 expr2 expr3 qualifiers) = abort "freeVars PE_ArrayDenot"
+//	freeVars scope (PE_ArrayDenot kind exprs) = abort "freeVars PE_ArrayDenot"
 	freeVars scope (PE_Selection _ expr selections) = freeVars scope expr
-	freeVars scope (PE_Update expr1 selections expr2) = abort "freeVars PE_Update"
-	freeVars scope (PE_Case _ e alts) = abort "freeVars PE_Case"
+//	freeVars scope (PE_Update expr1 selections expr2) = abort "freeVars PE_Update"
+//	freeVars scope (PE_Case _ e alts) = abort "freeVars PE_Case"
 	freeVars scope (PE_If _ b e1 e2) = mergeVars [freeVars scope e \\ e <- [b,e1,e2]]
-	freeVars scope (PE_Let b defs expr) = abort "freeVars PE_Let"
-	freeVars scope (PE_ListCompr /*predef_cons_index:*/ i1 /*predef_nil_index:*/ i2 expr qualifiers) = abort "freeVars PE_ListCompr"
-	freeVars scope (PE_ArrayCompr arrayKind expr qualifiers) = abort "freeVars PE_ArrayCompr"
-	freeVars scope (PE_Sequ sequence) = abort "freeVars PE_Sequ"
-	freeVars scope (PE_WildCard) = abort "freeVars PE_Wildcard"
-	freeVars scope (PE_Field expr globalFieldSymbol /* Auxiliary, used during checking */) = abort "freeVars PE_Field"
-	freeVars scope (PE_QualifiedIdent ident string) = abort "freeVars PE_QualifiedIdent"
-	freeVars scope (PE_ABC_Code abc b) = abort "freeVars PE_ABC_Code"
-	freeVars scope (PE_Any_Code binding ident strings) = abort "freeVars PE_Any_Code"
-	freeVars scope (PE_DynamicPattern expr dyntype) = abort "freeVars PE_DynamicPattern"
-	freeVars scope (PE_Dynamic expr dyntype) = abort "freeVars PE_Dynamic"
-	freeVars scope (PE_Generic ident kind /* AA: For generics, kind indexed identifier */) = abort "freeVars PE_Generic"
-	freeVars scope (PE_TypeSignature arrayKind expr) = abort "freeVars PE_TypeSignature"
-	freeVars scope (PE_Empty) = abort "freeVars PE_Empty"
-	freeVars scope _ = abort "freeVars: not yet implemented"
+//	freeVars scope (PE_Let b defs expr) = abort "freeVars PE_Let"
+//	freeVars scope (PE_ListCompr /*predef_cons_index:*/ i1 /*predef_nil_index:*/ i2 expr qualifiers) = abort "freeVars PE_ListCompr"
+//	freeVars scope (PE_ArrayCompr arrayKind expr qualifiers) = abort "freeVars PE_ArrayCompr"
+//	freeVars scope (PE_Sequ sequence) = abort "freeVars PE_Sequ"
+//	freeVars scope (PE_WildCard) = abort "freeVars PE_Wildcard"
+//	freeVars scope (PE_Field expr globalFieldSymbol /* Auxiliary, used during checking */) = abort "freeVars PE_Field"
+//	freeVars scope (PE_QualifiedIdent ident string) = abort "freeVars PE_QualifiedIdent"
+//	freeVars scope (PE_ABC_Code abc b) = abort "freeVars PE_ABC_Code"
+//	freeVars scope (PE_Any_Code binding ident strings) = abort "freeVars PE_Any_Code"
+//	freeVars scope (PE_DynamicPattern expr dyntype) = abort "freeVars PE_DynamicPattern"
+//	freeVars scope (PE_Dynamic expr dyntype) = abort "freeVars PE_Dynamic"
+//	freeVars scope (PE_Generic ident kind /* AA: For generics, kind indexed identifier */) = abort "freeVars PE_Generic"
+//	freeVars scope (PE_TypeSignature arrayKind expr) = abort "freeVars PE_TypeSignature"
+//	freeVars scope (PE_Empty) = abort "freeVars PE_Empty"
+//	freeVars scope _ = abort "freeVars: not yet implemented"
+	freeVars scope _ = []
 
 //--------------------------------------------------------------------------------------------------
 //Utilities

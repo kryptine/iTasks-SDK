@@ -15,7 +15,7 @@ from iTasks import class iTask, generic gVisualize, generic gUpdate, generic gDe
 :: GPath :== [GPathNode]
 
 :: GPathNode	= NodePath GResourceId
-				| ParamPath Int
+				| ParamPath String
 				| EdgePath GResourceId
 
 :: GParseResult a = GSuccess a | GError [(GPath, String)]
@@ -35,7 +35,7 @@ where
 
 instance PathNode GNode
 instance PathNode GEdge
-instance PathNode (Int,GExpression)
+instance PathNode (String,GExpression)
 
 parseChild :: a (GParseState b) -> GParseState b | PathNode a
 parseMap :: (a -> GParseState b) [a] -> GParseState [b]

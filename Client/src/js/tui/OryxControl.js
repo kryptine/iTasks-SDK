@@ -100,9 +100,8 @@ itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
 
         var hints = {};
         json.each(function(hint){
-                      hints[hint.resourceId] = (hint.paramIndex != null
-                                                ? 'Parameter ' + (hint.paramIndex + 1) + ': ' 
-                                                : ''
+                      hints[hint.resourceId] = (hint.paramName != null
+                                                ? hint.paramName + ' parameter: ' : ''
                                                ) + hint.message;
                   }.bind(this));
         

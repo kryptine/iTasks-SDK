@@ -270,7 +270,7 @@ printADefinitionBody opt { ADefinition | name, formalParams, body, locals } =
 			<+> if (isEmpty formalParams) empty 
 			     (fillSep (map (\fp = text fp.GFormalParameter.name) formalParams) <-> space)
 			<-> char '='
-			</> printAExpression opt False body
+			<$> printAExpression opt False body
 		  )
 	]
 	++ if (isEmpty locals) 
@@ -297,7 +297,7 @@ printAStart _ _ = []
 
 
 printAExpression :: PrintOption Bool (AExpression Void) -> a | Printer a
-printAExpression opt withParens (Unparsed s) = parens (string s)
+printAExpression opt withParens (Unparsed s) = parens (string (replaceSubString "\n" " " s))
 printAExpression opt withParens (Lit s) = text s
 printAExpression opt withParens (Var v) = text v
 printAExpression opt withParens (App exps) = addParens withParens (fillSep (map (printAExpression opt True) exps))
