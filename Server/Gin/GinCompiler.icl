@@ -132,7 +132,7 @@ where
 	| isError res = (CompileGlobalError ("Read log file failed: " +++ toString (fromError res)), iworld)
 	# log = fromOk res
 	= (CompileGlobalError log, iworld)
-    
+	
 syntaxCheck :: !GModule *IWorld -> (CompileResult Void, *IWorld)
 syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile SyntaxCheck) iworld
 
@@ -153,11 +153,17 @@ compile compileOrCheckSyntax source basename config lineMap iworld=:{tmpDirector
 where
 	compile` :: CompilingInfo *World -> ((CompileResult Void, CompilingInfo), *World)
 	compile` compilingInfo world
+	//Take iTasks compiler if iTasks is in subdirectory of Clean distribution
+	//Otherwise, fallback to compiler shipped with Clean distribution
+	# compilerPath = 
+		if (config.GinConfig.cleanPath </> "" == takeDirectory config.GinConfig.iTasksPath </> "")
+			(dropDirectory config.GinConfig.iTasksPath </> "Compiler")
+			("Tools" </> "Clean System")
 	# env = { errors = [], world = world }
 	# compilingInfo = InitCompilingInfo //<- TODO: remove
 	# (compilingInfo, (env, _, compilerMsg)) = 
 		CompilePersistent
-				(config.iTasksPath </> "Compiler" </> "CleanCompiler.exe" +++ " : -h 64M -dynamics -generics")
+				(compilerPath </> "CleanCompiler.exe" +++ " : -h 64M -dynamics -generics")
 		        False                                      //Don't write module times
 		        addError                                   //Error display function
 		        (\_ x -> x)                                //Types display function
@@ -177,7 +183,7 @@ where
 	| compilerMsg == CompilerOK
 		= ((CompileSuccess Void, compilingInfo), env.LogEnv.world)
 	# errors = (findPathErrors (parseCleanCompilerLog log) lineMap)
-	| isEmpty errors = ((CompileGlobalError log, compilingInfo), env.LogEnv.world) 
+	| isEmpty errors = ((CompileGlobalError log, compilingInfo), env.LogEnv.world)
 	= ((CompilePathError (findPathErrors (parseCleanCompilerLog log) lineMap), compilingInfo), env.LogEnv.world)
 
 loadCompilingInfo :: *IWorld -> (Maybe CompilingInfo, *IWorld)
