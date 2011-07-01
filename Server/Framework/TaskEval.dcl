@@ -1,4 +1,4 @@
-definition module TaskInstance
+definition module TaskEval
 /**
 * This module provides functions for creation, evaluation and removal of task/workflow instances.
 */
@@ -20,6 +20,15 @@ import TaskContext, iTaskClass
 */
 createThread		:: (Task a)					-> Dynamic	| iTask a
 createThreadParam	:: !String (a -> Task b)	-> Dynamic	| iTask a & iTask b
+
+//Creeer initiele task context
+makeWorkflowInstance	:: !WorkflowId !User !(Maybe JSONNode) !*IWorld	-> (!MaybeErrorString TaskContext, !*IWorld)
+
+//Laadt bestaande context en pas eventuele edit events toe
+loadWorkflowInstance	:: !TaskNr !(Maybe EditEvent) !*IWorld					-> (!MaybeErrorString TaskContext, !*IWorld)
+
+//Evalueer de task in de gegeven context
+evalWorkflowInstance	:: !TaskNr !TaskContext !(Maybe CommitEvent) !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 
 /**
 * Create a new instance (process) of a workflow in the workflow database

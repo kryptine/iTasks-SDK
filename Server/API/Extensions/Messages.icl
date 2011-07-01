@@ -107,8 +107,8 @@ sendMessage :: Message -> Task Void
 sendMessage msg
 	=	dbCreateItem msg
 	>>= \msg -> case msg.needsReply of
-			False	= allTasks [spawnProcess True {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| return Void
-			True	= spawnProcess True initManagerProperties (awaitReplies msg) >>| return Void
+			False	= allTasks [appendTopLevelTask {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| return Void
+			True	= appendTopLevelTask initManagerProperties (awaitReplies msg) >>| return Void
 	>>| showInformation ("Message sent","The following message has been sent:") [About msg] Void
 where
 	awaitReplies msg =

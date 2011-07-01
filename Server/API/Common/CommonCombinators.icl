@@ -230,3 +230,6 @@ repeatTask task pred a =
 where
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions
+	
+appendTopLevelTask :: !ManagerProperties !(Task a) -> Task Int | iTask a
+appendTopLevelTask props task = appendTask (DetachedTask props, \_ -> task >>| return Continue) topLevelTasks

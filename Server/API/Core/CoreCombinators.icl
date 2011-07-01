@@ -115,13 +115,12 @@ CONTROLKEY id	:== "parallel_" +++ taskNrToString id +++ "-control"
 :: ResultSet
 	= RSException !Dynamic !String
 	| RSStopped
-	| RSResults !ParallelMeta ![(!Int, !TaskResult ParallelControl, !SubTaskContext)]
+	| RSResults ![(!Int, !TaskResult ParallelControl, !SubTaskContext)]
 	
 :: Control s
 	= AppendTask		!Int !(TaskContainer s)			// append and additional task to be run in parallel as well
 	| RemoveTask		!Int							// remove the task with indicated index from the set
 	| UpdateProperties	!Int !ManagerProperties			// update the properties of a task
-
 
 parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
 parallel description initState resultFun initTasks = mkTask description init edit eval 
@@ -207,7 +206,7 @@ where
 			//Exception
 			RSException e str	= (TaskException e str, iworld)
 			RSStopped 			= (TaskFinished (resultFun Stopped state), iworld)
-			RSResults meta results 
+			RSResults results
 				| allFinished results
 					= (TaskFinished (resultFun AllRunToCompletion state), iworld)
 				| otherwise
@@ -219,7 +218,7 @@ where
 	//Keep evaluating tasks and updating the state until there are no more subtasks
 	//subtasks
 	evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta results [] iworld
-		= (RSResults meta results, iworld)
+		= (RSResults results, iworld)
 	evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta results [(idx,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,timestamp}
 		//Evaluate subtask
 		# (result,stcontext,iworld)	= case stcontext of
@@ -536,8 +535,6 @@ where
 			Just ((_,ts) :: ([ParallelTaskInfo],Timestamp))	= (Ok ts, iworld)
 			_												= (Error ("Could not read timestamp for parallel task info of " +++ identity), iworld)
 		
-
-
 /**
 * Add a task to a task list
 */
@@ -571,8 +568,3 @@ where
 		identity	= toString tasklist
 		key			= identity +++ "-control"
 		
-spawnProcess :: !Bool !ManagerProperties !(Task a) -> Task ProcessId | iTask a
-spawnProcess gcWhenDone managerProperties task = abort "spawn process is broken"
-
-killProcess :: !ProcessId -> Task Void
-killProcess pid = abort "kill process is broken"

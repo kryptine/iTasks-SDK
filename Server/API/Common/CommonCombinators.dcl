@@ -280,49 +280,6 @@ allTasks			:: ![Task a]			-> Task [a]				| iTask a
 */
 eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b	
 
-/*
-/**
-* Execute two tasks as separate main tasks.
-* The composition is done as soon as one result is finished.
-*
-* @param The left task
-* @param The right task
-*
-* @return The result of the first completed task.
-*/
-orProc 				:: !(ProcTask a) !(ProcTask a) -> Task a 	 	| iTask a
-/**
-* Execute two tasks as separate main tasks.
-* The composition is done when both tasks are finished.
-*
-* @param The left task
-* @param The right task
-*
-* @return The results of both tasks
-*/
-andProc 			:: !(ProcTask a) !(ProcTask b) -> Task (a,b) 	| iTask a & iTask b
-/**
-* Execute a list of tasks as separate main tasks.
-* The composition is done as soon as one result is finished.
-*
-* @param The list of tasks
-*
-* @return The result of the first completed task.
-*/
-anyProc 			:: ![ProcTask a] 		   -> Task a 	 	| iTask a
-/**
-* Execute a list of tasks as separate main tasks.
-* The composition is done when all tasks are finished.
-*
-* @param The list of tasks
-*
-* @return The list of results
-*/
-allProc 			:: ![ProcTask a] 		   -> Task [a] 	| iTask a
-
-:: ProcTask a :== (!Task a,!ManagerProperties,!ActionMenu)
-*/
-
 /**
 * Randomly selects one item from a list.
 *
@@ -356,3 +313,10 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 * @gin False
 */
 (<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, [HtmlTag])) 	-> Task a 					| iTask a
+
+
+/**
+* Append a task to the set of top level tasks
+* 
+*/
+appendTopLevelTask :: !ManagerProperties !(Task a) -> Task Int | iTask a

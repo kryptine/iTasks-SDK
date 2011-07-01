@@ -140,32 +140,3 @@ appendTask :: !(TaskContainer s) !(TaskList s)	-> Task Int | TC s
 * Removes (and stops) a task from a task list
 */
 removeTask :: !Int !(TaskList s)				-> Task Void | TC s
-
-//DEPRECATED
-
-// Multi-user workflows
-
-/**
-* Create a new process.
-*
-* @param Gargabe collect: Automatically garbage collect the process when it is finished (removing all references to the state of the process).
-* @param Manager properties : The initial manager properties
-* @param Menu: The task's menu
-* @param Task: The task that is to be started in the new process.
-*
-* @return A reference to the newly created process
-* 
-* @gin-icon process_add
-*/
-spawnProcess	:: !Bool !ManagerProperties !(Task a) -> Task ProcessId | iTask a
-
-/**
-* Kills a process disregarding any other references to this process.
-*
-* @param Process: The process reference
-*
-* @return Void
-* 
-* @gin-icon process_delete
-*/
-killProcess 	:: !ProcessId -> Task Void

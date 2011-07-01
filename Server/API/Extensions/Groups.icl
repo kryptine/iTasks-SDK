@@ -102,7 +102,7 @@ inviteUserToGroup :: !Group !User -> Task Group
 inviteUserToGroup group user
 	=	get currentUser
 	>>= \fromUser ->
-		spawnProcess True initManagerProperties (
+		appendTopLevelTask initManagerProperties (
 			user @: (invite fromUser group)
 		>>= \accept ->
 			if accept

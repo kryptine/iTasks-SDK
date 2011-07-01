@@ -1,4 +1,4 @@
-implementation module TaskInstance
+implementation module TaskEval
 
 import StdList, StdBool
 import Error
@@ -37,6 +37,62 @@ toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,curren
 where		
 	enterParam paramTask = Description title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask)
 
+//Creeer initiele task context
+makeWorkflowInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
+makeWorkflowInstance workflowId user mbParam iworld
+	# (mbWorkflow,iworld)	= getWorkflow workflowId iworld
+	= case mbWorkflow of
+		Nothing
+			= (Error "No such workflow",iworld)
+		Just {Workflow|thread,managerProperties}
+			# mbThread = case thread of
+				(_ :: Container (TaskThread a) a)
+					| isNothing mbParam	= Ok thread
+					| otherwise			= Error "Workflow has no parameter"
+				_ = case mbParam of
+					Just param = case toNonParamThreadValue param thread of
+						Just thread		= Ok thread
+						Nothing			= Error "Invalid argument"
+					Nothing				= Ok (toNonParamThreadEnter thread)
+			= case mbThread of
+				Ok thread
+					# (processId,iworld)		= 'ProcessDB'.getNextProcessId iworld
+					# (context,iworld)			= initTaskContext processId thread managerProperties iworld
+					= (Ok context, iworld)
+				Error err
+					= (Error err,iworld)
+where
+	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} iworld=:{IWorld|timestamp}
+		# originalTaskFuncs = toTaskFuncs originalTask
+		# (tcontext,iworld) = originalTaskFuncs.initFun [0,processId] iworld		
+		# properties =
+			{ taskProperties	= taskProperties originalTask
+			, systemProperties	=
+				{ taskId		= toString processId
+				, status		= Running
+				, issuedAt		= timestamp
+				, firstEvent	= Nothing
+				, latestEvent	= Nothing
+				}
+			, managerProperties	= {managerProperties & worker = if (worker == AnyUser) user worker}
+			}
+		= (TaskContext properties 0 (TTCRunning thread tcontext),iworld)
+
+//Laadt bestaande context en pas eventuele edit events toe
+loadWorkflowInstance :: !TaskNr !(Maybe EditEvent) !*IWorld	-> (!MaybeErrorString TaskContext, !*IWorld)
+loadWorkflowInstance taskNr editEvent iworld = (Error "NOT IMPLEMENTED", iworld)
+	//Lookup task context
+	
+	//Apply edit events if applicable
+
+//Evalueer de task in de gegeven context
+evalWorkflowInstance :: !TaskNr !TaskContext !(Maybe CommitEvent) !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+evalWorkflowInstance taskNr context editEvent iworld = (Error "NOT IMPLEMENTED", iworld)
+	//Eval instance
+	//Process controls
+	
+	//Get the target param
+	
 
 createWorkflowInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
 createWorkflowInstance workflowId user mbParam iworld 

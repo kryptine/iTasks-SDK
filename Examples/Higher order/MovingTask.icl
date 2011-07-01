@@ -39,7 +39,7 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	spawnProcess False {initManagerProperties & worker = who} (task <<@ Description label)
+		>>= \who ->	appendTopLevelTask {initManagerProperties & worker = who} (task <<@ Description label)
 		>>= 		inspect
 	
 	inspect pref
@@ -72,7 +72,7 @@ where
 		>>|					showInformation ("Task activated","workflow is activated") [] False
 
 	delete pid
-	=						killProcess pid 
+	=						removeTask pid topLevelTasks 
 		>>| 				showInformation ("Task deleted","workflow is deleted") [] True				
 
 	reassign pid

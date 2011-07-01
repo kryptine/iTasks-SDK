@@ -12,7 +12,7 @@ import	IWorld
 from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from UserAdmin	import manageUsers
 
-from TaskInstance import createThread, createThreadParam
+from TaskEval import createThread, createThreadParam
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !(Maybe Config) [Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] 

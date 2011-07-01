@@ -2,7 +2,7 @@ implementation module TaskService
 
 import StdList, StdBool
 import Time, JSON
-import SystemTypes, Task, TaskInstance, TaskContext, TUIDiff, TUIEncode, Util, HtmlUtil
+import SystemTypes, Task, TaskContext, TaskEval,  TUIDiff, TUIEncode, Util, HtmlUtil
 import IWorld
 
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld

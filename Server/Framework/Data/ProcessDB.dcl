@@ -19,8 +19,8 @@ derive gEq			Process
 				  }
 
 class ProcessDB st
-where
-	getNextProcessId 		::														!*st -> (!ProcessId,		!*st)
+where	
+	getNextProcessId 		:: 														!*st -> (!ProcessId,		!*st)
 
 	getProcess				:: !ProcessId											!*st -> (!Maybe Process,	!*st)
 	getProcessContext		:: !ProcessId											!*st -> (!Maybe TaskContext,!*st)

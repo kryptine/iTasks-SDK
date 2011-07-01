@@ -1,7 +1,7 @@
 implementation module CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map
-import iTaskClass, Task, TaskContext, ProcessDB, TuningCombinators, TUIDefinition, TaskInstance
+import iTaskClass, Task, TaskContext, TaskEval, ProcessDB, TuningCombinators, TUIDefinition
 from SharedCombinators		import :: Shared
 from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared
 from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..)
