@@ -1,7 +1,7 @@
 implementation module Engine
 
-import StdMisc, StdArray, StdList, StdTuple, StdChar, StdFile, StdBool
-from StdFunc import o
+import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool
+from StdFunc import o, seqList, ::St
 import	Map, Time, CommandLine, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
 import	Util, HtmlUtil
 import	TuningCombinators
@@ -167,11 +167,25 @@ config world
 // Determines the server executables path
 determineAppPath :: !*World -> (!String, !*World)
 determineAppPath world
-	# (args,world) = getCommandLine world
-	= (hd args,world)
-
+	# ([arg:_],world) = getCommandLine world
+	| dropDirectory arg <> "ConsoleClient.exe" = (arg, world)
+	//Using dynamic linker:	
+	# (res, world)				= getCurrentDirectory world	
+	| isError res				= abort "Cannot get current directory."	
+	# currentDirectory			= fromOk res
+	# (res, world)				= readDirectory currentDirectory world	
+	| isError res				= abort "Cannot read current directory."	
+	# batchfiles				= [f \\ f <- fromOk res | takeExtension f == "bat" ]
+	| isEmpty batchfiles		= abort "No dynamic linker batch file found."	
+	# (infos, world)			= seqList (map getFileInfo batchfiles) world	
+	| any isError infos	 		= abort "Cannot get file information."	
+	= (currentDirectory </> (fst o hd o sortBy cmpFileTime) (zip2 batchfiles infos), world)	
+	where		
+		cmpFileTime (_,Ok {FileInfo | lastModifiedTime = x})
+					(_,Ok {FileInfo | lastModifiedTime = y}) = mkTime x > mkTime y
+	
 // Determines the server executables name
 determineAppName :: !*World -> (!String,!*World)
 determineAppName world 
-	# (args,world)	= getCommandLine world
-	= ((dropExtension o dropDirectory o hd) args,world)
+	# (appPath, world) = determineAppPath world
+	= ((dropExtension o dropDirectory) appPath, world)
