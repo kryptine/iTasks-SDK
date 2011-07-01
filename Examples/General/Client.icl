@@ -128,5 +128,5 @@ descriptionLayout {title,editorParts,actions} = (	{ content	= TUILayoutContainer
 													, margins	= Nothing
 													}, actions)
 
-processTableLayout interaction	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = Fixed 200},interaction.TUIInteraction.actions)	 
+processTableLayout interaction	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = Fixed 200, margins = (Just (sameMargins 0))},interaction.TUIInteraction.actions)	 
 singleControlLayout interaction	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize},interaction.TUIInteraction.actions)
