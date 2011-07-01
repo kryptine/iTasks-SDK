@@ -4,7 +4,7 @@ import StdList, StdArray, StdBool, StdFile
 import SystemTypes, Store, Random, Text, Time, Error, File, FilePath
 import GenUpdate
 from StdFunc	import id
-from IWorld		import ::IWorld(..), :: ProcessId
+from IWorld		import ::IWorld(..), :: Control, :: ProcessId
 
 instance DocumentDB IWorld
 where

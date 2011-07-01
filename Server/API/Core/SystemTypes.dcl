@@ -36,6 +36,7 @@ instance toString Currency
 instance toString TaskPriority
 instance toString Document
 instance toString FormButton
+instance toString (TaskList s)
 instance fromString Date
 instance fromString Time
 instance fromString DateTime
@@ -206,6 +207,12 @@ toFillWControlSize :: !.a -> FillWControlSize .a
 fromFillWControlSize :: !(FillWControlSize .a) -> .a
 toFillHControlSize :: !.a -> FillHControlSize .a
 fromFillHControlSize :: !(FillHControlSize .a) -> .a
+
+//* Represents lists of tasks (SHOULD BE ABSTRACT)
+:: TaskList s
+	= GlobalTaskList			//*The global list of task instances
+	| ParallelTaskList !TaskId	//*The list of task instances of a parallel task
+
 
 //* Properties of task processes	
 :: ProcessProperties =

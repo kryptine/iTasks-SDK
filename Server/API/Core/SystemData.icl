@@ -4,7 +4,7 @@ import SystemTypes, Time, Shared, SharedCombinators, Util, Text
 import Random
 import StdList
 from StdFunc	import o, seq
-from IWorld		import :: IWorld(..)
+from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
 from UserDB		import qualified class UserDB(..), instance UserDB IWorld
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
@@ -76,6 +76,9 @@ where
 		insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
 
 // Workflow processes
+topLevelTasks :: (TaskList Void)
+topLevelTasks = GlobalTaskList
+
 currentProcessId :: ReadOnlyShared ProcessId
 currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{currentProcess} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
 

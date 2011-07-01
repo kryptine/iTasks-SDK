@@ -6,7 +6,7 @@ from SharedCombinators		import :: Shared
 from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared
 from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..)
 from StdFunc				import o, id
-from IWorld					import :: IWorld(..)
+from IWorld					import :: IWorld(..), :: Control
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException, :: WorkOnException(..), instance toString WorkOnException
 from WorkflowDB				import qualified class WorkflowDB(..), instance WorkflowDB IWorld

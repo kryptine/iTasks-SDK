@@ -4,10 +4,12 @@ import StdList, StdBool
 import Error
 import SystemTypes, IWorld, Task, TaskContext, WorkflowDB
 
-from CoreCombinators import >>=
-from TuningCombinators import class tune, instance tune Description, <<@, @>>, :: Description(..)
-from InteractionTasks import enterInformation, :: LocalViewOn, :: ViewOn
+from CoreCombinators 	import >>=
+from CoreCombinators	import :: TaskContainer(..), ::TaskGUI(..), :: ParallelTask(..), :: ParallelControl
+from TuningCombinators	import class tune, instance tune Description, <<@, @>>, :: Description(..)
+from InteractionTasks	import enterInformation, :: LocalViewOn, :: ViewOn
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
+from Map		import qualified fromList, get, put
 import iTaskClass
 
 ITERATION_THRESHOLD :== 10
@@ -93,7 +95,6 @@ evalWorkflowInstance taskNr context editEvent iworld = (Error "NOT IMPLEMENTED",
 	
 	//Get the target param
 	
-
 createWorkflowInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
 createWorkflowInstance workflowId user mbParam iworld 
 	//Lookup workflow
@@ -126,8 +127,7 @@ createWorkflowInstance workflowId user mbParam iworld
 			
 where
 	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties=:{worker} iworld=:{IWorld|timestamp}
-		# originalTaskFuncs = toTaskFuncs originalTask
-		# (tcontext,iworld) = originalTaskFuncs.initFun [0,processId] iworld		
+		# (tcontext,iworld) = (toTaskFuncs originalTask).initFun [0,processId] iworld		
 		# properties =
 			{ taskProperties	= taskProperties originalTask
 			, systemProperties	=
@@ -172,12 +172,16 @@ evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld
 	| isNothing mbContext
 		= (Error "Could not load task context", iworld)
 	//Evaluate
-	# (result,iworld) = evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbContext) iworld
+	# (result,iworld) 	= evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbContext) iworld
+	//Process controls (additions/removals of processes)
+	# iworld			= processControls iworld
 	= (Ok result, iworld)
 where
 	evalTask processId mbEdit mbCommit tuiTaskNr context=:(TaskContext properties changeNo tcontext) iworld=:{IWorld|timestamp}
 		//Set current worker & last event timestamp
 		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker, currentProcess = processId, latestEvent = properties.systemProperties.SystemProperties.latestEvent}
+		//Set initial control of global task list
+		# iworld = {iworld & parallelControls = 'Map'.fromList [(toString GlobalTaskList,(0,[]))]}
 		//If target is not detached process, set first event timestamp if not set yet & latest update
 		# properties = case tuiTaskNr of
 			[_]	= {properties & systemProperties = {properties.systemProperties & firstEvent = Just (fromMaybe timestamp properties.systemProperties.firstEvent), latestEvent = Just timestamp}}
@@ -196,19 +200,64 @@ where
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
 				# commitEvent					= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
-				= evalTask` currentTask.Task.properties changeNo scontext commitEvent tuiTaskNr thread properties 1 iworld
+				= evalTask` processId currentTask.Task.properties changeNo scontext commitEvent tuiTaskNr thread properties 1 iworld
 			TTCFinished result
 				= (TaskFinished result, iworld)
 			TTCExcepted e
 				= (taskException e, iworld)		
 			
-	evalTask` props changeNo scontext commitEvent tuiTaskNr thread properties iterationCount iworld
+	evalTask` processId props changeNo scontext commitEvent tuiTaskNr thread properties iterationCount iworld
 		# (res,iworld) = evaluateWorkflowInstanceEval processId props changeNo [changeNo,processId] properties thread scontext commitEvent tuiTaskNr iworld
 		= case res of
 			TaskBusy _ _ scontext | isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
-				= evalTask` props changeNo scontext Nothing tuiTaskNr thread properties (inc iterationCount) iworld
+				= evalTask` processId props changeNo scontext Nothing tuiTaskNr thread properties (inc iterationCount) iworld
 			_
 				= (res, iworld)
+
+	processControls iworld
+		# (controls,iworld) = getControls iworld
+	 	= processControls` controls iworld
+	 	
+	processControls` [] iworld = iworld
+	processControls` [c:cs] iworld=:{currentUser} = case c of
+		AppendTask pid (container :: TaskContainer Void)
+			//Make thread and properties
+			# (thread,managerProperties) = case container of
+				(DetachedTask props,tfun)	= (createThread (tfun GlobalTaskList),props)
+				(WindowTask _,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
+				(DialogTask _,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
+				(BodyTask,tfun)				= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
+				(HiddenTask,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
+			//Make context
+			# (context,iworld) = initTaskContext pid thread managerProperties iworld
+			//Eval, but ignore the result
+			# (_, iworld) 		= evalTask pid Nothing Nothing [pid] context iworld
+			//Fetch potential additional controls
+			# (moreCs,iworld)	= getControls iworld
+			= processControls` (cs ++ moreCs) iworld
+		_
+			= processControls` cs iworld			
+	
+	getControls iworld=:{parallelControls}
+		= case 'Map'.get (toString GlobalTaskList) parallelControls of
+			Just (_,controls)	= (controls, {iworld & parallelControls = 'Map'.put (toString GlobalTaskList)(0,[]) parallelControls})
+			_					= ([],iworld)
+	
+	initTaskContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties iworld=:{IWorld|timestamp,currentUser}
+		# originalTaskFuncs = toTaskFuncs originalTask
+		# (tcontext,iworld) = originalTaskFuncs.initFun [0,processId] iworld		
+		# properties =
+			{ taskProperties	= taskProperties originalTask
+			, systemProperties	=
+				{ taskId		= toString processId
+				, status		= Running
+				, issuedAt		= timestamp
+				, firstEvent	= Nothing
+				, latestEvent	= Nothing
+				}
+			, managerProperties	= managerProperties
+			}
+		= (TaskContext properties 0 (TTCRunning thread tcontext),iworld)
 
 evaluateWorkflowInstanceEval :: !ProcessId !TaskProperties !Int !TaskNr !ProcessProperties !Dynamic !TaskContextTree !(Maybe CommitEvent) !TaskNr !*IWorld -> (!TaskResult Dynamic, !*IWorld)
 evaluateWorkflowInstanceEval processId props changeNo taskNr properties thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext commitEvent tuiTaskNr iworld

@@ -10,7 +10,7 @@ from ProcessDB			import :: Process
 import Task
 
 import iTaskClass
-derive class iTask ParallelTaskInfo, ParallelControl, TaskList
+derive class iTask ParallelTaskInfo, ParallelControl
 
 
 //Standard monadic operations:
@@ -83,14 +83,6 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 * A container for a child task of a parallel.
 */				
 :: TaskContainer s		:== (TaskGUI, (ParallelTask s))
-
-/**
-* An abstract handle representing a list of tasks
-*/
-:: TaskList s
-
-//* Constant task list denoting all top level processes (defined here because TaskList is abstract)
-topLevelTasks :: (TaskList Void)
 
 /**
 * Defines how a task is shown inside of a parallel.

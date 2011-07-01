@@ -75,7 +75,8 @@ initIWorld config flows world
 								  ,localDateTime		= localDateTime
 								  ,currentUser			= AnyUser
 								  ,currentProcess		= defaultValue
-								  ,parallelVars			= newMap
+								  ,parallelStates		= newMap
+								  ,parallelControls		= newMap
 								  ,readShares			= Nothing
 								  ,workOnDependencies	= []
 								  ,world				= world

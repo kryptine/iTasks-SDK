@@ -541,9 +541,14 @@ actionName ActionAbout			= "Help/About"
 actionName ActionFind			= "Edit/Find"
 actionName ActionEdit			= "Edit"
 actionName ActionDelete			= "Delete"
-
+	
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ toLowerCase (last (split "/" (actionName action))) 
+
+instance toString (TaskList s)
+where
+	toString GlobalTaskList				= "global"
+	toString (ParallelTaskList taskid)	= "parallel_" +++ taskid
 
 isActive:: !ProcessProperties -> Bool
 isActive properties = case properties.ProcessProperties.managerProperties.ManagerProperties.status of
