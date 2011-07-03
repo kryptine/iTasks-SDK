@@ -166,17 +166,23 @@ where
 				= (TaskException e str, properties, iworld)
 
 evaluateWorkflowInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !TaskNr !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld
-	//Load task context
-	# (mbContext,iworld)	= 'ProcessDB'.getProcessContext processId iworld
-	| isNothing mbContext
-		= (Error "Could not load task context", iworld)
-	//Evaluate
-	# (result,iworld) 	= evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbContext) iworld
-	//Process controls (additions/removals of processes)
-	# iworld			= processControls iworld
-	= (Ok result, iworld)
+evaluateWorkflowInstance processId mbEdit mbCommit tuiTaskNr iworld = evaluateWorkflowInstance` mbEdit mbCommit 1 iworld
 where
+	evaluateWorkflowInstance` mbEdit mbCommit iterationCount iworld
+		//Load task context
+		# (mbContext,iworld)			= 'ProcessDB'.getProcessContext processId iworld
+		| isNothing mbContext
+			= (Error "Could not load task context", iworld)
+		//Evaluate
+		# (result,iworld=:{readShares})	= evalTask processId mbEdit mbCommit (reverse tuiTaskNr) (fromJust mbContext) iworld
+		//Process controls (additions/removals of processes)
+		# iworld						= processControls iworld
+		= case result of
+			TaskBusy _ _ _ | isNothing readShares && iterationCount < ITERATION_THRESHOLD
+				= evaluateWorkflowInstance` Nothing Nothing (inc iterationCount) iworld
+			_
+				= (Ok result, iworld)
+
 	evalTask processId mbEdit mbCommit tuiTaskNr context=:(TaskContext properties changeNo tcontext) iworld=:{IWorld|timestamp}
 		//Set current worker & last event timestamp
 		# iworld = {iworld & currentUser = properties.ProcessProperties.managerProperties.worker, currentProcess = processId, latestEvent = properties.systemProperties.SystemProperties.latestEvent}
@@ -200,19 +206,11 @@ where
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
 				# commitEvent					= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
-				= evalTask` processId currentTask.Task.properties changeNo scontext commitEvent tuiTaskNr thread properties 1 iworld
+				= evaluateWorkflowInstanceEval processId currentTask.Task.properties changeNo [changeNo,processId] properties thread scontext commitEvent tuiTaskNr iworld
 			TTCFinished result
 				= (TaskFinished result, iworld)
 			TTCExcepted e
-				= (taskException e, iworld)		
-			
-	evalTask` processId props changeNo scontext commitEvent tuiTaskNr thread properties iterationCount iworld
-		# (res,iworld) = evaluateWorkflowInstanceEval processId props changeNo [changeNo,processId] properties thread scontext commitEvent tuiTaskNr iworld
-		= case res of
-			TaskBusy _ _ scontext | isNothing iworld.readShares && iterationCount < ITERATION_THRESHOLD
-				= evalTask` processId props changeNo scontext Nothing tuiTaskNr thread properties (inc iterationCount) iworld
-			_
-				= (res, iworld)
+				= (taskException e, iworld)
 
 	processControls iworld
 		# (controls,iworld) = getControls iworld
