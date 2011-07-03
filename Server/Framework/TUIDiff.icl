@@ -115,7 +115,7 @@ staticContainerUpdate path old new = flatten [diffEditorDefinitions` (childDataP
 
 valueUpdate path old new = update sameValue (\{value} -> Just value) TUISetValue path old new
 where
-	sameValue old new = ov === new.value
+	sameValue old new = ov == new.value
 	where
 		ov = case new.eventValue of
 			Just v	= toJSON v

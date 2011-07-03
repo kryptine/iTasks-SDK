@@ -301,15 +301,18 @@ nodeToAExpression bindings node =
 	        NBPrefixApp = 
 	            if (isEmpty node.GNode.actualParams)
 	                (ret (Var node.GNode.name))
-	                (parseChildMap (gToAExpressionPath bindings o snd) 
+	                (argsToExpressions nb >>> \exps = ret (App [(Var node.GNode.name) : exps]))
+			NBInfixApp fix prio = 
+				argsToExpressions nb >>> \[exp1, exp2: _] -> 
+				ret (AppInfix node.GNode.name fix prio exp1 exp2)
+		)
+	where
+		argsToExpressions :: NodeBinding -> GParseState [AExpression Void]
+		argsToExpressions nb = parseChildMap (gToAExpressionPath bindings o snd) 
 	                	[(fromMaybe formalParam.GFormalParameter.name formalParam.GFormalParameter.title, actualParam) 
 	                	\\ formalParam <- nb.NodeBinding.declaration.GDeclaration.formalParams 
 	                	 & actualParam <- node.GNode.actualParams
-	                	] >>> \exps =
-	                 ret (App [(Var node.GNode.name) : exps]))
-		)
-
-
+	                	]
 
 //-------------------------------------------------------------------------------------------
 //Mapping of parallel subgraphs

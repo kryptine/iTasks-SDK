@@ -73,7 +73,6 @@ itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
                   ? this.stencilsetURL
                   : ORYX.CONFIG.ROOT_PATH + 'stencilsets/' + this.stencilsetURL;
 
-        this.setSize (300,200);
 		this.facade = new ORYX.Editor({
             parentContainer: this,
             stencilset: {

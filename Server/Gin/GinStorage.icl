@@ -119,8 +119,8 @@ newModuleName config
 		>>= \name ->		moduleExists config name
 		>>= \exists ->		if exists
 								(		showInformation ("Module " +++ name +++ " already exists, do you want to overwrite?") [] Void
-									>?*	[ (ActionNo,	Always (return name))
-										, (ActionYes,	Always (newModuleName config))
+									>?*	[ (ActionYes,	Always (return name))
+										, (ActionNo,	Always (newModuleName config))
 										]
 								)
 								( return name )

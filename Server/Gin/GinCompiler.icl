@@ -114,7 +114,7 @@ where
 	build source basename config lineMap iworld
 	# (res, iworld) = accWorldIWorld (readFile (config.iTasksPath </> "Server" </> "Gin" </> "project-template")) iworld
 	| isError res = (CompileGlobalError ("Failed to read project template file: " +++ toString (fromError res)), iworld)
-	# projectFile = replaceSubString "{Basename}" basename (fromOk res)
+	# projectFile = replaceSubString "{UserPath}" config.userPath (replaceSubString "{Basename}" basename (fromOk res))
 	# (res, iworld) = accWorldIWorld (writeFile (filenameFromConfig config tmpDirectory basename "prj") projectFile) iworld
 	| isError res = (CompileGlobalError ("Failed to write project file: " +++ toString (fromError res)), iworld)
 	# projectFile = filenameFromConfig config tmpDirectory basename "prj"
@@ -331,6 +331,7 @@ ginApplicationOptions = { DefApplicationOptions & o = NoConsole}
 searchPaths :: !GinConfig !String -> [String]
 searchPaths config tempPath = 
 	[ tempPath
+	: config.userPath
 	: map ((</>) config.iTasksPath) iTasksPaths
 	++ map ((</>) config.cleanPath) cleanPaths
 	]

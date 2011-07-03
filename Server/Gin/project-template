@@ -38,6 +38,7 @@ Global
 		ExportedNames:	
 	Paths
 		Path:	{Project}
+		Path:	{UserPath}
 	Precompile:	
 	Postlink:	
 MainModule

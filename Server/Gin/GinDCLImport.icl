@@ -131,12 +131,8 @@ mapFunction doc ident prio (Yes st)
 									Prio assoc pri = AppInfix ident.id_name (mapAssoc assoc) pri (Extension (PBBranch 0)) (Extension (PBBranch 1))
 								}
 			)
-	where
-		mapAssoc :: Assoc -> AFix
-		mapAssoc LeftAssoc  = Infixl
-		mapAssoc RightAssoc = Infixr
-		mapAssoc NoAssoc    = Infix
-mapFunction doc ident _ (Yes st)
+
+mapFunction doc ident prio (Yes st)
 	| not doc.FunctionComment.parallel
 	= (Just	( NodeBinding	
 				{ NodeBinding 
@@ -163,12 +159,19 @@ mapFunction doc ident _ (Yes st)
 						Just filename	= GExternalShape filename
 						Nothing 		= GDefaultShape 
 					}				
-				, parameterMap = NBPrefixApp
+				, parameterMap = case prio of
+					NoPrio = NBPrefixApp
+					Prio assoc pri = NBInfixApp (mapAssoc assoc) pri
 				}
 			)
 		)
 
 mapFunction _ _ _ _ = Nothing
+
+mapAssoc :: Assoc -> AFix
+mapAssoc LeftAssoc  = Infixl
+mapAssoc RightAssoc = Infixr
+mapAssoc NoAssoc    = Infix
 
 mapFormalParameter :: !ParamComment AType -> GFormalParameter
 mapFormalParameter doc type = 

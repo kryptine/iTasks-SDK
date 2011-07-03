@@ -183,6 +183,7 @@ printAModule opt aMod =
 	scope (	[ printAModuleHeader opt aMod ]
 			++ printAImports opt aMod.AModule.imports
 			++ printATypes opt aMod.AModule.types
+			++ printATypeDerives opt aMod.AModule.types
 			++ flatten (map (printADefinition opt) aMod.AModule.definitions)
 			++ printAStart opt aMod
 		  )
@@ -222,6 +223,14 @@ printAImports opt imports
 printATypes :: PrintOption [GTypeDefinition] -> [a] | Printer a
 printATypes opt _ | opt == POICL = []
 printATypes opt types = map (printGTypeDefinition) types
+
+printATypeDerives :: PrintOption [GTypeDefinition] -> [a] | Printer a
+printATypeDerives opt types = flatten (map (printATypeDerive opt) types)
+
+printATypeDerive :: PrintOption GTypeDefinition -> [a] | Printer a
+printATypeDerive opt {name, rhs = GSynonymTypeRhs _} = []
+printATypeDerive opt {name, rhs = GAbstractTypeRhs} = []
+printATypeDerive opt {GTypeDefinition | name} = [text "derive class iTask" <+> text name]
 
 printADefinition :: PrintOption ADefinition -> [a] | Printer a
 printADefinition opt def =
@@ -297,7 +306,7 @@ printAStart _ _ = []
 
 
 printAExpression :: PrintOption Bool (AExpression Void) -> a | Printer a
-printAExpression opt withParens (Unparsed s) = parens (string (replaceSubString "\n" " " s))
+printAExpression opt withParens (Unparsed s) = parens (string (replaceSubString "\n" " " (replaceSubString "\r" "" s)))
 printAExpression opt withParens (Lit s) = text s
 printAExpression opt withParens (Var v) = text v
 printAExpression opt withParens (App exps) = addParens withParens (fillSep (map (printAExpression opt True) exps))
