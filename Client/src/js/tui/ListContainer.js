@@ -3,6 +3,8 @@ Ext.ns('itasks.tui');
 itasks.tui.ListContainer = itasks.tui.extendContainer(Ext.Container,{
 	defaultWidth: ['FillParent',1,'ContentSize'],
 	defaultHeight: ['WrapContent',0],
+	sumW: false,
+	sumH: true,
 	
 	initComponent: function(){
 		itasks.tui.container.initComponent.apply(this,arguments);
@@ -107,6 +109,53 @@ itasks.tui.ListContainer = itasks.tui.extendContainer(Ext.Container,{
 		});	
 		
 		this.sbExpanded = true;
+	},
+	
+	doTUILayout: function(fillW,fillH) {
+		var myS = itasks.tui.base.doTUILayout.apply(this,arguments);
+		
+		var totalFillW	= myS.myW - this.getFrameWidthCached()	- (this.title ? 2 : 0);
+		var totalFillH	= myS.myH - this.getFrameHeightCached()	- (this.title ? 1 : 0);
+		var sizes		= this.getChildSizes();
+		
+		do {
+			var changedFillParent = false;
+			var sumWeights	= 0;
+			
+			sizes.each(function(s) {
+				if (Ext.isDefined(s.tuiSize.height)) {
+					var h = s.tuiSize.height;
+					if (h[0] == 'Fixed') {
+						totalFillH -= h[1];
+						delete s.tuiSize.height;
+					} else {
+						sumWeights += h[1];
+					}
+				}
+			});
+			sizes.each(function(s) {
+				if (Ext.isDefined(s.tuiSize.height)) {
+					var h = s.tuiSize.height;
+					var fillH = h[1] / sumWeights * totalFillH;
+					
+					if (fillH < s.minSize.height) {
+						s.tuiSize.height = ['Fixed',s.minSize.height];
+						delete s.fillH;
+						changedFillParent = true;
+						return false; // stop iteration
+					}
+					
+					s.fillH = fillH;
+				}
+			});
+		} while (changedFillParent);
+		
+		sizes.each(function(s) {
+			s.item.doTUILayout(
+				totalFillW,
+				s.fillH
+			);
+		});
 	}
 });
 
@@ -168,9 +217,10 @@ itasks.tui.list.ListItemControl = Ext.extend(Ext.Container,{
 	
 	doTUILayout: function(fillW,fillH) {
 		var minSize = this.getMinTUISize();
+
 		var fillW = Ext.isDefined(fillW) ? fillW : minSize.width;
 		var fillH = Ext.isDefined(fillH) ? fillH : minSize.height;
-	
+		
 		this.suspendEvents();
 		this.setSize(fillW,fillH);
 		this.resumeEvents();
