@@ -74,7 +74,7 @@ getInitialState = getAndSetupConfig >>= \config -> return
 	| config		= config
 	, name			= Nothing
 	, gMod			= updateDiagramExtensions newModule
-	, checkSyntax	= False
+	, checkSyntax	= True
 	, changed		= False
 	, dirty			= False
 	, errors		= []
@@ -108,12 +108,16 @@ ginEditor` =
 					[UpdateView (GetShared diagramView, PutbackShared diagramUpdate)] 
 					(taskListState s) Void) >>+ noActions`
 				))
-		, (HiddenTask, \s -> forever (chooseAction (actions s) >>= id >>| return Continue))
+		, (HiddenTask, \s -> (chooseAction (actions s) >>= id) <! isStop)
 		, (HiddenTask, activator)		
 		]
 where
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions
+	
+	isStop :: ParallelControl -> Bool
+	isStop Stop = True
+	isStop _    = False
 
 ginParallelLayout :: ParallelLayouter
 ginParallelLayout = \par=:{TUIParallel|title,description,items}-> 
