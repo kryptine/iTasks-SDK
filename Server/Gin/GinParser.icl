@@ -189,10 +189,8 @@ gToAExpression bindings (GListComprehensionExpression glc) =
 gToAExpression bindings (GCleanExpression text) | size text == 0 = parseError "Clean expression is empty"
 gToAExpression bindings (GCleanExpression text)                  = ret (Unparsed text)
 
-gToAExpressionPath :: !Bindings !GExpression -> GParseState (AExpression Void)
-gToAExpressionPath bindings exp = gToAExpression bindings exp >>> \exp` =
-    getCurrentPath >>> \path =
-    ret (PathContext path exp`)
+putPathContext :: (AExpression Void) -> GParseState (AExpression Void)
+putPathContext exp = getCurrentPath >>> \path -> ret (PathContext path exp)
 
 gToAMaybeExpression :: !Bindings !(Maybe GExpression) -> GParseState (Maybe (AExpression Void))
 gToAMaybeExpression bindings (Just exp) = gToAExpression bindings exp >>> \exp` = ret (Just exp`)
@@ -295,20 +293,21 @@ treeGraphToAExpression bindings tg=:(TreeGraph graph source sink)
 nodeToAExpression :: !Bindings !GNode -> GParseState (AExpression Void)
 nodeToAExpression bindings node = 
 	parseChild node
-	    ( getNodeBinding node.GNode.name bindings >>> \nb = 
-	    case nb.NodeBinding.parameterMap of 
-	        NBBuiltIn = parseError "Node not allowed here"
-	        NBPrefixApp = 
-	            if (isEmpty node.GNode.actualParams)
-	                (ret (Var node.GNode.name))
-	                (argsToExpressions nb >>> \exps = ret (App [(Var node.GNode.name) : exps]))
-			NBInfixApp fix prio = 
-				argsToExpressions nb >>> \[exp1, exp2: _] -> 
-				ret (AppInfix node.GNode.name fix prio exp1 exp2)
+		(	( getNodeBinding node.GNode.name bindings >>> \nb = 
+		      case nb.NodeBinding.parameterMap of 
+		        NBBuiltIn = parseError "Node not allowed here"
+		        NBPrefixApp = 
+		            if (isEmpty node.GNode.actualParams)
+		                (ret (Var node.GNode.name))
+		                (argsToExpressions nb >>> \exps = ret (App [(Var node.GNode.name) : exps]))
+				NBInfixApp fix prio = 
+					argsToExpressions nb >>> \[exp1, exp2: _] -> 
+					ret (AppInfix node.GNode.name fix prio exp1 exp2)
+			) >>> putPathContext
 		)
 	where
 		argsToExpressions :: NodeBinding -> GParseState [AExpression Void]
-		argsToExpressions nb = parseChildMap (gToAExpressionPath bindings o snd) 
+		argsToExpressions nb = parseChildMap (\(_,param) -> gToAExpression bindings param >>> putPathContext) 
 	                	[(fromMaybe formalParam.GFormalParameter.name formalParam.GFormalParameter.title, actualParam) 
 	                	\\ formalParam <- nb.NodeBinding.declaration.GDeclaration.formalParams 
 	                	 & actualParam <- node.GNode.actualParams
@@ -331,9 +330,8 @@ parallelToAExpression bindings (split, merge, branches) =
     parseChild split (
         getParallelBinding split.GNode.name merge.GNode.name bindings >>> \pb = 
         checkNrBranches pb (length branches) >>> \_ =
-        setParallelParams bindings (split,merge) branches pb.ParallelBinding.parameterMap >>> \exp = 
-	    getCurrentPath >>> \path =
-	    ret (PathContext path exp)
+        setParallelParams bindings (split,merge) branches pb.ParallelBinding.parameterMap >>>
+        putPathContext
     )
 
 checkNrBranches :: !ParallelBinding !Int -> GParseState Void

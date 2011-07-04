@@ -4,6 +4,7 @@ import Maybe
 
 from GinParser import ::GPath, ::GPathNode
 from GinPrinter import ::LineMap, ::Map
+from GinAbstractSyntax import ::FunctionMap, ::AIdentifier
 
 :: CompilerErrorContext :== (CompilerError, ErrorContext)
 
@@ -31,4 +32,4 @@ parseCleanCompilerLog :: String -> [CompilerErrorContext]
 
 :: PathError :== (GPath, String)
 
-findPathErrors :: [CompilerErrorContext] LineMap -> [PathError]
+findPathErrors :: [CompilerErrorContext] FunctionMap LineMap -> [PathError]

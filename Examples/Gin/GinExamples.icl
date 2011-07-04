@@ -13,9 +13,9 @@ where
 	workflows = flatten [ ginExamples ]
 
 ginExamples :: [Workflow]
-ginExamples = [ workflow "Examples/Graphical Editors/Graphical Editor" "Create or edit workflows in Gin notation" ginEditor
+ginExamples = [ workflow "Examples/Graphical Editors/GiN Editor" "Create or edit workflows in GiN notation" ginEditor
 			  , simpleEditorWorkflow "Petri net" petriNetORYXEditor
-			  , simpleEditorWorkflow "BPMN" bpmnORYXEditor
+			  //, simpleEditorWorkflow "BPMN" bpmnORYXEditor
 			  //, simpleEditorWorkflow "Gin" (defaultDetached (ginORYXEditor ["InteractionTasks"] newGinORYXDiagram))
               , workflow "Examples/Graphical Editors/Shared Petri net editors" "Two shared Petri net editors" petrinetShareExample
 			  ]

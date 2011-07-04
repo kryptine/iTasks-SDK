@@ -7,12 +7,12 @@ import StdList
 import StdString
 
 import Void
+import Map
+import Text
 
 from GinParser import ::GPath(..)
 import GinTypes
 import GinPrinter
-
-import Text
 
 from iTaskClass import class iTask, gVisualize, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
 
@@ -27,18 +27,18 @@ where
 
 expandModule :: AModule -> AModule
 expandModule aMod 
-= { AModule | aMod & definitions = map expandDefinition aMod.AModule.definitions }
+= { AModule | aMod & definitions = flatten (map expandDefinition aMod.AModule.definitions) }
 
-expandDefinition :: ADefinition -> ADefinition
-expandDefinition aDef =: { ADefinition | body }
+expandDefinition :: ADefinition -> [ADefinition]
+expandDefinition aDef =: { ADefinition | formalParams, body }
+# scope = [p.GFormalParameter.name \\ p <- formalParams]
 #(accLocals, body) = case body of
-                         PathContext path exp = let (accLocals, body) = expandExpression [] [] exp
+                         PathContext path exp = let (accLocals, body) = expandExpression scope [] exp
                                                 in (accLocals, PathContext path body)
-                         otherwise            = expandExpression [] [] body
-= { ADefinition | aDef 
-                & body = body 
-                , locals = map expandDefinition aDef.ADefinition.locals ++ reverse accLocals
-                }
+                         otherwise            = expandExpression scope [] body
+= [{ ADefinition | aDef & body = body, locals = flatten (map expandDefinition aDef.ADefinition.locals) }
+   : reverse accLocals
+  ]
 
 expandExpression :: Scope Locals (AExpression Void)  -> (Locals, AExpression Void)
 expandExpression scope accLocals (Unparsed s) = (accLocals, Unparsed s)
@@ -144,7 +144,8 @@ makeLocal scope accLocals exp
        								, type = GUndefinedTypeExpression
        								, defaultValue = Nothing
        								, visible = True
-       								} \\ x <- scope 
+       								} 
+       								\\ x <- scope 
        							]
        , returnType = GUndefinedTypeExpression
        , body = exp
@@ -175,8 +176,18 @@ instance == PrintOption where
 prettyPrintAModule :: PrintOption AModule -> String
 prettyPrintAModule opt aMod = prettyPrint (printAModule opt aMod)
 
-syntaxCheckPrintAModule :: AModule -> (String, LineMap)
-syntaxCheckPrintAModule aMod = positionPrint (printAModule POSyntaxCheck (expandModule aMod))
+syntaxCheckPrintAModule :: AModule -> (String, FunctionMap, LineMap)
+syntaxCheckPrintAModule aMod 
+# aMod = expandModule aMod
+# (source, lineMap) = positionPrint (printAModule POSyntaxCheck aMod)
+= (source, makeFunctionMap aMod, lineMap)
+where
+	makeFunctionMap :: AModule -> FunctionMap
+	makeFunctionMap {definitions} = fromList (flatten (map mkF definitions))
+	where
+		mkF :: ADefinition -> [(AIdentifier, GPath)]
+		mkF { name, body = PathContext path _ , locals} = [(name, path)] ++ flatten (map mkF locals)
+		mkF { locals } = flatten (map mkF locals)
 
 printAModule :: PrintOption AModule -> a | Printer a
 printAModule opt aMod =	
@@ -279,7 +290,7 @@ printADefinitionBody opt { ADefinition | name, formalParams, body, locals } =
 			<+> if (isEmpty formalParams) empty 
 			     (fillSep (map (\fp = text fp.GFormalParameter.name) formalParams) <-> space)
 			<-> char '='
-			<$> printAExpression opt False body
+			<$?> printAExpression opt False body
 		  )
 	]
 	++ if (isEmpty locals) 

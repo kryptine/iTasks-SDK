@@ -80,7 +80,9 @@ expandModule :: AModule -> AModule
 
 instance == PrintOption
 
+:: FunctionMap :== Map AIdentifier GPath
+
 prettyPrintAModule :: PrintOption AModule -> String
 
-syntaxCheckPrintAModule :: AModule -> (String, LineMap)
+syntaxCheckPrintAModule :: AModule -> (String, FunctionMap, LineMap)
 

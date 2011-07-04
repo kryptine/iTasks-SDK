@@ -25,6 +25,7 @@ where
 	(<+>) a b = a 'PPrint'. <+> b
 	(</>) a b = a 'PPrint'. </> b
 	(<$>) a b = a 'PPrint'. <$> b
+	(<$?>) a b = a 'PPrint'. <$> b
 	empty = 'PPrint'.empty
 	space = 'PPrint'.space
 	comma = 'PPrint'.comma
@@ -72,6 +73,7 @@ where
 	(<+>) a b = Cat a (Cat space b)
 	(</>) a b = a <+> b
 	(<$>) a b = Cat a (Line b)
+	(<$?>) a b = a <+> b
 	empty = Empty
 	space = Text " " 
 	comma = Text ","

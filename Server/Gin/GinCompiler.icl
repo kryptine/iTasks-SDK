@@ -67,7 +67,7 @@ derive class iTask CompileResult
 derive JSONEncode CompilingInfo, CompilerProcess
 derive JSONDecode CompilingInfo, CompilerProcess
 
-runCompiler :: !GModule !(AModule -> (String, LineMap)) (String String GinConfig LineMap *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
+runCompiler :: !GModule !(AModule -> (String, FunctionMap, LineMap)) (String String GinConfig FunctionMap LineMap *IWorld -> (CompileResult a, *IWorld)) *IWorld -> (CompileResult a, *IWorld)
 runCompiler gMod printfun compiler iworld=:{tmpDirectory}
 //1. Load configuration
 # (config,iworld) = accWorldIWorld ginLoadConfig iworld 
@@ -80,13 +80,13 @@ runCompiler gMod printfun compiler iworld=:{tmpDirectory}
 # aMod = expandModule (getParseSuccess result)
 //3. (Pretty-)print module
 # (basename,iworld) = getUniqueBasename iworld
-# (source,lineMap) = printfun { AModule | aMod & name = basename }
+# (source,functionMap,lineMap) = printfun { AModule | aMod & name = basename }
 //4. Write source code to temp icl file
 # fullname = (filenameFromConfig config tmpDirectory basename "icl")
 # (result, iworld) = accWorldIWorld (writeFile fullname source) iworld
 | isError result = (CompileGlobalError ("Write icl file failed: " +++ toString (fromError result)), iworld)
 //5. Call compiler function
-# (result, iworld) = compiler source basename config lineMap iworld
+# (result, iworld) = compiler source basename config functionMap lineMap iworld
 //6. Delete temp icl file
 # (deleted,iworld) = accWorldIWorld (deleteFile fullname) iworld
 | isError deleted = (CompileGlobalError ("Failed to delete file " +++ fullname +++ ": " +++ snd (fromError deleted)), iworld)
@@ -107,11 +107,11 @@ where
 batchBuild :: !GModule *IWorld -> (CompileResult String, *IWorld)
 batchBuild gMod iworld=:{tmpDirectory} = runCompiler gMod printfun build iworld
 where
-	printfun :: AModule -> (String, LineMap)
-	printfun aMod = (prettyPrintAModule POWriteDynamics aMod, newMap)
+	printfun :: AModule -> (String, FunctionMap, LineMap)
+	printfun aMod = (prettyPrintAModule POWriteDynamics aMod, newMap, newMap)
 
-	build :: !String !String !GinConfig LineMap *IWorld -> (CompileResult String, *IWorld)
-	build source basename config lineMap iworld
+	build :: !String !String !GinConfig FunctionMap LineMap *IWorld -> (CompileResult String, *IWorld)
+	build source basename config functionMap lineMap iworld
 	# (res, iworld) = accWorldIWorld (readFile (config.iTasksPath </> "Server" </> "Gin" </> "project-template")) iworld
 	| isError res = (CompileGlobalError ("Failed to read project template file: " +++ toString (fromError res)), iworld)
 	# projectFile = replaceSubString "{UserPath}" config.userPath (replaceSubString "{Basename}" basename (fromOk res))
@@ -140,8 +140,8 @@ syntaxCheck gMod iworld = runCompiler gMod syntaxCheckPrintAModule (compile Synt
 // Compiler interface
 // --------------------------------------------------------------------------------
 
-compile :: CompileOrCheckSyntax !String !String !GinConfig LineMap *IWorld -> (CompileResult Void, *IWorld)
-compile compileOrCheckSyntax source basename config lineMap iworld=:{tmpDirectory}
+compile :: CompileOrCheckSyntax !String !String !GinConfig FunctionMap LineMap *IWorld -> (CompileResult Void, *IWorld)
+compile compileOrCheckSyntax source basename config functionMap lineMap iworld=:{tmpDirectory}
 # (mCompilingInfo, iworld) = loadCompilingInfo iworld
 # compilingInfo = case mCompilingInfo of
 	Just c = c
@@ -182,9 +182,9 @@ where
 		= ((CompileGlobalError ("Calling Clean compiler failed: " +++ log), compilingInfo), env.LogEnv.world)
 	| compilerMsg == CompilerOK
 		= ((CompileSuccess Void, compilingInfo), env.LogEnv.world)
-	# errors = (findPathErrors (parseCleanCompilerLog log) lineMap)
+	# errors = (findPathErrors (parseCleanCompilerLog log) functionMap lineMap)
 	| isEmpty errors = ((CompileGlobalError log, compilingInfo), env.LogEnv.world)
-	= ((CompilePathError (findPathErrors (parseCleanCompilerLog log) lineMap), compilingInfo), env.LogEnv.world)
+	= ((CompilePathError errors, compilingInfo), env.LogEnv.world)
 
 loadCompilingInfo :: *IWorld -> (Maybe CompilingInfo, *IWorld)
 loadCompilingInfo iworld = loadValue compilerId iworld

@@ -9,6 +9,7 @@ import Map
 
 from GinParser import ::GPath(..), ::GPathNode(..), ::GResourceId(..)
 from GinPrinter import ::LineMap, ::Map
+from GinAbstractSyntax import ::FunctionMap, ::AIdentifier
 
 parseCleanIDELog :: String -> [CompilerErrorContext]
 parseCleanIDELog s = (snd o hd) (begin1 parser (fromString s))
@@ -48,7 +49,12 @@ parseUndefinedError :: CParser Char CompilerErrorContext t
 parseUndefinedError = parseSingleLineError "Error" " undefined" UndefinedError
 
 parseOverloadingError :: CParser Char CompilerErrorContext t
-parseOverloadingError = parseSingleLineError "Overloading error" "" OverloadingError
+parseOverloadingError = 
+	token ['Overloading error '] &> 
+    parseErrorContext <&> \context = 
+    token [': internal overloading of "'] &> parseStringUntilCut (symbol '"') <&> \function =
+    	  parseStringUntilCut newlineOrEof &>
+    	  yield ((OverloadingError function), context)
 
 parseTypeError :: CParser Char CompilerErrorContext t
 parseTypeError = 
@@ -94,15 +100,18 @@ parseErrorContext =
 printError :: CompilerError -> String
 printError (ParseError err) = "Parse error: " +++ err
 printError (UndefinedError v) = "Undefined variable: " +++ v 
-printError (OverloadingError err) = "Overloading error: " +++ err
+printError (OverloadingError f) = "Overloading error"
 printError (TypeError te) = "Type error:\nExpected type:" +++ te.expectedType +++ "\nActual type:" +++ te.inferredType
 printError (OtherError err) = err
 
-findPathErrors :: [CompilerErrorContext] LineMap -> [PathError]
-findPathErrors errorContexts lineMap = catMaybes (map (findPathError lineMap) errorContexts)
+findPathErrors :: [CompilerErrorContext] FunctionMap LineMap -> [PathError]
+findPathErrors errorContexts functionMap lineMap = catMaybes (map findPathError errorContexts)
 where
-	findPathError :: LineMap CompilerErrorContext -> Maybe PathError
-	findPathError lineMap (error,context) = case get context.line lineMap of
+	findPathError :: CompilerErrorContext -> Maybe PathError
+	findPathError (error=:OverloadingError function,_) = case get function functionMap of
+		Just path = Just (path, printError error)
+		Nothing   = Nothing
+	findPathError (error,context) = case get context.line lineMap of
 		Just path = Just (path, printError error)
 		Nothing   = Nothing
 
