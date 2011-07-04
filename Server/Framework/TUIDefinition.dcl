@@ -63,11 +63,11 @@ from Task			import :: TaskAction
 					| TUIDocumentControl	!Document
 					| TUIButtonControl		!TUIButtonControl
 					| TUIChoiceControl		!TUIChoiceControl
+					| TUIComboControl		![String]
 					| TUIGridControl		!TUIGridControl
 					| TUITreeControl		![TUITree]
 					| TUIORYXControl		!String // stencilset URL
 					| TUIHtmlDisplay		!(Maybe Tooltip)
-					| TUIConstructorControl	!TUIConstructorControl
 					| TUICustomControl		!String // xtype
 
 :: TUIControl =
@@ -90,10 +90,6 @@ from Task			import :: TaskAction
 	, leaf		:: !Bool
 	, index		:: !Maybe Int
 	}
-:: TUIConstructorControl =
-	{ consValues	:: ![String]
-	, items			:: ![TUIDef]
-	}
 :: TUILayoutContainer =
 	{ items				:: ![TUIDef]
 	, orientation		:: !TUIOrientation
@@ -103,6 +99,7 @@ from Task			import :: TaskAction
 	, frame				:: !Bool
 	, iconCls			:: !Maybe PanelIcon
 	, padding			:: !Maybe Int
+	, baseCls			:: !Maybe String
 	}
 :: TUITabContainer =
 	{ items				:: ![TUIDef]

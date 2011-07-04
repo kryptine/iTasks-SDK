@@ -6,7 +6,7 @@ import GenUpdate, GenVerify
 from Map import :: Map
 
 //Generic visualization function
-generic gVisualize a	:: (Maybe a) *VSt -> ([Visualization], *VSt)
+generic gVisualize a	:: !(Maybe a) !*VSt -> (![Visualization], !*VSt)
 
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD

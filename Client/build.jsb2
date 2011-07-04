@@ -14,7 +14,6 @@
 		,{"text":"Button.js","path":"src/js/tui/"}
 		,{"text":"BoolControl.js","path":"src/js/tui/"}
 		,{"text":"CharControl.js","path":"src/js/tui/"}
-		,{"text":"ConstructorControl.js","path":"src/js/tui/"}
 		,{"text":"CurrencyControl.js","path":"src/js/tui/"}
 		,{"text":"DateControl.js","path":"src/js/tui/"}
 		,{"text":"DocumentControl.js","path":"src/js/tui/"}
@@ -31,6 +30,7 @@
 		,{"text":"UsernameControl.js","path":"src/js/tui/"}
 		,{"text":"FormButtonControl.js","path":"src/js/tui/"}
 		,{"text":"ChoiceControl.js","path":"src/js/tui/"}
+		,{"text":"ComboControl.js","path":"src/js/tui/"}
 		,{"text":"OryxControl.js","path":"src/js/tui/"}
 		,{"text":"GridControl.js","path":"src/js/tui/"}
 		,{"text":"TreeControl.js","path":"src/js/tui/"}

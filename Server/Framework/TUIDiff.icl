@@ -5,8 +5,6 @@ import Util, GenUpdate, TUIDefinition
 
 derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins, TUIGridControl
 
-gEq{|TUIConstructorControl|} _ _ = False
-
 diffTUIDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
 diffTUIDefinitions old new = diffEditorDefinitions` startDataPath old new
 
@@ -26,13 +24,6 @@ diffEditorDefinitions` path oldTui newTui
 where
 	diffEditorDefinitions`` :: !TUIDefContent !TUIDefContent -> Maybe [TUIUpdate]
 	diffEditorDefinitions`` old new = case (old,new) of
-		(TUIControl (TUIConstructorControl ccOld) oc, TUIControl (TUIConstructorControl ccNew) nc)
-			//Same constructor: diff the children
-			| oc.value === nc.value && oc.TUIControl.taskId == nc.TUIControl.taskId && oc.TUIControl.name == nc.TUIControl.name
-				= Just (flatten	[ diffEditorDefinitions` (childDataPath path i) co cn
-								\\ co <- ccOld.TUIConstructorControl.items
-								&  cn <- ccNew.TUIConstructorControl.items
-								& i <- [0..] ])
 		// Documents are replaced if their value has changed
 		(TUIControl (TUIDocumentControl odoc) oc, TUIControl (TUIDocumentControl ndoc) nc)
 			| odoc == ndoc && oc.TUIControl.taskId == nc.TUIControl.taskId && oc.TUIControl.name == nc.TUIControl.name

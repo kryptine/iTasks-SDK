@@ -30,7 +30,7 @@ visualizeAsTextLabel :: !a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
 
 //Generic visualizer
-generic gVisualize a :: (Maybe a) *VSt -> ([Visualization], *VSt)
+generic gVisualize a :: !(Maybe a) !*VSt -> (![Visualization], !*VSt)
 
 gVisualize{|UNIT|} _ vst
 	= ([],vst)
@@ -66,20 +66,29 @@ gVisualize{|OBJECT of d|} fx val vst=:{vizType,currentPath,selectedConsIndex = o
 		VEditorDefinition
 			//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 			| d.gtd_num_conses > 1 && not renderAsStatic
-				# (err,hnt)	= verifyElementStr cmv
 				# (items, vst=:{selectedConsIndex}) = fx x vst
-				= ([TUIFragment (sizedControl controlSize (TUIConstructorControl
-						{TUIConstructorControl
-						| consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
-						, items = if (isTouched cmv) (coerceToTUIDefs items) []
-						})
-						{ TUIControl
-						| name = dp2s currentPath
-						, taskId = taskId
-						, value = toJSON (if (isTouched cmv) selectedConsIndex -1)
-						, eventValue = eventValue currentPath editEvent
-						}
-					)]
+				# content = if (isTouched cmv) (coerceToTUIDefs items) []
+				= ([TUIFragment	{ content = TUILayoutContainer (defaultLayoutContainer
+									[	addMsg (verifyElementStr cmv) (sizedControl controlSize (TUIComboControl [gdc.gcd_name \\ gdc <- d.gtd_conses])
+												{ TUIControl
+												| name			= dp2s currentPath
+												, taskId		= taskId
+												, value			= toJSON (if (isTouched cmv) (Just selectedConsIndex) Nothing)
+												, eventValue	= eventValue currentPath editEvent
+												})
+									:	if (isEmpty content)
+										[]
+										[{ content	= TUILayoutContainer ({defaultLayoutContainer content & frame = True, baseCls = Just "x-constructor-panel"})
+										,  width	= FillParent 1 ContentSize
+										,  height	= WrapContent 0
+										,  margins	= Just {sameMargins 0 & left = 12}
+										}]
+									])
+								, width		= FillParent 1 ContentSize
+								, height	= WrapContent 0
+								, margins	= Nothing
+								}
+					]
 				  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 			//ADT with one constructor: put content into container, if empty show cons name
 			| otherwise
@@ -534,24 +543,7 @@ where
 													, eventValue = eventValue currentPath editEvent
 													, taskId = taskId
 													}
-		# viz = case verRes of
-			NoMsg			= [viz]
-			HintMsg msg		= addMsg "x-hint-icon" msg viz
-			ErrorMsg msg	= addMsg "x-invalid-icon" msg viz
-		= (viz,vst)
-	
-	addMsg cls msg viz= [{content = TUILayoutContainer {defaultLayoutContainer [viz,mkIcon cls msg] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}]	
-	mkIcon cls msg = { content	= TUIControl (TUIHtmlDisplay (Just msg))
-									{ TUIControl
-									| name			= ""
-									, value			= JSONString (toString (DivTag [ClassAttr cls] []))
-									, eventValue	= Nothing
-									, taskId		= ""
-									}
-					, width		= WrapContent 0
-					, height	= WrapContent 0
-					, margins	= Nothing
-					}
+		= ([addMsg verRes viz],vst)
 								
 	staticF v touched vst=:{vizType}
 		# v = checkMask touched v
@@ -633,6 +625,25 @@ eventValue :: !DataPath !(Maybe (!DataPath,!JSONNode)) -> Maybe JSONNode
 eventValue currentPath mbEvent = case mbEvent of
 	Just (dp,val) | dp == currentPath	= Just val
 	_									= Nothing
+
+addMsg :: !VerifyResult !TUIDef -> TUIDef
+addMsg verRes viz = case verRes of
+		NoMsg			= viz
+		HintMsg msg		= add "x-hint-icon" msg viz
+		ErrorMsg msg	= add "x-invalid-icon" msg viz
+where	
+	add cls msg viz= {content = TUILayoutContainer {defaultLayoutContainer [viz,mkIcon cls msg] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}
+	mkIcon cls msg = { content	= TUIControl (TUIHtmlDisplay (Just msg))
+									{ TUIControl
+									| name			= ""
+									, value			= JSONString (toString (DivTag [ClassAttr cls] []))
+									, eventValue	= Nothing
+									, taskId		= ""
+									}
+					, width		= WrapContent 0
+					, height	= WrapContent 0
+					, margins	= Nothing
+					}
 
 //*********************************************************************************************************************
 

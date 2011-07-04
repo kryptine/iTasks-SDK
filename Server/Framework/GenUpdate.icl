@@ -57,9 +57,8 @@ gUpdate{|OBJECT of d|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,upd
 		= (OBJECT x, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
 where
 	path = case update of
-		JSONString cname = case [cons \\ cons <- d.gtd_conses | cons.gcd_name == cname] of
-			[cons]	= getConsPath cons
-			_		= []
+		JSONInt consIdx | consIdx < length d.gtd_conses
+			= getConsPath (d.gtd_conses !! consIdx)
 		_			= []
 		
 gUpdate{|CONS|}		fx UDCreate				ust = appFst CONS	(fx UDCreate ust)

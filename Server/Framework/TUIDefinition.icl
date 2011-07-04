@@ -27,6 +27,7 @@ defaultLayoutContainer items =	{ items			= items
 								, hGravity		= HGLeft
 								, vGravity		= VGTop
 								, padding		= Nothing
+								, baseCls		= Nothing
 								}
 
 sameMargins :: !TUIFixedSize -> TUIMargins

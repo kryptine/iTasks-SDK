@@ -10,7 +10,6 @@ encodeTUIUpdates u = toJSON u
 
 derive JSONEncode TUIUpdate
 derive JSONEncode TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
-derive JSONEncode TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONEncode TUILayoutContainer, TUITabContainer, TUITab, TUIMainContainer, TUIListContainer
 derive JSONEncode TUIGridControl, TUITree, TUIControl
@@ -42,6 +41,7 @@ JSONEncode{|TUIControlType|} TUITimeControl				= justXType "itasks.tui.Time"
 JSONEncode{|TUIControlType|} TUIUserControl				= justXType "itasks.tui.Username"
 JSONEncode{|TUIControlType|} TUIPasswordControl			= justXType "itasks.tui.Password"
 JSONEncode{|TUIControlType|} (TUIChoiceControl r)		= addXType "itasks.tui.Choice" (JSONEncode{|*|} r)
+JSONEncode{|TUIControlType|} (TUIComboControl options)	= addXType "itasks.tui.Combo" [JSONObject [("options",toJSON options)]]
 JSONEncode{|TUIControlType|} TUICurrencyControl			= justXType "itasks.tui.Currency"
 JSONEncode{|TUIControlType|} (TUIHtmlDisplay tooltip)	= addXType "itasks.tui.Html" [JSONObject [("tooltip",toJSON tooltip)]]
 JSONEncode{|TUIControlType|} (TUIButtonControl r)		= addXType "itasks.tui.FormButton" (JSONEncode{|*|} r)
@@ -49,7 +49,6 @@ JSONEncode{|TUIControlType|} (TUIDocumentControl doc)	= addXType "itasks.tui.Doc
 JSONEncode{|TUIControlType|} (TUIORYXControl url)		= addXType "itasks.tui.Oryx" [JSONObject [("stencilsetURL",JSONString url)]]
 JSONEncode{|TUIControlType|} (TUIGridControl r)			= addXType "itasks.tui.Grid" (JSONEncode{|*|} r)
 JSONEncode{|TUIControlType|} (TUITreeControl tree)		= addXType "itasks.tui.Tree" [JSONObject [("tuiTree",toJSON tree)]]
-JSONEncode{|TUIControlType|} (TUIConstructorControl r)	= addXType "itasks.tui.Constructor" (JSONEncode{|*|} r)
 JSONEncode{|TUIControlType|} (TUICustomControl xtype)	= justXType xtype
 
 addXType :: !String ![JSONNode] -> [JSONNode]
