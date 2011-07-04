@@ -35,7 +35,7 @@ sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|},
 /**
 * Reads shared data.
 *
-* @param ReadWriteShared: A shared reference
+* @param Shared: A shared reference
 * @return The value read
 * @throws SharedException
 *
@@ -47,7 +47,7 @@ get :: !(ReadWriteShared a w) -> Task a | iTask a
 /**
 * Writes shared data.
 *
-* @param ReadWriteShared: A shared reference
+* @param Shared: A shared reference
 * @param Value: A value to write
 * @return The value written
 * @throws SharedException
@@ -61,7 +61,7 @@ set :: !(ReadWriteShared r a) !a -> Task a | iTask a
 * Updates shared data in one atomic operation.
 *
 * @param Update function: A function modifying the shared value
-* @param ReadWriteShared: A shared reference
+* @param Shared: A shared reference
 * @return The value written
 * @throws SharedException
 *
