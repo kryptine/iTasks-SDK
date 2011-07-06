@@ -56,14 +56,14 @@ allowedWorkflows = mapSharedRead filterAllowed (workflows |+| (currentUser |+| c
 where
 	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
 	
-workflowTree :: ReadOnlyShared [TreeNode WorkflowDescription]
+workflowTree :: ReadOnlyShared (Tree WorkflowDescription)
 workflowTree = mapSharedRead mkFlowTree workflows
 
-allowedWorkflowTree :: ReadOnlyShared [TreeNode WorkflowDescription]
+allowedWorkflowTree :: ReadOnlyShared (Tree WorkflowDescription)
 allowedWorkflowTree = mapSharedRead mkFlowTree allowedWorkflows
 
-mkFlowTree :: ![WorkflowDescription] -> [TreeNode WorkflowDescription]
-mkFlowTree workflows = seq (map insertWorkflow workflows) []
+mkFlowTree :: ![WorkflowDescription] -> Tree WorkflowDescription
+mkFlowTree workflows = Tree (seq (map insertWorkflow workflows) [])
 where
 	insertWorkflow descr=:{WorkflowDescription|path} nodeList = insertWorkflow` (split "/" path) nodeList
 	where

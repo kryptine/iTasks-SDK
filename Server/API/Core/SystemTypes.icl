@@ -7,13 +7,13 @@ from Time 		import :: Timestamp(..)
 from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONEncode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode	Choice, MultipleChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONDecode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
@@ -34,48 +34,111 @@ gEq{|(->)|} _ _ _ _			= False	// functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 //gEq{|Dynamic|} (x :: a | gEq{|*|} a) (y :: a | gEq{|*|} a) = x === y
 
-choice :: ![a] -> Choice a
-choice l = Choice l -1
+mkRadioChoice :: ![(!v,!o)] !(Maybe o) -> RadioChoice v o | gEq{|*|} o
+mkRadioChoice options mbSel = mkChoice options mbSel
 
-choiceSel :: ![a] !a -> Choice a | gEq{|*|} a
-choiceSel l s = case [i \\ e <- l & i <- [0..] | e === s] of
-	[idx:_]	= Choice l idx
-	_		= Choice l -1
+instance Choice RadioChoice
+where
+	mkChoice options mbSel										= mkChoice` (RadioChoice (toOptionList options)) mbSel
+	selectOption newOption (RadioChoice options _)				= RadioChoice options (selectOption` options newOption)
+	getSelection (RadioChoice options mbSel)					= getSelection` options mbSel
+	getMbSelection (RadioChoice options mbSel)					= getMbSelection` options mbSel snd
+	getMbSelectionView (RadioChoice options mbSel)				= getMbSelection` options mbSel fst
+	setOptions newOptions (RadioChoice oldOptions mbSel)		= RadioChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
 
-getChoice :: !(Choice a) -> a
-getChoice (Choice l i)
-	| i >= 0 &&  i < (length l)	= l !! i
-	| otherwise					= l !! 0
+mkComboChoice :: ![(!v,!o)] !(Maybe o) -> ComboChoice v o | gEq{|*|} o
+mkComboChoice options mbSel = mkChoice options mbSel
+
+instance Choice ComboChoice
+where
+	mkChoice options mbSel										= mkChoice` (ComboChoice (toOptionList options)) mbSel
+	selectOption newSelection (ComboChoice options _)			= ComboChoice options (selectOption` options newSelection)
+	getSelection (ComboChoice options mbSel)					= getSelection` options mbSel
+	getMbSelection (ComboChoice options mbSel)					= getMbSelection` options mbSel snd
+	getMbSelectionView (ComboChoice options mbSel)				= getMbSelection` options mbSel fst
+	setOptions newOptions (ComboChoice oldOptions mbSel)		= ComboChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
+
+mkTreeChoice :: !(Tree (!v,!o)) !(Maybe o) -> TreeChoice v o | gEq{|*|} o
+mkTreeChoice options mbSel = mkChoice options mbSel
+
+instance Choice TreeChoice
+where
+	mkChoice options mbSel										= mkChoice` (TreeChoice (toOptionTree options)) mbSel
+	selectOption newSelection (TreeChoice options _)			= TreeChoice options (selectOption` options newSelection)
+	getSelection (TreeChoice options mbSel)						= getSelection` options mbSel
+	getMbSelection (TreeChoice options mbSel)					= getMbSelection` options mbSel snd
+	getMbSelectionView (TreeChoice options mbSel)				= getMbSelection` options mbSel fst
+	setOptions newOptions (TreeChoice oldOptions mbSel)			= TreeChoice (toOptionTree newOptions) (setOptions` oldOptions mbSel newOptions)
+
+mkChoice` :: !((Maybe Int) -> choice v o) !(Maybe o) -> choice v o | Choice choice & gEq{|*|} o
+mkChoice` choice mbSel
+	# choice = choice Nothing
+	= case mbSel of
+		Just sel	= selectOption sel choice
+		_			= choice
+
+selectOption` :: !(c (v,!o)) !o -> (Maybe Int) | gEq{|*|} o & OptionContainer c
+selectOption` options newSelection
+	= case [idx \\ (_,option) <- toOptionList options & idx <- [0..] | newSelection === option] of
+		[idx:_]	= Just idx
+		_		= Nothing
+
+getSelection` :: !(c (v,!o)) !(Maybe Int) -> o | OptionContainer c
+getSelection` options mbSel = fromMaybe (abort "choice has no selection") (getMbSelection` options mbSel snd)
+
+getMbSelection` :: !(c o) !(Maybe Int) !(o -> r) -> (Maybe r) | OptionContainer c
+getMbSelection` options mbSel f
+	# options = toOptionList options
+ 	= case mbSel of
+		Just sel | sel < length options	= Just (f (options !! sel))
+		_								= Nothing
+
+setOptions` :: !(c1 (v,!o)) !(Maybe Int) !(c2 (v,!o)) -> (Maybe Int) | gEq{|*|} o & OptionContainer c1 & OptionContainer c2		
+setOptions` oldOptions mbSel newOptions
+	# oldOptionList = map snd (toOptionList oldOptions)
+	# newOptionList = map snd (toOptionList newOptions)
+	= case mbSel of
+		Nothing			= Nothing
+		Just sel = case newIndexes oldOptionList newOptionList [sel] of
+			[newSel]	= Just newSel
+			_			= Nothing
+
+mkCheckMultiChoice :: ![(!v,!o)] ![o] -> CheckMultiChoice v o | gEq{|*|} o
+mkCheckMultiChoice options sels = mkMultiChoice options sels
+			
+instance MultiChoice CheckMultiChoice
+where
+	mkMultiChoice options sels										= selectOptions sels (CheckMultiChoice (toOptionList options) [])
+	selectOptions newSelections (CheckMultiChoice options _)		= CheckMultiChoice options (selectOptions` options newSelections)
+	getSelections (CheckMultiChoice options sels)					= getSelections` options sels snd
+	getSelectionViews (CheckMultiChoice options sels)				= getSelections` options sels fst
+	setMultiOptions newOptions (CheckMultiChoice oldOptions sels)	= CheckMultiChoice (toOptionList newOptions) (setMultiOptions` oldOptions sels newOptions)
+
+selectOptions` :: !(c (v,!o)) ![o] -> [Int] | gEq{|*|} o & OptionContainer c
+selectOptions` options newSelections = [idx \\ (_,option) <- toOptionList options & idx <- [0..] | isMemberGen option newSelections]
+
+getSelections` :: !(c o) ![Int] !(o -> r) -> [r] | OptionContainer c
+getSelections` options sels f =  [f option \\ option <- toOptionList options & idx <- [0..] | isMember idx sels]
+
+setMultiOptions` :: !(c1 (v,!o)) ![Int] !(c2 (v,!o)) -> [Int] | gEq{|*|} o & OptionContainer c1 & OptionContainer c2
+setMultiOptions` oldOptions sels newOptions
+	# oldOptionList = map snd (toOptionList oldOptions)
+	# newOptionList = map snd (toOptionList newOptions)
+	= newIndexes oldOptionList newOptionList sels
+
+instance OptionContainer []
+where
+	toOptionList l = l
+	toOptionTree l = Tree (map Leaf l)
 	
-getMbChoice :: !(Choice a) -> Maybe a
-getMbChoice (Choice l i)
-	| i >= 0 &&  i < (length l)	= Just (l !! i)
-	| otherwise					= Nothing
-
-mapOptions :: !(a -> b) !(Choice a) -> Choice b
-mapOptions f (Choice opts sel) = Choice (map f opts) sel
-
-setOptions :: ![a] !(Choice a) -> Choice a | gEq{|*|} a
-setOptions newOpts (Choice oldOpts s)
-	= case newIndexes oldOpts newOpts [s] of
-		[i]	= Choice newOpts i
-		[]	= Choice newOpts -1
-
-multipleChoice :: ![a] -> MultipleChoice a
-multipleChoice l = MultipleChoice l []
-
-multipleChoiceSel :: ![a] ![a] -> MultipleChoice a | gEq{|*|} a
-multipleChoiceSel l sel = MultipleChoice l [i \\ e <- l & i <- [0..] | isMemberGen e sel]
-
-getChoices :: !(MultipleChoice a) -> [a]
-getChoices (MultipleChoice l is)
-	= [l !! i \\ i <- sort is | i >= 0 && i < (length l)]
-
-mapOptionsM :: !(a -> b) !(MultipleChoice a) -> MultipleChoice b
-mapOptionsM f (MultipleChoice opts sel) = MultipleChoice (map f opts) sel
-
-setOptionsM :: ![a] !(MultipleChoice a) -> MultipleChoice a | gEq{|*|} a
-setOptionsM newOpts (MultipleChoice oldOpts sel) = MultipleChoice newOpts (newIndexes oldOpts newOpts sel)
+instance OptionContainer Tree
+where
+	toOptionList (Tree nodes) = flatten (map toOptionList` nodes)
+	where
+		toOptionList` node = case node of
+			Leaf option		= [option]
+			Node _ nodes	= flatten (map toOptionList` nodes)
+	toOptionTree t = t
 
 newIndexes :: ![a] ![a] ![Int] -> [Int] | gEq{|*|} a
 newIndexes oldOpts newOpts sel = newIndexes` curChoices []
@@ -102,47 +165,13 @@ where
 					| otherwise			= nrOfOccurrence` (inc i) (inc nr) oldOpts
 				| otherwise				= nrOfOccurrence` (inc i) nr oldOpts
 				
-mkTree :: ![TreeNode a] -> Tree a
-mkTree nodes = Tree nodes -1
-
-mkTreeSel :: ![TreeNode a] !a -> Tree a | gEq{|*|} a
-mkTreeSel nodes sel = Tree nodes idx
+instance Functor Tree
 where
-	idx = case getIdx nodes 0 of
-		(Nothing,_)		= -1
-		(Just idx,_)	= idx
-
-	getIdx [] idx = (Nothing,idx)
-	getIdx [Leaf v:r] idx
-		| v === sel	= (Just idx,idx)
-		| otherwise	= getIdx r (inc idx)
-	getIdx [Node _ children:r] idx
-		= case getIdx children idx of
-			(Nothing,idx)	= getIdx r idx
-			idx				= idx
-			
-getSelectedLeaf :: !(Tree a) -> a
-getSelectedLeaf (Tree nodes sel)
-	= case searchV nodes sel of
-		Just sel	= sel
-		Nothing		= abort "invalid tree!"
-where
-	searchV nodes selIdx = fst (searchV` nodes 0)
+	fmap f (Tree nodes) = Tree (map fmap` nodes)
 	where
-		searchV` [] c = (Nothing,c)
-		searchV` [Leaf v:r] c
-			| c == selIdx	= (Just v,c)
-			| otherwise		= searchV` r (inc c)
-		searchV` [Node _ children:r] c
-			= case searchV` children c of
-				(Nothing,c)	= searchV` r c
-				v			= v
-				
-instance Functor TreeNode
-where
-	fmap f node = case node of
-		Leaf a				= Leaf (f a)
-		Node label nodes	= Node label [fmap f node \\ node <- nodes]
+		fmap` node = case node of
+			Leaf a				= Leaf (f a)
+			Node label nodes	= Node label [fmap` node \\ node <- nodes]
 
 // ******************************************************************************************************
 // Document

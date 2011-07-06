@@ -58,3 +58,5 @@ sortByIndex		:: ![(!Int,!a)]				-> [a]
 intersperse		:: !a ![a]					-> [a]
 getItems		:: ![a] ![Int]				-> [a]
 isMemberGen		:: !a !.[a]					-> Bool | gEq{|*|} a
+
+instance Functor []

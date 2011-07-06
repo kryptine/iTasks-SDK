@@ -160,3 +160,7 @@ getItems list indexes = [x \\ x <- list & idx <- [0..] | isMember idx indexes]
 isMemberGen :: !a !.[a] -> Bool | gEq{|*|} a
 isMemberGen x [hd:tl]	= hd === x || isMemberGen x tl
 isMemberGen x []		= False
+
+instance Functor []
+where
+	fmap f l = [f e \\ e <- l]

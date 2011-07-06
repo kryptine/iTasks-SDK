@@ -5,7 +5,7 @@ definition module SystemData
 */
 import Maybe
 from SharedCombinators	import :: ReadOnlyShared, :: Shared, :: ReadWriteShared
-from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: Session, :: UserDetails, :: Workflow, :: TaskList, :: TreeNode, :: WorkflowId, :: WorkflowTaskContainer
+from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: Session, :: UserDetails, :: Workflow, :: TaskList, :: Tree, :: WorkflowId, :: WorkflowTaskContainer
 from Void				import :: Void
 from ProcessDB			import :: Process, :: ProcessId
 from WorkflowDB			import :: WorkflowDescription
@@ -28,8 +28,8 @@ sessions				:: ReadOnlyShared [Session]
 // Available workflows
 workflows				:: ReadOnlyShared [WorkflowDescription]
 allowedWorkflows		:: ReadOnlyShared [WorkflowDescription]
-workflowTree			:: ReadOnlyShared [TreeNode WorkflowDescription]
-allowedWorkflowTree		:: ReadOnlyShared [TreeNode WorkflowDescription]
+workflowTree			:: ReadOnlyShared (Tree WorkflowDescription)
+allowedWorkflowTree		:: ReadOnlyShared (Tree WorkflowDescription)
 workflowTask			:: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
 
 // Workflow processes

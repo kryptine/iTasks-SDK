@@ -3,7 +3,7 @@ implementation module GenVerify
 import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text
 import GenUpdate, StdMisc
 
-derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session
+derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 derive bimap (,), Maybe
 
 verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
@@ -112,24 +112,25 @@ gVerify{|FillControlSize|}	fx v vst = fx (fmap fromFillControlSize v) vst
 gVerify{|FillWControlSize|}	fx v vst = fx (fmap fromFillWControlSize v) vst
 gVerify{|FillHControlSize|}	fx v vst = fx (fmap fromFillHControlSize v) vst
 
-gVerify{|Int|}    			_ vst = simpleVerify "Enter a number" vst
+gVerify{|Int|}    				_ vst = simpleVerify "Enter a number" vst
 gVerify{|Real|}   			_ vst = simpleVerify "Enter a decimal number" vst
-gVerify{|Char|}   			_ vst = simpleVerify "Enter a character" vst
-gVerify{|String|}			_ vst = simpleVerify "Enter a short text" vst
-gVerify{|Bool|}   			_ vst = alwaysValid vst
-gVerify{|Document|}			_ vst = simpleVerify "Upload a document" vst
-gVerify{|Password|}			_ vst = simpleVerify "Enter a password" vst
-gVerify{|Date|}				_ vst = simpleVerify "Enter a date" vst
-gVerify{|Time|}				_ vst = simpleVerify "Enter a time of day" vst
-gVerify{|Note|}				_ vst = simpleVerify "Enter a long text" vst
-gVerify{|FormButton|}		_ vst = alwaysValid vst
-gVerify{|Currency|}			_ vst = simpleVerify "Enter a currency value" vst
-gVerify{|User|}				_ vst = simpleVerify "Select a username" vst 
-gVerify{|Choice|}_			_ vst = simpleVerify "Choose one item" vst
-gVerify{|MultipleChoice|} _	_ vst = simpleVerify "Choose a number of items" vst
-gVerify{|Table|}			_ vst = alwaysValid vst
-gVerify{|Tree|} _			_ vst = simpleVerify "Choose a leaf of the tree" vst
-gVerify{|HtmlDisplay|}		_ vst = alwaysValid vst
+gVerify{|Char|}   				_ vst = simpleVerify "Enter a character" vst
+gVerify{|String|}					_ vst = simpleVerify "Enter a short text" vst
+gVerify{|Bool|}   				_ vst = alwaysValid vst
+gVerify{|Document|}				_ vst = simpleVerify "Upload a document" vst
+gVerify{|Password|}				_ vst = simpleVerify "Enter a password" vst
+gVerify{|Date|}					_ vst = simpleVerify "Enter a date" vst
+gVerify{|Time|}					_ vst = simpleVerify "Enter a time of day" vst
+gVerify{|Note|}					_ vst = simpleVerify "Enter a long text" vst
+gVerify{|FormButton|}			_ vst = alwaysValid vst
+gVerify{|Currency|}				_ vst = simpleVerify "Enter a currency value" vst
+gVerify{|User|}					_ vst = simpleVerify "Select a username" vst 
+gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
+gVerify{|ComboChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
+gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
+gVerify{|Table|}				_ vst = alwaysValid vst
+gVerify{|TreeChoice|} _ _		_ vst = alwaysValid vst//simpleVerify "Choose a leaf of the tree" vst
+gVerify{|HtmlDisplay|}			_ vst = alwaysValid vst
 
 gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst

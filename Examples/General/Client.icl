@@ -19,12 +19,12 @@ client = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selectedWo
 	]
 
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
-chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetLocalAndShared mkTree, Putback putback)] (state >+| allowedWorkflowTree) -1 >>+ noActions
+chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetLocalAndShared mkTree, Putback putback)] (state >+| allowedWorkflowTree) Nothing >>+ noActions
 where
-	mkTree sel (_,flows) = Tree [fmap (\{path,description,workflowId} -> (last (split "/" path),Hidden description,Hidden workflowId)) node \\ node <- flows] sel
-	putback tree=:(Tree _ sel) _ (state,_) = (Just sel, Just {state & selectedWorkflow = Just (flowId, descr)})
+	mkTree sel (_,flows) = mkTreeChoice (fmap (\{path,description,workflowId} -> (last (split "/" path),(workflowId,description))) flows) sel
+	putback tree _ (state,_) = (Just (Just selection), Just {state & selectedWorkflow = Just selection})
 	where
-		(_, Hidden descr, Hidden flowId) = getSelectedLeaf tree
+		selection = getSelection tree
 
 showDescription :: !(Shared ClientState) -> Task ParallelControl
 showDescription state = forever (

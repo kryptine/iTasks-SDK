@@ -320,17 +320,12 @@ formalParameterUpdate { FormalParameterView | name, type = (TypeExpressionView t
 	, visible = True
 	}
 
-importsView :: ![String] !GModule -> MultipleChoice String
-importsView allModules gMod = MultipleChoice allModules 
-	(catMaybes (map (listIndex allModules 0) gMod.GModule.imports))
-where
-	listIndex :: [a] Int a -> Maybe Int | Eq a
-	listIndex []     _ _ = Nothing
-	listIndex [x:xs] i a | a == x    = Just i
-						 | otherwise = listIndex xs (i+1) a
-importsUpdate :: (MultipleChoice String) GModule -> GModule
-importsUpdate (MultipleChoice imports indices) gMod =
-	updateDiagramExtensions { GModule | gMod & imports = map (\i-> imports !! i) indices }
+importsView :: ![String] !GModule -> CheckMultiChoice String String
+importsView allModules gMod = mkCheckMultiChoice [(m,m) \\ m <- allModules] gMod.GModule.imports
+
+importsUpdate :: (CheckMultiChoice String String) GModule -> GModule
+importsUpdate choice gMod =
+	updateDiagramExtensions { GModule | gMod & imports = getSelections choice }
 	
 typesView :: !GModule -> Maybe [GTypeDefinition]
 typesView gMod = case gMod.GModule.types of

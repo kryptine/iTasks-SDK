@@ -186,8 +186,8 @@ where
 	}
 
 :: OrderForm =
-	{ customer	:: !(Choice (Int,String), VisualizationHint NewCustomer)
-	, product	:: !Choice (Int,String)
+	{ customer	:: !(ComboChoice String Int, VisualizationHint NewCustomer)
+	, product	:: !ComboChoice String Int
 	, amount	:: !Int
 	}
 
@@ -219,35 +219,33 @@ where
 		view = (GetShared vfrom,PutbackShared vto)
 		vfrom (order,(products,customers))
 			= { OrderForm
-			  | customer = (Choice (customerOptions customers) (customerSel order customers), newCustomer order )
-			  , product = Choice (productOptions products) (productSel order products)
+			  | customer = (mkComboChoice (customerOptions customers) (Just (customerSel order)), newCustomer order)
+			  , product = mkComboChoice (productOptions products) (Just order.Order.product)
 			  , amount = order.Order.amount
 			  }
 							
-		customerOptions db		= [(c.customerId,c.Customer.name) \\ c <- db] ++ [(0, "Other...")]
+		customerOptions db		= [(c.Customer.name, c.customerId) \\ c <- db] ++ [("Other...", 0)]
 		
-		customerSel order db	= case order.Order.customer of
-			(Left customerId)	= case [i \\ i <- [0..] & c <- db | c.customerId == customerId] of [x] = x; _ = 0
-			(Right _)			= length db
+		customerSel order = case order.Order.customer of
+			(Left customerId)	= customerId
+			(Right _)			= 0
 		
 		newCustomer order		= case order.Order.customer of
 			(Left customerId)	= VHHidden {NewCustomer|name = ""}
 			(Right nc)			= VHEditable nc
 										   		
-		productOptions db		= [(p.productId,p.Product.description) \\ p <- db]
-		
-		productSel order db		= case [i \\ i <- [0..] & p <- db | p.productId == order.Order.product] of [x] = x; _ = 0
+		productOptions db		= [(p.Product.description,p.productId) \\ p <- db]
 		
 		vto form _ (order,(products,customers))
 			= { Order
 			  | customer = customerChoice form.OrderForm.customer
-			  , product = fst (getChoice form.OrderForm.product)
+			  , product = getSelection form.OrderForm.product
 			  , amount = form.OrderForm.amount
 			  }
 			  
-		customerChoice (Choice opts i, nc)
-			| i == (length opts) - 1	= Right (fromVisualizationHint nc)
-										= Left (fst (getChoice (Choice opts i)))	
+		customerChoice (choice, nc)
+			| getMbSelection choice == Just 0	= Right (fromVisualizationHint nc)
+												= Left (getSelection choice)
 
 phoneBookSearch :: Task (Name,PhoneNumber)
 phoneBookSearch

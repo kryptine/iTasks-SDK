@@ -30,7 +30,7 @@ itasks.tui.ChoiceControl = itasks.tui.extendControl(Ext.form.CheckboxGroup,{
 			};
 			
 			var items = [];
-			var selection = this.value;
+			var selection = Ext.isArray(this.value) ? this.value : [];
 			this.checkRadio = selection.length == 0;
 			var isSelected = function(idx){
 				for(var i=0; i<selection.length; i++){

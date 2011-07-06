@@ -36,7 +36,7 @@ gGetRecordFields{|(->)|} _ _ _ _ fields = fields
 gGetRecordFields{|Dynamic|} _ _ fields = fields
 
 derive gGetRecordFields [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gGetRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode
+derive gGetRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, HtmlTag, HtmlAttr
 derive gGetRecordFields EmailAddress, Action, HtmlDisplay, ButtonState
 
 generic gPutRecordFields r :: !r ![GenType] !*RecordFields -> (!r,!*RecordFields)
@@ -70,7 +70,7 @@ gPutRecordFields{|(->)|} _ _ f _ fields = (f,fields)
 gPutRecordFields{|Dynamic|} dyn _ fields = (dyn,fields)
 
 derive gPutRecordFields [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gPutRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Choice, MultipleChoice, Map, Tree, TreeNode
+derive gPutRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, HtmlTag, HtmlAttr
 derive gPutRecordFields EmailAddress, Action, HtmlDisplay, ButtonState
 
 :: *RecordFields :== Map String GenericDyn

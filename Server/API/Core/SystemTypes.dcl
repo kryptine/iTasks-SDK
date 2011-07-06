@@ -16,13 +16,13 @@ from Task			import :: Task
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualize, :: VSt, :: Visualization
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONEncode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode	Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONDecode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq			Note, Password, Date, Time, DateTime, Choice, MultipleChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
@@ -118,51 +118,78 @@ instance toEmail User
 	}
 :: ButtonState		= NotPressed | Pressed
 
-//* Represents the choice of one element from a list
-:: Choice			a = Choice			![a] !Int
+//* Represents the choice of one element from a list represented as radio buttons
+:: RadioChoice v o = RadioChoice ![(!v,!o)] !(Maybe Int)
+mkRadioChoice :: ![(!v,!o)] !(Maybe o) -> RadioChoice v o | gEq{|*|} o
+instance Choice RadioChoice
+
+//* Represents the choice of one element from a list represented as combo box
+:: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
+mkComboChoice :: ![(!v,!o)] !(Maybe o) -> ComboChoice v o | gEq{|*|} o
+instance Choice ComboChoice
+
+//* Represents a tree from with the user can choose one element
+:: TreeChoice v o = TreeChoice !(Tree (!v,!o)) !(Maybe Int)
+:: Tree a = Tree !.[.TreeNode a]
+:: TreeNode a = Leaf !a | Node !TreeLabel !.[TreeNode a]
+:: TreeLabel :== String
+mkTreeChoice :: !(Tree (!v,!o)) !(Maybe o) -> TreeChoice v o | gEq{|*|} o
+instance Choice TreeChoice
+instance Functor Tree
+
+/**
+* Interface for types representing choices of one element out of a set of options.
+* There are different kinds of containers for such options (e.g. lists, trees, ...).
+* Each option consists of an actual value (o) & a view value shown to the user (v).
+*/
+class Choice choiceType
+where
+	//* Generates a choice with given options and possibly initial selection
+	mkChoice				:: !(container (!v,!o)) !(Maybe o)			-> choiceType v o | OptionContainer container & gEq{|*|} o
+	//* Selects the given option, if not present in list of options selection is cleared
+	selectOption			:: !o !(choiceType v o)						-> choiceType v o | gEq{|*|} o
+	//* Gets the current selection assuming it is present (a valid choice always has a selection)
+	getSelection			:: !(choiceType v o)						-> o
+	//* Gets the current selection if present
+	getMbSelection			:: !(choiceType v o)						-> Maybe o
+	//* Gets the current selection's view if present
+	getMbSelectionView		:: !(choiceType v o)						-> Maybe v
+	//* Sets the choice's options, tries to keep the selection as intact as possible
+	setOptions				:: !(container (!v,!o)) !(choiceType v o)	-> choiceType v o | OptionContainer container & gEq{|*|} o
+
 //* Represents the choice of a number of items from a list
-:: MultipleChoice	a = MultipleChoice	![a] ![Int]
+:: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]
+mkCheckMultiChoice :: ![(!v,!o)] ![o] -> CheckMultiChoice v o | gEq{|*|} o
+instance MultiChoice CheckMultiChoice
 
-//* Generates a choice with given options
-choice 				:: ![a]								-> Choice a
-//* Generates a choice with given options and preselected item
-choiceSel			:: ![a] !a							-> Choice a | gEq{|*|} a
-//* Gets the currently chosen item
-getChoice			:: !(Choice a)						-> a
-//* Gets the currently chosen item if present
-getMbChoice			:: !(Choice a)						-> Maybe a
-//* Transforms the choice's options
-mapOptions			:: !(a -> b) !(Choice a)			-> Choice b
-//* Sets the choice's options, tries to keep the selection as intact as possible
-setOptions			:: ![a] !(Choice a)					-> Choice a | gEq{|*|} a
+/**
+* Interface for types representing choices a number of elements out of a set of options.
+* There are different kinds of containers for such options (e.g. lists, trees, ...).
+* Each option consists of an actual value (o) & a view value shown to the user (v).
+*/
+class MultiChoice choiceType
+where
+	//* Generates a multi choice with given options and initial selection
+	mkMultiChoice			:: !(container (!v,!o)) ![o]				-> choiceType v o | OptionContainer container & gEq{|*|} o
+	//* Selects the given options, selections not present in list of options are ignored
+	selectOptions			:: ![o] !(choiceType v o)					-> choiceType v o | gEq{|*|} o
+	//* Gets the current selections
+	getSelections			:: !(choiceType v o)						-> [o]
+	//* Gets the current selection's views
+	getSelectionViews		:: !(choiceType v o)						-> [v]
+	//* Sets the choice's options, tries to keep the selection as intact as possible
+	setMultiOptions			:: !(container (!v,!o)) !(choiceType v o)	-> choiceType v o | OptionContainer container & gEq{|*|} o
 
-//* Generates a multiple choice with given options
-multipleChoice		:: ![a] 							-> MultipleChoice a
-//* Generates a multiple choice with given options and preselected items
-multipleChoiceSel	:: ![a] ![a]						-> MultipleChoice a | gEq{|*|} a
-//* Get the currently chosen items
-getChoices			:: !(MultipleChoice a)				-> [a]
-//* Transforms the multiple choice's options
-mapOptionsM			:: !(a -> b) !(MultipleChoice a)	-> MultipleChoice b
-//* Sets the multiple choice's options, tries to keep the selection as intact as possible
-setOptionsM			:: ![a] !(MultipleChoice a)			-> MultipleChoice a | gEq{|*|} a
+class OptionContainer container
+where
+	toOptionList	:: !(container o) -> [o]
+	toOptionTree	:: !(container o) -> Tree o
+	
+instance OptionContainer []
+instance OptionContainer Tree
 
 //* Represents a table consisting of headers, the displayed data cells & possibly a selection
 :: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
-
-//* Represents a tree from with the user can choose one leaf
-:: Tree a = Tree ![TreeNode a] !Int
-:: TreeNode a = Leaf !a | Node !TreeLabel !.[TreeNode a]
-:: TreeLabel :== String
-
-instance Functor TreeNode
-
-//* Generates a tree with initially no chosen item
-mkTree		:: ![TreeNode a]	-> Tree a
-//* Generates a tree with initially chosen item
-mkTreeSel	:: ![TreeNode a] !a	-> Tree a | gEq{|*|} a
-//* Gets the currently selected leaf of a VALID tree
-getSelectedLeaf :: !(Tree a) -> a
 
 //* Field behaviour extensions
 :: VisualizationHint a 	= VHEditable a

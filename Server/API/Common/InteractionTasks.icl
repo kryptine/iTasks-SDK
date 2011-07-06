@@ -2,7 +2,7 @@ implementation module InteractionTasks
 
 from StdFunc import id, const, o, flip
 from SystemData import null
-from Util import appSnd
+from Util import appSnd, isMemberGen
 from Shared import makeReadOnlyShared, :: SharedId
 from Time import :: Timestamp(..)
 import StdBool, StdList, StdMisc, StdTuple
@@ -53,7 +53,7 @@ where
 	options		= filterOptions filterOutputOptions defaultOpts options`
 	defaultOpts	= [ShowView (GetLocal id), ShowView (GetShared id)]
 
-updateSharedInformation` :: !d ![ViewOn l r w] !(ReadWriteShared r w)  l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+updateSharedInformation` :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 updateSharedInformation` d options shared initLocal = mapActionTaskModelValue (\((l,_,_),r) -> (r,l)) (interact d interaction (initLocal,False,False) shared)
 where
 	interaction (l,updateLocalViews,updateSharedViews) r changed = map mkPart options
@@ -120,15 +120,16 @@ enterSharedChoice d options shared = InputTask @>> choice` d options shared Noth
 updateSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) o -> Task o | descr d & iTask o & iTask w
 updateSharedChoice d options shared initC = UpdateTask @>> choice` d options shared (Just initC)
 
-choice` d options shared mbSel =
-	mapActionTaskModelValue (\(mbC,choiceOpts) -> maybe (fromMaybe defaultValue mbSel) (\c -> maybe defaultValue fromViewOption (getMbChoice c)) (fmap (setOptions (toViewOptions options choiceOpts)) mbC)) (interact d interaction Nothing shared)
+choice` d views shared mbInitSel = mapActionTask transF (updateSharedInformation d (toChoiceViews views) shared Nothing)
 where
-	interaction mbLocal choiceOpts _ = addAbouts options [FormPart toView fromView]
-	where
-		toView				= FormValue (setOptions (viewOptions choiceOpts) (fromMaybe (initChoice choiceOpts) mbLocal))
-		fromView c			= (c, Nothing)
-	initChoice choiceOpts	= maybe (choice (viewOptions choiceOpts)) (\sel -> choiceSel (viewOptions choiceOpts) (toViewOption options sel)) mbSel
-	viewOptions choiceOpts	= toViewOptions options choiceOpts
+	transF {modelValue=v=:(options,mbSelection)} = let mbSel = maybe mbInitSel Just mbSelection in {modelValue = fromMaybe defaultValue mbSel, localValid = isJust mbSel && isMemberGen (fromJust mbSel) options}
+	
+	toChoiceViews views = case [UpdateView (GetLocalAndShared (toChoice get), PutbackLocal fromChoice) \\ ShowView (GetShared get) <- views] of
+		[view:_]	= [view]
+		_			= [UpdateView (GetLocalAndShared (toChoice id), PutbackLocal fromChoice)]
+		
+	toChoice get mbSel options	= mkRadioChoice [(get o, o) \\ o <- options] (maybe mbInitSel Just mbSel)
+	fromChoice choice _ _		= getMbSelection choice
 
 enterMultipleChoice :: !d ![LocalViewOn o] ![o] -> Task [o] | descr d & iTask o
 enterMultipleChoice d options choiceOpts = InputTask @>> LocalInteractionTask @>>
@@ -144,16 +145,16 @@ enterSharedMultipleChoice d options shared = InputTask @>> multipleChoice` d opt
 updateSharedMultipleChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
 updateSharedMultipleChoice d options shared sel = UpdateTask @>> multipleChoice` d options shared sel
 
-multipleChoice` d options shared sel =
-	mapActionTaskModelValue (\(mbLocal,choiceOpts) -> maybe sel (fromViewOptions o getChoices) (fmap (setOptionsM (toViewOptions options choiceOpts)) mbLocal)) (interact d interaction Nothing shared)
-where	
-	interaction mbLocal choiceOpts _	= addAbouts options [FormPart toView fromView]
-	where
-		toView							= FormValue (setOptionsM (toViewOptions options choiceOpts) (fromMaybe (initMultipleChoice choiceOpts) mbLocal))
-		fromView mc						= (mc, Nothing)
-	initMultipleChoice choiceOpts		= multipleChoiceSel (toViewOptions options choiceOpts) (toViewOptions options sel)
-
-addAbouts options parts = [DisplayPart a \\ About a <- options] ++ parts
+multipleChoice` d views shared initSels = mapActionTask transF (updateSharedInformation d (toChoiceViews views) shared Nothing)
+where
+	transF {modelValue=v=:(options,mbSelections)} = {modelValue = filter (\sel -> isMemberGen sel options) (fromMaybe initSels mbSelections), localValid = True}
+	
+	toChoiceViews views = case [UpdateView (GetLocalAndShared (toChoice get), PutbackLocal fromChoice) \\ ShowView (GetShared get) <- views] of
+		[view:_]	= [view]
+		_			= [UpdateView (GetLocalAndShared (toChoice id), PutbackLocal fromChoice)]
+		
+	toChoice get mbSels options	= mkCheckMultiChoice [(get o, o) \\ o <- options] (fromMaybe initSels mbSels)
+	fromChoice choice _ _		= Just (getSelections choice)
 
 toSharedChoiceViews :: ![LocalViewOn o] -> [ViewOn Void o w]
 toSharedChoiceViews options = catMaybes (map toSharedChoiceView options)
@@ -167,26 +168,6 @@ where
 				GetShared get			= GetLocal get
 			= Just (ShowView get`)
 		_								= Nothing
-
-// special type for choice options of type a, providing a different view already visualized as string
-:: ChoiceOption a = ChoiceOption !String !a
-
-toViewOption options o = case [ChoiceOption (visualizeAsTextLabel (get o)) o \\ ShowView (GetShared get) <- options] of
-	[opt:_]	= opt
-	_		= ChoiceOption (visualizeAsTextLabel o) o
-fromViewOption (ChoiceOption _ o)	= o
-toViewOptions options				= map (toViewOption options)
-fromViewOptions						= map fromViewOption
-
-derive gUpdate		ChoiceOption
-derive gDefaultMask	ChoiceOption
-derive gVerify		ChoiceOption
-derive JSONEncode	ChoiceOption
-derive JSONDecode	ChoiceOption
-gEq{|ChoiceOption|} f (ChoiceOption _ x) (ChoiceOption _ y) = f x y
-gVisualize{|ChoiceOption|} _ mbV vst = case mbV of
-	Just (ChoiceOption label _)	= ([TextFragment label],vst)
-	Nothing						= ([],vst)
 
 waitForTime :: !Time -> Task Time
 waitForTime time =

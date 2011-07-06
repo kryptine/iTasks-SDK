@@ -8,26 +8,41 @@ mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, currentPath = 
 		selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = "",
 		controlSize = (Auto,Auto,Nothing)}
 
-//(WrapContent 0)per functions
 visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> TUIDef | gVisualize{|*|} a
-visualizeAsEditor x taskId idx vmask editEvent
-	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, verifyMask = [vmask], editEvent = editEvent, taskId = taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
-	# (defs,vst) = gVisualize{|*|} (Just x) vst
-	= case coerceToTUIDefs defs of
-		[tui]	= tui
-		tuis	= {content = TUILayoutContainer (defaultLayoutContainer tuis), width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}
+visualizeAsEditor x taskId idx vmask editEvent = visualizeAsEditorCustom gVisualize{|*|} x taskId idx vmask editEvent
 
 visualizeAsHtmlDisplay :: !a -> HtmlTag | gVisualize{|*|} a
-visualizeAsHtmlDisplay x = html (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay})))
+visualizeAsHtmlDisplay x = visualizeAsHtmlDisplayCustom gVisualize{|*|} x
 
 visualizeAsTextDisplay :: !a -> String | gVisualize{|*|} a
-visualizeAsTextDisplay x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextDisplay, vizType = VTextDisplay})))
+visualizeAsTextDisplay x = visualizeAsTextDisplayCustom gVisualize{|*|} x
 
 visualizeAsHtmlLabel :: !a -> HtmlTag | gVisualize{|*|} a
-visualizeAsHtmlLabel x = html (coerceToHtml (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VHtmlLabel, vizType = VHtmlLabel})))
+visualizeAsHtmlLabel x = visualizeAsHtmlLabelCustom gVisualize{|*|} x
 	
 visualizeAsTextLabel :: !a -> String | gVisualize{|*|} a
-visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} (Just x) {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
+visualizeAsTextLabel x = visualizeAsTextLabelCustom gVisualize{|*|} x
+
+// visualization wrapper functions with custom visualization function as first argument (used for child visualization inside of gVisualize)
+visualizeAsEditorCustom :: !((Maybe a) -> .(*VSt -> (![Visualization], !*VSt))) !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> TUIDef
+visualizeAsEditorCustom vizF x taskId idx vmask editEvent
+	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, verifyMask = [vmask], editEvent = editEvent, taskId = taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
+	# (defs,vst) = vizF (Just x) vst
+	= case coerceToTUIDefs defs of
+		[tui]	= tui
+		tuis	= {content = TUILayoutContainer (defaultLayoutContainer tuis), width = WrapContent 0, height = WrapContent 0, margins = Nothing}
+
+visualizeAsHtmlDisplayCustom :: !((Maybe a) -> .(*VSt -> (![Visualization], !*VSt))) !a -> HtmlTag
+visualizeAsHtmlDisplayCustom vizF x = html (coerceToHtml (fst (vizF (Just x) {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay})))
+
+visualizeAsTextDisplayCustom :: !((Maybe a) -> .(*VSt -> (![Visualization], !*VSt))) !a -> String
+visualizeAsTextDisplayCustom vizF x = join " " (coerceToStrings (fst (vizF (Just x) {mkVSt & origVizType = VTextDisplay, vizType = VTextDisplay})))
+
+visualizeAsHtmlLabelCustom :: !((Maybe a) -> .(*VSt -> (![Visualization], !*VSt))) !a -> HtmlTag
+visualizeAsHtmlLabelCustom vizF x = html (coerceToHtml (fst (vizF (Just x) {mkVSt & origVizType = VHtmlLabel, vizType = VHtmlLabel})))
+	
+visualizeAsTextLabelCustom :: !((Maybe a) -> .(*VSt -> (![Visualization], !*VSt))) !a -> String
+visualizeAsTextLabelCustom vizF x = join " " (coerceToStrings (fst (vizF (Just x) {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
 
 //Generic visualizer
 generic gVisualize a :: !(Maybe a) !*VSt -> (![Visualization], !*VSt)
@@ -258,60 +273,68 @@ where
 								
 	buttonLabel	b = toString ((fmap (\b -> b.FormButton.label)) b)
 	icon		b = toString ((fmap (\b -> b.FormButton.icon)) b)
-		
-gVisualize{|Choice|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
-where
-	mkControl name val touched _ _ vst = case val of
-		Nothing
-			= ([htmlDisplay noSelection],vst)
-		Just (Choice opts sel)
-			# (children,vst) = childVisualizations fx opts (Just VHtmlLabel) vst
-			= ([sizedControl controlSize (TUIChoiceControl
-				{ TUIChoiceControl
-				| allowMultiple = False
-				, options = map mkOptionLabel children
-				})
-				{ TUIControl
-				| name = name
-				, value = toJSON (if (touched && sel >= 0 && sel < length opts) [sel] [])
-				, eventValue = eventValue currentPath editEvent
-				, taskId = taskId
-				}
-				],vst)
-								
-	staticVis v touched vst = case (v,touched) of
-		(Just choice,True)	= fx (Just (getChoice choice)) vst
-		_					= ([TextFragment noSelection],vst)
-	
-	mkOptionLabel vis = toString (SpanTag [ClassAttr "task-choice"] (coerceToHtml vis))
-	noSelection = "No item selected"
 
-gVisualize{|MultipleChoice|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
+gVisualize{|RadioChoice|} fv _ val vst = visualizeControl2 (TUIChoiceControl (toChoice val)) (toString`,toHtml) (fmap (\r=:(RadioChoice _ mbSel) -> (maybe [] (\l -> [l]) mbSel,r)) val) vst
 where
-	mkControl name val touched _ _ vst = case val of
-		Nothing
-			= ([htmlDisplay empty],vst)
-		Just (MultipleChoice opts sel)
-			# (children,vst) = childVisualizations fx opts (Just VHtmlLabel) vst
-			= ([sizedControl controlSize (TUIChoiceControl
-				{ TUIChoiceControl
-				| allowMultiple = True
-				, options = map mkOptionLabel children
-				})
-				{ TUIControl
-				| name = name
-				, value = toJSON sel
-				, eventValue = eventValue currentPath editEvent
-				, taskId = taskId
-				}
-				],vst)
-								
-	staticVis v touched vst = case v of
-		Just choice	= gVisualize{|* -> *|} fx (Just (getChoices choice)) vst
-		Nothing		= ([TextFragment empty],vst)
+	toChoice Nothing						= {allowMultiple = False, options = []}
+	toChoice (Just (RadioChoice options _))	= {allowMultiple = False, options = [visualizeAsTextLabelCustom fv v \\ (v,_) <- options]}
 	
-	mkOptionLabel vis = toString (SpanTag [ClassAttr "task-choice"] (coerceToHtml vis))
-	empty = "Empty multiple choice"
+	toString` mbChoice	= fromMaybe "No item selected"			(getMbView (visualizeAsTextLabelCustom fv) mbChoice)
+	toHtml mbChoice		= fromMaybe (Text "No item selected")	(getMbView (visualizeAsHtmlLabelCustom fv) mbChoice)
+	
+gVisualize{|ComboChoice|} fv _ val vst = visualizeControl2 (TUIComboControl (toChoice val)) (toString`,toHtml) (fmap (\c=:(ComboChoice _ mbSel) -> (mbSel,c)) val) vst
+where
+	toChoice Nothing						= []
+	toChoice (Just (ComboChoice options _))	= [visualizeAsTextLabelCustom fv v \\ (v,_) <- options]
+	
+	toString` mbChoice	= fromMaybe "No item selected"			(getMbView (visualizeAsTextLabelCustom fv) mbChoice)
+	toHtml mbChoice		= fromMaybe (Text "No item selected")	(getMbView (visualizeAsHtmlLabelCustom fv) mbChoice)
+	
+gVisualize{|TreeChoice|} fv _ val vst = visualizeControl2 (TUITreeControl (toTree val)) (toString`,toHtml) (fmap (\t=:(TreeChoice _ mbSel) -> (mbSel,t)) val) vst
+where
+	toTree Nothing								= []
+	toTree (Just (TreeChoice (Tree nodes) _))	= fst (mkTree nodes 0)
+	
+	mkTree [] idx
+		= ([],idx)
+	mkTree [Leaf (v,_):r] idx
+		# (rtree,idx`) 		= mkTree r (inc idx)
+		= ([{text = visualizeAsTextLabelCustom fv v, index = Just idx, leaf = True, children = Nothing}:rtree],idx`)
+	mkTree [Node label nodes:r] idx
+		# (children,idx)	= mkTree nodes idx
+		# (rtree,idx)		= mkTree r idx
+		= ([{text = label, index = Nothing, leaf = False, children = Just children}:rtree],idx)
+	
+	toString` mbChoice	= fromMaybe "No item selected"			(getMbView (visualizeAsTextLabelCustom fv) mbChoice)
+	
+	toHtml mbChoice		= fromMaybe (Text "Empty tree")			(fmap (\(TreeChoice (Tree nodes) mbSel) -> html (fst (mkHtmlDisplay nodes 0 mbSel))) mbChoice)
+	
+	mkHtmlDisplay [] idx sel
+		= ([],idx)
+	mkHtmlDisplay [Leaf (v,_):r] idx sel
+		# (rtree,idx`)	= mkHtmlDisplay r (inc idx) sel
+		= ([LiTag (itemCls idx) [visualizeAsHtmlLabelCustom fv v]:rtree],idx`)
+	where
+		itemCls idx
+			| Just idx == sel	= [ClassAttr "tree-list-item-selected"]
+			| isEven idx		= [ClassAttr "list-item-light"]
+			| otherwise			= [ClassAttr "list-item-dark"]
+	mkHtmlDisplay [Node label nodes:r] idx sel
+		# (children,idx)	= mkHtmlDisplay nodes idx sel
+		# (rtree,idx)		= mkHtmlDisplay r idx sel
+		= ([LiTag [ClassAttr "tree-list-node-header"] [Text label],UlTag ulClass children:rtree],idx)
+	where
+		ulClass = [ClassAttr "tree-list"]
+	
+getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
+	
+gVisualize{|CheckMultiChoice|} fv _ val vst = visualizeControl2 (TUIChoiceControl (toChoice val)) (toString`,toHtml) (fmap (\r=:(CheckMultiChoice _ mbSel) -> (mbSel,r)) val) vst
+where
+	toChoice Nothing								= {allowMultiple = True, options = []}
+	toChoice (Just (CheckMultiChoice options _))	= {allowMultiple = True, options = [toString (visualizeAsHtmlLabelCustom fv v) \\ (v,_) <- options]}
+	
+	toString` mbChoice	= visualizeAsTextLabelCustom (gVisualize{|* -> *|} fv) (maybe [] getSelectionViews mbChoice)
+	toHtml mbChoice		= visualizeAsHtmlLabelCustom (gVisualize{|* -> *|} fv) (maybe [] getSelectionViews mbChoice)
 	
 gVisualize{|Table|} val vst = visualizeControl2 (TUIGridControl (toGrid val)) (toString`,toHtml) (fmap (\t=:(Table _ _ mbSel) -> (mbSel,t)) val) vst
 where
@@ -323,65 +346,6 @@ where
 	toHtml Nothing = Text "Empty table"
 	toHtml (Just (Table headers cells mbSel)) = TableTag [] [TrTag [] [ThTag [] [Text header] \\ header <- headers]:map mkRow cells]
 	mkRow row = TrTag [] [TdTag [] [cel] \\ cel <- row]
-
-gVisualize{|Tree|} fx val vst=:{currentPath,editEvent,taskId,controlSize} = visualizeCustomSimple mkControl staticVis val True vst
-where
-	mkControl name val touched _ _ vst = case val of
-		Nothing
-			= ([htmlDisplay empty],vst)
-		Just (Tree nodes sel)
-			# vst = {vst & vizType = VTextLabel}
-			# (tree,_,vst) = mkTree nodes 0 vst
-			# vst = {vst & vizType = VEditorDefinition}
-			= ([sizedControl controlSize (TUITreeControl tree)
-				{ TUIControl
-				| name = name
-				, value = if (touched && sel >= 0) (toJSON sel) JSONNull
-				, eventValue = eventValue currentPath editEvent
-				, taskId = taskId
-				}],vst)
-	where
-		mkTree [] idx vst
-			= ([],idx,vst)
-		mkTree [Leaf v:r] idx vst
-			# (leaf,vst)		= fx (Just v) vst
-			# (rtree,idx`,vst)	= mkTree r (inc idx) vst
-			= ([{text = join " " (coerceToStrings leaf), index = Just idx, leaf = True, children = Nothing}:rtree],idx`,vst)
-		mkTree [Node label nodes:r] idx vst
-			# (children,idx,vst)	= mkTree nodes idx vst
-			# (rtree,idx,vst)		= mkTree r idx vst
-			= ([{text = label, index = Nothing, leaf = False, children = Just children}:rtree],idx,vst)
-		
-	staticVis v touched vst=:{vizType}
-		= case (v,touched) of
-			(Just tree=:(Tree nodes sel),True)
-				= case vizType of
-					VHtmlDisplay
-						= (\(html,_,vst) -> ([HtmlFragment (UlTag [] html)],vst)) (mkHtmlDisplay nodes 0 sel vst)
-					_
-						= fx (Just (getSelectedLeaf tree)) vst
-			_
-				= ([TextFragment empty],vst)
-	where
-		mkHtmlDisplay [] idx sel vst
-			= ([],idx,vst)
-		mkHtmlDisplay [Leaf v:r] idx sel vst
-			# (leaf,vst)		= fx (Just v) vst
-			# (rtree,idx`,vst)	= mkHtmlDisplay r (inc idx) sel vst
-			= ([LiTag (itemCls idx) (coerceToHtml leaf):rtree],idx`,vst)
-		where
-			itemCls idx
-				| idx == sel	= [ClassAttr "tree-list-item-selected"]
-				| isEven idx	= [ClassAttr "list-item-light"]
-				| otherwise		= [ClassAttr "list-item-dark"]
-		mkHtmlDisplay [Node label nodes:r] idx sel vst
-			# (children,idx,vst)	= mkHtmlDisplay nodes idx sel vst
-			# (rtree,idx,vst)		= mkHtmlDisplay r idx sel vst
-			= ([LiTag [ClassAttr "tree-list-node-header"] [Text label],UlTag ulClass children:rtree],idx,vst)
-		where
-			ulClass = [ClassAttr "tree-list"]
-	
-	empty = "Empty tree"
 	
 gVisualize {|[]|} fx val vst = visualizeCustomSimple mkControl staticVis val False vst
 where
@@ -519,7 +483,7 @@ gVisualize{|FillHControlSize|} fx val vst=:{controlSize=controlSize=:(width,_,ma
 gVisualize{|Void|} _ vst = noVisualization vst
 gVisualize{|WorkflowTaskContainer|} _ vst = noVisualization vst
 	
-derive gVisualize DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session
+derive gVisualize DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
