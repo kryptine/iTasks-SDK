@@ -18,26 +18,6 @@ createThread :: (Task a) -> Dynamic | iTask a
 createThread task = (dynamic container :: Container (TaskThread a^) a^)
 where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
- 	
-createThreadParam :: !String (a -> Task b)	-> Dynamic | iTask a & iTask b
-createThreadParam title task = (dynamic container :: Container (Container (TaskThreadParam a^ b^) b^) a^)
-where
- 	container = Container (Container ({TaskThreadParam|originalTask = task, currentTask = task, title = title}))
-
-toNonParamThreadValue :: !JSONNode !Dynamic -> Maybe Dynamic
-toNonParamThreadValue jsonV (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
-	= case fromJSON jsonV of
-		Just v = 
-			Just (dynamic Container {TaskThread | originalTask = originalTask v <<@ Description title, currentTask = currentTask v <<@ Description title} :: Container (TaskThread b) b)
-		Nothing =
-			Nothing
-toNonParamThreadValue _ _ = Nothing
-
-toNonParamThreadEnter :: !Dynamic -> Dynamic
-toNonParamThreadEnter (Container (Container {TaskThreadParam|originalTask,currentTask,title}) :: Container (Container (TaskThreadParam a b) b) a)
-	= (dynamic Container {TaskThread | originalTask = enterParam originalTask, currentTask = enterParam currentTask} :: Container (TaskThread b) b)
-where		
-	enterParam paramTask = Description title @>> (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask)
 
 //Creeer initiele task context
 makeWorkflowInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
@@ -46,16 +26,16 @@ makeWorkflowInstance workflowId user mbParam iworld
 	= case mbWorkflow of
 		Nothing
 			= (Error "No such workflow",iworld)
-		Just {Workflow|thread,managerProperties}
-			# mbThread = case thread of
-				(_ :: Container (TaskThread a) a)
-					| isNothing mbParam	= Ok thread
+		Just {Workflow|task,managerProperties}
+			# mbThread = case task of
+				WorkflowTask task
+					| isNothing mbParam	= Ok (createThread task)
 					| otherwise			= Error "Workflow has no parameter"
-				_ = case mbParam of
-					Just param = case toNonParamThreadValue param thread of
-						Just thread		= Ok thread
+				ParamWorkflowTask paramTask = case mbParam of
+					Just param = case fromJSON param of
+						Just param		= Ok (createThread (paramTask param))
 						Nothing			= Error "Invalid argument"
-					Nothing				= Ok (toNonParamThreadEnter thread)
+					Nothing				= Ok (createThread (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask))
 			= case mbThread of
 				Ok thread
 					# (processId,iworld)		= 'ProcessDB'.getNextProcessId iworld
@@ -102,17 +82,16 @@ createWorkflowInstance workflowId user mbParam iworld
 	= case mbWorkflow of
 		Nothing
 			= (Error "No such workflow",iworld)
-		Just {Workflow|thread,managerProperties}
-			# mbThread = case thread of
-				(_ :: Container (TaskThread a) a)
-					| isNothing mbParam	= Ok thread
+		Just {Workflow|task,managerProperties}
+			# mbThread = case task of
+				WorkflowTask task
+					| isNothing mbParam	= Ok (createThread task)
 					| otherwise			= Error "Workflow has no parameter"
-				_ = case mbParam of
-					Just param = case toNonParamThreadValue param thread of
-						Just thread		= Ok thread
+				ParamWorkflowTask paramTask = case mbParam of
+					Just param = case fromJSON param of
+						Just param		= Ok (createThread (paramTask param))
 						Nothing			= Error "Invalid argument"
-						
-					Nothing				= Ok (toNonParamThreadEnter thread)
+					Nothing				= Ok (createThread (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask))
 			= case mbThread of
 				Ok thread
 					//Get next process id

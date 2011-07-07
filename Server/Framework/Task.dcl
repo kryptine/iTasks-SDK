@@ -57,12 +57,6 @@ toTaskFuncs :: !(Task a) -> TaskFuncs a | iTask a
 	, currentTask		:: Task a
 	}
 	
-:: TaskThreadParam a b	=
-	{ originalTask		:: a -> Task b
-	, currentTask		:: a -> Task b
-	, title				:: !String
-	}
-	
 taskException :: !e -> TaskResult a | TC, toString e
 
 /**

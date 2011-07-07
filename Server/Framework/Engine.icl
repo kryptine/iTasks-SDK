@@ -12,8 +12,6 @@ import	IWorld
 from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from UserAdmin	import manageUsers
 
-from TaskEval import createThread, createThreadParam
-
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !(Maybe Config) [Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] 
 engine mbConfig userWorkflows handlers
@@ -139,7 +137,7 @@ where
 	
 instance toWorkflow (WorkflowContainer a) | iTask a
 where
-	toWorkflow path description roles (Workflow managerP task) = mkWorkflow path description roles (createThread (task <<@ Description (path2name path))) managerP
+	toWorkflow path description roles (Workflow managerP task) = mkWorkflow path description roles (WorkflowTask task) managerP
 
 instance toWorkflow (a -> Task b) | iTask a & iTask b
 where
@@ -147,13 +145,13 @@ where
 	
 instance toWorkflow (ParamWorkflowContainer a b) | iTask a & iTask b
 where
-	toWorkflow path description roles (ParamWorkflow managerP paramTask) = mkWorkflow path description roles (createThreadParam (path2name path) paramTask) managerP
+	toWorkflow path description roles (ParamWorkflow managerP paramTask) = mkWorkflow path description roles (ParamWorkflowTask paramTask) managerP
 	
-mkWorkflow path description roles thread managerProps =
+mkWorkflow path description roles taskContainer managerProps =
 	{ Workflow
 	| path	= path
 	, roles	= roles
-	, thread = thread
+	, task = taskContainer
 	, description = description
 	, managerProperties = managerProps
 	}

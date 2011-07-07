@@ -224,7 +224,7 @@ gUpdate{|Dynamic|}		mode ust = basicUpdate mode unchanged (dynamic 42) ust
 gUpdate{|(->)|} _ fy	mode ust
 	# (def,ust) = fy UDCreate ust
 	= basicUpdate mode unchanged (const def) ust
-gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode unchanged (WorkflowTaskContainer defTask) ust
+gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode unchanged (WorkflowTask defTask) ust
 where
 	defTask :: Task Void
 	defTask = abort "default task container"

@@ -25,6 +25,15 @@ import CoreTasks
 
 :: LocalViewOn a :== ViewOn a Void Void
 
+:: ChoiceView o	= E.v: ChoiceContext	!v							& iTask v
+				| E.v: ChoiceView		!(!ChoiceType, !(o -> v))	& iTask v
+				
+:: ChoiceType	= AutoView
+				| RadioView
+				| ComboView
+				| TableView
+				| TreeView
+
 /*** General input/update/output tasks ***/
 
 /**

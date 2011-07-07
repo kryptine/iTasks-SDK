@@ -436,14 +436,15 @@ actionIcon 	:: !Action -> String
 							
 :: WorkflowId :== Int
 
-:: WorkflowTaskContainer = E.a: WorkflowTaskContainer !(Task a) & iTask a
+:: WorkflowTaskContainer	= E.a:		WorkflowTask		(Task a)		& iTask a
+							| E.a b:	ParamWorkflowTask	(a -> (Task b))	& iTask a & iTask b
 				
 // A workflow specification
-:: Workflow		=	{ path				:: String				//* a unique name of this workflow
-					, roles				:: [String]				//* the roles that are allowed to initate this workflow
-					, thread			:: Dynamic				//* the thread of the main task of the workflow
-					, description		:: String				//* a description of the workflow
-					, managerProperties	:: ManagerProperties	//* the initial manager properties of the main task
+:: Workflow		=	{ path				:: String					//* a unique name of this workflow
+					, roles				:: [String]					//* the roles that are allowed to initate this workflow
+					, task				:: WorkflowTaskContainer	//* the thread of the main task of the workflow
+					, description		:: String					//* a description of the workflow
+					, managerProperties	:: ManagerProperties		//* the initial manager properties of the main task
 					}
 					
 isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool

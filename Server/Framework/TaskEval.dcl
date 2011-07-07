@@ -13,13 +13,11 @@ import TaskContext, iTaskClass
 * Creates a dynamic containing a runnable task thread structure.
 * It contains the task plus the iTask context restrictions.
 *
-* @param The workflow title (for param only)
-* @param The task that is to be converted to a runnable thread (with ot without parameter)
+* @param The task that is to be converted to a runnable thread
 * 
 * @return A dynamic containing the thread
 */
-createThread		:: (Task a)					-> Dynamic	| iTask a
-createThreadParam	:: !String (a -> Task b)	-> Dynamic	| iTask a & iTask b
+createThread :: (Task a) -> Dynamic | iTask a
 
 //Creeer initiele task context
 makeWorkflowInstance	:: !WorkflowId !User !(Maybe JSONNode) !*IWorld	-> (!MaybeErrorString TaskContext, !*IWorld)

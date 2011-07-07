@@ -81,8 +81,8 @@ where
 	getTask iworld
 		# (mbWorkflow,iworld) = 'WorkflowDB'.getWorkflow wid iworld
 		= case mbWorkflow of
-			Just {thread=t=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a)} = (Ok (WorkflowTaskContainer originalTask), iworld)
-			_ = (Error ("could not find workflow " +++ (toString wid)), iworld)
+			Just {task}	= (Ok task, iworld)
+			_			= (Error ("could not find workflow " +++ (toString wid)), iworld)
 		
 // Workflow processes
 topLevelTasks :: (TaskList Void)

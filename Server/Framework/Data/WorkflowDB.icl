@@ -15,13 +15,13 @@ where
 	
 	getWorkflow :: !WorkflowId	!*IWorld -> (!Maybe Workflow, !*IWorld)
 	getWorkflow id iworld
-		# (mbThread,iworld)		= loadValue (THREAD_DB id) iworld
+		# (mbTask,iworld)		= loadValue (TASK_DB id) iworld
 		# (workflows,iworld)	= readWorkflowStore iworld
-		# res = case (mbThread,filter (\{workflowId} -> workflowId == id) workflows) of
-			(Just thread,[{WorkflowDescription|path,roles,description,managerProperties}]) = Just
+		# res = case (mbTask,filter (\{workflowId} -> workflowId == id) workflows) of
+			(Just task,[{WorkflowDescription|path,roles,description,managerProperties}]) = Just
 				{ path				= path
 				, roles				= roles
-				, thread			= thread
+				, task				= task
 				, description		= description
 				, managerProperties	= managerProperties
 				}
@@ -29,7 +29,7 @@ where
 		= (res,iworld)
 			 
 	addWorkflow :: !Workflow !*IWorld -> (!WorkflowDescription,!*IWorld)
-	addWorkflow {path,roles,thread,description,managerProperties} iworld
+	addWorkflow {path,roles,task,description,managerProperties} iworld
 		# (wid,iworld)	= getWid iworld
 		# descr =		{ workflowId		= wid
 						, path				= path
@@ -38,7 +38,7 @@ where
 						, managerProperties	= managerProperties
 						}
 		# (_,iworld)	= workflowStore (\ws -> ws ++ [descr]) iworld
-		# iworld		= storeValue (THREAD_DB wid) thread iworld
+		# iworld		= storeValue (TASK_DB wid) task iworld
 		= (descr,iworld)
 	where
 		getWid iworld
@@ -64,6 +64,6 @@ readWorkflowStore iworld
 	# (mbWorkflows,iworld) = loadValue WORKFLOW_DB iworld
 	= (fromMaybe [] mbWorkflows,iworld)
 
-WORKFLOW_DB		:== "WorkflowDB"
-NEXT_ID_DB		:== "NextWorkflowID"
-THREAD_DB id	:== "Workflow-" +++ toString id
+WORKFLOW_DB	:== "WorkflowDB"
+NEXT_ID_DB	:== "NextWorkflowID"
+TASK_DB id	:== "Workflow-" +++ toString id

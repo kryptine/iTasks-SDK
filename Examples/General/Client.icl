@@ -36,9 +36,9 @@ where
 		Just (_,descr)	= descr
 		
 	addWorkflow (wid,_) =
-												get (workflowTask wid)
-		>>=	\(WorkflowTaskContainer task) ->	get currentUser
-		>>= \user ->							appendTask (DetachedTask {initManagerProperties & worker = user}, \_ -> task >>| return Continue) topLevelTasks
+									get (workflowTask wid)
+		>>=	\(WorkflowTask task) ->	get currentUser
+		>>= \user ->				appendTask (DetachedTask {initManagerProperties & worker = user}, \_ -> task >>| return Continue) topLevelTasks
 
 processTable :: !(TaskList ClientState) -> Task ParallelControl	
 processTable taskList = updateSharedInformation "process table" [UpdateView (GetLocalAndShared mkTable, Putback putback)] (processes |+< state) Nothing >>+ noActions
