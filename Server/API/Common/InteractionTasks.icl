@@ -2,7 +2,7 @@ implementation module InteractionTasks
 
 from StdFunc import id, const, o, flip
 from SystemData import null
-from Util import appSnd, isMemberGen
+from Util import appSnd, isMemberGen, instance Functor []
 from Shared import makeReadOnlyShared, :: SharedId
 from Time import :: Timestamp(..)
 import StdBool, StdList, StdMisc, StdTuple
@@ -106,68 +106,73 @@ filterOutputOptions option = case option of
 		
 noFilter = Just
 
-enterChoice :: !d ![LocalViewOn o] ![o] -> Task o | descr d & iTask o
-enterChoice d options choiceOpts = InputTask @>> LocalInteractionTask @>>
-	choice` d (toSharedChoiceViews options) (constShared choiceOpts) Nothing
+enterChoice :: !d ![ChoiceView ChoiceType o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
+enterChoice d views choiceOpts = InputTask @>> LocalInteractionTask @>>
+	choice` d views (constShared choiceOpts) Nothing
 
-updateChoice :: !d ![LocalViewOn o] ![o] o -> Task o | descr d & iTask o
-updateChoice d options choiceOpts initC = UpdateTask @>> LocalInteractionTask @>>
-	choice` d (toSharedChoiceViews options) (constShared choiceOpts) (Just initC)
+updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
+updateChoice d views choiceOpts initC = UpdateTask @>> LocalInteractionTask @>>
+	choice` d views (constShared choiceOpts) (Just initC)
 	
-enterSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) -> Task o | descr d & iTask o & iTask w
-enterSharedChoice d options shared = InputTask @>> choice` d options shared Nothing
+enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedChoice d views shared = InputTask @>> choice` d views shared Nothing
 
-updateSharedChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) o -> Task o | descr d & iTask o & iTask w
-updateSharedChoice d options shared initC = UpdateTask @>> choice` d options shared (Just initC)
+updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedChoice d views shared initC = UpdateTask @>> choice` d views shared (Just initC)
 
-choice` d views shared mbInitSel = mapActionTask transF (updateSharedInformation d (toChoiceViews views) shared Nothing)
+choice` d views shared mbInitSel = mapActionTask transF (updateSharedInformation d (map toChoiceView (addDefault views)) shared Nothing)
 where
-	transF {modelValue=v=:(options,mbSelection)} = let mbSel = maybe mbInitSel Just mbSelection in {modelValue = fromMaybe defaultValue mbSel, localValid = isJust mbSel && isMemberGen (fromJust mbSel) options}
+	transF {modelValue=v=:(options,mbSelection)}
+		= let mbSel = maybe mbInitSel Just mbSelection in {modelValue = fromMaybe defaultValue mbSel, localValid = isJust mbSel && isMemberGen (fromJust mbSel) (toOptionList options)}
 	
-	toChoiceViews views = case [UpdateView (GetLocalAndShared (toChoice get), PutbackLocal fromChoice) \\ ShowView (GetShared get) <- views] of
-		[view:_]	= [view]
-		_			= [UpdateView (GetLocalAndShared (toChoice id), PutbackLocal fromChoice)]
-		
-	toChoice get mbSel options	= mkRadioChoice [(get o, o) \\ o <- options] (maybe mbInitSel Just mbSel)
-	fromChoice choice _ _		= getMbSelection choice
-
-enterMultipleChoice :: !d ![LocalViewOn o] ![o] -> Task [o] | descr d & iTask o
-enterMultipleChoice d options choiceOpts = InputTask @>> LocalInteractionTask @>>
-	multipleChoice` d (toSharedChoiceViews options) (constShared choiceOpts) []
-
-updateMultipleChoice :: !d ![LocalViewOn o] ![o] [o] -> Task [o] | descr d & iTask o
-updateMultipleChoice d options choiceOpts initC = UpdateTask @>> LocalInteractionTask @>>
-	multipleChoice` d (toSharedChoiceViews options) (constShared choiceOpts) initC
-
-enterSharedMultipleChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) -> Task [o] | descr d & iTask o & iTask w
-enterSharedMultipleChoice d options shared = InputTask @>> multipleChoice` d options shared []
-
-updateSharedMultipleChoice :: !d ![ViewOn Void o w] !(ReadWriteShared [o] w) [o] -> Task [o] | descr d & iTask o & iTask w
-updateSharedMultipleChoice d options shared sel = UpdateTask @>> multipleChoice` d options shared sel
-
-multipleChoice` d views shared initSels = mapActionTask transF (updateSharedInformation d (toChoiceViews views) shared Nothing)
-where
-	transF {modelValue=v=:(options,mbSelections)} = {modelValue = filter (\sel -> isMemberGen sel options) (fromMaybe initSels mbSelections), localValid = True}
+	toChoiceView view = case view of
+		ChoiceContext v = About v
+		ChoiceView (type,viewF) = case type of
+			//AutoChoiceView
+			ChooseFromRadioButtons	= choiceView mkRadioChoice viewF
+			ChooseFromComboBox		= choiceView mkComboChoice viewF
+			//ChooseFromTable
+			ChooseFromTree			= choiceView mkTreeChoice viewF
+			
+	choiceView mkF viewF			= UpdateView (GetLocalAndShared (toChoice mkF viewF), PutbackLocal fromChoice)
+	toChoice mkF get mbSel options	= mkF (fmap (\o -> (get o, o)) options) (maybe mbInitSel Just mbSel)
+	fromChoice choice _ _			= getMbSelection choice
 	
-	toChoiceViews views = case [UpdateView (GetLocalAndShared (toChoice get), PutbackLocal fromChoice) \\ ShowView (GetShared get) <- views] of
-		[view:_]	= [view]
-		_			= [UpdateView (GetLocalAndShared (toChoice id), PutbackLocal fromChoice)]
-		
-	toChoice get mbSels options	= mkCheckMultiChoice [(get o, o) \\ o <- options] (fromMaybe initSels mbSels)
-	fromChoice choice _ _		= Just (getSelections choice)
+	addDefault options
+		| any (\o -> case o of (ChoiceContext _) = False; _ = True) options	= options
+		| otherwise															= options ++ [ChoiceView (ChooseFromRadioButtons, id)]
 
-toSharedChoiceViews :: ![LocalViewOn o] -> [ViewOn Void o w]
-toSharedChoiceViews options = catMaybes (map toSharedChoiceView options)
+enterMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
+enterMultipleChoice d views choiceOpts = InputTask @>> LocalInteractionTask @>>
+	multipleChoice` d views (constShared choiceOpts) []
+
+updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
+updateMultipleChoice d views choiceOpts initC = UpdateTask @>> LocalInteractionTask @>>
+	multipleChoice` d views (constShared choiceOpts) initC
+
+enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedMultipleChoice d views shared = InputTask @>> multipleChoice` d views shared []
+
+updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedMultipleChoice d views shared sel = UpdateTask @>> multipleChoice` d views shared sel
+
+multipleChoice` d views shared initSels = mapActionTask transF (updateSharedInformation d (map toChoiceView (addDefault views)) shared Nothing)
 where
-	toSharedChoiceView opt = case opt of
-		About a							= Just (About a)
-		ShowView get
-			# get` = case get of
-				GetLocal get			= GetShared get
-				GetLocalAndShared get	= GetLocalAndShared (flip get)
-				GetShared get			= GetLocal get
-			= Just (ShowView get`)
-		_								= Nothing
+	transF {modelValue=v=:(options,mbSelections)} = {modelValue = filter (\sel -> isMemberGen sel (toOptionList options)) (fromMaybe initSels mbSelections), localValid = True}
+	
+	toChoiceView view = case view of
+		ChoiceContext v = About v
+		ChoiceView (type,viewF) = case type of
+			//AutoMultiChoiceView
+			ChooseFromCheckBoxes	= choiceView mkCheckMultiChoice viewF
+	
+	choiceView mkF viewF			= UpdateView (GetLocalAndShared (toChoice mkF viewF), PutbackLocal fromChoice)
+	toChoice mkF get mbSel options	= mkF (fmap (\o -> (get o, o)) options) (fromMaybe initSels mbSel)
+	fromChoice choice _ _			= Just (getSelections choice)
+	
+	addDefault options
+		| any (\o -> case o of (ChoiceContext _) = False; _ = True) options	= options
+		| otherwise															= options ++ [ChoiceView (ChooseFromCheckBoxes, id)]
 
 waitForTime :: !Time -> Task Time
 waitForTime time =

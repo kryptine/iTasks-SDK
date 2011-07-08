@@ -34,7 +34,7 @@ gEq{|(->)|} _ _ _ _			= False	// functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 //gEq{|Dynamic|} (x :: a | gEq{|*|} a) (y :: a | gEq{|*|} a) = x === y
 
-mkRadioChoice :: ![(!v,!o)] !(Maybe o) -> RadioChoice v o | gEq{|*|} o
+mkRadioChoice :: !(container (!v,!o)) !(Maybe o) -> RadioChoice v o | OptionContainer container & gEq{|*|} o
 mkRadioChoice options mbSel = mkChoice options mbSel
 
 instance Choice RadioChoice
@@ -46,7 +46,7 @@ where
 	getMbSelectionView (RadioChoice options mbSel)				= getMbSelection` options mbSel fst
 	setOptions newOptions (RadioChoice oldOptions mbSel)		= RadioChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
 
-mkComboChoice :: ![(!v,!o)] !(Maybe o) -> ComboChoice v o | gEq{|*|} o
+mkComboChoice :: !(container (!v,!o)) !(Maybe o) -> ComboChoice v o | OptionContainer container & gEq{|*|} o
 mkComboChoice options mbSel = mkChoice options mbSel
 
 instance Choice ComboChoice
@@ -58,7 +58,7 @@ where
 	getMbSelectionView (ComboChoice options mbSel)				= getMbSelection` options mbSel fst
 	setOptions newOptions (ComboChoice oldOptions mbSel)		= ComboChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
 
-mkTreeChoice :: !(Tree (!v,!o)) !(Maybe o) -> TreeChoice v o | gEq{|*|} o
+mkTreeChoice :: !(container (!v,!o)) !(Maybe o) -> TreeChoice v o | OptionContainer container & gEq{|*|} o
 mkTreeChoice options mbSel = mkChoice options mbSel
 
 instance Choice TreeChoice
@@ -103,7 +103,7 @@ setOptions` oldOptions mbSel newOptions
 			[newSel]	= Just newSel
 			_			= Nothing
 
-mkCheckMultiChoice :: ![(!v,!o)] ![o] -> CheckMultiChoice v o | gEq{|*|} o
+mkCheckMultiChoice :: !(container (!v,!o)) ![o] -> CheckMultiChoice v o | OptionContainer container & gEq{|*|} o
 mkCheckMultiChoice options sels = mkMultiChoice options sels
 			
 instance MultiChoice CheckMultiChoice
@@ -128,8 +128,12 @@ setMultiOptions` oldOptions sels newOptions
 
 instance OptionContainer []
 where
-	toOptionList l = l
-	toOptionTree l = Tree (map Leaf l)
+	toOptionList l				= l
+	toOptionTree l				= Tree (map Leaf l)
+	suggestedChoiceType	l
+		| length l > 7			= ChooseFromComboBox
+		| otherwise				= ChooseFromRadioButtons
+	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
 	
 instance OptionContainer Tree
 where
@@ -139,6 +143,8 @@ where
 			Leaf option		= [option]
 			Node _ nodes	= flatten (map toOptionList` nodes)
 	toOptionTree t = t
+	suggestedChoiceType _		= ChooseFromTree
+	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
 
 newIndexes :: ![a] ![a] ![Int] -> [Int] | gEq{|*|} a
 newIndexes oldOpts newOpts sel = newIndexes` curChoices []

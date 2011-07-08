@@ -52,4 +52,5 @@ from StdFunc import id, const, o
 
 //Types
 import SharedCombinators, SystemTypes, GenRecord
-from Task				import :: Change(..), :: ChangeLifeTime(..)
+from Task import :: Change(..), :: ChangeLifeTime(..)
+from Util import instance Functor []

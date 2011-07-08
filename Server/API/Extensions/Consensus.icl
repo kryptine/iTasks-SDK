@@ -84,7 +84,7 @@ collectOpinion :: Topic User [a] [String] -> Task (User,[(a,String)]) | iTask a
 collectOpinion topic user items answers
 	=	user @:
 		(Description ("Your opinion about: " +++ topic.topic) @>>
- 		(allTasks [enterChoice ("Option " <+++ i,"What is your opinion about:") [About item] answers  \\ item <- items & i <- [1..]] >>= transform (merge items)))
+ 		(allTasks [enterChoice ("Option " <+++ i,"What is your opinion about:") [ChoiceContext item] answers  \\ item <- items & i <- [1..]] >>= transform (merge items)))
 where
 	merge items opinions = (user,zip (items,opinions))
 

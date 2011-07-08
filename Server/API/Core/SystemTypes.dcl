@@ -120,12 +120,12 @@ instance toEmail User
 
 //* Represents the choice of one element from a list represented as radio buttons
 :: RadioChoice v o = RadioChoice ![(!v,!o)] !(Maybe Int)
-mkRadioChoice :: ![(!v,!o)] !(Maybe o) -> RadioChoice v o | gEq{|*|} o
+mkRadioChoice :: !(container(!v,!o)) !(Maybe o) -> RadioChoice v o | OptionContainer container & gEq{|*|} o
 instance Choice RadioChoice
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
-mkComboChoice :: ![(!v,!o)] !(Maybe o) -> ComboChoice v o | gEq{|*|} o
+mkComboChoice :: !(container (!v,!o)) !(Maybe o) -> ComboChoice v o | OptionContainer container & gEq{|*|} o
 instance Choice ComboChoice
 
 //* Represents a tree from with the user can choose one element
@@ -133,7 +133,7 @@ instance Choice ComboChoice
 :: Tree a = Tree !.[.TreeNode a]
 :: TreeNode a = Leaf !a | Node !TreeLabel !.[TreeNode a]
 :: TreeLabel :== String
-mkTreeChoice :: !(Tree (!v,!o)) !(Maybe o) -> TreeChoice v o | gEq{|*|} o
+mkTreeChoice :: !(container (!v,!o)) !(Maybe o) -> TreeChoice v o | OptionContainer container & gEq{|*|} o
 instance Choice TreeChoice
 instance Functor Tree
 
@@ -157,10 +157,19 @@ where
 	//* Sets the choice's options, tries to keep the selection as intact as possible
 	setOptions				:: !(container (!v,!o)) !(choiceType v o)	-> choiceType v o | OptionContainer container & gEq{|*|} o
 
+:: ChoiceType	//= AutoChoiceView
+				= ChooseFromRadioButtons
+				| ChooseFromComboBox
+				//| ChooseFromTable
+				| ChooseFromTree
+
 //* Represents the choice of a number of items from a list
 :: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]
-mkCheckMultiChoice :: ![(!v,!o)] ![o] -> CheckMultiChoice v o | gEq{|*|} o
+mkCheckMultiChoice :: !(container (!v,!o)) ![o] -> CheckMultiChoice v o | OptionContainer container & gEq{|*|} o
 instance MultiChoice CheckMultiChoice
+
+:: MultiChoiceType	= AutoMultiChoiceView
+					| ChooseFromCheckBoxes
 
 /**
 * Interface for types representing choices a number of elements out of a set of options.
@@ -180,10 +189,12 @@ where
 	//* Sets the choice's options, tries to keep the selection as intact as possible
 	setMultiOptions			:: !(container (!v,!o)) !(choiceType v o)	-> choiceType v o | OptionContainer container & gEq{|*|} o
 
-class OptionContainer container
+class OptionContainer container | Functor container
 where
-	toOptionList	:: !(container o) -> [o]
-	toOptionTree	:: !(container o) -> Tree o
+	toOptionList				:: !(container o) -> [o]
+	toOptionTree				:: !(container o) -> Tree o
+	suggestedChoiceType			:: !(container o) -> ChoiceType
+	suggestedMultiChoiceType	:: !(container o) -> MultiChoiceType
 	
 instance OptionContainer []
 instance OptionContainer Tree

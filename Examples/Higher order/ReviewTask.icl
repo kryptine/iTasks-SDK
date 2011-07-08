@@ -59,7 +59,7 @@ taskToReview reviewer (v`,task)
 
 review :: a -> Task Review | iTask a 
 review v
-	=	enterChoice ("Review","What is your verdict?") [About v]
+	=	enterChoice ("Review","What is your verdict?") [ChoiceContext v]
 			[ updateInformation ("Comments","Please add your comments") [] (NeedsRework (Note "")) <<@ Description "Rework"
 			, return Approved <<@ Description "Approved"
 			, return Rejected <<@ Description "Reject"
