@@ -157,8 +157,8 @@ where
 	//* Sets the choice's options, tries to keep the selection as intact as possible
 	setOptions				:: !(container (!v,!o)) !(choiceType v o)	-> choiceType v o | OptionContainer container & gEq{|*|} o
 
-:: ChoiceType	//= AutoChoiceView
-				= ChooseFromRadioButtons
+:: ChoiceType	= AutoChoiceView
+				| ChooseFromRadioButtons
 				| ChooseFromComboBox
 				//| ChooseFromTable
 				| ChooseFromTree
