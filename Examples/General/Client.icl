@@ -66,12 +66,18 @@ workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(Hidden
 
 controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
 controlWorkTabs state taskList = forever (
-														showSharedInformation "waiting for trigger" [] (state >+< openProcs) Void >? (\(({selectedProcess},procs),_) -> isJust selectedProcess && not (isMember (fromJust selectedProcess) procs))
-	>>= \(({selectedProcess=s=:(Just proc)},_),_) ->	appendTask (BodyTask, \_ -> workTab proc openProcs <<@ singleControlLayout) taskList
-	>>|													update (\state -> {state & selectedProcess = Nothing}) state
-	>>|													update (\procs -> [proc:procs]) openProcs)
+					chooseActionDyn openTabTrigger (state >+< openProcs)
+	>>= \proc ->	appendTask (BodyTask, \_ -> workTab proc openProcs <<@ singleControlLayout) taskList
+	>>|				update (\state -> {state & selectedProcess = Nothing}) state
+	>>|				update (\procs -> [proc:procs]) openProcs)
 where
 	openProcs = taskListState taskList
+	
+	openTabTrigger ({selectedProcess},procs) = case selectedProcess of
+		Just selectedProcess | not (isMember selectedProcess procs)
+			= StopInteraction selectedProcess
+		_
+			= UserActions []
 
 workTab :: !ProcessId !(Shared [ProcessId]) -> Task ParallelControl											
 workTab procId openProcs =

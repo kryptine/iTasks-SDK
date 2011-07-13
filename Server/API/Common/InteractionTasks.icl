@@ -199,8 +199,8 @@ waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions = interactLocal chooseActionDescr (const []) Void >>+ \_ -> UserActions (map (appSnd Just) actions)
 
-chooseActionDyn :: !(ReadWriteShared r w) !(r -> [(!Action,Maybe a)]) -> Task a | iTask a & iTask r & iTask w
-chooseActionDyn shared actionsF = interact chooseActionDescr (\_ _ _ -> []) Void shared >>+ \{modelValue=v=:(_,r)} -> UserActions (actionsF r)
+chooseActionDyn :: !(r -> InteractionTerminators a) !(ReadWriteShared r w) -> Task a | iTask a & iTask r & iTask w
+chooseActionDyn termF shared = interact chooseActionDescr (\_ _ _ -> []) Void shared >>+ \{modelValue=v=:(_,r)} -> termF r
 
 chooseActionDescr = "Choose an action"
 

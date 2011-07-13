@@ -317,15 +317,16 @@ chooseAction :: ![(!Action,a)] -> Task a | iTask a
 /**
 * Ask the user to choose an action. The list of actions is calculated dynamically.
 *
-* @param Action function:	A function generating a list of actions the user can choose from. Each actions yields the given result if it's chosen & result is present (Just). Otherwise (Nothing) action is disabled.
-* @param ReadWriteShared:			Reference to a shared state the actions depend on
+* @param ReadWriteShared:		Reference to a shared state the actions depend on
+* @param Termination function:	A function generating terminators for the task. So the task can either provide user actions or trigger an action automatically.
 *
-* @return 					Value associated with chosen action
-* @throws					SharedException
+*
+* @return 						Value associated with chosen action
+* @throws						SharedException
 * 
 * @gin False
 */						
-chooseActionDyn :: !(ReadWriteShared r w) !(r -> [(!Action,Maybe a)]) -> Task a | iTask a & iTask r & iTask w
+chooseActionDyn :: !(r -> InteractionTerminators a) !(ReadWriteShared r w) -> Task a | iTask a & iTask r & iTask w
 
 /**
 * A derived version of 'interact' which only uses a local state.
