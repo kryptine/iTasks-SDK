@@ -6,7 +6,7 @@ calculatorExample :: [Workflow]
 calculatorExample = [workflow "Examples/Miscellaneous/Calculator" "A simple calculator demonstrating how to layout buttons." calculator]
 
 calculator :: Task Int
-calculator = (interactLocal "Calculator" parts initSt >>+ terms) <<@ calculatorLayout
+calculator = (updateInformation "Calculator" views initSt >>+ terms) <<@ calculatorLayout
 where
 	initSt =	{ display		= 0
 				, x				= 0
@@ -15,36 +15,36 @@ where
 				, showsResult	= False
 				}
 				
-	parts st =
-		[ DisplayPart st.display
-		, UpdatePart "7" (enterDigit 7)
-		, UpdatePart "8" (enterDigit 8)
-		, UpdatePart "9" (enterDigit 9)
-		, UpdatePart "C" initSt
-		, UpdatePart "4" (enterDigit 4)
-		, UpdatePart "5" (enterDigit 5)
-		, UpdatePart "6" (enterDigit 6)
-		, UpdatePart "/" (calc (/) False)
-		, UpdatePart "1" (enterDigit 1)
-		, UpdatePart "2" (enterDigit 2)
-		, UpdatePart "3" (enterDigit 3)
-		, UpdatePart "*" (calc (*) False)
-		, UpdatePart "0" (enterDigit 0)
-		, UpdatePart "+" (calc (+) False)
-		, UpdatePart "-" (calc (-) False)
-		, UpdatePart "=" (calc st.op True)
+	views =
+		[ ShowView (GetLocal \{display} -> display)
+		, UpdateTrigger "7" (UpdateLocal (enterDigit 7))
+		, UpdateTrigger "8" (UpdateLocal (enterDigit 8))
+		, UpdateTrigger "9" (UpdateLocal (enterDigit 9))
+		, UpdateTrigger "C" (UpdateLocal (const initSt))
+		, UpdateTrigger "4" (UpdateLocal (enterDigit 4))
+		, UpdateTrigger "5" (UpdateLocal (enterDigit 5))
+		, UpdateTrigger "6" (UpdateLocal (enterDigit 6))
+		, UpdateTrigger "/" (UpdateLocal (calc (/) False))
+		, UpdateTrigger "1" (UpdateLocal (enterDigit 1))
+		, UpdateTrigger "2" (UpdateLocal (enterDigit 2))
+		, UpdateTrigger "3" (UpdateLocal (enterDigit 3))
+		, UpdateTrigger "*" (UpdateLocal (calc (*) False))
+		, UpdateTrigger "0" (UpdateLocal (enterDigit 0))
+		, UpdateTrigger "+" (UpdateLocal (calc (+) False))
+		, UpdateTrigger "-" (UpdateLocal (calc (-) False))
+		, UpdateTrigger "=" (UpdateLocal (\st -> calc st.op True st))
 		]
 	where
-		enterDigit d = {st & display = newV, y = newV, showsResult = False}
+		enterDigit d st = {st & display = newV, y = newV, showsResult = False}
 		where
 			newV = if st.showsResult d (st.display*10 + d)
 				
-		calc nop alwaysCalc =	{ st
-								& display		= v
-								, x				= v
-								, op			= nop
-								, showsResult	= True
-								}
+		calc nop alwaysCalc st =	{ st
+									& display		= v
+									, x				= v
+									, op			= nop
+									, showsResult	= True
+									}
 		where
 			v = if (not st.showsResult || alwaysCalc) (st.op st.x st.y) st.display
 			

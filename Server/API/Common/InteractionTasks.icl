@@ -174,6 +174,13 @@ where
 				= FormPart
 					updateViewGet
 					(mkPutback putback l r)
+			UpdateTrigger label updateF = case updateF of
+				UpdateData f
+					# (mbL, mbW)		= f l r
+					# updateSharedView	= isJust mbW
+					= UpdatePart label (maybe (l, False, updateSharedViews) (\l -> (l, True, updateSharedViews)) mbL, mbW)
+				UpdateLocal f				= UpdatePart label ((f l, True, False), Nothing)
+				UpdateShared f				= UpdatePart label ((l, False, True), Just (f r))
 									
 		mkPutback putback l r mbV = case mbV of
 			Nothing = ((l,False,False),Nothing)
@@ -197,21 +204,12 @@ waitForTimer :: !Time -> Task Time
 waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
-chooseAction actions = interactLocal chooseActionDescr (const []) Void >>+ \_ -> UserActions (map (appSnd Just) actions)
+chooseAction actions = interact chooseActionDescr (\_ _ _ -> []) Void voidNull >>+ \_ -> UserActions (map (appSnd Just) actions)
 
 chooseActionDyn :: !(r -> InteractionTerminators a) !(ReadWriteShared r w) -> Task a | iTask a & iTask r & iTask w
 chooseActionDyn termF shared = interact chooseActionDescr (\_ _ _ -> []) Void shared >>+ \{modelValue=v=:(_,r)} -> termF r
 
 chooseActionDescr = "Choose an action"
-
-interactLocal :: !d !(l -> [InteractionPart l]) l -> Task l | descr d & iTask l
-interactLocal d partFunc l = LocalInteractionTask @>> mapActionTask (\st=:{modelValue=v=:(l,_)} -> {st & modelValue = l}) (interact d interaction l voidNull)
-where
-	interaction l _ _ = map toSharedRes (partFunc l)
-
-	toSharedRes (FormPart formView putback)	= FormPart formView (\mbV -> (putback mbV,Nothing))
-	toSharedRes (UpdatePart label l)				= UpdatePart label (l,Nothing)
-	toSharedRes (DisplayPart v)						= DisplayPart v
 	
 voidNull :: Shared Void
 voidNull = null

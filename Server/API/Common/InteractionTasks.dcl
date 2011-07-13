@@ -5,10 +5,11 @@ import CoreTasks
 /**
 * Defines a view on the data model of interaction tasks. 
 */
-:: ViewOn l r w	= E.v: About		!v										& iTask v //* additional information independent from the data model the interaction task works on
-				| E.v: EnterView	!(PutbackFunc l r w v)					& iTask v //* a view to put information into the data model
-				| E.v: UpdateView	!(!GetFunc l r v, !PutbackFunc l r w v)	& iTask v //* a view to update the data model
-				| E.v: ShowView		!(GetFunc l r v)						& iTask v //* a view to show the data model
+:: ViewOn l r w	= E.v:	About			!v										& iTask v	//* additional information independent from the data model the interaction task works on
+				| E.v:	EnterView		!(PutbackFunc l r w v)					& iTask v	//* a view to put information into the data model
+				| E.v:	UpdateView		!(!GetFunc l r v, !PutbackFunc l r w v)	& iTask v	//* a view to update the data model
+				| E.v:	ShowView		!(GetFunc l r v)						& iTask v	//* a view to show the data model
+				|		UpdateTrigger	!String !(UpdateFunc l r w)							//* a trigger (typically a button) used to update the data model
 /**
 * Defines how to get a view from the data model.
 */
@@ -22,6 +23,13 @@ import CoreTasks
 :: PutbackFunc l r w v	= Putback		!(v l r -> (!Maybe l,!Maybe w)) //* a putback function to possibly put information into the local/shared data model
 						| PutbackLocal	!(v l r -> l)					//* a putback function to put information into the local data model
 						| PutbackShared	!(v l r -> w)					//* a putback function to put information into the shared data model
+
+/**
+* Defines how to update the data model.
+*/						
+:: UpdateFunc l r w	= UpdateData	!(l r -> (!Maybe l, Maybe w))	//* a function possibly updating the local/shared data model
+					| UpdateLocal	!(l -> l)						//* a function updating the local data model
+					| UpdateShared	!(r -> w)						//* a function update the shared data model
 
 :: LocalViewOn a :== ViewOn a Void Void
 
@@ -327,16 +335,3 @@ chooseAction :: ![(!Action,a)] -> Task a | iTask a
 * @gin False
 */						
 chooseActionDyn :: !(r -> InteractionTerminators a) !(ReadWriteShared r w) -> Task a | iTask a & iTask r & iTask w
-
-/**
-* A derived version of 'interact' which only uses a local state.
-*
-* @param Description:			A description of the task to display to the user
-* @param Terminator function:	A function (on the current local state) dynamically generating the interaction parts shown to the user (parts can change the local state (l))
-* @param Local state:			The initial local state
-*
-* @return						The last value of the local state
-* 
-* @gin False
-*/
-interactLocal :: !d !(l -> [InteractionPart l]) l -> Task l | descr d & iTask l
