@@ -184,7 +184,7 @@ where
 					_											= (scontext, iworld)
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
-				# commitEvent					= stepCommitEvent changeNo (stepCommitEvent processId mbCommit)
+				# commitEvent					= stepEvent changeNo (stepEvent processId mbCommit) //TODO: hier switchen van proc naar task event
 				= evaluateWorkflowInstanceEval processId currentTask.Task.properties changeNo [changeNo,processId] properties thread scontext commitEvent tuiTaskNr iworld
 			TTCFinished result
 				= (TaskFinished result, iworld)

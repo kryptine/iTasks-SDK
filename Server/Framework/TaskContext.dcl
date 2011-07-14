@@ -29,8 +29,9 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 //Parallel has a bit more complex administration so we define it as a record
 :: ParallelMeta = 
 	{ nextIdx		:: !Int
-	, infoChanged	:: !Timestamp
+	, stateId		:: !String
 	, stateChanged	:: !Timestamp
+	, infoChanged	:: !Timestamp
 	}
 	
 //Access functions for basic tasks

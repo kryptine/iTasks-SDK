@@ -39,9 +39,14 @@ derive gPutRecordFields	Task
 :: TaskEditEventFun	:== TaskNr EditEvent TaskContextTree *IWorld -> *(!TaskContextTree,!*IWorld)
 :: TaskEvalFun a	:== TaskNr TaskProperties (Maybe CommitEvent) ReversedTaskNr InteractionLayouter ParallelLayouter MainLayouter TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
-:: ReversedTaskNr	:== [Int]									//Reversed tasks nr used to locate a subtask in a composition  
-:: EditEvent		:== (!ReversedTaskNr, !String, !JSONNode)	//Location, Datapath and new value
-:: CommitEvent		:== (!ReversedTaskNr, !String)				//Location and action name
+:: ReversedTaskNr	:== [Int]							//Reversed tasks nr used to locate a subtask in a composition  
+
+:: Event e			= ProcessEvent	!ReversedTaskNr !e	//Event for a process we have not evaluated yet
+					| TaskEvent		!ReversedTaskNr !e	//Event for a task within the process we are looking for
+
+:: EditEvent		:== Event (!String,!JSONNode)		//Datapath and new value
+:: CommitEvent		:== Event String					//Action name
+
 
 :: TaskResult a		= TaskBusy !(Maybe TUIDef) ![TaskAction] !TaskContextTree
 					| TaskFinished !a
@@ -126,10 +131,10 @@ taskNrToString		:: !TaskNr -> String
 
 /**
 * Helper function for directing possible commit events to the right location
-* in a TaskContext. If there is a commit event and it is on the right path
+* in a TaskContext. If there is an event and it is on the right path
 * make a 'step' towards its destination by removing a segment from the path
 */
-stepCommitEvent :: !Int !(Maybe CommitEvent) -> Maybe CommitEvent 
+stepEvent :: !Int !(Maybe (Event e)) -> Maybe (Event e) 
 
 stepTUITaskNr :: !Int !ReversedTaskNr -> ReversedTaskNr
 

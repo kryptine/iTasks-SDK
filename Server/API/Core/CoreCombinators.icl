@@ -98,9 +98,7 @@ noActions :: (TermFunc a b) | iTask a & iTask b
 noActions = const (UserActions [])
 
 // Parallel composition
-STATEKEY id 	:== "parallel_" +++ taskNrToString id +++ "-state"
 INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
-CONTROLKEY id	:== "parallel_" +++ taskNrToString id +++ "-control"
 
 :: ResultSet
 	= RSException !Dynamic !String
@@ -113,16 +111,19 @@ parallel description initState resultFun initTasks = mkTask description init edi
 where
 	//Create initial set of tasks and initial state
 	init taskNr iworld=:{IWorld|timestamp}
-		# (subContexts, nextIdx, iworld)	= initSubContexts taskNr 0 initTasks iworld  
-		# meta								= {nextIdx = nextIdx, stateChanged = timestamp, infoChanged = timestamp}
+		# (subContexts, nextIdx, iworld)	= initSubContexts taskNr taskList 0 initTasks iworld  
+		# meta								= {nextIdx = nextIdx, stateId = taskNrToString taskNr, stateChanged = timestamp, infoChanged = timestamp}
 		# encState							= encodeState initState initState
 		= (TCParallel encState meta subContexts, iworld)
 	where
-		initSubContexts taskNr i [] iworld = ([],i,iworld)
-		initSubContexts taskNr i [t:ts] iworld
-			# (s,iworld)			= initSubContext taskNr i t iworld
-			# (ss, nextIdx, iworld) = initSubContexts taskNr (i + 1) ts iworld
+		taskList	= ParallelTaskList (taskNrToString taskNr)
+		
+		initSubContexts taskNr taskList i [] iworld = ([],i,iworld)
+		initSubContexts taskNr taskList i [t:ts] iworld
+			# (s,iworld)			= initSubContext taskNr taskList i t iworld
+			# (ss, nextIdx, iworld) = initSubContexts taskNr taskList (i + 1) ts iworld
 			= ([(i,s):ss], nextIdx, iworld)
+			
 			
 	//Direct the event to the right place
 	edit taskNr ([s:steps],path,val) context=:(TCParallel encState meta subs) iworld=:{IWorld|latestEvent=parentLatestEvent}
@@ -258,12 +259,12 @@ where
 		//Append current result to results so far
 		# results	= results ++ [(idx,result,stcontext)]
 		//Process controls
-		# (controls, iworld)			= getControls taskNr iworld
+		# (controls, iworld)			= getControls meta iworld
 		# (meta,results,stasks,iworld)	= processControls initState taskNr meta controls results stasks iworld
 		//Evaluate remaining subtasks
 		= evalSubTasks taskNr event tuiTaskNr imerge pmerge mmerge meta results stasks iworld
 		
-	initSubContext taskNr i taskContainer iworld=:{IWorld|timestamp}
+	initSubContext taskNr taskList i taskContainer iworld=:{IWorld|timestamp}
 		# subTaskNr = [i:taskNr]
 		= case taskContainer of
 			(DetachedTask managerProps, taskfun)
@@ -295,7 +296,7 @@ where
 	where
 		// apply task list reference to taskfun & convert to 'normal' (non-action) tasks
 		mkSubTask taskfun
-			# task			= taskfun (ParallelTaskList (taskNrToString taskNr)) 
+			# task			= taskfun taskList
 			# funcs			= toTaskFuncs task
 			# task			= {Task|task & type = NormalTask funcs}
 			= (task,funcs)
@@ -330,30 +331,32 @@ where
 		
 	//Put the shared state in the scope
 	addParState :: !TaskNr !s !ParallelMeta *IWorld -> *IWorld | TC s
-	addParState taskNr state {stateChanged} iworld=:{parallelStates}
-		= {iworld & parallelStates = 'Map'.put (STATEKEY taskNr) (dynamic (state,stateChanged) :: (s^,Timestamp)) parallelStates}
+	addParState taskNr state {stateId,stateChanged} iworld=:{parallelStates}
+		= {iworld & parallelStates = 'Map'.put (toString (ParallelTaskList stateId)) (dynamic (state,stateChanged) :: (s^,Timestamp)) parallelStates}
 	
 	removeParState :: !TaskNr !ParallelMeta !*IWorld -> (!s,!ParallelMeta,!*IWorld) | TC s
-	removeParState taskNr meta iworld=:{parallelStates}
-		= case 'Map'.get (STATEKEY taskNr) parallelStates of
-			Just ((state,ts) :: (s^,Timestamp))	= (state,{meta & stateChanged = ts},{iworld & parallelStates = 'Map'.del (STATEKEY taskNr) parallelStates})
+	removeParState taskNr meta=:{stateId} iworld=:{parallelStates}
+		= case 'Map'.get (toString (ParallelTaskList stateId)) parallelStates of
+			Just ((state,ts) :: (s^,Timestamp))	= (state,{meta & stateChanged = ts},{iworld & parallelStates = 'Map'.del (toString (ParallelTaskList stateId)) parallelStates})
 			_									= abort "Could not read parallel state"
 	
 	//IMPORTANT: first argument is never used, but passed just to solve overloading
 	//Put the initial control structure in the scope
 	addParControl :: !TaskNr !ParallelMeta *IWorld -> *IWorld
-	addParControl taskNr meta=:{nextIdx} iworld=:{parallelControls}
-		= {iworld & parallelControls = 'Map'.put (toString (ParallelTaskList (taskNrToString taskNr))) (nextIdx,[]) parallelControls}
-
+	addParControl taskNr meta=:{nextIdx,stateId} iworld=:{parallelControls}
+		= {iworld & parallelControls = 'Map'.put key (nextIdx,[]) parallelControls}
+	where
+		key = toString (ParallelTaskList stateId)
+		
 	removeParControl :: !TaskNr !ParallelMeta *IWorld -> (!ParallelMeta,!*IWorld)
-	removeParControl taskNr meta iworld=:{parallelControls}
+	removeParControl taskNr meta=:{stateId} iworld=:{parallelControls}
 		= case 'Map'.get key parallelControls of
 			Just (nextIdx,_)	= ({meta & nextIdx = nextIdx},{iworld & parallelControls = 'Map'.del key parallelControls})
 			_					= abort "Could not read parallel control"
 	where
-		key	= toString (ParallelTaskList (taskNrToString taskNr))
+		key	= toString (ParallelTaskList stateId)
 	
-	//Put a datastructure in the scope with info on all processes in this set
+	//Put a datastructure in the scope with info on all processes in this set (TODO: Use parallel meta for identification)
 	addParTaskInfo :: !TaskNr ![(!Int,!SubTaskContext)] !Timestamp !*IWorld -> *IWorld
 	addParTaskInfo taskNr subs ts iworld=:{parallelStates}
 		= {iworld & parallelStates = 'Map'.put (INFOKEY taskNr) (dynamic (mkInfo subs,ts) :: ([ParallelTaskInfo],Timestamp) ) parallelStates}
@@ -372,22 +375,23 @@ where
 		= (currentUser,{IWorld|iworld & currentUser = newUser})
 	
 	//Remove and return control values from the scope
-	getControls :: !TaskNr !*IWorld -> ([Control], !*IWorld)
-	getControls taskNr iworld=:{parallelControls}
+	getControls :: !ParallelMeta !*IWorld -> ([Control], !*IWorld)
+	getControls meta=:{stateId} iworld=:{parallelControls}
 		= case 'Map'.get key parallelControls of
 			Just (nextIdx, controls)
 				= (controls, {iworld & parallelControls = 'Map'.put key (nextIdx,[]) parallelControls})
 			_
 				= abort "Could not load parallel control data"
 	where
-		key	= toString (ParallelTaskList (taskNrToString taskNr))
+		key	= toString (ParallelTaskList stateId)
 		
 	processControls :: s !TaskNr !ParallelMeta [Control] [(!Int, !TaskResult ParallelControl, !SubTaskContext)] [(Int,!SubTaskContext)] !*IWorld -> (!ParallelMeta,![(!Int, !TaskResult ParallelControl, !SubTaskContext)], ![(Int,!SubTaskContext)],!*IWorld) | iTask s
 	processControls s taskNr meta [] results remaining iworld = (meta,results,remaining,iworld)
 	processControls s taskNr meta [c:cs] results remaining iworld
+		# taskList = ParallelTaskList meta.ParallelMeta.stateId
 		= case c of
 			AppendTask idx (taskContainer :: (TaskContainer s^))
-				# (context,iworld)	= initSubContext taskNr idx taskContainer iworld
+				# (context,iworld)	= initSubContext taskNr taskList idx taskContainer iworld
 				# remaining			= remaining ++ [(idx,context)]
 				= processControls s taskNr meta cs results remaining iworld
 			RemoveTask idx
@@ -463,7 +467,7 @@ where
 taskListState :: (TaskList s) -> Shared s | TC s
 taskListState tasklist = ReadWriteShared [identity] read write timestamp
 where
-	identity 	= toString tasklist +++ "-state"
+	identity 	= toString tasklist
 	
 	read iworld=:{parallelStates}
 		= case 'Map'.get identity parallelStates of

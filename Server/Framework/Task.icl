@@ -87,11 +87,12 @@ where
 	stl [] = []
 	stl xs = tl xs
 
-stepCommitEvent :: !Int !(Maybe CommitEvent) -> Maybe CommitEvent 
-stepCommitEvent i (Just ([s:ss],action))
-	| s == i	= Just (ss,action)
+stepEvent :: !Int !(Maybe (Event e)) -> Maybe (Event e)
+stepEvent i (Just (TaskEvent [s:ss] e))
+	| s == i	= Just (TaskEvent ss e)
 				= Nothing
-stepCommitEvent _ _ = Nothing
+stepEvent i (Just (ProcessEvent s e))	= Just (ProcessEvent s e)
+stepEvent _ _ 							= Nothing
 
 stepTUITaskNr :: !Int !ReversedTaskNr -> ReversedTaskNr
 stepTUITaskNr i []		= []
