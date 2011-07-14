@@ -1,7 +1,28 @@
-This package is the iTasks Software Development Kit (SDK).
+This repository holds the iTasks Software Development Kit (SDK).
+=== Setup ===
 
-If you are impatient and want to get started right away, please continue with
-the instructions at the bottom of this document.
+= Preparation of the IDE =
+- Make sure that this SDK is placed in the folder of the Clean 2.3 distribution (the one that contains "CleanIDE.exe")
+  and is called "iTasks-SDK".
+- Copy the file "iTasks-SDK/Compiler/_SystemArray-patched.icl" to "Libraries/StdEnv/_SystemArray.icl"
+- Start the CleanIDE
+- Import the "iTasks" environment by choosing "Environment" -> "Import..." from the menu
+  and selecting the "iTasks-SDK/Server/iTasks.env" file. 
+
+= Building the support tools ==
+- Build the RunAsync tool by opening the Clean project "iTasks-SDK/Tools/RunAsync.prj" and choosing ("Project" -> "Update") from the menu.
+- Run the script "iTasks-SDK/Client/build.bat" (requires java) to build the Client Framework
+
+= Building examples =
+The most up-to-date example suite to run at the moment is the examples collection for the CEFP Summerschool.
+
+- Open the "iTasks-SDK/Examples/CEFP2011/CEFP.prj" Clean project. ("File" -> "Open...")
+- You build the project by choosing ("Project" -> "Update and Run") from the menu.
+- A CEFP.exe server is started automatically which you can access at "http://localhost/"
+- Further instructions for setting up are given by the server 
+
+=== Content of the repository ===
+
 This SDK consists of multiple libraries, tools and documents that are needed to
 create iTasks applications.
 They are divided over multiple folders as follows:
@@ -23,26 +44,3 @@ They are divided over multiple folders as follows:
 - Examples : Example workflow suites.
 
 - Tools    : Various build and code generation tools.
-
-=== Getting started (examples suite) ===
-
-IMPORTANT: If you obtained iTasks directly from the subversion repository
-           you need to run Client/build.bat to compile the client application.
-
-The best way to get to know the iTasks SDK is by building and running the examples suite.
-To build this suite do the following steps:
-- Start the CleanIDE
-- Import the "iTasks" environment by choosing "Environment" -> "Import..." from the menu
-  and selecting the "Server/iTasks.env" file. 
-- Open the Examples/AllExamples.icl Clean module. ("File" -> "Open...")
-- Create a new project "AllExamples.prj" by choosing ("File" -> "New project...") from the menu.
-- Select the "iTasks" environment in the "Environment" menu.
-- Open the project options window by chooing ("Project" -> "Project options...") from the menu.
-- Set the "Maximum Heap Size" to "8M"
-- Set the "Maximum Stack Size" to "1M"
-- Choose "Project Paths" from the list of radio boxes.
-- Append all the folders in the "Examples" folder ("Applications","Change","Higher Order","Miscellaneous","Shares").
-- Close the project options window.
-- You can now build the project by choosing ("Project" -> "Update and Run") from the menu.
-- The AllExamples.exe server is started automatically which you can access at http://localhost/
-- Further instructions for setting up are given by the server 
