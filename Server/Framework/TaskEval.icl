@@ -180,11 +180,15 @@ where
 				//Apply edit event
 				# (scontext,iworld) = case mbEdit of
 					//The firts two steps in an edit event path have to be the processId and changeNo
-					Just ([processId,changeNo:steps],path,val)	= taskFuncs.editEventFun [changeNo,processId] (steps,path,val) scontext iworld
-					_											= (scontext, iworld)
+					Just (ProcessEvent [processId,changeNo:steps] (path,val))	= taskFuncs.editEventFun [changeNo,processId] (TaskEvent steps (path,val)) scontext iworld
+					Just (ProcessEvent steps (path,val))						= taskFuncs.editEventFun [changeNo,processId] (ProcessEvent steps (path,val)) scontext iworld
+					_															= (scontext, iworld)
 				//Evaluate
 				//The first two steps in a commit event path have to be the processId and changeNo
-				# commitEvent					= stepEvent changeNo (stepEvent processId mbCommit) //TODO: hier switchen van proc naar task event
+				# commitEvent					= case mbCommit of
+					Just (ProcessEvent [processId,changeNo:steps] action)	= Just (TaskEvent steps action)
+					Just (ProcessEvent steps action)						= Just (ProcessEvent steps action)
+					_														= Nothing
 				= evaluateWorkflowInstanceEval processId currentTask.Task.properties changeNo [changeNo,processId] properties thread scontext commitEvent tuiTaskNr iworld
 			TTCFinished result
 				= (TaskFinished result, iworld)

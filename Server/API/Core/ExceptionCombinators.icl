@@ -50,15 +50,15 @@ where
 		# (cxt,iworld)	= normalTaskFuncs.initFun [0:taskNr] iworld
 		= (TCTry (Left cxt), iworld)
 		
-	edit taskNr ([0:steps],path,val) context=:(TCTry (Left cxtNormal)) iworld
-		# (newCxtNormal,iworld) = normalTaskFuncs.editEventFun [0:taskNr] (steps,path,val) cxtNormal iworld
+	edit taskNr (TaskEvent [0:steps] (path,val)) context=:(TCTry (Left cxtNormal)) iworld
+		# (newCxtNormal,iworld) = normalTaskFuncs.editEventFun [0:taskNr] (TaskEvent steps (path,val)) cxtNormal iworld
 		= (TCTry (Left newCxtNormal), iworld)
 
-	edit taskNr ([1:steps],path,val) context=:(TCTry (Right (encEx, cxtHandler))) iworld
+	edit taskNr (TaskEvent [1:steps] (path,val)) context=:(TCTry (Right (encEx, cxtHandler))) iworld
 		= case (fromJSON encEx) of
 			Just e
 				# handler = toTaskFuncs (handlerTaskFun e)
-				# (newCxtHandler,iworld) = handler.editEventFun [1:taskNr] (steps,path,val) cxtHandler iworld
+				# (newCxtHandler,iworld) = handler.editEventFun [1:taskNr] (TaskEvent steps (path,val)) cxtHandler iworld
 				= (TCTry (Right (encEx, newCxtHandler)), iworld)
 			Nothing
 				= (context, iworld)
@@ -67,7 +67,7 @@ where
 
 	//Normal execution still possible
 	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context=:(TCTry (Left cxtNormal)) iworld
-		# (result, iworld) = normalTaskFuncs.evalTaskFun [0:taskNr] normalTask.Task.properties (stepCommitEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge mmerge cxtNormal iworld
+		# (result, iworld) = normalTaskFuncs.evalTaskFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge mmerge cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
@@ -79,7 +79,7 @@ where
 				# handler				= handlerTaskFun ex
 				# handlerFuncs			= toTaskFuncs handler
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalTaskFun [1:taskNr] handler.Task.properties (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalTaskFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON ex,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -94,7 +94,7 @@ where
 			Just e
 				# handler		= handlerTaskFun e
 				# handlerFuncs	= toTaskFuncs handler
-				# (result,iworld) = handlerFuncs.evalTaskFun [1:taskNr] handler.Task.properties (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
+				# (result,iworld) = handlerFuncs.evalTaskFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -125,15 +125,15 @@ where
 		# (cxt, iworld) = normalTaskFuncs.initFun [0:taskNr] iworld
 		= (TCTry (Left cxt), iworld)
 		
-	edit taskNr ([0:steps],path,val) context=:(TCTry (Left cxtNormal)) iworld
-		# (newCxtNormal,iworld) = normalTaskFuncs.editEventFun [0:taskNr] (steps,path,val) cxtNormal iworld
+	edit taskNr (TaskEvent [0:steps] (path,val)) context=:(TCTry (Left cxtNormal)) iworld
+		# (newCxtNormal,iworld) = normalTaskFuncs.editEventFun [0:taskNr] (TaskEvent steps (path,val)) cxtNormal iworld
 		= (TCTry (Left newCxtNormal), iworld)
 
-	edit taskNr ([1:steps],path,val) context=:(TCTry (Right (encEx, cxtHandler))) iworld
+	edit taskNr (TaskEvent [1:steps] (path,val)) context=:(TCTry (Right (encEx, cxtHandler))) iworld
 		= case (fromJSON encEx) of
 			Just e
 				# handler = toTaskFuncs (handlerTaskFun e)
-				# (newCxtHandler,iworld) = handler.editEventFun [1:taskNr] (steps,path,val) cxtHandler iworld
+				# (newCxtHandler,iworld) = handler.editEventFun [1:taskNr] (TaskEvent steps (path,val)) cxtHandler iworld
 				= (TCTry (Right (encEx, newCxtHandler)), iworld)
 			Nothing
 				= (context, iworld)
@@ -142,7 +142,7 @@ where
 
 	//Normal execution still possible
 	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context=:(TCTry (Left cxtNormal)) iworld
-		# (result, iworld) = normalTaskFuncs.evalTaskFun [0:taskNr] normalTask.Task.properties (stepCommitEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge mmerge cxtNormal iworld
+		# (result, iworld) = normalTaskFuncs.evalTaskFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTUITaskNr 0 tuiTaskNr) imerge pmerge mmerge cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
@@ -154,7 +154,7 @@ where
 				# handler				= handlerTaskFun str
 				# handlerFuncs			= toTaskFuncs handler
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalTaskFun [1:taskNr] handler.Task.properties (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalTaskFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON str,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -166,7 +166,7 @@ where
 			Just e
 				# handler			= handlerTaskFun e
 				# handlerFuncs		= toTaskFuncs handler
-				# (result,iworld)	= handlerFuncs.evalTaskFun [1:taskNr] handler.Task.properties (stepCommitEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
+				# (result,iworld)	= handlerFuncs.evalTaskFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTUITaskNr 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)

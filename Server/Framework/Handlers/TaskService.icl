@@ -115,7 +115,7 @@ taskService url format path req iworld
 				Just (target,path,value)
 					// ignore edit events of outdated clients
 				 	| not outdated || timestampParam == ""  
-						= Just (reverse (taskNrFromString target),path,value)
+						= Just (ProcessEvent (reverse (taskNrFromString target)) (path,value))
 					| otherwise
 						= Nothing
 				Nothing = Nothing			
@@ -123,7 +123,7 @@ taskService url format path req iworld
 				Just (target,action)
 					// ignore commit events of outdated clients
 					| not outdated || timestampParam == "" 
-						= Just (reverse (taskNrFromString target),action)
+						= Just (ProcessEvent (reverse (taskNrFromString target)) action)
 					| otherwise
 						= Nothing
 				Nothing	= Nothing

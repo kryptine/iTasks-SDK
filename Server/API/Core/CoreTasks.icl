@@ -81,7 +81,7 @@ where
 		= (TCBasic newMap, iworld)
 	
 	//There is an edit event for this task (because the location part of the event is the empty list)
-	edit taskNr ([],dps,editV) context iworld=:{IWorld|timestamp,latestEvent}
+	edit taskNr (TaskEvent [] (dps,editV)) context iworld=:{IWorld|timestamp,latestEvent}
 		//Split datapath into datapath & part index
 		# (idx,dp)					= splitDataPath dps
 		//Read latest versions of states
@@ -250,8 +250,8 @@ where
 			Just (TaskContext properties changeNo (TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) context)) | isActive properties
 				# iworld			= {iworld & currentProcess = pid}
 				# (context,iworld) = case event of
-					([changeNo:steps],path,val)	= (toTaskFuncs currentTask).editEventFun [changeNo:taskNr] (steps,path,val) context iworld
-					_							= (context, iworld)
+					(TaskEvent [changeNo:steps] (path,val))	= (toTaskFuncs currentTask).editEventFun [changeNo:taskNr] (TaskEvent steps (path,val)) context iworld //TODO: CHECK
+					_										= (context, iworld)
 				# (context,iworld)	= (toTaskFuncs currentTask).editEventFun taskNr event context iworld
 				# iworld			= {iworld & currentProcess = currentProcess}
 				# iworld			= setProcessContext pid (TaskContext properties changeNo (TTCRunning thread context)) iworld
@@ -270,7 +270,7 @@ where
 				# (taskState,tui,iworld) = case state of
 					TTCRunning thread context
 						# iworld								= {iworld & currentProcess = pid}
-						# event									= stepCommitEvent changeNo event
+						# event									= stepEvent changeNo event //TODO: FIX
 						# (res,iworld)							= evaluateWorkflowInstanceEval pid props changeNo [changeNo:taskNr] properties thread context event tuiTaskNr iworld
 						# iworld								= {iworld & currentProcess = currentProcess}
 						# (properties,contextTree,taskState,tui,iworld) = case res of
@@ -309,7 +309,7 @@ mergeTUI taskNr props imerge tuis warning actions
 where
 	taskId = taskNrToString taskNr
 			 
-getActionResult (Just ([],name)) actions
+getActionResult (Just (TaskEvent [] name)) actions
 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
 getActionResult _ actions
 	= Nothing
