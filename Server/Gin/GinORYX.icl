@@ -134,6 +134,16 @@ where
 	   		| url = "bpmn2.0/bpmn2.0.json"
 			, namespace = "http://b3mn.org/stencilset/bpmn2.0#"
 			}
+
+xmasORYXEditor :: ORYXEditor
+xmasORYXEditor = newORYXEditor xmasStencilSet
+where
+	xmasStencilSet :: ORYXStencilSetReference
+	xmasStencilSet 
+		=	{ ORYXStencilSetReference 
+	   		| url = "xmas/xmas.json"
+			, namespace = "http://mbsd.icis.ru.nl/itasks/xmas#"
+			}
 			
 ginORYXDiagram :: ORYXDiagram
 ginORYXDiagram = newORYXDiagram ginStencilSet

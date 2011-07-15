@@ -102,6 +102,8 @@ petriNetORYXEditor :: ORYXEditor
 
 bpmnORYXEditor :: ORYXEditor
 
+xmasORYXEditor :: ORYXEditor
+
 ginORYXDiagram :: ORYXDiagram
 
 ginORYXEditor :: !ORYXDiagram /*!(ORYXEditor *IWorld -> *(WorldPredicateResult,*IWorld))*/-> ORYXEditor

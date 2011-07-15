@@ -15,15 +15,14 @@ where
 ginExamples :: [Workflow]
 ginExamples = [ workflow "Examples/Graphical Editors/GiN Editor" "Create or edit workflows in GiN notation" ginEditor
 			  , simpleEditorWorkflow "Petri net" petriNetORYXEditor
-			  //, simpleEditorWorkflow "BPMN" bpmnORYXEditor
-			  //, simpleEditorWorkflow "Gin" (defaultDetached (ginORYXEditor ["InteractionTasks"] newGinORYXDiagram))
+			  , simpleEditorWorkflow "XMAS" xmasORYXEditor
               , workflow "Examples/Graphical Editors/Shared Petri net editors" "Two shared Petri net editors" petrinetShareExample
 			  ]
 			  
 simpleEditorWorkflow :: !String !ORYXEditor -> Workflow
 simpleEditorWorkflow language editor = 
 	workflow ("Examples/Graphical Editors/" +++ language +++ " editor") ("Simple " +++ language +++ " editor")
-		(getConfig >>| (updateInformation ("Simple " +++ language +++ " editor") [] editor >>+ quitButton) <<@ fullWidthInteractionLayout)
+		(getConfig >>| (ginInteractionLayout @>> updateInformation ("Simple " +++ language +++ " editor") [] editor >>+ quitButton) <<@ fullWidthInteractionLayout)
 
 petrinetShareExample :: Task Void
 petrinetShareExample = parallel "Petrinet Share Example" petriNetORYXEditor (\_ _ -> Void)
@@ -32,3 +31,10 @@ petrinetShareExample = parallel "Petrinet Share Example" petriNetORYXEditor (\_ 
 	]
 
 quitButton _ = UserActions [(ActionQuit,Just Stop)]
+
+ginInteractionLayout :: InteractionLayouter
+ginInteractionLayout = \interaction = 
+	case interaction.editorParts of
+		[{TUIDef | content = TUIControl (TUIORYXControl _) _}] =
+			({TUIDef | hd interaction.editorParts & width = FillParent 1 (FixedMinSize 400)},interaction.TUIInteraction.actions)
+		_ 	= defaultInteractionLayout interaction
