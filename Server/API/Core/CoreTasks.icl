@@ -212,7 +212,7 @@ where
 						Nothing			= visualizePart (FormPart init putback,Nothing,idx)
 					_					= visualizePart (FormPart init putback,Nothing,idx)
 				Blank					= blankForm formView putback mbEdit
-			DisplayPart v				= (htmlDisplay (toString (visualizeAsHtmlDisplay v)),StoredDisplayView, True)
+			DisplayPart v				= (htmlDisplay (toString (visualizeAsHtml AsDisplay v)),StoredDisplayView, True)
 			UpdatePart label w			=	({ content = TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr

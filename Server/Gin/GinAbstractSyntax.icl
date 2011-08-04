@@ -14,7 +14,7 @@ from GinParser import ::GPath(..)
 import GinTypes
 import GinPrinter
 
-from iTaskClass import class iTask, gVisualize, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
+from iTaskClass import class iTask, gVisualizeText, gVisualizeHtml, gVisualizeEditor, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
 
 derive class iTask AModule, ADefinition, AExpression, ACaseAlt, AListComprehension, AGeneratorList, AGenerator, AFix
 

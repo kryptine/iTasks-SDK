@@ -15,7 +15,9 @@ from Map				import qualified newMap
 import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, ProcessDBTasks, InteractionTasks
 
 // use string instances of generic function for Tag values 
-gVisualize{|Tag|} val vst = gVisualize{|*|} (toStr val) vst
+gVisualizeText{|Tag|} mode (Tag t) = gVisualizeText{|*|} mode (toString t)
+gVisualizeHtml{|Tag|} mode (Tag t) = gVisualizeHtml{|*|} mode (toString t)
+gVisualizeEditor{|Tag|} val vst = gVisualizeEditor{|*|} (toStr val) vst
 where
 	toStr Nothing			= Nothing
 	toStr (Just (Tag t))	= Just (toString t)

@@ -253,10 +253,10 @@ fromTypeExpressionView (TypeExpressionView tev) =
 		Nothing = GUndefinedTypeExpression
 		Just te = mapType te
 
-gVisualize{|TypeExpressionView|} val vst = visualizeControl TUIStringControl (print,RawText o print) val vst
-where
-	print Nothing = ""
-	print (Just (TypeExpressionView v)) = v
+gVisualizeText{|TypeExpressionView|} _ (TypeExpressionView v) = [v]
+gVisualizeHtml{|TypeExpressionView|} _ (TypeExpressionView v) = [RawText v]
+gVisualizeEditor{|TypeExpressionView|} val vst = visualizeControlSimple TUIStringControl val vst
+
 gUpdate{|TypeExpressionView|} mode ust = basicUpdate mode parseUpdate (TypeExpressionView "") ust
 where
 	parseUpdate update orig = fromMaybe orig (fmap TypeExpressionView update)

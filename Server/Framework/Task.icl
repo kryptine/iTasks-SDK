@@ -129,9 +129,11 @@ gDefaultMask{|Task|} _ _ = [Touched []]
 
 gVerify{|Task|} _ _ vst = alwaysValid vst
 
-gVisualize{|Task|} _ mbVal vst=:{VSt|currentPath,verifyMask}
+gVisualizeText{|Task|} _ _ {Task|properties} = [properties.TaskProperties.taskDescription.TaskDescription.title]
+gVisualizeHtml{|Task|} _ _ {Task|properties} = [Text properties.TaskProperties.taskDescription.TaskDescription.title]
+gVisualizeEditor{|Task|} _ _ _ mbVal vst
 	# vis = case mbVal of
-		Just {Task|properties}	= [TextFragment properties.TaskProperties.taskDescription.TaskDescription.title]
+		Just {Task|properties}	= [htmlDisplay properties.TaskProperties.taskDescription.TaskDescription.title]
 		Nothing					= []
 	= (vis,vst)
 	

@@ -51,8 +51,8 @@ where
 	mkRow {Process|properties=p=:{taskProperties,managerProperties,systemProperties},processId} =
 		[ html taskProperties.taskDescription.TaskDescription.title
 		, formatPriority managerProperties.ManagerProperties.priority
-		, visualizeAsHtmlDisplay (timestampToGmDateTime systemProperties.issuedAt)
-		, visualizeAsHtmlDisplay managerProperties.ManagerProperties.deadline
+		, visualizeAsHtml AsDisplay (timestampToGmDateTime systemProperties.issuedAt)
+		, visualizeAsHtml AsDisplay managerProperties.ManagerProperties.deadline
 		, Text (toString processId)
 		]
 		

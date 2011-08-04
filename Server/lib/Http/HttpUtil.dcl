@@ -19,7 +19,7 @@ http_parseUrlEncodedArguments :: !String -> [(String,String)]
 http_parseMultiPartPostArguments :: !HTTPRequest -> (Map String String, Map String HTTPUpload) 
 
 //Construction of HTTP Response messages
-http_makeResponse :: !HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] !Bool !*World -> (!HTTPResponse,!*World)
+http_makeResponse :: !HTTPRequest ![((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] !Bool !*World -> (!HTTPResponse,!*World)
 http_encodeResponse :: !HTTPResponse !Bool !*World -> (!String,!*World)
 
 //Error responses

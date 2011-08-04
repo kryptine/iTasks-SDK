@@ -145,7 +145,7 @@ where
 		= s % (start, end) 
 
 //Construction of HTTP Response messages
-http_makeResponse :: !HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] !Bool !*World -> (!HTTPResponse,!*World)
+http_makeResponse :: !HTTPRequest ![((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] !Bool !*World -> (!HTTPResponse,!*World)
 http_makeResponse request [] fallback world 										//None of the request handlers matched
 	= if fallback
 		(http_staticResponse request world)											//Use the static response handler

@@ -3,7 +3,7 @@ definition module GinAbstractSyntax
 import StdOverloaded
 import GinTypes
 
-from iTaskClass import class iTask, gVisualize, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
+from iTaskClass import class iTask, gVisualizeText, gVisualizeHtml, gVisualizeEditor, gUpdate, gDefaultMask, gVerify, JSONEncode, JSONDecode, gEq
 
 from GinParser import ::GPath, ::GPathNode, ::GParseState
 from GinPrinter import ::LineMap, ::Map

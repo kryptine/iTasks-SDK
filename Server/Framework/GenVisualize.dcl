@@ -5,29 +5,46 @@ import StdGeneric, Maybe, Void, Either
 import GenUpdate, GenVerify
 from Map import :: Map
 
-//Generic visualization function
-generic gVisualize a	:: !(Maybe a) !*VSt -> (![Visualization], !*VSt)
+:: StaticVisualizationMode = AsDisplay | AsLabel
+
+//Generic text visualization function
+generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 
 //Default available instances
-derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
-derive gVisualize Int, Real, Char, Bool, String
-derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualize EmailAddress, Action, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
+derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gVisualizeText Int, Real, Char, Bool, String
+derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gVisualizeText Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeText EmailAddress, Action, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
+
+//Generic html visualization function
+generic gVisualizeHtml a :: !StaticVisualizationMode !a -> [HtmlTag]
+
+//Default available instances
+derive gVisualizeHtml UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gVisualizeHtml Int, Real, Char, Bool, String
+derive gVisualizeHtml Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gVisualizeHtml Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeHtml EmailAddress, Action, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
+
+//Generic editor function
+generic gVisualizeEditor a | gVisualizeText a, gVisualizeHtml a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
+
+//Default available instances
+derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gVisualizeEditor Int, Real, Char, Bool, String
+derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gVisualizeEditor Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeEditor EmailAddress, Action, HtmlDisplay, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> TUIDef	| gVisualize{|*|} a
-visualizeAsHtmlDisplay	:: !a															-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextDisplay	:: !a															-> String	| gVisualize{|*|} a
-visualizeAsHtmlLabel	:: !a															-> HtmlTag	| gVisualize{|*|} a
-visualizeAsTextLabel	:: !a															-> String	| gVisualize{|*|} a
+visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> TUIDef	| gVisualizeEditor{|*|} a
+visualizeAsText			:: !StaticVisualizationMode !a									-> String	| gVisualizeText{|*|} a
+visualizeAsHtml			:: !StaticVisualizationMode !a									-> HtmlTag	| gVisualizeHtml{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
-	{ vizType			:: !VisualizationType						// Type of preferred visualization
-	, origVizType		:: !VisualizationType						// Type of the preferred visualization at initialization, this should not be edited.
-	// Additional information for form generation
-	, currentPath		:: !DataPath								// Accumulated path through the data structure, used to identify sub-structures
+	{ currentPath		:: !DataPath								// Accumulated path through the data structure, used to identify sub-structures
 	, verifyMask		:: ![VerifyMask]
 	, selectedConsIndex	:: !Int										// Index of the selected constructor in an Object
 	, optional			:: !Bool									// Create optional form fields
@@ -36,22 +53,10 @@ visualizeAsTextLabel	:: !a															-> String	| gVisualize{|*|} a
 	, taskId			:: !TaskId									// The id of the task the visualisation belongs to
 	, controlSize		:: !(!TUISize,!TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
 	}
-
-:: VisualizationType
-	= VEditorDefinition
-	| VHtmlDisplay
-	| VTextDisplay
-	| VHtmlLabel
-	| VTextLabel
-	
-:: Visualization
-	= TextFragment !String
-	| HtmlFragment !HtmlTag
-	| TUIFragment !TUIDef
 	
 :: VerifyResult = HintMsg !String | ErrorMsg !String | NoMsg
 
-//Utility functions making specializations of gVisualize
+//Utility functions making specializations of gVisualizeEditor
 
 /**
 * Generates an empty visualization.
@@ -60,11 +65,10 @@ visualizeAsTextLabel	:: !a															-> String	| gVisualize{|*|} a
 *
 * @return An empty visualization
 */
-noVisualization :: !*VSt -> *(![Visualization],!*VSt)
+noVisualization :: !*VSt -> *(![TUIDef],!*VSt)
 
 /**
 * Generates a control visualization.
-* Static visualizations are just a 'toString' of the value.
 *
 * @param The type of the control
 * @param The current value to visualize (if present)
@@ -72,38 +76,22 @@ noVisualization :: !*VSt -> *(![Visualization],!*VSt)
 *
 * @return The generated visualization
 */
-visualizeControlSimple :: !TUIControlType !(Maybe a) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|}, toString a
-
-/**
-* Generates a control visualization.
-* Static visualizations are generated by a custom function.
-*
-* @param The type of the control
-* @param Functions defining the static visualizations.
-* @param The current value to visualize (if present)
-* @param VSt
-*
-* @return The generated visualization
-*/
-visualizeControl :: !TUIControlType !(StaticVizFunctions a) !(Maybe a) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|} a
-visualizeControl2 :: !TUIControlType !(StaticVizFunctions b) !(Maybe (!a,!b)) !*VSt -> *(![Visualization],!*VSt) | JSONEncode{|*|} a
+visualizeControlSimple :: !TUIControlType !(Maybe a) !*VSt -> *(![TUIDef],!*VSt) | JSONEncode{|*|}, gVisualizeHtml{|*|} a
+visualizeControl :: !TUIControlType !(Maybe (!a,b)) !(StaticVisualizationMode (Maybe b) -> [HtmlTag]) !*VSt -> *(![TUIDef], !*VSt) | JSONEncode{|*|} a
 
 /**
 * Generates a basic control visualization.
 * Visualizations are generated by custom functions using VSt.
 *
 * @param Function for generating a TUI definition (see comment of TUIVizFunctionCustom for details)
-* @param Function for generating static visualizations (see comment of StaticVizFunctionCustom for details)
 * @param The current value to visualize (if present, possibly different types are used for TUI and static visualizations)
 * @param Indicates if for static editor definitions automatically a HTML container with a static representation should be generated
-         (the TUIVizFunctionCustom is not called in this case)
+         (the TUIVizFunction is not called in this case)
 * @param VSt
 *
 * @return The generated visualization
 */
-visualizeCustomSimple	:: !(TUIVizFunction a) !(StaticVizFunctionCustom a) !(Maybe a)			!Bool !*VSt -> *(![Visualization],!*VSt)
-visualizeCustom			:: !(TUIVizFunction a) !(StaticVizFunctionCustom b) !(Maybe (!a,!b))	!Bool !*VSt -> *(![Visualization],!*VSt)
-
+visualizeCustom :: !(TUIVizFunction a) !(Maybe a) !*VSt -> *(![TUIDef],!*VSt)
 
 /**
 * A function using VSt for generating TUI definitions.
@@ -117,34 +105,7 @@ visualizeCustom			:: !(TUIVizFunction a) !(StaticVizFunctionCustom b) !(Maybe (!
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction				a :==	TUIName (Maybe a) Bool VerifyResult Bool -> .(*VSt -> *(![TUIDef],!*VSt))
-/**
-* Functions for string and html visualizations.
-*
-* string function:
-* @param The value to visualize (if present)
-* @return The generated text visualization
-*
-* html function:
-* @param The value to visualize (if present)
-* @return The generated html visualization
-*/
-:: StaticVizFunctions			a :==	(!(Maybe a) -> String,!(Maybe a) -> HtmlTag)
-/**
-* A custom function for generating static visualizations.
-*
-* @param The value to visualize (if present)
-* @param A flag indicating if the value is touched
-* @param VSt
-*
-* @return VSt
-*/
-:: StaticVizFunctionCustom		a :==	(Maybe a) Bool -> .(*VSt -> *(![Visualization],!*VSt))
-										
-/**
-* Generates functions for static visualizations a single function for text visualizations.
-*/
-textOnly :: !((Maybe a) -> String) -> StaticVizFunctions a
+:: TUIVizFunction a :== TUIName (Maybe a) Bool VerifyResult Bool -> .(*VSt -> *(![TUIDef],!*VSt))
 
-(+++>) infixr 5		:: !a	!String	-> String | gVisualize{|*|} a
-(<+++) infixl 5		:: !String	!a	-> String | gVisualize{|*|} a
+(+++>) infixr 5		:: !a	!String	-> String | gVisualizeText{|*|} a
+(<+++) infixl 5		:: !String	!a	-> String | gVisualizeText{|*|} a

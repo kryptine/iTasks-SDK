@@ -8,10 +8,12 @@ from ProcessDB	import :: Process(..)
 from Time		import :: Timestamp 
 import iTaskClass
 
-derive gVisualize	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
-derive gUpdate		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
-derive gDefaultMask	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
-derive gVerify		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gVisualizeText	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gVisualizeHtml	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gVisualizeEditor	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gUpdate			Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gDefaultMask		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
+derive gVerify			Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription
 
 /**
 * Retrieves a Process record from the process table

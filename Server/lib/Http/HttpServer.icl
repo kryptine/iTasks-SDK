@@ -16,7 +16,7 @@ from HTTP import instance toString HTTPRequest, instance toString HTTPResponse
 from HttpUtil import http_addRequestData, http_parseArguments, http_makeResponse, http_encodeResponse, http_serverControl
 
 //Start the HTTP server
-http_startServer :: [HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!*World)))] *World -> *World
+http_startServer :: ![HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!*World)))] !*World -> *World
 http_startServer options handlers world
 	//Start the listener
 	# (listener,world)	= startListener (getPortOption options) world

@@ -5,7 +5,9 @@ import HTML, StdEnv, JSON, GenUpdate, GenVisualize, GenVerify
 derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap
 derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent, MarkerDragUpdate
 
-derive gVisualize   	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeText  	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeHtml  	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeEditor	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gDefaultMask		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gVerify			GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
@@ -49,7 +51,6 @@ derive bimap	Maybe, (,)
 	{ width				:: Int
 	, height			:: Int
 	, xtype				:: String
-	, name				:: String
 	, url				:: String
 	}
 	
@@ -60,61 +61,64 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} val vst=:{vizType, currentPath, optional, verifyMask, taskId}
-	# (cmv,vm) = popMask verifyMask
-	= case vizType of
-		VEditorDefinition = ([TUIFragment {TUIDef | content = TUICustom ((mapPanel val currentPath True)), width = Auto, height = Auto, margins = Nothing}],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
-		_				  = (staticMapPanel val, {VSt | vst & currentPath = stepDataPath currentPath})
+gVisualizeText{|GoogleMap|} _ _ = ["Map"]
+gVisualizeHtml{|GoogleMap|} mode map = case mode of
+	AsLabel		= [Text "Map"]
+	AsDisplay	= [staticMap (convertToStaticMap map)]
+gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl mbMap vst
 where
-	mapPanel Nothing	cp ed	= toJSON (tuidef mkMap cp ed)
-	mapPanel (Just map)	cp ed = toJSON (tuidef map   cp ed)
-
-	staticMapPanel Nothing
-		# (GoogleStaticMap w h u) = convertToStaticMap mkMap
-		= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])])
-	staticMapPanel (Just map)
-		# (GoogleStaticMap w h u) = convertToStaticMap map
-		= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])])
-
-	tuidef map cp ed =
-		{ TUIGoogleMap
-		| center = map.GoogleMap.center
-		, mapType = map.GoogleMap.mapType
-		, markers = map.GoogleMap.markers
-		, xtype = "itasks.tui.GMapControl"
-		, name = dp2s cp
-		, taskId = taskId
-		, editor = ed
-		, options =
-			{ TUIGoogleMapOptions
-			| mapTypeControl = map.GoogleMap.mapTypeControl
-			, panControl = map.GoogleMap.panControl
-			, streetViewControl = map.GoogleMap.streetViewControl
-			, zoomControl = map.GoogleMap.zoomControl
-			, scaleControl = map.GoogleMap.scaleControl
-			, scrollwheel = map.GoogleMap.scrollwheel
-			, draggable = map.GoogleMap.draggable
-			, zoom = map.GoogleMap.zoom
+	mkControl name mbMap _ _ static vst=:{VSt|taskId}
+		| static
+			= ([htmlDisplay (staticMap (convertToStaticMap (fromMaybe mkMap mbMap)))], vst)
+		| otherwise
+			= ([{TUIDef | content = TUICustom ((mapPanel mbMap name True)), width = Auto, height = Auto, margins = Nothing}], vst)
+	where		
+		mapPanel Nothing	name ed = toJSON (tuidef mkMap name ed)
+		mapPanel (Just map)	name ed = toJSON (tuidef map   name ed)
+	
+		tuidef map name ed =
+			{ TUIGoogleMap
+			| center = map.GoogleMap.center
+			, mapType = map.GoogleMap.mapType
+			, markers = map.GoogleMap.markers
+			, xtype = "itasks.tui.GMapControl"
+			, name = name
+			, taskId = taskId
+			, editor = ed
+			, options =
+				{ TUIGoogleMapOptions
+				| mapTypeControl = map.GoogleMap.mapTypeControl
+				, panControl = map.GoogleMap.panControl
+				, streetViewControl = map.GoogleMap.streetViewControl
+				, zoomControl = map.GoogleMap.zoomControl
+				, scaleControl = map.GoogleMap.scaleControl
+				, scrollwheel = map.GoogleMap.scrollwheel
+				, draggable = map.GoogleMap.draggable
+				, zoom = map.GoogleMap.zoom
+				}
 			}
-		}
 
-gVisualize {|GoogleStaticMap|} Nothing vst = ([TextFragment "-"],vst)
-gVisualize {|GoogleStaticMap|} (Just (GoogleStaticMap w h u)) vst=:{vizType,currentPath}
-	= case vizType of
-		VHtmlDisplay	= ([HtmlFragment (ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)])],{VSt | vst & currentPath = stepDataPath currentPath})
-		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],{VSt | vst & currentPath = stepDataPath currentPath})
-		VHtmlLabel		= ([HtmlFragment (Text "Static Map")],{VSt | vst & currentPath = stepDataPath currentPath})
-		VTextLabel		= ([TextFragment "Static Map"],{VSt | vst & currentPath = stepDataPath currentPath})
-		_				= ([TUIFragment {TUIDef | content = TUICustom ((toJSON staticMap)), width = Auto, height = Auto, margins = Nothing}],{VSt | vst & currentPath = stepDataPath currentPath})
+gVisualizeText{|GoogleStaticMap|} mode (GoogleStaticMap _ _ u) = case mode of
+	AsLabel		= ["Static Map"]
+	AsDisplay	= ["Static Map: " +++ u]
+gVisualizeHtml{|GoogleStaticMap|} mode map = case mode of
+	AsLabel		= [Text "Static Map"]
+	AsDisplay	= [staticMap map]
+gVisualizeEditor{|GoogleStaticMap|} mbMap vst = visualizeCustom mkControl mbMap vst
 where
-	staticMap =
+	mkControl _ mbMap _ _ _ vst = case mbMap of
+		Just (GoogleStaticMap w h u)	= ([{TUIDef | content = TUICustom (toJSON (staticMap w h u)), width = Auto, height = Auto, margins = Nothing}], vst)
+		_								= ([], vst)
+
+	staticMap w h u =
 		{ TUIGoogleStaticMap
 		| width 	= w
 		, height 	= h	
 		, xtype		= "itasks.gstaticmappanel"
-		, name		= dp2s currentPath
 		, url		= u
-		}	
+		}
+
+staticMap (GoogleStaticMap w h u) = ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]
 
 gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate mkMap ust
 where
@@ -171,7 +175,7 @@ minimalMap = { GoogleMap
 		, markers			= []
 		}
 
-convertToStaticMap :: GoogleMap -> GoogleStaticMap
+convertToStaticMap :: !GoogleMap -> GoogleStaticMap
 convertToStaticMap map =:{GoogleMap | center = {lat,lng}, zoom, mapType, markers}
 # url 		= "http://maps.google.com/maps/api/staticmap?"
 # cntr		= "center="+++(toString lat)+++","+++(toString lng)

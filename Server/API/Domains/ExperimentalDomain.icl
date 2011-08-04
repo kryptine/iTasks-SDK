@@ -53,7 +53,9 @@ noControls =	{ alignmentControls	= False
 				, sourceEditControl	= False
 				}
 
-gVisualize{|FormattedText|} val vst = visualizeControl (TUICustomControl "itasks.tui.FormattedText") (toString,html) val vst
+gVisualizeText{|FormattedText|} _ val = [toString val]
+gVisualizeHtml{|FormattedText|} _ val = [html val]
+gVisualizeEditor{|FormattedText|} val vst = visualizeControlSimple (TUICustomControl "itasks.tui.FormattedText") val vst
 where	
 	replaceMarkers v
 		//# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
@@ -114,8 +116,10 @@ setSource src (SourceCode _ lang) = SourceCode src lang
 
 getSource :: !SourceCode -> String
 getSource (SourceCode src _) = src
-	
-gVisualize{|SourceCode|} val vst = visualizeControl (TUICustomControl "itasks.tui.SourceCode") (textOnly toString) val vst
+
+gVisualizeText{|SourceCode|} _ val = [toString val]
+gVisualizeHtml{|SourceCode|} _ val = [html val]	
+gVisualizeEditor{|SourceCode|} val vst = visualizeControlSimple (TUICustomControl "itasks.tui.SourceCode") val vst
 
 instance html SourceCode
 where
@@ -125,7 +129,9 @@ instance toString SourceCode
 where
 	toString (SourceCode src _) = src
 
-gVisualize{|Color|} val vst = visualizeControl (TUICustomControl "itasks.tui.ColorChooser") (toString,html) val vst
+gVisualizeText{|Color|} _ val = [toString val]
+gVisualizeHtml{|Color|} _ val = [html val]
+gVisualizeEditor{|Color|} val vst = visualizeControlSimple (TUICustomControl "itasks.tui.ColorChooser") val vst
 
 instance html Color
 where

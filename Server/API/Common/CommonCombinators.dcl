@@ -9,19 +9,15 @@ import Either
 from SystemTypes		import :: User, :: SessionId
 from Map				import :: Map
 
-// Additional types for grouping
-// These types are similar to PAction but are needed to avoid circular definitions
-//:: GAction		= GStop  | GContinue | GExtend [Task GAction] | GFocus Tag
-//:: GOnlyAction	= GOStop | GOExtend [Task Void] | GOFocus Tag
-
-//derive class iTask GAction, GOnlyAction
-derive gVisualize	Tag
-derive gUpdate		Tag
-derive gDefaultMask	Tag
-derive gVerify		Tag
-derive JSONEncode	Tag
-derive JSONDecode	Tag
-derive gEq			Tag
+derive gVisualizeText	Tag
+derive gVisualizeHtml	Tag
+derive gVisualizeEditor	Tag
+derive gUpdate			Tag
+derive gDefaultMask		Tag
+derive gVerify			Tag
+derive JSONEncode		Tag
+derive JSONDecode		Tag
+derive gEq				Tag
 
 /**
 * General multi-bind used to define continuations.

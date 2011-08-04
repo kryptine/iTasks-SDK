@@ -8,12 +8,11 @@ import GinCompiler, GinParser
 
 import GinORYX
 
-gVisualize {|ORYXEditor|} val vst = visualizeControl (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) (mkText,mkHtml) val vst
+gVisualizeText{|ORYXEditor|} _ _ = ["(ORYX editor: No textual representation available)"]
+gVisualizeHtml{|ORYXEditor|} _ _ = [Text "(ORYX editor: No html representation available)"]
+gVisualizeEditor{|ORYXEditor|} val vst = visualizeControlSimple (TUIORYXControl oryx.ORYXEditor.stencilset.ORYXStencilSetReference.url) val vst
 where
 	oryx = fromMaybe emptyORYXEditor val
-		        
-	mkText v = "(ORYX editor: No textual representation available)"
-	mkHtml v = nl2br (mkText v)
 	
 instance toString ORYXEditor
 where

@@ -4,7 +4,9 @@ import GenVisualize
 
 //iTask context restriction
 class iTask a
-	| gVisualize{|*|}
+	| gVisualizeEditor{|*|}
+	, gVisualizeText{|*|}
+	, gVisualizeHtml{|*|}
 	, gUpdate{|*|}
 	, gDefaultMask{|*|}
 	, gVerify{|*|}

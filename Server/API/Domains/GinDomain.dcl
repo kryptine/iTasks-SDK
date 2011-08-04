@@ -4,7 +4,9 @@ import iTasks
 import GinORYX
 
 derive gEq ORYXEditor
-derive gVisualize ORYXEditor
+derive gVisualizeText ORYXEditor
+derive gVisualizeHtml ORYXEditor
+derive gVisualizeEditor ORYXEditor
 derive gUpdate ORYXEditor
 derive gDefaultMask ORYXEditor
 derive gVerify ORYXEditor

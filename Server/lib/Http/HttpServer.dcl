@@ -18,4 +18,4 @@ import HTTP
 // The second argument is a list of pairs of predicates and request handlers
 // The predicate inspects the requested path (eg. /foo), if the predicate is true the corresponding request handler is invoked 
 					
-http_startServer :: [HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!*World)))] *World -> *World
+http_startServer :: ![HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!*World)))] !*World -> *World

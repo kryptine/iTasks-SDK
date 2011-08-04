@@ -12,7 +12,9 @@ derive JSONDecode		Task
 derive gUpdate			Task
 derive gDefaultMask		Task
 derive gVerify			Task
-derive gVisualize		Task
+derive gVisualizeText	Task
+derive gVisualizeHtml	Task
+derive gVisualizeEditor	Task
 derive gEq				Task
 derive gGetRecordFields	Task
 derive gPutRecordFields	Task
