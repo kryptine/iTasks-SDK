@@ -7,17 +7,43 @@ from Util import timestampToGmDateTime
 clientExample :: [Workflow]
 clientExample = [workflow "Examples/Client" "This task rebuilds the client." client]
 
-// Tasks
+:: Credentials =
+	{ username	:: String
+	, password	:: Password
+	}
 
+derive class iTask Credentials
+
+// Authentication followed by task management
 client :: Task Void
-client = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
-	[ (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
+client
+	= forever	
+	(	enterInformation "Log in" []
+	>>= \credentials ->
+		authenticateUser credentials.username (toString credentials.Credentials.password)
+	>>= \mbUser -> case mbUser of
+		Nothing
+			= showInformation "Log in failed" [] Void
+		Just user
+			= workAs user manageTasks
+	)
+
+// Main task management
+manageTasks :: Task Void
+manageTasks = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
+	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
+	, (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
 	, (BodyTask,	\list	-> showDescription (taskListState list)	<<@ descriptionLayout)
 	, (BodyTask,	\list	-> workTabPanel list					<<@ tabParallelLayout (Just "icon-task"))
 	, (BodyTask,	\list	-> processTable list					<<@ processTableLayout)
 	, (HiddenTask,	\_		-> controlClient)
 	]
 
+infoBar :: Task ParallelControl
+infoBar = showSharedInformation "Info" [ShowView (GetShared view)] currentUser Void >>+ (\_ -> UserActions [(Action "Log out",Just Stop)])
+where
+	view user = "Welcome " +++ toString user
+	
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
 chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetLocalAndShared mkTree, Putback putback)] (state >+| allowedWorkflowTree) Nothing >>+ noActions
 where
@@ -98,23 +124,36 @@ derive bimap Maybe, (,)
 
 // Layouts
 
-mainLayout {TUIParallel | items=i=:[(Just tree,_), (Just description,_), (Just workTabPanel,_), (Just processTable,_), (_,controlActions)]} =
+mainLayout {TUIParallel | items=i=:[(Just infoBar, logoutAction), (Just tree,_), (Just description,_), (Just workTabPanel,_), (Just processTable,_), (_,controlActions)]} =
 	({ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [left,right] & orientation = Horizontal}
 	, width		= FillParent 1 (FixedMinSize 0)
 	, height	= FillParent 1 (FixedMinSize 0)
 	, margins	= Nothing
-	},controlActions)
+	},controlActions ++ logoutAction)
 where
 	left =	{ content	= TUILayoutContainer (defaultLayoutContainer [tree,description])
 			, width		= Fixed 260
 			, height	= FillParent 1 (FixedMinSize 0)
 			, margins	= Nothing
 			}
-	right = { content	= TUILayoutContainer (defaultLayoutContainer [processTable,workTabPanel])
+	right = { content	= TUILayoutContainer (defaultLayoutContainer [infoBar,processTable,workTabPanel])
 			, width		= FillParent 1 (FixedMinSize 0)
 			, height	= FillParent 1 (FixedMinSize 0)
 			, margins	= Nothing
 			}
+
+infoBarLayout :: TUIInteraction -> (TUIDef,[TaskAction])
+infoBarLayout {title,editorParts,actions=actions=:[(ltask,laction,_)]} = (
+	{ content	= TUILayoutContainer {defaultLayoutContainer [{hd editorParts & width = WrapContent 0},logoutButton] & orientation = Horizontal, hGravity = HGRight}
+	, width		= FillParent 1 (ContentSize)
+	, height	= Fixed 30
+	, margins	= Nothing
+	}, [])
+where
+	logoutButton =
+		{content = TUIButton { TUIButton | name = actionName laction, taskId = ltask, disabled = False
+							 , text = actionName laction, iconCls = "icon-logout", actionButton = True }
+		, width = WrapContent 0, height = WrapContent 0, margins = Nothing }
 
 treeLayout {title,editorParts,actions} = (	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [{hd editorParts & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize}] & title = Just title, iconCls = Just "icon-newwork"}
 											, width		= FillParent 1 (FixedMinSize 100)

@@ -192,6 +192,7 @@ sameMargins				:: !TUIFixedSize -> TUIMargins
 
 // pre-defined layouts
 defaultInteractionLayout	:: InteractionLayouter
+minimalInteractionLayout	:: InteractionLayouter
 fullWidthInteractionLayout	:: InteractionLayouter
 wrapWidthInteractionLayout	:: InteractionLayouter
 defaultParallelLayout		:: ParallelLayouter

@@ -6,32 +6,32 @@ from TaskContext	import :: TaskContextTree(..), :: SubTaskContext, :: ParallelMe
 from ProcessDB		import :: Process
 from iTasks			import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
-mkTask :: !d !TaskInitFun !TaskEditEventFun !(TaskEvalFun a) -> Task a | descr d
-mkTask description initFun editEventFun evalTaskFun =
-	{ properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
-	, mbTaskNr				= Nothing
+mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
+mkTask description initFun editFun evalFun =
+	{ Task
+	| properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, type = NormalTask
-		{ initFun			= initFun
-		, editEventFun		= editEventFun
-		, evalTaskFun		= evalTaskFun
+		{ initFun		= initFun
+		, editFun		= editFun
+		, evalFun		= evalFun
 		}
 	}
 	
 mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
 mkInstantTask description iworldfun =
-	{ properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
-	, mbTaskNr				= Nothing
+	{ Task
+	| properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, type = NormalTask
-		{ initFun			= \_ iworld -> (TCEmpty,iworld)
-		, editEventFun		= \_ _  context iworld -> (context,iworld)
-		, evalTaskFun		= \taskNr _ _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
+		{ initFun		= \_ iworld -> (TCEmpty,iworld)
+		, editFun		= \_ _  context iworld -> (context,iworld)
+		, evalFun		= \taskNr _ _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}
 	}
 	
 mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task a | descr d
 mkActionTask description actionTaskFun =
-	{ properties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
-	, mbTaskNr		= Nothing
+	{ Task
+	| properties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
 	, type			= ActionTask actionTaskFun
 	}
 
@@ -94,9 +94,9 @@ stepEvent i (Just (TaskEvent [s:ss] e))
 stepEvent i (Just (ProcessEvent s e))	= Just (ProcessEvent s e)
 stepEvent _ _ 							= Nothing
 
-stepTUITaskNr :: !Int !ReversedTaskNr -> ReversedTaskNr
-stepTUITaskNr i []		= []
-stepTUITaskNr i [t:ts]	
+stepTarget :: !Int !ReversedTaskNr -> ReversedTaskNr
+stepTarget i []		= []
+stepTarget i [t:ts]	
 	| i == t			= ts
 	| otherwise			= []
 
@@ -104,7 +104,6 @@ derive JSONEncode Task
 derive JSONDecode Task
 derive bimap Maybe, (,)
 
-	
 JSONEncode{|TaskType|} _ tt = dynamicJSONEncode tt			
 JSONDecode{|TaskType|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|TaskType|} _ c = (Nothing,c)
@@ -113,12 +112,12 @@ gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
-	defaultTask a =	{ properties		= {initTaskProperties & taskDescription = toDescr "return"}
-					, mbTaskNr			= Nothing
+	defaultTask a =	{ Task
+					| properties		= {initTaskProperties & taskDescription = toDescr "return"}
 					, type = NormalTask
-						{ initFun		= abort funerror
-						, editEventFun	= abort funerror
-						, evalTaskFun	= abort funerror
+						{ initFun	= abort funerror
+						, editFun	= abort funerror
+						, evalFun	= abort funerror
 						}
 					}
 	funerror = "Creating default task functions is impossible"

@@ -76,7 +76,7 @@ initIWorld config flows world
 								  ,parallelStates		= newMap
 								  ,parallelControls		= newMap
 								  ,readShares			= Nothing
-								  ,workOnDependencies	= []
+								  ,evalStack			= []
 								  ,world				= world
 								  }
 	= if exists iworld (snd (mapSt ('WorkflowDB'.addWorkflow) flows iworld)) 

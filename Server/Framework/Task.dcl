@@ -21,24 +21,22 @@ derive gPutRecordFields	Task
 
 // Tasks
 :: Task a =
-	{ properties			:: !TaskProperties						// the task's general properties
-	, mbTaskNr				:: !(Maybe TaskNr)						// the task's identifier TODO: May be removed
-	
+	{ properties			:: !TaskProperties						// the task's general properties	
 	, type					:: !(TaskType a)
 	}
 	
 :: TaskType a	= NormalTask !(TaskFuncs a)
 				| ActionTask !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b)
 				
-:: TaskFuncs a =	{ initFun				:: TaskInitFun
-					, editEventFun			:: TaskEditEventFun
-					, evalTaskFun			:: TaskEvalFun a
+:: TaskFuncs a =	{ initFun			:: TaskInitFun
+					, editFun			:: TaskEditFun
+					, evalFun			:: TaskEvalFun a
 					}
 
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
 
 :: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContextTree,!*IWorld)
-:: TaskEditEventFun	:== TaskNr EditEvent TaskContextTree *IWorld -> *(!TaskContextTree,!*IWorld)
+:: TaskEditFun		:== TaskNr EditEvent TaskContextTree *IWorld -> *(!TaskContextTree,!*IWorld)
 :: TaskEvalFun a	:== TaskNr TaskProperties (Maybe CommitEvent) ReversedTaskNr InteractionLayouter ParallelLayouter MainLayouter TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
 :: ReversedTaskNr	:== [Int]							//Reversed tasks nr used to locate a subtask in a composition  
@@ -70,7 +68,7 @@ taskException :: !e -> TaskResult a | TC, toString e
 * Create a task from a description and a pair of task functions
 *
 */
-mkTask :: !d !TaskInitFun !TaskEditEventFun !(TaskEvalFun a) -> Task a | descr d
+mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
 
 /**
 * Create a task that is immediately finished
@@ -138,7 +136,7 @@ taskNrToString		:: !TaskNr -> String
 */
 stepEvent :: !Int !(Maybe (Event e)) -> Maybe (Event e) 
 
-stepTUITaskNr :: !Int !ReversedTaskNr -> ReversedTaskNr
+stepTarget :: !Int !ReversedTaskNr -> ReversedTaskNr
 
 // Changes
 

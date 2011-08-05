@@ -20,7 +20,7 @@ from SystemTypes	import :: ProcessId
 					, parallelStates		:: !Map String Dynamic			// The set of shared state variables used during parallel task execution
 					, parallelControls		:: !Map String (!Int,![Control])// The set of controls for manipulating parallel task lists
 					, readShares			:: !Maybe [String]				// The IDs of shares from which was read
-					, workOnDependencies	:: ![ProcessId]					// Parent processes performing the current task using workOn
+					, evalStack				:: ![ProcessId]					// The stack of instances evaluating other instances through workOn
 					, world					:: !*World						// The outside world
 					}
 :: Control

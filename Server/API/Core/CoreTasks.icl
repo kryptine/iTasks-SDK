@@ -75,7 +75,7 @@ where
 		= (TaskFinished (fromOk val), iworld)
 
 interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
+interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
 	init taskNr iworld
 		= (TCBasic newMap, iworld)
@@ -239,62 +239,53 @@ sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
 
 workOn :: !ProcessId -> Task WorkOnProcessState
-workOn pid = //wrapWidthInteractionLayout @>>
-	mkActionTask ("Work on","Work on another workflow instance.") (\termFunc -> {initFun = init, editEventFun = edit, evalTaskFun = eval termFunc})
+workOn processId
+	= mkActionTask ("Work on","Work on another top-level instance.") (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
 	init taskNr iworld = (TCEmpty, iworld)
-		
-	edit taskNr event _ iworld=:{currentProcess}
-		# (mbContext,iworld)		= getProcessContext pid iworld
-		# iworld = case mbContext of
-			Just (TaskContext properties changeNo (TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) context)) | isActive properties
-				# iworld			= {iworld & currentProcess = pid}
-				# (context,iworld) = case event of
-					(TaskEvent [changeNo:steps] (path,val))	= (toTaskFuncs currentTask).editEventFun [changeNo:taskNr] (TaskEvent steps (path,val)) context iworld //TODO: CHECK
-					_										= (context, iworld)
-				# (context,iworld)	= (toTaskFuncs currentTask).editEventFun taskNr event context iworld
-				# iworld			= {iworld & currentProcess = currentProcess}
-				# iworld			= setProcessContext pid (TaskContext properties changeNo (TTCRunning thread context)) iworld
-				= iworld
-			_
-				= iworld
-		= (TCEmpty, iworld)
 	
-	eval termFunc taskNr props event tuiTaskNr imerge _ mmerge _ iworld=:{currentProcess, workOnDependencies}
-		# workOnDependencies`				= [currentProcess:workOnDependencies]
-		# iworld							= {iworld & workOnDependencies = workOnDependencies`}
-		| isMember pid workOnDependencies`	= (taskException WorkOnDependencyCycle, iworld) // don't work on own process, throw exception
-		# (mbContext,iworld)				= getProcessContext pid iworld
-		= case mbContext of
-			Just (TaskContext properties changeNo state) | isActive properties
-				# (taskState,tui,iworld) = case state of
-					TTCRunning thread context
-						# iworld								= {iworld & currentProcess = pid}
-						# event									= stepEvent changeNo event //TODO: FIX
-						# (res,iworld)							= evaluateWorkflowInstanceEval pid props changeNo [changeNo:taskNr] properties thread context event tuiTaskNr iworld
-						# iworld								= {iworld & currentProcess = currentProcess}
-						# (properties,contextTree,taskState,tui,iworld) = case res of
-							TaskException _ err					= (setExcepted properties, TTCExcepted err, WOExcepted, exceptionTui err, iworld)
-							TaskFinished res					= (setFinished properties, TTCFinished res, WOFinished, finishedTui, iworld)
-							TaskBusy (Just tui) _ context		= (setRunning properties, TTCRunning thread context, WOActive, tui, iworld)
-						# iworld = setProcessContext pid (TaskContext properties changeNo contextTree) iworld
-						= (taskState, tui, iworld)
-					TTCFinished _
-						= (WOFinished, finishedTui, iworld)
-					TTCExcepted err
-						= (WOExcepted, exceptionTui err, iworld)
-				# iworld = {iworld & workOnDependencies = workOnDependencies}
-				= case termFunc {localValid = True, modelValue = taskState} of
-					StopInteraction result		= (TaskFinished result,iworld)
-					UserActions actions = case getActionResult event actions of
-						Just result				= (TaskFinished result, iworld)
-						Nothing
-							# (tui,actions)		= mergeTUI taskNr props imerge [tui] Nothing actions
-							= (TaskBusy (Just tui) actions TCEmpty,iworld)
-			_ = (taskException WorkOnProcessNotFound, {iworld & workOnDependencies = workOnDependencies})
-					
-	finishedTui			= htmlDisplay "Task finished"
-	exceptionTui err	= htmlDisplay ("Task excepted: " +++ err)
+	edit taskNr event _ iworld
+		//Load instance
+		# (mbContext,iworld)	= loadInstance [processId] iworld
+		| isError mbContext		= (TCEmpty, iworld)
+		//Apply event to instance
+		# (mbContext,iworld)	= editInstance (Just event) (fromOk mbContext) iworld
+		//Store instance
+		| isError mbContext		= (TCEmpty, iworld)
+		# iworld				= storeInstance (fromOk mbContext) iworld
+		= (TCEmpty, iworld)
+		
+	eval termFunc taskNr props event tuiTaskNr imerge _ mmerge _ iworld=:{evalStack}
+		//Check for cycles
+		| isMember processId evalStack
+			=(taskException WorkOnDependencyCycle, iworld)
+		//Load instance
+		# (mbContext,iworld)		= loadInstance [processId] iworld
+		| isError mbContext			= (taskException WorkOnNotFound ,iworld)
+		//Eval instance
+		# (mbResult,context,iworld)	= evalInstance [processId, changeNo (fromOk mbContext)] event (fromOk mbContext) iworld 
+		= case mbResult of
+			Error e				= (taskException WorkOnEvalError, iworld)
+			Ok result
+				//Store context
+				# iworld		= storeInstance context iworld
+				# (state,tui,iworld) = case result of
+					(TaskBusy tui actions _)		= (WOActive, tui, iworld)
+					(TaskFinished _)				= (WOFinished, Just (htmlDisplay "Task finished"), iworld)
+					(TaskException _ err)			= (WOExcepted, Just (htmlDisplay ("Task excepted: " +++ err)), iworld)
+				//Check trigger
+				= case termFunc {localValid = True, modelValue = state} of
+					StopInteraction result
+						= (TaskFinished result,iworld)
+					UserActions actions	
+						= case getActionResult event actions of
+							Just result
+								= (TaskFinished result, iworld)
+							Nothing
+								# (tui,actions)		= mergeTUI taskNr props imerge (maybe [] (\t -> [t]) tui) Nothing actions
+								= (TaskBusy (Just tui) actions TCEmpty,iworld)
+
+	changeNo (TaskContext _ n _) = n
 
 mergeTUI taskNr props imerge tuis warning actions
 	= imerge { title = props.taskDescription.TaskDescription.title
@@ -308,7 +299,8 @@ mergeTUI taskNr props imerge tuis warning actions
 			 }
 where
 	taskId = taskNrToString taskNr
-			 
+
+		 
 getActionResult (Just (TaskEvent [] name)) actions
 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
 getActionResult _ actions

@@ -110,6 +110,8 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 						, properties	:: !Either TaskProperties ProcessProperties //* Task properties for inbody tasks and process properties for detached tasks
 						}
 
+
+
 /**
 * Get the shared state of a task list
 */
@@ -131,3 +133,8 @@ appendTask :: !(TaskContainer s) !(TaskList s)	-> Task Int | TC s
 * Removes (and stops) a task from a task list
 */
 removeTask :: !Int !(TaskList s)				-> Task Void | TC s
+
+/**
+* Execute a task with the identity of the given user
+*/
+workAs :: !User (Task a)						-> Task a | iTask a

@@ -50,7 +50,17 @@ where
 				(Fixed 700)
 				(defaultContent editorParts buttons)
 		  ,actions)
-	
+
+minimalInteractionLayout :: InteractionLayouter
+minimalInteractionLayout = \i -> layout i
+where
+	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+		= (	{ content	= TUILayoutContainer (defaultLayoutContainer editorParts)
+			, width		= (WrapContent 0)
+			, height	= (WrapContent 0)
+			, margins	= Nothing
+			}, actions)
+				
 fullWidthInteractionLayout :: InteractionLayouter
 fullWidthInteractionLayout = \i -> layout i
 where
@@ -77,8 +87,7 @@ where
 				warning
 				(WrapContent 0)
 				(defaultContent editorParts buttons)
-		  ,actions)
-
+		  ,actions)	
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
 defaultContent editor buttons = [defaultContentPanel (editorContainer ++ buttonContainer)]

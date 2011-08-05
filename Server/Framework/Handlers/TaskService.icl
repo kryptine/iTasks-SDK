@@ -51,14 +51,14 @@ taskService url format path req iworld
 		["create"]
 			| isError mbSession
 				= (serviceResponse html "Create task" createDescription url createParams (jsonSessionErr mbSession), iworld)	 
-			# (mbResult,iworld)	= createWorkflowInstance (toInt workflowParam) (fromOk mbSession).user (if (paramParam == "") Nothing (Just (fromString paramParam))) iworld
+			# (mbResult,iworld)	= createTopInstance (toInt workflowParam) (fromOk mbSession).user (if (paramParam == "") Nothing (Just (fromString paramParam))) iworld
 			# json = case mbResult of
 				Error err
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]
 				Ok (TaskException _ err,_)
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]
-				Ok (_,properties)
-					= JSONObject [("success",JSONBool True),("taskId",JSONInt (toInt properties.systemProperties.SystemProperties.taskId))]
+				Ok (_,taskNr)
+					= JSONObject [("success",JSONBool True),("taskId",JSONInt (last taskNr))]
 			= (serviceResponse html "Create task" createDescription url createParams json, iworld)
 		
 		//Show properties of an individual task without further evaluating it.	
@@ -75,7 +75,8 @@ taskService url format path req iworld
 		//Evaluates a workflow instance (does not require being logged in) 
 		[taskId,"refresh"]
 			//Evaluate with
-			# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) Nothing Nothing [] iworld
+			//# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) Nothing Nothing [] iworld
+			# (mbResult,iworld)		= evalTopInstance (taskNrFromString taskId) (fromOk mbSession).user Nothing Nothing iworld
 			# json = case mbResult of
 				Error err
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]
@@ -88,7 +89,8 @@ taskService url format path req iworld
 		[taskId,"debug"]
 			| isError mbSession
 				= (serviceResponse html "Task debug" taskDebugDescription url debugParams (jsonSessionErr mbSession), iworld)
-			# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) Nothing Nothing [] iworld
+			//# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) Nothing Nothing [] iworld
+			# (mbResult,iworld)		= evalTopInstance (taskNrFromString taskId) (fromOk mbSession).user Nothing Nothing iworld
 			# json = case mbResult of
 				Error err
 					= JSONObject [("success",JSONBool False),("error",JSONString err)]
@@ -130,8 +132,9 @@ taskService url format path req iworld
 			//We need the current timestamp to include in the response
 			# (timestamp,iworld)	= getTimestamp iworld
 			//Evaluate the workflow instance
-			# tuiTaskNr			= taskNrFromString taskId
-			# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) editEvent commitEvent tuiTaskNr iworld
+			//# tuiTaskNr			= taskNrFromString taskId
+			//# (mbResult,iworld)	= evaluateWorkflowInstance (processOf taskId) editEvent commitEvent tuiTaskNr iworld
+			# (mbResult,iworld)	= evalTopInstance (taskNrFromString taskId) (fromOk mbSession).user editEvent commitEvent iworld
 			# (json,iworld) = case mbResult of
 				Error err
 					= (JSONObject [("succes",JSONBool False),("error",JSONString err)],iworld)

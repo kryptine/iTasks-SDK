@@ -9,34 +9,37 @@ from Task			import :: TaskNr, :: Task, :: TaskResult, :: Event, :: EditEvent, ::
 import Maybe, JSON, Error
 import TaskContext, iTaskClass
 
+
 /**
-* Creates a dynamic containing a runnable task thread structure.
-* It contains the task plus the iTask context restrictions.
+* Create a new top-level task instance
 *
-* @param The task that is to be converted to a runnable thread
+* @param The name of the workflow
+* @param The current session user
+* @param Optional encoded data for a workflow with parameter
+* @param The IWorld state
+*
+* @return The result of the targeted main task and the tasknr of the instance or an error
+* @return The IWorld state
+*/
+createTopInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !TaskNr), !*IWorld)
+
+/**
+* Evaluate a top-level task instance
+*
+* @param The task number of the main/detached task which result is to be returned
+* @param The current session user
+* @param Optionally an edit event
+* @param Optionally a commit event
+* @param The IWorld state
 * 
-* @return A dynamic containing the thread
+* @return The result of the targeted main task or an error
+* @return The IWorld state
 */
-createThread :: (Task a) -> Dynamic | iTask a
+evalTopInstance :: !TaskNr !User !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 
-//Creeer initiele task context
-makeWorkflowInstance	:: !WorkflowId !User !(Maybe JSONNode) !*IWorld	-> (!MaybeErrorString TaskContext, !*IWorld)
 
-//Laadt bestaande context en pas eventuele edit events toe
-loadWorkflowInstance	:: !TaskNr !(Maybe EditEvent) !*IWorld					-> (!MaybeErrorString TaskContext, !*IWorld)
-
-//Evalueer de task in de gegeven context
-evalWorkflowInstance	:: !TaskNr !TaskContext !(Maybe CommitEvent) !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-
-/**
-* Create a new instance (process) of a workflow in the workflow database
-*/
-createWorkflowInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic,!ProcessProperties), !*IWorld)
-/**
-* Evaluate an existing workflow instance.
-*/
-evaluateWorkflowInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !TaskNr !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-/**
-* Performs the evaluation pass of an an existing workflow instance.
-*/
-evaluateWorkflowInstanceEval :: !ProcessId !TaskProperties !Int !TaskNr !ProcessProperties !Dynamic !TaskContextTree !(Maybe CommitEvent) !TaskNr !*IWorld -> (!TaskResult Dynamic, !*IWorld)
+//Helper functions: exported for use in workOn task
+loadInstance	:: !TaskNr !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
+editInstance	:: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
+evalInstance	:: !TaskNr !(Maybe CommitEvent) !TaskContext  !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
+storeInstance	:: !TaskContext !*IWorld -> *IWorld
