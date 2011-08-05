@@ -17,13 +17,13 @@ from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefault
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
 derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
 derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
@@ -228,10 +228,14 @@ toDisplay :: !.a -> Display .a
 fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> Hidden .a
 
+
+// Displaying unfiltered HTML code
 :: HtmlDisplay = HtmlDisplay !String
 toHtmlDisplay	:: !h -> HtmlDisplay | html h
 fromHtmlDisplay	:: !HtmlDisplay -> String
 instance toString HtmlDisplay
+
+:: HtmlInclude	= HtmlInclude String
 
 // Wrapper types for changing the control's sizes
 :: ControlSize a		= ControlSize		!TUISize !TUISize !(Maybe TUIMargins) !a	//* all controls generated for a have specified sizes

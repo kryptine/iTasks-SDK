@@ -70,6 +70,7 @@ gVisualizeText{|Time|}			_ val				= [toString val]
 gVisualizeText{|User|}			_ val				= [toString val]
 gVisualizeText{|Currency|}		_ val				= [toString val]
 gVisualizeText{|HtmlDisplay|}	_ val				= [html2text (toString val)]
+gVisualizeText{|HtmlInclude|}	_ val				= ["Html include"]
 gVisualizeText{|FormButton|}	_ val				= [val.FormButton.label]
 gVisualizeText{|Document|}		_ val
 	| val.Document.size == 0						= ["No Document"]
@@ -160,6 +161,7 @@ gVisualizeHtml{|Time|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|User|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|Currency|}		_ val				= [RawText (curLabel (Just val) +++ " " +++ toString val)]
 gVisualizeHtml{|HtmlDisplay|}	_ val				= [RawText (fromHtmlDisplay val)]
+gVisualizeHtml{|HtmlInclude|}	_ (HtmlInclude url)	= [IframeTag [SrcAttr url, FrameborderAttr "0", WidthAttr "100%", HeightAttr "100%"] []]
 gVisualizeHtml{|FormButton|}	_ val				= [Text val.FormButton.label]
 gVisualizeHtml{|Document|}		_ val
 	| val.Document.size == 0
@@ -364,6 +366,7 @@ gVisualizeEditor{|User|}		val vst = visualizeControlSimple TUIUserControl val vs
 gVisualizeEditor{|Currency|}	val vst = visualizeControlSimple TUICurrencyControl val vst
 	
 gVisualizeEditor{|HtmlDisplay|} val vst = visualizeControlSimple (TUIHtmlDisplay Nothing) (fmap fromHtmlDisplay val) vst
+gVisualizeEditor{|HtmlInclude|} val vst = visualizeControlSimple TUIStringControl (fmap (\(HtmlInclude path) -> path) val) vst
 
 gVisualizeEditor {|Document|}	val vst = visualizeControlSimple control val vst
 where

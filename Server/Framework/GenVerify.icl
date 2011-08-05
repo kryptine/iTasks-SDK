@@ -131,6 +131,7 @@ gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" 
 gVerify{|Table|}				_ vst = alwaysValid vst
 gVerify{|TreeChoice|} _ _		_ vst = alwaysValid vst//simpleVerify "Choose a leaf of the tree" vst
 gVerify{|HtmlDisplay|}			_ vst = alwaysValid vst
+gVerify{|HtmlInclude|}			_ vst = alwaysValid vst
 
 gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst

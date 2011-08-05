@@ -42,7 +42,7 @@ manageTasks = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selec
 infoBar :: Task ParallelControl
 infoBar = showSharedInformation "Info" [ShowView (GetShared view)] currentUser Void >>+ (\_ -> UserActions [(Action "Log out",Just Stop)])
 where
-	view user = "Welcome " +++ toString user
+	view user = HtmlDisplay ("<b>Welcome " +++ toString (Text (toString user)) +++ "</b>")
 	
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
 chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetLocalAndShared mkTree, Putback putback)] (state >+| allowedWorkflowTree) Nothing >>+ noActions
@@ -88,8 +88,10 @@ where
 		_ = abort "getProcId"
 
 workTabPanel :: !(TaskList ClientState) -> Task ParallelControl
-workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList))]
-
+workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList)),(BodyTask, homeTab)]
+where
+	homeTab _ = showInformation "Home" [] (HtmlInclude "skins/default/welcome.html") <<@ fullScreenInteractionLayout >>+ noActions 
+	
 controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
 controlWorkTabs state taskList = forever (
 					chooseActionDyn openTabTrigger (state >+< openProcs)
