@@ -195,7 +195,7 @@ defaultInteractionLayout	:: InteractionLayouter
 minimalInteractionLayout	:: InteractionLayouter
 fullWidthInteractionLayout	:: InteractionLayouter
 wrapWidthInteractionLayout	:: InteractionLayouter
-fullScreenInteractionLayout	:: InteractionLayouter
+fullShowInteractionLayout	:: InteractionLayouter
 defaultParallelLayout		:: ParallelLayouter
 minimalParallelLayout		:: ParallelLayouter
 tabParallelLayout			:: !(Maybe PanelIcon) -> ParallelLayouter
