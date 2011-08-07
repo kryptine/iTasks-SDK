@@ -11,7 +11,7 @@ encodeTUIUpdates u = toJSON u
 derive JSONEncode TUIUpdate
 derive JSONEncode TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONEncode TUILayoutContainer, TUITabContainer, TUITab, TUIMainContainer, TUIListContainer
+derive JSONEncode TUILayoutContainer, TUITabContainer, TUITab, TUIListContainer
 derive JSONEncode TUIGridControl, TUITree, TUIControl
 derive JSONEncode TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
@@ -23,7 +23,6 @@ JSONEncode{|TUIDefContent|} (TUIListItem r) 			= addXType "itasks.tui.list.Item"
 JSONEncode{|TUIDefContent|} (TUILayoutContainer r)		= addXType "itasks.tui.LayoutContainer" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUITabContainer r)			= addXType "itasks.tui.TabContainer" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUITab r)					= addXType "itasks.tui.Tab" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIMainContainer r)		= addXType "itasks.tui.MainContainer" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "itasks.tui.List" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r)			= addXType "button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuItem r)				= addXType "itasks.tui.MenuItem" (JSONEncode{|*|} r)

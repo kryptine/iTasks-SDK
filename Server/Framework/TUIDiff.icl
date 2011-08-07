@@ -88,12 +88,6 @@ where
 					 		  \\ {TUIDef|content=c=:(TUIListItem {TUIListItem|items=co})} <- old
 							  &  {TUIDef|content=c=:(TUIListItem {TUIListItem|items=cn})} <- new
 							  &  i <- [0..]]
-							  
-		(TUIMainContainer mcOld, TUIMainContainer mcNew)
-			# menuUpdates = diffTUIDefinitionSets (childDataPath path 0) mcOld.TUIMainContainer.menus mcNew.TUIMainContainer.menus
-			# itemUpdates = diffTUIDefinitionSets (childDataPath path 1) mcOld.TUIMainContainer.items mcNew.TUIMainContainer.items
-			= Just (menuUpdates ++ itemUpdates)
-		
 		// Custom components need to figure out their own update on the client side
 		(TUICustom oc, TUICustom nc)
 			| oc === nc	= Just []

@@ -141,7 +141,7 @@ where
 
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = parallel (taskTitle task,taskDescription task) Nothing (\_ (Just a) -> a) [(BodyTask, checked pred task 0)] <<@ layout
+(<!) task pred = parallel (taskMeta task) Nothing (\_ (Just a) -> a) [(BodyTask, checked pred task 0)] <<@ layout
 where
 	checked pred task i tlist
 		=	task
@@ -150,7 +150,7 @@ where
 			(removeTask i tlist >>| appendTask (BodyTask, checked pred task (i + 1)) tlist	>>| return Continue)
 			 
 	layout :: TUIParallel -> (TUIDef,[TaskAction])
-	layout {TUIParallel|items} = appFst fromJust (hd items)
+	layout {TUIParallel|items=[(_,tui,actions):_]} = (fromJust tui, actions)
 
 forever :: !(Task a) -> Task b | iTask a & iTask b	
 forever	t = (<!) t (\_ -> False) >>| return defaultValue

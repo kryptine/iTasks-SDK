@@ -43,7 +43,7 @@ where
 	toString WorkOnDependencyCycle		= "Error working on process: cycle in dependencies detected"
 	
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
-try normalTask handlerTaskFun = mkTask (taskTitle normalTask, taskDescription normalTask) init edit eval
+try normalTask handlerTaskFun = mkTask (taskMeta normalTask) init edit eval
 where
 	normalTaskFuncs = toTaskFuncs normalTask
 	
@@ -74,8 +74,8 @@ where
 
 
 	//Normal execution still possible
-	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context=:(TCTry (Left cxtNormal)) iworld
-		# (result, iworld) = normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) imerge pmerge mmerge cxtNormal iworld
+	eval taskNr _ event tuiTaskNr imerge pmerge context=:(TCTry (Left cxtNormal)) iworld
+		# (result, iworld) = normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) imerge pmerge cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
@@ -87,7 +87,7 @@ where
 				# handler				= handlerTaskFun ex
 				# handlerFuncs			= toTaskFuncs handler
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON ex,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -97,19 +97,19 @@ where
 				= (TaskException ex str, iworld)
 			
 	//Handling the exception
-	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context=:(TCTry (Right (encEx,cxtHandler))) iworld
+	eval taskNr _ event tuiTaskNr imerge pmerge context=:(TCTry (Right (encEx,cxtHandler))) iworld
 		= case fromJSON encEx of
 			Just e
 				# handler		= handlerTaskFun e
 				# handlerFuncs	= toTaskFuncs handler
-				# (result,iworld) = handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
+				# (result,iworld) = handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 			Nothing
 				= (taskException "Corrupt exception value in try" ,iworld)
-	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context iworld
+	eval taskNr _ event tuiTaskNr imerge pmerge context iworld
 		= (taskException "Corrupt task context in try", iworld)
 	
 tuiOk i [] tui		= tui
@@ -125,7 +125,7 @@ where
 
 //TODO: Rewrite to a common base function for try and catchAll 	
 catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
-catchAll normalTask handlerTaskFun = mkTask (taskTitle normalTask, taskDescription normalTask) init edit eval
+catchAll normalTask handlerTaskFun = mkTask (taskMeta normalTask) init edit eval
 where
 	normalTaskFuncs = toTaskFuncs normalTask
 
@@ -149,8 +149,8 @@ where
 		= (context, iworld)
 
 	//Normal execution still possible
-	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context=:(TCTry (Left cxtNormal)) iworld
-		# (result, iworld) = normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) imerge pmerge mmerge cxtNormal iworld
+	eval taskNr _ event tuiTaskNr imerge pmerge context=:(TCTry (Left cxtNormal)) iworld
+		# (result, iworld) = normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) imerge pmerge cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
@@ -162,19 +162,19 @@ where
 				# handler				= handlerTaskFun str
 				# handlerFuncs			= toTaskFuncs handler
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON str,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 
 	//Handling the exception
-	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context=:(TCTry (Right (encEx,cxtHandler))) iworld
+	eval taskNr _ event tuiTaskNr imerge pmerge context=:(TCTry (Right (encEx,cxtHandler))) iworld
 		= case fromJSON encEx of
 			Just e
 				# handler			= handlerTaskFun e
 				# handlerFuncs		= toTaskFuncs handler
-				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge mmerge cxtHandler iworld
+				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -182,6 +182,6 @@ where
 			Nothing
 				= (taskException "Corrupt exception value in catchAll" ,iworld)
 				
-	eval taskNr _ event tuiTaskNr imerge pmerge mmerge context iworld
+	eval taskNr _ event tuiTaskNr imerge pmerge context iworld
 		= (taskException "Corrupt task context in catchAll", iworld)
 			

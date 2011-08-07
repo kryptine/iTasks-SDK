@@ -115,16 +115,12 @@ evalInstance target commitEvent context=:(TaskContext properties changeNo tconte
 			//Match processId & changeNo in target path
 			# target			= foldr stepTarget [changeNo,procId] target
 			//Apply task's eval function	
-			# (result,iworld)	= evalFun taskNr taskProperties commitEvent target defaultInteractionLayout defaultParallelLayout defaultMainLayout scontext iworld 
+			# (result,iworld)	= evalFun taskNr taskProperties commitEvent target defaultInteractionLayout defaultParallelLayout scontext iworld 
 			//Restore current process id in iworld
 			# iworld			= {iworld & currentProcess = currentProcess, evalStack = evalStack}
 			= case result of
 				TaskBusy tui actions scontext
 					# properties	= setRunning properties
-					//Apply default main layout if we reach the target
-					# tui			= if (target == taskNr)
-										(fmap (\t -> defaultMainLayout {TUIMain|content = t,actions = actions, properties = properties}) tui)
-										tui
 					# context		= TaskContext (setRunning properties) changeNo (TTCRunning thread scontext)
 					= (Ok (TaskBusy tui [] scontext), context, iworld)
 				TaskFinished val

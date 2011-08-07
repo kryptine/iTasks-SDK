@@ -22,8 +22,8 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 	| TCEmpty
 
 :: SubTaskContext
-	= STCHidden !TaskProperties !(Maybe (!JSONNode,!TaskContextTree))		//Properties, Task (encoded), Context or JSON node
-	| STCBody !TaskProperties !(Maybe (!JSONNode,TaskContextTree))			
+	= STCHidden !TaskMeta !(Maybe (!JSONNode,!TaskContextTree))		//Properties, Task (encoded), Context or JSON node
+	| STCBody !TaskMeta !(Maybe (!JSONNode,TaskContextTree))			
 	| STCDetached !ProcessProperties !(Maybe (!JSONNode,!TaskContextTree))
 
 //Parallel has a bit more complex administration so we define it as a record

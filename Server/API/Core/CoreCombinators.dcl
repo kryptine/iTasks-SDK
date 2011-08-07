@@ -106,11 +106,9 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 /**
 * Information about a task in a parallel set.
 */
-:: ParallelTaskInfo =	{ index			:: !Int										//* The task's index
-						, properties	:: !Either TaskProperties ProcessProperties //* Task properties for inbody tasks and process properties for detached tasks
+:: ParallelTaskInfo =	{ index			:: !Int									//* The task's index
+						, properties	:: !Either TaskMeta ProcessProperties	//* Task properties for inbody tasks and process properties for detached tasks
 						}
-
-
 
 /**
 * Get the shared state of a task list

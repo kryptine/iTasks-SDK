@@ -120,10 +120,10 @@ where
 	isStop _    = False
 
 ginParallelLayout :: ParallelLayouter
-ginParallelLayout = \par=:{TUIParallel|title,description,items}-> 
+ginParallelLayout = \par=:{TUIParallel|title,instruction,items}-> 
 	case items of
-		[(Just editor,_),(_,actions),activator]	= (editor,actions)
-		_ 										= defaultParallelLayout par
+		[(_,Just editor,_),(_,_,actions),activator]	= (editor,actions)
+		_ 											= defaultParallelLayout par
 
 ginInteractionLayout :: InteractionLayouter
 ginInteractionLayout = \interaction = 

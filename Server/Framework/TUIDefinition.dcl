@@ -5,11 +5,11 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: Action, :: ProcessProperties
+from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: Action, :: TaskMeta
 from Task			import :: TaskAction
 
 :: TUIInteraction =	{ title				:: !String
-					, description		:: !String
+					, instruction		:: !Maybe String
 					, editorParts		:: ![TUIDef]
 					, actions			:: ![TaskAction]
 					, type				:: !Maybe InteractionTaskType
@@ -19,14 +19,10 @@ from Task			import :: TaskAction
 					}
 					
 :: TUIParallel =	{ title				:: !String
-					, description		:: !String
-					, items				:: ![(!Maybe TUIDef,![TaskAction])]
+					, instruction		:: !Maybe String
+					, items				:: ![(!TaskMeta,!Maybe TUIDef,![TaskAction])]
 					}
-:: TUIMain = 		{ properties		:: !ProcessProperties
-					, content			:: !TUIDef
-					, actions			:: ![TaskAction]
-					}
-					
+
 :: TUIName	:== String
 
 :: TUIDef =	{ content	:: !TUIDefContent
@@ -41,7 +37,6 @@ from Task			import :: TaskAction
 	| TUILayoutContainer	!TUILayoutContainer
 	| TUITabContainer		!TUITabContainer
 	| TUITab				!TUITab
-	| TUIMainContainer		!TUIMainContainer
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
 	| TUIMenuButton			!TUIMenuButton
@@ -110,11 +105,7 @@ from Task			import :: TaskAction
 	, items				:: !TUIDef
 	, closeAction		:: !Maybe (!TUIName,!TaskId)
 	}
-:: TUIMainContainer = 
-	{ items				:: ![TUIDef]
-	, menus				:: ![TUIDef]
-	, properties		:: !ProcessProperties
-	}
+
 :: TUIListContainer =
 	{ items			:: ![TUIDef]
 	, name			:: !TUIName
@@ -188,7 +179,6 @@ sameMargins				:: !TUIFixedSize -> TUIMargins
 // Layouts
 :: InteractionLayouter	:== TUIInteraction	-> (TUIDef, [TaskAction]) 
 :: ParallelLayouter		:== TUIParallel		-> (TUIDef, [TaskAction])
-:: MainLayouter			:== TUIMain			-> TUIDef
 
 // pre-defined layouts
 defaultInteractionLayout	:: InteractionLayouter
@@ -198,13 +188,13 @@ wrapWidthInteractionLayout	:: InteractionLayouter
 fullShowInteractionLayout	:: InteractionLayouter
 defaultParallelLayout		:: ParallelLayouter
 minimalParallelLayout		:: ParallelLayouter
-tabParallelLayout			:: !(Maybe PanelIcon) -> ParallelLayouter
-defaultMainLayout			:: MainLayouter
+tabParallelLayout			:: ParallelLayouter
+
 
 // layout aux functions
-defaultPanelDescr			:: !PanelTitle !PanelIcon !String !(Maybe String) 	!TUISize ![TUIDef]	-> TUIDef
+defaultPanelDescr			:: !PanelTitle !PanelIcon !(Maybe String) !(Maybe String) 	!TUISize ![TUIDef]	-> TUIDef
 defaultPanel				:: !PanelTitle !PanelIcon							!TUISize ![TUIDef]	-> TUIDef
-defaultDescriptionPanel		:: !String !(Maybe String)												-> TUIDef
+defaultDescriptionPanel		:: !(Maybe String) !(Maybe String)										-> TUIDef
 defaultContentPanel			:: ![TUIDef]															-> TUIDef
 defaultContent				:: ![TUIDef] ![TUIDef]													-> [TUIDef]
 defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool								-> PanelIcon

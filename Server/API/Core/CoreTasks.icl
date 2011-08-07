@@ -132,7 +132,7 @@ where
 				
 	edit _ _ context iworld = (context,iworld)
 	
-	eval termFunc taskNr props event tuiTaskNr imerge pmerge mmerge context iworld=:{IWorld|timestamp}
+	eval termFunc taskNr props event tuiTaskNr imerge pmerge context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
@@ -255,7 +255,7 @@ where
 		# iworld				= storeInstance (fromOk mbContext) iworld
 		= (TCEmpty, iworld)
 		
-	eval termFunc taskNr props event tuiTaskNr imerge _ mmerge _ iworld=:{evalStack}
+	eval termFunc taskNr props event tuiTaskNr imerge _ _ iworld=:{evalStack}
 		//Check for cycles
 		| isMember processId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
@@ -288,13 +288,13 @@ where
 	changeNo (TaskContext _ n _) = n
 
 mergeTUI taskNr props imerge tuis warning actions
-	= imerge { title = props.taskDescription.TaskDescription.title
-			 , description = props.taskDescription.TaskDescription.description
+	= imerge { title = props.TaskMeta.title
+			 , instruction = props.TaskMeta.instruction
 			 , editorParts = tuis
 			 , actions = [(taskId,action,isJust val) \\ (action,val) <- actions]
 			 , type = props.interactionType
 			 , isControlTask = props.controlTask
-			 , localInteraction = props.TaskProperties.localInteraction
+			 , localInteraction = props.TaskMeta.localInteraction
 			 , warning = warning
 			 }
 where

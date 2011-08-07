@@ -9,12 +9,12 @@ from ProcessDB		import qualified class ProcessDB(..), instance ProcessDB IWorld
 
 import GenVisualize
 	
-derive gVisualizeText	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gVisualizeHtml	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gVisualizeEditor	Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gUpdate			Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gDefaultMask		Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gVerify			Process, ProcessProperties, SystemProperties, TaskProperties, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVisualizeText	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVisualizeHtml	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVisualizeEditor	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gUpdate			Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gDefaultMask		Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVerify			Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
 derive bimap Maybe,(,)
 	
 getProcess :: !ProcessId -> Task (Maybe Process)

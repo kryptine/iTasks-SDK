@@ -5,17 +5,17 @@ from Time import :: Timestamp, :: Tm(..), mkTime
 
 class tune b :: !b !(Task a) -> Task a
 instance tune Description
-where tune (Description d) task	= updateTaskProperties (\p -> {p & taskDescription = toDescr d}) task
+where tune (Description t) task	= updateTaskMeta (\p -> {TaskMeta|p & title = toString t}) task
 instance tune Tag
-where tune (Tag t) task			= updateTaskProperties (\p -> {p & tags = [toString t : p.tags]}) task
+where tune (Tag t) task			= updateTaskMeta (\p -> {TaskMeta|p & tags = [toString t : p.tags]}) task
 instance tune Tags
-where tune (Tags ts) task		= updateTaskProperties (\p -> {p & tags = (map toString ts) ++ p.tags}) task
+where tune (Tags ts) task		= updateTaskMeta (\p -> {TaskMeta|p & tags = (map toString ts) ++ p.tags}) task
 instance tune InteractionTaskType
-where tune t task				= updateTaskProperties (\p -> {p & interactionType = Just t}) task
+where tune t task				= updateTaskMeta (\p -> {TaskMeta|p & interactionType = Just t}) task
 instance tune LocalInteractionTask
-where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & localInteraction = True}) task
+where tune _ task				= updateTaskMeta (\p -> {TaskMeta|p & localInteraction = True}) task
 instance tune ControlTask
-where tune _ task				= updateTaskProperties (\p -> {TaskProperties|p & controlTask = True}) task
+where tune _ task				= updateTaskMeta (\p -> {TaskMeta|p & controlTask = True}) task
 instance tune InteractionLayouter
 where
 	tune l task=:{Task|type} = case type of
@@ -37,4 +37,4 @@ where
 (@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 (@>>) a t = tune a t
 
-updateTaskProperties updF task = let p = taskProperties task in {Task|task & properties = updF p}
+updateTaskMeta updF task = let p = taskProperties task in {Task|task & properties = updF p}

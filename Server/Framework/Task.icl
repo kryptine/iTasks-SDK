@@ -9,7 +9,7 @@ from iTasks			import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecod
 mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
 mkTask description initFun editFun evalFun =
 	{ Task
-	| properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
+	| properties			= initTaskMeta description
 	, type = NormalTask
 		{ initFun		= initFun
 		, editFun		= editFun
@@ -20,18 +20,18 @@ mkTask description initFun editFun evalFun =
 mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
 mkInstantTask description iworldfun =
 	{ Task
-	| properties			= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
+	| properties			= initTaskMeta description
 	, type = NormalTask
 		{ initFun		= \_ iworld -> (TCEmpty,iworld)
 		, editFun		= \_ _  context iworld -> (context,iworld)
-		, evalFun		= \taskNr _ _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
+		, evalFun		= \taskNr _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}
 	}
 	
 mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task a | descr d
 mkActionTask description actionTaskFun =
 	{ Task
-	| properties	= {TaskProperties|initTaskProperties & taskDescription = toDescr description}
+	| properties	= initTaskMeta description
 	, type			= ActionTask actionTaskFun
 	}
 
@@ -44,12 +44,12 @@ mapActionTaskModelValue	:: !(a -> b) !(Task a) -> Task b
 mapActionTaskModelValue f task = mapActionTask (\st=:{modelValue} -> {st & modelValue = f modelValue}) task
 	
 taskTitle :: !(Task a) -> String
-taskTitle task = task.Task.properties.taskDescription.TaskDescription.title
+taskTitle task = task.Task.properties.TaskMeta.title
 
-taskDescription	:: !(Task a) -> String
-taskDescription task = task.Task.properties.taskDescription.TaskDescription.description
+taskMeta :: !(Task a) -> TaskMeta
+taskMeta {Task|properties} = properties
 
-taskProperties :: !(Task a) -> TaskProperties
+taskProperties :: !(Task a) -> TaskMeta
 taskProperties {Task|properties} = properties
 	
 instance iTaskId TaskNr
@@ -113,7 +113,7 @@ gUpdate{|Task|} fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ Task
-					| properties		= {initTaskProperties & taskDescription = toDescr "return"}
+					| properties		= initTaskMeta "return"
 					, type = NormalTask
 						{ initFun	= abort funerror
 						, editFun	= abort funerror
@@ -128,11 +128,11 @@ gDefaultMask{|Task|} _ _ = [Touched []]
 
 gVerify{|Task|} _ _ vst = alwaysValid vst
 
-gVisualizeText{|Task|} _ _ {Task|properties} = [properties.TaskProperties.taskDescription.TaskDescription.title]
-gVisualizeHtml{|Task|} _ _ {Task|properties} = [Text properties.TaskProperties.taskDescription.TaskDescription.title]
+gVisualizeText{|Task|} _ _ {Task|properties} = [properties.TaskMeta.title]
+gVisualizeHtml{|Task|} _ _ {Task|properties} = [Text properties.TaskMeta.title]
 gVisualizeEditor{|Task|} _ _ _ mbVal vst
 	# vis = case mbVal of
-		Just {Task|properties}	= [htmlDisplay properties.TaskProperties.taskDescription.TaskDescription.title]
+		Just {Task|properties}	= [htmlDisplay properties.TaskMeta.title]
 		Nothing					= []
 	= (vis,vst)
 	

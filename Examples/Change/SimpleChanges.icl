@@ -114,41 +114,41 @@ duplicateTask
 	>>= \procId ->	getProcess procId
 	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
 	>>= \user ->	get currentUser
-	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
+	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title) CLTransient
 
 informTask :: Task Void
 informTask
 	=				chooseProcess "The result of which process do you want to show?"
 	>>= \procId ->	chooseUserA "Select the user you want this result to see:"
 	>>= \user ->	getProcess procId
-	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
+	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title) CLTransient
 	
 checkTask :: Task Void
 checkTask
 	=				chooseProcess "The result of which process do you want to be checked?"
 	>>= \procId ->	getProcess procId
 	>>= \process -> chooseUserA "Select the user which has to check it:"
-	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
+	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title) CLTransient
 	
 cancelTask :: Task Void
 cancelTask
 	=				chooseProcess "Select the task you want to cancel:"
 	>>= \procId ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title procId) CLTransient
 
 reassignTask :: Task Void
 reassignTask
 	=				chooseProcess "Select the task you want to reassign to someone else:"
 	>>= \procId ->	chooseUserA "Who should continue with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title procId) CLTransient
 
 restartTask :: Task Void
 restartTask
 	=				chooseProcess "Select the task you want to restart from scratch:"
 	>>= \procId ->	chooseUserA "Who should start with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title) CLTransient
+	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title) CLTransient
 
 //Utility
 chooseUserA :: !question -> Task User | html question
@@ -163,7 +163,7 @@ chooseProcess question
 	=				getProcessesWithStatus [Running] [Active]
 	>>= \procs ->	enterChoice question []
 					[	( proc.Process.properties.ProcessProperties.systemProperties.SystemProperties.taskId
-						, proc.Process.properties.ProcessProperties.taskProperties.taskDescription.TaskDescription.title
+						, proc.Process.properties.ProcessProperties.taskProperties.TaskMeta.title
 						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.priority
 						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
 						\\ proc <- procs]

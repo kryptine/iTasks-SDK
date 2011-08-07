@@ -34,7 +34,7 @@ manageTasks = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selec
 	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
 	, (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
 	, (BodyTask,	\list	-> showDescription (taskListState list)	<<@ descriptionLayout)
-	, (BodyTask,	\list	-> workTabPanel list					<<@ tabParallelLayout (Just "icon-task"))
+	, (BodyTask,	\list	-> workTabPanel list					<<@ tabParallelLayout)
 	, (BodyTask,	\list	-> processTable list					<<@ processTableLayout)
 	, (HiddenTask,	\_		-> controlClient)
 	]
@@ -75,7 +75,7 @@ where
 	
 	mkTable mbSel (procs,_) = Table ["Title", "Priority", "Date", "Deadline"] (map mkRow procs) mbSel
 	mkRow {Process|properties=p=:{taskProperties,managerProperties,systemProperties},processId} =
-		[ html taskProperties.taskDescription.TaskDescription.title
+		[ html taskProperties.TaskMeta.title
 		, formatPriority managerProperties.ManagerProperties.priority
 		, visualizeAsHtml AsDisplay (timestampToGmDateTime systemProperties.issuedAt)
 		, visualizeAsHtml AsDisplay managerProperties.ManagerProperties.deadline
@@ -126,7 +126,7 @@ derive bimap Maybe, (,)
 
 // Layouts
 
-mainLayout {TUIParallel | items=i=:[(Just infoBar, logoutAction), (Just tree,_), (Just description,_), (Just workTabPanel,_), (Just processTable,_), (_,controlActions)]} =
+mainLayout {TUIParallel | items=i=:[(_,Just infoBar, logoutAction), (_,Just tree,_), (_,Just description,_), (_,Just workTabPanel,_), (_,Just processTable,_), (_,_,controlActions)]} =
 	({ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [left,right] & orientation = Horizontal}
 	, width		= FillParent 1 (FixedMinSize 0)
 	, height	= FillParent 1 (FixedMinSize 0)
@@ -146,7 +146,7 @@ where
 
 infoBarLayout :: TUIInteraction -> (TUIDef,[TaskAction])
 infoBarLayout {title,editorParts,actions=actions=:[(ltask,laction,_)]} = (
-	{ content	= TUILayoutContainer {defaultLayoutContainer [{hd editorParts & width = WrapContent 0},logoutButton] & orientation = Horizontal, hGravity = HGRight}
+	{ content	= TUILayoutContainer {defaultLayoutContainer [{hd editorParts & width = WrapContent 0},logoutButton] & orientation = Horizontal, hGravity = HGRight, vGravity = VGCenter}
 	, width		= FillParent 1 (ContentSize)
 	, height	= Fixed 30
 	, margins	= Nothing

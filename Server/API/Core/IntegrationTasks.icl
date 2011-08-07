@@ -60,20 +60,20 @@ where
 			
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr props event tuiTaskNr imerge pmerge mmerge context=:(TCBasic _) iworld=:{world}
+	eval taskNr props event tuiTaskNr imerge pmerge context=:(TCBasic _) iworld=:{world}
 		= case getLocalVar "outfile" context of
 			Just outfile
 				//Check status
 				# (exists,world) = 'File'.fileExists outfile world
 				| not exists
 					//Still busy
-					# (tui,actions) = imerge	{ title = props.taskDescription.TaskDescription.title
-								 				, description = props.taskDescription.TaskDescription.description
+					# (tui,actions) = imerge	{ title = props.TaskMeta.title
+								 				, instruction = props.TaskMeta.instruction
 												, editorParts = []
 												, actions = []
 												, type = props.interactionType
 												, isControlTask = props.controlTask
-												, localInteraction = props.TaskProperties.localInteraction
+												, localInteraction = props.TaskMeta.localInteraction
 												, warning = Nothing
 												}
 					= (TaskBusy (Just tui) actions context,{IWorld|iworld & world = world})
@@ -111,7 +111,7 @@ callRPCHTTP method url params transformResult
 callRPC :: !String !String !String !(String -> a) -> Task a | iTask a			
 callRPC options url args transformResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Description ("Call RPC", "Waiting for external service.")
+	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Description "Call RPC"
 	>>= \exitCode -> if (exitCode > 0)
 		(throw (SharedException (curlError exitCode)))
 		(importTextFile outfile >>= transform transformResult)

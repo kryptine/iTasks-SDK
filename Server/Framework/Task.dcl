@@ -21,7 +21,7 @@ derive gPutRecordFields	Task
 
 // Tasks
 :: Task a =
-	{ properties			:: !TaskProperties						// the task's general properties	
+	{ properties			:: !TaskMeta						// the task's general properties	
 	, type					:: !(TaskType a)
 	}
 	
@@ -37,7 +37,7 @@ derive gPutRecordFields	Task
 
 :: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContextTree,!*IWorld)
 :: TaskEditFun		:== TaskNr EditEvent TaskContextTree *IWorld -> *(!TaskContextTree,!*IWorld)
-:: TaskEvalFun a	:== TaskNr TaskProperties (Maybe CommitEvent) ReversedTaskNr InteractionLayouter ParallelLayouter MainLayouter TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
+:: TaskEvalFun a	:== TaskNr TaskMeta (Maybe CommitEvent) ReversedTaskNr InteractionLayouter ParallelLayouter TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
 :: ReversedTaskNr	:== [Int]							//Reversed tasks nr used to locate a subtask in a composition  
 
@@ -93,9 +93,9 @@ mapActionTaskModelValue	:: !(a -> b)										!(Task a) -> Task b
 taskTitle			:: !(Task a)	-> String
 
 /**
-* Extracts the description of a task
+* Extract the meta-data of a task
 */
-taskDescription		:: !(Task a)	-> String
+taskMeta			:: !(Task a)	-> TaskMeta
 
 /*
 * Extracts the initial properties of a task
@@ -103,7 +103,7 @@ taskDescription		:: !(Task a)	-> String
 * @param The task
 * @return The task's initial properties
 */
-taskProperties		:: !(Task a)	-> TaskProperties
+taskProperties		:: !(Task a)	-> TaskMeta
 
 class iTaskId a
 where

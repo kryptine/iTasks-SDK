@@ -1,7 +1,7 @@
 implementation module TUIDefinition
 
-import JSON, StdList, StdBool, GenEq, StdFunc, HTML, Text
-from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionName, :: ProcessProperties
+import JSON, StdList, StdBool, GenEq, StdFunc, HTML, Text, Util
+from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionName, :: TaskMeta(..)
 from SystemTypes	import actionIcon, actionName
 from Task			import  :: TaskAction
 
@@ -40,12 +40,12 @@ sameMargins m =	{ top		= m
 defaultInteractionLayout :: InteractionLayouter
 defaultInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
 				(defaultInteractionIcon type isControlTask localInteraction)
-				description
+				instruction
 				warning
 				(Fixed 700)
 				(defaultContent editorParts buttons)
@@ -54,7 +54,7 @@ where
 minimalInteractionLayout :: InteractionLayouter
 minimalInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
 		= (	{ content	= TUILayoutContainer (defaultLayoutContainer editorParts)
 			, width		= (WrapContent 0)
 			, height	= (WrapContent 0)
@@ -64,12 +64,12 @@ where
 fullWidthInteractionLayout :: InteractionLayouter
 fullWidthInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
 				(defaultInteractionIcon type isControlTask localInteraction)
-				description
+				instruction
 				warning
 				(FillParent 1 ContentSize)
 				(defaultContent editorParts buttons)
@@ -78,12 +78,12 @@ where
 wrapWidthInteractionLayout :: InteractionLayouter
 wrapWidthInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
 				(defaultInteractionIcon type isControlTask localInteraction)
-				description
+				instruction
 				warning
 				(WrapContent 0)
 				(defaultContent editorParts buttons)
@@ -92,7 +92,7 @@ where
 fullShowInteractionLayout :: InteractionLayouter
 fullShowInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,description,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
 		= ({hd editorParts & width = FillParent 1 ContentSize, height	= FillParent 1 ContentSize, margins	= Nothing}, actions)
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
@@ -113,55 +113,47 @@ where
 								}]
 
 defaultParallelLayout :: ParallelLayouter
-defaultParallelLayout = \{TUIParallel|title,description,items}->
-	let (tuis,actions) = unzip items in
-		(defaultPanelDescr title "icon-parallel-task" description Nothing (WrapContent 700) (catMaybes tuis), flatten actions)
+defaultParallelLayout = \{TUIParallel|title,instruction,items}->
+	let (metas,tuis,actions) = unzip3 items in
+		(defaultPanelDescr title "icon-parallel-task" instruction Nothing (WrapContent 700) (catMaybes tuis), flatten actions)
 
 minimalParallelLayout :: ParallelLayouter
-minimalParallelLayout = \{TUIParallel|title,description,items} ->
-	let (tuis,actions) = unzip items in
+minimalParallelLayout = \{TUIParallel|title,instruction,items} ->
+	let (metas,tuis,actions) = unzip3 items in
 	({ content	= TUILayoutContainer (defaultLayoutContainer (catMaybes tuis))
 	 , width	= Auto
 	 , height	= Auto
 	 , margins	= Nothing
 	 }, flatten actions)
 
-tabParallelLayout :: !(Maybe PanelIcon) -> ParallelLayouter
-tabParallelLayout mbIcon = \{TUIParallel|title,items} ->
-	let (tuis,actions) = unzip (map mkTabTui items) in
-		({ content	= TUITabContainer	{ TUITabContainer
-										| items =	[{ content	= TUITab {TUITab|title = title +++ " " +++ toString n, iconCls = mbIcon, items = tui, closeAction = closeAction}
-													,  margins	= Nothing
-													,  width	= Auto
-													,  height	= Auto
-													} \\ (tui,closeAction) <- catMaybes tuis & n <- [1..]]
-										}
+tabParallelLayout :: ParallelLayouter
+tabParallelLayout = \{TUIParallel|title,items} ->
+	let (metas,tuis,actions) = unzip3 (map mkTabTui items) in
+		({ content	= TUITabContainer
+						{ TUITabContainer
+						| items =	[{ content	= TUITab {TUITab|title = meta.TaskMeta.title, iconCls = (Just "icon-task"), items = tui, closeAction = Nothing}
+						 			,  margins	= Nothing
+									,  width	= Auto
+									,  height	= Auto
+									} \\ (meta, Just tui, actions) <- items]
+						}
 		 , width	= Auto
 		 , height	= Auto
 		 , margins	= Nothing
-		 }, flatten actions)
+		 }, flatten  (map (\(_,_,a) -> a) items))
 where
-	mkTabTui (Nothing, actions) = (Nothing,actions)
-	mkTabTui (Just tui, actions)
+	mkTabTui (meta,Just tui, actions)
 		# (mbCloseAction,actions) = findCloseAction actions []
-		= (Just (tui,mbCloseAction),actions)
+		= (meta,Just (tui,mbCloseAction),actions)
 		
 	findCloseAction [] acc = (Nothing,reverse acc)
 	findCloseAction [taskAction=:(taskId,action,enabled):actions] acc
 		| enabled && action === ActionClose	= (Just (actionName action,taskId), (reverse acc) ++ actions)
 		| otherwise							= findCloseAction actions [taskAction:acc]
 
-defaultMainLayout :: MainLayouter
-defaultMainLayout = \{TUIMain|properties,content,actions} ->
-	let (menus,_) = defaultMenus actions in
-		{ content	= TUIMainContainer {TUIMainContainer|items = [content], menus = menus, properties = properties}
-		, width		= FillParent 1 (FixedMinSize 0)
-		, height	= Auto
-		, margins	= Nothing
-		}
 
-defaultPanelDescr :: !PanelTitle !PanelIcon !String !(Maybe String) !TUISize ![TUIDef] -> TUIDef
-defaultPanelDescr title iconCls description mbWarning width form = defaultPanel title iconCls width [defaultDescriptionPanel description mbWarning:form]
+defaultPanelDescr :: !PanelTitle !PanelIcon !(Maybe String) !(Maybe String) !TUISize ![TUIDef] -> TUIDef
+defaultPanelDescr title iconCls instruction mbWarning width form = defaultPanel title iconCls width [defaultDescriptionPanel instruction mbWarning:form]
 
 defaultPanel :: !PanelTitle !PanelIcon !TUISize ![TUIDef] -> TUIDef
 defaultPanel title iconCls width content =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer content & title = Just title, iconCls = Just iconCls}
@@ -170,13 +162,14 @@ defaultPanel title iconCls width content =	{ content	= TUILayoutContainer {TUILa
 											, margins	= Just (sameMargins 10)
 											}
 
-defaultDescriptionPanel :: !String !(Maybe String) -> TUIDef
-defaultDescriptionPanel descr mbWarning =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer [htmlDisplay descr:warning] & frame = True}
+defaultDescriptionPanel :: !(Maybe String) !(Maybe String) -> TUIDef
+defaultDescriptionPanel mbInstr mbWarning =	{ content	= TUILayoutContainer {TUILayoutContainer | defaultLayoutContainer (instr ++ warning) & frame = True}
 											, width		= FillParent 1 ContentSize
 											, height	= (WrapContent 0)
 											, margins	= Nothing
 											}
 where
+	instr	= maybe [] (\w -> [htmlDisplay w]) mbInstr
 	warning = maybe [] (\w -> [htmlDisplay (DivTag [ClassAttr "x-invalid-icon"] [Text w])]) mbWarning
 
 defaultContentPanel :: ![TUIDef] -> TUIDef

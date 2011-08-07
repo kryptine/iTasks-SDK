@@ -16,9 +16,9 @@ derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Edita
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
-derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
-derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
-derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
+derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
+derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
+derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive bimap		Maybe, (,)
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
@@ -597,15 +597,25 @@ isActive properties = case properties.ProcessProperties.managerProperties.Manage
 
 instance descr String
 where
-	toDescr str = {TaskDescription|title = str, description = toString (html str)}
+	initTaskMeta str = initTaskMeta` str Nothing
 	
 instance descr (!String, !descr) | html descr
 where
-	toDescr (title,descr) = {TaskDescription|title = title, description = toString (html descr)}
-	
-instance descr TaskDescription
+	initTaskMeta (title,descr) = initTaskMeta` title (Just (toString (html descr)))
+
+instance descr TaskMeta
 where
-	toDescr descr = descr
+	initTaskMeta meta = meta
+	
+initTaskMeta` :: String (Maybe String) -> TaskMeta
+initTaskMeta` title instruction =
+	{ title = title
+	, instruction = instruction
+	, tags = []
+	, interactionType = Nothing
+	, localInteraction = False
+	, controlTask = False
+	}
 	
 instance toString TaskPriority
 where
@@ -643,14 +653,6 @@ where
 	toEmail RootUser			= EmailAddress ""
 	toEmail AnyUser				= EmailAddress ""
 	
-initTaskProperties :: TaskProperties
-initTaskProperties =
-	{ taskDescription = toDescr ""
-	, tags = []
-	, interactionType = Nothing
-	, localInteraction = False
-	, controlTask = False
-	}
 
 initManagerProperties :: ManagerProperties
 initManagerProperties =

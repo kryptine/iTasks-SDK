@@ -24,9 +24,9 @@ derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, HtmlInclude, Workf
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
-derive JSONDecode	TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
-derive gEq			TaskPriority, TaskProperties, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
+derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
+derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
+derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
 
 instance toString User
 instance toString Note
@@ -260,13 +260,14 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
 //* Properties of task processes	
 :: ProcessProperties =
-	{ taskProperties	:: !TaskProperties
+	{ taskProperties	:: !TaskMeta
 	, managerProperties	:: !ManagerProperties
 	, systemProperties	:: !SystemProperties
 	}
 	
-:: TaskProperties =
-	{ taskDescription	:: !TaskDescription				//* Description of the task
+:: TaskMeta =
+	{ title				:: !String						//* A descriptive title
+	, instruction		:: !Maybe String				//* Instruction of the task
 	, tags				:: ![String]					//* A list of tags
 	, interactionType	:: !Maybe InteractionTaskType	//* type of interaction (for interaction tasks)
 	, localInteraction	:: !Bool						//* indicates that the task's interaction is restricted to local data while it is running
@@ -322,13 +323,12 @@ instance == RunningTaskStatus
 
 class descr d
 where
-	toDescr :: !d -> TaskDescription
+	initTaskMeta :: !d -> TaskMeta
 
 instance descr String
 instance descr (!String, !descr) | html descr
-instance descr TaskDescription
+instance descr TaskMeta
 
-initTaskProperties :: TaskProperties
 initManagerProperties :: ManagerProperties
 
 setRunning	:: !ProcessProperties -> ProcessProperties

@@ -5,7 +5,7 @@ definition module TuningCombinators
 from Time	import :: Timestamp
 import Task, SystemTypes
 
-:: Description			= E.d: Description !d	& descr d
+:: Description			= E.s: Description !s	& toString s
 :: Tag					= E.s: Tag !s			& toString s
 :: Tags					= E.s: Tags ![s]		& toString s
 :: LocalInteractionTask	= LocalInteractionTask
