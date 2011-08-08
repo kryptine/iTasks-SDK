@@ -1,6 +1,6 @@
 implementation module TUIDefinition
 
-import JSON, StdList, StdBool, GenEq, StdFunc, HTML, Text, Util
+import JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, HTML, Text, Util
 from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType(..), :: OutputTaskType(..), :: Action(..), :: ActionName, :: TaskMeta(..)
 from SystemTypes	import actionIcon, actionName
 from Task			import  :: TaskAction
@@ -128,24 +128,28 @@ minimalParallelLayout = \{TUIParallel|title,instruction,items} ->
 
 tabParallelLayout :: ParallelLayouter
 tabParallelLayout = \{TUIParallel|title,items} ->
-	let (metas,tuis,actions) = unzip3 (map mkTabTui items) in
-		({ content	= TUITabContainer
-						{ TUITabContainer
-						| items =	[{ content	= TUITab {TUITab|title = meta.TaskMeta.title, iconCls = (Just "icon-task"), items = tui, closeAction = Nothing}
-						 			,  margins	= Nothing
-									,  width	= Auto
-									,  height	= Auto
-									} \\ (meta, Just tui, actions) <- items]
-						}
-		 , width	= Auto
-		 , height	= Auto
-		 , margins	= Nothing
-		 }, flatten  (map (\(_,_,a) -> a) items))
+		let (tabs,tactions) = unzip [mkTab i \\ i =:(_,Just _,_) <- items] in
+			({ content	= TUITabContainer { TUITabContainer| items = tabs}
+			 , width	= Auto
+		 	 , height	= Auto
+			 , margins	= Nothing
+			 }, flatten tactions)
 where
-	mkTabTui (meta,Just tui, actions)
-		# (mbCloseAction,actions) = findCloseAction actions []
-		= (meta,Just (tui,mbCloseAction),actions)
-		
+	mkTab (meta, Just tui, actions)
+		# (close,actions) = findCloseAction actions []
+		# (menus,actions) = defaultMenus actions
+		= ({ content	=
+			TUITab {TUITab
+			       | title = meta.TaskMeta.title
+				   , iconCls = (Just "icon-task")
+				   , items = tui
+				   , menus = menus
+				   , closeAction = close}
+		  , margins	= Nothing
+		  , width	= Auto
+		  , height	= Auto
+		  }, actions)
+		  
 	findCloseAction [] acc = (Nothing,reverse acc)
 	findCloseAction [taskAction=:(taskId,action,enabled):actions] acc
 		| enabled && action === ActionClose	= (Just (actionName action,taskId), (reverse acc) ++ actions)

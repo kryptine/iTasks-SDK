@@ -153,7 +153,9 @@ where
 						# warning = case (getLocalVar EDIT_CONFLICT_STORE context) of
 							Just True	= Just EDIT_CONFLICT_WARNING
 							_			= Nothing
-						# (tui,actions)	= mergeTUI taskNr props imerge tuis warning actions 
+						# taskId		= taskNrToString taskNr
+						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
+						# (tui,actions)	= mergeTUI props imerge tuis warning tactions 
 						= (TaskBusy (Just tui) actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
@@ -269,37 +271,36 @@ where
 			Ok result
 				//Store context
 				# iworld		= storeInstance context iworld
-				# (state,tui,iworld) = case result of
-					(TaskBusy tui actions _)		= (WOActive, tui, iworld)
-					(TaskFinished _)				= (WOFinished, Just (htmlDisplay "Task finished"), iworld)
-					(TaskException _ err)			= (WOExcepted, Just (htmlDisplay ("Task excepted: " +++ err)), iworld)
+				# (state,tui,sactions,iworld) = case result of
+					(TaskBusy tui actions _)		= (WOActive, tui, actions, iworld)
+					(TaskFinished _)				= (WOFinished, Just (htmlDisplay "Task finished"), [], iworld)
+					(TaskException _ err)			= (WOExcepted, Just (htmlDisplay ("Task excepted: " +++ err)), [], iworld)
 				//Check trigger
 				= case termFunc {localValid = True, modelValue = state} of
 					StopInteraction result
 						= (TaskFinished result,iworld)
-					UserActions actions	
-						= case getActionResult event actions of
+					UserActions uactions	
+						= case getActionResult event uactions of
 							Just result
 								= (TaskFinished result, iworld)
 							Nothing
-								# (tui,actions)		= mergeTUI taskNr props imerge (maybe [] (\t -> [t]) tui) Nothing actions
+								# taskId			= taskNrToString taskNr
+								# tactions			= [(taskId,action,isJust val) \\ (action,val) <- uactions]
+								# (tui,actions)		= mergeTUI props imerge (maybe [] (\t -> [t]) tui) Nothing (tactions ++ sactions)
 								= (TaskBusy (Just tui) actions TCEmpty,iworld)
 
 	changeNo (TaskContext _ n _) = n
 
-mergeTUI taskNr props imerge tuis warning actions
+mergeTUI props imerge tuis warning actions
 	= imerge { title = props.TaskMeta.title
 			 , instruction = props.TaskMeta.instruction
 			 , editorParts = tuis
-			 , actions = [(taskId,action,isJust val) \\ (action,val) <- actions]
+			 , actions = actions
 			 , type = props.interactionType
 			 , isControlTask = props.controlTask
 			 , localInteraction = props.TaskMeta.localInteraction
 			 , warning = warning
 			 }
-where
-	taskId = taskNrToString taskNr
-
 		 
 getActionResult (Just (TaskEvent [] name)) actions
 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])

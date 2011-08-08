@@ -103,6 +103,7 @@ from Task			import :: TaskAction
 	{ title				:: !String
 	, iconCls			:: !Maybe String
 	, items				:: !TUIDef
+	, menus				:: ![TUIDef]
 	, closeAction		:: !Maybe (!TUIName,!TaskId)
 	}
 
@@ -189,7 +190,6 @@ fullShowInteractionLayout	:: InteractionLayouter
 defaultParallelLayout		:: ParallelLayouter
 minimalParallelLayout		:: ParallelLayouter
 tabParallelLayout			:: ParallelLayouter
-
 
 // layout aux functions
 defaultPanelDescr			:: !PanelTitle !PanelIcon !(Maybe String) !(Maybe String) 	!TUISize ![TUIDef]	-> TUIDef

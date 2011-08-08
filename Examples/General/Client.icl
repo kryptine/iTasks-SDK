@@ -7,6 +7,11 @@ from Util import timestampToGmDateTime
 clientExample :: [Workflow]
 clientExample = [workflow "Examples/Client" "This task rebuilds the client." client]
 
+// Authenticated task management
+client :: Task Void
+client = forever (doAuthenticated manageTasks)
+
+// Authentication
 :: Credentials =
 	{ username	:: String
 	, password	:: Password
@@ -14,21 +19,19 @@ clientExample = [workflow "Examples/Client" "This task rebuilds the client." cli
 
 derive class iTask Credentials
 
-// Authentication followed by task management
-client :: Task Void
-client
-	= forever	
-	(	enterInformation "Log in" []
+doAuthenticated :: (Task a) -> Task (Maybe a) | iTask a
+doAuthenticated task
+	=	enterInformation "Log in" []
 	>>= \credentials ->
 		authenticateUser credentials.username (toString credentials.Credentials.password)
 	>>= \mbUser -> case mbUser of
 		Nothing
-			= showInformation "Log in failed" [] Void
+			= showInformation "Log in failed" [] Nothing
 		Just user
-			= workAs user manageTasks
-	)
+			=	workAs user task
+			>>= transform Just
 
-// Main task management
+// Task management
 manageTasks :: Task Void
 manageTasks = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
 	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
@@ -121,6 +124,7 @@ controlClient = chooseAction [(ActionQuit, Stop)]
 	{ selectedProcess	:: !Maybe ProcessId
 	, selectedWorkflow	:: !Maybe (!WorkflowId, !String)
 	}
+
 derive class iTask ClientState
 derive bimap Maybe, (,)
 
@@ -146,7 +150,8 @@ where
 
 infoBarLayout :: TUIInteraction -> (TUIDef,[TaskAction])
 infoBarLayout {title,editorParts,actions=actions=:[(ltask,laction,_)]} = (
-	{ content	= TUILayoutContainer {defaultLayoutContainer [{hd editorParts & width = WrapContent 0},logoutButton] & orientation = Horizontal, hGravity = HGRight, vGravity = VGCenter}
+	{ content	= TUILayoutContainer {defaultLayoutContainer [{hd editorParts & width = WrapContent 0, margins = Nothing},{logoutButton & margins = Nothing}]
+									 &orientation = Horizontal, hGravity = HGRight, vGravity = VGCenter, baseCls = Nothing}
 	, width		= FillParent 1 (ContentSize)
 	, height	= Fixed 30
 	, margins	= Nothing

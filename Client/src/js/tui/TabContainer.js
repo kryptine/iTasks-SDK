@@ -44,6 +44,8 @@ itasks.tui.Tab = Ext.extend(Ext.Panel, {
 		if (Ext.isArray(this.closeAction)) {
 			this.closable = true;
 		}
+		if(this.menus.length)
+			this.tbar = this.menus;
 	
 		itasks.tui.Tab.superclass.initComponent.apply(this,arguments);
 		

@@ -122,7 +122,7 @@ evalInstance target commitEvent context=:(TaskContext properties changeNo tconte
 				TaskBusy tui actions scontext
 					# properties	= setRunning properties
 					# context		= TaskContext (setRunning properties) changeNo (TTCRunning thread scontext)
-					= (Ok (TaskBusy tui [] scontext), context, iworld)
+					= (Ok (TaskBusy tui actions scontext), context, iworld)
 				TaskFinished val
 					# context		= TaskContext (setFinished properties) changeNo (TTCFinished (dynamic val))
 					= (Ok (TaskFinished (dynamic val)), context, iworld)
