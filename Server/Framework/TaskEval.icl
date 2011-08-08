@@ -110,8 +110,6 @@ evalInstance target commitEvent context=:(TaskContext properties changeNo tconte
 						| otherwise							= Just (ProcessEvent [p,n:steps] action)
 					Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
 					_										= Nothing
-			//Reset read shares marker
-			# iworld			= {iworld & readShares = Just []} 
 			//Match processId & changeNo in target path
 			# target			= foldr stepTarget [changeNo,procId] target
 			//Apply task's eval function	
@@ -178,6 +176,8 @@ where
 	eval target commitEvent iteration context iworld
 		//Initialize the toplevel task list
 		# iworld 	= {iworld & parallelControls = 'Map'.fromList [(toString GlobalTaskList,(0,[]))]}
+		//Reset read shares list
+		# iworld			= {iworld & readShares = Just []} 
 		//Evaluate top instance	
 		# (mbResult, context, iworld) = evalInstance target commitEvent context iworld 
 		= case mbResult of
