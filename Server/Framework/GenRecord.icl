@@ -1,6 +1,6 @@
 implementation module GenRecord
 
-import StdTuple, StdList, StdFunc, Error, Util, GenUpdate, Map
+import StdTuple, StdList, StdFunc, Error, Util, GenUpdate, Map, Generic, Tuple
 from dynamic_string import copy_to_string, copy_from_string
 
 copyRecord :: !a !b -> b | GenRecord a & GenRecord b

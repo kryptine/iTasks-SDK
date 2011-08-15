@@ -1,6 +1,6 @@
 implementation module ProcessDBTasks
 
-import StdOverloaded, StdClass, StdInt, StdMisc, StdArray, StdTuple, StdList, Error, Map, Time
+import StdOverloaded, StdClass, StdInt, StdMisc, StdArray, StdTuple, StdList, Error, Map, Time, Tuple
 import Task, Store, TaskContext, Shared, Util
 from SystemTypes	import :: ProcessId
 from StdFunc		import id

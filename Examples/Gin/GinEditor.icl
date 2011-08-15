@@ -19,7 +19,7 @@ import CleanDocParser
 import GinDCLImport
 
 import FilePath, File
-from Util import appFst
+from Tuple import appFst
 
 
 /*

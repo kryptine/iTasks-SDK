@@ -1,6 +1,6 @@
 implementation module SharedCombinators
 
-import StdTuple, StdList, StdFunc, Util, Shared, Time
+import StdTuple, StdList, StdFunc, Util, Shared, Time, Tuple
 
 mapSharedRead :: !(r -> r`) !(ReadWriteShared r w) -> (ReadWriteShared r` w)
 mapSharedRead f (ReadWriteShared id read write getTimestamp) = ReadWriteShared id (appFst (fmap f) o read) write getTimestamp

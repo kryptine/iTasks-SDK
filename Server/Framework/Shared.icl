@@ -1,6 +1,6 @@
 implementation module Shared
 
-import StdTuple, StdFunc, Void, Maybe, Time, Error, GenUpdate, Util, Functor, StdList
+import StdTuple, StdFunc, Void, Maybe, Time, Error, GenUpdate, Util, Functor, StdList, Tuple
 from IWorld import :: IWorld(..), :: Control, :: ProcessId
 from SharedCombinators import :: ReadOnlyShared
 

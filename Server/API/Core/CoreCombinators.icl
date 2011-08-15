@@ -1,7 +1,7 @@
 implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
-import Task, TaskContext, Util, HTTP, GenUpdate, UserDB, Store, SystemTypes, Time, Text, Shared
+import Task, TaskContext, Util, HTTP, GenUpdate, UserDB, Store, SystemTypes, Time, Text, Shared, Func
 import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
@@ -567,7 +567,7 @@ where
 * that before evaluation the currentUser field in iworld is set to
 * the given user, and restored afterwards.
 */
-workAs :: !User (Task a) -> Task a | iTask a
+workAs :: !User !(Task a) -> Task a | iTask a
 workAs user task=:{Task|type} = case type of
 	NormalTask funs
 		# funs = {initFun = init funs.initFun

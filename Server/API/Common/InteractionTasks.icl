@@ -2,7 +2,8 @@ implementation module InteractionTasks
 
 from StdFunc import id, const, o, flip
 from SystemData import null
-from Util import appSnd, isMemberGen, instance Functor []
+from Tuple import appSnd
+from List import isMemberGen, instance Functor []
 from Shared import makeReadOnlyShared, :: SharedId
 from Time import :: Timestamp(..)
 import StdBool, StdList, StdMisc, StdTuple

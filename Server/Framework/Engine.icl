@@ -1,6 +1,6 @@
 implementation module Engine
 
-import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool
+import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, Func
 from StdFunc import o, seqList, ::St
 import	Map, Time, CommandLine, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
 import	Util, HtmlUtil

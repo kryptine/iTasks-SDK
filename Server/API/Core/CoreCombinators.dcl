@@ -135,4 +135,4 @@ removeTask :: !Int !(TaskList s)				-> Task Void | TC s
 /**
 * Execute a task with the identity of the given user
 */
-workAs :: !User (Task a)						-> Task a | iTask a
+workAs :: !User !(Task a)						-> Task a | iTask a

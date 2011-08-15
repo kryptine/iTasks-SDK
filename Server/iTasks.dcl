@@ -53,4 +53,4 @@ from StdFunc import id, const, o
 //Types
 import SharedCombinators, SystemTypes, GenRecord
 from Task import :: Change(..), :: ChangeLifeTime(..)
-from Util import instance Functor []
+from List import instance Functor []
