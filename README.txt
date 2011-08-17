@@ -2,12 +2,14 @@ This repository holds the iTasks Software Development Kit (SDK).
 === Setup ===
 
 = Preparation of the IDE =
-- Make sure that this SDK is placed in the folder of the Clean 2.3 distribution (the one that contains "CleanIDE.exe")
+- Make sure that this SDK is placed in the folder of the Clean 2.3 32-bit distribution (the one that contains "CleanIDE.exe")
   and is called "iTasks-SDK".
 - Copy the file "iTasks-SDK/Compiler/_SystemArray-patched.icl" to "Libraries/StdEnv/_SystemArray.icl"
 - Start the CleanIDE
 - Import the "iTasks" environment by choosing "Environment" -> "Import..." from the menu
   and selecting the "iTasks-SDK/Server/iTasks.env" file. 
+- Set your default heap size for projects to 8M by choosing "Project" -> "Project defaults..." from the menu
+
 
 = Building the support tools ==
 - Build the RunAsync tool by opening the Clean project "iTasks-SDK/Tools/RunAsync/RunAsync.prj" and choosing ("Project" -> "Update") from the menu.
