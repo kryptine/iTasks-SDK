@@ -33,7 +33,7 @@ doAuthenticated task
 
 // Task management
 manageTasks :: Task Void
-manageTasks = mainLayout @>> parallel "Client" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
+manageTasks = mainLayout @>>  parallel "Client" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
 	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
 	, (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
 	, (BodyTask,	\list	-> showDescription (taskListState list)	<<@ descriptionLayout)

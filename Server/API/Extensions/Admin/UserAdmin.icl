@@ -5,7 +5,7 @@ import iTasks, Text
 manageUsers :: Task Void
 manageUsers =
 	(		enterSharedChoice ("Users","The following users are available") [] users
-		>?*	[ (ActionNew,									Always	(createUserFlow			>>|	return False))
+		>?*	[ (Action "New",									Always	(createUserFlow			>>|	return False))
 			, (ActionEdit,									IfValid (\u -> updateUserFlow u	>>|	return False))
 			, (ActionDelete,								IfValid (\u -> deleteUserFlow u	>>|	return False))
 			, (Action "Import & export/Import CSV file...",	Always	(importUserFileFlow		>>| return False))

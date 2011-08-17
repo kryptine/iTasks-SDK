@@ -61,7 +61,7 @@ where
 		buttonLayout buttons = buttonLayout` buttons []
 		buttonLayout` buttons acc = case splitAt 4 buttons of
 			([],_)		= reverse			acc
-			(row,r)		= buttonLayout` r	[{content = TUILayoutContainer {defaultLayoutContainer row & orientation = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}:acc]
+			(row,r)		= buttonLayout` r	[{content = TUILayoutContainer {TUILayoutContainer|defaultLayoutContainer row & orientation = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}:acc]
 	
 :: CalculatorState =	{ display		:: !Int
 						, x				:: !Int

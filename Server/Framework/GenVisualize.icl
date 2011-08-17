@@ -265,7 +265,7 @@ gVisualizeEditor{|FIELD of d|} fx _ _ val vst
 	# x = fmap fromFIELD val
 	# (vizBody,vst=:{VSt|optional})	= fx x {VSt|vst & optional = False}
 	# label							= {htmlDisplay (camelCaseToWords d.gfd_name +++ if optional "" "*" +++ ":") & width = Fixed 100}
-	= ([{content = TUILayoutContainer {defaultLayoutContainer [label: vizBody] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
+	= ([{content = TUILayoutContainer {TUILayoutContainer|defaultLayoutContainer [label: vizBody] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
 			
 gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent,controlSize}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
@@ -597,7 +597,7 @@ addMsg verRes viz = case verRes of
 		HintMsg msg		= add "x-hint-icon" msg viz
 		ErrorMsg msg	= add "x-invalid-icon" msg viz
 where	
-	add cls msg viz= {content = TUILayoutContainer {defaultLayoutContainer [viz,mkIcon cls msg] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}
+	add cls msg viz= {content = TUILayoutContainer {TUILayoutContainer|defaultLayoutContainer [viz,mkIcon cls msg] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}
 	mkIcon cls msg = { content	= TUIControl (TUIHtmlDisplay (Just msg))
 									{ TUIControl
 									| name			= ""

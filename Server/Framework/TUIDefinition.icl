@@ -280,8 +280,8 @@ columnLayout :: !Int ![TUIDef] -> TUIDef
 columnLayout nCols items
 	# cols = repeatn nCols []
 	# cols = columnLayout` items cols
-	# cols = map (\col -> {content = TUILayoutContainer {defaultLayoutContainer col & orientation = Vertical}, width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}) cols
-	= {content = TUILayoutContainer {defaultLayoutContainer cols & orientation = Horizontal}, width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}
+	# cols = map (\col -> {content = TUILayoutContainer {TUILayoutContainer|defaultLayoutContainer col & orientation = Vertical}, width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}) cols
+	= {content = TUILayoutContainer {TUILayoutContainer|defaultLayoutContainer cols & orientation = Horizontal}, width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}
 where
 	columnLayout` items cols = case splitAt nCols items of
 		([],_)	= map reverse cols

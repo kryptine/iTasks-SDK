@@ -100,13 +100,12 @@ from Task			import :: TaskAction
 	{ items				:: ![TUIDef]
 	}
 :: TUITab =
-	{ title				:: !String
+	{ title				:: !PanelTitle
 	, iconCls			:: !Maybe String
 	, items				:: !TUIDef
 	, menus				:: ![TUIDef]
 	, closeAction		:: !Maybe (!TUIName,!TaskId)
 	}
-
 :: TUIListContainer =
 	{ items			:: ![TUIDef]
 	, name			:: !TUIName

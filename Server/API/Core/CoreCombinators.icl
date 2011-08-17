@@ -481,7 +481,6 @@ where
 		NormalTask fs	= fs
 		_				= abort "action task in parallel"
 
-
 /**
 * Get the shared state of a task list
 */

@@ -144,7 +144,7 @@ where
 (<!) task pred = parallel (taskMeta task) Nothing (\_ (Just a) -> a) [(BodyTask, checked pred task 0)] <<@ layout
 where
 	checked pred task i tlist
-		=	task
+		=	task <<@ defaultParallelLayout //UGLY! Should restore given layout
 		>>= \a -> if (pred a)
 			(set (taskListState tlist) (Just a) 											>>| return Stop)
 			(removeTask i tlist >>| appendTask (BodyTask, checked pred task (i + 1)) tlist	>>| return Continue)
