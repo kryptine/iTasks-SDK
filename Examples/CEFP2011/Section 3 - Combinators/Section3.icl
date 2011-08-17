@@ -126,7 +126,7 @@ fillInAndCheckPersons = repeatUntilApproved (enterInformation "Please fill in th
 repeatUntilApproved :: !(Task a) -> Task a | iTask a
 repeatUntilApproved task
     =            task
-      >>= \v  -> enterChoice "Approve result: " [About v] 
+      >>= \v  -> enterChoice "Approve result: " [ChoiceContext v] 
       				[("Yes",Hidden (return v))
       				,("No", Hidden (repeatUntilApproved task))
       				]
