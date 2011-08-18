@@ -1,8 +1,8 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.CurrencyControl = itasks.tui.extendControl(Ext.form.TextField,{
-	defaultWidth: ['Fixed',100],
-	defaultHeight: ['Fixed',25],
+	width: 100,
+	height: 25,
 	fieldClass: "x-form-field x-form-num-field",
 	style: "text-align: right",
 	maskRe: new RegExp('[0123456789\\.]'),

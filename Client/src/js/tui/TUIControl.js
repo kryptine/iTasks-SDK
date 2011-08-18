@@ -9,11 +9,10 @@ itasks.tui.control = Ext.apply(itasks.util.clone(itasks.tui.base),{
 	enableKeyEvents: true,
 	initComponent: function() {
 		if (!this.margins) {
-			this.margins =	{ left		: 3
-							, top		: 3
-							, right		: 3
-							, bottom	: 3
-							};
+			this.margins = {top:3,right:3,bottom:3,left:3};
+		} else {
+			var m = this.margins.split(" ");
+			this.margins = {top: parseInt(m[0]),right:parseInt(m[1]),bottom:parseInt(m[2]),left:parseInt(m[3])};
 		}
 	
 		if (!Ext.isDefined(this.listeners)) {

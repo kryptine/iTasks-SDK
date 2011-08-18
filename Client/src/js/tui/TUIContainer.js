@@ -10,9 +10,7 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 	getMinTUISize: function() {
 		var cached = this.getCache(this.id,'minSize');
 		if (cached !== null) return cached;
-		
-		var tuiW		= this.tuiSize.width;
-		var tuiH		= this.tuiSize.height;
+	
 		var minSize		= {};
 		var childSizes	= this.getChildSizes();
 		var max			= function(get) {
@@ -31,32 +29,32 @@ itasks.tui.container = Ext.apply(itasks.util.clone(itasks.tui.base),{
 			return sum;
 		};
 		
-		if (tuiW[0] == 'WrapContent' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
+		if(this.hwrap) {
 			var minW = (this.sumW ? sum : max) (function(i) {return i.minSize.width;}) + this.getFrameWidthCached() + (this.title ? 2 : 0);
 			
-			if (tuiW[0] == 'WrapContent' && minW < tuiW[1]) {
-				minSize.width	= tuiW[1];
+			if( minW < (this.minWidth || 0)) {
+				minSize.width = this.minWidth;
 			} else {
-				minSize.width	= minW;
+				minSize.width = minW;
 			}
 		} else {
-			minSize.width	= tuiW[0] == 'Fixed' ? tuiW[1] : tuiW[2][1];
+			minSize.width = (this.minWidth > 0 ) ? this.minWidth : (this.width || 0);
 		}
 		minSize.width += this.getMarginsW();
 		
-		if (tuiH[0] == 'WrapContent' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
+		if(this.vwrap) {
 			var minH = (this.sumH ? sum : max) (function(i) {return i.minSize.height;}) + this.getFrameHeightCached();
-			
-			if (tuiH[0] == 'WrapContent' && minH < tuiH[1]) {
-				minSize.height	= tuiH[1];
+		
+			if( minH < (this.minHeight || 0)) {
+				minSize.height = this.minHeight;
 			} else {
-				minSize.height	= minH;
+				minSize.height = minH;
 			}
 		} else {
-			minSize.height	= tuiH[0] == 'Fixed' ? tuiH[1] : tuiH[2][1];
+			minSize.height = (this.minHeight > 0 ) ? this.minHeight : (this.height || 0);
 		}
 		minSize.height += this.getMarginsH();
-		
+	
 		this.setCache(this.id,'minSize',minSize);
 		return minSize;
 	},

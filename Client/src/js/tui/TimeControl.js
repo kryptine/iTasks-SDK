@@ -1,8 +1,8 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.TimeControl = itasks.tui.extendControl(Ext.form.TimeField,{
-	defaultWidth: ['Fixed',100],
-	defaultHeight: ['Fixed',25],
+	width: 100,
+	height: 25,
 	format: "H:i:s",
 	onChange: function () {
 		if(this.isValid()) {

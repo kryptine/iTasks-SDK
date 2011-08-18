@@ -2,66 +2,72 @@ Ext.ns('itasks.tui');
 
 itasks.tui.LayoutContainer = itasks.tui.extendContainer(Ext.Panel,{
 	autoScroll: true,
-	defaultWidth: ['WrapContent',0],
-	defaultHeight: ['WrapContent',0],
 	initComponent: function(){
 		if (this.padding) {
 			this.style = "padding: " + this.padding + "px;";
 			delete this.padding;
 		}
+		
+		if(!this.width) {
+			this.hwrap = true;
+		}
+		if (!this.height) {
+			this.vwrap = true;
+		}
+		
 		this.unstyled = !this.title && !this.frame;
-		this.sumW = this.orientation == 'Horizontal';
-		this.sumH = this.orientation == 'Vertical';
+		this.sumW = this.orientation == 'horizontal';
+		this.sumH = this.orientation == 'vertical';
 		
 		switch (this.orientation) {
-			case 'Vertical':
+			case 'vertical':
 				this.layout = {type: 'vbox'};
 				
 				switch (this.vGravity) {
-					case 'VGTop':
+					case 'top':
 						this.layout.pack = 'start';
 						break;
-					case 'VGCenter':
+					case 'center':
 						this.layout.pack = 'center';
 						break;
-					case 'VGBottom':
+					case 'bottom':
 						this.layout.pack = 'end';
 					break;
 				}
 				switch (this.hGravity) {
-					case 'HGLeft':
+					case 'left':
 						this.layout.align = 'top';
 						break;
-					case 'HGCenter':
+					case 'center':
 						this.layout.align = 'center';
 						break;
-					case 'HGRight':
+					case 'right':
 						alert("not implemented");
 					break;
 				}
 				break;
-			case 'Horizontal':
+			case 'horizontal':
 				this.layout = {type: 'hbox'};
 				
 				switch (this.hGravity) {
-					case 'HGLeft':
+					case 'left':
 						this.layout.pack = 'start';
 						break;
-					case 'HGCenter':
+					case 'center':
 						this.layout.pack = 'center';
 						break;
-					case 'HGRight':
+					case 'right':
 						this.layout.pack = 'end';
 					break;
 				}
 				switch (this.vGravity) {
-					case 'VGTop':
+					case 'top':
 						this.layout.align = 'top';
 						break;
-					case 'VGCenter':
+					case 'middle':
 						this.layout.align = 'middle';
 						break;
-					case 'VGBottom':
+					case 'bottom':
 						alert("not implemented");
 					break;
 				}
@@ -77,7 +83,7 @@ itasks.tui.LayoutContainer = itasks.tui.extendContainer(Ext.Panel,{
 		var totalFillW	= myS.myW - this.getFrameWidthCached()	- (this.title ? 2 : 0);
 		var totalFillH	= myS.myH - this.getFrameHeightCached()	- (this.title ? 1 : 0);
 		var sizes		= this.getChildSizes();
-		var horizontal	= this.orientation == 'Horizontal';
+		var horizontal	= this.orientation == 'horizontal';
 		
 		if (horizontal) {
 			do {

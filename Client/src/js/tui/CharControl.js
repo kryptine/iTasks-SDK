@@ -1,8 +1,8 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.CharControl = itasks.tui.extendControl(Ext.form.TextField,{
-	defaultWidth: ['Fixed',40],
-	defaultHeight: ['Fixed',25],
+	width: 40,
+	height: 25,
 	maxLength: 1
 });
 

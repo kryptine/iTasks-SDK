@@ -1,11 +1,13 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.FormButtonControl = itasks.tui.extendControl(Ext.Button,{
-	defaultWidth: ['WrapContent',0],
-	defaultHeight: ['Fixed',25],
+	height: 25,
 	enableToggle: true,
 	allowDepress: true,
 	initComponent: function() {
+		if(!this.width)
+			this.hwrap = true;
+			
 		this.pressed = this.value == "Pressed";
 	
 		this.text = this.label;

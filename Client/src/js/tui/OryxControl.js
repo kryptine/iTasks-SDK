@@ -1,8 +1,9 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
-	defaultWidth: ['FillParent', 1, ['FixedMinSize', 300]],
-	defaultHeight: ['FillParent', 1, ['FixedMinSize', 200]],
+
+	minWidth: 300,
+	minHeight: 200,	
 	initComponent : function(){
 		Ext.apply(this,
 			{ url: "/handlers/work/tab"
@@ -12,6 +13,11 @@ itasks.tui.OryxControl = itasks.tui.extendControl(Ext.Panel,{
             , html: 'Loading...'
 			});
 
+		if(!this.height)
+			this.vflex = 1;
+		if(!this.width)
+			this.hflex = 1;
+			
 		itasks.tui.control.initComponent.apply(this,arguments);
 
         this.inUpdate = false;

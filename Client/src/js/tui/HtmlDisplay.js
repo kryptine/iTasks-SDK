@@ -2,10 +2,14 @@ Ext.ns("itasks.tui");
 
 itasks.tui.HtmlContainer = itasks.tui.extendControl(Ext.Container, {
 	style: 'white-space: nowrap',
-	defaultWidth: ['FillParent',1,'ContentSize'],
-	defaultHeight: ['WrapContent',0],
 	
 	initComponent: function() {
+		if(!this.height)
+			this.vwrap = true;
+		if(!this.width)
+			this.hwrap = true;
+			this.hflex = 1;
+	
 		this.html = this.value;
 		this.unstyled = true;
 		this.border = false;

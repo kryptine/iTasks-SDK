@@ -1,13 +1,18 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.ListContainer = itasks.tui.extendContainer(Ext.Container,{
-	defaultWidth: ['FillParent',1,'ContentSize'],
-	defaultHeight: ['WrapContent',0],
 	sumW: false,
 	sumH: true,
 	
 	initComponent: function(){
 		itasks.tui.container.initComponent.apply(this,arguments);
+	
+		if(!this.width) {
+			this.hwrap = 1;
+			this.hflex = 1;
+		}
+		if(!this.height)
+			this.vwrap = 1;
 		
 		this.on('afterlayout', function(ct,cmp,pos) { 
 			if(this.staticDisplay) return;

@@ -1,8 +1,8 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.DocumentControl = itasks.tui.extendControl(Ext.Panel, {
-	defaultWidth: ['Fixed',500],
-	defaultHeight: ['Fixed',25],
+	width: 500,
+	height: 25,
 	unstyled: true,
 	layout: 'card',
 	activeItem: 0,

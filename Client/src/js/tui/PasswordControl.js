@@ -1,8 +1,8 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.PasswordControl = itasks.tui.extendControl(Ext.form.TextField,{
-	defaultWidth: ['Fixed',330],
-	defaultHeight: ['Fixed',25],
+	width: 330,
+	height: 25,
 	fieldClass: 'x-form-field',
 	inputType: 'password'
 });

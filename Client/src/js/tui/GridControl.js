@@ -1,8 +1,6 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.GridContainer = itasks.util.extend(Ext.grid.GridPanel, itasks.tui.control, {
-	defaultWidth: ['FillParent',1,'ContentSize'],
-	defaultHeight: ['FillParent',1,['FixedMinSize',150]],
 	recordCache: {},
 	stateful: false,
 	viewConfig: {forceFit: true},

@@ -1,8 +1,8 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.GMapControl = itasks.tui.extendControl (Ext.Panel, {
-	defaultWidth: ['Fixed', 500],
-	defaultHeight: ['Fixed', 400],
+	width: 500,
+	height: 400,
 	initComponent : function(){
 		
 		Ext.applyIf(this,

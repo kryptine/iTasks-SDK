@@ -2,41 +2,26 @@ Ext.ns("itasks.tui");
 
 itasks.tui.base = {
 	initComponent: function() {
-		this.tuiSize = {};
-		this.setTuiWidth(this.width);
-		this.setTuiHeight(this.height);
-		delete this.width;
-		delete this.height;
-		
 		this.extSuperclass.initComponent.apply(this,arguments);
 	},
-	
-	setTuiWidth: function(w) {
-		this.tuiSize.width	= (w == 'Auto' ? this.defaultWidth : w);
-	},
-	setTuiHeight: function(h) {
-		this.tuiSize.height	= (h == 'Auto' ? this.defaultHeight : h);
-	},
-	
 	doTUILayout: function(fillW,fillH) {
-		var tuiW	= this.tuiSize.width;
-		var tuiH	= this.tuiSize.height;
-		var minSize	= this.getMinTUISize();
+	
+		var minSize	= this.getMinTUISize();	
+		var myW,MyH;
 		
-		if (tuiW[0] == 'FillParent' && Ext.isDefined(fillW) && fillW >= minSize.width) {
-			var myW = fillW - this.getMarginsW();
-		} else if (tuiW[0] == 'Fixed') {
-			var myW = tuiW[1];
+		if(this.hflex > 0 && Ext.isDefined(fillW) && fillW >= minSize.width) {
+			myW = fillW - this.getMarginsW(); 
+		} else if(this.width > 0) {
+			myW = this.width;
 		} else { // wrap or fillParent with insufficient space
-			var myW = minSize.width - this.getMarginsW();
+			myW = minSize.width - this.getMarginsW();
 		}
-		
-		if (tuiH[0] == 'FillParent' && Ext.isDefined(fillH) && fillH >= minSize.height) {
-			var myH = fillH - this.getMarginsH();
-		} else if (tuiH[0] == 'Fixed') {
-			var myH = tuiH[1];
+		if(this.vflex > 0 && Ext.isDefined(fillH) && fillH >= minSize.height) {
+			myH = fillH - this.getMarginsH(); 
+		} else if(this.height > 0) {
+			myH = this.height;
 		} else { // wrap or fillParent with insufficient space
-			var myH = minSize.height - this.getMarginsH();
+			myH = minSize.height - this.getMarginsH();
 		}
 		
 		this.setSize(myW,myH);
@@ -54,22 +39,19 @@ itasks.tui.base = {
 		var cached = this.getCache(this.id,'size');
 		if (cached !== null) return cached;
 
-		var tuiW		= this.tuiSize.width;
-		var tuiH		= this.tuiSize.height;
 		var size		= {};
 		
-		if (tuiW[0] == 'FillParent') {
-			size.width	= ['Weight',tuiW[1]];
+		if(this.hflex > 0) {
+			size.width = ['Weight',this.hflex];
 		} else {
-			size.width	= ['Fixed',this.getMinTUISize().width];
+			size.width = ['Fixed',this.getMinTUISize().width];
 		}
-		
-		if (tuiH[0] == 'FillParent') {
-			size.height	= ['Weight',tuiH[1]];
+		if(this.vflex > 0) {
+			size.height = ['Weight', this.vflex];
 		} else {
-			size.height	= ['Fixed',this.getMinTUISize().height];
+			size.height = ['Fixed',this.getMinTUISize().height];
 		}
-		
+	
 		this.setCache(this.id,'size',size);
 
 		return size;
@@ -79,33 +61,29 @@ itasks.tui.base = {
 		var cached = this.getCache(this.id,'minSize');
 		if (cached !== null) return cached;
 		
-		var tuiW		= this.tuiSize.width;
-		var tuiH		= this.tuiSize.height;
 		var minSize		= {};
 
-		if (tuiW[0] == 'WrapContent' || tuiW[0] == 'FillParent' && tuiW[2] == 'ContentSize') {
+		if(this.hwrap) {
 			var minW = this.getContentWidth();
-
-			if (tuiW[0] == 'WrapContent' && minW < tuiW[1]) {
-				minSize.width	= tuiW[1];
+			if(minW < (this.minWidth || 0)) {
+				minSize.width = this.minWidth;
 			} else {
-				minSize.width	= minW;
+				minSize.width = minW;
 			}
 		} else {
-			minSize.width	= tuiW[0] == 'Fixed' ? tuiW[1] : tuiW[2][1];
+			minSize.width = (this.minWidth > 0 ) ? this.minWidth : (this.width || 0);
 		}
 		minSize.width += this.getMarginsW();
-
-		if (tuiH[0] == 'WrapContent' || tuiH[0] == 'FillParent' && tuiH[2] == 'ContentSize') {
+		
+		if(this.vwrap) {
 			var minH = this.getContentHeight();
-
-			if (tuiH[0] == 'WrapContent' && minH < tuiH[1]) {
-				minSize.height	= tuiH[1];
+			if(minH < (this.minHeight || 0)) {
+				minSize.height = this.minHeight;
 			} else {
-				minSize.height	= minH;
+				minSize.height = minH;
 			}
 		} else {
-			minSize.height	= tuiH[0] == 'Fixed' ? tuiH[1] : tuiH[2][1];
+			minSize.height = (this.minHeight > 0 ) ? this.minHeight : (this.height || 0);
 		}
 		minSize.height += this.getMarginsH();
 		
@@ -122,10 +100,10 @@ itasks.tui.base = {
 	},
 	
 	getMarginsW: function() {
-		return (this.margins ? this.margins.left + this.margins.right : 0);
+		return this.margins ? this.margins.left + this.margins.right : 0;
 	},
 	getMarginsH: function() {
-		return (this.margins ? this.margins.top + this.margins.bottom : 0);
+		return this.margins ? this.margins.top + this.margins.bottom : 0;
 	},
 	
 	getCache: function(id,key,perm) {

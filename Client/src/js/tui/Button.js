@@ -1,8 +1,9 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.Button = itasks.util.extend(Ext.Button, itasks.tui.base, {
-	defaultWidth: ['WrapContent',75],
-	defaultHeight: ['Fixed',25],
+	height: 25,
+	hwrap: true,
+	minWidth: 75,
 	initComponent: function() {
 		if (!this.isIconPresent(this.iconCls)) delete this.iconCls;
 		this.listeners = {click: {fn: this.onActionClick, scope: this}};

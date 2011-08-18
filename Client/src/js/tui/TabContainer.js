@@ -1,8 +1,12 @@
 Ext.ns('itasks.tui');
 
 itasks.tui.TabContainer = itasks.tui.extendContainer(Ext.TabPanel,{
-	defaultWidth: ['FillParent', 1, 'ContentSize'],
-	defaultHeight: ['FillParent', 1, 'ContentSize'],
+	
+	vflex: 1,
+	vwrap: true,
+	hflex: 1,
+	hwrap: true,
+	
 	sumW: false,
 	sumH: false,
 	deferredRender: false,

@@ -13,9 +13,10 @@ derive JSONEncode TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
 derive JSONEncode TUILayoutContainer, TUITabContainer, TUITab, TUIListContainer
 derive JSONEncode TUIGridControl, TUITree, TUIControl
-derive JSONEncode TUIOrientation, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins
 
-JSONEncode{|TUIDef|} {content,width,height,margins} = merge (JSONEncode{|*|} content) [JSONObject [("width",toJSON width),("height",toJSON height),("margins",toJSON margins)]]
+
+JSONEncode{|TUIDef|} {content,width,height,margins}
+	= merge (JSONEncode{|*|} content) (sizeAttributes width height margins)
 
 JSONEncode{|TUIDefContent|} (TUIControl c b)			= merge (JSONEncode{|*|} c) (JSONEncode{|*|} b)
 JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks.tui.Button" (JSONEncode{|*|} r)
@@ -50,6 +51,36 @@ JSONEncode{|TUIControlType|} (TUIGridControl r)			= addXType "itasks.tui.Grid" (
 JSONEncode{|TUIControlType|} (TUITreeControl tree)		= addXType "itasks.tui.Tree" [JSONObject [("tuiTree",toJSON tree)]]
 JSONEncode{|TUIControlType|} (TUICustomControl xtype)	= justXType xtype
 
+JSONEncode{|TUIOrientation|} Horizontal = [JSONString "horizontal"]
+JSONEncode{|TUIOrientation|} Vertical = [JSONString "vertical"]
+JSONEncode{|TUIHGravity|} HGLeft = [JSONString "left"]
+JSONEncode{|TUIHGravity|} HGCenter = [JSONString "center"]
+JSONEncode{|TUIHGravity|} HGRight = [JSONString "right"]
+JSONEncode{|TUIVGravity|} VGTop = [JSONString "top"]
+JSONEncode{|TUIVGravity|} VGCenter = [JSONString "middle"]
+JSONEncode{|TUIVGravity|} VGBottom = [JSONString "bottom"]
+JSONEncode{|TUIMargins|} {TUIMargins|top,right,bottom,left} = [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]
+
+sizeAttributes width height margins
+	= [JSONObject (widthfields ++ heightfields ++ marginfields)]
+where
+	widthfields = sizefields "width" "minWidth" "hwrap" "hflex" width
+	heightfields = sizefields "height" "minHeight" "vwrap" "vflex" height
+	
+	sizefields fixedField minField wrapField flexField size = case size of
+		Fixed pixels				= [(fixedField,JSONInt  pixels)]
+		WrapContent	minsize			= [(wrapField,JSONBool True),(minField, JSONInt minsize)]
+		FillParent weight minsize	= [(flexField,JSONInt weight)] ++ case minsize of
+											ContentSize			= [(wrapField,JSONBool True)]
+											FixedMinSize pixels	= [(minField, JSONInt pixels)]
+		Auto						= []
+
+	marginfields = case margins of
+		Nothing = []
+		Just m	= [("margins",toJSON m)]
+		
+		
+
 addXType :: !String ![JSONNode] -> [JSONNode]
 addXType xtype [JSONObject fields: xs]	= [JSONObject [("xtype", JSONString xtype):fields] : xs]
 addXType _ _							= abort "cannot add xtype"
@@ -60,4 +91,6 @@ justXType xtype = [JSONObject [("xtype",JSONString xtype)]]
 merge :: ![JSONNode] ![JSONNode] -> [JSONNode]
 merge [JSONObject obja] [JSONObject objb]	= [JSONObject (obja ++ objb)]
 merge _ _									= abort "two JSON objects required"
-	
+
+derive JSONEncode TUISize, TUIMinSize
+
