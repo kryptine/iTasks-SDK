@@ -74,7 +74,7 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskFinished (fromOk val), iworld)
 
-interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
 	init taskNr iworld
@@ -193,7 +193,7 @@ where
 					| StoredUpdate		!(!l,!Maybe w)
 :: StoredPutback l w = E.v: StoredPutback !((Maybe v) -> (!l,!Maybe w)) & iTask v
 
-visualizeParts :: !TaskNr ![InteractionPart (!l,!Maybe w)] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![StoredPart l w],!Bool)
+visualizeParts :: !TaskNr ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![StoredPart l w],!Bool)
 visualizeParts taskNr parts oldParts mbEdit
 	# res = [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]
 	= appThd3 and (unzip3 res)

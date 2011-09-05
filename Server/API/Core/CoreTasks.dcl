@@ -89,11 +89,11 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 *
 * @gin False
 */
-interact :: !d !(l r Bool -> [InteractionPart (!l,!Maybe w)]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
-:: InteractionPart o	= E.v:	FormPart		!(FormView v) !((Maybe v) -> o)	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
-						| E.v:	DisplayPart		!v								& iTask v	// A static view displayed to the user
-						|		UpdatePart		!String !o									// A interaction element (typically a button with a string-label) allowing to directly change the states
+:: InteractionPart l w	= E.v:	FormPart		!(FormView v) !((Maybe v) -> (!l,!Maybe w))	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
+						| E.v:	DisplayPart		!v											& iTask v	// A static view displayed to the user
+						|		UpdatePart		!String !(!l,!Maybe w)									// A interaction element (typically a button with a string-label) allowing to directly change the states
 				
 :: FormView v	= FormValue !v				// A form representing a value
 				| Blank						// A blank form
