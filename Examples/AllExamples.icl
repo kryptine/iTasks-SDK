@@ -41,10 +41,10 @@ import GinExamples
 import Groups, Lists, Messages, Consensus
 
 //Client
-import Client
+import WorkflowAdmin
 
 Start :: *World -> *World
-Start world = startEngine workflows world
+Start world = startEngine (manageWorkflows workflows) world
 where
 	workflows = flatten [ travelBookingExample
 						, movingTaskExample
@@ -62,13 +62,12 @@ where
 						, geoTrackerExamples
 						//, newsgroupsExample
 						, exceptionHandlingExample
-						, changeHandlingExample
+						//, changeHandlingExample
 						, changeExamples
 						, sharedValueExamples
-						,	[workflow "General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions
-							]
+						, [workflow "Examples/General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions]
 						, rpcExamples
 						, ginExamples
 						, apiDocumentationExamples
-						, clientExample
+						, [workflow "Manage workflows" "Manage other workflows and instances" manageWorkflows]
 						]

@@ -10,6 +10,7 @@ import Task, SystemTypes
 :: Tags					= E.s: Tags ![s]		& toString s
 :: LocalInteractionTask	= LocalInteractionTask
 :: ControlTask			= ControlTask
+:: Icon					= Icon !String
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a
@@ -17,6 +18,7 @@ class tune b :: !b !(Task a) -> Task a
 (@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 
 instance tune	Description			//Set initial description
+instance tune	Icon				//Set icon
 instance tune	Tag					//Append Tag
 instance tune	Tags				//Append List of Tags
 instance tune	InteractionTaskType
@@ -24,3 +26,5 @@ instance tune	LocalInteractionTask
 instance tune	ControlTask
 instance tune	InteractionLayouter
 instance tune	ParallelLayouter
+
+instance tune	LayoutTweak

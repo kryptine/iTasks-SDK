@@ -85,6 +85,26 @@ where
 overviewResponse :: HTTPResponse
 overviewResponse = {newHTTPResponse & rsp_data = toString overviewPage}
 
+appStartPage :: !String -> HtmlTag
+appStartPage appName = HtmlTag [] [head,body]
+where
+	head = HeadTag [] [TitleTag [] [Text "Loading..."]: styles ++ scripts]
+	body = BodyTag [] []
+
+	styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
+	scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
+	
+	stylefiles = ["/lib/ext-4.0.2a/resources/css/ext-all-gray.css"
+				 ,"/src/static/skins/default/main.css"
+				 ,appName +++ ".css"]
+	scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","src/app.js"]
+
+/**
+* Creates an HTTP response of the start page
+*/
+appStartResponse :: !String -> HTTPResponse
+appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
+
 redirectResponse :: !String -> HTTPResponse
 redirectResponse url
 	= {HTTPResponse | rsp_headers = fromList [("Status","302 - Found"),("Location",url)], rsp_data = ""}

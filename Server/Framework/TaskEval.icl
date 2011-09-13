@@ -8,9 +8,13 @@ from CoreCombinators 	import >>=
 from CoreCombinators	import :: TaskContainer(..), ::TaskGUI(..), :: ParallelTask(..), :: ParallelControl
 from TuningCombinators	import class tune, instance tune Description, <<@, @>>, :: Description(..)
 from InteractionTasks	import enterInformation, :: LocalViewOn, :: ViewOn
+from SystemTypes		import :: ProcessId(..)
+
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
 from Map		import qualified fromList, get, put
 import iTaskClass
+
+from WorkflowAdmin import :: Workflow(..), :: WorkflowTaskContainer(..)
 
 ITERATION_THRESHOLD :== 10
 
@@ -22,11 +26,11 @@ where
 createContext :: !ProcessId !Dynamic !ManagerProperties !*IWorld -> (!TaskContext, !*IWorld)
 createContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties iworld=:{IWorld|timestamp}
 	# originalTaskFuncs = toTaskFuncs originalTask
-	# (tcontext,iworld) = originalTaskFuncs.initFun [0,processId] iworld		
+	# (tcontext,iworld) = originalTaskFuncs.initFun (taskNr processId) iworld		
 	# properties =
 		{ taskProperties	= taskProperties originalTask
 		, systemProperties	=
-			{ taskId		= toString processId
+			{ taskId		= taskNrToString (taskNr processId)
 			, status		= Running
 			, issuedAt		= timestamp
 			, firstEvent	= Nothing
@@ -34,16 +38,11 @@ createContext processId thread=:(Container {TaskThread|originalTask} :: Containe
 			}
 		, managerProperties	= managerProperties
 		}
-	= (TaskContext properties 0 (TTCRunning thread tcontext),iworld)
-
-//Create a new task context
-createInstance :: !User (Task a) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld) | iTask a
-createInstance worker task iworld
-	# thread				= createThread task
-	# (processId,iworld)	= 'ProcessDB'.getNextProcessId iworld
-	# (context,iworld)		= createContext processId (createThread task) {initManagerProperties & worker = worker} iworld
-	= (Ok context, iworld)
-
+	= (TaskContext processId properties 0 (TTCRunning thread tcontext),iworld)
+where
+	taskNr (WorkflowProcess pid)= [0,pid]
+	taskNr (SessionProcess _)	= [0,0]
+	
 createInstanceFrom :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 createInstanceFrom workflowId worker mbParam iworld
 	= case (getWorkflow workflowId iworld) of
@@ -52,26 +51,30 @@ createInstanceFrom workflowId worker mbParam iworld
 		(Just {Workflow|task,managerProperties}, iworld)
 			= case task of
 				WorkflowTask normalTask
-					| isNothing mbParam	= createInstance worker normalTask iworld
+					| isNothing mbParam	= createWorkflowContext worker normalTask iworld
 					| otherwise			= (Error "Workflow has no parameter", iworld)
 				ParamWorkflowTask paramTask = case mbParam of
 					Just param = case fromJSON param of
-						Just param		= createInstance worker (paramTask param) iworld
+						Just param		= createWorkflowContext worker (paramTask param) iworld
 						Nothing			= (Error "Invalid argument", iworld)
-					Nothing				= createInstance worker (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask) iworld
-		
+					Nothing				= createWorkflowContext worker (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask) iworld
+
+createWorkflowContext :: !User !(Task a) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld) | iTask a
+createWorkflowContext worker task iworld
+	# (processId,iworld)	= 'ProcessDB'.getNewWorkflowId iworld
+	# (context,iworld)	 	= createContext processId (createThread task) {initManagerProperties & worker = worker} iworld
+	= (Ok context, iworld)
+
 //Load an existing task context
-loadInstance :: !TaskNr !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-loadInstance taskNr iworld
+loadInstance :: !ProcessId !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
+loadInstance processId iworld
 	# (mbContext,iworld) = 'ProcessDB'.getProcessContext processId iworld
 	= case mbContext of
 		Just context 	= (Ok context, iworld)
-		Nothing			= (Error ("Could not load task context for task " +++ taskNrToString taskNr), iworld)
-where
-	processId	= last taskNr //proccess id is the last part of a task number
-	
+		Nothing			= (Error ("Could not load task context for task " +++ toString processId), iworld)
+
 editInstance :: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-editInstance editEvent context=:(TaskContext properties changeNo tcontext) iworld
+editInstance editEvent context=:(TaskContext processId properties changeNo tcontext) iworld
 	= case tcontext of
 		TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext
 			# editFun			= (toTaskFuncs currentTask).editFun
@@ -87,45 +90,46 @@ editInstance editEvent context=:(TaskContext properties changeNo tcontext) iworl
 					= editFun taskNr (ProcessEvent steps event) scontext iworld
 				_
 					= (scontext, iworld)
-			= (Ok (TaskContext properties changeNo (TTCRunning thread scontext)), iworld)
+			= (Ok (TaskContext processId properties changeNo (TTCRunning thread scontext)), iworld)
 		_
 			= (Ok context, iworld)
 
 //Evaluate the given context and yield the result of the main task indicated by target
 evalInstance :: !TaskNr !(Maybe CommitEvent) !TaskContext  !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
-evalInstance target commitEvent context=:(TaskContext properties changeNo tcontext) iworld=:{currentProcess,evalStack}
+evalInstance target commitEvent context=:(TaskContext processId properties changeNo tcontext) iworld=:{evalStack}
 	= case tcontext of
 		//Eval instance
 		TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext
 			# evalFun			= (toTaskFuncs currentTask).evalFun
-			# procId			= last (taskNrFromString properties.systemProperties.SystemProperties.taskId)
-			# taskNr			= [changeNo,procId]
+			# pid				= last (taskNrFromString properties.systemProperties.SystemProperties.taskId)
+			# taskNr			= [changeNo,pid]
+			# procId			= WorkflowProcess pid
 			# taskProperties	= currentTask.Task.properties
 			//Update current process id & eval stack in iworld
-			# iworld			= {iworld & currentProcess = procId, evalStack = [procId:evalStack]} 
+			# iworld			= {iworld & evalStack = [procId:evalStack]} 
 			//Strip the process id and change number from the commit event and switch from ProcessEvent to TaskEvent if it matches
 			# commitEvent = case commitEvent of
 					Just (ProcessEvent [p,n:steps] action)
-						| p == procId && n == changeNo		= Just (TaskEvent steps action)
+						| p == pid && n == changeNo			= Just (TaskEvent steps action)
 						| otherwise							= Just (ProcessEvent [p,n:steps] action)
 					Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
 					_										= Nothing
 			//Match processId & changeNo in target path
-			# target			= foldr stepTarget [changeNo,procId] target
+			# target			= foldr stepTarget [changeNo,pid] target
 			//Apply task's eval function	
 			# (result,iworld)	= evalFun taskNr taskProperties commitEvent target defaultInteractionLayout defaultParallelLayout scontext iworld 
 			//Restore current process id in iworld
-			# iworld			= {iworld & currentProcess = currentProcess, evalStack = evalStack}
+			# iworld			= {iworld & evalStack = evalStack}
 			= case result of
 				TaskBusy tui actions scontext
-					# properties	= setRunning properties
-					# context		= TaskContext (setRunning properties) changeNo (TTCRunning thread scontext)
+				//	# properties	= setRunning properties
+					# context		= TaskContext processId (setRunning properties) changeNo (TTCRunning thread scontext)
 					= (Ok (TaskBusy tui actions scontext), context, iworld)
 				TaskFinished val
-					# context		= TaskContext (setFinished properties) changeNo (TTCFinished (dynamic val))
+					# context		= TaskContext processId (setFinished properties) changeNo (TTCFinished (dynamic val))
 					= (Ok (TaskFinished (dynamic val)), context, iworld)
 				TaskException e str
-					# context		= TaskContext (setExcepted properties) changeNo (TTCExcepted str)
+					# context		= TaskContext processId (setExcepted properties) changeNo (TTCExcepted str)
 					= (Ok (TaskException e str), context, iworld)
 		TTCFinished r
 			= (Ok (TaskFinished r), context, iworld)
@@ -133,12 +137,10 @@ evalInstance target commitEvent context=:(TaskContext properties changeNo tconte
 			= (Ok (taskException e), context, iworld)
 			
 storeInstance :: !TaskContext !*IWorld -> *IWorld
-storeInstance context=:(TaskContext properties changeNo _) iworld
+storeInstance context=:(TaskContext processId properties changeNo _) iworld
 	= 'ProcessDB'.setProcessContext processId context iworld
-where
-	processId = last (taskNrFromString properties.systemProperties.SystemProperties.taskId)
 
-createTopInstance :: !WorkflowId !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !TaskNr), !*IWorld)
+createTopInstance :: !Int !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !TaskNr), !*IWorld)
 createTopInstance workflowId user mbParam iworld
 	# iworld				= {iworld & currentUser = user}
 	# (mbContext,iworld)	= createInstanceFrom workflowId user mbParam iworld
@@ -150,12 +152,21 @@ createTopInstance workflowId user mbParam iworld
 				Ok result	= (Ok (result, procNo context), iworld)
 				Error e		= (Error e, iworld)
 where
-	procNo (TaskContext properties _ _) = taskNrFromString properties.systemProperties.SystemProperties.taskId
-	
+	procNo (TaskContext (WorkflowProcess pid) properties _ _) = [pid]
+
+createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
+createSessionInstance task iworld
+	# (sessionId,iworld)	= 'ProcessDB'.getNewSessionId iworld
+	# (context, iworld)		= createContext sessionId (createThread task) initManagerProperties iworld
+	# (mbRes,iworld)		= iterateEval [0,0] Nothing context iworld
+	= case mbRes of
+		Ok result	= (Ok (result, sessionId), iworld)
+		Error e		= (Error e, iworld)
+
 evalTopInstance :: !TaskNr !User !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-evalTopInstance target  user editEvent commitEvent iworld
+evalTopInstance target user editEvent commitEvent iworld
 	# iworld				= {iworld & currentUser = user}
-	# (mbContext,iworld) 	= loadInstance target iworld
+	# (mbContext,iworld) 	= loadInstance processId iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
 		Ok context
@@ -166,8 +177,22 @@ evalTopInstance target  user editEvent commitEvent iworld
 				Ok context			= iterateEval (addChangeNo target context) commitEvent context iworld
 where
 	//Adds the current changenumber to the target if only a process id is given
-	addChangeNo [processId] (TaskContext _ changeNo _)	= [changeNo,processId]
-	addChangeNo target _								= target	
+	addChangeNo [processId] (TaskContext _ _ changeNo _)	= [changeNo,processId]
+	addChangeNo target _									= target	
+
+	processId = WorkflowProcess (last target)
+
+evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+evalSessionInstance sessionId editEvent commitEvent iworld
+	# (mbContext,iworld)	= loadInstance sessionId iworld
+	= case mbContext of
+		Error e				= (Error e, iworld)
+		Ok context
+			//Apply edit event (only once)
+			# (mbContext, iworld) = editInstance editEvent context iworld
+			= case mbContext of
+				Error e				= (Error e, iworld)
+				Ok context			= iterateEval [0,0] commitEvent context iworld
 	
 iterateEval :: !TaskNr !(Maybe CommitEvent) !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 iterateEval target commitEvent context iworld = eval target commitEvent 1 context iworld
@@ -233,12 +258,12 @@ where
 				(BodyTask,tfun)				= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
 				(HiddenTask,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
 			//Make context
-			# (context,iworld) = createContext pid thread managerProperties iworld			
+			# (context,iworld) = createContext (WorkflowProcess pid) thread managerProperties iworld			
 			= execControls cs (queue ++ [context]) iworld
 		//TODO: RemoveTask on the global list
 		_
 			= execControls cs queue iworld		
 	
 	
-	topTarget (TaskContext {ProcessProperties|systemProperties=p=:{SystemProperties|taskId}}_ _)
+	topTarget (TaskContext _ {ProcessProperties|systemProperties=p=:{SystemProperties|taskId}}_ _)
 		= taskNrFromString taskId

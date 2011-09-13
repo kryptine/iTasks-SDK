@@ -32,7 +32,7 @@ viewMap = interact
 			>>+ \_ -> UserActions [(ActionQuit,Just Void)]
 where
 	nlMap :: GoogleMap		
-	nlMap = {GoogleMap| mkMap & zoom = 7, center = {lat = 52.396, lng = 5.21}}
+	nlMap = {GoogleMap| defaultMap & zoom = 7, center = {lat = 52.396, lng = 5.21}}
 	
 	toView :: (GoogleMap, [(User,GoogleMapPosition)]) -> GoogleMap
 	toView (gmap,locations) = {GoogleMap|gmap & markers = map mkMarker locations}

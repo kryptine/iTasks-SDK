@@ -21,7 +21,7 @@ derive class iTask Credentials
 
 doAuthenticated :: (Task a) -> Task (Maybe a) | iTask a
 doAuthenticated task
-	=	enterInformation "Log in" []
+	=	(appIdentity ||- enterInformation "Log in" []) <<@ plainInteractionLayout
 	>>= \credentials ->
 		authenticateUser credentials.username (toString credentials.Credentials.password)
 	>>= \mbUser -> case mbUser of
@@ -30,7 +30,10 @@ doAuthenticated task
 		Just user
 			=	workAs user task
 			>>= transform Just
-
+where
+	appIdentity :: Task Void
+	appIdentity = showSharedInformation "Application identity" [] applicationName Void >>+ noActions
+	
 // Task management
 manageTasks :: Task Void
 manageTasks = mainLayout @>>  parallel "Client" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
@@ -87,7 +90,7 @@ where
 		
 	putback (Table _ cells mbSel) _ (_,state) = (Just mbSel,Just {state & selectedProcess = fmap (getProcId cells) mbSel})
 	getProcId cells idx = case cells !! idx !! 4 of
-		Text procId	= toInt procId
+		Text procId	= WorkflowProcess (toInt procId)
 		_ = abort "getProcId"
 
 workTabPanel :: !(TaskList ClientState) -> Task ParallelControl

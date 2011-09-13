@@ -37,7 +37,7 @@ body {
 	display: none;
 }
 
-button.icon-logout, .icon-logout {
+button.icon-log-out, .icon-log-out {
 	background-image: url('img/icons/door_in.png');
 }
 button.icon-refresh, .icon-refresh {

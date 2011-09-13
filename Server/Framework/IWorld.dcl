@@ -15,12 +15,11 @@ from SystemTypes	import :: ProcessId
 					, timestamp				:: !Timestamp					// The timestamp of the current request
 					, latestEvent			:: !Maybe Timestamp				// The timestamp of the last event of the (detached) process
 					, localDateTime			:: !DateTime					// The local date & time of the current request
-					, currentUser			:: !User						// The currently logged in user
-					, currentProcess		:: !ProcessId					// The current process
+					, currentUser			:: !User						// The current user
+					, evalStack				:: ![ProcessId]					// The stack of instances evaluating other instances through workOn
 					, parallelStates		:: !Map String Dynamic			// The set of shared state variables used during parallel task execution
 					, parallelControls		:: !Map String (!Int,![Control])// The set of controls for manipulating parallel task lists
 					, readShares			:: !Maybe [String]				// The IDs of shares from which was read
-					, evalStack				:: ![ProcessId]					// The stack of instances evaluating other instances through workOn
 					, world					:: !*World						// The outside world
 					}
 :: Control

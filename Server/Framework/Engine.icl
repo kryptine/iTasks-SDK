@@ -8,13 +8,11 @@ import	TuningCombinators
 import	Setup
 import	Config
 import	IWorld
-
-from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
-from UserAdmin	import manageUsers
+import	TaskService
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !(Maybe Config) [Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] 
-engine mbConfig userWorkflows handlers
+engine :: !(Maybe Config) (Task a) ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | iTask a
+engine mbConfig task handlers
 	= case mbConfig of
 		Just config
 			= handlers` config
@@ -22,19 +20,17 @@ engine mbConfig userWorkflows handlers
 			= [(\_ -> True, setupHandler)]
 where
 	handlers` config
-		# flows = adminWorkflows  ++ userWorkflows
 		= [
 		  // Handler to stop the server nicely
 		   ((==) "/stop", handleStopRequest)
 		  // Webservices
-		  ,(startsWith config.serverPath, serviceDispatch config flows)
+		  ,((==) "/", taskDispatch config task)
+		  ,(startsWith config.serverPath, serviceDispatch config)
 		  ,(\_ -> True, handleStaticResourceRequest config)
 		  ]
 
-	adminWorkflows		= [restrictedWorkflow "Admin/Users" "Manage system users" ["admin"] manageUsers]
-	
-	serviceDispatch config flows req world
-		# iworld			= initIWorld config flows world
+	serviceDispatch config req world
+		# iworld			= initIWorld config world
 		# reqpath			= (urlDecode req.req_path)
 		# reqpath			= reqpath % (size config.serverPath, size reqpath)
 		# (response,iworld)	= case (split "/" reqpath) of
@@ -47,8 +43,13 @@ where
 				= (notFoundResponse req, iworld)
 		= (response, finalizeIWorld iworld)
 
-initIWorld :: !Config ![Workflow] !*World -> *IWorld
-initIWorld config flows world
+	taskDispatch config task req world
+		# iworld 			= initIWorld config world
+		# (response,iworld)	= taskService task req iworld
+		= (response, finalizeIWorld iworld)
+		
+initIWorld :: !Config !*World -> *IWorld
+initIWorld config world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
@@ -63,23 +64,21 @@ initIWorld config flows world
 	# (_,world)					= ensureDir "tmp" tmpPath world
 	# storePath					= appDir </> appName </> "store-"+++ datestr
 	# (exists,world)			= ensureDir "store" storePath world
-	# iworld					= {IWorld
-								  |application			= appName
-								  ,storeDirectory		= storePath
-								  ,tmpDirectory			= tmpPath
-								  ,config				= config
-								  ,timestamp			= timestamp
-								  ,latestEvent			= Nothing
-								  ,localDateTime		= localDateTime
-								  ,currentUser			= AnyUser
-								  ,currentProcess		= defaultValue
-								  ,parallelStates		= newMap
-								  ,parallelControls		= newMap
-								  ,readShares			= Nothing
-								  ,evalStack			= []
-								  ,world				= world
-								  }
-	= if exists iworld (snd (mapSt ('WorkflowDB'.addWorkflow) flows iworld)) 
+	= {IWorld
+	  |application			= appName
+	  ,storeDirectory		= storePath
+	  ,tmpDirectory			= tmpPath
+	  ,config				= config
+	  ,timestamp			= timestamp
+	  ,latestEvent			= Nothing
+	  ,localDateTime		= localDateTime
+	  ,currentUser			= AnyUser
+	  ,evalStack			= []
+	  ,parallelStates		= newMap
+	  ,parallelControls		= newMap
+	  ,readShares			= Nothing
+	  ,world				= world
+	  }
 where 
 	padZero :: !Int -> String
 	padZero number = (if (number < 10) "0" "") +++ toString number
@@ -124,37 +123,6 @@ where
 
 handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!*World)
 handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, world) //Stop
-
-workflow :: String String w -> Workflow | toWorkflow w
-workflow path description task = toWorkflow path description [] task
-
-restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
-restrictedWorkflow path description roles task = toWorkflow path description roles task
-	
-instance toWorkflow (Task a) | iTask a
-where
-	toWorkflow path description roles task = toWorkflow path description roles (Workflow initManagerProperties task)
-	
-instance toWorkflow (WorkflowContainer a) | iTask a
-where
-	toWorkflow path description roles (Workflow managerP task) = mkWorkflow path description roles (WorkflowTask task) managerP
-
-instance toWorkflow (a -> Task b) | iTask a & iTask b
-where
-	toWorkflow path description roles paramTask = toWorkflow path description roles (ParamWorkflow initManagerProperties paramTask)
-	
-instance toWorkflow (ParamWorkflowContainer a b) | iTask a & iTask b
-where
-	toWorkflow path description roles (ParamWorkflow managerP paramTask) = mkWorkflow path description roles (ParamWorkflowTask paramTask) managerP
-	
-mkWorkflow path description roles taskContainer managerProps =
-	{ Workflow
-	| path	= path
-	, roles	= roles
-	, task = taskContainer
-	, description = description
-	, managerProperties = managerProps
-	}
 
 path2name path = last (split "/" path)
 

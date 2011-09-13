@@ -9,12 +9,12 @@ from ProcessDB		import qualified class ProcessDB(..), instance ProcessDB IWorld
 
 import GenVisualize
 	
-derive gVisualizeText	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gVisualizeHtml	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gVisualizeEditor	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gUpdate			Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gDefaultMask		Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
-derive gVerify			Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVisualizeText	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVisualizeHtml	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVisualizeEditor	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gUpdate			ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gDefaultMask		ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
+derive gVerify			ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription, InteractionTaskType, OutputTaskType
 derive bimap Maybe,(,)
 	
 getProcess :: !ProcessId -> Task (Maybe Process)
@@ -50,13 +50,6 @@ where
 		# owner 			= if (isNothing process) Nothing (Just (fromJust process).Process.properties.ProcessProperties.managerProperties.worker)
 		= (TaskFinished owner,iworld)
 	
-setProcessOwner :: !User !ProcessId -> Task Void
-setProcessOwner user pid = mkInstantTask ("Set process owner", "Set the user working on the task.") eval
-where
-	eval taskNr iworld
-		# (_,iworld) = 'ProcessDB'.setProcessOwner user pid iworld
-		= (TaskFinished Void, iworld)
-		
 getProcessStatus :: !ProcessId -> Task (TaskStatus,RunningTaskStatus)
 getProcessStatus pid = mkInstantTask ("Get process status", "Determine the status of a process.") eval
 where
@@ -65,17 +58,10 @@ where
 		= case mbProcess of
 			Just proc	= (TaskFinished (proc.Process.properties.systemProperties.SystemProperties.status,proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status), iworld)
 			Nothing		= (TaskFinished (Deleted,Active), iworld)
-	
-updateManagerProperties :: !ProcessId !(ManagerProperties -> ManagerProperties) -> Task Void
-updateManagerProperties pid updateF = mkInstantTask ("Update manager properties","Update the manager properties of a process.") eval
-where
-	eval taskNr iworld
-		# (_,iworld) = 'ProcessDB'.updateProcessProperties pid (\p -> {ProcessProperties|p & managerProperties = updateF p.ProcessProperties.managerProperties}) iworld
-		= (TaskFinished Void,iworld)
-		
+
 deleteProcess :: !ProcessId -> Task Void
 deleteProcess pid = mkInstantTask ("Delete process", "Delete a process from the database.") eval
 where
 	eval taskNr iworld
-		# (_,iworld) = 'ProcessDB'.deleteProcess pid iworld
+		# iworld = 'ProcessDB'.deleteProcess pid iworld
 		= (TaskFinished Void,iworld)

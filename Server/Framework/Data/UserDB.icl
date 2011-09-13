@@ -56,7 +56,7 @@ where
 				= (Nothing, iworld)
 		| otherwise
 			# (details, iworld)	= readUserStore iworld
-			= case [(RegisteredUser d) \\ d <- details | d.userName == username && d.password == (Password password)] of
+			= case [(RegisteredUser d) \\ d <- details | d.userName == username && d.UserDetails.password == (Password password)] of
 				[user]	= (Just user, iworld)		
 				_		= (Nothing, iworld)
 	

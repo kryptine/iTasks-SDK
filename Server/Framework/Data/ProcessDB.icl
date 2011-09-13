@@ -2,7 +2,7 @@ implementation module ProcessDB
 
 import StdEnv, Maybe
 
-import TaskContext, Store, Util, Text, Time
+import IWorld, TaskContext, Store, Util, Text, Time, Random
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
  
 derive JSONEncode	Process
@@ -16,17 +16,22 @@ CONTEXT_DB id	:== "Process-" +++ toString id +++ "-context"
 
 instance ProcessDB IWorld
 where
-	getNextProcessId :: !*IWorld -> (!ProcessId,!*IWorld)
-	getNextProcessId iworld
+	getNewSessionId	:: !*IWorld -> (!ProcessId,!*IWorld)
+	getNewSessionId iworld
+		# (sid,iworld) = genSessionId iworld
+		= (SessionProcess sid, iworld)
+	
+	getNewWorkflowId :: !*IWorld -> (!ProcessId,!*IWorld)
+	getNewWorkflowId iworld
 		# (mbNewPid,iworld) = loadValue NEXT_ID_DB iworld
 		= case mbNewPid of
 			Just pid
-				# iworld = storeValue NEXT_ID_DB (pid+1) iworld //increment the stored counter by 1
-				= (pid,iworld)
+				# iworld = storeValue NEXT_ID_DB (pid+1) iworld 
+				= (WorkflowProcess pid,iworld)
 			Nothing
 				# iworld = storeValue NEXT_ID_DB 2 iworld //store the next value (2)
-				= (1,iworld) //return the first value (1)
-			
+				= (WorkflowProcess 1,iworld) //return the first value (1)		
+	
 	getProcess :: !ProcessId !*IWorld -> (!Maybe Process,!*IWorld)
 	getProcess processId iworld
 		# (procs,iworld) 	= readProcessStore iworld
@@ -50,7 +55,7 @@ where
 	getProcesses :: ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcesses statusses runningStatusses iworld 
 		# (procs, iworld)	= readProcessStore iworld
-		= ([p \\ p <- procs | isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses], iworld)
+		= (filterProcs (\p -> isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses) procs, iworld)
 			
 	getProcessesById :: ![ProcessId] !*IWorld -> (![Process], !*IWorld)
 	getProcessesById ids iworld
@@ -71,42 +76,19 @@ where
 		//Store the context
 		# iworld = storeValue (CONTEXT_DB processId) context iworld
 		//Update the process table with the process information from this contexts
-		# iworld = snd (processStore (update (contextToProcess processId context)) iworld)
+		# iworld = snd (processStore (update (contextToProcess context)) iworld)
 		= iworld
 	where
 		update process [] = [process]
 		update process [p:ps] = if (p.processId == process.processId) [process:ps] [p:update process ps]
 
-	setProcessOwner	:: !User !ProcessId !*IWorld	-> (!Bool, !*IWorld)
-	setProcessOwner worker taskId iworld
-		= updateProcess taskId (\x -> {Process | x & properties = {ProcessProperties|x.Process.properties & managerProperties = {x.Process.properties.ProcessProperties.managerProperties & worker = worker}}}) iworld
-		
-	setProcessStatus :: !TaskStatus !ProcessId !*IWorld -> (!Bool,!*IWorld)
-	setProcessStatus status taskId iworld
-		= updateProcess taskId (\x -> {Process | x & properties = {x.Process.properties & systemProperties = {SystemProperties|x.Process.properties.systemProperties & status = status}}}) iworld
-
-	updateProcess :: !ProcessId (Process -> Process) !*IWorld -> (!Bool, !*IWorld)
-	updateProcess processId f iworld
-		# (procs,iworld) 	= readProcessStore iworld
-		# (nprocs,upd)		= unzip (map (update f) procs)
-		# (nprocs,iworld)	= processStore (\_ -> nprocs) iworld
-		= (or upd, iworld)
-	where
-		update f x		
-			| x.Process.processId == processId	= (f x, True)
-			| otherwise						= (x, False)
-	
-	updateProcessProperties :: !ProcessId (ProcessProperties -> ProcessProperties) !*IWorld -> (!Bool, !*IWorld)
-	updateProcessProperties taskId f iworld = updateProcess taskId (\p -> {Process |p & properties = f p.Process.properties}) iworld
-
-	deleteProcess :: !ProcessId !*IWorld	-> (!Bool, !*IWorld)
+	deleteProcess :: !ProcessId !*IWorld -> *IWorld
 	deleteProcess processId iworld 
 		//Delete values from store
 		# iworld = deleteValues ("Process-" +++ toString processId) iworld
 		//Delete from process table
-		# (procs,iworld) 	= readProcessStore iworld
-		# (nprocs,iworld)	= processStore (\_ -> [process \\ process <- procs | process.Process.processId <> processId]) iworld
-		= (length procs <> length nprocs, iworld)
+		# (_,iworld)	= processStore (\procs -> [process \\ process <- procs | process.Process.processId <> processId]) iworld
+		= iworld
 		
 	lastChange :: !*IWorld -> (!Timestamp,!*IWorld)
 	lastChange iworld
@@ -126,8 +108,13 @@ readProcessStore iworld
 	# (mbList,iworld)	= loadValue "ProcessDB" iworld
 	= (fromMaybe [] mbList,iworld)
 
-contextToProcess :: !ProcessId !TaskContext -> Process
-contextToProcess processId (TaskContext properties _ scontext)
+genSessionId :: !*IWorld -> (!String, !*IWorld)
+genSessionId iworld=:{IWorld|world,timestamp}
+	# (Clock c, world)		= clock world
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) , {IWorld|iworld & world = world})
+
+contextToProcess :: !TaskContext -> Process
+contextToProcess (TaskContext processId properties _ scontext)
 	= {processId = processId, properties = properties, subprocesses = tsubprocs scontext}
 where
 	tsubprocs (TTCRunning _ context)		= subprocs context

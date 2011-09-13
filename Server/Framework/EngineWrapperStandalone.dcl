@@ -9,8 +9,8 @@ import Engine
 /**
 * Starts the task engine with a list of workflow definitions.
 *
-* @param A list of available workflows
+* @param A task to start
 * @param The world
 * @return The world
 */
-startEngine :: [Workflow] !*World -> *World
+startEngine :: (Task a) !*World -> *World | iTask a

@@ -188,7 +188,7 @@ wrapperUpdate fx mode get cons ust=:{USt|currentPath} = case mode of
 	UDSearch w
 		# (w,ust) = fx (UDSearch (get w)) ust
 		= (cons w,{USt|ust & currentPath = stepDataPath currentPath})
-
+		
 gUpdate{|Int|}					mode ust = basicUpdateSimple mode 0 ust
 gUpdate{|Real|}					mode ust = basicUpdateSimple mode 0.0 ust
 gUpdate{|Char|}					mode ust = basicUpdateSimple mode ' ' ust
@@ -225,10 +225,7 @@ gUpdate{|Dynamic|}		mode ust = basicUpdate mode unchanged (dynamic 42) ust
 gUpdate{|(->)|} _ fy	mode ust
 	# (def,ust) = fy UDCreate ust
 	= basicUpdate mode unchanged (const def) ust
-gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode unchanged (WorkflowTask defTask) ust
-where
-	defTask :: Task Void
-	defTask = abort "default task container"
+
 
 gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust
 gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask, newMask}
@@ -245,7 +242,7 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 
 basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
 basicUpdateSimple mode def ust = case mode of
@@ -303,7 +300,7 @@ gDefaultMask{|Bool|}				_ = [Touched []]
 gDefaultMask{|String|}				_ = [Touched []]
 gDefaultMask{|Dynamic|}				_ = [Touched []]
 gDefaultMask{|(->)|} _ _			_ = [Touched []]
-gDefaultMask{|WorkflowTaskContainer|}_ = [Touched []]
+
 gDefaultMask{|Document|}			_ = [Touched []]			
 gDefaultMask{|FormButton|}			_ = [Touched []]
 gDefaultMask{|Note|}				_ = [Touched []]
@@ -329,7 +326,7 @@ gDefaultMask{|TreeChoice|} _ _ tree=:(TreeChoice _ mbSel)
 	| isJust mbSel	= [Touched []]
 	| otherwise		= [Untouched]
 
-derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 
 //Utility functions
 dp2s :: !DataPath -> String
@@ -356,6 +353,10 @@ shiftDataPath (DataPath path) = DataPath [0:path]
 
 childDataPath :: !DataPath !Int -> DataPath
 childDataPath (DataPath path) i = DataPath [i:path]
+
+parentDataPath :: !DataPath -> (!DataPath,!Int)
+parentDataPath (DataPath []) = (DataPath [], -1)
+parentDataPath (DataPath [i:path]) = (DataPath path, i)
 
 dataPathLevel :: !DataPath -> Int
 dataPathLevel (DataPath l) = length l

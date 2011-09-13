@@ -6,5 +6,8 @@ definition module TaskService
 */
 from HTTP	import :: HTTPRequest, :: HTTPResponse
 from IWorld	import :: IWorld
+import iTaskClass
 
-taskService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+taskService :: !(Task a) !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
+
+taskServiceOld :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

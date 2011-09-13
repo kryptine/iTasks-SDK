@@ -71,7 +71,7 @@ where
 
 assign :: !ManagerProperties !(Task a) -> Task a | iTask a
 assign props task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
-									[(BodyTask, processControl),(DetachedTask props, accu accJust task)] <<@ minimalParallelLayout
+									[(BodyTask, processControl),(DetachedTask props, accu accJust task)] <<@ defaultParallelLayout
 where
 	processControl :: !(TaskList a) -> Task ParallelControl
 	processControl tlist =
@@ -163,14 +163,14 @@ where
 	
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel ("||-", "Done when the second subtask is finished.") Nothing (\_ (Just b) -> b)
+	= parallel (taskTitle taskb) Nothing (\_ (Just b) -> b)
 		[(BodyTask, \_ -> taska >>| return Continue), (BodyTask, accu orfun taskb)]
 where
 	orfun b _ = (Just b,True)
 	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel ("-||", "Done when the first subtask is finished") Nothing (\_ (Just a) -> a)
+	= parallel (taskTitle taska) Nothing (\_ (Just a) -> a)
 		[(BodyTask, accu orfun taska), (BodyTask, \_ -> taskb >>| return Continue)]				
 where
 	orfun a _ = (Just a,True)
@@ -233,5 +233,5 @@ where
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions
 	
-appendTopLevelTask :: !ManagerProperties !(Task a) -> Task Int | iTask a
-appendTopLevelTask props task = appendTask (DetachedTask props, \_ -> task >>| return Continue) topLevelTasks
+appendTopLevelTask :: !ManagerProperties !(Task a) -> Task ProcessId | iTask a
+appendTopLevelTask props task = appendTask (DetachedTask props, \_ -> task >>| return Continue) topLevelTasks >>= transform WorkflowProcess 

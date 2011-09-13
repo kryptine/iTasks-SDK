@@ -315,4 +315,4 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 * Append a task to the set of top level tasks
 * 
 */
-appendTopLevelTask :: !ManagerProperties !(Task a) -> Task Int | iTask a
+appendTopLevelTask :: !ManagerProperties !(Task a) -> Task ProcessId | iTask a

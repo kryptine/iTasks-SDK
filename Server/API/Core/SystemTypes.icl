@@ -8,27 +8,24 @@ from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONEncode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONDecode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive gEq			EmailAddress, Session, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gEq			EmailAddress, Session, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
 derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
 derive bimap		Maybe, (,)
+derive class iTask	Credentials
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
 
-JSONEncode{|WorkflowTaskContainer|} c		= dynamicJSONEncode c
-JSONDecode{|WorkflowTaskContainer|} [c:r]	= (dynamicJSONDecode c,r)
-JSONDecode{|WorkflowTaskContainer|} r		= (Nothing,r)
-gEq{|WorkflowTaskContainer|} _ _			= True
 
 gEq{|(->)|} _ _ _ _			= False	// functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
@@ -583,7 +580,7 @@ actionName ActionEdit			= "Edit"
 actionName ActionDelete			= "Delete"
 	
 actionIcon :: !Action -> String
-actionIcon action = "icon-" +++ toLowerCase (last (split "/" (actionName action))) 
+actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))
 
 instance toString (TaskList s)
 where
@@ -611,6 +608,7 @@ initTaskMeta` :: String (Maybe String) -> TaskMeta
 initTaskMeta` title instruction =
 	{ title = title
 	, instruction = instruction
+	, icon = Nothing
 	, tags = []
 	, interactionType = Nothing
 	, localInteraction = False
@@ -644,6 +642,17 @@ where
 	(==) Suspended	Suspended	= True
 	(==) _			_			= False
 
+instance == ProcessId
+where
+	(==) (SessionProcess x)		(SessionProcess y)	= (x == y)
+	(==) (WorkflowProcess x)	(WorkflowProcess y)	= (x == y)
+	(==) _						_					= False
+
+instance toString ProcessId
+where
+	toString (SessionProcess x) = ("s" +++ x)
+	toString (WorkflowProcess x) = "w" +++ toString x
+
 instance toEmail EmailAddress where toEmail e = e
 instance toEmail String where toEmail s = EmailAddress s
 instance toEmail User
@@ -671,7 +680,6 @@ setFinished properties=:{systemProperties} = {properties & systemProperties = {S
 setExcepted :: !ProcessProperties -> ProcessProperties
 setExcepted properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}
 
-
 formatPriority	:: !TaskPriority	-> HtmlTag
 formatPriority p = Text (toText p)
 where
@@ -679,12 +687,3 @@ where
 	toText NormalPriority	= "Normal"
 	toText LowPriority		= "Low"
 		
-isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool
-//Allow the root user
-isAllowedWorkflow RootUser _ _									= True
-//Allow workflows without required roles
-isAllowedWorkflow _ _ {WorkflowDescription|roles=r=:[]}			= True
-//Allow workflows for which the user has permission
-isAllowedWorkflow _ (Just details) {WorkflowDescription|roles}	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- roles]
-//Don't allow workflows in other cases
-isAllowedWorkflow _ _ _											= False

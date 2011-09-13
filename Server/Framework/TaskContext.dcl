@@ -7,7 +7,7 @@ derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
 
 //Persistent context of active tasks
-:: TaskContext = TaskContext !ProcessProperties !Int !ProcessState
+:: TaskContext = TaskContext !ProcessId !ProcessProperties !Int !ProcessState
 
 :: ProcessState
 	= TTCRunning !Dynamic !TaskContextTree

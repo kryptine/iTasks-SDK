@@ -4,10 +4,10 @@ import iTasks
 import StdMisc
 
 
-Start world = startEngine changeHandlingExample world
+//Start world = startEngine changeHandlingExample world
 
-changeHandlingExample :: [Workflow]
-changeHandlingExample = []
+//changeHandlingExample :: [Workflow]
+//changeHandlingExample = []
 /*
 changeHandlingExample
 =	[{ name		= "Examples/Miscellaneous/Change handling"

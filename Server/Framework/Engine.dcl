@@ -5,7 +5,6 @@ definition module Engine
 * environment in which worfklow specifications can be executed.
 */
 import Maybe, JSON, Task
-from SystemTypes	import :: Workflow
 from IWorld			import :: IWorld
 from HTTP			import :: HTTPRequest, :: HTTPResponse
 from Config			import :: Config
@@ -18,10 +17,10 @@ from Config			import :: Config
 * Creates the iTasks system from a set of workflow definitions
 *
 * @param  An optional config record
-* @param  A list of workflow definitions
+* @param  A task to execute
 * @return A list of predicate/handler pairs that can be plugged into a server
 */
-engine :: !(Maybe Config) [Workflow] ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))]
+engine :: !(Maybe Config) (Task a) ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | iTask a
 
 /**
 * Loads the itasks specific config
@@ -32,36 +31,6 @@ engine :: !(Maybe Config) [Workflow] ![Handler] -> [(!String -> Bool,!HTTPReques
 * @return The updated world
 */
 config :: !*World -> (!Maybe Config,!*World)
-
-/**
-* Wraps any task as a workflow with no access restrictions
-*
-* @param A label for the workflow. This may contain slashes to group workflows
-* @param A description of the workflow
-* @param The task(container) (with or without parameter)
-*/
-workflow :: String String w -> Workflow | toWorkflow w
-
-/**
-*
-* Wraps any task as a workflow that is only available to specified roles
-*
-* @param A label for the workflow. This may contain slashes to group workflows
-* @param A description of the workflow
-* @param A list of roles. The workflow will be available to users with any of the specified roles
-* @param The task(container) (with or without parameter)
-*/
-restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
-
-class toWorkflow w :: String String [Role] w -> Workflow
-
-instance toWorkflow (Task a)						| iTask a
-instance toWorkflow (WorkflowContainer a)			| iTask a
-instance toWorkflow (a -> Task b)					| iTask a & iTask b
-instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
-
-:: WorkflowContainer a			= Workflow		ManagerProperties (Task a)
-:: ParamWorkflowContainer a b	= ParamWorkflow	ManagerProperties (a -> Task b)
 
 /**
 * Determines the server executables path

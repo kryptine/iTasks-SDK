@@ -17,16 +17,17 @@ from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefault
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONEncode	EmailAddress, Session, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONDecode	EmailAddress, Session, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive gEq			EmailAddress, Session, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, WorkflowDescription, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
-derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
-derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, WorkflowTaskContainer
+derive gEq			EmailAddress, Session, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
+derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
+derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
+derive class iTask	Credentials
 
 instance toString User
 instance toString Note
@@ -38,6 +39,7 @@ instance toString Currency
 instance toString TaskPriority
 instance toString Document
 instance toString FormButton
+instance toString ProcessId
 instance toString (TaskList s)
 instance fromString Date
 instance fromString Time
@@ -47,6 +49,7 @@ instance == User
 instance == Document
 instance == Note
 instance == Password
+instance == ProcessId
 
 instance < Time
 instance < Date
@@ -268,6 +271,7 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 :: TaskMeta =
 	{ title				:: !String						//* A descriptive title
 	, instruction		:: !Maybe String				//* Instruction of the task
+	, icon				:: !Maybe String				//* An icon reference for the task
 	, tags				:: ![String]					//* A list of tags
 	, interactionType	:: !Maybe InteractionTaskType	//* type of interaction (for interaction tasks)
 	, localInteraction	:: !Bool						//* indicates that the task's interaction is restricted to local data while it is running
@@ -351,6 +355,12 @@ setExcepted	:: !ProcessProperties -> ProcessProperties
 	, roles			:: !Maybe [Role]
 	}
 
+// Authentication
+:: Credentials =
+	{ username	:: String
+	, password	:: Password
+	}
+
 :: UserId			:== String
 :: Role				:== String
 
@@ -362,7 +372,9 @@ setExcepted	:: !ProcessProperties -> ProcessProperties
 	, timestamp	::	!Timestamp
 	}
 
-:: ProcessId		:== Int
+:: ProcessId
+	= SessionProcess !SessionId
+	| WorkflowProcess !Int
 
 /*
 * Gives the unique username of a user
@@ -442,24 +454,3 @@ actionIcon 	:: !Action -> String
 :: InteractionTaskType	= InputTask | UpdateTask | OutputTask !OutputTaskType
 :: OutputTaskType		= ActiveOutput | PassiveOutput
 
-:: WorkflowDescription =	{ workflowId		:: !WorkflowId
-							, path				:: !String
-							, roles				:: ![String]
-							, description		:: !String
-							, managerProperties	:: !ManagerProperties
-							}
-							
-:: WorkflowId :== Int
-
-:: WorkflowTaskContainer	= E.a:		WorkflowTask		(Task a)		& iTask a
-							| E.a b:	ParamWorkflowTask	(a -> (Task b))	& iTask a & iTask b
-				
-// A workflow specification
-:: Workflow		=	{ path				:: String					//* a unique name of this workflow
-					, roles				:: [String]					//* the roles that are allowed to initate this workflow
-					, task				:: WorkflowTaskContainer	//* the thread of the main task of the workflow
-					, description		:: String					//* a description of the workflow
-					, managerProperties	:: ManagerProperties		//* the initial manager properties of the main task
-					}
-					
-isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool

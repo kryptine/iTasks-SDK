@@ -25,6 +25,26 @@ JSONDecode{|GoogleMapPosition|} rest											= (Nothing,rest)
 
 derive bimap	Maybe, (,)
 
+:: MVCUpdate = 
+	{ center			:: !GoogleMapPosition
+	, zoom				:: !Int
+	, type				:: !GoogleMapType
+	}	
+	
+:: ClickUpdate = 
+	{ event				:: !ClickEvent
+	, source			:: !ClickSource
+	, point				:: !GoogleMapPosition
+	}
+
+:: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
+:: ClickSource  = MAP | MARKER GoogleMapPosition
+
+:: MarkerDragUpdate = 
+	{ index				:: !Int
+	, point				:: !GoogleMapPosition
+	}
+
 :: TUIGoogleMap = 
 	{ center 			:: GoogleMapPosition
 	, mapType			:: GoogleMapType
@@ -53,7 +73,7 @@ derive bimap	Maybe, (,)
 	, xtype				:: String
 	, url				:: String
 	}
-	
+
 instance toString GoogleMapType
 where 
 	toString ROADMAP 	= "ROADMAP"
@@ -69,11 +89,11 @@ gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl mbMap vst
 where
 	mkControl name mbMap _ _ static vst=:{VSt|taskId}
 		| static
-			= ([htmlDisplay (staticMap (convertToStaticMap (fromMaybe mkMap mbMap)))], vst)
+			= ([htmlDisplay (staticMap (convertToStaticMap (fromMaybe defaultMap mbMap)))], vst)
 		| otherwise
 			= ([{TUIDef | content = TUICustom ((mapPanel mbMap name True)), width = Auto, height = Auto, margins = Nothing}], vst)
 	where		
-		mapPanel Nothing	name ed = toJSON (tuidef mkMap name ed)
+		mapPanel Nothing	name ed = toJSON (tuidef defaultMap name ed)
 		mapPanel (Just map)	name ed = toJSON (tuidef map   name ed)
 	
 		tuidef map name ed =
@@ -81,7 +101,7 @@ where
 			| center = map.GoogleMap.center
 			, mapType = map.GoogleMap.mapType
 			, markers = map.GoogleMap.markers
-			, xtype = "itasks.tui.GMapControl"
+			, xtype = "igooglemap"
 			, name = name
 			, taskId = taskId
 			, editor = ed
@@ -114,13 +134,13 @@ where
 		{ TUIGoogleStaticMap
 		| width 	= w
 		, height 	= h	
-		, xtype		= "itasks.gstaticmappanel"
+		, xtype		= "igooglestaticmap"
 		, url		= u
 		}
 
 staticMap (GoogleStaticMap w h u) = ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]
 
-gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate mkMap ust
+gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate defaultMap ust
 where
 	parseUpdate json orig
 		# mbMVC		= fromJSON json
@@ -144,9 +164,8 @@ gDefaultMask{|GoogleMap|} _ = [Touched []]
 gVerify{|GoogleMap|} _ vst = alwaysValid vst //Maps are always valid
 
 // -- Utility Functions --
-
-mkMap :: GoogleMap
-mkMap = { GoogleMap
+defaultMap :: GoogleMap
+defaultMap = { GoogleMap
 		| center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
 		, mapTypeControl	= True
 		, panControl		= True

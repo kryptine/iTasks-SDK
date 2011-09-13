@@ -34,14 +34,16 @@ from Task			import :: TaskAction
 :: TUIDefContent
 	= TUIControl			!TUIControlType !TUIControl
 	| TUIButton				!TUIButton
-	| TUILayoutContainer	!TUILayoutContainer
+	| TUIContainer			!TUIContainer
+	| TUIPanel				!TUIPanel
 	| TUITabContainer		!TUITabContainer
-	| TUITab				!TUITab
+	| TUITabItem			!TUITabItem
+	| TUIBorderContainer	!TUIBorderContainer
+	| TUIBorderItem			!TUIBorderItem
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
 	| TUIMenuButton			!TUIMenuButton
 	| TUIMenuItem			!TUIMenuItem
-	| TUIMenuSeparator
 	| TUICustom				!JSONNode
 	
 :: TUIControlType	= TUIStringControl
@@ -83,28 +85,49 @@ from Task			import :: TaskAction
 	{ text		:: !String
 	, children	:: !Maybe [TUITree]
 	, leaf		:: !Bool
-	, index		:: !Maybe Int
+	, value		:: !Maybe Int
 	}
-:: TUILayoutContainer =
+:: TUIContainer =
 	{ items				:: ![TUIDef]
-	, orientation		:: !TUIOrientation
-	, hGravity			:: !TUIHGravity
-	, vGravity			:: !TUIVGravity
-	, title				:: !Maybe PanelTitle
-	, frame				:: !Bool
-	, iconCls			:: !Maybe PanelIcon
+	, direction			:: !TUIDirection
+	, halign			:: !TUIHGravity
+	, valign			:: !TUIVGravity
 	, padding			:: !Maybe Int
 	, baseCls			:: !Maybe String
 	}
-:: TUITabContainer =
+:: TUIPanel =
 	{ items				:: ![TUIDef]
+	, direction			:: !TUIDirection
+	, halign			:: !TUIHGravity
+	, valign			:: !TUIVGravity
+	, padding			:: !Maybe Int
+	, title				:: !PanelTitle
+	, frame				:: !Bool
+	, menus				:: ![TUIMenuButton]
+	, iconCls			:: !Maybe PanelIcon
+	, baseCls			:: !Maybe String
+	}		
+:: TUITabContainer =
+	{ items				:: ![TUITabItem]
 	}
-:: TUITab =
+:: TUITabItem =
 	{ title				:: !PanelTitle
 	, iconCls			:: !Maybe String
 	, items				:: !TUIDef
-	, menus				:: ![TUIDef]
+	, menus				:: ![TUIMenuButton]
 	, closeAction		:: !Maybe (!TUIName,!TaskId)
+	}
+:: TUIBorderContainer =
+	{ direction			:: !TUIDirection
+	, itemA				:: !TUIBorderItem
+	, itemB				:: !TUIBorderItem
+	, initSplit			:: !TUIFixedSize
+	, collapsible		:: !Bool
+	}
+:: TUIBorderItem = 
+	{ title				:: !Maybe PanelTitle
+	, iconCls			:: !Maybe String
+	, item				:: !TUIDef
 	}
 :: TUIListContainer =
 	{ items			:: ![TUIDef]
@@ -124,23 +147,27 @@ from Task			import :: TaskAction
 	, iconCls		:: !String
 	, actionButton	:: !Bool
 	}
-:: TUIMenu =
-	{ items			:: ![TUIDef]
-	}
 :: TUIMenuButton =
 	{ text			:: !String
-	, menu			:: !TUIMenu
+	, target		:: !Maybe String
+	, action		:: !Maybe String
 	, disabled		:: !Bool
+	, iconCls		:: !Maybe String
+	, menu			:: !Maybe TUIMenu
+	}
+:: TUIMenu =
+	{ items			:: ![TUIMenuItem]
 	}
 :: TUIMenuItem =
 	{ text			:: !String
 	, target		:: !Maybe String
 	, action		:: !Maybe String
-	, menu			:: !Maybe TUIMenu
 	, disabled		:: !Bool
 	, iconCls		:: !Maybe String
 	, hotkey		:: !Maybe Hotkey
+	, menu			:: !Maybe TUIMenu
 	}
+
 :: TUIGridControl =
 	{ headers		:: ![String]
 	, cells			:: ![[String]]
@@ -168,36 +195,42 @@ from Task			import :: TaskAction
 					| FixedMinSize !TUIFixedSize			// The container has a fixed minimal size
 :: TUIHGravity		= HGLeft | HGCenter | HGRight
 :: TUIVGravity		= VGTop | VGCenter | VGBottom
-:: TUIOrientation	= Horizontal | Vertical
+:: TUIDirection		= Horizontal | Vertical
 
 :: Tooltip :== String
 
 htmlDisplay				:: !html -> TUIDef | toString html
-defaultLayoutContainer	:: ![TUIDef] -> TUILayoutContainer
+defaultLayoutContainer	:: ![TUIDef] -> TUIContainer
+defaultLayoutPanel		:: ![TUIDef] -> TUIPanel
 sameMargins				:: !TUIFixedSize -> TUIMargins
+fillParent				:: !TUIDef -> TUIDef
 
 // Layouts
-:: InteractionLayouter	:== TUIInteraction	-> (TUIDef, [TaskAction]) 
-:: ParallelLayouter		:== TUIParallel		-> (TUIDef, [TaskAction])
+:: InteractionLayouter	:== TUIInteraction			-> (TUIDef, [TaskAction]) 
+:: ParallelLayouter		:== TUIParallel				-> (TUIDef, [TaskAction])
+
+:: LayoutTweak			:== (TUIDef, [TaskAction])	-> (TUIDef, [TaskAction])
 
 // pre-defined layouts
-defaultInteractionLayout	:: InteractionLayouter
-minimalInteractionLayout	:: InteractionLayouter
+defaultInteractionLayout	:: InteractionLayouter //Interaction parts, action buttons, title and instructions
+plainInteractionLayout		:: InteractionLayouter //Just the interaction parts and action buttons
+minimalInteractionLayout	:: InteractionLayouter //Only the interaction parts
 fullWidthInteractionLayout	:: InteractionLayouter
 wrapWidthInteractionLayout	:: InteractionLayouter
 fullShowInteractionLayout	:: InteractionLayouter
+
 defaultParallelLayout		:: ParallelLayouter
-minimalParallelLayout		:: ParallelLayouter
+horizontalParallelLayout	:: ParallelLayouter
 tabParallelLayout			:: ParallelLayouter
 
 // layout aux functions
 defaultPanelDescr			:: !PanelTitle !PanelIcon !(Maybe String) !(Maybe String) 	!TUISize ![TUIDef]	-> TUIDef
 defaultPanel				:: !PanelTitle !PanelIcon							!TUISize ![TUIDef]	-> TUIDef
-defaultDescriptionPanel		:: !(Maybe String) !(Maybe String)										-> TUIDef
+defaultDescriptionPanel		:: !(Maybe String) !(Maybe String)										-> Maybe TUIDef
 defaultContentPanel			:: ![TUIDef]															-> TUIDef
 defaultContent				:: ![TUIDef] ![TUIDef]													-> [TUIDef]
 defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool								-> PanelIcon
 defaultButtons				:: ![TaskAction]														-> (![TUIDef],![TaskAction])
-defaultMenus				:: ![TaskAction]														-> (![TUIDef],![TaskAction])
+defaultMenus				:: ![TaskAction]														-> (![TUIMenuButton],![TaskAction])
 
 columnLayout				:: !Int ![TUIDef] 														-> TUIDef

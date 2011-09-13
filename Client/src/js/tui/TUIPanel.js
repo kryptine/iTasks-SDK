@@ -5,22 +5,27 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 	layout: 'hbox',
 	dirty: true,
 	initComponent : function() {
+		console.log("FOOO");
+		/*
 		this.items = this.content;
 		Ext.apply(this, {
 			taskUpdates : {},
 			url: itasks.config.serverUrl + '/work/tab',
 			unstyled: true
 		});
-		
+		*/
 		itasks.tui.TUIPanel.superclass.initComponent.apply(this,arguments);
 		
 		this.addEvents('taskRedundant','taskDone');
 		this.enableBubble('taskRedundant','taskDone');
+		
+		console.log("BARR");
 	},
 	buildComponents: function(data){
 		
 	},
 	update: function(data) {
+		console.log("OK1");
 		if (data == "done" || data == "redundant"){
 			this.fadeOut(data);
 			return;
@@ -94,18 +99,18 @@ itasks.tui.TUIPanel = Ext.extend(Ext.Container, {
 			}
 			this.resumeEvents();
 
-			if (doLayout || itasks.tui.forceLayout) this.doLayout(true);
+			//if (doLayout || itasks.tui.forceLayout) this.doLayout(true);
 
 		} else {
+			console.log("OK2");
 			//Completely replace form
-			this.menu = data.menu;
 			this.removeAll();
 			this.add(data.content);
 			
 			this.dirty = true;
-			this.doLayout();
+			//this.doLayout();
 		}
-
+		console.log("OK3");
 		this.menu = data.menu;
 	},
 	findComponentByPath: function(start, path) {

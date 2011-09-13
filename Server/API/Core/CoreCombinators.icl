@@ -536,7 +536,9 @@ where
 				//For the global tasklist we don't use the internal counter, but get the index from the
 				//process database
 				# (nextIdx, iworld) = case tasklist of
-					GlobalTaskList	= 'ProcessDB'.getNextProcessId iworld
+					GlobalTaskList
+						# (WorkflowProcess next,iworld) = 'ProcessDB'.getNewWorkflowId iworld
+						= (next,iworld)
 					_				= (nextIdx,iworld)
 				# parallelControls = 'Map'.put identity (nextIdx + 1, controls ++ [AppendTask nextIdx (dynamic container :: TaskContainer s^)]) parallelControls 
 				= (TaskFinished nextIdx, {iworld & parallelControls = parallelControls, readShares = Nothing})

@@ -9,7 +9,7 @@ visualizeAsEditor x taskId idx vmask editEvent
 	# (defs,vst) = gVisualizeEditor{|*|} (Just x) vst
 	= case defs of
 		[tui]   = tui
-		tuis    = {content = TUILayoutContainer (defaultLayoutContainer tuis), width = WrapContent 0, height = WrapContent 0, margins = Nothing}
+		tuis    = {content = TUIContainer (defaultLayoutContainer tuis), width = WrapContent 0, height = WrapContent 0, margins = Nothing}
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
 visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)
@@ -99,9 +99,9 @@ gVisualizeText{|FillHControlSize|}	fx mode val = fx mode (fromFillHControlSize v
 gVisualizeText{|Void|} _ _					= []
 gVisualizeText{|Dynamic|} _ _				= []
 gVisualizeText{|(->)|} _ _ _ _				= []
-gVisualizeText{|WorkflowTaskContainer|} _ _	= []
+
 	
-derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 
 //Generic html visualizer
 generic gVisualizeHtml a :: !StaticVisualizationMode !a -> [HtmlTag]
@@ -238,9 +238,9 @@ gVisualizeHtml{|FillHControlSize|}	fx mode val = fx mode (fromFillHControlSize v
 gVisualizeHtml{|Void|} _ _					= []
 gVisualizeHtml{|Dynamic|} _ _				= []
 gVisualizeHtml{|(->)|} _ _ _ _				= []
-gVisualizeHtml{|WorkflowTaskContainer|} _ _	= []
+
 	
-derive gVisualizeHtml DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gVisualizeHtml DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 
 toHtmlText s = Text (toString s)
 
@@ -265,7 +265,7 @@ gVisualizeEditor{|FIELD of d|} fx _ _ val vst
 	# x = fmap fromFIELD val
 	# (vizBody,vst=:{VSt|optional})	= fx x {VSt|vst & optional = False}
 	# label							= {htmlDisplay (camelCaseToWords d.gfd_name +++ if optional "" "*" +++ ":") & width = Fixed 100}
-	= ([{content = TUILayoutContainer {TUILayoutContainer|defaultLayoutContainer [label: vizBody] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
+	= ([{content = TUIContainer {TUIContainer|defaultLayoutContainer [label: vizBody] & direction = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
 			
 gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent,controlSize}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
@@ -279,7 +279,7 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex =
 	| d.gtd_num_conses > 1 && not renderAsStatic
 		# (items, vst=:{selectedConsIndex}) = fx x vst
 		# content = if (isTouched cmv) items []
-		= ([{ content = TUILayoutContainer (defaultLayoutContainer
+		= ([{ content = TUIContainer (defaultLayoutContainer
 							[	addMsg (verifyElementStr cmv) (sizedControl controlSize (TUIComboControl [gdc.gcd_name \\ gdc <- d.gtd_conses])
 										{ TUIControl
 										| name			= dp2s currentPath
@@ -289,7 +289,7 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex =
 										})
 							:	if (isEmpty content)
 								[]
-								[{ content	= TUILayoutContainer ({defaultLayoutContainer content & frame = True, baseCls = Just "x-constructor-panel"})
+								[{ content	= TUIContainer ({TUIContainer|defaultLayoutContainer content & baseCls = Just "x-constructor-panel"})
 								,  width	= FillParent 1 ContentSize
 								,  height	= WrapContent 0
 								,  margins	= Just {sameMargins 0 & left = 12}
@@ -306,7 +306,7 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex =
 		# (vis,vst) = fx x vst
 		# vis = case vis of
 			[]	= if (isTouched cmv) [(htmlDisplay ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))] []
-			vis = [{ content	= TUILayoutContainer (defaultLayoutContainer vis)
+			vis = [{ content	= TUIContainer (defaultLayoutContainer vis)
 								, width 	= FillParent 1 ContentSize
 								, height	= Auto
 								, margins	= Nothing
@@ -329,7 +329,7 @@ where
 					# (viz,vst) = fx (Just x) vst
 					= ([recordContainer viz],vst)
 	where
-		recordContainer viz =	{ content	= TUILayoutContainer (defaultLayoutContainer (if optional [checkbox True] [] ++ viz))
+		recordContainer viz =	{ content	= TUIContainer (defaultLayoutContainer (if optional [checkbox True] [] ++ viz))
 								, width		= FillParent 1 ContentSize
 								, height	= (WrapContent 0)
 								, margins	= Nothing
@@ -402,11 +402,11 @@ where
 		= ([],idx)
 	mkTree [Leaf (v,_):r] idx
 		# (rtree,idx`) 		= mkTree r (inc idx)
-		= ([{text = concat (gx AsLabel v), index = Just idx, leaf = True, children = Nothing}:rtree],idx`)
+		= ([{text = concat (gx AsLabel v), value = Just idx, leaf = True, children = Nothing}:rtree],idx`)
 	mkTree [Node label nodes:r] idx
 		# (children,idx)	= mkTree nodes idx
 		# (rtree,idx)		= mkTree r idx
-		= ([{text = label, index = Nothing, leaf = False, children = Just children}:rtree],idx)
+		= ([{text = label, value = Nothing, leaf = False, children = Just children}:rtree],idx)
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
 	
@@ -455,7 +455,7 @@ where
 									| index = idx
 									, items = case defs of
 										[def]	= def
-										defs	= {content = TUILayoutContainer (defaultLayoutContainer defs), width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}
+										defs	= {content = TUIContainer (defaultLayoutContainer defs), width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}
 									}
 					, width		= Auto
 					, height	= Auto
@@ -466,7 +466,7 @@ where
 				NoMsg			= [list]
 				HintMsg	msg		= addMsg` "x-hint-icon" msg list
 				ErrorMsg msg	= addMsg` "x-invalid-icon" msg list
-			addMsg` cls msg list = [	{ content	= TUILayoutContainer (defaultLayoutContainer [list,mkMessage cls msg])
+			addMsg` cls msg list = [	{ content	= TUIContainer (defaultLayoutContainer [list,mkMessage cls msg])
 										, width		= FillParent 1 ContentSize
 										, height	= WrapContent 0
 										, margins	= Nothing
@@ -524,9 +524,9 @@ gVisualizeEditor{|FillHControlSize|} fx _ _ val vst=:{controlSize=controlSize=:(
 	= (def,{vst & controlSize = controlSize})
 
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
-gVisualizeEditor{|WorkflowTaskContainer|} _ vst = noVisualization vst
+
 	
-derive gVisualizeEditor DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gVisualizeEditor DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
@@ -597,7 +597,7 @@ addMsg verRes viz = case verRes of
 		HintMsg msg		= add "x-hint-icon" msg viz
 		ErrorMsg msg	= add "x-invalid-icon" msg viz
 where	
-	add cls msg viz= {content = TUILayoutContainer {TUILayoutContainer|defaultLayoutContainer [viz,mkIcon cls msg] & orientation = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}
+	add cls msg viz= {content = TUIContainer {TUIContainer|defaultLayoutContainer [viz,mkIcon cls msg] & direction = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}
 	mkIcon cls msg = { content	= TUIControl (TUIHtmlDisplay (Just msg))
 									{ TUIControl
 									| name			= ""

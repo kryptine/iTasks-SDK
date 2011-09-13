@@ -1,7 +1,9 @@
 definition module ProcessDB
 /**
-* This module provides an abstract process database
-* 
+* This module provides a database for storing persistent task instances.
+* It contains two types of task instances:
+* Session instances: temporary tasks for each interactive session between a user and the server. 
+* Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
 import Maybe, SystemTypes, Task, TaskContext
 from Time import :: Timestamp
@@ -19,8 +21,9 @@ derive gEq			Process
 				  }
 
 class ProcessDB st
-where	
-	getNextProcessId 		:: 														!*st -> (!ProcessId,		!*st)
+where
+	getNewSessionId			::														!*st -> (!ProcessId,		!*st)
+	getNewWorkflowId		::														!*st -> (!ProcessId,		!*st)
 
 	getProcess				:: !ProcessId											!*st -> (!Maybe Process,	!*st)
 	getProcessContext		:: !ProcessId											!*st -> (!Maybe TaskContext,!*st)
@@ -32,24 +35,9 @@ where
 	
 	setProcessContext		:: !ProcessId !TaskContext								!*st -> *st
 
-	deleteProcess			:: !ProcessId											!*st -> (!Bool,				!*st)
+	deleteProcess			:: !ProcessId											!*st -> *st
 	
-	/**
-	* Gets the timestamp of the last change of the workflow database.
-	*
-	* @param A unique database handle
-	*
-	* @return The timestamp
-	* @retrun The database handle 
-	*/
+	//Gets the timestamp of the last change of the workflow database.
 	lastChange				::														!*st -> (!Timestamp,!*st)
-
-	
-	//DEPRECATED
-	setProcessOwner			:: !User !ProcessId										!*st -> (!Bool,				!*st)
-	setProcessStatus		:: !TaskStatus !ProcessId								!*st -> (!Bool,				!*st)
-	updateProcess			:: !ProcessId (Process -> Process)						!*st -> (!Bool,				!*st)
-	updateProcessProperties	:: !ProcessId (ProcessProperties -> ProcessProperties)	!*st -> (!Bool,				!*st)
-	
 	
 instance ProcessDB IWorld

@@ -6,10 +6,12 @@ from SharedCombinators		import :: Shared
 from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared
 from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..)
 from StdFunc				import o, id
-from IWorld					import :: IWorld(..), :: Control
+from IWorld					import :: IWorld(..), :: Control(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException, :: WorkOnException(..), instance toString WorkOnException
-from WorkflowDB				import qualified class WorkflowDB(..), instance WorkflowDB IWorld
+//from WorkflowDB				import qualified class WorkflowDB(..), instance WorkflowDB IWorld
+from SystemData				import topLevelTasks
+from Map					import qualified get
 
 derive class iTask WorkOnProcessState
 
@@ -241,14 +243,16 @@ sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
 
 workOn :: !ProcessId -> Task WorkOnProcessState
-workOn processId
+workOn (SessionProcess sessionId)
+	= abort "workOn applied to session process"
+workOn (WorkflowProcess processId)
 	= mkActionTask ("Work on","Work on another top-level instance.") (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
 	init taskNr iworld = (TCEmpty, iworld)
 	
 	edit taskNr event _ iworld
 		//Load instance
-		# (mbContext,iworld)	= loadInstance [processId] iworld
+		# (mbContext,iworld)	= loadInstance (WorkflowProcess processId) iworld
 		| isError mbContext		= (TCEmpty, iworld)
 		//Apply event to instance
 		# (mbContext,iworld)	= editInstance (Just event) (fromOk mbContext) iworld
@@ -259,13 +263,21 @@ where
 		
 	eval termFunc taskNr props event tuiTaskNr imerge _ _ iworld=:{evalStack}
 		//Check for cycles
-		| isMember processId evalStack
+		| isMember (WorkflowProcess processId) evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
 		//Load instance
-		# (mbContext,iworld)		= loadInstance [processId] iworld
-		| isError mbContext			= (taskException WorkOnNotFound ,iworld)
+		# (mbContext,iworld)		= loadInstance (WorkflowProcess processId) iworld
+		| isError mbContext	
+			//If the instance can not be found, check if it was only just added by an
+			//appendTask in the same session. If so, create a temporary result and trigger
+			//reevaluation.
+			# (found,iworld)	= checkIfAddedGlobally processId iworld
+			| found
+				= (TaskBusy (Just (htmlDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
+			| otherwise
+				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
-		# (mbResult,context,iworld)	= evalInstance [processId, changeNo (fromOk mbContext)] event (fromOk mbContext) iworld 
+		# (mbResult,context,iworld)	= evalInstance [processId,changeNo (fromOk mbContext)] event (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result
@@ -289,7 +301,7 @@ where
 								# (tui,actions)		= mergeTUI props imerge (maybe [] (\t -> [t]) tui) Nothing (tactions ++ sactions)
 								= (TaskBusy (Just tui) actions TCEmpty,iworld)
 
-	changeNo (TaskContext _ n _) = n
+	changeNo (TaskContext _ _ n _) = n
 
 mergeTUI props imerge tuis warning actions
 	= imerge { title = props.TaskMeta.title
@@ -307,10 +319,13 @@ getActionResult (Just (TaskEvent [] name)) actions
 getActionResult _ actions
 	= Nothing
 
-addWorkflow :: !Workflow -> Task WorkflowDescription
-addWorkflow workflow = mkInstantTask "Adds a workflow to the system" eval
-where
-	eval taskNr iworld = appFst TaskFinished ('WorkflowDB'.addWorkflow workflow iworld)
+checkIfAddedGlobally processId iworld=:{parallelControls}
+	= case 'Map'.get (toString topLevelTasks) parallelControls of
+		Just (_,controls)
+			= (isMember processId [i \\ AppendTask i _ <- controls], iworld)
+		_
+			= (False,iworld)
+
 
 applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 applyChangeToProcess pid change lifetime
