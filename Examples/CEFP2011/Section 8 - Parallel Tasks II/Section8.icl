@@ -92,36 +92,41 @@ derive class iTask Replace, TextStatistics, EditorState
 :: FileName		:== String
 
 initEditorState text 	= 	{mytext = text, replace = False, statistics = False}
-updateReplace b  		=  	update (\s ->{s & replace = b}) 
-updateStat b 			=	update (\s -> {s & statistics = b}) 
 updateText f 			=	update (\s -> {s & mytext = f s.mytext}) 
+updateReplace b  		=  	update (\s -> {s & replace = b}) 
+updateStat b 			=	update (\s -> {s & statistics = b}) 
+
+noReplace s 	= not s.replace
+noStatistics s 	= not s.statistics
 
 voidResult _ _ = Void 
 
 normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
-ActionReplace 		:== Action "File/Replace" 
-ActionStatistics	:== Action "File/Statistics" 
+ActionReplace 		:== Action "Replace" // "File/Replace" 
+ActionStatistics	:== Action "Statistics" // "File/Statistics" 
 
 editorApplication ::  Task Void
 editorApplication 
-	=						enterInformation "Give name of text file you want to edit..." []
+	=						enterInformation "Give name file to edit..." []
 		>>= \fileName ->	readTextFile fileName
 		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [(BodyTask, editor fileName)]
 
 editor :: String (TaskList EditorState) -> Task ParallelControl
 editor fileName ls
-	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") views (taskListState ls) Void
-		>?* 	[ (ActionSave, 		IfValid	save)
-		  		, (ActionQuit,		Always 	quit)
-		  		, (ActionReplace,	Sometimes (onlyIf (\(s,_) -> not s.replace)    replace))
-		  		, (ActionStatistics,Sometimes (onlyIf (\(s,_) -> not s.statistics) statistics))
+	= 			updateSharedInformation (fileName,"Edit " +++ fileName) views myState Void
+		>?* 	[ (Action "Save", 		IfValid	save)
+		  		, (Action "Quit",		Always 	quit)
+		  		, (ActionReplace,	Sometimes (onlyIf (noReplace o fst) replace))
+		  		, (ActionStatistics,Sometimes (onlyIf (noStatistics o fst) statistics))
 		  		]
 where	
+	myState = taskListState ls
+
 	views = [UpdateView ( GetShared (\s -> Note s.mytext)
 					    , PutbackShared (\(Note text) _ s -> {s & mytext = text}) 
 					    )
-			]
+			] 
 
 	save (val,_)
 		=		safeTextFile fileName val.mytext
@@ -130,12 +135,12 @@ where
 		=		 return Stop
 
 	replace _
-		=		updateReplace True (taskListState ls)
+		=		updateReplace True myState
 			>>| appendTask (DialogTask "Find and Replace", replaceTask {search = "", replaceBy = ""}) ls
 			>>| editor fileName ls
 
 	statistics _
-		=		updateStat True (taskListState ls)
+		=		updateStat True myState
 			>>|	appendTask (DialogTask "Statistics", statisticsTask) ls
 			>>| editor fileName ls
 
@@ -146,19 +151,23 @@ replaceTask replacement ls
 				,(Action "Close", Always close)
 				]
 where
+	myState = taskListState ls
+
 	replace repl
-		=		updateText (replaceSubString repl.search repl.replaceBy) (taskListState ls)
+		=		updateText (replaceSubString repl.search repl.replaceBy) myState
 			>>|	replaceTask repl ls
 	close
-		=		updateReplace False (taskListState ls) 
+		=		updateReplace False myState 
 			>>| return Continue
 
 
 statisticsTask :: (TaskList EditorState) -> Task ParallelControl
 statisticsTask ls
-	= 			showSharedInformation ("Statistics","Statistics of your document") views (taskListState ls) Void
+	= 			showSharedInformation ("Statistics","Statistics of your document") views myState Void
 		>?*		[(Action "Close", Always close)]
 where
+	myState = taskListState ls
+
 	views = [ShowView (GetShared showStatistics)]
 
 	showStatistics state 
@@ -167,7 +176,7 @@ where
 			, characters = textSize state.mytext
 			}
 	close
-		=		updateStat False (taskListState ls) 
+		=		updateStat False myState 
 			>>| return Continue
 
 // --- file access utility
