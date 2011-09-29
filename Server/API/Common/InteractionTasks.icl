@@ -200,6 +200,10 @@ waitForTime time =
 waitForDate :: !Date -> Task Date
 waitForDate date =
 	(showSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate Void >? \(now,_) -> date < now) >>= transform fst
+	
+waitForDateTime :: !DateTime -> Task DateTime
+waitForDateTime datetime =
+	(showSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime Void >? \(now,_) -> datetime < now) >>= transform fst
 
 waitForTimer :: !Time -> Task Time
 waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
