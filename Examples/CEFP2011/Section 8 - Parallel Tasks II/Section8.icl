@@ -14,9 +14,9 @@ Start world = startEngine flows8 world
 
 flows8 :: [Workflow]
 flows8 
-	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users"    	"Chat with several users" 	chat3
-		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" 			"Editing a text file" 		editorApplication
-//		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users" 	"Chat with several users" 			chat3
+		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" 		"Editing a text file" 				editorApplication
+ 		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Petition" 				"Invite people to sign a petition" 	myPetition
 		]
 
 // chat with several users
@@ -208,100 +208,54 @@ where
 	| not ok			= ((False,""),world)
 	= ((True,text),world)
 
-/*
 
-// making an appointment
 
-:: MeetingProposal 
-	=	{ date 		:: Date
-		, time		:: Time
-		, canMeet	:: [Participant]
-		}
-:: Participant
-	=	{ name		:: User
-		, canAttend :: Bool
-		, comment	:: Maybe Note
-		}	
-:: MeetingProposalView
-	=	{ date 		:: Display Date
-		, time		:: Display Time
-		, canMeet	:: [VisualizationHint ParticipantView]
-		}
-:: ParticipantView
-	=	{ name		:: Display User
-		, canAttend :: Bool
-		, comment	:: Maybe Note
-		}	
-derive class iTask MeetingProposal, Participant, MeetingProposalView, ParticipantView
+// invite people to sign a petition
 
-mkAppointment :: Task [MeetingProposal]
-mkAppointment
-	=					get users
-		>>= \all ->		enterMultipleChoice "Who should attend the meeting ?" [] all
-		>>= \users ->	enterInformation "Propose meeting dates" []
-		>>= \dates ->	let initMeetingState = [ { MeetingProposal
-												 | date    = date
-												 , time    = time
-												 , canMeet = [ { Participant
-												               | name      = user
-												 			   , canAttend = False
-												 			   , comment   = Nothing
-												 			   } 
-												 			 \\ user <- users
-												 			 ]
-												 }
-											   \\ (date,time) <- dates
-											   ]
-		                 in parallel "Meeting Date Flow" initMeetingState finishPar [manage : map initMeeting users]
+:: Petition	 =	{ titlePetition			:: String
+				, deadlineSubmission	:: DateTime
+				, description			:: Note 
+				}
+:: Signer	 =	{ name			:: String
+				, profession	:: Maybe String
+				, emailAddress	:: String
+				, comments		:: Maybe Note
+				}
+
+derive class iTask Petition, Signer
+
+myPetition :: Task (Petition,[Signer]) 
+myPetition	=  					 enterInformation "Describe the petition" []
+				>>= \petition -> campaign petition petition.titlePetition petition.deadlineSubmission
+
+campaign :: petition String DateTime -> Task (petition,[signed]) | iTask petition & iTask signed 
+campaign petition title deadline 
+	= 						enterSharedMultipleChoice "Invite people to sign" [] users
+		>>= \signers ->	parallel ("Sign Petition: " +++ title) [] (\_ signed -> (petition,signed)) 
+							[(HiddenTask, waitForDeadline deadline)
+							:[(DetachedTask (normalTask signer), sign petition) \\  signer <- signers]
+							]
+		>>=					showInformation "The petition is signed by:" []
 where
-	finishPar _ s = s
+	waitForDeadline dateTime list
+		=					waitForDateTime dateTime
+			>>|				return Stop
 
-	initMeeting user
-		= ShowAs (DetachedTask managerProperties) meetingTask
-	where
-//		meetingTask :: (SymmetricShared [MeetingProposal]) (ParallelInfo [MeetingProposal]) -> Task [MeetingProposal]
-		meetingTask meetingState _
-			= updateSharedInformation "When can we meet ?" [View (viewForUser user,modelFromView)] meetingState  
 
-		managerProperties
-			= { worker = user, priority	= NormalPriority, deadline = Nothing, status = Active }	
-	
-	viewForUser :: User [MeetingProposal] -> [MeetingProposalView]
-	viewForUser user props
-		= [  {MeetingProposalView | date=toDisplay date, time=toDisplay time, canMeet=map (viewParticipant user) canMeet}
-		  \\ {MeetingProposal | date,time,canMeet} <- props
-		  ]
-	
-	modelFromView :: [MeetingProposalView] .a -> [MeetingProposal]
-	modelFromView props _
-		= [  {MeetingProposal | date=fromDisplay date, time=fromDisplay time, canMeet=map modelParticipant canMeet} 
-		  \\ {MeetingProposalView | date,time,canMeet} <- props
-		  ]
-	
-	viewParticipant :: User Participant -> VisualizationHint ParticipantView
-	viewParticipant user participant=:{Participant | name, canAttend, comment}
-		= if (user == name)	VHEditable VHDisplay view
-	where
-		view		= {ParticipantView | name      = Display name
-	                                   , canAttend = canAttend
-	                                   , comment   = comment
-	                  }
-	
-	modelParticipant :: (VisualizationHint ParticipantView) -> Participant
-	modelParticipant view
-		= { Participant | name=name, canAttend=canAttend, comment=comment }
-	where
-		{ParticipantView | name=Display name,canAttend,comment}	= fromVisualizationHint view
-	
-	manage
-		= ShowAs BodyTask check
-	where
-		check meetingState controlState
-			=     				updateSharedInformation "Monitor answers" [View (viewForManager,\_ ps -> ps)]  meetingState 
-				>?*	 			[(ActionOk,IfValid return)]
-			  	>>= \props -> 	enterChoice "Choose meeting" [] props
-		where
-			viewForManager :: [MeetingProposal] -> [MeetingProposal]
-			viewForManager props
-				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
-*/
+sign :: petition (TaskList [signed]) -> Task ParallelControl | iTask petition & iTask signed 
+sign petition list
+	=					enterInformation ("Please sign the following petition:")  [About petition] 
+		>?* 			[(Action "Cancel",	Always 	(return Continue))
+	  					,(Action "Sign",	IfValid signAndAskFriends)
+	  					]
+where
+	signAndAskFriends signed
+		=			update (\list -> [signed:list]) (taskListState list)
+			>>|		showInformation "Thanks for signing !" [] Void
+			>>|		enterSharedMultipleChoice "Invite other people too" [] users
+			>>= 	askSigners
+
+	askSigners [] 	  = return Continue
+	askSigners [c:cs] =  appendTask (DetachedTask (normalTask c), sign petition) list 
+						 >>| askSigners cs
+
