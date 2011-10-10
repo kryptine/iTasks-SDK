@@ -1,6 +1,7 @@
 Ext.define('itasks.component.HtmlDisplay',{
 	extend: 'Ext.Component',
 	alias: 'widget.ihtml',
+	mixins: ['itasks.mixin.Editable'],
 	//Make sure we have enough space at render time
 	//autoEl: {tag: 'div', style: 'width: 10000px; height: 10000px;'}, 
 	autoEl: {tag: 'div', style: 'width: 600px; height: 1000px;'}, 
@@ -25,11 +26,11 @@ Ext.define('itasks.component.HtmlDisplay',{
 
 		if(!this.width) {
 			this.setWidth(wrapperSize.width);
-			this.width = wrapperSize.width;
+			//this.width = wrapperSize.width;
 		}
 		if(!this.height) {
 			this.setHeight(wrapperSize.height);
-			this.height = wrapperSize.height;
+			//this.height = wrapperSize.height;
 		}
 
 		if (this.tooltip) {
@@ -38,8 +39,13 @@ Ext.define('itasks.component.HtmlDisplay',{
 	},
 	setValue: function(html) {
 		var el = this.el || this.getEl(),
-		    wrapper = el.down('span[role=presentation]');
+		    wrapper = el.down('span[role=presentation]'),
+		    wrapperSize;
 
+		el.setStyle({width: '600px',height: '10000px'});
 		wrapper.update(html);
+		wrapperSize = wrapper.getSize(true);
+
+		this.setSize(wrapperSize);
 	}
 });

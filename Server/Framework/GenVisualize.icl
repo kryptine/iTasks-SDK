@@ -150,10 +150,10 @@ gVisualizeHtml{|Int|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|Real|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|Char|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|String|}		_ val				= [toHtmlText val]
-gVisualizeHtml{|Bool|}			_ val				= [DivTag
+gVisualizeHtml{|Bool|}			_ val				= [toHtmlText val]/*[DivTag
 														[ClassAttr ("bool-htmllabel-icon bool-htmllabel-icon-"+++(toLowerCase (toString val)))]
 														[SpanTag [ClassAttr "bool-htmllabel-text"] [(Text (toString val))]]
-													]
+													]*/
 gVisualizeHtml{|Password|}		_ val				= [Text "********"]
 gVisualizeHtml{|Note|}			_ val				= [nl2br (toString val)]
 gVisualizeHtml{|Date|}			_ val				= [toHtmlText val]
@@ -289,10 +289,10 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex =
 										})
 							:	if (isEmpty content)
 								[]
-								[{ content	= TUIContainer ({TUIContainer|defaultLayoutContainer content & baseCls = Just "x-constructor-panel"})
+								[{ content	= TUIContainer ({TUIContainer|defaultLayoutContainer content & baseCls = Just "x-constructor-panel" })
 								,  width	= FillParent 1 ContentSize
 								,  height	= WrapContent 0
-								,  margins	= Just {sameMargins 0 & left = 12}
+								,  margins	= Nothing /* Just {sameMargins 0 & left = 12} */
 								}]
 							])
 						, width		= FillParent 1 ContentSize

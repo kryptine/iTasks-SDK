@@ -224,6 +224,7 @@ fillInteractionLayout		:: InteractionLayouter
 defaultParallelLayout		:: ParallelLayouter
 horizontalParallelLayout	:: ParallelLayouter
 tabParallelLayout			:: ParallelLayouter
+splitParallelLayout			:: TUIDirection -> ParallelLayouter
 
 verticalSplitLayout			:: Int -> ParallelLayouter
 fuseParallelLayout			:: ParallelLayouter //"Fuses" a set of panels/or containers into one container

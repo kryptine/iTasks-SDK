@@ -175,7 +175,14 @@ horizontalParallelLayout = \{TUIParallel|title,instruction,items}->
 	let (metas,tuis,actions) = unzip3 items in
 		(defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer (catMaybes tuis) & direction = Horizontal}),flatten actions)
 
-
+splitParallelLayout	:: TUIDirection -> ParallelLayouter
+splitParallelLayout direction = \{TUIParallel|items} ->
+	let (metas,tuis,actions) = unzip3 items in
+		(defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer [setFlex direction tui \\ Just tui <- tuis & meta <- metas|not meta.hide] & direction = direction} ),flatten actions)
+where
+	setFlex Vertical item = {item & height = FillParent 1 ContentSize}
+	setFlex Horizontal item = {item & width = FillParent 1 ContentSize}
+	
 verticalSplitLayout :: Int -> ParallelLayouter
 verticalSplitLayout initSplit = \p=:{TUIParallel|items} ->
 	case items of

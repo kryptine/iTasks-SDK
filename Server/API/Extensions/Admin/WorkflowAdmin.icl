@@ -100,7 +100,7 @@ initWorkflows iflows
 
 doAuthenticated :: (Task a) -> Task (Maybe a) | iTask a
 doAuthenticated task
-	=	(appIdentity ||- enterInformation "Log in" []) <<@ (setWidth (WrapContent 0)) o plainInteractionLayout <<@ tweak
+	=	(appIdentity ||- enterInformation "Log in" []) <<@ tweak
 	>>= \credentials ->
 		authenticateUser credentials.username (toString credentials.Credentials.password)
 	>>= \mbUser -> case mbUser of
@@ -114,16 +114,14 @@ where
 	appIdentity = (showSharedInformation "Application identity" [] applicationName Void >>+ noActions)
 	
 	tweak :: LayoutTweak
-	tweak = \(def,actions) -> ({TUIDef|def & margins = Just {sameMargins 0 & top = 100}},actions)
+	tweak = \(def,actions) -> ({TUIDef|def & margins = Just {sameMargins 0 & top = 100}, width = WrapContent 0},actions)
 	
-	setWidth width (def,actions) = ({TUIDef|def & width = width},actions)
-
 workflowDashboard :: Task Void
 workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
 	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
 	, (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
 	, (BodyTask,	\list	-> showDescription (taskListState list)	<<@ descriptionLayout)
-	, (BodyTask,	\list	-> workTabPanel list					<<@ tabParallelLayout)
+	, (BodyTask,	\list	-> workTabPanel list					/*<<@ tabParallelLayout */)
 	, (BodyTask,	\list	-> processTable list					<<@ processTableLayout)
 	, (HiddenTask,	\_		-> controlClient)
 	]
@@ -219,13 +217,16 @@ mainLayout {TUIParallel | items=i=:[(_,Just infoBar, logoutAction), (_,Just tree
 	, margins	= Nothing
 	},controlActions ++ logoutAction)
 where
+	content = TUIContainer {TUIContainer | defaultLayoutContainer [left,right] & direction = Horizontal}
+	/*
 	content = TUIBorderContainer {TUIBorderContainer | direction = Horizontal
 								 , itemA = {TUIBorderItem| title = Nothing, iconCls = Nothing, item = left}
 								 , itemB = {TUIBorderItem| title = Nothing, iconCls = Nothing, item = right} 
 								 , initSplit = 260, collapsible = True}
-
+	*/
 	left =	{ content	= TUIContainer (defaultLayoutContainer [tree,description])
-			, width		= FillParent 1 (FixedMinSize 100)
+			, width		= Fixed 260
+			//, width		= FillParent 1 (FixedMinSize 100)
 			, height	= FillParent 1 (FixedMinSize 0)
 			, margins	= Nothing
 			}
@@ -235,12 +236,19 @@ where
 			, margins	= Nothing
 			}
 	
+	/*
 	workArea = {content = TUIBorderContainer {TUIBorderContainer | direction = Vertical
 								  , itemA = {TUIBorderItem | title = Nothing, iconCls = Nothing, item = fillParent processTable}
 								  , itemB = {TUIBorderItem | title = Nothing, iconCls = Nothing, item = fillParent workTabPanel}
 								  , initSplit = 200
 								  , collapsible = True
 								  }
+				,width		= FillParent 1 (FixedMinSize 0)
+				,height		= FillParent 1 (FixedMinSize 0)
+				,margins	= Nothing
+				}
+	*/
+	workArea =	{content	= TUIContainer (defaultLayoutContainer [fillParent processTable, fillParent workTabPanel])
 				,width		= FillParent 1 (FixedMinSize 0)
 				,height		= FillParent 1 (FixedMinSize 0)
 				,margins	= Nothing
