@@ -100,7 +100,8 @@ initWorkflows iflows
 
 doAuthenticated :: (Task a) -> Task (Maybe a) | iTask a
 doAuthenticated task
-	=	(appIdentity ||- enterInformation "Log in" []) <<@ tweak
+	//=	(appIdentity ||- enterInformation "Log in" []) <<@ tweak
+	=	enterInformation "Log in" [] <<@ tweak
 	>>= \credentials ->
 		authenticateUser credentials.username (toString credentials.Credentials.password)
 	>>= \mbUser -> case mbUser of
@@ -224,13 +225,13 @@ where
 								 , itemB = {TUIBorderItem| title = Nothing, iconCls = Nothing, item = right} 
 								 , initSplit = 260, collapsible = True}
 	*/
-	left =	{ content	= TUIContainer (defaultLayoutContainer [tree,description])
+	left =	{ content	= TUIPanel (defaultLayoutPanel [tree,description])
 			, width		= Fixed 260
 			//, width		= FillParent 1 (FixedMinSize 100)
 			, height	= FillParent 1 (FixedMinSize 0)
 			, margins	= Nothing
 			}
-	right = { content	= TUIContainer (defaultLayoutContainer [infoBar,workArea])
+	right = { content	= TUIPanel (defaultLayoutPanel [infoBar,workArea])
 			, width		= FillParent 1 (FixedMinSize 0)
 			, height	= FillParent 1 (FixedMinSize 0)
 			, margins	= Nothing
@@ -248,7 +249,7 @@ where
 				,margins	= Nothing
 				}
 	*/
-	workArea =	{content	= TUIContainer (defaultLayoutContainer [fillParent processTable, fillParent workTabPanel])
+	workArea =	{content	= TUIContainer (defaultLayoutContainer [processTable, fillParent workTabPanel])
 				,width		= FillParent 1 (FixedMinSize 0)
 				,height		= FillParent 1 (FixedMinSize 0)
 				,margins	= Nothing
@@ -283,7 +284,7 @@ descriptionLayout {title,editorParts,actions} = (	{ content	= TUIPanel {TUIPanel
 													}, actions)
 
 processTableLayout interaction
-	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize, margins = (Just (sameMargins 0))},interaction.TUIInteraction.actions)	 
+	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = Fixed 150, margins = (Just (sameMargins 0))},interaction.TUIInteraction.actions)	 
 singleControlLayout interaction
 	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize},interaction.TUIInteraction.actions)
 
