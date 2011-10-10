@@ -35,6 +35,11 @@ Ext.define('itasks.mixin.Editable',{
 		else
 			return v;
 	},
+	setEditValue: function(value) {
+		this.suspendEvents();
+		this.setValue(value);
+		this.resumeEvents();
+	},
 	setTaskId: function(taskId) {
 		this.taskId = taskId;
 	},

@@ -150,12 +150,13 @@ Ext.define('itasks.controller.Controller',{
 				cmp = cmps[i];
 				cmp.startSyncEdits();
 			}
+		
 			return;
 		}
 		//Update existing interface
 		if(message.updates) {
 			var i, update, updateCount = message.updates.length, target;
-		
+	
 			for(i = 0; i < updateCount; i++) {
 				update = message.updates[i];
 				target = this.findChildByPath(update.path, this.viewport);
@@ -189,7 +190,7 @@ Ext.define('itasks.controller.Controller',{
 		}
 	},
 	findChildByPath: function(path, cmp) {
-		
+
 		var steps = path.split('/'),
 			step,
 			child = cmp,
@@ -202,7 +203,7 @@ Ext.define('itasks.controller.Controller',{
 		for(i = 0; i < numSteps; i++) {
 			step = steps[i];
 		
-			if(step == "m") {
+			if(step === "m") {
 				child = child.getDockedComponent(0);
 					if(!child)
 						return undefinedValue;

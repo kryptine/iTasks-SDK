@@ -4,7 +4,15 @@ Ext.define('itasks.container.BorderContainer',{
 	layout: 'border',
 	
 	initComponent: function (config) {
-		
+	
+		if(!this.height) {
+			this.height = 10000;
+			this.simulatedHeight = true;
+		}
+		if(!this.width) {
+			this.width = 10000;
+			this.simulatedWidth = true;
+		}	
 		if(this.direction == 'horizontal') {
 			this.itemA.region = 'west';
 			this.itemA.width = this.initSplit;

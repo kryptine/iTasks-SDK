@@ -179,7 +179,7 @@ where
 workTabPanel :: !(TaskList ClientState) -> Task ParallelControl
 workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList)),(BodyTask, homeTab)]
 where
-	homeTab _ = showInformation "Home" [] (HtmlInclude "/src/static/skins/default/welcome.html") <<@ fullShowInteractionLayout >>+ noActions 
+	homeTab _ = showInformation "Home" [] (HtmlInclude "/src/static/skins/default/welcome.html") <<@ maximalInteractionLayout >>+ noActions 
 	
 controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
 controlWorkTabs state taskList = forever (

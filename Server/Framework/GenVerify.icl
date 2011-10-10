@@ -77,7 +77,7 @@ where
 			| optional
 				= (VMValid hintOpt childMask,vst)
 			| otherwise
-				= (VMInvalid IsBlankError [],vst)
+				= (VMInvalid (ErrorMessage "You must add at least one item") childMask,vst)
 		| otherwise
 				= (VMValid Nothing childMask,vst)
 				

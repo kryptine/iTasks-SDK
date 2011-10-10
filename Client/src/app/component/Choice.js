@@ -1,6 +1,6 @@
 Ext.define('itasks.component.Choice',{
 	extend: 'Ext.form.CheckboxGroup',
-	mixins: ['itasks.mixin.Editable','itasks.mixin.Wrappable'],
+	mixins: ['itasks.mixin.Editable'],
 	alias: 'widget.ichoice',
 	columns: 1,
 	initComponent: function() {
@@ -45,8 +45,9 @@ Ext.define('itasks.component.Choice',{
 			}
 		}
 	},
+	/*
 	//Overwrite wrap size, because it cannot properly measure the wrap size
-	getWrapSize: function() {
+	calcWrapSize: function() {
 		
 		var i = 0, len = this.items.length, item, size;
 		var wrapWidth = 0, wrapHeight = 0;
@@ -54,13 +55,14 @@ Ext.define('itasks.component.Choice',{
 		for(i = 0; i < len; i++) {
 			item = this.items.get(i);
 			//TODO: Use real measurements here.
-			size = {width: 150, height: 22},
+			size = {width: 250, height: 22},
 		
-			wrapWidth = Math.max(wrapWidth,size.width);
+			wrapWidth = Math.max(wrapWidth, size.width);
 			wrapHeight += size.height;
 		}
 		return {width: wrapWidth, height: wrapHeight};
 	},
+	*/
 	getEditName: function() {
 		return this.editName;
 	},

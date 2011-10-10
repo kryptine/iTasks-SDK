@@ -1,13 +1,30 @@
 Ext.define('itasks.container.ListItem',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.ilisti',
-	mixins: {
-		wrappable: 'itasks.mixin.Wrappable'
-	},
 	requires: ['itasks.layout.VHBox'],
 	layout: 'vhbox',
 
 	initComponent: function() {	
+		Ext.apply(this,{
+			dockedItems: [{
+				xtype: 'panel',
+				layout: 'card',
+				width: 75,
+				height: 22,
+				dock: 'right',
+				items: [{
+					xtype: 'toolbar',
+					height: 22,
+					width: 75,
+					items: [
+						{xtype: 'button', iconCls: 'list-button-up', listeners: {click: {fn: this.handleItemUp, scope: this}}},
+						{xtype: 'button', iconCls: 'list-button-down', listeners: {click: {fn: this.handleItemDown, scope: this}}},
+						{xtype: 'button', iconCls: 'list-button-rem', listeners: {click: {fn: this.handleItemRemove, scope: this}}}
+					]},
+					{xtype: 'component', width: 75, height: 20, padding: 3, html: 'New...'}
+					]
+			}]
+		});
 		if(!this.width && !this.hwrap && !this.hflex) {
 			this.hwrap = true;
 			this.hflex = 1;
@@ -17,52 +34,33 @@ Ext.define('itasks.container.ListItem',{
 		}
 		this.addEvents('edit');
 		this.enableBubble('edit');
+
 		this.callParent(arguments);
-		
-		this.addDocked([{
-			xtype: 'toolbar',
-			width: 75,
-			layout: {type:'hbox', pack: 'align'},
-			dock: 'right',
-			items: [
-				{xtype: 'component', html: '<i>New item</i>', hidden: true},
-				{xtype: 'button', iconCls: 'list-button-up', listeners: {click: {fn: this.handleItemUp, scope: this}}},
-				{xtype: 'button', iconCls: 'list-button-down', listeners: {click: {fn: this.handleItemDown, scope: this}}},
-				{xtype: 'button', iconCls: 'list-button-rem', listeners: {click: {fn: this.handleItemRemove, scope: this}}}
-			]
-		},{
-			xtype: 'component',
-			dock: 'top',
-			height: 5,
-			hidden: true
-		}]);
 	},
-	updateControls: function() {
-		var me = this,
-			container = me.up('ilistc'),
-			listlength = container.items.length,
+	afterRender: function() {
+		this.callParent(arguments);
+	},
+	//Based on the current position in the list, update the move/delete controls
+	updateListTools: function() {
+		var	me = this,
+			ownerCt = me.ownerCt,
+			listlen = ownerCt.items.length,
 			listindex = me.index,
-			toolbar = me.getDockedComponent(0),
-			spacer = me.getDockedComponent(1),
-			isFirst = (listlength > 1 && listindex == 0)
-			isLast = (listindex == listlength - 2),
-			isNew = (listindex == listlength - 1),
-			i = 0;
 			
-		if(isNew) {	
-			spacer.show();
-			toolbar.getComponent(0).show();
-			for(i = 1; i < 4; i++) {
-				toolbar.getComponent(i).hide();
-			}
+			dock = me.getDockedComponent(0),
+
+			isNewEntryItem = (listindex == listlen - 1),
+			isTopItem = (listindex == 0),
+			isBottomItem = (listindex == listlen - 2),
+			toolbar;
+
+		if(isNewEntryItem) {	
+			dock.getLayout().setActiveItem(1);
 		} else {
-			spacer.hide();
-			toolbar.getComponent(0).hide()
-			for(i = 1; i < 4; i++) {
-				toolbar.getComponent(i).show();
-			}
-			toolbar.getComponent(1)[isFirst ? 'disable' : 'enable']();
-			toolbar.getComponent(2)[isLast ? 'disable' : 'enable']();
+			dock.getLayout().setActiveItem(0);
+			toolbar = dock.getComponent(0);
+			toolbar.getComponent(0)[isTopItem ? 'disable' : 'enable']();
+			toolbar.getComponent(1)[isBottomItem ? 'disable' : 'enable']();
 		}
 	},
 	handleItemRemove: function() {

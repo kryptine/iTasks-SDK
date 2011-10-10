@@ -1,5 +1,5 @@
 Ext.define('itasks.extension.GoogleMap',{
-	extend: 'Ext.Component',
+	extend: 'Ext.panel.Panel',
 	alias: 'widget.igooglemap',
 	mixins: ['itasks.mixin.Editable'],
 	statics: {

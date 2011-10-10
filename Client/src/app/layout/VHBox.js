@@ -3,12 +3,12 @@ Ext.define('itasks.layout.VHBox',{
 	extend: 'Ext.layout.container.Box',
 	alias: 'layout.vhbox',
 	type: 'vhbox',
-	
 	direction: 'vertical',
-	
+
 	constructor: function(config) {
 		
 		if(config.direction == 'horizontal') {
+			this.direction = 'horizontal';
 			this.parallelSizeIndex = 0;
 			this.perpendicularSizeIndex = 1;
 			
@@ -32,8 +32,8 @@ Ext.define('itasks.layout.VHBox',{
 			this.perpendicularPosition = 'y';
 			this.perpendicularFlex = 'vflex';
 			this.perpendicularAlign = config['valign'] || 'middle';
-		
 		} else {
+			this.direction = 'vertical';
 			this.parallelSizeIndex = 0;
 			this.perpendicularSizeIndex = 1;
 			
@@ -58,320 +58,295 @@ Ext.define('itasks.layout.VHBox',{
 			this.perpendicularFlex = 'hflex';
 			this.perpendicularAlign = config['halign'] || 'center';
 		}
-		
+
 		this.callParent(arguments);
 	},
+	initLayout: function() {
+		this.callParent(arguments);
+
+		//Set overflow (can also be done by onRender)
+		this.getTarget().setStyle({overflow: 'auto'});
+	},
+	onLayout: function() {
+		// Clear the innerCt size so it doesn't influence the child items.
+		if (this.adjustmentPass !== true) {
+			this.innerCt.setSize(null, null);
+        	}
+
+		var	me = this,
+			targetSize = me.getLayoutTargetSize(),
+			items = me.getVisibleItems(),
+			calcs = me.calculateChildBoxes(items, targetSize),
+			boxes = calcs.boxes,
+			resized = false;
+
+		//Update the size of the container if it is wrapping and currently
+		//too small, or has dimensions determined by unrestricted html flow
+		resized = me.updateOwnerSize(targetSize,calcs);
+		//If the container was resized, redo the box calculations
+		if(resized) {
+			targetSize = me.getLayoutTargetSize();
+			calcs = me.calculateChildBoxes(items,targetSize);
+			boxes = calcs.boxes;
+		}
+
+		me.layoutTargetLastSize = targetSize;
+		me.childBoxCache = calcs;
+
+		me.updateInnerCtSize(targetSize, calcs);
+		me.updateChildBoxes(boxes);
+	
+		//If the owner was not resized to make things fit, scrollbars appeared/disappeared
+		if(!resized) {
+			me.handleTargetOverflow(targetSize);
+		}
+	},
+
 	calculateChildBoxes: function(visibleItems, targetSize) {
-		
-		var me = this,
-			math = Math,
-			mmax = Math.max,
-			infiniteValue = Infinity,
-			undefinedValue,
-			
+		var	me = this,
 			parallelPrefix = me.parallelPrefix,
 			parallelPrefixCap = me.parallelPrefixCap,
 			perpendicularPrefix = me.perpendicularPrefix,
 			perpendicularPrefixCap = me.perpendicularPrefixCap,
-			parallelMinString = 'min' + parallelPrefixCap,
-			perpendicularMinString = 'min' + perpendicularPrefixCap,
-			perpendicularMaxString = 'max' + perpendicularPrefixCap,
-			
-			parallelSize = targetSize[parallelPrefix] - me.scrollOffset,
-			perpendicularSize = targetSize[perpendicularPrefix],
+			parallelFlex = me.parallelFlex,
+			perpendicularFlex = me.perpendicularFlex,
+			parallelBefore = me.parallelBefore,
+			parallelAfter = me.parallelAfter,
+			perpendicularLeftTop = me.perpendicularLeftTop,
+			perpendicularRightBottom = me.perpendicularRightBottom,
+			boxes = [],
+			totalFlex = 0,
+			nonFlexSize = 0,
+			visibleCount = visibleItems.length,
 			padding = me.padding,
+			wrapSize = {width: 0, height: 0},
+			availSize = {width: targetSize.width - padding.left - padding.right 
+			            ,height: targetSize.height - padding.top - padding.bottom},
+			childrenSize = {width: 0, height: 0},
+			shortfall,
+			tooSmall = false,
 			parallelOffset = padding[me.parallelBefore],
-			paddingParallel = parallelOffset + padding[me.parallelAfter],
 			perpendicularOffset = padding[me.perpendicularLeftTop],
 			paddingPerpendicular = perpendicularOffset + padding[me.perpendicularRightBottom],
-			availPerpendicularSize = mmax(0, perpendicularSize - paddingPerpendicular),
-			
+
 			innerCtBorderWidth = me.innerCt.getBorderWidth(me.perpendicularLT + me.perpendicularRB),
 			
-			isStart =	me.parallelAlign == 'left' || me.parallelAlign == 'top', //Allow left and top as valid values for both halign and valign
-			isCenter =  me.parallelAlign == 'center' || me.parallelAlign == 'middle',
-			isEnd =		me.parallelAlign == 'right' || me.parallelAlign == 'bottom',
-			
-			constrain = Ext.Number.constrain,
-			visibleCount = visibleItems.length,
-			nonFlexSize = 0,
-			totalFlex = 0,
-			desiredSize = 0,
-			minimumSize = 0,
-			maxSize = 0,
-			boxes = [],
-			minSizes = [],
-			calculatedWidth,
-			
-			i, child, childParallel, childPerpendicular, childMargins, childSize, minParallel, tmpObj, shortfall,
-			tooNarrow, availableSpace, minSize, item, length, itemIndex, box, oldSize, newSize, reduction, diff,
-			flexedBoxes, remainingSpace, remainingFlex, flexedSize, parallelMargins, calcs, offset,
-			perpendicularMargins, stretchSize;
+			i, child, childMargins, childSize, childWrapSize, tmpObj, calcs, diff, availableSpace, remainingSpace, remainingFlex,
+			flexSize, flexedSize;
+
+		//IMPORTANT: HACKY BEHAVIOR
+		//To be able to measure the difference between the container's size and the space available
+		//for rendering child components, we need to make sure that its initial size on render is big enough
+		//to render the component fully.
+		//For containers  that do not have a fixed initial size, but have a size determined by flex or wrap properties
+		//a 'simulated' width and/or height have to be set that is big enough. This is reset if the component is resized on the first layout.
+		//
+		//If we are using a simulated width/height, we need to treat it as having zero available size
+		if(me.owner.simulatedHeight) {
+			availSize.height = 0;
+		}
+		if(me.owner.simulatedWidth) {
+			availSize.width = 0;
+		}
 		
+		//Collect size information of the items before flexing is applied. 
 		for(i = 0; i < visibleCount; i++) {
 			child = visibleItems[i];
-			
-			if(!child[me.parallelFlex] || !child[me.perpendicularFlex]) {
-				if(child.componentLayout.initialized !== true) {
-					me.layoutItem(child);
-				}
+	
+			if(child.componentLayout.initialized !== true) {
+				me.layoutItem(child);
 			}
-			
-			childMargins = child.margins;
-			parallelMargins = childMargins[me.parallelBefore] + childMargins[me.parallelAfter];
-			
+	
 			tmpObj = {
-				component: child,
-				margins: childMargins
+				component: child
 			};
+
+			//Determine margins of the child
+			tmpObj.margins = child.margins || {top: 0, right: 0, bottom: 0, right: 0};
+
+			//Measure current size
+			childSize = child.getSize();
+			tmpObj.width = childSize.width;
+			tmpObj.height = childSize.height;
+
+			//Determine minimum size for both dimensions
+			tmpObj.minWidth = child.minWidth || 0; 
+			tmpObj.minHeight = child.minHeight || 0;
 			
-			//Here we compute the wrap size of wrappable childs.
-			//The wrap size is used as minimum size for flexible childs and as the fixed
-			//size of all other items.
-			if(child.wrappable) {
-				wrapSize = child.getWrapSize();
-			} else { 
-				wrapSize = {width: undefinedValue, height: undefinedValue};
-			}
-			
-			if(child[me.parallelFlex]) {
-				totalFlex += child[me.parallelFlex];
-				childParallel = undefinedValue;
-				childPerpendicular = wrapSize[perpendicularPrefix] || child[perpendicularPrefix]
+			//Determine total flex and sum of non-flexed items parallel direction
+			if (child[parallelFlex]) {
+				totalFlex += child[parallelFlex];
+				//Set the parallel size to its minimum
+				tmpObj[parallelPrefix] = tmpObj['min' + parallelPrefixCap];
+				//Count the minimum size as non-flexible space	
+				nonFlexSize += tmpObj['min' + parallelPrefixCap];
 			} else {
-				if(!(child[parallelPrefix] && child[perpendicularPrefix])) {
-					childSize = child.getSize();
-				}
-				childParallel = wrapSize[parallelPrefix] || child[parallelPrefix] || childSize[parallelPrefix];
-				childPerpendicular = wrapSize[perpendicularPrefix] || child[perpendicularPrefix] || childSize [perpendicularPrefix];
-			}
-			
-			nonFlexSize += parallelMargins + (childParallel || 0);
-			desiredSize += parallelMargins + (child[me.parallelFlex] ? child[parallelMinString] || 0 : childParallel);
-			minimumSize += parallelMargins + (child[parallelMinString] || childParallel || 0);
-			
-			if(!child[me.perpendicularFlex] && typeof childPerpendicular != 'number') {
-				childPerpendicular = child['get' + perpendicularPrefixCap]();
-			}
-		
-			maxSize = mmax(maxSize, mmax(childPerpendicular, child[perpendicularMinString]||0) + childMargins[me.perpendicularLeftTop] + childMargins[me.perpendicularRightBottom]);
-			
-			tmpObj[parallelPrefix] = childParallel || undefinedValue;
-			tmpObj[perpendicularPrefix] = childPerpendicular || undefinedValue;
-			//The child has a 'dirty' size if it has changed since it was previously layed out or
-			//when the child is initially wrappable
-			if(child.componentLayout.lastComponentSize) {
-				tmpObj.dirtySize = tmpObj[parallelPrefix] !== child.componentLayout.lastComponentSize[parallelPrefix];
-				if(!tmpObj.dirtySize) {
-					tmpObj.dirtySize = tmpObj.dirtySize || (wrapSize[perpendicularPrefix] > 0);
-				}
-			} else {
-				tmpObj.dirtySize = ((wrapSize[parallelPrefix] > 0) || (wrapSize[perpendicularPrefix] > 0));
-			}
+				nonFlexSize += childSize[parallelPrefix];
+			}	
+			//Margins should always be included in the nonFlexSize, also the margins of flex items
+			nonFlexSize += child.margins[parallelBefore] + child.margins[parallelAfter];
+
+			//Add child's contribution to wrapsize
+			childWrapSize = child[parallelFlex] ? tmpObj['min' + parallelPrefixCap] : tmpObj[parallelPrefix];
+			childWrapSize += child.margins[parallelBefore] + child.margins[parallelAfter];
+			wrapSize[parallelPrefix] += childWrapSize;
+
+			childWrapSize = child[perpendicularFlex] ? tmpObj['min' + perpendicularPrefixCap] : tmpObj[perpendicularPrefix];
+			childWrapSize += child.margins[perpendicularLeftTop] + child.margins[perpendicularRightBottom];
+			wrapSize[perpendicularPrefix] = Math.max(wrapSize[perpendicularPrefix], childWrapSize);
+
+			//Determine if the child has changed since last layout
+			tmpObj.dirtySize = true;
+
 			boxes.push(tmpObj);
 		}
-		
-		if(!me.autoSize) {
-			shortfall = desiredSize - parallelSize;
-			tooNarrow = minimumSize > parallelSize;
-		}
-		
-		availableSpace = mmax(0, parallelSize - nonFlexSize - paddingParallel - (me.reserveOffset ? me.availableSpaceOffset : 0));
-		
-		if(tooNarrow) {
-			for(i = 0; i < visibleCount; i++) {
-				box = boxes[i];
-				minSize = visibleItems[i][parallelMinString] || box[parallelPrefix];
-				box.dirtySize = box.dirtySize || box[parallelPrefix] != minSize;
-				box[parallelPrefix] = minSize;
+
+		//If the wrap size is smaller than the target size, we have overflow
+		shortfall = {width: wrapSize.width - availSize.width, height: wrapSize.height - availSize.height};
+		tooSmall = (shortfall.width > 0 || shortfall.height > 0);
+
+		//Resize flexible items
+		availableSpace = Math.max(0, availSize[parallelPrefix] - nonFlexSize - (me.reserveOffset ? me.availableSpaceOffset : 0) );
+		remainingSpace = availableSpace;
+		remainingFlex = totalFlex;
+
+		for(i = 0; i < visibleCount; i++) {
+			child = visibleItems[i];
+			calcs = boxes[i];
+			childMargins = calcs.margins;
+				
+			//Flex according to weight ratio in the parallel direction	
+			if(child[parallelFlex]) {
+				flexSize = Math.ceil((child[parallelFlex] / remainingFlex) * remainingSpace);
+					
+				remainingSpace -= flexSize;
+				remainingFlex -= child[parallelFlex];
+				
+				flexedSize = calcs[parallelPrefix] + flexSize;
+
+				calcs[parallelPrefix] = flexedSize;	
 			}
-		} else {
-			if(shortfall > 0) {
-				for(i = 0; i < visibleCount; i++) {
-					item = visibleItems[i];
-					minSize = item[parallelMinString] || 0;
-					
-					if(item[me.parallelFlex]) {
-						box = boxes[i];
-						box.dirtySize = box.dirtySize || box[parallelPrefix] != minSize;
-						box[parallelPrefix] = minSize;
-					} else if(me.shrinkToFit) {
-						minSizes.push({
-							minSize: minSize,
-							available: boxes[i][parallelPrefix] - minSize,
-							index: i
-						});
-					}
-				}
-				
-				Ext.Array.sort(minSizes, me.minSizeSortFn);
-				
-				for(i = 0, length = minSizes.length; i < length; i++) {
-					itemIndex = minSizes[i].index;
-					
-					if(itemIndex == undefinedValue) {
-						continue;
-					}
-					item = visibleItems[itemIndex];
-					minSize = minSizes[i].minSize;
-					
-					box = boxes[itemIndex];
-					oldSize = box[parallelPrefix];
-					newSize = mmax(minSize, oldSize - math.ceil(shortfall / (length - i)));
-					reduction = oldSize - newSize;
-					
-					box.dirtySize = box.dirtySize || box[parallelPrefix] != newSize;
-					box[parallelPrefix] = newSize;
-					shortfall -= reduction;
-				}
-				tooNarrow = (shortfall > 0);
-			} else {
-				remainingSpace = availableSpace;
-				remainingFlex = totalFlex;
-				flexedBoxes = [];
-				
-				for(i = 0; i < visibleCount; i++) {
-					child = visibleItems[i];
-					if(child[me.parallelFlex]) {
-						flexedBoxes.push(boxes[i]);
-					}
-				}
-				
-				Ext.Array.sort(flexedBoxes, me.flexSortFn);
-				
-				for(i = 0; i < flexedBoxes.length; i++) {
-					calcs = flexedBoxes[i];
-					child = calcs.component;
-					childMargins = calcs.margins;
-					
-					flexedSize = math.ceil((child[me.parallelFlex] / remainingFlex) * remainingSpace);
-					
-					flexedSize = Math.max(child['min' + parallelPrefixCap] || 0, math.min(child['max' + parallelPrefixCap] || infiniteValue, flexedSize));
-					
-					remainingSpace -= flexedSize;
-					remainingFlex -= child[me.parallelFlex];
-				
-					calcs.dirtySize = calcs.dirtySize || calcs[parallelPrefix] != flexedSize;
-					calcs[parallelPrefix] = flexedSize;				
-				}
+			//Flex to full available space in the perpendicular direction
+			if(child[perpendicularFlex]) {
+				flexedSize = availSize[perpendicularPrefix];
+				flexedSize = Math.max(flexedSize, calcs['min' + perpendicularPrefixCap]);
+
+				calcs.dirtySize = calcs.dirtySize || calcs[perpendicularPrefix] != flexedSize;
+				calcs[perpendicularPrefix] = flexedSize;
 			}
 		}
-		//Determine where to start laying out the items
-		//Only move the offset if there are no flexed items to fill up the available space
-		if(totalFlex == 0) {
-			if(isCenter) {
-				parallelOffset += availableSpace / 2;
-			} else if(isEnd) {
-				parallelOffset += availableSpace;
-			}
-		}		
-		//Scary fix for dock layouts
-		if(me.owner.dock && (Ext.isIE6 || Ext.isIE7 || Ext.isIEQuirks) && !me.owner.width && me.direction == 'vertical') {
-			calculatedWidth = maxSize + me.owner.el.getPadding('lr') + me.owner.el.getBorderWidth('lr');
-			if(me.owner.frameSize) {
-				calculatedWidth += me.owner.frameSize.left + me.owner.frameSize.right;
-			}
-			availPerpendicularSize = Math.min(availPerpendicularSize, targetSize.width = maxSize +  padding.left + padding.right);
+		//Position all child items
+		if (me.parallelAlign == 'center' || me.parallelAlign == 'middle') {
+			parallelOffset += (remainingSpace / 2);
+		} else if (me.parallelAlign == 'right' || me.parallelAlign == 'bottom') {
+			parallelOffset += remainingSpace;
 		}
-		
 		for(i = 0; i < visibleCount; i++) {
 			child = visibleItems[i];
 			calcs = boxes[i];
 			
 			childMargins = calcs.margins;
+
+			parallelOffset += childMargins[parallelBefore];
 			
-			perpendicularMargins = childMargins[me.perpendicularLeftTop] + childMargins[me.perpendicularRightBottom];
-			
-			parallelOffset += childMargins[me.parallelBefore];
-			
-			calcs[me.parallelBefore] = parallelOffset;
-			calcs[me.perpendicularLeftTop] = perpendicularOffset + childMargins[me.perpendicularLeftTop];
-			
-			//Stretch items which also have a flex weight set in the perpendicular direction
-			if(child[me.perpendicularFlex]) {
-				stretchSize = constrain(availPerpendicularSize - perpendicularMargins, child[perpendicularMinString] || 0, child[perpendicularMaxString] || infiniteValue);
-				calcs.dirtySize = calcs.dirtySize || calcs[perpendicularPrefix] != stretchSize;
-				calcs[perpendicularPrefix] = stretchSize;
-			} else if (me.perpendicularAlign == 'center' || me.perpendicularAlign == 'middle') {
-				diff = mmax(availPerpendicularSize, maxSize) - innerCtBorderWidth - calcs[perpendicularPrefix];
+			calcs[parallelBefore] = parallelOffset;
+			calcs[perpendicularLeftTop] = perpendicularOffset + childMargins[perpendicularLeftTop];
+
+			//If align is center or right we need to add to the offset
+			if (me.perpendicularAlign == 'center' || me.perpendicularAlign == 'middle') {
+				diff = availSize[perpendicularPrefix] - innerCtBorderWidth - calcs[perpendicularPrefix];
+				diff = diff - childMargins[perpendicularLeftTop] - childMargins[perpendicularRightBottom];
 				if(diff > 0) {
-					calcs[me.perpendicularLeftTop] = perpendicularOffset + Math.round(diff / 2);
+					calcs[perpendicularLeftTop] = perpendicularOffset + Math.round(diff / 2) + childMargins[perpendicularLeftTop];
 				}
 			} else if (me.perpendicularAlign == 'right' || me.perpendicularAlign == 'bottom') {
-				diff = mmax(availPerpendicularSize, maxSize) - innerCtBorderWidth - calcs[perpendicularPrefix];
+				diff = availSize[perpendicularPrefix] - innerCtBorderWidth - calcs[perpendicularPrefix];
+				diff = diff - childMargins[perpendicularLeftTop] - childMargins[perpendicularRightBottom];
 				if(diff > 0) {
-					calcs[me.perpendicularLeftTop] = perpendicularOffset + diff;
+					calcs[perpendicularLeftTop] = perpendicularOffset + diff;
 				}
 			}
-			
-			parallelOffset += (calcs[parallelPrefix] || 0) + childMargins[me.parallelAfter];
-				
+			//Children size is maximum in perpendicular direction
+			childrenSize[perpendicularPrefix] = Math.max(childrenSize[perpendicularPrefix], calcs[perpendicularLeftTop] + calcs[perpendicularPrefix] + childMargins[perpendicularRightBottom]);
+	
+			parallelOffset = parallelOffset + calcs[parallelPrefix] + childMargins[parallelAfter];
 		}
+		//Children size in parallel direction is simply the last value of parallelOffset 	
+		childrenSize[parallelPrefix] = parallelOffset;
+
 		return {
 			boxes: boxes,
 			meta: {
-				calculatedWidth: calculatedWidth,
-				maxSize: maxSize,
+				wrapSize: wrapSize,
+				childrenSize: childrenSize,
+				tooSmall: tooSmall,
 				nonFlexSize: nonFlexSize,
-				desiredSize: minimumSize,
-				shortfall: shortfall,
-				tooNarrow: tooNarrow
 			}
 		};
-	},	
+	},
 	updateInnerCtSize: function(tSize, calcs) {
-        var me = this,
-            mmax = Math.max,
-            align = me.align,
-            padding = me.padding,
-            width = tSize.width,
-            height = tSize.height,
-            meta = calcs.meta,
-            innerCtWidth,
-            innerCtHeight;
-		
-		innerCtWidth = width;
-		innerCtHeight = height;
+		var	me = this,
+			padding = me.padding,
+			meta = calcs.meta,
+			innerCtWidth, innerCtHeight;
+	
+		//Update inner container
+		innerCtWidth = meta.childrenSize.width + padding.left + padding.right + me.innerCt.getBorderWidth('lr');
+		innerCtHeight = meta.childrenSize.height + padding.top + padding.bottom + me.innerCt.getBorderWidth('tb');
 
-		/*
-		if (me.direction == 'horizontal') {
+		me.getRenderTarget().setSize(innerCtWidth,innerCtHeight);
+
+        	if (me.innerCt.dom.scrollTop) {
+            		me.innerCt.dom.scrollTop = 0;
+        	}
+	},
+	updateOwnerSize: function (tSize, calcs) {
+		var	me = this,
+			owner = me.owner,
+			meta = calcs.meta,
+			target = me.getTarget(),
+			padding = me.padding,
+			resized = false,
+			newSize = {width: undefined, height: undefined},
+			outerSize, innerSize, diff, minOwnerWidth, minOwnerHeight;
+
+		//Determine the difference between the container target area and the full component
+		outerSize = owner.getSize();
+		innerSize = target.getStyleSize();
+
+		diff = {width: outerSize.width - innerSize.width, height: outerSize.height - innerSize.height};
+
+		if(owner.hwrap) {
+			minOwnerWidth = meta.wrapSize.width + diff.width
+					+ padding.left + padding.right + me.innerCt.getBorderWidth('lr');
+			owner.wrapWidth = minOwnerWidth;
+			owner.minWidth = minOwnerWidth;
 			
-			innerCtWidth = width;
-            innerCtHeight = meta.maxSize + padding.top + padding.bottom + me.innerCt.getBorderWidth('tb');
+			//If the owner is too small, or has no width property set yet, set it to the minimal size
+			if(tSize.width < meta.wrapSize.width || owner.simulatedWidth) { 
+				newSize.width = minOwnerWidth;
+				owner.simulatedWidth = false;
+				resized = true;
+			}
+		}
+		if(owner.vwrap) {
+			minOwnerHeight = meta.wrapSize.height + diff.height
+		        		 + padding.top + padding.bottom  + me.innerCt.getBorderWidth('tb');
+			owner.wrapHeight = minOwnerHeight;
+			owner.minHeight = minOwnerHeight;
 
-            if (align == 'stretch') {
-                innerCtHeight = height;
-            }
-            else if (align == 'middle') {
-                innerCtHeight = mmax(height, innerCtHeight);
-            }
-  
-        } else {
-            innerCtHeight = height;
-            innerCtWidth = innerCtWidth
-            innerCtWidth = meta.maxSize + padding.left + padding.right + me.innerCt.getBorderWidth('lr');
-            
-            if (align == 'stretch') {
-                innerCtWidth = width;
-            }
-            else if (align == 'center') {
-                innerCtWidth = mmax(width, innerCtWidth);
-            }
-        
-        }
-        */	
-        me.getRenderTarget().setSize(innerCtWidth || undefined, innerCtHeight || undefined);
+			if(tSize.height < meta.wrapSize.height || owner.simulatedHeight) {
+				newSize.height = minOwnerHeight;
+				owner.simulatedHeight = false;
+				resized = true;
+			}
+		}
+		if(resized) {
+			owner.setSize(newSize);
+		}
 
-        // If a calculated width has been found (and this only happens for auto-width vertical docked Components in old Microsoft browsers)
-        // then, if the Component has not assumed the size of its content, set it to do so.
-        if (meta.calculatedWidth && me.owner.el.getWidth() > meta.calculatedWidth) {
-            me.owner.el.setWidth(meta.calculatedWidth);
-        }
-		
-        if (me.innerCt.dom.scrollTop) {
-            me.innerCt.dom.scrollTop = 0;
-        }
-    },
+		return resized;
+	},
 	configureItem: function(item) {
 		//Set if an item has a height/width managed by this layout
 		if(item.hflex) {
@@ -384,13 +359,15 @@ Ext.define('itasks.layout.VHBox',{
 		} else {
 			item.layoutManagedHeight = 2;
 		}
-		
+
+		//Track resizes of child elements
+		this.owner.addManagedListener(item,'resize',this.onChildResized,this);	
+
 		this.callParent(arguments);
 	},
-	renderItem: function(item) {
-		this.callParent(arguments);
-	},
-	destroy: function() {
-		this.callParent(arguments);	
+	onChildResized: function(child, size) {
+		if(!this.layoutBusy) {
+			this.onLayout();
+		}
 	}
 });

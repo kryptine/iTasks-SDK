@@ -2,38 +2,33 @@ Ext.define('itasks.container.ListContainer',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.ilistc',
 	requires: ['itasks.layout.VHBox'],
-	mixins: {
-		editable :'itasks.mixin.Editable',
-		wrappable : 'itasks.mixin.Wrappable'
-	},
+	mixins: ['itasks.mixin.Editable'],
 	layout: 'vhbox',
 	frame: true,
 	initComponent: function() {
 	
 		if(!this.width && !this.hwrap && !this.hflex) {
-			this.hflex = true;
+			this.hflex = 1;
+			this.hwrap = true;
 		}
 		if(!this.height && !this.vwrap && !this.vflex) {
 			this.vwrap = true;
 		}		
-		this.callParent(arguments);
-
-		this.updateItemControls();
-	},
-	updateItemControls: function() {
-		this.items.first().updateControls();	
-		if(this.items.length > 1)
-			this.items.last().updateControls();
-		if(this.items.length > 2)
-			this.items.get(this.items.length - 2).updateControls();
-	},
-	onAdd: function () {
-		this.callParent(arguments);
-		
-		if(this.rendered) {
-			this.wrap();
-			this.ownerCt.doLayout();
-			this.updateItemControls();
+		if(!this.width) {
+			this.width = 10000;
+			this.simulatedWidth = true;
 		}
+		if(!this.height) {
+			this.height = 10000;
+			this.simulatedHeight = true;
+		}
+		this.callParent(arguments);
+	},
+	onRender: function() {
+		this.callParent(arguments);
+	},
+	afterLayout: function() {
+		this.callParent(arguments);
+		this.items.each (function(item) { item.updateListTools(); });
 	}
 });	

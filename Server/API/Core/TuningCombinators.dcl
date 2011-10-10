@@ -11,6 +11,8 @@ import Task, SystemTypes
 :: LocalInteractionTask	= LocalInteractionTask
 :: ControlTask			= ControlTask
 :: Icon					= Icon !String
+:: Hide					= Hide
+:: Window				= Window
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a
@@ -21,6 +23,8 @@ instance tune	Description			//Set initial description
 instance tune	Icon				//Set icon
 instance tune	Tag					//Append Tag
 instance tune	Tags				//Append List of Tags
+instance tune	Hide
+instance tune	Window
 instance tune	InteractionTaskType
 instance tune	LocalInteractionTask
 instance tune	ControlTask

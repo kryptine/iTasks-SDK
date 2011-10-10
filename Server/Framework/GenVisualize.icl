@@ -419,18 +419,17 @@ gVisualizeEditor{|Table|} val vst = visualizeControl(TUIGridControl (toGrid val)
 where
 	toGrid Nothing							= {cells = [], headers = []}
 	toGrid (Just (Table headers cells _))	= {headers = headers, cells = map (map toString) cells}
-	
+
 gVisualizeEditor {|[]|} fx _ _ val vst = visualizeCustom mkControl val vst
 where
 	mkControl name val touched verRes renderAsStatic vst=:{VSt|taskId}
-		# val = fromMaybe [] val
-		# (items,vst) = TUIDef val vst
+		# val			= fromMaybe [] val
+		# (items,vst)	= TUIDef val vst
 		= (addMsg verRes
 			{ content	= TUIListContainer
 							{ TUIListContainer
 							| items = items
 							, name = name
-							, staticDisplay = renderAsStatic
 							, taskId = taskId}
 			, width		= Auto
 			, height	= Auto
@@ -450,27 +449,24 @@ where
 				= (vis,vst)
 						
 			listItemControl idx defs
-				=	{ content	= TUIListItem
-									{ TUIListItem
-									| index = idx
-									, items = case defs of
-										[def]	= def
-										defs	= {content = TUIContainer (defaultLayoutContainer defs), width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}
-									}
-					, width		= Auto
-					, height	= Auto
-					, margins	= Nothing
+				=	{ TUIListItem
+					| index = idx
+					, items = case defs of
+						[def]	= def
+						defs	= {content = TUIContainer (defaultLayoutContainer defs), width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}
 					}
-			
+					
 			addMsg verSt list = case verSt of
 				NoMsg			= [list]
 				HintMsg	msg		= addMsg` "x-hint-icon" msg list
 				ErrorMsg msg	= addMsg` "x-invalid-icon" msg list
+			
 			addMsg` cls msg list = [	{ content	= TUIContainer (defaultLayoutContainer [list,mkMessage cls msg])
 										, width		= FillParent 1 ContentSize
 										, height	= WrapContent 0
 										, margins	= Nothing
 										}]
+		
 			mkMessage cls msg =	htmlDisplay (DivTag [ClassAttr "list-msg-field"] [DivTag [ClassAttr cls] [Text msg]])
 
 gVisualizeEditor{|Dynamic|}			_ vst	= noVisualization vst
@@ -598,15 +594,15 @@ addMsg verRes viz = case verRes of
 		ErrorMsg msg	= add "x-invalid-icon" msg viz
 where	
 	add cls msg viz= {content = TUIContainer {TUIContainer|defaultLayoutContainer [viz,mkIcon cls msg] & direction = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}
-	mkIcon cls msg = { content	= TUIControl (TUIHtmlDisplay (Just msg))
+	mkIcon cls msg = {content = TUIControl (TUIHtmlDisplay (Just msg))
 									{ TUIControl
 									| name			= ""
 									, value			= JSONString (toString (DivTag [ClassAttr cls] []))
 									, eventValue	= Nothing
 									, taskId		= ""
 									}
-					, width		= WrapContent 0
-					, height	= WrapContent 0
+					, width		= Fixed 16 //WrapContent 0
+					, height	= Fixed 16 //WrapContent 0
 					, margins	= Nothing
 					}
 

@@ -7,6 +7,7 @@ Ext.define('itasks.component.Grid',{
 	enableColumnHide: false,
 	enableColumnMove: false,
 	value: null,
+	viewConfig: {loadMask: false},
 	
 	initComponent: function() {
 		var headers = this.headers;
@@ -49,7 +50,17 @@ Ext.define('itasks.component.Grid',{
 			this.getSelectionModel().deselectAll();
 		}
 	},
+	add: function() {
+		this.callParent(arguments);
+	},
+	remove: function() {
+		this.callParent(arguments);
+	},
 	getValue: function() {
 		return this.value;
+	},
+	onDestroy: function() {
+		this.store.destroy();
+		this.callParent(arguments);
 	}
 });

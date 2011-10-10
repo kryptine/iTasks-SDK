@@ -100,6 +100,12 @@ where
 noActions :: (TermFunc a b) | iTask a & iTask b
 noActions = const (UserActions [])
 
+returnAction :: Action -> (TermFunc a a) | iTask a
+returnAction action = \{modelValue,localValid} -> UserActions [(action, if localValid (Just modelValue) Nothing)]
+
+constActions :: [(Action,b)] -> (TermFunc a b) | iTask a & iTask b
+constActions actions = const (UserActions [(a,Just v) \\ (a,v) <- actions])
+
 // Parallel composition
 INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
 

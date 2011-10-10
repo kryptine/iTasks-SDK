@@ -130,10 +130,9 @@ from Task			import :: TaskAction
 	, item				:: !TUIDef
 	}
 :: TUIListContainer =
-	{ items			:: ![TUIDef]
+	{ items			:: ![TUIListItem]
 	, name			:: !TUIName
 	, taskId		:: !TaskId
-	, staticDisplay	:: !Bool
 	}
 :: TUIListItem =
 	{ items			:: !TUIDef
@@ -204,6 +203,8 @@ defaultLayoutContainer	:: ![TUIDef] -> TUIContainer
 defaultLayoutPanel		:: ![TUIDef] -> TUIPanel
 sameMargins				:: !TUIFixedSize -> TUIMargins
 fillParent				:: !TUIDef -> TUIDef
+defaultDef				:: !TUIDefContent -> TUIDef
+fillDef					:: !TUIDefContent -> TUIDef
 
 // Layouts
 :: InteractionLayouter	:== TUIInteraction			-> (TUIDef, [TaskAction]) 
@@ -217,11 +218,15 @@ plainInteractionLayout		:: InteractionLayouter //Just the interaction parts and 
 minimalInteractionLayout	:: InteractionLayouter //Only the interaction parts
 fullWidthInteractionLayout	:: InteractionLayouter
 wrapWidthInteractionLayout	:: InteractionLayouter
-fullShowInteractionLayout	:: InteractionLayouter
+maximalInteractionLayout	:: InteractionLayouter
+fillInteractionLayout		:: InteractionLayouter
 
 defaultParallelLayout		:: ParallelLayouter
 horizontalParallelLayout	:: ParallelLayouter
 tabParallelLayout			:: ParallelLayouter
+
+verticalSplitLayout			:: Int -> ParallelLayouter
+fuseParallelLayout			:: ParallelLayouter //"Fuses" a set of panels/or containers into one container
 
 // layout aux functions
 defaultPanelDescr			:: !PanelTitle !PanelIcon !(Maybe String) !(Maybe String) 	!TUISize ![TUIDef]	-> TUIDef

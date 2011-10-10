@@ -115,7 +115,8 @@ evalInstance target commitEvent context=:(TaskContext processId properties chang
 					Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
 					_										= Nothing
 			//Match processId & changeNo in target path
-			# target			= foldr stepTarget [changeNo,pid] target
+			//# target			= foldr stepTarget [changeNo,pid] target
+			# target			= tl (tl target) //TODO: FIGURE OUT WHY IT DOESN'T WORK WHEN FOLDING STEPTARGET
 			//Apply task's eval function	
 			# (result,iworld)	= evalFun taskNr taskProperties commitEvent target defaultInteractionLayout defaultParallelLayout scontext iworld 
 			//Restore current process id in iworld

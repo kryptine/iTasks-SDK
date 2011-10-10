@@ -4,11 +4,12 @@ Ext.define('itasks.component.Tree',{
 	alias: 'widget.itree',
 	rootVisible: false,
 	selectedNode: -1,
+	viewConfig: {loadMask: false},
 	
 	initComponent: function() {	
 		this.root = {xtype: 'treenode',text: 'tree', children: this.tree};
 		this.callParent(arguments);
-		this.addListener('itemclick',this.onItemClick,this);
+		this.addManagedListener(this,'itemclick',this.onItemClick,this);
 	},
 	afterRender: function() {
 		this.callParent(arguments);
@@ -39,5 +40,8 @@ Ext.define('itasks.component.Tree',{
 			this.selectedNode = -1;
 			this.getSelectionModel().deselectAll();
 		}
+	},
+	onDestroy: function() {
+		this.callParent(arguments);
 	}
 });

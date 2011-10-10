@@ -1,6 +1,5 @@
 Ext.define('itasks.container.BorderItem',{
-	extend: 'Ext.panel.Panel',
+	extend: 'itasks.container.Panel',
 	alias: 'widget.iborderi',
-	requires: ['itasks.layout.VHBox'],
-	layout: 'vhbox'
+	requires: ['itasks.layout.VHBox']
 });

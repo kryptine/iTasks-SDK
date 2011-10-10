@@ -246,6 +246,8 @@ workOn :: !ProcessId -> Task WorkOnProcessState
 workOn (SessionProcess sessionId)
 	= abort "workOn applied to session process"
 workOn (WorkflowProcess processId)
+	= workOn (EmbeddedProcess processId "")
+workOn (EmbeddedProcess processId target)
 	= mkActionTask ("Work on","Work on another top-level instance.") (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
 	init taskNr iworld = (TCEmpty, iworld)
@@ -277,7 +279,10 @@ where
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
-		# (mbResult,context,iworld)	= evalInstance [processId,changeNo (fromOk mbContext)] event (fromOk mbContext) iworld
+		# targetTaskNo = case target of
+			""	= [processId,changeNo (fromOk mbContext)]
+			_	= reverse (taskNrFromString target)
+		# (mbResult,context,iworld)	= evalInstance targetTaskNo event (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result
@@ -302,7 +307,7 @@ where
 								= (TaskBusy (Just tui) actions TCEmpty,iworld)
 
 	changeNo (TaskContext _ _ n _) = n
-
+	
 mergeTUI props imerge tuis warning actions
 	= imerge { title = props.TaskMeta.title
 			 , instruction = props.TaskMeta.instruction

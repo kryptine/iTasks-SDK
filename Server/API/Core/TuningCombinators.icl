@@ -12,6 +12,10 @@ instance tune Tag
 where tune (Tag t) task			= updateTaskMeta (\m -> {TaskMeta|m & tags = [toString t : m.tags]}) task
 instance tune Tags
 where tune (Tags ts) task		= updateTaskMeta (\m -> {TaskMeta|m & tags = (map toString ts) ++ m.tags}) task
+instance tune Hide
+where tune _ task				= updateTaskMeta (\m -> {TaskMeta|m & hide = True}) task
+instance tune Window
+where tune _ task				= updateTaskMeta (\m -> {TaskMeta|m & window = True}) task
 instance tune InteractionTaskType
 where tune t task				= updateTaskMeta (\m -> {TaskMeta|m & interactionType = Just t}) task
 instance tune LocalInteractionTask

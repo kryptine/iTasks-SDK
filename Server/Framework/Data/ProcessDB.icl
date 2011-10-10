@@ -130,7 +130,7 @@ where
 	
 	subprocsp [] = []
 	subprocsp [(_,STCDetached properties context):subs]
-		= [{processId = processId
+		= [{processId = addTarget properties.systemProperties.taskId processId
 		   ,properties = properties
 		   ,subprocesses = case context of Nothing = []; Just (_,c) = subprocs c}
 		  :subprocsp subs]
@@ -138,6 +138,9 @@ where
 	subprocsp [(_,STCBody _ (Just (_,c))):subs]		= subprocs c ++ subprocsp subs
 	subprocsp [(_,STCHidden _ Nothing):subs]		= subprocsp subs
 	subprocsp [(_,STCHidden _ (Just (_,c))):subs]	= subprocs c ++ subprocsp subs
+	
+	addTarget target (WorkflowProcess pid) = (EmbeddedProcess pid target)
+	addTarget _ procId = procId
 					 
 filterProcs :: (Process -> Bool) [Process] -> [Process]
 filterProcs pred procs = flatten [if (pred p) [{p & subprocesses = filterProcs pred p.subprocesses}] (filterProcs pred p.subprocesses) \\  p <- procs]

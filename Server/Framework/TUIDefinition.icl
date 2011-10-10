@@ -41,8 +41,11 @@ defaultLayoutPanel items =	{TUIPanel
 							, baseCls		= Nothing
 							}
 
-defaultDef :: TUIDefContent -> TUIDef
+defaultDef :: !TUIDefContent -> TUIDef
 defaultDef content = {TUIDef| content = content, width = Auto, height = Auto, margins = Nothing}
+
+fillDef :: !TUIDefContent -> TUIDef
+fillDef content = {TUIDef| content = content, width = FillParent 1 (FixedMinSize 0), height = FillParent 1 (FixedMinSize 0), margins = Nothing}
 
 sameMargins :: !TUIFixedSize -> TUIMargins
 sameMargins m =	{ top		= m
@@ -116,11 +119,34 @@ where
 				(defaultContent editorParts buttons)
 		  ,actions)	
 
-fullShowInteractionLayout :: InteractionLayouter
-fullShowInteractionLayout = \i -> layout i
+maximalInteractionLayout :: InteractionLayouter
+maximalInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
-		= ({hd editorParts & width = FillParent 1 ContentSize, height	= FillParent 1 ContentSize, margins	= Nothing}, actions)
+	layout i=:{TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
+		| isEmpty editorParts
+			= defaultInteractionLayout i
+		| otherwise
+			= ({hd editorParts & width = FillParent 1 ContentSize, height	= FillParent 1 ContentSize, margins	= Nothing}, actions)
+
+fillInteractionLayout :: InteractionLayouter
+fillInteractionLayout = \{TUIInteraction|instruction,editorParts,actions,warning}
+	-> (fillPanel 
+				instruction
+				warning
+				(defaultContent (map fill editorParts) [])
+		  ,actions)
+where
+	fillPanel instruction warning content 
+		= { content	= TUIContainer (defaultLayoutContainer (map margins (instr ++ content)))
+		  , width	= FillParent 1 ContentSize
+		  , height	= FillParent 1 ContentSize
+		  , margins	= Nothing
+		  }
+	where
+		instr = case defaultDescriptionPanel instruction warning of	Just d = [d]; Nothing = [];
+
+	fill def = {def & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize} 
+	margins def = {def & margins = Just (sameMargins 5)}
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
 defaultContent editor buttons = [defaultContentPanel (editorContainer ++ buttonContainer)]
@@ -142,7 +168,7 @@ where
 defaultParallelLayout :: ParallelLayouter
 defaultParallelLayout = \{TUIParallel|title,instruction,items}->
 	let (metas,tuis,actions) = unzip3 items in
-		(defaultDef (TUIPanel (defaultLayoutPanel (catMaybes tuis))),flatten actions)
+		(defaultDef (TUIContainer (defaultLayoutContainer [tui \\ Just tui <- tuis & meta <- metas|not meta.hide])),flatten actions)
 
 horizontalParallelLayout :: ParallelLayouter
 horizontalParallelLayout = \{TUIParallel|title,instruction,items}->
@@ -150,6 +176,30 @@ horizontalParallelLayout = \{TUIParallel|title,instruction,items}->
 		(defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer (catMaybes tuis) & direction = Horizontal}),flatten actions)
 
 
+verticalSplitLayout :: Int -> ParallelLayouter
+verticalSplitLayout initSplit = \p=:{TUIParallel|items} ->
+	case items of
+		[(metaA,Just defA,actionsA),(metaB,Just defB, actionsB):_]	
+			# top = {TUIBorderItem|title = Nothing, iconCls = Nothing, item = defA}
+			# bottom = {TUIBorderItem|title = Nothing, iconCls = Nothing, item = defB}
+			# content = TUIBorderContainer {TUIBorderContainer|itemA = top, itemB = bottom, initSplit = initSplit, direction = Vertical, collapsible = True}
+			= (fillDef content, actionsA ++ actionsB)		
+		_	
+			= defaultParallelLayout p
+
+fuseParallelLayout :: ParallelLayouter
+fuseParallelLayout = \p -> layout p
+where
+	layout {TUIParallel|title,items} = (panel,actions)
+	where
+		panel		= defaultDef (TUIPanel {TUIPanel|defaultLayoutPanel children & title = title, frame = True})
+	
+		children	= flatten (map getChildren items) 	
+		actions 	= flatten [a \\(_,_,a) <- items]
+	
+		getChildren (_,Just {content=TUIPanel panel},_)			= panel.TUIPanel.items
+		getChildren (_,Just {content=TUIContainer container},_)	= container.TUIContainer.items
+	
 tabParallelLayout :: ParallelLayouter
 tabParallelLayout = \{TUIParallel|title,items} ->
 		let (tabs,tactions) = unzip [mkTab i \\ i =:(_,Just _,_) <- items] in

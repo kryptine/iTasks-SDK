@@ -610,6 +610,8 @@ initTaskMeta` title instruction =
 	, instruction = instruction
 	, icon = Nothing
 	, tags = []
+	, hide = False
+	, window = False
 	, interactionType = Nothing
 	, localInteraction = False
 	, controlTask = False
@@ -644,14 +646,16 @@ where
 
 instance == ProcessId
 where
-	(==) (SessionProcess x)		(SessionProcess y)	= (x == y)
-	(==) (WorkflowProcess x)	(WorkflowProcess y)	= (x == y)
-	(==) _						_					= False
+	(==) (SessionProcess x)			(SessionProcess y)		= (x == y)
+	(==) (WorkflowProcess x)		(WorkflowProcess y)		= (x == y)
+	(==) (EmbeddedProcess x1 x2)	(EmbeddedProcess y1 y2)	= (x1 == y1) && (x2 == y2)
+	(==) _							_						= False
 
 instance toString ProcessId
 where
-	toString (SessionProcess x) = ("s" +++ x)
-	toString (WorkflowProcess x) = "w" +++ toString x
+	toString (SessionProcess id) = "s" +++ id
+	toString (WorkflowProcess id) = "w" +++ toString id
+	toString (EmbeddedProcess id target) = "e" +++ toString id +++ "-" +++ target
 
 instance toEmail EmailAddress where toEmail e = e
 instance toEmail String where toEmail s = EmailAddress s

@@ -16,11 +16,6 @@ where
 		step (ItemStep i) = toString i
 		step (MenuStep) = "m"
 
-instance toInt DiffStep
-where
-	toInt (ItemStep i) = i
-	toInt (MenuStep) = 0
-
 diffTUIDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
 diffTUIDefinitions old new = diffEditorDefinitions` [ItemStep 0] old new
 
@@ -34,11 +29,11 @@ diffEditorDefinitions` path oldTui newTui
 				| otherwise
 					= [TUISetSize (toString path) newTui.width newTui.height:diff]
 			Nothing
-				= [TUIReplace (toString ppath) (toInt pstep) newTui]
+				= [TUIReplace (toString ppath) pindex newTui]
 	| otherwise
-		= [TUIReplace (toString ppath) (toInt pstep) newTui]
+		= [TUIReplace (toString ppath) pindex newTui]
 where
-	[pstep:ppath] = path
+	[ItemStep pindex:ppath] = path
 
 	diffEditorDefinitions`` :: !TUIDefContent !TUIDefContent -> Maybe [TUIUpdate]
 	diffEditorDefinitions`` old new = case (old,new) of
@@ -46,92 +41,65 @@ where
 		(TUIControl (TUIDocumentControl odoc) oc, TUIControl (TUIDocumentControl ndoc) nc)
 			| odoc == ndoc && oc.TUIControl.taskId == nc.TUIControl.taskId && oc.TUIControl.name == nc.TUIControl.name
 				= Just []
-		(TUIControl (TUIHtmlDisplay tto) _, TUIControl (TUIHtmlDisplay ttn) _) | tto =!= ttn
-			= Nothing
-		(TUIControl (TUIGridControl ogrid) _, TUIControl (TUIGridControl ngrid) _) | ogrid =!= ngrid
-			= Nothing
+			| otherwise
+				= Nothing
+		(TUIControl (TUIHtmlDisplay tto) _, TUIControl (TUIHtmlDisplay ttn) _)
+			| tto =!= ttn	= Nothing
+		(TUIControl (TUIGridControl ogrid) _, TUIControl (TUIGridControl ngrid) _)
+			| ogrid =!= ngrid	= Nothing
 		(TUIControl otype oc, TUIControl ntype nc)
 			| otype === ntype
 				= Just (valueUpdate path oc nc ++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
 		(TUIButton o,TUIButton n)
-				| o.TUIButton.text == n.TUIButton.text && o.TUIButton.iconCls == n.TUIButton.iconCls
-					= Just (update (\o n -> o.TUIButton.disabled == n.TUIButton.disabled) (\b -> Just (not b.TUIButton.disabled)) TUISetEnabled path o n
-						++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
-	
-		(TUIContainer o, TUIContainer n)	|  o.TUIContainer.direction === n.TUIContainer.direction
-											&& o.TUIContainer.halign === n.TUIContainer.halign
-											&& o.TUIContainer.valign === n.TUIContainer.valign
-										
-			# valueUpdates	= staticContainerUpdate path o.TUIContainer.items n.TUIContainer.items
-			# lengthUpdates	= if (numOld < numNew)
-				[TUIAdd (toString path) idx item \\item <- drop numMin n.TUIContainer.items & idx <- [numMin..]]
-				(reverse [TUIRemove (toString path) idx \\ idx <- [numMin..numOld-1]])
-			= Just (valueUpdates ++ lengthUpdates)
-		where
-			numOld = length o.TUIContainer.items
-			numNew = length n.TUIContainer.items
-			numMin = min numOld numNew
-		(TUIPanel o, TUIPanel n)	|  o.TUIPanel.direction === n.TUIPanel.direction
-														&& o.TUIPanel.halign === n.TUIPanel.halign
-														&& o.TUIPanel.valign === n.TUIPanel.valign
-														&& o.TUIPanel.frame === n.TUIPanel.frame
-														&& o.TUIPanel.title == n.TUIPanel.title
-														&& isJust o.TUIPanel.iconCls == isJust n.TUIPanel.iconCls
-			# valueUpdates	= staticContainerUpdate path o.TUIPanel.items n.TUIPanel.items
-			# menuUpdates	= diffTUIMenus path o.TUIPanel.menus n.TUIPanel.menus
-			# titleUpdate	= update (\o n -> o.TUIPanel.title == n.TUIPanel.title && o.TUIPanel.iconCls == n.TUIPanel.iconCls) (\{TUIPanel|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
-			# lengthUpdates	= if (numOld < numNew)
-				[TUIAdd (toString path) idx item \\item <- drop numMin n.TUIPanel.items & idx <- [numMin..]]
-				(reverse [TUIRemove (toString path) idx \\ idx <- [numMin..numOld-1]])
-			= Just (titleUpdate ++ valueUpdates ++ menuUpdates ++ lengthUpdates)
-		where
-			numOld = length o.TUIPanel.items
-			numNew = length n.TUIPanel.items
-			numMin = min numOld numNew
-		(TUITabContainer o, TUITabContainer n)
-			# valueUpdates	= staticContainerUpdate path oitems nitems
-			# lengthUpdates	= if (numOld < numNew)
-				[TUIAdd (toString path) idx item \\item <- drop numMin nitems & idx <- [numMin..]]
-				(reverse [TUIRemove (toString path) idx \\ idx <- [numMin..numOld-1]])
-			= Just (valueUpdates ++ lengthUpdates)
-		where
-			oitems = map toDef o.TUITabContainer.items
-			nitems = map toDef n.TUITabContainer.items
-			numOld = length o.TUITabContainer.items
-			numNew = length n.TUITabContainer.items
-			numMin = min numOld numNew
-			toDef tab = {TUIDef|content = TUITabItem tab, width= Auto, height = Auto, margins = Nothing}
-		(TUITabItem o, TUITabItem n) | o.closeAction === n.closeAction
-			# valueUpdates	= staticContainerUpdate path [o.TUITabItem.items] [n.TUITabItem.items]
-			# menuUpdates	= diffTUIMenus path o.TUITabItem.menus n.TUITabItem.menus
-			# titleUpdate	= update (\o n -> o.TUITabItem.title == n.TUITabItem.title && o.TUITabItem.iconCls == n.TUITabItem.iconCls) (\{TUITabItem|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
-			= Just (titleUpdate ++ valueUpdates ++ menuUpdates)
-		(TUIListContainer lcOld, TUIListContainer lcNew)
-			# valueUpdates	= diffListItemDefinitions path lcOld.TUIListContainer.items lcNew.TUIListContainer.items
-			# lengthUpdates	= if (numOld < numNew)
-				[TUIAdd (toString path) idx item \\item <- drop numMin lcNew.TUIListContainer.items & idx <- [numMin..]]
-				(reverse [TUIRemove (toString path) idx \\ idx <- [numMin..numOld-1]])
-			= Just (valueUpdates ++ lengthUpdates)
+			| o.TUIButton.text == n.TUIButton.text && o.TUIButton.iconCls == n.TUIButton.iconCls
+				= Just (update (\o n -> o.TUIButton.disabled == n.TUIButton.disabled) (\b -> Just (not b.TUIButton.disabled)) TUISetEnabled path o n
+					++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
+		(TUIContainer o, TUIContainer n)
+			|  (o.TUIContainer.direction === n.TUIContainer.direction
+				&& o.TUIContainer.halign === n.TUIContainer.halign
+				&& o.TUIContainer.valign === n.TUIContainer.valign)
+				= Just (diffChildEditorDefinitions path o.TUIContainer.items n.TUIContainer.items)
+		(TUIPanel o, TUIPanel n)
+			| ( o.TUIPanel.direction === n.TUIPanel.direction
+				&& o.TUIPanel.halign === n.TUIPanel.halign
+				&& o.TUIPanel.valign === n.TUIPanel.valign
+				&& o.TUIPanel.frame === n.TUIPanel.frame
+				&& o.TUIPanel.title == n.TUIPanel.title
+				&& (isJust o.TUIPanel.iconCls == isJust n.TUIPanel.iconCls))
+					# titleUpdate	= update (\o n -> o.TUIPanel.title == n.TUIPanel.title && o.TUIPanel.iconCls == n.TUIPanel.iconCls) (\{TUIPanel|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
+					# valueUpdates	= diffChildEditorDefinitions path o.TUIPanel.items n.TUIPanel.items
+					# menuUpdates	= []
+					//# menuUpdates	= diffTUIMenus path o.TUIPanel.menus n.TUIPanel.menus
+					= Just (titleUpdate ++ valueUpdates ++ menuUpdates)
+		(TUIListContainer lcOld, TUIListContainer lcNew)	
+			= Just (diffChildEditorDefinitions path (items lcOld) (items lcNew)
+					++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
 			where
-				numOld = length lcOld.TUIListContainer.items
-				numNew = length lcNew.TUIListContainer.items
-				numMin = min numOld numNew
-				
-				diffListItemDefinitions path old new
-					= flatten [  diffEditorDefinitions` [ItemStep i:path] co cn
-					 		  \\ {TUIDef|content=c=:(TUIListItem {TUIListItem|items=co})} <- old
-							  &  {TUIDef|content=c=:(TUIListItem {TUIListItem|items=cn})} <- new
-							  &  i <- [0..]]
+				items lc = [{content = TUIListItem item, width = Auto, height = Auto, margins = Nothing} \\ item <- lc.TUIListContainer.items]
+		(TUIListItem liOld, TUIListItem liNew)
+			= Just (diffChildEditorDefinitions path [liOld.TUIListItem.items] [liNew.TUIListItem.items])
 		// Custom components need to figure out their own update on the client side
 		(TUICustom oc, TUICustom nc)
 			| oc === nc	= Just []
 			| otherwise	= Just [TUIUpdate (toString path) newTui]
 		// Fallback: always replace
 		_	= Nothing
-
-//Simply update all child elements
-staticContainerUpdate path old new
-	= flatten [diffEditorDefinitions` [ItemStep i:path] co cn \\ co <- old & cn <- new & i <- [0..] ]
+	
+	//Determine the updates for child items in containers, lists etc	
+	diffChildEditorDefinitions :: DiffPath [TUIDef] [TUIDef] -> [TUIUpdate]
+	diffChildEditorDefinitions path old new = diffChildEditorDefinitions` path 0 old new
+	where
+		diffChildEditorDefinitions` path i [] []
+			= []
+		diffChildEditorDefinitions` path i old []
+			//Less items in new than old (remove starting with the last item)
+			= [TUIRemove (toString path) n \\ n <- reverse [i.. i + length old - 1 ]] 
+		diffChildEditorDefinitions` path i [] new
+			//More items in new than old
+			= [TUIAdd (toString path) n def \\ n <- [i..] & def <- new] 
+		diffChildEditorDefinitions` path i [o:os] [n:ns] 
+			=	(diffEditorDefinitions` [ItemStep i:path] o n)
+			++  (diffChildEditorDefinitions` path (i + 1) os ns)
 
 //Update the value of a control
 valueUpdate path old new = update sameValue (\{TUIControl|value} -> Just value) TUISetValue path old new
@@ -151,19 +119,6 @@ nameUpdate path old new		= update sameName nameOf TUISetName path old new
 update eqfun accfun consfun path old new
 	| not (eqfun old new)	= maybe [] (\prop -> [consfun (toString path) prop]) (accfun new)
 	| otherwise				= []
-
-diffTUIDefinitionSets :: DiffPath [TUIDef] [TUIDef] -> [TUIUpdate]
-diffTUIDefinitionSets path old new = diffTUIDefinitionSets` path 0 old new
-where
-	diffTUIDefinitionSets` path i [] []
-		= []
-	diffTUIDefinitionSets` path i old [] 
-		= [TUIRemove (toString path) n \\ n <- reverse [i.. i + length old - 1 ]] //Less items in new than old (remove starting with the last item)
-	diffTUIDefinitionSets` path i [] new
-		= [TUIAdd (toString path) n def \\ n <- [i..] & def <- new] //More items in new than old
-	diffTUIDefinitionSets` path i [n:ns] [o:os]
-		=	(diffEditorDefinitions` [ItemStep i:path] n o)
-		++  (diffTUIDefinitionSets` path (i + 1) ns os)
 
 //If the menus are not exactly the same simply replace all of them 
 diffTUIMenus :: DiffPath [TUIMenuButton] [TUIMenuButton] -> [TUIUpdate]

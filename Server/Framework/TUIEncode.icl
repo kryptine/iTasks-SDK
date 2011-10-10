@@ -7,7 +7,7 @@ encodeTUIDefinition d = toJSON d
 
 //TUI DEFINITIONS
 derive JSONEncode TUIButton, Hotkey
-derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
+derive JSONEncode TUIButtonControl, TUIChoiceControl
 derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUIBorderContainer, TUIListContainer
 derive JSONEncode TUIGridControl, TUITree, TUIControl
 
@@ -23,11 +23,14 @@ JSONEncode{|TUIDefContent|} (TUITabItem r)				= addXType "itabi" (JSONEncode{|*|
 JSONEncode{|TUIDefContent|} (TUIBorderContainer r)		= addXType "iborderc" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIBorderItem r)			= addXType "iborderi" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "ilistc" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIListItem r) 			= addXType "ilisti" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIListItem r)				= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIMenuButton r) 			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIMenuItem r) 			= JSONEncode{|*|} r
 
 JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
+
+JSONEncode{|TUIListItem|}  {TUIListItem|items,index}
+	= [JSONObject [("xtype",JSONString "ilisti"),("index",JSONInt index),("items", toJSON items)]]
 
 JSONEncode{|TUITabItem|} {TUITabItem|title,iconCls,items,menus,closeAction}
 	= [JSONObject [("xtype",JSONString "itabi"),("title",toJSON title),("iconCls",toJSON iconCls)
@@ -119,18 +122,18 @@ encodeTUIUpdates :: ![TUIUpdate] -> JSONNode
 encodeTUIUpdates updates = JSONArray (flatten (map encodeTUIUpdate updates))
 
 encodeTUIUpdate :: TUIUpdate -> [JSONNode]
-encodeTUIUpdate (TUISetValue path value)		= [node path "setValue"		[value]]
+encodeTUIUpdate (TUISetValue path value)		= [node path "setEditValue"		[value]]
 encodeTUIUpdate (TUISetTaskId path taskId)		= [node path "setTaskId"	 	[JSONString taskId]]
-encodeTUIUpdate (TUISetName path name)			= [node path "setName"		[JSONString name]]
-encodeTUIUpdate (TUISetEnabled path enabled)	= [node path "setDisabled"	[JSONBool (not enabled)]]
-encodeTUIUpdate (TUISetTitle path (title,icon))	= [node path "setTitle"		[JSONString title: maybe [] (\x -> [JSONString x]) icon]]
+encodeTUIUpdate (TUISetName path name)			= [node path "setName"			[JSONString name]]
+encodeTUIUpdate (TUISetEnabled path enabled)	= [node path "setDisabled"		[JSONBool (not enabled)]]
+encodeTUIUpdate (TUISetTitle path (title,icon))	= [node path "setTitle"			[JSONString title: maybe [] (\x -> [JSONString x]) icon]]
 encodeTUIUpdate (TUISetSize path (Fixed width) (Fixed height))
-												= [node path "setSize"		[JSONInt width, JSONInt height]]
+												= [node path "setSize"			[JSONInt width, JSONInt height]]
 encodeTUIUpdate (TUISetSize _ _ _)				= [] //Only set size with fixed values
-encodeTUIUpdate (TUIReplace path index def)		= [node path "remove" [JSONInt index], node path "add" [JSONInt index,toJSON def]]
-encodeTUIUpdate (TUIUpdate path def)			= [node path "update"		[toJSON def]]
-encodeTUIUpdate	(TUIAdd path index def)			= [node path "add"			[JSONInt index, toJSON def]]
-encodeTUIUpdate (TUIRemove path index)			= [node path "remove"		[JSONInt index]]
+encodeTUIUpdate (TUIReplace path index def)		= [node path "remove" 			[JSONInt index], node path "insert" [JSONInt index,toJSON def]]
+encodeTUIUpdate (TUIUpdate path def)			= [node path "update"			[toJSON def]]
+encodeTUIUpdate	(TUIAdd path index def)			= [node path "insert"			[JSONInt index, toJSON def]]
+encodeTUIUpdate (TUIRemove path index)			= [node path "remove"			[JSONInt index]]
 
 node path method arguments
 	= JSONObject [("path",JSONString path),("method",JSONString method),("arguments",JSONArray arguments)]

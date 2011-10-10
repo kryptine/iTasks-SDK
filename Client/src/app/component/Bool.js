@@ -6,6 +6,5 @@ Ext.define('itasks.component.Bool',{
 	
 		this.checked = this.value;
 		this.callParent();
-	//	console.log(this);
 	}
 });
