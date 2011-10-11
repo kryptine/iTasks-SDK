@@ -14,9 +14,9 @@ Start world = startEngine flows8 world
 
 flows8 :: [Workflow]
 flows8 
-	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users" 	"Chat with several users" 			chat3
-		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" 		"Editing a text file" 				editorApplication
- 		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Petition" 				"Invite people to sign a petition" 	myPetition
+	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users"    	"Chat with several users" 	chat3
+		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" 			"Editing a text file" 		editorApplication
+//		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
 		]
 
 // chat with several users
@@ -92,57 +92,53 @@ derive class iTask Replace, TextStatistics, EditorState
 :: FileName		:== String
 
 initEditorState text 	= 	{mytext = text, replace = False, statistics = False}
-updateText f 			=	update (\s -> {s & mytext = f s.mytext}) 
-updateReplace b  		=  	update (\s -> {s & replace = b}) 
+updateReplace b  		=  	update (\s ->{s & replace = b}) 
 updateStat b 			=	update (\s -> {s & statistics = b}) 
-
-noReplace s 	= not s.replace
-noStatistics s 	= not s.statistics
+updateText f 			=	update (\s -> {s & mytext = f s.mytext}) 
 
 voidResult _ _ = Void 
 
 normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing, status = Active}
 
-ActionReplace 		:== Action "Replace" // "File/Replace" 
-ActionStatistics	:== Action "Statistics" // "File/Statistics" 
+ActionReplace 		:== Action "File/Replace" 
+ActionStatistics	:== Action "File/Statistics" 
 
 editorApplication ::  Task Void
 editorApplication 
-	=						enterInformation "Give name file to edit..." []
+	=						enterInformation "Give name of text file you want to edit..." []
 		>>= \fileName ->	readTextFile fileName
 		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [(BodyTask, editor fileName)]
 
 editor :: String (TaskList EditorState) -> Task ParallelControl
 editor fileName ls
-	= 			updateSharedInformation (fileName,"Edit " +++ fileName) views myState Void
-		>?* 	[ (Action "Save", 		IfValid	save)
-		  		, (Action "Quit",		Always 	quit)
-		  		, (ActionReplace,	Sometimes (onlyIf (noReplace o fst) replace))
-		  		, (ActionStatistics,Sometimes (onlyIf (noStatistics o fst) statistics))
+	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") views (taskListState ls) Void
+		>?* 	[ (ActionSave, 		IfValid	  save)
+		  		, (ActionReplace,	Sometimes (onlyIf (\(s,_) -> not s.replace)    replace))
+		  		, (ActionStatistics,Sometimes (onlyIf (\(s,_) -> not s.statistics) statistics))
+		  		, (ActionQuit,		Always 	  quit)
 		  		]
 where	
-	myState = taskListState ls
-
 	views = [UpdateView ( GetShared (\s -> Note s.mytext)
 					    , PutbackShared (\(Note text) _ s -> {s & mytext = text}) 
 					    )
-			] 
+			]
 
 	save (val,_)
 		=		saveTextFile fileName val.mytext
 			>>|	editor fileName ls
-	quit
-		=		 return Stop
 
 	replace _
-		=		updateReplace True myState
+		=		updateReplace True (taskListState ls)
 			>>| appendTask (DialogTask "Find and Replace", replaceTask {search = "", replaceBy = ""}) ls
 			>>| editor fileName ls
 
 	statistics _
-		=		updateStat True myState
+		=		updateStat True (taskListState ls)
 			>>|	appendTask (DialogTask "Statistics", statisticsTask) ls
 			>>| editor fileName ls
+
+	quit
+		=		return Stop
 
 replaceTask :: Replace (TaskList EditorState) -> Task ParallelControl
 replaceTask replacement ls
@@ -151,23 +147,19 @@ replaceTask replacement ls
 				,(Action "Close", Always close)
 				]
 where
-	myState = taskListState ls
-
 	replace repl
-		=		updateText (replaceSubString repl.search repl.replaceBy) myState
+		=		updateText (replaceSubString repl.search repl.replaceBy) (taskListState ls)
 			>>|	replaceTask repl ls
 	close
-		=		updateReplace False myState 
+		=		updateReplace False (taskListState ls) 
 			>>| return Continue
 
 
 statisticsTask :: (TaskList EditorState) -> Task ParallelControl
 statisticsTask ls
-	= 			showSharedInformation ("Statistics","Statistics of your document") views myState Void
+	= 			showSharedInformation ("Statistics","Statistics of your document") views (taskListState ls) Void
 		>?*		[(Action "Close", Always close)]
 where
-	myState = taskListState ls
-
 	views = [ShowView (GetShared showStatistics)]
 
 	showStatistics state 
@@ -176,7 +168,7 @@ where
 			, characters = textSize state.mytext
 			}
 	close
-		=		updateStat False myState 
+		=		updateStat False (taskListState ls) 
 			>>| return Continue
 
 // --- file access utility
@@ -208,54 +200,100 @@ where
 	| not ok			= ((False,""),world)
 	= ((True,text),world)
 
+/*
 
+// making an appointment
 
-// invite people to sign a petition
+:: MeetingProposal 
+	=	{ date 		:: Date
+		, time		:: Time
+		, canMeet	:: [Participant]
+		}
+:: Participant
+	=	{ name		:: User
+		, canAttend :: Bool
+		, comment	:: Maybe Note
+		}	
+:: MeetingProposalView
+	=	{ date 		:: Display Date
+		, time		:: Display Time
+		, canMeet	:: [VisualizationHint ParticipantView]
+		}
+:: ParticipantView
+	=	{ name		:: Display User
+		, canAttend :: Bool
+		, comment	:: Maybe Note
+		}	
+derive class iTask MeetingProposal, Participant, MeetingProposalView, ParticipantView
 
-:: Petition	 =	{ titlePetition			:: String
-				, deadlineSubmission	:: DateTime
-				, description			:: Note 
-				}
-:: Signer	 =	{ name			:: String
-				, profession	:: Maybe String
-				, emailAddress	:: String
-				, comments		:: Maybe Note
-				}
-
-derive class iTask Petition, Signer
-
-myPetition :: Task (Petition,[Signer]) 
-myPetition	=  					 enterInformation "Describe the petition" []
-				>>= \petition -> campaign petition petition.titlePetition petition.deadlineSubmission
-
-campaign :: petition String DateTime -> Task (petition,[signed]) | iTask petition & iTask signed 
-campaign petition title deadline 
-	= 						enterSharedMultipleChoice "Invite people to sign" [] users
-		>>= \signers ->	parallel ("Sign Petition: " +++ title) [] (\_ signed -> (petition,signed)) 
-							[(HiddenTask, waitForDeadline deadline)
-							:[(DetachedTask (normalTask signer), sign petition) \\  signer <- signers]
-							]
-		>>=					showInformation "The petition is signed by:" []
+mkAppointment :: Task [MeetingProposal]
+mkAppointment
+	=					get users
+		>>= \all ->		enterMultipleChoice "Who should attend the meeting ?" [] all
+		>>= \users ->	enterInformation "Propose meeting dates" []
+		>>= \dates ->	let initMeetingState = [ { MeetingProposal
+												 | date    = date
+												 , time    = time
+												 , canMeet = [ { Participant
+												               | name      = user
+												 			   , canAttend = False
+												 			   , comment   = Nothing
+												 			   } 
+												 			 \\ user <- users
+												 			 ]
+												 }
+											   \\ (date,time) <- dates
+											   ]
+		                 in parallel "Meeting Date Flow" initMeetingState finishPar [manage : map initMeeting users]
 where
-	waitForDeadline dateTime list
-		=					waitForDateTime dateTime
-			>>|				return Stop
+	finishPar _ s = s
 
+	initMeeting user
+		= ShowAs (DetachedTask managerProperties) meetingTask
+	where
+//		meetingTask :: (SymmetricShared [MeetingProposal]) (ParallelInfo [MeetingProposal]) -> Task [MeetingProposal]
+		meetingTask meetingState _
+			= updateSharedInformation "When can we meet ?" [View (viewForUser user,modelFromView)] meetingState  
 
-sign :: petition (TaskList [signed]) -> Task ParallelControl | iTask petition & iTask signed 
-sign petition list
-	=					enterInformation ("Please sign the following petition:")  [About petition] 
-		>?* 			[(Action "Cancel",	Always 	(return Continue))
-	  					,(Action "Sign",	IfValid signAndAskFriends)
-	  					]
-where
-	signAndAskFriends signed
-		=			update (\list -> [signed:list]) (taskListState list)
-			>>|		showInformation "Thanks for signing !" [] Void
-			>>|		enterSharedMultipleChoice "Invite other people too" [] users
-			>>= 	askSigners
-
-	askSigners [] 	  = return Continue
-	askSigners [c:cs] =  appendTask (DetachedTask (normalTask c), sign petition) list 
-						 >>| askSigners cs
-
+		managerProperties
+			= { worker = user, priority	= NormalPriority, deadline = Nothing, status = Active }	
+	
+	viewForUser :: User [MeetingProposal] -> [MeetingProposalView]
+	viewForUser user props
+		= [  {MeetingProposalView | date=toDisplay date, time=toDisplay time, canMeet=map (viewParticipant user) canMeet}
+		  \\ {MeetingProposal | date,time,canMeet} <- props
+		  ]
+	
+	modelFromView :: [MeetingProposalView] .a -> [MeetingProposal]
+	modelFromView props _
+		= [  {MeetingProposal | date=fromDisplay date, time=fromDisplay time, canMeet=map modelParticipant canMeet} 
+		  \\ {MeetingProposalView | date,time,canMeet} <- props
+		  ]
+	
+	viewParticipant :: User Participant -> VisualizationHint ParticipantView
+	viewParticipant user participant=:{Participant | name, canAttend, comment}
+		= if (user == name)	VHEditable VHDisplay view
+	where
+		view		= {ParticipantView | name      = Display name
+	                                   , canAttend = canAttend
+	                                   , comment   = comment
+	                  }
+	
+	modelParticipant :: (VisualizationHint ParticipantView) -> Participant
+	modelParticipant view
+		= { Participant | name=name, canAttend=canAttend, comment=comment }
+	where
+		{ParticipantView | name=Display name,canAttend,comment}	= fromVisualizationHint view
+	
+	manage
+		= ShowAs BodyTask check
+	where
+		check meetingState controlState
+			=     				updateSharedInformation "Monitor answers" [View (viewForManager,\_ ps -> ps)]  meetingState 
+				>?*	 			[(ActionOk,IfValid return)]
+			  	>>= \props -> 	enterChoice "Choose meeting" [] props
+		where
+			viewForManager :: [MeetingProposal] -> [MeetingProposal]
+			viewForManager props
+				= [ p \\ p=:{MeetingProposal | canMeet=can} <- props | and [canAttend \\ {Participant | canAttend} <- can] ]
+*/
