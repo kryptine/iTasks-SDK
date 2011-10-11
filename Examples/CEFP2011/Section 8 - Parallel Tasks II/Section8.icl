@@ -129,7 +129,7 @@ where
 			] 
 
 	save (val,_)
-		=		safeTextFile fileName val.mytext
+		=		saveTextFile fileName val.mytext
 			>>|	editor fileName ls
 	quit
 		=		 return Stop
@@ -183,8 +183,8 @@ where
 
 import StdFile
 
-safeTextFile ::  FileName String -> Task Bool
-safeTextFile  fileName text 
+saveTextFile ::  FileName String -> Task Bool
+saveTextFile  fileName text 
 	= 						accWorld (safeFileMonad  fileName text)
 where
 	safeFileMonad ::  String String *World -> (Bool,*World)
