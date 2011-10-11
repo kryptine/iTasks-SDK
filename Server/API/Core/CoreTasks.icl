@@ -307,7 +307,9 @@ where
 								= (TaskBusy (Just tui) actions TCEmpty,iworld)
 
 	changeNo (TaskContext _ _ n _) = n
-	
+
+import StdDebug
+
 mergeTUI props imerge tuis warning actions
 	= imerge { title = props.TaskMeta.title
 			 , instruction = props.TaskMeta.instruction

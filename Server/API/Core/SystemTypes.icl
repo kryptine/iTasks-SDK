@@ -26,7 +26,6 @@ JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
 JSONDecode{|Timestamp|} c				= (Nothing, c)
 
-
 gEq{|(->)|} _ _ _ _			= False	// functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 //gEq{|Dynamic|} (x :: a | gEq{|*|} a) (y :: a | gEq{|*|} a) = x === y
@@ -657,6 +656,26 @@ where
 	toString (WorkflowProcess id) = "w" +++ toString id
 	toString (EmbeddedProcess id target) = "e" +++ toString id +++ "-" +++ target
 
+instance fromString ProcessId
+where
+	fromString s
+		| size s == 0	= abort err
+		| s.[0] == 's'	= SessionProcess rest
+		| s.[0] == 'w'
+			# pid = toInt rest
+			| pid > 0	= WorkflowProcess pid
+			| otherwise	= abort err
+		| s.[0] == 'e'	= case split "-" rest of
+			[spid,target]
+				# pid = toInt spid
+				| pid > 0	= EmbeddedProcess pid target
+				| otherwise	= abort err
+			_
+				= abort err
+	where		
+		rest	= (subString 1 (size s) s)
+		err		= "Could not parse process id " +++ s
+	
 instance toEmail EmailAddress where toEmail e = e
 instance toEmail String where toEmail s = EmailAddress s
 instance toEmail User

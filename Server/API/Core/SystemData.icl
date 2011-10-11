@@ -51,8 +51,10 @@ sessions = makeReadOnlyShared "SystemData_sessions" 'SessionDB'.getSessions 'Ses
 topLevelTasks :: (TaskList Void)
 topLevelTasks = GlobalTaskList
 
+//TODO: Figure out pattern match bug
 currentProcessId :: ReadOnlyShared ProcessId
-currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack=[currentProcess:_]} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
+//currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack=[currentProcess:_]} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
+currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) ('ProcessDB'.lastChange)
 
 currentProcesses ::ReadOnlyShared [Process]
 currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running] [Active]) 'ProcessDB'.lastChange

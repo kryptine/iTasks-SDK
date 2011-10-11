@@ -172,11 +172,11 @@ where
 		
 	putback (Table _ cells mbSel) _ (_,state) = (Just mbSel,Just {state & selectedProcess = fmap (getProcId cells) mbSel})
 	getProcId cells idx = case cells !! idx !! 4 of
-		Text procId	= WorkflowProcess (toInt procId)
+		Text procId	= fromString procId
 		_ = abort "getProcId"
 
 workTabPanel :: !(TaskList ClientState) -> Task ParallelControl
-workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList)),(BodyTask, homeTab)]
+workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList))/*,(BodyTask, homeTab)*/]
 where
 	homeTab _ = showInformation "Home" [] (HtmlInclude "/src/static/skins/default/welcome.html") <<@ maximalInteractionLayout >>+ noActions 
 	

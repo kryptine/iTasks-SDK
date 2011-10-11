@@ -103,10 +103,9 @@ evalInstance target commitEvent context=:(TaskContext processId properties chang
 			# evalFun			= (toTaskFuncs currentTask).evalFun
 			# pid				= last (taskNrFromString properties.systemProperties.SystemProperties.taskId)
 			# taskNr			= [changeNo,pid]
-			# procId			= WorkflowProcess pid
 			# taskProperties	= currentTask.Task.properties
 			//Update current process id & eval stack in iworld
-			# iworld			= {iworld & evalStack = [procId:evalStack]} 
+			# iworld			= {iworld & evalStack = [processId:evalStack]} 
 			//Strip the process id and change number from the commit event and switch from ProcessEvent to TaskEvent if it matches
 			# commitEvent = case commitEvent of
 					Just (ProcessEvent [p,n:steps] action)

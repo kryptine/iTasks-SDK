@@ -44,7 +44,7 @@ Ext.define('itasks.component.Grid',{
 		this.fireEvent('change');	
 	},
 	setValue: function(value) {
-		if(Ext.isNumber(value)) {			
+		if(Ext.isNumber(value) && value < this.store.count() && value > 0) {			
 			this.getSelectionModel().select(value);
 		} else {
 			this.getSelectionModel().deselectAll();

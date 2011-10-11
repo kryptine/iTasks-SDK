@@ -44,6 +44,7 @@ instance toString (TaskList s)
 instance fromString Date
 instance fromString Time
 instance fromString DateTime
+instance fromString ProcessId
 
 instance == User
 instance == Document
