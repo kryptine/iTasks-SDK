@@ -60,8 +60,9 @@ derive class iTask Person, Gender
 personList6 :: Task [Person]
 personList6
 	=         enterInformation "Please fill in the form" []
-		>?*  [(Action "Add one", IfValid (\p -> personList6 >>= \ps -> return [p:ps]))  
-			 ,(Action "Quit",    Always (return []))
+		>?*  [(Action "Add another one", IfValid (\p -> personList6 >>= \ps -> return [p:ps]))  
+			 ,(Action "Done",    IfValid (\p -> return [p]))
+			 ,(Action "Cancel",  Always  (return []))
 			 ]
 
 // accept only an even number 
