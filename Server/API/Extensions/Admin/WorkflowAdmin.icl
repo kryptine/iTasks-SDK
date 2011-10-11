@@ -183,7 +183,7 @@ where
 controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
 controlWorkTabs state taskList = forever (
 					chooseActionDyn openTabTrigger (state >+< openProcs)
-	>>= \proc ->	appendTask (BodyTask, \_ -> workTab proc openProcs <<@ singleControlLayout) taskList
+	>>= \proc ->	appendTask (BodyTask, \_ -> workTab proc openProcs  <<@ singleControlLayout) taskList
 	>>|				update (\state -> {state & selectedProcess = Nothing}) state
 	>>|				update (\procs -> [proc:procs]) openProcs)
 where

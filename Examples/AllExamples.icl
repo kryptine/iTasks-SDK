@@ -44,7 +44,7 @@ import Groups, Lists, Messages, Consensus
 import WorkflowAdmin
 
 Start :: *World -> *World
-Start world = startEngine (manageWorkflows workflows) world
+Start world = startEngine (manageWorkflows (workflows ++ workflowmw)) world
 where
 	workflows = flatten [ travelBookingExample
 						, movingTaskExample
@@ -69,5 +69,6 @@ where
 						, rpcExamples
 						, ginExamples
 						, apiDocumentationExamples
-						, [workflow "Manage workflows" "Manage other workflows and instances" manageWorkflows]
 						]
+	workflowmw	= [workflow "Manage workflows" "Manage other workflows and instances" (manageWorkflows workflows)]
+						

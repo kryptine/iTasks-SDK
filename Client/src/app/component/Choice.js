@@ -9,9 +9,14 @@ Ext.define('itasks.component.Choice',{
 		this.name = this.getId();
 		
 		if(!this.width)
+			this.width = 300;
 			this.hwrap = true;
-		if(!this.height)
+			this.simulatedWidth = true;
+		if(!this.height) {
+			this.height = 300;
 			this.vwrap = true;
+			this.simulatedHeight = true;
+		}
 
 		var selection = Ext.isArray(this.value) ? this.value : [];
 		this.checkRadio = selection.length == 0;
@@ -45,24 +50,6 @@ Ext.define('itasks.component.Choice',{
 			}
 		}
 	},
-	/*
-	//Overwrite wrap size, because it cannot properly measure the wrap size
-	calcWrapSize: function() {
-		
-		var i = 0, len = this.items.length, item, size;
-		var wrapWidth = 0, wrapHeight = 0;
-		
-		for(i = 0; i < len; i++) {
-			item = this.items.get(i);
-			//TODO: Use real measurements here.
-			size = {width: 250, height: 22},
-		
-			wrapWidth = Math.max(wrapWidth, size.width);
-			wrapHeight += size.height;
-		}
-		return {width: wrapWidth, height: wrapHeight};
-	},
-	*/
 	getEditName: function() {
 		return this.editName;
 	},
