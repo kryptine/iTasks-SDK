@@ -1,7 +1,7 @@
-Ext.define('itasks.component.Date',{
+Ext.define('itasks.component.edit.Date',{
 	extend: 'Ext.form.field.Date',
+	alias: 'widget.itasks.edit.date',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.idate',
 	format: 'Y-m-d',
 	getEditValue: function() {
 		return this.getRawValue();

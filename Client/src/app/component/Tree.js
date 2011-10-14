@@ -1,7 +1,7 @@
 Ext.define('itasks.component.Tree',{
 	extend: 'Ext.tree.Panel',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.itree',
+	alias: 'widget.itasks.tree',
 	rootVisible: false,
 	selectedNode: -1,
 	viewConfig: {loadMask: false},

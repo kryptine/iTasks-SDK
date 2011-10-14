@@ -1,6 +1,6 @@
-Ext.define('itasks.component.Bool',{
+Ext.define('itasks.component.edit.Bool',{
 	extend: 'Ext.form.field.Checkbox',
-	alias: 'widget.ibool',
+	alias: 'widget.itasks.edit.bool',
 	mixins: ['itasks.mixin.Editable'],
 	initComponent: function() {
 	

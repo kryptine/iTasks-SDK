@@ -3,13 +3,23 @@ implementation module GenVisualize
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List, Generic
 import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefinition, SystemTypes, HtmlUtil
 
-visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> TUIDef | gVisualizeEditor{|*|} a
+visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> Maybe TUIDef | gVisualizeEditor{|*|} a
 visualizeAsEditor x taskId idx vmask editEvent
-	# vst = {mkVSt & verifyMask = [vmask], editEvent = editEvent, taskId = taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
+	# vst = {mkVSt & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
 	# (defs,vst) = gVisualizeEditor{|*|} (Just x) vst
 	= case defs of
-		[tui]   = tui
-		tuis    = {content = TUIContainer (defaultLayoutContainer tuis), width = WrapContent 0, height = WrapContent 0, margins = Nothing}
+		[]		= Nothing
+		[tui]   = Just tui
+		tuis    = Just (defaultDef (TUIContainer (defaultLayoutContainer tuis)))
+
+visualizeAsDisplay :: !a -> Maybe TUIDef | gVisualizeEditor{|*|} a
+visualizeAsDisplay x 
+	# vst = {mkVSt & renderAsStatic = True}
+	# (defs,vst)	= gVisualizeEditor{|*|} (Just x) vst
+	= case defs of
+		[]		= Nothing
+		[tui]	= Just tui
+		tuis	= Just (defaultDef (TUIContainer (defaultLayoutContainer tuis)))
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
 visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)
@@ -252,8 +262,8 @@ curLabel _				= "&euro;" //Use the default currency
 
 mkVSt :: *VSt
 mkVSt = {VSt| currentPath = startDataPath,
-		selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = "",
-		controlSize = (Auto,Auto,Nothing)}
+		selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = Nothing,
+		controlSize = (Nothing,Nothing,Nothing)}
 
 //Generic visualizer
 generic gVisualizeEditor a | gVisualizeText a, gVisualizeHtml a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
@@ -264,8 +274,8 @@ gVisualizeEditor{|UNIT|} _ vst
 gVisualizeEditor{|FIELD of d|} fx _ _ val vst
 	# x = fmap fromFIELD val
 	# (vizBody,vst=:{VSt|optional})	= fx x {VSt|vst & optional = False}
-	# label							= {htmlDisplay (camelCaseToWords d.gfd_name +++ if optional "" "*" +++ ":") & width = Fixed 100}
-	= ([{content = TUIContainer {TUIContainer|defaultLayoutContainer [label: vizBody] & direction = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
+	# label							= {stringDisplay (camelCaseToWords d.gfd_name +++ if optional "" "*" +++ ":") & width = Just (Fixed 100)}
+	= ([{content = TUIContainer {TUIContainer|defaultLayoutContainer [label: vizBody] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
 			
 gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent,controlSize}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
@@ -280,23 +290,23 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex =
 		# (items, vst=:{selectedConsIndex}) = fx x vst
 		# content = if (isTouched cmv) items []
 		= ([{ content = TUIContainer (defaultLayoutContainer
-							[	addMsg (verifyElementStr cmv) (sizedControl controlSize (TUIComboControl [gdc.gcd_name \\ gdc <- d.gtd_conses])
-										{ TUIControl
+							[	addMsg (verifyElementStr cmv) (sizedControl controlSize (TUIEditControl (TUIComboControl [gdc.gcd_name \\ gdc <- d.gtd_conses])
+										{ TUIEditControl
 										| name			= dp2s currentPath
-										, taskId		= taskId
+										, taskId		= maybe "" id taskId
 										, value			= toJSON (if (isTouched cmv) (Just selectedConsIndex) Nothing)
 										, eventValue	= eventValue currentPath editEvent
-										})
+										}))
 							:	if (isEmpty content)
 								[]
 								[{ content	= TUIContainer ({TUIContainer|defaultLayoutContainer content & baseCls = Just "x-constructor-panel" })
-								,  width	= FillParent 1 ContentSize
-								,  height	= WrapContent 0
+								,  width	= Just (FillParent 1 ContentSize)
+								,  height	= Just (WrapContent 0)
 								,  margins	= Nothing /* Just {sameMargins 0 & left = 12} */
 								}]
 							])
-						, width		= FillParent 1 ContentSize
-						, height	= WrapContent 0
+						, width		= Just (FillParent 1 ContentSize)
+						, height	= Just (WrapContent 0)
 						, margins	= Nothing
 						}
 			]
@@ -305,10 +315,10 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex =
 	| otherwise
 		# (vis,vst) = fx x vst
 		# vis = case vis of
-			[]	= if (isTouched cmv) [(htmlDisplay ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))] []
+			[]	= if (isTouched cmv) [(stringDisplay ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))] []
 			vis = [{ content	= TUIContainer (defaultLayoutContainer vis)
-								, width 	= FillParent 1 ContentSize
-								, height	= Auto
+								, width 	= Just (FillParent 1 ContentSize)
+								, height	= Nothing
 								, margins	= Nothing
 								}]
 		= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
@@ -330,17 +340,17 @@ where
 					= ([recordContainer viz],vst)
 	where
 		recordContainer viz =	{ content	= TUIContainer (defaultLayoutContainer (if optional [checkbox True] [] ++ viz))
-								, width		= FillParent 1 ContentSize
-								, height	= (WrapContent 0)
+								, width		= Just (FillParent 1 ContentSize)
+								, height	= Just (WrapContent 0)
 								, margins	= Nothing
 								}
 											
-		checkbox c = sizedControl controlSize TUIBoolControl
+		checkbox c = sizedControl controlSize (TUIEditControl TUIBoolControl 
 			{ name			= name
 			, value			= toJSON c
-			, taskId		= taskId
+			, taskId		= maybe "" id taskId
 			, eventValue	= eventValue currentPath editEvent
-			}
+			})
 
 gVisualizeEditor{|PAIR|} fx _ _ fy _ _ val vst
 	# (x,y)			= (fmap fromPAIRX val, fmap fromPAIRY val)
@@ -364,8 +374,6 @@ gVisualizeEditor{|Date|}		val vst = visualizeControlSimple TUIDateControl val vs
 gVisualizeEditor{|Time|}		val vst = visualizeControlSimple TUITimeControl val vst
 gVisualizeEditor{|User|}		val vst = visualizeControlSimple TUIUserControl val vst
 gVisualizeEditor{|Currency|}	val vst = visualizeControlSimple TUICurrencyControl val vst
-	
-gVisualizeEditor{|HtmlDisplay|} val vst = visualizeControlSimple (TUIHtmlDisplay Nothing) (fmap fromHtmlDisplay val) vst
 gVisualizeEditor{|HtmlInclude|} val vst = visualizeControlSimple TUIStringControl (fmap (\(HtmlInclude path) -> path) val) vst
 
 gVisualizeEditor {|Document|}	val vst = visualizeControlSimple control val vst
@@ -429,10 +437,10 @@ where
 			{ content	= TUIListContainer
 							{ TUIListContainer
 							| items = items
-							, name = name
-							, taskId = taskId}
-			, width		= Auto
-			, height	= Auto
+							, name = Just name
+							, taskId = if renderAsStatic Nothing taskId}
+			, width		= Nothing
+			, height	= Nothing
 			, margins	= Nothing
 			}
 			,vst)
@@ -453,7 +461,7 @@ where
 					| index = idx
 					, items = case defs of
 						[def]	= def
-						defs	= {content = TUIContainer (defaultLayoutContainer defs), width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}
+						defs	= {content = TUIContainer (defaultLayoutContainer defs), width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}
 					}
 					
 			addMsg verSt list = case verSt of
@@ -462,12 +470,12 @@ where
 				ErrorMsg msg	= addMsg` "x-invalid-icon" msg list
 			
 			addMsg` cls msg list = [	{ content	= TUIContainer (defaultLayoutContainer [list,mkMessage cls msg])
-										, width		= FillParent 1 ContentSize
-										, height	= WrapContent 0
+										, width		= Just (FillParent 1 ContentSize)
+										, height	= Just (WrapContent 0)
 										, margins	= Nothing
 										}]
 		
-			mkMessage cls msg =	htmlDisplay (DivTag [ClassAttr "list-msg-field"] [DivTag [ClassAttr cls] [Text msg]])
+			mkMessage cls msg =	stringDisplay msg //(DivTag [ClassAttr "list-msg-field"] [DivTag [ClassAttr cls] [Text msg]])
 
 gVisualizeEditor{|Dynamic|}			_ vst	= noVisualization vst
 gVisualizeEditor{|(->)|} _ _ _ _ _ _			_ vst	= noVisualization vst
@@ -508,15 +516,15 @@ gVisualizeEditor{|ControlSize|} fx _ _ val vst=:{controlSize}
 			= (def,{VSt | vst & controlSize = controlSize})
 			
 gVisualizeEditor{|FillControlSize|} fx _ _ val vst=:{controlSize=controlSize=:(_,_,margins)}
-	# (def,vst) = fx (fmap fromFillControlSize val) {vst & controlSize = (FillParent 1 ContentSize,FillParent 1 ContentSize,margins)}
+	# (def,vst) = fx (fmap fromFillControlSize val) {vst & controlSize = (Just (FillParent 1 ContentSize),Just (FillParent 1 ContentSize),margins)}
 	= (def,{vst & controlSize = controlSize})
 
 gVisualizeEditor{|FillWControlSize|} fx _ _ val vst=:{controlSize=controlSize=:(_,height,margins)}
-	# (def,vst) = fx (fmap fromFillWControlSize val) {vst & controlSize = (FillParent 1 ContentSize,height,margins)}
+	# (def,vst) = fx (fmap fromFillWControlSize val) {vst & controlSize = (Just (FillParent 1 ContentSize),height,margins)}
 	= (def,{vst & controlSize = controlSize})
 	
 gVisualizeEditor{|FillHControlSize|} fx _ _ val vst=:{controlSize=controlSize=:(width,_,margins)}
-	# (def,vst) = fx (fmap fromFillHControlSize val) {vst & controlSize = (width,FillParent 1 ContentSize,margins)}
+	# (def,vst) = fx (fmap fromFillHControlSize val) {vst & controlSize = (width,Just (FillParent 1 ContentSize),margins)}
 	= (def,{vst & controlSize = controlSize})
 
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
@@ -535,15 +543,16 @@ visualizeControl control v htmlF vst=:{editEvent,currentPath,controlSize} = visu
 where
 	tuiF name v touched verRes _ vst=:{VSt|taskId, renderAsStatic}
 		| renderAsStatic
-			= ([htmlDisplay (toString (html (htmlF AsDisplay (fmap snd v))))],vst)
+			=	([sizedControl controlSize (TUIShowControl control {TUIShowControl| value = toJSON (fmap fst v)})], vst)
 		| otherwise
 			# v = checkMask touched v
-			# viz = sizedControl controlSize control	{ TUIControl
-														| name = name
-														, value = toJSON (fmap fst v)
-														, eventValue = eventValue currentPath editEvent
-														, taskId = taskId
-														}
+			# viz = sizedControl controlSize (TUIEditControl control
+													{ TUIEditControl
+													| name = name
+													, value = toJSON (fmap fst v)
+													, eventValue = eventValue currentPath editEvent
+													, taskId = fromMaybe "" taskId
+													})
 			= ([addMsg verRes viz],vst)
 		
 	checkMask :: !Bool !(Maybe a) -> (Maybe a)
@@ -573,8 +582,8 @@ where
 		# (childV,vst) = fx (Just child) vst
 		= childVisualizations` children [childV:acc] vst
 
-sizedControl :: !(!TUISize,!TUISize,!(Maybe TUIMargins)) !TUIControlType !TUIControl -> TUIDef
-sizedControl (width,height,mbMargins) type control = {content = TUIControl type control, width = width, height = height, margins = mbMargins}
+sizedControl :: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins) !TUIDefContent -> TUIDef
+sizedControl (width,height,mbMargins) content = {content = content, width = width, height = height, margins = mbMargins}
 
 verifyElementStr :: !VerifyMask -> VerifyResult
 verifyElementStr cmv = case cmv of
@@ -593,18 +602,9 @@ addMsg verRes viz = case verRes of
 		HintMsg msg		= add "x-hint-icon" msg viz
 		ErrorMsg msg	= add "x-invalid-icon" msg viz
 where	
-	add cls msg viz= {content = TUIContainer {TUIContainer|defaultLayoutContainer [viz,mkIcon cls msg] & direction = Horizontal}, width = FillParent 1 ContentSize, height = WrapContent 0, margins = Nothing}
-	mkIcon cls msg = {content = TUIControl (TUIHtmlDisplay (Just msg))
-									{ TUIControl
-									| name			= ""
-									, value			= JSONString (toString (DivTag [ClassAttr cls] []))
-									, eventValue	= Nothing
-									, taskId		= ""
-									}
-					, width		= Fixed 16 //WrapContent 0
-					, height	= Fixed 16 //WrapContent 0
-					, margins	= Nothing
-					}
+	add cls msg viz= {content = TUIContainer {TUIContainer|defaultLayoutContainer [viz,mkIcon cls msg] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}
+	mkIcon cls msg = defaultDef (TUIIcon {type = cls, tooltip = Just msg})
+
 
 //*********************************************************************************************************************
 	

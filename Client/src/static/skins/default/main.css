@@ -647,12 +647,10 @@ div.taskForestLegend{
 }
 
 .list-item-light {
-	position: relative;
 	background-image: url('img/light-blue-background.png') !important;
 }
 
 .list-item-dark {
-	position: relative;
 	background-image: url('img/dark-blue-background.png') !important;
 }
 

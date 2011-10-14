@@ -6,24 +6,26 @@ encodeTUIDefinition :: !TUIDef -> JSONNode
 encodeTUIDefinition d = toJSON d
 
 //TUI DEFINITIONS
-derive JSONEncode TUIButton, Hotkey
+derive JSONEncode TUIButton, TUIIcon, Hotkey
 derive JSONEncode TUIButtonControl, TUIChoiceControl
 derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUIBorderContainer, TUIListContainer
-derive JSONEncode TUIGridControl, TUITree, TUIControl
+derive JSONEncode TUIGridControl, TUITree, TUIEditControl, TUIShowControl
 
 JSONEncode{|TUIDef|} {content,width,height,margins}
 	= merge (JSONEncode{|*|} content) (sizeAttributes width height margins)
 
-JSONEncode{|TUIDefContent|} (TUIControl c b)			= merge (JSONEncode{|*|} c) (JSONEncode{|*|} b)
-JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "ibutton" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIContainer r)			= addXType "icontainer" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIEditControl c b)		= merge (encodeControlType editprefix c) (JSONEncode{|*|} b)
+JSONEncode{|TUIDefContent|} (TUIShowControl c b)		= merge (encodeControlType showprefix c) (JSONEncode{|*|} b)
 JSONEncode{|TUIDefContent|} (TUIPanel r)				= addXType "ipanel" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIContainer r)			= addXType "icontainer" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUITabContainer r)			= addXType "itabc" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUITabItem r)				= addXType "itabi" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIBorderContainer r)		= addXType "iborderc" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIBorderItem r)			= addXType "iborderi" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "ilistc" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListItem r)				= JSONEncode{|*|} r
+JSONEncode{|TUIDefContent|} (TUIIcon r)					= addXType "itasks.icon" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks.button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r) 			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIMenuItem r) 			= JSONEncode{|*|} r
 
@@ -49,35 +51,36 @@ JSONEncode{|TUIMenuItem|} {TUIMenuItem|text,target,action,disabled,iconCls,hotke
 JSONEncode{|TUIMenu|} {TUIMenu|items}
 	= [JSONObject [("xtype",JSONString "menu"),("items", JSONArray (map toJSON items))]]
 
-JSONEncode{|TUIControlType|} TUIStringControl			= justXType "istring"
-JSONEncode{|TUIControlType|} TUICharControl				= justXType "ichar"
-JSONEncode{|TUIControlType|} TUIIntControl				= justXType "iint"
-JSONEncode{|TUIControlType|} TUIRealControl				= justXType "ireal"
-JSONEncode{|TUIControlType|} TUIBoolControl				= justXType "ibool"
-JSONEncode{|TUIControlType|} TUINoteControl				= justXType "inote"
-JSONEncode{|TUIControlType|} TUIDateControl				= justXType "idate"
-JSONEncode{|TUIControlType|} TUITimeControl				= justXType "itime"
-JSONEncode{|TUIControlType|} TUIUserControl				= justXType "istring"
-JSONEncode{|TUIControlType|} TUIPasswordControl			= justXType "ipassword"
-JSONEncode{|TUIControlType|} TUICurrencyControl			= justXType "icurrency"
-JSONEncode{|TUIControlType|} (TUIHtmlDisplay tooltip)	= addXType "ihtml" [JSONObject [("tooltip",toJSON tooltip)]]
-JSONEncode{|TUIControlType|} (TUIChoiceControl r)		= addXType "ichoice" (JSONEncode{|*|} r)
-JSONEncode{|TUIControlType|} (TUIComboControl options)	= addXType "icombo" [JSONObject [("options",toJSON options)]]
-JSONEncode{|TUIControlType|} (TUIButtonControl r)		= addXType "ibutton" (JSONEncode{|*|} r)
-JSONEncode{|TUIControlType|} (TUIDocumentControl doc)	= addXType "itasks.tui.Document" [JSONObject [("document",toJSON doc)]]
-JSONEncode{|TUIControlType|} (TUIORYXControl url)		= addXType "itasks.tui.Oryx" [JSONObject [("stencilsetURL",JSONString url)]]
-JSONEncode{|TUIControlType|} (TUIGridControl r)			= addXType "igrid" (JSONEncode{|*|} r)
-JSONEncode{|TUIControlType|} (TUITreeControl tree)		= addXType "itree" [JSONObject [("tree",toJSON tree)]]
-JSONEncode{|TUIControlType|} (TUICustomControl xtype)	= justXType xtype
+editprefix :== "itasks.edit."
+showprefix :== "itasks.show."
+
+encodeControlType prefix TUIStringControl				= justXType (prefix +++ "string")
+encodeControlType prefix TUICharControl					= justXType (prefix +++ "char") 
+encodeControlType prefix TUIIntControl					= justXType (prefix +++ "int")
+encodeControlType prefix TUIRealControl					= justXType (prefix +++ "real")
+encodeControlType prefix TUIBoolControl					= justXType (prefix +++ "bool")
+encodeControlType prefix TUINoteControl					= justXType (prefix +++ "note")
+encodeControlType prefix TUIDateControl					= justXType (prefix +++ "date")
+encodeControlType prefix TUITimeControl					= justXType (prefix +++ "time")
+encodeControlType prefix TUIUserControl					= justXType (prefix +++ "string")
+encodeControlType prefix TUIPasswordControl				= justXType (prefix +++ "password")
+encodeControlType prefix TUICurrencyControl				= justXType (prefix +++ "currency")
+encodeControlType prefix (TUIChoiceControl r)			= addXType "itasks.choice" (JSONEncode{|*|} r)
+encodeControlType prefix (TUIComboControl r)			= [JSONObject [("xtype",JSONString "itasks.combo"),("options",toJSON r)]]
+encodeControlType prefix (TUIButtonControl r)			= addXType "itasks.button" (JSONEncode{|*|} r)
+encodeControlType prefix (TUIGridControl r)				= addXType "itasks.grid" (JSONEncode{|*|} r)
+encodeControlType prefix (TUITreeControl r)				= [JSONObject [("xtype",JSONString "itasks.tree"),("tree",toJSON r)]]
+encodeControlType prefix (TUICustomControl xtype)		= justXType xtype
+
 
 JSONEncode{|TUIDirection|} Horizontal	= [JSONString "horizontal"]
 JSONEncode{|TUIDirection|} Vertical		= [JSONString "vertical"]
-JSONEncode{|TUIHGravity|} HGLeft		= [JSONString "left"]
-JSONEncode{|TUIHGravity|} HGCenter		= [JSONString "center"]
-JSONEncode{|TUIHGravity|} HGRight		= [JSONString "right"]
-JSONEncode{|TUIVGravity|} VGTop			= [JSONString "top"]
-JSONEncode{|TUIVGravity|} VGCenter		= [JSONString "middle"]
-JSONEncode{|TUIVGravity|} VGBottom		= [JSONString "bottom"]
+JSONEncode{|TUIHAlign|} AlignLeft		= [JSONString "left"]
+JSONEncode{|TUIHAlign|} AlignCenter		= [JSONString "center"]
+JSONEncode{|TUIHAlign|} AlignRight		= [JSONString "right"]
+JSONEncode{|TUIVAlign|} AlignTop		= [JSONString "top"]
+JSONEncode{|TUIVAlign|} AlignMiddle		= [JSONString "middle"]
+JSONEncode{|TUIVAlign|} AlignBottom		= [JSONString "bottom"]
 JSONEncode{|TUIMargins|} {TUIMargins|top,right,bottom,left} = [JSONString (toString top +++ " " +++ toString right +++ " " +++ toString bottom +++ " " +++ toString left)]
 
 sizeAttributes width height margins
@@ -87,15 +90,15 @@ where
 	heightfields = sizefields "height" "minHeight" "vwrap" "vflex" height
 	
 	sizefields fixedField minField wrapField flexField size = case size of
-		Fixed pixels				= [(fixedField,JSONInt  pixels)]
-		WrapContent 0				= [(wrapField,JSONBool True)] //Don't include minField if it is 0
-		WrapContent	minsize			= [(wrapField,JSONBool True),(minField, JSONInt minsize)]
-		FillParent weight minsize	= [(flexField,JSONInt weight)] ++ case minsize of
-											ContentSize			= [(wrapField,JSONBool True)]
-											FixedMinSize 0		= [] //Don't include minField if it is 0
-											FixedMinSize pixels	= [(minField, JSONInt pixels)]
-		Auto						= []
-
+		Nothing								= []
+		Just (Fixed pixels)					= [(fixedField,JSONInt  pixels)]
+		Just (WrapContent 0)				= [(wrapField,JSONBool True)] //Don't include minField if it is 0
+		Just (WrapContent minsize)			= [(wrapField,JSONBool True),(minField, JSONInt minsize)]
+		Just (FillParent weight minsize)	= [(flexField,JSONInt weight)] ++ case minsize of
+												ContentSize			= [(wrapField,JSONBool True)]
+												FixedMinSize 0		= [] //Don't include minField if it is 0
+												FixedMinSize pixels	= [(minField, JSONInt pixels)]
+		
 	marginfields = case margins of
 		Nothing = []
 		Just m	= [("margins",toJSON m)]
@@ -127,7 +130,7 @@ encodeTUIUpdate (TUISetTaskId path taskId)		= [node path "setTaskId"	 	[JSONStri
 encodeTUIUpdate (TUISetName path name)			= [node path "setName"			[JSONString name]]
 encodeTUIUpdate (TUISetEnabled path enabled)	= [node path "setDisabled"		[JSONBool (not enabled)]]
 encodeTUIUpdate (TUISetTitle path (title,icon))	= [node path "setTitle"			[JSONString title: maybe [] (\x -> [JSONString x]) icon]]
-encodeTUIUpdate (TUISetSize path (Fixed width) (Fixed height))
+encodeTUIUpdate (TUISetSize path (Just (Fixed width)) (Just (Fixed height)))
 												= [node path "setSize"			[JSONInt width, JSONInt height]]
 encodeTUIUpdate (TUISetSize _ _ _)				= [] //Only set size with fixed values
 encodeTUIUpdate (TUIReplace path index def)		= [node path "remove" 			[JSONInt index], node path "insert" [JSONInt index,toJSON def]]

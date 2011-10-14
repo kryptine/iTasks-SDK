@@ -1,7 +1,7 @@
 Ext.define('itasks.component.MenuButton',{
 	extend: 'Ext.Button',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.imenub',
+	alias: 'widget.itasks.menubutton',
 	initComponent: function() {
 		this.callParent(arguments);
 

@@ -26,14 +26,14 @@ from Task			import :: TaskAction
 :: TUIName	:== String
 
 :: TUIDef =	{ content	:: !TUIDefContent
-			, width		:: !TUISize
-			, height	:: !TUISize
+			, width		:: !Maybe TUISize
+			, height	:: !Maybe TUISize
 			, margins	:: !Maybe TUIMargins
 			}
 
 :: TUIDefContent
-	= TUIControl			!TUIControlType !TUIControl
-	| TUIButton				!TUIButton
+	= TUIEditControl		!TUIControlType !TUIEditControl
+	| TUIShowControl		!TUIControlType !TUIShowControl
 	| TUIContainer			!TUIContainer
 	| TUIPanel				!TUIPanel
 	| TUITabContainer		!TUITabContainer
@@ -42,6 +42,8 @@ from Task			import :: TaskAction
 	| TUIBorderItem			!TUIBorderItem
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
+	| TUIIcon				!TUIIcon
+	| TUIButton				!TUIButton
 	| TUIMenuButton			!TUIMenuButton
 	| TUIMenuItem			!TUIMenuItem
 	| TUICustom				!JSONNode
@@ -64,14 +66,16 @@ from Task			import :: TaskAction
 					| TUIGridControl		!TUIGridControl
 					| TUITreeControl		![TUITree]
 					| TUIORYXControl		!String // stencilset URL
-					| TUIHtmlDisplay		!(Maybe Tooltip)
 					| TUICustomControl		!String // xtype
 
-:: TUIControl =
+:: TUIEditControl =
 	{ name			:: !TUIName
 	, value			:: !JSONNode
 	, taskId		:: !TaskId
 	, eventValue	:: !Maybe JSONNode
+	}
+:: TUIShowControl =
+	{ value			:: !JSONNode
 	}
 :: TUIChoiceControl =
 	{ allowMultiple	:: !Bool
@@ -90,16 +94,16 @@ from Task			import :: TaskAction
 :: TUIContainer =
 	{ items				:: ![TUIDef]
 	, direction			:: !TUIDirection
-	, halign			:: !TUIHGravity
-	, valign			:: !TUIVGravity
+	, halign			:: !TUIHAlign
+	, valign			:: !TUIVAlign
 	, padding			:: !Maybe Int
 	, baseCls			:: !Maybe String
 	}
 :: TUIPanel =
 	{ items				:: ![TUIDef]
 	, direction			:: !TUIDirection
-	, halign			:: !TUIHGravity
-	, valign			:: !TUIVGravity
+	, halign			:: !TUIHAlign
+	, valign			:: !TUIVAlign
 	, padding			:: !Maybe Int
 	, title				:: !PanelTitle
 	, frame				:: !Bool
@@ -131,16 +135,20 @@ from Task			import :: TaskAction
 	}
 :: TUIListContainer =
 	{ items			:: ![TUIListItem]
-	, name			:: !TUIName
-	, taskId		:: !TaskId
+	, taskId		:: !Maybe TaskId
+	, name			:: !Maybe TUIName
 	}
 :: TUIListItem =
 	{ items			:: !TUIDef
 	, index			:: !Int
 	}
+:: TUIIcon =
+	{ type			:: !String
+	, tooltip		:: !Maybe String
+	}
 :: TUIButton =
-	{ name			:: !TUIName
-	, taskId		:: !TaskId
+	{ taskId		:: !TaskId
+	, name			:: !TUIName
 	, text			:: !String
 	, disabled		:: !Bool
 	, iconCls		:: !String
@@ -180,8 +188,7 @@ from Task			import :: TaskAction
 															// If there is more than one 'FillParent' element in one container the available space is distributed according to the weights (my size = my weight/sum of weights * available space)
 															// If the space becomes smaller than the minimal size, the element behaves as if its minimal size was its fixed size
 					| Fixed !TUIFixedSize					// The tui element has a fixed size
-					| Auto									// The actual size is one of the three options specified above, determined by the client
-
+				
 :: TUIMargins =	{ top		:: !TUIFixedSize
 				, right		:: !TUIFixedSize
 				, bottom	:: !TUIFixedSize
@@ -192,13 +199,13 @@ from Task			import :: TaskAction
 :: TUIWeight		:== Int
 :: TUIMinSize		= ContentSize							// The container's minimal size is the minimal size of its content
 					| FixedMinSize !TUIFixedSize			// The container has a fixed minimal size
-:: TUIHGravity		= HGLeft | HGCenter | HGRight
-:: TUIVGravity		= VGTop | VGCenter | VGBottom
+:: TUIHAlign		= AlignLeft | AlignCenter | AlignRight
+:: TUIVAlign		= AlignTop | AlignMiddle | AlignBottom
 :: TUIDirection		= Horizontal | Vertical
 
 :: Tooltip :== String
 
-htmlDisplay				:: !html -> TUIDef | toString html
+stringDisplay			:: !String -> TUIDef
 defaultLayoutContainer	:: ![TUIDef] -> TUIContainer
 defaultLayoutPanel		:: ![TUIDef] -> TUIPanel
 sameMargins				:: !TUIFixedSize -> TUIMargins

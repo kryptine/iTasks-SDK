@@ -115,7 +115,7 @@ where
 	appIdentity = (showSharedInformation "Application identity" [] applicationName Void >>+ noActions)
 	
 	tweak :: LayoutTweak
-	tweak = \(def,actions) -> ({TUIDef|def & margins = Just {sameMargins 0 & top = 100}, width = WrapContent 0},actions)
+	tweak = \(def,actions) -> ({TUIDef|def & margins = Just {sameMargins 0 & top = 100}, width = Just (WrapContent 0)},actions)
 	
 workflowDashboard :: Task Void
 workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
@@ -130,7 +130,7 @@ workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProces
 infoBar :: Task ParallelControl
 infoBar = showSharedInformation "Info" [ShowView (GetShared view)] currentUser Void >>+ (\_ -> UserActions [(Action "Log out",Just Stop)])
 where
-	view user = HtmlDisplay ("<b>Welcome " +++ toString (Text (toString user)) +++ "</b>")
+	view user = "Welcome " +++ toString user
 	
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
 chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetLocalAndShared mkTree, Putback putback)] (state >+| allowedWorkflowTree) Nothing >>+ noActions
@@ -213,8 +213,8 @@ where
 // LAYOUTS
 mainLayout {TUIParallel | items=i=:[(_,Just infoBar, logoutAction), (_,Just tree,_), (_,Just description,_),(_,Just workTabPanel,_), (_,Just processTable,_), (_,_,controlActions):_]} =
 	({ content	= content
-	, width		= FillParent 1 (FixedMinSize 0)
-	, height	= FillParent 1 (FixedMinSize 0)
+	, width		= Just (FillParent 1 (FixedMinSize 0))
+	, height	= Just (FillParent 1 (FixedMinSize 0))
 	, margins	= Nothing
 	},controlActions ++ logoutAction)
 where
@@ -226,14 +226,14 @@ where
 								 , initSplit = 260, collapsible = True}
 	*/
 	left =	{ content	= TUIPanel (defaultLayoutPanel [tree,description])
-			, width		= Fixed 260
+			, width		= Just (Fixed 260)
 			//, width		= FillParent 1 (FixedMinSize 100)
-			, height	= FillParent 1 (FixedMinSize 0)
+			, height	= Just (FillParent 1 (FixedMinSize 0))
 			, margins	= Nothing
 			}
 	right = { content	= TUIPanel (defaultLayoutPanel [infoBar,workArea])
-			, width		= FillParent 1 (FixedMinSize 0)
-			, height	= FillParent 1 (FixedMinSize 0)
+			, width		= Just (FillParent 1 (FixedMinSize 0))
+			, height	= Just (FillParent 1 (FixedMinSize 0))
 			, margins	= Nothing
 			}
 	
@@ -250,8 +250,8 @@ where
 				}
 	*/
 	workArea =	{content	= TUIContainer (defaultLayoutContainer [processTable, fillParent workTabPanel])
-				,width		= FillParent 1 (FixedMinSize 0)
-				,height		= FillParent 1 (FixedMinSize 0)
+				,width		= Just (FillParent 1 (FixedMinSize 0))
+				,height		= Just (FillParent 1 (FixedMinSize 0))
 				,margins	= Nothing
 				}
 				
@@ -259,34 +259,34 @@ mainLayout p = defaultParallelLayout p
 
 infoBarLayout :: TUIInteraction -> (TUIDef,[TaskAction])
 infoBarLayout {title,editorParts,actions=actions=:[(ltask,laction,_)]} = (
-	{ content	= TUIContainer {TUIContainer|defaultLayoutContainer [{hd editorParts & width = WrapContent 0, margins = Nothing},{logoutButton & margins = Nothing}]
-								& direction = Horizontal, halign = HGRight, valign = VGCenter, baseCls = Just "x-panel-header"}
-	, width		= FillParent 1 (ContentSize)
-	, height	= Fixed 30
+	{ content	= TUIContainer {TUIContainer|defaultLayoutContainer [{hd editorParts & width = Just (WrapContent 0), margins = Nothing},{logoutButton & margins = Nothing}]
+								& direction = Horizontal, halign = AlignRight, valign = AlignMiddle, baseCls = Just "x-panel-header"}
+	, width		= Just (FillParent 1 (ContentSize))
+	, height	= Just (Fixed 30)
 	, margins	= Nothing
 	}, [])
 where
 	logoutButton =
 		{content = TUIButton { TUIButton | name = actionName laction, taskId = ltask, disabled = False
 							 , text = actionName laction, iconCls = "icon-log-out", actionButton = True }
-		, width = WrapContent 0, height = WrapContent 0, margins = Nothing }
+		, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing }
 
-treeLayout {title,editorParts,actions} = (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel [{hd editorParts & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize}] & title = title, iconCls = Just "icon-newwork", frame = False}
-											, width		= FillParent 1 (FixedMinSize 100)
-											, height	= FillParent 1 (FixedMinSize 0)
+treeLayout {title,editorParts,actions} = (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel [{hd editorParts & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)}] & title = title, iconCls = Just "icon-newwork", frame = False}
+											, width		= Just (FillParent 1 (FixedMinSize 100))
+											, height	= Just (FillParent 1 (FixedMinSize 0))
 											, margins	= Nothing
 											}, actions)
 
 descriptionLayout {title,editorParts,actions} = (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel (defaultContent editorParts (fst (defaultButtons actions))) & title = title, iconCls = Just "icon-description", frame = False}
-													, width		= FillParent 1 (FixedMinSize 100)
-													, height	= Fixed 150
+													, width		= Just (FillParent 1 (FixedMinSize 100))
+													, height	= Just (Fixed 150)
 													, margins	= Nothing
 													}, actions)
 
 processTableLayout interaction
-	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = Fixed 150, margins = (Just (sameMargins 0))},interaction.TUIInteraction.actions)	 
+	= ({hd interaction.editorParts & width = Just (FillParent 1 ContentSize), height = Just (Fixed 150), margins = (Just (sameMargins 0))},interaction.TUIInteraction.actions)	 
 singleControlLayout interaction
-	= ({hd interaction.editorParts & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize},interaction.TUIInteraction.actions)
+	= ({hd interaction.editorParts & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)},interaction.TUIInteraction.actions)
 
 // UTIL FUNCTIONS
 

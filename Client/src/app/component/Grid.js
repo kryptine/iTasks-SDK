@@ -1,7 +1,7 @@
 Ext.define('itasks.component.Grid',{
 	extend: 'Ext.grid.Panel',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.igrid',
+	alias: 'widget.itasks.grid',
 	forceFit: true,
 	sortableColumns: false,
 	enableColumnHide: false,

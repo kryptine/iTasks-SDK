@@ -11,15 +11,15 @@ from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB IWorl
 
 derive bimap Maybe, (,)
 
-derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
+derive JSONEncode TUIDef, TUIDefContent, TUIUpdate, TUIIcon, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIControlType
 derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIDirection, TUIMinSize, TUIMargins
+derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
 
-derive JSONDecode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
+derive JSONDecode TUIDef, TUIDefContent, TUIUpdate, TUIIcon, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONDecode TUIControlType
 derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONDecode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIDirection, TUIMinSize, TUIMargins
+derive JSONDecode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
 	
 JSONEncode{|HtmlTag|} htm = [JSONString (toString htm)]
 

@@ -323,7 +323,7 @@ Ext.define('itasks.layout.VHBox',{
 			owner.minWidth = minOwnerWidth;
 			
 			//If the owner is too small, or has no width property set yet, set it to the minimal size
-			if(tSize.width < meta.wrapSize.width || owner.simulatedWidth) { 
+			if(owner.simulatedWidth || tSize.width < meta.wrapSize.width || (!owner.hflex && tSize.width > meta.wrapSize.width)) { 
 				newSize.width = minOwnerWidth;
 				resized = true;
 			}
@@ -334,7 +334,7 @@ Ext.define('itasks.layout.VHBox',{
 			owner.wrapHeight = minOwnerHeight;
 			owner.minHeight = minOwnerHeight;
 
-			if(tSize.height < meta.wrapSize.height || owner.simulatedHeight) {
+			if(owner.simulatedHeight || tSize.height < meta.wrapSize.height || (!owner.vlfex && tSize.height > meta.wrapSize.height)) {
 				newSize.height = minOwnerHeight;
 				resized = true;
 			}

@@ -1,6 +1,6 @@
-Ext.define('itasks.component.Int',{
+Ext.define('itasks.component.edit.Int',{
+	alias: 'widget.itasks.edit.int',
 	extend: 'Ext.form.field.Number',
-	alias: 'widget.iint',
 	mixins: ['itasks.mixin.Editable'],
 	allowDecimals: false
 });

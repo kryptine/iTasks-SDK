@@ -1,7 +1,7 @@
 Ext.define('itasks.component.Combo',{
 	extend: 'Ext.form.field.ComboBox',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.icombo',
+	alias: 'widget.itasks.combo',
 	triggerAction: 'all',
 	forceSelection: true,
 	

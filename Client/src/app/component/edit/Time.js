@@ -1,7 +1,7 @@
-Ext.define('itasks.component.Time',{
+Ext.define('itasks.component.edit.Time',{
 	extend: 'Ext.form.field.Time',
+	alias: 'widget.itasks.edit.time',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.itime',
 	format: 'H:i:s',
 	editBufferTime: 1000,
 	getEditValue: function() {

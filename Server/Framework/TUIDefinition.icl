@@ -5,25 +5,16 @@ from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Int
 from SystemTypes	import actionIcon, actionName
 from Task			import  :: TaskAction
 
-htmlDisplay :: !html -> TUIDef | toString html
-htmlDisplay html =	{ content	= TUIControl (TUIHtmlDisplay Nothing)
-									{ TUIControl
-									| name			= ""
-									, value			= JSONString (toString html)
-									, eventValue	= Nothing
-									, taskId		= ""
-									}
-					, width		= Auto
-					, height	= Auto
-					, margins	= Nothing
-					}
+stringDisplay :: !String -> TUIDef
+stringDisplay s
+	= defaultDef (TUIShowControl TUIStringControl {TUIShowControl|value = JSONString s})
 
 defaultLayoutContainer :: ![TUIDef] -> TUIContainer
 defaultLayoutContainer items =	{TUIContainer
 								| items			= items
 								, direction		= Vertical
-								, halign		= HGLeft
-								, valign		= VGTop
+								, halign		= AlignLeft
+								, valign		= AlignTop
 								, padding		= Nothing
 								, baseCls		= Nothing
 								}
@@ -31,8 +22,8 @@ defaultLayoutPanel:: ![TUIDef] -> TUIPanel
 defaultLayoutPanel items =	{TUIPanel
 							| items			= items
 							, direction		= Vertical
-							, halign		= HGLeft
-							, valign		= VGTop
+							, halign		= AlignLeft
+							, valign		= AlignTop
 							, padding		= Nothing
 							, title			= ""
 							, frame			= False
@@ -42,10 +33,10 @@ defaultLayoutPanel items =	{TUIPanel
 							}
 
 defaultDef :: !TUIDefContent -> TUIDef
-defaultDef content = {TUIDef| content = content, width = Auto, height = Auto, margins = Nothing}
+defaultDef content = {TUIDef| content = content, width = Nothing, height = Nothing, margins = Nothing}
 
 fillDef :: !TUIDefContent -> TUIDef
-fillDef content = {TUIDef| content = content, width = FillParent 1 (FixedMinSize 0), height = FillParent 1 (FixedMinSize 0), margins = Nothing}
+fillDef content = {TUIDef| content = content, width = Just (FillParent 1 (FixedMinSize 0)), height = Just (FillParent 1 (FixedMinSize 0)), margins = Nothing}
 
 sameMargins :: !TUIFixedSize -> TUIMargins
 sameMargins m =	{ top		= m
@@ -54,7 +45,7 @@ sameMargins m =	{ top		= m
 				, left		= m
 				}
 fillParent :: !TUIDef -> TUIDef
-fillParent def = {TUIDef|def & width = FillParent 1 (FixedMinSize 0), height = FillParent 1 (FixedMinSize 0)}
+fillParent def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 0)), height = Just ( FillParent 1 (FixedMinSize 0))}
 
 defaultInteractionLayout :: InteractionLayouter
 defaultInteractionLayout = \i -> layout i
@@ -76,8 +67,8 @@ where
 	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (	{ content	= TUIContainer (defaultLayoutContainer (defaultContent editorParts buttons))
-			, width		= Fixed 700
-			, height	= Auto
+			, width		= Just (Fixed 700)
+			, height	= Nothing
 			, margins	= Nothing
 			}, actions)
 
@@ -86,8 +77,8 @@ minimalInteractionLayout = \i -> layout i
 where
 	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
 		= (	{ content	= TUIContainer (defaultLayoutContainer editorParts)
-			, width		= (WrapContent 0)
-			, height	= (WrapContent 0)
+			, width		= Just (WrapContent 0)
+			, height	= Just (WrapContent 0)
 			, margins	= Nothing
 			}, actions)
 				
@@ -126,7 +117,7 @@ where
 		| isEmpty editorParts
 			= defaultInteractionLayout i
 		| otherwise
-			= ({hd editorParts & width = FillParent 1 ContentSize, height	= FillParent 1 ContentSize, margins	= Nothing}, actions)
+			= ({hd editorParts & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize), margins	= Nothing}, actions)
 
 fillInteractionLayout :: InteractionLayouter
 fillInteractionLayout = \{TUIInteraction|instruction,editorParts,actions,warning}
@@ -138,30 +129,31 @@ fillInteractionLayout = \{TUIInteraction|instruction,editorParts,actions,warning
 where
 	fillPanel instruction warning content 
 		= { content	= TUIContainer (defaultLayoutContainer (map margins (instr ++ content)))
-		  , width	= FillParent 1 ContentSize
-		  , height	= FillParent 1 ContentSize
+		  , width	= Just (FillParent 1 ContentSize)
+		  , height	= Just (FillParent 1 ContentSize)
 		  , margins	= Nothing
 		  }
 	where
 		instr = case defaultDescriptionPanel instruction warning of	Just d = [d]; Nothing = [];
 
-	fill def = {def & width = FillParent 1 ContentSize, height = FillParent 1 ContentSize} 
+	fill def = {TUIDef|def & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)} 
 	margins def = {def & margins = Just (sameMargins 5)}
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
-defaultContent editor buttons = [defaultContentPanel (editorContainer ++ buttonContainer)]
+defaultContent editor buttons = [defaultContentPanel (editorContainer editor ++ buttonContainer buttons)]
 where
 	// also add editor container if editor is empty, it's needed as spacer such that buttons are placed at the bottom of the panel
-	editorContainer			= [	{ content	= TUIContainer (defaultLayoutContainer editor)
-								, width		= FillParent 1 ContentSize
-								, height	= FillParent 1 ContentSize
+	editorContainer []		= []
+	editorContainer	editor	= [	{ content	= TUIContainer (defaultLayoutContainer editor)
+								, width		= Just (FillParent 1 ContentSize)
+								, height	= Just (FillParent 1 ContentSize)
 								, margins	= Nothing
 								}]
-	buttonContainer
+	buttonContainer buttons
 		| isEmpty buttons	= []
-		| otherwise			= [	{ content	= TUIContainer {TUIContainer|defaultLayoutContainer buttons & direction = Horizontal, halign = HGRight}
-								, width		= FillParent 1 ContentSize
-								, height	= (WrapContent 0)
+		| otherwise			= [	{ content	= TUIContainer {TUIContainer|defaultLayoutContainer buttons & direction = Horizontal, halign = AlignRight}
+								, width		= Just (FillParent 1 ContentSize)
+								, height	= Just (WrapContent 0)
 								, margins	= Nothing
 								}]
 
@@ -180,8 +172,8 @@ splitParallelLayout direction = \{TUIParallel|items} ->
 	let (metas,tuis,actions) = unzip3 items in
 		(defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer [setFlex direction tui \\ Just tui <- tuis & meta <- metas|not meta.hide] & direction = direction} ),flatten actions)
 where
-	setFlex Vertical item = {item & height = FillParent 1 ContentSize}
-	setFlex Horizontal item = {item & width = FillParent 1 ContentSize}
+	setFlex Vertical item = {TUIDef|item & height = Just (FillParent 1 ContentSize)}
+	setFlex Horizontal item = {TUIDef|item & width = Just (FillParent 1 ContentSize)}
 	
 verticalSplitLayout :: Int -> ParallelLayouter
 verticalSplitLayout initSplit = \p=:{TUIParallel|items} ->
@@ -210,9 +202,9 @@ where
 tabParallelLayout :: ParallelLayouter
 tabParallelLayout = \{TUIParallel|title,items} ->
 		let (tabs,tactions) = unzip [mkTab i \\ i =:(_,Just _,_) <- items] in
-			({ content	= TUITabContainer { TUITabContainer| items = tabs}
-			 , width	= Auto
-		 	 , height	= Auto
+			({ content	= TUITabContainer {TUITabContainer| items = tabs}
+			 , width	= Nothing
+		 	 , height	= Nothing
 			 , margins	= Nothing
 			 }, flatten tactions)
 where
@@ -238,8 +230,8 @@ defaultPanelDescr title iconCls instruction mbWarning width form = defaultPanel 
 
 defaultPanel :: !PanelTitle !PanelIcon !TUISize ![TUIDef] -> TUIDef
 defaultPanel title iconCls width content =	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel content & title = title, iconCls = Just iconCls, frame = True}
-											, width		= width
-											, height	= Auto
+											, width		= Just width
+											, height	= Nothing
 											, margins	= Just (sameMargins 10)
 											}
 
@@ -247,18 +239,18 @@ defaultDescriptionPanel :: !(Maybe String) !(Maybe String) -> Maybe TUIDef
 defaultDescriptionPanel Nothing Nothing = Nothing
 defaultDescriptionPanel mbInstr mbWarning
 	= Just { content	= TUIContainer (defaultLayoutContainer (instr ++ warning))
-			, width		= FillParent 1 ContentSize
-			, height	= (WrapContent 0)
+			, width		= Just (FillParent 1 ContentSize)
+			, height	= Just (WrapContent 0)
 			, margins	= Nothing
 			}
 where
-	instr	= maybe [] (\w -> [htmlDisplay w]) mbInstr
-	warning = maybe [] (\w -> [htmlDisplay (DivTag [ClassAttr "x-invalid-icon"] [Text w])]) mbWarning
+	instr	= [] //TODO maybe [] (\w -> [htmlDisplay w]) mbInstr
+	warning = [] //TODO maybe [] (\w -> [htmlDisplay (DivTag [ClassAttr "x-invalid-icon"] [Text w])]) mbWarning
 
 defaultContentPanel :: ![TUIDef] -> TUIDef
 defaultContentPanel content =		{ content	= TUIContainer {TUIContainer|defaultLayoutContainer content & padding = Just 5}
-									, width		= FillParent 1 ContentSize
-									, height	= FillParent 1 ContentSize
+									, width		= Just (FillParent 1 ContentSize)
+									, height	= Just (FillParent 1 ContentSize)
 									, margins	= Nothing
 									}
 
@@ -295,8 +287,8 @@ where
 			, iconCls 		= actionIcon action
 			, actionButton	= True
 			}
-	 	  , width	= Auto
-		  , height	= Auto
+	 	  , width	= Nothing
+		  , height	= Nothing
 		  , margins	= Nothing
 		  }
 
@@ -361,8 +353,8 @@ columnLayout :: !Int ![TUIDef] -> TUIDef
 columnLayout nCols items
 	# cols = repeatn nCols []
 	# cols = columnLayout` items cols
-	# cols = map (\col -> {content = TUIContainer {TUIContainer|defaultLayoutContainer col & direction = Vertical}, width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}) cols
-	= {content = TUIContainer {TUIContainer|defaultLayoutContainer cols & direction = Horizontal}, width = (WrapContent 0), height = (WrapContent 0), margins = Nothing}
+	# cols = map (\col -> {content = TUIContainer {TUIContainer|defaultLayoutContainer col & direction = Vertical}, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing}) cols
+	= {content = TUIContainer {TUIContainer|defaultLayoutContainer cols & direction = Horizontal}, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing}
 where
 	columnLayout` items cols = case splitAt nCols items of
 		([],_)	= map reverse cols

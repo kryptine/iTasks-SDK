@@ -3,7 +3,7 @@ implementation module TUIDiff
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple
 import Text, Util, GenUpdate, TUIDefinition
 
-derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIDirection, TUISize, TUIHGravity, TUIVGravity, TUIMinSize, TUIMargins, TUIGridControl
+derive gEq TUIControlType, TUIChoiceControl, TUIButtonControl, TUITree, TUIDirection, TUISize, TUIHAlign, TUIVAlign, TUIMinSize, TUIMargins, TUIGridControl
 derive gEq TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 
 :: DiffPath :== [DiffStep] 
@@ -38,16 +38,14 @@ where
 	diffEditorDefinitions`` :: !TUIDefContent !TUIDefContent -> Maybe [TUIUpdate]
 	diffEditorDefinitions`` old new = case (old,new) of
 		// Documents are replaced if their value has changed
-		(TUIControl (TUIDocumentControl odoc) oc, TUIControl (TUIDocumentControl ndoc) nc)
-			| odoc == ndoc && oc.TUIControl.taskId == nc.TUIControl.taskId && oc.TUIControl.name == nc.TUIControl.name
+		(TUIEditControl (TUIDocumentControl odoc) oc, TUIEditControl (TUIDocumentControl ndoc) nc)
+			| odoc == ndoc && oc.TUIEditControl.taskId == nc.TUIEditControl.taskId && oc.TUIEditControl.name == nc.TUIEditControl.name
 				= Just []
 			| otherwise
 				= Nothing
-		(TUIControl (TUIHtmlDisplay tto) _, TUIControl (TUIHtmlDisplay ttn) _)
-			| tto =!= ttn	= Nothing
-		(TUIControl (TUIGridControl ogrid) _, TUIControl (TUIGridControl ngrid) _)
+		(TUIEditControl (TUIGridControl ogrid) _, TUIEditControl (TUIGridControl ngrid) _)
 			| ogrid =!= ngrid	= Nothing
-		(TUIControl otype oc, TUIControl ntype nc)
+		(TUIEditControl otype oc, TUIEditControl ntype nc)
 			| otype === ntype
 				= Just (valueUpdate path oc nc ++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
 		(TUIButton o,TUIButton n)
@@ -75,7 +73,7 @@ where
 			= Just (diffChildEditorDefinitions path (items lcOld) (items lcNew)
 					++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
 			where
-				items lc = [{content = TUIListItem item, width = Auto, height = Auto, margins = Nothing} \\ item <- lc.TUIListContainer.items]
+				items lc = [{content = TUIListItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- lc.TUIListContainer.items]
 		(TUIListItem liOld, TUIListItem liNew)
 			= Just (diffChildEditorDefinitions path [liOld.TUIListItem.items] [liNew.TUIListItem.items])
 		// Custom components need to figure out their own update on the client side
@@ -102,13 +100,13 @@ where
 			++  (diffChildEditorDefinitions` path (i + 1) os ns)
 
 //Update the value of a control
-valueUpdate path old new = update sameValue (\{TUIControl|value} -> Just value) TUISetValue path old new
+valueUpdate path old new = update sameValue (\{TUIEditControl|value} -> Just value) TUISetValue path old new
 where
-	sameValue old new = ov == new.TUIControl.value
+	sameValue old new = ov == new.TUIEditControl.value
 	where
 		ov = case new.eventValue of
 			Just v	= toJSON v
-			Nothing	= old.TUIControl.value
+			Nothing	= old.TUIEditControl.value
 
 //Update the task id of a control
 taskIdUpdate path old new	= update sameTaskId taskIdOf TUISetTaskId path old new
@@ -128,7 +126,7 @@ diffTUIMenus path old new
 					++ [TUIAdd menupath i (tuidef b) \\ i <- [0..] & b <- new]
 where
 	menupath = toString [MenuStep:path]	
-	tuidef b	= {TUIDef| content = TUIMenuButton b, width = Auto, height = Auto, margins = Nothing}
+	tuidef b	= {TUIDef| content = TUIMenuButton b, width = Nothing, height = Nothing, margins = Nothing}
 	
 sameTaskId :: !TUIDefContent !TUIDefContent -> Bool
 sameTaskId a b = (taskIdOf a) == (taskIdOf b)
@@ -137,13 +135,13 @@ sameName :: !TUIDefContent !TUIDefContent -> Bool
 sameName a b = (nameOf a) == (nameOf b)
 
 taskIdOf :: !TUIDefContent -> Maybe String
-taskIdOf (TUIControl _ {TUIControl|taskId})					= Just taskId
+taskIdOf (TUIEditControl _ {TUIEditControl|taskId})			= Just taskId
 taskIdOf (TUIButton {TUIButton|taskId})						= Just taskId
-taskIdOf (TUIListContainer {TUIListContainer|taskId})		= Just taskId
+taskIdOf (TUIListContainer {TUIListContainer|taskId})		= taskId
 taskIdOf _													= Nothing
 
 nameOf :: !TUIDefContent -> Maybe String
-nameOf (TUIControl _ {TUIControl|name})						= Just name
+nameOf (TUIEditControl _ {TUIEditControl|name})				= Just name
 nameOf (TUIButton {TUIButton|name})							= Just name
-nameOf (TUIListContainer {TUIListContainer|name})			= Just name
+nameOf (TUIListContainer {TUIListContainer|name})			= name
 nameOf _													= Nothing

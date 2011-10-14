@@ -132,7 +132,7 @@ gVisualizeText{|Task|} _ _ {Task|properties} = [properties.TaskMeta.title]
 gVisualizeHtml{|Task|} _ _ {Task|properties} = [Text properties.TaskMeta.title]
 gVisualizeEditor{|Task|} _ _ _ mbVal vst
 	# vis = case mbVal of
-		Just {Task|properties}	= [htmlDisplay properties.TaskMeta.title]
+		Just {Task|properties}	= [stringDisplay properties.TaskMeta.title]
 		Nothing					= []
 	= (vis,vst)
 	

@@ -8,7 +8,7 @@ from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONEncode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONEncode	EmailAddress, Session, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
@@ -425,7 +425,7 @@ instance toString HtmlDisplay
 where
 	toString (HtmlDisplay h) = h
 
-toControlSize :: !TUISize !TUISize !(Maybe TUIMargins) !.a -> ControlSize .a
+toControlSize :: !(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !.a -> ControlSize .a
 toControlSize width height margins a = ControlSize width height margins a
 
 fromControlSize :: !(ControlSize .a) -> .a

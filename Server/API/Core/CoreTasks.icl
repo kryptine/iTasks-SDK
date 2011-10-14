@@ -9,7 +9,6 @@ from StdFunc				import o, id
 from IWorld					import :: IWorld(..), :: Control(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException, :: WorkOnException(..), instance toString WorkOnException
-//from WorkflowDB				import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from SystemData				import topLevelTasks
 from Map					import qualified get
 
@@ -197,7 +196,7 @@ where
 
 visualizeParts :: !TaskNr ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![StoredPart l w],!Bool)
 visualizeParts taskNr parts oldParts mbEdit
-	# res = [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]
+	# res =  [(tui,newPart,valid) \\ (Just tui,newPart,valid) <- [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]]
 	= appThd3 and (unzip3 res)
 where
 	visualizePart (part,mbV,idx)
@@ -216,16 +215,18 @@ where
 						Nothing			= visualizePart (FormPart init putback,Nothing,idx)
 					_					= visualizePart (FormPart init putback,Nothing,idx)
 				Blank					= blankForm formView putback mbEdit
-			DisplayPart v				= (htmlDisplay (toString (visualizeAsHtml AsDisplay v)),StoredDisplayView, True)
-			UpdatePart label w			=	({ content = TUIButton	{ TUIButton
+			
+			DisplayPart v				= (visualizeAsDisplay v, StoredDisplayView, True)
+				
+			
+			UpdatePart label w			=	(Just (defaultDef (TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
 																	, text			= label
 																	, disabled		= False
 																	, iconCls		= ""
 																	, actionButton	= False
-																	}
-											, width = Auto, height = Auto, margins = Nothing},StoredUpdate w, True)
+																	})),StoredUpdate w, True)
 	where
 		fromJSON` :: !(FormView v) !JSONNode -> (Maybe v) | JSONDecode{|*|} v
 		fromJSON` _ json = fromJSON json
@@ -275,7 +276,7 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally processId iworld
 			| found
-				= (TaskBusy (Just (htmlDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
+				= (TaskBusy (Just (stringDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
@@ -290,8 +291,8 @@ where
 				# iworld		= storeInstance context iworld
 				# (state,tui,sactions,iworld) = case result of
 					(TaskBusy tui actions _)		= (WOActive, tui, actions, iworld)
-					(TaskFinished _)				= (WOFinished, Just (htmlDisplay "Task finished"), [], iworld)
-					(TaskException _ err)			= (WOExcepted, Just (htmlDisplay ("Task excepted: " +++ err)), [], iworld)
+					(TaskFinished _)				= (WOFinished, Just (stringDisplay "Task finished"), [], iworld)
+					(TaskException _ err)			= (WOExcepted, Just (stringDisplay ("Task excepted: " +++ err)), [], iworld)
 				//Check trigger
 				= case termFunc {localValid = True, modelValue = state} of
 					StopInteraction result

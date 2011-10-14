@@ -1,7 +1,7 @@
 Ext.define('itasks.component.Choice',{
 	extend: 'Ext.form.CheckboxGroup',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.ichoice',
+	alias: 'widget.itasks.choice',
 	columns: 1,
 	initComponent: function() {
 		//Names of checkbox groups have to be unique, so use data path field for events

@@ -5,26 +5,28 @@ Ext.define('itasks.container.ListItem',{
 	layout: 'vhbox',
 
 	initComponent: function() {	
-		Ext.apply(this,{
-			dockedItems: [{
-				xtype: 'panel',
-				layout: 'card',
-				width: 75,
-				height: 22,
-				dock: 'right',
-				items: [{
-					xtype: 'toolbar',
-					height: 22,
+		if(this.ownerCt && this.ownerCt.taskId) {
+			Ext.apply(this,{
+				dockedItems: [{
+					xtype: 'panel',
+					layout: 'card',
 					width: 75,
-					items: [
-						{xtype: 'button', iconCls: 'list-button-up', listeners: {click: {fn: this.handleItemUp, scope: this}}},
-						{xtype: 'button', iconCls: 'list-button-down', listeners: {click: {fn: this.handleItemDown, scope: this}}},
-						{xtype: 'button', iconCls: 'list-button-rem', listeners: {click: {fn: this.handleItemRemove, scope: this}}}
-					]},
-					{xtype: 'component', width: 75, height: 20, padding: 3, html: 'New...'}
-					]
-			}]
-		});
+					height: 22,
+					dock: 'right',
+					items: [{
+						xtype: 'toolbar',
+						height: 22,
+						width: 75,
+						items: [
+							{xtype: 'button', iconCls: 'list-button-up', listeners: {click: {fn: this.handleItemUp, scope: this}}},
+							{xtype: 'button', iconCls: 'list-button-down', listeners: {click: {fn: this.handleItemDown, scope: this}}},
+							{xtype: 'button', iconCls: 'list-button-rem', listeners: {click: {fn: this.handleItemRemove, scope: this}}}
+						]},
+						{xtype: 'component', width: 75, height: 20, padding: 3, html: 'New...'}
+						]
+				}]
+			});
+		}
 		if(!this.width && !this.hwrap && !this.hflex) {
 			this.hwrap = true;
 			this.hflex = 1;
@@ -46,21 +48,22 @@ Ext.define('itasks.container.ListItem',{
 			ownerCt = me.ownerCt,
 			listlen = ownerCt.items.length,
 			listindex = me.index,
-			
-			dock = me.getDockedComponent(0),
-
+				
 			isNewEntryItem = (listindex == listlen - 1),
 			isTopItem = (listindex == 0),
 			isBottomItem = (listindex == listlen - 2),
-			toolbar;
+			dock, toolbar;
 
-		if(isNewEntryItem) {	
-			dock.getLayout().setActiveItem(1);
-		} else {
-			dock.getLayout().setActiveItem(0);
-			toolbar = dock.getComponent(0);
-			toolbar.getComponent(0)[isTopItem ? 'disable' : 'enable']();
-			toolbar.getComponent(1)[isBottomItem ? 'disable' : 'enable']();
+		if(onwerCt.taskId) {
+			dock = me.getDockedComponent(0);
+			if(isNewEntryItem) {	
+				dock.getLayout().setActiveItem(1);
+			} else {
+				dock.getLayout().setActiveItem(0);
+				toolbar = dock.getComponent(0);
+				toolbar.getComponent(0)[isTopItem ? 'disable' : 'enable']();
+				toolbar.getComponent(1)[isBottomItem ? 'disable' : 'enable']();
+			}
 		}
 	},
 	handleItemRemove: function() {

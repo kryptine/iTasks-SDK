@@ -17,7 +17,7 @@ from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefault
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONEncode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode	EmailAddress, Session, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONDecode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
@@ -242,12 +242,12 @@ instance toString HtmlDisplay
 :: HtmlInclude	= HtmlInclude String
 
 // Wrapper types for changing the control's sizes
-:: ControlSize a		= ControlSize		!TUISize !TUISize !(Maybe TUIMargins) !a	//* all controls generated for a have specified sizes
+:: ControlSize a		= ControlSize		!(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !a	//* all controls generated for a have specified sizes
 :: FillControlSize a	= FillControlSize	!a											//* all controls generated for a fill the parent
 :: FillWControlSize a	= FillWControlSize	!a											//* all controls generated for a fill the parent's width
 :: FillHControlSize a	= FillHControlSize	!a											//* all controls generated for a fill the parent's height
 
-toControlSize :: !TUISize !TUISize !(Maybe TUIMargins) !.a -> ControlSize .a
+toControlSize :: !(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !.a -> ControlSize .a
 fromControlSize :: !(ControlSize .a) -> .a
 toFillControlSize :: !.a -> FillControlSize .a
 fromFillControlSize :: !(FillControlSize .a) -> .a

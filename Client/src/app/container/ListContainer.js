@@ -29,6 +29,8 @@ Ext.define('itasks.container.ListContainer',{
 	},
 	afterLayout: function() {
 		this.callParent(arguments);
-		this.items.each (function(item) { item.updateListTools(); });
+		if(this.taskId) {
+			this.items.each (function(item) { item.updateListTools(); });
+		}
 	}
 });	

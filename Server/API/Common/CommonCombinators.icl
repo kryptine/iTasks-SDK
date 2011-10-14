@@ -223,12 +223,12 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
 	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
-(<|) infixl 6 :: !(Task a) !(a -> (Bool, [HtmlTag])) -> Task a | iTask a
+(<|) infixl 6 :: !(Task a) !(a -> (Bool, String)) -> Task a | iTask a
 (<|) taska pred 
 		=			taska
 		>>= \r -> 	case pred r of
 						(True,_) -> return r
-						(False,msg) -> (showInformation "Feedback" [] (toHtmlDisplay msg) >>+ noActions`) ||- (taska <| pred)
+						(False,msg) -> (showInformation "Feedback" []  msg >>+ noActions`) ||- (taska <| pred)
 where
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions
