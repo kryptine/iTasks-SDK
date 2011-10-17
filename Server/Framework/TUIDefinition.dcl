@@ -208,7 +208,9 @@ from Task			import :: TaskAction
 stringDisplay			:: !String -> TUIDef
 defaultLayoutContainer	:: ![TUIDef] -> TUIContainer
 defaultLayoutPanel		:: ![TUIDef] -> TUIPanel
-sameMargins				:: !TUIFixedSize -> TUIMargins
+sameMargins				:: !TUIFixedSize -> Maybe TUIMargins
+leftMargin				:: !TUIFixedSize -> Maybe TUIMargins
+topMargin				:: !TUIFixedSize -> Maybe TUIMargins
 fillParent				:: !TUIDef -> TUIDef
 defaultDef				:: !TUIDefContent -> TUIDef
 fillDef					:: !TUIDefContent -> TUIDef

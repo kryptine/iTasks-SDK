@@ -38,12 +38,15 @@ defaultDef content = {TUIDef| content = content, width = Nothing, height = Nothi
 fillDef :: !TUIDefContent -> TUIDef
 fillDef content = {TUIDef| content = content, width = Just (FillParent 1 (FixedMinSize 0)), height = Just (FillParent 1 (FixedMinSize 0)), margins = Nothing}
 
-sameMargins :: !TUIFixedSize -> TUIMargins
-sameMargins m =	{ top		= m
-				, right		= m
-				, bottom	= m
-				, left		= m
-				}
+sameMargins :: !TUIFixedSize -> Maybe TUIMargins
+sameMargins m =	Just {top = m, right = m, bottom = m, left = m}
+
+leftMargin :: !TUIFixedSize -> Maybe TUIMargins
+leftMargin m = Just {top = 0, right = 0, bottom = 0, left = m}
+
+topMargin :: !TUIFixedSize -> Maybe TUIMargins
+topMargin m = Just {top = m, right = 0, bottom = 0, left = 0}
+
 fillParent :: !TUIDef -> TUIDef
 fillParent def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 0)), height = Just ( FillParent 1 (FixedMinSize 0))}
 
@@ -137,7 +140,7 @@ where
 		instr = case defaultDescriptionPanel instruction warning of	Just d = [d]; Nothing = [];
 
 	fill def = {TUIDef|def & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)} 
-	margins def = {def & margins = Just (sameMargins 5)}
+	margins def = {def & margins = sameMargins 5}
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
 defaultContent editor buttons = [defaultContentPanel (editorContainer editor ++ buttonContainer buttons)]
@@ -232,7 +235,7 @@ defaultPanel :: !PanelTitle !PanelIcon !TUISize ![TUIDef] -> TUIDef
 defaultPanel title iconCls width content =	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel content & title = title, iconCls = Just iconCls, frame = True}
 											, width		= Just width
 											, height	= Nothing
-											, margins	= Just (sameMargins 10)
+											, margins	= sameMargins 10
 											}
 
 defaultDescriptionPanel :: !(Maybe String) !(Maybe String) -> Maybe TUIDef

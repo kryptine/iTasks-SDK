@@ -1,6 +1,6 @@
 Ext.define('itasks.container.Panel',{
 	extend: 'Ext.panel.Panel',
-	alias: 'widget.ipanel',
+	alias: 'widget.itasks.panel',
 	requires: ['itasks.layout.VHBox'],
 
 	initComponent: function() {

@@ -1,7 +1,7 @@
 Ext.define('itasks.component.MenuItem',{
 	extend: 'Ext.menu.Item',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.itasks.menuitem',
+	alias: 'widget.itasks.menu.item',
 	floating: false,
 	
 	initComponent: function() {

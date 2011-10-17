@@ -148,7 +148,7 @@ Ext.define('itasks.layout.VHBox',{
 		if(me.owner.simulatedWidth) {
 			availSize.width = 0;
 		}
-		
+
 		//Collect size information of the items before flexing is applied. 
 		for(i = 0; i < visibleCount; i++) {
 			child = visibleItems[i];
@@ -217,13 +217,14 @@ Ext.define('itasks.layout.VHBox',{
 				
 			//Flex according to weight ratio in the parallel direction	
 			if(child[parallelFlex]) {
-				flexSize = Math.ceil((child[parallelFlex] / remainingFlex) * remainingSpace);
+				flexSize = Math.floor((child[parallelFlex] / remainingFlex) * remainingSpace);
 					
 				remainingSpace -= flexSize;
 				remainingFlex -= child[parallelFlex];
 				
 				flexedSize = calcs[parallelPrefix] + flexSize;
 
+				calcs.dirtySize = calcs.dirtySize || calcs[parallelPrefix] != flexedSize;
 				calcs[parallelPrefix] = flexedSize;	
 			}
 			//Flex to full available space in the perpendicular direction
@@ -334,7 +335,7 @@ Ext.define('itasks.layout.VHBox',{
 			owner.wrapHeight = minOwnerHeight;
 			owner.minHeight = minOwnerHeight;
 
-			if(owner.simulatedHeight || tSize.height < meta.wrapSize.height || (!owner.vlfex && tSize.height > meta.wrapSize.height)) {
+			if(owner.simulatedHeight || tSize.height < meta.wrapSize.height || (!owner.vflex && tSize.height > meta.wrapSize.height)) {
 				newSize.height = minOwnerHeight;
 				resized = true;
 			}

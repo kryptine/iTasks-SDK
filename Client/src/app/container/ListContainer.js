@@ -1,6 +1,6 @@
 Ext.define('itasks.container.ListContainer',{
 	extend: 'Ext.panel.Panel',
-	alias: 'widget.ilistc',
+	alias: 'widget.itasks.list.container',
 	requires: ['itasks.layout.VHBox'],
 	mixins: ['itasks.mixin.Editable'],
 	layout: 'vhbox',
@@ -24,7 +24,11 @@ Ext.define('itasks.container.ListContainer',{
 		}
 		this.callParent(arguments);
 	},
-	onRender: function() {
+	onBeforeAdd: function(item) {
+		if(this.taskId) {
+			item.taskId = this.taskId;
+			item.name = this.name;
+		}
 		this.callParent(arguments);
 	},
 	afterLayout: function() {

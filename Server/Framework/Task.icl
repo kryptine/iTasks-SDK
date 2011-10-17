@@ -15,6 +15,7 @@ mkTask description initFun editFun evalFun =
 		, editFun		= editFun
 		, evalFun		= evalFun
 		}
+	, layout				= Nothing
 	}
 	
 mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
@@ -26,6 +27,7 @@ mkInstantTask description iworldfun =
 		, editFun		= \_ _  context iworld -> (context,iworld)
 		, evalFun		= \taskNr _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}
+	, layout				= Nothing
 	}
 	
 mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task a | descr d
@@ -33,6 +35,7 @@ mkActionTask description actionTaskFun =
 	{ Task
 	| properties	= initTaskMeta description
 	, type			= ActionTask actionTaskFun
+	, layout		= Nothing
 	}
 
 mapActionTask :: !((InformationState a) -> (InformationState b)) !(Task a) -> Task b
@@ -100,13 +103,11 @@ stepTarget i [t:ts]
 	| i == t			= ts
 	| otherwise			= []
 
-derive JSONEncode Task
-derive JSONDecode Task
 derive bimap Maybe, (,)
 
-JSONEncode{|TaskType|} _ tt = dynamicJSONEncode tt			
-JSONDecode{|TaskType|} _ [tt:c] = (dynamicJSONDecode tt,c)
-JSONDecode{|TaskType|} _ c = (Nothing,c)
+JSONEncode{|Task|} _ tt = dynamicJSONEncode tt			
+JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
+JSONDecode{|Task|} _ c = (Nothing,c)
 
 gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
@@ -119,6 +120,7 @@ where
 						, editFun	= abort funerror
 						, evalFun	= abort funerror
 						}
+					, layout = Nothing
 					}
 	funerror = "Creating default task functions is impossible"
 	
@@ -141,10 +143,17 @@ gEq{|Task|} _ _ _ = True // tasks are always equal
 gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 
-toTaskFuncs :: !(Task a) -> TaskFuncs a | iTask a
-toTaskFuncs {Task|type} = case type of
+taskFuncs :: !(Task a) -> TaskFuncs a | iTask a
+taskFuncs {Task|type} = case type of
 	NormalTask funcs	= funcs
 	ActionTask actionF	= actionF (\{modelValue,localValid} -> UserActions [(ActionOk,if localValid (Just modelValue) Nothing)])
+
+taskLayouters :: !(Task a) -> (InteractionLayouter, ParallelLayouter)
+taskLayouters {Task|layout} = case layout of
+	Nothing				= (defaultInteractionLayout	, defaultParallelLayout)
+	Just (Left ilayout)	= (ilayout					, defaultParallelLayout)
+	Just (Right playout)= (defaultInteractionLayout	, playout)
+	
 
 taskException :: !e -> TaskResult a | TC, toString e
 taskException e = TaskException (dynamic e) (toString e)

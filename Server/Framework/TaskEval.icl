@@ -25,7 +25,7 @@ where
 
 createContext :: !ProcessId !Dynamic !ManagerProperties !*IWorld -> (!TaskContext, !*IWorld)
 createContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties iworld=:{IWorld|timestamp}
-	# originalTaskFuncs = toTaskFuncs originalTask
+	# originalTaskFuncs = taskFuncs originalTask
 	# (tcontext,iworld) = originalTaskFuncs.initFun (taskNr processId) iworld		
 	# properties =
 		{ taskProperties	= taskProperties originalTask
@@ -77,7 +77,7 @@ editInstance :: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString T
 editInstance editEvent context=:(TaskContext processId properties changeNo tcontext) iworld
 	= case tcontext of
 		TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext
-			# editFun			= (toTaskFuncs currentTask).editFun
+			# editFun			= (taskFuncs currentTask).editFun
 			# procId			= last (taskNrFromString properties.systemProperties.SystemProperties.taskId)
 			# taskNr			= [changeNo,procId]
 			# (scontext,iworld) = case editEvent of
@@ -100,7 +100,8 @@ evalInstance target commitEvent context=:(TaskContext processId properties chang
 	= case tcontext of
 		//Eval instance
 		TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext
-			# evalFun			= (toTaskFuncs currentTask).evalFun
+			# evalFun			= (taskFuncs currentTask).evalFun
+			# (ilayout,playout)	= taskLayouters currentTask
 			# pid				= last (taskNrFromString properties.systemProperties.SystemProperties.taskId)
 			# taskNr			= [changeNo,pid]
 			# taskProperties	= currentTask.Task.properties
@@ -117,7 +118,7 @@ evalInstance target commitEvent context=:(TaskContext processId properties chang
 			//# target			= foldr stepTarget [changeNo,pid] target
 			# target			= tl (tl target) //TODO: FIGURE OUT WHY IT DOESN'T WORK WHEN FOLDING STEPTARGET
 			//Apply task's eval function	
-			# (result,iworld)	= evalFun taskNr taskProperties commitEvent target defaultInteractionLayout defaultParallelLayout scontext iworld 
+			# (result,iworld)	= evalFun taskNr taskProperties commitEvent target ilayout playout scontext iworld 
 			//Restore current process id in iworld
 			# iworld			= {iworld & evalStack = evalStack}
 			= case result of

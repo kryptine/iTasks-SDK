@@ -16,13 +16,13 @@ JSONEncode{|TUIDef|} {content,width,height,margins}
 
 JSONEncode{|TUIDefContent|} (TUIEditControl c b)		= merge (encodeControlType editprefix c) (JSONEncode{|*|} b)
 JSONEncode{|TUIDefContent|} (TUIShowControl c b)		= merge (encodeControlType showprefix c) (JSONEncode{|*|} b)
-JSONEncode{|TUIDefContent|} (TUIPanel r)				= addXType "ipanel" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIContainer r)			= addXType "icontainer" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUITabContainer r)			= addXType "itabc" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUITabItem r)				= addXType "itabi" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIPanel r)				= addXType "itasks.panel" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIContainer r)			= addXType "itasks.container" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUITabContainer r)			= addXType "itasks.tab.container" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUITabItem r)				= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIBorderContainer r)		= addXType "iborderc" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIBorderItem r)			= addXType "iborderi" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "ilistc" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "itasks.list.container" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListItem r)				= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIIcon r)					= addXType "itasks.icon" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks.button" (JSONEncode{|*|} r)
@@ -32,20 +32,20 @@ JSONEncode{|TUIDefContent|} (TUIMenuItem r) 			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
 
 JSONEncode{|TUIListItem|}  {TUIListItem|items,index}
-	= [JSONObject [("xtype",JSONString "ilisti"),("index",JSONInt index),("items", toJSON items)]]
+	= [JSONObject [("xtype",JSONString "itasks.list.item"),("index",JSONInt index),("items", toJSON items)]]
 
 JSONEncode{|TUITabItem|} {TUITabItem|title,iconCls,items,menus,closeAction}
-	= [JSONObject [("xtype",JSONString "itabi"),("title",toJSON title),("iconCls",toJSON iconCls)
+	= [JSONObject [("xtype",JSONString "itasks.tab.item"),("title",toJSON title),("iconCls",toJSON iconCls)
 				  ,("items",toJSON items),("menus",toJSON menus),("closeAction",toJSON closeAction)]]
 
 JSONEncode{|TUIBorderItem|} {TUIBorderItem|title,iconCls,item}
 	= [JSONObject [("xtype",JSONString "iborderi"),("title",toJSON title),("iconCls",toJSON iconCls),("items",toJSON item)]]
 
 JSONEncode{|TUIMenuButton|} {TUIMenuButton|text,target,action,disabled,iconCls,menu}
-	= 	[JSONObject (filterNull [("xtype",JSONString "imenub"),("text",toJSON text),("target",toJSON target),("action",toJSON action)
+	= 	[JSONObject (filterNull [("xtype",JSONString "itasks.menu.button"),("text",toJSON text),("target",toJSON target),("action",toJSON action)
 					,("disabled",toJSON disabled),("iconCls",toJSON iconCls),("menu",toJSON menu)])]
 JSONEncode{|TUIMenuItem|} {TUIMenuItem|text,target,action,disabled,iconCls,hotkey,menu}
-	= 	[JSONObject	(filterNull [("xtype",JSONString "imenui"),("text",toJSON text),("target",toJSON target),("action",toJSON action)
+	= 	[JSONObject	(filterNull [("xtype",JSONString "itasks.menu.item"),("text",toJSON text),("target",toJSON target),("action",toJSON action)
 					,("disabled",toJSON disabled),("iconCls",toJSON iconCls),("hotkey",toJSON hotkey),("menu",toJSON menu)])
 		]
 JSONEncode{|TUIMenu|} {TUIMenu|items}

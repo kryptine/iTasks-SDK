@@ -89,9 +89,11 @@ gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl mbMap vst
 where
 	mkControl name mbMap _ _ static vst=:{VSt|taskId}
 		| static
-			= ([htmlDisplay (staticMap (convertToStaticMap (fromMaybe defaultMap mbMap)))], vst)
+			//TODO
+			= ([], vst)
+			//= ([htmlDisplay (staticMap (convertToStaticMap (fromMaybe defaultMap mbMap)))], vst)
 		| otherwise
-			= ([{TUIDef | content = TUICustom ((mapPanel mbMap name True)), width = Auto, height = Auto, margins = Nothing}], vst)
+			= ([defaultDef (TUICustom ((mapPanel mbMap name True)))], vst)
 	where		
 		mapPanel Nothing	name ed = toJSON (tuidef defaultMap name ed)
 		mapPanel (Just map)	name ed = toJSON (tuidef map   name ed)
@@ -103,7 +105,7 @@ where
 			, markers = map.GoogleMap.markers
 			, xtype = "igooglemap"
 			, name = name
-			, taskId = taskId
+			, taskId = fromMaybe "" taskId
 			, editor = ed
 			, options =
 				{ TUIGoogleMapOptions
@@ -127,7 +129,7 @@ gVisualizeHtml{|GoogleStaticMap|} mode map = case mode of
 gVisualizeEditor{|GoogleStaticMap|} mbMap vst = visualizeCustom mkControl mbMap vst
 where
 	mkControl _ mbMap _ _ _ vst = case mbMap of
-		Just (GoogleStaticMap w h u)	= ([{TUIDef | content = TUICustom (toJSON (staticMap w h u)), width = Auto, height = Auto, margins = Nothing}], vst)
+		Just (GoogleStaticMap w h u)	= ([defaultDef (TUICustom (toJSON (staticMap w h u)))], vst)
 		_								= ([], vst)
 
 	staticMap w h u =

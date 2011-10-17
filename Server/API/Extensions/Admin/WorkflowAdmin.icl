@@ -115,13 +115,13 @@ where
 	appIdentity = (showSharedInformation "Application identity" [] applicationName Void >>+ noActions)
 	
 	tweak :: LayoutTweak
-	tweak = \(def,actions) -> ({TUIDef|def & margins = Just {sameMargins 0 & top = 100}, width = Just (WrapContent 0)},actions)
+	tweak = \(def,actions) -> ({TUIDef|def & margins = topMargin 100, width = Just (WrapContent 0)},actions)
 	
 workflowDashboard :: Task Void
 workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
 	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
 	, (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
-	, (BodyTask,	\list	-> showDescription (taskListState list)	<<@ descriptionLayout)
+	, (BodyTask,	\list	-> showDescription (taskListState list)	)
 	, (BodyTask,	\list	-> workTabPanel list					/*<<@ tabParallelLayout */)
 	, (BodyTask,	\list	-> processTable list					<<@ processTableLayout)
 	, (HiddenTask,	\_		-> controlClient)
@@ -142,7 +142,7 @@ where
 
 showDescription :: !(Shared ClientState) -> Task ParallelControl
 showDescription state = forever (
-		showSharedInformation "Task description" [ShowView (GetShared view)] state Void
+		showSharedInformation "Task description" [ShowView (GetShared view)] state Void <<@ descriptionLayout
 	>?*	[(Action "Start workflow", Sometimes \{modelValue=m=:({selectedWorkflow},_)} -> if (isJust selectedWorkflow) (Just (addWorkflow (fromJust selectedWorkflow))) Nothing)])
 where			
 	view {selectedWorkflow} = case selectedWorkflow of
@@ -176,10 +176,8 @@ where
 		_ = abort "getProcId"
 
 workTabPanel :: !(TaskList ClientState) -> Task ParallelControl
-workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList))/*,(BodyTask, homeTab)*/]
-where
-	homeTab _ = showInformation "Home" [] (HtmlInclude "/src/static/skins/default/welcome.html") <<@ maximalInteractionLayout >>+ noActions 
-	
+workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList))]
+
 controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
 controlWorkTabs state taskList = forever (
 					chooseActionDyn openTabTrigger (state >+< openProcs)
@@ -284,7 +282,7 @@ descriptionLayout {title,editorParts,actions} = (	{ content	= TUIPanel {TUIPanel
 													}, actions)
 
 processTableLayout interaction
-	= ({hd interaction.editorParts & width = Just (FillParent 1 ContentSize), height = Just (Fixed 150), margins = (Just (sameMargins 0))},interaction.TUIInteraction.actions)	 
+	= ({hd interaction.editorParts & width = Just (FillParent 1 ContentSize), height = Just (Fixed 150), margins = (sameMargins 0)},interaction.TUIInteraction.actions)	 
 singleControlLayout interaction
 	= ({hd interaction.editorParts & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)},interaction.TUIInteraction.actions)
 

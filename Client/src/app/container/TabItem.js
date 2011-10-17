@@ -1,6 +1,6 @@
 Ext.define('itasks.container.TabItem',{
 	extend: 'Ext.panel.Panel',
-	alias: 'widget.itabi',
+	alias: 'widget.itasks.tab.item',
 	requires: ['itasks.layout.VHBox'],
 	layout: 'vhbox',
 	autoRender: true,

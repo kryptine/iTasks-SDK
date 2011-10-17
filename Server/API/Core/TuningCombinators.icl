@@ -23,20 +23,9 @@ where tune _ task				= updateTaskMeta (\m -> {TaskMeta|m & localInteraction = Tr
 instance tune ControlTask
 where tune _ task				= updateTaskMeta (\m -> {TaskMeta|m & controlTask = True}) task
 instance tune InteractionLayouter
-where
-	tune l task=:{Task|type} = case type of
-		NormalTask funcs	= {Task|task & type = NormalTask (changeLayout funcs)}
-		ActionTask actionF	= {Task|task & type = ActionTask (\termF -> changeLayout (actionF termF))}
-	where	
-		changeLayout funcs = {funcs & evalFun = \taskNr props event tuiTaskNr _ pmerge context iworld -> funcs.evalFun taskNr props event tuiTaskNr l pmerge context iworld}
+where tune l task				= {Task|task & layout = Just (Left l)}
 instance tune ParallelLayouter
-where
-	tune l task=:{Task|type} = case type of
-		NormalTask funcs	= {Task|task & type = NormalTask (changeLayout funcs)}
-		ActionTask actionF	= {Task|task & type = ActionTask (\termF -> changeLayout (actionF termF))}
-	where	
-		changeLayout funcs = {funcs & evalFun = \taskNr props event tuiTaskNr imerge _ context iworld -> funcs.evalFun taskNr props event tuiTaskNr imerge l context iworld}
-
+where tune l task				= {Task|task & layout = Just (Right l)}
 instance tune LayoutTweak
 where
 	tune tweak task=:{Task|type} = case type of
@@ -45,8 +34,8 @@ where
 	where
 		applyTweak funcs = {funcs & evalFun = eval}
 		where
-			eval taskNr props event tuiTaskNr imerge pmerge context iworld
-				# (res,iworld) = funcs.evalFun taskNr props event tuiTaskNr imerge pmerge context iworld
+			eval taskNr props event tuiTaskNr ilayout playout context iworld
+				# (res,iworld) = funcs.evalFun taskNr props event tuiTaskNr ilayout playout context iworld
 				= case res of
 					(TaskBusy (Just tui) actions context)
 						# (tui,actions) = tweak (tui,actions)

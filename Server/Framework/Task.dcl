@@ -23,6 +23,7 @@ derive gPutRecordFields	Task
 :: Task a =
 	{ properties			:: !TaskMeta						// the task's general properties	
 	, type					:: !(TaskType a)
+	, layout				:: !(Maybe (Either InteractionLayouter ParallelLayouter))	//Optional layout tweak for parallel tasks
 	}
 	
 :: TaskType a	= NormalTask !(TaskFuncs a)
@@ -55,7 +56,9 @@ derive gPutRecordFields	Task
 :: TaskAction :== (TaskId,Action,Bool)
 
 // Converts to task functions, ok action is added to action tasks
-toTaskFuncs :: !(Task a) -> TaskFuncs a | iTask a
+taskFuncs :: !(Task a) -> TaskFuncs a | iTask a
+// Gives the layouter functions for a task
+taskLayouters :: !(Task a) -> (InteractionLayouter, ParallelLayouter)
 
 :: TaskThread a		=
 	{ originalTask		:: Task a

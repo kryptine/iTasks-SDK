@@ -133,7 +133,7 @@ where
 				
 	edit _ _ context iworld = (context,iworld)
 	
-	eval termFunc taskNr props event tuiTaskNr imerge pmerge context iworld=:{IWorld|timestamp}
+	eval termFunc taskNr props event tuiTaskNr ilayout playout context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
@@ -156,7 +156,7 @@ where
 							_			= Nothing
 						# taskId		= taskNrToString taskNr
 						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
-						# (tui,actions)	= mergeTUI props imerge tuis warning tactions 
+						# (tui,actions)	= mergeTUI props ilayout tuis warning tactions 
 						= (TaskBusy (Just tui) actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
@@ -239,6 +239,17 @@ where
 		
 		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
 		defaultValue` _ = defaultValue
+
+mergeTUI props imerge tuis warning actions
+	= imerge { title = props.TaskMeta.title
+			 , instruction = props.TaskMeta.instruction
+			 , editorParts = tuis
+			 , actions = actions
+			 , type = props.interactionType
+			 , isControlTask = props.controlTask
+			 , localInteraction = props.TaskMeta.localInteraction
+			 , warning = warning
+			 }
 	
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
@@ -264,7 +275,7 @@ where
 		# iworld				= storeInstance (fromOk mbContext) iworld
 		= (TCEmpty, iworld)
 		
-	eval termFunc taskNr props event tuiTaskNr imerge _ _ iworld=:{evalStack}
+	eval termFunc taskNr props event tuiTaskNr ilayout playout _ iworld=:{evalStack}
 		//Check for cycles
 		| isMember (WorkflowProcess processId) evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
@@ -304,23 +315,9 @@ where
 							Nothing
 								# taskId			= taskNrToString taskNr
 								# tactions			= [(taskId,action,isJust val) \\ (action,val) <- uactions]
-								# (tui,actions)		= mergeTUI props imerge (maybe [] (\t -> [t]) tui) Nothing (tactions ++ sactions)
-								= (TaskBusy (Just tui) actions TCEmpty,iworld)
+								= (TaskBusy tui (sactions ++ tactions) TCEmpty,iworld)
 
 	changeNo (TaskContext _ _ n _) = n
-
-import StdDebug
-
-mergeTUI props imerge tuis warning actions
-	= imerge { title = props.TaskMeta.title
-			 , instruction = props.TaskMeta.instruction
-			 , editorParts = tuis
-			 , actions = actions
-			 , type = props.interactionType
-			 , isControlTask = props.controlTask
-			 , localInteraction = props.TaskMeta.localInteraction
-			 , warning = warning
-			 }
 		 
 getActionResult (Just (TaskEvent [] name)) actions
 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])

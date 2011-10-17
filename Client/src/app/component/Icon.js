@@ -1,15 +1,16 @@
 Ext.define('itasks.component.Icon', {
 	extend: 'Ext.Component',
 	alias: 'widget.itasks.icon',
-	width: 18,
-	height: 18,
+	width: 16,
+	height: 16,
 	initComponent: function() {
-		this.addCls(this.type || 'x-hint-icon');
+		this.addCls(this.type || 'icon-help');
 		this.callParent(arguments);
 
 	},
 	afterRender: function() {
 		this.callParent(arguments);
+
 		if (this.tooltip) {
             		this.tooltip = new Ext.ToolTip({html: this.tooltip, target: this.getEl()});
         	}

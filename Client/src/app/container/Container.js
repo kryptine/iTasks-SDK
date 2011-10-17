@@ -1,6 +1,6 @@
 Ext.define('itasks.container.Container',{
 	extend: 'Ext.container.Container',
-	alias: 'widget.icontainer',
+	alias: 'widget.itasks.container',
 	requires: ['itasks.layout.VHBox'],
 
 	initComponent: function() {

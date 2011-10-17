@@ -160,10 +160,7 @@ gVisualizeHtml{|Int|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|Real|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|Char|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|String|}		_ val				= [toHtmlText val]
-gVisualizeHtml{|Bool|}			_ val				= [toHtmlText val]/*[DivTag
-														[ClassAttr ("bool-htmllabel-icon bool-htmllabel-icon-"+++(toLowerCase (toString val)))]
-														[SpanTag [ClassAttr "bool-htmllabel-text"] [(Text (toString val))]]
-													]*/
+gVisualizeHtml{|Bool|}			_ val				= [toHtmlText val]
 gVisualizeHtml{|Password|}		_ val				= [Text "********"]
 gVisualizeHtml{|Note|}			_ val				= [nl2br (toString val)]
 gVisualizeHtml{|Date|}			_ val				= [toHtmlText val]
@@ -529,8 +526,26 @@ gVisualizeEditor{|FillHControlSize|} fx _ _ val vst=:{controlSize=controlSize=:(
 
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
 
+gVisualizeEditor{|DateTime|} val vst=:{VSt|currentPath}
+	# (dateViz,timeViz,vst) = case val of
+		Nothing
+			# (dateViz,vst) = gVisualizeEditor{|*|} noDate vst
+			# (timeViz,vst) = gVisualizeEditor{|*|} noTime vst
+			= (dateViz,timeViz,vst)
+		Just (DateTime date time)
+			# (dateViz,vst) = gVisualizeEditor{|*|} (Just date) vst
+			# (timeViz,vst) = gVisualizeEditor{|*|} (Just time) vst
+			= (dateViz,timeViz,vst)
+	= ([defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer [hd dateViz, {hd timeViz & margins = leftMargin 5}] & direction = Horizontal})],vst)
+where
+	noDate :: Maybe Date
+	noDate = Nothing
+	noTime :: Maybe Time
+	noTime = Nothing
 	
-derive gVisualizeEditor DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+//derive gVisualizeEditor DateTime
+	
+derive gVisualizeEditor Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
@@ -599,8 +614,8 @@ eventValue currentPath mbEvent = case mbEvent of
 addMsg :: !VerifyResult !TUIDef -> TUIDef
 addMsg verRes viz = case verRes of
 		NoMsg			= viz
-		HintMsg msg		= add "x-hint-icon" msg viz
-		ErrorMsg msg	= add "x-invalid-icon" msg viz
+		HintMsg msg		= add "icon-hint" msg viz
+		ErrorMsg msg	= add "icon-invalid" msg viz
 where	
 	add cls msg viz= {content = TUIContainer {TUIContainer|defaultLayoutContainer [viz,mkIcon cls msg] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}
 	mkIcon cls msg = defaultDef (TUIIcon {type = cls, tooltip = Just msg})
