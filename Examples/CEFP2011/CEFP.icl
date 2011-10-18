@@ -19,6 +19,6 @@ allFlows = 	flows2 ++
 			flows8
 
 Start :: *World -> *World
-Start world = startEngine allFlows world
+Start world = startEngine ( manageWorkflows allFlows ) world
 
 

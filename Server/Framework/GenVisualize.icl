@@ -418,16 +418,13 @@ where
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
 
-gVisualizeEditor{|CheckMultiChoice|} _ _ hv _ _ hy val vst = visualizeCustom mkControl val vst
+gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ _ _ val vst = visualizeCustom mkControl val vst
 where
 	mkControl name val touched verRes renderAsStatic vst=:{VSt|taskId}
-		= ([defaultDef (TUIContainer (defaultLayoutContainer []))], vst)
-/*	
-gVisualizeEditor{|CheckMultiChoice|} _ _ hv _ _ hy val vst = visualizeControl (TUIChoiceControl (toChoice val)) (fmap (\r=:(CheckMultiChoice _ mbSel) -> (mbSel,r)) val) (gVisualizeHtml{|* -> *|} (gVisualizeHtml{|* -> * -> *|} hv hy)) vst
-where
-	toChoice Nothing								= {allowMultiple = True, options = []}
-	toChoice (Just (CheckMultiChoice options _))	= {allowMultiple = True, options = [toString (html (hv AsLabel v)) \\ (v,_) <- options]}
-*/
+		# (options,sel)		= maybe ([],[]) (\(CheckMultiChoice options sel) -> (map fst options,sel) ) val
+		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
+		# itemDefs			= [defaultDef (TUICheckChoice {TUICheckChoice| items = items, taskId = taskId, name = name, index = i, checked = isMember i sel}) \\ items <- itemVis & i <- [0..]]
+		= ([defaultDef (TUIContainer (defaultLayoutContainer itemDefs))], vst)
 
 gVisualizeEditor{|Table|} val vst = visualizeControl(TUIGridControl (toGrid val)) (fmap (\t=:(Table _ _ mbSel) -> (mbSel,t)) val) gVisualizeHtml{|*|} vst
 where

@@ -57,8 +57,9 @@ JSONEncode{|TUIRadioChoice|} {TUIRadioChoice|items,taskId,name,index,checked}
 	= [JSONObject [("xtype",JSONString "itasks.container.radiochoice"),("items", JSONArray (map toJSON items))
 					,("taskId",toJSON taskId),("name", JSONString name),("index",JSONInt index),("checked",JSONBool checked)]]
 
-JSONEncode{|TUICheckChoice|} {TUICheckChoice|items,name,checked}
-	= [JSONObject [("xtype",JSONString "itasks.container.checkchoice"),("items", JSONArray (map toJSON items)),("name", JSONString name),("checked",JSONBool checked)]]
+JSONEncode{|TUICheckChoice|} {TUICheckChoice|items,taskId,name,index,checked}
+	= [JSONObject [("xtype",JSONString "itasks.container.checkchoice"),("items", JSONArray (map toJSON items))
+					,("taskId",toJSON taskId),("name", JSONString name),("index",JSONInt index),("checked",JSONBool checked)]]
 
 
 editprefix :== "itasks.edit."

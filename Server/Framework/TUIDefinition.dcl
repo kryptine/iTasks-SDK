@@ -152,7 +152,9 @@ from Task			import :: TaskAction
 	}
 :: TUICheckChoice =
 	{ items			:: ![TUIDef]
+	, taskId		:: !Maybe TaskId
 	, name			:: !TUIName
+	, index			:: !Int
 	, checked		:: !Bool
 	}
 :: TUIButton =

@@ -199,12 +199,16 @@ gUpdate{|Password|}				mode ust = basicUpdateSimple mode (Password "") ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode AnyUser ust
 gUpdate{|HtmlDisplay|}			mode ust = basicUpdate mode unchanged (HtmlDisplay "") ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
-gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b							-> {b & state = st})																				{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
-gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)	-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)	(Table [] [] Nothing) 												ust
-gUpdate{|TreeChoice|} _ _		mode ust = basicUpdate mode (\json (TreeChoice tree _)		-> case fromJSON json of Just i = TreeChoice tree i; _ = TreeChoice tree Nothing)					(TreeChoice (Tree []) Nothing)										ust
-gUpdate{|RadioChoice|} _ _		mode ust = basicUpdate mode (\json (RadioChoice opts _)		-> case fromJSON json of Just i = RadioChoice opts (Just i); _ = RadioChoice opts Nothing)			(RadioChoice [] Nothing)											ust
-gUpdate{|ComboChoice|} _ _		mode ust = basicUpdate mode (\l (ComboChoice opts _)		-> case l of i = ComboChoice opts (Just i); _ = ComboChoice opts Nothing)							(ComboChoice [] Nothing)											ust
-gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\sel (CheckMultiChoice opts _)	-> CheckMultiChoice opts sel)																		(CheckMultiChoice [] [])											ust
+gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
+gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
+gUpdate{|TreeChoice|} _ _		mode ust = basicUpdate mode (\json (TreeChoice tree _)			-> case fromJSON json of Just i = TreeChoice tree i; _ = TreeChoice tree Nothing)							(TreeChoice (Tree []) Nothing)										ust
+gUpdate{|RadioChoice|} _ _		mode ust = basicUpdate mode (\json (RadioChoice opts _)			-> case fromJSON json of Just i = RadioChoice opts (Just i); _ = RadioChoice opts Nothing)					(RadioChoice [] Nothing)											ust
+gUpdate{|ComboChoice|} _ _		mode ust = basicUpdate mode (\l (ComboChoice opts _)			-> case l of i = ComboChoice opts (Just i); _ = ComboChoice opts Nothing)									(ComboChoice [] Nothing)											ust
+gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\json (CheckMultiChoice opts sel)	-> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel)	(CheckMultiChoice [] [])											ust
+where
+	updateSel i True sel	= removeDup [i:sel]
+	updateSel i False sel 	= removeMember i sel
+	
 gUpdate{|Currency|}				mode ust = basicUpdate mode parseUpdate (EUR 0) ust
 where
 	parseUpdate update orig = case split "." update of
