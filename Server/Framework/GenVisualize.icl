@@ -5,8 +5,8 @@ import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefiniti
 
 visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> Maybe TUIDef | gVisualizeEditor{|*|} a
 visualizeAsEditor x taskId idx vmask editEvent
-	# vst = {mkVSt & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
-	# (defs,vst) = gVisualizeEditor{|*|} (Just x) vst
+	# vst			= {mkVSt & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
+	# (defs,vst)	= gVisualizeEditor{|*|} (Just x) vst
 	= case defs of
 		[]		= Nothing
 		[tui]   = Just tui

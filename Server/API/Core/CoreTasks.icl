@@ -82,14 +82,14 @@ where
 		= (TCBasic newMap, iworld)
 	
 	//There is an edit event for this task (because the location part of the event is the empty list)
-	edit taskNr (TaskEvent [] (dps,editV)) context iworld=:{IWorld|timestamp,latestEvent}
+	edit taskNr (TaskEvent [] (dps,editV)) context iworld=:{IWorld|timestamp,latestEvent}	
 		//Split datapath into datapath & part index
 		# (idx,dp)					= splitDataPath dps
 		//Read latest versions of states
 		# (model,iworld) 			= 'Shared'.readShared shared iworld
 		| isError model				= (context, iworld)
 		# local						= getLocalState context
-		# parts						= getParts context
+		# parts						= getParts context	
 		| idx >= length parts		= (context, iworld) 
 		//Save event for use in the visualization of the task
 		# context					= setEvent (dps,editV) context
@@ -98,7 +98,7 @@ where
 			Nothing			= (Ok False,iworld)
 			Just lastEvent	= 'Shared'.isSharedChanged shared lastEvent iworld
 		= case changed of
-			Ok True
+			Ok True	
 				//Edit conflict
 				= (setLocalVar EDIT_CONFLICT_STORE True context, iworld) 
 			_
@@ -156,7 +156,7 @@ where
 							_			= Nothing
 						# taskId		= taskNrToString taskNr
 						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
-						# (tui,actions)	= mergeTUI props ilayout tuis warning tactions 
+						# (tui,actions)	= mergeTUI props ilayout [tui \\ Just tui <- tuis] warning tactions 
 						= (TaskBusy (Just tui) actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
@@ -194,10 +194,9 @@ where
 					| StoredUpdate		!(!l,!Maybe w)
 :: StoredPutback l w = E.v: StoredPutback !((Maybe v) -> (!l,!Maybe w)) & iTask v
 
-visualizeParts :: !TaskNr ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![StoredPart l w],!Bool)
+visualizeParts :: !TaskNr ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![Maybe TUIDef],![StoredPart l w],!Bool)
 visualizeParts taskNr parts oldParts mbEdit
-	# res =  [(tui,newPart,valid) \\ (Just tui,newPart,valid) <- [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]]
-	= appThd3 and (unzip3 res)
+	= appThd3 and (unzip3 [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]])
 where
 	visualizePart (part,mbV,idx)
 		= case part of
@@ -240,16 +239,16 @@ where
 		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
 		defaultValue` _ = defaultValue
 
-mergeTUI props imerge tuis warning actions
-	= imerge { title = props.TaskMeta.title
-			 , instruction = props.TaskMeta.instruction
-			 , editorParts = tuis
-			 , actions = actions
-			 , type = props.interactionType
-			 , isControlTask = props.controlTask
-			 , localInteraction = props.TaskMeta.localInteraction
-			 , warning = warning
-			 }
+mergeTUI meta ilayout tuis warning actions
+	= ilayout	{ title = meta.TaskMeta.title
+				, instruction = meta.TaskMeta.instruction
+				, editorParts = tuis
+				, actions = actions
+				, type = meta.interactionType
+				, isControlTask = meta.controlTask
+				, localInteraction = meta.TaskMeta.localInteraction
+				, warning = warning
+				}
 	
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
