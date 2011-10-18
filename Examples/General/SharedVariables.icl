@@ -69,7 +69,7 @@ mergeTestDocuments :: Task Void
 mergeTestDocuments =
 		appendTopLevelTask initManagerProperties (Description "1st UpdateView" @>> view store)
 	>>|	appendTopLevelTask initManagerProperties (Description "2nd UpdateView" @>> view store)
-	>>|	appendTopLevelTask initManagerProperties (Description "3rd UpdateView" @>> showSharedInformation "Documents" [] store Void >>+ quitButton)
+	>>|	appendTopLevelTask initManagerProperties (Description "3rd UpdateView" @>> viewSharedInformation "Documents" [] store Void >>+ quitButton)
 	>>|	return Void
 where
 	view sid = updateSharedInformation ("List","Merging the documents") [] sid Void >>+ quitButton
@@ -102,7 +102,7 @@ googleMaps = parallel "Map Example" defaultMap (\_ m -> m)
 	]
 where						
 	markersDisplay dbid =
-								showSharedInformation "Markers" [DisplayView (GetShared markersListener)] dbid Void
+								viewSharedInformation "Markers" [DisplayView (GetShared markersListener)] dbid Void
 		>>*	\{modelValue=map}.	UserActions	[ (RemoveMarkersAction,	Just (update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid))
 											, (ActionQuit,			Just (return Stop))
 											]
@@ -194,7 +194,7 @@ where
 derive class iTask Order, Customer, NewCustomer, Product, OrderForm
 
 chooseOrAdd :: Task Order
-chooseOrAdd = enterOrder >>= showInformation "You created the order:" []
+chooseOrAdd = enterOrder >>= viewInformation "You created the order:" []
 where
 	productDatabase :: ReadOnlyShared [Product]
 	productDatabase = toReadOnlyShared (sharedStore "chooseOrAddProductDB"
@@ -250,7 +250,7 @@ where
 phoneBookSearch :: Task (Name,PhoneNumber)
 phoneBookSearch
 	=	activeQuery Nothing queryPhoneBook
-	>>= showInformation ("Result","You chose:") []
+	>>= viewInformation ("Result","You chose:") []
 	
 //Abstract search task with a search that is repeated each time the query is altered
 activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
@@ -270,7 +270,7 @@ where
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)
 	
 	activator queryTask tlist
-		=	showSharedInformation "Query showSharedInformation" [] (taskListState tlist) Void >? (\((_,d,_,_),_) -> d)	//Look for the dirty flag to become True
+		=	viewSharedInformation "Query showSharedInformation" [] (taskListState tlist) Void >? (\((_,d,_,_),_) -> d)	//Look for the dirty flag to become True
 		>>= \((query,_,_,_),_) ->
 			queryTask query
 		>>= \results ->
@@ -300,7 +300,7 @@ where
 
 timeShareUpdateView :: Task DateTime
 timeShareUpdateView
-	= showSharedInformation "A view on the current time" [] currentDateTime Void >>+ \{modelValue=(dateTime,_)} -> (UserActions [(ActionClose,Just dateTime)])
+	= viewSharedInformation "A view on the current time" [] currentDateTime Void >>+ \{modelValue=(dateTime,_)} -> (UserActions [(ActionClose,Just dateTime)])
 
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" linesPar

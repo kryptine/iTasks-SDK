@@ -89,6 +89,6 @@ where
 	merge items opinions = (user,zip (items,opinions))
 
 showResult :: (Results a) -> Task (Results a) | iTask a
-showResult result = showInformation ("Opinions","The results of your opinion request:") [] result
+showResult result = viewInformation ("Opinions","The results of your opinion request:") [] result
 
 

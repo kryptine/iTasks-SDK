@@ -77,7 +77,7 @@ updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
 * 
 * @gin-icon information
 */
-showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
+viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 
 /**
 * Ask the user to enter local information and information which is written to a shared.
@@ -125,7 +125,7 @@ updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (
 * 
 * @gin-icon monitor
 */
-showSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+viewSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 
 
 /*** Special tasks for choices ***/

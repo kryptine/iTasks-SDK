@@ -41,7 +41,7 @@ chat3
 
 chatTask user cs
 	=			update (addUser user) (taskListState cs)
-		>>|		showSharedInformation ("Chat list view") [] (taskListState cs) Void
+		>>|		viewSharedInformation ("Chat list view") [] (taskListState cs) Void
 				||- 
 				chatMore user "" cs
 
@@ -157,7 +157,7 @@ where
 
 statisticsTask :: (TaskList EditorState) -> Task ParallelControl
 statisticsTask ls
-	= 			showSharedInformation ("Statistics","Statistics of your document") views (taskListState ls) Void
+	= 			viewSharedInformation ("Statistics","Statistics of your document") views (taskListState ls) Void
 		>?*		[(Action "Close", Always close)]
 where
 	views = [DisplayView (GetShared showStatistics)]

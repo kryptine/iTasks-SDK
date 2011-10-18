@@ -17,7 +17,7 @@ BookTrip :: Task FlightHotel
 BookTrip
 	=						enterInformation ("Specify trip","Please fill in trip information to make booking") []
 		>>= \info ->		info.delegateTo @: enterInformation ("Book trip","Please book the following trip") [About info]
-		>>= \booking ->		showInformation ("Trip booked","The following trip has been booked") [] booking
+		>>= \booking ->		viewInformation ("Trip booked","The following trip has been booked") [] booking
 	
 
 :: PlaceToGo
@@ -45,7 +45,7 @@ travel
 						  , confirmBookings 				   
 						  ]
 		-||- 
-		(showInformation ("Cancel","Cancel task?") [] [])
+		(viewInformation ("Cancel","Cancel task?") [] [])
 
 	>>= \booking -> handleBookings booking
 where
@@ -58,12 +58,12 @@ where
 	confirmBookings :: Task [Booking]
  	confirmBookings 
  		=	Description "Step 2: Confirm Bookings:"
- 		@>> showInformation ("Confirmation","Confirm") [] []
+ 		@>> viewInformation ("Confirmation","Confirm") [] []
  	
 	handleBookings :: [[Booking]] -> Task Void
 	handleBookings booking
-		| isEmpty	booking	= showInformation "Summary" [] "Cancelled" >>| return Void
-		| otherwise			= (updateInformation ("Payment","Pay") [] (calcCosts booking) >>| showInformation "Summary" [] "Paid" >>| return Void)
+		| isEmpty	booking	= viewInformation "Summary" [] "Cancelled" >>| return Void
+		| otherwise			= (updateInformation ("Payment","Pay") [] (calcCosts booking) >>| viewInformation "Summary" [] "Paid" >>| return Void)
 	where
 		calcCosts booked = sum [cost \\ (_,_,_,cost) <- hd booked]
 

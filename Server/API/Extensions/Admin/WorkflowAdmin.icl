@@ -106,13 +106,13 @@ doAuthenticated task
 		authenticateUser credentials.username (toString credentials.Credentials.password)
 	>>= \mbUser -> case mbUser of
 		Nothing
-			= showInformation "Log in failed" [] Nothing
+			= viewInformation "Log in failed" [] Nothing
 		Just user
 			=	workAs user task
 			>>= transform Just
 where
 	appIdentity :: Task Void
-	appIdentity = (showSharedInformation "Application identity" [] applicationName Void >>+ noActions)
+	appIdentity = (viewSharedInformation "Application identity" [] applicationName Void >>+ noActions)
 	
 	tweak :: LayoutTweak
 	tweak = \(def,actions) -> ({TUIDef|def & margins = topMargin 100, width = Just (WrapContent 0)},actions)
@@ -121,14 +121,14 @@ workflowDashboard :: Task Void
 workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
 	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
 	, (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
-	, (BodyTask,	\list	-> showDescription (taskListState list)	)
+	, (BodyTask,	\list	-> viewDescription (taskListState list)	)
 	, (BodyTask,	\list	-> workTabPanel list					/*<<@ tabParallelLayout */)
 	, (BodyTask,	\list	-> processTable list					<<@ processTableLayout)
 	, (HiddenTask,	\_		-> controlClient)
 	]
 
 infoBar :: Task ParallelControl
-infoBar = showSharedInformation "Info" [DisplayView (GetShared view)] currentUser Void >>+ (\_ -> UserActions [(Action "Log out",Just Stop)])
+infoBar = viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser Void >>+ (\_ -> UserActions [(Action "Log out",Just Stop)])
 where
 	view user = "Welcome " +++ toString user
 	
@@ -140,9 +140,9 @@ where
 	where
 		selection = getSelection tree
 
-showDescription :: !(Shared ClientState) -> Task ParallelControl
-showDescription state = forever (
-		showSharedInformation "Task description" [DisplayView (GetShared view)] state Void <<@ descriptionLayout
+viewDescription :: !(Shared ClientState) -> Task ParallelControl
+viewDescription state = forever (
+		viewSharedInformation "Task description" [DisplayView (GetShared view)] state Void <<@ descriptionLayout
 	>?*	[(Action "Start workflow", Sometimes \{modelValue=m=:({selectedWorkflow},_)} -> if (isJust selectedWorkflow) (Just (addWorkflow (fromJust selectedWorkflow))) Nothing)])
 where			
 	view {selectedWorkflow} = case selectedWorkflow of

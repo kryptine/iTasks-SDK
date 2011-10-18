@@ -99,7 +99,7 @@ where
 (>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
 (>>+) task=:{Task|type} termF = case type of
 	ActionTask actionTaskF	= {Task|task & type = NormalTask (actionTaskF termF)}
-	_						= task >>= \r -> showInformation (taskMeta task) [] r >>+ termF
+	_						= task >>= \r -> viewInformation (taskMeta task) [] r >>+ termF
 	
 noActions :: (TermFunc a b) | iTask a & iTask b
 noActions = const (UserActions [])

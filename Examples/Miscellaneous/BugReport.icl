@@ -55,14 +55,14 @@ reportBugVerySimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found") []
 	>>=	\report ->
 		NamedUser "bas" @:
-			(Description "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
+			(Description "Bug Report" @>> OutputTask ActiveOutput @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
 
 reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found") []
 	>>=	\report ->
 		NamedUser "bas" @:
-			(Description "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
+			(Description "Bug Report" @>> OutputTask ActiveOutput @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
 	>>| return report
 
 //Different variant of simple reportBug
@@ -73,7 +73,7 @@ where
 	reportBug = enterInformation ("Describe bug","Please describe the bug you found") []
 	
 	fixBug :: BugReport -> Task BugReport
-	fixBug bug = NamedUser "bas" @: (Description "Bug Report" @>> OutputTask ActiveOutput @>> showInformation ("Fix bug","The following bug has been reported, please fix it.") [] bug)
+	fixBug bug = NamedUser "bas" @: (Description "Bug Report" @>> OutputTask ActiveOutput @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] bug)
 
 //Main workflow	  
 reportBug :: Task Bug
@@ -139,7 +139,7 @@ confirmCritical report
 	>>= \assessor ->
 		assign {worker = assessor, priority = HighPriority, deadline = Nothing, status = Active}
 			( Description "Bug report assessment" @>>
-			  showInformation ("Confirmation","Is this bug really critical?") [] report >>+ \_ -> UserActions [(ActionNo, Just False),(ActionYes, Just True)]
+			  viewInformation ("Confirmation","Is this bug really critical?") [] report >>+ \_ -> UserActions [(ActionNo, Just False),(ActionYes, Just True)]
 			)
 
 selectDeveloper :: String -> Task User
@@ -176,10 +176,10 @@ where
 		= enterInformation ("Cause","What is the cause of the following bug?") [About bug]
 		
 developBugFix :: Bug -> Task Bug
-developBugFix bug = OutputTask ActiveOutput @>> showInformation ("Bug fix","Please implement a fix for the following bug:") [] bug
+developBugFix bug = OutputTask ActiveOutput @>> viewInformation ("Bug fix","Please implement a fix for the following bug:") [] bug
 
 mergeFixInMainLine :: Bug -> Task Bug
-mergeFixInMainLine bug = OutputTask ActiveOutput @>> showInformation ("Merge","Please merge the bugfix in the main line of version control") [] bug
+mergeFixInMainLine bug = OutputTask ActiveOutput @>> viewInformation ("Merge","Please merge the bugfix in the main line of version control") [] bug
 
 makePatches :: Bug -> Task Void
 makePatches bug =
@@ -190,13 +190,13 @@ makePatches bug =
 			= return Void
 		Just {affectedVersions = versions}
 			= allTasks	[OutputTask ActiveOutput @>>
-						showInformation ("Patch" ,"Please make a patch of bugfix " <+++ bug.bugNr <+++ " for the following version of " <+++ bug.Bug.report.BugReport.application)
+						viewInformation ("Patch" ,"Please make a patch of bugfix " <+++ bug.bugNr <+++ " for the following version of " <+++ bug.Bug.report.BugReport.application)
 								[] version
 						\\ version <- versions
 					   ]
 			>>| return Void
 		
 notifyReporter :: Bug -> Task Bug
-notifyReporter bug = bug.reportedBy @: (showInformation ("Bug Report Result","The bug you reported has been fixed") [] bug)
+notifyReporter bug = bug.reportedBy @: (viewInformation ("Bug Report Result","The bug you reported has been fixed") [] bug)
 
 //notifyUser "The bug you reported has been fixed" bug.reportedBy

@@ -29,7 +29,7 @@ trivialTask = fillInForm
 fillInForm :: Task QForm
 fillInForm	
 	= 				enterInformation ("Quote information","Please fill in quotation:") []
-	>>= \form ->	showInformation ("Check","Is everything filled in correctly?") [About form] Void
+	>>= \form ->	viewInformation ("Check","Is everything filled in correctly?") [About form] Void
 	>?*				[ (ActionNo,	Always fillInForm)
 					, (ActionYes,	Always (return form))
 					] 
@@ -59,21 +59,21 @@ where
 		>>= \st	->			getProcessOwner pid
 		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [toString (fromJust mbOwner)])
 		>>= \names ->		case st of
-								(Finished,_)		-> showInformation ("Task finished","It is finished") [] True
-								(Deleted,_)			-> showInformation ("Task deleted","It is deleted") [] True		
-								(Running,Active)	-> showInformation ("Task busy","User " <+++ hd names <+++ " is working on it") [] False		
-								(Running,Suspended)	-> showInformation ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") [] False		
+								(Finished,_)		-> viewInformation ("Task finished","It is finished") [] True
+								(Deleted,_)			-> viewInformation ("Task deleted","It is deleted") [] True		
+								(Running,Active)	-> viewInformation ("Task busy","User " <+++ hd names <+++ " is working on it") [] False		
+								(Running,Suspended)	-> viewInformation ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") [] False		
 	suspend pid
 	=						//updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
-		/*>>| */			showInformation ("Task suspended","workflow is suspended") [] False
+		/*>>| */			viewInformation ("Task suspended","workflow is suspended") [] False
 								
 	activate pid
 	=						//updateManagerProperties pid (\m -> {ManagerProperties | m & status = Active})
-		/*>>| */			showInformation ("Task activated","workflow is activated") [] False
+		/*>>| */			viewInformation ("Task activated","workflow is activated") [] False
 
 	delete (WorkflowProcess pid)
 	=						removeTask pid topLevelTasks 
-		>>| 				showInformation ("Task deleted","workflow is deleted") [] True				
+		>>| 				viewInformation ("Task deleted","workflow is deleted") [] True				
 
 	reassign pid
 	=						selectUser "Who is next?"

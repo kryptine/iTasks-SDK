@@ -6,6 +6,6 @@ import iTasks
 
 flows6				:: [Workflow]
 
-showAllUserNames	:: Task [String]
+viewAllUserNames	:: Task [String]
 selectUser			:: Task  User
 selectUsers			:: Task [User]

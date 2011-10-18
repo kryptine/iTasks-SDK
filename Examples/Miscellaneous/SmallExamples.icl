@@ -14,7 +14,7 @@ calculateSum
   >>= \num1 ->
       enterInformation ("Number 2","Enter another number") []
   >>= \num2 ->
-      showInformation ("Sum","The sum of those numbers is:") [] (num1 + num2)
+      viewInformation ("Sum","The sum of those numbers is:") [] (num1 + num2)
         
 calculateSumSteps :: Task Int
 calculateSumSteps = step1First
@@ -36,10 +36,10 @@ where
 								]
 	
 	step3 num1 num2		= return (num1 + num2)
-						>>= \sum -> showInformation("Sum","The sum of those numbers is:") [] sum
+						>>= \sum -> viewInformation("Sum","The sum of those numbers is:") [] sum
 						>?*	[ (ActionPrevious,	Always (step2Back num1 num2))
 							, (ActionOk,		Always (return sum))
 							]
 
 calculateSumParam :: !(Int,Int) -> Task Int
-calculateSumParam (num1,num2) = showInformation ("Sum","The sum of those numbers is:") [] (num1 + num2)
+calculateSumParam (num1,num2) = viewInformation ("Sum","The sum of those numbers is:") [] (num1 + num2)

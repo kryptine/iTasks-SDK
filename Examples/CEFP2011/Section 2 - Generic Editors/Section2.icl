@@ -1,7 +1,7 @@
 implementation module Section2
 
 import iTasks
-from Section3 import show
+from Section3 import view
 
 derive bimap (,), Maybe
 
@@ -11,20 +11,20 @@ Start world = startEngine (manageWorkflows flows2) world
 flows2 :: [Workflow]
 flows2 
 	=   [ workflow "CEFP/Section 2 - Generic Editors/1. Hello world!"        	"The infamous hello world"      hello
-		, workflow "CEFP/Section 2 - Generic Editors/2. Enter Int value"    	"Form for an integer value" 	(show taskInt)
-		, workflow "CEFP/Section 2 - Generic Editors/3. Enter String value" 	"Form for entering a string"	(show taskString)
-		, workflow "CEFP/Section 2 - Generic Editors/4. Enter Person data"  	"Form for entering person data" (show taskPerson)
-		, workflow "CEFP/Section 2 - Generic Editors/5. Enter [Person]" 		"Fill in person data" 			(show taskPersonList)
-		, workflow "CEFP/Section 2 - Generic Editors/6. Choose one item" 		"Choice of one" 				(show chooseNumber)
-		, workflow "CEFP/Section 2 - Generic Editors/7. Choose several items"	"Multiple choice" 				(show pizzaWith)
-		, workflow "CEFP/Section 2 - Generic Editors/8. Simple Editor" 			"Using type Note" 				(show simpleEditor)
-		, workflow "CEFP/Section 2 - Generic Editors/9. Pick a Date" 			"Using type Date" 				(show chooseDate)
-		, workflow "CEFP/Section 2 - Generic Editors/10. Point on a map" 		"Using type GoogleMap" 			(show pointOnMap)
+		, workflow "CEFP/Section 2 - Generic Editors/2. Enter Int value"    	"Form for an integer value" 	(view taskInt)
+		, workflow "CEFP/Section 2 - Generic Editors/3. Enter String value" 	"Form for entering a string"	(view taskString)
+		, workflow "CEFP/Section 2 - Generic Editors/4. Enter Person data"  	"Form for entering person data" (view taskPerson)
+		, workflow "CEFP/Section 2 - Generic Editors/5. Enter [Person]" 		"Fill in person data" 			(view taskPersonList)
+		, workflow "CEFP/Section 2 - Generic Editors/6. Choose one item" 		"Choice of one" 				(view chooseNumber)
+		, workflow "CEFP/Section 2 - Generic Editors/7. Choose several items"	"Multiple choice" 				(view pizzaWith)
+		, workflow "CEFP/Section 2 - Generic Editors/8. Simple Editor" 			"Using type Note" 				(view simpleEditor)
+		, workflow "CEFP/Section 2 - Generic Editors/9. Pick a Date" 			"Using type Date" 				(view chooseDate)
+		, workflow "CEFP/Section 2 - Generic Editors/10. Point on a map" 		"Using type GoogleMap" 			(view pointOnMap)
 		]
 
 // the ubiquitous hello world example
 
-hello = showInformation "Press Ok to terminate" [] "Hello world!"
+hello = viewInformation "Press Ok to terminate" [] "Hello world!"
 
 // a simple form to type in an integer value
 

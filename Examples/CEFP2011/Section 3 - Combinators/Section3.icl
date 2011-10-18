@@ -15,47 +15,47 @@ flows3 :: [Workflow]
 flows3 
 	=	[ workflow "CEFP/Section 3 - Combinators/1. Hello"    						"\"Hello World\" in iTask" 				hello
 		, workflow "CEFP/Section 3 - Combinators/2. Numbers"						"Enter a number of numbers"				numbers
-		, workflow "CEFP/Section 3 - Combinators/3. Form for [Person]" 			"Form for [Person]"						(show personList)
-		, workflow "CEFP/Section 3 - Combinators/4. Choose one from [Person]"  	"Choose one from a list" 				(show personList2)
-		, workflow "CEFP/Section 3 - Combinators/5. Choose one or more [Person]"	"Select from a list" 					(show personList3)
-		, workflow "CEFP/Section 3 - Combinators/6. Form for [Person]" 			"Form for [Person]" 					(show personList4)
-		, workflow "CEFP/Section 3 - Combinators/7. Form for [Person]" 			"Form for [Person]" 					(show personList5)
-		, workflow "CEFP/Section 3 - Combinators/8. Tea or coffee" 				"Simple choice..." 						(show teaOrCoffee)
-		, workflow "CEFP/Section 3 - Combinators/9. Form for [Person]+check" 		"Form for [Person] and check result" 	(show fillInAndCheckPersons)
+		, workflow "CEFP/Section 3 - Combinators/3. Form for [Person]" 			"Form for [Person]"						(view personList)
+		, workflow "CEFP/Section 3 - Combinators/4. Choose one from [Person]"  	"Choose one from a list" 				(view personList2)
+		, workflow "CEFP/Section 3 - Combinators/5. Choose one or more [Person]"	"Select from a list" 					(view personList3)
+		, workflow "CEFP/Section 3 - Combinators/6. Form for [Person]" 			"Form for [Person]" 					(view personList4)
+		, workflow "CEFP/Section 3 - Combinators/7. Form for [Person]" 			"Form for [Person]" 					(view personList5)
+		, workflow "CEFP/Section 3 - Combinators/8. Tea or coffee" 				"Simple choice..." 						(view teaOrCoffee)
+		, workflow "CEFP/Section 3 - Combinators/9. Form for [Person]+check" 		"Form for [Person] and check result" 	(view fillInAndCheckPersons)
 		, workflow "CEFP/Section 3 - Combinators/10. Test while"					"Test while"							positive
 		]
 		
-// show combinator function that displays result of argument task:
+// view combinator function that displays result of argument task:
 
-show :: !(Task a) -> Task a | iTask a
-show task = task >>= \result -> showInformation "The result is:" [] result
+view :: !(Task a) -> Task a | iTask a
+view task = task >>= \result -> viewInformation "The result is:" [] result
 
-// show combinator, after eta-conversion:
-show2 :: !(Task a) -> Task a | iTask a
-show2 t = t >>= showInformation "The result is:" []
+// view combinator, after eta-conversion:
+view2 :: !(Task a) -> Task a | iTask a
+view2 t = t >>= viewInformation "The result is:" []
 
 // show combinator in point-free style:
 showOff :: ((Task a) -> Task a) | iTask a
-showOff = flip (>>=) (showInformation "The result is:" [])
+showOff = flip (>>=) (viewInformation "The result is:" [])
 
 // Hello World
 
 hello :: Task String
 hello 
 	=              		enterInformation "Please enter your name" []
-        >>= \name -> 	showInformation ("Hello " +++ name +++ "!") [] name
+        >>= \name -> 	viewInformation ("Hello " +++ name +++ "!") [] name
 
 // Entering numbers
 
 numbers :: Task Int
-numbers = show (numbers` 0)
+numbers = view (numbers` 0)
 where
 	numbers` :: Int -> Task Int
 	numbers` sum
 		=				enterInformation "Please enter a positive number" []
 		  >>= \n ->		if (n > 0) (numbers` (sum + n)) (return sum)
 
-// Typing in a [Person], showing the result
+// Typing in a [Person], viewing the result
 
 :: Person 	= 	{ firstName    	:: String
 		      	, surName  		:: String
@@ -76,7 +76,7 @@ chooseOneAndEdit:: [a] -> Task a | iTask a
 chooseOneAndEdit  list
 	=					enterChoice "Choose an item to edit" [] list
  		 >>= \choice ->	updateInformation "Edit item" [] choice
-		 >>= \elem -> 	showInformation "Result:" [] elem
+		 >>= \elem -> 	viewInformation "Result:" [] elem
 
 personList2 :: Task Person
 personList2

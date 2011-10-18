@@ -21,7 +21,7 @@ createUserFlow =
 	>?*	[ (ActionCancel,	Always	(return Void))
 		, (ActionOk,		IfValid (\user ->
 											createUser user
-										>>|	showInformation "User created" [] "Successfully added new user"
+										>>|	viewInformation "User created" [] "Successfully added new user"
 										>>| return Void
 									))
 		]
@@ -33,7 +33,7 @@ updateUserFlow user  =
 	>?*	[ (ActionCancel,	Always	(return user))
 		, (ActionOk,		IfValid (\newDetails ->
 											set sharedDetails newDetails
-										>>=	showInformation "User updated" [DisplayView (GetLocal (\{displayName} -> "Successfully updated " +++ displayName))]
+										>>=	viewInformation "User updated" [DisplayView (GetLocal (\{displayName} -> "Successfully updated " +++ displayName))]
 										>>| return user
 									))
 		]
@@ -42,22 +42,22 @@ where
 					
 deleteUserFlow :: User -> Task User
 deleteUserFlow user =
-		showInformation "Delete user" [] ("Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")
+		viewInformation "Delete user" [] ("Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")
 	>?*	[ (ActionNo,	Always		(return user))
 		, (ActionYes,	Always (		deleteUser user
-									>>=	showInformation "User deleted" [DisplayView (GetLocal (\user -> "Successfully deleted " +++ displayName user +++ "."))]
+									>>=	viewInformation "User deleted" [DisplayView (GetLocal (\user -> "Successfully deleted " +++ displayName user +++ "."))]
 						))
 		]
 		
 importUserFileFlow :: Task Void
-importUserFileFlow = showInformation "Not implemented" [] Void
+importUserFileFlow = viewInformation "Not implemented" [] Void
 
 exportUserFileFlow :: Task Document
 exportUserFileFlow
 	=	get users -&&- get applicationName
 	>>= \(list,app) ->
 		createCSVFile (app +++ "-users.csv") [toRow u \\ (RegisteredUser u) <- list] 
-	>>=	showInformation ("Export users file","A CSV file containing the users of this application has been created for you to download.") []
+	>>=	viewInformation ("Export users file","A CSV file containing the users of this application has been created for you to download.") []
 where
 	toRow {userName, password = (Password password), displayName, emailAddress = (EmailAddress email), roles}
 		= [displayName,userName,password,email: fromMaybe [] roles]

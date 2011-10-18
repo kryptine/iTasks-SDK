@@ -6,7 +6,7 @@ import iTasks
 
 flows3				:: [Workflow]
 
-show			    :: !(Task a) -> Task a | iTask a
+view			    :: !(Task a) -> Task a | iTask a
 
 repeatUntilApproved	:: !(Task a) -> Task a | iTask a
 

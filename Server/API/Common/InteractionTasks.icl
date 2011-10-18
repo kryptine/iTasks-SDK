@@ -23,8 +23,8 @@ where
 	options _	= filterOptions noFilter defaultOpts options`
 	defaultOpts	= [UpdateView (GetLocal id, SetLocal (\l _ _ -> l))]
 	
-showInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
-showInformation d options` m = OutputTask PassiveOutput @>> LocalInteractionTask @>>
+viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
+viewInformation d options` m = OutputTask PassiveOutput @>> LocalInteractionTask @>>
 	mapToLocalState (updateSharedInformation` d options voidNull m)
 where
 	options	 _	= filterOptions filterOutputOptions defaultOpts options`
@@ -48,8 +48,8 @@ where
 		(putback :: (r^ -> w^))			= UpdateView	(GetShared id,SetShared (\r _ _ -> (putback r)))
 		_								= DisplayView	(GetShared id)
 
-showSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
-showSharedInformation d options` shared local = OutputTask PassiveOutput @>> updateSharedInformation` d options shared local
+viewSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+viewSharedInformation d options` shared local = OutputTask PassiveOutput @>> updateSharedInformation` d options shared local
 where
 	options _	= filterOptions filterOutputOptions defaultOpts options`
 	defaultOpts	= [DisplayView (GetLocal id), DisplayView (GetShared id)]
@@ -195,15 +195,15 @@ where
 
 waitForTime :: !Time -> Task Time
 waitForTime time =
-	(showSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime Void >? \(now,_) -> time < now) >>= transform fst
+	(viewSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime Void >? \(now,_) -> time < now) >>= transform fst
 
 waitForDate :: !Date -> Task Date
 waitForDate date =
-	(showSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate Void >? \(now,_) -> date < now) >>= transform fst
+	(viewSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate Void >? \(now,_) -> date < now) >>= transform fst
 	
 waitForDateTime :: !DateTime -> Task DateTime
 waitForDateTime datetime =
-	(showSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime Void >? \(now,_) -> datetime < now) >>= transform fst
+	(viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime Void >? \(now,_) -> datetime < now) >>= transform fst
 
 waitForTimer :: !Time -> Task Time
 waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)

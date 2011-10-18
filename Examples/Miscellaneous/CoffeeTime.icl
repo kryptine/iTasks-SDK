@@ -33,7 +33,7 @@ collectOrders users = allTasks [u @: (Description "Coffee time!" @>> getOrder) \
 */
 getOrder :: Task (Maybe String)
 getOrder
-	=		showInformation ("Coffee time","It is coffee time, do you want something?") [] Void
+	=		viewInformation ("Coffee time","It is coffee time, do you want something?") [] Void
 		>?*	[ (ActionNo,	Always (return Nothing))
 			, (ActionYes,	Always (enterChoice ("Product choice","What do you want") [] ["Coffee","Tea","Chocolate"] >>= transform Just))
 			]
@@ -47,4 +47,4 @@ determineWhoGoes orders = randomChoice [user \\ (user,_) <- orders]
 * Give someone directions to go get coffee for everyone
 */
 goGetCoffee :: User [(User,String)] -> Task Void
-goGetCoffee user orders = user @: (Description "Get coffee" @>> OutputTask ActiveOutput @>> showInformation ("Coffee orders","You have been chosen to get the following drinks") [] orders >>| return Void)
+goGetCoffee user orders = user @: (Description "Get coffee" @>> OutputTask ActiveOutput @>> viewInformation ("Coffee orders","You have been chosen to get the following drinks") [] orders >>| return Void)

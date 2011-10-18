@@ -98,7 +98,7 @@ generateTeXExample = updateInformation "Enter API Directory:" [] (".." </> "Serv
 	>>= \selectedIdents ->	exportJSONFile (path </> settingsFile) (selectedFiles, selectedIdents)
 	>>| sequence "Generating LaTeX" [ accWorldError (dclToTeX selectedIdents file) id \\ file <- selectedFiles ] >>= transform (printLaTeX o flatten)
 	>>= \tex -> createDocumentTask "iTasks_API_documentation.tex" "application/x-tex" tex
-	>>= showInformation "Download iTasks API documentation in LaTeX format" []
+	>>= viewInformation "Download iTasks API documentation in LaTeX format" []
 	>>| return Void
 	where
 		settingsFile =  "selectedAPIDocumentation.json"

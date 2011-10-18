@@ -25,7 +25,7 @@ manageGroups
 	) <! id
 	>>| return Void
 where
-	overview []		= showInformation ("My groups",startMsg) [] Void >>+ \_ -> UserActions [(ActionNew,Just (ActionNew,Nothing)),(ActionQuit,Just (ActionQuit,Nothing))]
+	overview []		= viewInformation ("My groups",startMsg) [] Void >>+ \_ -> UserActions [(ActionNew,Just (ActionNew,Nothing)),(ActionQuit,Just (ActionQuit,Nothing))]
 	overview list	= enterChoice ("My groups",listMsg) [] list >>+ (\{modelValue,localValid} -> let mbG = if localValid (Just modelValue) Nothing in UserActions [aOpen mbG,aNew,aQuit])
 	
 	aOpen mbG		= (ActionOpen, maybe Nothing (\g -> Just (ActionOpen,Just g)) mbG)
@@ -52,7 +52,7 @@ manageGroup igroup
 	= 	
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
-		showInformation (toString group,"This group contains the following members:") [] group.members 
+		viewInformation (toString group,"This group contains the following members:") [] group.members 
 	>?* [(ActionClose, Always (return True))
 		,(Action "Invite new member", Always (invite group	>>| return False))
 		,(Action "Leave group", Always (leave group >>| return False))
@@ -107,14 +107,14 @@ inviteUserToGroup group user
 		>>= \accept ->
 			if accept
 				(addMemberToGroup group user 
-				 >>= showInformation ("Invitation accepted",toString user +++ " accepted your invitation to join the group " +++ toString group) []
+				 >>= viewInformation ("Invitation accepted",toString user +++ " accepted your invitation to join the group " +++ toString group) []
 				)
-				(showInformation ("Invitation declined",toString user +++ " declined your invitation to join the group " +++ toString group) [] group)
+				(viewInformation ("Invitation declined",toString user +++ " declined your invitation to join the group " +++ toString group) [] group)
 		)
-	>>| showInformation ("Invitation sent","An invitation to join the group has been sent to " +++ toString user) [] group
+	>>| viewInformation ("Invitation sent","An invitation to join the group has been sent to " +++ toString user) [] group
 where
 	invite user group
-		= showInformation (
+		= viewInformation (
 			"Invitation to join group " +++ toString group,
 			[Text (toString user +++ " invites you to join the group " +++ toString group +++ "."),BrTag [], Text "Do you accept this invitation?"])
 			[] Void

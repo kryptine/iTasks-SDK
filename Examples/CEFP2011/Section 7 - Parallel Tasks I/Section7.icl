@@ -3,7 +3,7 @@ implementation module Section7
 // Examples showing the usage of frequently used iTask combinators
 
 import iTasks, Text, StdMisc
-from Section3 import show
+from Section3 import view
 from Section6 import selectUser, selectUsers
 from Section5 import joinTweets, ::Tweet
 
@@ -14,7 +14,7 @@ Start world = startEngine (manageWorkflows flows7) world
 
 flows7 :: [Workflow]
 flows7 
-	=   [ workflow "CEFP/Section 7 - Parallel Tasks I/1. Questionnaire"		"Question N users"					(show questions)
+	=   [ workflow "CEFP/Section 7 - Parallel Tasks I/1. Questionnaire"		"Question N users"					(view questions)
 	    , workflow "CEFP/Section 7 - Parallel Tasks I/2. Number guessing"	"First person to guess wins"		guess
 		, workflow "CEFP/Section 7 - Parallel Tasks I/3. N Chatters"		"Chat with a selected number of users"		chatting
 	    , workflow "CEFP/Section 7 - Parallel Tasks I/4. Naive Chat"		"Naive chat with many users"		naive_chat
@@ -115,7 +115,7 @@ monitor_chat
 where
 	chat :: User [User](TaskList ChatState) -> Task ParallelControl
 	chat me chatters tasks
-		= showSharedInformation headerMonitor [] chatState Void ||- forever` enterLine
+		= viewSharedInformation headerMonitor [] chatState Void ||- forever` enterLine
 		>>| return Continue
 	where
 		headerEditor	= "Chat with "       +++ join "," (map toString chatters)
@@ -180,7 +180,7 @@ multibind_chat
 where
 	chat :: String User (TaskList ChatState) -> Task ParallelControl
 	chat names me cs
-		= (showSharedInformation headerMonitor [] chatState Void) ||- enterLine
+		= (viewSharedInformation headerMonitor [] chatState Void) ||- enterLine
 	where
 		headerEditor	= "Chat with "       +++ names
 		headerMonitor	= "Conversation of " +++ names

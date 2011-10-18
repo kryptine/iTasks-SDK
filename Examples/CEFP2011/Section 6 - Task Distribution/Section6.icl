@@ -36,12 +36,12 @@ guessGame
       =                enterInformation "Please enter a number between 1 and 10 that has to be guessed" [] 
         >?*			   [(ActionOk, Sometimes (onlyIf (\n -> n > 0 && n <= 10) return))]
         >>= \secret -> (delegate (guess secret) -||- delegate (guess secret))
-        >>= \winner -> showInformation (userName winner +++ " has won") [] winner
+        >>= \winner -> viewInformation (userName winner +++ " has won") [] winner
 where
 	guess :: Int -> Task User
 	guess secret = 		enterInformation "Guess a number between 1 and 10" [] 
-						>>= \n -> if (n == secret)  (showInformation "Welldone, you guessed it" [] n >>| get currentUser)
-													(showInformation "Nope, try again" [] n >>| guess secret)
+						>>= \n -> if (n == secret)  (viewInformation "Welldone, you guessed it" [] n >>| get currentUser)
+													(viewInformation "Nope, try again" [] n >>| guess secret)
 
 
 // Ask everyone if they can meet on acertain time and date
@@ -60,7 +60,7 @@ mkAppointment
       >>= \date ->		enterInformation "Which time do you want to meet ?" []
       >>= \time ->		selectUsers
       >>= \selected  -> mapTask (\u -> u @: updateInformation "Can we meet ?" [] {date=Display date, time= Display time, canJoin=Yes}) selected
-      >>= \answers ->	showInformation "Users answered" [] answers
+      >>= \answers ->	viewInformation "Users answered" [] answers
       
 mapTask :: (a -> Task b) [a] -> Task [b] | iTask b
 mapTask f []  			
@@ -71,11 +71,11 @@ mapTask f [a:as]
 		>>= \bs ->  return [b:bs]
 
 //	Utility functions:
-showAllUserNames :: Task [String]
-showAllUserNames
+viewAllUserNames :: Task [String]
+viewAllUserNames
     =            get users
       >>= \us -> let names = map displayName us in
-      			 showInformation "The current users are: " [] names
+      			 viewInformation "The current users are: " [] names
 
 selectUser :: Task User
 selectUser

@@ -118,7 +118,7 @@ newModuleName config
 	=						enterInformation "Give name of new module:" []
 		>>= \name ->		moduleExists config name
 		>>= \exists ->		if exists
-								(		showInformation ("Module " +++ name +++ " already exists, do you want to overwrite?") [] Void
+								(		viewInformation ("Module " +++ name +++ " already exists, do you want to overwrite?") [] Void
 									>?*	[ (ActionYes,	Always (return name))
 										, (ActionNo,	Always (newModuleName config))
 										]
@@ -129,10 +129,10 @@ chooseModule :: !GinConfig -> Task (Maybe (!String, !GModule))
 chooseModule config  
 	=				accWorldOSError (listModules config)
 		>>= \all ->	case all of
-						[] ->		showInformation "Choose module" [] "No modules stored !" >>| return Nothing
+						[] ->		viewInformation "Choose module" [] "No modules stored !" >>| return Nothing
 						names ->	enterChoice "Choose module you want to use:" [] names
 									>>= \choice -> accWorld (readModule config choice)
 									>>= \mg -> case mg of
-										Error e = showInformation "Error" [] ("Failed to read module " +++ choice +++ ":" +++ e) >>| return Nothing
+										Error e = viewInformation "Error" [] ("Failed to read module " +++ choice +++ ":" +++ e) >>| return Nothing
 										Ok gMod = return (Just (choice, gMod))
 

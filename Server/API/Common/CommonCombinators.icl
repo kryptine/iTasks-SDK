@@ -228,7 +228,7 @@ repeatTask task pred a =
 		=			taska
 		>>= \r -> 	case pred r of
 						(True,_) -> return r
-						(False,msg) -> (showInformation "Feedback" []  msg >>+ noActions`) ||- (taska <| pred)
+						(False,msg) -> (viewInformation "Feedback" []  msg >>+ noActions`) ||- (taska <| pred)
 where
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions

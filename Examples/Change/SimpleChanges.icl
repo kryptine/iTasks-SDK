@@ -15,7 +15,7 @@ changeExamples =
   	]
 where
 	catch :: String -> Task Void
-	catch message  = showInformation ("Error!",message) [] Void
+	catch message  = viewInformation ("Error!",message) [] Void
 
 //Simple change which will run once and change the priority of all tasks to high
 changePriority :: TaskPriority -> ChangeDyn
@@ -31,7 +31,7 @@ addWarning msg =
 	dynamic change  :: A.a: Change a | iTask a
 where
 	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Nothing, Just (((showInformation ("Warning!",redText msg) [] Void >>+ noActions`) ||- t)), Just (addWarning msg))
+	change props t t0 = (Nothing, Just (((viewInformation ("Warning!",redText msg) [] Void >>+ noActions`) ||- t)), Just (addWarning msg))
 
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions
@@ -60,7 +60,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> appendTopLevelTask {ManagerProperties|initManagerProperties & worker = user} (showInformation ("Process ended","Process " +++ procName +++ " ended!") [] res) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> appendTopLevelTask {ManagerProperties|initManagerProperties & worker = user} (viewInformation ("Process ended","Process " +++ procName +++ " ended!") [] res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn
