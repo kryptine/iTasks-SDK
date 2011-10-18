@@ -55,7 +55,7 @@ visualizeAsHtml			:: !StaticVisualizationMode !a									-> HtmlTag		| gVisualiz
 	, controlSize		:: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
 	}
 	
-:: VerifyResult = HintMsg !String | ErrorMsg !String | NoMsg
+:: VerifyResult = HintMsg !String | ValidMsg !String | ErrorMsg !String | NoMsg
 
 //Utility functions making specializations of gVisualizeEditor
 

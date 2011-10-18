@@ -21,7 +21,7 @@ Ext.define('itasks.layout.VHBox',{
 			this.parallelAfter = 'right';
 			this.parallelPosition = 'x';
 			this.parallelFlex = 'hflex'
-			this.parallelAlign = config['halign'] || 'center';
+			this.parallelAlign = config['halign'] || 'left';
 			
 			this.perpendicularPrefix = 'height';
 			this.perpendicularPrefixCap = 'Height';
@@ -56,7 +56,7 @@ Ext.define('itasks.layout.VHBox',{
 			this.perpendicularRightBottom = 'right';
 			this.perpendicularPosition = 'x';
 			this.perpendicularFlex = 'hflex';
-			this.perpendicularAlign = config['halign'] || 'center';
+			this.perpendicularAlign = config['halign'] || 'left';
 		}
 
 		this.callParent(arguments);
@@ -229,7 +229,7 @@ Ext.define('itasks.layout.VHBox',{
 			}
 			//Flex to full available space in the perpendicular direction
 			if(child[perpendicularFlex]) {
-				flexedSize = availSize[perpendicularPrefix];
+				flexedSize = availSize[perpendicularPrefix] - childMargins[perpendicularLeftTop] - childMargins[perpendicularRightBottom];
 				flexedSize = Math.max(flexedSize, calcs['min' + perpendicularPrefixCap]);
 
 				calcs.dirtySize = calcs.dirtySize || calcs[perpendicularPrefix] != flexedSize;

@@ -43,6 +43,8 @@ from Task			import :: TaskAction
 	| TUIListContainer		!TUIListContainer
 	| TUIListItem			!TUIListItem
 	| TUIIcon				!TUIIcon
+	| TUIRadioChoice		!TUIRadioChoice
+	| TUICheckChoice		!TUICheckChoice
 	| TUIButton				!TUIButton
 	| TUIMenuButton			!TUIMenuButton
 	| TUIMenuItem			!TUIMenuItem
@@ -61,7 +63,6 @@ from Task			import :: TaskAction
 					| TUICurrencyControl
 					| TUIDocumentControl	!Document
 					| TUIButtonControl		!TUIButtonControl
-					| TUIChoiceControl		!TUIChoiceControl
 					| TUIComboControl		![String]
 					| TUIGridControl		!TUIGridControl
 					| TUITreeControl		![TUITree]
@@ -76,10 +77,6 @@ from Task			import :: TaskAction
 	}
 :: TUIShowControl =
 	{ value			:: !JSONNode
-	}
-:: TUIChoiceControl =
-	{ allowMultiple	:: !Bool
-	, options		:: ![String]
 	}
 :: TUIButtonControl =
 	{ label			:: !String
@@ -145,6 +142,18 @@ from Task			import :: TaskAction
 :: TUIIcon =
 	{ type			:: !String
 	, tooltip		:: !Maybe String
+	}
+:: TUIRadioChoice =
+	{ items			:: ![TUIDef]
+	, taskId		:: !Maybe TaskId
+	, name			:: !TUIName
+	, index			:: !Int
+	, checked		:: !Bool
+	}
+:: TUICheckChoice =
+	{ items			:: ![TUIDef]
+	, name			:: !TUIName
+	, checked		:: !Bool
 	}
 :: TUIButton =
 	{ taskId		:: !TaskId

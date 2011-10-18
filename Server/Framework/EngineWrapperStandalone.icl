@@ -4,7 +4,7 @@ import StdFile, StdInt
 import Engine, Config
 import HTTP, HttpServer
 
-import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService, StencilService
+import TaskService, DocumentService, StencilService
 
 startEngine :: (Task a) !*World -> *World | iTask a
 startEngine task world
@@ -45,11 +45,7 @@ where
 		= world
 		
 	handlers :: [Handler] 
-	handlers =		[ ("application",	["html","json"],	applicationService)
-					, ("sessions",		["html","json"],	sessionService)
-					, ("workflows",		["html","json"],	workflowService)
-					, ("tasks",			["html","json"],	taskServiceOld)
-					, ("users",			["html","json"],	userService)
+	handlers =		[ ("tasks",			["html","json"],	taskServiceOld)
 					, ("documents",		["html","json"],	documentService)
 					, ("stencils",		["html","json"],	stencilService)
 					]

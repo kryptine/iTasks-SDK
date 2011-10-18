@@ -26,7 +26,7 @@ import CoffeeTime
 import Calculator
 import TableExamples
 import GeoTracker
-import RPCExamples
+//import RPCExamples
 
 //Change examples
 import SimpleChanges
@@ -35,7 +35,7 @@ import SimpleChanges
 import SharedVariables
 
 //Graphical iTask Notation
-import GinExamples
+//import GinExamples
 
 //Ad-hoc work extensions
 import Groups, Lists, Messages, Consensus
@@ -66,8 +66,8 @@ where
 						, changeExamples
 						, sharedValueExamples
 						, [workflow "Examples/General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions]
-						, rpcExamples
-						, ginExamples
+						//, rpcExamples
+						//, ginExamples
 						, apiDocumentationExamples
 						]
 	workflowmw	= [workflow "Manage workflows" "Manage other workflows and instances" (manageWorkflows workflows)]

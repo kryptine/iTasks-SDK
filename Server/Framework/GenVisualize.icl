@@ -296,10 +296,10 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ val vst=:{currentPath,selectedConsIndex =
 										}))
 							:	if (isEmpty content)
 								[]
-								[{ content	= TUIContainer ({TUIContainer|defaultLayoutContainer content & baseCls = Just "x-constructor-panel" })
+								[{ content	= TUIContainer (defaultLayoutContainer content /*& baseCls = Just "x-constructor-panel"*/)
 								,  width	= Just (FillParent 1 ContentSize)
 								,  height	= Just (WrapContent 0)
-								,  margins	= Nothing /* Just {sameMargins 0 & left = 12} */
+								,  margins	= leftMargin 10
 								}]
 							])
 						, width		= Just (FillParent 1 ContentSize)
@@ -388,11 +388,14 @@ where
 	buttonLabel	b = toString ((fmap (\b -> b.FormButton.label)) b)
 	icon		b = toString ((fmap (\b -> b.FormButton.icon)) b)
 
-gVisualizeEditor{|RadioChoice|} _ gx hx _ _ hy val vst = visualizeControl (TUIChoiceControl (toChoice val)) (fmap (\r=:(RadioChoice _ mbSel) -> (maybe [] (\l -> [l]) mbSel, r)) val) (gVisualizeHtml{|* -> *|} (gVisualizeHtml{|* -> * -> *|} hx hy)) vst
+gVisualizeEditor{|RadioChoice|} fx _ _ _ _ _ val vst = visualizeCustom mkControl val vst
 where
-	toChoice Nothing						= {allowMultiple = False, options = []}
-	toChoice (Just (RadioChoice options _))	= {allowMultiple = False, options = [concat (gx AsLabel v) \\ (v,_) <- options]}
-	
+	mkControl name val touched verRes renderAsStatic vst=:{VSt|taskId}
+		# (options,sel)		= maybe ([],-1) (\(RadioChoice options mbSel) -> (map fst options,fromMaybe -1 mbSel) ) val
+		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
+		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = items, taskId = taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
+		= ([defaultDef (TUIContainer (defaultLayoutContainer itemDefs))], vst)
+
 gVisualizeEditor{|ComboChoice|} _ gx hx _ _ hy val vst = visualizeControl (TUIComboControl (toChoice val)) (fmap (\c=:(ComboChoice _ mbSel) -> (mbSel,c)) val) (gVisualizeHtml{|* -> *|} (gVisualizeHtml{|* -> * -> *|} hx hy)) vst
 where
 	toChoice Nothing						= []
@@ -414,12 +417,18 @@ where
 		= ([{text = label, value = Nothing, leaf = False, children = Just children}:rtree],idx)
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
-	
+
+gVisualizeEditor{|CheckMultiChoice|} _ _ hv _ _ hy val vst = visualizeCustom mkControl val vst
+where
+	mkControl name val touched verRes renderAsStatic vst=:{VSt|taskId}
+		= ([defaultDef (TUIContainer (defaultLayoutContainer []))], vst)
+/*	
 gVisualizeEditor{|CheckMultiChoice|} _ _ hv _ _ hy val vst = visualizeControl (TUIChoiceControl (toChoice val)) (fmap (\r=:(CheckMultiChoice _ mbSel) -> (mbSel,r)) val) (gVisualizeHtml{|* -> *|} (gVisualizeHtml{|* -> * -> *|} hv hy)) vst
 where
 	toChoice Nothing								= {allowMultiple = True, options = []}
 	toChoice (Just (CheckMultiChoice options _))	= {allowMultiple = True, options = [toString (html (hv AsLabel v)) \\ (v,_) <- options]}
-	
+*/
+
 gVisualizeEditor{|Table|} val vst = visualizeControl(TUIGridControl (toGrid val)) (fmap (\t=:(Table _ _ mbSel) -> (mbSel,t)) val) gVisualizeHtml{|*|} vst
 where
 	toGrid Nothing							= {cells = [], headers = []}
@@ -463,8 +472,9 @@ where
 					
 			addMsg verSt list = case verSt of
 				NoMsg			= [list]
-				HintMsg	msg		= addMsg` "x-hint-icon" msg list
-				ErrorMsg msg	= addMsg` "x-invalid-icon" msg list
+				HintMsg	msg		= addMsg` "icon-hint" msg list
+				ValidMsg msg	= addMsg` "icon-valid" msg list
+				ErrorMsg msg	= addMsg` "icon-invalid" msg list
 			
 			addMsg` cls msg list = [	{ content	= TUIContainer (defaultLayoutContainer [list,mkMessage cls msg])
 										, width		= Just (FillParent 1 ContentSize)
@@ -602,7 +612,7 @@ sizedControl (width,height,mbMargins) content = {content = content, width = widt
 
 verifyElementStr :: !VerifyMask -> VerifyResult
 verifyElementStr cmv = case cmv of
-	VMValid mbHnt _			= maybe NoMsg HintMsg mbHnt
+	VMValid mbHnt _			= maybe NoMsg ValidMsg mbHnt
 	VMUntouched mbHnt _ _	= maybe NoMsg HintMsg mbHnt
 	VMInvalid err _			= ErrorMsg (toString err)
 	
@@ -615,10 +625,11 @@ addMsg :: !VerifyResult !TUIDef -> TUIDef
 addMsg verRes viz = case verRes of
 		NoMsg			= viz
 		HintMsg msg		= add "icon-hint" msg viz
+		ValidMsg msg	= add "icon-valid" msg viz
 		ErrorMsg msg	= add "icon-invalid" msg viz
 where	
 	add cls msg viz= {content = TUIContainer {TUIContainer|defaultLayoutContainer [viz,mkIcon cls msg] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}
-	mkIcon cls msg = defaultDef (TUIIcon {type = cls, tooltip = Just msg})
+	mkIcon cls msg = {defaultDef (TUIIcon {type = cls, tooltip = Just msg}) & margins = leftMargin 5}
 
 
 //*********************************************************************************************************************

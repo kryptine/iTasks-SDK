@@ -7,7 +7,7 @@ encodeTUIDefinition d = toJSON d
 
 //TUI DEFINITIONS
 derive JSONEncode TUIButton, TUIIcon, Hotkey
-derive JSONEncode TUIButtonControl, TUIChoiceControl
+derive JSONEncode TUIButtonControl
 derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUIBorderContainer, TUIListContainer
 derive JSONEncode TUIGridControl, TUITree, TUIEditControl, TUIShowControl
 
@@ -24,6 +24,8 @@ JSONEncode{|TUIDefContent|} (TUIBorderContainer r)		= addXType "iborderc" (JSONE
 JSONEncode{|TUIDefContent|} (TUIBorderItem r)			= addXType "iborderi" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "itasks.list.container" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListItem r)				= JSONEncode{|*|} r
+JSONEncode{|TUIDefContent|} (TUIRadioChoice r)			= JSONEncode{|*|} r
+JSONEncode{|TUIDefContent|} (TUICheckChoice r)			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIIcon r)					= addXType "itasks.icon" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks.button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r) 			= JSONEncode{|*|} r
@@ -51,6 +53,14 @@ JSONEncode{|TUIMenuItem|} {TUIMenuItem|text,target,action,disabled,iconCls,hotke
 JSONEncode{|TUIMenu|} {TUIMenu|items}
 	= [JSONObject [("xtype",JSONString "menu"),("items", JSONArray (map toJSON items))]]
 
+JSONEncode{|TUIRadioChoice|} {TUIRadioChoice|items,taskId,name,index,checked}
+	= [JSONObject [("xtype",JSONString "itasks.container.radiochoice"),("items", JSONArray (map toJSON items))
+					,("taskId",toJSON taskId),("name", JSONString name),("index",JSONInt index),("checked",JSONBool checked)]]
+
+JSONEncode{|TUICheckChoice|} {TUICheckChoice|items,name,checked}
+	= [JSONObject [("xtype",JSONString "itasks.container.checkchoice"),("items", JSONArray (map toJSON items)),("name", JSONString name),("checked",JSONBool checked)]]
+
+
 editprefix :== "itasks.edit."
 showprefix :== "itasks.show."
 
@@ -65,7 +75,6 @@ encodeControlType prefix TUITimeControl					= justXType (prefix +++ "time")
 encodeControlType prefix TUIUserControl					= justXType (prefix +++ "string")
 encodeControlType prefix TUIPasswordControl				= justXType (prefix +++ "password")
 encodeControlType prefix TUICurrencyControl				= justXType (prefix +++ "currency")
-encodeControlType prefix (TUIChoiceControl r)			= addXType "itasks.choice" (JSONEncode{|*|} r)
 encodeControlType prefix (TUIComboControl r)			= [JSONObject [("xtype",JSONString "itasks.combo"),("options",toJSON r)]]
 encodeControlType prefix (TUIButtonControl r)			= addXType "itasks.button" (JSONEncode{|*|} r)
 encodeControlType prefix (TUIGridControl r)				= addXType "itasks.grid" (JSONEncode{|*|} r)

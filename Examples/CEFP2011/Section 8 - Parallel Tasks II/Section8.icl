@@ -10,7 +10,7 @@ from Section7 import normalTask, const2
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows8 world
+Start world = startEngine (manageWorkflows flows8) world
 
 flows8 :: [Workflow]
 flows8 

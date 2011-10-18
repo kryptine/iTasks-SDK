@@ -8,7 +8,7 @@ from Section3 import show, positive
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows4 world
+Start world = startEngine (manageWorkflows flows4) world
 
 flows4 :: [Workflow]
 flows4 

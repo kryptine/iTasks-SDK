@@ -30,6 +30,7 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.MenuItem',
 		'itasks.container.Panel',
 		'itasks.container.Container',
+		'itasks.container.RadioChoice',
 		'itasks.container.TabContainer',
 		'itasks.container.TabItem',
 		'itasks.container.BorderContainer',
