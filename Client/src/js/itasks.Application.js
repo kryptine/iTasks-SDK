@@ -12,20 +12,13 @@ itasks.Application = function () {
 		waitingForGoogleMaps: new Ext.util.MixedCollection(true),
         oryxState: 'unloaded',
         waitingForOryx: new Ext.util.MixedCollection(true),
-		scrollbarWidth: 0,
+		//scrollbarWidth: itasks.util.getScrollerWidth(),
 		
 		viewport: new Ext.Viewport({
-			layout: 'card',
-			activeItem: 0,
-			unstyled: true,
-			items: {
-				baseCls: 'bg',
-				xtype: 'panel'
-			}	
+			layout: "fit",
+			items: [{xtype: 'itasks.tui.panel', forceLayout: true}]
 		}),
 		
-		loginWindow: null,
-		mainGui: null,
 		/**
 		* Starts the client GUI framework
 		*/
@@ -33,89 +26,56 @@ itasks.Application = function () {
 			//Store message
 			this.errorMsg = errorMsg;
 			
+			//Reset session & timestamp
+			delete(this.sessionId);
+			delete(this.lastSync);
+			
 			//Set cookie provider
 			Ext.state.Manager.setProvider(new Ext.state.CookieProvider({
 				expires: new Date(new Date().getTime()+(1000*60*60*24*30)), // 30 days from now
 			}));
 			
-			//Load application information
-			this.loadAppInfo();
+			//Load the initial GUI
+			//this.pollServer();
 		},
-		loadAppInfo: function() {
-			Ext.Ajax.request({url: itasks.config.serviceUrl + "/json/application",success: this.continueAppInfo, scope: this});
-		},
-		continueAppInfo: function(response) {
-			Ext.apply(this,Ext.decode(response.responseText));
-			
-			//Load skin
-			this.loadSkin();
-			
-			//Create the login window
-			this.loginWindow = new itasks.LoginWindow({
-				errorMsg: this.errorMsg,
-				continuation:  this.loadUserInterface.createDelegate(this)
-			});
-			this.viewport.getComponent(0).add(this.loginWindow);
-			this.loginWindow.show();
-		},
-		loadSkin: function() {
-			if(this.skinLoaded) return;
-			
-			var link = document.createElement("link");
-			link.rel = "stylesheet";
-			link.type = "text/css";
-			link.href = "skins/" + itasks.config.skin + "/main.css";
-			
-			document.body.appendChild(link);
-			document.title = itasks.app.application;
-			
-			this.skinLoaded = true;
-		},	
-		/**
-		* Loads and builds the GUI
-		*/	
-		loadUserInterface: function(session) {
-			
-			//Update global state
-			this.session = session.sessionId;
-			this.displayName = itasks.util.formatUser(session.user);
-			this.scrollbarWidth = itasks.util.getScrollerWidth();
-			
-			//Remove the login window
-			//this.loginWindow.hide();
-			this.loginWindow.destroy();
-			delete this.loginWindow;
+		pollServer: function() {
+			var params = {};
+			if(this.sessionId)
+				params['session'] = this.sessionId;
+			if(this.lastSync)
+				params['timestamp'] = this.lastSync;	
 		
-		
-			var startPanel = this.viewport.getComponent(0);
-		
-			this.mainGui = new itasks.ApplicationPanel();
-			
-			this.viewport.add(this.mainGui);
-			this.viewport.layout.setActiveItem(1);
-			this.viewport.doLayout();
+			Ext.Ajax.request({
+				url: '?show=gui',
+				method: 'POST',
+				params: params,	
+				scripts: false,
+				callback: this.processServerMessage,
+				scope: this });
 		},
-		/**
-		* Resets the main viewport to show the start screen
-		*/
-		reset: function() {
-			this.viewport.layout.setActiveItem(0);
-			this.viewport.remove(1,true);
+		processServerMessage: function(options,success,response) {
+			var message;
 			
-			//Clear the old loginwindow
-			if(this.loginWindow) {
-				this.loginWindow.destroy();
-				delete this.loginWindow;
+			try {
+				message = Ext.decode(response.responseText);
+			} catch(SyntaxError) {
+				return;
 			}
+			if(typeof message != 'object') {
+				return;
+			}
+		
+			//this.viewport.items.get(0).update(message);
+		},
+		refreshGUI: function() {
+		
 		},
 		restart: function (errorMsg) {
-			this.reset();
 			this.start(errorMsg);
 		},
-		
 		refresher: {
 			run: function() {
-				itasks.app.mainGui.refreshGUI();
+				itasks.app.refreshGUI();
 			},
 			interval: 5000
 		},

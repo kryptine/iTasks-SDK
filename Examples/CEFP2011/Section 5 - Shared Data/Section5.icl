@@ -10,7 +10,7 @@ from Section3 import show, repeatUntilApproved
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows5 world
+Start world = startEngine (manageWorkflows flows5) world
 
 flows5 :: [Workflow]
 flows5 

@@ -50,19 +50,14 @@ where
 			
 	terms {modelValue=v=:{x}} = UserActions [(ActionQuit,Just x)]
 	
-	calculatorLayout {title,editorParts=p=:[display:stButtons],actions}
+	calculatorLayout {title,editorParts=[display:stButtons],actions}
 		# (buttons,actions) = defaultButtons actions
-		= (defaultPanel
-		title
-		""
-		(WrapContent 0)
-		(defaultContent [display,columnLayout 4 stButtons] buttons), actions)
-	where
-		buttonLayout buttons = buttonLayout` buttons []
-		buttonLayout` buttons acc = case splitAt 4 buttons of
-			([],_)		= reverse			acc
-			(row,r)		= buttonLayout` r	[{content = TUILayoutContainer {TUILayoutContainer|defaultLayoutContainer row & orientation = Horizontal}, width = FillParent 1 ContentSize, height = (WrapContent 0), margins = Nothing}:acc]
-	
+		= ( defaultPanel
+			title
+			""
+			(WrapContent 0)
+			(defaultContent [display,columnLayout 4 stButtons] buttons), actions)
+
 :: CalculatorState =	{ display		:: !Int
 						, x				:: !Int
 						, y				:: !Int

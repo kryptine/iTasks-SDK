@@ -2,7 +2,7 @@ implementation module TaskService
 
 import StdList, StdBool
 import Time, JSON
-import SystemTypes, Task, TaskContext, TaskEval,  TUIDiff, TUIEncode, Util, HtmlUtil
+import SystemTypes, Task, TaskContext, TaskEval,  TUIDiff, TUIEncode, Util, HtmlUtil, Map
 import IWorld
 
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
@@ -11,20 +11,118 @@ from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB IWorl
 
 derive bimap Maybe, (,)
 
-derive JSONEncode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
+derive JSONEncode TUIDef, TUIDefContent, TUIUpdate, TUIIcon, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONEncode TUIControlType
-derive JSONEncode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONEncode TUILayoutContainer, TUITabContainer, TUITab, TUIListContainer, TUIGridControl, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
+derive JSONEncode TUIButtonControl, TUIListItem
+derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
 
-derive JSONDecode TUIDef, TUIDefContent, TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
+derive JSONDecode TUIDef, TUIDefContent, TUIUpdate, TUIIcon, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONDecode TUIControlType
-derive JSONDecode TUIButtonControl, TUIListItem, TUIChoiceControl
-derive JSONDecode TUILayoutContainer, TUITabContainer, TUITab, TUIListContainer, TUIGridControl, TUITree, TUIControl, TUISize, TUIVGravity, TUIHGravity, TUIOrientation, TUIMinSize, TUIMargins
+derive JSONDecode TUIButtonControl, TUIListItem
+derive JSONDecode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
 	
 JSONEncode{|HtmlTag|} htm = [JSONString (toString htm)]
 
-taskService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
-taskService url format path req iworld
+taskService :: !(Task a) !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
+taskService task req iworld=:{IWorld|timestamp,application} = case showParam of
+	"gui"
+		| sessionParam == ""
+			//Create and evaluate a new session context
+			# (mbResult,iworld) = createSessionInstance task iworld
+			= case mbResult of
+				Error err
+					= (response (JSONObject [("success",JSONBool False),("error",JSONString err)]), iworld)
+				Ok (TaskException _ err,_)
+					= (response (JSONObject [("success",JSONBool False),("error",JSONString err)]), iworld)
+				Ok (TaskFinished _, sessionId)
+					= (response (JSONObject [("success",JSONBool False),("error",JSONString "Task completed instantly")]), iworld)
+				Ok (TaskBusy Nothing _ tree, sessionId)
+					= (response (JSONObject [("success",JSONBool False),("error",JSONString "No tui definition available")]), iworld)
+				Ok (TaskBusy (Just tui) actions _ , sessionId =: SessionProcess session)
+					//Save user interface to enable incremental updates in later requests
+					# tuiStoreId	= toString sessionId +++ "-gui"
+					# iworld	 	= storeValue tuiStoreId tui iworld
+					//Output user interface
+					# json = JSONObject [("content",encodeTUIDefinition tui)
+										,("session",JSONString session)
+										,("timestamp",JSONInt (toInt timestamp))]
+					= (response json, iworld)
+		| otherwise
+			# sessionId					= SessionProcess sessionParam
+			//Load previous user interface to enable incremental updates
+			# tuiStoreId				= toString sessionId +++ "-gui"
+			# (mbPreviousTui,iworld)	= loadValueAndTimestamp tuiStoreId iworld
+			//Check if the version of the user interface the client has is still fresh
+			# outdated	= case mbPreviousTui of
+				Just (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
+				Nothing						= False
+			//Determine possible edit and commit events
+			# editEvent = case fromJSON (fromString editEventParam) of
+				Just (target,path,value)
+					// ignore edit events of outdated clients
+					| not outdated || timestampParam == ""  
+						= Just (ProcessEvent (reverse (taskNrFromString target)) (path,value))
+					| otherwise
+						= Nothing
+				Nothing = Nothing			
+			# commitEvent = case fromJSON (fromString commitEventParam) of
+				Just (target,action)
+					// ignore commit events of outdated clients
+					| not outdated || timestampParam == "" 
+						= Just (ProcessEvent (reverse (taskNrFromString target)) action)
+					| otherwise
+						= Nothing
+				Nothing	= Nothing
+			//Evaluate existing session context
+			# (mbResult,iworld) = evalSessionInstance sessionId editEvent commitEvent iworld
+			# (json,iworld) = case mbResult of
+				Error err
+					= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
+				Ok (TaskException _ err)
+					= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
+				Ok (TaskFinished _)
+					= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
+				Ok (TaskBusy mbCurrentTui actions context)
+					# json = case (mbPreviousTui,mbCurrentTui) of
+						(Just (previousTui,previousTimestamp),Just currentTui)
+							| previousTimestamp == Timestamp (toInt timestampParam) 
+								= JSONObject [("success",JSONBool True)
+											 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui))
+											 ,("timestamp",toJSON timestamp)]
+							| otherwise
+								= JSONObject [("success",JSONBool True)
+											 ,("content",encodeTUIDefinition currentTui)
+											 ,("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")
+											 ,("timestamp",toJSON timestamp)]
+						(Nothing, Just currentTui)
+							= JSONObject [("success",JSONBool True)
+										 ,("content", encodeTUIDefinition currentTui)
+										 ,("timestamp",toJSON timestamp)]
+						_
+							= JSONObject [("success",JSONBool True),("done",JSONBool True)]
+					//Store tui for later incremental requests
+					# iworld = case mbCurrentTui of
+						Just currentTui	= storeValue tuiStoreId currentTui iworld
+						Nothing			= iworld
+					= (json,iworld)
+				_
+					= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
+			= (response json, iworld)
+	_	//Serve start page
+		=  (appStartResponse application, iworld)
+where
+	showParam			= paramValue "show" req
+	sessionParam		= paramValue "session" req
+	timestampParam		= paramValue "timestamp" req
+	editEventParam		= paramValue "editEvent" req
+	commitEventParam	= paramValue "commitEvent" req
+	
+	response json
+		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}
+	
+		
+taskServiceOld :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
+taskServiceOld url format path req iworld=:{IWorld|timestamp}
 	# html					= format == "html"
 	# (mbSession,iworld)	= 'SessionDB'.restoreSession sessionParam iworld
 	= case path of
@@ -60,7 +158,6 @@ taskService url format path req iworld
 				Ok (_,taskNr)
 					= JSONObject [("success",JSONBool True),("taskId",JSONInt (last taskNr))]
 			= (serviceResponse html "Create task" createDescription url createParams json, iworld)
-		
 		//Show properties of an individual task without further evaluating it.	
 		[taskId]
 			| isError mbSession
@@ -137,7 +234,7 @@ taskService url format path req iworld
 			# (mbResult,iworld)	= evalTopInstance (taskNrFromString taskId) (fromOk mbSession).user editEvent commitEvent iworld
 			# (json,iworld) = case mbResult of
 				Error err
-					= (JSONObject [("succes",JSONBool False),("error",JSONString err)],iworld)
+					= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
 								
 				Ok (TaskBusy mbCurrentTui actions context)
 					//Determine content or updates
@@ -168,9 +265,9 @@ taskService url format path req iworld
 				Ok (TaskFinished _)
 					= (JSONObject ([("success",JSONBool True),("timestamp",toJSON timestamp),("tui",JSONString "done")]), iworld)
 				Ok (TaskException _ err)
-					= (JSONObject [("succes",JSONBool False),("error",JSONString err)], iworld)
+					= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 				_
-					= (JSONObject [("succes",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
+					= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
 					 
 			= (serviceResponse html "Task user interface" tuiDescription url tuiParams json,iworld) 
 	
@@ -179,12 +276,13 @@ taskService url format path req iworld
 			| isError mbSession
 				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (jsonSessionErr mbSession), iworld)
 			| length (taskNrFromString taskId) > 1 // don't delete detached
-				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("succes",JSONBool False),("error",JSONString  "Cannot delete detached process")]), iworld)
-			# (_,iworld) = 'ProcessDB'.deleteProcess (processOf taskId) iworld
+				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool False),("error",JSONString  "Cannot delete detached process")]), iworld)
+			# (iworld) = 'ProcessDB'.deleteProcess (processOf taskId) iworld
 			= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), iworld)	
 		_
 			= (notFoundResponse req, iworld)
 where
+	showParam			= paramValue "show" req
 	sessionParam		= paramValue "session" req
 	userParam			= paramValue "user" req
 	timestampParam		= paramValue "timestamp" req
@@ -232,8 +330,8 @@ where
 	
 	
 	processOf taskId	= case taskNrFromString taskId of
-		[]		= 0
-		taskNr	= last taskNr
+		[]		= WorkflowProcess 0
+		taskNr	= WorkflowProcess (last taskNr)
 	
 	taskProperties :: Process -> [(String,JSONNode)]
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields

@@ -5,6 +5,7 @@ itasks.tui.MenuItem = Ext.extend(Ext.menu.Item, {
 	initComponent: function() {
 		
 		this.listeners = {click: {fn: this.onActionClick, scope: this}};
+		
 
 		itasks.tui.MenuItem.superclass.initComponent.apply(this,arguments);
 		

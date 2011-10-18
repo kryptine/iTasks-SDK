@@ -119,16 +119,6 @@ interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> 
 workOn :: !ProcessId -> Task WorkOnProcessState
 
 /**
-* Dynamically adds a workflow to the system.
-*
-* @param Workflow: The workflow to add
-* @return The description of the added workflow
-* 
-* @gin False
-*/
-addWorkflow :: !Workflow -> Task WorkflowDescription
-
-/**
 * Administer a change to another (running) workflow process
 *
 * @param Process ID: A process id

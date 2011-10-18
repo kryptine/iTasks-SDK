@@ -8,7 +8,7 @@ import GinDomain
 from GinSyntax import ::GModule
 
 Start :: *World -> *World
-Start world = startEngine workflows world
+Start world = startEngine (manageWorkflows workflows) world
 where
 	workflows = flatten [ ginExamples ]
 
@@ -35,6 +35,6 @@ quitButton _ = UserActions [(ActionQuit,Just Stop)]
 ginInteractionLayout :: InteractionLayouter
 ginInteractionLayout = \interaction = 
 	case interaction.editorParts of
-		[{TUIDef | content = TUIControl (TUIORYXControl _) _}] =
-			({TUIDef | hd interaction.editorParts & width = FillParent 1 (FixedMinSize 400)},interaction.TUIInteraction.actions)
+		[{TUIDef | content = TUIEditControl (TUIORYXControl _) _}] =
+			({TUIDef | hd interaction.editorParts & width = Just (FillParent 1 (FixedMinSize 400))},interaction.TUIInteraction.actions)
 		_ 	= defaultInteractionLayout interaction

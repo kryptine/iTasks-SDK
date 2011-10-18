@@ -8,12 +8,12 @@ from ProcessDB	import :: Process(..)
 from Time		import :: Timestamp 
 import iTaskClass
 
-derive gVisualizeText	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gVisualizeHtml	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gVisualizeEditor	Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gUpdate			Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gDefaultMask		Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gVerify			Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
+derive gVisualizeText	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
+derive gVisualizeHtml	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
+derive gVisualizeEditor	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
+derive gUpdate			ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
+derive gDefaultMask		ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
+derive gVerify			ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
 
 /**
 * Retrieves a Process record from the process table
@@ -68,14 +68,7 @@ getProcessesForUser		:: !User ![TaskStatus] ![RunningTaskStatus]	-> Task [Proces
 * @return A task that yields the owner if the referenced process is not deleted
 */
 getProcessOwner 		:: !ProcessId 				-> Task (Maybe User)
-/**
-* Changes the owner of the indicated process. The current user is automatically set
-* as delegator of the process.
-*
-* @param The new process owner
-* @param The process id
-*/
-setProcessOwner			:: !User !ProcessId			-> Task Void
+
 /**
 * Poll the status of a process.
 *
@@ -84,8 +77,6 @@ setProcessOwner			:: !User !ProcessId			-> Task Void
 * @return A task that yields the status of the referenced process
 */
 getProcessStatus		:: !ProcessId				-> Task (TaskStatus,RunningTaskStatus)
-
-updateManagerProperties :: !ProcessId !(ManagerProperties -> ManagerProperties) -> Task Void
 
 /**
 * Delete a process from the process database

@@ -34,9 +34,9 @@ where
 	findClientPath i path world
 		# (ok,world)	= checkClientPath path world
 		| ok			= (path,world)
-		# buildpath		= path +++ "\\build"
-		# (ok,world)	= checkClientPath buildpath world
-		| ok			= (buildpath,world)
+		//# buildpath		= path +++ "\\build"
+		//# (ok,world)	= checkClientPath buildpath world
+		//| ok			= (buildpath,world)
 		= findClientPath (dec i) ("..\\" +++ path) world
 		
 	findPath 0 path defaultPath world = (defaultPath, world)

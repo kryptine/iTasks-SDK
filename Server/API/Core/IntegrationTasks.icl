@@ -60,14 +60,15 @@ where
 			
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr props event tuiTaskNr imerge pmerge context=:(TCBasic _) iworld=:{world}
+	eval taskNr props event tuiTaskNr ilayout _ context=:(TCBasic _) iworld=:{world}
 		= case getLocalVar "outfile" context of
 			Just outfile
 				//Check status
 				# (exists,world) = 'File'.fileExists outfile world
 				| not exists
 					//Still busy
-					# (tui,actions) = imerge	{ title = props.TaskMeta.title
+					# (tui,actions) = ilayout
+												{ title = props.TaskMeta.title
 								 				, instruction = props.TaskMeta.instruction
 												, editorParts = []
 												, actions = []

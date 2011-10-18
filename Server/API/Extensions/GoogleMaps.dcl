@@ -17,10 +17,9 @@ derive gEq				GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow
 //API Key for http://localhost
 GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4lboFdTKu2o9gr_i8kRV0Pn1fNw"
 
-:: GoogleStaticMap = GoogleStaticMap Int Int String
-
 :: GoogleMap = 
 	{ center				:: GoogleMapPosition 		// Coordinate of the center point (Required by maps)
+	, zoom					:: Int	      				// The zoom level (Required by maps)
 	, mapTypeControl		:: Bool		  				// Show the control for switching between map types
 	, panControl			:: Bool		  				// Show the control for panning
 	, zoomControl			:: Bool						// Show the control for zooming
@@ -28,7 +27,6 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	, scaleControl			:: Bool		  				// Show the scale of the map
 	, scrollwheel			:: Bool						// Scrollwheel zooming on the map
 	, draggable				:: Bool						// Map can be dragged
-	, zoom					:: Int	      				// The zoom level (Required by maps)
 	, mapType				:: GoogleMapType			// The map type
 	, markers				:: [GoogleMapMarker]		// Markers placed on the map
 	}
@@ -37,6 +35,8 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	{ lat		:: !Real	//Lattitude
 	, lng		:: !Real	//Longitude
 	}
+
+:: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
 	
 :: GoogleMapMarker =
 	{ position				:: !GoogleMapPosition			// Position of the marker
@@ -46,30 +46,25 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	}
 	
 :: GoogleMapInfoWindow =
-	{ content				:: !String			// Contents of the window
+	{ content				:: !String						// Contents of the window
 	}
 
-:: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
+:: GoogleStaticMap = GoogleStaticMap Int Int String
 
-:: MVCUpdate = 
-	{ center			:: !GoogleMapPosition
-	, zoom				:: !Int
-	, type				:: !GoogleMapType
-	}	
-	
-:: ClickUpdate = 
-	{ event				:: !ClickEvent
-	, source			:: !ClickSource
-	, point				:: !GoogleMapPosition
-	}
 
-:: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
-:: ClickSource  = MAP | MARKER GoogleMapPosition
+/**
+* Create a default map
+*
+* @return A default map
+*/
+defaultMap :: GoogleMap
+/**
+* Create a default map without any control options switched on
+*
+* @return A minimal default map 
+*/
+minimalMap :: GoogleMap
 
-:: MarkerDragUpdate = 
-	{ index				:: !Int
-	, point				:: !GoogleMapPosition
-	}
 /*
 * Convert a dynamic map into a static image
 *
@@ -78,18 +73,5 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 * @return The converted result
 */
 convertToStaticMap :: !GoogleMap -> GoogleStaticMap
-
-/**
-* Create a default map
-*
-* @return A default map
-*/
-mkMap :: GoogleMap
-/**
-* Create a default map without any control options switched on
-*
-* @return A minimal default map 
-*/
-minimalMap :: GoogleMap
 
 instance toString GoogleMapType

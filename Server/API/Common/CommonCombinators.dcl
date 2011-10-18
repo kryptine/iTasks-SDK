@@ -308,11 +308,11 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 * 
 * @gin False
 */
-(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, [HtmlTag])) 	-> Task a 					| iTask a
+(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, String)) 	-> Task a 					| iTask a
 
 
 /**
 * Append a task to the set of top level tasks
 * 
 */
-appendTopLevelTask :: !ManagerProperties !(Task a) -> Task Int | iTask a
+appendTopLevelTask :: !ManagerProperties !(Task a) -> Task ProcessId | iTask a

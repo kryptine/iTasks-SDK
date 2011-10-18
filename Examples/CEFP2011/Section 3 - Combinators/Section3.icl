@@ -9,7 +9,7 @@ from   StdFunc import flip
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows3 world
+Start world = startEngine (manageWorkflows flows3) world
 
 flows3 :: [Workflow]
 flows3 

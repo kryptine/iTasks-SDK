@@ -176,7 +176,7 @@ gUpdate{|VisualizationHint|} 	fx UDCreate									ust = wrapperUpdate fx UDCreat
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHEditable s))			ust = wrapperUpdate fx mode fromVisualizationHint VHEditable ust
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHDisplay s))			ust = wrapperUpdate fx mode fromVisualizationHint VHDisplay ust
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHHidden s))			ust = wrapperUpdate fx mode fromVisualizationHint VHHidden ust
-gUpdate{|ControlSize|} 			fx UDCreate									ust = wrapperUpdate fx UDCreate undef (ControlSize Auto Auto Nothing) ust 
+gUpdate{|ControlSize|} 			fx UDCreate									ust = wrapperUpdate fx UDCreate undef (ControlSize Nothing Nothing Nothing) ust 
 gUpdate{|ControlSize|}			fx mode=:(UDSearch (ControlSize w h m _))	ust = wrapperUpdate fx mode fromControlSize (ControlSize w h m) ust
 gUpdate{|FillControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillControlSize FillControlSize ust
 gUpdate{|FillWControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillWControlSize FillWControlSize ust
@@ -188,7 +188,7 @@ wrapperUpdate fx mode get cons ust=:{USt|currentPath} = case mode of
 	UDSearch w
 		# (w,ust) = fx (UDSearch (get w)) ust
 		= (cons w,{USt|ust & currentPath = stepDataPath currentPath})
-
+		
 gUpdate{|Int|}					mode ust = basicUpdateSimple mode 0 ust
 gUpdate{|Real|}					mode ust = basicUpdateSimple mode 0.0 ust
 gUpdate{|Char|}					mode ust = basicUpdateSimple mode ' ' ust
@@ -199,12 +199,16 @@ gUpdate{|Password|}				mode ust = basicUpdateSimple mode (Password "") ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode AnyUser ust
 gUpdate{|HtmlDisplay|}			mode ust = basicUpdate mode unchanged (HtmlDisplay "") ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
-gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b							-> {b & state = st})																				{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
-gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)	-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)	(Table [] [] Nothing) 												ust
-gUpdate{|TreeChoice|} _ _		mode ust = basicUpdate mode (\json (TreeChoice tree _)		-> case fromJSON json of Just i = TreeChoice tree i; _ = TreeChoice tree Nothing)					(TreeChoice (Tree []) Nothing)										ust
-gUpdate{|RadioChoice|} _ _		mode ust = basicUpdate mode (\l (RadioChoice opts _)		-> case l of [i] = RadioChoice opts (Just i); _ = RadioChoice opts Nothing)							(RadioChoice [] Nothing)											ust
-gUpdate{|ComboChoice|} _ _		mode ust = basicUpdate mode (\l (ComboChoice opts _)		-> case l of i = ComboChoice opts (Just i); _ = ComboChoice opts Nothing)							(ComboChoice [] Nothing)											ust
-gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\sel (CheckMultiChoice opts _)	-> CheckMultiChoice opts sel)																		(CheckMultiChoice [] [])											ust
+gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
+gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
+gUpdate{|TreeChoice|} _ _		mode ust = basicUpdate mode (\json (TreeChoice tree _)			-> case fromJSON json of Just i = TreeChoice tree i; _ = TreeChoice tree Nothing)							(TreeChoice (Tree []) Nothing)										ust
+gUpdate{|RadioChoice|} _ _		mode ust = basicUpdate mode (\json (RadioChoice opts _)			-> case fromJSON json of Just i = RadioChoice opts (Just i); _ = RadioChoice opts Nothing)					(RadioChoice [] Nothing)											ust
+gUpdate{|ComboChoice|} _ _		mode ust = basicUpdate mode (\l (ComboChoice opts _)			-> case l of i = ComboChoice opts (Just i); _ = ComboChoice opts Nothing)									(ComboChoice [] Nothing)											ust
+gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\json (CheckMultiChoice opts sel)	-> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel)	(CheckMultiChoice [] [])											ust
+where
+	updateSel i True sel	= removeDup [i:sel]
+	updateSel i False sel 	= removeMember i sel
+	
 gUpdate{|Currency|}				mode ust = basicUpdate mode parseUpdate (EUR 0) ust
 where
 	parseUpdate update orig = case split "." update of
@@ -225,10 +229,7 @@ gUpdate{|Dynamic|}		mode ust = basicUpdate mode unchanged (dynamic 42) ust
 gUpdate{|(->)|} _ fy	mode ust
 	# (def,ust) = fy UDCreate ust
 	= basicUpdate mode unchanged (const def) ust
-gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode unchanged (WorkflowTask defTask) ust
-where
-	defTask :: Task Void
-	defTask = abort "default task container"
+
 
 gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust
 gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask, newMask}
@@ -245,7 +246,7 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
 
-derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 
 basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
 basicUpdateSimple mode def ust = case mode of
@@ -303,7 +304,7 @@ gDefaultMask{|Bool|}				_ = [Touched []]
 gDefaultMask{|String|}				_ = [Touched []]
 gDefaultMask{|Dynamic|}				_ = [Touched []]
 gDefaultMask{|(->)|} _ _			_ = [Touched []]
-gDefaultMask{|WorkflowTaskContainer|}_ = [Touched []]
+
 gDefaultMask{|Document|}			_ = [Touched []]			
 gDefaultMask{|FormButton|}			_ = [Touched []]
 gDefaultMask{|Note|}				_ = [Touched []]
@@ -329,7 +330,7 @@ gDefaultMask{|TreeChoice|} _ _ tree=:(TreeChoice _ mbSel)
 	| isJust mbSel	= [Touched []]
 	| otherwise		= [Untouched]
 
-derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gDefaultMask Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
 
 //Utility functions
 dp2s :: !DataPath -> String
@@ -356,6 +357,10 @@ shiftDataPath (DataPath path) = DataPath [0:path]
 
 childDataPath :: !DataPath !Int -> DataPath
 childDataPath (DataPath path) i = DataPath [i:path]
+
+parentDataPath :: !DataPath -> (!DataPath,!Int)
+parentDataPath (DataPath []) = (DataPath [], -1)
+parentDataPath (DataPath [i:path]) = (DataPath path, i)
 
 dataPathLevel :: !DataPath -> Int
 dataPathLevel (DataPath l) = length l

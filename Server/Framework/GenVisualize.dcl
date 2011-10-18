@@ -15,7 +15,7 @@ derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeText Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualizeText EmailAddress, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
+derive gVisualizeText EmailAddress, Action, HtmlDisplay, HtmlInclude, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
 
 //Generic html visualization function
 generic gVisualizeHtml a :: !StaticVisualizationMode !a -> [HtmlTag]
@@ -25,7 +25,7 @@ derive gVisualizeHtml UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeHtml Int, Real, Char, Bool, String
 derive gVisualizeHtml Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeHtml Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualizeHtml EmailAddress, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
+derive gVisualizeHtml EmailAddress, Action, HtmlInclude, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
 
 //Generic editor function
 generic gVisualizeEditor a | gVisualizeText a, gVisualizeHtml a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
@@ -35,26 +35,27 @@ derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeEditor Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualizeEditor EmailAddress, Action, HtmlDisplay, HtmlInclude, WorkflowDescription, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session, WorkflowTaskContainer
+derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> TUIDef	| gVisualizeEditor{|*|} a
-visualizeAsText			:: !StaticVisualizationMode !a									-> String	| gVisualizeText{|*|} a
-visualizeAsHtml			:: !StaticVisualizationMode !a									-> HtmlTag	| gVisualizeHtml{|*|} a
+visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> Maybe TUIDef	| gVisualizeEditor{|*|} a
+visualizeAsDisplay		:: !a															-> Maybe TUIDef	| gVisualizeEditor{|*|} a
+visualizeAsText			:: !StaticVisualizationMode !a									-> String		| gVisualizeText{|*|} a
+visualizeAsHtml			:: !StaticVisualizationMode !a									-> HtmlTag		| gVisualizeHtml{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
-	{ currentPath		:: !DataPath								// Accumulated path through the data structure, used to identify sub-structures
-	, verifyMask		:: ![VerifyMask]
-	, selectedConsIndex	:: !Int										// Index of the selected constructor in an Object
-	, optional			:: !Bool									// Create optional form fields
-	, renderAsStatic	:: !Bool									// If true, flag the form items as being static
-	, editEvent			:: !(Maybe (!DataPath,!JSONNode))			// The edit event (if present) for keeping track of values sent by the client (used for diff)
-	, taskId			:: !TaskId									// The id of the task the visualisation belongs to
-	, controlSize		:: !(!TUISize,!TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
+	{ currentPath		:: !DataPath											// Accumulated path through the data structure, used to identify sub-structures
+	, verifyMask		:: ![VerifyMask]	
+	, selectedConsIndex	:: !Int													// Index of the selected constructor in an Object
+	, optional			:: !Bool												// Create optional form fields
+	, renderAsStatic	:: !Bool												// If true, flag the form items as being static
+	, editEvent			:: !(Maybe (!DataPath,!JSONNode))						// The edit event (if present) for keeping track of values sent by the client (used for diff)
+	, taskId			:: !Maybe TaskId										// The id of the task the visualisation belongs to
+	, controlSize		:: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
 	}
 	
-:: VerifyResult = HintMsg !String | ErrorMsg !String | NoMsg
+:: VerifyResult = HintMsg !String | ValidMsg !String | ErrorMsg !String | NoMsg
 
 //Utility functions making specializations of gVisualizeEditor
 

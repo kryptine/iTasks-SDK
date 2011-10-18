@@ -5,7 +5,7 @@ import HTTP, Error, Text
 import SystemTypes, IWorld, HtmlUtil, UserDB
 import GenEq
 from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB IWorld
-from WorkflowDB import :: WorkflowDescription{..}, :: WorkflowId
+from WorkflowAdmin import :: Workflow{..}, :: WorkflowTaskContainer, :: WorkflowDescription{..}, :: WorkflowId
 from SessionDB import qualified class SessionDB(..), instance SessionDB IWorld
 
 from Util import mb2list

@@ -46,50 +46,15 @@ currentUserDetails = makeReadOnlyShared "SystemData_currentUserDetails" (\iworld
 // Sessions
 sessions :: ReadOnlyShared [Session]
 sessions = makeReadOnlyShared "SystemData_sessions" 'SessionDB'.getSessions 'SessionDB'.lastChange
-
-// Available workflows
-workflows :: ReadOnlyShared [WorkflowDescription]
-workflows = makeReadOnlyShared "SystemData_workflows" 'WorkflowDB'.getWorkflowDescriptions 'WorkflowDB'.lastChange
-
-allowedWorkflows :: ReadOnlyShared [WorkflowDescription]
-allowedWorkflows = mapSharedRead filterAllowed (workflows |+| (currentUser |+| currentUserDetails))
-where
-	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
 	
-workflowTree :: ReadOnlyShared (Tree WorkflowDescription)
-workflowTree = mapSharedRead mkFlowTree workflows
-
-allowedWorkflowTree :: ReadOnlyShared (Tree WorkflowDescription)
-allowedWorkflowTree = mapSharedRead mkFlowTree allowedWorkflows
-
-mkFlowTree :: ![WorkflowDescription] -> Tree WorkflowDescription
-mkFlowTree workflows = Tree (seq (map insertWorkflow workflows) [])
-where
-	insertWorkflow descr=:{WorkflowDescription|path} nodeList = insertWorkflow` (split "/" path) nodeList
-	where
-		insertWorkflow` [] nodeList = nodeList
-		insertWorkflow` [title] nodeList = nodeList ++ [Leaf descr]
-		insertWorkflow` path=:[nodeP:pathR] [node=:(Node nodeL nodes):nodesR]
-			| nodeP == nodeL	= [Node nodeL (insertWorkflow` pathR nodes):nodesR]
-			| otherwise			= [node:insertWorkflow` path nodesR]
-		insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
-		insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
-		
-workflowTask :: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
-workflowTask wid = makeReadOnlySharedError ("SystemData_workflowTask_" +++ (toString wid)) getTask ((appFst Ok) o 'WorkflowDB'.lastChange)
-where
-	getTask iworld
-		# (mbWorkflow,iworld) = 'WorkflowDB'.getWorkflow wid iworld
-		= case mbWorkflow of
-			Just {task}	= (Ok task, iworld)
-			_			= (Error ("could not find workflow " +++ (toString wid)), iworld)
-		
 // Workflow processes
 topLevelTasks :: (TaskList Void)
 topLevelTasks = GlobalTaskList
 
+//TODO: Figure out pattern match bug
 currentProcessId :: ReadOnlyShared ProcessId
-currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{currentProcess} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
+//currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack=[currentProcess:_]} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
+currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) ('ProcessDB'.lastChange)
 
 currentProcesses ::ReadOnlyShared [Process]
 currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running] [Active]) 'ProcessDB'.lastChange

@@ -94,7 +94,7 @@ derive class iTask MarkerInfo, MapOptions
 RemoveMarkersAction :== Action "Remove Markers"
 
 googleMaps :: Task GoogleMap
-googleMaps = parallel "Map Example" mkMap (\_ m -> m)
+googleMaps = parallel "Map Example" defaultMap (\_ m -> m)
 	[ (BodyTask, \s -> updateSharedInformation "Options" [UpdateView optionsEditor] (taskListState s) Void >>+ noActions)
 	, (BodyTask, \s -> updateSharedInformation "Google Map" [] (taskListState s) Void >>+ noActions)
 	, (BodyTask, \s -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] (taskListState s) Void >>+ noActions)
@@ -137,7 +137,7 @@ where
 														& center = nmap.GoogleMap.center
 														}
 						)
-	markersListener	map = [{position = position, map = {GoogleMap| mkMap & center = position, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
+	markersListener	map = [{position = position, map = {GoogleMap| defaultMap & center = position, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
 autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort, PutbackLocal \l _ _ -> l)] emptyL >>+ quitButton

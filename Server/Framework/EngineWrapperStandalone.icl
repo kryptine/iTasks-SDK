@@ -4,24 +4,24 @@ import StdFile, StdInt
 import Engine, Config
 import HTTP, HttpServer
 
-import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService, StencilService
+import TaskService, DocumentService, StencilService
 
-startEngine :: [Workflow] !*World -> *World 
-startEngine flows world
+startEngine :: (Task a) !*World -> *World | iTask a
+startEngine task world
 	# (mbConfig,world)	= config world
 	# (app,world)		= determineAppName world
 	# world				= instructions app mbConfig world
 	# options			= case mbConfig of
 							Just config = [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
 							Nothing		= []
-	# world				= http_startServer options (engine mbConfig flows handlers) world
+	# world				= http_startServer options (engine mbConfig task handlers) world
 	| isJust mbConfig
 		= world // normal operation: stop server
 	| otherwise
 		# (console,world)	= stdio world
 		# console			= fwrites ("\n\n") console
 		# (_,world)			= fclose console world
-		= startEngine flows world // setup mode: restart server
+		= startEngine task world // setup mode: restart server
 where
 	instructions :: !String !(Maybe Config) *World -> *World
 	//Normal operation
@@ -44,12 +44,8 @@ where
 		# (_,world)			= fclose console world
 		= world
 		
-	handlers :: [Handler]
-	handlers =	[ ("application",	["html","json"],	applicationService)
-				, ("sessions",		["html","json"],	sessionService)
-				, ("workflows",		["html","json"],	workflowService)
-				, ("tasks",			["html","json"],	taskService)
-				, ("users",			["html","json"],	userService)
-				, ("documents",		["html","json"],	documentService)
-				, ("stencils",		["html","json"],	stencilService)
-				]
+	handlers :: [Handler] 
+	handlers =		[ ("tasks",			["html","json"],	taskServiceOld)
+					, ("documents",		["html","json"],	documentService)
+					, ("stencils",		["html","json"],	stencilService)
+					]

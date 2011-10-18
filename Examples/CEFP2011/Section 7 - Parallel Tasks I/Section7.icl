@@ -10,7 +10,7 @@ from Section5 import joinTweets, ::Tweet
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows7 world
+Start world = startEngine (manageWorkflows flows7) world
 
 flows7 :: [Workflow]
 flows7 

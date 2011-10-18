@@ -6,10 +6,11 @@ from SharedCombinators		import :: Shared
 from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared
 from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..)
 from StdFunc				import o, id
-from IWorld					import :: IWorld(..), :: Control
+from IWorld					import :: IWorld(..), :: Control(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException, :: WorkOnException(..), instance toString WorkOnException
-from WorkflowDB				import qualified class WorkflowDB(..), instance WorkflowDB IWorld
+from SystemData				import topLevelTasks
+from Map					import qualified get
 
 derive class iTask WorkOnProcessState
 
@@ -132,7 +133,7 @@ where
 				
 	edit _ _ context iworld = (context,iworld)
 	
-	eval termFunc taskNr props event tuiTaskNr imerge pmerge context iworld=:{IWorld|timestamp}
+	eval termFunc taskNr props event tuiTaskNr ilayout playout context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
@@ -155,7 +156,7 @@ where
 							_			= Nothing
 						# taskId		= taskNrToString taskNr
 						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
-						# (tui,actions)	= mergeTUI props imerge tuis warning tactions 
+						# (tui,actions)	= mergeTUI props ilayout tuis warning tactions 
 						= (TaskBusy (Just tui) actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
@@ -195,7 +196,7 @@ where
 
 visualizeParts :: !TaskNr ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TUIDef],![StoredPart l w],!Bool)
 visualizeParts taskNr parts oldParts mbEdit
-	# res = [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]
+	# res =  [(tui,newPart,valid) \\ (Just tui,newPart,valid) <- [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]]]
 	= appThd3 and (unzip3 res)
 where
 	visualizePart (part,mbV,idx)
@@ -214,16 +215,18 @@ where
 						Nothing			= visualizePart (FormPart init putback,Nothing,idx)
 					_					= visualizePart (FormPart init putback,Nothing,idx)
 				Blank					= blankForm formView putback mbEdit
-			DisplayPart v				= (htmlDisplay (toString (visualizeAsHtml AsDisplay v)),StoredDisplayView, True)
-			UpdatePart label w			=	({ content = TUIButton	{ TUIButton
+			
+			DisplayPart v				= (visualizeAsDisplay v, StoredDisplayView, True)
+				
+			
+			UpdatePart label w			=	(Just (defaultDef (TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
 																	, text			= label
 																	, disabled		= False
 																	, iconCls		= ""
 																	, actionButton	= False
-																	}
-											, width = Auto, height = Auto, margins = Nothing},StoredUpdate w, True)
+																	})),StoredUpdate w, True)
 	where
 		fromJSON` :: !(FormView v) !JSONNode -> (Maybe v) | JSONDecode{|*|} v
 		fromJSON` _ json = fromJSON json
@@ -236,60 +239,6 @@ where
 		
 		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
 		defaultValue` _ = defaultValue
-	
-sharedException :: !(MaybeErrorString a) -> (TaskResult b)
-sharedException err = taskException (SharedException (fromError err))
-
-workOn :: !ProcessId -> Task WorkOnProcessState
-workOn processId
-	= mkActionTask ("Work on","Work on another top-level instance.") (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
-where
-	init taskNr iworld = (TCEmpty, iworld)
-	
-	edit taskNr event _ iworld
-		//Load instance
-		# (mbContext,iworld)	= loadInstance [processId] iworld
-		| isError mbContext		= (TCEmpty, iworld)
-		//Apply event to instance
-		# (mbContext,iworld)	= editInstance (Just event) (fromOk mbContext) iworld
-		//Store instance
-		| isError mbContext		= (TCEmpty, iworld)
-		# iworld				= storeInstance (fromOk mbContext) iworld
-		= (TCEmpty, iworld)
-		
-	eval termFunc taskNr props event tuiTaskNr imerge _ _ iworld=:{evalStack}
-		//Check for cycles
-		| isMember processId evalStack
-			=(taskException WorkOnDependencyCycle, iworld)
-		//Load instance
-		# (mbContext,iworld)		= loadInstance [processId] iworld
-		| isError mbContext			= (taskException WorkOnNotFound ,iworld)
-		//Eval instance
-		# (mbResult,context,iworld)	= evalInstance [processId, changeNo (fromOk mbContext)] event (fromOk mbContext) iworld 
-		= case mbResult of
-			Error e				= (taskException WorkOnEvalError, iworld)
-			Ok result
-				//Store context
-				# iworld		= storeInstance context iworld
-				# (state,tui,sactions,iworld) = case result of
-					(TaskBusy tui actions _)		= (WOActive, tui, actions, iworld)
-					(TaskFinished _)				= (WOFinished, Just (htmlDisplay "Task finished"), [], iworld)
-					(TaskException _ err)			= (WOExcepted, Just (htmlDisplay ("Task excepted: " +++ err)), [], iworld)
-				//Check trigger
-				= case termFunc {localValid = True, modelValue = state} of
-					StopInteraction result
-						= (TaskFinished result,iworld)
-					UserActions uactions	
-						= case getActionResult event uactions of
-							Just result
-								= (TaskFinished result, iworld)
-							Nothing
-								# taskId			= taskNrToString taskNr
-								# tactions			= [(taskId,action,isJust val) \\ (action,val) <- uactions]
-								# (tui,actions)		= mergeTUI props imerge (maybe [] (\t -> [t]) tui) Nothing (tactions ++ sactions)
-								= (TaskBusy (Just tui) actions TCEmpty,iworld)
-
-	changeNo (TaskContext _ n _) = n
 
 mergeTUI props imerge tuis warning actions
 	= imerge { title = props.TaskMeta.title
@@ -301,16 +250,87 @@ mergeTUI props imerge tuis warning actions
 			 , localInteraction = props.TaskMeta.localInteraction
 			 , warning = warning
 			 }
+	
+sharedException :: !(MaybeErrorString a) -> (TaskResult b)
+sharedException err = taskException (SharedException (fromError err))
+
+workOn :: !ProcessId -> Task WorkOnProcessState
+workOn (SessionProcess sessionId)
+	= abort "workOn applied to session process"
+workOn (WorkflowProcess processId)
+	= workOn (EmbeddedProcess processId "")
+workOn (EmbeddedProcess processId target)
+	= mkActionTask ("Work on","Work on another top-level instance.") (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
+where
+	init taskNr iworld = (TCEmpty, iworld)
+	
+	edit taskNr event _ iworld
+		//Load instance
+		# (mbContext,iworld)	= loadInstance (WorkflowProcess processId) iworld
+		| isError mbContext		= (TCEmpty, iworld)
+		//Apply event to instance
+		# (mbContext,iworld)	= editInstance (Just event) (fromOk mbContext) iworld
+		//Store instance
+		| isError mbContext		= (TCEmpty, iworld)
+		# iworld				= storeInstance (fromOk mbContext) iworld
+		= (TCEmpty, iworld)
+		
+	eval termFunc taskNr props event tuiTaskNr ilayout playout _ iworld=:{evalStack}
+		//Check for cycles
+		| isMember (WorkflowProcess processId) evalStack
+			=(taskException WorkOnDependencyCycle, iworld)
+		//Load instance
+		# (mbContext,iworld)		= loadInstance (WorkflowProcess processId) iworld
+		| isError mbContext	
+			//If the instance can not be found, check if it was only just added by an
+			//appendTask in the same session. If so, create a temporary result and trigger
+			//reevaluation.
+			# (found,iworld)	= checkIfAddedGlobally processId iworld
+			| found
+				= (TaskBusy (Just (stringDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
+			| otherwise
+				= (taskException WorkOnNotFound ,iworld)
+		//Eval instance
+		# targetTaskNo = case target of
+			""	= [processId,changeNo (fromOk mbContext)]
+			_	= reverse (taskNrFromString target)
+		# (mbResult,context,iworld)	= evalInstance targetTaskNo event (fromOk mbContext) iworld
+		= case mbResult of
+			Error e				= (taskException WorkOnEvalError, iworld)
+			Ok result
+				//Store context
+				# iworld		= storeInstance context iworld
+				# (state,tui,sactions,iworld) = case result of
+					(TaskBusy tui actions _)		= (WOActive, tui, actions, iworld)
+					(TaskFinished _)				= (WOFinished, Just (stringDisplay "Task finished"), [], iworld)
+					(TaskException _ err)			= (WOExcepted, Just (stringDisplay ("Task excepted: " +++ err)), [], iworld)
+				//Check trigger
+				= case termFunc {localValid = True, modelValue = state} of
+					StopInteraction result
+						= (TaskFinished result,iworld)
+					UserActions uactions	
+						= case getActionResult event uactions of
+							Just result
+								= (TaskFinished result, iworld)
+							Nothing
+								# taskId			= taskNrToString taskNr
+								# tactions			= [(taskId,action,isJust val) \\ (action,val) <- uactions]
+								= (TaskBusy tui (sactions ++ tactions) TCEmpty,iworld)
+
+	changeNo (TaskContext _ _ n _) = n
 		 
 getActionResult (Just (TaskEvent [] name)) actions
 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
 getActionResult _ actions
 	= Nothing
 
-addWorkflow :: !Workflow -> Task WorkflowDescription
-addWorkflow workflow = mkInstantTask "Adds a workflow to the system" eval
-where
-	eval taskNr iworld = appFst TaskFinished ('WorkflowDB'.addWorkflow workflow iworld)
+checkIfAddedGlobally processId iworld=:{parallelControls}
+	= case 'Map'.get (toString topLevelTasks) parallelControls of
+		Just (_,controls)
+			= (isMember processId [i \\ AppendTask i _ <- controls], iworld)
+		_
+			= (False,iworld)
+
 
 applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 applyChangeToProcess pid change lifetime

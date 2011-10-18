@@ -55,7 +55,15 @@ derive class iTask ParallelTaskInfo, ParallelControl, TaskGUI
 * Empty list of actions.
 * 'task >>+ noActions' never terminates.
 */
-noActions :: (TermFunc a b) | iTask a & iTask b
+noActions	:: (TermFunc a b) | iTask a & iTask b
+/*
+* One action which returns the task's value if valid
+*/
+returnAction :: Action -> (TermFunc a a) | iTask a
+/*
+* Actions that yield constant values, independent of the task's value
+*/
+constActions :: [(Action,b)] -> (TermFunc a b) | iTask a & iTask b
 
 /**
 * All-in-one swiss-army-knife parallel task creation

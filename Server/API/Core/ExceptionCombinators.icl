@@ -45,7 +45,7 @@ where
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
 try normalTask handlerTaskFun = mkTask (taskMeta normalTask) init edit eval
 where
-	normalTaskFuncs = toTaskFuncs normalTask
+	normalTaskFuncs = taskFuncs normalTask
 	
 	init taskNr iworld
 		# (cxt,iworld)	= normalTaskFuncs.initFun [0:taskNr] iworld
@@ -66,7 +66,7 @@ where
 			Just event
 				= case (fromJSON encEx) of
 					Just e
-						# handler = toTaskFuncs (handlerTaskFun e)
+						# handler = taskFuncs (handlerTaskFun e)
 						# (newCxtHandler,iworld) = handler.editFun [1:taskNr] event cxtHandler iworld
 						= (TCTry (Right (encEx, newCxtHandler)), iworld)
 					Nothing
@@ -74,8 +74,9 @@ where
 
 
 	//Normal execution still possible
-	eval taskNr _ event tuiTaskNr imerge pmerge context=:(TCTry (Left cxtNormal)) iworld
-		# (result, iworld) = normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) imerge pmerge cxtNormal iworld
+	eval taskNr _ event tuiTaskNr _ _ context=:(TCTry (Left cxtNormal)) iworld
+		# (ilayout,playout)	= taskLayouters normalTask 
+		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) ilayout playout cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
@@ -85,9 +86,10 @@ where
 			TaskException (ex :: e^) str 
 				//Run the handler immediately
 				# handler				= handlerTaskFun ex
-				# handlerFuncs			= toTaskFuncs handler
+				# handlerFuncs			= taskFuncs handler
+				# (ilayout,playout)		= taskLayouters handler
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON ex,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -97,19 +99,20 @@ where
 				= (TaskException ex str, iworld)
 			
 	//Handling the exception
-	eval taskNr _ event tuiTaskNr imerge pmerge context=:(TCTry (Right (encEx,cxtHandler))) iworld
+	eval taskNr _ event tuiTaskNr _ _ context=:(TCTry (Right (encEx,cxtHandler))) iworld
 		= case fromJSON encEx of
 			Just e
-				# handler		= handlerTaskFun e
-				# handlerFuncs	= toTaskFuncs handler
-				# (result,iworld) = handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge cxtHandler iworld
+				# handler			= handlerTaskFun e
+				# handlerFuncs		= taskFuncs handler
+				# (ilayout,playout)	= taskLayouters handler
+				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 			Nothing
 				= (taskException "Corrupt exception value in try" ,iworld)
-	eval taskNr _ event tuiTaskNr imerge pmerge context iworld
+	eval taskNr _ event tuiTaskNr _ _ context iworld
 		= (taskException "Corrupt task context in try", iworld)
 	
 tuiOk i [] tui		= tui
@@ -127,7 +130,7 @@ where
 catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
 catchAll normalTask handlerTaskFun = mkTask (taskMeta normalTask) init edit eval
 where
-	normalTaskFuncs = toTaskFuncs normalTask
+	normalTaskFuncs = taskFuncs normalTask
 
 	init taskNr iworld
 		# (cxt, iworld) = normalTaskFuncs.initFun [0:taskNr] iworld
@@ -140,7 +143,7 @@ where
 	edit taskNr (TaskEvent [1:steps] (path,val)) context=:(TCTry (Right (encEx, cxtHandler))) iworld
 		= case (fromJSON encEx) of
 			Just e
-				# handler = toTaskFuncs (handlerTaskFun e)
+				# handler = taskFuncs (handlerTaskFun e)
 				# (newCxtHandler,iworld) = handler.editFun [1:taskNr] (TaskEvent steps (path,val)) cxtHandler iworld
 				= (TCTry (Right (encEx, newCxtHandler)), iworld)
 			Nothing
@@ -149,8 +152,9 @@ where
 		= (context, iworld)
 
 	//Normal execution still possible
-	eval taskNr _ event tuiTaskNr imerge pmerge context=:(TCTry (Left cxtNormal)) iworld
-		# (result, iworld) = normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) imerge pmerge cxtNormal iworld
+	eval taskNr _ event tuiTaskNr _ _ context=:(TCTry (Left cxtNormal)) iworld
+		# (ilayout,playout)	= taskLayouters normalTask
+		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) ilayout playout cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
@@ -160,21 +164,23 @@ where
 			TaskException _ str 
 				//Run the handler immediately
 				# handler				= handlerTaskFun str
-				# handlerFuncs			= toTaskFuncs handler
+				# handlerFuncs			= taskFuncs handler
+				# (ilayout,playout)		= taskLayouters handler
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON str,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 
 	//Handling the exception
-	eval taskNr _ event tuiTaskNr imerge pmerge context=:(TCTry (Right (encEx,cxtHandler))) iworld
+	eval taskNr _ event tuiTaskNr _ _ context=:(TCTry (Right (encEx,cxtHandler))) iworld
 		= case fromJSON encEx of
 			Just e
 				# handler			= handlerTaskFun e
-				# handlerFuncs		= toTaskFuncs handler
-				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) imerge pmerge cxtHandler iworld
+				# handlerFuncs		= taskFuncs handler
+				# (ilayout,playout)	= taskLayouters handler
+				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -182,6 +188,6 @@ where
 			Nothing
 				= (taskException "Corrupt exception value in catchAll" ,iworld)
 				
-	eval taskNr _ event tuiTaskNr imerge pmerge context iworld
+	eval taskNr _ event tuiTaskNr _ _ context iworld
 		= (taskException "Corrupt task context in catchAll", iworld)
 			

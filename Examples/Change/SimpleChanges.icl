@@ -168,7 +168,7 @@ chooseProcess question
 						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
 						\\ proc <- procs]
 	>?*				[ (ActionCancel,	Always	(throw "choosing a process has been cancelled"))
-					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return (toInt pid)))
+					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return (WorkflowProcess (toInt pid))))
 					]
 
 	

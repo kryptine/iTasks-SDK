@@ -35,6 +35,15 @@ overviewPage :: HtmlTag
 overviewResponse :: HTTPResponse
 
 /**
+* Creates a start page to load the client framework
+*/
+appStartPage :: !String -> HtmlTag
+/**
+* Creates an HTTP response of the start page
+*/
+appStartResponse :: !String -> HTTPResponse
+
+/**
 * Creates a 302 Redirect response
 */
 redirectResponse :: !String -> HTTPResponse

@@ -15,29 +15,28 @@ body {
 	color: red;
 }
 
-.bool-htmllabel-icon{
-	width: 16px;
-	height: 16px;
-	float: left;
-	display: inline;
-	background-repeat: no-repeat;
-	background-position: center center;
-	margin-right: 4px;
-}
-
-.bool-htmllabel-icon-true{
+.icon-bool-true{
 	background-image: url('img/icons/tick.png') !important;
 }
 
-.bool-htmllabel-icon-false{
+.icon-bool-false{
 	background-image: url('img/icons/cancel.png') !important;
 }
 
+.icon-hint {
+	background-image: url('img/icons/information.png') !important;
+}
+.icon-valid {
+	background-image: url('img/icons/accept.png') !important;
+}
+.icon-invalid {
+	background-image: url('img/icons/exclamation.png') !important;
+}
 .bool-htmllabel-icon .bool-htmllabel-text{
 	display: none;
 }
 
-button.icon-logout, .icon-logout {
+button.icon-log-out, .icon-log-out {
 	background-image: url('img/icons/door_in.png');
 }
 button.icon-refresh, .icon-refresh {
@@ -150,7 +149,13 @@ button.icon-expand-tree, .icon-expand-tree {
 .icon-control-task {
 	background-image: url('img/icons/user_suit.png') !important;
 }
+.icon-bool-true{
+	background-image: url('img/icons/tick.png') !important;
+}
 
+.icon-bool-false{
+	background-image: url('img/icons/cancel.png') !important;
+}
 .new-task-node { 
 	font-weight: bold;
 }
@@ -647,12 +652,10 @@ div.taskForestLegend{
 }
 
 .list-item-light {
-	position: relative;
 	background-image: url('img/light-blue-background.png') !important;
 }
 
 .list-item-dark {
-	position: relative;
 	background-image: url('img/dark-blue-background.png') !important;
 }
 

@@ -64,20 +64,20 @@ where
 								(Running,Active)	-> showInformation ("Task busy","User " <+++ hd names <+++ " is working on it") [] False		
 								(Running,Suspended)	-> showInformation ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") [] False		
 	suspend pid
-	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
-		>>|					showInformation ("Task suspended","workflow is suspended") [] False
+	=						//updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
+		/*>>| */			showInformation ("Task suspended","workflow is suspended") [] False
 								
 	activate pid
-	=						updateManagerProperties pid (\m -> {ManagerProperties | m & status = Active})
-		>>|					showInformation ("Task activated","workflow is activated") [] False
+	=						//updateManagerProperties pid (\m -> {ManagerProperties | m & status = Active})
+		/*>>| */			showInformation ("Task activated","workflow is activated") [] False
 
-	delete pid
+	delete (WorkflowProcess pid)
 	=						removeTask pid topLevelTasks 
 		>>| 				showInformation ("Task deleted","workflow is deleted") [] True				
 
 	reassign pid
 	=						selectUser "Who is next?"
-		>>= \who ->			setProcessOwner who pid 
+		//>>= \who ->			setProcessOwner who pid 
 		>>| 				return False
 	
 	/*waitForIt pid

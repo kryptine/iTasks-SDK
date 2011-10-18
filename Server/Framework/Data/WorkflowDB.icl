@@ -2,7 +2,7 @@ implementation module WorkflowDB
 
 import StdClass, StdList, StdBool, StdMisc, Time, Util
 from iTasks import serialize, deserialize, defaultStoreFormat
-
+from WorkflowAdmin import :: Workflow(..), :: WorkflowTaskContainer(..), :: WorkflowDescription(..), :: WorkflowId, isAllowedWorkflow
 instance WorkflowDB IWorld
 where
 	getWorkflowDescriptions :: !*IWorld -> (![WorkflowDescription], !*IWorld)

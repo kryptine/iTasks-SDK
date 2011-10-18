@@ -6,7 +6,7 @@ from Section3 import show
 derive bimap (,), Maybe
 
 Start :: *World -> *World
-Start world = startEngine flows2 world 
+Start world = startEngine (manageWorkflows flows2) world
 
 flows2 :: [Workflow]
 flows2 

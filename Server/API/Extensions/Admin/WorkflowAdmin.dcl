@@ -1,0 +1,94 @@
+definition module WorkflowAdmin
+/**
+* This extension provides workflows for managing the users of an iTask system.
+*/
+import iTasks
+
+:: WorkflowId :== Int
+
+:: WorkflowDescription =
+	{ workflowId		:: !WorkflowId
+	, path				:: !String
+	, roles				:: ![String]
+	, description		:: !String
+	, managerProperties	:: !ManagerProperties
+	}
+							
+:: WorkflowTaskContainer
+	= E.a:		WorkflowTask		(Task a)		& iTask a
+	| E.a b:	ParamWorkflowTask	(a -> (Task b))	& iTask a & iTask b
+				
+// A workflow specification
+:: Workflow	=
+	{ path				:: String					//* a unique name of this workflow
+	, roles				:: [String]					//* the roles that are allowed to initate this workflow
+	, task				:: WorkflowTaskContainer	//* the thread of the main task of the workflow
+	, description		:: String					//* a description of the workflow
+	, managerProperties	:: ManagerProperties		//* the initial manager properties of the main task
+	}
+
+derive gVisualizeText	Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gVisualizeHtml	Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gVisualizeEditor	Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gUpdate			Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gDefaultMask		Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gVerify			Workflow, WorkflowDescription, WorkflowTaskContainer
+derive JSONEncode		Workflow, WorkflowDescription, WorkflowTaskContainer
+derive JSONDecode		Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gEq				Workflow, WorkflowDescription, WorkflowTaskContainer
+
+// Available workflows
+workflows				:: ReadOnlyShared [WorkflowDescription]
+allowedWorkflows		:: ReadOnlyShared [WorkflowDescription]
+workflowTree			:: ReadOnlyShared (Tree WorkflowDescription)
+allowedWorkflowTree		:: ReadOnlyShared (Tree WorkflowDescription)
+workflowTask			:: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
+
+/**
+* Wraps any task as a workflow with no access restrictions
+*
+* @param A label for the workflow. This may contain slashes to group workflows
+* @param A description of the workflow
+* @param The task(container) (with or without parameter)
+*/
+workflow :: String String w -> Workflow | toWorkflow w
+
+/**
+*
+* Wraps any task as a workflow that is only available to specified roles
+*
+* @param A label for the workflow. This may contain slashes to group workflows
+* @param A description of the workflow
+* @param A list of roles. The workflow will be available to users with any of the specified roles
+* @param The task(container) (with or without parameter)
+*/
+restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
+
+class toWorkflow w :: String String [Role] w -> Workflow
+
+instance toWorkflow (Task a)						| iTask a
+instance toWorkflow (WorkflowContainer a)			| iTask a
+instance toWorkflow (a -> Task b)					| iTask a & iTask b
+instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
+
+:: WorkflowContainer a			= Workflow		ManagerProperties (Task a)
+:: ParamWorkflowContainer a b	= ParamWorkflow	ManagerProperties (a -> Task b)
+
+/**
+* Default workflow management task.
+* This task allows users to manage a catalogue of task definitions
+* and let's them create instances of these tasks and work on instances.
+*/
+manageWorkflows :: [Workflow] ->  Task Void
+
+/**
+* Dynamically adds a workflow to the system.
+*
+* @param Workflow: The workflow to add
+* @return The description of the added workflow
+* 
+* @gin False
+*/
+addWorkflow :: !Workflow -> Task WorkflowDescription
+
+isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool
