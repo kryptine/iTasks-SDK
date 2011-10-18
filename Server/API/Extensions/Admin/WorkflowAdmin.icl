@@ -128,12 +128,12 @@ workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProces
 	]
 
 infoBar :: Task ParallelControl
-infoBar = showSharedInformation "Info" [ShowView (GetShared view)] currentUser Void >>+ (\_ -> UserActions [(Action "Log out",Just Stop)])
+infoBar = showSharedInformation "Info" [DisplayView (GetShared view)] currentUser Void >>+ (\_ -> UserActions [(Action "Log out",Just Stop)])
 where
 	view user = "Welcome " +++ toString user
 	
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
-chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetLocalAndShared mkTree, Putback putback)] (state >+| allowedWorkflowTree) Nothing >>+ noActions
+chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetCombined mkTree, SetCombined putback)] (state >+| allowedWorkflowTree) Nothing >>+ noActions
 where
 	mkTree sel (_,flows) = mkTreeChoice (fmap (\{path,description,workflowId} -> (last (split "/" path),(workflowId,description))) flows) sel
 	putback tree _ (state,_) = (Just (Just selection), Just {state & selectedWorkflow = Just selection})
@@ -142,7 +142,7 @@ where
 
 showDescription :: !(Shared ClientState) -> Task ParallelControl
 showDescription state = forever (
-		showSharedInformation "Task description" [ShowView (GetShared view)] state Void <<@ descriptionLayout
+		showSharedInformation "Task description" [DisplayView (GetShared view)] state Void <<@ descriptionLayout
 	>?*	[(Action "Start workflow", Sometimes \{modelValue=m=:({selectedWorkflow},_)} -> if (isJust selectedWorkflow) (Just (addWorkflow (fromJust selectedWorkflow))) Nothing)])
 where			
 	view {selectedWorkflow} = case selectedWorkflow of
@@ -155,7 +155,7 @@ where
 		>>= \user ->				appendTask (DetachedTask {initManagerProperties & worker = user}, \_ -> task >>| return Continue) topLevelTasks
 
 processTable :: !(TaskList ClientState) -> Task ParallelControl	
-processTable taskList = updateSharedInformation "process table" [UpdateView (GetLocalAndShared mkTable, Putback putback)] (processes |+< state) Nothing >>+ noActions
+processTable taskList = updateSharedInformation "process table" [UpdateView (GetCombined mkTable, SetCombined putback)] (processes |+< state) Nothing >>+ noActions
 where
 	state = taskListState taskList
 	// list of active processes for current user without current one (to avoid work on dependency cycles)

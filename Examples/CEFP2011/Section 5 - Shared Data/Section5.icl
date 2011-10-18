@@ -132,8 +132,8 @@ where
 		=				update (\tweets -> tweets ++ [tweet]) tweets 
 			>>| 		joinTweets me name tweets
 
-	views = [ ShowView (GetShared id)
-			, EnterView (PutbackLocal \(Note reaction) _ _ -> reaction)
+	views = [ DisplayView (GetShared id)
+			, EnterView (SetLocal \(Note reaction) _ _ -> reaction)
 			]
 			
 joinTweets2  :: User String (Shared [Tweet]) -> Task Void
@@ -143,8 +143,8 @@ joinTweets2 me name tweets
 					]
 where
 	views = [ UpdateView 
-				( GetLocalAndShared (\string tweets -> (Display tweets, Note string))
-			    , PutbackShared (\(_,Note reaction) _ tweets -> tweets ++ [(me,reaction)])
+				( GetCombined (\string tweets -> (Display tweets, Note string))
+			    , SetShared (\(_,Note reaction) _ tweets -> tweets ++ [(me,reaction)])
 				)
 			]
 			
@@ -154,9 +154,9 @@ joinTweets3 me name tweets
 		>?*			[(ActionQuit,Always (return Void))
 					]
 where
-	views =  [ ShowView (GetShared id)
-			 , UpdateView (GetLocal \reaction -> Note reaction, PutbackLocal \(Note reaction) _ _ -> reaction)
-			 , UpdateTrigger "Commit" (UpdateData (\reaction tweets -> (Just "", Just (tweets ++ [(me,reaction)]))))
+	views =  [ DisplayView (GetShared id)
+			 , UpdateView (GetLocal \reaction -> Note reaction, SetLocal \(Note reaction) _ _ -> reaction)
+			 , UpdateTrigger "Commit" (UpdateCombined (\reaction tweets -> (Just "", Just (tweets ++ [(me,reaction)]))))
 			 ]
 			 
 			 

@@ -69,16 +69,16 @@ manageList list
 	>>| return Void
 where
 	showItems l = case l of
-		(SimpleList l)	= showSharedInformation (l.List.name,l.List.description) [ShowView (GetShared simpleFrom)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
-		(TodoList l)	= showSharedInformation (l.List.name,l.List.description) [ShowView (GetShared todoFrom)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
-		(DateList l)	= showSharedInformation (l.List.name,l.List.description) [ShowView (GetShared dateFrom)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
-		(DocumentList l)= showSharedInformation (l.List.name,l.List.description) [ShowView (GetShared documentFrom)]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
+		(SimpleList l)	= showSharedInformation (l.List.name,l.List.description) [DisplayView (GetShared simpleFrom)]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
+		(TodoList l)	= showSharedInformation (l.List.name,l.List.description) [DisplayView (GetShared todoFrom)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
+		(DateList l)	= showSharedInformation (l.List.name,l.List.description) [DisplayView (GetShared dateFrom)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
+		(DocumentList l)= showSharedInformation (l.List.name,l.List.description) [DisplayView (GetShared documentFrom)]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionClose,Just ActionClose),(ActionEdit,Just ActionEdit),(Action "Share",Just (Action "Share"))]
 
 	editItems list = case list of
-		(SimpleList l)	= updateSharedInformation (l.List.name,l.List.description) [UpdateView (GetShared simpleFrom, PutbackShared simpleTo)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionFinish,Just Void)]
-		(TodoList l)	= updateSharedInformation (l.List.name,l.List.description) [UpdateView (GetShared todoFrom, PutbackShared todoTo)]			(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionFinish,Just Void)]
-		(DateList l)	= updateSharedInformation (l.List.name,l.List.description) [UpdateView (GetShared dateFrom, PutbackShared dateTo)]			(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionFinish,Just Void)]
-		(DocumentList l)= updateSharedInformation (l.List.name,l.List.description) [UpdateView (GetShared documentFrom, PutbackShared documentTo)]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionFinish,Just Void)]
+		(SimpleList l)	= updateSharedInformation (l.List.name,l.List.description) [UpdateView (GetShared simpleFrom, SetShared simpleTo)]		(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionFinish,Just Void)]
+		(TodoList l)	= updateSharedInformation (l.List.name,l.List.description) [UpdateView (GetShared todoFrom, SetShared todoTo)]			(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionFinish,Just Void)]
+		(DateList l)	= updateSharedInformation (l.List.name,l.List.description) [UpdateView (GetShared dateFrom, SetShared dateTo)]			(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionFinish,Just Void)]
+		(DocumentList l)= updateSharedInformation (l.List.name,l.List.description) [UpdateView (GetShared documentFrom, SetShared documentTo)]	(sharedStore ("List-" <+++ (fromHidden l.List.listId)) defaultValue) Void >>+ \_ -> UserActions [(ActionFinish,Just Void)]
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i _ (SimpleList l)		= SimpleList {List|l & items = i}

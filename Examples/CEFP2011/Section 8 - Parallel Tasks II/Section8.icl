@@ -46,7 +46,7 @@ chatTask user cs
 				chatMore user "" cs
 
 chatMore user s cs 
-	= 	updateInformation ("Chat with iTask users") [UpdateView (GetLocal toView,PutbackLocal fromView)] s  	
+	= 	updateInformation ("Chat with iTask users") [UpdateView (GetLocal toView,SetLocal fromView)] s  	
 		>?*	[(ActionAdd,  IfValid (\r  ->	  appendTask newChatter cs
 										  >>| chatMore user r cs))
 			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) (taskListState cs) 
@@ -119,7 +119,7 @@ editor fileName ls
 		  		]
 where	
 	views = [UpdateView ( GetShared (\s -> Note s.mytext)
-					    , PutbackShared (\(Note text) _ s -> {s & mytext = text}) 
+					    , SetShared (\(Note text) _ s -> {s & mytext = text}) 
 					    )
 			]
 
@@ -160,7 +160,7 @@ statisticsTask ls
 	= 			showSharedInformation ("Statistics","Statistics of your document") views (taskListState ls) Void
 		>?*		[(Action "Close", Always close)]
 where
-	views = [ShowView (GetShared showStatistics)]
+	views = [DisplayView (GetShared showStatistics)]
 
 	showStatistics state 
 		=	{ lines 	 = length (split "\n" state.mytext)

@@ -8,8 +8,8 @@ derive bimap Maybe, (,)
 quitButton _ = UserActions [(ActionQuit, Just Stop)]
 
 //Text-Lines Examples
-noteEditor = (GetShared \txt -> Note txt,	PutbackShared \(Note txt) _ _ -> txt)
-listEditor = (GetShared (split "\n"),		PutbackShared \l _ _ -> join "\n" l)
+noteEditor = (GetShared \txt -> Note txt,	SetShared \(Note txt) _ _ -> txt)
+listEditor = (GetShared (split "\n"),		SetShared \l _ _ -> join "\n" l)
 
 TrimAction :== Action "Trim"
 
@@ -23,7 +23,7 @@ where
 			]
 
 //Calculate Sum Example
-calculateSum = updateInformation ("Sum","Auto compute sum") [UpdateView (GetLocal \t=:(x,y) -> (t,Display (x+y)), PutbackLocal \(t,_) _ _ -> t)] (0,0) >>+ quitButton
+calculateSum = updateInformation ("Sum","Auto compute sum") [UpdateView (GetLocal \t=:(x,y) -> (t,Display (x+y)), SetLocal \(t,_) _ _ -> t)] (0,0) >>+ quitButton
 
 //Tree Example
 :: Tree` a = Leaf` | Node` (Node` a)
@@ -48,7 +48,7 @@ where
 		end			= drop (middlePos + 1) list
 
 tree = updateInformation ("List & Balanced Binary Tree","Type something in the list and the tree will update as well.")
-			[UpdateView (GetLocal \l -> (l,Display (toTree l)), PutbackLocal \(l,_) _ _ -> l)] emptyL >>+ quitButton
+			[UpdateView (GetLocal \l -> (l,Display (toTree l)), SetLocal \(l,_) _ _ -> l)] emptyL >>+ quitButton
 where
 	emptyL :: [Int]
 	emptyL = []
@@ -102,7 +102,7 @@ googleMaps = parallel "Map Example" defaultMap (\_ m -> m)
 	]
 where						
 	markersDisplay dbid =
-								showSharedInformation "Markers" [ShowView (GetShared markersListener)] dbid Void
+								showSharedInformation "Markers" [DisplayView (GetShared markersListener)] dbid Void
 		>>*	\{modelValue=map}.	UserActions	[ (RemoveMarkersAction,	Just (update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid))
 											, (ActionQuit,			Just (return Stop))
 											]
@@ -114,7 +114,7 @@ where
 														, showZoomControl = map.zoomControl
 														, showScaleControl = map.scaleControl
 														}
-						, PutbackShared \opts _ map	->	{ map 
+						, SetShared \opts _ map	->	{ map 
 														& mapType = opts.MapOptions.type
 														, mapTypeControl = opts.showMapTypeControl
 														, panControl = opts.showPanControl
@@ -133,14 +133,14 @@ where
 														, zoom = 7
 														, markers = [{GoogleMapMarker|m & draggable = False} \\ m <- map.markers]
 														}
-						, PutbackShared \nmap _ map ->	{ GoogleMap | map
+						, SetShared \nmap _ map ->	{ GoogleMap | map
 														& center = nmap.GoogleMap.center
 														}
 						)
 	markersListener	map = [{position = position, map = {GoogleMap| defaultMap & center = position, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
-autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort, PutbackLocal \l _ _ -> l)] emptyL >>+ quitButton
+autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort, SetLocal \l _ _ -> l)] emptyL >>+ quitButton
 where
 	emptyL :: [String]
 	emptyL = []
@@ -216,7 +216,7 @@ where
 	enterOrder
 		= updateSharedInformation "Enter order" [UpdateView view] (form >+| (productDatabase >+< customerDatabase)) Void >?* [(ActionOk, IfValid (\((order,(_,_)),_) -> return order))]
 	where
-		view = (GetShared vfrom,PutbackShared vto)
+		view = (GetShared vfrom,SetShared vto)
 		vfrom (order,(products,customers))
 			= { OrderForm
 			  | customer = (mkComboChoice (customerOptions customers) (Just (customerSel order)), newCustomer order)
@@ -264,7 +264,7 @@ where
 	initDirty = isJust mbQuery
 	
 	searchBox tlist
-		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView, PutbackShared fromUpdateView)] (taskListState tlist) Void >>+ noActions
+		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView, SetShared fromUpdateView)] (taskListState tlist) Void >>+ noActions
 	where
 		toUpdateView (q,d,r,_) = q
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)

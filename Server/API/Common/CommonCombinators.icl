@@ -75,7 +75,7 @@ assign props task = parallel ("Assign","Manage a task assigned to another user."
 where
 	processControl :: !(TaskList a) -> Task ParallelControl
 	processControl tlist =
-		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, PutbackShared fromView)] control Void >>+ noActions) <<@ ControlTask
+		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, SetShared fromView)] control Void >>+ noActions) <<@ ControlTask
 	where
 		control = taskListProperties tlist
 		

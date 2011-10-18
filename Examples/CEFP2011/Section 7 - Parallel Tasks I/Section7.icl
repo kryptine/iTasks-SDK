@@ -151,12 +151,12 @@ where
 		= 					updateSharedInformation ("Chat with " <+++ you) [chatView,entryView] (taskListState cs) (Note "")
 			>?*				[(ActionQuit, Always (return Stop))]
 	where
-		chatView	= ShowView (GetShared toView)
+		chatView	= DisplayView (GetShared toView)
 		where
 			toView state
 				= (you +++> if (state.typing!!yours) " is typing..." " is waiting...", state.history)
 		
-		entryView	= UpdateView (GetLocal id, Putback fromView)
+		entryView	= UpdateView (GetLocal id, SetCombined fromView)
 		where
 			fromView (Note response) _ state 
 				= case split "\n" response of
