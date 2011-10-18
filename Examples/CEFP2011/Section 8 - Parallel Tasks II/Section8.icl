@@ -112,10 +112,10 @@ editorApplication
 editor :: String (TaskList EditorState) -> Task ParallelControl
 editor fileName ls
 	= 			updateSharedInformation (fileName,"Edit text file \"" +++ fileName +++ "\"") views (taskListState ls) Void
-		>?* 	[ (ActionSave, 		IfValid	save)
-		  		, (ActionQuit,		Always 	quit)
+		>?* 	[ (ActionSave, 		IfValid	  save)
 		  		, (ActionReplace,	Sometimes (onlyIf (\(s,_) -> not s.replace)    replace))
 		  		, (ActionStatistics,Sometimes (onlyIf (\(s,_) -> not s.statistics) statistics))
+		  		, (ActionQuit,		Always 	  quit)
 		  		]
 where	
 	views = [UpdateView ( GetShared (\s -> Note s.mytext)
@@ -124,10 +124,8 @@ where
 			]
 
 	save (val,_)
-		=		safeTextFile fileName val.mytext
+		=		saveTextFile fileName val.mytext
 			>>|	editor fileName ls
-	quit
-		=		 return Stop
 
 	replace _
 		=		updateReplace True (taskListState ls)
@@ -138,6 +136,9 @@ where
 		=		updateStat True (taskListState ls)
 			>>|	appendTask (DialogTask "Statistics", statisticsTask) ls
 			>>| editor fileName ls
+
+	quit
+		=		return Stop
 
 replaceTask :: Replace (TaskList EditorState) -> Task ParallelControl
 replaceTask replacement ls
@@ -174,8 +175,8 @@ where
 
 import StdFile
 
-safeTextFile ::  FileName String -> Task Bool
-safeTextFile  fileName text 
+saveTextFile ::  FileName String -> Task Bool
+saveTextFile  fileName text 
 	= 						accWorld (safeFileMonad  fileName text)
 where
 	safeFileMonad ::  String String *World -> (Bool,*World)

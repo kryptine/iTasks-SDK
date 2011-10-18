@@ -7,5 +7,5 @@ import iTasks
 flows5 :: [Workflow]
 
 :: Tweet  :== (User,String)
-joinTweets  :: String (Shared [Tweet]) -> Task Void
+joinTweets  :: User String (Shared [Tweet]) -> Task Void
 

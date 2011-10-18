@@ -117,21 +117,47 @@ twitterId :: String -> Shared [Tweet]
 twitterId name  = sharedStore ("Twitter with " +++ name) []
 
 joinCEFPtweets 
-	= joinTweets "CEFP" (twitterId "CEFP")
+	= 				get currentUser
+		>>= \me ->	joinTweets2 me "CEFP" (twitterId "CEFP")
 
-joinTweets  :: String (Shared [Tweet]) -> Task Void
-joinTweets name tweets
+joinTweets  :: User String (Shared [Tweet]) -> Task Void
+joinTweets me name tweets
 	=				updateSharedInformation ("Enter tweet for " +++ name) views tweets ""
 		>?*			[(ActionQuit,Always (return Void))
-					,(ActionOk, IfValid commitTweetAndContinue)
+					,(ActionOk, IfValid (\(_,message) -> commit (me,message)))
 					]
 where
-	commitTweetAndContinue :: ([Tweet],String) -> Task Void
-	commitTweetAndContinue (_, reaction) 
-		=				get currentUser
-			>>= \me ->	update (\tweets -> tweets ++ [(me,reaction)]) tweets 
-			>>| 		joinTweets name tweets
+	commit :: Tweet -> Task Void
+	commit tweet
+		=				update (\tweets -> tweets ++ [tweet]) tweets 
+			>>| 		joinTweets me name tweets
 
 	views = [ ShowView (GetShared id)
 			, EnterView (PutbackLocal \(Note reaction) _ _ -> reaction)
 			]
+			
+joinTweets2  :: User String (Shared [Tweet]) -> Task Void
+joinTweets2 me name tweets
+	=				updateSharedInformation ("Enter tweet for " +++ name) views tweets ""
+		>?*			[(ActionQuit,Always (return Void))
+					]
+where
+	views = [ UpdateView 
+				( GetLocalAndShared (\string tweets -> (Display tweets, Note string))
+			    , PutbackShared (\(_,Note reaction) _ tweets -> tweets ++ [(me,reaction)])
+				)
+			]
+			
+joinTweets3  :: User String (Shared [Tweet]) -> Task Void
+joinTweets3 me name tweets
+	=				updateSharedInformation ("Enter tweet for " +++ name) views tweets ""
+		>?*			[(ActionQuit,Always (return Void))
+					]
+where
+	views =  [ ShowView (GetShared id)
+			 , UpdateView (GetLocal \reaction -> Note reaction, PutbackLocal \(Note reaction) _ _ -> reaction)
+			 , UpdateTrigger "Commit" (UpdateData (\reaction tweets -> (Just "", Just (tweets ++ [(me,reaction)]))))
+			 ]
+			 
+			 
+			

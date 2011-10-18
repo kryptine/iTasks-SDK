@@ -296,6 +296,17 @@ waitForTime		:: !Time			-> Task Time
 */
 waitForDate		:: !Date			-> Task Date
 /**
+* Creates a task which blocks a workflow until a specified date and time.
+*
+* @param DateTime: The specified date and time at which the task should complete
+*			       @default DateTime {day = 1, month = 1, year = 2011} {hour = 0, min = 0, sec = 0}
+*
+* @return The date and time to wait for
+* 
+* @gin-icon date_go
+*/
+waitForDateTime :: !DateTime 		-> Task DateTime
+/**
 * Task completes after specified amount of time has passed
 * since the creation of the task.
 *

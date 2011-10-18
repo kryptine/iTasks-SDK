@@ -1,15 +1,15 @@
 Version: 1.4
 Global
 	ProjectRoot:	.
-	Built:	True
+	Built:	False
 	Target:	iTasks
 	Exec:	{Project}\CEFP.exe
 	CodeGen
 		CheckStacks:	False
 		CheckIndexes:	True
 	Application
-		HeapSize:	16777216
-		StackSize:	4194304
+		HeapSize:	33554432
+		StackSize:	8388608
 		ExtraMemory:	81920
 		IntialHeapSize:	8388608
 		HeapSizeMultiplier:	4096
@@ -21,8 +21,8 @@ Global
 		Profile
 			Memory:	False
 			MemoryMinimumHeapSize:	0
-			Time:	False
-			Stack:	False
+			Time:	True
+			Stack:	True
 		Output
 			Output:	ShowConstructors
 			Font:	Courier
@@ -161,8 +161,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdCleanTypes
-		Dir:	{Application}\Libraries\Dynamics
+		Name:	iTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -175,8 +175,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	_SystemDynamic
-		Dir:	{Application}\Libraries\Dynamics\implementation
+		Name:	CommonCombinators
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Common
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -189,8 +189,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	GenEq
-		Dir:	{Application}\Libraries\Generics
+		Name:	DBTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Common
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -203,8 +203,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	GenLexOrd
-		Dir:	{Application}\Libraries\Generics
+		Name:	ExportTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Common
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -217,8 +217,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	GenPrint
-		Dir:	{Application}\Libraries\Generics
+		Name:	ImportTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Common
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -231,8 +231,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdArray
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	InteractionTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Common
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -245,36 +245,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdBool
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdChar
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdCharList
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	CoreCombinators
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -287,8 +259,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdClass
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	CoreTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -301,8 +273,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdEnum
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	ExceptionCombinators
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -315,8 +287,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdEnv
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	IntegrationTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -329,22 +301,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdFile
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdFunc
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	ProcessDBTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -357,8 +315,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdGeneric
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	SharedCombinators
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -371,22 +329,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdInt
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdList
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	SystemData
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -399,22 +343,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdMisc
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdOrdList
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	SystemTypes
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -427,8 +357,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdOverloaded
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	TuningCombinators
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -441,22 +371,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdReal
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdStrictLists
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	UserDBTasks
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Core
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -469,22 +385,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdString
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdTuple
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	GoogleMaps
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Extensions
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -497,8 +399,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	_SystemArray
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	UserAdmin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\API\Extensions\Admin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -511,8 +413,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	_SystemEnum
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	Config
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -525,8 +427,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	_SystemEnumStrict
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	Engine
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -539,8 +441,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	_SystemStrictLists
-		Dir:	{Application}\Libraries\StdEnv
+		Name:	EngineWrapperStandalone
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -553,8 +455,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	StdMaybe
-		Dir:	{Application}\Libraries\StdLib
+		Name:	GenRecord
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -567,8 +469,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	TCPChannelClass
-		Dir:	{Application}\Libraries\TCPIP
+		Name:	GenUpdate
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -581,8 +483,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	TCPChannels
-		Dir:	{Application}\Libraries\TCPIP
+		Name:	GenVerify
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -595,8 +497,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	TCPDef
-		Dir:	{Application}\Libraries\TCPIP
+		Name:	GenVisualize
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -609,8 +511,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	TCPEvent
-		Dir:	{Application}\Libraries\TCPIP
+		Name:	HtmlUtil
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -623,8 +525,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	TCPStringChannels
-		Dir:	{Application}\Libraries\TCPIP
+		Name:	IWorld
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -637,8 +539,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	TCPStringChannelsInternal
-		Dir:	{Application}\Libraries\TCPIP
+		Name:	SerializationGraphCopy
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -651,26 +553,8 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	ostcp
-		Dir:	{Application}\Libraries\TCPIP
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		NeededObjFiles
-			ObjectFile:	cTCP_121.
-		NeededLibraries
-			Library:	wsock_library
-	Module
-		Name:	tcp
-		Dir:	{Application}\Libraries\TCPIP
+		Name:	Setup
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -683,8 +567,22 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	tcp_bytestreams
-		Dir:	{Application}\Libraries\TCPIP
+		Name:	Shared
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Store
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1580,26 +1478,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TUIDefinition
-		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	TUIDefinition
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1608,26 +1492,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TUIDiff
-		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	TUIDiff
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1636,26 +1506,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TUIEncode
-		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	TUIEncode
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1664,26 +1520,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Task
-		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Task
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1692,26 +1534,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TaskContext
-		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	TaskContext
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1720,7 +1548,7 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TaskEval
-		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1734,26 +1562,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Util
-		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Util
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1762,26 +1576,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	iTaskClass
-		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	iTaskClass
-		Dir:	{Application}\iTasks-SDK\Server\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1790,26 +1590,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	DocumentDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	DocumentDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1818,26 +1604,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	ProcessDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	ProcessDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1846,26 +1618,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	SessionDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	SessionDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1874,26 +1632,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	UserDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	UserDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1902,26 +1646,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	WorkflowDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	WorkflowDB
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1930,26 +1660,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	DocumentService
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Handlers
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	DocumentService
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1958,26 +1674,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StencilService
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Handlers
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StencilService
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -1986,26 +1688,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	TaskService
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Handlers
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	TaskService
-		Dir:	{Application}\iTasks-SDK\Server\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2014,26 +1702,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinAbstractSyntax
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinAbstractSyntax
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2042,26 +1716,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinConfig
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinConfig
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2070,26 +1730,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinDCLImport
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinDCLImport
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2098,26 +1744,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinFlowLibrary
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinFlowLibrary
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2126,26 +1758,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinORYX
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinORYX
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2154,26 +1772,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinORYXExtensions
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinORYXExtensions
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2182,26 +1786,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinORYXStencil
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinORYXStencil
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2210,26 +1800,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinParser
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinParser
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2238,26 +1814,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinPrinter
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinPrinter
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2266,26 +1828,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinSVG
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinSVG
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2294,26 +1842,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinStorage
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinStorage
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2322,26 +1856,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinSyntax
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinSyntax
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2350,26 +1870,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	GinTypes
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	GinTypes
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2378,26 +1884,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Monad
-		Dir:	{Application}\iTasks-SDK\Server\Gin
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\Gin
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Monad
-		Dir:	{Application}\iTasks-SDK\Server\Gin
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2406,26 +1898,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Email
-		Dir:	{Application}\iTasks-SDK\Server\lib
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Email
-		Dir:	{Application}\iTasks-SDK\Server\lib
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2434,26 +1912,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	CleanDocParser
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	CleanDocParser
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2462,26 +1926,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Heap
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Heap
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2490,26 +1940,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	IndexType
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	IndexType
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2518,26 +1954,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	StdCompare
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	StdCompare
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2546,26 +1968,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	_aconcat
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	_aconcat
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2574,26 +1982,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	analtypes
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	analtypes
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2602,26 +1996,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	analunitypes
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	analunitypes
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2630,26 +2010,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	check
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	check
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2658,26 +2024,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	checkFunctionBodies
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	checkFunctionBodies
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2686,26 +2038,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	checkgenerics
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	checkgenerics
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2714,26 +2052,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	checksupport
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	checksupport
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2742,26 +2066,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	checktypes
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	checktypes
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2770,26 +2080,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	classify
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	classify
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2798,26 +2094,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	compare_constructor
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	compare_constructor
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2826,26 +2108,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	comparedefimp
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	comparedefimp
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2854,26 +2122,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	compilerSwitches
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	compilerSwitches
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2882,26 +2136,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	containers
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	containers
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2910,26 +2150,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	convertDynamics
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	convertDynamics
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2938,26 +2164,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	convertcases
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	convertcases
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2966,26 +2178,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	explicitimports
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	explicitimports
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -2994,26 +2192,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	general
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	general
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3022,26 +2206,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	genericsupport
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	genericsupport
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3050,26 +2220,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	hashtable
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	hashtable
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3078,26 +2234,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	mergecases
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	mergecases
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3106,26 +2248,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	overloading
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	overloading
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3134,26 +2262,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	parse
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	parse
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3162,26 +2276,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	partition
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	partition
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3190,26 +2290,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	predef
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	predef
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3218,26 +2304,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	refmark
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	refmark
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3246,26 +2318,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	scanner
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	scanner
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3274,26 +2332,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	syntax
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	syntax
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3302,26 +2346,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	trans
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	trans
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3330,26 +2360,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	transform
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	transform
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3358,26 +2374,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	type
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	type
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3386,26 +2388,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	type_io
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	type_io
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3414,26 +2402,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	type_io_common
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	type_io_common
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3442,26 +2416,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	typeproperties
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	typeproperties
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3470,26 +2430,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	typereify
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	typereify
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3498,26 +2444,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	typesupport
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	typesupport
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3526,26 +2458,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	unitype
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	unitype
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3554,26 +2472,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	utilities
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\CleanCompiler\frontend
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	utilities
-		Dir:	{Application}\iTasks-SDK\Server\lib\CleanCompiler\frontend
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3582,26 +2486,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	HttpServer
-		Dir:	{Application}\iTasks-SDK\Server\lib\Http
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	HttpServer
-		Dir:	{Application}\iTasks-SDK\Server\lib\Http
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3610,26 +2500,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	HttpUtil
-		Dir:	{Application}\iTasks-SDK\Server\lib\Http
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	HttpUtil
-		Dir:	{Application}\iTasks-SDK\Server\lib\Http
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3638,26 +2514,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Text
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Text
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3666,26 +2528,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Either
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Either
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3694,12 +2542,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Error
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3707,13 +2555,167 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Error
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
+		Name:	Func
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Functor
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Generic
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Graph
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	List
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Map
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Maybe
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Tuple
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Void
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	HTTP
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Internet
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Random
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Math
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	CommandLine
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\System
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3741,7 +2743,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3749,13 +2751,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Functor
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
+		Name:	_Pointer
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\System
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3783,7 +2785,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3791,13 +2793,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Graph
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
+		Name:	CSV
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Text
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3825,7 +2827,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3833,13 +2835,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Map
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
+		Name:	JSON
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Text
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3847,13 +2849,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Maybe
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
+		Name:	PPrint
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Text
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3861,13 +2863,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	Maybe
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
+		Name:	ParserCombinators
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Text
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -3895,357 +2897,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Void
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	HTTP
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Internet
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	HTTP
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Internet
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Random
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Math
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Random
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Math
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	CommandLine
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\System
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	CommandLine
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\System
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	FilePath
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\System
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	FilePath
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\System
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	_Pointer
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\System
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	_Pointer
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\System
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	_Unsafe
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\System
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	_Unsafe
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\System
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	CSV
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	CSV
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	HTML
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	HTML
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	JSON
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	JSON
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	PPrint
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	PPrint
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	ParserCombinators
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	ParserCombinators
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	XML
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	XML
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4254,26 +2906,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	Base64
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text\Encodings
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Text\Encodings
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	Base64
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text\Encodings
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4282,26 +2920,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	MIME
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text\Encodings
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Text\Encodings
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	MIME
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text\Encodings
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4310,26 +2934,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	UrlEncoding
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text\Encodings
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Independent\Text\Encodings
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	UrlEncoding
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Independent\Text\Encodings
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4338,12 +2948,12 @@ OtherModules
 			Fusion:	False
 	Module
 		Name:	OS
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows-32\System
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows-32\System
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4351,13 +2961,414 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	OS
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows-32\System
+		Name:	Time
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows-32\System
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		NeededLibraries
+			Library:	msvcrt.txt
+	Module
+		Name:	_WinBase
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows-32\System
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		NeededLibraries
+			Library:	_WinBase_library
+	Module
+		Name:	_WinDef
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows-32\System
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Directory
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows\System
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	File
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows\System
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	OSError
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows\System
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	Process
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows\System
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	_Windows
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\Platform\OS-Windows\System
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	dynamic_string
+		Dir:	C:\Users\rinus\Desktop\SVN papers\iTask-system\trunk\Server\lib\graph_copy
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		NeededObjFiles
+			ObjectFile:	copy_string_to_graph.obj
+			ObjectFile:	copy_string_to_graph_interface.obj
+			ObjectFile:	copy_graph_to_string.obj
+			ObjectFile:	copy_graph_to_string_interface.obj
+	Module
+		Name:	StdCleanTypes
+		Dir:	{Application}\Libraries\Dynamics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	_SystemDynamic
+		Dir:	{Application}\Libraries\Dynamics\implementation
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	GenEq
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	GenLexOrd
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	GenPrint
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdArray
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdBool
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdChar
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdCharList
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdClass
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdEnum
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdEnv
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdFile
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdFunc
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdGeneric
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdInt
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdList
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdMisc
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdOrdList
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	StdOverloaded
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4371,7 +3382,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4385,7 +3396,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4399,7 +3410,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4413,7 +3424,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4427,7 +3438,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4441,7 +3452,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4455,7 +3466,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4469,7 +3480,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4483,7 +3494,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4499,7 +3510,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4515,7 +3526,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4531,7 +3542,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4547,7 +3558,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4561,7 +3572,7 @@ OtherModules
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4569,13 +3580,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	_Windows
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows\System
+		Name:	TCPStringChannelsInternal
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4583,27 +3594,13 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 	Module
-		Name:	_Windows
-		Dir:	{Application}\iTasks-SDK\Server\lib\Platform\OS-Windows\System
+		Name:	ostcp
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-	Module
-		Name:	dynamic_string
-		Dir:	{Application}\iTasks-SDK\Server\lib\graph_copy
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -4611,26 +3608,34 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 		NeededObjFiles
-			ObjectFile:	copy_string_to_graph.obj
-			ObjectFile:	copy_string_to_graph_interface.obj
-			ObjectFile:	copy_graph_to_string.obj
-			ObjectFile:	copy_graph_to_string_interface.obj
+			ObjectFile:	cTCP_121.
+		NeededLibraries
+			Library:	wsock_library
 	Module
-		Name:	dynamic_string
-		Dir:	{Application}\iTasks-SDK\Server\lib\graph_copy
+		Name:	tcp
+		Dir:	{Application}\Libraries\TCPIP
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		NeededObjFiles
-			ObjectFile:	copy_string_to_graph.obj
-			ObjectFile:	copy_string_to_graph_interface.obj
-			ObjectFile:	copy_graph_to_string.obj
-			ObjectFile:	copy_graph_to_string_interface.obj
+	Module
+		Name:	tcp_bytestreams
+		Dir:	{Application}\Libraries\TCPIP
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False

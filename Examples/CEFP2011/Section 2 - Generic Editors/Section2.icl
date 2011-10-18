@@ -57,7 +57,7 @@ taskPersonList = enterInformation "Please enter a value" []
 
 //
 chooseNumber :: Task Int
-chooseNumber = enterChoice "Choose a number" [] [0..9]
+chooseNumber = updateChoice "Choose a number" [ChoiceView (ChooseFromTree,\i -> "take " <+++ i)] [0..10] 3
 
 //
 pizzaWith :: Task [String]

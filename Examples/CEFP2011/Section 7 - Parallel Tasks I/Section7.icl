@@ -33,7 +33,7 @@ const2 _ _ x = x
 
 noResult _ _ = Void
 
-forever` :: !(Task a) -> Task Void | iTask a 
+forever` :: !(Task a) -> Task a | iTask a 
 forever` t = forever t
 
 // A simple application of parallel: all tasks run to completion (generalized variant of exercise 18)
@@ -46,9 +46,9 @@ questions
 	  						\\ u <- users
 	  						]
 where
-	answer u question shared
+	answer u question tasks
 		=           updateInformation question [] "...!"
-		  >>= \a -> update (\answers -> [(u,a):answers]) (taskListState shared)
+		  >>= \a -> update (\answers -> [(u,a):answers]) (taskListState tasks)
 		  >>| return Continue
 
 // A simple application of parallel: first task to complete terminates parallel (generalized variant of exercise 19)
@@ -62,11 +62,11 @@ chatting :: Task Void
 chatting 
     =               		enterSharedMultipleChoice "Select chatters" [] users
     	>>= \users     ->	parallel "Chatting" [] (\_ _ -> Void)
-								   [  (DetachedTask (normalTask user), chatting)
+								   [  (DetachedTask (normalTask user), chatting user)
 								   \\ user <- users
 								   ]
 where
-	chatting cs = joinTweets "Chatting together..." (taskListState cs) >>| return Continue								  
+	chatting user cs = joinTweets user "Chatting together..." (taskListState cs) >>| return Continue								  
 
 	secret :: (TaskList [Tweet]) -> Task Void
 	secret chats = chooseAction [(Action "File/Append Chatter",  Void)]
@@ -81,22 +81,22 @@ naive_chat :: Task ChatState
 naive_chat
     =               		get currentUser
     	>>= \me     ->		selectUsers
-		>>= \others ->		let names = join "," (map toString [me : others])
+		>>= \others ->		let chatters = [me : others]
 							in  parallel "Naive chat" initChatState (\_ chat -> chat)
-								   [  (DetachedTask (normalTask who), chat names who)
-								   \\ who <- [me : others]
+								   [  (DetachedTask (normalTask who), chat who chatters)
+								   \\ who <- chatters
 								   ]
 where
-	chat :: String User (TaskList ChatState) -> Task ParallelControl
-	chat names me tlist
-		= forever` (              get chatState
+	chat :: User [User] (TaskList ChatState) -> Task ParallelControl
+	chat me chatters tasks
+		= forever` (             get chatState
 		      >>= \xs         -> updateInformation headerEditor [] (Display xs, Note "")
-		      >>= \(_,Note a) -> update (addLine me a) chatState
+		      >>= \(_,Note n) -> update (addLine me n) chatState
 		  )
 		>>| return Stop
 	where
-		chatState		= taskListState tlist
-		headerEditor	= "Chat with " +++ names
+		chatState		= taskListState tasks
+		headerEditor	= "Chat with " +++ join "," (map toString chatters)
 
 	initChatState :: ChatState
 	initChatState = []
@@ -107,26 +107,23 @@ monitor_chat :: Task ChatState
 monitor_chat
     =               		get currentUser
     	>>= \me     ->		selectUsers
-		>>= \others ->		let names = join "," (map toString [me : others])
-							in  parallel "Monitored chat" initChatState (\_ chat -> chat)
-								   [  (DetachedTask (normalTask who), chat names who)
-								   \\ who <- [me : others]
+		>>= \others ->		let chatters = [me : others]
+							in  parallel "Monitored chat" [] (\_ chat -> chat)
+								   [  (DetachedTask (normalTask who), chat who chatters)
+								   \\ who <- chatters
 								   ]
 where
-	chat :: String User (TaskList ChatState) -> Task ParallelControl
-	chat names me tlist
-		= (showSharedInformation headerMonitor [] chatState Void) ||- (forever` enterLine)
+	chat :: User [User](TaskList ChatState) -> Task ParallelControl
+	chat me chatters tasks
+		= showSharedInformation headerMonitor [] chatState Void ||- forever` enterLine
 		>>| return Continue
 	where
-		headerEditor	= "Chat with "       +++ names
-		headerMonitor	= "Conversation of " +++ names
+		headerEditor	= "Chat with "       +++ join "," (map toString chatters)
+		headerMonitor	= "Conversation of " +++ join "," (map toString chatters)
 		enterLine		=                  enterInformation headerEditor []
-						  >>= \(Note a) -> update (addLine me a) chatState
+						  >>= \(Note n) -> update (addLine me n) chatState
 
-		chatState		= taskListState tlist
-
-	initChatState :: ChatState
-	initChatState = []
+		chatState		= taskListState tasks
 
 :: ChatState2 = { typing	:: [Bool]   	// is chatter i busy with typing
 			    , history	:: [String]		// chats so far ....
