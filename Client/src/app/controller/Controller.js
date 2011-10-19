@@ -1,6 +1,5 @@
 Ext.define('itasks.controller.Controller',{
 	extend: 'Ext.app.Controller',
-
 	views: [
 		'itasks.component.edit.String',
 		'itasks.component.show.String',
@@ -20,7 +19,6 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.show.Time',
 		'itasks.component.edit.Password',
 		'itasks.component.show.Password',
-		'itasks.component.Choice',
 		'itasks.component.Combo',
 		'itasks.component.Tree',
 		'itasks.component.Grid',
@@ -56,10 +54,10 @@ Ext.define('itasks.controller.Controller',{
 			commit: this.onCommit
 		});
 		//Control the menus
-		this.control('imenui', {
+		this.control('itasks_menu_item', {
 			commit: this.onCommit
 		});
-		this.control('imenub', {
+		this.control('.itasks_menu_button', {
 			commit: this.onCommit
 		});
 	},
@@ -191,6 +189,7 @@ Ext.define('itasks.controller.Controller',{
 				cmp = cmps[i];
 				cmp.startSyncEdits();
 			}
+
 			return;
 		}
 		//Shut down application
@@ -236,6 +235,4 @@ Ext.define('itasks.controller.Controller',{
 			console.log(e);
 		}
 	}
-	// EVENT MONITORING
-
 });

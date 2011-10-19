@@ -122,7 +122,7 @@ workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProces
 	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
 	, (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
 	, (BodyTask,	\list	-> viewDescription (taskListState list)	)
-	, (BodyTask,	\list	-> workTabPanel list					/*<<@ tabParallelLayout */)
+	, (BodyTask,	\list	-> workTabPanel list					<<@ tabParallelLayout)
 	, (BodyTask,	\list	-> processTable list					<<@ processTableLayout)
 	, (HiddenTask,	\_		-> controlClient)
 	]

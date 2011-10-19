@@ -16,54 +16,54 @@ JSONEncode{|TUIDef|} {content,width,height,margins}
 
 JSONEncode{|TUIDefContent|} (TUIEditControl c b)		= merge (encodeControlType editprefix c) (JSONEncode{|*|} b)
 JSONEncode{|TUIDefContent|} (TUIShowControl c b)		= merge (encodeControlType showprefix c) (JSONEncode{|*|} b)
-JSONEncode{|TUIDefContent|} (TUIPanel r)				= addXType "itasks.panel" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIContainer r)			= addXType "itasks.container" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUITabContainer r)			= addXType "itasks.tab.container" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIPanel r)				= addXType "itasks_panel" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIContainer r)			= addXType "itasks_container" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUITabContainer r)			= addXType "itasks_tab_container" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUITabItem r)				= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIBorderContainer r)		= addXType "iborderc" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIBorderItem r)			= addXType "iborderi" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "itasks.list.container" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIListContainer r) 		= addXType "itasks_list_container" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIListItem r)				= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIRadioChoice r)			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUICheckChoice r)			= JSONEncode{|*|} r
-JSONEncode{|TUIDefContent|} (TUIIcon r)					= addXType "itasks.icon" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks.button" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIIcon r)					= addXType "itasks_icon" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks_button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r) 			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIMenuItem r) 			= JSONEncode{|*|} r
 
 JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
 
 JSONEncode{|TUIListItem|}  {TUIListItem|items,index}
-	= [JSONObject [("xtype",JSONString "itasks.list.item"),("index",JSONInt index),("items", toJSON items)]]
+	= [JSONObject [("xtype",JSONString "itasks_list_item"),("index",JSONInt index),("items", toJSON items)]]
 
 JSONEncode{|TUITabItem|} {TUITabItem|title,iconCls,items,menus,closeAction}
-	= [JSONObject [("xtype",JSONString "itasks.tab.item"),("title",toJSON title),("iconCls",toJSON iconCls)
+	= [JSONObject [("xtype",JSONString "itasks_tab_item"),("title",toJSON title),("iconCls",toJSON iconCls)
 				  ,("items",toJSON items),("menus",toJSON menus),("closeAction",toJSON closeAction)]]
 
 JSONEncode{|TUIBorderItem|} {TUIBorderItem|title,iconCls,item}
 	= [JSONObject [("xtype",JSONString "iborderi"),("title",toJSON title),("iconCls",toJSON iconCls),("items",toJSON item)]]
 
 JSONEncode{|TUIMenuButton|} {TUIMenuButton|text,target,action,disabled,iconCls,menu}
-	= 	[JSONObject (filterNull [("xtype",JSONString "itasks.menu.button"),("text",toJSON text),("target",toJSON target),("action",toJSON action)
+	= 	[JSONObject (filterNull [("xtype",JSONString "itasks_menu_button"),("text",toJSON text),("target",toJSON target),("action",toJSON action)
 					,("disabled",toJSON disabled),("iconCls",toJSON iconCls),("menu",toJSON menu)])]
 JSONEncode{|TUIMenuItem|} {TUIMenuItem|text,target,action,disabled,iconCls,hotkey,menu}
-	= 	[JSONObject	(filterNull [("xtype",JSONString "itasks.menu.item"),("text",toJSON text),("target",toJSON target),("action",toJSON action)
+	= 	[JSONObject	(filterNull [("xtype",JSONString "itasks_menu_item"),("text",toJSON text),("target",toJSON target),("action",toJSON action)
 					,("disabled",toJSON disabled),("iconCls",toJSON iconCls),("hotkey",toJSON hotkey),("menu",toJSON menu)])
 		]
 JSONEncode{|TUIMenu|} {TUIMenu|items}
 	= [JSONObject [("xtype",JSONString "menu"),("items", JSONArray (map toJSON items))]]
 
 JSONEncode{|TUIRadioChoice|} {TUIRadioChoice|items,taskId,name,index,checked}
-	= [JSONObject [("xtype",JSONString "itasks.container.radiochoice"),("items", JSONArray (map toJSON items))
+	= [JSONObject [("xtype",JSONString "itasks_radiochoice"),("items", JSONArray (map toJSON items))
 					,("taskId",toJSON taskId),("name", JSONString name),("index",JSONInt index),("checked",JSONBool checked)]]
 
 JSONEncode{|TUICheckChoice|} {TUICheckChoice|items,taskId,name,index,checked}
-	= [JSONObject [("xtype",JSONString "itasks.container.checkchoice"),("items", JSONArray (map toJSON items))
+	= [JSONObject [("xtype",JSONString "itasks_checkchoice"),("items", JSONArray (map toJSON items))
 					,("taskId",toJSON taskId),("name", JSONString name),("index",JSONInt index),("checked",JSONBool checked)]]
 
 
-editprefix :== "itasks.edit."
-showprefix :== "itasks.show."
+editprefix :== "itasks_edit_"
+showprefix :== "itasks_show_"
 
 encodeControlType prefix TUIStringControl				= justXType (prefix +++ "string")
 encodeControlType prefix TUICharControl					= justXType (prefix +++ "char") 
@@ -76,10 +76,10 @@ encodeControlType prefix TUITimeControl					= justXType (prefix +++ "time")
 encodeControlType prefix TUIUserControl					= justXType (prefix +++ "string")
 encodeControlType prefix TUIPasswordControl				= justXType (prefix +++ "password")
 encodeControlType prefix TUICurrencyControl				= justXType (prefix +++ "currency")
-encodeControlType prefix (TUIComboControl r)			= [JSONObject [("xtype",JSONString "itasks.combo"),("options",toJSON r)]]
-encodeControlType prefix (TUIButtonControl r)			= addXType "itasks.button" (JSONEncode{|*|} r)
-encodeControlType prefix (TUIGridControl r)				= addXType "itasks.grid" (JSONEncode{|*|} r)
-encodeControlType prefix (TUITreeControl r)				= [JSONObject [("xtype",JSONString "itasks.tree"),("tree",toJSON r)]]
+encodeControlType prefix (TUIComboControl r)			= [JSONObject [("xtype",JSONString "itasks_combo"),("options",toJSON r)]]
+encodeControlType prefix (TUIButtonControl r)			= addXType "itasks_button" (JSONEncode{|*|} r)
+encodeControlType prefix (TUIGridControl r)				= addXType "itasks_grid" (JSONEncode{|*|} r)
+encodeControlType prefix (TUITreeControl r)				= [JSONObject [("xtype",JSONString "itasks_tree"),("tree",toJSON r)]]
 encodeControlType prefix (TUICustomControl xtype)		= justXType xtype
 
 

@@ -1,6 +1,6 @@
 Ext.define('itasks.component.show.Bool',{
 	extend: 'Ext.Component',
-	alias: 'widget.itasks.show.bool',
+	alias: 'widget.itasks_show_bool',
 	width: 16,
 	height: 16,
 	initComponent: function() {

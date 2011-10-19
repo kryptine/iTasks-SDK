@@ -1,7 +1,7 @@
 Ext.define('itasks.container.TabContainer',{
 	extend: 'Ext.tab.Panel',
 	mixins: ['itasks.mixin.Editable'],
-	alias: 'widget.itasks.tab.container',
+	alias: 'widget.itasks_tab_container',
 	initComponent: function() {
 		//If no specification of the container width or height is given, make it flexible
 		if(!this.width && !this.hwrap && !this.hflex) {

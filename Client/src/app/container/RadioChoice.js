@@ -1,6 +1,6 @@
 Ext.define('itasks.container.RadioChoice',{
 	extend: 'Ext.panel.Panel',
-	alias: 'widget.itasks.container.radiochoice',
+	alias: 'widget.itasks_radiochoice',
 	requires: ['itasks.layout.VHBox'],
 	mixins: ['itasks.mixin.Editable'],
 	padding: 2,

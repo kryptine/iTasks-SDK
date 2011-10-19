@@ -77,7 +77,9 @@ button.icon-edit, .icon-edit {
 button.icon-accept, .icon-accept {
 	background-image: url('img/icons/accept.png');
 }
-
+button.icon-file, .icon-file {
+	background-image: url('img/icons/application_xp.png');
+}
 button.icon-new, .icon-new {
 	background-image: url('img/icons/document-new.png');
 }
@@ -97,7 +99,6 @@ button.icon-save-as, .icon-save-as {
 button.icon-exit, .icon-exit {
 	background-image: url('img/icons/exit.png');
 }
-
 button.icon-quit, .icon-quit {
 	background-image: url('img/icons/exit.png');
 }

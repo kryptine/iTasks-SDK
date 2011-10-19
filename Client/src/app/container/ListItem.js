@@ -1,6 +1,6 @@
 Ext.define('itasks.container.ListItem',{
 	extend: 'Ext.panel.Panel',
-	alias: 'widget.itasks.list.item',
+	alias: 'widget.itasks_list_item',
 	requires: ['itasks.layout.VHBox'],
 	layout: 'vhbox',
 

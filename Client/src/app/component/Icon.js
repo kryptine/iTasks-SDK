@@ -1,6 +1,6 @@
 Ext.define('itasks.component.Icon', {
 	extend: 'Ext.Component',
-	alias: 'widget.itasks.icon',
+	alias: 'widget.itasks_icon',
 	width: 16,
 	height: 16,
 	initComponent: function() {

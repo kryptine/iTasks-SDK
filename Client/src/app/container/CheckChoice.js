@@ -1,6 +1,6 @@
 Ext.define('itasks.container.CheckChoice',{
 	extend: 'Ext.panel.Panel',
-	alias: 'widget.itasks.container.checkchoice',
+	alias: 'widget.itasks_checkchoice',
 	requires: ['itasks.layout.VHBox'],
 	mixins: ['itasks.mixin.Editable'],
 	padding: 2,
