@@ -76,6 +76,13 @@ where
 				items lc = [{content = TUIListItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- lc.TUIListContainer.items]
 		(TUIListItem liOld, TUIListItem liNew)
 			= Just (diffChildEditorDefinitions path [liOld.TUIListItem.items] [liNew.TUIListItem.items])
+		(TUITabContainer tcOld, TUITabContainer tcNew)
+			= Just (diffChildEditorDefinitions path (items tcOld) (items tcNew))
+			where
+				items tc = [{content = TUITabItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- tc.TUITabContainer.items]
+		//(TUITabItem tiOld, TUITabItem tiNew)
+		//	= 
+		
 		// Custom components need to figure out their own update on the client side
 		(TUICustom oc, TUICustom nc)
 			| oc === nc	= Just []
