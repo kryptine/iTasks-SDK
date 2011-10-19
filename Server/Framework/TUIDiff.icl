@@ -62,13 +62,13 @@ where
 				&& o.TUIPanel.halign === n.TUIPanel.halign
 				&& o.TUIPanel.valign === n.TUIPanel.valign
 				&& o.TUIPanel.frame === n.TUIPanel.frame
-				&& o.TUIPanel.title == n.TUIPanel.title
+				&& o.TUIPanel.menus === n.TUIPanel.menus
 				&& (isJust o.TUIPanel.iconCls == isJust n.TUIPanel.iconCls))
 					# titleUpdate	= update (\o n -> o.TUIPanel.title == n.TUIPanel.title && o.TUIPanel.iconCls == n.TUIPanel.iconCls) (\{TUIPanel|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
-					# valueUpdates	= diffChildEditorDefinitions path o.TUIPanel.items n.TUIPanel.items
+					# itemUpdates	= diffChildEditorDefinitions path o.TUIPanel.items n.TUIPanel.items
 					# menuUpdates	= []
 					//# menuUpdates	= diffTUIMenus path o.TUIPanel.menus n.TUIPanel.menus
-					= Just (titleUpdate ++ valueUpdates ++ menuUpdates)
+					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
 		(TUIListContainer lcOld, TUIListContainer lcNew)	
 			= Just (diffChildEditorDefinitions path (items lcOld) (items lcNew)
 					++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
@@ -80,9 +80,17 @@ where
 			= Just (diffChildEditorDefinitions path (items tcOld) (items tcNew))
 			where
 				items tc = [{content = TUITabItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- tc.TUITabContainer.items]
-		//(TUITabItem tiOld, TUITabItem tiNew)
-		//	= 
-		
+		(TUITabItem o, TUITabItem n)
+			| o.TUITabItem.closeAction === n.TUITabItem.closeAction //Can't diff the close action for now
+				&& o.TUITabItem.menus === n.TUITabItem.menus		//Diff of menus is also still impossible
+					# titleUpdate	= update (\o n -> o.TUITabItem.title == n.TUITabItem.title && o.TUITabItem.iconCls == n.TUITabItem.iconCls) (\{TUITabItem|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
+					# itemUpdates	= diffChildEditorDefinitions path [o.TUITabItem.items] [n.TUITabItem.items] 
+					# menuUpdates 	= []
+					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
+		(TUIIcon o, TUIIcon n)
+			| o.TUIIcon.type == n.TUIIcon.type
+				&& o.TUIIcon.tooltip === n.TUIIcon.tooltip
+					= Just []
 		// Custom components need to figure out their own update on the client side
 		(TUICustom oc, TUICustom nc)
 			| oc === nc	= Just []
