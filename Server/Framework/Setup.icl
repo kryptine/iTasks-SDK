@@ -80,7 +80,7 @@ checkConfig config world
 
 CLIENT_ERROR :== "The client framework could not be found at this location.<br />"
 			 +++ "Please fill in the full path where the client framework can be found.<br />"
-			 +++ "It can normally be found in the \"Client\\build\" folder of the SDK. For example C:\\iTasks-SDK\\Client\\build."
+			 +++ "It can normally be found in the \"Client\" folder of the SDK. For example C:\\iTasks-SDK\\Client."
 
 RUNASYNC_ERROR :== "The RunAsync tool could not be found at this location.<br />"
 			   +++ "Please fill in the full path where the RunAsync tool can be found.<br />"
@@ -91,7 +91,7 @@ CURL_ERROR :== "The Curl tool could not be found at this location.<br />"
 
 checkClientPath :: !String !*World -> (!Bool,!*World)
 checkClientPath clientPath world
-	# (res,world) = readFile (clientPath +++ "\\index.html") world
+	# (res,world) = readFile (clientPath +++ "\\src\\app.js") world
 	= (isOk res,world)
 	
 configFileAvailable :: !String !*World -> (!Bool,!*World)

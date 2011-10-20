@@ -7,7 +7,7 @@ import SystemTypes, HtmlUtil, DocumentDB, StdMisc
 documentService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
 documentService url format path req iworld
 	//# (session,iworld)	= restoreSession sessionParam iworld
-	# session = undef
+	# session = abort "Session service is broken"
 	= case path of
 		//List all documents
 		[]
