@@ -37,13 +37,8 @@ absolute
 	=		enterInformation "Enter a number" []
 		>?*	[(Action "Always",		Always (return 42))
 			,(Action "If Valid",	IfValid (\x -> return (abs x)))
-			,(Action "Sometimes",	Sometimes check_positive)
+			,(Action "Sometimes",	Sometimes (onlyIf  (\x -> x >= 0) return))
 			]
-where
-	check_positive :: (InformationState Int) -> Maybe (Task Int) 
-	check_positive {localValid,modelValue}
-	| localValid && modelValue > 0	= Just (return modelValue)
-	| otherwise						= Nothing
 
 // person list once more
 
@@ -60,9 +55,9 @@ derive class iTask Person, Gender
 personList6 :: Task [Person]
 personList6
 	=         enterInformation "Please fill in the form" []
-		>?*  [(Action "Add another one", IfValid (\p -> personList6 >>= \ps -> return [p:ps]))  
+		>?*  [(Action "Add one", IfValid (\p -> personList6 >>= \ps -> return [p:ps]))  
 			 ,(Action "Done",    IfValid (\p -> return [p]))
-			 ,(Action "Cancel",  Always  (return []))
+			 ,(ActionQuit,    Always  (return []))
 			 ]
 
 // accept only an even number 

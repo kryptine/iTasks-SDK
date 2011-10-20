@@ -16,9 +16,59 @@ flows8 :: [Workflow]
 flows8 
 	=   [ workflow "CEFP/Section 8 - Parallel Tasks II/1. Chat with several users"    	"Chat with several users" 	chat3
 		, workflow "CEFP/Section 8 - Parallel Tasks II/2. Editing a text file" 			"Editing a text file" 		editorApplication
-//		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Arrange a meeting date between several users" "Arrange meeting" mkAppointment
+		, workflow "CEFP/Section 8 - Parallel Tasks II/3. Petition campaign" 			"Start petition campaign" 	myPetition
+//
 		]
+		
+:: Petition  =  { titlePetition      :: String
+                , deadlineSubmission :: DateTime
+                , description        :: Note
+                }
+:: Signer    =  { name               :: String
+                , profession         :: Maybe String
+                , emailAddress       :: String
+                , comments           :: Maybe Note
+                }
 
+derive class iTask Petition, Signer
+
+myPetition :: Task (Petition,[Signer])
+myPetition
+    =              enterInformation "Describe the petition" []
+       >>= \pet -> campaign pet pet.titlePetition pet.deadlineSubmission
+       >>=         viewInformation "The petition has been signed by:" []		
+
+campaign :: pet String DateTime -> Task (pet,[signed]) | iTask pet & iTask signed
+campaign pet title deadline
+    =                 enterSharedMultipleChoice "Invite people to sign" [] users
+      >>= \signers -> parallel ("Sign Petition: " +++ title) []
+                      (\_ signed -> (pet,signed))
+                      [ (Embedded, waitForDeadline deadline)
+                      : [  (Detached (normalTask signer),sign pet)
+                        \\ signer <- signers
+                        ]
+                      ]
+waitForDeadline dateTime list
+    =       waitForDateTime dateTime
+        >>| return Stop
+
+sign :: pet (TaskList [signed]) -> Task ParallelControl | iTask pet & iTask signed
+sign pet list
+    =       enterInformation ("Please sign the following petition:") [About pet]
+        >?* [(Action "Decline", Always  (return Continue))
+            ,(Action "Sign",    IfValid signAndAskFriends)
+            ]
+where
+    signAndAskFriends signed
+        =        update (\list -> [signed:list]) (taskListState list)
+            >>|  viewInformation "Thanks for signing !" [] Void
+            >>|  enterSharedMultipleChoice "Invite other people too" [] users
+            >>=  askSigners
+
+    askSigners []     = return Continue
+    askSigners [c:cs] = appendTask (Detached (normalTask c), sign pet) list
+                        >>| askSigners cs
+                        
 // chat with several users
 
 derive class iTask ChatState, Message
