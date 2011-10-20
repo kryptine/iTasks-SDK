@@ -11,7 +11,7 @@ import iTasks
 	, path				:: !String
 	, roles				:: ![String]
 	, description		:: !String
-	, managerProperties	:: !ManagerProperties
+	, managerProperties	:: !ManagementMeta
 	}
 							
 :: WorkflowTaskContainer
@@ -24,7 +24,7 @@ import iTasks
 	, roles				:: [String]					//* the roles that are allowed to initate this workflow
 	, task				:: WorkflowTaskContainer	//* the thread of the main task of the workflow
 	, description		:: String					//* a description of the workflow
-	, managerProperties	:: ManagerProperties		//* the initial manager properties of the main task
+	, managerProperties	:: ManagementMeta			//* the initial manager properties of the main task
 	}
 
 derive gVisualizeText	Workflow, WorkflowDescription, WorkflowTaskContainer
@@ -71,8 +71,8 @@ instance toWorkflow (WorkflowContainer a)			| iTask a
 instance toWorkflow (a -> Task b)					| iTask a & iTask b
 instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
 
-:: WorkflowContainer a			= Workflow		ManagerProperties (Task a)
-:: ParamWorkflowContainer a b	= ParamWorkflow	ManagerProperties (a -> Task b)
+:: WorkflowContainer a			= Workflow		ManagementMeta (Task a)
+:: ParamWorkflowContainer a b	= ParamWorkflow	ManagementMeta (a -> Task b)
 
 /**
 * Default workflow management task.

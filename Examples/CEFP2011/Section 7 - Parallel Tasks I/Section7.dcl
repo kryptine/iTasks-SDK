@@ -4,5 +4,5 @@ import iTasks
 
 flows7		:: [Workflow]
 
-normalTask	:: !User -> ManagerProperties
+normalTask	:: !User -> ManagementMeta
 const2		:: a b !c -> c

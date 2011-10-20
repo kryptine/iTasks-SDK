@@ -247,11 +247,9 @@ where
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= taskFuncs` task
 				# (ilayout,playout)	= taskLayouters task
-				//Evaluate the task with a different current worker set & changed latest event timestamp
-				# (curUser,iworld)	= switchCurrentUser props.ProcessProperties.managerProperties.worker iworld
+				//Update changed latest event timestamp
 				# iworld			= {IWorld|iworld & latestEvent = props.systemProperties.SystemProperties.latestEvent}
 				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) ilayout playout context iworld 
-				# (_,iworld)		= switchCurrentUser curUser iworld
 				# iworld			= {IWorld|iworld & latestEvent = parentLatestEvent}
 				//Update first/latest event if request is targeted at this detached process
 				# props = case tuiTaskNr of
@@ -373,10 +371,6 @@ where
 	removeParTaskInfo :: !TaskNr !*IWorld -> *IWorld
 	removeParTaskInfo taskNr iworld=:{parallelStates}
 		= {iworld & parallelStates = 'Map'.del (INFOKEY taskNr) parallelStates}
-
-	switchCurrentUser :: !User !*IWorld -> (!User,!*IWorld)
-	switchCurrentUser newUser iworld=:{IWorld|currentUser}
-		= (currentUser,{IWorld|iworld & currentUser = newUser})
 	
 	//Remove and return control values from the scope
 	getControls :: !ParallelMeta !*IWorld -> ([Control], !*IWorld)

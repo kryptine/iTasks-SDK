@@ -204,7 +204,7 @@ where
 	
 tabParallelLayout :: ParallelLayouter
 tabParallelLayout = \{TUIParallel|title,items} ->
-		let (tabs,tactions) = unzip [mkTab i \\ i =:(_,Just _,_) <- items] in
+		let (tabs,tactions) = unzip [mkTab i \\ i =:(meta,Just _,_) <- items|not meta.TaskMeta.hide] in
 			({ content	= TUITabContainer {TUITabContainer| items = tabs}
 			 , width	= Nothing
 		 	 , height	= Nothing

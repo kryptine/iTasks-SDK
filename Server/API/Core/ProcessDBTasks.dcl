@@ -60,14 +60,6 @@ getProcessesWithStatus	:: ![TaskStatus]		-> Task [Process]
 * @return The list of found processes
 */
 getProcessesForUser		:: !User ![TaskStatus]	-> Task [Process]
-/**
-* Poll who is the owner of a process.
-*
-* @param The process reference
-*
-* @return A task that yields the owner if the referenced process is not deleted
-*/
-getProcessOwner 		:: !ProcessId 				-> Task (Maybe User)
 
 /**
 * Poll the status of a process.

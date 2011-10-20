@@ -23,7 +23,7 @@ createThread task = (dynamic container :: Container (TaskThread a^) a^)
 where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
 
-createContext :: !ProcessId !Dynamic !ManagerProperties !User !*IWorld -> (!TaskContext, !*IWorld)
+createContext :: !ProcessId !Dynamic !ManagementMeta !User !*IWorld -> (!TaskContext, !*IWorld)
 createContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties user iworld=:{IWorld|timestamp}
 	# originalTaskFuncs = taskFuncs originalTask
 	# (tcontext,iworld) = originalTaskFuncs.initFun (taskNr processId) iworld		
@@ -63,7 +63,7 @@ createInstanceFrom workflowId worker mbParam iworld
 createWorkflowContext :: !User !(Task a) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld) | iTask a
 createWorkflowContext worker task iworld=:{currentUser}
 	# (processId,iworld)	= 'ProcessDB'.getNewWorkflowId iworld
-	# (context,iworld)	 	= createContext processId (createThread task) {initManagerProperties & worker = worker} currentUser iworld
+	# (context,iworld)	 	= createContext processId (createThread task) {noMeta & worker = Just worker} currentUser iworld
 	= (Ok context, iworld)
 
 //Load an existing task context
@@ -159,7 +159,7 @@ where
 createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
 createSessionInstance task iworld
 	# (sessionId,iworld)	= 'ProcessDB'.getNewSessionId iworld
-	# (context, iworld)		= createContext sessionId (createThread task) initManagerProperties AnyUser iworld
+	# (context, iworld)		= createContext sessionId (createThread task) noMeta AnyUser iworld
 	# (mbRes,iworld)		= iterateEval [0,0] Nothing context iworld
 	= case mbRes of
 		Ok result	= (Ok (result, sessionId), iworld)
@@ -255,7 +255,7 @@ where
 		AppendTask pid user (container :: TaskContainer Void)
 			//Make thread and properties
 			# (thread,managerProperties) = case container of
-				(Embedded,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
+				(Embedded,tfun)			= (createThread (tfun GlobalTaskList),{noMeta & worker = Just user})
 				(Detached props,tfun)	= (createThread (tfun GlobalTaskList), props)	
 			//Make context
 			# (context,iworld) = createContext (WorkflowProcess pid) thread managerProperties user iworld			

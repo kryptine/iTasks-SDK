@@ -42,14 +42,6 @@ getProcessesForUser user statuses = mkInstantTask ("Get processes for user", "Re
 where
 	eval taskNr iworld = appFst TaskFinished ('ProcessDB'.getProcessesForUser user statuses iworld)
 	
-getProcessOwner :: !ProcessId -> Task (Maybe User)
-getProcessOwner pid = mkInstantTask ("Get process owner", "Determine the user working on the task.") eval
-where
-	eval taskNr iworld
-		# (process,iworld)	= 'ProcessDB'.getProcess pid iworld
-		# owner 			= if (isNothing process) Nothing (Just (fromJust process).Process.properties.ProcessProperties.managerProperties.worker)
-		= (TaskFinished owner,iworld)
-	
 getProcessStatus :: !ProcessId -> Task TaskStatus
 getProcessStatus pid = mkInstantTask ("Get process status", "Determine the status of a process.") eval
 where

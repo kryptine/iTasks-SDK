@@ -3,7 +3,7 @@ implementation module GenVerify
 import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text, Generic
 import GenUpdate, StdMisc
 
-derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, TaskPriority, Session, Tree
+derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
 derive bimap (,), Maybe
 
 verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a

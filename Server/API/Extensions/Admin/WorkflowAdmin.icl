@@ -152,7 +152,7 @@ where
 	addWorkflow (wid,_) =
 									get (workflowTask wid)
 		>>=	\(WorkflowTask task) ->	get currentUser
-		>>= \user ->				appendTask (Detached {initManagerProperties & worker = user}, \_ -> task >>| return Continue) topLevelTasks
+		>>= \user ->				appendTask (Detached {noMeta & worker = Just user}, \_ -> task >>| return Continue) topLevelTasks
 
 processTable :: !(TaskList ClientState) -> Task ParallelControl	
 processTable taskList = updateSharedInformation "process table" [UpdateView (GetCombined mkTable, SetCombined putback)] (processes |+< state) Nothing >>+ noActions
@@ -164,9 +164,9 @@ where
 	mkTable mbSel (procs,_) = Table ["Title", "Priority", "Date", "Deadline"] (map mkRow procs) mbSel
 	mkRow {Process|properties=p=:{taskProperties,managerProperties,systemProperties},processId} =
 		[ html taskProperties.TaskMeta.title
-		, formatPriority managerProperties.ManagerProperties.priority
+		, formatPriority managerProperties.ManagementMeta.priority
 		, visualizeAsHtml AsDisplay (timestampToGmDateTime systemProperties.issuedAt)
-		, visualizeAsHtml AsDisplay managerProperties.ManagerProperties.deadline
+		, visualizeAsHtml AsDisplay managerProperties.ManagementMeta.completeBefore
 		, Text (toString processId)
 		]
 		
@@ -296,7 +296,7 @@ restrictedWorkflow path description roles task = toWorkflow path description rol
 	
 instance toWorkflow (Task a) | iTask a
 where
-	toWorkflow path description roles task = toWorkflow path description roles (Workflow initManagerProperties task)
+	toWorkflow path description roles task = toWorkflow path description roles (Workflow noMeta task)
 	
 instance toWorkflow (WorkflowContainer a) | iTask a
 where
@@ -304,7 +304,7 @@ where
 
 instance toWorkflow (a -> Task b) | iTask a & iTask b
 where
-	toWorkflow path description roles paramTask = toWorkflow path description roles (ParamWorkflow initManagerProperties paramTask)
+	toWorkflow path description roles paramTask = toWorkflow path description roles (ParamWorkflow noMeta paramTask)
 	
 instance toWorkflow (ParamWorkflowContainer a b) | iTask a & iTask b
 where

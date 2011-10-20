@@ -95,7 +95,7 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 * Defines how a task is shown inside of a parallel.
 */
 :: TaskType				= Embedded 
-						| Detached !ManagerProperties	//* displays the task computed by the function as a distinct new task for the user identified in the worker field of ManagerProperties
+						| Detached !ManagementMeta	//* displays the task computed by the function as a distinct new task for the user identified in the worker field of ManagerProperties
 						
 /**
 * A task inside of a parallel. The first parameter is a reference to the shared data state. The second one is a reference to the shared parallel info.

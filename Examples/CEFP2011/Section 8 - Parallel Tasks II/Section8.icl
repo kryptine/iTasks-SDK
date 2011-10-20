@@ -99,7 +99,7 @@ updateText f 			=	update (\s -> {s & mytext = f s.mytext})
 
 voidResult _ _ = Void 
 
-normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing}
+normalTask user = { worker = Just user, startAt = Nothing, completeBefore = Nothing, notifyAt = Nothing, priority = NormalPriority}
 
 ActionReplace 		:== Action "File/Replace" 
 ActionStatistics	:== Action "File/Statistics" 

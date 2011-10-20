@@ -8,17 +8,17 @@ from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONEncode	EmailAddress, Session, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONEncode	EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONDecode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONDecode	EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive gEq			EmailAddress, Session, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gEq			EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
-derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
-derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
-derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
+derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
+derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
+derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
 derive bimap		Maybe, (,)
 derive class iTask	Credentials
 
@@ -678,11 +678,13 @@ where
 	toEmail AnyUser				= EmailAddress ""
 	
 
-initManagerProperties :: ManagerProperties
-initManagerProperties =
-	{ worker	= AnyUser
-	, priority	= NormalPriority
-	, deadline	= Nothing
+noMeta :: ManagementMeta
+noMeta =
+	{ worker			= Nothing
+	, startAt			= Nothing
+	, completeBefore	= Nothing
+	, notifyAt			= Nothing
+	, priority			= NormalPriority
 	}
 
 setRunning :: !ProcessProperties -> ProcessProperties

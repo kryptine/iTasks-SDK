@@ -6,7 +6,7 @@ definition module CommonCombinators
 
 import CoreCombinators, TuningCombinators
 import Either
-from SystemTypes		import :: User, :: SessionId
+from SystemTypes		import :: User
 from Map				import :: Map
 
 derive gVisualizeText	Tag
@@ -87,7 +87,7 @@ transform			:: !(a -> b) !a 									-> Task b | iTask b
 *
 * @gin False
 */ 
-assign :: !ManagerProperties !(Task a) -> Task a | iTask a
+assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 
 /**
 * Assign a task to a user. (no deadline, normal priority, no menu)
@@ -315,4 +315,4 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 * Append a task to the set of top level tasks
 * 
 */
-appendTopLevelTask :: !ManagerProperties !(Task a) -> Task ProcessId | iTask a
+appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a

@@ -47,7 +47,7 @@ where
 	getProcessForUser user processId iworld
 		# (procs,iworld) 	= readProcessStore iworld
 		= case [p\\ p <- procs |   p.Process.processId == processId
-							   && user == p.Process.properties.ProcessProperties.managerProperties.worker
+							   && maybe False (\u -> u == user) p.Process.properties.ProcessProperties.managerProperties.worker
 							      ] of
 			[entry]	= (Just entry, iworld)
 			_		= (Nothing, iworld)
@@ -69,7 +69,7 @@ where
 	where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task
-			=  ( properties.ProcessProperties.managerProperties.worker == user)
+			= maybe False (\u -> u == user) properties.ProcessProperties.managerProperties.worker
 		
 	setProcessContext :: !ProcessId !TaskContext !*IWorld -> *IWorld
 	setProcessContext processId context iworld

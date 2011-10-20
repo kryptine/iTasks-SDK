@@ -68,7 +68,7 @@ where
 * It is created once and loaded and evaluated on later runs.
 */
 
-assign :: !ManagerProperties !(Task a) -> Task a | iTask a
+assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 assign props task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
 									[(Embedded, processControl),(Detached props, accu accJust task)] <<@ defaultParallelLayout
 where
@@ -89,7 +89,7 @@ where
 		, lastWorkedOn	= Display (fmap formatTimestamp latestEvent)
 		}
 	toView [_,{ParallelTaskInfo|properties=Left p}]=
-		{ assignedTo	= AnyUser
+		{ assignedTo	= Just AnyUser
 		, priority		= NormalPriority
 		, issuedBy		= Display AnyUser
 		, issuedAt		= Display (formatTimestamp (Timestamp 0))
@@ -103,7 +103,7 @@ where
 		
 	formatTimestamp timestamp = timestampToGmDateTime timestamp
 	
-:: ProcessControlView =	{ assignedTo	:: !User
+:: ProcessControlView =	{ assignedTo	:: !Maybe User
 						, priority		:: !TaskPriority
 						, issuedAt		:: !Display DateTime
 						, issuedBy		:: !Display User
@@ -112,10 +112,10 @@ where
 						, deadline		:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
-derive class GenRecord ProcessControlView, ManagerProperties, TaskPriority
+derive class GenRecord ProcessControlView, ManagementMeta, TaskPriority
 
 (@:) infix 3 :: !User !(Task a) -> Task a | iTask a
-(@:) user task = assign {initManagerProperties & worker = user} task
+(@:) user task = assign {noMeta & worker = Just user} task
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>= \_ -> return x
@@ -233,5 +233,5 @@ where
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions
 	
-appendTopLevelTask :: !ManagerProperties !(Task a) -> Task ProcessId | iTask a
+appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
 appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Continue) topLevelTasks >>= transform WorkflowProcess 

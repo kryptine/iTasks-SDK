@@ -17,16 +17,16 @@ from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefault
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONEncode	EmailAddress, Session, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode	EmailAddress,ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONDecode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode	EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive gEq			EmailAddress, Session, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus
-derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus
-derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus
+derive gEq			EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus
+derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus
+derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus
 derive class iTask	Credentials
 
 instance toString User
@@ -265,7 +265,7 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 //* Properties of task processes	
 :: ProcessProperties =
 	{ taskProperties	:: !TaskMeta
-	, managerProperties	:: !ManagerProperties
+	, managerProperties	:: !ManagementMeta
 	, systemProperties	:: !SystemProperties
 	}
 	
@@ -302,10 +302,12 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 				| Excepted		//* A process terminated with an exception
 				| Deleted		//* A process is deleted (never set, but returned when process can not be found)
 
-:: ManagerProperties =
-	{ worker			:: !User					//* Who has to do the task? 
+:: ManagementMeta =
+	{ worker			:: !Maybe User				//* Who has to do the task? 
+	, startAt			:: !Maybe DateTime			//* When is the task supposed to start
+	, completeBefore	:: !Maybe DateTime			//* When does the task need to be completed
+	, notifyAt			:: !Maybe DateTime			//* When would you like to be notified about the task
 	, priority			:: !TaskPriority			//* What is the current priority of this task?
-	, deadline			:: !Maybe DateTime			//* When is the task due?
 	}
 	
 //* tasks can have three levels of priority
@@ -315,8 +317,6 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 					
 formatPriority	:: !TaskPriority	-> HtmlTag
 						
-:: WindowTitle :== String
-
 instance toString TaskStatus
 instance == TaskStatus
 
@@ -329,7 +329,8 @@ instance descr String
 instance descr (!String, !descr) | html descr
 instance descr TaskMeta
 
-initManagerProperties :: ManagerProperties
+
+noMeta :: ManagementMeta
 
 setRunning	:: !ProcessProperties -> ProcessProperties
 setFinished	:: !ProcessProperties -> ProcessProperties
@@ -341,7 +342,7 @@ setExcepted	:: !ProcessProperties -> ProcessProperties
 	| RootUser						//* The system super user
 	| RegisteredUser !UserDetails	//* A registered person of whom we know details
 	| NamedUser !String				//* A person identified by a username
-	| SessionUser !SessionId		//* A person that is only identified by a session
+	| SessionUser !String			//* A person that is only identified by a session
 	
 :: UserDetails			=
 	{ userName		:: !UserId
@@ -360,16 +361,8 @@ setExcepted	:: !ProcessProperties -> ProcessProperties
 :: UserId			:== String
 :: Role				:== String
 
-// Session
-:: SessionId		:== String
-:: Session			=
-	{ sessionId	::	!String
-	, user		::	!User
-	, timestamp	::	!Timestamp
-	}
-
 :: ProcessId
-	= SessionProcess !SessionId
+	= SessionProcess !String
 	| WorkflowProcess !Int
 	| EmbeddedProcess !Int !TaskId
 

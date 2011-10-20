@@ -5,7 +5,7 @@ definition module SystemData
 */
 import Maybe
 from SharedCombinators	import :: ReadOnlyShared, :: Shared, :: ReadWriteShared
-from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: Session, :: UserDetails, :: TaskList, :: Tree
+from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
 from Void				import :: Void
 from ProcessDB			import :: Process, :: ProcessId
 

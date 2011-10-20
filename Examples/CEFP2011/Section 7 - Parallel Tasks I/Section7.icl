@@ -25,8 +25,8 @@ flows7
 		
 // --- some handy functions
 
-normalTask :: !User -> ManagerProperties
-normalTask user = { worker = user, priority = NormalPriority, deadline = Nothing}
+normalTask :: !User -> ManagementMeta
+normalTask user = { worker = Just user, priority = NormalPriority, startAt = Nothing, completeBefore = Nothing, notifyAt = Nothing}
 
 const2 :: a b !c -> c
 const2 _ _ x = x
