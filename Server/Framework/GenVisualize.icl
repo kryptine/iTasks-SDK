@@ -533,6 +533,7 @@ gVisualizeEditor{|FillHControlSize|} fx _ _ val vst=:{controlSize=controlSize=:(
 
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
 
+/*
 gVisualizeEditor{|DateTime|} val vst=:{VSt|currentPath}
 	# (dateViz,timeViz,vst) = case val of
 		Nothing
@@ -549,8 +550,8 @@ where
 	noDate = Nothing
 	noTime :: Maybe Time
 	noTime = Nothing
-	
-//derive gVisualizeEditor DateTime
+*/	
+derive gVisualizeEditor DateTime
 	
 derive gVisualizeEditor Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
 derive bimap Maybe
