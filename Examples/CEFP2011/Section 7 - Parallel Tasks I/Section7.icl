@@ -42,7 +42,7 @@ questions
 	=                  updateInformation "Pose a question" [] "...?"
 	  >>= \question -> selectUsers
 	  >>= \users    -> parallel "parallel" [] (\_ s -> s) 
-	  						[ (DetachedTask (normalTask u), answer u question) 
+	  						[ (Detached (normalTask u), answer u question) 
 	  						\\ u <- users
 	  						]
 where
@@ -62,7 +62,7 @@ chatting :: Task Void
 chatting 
     =               		enterSharedMultipleChoice "Select chatters" [] users
     	>>= \users     ->	parallel "Chatting" [] (\_ _ -> Void)
-								   [  (DetachedTask (normalTask user), chatting user)
+								   [  (Detached (normalTask user), chatting user)
 								   \\ user <- users
 								   ]
 where
@@ -83,7 +83,7 @@ naive_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let chatters = [me : others]
 							in  parallel "Naive chat" initChatState (\_ chat -> chat)
-								   [  (DetachedTask (normalTask who), chat who chatters)
+								   [  (Detached (normalTask who), chat who chatters)
 								   \\ who <- chatters
 								   ]
 where
@@ -109,7 +109,7 @@ monitor_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let chatters = [me : others]
 							in  parallel "Monitored chat" [] (\_ chat -> chat)
-								   [  (DetachedTask (normalTask who), chat who chatters)
+								   [  (Detached (normalTask who), chat who chatters)
 								   \\ who <- chatters
 								   ]
 where
@@ -142,8 +142,8 @@ shared_chat
     =   					get currentUser
     	>>= \me ->			selectUser
 		>>= \you ->			parallel "2 Chatters" (initChatState2 2) (\_ s -> s)
-								[ (DetachedTask (normalTask me) , chatEditor (me,0) (you,1))
-								, (DetachedTask (normalTask you), chatEditor (you,1) (me,0))
+								[ (Detached (normalTask me) , chatEditor (me,0) (you,1))
+								, (Detached (normalTask you), chatEditor (you,1) (me,0))
 								]
 where
 	chatEditor :: (User,Int) (User,Int) (TaskList ChatState2) -> Task ParallelControl
@@ -174,7 +174,7 @@ multibind_chat
     	>>= \me     ->		selectUsers
 		>>= \others ->		let names = join "," (map toString [me : others])
 							in  parallel "Multibind chat" initChatState (const2 Void)
-								   [  (DetachedTask (normalTask who), chat names who)
+								   [  (Detached (normalTask who), chat names who)
 								   \\ who <- [me : others]
 								   ]
 where

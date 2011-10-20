@@ -581,26 +581,30 @@ actionName ActionDelete			= "Delete"
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))
 
+
 instance toString (TaskList s)
 where
 	toString GlobalTaskList				= "global"
 	toString (ParallelTaskList taskid)	= "parallel_" +++ taskid
 
+instance descr Void
+where
+	initTaskMeta _ = initTaskMeta` Nothing Nothing
 instance descr String
 where
-	initTaskMeta str = initTaskMeta` str Nothing
+	initTaskMeta str = initTaskMeta` (Just str) Nothing
 	
 instance descr (!String, !descr) | html descr
 where
-	initTaskMeta (title,descr) = initTaskMeta` title (Just (toString (html descr)))
+	initTaskMeta (title,descr) = initTaskMeta` (Just title) (Just (toString (html descr)))
 
 instance descr TaskMeta
 where
 	initTaskMeta meta = meta
 	
-initTaskMeta` :: String (Maybe String) -> TaskMeta
+initTaskMeta` :: (Maybe String) (Maybe String) -> TaskMeta
 initTaskMeta` title instruction =
-	{ title = title
+	{ title = fromMaybe "Untitled" title
 	, instruction = instruction
 	, icon = Nothing
 	, tags = []

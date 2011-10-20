@@ -9,8 +9,8 @@ from iTasks			import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecod
 mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
 mkTask description initFun editFun evalFun =
 	{ Task
-	| properties			= initTaskMeta description
-	, type = NormalTask
+	| meta				= initTaskMeta description
+	, def = NormalTask
 		{ initFun		= initFun
 		, editFun		= editFun
 		, evalFun		= evalFun
@@ -21,8 +21,8 @@ mkTask description initFun editFun evalFun =
 mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
 mkInstantTask description iworldfun =
 	{ Task
-	| properties			= initTaskMeta description
-	, type = NormalTask
+	| meta				= initTaskMeta description
+	, def = NormalTask
 		{ initFun		= \_ iworld -> (TCEmpty,iworld)
 		, editFun		= \_ _  context iworld -> (context,iworld)
 		, evalFun		= \taskNr _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
@@ -33,28 +33,25 @@ mkInstantTask description iworldfun =
 mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task a | descr d
 mkActionTask description actionTaskFun =
 	{ Task
-	| properties	= initTaskMeta description
-	, type			= ActionTask actionTaskFun
+	| meta			= initTaskMeta description
+	, def			= ActionTask actionTaskFun
 	, layout		= Nothing
 	}
 
 mapActionTask :: !((InformationState a) -> (InformationState b)) !(Task a) -> Task b
-mapActionTask f task=:{Task|type} = case type of
-	ActionTask actionF	= {Task | task & type = ActionTask (\termF -> actionF (termF o f))}
+mapActionTask f task=:{Task|def} = case def of
+	ActionTask actionF	= {Task | task & def = ActionTask (\termF -> actionF (termF o f))}
 	_					= abort "mapActionTask: no action task"
 	
 mapActionTaskModelValue	:: !(a -> b) !(Task a) -> Task b
 mapActionTaskModelValue f task = mapActionTask (\st=:{modelValue} -> {st & modelValue = f modelValue}) task
 	
 taskTitle :: !(Task a) -> String
-taskTitle task = task.Task.properties.TaskMeta.title
+taskTitle task = task.Task.meta.TaskMeta.title
 
 taskMeta :: !(Task a) -> TaskMeta
-taskMeta {Task|properties} = properties
+taskMeta {Task|meta} = meta
 
-taskProperties :: !(Task a) -> TaskMeta
-taskProperties {Task|properties} = properties
-	
 instance iTaskId TaskNr
 where
 	iTaskId :: !TaskNr !String -> String
@@ -114,8 +111,8 @@ gUpdate{|Task|} fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ Task
-					| properties		= initTaskMeta "return"
-					, type = NormalTask
+					| meta			= initTaskMeta Void
+					, def = NormalTask
 						{ initFun	= abort funerror
 						, editFun	= abort funerror
 						, evalFun	= abort funerror
@@ -130,12 +127,12 @@ gDefaultMask{|Task|} _ _ = [Touched []]
 
 gVerify{|Task|} _ _ vst = alwaysValid vst
 
-gVisualizeText{|Task|} _ _ {Task|properties} = [properties.TaskMeta.title]
-gVisualizeHtml{|Task|} _ _ {Task|properties} = [Text properties.TaskMeta.title]
+gVisualizeText{|Task|} _ _ {Task|meta} = [meta.TaskMeta.title]
+gVisualizeHtml{|Task|} _ _ {Task|meta} = [Text meta.TaskMeta.title]
 gVisualizeEditor{|Task|} _ _ _ mbVal vst
 	# vis = case mbVal of
-		Just {Task|properties}	= [stringDisplay properties.TaskMeta.title]
-		Nothing					= []
+		Just {Task|meta}	= [stringDisplay meta.TaskMeta.title]
+		Nothing				= []
 	= (vis,vst)
 	
 gEq{|Task|} _ _ _ = True // tasks are always equal
@@ -144,7 +141,7 @@ gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 
 taskFuncs :: !(Task a) -> TaskFuncs a | iTask a
-taskFuncs {Task|type} = case type of
+taskFuncs {Task|def} = case def of
 	NormalTask funcs	= funcs
 	ActionTask actionF	= actionF (\{modelValue,localValid} -> UserActions [(ActionOk,if localValid (Just modelValue) Nothing)])
 

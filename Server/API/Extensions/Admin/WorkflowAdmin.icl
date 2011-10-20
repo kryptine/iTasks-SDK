@@ -119,12 +119,12 @@ where
 	
 workflowDashboard :: Task Void
 workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
-	[ (BodyTask,	\list	-> infoBar 								<<@ infoBarLayout)
-	, (BodyTask,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
-	, (BodyTask,	\list	-> viewDescription (taskListState list)	)
-	, (BodyTask,	\list	-> workTabPanel list					<<@ tabParallelLayout)
-	, (BodyTask,	\list	-> processTable list					<<@ processTableLayout)
-	, (HiddenTask,	\_		-> controlClient)
+	[ (Embedded,	\list	-> infoBar 								<<@ infoBarLayout)
+	, (Embedded,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
+	, (Embedded,	\list	-> viewDescription (taskListState list)	)
+	, (Embedded,	\list	-> workTabPanel list					<<@ tabParallelLayout)
+	, (Embedded,	\list	-> processTable list					<<@ processTableLayout)
+	, (Embedded,	\_		-> controlClient)
 	]
 
 infoBar :: Task ParallelControl
@@ -152,7 +152,7 @@ where
 	addWorkflow (wid,_) =
 									get (workflowTask wid)
 		>>=	\(WorkflowTask task) ->	get currentUser
-		>>= \user ->				appendTask (DetachedTask {initManagerProperties & worker = user}, \_ -> task >>| return Continue) topLevelTasks
+		>>= \user ->				appendTask (Detached {initManagerProperties & worker = user}, \_ -> task >>| return Continue) topLevelTasks
 
 processTable :: !(TaskList ClientState) -> Task ParallelControl	
 processTable taskList = updateSharedInformation "process table" [UpdateView (GetCombined mkTable, SetCombined putback)] (processes |+< state) Nothing >>+ noActions
@@ -176,12 +176,12 @@ where
 		_ = abort "getProcId"
 
 workTabPanel :: !(TaskList ClientState) -> Task ParallelControl
-workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(HiddenTask, controlWorkTabs (taskListState taskList))]
+workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(Embedded, controlWorkTabs (taskListState taskList))]
 
 controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
 controlWorkTabs state taskList = forever (
-					chooseActionDyn openTabTrigger (state >+< openProcs)
-	>>= \proc ->	appendTask (BodyTask, \_ -> workTab proc openProcs  <<@ singleControlLayout) taskList
+					chooseActionDyn openTabTrigger (state >+< openProcs) <<@ Hide
+	>>= \proc ->	appendTask (Embedded, \_ -> workTab proc openProcs  <<@ singleControlLayout) taskList
 	>>|				update (\state -> {state & selectedProcess = Nothing}) state
 	>>|				update (\procs -> [proc:procs]) openProcs)
 where

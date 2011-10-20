@@ -37,7 +37,7 @@ removeUser user			cs = {cs & chatters = removeMember user cs.chatters}
 
 chat3
     =               get currentUser
-    	>>= \me ->	parallel "Chat application" emptyChatState (const2 Void) [(BodyTask, chatTask me)]
+    	>>= \me ->	parallel "Chat application" emptyChatState (const2 Void) [(Embedded, chatTask me)]
 
 chatTask user cs
 	=			update (addUser user) (taskListState cs)
@@ -58,14 +58,15 @@ where
 	toView c =  Note c 
 	fromView (Note c) _ _ = c
 
-newChatter = (WindowTask "Append Chatter", handleNewChatter)
+newChatter = (Embedded, handleNewChatter)
 
 handleNewChatter cs
-	=						selectUser
+	=	Window
+		@>>					selectUser
 		>>= \someone ->		appendTask (newChatTask someone) cs
 		>>|					return Continue
 where
-	newChatTask someone = (DetachedTask (normalTask someone), chatTask someone)
+	newChatTask someone = (Detached (normalTask someone), chatTask someone)
 
 
 ActionAdd :== Action "Add Chatter" 
@@ -107,7 +108,7 @@ editorApplication ::  Task Void
 editorApplication 
 	=						enterInformation "Give name of text file you want to edit..." []
 		>>= \fileName ->	readTextFile fileName
-		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [(BodyTask, editor fileName)]
+		>>= \(_,text) -> 	parallel "Editor" (initEditorState text) voidResult [(Embedded, editor fileName)]
 
 editor :: String (TaskList EditorState) -> Task ParallelControl
 editor fileName ls
@@ -129,12 +130,12 @@ where
 
 	replace _
 		=		updateReplace True (taskListState ls)
-			>>| appendTask (DialogTask "Find and Replace", replaceTask {search = "", replaceBy = ""}) ls
+			>>| appendTask (Embedded, replaceTask {search = "", replaceBy = ""}) ls
 			>>| editor fileName ls
 
 	statistics _
 		=		updateStat True (taskListState ls)
-			>>|	appendTask (DialogTask "Statistics", statisticsTask) ls
+			>>|	appendTask (Embedded, statisticsTask) ls
 			>>| editor fileName ls
 
 	quit
@@ -142,7 +143,8 @@ where
 
 replaceTask :: Replace (TaskList EditorState) -> Task ParallelControl
 replaceTask replacement ls
-	=			updateInformation ("Replace","Define replacement...") [] replacement
+	=			Window
+		@>>		updateInformation ("Replace","Define replacement...") [] replacement
 		>?*		[(ActionOk,   IfValid replace)
 				,(Action "Close", Always close)
 				]
@@ -157,7 +159,8 @@ where
 
 statisticsTask :: (TaskList EditorState) -> Task ParallelControl
 statisticsTask ls
-	= 			viewSharedInformation ("Statistics","Statistics of your document") views (taskListState ls) Void
+	=	Window
+		@>>		viewSharedInformation ("Statistics","Statistics of your document") views (taskListState ls) Void
 		>?*		[(Action "Close", Always close)]
 where
 	views = [DisplayView (GetShared showStatistics)]

@@ -26,9 +26,9 @@ instance tune ParallelLayouter
 where tune l task				= {Task|task & layout = Just (Right l)}
 instance tune LayoutTweak
 where
-	tune tweak task=:{Task|type} = case type of
-		NormalTask funcs	= {Task|task & type = NormalTask (applyTweak funcs)}
-		ActionTask actionF	= {Task|task & type = ActionTask (\termF -> applyTweak (actionF termF))}
+	tune tweak task=:{Task|def} = case def of
+		NormalTask funcs	= {Task|task & def = NormalTask (applyTweak funcs)}
+		ActionTask actionF	= {Task|task & def = ActionTask (\termF -> applyTweak (actionF termF))}
 	where
 		applyTweak funcs = {funcs & evalFun = eval}
 		where
@@ -47,4 +47,4 @@ where
 (@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 (@>>) a t = tune a t
 
-updateTaskMeta updF task = let p = taskProperties task in {Task|task & properties = updF p}
+updateTaskMeta updF task=:{Task|meta} = {Task|task & meta = updF meta}

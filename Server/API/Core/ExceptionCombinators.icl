@@ -76,7 +76,7 @@ where
 	//Normal execution still possible
 	eval taskNr _ event tuiTaskNr _ _ context=:(TCTry (Left cxtNormal)) iworld
 		# (ilayout,playout)	= taskLayouters normalTask 
-		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) ilayout playout cxtNormal iworld
+		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) ilayout playout cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
@@ -89,7 +89,7 @@ where
 				# handlerFuncs			= taskFuncs handler
 				# (ilayout,playout)		= taskLayouters handler
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON ex,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -105,7 +105,7 @@ where
 				# handler			= handlerTaskFun e
 				# handlerFuncs		= taskFuncs handler
 				# (ilayout,playout)	= taskLayouters handler
-				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
+				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -154,7 +154,7 @@ where
 	//Normal execution still possible
 	eval taskNr _ event tuiTaskNr _ _ context=:(TCTry (Left cxtNormal)) iworld
 		# (ilayout,playout)	= taskLayouters normalTask
-		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.properties (stepEvent 0 event) (stepTarget 0 tuiTaskNr) ilayout playout cxtNormal iworld
+		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) ilayout playout cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
@@ -167,7 +167,7 @@ where
 				# handlerFuncs			= taskFuncs handler
 				# (ilayout,playout)		= taskLayouters handler
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON str,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
@@ -180,7 +180,7 @@ where
 				# handler			= handlerTaskFun e
 				# handlerFuncs		= taskFuncs handler
 				# (ilayout,playout)	= taskLayouters handler
-				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.properties (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
+				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtHandler iworld
 				= case result of
 					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)

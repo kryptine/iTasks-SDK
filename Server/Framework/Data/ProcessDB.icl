@@ -134,8 +134,8 @@ where
 		   ,properties = properties
 		   ,subprocesses = case context of Nothing = []; Just (_,c) = subprocs c}
 		  :subprocsp subs]
-	subprocsp [(_,STCBody _ Nothing):subs]			= subprocsp subs
-	subprocsp [(_,STCBody _ (Just (_,c))):subs]		= subprocs c ++ subprocsp subs
+	subprocsp [(_,STCEmbedded _ Nothing):subs]			= subprocsp subs
+	subprocsp [(_,STCEmbedded _ (Just (_,c))):subs]		= subprocs c ++ subprocsp subs
 	subprocsp [(_,STCHidden _ Nothing):subs]		= subprocsp subs
 	subprocsp [(_,STCHidden _ (Just (_,c))):subs]	= subprocs c ++ subprocsp subs
 	

@@ -10,7 +10,7 @@ from ProcessDB			import :: Process
 import Task
 
 import iTaskClass
-derive class iTask ParallelTaskInfo, ParallelControl, TaskGUI
+derive class iTask ParallelTaskInfo, ParallelControl, TaskType
 
 //Standard monadic operations:
 
@@ -89,17 +89,14 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 /**
 * A container for a child task of a parallel.
 */				
-:: TaskContainer s		:== (TaskGUI, (ParallelTask s))
+:: TaskContainer s		:== (TaskType, (ParallelTask s))
 
 /**
 * Defines how a task is shown inside of a parallel.
 */
-:: TaskGUI				= DetachedTask !ManagerProperties						//* displays the task computed by the function as a distinct new task for the user identified in the worker field of ManagerProperties
-						| WindowTask   !WindowTitle								//* displays the task computed by the function in a window
-						| DialogTask   !WindowTitle								//* displays the task computed by the function in a dialog (a dialog can not have a menu)
-						| BodyTask												//* inlines the task in the current task
-						| HiddenTask											//* does not display the task at all
-
+:: TaskType				= Embedded 
+						| Detached !ManagerProperties	//* displays the task computed by the function as a distinct new task for the user identified in the worker field of ManagerProperties
+						
 /**
 * A task inside of a parallel. The first parameter is a reference to the shared data state. The second one is a reference to the shared parallel info.
 */

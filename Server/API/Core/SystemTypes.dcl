@@ -324,6 +324,7 @@ class descr d
 where
 	initTaskMeta :: !d -> TaskMeta
 
+instance descr Void
 instance descr String
 instance descr (!String, !descr) | html descr
 instance descr TaskMeta

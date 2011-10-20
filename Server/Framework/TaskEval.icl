@@ -5,7 +5,7 @@ import Error
 import SystemTypes, IWorld, Task, TaskContext, WorkflowDB
 
 from CoreCombinators 	import >>=
-from CoreCombinators	import :: TaskContainer(..), ::TaskGUI(..), :: ParallelTask(..), :: ParallelControl
+from CoreCombinators	import :: TaskContainer(..), ::TaskType(..), :: ParallelTask(..), :: ParallelControl
 from TuningCombinators	import class tune, instance tune Description, <<@, @>>, :: Description(..)
 from InteractionTasks	import enterInformation, :: LocalViewOn, :: ViewOn
 from SystemTypes		import :: ProcessId(..)
@@ -28,7 +28,7 @@ createContext processId thread=:(Container {TaskThread|originalTask} :: Containe
 	# originalTaskFuncs = taskFuncs originalTask
 	# (tcontext,iworld) = originalTaskFuncs.initFun (taskNr processId) iworld		
 	# properties =
-		{ taskProperties	= taskProperties originalTask
+		{ taskProperties	= taskMeta originalTask
 		, systemProperties	=
 			{ taskId		= taskNrToString (taskNr processId)
 			, status		= Running
@@ -105,7 +105,7 @@ evalInstance target commitEvent context=:(TaskContext processId properties chang
 			# (ilayout,playout)	= taskLayouters currentTask
 			# pid				= last (taskNrFromString properties.systemProperties.SystemProperties.taskId)
 			# taskNr			= [changeNo,pid]
-			# taskProperties	= currentTask.Task.properties
+			# taskProperties	= currentTask.Task.meta
 			//Update current process id & eval stack in iworld
 			# iworld			= {iworld & evalStack = [processId:evalStack]} 
 			//Strip the process id and change number from the commit event and switch from ProcessEvent to TaskEvent if it matches
@@ -255,11 +255,8 @@ where
 		AppendTask pid user (container :: TaskContainer Void)
 			//Make thread and properties
 			# (thread,managerProperties) = case container of
-				(DetachedTask props,tfun)	= (createThread (tfun GlobalTaskList), props)
-				(WindowTask _,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
-				(DialogTask _,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
-				(BodyTask,tfun)				= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
-				(HiddenTask,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
+				(Embedded,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
+				(Detached props,tfun)	= (createThread (tfun GlobalTaskList), props)	
 			//Make context
 			# (context,iworld) = createContext (WorkflowProcess pid) thread managerProperties user iworld			
 			= execControls cs (queue ++ [context]) iworld

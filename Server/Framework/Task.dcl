@@ -21,12 +21,12 @@ derive gPutRecordFields	Task
 
 // Tasks
 :: Task a =
-	{ properties			:: !TaskMeta						// the task's general properties	
-	, type					:: !(TaskType a)
+	{ meta					:: !TaskMeta						// the task's general properties	
+	, def					:: !(TaskDef a)
 	, layout				:: !(Maybe (Either InteractionLayouter ParallelLayouter))	//Optional layout tweak for parallel tasks
 	}
 	
-:: TaskType a	= NormalTask !(TaskFuncs a)
+:: TaskDef a	= NormalTask !(TaskFuncs a)
 				| ActionTask !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b)
 				
 :: TaskFuncs a =	{ initFun			:: TaskInitFun
@@ -99,14 +99,6 @@ taskTitle			:: !(Task a)	-> String
 * Extract the meta-data of a task
 */
 taskMeta			:: !(Task a)	-> TaskMeta
-
-/*
-* Extracts the initial properties of a task
-*
-* @param The task
-* @return The task's initial properties
-*/
-taskProperties		:: !(Task a)	-> TaskMeta
 
 class iTaskId a
 where
