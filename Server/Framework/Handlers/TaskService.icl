@@ -6,7 +6,6 @@ import SystemTypes, Task, TaskContext, TaskEval,  TUIDiff, TUIEncode, Util, Html
 import IWorld
 
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
-from SessionDB	import qualified class SessionDB(..), instance SessionDB IWorld
 from WorkflowDB import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 
 derive bimap Maybe, (,)
@@ -120,7 +119,7 @@ where
 	response json
 		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}
 	
-		
+/*	
 taskServiceOld :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
 taskServiceOld url format path req iworld=:{IWorld|timestamp}
 	# html					= format == "html"
@@ -339,7 +338,7 @@ where
 	getTimestamp :: !*IWorld -> (!Timestamp,!*IWorld)
 	getTimestamp iworld=:{IWorld|timestamp} = (timestamp,iworld)
 
-	
+*/
 listDescription			:== "This service lists all tasks for the user of the provided session."
 listDebugDescription	:== "This service dumps all information currently in the process database of running instances."
 detailsDescription		:== "This service provides all meta-properties of a running task instance."

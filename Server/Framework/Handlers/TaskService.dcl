@@ -9,5 +9,3 @@ from IWorld	import :: IWorld
 import iTaskClass
 
 taskService :: !(Task a) !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
-
-taskServiceOld :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)

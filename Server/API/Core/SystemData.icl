@@ -9,7 +9,6 @@ from Util		import qualified currentDate, currentTime, currentDateTime, currentTi
 from UserDB		import qualified class UserDB(..), instance UserDB IWorld
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
 from ProcessDB	import :: Process
-from SessionDB	import qualified class SessionDB(..), instance SessionDB IWorld
 from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from WorkflowDB	import :: WorkflowDescription
 
@@ -42,10 +41,6 @@ currentUser = makeReadOnlyShared "SystemData_currentUser" (\iworld=:{currentUser
 	
 currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
 currentUserDetails = makeReadOnlyShared "SystemData_currentUserDetails" (\iworld=:{currentUser} -> 'UserDB'.getUserDetails currentUser iworld) (\iworld -> (Timestamp 0, iworld))
-
-// Sessions
-sessions :: ReadOnlyShared [Session]
-sessions = makeReadOnlyShared "SystemData_sessions" 'SessionDB'.getSessions 'SessionDB'.lastChange
 	
 // Workflow processes
 topLevelTasks :: (TaskList Void)

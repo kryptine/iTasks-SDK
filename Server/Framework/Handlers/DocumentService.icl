@@ -2,11 +2,12 @@ implementation module DocumentService
 
 import StdInt, StdList
 import HTTP, Map, Error
-import SystemTypes, HtmlUtil, DocumentDB, SessionDB
+import SystemTypes, HtmlUtil, DocumentDB, StdMisc
 
 documentService :: !String !String ![String] !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld)
 documentService url format path req iworld
-	# (session,iworld)	= restoreSession sessionParam iworld
+	//# (session,iworld)	= restoreSession sessionParam iworld
+	# session = undef
 	= case path of
 		//List all documents
 		[]

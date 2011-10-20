@@ -20,9 +20,6 @@ usersWithRole			:: !Role ->	ReadOnlyShared [User]
 userDetails				:: !User ->	Shared UserDetails
 currentUser				::			ReadOnlyShared User
 currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
-				
-// Sessions
-sessions				:: ReadOnlyShared [Session]
 
 // Processes
 topLevelTasks 			:: (TaskList Void)

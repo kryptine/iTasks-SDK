@@ -45,7 +45,4 @@ where
 		= world
 		
 	handlers :: [Handler] 
-	handlers =		[ ("tasks",			["html","json"],	taskServiceOld)
-					, ("documents",		["html","json"],	documentService)
-					, ("stencils",		["html","json"],	stencilService)
-					]
+	handlers =		[  ("documents",["html","json"],documentService)]
