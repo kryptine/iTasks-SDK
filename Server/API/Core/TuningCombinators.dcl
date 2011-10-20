@@ -9,7 +9,6 @@ import Task, SystemTypes
 :: Tag					= E.s: Tag !s			& toString s
 :: Tags					= E.s: Tags ![s]		& toString s
 :: LocalInteractionTask	= LocalInteractionTask
-:: ControlTask			= ControlTask
 :: Icon					= Icon !String
 :: Hide					= Hide
 :: Window				= Window
@@ -27,7 +26,6 @@ instance tune	Hide
 instance tune	Window
 instance tune	InteractionTaskType
 instance tune	LocalInteractionTask
-instance tune	ControlTask
 instance tune	InteractionLayouter
 instance tune	ParallelLayouter
 

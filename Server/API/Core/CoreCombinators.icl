@@ -292,12 +292,12 @@ where
 		//Evaluate remaining subtasks
 		= evalSubTasks taskNr event tuiTaskNr meta results stasks iworld
 		
-	initSubContext taskNr taskList i taskContainer iworld=:{IWorld|timestamp}
+	initSubContext taskNr taskList i taskContainer iworld=:{IWorld|timestamp,currentUser}
 		# subTaskNr = [i:taskNr]
 		= case taskContainer of
 			(DetachedTask managerProps, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
-				# processProps	= initProcessProperties subTaskNr timestamp managerProps task
+				# processProps	= initProcessProperties subTaskNr timestamp managerProps currentUser task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
 				= (STCDetached processProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 			//Window & dialogue now implemented as simple InBody tasks
@@ -330,7 +330,7 @@ where
 			= (task,funcs)
 
 	//Initialize a process properties record for administration of detached tasks
-	initProcessProperties taskNr timestamp managerProps {Task|properties}
+	initProcessProperties taskNr timestamp managerProps user {Task|properties}
 		= {ProcessProperties
 		  |taskProperties = properties
 		  ,managerProperties = managerProps
@@ -339,6 +339,7 @@ where
 		  	  |taskId = taskNrToString taskNr
 		  	  ,status = Running
 		  	  ,issuedAt = timestamp
+			  ,issuedBy = user
 			  ,firstEvent = Nothing
 			  ,latestEvent = Nothing
 			  }
@@ -418,7 +419,7 @@ where
 	processControls s taskNr meta [c:cs] results remaining iworld
 		# taskList = ParallelTaskList meta.ParallelMeta.stateId
 		= case c of
-			AppendTask idx (taskContainer :: (TaskContainer s^))
+			AppendTask idx user (taskContainer :: (TaskContainer s^))
 				# (context,iworld)	= initSubContext taskNr taskList idx taskContainer iworld
 				# remaining			= remaining ++ [(idx,context)]
 				= processControls s taskNr meta cs results remaining iworld
@@ -543,7 +544,7 @@ appendTask :: !(TaskContainer s) !(TaskList s)	-> Task Int | TC s
 appendTask container tasklist = mkInstantTask "Append a task to a task list" appendTask`
 where
 	identity	= toString tasklist
-	appendTask` taskNr iworld=:{parallelControls}
+	appendTask` taskNr iworld=:{parallelControls,currentUser}
 		= case 'Map'.get identity parallelControls of
 			Just (nextIdx,controls)
 				//For the global tasklist we don't use the internal counter, but get the index from the
@@ -553,7 +554,7 @@ where
 						# (WorkflowProcess next,iworld) = 'ProcessDB'.getNewWorkflowId iworld
 						= (next,iworld)
 					_				= (nextIdx,iworld)
-				# parallelControls = 'Map'.put identity (nextIdx + 1, controls ++ [AppendTask nextIdx (dynamic container :: TaskContainer s^)]) parallelControls 
+				# parallelControls = 'Map'.put identity (nextIdx + 1, controls ++ [AppendTask nextIdx currentUser (dynamic container :: TaskContainer s^)]) parallelControls 
 				= (TaskFinished nextIdx, {iworld & parallelControls = parallelControls, readShares = Nothing})
 			_
 				= (taskException ("Task list " +++ identity +++ " is not in scope"), iworld)

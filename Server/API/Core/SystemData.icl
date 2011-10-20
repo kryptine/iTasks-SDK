@@ -57,10 +57,10 @@ currentProcessId :: ReadOnlyShared ProcessId
 currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) ('ProcessDB'.lastChange)
 
 currentProcesses ::ReadOnlyShared [Process]
-currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running] [Active]) 'ProcessDB'.lastChange
+currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running]) 'ProcessDB'.lastChange
 
 processesForCurrentUser	:: ReadOnlyShared [Process]
-processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" (\iworld=:{currentUser} -> 'ProcessDB'.getProcessesForUser currentUser [Running] [Active] iworld) 'ProcessDB'.lastChange
+processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" (\iworld=:{currentUser} -> 'ProcessDB'.getProcessesForUser currentUser [Running] iworld) 'ProcessDB'.lastChange
 
 applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))

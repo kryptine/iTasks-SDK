@@ -111,7 +111,7 @@ gVisualizeText{|Dynamic|} _ _				= []
 gVisualizeText{|(->)|} _ _ _ _				= []
 
 	
-derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, TaskPriority, Session, Tree
 
 //Generic html visualizer
 generic gVisualizeHtml a :: !StaticVisualizationMode !a -> [HtmlTag]
@@ -247,7 +247,7 @@ gVisualizeHtml{|Dynamic|} _ _				= []
 gVisualizeHtml{|(->)|} _ _ _ _				= []
 
 	
-derive gVisualizeHtml DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gVisualizeHtml DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, TaskPriority, Session, Tree
 
 toHtmlText s = Text (toString s)
 
@@ -552,7 +552,7 @@ where
 	
 //derive gVisualizeEditor DateTime
 	
-derive gVisualizeEditor Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, RunningTaskStatus, TaskPriority, Session, Tree
+derive gVisualizeEditor Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagerProperties, TaskPriority, Session, Tree
 derive bimap Maybe
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

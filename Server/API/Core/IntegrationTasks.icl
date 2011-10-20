@@ -73,7 +73,6 @@ where
 												, editorParts = []
 												, actions = []
 												, type = props.interactionType
-												, isControlTask = props.controlTask
 												, localInteraction = props.TaskMeta.localInteraction
 												, warning = Nothing
 												}

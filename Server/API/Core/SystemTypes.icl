@@ -16,9 +16,9 @@ derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Edita
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq			EmailAddress, Session, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
-derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
-derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
-derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus, InteractionTaskType, OutputTaskType
+derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
+derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
+derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
 derive bimap		Maybe, (,)
 derive class iTask	Credentials
 
@@ -586,11 +586,6 @@ where
 	toString GlobalTaskList				= "global"
 	toString (ParallelTaskList taskid)	= "parallel_" +++ taskid
 
-isActive:: !ProcessProperties -> Bool
-isActive properties = case properties.ProcessProperties.managerProperties.ManagerProperties.status of
-	Active	= True
-	_		= False
-
 instance descr String
 where
 	initTaskMeta str = initTaskMeta` str Nothing
@@ -613,7 +608,6 @@ initTaskMeta` title instruction =
 	, window = False
 	, interactionType = Nothing
 	, localInteraction = False
-	, controlTask = False
 	}
 	
 instance toString TaskPriority
@@ -637,12 +631,6 @@ where
 	(==) Deleted	Deleted		= True
 	(==) _			_			= False
 	
-instance == RunningTaskStatus
-where
-	(==) Active		Active		= True
-	(==) Suspended	Suspended	= True
-	(==) _			_			= False
-
 instance == ProcessId
 where
 	(==) (SessionProcess x)			(SessionProcess y)		= (x == y)
@@ -691,7 +679,6 @@ initManagerProperties =
 	{ worker	= AnyUser
 	, priority	= NormalPriority
 	, deadline	= Nothing
-	, status	= Active
 	}
 
 setRunning :: !ProcessProperties -> ProcessProperties

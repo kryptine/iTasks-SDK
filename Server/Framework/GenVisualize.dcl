@@ -15,7 +15,7 @@ derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeText Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualizeText EmailAddress, Action, HtmlDisplay, HtmlInclude, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
+derive gVisualizeText EmailAddress, Action, HtmlDisplay, HtmlInclude, ManagerProperties, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
 
 //Generic html visualization function
 generic gVisualizeHtml a :: !StaticVisualizationMode !a -> [HtmlTag]
@@ -25,7 +25,7 @@ derive gVisualizeHtml UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeHtml Int, Real, Char, Bool, String
 derive gVisualizeHtml Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeHtml Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualizeHtml EmailAddress, Action, HtmlInclude, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
+derive gVisualizeHtml EmailAddress, Action, HtmlInclude, ManagerProperties, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
 
 //Generic editor function
 generic gVisualizeEditor a | gVisualizeText a, gVisualizeHtml a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
@@ -35,7 +35,7 @@ derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeEditor Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagerProperties, RunningTaskStatus, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
+derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagerProperties, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, Session
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> Maybe TUIDef	| gVisualizeEditor{|*|} a

@@ -32,15 +32,15 @@ getProcesses ids = mkInstantTask ("Get processes", "Read a set of processes from
 where
 	eval taskNr iworld = appFst TaskFinished ('ProcessDB'.getProcessesById ids iworld)
 	
-getProcessesWithStatus :: ![TaskStatus] ![RunningTaskStatus] -> Task [Process]
-getProcessesWithStatus statuses runningStatuses = mkInstantTask ("Get processes by status", "Read all processes from the database with a specific status.") eval
+getProcessesWithStatus :: ![TaskStatus] -> Task [Process]
+getProcessesWithStatus statuses = mkInstantTask ("Get processes by status", "Read all processes from the database with a specific status.") eval
 where
-	eval taskNr iworld = appFst TaskFinished ('ProcessDB'.getProcesses statuses runningStatuses iworld)
+	eval taskNr iworld = appFst TaskFinished ('ProcessDB'.getProcesses statuses iworld)
 
-getProcessesForUser	:: !User ![TaskStatus] ![RunningTaskStatus] -> Task [Process]
-getProcessesForUser user statuses runningStatuses = mkInstantTask ("Get processes for user", "Read all processes from the database that a user needs to work on.") eval
+getProcessesForUser	:: !User ![TaskStatus] -> Task [Process]
+getProcessesForUser user statuses = mkInstantTask ("Get processes for user", "Read all processes from the database that a user needs to work on.") eval
 where
-	eval taskNr iworld = appFst TaskFinished ('ProcessDB'.getProcessesForUser user statuses runningStatuses iworld)
+	eval taskNr iworld = appFst TaskFinished ('ProcessDB'.getProcessesForUser user statuses iworld)
 	
 getProcessOwner :: !ProcessId -> Task (Maybe User)
 getProcessOwner pid = mkInstantTask ("Get process owner", "Determine the user working on the task.") eval
@@ -50,14 +50,14 @@ where
 		# owner 			= if (isNothing process) Nothing (Just (fromJust process).Process.properties.ProcessProperties.managerProperties.worker)
 		= (TaskFinished owner,iworld)
 	
-getProcessStatus :: !ProcessId -> Task (TaskStatus,RunningTaskStatus)
+getProcessStatus :: !ProcessId -> Task TaskStatus
 getProcessStatus pid = mkInstantTask ("Get process status", "Determine the status of a process.") eval
 where
 	eval taskNr iworld
 		# (mbProcess,iworld)	= 'ProcessDB'.getProcess pid iworld
 		= case mbProcess of
-			Just proc	= (TaskFinished (proc.Process.properties.systemProperties.SystemProperties.status,proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status), iworld)
-			Nothing		= (TaskFinished (Deleted,Active), iworld)
+			Just proc	= (TaskFinished (proc.Process.properties.systemProperties.SystemProperties.status), iworld)
+			Nothing		= (TaskFinished Deleted, iworld)
 
 deleteProcess :: !ProcessId -> Task Void
 deleteProcess pid = mkInstantTask ("Delete process", "Delete a process from the database.") eval

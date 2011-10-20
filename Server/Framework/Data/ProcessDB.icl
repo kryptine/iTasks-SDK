@@ -52,20 +52,20 @@ where
 			[entry]	= (Just entry, iworld)
 			_		= (Nothing, iworld)
 				
-	getProcesses :: ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
-	getProcesses statusses runningStatusses iworld 
+	getProcesses :: ![TaskStatus] !*IWorld -> (![Process], !*IWorld)
+	getProcesses statusses iworld 
 		# (procs, iworld)	= readProcessStore iworld
-		= (filterProcs (\p -> isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses) procs, iworld)
+		= (filterProcs (\p -> isMember p.Process.properties.systemProperties.SystemProperties.status statusses) procs, iworld)
 			
 	getProcessesById :: ![ProcessId] !*IWorld -> (![Process], !*IWorld)
 	getProcessesById ids iworld
 		# (procs,iworld) 	= readProcessStore iworld
 		= ([process \\ process <- procs | isMember process.Process.processId ids], iworld)
 	
-	getProcessesForUser	:: !User ![TaskStatus] ![RunningTaskStatus] !*IWorld -> (![Process], !*IWorld)
-	getProcessesForUser user statusses runningStatusses iworld
+	getProcessesForUser	:: !User ![TaskStatus] !*IWorld -> (![Process], !*IWorld)
+	getProcessesForUser user statusses iworld
 		# (procs,iworld) 	= readProcessStore iworld
-		= (filterProcs (\p -> isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses && isMember p.Process.properties.ProcessProperties.managerProperties.ManagerProperties.status runningStatusses) procs, iworld)
+		= (filterProcs (\p -> isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses) procs, iworld)
 	where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task

@@ -13,7 +13,6 @@ from Task			import :: TaskAction
 					, editorParts		:: ![TUIDef]
 					, actions			:: ![TaskAction]
 					, type				:: !Maybe InteractionTaskType
-					, isControlTask		:: !Bool
 					, localInteraction	:: !Bool
 					, warning			:: !Maybe String
 					}
@@ -255,7 +254,7 @@ defaultPanel				:: !PanelTitle !PanelIcon							!TUISize ![TUIDef]	-> TUIDef
 defaultDescriptionPanel		:: !(Maybe String) !(Maybe String)										-> Maybe TUIDef
 defaultContentPanel			:: ![TUIDef]															-> TUIDef
 defaultContent				:: ![TUIDef] ![TUIDef]													-> [TUIDef]
-defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool !Bool								-> PanelIcon
+defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool								-> PanelIcon
 defaultButtons				:: ![TaskAction]														-> (![TUIDef],![TaskAction])
 defaultMenus				:: ![TaskAction]														-> (![TUIMenuButton],![TaskAction])
 

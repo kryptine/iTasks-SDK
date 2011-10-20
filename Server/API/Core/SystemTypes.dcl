@@ -24,9 +24,9 @@ derive JSONDecode	EmailAddress, Session, ProcessId, Action, HtmlDisplay, HtmlInc
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq			EmailAddress, Session, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
-derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
-derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus, RunningTaskStatus
+derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus
+derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus
+derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagerProperties, SystemProperties, TaskDescription, TaskStatus
 derive class iTask	Credentials
 
 instance toString User
@@ -278,7 +278,6 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	, window			:: !Bool						//* Show the interface of this task in a window (if supported by the parallel layouter)
 	, interactionType	:: !Maybe InteractionTaskType	//* type of interaction (for interaction tasks)
 	, localInteraction	:: !Bool						//* indicates that the task's interaction is restricted to local data while it is running
-	, controlTask		:: !Bool						//* indicates that the task is used to control another one
 	}
 
 :: TaskDescription	=
@@ -290,11 +289,10 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	{ taskId			:: !TaskId					//* Task identification
 	, status			:: !TaskStatus				//* Is a maintask active,suspended,finished or excepted
 	, issuedAt			:: !Timestamp				//* When was the task created
+	, issuedBy			:: !User					//* By whom was the task created
 	, firstEvent		:: !Maybe Timestamp			//* When was the first work done on this task
 	, latestEvent		:: !Maybe Timestamp			//* When was the latest event on this task	
 	}
-
-isActive :: !ProcessProperties -> Bool
 	
 //* String serialization of TaskNr values	
 :: TaskId :== String		
@@ -308,13 +306,8 @@ isActive :: !ProcessProperties -> Bool
 	{ worker			:: !User					//* Who has to do the task? 
 	, priority			:: !TaskPriority			//* What is the current priority of this task?
 	, deadline			:: !Maybe DateTime			//* When is the task due?
-	, status			:: !RunningTaskStatus
 	}
 	
-:: RunningTaskStatus	= Active		//* A process is active and can be further evaluated
-						| Suspended		//* A process is (temporarily) suspended and will not be evaluated until it is activated 
-	
-
 //* tasks can have three levels of priority
 :: TaskPriority		= HighPriority					
 					| NormalPriority
@@ -326,7 +319,6 @@ formatPriority	:: !TaskPriority	-> HtmlTag
 
 instance toString TaskStatus
 instance == TaskStatus
-instance == RunningTaskStatus
 
 class descr d
 where
@@ -444,8 +436,8 @@ getRoles			:: !User -> [Role]
 :: ActionName	:== String	//Locally unique identifier for actions
 
 instance == Action
-actionName :: !Action -> ActionName
 
+actionName :: !Action -> ActionName
 actionIcon 	:: !Action -> String
 			
 :: Hotkey =	{ key	:: !Key

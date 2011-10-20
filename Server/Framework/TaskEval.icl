@@ -23,8 +23,8 @@ createThread task = (dynamic container :: Container (TaskThread a^) a^)
 where
  	container = Container {TaskThread|originalTask = task, currentTask = task}
 
-createContext :: !ProcessId !Dynamic !ManagerProperties !*IWorld -> (!TaskContext, !*IWorld)
-createContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties iworld=:{IWorld|timestamp}
+createContext :: !ProcessId !Dynamic !ManagerProperties !User !*IWorld -> (!TaskContext, !*IWorld)
+createContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) managerProperties user iworld=:{IWorld|timestamp}
 	# originalTaskFuncs = taskFuncs originalTask
 	# (tcontext,iworld) = originalTaskFuncs.initFun (taskNr processId) iworld		
 	# properties =
@@ -33,6 +33,7 @@ createContext processId thread=:(Container {TaskThread|originalTask} :: Containe
 			{ taskId		= taskNrToString (taskNr processId)
 			, status		= Running
 			, issuedAt		= timestamp
+			, issuedBy		= user
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
 			}
@@ -60,9 +61,9 @@ createInstanceFrom workflowId worker mbParam iworld
 					Nothing				= createWorkflowContext worker (enterInformation ("Workflow parameter","Enter the parameter of the workflow") [] >>= paramTask) iworld
 
 createWorkflowContext :: !User !(Task a) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld) | iTask a
-createWorkflowContext worker task iworld
+createWorkflowContext worker task iworld=:{currentUser}
 	# (processId,iworld)	= 'ProcessDB'.getNewWorkflowId iworld
-	# (context,iworld)	 	= createContext processId (createThread task) {initManagerProperties & worker = worker} iworld
+	# (context,iworld)	 	= createContext processId (createThread task) {initManagerProperties & worker = worker} currentUser iworld
 	= (Ok context, iworld)
 
 //Load an existing task context
@@ -158,7 +159,7 @@ where
 createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
 createSessionInstance task iworld
 	# (sessionId,iworld)	= 'ProcessDB'.getNewSessionId iworld
-	# (context, iworld)		= createContext sessionId (createThread task) initManagerProperties iworld
+	# (context, iworld)		= createContext sessionId (createThread task) initManagerProperties AnyUser iworld
 	# (mbRes,iworld)		= iterateEval [0,0] Nothing context iworld
 	= case mbRes of
 		Ok result	= (Ok (result, sessionId), iworld)
@@ -228,7 +229,7 @@ where
 	processControls :: !*IWorld -> *IWorld
 	processControls iworld = processControls` [] iworld
 	where	
-		processControls` queue iworld
+		processControls` queue iworld=:{currentUser}
 			//Check for additions/removals in the toplevel task list
 			# (controls, iworld)	= getControls iworld
 			//Execute the additions/removals. Additions are appended to the queue to be evaluated
@@ -238,9 +239,10 @@ where
 				[]		= iworld
 				[c:cs]
 					//Evaluate and store the context only. We do not want any result	
+					# iworld		= {iworld & currentUser = issueUser c}
 					# (_,c,iworld)	= evalInstance (topTarget c) Nothing c iworld
 					# iworld		= storeInstance c iworld
-					= processControls` cs iworld
+					= processControls` cs {iworld & currentUser = currentUser}
 	
 	//Extracts controls and resets the toplevel task list
 	getControls iworld=:{parallelControls}
@@ -249,17 +251,17 @@ where
 			_					= ([],iworld)
 	
 	execControls [] queue iworld = (queue,iworld)
-	execControls [c:cs] queue iworld=:{currentUser} = case c of
-		AppendTask pid (container :: TaskContainer Void)
+	execControls [c:cs] queue iworld = case c of
+		AppendTask pid user (container :: TaskContainer Void)
 			//Make thread and properties
 			# (thread,managerProperties) = case container of
 				(DetachedTask props,tfun)	= (createThread (tfun GlobalTaskList), props)
-				(WindowTask _,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
-				(DialogTask _,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
-				(BodyTask,tfun)				= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
-				(HiddenTask,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = currentUser})
+				(WindowTask _,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
+				(DialogTask _,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
+				(BodyTask,tfun)				= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
+				(HiddenTask,tfun)			= (createThread (tfun GlobalTaskList),{initManagerProperties & worker = user})
 			//Make context
-			# (context,iworld) = createContext (WorkflowProcess pid) thread managerProperties iworld			
+			# (context,iworld) = createContext (WorkflowProcess pid) thread managerProperties user iworld			
 			= execControls cs (queue ++ [context]) iworld
 		//TODO: RemoveTask on the global list
 		_
@@ -268,3 +270,6 @@ where
 	
 	topTarget (TaskContext _ {ProcessProperties|systemProperties=p=:{SystemProperties|taskId}}_ _)
 		= taskNrFromString taskId
+
+	issueUser (TaskContext _ {ProcessProperties|systemProperties=p=:{SystemProperties|issuedBy}}_ _)
+		= issuedBy

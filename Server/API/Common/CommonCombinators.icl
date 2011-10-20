@@ -75,27 +75,28 @@ assign props task = parallel ("Assign","Manage a task assigned to another user."
 where
 	processControl :: !(TaskList a) -> Task ParallelControl
 	processControl tlist =
-		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, SetShared fromView)] control Void >>+ noActions) <<@ ControlTask
+		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, SetShared fromView)] control Void >>+ noActions)
 	where
 		control = taskListProperties tlist
 		
 	accJust r _ = (Just r,True)
 			
-	toView [_,{ParallelTaskInfo|properties=Right {systemProperties=s=:{issuedAt,firstEvent,latestEvent},managerProperties=m=:{worker}}}]=
+	toView [_,{ParallelTaskInfo|properties=Right {systemProperties=s=:{issuedAt,issuedBy,firstEvent,latestEvent},managerProperties=m=:{worker}}}]=
 		{ mapRecord m
 		& assignedTo	= worker
 		, issuedAt		= Display (formatTimestamp issuedAt)
+		, issuedBy		= Display issuedBy
 		, firstWorkedOn	= Display (fmap formatTimestamp firstEvent)
 		, lastWorkedOn	= Display (fmap formatTimestamp latestEvent)
 		}
 	toView [_,{ParallelTaskInfo|properties=Left p}]=
-		{ assignedTo = NamedUser "root"
-		, priority = NormalPriority
-		, status = Suspended
-		, issuedAt = Display (formatTimestamp (Timestamp 0))
+		{ assignedTo	= AnyUser
+		, priority		= NormalPriority
+		, issuedBy		= Display AnyUser
+		, issuedAt		= Display (formatTimestamp (Timestamp 0))
 		, firstWorkedOn = Display Nothing
-		, lastWorkedOn = Display Nothing
-		, deadline = Nothing
+		, lastWorkedOn	= Display Nothing
+		, deadline		= Nothing
 		}
 		
 	fromView view=:{ProcessControlView|assignedTo} _ _
@@ -105,14 +106,14 @@ where
 	
 :: ProcessControlView =	{ assignedTo	:: !User
 						, priority		:: !TaskPriority
-						, status		:: !RunningTaskStatus
 						, issuedAt		:: !Display DateTime
+						, issuedBy		:: !Display User
 						, firstWorkedOn	:: !Display (Maybe DateTime)
 						, lastWorkedOn	:: !Display (Maybe DateTime)
 						, deadline		:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
-derive class GenRecord ProcessControlView, ManagerProperties, TaskPriority, RunningTaskStatus
+derive class GenRecord ProcessControlView, ManagerProperties, TaskPriority
 
 (@:) infix 3 :: !User !(Task a) -> Task a | iTask a
 (@:) user task = assign {initManagerProperties & worker = user} task

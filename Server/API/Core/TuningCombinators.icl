@@ -20,8 +20,6 @@ instance tune InteractionTaskType
 where tune t task				= updateTaskMeta (\m -> {TaskMeta|m & interactionType = Just t}) task
 instance tune LocalInteractionTask
 where tune _ task				= updateTaskMeta (\m -> {TaskMeta|m & localInteraction = True}) task
-instance tune ControlTask
-where tune _ task				= updateTaskMeta (\m -> {TaskMeta|m & controlTask = True}) task
 instance tune InteractionLayouter
 where tune l task				= {Task|task & layout = Just (Left l)}
 instance tune ParallelLayouter

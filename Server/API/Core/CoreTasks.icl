@@ -245,7 +245,6 @@ mergeTUI meta ilayout tuis warning actions
 				, editorParts = tuis
 				, actions = actions
 				, type = meta.interactionType
-				, isControlTask = meta.controlTask
 				, localInteraction = meta.TaskMeta.localInteraction
 				, warning = warning
 				}
@@ -253,6 +252,7 @@ mergeTUI meta ilayout tuis warning actions
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
 
+import StdDebug
 workOn :: !ProcessId -> Task WorkOnProcessState
 workOn (SessionProcess sessionId)
 	= abort "workOn applied to session process"
@@ -323,10 +323,10 @@ getActionResult (Just (TaskEvent [] name)) actions
 getActionResult _ actions
 	= Nothing
 
-checkIfAddedGlobally processId iworld=:{parallelControls}
+checkIfAddedGlobally processId iworld=:{parallelControls,currentUser}
 	= case 'Map'.get (toString topLevelTasks) parallelControls of
 		Just (_,controls)
-			= (isMember processId [i \\ AppendTask i _ <- controls], iworld)
+			= (isMember processId [i \\ AppendTask i currentUser _ <- controls], iworld)
 		_
 			= (False,iworld)
 

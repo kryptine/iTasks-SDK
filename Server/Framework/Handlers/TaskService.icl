@@ -132,9 +132,9 @@ taskServiceOld url format path req iworld=:{IWorld|timestamp}
 				= (serviceResponse html "Task list" listDescription url listParams (jsonSessionErr mbSession), iworld)					
 			# (processes,iworld)	= case (fromOk mbSession).user of
 				RootUser
-					| userParam == ""	= 'ProcessDB'.getProcessesForUser RootUser [Running] [Active] iworld
-					| otherwise			= 'ProcessDB'.getProcessesForUser (NamedUser userParam) [Running] [Active] iworld
-				user			= 'ProcessDB'.getProcessesForUser (fromOk mbSession).user [Running] [Active] iworld		
+					| userParam == ""	= 'ProcessDB'.getProcessesForUser RootUser [Running] iworld
+					| otherwise			= 'ProcessDB'.getProcessesForUser (NamedUser userParam) [Running] iworld
+				user			= 'ProcessDB'.getProcessesForUser (fromOk mbSession).user [Running] iworld		
 			# items				= taskItems processes
 			# json				= JSONObject [("success",JSONBool True),("tasks",JSONArray items)]
 			= (serviceResponse html "Task list" listDescription url listParams json, iworld)
@@ -142,7 +142,7 @@ taskServiceOld url format path req iworld=:{IWorld|timestamp}
 		["debug"]
 			| isError mbSession
 				= (serviceResponse html "Task debug list" listDebugDescription url debugParams (jsonSessionErr mbSession), iworld)	
-			# (processes,iworld)	= 'ProcessDB'.getProcesses [Running,Finished,Excepted,Deleted] [Active,Suspended] iworld
+			# (processes,iworld)	= 'ProcessDB'.getProcesses [Running,Finished,Excepted,Deleted] iworld
 			# json					= JSONObject [("success",JSONBool True),("tasks",toJSON processes)]
 			= (serviceResponse html "Task debug list" listDebugDescription url debugParams json, iworld)
 		//Start a new task (create a process)

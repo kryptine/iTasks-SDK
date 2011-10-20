@@ -22,6 +22,9 @@ Ext.define('itasks.container.ListContainer',{
 			this.height = 10000;
 			this.simulatedHeight = true;
 		}
+		if(!this.margins) {
+			this.margins = '0 0 5 0';
+		}
 		this.callParent(arguments);
 	},
 	onBeforeAdd: function(item) {

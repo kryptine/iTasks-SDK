@@ -48,7 +48,7 @@ getProcesses			:: ![ProcessId]				-> Task [Process]
 * 
 * @return The list of processes having the given statuses
 */
-getProcessesWithStatus	:: ![TaskStatus] ![RunningTaskStatus]		-> Task [Process]
+getProcessesWithStatus	:: ![TaskStatus]		-> Task [Process]
 /**
 * Retrieves the processes that are owned by indicated user and have one of the
 * given statuses.
@@ -59,7 +59,7 @@ getProcessesWithStatus	:: ![TaskStatus] ![RunningTaskStatus]		-> Task [Process]
 *
 * @return The list of found processes
 */
-getProcessesForUser		:: !User ![TaskStatus] ![RunningTaskStatus]	-> Task [Process]
+getProcessesForUser		:: !User ![TaskStatus]	-> Task [Process]
 /**
 * Poll who is the owner of a process.
 *
@@ -76,7 +76,7 @@ getProcessOwner 		:: !ProcessId 				-> Task (Maybe User)
 *
 * @return A task that yields the status of the referenced process
 */
-getProcessStatus		:: !ProcessId				-> Task (TaskStatus,RunningTaskStatus)
+getProcessStatus		:: !ProcessId				-> Task TaskStatus
 
 /**
 * Delete a process from the process database

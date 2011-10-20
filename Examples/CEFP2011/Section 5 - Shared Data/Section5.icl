@@ -118,7 +118,7 @@ twitterId name  = sharedStore ("Twitter with " +++ name) []
 
 joinCEFPtweets 
 	= 				get currentUser
-		>>= \me ->	joinTweets2 me "CEFP" (twitterId "CEFP")
+		>>= \me ->	joinTweets3 me "CEFP" (twitterId "CEFP")
 
 joinTweets  :: User String (Shared [Tweet]) -> Task Void
 joinTweets me name tweets

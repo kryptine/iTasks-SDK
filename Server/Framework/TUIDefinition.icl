@@ -53,11 +53,11 @@ fillParent def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 0)), he
 defaultInteractionLayout :: InteractionLayouter
 defaultInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
-				(defaultInteractionIcon type isControlTask localInteraction)
+				(defaultInteractionIcon type localInteraction)
 				instruction
 				warning
 				(Fixed 700)
@@ -67,7 +67,7 @@ where
 plainInteractionLayout :: InteractionLayouter
 plainInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (	{ content	= TUIContainer (defaultLayoutContainer (defaultContent editorParts buttons))
 			, width		= Just (Fixed 700)
@@ -78,7 +78,7 @@ where
 minimalInteractionLayout :: InteractionLayouter
 minimalInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
 		= (	{ content	= TUIContainer (defaultLayoutContainer editorParts)
 			, width		= Just (WrapContent 0)
 			, height	= Just (WrapContent 0)
@@ -88,11 +88,11 @@ where
 fullWidthInteractionLayout :: InteractionLayouter
 fullWidthInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
-				(defaultInteractionIcon type isControlTask localInteraction)
+				(defaultInteractionIcon type localInteraction)
 				instruction
 				warning
 				(FillParent 1 ContentSize)
@@ -102,11 +102,11 @@ where
 wrapWidthInteractionLayout :: InteractionLayouter
 wrapWidthInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
-				(defaultInteractionIcon type isControlTask localInteraction)
+				(defaultInteractionIcon type localInteraction)
 				instruction
 				warning
 				(WrapContent 0)
@@ -116,7 +116,7 @@ where
 maximalInteractionLayout :: InteractionLayouter
 maximalInteractionLayout = \i -> layout i
 where
-	layout i=:{TUIInteraction|title,instruction,editorParts,actions,type,isControlTask,localInteraction,warning}
+	layout i=:{TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
 		| isEmpty editorParts
 			= defaultInteractionLayout i
 		| otherwise
@@ -257,9 +257,8 @@ defaultContentPanel content =		{ content	= TUIContainer {TUIContainer|defaultLay
 									, margins	= Nothing
 									}
 
-defaultInteractionIcon :: !(Maybe InteractionTaskType) !Bool !Bool -> PanelIcon
-defaultInteractionIcon type isControlTask localInteraction
-	| isControlTask	= "icon-control-task"
+defaultInteractionIcon :: !(Maybe InteractionTaskType) !Bool -> PanelIcon
+defaultInteractionIcon type localInteraction
 	= case type of
 		Nothing = ""
 		Just type = case type of

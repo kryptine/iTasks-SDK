@@ -23,5 +23,6 @@ from SystemTypes	import :: ProcessId
 					, world					:: !*World						// The outside world
 					}
 :: Control
-	= AppendTask		!Int !Dynamic /* :: (TaskContainer s) */	// append and additional task to be run in parallel as well
-	| RemoveTask		!Int										// remove the task with indicated index from the set
+	= AppendTask		!Int !User !Dynamic /* :: (TaskContainer s) */		// append and additional task to be run in parallel as well
+																			// The user that appended the task is used as identity upon the first evaluation of the task 
+	| RemoveTask		!Int												// remove the task with indicated index from the set
