@@ -14,7 +14,7 @@ listEditor = (GetShared (split "\n"),		SetShared \l _ _ -> join "\n" l)
 TrimAction :== Action "Trim"
 
 linesPar :: Task Void
-linesPar = parallel "Lines Example" "" (\_ _ -> Void) [(BodyTask, noteE), (BodyTask, \sid -> updateSharedInformation ("Lines","Edit lines") [UpdateView listEditor] (taskListState sid) Void >>+ quitButton)]
+linesPar = parallel "Lines Example" "" (\_ _ -> Void) [(Embedded, noteE), (Embedded, \sid -> updateSharedInformation ("Lines","Edit lines") [UpdateView listEditor] (taskListState sid) Void >>+ quitButton)]
 where
 	noteE sid = 
 			updateSharedInformation ("Text","Edit text") [UpdateView noteEditor] (taskListState sid) Void
@@ -56,8 +56,8 @@ where
 //Merge Tests
 mergeTestList :: Task Void
 mergeTestList =	
-				appendTopLevelTask initManagerProperties (Description "1st UpdateView" @>> view sid)
-	>>|			appendTopLevelTask initManagerProperties (Description "2nd UpdateView" @>> view sid)
+				appendTopLevelTask noMeta (Description "1st UpdateView" @>> view sid)
+	>>|			appendTopLevelTask noMeta (Description "2nd UpdateView" @>> view sid)
 	>>|			return Void
 where
 	sid = sharedStore "mergeTestLists" []
@@ -67,9 +67,9 @@ where
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
-		appendTopLevelTask initManagerProperties (Description "1st UpdateView" @>> view store)
-	>>|	appendTopLevelTask initManagerProperties (Description "2nd UpdateView" @>> view store)
-	>>|	appendTopLevelTask initManagerProperties (Description "3rd UpdateView" @>> viewSharedInformation "Documents" [] store Void >>+ quitButton)
+		appendTopLevelTask noMeta (Description "1st UpdateView" @>> view store)
+	>>|	appendTopLevelTask noMeta (Description "2nd UpdateView" @>> view store)
+	>>|	appendTopLevelTask noMeta (Description "3rd UpdateView" @>> viewSharedInformation "Documents" [] store Void >>+ quitButton)
 	>>|	return Void
 where
 	view sid = updateSharedInformation ("List","Merging the documents") [] sid Void >>+ quitButton
@@ -95,10 +95,10 @@ RemoveMarkersAction :== Action "Remove Markers"
 
 googleMaps :: Task GoogleMap
 googleMaps = parallel "Map Example" defaultMap (\_ m -> m)
-	[ (BodyTask, \s -> updateSharedInformation "Options" [UpdateView optionsEditor] (taskListState s) Void >>+ noActions)
-	, (BodyTask, \s -> updateSharedInformation "Google Map" [] (taskListState s) Void >>+ noActions)
-	, (BodyTask, \s -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] (taskListState s) Void >>+ noActions)
-	, (BodyTask, \s -> markersDisplay (taskListState s))
+	[ (Embedded, \s -> updateSharedInformation "Options" [UpdateView optionsEditor] (taskListState s) Void >>+ noActions)
+	, (Embedded, \s -> updateSharedInformation "Google Map" [] (taskListState s) Void >>+ noActions)
+	, (Embedded, \s -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] (taskListState s) Void >>+ noActions)
+	, (Embedded, \s -> markersDisplay (taskListState s))
 	]
 where						
 	markersDisplay dbid =
@@ -256,7 +256,7 @@ phoneBookSearch
 activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
 activeQuery mbQuery queryTask
 	=	parallel "Active Query" (initQuery,initDirty,[],Nothing) (\_ (_,_,_,Just res) -> res)
-			[(BodyTask, searchBox), (HiddenTask, activator queryTask), (BodyTask, searchResults)]
+			[(Embedded, searchBox), (Embedded, activator queryTask), (Embedded, searchResults)]
 where
 	initQuery = case mbQuery of
 		Nothing = ""
@@ -270,7 +270,8 @@ where
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)
 	
 	activator queryTask tlist
-		=	viewSharedInformation "Query showSharedInformation" [] (taskListState tlist) Void >? (\((_,d,_,_),_) -> d)	//Look for the dirty flag to become True
+		=	Hide
+		@>>	viewSharedInformation "Query showSharedInformation" [] (taskListState tlist) Void >? (\((_,d,_,_),_) -> d)	//Look for the dirty flag to become True
 		>>= \((query,_,_,_),_) ->
 			queryTask query
 		>>= \results ->

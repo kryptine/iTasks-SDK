@@ -147,7 +147,7 @@ where
 	makeList _ name	desc listId					= SimpleList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	
 	storeList :: !Int !AnyList -> Task AnyList 
-	storeList listId list = set (sharedStore ("List-" <+++ listId) defaultValue) list
+	storeList listId list = set list (sharedStore ("List-" <+++ listId) defaultValue)
 	
 getAllLists :: Task [AnyList]
 getAllLists = dbReadAll >>= getLists

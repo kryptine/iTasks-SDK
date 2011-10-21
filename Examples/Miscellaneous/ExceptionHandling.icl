@@ -33,7 +33,7 @@ normalTask
 	= forever (				get db
 		>>= \initval 	->	updateInformation (subj,msg) [] initval
 		>>= \setval		->	inspectVal setval
-		>>= \setval		->	set db setval
+		>>= \setval		->	set setval db
 		)
 where
 	subj :: String

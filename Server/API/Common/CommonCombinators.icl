@@ -55,7 +55,7 @@ accu accufun task tlist
 		get (taskListState tlist)
 	>>= \state ->
 		let (nstate,stop) =  accufun result state in
-				set (taskListState tlist) nstate
+				set nstate (taskListState tlist) 
 			>>| return (if stop Stop Continue)
 			
 transform :: !(a -> b) !a -> Task b | iTask b
@@ -146,7 +146,7 @@ where
 	checked pred task i tlist
 		=	task
 		>>= \a -> if (pred a)
-			(set (taskListState tlist) (Just a) 											>>| return Stop)
+			(set (Just a) (taskListState tlist) 											>>| return Stop)
 			(removeTask i tlist >>| appendTask (Embedded, checked pred task (i + 1)) tlist	>>| return Continue)
 			 
 	layout :: TUIParallel -> (TUIDef,[TaskAction])

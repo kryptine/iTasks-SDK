@@ -26,7 +26,7 @@ flows7
 // --- some handy functions
 
 normalTask :: !User -> ManagementMeta
-normalTask user = { worker = Just user, priority = NormalPriority, startAt = Nothing, completeBefore = Nothing, notifyAt = Nothing}
+normalTask user = { worker = Just user, role = Nothing, priority = NormalPriority, startAt = Nothing, completeBefore = Nothing, notifyAt = Nothing}
 
 const2 :: a b !c -> c
 const2 _ _ x = x
@@ -91,7 +91,7 @@ where
 	chat me chatters tasks
 		= forever` (             get chatState
 		      >>= \xs         -> updateInformation headerEditor [] (Display xs, Note "")
-		      >>= \(_,Note n) -> update (addLine me n) chatState
+		      >>= \(_,Note n) -> update (addLine me n) chatState 
 		  )
 		>>| return Stop
 	where

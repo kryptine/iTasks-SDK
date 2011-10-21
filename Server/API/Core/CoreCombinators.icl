@@ -12,7 +12,7 @@ from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDeco
 from CoreTasks			import return
 from TuningCombinators	import :: Tag
 
-derive class iTask ParallelTaskInfo, ParallelControl, TaskType
+derive class iTask ParallelTaskInfo, ParallelControl, ParallelTaskType
 derive bimap Maybe, (,)
 
 //Standard monadic bind

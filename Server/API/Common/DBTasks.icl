@@ -14,7 +14,7 @@ dbReadAll :: Task [a] | iTask, DB a
 dbReadAll		= get databaseId
 
 dbWriteAll :: ![a] -> Task [a] | iTask, DB a
-dbWriteAll all	= set databaseId all
+dbWriteAll all	= set all databaseId 
 
 dbModify :: ([a] -> [a]) -> Task [a] | iTask, DB a
 dbModify f      = dbReadAll >>= \items -> dbWriteAll (f items)

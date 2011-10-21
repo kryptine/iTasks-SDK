@@ -57,8 +57,8 @@ where
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
-set :: !(ReadWriteShared r a) !a -> Task a | iTask a
-set shared val = mkInstantTask ("Write shared", "Writes a shared value") eval
+set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
+set val shared = mkInstantTask ("Write shared", "Writes a shared value") eval
 where
 	eval taskNr iworld
 		# (res,iworld)	='Shared'.writeShared shared val iworld
@@ -68,10 +68,10 @@ where
 		= (res, iworld)
 
 update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
-update f shared = mkInstantTask ("Update shared", "Updates a shared value") eval
+update fun shared = mkInstantTask ("Update shared", "Updates a shared value") eval
 where
 	eval taskNr iworld
-		# (val,iworld)	= 'Shared'.updateShared shared f iworld
+		# (val,iworld)	= 'Shared'.updateShared shared fun iworld
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskFinished (fromOk val), iworld)
 

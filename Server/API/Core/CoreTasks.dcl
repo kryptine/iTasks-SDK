@@ -47,21 +47,21 @@ get :: !(ReadWriteShared a w) -> Task a | iTask a
 /**
 * Writes shared data.
 *
-* @param Shared: A shared reference
 * @param Value: A value to write
+* @param Shared: A shared reference
 * @return The value written
 * @throws SharedException
 *
 * @gin-title Write shared
 * @gin-icon shared_update
 */
-set :: !(ReadWriteShared r a) !a -> Task a | iTask a
+set :: !a !(ReadWriteShared r a) -> Task a | iTask a
 
 /**
 * Updates shared data in one atomic operation.
 *
-* @param Update function: A function modifying the shared value
 * @param Shared: A shared reference
+* @param Update function: A function modifying the shared value
 * @return The value written
 * @throws SharedException
 *

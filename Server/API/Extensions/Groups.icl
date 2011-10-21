@@ -102,7 +102,7 @@ inviteUserToGroup :: !Group !User -> Task Group
 inviteUserToGroup group user
 	=	get currentUser
 	>>= \fromUser ->
-		appendTopLevelTask initManagerProperties (
+		appendTopLevelTask noMeta (
 			user @: (invite fromUser group)
 		>>= \accept ->
 			if accept

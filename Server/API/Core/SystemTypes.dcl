@@ -304,6 +304,7 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
 :: ManagementMeta =
 	{ worker			:: !Maybe User				//* Who has to do the task? 
+	, role				:: !Maybe Role				//* What role does a worker need to do the task
 	, startAt			:: !Maybe DateTime			//* When is the task supposed to start
 	, completeBefore	:: !Maybe DateTime			//* When does the task need to be completed
 	, notifyAt			:: !Maybe DateTime			//* When would you like to be notified about the task

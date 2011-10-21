@@ -45,9 +45,9 @@ duplicate me user topics =
 where
 	change :: User User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change me user topics props t t0 
-		= 	( Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = me}}
+		= 	( Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = Just me}}
 			, Just (me @:
-							(anyTask 	[ (Description topics @>> props.ProcessProperties.managerProperties.ManagerProperties.worker @: t) 
+							(anyTask 	[ (Description topics @>> fromMaybe me props.ProcessProperties.managerProperties.ManagementMeta.worker @: t) 
 										, (Description topics @>> user @: t)
 										]
 							)
@@ -60,7 +60,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> appendTopLevelTask {ManagerProperties|initManagerProperties & worker = user} (viewInformation ("Process ended","Process " +++ procName +++ " ended!") [] res) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> appendTopLevelTask {ManagementMeta|noMeta & worker = Just user} (viewInformation ("Process ended","Process " +++ procName +++ " ended!") [] res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn
@@ -68,7 +68,7 @@ check user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> assign {worker = user, priority = HighPriority, deadline = Nothing, status = Active} (updateInformation ("Verification","Please verify result of " +++ procName) [] res)), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> assign {noMeta & worker = Just user, priority = HighPriority} (updateInformation ("Verification","Please verify result of " +++ procName) [] res)), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
 cancel ::  String ProcessId -> ChangeDyn
@@ -86,7 +86,7 @@ reassign user procName pid  =
 where
 	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 
-		= (Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = user}},Nothing, Nothing)
+		= (Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = Just user}},Nothing, Nothing)
 
 //restart starts the task from scratch and assigns it to the indicated user
 restart :: User String -> Dynamic
@@ -94,7 +94,7 @@ restart user procName =
 	dynamic change user procName :: A.a: Change a | iTask a
 where
 	change :: User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user procName props t t0 = (Nothing, Just (assign {worker = user, priority = HighPriority, deadline = Nothing, status = Active} (Description procName @>> t0)), Nothing)
+	change user procName props t t0 = (Nothing, Just (assign {noMeta & worker = Just user, priority = HighPriority} (Description procName @>> t0)), Nothing)
 
 changePrio :: Task Void
 changePrio
@@ -160,12 +160,12 @@ chooseUserA question
 
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
-	=				getProcessesWithStatus [Running] [Active]
+	=				getProcessesWithStatus [Running]
 	>>= \procs ->	enterChoice question []
 					[	( proc.Process.properties.ProcessProperties.systemProperties.SystemProperties.taskId
 						, proc.Process.properties.ProcessProperties.taskProperties.TaskMeta.title
-						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.priority
-						, proc.Process.properties.ProcessProperties.managerProperties.ManagerProperties.worker)
+						, proc.Process.properties.ProcessProperties.managerProperties.ManagementMeta.priority
+						, proc.Process.properties.ProcessProperties.managerProperties.ManagementMeta.worker)
 						\\ proc <- procs]
 	>?*				[ (ActionCancel,	Always	(throw "choosing a process has been cancelled"))
 					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return (WorkflowProcess (toInt pid))))

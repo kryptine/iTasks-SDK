@@ -182,8 +182,8 @@ controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task Paralle
 controlWorkTabs state taskList = forever (
 					chooseActionDyn openTabTrigger (state >+< openProcs) <<@ Hide
 	>>= \proc ->	appendTask (Embedded, \_ -> workTab proc openProcs  <<@ singleControlLayout) taskList
-	>>|				update (\state -> {state & selectedProcess = Nothing}) state
-	>>|				update (\procs -> [proc:procs]) openProcs)
+	>>|				update (\state -> {state & selectedProcess = Nothing}) state 
+	>>|				update (\procs -> [proc:procs]) openProcs )
 where
 	openProcs = taskListState taskList
 	
@@ -197,7 +197,7 @@ workTab :: !ProcessId !(Shared [ProcessId]) -> Task ParallelControl
 workTab procId openProcs =
 		update (\procs -> [procId:procs]) openProcs
 	>>|	(workOn procId >>+ \{modelValue} -> if (modelValue =!= WOActive) (StopInteraction Void) (UserActions [(ActionClose, Just Void)]))
-	>>|	update (filter ((<>) procId)) openProcs
+	>>|	update(filter ((<>) procId)) openProcs 
 	>>|	return Continue
 
 controlClient :: Task ParallelControl										

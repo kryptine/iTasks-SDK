@@ -89,13 +89,12 @@ toDoList = sharedStore "My To Do List" []
 updateToDoList :: Task [ToDo]
 updateToDoList
     =     	get toDoList
-      >>= 	updateInformation "Your To Do List" []
-      >>=	set toDoList
+      >>= 	\oldList -> updateInformation "Your To Do List" [] oldList
+      >>=	\newList -> set newList toDoList
 
 updateToDoList2 :: Task ([ToDo], Void)
 updateToDoList2
     =     	updateSharedInformation "Your To Do List" []  toDoList Void 
-
 
 viewToDoList :: Task ([ToDo], Void)
 viewToDoList

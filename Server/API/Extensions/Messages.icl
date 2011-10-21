@@ -107,8 +107,8 @@ sendMessage :: Message -> Task Void
 sendMessage msg
 	=	dbCreateItem msg
 	>>= \msg -> case msg.needsReply of
-			False	= allTasks [appendTopLevelTask {worker = rcp, priority = msg.Message.priority, deadline = Nothing, status = Active} (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| return Void
-			True	= appendTopLevelTask initManagerProperties (awaitReplies msg) >>| return Void
+			False	= allTasks [appendTopLevelTask {noMeta & worker = Just rcp, priority = msg.Message.priority} (subject msg @>> manageMessage msg) \\ rcp <- msg.Message.recipients] >>| return Void
+			True	= appendTopLevelTask noMeta (awaitReplies msg) >>| return Void
 	>>| viewInformation ("Message sent","The following message has been sent:") [About msg] Void
 where
 	awaitReplies msg =

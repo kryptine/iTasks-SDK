@@ -32,7 +32,7 @@ updateUserFlow user  =
 	>>= \oldDetails -> updateInformation ("Editing " +++ displayName user,"Please make your changes") [] oldDetails
 	>?*	[ (ActionCancel,	Always	(return user))
 		, (ActionOk,		IfValid (\newDetails ->
-											set sharedDetails newDetails
+											set newDetails sharedDetails
 										>>=	viewInformation "User updated" [DisplayView (GetLocal (\{displayName} -> "Successfully updated " +++ displayName))]
 										>>| return user
 									))

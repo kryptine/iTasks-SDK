@@ -99,9 +99,9 @@ chatMore user s cs
 	= 	updateInformation ("Chat with iTask users") [UpdateView (GetLocal toView,SetLocal fromView)] s  	
 		>?*	[(ActionAdd,  IfValid (\r  ->	  appendTask newChatter cs
 										  >>| chatMore user r cs))
-			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) (taskListState cs) 
+			,(ActionOk,   IfValid (\r  ->	  update (addMessage user r) (taskListState cs)
 										  >>| chatMore user "" cs))
-			,(ActionQuit, Always (			  update (removeUser user o addMessage user "bye") (taskListState cs) 
+			,(ActionQuit, Always (			  update (removeUser user o addMessage user "bye") (taskListState cs)
 										  >>| return Stop	))
 			]
 where		
@@ -149,7 +149,7 @@ updateText f 			=	update (\s -> {s & mytext = f s.mytext})
 
 voidResult _ _ = Void 
 
-normalTask user = { worker = Just user, startAt = Nothing, completeBefore = Nothing, notifyAt = Nothing, priority = NormalPriority}
+normalTask user = { worker = Just user, role = Nothing, startAt = Nothing, completeBefore = Nothing, notifyAt = Nothing, priority = NormalPriority}
 
 ActionReplace 		:== Action "File/Replace" 
 ActionStatistics	:== Action "File/Statistics" 

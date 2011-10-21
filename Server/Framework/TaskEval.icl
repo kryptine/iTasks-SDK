@@ -5,7 +5,7 @@ import Error
 import SystemTypes, IWorld, Task, TaskContext, WorkflowDB
 
 from CoreCombinators 	import >>=
-from CoreCombinators	import :: TaskContainer(..), ::TaskType(..), :: ParallelTask(..), :: ParallelControl
+from CoreCombinators	import :: TaskContainer(..), :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelControl
 from TuningCombinators	import class tune, instance tune Description, <<@, @>>, :: Description(..)
 from InteractionTasks	import enterInformation, :: LocalViewOn, :: ViewOn
 from SystemTypes		import :: ProcessId(..)

@@ -39,7 +39,7 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	appendTopLevelTask {initManagerProperties & worker = who} (task <<@ Description label)
+		>>= \who ->	appendTopLevelTask {noMeta & worker = Just who} (task <<@ Description label)
 		>>= 		inspect
 	
 	inspect pref
@@ -56,13 +56,10 @@ where
 
 	getStatus pid
 	=						getProcessStatus pid
-		>>= \st	->			getProcessOwner pid
-		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [toString (fromJust mbOwner)])
-		>>= \names ->		case st of
-								(Finished,_)		-> viewInformation ("Task finished","It is finished") [] True
-								(Deleted,_)			-> viewInformation ("Task deleted","It is deleted") [] True		
-								(Running,Active)	-> viewInformation ("Task busy","User " <+++ hd names <+++ " is working on it") [] False		
-								(Running,Suspended)	-> viewInformation ("Task suspended","It is suspended, user " <+++ hd names <+++ " was working on it") [] False		
+		>>= \st	->			case st of
+								Finished	-> viewInformation ("Task finished","It is finished") [] True
+								Deleted		-> viewInformation ("Task deleted","It is deleted") [] True		
+								Running		-> viewInformation ("Task busy","It is running") [] False		
 	suspend pid
 	=						//updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
 		/*>>| */			viewInformation ("Task suspended","workflow is suspended") [] False

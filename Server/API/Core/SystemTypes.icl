@@ -681,6 +681,7 @@ where
 noMeta :: ManagementMeta
 noMeta =
 	{ worker			= Nothing
+	, role				= Nothing
 	, startAt			= Nothing
 	, completeBefore	= Nothing
 	, notifyAt			= Nothing
