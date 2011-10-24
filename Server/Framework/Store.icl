@@ -20,8 +20,8 @@ from iTasks import serialize, deserialize, defaultStoreFormat
 
 :: StoreFormat = SFPlain | SFDynamic
 
-storeValue :: !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValue key value iworld 
+storeValue :: !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
+storeValue namespace key value iworld 
 	= storeValueAs defaultStoreFormat key value iworld
 
 storeValueAs :: !StoreFormat !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
@@ -52,8 +52,8 @@ writeToDisk key {StoreItem|format,content,lastChange} location world
 	# (ok,world)		= fclose file world
 	= world
 
-loadValue :: !String !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
-loadValue key iworld
+loadValue :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
+loadValue namespace key iworld
 	# (mbItem,iworld) = loadStoreItem key iworld
 	= case mbItem of
 		Just item = case unpackValue item of
@@ -61,15 +61,15 @@ loadValue key iworld
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 		
-getStoreTimestamp :: !String !*IWorld -> (!Maybe Timestamp,!*IWorld)
-getStoreTimestamp key iworld
+getStoreTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe Timestamp,!*IWorld)
+getStoreTimestamp namespace key iworld
 	# (mbItem,iworld) = loadStoreItem key iworld
 	= case mbItem of
 		Just item	= (Just item.StoreItem.lastChange,iworld)
 		Nothing 	= (Nothing,iworld)
 
-loadValueAndTimestamp :: !String !*IWorld -> (!Maybe (a,Timestamp),!*IWorld) | JSONDecode{|*|}, TC a
-loadValueAndTimestamp key iworld
+loadValueAndTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe (a,Timestamp),!*IWorld) | JSONDecode{|*|}, TC a
+loadValueAndTimestamp namespace key iworld
 	# (mbItem,iworld) = loadStoreItem key iworld
 	= case mbItem of
 		Just item = case unpackValue item of
@@ -121,14 +121,14 @@ where
 			| string == "" = (acc, file)
 			| otherwise    = rec file (acc +++ string)
 
-deleteValue :: !String !*IWorld -> *IWorld
-deleteValue delKey iworld = deleteValues` delKey (==) filterFuncDisk iworld
+deleteValue :: !StoreNamespace !StoreKey !*IWorld -> *IWorld
+deleteValue namespace delKey iworld = deleteValues` delKey (==) filterFuncDisk iworld
 where
 	// compare key with filename without extension
 	filterFuncDisk delKey key = (subString 0 (size key - 4) key) == delKey
 
-deleteValues :: !String !*IWorld -> *IWorld
-deleteValues delKey iworld = deleteValues` delKey startsWith startsWith iworld
+deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
+deleteValues namespace delKey iworld = deleteValues` delKey startsWith startsWith iworld
 
 deleteValues` :: !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
 deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{storeDirectory}
@@ -150,8 +150,8 @@ where
 				| otherwise
 					= unlink dir fs world
 
-copyValues :: !String !String !*IWorld -> *IWorld
-copyValues fromprefix toprefix iworld=:{storeDirectory}
+copyValues :: !StoreNamespace !StorePrefix !StorePrefix !*IWorld -> *IWorld
+copyValues namespace fromprefix toprefix iworld=:{storeDirectory}
 	//Copy items on disk
 	# iworld = appWorld (copyOnDisk fromprefix toprefix storeDirectory) iworld
 	= iworld
@@ -195,9 +195,9 @@ where
 				| err		= abort "fcopy: read error during copy"
 				| otherwise = (sfile,dfile)	
 
-isValueChanged :: !String !Timestamp !*IWorld -> (!Maybe Bool,!*IWorld)
-isValueChanged key ts0 iworld
-	# (mbTimestamp,iworld) = getStoreTimestamp key iworld
+isValueChanged :: !StoreNamespace !StoreKey !Timestamp !*IWorld -> (!Maybe Bool,!*IWorld)
+isValueChanged namespace key ts0 iworld
+	# (mbTimestamp,iworld) = getStoreTimestamp namespace key iworld
 	= (fmap ((<) ts0) mbTimestamp,iworld)
 
 appWorld :: !.(*World -> *World) !*IWorld -> *IWorld

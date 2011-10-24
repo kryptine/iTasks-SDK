@@ -16,42 +16,51 @@ from IWorld import :: IWorld
 // Storage formats
 :: StoreFormat = SFPlain | SFDynamic
 
+:: StoreKey			:== String
+:: StoreNamespace	:== String
+:: StorePrefix		:== String
+
+// Predefined namespaces
+NS_SESSION_INSTANCES	:== "session-instances"
+NS_WORKFLOW_INSTANCES	:== "workflow-instances"
+NS_DOCUMENT_CONTENT		:== "document-data"
+NS_APPLICATION_SHARES	:== "application-data"
+
 /**
 * Store a value in the default format
 */
-storeValue				:: !String !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
+storeValue				:: !StoreNamespace !StoreKey !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
 
 /**
 * Load a value from the store
 */
-loadValue				:: !String					!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}, TC a
+loadValue				:: !StoreNamespace !StoreKey				!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}, TC a
 
 /**
 * Deletes the value with given key from the store
 */
-deleteValue				:: !String					!*IWorld -> *IWorld
+deleteValue				:: !StoreNamespace !StoreKey				!*IWorld -> *IWorld
 
 /**
 * Get a value's timestamp
 */
-getStoreTimestamp		:: !String					!*IWorld -> (!Maybe Timestamp,!*IWorld)
+getStoreTimestamp		:: !StoreNamespace !StoreKey				!*IWorld -> (!Maybe Timestamp,!*IWorld)
 
 /**
 * Load a value from the store, additionally a timestamp is given
 */
-loadValueAndTimestamp	:: !String					!*IWorld -> (!Maybe (a,Timestamp),!*IWorld)	| JSONDecode{|*|}, TC a
-
+loadValueAndTimestamp	:: !StoreNamespace !StoreKey				!*IWorld -> (!Maybe (a,Timestamp),!*IWorld)	| JSONDecode{|*|}, TC a
 
 /**
 * Deletes all values that start with the prefix from the store
 */
-deleteValues			:: !String					!*IWorld -> *IWorld
+deleteValues			:: !StoreNamespace !StorePrefix					!*IWorld -> *IWorld
 /** 
 * Copy all values that start with the first prefix to a value prefixed with the second prefix
 * E.g. copyValues "foo" "bar" changes "foo-23.txt" to "bar-23.txt"
 */
-copyValues				:: !String !String !*IWorld -> *IWorld
+copyValues				:: !StoreNamespace !StorePrefix !StorePrefix !*IWorld -> *IWorld
 /**
 * Determines if the store's value has been changed since given timestamp
 */
-isValueChanged			:: !String !Timestamp		!*IWorld -> (!Maybe Bool,!*IWorld)
+isValueChanged			:: !StoreNamespace !StoreKey !Timestamp		!*IWorld -> (!Maybe Bool,!*IWorld)

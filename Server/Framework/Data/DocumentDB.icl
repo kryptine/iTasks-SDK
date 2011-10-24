@@ -54,16 +54,16 @@ where
 				//Remove the meta-data
 				# (_,iworld)	= documentStore (\l -> [d \\ d <- l | d.Document.documentId <> documentId]) iworld
 				//Remove the content
-				# iworld		= deleteValues ("document-" +++ documentId) iworld
+				# iworld		= deleteValues NS_DOCUMENT_CONTENT ("document-" +++ documentId) iworld
 				= (Just document,iworld)
 			Nothing
 				= (Nothing, iworld)
 	
 documentStore ::  !([Document] -> [Document]) !*IWorld -> (![Document],!*IWorld) 
 documentStore fn iworld
-	# (mbList,iworld)	= loadValue "DocumentDB" iworld
+	# (mbList,iworld)	= loadValue NS_DOCUMENT_CONTENT "DocumentDB" iworld
 	# list 				= fn (case mbList of Nothing = []; Just list = list)
-	# iworld			= storeValue "DocumentDB" list iworld 
+	# iworld			= storeValue NS_DOCUMENT_CONTENT "DocumentDB" list iworld 
 	= (list,iworld)
 
 genDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)

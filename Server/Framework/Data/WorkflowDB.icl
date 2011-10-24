@@ -15,7 +15,7 @@ where
 	
 	getWorkflow :: !WorkflowId	!*IWorld -> (!Maybe Workflow, !*IWorld)
 	getWorkflow id iworld
-		# (mbTask,iworld)		= loadValue (TASK_DB id) iworld
+		# (mbTask,iworld)		= loadValue NS_APPLICATION_SHARES (TASK_DB id) iworld
 		# (workflows,iworld)	= readWorkflowStore iworld
 		# res = case (mbTask,filter (\{workflowId} -> workflowId == id) workflows) of
 			(Just task,[{WorkflowDescription|path,roles,description,managerProperties}]) = Just
@@ -38,30 +38,30 @@ where
 						, managerProperties	= managerProperties
 						}
 		# (_,iworld)	= workflowStore (\ws -> ws ++ [descr]) iworld
-		# iworld		= storeValue (TASK_DB wid) task iworld
+		# iworld		= storeValue NS_APPLICATION_SHARES (TASK_DB wid) task iworld
 		= (descr,iworld)
 	where
 		getWid iworld
-			# (mbWid,iworld)	= loadValue NEXT_ID_DB iworld
+			# (mbWid,iworld)	= loadValue NS_APPLICATION_SHARES NEXT_ID_DB iworld
 			# wid				= fromMaybe 1 mbWid
-			# iworld			= storeValue NEXT_ID_DB (inc wid) iworld
+			# iworld			= storeValue NS_APPLICATION_SHARES  NEXT_ID_DB (inc wid) iworld
 			= (wid,iworld)
 			
 	lastChange :: !*IWorld -> (!Timestamp,!*IWorld)
 	lastChange iworld
-		# (mbTs,iworld) = getStoreTimestamp WORKFLOW_DB iworld
+		# (mbTs,iworld) = getStoreTimestamp NS_APPLICATION_SHARES WORKFLOW_DB iworld
 		= (fromMaybe (Timestamp 0) mbTs,iworld)
 
 workflowStore :: !([WorkflowDescription] -> [WorkflowDescription]) !*IWorld -> (![WorkflowDescription],!*IWorld)
 workflowStore f iworld
 	# (workflows,iworld)	= readWorkflowStore iworld
 	# workflows				= f workflows
-	# iworld				= storeValue WORKFLOW_DB workflows iworld
+	# iworld				= storeValue NS_APPLICATION_SHARES WORKFLOW_DB workflows iworld
 	= (workflows,iworld)
 			
 readWorkflowStore :: !*IWorld -> (![WorkflowDescription],!*IWorld)
 readWorkflowStore iworld
-	# (mbWorkflows,iworld) = loadValue WORKFLOW_DB iworld
+	# (mbWorkflows,iworld) = loadValue NS_APPLICATION_SHARES WORKFLOW_DB iworld
 	= (fromMaybe [] mbWorkflows,iworld)
 
 WORKFLOW_DB	:== "WorkflowDB"

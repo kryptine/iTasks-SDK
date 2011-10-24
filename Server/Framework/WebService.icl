@@ -2,22 +2,10 @@ implementation module WebService
 
 import StdList, StdBool
 import Time, JSON
-import SystemTypes, Task, TaskContext, TaskEval,  TUIDiff, TUIEncode, Util, HtmlUtil, Map
+import SystemTypes, Task, TaskContext, TaskEval, ProcessDB, TUIDiff, TUIEncode, Util, HtmlUtil, Map
 import IWorld
 
 derive bimap Maybe, (,)
-
-derive JSONEncode TUIDef, TUIDefContent, TUIUpdate, TUIIcon, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
-derive JSONEncode TUIControlType
-derive JSONEncode TUIButtonControl, TUIListItem
-derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
-
-derive JSONDecode TUIDef, TUIDefContent, TUIUpdate, TUIIcon, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
-derive JSONDecode TUIControlType
-derive JSONDecode TUIButtonControl, TUIListItem
-derive JSONDecode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
-	
-JSONEncode{|HtmlTag|} htm = [JSONString (toString htm)]
 
 webService :: !(Task a) !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
 webService task req iworld=:{IWorld|timestamp,application}
@@ -38,8 +26,7 @@ webService task req iworld=:{IWorld|timestamp,application}
 					= (response (JSONObject [("success",JSONBool False),("error",JSONString "No tui definition available")]), iworld)
 				Ok (TaskBusy (Just tui) actions _ , sessionId =: SessionProcess session)
 					//Save user interface to enable incremental updates in later requests
-					# tuiStoreId	= toString sessionId +++ "-gui"
-					# iworld	 	= storeValue tuiStoreId tui iworld
+					# iworld		= storeTaskTUI sessionId tui iworld
 					//Output user interface
 					# json = JSONObject [("content",encodeTUIDefinition tui)
 										,("session",JSONString session)
@@ -48,12 +35,11 @@ webService task req iworld=:{IWorld|timestamp,application}
 		| otherwise
 			# sessionId					= SessionProcess sessionParam
 			//Load previous user interface to enable incremental updates
-			# tuiStoreId				= toString sessionId +++ "-gui"
-			# (mbPreviousTui,iworld)	= loadValueAndTimestamp tuiStoreId iworld
+			# (mbPreviousTui,iworld)	= loadTaskTUI sessionId iworld
 			//Check if the version of the user interface the client has is still fresh
 			# outdated	= case mbPreviousTui of
-				Just (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
-				Nothing						= False
+				Ok (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
+				Error _						= False
 			//Determine possible edit and commit events
 			# editEvent = case fromJSON (fromString editEventParam) of
 				Just (target,path,value)
@@ -82,7 +68,7 @@ webService task req iworld=:{IWorld|timestamp,application}
 					= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
 				Ok (TaskBusy mbCurrentTui actions context)
 					# json = case (mbPreviousTui,mbCurrentTui) of
-						(Just (previousTui,previousTimestamp),Just currentTui)
+						(Ok (previousTui,previousTimestamp),Just currentTui)
 							| previousTimestamp == Timestamp (toInt timestampParam) 
 								= JSONObject [("success",JSONBool True)
 											 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui))
@@ -92,7 +78,7 @@ webService task req iworld=:{IWorld|timestamp,application}
 											 ,("content",encodeTUIDefinition currentTui)
 											 ,("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")
 											 ,("timestamp",toJSON timestamp)]
-						(Nothing, Just currentTui)
+						(_, Just currentTui)
 							= JSONObject [("success",JSONBool True)
 										 ,("content", encodeTUIDefinition currentTui)
 										 ,("timestamp",toJSON timestamp)]
@@ -100,7 +86,7 @@ webService task req iworld=:{IWorld|timestamp,application}
 							= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 					//Store tui for later incremental requests
 					# iworld = case mbCurrentTui of
-						Just currentTui	= storeValue tuiStoreId currentTui iworld
+						Just currentTui	= storeTaskTUI sessionId currentTui iworld
 						Nothing			= iworld
 					= (json,iworld)
 				_

@@ -53,20 +53,20 @@ currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
 currentProcesses = makeReadOnlyShared "SystemData_processes" read timestamp
 where
 	read iworld
-		# (list, iworld) = loadValue "ProcessDB" iworld
+		# (list, iworld) = loadValue NS_WORKFLOW_INSTANCES "ProcessDB" iworld
 		= (fromMaybe [] list, iworld) 
 	timestamp iworld
-		# (ts, iworld) = getStoreTimestamp "ProcessDB" iworld
+		# (ts, iworld) = getStoreTimestamp NS_WORKFLOW_INSTANCES "ProcessDB" iworld
 		= (fromMaybe (Timestamp 0) ts, iworld)
 		
 processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
 processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" read timestamp
 where
 	read iworld=:{currentUser}
-		# (list, iworld) = loadValue "ProcessDB" iworld
+		# (list, iworld) = loadValue NS_WORKFLOW_INSTANCES "ProcessDB" iworld
 		= (maybe [] (\l -> [p \\ p <- l | p.managementMeta.worker === Just currentUser ]) list, iworld)
 	timestamp iworld
-		# (ts, iworld) = getStoreTimestamp "ProcessDB" iworld
+		# (ts, iworld) = getStoreTimestamp NS_WORKFLOW_INSTANCES "ProcessDB" iworld
 		= (fromMaybe (Timestamp 0) ts, iworld)
 		
 applicationName :: ReadOnlyShared String

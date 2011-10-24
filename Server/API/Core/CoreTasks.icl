@@ -34,9 +34,9 @@ return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinish
 sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = ReadWriteShared
 	["sharedStore_" +++ storeId]
-	(get loadValue defaultV)
+	(get (loadValue NS_APPLICATION_SHARES) defaultV)
 	write
-	(get getStoreTimestamp (Timestamp 0))
+	(get (getStoreTimestamp NS_APPLICATION_SHARES) (Timestamp 0))
 where	
 	get f defaultV iworld
 		# (mbV,iworld) = f storeId iworld
@@ -45,7 +45,7 @@ where
 			Just v	= Ok v
 		= (res,iworld)
 		
-	write v iworld = (Ok Void,storeValue storeId v iworld)
+	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
 
 get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask ("Read shared", "Reads a shared value") eval
