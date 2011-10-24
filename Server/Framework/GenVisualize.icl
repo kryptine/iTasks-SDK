@@ -111,7 +111,7 @@ gVisualizeText{|Dynamic|} _ _				= []
 gVisualizeText{|(->)|} _ _ _ _				= []
 
 	
-derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Username, Action, TreeNode, ManagementMeta, TaskPriority, Tree
 
 //Generic html visualizer
 generic gVisualizeHtml a :: !StaticVisualizationMode !a -> [HtmlTag]
@@ -247,7 +247,7 @@ gVisualizeHtml{|Dynamic|} _ _				= []
 gVisualizeHtml{|(->)|} _ _ _ _				= []
 
 	
-derive gVisualizeHtml DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gVisualizeHtml DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Username, Action, TreeNode, ManagementMeta, TaskPriority, Tree
 
 toHtmlText s = Text (toString s)
 
@@ -365,6 +365,7 @@ gVisualizeEditor{|Real|}		val vst = visualizeControlSimple TUIRealControl val vs
 gVisualizeEditor{|Char|}		val vst = visualizeControlSimple TUICharControl val vst
 gVisualizeEditor{|String|}	val vst = visualizeControlSimple TUIStringControl val vst
 gVisualizeEditor{|Bool|}		val vst = visualizeControlSimple TUIBoolControl val vst
+gVisualizeEditor{|Username|}	val vst = visualizeControlSimple TUIStringControl val vst
 gVisualizeEditor{|Password|}	val vst = visualizeControlSimple TUIPasswordControl val vst
 gVisualizeEditor{|Note|}		val vst = visualizeControlSimple TUINoteControl val vst
 gVisualizeEditor{|Date|}		val vst = visualizeControlSimple TUIDateControl val vst

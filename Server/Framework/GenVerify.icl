@@ -118,6 +118,7 @@ gVerify{|Char|}   				_ vst = simpleVerify "Enter a character" vst
 gVerify{|String|}					_ vst = simpleVerify "Enter a short text" vst
 gVerify{|Bool|}   				_ vst = alwaysValid vst
 gVerify{|Document|}				_ vst = simpleVerify "Upload a document" vst
+gVerify{|Username|}				_ vst = simpleVerify "Enter a username" vst
 gVerify{|Password|}				_ vst = simpleVerify "Enter a password" vst
 gVerify{|Date|}					_ vst = simpleVerify "Enter a date" vst
 gVerify{|Time|}					_ vst = simpleVerify "Enter a time of day" vst

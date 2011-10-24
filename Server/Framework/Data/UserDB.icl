@@ -11,7 +11,7 @@ derive bimap (,), Maybe
 
 instance UserDB IWorld
 where
-	getUser :: !UserId !*IWorld -> (!Maybe User,!*IWorld)
+	getUser :: !String !*IWorld -> (!Maybe User,!*IWorld)
 	getUser "root" iworld
 		= (Just RootUser,iworld)
 	getUser userName iworld
@@ -23,7 +23,7 @@ where
 	getUserDetails :: !User !*IWorld -> (!Maybe UserDetails,!*IWorld)
 	getUserDetails RootUser iworld=:{IWorld|config}
 		= (Just {UserDetails
-			|userName = "root"
+			|username = Username "root"
 			,password = Password config.rootPassword
 			,displayName = "Root User"
 			,emailAddress = EmailAddress config.rootEmail
@@ -56,15 +56,15 @@ where
 				= (Nothing, iworld)
 		| otherwise
 			# (details, iworld)	= readUserStore iworld
-			= case [(RegisteredUser d) \\ d <- details | d.userName == username && d.UserDetails.password == (Password password)] of
+			= case [(RegisteredUser d) \\ d <- details | d.UserDetails.username == (Username username) && d.UserDetails.password == (Password password)] of
 				[user]	= (Just user, iworld)		
 				_		= (Nothing, iworld)
 	
 	createUser :: !UserDetails !*IWorld -> (!MaybeErrorString User,!*IWorld)
 	createUser details iworld
 		# (store, iworld)		= readUserStore iworld
-		| isMember (details.userName) [u.userName \\ u <- store]
-			= (Error ("A user with username '" +++ details.userName +++ "' already exists."), iworld)
+		| isMember (details.UserDetails.username) [u.UserDetails.username \\ u <- store]
+			= (Error ("A user with username '" +++ toString details.UserDetails.username +++ "' already exists."), iworld)
 		# (store, iworld)		= userStore (\_-> store ++ [details]) iworld
 		= (Ok (RegisteredUser details),iworld)
 		
@@ -88,9 +88,9 @@ where
 		= (ts,{iworld & world = world})
 	
 //Helper function which finds a property of a certain user
-lookupUserProperty :: ![User] !(User -> a) !a !UserId -> a
+lookupUserProperty :: ![User] !(User -> a) !a !String -> a
 lookupUserProperty users selectFunction defaultValue userName
-		= case [selectFunction user \\ user=:(RegisteredUser d) <- users | d.UserDetails.userName == userName] of
+		= case [selectFunction user \\ user=:(RegisteredUser d) <- users | toString d.UserDetails.username == userName] of
 			[x] = x
 			_	= defaultValue
 

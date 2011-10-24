@@ -14,7 +14,7 @@ generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualizeText Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeText Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gVisualizeText EmailAddress, Action, HtmlDisplay, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Generic html visualization function
@@ -24,7 +24,7 @@ generic gVisualizeHtml a :: !StaticVisualizationMode !a -> [HtmlTag]
 derive gVisualizeHtml UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeHtml Int, Real, Char, Bool, String
 derive gVisualizeHtml Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualizeHtml Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeHtml Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gVisualizeHtml EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Generic editor function
@@ -34,7 +34,7 @@ generic gVisualizeEditor a | gVisualizeText a, gVisualizeHtml a :: !(Maybe a) !*
 derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualizeEditor Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeEditor Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Wrapper functions for visualization

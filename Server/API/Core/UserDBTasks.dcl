@@ -7,7 +7,7 @@ definition module UserDBTasks
 import Maybe, Void
 
 from Task			import :: Task
-from SystemTypes	import :: UserId, :: User, :: UserDetails, :: Role
+from SystemTypes	import :: User, :: UserDetails, :: Role
 
 /**
 * Authenticates a user by username and password

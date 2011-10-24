@@ -4,7 +4,7 @@ definition module UserDB
 * functions for accessing information about system users.
 */
 from Maybe			import :: Maybe
-from SystemTypes	import :: User, :: UserDetails, :: UserId, :: IWorld
+from SystemTypes	import :: User, :: UserDetails, :: IWorld
 from Time			import :: Timestamp
 from Error			import :: MaybeErrorString, :: MaybeError
 
@@ -18,7 +18,7 @@ where
 	* @return The user if found
 	* @return The database handle
 	*/
-	getUser				::	!UserId			!*st -> (!Maybe User				, !*st)
+	getUser				::	!String			!*st -> (!Maybe User				, !*st)
 	/** 
 	* Looks up the details of any user in the database.
 	*

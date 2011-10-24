@@ -4,7 +4,7 @@ import StdList, Maybe, HTML, Map, Either, Error, JSON
 import Task
 from TaskContext import :: TaskContextTree(..), :: SubTaskContext, :: ParallelMeta
 from StdFunc import id
-from SystemTypes import :: User, :: UserId, :: UserDetails, :: Role
+from SystemTypes import :: User, :: UserDetails, :: Role
 from UserDB import qualified class UserDB(..)
 from UserDB import qualified instance UserDB IWorld
 

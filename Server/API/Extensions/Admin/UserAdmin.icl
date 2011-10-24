@@ -59,8 +59,8 @@ exportUserFileFlow
 		createCSVFile (app +++ "-users.csv") [toRow u \\ (RegisteredUser u) <- list] 
 	>>=	viewInformation ("Export users file","A CSV file containing the users of this application has been created for you to download.") []
 where
-	toRow {userName, password = (Password password), displayName, emailAddress = (EmailAddress email), roles}
-		= [displayName,userName,password,email: fromMaybe [] roles]
+	toRow {username = (Username username), password = (Password password), displayName, emailAddress = (EmailAddress email), roles}
+		= [displayName,username,password,email: fromMaybe [] roles]
 	
 importDemoUsersFlow :: Task [User]
 importDemoUsersFlow =
@@ -68,7 +68,7 @@ importDemoUsersFlow =
 where
 	demoUser name
 		= {UserDetails
-		  | userName = toLowerCase name
+		  | username = Username (toLowerCase name)
 		  , password = Password (toLowerCase name)
 		  , displayName = name
 		  , emailAddress = EmailAddress (name +++ "@example.com")

@@ -16,21 +16,23 @@ from Task			import :: Task
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gVisualizeHtml, :: VSt, :: StaticVisualizationMode, :: TUIDef
 
 derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONEncode	Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONEncode	EmailAddress,ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode	Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONDecode	Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONDecode	EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive gEq			Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq			EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode	TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
 derive JSONDecode	TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
 derive gEq			TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
 derive class iTask	Credentials
 
-instance toString User
+
 instance toString Note
+instance toString User
+instance toString Username
 instance toString Password
 instance toString Date
 instance toString Time
@@ -46,9 +48,10 @@ instance fromString Time
 instance fromString DateTime
 instance fromString ProcessId
 
-instance == User
-instance == Document
 instance == Note
+instance == Document
+instance == User
+instance == Username
 instance == Password
 instance == ProcessId
 
@@ -56,6 +59,8 @@ instance < Time
 instance < Date
 instance < DateTime
 instance < User
+instance < Username
+instance < Password
 instance < Currency
 
 instance + Time		//Basic addition, righthand argument is treated as interval (seconds are added first)
@@ -81,8 +86,7 @@ instance toEmail String
 instance toEmail User
 
 :: URL			= URL !String
-:: PhoneNr		= PhoneNr String
-:: Password		= Password !String
+
 // Plain text notes
 :: Note			= Note !String
 
@@ -344,7 +348,7 @@ noMeta :: ManagementMeta
 	| SessionUser !String			//* A person that is only identified by a session
 	
 :: UserDetails			=
-	{ userName		:: !UserId
+	{ username		:: !Username
 	, password		:: !Password
 	, displayName	:: !String
 	, emailAddress	:: !EmailAddress
@@ -353,13 +357,14 @@ noMeta :: ManagementMeta
 
 // Authentication
 :: Credentials =
-	{ username	:: String
-	, password	:: Password
+	{ username	:: !Username
+	, password	:: !Password
 	}
+	
+:: Password		= Password !String
+:: Username		= Username !String
 
-:: UserId			:== String
-:: Role				:== String
-
+:: Role			:== String
 
 /*
 * Gives the unique username of a user

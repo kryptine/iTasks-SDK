@@ -13,7 +13,7 @@ derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidd
 derive JSONDecode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode	EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive gEq			Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq			EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
 derive JSONEncode	TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
@@ -188,19 +188,35 @@ where
 	toString doc = ""
 
 // ******************************************************************************************************
+// Username
+// ******************************************************************************************************
+instance == Username
+where (==) (Username a) (Username b)	= a == b
+
+instance < Username
+where (<) (Username a) (Username b) = a < b
+
+instance toString Username
+where toString (Username u) = u
+	
+JSONEncode{|Username|} (Username u) = [JSONString u]
+JSONDecode{|Username|} [JSONString u:c] = (Just (Username u),c)
+JSONDecode{|Username|} c = (Nothing,c)
+// ******************************************************************************************************
 // Password
 // ******************************************************************************************************
 
 instance == Password
-where
-	(==) (Password a) (Password b) = a == b
+where (==) (Password a) (Password b) = a == b
+
+instance < Password
+where (<) (Password a) (Password b) = a < b
 	
 instance toString Password
-where
-	toString (Password p) = p
+where toString (Password p) = p
 	
-JSONEncode{|Password|} (Password txt) = [JSONString txt]
-JSONDecode{|Password|} [JSONString txt:c] = (Just (Password txt),c)
+JSONEncode{|Password|} (Password p) = [JSONString p]
+JSONDecode{|Password|} [JSONString p:c] = (Just (Password p),c)
 JSONDecode{|Password|} c = (Nothing,c)
 
 // ******************************************************************************************************
@@ -469,9 +485,9 @@ where
 	(==) AnyUser AnyUser						= True
 	(==) RootUser RootUser						= True
 	(==) (NamedUser a) (NamedUser b)			= userName (NamedUser a) == userName (NamedUser b)
-	(==) (RegisteredUser a) (RegisteredUser b)	= a.userName == b.userName
-	(==) (NamedUser a) (RegisteredUser b)		= userName (NamedUser a) == b.userName
-	(==) (RegisteredUser a) (NamedUser b)		= a.userName == userName (NamedUser b)
+	(==) (RegisteredUser a) (RegisteredUser b)	= a.UserDetails.username == b.UserDetails.username
+	(==) (NamedUser a) (RegisteredUser b)		= userName (NamedUser a) == toString b.UserDetails.username
+	(==) (RegisteredUser a) (NamedUser b)		= toString a.UserDetails.username == userName (NamedUser b)
 	(==) (SessionUser a) (SessionUser b)		= a == b
 	(==) _ _									= False
 
@@ -481,18 +497,18 @@ where
 	(<) (RootUser) (AnyUser)					= False
 	(<) (RootUser) _							= True
 	(<) (NamedUser a) (NamedUser b)				= a < b
-	(<) (NamedUser a) (RegisteredUser b)		= a < b.userName
+	(<) (NamedUser a) (RegisteredUser b)		= a < toString b.UserDetails.username
 	(<) (NamedUser _) (SessionUser _)			= True
 	(<) (NamedUser _) _							= False
-	(<) (RegisteredUser a) (NamedUser b)		= a.userName < b
-	(<) (RegisteredUser a) (RegisteredUser b)	= a.userName < b.userName 
+	(<) (RegisteredUser a) (NamedUser b)		= toString a.UserDetails.username < b
+	(<) (RegisteredUser a) (RegisteredUser b)	= a.UserDetails.username < b.UserDetails.username 
 	(<) (RegisteredUser _) (SessionUser _)		= True
 	(<) (RegisteredUser _) _					= False
 	(<)	_ _										= False
 
 JSONEncode{|User|} AnyUser 					= [JSONString "Any User <>"]
 JSONEncode{|User|} RootUser 				= [JSONString "Root User <root>"]
-JSONEncode{|User|} (RegisteredUser details) = [JSONString (details.displayName+++"<"+++details.userName+++">")]
+JSONEncode{|User|} (RegisteredUser details) = [JSONString (details.displayName+++" <"+++ toString details.UserDetails.username+++">")]
 JSONEncode{|User|} (NamedUser username)		= [JSONString username]
 JSONEncode{|User|} (SessionUser session)	= [JSONString ("Anonymous User <#"+++session+++">")]
 
@@ -520,7 +536,7 @@ userName (NamedUser name)
 where
 	start = indexOf "<" name
 	end = indexOf ">" name
-userName (RegisteredUser details) = details.UserDetails.userName 
+userName (RegisteredUser details) = toString details.UserDetails.username 
 userName _ = ""
 			
 displayName :: !User -> String

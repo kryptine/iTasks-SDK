@@ -103,7 +103,7 @@ doAuthenticated task
 	//=	(appIdentity ||- enterInformation "Log in" []) <<@ tweak
 	=	enterInformation "Log in" [] <<@ tweak
 	>>= \credentials ->
-		authenticateUser credentials.username (toString credentials.Credentials.password)
+		authenticateUser (toString credentials.Credentials.username) (toString credentials.Credentials.password)
 	>>= \mbUser -> case mbUser of
 		Nothing
 			= viewInformation "Log in failed" [] Nothing
