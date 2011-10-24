@@ -3,7 +3,6 @@ implementation module Task
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass
 from TaskContext	import :: TaskContextTree(..), :: SubTaskContext, :: ParallelMeta
-from ProcessDB		import :: Process
 from iTasks			import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
 mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d

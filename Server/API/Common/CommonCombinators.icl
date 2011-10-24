@@ -76,28 +76,26 @@ where
 	processControl tlist =
 		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, SetShared fromView)] control Void >>+ noActions)
 	where
-		control = taskListProperties tlist
+		control = taskListMeta tlist
 		
 	accJust r _ = (Just r,True)
 			
-	toView [_,{ParallelTaskInfo|properties=Right {systemProperties=s=:{issuedAt,issuedBy,firstEvent,latestEvent},managerProperties=m=:{worker}}}]=
-		{ mapRecord m
-		& assignedTo	= worker
-		, issuedAt		= Display (formatTimestamp issuedAt)
-		, issuedBy		= Display issuedBy
-		, firstWorkedOn	= Display (fmap formatTimestamp firstEvent)
-		, lastWorkedOn	= Display (fmap formatTimestamp latestEvent)
+	toView [_,{ParallelTaskMeta|taskMeta,progressMeta=Just p,managementMeta=Just m}]=
+		{ assignedTo	= m.ManagementMeta.worker
+		, priority		= m.ManagementMeta.priority
+		, issuedAt		= Display (Just p.ProgressMeta.issuedAt)
+		, issuedBy		= Display (Just p.ProgressMeta.issuedBy)
+		, firstWorkedOn	= Display p.ProgressMeta.firstEvent
+		, lastWorkedOn	= Display p.ProgressMeta.latestEvent
 		}
-	toView [_,{ParallelTaskInfo|properties=Left p}]=
-		{ assignedTo	= Just AnyUser
+	toView [_,_]=
+		{ assignedTo	= Nothing
 		, priority		= NormalPriority
-		, issuedBy		= Display AnyUser
-		, issuedAt		= Display (formatTimestamp (Timestamp 0))
-		, firstWorkedOn = Display Nothing
+		, issuedAt		= Display Nothing
+		, issuedBy		= Display Nothing
+		, firstWorkedOn	= Display Nothing
 		, lastWorkedOn	= Display Nothing
-		, deadline		= Nothing
-		}
-		
+		}	
 	fromView view=:{ProcessControlView|assignedTo} _ _
 		= []// [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
 		
@@ -105,11 +103,10 @@ where
 	
 :: ProcessControlView =	{ assignedTo	:: !Maybe User
 						, priority		:: !TaskPriority
-						, issuedAt		:: !Display DateTime
-						, issuedBy		:: !Display User
+						, issuedAt		:: !Display (Maybe DateTime)
+						, issuedBy		:: !Display (Maybe User)
 						, firstWorkedOn	:: !Display (Maybe DateTime)
 						, lastWorkedOn	:: !Display (Maybe DateTime)
-						, deadline		:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
 derive class GenRecord ProcessControlView, ManagementMeta, TaskPriority

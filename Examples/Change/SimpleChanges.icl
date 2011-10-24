@@ -22,15 +22,15 @@ changePriority :: TaskPriority -> ChangeDyn
 changePriority priority =
 	dynamic change :: A.a: Change a | iTask a
 where
-	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & priority = priority}},Nothing, Just (changePriority priority))
+	change :: TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change meta t t0 = (Just {TaskInstanceMeta|meta & managementMeta = {meta.TaskInstanceMeta.managementMeta & priority = priority}},Nothing, Just (changePriority priority))
 
 //Add a big red warning message prompt to the running task
 addWarning :: String -> ChangeDyn
 addWarning msg = 
 	dynamic change  :: A.a: Change a | iTask a
 where
-	change :: ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change :: TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change props t t0 = (Nothing, Just (((viewInformation ("Warning!",redText msg) [] Void >>+ noActions`) ||- t)), Just (addWarning msg))
 
 	noActions` :: (TermFunc a Void) | iTask a
@@ -43,11 +43,11 @@ duplicate :: User User String -> ChangeDyn
 duplicate me user topics =
 	dynamic change me user topics :: A.a: Change a | iTask a
 where
-	change :: User User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change me user topics props t t0 
-		= 	( Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = Just me}}
+	change :: User User String TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change me user topics meta t t0 
+		= 	( Just {TaskInstanceMeta|meta & managementMeta = {meta.TaskInstanceMeta.managementMeta & worker = Just me}}
 			, Just (me @:
-							(anyTask 	[ (Description topics @>> fromMaybe me props.ProcessProperties.managerProperties.ManagementMeta.worker @: t) 
+							(anyTask 	[ (Description topics @>> fromMaybe me meta.TaskInstanceMeta.managementMeta.ManagementMeta.worker @: t) 
 										, (Description topics @>> user @: t)
 										]
 							)
@@ -59,7 +59,7 @@ inform :: User String -> ChangeDyn
 inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
-	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change :: User TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 = (Nothing, Just (t >>= \res -> appendTopLevelTask {ManagementMeta|noMeta & worker = Just user} (viewInformation ("Process ended","Process " +++ procName +++ " ended!") [] res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
@@ -67,7 +67,7 @@ check :: User String -> ChangeDyn
 check user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
-	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change :: User TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 = (Nothing, Just (t >>= \res -> assign {noMeta & worker = Just user, priority = HighPriority} (updateInformation ("Verification","Please verify result of " +++ procName) [] res)), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
@@ -84,16 +84,16 @@ reassign :: User String ProcessId -> ChangeDyn
 reassign user procName pid  =
 	dynamic change user :: A.b: Change b | iTask b
 where
-	change :: User ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 
-		= (Just {ProcessProperties|props & managerProperties = {props.ProcessProperties.managerProperties & worker = Just user}},Nothing, Nothing)
+	change :: User TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change user meta t t0 
+		= (Just {TaskInstanceMeta|meta & managementMeta = {meta.TaskInstanceMeta.managementMeta & worker = Just user}},Nothing, Nothing)
 
 //restart starts the task from scratch and assigns it to the indicated user
 restart :: User String -> Dynamic
 restart user procName =
 	dynamic change user procName :: A.a: Change a | iTask a
 where
-	change :: User String ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
+	change :: User String TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user procName props t t0 = (Nothing, Just (assign {noMeta & worker = Just user, priority = HighPriority} (Description procName @>> t0)), Nothing)
 
 changePrio :: Task Void
@@ -114,41 +114,41 @@ duplicateTask
 	>>= \procId ->	getProcess procId
 	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
 	>>= \user ->	get currentUser
-	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title) CLTransient
+	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
 
 informTask :: Task Void
 informTask
 	=				chooseProcess "The result of which process do you want to show?"
 	>>= \procId ->	chooseUserA "Select the user you want this result to see:"
 	>>= \user ->	getProcess procId
-	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title) CLTransient
+	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
 	
 checkTask :: Task Void
 checkTask
 	=				chooseProcess "The result of which process do you want to be checked?"
 	>>= \procId ->	getProcess procId
 	>>= \process -> chooseUserA "Select the user which has to check it:"
-	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title) CLTransient
+	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
 	
 cancelTask :: Task Void
 cancelTask
 	=				chooseProcess "Select the task you want to cancel:"
 	>>= \procId ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title procId) CLTransient
 
 reassignTask :: Task Void
 reassignTask
 	=				chooseProcess "Select the task you want to reassign to someone else:"
 	>>= \procId ->	chooseUserA "Who should continue with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title procId) CLTransient
 
 restartTask :: Task Void
 restartTask
 	=				chooseProcess "Select the task you want to restart from scratch:"
 	>>= \procId ->	chooseUserA "Who should start with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).Process.properties.ProcessProperties.taskProperties.TaskMeta.title) CLTransient
+	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
 
 //Utility
 chooseUserA :: !question -> Task User | html question
@@ -162,13 +162,13 @@ chooseProcess :: String -> Task ProcessId
 chooseProcess question
 	=				getProcessesWithStatus [Running]
 	>>= \procs ->	enterChoice question []
-					[	( proc.Process.properties.ProcessProperties.systemProperties.SystemProperties.taskId
-						, proc.Process.properties.ProcessProperties.taskProperties.TaskMeta.title
-						, proc.Process.properties.ProcessProperties.managerProperties.ManagementMeta.priority
-						, proc.Process.properties.ProcessProperties.managerProperties.ManagementMeta.worker)
+					[	( proc.TaskInstanceMeta.processId
+						, proc.TaskInstanceMeta.taskMeta.TaskMeta.title
+						, proc.TaskInstanceMeta.managementMeta.ManagementMeta.priority
+						, proc.TaskInstanceMeta.managementMeta.ManagementMeta.worker)
 						\\ proc <- procs]
 	>?*				[ (ActionCancel,	Always	(throw "choosing a process has been cancelled"))
-					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return (WorkflowProcess (toInt pid))))
+					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return pid))
 					]
 
 	

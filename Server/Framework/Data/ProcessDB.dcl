@@ -8,30 +8,18 @@ definition module ProcessDB
 import Maybe, SystemTypes, Task, TaskContext
 from Time import :: Timestamp
 
-derive JSONEncode	Process
-derive JSONDecode	Process
-derive gEq			Process
-
-/**
-* Our local process type
-*/
-:: Process 		= {	processId		:: !ProcessId					// The process identification				  
-				  , properties		:: !ProcessProperties			// The properties of the main task node of this process
-				  , subprocesses	:: ![Process]					// The sub processes of this process
-				  }
-
 class ProcessDB st
 where
 	getNewSessionId			::														!*st -> (!ProcessId,		!*st)
 	getNewWorkflowId		::														!*st -> (!ProcessId,		!*st)
 
-	getProcess				:: !ProcessId											!*st -> (!Maybe Process,	!*st)
+	getProcess				:: !ProcessId											!*st -> (!Maybe TaskInstanceMeta,	!*st)
 	getProcessContext		:: !ProcessId											!*st -> (!Maybe TaskContext,!*st)
 	
-	getProcessForUser		:: !User !ProcessId										!*st -> (!Maybe Process,	!*st)
-	getProcesses 			:: ![TaskStatus]										!*st -> (![Process], 		!*st)
-	getProcessesById		:: ![ProcessId]											!*st -> (![Process],		!*st)
-	getProcessesForUser		:: !User ![TaskStatus] 									!*st -> (![Process],		!*st)
+	getProcessForUser		:: !User !ProcessId										!*st -> (!Maybe TaskInstanceMeta,	!*st)
+	getProcesses 			:: ![TaskStatus]										!*st -> (![TaskInstanceMeta], 		!*st)
+	getProcessesById		:: ![ProcessId]											!*st -> (![TaskInstanceMeta],		!*st)
+	getProcessesForUser		:: !User ![TaskStatus] 									!*st -> (![TaskInstanceMeta],		!*st)
 	
 	setProcessContext		:: !ProcessId !TaskContext								!*st -> *st
 

@@ -16,9 +16,9 @@ derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Edita
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq			EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd		Currency
-derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
-derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
-derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus, InteractionTaskType, OutputTaskType
+derive JSONEncode	TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive JSONDecode	TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive gEq			TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
 derive bimap		Maybe, (,)
 derive class iTask	Credentials
 
@@ -687,15 +687,6 @@ noMeta =
 	, notifyAt			= Nothing
 	, priority			= NormalPriority
 	}
-
-setRunning :: !ProcessProperties -> ProcessProperties
-setRunning properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Running}}
-
-setFinished :: !ProcessProperties -> ProcessProperties
-setFinished properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Finished}}
-
-setExcepted :: !ProcessProperties -> ProcessProperties
-setExcepted properties=:{systemProperties} = {properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}
 
 formatPriority	:: !TaskPriority	-> HtmlTag
 formatPriority p = Text (toText p)

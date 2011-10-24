@@ -5,9 +5,8 @@ definition module SystemData
 */
 import Maybe
 from SharedCombinators	import :: ReadOnlyShared, :: Shared, :: ReadWriteShared
-from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
+from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree, :: ProcessId, :: TaskInstanceMeta
 from Void				import :: Void
-from ProcessDB			import :: Process, :: ProcessId
 
 // Date & time
 currentDateTime			:: ReadOnlyShared DateTime
@@ -25,8 +24,8 @@ currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
 topLevelTasks 			:: (TaskList Void)
 
 currentProcessId		:: ReadOnlyShared ProcessId
-currentProcesses		:: ReadOnlyShared [Process]
-processesForCurrentUser	:: ReadOnlyShared [Process]
+currentProcesses		:: ReadOnlyShared [TaskInstanceMeta]
+processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
 
 // Application name
 applicationName			:: ReadOnlyShared String

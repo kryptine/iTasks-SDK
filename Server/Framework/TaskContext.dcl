@@ -1,14 +1,14 @@
 definition module TaskContext
 
 import SystemTypes
-from ProcessDB import :: Process(..)
 
 derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
 derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
 
 //Persistent context of active tasks
-:: TaskContext = TaskContext !ProcessId !ProcessProperties !Int !ProcessState
+:: TaskContext = TaskContext !ProcessId !TaskMeta !ProgressMeta !ManagementMeta !ChangeNo !ProcessState
 
+:: ChangeNo	:== Int
 :: ProcessState
 	= TTCRunning !Dynamic !TaskContextTree
 	| TTCFinished !Dynamic
@@ -24,7 +24,7 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 :: SubTaskContext
 	= STCHidden !TaskMeta !(Maybe (!JSONNode,!TaskContextTree))		//Properties, Task (encoded), Context or JSON node
 	| STCEmbedded !TaskMeta !(Maybe (!JSONNode,TaskContextTree))			
-	| STCDetached !ProcessProperties !(Maybe (!JSONNode,!TaskContextTree))
+	| STCDetached !TaskMeta !ProgressMeta !ManagementMeta !(Maybe (!JSONNode,!TaskContextTree))
 
 //Parallel has a bit more complex administration so we define it as a record
 :: ParallelMeta = 

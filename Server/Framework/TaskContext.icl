@@ -1,7 +1,6 @@
 implementation module TaskContext
 
 import SystemTypes
-from ProcessDB import ::Process(..)
 from iTasks import JSONEncode, JSONDecode
 import JSON, Map
 

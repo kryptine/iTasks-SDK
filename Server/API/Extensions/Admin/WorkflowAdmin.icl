@@ -162,11 +162,11 @@ where
 	processes = mapSharedRead (\(procs,ownPid) -> filter (\{processId} -> processId <> ownPid) procs) (processesForCurrentUser |+| currentProcessId)
 	
 	mkTable mbSel (procs,_) = Table ["Title", "Priority", "Date", "Deadline"] (map mkRow procs) mbSel
-	mkRow {Process|properties=p=:{taskProperties,managerProperties,systemProperties},processId} =
-		[ html taskProperties.TaskMeta.title
-		, formatPriority managerProperties.ManagementMeta.priority
-		, visualizeAsHtml AsDisplay (timestampToGmDateTime systemProperties.issuedAt)
-		, visualizeAsHtml AsDisplay managerProperties.ManagementMeta.completeBefore
+	mkRow {TaskInstanceMeta|processId,taskMeta,progressMeta,managementMeta} =
+		[ html taskMeta.TaskMeta.title
+		, formatPriority managementMeta.priority
+		, visualizeAsHtml AsDisplay progressMeta.issuedAt
+		, visualizeAsHtml AsDisplay managementMeta.completeBefore
 		, Text (toString processId)
 		]
 		

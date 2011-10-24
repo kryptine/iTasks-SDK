@@ -24,9 +24,9 @@ derive JSONDecode	EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, Con
 derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq			Note, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq			EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode	TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus
-derive JSONDecode	TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus
-derive gEq			TaskPriority, TaskMeta, ProcessProperties, ManagementMeta, SystemProperties, TaskDescription, TaskStatus
+derive JSONEncode	TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive JSONDecode	TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gEq			TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
 derive class iTask	Credentials
 
 instance toString User
@@ -92,7 +92,7 @@ instance toEmail User
 	| GBP !Int
 	| USD !Int
 	| JPY !Int
-
+	
 :: Date	=
 	{ day	:: !Int
 	, mon	:: !Int
@@ -232,7 +232,6 @@ toDisplay :: !.a -> Display .a
 fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> Hidden .a
 
-
 // Displaying unfiltered HTML code
 :: HtmlDisplay = HtmlDisplay !String
 toHtmlDisplay	:: !h -> HtmlDisplay | html h
@@ -261,14 +260,11 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	= GlobalTaskList			//*The global list of task instances
 	| ParallelTaskList !TaskId	//*The list of task instances of a parallel task
 
-
-//* Properties of task processes	
-:: ProcessProperties =
-	{ taskProperties	:: !TaskMeta
-	, managerProperties	:: !ManagementMeta
-	, systemProperties	:: !SystemProperties
-	}
 	
+//* String serialization of TaskNr values	
+:: TaskId :== String
+
+//* Properties of tasks
 :: TaskMeta =
 	{ title				:: !String						//* A descriptive title
 	, instruction		:: !Maybe String				//* Instruction of the task
@@ -279,29 +275,7 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	, interactionType	:: !Maybe InteractionTaskType	//* type of interaction (for interaction tasks)
 	, localInteraction	:: !Bool						//* indicates that the task's interaction is restricted to local data while it is running
 	}
-
-:: TaskDescription	=
-	{ title				:: !String					//* The task's title
-	, description		:: !String					//* A longer description of the task (HTML string)
-	}
 	
-:: SystemProperties =
-	{ taskId			:: !TaskId					//* Task identification
-	, status			:: !TaskStatus				//* Is a maintask active,suspended,finished or excepted
-	, issuedAt			:: !Timestamp				//* When was the task created
-	, issuedBy			:: !User					//* By whom was the task created
-	, firstEvent		:: !Maybe Timestamp			//* When was the first work done on this task
-	, latestEvent		:: !Maybe Timestamp			//* When was the latest event on this task	
-	}
-	
-//* String serialization of TaskNr values	
-:: TaskId :== String		
-
-:: TaskStatus	= Running		//* A process which is currently running (active or suspended)
-				| Finished		//* A process terminated normally
-				| Excepted		//* A process terminated with an exception
-				| Deleted		//* A process is deleted (never set, but returned when process can not be found)
-
 :: ManagementMeta =
 	{ worker			:: !Maybe User				//* Who has to do the task? 
 	, role				:: !Maybe Role				//* What role does a worker need to do the task
@@ -311,6 +285,34 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	, priority			:: !TaskPriority			//* What is the current priority of this task?
 	}
 	
+:: ProgressMeta =
+	{ issuedAt			:: !DateTime				//* When was the task created
+	, issuedBy			:: !User					//* By whom was the task created
+	, status			:: !TaskStatus				//* Is a maintask active,suspended,finished or excepted
+	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
+	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
+	}
+		
+:: TaskStatus
+	= Running		//* A process which is currently running (active or suspended)
+	| Finished		//* A process terminated normally
+	| Excepted		//* A process terminated with an exception
+	| Deleted		//* A process is deleted (never set, but returned when process can not be found)
+
+:: TaskInstanceMeta =
+	{ processId			:: !ProcessId
+	, taskMeta			:: !TaskMeta
+	, progressMeta		:: !ProgressMeta
+	, managementMeta	:: !ManagementMeta
+	, subInstances		:: ![TaskInstanceMeta]
+	} 
+
+:: ProcessId
+	= SessionProcess !String
+	| WorkflowProcess !Int
+	| EmbeddedProcess !Int !TaskId
+
+
 //* tasks can have three levels of priority
 :: TaskPriority		= HighPriority					
 					| NormalPriority
@@ -332,10 +334,6 @@ instance descr TaskMeta
 
 
 noMeta :: ManagementMeta
-
-setRunning	:: !ProcessProperties -> ProcessProperties
-setFinished	:: !ProcessProperties -> ProcessProperties
-setExcepted	:: !ProcessProperties -> ProcessProperties
 
 // Users	
 :: User
@@ -362,10 +360,6 @@ setExcepted	:: !ProcessProperties -> ProcessProperties
 :: UserId			:== String
 :: Role				:== String
 
-:: ProcessId
-	= SessionProcess !String
-	| WorkflowProcess !Int
-	| EmbeddedProcess !Int !TaskId
 
 /*
 * Gives the unique username of a user

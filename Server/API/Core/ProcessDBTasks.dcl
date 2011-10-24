@@ -4,16 +4,15 @@ definition module ProcessDBTasks
 */
 import Maybe, SystemTypes
 from Task		import :: Task
-from ProcessDB	import :: Process(..)
 from Time		import :: Timestamp 
 import iTaskClass
 
-derive gVisualizeText	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gVisualizeHtml	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gVisualizeEditor	ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gUpdate			ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gDefaultMask		ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
-derive gVerify			ProcessId, Process, ProcessProperties, SystemProperties, TaskMeta, TaskStatus, TaskDescription
+derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gVisualizeHtml	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 
 /**
 * Retrieves a Process record from the process table
@@ -22,7 +21,7 @@ derive gVerify			ProcessId, Process, ProcessProperties, SystemProperties, TaskMe
 *
 * @return When found, the Process record. Nothing when the process cannot be found.
 */
-getProcess				:: !ProcessId				-> Task (Maybe Process)
+getProcess				:: !ProcessId				-> Task (Maybe TaskInstanceMeta)
 /**
 * Retrieves a Process record with an additional check on the process owner. Only
 * when the process is owned by the indicated user it will be returned.
@@ -32,7 +31,7 @@ getProcess				:: !ProcessId				-> Task (Maybe Process)
 *
 * @return When found, the Process record. Nothing when the process cannot be found.
 */
-getProcessForUser		:: !User !ProcessId			-> Task (Maybe Process)
+getProcessForUser		:: !User !ProcessId			-> Task (Maybe TaskInstanceMeta)
 /**
 * Retrieves the processes with indicated process ids
 *
@@ -40,7 +39,7 @@ getProcessForUser		:: !User !ProcessId			-> Task (Maybe Process)
 * 
 * @return The list of found processes
 */
-getProcesses			:: ![ProcessId]				-> Task [Process]
+getProcesses			:: ![ProcessId]				-> Task [TaskInstanceMeta]
 /**
 * Retrieves all process that have one of the given statuses
 *
@@ -48,7 +47,7 @@ getProcesses			:: ![ProcessId]				-> Task [Process]
 * 
 * @return The list of processes having the given statuses
 */
-getProcessesWithStatus	:: ![TaskStatus]		-> Task [Process]
+getProcessesWithStatus	:: ![TaskStatus]		-> Task [TaskInstanceMeta]
 /**
 * Retrieves the processes that are owned by indicated user and have one of the
 * given statuses.
@@ -59,7 +58,7 @@ getProcessesWithStatus	:: ![TaskStatus]		-> Task [Process]
 *
 * @return The list of found processes
 */
-getProcessesForUser		:: !User ![TaskStatus]	-> Task [Process]
+getProcessesForUser		:: !User ![TaskStatus]	-> Task [TaskInstanceMeta]
 
 /**
 * Poll the status of a process.

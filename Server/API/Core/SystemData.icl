@@ -8,7 +8,6 @@ from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
 from UserDB		import qualified class UserDB(..), instance UserDB IWorld
 from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
-from ProcessDB	import :: Process
 from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from WorkflowDB	import :: WorkflowDescription
 
@@ -51,10 +50,10 @@ currentProcessId :: ReadOnlyShared ProcessId
 //currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack=[currentProcess:_]} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
 currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) ('ProcessDB'.lastChange)
 
-currentProcesses ::ReadOnlyShared [Process]
+currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
 currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running]) 'ProcessDB'.lastChange
 
-processesForCurrentUser	:: ReadOnlyShared [Process]
+processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
 processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" (\iworld=:{currentUser} -> 'ProcessDB'.getProcessesForUser currentUser [Running] iworld) 'ProcessDB'.lastChange
 
 applicationName :: ReadOnlyShared String

@@ -94,9 +94,12 @@ where
 		//Save event for use in the visualization of the task
 		# context					= setEvent (dps,editV) context
 		//Check if the share has changed since the last event
-		# (changed,iworld) = case latestEvent of
+		/*# (changed,iworld) = case latestEvent of
 			Nothing			= (Ok False,iworld)
 			Just lastEvent	= 'Shared'.isSharedChanged shared lastEvent iworld
+		*/
+		//TODO: Fix detection by checking against local latest event
+		# changed = Ok False
 		= case changed of
 			Ok True	
 				//Edit conflict
@@ -256,16 +259,14 @@ import StdDebug
 workOn :: !ProcessId -> Task WorkOnProcessState
 workOn (SessionProcess sessionId)
 	= abort "workOn applied to session process"
-workOn (WorkflowProcess processId)
-	= workOn (EmbeddedProcess processId "")
-workOn (EmbeddedProcess processId target)
+workOn processId
 	= mkActionTask ("Work on","Work on another top-level instance.") (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
 	init taskNr iworld = (TCEmpty, iworld)
 	
 	edit taskNr event _ iworld
 		//Load instance
-		# (mbContext,iworld)	= loadInstance (WorkflowProcess processId) iworld
+		# (mbContext,iworld)	= loadInstance processId iworld
 		| isError mbContext		= (TCEmpty, iworld)
 		//Apply event to instance
 		# (mbContext,iworld)	= editInstance (Just event) (fromOk mbContext) iworld
@@ -276,10 +277,10 @@ where
 		
 	eval termFunc taskNr props event tuiTaskNr ilayout playout _ iworld=:{evalStack}
 		//Check for cycles
-		| isMember (WorkflowProcess processId) evalStack
+		| isMember processId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
 		//Load instance
-		# (mbContext,iworld)		= loadInstance (WorkflowProcess processId) iworld
+		# (mbContext,iworld)		= loadInstance processId iworld
 		| isError mbContext	
 			//If the instance can not be found, check if it was only just added by an
 			//appendTask in the same session. If so, create a temporary result and trigger
@@ -290,10 +291,10 @@ where
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
-		# targetTaskNo = case target of
-			""	= [processId,changeNo (fromOk mbContext)]
-			_	= reverse (taskNrFromString target)
-		# (mbResult,context,iworld)	= evalInstance targetTaskNo event (fromOk mbContext) iworld
+		# target = case processId of
+			(WorkflowProcess procNo)	= [procNo,changeNo (fromOk mbContext)]
+			(EmbeddedProcess _ taskId)	= reverse (taskNrFromString taskId)
+		# (mbResult,context,iworld)	= evalInstance target event (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result
@@ -316,20 +317,20 @@ where
 								# tactions			= [(taskId,action,isJust val) \\ (action,val) <- uactions]
 								= (TaskBusy tui (sactions ++ tactions) TCEmpty,iworld)
 
-	changeNo (TaskContext _ _ n _) = n
+	changeNo (TaskContext _ _ _ _ n _) = n
+
+	checkIfAddedGlobally (WorkflowProcess procNo) iworld=:{parallelControls,currentUser}
+		= case 'Map'.get (toString topLevelTasks) parallelControls of
+			Just (_,controls)
+				= (isMember procNo [i \\ AppendTask i currentUser _ <- controls], iworld)
+			_
+				= (False,iworld)
+	checkIfAddedGlobally _ iworld = (False,iworld)
 		 
 getActionResult (Just (TaskEvent [] name)) actions
 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
 getActionResult _ actions
 	= Nothing
-
-checkIfAddedGlobally processId iworld=:{parallelControls,currentUser}
-	= case 'Map'.get (toString topLevelTasks) parallelControls of
-		Just (_,controls)
-			= (isMember processId [i \\ AppendTask i currentUser _ <- controls], iworld)
-		_
-			= (False,iworld)
-
 
 applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 applyChangeToProcess pid change lifetime

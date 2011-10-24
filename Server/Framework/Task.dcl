@@ -139,7 +139,7 @@ stepTarget :: !Int !ReversedTaskNr -> ReversedTaskNr
 :: ChangeDyn	:== Dynamic
 
 // A change function which may be used to change tasks at runtime
-:: Change a :== (ProcessProperties (Task a) (Task a) -> (Maybe ProcessProperties, Maybe (Task a), Maybe ChangeDyn))
+:: Change a :== (TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn))
 
 // Changes may be applied only once, or persist for future changes
 :: ChangeLifeTime	= CLTransient

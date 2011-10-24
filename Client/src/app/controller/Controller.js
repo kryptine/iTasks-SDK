@@ -231,8 +231,6 @@ Ext.define('itasks.controller.Controller',{
 		return child;
 	},
 	error: function(e) {
-		if(console) {
-			console.log(e);
-		}
+		document.title = 'Error: ' + e;
 	}
 });

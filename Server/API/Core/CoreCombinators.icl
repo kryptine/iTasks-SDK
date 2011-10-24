@@ -6,13 +6,12 @@ import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
 from IWorld				import :: IWorld(..), :: Control(..)
-from ProcessDB			import :: Process{..}
 from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB IWorld
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from CoreTasks			import return
 from TuningCombinators	import :: Tag
 
-derive class iTask ParallelTaskInfo, ParallelControl, ParallelTaskType
+derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 derive bimap Maybe, (,)
 
 //Standard monadic bind
@@ -176,21 +175,21 @@ where
 	
 	editSub taskNr event (i,sub) iworld=:{IWorld|latestEvent=parentLatestEvent}
 		 = case sub of
-			//Active InBody task
-			STCEmbedded props (Just (encTask,subCxt))
+			//Active Embedded task
+			STCEmbedded tmeta (Just (encTask,subCxt))
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Add case for error
 				# taskfuncs = taskFuncs` task
 				# (newSubCxt,iworld) = taskfuncs.editFun [i:taskNr] event subCxt iworld
-				= ((i,STCEmbedded props (Just (encTask,newSubCxt))), iworld)		
-			STCDetached props (Just (encTask,subCxt))
+				= ((i,STCEmbedded tmeta (Just (encTask,newSubCxt))), iworld)		
+			STCDetached tmeta pmeta mmeta (Just (encTask,subCxt))
 			//Same pattern as inbody tasks
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Also add case for error
 				# taskfuncs = taskFuncs` task
 				// change latest event timestamp for detached process
-				# iworld = {IWorld|iworld & latestEvent = props.systemProperties.SystemProperties.latestEvent}
+				# iworld = {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
 				# (newSubCxt,iworld) = taskfuncs.editFun [i:taskNr] event subCxt iworld
 				# iworld = {IWorld|iworld & latestEvent = parentLatestEvent}
-				= ((i,STCDetached props (Just (encTask,newSubCxt))), iworld)
+				= ((i,STCDetached tmeta pmeta mmeta (Just (encTask,newSubCxt))), iworld)
 			//Task is either completed already or hidden
 			_
 				= ((i,sub),iworld)
@@ -231,38 +230,34 @@ where
 	//subtasks
 	evalSubTasks taskNr event tuiTaskNr meta results [] iworld
 		= (RSResults results, iworld)
-	evalSubTasks taskNr event tuiTaskNr meta results [(idx,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,timestamp}
+	evalSubTasks taskNr event tuiTaskNr meta results [(idx,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,localDateTime}
 		//Evaluate subtask
 		# (result,stcontext,iworld)	= case stcontext of
-			(STCEmbedded props (Just (encTask,context)))
+			(STCEmbedded tmeta (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= taskFuncs` task
 				# (ilayout,playout)	= taskLayouters task
 				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) ilayout playout context iworld 
 				= case result of
-					TaskBusy tui actions context	= (TaskBusy tui actions context, STCEmbedded props (Just (encTask, context)), iworld)
-					TaskFinished r					= (TaskFinished r, STCEmbedded props Nothing, iworld)
-					TaskException e str				= (TaskException e str, STCEmbedded props Nothing, iworld)
-			(STCDetached props (Just (encTask,context)))
+					TaskBusy tui actions context	= (TaskBusy tui actions context, STCEmbedded tmeta (Just (encTask, context)), iworld)
+					TaskFinished r					= (TaskFinished r, STCEmbedded tmeta Nothing, iworld)
+					TaskException e str				= (TaskException e str, STCEmbedded tmeta Nothing, iworld)
+			(STCDetached tmeta pmeta mmeta (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= taskFuncs` task
 				# (ilayout,playout)	= taskLayouters task
 				//Update changed latest event timestamp
-				# iworld			= {IWorld|iworld & latestEvent = props.systemProperties.SystemProperties.latestEvent}
+				# iworld			= {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
 				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) ilayout playout context iworld 
 				# iworld			= {IWorld|iworld & latestEvent = parentLatestEvent}
 				//Update first/latest event if request is targeted at this detached process
-				# props = case tuiTaskNr of
-					[t] | t == idx	=	{props & systemProperties =
-						{ props.systemProperties
-						& firstEvent	= Just (fromMaybe timestamp props.systemProperties.firstEvent)
-						, latestEvent	= Just timestamp
-						}}
-					_				= props
+				# pmeta = case tuiTaskNr of
+					[t] | t == idx	= {pmeta & firstEvent = Just (fromMaybe localDateTime pmeta.firstEvent), latestEvent = Just localDateTime}
+					_				= pmeta
 				= case result of
-					TaskBusy tui actions context	= (TaskBusy tui actions context, STCDetached props (Just (encTask, context)), iworld)
-					TaskFinished r					= (TaskFinished r, STCDetached (markFinished props) Nothing, iworld)
-					TaskException e str				= (TaskException e str, STCDetached (markExcepted props) Nothing, iworld)		
+					TaskBusy tui actions context	= (TaskBusy tui actions context, STCDetached tmeta pmeta mmeta (Just (encTask, context)), iworld)
+					TaskFinished r					= (TaskFinished r, STCDetached tmeta (markFinished pmeta) mmeta Nothing, iworld)
+					TaskException e str				= (TaskException e str, STCDetached tmeta (markExcepted pmeta) mmeta Nothing, iworld)		
 			_
 				//This task is already completed
 				= (TaskFinished Continue, stcontext, iworld)
@@ -281,19 +276,20 @@ where
 		//Evaluate remaining subtasks
 		= evalSubTasks taskNr event tuiTaskNr meta results stasks iworld
 		
-	initSubContext taskNr taskList i taskContainer iworld=:{IWorld|timestamp,currentUser}
+	initSubContext taskNr taskList i taskContainer iworld=:{IWorld|timestamp,localDateTime,currentUser}
 		# subTaskNr = [i:taskNr]
 		= case taskContainer of
 			(Embedded, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
-				# taskProps		= initTaskProperties task
+				# tmeta			= initTaskMeta task
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
-				= (STCEmbedded taskProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
-			(Detached managerProps, taskfun)
+				= (STCEmbedded tmeta (Just (hd (dynamicJSONEncode task), cxt)), iworld)
+			(Detached mmeta, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
-				# processProps	= initProcessProperties subTaskNr timestamp managerProps currentUser task
+				# tmeta			= initTaskMeta task
+				# pmeta			= initProgressMeta localDateTime currentUser
 				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
-				= (STCDetached processProps (Just (hd (dynamicJSONEncode task), cxt)), iworld)
+				= (STCDetached tmeta pmeta mmeta (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 	where
 		// apply task list reference to taskfun & convert to 'normal' (non-action) tasks
 		mkSubTask taskfun
@@ -303,23 +299,11 @@ where
 			= (task,funcs)
 
 	//Initialize a process properties record for administration of detached tasks
-	initProcessProperties taskNr timestamp managerProps user {Task|meta}
-		= {ProcessProperties
-		  |taskProperties = meta
-		  ,managerProperties = managerProps
-		  ,systemProperties
-		  	= {SystemProperties
-		  	  |taskId = taskNrToString taskNr
-		  	  ,status = Running
-		  	  ,issuedAt = timestamp
-			  ,issuedBy = user
-			  ,firstEvent = Nothing
-			  ,latestEvent = Nothing
-			  }
-		   }
-		   
+	initProgressMeta now user
+		= {ProgressMeta|status=Running,issuedAt=now,issuedBy=user,firstEvent=Nothing,latestEvent=Nothing}
+		
 	//Initialize a task properties record for administration of all other tasks
-	initTaskProperties {Task|meta} = meta
+	initTaskMeta {Task|meta} = meta
 
 	//IMPORTANT: The second argument is never used, but passed just to solve overloading
 	encodeState :: !s s -> JSONNode | JSONEncode{|*|} s
@@ -361,12 +345,26 @@ where
 	//Put a datastructure in the scope with info on all processes in this set (TODO: Use parallel meta for identification)
 	addParTaskInfo :: !TaskNr ![(!Int,!SubTaskContext)] !Timestamp !*IWorld -> *IWorld
 	addParTaskInfo taskNr subs ts iworld=:{parallelStates}
-		= {iworld & parallelStates = 'Map'.put (INFOKEY taskNr) (dynamic (mkInfo subs,ts) :: ([ParallelTaskInfo],Timestamp) ) parallelStates}
+		= {iworld & parallelStates = 'Map'.put (INFOKEY taskNr) (dynamic (mkInfo subs,ts) :: ([ParallelTaskMeta],Timestamp) ) parallelStates}
 	where
-		mkInfo subs = [{ParallelTaskInfo|index = i, properties = props sub} \\ (i,sub) <- subs]
+		mkInfo subs = [meta i sub \\ (i,sub) <- subs]
 	
-		props (STCEmbedded p _)	= Left p
-		props (STCDetached p _)	= Right p		
+		meta i (STCEmbedded tmeta _)
+			= {ParallelTaskMeta
+			  |index = i
+			  ,taskId = taskNrToString [i:taskNr]
+			  ,taskMeta = tmeta
+			  ,progressMeta = Nothing
+			  ,managementMeta = Nothing
+			  }
+		meta i (STCDetached tmeta pmeta mmeta _)
+			= {ParallelTaskMeta
+			  |index = i
+			  ,taskId = taskNrToString [i:taskNr]
+			  ,taskMeta = tmeta
+			  ,progressMeta = Just pmeta
+			  ,managementMeta = Just mmeta
+			  }	
 	
 	removeParTaskInfo :: !TaskNr !*IWorld -> *IWorld
 	removeParTaskInfo taskNr iworld=:{parallelStates}
@@ -409,13 +407,13 @@ where
 	allFinished [(_,TaskFinished _,_):rs]	= allFinished rs
 	allFinished _							= False
 	
-	markFinished properties=:{ProcessProperties|systemProperties}
-		= {ProcessProperties|properties & systemProperties = {SystemProperties|systemProperties & status = Finished}}
-	markExcepted properties=:{ProcessProperties|systemProperties}
-		= {ProcessProperties|properties & systemProperties = {SystemProperties|systemProperties & status = Excepted}}
+	markFinished pmeta
+		= {ProgressMeta|pmeta & status = Finished}
+	markExcepted pmeta
+		= {ProgressMeta|pmeta & status = Excepted}
 	
-	updateProperties mprops (STCDetached props scontext)
-		= (STCDetached {ProcessProperties|props & managerProperties = mprops} scontext)
+	updateProperties nmeta (STCDetached tmeta pmeta mmeta scontext)
+		= (STCDetached tmeta mmeta nmeta scontext)
 	updateProperties _ context = context
 	
 	mergeContexts contexts
@@ -436,7 +434,7 @@ where
 				where
 					isHidden (STCHidden _ _) = True
 					isHidden _ = False
-					isDetached (STCDetached _ _) = True
+					isDetached (STCDetached _ _ _ _) = True
 					isDetached _ = False
 					
 					getMeta (STCHidden meta _)	= meta
@@ -447,8 +445,8 @@ where
 					
 			//We want to show the TUI of one of the detached tasks in this set
 			[t]
-				= case [(tui,actions,props) \\ (i,TaskBusy (Just tui) actions _,STCDetached props _) <- contexts | i == t] of
-					[(tui,actions,props)]
+				= case [(tui,actions) \\ (i,TaskBusy (Just tui) actions _,STCDetached _ _ _ _) <- contexts | i == t] of
+					[(tui,actions)]
 						= (Just tui,actions)
 					_
 						= (Nothing,[])
@@ -488,23 +486,23 @@ where
 /**
 * Get the properties share of a task list
 */
-taskListProperties	:: (TaskList s) -> Shared [ParallelTaskInfo]
-taskListProperties tasklist = ReadWriteShared [identity] read write timestamp
+taskListMeta :: (TaskList s) -> Shared [ParallelTaskMeta]
+taskListMeta tasklist = ReadWriteShared [identity] read write timestamp
 where
 	identity	= toString tasklist +++ "-info"
 	
 	read iworld=:{parallelStates}
 		= case 'Map'.get identity parallelStates of
-			Just ((val,_) :: ([ParallelTaskInfo],Timestamp))	= (Ok val, iworld)
-			_													= (Error ("Could not read parallel task info of " +++ identity), iworld)
+			Just ((val,_) :: ([ParallelTaskMeta],Timestamp))	= (Ok val, iworld)
+			_													= (Error ("Could not read parallel task meta of " +++ identity), iworld)
 		
 	write val iworld=:{parallelStates,timestamp} //TODO
 		= (Ok Void, iworld)
 			
 	timestamp iworld=:{parallelStates}
 		= case 'Map'.get identity parallelStates of
-			Just ((_,ts) :: ([ParallelTaskInfo],Timestamp))	= (Ok ts, iworld)
-			_												= (Error ("Could not read timestamp for parallel task info of " +++ identity), iworld)
+			Just ((_,ts) :: ([ParallelTaskMeta],Timestamp))	= (Ok ts, iworld)
+			_												= (Error ("Could not read timestamp for parallel task meta of " +++ identity), iworld)
 		
 /**
 * Add a task to a task list

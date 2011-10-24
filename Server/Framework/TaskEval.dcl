@@ -3,16 +3,16 @@ definition module TaskEval
 * This module provides functions for creation, evaluation and removal of task/workflow instances.
 */
 
-from SystemTypes	import :: IWorld, :: ProcessId, :: ProcessProperties, :: User
+from SystemTypes	import :: IWorld, :: ProcessId, :: TaskInstanceMeta, :: User
 from Task			import :: TaskNr, :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: ReversedTaskNr, :: TaskEvalFun
 
 import Maybe, JSON, Error
 import TaskContext, iTaskClass
 
 /**
-* Create a new top-level task instance
+* Create a new session task instance
 *
-* @param The name of the workflow
+* @param The task to run as session
 * @param The current session user
 * @param Optional encoded data for a workflow with parameter
 * @param The IWorld state
@@ -20,14 +20,12 @@ import TaskContext, iTaskClass
 * @return The result of the targeted main task and the tasknr of the instance or an error
 * @return The IWorld state
 */
-createTopInstance :: !Int !User !(Maybe JSONNode) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !TaskNr), !*IWorld)
 createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
 
 /**
-* Evaluate a top-level task instance
+* Evaluate a session task instance
 *
-* @param The task number of the main/detached task which result is to be returned
-* @param The current session user
+* @param The session id
 * @param Optionally an edit event
 * @param Optionally a commit event
 * @param The IWorld state
@@ -35,7 +33,6 @@ createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult D
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalTopInstance :: !TaskNr !User !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 
 //Helper functions: exported for use in workOn task

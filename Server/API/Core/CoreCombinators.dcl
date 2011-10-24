@@ -6,11 +6,10 @@ definition module CoreCombinators
 from Time				import :: Timestamp
 from TuningCombinators	import :: Tag
 from SharedCombinators	import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
-from ProcessDB			import :: Process
 import Task
 
 import iTaskClass
-derive class iTask ParallelTaskInfo, ParallelControl, ParallelTaskType
+derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 
 //Standard monadic operations:
 
@@ -111,19 +110,22 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 /**
 * Information about a task in a parallel set.
 */
-:: ParallelTaskInfo =	{ index			:: !Int									//* The task's index
-						, properties	:: !Either TaskMeta ProcessProperties	//* Task properties for inbody tasks and process properties for detached tasks
+:: ParallelTaskMeta =	{ index				:: !Int									//* The task's index
+						, taskId			:: !TaskId
+						, taskMeta			:: !TaskMeta
+						, progressMeta		:: !Maybe ProgressMeta
+						, managementMeta	:: !Maybe ManagementMeta
 						}
-
+						
 /**
 * Get the shared state of a task list
 */
-taskListState		:: (TaskList s) -> Shared s | TC s
+taskListState	:: (TaskList s) -> Shared s | TC s
 
 /**
 * Get the properties share of a task list
 */
-taskListProperties	:: (TaskList s) -> Shared [ParallelTaskInfo]
+taskListMeta	:: (TaskList s) -> Shared [ParallelTaskMeta]
 
 //Manipulation 
 
