@@ -159,7 +159,9 @@ processTable taskList = updateSharedInformation "process table" [UpdateView (Get
 where
 	state = taskListState taskList
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
-	processes = mapSharedRead (\(procs,ownPid) -> filter (\{processId} -> processId <> ownPid) procs) (processesForCurrentUser |+| currentProcessId)
+	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) procs) (processesForCurrentUser |+| currentProcessId)
+	where
+		show ownPid {processId,progressMeta} = processId <> ownPid && progressMeta.status == Running
 	
 	mkTable mbSel (procs,_) = Table ["Title", "Priority", "Date", "Deadline"] (map mkRow procs) mbSel
 	mkRow {TaskInstanceMeta|processId,taskMeta,progressMeta,managementMeta} =
