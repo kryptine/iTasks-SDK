@@ -62,29 +62,6 @@ formatJSON (JSONObject fields)	= [UlTag [] [LiTag [] [Text label,Text ": " :form
 formatJSON (JSONRaw r)			= [PreTag [] [Text (toString r)]]
 formatJSON _					= []
 
-overviewPage :: HtmlTag
-overviewPage = pageLayout "Services" description [application,sessions,workflows,tasks,users,documents,stencils]
-where
-	description = "This application can be accessed through a RESTful JSON API.<br />Below is an overview of the available service urls."
-	
-	application = pageSection "application"
-		[ATag [HrefAttr "html/application"] [Text "General information information about this application"]]
-	sessions	= pageSection "sessions"
-		[ATag [HrefAttr "html/sessions"] [Text "Authentication and session management"]]
-	workflows	= pageSection "workflows"
-		[ATag [HrefAttr "html/workflows"] [Text "A catalogue of available workflows"]]
-	tasks		= pageSection "tasks"
-		[ATag [HrefAttr "html/tasks"] [Text "Listing of and working on tasks"]]
-	users		= pageSection "users"
-		[ATag [HrefAttr "html/users"] [Text "User management"]]
-	documents	= pageSection "documents"
-		[ATag [HrefAttr "html/documents"] [Text "Upload/download of binary files"]]
-	stencils	= pageSection "stencils"
-		[ATag [HrefAttr "html/stencils"] [Text "Catalogue of stencils for use in graphical workflow diagrams"]]
-	
-overviewResponse :: HTTPResponse
-overviewResponse = {newHTTPResponse & rsp_data = toString overviewPage}
-
 appStartPage :: !String -> HtmlTag
 appStartPage appName = HtmlTag [] [head,body]
 where

@@ -43,4 +43,3 @@ where
 	deleteDocument			:: !DocumentId !*st -> (Maybe Document, !*st)
 
 instance DocumentDB IWorld
-instance DocumentDB USt

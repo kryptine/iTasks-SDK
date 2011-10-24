@@ -8,7 +8,7 @@ import	TuningCombinators
 import	Setup
 import	Config
 import	IWorld
-import	TaskService
+import	WebService
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !(Maybe Config) (Task a) ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | iTask a
@@ -34,8 +34,6 @@ where
 		# reqpath			= (urlDecode req.req_path)
 		# reqpath			= reqpath % (size config.serverPath, size reqpath)
 		# (response,iworld)	= case (split "/" reqpath) of
-			[""]								= (redirectResponse (req.req_path +++ "/html"), iworld)
-			["","html"]							= (overviewResponse, iworld)
 			["",format,name:path] = case filter (\(name`,formats,_) -> name` == name && isMember format formats) handlers of
 				[(_,_,handler):_]	= handler req.req_path format path req iworld
 				[]					= (notFoundResponse req, iworld)
@@ -45,7 +43,7 @@ where
 
 	taskDispatch config task req world
 		# iworld 			= initIWorld config world
-		# (response,iworld)	= taskService task req iworld
+		# (response,iworld)	= webService task req iworld
 		= (response, finalizeIWorld iworld)
 		
 initIWorld :: !Config !*World -> *IWorld

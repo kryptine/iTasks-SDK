@@ -7,7 +7,6 @@ from StdFunc	import o, seq
 from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
 from UserDB		import qualified class UserDB(..), instance UserDB IWorld
-from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
 from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from WorkflowDB	import :: WorkflowDescription
 
@@ -48,14 +47,28 @@ topLevelTasks = GlobalTaskList
 //TODO: Figure out pattern match bug
 currentProcessId :: ReadOnlyShared ProcessId
 //currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack=[currentProcess:_]} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
-currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) ('ProcessDB'.lastChange)
+currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) 'Util'.currentTimestamp
 
 currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
-currentProcesses = makeReadOnlyShared "SystemData_processes" ('ProcessDB'.getProcesses [Running]) 'ProcessDB'.lastChange
-
+currentProcesses = makeReadOnlyShared "SystemData_processes" read timestamp
+where
+	read iworld
+		# (list, iworld) = loadValue "ProcessDB" iworld
+		= (fromMaybe [] list, iworld) 
+	timestamp iworld
+		# (ts, iworld) = getStoreTimestamp "ProcessDB" iworld
+		= (fromMaybe (Timestamp 0) ts, iworld)
+		
 processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
-processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" (\iworld=:{currentUser} -> 'ProcessDB'.getProcessesForUser currentUser [Running] iworld) 'ProcessDB'.lastChange
-
+processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" read timestamp
+where
+	read iworld=:{currentUser}
+		# (list, iworld) = loadValue "ProcessDB" iworld
+		= (maybe [] (\l -> [p \\ p <- l | p.managementMeta.worker === Just currentUser ]) list, iworld)
+	timestamp iworld
+		# (ts, iworld) = getStoreTimestamp "ProcessDB" iworld
+		= (fromMaybe (Timestamp 0) ts, iworld)
+		
 applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))
 where

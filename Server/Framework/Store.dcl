@@ -13,8 +13,8 @@ import JSON
 from Time import :: Timestamp
 from IWorld import :: IWorld
 
-// Storage format
-:: StoreFormat = SFPlain | SFDynamic | SFBlob
+// Storage formats
+:: StoreFormat = SFPlain | SFDynamic
 
 /**
 * Store a value in the default format
@@ -27,6 +27,11 @@ storeValue				:: !String !a				!*IWorld -> *IWorld							| JSONEncode{|*|}, TC a
 loadValue				:: !String					!*IWorld -> (!Maybe a,!*IWorld)				| JSONDecode{|*|}, TC a
 
 /**
+* Deletes the value with given key from the store
+*/
+deleteValue				:: !String					!*IWorld -> *IWorld
+
+/**
 * Get a value's timestamp
 */
 getStoreTimestamp		:: !String					!*IWorld -> (!Maybe Timestamp,!*IWorld)
@@ -36,22 +41,16 @@ getStoreTimestamp		:: !String					!*IWorld -> (!Maybe Timestamp,!*IWorld)
 */
 loadValueAndTimestamp	:: !String					!*IWorld -> (!Maybe (a,Timestamp),!*IWorld)	| JSONDecode{|*|}, TC a
 
-/**
-* Deletes the value with given key from the store
-*/
-deleteValue				:: !String					!*IWorld -> *IWorld
 
 /**
 * Deletes all values that start with the prefix from the store
 */
 deleteValues			:: !String					!*IWorld -> *IWorld
-
-/**
-* Copies all values in the store that start with the first prefix to
-* a new name where the first prefix is replaced by the second.
+/** 
+* Copy all values that start with the first prefix to a value prefixed with the second prefix
+* E.g. copyValues "foo" "bar" changes "foo-23.txt" to "bar-23.txt"
 */
-copyValues				:: !String !String			!*IWorld -> *IWorld
-
+copyValues				:: !String !String !*IWorld -> *IWorld
 /**
 * Determines if the store's value has been changed since given timestamp
 */

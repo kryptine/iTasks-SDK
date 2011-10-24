@@ -6,7 +6,7 @@ import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
 from IWorld				import :: IWorld(..), :: Control(..)
-from ProcessDB			import qualified class ProcessDB(..), instance ProcessDB IWorld
+from ProcessDB			import qualified newWorkflowId
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from CoreTasks			import return
 from TuningCombinators	import :: Tag
@@ -518,7 +518,7 @@ where
 				//process database
 				# (nextIdx, iworld) = case tasklist of
 					GlobalTaskList
-						# (WorkflowProcess next,iworld) = 'ProcessDB'.getNewWorkflowId iworld
+						# (WorkflowProcess next,iworld) = 'ProcessDB'.newWorkflowId iworld
 						= (next,iworld)
 					_				= (nextIdx,iworld)
 				# parallelControls = 'Map'.put identity (nextIdx + 1, controls ++ [AppendTask nextIdx currentUser (dynamic container :: TaskContainer s^)]) parallelControls 

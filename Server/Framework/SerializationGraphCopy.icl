@@ -2,13 +2,12 @@ implementation module SerializationGraphCopy
 
 import StdEnv
 import dynamic_string
+from Store import :: StoreFormat(..)
 
 import Base64
 import Error
 import JSON
 import Maybe
-
-from Store import ::StoreFormat(..)
 
 serialize :: !a -> *String
 serialize value = copy_to_string value
@@ -38,8 +37,8 @@ dynamicJSONDecode :: !JSONNode -> Maybe a
 dynamicJSONDecode (JSONString str)	= Just (fst (copy_from_string (base64Decode str)))
 dynamicJSONDecode _					= Nothing
 
-defaultStoreFormat :: StoreFormat
-defaultStoreFormat = SFPlain
-
 serializationModule :: String
 serializationModule = "SerializationGraphCopy"
+
+defaultStoreFormat :: StoreFormat
+defaultStoreFormat = SFPlain

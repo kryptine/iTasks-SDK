@@ -4,7 +4,7 @@ import StdFile, StdInt
 import Engine, Config
 import HTTP, HttpServer
 
-import TaskService, DocumentService, StencilService
+import WebService, DocumentService
 
 startEngine :: (Task a) !*World -> *World | iTask a
 startEngine task world

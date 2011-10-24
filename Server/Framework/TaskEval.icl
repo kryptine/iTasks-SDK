@@ -7,7 +7,7 @@ import SystemTypes, IWorld, Task, TaskContext, WorkflowDB
 from CoreCombinators	import :: TaskContainer(..), :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelControl
 from SystemTypes		import :: ProcessId(..)
 
-from ProcessDB	import qualified class ProcessDB(..), instance ProcessDB IWorld
+from ProcessDB	import qualified newSessionId, loadTaskInstance, storeTaskInstance
 from Map		import qualified fromList, get, put
 import iTaskClass
 
@@ -43,13 +43,6 @@ where
 	taskNo (WorkflowProcess pid)= [0,pid]
 	taskNo (SessionProcess _)	= [0,0]
 
-//Load an existing task context
-loadInstance :: !ProcessId !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-loadInstance processId iworld
-	# (mbContext,iworld) = 'ProcessDB'.getProcessContext processId iworld
-	= case mbContext of
-		Just context 	= (Ok context, iworld)
-		Nothing			= (Error ("Could not load task context for task " +++ toString processId), iworld)
 
 editInstance :: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 editInstance editEvent context=:(TaskContext processId tmeta pmeta mmeta changeNo tcontext) iworld
@@ -114,14 +107,10 @@ evalInstance target commitEvent context=:(TaskContext processId tmeta pmeta mmet
 			= (Ok (TaskFinished r), context, iworld)
 		TTCExcepted e
 			= (Ok (taskException e), context, iworld)
-			
-storeInstance :: !TaskContext !*IWorld -> *IWorld
-storeInstance context=:(TaskContext processId _ _ _ changeNo _) iworld
-	= 'ProcessDB'.setProcessContext processId context iworld
 
 createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
 createSessionInstance task iworld
-	# (sessionId,iworld)	= 'ProcessDB'.getNewSessionId iworld
+	# (sessionId,iworld)	= 'ProcessDB'.newSessionId iworld
 	# (context, iworld)		= createContext sessionId (createThread task) noMeta AnyUser iworld
 	# (mbRes,iworld)		= iterateEval [0,0] Nothing context iworld
 	= case mbRes of
@@ -130,7 +119,7 @@ createSessionInstance task iworld
 
 evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 evalSessionInstance sessionId editEvent commitEvent iworld
-	# (mbContext,iworld)	= loadInstance sessionId iworld
+	# (mbContext,iworld)	= 'ProcessDB'.loadTaskInstance sessionId iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
 		Ok context
@@ -164,10 +153,10 @@ where
 						| isNothing readShares && iteration < ITERATION_THRESHOLD
 							= eval target Nothing (iteration + 1) context iworld
 						| otherwise
-							# iworld	= storeInstance context iworld
+							# iworld	= 'ProcessDB'.storeTaskInstance context iworld
 							= (Ok result,iworld)
 					_
-						# iworld	= storeInstance context iworld
+						# iworld	= 'ProcessDB'.storeTaskInstance context iworld
 						= (Ok result,iworld)
 		
 	processControls :: !*IWorld -> *IWorld
@@ -185,7 +174,7 @@ where
 					//Evaluate and store the context only. We do not want any result	
 					# iworld		= {iworld & currentUser = issueUser c}
 					# (_,c,iworld)	= evalInstance (topTarget c) Nothing c iworld
-					# iworld		= storeInstance c iworld
+					# iworld		= 'ProcessDB'.storeTaskInstance c iworld
 					= processControls` cs {iworld & currentUser = currentUser}
 	
 	//Extracts controls and resets the toplevel task list

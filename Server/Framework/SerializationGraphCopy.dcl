@@ -2,8 +2,8 @@ definition module SerializationGraphCopy
 
 from JSON import generic JSONEncode, generic JSONDecode, ::JSONNode
 from Error import ::MaybeError, ::MaybeErrorString
-from Store import ::StoreFormat
 from Maybe import ::Maybe
+from Store import :: StoreFormat
 
 serialize :: !a -> *String
 deserialize	:: !*String -> MaybeErrorString a
@@ -16,6 +16,5 @@ derive JSONDecode Dynamic, (->)
 dynamicJSONEncode :: !a -> [JSONNode]
 dynamicJSONDecode :: !JSONNode -> Maybe a
 
-defaultStoreFormat :: StoreFormat
-
 serializationModule :: String
+defaultStoreFormat :: StoreFormat

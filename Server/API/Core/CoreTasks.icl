@@ -266,13 +266,13 @@ where
 	
 	edit taskNr event _ iworld
 		//Load instance
-		# (mbContext,iworld)	= loadInstance processId iworld
+		# (mbContext,iworld)	= loadTaskInstance processId iworld
 		| isError mbContext		= (TCEmpty, iworld)
 		//Apply event to instance
 		# (mbContext,iworld)	= editInstance (Just event) (fromOk mbContext) iworld
 		//Store instance
 		| isError mbContext		= (TCEmpty, iworld)
-		# iworld				= storeInstance (fromOk mbContext) iworld
+		# iworld				= storeTaskInstance (fromOk mbContext) iworld
 		= (TCEmpty, iworld)
 		
 	eval termFunc taskNr props event tuiTaskNr ilayout playout _ iworld=:{evalStack}
@@ -280,7 +280,7 @@ where
 		| isMember processId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
 		//Load instance
-		# (mbContext,iworld)		= loadInstance processId iworld
+		# (mbContext,iworld)		= loadTaskInstance processId iworld
 		| isError mbContext	
 			//If the instance can not be found, check if it was only just added by an
 			//appendTask in the same session. If so, create a temporary result and trigger
@@ -299,7 +299,7 @@ where
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result
 				//Store context
-				# iworld		= storeInstance context iworld
+				# iworld		= storeTaskInstance context iworld
 				# (state,tui,sactions,iworld) = case result of
 					(TaskBusy tui actions _)		= (WOActive, tui, actions, iworld)
 					(TaskFinished _)				= (WOFinished, Just (stringDisplay "Task finished"), [], iworld)

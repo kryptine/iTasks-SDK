@@ -36,7 +36,5 @@ createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult D
 evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 
 //Helper functions: exported for use in workOn task
-loadInstance	:: !ProcessId !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 editInstance	:: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-evalInstance	:: !TaskNr !(Maybe CommitEvent) !TaskContext !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
-storeInstance	:: !TaskContext !*IWorld -> *IWorld
+evalInstance	:: !TaskNr !(Maybe CommitEvent) !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)

@@ -25,16 +25,6 @@ servicePage :: !String !String !String ![(String,String,Bool)] !JSONNode -> Html
 serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] !JSONNode -> HTTPResponse
 
 /**
-* Creates a static page with information about the service API.
-*/
-overviewPage :: HtmlTag
-
-/**
-* Creates an HTTP response of a the overview page
-*/
-overviewResponse :: HTTPResponse
-
-/**
 * Creates a start page to load the client framework
 */
 appStartPage :: !String -> HtmlTag
@@ -42,7 +32,6 @@ appStartPage :: !String -> HtmlTag
 * Creates an HTTP response of the start page
 */
 appStartResponse :: !String -> HTTPResponse
-
 /**
 * Creates a 302 Redirect response
 */

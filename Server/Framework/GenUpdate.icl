@@ -234,18 +234,25 @@ gUpdate{|(->)|} _ fy	mode ust
 
 gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust
 gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask, newMask}
-	# (cm,om)	= popMask oldMask
-	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
+	# (cm,om)		= popMask oldMask
+	# ust			= {ust & currentPath = stepDataPath currentPath, oldMask = om}
 	| currentPath == searchPath
 		= case fromJSON update of
 			Nothing // Reset
 				= ({Document|documentId = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
 			Just docId // Look up meta-data in the store and update the document
-				# (mbDocument,ust)	= getDocument docId ust
-				# ust				= {ust & newMask = appendToMask newMask (Touched [])}
+				# (mbDocument,ust)		= getDoc docId ust
+				# ust					= {ust & newMask = appendToMask newMask (Touched [])}
 				= (fromMaybe s mbDocument,ust)
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
+where
+	getDoc :: !DocumentId !*USt ->  (Maybe Document, !*USt)
+	getDoc docId ust=:{iworld=Just iworld}
+		# (mbDoc,iworld) = getDocument docId iworld
+		= (mbDoc,{ust & iworld = Just iworld})
+	getDoc docId ust = (Nothing,ust) 
+
 
 derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
 

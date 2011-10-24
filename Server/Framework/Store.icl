@@ -13,13 +13,12 @@ from iTasks import serialize, deserialize, defaultStoreFormat
 	}
 	
 :: StoreItem =
-	{ format	:: !StoreFormat
-	, content	:: !String
-	, timestamp	:: !Timestamp
+	{ format		:: !StoreFormat
+	, content		:: !String
+	, lastChange	:: !Timestamp
 	}
 
-:: StoreFormat = SFPlain | SFDynamic | SFBlob
-
+:: StoreFormat = SFPlain | SFDynamic
 
 storeValue :: !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValue key value iworld 
@@ -27,7 +26,7 @@ storeValue key value iworld
 
 storeValueAs :: !StoreFormat !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValueAs format key value iworld=:{IWorld|timestamp,world,storeDirectory}
-	# world = writeToDisk key {StoreItem|format=format,content=content,timestamp=timestamp} storeDirectory world
+	# world = writeToDisk key {StoreItem|format=format,content=content,lastChange=timestamp} storeDirectory world
 	= {iworld & world = world}
 where
 	content = case format of	
@@ -35,7 +34,7 @@ where
 		SFDynamic	= serialize value
 
 writeToDisk :: !String !StoreItem !String !*World -> *World
-writeToDisk key {StoreItem|format,content,timestamp} location world
+writeToDisk key {StoreItem|format,content,lastChange} location world
 	//Check if the location exists and create it otherwise
 	# (exists,world)	= fileExists location world
 	# world				= if exists world
@@ -44,10 +43,10 @@ writeToDisk key {StoreItem|format,content,timestamp} location world
 								(Error e, world) = abort ("Cannot create store: " +++ location +++ ": " +++ snd e)
 							)
 	//Write the value
-	# filename 			= addExtension (location </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin" ; SFBlob = "blb")
+	# filename 			= addExtension (location </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin")
 	# (ok,file,world)	= fopen filename (case format of SFPlain = FWriteText; _ = FWriteData) world
 	| not ok			= abort ("Failed to write value to store: " +++ filename)
-	# file				= fwritei (toInt timestamp) file
+	# file				= fwritei (toInt lastChange) file
 	# file				= case format of SFPlain = fwritec ' ' file; _ = file // for txt files write space to indicate end of timestamp
 	# file				= fwrites content file
 	# (ok,world)		= fclose file world
@@ -66,7 +65,7 @@ getStoreTimestamp :: !String !*IWorld -> (!Maybe Timestamp,!*IWorld)
 getStoreTimestamp key iworld
 	# (mbItem,iworld) = loadStoreItem key iworld
 	= case mbItem of
-		Just item	= (Just item.StoreItem.timestamp,iworld)
+		Just item	= (Just item.StoreItem.lastChange,iworld)
 		Nothing 	= (Nothing,iworld)
 
 loadValueAndTimestamp :: !String !*IWorld -> (!Maybe (a,Timestamp),!*IWorld) | JSONDecode{|*|}, TC a
@@ -74,7 +73,7 @@ loadValueAndTimestamp key iworld
 	# (mbItem,iworld) = loadStoreItem key iworld
 	= case mbItem of
 		Just item = case unpackValue item of
-			Just v	= (Just (v,item.StoreItem.timestamp),iworld)
+			Just v	= (Just (v,item.StoreItem.lastChange),iworld)
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 
@@ -83,9 +82,7 @@ unpackValue {StoreItem|format=SFPlain,content}
 	= case fromJSON (fromString content) of
 		Nothing		= Nothing
 		Just v		= Just v
-unpackValue {StoreItem|format=SFBlob,content}
-	= abort "use loadValueAsBlob"
-unpackValue {StoreItem|format=SFDynamic,content,timestamp}
+unpackValue {StoreItem|format=SFDynamic,content,lastChange}
 	= case deserialize {s` \\ s` <-: content} of
 		Ok value = Just value
 		Error _  = Nothing
@@ -104,7 +101,7 @@ loadFromDisk key location world
 			# (ok,_,file)		= freadc file // read char indicating the end of the timestamp
 			# (content,file)	= freadfile file
 			# (ok,world)		= fclose file world
-			= (Just {StoreItem|format = SFPlain, content = content, timestamp = Timestamp time}, world)
+			= (Just {StoreItem|format = SFPlain, content = content, lastChange = Timestamp time}, world)
 		| otherwise
 			# filename			= addExtension (location </> key) "bin"
 			# (ok,file,world)	= fopen filename FReadData world
@@ -112,17 +109,9 @@ loadFromDisk key location world
 				# (ok,time,file)	= freadi file
 				# (content,file)	= freadfile file
 				#( ok,world)		= fclose file world
-				=(Just {StoreItem|format = SFDynamic, content = content, timestamp = Timestamp time}, world)
+				=(Just {StoreItem|format = SFDynamic, content = content, lastChange = Timestamp time}, world)
 			| otherwise
-				# filename 			= addExtension (location </> key) "blb"
-				# (ok,file,world)	= fopen filename FReadData world
-				| ok
-					# (ok,time,file)	= freadi file
-					# (content,file)	= freadfile file
-					# (ok,world)		= fclose file world
-					=(Just {StoreItem|format = SFBlob, content = content, timestamp = Timestamp time}, world)				
-				| otherwise
-					= (Nothing, world)
+				= (Nothing, world)
 where
 	freadfile file = rec file ""
 	where 
