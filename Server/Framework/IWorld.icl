@@ -4,6 +4,5 @@ from Config			import :: Config
 from FilePath		import :: FilePath
 from Map			import :: Map
 from Maybe			import :: Maybe
-from SystemTypes	import :: DateTime, :: User
+from SystemTypes	import :: DateTime, :: User, :: ProcessId
 from Time			import :: Timestamp
-from ProcessDB		import :: ProcessId

@@ -22,19 +22,19 @@ from iTasks import serialize, deserialize, defaultStoreFormat
 
 storeValue :: !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValue namespace key value iworld 
-	= storeValueAs defaultStoreFormat key value iworld
+	= storeValueAs defaultStoreFormat namespace key value iworld
 
-storeValueAs :: !StoreFormat !String !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValueAs format key value iworld=:{IWorld|timestamp,world,storeDirectory}
-	# world = writeToDisk key {StoreItem|format=format,content=content,lastChange=timestamp} storeDirectory world
+storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
+storeValueAs format namespace key value iworld=:{IWorld|timestamp,world,storeDirectory}
+	# world = writeToDisk namespace key {StoreItem|format=format,content=content,lastChange=timestamp} storeDirectory world
 	= {iworld & world = world}
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
 		SFDynamic	= serialize value
 
-writeToDisk :: !String !StoreItem !String !*World -> *World
-writeToDisk key {StoreItem|format,content,lastChange} location world
+writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*World -> *World
+writeToDisk namespace key {StoreItem|format,content,lastChange} location world
 	//Check if the location exists and create it otherwise
 	# (exists,world)	= fileExists location world
 	# world				= if exists world
@@ -42,8 +42,15 @@ writeToDisk key {StoreItem|format,content,lastChange} location world
 								(Ok Void, world) = world
 								(Error e, world) = abort ("Cannot create store: " +++ location +++ ": " +++ snd e)
 							)
+	//Check if the namespace exists and create it otherwise
+	# (exists,world)	= fileExists (location </> namespace) world
+	# world				= if exists world
+							( case createDirectory (location </> namespace) world of
+								(Ok Void, world) = world
+								(Error e, world) = abort ("Cannot create namespace " +++ namespace +++ ": " +++ snd e)
+							)
 	//Write the value
-	# filename 			= addExtension (location </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin")
+	# filename 			= addExtension (location </> namespace </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin")
 	# (ok,file,world)	= fopen filename (case format of SFPlain = FWriteText; _ = FWriteData) world
 	| not ok			= abort ("Failed to write value to store: " +++ filename)
 	# file				= fwritei (toInt lastChange) file
@@ -54,7 +61,7 @@ writeToDisk key {StoreItem|format,content,lastChange} location world
 
 loadValue :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
 loadValue namespace key iworld
-	# (mbItem,iworld) = loadStoreItem key iworld
+	# (mbItem,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item = case unpackValue item of
 			Just v	= (Just v,iworld)
@@ -63,14 +70,14 @@ loadValue namespace key iworld
 		
 getStoreTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe Timestamp,!*IWorld)
 getStoreTimestamp namespace key iworld
-	# (mbItem,iworld) = loadStoreItem key iworld
+	# (mbItem,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item	= (Just item.StoreItem.lastChange,iworld)
 		Nothing 	= (Nothing,iworld)
 
 loadValueAndTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe (a,Timestamp),!*IWorld) | JSONDecode{|*|}, TC a
 loadValueAndTimestamp namespace key iworld
-	# (mbItem,iworld) = loadStoreItem key iworld
+	# (mbItem,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item = case unpackValue item of
 			Just v	= (Just (v,item.StoreItem.lastChange),iworld)
@@ -87,14 +94,14 @@ unpackValue {StoreItem|format=SFDynamic,content,lastChange}
 		Ok value = Just value
 		Error _  = Nothing
 
-loadStoreItem :: !String !*IWorld -> (!Maybe StoreItem,!*IWorld)
-loadStoreItem key iworld=:{storeDirectory}
-	= accWorld (loadFromDisk key storeDirectory) iworld
+loadStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
+loadStoreItem namespace key iworld=:{storeDirectory}
+	= accWorld (loadFromDisk namespace key storeDirectory) iworld
 		
-loadFromDisk :: !String !String !*World -> (Maybe StoreItem, !*World)	
-loadFromDisk key location world			
+loadFromDisk :: !StoreNamespace !StoreKey !String !*World -> (Maybe StoreItem, !*World)	
+loadFromDisk namespace key location world			
 		//Try plain format first
-		# filename			= addExtension (location </> key) "txt"
+		# filename			= addExtension (location </> namespace </> key) "txt"
 		# (ok,file,world)	= fopen filename FReadText world
 		| ok
 			# (ok,time,file)	= freadi file

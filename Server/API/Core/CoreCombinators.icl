@@ -1,12 +1,11 @@
 implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
-import Task, TaskContext, Util, HTTP, GenUpdate, UserDB, Store, SystemTypes, Time, Text, Shared, Func
+import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, UserDB, Store, SystemTypes, Time, Text, Shared, Func
 import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
 from IWorld				import :: IWorld(..), :: Control(..)
-from ProcessDB			import qualified newWorkflowId
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from CoreTasks			import return
 from TuningCombinators	import :: Tag
@@ -181,7 +180,7 @@ where
 				# taskfuncs = taskFuncs` task
 				# (newSubCxt,iworld) = taskfuncs.editFun [i:taskNr] event subCxt iworld
 				= ((i,STCEmbedded tmeta (Just (encTask,newSubCxt))), iworld)		
-			STCDetached tmeta pmeta mmeta (Just (encTask,subCxt))
+			STCDetached taskId tmeta pmeta mmeta (Just (encTask,subCxt))
 			//Same pattern as inbody tasks
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Also add case for error
 				# taskfuncs = taskFuncs` task
@@ -189,7 +188,7 @@ where
 				# iworld = {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
 				# (newSubCxt,iworld) = taskfuncs.editFun [i:taskNr] event subCxt iworld
 				# iworld = {IWorld|iworld & latestEvent = parentLatestEvent}
-				= ((i,STCDetached tmeta pmeta mmeta (Just (encTask,newSubCxt))), iworld)
+				= ((i,STCDetached taskId tmeta pmeta mmeta (Just (encTask,newSubCxt))), iworld)
 			//Task is either completed already or hidden
 			_
 				= ((i,sub),iworld)
@@ -242,7 +241,7 @@ where
 					TaskBusy tui actions context	= (TaskBusy tui actions context, STCEmbedded tmeta (Just (encTask, context)), iworld)
 					TaskFinished r					= (TaskFinished r, STCEmbedded tmeta Nothing, iworld)
 					TaskException e str				= (TaskException e str, STCEmbedded tmeta Nothing, iworld)
-			(STCDetached tmeta pmeta mmeta (Just (encTask,context)))
+			(STCDetached taskId tmeta pmeta mmeta (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= taskFuncs` task
 				# (ilayout,playout)	= taskLayouters task
@@ -255,9 +254,9 @@ where
 					[t] | t == idx	= {pmeta & firstEvent = Just (fromMaybe localDateTime pmeta.firstEvent), latestEvent = Just localDateTime}
 					_				= pmeta
 				= case result of
-					TaskBusy tui actions context	= (TaskBusy tui actions context, STCDetached tmeta pmeta mmeta (Just (encTask, context)), iworld)
-					TaskFinished r					= (TaskFinished r, STCDetached tmeta (markFinished pmeta) mmeta Nothing, iworld)
-					TaskException e str				= (TaskException e str, STCDetached tmeta (markExcepted pmeta) mmeta Nothing, iworld)		
+					TaskBusy tui actions context	= (TaskBusy tui actions context, STCDetached taskId tmeta pmeta mmeta (Just (encTask, context)), iworld)
+					TaskFinished r					= (TaskFinished r, STCDetached taskId tmeta (markFinished pmeta) mmeta Nothing, iworld)
+					TaskException e str				= (TaskException e str, STCDetached taskId tmeta (markExcepted pmeta) mmeta Nothing, iworld)		
 			_
 				//This task is already completed
 				= (TaskFinished Continue, stcontext, iworld)
@@ -276,20 +275,21 @@ where
 		//Evaluate remaining subtasks
 		= evalSubTasks taskNr event tuiTaskNr meta results stasks iworld
 		
-	initSubContext taskNr taskList i taskContainer iworld=:{IWorld|timestamp,localDateTime,currentUser}
-		# subTaskNr = [i:taskNr]
+	initSubContext taskNo taskList i taskContainer iworld=:{IWorld|timestamp,localDateTime,currentUser}
+		# subTaskNo = [i:taskNo]
 		= case taskContainer of
 			(Embedded, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
 				# tmeta			= initTaskMeta task
-				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
+				# (cxt,iworld)	= funcs.initFun subTaskNo iworld
 				= (STCEmbedded tmeta (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 			(Detached mmeta, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
 				# tmeta			= initTaskMeta task
 				# pmeta			= initProgressMeta localDateTime currentUser
-				# (cxt,iworld)	= funcs.initFun subTaskNr iworld
-				= (STCDetached tmeta pmeta mmeta (Just (hd (dynamicJSONEncode task), cxt)), iworld)
+				# taskId		= taskNrToString subTaskNo
+				# (cxt,iworld)	= funcs.initFun subTaskNo iworld
+				= (STCDetached taskId tmeta pmeta mmeta (Just (hd (dynamicJSONEncode task), cxt)), iworld)
 	where
 		// apply task list reference to taskfun & convert to 'normal' (non-action) tasks
 		mkSubTask taskfun
@@ -357,10 +357,10 @@ where
 			  ,progressMeta = Nothing
 			  ,managementMeta = Nothing
 			  }
-		meta i (STCDetached tmeta pmeta mmeta _)
+		meta i (STCDetached taskId tmeta pmeta mmeta _)
 			= {ParallelTaskMeta
 			  |index = i
-			  ,taskId = taskNrToString [i:taskNr]
+			  ,taskId = taskId
 			  ,taskMeta = tmeta
 			  ,progressMeta = Just pmeta
 			  ,managementMeta = Just mmeta
@@ -412,8 +412,8 @@ where
 	markExcepted pmeta
 		= {ProgressMeta|pmeta & status = Excepted}
 	
-	updateProperties nmeta (STCDetached tmeta pmeta mmeta scontext)
-		= (STCDetached tmeta mmeta nmeta scontext)
+	updateProperties nmeta (STCDetached taskId tmeta pmeta mmeta scontext)
+		= (STCDetached taskId tmeta mmeta nmeta scontext)
 	updateProperties _ context = context
 	
 	mergeContexts contexts
@@ -434,7 +434,7 @@ where
 				where
 					isHidden (STCHidden _ _) = True
 					isHidden _ = False
-					isDetached (STCDetached _ _ _ _) = True
+					isDetached (STCDetached _ _ _ _ _) = True
 					isDetached _ = False
 					
 					getMeta (STCHidden meta _)	= meta
@@ -445,7 +445,7 @@ where
 					
 			//We want to show the TUI of one of the detached tasks in this set
 			[t]
-				= case [(tui,actions) \\ (i,TaskBusy (Just tui) actions _,STCDetached _ _ _ _) <- contexts | i == t] of
+				= case [(tui,actions) \\ (i,TaskBusy (Just tui) actions _,STCDetached _ _ _ _ _) <- contexts | i == t] of
 					[(tui,actions)]
 						= (Just tui,actions)
 					_
@@ -518,7 +518,7 @@ where
 				//process database
 				# (nextIdx, iworld) = case tasklist of
 					GlobalTaskList
-						# (WorkflowProcess next,iworld) = 'ProcessDB'.newWorkflowId iworld
+						# (WorkflowProcess next,iworld) = newWorkflowId iworld
 						= (next,iworld)
 					_				= (nextIdx,iworld)
 				# parallelControls = 'Map'.put identity (nextIdx + 1, controls ++ [AppendTask nextIdx currentUser (dynamic container :: TaskContainer s^)]) parallelControls 
@@ -542,7 +542,6 @@ where
 				= (taskException ("Task list " +++ identity +++ " is not in scope"), iworld)
 	where
 		identity	= toString tasklist
-
 
 /*
 * Alters the evaluation functions of a task in such a way

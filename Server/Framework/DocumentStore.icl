@@ -1,4 +1,4 @@
-implementation module DocumentDB
+implementation module DocumentStore
 
 import StdList, StdArray, StdBool, StdFile
 import SystemTypes, Store, Random, Text, Time, Error, File, FilePath

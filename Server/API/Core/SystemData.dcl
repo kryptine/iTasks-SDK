@@ -17,16 +17,18 @@ currentDate				:: ReadOnlyShared Date
 users					:: 			ReadOnlyShared [User]
 usersWithRole			:: !Role ->	ReadOnlyShared [User]
 userDetails				:: !User ->	Shared UserDetails
-currentUser				::			ReadOnlyShared User
+
 currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
 
 // Processes
 topLevelTasks 			:: (TaskList Void)
 
-currentProcessId		:: ReadOnlyShared ProcessId
-
 currentProcesses		:: ReadOnlyShared [TaskInstanceMeta]
 processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
+
+// Session
+currentProcessId		:: ReadOnlyShared ProcessId
+currentUser				:: ReadOnlyShared User
 
 // Application name
 applicationName			:: ReadOnlyShared String

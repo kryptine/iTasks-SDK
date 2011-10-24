@@ -1,4 +1,4 @@
-implementation module ProcessDB
+implementation module TaskStore
 
 import StdEnv, Maybe
 
@@ -18,11 +18,16 @@ derive JSONDecode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorder
 
 derive bimap Maybe, (,)
 
-NEXT_ID_DB			:== "NextProcessID"
-PROCESS_DB			:== "ProcessDB"
+WORKFLOW_INCREMENT	:== "increment"
+WORKFLOW_INDEX		:== "index"
+SESSION_INDEX		:== "index"
 
 TUI_STORE id		:== toString id +++ "-tui"
 CONTEXT_STORE id	:== toString id +++ "-context"
+
+namespace (SessionProcess _) = NS_SESSION_INSTANCES
+namespace (WorkflowProcess _) = NS_WORKFLOW_INSTANCES
+namespace (EmbeddedProcess _ _) = NS_WORKFLOW_INSTANCES
 
 newSessionId :: !*IWorld -> (!ProcessId,!*IWorld)
 newSessionId iworld=:{IWorld|world,timestamp}
@@ -31,19 +36,19 @@ newSessionId iworld=:{IWorld|world,timestamp}
 	
 newWorkflowId :: !*IWorld -> (!ProcessId,!*IWorld)
 newWorkflowId iworld
-	# (mbNewPid,iworld) = loadValue NS_WORKFLOW_INSTANCES NEXT_ID_DB iworld
+	# (mbNewPid,iworld) = loadValue NS_WORKFLOW_INSTANCES WORKFLOW_INCREMENT iworld
 	= case mbNewPid of
 		Just pid
-			# iworld = storeValue NS_WORKFLOW_INSTANCES NEXT_ID_DB (pid+1) iworld 
+			# iworld = storeValue NS_WORKFLOW_INSTANCES WORKFLOW_INCREMENT (pid+1) iworld 
 			= (WorkflowProcess pid,iworld)
 		Nothing
-			# iworld = storeValue NS_WORKFLOW_INSTANCES NEXT_ID_DB 2 iworld //store the next value (2)
+			# iworld = storeValue NS_WORKFLOW_INSTANCES WORKFLOW_INCREMENT 2 iworld //store the next value (2)
 			= (WorkflowProcess 1,iworld) //return the first value (1)		
 
 storeTaskInstance :: !TaskContext !*IWorld -> *IWorld
 storeTaskInstance context=:(TaskContext pid _ _ _ _ _) iworld
 		//Store the context
-		# iworld = storeValue NS_WORKFLOW_INSTANCES (CONTEXT_STORE pid) context iworld
+		# iworld = storeValue (namespace pid) (CONTEXT_STORE pid) context iworld
 		//Update the process table with the process information from this contexts
 		# iworld = snd (processStore (update (contextToInstanceMeta context)) iworld)
 		= iworld
@@ -53,15 +58,15 @@ storeTaskInstance context=:(TaskContext pid _ _ _ _ _) iworld
 	
 loadTaskInstance :: !ProcessId !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 loadTaskInstance pid iworld
-	# (val,iworld) = loadValue NS_WORKFLOW_INSTANCES (CONTEXT_STORE pid) iworld
+	# (val,iworld) = loadValue (namespace pid) (CONTEXT_STORE pid) iworld
 	= (maybe (Error ("Could not load context of " +++ toString pid)) Ok val, iworld)
 
 storeTaskTUI :: !ProcessId !TUIDef !*IWorld -> *IWorld
-storeTaskTUI pid def iworld = storeValue NS_WORKFLOW_INSTANCES (TUI_STORE pid) def iworld
+storeTaskTUI pid def iworld = storeValue NS_SESSION_INSTANCES (TUI_STORE pid) def iworld
 
 loadTaskTUI	:: !ProcessId !*IWorld -> (!MaybeErrorString (!TUIDef,!Timestamp), !*IWorld)
 loadTaskTUI pid iworld
-	# (mbVal,iworld) = loadValueAndTimestamp NS_WORKFLOW_INSTANCES (TUI_STORE pid) iworld
+	# (mbVal,iworld) = loadValueAndTimestamp NS_SESSION_INSTANCES (TUI_STORE pid) iworld
 	= case mbVal of
 		Just val	= (Ok val,iworld)
 		Nothing		= (Error ("Could not load tui of " +++ toString pid), iworld)
@@ -70,12 +75,12 @@ processStore ::  !([TaskInstanceMeta] -> [TaskInstanceMeta]) !*IWorld -> (![Task
 processStore fn iworld
 	# (list,iworld)		= readProcessStore iworld
 	# list 				= fn list
-	# iworld			= storeValue NS_WORKFLOW_INSTANCES "ProcessDB" list iworld 
+	# iworld			= storeValue NS_WORKFLOW_INSTANCES WORKFLOW_INDEX list iworld 
 	= (list,iworld)
 	
 readProcessStore :: !*IWorld -> (![TaskInstanceMeta],!*IWorld) 
 readProcessStore iworld
-	# (mbList,iworld)	= loadValue NS_WORKFLOW_INSTANCES "ProcessDB" iworld
+	# (mbList,iworld)	= loadValue NS_WORKFLOW_INSTANCES WORKFLOW_INDEX iworld
 	= (fromMaybe [] mbList,iworld)
 
 contextToInstanceMeta :: !TaskContext -> TaskInstanceMeta
@@ -94,8 +99,8 @@ where
 	subprocs (TCParallel _ _ subs)			= subprocsp subs
 	
 	subprocsp [] = []
-	subprocsp [(_,STCDetached tmeta pmeta mmeta context):subs]
-		= [{processId = addTarget "TODO taskId" processId
+	subprocsp [(_,STCDetached taskId tmeta pmeta mmeta context):subs]
+		= [{processId = addTarget taskId processId
 		   ,taskMeta = tmeta
 		   ,progressMeta = pmeta
 		   ,managementMeta = mmeta
@@ -108,6 +113,6 @@ where
 	
 	addTarget target (WorkflowProcess pid) = (EmbeddedProcess pid target)
 	addTarget _ procId = procId
-					 
+ 
 filterProcs :: (TaskInstanceMeta -> Bool) [TaskInstanceMeta] -> [TaskInstanceMeta]
 filterProcs pred procs = flatten [if (pred p) [{p & subInstances = filterProcs pred p.subInstances}] (filterProcs pred p.subInstances) \\  p <- procs]

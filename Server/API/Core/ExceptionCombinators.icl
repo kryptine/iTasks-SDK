@@ -3,7 +3,7 @@ implementation module ExceptionCombinators
 * This module contains iTask combinators for Exception Handling
 */
 import StdList, StdArray, StdTuple, OSError, File, FilePath, Map, JSON
-import Task, TaskContext, ProcessDB, Util
+import Task, TaskContext, TaskStore, Util
 
 derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 derive class iTask FileError

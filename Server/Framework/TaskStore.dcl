@@ -1,4 +1,4 @@
-definition module ProcessDB
+definition module TaskStore
 /**
 * This module provides storage of task instances
 * It contains two types of task instances:

@@ -1,4 +1,4 @@
-definition module DocumentDB
+definition module DocumentStore
 
 import Maybe, SystemTypes
 from GenUpdate	import :: DataPath, :: USt

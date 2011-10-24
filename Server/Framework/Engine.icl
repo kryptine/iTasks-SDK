@@ -54,7 +54,7 @@ initIWorld config world
 	# (res,world)				= getFileInfo appPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
-	# datestr					= strfTime "%Y.%m.%d-%H.%M.%S" tm
+	# datestr					= strfTime "%Y%m%d-%H%M%S" tm
 	# (timestamp,world)			= time world
 	# (localDateTime,world)		= currentDateTimeWorld world
 	# (_,world)					= ensureDir "data" (appDir </> appName) world

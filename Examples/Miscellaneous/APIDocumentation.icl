@@ -18,7 +18,7 @@ from LaTeX import qualified :: LaTeX (Text)
 from PPrint import class Pretty(..), ::Doc, <+>, empty, int, hsep, parens, text
 
 import iTasks
-import DocumentDB
+import DocumentStore
 import CleanDocParser
 import CleanPrettyPrinter
 	

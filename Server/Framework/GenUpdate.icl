@@ -1,7 +1,7 @@
 implementation module GenUpdate
 
 import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum, Tuple
-import SystemTypes, Text, Util, DocumentDB
+import SystemTypes, Text, Util, DocumentStore
 from StdFunc import id, const, o
 from TUIDefinition import :: TUISize(..), :: TUIFixedSize, :: TUIWeight
 

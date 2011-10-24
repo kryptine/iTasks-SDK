@@ -6,8 +6,8 @@ import SystemTypes, IWorld, Task, TaskContext, WorkflowDB
 
 from CoreCombinators	import :: TaskContainer(..), :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelControl
 from SystemTypes		import :: ProcessId(..)
+from TaskStore			import newSessionId, loadTaskInstance, storeTaskInstance
 
-from ProcessDB	import qualified newSessionId, loadTaskInstance, storeTaskInstance
 from Map		import qualified fromList, get, put
 import iTaskClass
 
@@ -110,7 +110,7 @@ evalInstance target commitEvent context=:(TaskContext processId tmeta pmeta mmet
 
 createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
 createSessionInstance task iworld
-	# (sessionId,iworld)	= 'ProcessDB'.newSessionId iworld
+	# (sessionId,iworld)	= newSessionId iworld
 	# (context, iworld)		= createContext sessionId (createThread task) noMeta AnyUser iworld
 	# (mbRes,iworld)		= iterateEval [0,0] Nothing context iworld
 	= case mbRes of
@@ -119,7 +119,7 @@ createSessionInstance task iworld
 
 evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 evalSessionInstance sessionId editEvent commitEvent iworld
-	# (mbContext,iworld)	= 'ProcessDB'.loadTaskInstance sessionId iworld
+	# (mbContext,iworld)	= loadTaskInstance sessionId iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
 		Ok context
@@ -153,10 +153,10 @@ where
 						| isNothing readShares && iteration < ITERATION_THRESHOLD
 							= eval target Nothing (iteration + 1) context iworld
 						| otherwise
-							# iworld	= 'ProcessDB'.storeTaskInstance context iworld
+							# iworld	= storeTaskInstance context iworld
 							= (Ok result,iworld)
 					_
-						# iworld	= 'ProcessDB'.storeTaskInstance context iworld
+						# iworld	= storeTaskInstance context iworld
 						= (Ok result,iworld)
 		
 	processControls :: !*IWorld -> *IWorld
@@ -174,7 +174,7 @@ where
 					//Evaluate and store the context only. We do not want any result	
 					# iworld		= {iworld & currentUser = issueUser c}
 					# (_,c,iworld)	= evalInstance (topTarget c) Nothing c iworld
-					# iworld		= 'ProcessDB'.storeTaskInstance c iworld
+					# iworld		= storeTaskInstance c iworld
 					= processControls` cs {iworld & currentUser = currentUser}
 	
 	//Extracts controls and resets the toplevel task list

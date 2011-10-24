@@ -1,7 +1,6 @@
 implementation module ExportTasks
 
-import StdBool, FilePath, CSV, File, Map, DocumentDB, IWorld, Task, TaskContext, ExceptionCombinators
-import DocumentDB
+import StdBool, FilePath, CSV, File, Map, IWorld, Task, TaskContext, DocumentStore, ExceptionCombinators
 
 exportDocument :: !FilePath !Document -> Task Document
 exportDocument filename document = mkInstantTask ("Document export", ("Export of document " +++ filename)) eval

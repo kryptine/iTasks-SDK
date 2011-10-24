@@ -2,7 +2,7 @@ implementation module WebService
 
 import StdList, StdBool
 import Time, JSON
-import SystemTypes, Task, TaskContext, TaskEval, ProcessDB, TUIDiff, TUIEncode, Util, HtmlUtil, Map
+import SystemTypes, Task, TaskContext, TaskEval, TaskStore, TUIDiff, TUIEncode, Util, HtmlUtil, Map
 import IWorld
 
 derive bimap Maybe, (,)
