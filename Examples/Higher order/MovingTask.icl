@@ -55,11 +55,14 @@ where
 		>>= \finished -> if finished (return Void) (inspect pref)
 
 	getStatus pid
-	=						getProcessStatus pid
+	=			viewInformation "Task status" [] True
+	/*
+	=						get ProcessStatus pid
 		>>= \st	->			case st of
 								Finished	-> viewInformation ("Task finished","It is finished") [] True
 								Deleted		-> viewInformation ("Task deleted","It is deleted") [] True		
 								Running		-> viewInformation ("Task busy","It is running") [] False		
+	*/
 	suspend pid
 	=						//updateManagerProperties pid (\m -> {ManagerProperties | m & status = Suspended})
 		/*>>| */			viewInformation ("Task suspended","workflow is suspended") [] False

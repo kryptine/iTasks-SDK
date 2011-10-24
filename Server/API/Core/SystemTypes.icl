@@ -6,21 +6,30 @@ import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
-derive JSONEncode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONEncode	EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive JSONDecode	Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode	RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONDecode	EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gEq			Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq			Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive gEq			EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gLexOrd		Currency
-derive JSONEncode	TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive JSONDecode	TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gEq			TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive bimap		Maybe, (,)
+derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONEncode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONDecode		EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gEq				Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive gEq				EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gLexOrd			Currency
+derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive JSONDecode		TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive gEq				TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive bimap			Maybe, (,)
+
+derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive gVisualizeHtml	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
+
 derive class iTask	Credentials
+
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)

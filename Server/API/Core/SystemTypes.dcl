@@ -15,18 +15,25 @@ from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 from Task			import :: Task
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gVisualizeHtml, :: VSt, :: StaticVisualizationMode, :: TUIDef
 
-derive JSONEncode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode	Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONEncode	EmailAddress,ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONDecode	Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode	Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONDecode	EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive gEq			Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq			Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive gEq			EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode	TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive JSONDecode	TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gEq			TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive JSONEncode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONEncode		EmailAddress,ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONDecode		EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gEq				Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive gEq				EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive JSONDecode		TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gEq				TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gVisualizeHtml	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+
 derive class iTask	Credentials
 
 

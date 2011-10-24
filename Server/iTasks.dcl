@@ -19,7 +19,6 @@ import	Engine						// basic iTask system creator
 	,	DBTasks						// convenience wrapper functions for databases with multiple values of type a
 	
 	,	UserDBTasks					// tasks for accessing the user database
-	,	ProcessDBTasks				// tasks for accessing the process database
 	
 	,	ImportTasks					// tasks for importing external data
 	,	ExportTasks					// tasks for exporting data

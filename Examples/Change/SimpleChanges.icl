@@ -72,13 +72,16 @@ where
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
 cancel ::  String ProcessId -> ChangeDyn
-cancel  procName pid  =
+cancel procName pid  =
 	dynamic change  :: A.b: Change b | iTask b
 where
-	change p  t t0 = (Nothing, Just (		deleteProcess pid 
+	change p  t t0 = (Nothing, Just (		removeTask (index pid) topLevelTasks 
 										>>| 		return defaultValue
 										), Nothing)
 
+	index (WorkflowProcess pid) = pid
+	index _						= -1
+	
 //reassign the work to someone else
 reassign :: User String ProcessId -> ChangeDyn
 reassign user procName pid  =
@@ -114,41 +117,43 @@ duplicateTask
 	>>= \procId ->	getProcess procId
 	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
 	>>= \user ->	get currentUser
-	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
+	>>= \me ->		applyChangeToProcess procId (duplicate me user process.TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
+
 
 informTask :: Task Void
 informTask
 	=				chooseProcess "The result of which process do you want to show?"
 	>>= \procId ->	chooseUserA "Select the user you want this result to see:"
 	>>= \user ->	getProcess procId
-	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
-	
+	>>= \process ->applyChangeToProcess procId (inform user process.TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
+
+
 checkTask :: Task Void
 checkTask
 	=				chooseProcess "The result of which process do you want to be checked?"
 	>>= \procId ->	getProcess procId
 	>>= \process -> chooseUserA "Select the user which has to check it:"
-	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
+	>>= \user ->	applyChangeToProcess procId (check user process.TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
 	
 cancelTask :: Task Void
 cancelTask
 	=				chooseProcess "Select the task you want to cancel:"
 	>>= \procId ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (cancel process.TaskInstanceMeta.taskMeta.TaskMeta.title procId) CLTransient
 
 reassignTask :: Task Void
 reassignTask
 	=				chooseProcess "Select the task you want to reassign to someone else:"
 	>>= \procId ->	chooseUserA "Who should continue with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (reassign user process.TaskInstanceMeta.taskMeta.TaskMeta.title procId) CLTransient
 
 restartTask :: Task Void
 restartTask
 	=				chooseProcess "Select the task you want to restart from scratch:"
 	>>= \procId ->	chooseUserA "Who should start with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
+	>>= \process -> applyChangeToProcess procId (restart user process.TaskInstanceMeta.taskMeta.TaskMeta.title) CLTransient
 
 //Utility
 chooseUserA :: !question -> Task User | html question
@@ -160,7 +165,7 @@ chooseUserA question
 
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
-	=				getProcessesWithStatus [Running]
+	=				get currentProcesses
 	>>= \procs ->	enterChoice question []
 					[	( proc.TaskInstanceMeta.processId
 						, proc.TaskInstanceMeta.taskMeta.TaskMeta.title
@@ -171,6 +176,10 @@ chooseProcess question
 					, (ActionOk,		IfValid	(\(pid,_,_,_) -> return pid))
 					]
 
-	
-	
-	
+getProcess :: !ProcessId -> Task TaskInstanceMeta
+getProcess i 
+	=	get currentProcesses
+	>>= \list -> 
+		case [m \\ m <- list | m.processId == i] of
+			[m] = return m
+			_	= throw "Could not find process"

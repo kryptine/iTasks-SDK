@@ -11,7 +11,7 @@ from TaskContext		import :: TaskContextTree(..), :: SubTaskContext, :: ParallelM
 from SharedCombinators	import mapShared, :: Shared, :: ReadWriteShared
 from SystemData			import randomInt, topLevelTasks
 from Map				import qualified newMap
-import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, ProcessDBTasks, InteractionTasks
+import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, InteractionTasks
 
 // use string instances of generic function for Tag values 
 gVisualizeText{|Tag|} mode (Tag t) = gVisualizeText{|*|} mode (toString t)

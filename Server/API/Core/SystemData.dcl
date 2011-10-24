@@ -24,6 +24,7 @@ currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
 topLevelTasks 			:: (TaskList Void)
 
 currentProcessId		:: ReadOnlyShared ProcessId
+
 currentProcesses		:: ReadOnlyShared [TaskInstanceMeta]
 processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
 
