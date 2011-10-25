@@ -12,9 +12,11 @@ geoTrackerExamples =
 locationStore :: Shared [(User,GoogleMapPosition)]
 locationStore = sharedStore "Locations" []
 	
-reportPosition :: GoogleMapPosition -> Task [(User,GoogleMapPosition)]
-reportPosition position
-	=	get currentUser
+reportPosition :: Task [(User,GoogleMapPosition)]
+reportPosition
+	=	enterInformation "Where are you now?" []
+	>>= \position ->
+		get currentUser 
 	>>= \user ->
 		update (updatePos (user,position)) locationStore
 where
@@ -32,7 +34,7 @@ viewMap = interact
 			>>+ \_ -> UserActions [(ActionQuit,Just Void)]
 where
 	nlMap :: GoogleMap		
-	nlMap = {GoogleMap| defaultMap & zoom = 7, center = {lat = 52.396, lng = 5.21}}
+	nlMap = {GoogleMap| defaultMap & perspective = {type = ROADMAP, zoom = 7, center = {lat = 52.396, lng = 5.21}}}
 	
 	toView :: (GoogleMap, [(User,GoogleMapPosition)]) -> GoogleMap
 	toView (gmap,locations) = {GoogleMap|gmap & markers = map mkMarker locations}
@@ -47,6 +49,7 @@ where
 			, title			= Just (displayName user)
 			, infoWindow	= Just {GoogleMapInfoWindow|content = toString info}
 			, draggable		= False
+			, selected		= False
 			}
 	where
 		info = SpanTag []

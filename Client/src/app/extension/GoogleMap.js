@@ -1,15 +1,26 @@
 Ext.define('itasks.extension.GoogleMap',{
 	extend: 'Ext.panel.Panel',
-	alias: 'widget.igooglemap',
+	alias: 'widget.itasks-googlemap',
 	mixins: ['itasks.mixin.Editable'],
 	statics: {
 		googleApiStatus: 'unloaded',
 		googleApiWaiters: [] // Track components that wait for the api to load
 	},
-	map: null,
-	hflex: true,
-	height: 300,
-	
+	initComponent: function() {
+
+		this.map = null;
+		this.displayedMarkers = [];
+
+		if(!this.width && !this.hflex) {
+			this.hflex = 1;	
+			this.minWidth = 400;
+		}
+		if(!this.height && !this.vflex) {		
+			this.vflex = 1;
+			this.minHeight = 300;
+		}
+		this.callParent(arguments);
+	},
 	afterRender: function() {
 		var me = this;
 		
@@ -53,7 +64,51 @@ Ext.define('itasks.extension.GoogleMap',{
 	},
 	setupMap: function() {
 		this.map = new google.maps.Map(this.el.dom, this.getOptions(this));
+		this.addMarkers();
 	},
+	addMarkers: function() {
+ 		var	me = this,
+			map = this.map,
+			marker, infoWindow, clickHandler, dragHandler, i;
+
+		for(i=0; i<this.displayedMarkers.length; i++) {
+			this.displayedMarkers[i].setMap(null);
+		}
+        
+		this.displayedMarkers = new Array();
+        
+		for(i=0; i<this.markers.length; i++) {
+            
+			marker = new google.maps.Marker({
+				map : map,
+				position : new google.maps.LatLng(this.markers[i].position[0],this.markers[i].position[1]),
+				title : this.markers[i].title,
+				draggable : this.markers[i].draggable
+			});
+                
+			if(this.markers[i].infoWindow) {
+                		infoWindow = new google.maps.InfoWindow({
+					content : this.markers[i].infoWindow.content
+				}); 
+            
+				clickHandler = function(map,marker) {
+					return function() {infoWindow.open(map,marker);};
+				};
+
+				google.maps.event.addListener(marker,'click',clickHandler(map,marker));
+			}
+            
+			if(this.markers[i].draggable) {
+				dragHandler = function(markerId) { return function(e) {
+                    			me.fireEvent('edit', me.taskId, me.name, {index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
+                		};};
+                
+				google.maps.event.addListener(marker,'dragend', dragHandler(i));
+			}
+            
+			this.displayedMarkers[i] = marker;
+		}
+        },
 	update: function(def) {
 		//TODO: impelement for incremental updates of maps
 	}

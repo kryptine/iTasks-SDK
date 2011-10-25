@@ -5,16 +5,16 @@ import HTML, StdEnv, JSON, GenUpdate, GenVisualize, GenVerify
 derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap
 derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent, MarkerDragUpdate
 
-derive gVisualizeText  	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
-derive gVisualizeHtml  	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
-derive gVisualizeEditor	GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
-derive gUpdate	  		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gDefaultMask		GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gVerify			GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVisualizeText  	GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeHtml  	GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeEditor	GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gUpdate	  		GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gDefaultMask		GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVerify			GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 
-derive JSONEncode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive JSONDecode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gEq				GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive JSONEncode		GoogleMap, GoogleMapPerspective, GoogleMapSettings, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive JSONDecode		GoogleMap, GoogleMapPerspective, GoogleMapSettings, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gEq				GoogleMap, GoogleMapPerspective, GoogleMapSettings, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 
 JSONEncode{|GoogleMapPosition|} {lat,lng}										= [JSONArray [JSONReal lat,JSONReal lng]]
 JSONDecode{|GoogleMapPosition|} [JSONArray [JSONReal lat,JSONReal lng]:rest]	= (Just {lat=lat,lng=lng},rest)
@@ -81,10 +81,8 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualizeText{|GoogleMap|} _ _ = ["Map"]
-gVisualizeHtml{|GoogleMap|} mode map = case mode of
-	AsLabel		= [Text "Map"]
-	AsDisplay	= [staticMap (convertToStaticMap map)]
+gVisualizeText{|GoogleMap|} _ _ = ["<Google map>"]
+gVisualizeHtml{|GoogleMap|} _ _ = [Text "<Google map>"]
 gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl mbMap vst
 where
 	mkControl name mbMap _ _ static vst=:{VSt|taskId}
@@ -100,47 +98,25 @@ where
 	
 		tuidef map name ed =
 			{ TUIGoogleMap
-			| center = map.GoogleMap.center
-			, mapType = map.GoogleMap.mapType
+			| center = map.perspective.GoogleMapPerspective.center
+			, mapType = map.perspective.GoogleMapPerspective.type
 			, markers = map.GoogleMap.markers
-			, xtype = "igooglemap"
+			, xtype = "itasks-googlemap"
 			, name = name
 			, taskId = fromMaybe "" taskId
 			, editor = ed
 			, options =
 				{ TUIGoogleMapOptions
-				| mapTypeControl = map.GoogleMap.mapTypeControl
-				, panControl = map.GoogleMap.panControl
-				, streetViewControl = map.GoogleMap.streetViewControl
-				, zoomControl = map.GoogleMap.zoomControl
-				, scaleControl = map.GoogleMap.scaleControl
-				, scrollwheel = map.GoogleMap.scrollwheel
-				, draggable = map.GoogleMap.draggable
-				, zoom = map.GoogleMap.zoom
+				| mapTypeControl = map.settings.GoogleMapSettings.mapTypeControl
+				, panControl = map.settings.GoogleMapSettings.panControl
+				, streetViewControl = map.settings.GoogleMapSettings.streetViewControl
+				, zoomControl = map.settings.GoogleMapSettings.zoomControl
+				, scaleControl = map.settings.GoogleMapSettings.scaleControl
+				, scrollwheel = map.settings.GoogleMapSettings.scrollwheel
+				, draggable = map.settings.GoogleMapSettings.draggable
+				, zoom = map.perspective.GoogleMapPerspective.zoom
 				}
 			}
-
-gVisualizeText{|GoogleStaticMap|} mode (GoogleStaticMap _ _ u) = case mode of
-	AsLabel		= ["Static Map"]
-	AsDisplay	= ["Static Map: " +++ u]
-gVisualizeHtml{|GoogleStaticMap|} mode map = case mode of
-	AsLabel		= [Text "Static Map"]
-	AsDisplay	= [staticMap map]
-gVisualizeEditor{|GoogleStaticMap|} mbMap vst = visualizeCustom mkControl mbMap vst
-where
-	mkControl _ mbMap _ _ _ vst = case mbMap of
-		Just (GoogleStaticMap w h u)	= ([defaultDef (TUICustom (toJSON (staticMap w h u)))], vst)
-		_								= ([], vst)
-
-	staticMap w h u =
-		{ TUIGoogleStaticMap
-		| width 	= w
-		, height 	= h	
-		, xtype		= "igooglestaticmap"
-		, url		= u
-		}
-
-staticMap (GoogleStaticMap w h u) = ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]
 
 gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate defaultMap ust
 where
@@ -148,11 +124,11 @@ where
 		# mbMVC		= fromJSON json
 		| isJust mbMVC
 			# mvc = fromJust mbMVC
-			= {GoogleMap | orig & center = mvc.MVCUpdate.center, zoom = mvc.MVCUpdate.zoom, mapType = mvc.MVCUpdate.type}
+			= {GoogleMap | orig & perspective = {GoogleMapPerspective|orig.perspective & center = mvc.MVCUpdate.center, zoom = mvc.MVCUpdate.zoom, type = mvc.MVCUpdate.type}}
 		# mbClick 	= fromJSON json
 		| isJust mbClick
 			# click = fromJust mbClick
-			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, title = Nothing, infoWindow = Nothing, draggable = True} 
+			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, title = Nothing, infoWindow = Nothing, draggable = True, selected = False} 
 			= {GoogleMap | orig & markers = orig.GoogleMap.markers ++ [marker]}
 		# mbMarkerDrag = fromJSON json
 		| isJust mbMarkerDrag
@@ -166,51 +142,41 @@ gDefaultMask{|GoogleMap|} _ = [Touched []]
 gVerify{|GoogleMap|} _ vst = alwaysValid vst //Maps are always valid
 
 // -- Utility Functions --
-defaultMap :: GoogleMap
-defaultMap = { GoogleMap
-		| center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
-		, mapTypeControl	= True
-		, panControl		= True
-		, streetViewControl	= True
-		, zoomControl		= True
-		, scaleControl		= True
-		, scrollwheel		= True
-		, draggable			= True
-		, zoom				= 10
-		, mapType			= ROADMAP
-		, markers			= []
-		}
 
-minimalMap :: GoogleMap
-minimalMap = { GoogleMap
-		| center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
-		, mapTypeControl	= False
-		, panControl		= False
-		, streetViewControl	= False
-		, zoomControl		= False
-		, scaleControl		= False
-		, scrollwheel		= False
-		, draggable			= False
-		, zoom				= 10
-		, mapType			= ROADMAP
-		, markers			= []
-		}
-
-convertToStaticMap :: !GoogleMap -> GoogleStaticMap
-convertToStaticMap map =:{GoogleMap | center = {lat,lng}, zoom, mapType, markers}
-# url 		= "http://maps.google.com/maps/api/staticmap?"
-# cntr		= "center="+++(toString lat)+++","+++(toString lng)
-# zm		= "zoom="+++(toString zoom)
-# sz		= "size=650x600"
-# tp		= "maptype="+++(toString mapType)
-# mrkrs		= "markers="+++(convertMarkers markers)
-= GoogleStaticMap 650 600 (url+++cntr+++"&"+++zm+++"&"+++sz+++"&"+++tp+++"&"+++mrkrs+++"&sensor=false&key="+++GOOGLE_API_KEY)
-where
-	convertMarkers :: [GoogleMapMarker] -> String
-	convertMarkers [] = "";
-	convertMarkers [x] = convertMarker x
-	convertMarkers [x:xs] = (convertMarker x)+++"|"+++(convertMarkers xs)
+defaultMapPerspective :: GoogleMapPerspective
+defaultMapPerspective =
+	{ GoogleMapPerspective
+	| type				= ROADMAP
+	, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
+	, zoom				= 10
+	}
 	
-	convertMarker :: GoogleMapMarker -> String
-	convertMarker mrkr =: {position ={lat,lng}, infoWindow}
-	= toString lat+++","+++toString lng
+defaultMapSettings :: GoogleMapSettings
+defaultMapSettings =
+	{ GoogleMapSettings
+	| mapTypeControl	= True
+	, panControl		= True
+	, streetViewControl	= True
+	, zoomControl		= True
+	, scaleControl		= True
+	, scrollwheel		= True
+	, draggable			= True
+	}
+	
+defaultMap :: GoogleMap
+defaultMap = {GoogleMap|perspective = defaultMapPerspective, settings = defaultMapSettings, markers = []}
+
+minimalMapSettings :: GoogleMapSettings
+minimalMapSettings =
+	{ GoogleMapSettings
+	| mapTypeControl	= False
+	, panControl		= False
+	, streetViewControl	= False
+	, zoomControl		= False
+	, scaleControl		= False
+	, scrollwheel		= False
+	, draggable			= False
+	}
+minimalMap :: GoogleMap
+minimalMap = {GoogleMap|perspective = defaultMapPerspective, settings = minimalMapSettings, markers = []}
+	

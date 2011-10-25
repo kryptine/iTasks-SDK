@@ -81,15 +81,7 @@ where
 				, map		:: GoogleMap
 				}
 				
-:: MapOptions =	{ type					:: GoogleMapType
-				, showMapTypeControl	:: Bool
-				, showPanControl		:: Bool
-				, showStreetViewControl	:: Bool
-				, showZoomControl		:: Bool
-				, showScaleControl		:: Bool
-				}
-
-derive class iTask MarkerInfo, MapOptions
+derive class iTask MarkerInfo
 
 RemoveMarkersAction :== Action "Remove Markers"
 
@@ -107,37 +99,17 @@ where
 											, (ActionQuit,			Just (return Stop))
 											]
 
-	optionsEditor	=	( GetShared \map ->				{ type = map.mapType
-														, showMapTypeControl = map.mapTypeControl
-														, showPanControl = map.panControl
-														, showStreetViewControl = map.streetViewControl
-														, showZoomControl = map.zoomControl
-														, showScaleControl = map.scaleControl
-														}
-						, SetShared \opts _ map	->	{ map 
-														& mapType = opts.MapOptions.type
-														, mapTypeControl = opts.showMapTypeControl
-														, panControl = opts.showPanControl
-														, streetViewControl = opts.showStreetViewControl
-														, zoomControl = opts.showZoomControl
-														, scaleControl = opts.showScaleControl
-														}
+	optionsEditor	=	( GetShared \map ->				map.GoogleMap.settings
+						, SetShared \opts _ map	->	{ map & settings = opts}
 						)
-	overviewEditor	= 	( GetShared \map ->				{ GoogleMap | map
-														& mapTypeControl = False
-														, panControl = False
-														, streetViewControl = False
-														, zoomControl = False
-														, scaleControl = False
-														, scrollwheel = False
-														, zoom = 7
-														, markers = [{GoogleMapMarker|m & draggable = False} \\ m <- map.markers]
+	overviewEditor	= 	( GetShared \map ->				{ GoogleMap | minimalMap
+														& markers = [{GoogleMapMarker|m & draggable = False} \\ m <- map.markers]
 														}
 						, SetShared \nmap _ map ->	{ GoogleMap | map
-														& center = nmap.GoogleMap.center
+														& perspective = {map.perspective & center = nmap.GoogleMap.perspective.center}
 														}
 						)
-	markersListener	map = [{position = position, map = {GoogleMap| defaultMap & center = position, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
+	markersListener	map = [{position = position, map = {GoogleMap| defaultMap & perspective = {type = ROADMAP, center = position, zoom = 15}, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
 autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort, SetLocal \l _ _ -> l)] emptyL >>+ quitButton

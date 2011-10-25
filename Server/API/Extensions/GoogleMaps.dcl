@@ -4,38 +4,46 @@ definition module GoogleMaps
 */
 import HTML, GenVisualize
 
-derive gVisualizeText	GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gVisualizeHtml	GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gVisualizeEditor	GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gUpdate	  		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gDefaultMask		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gVerify			GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive JSONEncode		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive JSONDecode		GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gEq				GoogleMap, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVisualizeText	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeHtml	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeEditor	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gUpdate	  		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gDefaultMask		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVerify			GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 
 //API Key for http://localhost
 GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4lboFdTKu2o9gr_i8kRV0Pn1fNw"
 
 :: GoogleMap = 
-	{ center				:: GoogleMapPosition 		// Coordinate of the center point (Required by maps)
+	{ perspective			:: GoogleMapPerspective
+	, settings				:: GoogleMapSettings
+	, markers				:: [GoogleMapMarker]		// Markers placed on the map
+	}
+	
+:: GoogleMapPerspective =
+	{ type					:: GoogleMapType			// The map type
+	, center				:: GoogleMapPosition 		// Coordinate of the center point (Required by maps)
 	, zoom					:: Int	      				// The zoom level (Required by maps)
-	, mapTypeControl		:: Bool		  				// Show the control for switching between map types
+	}
+
+:: GoogleMapSettings =
+	{ mapTypeControl		:: Bool		  				// Show the control for switching between map types
 	, panControl			:: Bool		  				// Show the control for panning
 	, zoomControl			:: Bool						// Show the control for zooming
 	, streetViewControl		:: Bool						// Show the control for street view
 	, scaleControl			:: Bool		  				// Show the scale of the map
 	, scrollwheel			:: Bool						// Scrollwheel zooming on the map
 	, draggable				:: Bool						// Map can be dragged
-	, mapType				:: GoogleMapType			// The map type
-	, markers				:: [GoogleMapMarker]		// Markers placed on the map
 	}
-	
+
 :: GoogleMapPosition = 
 	{ lat		:: !Real	//Lattitude
 	, lng		:: !Real	//Longitude
 	}
-
+	
 :: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
 	
 :: GoogleMapMarker =
@@ -43,14 +51,12 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	, title					:: !Maybe String				// Title of the marker
 	, infoWindow			:: !Maybe GoogleMapInfoWindow	// Information which is shown on click
 	, draggable				:: !Bool						// Can the marker be dragged
+	, selected				:: !Bool
 	}
 	
 :: GoogleMapInfoWindow =
 	{ content				:: !String						// Contents of the window
 	}
-
-:: GoogleStaticMap = GoogleStaticMap Int Int String
-
 
 /**
 * Create a default map
@@ -64,14 +70,5 @@ defaultMap :: GoogleMap
 * @return A minimal default map 
 */
 minimalMap :: GoogleMap
-
-/*
-* Convert a dynamic map into a static image
-*
-* @param The map to convert
-*
-* @return The converted result
-*/
-convertToStaticMap :: !GoogleMap -> GoogleStaticMap
 
 instance toString GoogleMapType
