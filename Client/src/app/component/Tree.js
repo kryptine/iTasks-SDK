@@ -3,12 +3,24 @@ Ext.define('itasks.component.Tree',{
 	mixins: ['itasks.mixin.Editable'],
 	alias: 'widget.itasks_tree',
 	rootVisible: false,
-	selectedNode: -1,
-	viewConfig: {loadMask: false},
-	
+
 	initComponent: function() {	
-		this.root = {xtype: 'treenode',text: 'tree', children: this.tree};
+		
+		if(!this.width && !this.hflex) {
+			this.hflex = 1;
+			this.minWidth = 400;
+		}
+		
+		var store = Ext.create('Ext.data.TreeStore',{
+			root : {xtype: 'treenode', text: 'tree', children: this.tree}
+		});
+		
+		
+		this.store = store;
+		this.selectedNode = -1;
+		
 		this.callParent(arguments);
+		
 		this.addManagedListener(this,'itemclick',this.onItemClick,this);
 	},
 	afterRender: function() {
@@ -42,6 +54,7 @@ Ext.define('itasks.component.Tree',{
 		}
 	},
 	onDestroy: function() {
+		this.store.destroy();
 		this.callParent(arguments);
 	}
 });
