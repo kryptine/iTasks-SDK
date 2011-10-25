@@ -48,6 +48,11 @@ where
 		(TUIEditControl otype oc, TUIEditControl ntype nc)
 			| otype === ntype
 				= Just (valueUpdate path oc nc ++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
+		(TUIShowControl otype oc, TUIShowControl ntype nc)
+			| otype === ntype && oc.TUIShowControl.value === nc.TUIShowControl.value
+				= Just []
+			| otherwise
+				= Nothing
 		(TUIButton o,TUIButton n)
 			| o.TUIButton.text == n.TUIButton.text && o.TUIButton.iconCls == n.TUIButton.iconCls
 				= Just (update (\o n -> o.TUIButton.disabled == n.TUIButton.disabled) (\b -> Just (not b.TUIButton.disabled)) TUISetEnabled path o n

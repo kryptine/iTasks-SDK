@@ -5,7 +5,7 @@ Ext.define('itasks.component.edit.Note',{
 	initComponent: function() {
 		if(!this.width && !this.hflex) {
 			this.hflex = 1;
-			this.minWidth = 500;
+			this.minWidth = 400;
 		}
 		this.callParent(arguments);
 	}
