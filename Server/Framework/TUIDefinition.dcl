@@ -225,13 +225,25 @@ fillParent				:: !TUIDef -> TUIDef
 defaultDef				:: !TUIDefContent -> TUIDef
 fillDef					:: !TUIDefContent -> TUIDef
 
+// Modifiers
+fillHeight	:: !TUIDef -> TUIDef
+fillWidth	:: !TUIDef -> TUIDef
+fixedHeight	:: !Int !TUIDef -> TUIDef
+fixedWidth	:: !Int !TUIDef -> TUIDef
+
+hjoin :: ![TUIDef] -> TUIDef
+vjoin :: ![TUIDef] -> TUIDef
+
+vsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef
+hsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef 
+
 // Layouts
 :: InteractionLayouter	:== TUIInteraction			-> (TUIDef, [TaskAction]) 
 :: ParallelLayouter		:== TUIParallel				-> (TUIDef, [TaskAction])
 
 :: LayoutTweak			:== (TUIDef, [TaskAction])	-> (TUIDef, [TaskAction])
 
-// pre-defined layouts
+// Pre-defined interaction layouts
 defaultInteractionLayout	:: InteractionLayouter //Interaction parts, action buttons, title and instructions
 plainInteractionLayout		:: InteractionLayouter //Just the interaction parts and action buttons
 minimalInteractionLayout	:: InteractionLayouter //Only the interaction parts
@@ -240,12 +252,14 @@ wrapWidthInteractionLayout	:: InteractionLayouter
 maximalInteractionLayout	:: InteractionLayouter
 fillInteractionLayout		:: InteractionLayouter
 
+
+// Pre-defined parallel layouts
 defaultParallelLayout		:: ParallelLayouter
 horizontalParallelLayout	:: ParallelLayouter
-tabParallelLayout			:: ParallelLayouter
-splitParallelLayout			:: TUIDirection -> ParallelLayouter
+tabLayout					:: ParallelLayouter
 
-verticalSplitLayout			:: Int -> ParallelLayouter
+vsplitLayout				:: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> ParallelLayouter
+hsplitLayout				:: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> ParallelLayouter
 fuseParallelLayout			:: ParallelLayouter //"Fuses" a set of panels/or containers into one container
 
 // layout aux functions

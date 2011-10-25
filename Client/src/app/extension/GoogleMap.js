@@ -83,7 +83,8 @@ Ext.define('itasks.extension.GoogleMap',{
 				map : map,
 				position : new google.maps.LatLng(this.markers[i].position[0],this.markers[i].position[1]),
 				title : this.markers[i].title,
-				draggable : this.markers[i].draggable
+				draggable : this.markers[i].draggable,
+				icon: this.markers[i].icon ? ('/googlemap-icons/' + this.markers[i].icon + '.png') : null
 			});
                 
 			if(this.markers[i].infoWindow) {

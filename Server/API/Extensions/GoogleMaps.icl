@@ -128,7 +128,7 @@ where
 		# mbClick 	= fromJSON json
 		| isJust mbClick
 			# click = fromJust mbClick
-			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, title = Nothing, infoWindow = Nothing, draggable = True, selected = False} 
+			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, title = Nothing, icon = Nothing, infoWindow = Nothing, draggable = True, selected = False} 
 			= {GoogleMap | orig & markers = orig.GoogleMap.markers ++ [marker]}
 		# mbMarkerDrag = fromJSON json
 		| isJust mbMarkerDrag

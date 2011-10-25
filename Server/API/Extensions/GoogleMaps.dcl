@@ -18,8 +18,8 @@ derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosit
 GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4lboFdTKu2o9gr_i8kRV0Pn1fNw"
 
 :: GoogleMap = 
-	{ perspective			:: GoogleMapPerspective
-	, settings				:: GoogleMapSettings
+	{ settings				:: GoogleMapSettings 
+	, perspective			:: GoogleMapPerspective
 	, markers				:: [GoogleMapMarker]		// Markers placed on the map
 	}
 	
@@ -28,6 +28,8 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	, center				:: GoogleMapPosition 		// Coordinate of the center point (Required by maps)
 	, zoom					:: Int	      				// The zoom level (Required by maps)
 	}
+	
+:: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
 
 :: GoogleMapSettings =
 	{ mapTypeControl		:: Bool		  				// Show the control for switching between map types
@@ -44,11 +46,10 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	, lng		:: !Real	//Longitude
 	}
 	
-:: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
-	
 :: GoogleMapMarker =
 	{ position				:: !GoogleMapPosition			// Position of the marker
 	, title					:: !Maybe String				// Title of the marker
+	, icon					:: !Maybe String				// Name of an icon to use
 	, infoWindow			:: !Maybe GoogleMapInfoWindow	// Information which is shown on click
 	, draggable				:: !Bool						// Can the marker be dragged
 	, selected				:: !Bool

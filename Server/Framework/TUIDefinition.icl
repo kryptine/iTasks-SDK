@@ -50,6 +50,33 @@ topMargin m = Just {top = m, right = 0, bottom = 0, left = 0}
 fillParent :: !TUIDef -> TUIDef
 fillParent def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 0)), height = Just ( FillParent 1 (FixedMinSize 0))}
 
+fillHeight :: !TUIDef -> TUIDef
+fillHeight def = {def & height = Just (FillParent 1 (FixedMinSize 0))}
+
+fillWidth :: !TUIDef -> TUIDef
+fillWidth def = {def & width = Just (FillParent 1 (FixedMinSize 0))}
+
+fixedHeight	:: !Int !TUIDef -> TUIDef
+fixedHeight size def = {def & height = Just (Fixed size)}
+
+fixedWidth	:: !Int !TUIDef -> TUIDef
+fixedWidth size def = {def & width = Just (Fixed size)}
+
+hjoin :: ![TUIDef] -> TUIDef
+hjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Horizontal, halign = AlignLeft, valign = AlignMiddle, padding = Nothing, baseCls = Nothing})
+
+vjoin :: ![TUIDef] -> TUIDef
+vjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls = Nothing})
+
+vsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef
+vsplit split top bottom 
+	= fillDef (TUIContainer {TUIContainer|items = [fillWidth (fixedHeight split (vjoin top)), fillWidth (fillHeight (vjoin bottom))], direction = Vertical
+							, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls = Nothing})
+
+
+hsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef 
+hsplit split left right = hjoin (left ++ right)
+
 defaultInteractionLayout :: InteractionLayouter
 defaultInteractionLayout = \i -> layout i
 where
@@ -170,24 +197,17 @@ horizontalParallelLayout = \{TUIParallel|title,instruction,items}->
 	let (metas,tuis,actions) = unzip3 items in
 		(defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer (catMaybes tuis) & direction = Horizontal}),flatten actions)
 
-splitParallelLayout	:: TUIDirection -> ParallelLayouter
-splitParallelLayout direction = \{TUIParallel|items} ->
+vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> ParallelLayouter
+vsplitLayout size splitfun = \{TUIParallel|items} ->
 	let (metas,tuis,actions) = unzip3 items in
-		(defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer [setFlex direction tui \\ Just tui <- tuis & meta <- metas|not meta.hide] & direction = direction} ),flatten actions)
-where
-	setFlex Vertical item = {TUIDef|item & height = Just (FillParent 1 ContentSize)}
-	setFlex Horizontal item = {TUIDef|item & width = Just (FillParent 1 ContentSize)}
-	
-verticalSplitLayout :: Int -> ParallelLayouter
-verticalSplitLayout initSplit = \p=:{TUIParallel|items} ->
-	case items of
-		[(metaA,Just defA,actionsA),(metaB,Just defB, actionsB):_]	
-			# top = {TUIBorderItem|title = Nothing, iconCls = Nothing, item = defA}
-			# bottom = {TUIBorderItem|title = Nothing, iconCls = Nothing, item = defB}
-			# content = TUIBorderContainer {TUIBorderContainer|itemA = top, itemB = bottom, initSplit = initSplit, direction = Vertical, collapsible = True}
-			= (fillDef content, actionsA ++ actionsB)		
-		_	
-			= defaultParallelLayout p
+		let (top,bottom) = splitfun (catMaybes tuis) in
+			(vsplit size top bottom, flatten actions)
+
+hsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> ParallelLayouter
+hsplitLayout size splitfun = \{TUIParallel|items} ->
+	let (metas,tuis,actions) = unzip3 items in
+		let (left,right) = splitfun (catMaybes tuis) in
+			(hsplit size left right, flatten actions)
 
 fuseParallelLayout :: ParallelLayouter
 fuseParallelLayout = \p -> layout p
@@ -202,8 +222,8 @@ where
 		getChildren (_,Just {content=TUIPanel panel},_)			= panel.TUIPanel.items
 		getChildren (_,Just {content=TUIContainer container},_)	= container.TUIContainer.items
 	
-tabParallelLayout :: ParallelLayouter
-tabParallelLayout = \{TUIParallel|title,items} ->
+tabLayout :: ParallelLayouter
+tabLayout = \{TUIParallel|title,items} ->
 		let (tabs,tactions) = unzip [mkTab i \\ i =:(meta,Just _,_) <- items|not meta.TaskMeta.hide] in
 			({ content	= TUITabContainer {TUITabContainer| items = tabs}
 			 , width	= Nothing

@@ -47,6 +47,7 @@ where
 		=	{ GoogleMapMarker
 			| position		= position
 			, title			= Just (displayName user)
+			, icon			= Nothing
 			, infoWindow	= Just {GoogleMapInfoWindow|content = toString info}
 			, draggable		= False
 			, selected		= False
