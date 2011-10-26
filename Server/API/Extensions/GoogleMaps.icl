@@ -74,10 +74,10 @@ where
 	toString TERRAIN 	= "TERRAIN"
 
 gVisualizeText{|GoogleMap|} _ _ = ["<Google map>"]
-gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl mbMap vst
+gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl vst
 where
-	mkControl name mbMap _ _ static vst=:{VSt|taskId}
-		| static
+	mkControl name _ _ vst=:{VSt|taskId}
+		| False
 			//TODO
 			= ([], vst)
 			//= ([htmlDisplay (staticMap (convertToStaticMap (fromMaybe defaultMap mbMap)))], vst)

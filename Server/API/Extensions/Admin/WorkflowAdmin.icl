@@ -7,7 +7,6 @@ from WorkflowDB import qualified addWorkflow, class WorkflowDB(..), instance Wor
 from Util import mb2list, timestampToGmDateTime
 
 // SPECIALIZATIONS
-
 derive gVisualizeText	Workflow, WorkflowDescription
 derive gVisualizeEditor	Workflow, WorkflowDescription
 derive gUpdate 			Workflow, WorkflowDescription
@@ -250,7 +249,7 @@ where
 				,margins	= Nothing
 				}
 	*/
-	workArea =	{content	= TUIContainer (defaultLayoutContainer [processTable, fillParent workTabPanel])
+	workArea =	{content	= TUIContainer (defaultLayoutContainer [processTable, fill workTabPanel])
 				,width		= Just (FillParent 1 (FixedMinSize 0))
 				,height		= Just (FillParent 1 (FixedMinSize 0))
 				,margins	= Nothing

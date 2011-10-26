@@ -149,7 +149,7 @@ where
 	toOptionTree t = t
 	suggestedChoiceType _		= ChooseFromTree
 	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
-
+	
 newIndexes :: ![a] ![a] ![Int] -> [Int] | gEq{|*|} a
 newIndexes oldOpts newOpts sel = newIndexes` curChoices []
 where

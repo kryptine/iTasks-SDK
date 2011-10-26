@@ -147,6 +147,10 @@ viewSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r
 * 
 * @gin-icon choice
 */
+//ListChoice (a -> [o], o -> v)
+//TreeChoice (a -> Tree o, o -> v)
+//enterChoice :: !d ![ChoiceView ChoiceType o] !a -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
+
 enterChoice :: !d ![ChoiceView ChoiceType o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 
 /**

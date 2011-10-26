@@ -221,11 +221,12 @@ defaultLayoutPanel		:: ![TUIDef] -> TUIPanel
 sameMargins				:: !TUIFixedSize -> Maybe TUIMargins
 leftMargin				:: !TUIFixedSize -> Maybe TUIMargins
 topMargin				:: !TUIFixedSize -> Maybe TUIMargins
-fillParent				:: !TUIDef -> TUIDef
+
 defaultDef				:: !TUIDefContent -> TUIDef
 fillDef					:: !TUIDefContent -> TUIDef
 
 // Modifiers
+fill		:: !TUIDef -> TUIDef
 fillHeight	:: !TUIDef -> TUIDef
 fillWidth	:: !TUIDef -> TUIDef
 fixedHeight	:: !Int !TUIDef -> TUIDef

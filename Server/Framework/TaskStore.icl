@@ -22,12 +22,17 @@ WORKFLOW_INCREMENT	:== "increment"
 WORKFLOW_INDEX		:== "index"
 SESSION_INDEX		:== "index"
 
-TUI_STORE id		:== toString id +++ "-tui"
-CONTEXT_STORE id	:== toString id +++ "-context"
-
 namespace (SessionProcess _) = NS_SESSION_INSTANCES
 namespace (WorkflowProcess _) = NS_WORKFLOW_INSTANCES
 namespace (EmbeddedProcess _ _) = NS_WORKFLOW_INSTANCES
+
+context_store (SessionProcess id)		= id +++ "-context"
+context_store (WorkflowProcess id) 		= toString id +++ "-context"
+context_store (EmbeddedProcess id _)	= toString id +++ "-context"
+
+tui_store (SessionProcess id)		= id +++ "-tui"
+tui_store (WorkflowProcess id) 		= toString id +++ "-tui"
+tui_store (EmbeddedProcess id t)	= toString id +++ "-" +++ t +++ "-tui"
 
 newSessionId :: !*IWorld -> (!ProcessId,!*IWorld)
 newSessionId iworld=:{IWorld|world,timestamp}
@@ -48,41 +53,41 @@ newWorkflowId iworld
 storeTaskInstance :: !TaskContext !*IWorld -> *IWorld
 storeTaskInstance context=:(TaskContext pid _ _ _ _ _) iworld
 		//Store the context
-		# iworld = storeValue (namespace pid) (CONTEXT_STORE pid) context iworld
-		//Update the process table with the process information from this contexts
-		# iworld = snd (processStore (update (contextToInstanceMeta context)) iworld)
-		= iworld
-	where
-		update process [] = [process]
-		update process [p:ps] = if (p.processId == process.processId) [process:ps] [p:update process ps]
+		# iworld = storeValue (namespace pid) (context_store pid) context iworld
+		| isSession pid
+			= iworld
+		//Update the process index with the process information from this context	
+		| otherwise
+			= snd (workflowIndex (update (contextToInstanceMeta context)) iworld)
+		where
+			update process [] = [process]
+			update process [p:ps] = if (p.processId == process.processId) [process:ps] [p:update process ps]
+	
+			isSession (SessionProcess _)	= True
+			isSession _						= False
 	
 loadTaskInstance :: !ProcessId !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 loadTaskInstance pid iworld
-	# (val,iworld) = loadValue (namespace pid) (CONTEXT_STORE pid) iworld
+	# (val,iworld) = loadValue (namespace pid) (context_store pid) iworld
 	= (maybe (Error ("Could not load context of " +++ toString pid)) Ok val, iworld)
 
 storeTaskTUI :: !ProcessId !TUIDef !*IWorld -> *IWorld
-storeTaskTUI pid def iworld = storeValue NS_SESSION_INSTANCES (TUI_STORE pid) def iworld
+storeTaskTUI pid def iworld = storeValue NS_SESSION_INSTANCES (tui_store pid) def iworld
 
 loadTaskTUI	:: !ProcessId !*IWorld -> (!MaybeErrorString (!TUIDef,!Timestamp), !*IWorld)
 loadTaskTUI pid iworld
-	# (mbVal,iworld) = loadValueAndTimestamp NS_SESSION_INSTANCES (TUI_STORE pid) iworld
+	# (mbVal,iworld) = loadValueAndTimestamp NS_SESSION_INSTANCES (tui_store pid) iworld
 	= case mbVal of
 		Just val	= (Ok val,iworld)
 		Nothing		= (Error ("Could not load tui of " +++ toString pid), iworld)
 
-processStore ::  !([TaskInstanceMeta] -> [TaskInstanceMeta]) !*IWorld -> (![TaskInstanceMeta],!*IWorld) 
-processStore fn iworld
-	# (list,iworld)		= readProcessStore iworld
-	# list 				= fn list
+workflowIndex ::  !([TaskInstanceMeta] -> [TaskInstanceMeta]) !*IWorld -> (![TaskInstanceMeta],!*IWorld) 
+workflowIndex fn iworld
+	# (mbList,iworld)	= loadValue NS_WORKFLOW_INSTANCES WORKFLOW_INDEX iworld
+	# list 				= fn (fromMaybe [] mbList)
 	# iworld			= storeValue NS_WORKFLOW_INSTANCES WORKFLOW_INDEX list iworld 
 	= (list,iworld)
 	
-readProcessStore :: !*IWorld -> (![TaskInstanceMeta],!*IWorld) 
-readProcessStore iworld
-	# (mbList,iworld)	= loadValue NS_WORKFLOW_INSTANCES WORKFLOW_INDEX iworld
-	= (fromMaybe [] mbList,iworld)
-
 contextToInstanceMeta :: !TaskContext -> TaskInstanceMeta
 contextToInstanceMeta (TaskContext processId tmeta pmeta mmeta _ scontext)
 	= {processId = processId, taskMeta = tmeta, progressMeta = pmeta, managementMeta = mmeta, subInstances = tsubprocs scontext}

@@ -171,9 +171,9 @@ gVisualizeEditor{|OBJECT of d|} fx _ val vst=:{currentPath,selectedConsIndex = o
 								}]
 		= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 
-gVisualizeEditor{|CONS of d|} fx _ val vst=:{taskId,editEvent,currentPath,optional,controlSize} = visualizeCustom mkControl val vst
+gVisualizeEditor{|CONS of d|} fx _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name val _ _ renderAsStatic vst
+	mkControl name _ _ vst=:{taskId,editEvent,currentPath,optional,controlSize,renderAsStatic}
 		# x = fmap fromCONS val
 		 = case isRecordCons d of
 			False // normal ADT
@@ -240,9 +240,9 @@ where
 	buttonLabel	b = toString ((fmap (\b -> b.FormButton.label)) b)
 	icon		b = toString ((fmap (\b -> b.FormButton.icon)) b)
 
-gVisualizeEditor{|RadioChoice|} fx _ _ _ val vst = visualizeCustom mkControl val vst
+gVisualizeEditor{|RadioChoice|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name val touched verRes renderAsStatic vst=:{VSt|taskId}
+	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# (options,sel)		= maybe ([],-1) (\(RadioChoice options mbSel) -> (map fst options,fromMaybe -1 mbSel) ) val
 		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
 		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = items, taskId = taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
@@ -253,8 +253,21 @@ where
 	toChoice Nothing						= []
 	toChoice (Just (ComboChoice options _))	= [concat (gx AsLabel v) \\ (v,_) <- options]
 	
-gVisualizeEditor{|TreeChoice|} _ gx _ _ val vst = visualizeControl (TUITreeControl (toTree val)) (fmap (\(TreeChoice _ mbSel) -> mbSel) val) vst
+gVisualizeEditor{|TreeChoice|} _ gx _ _ val vst = visualizeCustom tuiF vst
 where
+	tuiF name touched verRes vst=:{VSt|taskId,renderAsStatic,editEvent,currentPath,controlSize}
+		//| renderAsStatic
+		//	=	([sizedControl controlSize (TUIShowControl control {TUIShowControl| value = toJSON v})], vst)
+		| otherwise
+			# viz = sizedControl controlSize (TUIEditControl (TUITreeControl (toTree val))
+													{ TUIEditControl
+													| name = name
+													, value = toJSON (fmap (\(TreeChoice _ mbSel) -> mbSel) (checkMask touched val))
+													, eventValue = eventValue currentPath editEvent
+													, taskId = fromMaybe "" taskId
+													})
+			= ([viz],vst)
+
 	toTree Nothing								= []
 	toTree (Just (TreeChoice (Tree nodes) _))	= fst (mkTree nodes 0)
 	
@@ -267,12 +280,17 @@ where
 		# (children,idx`)	= mkTree nodes (inc idx)
 		# (rtree,idx`)		= mkTree r idx`
 		= ([{text = concat (gx AsLabel v), value = idx, leaf = False, children = Just children}:rtree],idx`)
+		
+	checkMask :: !Bool !(Maybe a) -> (Maybe a)
+	checkMask False _	= Nothing
+	checkMask _ val 	= val
+
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
 
-gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ val vst = visualizeCustom mkControl val vst
+gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name val touched verRes renderAsStatic vst=:{VSt|taskId}
+	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# (options,sel)		= maybe ([],[]) (\(CheckMultiChoice options sel) -> (map fst options,sel) ) val
 		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
 		# itemDefs			= [defaultDef (TUICheckChoice {TUICheckChoice| items = items, taskId = taskId, name = name, index = i, checked = isMember i sel}) \\ items <- itemVis & i <- [0..]]
@@ -283,9 +301,9 @@ where
 	toGrid Nothing							= {cells = [], headers = []}
 	toGrid (Just (Table headers cells _))	= {headers = headers, cells = map (map toString) cells}
 
-gVisualizeEditor {|[]|} fx _ val vst = visualizeCustom mkControl val vst
+gVisualizeEditor {|[]|} fx _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name val touched verRes renderAsStatic vst=:{VSt|taskId}
+	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# val			= fromMaybe [] val
 		# (items,vst)	= TUIDef val vst
 		= (addMsg verRes
@@ -411,9 +429,9 @@ derive bimap Maybe
 //***** UTILITY FUNCTIONS *************************************************************************************************	
 
 visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(![TUIDef], !*VSt) | JSONEncode{|*|} a
-visualizeControl control v vst=:{editEvent,currentPath,controlSize} = visualizeCustom tuiF v vst
+visualizeControl control v vst = visualizeCustom tuiF vst
 where
-	tuiF name v touched verRes _ vst=:{VSt|taskId, renderAsStatic}
+	tuiF name touched verRes vst=:{VSt|taskId, renderAsStatic,editEvent,currentPath,controlSize}
 		| renderAsStatic
 			=	([sizedControl controlSize (TUIShowControl control {TUIShowControl| value = toJSON v})], vst)
 		| otherwise
@@ -431,13 +449,13 @@ where
 	checkMask False _	= Nothing
 	checkMask _ val 	= val
 
-visualizeCustom :: !(TUIVizFunction a) !(Maybe a) !*VSt -> *(![TUIDef],!*VSt)
-visualizeCustom tuiF v vst=:{currentPath,renderAsStatic,verifyMask}
+visualizeCustom :: !TUIVizFunction !*VSt -> *(![TUIDef],!*VSt)
+visualizeCustom tuiF vst=:{currentPath,renderAsStatic,verifyMask}
 	# (cmv,vm)	= popMask verifyMask
 	// only check mask if generating editor definition & not for labels
 	# touched	= isTouched cmv
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
-	# (vis,vst) = tuiF (dp2s currentPath) v touched (verifyElementStr cmv) renderAsStatic vst
+	# (vis,vst) = tuiF (dp2s currentPath) touched (verifyElementStr cmv) vst
 	= (vis,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 noVisualization :: !*VSt -> *(![TUIDef],!*VSt)

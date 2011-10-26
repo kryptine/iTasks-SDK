@@ -47,8 +47,8 @@ leftMargin m = Just {top = 0, right = 0, bottom = 0, left = m}
 topMargin :: !TUIFixedSize -> Maybe TUIMargins
 topMargin m = Just {top = m, right = 0, bottom = 0, left = 0}
 
-fillParent :: !TUIDef -> TUIDef
-fillParent def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 0)), height = Just ( FillParent 1 (FixedMinSize 0))}
+fill :: !TUIDef -> TUIDef
+fill def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 0)), height = Just ( FillParent 1 (FixedMinSize 0))}
 
 fillHeight :: !TUIDef -> TUIDef
 fillHeight def = {def & height = Just (FillParent 1 (FixedMinSize 0))}
@@ -143,11 +143,10 @@ where
 maximalInteractionLayout :: InteractionLayouter
 maximalInteractionLayout = \i -> layout i
 where
-	layout i=:{TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
-		| isEmpty editorParts
-			= defaultInteractionLayout i
-		| otherwise
-			= ({hd editorParts & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize), margins	= Nothing}, actions)
+	layout i=:{TUIInteraction|editorParts,actions}
+		= (fill (vjoin (map fill editorParts)),actions)
+		
+		
 
 fillInteractionLayout :: InteractionLayouter
 fillInteractionLayout = \{TUIInteraction|instruction,editorParts,actions,warning}
