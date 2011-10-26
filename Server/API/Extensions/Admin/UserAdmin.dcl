@@ -11,7 +11,7 @@ users					:: 			ReadOnlyShared [User]
 //* Users with a specific role
 usersWithRole			:: !Role ->	ReadOnlyShared [User]
 //* User details (name,credentials etc)
-userDetails				:: !User ->	Shared UserDetails
+userDetails				:: !User ->	Shared (Maybe UserDetails)
 //* Details of the current user
 currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
 

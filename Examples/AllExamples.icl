@@ -69,6 +69,7 @@ where
 						//, rpcExamples
 						//, ginExamples
 						, apiDocumentationExamples
+						, [restrictedWorkflow "Admin/Users" "Manage users" ["admin"] manageUsers]
 						]
 	workflowmw	= [workflow "Manage workflows" "Manage other workflows and instances" (manageWorkflows workflows)]
 						

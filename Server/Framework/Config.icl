@@ -1,9 +1,8 @@
 implementation module Config
 
 import StdFile, Util, Error, File, FilePath, JSON, OS
+import SystemTypes
 
-derive JSONEncode Config
-derive JSONDecode Config
 derive bimap Maybe, (,)
 
 defaultConfig :: Config

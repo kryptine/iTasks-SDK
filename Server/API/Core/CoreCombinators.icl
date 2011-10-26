@@ -1,7 +1,7 @@
 implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
-import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, UserDB, Store, SystemTypes, Time, Text, Shared, Func
+import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, Store, SystemTypes, Time, Text, Shared, Func
 import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq

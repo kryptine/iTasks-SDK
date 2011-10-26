@@ -4,9 +4,10 @@ definition module SystemData
 * a set of shared data structures.
 */
 import Maybe
-from SharedCombinators	import :: ReadOnlyShared, :: Shared, :: ReadWriteShared
+from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree, :: ProcessId, :: TaskInstanceMeta
 from Void				import :: Void
+from Config				import :: Config
 
 // Date & time
 currentDateTime			:: ReadOnlyShared DateTime
@@ -25,6 +26,9 @@ currentUser				:: ReadOnlyShared User
 
 // Application name
 applicationName			:: ReadOnlyShared String
+
+// Server config
+applicationConfig		:: ReadOnlyShared Config
 
 // Random source
 randomInt				:: ReadOnlyShared Int

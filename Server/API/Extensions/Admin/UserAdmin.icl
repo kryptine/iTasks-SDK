@@ -1,56 +1,71 @@
 implementation module UserAdmin
 
-import iTasks, Text, Time, Tuple, IWorld
+import iTasks, Text
 
-from UserDB import qualified class UserDB(..)
-from UserDB import qualified instance UserDB IWorld
-from Shared import makeReadOnlyShared, :: SharedId, :: ReadWriteShared(..), :: SharedRead, :: SharedWrite, :: SharedGetTimestamp
-from Util	import mb2error
+userStore :: Shared [UserDetails]
+userStore = sharedStore "Users" []
 
 users :: ReadOnlyShared [User]
-users = makeReadOnlyShared "SystemData_users" 'UserDB'.getUsers 'UserDB'.lastChange
+users = mapShared (\users -> map RegisteredUser users, \Void users -> users) userStore
 
-usersWithRole	:: !Role -> ReadOnlyShared [User]
-usersWithRole role = makeReadOnlyShared ("SystemData_usersWithRole-" +++ toString role) ('UserDB'.getUsersWithRole role) 'UserDB'.lastChange
-
-userDetails :: !User -> Shared UserDetails
-userDetails user = ReadWriteShared ["userDetails-" +++ toString user] read write (appFst Ok o 'UserDB'.lastChange)
+usersWithRole :: !Role -> ReadOnlyShared [User]
+usersWithRole role = mapSharedRead (filter (hasRole role)) users
 where
-	read iworld	= appFst (mb2error "user not in database") ('UserDB'.getUserDetails user iworld)
-	write details iworld
-		# (_,iworld) = 'UserDB'.updateUser user details iworld
-		= (Ok Void,iworld)
+	hasRole role (RegisteredUser details) = maybe False (isMember role) details.UserDetails.roles
+	hasRole _ _ = False
 
+userDetails :: !User -> Shared (Maybe UserDetails)
+userDetails user = mapShared (getDetails user,setDetails) userStore
+	
 currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
-currentUserDetails = makeReadOnlyShared "SystemData_currentUserDetails" (\iworld=:{currentUser} -> 'UserDB'.getUserDetails currentUser iworld) (\iworld -> (Timestamp 0, iworld))
+currentUserDetails = mapSharedRead (\(user,users) -> getDetails user users ) (currentUser |+| userStore)  
+
+getDetails :: User [UserDetails] -> Maybe UserDetails
+getDetails user users
+	= case [u \\ u <- users | (RegisteredUser u) == user] of
+		[details]	= Just details
+		_			= Nothing
+
+setDetails :: (Maybe UserDetails) [UserDetails] -> [UserDetails]
+setDetails Nothing users = users
+setDetails (Just details) users = map (upd details) users
+where
+	upd n o		= if (o.UserDetails.username == n.UserDetails.username) n o
 	
 authenticateUser :: !String !String	-> Task (Maybe User)
-authenticateUser username password = mkInstantTask ("Authenticate user", "Verify if there is a user with the supplied credentials.") eval
-where
-	eval taskNr iworld
-		# (mbUser,iworld) = 'UserDB'.authenticateUser username password iworld
-		= (TaskFinished mbUser,iworld)
+authenticateUser username password 
+	| username == "root"
+		=	get applicationConfig
+		>>= \config -> 
+			return (if (config.rootPassword == password) (Just RootUser) Nothing)
+	| otherwise
+		=	get (userDetails (NamedUser username))
+		>>= \mbDetails -> case mbDetails of
+			Just details
+				= return (if (details.UserDetails.password == Password password) (Just (RegisteredUser details)) Nothing)
+			Nothing
+				= return Nothing
 
 createUser :: !UserDetails -> Task User
-createUser user = mkInstantTask ("Create user", "Create a new user in the database.") eval
+createUser details
+	=	get (userDetails user)
+	>>= \mbExisting -> case mbExisting of
+		Nothing
+			= update (\users -> users ++ [details]) userStore >>| return user
+		_	
+			= throw ("A user with username '" +++ toString details.UserDetails.username +++ "' already exists.")
 where
-	eval taskNr iworld
-	
-		# (user,iworld) = 'UserDB'.createUser user iworld
-		= case user of
-			(Ok user)	= (TaskFinished user,iworld)
-			(Error e)	= (taskException e, iworld)
+	user = RegisteredUser details
 			
 deleteUser :: !User -> Task User
-deleteUser user = mkInstantTask ("Delete user", "Delete a user from the database.") eval
+deleteUser user = update (filter (exclude user)) userStore >>| return user
 where
-	eval taskNr iworld
-		# (user,iworld) = 'UserDB'.deleteUser user iworld
-		= (TaskFinished user,iworld)
+	exclude user d	= user == (RegisteredUser d)
+
 manageUsers :: Task Void
 manageUsers =
 	(		enterSharedChoice ("Users","The following users are available") [] users
-		>?*	[ (Action "New",									Always	(createUserFlow			>>|	return False))
+		>?*	[ (Action "New",								Always	(createUserFlow			>>|	return False))
 			, (ActionEdit,									IfValid (\u -> updateUserFlow u	>>|	return False))
 			, (ActionDelete,								IfValid (\u -> deleteUserFlow u	>>|	return False))
 			, (Action "Import & export/Import CSV file...",	Always	(importUserFileFlow		>>| return False))
@@ -72,18 +87,21 @@ createUserFlow =
 		]
 		
 updateUserFlow :: User -> Task User
-updateUserFlow user  =
-		get sharedDetails
-	>>= \oldDetails -> updateInformation ("Editing " +++ displayName user,"Please make your changes") [] oldDetails
-	>?*	[ (ActionCancel,	Always	(return user))
-		, (ActionOk,		IfValid (\newDetails ->
-											set newDetails sharedDetails
-										>>=	viewInformation "User updated" [DisplayView (GetLocal (\{displayName} -> "Successfully updated " +++ displayName))]
-										>>| return user
-									))
-		]
-where
-	sharedDetails = userDetails user
+updateUserFlow user
+	=	get (userDetails user)
+	>>= \mbOldDetails -> case mbOldDetails of 
+		(Just oldDetails)
+			=	(updateInformation ("Editing " +++ displayName user,"Please make your changes") [] oldDetails
+			>?*	[ (ActionCancel,	Always	(return user))
+				, (ActionOk,		IfValid (\newDetails ->
+												set (Just newDetails) (userDetails user)
+											>>=	viewInformation "User updated" [DisplayView (GetLocal (\(Just {displayName}) -> "Successfully updated " +++ displayName))]
+											>>| return user
+											))
+				])
+		Nothing
+			=	(throw "Could not find user details")
+
 					
 deleteUserFlow :: User -> Task User
 deleteUserFlow user =

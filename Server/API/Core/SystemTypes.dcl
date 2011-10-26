@@ -9,7 +9,6 @@ from Map 			import :: Map
 from Map 			import qualified get
 from HTML 			import class html
 from Time			import :: Timestamp
-from Config			import :: Config
 from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 from Task			import :: Task
@@ -33,7 +32,7 @@ derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 
-derive class iTask Credentials
+derive class iTask Credentials, Config
 
 
 instance toString Note
@@ -364,6 +363,23 @@ noMeta :: ManagementMeta
 :: Username		= Username !String
 
 :: Role			:== String
+
+//Configuration
+:: Config =
+	{ clientPath		:: !String			// Where is the client located.
+	, staticPath		:: !String			// Additional location where statically served content may be placed
+	, rootPassword		:: !String			// Password for the 'root' superuser (default 'root').
+	, rootEmail			:: !String			// E-mail address for the 'root' superuser (default root@localhost).
+	, sessionTime		:: !Int				// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
+	, serverPort		:: !Int				// The TCP port the server runs on. Default is 80.
+	, serverPath		:: !String			// The path at which the services are served (default /services)
+	, debug				:: !Bool			// Run the server in debug mode (default False).
+	, smtpServer		:: !String			// The smtp server to use for sending e-mails
+	, generalWorkflows	:: !Bool			// Enable the "general" workflows for managing ad-hoc work
+	, runAsyncPath		:: !String			// Path to RunAsync tool for running asynchronous OS tasks and timers.
+	, curlPath			:: !String			// Path to Curl needed for RPC tasks.
+	}
+
 
 /*
 * Gives the unique username of a user

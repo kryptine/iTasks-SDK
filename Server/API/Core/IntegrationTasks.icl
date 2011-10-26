@@ -8,7 +8,6 @@ import SystemTypes, IWorld, Task, TaskContext, Config
 import ExceptionCombinators, TuningCombinators
 import InteractionTasks
 import Shared
-import UserDB
 
 from Util				import currentTimestampError
 from CoreCombinators	import >>=, >>|

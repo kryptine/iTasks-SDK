@@ -27,7 +27,7 @@ derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
 derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
 
-derive class iTask	Credentials
+derive class iTask	Credentials, Config
 
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
