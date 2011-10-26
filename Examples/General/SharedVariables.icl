@@ -1,6 +1,6 @@
 implementation module SharedVariables
 
-import iTasks, GoogleMaps, Text, ExperimentalDomain
+import iTasks, GoogleMaps, Text
 from StdFunc import o
 
 derive bimap Maybe, (,)
