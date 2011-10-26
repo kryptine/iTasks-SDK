@@ -11,10 +11,10 @@ derive JSONEncode		RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, 
 derive JSONEncode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONDecode		EmailAddress, ProcessId, Action, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq				Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive gEq				EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlDisplay, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gEq				EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gLexOrd			Currency
 derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
 derive JSONDecode		TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
@@ -22,7 +22,6 @@ derive gEq				TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, Progress
 derive bimap			Maybe, (,)
 
 derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gVisualizeHtml	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
 derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
 derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
 derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
@@ -145,8 +144,8 @@ where
 	toOptionList (Tree nodes) = flatten (map toOptionList` nodes)
 	where
 		toOptionList` node = case node of
-			Leaf option		= [option]
-			Node _ nodes	= flatten (map toOptionList` nodes)
+			Leaf option			= [option]
+			Node option nodes	= [option:flatten (map toOptionList` nodes)]
 	toOptionTree t = t
 	suggestedChoiceType _		= ChooseFromTree
 	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
@@ -181,8 +180,8 @@ where
 	fmap f (Tree nodes) = Tree (map fmap` nodes)
 	where
 		fmap` node = case node of
-			Leaf a				= Leaf (f a)
-			Node label nodes	= Node label [fmap` node \\ node <- nodes]
+			Leaf a			= Leaf (f a)
+			Node a nodes	= Node (f a) [fmap` node \\ node <- nodes]
 
 // ******************************************************************************************************
 // Document
@@ -439,16 +438,6 @@ fromHidden (Hidden x) = x
 
 toHidden :: !.a -> (Hidden .a)
 toHidden x = (Hidden x)
-
-toHtmlDisplay :: !h -> HtmlDisplay | html h
-toHtmlDisplay h = HtmlDisplay (toString (html h))
-
-fromHtmlDisplay :: !HtmlDisplay -> String
-fromHtmlDisplay (HtmlDisplay h) = h
-
-instance toString HtmlDisplay
-where
-	toString (HtmlDisplay h) = h
 
 toControlSize :: !(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !.a -> ControlSize .a
 toControlSize width height margins a = ControlSize width height margins a

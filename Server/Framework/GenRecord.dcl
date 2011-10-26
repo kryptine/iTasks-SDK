@@ -38,10 +38,10 @@ derive gGetRecordFields UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gGetRecordFields Int, Real, Char, Bool, String
 derive gGetRecordFields Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGetRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, HtmlTag, HtmlAttr
-derive gGetRecordFields EmailAddress, Action, HtmlDisplay
+derive gGetRecordFields EmailAddress, Action
 
 derive gPutRecordFields UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gPutRecordFields Int, Real, Char, Bool, String
 derive gPutRecordFields Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gPutRecordFields Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, HtmlTag, HtmlAttr
-derive gPutRecordFields EmailAddress, Action, HtmlDisplay
+derive gPutRecordFields EmailAddress, Action

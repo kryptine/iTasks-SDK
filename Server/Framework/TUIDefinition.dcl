@@ -85,7 +85,7 @@ from Task			import :: TaskAction
 	{ text		:: !String
 	, children	:: !Maybe [TUITree]
 	, leaf		:: !Bool
-	, value		:: !Maybe Int
+	, value		:: !Int
 	}
 :: TUIContainer =
 	{ items				:: ![TUIDef]

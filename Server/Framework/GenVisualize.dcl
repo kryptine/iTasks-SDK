@@ -15,20 +15,10 @@ derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeText Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualizeText EmailAddress, Action, HtmlDisplay, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-
-//Generic html visualization function
-generic gVisualizeHtml a :: !StaticVisualizationMode !a -> [HtmlTag]
-
-//Default available instances
-derive gVisualizeHtml UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
-derive gVisualizeHtml Int, Real, Char, Bool, String
-derive gVisualizeHtml Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualizeHtml Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gVisualizeHtml EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gVisualizeText EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Generic editor function
-generic gVisualizeEditor a | gVisualizeText a, gVisualizeHtml a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
+generic gVisualizeEditor a | gVisualizeText a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
 
 //Default available instances
 derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
@@ -41,7 +31,6 @@ derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagementMeta, TaskP
 visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> Maybe TUIDef	| gVisualizeEditor{|*|} a
 visualizeAsDisplay		:: !a															-> Maybe TUIDef	| gVisualizeEditor{|*|} a
 visualizeAsText			:: !StaticVisualizationMode !a									-> String		| gVisualizeText{|*|} a
-visualizeAsHtml			:: !StaticVisualizationMode !a									-> HtmlTag		| gVisualizeHtml{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -77,8 +66,7 @@ noVisualization :: !*VSt -> *(![TUIDef],!*VSt)
 *
 * @return The generated visualization
 */
-visualizeControlSimple :: !TUIControlType !(Maybe a) !*VSt -> *(![TUIDef],!*VSt) | JSONEncode{|*|}, gVisualizeHtml{|*|} a
-visualizeControl :: !TUIControlType !(Maybe (!a,b)) !(StaticVisualizationMode (Maybe b) -> [HtmlTag]) !*VSt -> *(![TUIDef], !*VSt) | JSONEncode{|*|} a
+visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(![TUIDef], !*VSt) | JSONEncode{|*|} a
 
 /**
 * Generates a basic control visualization.

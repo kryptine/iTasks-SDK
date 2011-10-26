@@ -31,10 +31,8 @@ Ext.define('itasks.component.Tree',{
 		}
 	},
 	onItemClick: function(tree,record,item) {
-		if(record.raw.leaf) {
-			this.selectedNode = record.raw.value;
-			this.fireEvent('change');
-		}
+		this.selectedNode = record.raw.value;
+		this.fireEvent('change');
 	},
 	getEditValue: function() {
 		return this.selectedNode;

@@ -37,7 +37,7 @@ gGetRecordFields{|Dynamic|} _ _ fields = fields
 
 derive gGetRecordFields [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGetRecordFields Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, HtmlTag, HtmlAttr
-derive gGetRecordFields EmailAddress, Action, HtmlDisplay, ButtonState
+derive gGetRecordFields EmailAddress, Action, ButtonState
 
 generic gPutRecordFields r :: !r ![GenType] !*RecordFields -> (!r,!*RecordFields)
 
@@ -71,7 +71,7 @@ gPutRecordFields{|Dynamic|} dyn _ fields = (dyn,fields)
 
 derive gPutRecordFields [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gPutRecordFields Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, HtmlTag, HtmlAttr
-derive gPutRecordFields EmailAddress, Action, HtmlDisplay, ButtonState
+derive gPutRecordFields EmailAddress, Action, ButtonState
 
 :: *RecordFields :== Map String GenericDyn
 // This type is needed because dynamics can't be used inside generic functions.

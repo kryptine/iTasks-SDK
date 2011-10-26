@@ -2,11 +2,10 @@ implementation module GoogleMaps
 
 import HTML, StdEnv, JSON, GenUpdate, GenVisualize, GenVerify
 
-derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap
+derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions
 derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent, MarkerDragUpdate
 
 derive gVisualizeText  	GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
-derive gVisualizeHtml  	GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gVisualizeEditor	GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  		GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gDefaultMask		GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
@@ -66,13 +65,6 @@ derive bimap	Maybe, (,)
 	, draggable			:: Bool
 	, zoom				:: Int
 	}
-	
-::TUIGoogleStaticMap =
-	{ width				:: Int
-	, height			:: Int
-	, xtype				:: String
-	, url				:: String
-	}
 
 instance toString GoogleMapType
 where 
@@ -82,7 +74,6 @@ where
 	toString TERRAIN 	= "TERRAIN"
 
 gVisualizeText{|GoogleMap|} _ _ = ["<Google map>"]
-gVisualizeHtml{|GoogleMap|} _ _ = [Text "<Google map>"]
 gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl mbMap vst
 where
 	mkControl name mbMap _ _ static vst=:{VSt|taskId}

@@ -28,7 +28,7 @@ derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gUpdate Note, DateTime, Document, FormButton, Username, Password, Currency, Date, Time, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
-derive gUpdate EmailAddress, Action, HtmlDisplay, HtmlInclude, ManagementMeta, TaskPriority
+derive gUpdate EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gUpdate ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 generic gDefaultMask a :: !a -> [UpdateMask]
@@ -37,7 +37,7 @@ derive gDefaultMask UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gDefaultMask Int, Real, Char, Bool, String
 derive gDefaultMask Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gDefaultMask Note, DateTime, Document, FormButton, Username, Password, Currency, Date, Time, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
-derive gDefaultMask EmailAddress, Action, HtmlDisplay, HtmlInclude, ManagementMeta, TaskPriority
+derive gDefaultMask EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gDefaultMask ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 derive bimap UpdateMode

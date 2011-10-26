@@ -127,8 +127,7 @@ gDefaultMask{|Task|} _ _ = [Touched []]
 gVerify{|Task|} _ _ vst = alwaysValid vst
 
 gVisualizeText{|Task|} _ _ {Task|meta} = [meta.TaskMeta.title]
-gVisualizeHtml{|Task|} _ _ {Task|meta} = [Text meta.TaskMeta.title]
-gVisualizeEditor{|Task|} _ _ _ mbVal vst
+gVisualizeEditor{|Task|} _ _ mbVal vst
 	# vis = case mbVal of
 		Just {Task|meta}	= [stringDisplay meta.TaskMeta.title]
 		Nothing				= []

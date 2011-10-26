@@ -15,7 +15,6 @@ import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, Inte
 
 // use string instances of generic function for Tag values 
 gVisualizeText{|Tag|} mode (Tag t) = gVisualizeText{|*|} mode (toString t)
-gVisualizeHtml{|Tag|} mode (Tag t) = gVisualizeHtml{|*|} mode (toString t)
 gVisualizeEditor{|Tag|} val vst = gVisualizeEditor{|*|} (toStr val) vst
 where
 	toStr Nothing			= Nothing

@@ -198,7 +198,6 @@ gUpdate{|Note|}					mode ust = basicUpdateSimple mode (Note "") ust
 gUpdate{|Username|}				mode ust = basicUpdateSimple mode (Username "") ust
 gUpdate{|Password|}				mode ust = basicUpdateSimple mode (Password "") ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode AnyUser ust
-gUpdate{|HtmlDisplay|}			mode ust = basicUpdate mode unchanged (HtmlDisplay "") ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
 gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
@@ -322,7 +321,6 @@ gDefaultMask{|Currency|}			_ = [Touched []]
 gDefaultMask{|Date|}				_ = [Touched []]
 gDefaultMask{|Time|}				_ = [Touched []]
 gDefaultMask{|User|}				_ = [Touched []]
-gDefaultMask{|HtmlDisplay|}			_ = [Touched []]
 gDefaultMask{|HtmlInclude|}			_ = [Touched []]
 gDefaultMask{|CheckMultiChoice|}_ _	_ = [Touched []]
 gDefaultMask{|RadioChoice|} _ _ (RadioChoice opts mbSel)

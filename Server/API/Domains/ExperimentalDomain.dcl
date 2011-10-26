@@ -3,7 +3,6 @@ definition module ExperimentalDomain
 import GenUpdate, GenVisualize
 
 derive gVisualizeText	FormattedText, SourceCode, Color
-derive gVisualizeHtml	FormattedText, SourceCode, Color
 derive gVisualizeEditor	FormattedText, SourceCode, Color
 derive gUpdate			FormattedText, SourceCode, Color
 derive gDefaultMask		FormattedText, SourceCode, Color

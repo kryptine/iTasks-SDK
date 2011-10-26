@@ -10,7 +10,6 @@ from SystemTypes		import :: User
 from Map				import :: Map
 
 derive gVisualizeText	Tag
-derive gVisualizeHtml	Tag
 derive gVisualizeEditor	Tag
 derive gUpdate			Tag
 derive gDefaultMask		Tag

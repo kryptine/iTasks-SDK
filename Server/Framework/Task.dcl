@@ -13,7 +13,6 @@ derive gUpdate			Task
 derive gDefaultMask		Task
 derive gVerify			Task
 derive gVisualizeText	Task
-derive gVisualizeHtml	Task
 derive gVisualizeEditor	Task
 derive gEq				Task
 derive gGetRecordFields	Task

@@ -28,7 +28,6 @@ import iTasks
 	}
 
 derive gVisualizeText	Workflow, WorkflowDescription, WorkflowTaskContainer
-derive gVisualizeHtml	Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gVisualizeEditor	Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gUpdate			Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gDefaultMask		Workflow, WorkflowDescription, WorkflowTaskContainer
@@ -38,10 +37,11 @@ derive JSONDecode		Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gEq				Workflow, WorkflowDescription, WorkflowTaskContainer
 
 // Available workflows
+:: WorkflowFolderLabel :== String
 workflows				:: ReadOnlyShared [WorkflowDescription]
 allowedWorkflows		:: ReadOnlyShared [WorkflowDescription]
-workflowTree			:: ReadOnlyShared (Tree WorkflowDescription)
-allowedWorkflowTree		:: ReadOnlyShared (Tree WorkflowDescription)
+workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
+allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
 workflowTask			:: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
 
 /**

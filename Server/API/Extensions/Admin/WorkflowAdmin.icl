@@ -9,7 +9,6 @@ from Util import mb2list, timestampToGmDateTime
 // SPECIALIZATIONS
 
 derive gVisualizeText	Workflow, WorkflowDescription
-derive gVisualizeHtml	Workflow, WorkflowDescription
 derive gVisualizeEditor	Workflow, WorkflowDescription
 derive gUpdate 			Workflow, WorkflowDescription
 derive gDefaultMask		Workflow, WorkflowDescription
@@ -20,7 +19,6 @@ derive JSONDecode		Workflow, WorkflowDescription
 derive gEq				Workflow, WorkflowDescription
 
 gVisualizeText{|WorkflowTaskContainer|} _ _	= []
-gVisualizeHtml{|WorkflowTaskContainer|} _ _	= []
 gVisualizeEditor{|WorkflowTaskContainer|} _ vst = noVisualization vst
 gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode (\Void x -> x) (WorkflowTask defTask) ust
 where
@@ -56,24 +54,24 @@ allowedWorkflows = mapSharedRead filterAllowed (workflows |+| (currentUser |+| c
 where
 	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
 	
-workflowTree :: ReadOnlyShared (Tree WorkflowDescription)
+workflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
 workflowTree = mapSharedRead mkFlowTree workflows
 
-allowedWorkflowTree :: ReadOnlyShared (Tree WorkflowDescription)
+allowedWorkflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
 allowedWorkflowTree = mapSharedRead mkFlowTree allowedWorkflows
 
-mkFlowTree :: ![WorkflowDescription] -> Tree WorkflowDescription
+mkFlowTree :: ![WorkflowDescription] -> Tree (Either WorkflowFolderLabel WorkflowDescription)
 mkFlowTree workflows = Tree (seq (map insertWorkflow workflows) [])
 where
 	insertWorkflow descr=:{WorkflowDescription|path} nodeList = insertWorkflow` (split "/" path) nodeList
 	where
 		insertWorkflow` [] nodeList = nodeList
-		insertWorkflow` [title] nodeList = nodeList ++ [Leaf descr]
-		insertWorkflow` path=:[nodeP:pathR] [node=:(Node nodeL nodes):nodesR]
-			| nodeP == nodeL	= [Node nodeL (insertWorkflow` pathR nodes):nodesR]
+		insertWorkflow` [title] nodeList = nodeList ++ [Leaf (Right descr)]
+		insertWorkflow` path=:[nodeP:pathR] [node=:(Node (Left nodeL) nodes):nodesR]
+			| nodeP == nodeL	= [Node (Left nodeL) (insertWorkflow` pathR nodes):nodesR]
 			| otherwise			= [node:insertWorkflow` path nodesR]
 		insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
-		insertWorkflow` [nodeP:pathR] [] = [Node nodeP (insertWorkflow` pathR [])]
+		insertWorkflow` [nodeP:pathR] [] = [Node (Left nodeP) (insertWorkflow` pathR [])]
 		
 workflowTask :: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
 workflowTask wid = makeReadOnlySharedError ("SystemData_workflowTask_" +++ (toString wid)) getTask ((appFst Ok) o 'WorkflowDB'.lastChange)
@@ -135,8 +133,11 @@ where
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
 chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetCombined mkTree, SetCombined putback)] (state >+| allowedWorkflowTree) Nothing >>+ noActions
 where
-	mkTree sel (_,flows) = mkTreeChoice (fmap (\{path,description,workflowId} -> (last (split "/" path),(workflowId,description))) flows) sel
-	putback tree _ (state,_) = (Just (Just selection), Just {state & selectedWorkflow = Just selection})
+	mkTree sel (_,flows) = mkTreeChoice (fmap mapF flows) (fmap Just sel)
+	where
+		mapF (Left label)							= (label, Nothing)
+		mapF (Right {path,description,workflowId})	= (last (split "/" path), Just (workflowId,description))
+	putback tree _ (state,_) = (Just selection, Just {state & selectedWorkflow = selection})
 	where
 		selection = getSelection tree
 
@@ -167,8 +168,8 @@ where
 	mkRow {TaskInstanceMeta|processId,taskMeta,progressMeta,managementMeta} =
 		[ html taskMeta.TaskMeta.title
 		, formatPriority managementMeta.priority
-		, visualizeAsHtml AsDisplay progressMeta.issuedAt
-		, visualizeAsHtml AsDisplay managementMeta.completeBefore
+		, Text (visualizeAsText AsDisplay progressMeta.issuedAt)
+		, Text (visualizeAsText AsDisplay managementMeta.completeBefore)
 		, Text (toString processId)
 		]
 		
