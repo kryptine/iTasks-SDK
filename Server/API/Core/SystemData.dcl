@@ -13,13 +13,6 @@ currentDateTime			:: ReadOnlyShared DateTime
 currentTime				:: ReadOnlyShared Time
 currentDate				:: ReadOnlyShared Date
 
-// Users
-users					:: 			ReadOnlyShared [User]
-usersWithRole			:: !Role ->	ReadOnlyShared [User]
-userDetails				:: !User ->	Shared UserDetails
-
-currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
-
 // Processes
 topLevelTasks 			:: (TaskList Void)
 

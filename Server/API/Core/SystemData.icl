@@ -19,35 +19,11 @@ currentTime = makeReadOnlyShared "SystemData_currentTime" 'Util'.currentTime 'Ut
 currentDate :: ReadOnlyShared Date
 currentDate = makeReadOnlyShared "SystemData_currentDate" 'Util'.currentDate 'Util'.currentTimestamp
 
-// Users
-users :: ReadOnlyShared [User]
-users = makeReadOnlyShared "SystemData_users" 'UserDB'.getUsers 'UserDB'.lastChange
 
-usersWithRole	:: !Role -> ReadOnlyShared [User]
-usersWithRole role = makeReadOnlyShared ("SystemData_usersWithRole-" +++ toString role) ('UserDB'.getUsersWithRole role) 'UserDB'.lastChange
-
-userDetails :: !User -> Shared UserDetails
-userDetails user = ReadWriteShared ["userDetails-" +++ toString user] read write (appFst Ok o 'UserDB'.lastChange)
-where
-	read iworld	= appFst (mb2error "user not in database") ('UserDB'.getUserDetails user iworld)
-	write details iworld
-		# (_,iworld) = 'UserDB'.updateUser user details iworld
-		= (Ok Void,iworld)
-
-currentUser :: ReadOnlyShared User
-currentUser = makeReadOnlyShared "SystemData_currentUser" (\iworld=:{currentUser} -> (currentUser,iworld)) (\iworld -> (Timestamp 0, iworld))
-	
-currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
-currentUserDetails = makeReadOnlyShared "SystemData_currentUserDetails" (\iworld=:{currentUser} -> 'UserDB'.getUserDetails currentUser iworld) (\iworld -> (Timestamp 0, iworld))
-	
 // Workflow processes
 topLevelTasks :: (TaskList Void)
 topLevelTasks = GlobalTaskList
 
-//TODO: Figure out pattern match bug
-currentProcessId :: ReadOnlyShared ProcessId
-//currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack=[currentProcess:_]} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
-currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) 'Util'.currentTimestamp
 
 currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
 currentProcesses = makeReadOnlyShared "SystemData_processes" read timestamp
@@ -68,6 +44,14 @@ where
 	timestamp iworld
 		# (ts, iworld) = getStoreTimestamp NS_WORKFLOW_INSTANCES "index" iworld
 		= (fromMaybe (Timestamp 0) ts, iworld)
+
+//TODO: Figure out pattern match bug
+currentProcessId :: ReadOnlyShared ProcessId
+//currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack=[currentProcess:_]} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
+currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) 'Util'.currentTimestamp
+
+currentUser :: ReadOnlyShared User
+currentUser = makeReadOnlyShared "SystemData_currentUser" (\iworld=:{currentUser} -> (currentUser,iworld)) (\iworld -> (Timestamp 0, iworld))
 		
 applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))

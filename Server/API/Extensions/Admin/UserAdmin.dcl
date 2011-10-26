@@ -4,4 +4,49 @@ definition module UserAdmin
 */
 import iTasks
 
-manageUsers :: Task Void
+// Shares
+
+//* All users
+users					:: 			ReadOnlyShared [User]
+//* Users with a specific role
+usersWithRole			:: !Role ->	ReadOnlyShared [User]
+//* User details (name,credentials etc)
+userDetails				:: !User ->	Shared UserDetails
+//* Details of the current user
+currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
+
+/**
+* Authenticates a user by username and password
+*
+* @param Username: The username
+* @param Password: The password
+*
+* @return A single user who matches the given credentials, or nothing of none or more than one exists.
+
+* @gin-icon key
+*/
+authenticateUser	:: !String !String	-> Task (Maybe User)
+/**
+* Add a new user
+*
+* @param User details: The user-information which needs to be stored
+*
+* @return The stored user
+* 
+* @gin-icon user_add
+*/
+createUser			:: !UserDetails -> Task User
+/**
+* Delete an existing user
+*
+* @param User: The user who needs to be deleted
+*
+* @return The deleted user
+* 
+* @gin-icon user_delete
+*/
+deleteUser			:: !User -> Task User
+/**
+* Browse and manage the existing users
+*/
+manageUsers			:: Task Void
