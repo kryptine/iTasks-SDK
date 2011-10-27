@@ -32,8 +32,6 @@ derive JSONEncode MaybeError
 derive JSONDecode MaybeError
 
 derive JSONDecode AsyncResult
-derive bimap Maybe, (,)
-
 
 callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args 

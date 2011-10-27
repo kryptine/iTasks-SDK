@@ -30,7 +30,6 @@ guiDemoExample
 :: Tree` a b = Leaf` b | Node` (Tree` a b) a (Tree` a b)
 
 derive class iTask	Person, Address, Tree`
-derive bimap (,), Maybe
 
 address = {Address | street = "Heyendaalseweg", number = 135, postalCode = "6525 AJ", city = "Nijmegen"}
 person	= {Person | name	= "John Doe"

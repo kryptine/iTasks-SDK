@@ -30,7 +30,7 @@ manageGroups			:: 						Task Void
 *
 * @param The group to manage
 */
-manageGroup 			:: Group 			->	Task Void
+manageGroup 			:: !Group 			->	Task Void
 /**
 * Create a new group
 *

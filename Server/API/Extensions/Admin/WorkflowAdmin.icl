@@ -9,16 +9,19 @@ from Util import mb2list, timestampToGmDateTime
 // SPECIALIZATIONS
 derive gVisualizeText	Workflow, WorkflowDescription
 derive gVisualizeEditor	Workflow, WorkflowDescription
+derive gHeaders			Workflow, WorkflowDescription
+derive gGridRows		Workflow, WorkflowDescription
 derive gUpdate 			Workflow, WorkflowDescription
 derive gDefaultMask		Workflow, WorkflowDescription
 derive gVerify			Workflow, WorkflowDescription
-
 derive JSONEncode		Workflow, WorkflowDescription
 derive JSONDecode		Workflow, WorkflowDescription
 derive gEq				Workflow, WorkflowDescription
 
 gVisualizeText{|WorkflowTaskContainer|} _ _	= []
 gVisualizeEditor{|WorkflowTaskContainer|} _ vst = noVisualization vst
+gHeaders{|WorkflowTaskContainer|} = (undef, ["Workflow task container"])
+gGridRows{|WorkflowTaskContainer|} _ _ = Nothing
 gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode (\Void x -> x) (WorkflowTask defTask) ust
 where
 	defTask :: Task Void
@@ -40,7 +43,6 @@ gEq{|WorkflowTaskContainer|} _ _			= True
 	}
 	
 derive class iTask ClientState
-derive bimap Maybe, (,)
 
 // SHARES
 // Available workflows
@@ -84,7 +86,7 @@ where
 
 // MANAGEMENT TASKS
 
-manageWorkflows :: [Workflow] ->  Task Void
+manageWorkflows :: ![Workflow] ->  Task Void
 manageWorkflows iflows = initWorkflows iflows >>| forever (doAuthenticated workflowDashboard)
 
 initWorkflows ::[Workflow] -> Task Void

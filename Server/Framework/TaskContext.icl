@@ -6,7 +6,6 @@ import JSON, Map
 
 derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
 derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
-derive bimap (,),Maybe
 
 getLocalVar :: !String !TaskContextTree -> Maybe a | JSONDecode{|*|} a
 getLocalVar key (TCBasic vars)

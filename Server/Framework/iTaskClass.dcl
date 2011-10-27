@@ -6,6 +6,8 @@ import GenVisualize
 class iTask a
 	| gVisualizeEditor{|*|}
 	, gVisualizeText{|*|}
+	, gHeaders{|*|}
+	, gGridRows{|*|}
 	, gUpdate{|*|}
 	, gDefaultMask{|*|}
 	, gVerify{|*|}

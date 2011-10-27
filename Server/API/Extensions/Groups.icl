@@ -3,7 +3,6 @@ implementation module Groups
 import iTasks
 
 derive class iTask Group
-derive bimap Maybe, (,)
 
 instance DB Group
 where
@@ -47,7 +46,7 @@ where
 					  ,Text "You may select one to view it or create a new group."
 					  ]
 	
-manageGroup :: Group -> Task Void
+manageGroup :: !Group -> Task Void
 manageGroup igroup
 	= 	
 	(	justdo (dbReadItem (getItemId igroup))

@@ -33,7 +33,7 @@ manageMessages		:: 											Task Void
 *
 * @return True if a reply has been sent
 */
-manageMessage 		:: Message 								->	Task Bool
+manageMessage 		:: !Message 								->	Task Bool
 /**
 * Combination of writing a new message followed by sending it.
 */

@@ -4,7 +4,6 @@ import iTasks
 import Groups
 
 derive class iTask Message
-derive bimap Maybe, (,)
 
 :: Message =
 	{ messageId			:: Hidden Int
@@ -57,7 +56,7 @@ where
 	aNewGroup	= Action "New group message"
 	aQuit		= ActionQuit
 
-manageMessage :: Message -> Task Bool
+manageMessage :: !Message -> Task Bool
 manageMessage msg=:{Message |subject} 
 	= 	viewInformation (subject,"You received a message") [About msg] Void >>+ (\_ -> UserActions [(aClose,Just aClose),(aReply,Just aReply),(aReplyAll,Just aReplyAll),(aForward,Just aForward),(aDelete,Just aDelete)])
 	>>= \act -> case act of

@@ -50,7 +50,6 @@ dbDeleteItem itemid
 				[item:_]	= return (Just item)
 				
 derive class iTask DBRef
-derive bimap Maybe, (,)
 
 instance == (DBRef a) where (==) (DBRef x) (DBRef y) = x == y
 instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y

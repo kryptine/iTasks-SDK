@@ -12,11 +12,11 @@ class DB a where
 	/*
 	* Retrieve the reference to a stored instance
 	*/
-	getItemId	:: a -> DBRef a
+	getItemId	:: !a -> DBRef a
 	/*
 	* Set the a reference on a specific instance
 	*/
-	setItemId	:: (DBRef a) a -> a
+	setItemId	:: !(DBRef a) !a -> a
 	
 //Database identifier to a value of type a in a database with multiple values
 :: DBRef a = DBRef !Int

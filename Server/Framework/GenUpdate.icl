@@ -5,7 +5,7 @@ import SystemTypes, Text, Util, DocumentStore
 from StdFunc import id, const, o
 from TUIDefinition import :: TUISize(..), :: TUIFixedSize, :: TUIWeight
 
-derive bimap (,), UpdateMode
+//derive bimap UpdateMode
 
 :: DataPath = DataPath [Int]
 
@@ -202,9 +202,10 @@ gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
 gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
 gUpdate{|TreeChoice|} _ _		mode ust = basicUpdate mode (\json (TreeChoice tree _)			-> case fromJSON json of Just i = TreeChoice tree i; _ = TreeChoice tree Nothing)							(TreeChoice (Tree []) Nothing)										ust
+gUpdate{|GridChoice|} _ _		mode ust = basicUpdate mode (\json (GridChoice opts _)			-> case fromJSON json of Just i = GridChoice opts i; _ = GridChoice opts Nothing)							(GridChoice [] Nothing)												ust
 gUpdate{|RadioChoice|} _ _		mode ust = basicUpdate mode (\json (RadioChoice opts _)			-> case fromJSON json of Just i = RadioChoice opts (Just i); _ = RadioChoice opts Nothing)					(RadioChoice [] Nothing)											ust
 gUpdate{|ComboChoice|} _ _		mode ust = basicUpdate mode (\l (ComboChoice opts _)			-> case l of i = ComboChoice opts (Just i); _ = ComboChoice opts Nothing)									(ComboChoice [] Nothing)											ust
-gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\json (CheckMultiChoice opts sel)	-> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel)	(CheckMultiChoice [] [])											ust
+gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\json (CheckMultiChoice opts sel)	-> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel)	(CheckMultiChoice [] [])										ust
 where
 	updateSel i True sel	= removeDup [i:sel]
 	updateSel i False sel 	= removeMember i sel
@@ -328,6 +329,10 @@ gDefaultMask{|RadioChoice|} _ _ (RadioChoice opts mbSel)
 	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
 	| otherwise										= [Untouched]
 gDefaultMask{|ComboChoice|} _ _ (ComboChoice opts mbSel)
+	// if no valid selection is made, start with untouched mask
+	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
+	| otherwise										= [Untouched]
+gDefaultMask{|GridChoice|} _ _ (GridChoice opts mbSel)
 	// if no valid selection is made, start with untouched mask
 	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
 	| otherwise										= [Untouched]

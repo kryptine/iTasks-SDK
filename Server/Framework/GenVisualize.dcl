@@ -14,18 +14,39 @@ generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualizeText Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeText Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gVisualizeText EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Generic editor function
-generic gVisualizeEditor a | gVisualizeText a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
+generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
 
 //Default available instances
 derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualizeEditor Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeEditor Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+
+//Generic headers function for getting grid headers for a type (typically names of record fields)
+//! The first part of the result is always undef. It's needed to indicate the type the function works on. !
+generic gHeaders a :: (a, ![String])
+
+//Default available instances
+derive gHeaders UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gHeaders Int, Real, Char, Bool, String
+derive gHeaders Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+
+//Generic function for getting grid rows (typically values of record fields)
+generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
+
+//Default available instances
+derive gGridRows UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gGridRows Int, Real, Char, Bool, String
+derive gGridRows Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> Maybe TUIDef	| gVisualizeEditor{|*|} a

@@ -3,7 +3,6 @@ implementation module Config
 import StdFile, Util, Error, File, FilePath, JSON, OS
 import SystemTypes
 
-derive bimap Maybe, (,)
 
 defaultConfig :: Config
 defaultConfig =

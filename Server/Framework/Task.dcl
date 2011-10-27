@@ -14,6 +14,8 @@ derive gDefaultMask		Task
 derive gVerify			Task
 derive gVisualizeText	Task
 derive gVisualizeEditor	Task
+derive gHeaders			Task
+derive gGridRows		Task
 derive gEq				Task
 derive gGetRecordFields	Task
 derive gPutRecordFields	Task

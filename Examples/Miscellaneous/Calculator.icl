@@ -65,4 +65,3 @@ where
 						, showsResult	:: !Bool
 						}
 derive class iTask CalculatorState
-derive bimap Maybe, (,)

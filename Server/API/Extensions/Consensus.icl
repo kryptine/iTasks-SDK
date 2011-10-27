@@ -3,8 +3,6 @@ implementation module Consensus
 import iTasks, GenEq
 import Messages, Groups
 
-derive bimap Maybe, (,)
-
 :: Topic = { topic :: String, description :: Maybe Note}
 :: Results a :== [(a,[(User,String)])]
 

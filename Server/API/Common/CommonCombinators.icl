@@ -31,8 +31,6 @@ JSONDecode{|Tag|} nodes = case nodes of
 	_					= (Nothing, nodes)
 gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
 
-derive bimap Maybe, (,)
-
 (>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
 (>>*) task termF = task >>+ termF >>= id
 

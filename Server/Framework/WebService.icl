@@ -5,8 +5,6 @@ import Time, JSON
 import SystemTypes, Task, TaskContext, TaskEval, TaskStore, TUIDiff, TUIEncode, Util, HtmlUtil, Map
 import IWorld
 
-derive bimap Maybe, (,)
-
 webService :: !(Task a) !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
 webService task req iworld=:{IWorld|timestamp,application}
 	= case showParam of

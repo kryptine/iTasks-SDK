@@ -16,8 +16,6 @@ derive JSONDecode TUIControlType
 derive JSONDecode TUIButtonControl, TUIListItem
 derive JSONDecode TUIContainer, TUIPanel, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
 
-derive bimap Maybe, (,)
-
 WORKFLOW_INCREMENT	:== "increment"
 WORKFLOW_INDEX		:== "index"
 SESSION_INDEX		:== "index"

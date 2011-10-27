@@ -7,7 +7,6 @@ import Task, TaskContext, TaskStore, Util
 
 derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 derive class iTask FileError
-derive bimap Maybe,(,)
 
 instance toString FileException
 where

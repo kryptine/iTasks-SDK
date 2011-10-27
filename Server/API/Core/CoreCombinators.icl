@@ -11,7 +11,6 @@ from CoreTasks			import return
 from TuningCombinators	import :: Tag
 
 derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
-derive bimap Maybe, (,)
 
 //Standard monadic bind
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -105,7 +104,7 @@ noActions = const (UserActions [])
 returnAction :: Action -> (TermFunc a a) | iTask a
 returnAction action = \{modelValue,localValid} -> UserActions [(action, if localValid (Just modelValue) Nothing)]
 
-constActions :: [(Action,b)] -> (TermFunc a b) | iTask a & iTask b
+constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
 constActions actions = const (UserActions [(a,Just v) \\ (a,v) <- actions])
 
 // Parallel composition

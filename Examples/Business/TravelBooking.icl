@@ -11,8 +11,6 @@ import iTasks
 
 derive class iTask	PlaceToGo, FlightHotel
 
-derive bimap	(,), Maybe
-
 BookTrip :: Task FlightHotel
 BookTrip
 	=						enterInformation ("Specify trip","Please fill in trip information to make booking") []

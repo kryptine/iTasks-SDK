@@ -62,7 +62,7 @@ returnAction :: Action -> (TermFunc a a) | iTask a
 /*
 * Actions that yield constant values, independent of the task's value
 */
-constActions :: [(Action,b)] -> (TermFunc a b) | iTask a & iTask b
+constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
 
 /**
 * All-in-one swiss-army-knife parallel task creation

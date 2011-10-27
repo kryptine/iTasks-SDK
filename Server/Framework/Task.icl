@@ -99,8 +99,6 @@ stepTarget i [t:ts]
 	| i == t			= ts
 	| otherwise			= []
 
-derive bimap Maybe, (,)
-
 JSONEncode{|Task|} _ tt = dynamicJSONEncode tt			
 JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
@@ -127,12 +125,13 @@ gDefaultMask{|Task|} _ _ = [Touched []]
 gVerify{|Task|} _ _ vst = alwaysValid vst
 
 gVisualizeText{|Task|} _ _ {Task|meta} = [meta.TaskMeta.title]
-gVisualizeEditor{|Task|} _ _ mbVal vst
+gVisualizeEditor{|Task|} _ _ _ _ mbVal vst
 	# vis = case mbVal of
 		Just {Task|meta}	= [stringDisplay meta.TaskMeta.title]
 		Nothing				= []
 	= (vis,vst)
-	
+gHeaders{|Task|} _ = (undef, ["Task"])
+gGridRows{|Task|} _ _ _ _ = Nothing	
 gEq{|Task|} _ _ _ = True // tasks are always equal
 
 gGetRecordFields{|Task|} _ _ _ fields = fields

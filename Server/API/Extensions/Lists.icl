@@ -3,7 +3,6 @@ implementation module Lists
 import iTasks, Groups
 
 derive class iTask List, ListMeta, ListDescription, AnyList
-derive bimap Maybe, (,)
 
 //Internal administration of who owns lists and who they are shared with.
 :: ListMeta	=
@@ -57,7 +56,7 @@ where
 							, (ActionYes,	Always (deleteList list))
 							]
 									
-manageList :: AnyList -> Task Void
+manageList :: !AnyList -> Task Void
 manageList list
 	=	
 	(	showItems list

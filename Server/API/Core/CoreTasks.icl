@@ -26,7 +26,6 @@ derive JSONDecode StoredPart, UpdateMask
 JSONEncode{|StoredPutback|} _ _ p			= dynamicJSONEncode p
 JSONDecode{|StoredPutback|} _ _ [json:r]	= (dynamicJSONDecode json,r)
 JSONDecode{|StoredPutback|} _ _ _			= (Nothing,[])
-derive bimap Maybe,(,)
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinished a,iworld))

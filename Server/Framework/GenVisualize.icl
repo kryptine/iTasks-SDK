@@ -35,7 +35,7 @@ gVisualizeText{|FIELD of d|} fx mode (FIELD x)
 		AsDisplay	= [camelCaseToWords d.gfd_name, ": ": viz] ++ [" "]
 		AsLabel	= viz
 			
-gVisualizeText{|OBJECT of d|} fx mode (OBJECT x) = fx mode x
+gVisualizeText{|OBJECT|} fx mode (OBJECT x) = fx mode x
 	
 gVisualizeText{|CONS of d|} fx mode (CONS x)
 	# viz = fx mode x
@@ -82,7 +82,8 @@ gVisualizeText{|Document|}		_ val
 	| val.Document.size == 0						= ["No Document"]
 	| otherwise										= [val.Document.name]
 gVisualizeText{|RadioChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
-gVisualizeText{|ComboChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))	
+gVisualizeText{|ComboChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
+gVisualizeText{|GridChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))	
 gVisualizeText{|TreeChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 gVisualizeText{|CheckMultiChoice|}	fv _ _ val		= gVisualizeText{|* -> *|} fv  AsLabel (getSelectionViews val)
 gVisualizeText{|Table|}	_ _							= ["Table"]
@@ -105,8 +106,9 @@ gVisualizeText{|FillHControlSize|}	fx mode val = fx mode (fromFillHControlSize v
 gVisualizeText{|Void|} _ _					= []
 gVisualizeText{|Dynamic|} _ _				= []
 gVisualizeText{|(->)|} _ _ _ _				= []
+gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
-derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Username, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Username, Action, TreeNode, ManagementMeta, TaskPriority, Tree, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 mkVSt :: *VSt
 mkVSt = {VSt| currentPath = startDataPath,
@@ -114,18 +116,18 @@ mkVSt = {VSt| currentPath = startDataPath,
 		controlSize = (Nothing,Nothing,Nothing)}
 
 //Generic visualizer
-generic gVisualizeEditor a | gVisualizeText a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
+generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
 
 gVisualizeEditor{|UNIT|} _ vst
 	= ([],vst)
 	
-gVisualizeEditor{|FIELD of d|} fx _ val vst
+gVisualizeEditor{|FIELD of d|} fx _ _ _ val vst
 	# x = fmap fromFIELD val
 	# (vizBody,vst=:{VSt|optional})	= fx x {VSt|vst & optional = False}
 	# label							= {stringDisplay (camelCaseToWords d.gfd_name +++ if optional "" "*" +++ ":") & width = Just (Fixed 100)}
 	= ([{content = TUIContainer {TUIContainer|defaultLayoutContainer [label: vizBody] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}],{VSt|vst & optional = optional})
 			
-gVisualizeEditor{|OBJECT of d|} fx _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent,controlSize}
+gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent,controlSize}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
@@ -171,7 +173,7 @@ gVisualizeEditor{|OBJECT of d|} fx _ val vst=:{currentPath,selectedConsIndex = o
 								}]
 		= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 
-gVisualizeEditor{|CONS of d|} fx _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|CONS of d|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ vst=:{taskId,editEvent,currentPath,optional,controlSize,renderAsStatic}
 		# x = fmap fromCONS val
@@ -200,13 +202,13 @@ where
 			, eventValue	= eventValue currentPath editEvent
 			})
 
-gVisualizeEditor{|PAIR|} fx _ fy _ val vst
+gVisualizeEditor{|PAIR|} fx _ _ _ fy _ _ _ val vst
 	# (x,y)			= (fmap fromPAIRX val, fmap fromPAIRY val)
 	# (vizx, vst)	= fx x vst
 	# (vizy, vst)	= fy y vst
 	= (vizx ++ vizy, vst)
 
-gVisualizeEditor{|EITHER|} fx _ fy _ val vst = case val of
+gVisualizeEditor{|EITHER|} fx _ _ _ fy _ _ _ val vst = case val of
 		Nothing			= fx Nothing vst
 		Just (LEFT x)	= fx (Just x) vst
 		Just (RIGHT y)	= fy (Just y) vst
@@ -240,7 +242,7 @@ where
 	buttonLabel	b = toString ((fmap (\b -> b.FormButton.label)) b)
 	icon		b = toString ((fmap (\b -> b.FormButton.icon)) b)
 
-gVisualizeEditor{|RadioChoice|} fx _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|RadioChoice|} fx _ _ _ _ _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# (options,sel)		= maybe ([],-1) (\(RadioChoice options mbSel) -> (map fst options,fromMaybe -1 mbSel) ) val
@@ -248,12 +250,17 @@ where
 		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = items, taskId = taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
 		= ([defaultDef (TUIContainer (defaultLayoutContainer itemDefs))], vst)
 
-gVisualizeEditor{|ComboChoice|} _ gx _ _ val vst = visualizeControl (TUIComboControl (toChoice val)) (fmap (\(ComboChoice _ mbSel) -> mbSel) val) vst
+gVisualizeEditor{|ComboChoice|} _ gx _ _ _ _ _ _ val vst = visualizeControl (TUIComboControl (toChoice val)) (fmap (\(ComboChoice _ mbSel) -> mbSel) val) vst
 where
 	toChoice Nothing						= []
 	toChoice (Just (ComboChoice options _))	= [concat (gx AsLabel v) \\ (v,_) <- options]
 	
-gVisualizeEditor{|TreeChoice|} _ gx _ _ val vst = visualizeCustom tuiF vst
+gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ val vst = visualizeControl (TUIGridControl (toGrid val)) (fmap (\(GridChoice _ mbSel) -> mbSel) val) vst
+where
+	toGrid Nothing							= {cells = [], headers = []}
+	toGrid (Just (GridChoice options _))	= {headers = snd hx, cells = [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]}
+	
+gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom tuiF vst
 where
 	tuiF name touched verRes vst=:{VSt|taskId,renderAsStatic,editEvent,currentPath,controlSize}
 		//| renderAsStatic
@@ -288,7 +295,7 @@ where
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
 
-gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ _ _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# (options,sel)		= maybe ([],[]) (\(CheckMultiChoice options sel) -> (map fst options,sel) ) val
@@ -296,12 +303,12 @@ where
 		# itemDefs			= [defaultDef (TUICheckChoice {TUICheckChoice| items = items, taskId = taskId, name = name, index = i, checked = isMember i sel}) \\ items <- itemVis & i <- [0..]]
 		= ([defaultDef (TUIContainer (defaultLayoutContainer itemDefs))], vst)
 
-gVisualizeEditor{|Table|} val vst = visualizeControl(TUIGridControl (toGrid val)) (fmap (\t=:(Table _ _ mbSel) -> (mbSel,t)) val) vst
+gVisualizeEditor{|Table|} val vst = visualizeControl(TUIGridControl (toGrid val)) (fmap (\(Table _ _ mbSel) -> mbSel) val) vst
 where
 	toGrid Nothing							= {cells = [], headers = []}
 	toGrid (Just (Table headers cells _))	= {headers = headers, cells = map (map toString) cells}
 
-gVisualizeEditor {|[]|} fx _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor {|[]|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# val			= fromMaybe [] val
@@ -351,10 +358,10 @@ where
 		
 			mkMessage cls msg =	stringDisplay msg //(DivTag [ClassAttr "list-msg-field"] [DivTag [ClassAttr cls] [Text msg]])
 
-gVisualizeEditor{|Dynamic|}			_ vst	= noVisualization vst
-gVisualizeEditor{|(->)|} _ _ _ _	_ vst	= noVisualization vst
+gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
+gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst
 
-gVisualizeEditor{|Maybe|} fx _ val vst=:{VSt|currentPath}
+gVisualizeEditor{|Maybe|} fx _ _ _ val vst=:{VSt|currentPath}
 	# vst = {VSt|vst & optional = True}
 	# (viz,vst) = case val of
 		Just (Just x)	= fx (Just x) vst
@@ -362,26 +369,26 @@ gVisualizeEditor{|Maybe|} fx _ val vst=:{VSt|currentPath}
 	= (viz, {VSt|vst & optional = True, currentPath = stepDataPath currentPath})
 	
 // wrapper types changing visualization behaviour
-gVisualizeEditor{|Hidden|} fx _ val vst=:{VSt | currentPath, verifyMask}
+gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask}
 	# (_,vm) = popMask verifyMask	
 	= ([],{VSt | vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
-gVisualizeEditor{|Display|} fx _ val vst=:{currentPath,renderAsStatic}
+gVisualizeEditor{|Display|} fx _ _ _ val vst=:{currentPath,renderAsStatic}
 	# (def,vst) = fx (fmap fromDisplay val) {VSt | vst &  renderAsStatic = True}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 
-gVisualizeEditor{|Editable|} fx _ val vst=:{currentPath, renderAsStatic}
+gVisualizeEditor{|Editable|} fx _ _ _ val vst=:{currentPath, renderAsStatic}
 	# (def,vst) = fx (fmap fromEditable val) {VSt | vst & renderAsStatic = False}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 
-gVisualizeEditor{|VisualizationHint|} fx gx val vst=:{VSt|currentPath}
+gVisualizeEditor{|VisualizationHint|} fx gx hx ix val vst=:{VSt|currentPath}
 	= case val of
-		Just (VHHidden x)	= gVisualizeEditor{|* -> *|} fx gx (Just (Hidden x)) vst
-		Just (VHDisplay x)	= gVisualizeEditor{|* -> *|} fx gx (Just (Display x)) vst
-		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx (Just (Editable x)) vst
+		Just (VHHidden x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Hidden x)) vst
+		Just (VHDisplay x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Display x)) vst
+		Just (VHEditable x)	= gVisualizeEditor{|* -> *|} fx gx hx ix (Just (Editable x)) vst
 		Nothing				= fx Nothing vst
 
-gVisualizeEditor{|ControlSize|} fx _ val vst=:{controlSize}
+gVisualizeEditor{|ControlSize|} fx _ _ _ val vst=:{controlSize}
 	= case val of
 		Nothing
 			= fx Nothing vst
@@ -389,15 +396,15 @@ gVisualizeEditor{|ControlSize|} fx _ val vst=:{controlSize}
 			# (def,vst) = fx (Just v) {VSt | vst &  controlSize = (width,height,margins)}
 			= (def,{VSt | vst & controlSize = controlSize})
 			
-gVisualizeEditor{|FillControlSize|} fx _ val vst=:{controlSize=controlSize=:(_,_,margins)}
+gVisualizeEditor{|FillControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=:(_,_,margins)}
 	# (def,vst) = fx (fmap fromFillControlSize val) {vst & controlSize = (Just (FillParent 1 ContentSize),Just (FillParent 1 ContentSize),margins)}
 	= (def,{vst & controlSize = controlSize})
 
-gVisualizeEditor{|FillWControlSize|} fx _ val vst=:{controlSize=controlSize=:(_,height,margins)}
+gVisualizeEditor{|FillWControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=:(_,height,margins)}
 	# (def,vst) = fx (fmap fromFillWControlSize val) {vst & controlSize = (Just (FillParent 1 ContentSize),height,margins)}
 	= (def,{vst & controlSize = controlSize})
 	
-gVisualizeEditor{|FillHControlSize|} fx _ val vst=:{controlSize=controlSize=:(width,_,margins)}
+gVisualizeEditor{|FillHControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=:(width,_,margins)}
 	# (def,vst) = fx (fmap fromFillHControlSize val) {vst & controlSize = (width,Just (FillParent 1 ContentSize),margins)}
 	= (def,{vst & controlSize = controlSize})
 
@@ -424,7 +431,54 @@ where
 derive gVisualizeEditor DateTime
 	
 derive gVisualizeEditor Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
-derive bimap Maybe
+
+generic gHeaders a :: (a, ![String])
+
+gHeaders{|OBJECT of d|} fx = (undef, headers)
+where
+	headers = case snd fx of
+		[]		= [camelCaseToWords d.gtd_name]
+		headers	= headers
+gHeaders{|CONS of d|} fx	= (undef, [camelCaseToWords gfd_name \\ {gfd_name} <- d.gcd_fields])
+gHeaders{|PAIR|} fx fy		= (undef, [])
+gHeaders{|FIELD|} fx		= (undef, [])
+gHeaders{|EITHER|} fx fy	= (undef, [])
+gHeaders{|Int|}				= (undef, ["Integer"])
+gHeaders{|Char|}			= (undef, ["Character"])
+gHeaders{|String|}			= (undef, ["String"])
+gHeaders{|Real|}			= (undef, ["Real"])
+gHeaders{|Bool|}			= (undef, ["Boolean"])
+gHeaders{|Dynamic|}			= (undef, ["Dynamic"])
+gHeaders{|HtmlTag|}			= (undef, ["HTML"])
+gHeaders{|(->)|} _ _		= (undef, ["Function"])
+gHeaders{|UNIT|}			= (undef,[])
+
+derive gHeaders [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
+
+generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
+
+gGridRows{|OBJECT of d|} fx hx (OBJECT o) acc
+	| isRecordType d	= fmap reverse (fx o acc)
+	| otherwise			= Nothing
+gGridRows{|CONS|} fx _ (CONS c) acc			= fx c acc
+gGridRows{|PAIR|} fx _ fy _ (PAIR x y) acc	= fy y (fromMaybe [] (fx x acc))
+gGridRows{|FIELD|} _ gx (FIELD f) acc		= Just [concat (gx AsLabel f):acc]
+gGridRows{|EITHER|} _ _ _ _	_ _				= abort "gGridRows: EITHER should not occur"
+gGridRows{|Int|} i _						= Nothing
+gGridRows{|Char|} c _						= Nothing
+gGridRows{|String|} s _						= Nothing
+gGridRows{|Real|} r _						= Nothing
+gGridRows{|Bool|} b _						= Nothing
+gGridRows{|Dynamic|} d _					= Nothing
+gGridRows{|HtmlTag|} h _					= Nothing
+gGridRows{|(->)|} _ gx _ gy f _				= Nothing
+gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
+
+derive gGridRows [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
 

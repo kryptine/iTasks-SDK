@@ -4,8 +4,6 @@ import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, 
 import GenUpdate, StdMisc
 
 derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
-derive bimap (,), Maybe
-
 verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 verifyForm val updateMask
 	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, staticDisplay = False}
@@ -113,9 +111,9 @@ gVerify{|FillWControlSize|}	fx v vst = fx (fmap fromFillWControlSize v) vst
 gVerify{|FillHControlSize|}	fx v vst = fx (fmap fromFillHControlSize v) vst
 
 gVerify{|Int|}    				_ vst = simpleVerify "Enter a number" vst
-gVerify{|Real|}   			_ vst = simpleVerify "Enter a decimal number" vst
+gVerify{|Real|}   				_ vst = simpleVerify "Enter a decimal number" vst
 gVerify{|Char|}   				_ vst = simpleVerify "Enter a character" vst
-gVerify{|String|}					_ vst = simpleVerify "Enter a short text" vst
+gVerify{|String|}				_ vst = simpleVerify "Enter a short text" vst
 gVerify{|Bool|}   				_ vst = alwaysValid vst
 gVerify{|Document|}				_ vst = simpleVerify "Upload a document" vst
 gVerify{|Username|}				_ vst = simpleVerify "Enter a username" vst
@@ -128,6 +126,7 @@ gVerify{|Currency|}				_ vst = simpleVerify "Enter a currency value" vst
 gVerify{|User|}					_ vst = simpleVerify "Select a username" vst 
 gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
 gVerify{|ComboChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
+gVerify{|GridChoice|} _ _		_ vst = alwaysValid vst//simpleVerify "Choose one row" vst
 gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
 gVerify{|Table|}				_ vst = alwaysValid vst
 gVerify{|TreeChoice|} _ _		_ vst = simpleVerify "Choose an element of the tree" vst

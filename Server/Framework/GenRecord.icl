@@ -101,4 +101,3 @@ where
 getFieldTypes _ = []
 	
 derive gEq GenType
-derive bimap (,)

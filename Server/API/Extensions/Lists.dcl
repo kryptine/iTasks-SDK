@@ -33,7 +33,7 @@ manageLists 	:: 				Task Void
 /**
 * Top level flow for a single list.
 */
-manageList		:: AnyList	->	Task Void
+manageList		:: !AnyList	->	Task Void
 /**
 * Create a new list.
 * 

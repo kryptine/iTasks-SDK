@@ -35,7 +35,6 @@ import iTasks
 :: BugNr :== Int
 
 derive class iTask	BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
-derive bimap (,), Maybe
 	
 instance DB Bug where
 	databaseId					= sharedStore "Bug" []

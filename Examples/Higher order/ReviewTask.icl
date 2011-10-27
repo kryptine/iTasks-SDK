@@ -12,7 +12,6 @@ import iTasks
 // The task itself in the example is a quotation form that needs to be filled in
 
 derive class iTask	QForm, Review, Person, Gender
-derive bimap (,), Maybe
 
 :: PersonData	=	{ name		:: String
 					, e_mail	:: String

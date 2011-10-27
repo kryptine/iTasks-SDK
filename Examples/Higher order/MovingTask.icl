@@ -3,7 +3,6 @@ implementation module MovingTask
 import iTasks
 
 derive class iTask	QForm, Person, Gender
-derive bimap (,), Maybe
 
 :: QForm = 	{ forCompany 		:: String
 			, startDate 		:: Date

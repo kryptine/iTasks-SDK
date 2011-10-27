@@ -29,6 +29,8 @@ import iTasks
 
 derive gVisualizeText	Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gVisualizeEditor	Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gHeaders			Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gGridRows		Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gUpdate			Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gDefaultMask		Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gVerify			Workflow, WorkflowDescription, WorkflowTaskContainer
@@ -79,7 +81,7 @@ instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
 * This task allows users to manage a catalogue of task definitions
 * and let's them create instances of these tasks and work on instances.
 */
-manageWorkflows :: [Workflow] ->  Task Void
+manageWorkflows :: ![Workflow] ->  Task Void
 
 /**
 * Dynamically adds a workflow to the system.

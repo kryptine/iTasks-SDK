@@ -7,7 +7,6 @@ import iTasks
 :: NegativeValueException = NegativeValueException String
 :: TooLargeValueException = TooLargeValueException String
 
-derive bimap Maybe,(,)
 derive class iTask NegativeValueException, TooLargeValueException
 
 instance toString NegativeValueException
