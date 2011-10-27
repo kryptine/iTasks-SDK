@@ -55,7 +55,7 @@ where
 	getDetails [user:users]
 		=				get (userDetails user)
 			>>= \d ->	getDetails users
-			>>= \ds ->	return [d:ds]
+			>>= \ds ->	return [fromJust d:ds]
 
 
 selectUserDetails :: Task UserDetails
@@ -63,7 +63,7 @@ selectUserDetails
     =     				get users
       >>= \users ->		enterChoice "Select a user" [] users
       >>= \user -> 		get (userDetails user)
-      >>= \details -> 	viewInformation ("Details of user " <+++ user) [] details
+      >>= \details -> 	viewInformation ("Details of user " <+++ user) [] (fromJust details)
 
 // Administrated users details
 
@@ -106,7 +106,7 @@ selectUserDetails2 :: Task UserDetails
 selectUserDetails2
     =     				enterSharedChoice "Select a user" [] users
       >>= \user -> 		get (userDetails user)
-      >>= \details -> 	viewInformation ("Details of user " <+++ user) [] details
+      >>= \details -> 	viewInformation ("Details of user " <+++ user) [] (fromJust details)
 
 // 
 
