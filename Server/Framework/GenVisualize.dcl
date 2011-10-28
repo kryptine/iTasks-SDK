@@ -107,11 +107,12 @@ visualizeCustom :: !TUIVizFunction !*VSt -> *(![TUIDef],!*VSt)
 * @param A flag indicating if the value is touched
 * @param Hint or Error message
 * @param A flag indicating if a static editor should be generated
+* @param The value sent as event for this control (used to avoid sending updates for value the user just entered)
 * @param VSt (currentPath points to first child of element, updateMasks & verifyMasks are masks of children)
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction :== TUIName Bool VerifyResult -> .(*VSt -> *(![TUIDef],!*VSt))
+:: TUIVizFunction :== TUIName Bool VerifyResult (Maybe JSONNode) -> .(*VSt -> *(![TUIDef],!*VSt))
 
 (+++>) infixr 5		:: !a	!String	-> String | gVisualizeText{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualizeText{|*|} a

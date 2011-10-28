@@ -76,7 +76,7 @@ where
 gVisualizeText{|GoogleMap|} _ _ = ["<Google map>"]
 gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl vst
 where
-	mkControl name _ _ vst=:{VSt|taskId}
+	mkControl name _ _ _ vst=:{VSt|taskId}
 		| False
 			//TODO
 			= ([], vst)

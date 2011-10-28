@@ -49,6 +49,8 @@ where
 	getMbSelection (RadioChoice options mbSel)					= getMbSelection` options mbSel snd
 	getMbSelectionView (RadioChoice options mbSel)				= getMbSelection` options mbSel fst
 	setOptions newOptions (RadioChoice oldOptions mbSel)		= RadioChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
+	selectIndex idx (RadioChoice options _)						= RadioChoice options (Just idx)
+	mkEmptyChoice												= RadioChoice [] Nothing
 
 mkComboChoice :: !(container (!v,!o)) !(Maybe o) -> ComboChoice v o | OptionContainer container & gEq{|*|} o
 mkComboChoice options mbSel = mkChoice options mbSel
@@ -61,6 +63,8 @@ where
 	getMbSelection (ComboChoice options mbSel)					= getMbSelection` options mbSel snd
 	getMbSelectionView (ComboChoice options mbSel)				= getMbSelection` options mbSel fst
 	setOptions newOptions (ComboChoice oldOptions mbSel)		= ComboChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
+	selectIndex idx (ComboChoice options _)						= ComboChoice options (Just idx)
+	mkEmptyChoice												= ComboChoice [] Nothing
 
 mkTreeChoice :: !(container (!v,!o)) !(Maybe o) -> TreeChoice v o | OptionContainer container & gEq{|*|} o
 mkTreeChoice options mbSel = mkChoice options mbSel
@@ -73,6 +77,8 @@ where
 	getMbSelection (TreeChoice options mbSel)					= getMbSelection` options mbSel snd
 	getMbSelectionView (TreeChoice options mbSel)				= getMbSelection` options mbSel fst
 	setOptions newOptions (TreeChoice oldOptions mbSel)			= TreeChoice (toOptionTree newOptions) (setOptions` oldOptions mbSel newOptions)
+	selectIndex idx (TreeChoice options _)						= TreeChoice options (Just idx)
+	mkEmptyChoice												= TreeChoice (Tree []) Nothing
 	
 mkGridChoice :: !(container (!v,!o)) !(Maybe o) -> GridChoice v o | OptionContainer container & gEq{|*|} o
 mkGridChoice options mbSel = mkChoice options mbSel
@@ -85,6 +91,8 @@ where
 	getMbSelection (GridChoice options mbSel)					= getMbSelection` options mbSel snd
 	getMbSelectionView (GridChoice options mbSel)				= getMbSelection` options mbSel fst
 	setOptions newOptions (GridChoice oldOptions mbSel)			= GridChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
+	selectIndex idx (GridChoice options _)						= GridChoice options (Just idx)
+	mkEmptyChoice												= GridChoice [] Nothing
 
 mkChoice` :: !((Maybe Int) -> choice v o) !(Maybe o) -> choice v o | Choice choice & gEq{|*|} o
 mkChoice` choice mbSel

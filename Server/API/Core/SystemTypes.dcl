@@ -176,7 +176,11 @@ where
 	getMbSelectionView		:: !(choiceType v o)						-> Maybe v
 	//* Sets the choice's options, tries to keep the selection as intact as possible
 	setOptions				:: !(container (!v,!o)) !(choiceType v o)	-> choiceType v o | OptionContainer container & gEq{|*|} o
-
+	//* Selects the option given by the index
+	selectIndex				:: !Int !(choiceType v o)					-> choiceType v o
+	//* Generates empty choice
+	mkEmptyChoice			:: 											   choiceType v o
+	
 :: ChoiceType	= AutoChoiceView
 				| ChooseFromRadioButtons
 				| ChooseFromComboBox
