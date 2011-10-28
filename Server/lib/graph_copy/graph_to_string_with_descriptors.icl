@@ -2,8 +2,8 @@ implementation module graph_to_string_with_descriptors;
 
 import StdEnv;
 
-import code from "copy_graph_to_string_interface.obj";
-import code from "copy_graph_to_string.obj";
+import code from "copy_graph_to_string_interface.";
+import code from "copy_graph_to_string.";
 
 eval_all_nodes :: !.a -> .a;
 eval_all_nodes g = code {

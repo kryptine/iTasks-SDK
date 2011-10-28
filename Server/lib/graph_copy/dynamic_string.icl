@@ -1,11 +1,12 @@
 implementation module dynamic_string
 
+import StdDynamic
 import StdEnv
 
-import code from "copy_graph_to_string_interface.obj"
-import code from "copy_graph_to_string.obj"
-import code from "copy_string_to_graph_interface.obj"
-import code from "copy_string_to_graph.obj"
+import code from "copy_graph_to_string_interface."
+import code from "copy_graph_to_string."
+import code from "copy_string_to_graph_interface."
+import code from "copy_string_to_graph."
 
 copy_to_string :: !.a -> *{#Char}
 copy_to_string g = code {
@@ -14,7 +15,7 @@ copy_to_string g = code {
 	.o 1 0
 }
 
-copy_from_string :: !*{#Char} -> (!.a,!Int)
+copy_from_string :: !*{#Char} -> (.a,!Int)
 copy_from_string g = code {
 	.d 1 0
 		jsr _copy_string_to_graph
@@ -30,3 +31,7 @@ string_to_dynamic :: *{#Char} -> .Dynamic
 string_to_dynamic s
 	# (d,_) = copy_from_string s
 	= d
+
+
+mk_unique :: !{#Char} -> *{#Char}
+mk_unique s = {s` \\ s` <-: s}

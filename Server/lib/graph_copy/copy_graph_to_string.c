@@ -1,20 +1,34 @@
 
 #include <stdlib.h>
 
-extern void *INT,*CHAR,*BOOL,*REAL,*_STRING__,*_ARRAY__;
+#ifdef _WIN64
+# define Int __int64
+# define INT_descriptor dINT
+#else
+# define Int int
+# define INT_descriptor INT
+# define __STRING__ _STRING__
+# define __ARRAY__ _ARRAY__
+#endif
+
+extern void *INT_descriptor,*CHAR,*BOOL,*REAL,*__STRING__,*__ARRAY__;
 
 /*inline*/
-static void copy (int *dest_p,int *source_p,int n_words)
+static void copy (Int *dest_p,Int *source_p,Int n_words)
 {
-	int i;
+	Int i;
 
 	for (i=0; i<n_words; ++i)
 		dest_p[i]=source_p[i];
 }
 
-int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap)
+Int *copy_graph_to_string (Int *node_p,void *begin_free_heap,void *end_free_heap
+#ifdef THREAD
+							,void *begin_heap,unsigned Int heap_size
+#endif
+							)
 {
-	int **stack_p,**stack_begin,**stack_end,*heap_p;
+	Int **stack_p,**stack_begin,**stack_end,*heap_p;
 
 	stack_end=end_free_heap;
 	stack_begin=end_free_heap;
@@ -22,53 +36,72 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 
 	heap_p=begin_free_heap;
 
-	if (heap_p+2>(int*)stack_begin)
+	if (heap_p+2>(Int*)stack_begin)
 		return NULL;
-		
-	heap_p[0]=(int)&_STRING__+2;
+
+	heap_p[0]=(Int)&__STRING__+2;
 	heap_p[1]=0;
 	heap_p+=2;
 
 	for (;;){
 		for (;;){
-			int desc;
-			
+			Int desc;
+
+#ifdef THREAD
+			if (((unsigned Int)node_p-(unsigned Int)begin_heap)>=heap_size){
+				if (heap_p>=(Int*)stack_begin)
+					return NULL;
+				heap_p[0]=3+(Int)node_p;
+				++heap_p;
+				break;
+			}
+#endif
+
 			desc=*node_p;
-			
-			if (heap_p>=(int*)stack_begin)
+
+			if (heap_p>=(Int*)stack_begin)
 				return NULL;
 			
 			if (!(desc & 1)){
-				*node_p=1+(int)heap_p;
+				*node_p=1+(Int)heap_p;
 				*heap_p++=desc;
 				
 				if (desc & 2){
-					unsigned int arity;
+					unsigned Int arity;
 					
 					arity=((unsigned short *)desc)[-1];
 					if (arity==0){
-						if (desc==(int)&INT+2 || desc==(int)&CHAR+2 || desc==(int)&BOOL+2){
-							if (heap_p>=(int*)stack_begin)
+						if (desc==(Int)&INT_descriptor+2 || desc==(Int)&CHAR+2 || desc==(Int)&BOOL+2
+#ifdef _WIN64
+							|| desc==(Int)&REAL+2
+#endif
+						){
+							if (heap_p>=(Int*)stack_begin)
 								return NULL;
 
 							*heap_p++=node_p[1];
 							break;
-						} else if (desc==(int)&REAL+2){
-							if (heap_p+2>(int*)stack_begin)
+#ifndef _WIN64
+						} else if (desc==(Int)&REAL+2){
+							if (heap_p+2>(Int*)stack_begin)
 								return NULL;
 						
 							heap_p[0]=node_p[1];
 							heap_p[1]=node_p[2];
 							heap_p+=2;
 							break;
-						} else if (desc==(int)&_STRING__+2){
-							unsigned int length,n_words;
+#endif
+						} else if (desc==(Int)&__STRING__+2){
+							unsigned Int length,n_words;
 							
 							length=node_p[1];
 							node_p+=2;
+#ifdef _WIN64
+							n_words=(length+7)>>3;							
+#else
 							n_words=(length+3)>>2;
-							
-							if (heap_p+n_words>=(int*)stack_begin)
+#endif							
+							if (heap_p+n_words>=(Int*)stack_begin)
 								return NULL;
 													
 							*heap_p++=length;
@@ -76,10 +109,10 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 							copy (heap_p,node_p,n_words);
 							heap_p+=n_words;
 							break;
-						} else if (desc==(int)&_ARRAY__+2){
-							int array_size,elem_desc;
+						} else if (desc==(Int)&__ARRAY__+2){
+							Int array_size,elem_desc;
 
-							if (heap_p+2>(int*)stack_begin)
+							if (heap_p+2>(Int*)stack_begin)
 								return NULL;
 
 							array_size=node_p[1];
@@ -93,49 +126,58 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 							if (elem_desc==0){
 								stack_p-=array_size;
 								if (stack_p<stack_begin){
-									if ((int*)stack_p<heap_p)
+									if ((Int*)stack_p<heap_p)
 										return NULL;
 									stack_begin=stack_p;
 								}
 								
 								while (--array_size>=0)
-									stack_p[array_size]=(int*)node_p[array_size];						
+									stack_p[array_size]=(Int*)node_p[array_size];						
 								break;
-							} else if (elem_desc==(int)&INT+2){
-								if (heap_p+array_size>(int*)stack_begin)
+							} else if (elem_desc==(Int)&INT_descriptor+2
+#ifdef _WIN64
+								|| elem_desc==(Int)&REAL+2
+#endif
+							){
+								if (heap_p+array_size>(Int*)stack_begin)
 									return NULL;
 							
 								copy (heap_p,node_p,array_size);	
 								heap_p+=array_size;
 								break;
-							} else if (elem_desc==(int)&REAL+2){
+#ifndef _WIN64
+							} else if (elem_desc==(Int)&REAL+2){
 								array_size<<=1;
 							
-								if (heap_p+array_size>(int*)stack_begin)
+								if (heap_p+array_size>(Int*)stack_begin)
 									return NULL;
 								
 								copy (heap_p,node_p,array_size);
 								heap_p+=array_size;
 								break;
-							} else if (elem_desc==(int)&BOOL+2){
+#endif
+							} else if (elem_desc==(Int)&BOOL+2){
+#ifdef _WIN64
+								array_size=(array_size+7)>>3;
+#else
 								array_size=(array_size+3)>>2;
-
-								if (heap_p+array_size>(int*)stack_begin)
+#endif
+								if (heap_p+array_size>(Int*)stack_begin)
 									return NULL;
 								
 								copy (heap_p,node_p,array_size);
 								heap_p+=array_size;
 								break;
 							} else {
-								int n_field_pointers,field_size;
+								Int n_field_pointers,field_size;
 								
 								n_field_pointers=*(unsigned short *)elem_desc;
-								field_size=((unsigned short *)elem_desc)[-1]-256;
+								field_size=((unsigned short *)elem_desc)[-1]-(Int)256;
 
 								if (n_field_pointers==0){
 									array_size*=field_size;
 									
-									if (heap_p+array_size>(int*)stack_begin)
+									if (heap_p+array_size>(Int*)stack_begin)
 										return NULL;
 									
 									copy (heap_p,node_p,array_size);
@@ -146,32 +188,32 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 
 									stack_p-=array_size;
 									if (stack_p<stack_begin){
-										if ((int*)stack_p<heap_p)
+										if ((Int*)stack_p<heap_p)
 											return NULL;
 										stack_begin=stack_p;
 									}
 									
 									while (--array_size>=0)
-										stack_p[array_size]=(int*)node_p[array_size];						
+										stack_p[array_size]=(Int*)node_p[array_size];						
 									break;
 								} else {
-									int n_non_field_pointers,n_array_pointers,n_array_non_pointers,i,*pointer_p;
+									Int n_non_field_pointers,n_array_pointers,n_array_non_pointers,i,*pointer_p;
 									
 									n_non_field_pointers=field_size-n_field_pointers;
 									n_array_pointers=n_field_pointers*array_size;
 									n_array_non_pointers=n_non_field_pointers*array_size;
 									
-									if (heap_p+n_array_non_pointers>(int*)stack_begin)
+									if (heap_p+n_array_non_pointers>(Int*)stack_begin)
 										return NULL;
 									
 									stack_p-=n_array_pointers;
 									if (stack_p<stack_begin){
-										if ((int*)stack_p<heap_p+n_array_non_pointers)
+										if ((Int*)stack_p<heap_p+n_array_non_pointers)
 											return NULL;
 										stack_begin=stack_p;
 									}
 									
-									pointer_p=(int*)stack_p;
+									pointer_p=(Int*)stack_p;
 									
 									for (i=0; i<array_size; ++i){
 										copy (pointer_p,node_p,n_field_pointers);
@@ -189,27 +231,27 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 							break;
 						}				
 					} else if (arity==1){
-						node_p=(int*)node_p[1];
+						node_p=(Int*)node_p[1];
 						continue;
 					} else if (arity==2){
 						if (stack_p<=stack_begin){
-							if ((int*)stack_p<=heap_p)
+							if ((Int*)stack_p<=heap_p)
 								return NULL;
 							--stack_begin;
 						}
 
-						*--stack_p=(int*)node_p[2];
-						node_p=(int*)node_p[1];
+						*--stack_p=(Int*)node_p[2];
+						node_p=(Int*)node_p[1];
 						continue;
 					} else if (arity<256){
-						int **args,n_words;
+						Int **args,n_words;
 
-						args=(int**)node_p[2];
+						args=(Int**)node_p[2];
 						n_words=arity-1;
 						
 						stack_p-=n_words;
 						if (stack_p<stack_begin){
-							if ((int*)stack_p<heap_p)
+							if ((Int*)stack_p<heap_p)
 								return NULL;
 							stack_begin=stack_p;
 						}
@@ -221,28 +263,28 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 						while (--n_words>=0)
 							stack_p[n_words]=args[n_words];
 
-						node_p=(int*)node_p[1];
+						node_p=(Int*)node_p[1];
 						continue;
 					} else {
-						int n_pointers;
+						Int n_pointers;
 						
 						n_pointers=*(unsigned short*)desc;
 						arity-=256;
 						
 						if (arity==1){
 							if (n_pointers==0){
-								if (heap_p>=(int*)stack_begin)
+								if (heap_p>=(Int*)stack_begin)
 									return NULL;
 						
 								*heap_p++=node_p[1];
 								break;
 							} else {
-								node_p=(int*)node_p[1];
+								node_p=(Int*)node_p[1];
 								continue;
 							}
 						} else if (arity==2){
 							if (n_pointers==0){
-								if (heap_p+2>(int*)stack_begin)
+								if (heap_p+2>(Int*)stack_begin)
 									return NULL;
 							
 								heap_p[0]=node_p[1];
@@ -251,29 +293,29 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 								break;
 							} else {
 								if (n_pointers==1){
-									if (heap_p>=(int*)stack_begin)
+									if (heap_p>=(Int*)stack_begin)
 										return NULL;
 						
 									*heap_p++=node_p[2];
 								} else {
 									if (stack_p<=stack_begin){
-										if ((int*)stack_p<heap_p)
+										if ((Int*)stack_p<=heap_p)
 											return NULL;
 										--stack_begin;
 									}
 
-									*--stack_p=(int*)node_p[2];
+									*--stack_p=(Int*)node_p[2];
 								}
-								node_p=(int*)node_p[1];
+								node_p=(Int*)node_p[1];
 								continue;							
 							}
 						} else {
-							int *args;
+							Int *args;
 
-							args=(int*)node_p[2];
+							args=(Int*)node_p[2];
 
 							if (n_pointers==0){
-								if (heap_p+arity>=(int*)stack_begin)
+								if (heap_p+arity>=(Int*)stack_begin)
 									return NULL;
 
 								heap_p[0]=node_p[1];
@@ -284,14 +326,14 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 								heap_p+=arity;
 								break;
 							} else {
-								int n_non_pointers;
+								Int n_non_pointers;
 
 								n_non_pointers=arity-n_pointers;
 
 								if (n_non_pointers>0){
-									int *non_pointers_p;
+									Int *non_pointers_p;
 
-									if (heap_p+n_non_pointers>(int*)stack_begin)
+									if (heap_p+n_non_pointers>(Int*)stack_begin)
 										return NULL;
 
 									non_pointers_p=&args[n_pointers-1];
@@ -304,33 +346,33 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 								if (n_pointers>0){
 									stack_p-=n_pointers;
 									if (stack_p<stack_begin){
-										if ((int*)stack_p<heap_p)
+										if ((Int*)stack_p<heap_p)
 											return NULL;
 										stack_begin=stack_p;
 									}
 									
-									copy ((int*)stack_p,args,n_pointers);
+									copy ((Int*)stack_p,args,n_pointers);
 								}
 
-								node_p=(int*)node_p[1];
+								node_p=(Int*)node_p[1];
 								continue;
 							}
 						}
 					}
 				} else {
-					int arity;
-					
+					Int arity;
+
 					arity=((int*)desc)[-1];
 					if (arity>1){
 						if (arity<256){
-							int **args,n_words;
+							Int **args,n_words;
 			
-							args=(int**)&node_p[2];
+							args=(Int**)&node_p[2];
 							n_words=arity-1;
 							
 							stack_p-=n_words;
 							if (stack_p<stack_begin){
-								if ((int*)stack_p<heap_p)
+								if ((Int*)stack_p<heap_p)
 									return NULL;
 								stack_begin=stack_p;
 							}
@@ -340,15 +382,15 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 							while (--n_words>=0)
 								stack_p[n_words]=args[n_words];
 							
-							node_p=(int*)node_p[1];
+							node_p=(Int*)node_p[1];
 							continue;
 						} else {
-							int n_pointers,n_non_pointers,*non_pointers_p;
+							Int n_pointers,n_non_pointers,*non_pointers_p;
 							
 							n_non_pointers=arity>>8;
 							n_pointers=(arity & 255) - n_non_pointers;
 							
-							if (heap_p+n_non_pointers>(int*)stack_begin)
+							if (heap_p+n_non_pointers>(Int*)stack_begin)
 								return NULL;
 							
 							non_pointers_p=&node_p[1+n_pointers];
@@ -360,14 +402,14 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 								break;
 							else {
 								if (n_pointers>1){
-									int **args;
+									Int **args;
 									
-									args=(int**)&node_p[2];
+									args=(Int**)&node_p[2];
 									--n_pointers;
 									
 									stack_p-=n_pointers;
 									if (stack_p<stack_begin){
-										if ((int*)stack_p<heap_p)
+										if ((Int*)stack_p<heap_p)
 											return NULL;
 										stack_begin=stack_p;
 									}
@@ -377,29 +419,29 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 									while (--n_pointers>=0)
 										stack_p[n_pointers]=args[n_pointers];
 								}
-								node_p=(int*)node_p[1];
+								node_p=(Int*)node_p[1];
 								continue;
 							}
 						}
 					} else if (arity==0){
 						break;
 					} else {
-						node_p=(int*)node_p[1];
+						node_p=(Int*)node_p[1];
 						continue;
 					}
 				}
 			} else {
-				if (heap_p>=(int*)stack_begin)
+				if (heap_p>=(Int*)stack_begin)
 					return NULL;
 				
-				heap_p[0]=1+(desc-1)-(int)heap_p;
+				heap_p[0]=1+(desc-1)-(Int)heap_p;
 				++heap_p;
 				break;
 			}
 		}
 
 		if (stack_p==stack_end){
-			((int*)begin_free_heap)[1]=(int)heap_p-(int)begin_free_heap-8;
+			((Int*)begin_free_heap)[1]=(Int)heap_p-(Int)begin_free_heap-(2*sizeof(Int));
 			return begin_free_heap;
 		}
 		
@@ -409,37 +451,37 @@ int *copy_graph_to_string (int *node_p,void *begin_free_heap,void *end_free_heap
 	return NULL;
 }
 
-void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
+void remove_forwarding_pointers_from_graph (Int *node_p,Int **stack_end)
 {
-	int **stack_p;
+	Int **stack_p;
 
 	stack_p = stack_end;
 
 	for (;;){
 		for (;;){
-			int forwarding_pointer,desc;
+			Int forwarding_pointer,desc;
 			
 			forwarding_pointer=*node_p;
 			if ((forwarding_pointer & 1)==0)
 				break;
 			
-			desc = *((int*)(forwarding_pointer-1));
+			desc = *((Int*)(forwarding_pointer-1));
 			*node_p=desc;
 			
 			if (desc & 2){
-				unsigned int arity;
+				unsigned Int arity;
 					
 				arity=((unsigned short *)desc)[-1];
 				if (arity==0){
-					if (desc!=(int)&_ARRAY__+2){
+					if (desc!=(Int)&__ARRAY__+2){
 						break;
 					} else {
-						int elem_desc;
+						Int elem_desc;
 
 						elem_desc=node_p[2];
 													
 						if (elem_desc==0){
-							int array_size;
+							Int array_size;
 							
 							array_size=node_p[1];
 							node_p+=3;
@@ -447,19 +489,19 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 							stack_p-=array_size;
 							
 							while (--array_size>=0)
-								stack_p[array_size]=(int*)node_p[array_size];						
+								stack_p[array_size]=(Int*)node_p[array_size];						
 							break;
-						} else if (elem_desc==(int)&INT+2 || elem_desc==(int)&REAL+2 || elem_desc==(int)&BOOL+2){
+						} else if (elem_desc==(Int)&INT_descriptor+2 || elem_desc==(Int)&REAL+2 || elem_desc==(Int)&BOOL+2){
 							break;
 						} else {
-							int n_field_pointers;
+							Int n_field_pointers;
 							
 							n_field_pointers=*(unsigned short *)elem_desc;
 
 							if (n_field_pointers!=0){
-								int field_size,array_size;
+								Int field_size,array_size;
 								
-								field_size=((unsigned short *)elem_desc)[-1]-256;
+								field_size=((unsigned short *)elem_desc)[-1]-(Int)256;
 
 								array_size=node_p[1];
 								node_p+=3;
@@ -470,15 +512,15 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 									stack_p-=array_size;
 									
 									while (--array_size>=0)
-										stack_p[array_size]=(int*)node_p[array_size];						
+										stack_p[array_size]=(Int*)node_p[array_size];						
 								} else {
-									int n_array_pointers,i,*pointer_p;
+									Int n_array_pointers,i,*pointer_p;
 									
 									n_array_pointers=n_field_pointers*array_size;
 									
 									stack_p-=n_array_pointers;
 									
-									pointer_p=(int*)stack_p;
+									pointer_p=(Int*)stack_p;
 									
 									for (i=0; i<array_size; ++i){
 										copy (pointer_p,node_p,n_field_pointers);
@@ -491,17 +533,17 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 						}						
 					}
 				} else if (arity==1){
-					node_p=(int*)node_p[1];
+					node_p=(Int*)node_p[1];
 					continue;
 				} else if (arity==2){
-					*--stack_p=(int*)node_p[2];
+					*--stack_p=(Int*)node_p[2];
 				
-					node_p=(int*)node_p[1];
+					node_p=(Int*)node_p[1];
 					continue;
 				} else if (arity<256){
-					int **args,n_words;
+					Int **args,n_words;
 
-					args=(int**)node_p[2];
+					args=(Int**)node_p[2];
 					n_words=arity-1;
 					
 					stack_p-=n_words;
@@ -511,10 +553,10 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 					while (--n_words>=0)
 						stack_p[n_words]=args[n_words];
 
-					node_p=(int*)node_p[1];
+					node_p=(Int*)node_p[1];
 					continue;					
 				} else {
-					int n_pointers;
+					Int n_pointers;
 					
 					n_pointers=*(unsigned short*)desc;
 					if (n_pointers==0)
@@ -524,17 +566,17 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 							if (n_pointers==2){
 								arity-=256;
 								if (arity==2){
-									*--stack_p=(int*)node_p[2];									
+									*--stack_p=(Int*)node_p[2];									
 								} else {
-									int **args;
+									Int **args;
 
-									args=(int**)node_p[2];
+									args=(Int**)node_p[2];
 									*--stack_p=args[0];									
 								}
 							} else {
-								int **args,n_words;
+								Int **args,n_words;
 
-								args=(int**)node_p[2];
+								args=(Int**)node_p[2];
 								n_words=n_pointers-1;
 								
 								stack_p-=n_words;
@@ -546,19 +588,19 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 
 							}
 						}
-						node_p=(int*)node_p[1];
+						node_p=(Int*)node_p[1];
 						continue;
 					}
 				}
 			} else {
-				int arity;
+				Int arity;
 
 				arity=((int*)desc)[-1];
 				if (arity>1){
 					if (arity<256){
-						int **args,n_words;
+						Int **args,n_words;
 		
-						args=(int**)&node_p[2];
+						args=(Int**)&node_p[2];
 						n_words=arity-1;
 						
 						stack_p-=n_words;
@@ -568,10 +610,10 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 						while (--n_words>=0)
 							stack_p[n_words]=args[n_words];
 						
-						node_p=(int*)node_p[1];
+						node_p=(Int*)node_p[1];
 						continue;
 					} else {
-						int n_pointers,n_non_pointers;
+						Int n_pointers,n_non_pointers;
 						
 						n_non_pointers=arity>>8;
 						n_pointers=(arity & 255) - n_non_pointers;
@@ -580,9 +622,9 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 							break;
 						else {
 							if (n_pointers>1){
-								int **args;
+								Int **args;
 								
-								args=(int**)&node_p[2];
+								args=(Int**)&node_p[2];
 								--n_pointers;
 								
 								stack_p-=n_pointers;
@@ -592,14 +634,14 @@ void remove_forwarding_pointers_from_graph (int *node_p,int **stack_end)
 								while (--n_pointers>=0)
 									stack_p[n_pointers]=args[n_pointers];
 							}
-							node_p=(int*)node_p[1];
+							node_p=(Int*)node_p[1];
 							continue;
 						}						
 					}
 				} else if (arity==0){
 					break;
 				} else {
-					node_p=(int*)node_p[1];
+					node_p=(Int*)node_p[1];
 					continue;
 				}
 			}
