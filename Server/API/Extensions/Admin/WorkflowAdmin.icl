@@ -80,8 +80,8 @@ where
 	getTask iworld
 		# (mbWorkflow,iworld) = 'WorkflowDB'.getWorkflow wid iworld
 		= case mbWorkflow of
-			Just {task}	= (Ok task, iworld)
-			_			= (Error ("could not find workflow " +++ (toString wid)), iworld)
+			Just {Workflow|task}	= (Ok task, iworld)
+			_						= (Error ("could not find workflow " +++ (toString wid)), iworld)
 
 
 // MANAGEMENT TASKS

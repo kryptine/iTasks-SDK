@@ -13,4 +13,6 @@ import Engine
 * @param The world
 * @return The world
 */
-startEngine :: (Task a) !*World -> *World | iTask a
+startEngine :: a !*World -> *World | Publishable a
+
+

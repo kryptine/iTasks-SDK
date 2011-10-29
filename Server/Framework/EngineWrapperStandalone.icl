@@ -6,22 +6,22 @@ import HTTP, HttpServer
 
 import WebService, DocumentService
 
-startEngine :: (Task a) !*World -> *World | iTask a
-startEngine task world
+startEngine :: a !*World -> *World | Publishable a
+startEngine publishable world
 	# (mbConfig,world)	= config world
 	# (app,world)		= determineAppName world
 	# world				= instructions app mbConfig world
 	# options			= case mbConfig of
 							Just config = [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
 							Nothing		= []
-	# world				= http_startServer options (engine mbConfig task handlers) world
+	# world				= http_startServer options (engine mbConfig publishable) world
 	| isJust mbConfig
 		= world // normal operation: stop server
 	| otherwise
 		# (console,world)	= stdio world
 		# console			= fwrites ("\n\n") console
 		# (_,world)			= fclose console world
-		= startEngine task world // setup mode: restart server
+		= startEngine publishable world // setup mode: restart server
 where
 	instructions :: !String !(Maybe Config) *World -> *World
 	//Normal operation
@@ -44,5 +44,3 @@ where
 		# (_,world)			= fclose console world
 		= world
 		
-	handlers :: [Handler] 
-	handlers =		[  ("documents",["html","json"],documentService)]

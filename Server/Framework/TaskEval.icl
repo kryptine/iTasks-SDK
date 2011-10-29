@@ -22,10 +22,10 @@ setFinished meta = {meta & status = Finished}
 setExcepted :: !ProgressMeta  -> ProgressMeta
 setExcepted meta = {meta & status = Excepted}
 
-createThread :: (Task a) -> Dynamic | iTask a
-createThread task = (dynamic container :: Container (TaskThread a^) a^)
+createContainer :: (Task a) -> Dynamic | iTask a
+createContainer task = (dynamic container :: Container (Task a^) a^)
 where
- 	container = Container {TaskThread|originalTask = task, currentTask = task}
+ 	container = Container task
 
 processNo :: !ProcessId -> Int
 processNo (SessionProcess _)		= 0
@@ -33,12 +33,11 @@ processNo (WorkflowProcess no)		= no
 processNo (EmbeddedProcess no _)	= no 
 
 createContext :: !ProcessId !Dynamic !ManagementMeta !User !*IWorld -> (!TaskContext, !*IWorld)
-createContext processId thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) mmeta user iworld=:{IWorld|localDateTime}
-	# originalTaskFuncs = taskFuncs originalTask
-	# (tcontext,iworld) = originalTaskFuncs.initFun (taskNo processId) iworld		
-	# tmeta = taskMeta originalTask
+createContext processId container=:(Container task :: Container (Task a) a) mmeta user iworld=:{IWorld|localDateTime}
+	# (tcontext,iworld) = (taskFuncs task).initFun (taskNo processId) iworld		
+	# tmeta = taskMeta task
 	# pmeta = {issuedAt = localDateTime, issuedBy = user, status = Running, firstEvent = Nothing, latestEvent = Nothing}
-	= (TaskContext processId tmeta pmeta mmeta 0 (TTCRunning thread tcontext),iworld)
+	= (TaskContext processId tmeta pmeta mmeta 0 (TTCRunning container tcontext),iworld)
 where
 	taskNo (WorkflowProcess pid)= [0,pid]
 	taskNo (SessionProcess _)	= [0,0]
@@ -47,8 +46,8 @@ where
 editInstance :: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 editInstance editEvent context=:(TaskContext processId tmeta pmeta mmeta changeNo tcontext) iworld
 	= case tcontext of
-		TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext
-			# editFun			= (taskFuncs currentTask).editFun
+		TTCRunning container=:(Container task :: Container (Task a) a) scontext
+			# editFun			= (taskFuncs task).editFun
 			# procNo			= processNo processId
 			# taskNr			= [changeNo,procNo]
 			# (scontext,iworld) = case editEvent of
@@ -61,7 +60,7 @@ editInstance editEvent context=:(TaskContext processId tmeta pmeta mmeta changeN
 					= editFun taskNr (ProcessEvent steps event) scontext iworld
 				_
 					= (scontext, iworld)
-			= (Ok (TaskContext processId tmeta pmeta mmeta changeNo (TTCRunning thread scontext)), iworld)
+			= (Ok (TaskContext processId tmeta pmeta mmeta changeNo (TTCRunning container scontext)), iworld)
 		_
 			= (Ok context, iworld)
 
@@ -71,9 +70,9 @@ evalInstance :: !TaskNr !(Maybe CommitEvent) !TaskContext  !*IWorld	-> (!MaybeEr
 evalInstance target commitEvent context=:(TaskContext processId tmeta pmeta mmeta changeNo tcontext) iworld=:{evalStack}
 	= case tcontext of
 		//Eval instance
-		TTCRunning thread=:(Container {TaskThread|currentTask} :: Container (TaskThread a) a) scontext
-			# evalFun			= (taskFuncs currentTask).evalFun
-			# (ilayout,playout)	= taskLayouters currentTask
+		TTCRunning container=:(Container task :: Container (Task a) a) scontext
+			# evalFun			= (taskFuncs task).evalFun
+			# (ilayout,playout)	= taskLayouters task
 			# procNo			= processNo processId
 			# taskNo			= [changeNo,procNo]
 			//Update current process id & eval stack in iworld
@@ -95,7 +94,7 @@ evalInstance target commitEvent context=:(TaskContext processId tmeta pmeta mmet
 			= case result of
 				TaskBusy tui actions scontext
 				//	# properties	= setRunning properties
-					# context		= TaskContext processId tmeta (setRunning pmeta) mmeta changeNo (TTCRunning thread scontext)
+					# context		= TaskContext processId tmeta (setRunning pmeta) mmeta changeNo (TTCRunning container scontext)
 					= (Ok (TaskBusy tui actions scontext), context, iworld)
 				TaskFinished val
 					# context		= TaskContext processId tmeta (setFinished pmeta) mmeta changeNo (TTCFinished (dynamic val))
@@ -111,7 +110,7 @@ evalInstance target commitEvent context=:(TaskContext processId tmeta pmeta mmet
 createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
 createSessionInstance task iworld
 	# (sessionId,iworld)	= newSessionId iworld
-	# (context, iworld)		= createContext sessionId (createThread task) noMeta AnyUser iworld
+	# (context, iworld)		= createContext sessionId (createContainer task) noMeta AnyUser iworld
 	# (mbRes,iworld)		= iterateEval [0,0] Nothing context iworld
 	= case mbRes of
 		Ok result	= (Ok (result, sessionId), iworld)
@@ -188,8 +187,8 @@ where
 		AppendTask pid user (container :: TaskContainer Void)
 			//Make thread and properties
 			# (thread,managerProperties) = case container of
-				(Embedded,tfun)			= (createThread (tfun GlobalTaskList),{noMeta & worker = Just user})
-				(Detached props,tfun)	= (createThread (tfun GlobalTaskList), props)	
+				(Embedded,tfun)			= (createContainer (tfun GlobalTaskList),{noMeta & worker = Just user})
+				(Detached props,tfun)	= (createContainer (tfun GlobalTaskList), props)	
 			//Make context
 			# (context,iworld) = createContext (WorkflowProcess pid) thread managerProperties user iworld			
 			= execControls cs (queue ++ [context]) iworld

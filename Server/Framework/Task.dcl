@@ -61,11 +61,6 @@ taskFuncs :: !(Task a) -> TaskFuncs a | iTask a
 // Gives the layouter functions for a task
 taskLayouters :: !(Task a) -> (InteractionLayouter, ParallelLayouter)
 
-:: TaskThread a		=
-	{ originalTask		:: Task a
-	, currentTask		:: Task a
-	}
-	
 taskException :: !e -> TaskResult a | TC, toString e
 
 /**

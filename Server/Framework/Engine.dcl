@@ -9,18 +9,30 @@ from IWorld			import :: IWorld
 from HTTP			import :: HTTPRequest, :: HTTPResponse
 from Config			import :: Config
 
-:: HandlerFormat :== String
-
-:: Handler :== (!String,![HandlerFormat],!String HandlerFormat [String] HTTPRequest *IWorld -> *(!HTTPResponse, !*IWorld))
+:: PublishedTask =
+	{ url	:: String
+	, task	:: TaskWrapper
+	}
 
 /**
-* Creates the iTasks system from a set of workflow definitions
+* Creates the iTasks system from a set of published tasks
 *
 * @param  An optional config record
 * @param  A task to execute
-* @return A list of predicate/handler pairs that can be plugged into a server
 */
-engine :: !(Maybe Config) (Task a) ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | iTask a
+engine :: !(Maybe Config) publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
+
+/**
+* Wraps a task together with a url to make it publishable by the engine
+*/
+publish :: String (Task a) -> PublishedTask | iTask a
+
+class Publishable a
+where
+	publishAll :: a -> [PublishedTask]
+
+instance Publishable (Task a) | iTask a
+instance Publishable [PublishedTask]
 
 /**
 * Loads the itasks specific config

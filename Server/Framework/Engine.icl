@@ -11,8 +11,8 @@ import	IWorld
 import	WebService
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !(Maybe Config) (Task a) ![Handler] -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | iTask a
-engine mbConfig task handlers
+engine :: !(Maybe Config) publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
+engine mbConfig publishable
 	= case mbConfig of
 		Just config
 			= handlers` config
@@ -20,31 +20,18 @@ engine mbConfig task handlers
 			= [(\_ -> True, setupHandler)]
 where
 	handlers` config
-		= [
-		  // Handler to stop the server nicely
-		   ((==) "/stop", handleStopRequest)
-		  // Webservices
-		  ,((==) "/", taskDispatch config task)
-		  ,(startsWith config.serverPath, serviceDispatch config)
-		  ,(\_ -> True, handleStaticResourceRequest config)
-		  ]
-
-	serviceDispatch config req world
-		# iworld			= initIWorld config world
-		# reqpath			= (urlDecode req.req_path)
-		# reqpath			= reqpath % (size config.serverPath, size reqpath)
-		# (response,iworld)	= case (split "/" reqpath) of
-			["",format,name:path] = case filter (\(name`,formats,_) -> name` == name && isMember format formats) handlers of
-				[(_,_,handler):_]	= handler req.req_path format path req iworld
-				[]					= (notFoundResponse req, iworld)
-			_
-				= (notFoundResponse req, iworld)
-		= (response, finalizeIWorld iworld)
-
+		= taskHandlers (publishAll publishable) config ++ defaultHandlers config
+		
+	taskHandlers published config
+		= [((==) url, taskDispatch config task) \\ {url,task=TaskWrapper task} <- published]	
+	
 	taskDispatch config task req world
 		# iworld 			= initIWorld config world
 		# (response,iworld)	= webService task req iworld
 		= (response, finalizeIWorld iworld)
+	
+	defaultHandlers config
+		= [((==) "/stop", handleStopRequest),(\_ -> True, handleStaticResourceRequest config)]
 		
 initIWorld :: !Config !*World -> *IWorld
 initIWorld config world
@@ -123,6 +110,17 @@ handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!*World)
 handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, world) //Stop
 
 path2name path = last (split "/" path)
+
+publish :: String (Task a) -> PublishedTask | iTask a
+publish url task = {url = url, task = TaskWrapper task}
+
+instance Publishable (Task a) | iTask a
+where
+	publishAll task = [publish "/" task]
+
+instance Publishable [PublishedTask]
+where
+	publishAll list = list
 
 config :: !*World -> (!Maybe Config,!*World)
 config world
