@@ -159,7 +159,7 @@ where
 						# taskId		= taskNrToString taskNr
 						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
 						# (tui,actions)	= mergeTUI props ilayout [tui \\ Just tui <- tuis] warning tactions 
-						= (TaskBusy (Just tui) actions context, iworld)
+						= (TaskBusy (TUIRep tui) actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
 		= case getLocalVar LAST_EDIT_STORE context of
@@ -286,7 +286,7 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally processId iworld
 			| found
-				= (TaskBusy (Just (stringDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
+				= (TaskBusy (TUIRep (stringDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
@@ -301,8 +301,8 @@ where
 				# iworld		= storeTaskInstance context iworld
 				# (state,tui,sactions,iworld) = case result of
 					(TaskBusy tui actions _)		= (WOActive, tui, actions, iworld)
-					(TaskFinished _)				= (WOFinished, Just (stringDisplay "Task finished"), [], iworld)
-					(TaskException _ err)			= (WOExcepted, Just (stringDisplay ("Task excepted: " +++ err)), [], iworld)
+					(TaskFinished _)				= (WOFinished, TUIRep (stringDisplay "Task finished"), [], iworld)
+					(TaskException _ err)			= (WOExcepted, TUIRep (stringDisplay ("Task excepted: " +++ err)), [], iworld)
 				//Check trigger
 				= case termFunc {localValid = True, modelValue = state} of
 					StopInteraction result

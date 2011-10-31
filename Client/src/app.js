@@ -5,7 +5,6 @@ Ext.application({
 		'itasks.layout.VHBox',
 		//Extension classes
 		'itasks.extension.GoogleMap'
-		//'itasks.extension.GoogleStaticMap'
 	],
 	controllers: [
 		'Controller'

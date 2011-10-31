@@ -35,9 +35,9 @@ where
 			eval taskNr props event tuiTaskNr ilayout playout context iworld
 				# (res,iworld) = funcs.evalFun taskNr props event tuiTaskNr ilayout playout context iworld
 				= case res of
-					(TaskBusy (Just tui) actions context)
+					(TaskBusy (TUIRep tui) actions context)
 						# (tui,actions) = tweak (tui,actions)
-						= (TaskBusy (Just tui) actions context,iworld)
+						= (TaskBusy (TUIRep tui) actions context,iworld)
 					_	
 						= (res,iworld)
 		

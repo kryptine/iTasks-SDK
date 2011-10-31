@@ -23,11 +23,11 @@ where
 		= taskHandlers (publishAll publishable) config ++ defaultHandlers config
 		
 	taskHandlers published config
-		= [((==) url, taskDispatch config task) \\ {url,task=TaskWrapper task} <- published]	
+		= [((==) url, taskDispatch config task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
-	taskDispatch config task req world
+	taskDispatch config task defaultFormat req world
 		# iworld 			= initIWorld config world
-		# (response,iworld)	= webService task req iworld
+		# (response,iworld)	= webService task defaultFormat req iworld
 		= (response, finalizeIWorld iworld)
 	
 	defaultHandlers config
@@ -111,12 +111,12 @@ handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Se
 
 path2name path = last (split "/" path)
 
-publish :: String (Task a) -> PublishedTask | iTask a
-publish url task = {url = url, task = TaskWrapper task}
+publish :: String ServiceFormat (Task a) -> PublishedTask | iTask a
+publish url format task = {url = url, task = TaskWrapper task, defaultFormat = format}
 
 instance Publishable (Task a) | iTask a
 where
-	publishAll task = [publish "/" task]
+	publishAll task = [publish "/" WebApp task]
 
 instance Publishable [PublishedTask]
 where

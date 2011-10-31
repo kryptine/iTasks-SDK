@@ -88,7 +88,7 @@ where
 	tuiOk i [] tui		= tui
 	tuiOk i [t:ts] tui	
 		| i == t	= tui
-		| otherwise	= Nothing 
+		| otherwise	= NoRep
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
@@ -429,7 +429,7 @@ where
 						 ,instruction = pmeta.TaskMeta.instruction
 				 		 ,items = items
 				 		 }
-				= (Just tui, actions)
+				= (TUIRep tui, actions)
 				where
 					isHidden (STCHidden _ _) = True
 					isHidden _ = False
@@ -440,22 +440,23 @@ where
 					getMeta (STCEmbedded meta _)	= meta		
 					
 					getTui (STCHidden _ _) _	= Nothing
-					getTui (STCEmbedded _ _) mbTui	= mbTui
+					getTui (STCEmbedded _ _) (TUIRep tui)	= Just tui
+					getTui (STCEmbedded _ _) _				= Nothing
 					
 			//We want to show the TUI of one of the detached tasks in this set
 			[t]
-				= case [(tui,actions) \\ (i,TaskBusy (Just tui) actions _,STCDetached _ _ _ _ _) <- contexts | i == t] of
+				= case [(tui,actions) \\ (i,TaskBusy (TUIRep tui) actions _,STCDetached _ _ _ _ _) <- contexts | i == t] of
 					[(tui,actions)]
-						= (Just tui,actions)
+						= (TUIRep tui,actions)
 					_
-						= (Nothing,[])
+						= (NoRep,[])
 				
 				
 			//We want to show the TUI of a task inside the parallel set
 			[t:ts]
-				= case [(tui,actions) \\ (i,TaskBusy (Just tui) actions _,_) <- contexts | i == t] of
-					[(tui,actions)]	= (Just tui,actions)
-					_				= (Nothing,[])
+				= case [(tui,actions) \\ (i,TaskBusy (TUIRep tui) actions _,_) <- contexts | i == t] of
+					[(tui,actions)]	= (TUIRep tui,actions)
+					_				= (NoRep,[])
 	
 	taskFuncs` {Task|def} = case def of
 		NormalTask fs	= fs

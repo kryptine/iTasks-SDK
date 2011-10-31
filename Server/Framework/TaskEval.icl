@@ -116,7 +116,7 @@ createSessionInstance task iworld
 		Ok result	= (Ok (result, sessionId), iworld)
 		Error e		= (Error e, iworld)
 
-evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !ProcessId), !*IWorld)
 evalSessionInstance sessionId editEvent commitEvent iworld
 	# (mbContext,iworld)	= loadTaskInstance sessionId iworld
 	= case mbContext of
@@ -126,8 +126,12 @@ evalSessionInstance sessionId editEvent commitEvent iworld
 			# (mbContext, iworld) = editInstance editEvent context iworld
 			= case mbContext of
 				Error e				= (Error e, iworld)
-				Ok context			= iterateEval [0,0] commitEvent context iworld
-	
+				Ok context			
+					# (mbRes,iworld)	= iterateEval [0,0] commitEvent context iworld
+					= case mbRes of
+						Ok result	= (Ok (result, sessionId), iworld)
+						Error e		= (Error e, iworld)
+						
 iterateEval :: !TaskNr !(Maybe CommitEvent) !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 iterateEval target commitEvent context iworld = eval target commitEvent 1 context iworld
 where

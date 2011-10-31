@@ -73,7 +73,7 @@ where
 												, localInteraction = props.TaskMeta.localInteraction
 												, warning = Nothing
 												}
-					= (TaskBusy (Just tui) actions context,{IWorld|iworld & world = world})
+					= (TaskBusy (TUIRep tui) actions context,{IWorld|iworld & world = world})
 				# (res, world) = 'File'.readFile outfile world
 				| isError res
 					//Failed to read file

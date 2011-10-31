@@ -50,9 +50,14 @@ derive gPutRecordFields	Task
 :: CommitEvent		:== Event String					//Action name
 
 
-:: TaskResult a		= TaskBusy !(Maybe TUIDef) ![TaskAction] !TaskContextTree
+:: TaskResult a		= TaskBusy !TaskRep ![TaskAction] !TaskContextTree
 					| TaskFinished !a
 					| TaskException !Dynamic !String
+
+:: TaskRep
+	= NoRep
+	| TUIRep !TUIDef
+	| ServiceRep [(!TaskId,!JSONNode)]
 
 :: TaskAction :== (TaskId,Action,Bool)
 

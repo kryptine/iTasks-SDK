@@ -10,9 +10,17 @@ from HTTP			import :: HTTPRequest, :: HTTPResponse
 from Config			import :: Config
 
 :: PublishedTask =
-	{ url	:: String
-	, task	:: TaskWrapper
+	{ url			:: String
+	, task			:: TaskWrapper
+	, defaultFormat	:: ServiceFormat
 	}
+	
+//* The format in which a task is presented.
+:: ServiceFormat
+	= WebApp			
+	| JSONGui
+	| JSONService
+	| JSONServiceRaw
 
 /**
 * Creates the iTasks system from a set of published tasks
@@ -25,7 +33,7 @@ engine :: !(Maybe Config) publish -> [(!String -> Bool,!HTTPRequest *World -> (!
 /**
 * Wraps a task together with a url to make it publishable by the engine
 */
-publish :: String (Task a) -> PublishedTask | iTask a
+publish :: String ServiceFormat (Task a) -> PublishedTask | iTask a
 
 class Publishable a
 where

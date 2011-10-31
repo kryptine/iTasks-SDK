@@ -3,105 +3,101 @@ implementation module WebService
 import StdList, StdBool
 import Time, JSON
 import SystemTypes, Task, TaskContext, TaskEval, TaskStore, TUIDiff, TUIEncode, Util, HtmlUtil, Map
-import IWorld
+import Engine, IWorld
 
-webService :: !(Task a) !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
-webService task req iworld=:{IWorld|timestamp,application}
-	= case showParam of
-	//Serve the gui
-	"gui"
-		| sessionParam == ""
-			//Create and evaluate a new session context
-			# (mbResult,iworld) = createSessionInstance task iworld
-			= case mbResult of
-				Error err
-					= (response (JSONObject [("success",JSONBool False),("error",JSONString err)]), iworld)
-				Ok (TaskException _ err,_)
-					= (response (JSONObject [("success",JSONBool False),("error",JSONString err)]), iworld)
-				Ok (TaskFinished _, sessionId)
-					= (response (JSONObject [("success",JSONBool False),("error",JSONString "Task completed instantly")]), iworld)
-				Ok (TaskBusy Nothing _ tree, sessionId)
-					= (response (JSONObject [("success",JSONBool False),("error",JSONString "No tui definition available")]), iworld)
-				Ok (TaskBusy (Just tui) actions _ , sessionId =: SessionProcess session)
-					//Save user interface to enable incremental updates in later requests
-					# iworld		= storeTaskTUI sessionId tui iworld
-					//Output user interface
-					# json = JSONObject [("content",encodeTUIDefinition tui)
-										,("session",JSONString session)
-										,("timestamp",JSONInt (toInt timestamp))]
-					= (response json, iworld)
-		| otherwise
-			# sessionId					= SessionProcess sessionParam
-			//Load previous user interface to enable incremental updates
-			# (mbPreviousTui,iworld)	= loadTaskTUI sessionId iworld
-			//Check if the version of the user interface the client has is still fresh
-			# outdated	= case mbPreviousTui of
-				Ok (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
-				Error _						= False
-			//Determine possible edit and commit events
-			# editEvent = case fromJSON (fromString editEventParam) of
-				Just (target,path,value)
-					// ignore edit events of outdated clients
-					| not outdated || timestampParam == ""  
-						= Just (ProcessEvent (reverse (taskNrFromString target)) (path,value))
+webService :: !(Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
+webService task defaultFormat req iworld=:{IWorld|timestamp,application}
+	= case format of
+		//Serve start page
+		WebApp	
+			=  (appStartResponse application, iworld)
+		//Serve the user interface representations
+		JSONGui
+			//Load or create session context and edit / evalu
+			# (mbResult, mbPrevTui, iworld)	= case sessionParam of
+				""	
+					# (mbResult, iworld) = createSessionInstance task iworld
+					= (mbResult, Error "Fresh session, no previous user interface", iworld)
+				sessionId
+					//Check if there is a previous tui definition and check if it is still current
+					# (mbPreviousTui,iworld)	= loadTaskTUI (SessionProcess sessionId) iworld
+					//Check if the version of the user interface the client has is still fresh
+					# outdated = case mbPreviousTui of
+						Ok (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
+						Error _						= False
+					| outdated
+						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) Nothing Nothing iworld
+						= (mbResult,mbPreviousTui,iworld)
 					| otherwise
-						= Nothing
-				Nothing = Nothing			
-			# commitEvent = case fromJSON (fromString commitEventParam) of
-				Just (target,action)
-					// ignore commit events of outdated clients
-					| not outdated || timestampParam == "" 
-						= Just (ProcessEvent (reverse (taskNrFromString target)) action)
-					| otherwise
-						= Nothing
-				Nothing	= Nothing
-			//Evaluate existing session context
-			# (mbResult,iworld) = evalSessionInstance sessionId editEvent commitEvent iworld
-			# (json,iworld) = case mbResult of
-				Error err
-					= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
-				Ok (TaskException _ err)
-					= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-				Ok (TaskFinished _)
-					= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-				Ok (TaskBusy mbCurrentTui actions context)
-					# json = case (mbPreviousTui,mbCurrentTui) of
-						(Ok (previousTui,previousTimestamp),Just currentTui)
-							| previousTimestamp == Timestamp (toInt timestampParam) 
+						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) editEvent commitEvent iworld
+						= (mbResult,mbPreviousTui,iworld)
+			# (json, iworld) = case mbResult of
+					Error err
+						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
+					Ok (TaskException _ err,_)
+						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
+					Ok (TaskFinished _,_)
+						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
+					Ok (TaskBusy mbCurrentTui actions context,SessionProcess sessionId)
+						# json = case (mbPrevTui,mbCurrentTui) of
+							(Ok (previousTui,previousTimestamp),TUIRep currentTui)
+								| previousTimestamp == Timestamp (toInt timestampParam) 
+									= JSONObject [("success",JSONBool True)
+												 ,("session",JSONString sessionId)
+												 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui))
+												 ,("timestamp",toJSON timestamp)]
+								| otherwise
+									= JSONObject [("success",JSONBool True)
+												 ,("session",JSONString sessionId)
+												 ,("content",encodeTUIDefinition currentTui)
+												 ,("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")
+												 ,("timestamp",toJSON timestamp)]
+							(_, TUIRep currentTui)
 								= JSONObject [("success",JSONBool True)
-											 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui))
+											 ,("session",JSONString sessionId)
+											 ,("content", encodeTUIDefinition currentTui)
 											 ,("timestamp",toJSON timestamp)]
-							| otherwise
-								= JSONObject [("success",JSONBool True)
-											 ,("content",encodeTUIDefinition currentTui)
-											 ,("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")
-											 ,("timestamp",toJSON timestamp)]
-						(_, Just currentTui)
-							= JSONObject [("success",JSONBool True)
-										 ,("content", encodeTUIDefinition currentTui)
-										 ,("timestamp",toJSON timestamp)]
-						_
-							= JSONObject [("success",JSONBool True),("done",JSONBool True)]
-					//Store tui for later incremental requests
-					# iworld = case mbCurrentTui of
-						Just currentTui	= storeTaskTUI sessionId currentTui iworld
-						Nothing			= iworld
-					= (json,iworld)
-				_
-					= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
+							_
+								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
+						//Store tui for later incremental requests
+						# iworld = case mbCurrentTui of
+							TUIRep currentTui	= storeTaskTUI (SessionProcess sessionId) currentTui iworld
+							_					= iworld
+						= (json,iworld)
+					_
+						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
 			= (response json, iworld)
-	
-	_	//Serve start page
-		=  (appStartResponse application, iworld)
+		//Serve the task as an easily accessable JSON service
+		JSONService
+			= (response (JSONString "Not implemented"), iworld)
+		//Serve the task in a minimal JSON representation
+		JSONServiceRaw
+			= (response (JSONString "Not implemented"), iworld)
+		//Error unimplemented type
+		_
+			= (response (JSONString "Unknown service format"), iworld)
+		
 where
-	showParam			= paramValue "show" req
+	format			= case formatParam of
+		"webapp"			= WebApp
+		"json-gui"			= JSONGui
+		"json-service"		= JSONService
+		"json-service-raw"	= JSONServiceRaw
+		_					= defaultFormat
+		 
+	formatParam			= paramValue "format" req
 	sessionParam		= paramValue "session" req
 	downloadParam		= paramValue "download" req
 	uploadParam			= paramValue "upload" req
 	timestampParam		= paramValue "timestamp" req
 	editEventParam		= paramValue "editEvent" req
+	editEvent			= case (fromJSON (fromString editEventParam)) of
+		Just (target,path,value)	= Just (ProcessEvent (reverse (taskNrFromString target)) (path,value))
+		_							= Nothing
 	commitEventParam	= paramValue "commitEvent" req
-	
+	commitEvent			= case (fromJSON (fromString commitEventParam)) of
+		Just (target,action)		= Just (ProcessEvent (reverse (taskNrFromString target)) action)
+		_							= Nothing
 	response json
 		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}
 	

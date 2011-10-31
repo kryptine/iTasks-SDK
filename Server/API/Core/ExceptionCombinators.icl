@@ -117,7 +117,7 @@ where
 tuiOk i [] tui		= tui
 tuiOk i [t:ts] tui	
 	| i == t	= tui
-	| otherwise	= Nothing
+	| otherwise	= NoRep
 									
 throw :: !e -> Task a | iTask a & iTask, toString e
 throw e = mkInstantTask "Throw an exception" eval

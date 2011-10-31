@@ -101,7 +101,7 @@ Ext.define('itasks.controller.Controller',{
 		}
 
 		Ext.Ajax.request({
-			url: '?show=gui',
+			url: '?format=json-gui',
 			params: params,
 			scripts: false,
 			callback: this.processServerMessage,

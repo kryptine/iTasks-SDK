@@ -4,7 +4,8 @@ definition module WebService
 * It also provides access to upload/download of blob content.
 */
 from HTTP	import :: HTTPRequest, :: HTTPResponse
+from Engine	import :: ServiceFormat
 from IWorld	import :: IWorld
 import iTaskClass
 
-webService :: !(Task a) !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
+webService :: !(Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
