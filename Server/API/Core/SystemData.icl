@@ -2,7 +2,7 @@ implementation module SystemData
 
 import SystemTypes, Time, Shared, SharedCombinators, Util, Text, Task, Tuple
 import Random
-import StdList
+import StdList, StdBool
 from StdFunc	import o, seq
 from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
@@ -19,11 +19,9 @@ currentTime = makeReadOnlyShared "SystemData_currentTime" 'Util'.currentTime 'Ut
 currentDate :: ReadOnlyShared Date
 currentDate = makeReadOnlyShared "SystemData_currentDate" 'Util'.currentDate 'Util'.currentTimestamp
 
-
 // Workflow processes
 topLevelTasks :: (TaskList Void)
 topLevelTasks = GlobalTaskList
-
 
 currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
 currentProcesses = makeReadOnlyShared "SystemData_processes" read timestamp
@@ -40,7 +38,7 @@ processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser
 where
 	read iworld=:{currentUser}
 		# (list, iworld) = loadValue NS_WORKFLOW_INSTANCES "index" iworld
-		= (maybe [] (\l -> [p \\ p <- l | p.managementMeta.worker === Just currentUser ]) list, iworld)
+		= (maybe [] (\l -> [p \\ p <- l | p.managementMeta.worker === Just currentUser || p.managementMeta.worker === Nothing]) list, iworld)
 	timestamp iworld
 		# (ts, iworld) = getStoreTimestamp NS_WORKFLOW_INSTANCES "index" iworld
 		= (fromMaybe (Timestamp 0) ts, iworld)

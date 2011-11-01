@@ -134,7 +134,7 @@ gVerify{|HtmlInclude|}			_ vst = alwaysValid vst
 
 gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst
-
+gVerify{|JSONNode|}			_ vst = alwaysValid vst
 
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool

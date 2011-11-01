@@ -74,7 +74,7 @@ where
 	stylefiles = ["/lib/ext-4.0.2a/resources/css/ext-all-gray.css"
 				 ,"/src/css/main.css"
 				 ,appName +++ ".css"]
-	scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","src/app.js"]
+	scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/src/app.js"]
 
 /**
 * Creates an HTTP response of the start page

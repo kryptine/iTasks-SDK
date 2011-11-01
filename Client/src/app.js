@@ -1,6 +1,6 @@
 Ext.application({
 	name: 'itasks',
-	appFolder: 'src/app',
+	appFolder: '/src/app',
 	requires: [
 		'itasks.layout.VHBox',
 		//Extension classes

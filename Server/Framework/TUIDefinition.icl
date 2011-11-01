@@ -266,8 +266,8 @@ defaultDescriptionPanel mbInstr mbWarning
 			, margins	= Nothing
 			}
 where
-	instr	= [] //TODO maybe [] (\w -> [htmlDisplay w]) mbInstr
-	warning = [] //TODO maybe [] (\w -> [htmlDisplay (DivTag [ClassAttr "x-invalid-icon"] [Text w])]) mbWarning
+	instr	= maybe [] (\w -> [stringDisplay w]) mbInstr
+	warning = maybe [] (\w -> [stringDisplay w]) mbWarning
 
 defaultContentPanel :: ![TUIDef] -> TUIDef
 defaultContentPanel content =		{ content	= TUIContainer {TUIContainer|defaultLayoutContainer content & padding = Just 5}

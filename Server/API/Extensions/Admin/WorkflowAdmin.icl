@@ -84,6 +84,16 @@ where
 			_						= (Error ("could not find workflow " +++ (toString wid)), iworld)
 
 
+workflowByPath :: !String -> ReadOnlyShared (Maybe Workflow)
+workflowByPath path = makeReadOnlySharedError ("SystemData_workflowByPath_" +++ path) getTask ((appFst Ok) o 'WorkflowDB'.lastChange)
+where
+	getTask iworld
+		# (descs,iworld)	= 'WorkflowDB'.getWorkflowDescriptions iworld
+		= case [wf \\ wf <- descs | wf.WorkflowDescription.path == path] of
+			[wf]	= appFst Ok ('WorkflowDB'.getWorkflow wf.workflowId iworld)
+			_		= (Ok Nothing,iworld)
+
+
 // MANAGEMENT TASKS
 
 manageWorkflows :: ![Workflow] ->  Task Void
@@ -153,9 +163,12 @@ where
 		
 	addWorkflow (wid,_) =
 									get (workflowTask wid)
-		>>=	\(WorkflowTask task) ->	get currentUser
-		>>= \user ->				appendTask (Detached {noMeta & worker = Just user}, \_ -> task >>| return Continue) topLevelTasks
+		>>=	\container ->			get currentUser
+		>>= \user ->				appendTask (Detached {noMeta & worker = Just user}, \_ -> (fromContainer container)) topLevelTasks
 
+	fromContainer (WorkflowTask t) = t >>| return Continue
+	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Continue)
+	
 processTable :: !(TaskList ClientState) -> Task ParallelControl	
 processTable taskList = updateSharedInformation "process table" [UpdateView (GetCombined mkTable, SetCombined putback)] (processes |+< state) Nothing >>+ noActions
 where
@@ -297,6 +310,10 @@ workflow path description task = toWorkflow path description [] task
 
 restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
 restrictedWorkflow path description roles task = toWorkflow path description roles task
+
+inputWorkflow :: String String String (a -> Task b) -> Workflow | iTask a & iTask b
+inputWorkflow name desc inputdesc tfun
+	= workflow name desc (enterInformation inputdesc [] >>= tfun)  
 	
 instance toWorkflow (Task a) | iTask a
 where

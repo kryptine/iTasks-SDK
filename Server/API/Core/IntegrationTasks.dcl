@@ -4,7 +4,8 @@ definition module IntegrationTasks
 */
 
 from Maybe import ::Maybe
-from Void import ::Void
+from Void import :: Void
+from Error import :: MaybeError, :: MaybeErrorString
 
 import iTaskClass
 from Task 			import ::Task
@@ -38,6 +39,7 @@ callProcess :: !FilePath ![String] -> Task Int
 * @gin-title Call web service
 * @gin-icon webservice
 */
+callHTTP	:: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 
 /**

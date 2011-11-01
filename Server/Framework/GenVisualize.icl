@@ -106,6 +106,7 @@ gVisualizeText{|FillHControlSize|}	fx mode val = fx mode (fromFillHControlSize v
 gVisualizeText{|Void|} _ _					= []
 gVisualizeText{|Dynamic|} _ _				= []
 gVisualizeText{|(->)|} _ _ _ _				= []
+gVisualizeText{|JSONNode|} _ val			= [toString val]
 gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
 derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Username, Action, TreeNode, ManagementMeta, TaskPriority, Tree, ButtonState, TUIMargins, TUISize, TUIMinSize
@@ -410,6 +411,7 @@ gVisualizeEditor{|FillHControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=
 
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
 
+
 /*
 gVisualizeEditor{|DateTime|} val vst=:{VSt|currentPath}
 	# (dateViz,timeViz,vst) = case val of
@@ -430,7 +432,7 @@ where
 */	
 derive gVisualizeEditor DateTime
 	
-derive gVisualizeEditor Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
 
 generic gHeaders a :: (a, ![String])
 
@@ -453,7 +455,7 @@ gHeaders{|HtmlTag|}			= (undef, ["HTML"])
 gHeaders{|(->)|} _ _		= (undef, ["Function"])
 gHeaders{|UNIT|}			= (undef,[])
 
-derive gHeaders [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
@@ -476,7 +478,7 @@ gGridRows{|HtmlTag|} h _					= Nothing
 gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
 
-derive gGridRows [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint, Timestamp
+derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 

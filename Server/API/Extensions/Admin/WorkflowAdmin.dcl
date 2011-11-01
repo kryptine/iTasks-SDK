@@ -13,19 +13,20 @@ import iTasks
 	, description		:: !String
 	, managerProperties	:: !ManagementMeta
 	}
-							
-:: WorkflowTaskContainer
-	= E.a:		WorkflowTask		(Task a)		& iTask a
-	| E.a b:	ParamWorkflowTask	(a -> (Task b))	& iTask a & iTask b
-				
+
 // A workflow specification
 :: Workflow	=
 	{ path				:: String					//* a unique name of this workflow
 	, roles				:: [String]					//* the roles that are allowed to initate this workflow
-	, task				:: WorkflowTaskContainer	//* the thread of the main task of the workflow
 	, description		:: String					//* a description of the workflow
 	, managerProperties	:: ManagementMeta			//* the initial manager properties of the main task
-	}
+	, task				:: WorkflowTaskContainer	//* the thread of the main task of the workflow
+	}						
+:: WorkflowTaskContainer
+	= E.a:		WorkflowTask		(Task a)		& iTask a
+	| E.a b:	ParamWorkflowTask	(a -> (Task b))	& iTask a & iTask b
+				
+
 
 derive gVisualizeText	Workflow, WorkflowDescription, WorkflowTaskContainer
 derive gVisualizeEditor	Workflow, WorkflowDescription, WorkflowTaskContainer
@@ -45,6 +46,7 @@ allowedWorkflows		:: ReadOnlyShared [WorkflowDescription]
 workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
 allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
 workflowTask			:: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
+workflowByPath			:: !String -> ReadOnlyShared (Maybe Workflow)
 
 /**
 * Wraps any task as a workflow with no access restrictions

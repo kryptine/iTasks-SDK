@@ -2,7 +2,7 @@ implementation module IntegrationTasks
 
 import StdInt, StdFile, StdTuple, StdList
 
-import Directory, File, FilePath, OSError, UrlEncoding, Text
+import Directory, File, FilePath, Error, OSError, UrlEncoding, Text
 
 import SystemTypes, IWorld, Task, TaskContext, Config
 import ExceptionCombinators, TuningCombinators
@@ -19,6 +19,7 @@ from Process			import qualified ::ProcessHandle, runProcess, checkProcess
 from Map				import qualified get, fromList, newMap
 from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
+from StdFunc			import o
 
 import StdMisc
 
@@ -99,26 +100,29 @@ where
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
-	# options = case method of
-		GET	 = "--get"
-		POST = ""
-	# args = urlEncodePairs params
-	= callRPC options url args transformResult
+	= callHTTP method url (urlEncodePairs params) (Ok o transformResult)
 
-callRPC :: !String !String !String !(String -> a) -> Task a | iTask a			
-callRPC options url args transformResult =
+callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
+callHTTP method url request parseResult =
 		initRPC
 	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Description "Call RPC"
 	>>= \exitCode -> if (exitCode > 0)
-		(throw (SharedException (curlError exitCode)))
-		(importTextFile outfile >>= transform transformResult)
+		(throw (RPCException (curlError exitCode)))
+		(importTextFile outfile >>= \result -> case parseResult result of
+			Ok res	= return res
+			Error e = throw (RPCException e)
+		)
 where
+	options	= case method of
+		GET	 = "--get"
+		POST = ""
+		
 	initRPC = mkInstantTask("Call RPC", "Initializing") eval
 	
 	eval taskNr iworld=:{IWorld|config,tmpDirectory,world}
 		# infile  = tmpDirectory </> (mkFileName taskNr "request")
 		# outfile = tmpDirectory </> (mkFileName taskNr "response")
-		# (res,world) = writeFile infile args world
+		# (res,world) = writeFile infile request world
 		| isError res
 			= (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
 		# cmd	= config.Config.curlPath
@@ -211,7 +215,6 @@ curlError exitCode =
         86      = "RTSP: mismatch of Session Identifiers"
         87      = "unable to parse FTP file list"
         88      = "FTP chunk callback reported error "
-
 
 sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
 sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send out an e-mail") eval
