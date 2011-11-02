@@ -13,10 +13,10 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			=  (appStartResponse application, iworld)
 		//Serve the user interface representations
 		JSONGui
-			//Load or create session context and edit / evalu
+			//Load or create session context and edit / evaluate
 			# (mbResult, mbPrevTui, iworld)	= case sessionParam of
 				""	
-					# (mbResult, iworld) = createSessionInstance task iworld
+					# (mbResult, iworld) = createSessionInstance task True iworld
 					= (mbResult, Error "Fresh session, no previous user interface", iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
@@ -26,10 +26,10 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						Ok (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
 						Error _						= False
 					| outdated
-						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) Nothing Nothing iworld
+						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) Nothing Nothing True iworld
 						= (mbResult,mbPreviousTui,iworld)
 					| otherwise
-						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) editEvent commitEvent iworld
+						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) editEvent commitEvent True iworld
 						= (mbResult,mbPreviousTui,iworld)
 			# (json, iworld) = case mbResult of
 					Error err
@@ -66,16 +66,30 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (json,iworld)
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
-			= (response json, iworld)
+			= (jsonResponse json, iworld)
 		//Serve the task as an easily accessable JSON service
 		JSONService
-			= (response (JSONString "Not implemented"), iworld)
+			# (mbResult,iworld)	= case sessionParam of
+				""	= createSessionInstance task False iworld
+				sessionId
+					= evalSessionInstance (SessionProcess sessionId) Nothing Nothing False iworld
+			= case mbResult of
+				Ok (TaskException _ err,_)
+					= (errorResponse err, iworld)
+				Ok (TaskFinished val,_)
+					= (errorResponse "TODO: yield value when done", iworld)
+				Ok (TaskBusy (ServiceRep rep) actions _,_)
+					= (errorResponse "TODO: return useful service representation", iworld)
+				Ok (TaskBusy _ _ _,_)
+					= (errorResponse "Requested service format not available", iworld)
+				_
+					= (errorResponse "Not implemented", iworld)
 		//Serve the task in a minimal JSON representation
 		JSONServiceRaw
-			= (response (JSONString "Not implemented"), iworld)
+			= (jsonResponse (JSONString "Not implemented"), iworld)
 		//Error unimplemented type
 		_
-			= (response (JSONString "Unknown service format"), iworld)
+			= (jsonResponse (JSONString "Unknown service format"), iworld)
 		
 where
 	format			= case formatParam of
@@ -98,6 +112,9 @@ where
 	commitEvent			= case (fromJSON (fromString commitEventParam)) of
 		Just (target,action)		= Just (ProcessEvent (reverse (taskNrFromString target)) action)
 		_							= Nothing
-	response json
+	jsonResponse json
 		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}
+	
+	errorResponse msg
+		= {HTTPResponse | rsp_headers = fromList [("Status", "500 Internal Server Error")], rsp_data = msg}
 	

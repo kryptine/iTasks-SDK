@@ -273,7 +273,7 @@ where
 mainLayout p = defaultParallelLayout p
 
 infoBarLayout :: TUIInteraction -> (TUIDef,[TaskAction])
-infoBarLayout {title,editorParts,actions=actions=:[(ltask,laction,_)]} = (
+infoBarLayout {title,editorParts,actions=actions=:[(ltask,laction,_):_]} = (
 	{ content	= TUIContainer {TUIContainer|defaultLayoutContainer [{hd editorParts & width = Just (WrapContent 0), margins = Nothing},{logoutButton & margins = Nothing}]
 								& direction = Horizontal, halign = AlignRight, valign = AlignMiddle, baseCls = Just "x-panel-header"}
 	, width		= Just (FillParent 1 (ContentSize))

@@ -39,8 +39,12 @@ derive gPutRecordFields	Task
 
 :: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContextTree,!*IWorld)
 :: TaskEditFun		:== TaskNr EditEvent TaskContextTree *IWorld -> *(!TaskContextTree,!*IWorld)
-:: TaskEvalFun a	:== TaskNr TaskMeta (Maybe CommitEvent) ReversedTaskNr InteractionLayouter ParallelLayouter TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
+:: TaskEvalFun a	:== TaskNr TaskMeta (Maybe CommitEvent) ReversedTaskNr TaskRepInput TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
+:: TaskRepInput
+	= RepAsTUI InteractionLayouter ParallelLayouter
+	| RepAsService
+	
 :: ReversedTaskNr	:== [Int]							//Reversed tasks nr used to locate a subtask in a composition  
 
 :: Event e			= ProcessEvent	!ReversedTaskNr !e	//Event for a process we have not evaluated yet

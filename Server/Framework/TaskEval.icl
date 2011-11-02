@@ -66,13 +66,13 @@ editInstance editEvent context=:(TaskContext processId tmeta pmeta mmeta changeN
 
 
 //Evaluate the given context and yield the result of the main task indicated by target
-evalInstance :: !TaskNr !(Maybe CommitEvent) !TaskContext  !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
-evalInstance target commitEvent context=:(TaskContext processId tmeta pmeta mmeta changeNo tcontext) iworld=:{evalStack}
+evalInstance :: !TaskNr !(Maybe CommitEvent) !Bool !TaskContext  !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
+evalInstance target commitEvent genGUI context=:(TaskContext processId tmeta pmeta mmeta changeNo tcontext) iworld=:{evalStack}
 	= case tcontext of
 		//Eval instance
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
 			# evalFun			= (taskFuncs task).evalFun
-			# (ilayout,playout)	= taskLayouters task
+			# repAs				= if genGUI (let (ilayout,playout) = taskLayouters task in RepAsTUI ilayout playout) RepAsService
 			# procNo			= processNo processId
 			# taskNo			= [changeNo,procNo]
 			//Update current process id & eval stack in iworld
@@ -88,12 +88,11 @@ evalInstance target commitEvent context=:(TaskContext processId tmeta pmeta mmet
 			//# target			= foldr stepTarget [changeNo,pid] target
 			# target			= tl (tl target) //TODO: FIGURE OUT WHY IT DOESN'T WORK WHEN FOLDING STEPTARGET
 			//Apply task's eval function	
-			# (result,iworld)	= evalFun taskNo tmeta commitEvent target ilayout playout scontext iworld 
+			# (result,iworld)	= evalFun taskNo tmeta commitEvent target repAs scontext iworld 
 			//Restore current process id in iworld
 			# iworld			= {iworld & evalStack = evalStack}
 			= case result of
 				TaskBusy tui actions scontext
-				//	# properties	= setRunning properties
 					# context		= TaskContext processId tmeta (setRunning pmeta) mmeta changeNo (TTCRunning container scontext)
 					= (Ok (TaskBusy tui actions scontext), context, iworld)
 				TaskFinished val
@@ -107,17 +106,17 @@ evalInstance target commitEvent context=:(TaskContext processId tmeta pmeta mmet
 		TTCExcepted e
 			= (Ok (taskException e), context, iworld)
 
-createSessionInstance :: !(Task a) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
-createSessionInstance task iworld
+createSessionInstance :: !(Task a) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
+createSessionInstance task genGUI iworld
 	# (sessionId,iworld)	= newSessionId iworld
 	# (context, iworld)		= createContext sessionId (createContainer task) noMeta AnyUser iworld
-	# (mbRes,iworld)		= iterateEval [0,0] Nothing context iworld
+	# (mbRes,iworld)		= iterateEval [0,0] Nothing genGUI context iworld
 	= case mbRes of
 		Ok result	= (Ok (result, sessionId), iworld)
 		Error e		= (Error e, iworld)
 
-evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !ProcessId), !*IWorld)
-evalSessionInstance sessionId editEvent commitEvent iworld
+evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !ProcessId), !*IWorld)
+evalSessionInstance sessionId editEvent commitEvent genGUI iworld
 	# (mbContext,iworld)	= loadTaskInstance sessionId iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
@@ -127,22 +126,22 @@ evalSessionInstance sessionId editEvent commitEvent iworld
 			= case mbContext of
 				Error e				= (Error e, iworld)
 				Ok context			
-					# (mbRes,iworld)	= iterateEval [0,0] commitEvent context iworld
+					# (mbRes,iworld)	= iterateEval [0,0] commitEvent genGUI context iworld
 					= case mbRes of
 						Ok result	= (Ok (result, sessionId), iworld)
 						Error e		= (Error e, iworld)
 						
-iterateEval :: !TaskNr !(Maybe CommitEvent) !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-iterateEval target commitEvent context iworld = eval target commitEvent 1 context iworld
+iterateEval :: !TaskNr !(Maybe CommitEvent) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+iterateEval target commitEvent genGUI context iworld = eval target commitEvent genGUI 1 context iworld
 where
-	eval :: !TaskNr !(Maybe CommitEvent) !Int !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-	eval target commitEvent iteration context iworld
+	eval :: !TaskNr !(Maybe CommitEvent) !Bool !Int !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+	eval target commitEvent genGUI iteration context iworld
 		//Initialize the toplevel task list
 		# iworld 	= {iworld & parallelControls = 'Map'.fromList [(toString GlobalTaskList,(0,[]))]}
 		//Reset read shares list
 		# iworld			= {iworld & readShares = Just []} 
 		//Evaluate top instance	
-		# (mbResult, context, iworld) = evalInstance target commitEvent context iworld 
+		# (mbResult, context, iworld) = evalInstance target commitEvent genGUI context iworld 
 		= case mbResult of
 			Error e
 				= (Error e, iworld)
@@ -154,7 +153,7 @@ where
 				= case result of
 					(TaskBusy _ _ _)
 						| isNothing readShares && iteration < ITERATION_THRESHOLD
-							= eval target Nothing (iteration + 1) context iworld
+							= eval target Nothing genGUI (iteration + 1) context iworld
 						| otherwise
 							# iworld	= storeTaskInstance context iworld
 							= (Ok result,iworld)
@@ -176,7 +175,7 @@ where
 				[c:cs]
 					//Evaluate and store the context only. We do not want any result	
 					# iworld		= {iworld & currentUser = issueUser c}
-					# (_,c,iworld)	= evalInstance (topTarget c) Nothing c iworld
+					# (_,c,iworld)	= evalInstance (topTarget c) Nothing genGUI c iworld
 					# iworld		= storeTaskInstance c iworld
 					= processControls` cs {iworld & currentUser = currentUser}
 	
@@ -200,7 +199,6 @@ where
 		_
 			= execControls cs queue iworld		
 	
-
 	topTarget (TaskContext processId _ _ _ changeNo _)
 		= case processId of 
 			(SessionProcess _)			= [0,0]

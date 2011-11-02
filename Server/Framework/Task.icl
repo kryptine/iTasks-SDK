@@ -24,7 +24,7 @@ mkInstantTask description iworldfun =
 	, def = NormalTask
 		{ initFun		= \_ iworld -> (TCEmpty,iworld)
 		, editFun		= \_ _  context iworld -> (context,iworld)
-		, evalFun		= \taskNr _ _ _ _ _ _ iworld -> iworldfun taskNr iworld
+		, evalFun		= \taskNr _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}
 	, layout				= Nothing
 	}

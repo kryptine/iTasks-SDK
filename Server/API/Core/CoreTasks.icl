@@ -135,7 +135,7 @@ where
 				
 	edit _ _ context iworld = (context,iworld)
 	
-	eval termFunc taskNr props event tuiTaskNr ilayout playout context iworld=:{IWorld|timestamp}
+	eval termFunc taskNr props event tuiTaskNr (RepAsTUI ilayout playout) context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
@@ -274,7 +274,7 @@ where
 		# iworld				= storeTaskInstance (fromOk mbContext) iworld
 		= (TCEmpty, iworld)
 		
-	eval termFunc taskNr props event tuiTaskNr ilayout playout _ iworld=:{evalStack}
+	eval termFunc taskNr props event tuiTaskNr (RepAsTUI ilayout playout) _ iworld=:{evalStack}
 		//Check for cycles
 		| isMember processId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
@@ -293,7 +293,7 @@ where
 		# target = case processId of
 			(WorkflowProcess procNo)	= [procNo,changeNo (fromOk mbContext)]
 			(EmbeddedProcess _ taskId)	= reverse (taskNrFromString taskId)
-		# (mbResult,context,iworld)	= evalInstance target event (fromOk mbContext) iworld
+		# (mbResult,context,iworld)	= evalInstance target event True (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result

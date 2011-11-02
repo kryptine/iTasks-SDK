@@ -32,8 +32,8 @@ where
 	where
 		applyTweak funcs = {funcs & evalFun = eval}
 		where
-			eval taskNr props event tuiTaskNr ilayout playout context iworld
-				# (res,iworld) = funcs.evalFun taskNr props event tuiTaskNr ilayout playout context iworld
+			eval taskNr props event tuiTaskNr repInput context iworld
+				# (res,iworld) = funcs.evalFun taskNr props event tuiTaskNr repInput context iworld
 				= case res of
 					(TaskBusy (TUIRep tui) actions context)
 						# (tui,actions) = tweak (tui,actions)

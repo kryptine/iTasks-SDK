@@ -45,11 +45,11 @@ where
 						= (context, iworld)
 
 	//Evaluate first task
-	eval taskNr _ event tuiTaskNr _ _ (TCBind (Left cxta)) iworld 
+	eval taskNr _ event tuiTaskNr _ (TCBind (Left cxta)) iworld 
 		//Adjust the target of a possible event
 		# taskaFuncs		= taskFuncs taska
 		# (ilayout,playout)	= taskLayouters taska
-		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) ilayout playout cxta iworld
+		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) (RepAsTUI ilayout playout) cxta iworld
 		= case resa of
 			TaskBusy tui actions newCxta
 				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCBind (Left newCxta)), iworld)
@@ -59,7 +59,7 @@ where
 				# taskbfuncs		= taskFuncs taskb
 				# (ilayout,playout)	= taskLayouters taskb
 				# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
-				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) ilayout playout cxtb iworld 
+				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) (RepAsTUI ilayout playout) cxtb iworld 
 				= case resb of
 					TaskBusy tui actions newCxtb	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCBind (Right (toJSON a,newCxtb))),iworld)
 					TaskFinished b					= (TaskFinished b, iworld)
@@ -67,13 +67,13 @@ where
 			TaskException e str
 				= (TaskException e str, iworld)	
 	//Evaluate second task
-	eval taskNr _ event tuiTaskNr _ _ (TCBind (Right (vala,cxtb))) iworld
+	eval taskNr _ event tuiTaskNr _ (TCBind (Right (vala,cxtb))) iworld
 		= case fromJSON vala of
 			Just a
 				# taskb				= taskbfun a
 				# taskbfuncs		= taskFuncs taskb
 				# (ilayout,playout)	= taskLayouters taskb
-				# (resb, iworld)	= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) ilayout playout cxtb iworld 
+				# (resb, iworld)	= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) (RepAsTUI ilayout playout) cxtb iworld 
 				= case resb of
 					TaskBusy tui actions newCxtb	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCBind (Right (vala,newCxtb))),iworld)
 					TaskFinished b					= (TaskFinished b, iworld)
@@ -81,7 +81,7 @@ where
 			Nothing
 				= (taskException "Corrupt task value in bind", iworld)
 	//Incorred state
-	eval taskNr _ event tuiTaskNr _ _ context iworld
+	eval taskNr _ event tuiTaskNr _ context iworld
 		= (taskException "Corrupt task context in bind", iworld)
 	
 	//Check that when we want the TUI of a sub task that it is on the path
@@ -194,7 +194,7 @@ where
 	
 	
 	//Eval all tasks in the set (in left to right order)
-	eval taskNr meta event tuiTaskNr _ playout context=:(TCParallel encState pmeta subs) iworld
+	eval taskNr meta event tuiTaskNr (RepAsTUI _ playout) context=:(TCParallel encState pmeta subs) iworld
 		//Add the current state to the parallelStates scope in iworld
 		# state							= decodeState encState initState 
 		# iworld						= addParState taskNr state pmeta iworld
@@ -235,7 +235,7 @@ where
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= taskFuncs` task
 				# (ilayout,playout)	= taskLayouters task
-				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) ilayout playout context iworld 
+				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout playout) context iworld 
 				= case result of
 					TaskBusy tui actions context	= (TaskBusy tui actions context, STCEmbedded tmeta (Just (encTask, context)), iworld)
 					TaskFinished r					= (TaskFinished r, STCEmbedded tmeta Nothing, iworld)
@@ -246,7 +246,7 @@ where
 				# (ilayout,playout)	= taskLayouters task
 				//Update changed latest event timestamp
 				# iworld			= {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
-				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) ilayout playout context iworld 
+				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout playout) context iworld 
 				# iworld			= {IWorld|iworld & latestEvent = parentLatestEvent}
 				//Update first/latest event if request is targeted at this detached process
 				# pmeta = case tuiTaskNr of
@@ -574,8 +574,8 @@ where
 		# (context,iworld) = f taskNr event context {iworld & currentUser = user}
 		= (context,{iworld & currentUser = currentUser})
 	
-	eval f taskNr props event target ilayout playout context iworld=:{currentUser}
-		# (result,iworld) = f taskNr props event target ilayout playout context {iworld & currentUser = user}
+	eval f taskNr props event target repInput context iworld=:{currentUser}
+		# (result,iworld) = f taskNr props event target repInput context {iworld & currentUser = user}
 		= (result,{iworld & currentUser = currentUser})
 	
 		

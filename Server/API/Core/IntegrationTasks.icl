@@ -58,7 +58,7 @@ where
 			
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr props event tuiTaskNr ilayout _ context=:(TCBasic _) iworld=:{world}
+	eval taskNr props event tuiTaskNr (RepAsTUI ilayout _) context=:(TCBasic _) iworld=:{world}
 		= case getLocalVar "outfile" context of
 			Just outfile
 				//Check status
