@@ -5,6 +5,17 @@ import Time, JSON
 import SystemTypes, Task, TaskContext, TaskEval, TaskStore, TUIDiff, TUIEncode, Util, HtmlUtil, Map
 import Engine, IWorld
 
+//The representation of the JSON service
+:: ServiceResponse :== [ServiceResponsePart]
+:: ServiceResponsePart =
+	{ taskId	:: !String
+	, partId	:: !Int
+	, value		:: !JSONNode
+	, actions	:: ![String]
+	}
+	
+derive JSONEncode ServiceResponsePart
+
 webService :: !(Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
 webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 	= case format of
@@ -16,7 +27,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			//Load or create session context and edit / evaluate
 			# (mbResult, mbPrevTui, iworld)	= case sessionParam of
 				""	
-					# (mbResult, iworld) = createSessionInstance task True iworld
+					# (mbResult, iworld) = createSessionInstance task Nothing Nothing True iworld
 					= (mbResult, Error "Fresh session, no previous user interface", iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
@@ -67,26 +78,35 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
 			= (jsonResponse json, iworld)
-		//Serve the task as an easily accessable JSON service
+		//Serve the task in easily accessable JSON representation
 		JSONService
 			# (mbResult,iworld)	= case sessionParam of
-				""	= createSessionInstance task False iworld
+				""	= createSessionInstance task Nothing Nothing False iworld
 				sessionId
 					= evalSessionInstance (SessionProcess sessionId) Nothing Nothing False iworld
 			= case mbResult of
 				Ok (TaskException _ err,_)
 					= (errorResponse err, iworld)
 				Ok (TaskFinished val,_)
-					= (errorResponse "TODO: yield value when done", iworld)
+					= (jsonResponse (serviceDoneResponse val), iworld)
 				Ok (TaskBusy (ServiceRep rep) actions _,_)
-					= (errorResponse "TODO: return useful service representation", iworld)
+					= (jsonResponse (serviceBusyResponse rep actions), iworld)
 				Ok (TaskBusy _ _ _,_)
-					= (errorResponse "Requested service format not available", iworld)
+					= (errorResponse "Requested service format not available for this task", iworld)
+		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
+		JSONPlain
+			//HACK: REALLY REALLY REALLY UGLY THAT IT IS NECCESARY TO EVAL TWICE
+			# (mbResult,iworld) = createSessionInstance task Nothing Nothing False iworld
+			# (mbResult,iworld) = case mbResult of
+				(Ok (_,sessionId))	= evalSessionInstance sessionId luckyEdit luckyCommit False iworld
+				(Error e)			= (Error e,iworld)
+			= case mbResult of
+				Ok (TaskException _ err,_)
+					= (errorResponse err, iworld)
+				Ok (TaskFinished val,_)
+					= (plainDoneResponse val, iworld)
 				_
-					= (errorResponse "Not implemented", iworld)
-		//Serve the task in a minimal JSON representation
-		JSONServiceRaw
-			= (jsonResponse (JSONString "Not implemented"), iworld)
+					= (errorResponse "Requested service format not available for this task", iworld)
 		//Error unimplemented type
 		_
 			= (jsonResponse (JSONString "Unknown service format"), iworld)
@@ -96,7 +116,7 @@ where
 		"webapp"			= WebApp
 		"json-gui"			= JSONGui
 		"json-service"		= JSONService
-		"json-service-raw"	= JSONServiceRaw
+		"json-plain"		= JSONPlain
 		_					= defaultFormat
 		 
 	formatParam			= paramValue "format" req
@@ -112,9 +132,31 @@ where
 	commitEvent			= case (fromJSON (fromString commitEventParam)) of
 		Just (target,action)		= Just (ProcessEvent (reverse (taskNrFromString target)) action)
 		_							= Nothing
+	
+	//Parse the body of the request as JSON message
+	(luckyEdit,luckyCommit) = if(req.req_data == "")
+		(Nothing,Nothing)	
+		(Just (LuckyEvent ("0",fromString req.req_data)), Just (LuckyEvent ""))
+	
 	jsonResponse json
 		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}
-	
 	errorResponse msg
 		= {HTTPResponse | rsp_headers = fromList [("Status", "500 Internal Server Error")], rsp_data = msg}
-	
+			
+	serviceBusyResponse rep actions
+		= JSONObject [("status",JSONString "busy"),("parts",parts)]
+	where
+		parts = toJSON [{ServiceResponsePart|taskId = taskId, partId = partId, value = value, actions = findActions taskId actions} \\ (taskId,partId,value) <- rep]
+		findActions taskId actions
+			= [actionName action \\ (task,action,enabled) <- actions | enabled && task == taskId]
+	serviceDoneResponse (Container val :: Container a a)
+		= JSONObject [("status",JSONString "complete"),("value",toJSON val)]
+	serviceDoneResponse _
+		= serviceErrorResponse "Corrupt result value"
+	serviceErrorResponse e
+		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
+		
+	plainDoneResponse (Container val :: Container a a)
+		= jsonResponse (toJSON val)
+	plainDoneResponse _
+		= errorResponse "Corrupt result value"

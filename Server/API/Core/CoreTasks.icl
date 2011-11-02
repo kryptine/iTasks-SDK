@@ -74,20 +74,23 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskFinished (fromOk val), iworld)
 
+import StdDebug
 interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
 	init taskNr iworld
 		= (TCBasic newMap, iworld)
 	
+	//Rewrite lucky events to events that target this task
+	edit taskNr (LuckyEvent e) context iworld = (edit taskNr (TaskEvent [] e) context iworld)
 	//There is an edit event for this task (because the location part of the event is the empty list)
 	edit taskNr (TaskEvent [] (dps,editV)) context iworld=:{IWorld|timestamp,latestEvent}	
-		//Split datapath into datapath & part index
-		# (idx,dp)					= splitDataPath dps
 		//Read latest versions of states
 		# (model,iworld) 			= 'Shared'.readShared shared iworld
 		| isError model				= (context, iworld)
 		# local						= getLocalState context
+		//Split datapath into datapath & part index
+		# (idx,dp)					= splitDataPath dps
 		# parts						= getParts context	
 		| idx >= length parts		= (context, iworld) 
 		//Save event for use in the visualization of the task
@@ -111,7 +114,17 @@ where
 						| isNothing mbValue		= (context,iworld)
 						# value					= fromJust mbValue
 						// update value & masks
-						# (value,umask,iworld)	= updateValueAndMask dp editV value umask iworld
+						
+						//TEST
+						# (value,umask,iworld)	= if(dataPathLevel dp == 0)
+							(case fromJSON editV of
+								Just newV	= (newV,defaultMask newV, iworld)
+								Nothing 	= (value,umask,iworld)
+							)
+							(updateValueAndMask dp editV value umask iworld)
+						
+						//TEST
+						//# (value,umask,iworld)	= updateValueAndMask dp editV value umask iworld
 						# vmask					= verifyForm value umask
 						# parts					= updateAt idx (StoredUpdateView (toJSON value) umask (StoredPutback putback)) parts
 						# context				= setLocalVar PARTS_STORE parts context
@@ -135,7 +148,7 @@ where
 				
 	edit _ _ context iworld = (context,iworld)
 	
-	eval termFunc taskNr props event tuiTaskNr (RepAsTUI ilayout playout) context iworld=:{IWorld|timestamp}
+	eval termFunc taskNr props event tuiTaskNr repAs context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
@@ -145,7 +158,7 @@ where
 		# parts							= partFunc local (fromOk model) (fromOk changed)
 		# storedParts					= getParts context
 		# (mbEvent,context)				= getEvent context
-		# (tuis,newParts,valid)			= visualizeParts taskNr parts storedParts mbEvent
+		# (reps,newParts,valid)			= visualizeParts taskNr repAs parts storedParts mbEvent
 		# context 						= setLocalVar PARTS_STORE newParts context
 		= case termFunc {modelValue = (local,fromOk model), localValid = valid} of
 			StopInteraction result		= (TaskFinished result,iworld)
@@ -158,8 +171,12 @@ where
 							_			= Nothing
 						# taskId		= taskNrToString taskNr
 						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
-						# (tui,actions)	= mergeTUI props ilayout [tui \\ Just tui <- tuis] warning tactions 
-						= (TaskBusy (TUIRep tui) actions context, iworld)
+						# (rep,actions) = case repAs of
+							(RepAsTUI ilayout _)
+								= appFst TUIRep (mergeTUI props ilayout [tui \\ TUIRep tui <- reps] warning tactions)
+							_
+								= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), tactions)
+						= (TaskBusy rep actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
 		= case getLocalVar LAST_EDIT_STORE context of
@@ -196,8 +213,8 @@ where
 					| StoredUpdate		!(!l,!Maybe w)
 :: StoredPutback l w = E.v: StoredPutback !((Maybe v) -> (!l,!Maybe w)) & iTask v
 
-visualizeParts :: !TaskNr ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![Maybe TUIDef],![StoredPart l w],!Bool)
-visualizeParts taskNr parts oldParts mbEdit
+visualizeParts :: !TaskNr !TaskRepInput ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TaskRep],![StoredPart l w],!Bool)
+visualizeParts taskNr repAs parts oldParts mbEdit
 	= appThd3 and (unzip3 [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]])
 where
 	visualizePart (part,mbV,idx)
@@ -206,21 +223,28 @@ where
 				FormValue value
 					# umask				= defaultMask value
 					# vmask				= verifyForm value umask
-					# tui				= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit
-					= (tui,StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask)
+					# rep				= case repAs of
+											(RepAsTUI _ _)	= mbToTUIRep (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit)
+											_				= ServiceRep [(taskNrToString taskNr, idx, toJSON value)]
+					= (rep,StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask)
 				Unchanged init = case mbV of
 					Just (StoredUpdateView jsonV umask _) = case fromJSON` formView jsonV of
 						Just value
 										# vmask = verifyForm value umask
-										= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,StoredUpdateView jsonV umask (StoredPutback putback), isValidValue vmask)
+										# rep	= case repAs of
+											(RepAsTUI _ _)	= mbToTUIRep (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit)
+											_				= ServiceRep [(taskNrToString taskNr, idx, toJSON value)]
+										= (rep, StoredUpdateView jsonV umask (StoredPutback putback), isValidValue vmask)
 						Nothing			= visualizePart (FormPart init putback,Nothing,idx)
 					_					= visualizePart (FormPart init putback,Nothing,idx)
-				Blank					= blankForm formView putback mbEdit
+				Blank					= blankForm repAs formView putback mbEdit
 			
-			DisplayPart v				= (visualizeAsDisplay v, StoredDisplayView, True)
-				
+			DisplayPart v				= case repAs of
+											(RepAsTUI _ _)	= (mbToTUIRep (visualizeAsDisplay v), StoredDisplayView, True)
+											_				= (ServiceRep [(taskNrToString taskNr,idx,toJSON v)], StoredDisplayView, True)
 			
-			UpdatePart label w			=	(Just (defaultDef (TUIButton	{ TUIButton
+			UpdatePart label w			= case repAs of
+											(RepAsTUI _ _)	= (TUIRep (defaultDef (TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
 																	, text			= label
@@ -228,18 +252,26 @@ where
 																	, iconCls		= ""
 																	, actionButton	= False
 																	})),StoredUpdate w, True)
+											_				= (ServiceRep [(taskNrToString taskNr,idx,JSONString label)], StoredUpdate w, True)
 	where
 		fromJSON` :: !(FormView v) !JSONNode -> (Maybe v) | JSONDecode{|*|} v
 		fromJSON` _ json = fromJSON json
 
-		blankForm formView putback mbEdit
+		blankForm repAs formView putback mbEdit
 			# value	= defaultValue` formView
 			# umask	= Untouched
 			# vmask	= verifyForm value umask
-			= (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit,StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask)
+			# rep	= case repAs of
+				(RepAsTUI _ _)	= mbToTUIRep (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit)
+				_				= ServiceRep [(taskNrToString taskNr, idx, toJSON value)]
+			= (rep, StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask)
 		
 		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
 		defaultValue` _ = defaultValue
+
+		mbToTUIRep :: (Maybe TUIDef) -> TaskRep
+		mbToTUIRep Nothing		= NoRep
+		mbToTUIRep (Just def)	= TUIRep def 
 
 mergeTUI meta ilayout tuis warning actions
 	= ilayout	{ title = meta.TaskMeta.title
@@ -254,7 +286,6 @@ mergeTUI meta ilayout tuis warning actions
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
 
-import StdDebug
 workOn :: !ProcessId -> Task WorkOnProcessState
 workOn (SessionProcess sessionId)
 	= abort "workOn applied to session process"
@@ -325,7 +356,9 @@ where
 			_
 				= (False,iworld)
 	checkIfAddedGlobally _ iworld = (False,iworld)
-		 
+
+getActionResult (Just (LuckyEvent _)) [(action,result):_]
+	= result
 getActionResult (Just (TaskEvent [] name)) actions
 	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
 getActionResult _ actions

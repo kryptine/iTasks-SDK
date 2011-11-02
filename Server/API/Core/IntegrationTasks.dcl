@@ -3,15 +3,16 @@ definition module IntegrationTasks
 * This module provides tasks for interaction with other systems.
 */
 
-from Maybe import ::Maybe
-from Void import :: Void
-from Error import :: MaybeError, :: MaybeErrorString
+from Maybe	import :: Maybe
+from Void	import :: Void
+from Error	import :: MaybeError, :: MaybeErrorString
+
+from Task 			import :: Task
+from SystemTypes	import :: Note, :: EmailAddress
 
 import iTaskClass
-from Task 			import ::Task
-from SystemTypes	import ::Note, ::EmailAddress
 
-::HTTPMethod = GET | POST
+:: HTTPMethod = GET | POST
 
 /**
 * Calls an external executable. The call is non-blocking.

@@ -1,7 +1,7 @@
 implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
-import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, Store, SystemTypes, Time, Text, Shared, Func
+import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, Store, SystemTypes, Time, Text, Shared, Func, Tuple
 import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
@@ -45,37 +45,43 @@ where
 						= (context, iworld)
 
 	//Evaluate first task
-	eval taskNr _ event tuiTaskNr _ (TCBind (Left cxta)) iworld 
+	eval taskNr _ event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
 		//Adjust the target of a possible event
 		# taskaFuncs		= taskFuncs taska
-		# (ilayout,playout)	= taskLayouters taska
-		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) (RepAsTUI ilayout playout) cxta iworld
+		# repAsA			= case repAs of
+			(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taska in RepAsTUI ilayout playout
+			_				= RepAsService
+		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) repAsA cxta iworld
 		= case resa of
-			TaskBusy tui actions newCxta
-				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCBind (Left newCxta)), iworld)
+			TaskBusy rep actions newCxta
+				= (TaskBusy (repOk 0 tuiTaskNr rep) actions (TCBind (Left newCxta)), iworld)
 			TaskFinished a
 				//Directly continue with the second task
 				# taskb				= taskbfun a
 				# taskbfuncs		= taskFuncs taskb
-				# (ilayout,playout)	= taskLayouters taskb
+				# repAsB			= case repAs of
+					(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taskb in RepAsTUI ilayout playout
+					_				= RepAsService
 				# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
-				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) (RepAsTUI ilayout playout) cxtb iworld 
+				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
 				= case resb of
-					TaskBusy tui actions newCxtb	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCBind (Right (toJSON a,newCxtb))),iworld)
+					TaskBusy rep actions newCxtb	= (TaskBusy (repOk 1 tuiTaskNr rep) actions (TCBind (Right (toJSON a,newCxtb))),iworld)
 					TaskFinished b					= (TaskFinished b, iworld)
 					TaskException e str				= (TaskException e str, iworld)
 			TaskException e str
 				= (TaskException e str, iworld)	
 	//Evaluate second task
-	eval taskNr _ event tuiTaskNr _ (TCBind (Right (vala,cxtb))) iworld
+	eval taskNr _ event tuiTaskNr repAs (TCBind (Right (vala,cxtb))) iworld
 		= case fromJSON vala of
 			Just a
 				# taskb				= taskbfun a
 				# taskbfuncs		= taskFuncs taskb
-				# (ilayout,playout)	= taskLayouters taskb
-				# (resb, iworld)	= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) (RepAsTUI ilayout playout) cxtb iworld 
+				# repAsB			= case repAs of
+					(RepAsTUI _ _)	= let (ilayout,playout) = taskLayouters taskb in RepAsTUI ilayout playout
+					_				= RepAsService
+				# (resb, iworld)	= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
 				= case resb of
-					TaskBusy tui actions newCxtb	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCBind (Right (vala,newCxtb))),iworld)
+					TaskBusy rep actions newCxtb	= (TaskBusy (repOk 1 tuiTaskNr rep) actions (TCBind (Right (vala,newCxtb))),iworld)
 					TaskFinished b					= (TaskFinished b, iworld)
 					TaskException e str				= (TaskException e str, iworld)
 			Nothing
@@ -85,9 +91,9 @@ where
 		= (taskException "Corrupt task context in bind", iworld)
 	
 	//Check that when we want the TUI of a sub task that it is on the path
-	tuiOk i [] tui		= tui
-	tuiOk i [t:ts] tui	
-		| i == t	= tui
+	repOk i [] rep		= rep
+	repOk i [t:ts] rep	
+		| i == t	= rep
 		| otherwise	= NoRep
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
@@ -115,7 +121,6 @@ INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
 	| RSStopped
 	| RSResults ![(!Int, !TaskResult ParallelControl, !SubTaskContext)]
 	
-
 parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
 parallel description initState resultFun initTasks = mkTask description init edit eval 
 where
@@ -194,7 +199,7 @@ where
 	
 	
 	//Eval all tasks in the set (in left to right order)
-	eval taskNr meta event tuiTaskNr (RepAsTUI _ playout) context=:(TCParallel encState pmeta subs) iworld
+	eval taskNr meta event tuiTaskNr repAs context=:(TCParallel encState pmeta subs) iworld
 		//Add the current state to the parallelStates scope in iworld
 		# state							= decodeState encState initState 
 		# iworld						= addParState taskNr state pmeta iworld
@@ -220,9 +225,11 @@ where
 					= (TaskFinished (resultFun AllRunToCompletion state), iworld)
 				| otherwise
 					# encState			= encodeState state initState
-					# (tui,actions)		= mergeTUIs playout tuiTaskNr meta results
+					# (rep,actions)		= case repAs of
+						(RepAsTUI _ playout)	= (mergeTUIs playout tuiTaskNr meta results)
+						(RepAsService)			= (ServiceRep [],[]) //TODO
 					# subs				= mergeContexts results
-					= (TaskBusy tui actions (TCParallel encState pmeta subs), iworld)
+					= (TaskBusy rep actions (TCParallel encState pmeta subs), iworld)
 		
 	//Keep evaluating tasks and updating the state until there are no more subtasks
 	//subtasks
@@ -253,7 +260,7 @@ where
 					[t] | t == idx	= {pmeta & firstEvent = Just (fromMaybe localDateTime pmeta.firstEvent), latestEvent = Just localDateTime}
 					_				= pmeta
 				= case result of
-					TaskBusy tui actions context	= (TaskBusy tui actions context, STCDetached taskId tmeta pmeta mmeta (Just (encTask, context)), iworld)
+					TaskBusy rep actions context	= (TaskBusy rep actions context, STCDetached taskId tmeta pmeta mmeta (Just (encTask, context)), iworld)
 					TaskFinished r					= (TaskFinished r, STCDetached taskId tmeta (markFinished pmeta) mmeta Nothing, iworld)
 					TaskException e str				= (TaskException e str, STCDetached taskId tmeta (markExcepted pmeta) mmeta Nothing, iworld)		
 			_

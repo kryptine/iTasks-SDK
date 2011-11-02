@@ -73,12 +73,12 @@ where
 
 
 	//Normal execution still possible
-	eval taskNr _ event tuiTaskNr _ context=:(TCTry (Left cxtNormal)) iworld
+	eval taskNr _ event tuiTaskNr repAs context=:(TCTry (Left cxtNormal)) iworld
 		# (ilayout,playout)	= taskLayouters normalTask 
 		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) (RepAsTUI ilayout playout) cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
-				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
+				= (TaskBusy (repOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
 			TaskFinished a
 				= (TaskFinished a, iworld)
 			//Matching exception
@@ -86,11 +86,13 @@ where
 				//Run the handler immediately
 				# handler				= handlerTaskFun ex
 				# handlerFuncs			= taskFuncs handler
-				# (ilayout,playout)		= taskLayouters handler
+				# repAsH				= case repAs of
+					(RepAsTUI _ _)		= let (ilayout,playout) = taskLayouters handler in RepAsTUI ilayout playout
+					_					= RepAsService
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) (RepAsTUI ilayout playout) cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsH cxtHandler iworld
 				= case result of
-					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON ex,newCxtHandler))), iworld)
+					TaskBusy tui actions newCxtHandler	= (TaskBusy (repOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON ex,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 			//Other exception (pass through
@@ -98,15 +100,17 @@ where
 				= (TaskException ex str, iworld)
 			
 	//Handling the exception
-	eval taskNr _ event tuiTaskNr _ context=:(TCTry (Right (encEx,cxtHandler))) iworld
+	eval taskNr _ event tuiTaskNr repAs context=:(TCTry (Right (encEx,cxtHandler))) iworld
 		= case fromJSON encEx of
 			Just e
 				# handler			= handlerTaskFun e
 				# handlerFuncs		= taskFuncs handler
-				# (ilayout,playout)	= taskLayouters handler
-				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) (RepAsTUI ilayout playout) cxtHandler iworld
+				# repAsH				= case repAs of
+					(RepAsTUI _ _)		= let (ilayout,playout) = taskLayouters handler in RepAsTUI ilayout playout
+					_					= RepAsService
+				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsH cxtHandler iworld
 				= case result of
-					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
+					TaskBusy tui actions newCxtHandler	= (TaskBusy (repOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 			Nothing
@@ -114,9 +118,9 @@ where
 	eval taskNr _ event tuiTaskNr _ context iworld
 		= (taskException "Corrupt task context in try", iworld)
 	
-tuiOk i [] tui		= tui
-tuiOk i [t:ts] tui	
-	| i == t	= tui
+repOk i [] rep = rep
+repOk i [t:ts] rep
+	| i == t	= rep
 	| otherwise	= NoRep
 									
 throw :: !e -> Task a | iTask a & iTask, toString e
@@ -151,12 +155,15 @@ where
 		= (context, iworld)
 
 	//Normal execution still possible
-	eval taskNr _ event tuiTaskNr _ context=:(TCTry (Left cxtNormal)) iworld
+	eval taskNr _ event tuiTaskNr repAs context=:(TCTry (Left cxtNormal)) iworld
 		# (ilayout,playout)	= taskLayouters normalTask
-		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) (RepAsTUI ilayout playout) cxtNormal iworld
+		# repAsN			= case repAs of
+			(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters normalTask in RepAsTUI ilayout playout
+			_				= RepAsService
+		# (result, iworld)	= normalTaskFuncs.evalFun [0:taskNr] normalTask.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) repAsN cxtNormal iworld
 		= case result of
 			TaskBusy tui actions newCxtNormal
-				= (TaskBusy (tuiOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
+				= (TaskBusy (repOk 0 tuiTaskNr tui) actions (TCTry (Left newCxtNormal)), iworld)
 			TaskFinished a
 				= (TaskFinished a, iworld)
 			//Matching exception
@@ -164,24 +171,28 @@ where
 				//Run the handler immediately
 				# handler				= handlerTaskFun str
 				# handlerFuncs			= taskFuncs handler
-				# (ilayout,playout)		= taskLayouters handler
+				# repAsH				= case repAs of
+					(RepAsTUI _ _)		= let (ilayout,playout) = taskLayouters handler in RepAsTUI ilayout playout
+					_					= RepAsService
 				# (cxtHandler,iworld)	= handlerFuncs.initFun [1:taskNr] iworld
-				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) (RepAsTUI ilayout playout) cxtHandler iworld
+				# (result,iworld)		= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsH cxtHandler iworld
 				= case result of
-					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON str,newCxtHandler))), iworld)
+					TaskBusy tui actions newCxtHandler	= (TaskBusy (repOk 1 tuiTaskNr tui) actions (TCTry (Right (toJSON str,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 
 	//Handling the exception
-	eval taskNr _ event tuiTaskNr _ context=:(TCTry (Right (encEx,cxtHandler))) iworld
+	eval taskNr _ event tuiTaskNr repAs context=:(TCTry (Right (encEx,cxtHandler))) iworld
 		= case fromJSON encEx of
 			Just e
 				# handler			= handlerTaskFun e
 				# handlerFuncs		= taskFuncs handler
-				# (ilayout,playout)	= taskLayouters handler
-				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) (RepAsTUI ilayout playout) cxtHandler iworld
+				# repAsH				= case repAs of
+					(RepAsTUI _ _)		= let (ilayout,playout) = taskLayouters handler in RepAsTUI ilayout playout
+					_					= RepAsService
+				# (result,iworld)	= handlerFuncs.evalFun [1:taskNr] handler.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsH cxtHandler iworld
 				= case result of
-					TaskBusy tui actions newCxtHandler	= (TaskBusy (tuiOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
+					TaskBusy tui actions newCxtHandler	= (TaskBusy (repOk 1 tuiTaskNr tui) actions (TCTry (Right (encEx,newCxtHandler))), iworld)
 					TaskFinished a						= (TaskFinished a,iworld)
 					TaskException e str					= (TaskException e str, iworld)
 			Nothing

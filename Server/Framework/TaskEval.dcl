@@ -19,7 +19,7 @@ import TaskContext, iTaskClass
 * @return The result of the targeted main task and the tasknr of the instance or an error
 * @return The IWorld state
 */
-createSessionInstance :: !(Task a) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
+createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
 
 /**
 * Evaluate a session task instance

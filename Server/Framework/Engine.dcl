@@ -20,7 +20,7 @@ from Config			import :: Config
 	= WebApp			
 	| JSONGui
 	| JSONService
-	| JSONServiceRaw
+	| JSONPlain
 
 /**
 * Creates the iTasks system from a set of published tasks

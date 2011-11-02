@@ -87,6 +87,7 @@ where
 	stl xs = tl xs
 
 stepEvent :: !Int !(Maybe (Event e)) -> Maybe (Event e)
+stepEvent _ (Just (LuckyEvent e)) = Just (LuckyEvent e)
 stepEvent i (Just (TaskEvent [s:ss] e))
 	| s == i	= Just (TaskEvent ss e)
 				= Nothing

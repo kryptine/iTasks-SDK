@@ -2,7 +2,7 @@ implementation module IntegrationTasks
 
 import StdInt, StdFile, StdTuple, StdList
 
-import Directory, File, FilePath, Error, OSError, UrlEncoding, Text
+import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple
 
 import SystemTypes, IWorld, Task, TaskContext, Config
 import ExceptionCombinators, TuningCombinators
@@ -58,14 +58,15 @@ where
 			
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr props event tuiTaskNr (RepAsTUI ilayout _) context=:(TCBasic _) iworld=:{world}
+	eval taskNr props event tuiTaskNr repAs context=:(TCBasic _) iworld=:{world}
 		= case getLocalVar "outfile" context of
 			Just outfile
 				//Check status
 				# (exists,world) = 'File'.fileExists outfile world
 				| not exists
 					//Still busy
-					# (tui,actions) = ilayout
+					# (rep,actions) = case repAs of
+						(RepAsTUI ilayout _) = appFst TUIRep (ilayout
 												{ title = props.TaskMeta.title
 								 				, instruction = props.TaskMeta.instruction
 												, editorParts = []
@@ -73,8 +74,10 @@ where
 												, type = props.interactionType
 												, localInteraction = props.TaskMeta.localInteraction
 												, warning = Nothing
-												}
-					= (TaskBusy (TUIRep tui) actions context,{IWorld|iworld & world = world})
+												})
+						_					= (ServiceRep [(taskNrToString taskNr, 0, JSONNull)], [])
+					
+					= (TaskBusy rep actions context,{IWorld|iworld & world = world})
 				# (res, world) = 'File'.readFile outfile world
 				| isError res
 					//Failed to read file

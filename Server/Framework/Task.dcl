@@ -49,6 +49,7 @@ derive gPutRecordFields	Task
 
 :: Event e			= ProcessEvent	!ReversedTaskNr !e	//Event for a process we have not evaluated yet
 					| TaskEvent		!ReversedTaskNr !e	//Event for a task within the process we are looking for
+					| LuckyEvent	!e					//Event for any task who is willing to handle it (I am feeling lucky event)
 
 :: EditEvent		:== Event (!String,!JSONNode)		//Datapath and new value
 :: CommitEvent		:== Event String					//Action name
@@ -61,7 +62,7 @@ derive gPutRecordFields	Task
 :: TaskRep
 	= NoRep
 	| TUIRep !TUIDef
-	| ServiceRep [(!TaskId,!JSONNode)]
+	| ServiceRep [(!TaskId,!Int,!JSONNode)] //Task id, part index, value
 
 :: TaskAction :== (TaskId,Action,Bool)
 
