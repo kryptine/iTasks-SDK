@@ -226,6 +226,7 @@ gVisualizeEditor{|Date|}		val vst = visualizeControl TUIDateControl val vst
 gVisualizeEditor{|Time|}		val vst = visualizeControl TUITimeControl val vst
 gVisualizeEditor{|User|}		val vst = visualizeControl TUIUserControl val vst
 gVisualizeEditor{|Currency|}	val vst = visualizeControl TUICurrencyControl val vst
+
 gVisualizeEditor{|HtmlInclude|} val vst = visualizeControl TUIStringControl (fmap (\(HtmlInclude path) -> path) val) vst
 
 gVisualizeEditor {|Document|}	val vst = visualizeControl control val vst
@@ -410,7 +411,10 @@ gVisualizeEditor{|FillHControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=
 	= (def,{vst & controlSize = controlSize})
 
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
-
+gVisualizeEditor{|HtmlTag|}	val vst = visualizeCustom toControl vst
+where
+	toControl name touched _ _ vst
+		= ([defaultDef (TUIHtml {TUIHtml|html = toString val})], vst)
 
 /*
 gVisualizeEditor{|DateTime|} val vst=:{VSt|currentPath}

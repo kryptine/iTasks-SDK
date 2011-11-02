@@ -47,6 +47,7 @@ from Task			import :: TaskAction
 	| TUIButton				!TUIButton
 	| TUIMenuButton			!TUIMenuButton
 	| TUIMenuItem			!TUIMenuItem
+	| TUIHtml				!TUIHtml
 	| TUICustom				!JSONNode
 	
 :: TUIControlType	= TUIStringControl
@@ -184,7 +185,10 @@ from Task			import :: TaskAction
 	, hotkey		:: !Maybe Hotkey
 	, menu			:: !Maybe TUIMenu
 	}
-
+:: TUIHtml =
+	{ html			:: !String
+	}
+	
 :: TUIGridControl =
 	{ headers		:: ![String]
 	, cells			:: ![[String]]

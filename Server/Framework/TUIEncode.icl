@@ -6,7 +6,7 @@ encodeTUIDefinition :: !TUIDef -> JSONNode
 encodeTUIDefinition d = toJSON d
 
 //TUI DEFINITIONS
-derive JSONEncode TUIButton, TUIIcon, Hotkey
+derive JSONEncode TUIButton, TUIIcon, TUIHtml, Hotkey
 derive JSONEncode TUIButtonControl
 derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUIBorderContainer, TUIListContainer
 derive JSONEncode TUIGridControl, TUITree, TUIEditControl, TUIShowControl
@@ -27,6 +27,7 @@ JSONEncode{|TUIDefContent|} (TUIListItem r)				= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIRadioChoice r)			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUICheckChoice r)			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIIcon r)					= addXType "itasks_icon" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIHtml r)					= addXType "itasks_html" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks_button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r) 			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIMenuItem r) 			= JSONEncode{|*|} r

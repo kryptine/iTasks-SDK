@@ -254,6 +254,8 @@ where
 		= (mbDoc,{ust & iworld = Just iworld})
 	getDoc docId ust = (Nothing,ust) 
 
+gUpdate{|HtmlTag|} UDCreate ust = basicCreate (Html "") ust
+gUpdate{|HtmlTag|} (UDSearch v) ust = basicSearch v (\Void v -> v) ust //HOPE THIS IS OK
 
 derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
 
@@ -323,6 +325,7 @@ gDefaultMask{|Currency|}			_ = [Touched []]
 gDefaultMask{|Date|}				_ = [Touched []]
 gDefaultMask{|Time|}				_ = [Touched []]
 gDefaultMask{|User|}				_ = [Touched []]
+gDefaultMask{|HtmlTag|}				_ = [Touched []]
 gDefaultMask{|HtmlInclude|}			_ = [Touched []]
 gDefaultMask{|CheckMultiChoice|}_ _	_ = [Touched []]
 gDefaultMask{|RadioChoice|} _ _ (RadioChoice opts mbSel)

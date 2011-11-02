@@ -206,4 +206,4 @@ where
 
 errclass error = if (isNothing error) "field-ok" "field-error"
 errmsg Nothing = []
-errmsg (Just msg) = [EmTag [] [RawText msg]]
+errmsg (Just msg) = [EmTag [] [Html msg]]

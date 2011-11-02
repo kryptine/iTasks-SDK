@@ -14,13 +14,13 @@ from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 from Task			import :: Task
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: StaticVisualizationMode, :: TUIDef
 
-derive JSONEncode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONEncode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress,ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONDecode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONDecode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive gEq				Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq				Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq				EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus

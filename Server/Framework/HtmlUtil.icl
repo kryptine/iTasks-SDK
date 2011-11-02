@@ -4,7 +4,7 @@ import HTML, JSON, Text, HTTP, Map
 import StdList, StdBool
 
 embeddedStyle :: HtmlTag
-embeddedStyle = StyleTag [TypeAttr "text/css"] [RawText css] 
+embeddedStyle = StyleTag [TypeAttr "text/css"] [Html css] 
 where
  css = 	"body { background: #fff; font-family: Verdana, Arial, sans-serif; font-size: 12px;} th { text-align: left; } "
 	+++ ".field-error em {color: #f00; font-weight: bold} .field-error input {border-color: #f00;} "
@@ -27,7 +27,7 @@ where
 	head = HeadTag [] [TitleTag [] [Text title], embeddedStyle]
 	body = BodyTag [] [DivTag [IdAttr "main"] (header ++ content)]
 	
-	header = [H1Tag [] [Text title],PTag [] [DivTag [ClassAttr "description"] [RawText description]]]
+	header = [H1Tag [] [Text title],PTag [] [DivTag [ClassAttr "description"] [Html description]]]
 
 
 servicePage :: !String !String !String ![(String,String,Bool)] !JSONNode -> HtmlTag

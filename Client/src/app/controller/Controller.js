@@ -26,6 +26,7 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.Button',
 		'itasks.component.MenuButton',
 		'itasks.component.MenuItem',
+		'itasks.component.Html',
 		'itasks.container.Panel',
 		'itasks.container.Container',
 		'itasks.container.RadioChoice',
