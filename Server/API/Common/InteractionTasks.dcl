@@ -273,9 +273,18 @@ enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShare
 */
 updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
+/**
+* Wait for a share to match a certain predicate
+*
+* @param Description:		A description of the task to display to the user
+* @param Predicate:			A predicate to test when to continue. The task completes as soon as the predicate is true
+* @param Shared:			Reference to the shared state to wait for
+*
+* @return					The value of the shared when the predicate becomes true
+*/
+wait :: d (r -> Bool) (ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
 
 /*** Special wait tasks ***/
-
 /**
 * Creates a task which blocks a workflow until a specified time.
 *

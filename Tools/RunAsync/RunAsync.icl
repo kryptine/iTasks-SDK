@@ -22,7 +22,7 @@ Start world
 		Timeout msec = world
 		Process path args = process path args options.outfile world
 		_ = abort "No mode specified"
-	# world = notify options world
+	//# world = notify options world
 	= world
 
 :: Options =

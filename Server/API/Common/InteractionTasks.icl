@@ -193,6 +193,11 @@ where
 				SetLocal putback	= ((putback v l r, True, False), Nothing)
 				SetShared putback	= ((l, False, True), Just (putback v l r))
 
+wait :: d (r -> Bool) (ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
+wait desc pred shared
+	=	viewSharedInformation desc [DisplayView (GetLocal id)] shared Void
+	>>+	\{modelValue=(r,l)} -> if (pred r) (StopInteraction r) (UserActions [])
+	
 waitForTime :: !Time -> Task Time
 waitForTime time =
 	(viewSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime Void >? \(now,_) -> time < now) >>= transform fst

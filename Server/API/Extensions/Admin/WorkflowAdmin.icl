@@ -174,7 +174,7 @@ processTable taskList = updateSharedInformation "process table" [UpdateView (Get
 where
 	state = taskListState taskList
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
-	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) procs) (processesForCurrentUser |+| currentProcessId)
+	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentProcessId)
 	where
 		show ownPid {processId,progressMeta} = processId <> ownPid && progressMeta.status == Running
 	
@@ -187,6 +187,8 @@ where
 		, Text (toString processId)
 		]
 		
+	pflatten procs = flatten [[p:pflatten p.subInstances] \\ p <- procs]
+	
 	putback (Table _ cells mbSel) _ (_,state) = (Just mbSel,Just {state & selectedProcess = fmap (getProcId cells) mbSel})
 	getProcId cells idx = case cells !! idx !! 4 of
 		Text procId	= fromString procId

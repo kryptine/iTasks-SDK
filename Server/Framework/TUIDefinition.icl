@@ -47,6 +47,15 @@ leftMargin m = Just {top = 0, right = 0, bottom = 0, left = m}
 topMargin :: !TUIFixedSize -> Maybe TUIMargins
 topMargin m = Just {top = m, right = 0, bottom = 0, left = 0}
 
+setSize :: !TUISize !TUISize !TUIDef -> TUIDef
+setSize width height def = {TUIDef| def & width = Just width, height = Just height}
+
+setWidth :: !TUISize !TUIDef -> TUIDef
+setWidth width def = {TUIDef|def & width = Just width}
+
+setHeight :: !TUISize !TUIDef -> TUIDef
+setHeight height def = {TUIDef|def & height = Just height}
+
 fill :: !TUIDef -> TUIDef
 fill def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 0)), height = Just ( FillParent 1 (FixedMinSize 0))}
 
@@ -167,6 +176,12 @@ where
 
 	fill def = {TUIDef|def & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)} 
 	margins def = {def & margins = sameMargins 5}
+
+
+singleViewLayout :: TUISize !TUISize -> InteractionLayouter
+singleViewLayout width height = \{TUIInteraction|editorParts,actions}
+	-> (setSize width height (hd editorParts),actions)
+
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
 defaultContent editor buttons = [defaultContentPanel (editorContainer editor ++ buttonContainer buttons)]

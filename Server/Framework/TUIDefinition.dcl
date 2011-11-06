@@ -230,6 +230,9 @@ defaultDef				:: !TUIDefContent -> TUIDef
 fillDef					:: !TUIDefContent -> TUIDef
 
 // Modifiers
+setSize		:: !TUISize !TUISize !TUIDef -> TUIDef
+setWidth	:: !TUISize !TUIDef -> TUIDef
+setHeight	:: !TUISize !TUIDef -> TUIDef
 fill		:: !TUIDef -> TUIDef
 fillHeight	:: !TUIDef -> TUIDef
 fillWidth	:: !TUIDef -> TUIDef
@@ -250,13 +253,14 @@ hsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef
 
 // Pre-defined interaction layouts
 defaultInteractionLayout	:: InteractionLayouter //Interaction parts, action buttons, title and instructions
-plainInteractionLayout		:: InteractionLayouter //Just the interaction parts and action buttons
+plainInteractionLayout		:: InteractionLayouter //Just the interaction parts and action buttons 
 minimalInteractionLayout	:: InteractionLayouter //Only the interaction parts
 fullWidthInteractionLayout	:: InteractionLayouter
 wrapWidthInteractionLayout	:: InteractionLayouter
 maximalInteractionLayout	:: InteractionLayouter
 fillInteractionLayout		:: InteractionLayouter
 
+singleViewLayout			:: TUISize !TUISize -> InteractionLayouter
 
 // Pre-defined parallel layouts
 defaultParallelLayout		:: ParallelLayouter

@@ -38,10 +38,13 @@ processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser
 where
 	read iworld=:{currentUser}
 		# (list, iworld) = loadValue NS_WORKFLOW_INSTANCES "index" iworld
-		= (maybe [] (\l -> [p \\ p <- l | p.managementMeta.worker === Just currentUser || p.managementMeta.worker === Nothing]) list, iworld)
+		= (maybe [] (\l -> find currentUser l) list, iworld)
 	timestamp iworld
 		# (ts, iworld) = getStoreTimestamp NS_WORKFLOW_INSTANCES "index" iworld
 		= (fromMaybe (Timestamp 0) ts, iworld)
+
+	find user procs
+		= flatten [if (p.managementMeta.worker === Just user || p.managementMeta.worker === Nothing) [p] (find user p.subInstances) \\ p <- procs]
 
 //TODO: Figure out pattern match bug
 currentProcessId :: ReadOnlyShared ProcessId
