@@ -49,9 +49,9 @@ derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormB
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode))	-> Maybe TUIDef	| gVisualizeEditor{|*|} a
-visualizeAsDisplay		:: !a															-> Maybe TUIDef	| gVisualizeEditor{|*|} a
-visualizeAsText			:: !StaticVisualizationMode !a									-> String		| gVisualizeText{|*|} a
+visualizeAsEditor		:: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) !*IWorld 	-> (!Maybe TUIDef,!*IWorld)	| gVisualizeEditor{|*|} a
+visualizeAsDisplay		:: !a														  !*IWorld	-> (!Maybe TUIDef,!*IWorld)	| gVisualizeEditor{|*|} a
+visualizeAsText			:: !StaticVisualizationMode !a											-> String					| gVisualizeText{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -63,6 +63,7 @@ visualizeAsText			:: !StaticVisualizationMode !a									-> String		| gVisualize
 	, editEvent			:: !(Maybe (!DataPath,!JSONNode))						// The edit event (if present) for keeping track of values sent by the client (used for diff)
 	, taskId			:: !Maybe TaskId										// The id of the task the visualisation belongs to
 	, controlSize		:: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
+	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
 	
 :: VerifyResult = HintMsg !String | ValidMsg !String | ErrorMsg !String | NoMsg

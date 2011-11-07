@@ -74,7 +74,6 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskFinished (fromOk val), iworld)
 
-import StdDebug
 interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
@@ -158,7 +157,7 @@ where
 		# parts							= partFunc local (fromOk model) (fromOk changed)
 		# storedParts					= getParts context
 		# (mbEvent,context)				= getEvent context
-		# (reps,newParts,valid)			= visualizeParts taskNr repAs parts storedParts mbEvent
+		# (reps,newParts,valid,iworld)	= visualizeParts taskNr repAs parts storedParts mbEvent iworld
 		# context 						= setLocalVar PARTS_STORE newParts context
 		= case termFunc {modelValue = (local,fromOk model), localValid = valid} of
 			StopInteraction result		= (TaskFinished result,iworld)
@@ -213,35 +212,54 @@ where
 					| StoredUpdate		!(!l,!Maybe w)
 :: StoredPutback l w = E.v: StoredPutback !((Maybe v) -> (!l,!Maybe w)) & iTask v
 
-visualizeParts :: !TaskNr !TaskRepInput ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) -> (![TaskRep],![StoredPart l w],!Bool)
-visualizeParts taskNr repAs parts oldParts mbEdit
-	= appThd3 and (unzip3 [visualizePart (part,mbV,idx) \\ part <- parts & mbV <- (map Just oldParts ++ repeat Nothing) & idx <- [0..]])
+visualizeParts :: !TaskNr !TaskRepInput ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) !*IWorld -> (![TaskRep],![StoredPart l w],!Bool,!*IWorld)
+visualizeParts taskNr repAs parts oldParts mbEdit iworld = visualizeParts` parts oldParts 0 iworld
 where
-	visualizePart (part,mbV,idx)
+	visualizeParts` [] _ idx iworld
+		= ([],[],True,iworld)
+	visualizeParts` [p:ps] [] idx iworld
+		# (rep,part,valid,iworld)	= visualizePart p Nothing idx iworld
+		# (reps,parts,valids,iworld)= visualizeParts` ps [] (inc idx) iworld
+		= ([rep:reps],[part:parts],valid && valids, iworld)
+	visualizeParts` [p:ps] [o:os] idx iworld
+		# (rep,part,valid,iworld)	= visualizePart p (Just o) idx iworld
+		# (reps,parts,valids,iworld)= visualizeParts` ps os (inc idx) iworld
+		= ([rep:reps],[part:parts],valid && valids, iworld)
+		
+	visualizePart part mbV idx iworld
 		= case part of
 			FormPart formView putback = case formView of
 				FormValue value
 					# umask				= defaultMask value
 					# vmask				= verifyForm value umask
-					# rep				= case repAs of
-											(RepAsTUI _ _)	= mbToTUIRep (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit)
-											_				= ServiceRep [(taskNrToString taskNr, idx, toJSON value)]
-					= (rep,StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask)
+					# (rep,iworld)		= case repAs of
+											(RepAsTUI _ _)
+												# (editor,iworld) = visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
+												= (mbToTUIRep editor, iworld)
+											_	
+												= (ServiceRep [(taskNrToString taskNr, idx, toJSON value)], iworld)
+					= (rep,StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask, iworld)
 				Unchanged init = case mbV of
 					Just (StoredUpdateView jsonV umask _) = case fromJSON` formView jsonV of
 						Just value
 										# vmask = verifyForm value umask
-										# rep	= case repAs of
-											(RepAsTUI _ _)	= mbToTUIRep (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit)
-											_				= ServiceRep [(taskNrToString taskNr, idx, toJSON value)]
-										= (rep, StoredUpdateView jsonV umask (StoredPutback putback), isValidValue vmask)
-						Nothing			= visualizePart (FormPart init putback,Nothing,idx)
-					_					= visualizePart (FormPart init putback,Nothing,idx)
-				Blank					= blankForm repAs formView putback mbEdit
+										# (rep,iworld)	= case repAs of
+											(RepAsTUI _ _)
+												# (editor,iworld)	= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
+												= (mbToTUIRep editor, iworld)
+											_				
+												= (ServiceRep [(taskNrToString taskNr, idx, toJSON value)], iworld)
+										= (rep, StoredUpdateView jsonV umask (StoredPutback putback), isValidValue vmask, iworld)
+						Nothing			= visualizePart (FormPart init putback) Nothing idx iworld
+					_					= visualizePart (FormPart init putback) Nothing idx iworld
+				Blank					= blankForm repAs formView putback mbEdit iworld
 			
 			DisplayPart v				= case repAs of
-											(RepAsTUI _ _)	= (mbToTUIRep (visualizeAsDisplay v), StoredDisplayView, True)
-											_				= (ServiceRep [(taskNrToString taskNr,idx,toJSON v)], StoredDisplayView, True)
+											(RepAsTUI _ _)	
+												# (editor,iworld) = visualizeAsDisplay v iworld
+												= (mbToTUIRep editor, StoredDisplayView, True, iworld)
+											_	
+												= (ServiceRep [(taskNrToString taskNr,idx,toJSON v)], StoredDisplayView, True, iworld)
 			
 			UpdatePart label w			= case repAs of
 											(RepAsTUI _ _)	= (TUIRep (defaultDef (TUIButton	{ TUIButton
@@ -251,20 +269,23 @@ where
 																	, disabled		= False
 																	, iconCls		= ""
 																	, actionButton	= False
-																	})),StoredUpdate w, True)
-											_				= (ServiceRep [(taskNrToString taskNr,idx,JSONString label)], StoredUpdate w, True)
+																	})),StoredUpdate w, True,iworld)
+											_				= (ServiceRep [(taskNrToString taskNr,idx,JSONString label)], StoredUpdate w, True, iworld)
 	where
 		fromJSON` :: !(FormView v) !JSONNode -> (Maybe v) | JSONDecode{|*|} v
 		fromJSON` _ json = fromJSON json
 
-		blankForm repAs formView putback mbEdit
+		blankForm repAs formView putback mbEdit iworld
 			# value	= defaultValue` formView
 			# umask	= Untouched
 			# vmask	= verifyForm value umask
-			# rep	= case repAs of
-				(RepAsTUI _ _)	= mbToTUIRep (visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit)
-				_				= ServiceRep [(taskNrToString taskNr, idx, toJSON value)]
-			= (rep, StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask)
+			# (rep,iworld)	= case repAs of
+				(RepAsTUI _ _)
+					# (editor,iworld) = visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
+					= (mbToTUIRep editor,iworld)
+				_				
+					= (ServiceRep [(taskNrToString taskNr, idx, toJSON value)], iworld)
+			= (rep, StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask, iworld)
 		
 		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
 		defaultValue` _ = defaultValue

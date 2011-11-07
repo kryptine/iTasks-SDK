@@ -3,23 +3,23 @@ implementation module GenVisualize
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List, Generic
 import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefinition, SystemTypes, HtmlUtil
 
-visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) -> Maybe TUIDef | gVisualizeEditor{|*|} a
-visualizeAsEditor x taskId idx vmask editEvent
-	# vst			= {mkVSt & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
+visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
+visualizeAsEditor x taskId idx vmask editEvent iworld
+	# vst			= {mkVSt iworld & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
 	# (defs,vst)	= gVisualizeEditor{|*|} (Just x) vst
 	= case defs of
-		[]		= Nothing
-		[tui]   = Just tui
-		tuis    = Just (defaultDef (TUIContainer (defaultLayoutContainer tuis)))
+		[]		= (Nothing, kmVSt vst)
+		[tui]   = (Just tui, kmVSt vst)
+		tuis    = (Just (defaultDef (TUIContainer (defaultLayoutContainer tuis))), kmVSt vst)
 
-visualizeAsDisplay :: !a -> Maybe TUIDef | gVisualizeEditor{|*|} a
-visualizeAsDisplay x 
-	# vst = {mkVSt & renderAsStatic = True}
+visualizeAsDisplay :: !a !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
+visualizeAsDisplay x iworld
+	# vst			= {mkVSt iworld & renderAsStatic = True}
 	# (defs,vst)	= gVisualizeEditor{|*|} (Just x) vst
 	= case defs of
-		[]		= Nothing
-		[tui]	= Just tui
-		tuis	= Just (defaultDef (TUIContainer (defaultLayoutContainer tuis)))
+		[]		= (Nothing, kmVSt vst)
+		[tui]	= (Just tui, kmVSt vst)
+		tuis	= (Just (defaultDef (TUIContainer (defaultLayoutContainer tuis))), kmVSt vst)
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
 visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)
@@ -111,10 +111,13 @@ gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
 derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Username, Action, TreeNode, ManagementMeta, TaskPriority, Tree, ButtonState, TUIMargins, TUISize, TUIMinSize
 
-mkVSt :: *VSt
-mkVSt = {VSt| currentPath = startDataPath,
-		selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing, taskId = Nothing,
-		controlSize = (Nothing,Nothing,Nothing)}
+mkVSt :: *IWorld -> *VSt
+mkVSt iworld
+	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing
+	  , taskId = Nothing, controlSize = (Nothing,Nothing,Nothing), iworld = iworld}
+
+kmVSt :: !*VSt -> *IWorld //inverse of mkVSt
+kmVSt {VSt|iworld} = iworld
 
 //Generic visualizer
 generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
