@@ -1,7 +1,6 @@
 implementation module ESMVizTool
 
 import iTasks
-//import StdListExtensions
 import ESMSpec
 import GenPrint
 
@@ -14,7 +13,6 @@ derive class iTask	KnownAutomaton, State
 getDefaultValue :: t | ggen{|*|} t
 getDefaultValue = ggen{|*|} 2 aStream !! 0
 
-//:: State s i o :== (KnownAutomaton s i o,[s],Traces s i o,Int,Int)
 :: State s i o
  =	{ ka	:: !KnownAutomaton s i o
 	, ss	:: ![s]
@@ -26,7 +24,6 @@ getDefaultValue = ggen{|*|} 2 aStream !! 0
 esmVizTool :: !(ESM s i o) *World -> *World
 			| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 esmVizTool esm world
-	// = startEngine (manageWorkflows [workflow "ESM Viz Tool" "ESM visualization" (iterateTask (DiGraphFlow esm) newstate)]) world
 	= startEngine (iterateTask (DiGraphFlow esm) newstate) world
 where
 	newstate = { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = 20080929}
@@ -34,14 +31,14 @@ where
 DiGraphFlow :: !(ESM s i o) (State s i o) -> Task (State s i o) 
 				| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 DiGraphFlow	esm st=:{ka,ss,trace,n,r}
- =	anyTask	[ state esm st
- 			, chooseTask "Choose an input... " (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
- 			, enterChoice "go to state... " [] (map show1 (nodesOf ka)) >>= updateDig st
+ =	anyTask	[ chooseTask "Choose an input... " (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
+			, state esm st
+ 			, enterChoice "go to state... " [] (map show1 (if (isEmpty nodes) ss nodes)) >>= updateDig st
 			, chooseTask "Do one of the following actions..."
 				[("Back" , back st)
 				,("Prune", prune st)
-				,("Reset", return newState) //(newKA,[esm.s_0],[],1,rn))
-				,("Clear trace", return {st & trace  = []}) //(ka,as,[],n,rn))
+				,("Reset", return newState)
+				,("Clear trace", return {st & trace  = []})
 				,("Random input",if (isEmpty newInputs)
  									(if (isEmpty inputs2)
  										(return st)
@@ -49,9 +46,7 @@ DiGraphFlow	esm st=:{ka,ss,trace,n,r}
  									(step esm st (newInputs!!((abs r) rem (length newInputs)))) )
 				]
     		, stepN esm st
-//    		, getDefaultValue >>= showStickyMessage "Trace" (traceHtml trace)
-// XXX    		, getDefaultValue >>= viewInformation ("Trace", traceHtml trace) [] 
-			, viewInformation ("Trace", traceHtml trace) [] st
+	//		, viewInformation ("Trace", traceHtml trace) [] st // to be fixed XXX
     		]
 where
 	inputs		= possibleInputs esm ss
@@ -59,24 +54,22 @@ where
 	newInputs	= filter (\i.not (gisMember i usedInputs)) inputs
 	usedInputs	= [ j \\ (s,j,_,_) <- ka.trans | gisMember s ss ]
 	rn			= hd (genRandInt r)
+	nodes		= nodesOf ka
 	newState 	= { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = rn}
 
 
 stepN :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 stepN esm st=:{ka,ss,trace,n,r}
-// =		updateInformation "Add multiple" "Or add multiple steps..." n
  =		updateInformation "Add multiple steps..." [] n
 	>>= doStepN esm st
 	
 doStepN :: !(ESM s i o) !(State s i o) Int -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 doStepN esm state=:{ka,ss,trace,r} n
 	= if (n>0)
-  		(return {state & ka = addTransitions n esm ss (possibleInputs esm ss) ka, r = rn }) //(addTransitions n esm as (possibleInputs esm as) ka,as,trace,n,rn)) 
-  		(return {state & n = 1}) //(ka,as,trace,1,rn))
+  		(return {state & ka = addTransitions n esm ss (possibleInputs esm ss) ka, r = rn })
+  		(return {state & n = 1})
 where rn = hd (genRandInt r)
 
-//buttonTask msg task = enterChoice "" "" [task <<@ Subject msg] >>= id
-//chooseTask msg tasks = enterChoice msg msg [t <<@ Subject l \\ (l,t) <- tasks] >>= id
 chooseTask :: !d ![(String,Task o)] -> Task o | descr d & iTask o 
 chooseTask msg tasks = enterChoice msg [] [l \\ (l,t) <- tasks] >>= \c . hd [t \\ (l,t) <- tasks | l == c]
 
@@ -89,7 +82,6 @@ where
 
 state :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 state esm st=:{ka,ss,trace,n,r}
-//	= viewInformation "The state diagram" [] st
 	| isEmpty ka.issues
 		=	digraph
 		=	viewInformation ("Issues",issuesToHtml ka.issues) [] Void ||- digraph
@@ -110,7 +102,7 @@ updateDig :: !(State s i o) !String  -> Task (State s i o) | all, Eq, genShow{|*
 updateDig state=:{ka,ss,trace,n,r} label
 	#(ss`,trace`)	= findSelectedStates label ka ss trace
 	# r`			= hd (genRandInt r)
-	= return {state & ss = ss`, trace = trace`, r = r`} //(ka,as`,trace`,n,r`)
+	= return {state & ss = ss`, trace = trace`, r = r`}
 where
 	findSelectedStates label ka ss trace
 		# ss` = take 1 [s \\ s <- nodesOf ka | show1 s == label]
@@ -130,16 +122,16 @@ step esm state=:{ka,ss,trace,n,r} i
 			  ka`    = addTransitions 1 esm ss [i] ka
 			  trace` = addStep esm ss i trace
 			  rn	 = hd (genRandInt r)
-		  in return {state & ka = ka`, ss = next, trace = trace`} //(ka`,next,trace`,n,rn)
+		  in return {state & ka = ka`, ss = next, trace = trace`}
 
 back :: (State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 back state=:{ka,ss,trace,n,r}
 	| isEmpty trace
-		= return {state & r = hd (genRandInt r)} //(ka,as,[],n,hd (genRandInt r))
+		= return {state & r = hd (genRandInt r)}
 		= let next   = startStates (last trace)
 			  trace` = init trace
 			  rn	 = hd (genRandInt r)
-		  in return {state & trace = trace`} //(ka,next,trace`,n,rn)
+		  in return {state & trace = trace`}
 
 newKA = {trans=[],issues=[]}
 

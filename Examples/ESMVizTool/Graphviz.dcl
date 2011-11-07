@@ -1,4 +1,4 @@
-// Péter Diviánszky, 2007
+// Peter Divianszky, 2007
 // Code extended and adapted by Peter Achten, 2007, Pieter Koopman 2010
 
 definition module Graphviz
