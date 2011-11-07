@@ -36,6 +36,7 @@ DiGraphFlow :: !(ESM s i o) (State s i o) -> Task (State s i o)
 DiGraphFlow	esm st=:{ka,ss,trace,n,r}
  =	anyTask	[ state esm st
  			, chooseTask "Choose an input... " (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
+ 			, enterChoice "go to state... " [] (map show1 (nodesOf ka)) >>= updateDig st
 			, chooseTask "Do one of the following actions..."
 				[("Back" , back st)
 				,("Prune", prune st)
@@ -50,6 +51,7 @@ DiGraphFlow	esm st=:{ka,ss,trace,n,r}
     		, stepN esm st
 //    		, getDefaultValue >>= showStickyMessage "Trace" (traceHtml trace)
 // XXX    		, getDefaultValue >>= viewInformation ("Trace", traceHtml trace) [] 
+			, viewInformation ("Trace", traceHtml trace) [] st
     		]
 where
 	inputs		= possibleInputs esm ss
@@ -87,6 +89,7 @@ where
 
 state :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 state esm st=:{ka,ss,trace,n,r}
+//	= viewInformation "The state diagram" [] st
 	| isEmpty ka.issues
 		=	digraph
 		=	viewInformation ("Issues",issuesToHtml ka.issues) [] Void ||- digraph
@@ -96,7 +99,6 @@ where
 	//Make an editable digraph from the esm state
 	toView st=:{ka,ss,trace} //TODO: MOVE mkDigraph function to this module as it is essentially the toView of a state
 		= mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace) 
-
 	//Map changes in the diagraph back to the esm state
 	fromView dg st _ = st
 		
@@ -128,7 +130,7 @@ step esm state=:{ka,ss,trace,n,r} i
 			  ka`    = addTransitions 1 esm ss [i] ka
 			  trace` = addStep esm ss i trace
 			  rn	 = hd (genRandInt r)
-		  in return {state & ka = ka`, trace = trace`} //(ka`,next,trace`,n,rn)
+		  in return {state & ka = ka`, ss = next, trace = trace`} //(ka`,next,trace`,n,rn)
 
 back :: (State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 back state=:{ka,ss,trace,n,r}

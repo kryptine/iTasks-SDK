@@ -5,7 +5,7 @@ import ESMVizTool
 import StdMisc
 
 Start :: *World -> *World
-Start world		= (esmVizTool coffeeNcoins) world
+Start world		= esmVizTool coffeeNcoins world
 
 /**************************************************************************************
 *
