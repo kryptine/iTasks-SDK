@@ -169,11 +169,7 @@ Ext.define('itasks.controller.Controller',{
 	
 			for(i = 0; i < updateCount; i++) {
 				update = message.updates[i];
-				
-				if(update.method == 'insert' || update.method == 'remove') {
-						console.log(update.method,update.path,update.arguments);
-				}
-				
+			
 				try {
 					target = this.findChildByPath(update.path, this.viewport);
 					
