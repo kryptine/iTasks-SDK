@@ -258,8 +258,8 @@ where
 		  
 	findCloseAction [] acc = (Nothing,reverse acc)
 	findCloseAction [taskAction=:(taskId,action,enabled):actions] acc
-		| enabled && action === ActionClose	= (Just (actionName action,taskId), (reverse acc) ++ actions)
-		| otherwise							= findCloseAction actions [taskAction:acc]
+		| action === ActionClose	= (if enabled (Just (actionName action,taskId)) Nothing, (reverse acc) ++ actions)
+		| otherwise					= findCloseAction actions [taskAction:acc]
 
 
 defaultPanelDescr :: !PanelTitle !PanelIcon !(Maybe String) !(Maybe String) !TUISize ![TUIDef] -> TUIDef

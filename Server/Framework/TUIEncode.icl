@@ -62,7 +62,6 @@ JSONEncode{|TUICheckChoice|} {TUICheckChoice|items,taskId,name,index,checked}
 	= [JSONObject [("xtype",JSONString "itasks_checkchoice"),("items", JSONArray (map toJSON items))
 					,("taskId",toJSON taskId),("name", JSONString name),("index",JSONInt index),("checked",JSONBool checked)]]
 
-
 editprefix :== "itasks_edit_"
 showprefix :== "itasks_show_"
 
@@ -83,7 +82,6 @@ encodeControlType prefix (TUIComboControl r)			= [JSONObject [("xtype",JSONStrin
 encodeControlType prefix (TUIGridControl r)				= addXType "itasks_grid" (JSONEncode{|*|} r)
 encodeControlType prefix (TUITreeControl r)				= [JSONObject [("xtype",JSONString "itasks_tree"),("tree",toJSON r)]]
 encodeControlType prefix (TUICustomControl xtype)		= justXType xtype
-
 
 JSONEncode{|TUIDirection|} Horizontal	= [JSONString "horizontal"]
 JSONEncode{|TUIDirection|} Vertical		= [JSONString "vertical"]
@@ -114,8 +112,7 @@ where
 	marginfields = case margins of
 		Nothing = []
 		Just m	= [("margins",toJSON m)]
-		
-		
+				
 addXType :: !String ![JSONNode] -> [JSONNode]
 addXType xtype [JSONObject fields: xs]	= [JSONObject [("xtype", JSONString xtype):fields] : xs]
 addXType _ _							= abort "cannot add xtype"
@@ -129,9 +126,6 @@ merge _ _									= abort "two JSON objects required"
 
 filterNull :: [(!String,JSONNode)] -> [(!String,!JSONNode)]
 filterNull fields = [(field,node) \\ (field,node) <- fields | node <> JSONNull]
-
-
-derive JSONEncode TUISize, TUIMinSize
 
 encodeTUIUpdates :: ![TUIUpdate] -> JSONNode
 encodeTUIUpdates updates = JSONArray (flatten (map encodeTUIUpdate updates))

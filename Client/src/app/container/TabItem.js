@@ -3,7 +3,6 @@ Ext.define('itasks.container.TabItem',{
 	alias: 'widget.itasks_tab_item',
 	requires: ['itasks.layout.VHBox'],
 	layout: 'vhbox',
-	autoRender: true,
 	
 	initComponent: function() {
 		if(Ext.isArray(this.closeAction)) {

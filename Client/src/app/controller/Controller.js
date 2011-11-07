@@ -169,17 +169,27 @@ Ext.define('itasks.controller.Controller',{
 	
 			for(i = 0; i < updateCount; i++) {
 				update = message.updates[i];
-				target = this.findChildByPath(update.path, this.viewport);
 				
-				if(target && typeof target[update.method] == 'function') {
-					target[update.method].apply(target,update.arguments);
-				} else {
-					if(!target) {
-						this.error("Could not find target at path " + update.path);
+				if(update.method == 'insert' || update.method == 'remove') {
+						console.log(update.method,update.path,update.arguments);
+				}
+				
+				try {
+					target = this.findChildByPath(update.path, this.viewport);
+					
+					if(target && typeof target[update.method] == 'function') {
+						target[update.method].apply(target,update.arguments);
 					} else {
-						this.error("Can't apply " + update.method + " to " + target.getId() + " (" + target.getXType() + ")");
-						this.error(update.arguments);
+						if(!target) {
+							this.error("Could not find target at path " + update.path);
+						} else {
+							this.error("Can't apply " + update.method + " to " + target.getId() + " (" + target.getXType() + ")");
+							this.error(update.arguments);
+						}
 					}
+					
+				} catch (e) {
+					this.error("Exception during update " + e);
 				}
 			}
 			//Enable events
@@ -220,7 +230,7 @@ Ext.define('itasks.controller.Controller',{
 						return undefinedValue;
 			} else {
 				step = parseInt(step);
-				if(child.items) {
+				if(child.items && child.items.get) {
 					child = child.items.get(step);
 					if(!child)
 						return undefinedValue;

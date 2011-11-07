@@ -86,12 +86,14 @@ where
 			where
 				items tc = [{content = TUITabItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- tc.TUITabContainer.items]
 		(TUITabItem o, TUITabItem n)
-			| o.TUITabItem.closeAction === n.TUITabItem.closeAction //Can't diff the close action for now
-				&& o.TUITabItem.menus === n.TUITabItem.menus		//Diff of menus is also still impossible
+			| (o.TUITabItem.closeAction === n.TUITabItem.closeAction //Can't diff the close action for now
+				&& o.TUITabItem.menus === n.TUITabItem.menus)		//Diff of menus is also still impossible
 					# titleUpdate	= update (\o n -> o.TUITabItem.title == n.TUITabItem.title && o.TUITabItem.iconCls == n.TUITabItem.iconCls) (\{TUITabItem|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
 					# itemUpdates	= diffChildEditorDefinitions path [o.TUITabItem.items] [n.TUITabItem.items] 
 					# menuUpdates 	= []
 					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
+			| otherwise
+				= Nothing
 		(TUIIcon o, TUIIcon n)
 			| o.TUIIcon.type == n.TUIIcon.type
 				&& o.TUIIcon.tooltip === n.TUIIcon.tooltip
