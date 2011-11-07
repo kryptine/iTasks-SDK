@@ -184,7 +184,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 (-||-) infixr 3 	:: !(Task a) !(Task a) 	-> Task a 				| iTask a
 
 /**
-* Group two tasks in parallel, return the result of the left task
+* Group two tasks in parallel, return the result of the right task
 *
 * @param Left: The left task
 * @param Right: The right task
@@ -196,7 +196,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 (||-)  infixr 3		:: !(Task a) !(Task b)	-> Task b				| iTask a & iTask b
 
 /**
-* Group two tasks in parallel, return the result of the right task
+* Group two tasks in parallel, return the result of the left task
 *
 * @param Left: The left task
 * @param Right: The right task
