@@ -4,21 +4,12 @@ import iTasks
 //import StdListExtensions
 import ESMSpec
 import GenPrint
-//import _SystemArray
-//from _SystemArray import qualified class Array(..)
 
 import Graphviz
 import GraphvizVisualization
 
 derive bimap (,), Maybe
 derive class iTask	KnownAutomaton, State
-/*
-derive gVisualize 	(,,,,), (,,,,,)
-derive gUpdate	 	(,,,,), (,,,,,)
-derive gVerify		(,,,,), (,,,,,)
-*/
-//derive class iTask (,,,,)
-//derive class iTask (,,,,,)
 
 getDefaultValue :: t | ggen{|*|} t
 getDefaultValue = ggen{|*|} 2 aStream !! 0
@@ -100,16 +91,19 @@ state esm st=:{ka,ss,trace,n,r}
 		=	digraph
 		=	viewInformation ("Issues",issuesToHtml ka.issues) [] Void ||- digraph
 where
-	digraph = updateInformation "ESM" [UpdateView (GetLocal toView,SetLocal fromView)] st
+	digraph = updateInformation "ESM" [UpdateView (GetLocal toView,SetLocal fromView)] st <<@ singleViewLayout (Fixed 700) (Fixed 300)
 	
-	toView st 
-		= length st.trace
-		//= "TODO SHOW VISUALIZATION OF ESM STATE"
-	fromView v st _ = st
+	//Make an editable digraph from the esm state
+	toView st=:{ka,ss,trace} //TODO: MOVE mkDigraph function to this module as it is essentially the toView of a state
+		= mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace) 
 
+	//Map changes in the diagraph back to the esm state
+	fromView dg st _ = st
+		
 	 //(mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace))
 	 //	>>= updateDig st
 
+//TODO: Turn this into a (Diagraph State -> State function)
 updateDig :: !(State s i o) !String  -> Task (State s i o) | all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 updateDig state=:{ka,ss,trace,n,r} label
 	#(ss`,trace`)	= findSelectedStates label ka ss trace

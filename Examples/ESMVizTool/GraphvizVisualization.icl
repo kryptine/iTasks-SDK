@@ -1,9 +1,11 @@
 implementation module GraphvizVisualization
 
 import GenVisualize, GenUpdate, GenPrint, GenParse
-import Util, HttpUtil
+import Util, Error, HttpUtil, IWorld
 import StdFile, StdTuple, StdList, StdBool, StdArray, StdString
-
+from Text		import qualified class Text(..), instance Text String
+from Process	import callProcess
+from File		import writeFile, :: FileError
 //from Directory import pd_StringToPath, getFileInfo, createDirectory, instance == DirError
 from Directory import createDirectory
 //from Directory import :: Path(..), :: PathStep, :: DirError(..), :: FileInfo, :: DiskName
@@ -12,33 +14,66 @@ from Directory import :: FilePath(..), :: MaybeOSError, :: OSError, :: OSErrorCo
 import Graphviz
 
 derive bimap (,), Maybe
-derive class iTask	NodeState, Digraph, 
-					Arrow, ArrowShape, ClusterMode, CompassPoint, DotPoint, 
+derive class iTask	NodeState, Arrow, ArrowShape, ClusterMode, CompassPoint, DotPoint, 
 					EdgeAttribute, GraphAttribute, LayerId, LayerList, LayerRange, Margin, 
 					NodeAttribute, NodeDef, OutputMode, Pad, PageDir, Pointf, 
 					RankDir, RankType, Ratio, Rect, SelectedItem, Side, Sizef, StartStyle, StartType, ViewPort
 
-
-derive gVisualizeText	ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gVisualizeText	Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
 derive gVisualizeEditor	ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gUpdate			ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gHeaders			ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gGridRows		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gVerify			ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive gDefaultMask		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive JSONEncode		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
-derive JSONDecode		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gUpdate			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gHeaders			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gGridRows		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gVerify			Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gDefaultMask		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive JSONEncode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive JSONDecode		Digraph, ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gEq				Digraph
 
 config_file_name		:== "Graphviz.config"
 commentsymbol			:== '%'
 dot_exe_path_name		:== "DOT_PATH"
 target file				= "Static\\" + file
-toGIF file				= "-Tgif -o " + "\"" + gifext file + "\" \"" + dotext file + "\""
+toGIF file				= ["-Tgif","-o",gifext file,dotext file]
 toMAP file name			= "-Tcmapx" + " -Glabel=" + name + " -o " + "\"" + mapext file + "\" \"" + dotext file + "\""
 gifext file				= file + ".gif"
 mapext file				= file + ".map"
 dotext file				= file + ".dot"
-					
+
+gVisualizeEditor{|Digraph|} Nothing vst			= noVisualization vst				
+gVisualizeEditor{|Digraph|} (Just digraph) vst	= visualizeCustom mkControl vst
+where
+	mkControl name touched verRes mbEvent vst=:{VSt|iworld}
+		# filename			= hash digraph
+		# (mbErr, iworld)	= runGraphviz filename (printDigraph (enhanceDigraphWithLinks digraph)) iworld
+		= case mbErr of
+			Ok _
+				= ([defaultDef (TUIHtml {TUIHtml|html = "<img src=\"/" + (gifext filename) + "\" usemap=\"#" + filename + "\" />"})], {VSt|vst & iworld = iworld})
+			Error msg
+				= ([defaultDef (TUIHtml {TUIHtml|html = msg})], {VSt|vst & iworld = iworld})
+		
+	runGraphviz :: String [String] *IWorld -> (!MaybeErrorString Void,!*IWorld)
+	runGraphviz name dotcode iworld=:{IWorld|world}
+		# (mbExe,world)		= obtainValueFromConfig dot_exe_path_name world
+		| isNothing mbExe	= (Error ("Could not obtain " +++ dot_exe_path_name +++ " from " +++ config_file_name +++ "."), {iworld & world = world})
+		# exe				= fromJust mbExe
+		//TODO ensure dir
+		# (mbErr,world)		= writeFile (target (dotext name)) ('Text'.join "\n" dotcode) world
+		| isError mbErr		= (Error ("Could not write Digraph to " + target (dotext name) + "."), {iworld & world = world})
+		
+		# (mbExit,world)	= callProcess exe (toGIF (target name)) Nothing world
+		| isError mbExit	= (Error ("Creation of " + gifext (target name) + " failed"), {iworld & world = world})
+		
+		= (Ok Void, {iworld & world = world})
+
+	enhanceDigraphWithLinks (Digraph name graphAtts nodeDefs selected)
+		= Digraph name graphAtts 
+			[  NodeDef nr st [ NAtt_URL "#" /*("#")*/ : nodeAtts ] edges 
+			\\ NodeDef nr st nodeAtts edges <- nodeDefs
+			] selected
+
+	hash (Digraph name graphAtts nodeDefs selected) //TODO: generate a proper hash of the digraph! This will probably break
+		= name + toString (length nodeDefs)
 
 /*
 where
@@ -115,12 +150,7 @@ boundsOfKeyValue key str
 							[_,close:_] = Just (i,close)
 							otherwise	= Nothing
 		otherwise		= Nothing
-join :: !String ![String] -> String
-join sep [] = ""
-join sep [x:[]] = x
-join sep [x:xs] = x + sep + (join sep xs)
 
-/*
 obtainValueFromConfig :: !String !*env -> (!Maybe String,!*env) | FileSystem env
 obtainValueFromConfig name env
 	# (ok,file,env)		= fopen config_file_name FReadText env
@@ -142,13 +172,6 @@ where
 		= (value,file)
 	where
 		name_length		= size name
-*/
-enhanceDigraphWithLinks :: !Digraph -> Digraph
-enhanceDigraphWithLinks (Digraph name graphAtts nodeDefs selected)
-	= Digraph name graphAtts 
-		[  NodeDef nr st [ NAtt_URL "#" /*("#")*/ : nodeAtts ] edges 
-		\\ NodeDef nr st nodeAtts edges <- nodeDefs
-		] selected
 
 /*
 ensureDirectory :: !String !*env -> *env | FileSystem env	// PA++
@@ -158,22 +181,7 @@ ensureDirectory pathname env
 	# ((err,info),env)	= getFileInfo path env
 	| err<>NoDirError	= snd (createDirectory path env)
 	| otherwise			= env
-
-writefile` :: !String ![String] !*env -> (!Bool,!*env) | FileSystem env
-writefile` fileName content env
-	# (ok,file,env)		= fopen fileName FWriteText env
-	| not ok			= (False,env)
-	# file				= foldl (<<<) file content
-	= fclose file env
-
-readfile`  :: !String !*env -> (!Bool,![String],!*env) | FileSystem env
-readfile` fileName env
-	# (ok,file,env)		= fopen fileName FReadText env
-	| not ok			= (False,[],env)
-	# (content,file)	= readlines file
-	# (ok,env)			= fclose file env
-	= (ok,content,env)
-
+*/
 readlines :: !*File -> (![String],!*File)
 readlines file
 	# (end,file)		= fend file
@@ -181,13 +189,6 @@ readlines file
 	# (line, file)		= freadline file
 	# (lines,file)		= readlines file
 	= ([line:lines],file)
-*/
-collect3 :: (.s -> (.a,.b,.s)) .s -> (.(.a,.b),.s)
-collect3 f st
-	# (a,b,st)			= f st
-	= ((a,b),st)
 
 skipSpace :: !String -> String
 skipSpace str			= toString (dropWhile isSpace (fromString str))
-
-//instance + String where (+) s t = s + t
