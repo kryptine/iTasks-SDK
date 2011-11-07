@@ -35,7 +35,8 @@ getDefaultValue = ggen{|*|} 2 aStream !! 0
 esmVizTool :: !(ESM s i o) *World -> *World
 			| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 esmVizTool esm world
-	 = startEngine (manageWorkflows [workflow "ESM Viz Tool" "ESM visualization" (iterateTask (DiGraphFlow esm) newstate)]) world
+	// = startEngine (manageWorkflows [workflow "ESM Viz Tool" "ESM visualization" (iterateTask (DiGraphFlow esm) newstate)]) world
+	= startEngine (iterateTask (DiGraphFlow esm) newstate) world
 where
 	newstate = { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = 20080929}
 	 
@@ -97,12 +98,17 @@ state :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq, genShow{|*
 state esm st=:{ka,ss,trace,n,r}
 	| isEmpty ka.issues
 		=	digraph
-//		=	showStickyMessage "Issues" (issuesToHtml ka.issues) Void ||- digraph
 		=	viewInformation ("Issues",issuesToHtml ka.issues) [] Void ||- digraph
 where
-	digraph
-	 =	updateDigraph (mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace))
-	 	>>= updateDig st
+	digraph = updateInformation "ESM" [UpdateView (GetLocal toView,SetLocal fromView)] st
+	
+	toView st 
+		= length st.trace
+		//= "TODO SHOW VISUALIZATION OF ESM STATE"
+	fromView v st _ = st
+
+	 //(mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace))
+	 //	>>= updateDig st
 
 updateDig :: !(State s i o) !String  -> Task (State s i o) | all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 updateDig state=:{ka,ss,trace,n,r} label

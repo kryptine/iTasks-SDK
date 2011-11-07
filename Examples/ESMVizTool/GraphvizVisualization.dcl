@@ -5,4 +5,4 @@ import Graphviz
 
 derive class iTask Digraph
 
-updateDigraph :: !Digraph -> Task String
+//updateDigraph :: !Digraph -> Task String

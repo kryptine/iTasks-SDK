@@ -1,7 +1,6 @@
 implementation module GraphvizVisualization
 
 import GenVisualize, GenUpdate, GenPrint, GenParse
-//import TSt, Types, Util, HttpUtil
 import Util, HttpUtil
 import StdFile, StdTuple, StdList, StdBool, StdArray, StdString
 
@@ -10,15 +9,26 @@ from Directory import createDirectory
 //from Directory import :: Path(..), :: PathStep, :: DirError(..), :: FileInfo, :: DiskName
 from Directory import :: FilePath(..), :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 
-import Graphviz, launch
+import Graphviz
 
 derive bimap (,), Maybe
 derive class iTask	NodeState, Digraph, 
-					Arrow, ArrowShape, ArrowType, ClusterMode, Color, CompassPoint, DirType, DotPoint, 
-					EdgeAttribute, EdgeStyle, GraphAttribute, LayerId, LayerList, LayerRange, Margin, 
-					NodeAttribute, NodeDef, NodeShape, NodeStyle, OutputMode, Pad, PageDir, Pointf, 
+					Arrow, ArrowShape, ClusterMode, CompassPoint, DotPoint, 
+					EdgeAttribute, GraphAttribute, LayerId, LayerList, LayerRange, Margin, 
+					NodeAttribute, NodeDef, OutputMode, Pad, PageDir, Pointf, 
 					RankDir, RankType, Ratio, Rect, SelectedItem, Side, Sizef, StartStyle, StartType, ViewPort
-					
+
+
+derive gVisualizeText	ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gVisualizeEditor	ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gUpdate			ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gHeaders			ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gGridRows		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gVerify			ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive gDefaultMask		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive JSONEncode		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+derive JSONDecode		ArrowType, Color, DirType, EdgeStyle, NodeShape, NodeStyle
+
 config_file_name		:== "Graphviz.config"
 commentsymbol			:== '%'
 dot_exe_path_name		:== "DOT_PATH"
@@ -29,9 +39,8 @@ gifext file				= file + ".gif"
 mapext file				= file + ".map"
 dotext file				= file + ".dot"
 					
-//Special task for manipulating digraphs
-updateDigraph :: !Digraph -> Task String
-updateDigraph digraph = mkInteractiveTask "editDigraph" "Digraph editor" taskfun
+
+/*
 where
 	taskfun tst=:{taskNr}
 		# (events,tst)		= getEvents tst
@@ -98,7 +107,7 @@ where
 						, Text "Blue transitions: on current trace.", BrTag []
 						, Text "Red transitions: an issue was found on this transition."
 						]
-			
+*/			
 boundsOfKeyValue :: !String !String -> Maybe (!Int,!Int)
 boundsOfKeyValue key str
 	= case [i \\ i<-[0..size str-size key] | str%(i,i+size key-1) == key] of
@@ -111,6 +120,7 @@ join sep [] = ""
 join sep [x:[]] = x
 join sep [x:xs] = x + sep + (join sep xs)
 
+/*
 obtainValueFromConfig :: !String !*env -> (!Maybe String,!*env) | FileSystem env
 obtainValueFromConfig name env
 	# (ok,file,env)		= fopen config_file_name FReadText env
@@ -132,7 +142,7 @@ where
 		= (value,file)
 	where
 		name_length		= size name
-
+*/
 enhanceDigraphWithLinks :: !Digraph -> Digraph
 enhanceDigraphWithLinks (Digraph name graphAtts nodeDefs selected)
 	= Digraph name graphAtts 
@@ -140,6 +150,7 @@ enhanceDigraphWithLinks (Digraph name graphAtts nodeDefs selected)
 		\\ NodeDef nr st nodeAtts edges <- nodeDefs
 		] selected
 
+/*
 ensureDirectory :: !String !*env -> *env | FileSystem env	// PA++
 ensureDirectory pathname env
 	# ((ok,path), env)	= pd_StringToPath pathname env
@@ -170,7 +181,7 @@ readlines file
 	# (line, file)		= freadline file
 	# (lines,file)		= readlines file
 	= ([line:lines],file)
-
+*/
 collect3 :: (.s -> (.a,.b,.s)) .s -> (.(.a,.b),.s)
 collect3 f st
 	# (a,b,st)			= f st
@@ -179,4 +190,4 @@ collect3 f st
 skipSpace :: !String -> String
 skipSpace str			= toString (dropWhile isSpace (fromString str))
 
-instance + String where (+) s t = s + t
+//instance + String where (+) s t = s + t
