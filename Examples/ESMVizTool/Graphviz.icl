@@ -249,7 +249,8 @@ mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 			]
 		) Nothing
 where
-	graphAttributes				= [ GAtt_rankdir  RD_TB // RD_LR
+//	graphAttributes				= [ GAtt_rankdir  RD_TB // RD_LR
+	graphAttributes				= [ GAtt_rankdir  RD_LR // horizontal
 								 // , GAtt_size     		(Sizef 10.0 6.0 True)
 								  , GAtt_size     		(Sizef 7.4 15.0 False)
 								 // , GAtt_size			(Sizef 5.0 3.0 True)

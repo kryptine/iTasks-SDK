@@ -86,7 +86,7 @@ state esm st=:{ka,ss,trace,n,r}
 		=	digraph
 		=	viewInformation ("Issues",issuesToHtml ka.issues) [] Void ||- digraph
 where
-	digraph = updateInformation "ESM" [UpdateView (GetLocal toView,SetLocal fromView)] st <<@ singleViewLayout (Fixed 700) (Fixed 300)
+	digraph = updateInformation "ESMviz" [UpdateView (GetLocal toView,SetLocal fromView)] st <<@ singleViewLayout (Fixed 700) (Fixed 300)
 	
 	//Make an editable digraph from the esm state
 	toView st=:{ka,ss,trace} //TODO: MOVE mkDigraph function to this module as it is essentially the toView of a state
