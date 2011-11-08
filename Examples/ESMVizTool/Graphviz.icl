@@ -6,8 +6,6 @@ implementation module Graphviz
 import StdArray, StdOverloaded, StdList, StdOrdList, StdTuple, StdString, StdBool, StdMisc
 import StdMaybe, StdListExtensions
 import GenLib
-import ESMSpec
-import genLibTest
 
 derive gEq    EdgeStyle, NodeStyle, DirType, NodeShape, Side, ArrowShape, Maybe, ArrowType, Arrow, Color
 derive gPrint EdgeStyle, NodeStyle, DirType, NodeShape, Side, ArrowShape, Maybe, CompassPoint, StartStyle,
@@ -165,30 +163,7 @@ commaseparatedlist []							= ""
 commaseparatedlist l							= "[" +++ (foldr (+++) "" (intersperse "," l)) +++ "]"
 
 printDigraph :: !Digraph -> [String]
-//printDigraph (Digraph title atts nodes _)		= map (\x->x+++"\n") (prelude title (graphAtts atts) (contents nodes))
-printDigraph digraph							= case includeChanges digraph of
-													Digraph title atts nodes _ -> map (\x->x+++"\n") (prelude title (graphAtts atts) (contents nodes))
-
-includeChanges :: !Digraph -> Digraph
-includeChanges dg=:(Digraph _ _ _ Nothing)		= dg
-includeChanges (Digraph title atts nodes change)= Digraph title atts (map includeNodeChange nodes) Nothing
-where
-	(SelectedItem nr`)							= fromJust change
-	
-	includeNodeChange :: !NodeDef -> NodeDef
-	includeNodeChange (NodeDef nr st atts edges)
-		| nr==nr`								= NodeDef nr st (map replaceNodeAtt atts) edges
-		| otherwise								= NodeDef nr st (map defaultNodeAtt atts) edges
-	where
-		all_edges_found							= not (isEmpty [s \\ s=:(NStAllEdgesFound True) <- st])
-		
-		replaceNodeAtt (NAtt_fillcolor _)		= NAtt_fillcolor (fst (active_state_color 1))
-		replaceNodeAtt (NAtt_fontcolor _)		= NAtt_fontcolor (snd (active_state_color 1))
-		replaceNodeAtt att						= att
-		
-		defaultNodeAtt (NAtt_fillcolor c)		= NAtt_fillcolor (if all_edges_found (fst finished_state_color) (fst default_state_color))
-		defaultNodeAtt (NAtt_fontcolor c)		= NAtt_fontcolor (if all_edges_found (snd finished_state_color) (snd default_state_color))
-		defaultNodeAtt att						= att
+printDigraph (Digraph title atts nodes _)		= map (\x->x+++"\n") (prelude title (graphAtts atts) (contents nodes))
 
 createGraphName :: !String -> String
 createGraphName ""								= "G"
@@ -219,6 +194,9 @@ where
 	nodes` = map (\(num, id, atts) = (num, id >$ commaseparatedlist (map toString atts))) nodes
 	edges` = map (\(num,source,target,atts) = (num,source >$ "->" $> target >$ commaseparatedlist (map toString atts))) (flatten edges)
 
+/*
+<<<<<<< .mine
+=======
 
 mkDigraph :: String (KnownAutomaton s i o,s,[s],[s],[s],[SeenTrans s i o],[SeenTrans s i o]) -> Digraph | render, gEq{|*|}, genShow{|*|} s & render, gEq{|*|} i & render, gEq{|*|} o
 mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
@@ -303,6 +281,8 @@ shared_active_state_color		= (Color "gray",Color "red")
 
 fontsize = 12.0 // 18.0
 
+>>>>>>> .r1907
+*/
 //	Utility functions:
 
 mapSt :: (a b -> (c,b)) [a] b -> [c]
@@ -336,10 +316,4 @@ firstCharLowerCase str
 (>$) infixr 5 :: !a !String -> String | toString a
 (>$) arg str			= toString arg +++ str
 
-showList :: !(!String,!String,!String) ![a] -> String | render a
-showList (open,close,delimit) []  = open +++ close
-showList (open,close,delimit) [x] = open +++ render x +++ close
-showList (open,close,delimit) xs  = open +++ foldr (\x str->render x+++delimit+++str) "" (init xs) +++ render (last xs) +++ close
 
-remove_spaces :: !String -> String
-remove_spaces str		= {c \\ c<-:str | not (isSpace c)}

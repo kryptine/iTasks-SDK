@@ -3,13 +3,9 @@
 
 definition module Graphviz
 
-//from   StdOverloaded import class ==, class toString
 from   StdOverloaded import class toString
 import StdMaybe
-import ESMSpec
 import GenEq
-import genLibTest
-
 
 // A digraph contains a title and a list of node definitions
 :: Digraph 
@@ -355,7 +351,6 @@ instance toString ArrowType
 instance ==       ArrowType
 derive gEq ArrowType // PK++
 
-
 // direction of the edge
 :: DirType
     = DT_forward 
@@ -368,5 +363,3 @@ derive gEq DirType // PK++
 
 layersep :== ":\t"
 
-mkDigraph :: String (KnownAutomaton s i o,s,[s],[s],[s],[SeenTrans s i o],[SeenTrans s i o])
-				-> Digraph	| render, gEq{|*|}, genShow{|*|} s & render, gEq{|*|} i & render, gEq{|*|} o

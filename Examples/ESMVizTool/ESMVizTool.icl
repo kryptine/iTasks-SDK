@@ -13,6 +13,25 @@ derive class iTask	KnownAutomaton, State
 getDefaultValue :: t | ggen{|*|} t
 getDefaultValue = ggen{|*|} 2 aStream !! 0
 
+finished_state_color :: (!Color,!Color)
+finished_state_color	= (Color "blue", Color "white")
+
+default_state_color :: (!Color,!Color)
+default_state_color		= (Color "grey90",Color "black")
+	
+shared_state_color :: (!Color,!Color)
+shared_state_color		= (Color "gray",Color "white")
+	
+shared_active_state_color :: (!Color,!Color)
+shared_active_state_color = (Color "gray",Color "red")
+
+active_state_color :: !Int -> (!Color,!Color)
+active_state_color nr	= (RGB 255 dim dim,Color "white")
+where
+	dim	= min 250 (255 - 255 / (min nr 3))
+	
+fontsize = 12.0 // 18.0
+
 :: State s i o
  =	{ ka	:: !KnownAutomaton s i o
 	, ss	:: ![s]
@@ -90,12 +109,107 @@ where
 	
 	//Make an editable digraph from the esm state
 	toView st=:{ka,ss,trace} //TODO: MOVE mkDigraph function to this module as it is essentially the toView of a state
-		= mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace) 
+		= includeChanges (mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace)) 
 	//Map changes in the diagraph back to the esm state
 	fromView dg st _ = st
 		
 	 //(mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace))
 	 //	>>= updateDig st
+
+mkDigraph :: String (KnownAutomaton s i o,s,[s],[s],[s],[SeenTrans s i o],[SeenTrans s i o]) -> Digraph | render, gEq{|*|}, genShow{|*|} s & render, gEq{|*|} i & render, gEq{|*|} o
+mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
+	= Digraph
+		(remove_spaces name)
+		graphAttributes
+		(if (isEmpty automaton.trans)
+			[NodeDef 0                  [NStAllEdgesFound (gisMember s_0 finished)] (nodeAttributes s_0 init_states (gisMember s_0 finished) (gisMember s_0 shared)) []]
+			[NodeDef (nrOf automaton n) [NStAllEdgesFound (gisMember n   finished)] (nodeAttributes n   init_states (gisMember n   finished) (gisMember n   shared))
+			         [ let (s,i,o,t) = trans in
+			           (nrOf automaton t	, [ EAtt_label (render i+++"/"+++showList ("[","]",",") o)
+			                                , EAtt_fontname "Helvetica"
+			                                , EAtt_fontsize fontsize
+			                                , EAtt_labelfontname "Helvetica"
+			                                , EAtt_labelfontsize fontsize
+			                                , EAtt_color
+			                                			 (if (gisMember trans issues)
+			                                						(Color "red")
+			                                			 (if (gisMember trans trace)
+			                                						(Color "blue")
+			                                						(Color "black")))
+			                                , EAtt_arrowsize (if (gisMember trans trace) 2.0 1.2)
+			                             //   , EAtt_style (if (isMember trans trace) EStyle_bold EStyle_solid)
+			                                ])
+			         \\ trans <- edgesFrom n automaton
+			         ]
+			\\ n <- let nodes = nodesOf automaton in if (gisMember s_0 nodes && hd nodes =!= s_0) [s_0:filter ((=!=) s_0) nodes] nodes
+			]
+		) Nothing
+where
+	graphAttributes				= [ GAtt_rankdir  RD_LR // horizontal
+	//graphAttributes				= [ GAtt_rankdir  RD_TB // RD_LR
+								 // , GAtt_size     		(Sizef 10.0 6.0 True)
+							  	, GAtt_size     		(Sizef 7.2 15.0 False)
+			//					  , GAtt_size     		(Sizef 10.0 5.0 False)
+
+								 // , GAtt_size			(Sizef 5.0 3.0 True)
+								  , GAtt_fontsize		9.0 // 12.0
+								  , GAtt_bgcolor  		(Color "white")
+								  , GAtt_ordering 		"out"
+								  , GAtt_outputorder	OM_nodesfirst	// OM_edgesfirst	//  PK
+								  ]
+	nodeAttributes n init_states finished shared
+								= (if (gisMember n init_states)
+										(if shared	[ NAtt_fillcolor shac_backgr, NAtt_fontcolor shac_txt ]
+													[ NAtt_fillcolor act_backgr, NAtt_fontcolor act_txt ])
+								  (if finished [ NAtt_fillcolor done_backgr,NAtt_fontcolor done_txt]
+								  		(if shared	[ NAtt_fillcolor shar_backgr, NAtt_fontcolor shar_txt ]
+									              	[ NAtt_fillcolor def_backgr, NAtt_fontcolor def_txt ])
+								  )) ++
+						          [ NAtt_label		(render n)
+						          , NAtt_tooltip	(show1 n)
+						          , NAtt_style		NStyle_filled
+						          , NAtt_shape		(if (n === s_0) NShape_doublecircle NShape_ellipse /*NShape_circle*/)
+						          , NAtt_fontname	"Helvetica"
+						          , NAtt_fontsize	fontsize
+						          , NAtt_fixedsize	False // True
+						          , NAtt_width 1.0,	NAtt_height 1.0
+						          , NAtt_margin		(SingleMargin 0.003)
+						          ]
+	where
+		( act_backgr, act_txt)	= active_state_color (length init_states)
+		(done_backgr,done_txt)	= finished_state_color
+		( def_backgr, def_txt)	= default_state_color
+		(shar_backgr,shar_txt)	= shared_state_color
+		(shac_backgr,shac_txt)	= shared_active_state_color
+
+	
+	showList :: !(!String,!String,!String) ![a] -> String | render a
+	showList (open,close,delimit) []  = open +++ close
+	showList (open,close,delimit) [x] = open +++ render x +++ close
+	showList (open,close,delimit) xs  = open +++ foldr (\x str->render x+++delimit+++str) "" (init xs) +++ render (last xs) +++ close
+
+
+
+includeChanges :: !Digraph -> Digraph
+includeChanges dg=:(Digraph _ _ _ Nothing)		= dg
+includeChanges (Digraph title atts nodes change)= Digraph title atts (map includeNodeChange nodes) Nothing
+where
+	(SelectedItem nr`)							= fromJust change
+	
+	includeNodeChange :: !NodeDef -> NodeDef
+	includeNodeChange (NodeDef nr st atts edges)
+		| nr==nr`								= NodeDef nr st (map replaceNodeAtt atts) edges
+		| otherwise								= NodeDef nr st (map defaultNodeAtt atts) edges
+	where
+		all_edges_found							= not (isEmpty [s \\ s=:(NStAllEdgesFound True) <- st])
+		
+		replaceNodeAtt (NAtt_fillcolor _)		= NAtt_fillcolor (fst (active_state_color 1))
+		replaceNodeAtt (NAtt_fontcolor _)		= NAtt_fontcolor (snd (active_state_color 1))
+		replaceNodeAtt att						= att
+		
+		defaultNodeAtt (NAtt_fillcolor c)		= NAtt_fillcolor (if all_edges_found (fst finished_state_color) (fst default_state_color))
+		defaultNodeAtt (NAtt_fontcolor c)		= NAtt_fontcolor (if all_edges_found (snd finished_state_color) (snd default_state_color))
+		defaultNodeAtt att						= att
 
 //TODO: Turn this into a (Diagraph State -> State function)
 updateDig :: !(State s i o) !String  -> Task (State s i o) | all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
@@ -185,11 +299,13 @@ allEdgesFound esm automaton
 	      | length (edgesFrom s automaton) == length [t \\ i<-enumerate,t<-nextStates esm i [s]] 
 	  ]
 
+remove_spaces :: !String -> String
+remove_spaces str = toString [ c \\ c <- fromString str | not (isSpace c)]
+
 toHtmlString :: a -> String | gVisualizeText{|*|} a
 toHtmlString x
 	# string = visualizeAsText AsDisplay x
 	= toString [checkChar c \\ c <-fromString string]
-//	= {checkChar c \\ c <-: string}
 where
 	checkChar '"' = '\''
 	checkChar  c  = c

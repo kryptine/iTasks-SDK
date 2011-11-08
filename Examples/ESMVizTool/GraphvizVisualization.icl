@@ -1,14 +1,14 @@
 implementation module GraphvizVisualization
 
 import GenVisualize, GenUpdate, GenPrint, GenParse
-import Util, Error, HttpUtil, IWorld
-import StdFile, StdTuple, StdList, StdBool, StdArray, StdString
+import Util, Error, HttpUtil, IWorld, Time
+import StdFile, StdTuple, StdList, StdBool, StdArray, StdString, StdFunc
+
 from Text		import qualified class Text(..), instance Text String
 from Process	import callProcess
-from File		import writeFile, :: FileError
-//from Directory import pd_StringToPath, getFileInfo, createDirectory, instance == DirError
+from File		import readFile, writeFile, getFileInfo, :: FileError, :: FileInfo(..)
+
 from Directory import createDirectory
-//from Directory import :: Path(..), :: PathStep, :: DirError(..), :: FileInfo, :: DiskName
 from Directory import :: FilePath(..), :: MaybeOSError, :: OSError, :: OSErrorCode, :: OSErrorMessage
 
 import Graphviz
@@ -33,18 +33,21 @@ derive gEq				Digraph
 config_file_name		:== "Graphviz.config"
 commentsymbol			:== '%'
 dot_exe_path_name		:== "DOT_PATH"
-target file				= "Static\\" + file
+public 					:== "Static"
+target file				= public + "\\" + file
 toGIF file				= ["-Tgif","-o",gifext file,dotext file]
-toMAP file name			= "-Tcmapx" + " -Glabel=" + name + " -o " + "\"" + mapext file + "\" \"" + dotext file + "\""
+toMAP file name			= ["-Tcmapx","-Glabel=" + name,"-o ","\"" + mapext file + "\"", "\"" + dotext file + "\""]
 gifext file				= file + ".gif"
 mapext file				= file + ".map"
 dotext file				= file + ".dot"
 
+instance + String where (+) a b = a +++ b
+
 gVisualizeEditor{|Digraph|} Nothing vst			= noVisualization vst				
 gVisualizeEditor{|Digraph|} (Just digraph) vst	= visualizeCustom mkControl vst
 where
-	mkControl name touched verRes mbEvent vst=:{VSt|iworld}
-		# filename			= hash digraph
+	mkControl name touched verRes mbEvent vst=:{VSt|iworld,taskId}
+		# filename			= imgname taskId name
 		# (mbErr, iworld)	= runGraphviz filename (printDigraph (enhanceDigraphWithLinks digraph)) iworld
 		= case mbErr of
 			Ok _
@@ -57,13 +60,15 @@ where
 		# (mbExe,world)		= obtainValueFromConfig dot_exe_path_name world
 		| isNothing mbExe	= (Error ("Could not obtain " +++ dot_exe_path_name +++ " from " +++ config_file_name +++ "."), {iworld & world = world})
 		# exe				= fromJust mbExe
-		//TODO ensure dir
+		# (mbErr,world)		= ensureDirectory public world
+		| isError mbErr		= (Error ("Could not create directory " + (target "")), {iworld & world = world})
 		# (mbErr,world)		= writeFile (target (dotext name)) ('Text'.join "\n" dotcode) world
 		| isError mbErr		= (Error ("Could not write Digraph to " + target (dotext name) + "."), {iworld & world = world})
-		
 		# (mbExit,world)	= callProcess exe (toGIF (target name)) Nothing world
 		| isError mbExit	= (Error ("Creation of " + gifext (target name) + " failed"), {iworld & world = world})
-		
+		# (mbExit,world)	= callProcess exe (toMAP name (target name)) Nothing world
+		| isError mbExit	= (Error ("Creation of " + mapext (target name) + " failed"), {iworld & world = world})
+		# (mbMap,world)		= readFile (mapext (target name)) world	
 		= (Ok Void, {iworld & world = world})
 
 	enhanceDigraphWithLinks (Digraph name graphAtts nodeDefs selected)
@@ -72,8 +77,7 @@ where
 			\\ NodeDef nr st nodeAtts edges <- nodeDefs
 			] selected
 
-	hash (Digraph name graphAtts nodeDefs selected) //TODO: generate a proper hash of the digraph! This will probably break
-		= name + toString (length nodeDefs)
+	imgname taskId name	= (maybe "notask" id taskId) + "-" + name
 
 /*
 where
@@ -173,15 +177,15 @@ where
 	where
 		name_length		= size name
 
-/*
-ensureDirectory :: !String !*env -> *env | FileSystem env	// PA++
-ensureDirectory pathname env
-	# ((ok,path), env)	= pd_StringToPath pathname env
-	| not ok			= env
-	# ((err,info),env)	= getFileInfo path env
-	| err<>NoDirError	= snd (createDirectory path env)
-	| otherwise			= env
-*/
+ensureDirectory :: !String !*World -> (MaybeOSError Void, *World)
+ensureDirectory pathname world
+	# (mbInfo,world)	= getFileInfo pathname world
+	= case mbInfo of
+		Ok info
+			| info.directory	= (Ok Void, world)
+								= (Error (1,pathname +++ " is not a directory"), world)
+		_	= createDirectory pathname world
+
 readlines :: !*File -> (![String],!*File)
 readlines file
 	# (end,file)		= fend file
