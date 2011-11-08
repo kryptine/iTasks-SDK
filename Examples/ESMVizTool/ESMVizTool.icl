@@ -10,9 +10,6 @@ import GraphvizVisualization
 derive bimap (,), Maybe
 derive class iTask	KnownAutomaton, State
 
-getDefaultValue :: t | ggen{|*|} t
-getDefaultValue = ggen{|*|} 2 aStream !! 0
-
 finished_state_color :: (!Color,!Color)
 finished_state_color	= (Color "blue", Color "white")
 
@@ -45,27 +42,30 @@ esmVizTool :: !(ESM s i o) *World -> *World
 esmVizTool esm world
 	= startEngine (iterateTask (DiGraphFlow esm) newstate) world
 where
-	newstate = { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = 20080929}
+	newstate = { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = 20111108}
 	 
 DiGraphFlow :: !(ESM s i o) (State s i o) -> Task (State s i o) 
 				| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 DiGraphFlow	esm st=:{ka,ss,trace,n,r}
- =	anyTask	[ chooseTask "Choose an input... " (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
+ =	anyTask	[ viewInformation "Input choosen by system" [] Void >>|
+				(if (isEmpty newInputs)
+					(if (isEmpty inputs2)
+						(return st)
+						(step esm {st & r = rn} (inputs2!!((abs r) rem (length inputs2)))))
+					(step esm {st & r = rn} (newInputs!!((abs r) rem (length newInputs)))) )
+			, chooseTask "Choose an input... " (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
 			, state esm st
- 			, enterChoice "go to state... " [] (map show1 (if (isEmpty nodes) ss nodes)) >>= updateDig st
-			, chooseTask "Do one of the following actions..."
+// 			, enterChoice "go to state... " [] (map show1 (if (isEmpty nodes) ss nodes)) >>= updateDig st
+// 			, chooseTaskComBo "go to state... " [let label = show1 node in (label, updateDig st label) \\ node <- if (isEmpty nodes) ss nodes]
+			, chooseTaskComBo "Do one of the following actions..."
 				[("Back" , back st)
 				,("Prune", prune st)
 				,("Reset", return newState)
 				,("Clear trace", return {st & trace  = []})
-				,("Random input",if (isEmpty newInputs)
- 									(if (isEmpty inputs2)
- 										(return st)
- 										(step esm st (inputs2!!((abs r) rem (length inputs2)))))
- 									(step esm st (newInputs!!((abs r) rem (length newInputs)))) )
+				:[let label = show1 node in ("go to " + label, updateDig st label) \\ node <- nodes]
 				]
     		, stepN esm st
-	//		, viewInformation ("Trace", traceHtml trace) [] st // to be fixed XXX
+			, viewInformation "Trace & legend" [DisplayView (GetLocal traceHtml)] trace >>| return st
     		]
 where
 	inputs		= possibleInputs esm ss
@@ -90,7 +90,10 @@ doStepN esm state=:{ka,ss,trace,r} n
 where rn = hd (genRandInt r)
 
 chooseTask :: !d ![(String,Task o)] -> Task o | descr d & iTask o 
-chooseTask msg tasks = enterChoice msg [] [l \\ (l,t) <- tasks] >>= \c . hd [t \\ (l,t) <- tasks | l == c]
+chooseTask msg tasks = enterChoice msg [] [(l, Hidden t) \\ (l,t) <- tasks] >>= \(l, Hidden t). t
+
+chooseTaskComBo :: !d ![(String,Task o)] -> Task o | descr d & iTask o 
+chooseTaskComBo msg tasks = enterChoice msg [ChoiceView (ChooseFromComboBox,fst)] [(l, Hidden t) \\ (l,t) <- tasks] >>= \(l, Hidden t). t
 
 prune :: !(State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 prune state=:{ka,ss,trace,n,r}
@@ -103,7 +106,7 @@ state :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq, genShow{|*
 state esm st=:{ka,ss,trace,n,r}
 	| isEmpty ka.issues
 		=	digraph
-		=	viewIssues st ||- digraph
+		=	digraph -|| viewIssues st 
 where
 	digraph = updateInformation "ESMviz" [UpdateView (GetLocal toView,SetLocal fromView)] st <<@ singleViewLayout (Fixed 700) (Fixed 300)
 	
@@ -148,7 +151,7 @@ where
 	graphAttributes				= [ GAtt_rankdir  RD_LR // horizontal
 	//graphAttributes				= [ GAtt_rankdir  RD_TB // RD_LR
 								 // , GAtt_size     		(Sizef 10.0 6.0 True)
-							  	, GAtt_size     		(Sizef 7.2 15.0 False)
+							  	, GAtt_size     		(Sizef 7.2 3.0 False)
 			//					  , GAtt_size     		(Sizef 10.0 5.0 False)
 
 								 // , GAtt_size			(Sizef 5.0 3.0 True)
@@ -258,26 +261,41 @@ orTaskL l = foldl1 (-||-) l
 foldl1 op [a]   = a
 foldl1 op [a:x] = op a (foldl1 op x)
 
+traceHtml :: (Traces a b c) -> HtmlTag | render a & render b & render c
 traceHtml trace
-   = [H3Tag [] [Text "Trace:"]
-     ,TableTag []
-       [TrTag [] [TdTag [] (map Text (flatten [transToStrings t [] \\ t <- step]))]
-           \\ step <- trace
-       ]
-     , BrTag []
-     ]
+   = DivTag []
+		[ H3Tag [] [Text "Trace:"]
+	    , TableTag []
+	       [ TrTag [] [TdTag [] (map Text (flatten [transToStrings t [] \\ t <- step]))]
+	       \\ step <- trace
+	       ]
+	    , BrTag []
+	    , H3Tag [] [Text "Legend:"]
+	    , TableTag []
+	       [ TrTag [] [TdTag [] [Text string]]
+	       \\ string <- [ "red node: current state"
+	       				, "blue node: all transitions from this node shown"
+	       				, "white node: more transitions from this node exists"
+	       				, "black arrow: transition not on current trace"
+	       				, "blue arrow: transition on current trace"
+	       				, "red arrow: transition with an issues"
+	       				]
+	       ]
+	    ]
 
+viewIssues :: (State s i o) -> Task [(SeenTrans s i o,[String])] | render, iTask s & render, iTask i & render, iTask o
 viewIssues st=:{ka}
 	= viewInformation "Issues" [DisplayView (GetLocal issuesToHtml)] ka.issues
 where	
 	issuesToHtml :: [(SeenTrans s i o,[String])] -> HtmlTag | render s & render i & render o
 	issuesToHtml l
-		=	DivTag [] [H3Tag [] [Text "Issues found:"]
-			:	[ TableTag []
-					[ TrTag [] [TdTag [] (map Text (transToStrings t [": ":ss])) ]
-					\\ (t,ss) <- l
-					]
+		=	DivTag []
+			[ H3Tag [] [Text "Issues found:"]
+			: [ TableTag []
+				[ TrTag [] [TdTag [] (map Text (transToStrings t [": ":ss])) ]
+				\\ (t,ss) <- l
 				]
+			  ]
 			]
 
 transToStrings :: (SeenTrans s i o) [String] -> [String] | render s & render i & render o
@@ -312,4 +330,5 @@ where
 	checkChar '"' = '\''
 	checkChar  c  = c
 
-instance render Int where render i = toString i
+instance render Int    where render i = toString i
+instance render String where render s = s
