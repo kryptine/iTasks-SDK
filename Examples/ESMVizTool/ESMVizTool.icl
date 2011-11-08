@@ -47,13 +47,16 @@ where
 DiGraphFlow :: !(ESM s i o) (State s i o) -> Task (State s i o) 
 				| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 DiGraphFlow	esm st=:{ka,ss,trace,n,r}
- =	anyTask	[ viewInformation "Input choosen by system" [] Void >>|
+ =	anyTask	[// viewInformation "Input choosen by system" [] Void >>|
+				/*
 				(if (isEmpty newInputs)
 					(if (isEmpty inputs2)
 						(return st)
 						(step esm {st & r = rn} (inputs2!!((abs r) rem (length inputs2)))))
 					(step esm {st & r = rn} (newInputs!!((abs r) rem (length newInputs)))) )
-			, chooseTask "Choose an input... " (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
+			*/
+		//, chooseTask "Choose an input... " (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
+			  selectInputs
 			, state esm st
 // 			, enterChoice "go to state... " [] (map show1 (if (isEmpty nodes) ss nodes)) >>= updateDig st
 // 			, chooseTaskComBo "go to state... " [let label = show1 node in (label, updateDig st label) \\ node <- if (isEmpty nodes) ss nodes]
@@ -68,6 +71,19 @@ DiGraphFlow	esm st=:{ka,ss,trace,n,r}
 			, viewInformation "Trace & legend" [DisplayView (GetLocal traceHtml)] trace >>| return st
     		]
 where
+	selectInputs
+		=	enterChoice "Choose an input... "  [ChoiceView (ChooseFromRadioButtons,fst)] (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
+		>?* [(Action "Apply selected", IfValid (\(l,t) -> t))
+			,(Action "Apply system chosen", Always systemInput)
+			]
+	
+	systemInput =
+		(if (isEmpty newInputs)
+					(if (isEmpty inputs2)
+						(return st)
+						(step esm {st & r = rn} (inputs2!!((abs r) rem (length inputs2)))))
+					(step esm {st & r = rn} (newInputs!!((abs r) rem (length newInputs)))) )
+
 	inputs		= possibleInputs esm ss
 	inputs2		= [ i \\ i <- inputs, (s,j,_,t) <- ka.trans | i === j && gisMember s ss && ~ (gisMember t ss) ]
 	newInputs	= filter (\i.not (gisMember i usedInputs)) inputs
