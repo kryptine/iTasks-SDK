@@ -103,7 +103,7 @@ state :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq, genShow{|*
 state esm st=:{ka,ss,trace,n,r}
 	| isEmpty ka.issues
 		=	digraph
-		=	viewInformation ("Issues",issuesToHtml ka.issues) [] Void ||- digraph
+		=	viewIssues st ||- digraph
 where
 	digraph = updateInformation "ESMviz" [UpdateView (GetLocal toView,SetLocal fromView)] st <<@ singleViewLayout (Fixed 700) (Fixed 300)
 	
@@ -267,16 +267,18 @@ traceHtml trace
      , BrTag []
      ]
 
-issuesToHtml :: [(SeenTrans s i o,[String])] -> [HtmlTag] | render s & render i & render o
-issuesToHtml [] = []
-issuesToHtml l
-	=	[H3Tag [] [Text "Issues found:"]
-		:	[ TableTag []
-				[ TrTag [] [TdTag [] (map Text (transToStrings t [": ":ss])) ]
-				\\ (t,ss) <- l
+viewIssues st=:{ka}
+	= viewInformation "Issues" [DisplayView (GetLocal issuesToHtml)] ka.issues
+where	
+	issuesToHtml :: [(SeenTrans s i o,[String])] -> HtmlTag | render s & render i & render o
+	issuesToHtml l
+		=	DivTag [] [H3Tag [] [Text "Issues found:"]
+			:	[ TableTag []
+					[ TrTag [] [TdTag [] (map Text (transToStrings t [": ":ss])) ]
+					\\ (t,ss) <- l
+					]
 				]
 			]
-		]
 
 transToStrings :: (SeenTrans s i o) [String] -> [String] | render s & render i & render o
 transToStrings (s,i,o,t) c = ["(",render s,",",render i,",[":showList "," o ["],",render t,")":c]]
