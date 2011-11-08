@@ -47,16 +47,7 @@ where
 DiGraphFlow :: !(ESM s i o) (State s i o) -> Task (State s i o) 
 				| all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
 DiGraphFlow	esm st=:{ka,ss,trace,n,r}
- =	anyTask	[// viewInformation "Input choosen by system" [] Void >>|
-				/*
-				(if (isEmpty newInputs)
-					(if (isEmpty inputs2)
-						(return st)
-						(step esm {st & r = rn} (inputs2!!((abs r) rem (length inputs2)))))
-					(step esm {st & r = rn} (newInputs!!((abs r) rem (length newInputs)))) )
-			*/
-		//, chooseTask "Choose an input... " (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
-			  selectInputs
+ =	anyTask	[ selectInput
 			, state esm st
 // 			, enterChoice "go to state... " [] (map show1 (if (isEmpty nodes) ss nodes)) >>= updateDig st
 // 			, chooseTaskComBo "go to state... " [let label = show1 node in (label, updateDig st label) \\ node <- if (isEmpty nodes) ss nodes]
@@ -71,18 +62,18 @@ DiGraphFlow	esm st=:{ka,ss,trace,n,r}
 			, viewInformation "Trace & legend" [DisplayView (GetLocal traceHtml)] trace >>| return st
     		]
 where
-	selectInputs
+	selectInput
 		=	enterChoice "Choose an input... "  [ChoiceView (ChooseFromRadioButtons,fst)] (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
-		>?* [(Action "Apply selected", IfValid (\(l,t) -> t))
-			,(Action "Apply system chosen", Always systemInput)
+		>?* [(Action "Apply selected input", IfValid (\(l,t) -> t))
+			,(Action "I'm feeling lucky", Always systemInput)
 			]
 	
-	systemInput =
-		(if (isEmpty newInputs)
-					(if (isEmpty inputs2)
-						(return st)
-						(step esm {st & r = rn} (inputs2!!((abs r) rem (length inputs2)))))
-					(step esm {st & r = rn} (newInputs!!((abs r) rem (length newInputs)))) )
+	systemInput
+		| isEmpty newInputs
+			| isEmpty inputs2
+				= return st
+				= step esm {st & r = rn} (inputs2!!((abs r) rem (length inputs2)))
+			= step esm {st & r = rn} (newInputs!!((abs r) rem (length newInputs)))
 
 	inputs		= possibleInputs esm ss
 	inputs2		= [ i \\ i <- inputs, (s,j,_,t) <- ka.trans | i === j && gisMember s ss && ~ (gisMember t ss) ]
@@ -141,7 +132,11 @@ mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 		(remove_spaces name)
 		graphAttributes
 		(if (isEmpty automaton.trans)
-			[NodeDef 0                  [NStAllEdgesFound (gisMember s_0 finished)] (nodeAttributes s_0 init_states (gisMember s_0 finished) (gisMember s_0 shared)) []]
+			if (isEmpty init_states)
+				[NodeDef 0 [NStAllEdgesFound False] (nodeAttributes s_0 init_states False False) []]
+				[NodeDef i [NStAllEdgesFound False] (nodeAttributes n init_states False False) []
+				\\ n <- init_states & i <- [0..]
+				]
 			[NodeDef (nrOf automaton n) [NStAllEdgesFound (gisMember n   finished)] (nodeAttributes n   init_states (gisMember n   finished) (gisMember n   shared))
 			         [ let (s,i,o,t) = trans in
 			           (nrOf automaton t	, [ EAtt_label (render i+++"/"+++showList ("[","]",",") o)
@@ -166,10 +161,7 @@ mkDigraph name (automaton,s_0,init_states,finished,shared,issues,trace)
 where
 	graphAttributes				= [ GAtt_rankdir  RD_LR // horizontal
 	//graphAttributes				= [ GAtt_rankdir  RD_TB // RD_LR
-								 // , GAtt_size     		(Sizef 10.0 6.0 True)
-							  	, GAtt_size     		(Sizef 7.2 3.0 False)
-			//					  , GAtt_size     		(Sizef 10.0 5.0 False)
-
+							  	  , GAtt_size     		(Sizef 7.2 3.0 False)
 								 // , GAtt_size			(Sizef 5.0 3.0 True)
 								  , GAtt_fontsize		9.0 // 12.0
 								  , GAtt_bgcolor  		(Color "white")
@@ -260,11 +252,11 @@ step esm state=:{ka,ss,trace,n,r} i
 back :: (State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 back state=:{ka,ss,trace,n,r}
 	| isEmpty trace
-		= return {state & r = hd (genRandInt r)}
+		= return state
 		= let next   = startStates (last trace)
 			  trace` = init trace
 			  rn	 = hd (genRandInt r)
-		  in return {state & trace = trace`}
+		  in return {state & trace = trace`, ss = next, r = rn}
 
 newKA = {trans=[],issues=[]}
 
@@ -291,10 +283,15 @@ traceHtml trace
 	       [ TrTag [] [TdTag [] [Text string]]
 	       \\ string <- [ "red node: current state"
 	       				, "blue node: all transitions from this node shown"
-	       				, "white node: more transitions from this node exists"
-	       				, "black arrow: transition not on current trace"
-	       				, "blue arrow: transition on current trace"
-	       				, "red arrow: transition with an issues"
+	       				, "grey node: more transitions from this node exists"
+	       				, "black arrow: transition not in current trace"
+	       				, "blue arrow: transition in current trace"
+	       				, "red arrow: transition with an issue"
+	       				, "---"
+	       				, "Back: go to the previous state"
+	       				, "Prune: remove all correct transitions that are not on the trace"
+	       				, "Reset: start all over"
+	       				, "Clear trace: remove trace, but keep everything else"
 	       				]
 	       ]
 	    ]
