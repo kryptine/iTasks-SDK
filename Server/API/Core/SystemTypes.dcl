@@ -135,11 +135,13 @@ instance toEmail User
 
 //* Represents the choice of one element from a list represented as radio buttons
 :: RadioChoice v o = RadioChoice ![(!v,!o)] !(Maybe Int)
+
 mkRadioChoice :: !(container(!v,!o)) !(Maybe o) -> RadioChoice v o | OptionContainer container & gEq{|*|} o
 instance Choice RadioChoice
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
+
 mkComboChoice :: !(container (!v,!o)) !(Maybe o) -> ComboChoice v o | OptionContainer container & gEq{|*|} o
 instance Choice ComboChoice
 
@@ -147,6 +149,7 @@ instance Choice ComboChoice
 :: TreeChoice v o = TreeChoice !(Tree (!v,!o)) !(Maybe Int)
 :: Tree a = Tree !.[.TreeNode a]
 :: TreeNode a = Leaf !a | Node !a !.[TreeNode a]
+
 mkTreeChoice :: !(container (!v,!o)) !(Maybe o) -> TreeChoice v o | OptionContainer container & gEq{|*|} o
 instance Choice TreeChoice
 instance Functor Tree
@@ -154,6 +157,7 @@ instance Functor Tree
 //* Represents the choice of one element from a list represented as grid
 //* (typically v is a record which's labels are used as headers)
 :: GridChoice v o = GridChoice ![(!v,!o)] !(Maybe Int)
+
 mkGridChoice :: !(container (!v,!o)) !(Maybe o) -> GridChoice v o | OptionContainer container & gEq{|*|} o
 instance Choice GridChoice
 
@@ -189,6 +193,7 @@ where
 
 //* Represents the choice of a number of items from a list
 :: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]
+
 mkCheckMultiChoice :: !(container (!v,!o)) ![o] -> CheckMultiChoice v o | OptionContainer container & gEq{|*|} o
 instance MultiChoice CheckMultiChoice
 
