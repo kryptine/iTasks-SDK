@@ -1,46 +1,90 @@
 implementation module EngineWrapperStandalone
 
-import StdFile, StdInt
-import Engine, Config
-import HTTP, HttpServer
+import StdFile, StdInt, StdList, StdChar, StdBool, StdString
+import HTTP, HttpServer, CommandLine, Func
 
-import WebService, DocumentService
+import Engine
+
+DEFAULT_PORT	:== 80
+SEARCH_PATHS	:== [".","..",".." </> "..",".." </> ".." </> "..","C:\\Clean2.3"]
 
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
-	# (mbConfig,world)	= config world
-	# (app,world)		= determineAppName world
-	# world				= instructions app mbConfig world
-	# options			= case mbConfig of
-							Just config = [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
-							Nothing		= []
-	# world				= http_startServer options (engine mbConfig publishable) world
-	| isJust mbConfig
-		= world // normal operation: stop server
-	| otherwise
-		# (console,world)	= stdio world
-		# console			= fwrites ("\n\n") console
-		# (_,world)			= fclose console world
-		= startEngine publishable world // setup mode: restart server
+	# (opts,world)			= getCommandLine world
+	# (app,world)			= determineAppName world
+	# (mbSDKPath,world)		= determineSDKPath SEARCH_PATHS world
+	// Show server name
+	# world					= show (infoline app) world
+	//Check options
+	# port 					= fromMaybe DEFAULT_PORT (intOpt "-p" opts)
+	# debug					= boolOpt "-d" opts
+	# help					= boolOpt "-h" opts
+	# sdkOpt				= stringOpt "-s" opts
+	//If -h option is given show help and stop
+	| help					= show instructions world
+	//Check sdkpath
+	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths
+	| isNothing mbSDKPath	= show sdkpatherror world
+	//Normal execution
+	# world					= show (running port) world
+	# options				= [HTTPServerOptPort port, HTTPServerOptDebug debug]
+	# world					= http_startServer options (engine (fromJust mbSDKPath) publishable) world
+	= world
 where
-	instructions :: !String !(Maybe Config) *World -> *World
-	//Normal operation
-	instructions app (Just config=:{serverPort,serverPath,staticPath,clientPath}) world
+	infoline :: !String -> [String]
+	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]
+	
+	instructions :: [String]
+	instructions =
+		["Available commandline options:"
+		," -h        : Show this message and exit" 
+		," -s <path> : Use <path> as location of the iTasks SDK"
+		," -p <port> : Set port number (default " +++ toString DEFAULT_PORT +++ ")"
+		," -d        : Run server in debug mode"
+		,""
+		]
+	
+	sdkpatherror :: [String]
+	sdkpatherror =
+		["Oops! Could not find the iTasks SDK."
+		,"The server needs to know the location of the SDK to serve static content"
+		,"and run its various utility programs."
+		,""
+		,"Please put the \"iTasks-SDK\" folder in one of the search locations"
+		,"or use the -s commandline flag to set the path."
+		,"Example: -d C:\\Users\\johndoe\\Desktop\\Clean2.3\\iTasks-SDK"
+		,""
+		,"Tried to find a folder named \"iTasks-SDK\" in the following search locations:"
+		:SEARCH_PATHS]
+		
+	running :: !Int -> [String]
+	running port = ["Running at http://localhost" +++ (if (port == 80) "/" (":" +++ toString port +++ "/"))]
+	
+	show :: ![String] !*World -> *World
+	show lines world
 		# (console,world)	= stdio world
-		# console			= fwrites ("*** " +++ app +++ " HTTP server started ***\n\n") console
-		# console			= fwrites ("Serving client from directory: " +++ clientPath +++ "\n") console
-		# console			= fwrites ("Serving static content from directory: " +++ staticPath +++ "\n\n") console
-		# console			= fwrites ("You can access the client at: " +++ host +++ "/\n") console
-		# console			= fwrites ("You can access the services directly at: " +++ host +++ serverPath +++ "\n") console 
-		# (_,world)			= fclose console world
-		= world
-		where
-			host	= if (serverPort == 80) "http://localhost" ("http://localhost:" +++ toString serverPort)
-	//Setup mode
-	instructions app Nothing world
-		# (console,world)	= stdio world
-		# console			= fwrites ("*** " +++ app +++ " HTTP server started in setup mode***\n\n") console
-		# console			= fwrites ("Please open http://localhost/ and follow instructions\n") console
+		# console			= seqSt (\s c -> fwrites (s +++ "\n") c) lines console
 		# (_,world)			= fclose console world
 		= world
 		
+	boolOpt :: !String ![String] -> Bool
+	boolOpt key opts = isMember key opts
+	
+	intOpt :: !String ![String] -> Maybe Int
+	intOpt key []	= Nothing
+	intOpt key [_]	= Nothing
+	intOpt key [n,v:r]
+		| n == key && isInteger v	= Just (toInt v)
+									= intOpt key [v:r]
+	where								
+		isInteger v = and (map isDigit (fromString v))
+
+	stringOpt :: !String [String] -> Maybe String
+	stringOpt key [] = Nothing
+	stringOpt key [_] = Nothing
+	stringOpt key [n,v:r]
+		| n == key	= Just v
+					= stringOpt key [v:r]
+
+
+	

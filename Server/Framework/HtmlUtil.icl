@@ -1,6 +1,6 @@
 implementation module HtmlUtil
 
-import HTML, JSON, Text, HTTP, Map
+import HTML, JSON, Text, HTTP, Map, OS
 import StdList, StdBool
 
 embeddedStyle :: HtmlTag
@@ -29,63 +29,6 @@ where
 	
 	header = [H1Tag [] [Text title],PTag [] [DivTag [ClassAttr "description"] [Html description]]]
 
-
-servicePage :: !String !String !String ![(String,String,Bool)] !JSONNode -> HtmlTag
-servicePage title description url params json = pageLayout title description [parameters, message, alternatives]
-where
-	parameters	= pageSection "Parameters" [FormTag [ActionAttr url,MethodAttr "get"] [TableTag [ClassAttr "parameters"] (rows ++ send)]]
-	rows		= [TrTag [] [ThTag [] [Text n : if o [Text "*:"] [Text ":"]], TdTag [] [InputTag [NameAttr n, ValueAttr v]]] \\ (n,v,o) <- params]
-	send		= [TrTag [] [TdTag [ColspanAttr "4"] [ButtonTag [TypeAttr "submit"] [Text "Send"]]]]
-	message		= pageSection "Data" [DivTag [ClassAttr "json"] (formatJSON json)]
-	jsonurl		= replaceSubString "services/html" "services/json" url
-	alternatives= pageSection "Alternative representations" [PTag [] [Text "JSON: ", ATag [HrefAttr jsonurl] [Text jsonurl]]]
-	
-serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] !JSONNode -> HTTPResponse
-serviceResponse html title description url params json =
-		if html	{newHTTPResponse & rsp_data = toString (servicePage title description url params json)}
-				{ newHTTPResponse
-				//Content-Type for JSON should be "application/json", see http://www.ietf.org/rfc/rfc4627.txt
-				& rsp_headers = put "Content-Type" "application/json" (newHTTPResponse.rsp_headers) 
-				, rsp_data = toString json
-				}
-
-
-formatJSON :: !JSONNode -> [HtmlTag]
-formatJSON (JSONNull)			= [Text "null"]
-formatJSON (JSONBool True)		= [Text "true"]
-formatJSON (JSONBool False)		= [Text "false"]
-formatJSON (JSONInt i)			= [Text (toString i)]
-formatJSON (JSONReal r)			= [Text (toString r)]
-formatJSON (JSONString s)		= [Text "\"", Text s, Text "\""]
-formatJSON (JSONArray items)	= [UlTag [] [LiTag [] (formatJSON node) \\ node <- items] ]
-formatJSON (JSONObject fields)	= [UlTag [] [LiTag [] [Text label,Text ": " :formatJSON node] \\(label,node) <- fields ] ]
-formatJSON (JSONRaw r)			= [PreTag [] [Text (toString r)]]
-formatJSON _					= []
-
-appStartPage :: !String -> HtmlTag
-appStartPage appName = HtmlTag [] [head,body]
-where
-	head = HeadTag [] [TitleTag [] [Text "Loading..."]: styles ++ scripts]
-	body = BodyTag [] []
-
-	styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
-	scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
-	
-	stylefiles = ["/lib/ext-4.0.2a/resources/css/ext-all-gray.css"
-				 ,"/src/css/main.css"
-				 ,appName +++ ".css"]
-	scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/src/app.js"]
-
-/**
-* Creates an HTTP response of the start page
-*/
-appStartResponse :: !String -> HTTPResponse
-appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
-
-redirectResponse :: !String -> HTTPResponse
-redirectResponse url
-	= {HTTPResponse | rsp_headers = fromList [("Status","302 - Found"),("Location",url)], rsp_data = ""}
-
 notFoundPage :: !HTTPRequest -> HtmlTag
 notFoundPage req = pageLayout "404 - Not Found" "" message
 where
@@ -95,9 +38,6 @@ notFoundResponse :: !HTTPRequest -> HTTPResponse
 notFoundResponse req
 	= {HTTPResponse | rsp_headers = fromList [("Status","404 - Not Found")], rsp_data = toString (notFoundPage req)}
 
-pageSection :: !String ![HtmlTag] -> HtmlTag
-pageSection title content = DivTag [ClassAttr "section"] [H2Tag [] [Text title]:content]
-
 paramValue :: !String !HTTPRequest -> String
 paramValue name req
 	= case get name req.arg_post of
@@ -106,18 +46,16 @@ paramValue name req
 			Just val	= val
 			Nothing		= ""
 
-NEWLINE	:== "\n"
-
 nl2br :: !String -> HtmlTag
-nl2br str = html [[Text line,BrTag []] \\ line <- split NEWLINE str]
+nl2br str = html [[Text line,BrTag []] \\ line <- split OS_NEWLINE str]
 
 html2text :: !String -> String
 html2text s
-	# s	= replaceSubString "<br>" NEWLINE s
-	# s	= replaceSubString "<BR>" NEWLINE s
-	# s	= replaceSubString "<br/>" NEWLINE s
-	# s	= replaceSubString "<BR/>" NEWLINE s
-	# s	= replaceSubString "</li>" NEWLINE s
+	# s	= replaceSubString "<br>" OS_NEWLINE s
+	# s	= replaceSubString "<BR>" OS_NEWLINE s
+	# s	= replaceSubString "<br/>" OS_NEWLINE s
+	# s	= replaceSubString "<BR/>" OS_NEWLINE s
+	# s	= replaceSubString "</li>" OS_NEWLINE s
 	# s	= stripHtmlTags s
 	# s = replaceSubString "&nbsp;" " " s
 	# s = replaceSubString "&lt;" "<" s

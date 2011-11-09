@@ -8,7 +8,6 @@ from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
 from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
 from WorkflowDB	import :: WorkflowDescription
-from Config		import :: Config
 
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = makeReadOnlyShared "SystemData_currentDateTime" 'Util'.currentDateTime 'Util'.currentTimestamp

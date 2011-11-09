@@ -4,37 +4,27 @@ import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBo
 from StdFunc import o, seqList, ::St
 import	Map, Time, CommandLine, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
 import	Util, HtmlUtil
-import	TuningCombinators
-import	Setup
-import	Config
 import	IWorld
 import	WebService
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !(Maybe Config) publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
-engine mbConfig publishable
-	= case mbConfig of
-		Just config
-			= handlers` config
-		Nothing
-			= [(\_ -> True, setupHandler)]
+engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
+engine sdkPath publishable
+	= taskHandlers (publishAll publishable) sdkPath ++ defaultHandlers sdkPath
 where
-	handlers` config
-		= taskHandlers (publishAll publishable) config ++ defaultHandlers config
-		
-	taskHandlers published config
-		= [((==) url, taskDispatch config task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
+	taskHandlers published sdkPath
+		= [((==) url, taskDispatch sdkPath task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
-	taskDispatch config task defaultFormat req world
-		# iworld 			= initIWorld config world
+	taskDispatch sdkPath task defaultFormat req world
+		# iworld 			= initIWorld sdkPath world
 		# (response,iworld)	= webService task defaultFormat req iworld
 		= (response, finalizeIWorld iworld)
 	
-	defaultHandlers config
-		= [((==) "/stop", handleStopRequest),(\_ -> True, handleStaticResourceRequest config)]
+	defaultHandlers sdkPath
+		= [((==) "/stop", handleStopRequest),(\_ -> True, handleStaticResourceRequest sdkPath)]
 		
-initIWorld :: !Config !*World -> *IWorld
-initIWorld config world
+initIWorld :: !FilePath !*World -> *IWorld
+initIWorld sdkPath world
 	# (appName,world) 			= determineAppName world
 	# (appPath,world)			= determineAppPath world
 	# appDir					= takeDirectory appPath
@@ -53,7 +43,8 @@ initIWorld config world
 	  |application			= appName
 	  ,storeDirectory		= storePath
 	  ,tmpDirectory			= tmpPath
-	  ,config				= config
+	  ,sdkDirectory			= sdkPath
+	  ,config				= defaultConfig
 	  ,timestamp			= timestamp
 	  ,latestEvent			= Nothing
 	  ,localDateTime		= localDateTime
@@ -64,7 +55,15 @@ initIWorld config world
 	  ,readShares			= Nothing
 	  ,world				= world
 	  }
-where 
+where
+	defaultConfig :: Config
+	defaultConfig =
+		{ rootPassword		= "root"
+		, rootEmail			= "root@localhost"
+		, sessionTime		= 3600
+		, smtpServer		= "localhost"
+		}
+		
 	padZero :: !Int -> String
 	padZero number = (if (number < 10) "0" "") +++ toString number
 
@@ -82,17 +81,17 @@ finalizeIWorld iworld=:{IWorld|world} = world
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
-handleStaticResourceRequest :: !Config !HTTPRequest *World -> (!HTTPResponse,!*World)
-handleStaticResourceRequest config req world
+handleStaticResourceRequest :: !FilePath !HTTPRequest *World -> (!HTTPResponse,!*World)
+handleStaticResourceRequest sdkPath req world
 	# path					= if (req.req_path == "/") "/index.html" req.req_path
-	# filename				= config.clientPath +++ filePath path
+	# filename				= sdkPath </> "Client" </> filePath path
 	# type					= mimeType filename
 	# (mbContent, world)	= readFile filename world
 	| isOk mbContent		= ({rsp_headers = fromList [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size (fromOk mbContent)))]
 							   	,rsp_data = fromOk mbContent}, world)
-	# filename				= config.staticPath +++ filePath path
+	# filename				= sdkPath </> "Static" </> filePath path
 	# type					= mimeType filename
 	# (mbContent, world)	= readFile filename world
 	| isOk mbContent 		= ({rsp_headers = fromList [("Status","200 OK"),
@@ -122,13 +121,8 @@ instance Publishable [PublishedTask]
 where
 	publishAll list = list
 
-config :: !*World -> (!Maybe Config,!*World)
-config world
-	# (appName,world) = determineAppName world
-	= loadConfig appName world
-									  
 // Determines the server executables path
-determineAppPath :: !*World -> (!String, !*World)
+determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world
 	# ([arg:_],world) = getCommandLine world
 	| dropDirectory arg <> "ConsoleClient.exe" = (arg, world)
@@ -152,3 +146,15 @@ determineAppName :: !*World -> (!String,!*World)
 determineAppName world 
 	# (appPath, world) = determineAppPath world
 	= ((dropExtension o dropDirectory) appPath, world)
+
+determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
+determineSDKPath [] world = (Nothing, world)
+determineSDKPath [p:ps] world
+	# (mbInfo,world) = getFileInfo path world
+	= case mbInfo of
+		Ok info	| info.directory	= (Just path,world)
+		_							= determineSDKPath ps world
+where
+	path = (p </> "iTasks-SDK")
+		
+	

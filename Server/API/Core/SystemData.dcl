@@ -5,9 +5,9 @@ definition module SystemData
 */
 import Maybe
 from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
-from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree, :: ProcessId, :: TaskInstanceMeta
+from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
+from SystemTypes		import :: ProcessId, :: TaskInstanceMeta, :: Config
 from Void				import :: Void
-from Config				import :: Config
 
 // Date & time
 currentDateTime			:: ReadOnlyShared DateTime
