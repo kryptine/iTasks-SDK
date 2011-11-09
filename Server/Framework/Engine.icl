@@ -10,6 +10,8 @@ import	WebService
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
 engine sdkPath publishable
+
+
 	= taskHandlers (publishAll publishable) sdkPath ++ defaultHandlers sdkPath
 where
 	taskHandlers published sdkPath
@@ -83,6 +85,7 @@ finalizeIWorld iworld=:{IWorld|world} = world
 // This request handler is used for serving system wide javascript, css, images, etc...
 handleStaticResourceRequest :: !FilePath !HTTPRequest *World -> (!HTTPResponse,!*World)
 handleStaticResourceRequest sdkPath req world
+	# (appPath,world)		= determineAppPath world
 	# path					= if (req.req_path == "/") "/index.html" req.req_path
 	# filename				= sdkPath </> "Client" </> filePath path
 	# type					= mimeType filename
@@ -91,7 +94,7 @@ handleStaticResourceRequest sdkPath req world
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size (fromOk mbContent)))]
 							   	,rsp_data = fromOk mbContent}, world)
-	# filename				= sdkPath </> "Static" </> filePath path
+	# filename				= takeDirectory appPath </> "Static" </> filePath path
 	# type					= mimeType filename
 	# (mbContent, world)	= readFile filename world
 	| isOk mbContent 		= ({rsp_headers = fromList [("Status","200 OK"),

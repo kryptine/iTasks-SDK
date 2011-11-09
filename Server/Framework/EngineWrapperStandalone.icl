@@ -5,8 +5,10 @@ import HTTP, HttpServer, CommandLine, Func
 
 import Engine
 
-DEFAULT_PORT	:== 80
-SEARCH_PATHS	:== [".","..",".." </> "..",".." </> ".." </> "..","C:\\Clean2.3"]
+DEFAULT_PORT		:== 80
+SEARCH_PATHS		:==  RELATIVE_LOCATIONS ++ DEFAULT_LOCATIONS
+DEFAULT_LOCATIONS	:== ["C:\\Clean 2.3"]
+RELATIVE_LOCATIONS	:== [".": take 5 (iterate ((</>) "..") "..")]
 
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
@@ -16,10 +18,10 @@ startEngine publishable world
 	// Show server name
 	# world					= show (infoline app) world
 	//Check options
-	# port 					= fromMaybe DEFAULT_PORT (intOpt "-p" opts)
-	# debug					= boolOpt "-d" opts
-	# help					= boolOpt "-h" opts
-	# sdkOpt				= stringOpt "-s" opts
+	# port 					= fromMaybe DEFAULT_PORT (intOpt "-port" opts)
+	# debug					= boolOpt "-debug" opts
+	# help					= boolOpt "-help" opts
+	# sdkOpt				= stringOpt "-sdk" opts
 	//If -h option is given show help and stop
 	| help					= show instructions world
 	//Check sdkpath
@@ -37,10 +39,10 @@ where
 	instructions :: [String]
 	instructions =
 		["Available commandline options:"
-		," -h        : Show this message and exit" 
-		," -s <path> : Use <path> as location of the iTasks SDK"
-		," -p <port> : Set port number (default " +++ toString DEFAULT_PORT +++ ")"
-		," -d        : Run server in debug mode"
+		," -help        : Show this message and exit" 
+		," -sdk <path>  : Use <path> as location of the iTasks SDK"
+		," -port <port> : Set port number (default " +++ toString DEFAULT_PORT +++ ")"
+		," -debug       : Run server in debug mode"
 		,""
 		]
 	
@@ -51,8 +53,8 @@ where
 		,"and run its various utility programs."
 		,""
 		,"Please put the \"iTasks-SDK\" folder in one of the search locations"
-		,"or use the -s commandline flag to set the path."
-		,"Example: -d C:\\Users\\johndoe\\Desktop\\Clean2.3\\iTasks-SDK"
+		,"or use the -sdk commandline flag to set the path."
+		,"Example: -sdk C:\\Users\\johndoe\\Desktop\\Clean2.3\\iTasks-SDK"
 		,""
 		,"Tried to find a folder named \"iTasks-SDK\" in the following search locations:"
 		:SEARCH_PATHS]
