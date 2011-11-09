@@ -102,17 +102,17 @@ where
 	subprocs (TCParallel _ _ subs)			= subprocsp subs
 	
 	subprocsp [] = []
-	subprocsp [(_,STCDetached taskId tmeta pmeta mmeta context):subs]
+	subprocsp [(_,_,STCDetached taskId tmeta pmeta mmeta context):subs]
 		= [{processId = addTarget taskId processId
 		   ,taskMeta = tmeta
 		   ,progressMeta = pmeta
 		   ,managementMeta = mmeta
 		   ,subInstances = case context of Nothing = []; Just (_,c) = subprocs c}
 		  :subprocsp subs]
-	subprocsp [(_,STCEmbedded _ Nothing):subs]			= subprocsp subs
-	subprocsp [(_,STCEmbedded _ (Just (_,c))):subs]		= subprocs c ++ subprocsp subs
-	subprocsp [(_,STCHidden _ Nothing):subs]		= subprocsp subs
-	subprocsp [(_,STCHidden _ (Just (_,c))):subs]	= subprocs c ++ subprocsp subs
+	subprocsp [(_,_,STCEmbedded _ Nothing):subs]			= subprocsp subs
+	subprocsp [(_,_,STCEmbedded _ (Just (_,c))):subs]		= subprocs c ++ subprocsp subs
+	subprocsp [(_,_,STCHidden _ Nothing):subs]		= subprocsp subs
+	subprocsp [(_,_,STCHidden _ (Just (_,c))):subs]	= subprocs c ++ subprocsp subs
 	
 	addTarget target (WorkflowProcess pid) = (EmbeddedProcess pid target)
 	addTarget _ procId = procId

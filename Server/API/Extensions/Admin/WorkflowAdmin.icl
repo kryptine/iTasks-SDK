@@ -228,7 +228,7 @@ where
 	eval taskNr iworld = appFst TaskFinished ('WorkflowDB'.addWorkflow workflow iworld)
 
 // LAYOUTS
-mainLayout {TUIParallel | items=i=:[(_,Just infoBar, logoutAction), (_,Just tree,_), (_,Just description,_),(_,Just workTabPanel,_), (_,Just processTable,_), (_,_,controlActions):_]} =
+mainLayout {TUIParallel | items=i=:[(_,_,_,Just infoBar, logoutAction), (_,_,_,Just tree,_), (_,_,_,Just description,_),(_,_,_,Just workTabPanel,_), (_,_,_,Just processTable,_), (_,_,_,_,controlActions):_]} =
 	({ content	= content
 	, width		= Just (FillParent 1 (FixedMinSize 0))
 	, height	= Just (FillParent 1 (FixedMinSize 0))

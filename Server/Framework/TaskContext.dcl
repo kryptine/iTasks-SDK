@@ -17,9 +17,12 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 :: TaskContextTree
 	= TCBasic !(Map String JSONNode)
 	| TCBind !(Either TaskContextTree (!JSONNode,!TaskContextTree))
-	| TCParallel !JSONNode !ParallelMeta ![(!Int,!SubTaskContext)]
+	| TCParallel !JSONNode !ParallelMeta ![(!SubTaskId,!SubTaskOrder,!SubTaskContext)]
 	| TCTry !(Either TaskContextTree (!JSONNode,!TaskContextTree))
 	| TCEmpty
+
+:: SubTaskId	:== Int
+:: SubTaskOrder :== Int	//Extra ordering information of tasks (required for properly laying out tasks in tabs or windows)
 
 :: SubTaskContext
 	= STCHidden !TaskMeta !(Maybe (!JSONNode,!TaskContextTree))		//Properties, Task (encoded), Context or JSON node

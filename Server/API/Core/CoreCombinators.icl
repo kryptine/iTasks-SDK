@@ -1,7 +1,7 @@
 implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
-import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, Store, SystemTypes, Time, Text, Shared, Func, Tuple
+import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, Store, SystemTypes, Time, Text, Shared, Func, Tuple, List
 import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
@@ -119,25 +119,25 @@ INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
 :: ResultSet
 	= RSException !Dynamic !String
 	| RSStopped
-	| RSResults ![(!Int, !TaskResult ParallelControl, !SubTaskContext)]
+	| RSResults ![(!Int, !Int, !TaskResult ParallelControl, !SubTaskContext)]
 	
 parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
 parallel description initState resultFun initTasks = mkTask description init edit eval 
 where
 	//Create initial set of tasks and initial state
 	init taskNr iworld=:{IWorld|timestamp}
-		# (subContexts, nextIdx, iworld)	= initSubContexts taskNr taskList 0 initTasks iworld  
+		# (subContexts, nextIdx, iworld)	= initSubContexts taskNr taskList 0 (length initTasks - 1) initTasks iworld  
 		# meta								= {nextIdx = nextIdx, stateId = taskNrToString taskNr, stateChanged = timestamp, infoChanged = timestamp}
 		# encState							= encodeState initState initState
 		= (TCParallel encState meta subContexts, iworld)
 	where
 		taskList	= ParallelTaskList (taskNrToString taskNr)
 		
-		initSubContexts taskNr taskList i [] iworld = ([],i,iworld)
-		initSubContexts taskNr taskList i [t:ts] iworld
+		initSubContexts taskNr taskList i o [] iworld = ([],i,iworld)
+		initSubContexts taskNr taskList i o [t:ts] iworld
 			# (s,iworld)			= initSubContext taskNr taskList i t iworld
-			# (ss, nextIdx, iworld) = initSubContexts taskNr taskList (i + 1) ts iworld
-			= ([(i,s):ss], nextIdx, iworld)
+			# (ss, nextIdx, iworld) = initSubContexts taskNr taskList (i + 1) (o - 1) ts iworld
+			= ([(i,o,s):ss], nextIdx, iworld)
 			
 			
 	//Direct the event to the right place
@@ -150,12 +150,14 @@ where
 		//Evaluate sub(s)
 		# (TCParallel encState meta subs,iworld)
 			= case event of
+				(TaskEvent [] ("top",JSONInt top))
+					= (TCParallel encState meta (reorder top subs), iworld)
 				(TaskEvent [s:steps] val)
 					//Evaluate only the matching sub-context
-					= case [(i,sub) \\ (i,sub) <- subs | i == s] of	
-						[(i,sub)] 
-							# ((i,newSub),iworld) = editSub taskNr (TaskEvent steps val) (i,sub) iworld
-							= (TCParallel encState meta [if (i == s) (i,newSub) (i,sub) \\(i,sub) <- subs],iworld)
+					= case [(i,o,sub) \\ (i,o,sub) <- subs | i == s] of	
+						[(i,o,sub)] 
+							# ((i,o,newSub),iworld) = editSub taskNr (TaskEvent steps val) (i,o,sub) iworld
+							= (TCParallel encState meta [if (i == s) (i,o,newSub) (i,o,sub) \\(i,o,sub) <- subs],iworld)
 						_ 
 							= (context,iworld)
 				(ProcessEvent path val)
@@ -176,14 +178,14 @@ where
 	edit taskNr event context iworld
 		= (context,iworld)
 	
-	editSub taskNr event (i,sub) iworld=:{IWorld|latestEvent=parentLatestEvent}
+	editSub taskNr event (i,o,sub) iworld=:{IWorld|latestEvent=parentLatestEvent}
 		 = case sub of
 			//Active Embedded task
 			STCEmbedded tmeta (Just (encTask,subCxt))
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Add case for error
 				# taskfuncs = taskFuncs` task
 				# (newSubCxt,iworld) = taskfuncs.editFun [i:taskNr] event subCxt iworld
-				= ((i,STCEmbedded tmeta (Just (encTask,newSubCxt))), iworld)		
+				= ((i,o,STCEmbedded tmeta (Just (encTask,newSubCxt))), iworld)		
 			STCDetached taskId tmeta pmeta mmeta (Just (encTask,subCxt))
 			//Same pattern as inbody tasks
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Also add case for error
@@ -192,10 +194,10 @@ where
 				# iworld = {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
 				# (newSubCxt,iworld) = taskfuncs.editFun [i:taskNr] event subCxt iworld
 				# iworld = {IWorld|iworld & latestEvent = parentLatestEvent}
-				= ((i,STCDetached taskId tmeta pmeta mmeta (Just (encTask,newSubCxt))), iworld)
+				= ((i,o,STCDetached taskId tmeta pmeta mmeta (Just (encTask,newSubCxt))), iworld)
 			//Task is either completed already or hidden
 			_
-				= ((i,sub),iworld)
+				= ((i,o,sub),iworld)
 	
 	
 	//Eval all tasks in the set (in left to right order)
@@ -226,7 +228,7 @@ where
 				| otherwise
 					# encState			= encodeState state initState
 					# (rep,actions)		= case repAs of
-						(RepAsTUI _ playout)	= (mergeTUIs playout tuiTaskNr meta results)
+						(RepAsTUI _ playout)	= (mergeTUIs taskNr playout tuiTaskNr meta results)
 						(RepAsService)			= (ServiceRep [],[]) //TODO
 					# subs				= mergeContexts results
 					= (TaskBusy rep actions (TCParallel encState pmeta subs), iworld)
@@ -235,7 +237,7 @@ where
 	//subtasks
 	evalSubTasks taskNr event tuiTaskNr meta results [] iworld
 		= (RSResults results, iworld)
-	evalSubTasks taskNr event tuiTaskNr meta results [(idx,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,localDateTime}
+	evalSubTasks taskNr event tuiTaskNr meta results [(idx,order,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,localDateTime}
 		//Evaluate subtask
 		# (result,stcontext,iworld)	= case stcontext of
 			(STCEmbedded tmeta (Just (encTask,context)))
@@ -274,7 +276,7 @@ where
 		| isStopped result
 			= (RSStopped, iworld)
 		//Append current result to results so far
-		# results	= results ++ [(idx,result,stcontext)]
+		# results	= results ++ [(idx,order,result,stcontext)]
 		//Process controls
 		# (controls, iworld)			= getControls meta iworld
 		# (meta,results,stasks,iworld)	= processControls initState taskNr meta controls results stasks iworld
@@ -349,11 +351,11 @@ where
 		key	= toString (ParallelTaskList stateId)
 	
 	//Put a datastructure in the scope with info on all processes in this set (TODO: Use parallel meta for identification)
-	addParTaskInfo :: !TaskNr ![(!Int,!SubTaskContext)] !Timestamp !*IWorld -> *IWorld
+	addParTaskInfo :: !TaskNr ![(!SubTaskId,!SubTaskOrder,!SubTaskContext)] !Timestamp !*IWorld -> *IWorld
 	addParTaskInfo taskNr subs ts iworld=:{parallelStates}
 		= {iworld & parallelStates = 'Map'.put (INFOKEY taskNr) (dynamic (mkInfo subs,ts) :: ([ParallelTaskMeta],Timestamp) ) parallelStates}
 	where
-		mkInfo subs = [meta i sub \\ (i,sub) <- subs]
+		mkInfo subs = [meta i sub \\ (i,o,sub) <- subs]
 	
 		meta i (STCEmbedded tmeta _)
 			= {ParallelTaskMeta
@@ -387,18 +389,18 @@ where
 	where
 		key	= toString (ParallelTaskList stateId)
 		
-	processControls :: s !TaskNr !ParallelMeta [Control] [(!Int, !TaskResult ParallelControl, !SubTaskContext)] [(Int,!SubTaskContext)] !*IWorld -> (!ParallelMeta,![(!Int, !TaskResult ParallelControl, !SubTaskContext)], ![(Int,!SubTaskContext)],!*IWorld) | iTask s
+	processControls :: s !TaskNr !ParallelMeta [Control] [(!Int, !Int, !TaskResult ParallelControl, !SubTaskContext)] [(Int, !Int, !SubTaskContext)] !*IWorld -> (!ParallelMeta,![(!Int, !Int, !TaskResult ParallelControl, !SubTaskContext)], ![(!Int,!Int,!SubTaskContext)],!*IWorld) | iTask s
 	processControls s taskNr meta [] results remaining iworld = (meta,results,remaining,iworld)
 	processControls s taskNr meta [c:cs] results remaining iworld
 		# taskList = ParallelTaskList meta.ParallelMeta.stateId
 		= case c of
 			AppendTask idx user (taskContainer :: (TaskContainer s^))
 				# (context,iworld)	= initSubContext taskNr taskList idx taskContainer iworld
-				# remaining			= remaining ++ [(idx,context)]
+				# remaining			= remaining ++ [(idx,idx,context)]
 				= processControls s taskNr meta cs results remaining iworld
 			RemoveTask idx
-				# results			= [result \\ result=:(i,_,_) <- results | i <> idx]
-				# remaining			= [sub \\ sub=:(i,_) <- remaining | i <> idx]
+				# results			= [result \\ result=:(i,_,_,_) <- results | i <> idx]
+				# remaining			= [sub \\ sub=:(i,_,_) <- remaining | i <> idx]
 				= processControls s taskNr meta cs results remaining iworld
 			_
 				= processControls s taskNr meta cs results remaining iworld 		
@@ -410,7 +412,7 @@ where
 	isStopped	_					= False
 	
 	allFinished []							= True
-	allFinished [(_,TaskFinished _,_):rs]	= allFinished rs
+	allFinished [(_,_,TaskFinished _,_):rs]	= allFinished rs
 	allFinished _							= False
 	
 	markFinished pmeta
@@ -423,16 +425,17 @@ where
 	updateProperties _ context = context
 	
 	mergeContexts contexts
-		= [(i,context) \\ (i,_,context) <- contexts]
+		= [(i,o,context) \\ (i,o,_,context) <- contexts]
 
 	//User the parallel merger function to combine the user interfaces of all InBody tasks		
-	mergeTUIs pmerge tuiTaskNr pmeta contexts
+	mergeTUIs taskNr pmerge tuiTaskNr pmeta contexts
 		= case tuiTaskNr of
 			[]
-				# items		= [(getMeta subContext, getTui subContext mbTui,actions) \\(i,TaskBusy mbTui actions _,subContext) <- contexts | not (isDetached subContext)]
+				# items		= [(i,o,getMeta subContext,getTui subContext mbTui,actions) \\(i,o,TaskBusy mbTui actions _,subContext) <- contexts | not (isDetached subContext)]
 				# (tui,actions) =
 					pmerge {TUIParallel
-				 		 |title = pmeta.TaskMeta.title
+				 		 |taskId = taskNrToString taskNr
+				 		 ,title = pmeta.TaskMeta.title
 						 ,instruction = pmeta.TaskMeta.instruction
 				 		 ,items = items
 				 		 }
@@ -452,7 +455,7 @@ where
 					
 			//We want to show the TUI of one of the detached tasks in this set
 			[t]
-				= case [(tui,actions) \\ (i,TaskBusy (TUIRep tui) actions _,STCDetached _ _ _ _ _) <- contexts | i == t] of
+				= case [(tui,actions) \\ (i,o,TaskBusy (TUIRep tui) actions _,STCDetached _ _ _ _ _) <- contexts | i == t] of
 					[(tui,actions)]
 						= (TUIRep tui,actions)
 					_
@@ -461,13 +464,24 @@ where
 				
 			//We want to show the TUI of a task inside the parallel set
 			[t:ts]
-				= case [(tui,actions) \\ (i,TaskBusy (TUIRep tui) actions _,_) <- contexts | i == t] of
+				= case [(tui,actions) \\ (i,o,TaskBusy (TUIRep tui) actions _,_) <- contexts | i == t] of
 					[(tui,actions)]	= (TUIRep tui,actions)
 					_				= (NoRep,[])
 	
 	taskFuncs` {Task|def} = case def of
 		NormalTask fs	= fs
 		_				= abort "action task in parallel"
+		
+	//Change the order of the subtask such that the indicated sub becomes top and the others
+	//maintain their relative ordering
+	reorder :: SubTaskId [(!SubTaskId,!SubTaskOrder,!SubTaskContext)] -> [(!SubTaskId,!SubTaskOrder,!SubTaskContext)]
+	reorder top subs
+		= let (tsubs,rsubs)	= splitWith isTop (sortByTaskOrder subs)
+			in (sortByTaskId [(i,o,c) \\ (i,_,c) <- (rsubs ++ tsubs) & o <- [0..]])
+	where							
+		isTop (i,_,_) = i == top
+		sortByTaskId subs = sortBy ( \(a,_,_) (b,_,_) -> a < b) subs
+		sortByTaskOrder subs = sortBy ( \(_,a,_) (_,b,_) -> a < b) subs
 
 /**
 * Get the shared state of a task list

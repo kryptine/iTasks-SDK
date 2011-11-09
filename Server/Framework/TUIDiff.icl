@@ -82,14 +82,17 @@ where
 		(TUIListItem liOld, TUIListItem liNew)
 			= Just (diffChildEditorDefinitions path [liOld.TUIListItem.items] [liNew.TUIListItem.items])
 		(TUITabContainer tcOld, TUITabContainer tcNew)
-			= Just (diffChildEditorDefinitions path (items tcOld) (items tcNew))
+			# activeTabUpdate	= update (\o n -> o.TUITabContainer.active == n.TUITabContainer.active) (\{TUITabContainer|active} -> Just active) TUISetActiveTab path tcOld tcNew
+			# itemUpdates 		= diffChildEditorDefinitions path (items tcOld) (items tcNew)
+			= Just (activeTabUpdate ++ itemUpdates)
 			where
 				items tc = [{content = TUITabItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- tc.TUITabContainer.items]
 		(TUITabItem o, TUITabItem n)
 			| (o.TUITabItem.closeAction === n.TUITabItem.closeAction //Can't diff the close action for now
-				&& o.TUITabItem.menus === n.TUITabItem.menus)		//Diff of menus is also still impossible
+				&& o.TUITabItem.menus === n.TUITabItem.menus		//Diff of menus is also still impossible
+				&& o.TUITabItem.index == n.TUITabItem.index)		//Can't update index right now
 					# titleUpdate	= update (\o n -> o.TUITabItem.title == n.TUITabItem.title && o.TUITabItem.iconCls == n.TUITabItem.iconCls) (\{TUITabItem|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
-					# itemUpdates	= diffChildEditorDefinitions path [o.TUITabItem.items] [n.TUITabItem.items] 
+					# itemUpdates	= diffChildEditorDefinitions path (maybeToList o.TUITabItem.items) (maybeToList n.TUITabItem.items)
 					# menuUpdates 	= []
 					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
 			| otherwise

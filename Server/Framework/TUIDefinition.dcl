@@ -5,8 +5,9 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: Action, :: TaskMeta
-from Task			import :: TaskAction
+from SystemTypes	import	:: Document, :: DocumentId, :: Hotkey, :: TaskId, :: InteractionTaskType, :: Action, :: TaskMeta
+from Task			import	:: TaskAction
+
 
 :: TUIInteraction =	{ title				:: !String
 					, instruction		:: !Maybe String
@@ -16,13 +17,26 @@ from Task			import :: TaskAction
 					, localInteraction	:: !Bool
 					, warning			:: !Maybe String
 					}
-					
-:: TUIParallel =	{ title				:: !String
-					, instruction		:: !Maybe String
-					, items				:: ![(!TaskMeta,!Maybe TUIDef,![TaskAction])]
-					}
 
-:: TUIName	:== String
+/**
+* To layout a set of parallel tasks the following information is available:
+* - Title : The title of the parallel combination
+* - Instruction: The instruction of the combination
+* For each parallel item:
+* - Task index     : The index in the parallel set
+* - Task order     : An integer indicating a relative ordering in the items of the set.
+*                    May be used to determine z-index in windows or active item in tabs.
+* - Task meta      : Meta data of the task (title, type etc..)
+* - TUI definition : Specification of the task's user interface
+* - Task actions   : The possible actions to complete tasks in the parallel items
+*/
+:: TUIParallel =	{ taskId			:: !TaskId
+					, title				:: !String
+					, instruction		:: !Maybe String
+					, items				:: ![(!Int,!Int,!TaskMeta,!Maybe TUIDef,![TaskAction])]
+					}
+					
+:: TUIName		:== String
 
 :: TUIDef =	{ content	:: !TUIDefContent
 			, width		:: !Maybe TUISize
@@ -109,12 +123,15 @@ from Task			import :: TaskAction
 	, baseCls			:: !Maybe String
 	}		
 :: TUITabContainer =
-	{ items				:: ![TUITabItem]
+	{ taskId			:: !Maybe TaskId
+	, active			:: !Int
+	, items				:: ![TUITabItem]
 	}
 :: TUITabItem =
-	{ title				:: !PanelTitle
+	{ index				:: !Int
+	, title				:: !PanelTitle
 	, iconCls			:: !Maybe String
-	, items				:: !TUIDef
+	, items				:: !Maybe TUIDef
 	, menus				:: ![TUIMenuButton]
 	, closeAction		:: !Maybe (!TUIName,!TaskId)
 	}
