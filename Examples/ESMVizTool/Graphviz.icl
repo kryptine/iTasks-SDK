@@ -175,7 +175,7 @@ prelude title graphAtts contents				= [ "digraph " +++ createGraphName title +++
 												  ]            ++ 
 												  graphAtts    ++ 
 												  contents     ++ 
-												  [ "}" ]
+												  [ "overlap=false","}" ]
 
 graphAtts :: ![GraphAttribute] -> [String]
 graphAtts graphAtts								= map printNameValuePair{|*|} graphAtts

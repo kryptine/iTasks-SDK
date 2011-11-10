@@ -1,6 +1,5 @@
 module vendingMachine
 
-import iTasks
 import ESMVizTool
 import StdMisc
 

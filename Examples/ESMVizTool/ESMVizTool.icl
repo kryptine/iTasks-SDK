@@ -56,17 +56,23 @@ DiGraphFlow	esm st=:{ka,ss,trace,n,r}
 				,("Prune", prune st)
 				,("Reset", return newState)
 				,("Clear trace", return {st & trace  = []})
-				:[let label = show1 node in ("go to " + label, updateDig st label) \\ node <- nodes]
+				:[let label = render node in ("go to: " + label, updateDig st node) \\ node <- nodes]
 				]
     		, stepN esm st
 			, viewInformation "Trace & legend" [DisplayView (GetLocal traceHtml)] trace >>| return st
     		]
 where
 	selectInput
-		=	enterChoice "Choose an input... "  [ChoiceView (ChooseFromRadioButtons,fst)] (sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs])
-		>?* [(Action "Apply selected input", IfValid (\(l,t) -> t))
-			,(Action "I'm feeling lucky", Always systemInput)
-			]
+		| isEmpty inputs
+			= viewInformation "no transition from current state" [] "Use another action" >>| return st
+			= updateChoice "Choose an input... "
+					[ChoiceView (if (length inputs > 7) ChooseFromComboBox ChooseFromRadioButtons ,fst)]
+					trans
+					(trans !! 0)
+				>?* [(Action "Apply selected input", IfValid (\(l,t) -> t))
+					,(Action "I'm feeling lucky", Always systemInput)
+					]
+	where trans = sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs]
 	
 	systemInput
 		| isEmpty newInputs
@@ -100,7 +106,10 @@ chooseTask :: !d ![(String,Task o)] -> Task o | descr d & iTask o
 chooseTask msg tasks = enterChoice msg [] [(l, Hidden t) \\ (l,t) <- tasks] >>= \(l, Hidden t). t
 
 chooseTaskComBo :: !d ![(String,Task o)] -> Task o | descr d & iTask o 
-chooseTaskComBo msg tasks = enterChoice msg [ChoiceView (ChooseFromComboBox,fst)] [(l, Hidden t) \\ (l,t) <- tasks] >>= \(l, Hidden t). t
+chooseTaskComBo msg tasks
+ = updateChoice msg [ChoiceView (ChooseFromComboBox,fst)] trans (trans !! 0) >>= \(l, Hidden t). t
+where
+	trans = [(l, Hidden t) \\ (l,t) <- tasks]
 
 prune :: !(State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 prune state=:{ka,ss,trace,n,r}
@@ -166,6 +175,7 @@ where
 								  , GAtt_fontsize		9.0 // 12.0
 								  , GAtt_bgcolor  		(Color "white")
 								  , GAtt_ordering 		"out"
+//								  , GAtt_outputorder	OM_nodesfirst	// OM_edgesfirst	//  PK
 								  , GAtt_outputorder	OM_nodesfirst	// OM_edgesfirst	//  PK
 								  ]
 	nodeAttributes n init_states finished shared
@@ -223,23 +233,17 @@ where
 		defaultNodeAtt att						= att
 
 //TODO: Turn this into a (Diagraph State -> State function)
-updateDig :: !(State s i o) !String  -> Task (State s i o) | all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
-updateDig state=:{ka,ss,trace,n,r} label
-	#(ss`,trace`)	= findSelectedStates label ka ss trace
-	# r`			= hd (genRandInt r)
-	= return {state & ss = ss`, trace = trace`, r = r`}
+updateDig :: !(State s i o) !s  -> Task (State s i o) | all, Eq, genShow{|*|} s & all, ggen{|*|} i & all o
+updateDig state=:{ka,ss,trace,n,r} ns
+	= return {state & ss = [ns], trace = findSelectedStates ns ka ss trace}
 where
-	findSelectedStates label ka ss trace
-		# ss` = take 1 [s \\ s <- nodesOf ka | show1 s == label]
-		= case ss` of
-				[]	 = (ss,trace)
-				[ns] | gisMember ns ss
-						= (ss`,narrowTraces trace ss`)
-					 # oneStep = [tr \\ tr=:(s,i,o,t)<-ka.trans | t===ns && gisMember s ss]
-					 | not (isEmpty oneStep)
-					 	= (ss`,trace++[oneStep])
-						= (ss`,partTraces trace ns [])
-					 = (ss`,[]) // ??
+	findSelectedStates ns ka ss trace
+		| gisMember ns ss
+			= narrowTraces trace [ns]
+		# oneStep = [tr \\ tr=:(s,i,o,t)<-ka.trans | t===ns && gisMember s ss]
+		| not (isEmpty oneStep)
+			= trace++[oneStep]
+			= partTraces trace ns []
 
 step :: !(ESM s i o) (State s i o) i -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 step esm state=:{ka,ss,trace,n,r} i
