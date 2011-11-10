@@ -12,6 +12,7 @@ definition module Store
 import JSON
 from Time import :: Timestamp
 from IWorld import :: IWorld
+from FilePath import :: FilePath
 
 // Storage formats
 :: StoreFormat = SFPlain | SFDynamic
@@ -25,6 +26,11 @@ NS_SESSION_INSTANCES	:== "session-instances"
 NS_WORKFLOW_INSTANCES	:== "workflow-instances"
 NS_DOCUMENT_CONTENT		:== "document-data"
 NS_APPLICATION_SHARES	:== "application-data"
+
+/**
+* Determine the location of the store from appliction directory, application name and build
+*/
+storePath :: FilePath String String -> FilePath
 
 /**
 * Store a value in the default format

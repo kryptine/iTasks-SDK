@@ -10,8 +10,6 @@ import	WebService
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
 engine sdkPath publishable
-
-
 	= taskHandlers (publishAll publishable) sdkPath ++ defaultHandlers sdkPath
 where
 	taskHandlers published sdkPath
@@ -33,18 +31,18 @@ initIWorld sdkPath world
 	# (res,world)				= getFileInfo appPath world
 	| isError res				= abort "Cannot get executable info."
 	# tm						= (fromOk res).lastModifiedTime
-	# datestr					= strfTime "%Y%m%d-%H%M%S" tm
+	# build						= strfTime "%Y%m%d-%H%M%S" tm
 	# (timestamp,world)			= time world
 	# (localDateTime,world)		= currentDateTimeWorld world
 	# (_,world)					= ensureDir "data" (appDir </> appName) world
-	# tmpPath					= appDir </> appName </> "tmp-" +++ datestr
+	# tmpPath					= appDir </> appName </> "tmp-" +++ build
 	# (_,world)					= ensureDir "tmp" tmpPath world
-	# storePath					= appDir </> appName </> "store-"+++ datestr
+	# storePath					= appDir </> appName </> "store-"+++ build
 	# (exists,world)			= ensureDir "store" storePath world
 	= {IWorld
 	  |application			= appName
-	  ,storeDirectory		= storePath
-	  ,tmpDirectory			= tmpPath
+	  ,build				= build
+	  ,appDirectory			= appDir
 	  ,sdkDirectory			= sdkPath
 	  ,config				= defaultConfig
 	  ,timestamp			= timestamp
