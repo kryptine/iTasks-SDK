@@ -443,23 +443,19 @@ derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), UserDetails, Timesta
 
 generic gHeaders a :: (a, ![String])
 
-gHeaders{|OBJECT of d|} fx = (undef, headers)
-where
-	headers = case snd fx of
-		[]		= [camelCaseToWords d.gtd_name]
-		headers	= headers
+gHeaders{|OBJECT|} fx		= (undef, snd fx)
 gHeaders{|CONS of d|} fx	= (undef, [camelCaseToWords gfd_name \\ {gfd_name} <- d.gcd_fields])
 gHeaders{|PAIR|} fx fy		= (undef, [])
 gHeaders{|FIELD|} fx		= (undef, [])
 gHeaders{|EITHER|} fx fy	= (undef, [])
-gHeaders{|Int|}				= (undef, ["Integer"])
-gHeaders{|Char|}			= (undef, ["Character"])
-gHeaders{|String|}			= (undef, ["String"])
-gHeaders{|Real|}			= (undef, ["Real"])
-gHeaders{|Bool|}			= (undef, ["Boolean"])
-gHeaders{|Dynamic|}			= (undef, ["Dynamic"])
-gHeaders{|HtmlTag|}			= (undef, ["HTML"])
-gHeaders{|(->)|} _ _		= (undef, ["Function"])
+gHeaders{|Int|}				= (undef, [])
+gHeaders{|Char|}			= (undef, [])
+gHeaders{|String|}			= (undef, [])
+gHeaders{|Real|}			= (undef, [])
+gHeaders{|Bool|}			= (undef, [])
+gHeaders{|Dynamic|}			= (undef, [])
+gHeaders{|HtmlTag|}			= (undef, [])
+gHeaders{|(->)|} _ _		= (undef, [])
 gHeaders{|UNIT|}			= (undef,[])
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
@@ -468,7 +464,7 @@ derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority,
 
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 
-gGridRows{|OBJECT of d|} fx hx (OBJECT o) acc
+gGridRows{|OBJECT of d|} fx _ (OBJECT o) acc
 	| isRecordType d	= fmap reverse (fx o acc)
 	| otherwise			= Nothing
 gGridRows{|CONS|} fx _ (CONS c) acc			= fx c acc

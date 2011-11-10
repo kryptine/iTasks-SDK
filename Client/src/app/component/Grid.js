@@ -18,13 +18,27 @@ Ext.define('itasks.component.Grid',{
 		delete(this.headers);
 		delete(this.cells);
 		
-		//Setup columns
-		this.columns = [];
-		for(i = 0; i < headers.length; i++) {
-			this.columns[i] = {text: headers[i], dataIndex: i};
-			fields[i] = {name: i, type: 'string'};
+		//Default width & height
+		if(!this.width && !this.hflex) {
+			this.minWidth = 400;
+			this.hflex = 1;
+		}
+		if(!this.height && !this.vflex) {
+			this.height = 150;
 		}
 		
+		//Setup columns
+		this.columns = [];
+		if(headers.length) {
+			for(i = 0; i < headers.length; i++) {
+				this.columns[i] = {text: headers[i], dataIndex: i};
+				fields[i] = {name: i, type: 'string'};
+			}
+		} else {
+			this.columns[0] = {text: "&nbsp;", dataIndex: 0};
+			fields[0] = {name: 0, type: 'string'};
+		}
+				
 		//Fill store with data
 		this.store = Ext.create('Ext.data.Store',{
 			fields: fields,
