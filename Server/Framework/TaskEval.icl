@@ -2,7 +2,7 @@ implementation module TaskEval
 
 import StdList, StdBool
 import Error
-import SystemTypes, IWorld, Task, TaskContext, WorkflowDB
+import SystemTypes, IWorld, Task, TaskContext
 
 from CoreCombinators	import :: TaskContainer(..), :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelControl
 from SystemTypes		import :: ProcessId(..)

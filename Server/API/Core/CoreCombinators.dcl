@@ -5,8 +5,7 @@ definition module CoreCombinators
 */
 from Time				import :: Timestamp
 from TuningCombinators	import :: Tag
-from SharedCombinators	import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
-import Task
+import Task, SharedCombinators
 
 import iTaskClass
 derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
@@ -120,12 +119,12 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 /**
 * Get the shared state of a task list
 */
-taskListState	:: (TaskList s) -> Shared s | TC s
+//taskListState	:: (TaskList s) -> Shared s | TC s
 
 /**
 * Get the properties share of a task list
 */
-taskListMeta	:: (TaskList s) -> Shared [ParallelTaskMeta]
+//taskListMeta	:: (TaskList s) -> Shared [ParallelTaskMeta]
 
 //Manipulation 
 

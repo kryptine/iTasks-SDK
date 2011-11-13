@@ -2,9 +2,9 @@ implementation module InteractionTasks
 
 from StdFunc import id, const, o, flip
 from SystemData import null
+from SharedDataSource import qualified :: WOShared, constShare
 from Tuple import appSnd
 from List import isMemberGen, instance Functor []
-from Shared import makeReadOnlyShared, :: SharedId
 from Time import :: Timestamp(..)
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, SystemData, CommonCombinators
@@ -32,13 +32,13 @@ where
 	
 mapToLocalState = mapActionTaskModelValue (\(_,l) -> l)
 
-enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+enterSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 enterSharedInformation d options` shared = InputTask @>> updateSharedInformation` d options shared defaultValue
 where
 	options _	= filterOptions filterInputOptions defaultOpts options`
 	defaultOpts	= [EnterView (SetLocal (\l _ _ -> l)), EnterView (SetShared (\w _ _ -> w))]
 	
-updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+updateSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 updateSharedInformation d options` shared initLocal = UpdateTask @>> updateSharedInformation` d options shared initLocal
 where
 	options _							= filterOptions noFilter defaultOpts options`
@@ -48,7 +48,7 @@ where
 		(putback :: (r^ -> w^))			= UpdateView	(GetShared id,SetShared (\r _ _ -> (putback r)))
 		_								= DisplayView	(GetShared id)
 
-viewSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+viewSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 viewSharedInformation d options` shared local = OutputTask PassiveOutput @>> updateSharedInformation` d options shared local
 where
 	options _	= filterOptions filterOutputOptions defaultOpts options`
@@ -83,10 +83,10 @@ updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr
 updateChoice d views choiceOpts initC = UpdateTask @>> LocalInteractionTask @>>
 	choice` d views (constShared choiceOpts) (Just initC)
 	
-enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(RWShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 enterSharedChoice d views shared = InputTask @>> choice` d views shared Nothing
 
-updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(RWShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 updateSharedChoice d views shared initC = UpdateTask @>> choice` d views shared (Just initC)
 
 choice` d views shared mbInitSel = mapActionTask transF (updateSharedInformation` d (toChoiceViews (addDefault views)) shared Nothing)
@@ -124,10 +124,10 @@ updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] ->
 updateMultipleChoice d views choiceOpts initC = UpdateTask @>> LocalInteractionTask @>>
 	multipleChoice` d views (constShared choiceOpts) initC
 
-enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(RWShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 enterSharedMultipleChoice d views shared = InputTask @>> multipleChoice` d views shared []
 
-updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(RWShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 updateSharedMultipleChoice d views shared sel = UpdateTask @>> multipleChoice` d views shared sel
 
 multipleChoice` d views shared initSels = mapActionTask transF (updateSharedInformation` d (toChoiceViews (addDefault views)) shared Nothing)
@@ -154,7 +154,7 @@ where
 		| any (\o -> case o of (ChoiceContext _) = False; _ = True) options	= options
 		| otherwise															= options ++ [ChoiceView (AutoMultiChoiceView, id)]
 
-updateSharedInformation` :: !d !(r -> [ViewOn l r w]) !(ReadWriteShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+updateSharedInformation` :: !d !(r -> [ViewOn l r w]) !(RWShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 updateSharedInformation` d viewF shared initLocal = mapActionTaskModelValue (\((l,_,_),r) -> (r,l)) (interact d interaction (initLocal,False,False) shared)
 where
 	interaction (l,updateLocalViews,updateSharedViews) r changed = map mkPart (viewF r)
@@ -193,12 +193,12 @@ where
 				SetLocal putback	= ((putback v l r, True, False), Nothing)
 				SetShared putback	= ((l, False, True), Just (putback v l r))
 
-wait :: d (r -> Bool) (ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
+wait :: !d !(r -> Bool) !(RWShared r w) -> Task r | descr d & iTask r & iTask w
 wait desc pred shared
 	=	viewSharedInformation desc [DisplayView (GetLocal id)] shared Void
 	>>+	\{modelValue=(r,l)} -> if (pred r) (StopInteraction r) (UserActions [])
 	
-waitForTime :: !Time -> Task Time
+/*waitForTime :: !Time -> Task Time
 waitForTime time =
 	(viewSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime Void >? \(now,_) -> time < now) >>= transform fst
 
@@ -211,12 +211,12 @@ waitForDateTime datetime =
 	(viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime Void >? \(now,_) -> datetime < now) >>= transform fst
 
 waitForTimer :: !Time -> Task Time
-waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
+waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)*/
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions = Hide @>> maximalInteractionLayout @>> interact chooseActionDescr (\_ _ _ -> []) Void voidNull >>+ \_ -> UserActions (map (appSnd Just) actions)
 
-chooseActionDyn :: !(r -> InteractionTerminators a) !(ReadWriteShared r w) -> Task a | iTask a & iTask r & iTask w
+chooseActionDyn :: !(r -> InteractionTerminators a) !(RWShared r w) -> Task a | iTask a & iTask r & iTask w
 chooseActionDyn termF shared = interact chooseActionDescr (\_ _ _ -> []) Void shared >>+ \{modelValue=v=:(_,r)} -> termF r
 
 chooseActionDescr = "Choose an action"
@@ -224,4 +224,4 @@ chooseActionDescr = "Choose an action"
 voidNull :: Shared Void
 voidNull = null
 
-constShared a = makeReadOnlyShared ("const_" +++ toString (toJSON a)) (\world -> (a,world)) (\world -> (Timestamp 0,world))
+constShared a = 'SharedDataSource'.constShare a

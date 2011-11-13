@@ -1,7 +1,7 @@
 implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
-import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, Store, SystemTypes, Time, Text, Shared, Func, Tuple, List
+import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, Store, SystemTypes, Time, Text, Func, Tuple, List
 import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
@@ -486,7 +486,7 @@ where
 /**
 * Get the shared state of a task list
 */
-taskListState :: (TaskList s) -> Shared s | TC s
+/*taskListState :: (TaskList s) -> Shared s | TC s
 taskListState tasklist = ReadWriteShared [identity] read write timestamp
 where
 	identity 	= toString tasklist
@@ -502,12 +502,12 @@ where
 	timestamp iworld=:{parallelStates}
 			= case 'Map'.get identity parallelStates of
 				Just ((_,ts) :: (s,Timestamp))		= (Ok ts, iworld)
-				_									= (Error ("Could not read timestamp for shared state of task list " +++ identity),iworld)
+				_									= (Error ("Could not read timestamp for shared state of task list " +++ identity),iworld)*/
 
 /**
 * Get the properties share of a task list
 */
-taskListMeta :: (TaskList s) -> Shared [ParallelTaskMeta]
+/*taskListMeta :: (TaskList s) -> Shared [ParallelTaskMeta]
 taskListMeta tasklist = ReadWriteShared [identity] read write timestamp
 where
 	identity	= toString tasklist +++ "-info"
@@ -523,7 +523,7 @@ where
 	timestamp iworld=:{parallelStates}
 		= case 'Map'.get identity parallelStates of
 			Just ((_,ts) :: ([ParallelTaskMeta],Timestamp))	= (Ok ts, iworld)
-			_												= (Error ("Could not read timestamp for parallel task meta of " +++ identity), iworld)
+			_												= (Error ("Could not read timestamp for parallel task meta of " +++ identity), iworld)*/
 		
 /**
 * Add a task to a task list

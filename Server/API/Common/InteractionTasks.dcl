@@ -93,7 +93,7 @@ viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 * 
 * @gin-icon page_white
 */
-enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+enterSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 
 /**
 * Ask the user to update predefined local and shared information.
@@ -110,7 +110,7 @@ enterSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) -> Task (r,l
 * 
 * @gin-icon page_edit
 */
-updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+updateSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 
 /**
 * Show a local and shared state.
@@ -125,7 +125,7 @@ updateSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) l -> Task (
 * 
 * @gin-icon monitor
 */
-viewSharedInformation :: !d ![ViewOn l r w] !(ReadWriteShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+viewSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
 
 
 /*** Special tasks for choices ***/
@@ -184,7 +184,7 @@ updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr
 * 
 * @gin-icon choice
 */
-enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(RWShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
@@ -201,7 +201,7 @@ enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container 
 * 
 * @gin-icon choice
 */
-updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(RWShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select a number of items from a list of options
@@ -252,7 +252,7 @@ updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] ->
 * 
 * @gin-icon choice
 */
-enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(RWShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
@@ -271,7 +271,7 @@ enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShare
 * 
 * @gin-icon choice
 */
-updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(RWShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Wait for a share to match a certain predicate
@@ -282,7 +282,7 @@ updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShar
 *
 * @return					The value of the shared when the predicate becomes true
 */
-wait :: d (r -> Bool) (ReadWriteShared r w) -> Task r | descr d & iTask r & iTask w
+wait :: !d !(r -> Bool) !(RWShared r w) -> Task r | descr d & iTask r & iTask w
 
 /*** Special wait tasks ***/
 /**
@@ -295,7 +295,7 @@ wait :: d (r -> Bool) (ReadWriteShared r w) -> Task r | descr d & iTask r & iTas
 * 
 * @gin-icon clock_go
 */
-waitForTime		:: !Time			-> Task Time
+//waitForTime		:: !Time			-> Task Time
 /**
 * Creates a task which blocks a workflow until a specified date.
 *
@@ -306,7 +306,7 @@ waitForTime		:: !Time			-> Task Time
 * 
 * @gin-icon date_go
 */
-waitForDate		:: !Date			-> Task Date
+//waitForDate		:: !Date			-> Task Date
 /**
 * Creates a task which blocks a workflow until a specified date and time.
 *
@@ -317,7 +317,7 @@ waitForDate		:: !Date			-> Task Date
 * 
 * @gin-icon date_go
 */
-waitForDateTime :: !DateTime 		-> Task DateTime
+//waitForDateTime :: !DateTime 		-> Task DateTime
 /**
 * Task completes after specified amount of time has passed
 * since the creation of the task.
@@ -329,7 +329,7 @@ waitForDateTime :: !DateTime 		-> Task DateTime
 * 
 * @gin-icon clock_go
 */
-waitForTimer	:: !Time			-> Task Time
+//waitForTimer	:: !Time			-> Task Time
 
 
 /*** Special tasks for choosing actions ***/
@@ -348,7 +348,7 @@ chooseAction :: ![(!Action,a)] -> Task a | iTask a
 /**
 * Ask the user to choose an action. The list of actions is calculated dynamically.
 *
-* @param ReadWriteShared:		Reference to a shared state the actions depend on
+* @param RWShared:		Reference to a shared state the actions depend on
 * @param Termination function:	A function generating terminators for the task. So the task can either provide user actions or trigger an action automatically.
 *
 *
@@ -357,4 +357,4 @@ chooseAction :: ![(!Action,a)] -> Task a | iTask a
 * 
 * @gin False
 */						
-chooseActionDyn :: !(r -> InteractionTerminators a) !(ReadWriteShared r w) -> Task a | iTask a & iTask r & iTask w
+chooseActionDyn :: !(r -> InteractionTerminators a) !(RWShared r w) -> Task a | iTask a & iTask r & iTask w

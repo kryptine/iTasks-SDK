@@ -86,7 +86,7 @@ transform			:: !(a -> b) !a 									-> Task b | iTask b
 *
 * @gin False
 */ 
-assign :: !ManagementMeta !(Task a) -> Task a | iTask a
+//assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 
 /**
 * Assign a task to a user. (no deadline, normal priority, no menu)
@@ -100,7 +100,7 @@ assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 * @gin-icon user
 * @gin-shape assign
 */
-(@:) infix 3		:: !User !(Task a) -> Task a | iTask a
+//(@:) infix 3		:: !User !(Task a) -> Task a | iTask a
 
 /**
 * Combines two tasks sequentially just as >>=, but the result of the second task is disregarded.
@@ -158,7 +158,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
+//(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
 
 /**
 * Repeats a task infinitely. As soon as the task is finished, it is restarted immediately.
@@ -169,7 +169,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-forever :: !(Task a) -> Task b | iTask a & iTask b
+//forever :: !(Task a) -> Task b | iTask a & iTask b
 
 /**
 * Group two tasks in parallel, return the result of the first completed task.
@@ -181,7 +181,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 * 
 * @gin False
 */
-(-||-) infixr 3 	:: !(Task a) !(Task a) 	-> Task a 				| iTask a
+//(-||-) infixr 3 	:: !(Task a) !(Task a) 	-> Task a 				| iTask a
 
 /**
 * Group two tasks in parallel, return the result of the right task
@@ -193,7 +193,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 * 
 * @gin False
 */
-(||-)  infixr 3		:: !(Task a) !(Task b)	-> Task b				| iTask a & iTask b
+//(||-)  infixr 3		:: !(Task a) !(Task b)	-> Task b				| iTask a & iTask b
 
 /**
 * Group two tasks in parallel, return the result of the left task
@@ -205,7 +205,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 * 
 * @gin False
 */
-(-||)  infixl 3		:: !(Task a) !(Task b)	-> Task a				| iTask a & iTask b
+//(-||)  infixl 3		:: !(Task a) !(Task b)	-> Task a				| iTask a & iTask b
 
 /** 
 * Group two tasks in parallel that both need to be completed.
@@ -219,7 +219,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 * @gin-title Parallel merge (tuple)
 * @gin-icon parallel-merge-tuple
 */
-(-&&-) infixr 4 	:: !(Task a) !(Task b) 	-> Task (a,b) 			| iTask a & iTask b
+//(-&&-) infixr 4 	:: !(Task a) !(Task b) 	-> Task (a,b) 			| iTask a & iTask b
 
 /**
 * Group two tasks in parallel that both need to be completed but
@@ -232,7 +232,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 * 
 * @gin False
 */
-(-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
+//(-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
 
 /**
 * Group a list of tasks in parallel.
@@ -246,7 +246,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 * @gin-title Take first completed
 * @gin-icon parallel-merge-first
 */
-anyTask				:: ![Task a]			-> Task a				| iTask a
+//anyTask				:: ![Task a]			-> Task a				| iTask a
 
 /**
 * Group a list of tasks in parallel.
@@ -260,7 +260,7 @@ anyTask				:: ![Task a]			-> Task a				| iTask a
 * @gin-title Parallel merge (list)
 * @gin-icon parallel-merge-list
 */
-allTasks			:: ![Task a]			-> Task [a]				| iTask a
+//allTasks			:: ![Task a]			-> Task [a]				| iTask a
 
 /**
 * Group two tasks in parallel of which only one needs to be completed.
@@ -273,7 +273,7 @@ allTasks			:: ![Task a]			-> Task [a]				| iTask a
 * 
 * @gin False
 */
-eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b	
+//eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b	
 
 /**
 * Randomly selects one item from a list.
@@ -282,7 +282,7 @@ eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b
 *
 * @return The chosen item
 */
-randomChoice		:: ![a]										-> Task a				| iTask a
+//randomChoice		:: ![a]										-> Task a				| iTask a
 
 /**
 * Iterate a task as long as a predicate is not valid.
@@ -295,7 +295,7 @@ randomChoice		:: ![a]										-> Task a				| iTask a
 * 
 * @gin False
 */
-repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
+//repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 /**
 * Repeat a task as long as a predicate is not valid.
 * If the predicate fails after an iteration an error message is given.
@@ -307,7 +307,7 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 * 
 * @gin False
 */
-(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, String)) 	-> Task a 					| iTask a
+//(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, String)) 	-> Task a 					| iTask a
 
 
 /**

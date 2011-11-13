@@ -1,15 +1,13 @@
 implementation module SystemData
 
-import SystemTypes, Time, Shared, SharedCombinators, Util, Text, Task, Tuple
+import SystemTypes, Time, SharedCombinators, Util, Text, Task, Tuple
 import Random
 import StdList, StdBool
 from StdFunc	import o, seq
 from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
-from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
-from WorkflowDB	import :: WorkflowDescription
 
-currentDateTime :: ReadOnlyShared DateTime
+/*currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = makeReadOnlyShared "SystemData_currentDateTime" 'Util'.currentDateTime 'Util'.currentTimestamp
 		
 currentTime :: ReadOnlyShared Time
@@ -17,11 +15,11 @@ currentTime = makeReadOnlyShared "SystemData_currentTime" 'Util'.currentTime 'Ut
 		
 currentDate :: ReadOnlyShared Date
 currentDate = makeReadOnlyShared "SystemData_currentDate" 'Util'.currentDate 'Util'.currentTimestamp
-
+*/
 // Workflow processes
 topLevelTasks :: (TaskList Void)
 topLevelTasks = GlobalTaskList
-
+/*
 currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
 currentProcesses = makeReadOnlyShared "SystemData_processes" read timestamp
 where
@@ -70,11 +68,4 @@ randomInt = makeReadOnlyShared "SystemData_randomInt" randomInt 'Util'.currentTi
 where
 	randomInt iworld=:{IWorld|world}
 		# (Clock seed, world)	= clock world
-		= (hd (genRandInt seed), {IWorld|iworld & world = world})
-		
-null :: ReadWriteShared Void a
-null = ReadWriteShared ["SystemData_null"] read write getTimestamp
-where
-	read iworld			= (Ok Void,iworld)
-	write _ iworld		= (Ok Void,iworld)
-	getTimestamp iworld	= (Ok (Timestamp 0),iworld)
+		= (hd (genRandInt seed), {IWorld|iworld & world = world})*/

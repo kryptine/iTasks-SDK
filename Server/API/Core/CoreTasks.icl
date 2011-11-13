@@ -1,10 +1,8 @@
 implementation module CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
-import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TuningCombinators, TUIDefinition
-from SharedCombinators		import :: Shared
-from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared
-from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..)
+import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TuningCombinators, TUIDefinition, SharedCombinators
+from SharedDataSource		import qualified read, write, getVersion, readWrite, Write
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..), :: Control(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
@@ -30,8 +28,8 @@ JSONDecode{|StoredPutback|} _ _ _			= (Nothing,[])
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinished a,iworld))
 
-sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = ReadWriteShared
+/*sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore storeId defaultV = RWShared
 	["sharedStore_" +++ storeId]
 	(get (loadValue NS_APPLICATION_SHARES) defaultV)
 	write
@@ -44,38 +42,38 @@ where
 			Just v	= Ok v
 		= (res,iworld)
 		
-	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
+	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)*/
 
-get :: !(ReadWriteShared a w) -> Task a | iTask a
-get shared = mkInstantTask ("Read shared", "Reads a shared value") eval
+get :: !(RWShared a w) -> Task a | iTask a
+get share = mkInstantTask ("Read shared", "Reads a shared value") eval
 where
 	eval taskNr iworld
-		# (val,iworld) = 'Shared'.readShared shared iworld
-		# res = case val of
+		# (val,_,iworld) = 'SharedDataSource'.read share iworld
+		/*# res = case val of
 			Ok val	= TaskFinished val
-			Error e	= taskException (SharedException e)
-		= (res, iworld)
+			Error e	= taskException (SharedException e)*/
+		= (TaskFinished val, iworld)
 
-set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
-set val shared = mkInstantTask ("Write shared", "Writes a shared value") eval
+set :: !a !(RWShared r a)  -> Task a | iTask a
+set val share = mkInstantTask ("Write shared", "Writes a shared value") eval
 where
 	eval taskNr iworld
-		# (res,iworld)	='Shared'.writeShared shared val iworld
-		# res = case res of
+		# iworld	= 'SharedDataSource'.write val share iworld
+		/*# res = case res of
 			Ok _	= TaskFinished val
-			Error e	= taskException (SharedException e)
-		= (res, iworld)
+			Error e	= taskException (SharedException e)*/
+		= (TaskFinished val, iworld)
 
-update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+update :: !(r -> w) !(RWShared r w) -> Task w | iTask r & iTask w
 update fun shared = mkInstantTask ("Update shared", "Updates a shared value") eval
 where
 	eval taskNr iworld
-		# (val,iworld)	= 'Shared'.updateShared shared fun iworld
-		| isError val	= (taskException (SharedException (fromError val)), iworld)
-		= (TaskFinished (fromOk val), iworld)
+		# (val,iworld)	= 'SharedDataSource'.readWrite (\r _ -> let w = fun r in 'SharedDataSource'.Write w w) shared iworld
+		//| isError val	= (taskException (SharedException (fromError val)), iworld)
+		= (TaskFinished val, iworld)
 
-interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
+interact :: !d !(l r Bool -> [InteractionPart l w]) l !(RWShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact description partFunc initLocal share = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
 where
 	init taskNr iworld
 		= (TCBasic newMap, iworld)
@@ -85,8 +83,8 @@ where
 	//There is an edit event for this task (because the location part of the event is the empty list)
 	edit taskNr (TaskEvent [] (dps,editV)) context iworld=:{IWorld|timestamp,latestEvent}	
 		//Read latest versions of states
-		# (model,iworld) 			= 'Shared'.readShared shared iworld
-		| isError model				= (context, iworld)
+		# (model,_,iworld) 			= 'SharedDataSource'.read share iworld
+		//| isError model				= (context, iworld)
 		# local						= getLocalState context
 		//Split datapath into datapath & part index
 		# (idx,dp)					= splitDataPath dps
@@ -133,14 +131,14 @@ where
 						# context				= setLocalVar LAST_EDIT_STORE timestamp context
 						= case mbModel of
 							Just model
-								# (_,iworld) 	= 'Shared'.writeShared shared model iworld
+								# iworld 		= 'SharedDataSource'.write model share iworld
 								= (context,iworld)
 							Nothing	
 								= (context, iworld)
 					StoredUpdate (local,mbModel)			
 						# context				= setLocalState initLocal local context
 						= case mbModel of
-							Just model	= (context, snd ('Shared'.writeShared shared model iworld))
+							Just model	= (context, 'SharedDataSource'.write model share iworld)
 							Nothing		= (context, iworld)
 					_
 						= (context,iworld)
@@ -148,18 +146,19 @@ where
 	edit _ _ context iworld = (context,iworld)
 	
 	eval termFunc taskNr props event tuiTaskNr repAs context iworld=:{IWorld|timestamp}
-		# (model,iworld) 				= 'Shared'.readShared shared iworld
-		| isError model					= (sharedException model, iworld)
-		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
-		# (changed,iworld)				= 'Shared'.isSharedChanged shared localTimestamp iworld
-		| isError changed				= (sharedException changed, iworld)
+		# (model,_,iworld) 				= 'SharedDataSource'.read share iworld
+		//| isError model					= (sharedException model, iworld)
+		//# (localTimestamp,iworld)		= getLocalTimestamp context iworld
+		//# (changed,iworld)				= 'SharedDataSource'.isShared share localTimestamp iworld
+		//| isError changed				= (sharedException changed, iworld)
+		# changed						= Ok False // TODO: make change detection work using version
 		# local							= getLocalState context
-		# parts							= partFunc local (fromOk model) (fromOk changed)
+		# parts							= partFunc local model (fromOk changed)
 		# storedParts					= getParts context
 		# (mbEvent,context)				= getEvent context
 		# (reps,newParts,valid,iworld)	= visualizeParts taskNr repAs parts storedParts mbEvent iworld
 		# context 						= setLocalVar PARTS_STORE newParts context
-		= case termFunc {modelValue = (local,fromOk model), localValid = valid} of
+		= case termFunc {modelValue = (local,model), localValid = valid} of
 			StopInteraction result		= (TaskFinished result,iworld)
 			UserActions actions
 				= case getActionResult event actions of
@@ -194,6 +193,7 @@ where
 	where
 		dplist = reverse (dataPathList (s2dp dp))
 	
+	getParts :: !TaskContextTree -> [StoredPart l w] | JSONDecode{|*|} l & JSONDecode{|*|} w
 	getParts context 
 		= case getLocalVar PARTS_STORE context of
 			Just parts	= parts

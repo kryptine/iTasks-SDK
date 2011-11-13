@@ -3,21 +3,20 @@ definition module SystemData
 * This module provides access to the iTask framework data by means of
 * a set of shared data structures.
 */
-import Maybe
-from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
+import Maybe, SharedCombinators
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
 from SystemTypes		import :: ProcessId, :: TaskInstanceMeta, :: Config
 from Void				import :: Void
 
 // Date & time
-currentDateTime			:: ReadOnlyShared DateTime
+/*currentDateTime			:: ReadOnlyShared DateTime
 currentTime				:: ReadOnlyShared Time
-currentDate				:: ReadOnlyShared Date
+currentDate				:: ReadOnlyShared Date*/
 
 // Processes
 topLevelTasks 			:: (TaskList Void)
 
-currentProcesses		:: ReadOnlyShared [TaskInstanceMeta]
+/*currentProcesses		:: ReadOnlyShared [TaskInstanceMeta]
 processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
 
 // Session
@@ -31,7 +30,8 @@ applicationName			:: ReadOnlyShared String
 applicationConfig		:: ReadOnlyShared Config
 
 // Random source
-randomInt				:: ReadOnlyShared Int
+randomInt				:: ReadOnlyShared Int*/
 
 // Null data source (writing has no effect)
-null					:: ReadWriteShared Void a
+from SharedDataSource	import null
+from SharedDataSource	import qualified :: WOShared

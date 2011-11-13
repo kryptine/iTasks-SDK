@@ -4,12 +4,11 @@ implementation module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text, Time, Tuple, List
-import Util, Either, GenVisualize, GenUpdate
+import Util, Either, GenVisualize, GenUpdate, SharedCombinators
 from StdFunc			import id, const, o
 from SystemTypes		import :: ProcessId, :: User(..), :: Note(..)
 from TaskContext		import :: TaskContextTree(..), :: SubTaskId, :: SubTaskOrder, :: SubTaskContext, :: ParallelMeta
-from SharedCombinators	import mapShared, :: Shared, :: ReadWriteShared
-from SystemData			import randomInt, topLevelTasks
+from SystemData			import topLevelTasks
 from Map				import qualified newMap
 import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, InteractionTasks
 
@@ -45,7 +44,7 @@ where
 (>?) task pred = task >>+ \{modelValue} -> if (pred modelValue) (StopInteraction modelValue) (UserActions [])
 
 //Helper function for tasks in a parallel set
-accu :: (a acc -> (acc,Bool)) (Task a) (TaskList acc) -> Task ParallelControl | iTask a & iTask acc
+/*accu :: (a acc -> (acc,Bool)) (Task a) (TaskList acc) -> Task ParallelControl | iTask a & iTask acc
 accu accufun task tlist
 	=	task
 	>>= \result ->
@@ -53,7 +52,7 @@ accu accufun task tlist
 	>>= \state ->
 		let (nstate,stop) =  accufun result state in
 				set nstate (taskListState tlist) 
-			>>| return (if stop Stop Continue)
+			>>| return (if stop Stop Continue)*/
 			
 transform :: !(a -> b) !a -> Task b | iTask b
 transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") eval
@@ -65,7 +64,7 @@ where
 * It is created once and loaded and evaluated on later runs.
 */
 
-assign :: !ManagementMeta !(Task a) -> Task a | iTask a
+/*assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 assign props task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
 									[(Embedded, processControl),(Detached props, accu accJust task)] <<@ defaultParallelLayout
 where
@@ -96,7 +95,7 @@ where
 	fromView view=:{ProcessControlView|assignedTo} _ _
 		= []// [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
 		
-	formatTimestamp timestamp = timestampToGmDateTime timestamp
+	formatTimestamp timestamp = timestampToGmDateTime timestamp*/
 	
 :: ProcessControlView =	{ assignedTo	:: !Maybe User
 						, priority		:: !TaskPriority
@@ -108,8 +107,8 @@ where
 derive class iTask ProcessControlView
 derive class GenRecord ProcessControlView, ManagementMeta, TaskPriority
 
-(@:) infix 3 :: !User !(Task a) -> Task a | iTask a
-(@:) user task = assign {noMeta & worker = Just user} task
+//(@:) infix 3 :: !User !(Task a) -> Task a | iTask a
+//(@:) user task = assign {noMeta & worker = Just user} task
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>= \_ -> return x
@@ -134,7 +133,7 @@ where
 	seqTasks [t:ts]	= t >>= \a -> seqTasks ts >>= \as -> return [a:as]
 
 
-(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
+/*(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred = parallel (taskMeta task) Nothing (\_ (Just a) -> a) [(Embedded, checked pred task 0)] <<@ layout
 where
 	checked pred task i tlist
@@ -144,9 +143,9 @@ where
 			(removeTask i tlist >>| appendTask (Embedded, checked pred task (i + 1)) tlist	>>| return Continue)
 			 
 	layout :: TUIParallel -> (TUIDef,[TaskAction])
-	layout {TUIParallel|items=[(_,_,_,tui,actions):_]} = (fromJust tui, actions)
+	layout {TUIParallel|items=[(_,_,_,tui,actions):_]} = (fromJust tui, actions)*/
 
-forever :: !(Task a) -> Task b | iTask a & iTask b	
+/*forever :: !(Task a) -> Task b | iTask a & iTask b	
 forever	t = (<!) t (\_ -> False) >>| return defaultValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
@@ -211,9 +210,9 @@ where
 
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"
-randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length list)))
+randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length list)))*/
 
-repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
+/*repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
 	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
@@ -225,7 +224,7 @@ repeatTask task pred a =
 						(False,msg) -> (viewInformation "Feedback" []  msg >>+ noActions`) ||- (taska <| pred)
 where
 	noActions` :: (TermFunc a Void) | iTask a
-	noActions` = noActions
+	noActions` = noActions*/
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
 appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Continue) topLevelTasks >>= transform WorkflowProcess 

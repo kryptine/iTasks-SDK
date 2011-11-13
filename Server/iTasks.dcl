@@ -36,8 +36,8 @@ import	Engine						// basic iTask system creator
 	,	GenVerify					// Functions for appending errors and hints to form values
 	
 	//	API extensions for user  & workflow management
-	,	UserAdmin
-	,	WorkflowAdmin
+	//,	UserAdmin
+	//,	WorkflowAdmin
 	
 	//StdEnv modules
 	,	StdInt

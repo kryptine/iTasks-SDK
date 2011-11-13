@@ -3,10 +3,9 @@ definition module CoreTasks
 * This module provides the core 'basic tasks' from which more specialized tasks can be derived.
 */
 
-import iTaskClass
+import iTaskClass, SharedCombinators
 from Error				import ::MaybeError(..)
 from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
-from SharedCombinators	import :: ReadWriteShared, :: Shared
 from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
 
 derive class iTask WorkOnProcessState
@@ -30,7 +29,7 @@ return 		:: !a 										-> Task a 		| iTask a
 * Creates a reference to a store identified by a string identifier.
 * If no data is store the default value given as second argument is given as result.
 */
-sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+//sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Reads shared data.
@@ -42,7 +41,7 @@ sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|},
 * @gin-title Read shared
 * @gin-icon shared_read
 */
-get :: !(ReadWriteShared a w) -> Task a | iTask a
+get :: !(RWShared a w) -> Task a | iTask a
 
 /**
 * Writes shared data.
@@ -55,7 +54,7 @@ get :: !(ReadWriteShared a w) -> Task a | iTask a
 * @gin-title Write shared
 * @gin-icon shared_update
 */
-set :: !a !(ReadWriteShared r a) -> Task a | iTask a
+set :: !a !(RWShared r a) -> Task a | iTask a
 
 /**
 * Updates shared data in one atomic operation.
@@ -68,7 +67,7 @@ set :: !a !(ReadWriteShared r a) -> Task a | iTask a
 * @gin-title Update shared
 * @gin-icon shared_update
 */
-update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+update :: !(r -> w) !(RWShared r w) -> Task w | iTask r & iTask w
 
 /**
 * Swiss-army-knife interaction tasks. All other interaction tasks are derived from this one.
@@ -89,7 +88,7 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 *
 * @gin False
 */
-interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !(l r Bool -> [InteractionPart l w]) l !(RWShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 
 :: InteractionPart l w	= E.v:	FormPart		!(FormView v) !((Maybe v) -> (!l,!Maybe w))	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
 						| E.v:	DisplayPart		!v											& iTask v	// A static view displayed to the user

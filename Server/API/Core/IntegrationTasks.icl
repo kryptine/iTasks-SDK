@@ -7,7 +7,6 @@ import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple
 import SystemTypes, IWorld, Task, TaskContext
 import ExceptionCombinators, TuningCombinators
 import InteractionTasks
-import Shared
 
 from Util				import currentTimestampError
 from CoreCombinators	import >>=, >>|
