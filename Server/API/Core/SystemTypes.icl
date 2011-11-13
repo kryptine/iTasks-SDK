@@ -616,7 +616,6 @@ actionName ActionNext			= "Next"
 actionName ActionPrevious		= "Previous"
 actionName ActionFinish			= "Finish"
 actionName ActionContinue		= "Continue"
-actionName ActionNew			= "File/New"
 actionName ActionOpen			= "File/Open"
 actionName ActionSave			= "File/Save"
 actionName ActionSaveAs			= "File/Save as"
@@ -625,8 +624,10 @@ actionName ActionQuit			= "File/Quit"
 actionName ActionHelp			= "Help/Help"
 actionName ActionAbout			= "Help/About"
 actionName ActionFind			= "Edit/Find"
+actionName ActionNew			= "New"
 actionName ActionEdit			= "Edit"
 actionName ActionDelete			= "Delete"
+actionName ActionRefresh		= "Refresh"
 	
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))

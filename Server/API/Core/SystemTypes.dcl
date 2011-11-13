@@ -451,6 +451,7 @@ getRoles			:: !User -> [Role]
 			| ActionFind
 			| ActionDelete
 			| ActionEdit
+			| ActionRefresh
 
 :: ActionName	:== String	//Locally unique identifier for actions
 

@@ -21,20 +21,28 @@ serializeDynamic dyn = dynamic_to_string dyn
 deserializeDynamic :: !*String -> Dynamic
 deserializeDynamic str = string_to_dynamic str
 
-JSONEncode{|Dynamic|} dyn = [JSONString (base64Encode (serializeDynamic dyn))]
-JSONEncode{|(->)|} _ _ f = [JSONString (base64Encode (serialize f))]
+JSONEncode{|Dynamic|} dyn = [JSONString "_DYNAMIC_", JSONString (base64Encode (serializeDynamic dyn))]
+JSONEncode{|(->)|} _ _ f = [JSONString "_FUNCTION_", JSONString (base64Encode (serialize f))]
 
-JSONDecode{|Dynamic|} [JSONString string:c]	= (Just (deserializeDynamic (base64Decode string)), c)
-JSONDecode{|Dynamic|} c						= (Nothing, c)
+JSONDecode{|Dynamic|} [JSONString "_DYNAMIC_",JSONString string:c]	= (Just (deserializeDynamic (base64Decode string)), c)
+JSONDecode{|Dynamic|} c												= (Nothing, c)
 
-JSONDecode{|(->)|} _ _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
-JSONDecode{|(->)|} _ _ c						= (Nothing,c)
+JSONDecode{|(->)|} _ _ [JSONString "_FUNCTION_",JSONString string:c]= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
+JSONDecode{|(->)|} _ _ c											= (Nothing,c)
 
-dynamicJSONEncode :: !a -> [JSONNode]
-dynamicJSONEncode f = [JSONString (base64Encode (copy_to_string f))]
+functionFree :: !JSONNode -> Bool
+functionFree (JSONString "_FUNCTION_") = False
+functionFree (JSONString "_DYNAMIC_") = False
+functionFree (JSONString "_DYNAMICENCODE_") = False
+functionFree (JSONArray items) = and (map functionFree items)
+functionFree (JSONObject fields) = and (map (functionFree o snd) fields)
+functionFree _ = True
+
+dynamicJSONEncode :: !a -> JSONNode
+dynamicJSONEncode f = JSONArray [JSONString "_DYNAMICENCODE_",JSONString (base64Encode (copy_to_string f))]
 
 dynamicJSONDecode :: !JSONNode -> Maybe a
-dynamicJSONDecode (JSONString str)	= Just (fst (copy_from_string (base64Decode str)))
+dynamicJSONDecode (JSONArray [JSONString "_DYNAMICENCODE_",JSONString str]) = Just (fst (copy_from_string (base64Decode str)))
 dynamicJSONDecode _					= Nothing
 
 serializationModule :: String

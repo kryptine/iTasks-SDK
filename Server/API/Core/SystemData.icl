@@ -6,8 +6,6 @@ import StdList, StdBool
 from StdFunc	import o, seq
 from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
-from WorkflowDB	import qualified class WorkflowDB(..), instance WorkflowDB IWorld
-from WorkflowDB	import :: WorkflowDescription
 
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = makeReadOnlyShared "SystemData_currentDateTime" 'Util'.currentDateTime 'Util'.currentTimestamp
@@ -57,6 +55,10 @@ applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))
 where
 	appName iworld=:{IWorld|application} = (application,iworld)
+applicationBuild:: ReadOnlyShared String
+applicationBuild  = makeReadOnlyShared "SystemData_applicationBuild" appBuild (\iworld -> (Timestamp 0, iworld))
+where
+	appBuild iworld=:{IWorld|build} = (build,iworld)
 
 
 applicationConfig :: ReadOnlyShared Config

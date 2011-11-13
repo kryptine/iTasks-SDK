@@ -290,14 +290,14 @@ where
 				# (task,funcs)	= mkSubTask taskfun
 				# tmeta			= initTaskMeta task
 				# (cxt,iworld)	= funcs.initFun subTaskNo iworld
-				= (STCEmbedded tmeta (Just (hd (dynamicJSONEncode task), cxt)), iworld)
+				= (STCEmbedded tmeta (Just (dynamicJSONEncode task, cxt)), iworld)
 			(Detached mmeta, taskfun)
 				# (task,funcs)	= mkSubTask taskfun
 				# tmeta			= initTaskMeta task
 				# pmeta			= initProgressMeta localDateTime currentUser
 				# taskId		= taskNrToString subTaskNo
 				# (cxt,iworld)	= funcs.initFun subTaskNo iworld
-				= (STCDetached taskId tmeta pmeta mmeta (Just (hd (dynamicJSONEncode task), cxt)), iworld)
+				= (STCDetached taskId tmeta pmeta mmeta (Just (dynamicJSONEncode task, cxt)), iworld)
 	where
 		// apply task list reference to taskfun & convert to 'normal' (non-action) tasks
 		mkSubTask taskfun

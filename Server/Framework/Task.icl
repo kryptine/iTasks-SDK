@@ -100,7 +100,7 @@ stepTarget i [t:ts]
 	| i == t			= ts
 	| otherwise			= []
 
-JSONEncode{|Task|} _ tt = dynamicJSONEncode tt			
+JSONEncode{|Task|} _ tt = [dynamicJSONEncode tt]		
 JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
 

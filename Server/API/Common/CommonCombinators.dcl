@@ -61,7 +61,10 @@ derive gEq				Tag
 */
 :: TaskContinuation a b	= Always	!(Task b)									//* continuation which can always be taken
 						| IfValid	!(a -> Task b)								//* continuation which can be taken if the local editor is in a valid state, the current value is given as input
+						| IfHolds	!(a -> Bool) (a -> Task b)					//* continuation which can be taken if the local editor is valid and the predicate holds
+						| Trigger	!(a -> Bool) (a -> Task b)					//* continuation which is automatically taken when the local editor is valid and the predicate holds
 						| Sometimes	!((InformationState a) -> Maybe (Task b))	//* continuation which can sometimes be taken depending on the editor's current state
+						
 
 /**
 * Transform a value with a custom function

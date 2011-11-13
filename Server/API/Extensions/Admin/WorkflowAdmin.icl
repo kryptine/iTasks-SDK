@@ -3,20 +3,19 @@ implementation module WorkflowAdmin
 import iTasks
 import StdMisc, Tuple, Text, Shared
 from StdFunc import seq
-from WorkflowDB import qualified addWorkflow, class WorkflowDB(..), instance WorkflowDB IWorld
 from Util import mb2list, timestampToGmDateTime
 
 // SPECIALIZATIONS
-derive gVisualizeText	Workflow, WorkflowDescription
-derive gVisualizeEditor	Workflow, WorkflowDescription
-derive gHeaders			Workflow, WorkflowDescription
-derive gGridRows		Workflow, WorkflowDescription
-derive gUpdate 			Workflow, WorkflowDescription
-derive gDefaultMask		Workflow, WorkflowDescription
-derive gVerify			Workflow, WorkflowDescription
-derive JSONEncode		Workflow, WorkflowDescription
-derive JSONDecode		Workflow, WorkflowDescription
-derive gEq				Workflow, WorkflowDescription
+derive gVisualizeText	Workflow
+derive gVisualizeEditor	Workflow
+derive gHeaders			Workflow
+derive gGridRows		Workflow
+derive gUpdate 			Workflow
+derive gDefaultMask		Workflow
+derive gVerify			Workflow
+derive JSONEncode		Workflow
+derive JSONDecode		Workflow
+derive gEq				Workflow
 
 gVisualizeText{|WorkflowTaskContainer|} _ _	= []
 gVisualizeEditor{|WorkflowTaskContainer|} _ vst = noVisualization vst
@@ -31,7 +30,7 @@ gDefaultMask{|WorkflowTaskContainer|}_ = [Touched []]
 
 gVerify{|WorkflowTaskContainer|} _ vst = alwaysValid vst
 
-JSONEncode{|WorkflowTaskContainer|} c		= dynamicJSONEncode c
+JSONEncode{|WorkflowTaskContainer|} c		= [dynamicJSONEncode c]
 JSONDecode{|WorkflowTaskContainer|} [c:r]	= (dynamicJSONDecode c,r)
 JSONDecode{|WorkflowTaskContainer|} r		= (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _			= True
@@ -47,61 +46,47 @@ derive class iTask ClientState
 // SHARES
 // Available workflows
 
-workflows :: ReadOnlyShared [WorkflowDescription]
-workflows = makeReadOnlyShared "SystemData_workflows" 'WorkflowDB'.getWorkflowDescriptions 'WorkflowDB'.lastChange
+workflows :: Shared [Workflow]
+workflows = sharedStore "Workflows" []
 
-allowedWorkflows :: ReadOnlyShared [WorkflowDescription]
+workflowById :: !WorkflowId -> Shared Workflow
+workflowById index = mapShared (toPrj,fromPrj) workflows
+where
+	toPrj flows = flows !! index
+	fromPrj flow flows = updateAt index flow flows
+	
+allowedWorkflows :: ReadOnlyShared [Workflow]
 allowedWorkflows = mapSharedRead filterAllowed (workflows |+| (currentUser |+| currentUserDetails))
 where
 	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
 	
-workflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
-workflowTree = mapSharedRead mkFlowTree workflows
+workflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
+workflowTree = mapShared (mkFlowTree,\Void w -> w) workflows
 
-allowedWorkflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
+allowedWorkflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
 allowedWorkflowTree = mapSharedRead mkFlowTree allowedWorkflows
 
-mkFlowTree :: ![WorkflowDescription] -> Tree (Either WorkflowFolderLabel WorkflowDescription)
-mkFlowTree workflows = Tree (seq (map insertWorkflow workflows) [])
+mkFlowTree :: ![Workflow] -> Tree (Either WorkflowFolderLabel (WorkflowId,Workflow))
+mkFlowTree workflows = Tree (seq [insertWorkflow i w \\ w <- workflows & i <- [0..]] [])
 where
-	insertWorkflow descr=:{WorkflowDescription|path} nodeList = insertWorkflow` (split "/" path) nodeList
+	insertWorkflow i descr=:{Workflow|path} nodeList = insertWorkflow` (split "/" path) nodeList
 	where
 		insertWorkflow` [] nodeList = nodeList
-		insertWorkflow` [title] nodeList = nodeList ++ [Leaf (Right descr)]
+		insertWorkflow` [title] nodeList = nodeList ++ [Leaf (Right (i,descr))]
 		insertWorkflow` path=:[nodeP:pathR] [node=:(Node (Left nodeL) nodes):nodesR]
 			| nodeP == nodeL	= [Node (Left nodeL) (insertWorkflow` pathR nodes):nodesR]
 			| otherwise			= [node:insertWorkflow` path nodesR]
 		insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
 		insertWorkflow` [nodeP:pathR] [] = [Node (Left nodeP) (insertWorkflow` pathR [])]
 		
-workflowTask :: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
-workflowTask wid = makeReadOnlySharedError ("SystemData_workflowTask_" +++ (toString wid)) getTask ((appFst Ok) o 'WorkflowDB'.lastChange)
-where
-	getTask iworld
-		# (mbWorkflow,iworld) = 'WorkflowDB'.getWorkflow wid iworld
-		= case mbWorkflow of
-			Just {Workflow|task}	= (Ok task, iworld)
-			_						= (Error ("could not find workflow " +++ (toString wid)), iworld)
-
-
-workflowByPath :: !String -> ReadOnlyShared (Maybe Workflow)
-workflowByPath path = makeReadOnlySharedError ("SystemData_workflowByPath_" +++ path) getTask ((appFst Ok) o 'WorkflowDB'.lastChange)
-where
-	getTask iworld
-		# (descs,iworld)	= 'WorkflowDB'.getWorkflowDescriptions iworld
-		= case [wf \\ wf <- descs | wf.WorkflowDescription.path == path] of
-			[wf]	= appFst Ok ('WorkflowDB'.getWorkflow wf.workflowId iworld)
-			_		= (Ok Nothing,iworld)
-
-
 // MANAGEMENT TASKS
 
 manageWorkflows :: ![Workflow] ->  Task Void
-manageWorkflows iflows = initWorkflows iflows >>| forever (doAuthenticated workflowDashboard)
+manageWorkflows iflows = installInitialWorkflows iflows >>| forever (doAuthenticated workflowDashboard)
 
-initWorkflows ::[Workflow] -> Task Void
-initWorkflows [] = return Void
-initWorkflows iflows
+installInitialWorkflows ::[Workflow] -> Task Void
+installInitialWorkflows [] = return Void
+installInitialWorkflows iflows
 	= get workflows
 	>>= \flows -> case flows of
 		[]	= allTasks [addWorkflow flow \\ flow <- iflows] >>| return Void
@@ -146,8 +131,8 @@ chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetCombined 
 where
 	mkTree sel (_,flows) = mkTreeChoice (fmap mapF flows) (fmap Just sel)
 	where
-		mapF (Left label)							= (label, Nothing)
-		mapF (Right {path,description,workflowId})	= (last (split "/" path), Just (workflowId,description))
+		mapF (Left label)									= (label, Nothing)
+		mapF (Right (index,{Workflow|path,description}))	= (last (split "/" path), Just (index,description))
 	putback tree _ (state,_) = (Just selection, Just {state & selectedWorkflow = selection})
 	where
 		selection = getSelection tree
@@ -162,9 +147,9 @@ where
 		Just (_,descr)	= descr
 		
 	addWorkflow (wid,_) =
-									get (workflowTask wid)
-		>>=	\container ->			get currentUser
-		>>= \user ->				appendTask (Detached {noMeta & worker = Just user}, \_ -> (fromContainer container)) topLevelTasks
+							get (workflowById wid)
+		>>=	\wf ->			get currentUser
+		>>= \user ->		appendTask (Detached {noMeta & worker = Just user}, \_ -> (fromContainer wf.Workflow.task)) topLevelTasks
 
 	fromContainer (WorkflowTask t) = t >>| return Continue
 	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Continue)
@@ -222,10 +207,10 @@ workTab procId openProcs =
 controlClient :: Task ParallelControl										
 controlClient = chooseAction [(ActionQuit, Stop)]
 
-addWorkflow :: !Workflow -> Task WorkflowDescription
-addWorkflow workflow = mkInstantTask "Adds a workflow to the system" eval
-where
-	eval taskNr iworld = appFst TaskFinished ('WorkflowDB'.addWorkflow workflow iworld)
+addWorkflow :: !Workflow -> Task Workflow
+addWorkflow workflow
+	=	update (\flows -> flows ++ [workflow]) workflows
+	>>|	return workflow
 
 // LAYOUTS
 mainLayout {TUIParallel | items=i=:[(_,_,_,Just infoBar, logoutAction), (_,_,_,Just tree,_), (_,_,_,Just description,_),(_,_,_,Just workTabPanel,_), (_,_,_,Just processTable,_), (_,_,_,_,controlActions):_]} =
@@ -342,12 +327,12 @@ mkWorkflow path description roles taskContainer managerProps =
 	, managerProperties = managerProps
 	}
 
-isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool
+isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool
 //Allow the root user
-isAllowedWorkflow RootUser _ _									= True
+isAllowedWorkflow RootUser _ _						= True
 //Allow workflows without required roles
-isAllowedWorkflow _ _ {WorkflowDescription|roles=r=:[]}			= True
+isAllowedWorkflow _ _ {Workflow|roles=r=:[]}		= True
 //Allow workflows for which the user has permission
-isAllowedWorkflow _ (Just details) {WorkflowDescription|roles}	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- roles]
+isAllowedWorkflow _ (Just details) {Workflow|roles}	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- roles]
 //Don't allow workflows in other cases
-isAllowedWorkflow _ _ _											= False
+isAllowedWorkflow _ _ _								= False
