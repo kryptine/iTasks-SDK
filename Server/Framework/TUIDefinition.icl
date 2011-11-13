@@ -203,23 +203,23 @@ where
 
 defaultParallelLayout :: ParallelLayouter
 defaultParallelLayout = \{TUIParallel|title,instruction,items}->
-	let (metas,tuis,actions) = unzip3 items in
+	let (_,_,metas,tuis,actions) = unzip5 items in
 		(defaultDef (TUIContainer (defaultLayoutContainer [tui \\ Just tui <- tuis & meta <- metas|not meta.hide])),flatten actions)
 
 horizontalParallelLayout :: ParallelLayouter
 horizontalParallelLayout = \{TUIParallel|title,instruction,items}->
-	let (metas,tuis,actions) = unzip3 items in
+	let (_,_,metas,tuis,actions) = unzip5 items in
 		(defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer (catMaybes tuis) & direction = Horizontal}),flatten actions)
 
 vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> ParallelLayouter
 vsplitLayout size splitfun = \{TUIParallel|items} ->
-	let (metas,tuis,actions) = unzip3 items in
+	let (_,_,metas,tuis,actions) = unzip5 items in
 		let (top,bottom) = splitfun (catMaybes tuis) in
 			(vsplit size top bottom, flatten actions)
 
 hsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> ParallelLayouter
 hsplitLayout size splitfun = \{TUIParallel|items} ->
-	let (metas,tuis,actions) = unzip3 items in
+	let (_,_,metas,tuis,actions) = unzip5 items in
 		let (left,right) = splitfun (catMaybes tuis) in
 			(hsplit size left right, flatten actions)
 
@@ -231,30 +231,36 @@ where
 		panel		= defaultDef (TUIPanel {TUIPanel|defaultLayoutPanel children & title = title, frame = True})
 	
 		children	= flatten (map getChildren items) 	
-		actions 	= flatten [a \\(_,_,a) <- items]
+		actions 	= flatten [a \\(_,_,_,_,a) <- items]
 	
-		getChildren (_,Just {content=TUIPanel panel},_)			= panel.TUIPanel.items
-		getChildren (_,Just {content=TUIContainer container},_)	= container.TUIContainer.items
+		getChildren (_,_,_,Just {content=TUIPanel panel},_)			= panel.TUIPanel.items
+		getChildren (_,_,_,Just {content=TUIContainer container},_)	= container.TUIContainer.items
 	
 tabLayout :: ParallelLayouter
-tabLayout = \{TUIParallel|title,items} ->
-		let (tabs,tactions) = unzip [mkTab i \\ i =:(meta,Just _,_) <- items|not meta.TaskMeta.hide] in
-			({ content	= TUITabContainer {TUITabContainer| items = tabs}
+tabLayout = layout
+where
+	layout {TUIParallel|taskId,title,items}
+		# maxOrder					= foldr max 0 [o \\ (_,o,_,_,_) <- items]
+ 		# (tabs,active,tactions)	= unzip3 [mkTab item maxOrder \\ item=:(_,_,meta,Just _,_) <- items|not meta.TaskMeta.hide]
+ 		# activeTab					= length (takeWhile not active)
+ 		= 	({ content	= TUITabContainer {TUITabContainer| taskId = Just taskId, active = activeTab, items = tabs}
 			 , width	= Nothing
-		 	 , height	= Nothing
+			 , height	= Nothing
 			 , margins	= Nothing
 			 }, flatten tactions)
-where
-	mkTab (meta, Just tui, actions)
-		# (close,actions) = findCloseAction actions []
-		# (menus,actions) = defaultMenus actions
+
+	mkTab (index, order, meta, Just tui, actions) maxOrder
+		# (close,actions)	= findCloseAction actions []
+		# (menus,actions)	= defaultMenus actions
+		# active			= order == maxOrder
 		= ({TUITabItem
-		   | title = meta.TaskMeta.title
+		   | index = index
+		   , title = meta.TaskMeta.title
 		   , iconCls = fmap (\i -> "icon-" +++ i) meta.TaskMeta.icon
-		   , items = tui
+		   , items = if active (Just tui) Nothing	//Only add content to the visible tab
 		   , menus = menus
 		   , closeAction = close
-		   }, actions)
+		   }, active, actions)
 		  
 	findCloseAction [] acc = (Nothing,reverse acc)
 	findCloseAction [taskAction=:(taskId,action,enabled):actions] acc

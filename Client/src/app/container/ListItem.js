@@ -3,7 +3,8 @@ Ext.define('itasks.container.ListItem',{
 	alias: 'widget.itasks_list_item',
 	requires: ['itasks.layout.VHBox'],
 	layout: 'vhbox',
-
+	bodyPadding: 3,
+	
 	initComponent: function() {	
 		if(!this.width && !this.hwrap && !this.hflex) {
 			this.hwrap = true;

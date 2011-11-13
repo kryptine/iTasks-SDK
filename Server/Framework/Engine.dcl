@@ -4,10 +4,9 @@ definition module Engine
 * This is the primary function that creates the complete
 * environment in which worfklow specifications can be executed.
 */
-import Maybe, JSON, Task
+import Maybe, JSON, FilePath, Task
 from IWorld			import :: IWorld
 from HTTP			import :: HTTPRequest, :: HTTPResponse
-from Config			import :: Config
 
 :: PublishedTask =
 	{ url			:: String
@@ -25,10 +24,10 @@ from Config			import :: Config
 /**
 * Creates the iTasks system from a set of published tasks
 *
-* @param  An optional config record
+* @param  The config record
 * @param  A task to execute
 */
-engine :: !(Maybe Config) publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
+engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
 
 /**
 * Wraps a task together with a url to make it publishable by the engine
@@ -43,21 +42,17 @@ instance Publishable (Task a) | iTask a
 instance Publishable [PublishedTask]
 
 /**
-* Loads the itasks specific config
-*
-* @param The world
-* 
-* @return The configuration options
-* @return The updated world
-*/
-config :: !*World -> (!Maybe Config,!*World)
-
-/**
 * Determines the server executables path
 */
-determineAppPath :: !*World -> (!String, !*World)
+determineAppPath :: !*World -> (!FilePath, !*World)
 
 /**
 * Determine the name of the application based on the executable's name
 */
 determineAppName :: !*World -> (!String,!*World)
+
+/**
+* Determine the location of the iTasks SDK
+*/
+determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
+

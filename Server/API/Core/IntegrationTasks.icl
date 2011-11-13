@@ -4,7 +4,7 @@ import StdInt, StdFile, StdTuple, StdList
 
 import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple
 
-import SystemTypes, IWorld, Task, TaskContext, Config
+import SystemTypes, IWorld, Task, TaskContext
 import ExceptionCombinators, TuningCombinators
 import InteractionTasks
 import Shared
@@ -40,8 +40,8 @@ callProcess cmd args
 where
 	//Start the process
 	init :: TaskNr *IWorld -> (!TaskContextTree,!*IWorld)
-	init taskNr iworld =:{IWorld | config, tmpDirectory, world}
-		# outfile 		= tmpDirectory </> (iTaskId taskNr "callprocess")
+	init taskNr iworld =:{IWorld |application,build,appDirectory,sdkDirectory,world}
+		# outfile 		= appDirectory </> application </> "tmp-" +++ build </> (iTaskId taskNr "callprocess")
 		# context		= TCBasic 'Map'.newMap
 		# asyncArgs		=	[ "--taskid"
 							, toString (last taskNr)
@@ -51,7 +51,7 @@ where
 							, cmd
 							]
 							++ args
-		# (res,world)	= 'Process'.runProcess config.Config.runAsyncPath asyncArgs Nothing world
+		# (res,world)	= 'Process'.runProcess (sdkDirectory </> "Tools" </> "RunAsync" </> "RunAsync.exe") asyncArgs Nothing world
 		= case res of
 			Error e	= (setLocalVar "error" e context, {IWorld|iworld & world = world})
 			Ok _	= (setLocalVar "outfile" outfile context, {IWorld|iworld & world = world})
@@ -122,13 +122,13 @@ where
 		
 	initRPC = mkInstantTask("Call RPC", "Initializing") eval
 	
-	eval taskNr iworld=:{IWorld|config,tmpDirectory,world}
-		# infile  = tmpDirectory </> (mkFileName taskNr "request")
-		# outfile = tmpDirectory </> (mkFileName taskNr "response")
+	eval taskNr iworld=:{IWorld|application,build,appDirectory,sdkDirectory,world}
+		# infile  = appDirectory </> application </> "tmp-" +++ build </> (mkFileName taskNr "request")
+		# outfile = appDirectory </> application </> "tmp-" +++ build </> (mkFileName taskNr "response")
 		# (res,world) = writeFile infile request world
 		| isError res
 			= (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
-		# cmd	= config.Config.curlPath
+		# cmd	= sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" 
 		# args	=	[ options
 						, "--data-binary"
 						, "@" +++ infile

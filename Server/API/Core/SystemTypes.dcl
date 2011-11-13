@@ -12,7 +12,7 @@ from Time			import :: Timestamp
 from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 from Task			import :: Task
-from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: StaticVisualizationMode, :: TUIDef
+from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
 
 derive JSONEncode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONEncode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
@@ -231,6 +231,9 @@ instance OptionContainer Tree
 //* Represents a table consisting of headers, the displayed data cells & possibly a selection
 :: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
 
+//Generate a table from a value
+toTable	:: [a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
+
 //* Field behaviour extensions
 :: VisualizationHint a 	= VHEditable a
 					   	| VHDisplay a
@@ -383,21 +386,11 @@ noMeta :: ManagementMeta
 
 //Configuration
 :: Config =
-	{ clientPath		:: !String			// Where is the client located.
-	, staticPath		:: !String			// Additional location where statically served content may be placed
-	, rootPassword		:: !String			// Password for the 'root' superuser (default 'root').
+	{ rootPassword		:: !String			// Password for the 'root' superuser (default 'root').
 	, rootEmail			:: !String			// E-mail address for the 'root' superuser (default root@localhost).
 	, sessionTime		:: !Int				// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
-	, serverPort		:: !Int				// The TCP port the server runs on. Default is 80.
-	, serverPath		:: !String			// The path at which the services are served (default /services)
-	, debug				:: !Bool			// Run the server in debug mode (default False).
 	, smtpServer		:: !String			// The smtp server to use for sending e-mails
-	, generalWorkflows	:: !Bool			// Enable the "general" workflows for managing ad-hoc work
-	, runAsyncPath		:: !String			// Path to RunAsync tool for running asynchronous OS tasks and timers.
-	, curlPath			:: !String			// Path to Curl needed for RPC tasks.
 	}
-
-
 /*
 * Gives the unique username of a user
 *

@@ -1,10 +1,9 @@
 implementation module Store
 
-import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTuple, StdMisc, Void
+import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTuple, StdOrdList, StdMisc, Void
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
-from Config 		import :: Config
 from IWorld			import :: IWorld(..), :: ProcessId, :: Control
-from SystemTypes	import :: DateTime, :: User
+from SystemTypes	import :: DateTime, :: User, :: Config
 from Time 			import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from iTasks import serialize, deserialize, defaultStoreFormat
 
@@ -20,13 +19,16 @@ from iTasks import serialize, deserialize, defaultStoreFormat
 
 :: StoreFormat = SFPlain | SFDynamic
 
+storePath :: FilePath String String -> FilePath
+storePath appDir app build = appDir </> app </> "store-" +++ build
+
 storeValue :: !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValue namespace key value iworld 
 	= storeValueAs defaultStoreFormat namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValueAs format namespace key value iworld=:{IWorld|timestamp,world,storeDirectory}
-	# world = writeToDisk namespace key {StoreItem|format=format,content=content,lastChange=timestamp} storeDirectory world
+storeValueAs format namespace key value iworld=:{IWorld|application,build,appDirectory,timestamp,world}
+	# world = writeToDisk namespace key {StoreItem|format=format,content=content,lastChange=timestamp} (storePath appDirectory application build) world
 	= {iworld & world = world}
 where
 	content = case format of	
@@ -95,13 +97,36 @@ unpackValue {StoreItem|format=SFDynamic,content,lastChange}
 		Error _  = Nothing
 
 loadStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
-loadStoreItem namespace key iworld=:{storeDirectory}
-	= accWorld (loadFromDisk namespace key storeDirectory) iworld
-		
-loadFromDisk :: !StoreNamespace !StoreKey !String !*World -> (Maybe StoreItem, !*World)	
-loadFromDisk namespace key location world			
+loadStoreItem namespace key iworld=:{application,build,appDirectory}
+	= case accWorld (loadFromDisk namespace key (storePath appDirectory application build)) iworld of
+		(Just item,iworld)	= (Just item,iworld)
+		(Nothing,iworld)	= migrateStoreItem namespace key iworld
+	
+//Look in stores of previous builds for a version of the store that can be migrated
+migrateStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
+migrateStoreItem namespace key iworld=:{application,build,appDirectory,world}
+	# (mbBuilds,world) = readDirectory baseDir world
+	= case mbBuilds of
+		Error _	= (Nothing, {IWorld|iworld & world = world})
+		Ok dirs	
+			# (mbItem,world) = searchStoreItem (sortBy (\x y -> x > y) (filter (startsWith "store-") dirs)) world
+			= (mbItem,{IWorld|iworld & world = world})
+where
+	baseDir = appDirectory </> application
+
+	searchStoreItem [] world = (Nothing,world)
+	searchStoreItem [d:ds] world
+		= case loadFromDisk namespace key (baseDir </> d) world of
+			(Just item, world)		
+				# world = writeToDisk namespace key item (storePath appDirectory application build) world
+				= (Just item,world)
+			(Nothing, world)
+				= searchStoreItem ds world
+
+loadFromDisk :: !StoreNamespace !StoreKey !FilePath !*World -> (Maybe StoreItem, !*World)	
+loadFromDisk namespace key storeDir world		
 		//Try plain format first
-		# filename			= addExtension (location </> namespace </> key) "txt"
+		# filename			= addExtension (storeDir </> namespace </> key) "txt"
 		# (ok,file,world)	= fopen filename FReadText world
 		| ok
 			# (ok,time,file)	= freadi file
@@ -110,7 +135,7 @@ loadFromDisk namespace key location world
 			# (ok,world)		= fclose file world
 			= (Just {StoreItem|format = SFPlain, content = content, lastChange = Timestamp time}, world)
 		| otherwise
-			# filename			= addExtension (location </> key) "bin"
+			# filename			= addExtension (storeDir </> namespace </> key) "bin"
 			# (ok,file,world)	= fopen filename FReadData world
 			| ok
 				# (ok,time,file)	= freadi file
@@ -138,15 +163,16 @@ deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
 deleteValues namespace delKey iworld = deleteValues` delKey startsWith startsWith iworld
 
 deleteValues` :: !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
-deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{storeDirectory}
+deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{application,build,appDirectory}
 	//Delete items from disk
 	# iworld = appWorld deleteFromDisk iworld
 	= iworld
 where
 	deleteFromDisk world
-		# (res, world) = readDirectory storeDirectory world
-		| isError res = abort ("Cannot read store directory " +++ storeDirectory +++ ": " +++ snd (fromError res))
-		= unlink storeDirectory (fromOk res) world
+		# storeDir		= storePath appDirectory application build
+		# (res, world)	= readDirectory storeDir world
+		| isError res = abort ("Cannot read store directory " +++ storeDir +++ ": " +++ snd (fromError res))
+		= unlink storeDir (fromOk res) world
 		where
 			unlink _ [] world
 				= world
@@ -158,11 +184,12 @@ where
 					= unlink dir fs world
 
 copyValues :: !StoreNamespace !StorePrefix !StorePrefix !*IWorld -> *IWorld
-copyValues namespace fromprefix toprefix iworld=:{storeDirectory}
+copyValues namespace fromprefix toprefix iworld=:{application,build,appDirectory}
 	//Copy items on disk
-	# iworld = appWorld (copyOnDisk fromprefix toprefix storeDirectory) iworld
+	# iworld = appWorld (copyOnDisk fromprefix toprefix storeDir) iworld
 	= iworld
 where
+	storeDir = storePath appDirectory application build
 	newKey key	= toprefix +++ (key % (size fromprefix, size key))
 
 	copyOnDisk fromprefix toprefix location world
@@ -173,8 +200,8 @@ where
 	copy fromprefix toprefix [] world = world
 	copy fromprefix toprefix [f:fs] world
 		| startsWith fromprefix f
-			# sfile	= storeDirectory </> f
-			# dfile = storeDirectory </> toprefix +++ (f % (size fromprefix, size f))
+			# sfile	= storeDir </> f
+			# dfile = storeDir </> toprefix +++ (f % (size fromprefix, size f))
 			# world	= fcopy sfile dfile world
 			= copy fromprefix toprefix fs world
 		| otherwise

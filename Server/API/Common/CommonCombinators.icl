@@ -7,7 +7,7 @@ import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdCl
 import Util, Either, GenVisualize, GenUpdate
 from StdFunc			import id, const, o
 from SystemTypes		import :: ProcessId, :: User(..), :: Note(..)
-from TaskContext		import :: TaskContextTree(..), :: SubTaskContext, :: ParallelMeta
+from TaskContext		import :: TaskContextTree(..), :: SubTaskId, :: SubTaskOrder, :: SubTaskContext, :: ParallelMeta
 from SharedCombinators	import mapShared, :: Shared, :: ReadWriteShared
 from SystemData			import randomInt, topLevelTasks
 from Map				import qualified newMap
@@ -144,7 +144,7 @@ where
 			(removeTask i tlist >>| appendTask (Embedded, checked pred task (i + 1)) tlist	>>| return Continue)
 			 
 	layout :: TUIParallel -> (TUIDef,[TaskAction])
-	layout {TUIParallel|items=[(_,tui,actions):_]} = (fromJust tui, actions)
+	layout {TUIParallel|items=[(_,_,_,tui,actions):_]} = (fromJust tui, actions)
 
 forever :: !(Task a) -> Task b | iTask a & iTask b	
 forever	t = (<!) t (\_ -> False) >>| return defaultValue

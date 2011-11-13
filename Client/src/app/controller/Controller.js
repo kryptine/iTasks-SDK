@@ -176,11 +176,17 @@ Ext.define('itasks.controller.Controller',{
 					if(target && typeof target[update.method] == 'function') {
 						target[update.method].apply(target,update.arguments);
 					} else {
-						if(!target) {
-							this.error("Could not find target at path " + update.path);
+						//If replace is not defined as function, try remove followed by add
+						if(update.method == 'replace' && typeof target['remove'] == 'function' && typeof target['insert'] == 'function') {
+							target.remove(update.arguments[0]);
+							target.insert(update.arguments[0],update.arguments[1]);
 						} else {
-							this.error("Can't apply " + update.method + " to " + target.getId() + " (" + target.getXType() + ")");
-							this.error(update.arguments);
+							if(!target) {
+								this.error("Could not find target at path " + update.path);
+							} else {
+								this.error("Can't apply " + update.method + " to " + target.getId() + " (" + target.getXType() + ")");
+								this.error(update.arguments);
+							}
 						}
 					}
 					

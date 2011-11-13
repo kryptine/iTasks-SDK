@@ -438,6 +438,16 @@ where
 		pressed {state}= case state of
 			Pressed		= True
 			NotPressed	= False
+
+toTable	:: [a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
+toTable a = Table (snd (headers a)) (map row a) Nothing
+where
+	headers:: [a] -> (a,[String]) | gHeaders{|*|} a
+	headers _ = gHeaders{|*|}
+
+	row x = case (gGridRows{|*|} x []) of
+		Just cells	= [Text cell \\ cell <- cells]
+		Nothing		= [Text (visualizeAsText AsLabel x)]
 	
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a

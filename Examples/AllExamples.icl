@@ -37,9 +37,6 @@ import SharedVariables
 //Graphical iTask Notation
 //import GinExamples
 
-//Ad-hoc work extensions
-import Groups, Lists, Messages, Consensus
-
 //Client
 import WorkflowAdmin
 
@@ -65,7 +62,6 @@ where
 						//, changeHandlingExample
 						, changeExamples
 						, sharedValueExamples
-						, [workflow "Examples/General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions]
 						//, rpcExamples
 						//, ginExamples
 						, apiDocumentationExamples
