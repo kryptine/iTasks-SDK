@@ -312,6 +312,11 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 */
 (<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, String)) 	-> Task a 					| iTask a
 
+/**
+* Do a task as long while monitoring that a shared state remains unchanged.
+* When the share changes the task is restarted
+*/
+whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 
 /**
 * Append a task to the set of top level tasks

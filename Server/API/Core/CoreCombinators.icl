@@ -102,7 +102,7 @@ where
 (>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
 (>>+) task=:{Task|def} termF = case def of
 	ActionTask actionTaskF	= {Task|task & def = NormalTask (actionTaskF termF)}
-	_						= task >>= \r -> viewInformation (taskMeta task) [] r >>+ termF
+	_						= task >>= \r -> viewInformation (taskMeta task) [] r >>+ termF //WEIRD STEP
 	
 noActions :: (TermFunc a b) | iTask a & iTask b
 noActions = const (UserActions [])
@@ -113,6 +113,27 @@ returnAction action = \{modelValue,localValid} -> UserActions [(action, if local
 constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
 constActions actions = const (UserActions [(a,Just v) \\ (a,v) <- actions])
 
+
+(>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+(>>$) task=:{Task|def} f = case def of
+	NormalTask taskFuns 	= {Task|task & def = NormalTask (updateEval f taskFuns)}
+	ActionTask actionFun	= {Task|task & def = ActionTask (updateActionFun f actionFun)}
+where
+	updateEval :: (a -> b) (TaskFuncs a) -> (TaskFuncs b)
+	updateEval f funs=:{evalFun} = {funs & evalFun = evalFun`}
+	where
+		evalFun` taskNo meta event target repAs cxt iworld
+			= case evalFun taskNo meta event target repAs cxt iworld of
+				(TaskFinished a, iworld)			= (TaskFinished (f a),iworld)
+				(TaskBusy rep actions cxt,iworld)	= (TaskBusy rep actions cxt, iworld)
+				(TaskException e str, iworld)		= (TaskException e str, iworld)
+
+	updateActionFun :: (a -> b) ((TermFunc a c) -> (TaskFuncs c)) -> ((TermFunc b c) -> (TaskFuncs c)) | iTask c
+	updateActionFun f actionFun = \termFun -> actionFun (updateTermFun f termFun)
+	
+	updateTermFun :: (a -> b) (TermFunc b c)  -> (TermFunc a c) | iTask c
+	updateTermFun f termFun = \{modelValue,localValid} -> termFun {modelValue = f modelValue, localValid = localValid}
+	
 // Parallel composition
 INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
 

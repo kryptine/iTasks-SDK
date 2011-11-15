@@ -239,6 +239,10 @@ repeatTask task pred a =
 where
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions
+
+whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
+whileUnchanged share task
+	= (get share >>= \val -> (task val >>$ Just) -||- (Hide @>> wait "watching share change" ((=!=) val) share >>$ const Nothing)) <! isJust >>= transform fromJust
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
 appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Continue) topLevelTasks >>= transform WorkflowProcess 
