@@ -25,7 +25,7 @@ derive JSONEncode StoredPart, UpdateMask
 derive JSONDecode StoredPart, UpdateMask
 JSONEncode{|StoredPutback|} _ _ p				= [dynamicJSONEncode p]
 JSONDecode{|StoredPutback|} _ _ [json:r]		= (dynamicJSONDecode json,r)
-JSONDecode{|StoredPutback|} _ _ _				= (Nothing,[])
+JSONDecode{|StoredPutback|} _ _ c				= (Nothing,c)
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinished a,iworld))

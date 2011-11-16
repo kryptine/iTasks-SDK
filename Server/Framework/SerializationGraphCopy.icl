@@ -21,13 +21,14 @@ serializeDynamic dyn = dynamic_to_string dyn
 deserializeDynamic :: !*String -> Dynamic
 deserializeDynamic str = string_to_dynamic str
 
-JSONEncode{|Dynamic|} dyn = [JSONString "_DYNAMIC_", JSONString (base64Encode (serializeDynamic dyn))]
-JSONEncode{|(->)|} _ _ f = [JSONString "_FUNCTION_", JSONString (base64Encode (serialize f))]
+JSONEncode{|Dynamic|} dyn = [JSONArray [JSONString "_DYNAMIC_", JSONString (base64Encode (serializeDynamic dyn))]]
 
-JSONDecode{|Dynamic|} [JSONString "_DYNAMIC_",JSONString string:c]	= (Just (deserializeDynamic (base64Decode string)), c)
+JSONEncode{|(->)|} _ _ f = [JSONArray [JSONString "_FUNCTION_", JSONString (base64Encode (serialize f))]]
+
+JSONDecode{|Dynamic|} [JSONArray [JSONString "_DYNAMIC_",JSONString string]:c]	= (Just (deserializeDynamic (base64Decode string)), c)
 JSONDecode{|Dynamic|} c												= (Nothing, c)
 
-JSONDecode{|(->)|} _ _ [JSONString "_FUNCTION_",JSONString string:c]= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
+JSONDecode{|(->)|} _ _ [JSONArray [JSONString "_FUNCTION_",JSONString string]:c] = (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c)
 JSONDecode{|(->)|} _ _ c											= (Nothing,c)
 
 functionFree :: !JSONNode -> Bool
