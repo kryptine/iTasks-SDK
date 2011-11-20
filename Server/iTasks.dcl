@@ -3,8 +3,7 @@ definition module iTasks
 /**
 * Main iTask module exporting all end user iTask modules 
 */
-import	Engine						// basic iTask system creator
-	,	EngineWrapperStandalone		// standalone wrapper
+import	EngineWrapperStandalone		// standalone wrapper
 	//,	EngineWrapperCGI			// CGI wrapper
 	
 	,	SerializationGraphCopy		// use serialization via graph_copy

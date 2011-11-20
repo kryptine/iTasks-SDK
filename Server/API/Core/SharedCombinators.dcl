@@ -1,6 +1,7 @@
 definition module SharedCombinators
 
-import Void, IWorld
+import Void, Maybe
+from IWorld				import :: IWorld
 from SharedDataSource	import mapReadWrite, mapRead, mapWrite
 from SharedDataSource	import qualified :: RWShared
 

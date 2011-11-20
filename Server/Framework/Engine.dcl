@@ -5,8 +5,9 @@ definition module Engine
 * environment in which worfklow specifications can be executed.
 */
 import Maybe, JSON, FilePath, Task
-from IWorld			import :: IWorld
-from HTTP			import :: HTTPRequest, :: HTTPResponse
+from IWorld				import :: IWorld
+from HTTP				import :: HTTPRequest, :: HTTPResponse
+from SharedDataSource	import :: Shared, :: RWShared
 
 :: PublishedTask =
 	{ url			:: String
@@ -27,7 +28,7 @@ from HTTP			import :: HTTPRequest, :: HTTPResponse
 * @param  The config record
 * @param  A task to execute
 */
-engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
+engine :: !FilePath publish !(Shared (Map String (Shared JSONNode *IWorld)) *World) -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
 
 /**
 * Wraps a task together with a url to make it publishable by the engine
@@ -36,7 +37,7 @@ publish :: String ServiceFormat (Task a) -> PublishedTask | iTask a
 
 class Publishable a
 where
-	publishAll :: a -> [PublishedTask]
+	publishAll :: !a -> [PublishedTask]
 
 instance Publishable (Task a) | iTask a
 instance Publishable [PublishedTask]

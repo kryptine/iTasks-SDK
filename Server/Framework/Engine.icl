@@ -8,72 +8,73 @@ import	IWorld
 import	WebService
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
-engine sdkPath publishable
+engine :: !FilePath publish !(Shared (Map String (Shared JSONNode *IWorld)) *World) -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
+engine sdkPath publishable appShares
 	= taskHandlers (publishAll publishable) sdkPath ++ defaultHandlers sdkPath
 where
 	taskHandlers published sdkPath
 		= [((==) url, taskDispatch sdkPath task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
 	taskDispatch sdkPath task defaultFormat req world
-		# iworld 			= initIWorld sdkPath world
+		# iworld 			= initIWorld world
 		# (response,iworld)	= webService task defaultFormat req iworld
 		= (response, finalizeIWorld iworld)
 	
 	defaultHandlers sdkPath
 		= [((==) "/stop", handleStopRequest),(\_ -> True, handleStaticResourceRequest sdkPath)]
 		
-initIWorld :: !FilePath !*World -> *IWorld
-initIWorld sdkPath world
-	# (appName,world) 			= determineAppName world
-	# (appPath,world)			= determineAppPath world
-	# appDir					= takeDirectory appPath
-	# (res,world)				= getFileInfo appPath world
-	| isError res				= abort "Cannot get executable info."
-	# tm						= (fromOk res).lastModifiedTime
-	# build						= strfTime "%Y%m%d-%H%M%S" tm
-	# (timestamp,world)			= time world
-	# (localDateTime,world)		= currentDateTimeWorld world
-	# (_,world)					= ensureDir "data" (appDir </> appName) world
-	# tmpPath					= appDir </> appName </> "tmp-" +++ build
-	# (_,world)					= ensureDir "tmp" tmpPath world
-	# storePath					= appDir </> appName </> "store-"+++ build
-	# (exists,world)			= ensureDir "store" storePath world
-	= {IWorld
-	  |application			= appName
-	  ,build				= build
-	  ,appDirectory			= appDir
-	  ,sdkDirectory			= sdkPath
-	  ,config				= defaultConfig
-	  ,timestamp			= timestamp
-	  ,latestEvent			= Nothing
-	  ,localDateTime		= localDateTime
-	  ,currentUser			= AnyUser
-	  ,evalStack			= []
-	  ,parallelStates		= newMap
-	  ,parallelControls		= newMap
-	  ,readShares			= Nothing
-	  ,world				= world
-	  }
-where
-	defaultConfig :: Config
-	defaultConfig =
-		{ rootPassword		= "root"
-		, rootEmail			= "root@localhost"
-		, sessionTime		= 3600
-		, smtpServer		= "localhost"
-		}
-		
-	padZero :: !Int -> String
-	padZero number = (if (number < 10) "0" "") +++ toString number
-
-	ensureDir :: !String !FilePath *World -> (!Bool,!*World)
-	ensureDir name path world
-		# (exists, world) = fileExists path world
-		| exists = (True,world)
-		# (res, world) = createDirectory path world
-		| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
-		= (False,world)
+	initIWorld :: !*World -> *IWorld
+	initIWorld world
+		# (appName,world) 			= determineAppName world
+		# (appPath,world)			= determineAppPath world
+		# appDir					= takeDirectory appPath
+		# (res,world)				= getFileInfo appPath world
+		| isError res				= abort "Cannot get executable info."
+		# tm						= (fromOk res).lastModifiedTime
+		# build						= strfTime "%Y%m%d-%H%M%S" tm
+		# (timestamp,world)			= time world
+		# (localDateTime,world)		= currentDateTimeWorld world
+		# (_,world)					= ensureDir "data" (appDir </> appName) world
+		# tmpPath					= appDir </> appName </> "tmp-" +++ build
+		# (_,world)					= ensureDir "tmp" tmpPath world
+		# storePath					= appDir </> appName </> "store-"+++ build
+		# (exists,world)			= ensureDir "store" storePath world
+		= {IWorld
+		  |application			= appName
+		  ,build				= build
+		  ,appDirectory			= appDir
+		  ,sdkDirectory			= sdkPath
+		  ,config				= defaultConfig
+		  ,appShares			= appShares
+		  ,timestamp			= timestamp
+		  ,latestEvent			= Nothing
+		  ,localDateTime		= localDateTime
+		  ,currentUser			= AnyUser
+		  ,evalStack			= []
+		  ,parallelStates		= newMap
+		  ,parallelControls		= newMap
+		  ,readShares			= Nothing
+		  ,world				= world
+		  }
+	where
+		defaultConfig :: Config
+		defaultConfig =
+			{ rootPassword		= "root"
+			, rootEmail			= "root@localhost"
+			, sessionTime		= 3600
+			, smtpServer		= "localhost"
+			}
+			
+		padZero :: !Int -> String
+		padZero number = (if (number < 10) "0" "") +++ toString number
+	
+		ensureDir :: !String !FilePath *World -> (!Bool,!*World)
+		ensureDir name path world
+			# (exists, world) = fileExists path world
+			| exists = (True,world)
+			# (res, world) = createDirectory path world
+			| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
+			= (False,world)
 
 finalizeIWorld :: !*IWorld -> *World
 finalizeIWorld iworld=:{IWorld|world} = world

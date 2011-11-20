@@ -4,10 +4,11 @@ import StdInt, StdFile, StdTuple, StdList
 
 import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple
 
-import SystemTypes, IWorld, Task, TaskContext
+import SystemTypes, Task, TaskContext
 import ExceptionCombinators, TuningCombinators
 import InteractionTasks
-
+from IWorld				import ::IWorld(..), :: Control, :: ProcessId
+from IWorld				import qualified :: Shared, :: RWShared
 from Util				import currentTimestampError
 from CoreCombinators	import >>=, >>|
 from CoreTasks			import return

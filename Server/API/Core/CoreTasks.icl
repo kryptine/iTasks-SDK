@@ -2,13 +2,15 @@ implementation module CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
 import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TuningCombinators, TUIDefinition, SharedCombinators
-from SharedDataSource		import qualified read, write, getVersion, readWrite, Write
+from SharedDataSource		import qualified read, write, getVersion, readWrite, unsafeRW, :: RWRes(..), createProxyDataSource
 from StdFunc				import o, id
-from IWorld					import :: IWorld(..), :: Control(..)
+from IWorld					import :: IWorld(..), :: Control(..), instance MemoryEnv IWorld
+from IWorld					import qualified :: Shared, :: RWShared
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException, :: WorkOnException(..), instance toString WorkOnException
 from SystemData				import topLevelTasks
-from Map					import qualified get
+from Map					import qualified get, put
+from SharedMemory			import sharedMemory, class MemoryEnv, instance MemoryEnv World
 
 derive class iTask WorkOnProcessState
 
@@ -28,21 +30,24 @@ JSONDecode{|StoredPutback|} _ _ _			= (Nothing,[])
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinished a,iworld))
 
-/*sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = RWShared
-	["sharedStore_" +++ storeId]
-	(get (loadValue NS_APPLICATION_SHARES) defaultV)
-	write
-	(get (getStoreTimestamp NS_APPLICATION_SHARES) (Timestamp 0))
-where	
-	get f defaultV iworld
-		# (mbV,iworld) = f storeId iworld
-		# res = case mbV of
-			Nothing	= Ok defaultV
-			Just v	= Ok v
-		= (res,iworld)
+sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore storeId defaultV = 'SharedDataSource'.createProxyDataSource getShare get put
+where
+	getShare iworld=:{appShares,world}
+		# (share,world)	= 'SharedDataSource'.unsafeRW rwFunc appShares world
+		= (share,{iworld & world = world})
 		
-	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)*/
+	rwFunc map _ world = case 'Map'.get storeId map of
+		Just share
+			= ('SharedDataSource'.YieldResult share, world)
+			
+		Nothing
+			# (share, world)	= sharedMemory (toJSON defaultV) world
+			# map				= 'Map'.put storeId share map
+			= ('SharedDataSource'.Write map share, world)
+			
+	get json = fromMaybe defaultV (fromJSON json)
+	put w _ = toJSON w
 
 get :: !(RWShared a w) -> Task a | iTask a
 get share = mkInstantTask ("Read shared", "Reads a shared value") eval

@@ -1,4 +1,5 @@
 implementation module SharedCombinators
 
-import Void, IWorld
-from SharedDataSource import qualified :: RWShared, :: Shared, :: ROShared, :: WOShared
+import Void
+from IWorld				import :: IWorld
+from SharedDataSource	import qualified :: RWShared, :: Shared, :: ROShared, :: WOShared

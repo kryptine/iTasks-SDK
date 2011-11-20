@@ -4,7 +4,6 @@ import SystemTypes, Time, SharedCombinators, Util, Text, Task, Tuple
 import Random
 import StdList, StdBool
 from StdFunc	import o, seq
-from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
 
 /*currentDateTime :: ReadOnlyShared DateTime

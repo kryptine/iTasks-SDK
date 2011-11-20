@@ -29,7 +29,7 @@ return 		:: !a 										-> Task a 		| iTask a
 * Creates a reference to a store identified by a string identifier.
 * If no data is store the default value given as second argument is given as result.
 */
-//sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Reads shared data.

@@ -6,6 +6,7 @@ import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
 from IWorld				import :: IWorld(..), :: Control(..)
+from IWorld				import qualified :: Shared, :: RWShared
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from CoreTasks			import return
 from TuningCombinators	import :: Tag

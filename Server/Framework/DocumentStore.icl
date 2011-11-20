@@ -5,6 +5,7 @@ import SystemTypes, Store, Random, Text, Time, Error, File, FilePath
 import GenUpdate
 from StdFunc	import id
 from IWorld		import ::IWorld(..), :: Control, :: ProcessId
+from IWorld		import qualified :: Shared, :: RWShared
 
 instance DocumentDB IWorld
 where
