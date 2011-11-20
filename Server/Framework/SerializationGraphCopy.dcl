@@ -13,8 +13,11 @@ deserializeDynamic :: !*String -> Dynamic
 derive JSONEncode Dynamic, (->)
 derive JSONDecode Dynamic, (->)
 
-dynamicJSONEncode :: !a -> [JSONNode]
-dynamicJSONDecode :: !JSONNode -> Maybe a
+//Check if a JSON serialization contains encoded functions or dynamics
+functionFree		:: !JSONNode -> Bool
 
-serializationModule :: String
-defaultStoreFormat :: StoreFormat
+dynamicJSONEncode	:: !a -> JSONNode
+dynamicJSONDecode	:: !JSONNode -> Maybe a
+
+serializationModule	:: String
+defaultStoreFormat	:: StoreFormat

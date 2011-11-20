@@ -49,6 +49,16 @@ derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 */
 (>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
 
+/**
+* Adds result transformation function to a task.
+* This combinator is similar to using "task >>= \a -> return (f a)".
+* The difference is that this combinator does not introduce a second step like the bind does.
+* The resulting task is still considered a single step in the workflow.
+*
+* @param Task: The task to which the transformation function is added
+*/
+(>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+
 /*
 * Empty list of actions.
 * 'task >>+ noActions' never terminates.

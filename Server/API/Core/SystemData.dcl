@@ -25,6 +25,8 @@ currentUser				:: ReadOnlyShared User
 
 // Application name
 applicationName			:: ReadOnlyShared String
+// Application build identifier
+applicationBuild		:: ReadOnlyShared String
 
 // Server config
 applicationConfig		:: ReadOnlyShared Config

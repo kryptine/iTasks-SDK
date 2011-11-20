@@ -1,11 +1,11 @@
 implementation module Store
 
-import StdString, StdArray, StdChar, StdClass, StdInt, StdFile, StdList, StdTuple, StdOrdList, StdMisc, Void
+import StdString, StdArray, StdChar, StdClass, StdInt, StdBool, StdFile, StdList, StdTuple, StdOrdList, StdMisc, Void
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 from IWorld			import :: IWorld(..), :: ProcessId, :: Control, :: Shared, :: RWShared
 from SystemTypes	import :: DateTime, :: User, :: Config
 from Time 			import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
-from iTasks import serialize, deserialize, defaultStoreFormat
+from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 
 :: Store =
 	{ location	:: !String							//Path to the store on disk
@@ -27,16 +27,15 @@ storeValue namespace key value iworld
 	= storeValueAs defaultStoreFormat namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValueAs format namespace key value iworld=:{IWorld|application,build,appDirectory,timestamp,world}
-	# world = writeToDisk namespace key {StoreItem|format=format,content=content,lastChange=timestamp} (storePath appDirectory application build) world
-	= {iworld & world = world}
+storeValueAs format namespace key value iworld=:{IWorld|application,build,appDirectory,timestamp}
+	= writeToDisk namespace key {StoreItem|format=format,content=content,lastChange=timestamp} (storePath appDirectory application build) iworld
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
 		SFDynamic	= serialize value
 
-writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*World -> *World
-writeToDisk namespace key {StoreItem|format,content,lastChange} location world
+writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*IWorld -> *IWorld
+writeToDisk namespace key {StoreItem|format,content,lastChange} location iworld=:{IWorld|world}
 	//Check if the location exists and create it otherwise
 	# (exists,world)	= fileExists location world
 	# world				= if exists world
@@ -59,52 +58,62 @@ writeToDisk namespace key {StoreItem|format,content,lastChange} location world
 	# file				= case format of SFPlain = fwritec ' ' file; _ = file // for txt files write space to indicate end of timestamp
 	# file				= fwrites content file
 	# (ok,world)		= fclose file world
-	= world
-
+	= {IWorld|iworld & world = world}
+	
 loadValue :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
-loadValue namespace key iworld
-	# (mbItem,iworld) = loadStoreItem namespace key iworld
+loadValue namespace key iworld=:{IWorld|application,build,appDirectory}
+	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
-		Just item = case unpackValue item of
-			Just v	= (Just v,iworld)
+		Just item = case unpackValue (not old) item of
+			Just v	= (Just v, if old (writeToDisk namespace key item (storePath appDirectory application build) iworld) iworld)
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 		
 getStoreTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe Timestamp,!*IWorld)
 getStoreTimestamp namespace key iworld
-	# (mbItem,iworld) = loadStoreItem namespace key iworld
+	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item	= (Just item.StoreItem.lastChange,iworld)
 		Nothing 	= (Nothing,iworld)
 
 loadValueAndTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe (a,Timestamp),!*IWorld) | JSONDecode{|*|}, TC a
-loadValueAndTimestamp namespace key iworld
-	# (mbItem,iworld) = loadStoreItem namespace key iworld
+loadValueAndTimestamp namespace key iworld=:{IWorld|application,build,appDirectory}
+	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
-		Just item = case unpackValue item of
-			Just v	= (Just (v,item.StoreItem.lastChange),iworld)
+		Just item = case unpackValue (not old) item of
+			Just v
+				= (Just (v,item.StoreItem.lastChange), if old (writeToDisk namespace key item (storePath appDirectory application build) iworld) iworld)
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 
-unpackValue :: !StoreItem -> (Maybe a) | JSONDecode{|*|}, TC a
-unpackValue {StoreItem|format=SFPlain,content}
-	= case fromJSON (fromString content) of
-		Nothing		= Nothing
-		Just v		= Just v
-unpackValue {StoreItem|format=SFDynamic,content,lastChange}
+unpackValue :: !Bool !StoreItem -> (Maybe a) | JSONDecode{|*|}, TC a
+unpackValue allowFunctions {StoreItem|format=SFPlain,content}
+	# json = fromString content
+	| allowFunctions || functionFree json
+		= case fromJSON (fromString content) of
+			Nothing		= Nothing
+			Just v		= Just v
+	| otherwise
+		= Nothing
+unpackValue allowFunctions {StoreItem|format=SFDynamic,content,lastChange}
 	= case deserialize {s` \\ s` <-: content} of
 		Ok value = Just value
 		Error _  = Nothing
 
-loadStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
+loadStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!Bool,!*IWorld)
 loadStoreItem namespace key iworld=:{application,build,appDirectory}
 	= case accWorld (loadFromDisk namespace key (storePath appDirectory application build)) iworld of
-		(Just item,iworld)	= (Just item,iworld)
-		(Nothing,iworld)	= migrateStoreItem namespace key iworld
-	
+		(Just item,iworld)	= (Just item,False,iworld)
+		(Nothing,iworld)	
+			| namespace == NS_APPLICATION_SHARES
+				# (mbItem,iworld) = findOldStoreItem namespace key iworld
+				= (mbItem,True,iworld)
+			| otherwise
+				= (Nothing,False,iworld)
+
 //Look in stores of previous builds for a version of the store that can be migrated
-migrateStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
-migrateStoreItem namespace key iworld=:{application,build,appDirectory,world}
+findOldStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
+findOldStoreItem namespace key iworld=:{application,build,appDirectory,world}
 	# (mbBuilds,world) = readDirectory baseDir world
 	= case mbBuilds of
 		Error _	= (Nothing, {IWorld|iworld & world = world})
@@ -118,7 +127,6 @@ where
 	searchStoreItem [d:ds] world
 		= case loadFromDisk namespace key (baseDir </> d) world of
 			(Just item, world)		
-				# world = writeToDisk namespace key item (storePath appDirectory application build) world
 				= (Just item,world)
 			(Nothing, world)
 				= searchStoreItem ds world

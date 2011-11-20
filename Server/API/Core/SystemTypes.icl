@@ -4,7 +4,6 @@ from StdFunc import until
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, List, dynamic_string, Base64
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
-from iTasks		import dynamicJSONEncode, dynamicJSONDecode
 
 derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
@@ -28,7 +27,6 @@ derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskSt
 derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
 
 derive class iTask	Credentials, Config
-
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
@@ -616,7 +614,6 @@ actionName ActionNext			= "Next"
 actionName ActionPrevious		= "Previous"
 actionName ActionFinish			= "Finish"
 actionName ActionContinue		= "Continue"
-actionName ActionNew			= "File/New"
 actionName ActionOpen			= "File/Open"
 actionName ActionSave			= "File/Save"
 actionName ActionSaveAs			= "File/Save as"
@@ -625,8 +622,10 @@ actionName ActionQuit			= "File/Quit"
 actionName ActionHelp			= "Help/Help"
 actionName ActionAbout			= "Help/About"
 actionName ActionFind			= "Edit/Find"
+actionName ActionNew			= "New"
 actionName ActionEdit			= "Edit"
 actionName ActionDelete			= "Delete"
+actionName ActionRefresh		= "Refresh"
 	
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))

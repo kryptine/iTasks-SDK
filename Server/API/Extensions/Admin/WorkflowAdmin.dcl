@@ -6,14 +6,6 @@ import iTasks
 
 :: WorkflowId :== Int
 
-:: WorkflowDescription =
-	{ workflowId		:: !WorkflowId
-	, path				:: !String
-	, roles				:: ![String]
-	, description		:: !String
-	, managerProperties	:: !ManagementMeta
-	}
-
 // A workflow specification
 :: Workflow	=
 	{ path				:: String					//* a unique name of this workflow
@@ -26,27 +18,24 @@ import iTasks
 	= E.a:		WorkflowTask		(Task a)		& iTask a
 	| E.a b:	ParamWorkflowTask	(a -> (Task b))	& iTask a & iTask b
 				
-
-
-derive gVisualizeText	Workflow, WorkflowDescription, WorkflowTaskContainer
-derive gVisualizeEditor	Workflow, WorkflowDescription, WorkflowTaskContainer
-derive gHeaders			Workflow, WorkflowDescription, WorkflowTaskContainer
-derive gGridRows		Workflow, WorkflowDescription, WorkflowTaskContainer
-derive gUpdate			Workflow, WorkflowDescription, WorkflowTaskContainer
-derive gDefaultMask		Workflow, WorkflowDescription, WorkflowTaskContainer
-derive gVerify			Workflow, WorkflowDescription, WorkflowTaskContainer
-derive JSONEncode		Workflow, WorkflowDescription, WorkflowTaskContainer
-derive JSONDecode		Workflow, WorkflowDescription, WorkflowTaskContainer
-derive gEq				Workflow, WorkflowDescription, WorkflowTaskContainer
+derive gVisualizeText	Workflow, WorkflowTaskContainer
+derive gVisualizeEditor	Workflow, WorkflowTaskContainer
+derive gHeaders			Workflow, WorkflowTaskContainer
+derive gGridRows		Workflow, WorkflowTaskContainer
+derive gUpdate			Workflow, WorkflowTaskContainer
+derive gDefaultMask		Workflow, WorkflowTaskContainer
+derive gVerify			Workflow, WorkflowTaskContainer
+derive JSONEncode		Workflow, WorkflowTaskContainer
+derive JSONDecode		Workflow, WorkflowTaskContainer
+derive gEq				Workflow, WorkflowTaskContainer
 
 // Available workflows
 :: WorkflowFolderLabel :== String
-workflows				:: ReadOnlyShared [WorkflowDescription]
-allowedWorkflows		:: ReadOnlyShared [WorkflowDescription]
-workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
-allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel WorkflowDescription))
-workflowTask			:: !WorkflowId -> ReadOnlyShared WorkflowTaskContainer
-workflowByPath			:: !String -> ReadOnlyShared (Maybe Workflow)
+workflows				:: Shared [Workflow]
+allowedWorkflows		:: ReadOnlyShared [Workflow]
+workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
+allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
+workflowById			:: !WorkflowId -> Shared Workflow
 
 /**
 * Wraps any task as a workflow with no access restrictions
@@ -93,6 +82,6 @@ manageWorkflows :: ![Workflow] ->  Task Void
 * 
 * @gin False
 */
-addWorkflow :: !Workflow -> Task WorkflowDescription
+addWorkflow :: !Workflow -> Task Workflow
 
-isAllowedWorkflow :: !User !(Maybe UserDetails) !WorkflowDescription -> Bool
+isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool

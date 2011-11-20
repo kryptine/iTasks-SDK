@@ -34,11 +34,24 @@ gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
 (>>*) task termF = task >>+ termF >>= id
 
 (>?*) infixl 1 :: !(Task a) ![(!Action,!TaskContinuation a b)] -> Task b | iTask a & iTask b
-(>?*) task continuations = task >>* \st-> UserActions (map (appSnd (mapContinuation st)) continuations)
+(>?*) task continuations = task >>* \st-> let (triggers,actions) = splitContinuations continuations in
+											case testTriggers triggers st of 
+												[t:_]	= StopInteraction t
+												_		= UserActions (map (appSnd (mapContinuation st)) actions)
 where
-	mapContinuation _						(Always task)	= Just task
-	mapContinuation {localValid,modelValue}	(IfValid taskF)	= if localValid (Just (taskF modelValue)) Nothing
-	mapContinuation st						(Sometimes f)	= f st
+	splitContinuations [] = ([],[])
+	splitContinuations [(_,Trigger pred taskF):cs] = let (ts,as) = splitContinuations cs in ([(Trigger pred taskF):ts],as)
+	splitContinuations [a:cs] = let (ts,as) = splitContinuations cs in (ts,[a:as])
+
+	testTriggers triggers {localValid,modelValue} = [taskF modelValue \\ Trigger pred taskF <- triggers | localValid && pred modelValue]
+	
+	mapContinuation _						(Always task)			= Just task
+	mapContinuation {localValid,modelValue}	(IfValid taskF)			= if localValid (Just (taskF modelValue)) Nothing
+	mapContinuation {localValid,modelValue} (IfHolds pred taskF)	= if (localValid && pred modelValue) (Just (taskF modelValue)) Nothing
+	mapContinuation st						(Sometimes f)			= f st
+
+
+
 	
 (>?) infixl 1 :: !(Task a) !(a -> Bool) -> Task a | iTask a
 (>?) task pred = task >>+ \{modelValue} -> if (pred modelValue) (StopInteraction modelValue) (UserActions [])
@@ -225,6 +238,10 @@ repeatTask task pred a =
 where
 	noActions` :: (TermFunc a Void) | iTask a
 	noActions` = noActions*/
+
+/*whileUnchanged :: (RWShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
+whileUnchanged share task
+	= (get share >>= \val -> (task val >>$ Just) -||- (Hide @>> wait "watching share change" ((=!=) val) share >>$ const Nothing)) <! isJust >>= transform fromJust*/
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
 appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Continue) topLevelTasks >>= transform WorkflowProcess 

@@ -54,6 +54,10 @@ applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))
 where
 	appName iworld=:{IWorld|application} = (application,iworld)
+applicationBuild:: ReadOnlyShared String
+applicationBuild  = makeReadOnlyShared "SystemData_applicationBuild" appBuild (\iworld -> (Timestamp 0, iworld))
+where
+	appBuild iworld=:{IWorld|build} = (build,iworld)
 
 
 applicationConfig :: ReadOnlyShared Config
