@@ -188,7 +188,7 @@ where
 :: ChoiceType	= AutoChoiceView
 				| ChooseFromRadioButtons
 				| ChooseFromComboBox
-				//| ChooseFromTable
+				| ChooseFromGrid
 				| ChooseFromTree
 
 //* Represents the choice of a number of items from a list
@@ -222,7 +222,7 @@ class OptionContainer container | Functor container
 where
 	toOptionList				:: !(container o) -> [o]
 	toOptionTree				:: !(container o) -> Tree o
-	suggestedChoiceType			:: !(container o) -> ChoiceType
+	suggestedChoiceType			:: !(container o) -> ChoiceType		| gHeaders{|*|} o
 	suggestedMultiChoiceType	:: !(container o) -> MultiChoiceType
 	
 instance OptionContainer []
@@ -232,7 +232,7 @@ instance OptionContainer Tree
 :: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
 
 //Generate a table from a value
-toTable	:: [a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
+toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
 
 //* Field behaviour extensions
 :: VisualizationHint a 	= VHEditable a

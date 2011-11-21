@@ -104,7 +104,7 @@ where
 			AutoChoiceView				= choiceView (suggestedChoiceType options) viewF
 			ChooseFromRadioButtons		= choiceView` mkRadioChoice
 			ChooseFromComboBox			= choiceView` mkComboChoice
-			//ChooseFromTable
+			ChooseFromGrid				= choiceView` mkGridChoice
 			ChooseFromTree				= choiceView` mkTreeChoice
 		where
 			choiceView` mkF				= UpdateView (GetCombined (toChoice mkF viewF), SetLocal fromChoice)
