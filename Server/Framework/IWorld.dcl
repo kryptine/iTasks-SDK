@@ -10,6 +10,7 @@ from Time			import :: Timestamp
 					, build					:: !String						// The date/time identifier of the application's build
 					, appDirectory			:: !FilePath					// Location of the application's executable
 					, sdkDirectory			:: !FilePath					// Location of the iTasks SDK
+					, dataDirectory			:: !FilePath					// Location of the applications data files
 					, config				:: !Config						// The server configuration
 					, timestamp				:: !Timestamp					// The timestamp of the current request
 					, localDateTime			:: !DateTime					// The local date & time of the current request

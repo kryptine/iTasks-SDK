@@ -72,14 +72,14 @@ genDocumentId iworld=:{world,timestamp}
 	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) ,{iworld & world = world})
 
 writeContent :: !String !String !*IWorld -> (MaybeError FileError Void,!*IWorld)
-writeContent name content iworld=:{IWorld|application,appDirectory,build,world}
-	# storeDir			= storePath appDirectory application build
+writeContent name content iworld=:{IWorld|dataDirectory,build,world}
+	# storeDir			= storePath dataDirectory build
 	# (mbErr, world)	= writeFile (storeDir </> NS_DOCUMENT_CONTENT </> name) content world
 	= (mbErr, {IWorld|iworld & world = world})
 
 writeContentWith :: !String (*File -> *File) !*IWorld -> (MaybeError FileError Int,!*IWorld)
-writeContentWith name operation iworld=:{IWorld|application,appDirectory,build,world}
-	# storeDir			= storePath appDirectory application build
+writeContentWith name operation iworld=:{IWorld|dataDirectory,build,world}
+	# storeDir			= storePath dataDirectory build
 	# (ok,file,world)	= fopen (storeDir </> NS_DOCUMENT_CONTENT </> name) FWriteData world
 	| not ok			= (Error CannotOpen, {IWorld|iworld & world = world})
 	# file				= operation file
@@ -90,8 +90,8 @@ writeContentWith name operation iworld=:{IWorld|application,appDirectory,build,w
 	= (Ok (fromOk mbInfo).sizeLow, {IWorld|iworld & world = world})
 
 readContent :: !String !*IWorld -> (MaybeError FileError String, !*IWorld)
-readContent name iworld=:{IWorld|application,appDirectory,build,world}
-	# storeDir				= storePath appDirectory application build
+readContent name iworld=:{IWorld|dataDirectory,build,world}
+	# storeDir				= storePath dataDirectory build
 	# (mbContent, world)	= readFile (storeDir </> NS_DOCUMENT_CONTENT </> name) world
 	= (mbContent, {IWorld|iworld & world = world})
 

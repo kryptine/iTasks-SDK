@@ -7,10 +7,6 @@ from SystemTypes	import :: DateTime, :: User, :: Config
 from Time 			import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 
-:: Store =
-	{ location	:: !String							//Path to the store on disk
-	}
-	
 :: StoreItem =
 	{ format		:: !StoreFormat
 	, content		:: !String
@@ -19,16 +15,16 @@ from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 
 :: StoreFormat = SFPlain | SFDynamic
 
-storePath :: FilePath String String -> FilePath
-storePath appDir app build = appDir </> app </> "store-" +++ build
+storePath :: FilePath String -> FilePath
+storePath dataDir build = dataDir </> "store-" +++ build
 
 storeValue :: !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValue namespace key value iworld 
 	= storeValueAs defaultStoreFormat namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValueAs format namespace key value iworld=:{IWorld|application,build,appDirectory,timestamp}
-	= writeToDisk namespace key {StoreItem|format=format,content=content,lastChange=timestamp} (storePath appDirectory application build) iworld
+storeValueAs format namespace key value iworld=:{IWorld|build,dataDirectory,timestamp}
+	= writeToDisk namespace key {StoreItem|format=format,content=content,lastChange=timestamp} (storePath dataDirectory build) iworld
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
@@ -61,11 +57,11 @@ writeToDisk namespace key {StoreItem|format,content,lastChange} location iworld=
 	= {IWorld|iworld & world = world}
 	
 loadValue :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe a,!*IWorld) | JSONDecode{|*|}, TC a
-loadValue namespace key iworld=:{IWorld|application,build,appDirectory}
+loadValue namespace key iworld=:{IWorld|build,dataDirectory}
 	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item = case unpackValue (not old) item of
-			Just v	= (Just v, if old (writeToDisk namespace key item (storePath appDirectory application build) iworld) iworld)
+			Just v	= (Just v, if old (writeToDisk namespace key item (storePath dataDirectory build) iworld) iworld)
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 		
@@ -77,12 +73,12 @@ getStoreTimestamp namespace key iworld
 		Nothing 	= (Nothing,iworld)
 
 loadValueAndTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe (a,Timestamp),!*IWorld) | JSONDecode{|*|}, TC a
-loadValueAndTimestamp namespace key iworld=:{IWorld|application,build,appDirectory}
+loadValueAndTimestamp namespace key iworld=:{IWorld|build,dataDirectory}
 	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item = case unpackValue (not old) item of
 			Just v
-				= (Just (v,item.StoreItem.lastChange), if old (writeToDisk namespace key item (storePath appDirectory application build) iworld) iworld)
+				= (Just (v,item.StoreItem.lastChange), if old (writeToDisk namespace key item (storePath dataDirectory build) iworld) iworld)
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 
@@ -101,8 +97,8 @@ unpackValue allowFunctions {StoreItem|format=SFDynamic,content,lastChange}
 		Error _  = Nothing
 
 loadStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!Bool,!*IWorld)
-loadStoreItem namespace key iworld=:{application,build,appDirectory}
-	= case accWorld (loadFromDisk namespace key (storePath appDirectory application build)) iworld of
+loadStoreItem namespace key iworld=:{build,dataDirectory}
+	= case accWorld (loadFromDisk namespace key (storePath dataDirectory build)) iworld of
 		(Just item,iworld)	= (Just item,False,iworld)
 		(Nothing,iworld)	
 			| namespace == NS_APPLICATION_SHARES
@@ -113,19 +109,23 @@ loadStoreItem namespace key iworld=:{application,build,appDirectory}
 
 //Look in stores of previous builds for a version of the store that can be migrated
 findOldStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
-findOldStoreItem namespace key iworld=:{application,build,appDirectory,world}
-	# (mbBuilds,world) = readDirectory baseDir world
-	= case mbBuilds of
-		Error _	= (Nothing, {IWorld|iworld & world = world})
-		Ok dirs	
-			# (mbItem,world) = searchStoreItem (sortBy (\x y -> x > y) (filter (startsWith "store-") dirs)) world
-			= (mbItem,{IWorld|iworld & world = world})
+findOldStoreItem namespace key iworld=:{application,build,appDirectory,dataDirectory,world}
+	# (builds,world) = readBuilds dataDirectory world
+	  //Also Look in 'old' data directory
+	# (deprBuilds,world) = readBuilds (appDirectory </> application) world
+	#  builds = builds ++ deprBuilds
+	# (mbItem,world) = searchStoreItem (sortBy (\x y -> x > y) builds)/*(filter (startsWith "store-") dirs))*/ world
+	= (mbItem,{IWorld|iworld & world = world})
 where
-	baseDir = appDirectory </> application
-
+	readBuilds dir world		
+		# (mbBuilds,world)	= readDirectory dir world
+		= case mbBuilds of
+			Ok dirs	= ([dir </> d \\ d <- dirs | startsWith "store-" d],world)
+			Error _	= ([],world)
+			
 	searchStoreItem [] world = (Nothing,world)
 	searchStoreItem [d:ds] world
-		= case loadFromDisk namespace key (baseDir </> d) world of
+		= case loadFromDisk namespace key d world of
 			(Just item, world)		
 				= (Just item,world)
 			(Nothing, world)
@@ -171,13 +171,13 @@ deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
 deleteValues namespace delKey iworld = deleteValues` delKey startsWith startsWith iworld
 
 deleteValues` :: !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
-deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{application,build,appDirectory}
+deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{build,dataDirectory}
 	//Delete items from disk
 	# iworld = appWorld deleteFromDisk iworld
 	= iworld
 where
 	deleteFromDisk world
-		# storeDir		= storePath appDirectory application build
+		# storeDir		= storePath dataDirectory build
 		# (res, world)	= readDirectory storeDir world
 		| isError res = abort ("Cannot read store directory " +++ storeDir +++ ": " +++ snd (fromError res))
 		= unlink storeDir (fromOk res) world
@@ -192,12 +192,12 @@ where
 					= unlink dir fs world
 
 copyValues :: !StoreNamespace !StorePrefix !StorePrefix !*IWorld -> *IWorld
-copyValues namespace fromprefix toprefix iworld=:{application,build,appDirectory}
+copyValues namespace fromprefix toprefix iworld=:{build,dataDirectory}
 	//Copy items on disk
 	# iworld = appWorld (copyOnDisk fromprefix toprefix storeDir) iworld
 	= iworld
 where
-	storeDir = storePath appDirectory application build
+	storeDir = storePath dataDirectory build
 	newKey key	= toprefix +++ (key % (size fromprefix, size key))
 
 	copyOnDisk fromprefix toprefix location world
