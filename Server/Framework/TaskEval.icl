@@ -105,6 +105,8 @@ evalInstance target commitEvent genGUI context=:(TaskContext processId tmeta pme
 				TaskException e str
 					# context		= TaskContext processId tmeta (setExcepted pmeta) mmeta changeNo (TTCExcepted str)
 					= (Ok (TaskException e str), context, iworld)
+		TTCRunning container scontext
+			= (Ok (taskException "Could not unpack task context"), context, iworld)
 		TTCFinished r
 			= (Ok (TaskFinished r), context, iworld)
 		TTCExcepted e
