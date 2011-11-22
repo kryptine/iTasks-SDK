@@ -55,11 +55,16 @@ applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (Timestamp 0, iworld))
 where
 	appName iworld=:{IWorld|application} = (application,iworld)
+
 applicationBuild:: ReadOnlyShared String
 applicationBuild  = makeReadOnlyShared "SystemData_applicationBuild" appBuild (\iworld -> (Timestamp 0, iworld))
 where
 	appBuild iworld=:{IWorld|build} = (build,iworld)
 
+applicationDirectory :: ReadOnlyShared FilePath
+applicationDirectory = makeReadOnlyShared "SystemData_applicationDirectory" appDir (\iworld -> (Timestamp 0, iworld))
+where
+	appDir iworld=:{IWorld|appDirectory} = (appDirectory,iworld)
 
 applicationConfig :: ReadOnlyShared Config
 applicationConfig = makeReadOnlyShared "SystemData_config" config (\iworld -> (Timestamp 0, iworld))

@@ -8,6 +8,7 @@ from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
 from SystemTypes		import :: ProcessId, :: TaskInstanceMeta, :: Config
 from Void				import :: Void
+from FilePath			import :: FilePath
 
 // Date & time
 currentDateTime			:: ReadOnlyShared DateTime
@@ -28,6 +29,8 @@ currentUser				:: ReadOnlyShared User
 applicationName			:: ReadOnlyShared String
 // Application build identifier
 applicationBuild		:: ReadOnlyShared String
+// Direction in which the applicaton resides
+applicationDirectory	:: ReadOnlyShared FilePath
 
 // Server config
 applicationConfig		:: ReadOnlyShared Config
