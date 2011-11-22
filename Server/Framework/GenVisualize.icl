@@ -188,12 +188,12 @@ where
 				= (viz,vst)
 			True = case x of // record
 				Nothing // Create checkbox to create record
-					= ([checkbox False],vst)
+					= (if (optional && not renderAsStatic) [checkbox False] [],vst)
 				Just x
 					# (viz,vst) = fx (Just x) vst
 					= ([recordContainer viz],vst)
 	where
-		recordContainer viz =	{ content	= TUIContainer (defaultLayoutContainer (if optional [checkbox True] [] ++ viz))
+		recordContainer viz =	{ content	= TUIContainer (defaultLayoutContainer (if (optional && not renderAsStatic) [checkbox True] [] ++ viz))
 								, width		= Just (FillParent 1 ContentSize)
 								, height	= Just (WrapContent 0)
 								, margins	= Nothing
@@ -317,7 +317,7 @@ gVisualizeEditor {|[]|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name touched verRes _ vst=:{VSt|taskId,renderAsStatic}
 		# val			= fromMaybe [] val
-		# (items,vst)	= TUIDef val vst
+		# (items,vst)	= listControl val vst
 		= (addMsg verRes
 			{ content	= TUIListContainer
 							{ TUIListContainer
@@ -330,16 +330,10 @@ where
 			}
 			,vst)
 		where
-			TUIDef items vst
+			listControl items vst=:{VSt|optional,renderAsStatic}
 				# (itemsVis,vst)	= childVisualizations fx items vst
-				# vis				= [listItemControl idx dx \\ dx <- itemsVis & idx <- [0..]]
-				# (vis,vst) = case renderAsStatic of
-					False
-						# (dx,vst)  = fx Nothing vst
-						= (vis ++ [listItemControl (length vis) dx],vst)
-					True
-						= (vis,vst)
-				= (vis,vst)
+				# (newItem,vst)		= newChildVisualization fx (optional || length items > 0) vst
+				= ([listItemControl idx dx \\ dx <- itemsVis ++ [newItem] & idx <- [0..]],vst)
 						
 			listItemControl idx defs
 				=	{ TUIListItem
@@ -366,12 +360,11 @@ where
 gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
 gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst
 
-gVisualizeEditor{|Maybe|} fx _ _ _ val vst=:{VSt|currentPath}
-	# vst = {VSt|vst & optional = True}
+gVisualizeEditor{|Maybe|} fx _ _ _ val vst=:{VSt|currentPath,optional}
 	# (viz,vst) = case val of
-		Just (Just x)	= fx (Just x) vst
-		_				= fx Nothing vst
-	= (viz, {VSt|vst & optional = True, currentPath = stepDataPath currentPath})
+		Just (Just x)	= fx (Just x) {VSt|vst & optional = True}
+		_				= fx Nothing {VSt|vst & optional = True}
+	= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 	
 // wrapper types changing visualization behaviour
 gVisualizeEditor{|Hidden|} fx _ _ _ val vst=:{VSt | currentPath, verifyMask}
@@ -530,6 +523,11 @@ where
 	childVisualizations` [child:children] acc vst
 		# (childV,vst) = fx (Just child) vst
 		= childVisualizations` children [childV:acc] vst
+
+newChildVisualization :: !((Maybe a) -> .(*VSt -> *([TUIDef],*VSt))) !Bool !*VSt -> *(![TUIDef],!*VSt)
+newChildVisualization fx newOptional vst=:{VSt|optional}
+	# (childV,vst) = fx Nothing {VSt|vst & optional = newOptional}
+	= (childV,{VSt|vst & optional = optional})
 
 sizedControl :: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins) !TUIDefContent -> TUIDef
 sizedControl (width,height,mbMargins) content = {content = content, width = width, height = height, margins = mbMargins}
