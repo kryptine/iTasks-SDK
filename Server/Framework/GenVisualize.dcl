@@ -17,8 +17,16 @@ derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNo
 derive gVisualizeText Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gVisualizeText EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
-//Generic editor function
-generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (![TUIDef], !*VSt)
+/**
+* Generic editor function
+*
+* @param Value to visualize (or Nothing to visualize a default)
+* @param Visualization state, contains visualization options
+*
+* @return The visualization result
+* @return The visualization state
+*/
+generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
 
 //Default available instances
 derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
@@ -65,6 +73,8 @@ visualizeAsText			:: !StaticVisualizationMode !a											-> String					| gVisu
 	, controlSize		:: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
+
+:: VisualizationResult = NormalEditor [TUIDef] | OptionalEditor [TUIDef] | HiddenEditor
 	
 :: VerifyResult = HintMsg !String | ValidMsg !String | ErrorMsg !String | NoMsg
 
@@ -77,7 +87,7 @@ visualizeAsText			:: !StaticVisualizationMode !a											-> String					| gVisu
 *
 * @return An empty visualization
 */
-noVisualization :: !*VSt -> *(![TUIDef],!*VSt)
+noVisualization :: !*VSt -> *(!VisualizationResult,!*VSt)
 
 /**
 * Generates a control visualization.
@@ -88,7 +98,7 @@ noVisualization :: !*VSt -> *(![TUIDef],!*VSt)
 *
 * @return The generated visualization
 */
-visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(![TUIDef], !*VSt) | JSONEncode{|*|} a
+visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(!VisualizationResult, !*VSt) | JSONEncode{|*|} a
 
 /**
 * Generates a basic control visualization.
@@ -99,7 +109,7 @@ visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(![TUIDef], !*VSt) | JS
 *
 * @return The generated visualization
 */
-visualizeCustom :: !TUIVizFunction !*VSt -> *(![TUIDef],!*VSt)
+visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 
 /**
 * A function using VSt for generating TUI definitions.

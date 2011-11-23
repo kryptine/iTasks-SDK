@@ -128,8 +128,8 @@ gVerify{|Task|} _ _ vst = alwaysValid vst
 gVisualizeText{|Task|} _ _ {Task|meta} = [meta.TaskMeta.title]
 gVisualizeEditor{|Task|} _ _ _ _ mbVal vst
 	# vis = case mbVal of
-		Just {Task|meta}	= [stringDisplay meta.TaskMeta.title]
-		Nothing				= []
+		Just {Task|meta}	= NormalEditor [stringDisplay meta.TaskMeta.title]
+		Nothing				= NormalEditor [stringDisplay "<Task>"]
 	= (vis,vst)
 gHeaders{|Task|} _ = (undef, ["Task"])
 gGridRows{|Task|} _ _ _ _ = Nothing	
