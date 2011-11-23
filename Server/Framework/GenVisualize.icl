@@ -7,22 +7,19 @@ visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) 
 visualizeAsEditor x taskId idx vmask editEvent iworld
 	# vst		= {mkVSt iworld & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
 	# (res,vst)	= gVisualizeEditor{|*|} (Just x) vst
-	= case res of
-		HiddenEditor		= (Nothing, kmVSt vst)
-		NormalEditor []		= (Nothing, kmVSt vst)
-		NormalEditor [tui]	= (Just tui, kmVSt vst)
-		NormalEditor tuis	= (Just (defaultDef (TUIContainer (defaultLayoutContainer tuis))), kmVSt vst)
-		//TODO: Add optional editor cases
+	= case tuiOfEditor res of
+		[]		= (Nothing, kmVSt vst)
+		[tui]	= (Just tui, kmVSt vst)
+		tuis	= (Just (defaultDef (TUIContainer (defaultLayoutContainer tuis))), kmVSt vst)
 		
 visualizeAsDisplay :: !a !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
 visualizeAsDisplay x iworld
 	# vst		= {mkVSt iworld & renderAsStatic = True}
 	# (res,vst)	= gVisualizeEditor{|*|} (Just x) vst
-	= case res of
-		HiddenEditor		= (Nothing, kmVSt vst)
-		NormalEditor []		= (Nothing, kmVSt vst)
-		NormalEditor [tui]	= (Just tui, kmVSt vst)
-		NormalEditor tuis	= (Just (defaultDef (TUIContainer (defaultLayoutContainer tuis))), kmVSt vst)
+	= case tuiOfEditor res of
+		[]		= (Nothing, kmVSt vst)
+		[tui]	= (Just tui, kmVSt vst)
+		tuis	= (Just (defaultDef (TUIContainer (defaultLayoutContainer tuis))), kmVSt vst)
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
 visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)
