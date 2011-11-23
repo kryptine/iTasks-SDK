@@ -113,7 +113,7 @@ where
 	
 workflowDashboard :: Task Void
 workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
-	[ (Embedded,	\list	-> infoBar 								<<@ infoBarLayout)
+	[ (Embedded,	\list	-> infoBar 								)
 	, (Embedded,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
 	, (Embedded,	\list	-> viewDescription (taskListState list)	)
 	, (Embedded,	\list	-> workTabPanel list					<<@ tabLayout)
@@ -122,7 +122,8 @@ workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProces
 	]
 
 infoBar :: Task ParallelControl
-infoBar = viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser Void >>+ (\_ -> UserActions [(Action "Log out",Just Stop)])
+infoBar =	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser Void <<@ infoBarLayout >>+ (\_ -> UserActions [(ActionRefresh, Just Continue),(Action "Log out",Just Stop)]) )
+		<! 	(\res -> case res of Stop = True; Continue = False) 
 where
 	view user = "Welcome " +++ toString user
 	
@@ -213,12 +214,12 @@ addWorkflow workflow
 	>>|	return workflow
 
 // LAYOUTS
-mainLayout {TUIParallel | items=i=:[(_,_,_,Just infoBar, logoutAction), (_,_,_,Just tree,_), (_,_,_,Just description,_),(_,_,_,Just workTabPanel,_), (_,_,_,Just processTable,_), (_,_,_,_,controlActions):_]} =
+mainLayout {TUIParallel | items=i=:[(_,_,_,Just infoBar,_), (_,_,_,Just tree,_), (_,_,_,Just description,_),(_,_,_,Just workTabPanel,_), (_,_,_,Just processTable,_), (_,_,_,_,controlActions):_]} =
 	({ content	= content
 	, width		= Just (FillParent 1 (FixedMinSize 0))
 	, height	= Just (FillParent 1 (FixedMinSize 0))
 	, margins	= Nothing
-	},controlActions ++ logoutAction)
+	},controlActions)
 where
 	content = TUIContainer {TUIContainer | defaultLayoutContainer [left,right] & direction = Horizontal}
 	/*
@@ -260,18 +261,14 @@ where
 mainLayout p = defaultParallelLayout p
 
 infoBarLayout :: TUIInteraction -> (TUIDef,[TaskAction])
-infoBarLayout {title,editorParts,actions=actions=:[(ltask,laction,_):_]} = (
-	{ content	= TUIContainer {TUIContainer|defaultLayoutContainer [{hd editorParts & width = Just (WrapContent 0), margins = Nothing},{logoutButton & margins = Nothing}]
+infoBarLayout {title,editorParts,actions}
+	# (buttons,actions) = defaultButtons actions
+	= ({ content	= TUIContainer {TUIContainer|defaultLayoutContainer [{hd editorParts & width = Just (WrapContent 0), margins = Nothing}:buttons]
 								& direction = Horizontal, halign = AlignRight, valign = AlignMiddle, baseCls = Just "x-panel-header"}
-	, width		= Just (FillParent 1 (ContentSize))
-	, height	= Just (Fixed 30)
-	, margins	= Nothing
-	}, [])
-where
-	logoutButton =
-		{content = TUIButton { TUIButton | name = actionName laction, taskId = ltask, disabled = False
-							 , text = actionName laction, iconCls = "icon-log-out", actionButton = True }
-		, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing }
+	  , width		= Just (FillParent 1 (ContentSize))
+	  , height	= Just (Fixed 30)
+	  , margins	= Nothing
+	}, actions)
 
 treeLayout {title,editorParts,actions} = (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel [{hd editorParts & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)}] & title = title, iconCls = Just "icon-newwork", frame = False}
 											, width		= Just (FillParent 1 (FixedMinSize 100))
