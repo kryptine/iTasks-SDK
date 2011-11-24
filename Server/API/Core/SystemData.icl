@@ -41,7 +41,7 @@ where
 		= (fromMaybe (Timestamp 0) ts, iworld)
 
 	find user procs
-		= flatten [if (p.managementMeta.worker === Just user || p.managementMeta.worker === Nothing) [p] (find user p.subInstances) \\ p <- procs]
+		= flatten [if (p.managementMeta.worker === Just user || p.managementMeta.worker === Nothing) [{p & subInstances = find user p.subInstances}] (find user p.subInstances) \\ p <- procs]
 
 //TODO: Figure out pattern match bug
 currentProcessId :: ReadOnlyShared ProcessId
