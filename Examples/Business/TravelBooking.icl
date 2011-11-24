@@ -26,16 +26,16 @@ BookTrip
 		}
 :: FlightHotel
 	=	{ carrier		:: String
-		, priceOfFlight	:: Currency
+		, priceOfFlight	:: EUR
 		, nameOfHotel	:: String
-		, priceAllIn	:: Currency
+		, priceAllIn	:: EUR
 		}
 
 
 travelBookingExample :: [Workflow]
 travelBookingExample = [workflow "Examples/Business/Delegate book a trip" "Book a trip" BookTrip]
 
-:: Booking :== (String,String,String,Currency)
+:: Booking :== (String,String,String,EUR)
 
 travel :: Task Void
 travel 

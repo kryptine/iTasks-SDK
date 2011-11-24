@@ -75,7 +75,8 @@ gVisualizeText{|Note|}			_ val				= [toString val]
 gVisualizeText{|Date|}			_ val				= [toString val]
 gVisualizeText{|Time|}			_ val				= [toString val]
 gVisualizeText{|User|}			_ val				= [toString val]
-gVisualizeText{|Currency|}		_ val				= [toString val]
+gVisualizeText{|EUR|}			_ val				= [toString val]
+gVisualizeText{|USD|}			_ val				= [toString val]
 gVisualizeText{|HtmlInclude|}	_ val				= ["Html include"]
 gVisualizeText{|FormButton|}	_ val				= [val.FormButton.label]
 gVisualizeText{|Document|}		_ val
@@ -246,7 +247,8 @@ gVisualizeEditor{|Note|}		val vst = visualizeControl TUINoteControl val vst
 gVisualizeEditor{|Date|}		val vst = visualizeControl TUIDateControl val vst
 gVisualizeEditor{|Time|}		val vst = visualizeControl TUITimeControl val vst
 gVisualizeEditor{|User|}		val vst = visualizeControl TUIUserControl val vst
-gVisualizeEditor{|Currency|}	val vst = visualizeControl TUICurrencyControl val vst
+gVisualizeEditor{|EUR|}			val vst = visualizeControl TUICurrencyControl val vst
+gVisualizeEditor{|USD|}			val vst = visualizeControl TUICurrencyControl val vst
 
 gVisualizeEditor{|HtmlInclude|} val vst = visualizeControl TUIStringControl (fmap (\(HtmlInclude path) -> path) val) vst
 
@@ -478,7 +480,7 @@ gHeaders{|(->)|} _ _		= (undef, [])
 gHeaders{|UNIT|}			= (undef,[])
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
@@ -501,7 +503,7 @@ gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

@@ -5,16 +5,15 @@ import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc,
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 
-derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONEncode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gEq				Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gLexOrd			Currency
 derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
 derive JSONDecode		TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
 derive gEq				TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
@@ -36,7 +35,6 @@ JSONEncode{|Void|} Void = [JSONNull]
 JSONDecode{|Void|} [JSONNull:c]		= (Just Void, c)
 JSONDecode{|Void|} [JSONObject []:c]= (Just Void, c)
 JSONDecode{|Void|} c				= (Nothing, c)
-
 
 gEq{|(->)|} _ _ fa fb		= copy_to_string fa == copy_to_string fb // HACK: Compare string representations of graphs functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
@@ -397,43 +395,43 @@ where
 // Currency
 // ******************************************************************************************************
 
-instance toString Currency
-where
-	toString c = decFormat (toInt c)
+instance toString EUR
+where toString c = "EUR " +++ decFormat (toInt c)
+instance toString USD
+where toString c = "USD " +++ decFormat (toInt c)
 
-instance toInt Currency
-where
-	toInt (EUR val) = val
-	toInt (GBP val) = val
-	toInt (USD val) = val
-	toInt (JPY val) = val
-		
-instance < Currency
-where
-	(<) x y = case x =?= y of
-		LT	= True
-		_	= False
+instance toInt EUR
+where toInt (EUR val) = val
+instance toInt USD
+where toInt (USD val) = val
 
-instance zero Currency
-where
-	zero = EUR 0
+instance == EUR
+where (==) (EUR x) (EUR y) = x == y
+instance == USD
+where (==) (USD x) (USD y) = x == y
 
-instance + Currency
-where
-	(+) (EUR x) (EUR y) = EUR (x + y)
-	(+) (GBP x) (GBP y) = GBP (x + y)
-	(+) (USD x) (USD y) = USD (x + y)
-	(+) (JPY x) (JPY y) = JPY (x + y)
-	(+) _ _ = abort "Trying to add money of different currencies!"
-
-instance - Currency
-where
-	(-) (EUR x) (EUR y) = EUR (x - y)
-	(-) (GBP x) (GBP y) = GBP (x - y)
-	(-) (USD x) (USD y) = USD (x - y)
-	(-) (JPY x) (JPY y) = JPY (x - y)
-	(-) _ _ = abort "Trying to subtract money of different currencies!"
+instance < EUR
+where (<) (EUR x) (EUR y) = x < y
+instance < USD
+where (<) (USD x) (USD y) = x < y
 	
+instance zero EUR
+where zero = EUR 0
+instance zero USD
+where zero = USD 0
+
+instance + EUR
+where (+) (EUR x) (EUR y) = EUR (x + y)
+
+instance + USD
+where (+) (USD x) (USD y) = USD (x + y)
+
+instance - EUR
+where (-) (EUR x) (EUR y) = EUR (x - y)
+
+instance - USD
+where (-) (USD x) (USD y) = USD (x - y)
+
 instance toString FormButton
 where
 	toString button = toString (pressed button)

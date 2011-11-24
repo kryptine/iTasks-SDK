@@ -19,6 +19,8 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.show.Time',
 		'itasks.component.edit.Password',
 		'itasks.component.show.Password',
+		'itasks.component.edit.Currency',
+		'itasks.component.show.Currency',
 		'itasks.component.Combo',
 		'itasks.component.Tree',
 		'itasks.component.Grid',

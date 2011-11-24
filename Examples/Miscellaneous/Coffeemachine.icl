@@ -5,7 +5,7 @@ import iTasks
 coffeemachineExample :: [Workflow]
 coffeemachineExample = [workflow "Examples/Miscellaneous/Coffeemachine" "A coffee machine demo" coffeemachine]
 
-coffeemachine :: Task (String,Currency)
+coffeemachine :: Task (String,EUR)
 coffeemachine  =				enterChoice ("Product","Choose your product") []
 									[("Coffee", EUR 100)
 									,("Cappucino", EUR 150)
@@ -14,7 +14,7 @@ coffeemachine  =				enterChoice ("Product","Choose your product") []
 									] 
 	>>= \(product,toPay) ->		getCoins product (toPay,EUR 0)
 
-getCoins :: String (Currency,Currency) -> Task (String,Currency)
+getCoins :: String (EUR,EUR) -> Task (String,EUR)
 getCoins product (cost,paid) = getCoins`
 where
 	getCoins`		

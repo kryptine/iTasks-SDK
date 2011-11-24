@@ -14,13 +14,13 @@ from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 from Task			import :: Task
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
 
-derive JSONEncode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONEncode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress,ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONDecode		Currency, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONDecode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive gEq				Currency, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq				EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
@@ -36,17 +36,19 @@ derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 
 derive class iTask Credentials, Config
 
-
 instance toString Note
-instance toString User
-instance toString Username
-instance toString Password
+instance toString EUR
+instance toString USD
+
 instance toString Date
 instance toString Time
 instance toString DateTime
-instance toString Currency
-instance toString TaskPriority
 instance toString Document
+instance toString User
+instance toString Username
+instance toString Password
+instance toString TaskPriority
+
 instance toString FormButton
 instance toString ProcessId
 instance toString (TaskList s)
@@ -56,32 +58,41 @@ instance fromString DateTime
 instance fromString ProcessId
 
 instance == Note
+instance == EUR
+instance == USD
 instance == Document
 instance == User
 instance == Username
 instance == Password
 instance == ProcessId
 
+instance < EUR
+instance < USD
 instance < Time
 instance < Date
 instance < DateTime
 instance < User
 instance < Username
 instance < Password
-instance < Currency
+
 
 instance + Time		//Basic addition, righthand argument is treated as interval (seconds are added first)
 instance + Date		//Basic addition, righthand argument is treated as interval (days are added first)
 instance + DateTime	//Basic addition, righthand argument is treated as interval
-instance + Currency 
+instance + EUR
+instance + USD
 
 instance - Time		//Naive fieldwise subtraction
 instance - Date		//Naive fieldwise subtraction
 instance - DateTime	//Naive fieldwise subtraction
-instance - Currency
+instance - EUR
+instance - USD
 
-instance toInt Currency
-instance zero Currency
+instance toInt EUR
+instance toInt USD
+instance zero EUR
+instance zero USD
+
 instance html Note
 
 // Strings with special meanings
@@ -92,18 +103,17 @@ instance toEmail EmailAddress
 instance toEmail String
 instance toEmail User
 
+// Uniform resource locators
 :: URL			= URL !String
 
 // Plain text notes
 :: Note			= Note !String
 
-// Money
-:: Currency		// Type of currency and amount in cents. ISO4217 currency codes are used
-	= EUR !Int
-	| GBP !Int
-	| USD !Int
-	| JPY !Int
-	
+// Money (ISO4217 currency codes are used)
+:: EUR 			= EUR !Int		//Euros (amount in cents)
+:: USD 			= USD !Int		//Dollars (amount in cents)
+
+// (Local) date and time
 :: Date	=
 	{ day	:: !Int
 	, mon	:: !Int

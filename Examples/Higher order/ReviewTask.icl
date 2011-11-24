@@ -26,7 +26,7 @@ derive class iTask	QForm, Review, Person, Gender
 			, endDate 			:: Date
 			, estimatedHours 	:: Int
 			, description		:: Note
-			, price				:: Currency 	
+			, price				:: EUR 	
 			}
 :: Person = { firstName			:: String
 			 , surname			:: String
