@@ -49,7 +49,6 @@ Ext.define('itasks.extension.GoogleMap',{
 		}
 	},
 	apiLoaded: function() {
-		console.log("Google Maps API Loaded");
 		this.self.googleApiStatus = 'loaded';
 		this.setupMap();
 	},
@@ -65,8 +64,6 @@ Ext.define('itasks.extension.GoogleMap',{
 		return options;
 	},
 	setupMap: function() {
-		console.log("Setting up map");
-		console.log(this.el.dom.innerHTML);
 		if(!this.map) {
 			this.map = new google.maps.Map(this.el.dom, this.getOptions(this));
 			this.addMarkers();
@@ -127,7 +124,6 @@ Ext.define('itasks.extension.GoogleMap',{
 		delete this.map;
 	},
 	update: function(def) {
-		console.log("Unimplemented map update");
 		//TODO: impelement for incremental updates of maps
 	}
 	
