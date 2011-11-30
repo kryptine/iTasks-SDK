@@ -55,18 +55,36 @@ Ext.define('itasks.extension.GoogleMap',{
 	getMapType : function (mapType){
 		return eval("google.maps.MapTypeId."+mapType);
 	},
-	getOptions : function(data) {
-		var options = data.options;
-		options.center = new google.maps.LatLng(data.center[0],data.center[1]);
-		options.mapTypeId = this.getMapType(data.mapType);
+	getOptions : function() {
+		var me = this, options = me.options;
+		
+		options.center = new google.maps.LatLng(me.center[0],me.center[1]);
+		options.mapTypeId = this.getMapType(me.mapType);
 		options.draggableCursor = "default";
 		
 		return options;
 	},
 	setupMap: function() {
-		if(!this.map) {
-			this.map = new google.maps.Map(this.el.dom, this.getOptions(this));
-			this.addMarkers();
+		var me = this;
+		
+		if(!me.map) {
+			me.map = new google.maps.Map(me.el.dom, me.getOptions());
+			me.addMarkers();
+			
+			var updatePerspective = function() {
+				var center = me.map.getCenter(),
+					zoom = me.map.getZoom(),
+					type = me.map.getMapTypeId().toUpperCase();
+			
+				var e = {center : [center.lat(),center.lng()], zoom: zoom, type : type}
+			
+				me.fireEvent('edit', me.taskId, me.name, e);
+			};
+			
+			//Add perspective change
+			google.maps.event.addListener(me.map,'dragend', updatePerspective);
+			google.maps.event.addListener(me.map,'maptypeid_changed', updatePerspective);
+			google.maps.event.addListener(me.map,'zoom_changed', updatePerspective);
 		}
 	},
 	addMarkers: function() {
@@ -114,14 +132,19 @@ Ext.define('itasks.extension.GoogleMap',{
 		}
 	},
     afterComponentLayout: function() {
-    	//Workaround for Google maps API which does not handle resizing divs very well 
     	if(this.map) {
     		google.maps.event.trigger(this.map, 'resize');
+    		//Correct center after resize
+    		this.map.setCenter(new google.maps.LatLng(this.center[0],this.center[1]));
+    		
     	}
     	this.callParent(arguments);
     },
 	onDestroy: function() {
-		delete this.map;
+		if(this.map) {
+			google.maps.event.clearInstanceListeners(this.map);
+			delete this.map;
+		}
 	},
 	update: function(def) {
 		//TODO: impelement for incremental updates of maps
