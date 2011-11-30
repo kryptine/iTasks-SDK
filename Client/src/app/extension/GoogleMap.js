@@ -25,7 +25,7 @@ Ext.define('itasks.extension.GoogleMap',{
 		var me = this;
 		
 		me.callParent(arguments);
-		
+			
 		switch(me.self.googleApiStatus) {
 			case 'loaded':
 				me.setupMap();
@@ -49,6 +49,8 @@ Ext.define('itasks.extension.GoogleMap',{
 		}
 	},
 	apiLoaded: function() {
+		console.log("Google Maps API Loaded");
+		this.self.googleApiStatus = 'loaded';
 		this.setupMap();
 	},
 	getMapType : function (mapType){
@@ -63,8 +65,12 @@ Ext.define('itasks.extension.GoogleMap',{
 		return options;
 	},
 	setupMap: function() {
-		this.map = new google.maps.Map(this.el.dom, this.getOptions(this));
-		this.addMarkers();
+		console.log("Setting up map");
+		console.log(this.el.dom.innerHTML);
+		if(!this.map) {
+			this.map = new google.maps.Map(this.el.dom, this.getOptions(this));
+			this.addMarkers();
+		}
 	},
 	addMarkers: function() {
  		var	me = this,
@@ -109,8 +115,19 @@ Ext.define('itasks.extension.GoogleMap',{
             
 			this.displayedMarkers[i] = marker;
 		}
-        },
+	},
+    afterComponentLayout: function() {
+    	//Workaround for Google maps API which does not handle resizing divs very well 
+    	if(this.map) {
+    		google.maps.event.trigger(this.map, 'resize');
+    	}
+    	this.callParent(arguments);
+    },
+	onDestroy: function() {
+		delete this.map;
+	},
 	update: function(def) {
+		console.log("Unimplemented map update");
 		//TODO: impelement for incremental updates of maps
 	}
 	
