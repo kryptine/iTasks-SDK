@@ -40,8 +40,8 @@ callProcess cmd args
 where
 	//Start the process
 	init :: TaskNr *IWorld -> (!TaskContextTree,!*IWorld)
-	init taskNr iworld =:{IWorld |application,build,appDirectory,sdkDirectory,world}
-		# outfile 		= appDirectory </> application </> "tmp-" +++ build </> (iTaskId taskNr "callprocess")
+	init taskNr iworld =:{IWorld |build,dataDirectory,sdkDirectory,world}
+		# outfile 		= dataDirectory </> "tmp-" +++ build </> (iTaskId taskNr "callprocess")
 		# context		= TCBasic 'Map'.newMap
 		# asyncArgs		=	[ "--taskid"
 							, toString (last taskNr)
@@ -122,9 +122,9 @@ where
 		
 	initRPC = mkInstantTask("Call RPC", "Initializing") eval
 	
-	eval taskNr iworld=:{IWorld|application,build,appDirectory,sdkDirectory,world}
-		# infile  = appDirectory </> application </> "tmp-" +++ build </> (mkFileName taskNr "request")
-		# outfile = appDirectory </> application </> "tmp-" +++ build </> (mkFileName taskNr "response")
+	eval taskNr iworld=:{IWorld|build,sdkDirectory,dataDirectory,world}
+		# infile  = dataDirectory </> "tmp-" +++ build </> (mkFileName taskNr "request")
+		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskNr "response")
 		# (res,world) = writeFile infile request world
 		| isError res
 			= (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
