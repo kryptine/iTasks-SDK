@@ -4,7 +4,6 @@ definition module CoreCombinators
 * with which additional combinators can be defined.
 */
 from Time				import :: Timestamp
-from TuningCombinators	import :: Tag
 from SharedCombinators	import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
 import Task
 

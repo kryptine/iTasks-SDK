@@ -1,6 +1,6 @@
 definition module Util
 
-import StdGeneric, SystemTypes, Error, GenEq
+import StdGeneric, SystemTypes, Error, GenEq, StdClass
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
@@ -25,6 +25,6 @@ currentTimestampError	:: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
 currentDateTimeWorld	:: !*World	-> (!DateTime,!*World)
 timestampToGmDateTime	:: !Timestamp -> DateTime
 
-
-
-
+//Simple key value functions when fullblown maps are overkill
+kvGet	:: k	[(k,v)]	-> Maybe v	| Eq k
+kvSet	:: k v	[(k,v)]	-> [(k,v)]	| Eq k 

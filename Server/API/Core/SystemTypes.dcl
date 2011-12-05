@@ -300,8 +300,8 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 :: TaskMeta =
 	{ title				:: !String						//* A descriptive title
 	, instruction		:: !Maybe String				//* Instruction of the task
+	, attributes		:: ![(String,String)]			//* A list of attributes (additional meta information) 
 	, icon				:: !Maybe String				//* An icon reference for the task
-	, tags				:: ![String]					//* A list of tags
 	, hide				:: !Bool						//* Hide the interface of this task (may be ignored by parallel layouters)
 	, window			:: !Bool						//* Show the interface of this task in a window (if supported by the parallel layouter)
 	, interactionType	:: !Maybe InteractionTaskType	//* type of interaction (for interaction tasks)

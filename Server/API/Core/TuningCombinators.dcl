@@ -5,9 +5,9 @@ definition module TuningCombinators
 from Time	import :: Timestamp
 import Task, SystemTypes
 
-:: Description			= E.s: Description !s	& toString s
-:: Tag					= E.s: Tag !s			& toString s
-:: Tags					= E.s: Tags ![s]		& toString s
+:: Description			= E.s: Description !s				& toString s
+:: Attribute			= E.s: Attribute !String !s			& toString s
+:: Attributes			= E.s: Attributes ![(!String,!s)]	& toString s
 :: LocalInteractionTask	= LocalInteractionTask
 :: Icon					= Icon !String
 :: Hide					= Hide
@@ -20,8 +20,8 @@ class tune b :: !b !(Task a) -> Task a
 
 instance tune	Description			//Set initial description
 instance tune	Icon				//Set icon
-instance tune	Tag					//Append Tag
-instance tune	Tags				//Append List of Tags
+instance tune	Attribute			//Set attribute
+instance tune	Attributes			//Set multiple attributes at once
 instance tune	Hide
 instance tune	Window
 instance tune	InteractionTaskType
@@ -30,3 +30,5 @@ instance tune	InteractionLayouter
 instance tune	ParallelLayouter
 
 instance tune	LayoutTweak
+instance tune	TUITweak
+instance tune	ActionTweak

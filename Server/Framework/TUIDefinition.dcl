@@ -49,6 +49,7 @@ from Task			import	:: TaskAction
 	| TUIShowControl		!TUIControlType !TUIShowControl
 	| TUIContainer			!TUIContainer
 	| TUIPanel				!TUIPanel
+	| TUIWindow				!TUIWindow
 	| TUITabContainer		!TUITabContainer
 	| TUITabItem			!TUITabItem
 	| TUIBorderContainer	!TUIBorderContainer
@@ -120,6 +121,14 @@ from Task			import	:: TaskAction
 	, frame				:: !Bool
 	, menus				:: ![TUIMenuButton]
 	, iconCls			:: !Maybe PanelIcon
+	, baseCls			:: !Maybe String
+	}
+:: TUIWindow =
+	{ items				:: ![TUIDef]
+	, direction			:: !TUIDirection
+	, halign			:: !TUIHAlign
+	, valign			:: !TUIVAlign
+	, padding			:: !Maybe Int
 	, baseCls			:: !Maybe String
 	}		
 :: TUITabContainer =
@@ -267,6 +276,8 @@ hsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef
 :: ParallelLayouter		:== TUIParallel				-> (TUIDef, [TaskAction])
 
 :: LayoutTweak			:== (TUIDef, [TaskAction])	-> (TUIDef, [TaskAction])
+:: TUITweak				:== TUIDef					-> TUIDef
+:: ActionTweak			:== [TaskAction]			-> [TaskAction]
 
 // Pre-defined interaction layouts
 defaultInteractionLayout	:: InteractionLayouter //Interaction parts, action buttons, title and instructions

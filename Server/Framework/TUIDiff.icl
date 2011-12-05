@@ -74,6 +74,11 @@ where
 					# menuUpdates	= []
 					//# menuUpdates	= diffTUIMenus path o.TUIPanel.menus n.TUIPanel.menus
 					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
+		(TUIWindow o, TUIWindow n)
+			|  (o.TUIWindow.direction === n.TUIWindow.direction
+				&& o.TUIWindow.halign === n.TUIWindow.halign
+				&& o.TUIWindow.valign === n.TUIWindow.valign)
+				= Just (diffChildEditorDefinitions path o.TUIWindow.items n.TUIWindow.items)
 		(TUIListContainer lcOld, TUIListContainer lcNew)	
 			= Just (diffChildEditorDefinitions path (items lcOld) (items lcNew)
 					++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])

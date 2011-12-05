@@ -69,3 +69,11 @@ instance toString (Maybe a) | toString a
 where
 	toString Nothing	= ""
 	toString (Just x)	= toString x
+
+kvGet :: k [(k,v)]		-> Maybe v	| Eq k // Linear search
+kvGet m []				= Nothing
+kvGet m [(k,v):kvs]		= if (k == m) (Just v) (kvGet m kvs)
+
+kvSet :: k v [(k,v)]	-> [(k,v)]	| Eq k //Linear search
+kvSet m nv []			= [(m,nv)]
+kvSet m nv [(k,v):kvs]	= if (k == m) [(k,nv): kvs] [(k,nv):kvSet m nv kvs]

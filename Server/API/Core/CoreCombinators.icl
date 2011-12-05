@@ -8,7 +8,6 @@ from StdFunc			import id, const, o, seq
 from IWorld				import :: IWorld(..), :: Control(..)
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from CoreTasks			import return
-from TuningCombinators	import :: Tag
 
 derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 

@@ -206,7 +206,19 @@ where
 		= case getLocalVar EVENT_STORE context of
 			Just (dp,val)	= (Just (s2dp dp, val), delLocalVar EVENT_STORE context)
 			Nothing			= (Nothing, context)
-			
+	
+	
+	mergeTUI meta ilayout parts warning actions
+		= ilayout	{ title = meta.TaskMeta.title
+					, instruction = meta.TaskMeta.instruction
+					, editorParts = parts
+					, actions = actions
+					, type = meta.interactionType
+					, localInteraction = meta.TaskMeta.localInteraction
+					, warning = warning
+					}
+		
+		
 :: StoredPart l w	= StoredUpdateView	!JSONNode !UpdateMask !(StoredPutback l w)
 					| StoredDisplayView
 					| StoredUpdate		!(!l,!Maybe w)
@@ -294,15 +306,6 @@ where
 		mbToTUIRep Nothing		= NoRep
 		mbToTUIRep (Just def)	= TUIRep def 
 
-mergeTUI meta ilayout tuis warning actions
-	= ilayout	{ title = meta.TaskMeta.title
-				, instruction = meta.TaskMeta.instruction
-				, editorParts = tuis
-				, actions = actions
-				, type = meta.interactionType
-				, localInteraction = meta.TaskMeta.localInteraction
-				, warning = warning
-				}
 	
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))

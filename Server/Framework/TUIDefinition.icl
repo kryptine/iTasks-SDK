@@ -18,7 +18,7 @@ defaultLayoutContainer items =	{TUIContainer
 								, padding		= Nothing
 								, baseCls		= Nothing
 								}
-defaultLayoutPanel:: ![TUIDef] -> TUIPanel
+defaultLayoutPanel :: ![TUIDef] -> TUIPanel
 defaultLayoutPanel items =	{TUIPanel
 							| items			= items
 							, direction		= Vertical
@@ -29,6 +29,15 @@ defaultLayoutPanel items =	{TUIPanel
 							, frame			= False
 							, menus			= []
 							, iconCls		= Nothing
+							, baseCls		= Nothing
+							}
+defaultLayoutWindow :: ![TUIDef] -> TUIWindow				
+defaultLayoutWindow items =	{TUIWindow
+							| items			= items
+							, direction		= Vertical
+							, halign		= AlignLeft
+							, valign		= AlignTop
+							, padding		= Nothing
 							, baseCls		= Nothing
 							}
 
@@ -84,7 +93,10 @@ vsplit split top bottom
 
 
 hsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef 
-hsplit split left right = hjoin (left ++ right)
+hsplit split left right
+	= fillDef (TUIContainer {TUIContainer|items = [fixedWidth split (fillHeight (vjoin left)), fillWidth (fillHeight (vjoin right))], direction = Horizontal
+							, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls = Nothing})
+
 
 defaultInteractionLayout :: InteractionLayouter
 defaultInteractionLayout = \i -> layout i
@@ -105,10 +117,10 @@ plainInteractionLayout = \i -> layout i
 where
 	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
-		= (	{ content	= TUIContainer (defaultLayoutContainer (defaultContent editorParts buttons))
+		= (	{ content	= TUIContainer (defaultLayoutContainer (maybeToList (defaultDescriptionPanel Nothing instruction) ++ defaultContent editorParts buttons))
 			, width		= Just (Fixed 700)
 			, height	= Nothing
-			, margins	= Nothing
+			, margins	= sameMargins 5
 			}, actions)
 
 minimalInteractionLayout :: InteractionLayouter
@@ -155,8 +167,6 @@ where
 	layout i=:{TUIInteraction|editorParts,actions}
 		= (fill (vjoin (map fill editorParts)),actions)
 		
-		
-
 fillInteractionLayout :: InteractionLayouter
 fillInteractionLayout = \{TUIInteraction|instruction,editorParts,actions,warning}
 	-> (fillPanel 
@@ -204,7 +214,7 @@ where
 defaultParallelLayout :: ParallelLayouter
 defaultParallelLayout = \{TUIParallel|title,instruction,items}->
 	let (_,_,metas,tuis,actions) = unzip5 items in
-		(defaultDef (TUIContainer (defaultLayoutContainer [tui \\ Just tui <- tuis & meta <- metas|not meta.hide])),flatten actions)
+		(defaultDef (TUIContainer (defaultLayoutContainer [if meta.window (defaultWindow [tui]) tui \\ Just tui <- tuis & meta <- metas|not meta.hide])),flatten actions)
 
 horizontalParallelLayout :: ParallelLayouter
 horizontalParallelLayout = \{TUIParallel|title,instruction,items}->
@@ -235,7 +245,7 @@ where
 	
 		getChildren (_,_,_,Just {content=TUIPanel panel},_)			= panel.TUIPanel.items
 		getChildren (_,_,_,Just {content=TUIContainer container},_)	= container.TUIContainer.items
-	
+		getChildren (_,_,_,Just item,_)								= [item]
 tabLayout :: ParallelLayouter
 tabLayout = layout
 where
@@ -296,6 +306,9 @@ defaultContentPanel content =		{ content	= TUIContainer {TUIContainer|defaultLay
 									, height	= Just (FillParent 1 ContentSize)
 									, margins	= Nothing
 									}
+
+defaultWindow :: ![TUIDef] -> TUIDef
+defaultWindow content =	defaultDef (TUIWindow (defaultLayoutWindow content))
 
 defaultInteractionIcon :: !(Maybe InteractionTaskType) !Bool -> PanelIcon
 defaultInteractionIcon type localInteraction
@@ -390,6 +403,8 @@ where
 		= {TUIMenuItem|item & menu = Just {TUIMenu|items = addToItems sub taskId action enabled (maybe [] (\m -> m.TUIMenu.items) menu)}}
 
 	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
+
+
 
 columnLayout :: !Int ![TUIDef] -> TUIDef
 columnLayout nCols items

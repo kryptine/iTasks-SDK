@@ -9,15 +9,6 @@ import Either
 from SystemTypes		import :: User
 from Map				import :: Map
 
-derive gVisualizeText	Tag
-derive gVisualizeEditor	Tag
-derive gUpdate			Tag
-derive gDefaultMask		Tag
-derive gVerify			Tag
-derive JSONEncode		Tag
-derive JSONDecode		Tag
-derive gEq				Tag
-
 /**
 * General multi-bind used to define continuations.
 * Similar to (>>+) but terminators yield a continuation which is executed directly.
@@ -29,7 +20,6 @@ derive gEq				Tag
 * @gin False
 */
 (>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
-
 
 /**
 * Special multi-bind used to define continuations using a list of user action with constant length.

@@ -13,24 +13,6 @@ from SystemData			import randomInt, topLevelTasks
 from Map				import qualified newMap
 import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, InteractionTasks
 
-// use string instances of generic function for Tag values 
-gVisualizeText{|Tag|} mode (Tag t) = gVisualizeText{|*|} mode (toString t)
-gVisualizeEditor{|Tag|} val vst = gVisualizeEditor{|*|} (toStr val) vst
-where
-	toStr Nothing			= Nothing
-	toStr (Just (Tag t))	= Just (toString t)
-
-gUpdate{|Tag|} mode ust = basicUpdateSimple mode (Tag "") ust
-gDefaultMask{|Tag|} _ = [Touched []]
-
-gVerify{|Tag|} _ vst = simpleVerify "Enter a tag" vst
-	
-JSONEncode{|Tag|} (Tag t) = JSONEncode{|*|} (toString t)
-JSONDecode{|Tag|} nodes = case nodes of
-	[JSONString str]	= (Just (Tag str), [])
-	_					= (Nothing, nodes)
-gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
-
 (>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
 (>>*) task termF = task >>+ termF >>= id
 
