@@ -197,7 +197,9 @@ where
 				= (tuiOfEditor viz, {VSt | vst & selectedConsIndex = d.gcd_index})
 			True = case x of // record
 				Nothing // Create checkbox to create record
-					= (if (optional && not renderAsStatic) [checkbox False] [],vst)
+					| optional	= (if renderAsStatic [] [checkbox False], vst)
+					# (viz,vst) = fx Nothing vst
+					= ([recordContainer (tuiOfEditor viz)],vst)
 				Just x
 					# (viz,vst) = fx (Just x) vst
 					= ([recordContainer (tuiOfEditor viz)],vst)
