@@ -31,6 +31,7 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.Html',
 		'itasks.container.Panel',
 		'itasks.container.Container',
+		'itasks.container.Window',
 		'itasks.container.RadioChoice',
 		'itasks.container.CheckChoice',
 		'itasks.container.TabContainer',
@@ -71,7 +72,6 @@ Ext.define('itasks.controller.Controller',{
 		this.viewport = viewport;
 		this.pollServer();
 	},
-	
 	onEdit: function(taskId,name,value) {
 		this.editEvent = [taskId,name,value];
 		this.pollServer();
@@ -149,13 +149,22 @@ Ext.define('itasks.controller.Controller',{
 		//Reload entire interface
 		if(message.content) {
 			this.viewport.suspendLayout = true;
+			
+			//Remove old content
+			Ext.WindowManager.each(function(w) {
+				if (w.isXType('itasks_window')) {
+					w.destroy();
+				}
+			});
 			this.viewport.removeAll();
+			
+			//Add new content
 			this.viewport.add(message.content);
 			this.viewport.suspendLayout = false;
 			this.viewport.doLayout();
 			
 			//Enable events
-			var cmps = this.viewport.query('[editable=true]');
+			var cmps = Ext.ComponentQuery.query('[editable=true]');
 			var cmp, i;
 		
 			for(i = 0;  i < cmps.length; i++) {
@@ -197,7 +206,7 @@ Ext.define('itasks.controller.Controller',{
 				}
 			}
 			//Enable events
-			var cmps = this.viewport.query('[editable=true]');
+			var cmps = Ext.ComponentQuery.query('[editable=true]');
 			var cmp, i;
 		
 			for(i = 0;  i < cmps.length; i++) {
@@ -234,7 +243,9 @@ Ext.define('itasks.controller.Controller',{
 						return undefinedValue;
 			} else {
 				step = parseInt(step);
-				if(child.items && child.items.get) {
+				if(child.managed) {
+					child = child.managed[step];
+				} else if(child.items && child.items.get) {
 					child = child.items.get(step);
 					if(!child)
 						return undefinedValue;

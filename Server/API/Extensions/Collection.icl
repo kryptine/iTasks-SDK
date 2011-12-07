@@ -9,7 +9,7 @@ manageCollection :: !d !String (c -> i) (Shared [c]) -> Task (Maybe i) | descr d
 manageCollection desc itemname identify collection
 	= manageCollectionWith desc (selectItem ("Select " +++ itemname)) (viewItem ("Details of " +++ itemname))
 		[(ActionNew, Always (addItem ("Add " +++ itemname) collection identify))
-		,(ActionEdit, IfValid (editItem ("Edit " +++ itemname)collection (itemShare identify) identify))
+		,(ActionEdit, IfValid (editItem ("Edit " +++ itemname) collection (itemShare identify) identify))
 		,(ActionDelete,IfValid (deleteItem ("Delete " +++ itemname,"Are you sure you want to delete the following " +++ itemname +++ "?") collection (itemShare identify) identify))
 		]
 		identify
@@ -35,8 +35,8 @@ manageCollectionWith desc makeSelection useSelection selectionActions identify i
 where
 	actions list = [(action,inParallel continuation) \\ (action,continuation) <- selectionActions]
 	where
-		inParallel (Always task)	= Always (appendTask (Embedded, \_ -> task >>| return Continue) list )
-		inParallel (IfValid taskf)	= IfHolds isJust (\(Just i) -> appendTask (Embedded, \_ -> taskf i >>| return Continue) list)
+		inParallel (Always task)	= Always (appendTask (Embedded, \_ -> (task >>| return Continue) <<@ Window) list )
+		inParallel (IfValid taskf)	= IfHolds isJust (\(Just i) -> appendTask (Embedded, \_ -> (taskf i >>| return Continue) <<@ Window) list)
 
 itemShare :: (c -> i) (Shared [c]) i -> Shared (Maybe c) | gEq{|*|} i & gEq{|*|} c
 itemShare identify collection i = mapShared (toItem,fromItem) collection
