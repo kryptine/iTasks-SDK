@@ -27,8 +27,8 @@ Ext.define('itasks.container.Window',{
 		}
 		this.callParent(arguments);
 	},
-	onAdded: function (parent, index) {
-		parent.addManaged(this);
+	onAdded: function (parent) {
+		parent.registerManaged(this);
 		this.callParent(arguments);
 	}
 });

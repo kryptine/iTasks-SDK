@@ -183,7 +183,7 @@ Ext.define('itasks.controller.Controller',{
 			
 				try {
 					target = this.findChildByPath(update.path, this.viewport);
-					
+				
 					if(target && typeof target[update.method] == 'function') {
 						target[update.method].apply(target,update.arguments);
 					} else {
@@ -243,8 +243,10 @@ Ext.define('itasks.controller.Controller',{
 						return undefinedValue;
 			} else {
 				step = parseInt(step);
-				if(child.managed) {
+				if(child.managing) {
 					child = child.managed[step];
+					if(!child)
+						return undefinedValue;
 				} else if(child.items && child.items.get) {
 					child = child.items.get(step);
 					if(!child)

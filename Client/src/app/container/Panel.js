@@ -2,6 +2,7 @@ Ext.define('itasks.container.Panel',{
 	extend: 'Ext.panel.Panel',
 	alias: 'widget.itasks_panel',
 	requires: ['itasks.layout.VHBox'],
+	mixins: ['itasks.mixin.Managing'],
 
 	initComponent: function() {
 		Ext.applyIf(this,{
@@ -23,6 +24,17 @@ Ext.define('itasks.container.Panel',{
 			this.width = 10000;
 			this.simulatedWidth = true;
 		}
+		this.initManaged();
 		this.callParent(arguments);	
+	},
+	add: function() {
+		this.managedAdd.apply(this,arguments);
+	},
+	remove: function(comp,autoDestroy) {
+		this.managedRemove.apply(this,arguments);
+	},
+	onAdd: function(cmp,index) {
+		this.registerManaged(cmp);
+		this.callParent(arguments);
 	}
 });
