@@ -26,6 +26,18 @@ derive class iTask WorkOnProcessState
 */
 return 		:: !a 										-> Task a 		| iTask a
 
+/**
+* Exception throwing. This will throw an exception of arbitrary type e which has to be caught
+* by a higher level exception handler combinator.
+*
+* @param Value: The exception value
+* @return The combined task
+* 
+* @gin-title Raise exception
+* @gin-icon error
+*/
+throw		:: !e 								-> Task a 	| iTask a & iTask, toString e
+
 /*
 * Creates a reference to a store identified by a string identifier.
 * If no data is store the default value given as second argument is given as result.

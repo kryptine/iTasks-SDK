@@ -11,7 +11,19 @@ from TaskContext		import :: TaskContextTree(..), :: SubTaskId, :: SubTaskOrder, 
 from SharedCombinators	import mapShared, :: Shared, :: ReadWriteShared
 from SystemData			import randomInt, topLevelTasks
 from Map				import qualified newMap
-import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, InteractionTasks
+import CoreTasks, CoreCombinators, TuningCombinators, InteractionTasks
+
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>=) taska taskbf = step taska [WhenStable taskbf]
+
+(>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
+(>>|) taska taskb = step taska [WhenStable (const taskb)]
+
+try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
+try task handler = step task [WhenStable return, Catch handler]
+
+catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
+catchAll task handler = step task [WhenStable return, CatchAll handler]
 
 (>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
 (>>*) task termF = task >>+ termF >>= id

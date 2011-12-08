@@ -19,14 +19,12 @@ import	Engine						// basic iTask system creator
 	,	DBTasks						// convenience wrapper functions for databases with multiple values of type a
 		
 	,	ImportTasks					// tasks for importing external data
-	,	ExportTasks					// tasks for exporting data
-	
+	,	ExportTasks					// tasks for exporting data	
 	,	IntegrationTasks			// Tasks for integration with other systems
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
 	,	CommonCombinators			// Set of additional useful iTask combinators
-	,	ExceptionCombinators		// Handling exceptional situations
 	,	TuningCombinators			// Fine tuning of tasks
 	
 	//	Miscellaneous machinery

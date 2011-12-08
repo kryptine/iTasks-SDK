@@ -5,14 +5,13 @@ import StdInt, StdFile, StdTuple, StdList
 import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple
 
 import SystemTypes, IWorld, Task, TaskContext
-import ExceptionCombinators, TuningCombinators
+import TuningCombinators
 import InteractionTasks
 import Shared
 
 from Util				import currentTimestampError
-from CoreCombinators	import >>=, >>|
 from CoreTasks			import return
-from CommonCombinators	import transform
+from CommonCombinators	import >>=, >>|, transform
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess

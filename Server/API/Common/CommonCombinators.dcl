@@ -9,6 +9,51 @@ import Either
 from SystemTypes		import :: User
 from Map				import :: Map
 
+//Standard monadic operations:
+
+/**
+* Combines two tasks sequentially. The first task is executed first. When it is finished
+* the second task is executed with the result of the first task as parameter.
+*
+* @param First: The first task to be executed
+* @param Second: The second task, which receives the result of the first task
+* @return The combined task
+* 
+* @gin False
+*/
+(>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
+/**
+* Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
+*
+* @param First: The first task to be executed
+* @param Second: The second task to be executed
+* @return The combined task
+*
+* @gin False
+*/
+(>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
+/**
+* Exception combinator.
+*
+* @param Task: The normal task which will possibly raise an exception of type e
+* @param Handler: The exception handling task which gets the exception as parameter
+* @return The combined task
+*
+* @gin-title Try block
+* @gin-icon catch
+*/
+try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & iTask, toString e
+/**
+* Catches all exceptions.
+*
+* @param Task: The normal task which will possibly raise an exception of any type
+* @param Handler: The exception handling task
+* 
+* @gin-title Catch all exceptions
+* @gin-icon catch
+*/
+catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a
+
 /**
 * General multi-bind used to define continuations.
 * Similar to (>>+) but terminators yield a continuation which is executed directly.

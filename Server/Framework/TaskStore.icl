@@ -96,9 +96,7 @@ where
 	subprocs (TCEmpty)						= []
 	subprocs (TCBasic _)					= []
 	subprocs (TCBind (Left context))		= subprocs context
-	subprocs (TCBind (Right (_,context)))	= subprocs context
-	subprocs (TCTry (Left context))			= subprocs context
-	subprocs (TCTry (Right (_,context)))	= subprocs context
+	subprocs (TCBind (Right (_,_,context)))	= subprocs context
 	subprocs (TCParallel _ _ subs)			= subprocsp subs
 	
 	subprocsp [] = []

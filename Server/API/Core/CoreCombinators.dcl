@@ -10,30 +10,6 @@ import Task
 import iTaskClass
 derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 
-//Standard monadic operations:
-
-/**
-* Combines two tasks sequentially. The first task is executed first. When it is finished
-* the second task is executed with the result of the first task as parameter.
-*
-* @param First: The first task to be executed
-* @param Second: The second task, which receives the result of the first task
-* @return The combined task
-* 
-* @gin False
-*/
-(>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
-/**
-* Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
-*
-* @param First: The first task to be executed
-* @param Second: The second task to be executed
-* @return The combined task
-*
-* @gin False
-*/
-(>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
-
 /**
 * Adds terminator generator (yielding user actions or trigger) to task.
 * The input of the function is the current state of the task.
@@ -72,6 +48,16 @@ returnAction :: Action -> (TermFunc a a) | iTask a
 * Actions that yield constant values, independent of the task's value
 */
 constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
+
+// Step (multibind) combinator that unifies bind, try and catchAll.
+// It is intented to become the universal sequential combinator
+step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
+
+:: TaskStep a b
+	=		WhenStable	(a -> Task b)
+	| E.e:	Catch		(e -> Task b)		& iTask e
+	|		CatchAll	(String -> Task b)
+
 
 /**
 * All-in-one swiss-army-knife parallel task creation

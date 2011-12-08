@@ -4,7 +4,7 @@ definition module SystemTypes
 * of the iTasks framework.
 */
 
-import GenEq, Maybe, JSON, Store, Void, Either, FilePath, HTML
+import GenEq, Maybe, JSON, Store, Void, Either, FilePath, HTML, Error, File, OS
 from Map 			import :: Map
 from Map 			import qualified get
 from HTML 			import class html
@@ -34,7 +34,9 @@ derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
 
-derive class iTask Credentials, Config
+derive class iTask	Credentials, Config
+derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
+instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 
 instance toString Note
 instance toString EUR
@@ -401,6 +403,16 @@ noMeta :: ManagementMeta
 	, sessionTime		:: !Int				// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, smtpServer		:: !String			// The smtp server to use for sending e-mails
 	}
+
+// Predefined exception types used by library tasks
+:: FileException		= FileException !FilePath !FileError
+:: ParseException		= CannotParse !String
+:: CallException		= CallFailed !OSError
+:: SharedException		= SharedException !String
+:: RPCException			= RPCException !String
+:: OSException			= OSException !OSError
+:: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
+
 /*
 * Gives the unique username of a user
 *

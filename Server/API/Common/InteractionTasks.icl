@@ -7,7 +7,7 @@ from List import isMemberGen, instance Functor []
 from Shared import makeReadOnlyShared, :: SharedId
 from Time import :: Timestamp(..)
 import StdBool, StdList, StdMisc, StdTuple
-import CoreTasks, TuningCombinators, CoreCombinators, ExceptionCombinators, SystemData, CommonCombinators
+import CoreTasks, CoreCombinators, TuningCombinators, CommonCombinators, SystemData
 
 enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
 enterInformation d options` = InputTask @>> LocalInteractionTask @>>

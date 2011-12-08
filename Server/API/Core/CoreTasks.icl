@@ -8,7 +8,6 @@ from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: 
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..), :: Control(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
-from ExceptionCombinators	import :: SharedException(..), instance toString SharedException, :: OSException(..), instance toString OSException, :: WorkOnException(..), instance toString WorkOnException
 from SystemData				import topLevelTasks
 from Map					import qualified get
 
@@ -29,6 +28,9 @@ JSONDecode{|StoredPutback|} _ _ c				= (Nothing,c)
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinished a,iworld))
+
+throw :: !e -> Task a | iTask a & iTask, toString e
+throw e = mkInstantTask ("throw", "Throw an exception") (\_ iworld -> (TaskException (dynamic e) (toString e),iworld))
 
 sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = ReadWriteShared

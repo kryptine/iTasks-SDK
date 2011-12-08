@@ -26,6 +26,7 @@ derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskSt
 derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
 
 derive class iTask	Credentials, Config
+derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException, FileError
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
@@ -562,6 +563,41 @@ where
 		end = indexOf ">" user 
 		
 JSONDecode{|User|} json	= (Nothing,json)
+
+
+
+instance toString FileException
+where
+	toString (FileException path error) = case error of
+		CannotOpen	= "Cannot open file '" +++ path +++ "'"
+		CannotClose	= "Cannot close file '" +++ path +++ "'"
+		IOError		= "Error reading/writing file '" +++ path +++ "'"
+	
+instance toString ParseException
+where
+	toString (CannotParse err) = "Parser error: " +++ err
+	
+instance toString CallException
+where
+	toString (CallFailed (_,err)) = "Error calling external process: " +++ err
+	
+instance toString SharedException
+where
+	toString (SharedException err) = "Error performing operation on shared:" +++ err
+	
+instance toString RPCException
+where
+	toString (RPCException err) = "Error performing RPC call: " +++ err
+	
+instance toString OSException
+where
+	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
+	
+instance toString WorkOnException
+where
+	toString WorkOnNotFound				= "Error working on process: cannot find process"
+	toString WorkOnEvalError			= "Error working on process: evaluation error"
+	toString WorkOnDependencyCycle		= "Error working on process: cycle in dependencies detected"
 
 userName :: !User -> String
 userName RootUser = "root"

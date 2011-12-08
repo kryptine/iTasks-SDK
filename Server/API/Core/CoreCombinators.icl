@@ -11,97 +11,10 @@ from CoreTasks			import return
 
 derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 
-//Standard monadic bind
-(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskbfun = mkTask (taskMeta taska) init edit eval
-where
-	init taskNr iworld
-		# taskaFuncs		= taskFuncs taska
-		# (inita,iworld)	= taskaFuncs.initFun [0:taskNr] iworld
-		= (TCBind (Left inita), iworld)
-		
-	//Event is targeted at first task of the bind
-	edit taskNr event context=:(TCBind (Left cxta)) iworld	
-		= case stepEvent 0 (Just event) of
-			Nothing
-				= (context, iworld)
-			Just event
-				# taskaFuncs		= taskFuncs taska
-				# (newCxta,iworld)	= taskaFuncs.editFun [0:taskNr] event cxta iworld
-				= (TCBind (Left newCxta), iworld)
-	//Event is targeted at second task of the bind
-	edit taskNr event context=:(TCBind (Right (vala,cxtb))) iworld
-		= case stepEvent 1 (Just event) of
-			Nothing	= (context,iworld)	//Mismatching event
-			Just event
-				//Compute the second task based on the result of the first
-				= case fromJSON vala of
-					Just a
-						# taskbfun = taskFuncs (taskbfun a)
-						# (newCxtb,iworld)	= taskbfun.editFun [1:taskNr] event cxtb iworld
-						= (TCBind (Right (vala,newCxtb)), iworld)
-					Nothing
-						= (context, iworld)
-
-	//Evaluate first task
-	eval taskNr _ event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
-		//Adjust the target of a possible event
-		# taskaFuncs		= taskFuncs taska
-		# repAsA			= case repAs of
-			(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taska in RepAsTUI ilayout playout
-			_				= RepAsService
-		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) repAsA cxta iworld
-		= case resa of
-			TaskBusy rep actions newCxta
-				= (TaskBusy (repOk 0 tuiTaskNr rep) actions (TCBind (Left newCxta)), iworld)
-			TaskFinished a
-				//Directly continue with the second task
-				# taskb				= taskbfun a
-				# taskbfuncs		= taskFuncs taskb
-				# repAsB			= case repAs of
-					(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taskb in RepAsTUI ilayout playout
-					_				= RepAsService
-				# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
-				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
-				= case resb of
-					TaskBusy rep actions newCxtb	= (TaskBusy (repOk 1 tuiTaskNr rep) actions (TCBind (Right (toJSON a,newCxtb))),iworld)
-					TaskFinished b					= (TaskFinished b, iworld)
-					TaskException e str				= (TaskException e str, iworld)
-			TaskException e str
-				= (TaskException e str, iworld)	
-	//Evaluate second task
-	eval taskNr _ event tuiTaskNr repAs (TCBind (Right (vala,cxtb))) iworld
-		= case fromJSON vala of
-			Just a
-				# taskb				= taskbfun a
-				# taskbfuncs		= taskFuncs taskb
-				# repAsB			= case repAs of
-					(RepAsTUI _ _)	= let (ilayout,playout) = taskLayouters taskb in RepAsTUI ilayout playout
-					_				= RepAsService
-				# (resb, iworld)	= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
-				= case resb of
-					TaskBusy rep actions newCxtb	= (TaskBusy (repOk 1 tuiTaskNr rep) actions (TCBind (Right (vala,newCxtb))),iworld)
-					TaskFinished b					= (TaskFinished b, iworld)
-					TaskException e str				= (TaskException e str, iworld)
-			Nothing
-				= (taskException "Corrupt task value in bind", iworld)
-	//Incorred state
-	eval taskNr _ event tuiTaskNr _ context iworld
-		= (taskException "Corrupt task context in bind", iworld)
-	
-	//Check that when we want the TUI of a sub task that it is on the path
-	repOk i [] rep		= rep
-	repOk i [t:ts] rep	
-		| i == t	= rep
-		| otherwise	= NoRep
-
-(>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>|) taska taskb = taska >>= \_ -> taskb
-
 (>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
 (>>+) task=:{Task|def} termF = case def of
 	ActionTask actionTaskF	= {Task|task & def = NormalTask (actionTaskF termF)}
-	_						= task >>= \r -> viewInformation (taskMeta task) [] r >>+ termF //WEIRD STEP
+	_						= step task [WhenStable (\r -> viewInformation (taskMeta task) [] r >>+ termF)] //WEIRD STEP
 	
 noActions :: (TermFunc a b) | iTask a & iTask b
 noActions = const (UserActions [])
@@ -111,7 +24,6 @@ returnAction action = \{modelValue,localValid} -> UserActions [(action, if local
 
 constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
 constActions actions = const (UserActions [(a,Just v) \\ (a,v) <- actions])
-
 
 (>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
 (>>$) task=:{Task|def} f = case def of
@@ -132,7 +44,116 @@ where
 	
 	updateTermFun :: (a -> b) (TermFunc b c)  -> (TermFunc a c) | iTask c
 	updateTermFun f termFun = \{modelValue,localValid} -> termFun {modelValue = f modelValue, localValid = localValid}
+
+
+step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
+step taska conts = mkTask (taskMeta taska) init edit eval
+where
+	init taskNr iworld
+		# taskaFuncs		= taskFuncs taska
+		# (inita,iworld)	= taskaFuncs.initFun [0:taskNr] iworld
+		= (TCBind (Left inita), iworld)
+
+	//Edit left-hand side
+	edit taskNr (TaskEvent [0:steps] (path,val)) context=:(TCBind (Left cxta)) iworld
+		# taskaFuncs		= taskFuncs taska
+		# (ncxta,iworld) = taskaFuncs.editFun [0:taskNr] (TaskEvent steps (path,val)) cxta iworld
+		= (TCBind (Left ncxta), iworld)
+	//Edit right-hand side
+	edit taskNr (TaskEvent [1:steps] (path,val)) context=:(TCBind (Right (enca, sel, cxtb))) iworld
+		# mbTaskb = case conts !! sel of
+			(WhenStable taskbf)	= fmap taskbf (fromJSON enca)
+			(Catch taskbf)		= fmap taskbf (fromJSON enca)
+			(CatchAll taskbf)	= fmap taskbf (fromJSON enca)
+		= case mbTaskb of
+			Just taskb
+				# (ncxtb,iworld)	= (taskFuncs taskb).editFun [1:taskNr] (TaskEvent steps (path,val)) cxtb iworld
+				= (TCBind (Right (enca, sel, ncxtb)), iworld)
+			Nothing
+				= (context, iworld)
+	edit taskNr event context iworld
+		= (context, iworld)
+
+	//Eval left-hand side
+	eval taskNr _ event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
+		# taskaFuncs		= taskFuncs taska
+		# repAsA			= case repAs of	//Use representation settings from left-hand task 
+			(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taska in RepAsTUI ilayout playout
+			_				= RepAsService
+		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) repAsA cxta iworld
+		= case resa of
+			TaskBusy rep actions newCxta
+				= (TaskBusy (repOk 0 tuiTaskNr rep) actions (TCBind (Left newCxta)), iworld)
+			TaskFinished a
+				//Find a suitable continuation
+				= case searchContStable a conts of
+					Just (sel,taskb)
+						# taskbfuncs	= taskFuncs taskb
+						# repAsB		= case repAs of
+							(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taskb in RepAsTUI ilayout playout
+							_				= RepAsService
+						# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
+						# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
+						= case resb of
+							TaskBusy rep actions ncxtb	= (TaskBusy (repOk 1 tuiTaskNr rep) actions (TCBind (Right (toJSON a,sel,ncxtb))),iworld)
+							TaskFinished b				= (TaskFinished b, iworld)
+							TaskException e str			= (TaskException e str, iworld)
+					_					
+						= (taskException "No continuation defined for completed tasks", iworld)
+			TaskException dyn str
+				= case searchContException dyn str conts of
+					Just (sel,taskb,enca)
+						= undef
+					_
+						= (TaskException dyn str, iworld)
+
+	//Eval right-hand side
+	eval taskNr _ event tuiTaskNr repAs (TCBind (Right (enca,sel,cxtb))) iworld
+		# mbTaskb = case conts !! sel of
+			(WhenStable taskbf)	= fmap taskbf (fromJSON enca)
+			(Catch taskbf)		= fmap taskbf (fromJSON enca)
+			(CatchAll taskbf)	= fmap taskbf (fromJSON enca)
+		= case mbTaskb of
+			Just taskb
+				# repAsB			= case repAs of
+					(RepAsTUI _ _)	= let (ilayout,playout) = taskLayouters taskb in RepAsTUI ilayout playout
+					_				= RepAsService
+				# (resb, iworld)	= (taskFuncs taskb).evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
+				= case resb of
+					TaskBusy rep actions ncxtb	= (TaskBusy (repOk 1 tuiTaskNr rep) actions (TCBind (Right (enca,sel,ncxtb))),iworld)
+					TaskFinished b				= (TaskFinished b, iworld)
+					TaskException e str			= (TaskException e str, iworld)
+			Nothing
+				= (taskException "Corrupt task value in step", iworld) 	
+	//Incorred state
+	eval taskNr _ event tuiTaskNr _ context iworld
+		= (taskException "Corrupt task context in step", iworld)
+
+	searchContStable a conts = search a 0 conts
+	where
+		search _ _ []				= Nothing
+		search a i [WhenStable f:_]	= Just (i,f a)
+		search a i [_:cs]			= search a (i + 1) cs
 	
+	searchContException dyn str conts = search dyn str 0 Nothing conts
+	where
+		search _ _ _ catchall []					= catchall													//Return the maybe catchall
+		search dyn str i catchall [Catch f:cs] = case (match f dyn) of
+			Just (taskb,enca)						= Just (i, taskb, enca)										//We have a match
+			_										= search dyn str (i + 1) catchall cs						//Keep searching
+		search dyn str i Nothing [CatchAll f:cs]	= search dyn str (i + 1) (Just (i, f str, toJSON str)) cs 	//Keep searching (at least we have a catchall)
+		search dyn str i (Just catchall) [_:cs]		= search dyn str (i + 1) (Just catchall) cs					//Keep searching
+		
+		match :: (e -> Task b) Dynamic -> Maybe (Task b, JSONNode) | iTask e
+		match f (e :: e^)	= Just (f e, toJSON e)
+		match _ _			= Nothing 
+		
+	//Check that when we want the TUI of a sub task that it is on the path
+	repOk i [] rep		= rep
+	repOk i [t:ts] rep	
+		| i == t	= rep
+		| otherwise	= NoRep
+
 // Parallel composition
 INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
 

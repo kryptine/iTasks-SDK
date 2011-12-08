@@ -4,7 +4,7 @@ import StdList, StdOrdList, Util, List
 from SharedCombinators import :: Shared, :: ReadWriteShared
 import iTaskClass, Task
 from CoreTasks			import get, set, return
-from CoreCombinators	import >>|, >>=
+from CommonCombinators	import >>|, >>=
 
 //	Convenient operations on databases
 eqItemId :: a a -> Bool | DB a
