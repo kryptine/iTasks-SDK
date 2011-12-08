@@ -27,10 +27,10 @@ JSONDecode{|StoredPutback|} _ _ [json:r]		= (dynamicJSONDecode json,r)
 JSONDecode{|StoredPutback|} _ _ c				= (Nothing,c)
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskFinished a,iworld))
+return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskStable a NoRep [] TCEmpty, iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
-throw e = mkInstantTask ("throw", "Throw an exception") (\_ iworld -> (TaskException (dynamic e) (toString e),iworld))
+throw e = mkInstantTask ("throw", "Throw an exception") (\_ iworld -> (TaskException (dynamic e) (toString e), iworld))
 
 sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = ReadWriteShared
@@ -54,7 +54,7 @@ where
 	eval taskNr iworld
 		# (val,iworld) = 'Shared'.readShared shared iworld
 		# res = case val of
-			Ok val	= TaskFinished val
+			Ok val	= TaskStable val NoRep [] TCEmpty
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
@@ -64,7 +64,7 @@ where
 	eval taskNr iworld
 		# (res,iworld)	='Shared'.writeShared shared val iworld
 		# res = case res of
-			Ok _	= TaskFinished val
+			Ok _	= TaskStable val NoRep [] TCEmpty
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
@@ -74,7 +74,7 @@ where
 	eval taskNr iworld
 		# (val,iworld)	= 'Shared'.updateShared shared fun iworld
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
-		= (TaskFinished (fromOk val), iworld)
+		= (TaskStable (fromOk val) NoRep [] TCEmpty, iworld)
 
 interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
@@ -162,10 +162,10 @@ where
 		# (reps,newParts,valid,iworld)	= visualizeParts taskNr repAs parts storedParts mbEvent iworld
 		# context 						= setLocalVar PARTS_STORE newParts context
 		= case termFunc {modelValue = (local,fromOk model), localValid = valid} of
-			StopInteraction result		= (TaskFinished result,iworld)
+			StopInteraction result		= (TaskStable result NoRep [] TCEmpty, iworld)
 			UserActions actions
 				= case getActionResult event actions of
-					Just result			= (TaskFinished result, iworld)
+					Just result			= (TaskStable result NoRep [] TCEmpty, iworld)
 					Nothing
 						# warning = case (getLocalVar EDIT_CONFLICT_STORE context) of
 							Just True	= Just EDIT_CONFLICT_WARNING
@@ -177,7 +177,7 @@ where
 								= appFst TUIRep (mergeTUI props ilayout [tui \\ TUIRep tui <- reps] warning tactions)
 							_
 								= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), tactions)
-						= (TaskBusy rep actions context, iworld)
+						= (TaskInstable Nothing rep actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
 		= case getLocalVar LAST_EDIT_STORE context of
@@ -343,7 +343,7 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally processId iworld
 			| found
-				= (TaskBusy (TUIRep (stringDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
+				= (TaskInstable Nothing (TUIRep (stringDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
@@ -357,21 +357,21 @@ where
 				//Store context
 				# iworld		= storeTaskInstance context iworld
 				# (state,tui,sactions,iworld) = case result of
-					(TaskBusy tui actions _)		= (WOActive, tui, actions, iworld)
-					(TaskFinished _)				= (WOFinished, TUIRep (stringDisplay "Task finished"), [], iworld)
+					(TaskInstable _ rep actions _)	= (WOActive, rep, actions, iworld)
+					(TaskStable _ rep actions _)	= (WOFinished, rep, actions, iworld)
 					(TaskException _ err)			= (WOExcepted, TUIRep (stringDisplay ("Task excepted: " +++ err)), [], iworld)
 				//Check trigger
 				= case termFunc {localValid = True, modelValue = state} of
 					StopInteraction result
-						= (TaskFinished result,iworld)
+						= (TaskStable result NoRep [] TCEmpty, iworld)
 					UserActions uactions	
 						= case getActionResult event uactions of
 							Just result
-								= (TaskFinished result, iworld)
+								= (TaskStable result NoRep [] TCEmpty, iworld)
 							Nothing
 								# taskId			= taskNrToString taskNr
 								# tactions			= [(taskId,action,isJust val) \\ (action,val) <- uactions]
-								= (TaskBusy tui (sactions ++ tactions) TCEmpty,iworld)
+								= (TaskInstable Nothing tui (sactions ++ tactions) TCEmpty,iworld)
 
 	changeNo (TaskContext _ _ _ _ n _) = n
 
@@ -396,7 +396,7 @@ applyChangeToProcess pid change lifetime
 where
 	eval taskNr iworld = (TaskException (dynamic "TODO") "TODO", iworld)
 
-//id (\tst -> (TaskFinished Void, applyChangeToTaskTree pid (lifetime,change) tst))
+//id (\tst -> (TaskStable Void, applyChangeToTaskTree pid (lifetime,change) tst))
 //Interesting one, we need the tst somehow :)
 	lt = case lifetime of
 		CLTransient = "transient"
@@ -406,14 +406,14 @@ appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask ("Run world function", "Run a world function.") eval
 where
 	eval taskNr iworld=:{IWorld|world}
-		= (TaskFinished Void, {IWorld|iworld & world = fun world})
+		= (TaskStable Void NoRep [] TCEmpty, {IWorld|iworld & world = fun world})
 		
 accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
 accWorld fun = mkInstantTask ("Run world function", "Run a world function and get result.") eval
 where
 	eval taskNr iworld=:{IWorld|world}
 		# (res,world) = fun world
-		= (TaskFinished res, {IWorld|iworld & world = world})
+		= (TaskStable res NoRep [] TCEmpty, {IWorld|iworld & world = world})
 	
 accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 accWorldError fun errf = mkInstantTask ("Run a world function", "Run a world function with error handling.") eval
@@ -421,8 +421,8 @@ where
 	eval taskNr iworld=:{IWorld|world}
 		# (res,world)	= fun world
 		= case res of
-			Error e		= (taskException (errf e),{IWorld|iworld & world = world})
-			Ok v		= (TaskFinished v,{IWorld|iworld & world = world})
+			Error e		= (taskException (errf e), {IWorld|iworld & world = world})
+			Ok v		= (TaskStable v NoRep [] TCEmpty, {IWorld|iworld & world = world})
 	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException

@@ -47,9 +47,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
 					Ok (TaskException _ err,_)
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					Ok (TaskFinished _,_)
+					Ok (TaskStable _ _ _ _,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (TaskBusy mbCurrentTui actions context,SessionProcess sessionId)
+					Ok (TaskInstable _ mbCurrentTui actions context,SessionProcess sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
 							(Ok (previousTui,previousTimestamp),TUIRep currentTui)
 								| previousTimestamp == Timestamp (toInt timestampParam) 
@@ -87,11 +87,11 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			= case mbResult of
 				Ok (TaskException _ err,_)
 					= (errorResponse err, iworld)
-				Ok (TaskFinished val,_)
+				Ok (TaskStable val _ _ _,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (TaskBusy (ServiceRep rep) actions _,_)
+				Ok (TaskInstable _ (ServiceRep rep) actions _,_)
 					= (jsonResponse (serviceBusyResponse rep actions), iworld)
-				Ok (TaskBusy _ _ _,_)
+				Ok (TaskInstable _ _ _ _,_)
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
@@ -103,14 +103,13 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			= case mbResult of
 				Ok (TaskException _ err,_)
 					= (errorResponse err, iworld)
-				Ok (TaskFinished val,_)
+				Ok (TaskStable val _ _ _,_)
 					= (plainDoneResponse val, iworld)
 				_
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Error unimplemented type
 		_
-			= (jsonResponse (JSONString "Unknown service format"), iworld)
-		
+			= (jsonResponse (JSONString "Unknown service format"), iworld)	
 where
 	format			= case formatParam of
 		"webapp"			= WebApp

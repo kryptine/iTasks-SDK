@@ -96,19 +96,19 @@ evalInstance target commitEvent genGUI context=:(TaskContext processId tmeta pme
 			//Restore current process id in iworld
 			# iworld			= {iworld & evalStack = evalStack}
 			= case result of
-				TaskBusy tui actions scontext
+				TaskInstable _ rep actions scontext
 					# context		= TaskContext processId tmeta (setRunning pmeta) mmeta changeNo (TTCRunning container scontext)
-					= (Ok (TaskBusy tui actions scontext), context, iworld)
-				TaskFinished val
+					= (Ok (TaskInstable Nothing rep actions scontext), context, iworld)
+				TaskStable val rep actions scontext
 					# context		= TaskContext processId tmeta (setFinished pmeta) mmeta changeNo (TTCFinished (createValueContainer val))
-					= (Ok (TaskFinished (createValueContainer val)), context, iworld)
+					= (Ok (TaskStable (createValueContainer val) rep actions scontext), context, iworld)
 				TaskException e str
 					# context		= TaskContext processId tmeta (setExcepted pmeta) mmeta changeNo (TTCExcepted str)
 					= (Ok (TaskException e str), context, iworld)
 		TTCRunning container scontext
 			= (Ok (taskException "Could not unpack task context"), context, iworld)
 		TTCFinished r
-			= (Ok (TaskFinished r), context, iworld)
+			= (Ok (TaskStable r NoRep [] TCEmpty), context, iworld)
 		TTCExcepted e
 			= (Ok (taskException e), context, iworld)
 
@@ -161,7 +161,7 @@ where
 				//Check for next iteration counter: save or re-evaluate
 				# iworld=:{readShares}	= iworld
 				= case result of
-					(TaskBusy _ _ _)
+					(TaskInstable _ _ _ _)
 						| isNothing readShares && iteration < ITERATION_THRESHOLD
 							= eval target Nothing genGUI (iteration + 1) context iworld
 						| otherwise

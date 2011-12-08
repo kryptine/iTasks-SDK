@@ -41,7 +41,7 @@ fileTask filename f iworld=:{IWorld|world}
 	# (res,file)		= f file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	= (TaskFinished res, {IWorld|iworld & world = world})
+	= (TaskStable res NoRep [] TCEmpty, {IWorld|iworld & world = world})
 		
 readAll file
 	# (chunk,file) = freads file CHUNK_SIZE
@@ -58,7 +58,7 @@ readJSON filename parsefun iworld=:{IWorld|world}
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
 	= case (parsefun (fromString content)) of
-		Just a 	= (TaskFinished a, {IWorld|iworld & world = world})
+		Just a 	= (TaskStable a NoRep [] TCEmpty, {IWorld|iworld & world = world})
 		Nothing	= (parseException filename, {IWorld|iworld & world = world})
 		
 readDocument filename iworld=:{IWorld|world}
@@ -70,7 +70,7 @@ readDocument filename iworld=:{IWorld|world}
 	# name				= dropDirectory filename 
 	# mime				= extensionToMimeType (takeExtension name)
 	# (document,iworld)	= createDocument name mime content {IWorld|iworld & world = world}
-	= (TaskFinished document, iworld)
+	= (TaskStable document NoRep [] TCEmpty, iworld)
 
 openException s		= taskException (FileException s CannotOpen)
 closeException s	= taskException (FileException s CannotClose)

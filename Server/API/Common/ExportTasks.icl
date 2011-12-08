@@ -17,7 +17,7 @@ createCSVFile filename content = mkInstantTask ("CSV file creation", ("Export of
 where
 	eval taskNr iworld
 		# (doc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
-		= (TaskFinished doc, iworld)
+		= (TaskStable doc NoRep [] TCEmpty, iworld)
 
 exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask ("CSV file export", ("Export of CSV file " +++ filename)) eval
@@ -43,7 +43,7 @@ fileTask filename content f iworld=:{IWorld|world}
 	# file				= f content file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	= (TaskFinished content, {IWorld|iworld & world = world})
+	= (TaskStable content NoRep [] TCEmpty, {IWorld|iworld & world = world})
 	
 writeAll content file
 	= fwrites content file
@@ -60,7 +60,7 @@ writeDocument filename document iworld
 	# file					= fwrites (fromJust mbContent) file
 	# (ok,world)			= fclose file world
 	| not ok				= (closeException filename,{IWorld|iworld & world = world})	
-	= (TaskFinished document, {IWorld|iworld & world = world})
+	= (TaskStable document NoRep [] TCEmpty, {IWorld|iworld & world = world})
 
 ioException s		= taskException (FileException s IOError)
 openException s		= taskException (FileException s CannotOpen)

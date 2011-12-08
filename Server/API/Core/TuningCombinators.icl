@@ -36,9 +36,9 @@ where
 			eval taskNr props event tuiTaskNr repInput context iworld
 				# (res,iworld) = funcs.evalFun taskNr props event tuiTaskNr repInput context iworld
 				= case res of
-					(TaskBusy (TUIRep tui) actions context)
+					(TaskInstable mbv (TUIRep tui) actions context)
 						# (tui,actions) = tweak (tui,actions)
-						= (TaskBusy (TUIRep tui) actions context,iworld)
+						= (TaskInstable mbv (TUIRep tui) actions context,iworld)
 					_	
 						= (res,iworld)
 instance tune TUITweak
