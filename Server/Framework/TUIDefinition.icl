@@ -101,7 +101,7 @@ hsplit split left right
 defaultInteractionLayout :: InteractionLayouter
 defaultInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,content,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
@@ -109,15 +109,15 @@ where
 				instruction
 				warning
 				(Fixed 700)
-				(defaultContent editorParts buttons)
+				(defaultContent content buttons)
 		  ,actions)
 		  
 plainInteractionLayout :: InteractionLayouter
 plainInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,content,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
-		= (	{ content	= TUIContainer (defaultLayoutContainer (maybeToList (defaultDescriptionPanel Nothing instruction) ++ defaultContent editorParts buttons))
+		= (	{ content	= TUIContainer (defaultLayoutContainer (maybeToList (defaultDescriptionPanel Nothing instruction) ++ defaultContent content buttons))
 			, width		= Just (Fixed 700)
 			, height	= Nothing
 			, margins	= sameMargins 5
@@ -126,8 +126,8 @@ where
 minimalInteractionLayout :: InteractionLayouter
 minimalInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
-		= (	{ content	= TUIContainer (defaultLayoutContainer editorParts)
+	layout {TUIInteraction|title,instruction,content,actions,type,localInteraction,warning}
+		= (	{ content	= TUIContainer (defaultLayoutContainer content)
 			, width		= Just (WrapContent 0)
 			, height	= Just (WrapContent 0)
 			, margins	= Nothing
@@ -136,7 +136,7 @@ where
 fullWidthInteractionLayout :: InteractionLayouter
 fullWidthInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,content,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
@@ -144,13 +144,13 @@ where
 				instruction
 				warning
 				(FillParent 1 ContentSize)
-				(defaultContent editorParts buttons)
+				(defaultContent content buttons)
 		  ,actions)
 
 wrapWidthInteractionLayout :: InteractionLayouter
 wrapWidthInteractionLayout = \i -> layout i
 where
-	layout {TUIInteraction|title,instruction,editorParts,actions,type,localInteraction,warning}
+	layout {TUIInteraction|title,instruction,content,actions,type,localInteraction,warning}
 		# (buttons,actions) = defaultButtons actions
 		= (defaultPanelDescr
 				title
@@ -158,21 +158,21 @@ where
 				instruction
 				warning
 				(WrapContent 0)
-				(defaultContent editorParts buttons)
+				(defaultContent content buttons)
 		  ,actions)	
 
 maximalInteractionLayout :: InteractionLayouter
 maximalInteractionLayout = \i -> layout i
 where
-	layout i=:{TUIInteraction|editorParts,actions}
-		= (fill (vjoin (map fill editorParts)),actions)
+	layout i=:{TUIInteraction|content,actions}
+		= (fill (vjoin (map fill content)),actions)
 		
 fillInteractionLayout :: InteractionLayouter
-fillInteractionLayout = \{TUIInteraction|instruction,editorParts,actions,warning}
+fillInteractionLayout = \{TUIInteraction|instruction,content,actions,warning}
 	-> (fillPanel 
 				instruction
 				warning
-				(defaultContent (map fill editorParts) [])
+				(defaultContent (map fill content) [])
 		  ,actions)
 where
 	fillPanel instruction warning content 
@@ -189,9 +189,8 @@ where
 
 
 singleViewLayout :: TUISize !TUISize -> InteractionLayouter
-singleViewLayout width height = \{TUIInteraction|editorParts,actions}
-	-> (setSize width height (hd editorParts),actions)
-
+singleViewLayout width height = \{TUIInteraction|content,actions}
+	-> (setSize width height (hd content),actions)
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
 defaultContent editor buttons = [defaultContentPanel (editorContainer editor ++ buttonContainer buttons)]
@@ -210,6 +209,9 @@ where
 								, height	= Just (WrapContent 0)
 								, margins	= Nothing
 								}]
+
+defaultStepLayout :: StepLayouter
+defaultStepLayout = \{TUIStep|content,actions,steps} -> (content, actions ++ steps)
 
 defaultParallelLayout :: ParallelLayouter
 defaultParallelLayout = \{TUIParallel|title,instruction,items}->
@@ -243,9 +245,10 @@ where
 		children	= flatten (map getChildren items) 	
 		actions 	= flatten [a \\(_,_,_,_,a) <- items]
 	
-		getChildren (_,_,_,Just {content=TUIPanel panel},_)			= panel.TUIPanel.items
-		getChildren (_,_,_,Just {content=TUIContainer container},_)	= container.TUIContainer.items
-		getChildren (_,_,_,Just item,_)								= [item]
+		getChildren (_,_,_,Just {TUIDef|content=TUIPanel panel},_)			= panel.TUIPanel.items
+		getChildren (_,_,_,Just {TUIDef|content=TUIContainer container},_)	= container.TUIContainer.items
+		getChildren (_,_,_,Just item,_)										= [item]
+
 tabLayout :: ParallelLayouter
 tabLayout = layout
 where
@@ -403,8 +406,6 @@ where
 		= {TUIMenuItem|item & menu = Just {TUIMenu|items = addToItems sub taskId action enabled (maybe [] (\m -> m.TUIMenu.items) menu)}}
 
 	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
-
-
 
 columnLayout :: !Int ![TUIDef] -> TUIDef
 columnLayout nCols items

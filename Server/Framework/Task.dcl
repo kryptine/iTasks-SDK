@@ -22,10 +22,15 @@ derive gPutRecordFields	Task
 
 // Tasks
 :: Task a =
-	{ meta					:: !TaskMeta						// the task's general properties	
-	, def					:: !(TaskDef a)
-	, layout				:: !(Maybe (Either InteractionLayouter ParallelLayouter))	//Optional layout tweak for parallel tasks
+	{ meta					:: !TaskMeta		//The task's general properties	
+	, def					:: !(TaskDef a)		//The task's definition
+	, layout				:: !TaskLayouter	//Optional layout tweaked layouters
 	}
+	
+:: TaskLayouter	= DefaultLayouter
+				| InteractionLayouter InteractionLayouter
+				| StepLayouter StepLayouter
+				| ParallelLayouter ParallelLayouter
 	
 :: TaskDef a	= NormalTask !(TaskFuncs a)
 				| ActionTask !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b)
@@ -42,7 +47,7 @@ derive gPutRecordFields	Task
 :: TaskEvalFun a	:== TaskNr TaskMeta (Maybe CommitEvent) ReversedTaskNr TaskRepInput TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
 :: TaskRepInput
-	= RepAsTUI InteractionLayouter ParallelLayouter
+	= RepAsTUI InteractionLayouter StepLayouter ParallelLayouter
 	| RepAsService
 	
 :: ReversedTaskNr	:== [Int]							//Reversed tasks nr used to locate a subtask in a composition  
@@ -69,7 +74,7 @@ derive gPutRecordFields	Task
 // Converts to task functions, ok action is added to action tasks
 taskFuncs :: !(Task a) -> TaskFuncs a | iTask a
 // Gives the layouter functions for a task
-taskLayouters :: !(Task a) -> (InteractionLayouter, ParallelLayouter)
+taskLayouters :: !(Task a) -> (InteractionLayouter, StepLayouter, ParallelLayouter)
 
 taskException :: !e -> TaskResult a | TC, toString e
 

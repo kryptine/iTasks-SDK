@@ -75,7 +75,7 @@ evalInstance target commitEvent genGUI context=:(TaskContext processId tmeta pme
 		//Eval instance
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
 			# evalFun			= (taskFuncs task).evalFun
-			# repAs				= if genGUI (let (ilayout,playout) = taskLayouters task in RepAsTUI ilayout playout) RepAsService
+			# repAs				= if genGUI (let (ilayout,slayout,playout) = taskLayouters task in RepAsTUI ilayout slayout playout) RepAsService
 			# procNo			= processNo processId
 			# taskNo			= [changeNo,procNo]
 			//Update current process id & eval stack in iworld

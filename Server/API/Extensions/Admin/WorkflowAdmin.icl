@@ -261,31 +261,33 @@ where
 mainLayout p = defaultParallelLayout p
 
 infoBarLayout :: TUIInteraction -> (TUIDef,[TaskAction])
-infoBarLayout {title,editorParts,actions}
+infoBarLayout {TUIInteraction|title,content,actions}
 	# (buttons,actions) = defaultButtons actions
-	= ({ content	= TUIContainer {TUIContainer|defaultLayoutContainer [{hd editorParts & width = Just (WrapContent 0), margins = Nothing}:buttons]
+	= ({ content	= TUIContainer {TUIContainer|defaultLayoutContainer [{hd content & width = Just (WrapContent 0), margins = Nothing}:buttons]
 								& direction = Horizontal, halign = AlignRight, valign = AlignMiddle, baseCls = Just "x-panel-header"}
 	  , width		= Just (FillParent 1 (ContentSize))
 	  , height	= Just (Fixed 30)
 	  , margins	= Nothing
 	}, actions)
 
-treeLayout {title,editorParts,actions} = (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel [{hd editorParts & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)}] & title = title, iconCls = Just "icon-newwork", frame = False}
-											, width		= Just (FillParent 1 (FixedMinSize 100))
-											, height	= Just (FillParent 1 (FixedMinSize 0))
-											, margins	= Nothing
-											}, actions)
+treeLayout {TUIInteraction|title,content,actions}
+	= (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel [{hd content & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)}] & title = title, iconCls = Just "icon-newwork", frame = False}
+								, width		= Just (FillParent 1 (FixedMinSize 100))
+								, height	= Just (FillParent 1 (FixedMinSize 0))
+								, margins	= Nothing
+								}, actions)
 
-descriptionLayout {title,editorParts,actions} = (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel (defaultContent editorParts (fst (defaultButtons actions))) & title = title, iconCls = Just "icon-description", frame = False}
-													, width		= Just (FillParent 1 (FixedMinSize 100))
-													, height	= Just (Fixed 150)
-													, margins	= Nothing
-													}, actions)
+descriptionLayout {TUIInteraction|title,content,actions}
+	= (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel (defaultContent content (fst (defaultButtons actions))) & title = title, iconCls = Just "icon-description", frame = False}
+								, width		= Just (FillParent 1 (FixedMinSize 100))
+								, height	= Just (Fixed 150)
+								, margins	= Nothing
+								}, actions)
 
 processTableLayout interaction
-	= ({hd interaction.editorParts & width = Just (FillParent 1 ContentSize), height = Just (Fixed 150), margins = (sameMargins 0)},interaction.TUIInteraction.actions)	 
+	= ({hd interaction.TUIInteraction.content & width = Just (FillParent 1 ContentSize), height = Just (Fixed 150), margins = (sameMargins 0)},interaction.TUIInteraction.actions)	 
 singleControlLayout interaction
-	= ({hd interaction.editorParts & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)},interaction.TUIInteraction.actions)
+	= ({hd interaction.TUIInteraction.content & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)},interaction.TUIInteraction.actions)
 
 // UTIL FUNCTIONS
 

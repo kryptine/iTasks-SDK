@@ -22,9 +22,11 @@ where tune t task				= updateTaskMeta (\m -> {TaskMeta|m & interactionType = Jus
 instance tune LocalInteractionTask
 where tune _ task				= updateTaskMeta (\m -> {TaskMeta|m & localInteraction = True}) task
 instance tune InteractionLayouter
-where tune l task				= {Task|task & layout = Just (Left l)}
+where tune l task				= {Task|task & layout = InteractionLayouter l}
+instance tune StepLayouter
+where tune l task				= {Task|task & layout = StepLayouter l}
 instance tune ParallelLayouter
-where tune l task				= {Task|task & layout = Just (Right l)}
+where tune l task				= {Task|task & layout = ParallelLayouter l}
 instance tune LayoutTweak
 where
 	tune tweak task=:{Task|def} = case def of

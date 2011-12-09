@@ -86,7 +86,7 @@ where
 	eval taskNr _ event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
 		# taskaFuncs		= taskFuncs taska
 		# repAsA			= case repAs of		//Use representation settings from left-hand task 
-			(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taska in RepAsTUI ilayout playout
+			(RepAsTUI _ _ _)= let (ilayout,slayout,playout)	= taskLayouters taska in RepAsTUI ilayout slayout playout
 			_				= RepAsService
 		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) repAsA cxta iworld
 		# mbcommit			= case event of
@@ -107,8 +107,8 @@ where
 			Right (sel,taskb,enca)
 				# taskbfuncs	= taskFuncs taskb
 				# repAsB		= case repAs of
-						(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taskb in RepAsTUI ilayout playout
-						_				= RepAsService
+						(RepAsTUI _ _ _)	= let (ilayout,slayout,playout)	= taskLayouters taskb in RepAsTUI ilayout slayout playout
+						_					= RepAsService
 				# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
 				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
 				= case resb of
@@ -127,8 +127,8 @@ where
 		= case mbTaskb of
 			Just taskb
 				# repAsB			= case repAs of
-					(RepAsTUI _ _)	= let (ilayout,playout) = taskLayouters taskb in RepAsTUI ilayout playout
-					_				= RepAsService
+					(RepAsTUI _ _ _)	= let (ilayout,slayout,playout) = taskLayouters taskb in RepAsTUI ilayout slayout playout
+					_					= RepAsService
 				# (resb, iworld)	= (taskFuncs taskb).evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
 				= case resb of
 					TaskInstable mbb rep actions ncxtb	= (TaskInstable mbb (repOk 1 tuiTaskNr rep) actions (TCBind (Right (enca,sel,ncxtb))),iworld)
@@ -303,7 +303,7 @@ where
 				| otherwise
 					# encState			= encodeState state initState
 					# (rep,actions)		= case repAs of
-						(RepAsTUI _ playout)	= (mergeTUIs taskNr playout tuiTaskNr meta results)
+						(RepAsTUI _ _ playout)	= (mergeTUIs taskNr playout tuiTaskNr meta results)
 						(RepAsService)			= (ServiceRep [],[]) //TODO
 					# subs				= mergeContexts results
 					= (TaskInstable Nothing rep actions (TCParallel encState pmeta subs), iworld)
@@ -318,8 +318,8 @@ where
 			(STCEmbedded tmeta (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= taskFuncs` task
-				# (ilayout,playout)	= taskLayouters task
-				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout playout) context iworld 
+				# (ilayout,slayout,playout)	= taskLayouters task
+				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout slayout playout) context iworld 
 				= case result of
 					TaskInstable mbr rep actions context	= (TaskInstable mbr rep actions context, STCEmbedded tmeta (Just (encTask, context)), iworld)
 					TaskStable r rep actions context		= (TaskStable r rep actions context, STCEmbedded tmeta Nothing, iworld)
@@ -327,10 +327,10 @@ where
 			(STCDetached taskId tmeta pmeta mmeta (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				# taskfuncs			= taskFuncs` task
-				# (ilayout,playout)	= taskLayouters task
+				# (ilayout,slayout,playout)	= taskLayouters task
 				//Update changed latest event timestamp
 				# iworld			= {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
-				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout playout) context iworld 
+				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout slayout playout) context iworld 
 				# iworld			= {IWorld|iworld & latestEvent = parentLatestEvent}
 				//Update first/latest event if request is targeted at this detached process
 				# pmeta = case tuiTaskNr of

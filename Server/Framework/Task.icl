@@ -14,7 +14,7 @@ mkTask description initFun editFun evalFun =
 		, editFun		= editFun
 		, evalFun		= evalFun
 		}
-	, layout				= Nothing
+	, layout			= DefaultLayouter
 	}
 	
 mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
@@ -26,7 +26,7 @@ mkInstantTask description iworldfun =
 		, editFun		= \_ _  context iworld -> (context,iworld)
 		, evalFun		= \taskNr _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}
-	, layout				= Nothing
+	, layout				= DefaultLayouter
 	}
 	
 mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task a | descr d
@@ -34,7 +34,7 @@ mkActionTask description actionTaskFun =
 	{ Task
 	| meta			= initTaskMeta description
 	, def			= ActionTask actionTaskFun
-	, layout		= Nothing
+	, layout		= DefaultLayouter
 	}
 
 mapActionTask :: !((InformationState a) -> (InformationState b)) !(Task a) -> Task b
@@ -115,7 +115,7 @@ where
 						, editFun	= abort funerror
 						, evalFun	= abort funerror
 						}
-					, layout = Nothing
+					, layout = DefaultLayouter
 					}
 	funerror = "Creating default task functions is impossible"
 	
@@ -143,12 +143,12 @@ taskFuncs {Task|def} = case def of
 	NormalTask funcs	= funcs
 	ActionTask actionF	= actionF (\{modelValue,localValid} -> UserActions [(ActionOk,if localValid (Just modelValue) Nothing)])
 
-taskLayouters :: !(Task a) -> (InteractionLayouter, ParallelLayouter)
+taskLayouters :: !(Task a) -> (InteractionLayouter, StepLayouter, ParallelLayouter)
 taskLayouters {Task|layout} = case layout of
-	Nothing				= (defaultInteractionLayout	, defaultParallelLayout)
-	Just (Left ilayout)	= (ilayout					, defaultParallelLayout)
-	Just (Right playout)= (defaultInteractionLayout	, playout)
+	DefaultLayouter					= (defaultInteractionLayout	, defaultStepLayout,	defaultParallelLayout)
+	(InteractionLayouter ilayout)	= (ilayout					, defaultStepLayout,	defaultParallelLayout)
+	(StepLayouter slayout)			= (defaultInteractionLayout , slayout,				defaultParallelLayout)
+	(ParallelLayouter playout)		= (defaultInteractionLayout	, defaultStepLayout,	playout)
 	
-
 taskException :: !e -> TaskResult a | TC, toString e
 taskException e = TaskException (dynamic e) (toString e)

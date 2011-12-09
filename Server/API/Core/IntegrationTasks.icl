@@ -65,10 +65,10 @@ where
 				| not exists
 					//Still busy
 					# (rep,actions) = case repAs of
-						(RepAsTUI ilayout _) = appFst TUIRep (ilayout
+						(RepAsTUI ilayout _ _) = appFst TUIRep (ilayout
 												{ title = props.TaskMeta.title
 								 				, instruction = props.TaskMeta.instruction
-												, editorParts = []
+												, content = []
 												, actions = []
 												, type = props.interactionType
 												, localInteraction = props.TaskMeta.localInteraction

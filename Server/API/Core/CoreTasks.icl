@@ -173,7 +173,7 @@ where
 						# taskId		= taskNrToString taskNr
 						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
 						# (rep,actions) = case repAs of
-							(RepAsTUI ilayout _)
+							(RepAsTUI ilayout _ _)
 								= appFst TUIRep (mergeTUI props ilayout [tui \\ TUIRep tui <- reps] warning tactions)
 							_
 								= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), tactions)
@@ -215,7 +215,7 @@ where
 	mergeTUI meta ilayout parts warning actions
 		= ilayout	{ title = meta.TaskMeta.title
 					, instruction = meta.TaskMeta.instruction
-					, editorParts = parts
+					, content = parts
 					, actions = actions
 					, type = meta.interactionType
 					, localInteraction = meta.TaskMeta.localInteraction
@@ -249,7 +249,7 @@ where
 					# umask				= defaultMask value
 					# vmask				= verifyForm value umask
 					# (rep,iworld)		= case repAs of
-											(RepAsTUI _ _)
+											(RepAsTUI _ _ _)
 												# (editor,iworld) = visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
 												= (mbToTUIRep editor, iworld)
 											_	
@@ -260,7 +260,7 @@ where
 						Just value
 										# vmask = verifyForm value umask
 										# (rep,iworld)	= case repAs of
-											(RepAsTUI _ _)
+											(RepAsTUI _ _ _)
 												# (editor,iworld)	= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
 												= (mbToTUIRep editor, iworld)
 											_				
@@ -271,14 +271,14 @@ where
 				Blank					= blankForm repAs formView putback mbEdit iworld
 			
 			DisplayPart v				= case repAs of
-											(RepAsTUI _ _)	
+											(RepAsTUI _ _ _)	
 												# (editor,iworld) = visualizeAsDisplay v iworld
 												= (mbToTUIRep editor, StoredDisplayView, True, iworld)
 											_	
 												= (ServiceRep [(taskNrToString taskNr,idx,toJSON v)], StoredDisplayView, True, iworld)
 			
 			UpdatePart label w			= case repAs of
-											(RepAsTUI _ _)	= (TUIRep (defaultDef (TUIButton	{ TUIButton
+											(RepAsTUI _ _ _)= (TUIRep (defaultDef (TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
 																	, text			= label
@@ -296,7 +296,7 @@ where
 			# umask	= Untouched
 			# vmask	= verifyForm value umask
 			# (rep,iworld)	= case repAs of
-				(RepAsTUI _ _)
+				(RepAsTUI _ _ _)
 					# (editor,iworld) = visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
 					= (mbToTUIRep editor,iworld)
 				_				
@@ -333,7 +333,7 @@ where
 		# iworld				= storeTaskInstance (fromOk mbContext) iworld
 		= (TCEmpty, iworld)
 		
-	eval termFunc taskNr props event tuiTaskNr (RepAsTUI ilayout playout) _ iworld=:{evalStack}
+	eval termFunc taskNr props event tuiTaskNr (RepAsTUI ilayout slayout playout) _ iworld=:{evalStack}
 		//Check for cycles
 		| isMember processId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)

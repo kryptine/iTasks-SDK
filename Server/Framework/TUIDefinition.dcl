@@ -11,13 +11,19 @@ from Task			import	:: TaskAction
 
 :: TUIInteraction =	{ title				:: !String
 					, instruction		:: !Maybe String
-					, editorParts		:: ![TUIDef]
+					, content			:: ![TUIDef]
 					, actions			:: ![TaskAction]
 					, type				:: !Maybe InteractionTaskType
 					, localInteraction	:: !Bool
 					, warning			:: !Maybe String
 					}
 
+:: TUIStep =		{ title				:: !String
+					, instruction		:: !Maybe String
+					, content			:: !TUIDef
+					, actions			:: ![TaskAction]
+					, steps				:: ![TaskAction]
+					}
 /**
 * To layout a set of parallel tasks the following information is available:
 * - Title : The title of the parallel combination
@@ -35,7 +41,8 @@ from Task			import	:: TaskAction
 					, instruction		:: !Maybe String
 					, items				:: ![(!Int,!Int,!TaskMeta,!Maybe TUIDef,![TaskAction])]
 					}
-					
+
+
 :: TUIName		:== String
 
 :: TUIDef =	{ content	:: !TUIDefContent
@@ -273,6 +280,7 @@ hsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef
 
 // Layouts
 :: InteractionLayouter	:== TUIInteraction			-> (TUIDef, [TaskAction]) 
+:: StepLayouter			:==	TUIStep					-> (TUIDef, [TaskAction])
 :: ParallelLayouter		:== TUIParallel				-> (TUIDef, [TaskAction])
 
 :: LayoutTweak			:== (TUIDef, [TaskAction])	-> (TUIDef, [TaskAction])
@@ -289,6 +297,9 @@ maximalInteractionLayout	:: InteractionLayouter
 fillInteractionLayout		:: InteractionLayouter
 
 singleViewLayout			:: TUISize !TUISize -> InteractionLayouter
+
+// Pre-defined step layouts
+defaultStepLayout			:: StepLayouter
 
 // Pre-defined parallel layouts
 defaultParallelLayout		:: ParallelLayouter
