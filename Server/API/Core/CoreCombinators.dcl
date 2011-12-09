@@ -54,9 +54,13 @@ constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 
 :: TaskStep a b
-	=		WhenStable	(a -> Task b)
-	| E.e:	Catch		(e -> Task b)		& iTask e
-	|		CatchAll	(String -> Task b)
+	=		AnyTime				Action				((Maybe a) -> Task b)
+	|		WithResult			Action	(a -> Bool)	(a -> Task b)		
+	|		WithoutResult		Action				(Task b)				
+	|		WhenValid					(a -> Bool)	(a -> Task b)
+	|		WhenStable								(a -> Task b)
+	| E.e:	Catch									(e -> Task b)		& iTask e
+	|		CatchAll								(String -> Task b)
 
 
 /**

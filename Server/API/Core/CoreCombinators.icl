@@ -73,55 +73,48 @@ where
 				= (context, iworld)
 	edit taskNr event context iworld
 		= (context, iworld)
-
 	//Eval left-hand side
 	eval taskNr _ event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
 		# taskaFuncs		= taskFuncs taska
-		# repAsA			= case repAs of	//Use representation settings from left-hand task 
+		# repAsA			= case repAs of		//Use representation settings from left-hand task 
 			(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taska in RepAsTUI ilayout playout
 			_				= RepAsService
 		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) repAsA cxta iworld
-		= case resa of
-			TaskInstable _ rep actions ncxta
-				= (TaskInstable Nothing (repOk 0 tuiTaskNr rep) actions (TCBind (Left ncxta)), iworld)
-			TaskStable a rep actions ncxta
-				//Find a suitable continuation
-				= case searchContStable a conts of
-					Just (sel,taskb)
-						# taskbfuncs	= taskFuncs taskb
-						# repAsB		= case repAs of
-							(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taskb in RepAsTUI ilayout playout
-							_				= RepAsService
-						# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
-						# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
-						= case resb of
-							TaskInstable mbb rep actions ncxtb	= (TaskInstable mbb (repOk 1 tuiTaskNr rep) actions (TCBind (Right (toJSON a,sel,ncxtb))),iworld)
-							TaskStable b rep actions ncxtb		= (TaskStable b rep actions ncxtb, iworld)
-							TaskException e str					= (TaskException e str, iworld)
-					_					
-						= (taskException "No continuation defined for completed tasks", iworld)
-			TaskException dyn str
-				= case searchContException dyn str conts of
-					Just (sel,taskb,enca)
-						# taskbfuncs	= taskFuncs taskb
-						# repAsB		= case repAs of
-							(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taskb in RepAsTUI ilayout playout
-							_				= RepAsService
-						# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
-						# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
-						= case resb of
-							TaskInstable mbb rep actions ncxtb	= (TaskInstable mbb (repOk 1 tuiTaskNr rep) actions (TCBind (Right (enca,sel,ncxtb))),iworld)
-							TaskStable b rep actions ncxtb		= (TaskStable b rep actions ncxtb, iworld)
-							TaskException e str					= (TaskException e str, iworld)
-					_
-						= (TaskException dyn str, iworld)
-
+		# mbcommit			= case event of
+			(Just (TaskEvent [] action))	= Just action
+			_								= Nothing
+		# mbCont			= case resa of
+			TaskInstable mba rep actions ncxta = case searchContInstable mba mbcommit conts of
+				Nothing			= Left (TaskInstable Nothing (repOk 0 tuiTaskNr rep) actions (TCBind (Left ncxta)))
+				Just rewrite	= Right rewrite
+			TaskStable a rep actions ncxta = case searchContStable a mbcommit conts of
+				Nothing			= Left (TaskInstable Nothing (repOk 0 tuiTaskNr rep) actions (TCBind (Left ncxta)))
+				Just rewrite	= Right rewrite
+			TaskException dyn str = case searchContException dyn str conts of
+				Nothing			= Left (TaskException dyn str)
+				Just rewrite	= Right rewrite
+		= case mbCont of
+			Left res	= (res,iworld)
+			Right (sel,taskb,enca)
+				# taskbfuncs	= taskFuncs taskb
+				# repAsB		= case repAs of
+						(RepAsTUI _ _)	= let (ilayout,playout)	= taskLayouters taskb in RepAsTUI ilayout playout
+						_				= RepAsService
+				# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
+				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
+				= case resb of
+					TaskInstable mbb rep actions ncxtb	= (TaskInstable mbb (repOk 1 tuiTaskNr rep) actions (TCBind (Right (enca,sel,ncxtb))),iworld)
+					TaskStable b rep actions ncxtb		= (TaskStable b rep actions ncxtb, iworld)
+					TaskException e str					= (TaskException e str, iworld)
 	//Eval right-hand side
 	eval taskNr _ event tuiTaskNr repAs (TCBind (Right (enca,sel,cxtb))) iworld
 		# mbTaskb = case conts !! sel of
-			(WhenStable taskbf)	= fmap taskbf (fromJSON enca)
-			(Catch taskbf)		= fmap taskbf (fromJSON enca)
-			(CatchAll taskbf)	= fmap taskbf (fromJSON enca)
+			(AnyTime _ taskbf)		= fmap taskbf (fromJSON enca)
+			(WithResult	_ _ taskbf)	= fmap taskbf (fromJSON enca)
+			(WithoutResult _ taskb)	= Just taskb
+			(WhenStable taskbf)		= fmap taskbf (fromJSON enca)
+			(Catch taskbf)			= fmap taskbf (fromJSON enca)
+			(CatchAll taskbf)		= fmap taskbf (fromJSON enca)
 		= case mbTaskb of
 			Just taskb
 				# repAsB			= case repAs of
@@ -138,11 +131,34 @@ where
 	eval taskNr _ event tuiTaskNr _ context iworld
 		= (taskException "Corrupt task context in step", iworld)
 
-	searchContStable a conts = search a 0 conts
+	searchContInstable mba mbcommit conts = search mba mbcommit 0 Nothing conts
 	where
-		search _ _ []				= Nothing
-		search a i [WhenStable f:_]	= Just (i,f a)
-		search a i [_:cs]			= search a (i + 1) cs
+		search _ _ _ mbmatch []							= mbmatch	//First matching trigger wins
+		search (Just a) mbcommit i mbmatch [WhenValid pred f:cs]
+			| pred a									= Just (i, f a, toJSON a)
+														= search (Just a) mbcommit (i + 1) mbmatch cs
+		search mba (Just commit) i Nothing [AnyTime action f:cs]
+			| commit == actionName action				= search mba (Just commit) (i + 1) (Just (i, f mba, toJSON mba)) cs
+														= search mba (Just commit) (i + 1) Nothing cs
+		search Nothing (Just commit) i Nothing [WithoutResult action taskb:cs]
+			| commit == actionName action				= search Nothing (Just commit) (i + 1) (Just (i, taskb, JSONNull)) cs
+														= search Nothing (Just commit) (i + 1) Nothing cs
+		search (Just a) (Just commit) i Nothing [WithResult action pred taskb:cs]
+			| commit == actionName action && pred a		= search (Just a) (Just commit) (i + 1) (Just (i, taskb a, toJSON a)) cs
+														= search (Just a) (Just commit) (i + 1) Nothing cs
+		search mba mbcommit i mbmatch [_:cs]			= search mba mbcommit (i + 1) mbmatch cs
+		
+	searchContStable a mbcommit conts = search a mbcommit 0 Nothing conts
+	where
+		search _ _ _ mbmatch []							= mbmatch
+		search a mbcommit i mbmatch [WhenStable f:_]	= Just (i,f a, toJSON a)	
+		search a (Just commit) i Nothing [AnyTime action f:cs]
+			| commit == actionName action				= search a (Just commit) (i + 1) (Just (i, f (Just a), toJSON (Just a))) cs
+														= search a (Just commit) (i + 1) Nothing cs
+		search a (Just commit) i Nothing [WithResult action pred f:cs]
+			| commit == actionName action && pred a		= search a (Just commit) (i + 1) (Just (i, f a, toJSON a)) cs
+														= search a (Just commit) (i + 1) Nothing cs
+		search a mbcommit i mbmatch [_:cs]				= search a mbcommit (i + 1) mbmatch cs
 	
 	searchContException dyn str conts = search dyn str 0 Nothing conts
 	where

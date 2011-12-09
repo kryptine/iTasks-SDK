@@ -177,7 +177,9 @@ where
 								= appFst TUIRep (mergeTUI props ilayout [tui \\ TUIRep tui <- reps] warning tactions)
 							_
 								= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), tactions)
-						= (TaskInstable Nothing rep actions context, iworld)
+						
+						# result		= Nothing//if valid (Just (local,fromOk model)) Nothing
+						= (TaskInstable result rep actions context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
 		= case getLocalVar LAST_EDIT_STORE context of
