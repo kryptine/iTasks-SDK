@@ -191,7 +191,7 @@ gVisualizeEditor{|CONS of d|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ eventValue vst=:{taskId,editEvent,currentPath,optional,controlSize,renderAsStatic}
 		# x = fmap fromCONS val
-		 = case isRecordCons d of
+		= case isRecordCons d of
 			False // normal ADT
 				# (viz,vst)	= fx x vst
 				= (tuiOfEditor viz, {VSt | vst & selectedConsIndex = d.gcd_index})
@@ -442,24 +442,6 @@ where
 	toControl name touched _ _ vst
 		= ([defaultDef (TUIHtml {TUIHtml|html = toString val})], vst)
 
-/*
-gVisualizeEditor{|DateTime|} val vst=:{VSt|currentPath}
-	# (dateViz,timeViz,vst) = case val of
-		Nothing
-			# (dateViz,vst) = gVisualizeEditor{|*|} noDate vst
-			# (timeViz,vst) = gVisualizeEditor{|*|} noTime vst
-			= (dateViz,timeViz,vst)
-		Just (DateTime date time)
-			# (dateViz,vst) = gVisualizeEditor{|*|} (Just date) vst
-			# (timeViz,vst) = gVisualizeEditor{|*|} (Just time) vst
-			= (dateViz,timeViz,vst)
-	= ([defaultDef (TUIContainer {TUIContainer|defaultLayoutContainer [hd dateViz, {hd timeViz & margins = leftMargin 5}] & direction = Horizontal})],vst)
-where
-	noDate :: Maybe Date
-	noDate = Nothing
-	noTime :: Maybe Time
-	noTime = Nothing
-*/	
 derive gVisualizeEditor DateTime
 	
 derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree

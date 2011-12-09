@@ -53,24 +53,33 @@ where
 		# taskaFuncs		= taskFuncs taska
 		# (inita,iworld)	= taskaFuncs.initFun [0:taskNr] iworld
 		= (TCBind (Left inita), iworld)
-
 	//Edit left-hand side
-	edit taskNr (TaskEvent [0:steps] (path,val)) context=:(TCBind (Left cxta)) iworld
-		# taskaFuncs		= taskFuncs taska
-		# (ncxta,iworld) = taskaFuncs.editFun [0:taskNr] (TaskEvent steps (path,val)) cxta iworld
-		= (TCBind (Left ncxta), iworld)
+	edit taskNr event context=:(TCBind (Left cxta)) iworld
+		= case stepEvent 0 (Just event) of
+			Just sevent
+				# taskaFuncs		= taskFuncs taska
+				# (ncxta,iworld) = taskaFuncs.editFun [0:taskNr] sevent cxta iworld
+				= (TCBind (Left ncxta), iworld)
+			_
+				= (context,iworld)
 	//Edit right-hand side
-	edit taskNr (TaskEvent [1:steps] (path,val)) context=:(TCBind (Right (enca, sel, cxtb))) iworld
-		# mbTaskb = case conts !! sel of
-			(WhenStable taskbf)	= fmap taskbf (fromJSON enca)
-			(Catch taskbf)		= fmap taskbf (fromJSON enca)
-			(CatchAll taskbf)	= fmap taskbf (fromJSON enca)
-		= case mbTaskb of
-			Just taskb
-				# (ncxtb,iworld)	= (taskFuncs taskb).editFun [1:taskNr] (TaskEvent steps (path,val)) cxtb iworld
-				= (TCBind (Right (enca, sel, ncxtb)), iworld)
-			Nothing
-				= (context, iworld)
+	edit taskNr event context=:(TCBind (Right (enca, sel, cxtb))) iworld
+		= case stepEvent 1 (Just event) of
+			Just sevent
+				# mbTaskb = case conts !! sel of
+					(AnyTime _ taskbf)		= fmap taskbf (fromJSON enca)
+					(WithResult	_ _ taskbf)	= fmap taskbf (fromJSON enca)
+					(WithoutResult _ taskb)	= Just taskb
+					(WhenStable taskbf)		= fmap taskbf (fromJSON enca)
+					(Catch taskbf)			= fmap taskbf (fromJSON enca)
+					(CatchAll taskbf)		= fmap taskbf (fromJSON enca)
+				= case mbTaskb of
+					Just taskb
+						# (ncxtb,iworld)	= (taskFuncs taskb).editFun [1:taskNr] sevent cxtb iworld
+						= (TCBind (Right (enca, sel, ncxtb)), iworld)
+					Nothing
+						= (context, iworld)
+			_	= (context, iworld)
 	edit taskNr event context iworld
 		= (context, iworld)
 	//Eval left-hand side
