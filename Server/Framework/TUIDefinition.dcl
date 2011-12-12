@@ -116,6 +116,7 @@ from Task			import	:: TaskAction
 	, halign			:: !TUIHAlign
 	, valign			:: !TUIVAlign
 	, padding			:: !Maybe Int
+	, purpose			:: !Maybe String
 	, baseCls			:: !Maybe String
 	}
 :: TUIPanel =
@@ -124,6 +125,7 @@ from Task			import	:: TaskAction
 	, halign			:: !TUIHAlign
 	, valign			:: !TUIVAlign
 	, padding			:: !Maybe Int
+	, purpose			:: !Maybe String
 	, title				:: !PanelTitle
 	, frame				:: !Bool
 	, menus				:: ![TUIMenuButton]
@@ -136,6 +138,7 @@ from Task			import	:: TaskAction
 	, halign			:: !TUIHAlign
 	, valign			:: !TUIVAlign
 	, padding			:: !Maybe Int
+	, purpose			:: !Maybe String
 	, baseCls			:: !Maybe String
 	}		
 :: TUITabContainer =
@@ -319,5 +322,8 @@ defaultContent				:: ![TUIDef] ![TUIDef]													-> [TUIDef]
 defaultInteractionIcon		:: !(Maybe InteractionTaskType) !Bool								-> PanelIcon
 defaultButtons				:: ![TaskAction]														-> (![TUIDef],![TaskAction])
 defaultMenus				:: ![TaskAction]														-> (![TUIMenuButton],![TaskAction])
+
+addButtons					:: ![TUIDef] TUIDef														-> TUIDef
+
 
 columnLayout				:: !Int ![TUIDef] 														-> TUIDef

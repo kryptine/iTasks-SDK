@@ -50,7 +50,7 @@ where
 			
 	terms {modelValue=v=:{x}} = UserActions [(ActionQuit,Just x)]
 	
-	calculatorLayout {title,editorParts=[display:stButtons],actions}
+	calculatorLayout {TUIInteraction|title,content=[display:stButtons],actions}
 		# (buttons,actions) = defaultButtons actions
 		= ( defaultPanel
 			title

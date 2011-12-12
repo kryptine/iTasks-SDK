@@ -11,6 +11,7 @@ import File
 import FilePath
 import Directory
 import Text
+import TaskContext
 
 from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Environment, Index, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
 from LaTeX import qualified :: LaTeX (Text)
@@ -414,4 +415,4 @@ createDocumentTask name mime content = mkInstantTask "Create document" create
 where
 	create taskNr iworld
 		# (res,iworld)	= createDocument name mime content iworld
-		= (TaskFinished res,iworld)
+		= (TaskStable res (NoRep,[]) TCEmpty,iworld)

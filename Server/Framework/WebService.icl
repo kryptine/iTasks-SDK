@@ -47,9 +47,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
 					Ok (TaskException _ err,_)
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					Ok (TaskStable _ _ _ _,_)
+					Ok (TaskStable _ _ _,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (TaskInstable _ mbCurrentTui actions context,SessionProcess sessionId)
+					Ok (TaskInstable _ (mbCurrentTui,actions) context,SessionProcess sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
 							(Ok (previousTui,previousTimestamp),TUIRep currentTui)
 								| previousTimestamp == Timestamp (toInt timestampParam) 
@@ -87,11 +87,11 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			= case mbResult of
 				Ok (TaskException _ err,_)
 					= (errorResponse err, iworld)
-				Ok (TaskStable val _ _ _,_)
+				Ok (TaskStable val _ _,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (TaskInstable _ (ServiceRep rep) actions _,_)
+				Ok (TaskInstable _ (ServiceRep rep,actions) _,_)
 					= (jsonResponse (serviceBusyResponse rep actions), iworld)
-				Ok (TaskInstable _ _ _ _,_)
+				Ok (TaskInstable _ _ _,_)
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
@@ -103,7 +103,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			= case mbResult of
 				Ok (TaskException _ err,_)
 					= (errorResponse err, iworld)
-				Ok (TaskStable val _ _ _,_)
+				Ok (TaskStable val _ _,_)
 					= (plainDoneResponse val, iworld)
 				_
 					= (errorResponse "Requested service format not available for this task", iworld)

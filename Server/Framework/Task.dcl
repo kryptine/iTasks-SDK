@@ -60,8 +60,8 @@ derive gPutRecordFields	Task
 :: CommitEvent		:== Event String					//Action name
 
 
-:: TaskResult a		= TaskInstable	!(Maybe a)	!TaskRep ![TaskAction] !TaskContextTree
-					| TaskStable	!a			!TaskRep ![TaskAction] !TaskContextTree
+:: TaskResult a		= TaskInstable	!(Maybe a)	(!TaskRep,![TaskAction]) !TaskContextTree
+					| TaskStable	!a			(!TaskRep,![TaskAction]) !TaskContextTree
 					| TaskException	!Dynamic !String
 
 :: TaskRep

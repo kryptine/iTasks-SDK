@@ -35,9 +35,9 @@ where
 	where
 		evalFun` taskNo meta event target repAs cxt iworld
 			= case evalFun taskNo meta event target repAs cxt iworld of
-				(TaskStable a rep actions cxt, iworld)		= (TaskStable (f a) rep actions cxt, iworld)
-				(TaskInstable mba rep actions cxt, iworld)	= (TaskInstable (fmap f mba) rep actions cxt, iworld)
-				(TaskException e str, iworld)				= (TaskException e str, iworld)
+				(TaskStable a rep cxt, iworld)		= (TaskStable (f a) rep cxt, iworld)
+				(TaskInstable mba rep cxt, iworld)	= (TaskInstable (fmap f mba) rep cxt, iworld)
+				(TaskException e str, iworld)		= (TaskException e str, iworld)
 
 	updateActionFun :: (a -> b) ((TermFunc a c) -> (TaskFuncs c)) -> ((TermFunc b c) -> (TaskFuncs c)) | iTask c
 	updateActionFun f actionFun = \termFun -> actionFun (updateTermFun f termFun)
@@ -83,7 +83,7 @@ where
 	edit taskNr event context iworld
 		= (context, iworld)
 	//Eval left-hand side
-	eval taskNr _ event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
+	eval taskNr tmeta event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
 		# taskaFuncs		= taskFuncs taska
 		# repAsA			= case repAs of		//Use representation settings from left-hand task 
 			(RepAsTUI _ _ _)= let (ilayout,slayout,playout)	= taskLayouters taska in RepAsTUI ilayout slayout playout
@@ -93,17 +93,17 @@ where
 			(Just (TaskEvent [] action))	= Just action
 			_								= Nothing
 		# mbCont			= case resa of
-			TaskInstable mba rep actions ncxta = case searchContInstable mba mbcommit conts of
-				Nothing			= Left (TaskInstable Nothing (repOk 0 tuiTaskNr rep) actions (TCBind (Left ncxta)))
+			TaskInstable mba (rep,actions) ncxta = case searchContInstable mba mbcommit conts of
+				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr tmeta repAs rep actions mba)  (TCBind (Left ncxta)))
 				Just rewrite	= Right rewrite
-			TaskStable a rep actions ncxta = case searchContStable a mbcommit conts of
-				Nothing			= Left (TaskInstable Nothing (repOk 0 tuiTaskNr rep) actions (TCBind (Left ncxta)))
+			TaskStable a (rep,actions) ncxta = case searchContStable a mbcommit conts of
+				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr tmeta repAs rep actions (Just a)) (TCBind (Left ncxta)))
 				Just rewrite	= Right rewrite
 			TaskException dyn str = case searchContException dyn str conts of
 				Nothing			= Left (TaskException dyn str)
 				Just rewrite	= Right rewrite
 		= case mbCont of
-			Left res	= (res,iworld)
+			Left res = (res,iworld)
 			Right (sel,taskb,enca)
 				# taskbfuncs	= taskFuncs taskb
 				# repAsB		= case repAs of
@@ -112,9 +112,9 @@ where
 				# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
 				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
 				= case resb of
-					TaskInstable mbb rep actions ncxtb	= (TaskInstable mbb (repOk 1 tuiTaskNr rep) actions (TCBind (Right (enca,sel,ncxtb))),iworld)
-					TaskStable b rep actions ncxtb		= (TaskStable b rep actions ncxtb, iworld)
-					TaskException e str					= (TaskException e str, iworld)
+					TaskInstable mbb (rep,actions) ncxtb	= (TaskInstable mbb (rep,actions) (TCBind (Right (enca,sel,ncxtb))),iworld)
+					TaskStable b (rep,actions) ncxtb		= (TaskStable b (rep,actions) ncxtb, iworld)
+					TaskException e str						= (TaskException e str, iworld)
 	//Eval right-hand side
 	eval taskNr _ event tuiTaskNr repAs (TCBind (Right (enca,sel,cxtb))) iworld
 		# mbTaskb = case conts !! sel of
@@ -131,9 +131,9 @@ where
 					_					= RepAsService
 				# (resb, iworld)	= (taskFuncs taskb).evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
 				= case resb of
-					TaskInstable mbb rep actions ncxtb	= (TaskInstable mbb (repOk 1 tuiTaskNr rep) actions (TCBind (Right (enca,sel,ncxtb))),iworld)
-					TaskStable b rep actions ncxtb		= (TaskStable b rep actions ncxtb, iworld)
-					TaskException e str					= (TaskException e str, iworld)
+					TaskInstable mbb (rep,actions) ncxtb	= (TaskInstable mbb (rep, actions) (TCBind (Right (enca,sel,ncxtb))),iworld)
+					TaskStable b (rep,actions) ncxtb		= (TaskStable b (rep,actions) ncxtb, iworld)
+					TaskException e str						= (TaskException e str, iworld)
 			Nothing
 				= (taskException "Corrupt task value in step", iworld) 	
 	//Incorred state
@@ -181,13 +181,26 @@ where
 		match :: (e -> Task b) Dynamic -> Maybe (Task b, JSONNode) | iTask e
 		match f (e :: e^)	= Just (f e, toJSON e)
 		match _ _			= Nothing 
-		
-	//Check that when we want the TUI of a sub task that it is on the path
-	repOk i [] rep		= rep
-	repOk i [t:ts] rep	
-		| i == t	= rep
-		| otherwise	= NoRep
+	
+	addStepActions taskNr tmeta RepAsService rep actions mba
+			= (rep, actions ++ stepActions taskNr mba)
+	addStepActions taskNr tmeta (RepAsTUI _ slayout _) rep actions mba = case rep of
+		(TUIRep tui)
+			# (tui,actions) = slayout {TUIStep|title=tmeta.TaskMeta.title,instruction=tmeta.TaskMeta.instruction,content=tui,actions=actions,steps=stepActions taskNr mba}
+			= (TUIRep tui, actions)
+		_	= (rep, actions ++ stepActions taskNr mba)
+	
+	stepActions taskNo mba = stepActions` conts
+	where
+		taskId = taskNrToString taskNo
+		stepActions` [] = []
+		stepActions` [AnyTime action _:cs]			= [(taskId,action,True):stepActions` cs]
+		stepActions` [WithResult action pred _:cs]	= [(taskId,action,maybe False pred mba):stepActions` cs]
+		stepActions` [WithoutResult action _:cs]	= [(taskId,action,isNothing mba):stepActions` cs]
+		stepActions` [_:cs]							= stepActions` cs
 
+	
+	
 // Parallel composition
 INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
 
@@ -296,17 +309,17 @@ where
 		= case resultset of
 			//Exception
 			RSException e str	= (TaskException e str, iworld)
-			RSStopped 			= (TaskStable (resultFun Stopped state) NoRep [] TCEmpty, iworld)
+			RSStopped 			= (TaskStable (resultFun Stopped state) (NoRep,[]) TCEmpty, iworld)
 			RSResults results
 				| allFinished results
-					= (TaskStable (resultFun AllRunToCompletion state) NoRep [] TCEmpty, iworld)
+					= (TaskStable (resultFun AllRunToCompletion state)(NoRep,[]) TCEmpty, iworld)
 				| otherwise
 					# encState			= encodeState state initState
 					# (rep,actions)		= case repAs of
 						(RepAsTUI _ _ playout)	= (mergeTUIs taskNr playout tuiTaskNr meta results)
 						(RepAsService)			= (ServiceRep [],[]) //TODO
 					# subs				= mergeContexts results
-					= (TaskInstable Nothing rep actions (TCParallel encState pmeta subs), iworld)
+					= (TaskInstable Nothing (rep,actions) (TCParallel encState pmeta subs), iworld)
 		
 	//Keep evaluating tasks and updating the state until there are no more subtasks
 	//subtasks
@@ -321,8 +334,8 @@ where
 				# (ilayout,slayout,playout)	= taskLayouters task
 				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout slayout playout) context iworld 
 				= case result of
-					TaskInstable mbr rep actions context	= (TaskInstable mbr rep actions context, STCEmbedded tmeta (Just (encTask, context)), iworld)
-					TaskStable r rep actions context		= (TaskStable r rep actions context, STCEmbedded tmeta Nothing, iworld)
+					TaskInstable mbr (rep,actions) context	= (TaskInstable mbr (rep,actions) context, STCEmbedded tmeta (Just (encTask, context)), iworld)
+					TaskStable r (rep,actions) context		= (TaskStable r (rep,actions) context, STCEmbedded tmeta Nothing, iworld)
 					TaskException e str						= (TaskException e str, STCEmbedded tmeta Nothing, iworld)
 			(STCDetached taskId tmeta pmeta mmeta (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
@@ -337,12 +350,12 @@ where
 					[t] | t == idx	= {pmeta & firstEvent = Just (fromMaybe localDateTime pmeta.firstEvent), latestEvent = Just localDateTime}
 					_				= pmeta
 				= case result of
-					TaskInstable mbr rep actions context	= (TaskInstable mbr rep actions context, STCDetached taskId tmeta pmeta mmeta (Just (encTask, context)), iworld)
-					TaskStable r rep actions context		= (TaskStable r rep actions context, STCDetached taskId tmeta (markFinished pmeta) mmeta Nothing, iworld)
+					TaskInstable mbr (rep,actions) context	= (TaskInstable mbr (rep,actions) context, STCDetached taskId tmeta pmeta mmeta (Just (encTask, context)), iworld)
+					TaskStable r (rep,actions) context		= (TaskStable r (rep,actions) context, STCDetached taskId tmeta (markFinished pmeta) mmeta Nothing, iworld)
 					TaskException e str						= (TaskException e str, STCDetached taskId tmeta (markExcepted pmeta) mmeta Nothing, iworld)		
 			_
 				//This task is already completed
-				= (TaskStable Continue NoRep [] TCEmpty, stcontext, iworld)
+				= (TaskStable Continue (NoRep,[]) TCEmpty, stcontext, iworld)
 		//Check for exception
 		| isException result
 			# (TaskException dyn str) = result
@@ -483,11 +496,11 @@ where
 	isException (TaskException _ _)	= True
 	isException _					= False
 	
-	isStopped	(TaskStable Stop _ _ _)			= True
+	isStopped	(TaskStable Stop _ _)			= True
 	isStopped	_								= False
 	
 	allFinished []								= True
-	allFinished [(_,_,TaskStable _ _ _ _,_):rs]	= allFinished rs
+	allFinished [(_,_,TaskStable _ _ _,_):rs]	= allFinished rs
 	allFinished _								= False
 	
 	markFinished pmeta
@@ -506,7 +519,7 @@ where
 	mergeTUIs taskNr pmerge tuiTaskNr pmeta contexts
 		= case tuiTaskNr of
 			[]
-				# items		= [(i,o,getMeta subContext,getTui subContext mbTui,actions) \\(i,o,TaskInstable _ mbTui actions _,subContext) <- contexts | not (isDetached subContext)]
+				# items		= [(i,o,getMeta subContext,getTui subContext mbTui,actions) \\(i,o,TaskInstable _ (mbTui,actions) _,subContext) <- contexts | not (isDetached subContext)]
 				# (tui,actions) =
 					pmerge {TUIParallel
 				 		 |taskId = taskNrToString taskNr
@@ -530,7 +543,7 @@ where
 					
 			//We want to show the TUI of one of the detached tasks in this set
 			[t]
-				= case [(tui,actions) \\ (i,o,TaskInstable _ (TUIRep tui) actions _,STCDetached _ _ _ _ _) <- contexts | i == t] of
+				= case [(tui,actions) \\ (i,o,TaskInstable _ (TUIRep tui, actions) _,STCDetached _ _ _ _ _) <- contexts | i == t] of
 					[(tui,actions)]
 						= (TUIRep tui,actions)
 					_
@@ -539,7 +552,7 @@ where
 				
 			//We want to show the TUI of a task inside the parallel set
 			[t:ts]
-				= case [(tui,actions) \\ (i,o,TaskInstable _ (TUIRep tui) actions _,_) <- contexts | i == t] of
+				= case [(tui,actions) \\ (i,o,TaskInstable _ (TUIRep tui, actions) _,_) <- contexts | i == t] of
 					[(tui,actions)]	= (TUIRep tui,actions)
 					_				= (NoRep,[])
 	
@@ -618,7 +631,7 @@ where
 						= (next,iworld)
 					_				= (nextIdx,iworld)
 				# parallelControls = 'Map'.put identity (nextIdx + 1, controls ++ [AppendTask nextIdx currentUser (dynamic container :: TaskContainer s^)]) parallelControls 
-				= (TaskStable nextIdx NoRep [] TCEmpty, {iworld & parallelControls = parallelControls, readShares = Nothing})
+				= (TaskStable nextIdx (NoRep,[]) TCEmpty, {iworld & parallelControls = parallelControls, readShares = Nothing})
 			_
 				= (taskException ("Task list " +++ identity +++ " is not in scope"), iworld)
 	
@@ -633,7 +646,7 @@ where
 		= case 'Map'.get identity parallelControls of
 			Just (nextIdx,controls)
 				# parallelControls = 'Map'.put identity (nextIdx, controls ++ [RemoveTask idx]) parallelControls
-				= (TaskStable Void NoRep [] TCEmpty, {iworld & parallelControls = parallelControls })
+				= (TaskStable Void (NoRep,[]) TCEmpty, {iworld & parallelControls = parallelControls })
 			_
 				= (taskException ("Task list " +++ identity +++ " is not in scope"), iworld)
 	where

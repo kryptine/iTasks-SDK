@@ -65,7 +65,7 @@ accu accufun task tlist
 transform :: !(a -> b) !a -> Task b | iTask b
 transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") eval
 where
-	eval taskNr iworld = (TaskStable (f x) NoRep [] TCEmpty, iworld)
+	eval taskNr iworld = (TaskStable (f x) (NoRep,[]) TCEmpty, iworld)
 	
 /*
 * When a task is assigned to a user a synchronous task instance process is created.

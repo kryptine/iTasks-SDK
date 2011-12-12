@@ -16,6 +16,7 @@ defaultLayoutContainer items =	{TUIContainer
 								, halign		= AlignLeft
 								, valign		= AlignTop
 								, padding		= Nothing
+								, purpose		= Nothing
 								, baseCls		= Nothing
 								}
 defaultLayoutPanel :: ![TUIDef] -> TUIPanel
@@ -25,6 +26,7 @@ defaultLayoutPanel items =	{TUIPanel
 							, halign		= AlignLeft
 							, valign		= AlignTop
 							, padding		= Nothing
+							, purpose		= Nothing
 							, title			= ""
 							, frame			= False
 							, menus			= []
@@ -38,6 +40,7 @@ defaultLayoutWindow items =	{TUIWindow
 							, halign		= AlignLeft
 							, valign		= AlignTop
 							, padding		= Nothing
+							, purpose		= Nothing
 							, baseCls		= Nothing
 							}
 
@@ -81,21 +84,21 @@ fixedWidth	:: !Int !TUIDef -> TUIDef
 fixedWidth size def = {def & width = Just (Fixed size)}
 
 hjoin :: ![TUIDef] -> TUIDef
-hjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Horizontal, halign = AlignLeft, valign = AlignMiddle, padding = Nothing, baseCls = Nothing})
+hjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Horizontal, halign = AlignLeft, valign = AlignMiddle, padding = Nothing, purpose = Nothing, baseCls = Nothing})
 
 vjoin :: ![TUIDef] -> TUIDef
-vjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls = Nothing})
+vjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, purpose = Nothing, baseCls = Nothing})
 
 vsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef
 vsplit split top bottom 
 	= fillDef (TUIContainer {TUIContainer|items = [fillWidth (fixedHeight split (vjoin top)), fillWidth (fillHeight (vjoin bottom))], direction = Vertical
-							, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls = Nothing})
+							, halign = AlignLeft, valign = AlignTop, padding = Nothing, purpose = Nothing, baseCls = Nothing})
 
 
 hsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef 
 hsplit split left right
 	= fillDef (TUIContainer {TUIContainer|items = [fixedWidth split (fillHeight (vjoin left)), fillWidth (fillHeight (vjoin right))], direction = Horizontal
-							, halign = AlignLeft, valign = AlignTop, padding = Nothing, baseCls = Nothing})
+							, halign = AlignLeft, valign = AlignTop, padding = Nothing, purpose = Nothing, baseCls = Nothing})
 
 
 defaultInteractionLayout :: InteractionLayouter
@@ -193,25 +196,29 @@ singleViewLayout width height = \{TUIInteraction|content,actions}
 	-> (setSize width height (hd content),actions)
 	
 defaultContent :: ![TUIDef] ![TUIDef] -> [TUIDef]
-defaultContent editor buttons = [defaultContentPanel (editorContainer editor ++ buttonContainer buttons)]
-where
-	// also add editor container if editor is empty, it's needed as spacer such that buttons are placed at the bottom of the panel
-	editorContainer []		= []
-	editorContainer	editor	= [	{ content	= TUIContainer (defaultLayoutContainer editor)
-								, width		= Just (FillParent 1 ContentSize)
-								, height	= Just (FillParent 1 ContentSize)
-								, margins	= Nothing
-								}]
-	buttonContainer buttons
-		| isEmpty buttons	= []
-		| otherwise			= [	{ content	= TUIContainer {TUIContainer|defaultLayoutContainer buttons & direction = Horizontal, halign = AlignRight}
-								, width		= Just (FillParent 1 ContentSize)
-								, height	= Just (WrapContent 0)
-								, margins	= Nothing
-								}]
+defaultContent editor buttons = editorContainer editor ++ buttonContainer buttons
+
+editorContainer :: ![TUIDef] -> [TUIDef]
+editorContainer []		= []
+editorContainer	editor	= [	{ content	= TUIContainer (defaultLayoutContainer editor)
+							, width		= Just (FillParent 1 ContentSize)
+							, height	= Just (FillParent 1 ContentSize)
+							, margins	= Nothing
+							}]
+
+buttonContainer :: ![TUIDef] -> [TUIDef]
+buttonContainer buttons
+	| isEmpty buttons	= []
+	| otherwise			= [	{ content	= TUIContainer {TUIContainer|defaultLayoutContainer buttons & direction = Horizontal, halign = AlignRight, purpose = Just "buttons"}
+							, width		= Just (FillParent 1 ContentSize)
+							, height	= Just (WrapContent 0)
+							, margins	= Nothing
+							}]
 
 defaultStepLayout :: StepLayouter
-defaultStepLayout = \{TUIStep|content,actions,steps} -> (content, actions ++ steps)
+defaultStepLayout = \{TUIStep|content,actions,steps} -> case defaultButtons steps of
+	([],[])				= (content, actions ++ steps)
+	(buttons,nactions)	= (addButtons buttons content,actions ++ nactions)
 
 defaultParallelLayout :: ParallelLayouter
 defaultParallelLayout = \{TUIParallel|title,instruction,items}->
@@ -280,7 +287,17 @@ where
 		| action === ActionClose	= (if enabled (Just (actionName action,taskId)) Nothing, (reverse acc) ++ actions)
 		| otherwise					= findCloseAction actions [taskAction:acc]
 
-
+columnLayout :: !Int ![TUIDef] -> TUIDef
+columnLayout nCols items
+	# cols = repeatn nCols []
+	# cols = columnLayout` items cols
+	# cols = map (\col -> {content = TUIContainer {TUIContainer|defaultLayoutContainer col & direction = Vertical}, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing}) cols
+	= {content = TUIContainer {TUIContainer|defaultLayoutContainer cols & direction = Horizontal}, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing}
+where
+	columnLayout` items cols = case splitAt nCols items of
+		([],_)	= map reverse cols
+		(row,r)	= columnLayout` r (map (\(item,col) -> [item:col]) (zip2 row cols))
+		
 defaultPanelDescr :: !PanelTitle !PanelIcon !(Maybe String) !(Maybe String) !TUISize ![TUIDef] -> TUIDef
 defaultPanelDescr title iconCls instruction mbWarning width form = defaultPanel title iconCls width ((case defaultDescriptionPanel instruction mbWarning of Just desc = [desc]; Nothing = []) ++ form)
 
@@ -407,13 +424,22 @@ where
 
 	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
 
-columnLayout :: !Int ![TUIDef] -> TUIDef
-columnLayout nCols items
-	# cols = repeatn nCols []
-	# cols = columnLayout` items cols
-	# cols = map (\col -> {content = TUIContainer {TUIContainer|defaultLayoutContainer col & direction = Vertical}, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing}) cols
-	= {content = TUIContainer {TUIContainer|defaultLayoutContainer cols & direction = Horizontal}, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing}
+//Add buttons to an existing interface. If there it is a container that has a "button" container in it add the buttons to that
+//If it is a container, but without a button container add a new button container, else
+addButtons :: ![TUIDef] TUIDef -> TUIDef
+addButtons buttons def=:{TUIDef|content} = case content of
+	(TUIContainer c=:{TUIContainer|items})
+		= {TUIDef|def & content = TUIContainer {TUIContainer|c & items = addToButtonContainer buttons items}}
+	(TUIPanel c=:{TUIPanel|items})
+		= {TUIDef|def & content = TUIPanel {TUIPanel|c & items = addToButtonContainer buttons items}}
+	_	
+		= defaultDef (TUIContainer (defaultLayoutContainer [def:buttonContainer buttons]))
 where
-	columnLayout` items cols = case splitAt nCols items of
-		([],_)	= map reverse cols
-		(row,r)	= columnLayout` r (map (\(item,col) -> [item:col]) (zip2 row cols))
+	addToButtonContainer buttons [] = buttonContainer buttons
+	addToButtonContainer buttons [i=:{TUIDef|content}:is] = case content of
+		(TUIContainer c=:{TUIContainer|items,purpose=Just "buttons"})
+			= [{TUIDef|i & content = TUIContainer {TUIContainer|c & items = items ++ buttons}}:is]
+		(TUIPanel c=:{TUIPanel|items,purpose=Just "buttons"})
+			= [{TUIDef|i & content = TUIPanel {TUIPanel|c & items = items ++ buttons}}:is]
+		_
+			= [i:addToButtonContainer buttons is]

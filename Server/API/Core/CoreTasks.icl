@@ -27,7 +27,7 @@ JSONDecode{|StoredPutback|} _ _ [json:r]		= (dynamicJSONDecode json,r)
 JSONDecode{|StoredPutback|} _ _ c				= (Nothing,c)
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskStable a NoRep [] TCEmpty, iworld))
+return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskStable a (NoRep,[]) TCEmpty, iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
 throw e = mkInstantTask ("throw", "Throw an exception") (\_ iworld -> (TaskException (dynamic e) (toString e), iworld))
@@ -54,7 +54,7 @@ where
 	eval taskNr iworld
 		# (val,iworld) = 'Shared'.readShared shared iworld
 		# res = case val of
-			Ok val	= TaskStable val NoRep [] TCEmpty
+			Ok val	= TaskStable val (NoRep,[]) TCEmpty
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
@@ -64,7 +64,7 @@ where
 	eval taskNr iworld
 		# (res,iworld)	='Shared'.writeShared shared val iworld
 		# res = case res of
-			Ok _	= TaskStable val NoRep [] TCEmpty
+			Ok _	= TaskStable val (NoRep,[]) TCEmpty
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
@@ -74,7 +74,7 @@ where
 	eval taskNr iworld
 		# (val,iworld)	= 'Shared'.updateShared shared fun iworld
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
-		= (TaskStable (fromOk val) NoRep [] TCEmpty, iworld)
+		= (TaskStable (fromOk val) (NoRep,[]) TCEmpty, iworld)
 
 interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
 interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
@@ -162,10 +162,10 @@ where
 		# (reps,newParts,valid,iworld)	= visualizeParts taskNr repAs parts storedParts mbEvent iworld
 		# context 						= setLocalVar PARTS_STORE newParts context
 		= case termFunc {modelValue = (local,fromOk model), localValid = valid} of
-			StopInteraction result		= (TaskStable result NoRep [] TCEmpty, iworld)
+			StopInteraction result		= (TaskStable result (NoRep,[]) TCEmpty, iworld)
 			UserActions actions
 				= case getActionResult event actions of
-					Just result			= (TaskStable result NoRep [] TCEmpty, iworld)
+					Just result			= (TaskStable result (NoRep,[]) TCEmpty, iworld)
 					Nothing
 						# warning = case (getLocalVar EDIT_CONFLICT_STORE context) of
 							Just True	= Just EDIT_CONFLICT_WARNING
@@ -179,7 +179,7 @@ where
 								= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), tactions)
 						
 						# result		= Nothing//if valid (Just (local,fromOk model)) Nothing
-						= (TaskInstable result rep actions context, iworld)
+						= (TaskInstable result (rep,actions) context, iworld)
 						
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
 		= case getLocalVar LAST_EDIT_STORE context of
@@ -345,7 +345,7 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally processId iworld
 			| found
-				= (TaskInstable Nothing (TUIRep (stringDisplay "Task finished")) [] TCEmpty, {iworld & readShares = Nothing})
+				= (TaskInstable Nothing (TUIRep (stringDisplay "Task finished"),[]) TCEmpty, {iworld & readShares = Nothing})
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
@@ -359,21 +359,21 @@ where
 				//Store context
 				# iworld		= storeTaskInstance context iworld
 				# (state,tui,sactions,iworld) = case result of
-					(TaskInstable _ rep actions _)	= (WOActive, rep, actions, iworld)
-					(TaskStable _ rep actions _)	= (WOFinished, rep, actions, iworld)
-					(TaskException _ err)			= (WOExcepted, TUIRep (stringDisplay ("Task excepted: " +++ err)), [], iworld)
+					(TaskInstable _ (rep,actions) _)	= (WOActive, rep, actions, iworld)
+					(TaskStable _ (rep,actions) _)		= (WOFinished, rep, actions, iworld)
+					(TaskException _ err)				= (WOExcepted, TUIRep (stringDisplay ("Task excepted: " +++ err)), [], iworld)
 				//Check trigger
 				= case termFunc {localValid = True, modelValue = state} of
 					StopInteraction result
-						= (TaskStable result NoRep [] TCEmpty, iworld)
+						= (TaskStable result (NoRep,[]) TCEmpty, iworld)
 					UserActions uactions	
 						= case getActionResult event uactions of
 							Just result
-								= (TaskStable result NoRep [] TCEmpty, iworld)
+								= (TaskStable result (NoRep,[]) TCEmpty, iworld)
 							Nothing
 								# taskId			= taskNrToString taskNr
 								# tactions			= [(taskId,action,isJust val) \\ (action,val) <- uactions]
-								= (TaskInstable Nothing tui (sactions ++ tactions) TCEmpty,iworld)
+								= (TaskInstable Nothing (tui, sactions ++ tactions) TCEmpty,iworld)
 
 	changeNo (TaskContext _ _ _ _ n _) = n
 
@@ -408,14 +408,14 @@ appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask ("Run world function", "Run a world function.") eval
 where
 	eval taskNr iworld=:{IWorld|world}
-		= (TaskStable Void NoRep [] TCEmpty, {IWorld|iworld & world = fun world})
+		= (TaskStable Void (NoRep,[]) TCEmpty, {IWorld|iworld & world = fun world})
 		
 accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
 accWorld fun = mkInstantTask ("Run world function", "Run a world function and get result.") eval
 where
 	eval taskNr iworld=:{IWorld|world}
 		# (res,world) = fun world
-		= (TaskStable res NoRep [] TCEmpty, {IWorld|iworld & world = world})
+		= (TaskStable res (NoRep,[]) TCEmpty, {IWorld|iworld & world = world})
 	
 accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 accWorldError fun errf = mkInstantTask ("Run a world function", "Run a world function with error handling.") eval
@@ -424,7 +424,7 @@ where
 		# (res,world)	= fun world
 		= case res of
 			Error e		= (taskException (errf e), {IWorld|iworld & world = world})
-			Ok v		= (TaskStable v NoRep [] TCEmpty, {IWorld|iworld & world = world})
+			Ok v		= (TaskStable v (NoRep,[]) TCEmpty, {IWorld|iworld & world = world})
 	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException

@@ -76,7 +76,7 @@ where
 												})
 						_					= (ServiceRep [(taskNrToString taskNr, 0, JSONNull)], [])
 					
-					= (TaskInstable Nothing rep actions context,{IWorld|iworld & world = world})
+					= (TaskInstable Nothing (rep,actions) context,{IWorld|iworld & world = world})
 				# (res, world) = 'File'.readFile outfile world
 				| isError res
 					//Failed to read file
@@ -87,7 +87,7 @@ where
 						= (taskException (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
 					Just async	
 						| async.AsyncResult.success
-							= (TaskStable async.AsyncResult.exitcode NoRep [] TCEmpty, {IWorld|iworld & world = world})
+							= (TaskStable async.AsyncResult.exitcode (NoRep,[]) TCEmpty, {IWorld|iworld & world = world})
 						| otherwise
 							= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 			//Error during initialization
@@ -135,7 +135,7 @@ where
 						, outfile
 						, url
 						]
-		= (TaskStable (cmd,args,outfile) NoRep [] TCEmpty, {IWorld|iworld & world = world})
+		= (TaskStable (cmd,args,outfile) (NoRep,[]) TCEmpty, {IWorld|iworld & world = world})
 	
 	mkFileName :: !TaskNr !String -> String
 	mkFileName taskNr part = iTaskId taskNr ("-rpc-" +++ part)
@@ -223,7 +223,7 @@ sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send o
 where
 	eval taskNr iworld=:{IWorld|currentUser,config}
 		# iworld = foldr (sendSingle config.smtpServer (toEmail currentUser)) iworld recipients
-		= (TaskStable recipients NoRep [] TCEmpty, iworld)
+		= (TaskStable recipients (NoRep,[]) TCEmpty, iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]
