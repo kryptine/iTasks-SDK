@@ -11,7 +11,7 @@ import Shared
 
 from Util				import currentTimestampError
 from CoreTasks			import return
-from CommonCombinators	import >>=, >>|, transform
+from CommonCombinators	import >>=, >>|
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess
@@ -65,16 +65,20 @@ where
 				| not exists
 					//Still busy
 					# (rep,actions) = case repAs of
-						(RepAsTUI ilayout _ _) = appFst TUIRep (ilayout
-												{ title = props.TaskMeta.title
-								 				, instruction = props.TaskMeta.instruction
-												, content = []
-												, actions = []
-												, type = props.interactionType
-												, localInteraction = props.TaskMeta.localInteraction
-												, warning = Nothing
-												})
-						_					= (ServiceRep [(taskNrToString taskNr, 0, JSONNull)], [])
+						(RepAsTUI layout)
+							# ilayout = case layout of
+								(InteractionLayouter ilayout)	= ilayout
+								_								= defaultInteractionLayout
+							= appFst TUIRep (ilayout
+								{ title = props.TaskMeta.title
+								, instruction = props.TaskMeta.instruction
+								, content = []
+								, actions = []
+								, type = props.interactionType
+								, localInteraction = props.TaskMeta.localInteraction
+								, warning = Nothing
+								})
+						_	= (ServiceRep [(taskNrToString taskNr, 0, JSONNull)], [])
 					
 					= (TaskInstable Nothing (rep,actions) context,{IWorld|iworld & world = world})
 				# (res, world) = 'File'.readFile outfile world

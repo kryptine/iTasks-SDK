@@ -443,8 +443,8 @@ getRoles			:: !User -> [Role]
 						}
 :: TermFunc a b :== (InformationState a) -> InteractionTerminators b
 
-:: InteractionTerminators a	= UserActions		![(!Action,!Maybe a)]	// A list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
-							| StopInteraction	!a						// The task stops and produces result a
+:: InteractionTerminators a	= UserActions		!(Maybe a) ![(!Action,!Maybe a)]	// A 'current value' and a list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
+							| StopInteraction	!a									// The task stops and produces result a
 							
 /*
 * To allow users to specify a followup action to their current task

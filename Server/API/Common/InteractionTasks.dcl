@@ -344,17 +344,3 @@ waitForTimer	:: !Time			-> Task Time
 * @gin False
 */
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
-
-/**
-* Ask the user to choose an action. The list of actions is calculated dynamically.
-*
-* @param ReadWriteShared:		Reference to a shared state the actions depend on
-* @param Termination function:	A function generating terminators for the task. So the task can either provide user actions or trigger an action automatically.
-*
-*
-* @return 						Value associated with chosen action
-* @throws						SharedException
-* 
-* @gin False
-*/						
-chooseActionDyn :: !(r -> InteractionTerminators a) !(ReadWriteShared r w) -> Task a | iTask a & iTask r & iTask w

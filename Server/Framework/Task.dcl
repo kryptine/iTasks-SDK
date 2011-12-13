@@ -23,7 +23,7 @@ derive gPutRecordFields	Task
 // Tasks
 :: Task a =
 	{ meta					:: !TaskMeta		//The task's general properties	
-	, def					:: !(TaskDef a)		//The task's definition
+	, def					:: !(TaskFuncs a)	//The task's definition
 	, layout				:: !TaskLayouter	//Optional layout tweaked layouters
 	}
 	
@@ -31,10 +31,7 @@ derive gPutRecordFields	Task
 				| InteractionLayouter InteractionLayouter
 				| StepLayouter StepLayouter
 				| ParallelLayouter ParallelLayouter
-	
-:: TaskDef a	= NormalTask !(TaskFuncs a)
-				| ActionTask !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b)
-				
+		
 :: TaskFuncs a =	{ initFun			:: TaskInitFun
 					, editFun			:: TaskEditFun
 					, evalFun			:: TaskEvalFun a
@@ -47,7 +44,7 @@ derive gPutRecordFields	Task
 :: TaskEvalFun a	:== TaskNr TaskMeta (Maybe CommitEvent) ReversedTaskNr TaskRepInput TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
 :: TaskRepInput
-	= RepAsTUI InteractionLayouter StepLayouter ParallelLayouter
+	= RepAsTUI TaskLayouter
 	| RepAsService
 	
 :: ReversedTaskNr	:== [Int]							//Reversed tasks nr used to locate a subtask in a composition  
@@ -88,15 +85,6 @@ mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
 * Create a task that is immediately finished
 */
 mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
-
-/**
-* Create a task which can be continued by different actions from another task.
-*
-*/
-mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task  a | descr d
-
-mapActionTask			:: !((InformationState a) -> (InformationState b))	!(Task a) -> Task b
-mapActionTaskModelValue	:: !(a -> b)										!(Task a) -> Task b
 
 /**
 * Extracts the subject of a task

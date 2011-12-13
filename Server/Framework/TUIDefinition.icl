@@ -100,6 +100,18 @@ hsplit split left right
 	= fillDef (TUIContainer {TUIContainer|items = [fixedWidth split (fillHeight (vjoin left)), fillWidth (fillHeight (vjoin right))], direction = Horizontal
 							, halign = AlignLeft, valign = AlignTop, padding = Nothing, purpose = Nothing, baseCls = Nothing})
 
+import StdMisc
+plainInteraction :: InteractionLayouter //Simple wrap+flex container with a button bar
+plainInteraction = undef
+
+paneledInteraction :: InteractionLayouter //Framed in a fixed with panel with title and buttons
+paneledInteraction = undef
+
+fullInteraction	:: InteractionLayouter //Full wrap+flex container without any buttons, if there is only one control the container is left out
+fullInteraction = undef
+
+defaultInteraction :: InteractionLayouter //Default choice (framed if a title is set, plain for forms, and full for grids)
+defaultInteraction = undef
 
 defaultInteractionLayout :: InteractionLayouter
 defaultInteractionLayout = \i -> layout i

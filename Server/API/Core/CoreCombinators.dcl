@@ -11,46 +11,33 @@ import iTaskClass
 derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 
 /**
-* Adds terminator generator (yielding user actions or trigger) to task.
-* The input of the function is the current state of the task.
-* The state of interaction tasks is changing during execution.
-* Other tasks are first executed, their constant state is their result.
-* The new return type of the task is determined by the type yieded by the generated terminators.
-*
-* @param Task: The task to which terminators are added
-* @param Terminator generator function: The function generating the terminators
-* @return The task which added terminators
-*
-* @gin False
-*/
-(>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
-
-/**
 * Adds result transformation function to a task.
-* This combinator is similar to using "task >>= \a -> return (f a)".
-* The difference is that this combinator does not introduce a second step like the bind does.
 * The resulting task is still considered a single step in the workflow.
 *
+* @param Function: The transformation function. It works on maybe's to also map over instable tasks.
 * @param Task: The task to which the transformation function is added
+*
+*	@return The transformed task
 */
-(>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+transform :: ((Maybe a) -> Maybe b) (Task a) -> Task b | iTask a & iTask b 
 
-/*
-* Empty list of actions.
-* 'task >>+ noActions' never terminates.
+/**
+* The generic sequential combinator.
+* It does a task followed by one out of a given list of continuations.
+* Once the transition to the continuation has been made it cannot be reversed.
+*
+* @param Task: The first step in the sequence
+* @param Continuations: A set of continuation definitions from which one is selected
+*   -AnyTime: Provides an action which is always enabled. Both for stable and instable tasks
+*	-WithResult: Provides an action which is enabled when the result is valid and the predicate holds
+*	-WithoutResult: Provides an action which is enabled only when the result is invalid
+*	-WhenValid: Provides a trigger that fires as soon as the result matches the predicate
+*	-WhenStable: Provides a trigger that fires as soon as the result becomes stable
+*	-Catch: Provides an exception handler for exceptions of type e
+*	-CathcAll: Provides an exception handler that catches all exceptions
+*
+*	@return The combined task
 */
-noActions	:: (TermFunc a b) | iTask a & iTask b
-/*
-* One action which returns the task's value if valid
-*/
-returnAction :: Action -> (TermFunc a a) | iTask a
-/*
-* Actions that yield constant values, independent of the task's value
-*/
-constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
-
-// Step (multibind) combinator that unifies bind, try and catchAll.
-// It is intented to become the universal sequential combinator
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 
 :: TaskStep a b

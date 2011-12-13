@@ -3,7 +3,7 @@ implementation module SharedVariables
 import iTasks, GoogleMaps, Text
 from StdFunc import o
 
-quitButton _ = UserActions [(ActionQuit, Just Stop)]
+quit = [AnyTime ActionQuit (const (return Stop))]
 
 //Text-Lines Examples
 noteEditor = (GetShared \txt -> Note txt,	SetShared \(Note txt) _ _ -> txt)
@@ -12,7 +12,7 @@ listEditor = (GetShared (split "\n"),		SetShared \l _ _ -> join "\n" l)
 TrimAction :== Action "Trim"
 
 linesPar :: Task Void
-linesPar = parallel "Lines Example" "" (\_ _ -> Void) [(Embedded, noteE), (Embedded, \sid -> updateSharedInformation ("Lines","Edit lines") [UpdateView listEditor] (taskListState sid) Void >>+ quitButton)]
+linesPar = parallel "Lines Example" "" (\_ _ -> Void) [(Embedded, noteE), (Embedded, \sid -> updateSharedInformation ("Lines","Edit lines") [UpdateView listEditor] (taskListState sid) Void >>* quit)]
 where
 	noteE sid = 
 			updateSharedInformation ("Text","Edit text") [UpdateView noteEditor] (taskListState sid) Void
@@ -21,7 +21,7 @@ where
 			]
 
 //Calculate Sum Example
-calculateSum = updateInformation ("Sum","Auto compute sum") [UpdateView (GetLocal \t=:(x,y) -> (t,Display (x+y)), SetLocal \(t,_) _ _ -> t)] (0,0) >>+ quitButton
+calculateSum = updateInformation ("Sum","Auto compute sum") [UpdateView (GetLocal \t=:(x,y) -> (t,Display (x+y)), SetLocal \(t,_) _ _ -> t)] (0,0) >>* quit
 
 //Tree Example
 :: Tree` a = Leaf` | Node` (Node` a)
@@ -46,7 +46,7 @@ where
 		end			= drop (middlePos + 1) list
 
 tree = updateInformation ("List & Balanced Binary Tree","Type something in the list and the tree will update as well.")
-			[UpdateView (GetLocal \l -> (l,Display (toTree l)), SetLocal \(l,_) _ _ -> l)] emptyL >>+ quitButton
+			[UpdateView (GetLocal \l -> (l,Display (toTree l)), SetLocal \(l,_) _ _ -> l)] emptyL >>* quit
 where
 	emptyL :: [Int]
 	emptyL = []
@@ -61,16 +61,16 @@ where
 	sid = sharedStore "mergeTestLists" []
 
 	view :: (Shared [String]) -> Task ParallelControl
-	view sid = updateSharedInformation ("List","Merging the lists") [] sid Void >>+ quitButton
+	view sid = updateSharedInformation ("List","Merging the lists") [] sid Void >>* quit
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
 		appendTopLevelTask noMeta (Description "1st UpdateView" @>> view store)
 	>>|	appendTopLevelTask noMeta (Description "2nd UpdateView" @>> view store)
-	>>|	appendTopLevelTask noMeta (Description "3rd UpdateView" @>> viewSharedInformation "Documents" [] store Void >>+ quitButton)
+	>>|	appendTopLevelTask noMeta (Description "3rd UpdateView" @>> viewSharedInformation "Documents" [] store Void >>* quit)
 	>>|	return Void
 where
-	view sid = updateSharedInformation ("List","Merging the documents") [] sid Void >>+ quitButton
+	view sid = updateSharedInformation ("List","Merging the documents") [] sid Void >>* quit
 	store :: Shared [Document]
 	store = sharedStore "mergeTestDocs" []
 
@@ -85,18 +85,18 @@ RemoveMarkersAction :== Action "Remove Markers"
 
 googleMaps :: Task GoogleMap
 googleMaps = parallel "Map Example" defaultMap (\_ m -> m)
-	[ (Embedded, \s -> updateSharedInformation "Options" [UpdateView optionsEditor] (taskListState s) Void >>+ noActions)
-	, (Embedded, \s -> updateSharedInformation "Google Map" [] (taskListState s) Void >>+ noActions)
-	, (Embedded, \s -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] (taskListState s) Void >>+ noActions)
+	[ (Embedded, \s -> updateSharedInformation "Options" [UpdateView optionsEditor] (taskListState s) Void >>$ const Continue)
+	, (Embedded, \s -> updateSharedInformation "Google Map" [] (taskListState s) Void >>$ const Continue)
+	, (Embedded, \s -> updateSharedInformation "Overview Map" [UpdateView overviewEditor] (taskListState s) Void >>$ const Continue)
 	, (Embedded, \s -> markersDisplay (taskListState s))
 	]
 where						
-	markersDisplay dbid =
-								viewSharedInformation "Markers" [DisplayView (GetShared markersListener)] dbid Void
-		>>*	\{modelValue=map}.	UserActions	[ (RemoveMarkersAction,	Just (update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid))
-											, (ActionQuit,			Just (return Stop))
-											]
-
+	markersDisplay dbid
+		=	viewSharedInformation "Markers" [DisplayView (GetShared markersListener)] dbid Void
+		>>* [AnyTime RemoveMarkersAction (\_ -> update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid)
+			,AnyTime ActionQuit (const (return Stop))
+			]
+	
 	optionsEditor	=	( GetShared \map ->				map.GoogleMap.settings
 						, SetShared \opts _ map	->	{ map & settings = opts}
 						)
@@ -110,7 +110,7 @@ where
 	markersListener	map = [{position = position, map = {GoogleMap| defaultMap & perspective = {type = ROADMAP, center = position, zoom = 15}, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
-autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort, SetLocal \l _ _ -> l)] emptyL >>+ quitButton
+autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort, SetLocal \l _ _ -> l)] emptyL >>* quit
 where
 	emptyL :: [String]
 	emptyL = []
@@ -234,7 +234,7 @@ where
 	initDirty = isJust mbQuery
 	
 	searchBox tlist
-		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView, SetShared fromUpdateView)] (taskListState tlist) Void >>+ noActions
+		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView, SetShared fromUpdateView)] (taskListState tlist) Void >>$ const Continue
 	where
 		toUpdateView (q,d,r,_) = q
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)
@@ -260,7 +260,7 @@ where
 queryPhoneBook :: String -> Task [(Name,PhoneNumber)]
 queryPhoneBook query
 	=	importCSVFile "phonebook.txt"
-	>>= transform (matchQuery query)
+	>>$ (matchQuery query)
 where
 	matchQuery query entries
 		= [(name,phoneNo) \\ [name,phoneNo] <- entries | match query name || match query phoneNo]
@@ -271,8 +271,9 @@ where
 
 timeShareUpdateView :: Task DateTime
 timeShareUpdateView
-	= viewSharedInformation "A view on the current time" [] currentDateTime Void >>+ \{modelValue=(dateTime,_)} -> (UserActions [(ActionClose,Just dateTime)])
-
+	=	viewSharedInformation "A view on the current time" [] currentDateTime Void 
+	>>*	[WithResult ActionClose (const True) (return o fst)]
+	
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines"					"" linesPar
 						, workflow "Examples/Shared Variables/Calculate Sum"				"" calculateSum

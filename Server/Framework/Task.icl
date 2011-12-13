@@ -9,7 +9,7 @@ mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
 mkTask description initFun editFun evalFun =
 	{ Task
 	| meta				= initTaskMeta description
-	, def = NormalTask
+	, def = 
 		{ initFun		= initFun
 		, editFun		= editFun
 		, evalFun		= evalFun
@@ -21,29 +21,13 @@ mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | des
 mkInstantTask description iworldfun =
 	{ Task
 	| meta				= initTaskMeta description
-	, def = NormalTask
+	, def =
 		{ initFun		= \_ iworld -> (TCEmpty,iworld)
 		, editFun		= \_ _  context iworld -> (context,iworld)
 		, evalFun		= \taskNr _ _ _ _ _ iworld -> iworldfun taskNr iworld
 		}
 	, layout				= DefaultLayouter
 	}
-	
-mkActionTask :: !d !(A.b: (TermFunc a b) -> TaskFuncs b | iTask b) -> Task a | descr d
-mkActionTask description actionTaskFun =
-	{ Task
-	| meta			= initTaskMeta description
-	, def			= ActionTask actionTaskFun
-	, layout		= DefaultLayouter
-	}
-
-mapActionTask :: !((InformationState a) -> (InformationState b)) !(Task a) -> Task b
-mapActionTask f task=:{Task|def} = case def of
-	ActionTask actionF	= {Task | task & def = ActionTask (\termF -> actionF (termF o f))}
-	_					= abort "mapActionTask: no action task"
-	
-mapActionTaskModelValue	:: !(a -> b) !(Task a) -> Task b
-mapActionTaskModelValue f task = mapActionTask (\st=:{modelValue} -> {st & modelValue = f modelValue}) task
 	
 taskTitle :: !(Task a) -> String
 taskTitle task = task.Task.meta.TaskMeta.title
@@ -109,12 +93,11 @@ gUpdate{|Task|} fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ Task
-					| meta			= initTaskMeta Void
-					, def = NormalTask
-						{ initFun	= abort funerror
-						, editFun	= abort funerror
-						, evalFun	= abort funerror
-						}
+					| meta	= initTaskMeta Void
+					, def 	=	{ initFun	= abort funerror
+								, editFun	= abort funerror
+								, evalFun	= abort funerror
+								}
 					, layout = DefaultLayouter
 					}
 	funerror = "Creating default task functions is impossible"
@@ -139,9 +122,7 @@ gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 
 taskFuncs :: !(Task a) -> TaskFuncs a | iTask a
-taskFuncs {Task|def} = case def of
-	NormalTask funcs	= funcs
-	ActionTask actionF	= actionF (\{modelValue,localValid} -> UserActions [(ActionOk,if localValid (Just modelValue) Nothing)])
+taskFuncs {Task|def} = def
 
 taskLayouters :: !(Task a) -> (InteractionLayouter, StepLayouter, ParallelLayouter)
 taskLayouters {Task|layout} = case layout of

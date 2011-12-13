@@ -77,7 +77,7 @@ where
 		= (TaskStable (fromOk val) (NoRep,[]) TCEmpty, iworld)
 
 interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-interact description partFunc initLocal shared = mkActionTask description (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
+interact description partFunc initLocal shared = mkTask description init edit eval
 where
 	init taskNr iworld
 		= (TCBasic newMap, iworld)
@@ -149,7 +149,7 @@ where
 				
 	edit _ _ context iworld = (context,iworld)
 	
-	eval termFunc taskNr props event tuiTaskNr repAs context iworld=:{IWorld|timestamp}
+	eval taskNr props event tuiTaskNr repAs context iworld=:{IWorld|timestamp}
 		# (model,iworld) 				= 'Shared'.readShared shared iworld
 		| isError model					= (sharedException model, iworld)
 		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
@@ -161,26 +161,17 @@ where
 		# (mbEvent,context)				= getEvent context
 		# (reps,newParts,valid,iworld)	= visualizeParts taskNr repAs parts storedParts mbEvent iworld
 		# context 						= setLocalVar PARTS_STORE newParts context
-		= case termFunc {modelValue = (local,fromOk model), localValid = valid} of
-			StopInteraction result		= (TaskStable result (NoRep,[]) TCEmpty, iworld)
-			UserActions actions
-				= case getActionResult event actions of
-					Just result			= (TaskStable result (NoRep,[]) TCEmpty, iworld)
-					Nothing
-						# warning = case (getLocalVar EDIT_CONFLICT_STORE context) of
+		//Build GUI
+		# warning = case (getLocalVar EDIT_CONFLICT_STORE context) of
 							Just True	= Just EDIT_CONFLICT_WARNING
 							_			= Nothing
-						# taskId		= taskNrToString taskNr
-						# tactions		= [(taskId,action,isJust val) \\ (action,val) <- actions]
-						# (rep,actions) = case repAs of
-							(RepAsTUI ilayout _ _)
-								= appFst TUIRep (mergeTUI props ilayout [tui \\ TUIRep tui <- reps] warning tactions)
-							_
-								= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), tactions)
-						
-						# result		= Nothing//if valid (Just (local,fromOk model)) Nothing
-						= (TaskInstable result (rep,actions) context, iworld)
-						
+		# taskId		= taskNrToString taskNr
+		# (rep,actions) = case repAs of
+			(RepAsTUI layout)	= appFst TUIRep (mergeTUI props layout [tui \\ TUIRep tui <- reps] warning [])
+			_					= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), [])
+		# result = if valid (Just (local,fromOk model)) Nothing
+		= (TaskInstable result (rep,actions) context, iworld)
+		
 	getLocalTimestamp context iworld=:{IWorld|timestamp}
 		= case getLocalVar LAST_EDIT_STORE context of
 			Just ts	= (ts,iworld)
@@ -212,7 +203,10 @@ where
 			Nothing			= (Nothing, context)
 	
 	
-	mergeTUI meta ilayout parts warning actions
+	mergeTUI meta layout parts warning actions
+		# ilayout	= case layout of
+			(InteractionLayouter ilayout)	= ilayout
+			_								= defaultInteractionLayout
 		= ilayout	{ title = meta.TaskMeta.title
 					, instruction = meta.TaskMeta.instruction
 					, content = parts
@@ -249,7 +243,7 @@ where
 					# umask				= defaultMask value
 					# vmask				= verifyForm value umask
 					# (rep,iworld)		= case repAs of
-											(RepAsTUI _ _ _)
+											(RepAsTUI _)
 												# (editor,iworld) = visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
 												= (mbToTUIRep editor, iworld)
 											_	
@@ -260,7 +254,7 @@ where
 						Just value
 										# vmask = verifyForm value umask
 										# (rep,iworld)	= case repAs of
-											(RepAsTUI _ _ _)
+											(RepAsTUI _)
 												# (editor,iworld)	= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
 												= (mbToTUIRep editor, iworld)
 											_				
@@ -271,14 +265,14 @@ where
 				Blank					= blankForm repAs formView putback mbEdit iworld
 			
 			DisplayPart v				= case repAs of
-											(RepAsTUI _ _ _)	
+											(RepAsTUI _)	
 												# (editor,iworld) = visualizeAsDisplay v iworld
 												= (mbToTUIRep editor, StoredDisplayView, True, iworld)
 											_	
 												= (ServiceRep [(taskNrToString taskNr,idx,toJSON v)], StoredDisplayView, True, iworld)
 			
 			UpdatePart label w			= case repAs of
-											(RepAsTUI _ _ _)= (TUIRep (defaultDef (TUIButton	{ TUIButton
+											(RepAsTUI _)	= (TUIRep (defaultDef (TUIButton	{ TUIButton
 																	| name			= toString idx
 																	, taskId		= taskNrToString taskNr
 																	, text			= label
@@ -296,7 +290,7 @@ where
 			# umask	= Untouched
 			# vmask	= verifyForm value umask
 			# (rep,iworld)	= case repAs of
-				(RepAsTUI _ _ _)
+				(RepAsTUI _)
 					# (editor,iworld) = visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
 					= (mbToTUIRep editor,iworld)
 				_				
@@ -318,7 +312,7 @@ workOn :: !ProcessId -> Task WorkOnProcessState
 workOn (SessionProcess sessionId)
 	= abort "workOn applied to session process"
 workOn processId
-	= mkActionTask ("Work on","Work on another top-level instance.") (\termFunc -> {initFun = init, editFun = edit, evalFun = eval termFunc})
+	= mkTask ("Work on","Work on another top-level instance.") init edit eval
 where
 	init taskNr iworld = (TCEmpty, iworld)
 	
@@ -333,7 +327,7 @@ where
 		# iworld				= storeTaskInstance (fromOk mbContext) iworld
 		= (TCEmpty, iworld)
 		
-	eval termFunc taskNr props event tuiTaskNr (RepAsTUI ilayout slayout playout) _ iworld=:{evalStack}
+	eval taskNr props event tuiTaskNr (RepAsTUI layout) _ iworld=:{evalStack}
 		//Check for cycles
 		| isMember processId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
@@ -358,23 +352,14 @@ where
 			Ok result
 				//Store context
 				# iworld		= storeTaskInstance context iworld
-				# (state,tui,sactions,iworld) = case result of
+				# (result,rep,actions,iworld) = case result of
 					(TaskInstable _ (rep,actions) _)	= (WOActive, rep, actions, iworld)
 					(TaskStable _ (rep,actions) _)		= (WOFinished, rep, actions, iworld)
 					(TaskException _ err)				= (WOExcepted, TUIRep (stringDisplay ("Task excepted: " +++ err)), [], iworld)
-				//Check trigger
-				= case termFunc {localValid = True, modelValue = state} of
-					StopInteraction result
-						= (TaskStable result (NoRep,[]) TCEmpty, iworld)
-					UserActions uactions	
-						= case getActionResult event uactions of
-							Just result
-								= (TaskStable result (NoRep,[]) TCEmpty, iworld)
-							Nothing
-								# taskId			= taskNrToString taskNr
-								# tactions			= [(taskId,action,isJust val) \\ (action,val) <- uactions]
-								= (TaskInstable Nothing (tui, sactions ++ tactions) TCEmpty,iworld)
-
+				= case result of
+					WOFinished	= (TaskStable WOFinished (rep,actions) TCEmpty, iworld)
+					_			= (TaskInstable (Just result) (rep,actions) TCEmpty, iworld)
+				
 	changeNo (TaskContext _ _ _ _ n _) = n
 
 	checkIfAddedGlobally (WorkflowProcess procNo) iworld=:{parallelControls,currentUser}

@@ -6,7 +6,7 @@ calculatorExample :: [Workflow]
 calculatorExample = [workflow "Examples/Miscellaneous/Calculator" "A simple calculator demonstrating how to layout buttons." calculator]
 
 calculator :: Task Int
-calculator = (updateInformation "Calculator" views initSt >>+ terms) <<@ calculatorLayout
+calculator = (updateInformation "Calculator" views initSt >>* [quit]) <<@ calculatorLayout
 where
 	initSt =	{ display		= 0
 				, x				= 0
@@ -48,7 +48,7 @@ where
 		where
 			v = if (not st.showsResult || alwaysCalc) (st.op st.x st.y) st.display
 			
-	terms {modelValue=v=:{x}} = UserActions [(ActionQuit,Just x)]
+	quit = WithResult ActionQuit (const True) (\st -> return st.x)
 	
 	calculatorLayout {TUIInteraction|title,content=[display:stButtons],actions}
 		# (buttons,actions) = defaultButtons actions

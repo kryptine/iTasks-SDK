@@ -13,11 +13,21 @@ from SystemData			import randomInt, topLevelTasks
 from Map				import qualified newMap
 import CoreTasks, CoreCombinators, TuningCombinators, InteractionTasks
 
+
+(>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
+(>>*) task steps = step task steps 
+
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>=) taska taskbf = step taska [WhenStable taskbf]
 
+(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>!) taska taskbf = step taska [WithResult ActionOk (const True) taskbf]
+
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = step taska [WhenStable (const taskb)]
+
+(>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+(>>$) task f = transform (fmap f) task
 
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
 try task handler = step task [WhenStable return, Catch handler]
@@ -25,31 +35,17 @@ try task handler = step task [WhenStable return, Catch handler]
 catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
 catchAll task handler = step task [WhenStable return, CatchAll handler]
 
-(>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
-(>>*) task termF = task >>+ termF >>= id
 
 (>?*) infixl 1 :: !(Task a) ![(!Action,!TaskContinuation a b)] -> Task b | iTask a & iTask b
-(>?*) task continuations = task >>* \st-> let (triggers,actions) = splitContinuations continuations in
-											case testTriggers triggers st of 
-												[t:_]	= StopInteraction t
-												_		= UserActions (map (appSnd (mapContinuation st)) actions)
+(>?*) task continuations = step task (map toStep continuations) 
 where
-	splitContinuations [] = ([],[])
-	splitContinuations [(_,Trigger pred taskF):cs] = let (ts,as) = splitContinuations cs in ([(Trigger pred taskF):ts],as)
-	splitContinuations [a:cs] = let (ts,as) = splitContinuations cs in (ts,[a:as])
-
-	testTriggers triggers {localValid,modelValue} = [taskF modelValue \\ Trigger pred taskF <- triggers | localValid && pred modelValue]
-	
-	mapContinuation _						(Always task)			= Just task
-	mapContinuation {localValid,modelValue}	(IfValid taskF)			= if localValid (Just (taskF modelValue)) Nothing
-	mapContinuation {localValid,modelValue} (IfHolds pred taskF)	= if (localValid && pred modelValue) (Just (taskF modelValue)) Nothing
-	mapContinuation st						(Sometimes f)			= f st
-
-
-
+	toStep (action, Always task)		= AnyTime action (const task)
+	toStep (action, IfValid taskf)		= WithResult action (const True) taskf
+	toStep (action, IfHolds pred taskf)	= WithResult action pred taskf
+	toStep (action, Trigger pred taskf)	= WhenValid pred taskf
 	
 (>?) infixl 1 :: !(Task a) !(a -> Bool) -> Task a | iTask a
-(>?) task pred = task >>+ \{modelValue} -> if (pred modelValue) (StopInteraction modelValue) (UserActions [])
+(>?) task pred = step task [WhenValid pred return]
 
 //Helper function for tasks in a parallel set
 accu :: (a acc -> (acc,Bool)) (Task a) (TaskList acc) -> Task ParallelControl | iTask a & iTask acc
@@ -62,11 +58,6 @@ accu accufun task tlist
 				set nstate (taskListState tlist) 
 			>>| return (if stop Stop Continue)
 			
-transform :: !(a -> b) !a -> Task b | iTask b
-transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") eval
-where
-	eval taskNr iworld = (TaskStable (f x) (NoRep,[]) TCEmpty, iworld)
-	
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
@@ -78,7 +69,7 @@ assign props task = parallel ("Assign","Manage a task assigned to another user."
 where
 	processControl :: !(TaskList a) -> Task ParallelControl
 	processControl tlist =
-		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, SetShared fromView)] control Void >>+ noActions)
+		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, SetShared fromView)] control Void >>| return Continue)
 	where
 		control = taskListMeta tlist
 		
@@ -229,14 +220,11 @@ repeatTask task pred a =
 		=			taska
 		>>= \r -> 	case pred r of
 						(True,_) -> return r
-						(False,msg) -> (viewInformation "Feedback" []  msg >>+ noActions`) ||- (taska <| pred)
-where
-	noActions` :: (TermFunc a Void) | iTask a
-	noActions` = noActions
+						(False,msg) -> (viewInformation "Feedback" []  msg) ||- (taska <| pred)
 
 whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= (get share >>= \val -> (task val >>$ Just) -||- (Hide @>> wait "watching share change" ((=!=) val) share >>$ const Nothing)) <! isJust >>= transform fromJust
+	= (get share >>= \val -> (task val >>$ Just) -||- (Hide @>> wait "watching share change" ((=!=) val) share >>$ const Nothing)) <! isJust >>$ fromJust
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
-appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Continue) topLevelTasks >>= transform WorkflowProcess 
+appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Continue) topLevelTasks >>$ WorkflowProcess 

@@ -29,9 +29,7 @@ instance tune ParallelLayouter
 where tune l task				= {Task|task & layout = ParallelLayouter l}
 instance tune LayoutTweak
 where
-	tune tweak task=:{Task|def} = case def of
-		NormalTask funcs	= {Task|task & def = NormalTask (applyTweak funcs)}
-		ActionTask actionF	= {Task|task & def = ActionTask (\termF -> applyTweak (actionF termF))}
+	tune tweak task=:{Task|def} = {Task|task & def = applyTweak def}
 	where
 		applyTweak funcs = {funcs & evalFun = eval}
 		where

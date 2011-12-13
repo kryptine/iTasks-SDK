@@ -53,8 +53,8 @@ selectItem desc collection selection identify
 	=	narrowDown desc identify collection selection
 	
 viewItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task (Maybe i) | descr d & iTask c & iTask i
-viewItem desc collection itemShare Nothing	= viewInformation desc [] "Make a selection first..." >>+ noActions
-viewItem desc collection itemShare (Just i)	= viewSharedInformation desc [] (itemShare collection i) Void >>+ noActions
+viewItem desc collection itemShare Nothing	= viewInformation desc [] "Make a selection first..." >>$ const Nothing
+viewItem desc collection itemShare (Just i)	= viewSharedInformation desc [] (itemShare collection i) Void >>$ const (Just i)
 
 addItem :: !d (Shared [c]) (c -> i) -> Task (Maybe i) | descr d & iTask i & iTask c
 addItem desc collection identify

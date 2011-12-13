@@ -41,10 +41,8 @@ where
 					( waitForTimer time >>| return Nothing)									
 		 			-||-
 		 			// do task and return its result
-		  			( (viewInformation ("Hurry!","You have to complete the task in " <+++ time <+++ " time") [] Void >>+ noActions`)
+		  			( (viewInformation ("Hurry!","You have to complete the task in " <+++ time <+++ " time") [] Void)
 		  			  ||- task 
 					  >>= \v -> return (Just v)
 					)	
-			
-	noActions` :: (TermFunc a Void) | iTask a
-	noActions` = noActions
+		

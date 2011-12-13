@@ -96,17 +96,16 @@ doAuthenticated :: (Task a) -> Task (Maybe a) | iTask a
 doAuthenticated task
 	//=	(appIdentity ||- enterInformation "Log in" []) <<@ tweak
 	=	enterInformation "Log in" [] <<@ tweak
-	>>= \credentials ->
+	>>! \credentials ->
 		authenticateUser (toString credentials.Credentials.username) (toString credentials.Credentials.password)
 	>>= \mbUser -> case mbUser of
 		Nothing
 			= viewInformation "Log in failed" [] Nothing
 		Just user
-			=	workAs user task
-			>>= transform Just
+			=	workAs user task >>$ Just
 where
 	appIdentity :: Task Void
-	appIdentity = (viewSharedInformation "Application identity" [] applicationName Void >>+ noActions)
+	appIdentity = (viewSharedInformation "Application identity" [] applicationName Void)
 	
 	tweak :: LayoutTweak
 	tweak = \(def,actions) -> ({TUIDef|def & margins = topMargin 100, width = Just (WrapContent 0)},actions)
@@ -122,13 +121,15 @@ workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProces
 	]
 
 infoBar :: Task ParallelControl
-infoBar =	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser Void <<@ infoBarLayout >>+ (\_ -> UserActions [(ActionRefresh, Just Continue),(Action "Log out",Just Stop)]) )
+infoBar =	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser Void <<@ infoBarLayout
+		>>* [AnyTime ActionRefresh (const (return Continue)),AnyTime (Action "Log out") (const (return Stop))] 
+			)
 		<! 	(\res -> case res of Stop = True; Continue = False) 
 where
 	view user = "Welcome " +++ toString user
 	
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
-chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetCombined mkTree, SetCombined putback)] (state >+| allowedWorkflowTree) Nothing >>+ noActions
+chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetCombined mkTree, SetCombined putback)] (state >+| allowedWorkflowTree) Nothing >>| return Continue
 where
 	mkTree sel (_,flows) = mkTreeChoice (fmap mapF flows) (fmap Just sel)
 	where
@@ -141,11 +142,11 @@ where
 viewDescription :: !(Shared ClientState) -> Task ParallelControl
 viewDescription state = forever (
 		viewSharedInformation "Task description" [DisplayView (GetShared view)] state Void <<@ descriptionLayout
-	>?*	[(Action "Start workflow", Sometimes \{modelValue=m=:({selectedWorkflow},_)} -> if (isJust selectedWorkflow) (Just (addWorkflow (fromJust selectedWorkflow))) Nothing)])
+	>?*	[(Action "Start workflow", IfHolds ((\({selectedWorkflow},_) -> isJust selectedWorkflow)) (\({selectedWorkflow},_) -> addWorkflow (fromJust selectedWorkflow)))])
 where			
 	view {selectedWorkflow} = case selectedWorkflow of
-		Nothing			= ""
-		Just (_,descr)	= descr
+		Nothing			= Note ""
+		Just (_,descr)	= Note descr
 		
 	addWorkflow (wid,_) =
 							get (workflowById wid)
@@ -156,7 +157,7 @@ where
 	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Continue)
 	
 processTable :: !(TaskList ClientState) -> Task ParallelControl	
-processTable taskList = updateSharedInformation "process table" [UpdateView (GetCombined mkTable, SetCombined putback)] (processes |+< state) Nothing >>+ noActions
+processTable taskList = updateSharedInformation "process table" [UpdateView (GetCombined mkTable, SetCombined putback)] (processes |+< state) Nothing >>| return Continue
 where
 	state = taskListState taskList
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
@@ -185,23 +186,22 @@ workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(Embedd
 
 controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
 controlWorkTabs state taskList = forever (
-					chooseActionDyn openTabTrigger (state >+< openProcs) <<@ Hide
+					viewSharedInformation "Track open tabs" [] (state >+< openProcs) Void <<@ Hide
+	>>*				[WhenValid openTabPred openTabTask]
 	>>= \proc ->	appendTask (Embedded, \_ -> workTab proc openProcs  <<@ singleControlLayout) taskList
 	>>|				update (\state -> {state & selectedProcess = Nothing}) state 
 	>>|				update (\procs -> [proc:procs]) openProcs )
 where
 	openProcs = taskListState taskList
 	
-	openTabTrigger ({selectedProcess},procs) = case selectedProcess of
-		Just selectedProcess | not (isMember selectedProcess procs)
-			= StopInteraction selectedProcess
-		_
-			= UserActions []
-
+	openTabPred (({selectedProcess=Just proc},procs),_) = not (isMember proc procs)
+	openTabPred _										= False
+	openTabTask (({selectedProcess=Just proc},procs),_)	= return proc
+	
 workTab :: !ProcessId !(Shared [ProcessId]) -> Task ParallelControl											
 workTab procId openProcs =
 		update (\procs -> [procId:procs]) openProcs
-	>>|	(workOn procId >>+ \{modelValue} -> if (modelValue =!= WOActive) (StopInteraction Void) (UserActions [(ActionClose, Just Void)]))
+	>>|	(workOn procId >>* [WhenStable (const (return Void)),AnyTime ActionClose (const (return Void))])
 	>>|	update(filter ((<>) procId)) openProcs 
 	>>|	return Continue
 
@@ -239,7 +239,6 @@ where
 			, height	= Just (FillParent 1 (FixedMinSize 0))
 			, margins	= Nothing
 			}
-	
 	/*
 	workArea = {content = TUIBorderContainer {TUIBorderContainer | direction = Vertical
 								  , itemA = {TUIBorderItem | title = Nothing, iconCls = Nothing, item = fillParent processTable}

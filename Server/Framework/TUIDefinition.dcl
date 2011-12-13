@@ -290,7 +290,15 @@ hsplit :: !Int ![TUIDef] ![TUIDef] -> TUIDef
 :: TUITweak				:== TUIDef					-> TUIDef
 :: ActionTweak			:== [TaskAction]			-> [TaskAction]
 
+
+
 // Pre-defined interaction layouts
+
+plainInteraction			:: InteractionLayouter //Simple wrap+flex container with a button bar
+paneledInteraction			:: InteractionLayouter //Framed in a fixed with panel with title and buttons
+fullInteraction				:: InteractionLayouter //Full wrap+flex container without any buttons, if there is only one control the container is left out
+defaultInteraction			:: InteractionLayouter //Default choice (framed if a title is set, plain for forms, and full for grids)
+
 defaultInteractionLayout	:: InteractionLayouter //Interaction parts, action buttons, title and instructions
 plainInteractionLayout		:: InteractionLayouter //Just the interaction parts and action buttons 
 minimalInteractionLayout	:: InteractionLayouter //Only the interaction parts

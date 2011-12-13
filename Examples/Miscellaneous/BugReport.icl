@@ -138,7 +138,7 @@ confirmCritical report
 	>>= \assessor ->
 		assign {noMeta & worker =Just assessor, priority = HighPriority}
 			( Description "Bug report assessment" @>>
-			  viewInformation ("Confirmation","Is this bug really critical?") [] report >>+ \_ -> UserActions [(ActionNo, Just False),(ActionYes, Just True)]
+			  viewInformation ("Confirmation","Is this bug really critical?") [] report >>* [AnyTime ActionNo (const (return False)),AnyTime ActionYes (const (return True))]
 			)
 
 selectDeveloper :: String -> Task User

@@ -9,6 +9,18 @@ import Either
 from SystemTypes		import :: User
 from Map				import :: Map
 
+
+/**
+* Infix shorthand for step combinator
+* 
+* @param Task: The task for which continuations are defined
+* @param The possible continuations
+* @return The continuation's result
+*
+* @gin False
+*/
+(>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
+
 //Standard monadic operations:
 
 /**
@@ -22,6 +34,19 @@ from Map				import :: Map
 * @gin False
 */
 (>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
+
+/**
+* Combines two tasks sequentially but waits for user input to confirm the completion of
+* the first task.
+*
+* @param First: The first task to be executed
+* @param Second: The second task, which receives the result of the first task
+* @return The combined task
+* 
+* @gin False
+*/
+(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+
 /**
 * Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
 *
@@ -32,6 +57,16 @@ from Map				import :: Map
 * @gin False
 */
 (>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
+/**
+* Infix shorthand for transform combinator which only deals which only transforms valid results
+* 
+* @param Task: The task for which continuations are defined
+* @param The possible continuations
+* @return The continuation's result
+*
+* @gin False
+*/
+(>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
 /**
 * Exception combinator.
 *
@@ -53,18 +88,6 @@ try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & iTask, toString e
 * @gin-icon catch
 */
 catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a
-
-/**
-* General multi-bind used to define continuations.
-* Similar to (>>+) but terminators yield a continuation which is executed directly.
-*
-* @param Task: The task for which continuations are defined
-* @param Continuation terminator generator function: The functions generating the terminators yielding continuations
-* @return The continuation's result
-*
-* @gin False
-*/
-(>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
 
 /**
 * Special multi-bind used to define continuations using a list of user action with constant length.
@@ -98,21 +121,7 @@ catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a
 						| IfValid	!(a -> Task b)								//* continuation which can be taken if the local editor is in a valid state, the current value is given as input
 						| IfHolds	!(a -> Bool) (a -> Task b)					//* continuation which can be taken if the local editor is valid and the predicate holds
 						| Trigger	!(a -> Bool) (a -> Task b)					//* continuation which is automatically taken when the local editor is valid and the predicate holds
-						| Sometimes	!((InformationState a) -> Maybe (Task b))	//* continuation which can sometimes be taken depending on the editor's current state
 						
-
-/**
-* Transform a value with a custom function
-*
-* @param Transformation function: The transformation function
-* @param Value: The value to be transformed
-*
-* @return The transformed value
-*
-* @gin False
-*/
-transform			:: !(a -> b) !a 									-> Task b | iTask b
-
 /**
 * Assign a task to a(nother) user.
 *

@@ -11,40 +11,16 @@ from CoreTasks			import return
 
 derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 
-(>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
-(>>+) task=:{Task|def} termF = case def of
-	ActionTask actionTaskF	= {Task|task & def = NormalTask (actionTaskF termF)}
-	_						= step task [WhenStable (\r -> viewInformation (taskMeta task) [] r >>+ termF)] //WEIRD STEP
-	
-noActions :: (TermFunc a b) | iTask a & iTask b
-noActions = const (UserActions [])
-
-returnAction :: Action -> (TermFunc a a) | iTask a
-returnAction action = \{modelValue,localValid} -> UserActions [(action, if localValid (Just modelValue) Nothing)]
-
-constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
-constActions actions = const (UserActions [(a,Just v) \\ (a,v) <- actions])
-
-(>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
-(>>$) task=:{Task|def} f = case def of
-	NormalTask taskFuns 	= {Task|task & def = NormalTask (updateEval f taskFuns)}
-	ActionTask actionFun	= {Task|task & def = ActionTask (updateActionFun f actionFun)}
+transform :: ((Maybe a) -> Maybe b) (Task a) -> Task b | iTask a & iTask b 
+transform f task=:{Task|def=def=:{evalFun}} = {Task|task & def = {def & evalFun = evalFun`}}
 where
-	updateEval :: (a -> b) (TaskFuncs a) -> (TaskFuncs b)
-	updateEval f funs=:{evalFun} = {funs & evalFun = evalFun`}
-	where
-		evalFun` taskNo meta event target repAs cxt iworld
-			= case evalFun taskNo meta event target repAs cxt iworld of
-				(TaskStable a rep cxt, iworld)		= (TaskStable (f a) rep cxt, iworld)
-				(TaskInstable mba rep cxt, iworld)	= (TaskInstable (fmap f mba) rep cxt, iworld)
-				(TaskException e str, iworld)		= (TaskException e str, iworld)
-
-	updateActionFun :: (a -> b) ((TermFunc a c) -> (TaskFuncs c)) -> ((TermFunc b c) -> (TaskFuncs c)) | iTask c
-	updateActionFun f actionFun = \termFun -> actionFun (updateTermFun f termFun)
-	
-	updateTermFun :: (a -> b) (TermFunc b c)  -> (TermFunc a c) | iTask c
-	updateTermFun f termFun = \{modelValue,localValid} -> termFun {modelValue = f modelValue, localValid = localValid}
-
+	evalFun` taskNo meta event target repAs cxt iworld
+		= case evalFun taskNo meta event target repAs cxt iworld of
+			(TaskInstable mba rep cxt, iworld)	= (TaskInstable (f mba) rep cxt, iworld)
+			(TaskStable a rep cxt, iworld)		= case f (Just a) of
+				(Just b)	= (TaskStable b rep cxt, iworld)
+				Nothing		= (taskException "Task with permanent invalid result", iworld)
+			(TaskException e str, iworld)		= (TaskException e str, iworld)
 
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 step taska conts = mkTask (taskMeta taska) init edit eval
@@ -85,10 +61,8 @@ where
 	//Eval left-hand side
 	eval taskNr tmeta event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
 		# taskaFuncs		= taskFuncs taska
-		# repAsA			= case repAs of		//Use representation settings from left-hand task 
-			(RepAsTUI _ _ _)= let (ilayout,slayout,playout)	= taskLayouters taska in RepAsTUI ilayout slayout playout
-			_				= RepAsService
-		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) repAsA cxta iworld
+		# taskaRepAs		= subRepAs repAs taska
+		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr)taskaRepAs cxta iworld
 		# mbcommit			= case event of
 			(Just (TaskEvent [] action))	= Just action
 			_								= Nothing
@@ -105,12 +79,10 @@ where
 		= case mbCont of
 			Left res = (res,iworld)
 			Right (sel,taskb,enca)
-				# taskbfuncs	= taskFuncs taskb
-				# repAsB		= case repAs of
-						(RepAsTUI _ _ _)	= let (ilayout,slayout,playout)	= taskLayouters taskb in RepAsTUI ilayout slayout playout
-						_					= RepAsService
-				# (cxtb,iworld)		= taskbfuncs.initFun [1:taskNr] iworld
-				# (resb,iworld)		= taskbfuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
+				# taskbFuncs	= taskFuncs taskb
+				# taskbRepAs	= subRepAs repAs taskb
+				# (cxtb,iworld)		= taskbFuncs.initFun [1:taskNr] iworld
+				# (resb,iworld)		= taskbFuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) taskbRepAs cxtb iworld 
 				= case resb of
 					TaskInstable mbb (rep,actions) ncxtb	= (TaskInstable mbb (rep,actions) (TCBind (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b (rep,actions) ncxtb		= (TaskStable b (rep,actions) ncxtb, iworld)
@@ -126,10 +98,8 @@ where
 			(CatchAll taskbf)		= fmap taskbf (fromJSON enca)
 		= case mbTaskb of
 			Just taskb
-				# repAsB			= case repAs of
-					(RepAsTUI _ _ _)	= let (ilayout,slayout,playout) = taskLayouters taskb in RepAsTUI ilayout slayout playout
-					_					= RepAsService
-				# (resb, iworld)	= (taskFuncs taskb).evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) repAsB cxtb iworld 
+				# taskbRepAs		= subRepAs repAs taskb
+				# (resb, iworld)	= (taskFuncs taskb).evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) taskbRepAs cxtb iworld 
 				= case resb of
 					TaskInstable mbb (rep,actions) ncxtb	= (TaskInstable mbb (rep, actions) (TCBind (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b (rep,actions) ncxtb		= (TaskStable b (rep,actions) ncxtb, iworld)
@@ -184,8 +154,11 @@ where
 	
 	addStepActions taskNr tmeta RepAsService rep actions mba
 			= (rep, actions ++ stepActions taskNr mba)
-	addStepActions taskNr tmeta (RepAsTUI _ slayout _) rep actions mba = case rep of
+	addStepActions taskNr tmeta (RepAsTUI layout) rep actions mba = case rep of
 		(TUIRep tui)
+			# slayout		= case layout of
+				(StepLayouter slayout)	= slayout
+				_						= defaultStepLayout
 			# (tui,actions) = slayout {TUIStep|title=tmeta.TaskMeta.title,instruction=tmeta.TaskMeta.instruction,content=tui,actions=actions,steps=stepActions taskNr mba}
 			= (TUIRep tui, actions)
 		_	= (rep, actions ++ stepActions taskNr mba)
@@ -199,8 +172,13 @@ where
 		stepActions` [WithoutResult action _:cs]	= [(taskId,action,isNothing mba):stepActions` cs]
 		stepActions` [_:cs]							= stepActions` cs
 
-	
-	
+	subRepAs RepAsService _ = RepAsService
+	subRepAs (RepAsTUI clayout) {Task|layout} = case layout of
+		DefaultLayouter		= case clayout of
+			(StepLayouter _)	= RepAsTUI DefaultLayouter 	//Step layouter is applicable to this combinator
+			other				= RepAsTUI other			//If we configured an interaction or parallel layout, propagate it down
+		other					= RepAsTUI other
+		
 // Parallel composition
 INFOKEY id		:== "parallel_" +++ taskNrToString id +++ "-info"
 
@@ -271,16 +249,14 @@ where
 			//Active Embedded task
 			STCEmbedded tmeta (Just (encTask,subCxt))
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Add case for error
-				# taskfuncs = taskFuncs` task
-				# (newSubCxt,iworld) = taskfuncs.editFun [i:taskNr] event subCxt iworld
+				# (newSubCxt,iworld) = task.def.editFun [i:taskNr] event subCxt iworld
 				= ((i,o,STCEmbedded tmeta (Just (encTask,newSubCxt))), iworld)		
 			STCDetached taskId tmeta pmeta mmeta (Just (encTask,subCxt))
 			//Same pattern as inbody tasks
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Also add case for error
-				# taskfuncs = taskFuncs` task
 				// change latest event timestamp for detached process
 				# iworld = {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
-				# (newSubCxt,iworld) = taskfuncs.editFun [i:taskNr] event subCxt iworld
+				# (newSubCxt,iworld) = task.def.editFun [i:taskNr] event subCxt iworld
 				# iworld = {IWorld|iworld & latestEvent = parentLatestEvent}
 				= ((i,o,STCDetached taskId tmeta pmeta mmeta (Just (encTask,newSubCxt))), iworld)
 			//Task is either completed already or hidden
@@ -316,8 +292,12 @@ where
 				| otherwise
 					# encState			= encodeState state initState
 					# (rep,actions)		= case repAs of
-						(RepAsTUI _ _ playout)	= (mergeTUIs taskNr playout tuiTaskNr meta results)
-						(RepAsService)			= (ServiceRep [],[]) //TODO
+						(RepAsTUI layout)
+							# playout	= case layout of
+								ParallelLayouter playout	= playout
+								_							= defaultParallelLayout
+							= (mergeTUIs taskNr playout tuiTaskNr meta results)
+						(RepAsService)		= (ServiceRep [],[]) //TODO
 					# subs				= mergeContexts results
 					= (TaskInstable Nothing (rep,actions) (TCParallel encState pmeta subs), iworld)
 		
@@ -330,20 +310,18 @@ where
 		# (result,stcontext,iworld)	= case stcontext of
 			(STCEmbedded tmeta (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
-				# taskfuncs			= taskFuncs` task
-				# (ilayout,slayout,playout)	= taskLayouters task
-				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout slayout playout) context iworld 
+				# taskfuncs			= taskFuncs task
+				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI task.layout) context iworld 
 				= case result of
 					TaskInstable mbr (rep,actions) context	= (TaskInstable mbr (rep,actions) context, STCEmbedded tmeta (Just (encTask, context)), iworld)
 					TaskStable r (rep,actions) context		= (TaskStable r (rep,actions) context, STCEmbedded tmeta Nothing, iworld)
 					TaskException e str						= (TaskException e str, STCEmbedded tmeta Nothing, iworld)
 			(STCDetached taskId tmeta pmeta mmeta (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
-				# taskfuncs			= taskFuncs` task
-				# (ilayout,slayout,playout)	= taskLayouters task
+				# taskfuncs			= taskFuncs task
 				//Update changed latest event timestamp
 				# iworld			= {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
-				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI ilayout slayout playout) context iworld 
+				# (result,iworld)	= taskfuncs.evalFun [idx:taskNr] task.Task.meta (stepEvent idx event) (stepTarget idx tuiTaskNr) (RepAsTUI task.layout) context iworld 
 				# iworld			= {IWorld|iworld & latestEvent = parentLatestEvent}
 				//Update first/latest event if request is targeted at this detached process
 				# pmeta = case tuiTaskNr of
@@ -391,7 +369,7 @@ where
 		mkSubTask taskfun
 			# task			= taskfun taskList
 			# funcs			= taskFuncs task
-			# task			= {Task|task & def = NormalTask funcs}
+			# task			= {Task|task & def = funcs}
 			= (task,funcs)
 
 	//Initialize a process properties record for administration of detached tasks
@@ -555,11 +533,7 @@ where
 				= case [(tui,actions) \\ (i,o,TaskInstable _ (TUIRep tui, actions) _,_) <- contexts | i == t] of
 					[(tui,actions)]	= (TUIRep tui,actions)
 					_				= (NoRep,[])
-	
-	taskFuncs` {Task|def} = case def of
-		NormalTask fs	= fs
-		_				= abort "action task in parallel"
-		
+			
 	//Change the order of the subtask such that the indicated sub becomes top and the others
 	//maintain their relative ordering
 	reorder :: SubTaskId [(!SubTaskId,!SubTaskOrder,!SubTaskContext)] -> [(!SubTaskId,!SubTaskOrder,!SubTaskContext)]
@@ -658,23 +632,9 @@ where
 * the given user, and restored afterwards.
 */
 workAs :: !User !(Task a) -> Task a | iTask a
-workAs user task=:{Task|def,layout} = case def of
-	NormalTask funs
-		# funs = {initFun = init funs.initFun
-				 ,editFun = edit funs.editFun
-				 ,evalFun = eval funs.evalFun
-				 }
-		= {Task|task & def = NormalTask funs, layout = layout}
-	ActionTask fun
-		= {Task|task & def = ActionTask (action fun), layout = layout}
+workAs user task=:{Task|def}
+	= {Task|task & def = {initFun = init def.initFun,editFun = edit def.editFun,evalFun = eval def.evalFun}}
 where
-	action f tfun
-		# funs = f tfun
-		= {initFun = init funs.initFun
-		  ,editFun = edit funs.editFun
-		  ,evalFun = eval funs.evalFun
-		  }
-
 	init f taskNr iworld=:{currentUser}
 		# (context,iworld) = f taskNr {iworld & currentUser = user}
 		= (context,{iworld & currentUser = currentUser})
