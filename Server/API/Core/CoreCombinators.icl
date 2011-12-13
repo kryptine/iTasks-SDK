@@ -22,6 +22,9 @@ where
 				Nothing		= (taskException "Task with permanent invalid result", iworld)
 			(TaskException e str, iworld)		= (TaskException e str, iworld)
 
+project	:: ((Maybe a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
+project projection share task = task //TODO
+
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 step taska conts = mkTask (taskMeta taska) init edit eval
 where

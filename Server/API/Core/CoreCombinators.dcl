@@ -11,15 +11,27 @@ import iTaskClass
 derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
 
 /**
-* Adds result transformation function to a task.
+* Adds a result transformation function to a task.
 * The resulting task is still considered a single step in the workflow.
 *
 * @param Function: The transformation function. It works on maybe's to also map over instable tasks.
 * @param Task: The task to which the transformation function is added
 *
-*	@return The transformed task
+* @return The transformed task
 */
 transform :: ((Maybe a) -> Maybe b) (Task a) -> Task b | iTask a & iTask b 
+
+/**
+* Projects the result of a task in a share when its result changes.
+* The resulting task is still considered a single step in the workflow.
+*
+* @param The projection function
+* @param The share onto which the result should be projected
+* @param The task that provides the result
+
+* @return The modified task
+*/
+project	:: ((Maybe a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
 
 /**
 * The generic sequential combinator.

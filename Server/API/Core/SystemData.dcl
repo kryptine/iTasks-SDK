@@ -3,12 +3,22 @@ definition module SystemData
 * This module provides access to the iTask framework data by means of
 * a set of shared data structures.
 */
-import Maybe
+import Maybe, JSON
 from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
 from SystemTypes		import :: ProcessId, :: TaskInstanceMeta, :: Config
 from Void				import :: Void
 from FilePath			import :: FilePath
+
+//USER-DEFINED SHARES
+
+/*
+* Creates a reference to a store identified by a string identifier.
+* If no data is store the default value given as second argument is given as result.
+*/
+sharedStore 			:: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+
+//PREDEFINED SHARES 
 
 // Date & time
 currentDateTime			:: ReadOnlyShared DateTime
@@ -25,15 +35,11 @@ processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
 currentProcessId		:: ReadOnlyShared ProcessId
 currentUser				:: ReadOnlyShared User
 
-// Application name
-applicationName			:: ReadOnlyShared String
-// Application build identifier
-applicationBuild		:: ReadOnlyShared String
-// Direction in which the applicaton resides
-applicationDirectory	:: ReadOnlyShared FilePath
-
-// Server config
-applicationConfig		:: ReadOnlyShared Config
+// Application
+applicationName			:: ReadOnlyShared String	// Application name
+applicationBuild		:: ReadOnlyShared String	// Application build identifier
+applicationDirectory	:: ReadOnlyShared FilePath	// Directory in which the applicaton resides
+applicationConfig		:: ReadOnlyShared Config	// Server config
 
 // Random source
 randomInt				:: ReadOnlyShared Int

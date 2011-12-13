@@ -7,6 +7,22 @@ from StdFunc	import o, seq
 from IWorld		import :: IWorld(..), :: Control
 from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp
 
+sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+sharedStore storeId defaultV = ReadWriteShared
+	["sharedStore_" +++ storeId]
+	(get (loadValue NS_APPLICATION_SHARES) defaultV)
+	write
+	(get (getStoreTimestamp NS_APPLICATION_SHARES) (Timestamp 0))
+where	
+	get f defaultV iworld
+		# (mbV,iworld) = f storeId iworld
+		# res = case mbV of
+			Nothing	= Ok defaultV
+			Just v	= Ok v
+		= (res,iworld)
+		
+	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
+	
 currentDateTime :: ReadOnlyShared DateTime
 currentDateTime = makeReadOnlyShared "SystemData_currentDateTime" 'Util'.currentDateTime 'Util'.currentTimestamp
 		
@@ -43,9 +59,7 @@ where
 	find user procs
 		= flatten [if (p.managementMeta.worker === Just user || p.managementMeta.worker === Nothing) [{p & subInstances = find user p.subInstances}] (find user p.subInstances) \\ p <- procs]
 
-//TODO: Figure out pattern match bug
 currentProcessId :: ReadOnlyShared ProcessId
-//currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack=[currentProcess:_]} -> (currentProcess, iworld)) ('ProcessDB'.lastChange)
 currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) 'Util'.currentTimestamp
 
 currentUser :: ReadOnlyShared User

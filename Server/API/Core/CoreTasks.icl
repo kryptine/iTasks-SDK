@@ -25,28 +25,12 @@ derive JSONDecode StoredPart, UpdateMask
 JSONEncode{|StoredPutback|} _ _ p				= [dynamicJSONEncode p]
 JSONDecode{|StoredPutback|} _ _ [json:r]		= (dynamicJSONDecode json,r)
 JSONDecode{|StoredPutback|} _ _ c				= (Nothing,c)
-
+	
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskStable a (NoRep,[]) TCEmpty, iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
 throw e = mkInstantTask ("throw", "Throw an exception") (\_ iworld -> (TaskException (dynamic e) (toString e), iworld))
-
-sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = ReadWriteShared
-	["sharedStore_" +++ storeId]
-	(get (loadValue NS_APPLICATION_SHARES) defaultV)
-	write
-	(get (getStoreTimestamp NS_APPLICATION_SHARES) (Timestamp 0))
-where	
-	get f defaultV iworld
-		# (mbV,iworld) = f storeId iworld
-		# res = case mbV of
-			Nothing	= Ok defaultV
-			Just v	= Ok v
-		= (res,iworld)
-		
-	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
 
 get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask ("Read shared", "Reads a shared value") eval
@@ -377,18 +361,6 @@ getActionResult (Just (TaskEvent [] name)) actions
 getActionResult _ actions
 	= Nothing
 
-applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
-applyChangeToProcess pid change lifetime
-	= mkInstantTask ("Apply a change to a process", ("Apply a " +++ lt +++ " change to task " +++ toString pid)) eval
-where
-	eval taskNr iworld = (TaskException (dynamic "TODO") "TODO", iworld)
-
-//id (\tst -> (TaskStable Void, applyChangeToTaskTree pid (lifetime,change) tst))
-//Interesting one, we need the tst somehow :)
-	lt = case lifetime of
-		CLTransient = "transient"
-		CLPersistent _	= "persistent"
-	
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask ("Run world function", "Run a world function.") eval
 where

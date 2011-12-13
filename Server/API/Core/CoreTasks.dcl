@@ -11,7 +11,6 @@ from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTermi
 
 derive class iTask WorkOnProcessState
 
-:: SharedStoreId :== String
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter
@@ -37,12 +36,6 @@ return 		:: !a 										-> Task a 		| iTask a
 * @gin-icon error
 */
 throw		:: !e 								-> Task a 	| iTask a & iTask, toString e
-
-/*
-* Creates a reference to a store identified by a string identifier.
-* If no data is store the default value given as second argument is given as result.
-*/
-sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Reads shared data.
@@ -129,19 +122,6 @@ interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> 
 * @throws WorkOnException
 */
 workOn :: !ProcessId -> Task WorkOnProcessState
-
-/**
-* Administer a change to another (running) workflow process
-*
-* @param Process ID: A process id
-* @param Change dynamic: The change
-* @param Lifetime: The change's lifetime
-*
-* @return The task that will do the change
-* 
-* @gin False
-*/
-applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 
 /**
 * Evaluate a "World" function that does not yield any result once.

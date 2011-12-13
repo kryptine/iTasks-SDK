@@ -13,7 +13,6 @@ from SystemData			import randomInt, topLevelTasks
 from Map				import qualified newMap
 import CoreTasks, CoreCombinators, TuningCombinators, InteractionTasks
 
-
 (>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
 (>>*) task steps = step task steps 
 
