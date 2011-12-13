@@ -54,6 +54,15 @@ writeShared :: !(ReadWriteShared r w) !w !*IWorld -> (!MaybeErrorString Void,!*I
 updateShared :: !(ReadWriteShared r w) !(r -> w) !*IWorld -> (!MaybeErrorString w,!*IWorld)
 
 /**
+* Atomically updates shared data only if an appropriate value is available
+* @param A reference to shared data
+* @param The update function
+* @param iworld
+* @return The value written to the shared or nothing when there was no write
+*/
+maybeUpdateShared :: !(ReadWriteShared r w) !(r -> Maybe w) !*IWorld -> (!MaybeErrorString (Maybe w),!*IWorld)
+
+/**
 * Gets the timestamp of the last change.
 *
 * @param A reference to shared data

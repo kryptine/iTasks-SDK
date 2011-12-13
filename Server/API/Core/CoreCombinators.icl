@@ -1,7 +1,7 @@
 implementation module CoreCombinators
 
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
-import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, Store, SystemTypes, Time, Text, Shared, Func, Tuple, List
+import Task, TaskContext, TaskStore, Util, HTTP, GenUpdate, GenEq, Store, SystemTypes, Time, Text, Shared, Func, Tuple, List
 import iTaskClass, InteractionTasks
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
@@ -23,26 +23,74 @@ where
 			(TaskException e str, iworld)		= (TaskException e str, iworld)
 
 project	:: ((Maybe a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
-project projection share task = task //TODO
-
+project projection share taska = mkTask (taskMeta taska) init edit eval
+where
+	init taskNr iworld
+		# taskaFuncs		= taskFuncs taska
+		# (inita,iworld)	= taskaFuncs.initFun [0:taskNr] iworld
+		= (TCProject JSONNull inita, iworld)
+	
+	//Pass along edit events
+	edit taskNr event context=:(TCProject prev cxta) iworld
+		= case stepEvent 0 (Just event) of
+			Just sevent
+				# taskaFuncs		= taskFuncs taska
+				# (ncxta,iworld)	= taskaFuncs.editFun [0:taskNr] sevent cxta iworld
+				= (TCProject prev ncxta, iworld)
+			_
+				= (context,iworld)
+		
+	//Eval task and check for change
+	eval taskNr tmeta event tuiTaskNr repAs (TCProject prev cxta) iworld 
+		# taskaFuncs		= taskFuncs taska
+		# taskaRepAs		= subRepAs repAs taska
+		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr) taskaRepAs cxta iworld
+		= case resa of
+			TaskInstable mba (rep,actions) ncxta 
+				| changed prev mba	
+					= projectOnShare mba (TaskInstable mba (rep,actions) (TCProject (toJSON mba) ncxta)) iworld
+				| otherwise
+					= (TaskInstable mba (rep,actions) (TCProject prev ncxta), iworld)
+			TaskStable a (rep,actions) ncxta
+				| changed prev (Just a)
+					= projectOnShare (Just a) (TaskStable a (rep,actions) (TCProject (toJSON (Just a)) ncxta)) iworld
+				| otherwise
+					= (TaskStable a (rep,actions) (TCProject prev ncxta), iworld)
+			TaskException e str
+				= (TaskException e str,iworld)
+	
+	subRepAs RepAsService _ 					= RepAsService
+	subRepAs (RepAsTUI clayout)	task=:{layout}	= case clayout of
+		DefaultLayouter	= RepAsTUI layout
+		_				= RepAsTUI clayout
+	
+	changed encprev cur = case fromJSON encprev of
+		Nothing		= True	//Consider changed when parsing fails
+		Just prev	= prev =!= cur
+	
+	projectOnShare mba result iworld
+		= case maybeUpdateShared share (projection mba) iworld of
+			(Ok _,iworld)		= (result,iworld)
+			(Error e,iworld)	= (taskException e,iworld)
+	
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 step taska conts = mkTask (taskMeta taska) init edit eval
 where
 	init taskNr iworld
 		# taskaFuncs		= taskFuncs taska
 		# (inita,iworld)	= taskaFuncs.initFun [0:taskNr] iworld
-		= (TCBind (Left inita), iworld)
+		= (TCStep (Left inita), iworld)
 	//Edit left-hand side
-	edit taskNr event context=:(TCBind (Left cxta)) iworld
+	edit taskNr event context=:(TCStep (Left cxta)) iworld
 		= case stepEvent 0 (Just event) of
 			Just sevent
 				# taskaFuncs		= taskFuncs taska
 				# (ncxta,iworld) = taskaFuncs.editFun [0:taskNr] sevent cxta iworld
-				= (TCBind (Left ncxta), iworld)
+				= (TCStep (Left ncxta), iworld)
 			_
 				= (context,iworld)
 	//Edit right-hand side
-	edit taskNr event context=:(TCBind (Right (enca, sel, cxtb))) iworld
+	edit taskNr event context=:(TCStep (Right (enca, sel, cxtb))) iworld
 		= case stepEvent 1 (Just event) of
 			Just sevent
 				# mbTaskb = case conts !! sel of
@@ -55,14 +103,14 @@ where
 				= case mbTaskb of
 					Just taskb
 						# (ncxtb,iworld)	= (taskFuncs taskb).editFun [1:taskNr] sevent cxtb iworld
-						= (TCBind (Right (enca, sel, ncxtb)), iworld)
+						= (TCStep (Right (enca, sel, ncxtb)), iworld)
 					Nothing
 						= (context, iworld)
 			_	= (context, iworld)
 	edit taskNr event context iworld
 		= (context, iworld)
 	//Eval left-hand side
-	eval taskNr tmeta event tuiTaskNr repAs (TCBind (Left cxta)) iworld 
+	eval taskNr tmeta event tuiTaskNr repAs (TCStep (Left cxta)) iworld 
 		# taskaFuncs		= taskFuncs taska
 		# taskaRepAs		= subRepAs repAs taska
 		# (resa, iworld) 	= taskaFuncs.evalFun [0:taskNr] taska.Task.meta (stepEvent 0 event) (stepTarget 0 tuiTaskNr)taskaRepAs cxta iworld
@@ -71,13 +119,13 @@ where
 			_								= Nothing
 		# mbCont			= case resa of
 			TaskInstable mba (rep,actions) ncxta = case searchContInstable mba mbcommit conts of
-				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr tmeta repAs rep actions mba)  (TCBind (Left ncxta)))
+				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr tmeta repAs rep actions mba)  (TCStep (Left ncxta)))
 				Just rewrite	= Right rewrite
 			TaskStable a (rep,actions) ncxta = case searchContStable a mbcommit conts of
-				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr tmeta repAs rep actions (Just a)) (TCBind (Left ncxta)))
+				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr tmeta repAs rep actions (Just a)) (TCStep (Left ncxta)))
 				Just rewrite	= Right rewrite
-			TaskException dyn str = case searchContException dyn str conts of
-				Nothing			= Left (TaskException dyn str)
+			TaskException e str = case searchContException e str conts of
+				Nothing			= Left (TaskException e str)
 				Just rewrite	= Right rewrite
 		= case mbCont of
 			Left res = (res,iworld)
@@ -87,11 +135,11 @@ where
 				# (cxtb,iworld)		= taskbFuncs.initFun [1:taskNr] iworld
 				# (resb,iworld)		= taskbFuncs.evalFun [1:taskNr] taskb.Task.meta Nothing (stepTarget 1 tuiTaskNr) taskbRepAs cxtb iworld 
 				= case resb of
-					TaskInstable mbb (rep,actions) ncxtb	= (TaskInstable mbb (rep,actions) (TCBind (Right (enca,sel,ncxtb))),iworld)
+					TaskInstable mbb (rep,actions) ncxtb	= (TaskInstable mbb (rep,actions) (TCStep (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b (rep,actions) ncxtb		= (TaskStable b (rep,actions) ncxtb, iworld)
 					TaskException e str						= (TaskException e str, iworld)
 	//Eval right-hand side
-	eval taskNr _ event tuiTaskNr repAs (TCBind (Right (enca,sel,cxtb))) iworld
+	eval taskNr _ event tuiTaskNr repAs (TCStep (Right (enca,sel,cxtb))) iworld
 		# mbTaskb = case conts !! sel of
 			(AnyTime _ taskbf)		= fmap taskbf (fromJSON enca)
 			(WithResult	_ _ taskbf)	= fmap taskbf (fromJSON enca)
@@ -104,7 +152,7 @@ where
 				# taskbRepAs		= subRepAs repAs taskb
 				# (resb, iworld)	= (taskFuncs taskb).evalFun [1:taskNr] taskb.Task.meta (stepEvent 1 event) (stepTarget 1 tuiTaskNr) taskbRepAs cxtb iworld 
 				= case resb of
-					TaskInstable mbb (rep,actions) ncxtb	= (TaskInstable mbb (rep, actions) (TCBind (Right (enca,sel,ncxtb))),iworld)
+					TaskInstable mbb (rep,actions) ncxtb	= (TaskInstable mbb (rep, actions) (TCStep (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b (rep,actions) ncxtb		= (TaskStable b (rep,actions) ncxtb, iworld)
 					TaskException e str						= (TaskException e str, iworld)
 			Nothing

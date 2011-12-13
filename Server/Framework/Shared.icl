@@ -29,6 +29,18 @@ updateShared shared=:(ReadWriteShared _ read _ _) updF iworld
 	| isError wres	= (liftError wres,iworld)
 	= (Ok wval,iworld)
 
+maybeUpdateShared :: !(ReadWriteShared r w) !(r -> Maybe w) !*IWorld -> (!MaybeErrorString (Maybe w),!*IWorld)
+maybeUpdateShared shared=:(ReadWriteShared _ read _ _) updF iworld
+	# (val,iworld)	= read iworld
+	| isError val	= (liftError val,iworld)
+	# mbwval		= updF (fromOk val)
+	= case mbwval of
+		Nothing	= (Ok Nothing,iworld)
+		Just wval
+			# (wres,iworld)	= writeShared shared wval iworld
+			| isError wres	= (liftError wres,iworld)
+			= (Ok (Just wval),iworld)
+
 getSharedTimestamp :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
 getSharedTimestamp (ReadWriteShared _ _ _ getTimestamp) iworld = getTimestamp iworld
 
