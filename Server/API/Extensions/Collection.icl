@@ -54,7 +54,7 @@ selectItem desc collection selection identify
 	
 viewItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task (Maybe i) | descr d & iTask c & iTask i
 viewItem desc collection itemShare Nothing	= viewInformation desc [] "Make a selection first..." >>$ const Nothing
-viewItem desc collection itemShare (Just i)	= viewSharedInformation desc [] (itemShare collection i) Void >>$ const (Just i)
+viewItem desc collection itemShare (Just i)	= viewSharedInformation desc [] (itemShare collection i) >>$ const (Just i)
 
 addItem :: !d (Shared [c]) (c -> i) -> Task (Maybe i) | descr d & iTask i & iTask c
 addItem desc collection identify
@@ -78,14 +78,14 @@ editItem desc collection itemShare identify i
 
 deleteItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (c -> i) i -> Task (Maybe i) | descr d & iTask c & iTask i
 deleteItem desc collection itemShare identify i
-	=	viewSharedInformation desc [] (itemShare collection i) Void 
+	=	viewSharedInformation desc [] (itemShare collection i)
 	>?*	[(ActionNo, Always (return Nothing))
 		,(ActionYes, Always (update (\l -> [c \\ c <- l | identify c =!= i]) collection >>| return Nothing))
 		]
 
 narrowDown :: !d (a -> b) (Shared [a]) (Shared (Maybe b)) -> Task (Maybe b) | descr d & iTask a & iTask b
 narrowDown desc f options selection =
-	updateSharedInformation desc [UpdateView (GetShared toView, SetShared fromView)] (options |+< selection) Void >>$ (\((_,r),_) -> r)
+	updateSharedInformation desc [UpdateView (GetShared toView) fromView] (options |+< selection)
 where
 	//Use a grid choice type to indicate the choice to make the 
 	toView (opts,sel)	= GridChoice [(a,a) \\ a <- opts] (selIndex 0 opts sel)

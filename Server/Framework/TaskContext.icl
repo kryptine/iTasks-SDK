@@ -1,11 +1,13 @@
 implementation module TaskContext
 
 import SystemTypes
-from iTasks import JSONEncode, JSONDecode
+from iTasks		import JSONEncode, JSONDecode
+from Task		import :: Event, :: EditEvent
+from GenUpdate	import :: UpdateMask
 import JSON, Map
 
-derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
-derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
+derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta, UpdateMask
+derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta, UpdateMask
 
 getLocalVar :: !String !TaskContextTree -> Maybe a | JSONDecode{|*|} a
 getLocalVar key (TCBasic vars)

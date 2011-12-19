@@ -28,6 +28,9 @@ import CoreTasks, CoreCombinators, TuningCombinators, InteractionTasks
 (>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
 (>>$) task f = transform (fmap f) task
 
+(>>@) infixl 1 :: !(Task a) !((Maybe a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
+(>>@) task (f,share) = project f share task
+
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
 try task handler = step task [WhenStable return, Catch handler]
 
@@ -68,7 +71,7 @@ assign props task = parallel ("Assign","Manage a task assigned to another user."
 where
 	processControl :: !(TaskList a) -> Task ParallelControl
 	processControl tlist =
-		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, SetShared fromView)] control Void >>| return Continue)
+		(enterSharedChoice (taskTitle task,"Waiting for " +++ taskTitle task) [] /*[UpdateView (GetShared toView) fromView]*/ control >>| return Continue)
 	where
 		control = taskListMeta tlist
 		

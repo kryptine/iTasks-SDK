@@ -1,6 +1,6 @@
 implementation module SharedCombinators
 
-import StdTuple, StdList, StdFunc, Util, Shared, Time, Tuple
+import StdTuple, StdList, StdFunc, Util, Shared, Time, Tuple, Error
 
 mapSharedRead :: !(r -> r`) !(ReadWriteShared r w) -> (ReadWriteShared r` w)
 mapSharedRead f (ReadWriteShared id read write getTimestamp) = ReadWriteShared id (appFst (fmap f) o read) write getTimestamp
@@ -15,6 +15,21 @@ where
 		
 mapShared :: !(!r -> r`,!w` r -> w) !(ReadWriteShared r w) -> ReadWriteShared r` w`
 mapShared (readMap,writeMap) shared = mapSharedRead readMap (mapSharedWrite writeMap shared)
+
+mapSharedError :: !(!r -> MaybeErrorString r`, !w` r -> MaybeErrorString w)	!(ReadWriteShared r w) -> ReadWriteShared r` w`
+mapSharedError (readMap,writeMap) (ReadWriteShared id read write getTimestamp) = ReadWriteShared id nread nwrite getTimestamp
+where
+	nread iworld = case read iworld of
+		(Error e,iworld) = (Error e,iworld)
+		(Ok r, iworld) = case readMap r of
+			(Error e)	= (Error e,iworld)
+			(Ok r`)		= (Ok r`,iworld)
+
+	nwrite v iworld = case read iworld of
+		(Error e,iworld) = (Error e,iworld)
+		(Ok r, iworld) = case writeMap v r of
+			(Error e)	= (Error e,iworld)
+			(Ok w`)		= write w` iworld
 
 toReadOnlyShared :: !(ReadWriteShared r w) -> ReadOnlyShared r
 toReadOnlyShared (ReadWriteShared id read write getTimestamp) = ReadWriteShared id read (\_ iworld -> (Ok Void,iworld)) getTimestamp

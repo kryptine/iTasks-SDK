@@ -26,6 +26,16 @@ currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
 * @gin-icon key
 */
 authenticateUser	:: !String !String	-> Task (Maybe User)
+
+/**
+* Wraps a task with an authentication task
+*
+* @param	the task to wrap
+*
+* @gin-icon key
+*/
+doAuthenticated :: (Task a) -> Task a | iTask a
+
 /**
 * Add a new user
 *

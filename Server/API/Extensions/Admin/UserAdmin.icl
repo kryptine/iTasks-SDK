@@ -46,6 +46,23 @@ authenticateUser username password
 			Nothing
 				= return Nothing
 
+doAuthenticated :: (Task a) -> Task a | iTask a
+doAuthenticated task
+	//=	(identifyApplication ||- enterInformation "Log in" [] /*<<@ fuseParallelLayout */) <<@ tweak
+	=	enterInformation "Log in" [] <<@ tweak
+	>>! \credentials ->
+		authenticateUser (toString credentials.Credentials.username) (toString credentials.Credentials.password)
+	>>= \mbUser -> case mbUser of
+		Nothing		= throw "Authentication failed"
+		Just user	= workAs user task
+where
+	identifyApplication :: Task String
+	identifyApplication = viewSharedInformation "Application identity" [] applicationName <<@ plainInteractionLayout
+	
+	tweak :: LayoutTweak
+	tweak = \(def,actions) -> ({TUIDef|def & margins = topMargin 100, width = Just (WrapContent 0)},actions)
+
+
 createUser :: !UserDetails -> Task User
 createUser details
 	=	get (userDetails user)

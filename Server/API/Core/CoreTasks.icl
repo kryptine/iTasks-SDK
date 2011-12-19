@@ -3,8 +3,8 @@ implementation module CoreTasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
 import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TuningCombinators, TUIDefinition
 from SharedCombinators		import :: Shared
-from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared
-from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..)
+from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared, getSharedTimestamp
+from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..), :: ReadOnlyShared(..)
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..), :: Control(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
@@ -20,12 +20,9 @@ EVENT_STORE				:== "event"
 EDIT_CONFLICT_STORE		:== "editConflict"
 EDIT_CONFLICT_WARNING	:== "An edit conflict occurred. The form was refreshed with the most recent value."
 
-derive JSONEncode StoredPart, UpdateMask
-derive JSONDecode StoredPart, UpdateMask
-JSONEncode{|StoredPutback|} _ _ p				= [dynamicJSONEncode p]
-JSONDecode{|StoredPutback|} _ _ [json:r]		= (dynamicJSONDecode json,r)
-JSONDecode{|StoredPutback|} _ _ c				= (Nothing,c)
-	
+derive JSONEncode UpdateMask
+derive JSONDecode UpdateMask
+
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask ("return", "Return a value") (\_ iworld -> (TaskStable a (NoRep,[]) TCEmpty, iworld))
 
@@ -60,134 +57,137 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskStable (fromOk val) (NoRep,[]) TCEmpty, iworld)
 
-interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
-interact description partFunc initLocal shared = mkTask description init edit eval
+interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
+interact desc initFun parts initLocal shared = mkTask desc init edit eval
 where
-	init taskNr iworld
-		= (TCBasic newMap, iworld)
+	init taskNr iworld			//Create the initial views
+		# (mbrvalue,iworld) 	= 'Shared'.readShared shared iworld
+		| isError mbrvalue		= abort ("interact value fail " +++ fromError mbrvalue) //(TCEmpty, iworld)
+		# rvalue				= fromOk mbrvalue
+		# (rts,iworld)			= getShareTimestamp shared iworld
+		# lvalue				= initFun initLocal rvalue
+		= (TCInteract (toJSON lvalue) (initParts lvalue rvalue parts) rts Nothing, iworld)
+
+	initParts l r parts = map (initPart l r) parts
 	
+	initPart l r (DisplayPart f)	= (toJSON (f l r),Untouched)
+	initPart l r (FormPart f _ _)
+		# (_,encv,maskv)	= initFormView (f l r)
+		= (encv,maskv)
+	
+	initFormView BlankForm
+		# v = defaultValue
+		= (v,toJSON v,Untouched)
+	initFormView (FilledForm v)
+		= (v,toJSON v, defaultMask v)
+	
+	getShareTimestamp shared iworld
+		# (mbts,iworld)			= 'Shared'.getSharedTimestamp shared iworld
+		| isError mbts			= (Timestamp 0, iworld)
+								= (fromOk mbts,iworld)
+		
 	//Rewrite lucky events to events that target this task
-	edit taskNr (LuckyEvent e) context iworld = (edit taskNr (TaskEvent [] e) context iworld)
+	edit taskNo (LuckyEvent e) context iworld = (edit taskNo (TaskEvent [] e) context iworld)
 	//There is an edit event for this task (because the location part of the event is the empty list)
-	edit taskNr (TaskEvent [] (dps,editV)) context iworld=:{IWorld|timestamp,latestEvent}	
+	edit taskNo (TaskEvent [] (dps,editv)) context=:(TCInteract encl views rts _) iworld=:{IWorld|timestamp,latestEvent}		
 		//Read latest versions of states
-		# (model,iworld) 			= 'Shared'.readShared shared iworld
-		| isError model				= (context, iworld)
-		# local						= getLocalState context
+		# (mbrval,iworld) 			= 'Shared'.readShared shared iworld
+		| isError mbrval			= (context, iworld)
+		# r							= fromOk mbrval
+		# l							= fromJust (fromJSON encl)
 		//Split datapath into datapath & part index
 		# (idx,dp)					= splitDataPath dps
-		# parts						= getParts context	
 		| idx >= length parts		= (context, iworld) 
-		//Save event for use in the visualization of the task
-		# context					= setEvent (dps,editV) context
-		//Check if the share has changed since the last event
-		/*# (changed,iworld) = case latestEvent of
-			Nothing			= (Ok False,iworld)
-			Just lastEvent	= 'Shared'.isSharedChanged shared lastEvent iworld
-		*/
-		//TODO: Fix detection by checking against local latest event
-		# changed = Ok False
-		= case changed of
-			Ok True	
-				//Edit conflict
-				= (setLocalVar EDIT_CONFLICT_STORE True context, iworld) 
-			_
-				# context = delLocalVar EDIT_CONFLICT_STORE context 
-				= case parts !! idx of
-					StoredUpdateView jsonV umask (StoredPutback putback)
-						# mbValue				= fromJSON jsonV
-						| isNothing mbValue		= (context,iworld)
-						# value					= fromJust mbValue
-						// update value & masks
-						
-						//TEST
-						# (value,umask,iworld)	= if(dataPathLevel dp == 0)
-							(case fromJSON editV of
-								Just newV	= (newV,defaultMask newV, iworld)
-								Nothing 	= (value,umask,iworld)
-							)
-							(updateValueAndMask dp editV value umask iworld)
-						
-						//TEST
-						//# (value,umask,iworld)	= updateValueAndMask dp editV value umask iworld
-						# vmask					= verifyForm value umask
-						# parts					= updateAt idx (StoredUpdateView (toJSON value) umask (StoredPutback putback)) parts
-						# context				= setLocalVar PARTS_STORE parts context
-						// calculate new local & model value
-						# (local,mbModel)		= putback (if (isValidValue vmask) (Just value) Nothing)
-						# context				= setLocalState initLocal local context
-						# context				= setLocalVar LAST_EDIT_STORE timestamp context
-						= case mbModel of
-							Just model
-								# (_,iworld) 	= 'Shared'.writeShared shared model iworld
-								= (context,iworld)
-							Nothing	
-								= (context, iworld)
-					StoredUpdate (local,mbModel)			
-						# context				= setLocalState initLocal local context
-						= case mbModel of
-							Just model	= (context, snd ('Shared'.writeShared shared model iworld))
-							Nothing		= (context, iworld)
-					_
-						= (context,iworld)
-				
-	edit _ _ context iworld = (context,iworld)
-	
-	eval taskNr props event tuiTaskNr repAs context iworld=:{IWorld|timestamp}
-		# (model,iworld) 				= 'Shared'.readShared shared iworld
-		| isError model					= (sharedException model, iworld)
-		# (localTimestamp,iworld)		= getLocalTimestamp context iworld
-		# (changed,iworld)				= 'Shared'.isSharedChanged shared localTimestamp iworld
-		| isError changed				= (sharedException changed, iworld)
-		# local							= getLocalState context
-		# parts							= partFunc local (fromOk model) (fromOk changed)
-		# storedParts					= getParts context
-		# (mbEvent,context)				= getEvent context
-		# (reps,newParts,valid,iworld)	= visualizeParts taskNr repAs parts storedParts mbEvent iworld
-		# context 						= setLocalVar PARTS_STORE newParts context
-		//Build GUI
-		# warning = case (getLocalVar EDIT_CONFLICT_STORE context) of
-							Just True	= Just EDIT_CONFLICT_WARNING
-							_			= Nothing
-		# taskId		= taskNrToString taskNr
-		# (rep,actions) = case repAs of
-			(RepAsTUI layout)	= appFst TUIRep (mergeTUI props layout [tui \\ TUIRep tui <- reps] warning [])
-			_					= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), [])
-		# result = if valid (Just (local,fromOk model)) Nothing
-		= (TaskInstable result (rep,actions) context, iworld)
+		//Apply the event to the view
+		# (l,view,iworld)			= updateView l r dp editv (parts !! idx) (views !! idx) iworld
+		= (TCInteract (toJSON l) (updateAt idx view views) rts (Just (dps,editv)), iworld)
 		
-	getLocalTimestamp context iworld=:{IWorld|timestamp}
-		= case getLocalVar LAST_EDIT_STORE context of
-			Just ts	= (ts,iworld)
-			Nothing	= (Timestamp 0,iworld)
-	
-	getLocalState context
-		= fromMaybe initLocal (getLocalVar LOCAL_STORE context)
-
-	setLocalState :: l !l !TaskContextTree -> TaskContextTree | JSONEncode{|*|} l
-	setLocalState _ state context
-		= setLocalVar LOCAL_STORE state context
+	edit _ _ context iworld = (context,iworld)
 	
 	splitDataPath dp
 		= (hd dplist, dataPathFromList (reverse (tl dplist)))
 	where
 		dplist = reverse (dataPathList (s2dp dp))
 	
-	getParts context 
-		= case getLocalVar PARTS_STORE context of
-			Just parts	= parts
-			Nothing		= []
-
-	setEvent event context
-		= setLocalVar EVENT_STORE event context
+	updateView l r dp editv (DisplayPart f) view iworld = (l,view,iworld)
+	updateView l r dp editv (FormPart _ _ f) view=:(encv,maskv) iworld
+		# (v,encv,maskv,iworld)	= applyEditEvent dp editv (fromJust (fromJSON encv)) encv maskv iworld	
+		# (l,mbform) = f l r (Just v)
+		= case mbform of
+			Nothing 	= (l,(encv,maskv),iworld)
+			Just form
+				# (_,encv,maskv) = initFormView form
+				= (l,(encv,maskv),iworld)
+			
+	applyEditEvent dp editv v encv maskv iworld
+		| dataPathLevel dp == 0 //Replace entire value
+			= case fromJSON editv of
+				Just nv = (nv,editv,defaultMask nv,iworld)
+				Nothing	= (v,encv,maskv,iworld)
+		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
+		= (v,toJSON v,maskv,iworld)
+	
+	//TODO: Update rts timestamp			
+	eval taskNo props event tuiTaskNo repAs context=:(TCInteract encl views rts mbEdit) iworld=:{IWorld|timestamp}
+		# (mbrvalue,iworld) 			= 'Shared'.readShared shared iworld
+		| isError mbrvalue				= (sharedException mbrvalue, iworld)
+		# rvalue						= fromOk mbrvalue	
+		# (mbchanged,iworld)			= 'Shared'.isSharedChanged shared rts iworld
+		| isError mbchanged				= (sharedException mbchanged, iworld)
+		# changed						= fromOk mbchanged
+		# (rts,iworld)					= if changed (getShareTimestamp shared iworld) (rts,iworld)
+		# lvalue						= fromJust (fromJSON encl)
+		# (lvalue,reps,views,iworld)	= evalParts 0 taskNo repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
+		# (rep,actions) = case repAs of
+			(RepAsTUI layout)	= appFst TUIRep (mergeTUI props layout [tui \\ TUIRep tui <- reps] [])
+			_					= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), [])
 		
-	getEvent context
-		= case getLocalVar EVENT_STORE context of
-			Just (dp,val)	= (Just (s2dp dp, val), delLocalVar EVENT_STORE context)
-			Nothing			= (Nothing, context)
+		# result						= Just (lvalue,rvalue)
+		= (TaskInstable result (rep,actions) (TCInteract (toJSON lvalue) views rts Nothing), iworld)
+	eval taskNo props event tuiTaskNo repAs context iworld
+		= (taskException "Corrupt context in interact",iworld)
+
+
+	evalParts idx taskNo repAs mbEvent changed l r [] [] iworld
+		= (l,[],[],iworld)
+	evalParts idx taskNo repAs mbEvent changed l r [p:ps] [v:vs] iworld	
+		# (nl,rep,view,iworld)		= evalPart idx taskNo repAs mbEvent changed l r p v iworld
+		# (nnl,reps,views,iworld)	= evalParts (idx + 1) taskNo repAs mbEvent changed nl r ps vs iworld
+		= (nnl,[rep:reps],[view:views],iworld)
+		
+	evalPart idx taskNo repAs mbEvent changed l r part view=:(encv,maskv) iworld = case part of
+		DisplayPart f
+			//Simply visualize the view
+			# (rep,iworld) 	= displayRep idx taskNo repAs f l r encv iworld
+			= (l,rep,view,iworld)
+		
+		FormPart initf sharef viewf
+			//Update the local value and possibly the view if the share has changed
+			# v						= fromJust (fromJSON encv)
+			# (l,v,encv,maskv)		= if changed (l,v,encv,maskv) (refreshForm sharef l r v encv maskv)
+			//Create an editor for the view
+			# (rep,iworld)			= editorRep idx taskNo repAs initf v encv maskv mbEvent iworld
+			= (l,rep,(encv,maskv),iworld)
+			
+	displayRep idx taskNo (RepAsTUI _) f l r encv iworld
+		# (editor,iworld) = visualizeAsDisplay (f l r) iworld
+		= (mbToTUIRep editor,iworld)
+	displayRep idx taskNo _ f l r encv iworld
+		= (ServiceRep [(taskNrToString taskNo,idx,encv)],iworld)
 	
+	editorRep idx taskNo (RepAsTUI _) f v encv maskv mbEvent iworld
+		# (editor,iworld) = visualizeAsEditor v (taskNrToString taskNo) idx (verifyForm v maskv) mbEvent iworld
+		= (mbToTUIRep editor,iworld)
+	editorRep idx taskNo _ f v encv maskv mbEvent iworld
+		= (ServiceRep [(taskNrToString taskNo,idx,encv)],iworld)
 	
-	mergeTUI meta layout parts warning actions
+	refreshForm f l r v encv maskv = case f l r (Just v) False of
+		(l,Nothing)			= (l,v,encv,maskv)
+		(l,Just form)
+			# (v,encv,maskv)	= initFormView form
+			= (l,v,encv,maskv)
+		
+	mergeTUI meta layout parts actions
 		# ilayout	= case layout of
 			(InteractionLayouter ilayout)	= ilayout
 			_								= defaultInteractionLayout
@@ -197,97 +197,11 @@ where
 					, actions = actions
 					, type = meta.interactionType
 					, localInteraction = meta.TaskMeta.localInteraction
-					, warning = warning
+					, warning = Nothing
 					}
-		
-		
-:: StoredPart l w	= StoredUpdateView	!JSONNode !UpdateMask !(StoredPutback l w)
-					| StoredDisplayView
-					| StoredUpdate		!(!l,!Maybe w)
-:: StoredPutback l w = E.v: StoredPutback !((Maybe v) -> (!l,!Maybe w)) & iTask v
-
-visualizeParts :: !TaskNr !TaskRepInput ![InteractionPart l w] ![StoredPart l w] !(Maybe (!DataPath,!JSONNode)) !*IWorld -> (![TaskRep],![StoredPart l w],!Bool,!*IWorld)
-visualizeParts taskNr repAs parts oldParts mbEdit iworld = visualizeParts` parts oldParts 0 iworld
-where
-	visualizeParts` [] _ idx iworld
-		= ([],[],True,iworld)
-	visualizeParts` [p:ps] [] idx iworld
-		# (rep,part,valid,iworld)	= visualizePart p Nothing idx iworld
-		# (reps,parts,valids,iworld)= visualizeParts` ps [] (inc idx) iworld
-		= ([rep:reps],[part:parts],valid && valids, iworld)
-	visualizeParts` [p:ps] [o:os] idx iworld
-		# (rep,part,valid,iworld)	= visualizePart p (Just o) idx iworld
-		# (reps,parts,valids,iworld)= visualizeParts` ps os (inc idx) iworld
-		= ([rep:reps],[part:parts],valid && valids, iworld)
-		
-	visualizePart part mbV idx iworld
-		= case part of
-			FormPart formView putback = case formView of
-				FormValue value
-					# umask				= defaultMask value
-					# vmask				= verifyForm value umask
-					# (rep,iworld)		= case repAs of
-											(RepAsTUI _)
-												# (editor,iworld) = visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
-												= (mbToTUIRep editor, iworld)
-											_	
-												= (ServiceRep [(taskNrToString taskNr, idx, toJSON value)], iworld)
-					= (rep,StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask, iworld)
-				Unchanged init = case mbV of
-					Just (StoredUpdateView jsonV umask _) = case fromJSON` formView jsonV of
-						Just value
-										# vmask = verifyForm value umask
-										# (rep,iworld)	= case repAs of
-											(RepAsTUI _)
-												# (editor,iworld)	= visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
-												= (mbToTUIRep editor, iworld)
-											_				
-												= (ServiceRep [(taskNrToString taskNr, idx, toJSON value)], iworld)
-										= (rep, StoredUpdateView jsonV umask (StoredPutback putback), isValidValue vmask, iworld)
-						Nothing			= visualizePart (FormPart init putback) Nothing idx iworld
-					_					= visualizePart (FormPart init putback) Nothing idx iworld
-				Blank					= blankForm repAs formView putback mbEdit iworld
-			
-			DisplayPart v				= case repAs of
-											(RepAsTUI _)	
-												# (editor,iworld) = visualizeAsDisplay v iworld
-												= (mbToTUIRep editor, StoredDisplayView, True, iworld)
-											_	
-												= (ServiceRep [(taskNrToString taskNr,idx,toJSON v)], StoredDisplayView, True, iworld)
-			
-			UpdatePart label w			= case repAs of
-											(RepAsTUI _)	= (TUIRep (defaultDef (TUIButton	{ TUIButton
-																	| name			= toString idx
-																	, taskId		= taskNrToString taskNr
-																	, text			= label
-																	, disabled		= False
-																	, iconCls		= ""
-																	, actionButton	= False
-																	})),StoredUpdate w, True,iworld)
-											_				= (ServiceRep [(taskNrToString taskNr,idx,JSONString label)], StoredUpdate w, True, iworld)
-	where
-		fromJSON` :: !(FormView v) !JSONNode -> (Maybe v) | JSONDecode{|*|} v
-		fromJSON` _ json = fromJSON json
-
-		blankForm repAs formView putback mbEdit iworld
-			# value	= defaultValue` formView
-			# umask	= Untouched
-			# vmask	= verifyForm value umask
-			# (rep,iworld)	= case repAs of
-				(RepAsTUI _)
-					# (editor,iworld) = visualizeAsEditor value (taskNrToString taskNr) idx vmask mbEdit iworld
-					= (mbToTUIRep editor,iworld)
-				_				
-					= (ServiceRep [(taskNrToString taskNr, idx, toJSON value)], iworld)
-			= (rep, StoredUpdateView (toJSON value) umask (StoredPutback putback), isValidValue vmask, iworld)
-		
-		defaultValue` :: !(FormView v) -> v | gUpdate{|*|} v
-		defaultValue` _ = defaultValue
-
-		mbToTUIRep :: (Maybe TUIDef) -> TaskRep
-		mbToTUIRep Nothing		= NoRep
-		mbToTUIRep (Just def)	= TUIRep def 
-
+						
+	mbToTUIRep Nothing		= NoRep
+	mbToTUIRep (Just def)	= TUIRep def 
 	
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
@@ -353,13 +267,6 @@ where
 			_
 				= (False,iworld)
 	checkIfAddedGlobally _ iworld = (False,iworld)
-
-getActionResult (Just (LuckyEvent _)) [(action,result):_]
-	= result
-getActionResult (Just (TaskEvent [] name)) actions
-	= listToMaybe (catMaybes [result \\ (action,result) <- actions | actionName action == name])
-getActionResult _ actions
-	= Nothing
 
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask ("Run world function", "Run a world function.") eval

@@ -189,7 +189,7 @@ where
 			| commit == actionName action && pred a		= search a (Just commit) (i + 1) (Just (i, f a, toJSON a)) cs
 														= search a (Just commit) (i + 1) Nothing cs
 		search a mbcommit i mbmatch [_:cs]				= search a mbcommit (i + 1) mbmatch cs
-	
+		
 	searchContException dyn str conts = search dyn str 0 Nothing conts
 	where
 		search _ _ _ catchall []					= catchall													//Return the maybe catchall
@@ -197,8 +197,8 @@ where
 			Just (taskb,enca)						= Just (i, taskb, enca)										//We have a match
 			_										= search dyn str (i + 1) catchall cs						//Keep searching
 		search dyn str i Nothing [CatchAll f:cs]	= search dyn str (i + 1) (Just (i, f str, toJSON str)) cs 	//Keep searching (at least we have a catchall)
-		search dyn str i (Just catchall) [_:cs]		= search dyn str (i + 1) (Just catchall) cs					//Keep searching
-		
+		search dyn str i mbcatchall [_:cs]			= search dyn str (i + 1) mbcatchall cs						//Keep searching
+				
 		match :: (e -> Task b) Dynamic -> Maybe (Task b, JSONNode) | iTask e
 		match f (e :: e^)	= Just (f e, toJSON e)
 		match _ _			= Nothing 
@@ -243,18 +243,25 @@ parallel description initState resultFun initTasks = mkTask description init edi
 where
 	//Create initial set of tasks and initial state
 	init taskNr iworld=:{IWorld|timestamp}
-		# (subContexts, nextIdx, iworld)	= initSubContexts taskNr taskList 0 (length initTasks - 1) initTasks iworld  
-		# meta								= {nextIdx = nextIdx, stateId = taskNrToString taskNr, stateChanged = timestamp, infoChanged = timestamp}
-		# encState							= encodeState initState initState
+		# meta								= {nextIdx = length initTasks, stateId = taskNrToString taskNr, stateChanged = timestamp, infoChanged = timestamp}
+		# iworld							= addParState taskNr initState meta iworld
+		# iworld							= addParTaskInfo taskNr [] meta.infoChanged iworld 
+		# (subContexts,iworld)				= initSubContexts taskNr taskList 0 (length initTasks - 1) initTasks iworld  
+		# (state,meta,iworld)				= removeParState taskNr meta iworld
+		# iworld							= removeParTaskInfo taskNr iworld
+		# encState							= encodeState state initState
 		= (TCParallel encState meta subContexts, iworld)
 	where
 		taskList	= ParallelTaskList (taskNrToString taskNr)
 		
-		initSubContexts taskNr taskList i o [] iworld = ([],i,iworld)
+		//Use incrementing identifiers (i) and decrementing order values (o)
+		//To make sure that the first initial subtask has the highest order value
+		//(this will ensure the first tab is active, or the first window will be on top)
+		initSubContexts taskNr taskList i o [] iworld = ([],iworld)
 		initSubContexts taskNr taskList i o [t:ts] iworld
-			# (s,iworld)			= initSubContext taskNr taskList i t iworld
-			# (ss, nextIdx, iworld) = initSubContexts taskNr taskList (i + 1) (o - 1) ts iworld
-			= ([(i,o,s):ss], nextIdx, iworld)
+			# (s,iworld)	= initSubContext taskNr taskList i t iworld
+			# (ss, iworld) 	= initSubContexts taskNr taskList (i + 1) (o - 1) ts iworld
+			= ([(i,o,s):ss], iworld)
 			
 			
 	//Direct the event to the right place

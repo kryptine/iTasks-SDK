@@ -6,7 +6,7 @@ definition module CoreTasks
 import iTaskClass
 from Error				import ::MaybeError(..)
 from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
-from SharedCombinators	import :: ReadWriteShared, :: Shared
+from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
 from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
 
 derive class iTask WorkOnProcessState
@@ -80,13 +80,11 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 *
 * An interaction tasks works on a shared data model (r w). Additonally interation tasks keep a local state (l).
 * How the data model is displayed/updated/changed is defined by means of dynamically calculated InteractionParts.
-* When the tasks stop and it's result (a) is determined by dynamically calculated InteractionTerminators.
 *
 * @param Description: A description of the task to display to the user
-* @param Interaction function: A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
-*        dynamically generating the interaction parts shown to the user (parts can change the local state (l) & possibly also write to the shared (Maybe w));
-*        Additionally the local state can be updated
-* @param Initial state: The initial local state
+* @param Local initialization: Initialize the local state
+* @param Parts: TODO
+* @param Initial state: The optional initial local state
 * @param ReadWriteShared: A reference to shared data the task works on
 *
 * @return A result determined by the terminators
@@ -94,15 +92,19 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 *
 * @gin False
 */
-interact :: !d !(l r Bool -> [InteractionPart l w]) l !(ReadWriteShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
 
-:: InteractionPart l w	= E.v:	FormPart		!(FormView v) !((Maybe v) -> (!l,!Maybe w))	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
-						| E.v:	DisplayPart		!v											& iTask v	// A static view displayed to the user
-						|		UpdatePart		!String !(!l,!Maybe w)									// A interaction element (typically a button with a string-label) allowing to directly change the states
-				
-:: FormView v	= FormValue !v				// A form representing a value
-				| Blank						// A blank form
-				| Unchanged (FormView v)	// Form is unchanged, if no view is stored the given initial value is used
+:: InteractionPart l r	= E.v: DisplayPart	(DisplayFun l r v)															& iTask v
+						| E.v: FormPart		(FormInitFun l r v) (FormShareUpdateFun l r v) (FormViewUpdateFun l r v)	& iTask v
+
+:: DisplayFun l r v			:==	l r -> v
+:: FormInitFun l r v		:==	l r -> FormView v									// Create the initial form
+:: FormShareUpdateFun l r v	:== l r (Maybe v) FormDirty	-> (l, Maybe (FormView v))	// What to do when share changes
+:: FormViewUpdateFun l r v	:== l r (Maybe v)			-> (l, Maybe (FormView v))	// What to do when the view changes
+
+:: FormView v	= BlankForm						// A blank form
+				| FilledForm !v					// A filled in form
+:: FormDirty	:== Bool						// Has a form been touched by the user
 
 /**
 * State of another process the user works on.

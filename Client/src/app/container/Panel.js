@@ -7,7 +7,10 @@ Ext.define('itasks.container.Panel',{
 	initComponent: function() {
 		Ext.applyIf(this,{
 			layout: {type: 'vhbox', direction: this.direction, halign: this.halign, valign: this.valign}
-		});	
+		});
+		if(this.menus && this.menus.length) {
+			this.tbar = this.menus;
+		}
 		//If no specification of the container width or height is given, make it wrapping
 		if(!this.width && !this.hwrap && !this.hflex) {
 			this.hwrap = true;

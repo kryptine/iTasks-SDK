@@ -60,13 +60,23 @@ from Map				import :: Map
 /**
 * Infix shorthand for transform combinator which only deals which only transforms valid results
 * 
-* @param Task: The task for which continuations are defined
-* @param The possible continuations
-* @return The continuation's result
+* @param Task: The task on which the transform should be applied
+* @param The transformation function to apply
+* @return The transformed task
 *
 * @gin False
 */
 (>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+/**
+* Infix shorthand for project combinator
+* 
+* @param Task: The task of which the result should be projected
+* @param The projection function and share
+* @return The tasks result
+*
+* @gin False
+*/
+(>>@) infixl 1 :: !(Task a) !((Maybe a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
 /**
 * Exception combinator.
 *

@@ -1,6 +1,6 @@
 definition module SharedCombinators
 
-import Void, GenEq
+import Void, Error, GenEq
 from Shared import :: ReadWriteShared
 
 // special cases for symmetric shareds (same read/write type) & read only shareds
@@ -16,10 +16,10 @@ from Shared import :: ReadWriteShared
 * @param A reference to shared data
 * @return A reference to shared data of another type
 */
-mapSharedRead	:: !(r -> r`)				!(ReadWriteShared r w) -> ReadWriteShared r` w
-mapSharedWrite	:: !(w` r -> w)				!(ReadWriteShared r w) -> ReadWriteShared r w`
-mapShared		:: !(!r -> r`,!w` r -> w)	!(ReadWriteShared r w) -> ReadWriteShared r` w`
-
+mapSharedRead	:: !(r -> r`)													!(ReadWriteShared r w) -> ReadWriteShared r` w
+mapSharedWrite	:: !(w` r -> w)													!(ReadWriteShared r w) -> ReadWriteShared r w`
+mapShared		:: !(!r -> r`,!w` r -> w)										!(ReadWriteShared r w) -> ReadWriteShared r` w`
+mapSharedError	:: !(!r -> MaybeErrorString r`, !w` r -> MaybeErrorString w)	!(ReadWriteShared r w) -> ReadWriteShared r` w`
 /**
 * Converts a shared reference to a read only shared.
 * Writing to a read only shared has no effect.

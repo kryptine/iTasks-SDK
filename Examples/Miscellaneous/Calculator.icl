@@ -16,7 +16,8 @@ where
 				}
 				
 	views =
-		[ DisplayView (GetLocal \{display} -> display)
+		[ DisplayView (GetLocal (\{display} -> display))
+		/*
 		, UpdateTrigger "7" (UpdateLocal (enterDigit 7))
 		, UpdateTrigger "8" (UpdateLocal (enterDigit 8))
 		, UpdateTrigger "9" (UpdateLocal (enterDigit 9))
@@ -33,6 +34,7 @@ where
 		, UpdateTrigger "+" (UpdateLocal (calc (+) False))
 		, UpdateTrigger "-" (UpdateLocal (calc (-) False))
 		, UpdateTrigger "=" (UpdateLocal (\st -> calc st.op True st))
+		*/
 		]
 	where
 		enterDigit d st = {st & display = newV, y = newV, showsResult = False}

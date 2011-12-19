@@ -35,7 +35,8 @@ workflows				:: Shared [Workflow]
 allowedWorkflows		:: ReadOnlyShared [Workflow]
 workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
 allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
-workflowById			:: !WorkflowId -> Shared Workflow
+workflowByIndex			:: !WorkflowId -> Shared Workflow
+workflowByPath			:: !String -> Shared Workflow
 
 /**
 * Wraps any task as a workflow with no access restrictions
@@ -85,3 +86,12 @@ manageWorkflows :: ![Workflow] ->  Task Void
 addWorkflow :: !Workflow -> Task Workflow
 
 isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool
+
+
+//Service tasks
+
+viewTaskList	:: Task [TaskInstanceMeta]
+viewTask		:: Task WorkOnProcessState
+
+//The default external services
+externalTaskInterface :: [PublishedTask]

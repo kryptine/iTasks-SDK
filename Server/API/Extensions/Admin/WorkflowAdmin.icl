@@ -3,7 +3,7 @@ implementation module WorkflowAdmin
 import iTasks
 import StdMisc, Tuple, Text, Shared
 from StdFunc import seq
-from Util import mb2list, timestampToGmDateTime
+from Util import mb2list, kvGet
 
 // SPECIALIZATIONS
 derive gVisualizeText	Workflow
@@ -35,26 +35,32 @@ JSONDecode{|WorkflowTaskContainer|} [c:r]	= (dynamicJSONDecode c,r)
 JSONDecode{|WorkflowTaskContainer|} r		= (Nothing,r)
 gEq{|WorkflowTaskContainer|} _ _			= True
 
-// Internal state type
-:: ClientState =
-	{ selectedProcess	:: !Maybe ProcessId
-	, selectedWorkflow	:: !Maybe (!WorkflowId, !String)
-	}
-	
-derive class iTask ClientState
-
 // SHARES
 // Available workflows
 
 workflows :: Shared [Workflow]
 workflows = sharedStore "Workflows" []
 
-workflowById :: !WorkflowId -> Shared Workflow
-workflowById index = mapShared (toPrj,fromPrj) workflows
+workflowByIndex:: !WorkflowId -> Shared Workflow
+workflowByIndex index = mapSharedError (toPrj,fromPrj) workflows
 where
-	toPrj flows = flows !! index
-	fromPrj flow flows = updateAt index flow flows
-	
+	toPrj wfs 
+		| index >= length wfs || index < 0	= Error ("Workflow index out of range")
+											= Ok (wfs !! index)
+	fromPrj wf wfs
+		| index >= length wfs || index < 0	= Error ("Workflow index out of range")
+											= Ok ( updateAt index wf wfs)
+
+workflowByPath :: !String -> Shared Workflow
+workflowByPath path = mapSharedError (toPrj,fromPrj) workflows
+where
+	toPrj wfs = case [wf \\ wf <- wfs | wf.Workflow.path == path] of
+		[wf:_]	= Ok wf
+		_		= Error ("Workflow " +++ path +++ " could not be found")
+
+	fromPrj nwf wfs
+		= Ok [if (wf.path == path) nwf wf \\ wf <- wfs]
+
 allowedWorkflows :: ReadOnlyShared [Workflow]
 allowedWorkflows = mapSharedRead filterAllowed (workflows |+| (currentUser |+| currentUserDetails))
 where
@@ -78,11 +84,34 @@ where
 			| otherwise			= [node:insertWorkflow` path nodesR]
 		insertWorkflow` path [leaf=:(Leaf _):nodesR] = [leaf:insertWorkflow` path nodesR]
 		insertWorkflow` [nodeP:pathR] [] = [Node (Left nodeP) (insertWorkflow` pathR [])]
-		
-// MANAGEMENT TASKS
 
+// SERVICE TASKS
+
+viewTaskList :: Task [TaskInstanceMeta]
+viewTaskList 
+	=	doAuthenticated (viewSharedInformation "Tasks" [] processesForCurrentUser)
+
+viewTask :: Task WorkOnProcessState
+viewTask
+	=	doAuthenticated (
+			enterInformation "Enter task identification" []
+		>>= \taskId ->
+			workOn (WorkflowProcess taskId)
+		)
+		
+externalTaskInterface :: [PublishedTask]
+externalTaskInterface
+	= [publish "/external/tasklist" WebApp viewTaskList
+	  ,publish "/external/task" WebApp viewTask
+	  ]
+
+// MANAGEMENT TASKS
 manageWorkflows :: ![Workflow] ->  Task Void
-manageWorkflows iflows = installInitialWorkflows iflows >>| forever (doAuthenticated workflowDashboard)
+manageWorkflows iflows
+	=	installInitialWorkflows iflows
+	>>| forever (catchAll (doAuthenticated workflowDashboard) viewError)
+where
+	viewError error = viewInformation "Error" [] error >>! \_ -> return Void
 
 installInitialWorkflows ::[Workflow] -> Task Void
 installInitialWorkflows [] = return Void
@@ -92,36 +121,32 @@ installInitialWorkflows iflows
 		[]	= allTasks [addWorkflow flow \\ flow <- iflows] >>| return Void
 		_	= return Void
 
-doAuthenticated :: (Task a) -> Task (Maybe a) | iTask a
-doAuthenticated task
-	//=	(appIdentity ||- enterInformation "Log in" []) <<@ tweak
-	=	enterInformation "Log in" [] <<@ tweak
-	>>! \credentials ->
-		authenticateUser (toString credentials.Credentials.username) (toString credentials.Credentials.password)
-	>>= \mbUser -> case mbUser of
-		Nothing
-			= viewInformation "Log in failed" [] Nothing
-		Just user
-			=	workAs user task >>$ Just
-where
-	appIdentity :: Task Void
-	appIdentity = (viewSharedInformation "Application identity" [] applicationName Void)
-	
-	tweak :: LayoutTweak
-	tweak = \(def,actions) -> ({TUIDef|def & margins = topMargin 100, width = Just (WrapContent 0)},actions)
+// Application specific types
+:: ClientState =
+	{ selectedWorkflow	:: !Maybe (!WorkflowId, !String)
+	, selectedProcess	:: !Maybe ProcessId
+	, openProcesses		:: ![ProcessId]
+	}
+
+:: WorklistRow =
+	{ title		:: String
+	, priority	:: TaskPriority
+	, date		:: DateTime
+	, deadline	:: Maybe DateTime
+	}
+
+derive class iTask ClientState, WorklistRow
 	
 workflowDashboard :: Task Void
-workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedProcess = Nothing, selectedWorkflow = Nothing} (\_ _ -> Void)
-	[ (Embedded,	\list	-> infoBar 								)
+workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} (\_ _ -> Void)
+	[ (Embedded,	\list	-> infoBar)
 	, (Embedded,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
-	, (Embedded,	\list	-> viewDescription (taskListState list)	)
-	, (Embedded,	\list	-> workTabPanel list					<<@ tabLayout)
-	, (Embedded,	\list	-> processTable list					<<@ processTableLayout)
-	, (Embedded,	\_		-> controlClient)
+	, (Embedded,	\list	-> viewWorkflowDetails list)
+	, (Embedded,	\list	-> viewWorklist list)	
 	]
 
 infoBar :: Task ParallelControl
-infoBar =	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser Void <<@ infoBarLayout
+infoBar =	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser <<@ infoBarLayout
 		>>* [AnyTime ActionRefresh (const (return Continue)),AnyTime (Action "Log out") (const (return Stop))] 
 			)
 		<! 	(\res -> case res of Stop = True; Continue = False) 
@@ -129,84 +154,74 @@ where
 	view user = "Welcome " +++ toString user
 	
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
-chooseWorkflow state = updateSharedInformation "Tasks" [UpdateView (GetCombined mkTree, SetCombined putback)] (state >+| allowedWorkflowTree) Nothing >>| return Continue
+chooseWorkflow state
+	= enterSharedChoice "Tasks" [ChoiceView (ChooseFromTree, toView)] (allowedWorkflowTree) 
+	>>@ (toClientState,state)
+	>>$ const Continue
 where
-	mkTree sel (_,flows) = mkTreeChoice (fmap mapF flows) (fmap Just sel)
-	where
-		mapF (Left label)									= (label, Nothing)
-		mapF (Right (index,{Workflow|path,description}))	= (last (split "/" path), Just (index,description))
-	putback tree _ (state,_) = (Just selection, Just {state & selectedWorkflow = selection})
-	where
-		selection = getSelection tree
-
-viewDescription :: !(Shared ClientState) -> Task ParallelControl
-viewDescription state = forever (
-		viewSharedInformation "Task description" [DisplayView (GetShared view)] state Void <<@ descriptionLayout
-	>?*	[(Action "Start workflow", IfHolds ((\({selectedWorkflow},_) -> isJust selectedWorkflow)) (\({selectedWorkflow},_) -> addWorkflow (fromJust selectedWorkflow)))])
-where			
+	toView (Left label) = label
+	toView (Right (index,{Workflow|path,description})) = last (split "/" path)
+		
+	toClientState (Just (Right (index,workflow))) state = Just {state & selectedWorkflow = Just (index,workflow.Workflow.description)} 
+	toClientState _ state = Just {state & selectedWorkflow = Nothing}
+		
+viewWorkflowDetails :: !(TaskList ClientState) -> Task ParallelControl
+viewWorkflowDetails taskList = forever (
+		viewSharedInformation "Task description" [DisplayView (GetShared view)] state <<@ descriptionLayout
+	>?*	[(Action "Start workflow", IfHolds ((\{selectedWorkflow} -> isJust selectedWorkflow)) (\{selectedWorkflow} -> addWorkflow (fromJust selectedWorkflow)))])
+where
+	state = taskListState taskList
+				
 	view {selectedWorkflow} = case selectedWorkflow of
 		Nothing			= Note ""
 		Just (_,descr)	= Note descr
 		
-	addWorkflow (wid,_) =
-							get (workflowById wid)
-		>>=	\wf ->			get currentUser
-		>>= \user ->		appendTask (Detached {noMeta & worker = Just user}, \_ -> (fromContainer wf.Workflow.task)) topLevelTasks
+	addWorkflow (wid,_)
+		=	get (workflowByIndex wid) -&&- get currentUser
+		>>=	\(wf,user) ->
+			appendTopLevelTask {noMeta & worker = Just user} (fromContainer wf.Workflow.task)
+		>>= \procId ->
+			openTask taskList procId
 
 	fromContainer (WorkflowTask t) = t >>| return Continue
 	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Continue)
-	
-processTable :: !(TaskList ClientState) -> Task ParallelControl	
-processTable taskList = updateSharedInformation "process table" [UpdateView (GetCombined mkTable, SetCombined putback)] (processes |+< state) Nothing >>| return Continue
+		
+viewWorklist :: !(TaskList ClientState) -> Task ParallelControl	
+viewWorklist taskList = forever
+	(	enterSharedChoice "process table" [ChoiceView (ChooseFromGrid,mkRow)] processes <<@ maximalInteractionLayout<<@ setHeight (Fixed 150)
+	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.processId)]
+	)
 where
 	state = taskListState taskList
+	
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
 	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentProcessId)
 	where
 		show ownPid {processId,progressMeta} = processId <> ownPid && progressMeta.status == Running
-	
-	mkTable mbSel (procs,_) = Table ["Title", "Priority", "Date", "Deadline"] (map mkRow procs) mbSel
+		pflatten procs = flatten [[p:pflatten p.subInstances] \\ p <- procs]
+
 	mkRow {TaskInstanceMeta|processId,taskMeta,progressMeta,managementMeta} =
-		[ html taskMeta.TaskMeta.title
-		, formatPriority managementMeta.priority
-		, Text (visualizeAsText AsDisplay progressMeta.issuedAt)
-		, Text (visualizeAsText AsDisplay managementMeta.completeBefore)
-		, Text (toString processId)
-		]
+		{WorklistRow
+		|title = taskMeta.TaskMeta.title	
+		,priority = managementMeta.ManagementMeta.priority
+		,date = progressMeta.issuedAt
+		,deadline = managementMeta.completeBefore
+		}
 		
-	pflatten procs = flatten [[p:pflatten p.subInstances] \\ p <- procs]
-	
-	putback (Table _ cells mbSel) _ (_,state) = (Just mbSel,Just {state & selectedProcess = fmap (getProcId cells) mbSel})
-	getProcId cells idx = case cells !! idx !! 4 of
-		Text procId	= fromString procId
-		_ = abort "getProcId"
+openTask taskList processId
+	=	appendOnce processId (workOnTask processId <<@ singleControlLayout) taskList
 
-workTabPanel :: !(TaskList ClientState) -> Task ParallelControl
-workTabPanel taskList = parallel "Work tab panel" [] (\_ _ -> Continue) [(Embedded, controlWorkTabs (taskListState taskList))]
+workOnTask processId
+	= workOn processId >>* [WhenStable (const (return Continue)),AnyTime ActionClose (const (return Continue))]
 
-controlWorkTabs :: !(Shared ClientState) !(TaskList [ProcessId]) -> Task ParallelControl
-controlWorkTabs state taskList = forever (
-					viewSharedInformation "Track open tabs" [] (state >+< openProcs) Void <<@ Hide
-	>>*				[WhenValid openTabPred openTabTask]
-	>>= \proc ->	appendTask (Embedded, \_ -> workTab proc openProcs  <<@ singleControlLayout) taskList
-	>>|				update (\state -> {state & selectedProcess = Nothing}) state 
-	>>|				update (\procs -> [proc:procs]) openProcs )
+appendOnce identity task taskList
+	=	get (taskListMeta taskList)
+	>>= \opened ->	if (isEmpty [t \\ t <- opened | hasAttribute "identity" identity t])
+			(appendTask (Embedded, \_ -> task <<@ Attribute "identity" identity) taskList >>$ const Void)
+			(return Void)
 where
-	openProcs = taskListState taskList
-	
-	openTabPred (({selectedProcess=Just proc},procs),_) = not (isMember proc procs)
-	openTabPred _										= False
-	openTabTask (({selectedProcess=Just proc},procs),_)	= return proc
-	
-workTab :: !ProcessId !(Shared [ProcessId]) -> Task ParallelControl											
-workTab procId openProcs =
-		update (\procs -> [procId:procs]) openProcs
-	>>|	(workOn procId >>* [WhenStable (const (return Void)),AnyTime ActionClose (const (return Void))])
-	>>|	update(filter ((<>) procId)) openProcs 
-	>>|	return Continue
-
-controlClient :: Task ParallelControl										
-controlClient = chooseAction [(ActionQuit, Stop)]
+	hasAttribute attr value {ParallelTaskMeta|taskMeta={attributes}}	//PARALLEL NEEDS TO BE FIXED FIRST
+		= False // kvGet attr attributes == Just (toString value)
 
 addWorkflow :: !Workflow -> Task Workflow
 addWorkflow workflow
@@ -214,48 +229,39 @@ addWorkflow workflow
 	>>|	return workflow
 
 // LAYOUTS
-mainLayout {TUIParallel | items=i=:[(_,_,_,Just infoBar,_), (_,_,_,Just tree,_), (_,_,_,Just description,_),(_,_,_,Just workTabPanel,_), (_,_,_,Just processTable,_), (_,_,_,_,controlActions):_]} =
+mainLayout par=:{TUIParallel | items=i=:[(_,_,_,Just infoBar,_)
+								   ,(_,_,_,Just tree,_)
+								   ,(_,_,_,Just description,_)
+								   ,(_,_,_,Just workList, workListActions)
+								   :openedTasks]} =
 	({ content	= content
 	, width		= Just (FillParent 1 (FixedMinSize 0))
 	, height	= Just (FillParent 1 (FixedMinSize 0))
 	, margins	= Nothing
-	},controlActions)
+	},[])
 where
 	content = TUIContainer {TUIContainer | defaultLayoutContainer [left,right] & direction = Horizontal}
-	/*
-	content = TUIBorderContainer {TUIBorderContainer | direction = Horizontal
-								 , itemA = {TUIBorderItem| title = Nothing, iconCls = Nothing, item = left}
-								 , itemB = {TUIBorderItem| title = Nothing, iconCls = Nothing, item = right} 
-								 , initSplit = 260, collapsible = True}
-	*/
+	
 	left =	{ content	= TUIPanel (defaultLayoutPanel [tree,description])
 			, width		= Just (Fixed 260)
-			//, width		= FillParent 1 (FixedMinSize 100)
 			, height	= Just (FillParent 1 (FixedMinSize 0))
 			, margins	= Nothing
 			}
+			
 	right = { content	= TUIPanel (defaultLayoutPanel [infoBar,workArea])
 			, width		= Just (FillParent 1 (FixedMinSize 0))
 			, height	= Just (FillParent 1 (FixedMinSize 0))
 			, margins	= Nothing
 			}
-	/*
-	workArea = {content = TUIBorderContainer {TUIBorderContainer | direction = Vertical
-								  , itemA = {TUIBorderItem | title = Nothing, iconCls = Nothing, item = fillParent processTable}
-								  , itemB = {TUIBorderItem | title = Nothing, iconCls = Nothing, item = fillParent workTabPanel}
-								  , initSplit = 200
-								  , collapsible = True
-								  }
-				,width		= FillParent 1 (FixedMinSize 0)
-				,height		= FillParent 1 (FixedMinSize 0)
-				,margins	= Nothing
-				}
-	*/
-	workArea =	{content	= TUIContainer (defaultLayoutContainer [processTable, fill workTabPanel])
+			
+	workArea =	{content	= TUIPanel {TUIPanel|defaultLayoutPanel [workList, fill workTabs] & menus = fst (defaultMenus workListActions)}
 				,width		= Just (FillParent 1 (FixedMinSize 0))
 				,height		= Just (FillParent 1 (FixedMinSize 0))
 				,margins	= Nothing
 				}
+	
+	(workTabs,workActions) = tabLayout {TUIParallel|par & items = openedTasks}
+	
 				
 mainLayout p = defaultParallelLayout p
 
@@ -289,7 +295,6 @@ singleControlLayout interaction
 	= ({hd interaction.TUIInteraction.content & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)},interaction.TUIInteraction.actions)
 
 // UTIL FUNCTIONS
-
 workflow :: String String w -> Workflow | toWorkflow w
 workflow path description task = toWorkflow path description [] task
 

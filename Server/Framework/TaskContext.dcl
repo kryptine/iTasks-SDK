@@ -2,6 +2,8 @@ definition module TaskContext
 
 import SystemTypes
 
+from GenUpdate	import :: UpdateMask
+
 derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
 derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
 
@@ -16,6 +18,7 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 
 :: TaskContextTree
 	= TCBasic !(Map String JSONNode)
+	| TCInteract !JSONNode ![(!JSONNode,UpdateMask)] !Timestamp !(Maybe (String,JSONNode))
 	| TCProject !JSONNode !TaskContextTree
 	| TCStep !(Either TaskContextTree (!JSONNode,!Int,!TaskContextTree))
 	| TCParallel !JSONNode !ParallelMeta ![(!SubTaskId,!SubTaskOrder,!SubTaskContext)]
