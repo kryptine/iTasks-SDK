@@ -4,7 +4,7 @@ import StdList, StdBool
 import Error
 import SystemTypes, IWorld, Task, TaskContext
 
-from CoreCombinators	import :: TaskContainer(..), :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelControl
+from CoreCombinators	import :: TaskContainer(..), :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelResult
 from SystemTypes		import :: ProcessId(..)
 from TaskStore			import newSessionId, loadTaskInstance, storeTaskInstance
 

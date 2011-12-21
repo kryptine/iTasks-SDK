@@ -17,17 +17,25 @@ mkTask description initFun editFun evalFun =
 	, layout			= DefaultLayouter
 	}
 	
-mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
+mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d & iTask a
 mkInstantTask description iworldfun =
 	{ Task
 	| meta				= initTaskMeta description
 	, def =
 		{ initFun		= \_ iworld -> (TCEmpty,iworld)
-		, editFun		= \_ _  context iworld -> (context,iworld)
-		, evalFun		= \taskNr _ _ _ _ _ iworld -> iworldfun taskNr iworld
+		, editFun		= \_ _ context iworld -> (context,iworld)
+		, evalFun		= evalOnce iworldfun
 		}
-	, layout				= DefaultLayouter
+	, layout			= DefaultLayouter
 	}
+where
+	evalOnce f taskNo _ _ _ _ context=:(TCBasic enc True) iworld = case fromJSON enc of
+		(Just res)	= (TaskStable res (NoRep,[]) context, iworld)
+		Nothing		= (taskException "Corrupt task result", iworld)
+	evalOnce f taskNo _ _ _ _ _ iworld = case f taskNo iworld of
+		(TaskStable res _ _, iworld)	= (TaskStable res (NoRep,[]) (TCBasic (toJSON res) True), iworld)
+		(TaskException e s, iworld)		= (TaskException e s, iworld)
+		(_,iworld)						= (taskException "Instant task did not complete instantly", iworld)
 	
 taskTitle :: !(Task a) -> String
 taskTitle task = task.Task.meta.TaskMeta.title

@@ -94,10 +94,10 @@ generateTeXExample = updateInformation "Enter API Directory:" [] (".." </> "Serv
 	>>= \(selectedFiles, selectedIdents) -> 
 							findAllFiles path ".dcl"
 	>>= \dclFiles 		-> 	updateMultipleChoice "Select modules to include in documentation" [] dclFiles selectedFiles
-	>>= \selectedFiles 	->	sequence "Parsing modules" [ accWorldError (getIdentifiers file) id \\ file <- selectedFiles ] >>$ (sort o flatten)
+	>>= \selectedFiles 	->	sequence "Parsing modules" [ accWorldError (getIdentifiers file) id \\ file <- selectedFiles ] @ (sort o flatten)
 	>>= \idents			-> 	updateMultipleChoice "Select definitions to include in documentation" [] idents selectedIdents
 	>>= \selectedIdents ->	exportJSONFile (path </> settingsFile) (selectedFiles, selectedIdents)
-	>>| sequence "Generating LaTeX" [ accWorldError (dclToTeX selectedIdents file) id \\ file <- selectedFiles ] >>$ (printLaTeX o flatten)
+	>>| sequence "Generating LaTeX" [ accWorldError (dclToTeX selectedIdents file) id \\ file <- selectedFiles ] @ (printLaTeX o flatten)
 	>>= \tex -> createDocumentTask "iTasks_API_documentation.tex" "application/x-tex" tex
 	>>= viewInformation "Download iTasks API documentation in LaTeX format" []
 	>>| return Void
@@ -112,7 +112,7 @@ findAllFiles path extension
 		if isSubDir
 			(accWorldOSError (readDirectory path) >>= \entries ->
 			 sequence ("Searching directory " +++ path) 
-				[ findAllFiles (path </> e) extension \\ e <- entries | e <> "." && e <> ".." ] >>$ flatten
+				[ findAllFiles (path </> e) extension \\ e <- entries | e <> "." && e <> ".." ] @ flatten
 			)
 			(return [])
 where

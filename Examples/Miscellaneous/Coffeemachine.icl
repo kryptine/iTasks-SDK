@@ -22,8 +22,8 @@ where
 					              , Text ("To pay: " <+++ cost), BrTag []
 					              , Text "Please insert a coin..."
 					              ]) [] coins
-			>?*		[ (ActionCancel,	Always	(show "Cancelled" paid))
-					, (ActionOk,		IfValid handleMoney)
+			>>*		[AnyTime ActionCancel (\_ -> show "Cancelled" paid)
+					,WithResult ActionOk (const True) handleMoney
 					]
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
 

@@ -34,7 +34,7 @@ manageCollectionWith ::
 	!d																			//Description
 	((Shared [c]) (Shared (Maybe i)) (c -> i) -> Task (Maybe i))				//Make selection
 	((Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task a)		//Use selection
-	[(!Action,!TaskContinuation i (Maybe i))]									//Actions
+	[TaskStep i (Maybe i)]														//Actions
 	(c -> i)																	//Identification function
 	((Shared [c]) i -> Shared (Maybe c))										//Item share function
 	(Shared [c])																//Shared collection

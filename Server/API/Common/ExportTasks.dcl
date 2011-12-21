@@ -81,7 +81,7 @@ exportCSVFileWith	:: !Char !Char !Char !FilePath ![[String]] -> Task [[String]]
 * 
 * @gin-icon page_white_json
 */
-exportJSONFile		:: !FilePath a -> Task a | JSONEncode{|*|} a
+exportJSONFile		:: !FilePath a -> Task a | iTask a
 /**
 * Encode and export a JSON datafile to the server's filesystem using a custom encode function.
 * 
@@ -94,4 +94,4 @@ exportJSONFile		:: !FilePath a -> Task a | JSONEncode{|*|} a
 * 
 * @gin False
 */
-exportJSONFileWith	:: !(a -> JSONNode) !FilePath a -> Task a
+exportJSONFileWith	:: !(a -> JSONNode) !FilePath a -> Task a | iTask a

@@ -2,7 +2,7 @@ implementation module IntegrationTasks
 
 import StdInt, StdFile, StdTuple, StdList
 
-import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple
+import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple, JSON
 
 import SystemTypes, IWorld, Task, TaskContext
 import TuningCombinators
@@ -15,12 +15,10 @@ from CommonCombinators	import >>=, >>|
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess
-from Map				import qualified get, fromList, newMap
+from Process			import :: ProcessHandle(..)
 from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
 from StdFunc			import o
-
-import StdMisc
 
 :: AsyncResult = 
 	{ success	:: !Bool
@@ -41,7 +39,6 @@ where
 	init :: TaskNr *IWorld -> (!TaskContextTree,!*IWorld)
 	init taskNr iworld =:{IWorld |build,dataDirectory,sdkDirectory,world}
 		# outfile 		= dataDirectory </> "tmp-" +++ build </> (iTaskId taskNr "callprocess")
-		# context		= TCBasic 'Map'.newMap
 		# asyncArgs		=	[ "--taskid"
 							, toString (last taskNr)
 							, "--outfile"
@@ -52,57 +49,61 @@ where
 							++ args
 		# (res,world)	= 'Process'.runProcess (sdkDirectory </> "Tools" </> "RunAsync" </> "RunAsync.exe") asyncArgs Nothing world
 		= case res of
-			Error e	= (setLocalVar "error" e context, {IWorld|iworld & world = world})
-			Ok _	= (setLocalVar "outfile" outfile context, {IWorld|iworld & world = world})
-			
+			Error e	= (context (Left e), {IWorld|iworld & world = world})
+			Ok _	= (context (Right outfile), {IWorld|iworld & world = world})
+	where
+		context :: (Either OSError FilePath) -> TaskContextTree
+		context val = TCBasic (toJSON val) False
+				
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr props event tuiTaskNr repAs context=:(TCBasic _) iworld=:{world}
-		= case getLocalVar "outfile" context of
-			Just outfile
-				//Check status
-				# (exists,world) = 'File'.fileExists outfile world
-				| not exists
-					//Still busy
-					# (rep,actions) = case repAs of
-						(RepAsTUI layout)
-							# ilayout = case layout of
-								(InteractionLayouter ilayout)	= ilayout
-								_								= defaultInteractionLayout
-							= appFst TUIRep (ilayout
-								{ title = props.TaskMeta.title
-								, instruction = props.TaskMeta.instruction
-								, content = []
-								, actions = []
-								, type = props.interactionType
-								, localInteraction = props.TaskMeta.localInteraction
-								, warning = Nothing
-								})
-						_	= (ServiceRep [(taskNrToString taskNr, 0, JSONNull)], [])
+	eval taskNr props event tuiTaskNr repAs context=:(TCBasic encv stable) iworld=:{world}
+		| stable
+			= (TaskStable (fromJust (fromJSON encv)) (NoRep,[]) context, iworld)
+		| otherwise
+			= case fromJSON encv of
+				Just (Right outfile)
+					//Check status
+					# (exists,world) = 'File'.fileExists outfile world
+					| not exists
+						//Still busy
+						# (rep,actions) = case repAs of
+							(RepAsTUI layout)
+								# ilayout = case layout of
+									(InteractionLayouter ilayout)	= ilayout
+									_								= defaultInteractionLayout
+								= appFst TUIRep (ilayout
+									{ title = props.TaskMeta.title
+									, instruction = props.TaskMeta.instruction
+									, content = []
+									, actions = []
+									, type = props.interactionType
+									, localInteraction = props.TaskMeta.localInteraction
+									, warning = Nothing
+									})
+							_	= (ServiceRep [(taskNrToString taskNr, 0, JSONNull)], [])
+						
+						= (TaskInstable Nothing (rep,actions) context,{IWorld|iworld & world = world})
+					# (res, world) = 'File'.readFile outfile world
+					| isError res
+						//Failed to read file
+						= (taskException (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
+					= case fromJSON (fromString (fromOk res)) of
+						//Failed to parse file
+						Nothing
+							= (taskException (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
+						Just async	
+							| async.AsyncResult.success
+								# result = async.AsyncResult.exitcode 
+								= (TaskStable result (NoRep,[]) (TCBasic (toJSON result) True), {IWorld|iworld & world = world})
+							| otherwise
+								= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
+				//Error during initialization
+				(Just (Left e))
+					= (taskException (CallFailed e), {IWorld|iworld & world = world})
+				Nothing
+					= (taskException (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
 					
-					= (TaskInstable Nothing (rep,actions) context,{IWorld|iworld & world = world})
-				# (res, world) = 'File'.readFile outfile world
-				| isError res
-					//Failed to read file
-					= (taskException (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
-				= case fromJSON (fromString (fromOk res)) of
-					//Failed to parse file
-					Nothing
-						= (taskException (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
-					Just async	
-						| async.AsyncResult.success
-							= (TaskStable async.AsyncResult.exitcode (NoRep,[]) TCEmpty, {IWorld|iworld & world = world})
-						| otherwise
-							= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
-			//Error during initialization
-			Nothing
-				= case getLocalVar "error" context of
-					Just e
-						= (taskException (CallFailed e),  {IWorld|iworld & world = world})
-					Nothing
-						= (taskException (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
-				
-
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult

@@ -12,28 +12,28 @@ import CoreTasks, CoreCombinators, TuningCombinators, CommonCombinators, SystemD
 
 enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
 enterInformation d views = InputTask @>> LocalInteractionTask @>>
-	(modifyInformation d (\_ _ -> defaultValue) filteredViews  voidNull Nothing >>$ fst)
+	(modifyInformation d (\_ _ -> defaultValue) filteredViews  voidNull Nothing @ fst)
 where
 	filteredViews	= filterViews filterInputViews defaultViews views
 	defaultViews	= [EnterView (\l _ _ -> l)]
 	
 updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
 updateInformation d views m = UpdateTask @>> LocalInteractionTask @>>
-	(modifyInformation d (\(Just m) _ -> m) filteredViews voidNull (Just m) >>$ fst)
+	(modifyInformation d (\_ _ -> m) filteredViews voidNull Nothing @ fst)
 where
 	filteredViews	= filterViews noFilter defaultViews views
 	defaultViews	= [UpdateView (GetLocal id) (\l _ _ -> l)]
 	
 viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 viewInformation d views m = OutputTask PassiveOutput @>> LocalInteractionTask @>>
-	(modifyInformation d (\(Just m) _ -> m) filteredViews  voidNull (Just m) >>$ fst)
+	(modifyInformation d (\(Just m) _ -> m) filteredViews  voidNull (Just m) @ fst)
 where
 	filteredViews	= filterViews filterOutputViews defaultViews views
 	defaultViews	= [DisplayView (GetLocal id)]
 		
 updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 updateSharedInformation d views shared = UpdateTask @>>
-	project (\mbw _ -> mbw) shared (modifyInformation d initLocal filteredViews (toReadOnlyShared shared) Nothing >>$ fst)
+	project (\mbw _ -> mbw) shared (modifyInformation d initLocal filteredViews (toReadOnlyShared shared) Nothing @ fst)
 where
 	filteredViews						= filterViews noFilter defaultViews views
 	defaultViews						= [defaultView]
@@ -45,7 +45,7 @@ where
 	
 viewSharedInformation :: !d ![SharedViewOn r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
 viewSharedInformation d views shared = OutputTask PassiveOutput @>>
-	modifyInformation d (\_ _ -> Void) filteredViews (toReadOnlyShared shared) (Just Void) >>$ snd
+	modifyInformation d (\_ _ -> Void) filteredViews (toReadOnlyShared shared) (Just Void) @ snd
 where
 	filteredViews	= filterViews filterOutputViews defaultViews views
 	defaultViews	= [DisplayView (GetShared id)]
@@ -141,7 +141,7 @@ updateSharedMultipleChoice d views shared sel = UpdateTask @>>
 	modifyMultipleChoice d views shared sel
 
 modifyMultipleChoice d views shared initSels =
-	(modifyInformation d (\_ _ -> initSels) (toChoiceViews (addDefault views))  (toReadOnlyShared shared) Nothing >>$ fst)
+	(modifyInformation d (\_ _ -> initSels) (toChoiceViews (addDefault views))  (toReadOnlyShared shared) Nothing @ fst)
 where
 	toChoiceViews views = map toChoiceView views
 	where
@@ -179,16 +179,6 @@ where
 	part (EnterView setfun)				= FormPart blankInit ignoreShareUpdate (whenValidViewUpdate setfun)
 	part (UpdateView getfun setfun)		= FormPart (filledInit getfun) (whenCleanShareUpdate getfun) (whenValidViewUpdate setfun)
 	part (DisplayView getfun)			= DisplayPart (viewVal getfun)
-
-
-//Convenience specifc views
-	/*
-				| E.v:	DisplayLocal	!(l -> v)						& iTask v
-				| E.v:	EnterLocal		!(v -> l)						& iTask v
-				| E.v:	UpdateLocal		!(l -> v) (v l -> l)			& iTask v
-				| E.v:	DisplayShared	!(r -> v)						& iTask v
-				| E.v:	UpdateShared	!(r -> v) (v l -> l)			& iTask v
-	*/
 
 	blankInit :: FormInitFun l r v
 	blankInit = \l r -> BlankForm
@@ -228,15 +218,15 @@ wait desc pred shared
 	
 waitForTime :: !Time -> Task Time
 waitForTime time =
-	viewSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime >? (\now -> time < now)
+	viewSharedInformation ("Wait for time", ("Wait until " +++ toString time)) [] currentTime >>* [WhenValid (\now -> time < now) return]
 
 waitForDate :: !Date -> Task Date
 waitForDate date =
-	viewSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate >? (\now -> date < now)
+	viewSharedInformation ("Wait for date", ("Wait until " +++ toString date)) [] currentDate >>* [WhenValid (\now -> date < now) return]
 	
 waitForDateTime :: !DateTime -> Task DateTime
 waitForDateTime datetime =
-	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >? (\now -> datetime < now)
+	viewSharedInformation ("Wait for date and time", ("Wait until " +++ toString datetime)) [] currentDateTime >>* [WhenValid (\now -> datetime < now) return]
 
 waitForTimer :: !Time -> Task Time
 waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
@@ -246,7 +236,7 @@ chooseAction actions
 	=	Hide 
 	@>> maximalInteractionLayout
 	@>> interact "Choose an action" (\_ _ -> Void) [] Nothing voidNull
-	>>* [AnyTime action (const (return val)) \\ (action,val) <- actions]
+	>>* [AnyTime action (\_ -> return val) \\ (action,val) <- actions]
 	
 voidNull :: Shared Void
 voidNull = null

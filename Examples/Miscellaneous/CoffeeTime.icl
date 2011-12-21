@@ -34,8 +34,8 @@ collectOrders users = allTasks [u @: (Description "Coffee time!" @>> getOrder) \
 getOrder :: Task (Maybe String)
 getOrder
 	=		viewInformation ("Coffee time","It is coffee time, do you want something?") [] Void
-		>?*	[ (ActionNo,	Always (return Nothing))
-			, (ActionYes,	Always (enterChoice ("Product choice","What do you want") [] ["Coffee","Tea","Chocolate"] >>$ Just))
+		>>*	[ AnyTime ActionNo (\_ -> return Nothing)
+			, AnyTime ActionYes (\_ -> enterChoice ("Product choice","What do you want") [] ["Coffee","Tea","Chocolate"] @ Just)
 			]
 /*
 * Determine who has to go get coffee

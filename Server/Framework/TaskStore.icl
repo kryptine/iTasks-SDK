@@ -94,7 +94,7 @@ where
 	tsubprocs _								= []
 
 	subprocs (TCEmpty)						= []
-	subprocs (TCBasic _)					= []
+	subprocs (TCBasic _ _)					= []
 	subprocs (TCInteract _ _ _ _)			= []
 	subprocs (TCStep (Left context))		= subprocs context
 	subprocs (TCStep (Right (_,_,context)))	= subprocs context

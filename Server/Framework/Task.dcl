@@ -84,7 +84,7 @@ mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
 /**
 * Create a task that is immediately finished
 */
-mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d
+mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d & iTask a
 
 /**
 * Extracts the subject of a task

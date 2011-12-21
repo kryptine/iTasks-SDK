@@ -138,26 +138,26 @@ installInitialWorkflows iflows
 derive class iTask ClientState, WorklistRow
 	
 workflowDashboard :: Task Void
-workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} (\_ _ -> Void)
+workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} 
 	[ (Embedded,	\list	-> infoBar)
 	, (Embedded,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
 	, (Embedded,	\list	-> viewWorkflowDetails list)
 	, (Embedded,	\list	-> viewWorklist list)	
-	]
+	] @ const Void
 
-infoBar :: Task ParallelControl
+infoBar :: Task ParallelResult
 infoBar =	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser <<@ infoBarLayout
-		>>* [AnyTime ActionRefresh (const (return Continue)),AnyTime (Action "Log out") (const (return Stop))] 
+		>>* [AnyTime ActionRefresh (const (return Keep)),AnyTime (Action "Log out") (const (return Stop))] 
 			)
-		<! 	(\res -> case res of Stop = True; Continue = False) 
+		<! 	(\res -> case res of Stop = True; _ = False) 
 where
 	view user = "Welcome " +++ toString user
 	
-chooseWorkflow :: !(Shared ClientState) -> Task ParallelControl
+chooseWorkflow :: !(Shared ClientState) -> Task ParallelResult
 chooseWorkflow state
 	= enterSharedChoice "Tasks" [ChoiceView (ChooseFromTree, toView)] (allowedWorkflowTree) 
-	>>@ (toClientState,state)
-	>>$ const Continue
+	@> (toClientState,state)
+	@ const Keep
 where
 	toView (Left label) = label
 	toView (Right (index,{Workflow|path,description})) = last (split "/" path)
@@ -165,10 +165,11 @@ where
 	toClientState (Just (Right (index,workflow))) state = Just {state & selectedWorkflow = Just (index,workflow.Workflow.description)} 
 	toClientState _ state = Just {state & selectedWorkflow = Nothing}
 		
-viewWorkflowDetails :: !(TaskList ClientState) -> Task ParallelControl
+viewWorkflowDetails :: !(TaskList ClientState) -> Task ParallelResult
 viewWorkflowDetails taskList = forever (
 		viewSharedInformation "Task description" [DisplayView (GetShared view)] state <<@ descriptionLayout
-	>?*	[(Action "Start workflow", IfHolds ((\{selectedWorkflow} -> isJust selectedWorkflow)) (\{selectedWorkflow} -> addWorkflow (fromJust selectedWorkflow)))])
+	>>*	[WithResult (Action "Start workflow") (\{selectedWorkflow} -> isJust selectedWorkflow) (\{selectedWorkflow} -> addWorkflow (fromJust selectedWorkflow))]
+	)
 where
 	state = taskListState taskList
 				
@@ -183,10 +184,10 @@ where
 		>>= \procId ->
 			openTask taskList procId
 
-	fromContainer (WorkflowTask t) = t >>| return Continue
-	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Continue)
+	fromContainer (WorkflowTask t) = t >>| return Keep
+	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Keep)
 		
-viewWorklist :: !(TaskList ClientState) -> Task ParallelControl	
+viewWorklist :: !(TaskList ClientState) -> Task ParallelResult	
 viewWorklist taskList = forever
 	(	enterSharedChoice "process table" [ChoiceView (ChooseFromGrid,mkRow)] processes <<@ maximalInteractionLayout<<@ setHeight (Fixed 150)
 	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.processId)]
@@ -212,16 +213,16 @@ openTask taskList processId
 	=	appendOnce processId (workOnTask processId <<@ singleControlLayout) taskList
 
 workOnTask processId
-	= workOn processId >>* [WhenStable (const (return Continue)),AnyTime ActionClose (const (return Continue))]
+	= workOn processId >>* [WhenStable (const (return Remove)),AnyTime ActionClose (const (return Remove))]
 
 appendOnce identity task taskList
 	=	get (taskListMeta taskList)
 	>>= \opened ->	if (isEmpty [t \\ t <- opened | hasAttribute "identity" identity t])
-			(appendTask (Embedded, \_ -> task <<@ Attribute "identity" identity) taskList >>$ const Void)
+			(appendTask (Embedded, \_ -> task <<@ Attribute "identity" identity) taskList @ const Void)
 			(return Void)
 where
 	hasAttribute attr value {ParallelTaskMeta|taskMeta={attributes}}	//PARALLEL NEEDS TO BE FIXED FIRST
-		= False // kvGet attr attributes == Just (toString value)
+		= kvGet attr attributes == Just (toString value)
 
 addWorkflow :: !Workflow -> Task Workflow
 addWorkflow workflow

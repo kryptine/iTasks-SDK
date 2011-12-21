@@ -25,12 +25,12 @@ importCSVFileWith delimitChar quoteChar escapeChar filename = mkInstantTask ("CS
 where
 	eval taskNr iworld = fileTask filename (readCSVFileWith delimitChar quoteChar escapeChar) iworld
 	
-importJSONFile :: !FilePath -> Task a | JSONDecode{|*|} a
+importJSONFile :: !FilePath -> Task a | iTask a
 importJSONFile filename = mkInstantTask ("JSON file import", ("Import of JSON file " +++ filename)) eval
 where
 	eval taskNr iworld = readJSON filename fromJSON iworld
 	
-importJSONFileWith :: !(JSONNode -> Maybe a) !FilePath -> Task a
+importJSONFileWith :: !(JSONNode -> Maybe a) !FilePath -> Task a | iTask a
 importJSONFileWith parsefun filename = mkInstantTask ("JSON file import", ("Import of JSON file " +++ filename)) eval
 where
 	eval taskNr iworld = readJSON filename parsefun iworld

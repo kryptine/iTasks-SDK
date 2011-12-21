@@ -19,26 +19,25 @@ calculateSum
 calculateSumSteps :: Task Int
 calculateSumSteps = step1First
 where
-	step1First			=		enterInformation ("Number 1","Enter a number") []
-						  >?*	[(ActionNext, IfValid (\num -> step2First num))]
+	step1First			=	enterInformation ("Number 1","Enter a number") []
+						>>*	[WithResult ActionNext (const True) (\num -> step2First num)]
 						  
-	step1Back num1		=		updateInformation ("Number 1","Enter a number") [] num1
-						  >?*	[(ActionNext, IfValid (\num -> step2First num))]
+	step1Back num1		=	updateInformation ("Number 1","Enter a number") [] num1
+						>>*	[WithResult ActionNext (const True) (\num -> step2First num)]
 	
-	step2First num1		=		enterInformation ("Number 2","Enter another number") []
-						  	>?*	[ (ActionPrevious,	Always	(step1Back num1))
-						  		, (ActionNext,		IfValid (\num2 -> step3 num1 num2))
-						  		]
+	step2First num1		=	enterInformation ("Number 2","Enter another number") []
+						>>*	[AnyTime ActionPrevious (\_ -> step1Back num1)
+						  	,WithResult ActionNext (const True) (\num2 -> step3 num1 num2)
+						  	]
 						  							
-	step2Back num1 num2	=		updateInformation ("Number 2","Enter another number") [] num2
-							>?*	[ (ActionPrevious,	Always	(step1Back num1))
-								, (ActionNext,		IfValid	(\num2` -> step3 num1 num2`))
-								]
+	step2Back num1 num2	=	updateInformation ("Number 2","Enter another number") [] num2
+						>>*	[AnyTime ActionPrevious	(\_ -> step1Back num1)
+							,WithResult ActionNext (const True) (\num2` -> step3 num1 num2`)
+							]
 	
-	step3 num1 num2		= return (num1 + num2)
-						>>= \sum -> viewInformation("Sum","The sum of those numbers is:") [] sum
-						>?*	[ (ActionPrevious,	Always (step2Back num1 num2))
-							, (ActionOk,		Always (return sum))
+	step3 num1 num2		=	viewInformation("Sum","The sum of those numbers is:") [] (num1 + num2)
+						>>*	[AnyTime ActionPrevious (\_ -> step2Back num1 num2)
+							,WithResult ActionOk (const True) return
 							]
 
 calculateSumParam :: !(Int,Int) -> Task Int

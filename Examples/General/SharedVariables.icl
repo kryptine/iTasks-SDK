@@ -13,13 +13,13 @@ listEditor = UpdateView (GetShared (split "\n")) (\l _ _ -> join "\n" l)
 
 TrimAction :== Action "Trim"
 
-linesPar :: Task Void
-linesPar = parallel "Lines Example" "" (\_ _ -> Void) [(Embedded, noteE), (Embedded, \sid -> updateSharedInformation ("Lines","Edit lines") [listEditor] (taskListState sid) >>* quit)]
+linesPar :: Task String
+linesPar = parallel "Lines Example" "" [(Embedded, noteE), (Embedded, \sid -> updateSharedInformation ("Lines","Edit lines") [listEditor] (taskListState sid) >>* quit)]
 where
 	noteE sid = 
 			updateSharedInformation ("Text","Edit text") [noteEditor] (taskListState sid)
-		>?*	[ (TrimAction,	IfValid	(\txt -> update trim (taskListState sid) >>| noteE sid))
-			, (ActionQuit,	Always	(return Stop))
+		>>*	[ WithResult TrimAction (const True) (\txt -> update trim (taskListState sid) >>| noteE sid)
+			, AnyTime ActionQuit (\_ -> return Stop)
 			]
 
 //Calculate Sum Example
@@ -62,7 +62,7 @@ mergeTestList =
 where
 	sid = sharedStore "mergeTestLists" []
 
-	view :: (Shared [String]) -> Task ParallelControl
+	view :: (Shared [String]) -> Task ParallelResult
 	view sid = updateSharedInformation ("List","Merging the lists") [] sid >>* quit
 	
 mergeTestDocuments :: Task Void
@@ -86,10 +86,10 @@ derive class iTask MarkerInfo
 RemoveMarkersAction :== Action "Remove Markers"
 
 googleMaps :: Task GoogleMap
-googleMaps = parallel "Map Example" defaultMap (\_ m -> m)
-	[ (Embedded, \s -> updateSharedInformation "Options" [optionsEditor] (taskListState s) >>$ const Continue)
-	, (Embedded, \s -> updateSharedInformation "Google Map" [] (taskListState s) >>$ const Continue)
-	, (Embedded, \s -> updateSharedInformation "Overview Map" [overviewEditor] (taskListState s) >>$ const Continue)
+googleMaps = parallel "Map Example" defaultMap
+	[ (Embedded, \s -> updateSharedInformation "Options" [optionsEditor] (taskListState s) @ const Keep)
+	, (Embedded, \s -> updateSharedInformation "Google Map" [] (taskListState s) @ const Keep)
+	, (Embedded, \s -> updateSharedInformation "Overview Map" [overviewEditor] (taskListState s) @ const Keep)
 	, (Embedded, \s -> markersDisplay (taskListState s))
 	]
 where						
@@ -184,7 +184,7 @@ where
 	form = sharedStore "chooseOrAddForm" defaultValue
 	enterOrder :: Task Order
 	enterOrder
-		= updateSharedInformation "Enter order" [view] (form >+| (productDatabase >+< customerDatabase)) >?* [(ActionOk, IfValid return)]
+		= updateSharedInformation "Enter order" [view] (form >+| (productDatabase >+< customerDatabase)) >>* [WithResult ActionOk (const True) return]
 	where
 		view = UpdateView (GetShared vfrom) vto
 		vfrom (order,(products,customers))
@@ -225,42 +225,42 @@ phoneBookSearch
 //Abstract search task with a search that is repeated each time the query is altered
 activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
 activeQuery mbQuery queryTask
-	=	parallel "Active Query" (initQuery,initDirty,[],Nothing) (\_ (_,_,_,Just res) -> res)
-			[(Embedded, searchBox), (Embedded, activator queryTask), (Embedded, searchResults)]
+	=	parallel "Active Query" (initQuery,initDirty,[],Nothing) 
+			[(Embedded, searchBox), (Embedded, activator queryTask), (Embedded, searchResults)] @? result 
 where
+	result (Just (_,_,_,Just res))	= Just res
+	result _						= Nothing
+	
 	initQuery = case mbQuery of
 		Nothing = ""
 		Just q	= q
 	initDirty = isJust mbQuery
 	
 	searchBox tlist
-		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView) fromUpdateView] (taskListState tlist) >>$ const Continue
+		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView) fromUpdateView] (taskListState tlist) @ const Keep
 	where
 		toUpdateView (q,d,r,_) = q
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)
 	
 	activator queryTask tlist
 		=	Hide
-		@>>	viewSharedInformation "Query showSharedInformation" [] (taskListState tlist) >? (\(_,d,_,_) -> d)	//Look for the dirty flag to become True
-		>>= \(query,_,_,_) ->
-			queryTask query
+		@>>	viewSharedInformation "Query showSharedInformation" [] (taskListState tlist) 
+		>>* [WhenValid (\(_,d,_,_) -> d) (\(query,_,_,_) -> queryTask query)]	//Run the query when the dirty flag becomes True
 		>>= \results ->
 			update (\(q,_,_,res) -> (q,False,results,res)) (taskListState tlist)	//Reset dirty flag
-		>>| return Continue
+		>>| return Keep
 
 	searchResults tlist
-		=	enterSharedChoice ("Search results","The following results were found:") [] (mapSharedRead (\(_,_,r,_) -> r) (taskListState tlist)) >?* [(ActionNext,IfValid return)]
-		>>= \x. update (\(q,d,r,_) -> (q,d,r,Just x)) (taskListState tlist)
-		>>|	return Stop
-
+		=	enterSharedChoice ("Search results","The following results were found:") [] (mapSharedRead (\(_,_,r,_) -> r) (taskListState tlist))
+		>>* [WithResult ActionNext (const True) (\x -> update (\(q,d,r,_) -> (q,d,r,Just x)) (taskListState tlist) @ const Stop)]
+		
 //Very simple CSV phonebook implementation
 :: Name :== String
 :: PhoneNumber :== String
 
 queryPhoneBook :: String -> Task [(Name,PhoneNumber)]
 queryPhoneBook query
-	=	importCSVFile "phonebook.txt"
-	>>$ (matchQuery query)
+	=	importCSVFile "phonebook.txt" @ (matchQuery query)
 where
 	matchQuery query entries
 		= [(name,phoneNo) \\ [name,phoneNo] <- entries | match query name || match query phoneNo]

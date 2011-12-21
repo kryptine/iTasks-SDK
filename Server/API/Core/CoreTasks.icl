@@ -62,7 +62,7 @@ interact desc initFun parts initLocal shared = mkTask desc init edit eval
 where
 	init taskNr iworld			//Create the initial views
 		# (mbrvalue,iworld) 	= 'Shared'.readShared shared iworld
-		| isError mbrvalue		= abort ("interact value fail " +++ fromError mbrvalue) //(TCEmpty, iworld)
+		| isError mbrvalue		= (TCEmpty, iworld)
 		# rvalue				= fromOk mbrvalue
 		# (rts,iworld)			= getShareTimestamp shared iworld
 		# lvalue				= initFun initLocal rvalue
@@ -70,13 +70,13 @@ where
 
 	initParts l r parts = map (initPart l r) parts
 	
-	initPart l r (DisplayPart f)	= (toJSON (f l r),Untouched)
+	initPart l r (DisplayPart f)	= (toJSON (f l r),Untouched, False)
 	initPart l r (FormPart f _ _)
 		# (_,encv,maskv)	= initFormView (f l r)
-		= (encv,maskv)
+		= (encv,maskv,False)
 	
 	initFormView BlankForm
-		# v = defaultValue
+		# v		= defaultValue
 		= (v,toJSON v,Untouched)
 	initFormView (FilledForm v)
 		= (v,toJSON v, defaultMask v)
@@ -110,14 +110,15 @@ where
 		dplist = reverse (dataPathList (s2dp dp))
 	
 	updateView l r dp editv (DisplayPart f) view iworld = (l,view,iworld)
-	updateView l r dp editv (FormPart _ _ f) view=:(encv,maskv) iworld
+	updateView l r dp editv (FormPart _ _ f) view=:(encv,maskv,dirty) iworld
 		# (v,encv,maskv,iworld)	= applyEditEvent dp editv (fromJust (fromJSON encv)) encv maskv iworld	
-		# (l,mbform) = f l r (Just v)
+		# valid = isValidValue (verifyForm v maskv)
+		# (l,mbform) = f l r (if valid (Just v) Nothing)
 		= case mbform of
-			Nothing 	= (l,(encv,maskv),iworld)
+			Nothing 	= (l,(encv,maskv,True),iworld)
 			Just form
 				# (_,encv,maskv) = initFormView form
-				= (l,(encv,maskv),iworld)
+				= (l,(encv,maskv,True),iworld)
 			
 	applyEditEvent dp editv v encv maskv iworld
 		| dataPathLevel dp == 0 //Replace entire value
@@ -126,48 +127,48 @@ where
 				Nothing	= (v,encv,maskv,iworld)
 		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
 		= (v,toJSON v,maskv,iworld)
-	
-	//TODO: Update rts timestamp			
+		
 	eval taskNo props event tuiTaskNo repAs context=:(TCInteract encl views rts mbEdit) iworld=:{IWorld|timestamp}
-		# (mbrvalue,iworld) 			= 'Shared'.readShared shared iworld
-		| isError mbrvalue				= (sharedException mbrvalue, iworld)
-		# rvalue						= fromOk mbrvalue	
-		# (mbchanged,iworld)			= 'Shared'.isSharedChanged shared rts iworld
-		| isError mbchanged				= (sharedException mbchanged, iworld)
-		# changed						= fromOk mbchanged
-		# (rts,iworld)					= if changed (getShareTimestamp shared iworld) (rts,iworld)
-		# lvalue						= fromJust (fromJSON encl)
-		# (lvalue,reps,views,iworld)	= evalParts 0 taskNo repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
+		# (mbrvalue,iworld) 				= 'Shared'.readShared shared iworld
+		| isError mbrvalue					= (sharedException mbrvalue, iworld)
+		# rvalue							= fromOk mbrvalue	
+		# (mbchanged,iworld)				= 'Shared'.isSharedChanged shared rts iworld
+		| isError mbchanged					= (sharedException mbchanged, iworld)
+		# changed							= fromOk mbchanged
+		# (rts,iworld)						= if changed (getShareTimestamp shared iworld) (rts,iworld)
+		# lvalue							= fromJust (fromJSON encl)
+		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskNo repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# (rep,actions) = case repAs of
 			(RepAsTUI layout)	= appFst TUIRep (mergeTUI props layout [tui \\ TUIRep tui <- reps] [])
 			_					= (ServiceRep (flatten [part \\ (ServiceRep part) <- reps]), [])
 		
-		# result						= Just (lvalue,rvalue)
+		# result							= if valid (Just (lvalue,rvalue)) Nothing 
 		= (TaskInstable result (rep,actions) (TCInteract (toJSON lvalue) views rts Nothing), iworld)
 	eval taskNo props event tuiTaskNo repAs context iworld
 		= (taskException "Corrupt context in interact",iworld)
 
-
 	evalParts idx taskNo repAs mbEvent changed l r [] [] iworld
-		= (l,[],[],iworld)
+		= (l,[],[],True,iworld)
 	evalParts idx taskNo repAs mbEvent changed l r [p:ps] [v:vs] iworld	
-		# (nl,rep,view,iworld)		= evalPart idx taskNo repAs mbEvent changed l r p v iworld
-		# (nnl,reps,views,iworld)	= evalParts (idx + 1) taskNo repAs mbEvent changed nl r ps vs iworld
-		= (nnl,[rep:reps],[view:views],iworld)
+		# (nl,rep,view,pvalid,iworld)	= evalPart idx taskNo repAs mbEvent changed l r p v iworld
+		# (nnl,reps,views,valid,iworld)	= evalParts (idx + 1) taskNo repAs mbEvent changed nl r ps vs iworld
+		= (nnl,[rep:reps],[view:views],pvalid && valid,iworld) //All parts have to be valid
 		
-	evalPart idx taskNo repAs mbEvent changed l r part view=:(encv,maskv) iworld = case part of
+	evalPart idx taskNo repAs mbEvent changed l r part view=:(encv,maskv,dirty) iworld = case part of
 		DisplayPart f
 			//Simply visualize the view
 			# (rep,iworld) 	= displayRep idx taskNo repAs f l r encv iworld
-			= (l,rep,view,iworld)
+			= (l,rep,view,True,iworld)
 		
 		FormPart initf sharef viewf
 			//Update the local value and possibly the view if the share has changed
-			# v						= fromJust (fromJSON encv)
-			# (l,v,encv,maskv)		= if changed (l,v,encv,maskv) (refreshForm sharef l r v encv maskv)
+			# v							= fromJust (fromJSON encv)
+			# vermask					= verifyForm v maskv
+			# (l,v,encv,maskv,vermask,dirty)
+				= if changed (refreshForm sharef l r v encv maskv vermask dirty) (l,v,encv,maskv,vermask,dirty) 
 			//Create an editor for the view
-			# (rep,iworld)			= editorRep idx taskNo repAs initf v encv maskv mbEvent iworld
-			= (l,rep,(encv,maskv),iworld)
+			# (rep,iworld)				= editorRep idx taskNo repAs initf v encv maskv vermask mbEvent iworld
+			= (l,rep,(encv,maskv,dirty),isValidValue vermask,iworld)
 			
 	displayRep idx taskNo (RepAsTUI _) f l r encv iworld
 		# (editor,iworld) = visualizeAsDisplay (f l r) iworld
@@ -175,17 +176,19 @@ where
 	displayRep idx taskNo _ f l r encv iworld
 		= (ServiceRep [(taskNrToString taskNo,idx,encv)],iworld)
 	
-	editorRep idx taskNo (RepAsTUI _) f v encv maskv mbEvent iworld
-		# (editor,iworld) = visualizeAsEditor v (taskNrToString taskNo) idx (verifyForm v maskv) mbEvent iworld
+	editorRep idx taskNo (RepAsTUI _) f v encv maskv vermask mbEvent iworld
+		# (editor,iworld) = visualizeAsEditor v (taskNrToString taskNo) idx vermask mbEvent iworld
 		= (mbToTUIRep editor,iworld)
-	editorRep idx taskNo _ f v encv maskv mbEvent iworld
+	editorRep idx taskNo _ f v encv maskv vermask mbEvent iworld
 		= (ServiceRep [(taskNrToString taskNo,idx,encv)],iworld)
 	
-	refreshForm f l r v encv maskv = case f l r (Just v) False of
-		(l,Nothing)			= (l,v,encv,maskv)
-		(l,Just form)
-			# (v,encv,maskv)	= initFormView form
-			= (l,v,encv,maskv)
+	refreshForm f l r v encv maskv vermask dirty
+		= case f l r (if (isValidValue vermask) (Just v) Nothing) dirty of
+			(l,Nothing)			= (l,v,encv,maskv,vermask,dirty)
+			(l,Just form)
+				# (v,encv,maskv)	= initFormView form
+				# vermask			= verifyForm v maskv
+				= (l,v,encv,maskv,vermask,False)
 		
 	mergeTUI meta layout parts actions
 		# ilayout	= case layout of

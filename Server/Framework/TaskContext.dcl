@@ -17,8 +17,8 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 	| TTCExcepted !String
 
 :: TaskContextTree
-	= TCBasic !(Map String JSONNode)
-	| TCInteract !JSONNode ![(!JSONNode,UpdateMask)] !Timestamp !(Maybe (String,JSONNode))
+	= TCBasic !JSONNode !Bool //Encoded value and stable indicator
+	| TCInteract !JSONNode ![(!JSONNode,!UpdateMask,!Bool)] !Timestamp !(Maybe (String,JSONNode))
 	| TCProject !JSONNode !TaskContextTree
 	| TCStep !(Either TaskContextTree (!JSONNode,!Int,!TaskContextTree))
 	| TCParallel !JSONNode !ParallelMeta ![(!SubTaskId,!SubTaskOrder,!SubTaskContext)]
@@ -39,8 +39,3 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 	, stateChanged	:: !Timestamp
 	, infoChanged	:: !Timestamp
 	}
-	
-//Access functions for basic tasks
-getLocalVar :: !String !TaskContextTree -> Maybe a | JSONDecode{|*|} a
-setLocalVar :: !String !a !TaskContextTree -> TaskContextTree | JSONEncode{|*|} a
-delLocalVar :: !String !TaskContextTree -> TaskContextTree

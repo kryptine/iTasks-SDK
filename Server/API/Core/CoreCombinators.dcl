@@ -8,7 +8,7 @@ from SharedCombinators	import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
 import Task
 
 import iTaskClass
-derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
+derive class iTask ParallelTaskMeta, ParallelResult, ParallelTaskType
 
 /**
 * Adds a result transformation function to a task.
@@ -73,20 +73,12 @@ step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 * 
 * @gin False
 */
-parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
+parallel :: !d !a ![TaskContainer a] -> Task a | descr d & iTask a
 
-/** 
-* ResultFun is called when the parallel task is stopped, either because all tasks completed, 
-* or the set was stopped by a task
-*/
-:: ResultFun s a 		:== TerminationStatus s -> a	
-
-:: TerminationStatus	=	AllRunToCompletion			//* all parallel processes have ended their execution
-						|	Stopped						//* the control signal StopParallel has been commited
 /**
 * A container for a child task of a parallel.
 */				
-:: TaskContainer s		:== (ParallelTaskType, (ParallelTask s))
+:: TaskContainer a		:== (ParallelTaskType, (ParallelTask a))
 
 /**
 * Defines how a task is shown inside of a parallel.
@@ -97,14 +89,17 @@ parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask
 /**
 * A task inside of a parallel. The first parameter is a reference to the shared data state. The second one is a reference to the shared parallel info.
 */
-:: ParallelTask s		:== (TaskList s) -> Task ParallelControl
+:: ParallelTask a		:== (TaskList a) -> Task ParallelResult
 
 /**
-* Control flow type for parallel sets. Tasks running in parallel have to indicate whether
-* to continue the parallel set or to stop the set when they complete.
+* When tasks in a a parallel set become stable, they must indicate whether they
+* have to be kept in the set, removed, restarted or remove all tasks from the set
 */
-:: ParallelControl			= Stop | Continue
-
+:: ParallelResult
+	= Keep
+	| Remove
+	| Stop
+	
 /**
 * Information about a task in a parallel set.
 */

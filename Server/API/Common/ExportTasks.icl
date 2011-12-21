@@ -29,10 +29,10 @@ exportCSVFileWith delimitChar quoteChar escapeChar filename content = mkInstantT
 where
 	eval taskNr iworld = fileTask filename content (writeCSVFileWith delimitChar quoteChar escapeChar) iworld
 
-exportJSONFile :: !FilePath a -> Task a | JSONEncode{|*|} a
+exportJSONFile :: !FilePath a -> Task a | iTask a
 exportJSONFile filename content = exportJSONFileWith toJSON filename content
  
-exportJSONFileWith :: !(a -> JSONNode) !FilePath a -> Task a
+exportJSONFileWith :: !(a -> JSONNode) !FilePath a -> Task a | iTask a
 exportJSONFileWith encoder filename content = mkInstantTask ("JSON file export", ("Export of JSON file " +++ filename)) eval
 where
 	eval taskNr iworld = fileTask filename content (writeJSON encoder) iworld

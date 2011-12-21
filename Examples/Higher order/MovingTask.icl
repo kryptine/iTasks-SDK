@@ -29,8 +29,8 @@ fillInForm :: Task QForm
 fillInForm	
 	= 				enterInformation ("Quote information","Please fill in quotation:") []
 	>>= \form ->	viewInformation ("Check","Is everything filled in correctly?") [About form] Void
-	>?*				[ (ActionNo,	Always fillInForm)
-					, (ActionYes,	Always (return form))
+	>>*				[ AnyTime ActionNo (\_ -> fillInForm)
+					, AnyTime ActionYes (\_ -> return form)
 					] 
 
 movingTask (label,task)
