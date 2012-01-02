@@ -54,7 +54,7 @@ Ext.define('itasks.controller.Controller',{
 		//Check when the viewport is rendered
 		this.control('viewport',{
 			render: this.onViewportRendered,
-			edit: this.onEdit,
+			edit: {fn: this.onEdit, scope: this, buffer: 600},
 			commit: this.onCommit
 		});
 		//Control the menus
