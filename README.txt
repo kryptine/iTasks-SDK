@@ -13,7 +13,6 @@ This repository holds the iTasks Software Development Kit (SDK).
 
 = Building the support tools ==
 - Build the RunAsync tool by opening the Clean project "iTasks-SDK/Tools/RunAsync/RunAsync.prj" and choosing ("Project" -> "Update") from the menu.
-- Run the script "iTasks-SDK/Client/build.bat" (requires java) to build the Client Framework
 
 = Building examples =
 The most up-to-date example suite to run at the moment is the examples collection for the CEFP Summerschool.

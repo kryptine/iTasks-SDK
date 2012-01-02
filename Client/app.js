@@ -1,8 +1,9 @@
 Ext.application({
 	name: 'itasks',
-	appFolder: '/src/app',
+	appFolder: 'app',
 	requires: [
 		'itasks.layout.VHBox',
+		'Ext.container.Viewport',
 		//Extension classes
 		'itasks.extension.GoogleMap'
 	],

@@ -1,6 +1,6 @@
 Ext.define('itasks.controller.Controller',{
 	extend: 'Ext.app.Controller',
-	views: [
+	requires: [
 		'itasks.component.edit.String',
 		'itasks.component.show.String',
 		'itasks.component.edit.Char',

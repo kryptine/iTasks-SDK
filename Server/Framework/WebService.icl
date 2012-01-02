@@ -32,6 +32,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
 					# (mbPreviousTui,iworld)	= loadTaskTUI (SessionProcess sessionId) iworld
+					//# mbPreviousTui = Error "Disabled, crashes on Mac"
 					//Check if the version of the user interface the client has is still fresh
 					# outdated = case mbPreviousTui of
 						Ok (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
@@ -171,7 +172,8 @@ where
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
 		stylefiles = ["/lib/ext-4.0.2a/resources/css/ext-all-gray.css"
-					 ,"/src/css/main.css"
+					 ,"/css/main.css"
 					 ,appName +++ ".css"]
-		scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/src/app.js"]
+		//scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/app.js"]
+		scriptfiles = ["/lib/ext-4.0.2a/ext.js","/app-all.js"]
 		
