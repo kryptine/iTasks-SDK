@@ -69,12 +69,12 @@ loadTaskInstance pid iworld
 	# (val,iworld) = loadValue (namespace pid) (context_store pid) iworld
 	= (maybe (Error ("Could not load context of " +++ toString pid)) Ok val, iworld)
 
-storeTaskTUI :: !ProcessId !TUIDef !*IWorld -> *IWorld
-storeTaskTUI pid def iworld = storeValue NS_SESSION_INSTANCES (tui_store pid) def iworld
+storeTaskTUI :: !ProcessId !TUIDef !Int !*IWorld -> *IWorld
+storeTaskTUI pid def version iworld = storeValue NS_SESSION_INSTANCES (tui_store pid) (def,version) iworld
 
-loadTaskTUI	:: !ProcessId !*IWorld -> (!MaybeErrorString (!TUIDef,!Timestamp), !*IWorld)
+loadTaskTUI	:: !ProcessId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)
 loadTaskTUI pid iworld
-	# (mbVal,iworld) = loadValueAndTimestamp NS_SESSION_INSTANCES (tui_store pid) iworld
+	# (mbVal,iworld) = loadValue NS_SESSION_INSTANCES (tui_store pid) iworld
 	= case mbVal of
 		Just val	= (Ok val,iworld)
 		Nothing		= (Error ("Could not load tui of " +++ toString pid), iworld)

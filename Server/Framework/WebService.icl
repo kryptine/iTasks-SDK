@@ -32,10 +32,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
 					# (mbPreviousTui,iworld)	= loadTaskTUI (SessionProcess sessionId) iworld
-					//# mbPreviousTui = Error "Disabled, crashes on Mac"
 					//Check if the version of the user interface the client has is still fresh
 					# outdated = case mbPreviousTui of
-						Ok (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
+						Ok (_,prevGuiVersion)		= guiVersion < prevGuiVersion
 						Error _						= False
 					| outdated
 						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) Nothing Nothing True iworld
@@ -52,8 +51,8 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
 					Ok (TaskInstable _ (mbCurrentTui,actions) context,SessionProcess sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
-							(Ok (previousTui,previousTimestamp),TUIRep currentTui)
-								| previousTimestamp == Timestamp (toInt timestampParam) 
+							(Ok (previousTui,prevGuiVersion),TUIRep currentTui)
+								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
 												 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui))
@@ -62,7 +61,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
 												 ,("content",encodeTUIDefinition currentTui)
-												 ,("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")
+												 ,("warning",JSONString "The client is out of sync. The user interface was refreshed with the most recent value.")
 												 ,("timestamp",toJSON timestamp)]
 							(_, TUIRep currentTui)
 								= JSONObject [("success",JSONBool True)
@@ -71,9 +70,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 											 ,("timestamp",toJSON timestamp)]
 							_
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
-						//Store tui for later incremental requests
+						//Store gui for later incremental requests
 						# iworld = case mbCurrentTui of
-							TUIRep currentTui	= storeTaskTUI (SessionProcess sessionId) currentTui iworld
+							TUIRep currentTui	= storeTaskTUI (SessionProcess sessionId) currentTui guiVersion iworld
 							_					= iworld
 						= (json,iworld)
 					_
@@ -123,7 +122,7 @@ where
 	sessionParam		= paramValue "session" req
 	downloadParam		= paramValue "download" req
 	uploadParam			= paramValue "upload" req
-	timestampParam		= paramValue "timestamp" req
+	versionParam		= paramValue "version" req
 	editEventParam		= paramValue "editEvent" req
 	editEvent			= case (fromJSON (fromString editEventParam)) of
 		Just (target,path,value)	= Just (ProcessEvent (reverse (taskNrFromString target)) (path,value))
@@ -132,6 +131,8 @@ where
 	commitEvent			= case (fromJSON (fromString commitEventParam)) of
 		Just (target,action)		= Just (ProcessEvent (reverse (taskNrFromString target)) action)
 		_							= Nothing
+
+	guiVersion			= toInt versionParam
 	
 	//Parse the body of the request as JSON message
 	(luckyEdit,luckyCommit) = if(req.req_data == "")

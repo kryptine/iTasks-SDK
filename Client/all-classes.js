@@ -73579,16 +73579,16 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.container.ListContainer',
 		'itasks.container.ListItem'
 	],
-	//Attributes
-	lastSync: null,
-	sessionId: null,
-	viewport: null,
 
-	editEvent: null,
-	commitEvent: null,
-
-	//Methods
 	init: function () {
+
+		this.version = 0;
+		this.sessionId = null;
+		this.editEvent = null;
+		this.commitEvent = null;
+
+		this.viewport = null;
+
 		//Check when the viewport is rendered
 		this.control('viewport',{
 			render: this.onViewportRendered,
@@ -73628,8 +73628,9 @@ Ext.define('itasks.controller.Controller',{
 		var params = {};
 		if(this.sessionId)
 			params['session'] = this.sessionId;
-		if(this.lastSync)
-			params['timestamp'] = this.lastSync;
+
+		//Send gui version number
+		params['version'] = this.version;
 
 		//If event and/or commit data is available, add it to the params
 		if(this.editEvent != null) {
@@ -73648,6 +73649,9 @@ Ext.define('itasks.controller.Controller',{
 			callback: this.processServerMessage,
 			scope: this
 		});
+	
+		//Increase version number
+		this.version++;
 	},
 	//Process server interface definitions
 	//@private
@@ -73679,11 +73683,6 @@ Ext.define('itasks.controller.Controller',{
 		if(message.session) {
 			this.sessionId = message.session;
 		}
-		//Update last sync timestamp to enable incremental updates
-		if(message.timestamp) {
-			this.lastSync = message.timestamp;
-		}
-
 		//Reload entire interface
 		if(message.content) {
 			this.viewport.suspendLayout = true;

@@ -14,5 +14,5 @@ newWorkflowId		:: !*IWorld -> (!ProcessId,	!*IWorld)
 storeTaskInstance	:: !TaskContext !*IWorld -> *IWorld
 loadTaskInstance	:: !ProcessId !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 
-storeTaskTUI		:: !ProcessId !TUIDef !*IWorld -> *IWorld
-loadTaskTUI			:: !ProcessId !*IWorld -> (!MaybeErrorString (!TUIDef,!Timestamp), !*IWorld)
+storeTaskTUI		:: !ProcessId !TUIDef !Int !*IWorld -> *IWorld
+loadTaskTUI			:: !ProcessId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)
