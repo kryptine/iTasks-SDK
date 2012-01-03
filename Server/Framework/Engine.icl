@@ -2,10 +2,12 @@ implementation module Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, Func
 from StdFunc import o, seqList, ::St
-import	Map, Time, CommandLine, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
+import	Map, Time, CommandLine, Environment, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
 import	Util, HtmlUtil
 import	IWorld
 import	WebService
+
+CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
@@ -151,13 +153,19 @@ determineAppName world
 	= ((dropExtension o dropDirectory) appPath, world)
 
 determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
-determineSDKPath [] world = (Nothing, world)
-determineSDKPath [p:ps] world
-	# (mbInfo,world) = getFileInfo path world
-	= case mbInfo of
-		Ok info	| info.directory	= (Just path,world)
-		_							= determineSDKPath ps world
-where
-	path = (p </> "iTasks-SDK")
-		
+determineSDKPath paths world
+	//Try environment var first
+	# (mbCleanHome,world) = getEnvironmentVariable CLEAN_HOME_VAR world
+	= case mbCleanHome of
+		Nothing			= searchPaths paths world
+		Just cleanHome	= searchPaths [cleanHome] world
+where	
+	searchPaths [] world = (Nothing, world)
+	searchPaths [p:ps] world
+		# (mbInfo,world) = getFileInfo path world
+		= case mbInfo of
+			Ok info	| info.directory	= (Just path,world)
+			_							= searchPaths ps world
+	where
+		path = (p </> "iTasks-SDK")
 	
