@@ -411,8 +411,8 @@ optionalToMaybe ('general'.Yes x)	= Just x
 optionalToMaybe 'general'.No		= Nothing
 
 createDocumentTask :: !String !String !String -> Task Document
-createDocumentTask name mime content = mkInstantTask "Create document" create
+createDocumentTask name mime content = mkInstantTask create
 where
 	create taskNr iworld
 		# (res,iworld)	= createDocument name mime content iworld
-		= (TaskStable res (NoRep,[]) TCEmpty,iworld)
+		= (TaskStable res NoRep TCEmpty,iworld)

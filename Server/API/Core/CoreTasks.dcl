@@ -7,10 +7,9 @@ import iTaskClass
 from Error				import ::MaybeError(..)
 from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
-from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
+from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn
 
 derive class iTask WorkOnProcessState
-
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter

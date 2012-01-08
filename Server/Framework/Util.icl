@@ -76,4 +76,4 @@ kvGet m [(k,v):kvs]		= if (k == m) (Just v) (kvGet m kvs)
 
 kvSet :: k v [(k,v)]	-> [(k,v)]	| Eq k //Linear search
 kvSet m nv []			= [(m,nv)]
-kvSet m nv [(k,v):kvs]	= if (k == m) [(k,nv): kvs] [(k,nv):kvSet m nv kvs]
+kvSet m nv [(k,v):kvs]	= if (k == m) [(k,nv): kvs] [(k,v):kvSet m nv kvs]

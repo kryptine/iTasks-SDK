@@ -56,8 +56,8 @@ where
 //Merge Tests
 mergeTestList :: Task Void
 mergeTestList =	
-				appendTopLevelTask noMeta (Description "1st UpdateView" @>> view sid)
-	>>|			appendTopLevelTask noMeta (Description "2nd UpdateView" @>> view sid)
+				appendTopLevelTask noMeta (Title "1st UpdateView" @>> view sid)
+	>>|			appendTopLevelTask noMeta (Title "2nd UpdateView" @>> view sid)
 	>>|			return Void
 where
 	sid = sharedStore "mergeTestLists" []
@@ -67,9 +67,9 @@ where
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
-		appendTopLevelTask noMeta (Description "1st UpdateView" @>> view store)
-	>>|	appendTopLevelTask noMeta (Description "2nd UpdateView" @>> view store)
-	>>|	appendTopLevelTask noMeta (Description "3rd UpdateView" @>> viewSharedInformation "Documents" [] store >>* quit)
+		appendTopLevelTask noMeta (Title "1st UpdateView" @>> view store)
+	>>|	appendTopLevelTask noMeta (Title "2nd UpdateView" @>> view store)
+	>>|	appendTopLevelTask noMeta (Title "3rd UpdateView" @>> viewSharedInformation "Documents" [] store >>* quit)
 	>>|	return Void
 where
 	view sid = updateSharedInformation ("List","Merging the documents") [] sid >>* quit
@@ -243,7 +243,7 @@ where
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)
 	
 	activator queryTask tlist
-		=	Hide
+		=	hideLayout
 		@>>	viewSharedInformation "Query showSharedInformation" [] (taskListState tlist) 
 		>>* [WhenValid (\(_,d,_,_) -> d) (\(query,_,_,_) -> queryTask query)]	//Run the query when the dirty flag becomes True
 		>>= \results ->

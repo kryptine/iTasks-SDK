@@ -11,7 +11,7 @@ from HTML 			import class html
 from Time			import :: Timestamp
 from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
-from Task			import :: Task
+from Task			import :: Task, :: TaskAttribute
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
@@ -23,16 +23,16 @@ derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, Fi
 derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq				EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive JSONDecode		TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gEq				TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
-derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
-derive gHeaders			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
-derive gGridRows		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
-derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
-derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
-derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus
+derive JSONEncode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive JSONDecode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gEq				TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gHeaders			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gGridRows		ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
 
 derive class iTask	Credentials, Config
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
@@ -291,25 +291,14 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
 //* Represents lists of tasks (SHOULD BE ABSTRACT)
 :: TaskList s
-	= GlobalTaskList			//*The global list of task instances
+	= TopLevelTaskList			//*The top-level list of task instances
 	| ParallelTaskList !TaskId	//*The list of task instances of a parallel task
 
 	
 //* String serialization of TaskNr values	
 :: TaskId :== String
 
-//* Properties of tasks
-:: TaskMeta =
-	{ title				:: !String						//* A descriptive title
-	, instruction		:: !Maybe String				//* Instruction of the task
-	, attributes		:: ![(String,String)]			//* A list of attributes (additional meta information) 
-	, icon				:: !Maybe String				//* An icon reference for the task
-	, hide				:: !Bool						//* Hide the interface of this task (may be ignored by parallel layouters)
-	, window			:: !Bool						//* Show the interface of this task in a window (if supported by the parallel layouter)
-	, interactionType	:: !Maybe InteractionTaskType	//* type of interaction (for interaction tasks)
-	, localInteraction	:: !Bool						//* indicates that the task's interaction is restricted to local data while it is running
-	}
-	
+//* Meta-data of tasks
 :: ManagementMeta =
 	{ worker			:: !Maybe User				//* Who has to do the task? 
 	, role				:: !Maybe Role				//* What role does a worker need to do the task
@@ -335,7 +324,6 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
 :: TaskInstanceMeta =
 	{ processId			:: !ProcessId
-	, taskMeta			:: !TaskMeta
 	, progressMeta		:: !ProgressMeta
 	, managementMeta	:: !ManagementMeta
 	, subInstances		:: ![TaskInstanceMeta]
@@ -357,15 +345,38 @@ formatPriority	:: !TaskPriority	-> HtmlTag
 instance toString TaskStatus
 instance == TaskStatus
 
+//Define initial meta attributes
+TASK_ATTRIBUTE	:== "task"
+TITLE_ATTRIBUTE	:== "title"
+HINT_ATTRIBUTE	:== "hint"
+ERROR_ATTRIBUTE	:== "error"
+ICON_ATTRIBUTE	:== "icon"
+STACK_ATTRIBUTE	:== "stack-order"
+
 class descr d
 where
-	initTaskMeta :: !d -> TaskMeta
+	initAttributes :: !d -> [TaskAttribute]
 
 instance descr Void
 instance descr String
 instance descr (!String, !descr) | html descr
-instance descr TaskMeta
+instance descr Title
+instance descr Hint
+instance descr Icon
+instance descr Attribute
 
+instance descr Att
+instance descr [d] | descr d
+
+:: Attribute			= Attribute !String !String
+:: Att					= E.a: Att !a & descr a
+
+:: Title				= Title !String
+:: Hint					= Hint !String
+:: Window				= Window
+:: Icon					= Icon !String
+						| IconView
+						| IconEdit
 
 noMeta :: ManagementMeta
 
@@ -435,19 +446,8 @@ displayName			:: !User -> String
 */
 getRoles			:: !User -> [Role]
 
-/**
-* The information state of a running task.
-*/
-:: InformationState s =	{ modelValue	:: !s		// the value of the data model the editor is working on
-						, localValid	:: !Bool	// a flag indicating if the editor's local view is valid
-						}
-:: TermFunc a b :== (InformationState a) -> InteractionTerminators b
-
-:: InteractionTerminators a	= UserActions		!(Maybe a) ![(!Action,!Maybe a)]	// A 'current value' and a list of actions the user can possibly trigger, actions with a Just-value stop the task with given result, others (Nothing) are disabled
-							| StopInteraction	!a									// The task stops and produces result a
-							
 /*
-* To allow users to specify a followup action to their current task
+* To allow the specification of a followup action to their current task
 * most interaction tasks allow you to specify actions that can be chosen.
 * These actions are either available as a button on the bottom of the task interface
 * or as an item in the task menu, or both.
@@ -487,8 +487,5 @@ actionIcon 	:: !Action -> String
 			, alt	:: !Bool
 			, shift	:: !Bool
 			}
+			
 :: Key :== Char
-
-:: InteractionTaskType	= InputTask | UpdateTask | OutputTask !OutputTaskType
-:: OutputTaskType		= ActiveOutput | PassiveOutput
-

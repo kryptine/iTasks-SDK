@@ -2,46 +2,35 @@ implementation module Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass
-from TaskContext	import :: TaskContextTree(..), :: SubTaskContext, :: SubTaskId, :: SubTaskOrder, :: ParallelMeta
-from iTasks			import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
+from TaskContext		import :: TaskContextTree(..), :: SubTaskContext, :: SubTaskId, :: SubTaskOrder, :: ParallelMeta
+from LayoutCombinators	import :: Layout
+from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
-mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
-mkTask description initFun editFun evalFun =
+mkTask :: !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a 
+mkTask initFun editFun evalFun =
 	{ Task
-	| meta				= initTaskMeta description
-	, def = 
-		{ initFun		= initFun
-		, editFun		= editFun
-		, evalFun		= evalFun
-		}
-	, layout			= DefaultLayouter
+	| initFun			= initFun
+	, editFun			= editFun
+	, evalFun			= evalFun
+	, layout			= Nothing
 	}
 	
-mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d & iTask a
-mkInstantTask description iworldfun =
+mkInstantTask :: (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask a
+mkInstantTask iworldfun =
 	{ Task
-	| meta				= initTaskMeta description
-	, def =
-		{ initFun		= \_ iworld -> (TCEmpty,iworld)
-		, editFun		= \_ _ context iworld -> (context,iworld)
-		, evalFun		= evalOnce iworldfun
-		}
-	, layout			= DefaultLayouter
+	| initFun			= \_ iworld -> (TCEmpty,iworld)
+	, editFun			= \_ _ context iworld -> (context,iworld)
+	, evalFun			= evalOnce iworldfun
+	, layout			= Nothing
 	}
 where
-	evalOnce f taskNo _ _ _ _ context=:(TCBasic enc True) iworld = case fromJSON enc of
-		(Just res)	= (TaskStable res (NoRep,[]) context, iworld)
+	evalOnce f taskNo _ _ _  context=:(TCBasic enc True) iworld = case fromJSON enc of
+		(Just res)	= (TaskStable res NoRep context, iworld)
 		Nothing		= (taskException "Corrupt task result", iworld)
-	evalOnce f taskNo _ _ _ _ _ iworld = case f taskNo iworld of
-		(TaskStable res _ _, iworld)	= (TaskStable res (NoRep,[]) (TCBasic (toJSON res) True), iworld)
+	evalOnce f taskNo _ _  _ _ iworld = case f taskNo iworld of
+		(TaskStable res _ _, iworld)	= (TaskStable res NoRep (TCBasic (toJSON res) True), iworld)
 		(TaskException e s, iworld)		= (TaskException e s, iworld)
 		(_,iworld)						= (taskException "Instant task did not complete instantly", iworld)
-	
-taskTitle :: !(Task a) -> String
-taskTitle task = task.Task.meta.TaskMeta.title
-
-taskMeta :: !(Task a) -> TaskMeta
-taskMeta {Task|meta} = meta
 
 instance iTaskId TaskNr
 where
@@ -101,12 +90,10 @@ gUpdate{|Task|} fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ Task
-					| meta	= initTaskMeta Void
-					, def 	=	{ initFun	= abort funerror
-								, editFun	= abort funerror
-								, evalFun	= abort funerror
-								}
-					, layout = DefaultLayouter
+					| initFun	= \_ -> abort funerror
+					, editFun	= \_ -> abort funerror
+					, evalFun	= \_ -> abort funerror
+					, layout	= Nothing
 					}
 	funerror = "Creating default task functions is impossible"
 	
@@ -116,12 +103,9 @@ gDefaultMask{|Task|} _ _ = [Touched []]
 
 gVerify{|Task|} _ _ vst = alwaysValid vst
 
-gVisualizeText{|Task|} _ _ {Task|meta} = [meta.TaskMeta.title]
-gVisualizeEditor{|Task|} _ _ _ _ mbVal vst
-	# vis = case mbVal of
-		Just {Task|meta}	= NormalEditor [stringDisplay meta.TaskMeta.title]
-		Nothing				= NormalEditor [stringDisplay "<Task>"]
-	= (vis,vst)
+gVisualizeText{|Task|} _ _ _ = ["<Task>"]
+gVisualizeEditor{|Task|} _ _ _ _ _ vst = (NormalEditor [stringDisplay "<Task>"],vst)
+
 gHeaders{|Task|} _ = (undef, ["Task"])
 gGridRows{|Task|} _ _ _ _ = Nothing	
 gEq{|Task|} _ _ _ = True // tasks are always equal
@@ -129,15 +113,5 @@ gEq{|Task|} _ _ _ = True // tasks are always equal
 gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 
-taskFuncs :: !(Task a) -> TaskFuncs a | iTask a
-taskFuncs {Task|def} = def
-
-taskLayouters :: !(Task a) -> (InteractionLayouter, StepLayouter, ParallelLayouter)
-taskLayouters {Task|layout} = case layout of
-	DefaultLayouter					= (defaultInteractionLayout	, defaultStepLayout,	defaultParallelLayout)
-	(InteractionLayouter ilayout)	= (ilayout					, defaultStepLayout,	defaultParallelLayout)
-	(StepLayouter slayout)			= (defaultInteractionLayout , slayout,				defaultParallelLayout)
-	(ParallelLayouter playout)		= (defaultInteractionLayout	, defaultStepLayout,	playout)
-	
 taskException :: !e -> TaskResult a | TC, toString e
 taskException e = TaskException (dynamic e) (toString e)

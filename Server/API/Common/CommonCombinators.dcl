@@ -2,7 +2,7 @@ definition module CommonCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators.
 */
-import CoreCombinators, TuningCombinators
+import CoreCombinators, LayoutCombinators
 import Either
 from SystemTypes		import :: User
 from Map				import :: Map
@@ -93,6 +93,11 @@ from Map				import :: Map
 * @gin False
 */
 (@>) infixl 1 :: !(Task a) !((Maybe a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
+/**
+* Infix shorthands for the (overloaded) tune combinator.
+*/
+(<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
+(@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 /**
 * Exception combinator.
 *
@@ -319,3 +324,10 @@ whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTas
 * 
 */
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
+
+// Additional tuning shortcuts
+instance tune BeforeLayout
+instance tune AfterLayout
+
+
+

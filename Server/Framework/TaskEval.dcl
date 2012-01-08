@@ -4,7 +4,7 @@ definition module TaskEval
 */
 
 from SystemTypes	import :: IWorld, :: ProcessId, :: TaskInstanceMeta, :: User
-from Task			import :: TaskNr, :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: ReversedTaskNr, :: TaskEvalFun, :: TaskRepInput
+from Task			import :: TaskNr, :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: ReversedTaskNr, :: TaskEvalFun, :: TaskRepTarget
 
 import Maybe, JSON, Error
 import TaskContext, iTaskClass

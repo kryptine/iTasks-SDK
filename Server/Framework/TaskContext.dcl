@@ -8,7 +8,7 @@ derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
 
 //Persistent context of active tasks
-:: TaskContext = TaskContext !ProcessId !TaskMeta !ProgressMeta !ManagementMeta !ChangeNo !ProcessState
+:: TaskContext = TaskContext !ProcessId !ProgressMeta !ManagementMeta !ChangeNo !ProcessState
 
 :: ChangeNo	:== Int
 :: ProcessState
@@ -27,10 +27,9 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 :: SubTaskId	:== Int
 :: SubTaskOrder :== Int	//Extra ordering information of tasks (required for properly laying out tasks in tabs or windows)
 
-:: SubTaskContext
-	= STCHidden !TaskMeta !(Maybe (!JSONNode,!TaskContextTree))		//Properties, Task (encoded), Context or JSON node
-	| STCEmbedded !TaskMeta !(Maybe (!JSONNode,TaskContextTree))			
-	| STCDetached !TaskId !TaskMeta !ProgressMeta !ManagementMeta !(Maybe (!JSONNode,!TaskContextTree))
+:: SubTaskContext	//Task (encoded), Context or JSON node	
+	= STCEmbedded !(Maybe (!JSONNode, TaskContextTree))			
+	| STCDetached !TaskId !ProgressMeta !ManagementMeta !(Maybe (!JSONNode,!TaskContextTree))
 
 //Parallel has a bit more complex administration so we define it as a record
 :: ParallelMeta = 

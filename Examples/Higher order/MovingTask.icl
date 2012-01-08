@@ -20,7 +20,7 @@ derive class iTask	QForm, Person, Gender
 
 movingTaskExample :: [Workflow]
 movingTaskExample
-	= [ workflow "Examples/Higher order/Moving task" "Demo of a dynamic alteration of task properties" (Description "Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask))]
+	= [ workflow "Examples/Higher order/Moving task" "Demo of a dynamic alteration of task properties" (Title "Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask))]
 
 trivialTask :: Task QForm
 trivialTask = fillInForm 
@@ -38,17 +38,17 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	appendTopLevelTask {noMeta & worker = Just who} (task <<@ Description label)
+		>>= \who ->	appendTopLevelTask {noMeta & worker = Just who} (task <<@ Title label)
 		>>= 		inspect
 	
 	inspect pref
 	=					enterChoice ("Task options","Go ahead impatient boss:") []
-							[ getStatus pref <<@ Description "Get status"
-							, suspend pref <<@ Description "Suspend"
-							, activate pref <<@ Description "Activate"
-							, reassign pref <<@ Description "Reassign"
-							, delete pref <<@ Description "Delete task"
-							//, waitForIt pref <<@ Description "Wait for task"
+							[ getStatus pref <<@ Title "Get status"
+							, suspend pref <<@ Title "Suspend"
+							, activate pref <<@ Title "Activate"
+							, reassign pref <<@ Title "Reassign"
+							, delete pref <<@ Title "Delete task"
+							//, waitForIt pref <<@ Title "Wait for task"
 							]
 		>>= \action ->	action
 		>>= \finished -> if finished (return Void) (inspect pref)

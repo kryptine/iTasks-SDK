@@ -49,9 +49,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 					Ok (TaskStable _ _ _,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (TaskInstable _ (mbCurrentTui,actions) context,SessionProcess sessionId)
+					Ok (TaskInstable _ mbCurrentTui context,SessionProcess sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
-							(Ok (previousTui,prevGuiVersion),TUIRep currentTui)
+							(Ok (previousTui,prevGuiVersion),TUIRep (Just currentTui,actions,attributes))
 								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
@@ -63,7 +63,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 												 ,("content",encodeTUIDefinition currentTui)
 												 ,("warning",JSONString "The client is out of sync. The user interface was refreshed with the most recent value.")
 												 ,("timestamp",toJSON timestamp)]
-							(_, TUIRep currentTui)
+							(_, TUIRep (Just currentTui,actions,attributes))
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
 											 ,("content", encodeTUIDefinition currentTui)
@@ -72,8 +72,8 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 						//Store gui for later incremental requests
 						# iworld = case mbCurrentTui of
-							TUIRep currentTui	= storeTaskTUI (SessionProcess sessionId) currentTui guiVersion iworld
-							_					= iworld
+							TUIRep (Just currentTui,_,_)	= storeTaskTUI (SessionProcess sessionId) currentTui guiVersion iworld
+							_								= iworld
 						= (json,iworld)
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
@@ -89,7 +89,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (errorResponse err, iworld)
 				Ok (TaskStable val _ _,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (TaskInstable _ (ServiceRep rep,actions) _,_)
+				Ok (TaskInstable _ (ServiceRep (rep,actions)) _,_)
 					= (jsonResponse (serviceBusyResponse rep actions), iworld)
 				Ok (TaskInstable _ _ _,_)
 					= (errorResponse "Requested service format not available for this task", iworld)
@@ -175,6 +175,6 @@ where
 		stylefiles = ["/lib/ext-4.0.2a/resources/css/ext-all-gray.css"
 					 ,"/css/main.css"
 					 ,appName +++ ".css"]
-		//scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/app.js"]
-		scriptfiles = ["/lib/ext-4.0.2a/ext.js","/app-all.js"]
+		scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/app.js"]
+		//scriptfiles = ["/lib/ext-4.0.2a/ext.js","/app-all.js"]
 		

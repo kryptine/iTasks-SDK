@@ -49,7 +49,7 @@ newWorkflowId iworld
 			= (WorkflowProcess 1,iworld) //return the first value (1)		
 
 storeTaskInstance :: !TaskContext !*IWorld -> *IWorld
-storeTaskInstance context=:(TaskContext pid _ _ _ _ _) iworld
+storeTaskInstance context=:(TaskContext pid _ _ _ _) iworld
 		//Store the context
 		# iworld = storeValue (namespace pid) (context_store pid) context iworld
 		| isSession pid
@@ -87,31 +87,26 @@ workflowIndex fn iworld
 	= (list,iworld)
 	
 contextToInstanceMeta :: !TaskContext -> TaskInstanceMeta
-contextToInstanceMeta (TaskContext processId tmeta pmeta mmeta _ scontext)
-	= {processId = processId, taskMeta = tmeta, progressMeta = pmeta, managementMeta = mmeta, subInstances = tsubprocs scontext}
+contextToInstanceMeta (TaskContext processId pmeta mmeta _ scontext)
+	= {processId = processId, progressMeta = pmeta, managementMeta = mmeta, subInstances = tsubprocs scontext}
 where
 	tsubprocs (TTCRunning _ context)		= subprocs context
 	tsubprocs _								= []
 
-	subprocs (TCEmpty)						= []
-	subprocs (TCBasic _ _)					= []
-	subprocs (TCInteract _ _ _ _)			= []
 	subprocs (TCStep (Left context))		= subprocs context
 	subprocs (TCStep (Right (_,_,context)))	= subprocs context
 	subprocs (TCParallel _ _ subs)			= subprocsp subs
+	subprocs _								= []
 	
 	subprocsp [] = []
-	subprocsp [(_,_,STCDetached taskId tmeta pmeta mmeta context):subs]
+	subprocsp [(_,_,STCDetached taskId pmeta mmeta context):subs]
 		= [{processId = addTarget taskId processId
-		   ,taskMeta = tmeta
 		   ,progressMeta = pmeta
 		   ,managementMeta = mmeta
 		   ,subInstances = case context of Nothing = []; Just (_,c) = subprocs c}
 		  :subprocsp subs]
-	subprocsp [(_,_,STCEmbedded _ Nothing):subs]			= subprocsp subs
-	subprocsp [(_,_,STCEmbedded _ (Just (_,c))):subs]		= subprocs c ++ subprocsp subs
-	subprocsp [(_,_,STCHidden _ Nothing):subs]		= subprocsp subs
-	subprocsp [(_,_,STCHidden _ (Just (_,c))):subs]	= subprocs c ++ subprocsp subs
+	subprocsp [(_,_,STCEmbedded Nothing):subs]			= subprocsp subs
+	subprocsp [(_,_,STCEmbedded (Just (_,c))):subs]		= subprocs c ++ subprocsp subs
 	
 	addTarget target (WorkflowProcess pid) = (EmbeddedProcess pid target)
 	addTarget _ procId = procId

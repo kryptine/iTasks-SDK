@@ -54,14 +54,14 @@ reportBugVerySimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found") []
 	>>=	\report ->
 		NamedUser "bas" @:
-			(Description "Bug Report" @>> OutputTask ActiveOutput @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
+			(Title "Bug Report" @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
 
 reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found") []
 	>>=	\report ->
 		NamedUser "bas" @:
-			(Description "Bug Report" @>> OutputTask ActiveOutput @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
+			(Title "Bug Report" @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
 	>>| return report
 
 //Different variant of simple reportBug
@@ -72,7 +72,7 @@ where
 	reportBug = enterInformation ("Describe bug","Please describe the bug you found") []
 	
 	fixBug :: BugReport -> Task BugReport
-	fixBug bug = NamedUser "bas" @: (Description "Bug Report" @>> OutputTask ActiveOutput @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] bug)
+	fixBug bug = NamedUser "bas" @: (Title "Bug Report" @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] bug)
 
 //Main workflow	  
 reportBug :: Task Bug
@@ -95,7 +95,7 @@ assignBug bug critical
 	>>=	\developer ->
 		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
 	>>= \bug ->
-		assign {noMeta & worker = Just developer, priority = priority} (Description subject @>> resolveBug bug critical)
+		assign {noMeta & worker = Just developer, priority = priority} (Title subject @>> resolveBug bug critical)
 where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
@@ -137,7 +137,7 @@ confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
 		assign {noMeta & worker =Just assessor, priority = HighPriority}
-			( Description "Bug report assessment" @>>
+			( Title "Bug report assessment" @>>
 			  viewInformation ("Confirmation","Is this bug really critical?") [] report >>* [AnyTime ActionNo (const (return False)),AnyTime ActionYes (const (return True))]
 			)
 
@@ -175,10 +175,10 @@ where
 		= enterInformation ("Cause","What is the cause of the following bug?") [About bug]
 		
 developBugFix :: Bug -> Task Bug
-developBugFix bug = OutputTask ActiveOutput @>> viewInformation ("Bug fix","Please implement a fix for the following bug:") [] bug
+developBugFix bug = viewInformation ("Bug fix","Please implement a fix for the following bug:") [] bug
 
 mergeFixInMainLine :: Bug -> Task Bug
-mergeFixInMainLine bug = OutputTask ActiveOutput @>> viewInformation ("Merge","Please merge the bugfix in the main line of version control") [] bug
+mergeFixInMainLine bug = viewInformation ("Merge","Please merge the bugfix in the main line of version control") [] bug
 
 makePatches :: Bug -> Task Void
 makePatches bug =
@@ -188,7 +188,7 @@ makePatches bug =
 		Just {affectedVersions = []}
 			= return Void
 		Just {affectedVersions = versions}
-			= allTasks	[OutputTask ActiveOutput @>>
+			= allTasks	[
 						viewInformation ("Patch" ,"Please make a patch of bugfix " <+++ bug.bugNr <+++ " for the following version of " <+++ bug.Bug.report.BugReport.application)
 								[] version
 						\\ version <- versions

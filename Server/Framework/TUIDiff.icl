@@ -69,7 +69,7 @@ where
 				&& o.TUIPanel.frame === n.TUIPanel.frame
 				&& o.TUIPanel.menus === n.TUIPanel.menus
 				&& (isJust o.TUIPanel.iconCls == isJust n.TUIPanel.iconCls))
-					# titleUpdate	= update (\o n -> o.TUIPanel.title == n.TUIPanel.title && o.TUIPanel.iconCls == n.TUIPanel.iconCls) (\{TUIPanel|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
+					# titleUpdate	= update (\o n -> o.TUIPanel.title === n.TUIPanel.title && o.TUIPanel.iconCls == n.TUIPanel.iconCls) (\{TUIPanel|title,iconCls} -> Just (fromMaybe "" title,iconCls)) TUISetTitle path o n
 					# itemUpdates	= diffChildEditorDefinitions path o.TUIPanel.items n.TUIPanel.items
 					# menuUpdates	= []
 					//# menuUpdates	= diffTUIMenus path o.TUIPanel.menus n.TUIPanel.menus
@@ -94,10 +94,9 @@ where
 				items tc = [{content = TUITabItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- tc.TUITabContainer.items]
 		(TUITabItem o, TUITabItem n)
 			| (o.TUITabItem.closeAction === n.TUITabItem.closeAction //Can't diff the close action for now
-				&& o.TUITabItem.menus === n.TUITabItem.menus		//Diff of menus is also still impossible
-				&& o.TUITabItem.index == n.TUITabItem.index)		//Can't update index right now
+				&& o.TUITabItem.menus === n.TUITabItem.menus)		//Diff of menus is also still impossible
 					# titleUpdate	= update (\o n -> o.TUITabItem.title == n.TUITabItem.title && o.TUITabItem.iconCls == n.TUITabItem.iconCls) (\{TUITabItem|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
-					# itemUpdates	= diffChildEditorDefinitions path (maybeToList o.TUITabItem.items) (maybeToList n.TUITabItem.items)
+					# itemUpdates	= diffChildEditorDefinitions path o.TUITabItem.items n.TUITabItem.items
 					# menuUpdates 	= []
 					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
 			| otherwise

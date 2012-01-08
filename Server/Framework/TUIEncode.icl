@@ -38,9 +38,9 @@ JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
 JSONEncode{|TUIListItem|}  {TUIListItem|items,index}
 	= [JSONObject [("xtype",JSONString "itasks_list_item"),("index",JSONInt index),("items", toJSON items)]]
 
-JSONEncode{|TUITabItem|} {TUITabItem|index,title,iconCls,items,menus,closeAction}
-	= [JSONObject [("xtype",JSONString "itasks_tab_item"),("index",JSONInt index),("title",toJSON title),("iconCls",toJSON iconCls)
-				  ,("items",toJSON items),("menus",toJSON menus),("closeAction",toJSON closeAction)]]
+JSONEncode{|TUITabItem|} {TUITabItem|items,title,iconCls,padding,menus,closeAction}
+	= [JSONObject (filterNull [("xtype",JSONString "itasks_tab_item"),("items",toJSON items),("title",toJSON title),("iconCls",toJSON iconCls)
+				  ,("padding",toJSON padding),("menus",toJSON menus),("closeAction",toJSON closeAction)])]
 
 JSONEncode{|TUIBorderItem|} {TUIBorderItem|title,iconCls,item}
 	= [JSONObject [("xtype",JSONString "iborderi"),("title",toJSON title),("iconCls",toJSON iconCls),("items",toJSON item)]]

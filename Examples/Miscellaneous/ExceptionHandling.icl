@@ -22,7 +22,7 @@ exceptionHandlingExample
 = [workflow "Examples/Higher order/Exception handling" "Exception handling demo" exceptionTask]
 
 exceptionTask :: Task Int
-exceptionTask = Description "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
+exceptionTask = Title "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
 
 db :: Shared Int
 db = sharedStore "MyIntDB" 0

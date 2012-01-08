@@ -24,8 +24,10 @@ import	Engine						// basic iTask system creator
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
-	,	CommonCombinators			// Set of additional useful iTask combinators
-	,	TuningCombinators			// Fine tuning of tasks
+	,	CommonCombinators			// Set of derived useful iTask combinators
+	
+	//	Layout tuning
+	,	LayoutCombinators
 	
 	//	Miscellaneous machinery
 	,	JSON						// Functions for serializing/deserializing strings

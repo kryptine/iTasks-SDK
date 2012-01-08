@@ -103,13 +103,12 @@ parallel :: !d !a ![TaskContainer a] -> Task a | descr d & iTask a
 /**
 * Information about a task in a parallel set.
 */
-:: ParallelTaskMeta =	{ index				:: !Int									//* The task's index
-						, taskId			:: !TaskId
-						, taskMeta			:: !TaskMeta
-						, progressMeta		:: !Maybe ProgressMeta
-						, managementMeta	:: !Maybe ManagementMeta
-						}
-						
+:: ParallelTaskMeta =
+	{ index				:: !Int									//* The task's index
+	, taskId			:: !TaskId
+	, progressMeta		:: !Maybe ProgressMeta
+	, managementMeta	:: !Maybe ManagementMeta
+	}					
 /**
 * Get the shared state of a task list
 */
@@ -136,3 +135,17 @@ removeTask :: !Int !(TaskList s)				-> Task Void | TC s
 * Execute a task with the identity of the given user
 */
 workAs :: !User !(Task a)						-> Task a | iTask a
+
+/**
+* Fine tune a task by specifying custom layouts, tweaking generic layouts,
+* or add additional titles, hints and descriptions
+*/
+class tune b :: !b !(Task a) -> Task a
+instance tune	Layout					//Set layout algorithm
+instance tune	(Layout -> Layout)		//Modify the existing layout
+
+instance tune	Attribute				//Set attribute
+instance tune	Window					//Indicate that this task should 
+instance tune	Title					//Set title
+instance tune	Icon					//Set icon
+

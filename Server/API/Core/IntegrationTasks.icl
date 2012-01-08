@@ -5,13 +5,10 @@ import StdInt, StdFile, StdTuple, StdList
 import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple, JSON
 
 import SystemTypes, IWorld, Task, TaskContext
-import TuningCombinators
-import InteractionTasks
+import LayoutCombinators
+import CoreTasks, InteractionTasks, CommonCombinators
 import Shared
 
-from Util				import currentTimestampError
-from CoreTasks			import return
-from CommonCombinators	import >>=, >>|
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess
@@ -33,7 +30,7 @@ derive JSONDecode AsyncResult
 
 callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args 
-	= mkTask ("Call process","Waiting for external process.") init edit eval
+	= mkTask init edit eval
 where
 	//Start the process
 	init :: TaskNr *IWorld -> (!TaskContextTree,!*IWorld)
@@ -57,9 +54,9 @@ where
 				
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr props event tuiTaskNr repAs context=:(TCBasic encv stable) iworld=:{world}
+	eval taskNr event tuiTaskNr repAs context=:(TCBasic encv stable) iworld=:{world}
 		| stable
-			= (TaskStable (fromJust (fromJSON encv)) (NoRep,[]) context, iworld)
+			= (TaskStable (fromJust (fromJSON encv)) NoRep context, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -67,23 +64,13 @@ where
 					# (exists,world) = 'File'.fileExists outfile world
 					| not exists
 						//Still busy
-						# (rep,actions) = case repAs of
-							(RepAsTUI layout)
-								# ilayout = case layout of
-									(InteractionLayouter ilayout)	= ilayout
-									_								= defaultInteractionLayout
-								= appFst TUIRep (ilayout
-									{ title = props.TaskMeta.title
-									, instruction = props.TaskMeta.instruction
-									, content = []
-									, actions = []
-									, type = props.interactionType
-									, localInteraction = props.TaskMeta.localInteraction
-									, warning = Nothing
-									})
-							_	= (ServiceRep [(taskNrToString taskNr, 0, JSONNull)], [])
+						# rep = case repAs of
+							(RepAsTUI layout)	
+								# (Layout layoutfun) = fromMaybe DEFAULT_LAYOUT layout
+								= TUIRep (layoutfun [] [] []) //TODO: Add attributes
+							_					= ServiceRep ([(taskNrToString taskNr, 0, JSONNull)], [])
 						
-						= (TaskInstable Nothing (rep,actions) context,{IWorld|iworld & world = world})
+						= (TaskInstable Nothing rep context,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file
@@ -95,7 +82,7 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = async.AsyncResult.exitcode 
-								= (TaskStable result (NoRep,[]) (TCBasic (toJSON result) True), {IWorld|iworld & world = world})
+								= (TaskStable result NoRep (TCBasic (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization
@@ -112,7 +99,7 @@ callRPCHTTP method url params transformResult
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callHTTP method url request parseResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Description "Call RPC"
+	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Title "Call RPC"
 	>>= \exitCode -> if (exitCode > 0)
 		(throw (RPCException (curlError exitCode)))
 		(importTextFile outfile >>= \result -> case parseResult result of
@@ -124,7 +111,7 @@ where
 		GET	 = "--get"
 		POST = ""
 		
-	initRPC = mkInstantTask("Call RPC", "Initializing") eval
+	initRPC = mkInstantTask eval
 	
 	eval taskNr iworld=:{IWorld|build,sdkDirectory,dataDirectory,world}
 		# infile  = dataDirectory </> "tmp-" +++ build </> (mkFileName taskNr "request")
@@ -140,7 +127,7 @@ where
 						, outfile
 						, url
 						]
-		= (TaskStable (cmd,args,outfile) (NoRep,[]) TCEmpty, {IWorld|iworld & world = world})
+		= (TaskStable (cmd,args,outfile) NoRep TCEmpty, {IWorld|iworld & world = world})
 	
 	mkFileName :: !TaskNr !String -> String
 	mkFileName taskNr part = iTaskId taskNr ("-rpc-" +++ part)
@@ -224,11 +211,11 @@ curlError exitCode =
         88      = "FTP chunk callback reported error "
 
 sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
-sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send out an e-mail") eval
+sendEmail subject (Note body) recipients = mkInstantTask eval
 where
 	eval taskNr iworld=:{IWorld|currentUser,config}
 		# iworld = foldr (sendSingle config.smtpServer (toEmail currentUser)) iworld recipients
-		= (TaskStable recipients (NoRep,[]) TCEmpty, iworld)
+		= (TaskStable recipients NoRep TCEmpty, iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

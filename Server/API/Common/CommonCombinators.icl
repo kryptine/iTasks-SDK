@@ -1,7 +1,6 @@
 implementation module CommonCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
-* with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text, Time, Tuple, List
 import Util, Either, GenVisualize, GenUpdate
@@ -10,8 +9,8 @@ from SystemTypes		import :: ProcessId, :: User(..), :: Note(..)
 from TaskContext		import :: TaskContextTree(..), :: SubTaskId, :: SubTaskOrder, :: SubTaskContext, :: ParallelMeta
 from SharedCombinators	import mapShared, :: Shared, :: ReadWriteShared
 from SystemData			import randomInt, topLevelTasks
-from Map				import qualified newMap
-import CoreTasks, CoreCombinators, TuningCombinators, InteractionTasks
+
+import CoreTasks, CoreCombinators, InteractionTasks, LayoutCombinators
 
 (>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
 (>>*) task steps = step task steps 
@@ -20,7 +19,7 @@ import CoreTasks, CoreCombinators, TuningCombinators, InteractionTasks
 (>>=) taska taskbf = step taska [WhenStable taskbf]
 
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>!) taska taskbf = step taska [WithResult ActionOk (const True) taskbf]
+(>>!) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf]
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = step taska [WhenStable (const taskb)]
@@ -36,6 +35,12 @@ import CoreTasks, CoreCombinators, TuningCombinators, InteractionTasks
 
 (@>) infixl 1 :: !(Task a) !((Maybe a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
 (@>) task (f,share) = project f share task
+
+(<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
+(<<@) t a = tune a t
+
+(@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
+(@>>) a t = tune a t
 
 try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
 try task handler = step task [WhenStable return, Catch handler]
@@ -56,17 +61,17 @@ projectJust mba _ = Just mba
 */
 assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 assign props task
-	=	parallel ("Assign","Manage a task assigned to another user.") Nothing
+	=	parallel Void Nothing
 			[(Embedded, processControl),(Detached props, \s -> (task @> (\mba _ -> Just mba, taskListState s) ) @ const Keep)]
 	@?	justResult
 where
 	//processControl :: !(TaskList (Maybe a)) -> Task ParallelResult
 	processControl tlist =
-		(enterSharedChoice (taskTitle task,"Waiting for " +++ taskTitle task) [] control @ const Keep)
+		(enterSharedChoice ("Waiting","Waiting for " <+++ task) [] control @ const Keep)
 	where
 		control = taskListMeta tlist
 					
-	toView [_,{ParallelTaskMeta|taskMeta,progressMeta=Just p,managementMeta=Just m}]=
+	toView [_,{ParallelTaskMeta|progressMeta=Just p,managementMeta=Just m}]=
 		{ assignedTo	= m.ManagementMeta.worker
 		, priority		= m.ManagementMeta.priority
 		, issuedAt		= Display (Just p.ProgressMeta.issuedAt)
@@ -104,17 +109,17 @@ justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
 = task >>= \r -> case r of
 	Just x	= return x
-	Nothing	= throw ("The task " +++ taskTitle task +++ " returned nothing.")
+	Nothing	= throw ("The task returned nothing.")
 
 sequence :: !String ![Task a]  -> Task [a] | iTask a
-sequence label tasks = Description label @>> (seqTasks tasks)
+sequence label tasks = Title label @>> (seqTasks tasks)
 where
 	seqTasks []		= return []
 	seqTasks [t:ts]	= t >>= \a -> seqTasks ts >>= \as -> return [a:as]
 
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = (parallel (taskMeta task) Nothing [(Embedded, checked pred task 0)] <<@ layout) @? res
+(<!) task pred = (parallel "Repeat until condition holds." Nothing [(Embedded, checked pred task 0)]) @? res
 where
 	checked pred task i tlist
 		=	task
@@ -125,15 +130,12 @@ where
 	res (Just (Just a)) = Just a
 	res _				= Nothing
 
-	layout :: TUIParallel -> (TUIDef,[TaskAction])
-	layout {TUIParallel|items=[(_,_,_,tui,actions):_]} = (fromJust tui, actions)
-
 forever :: !(Task a) -> Task b | iTask a & iTask b	
 forever	t = (<!) t (\_ -> False) >>| return defaultValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb
-	= parallel ("-||-", "Done when either subtask is finished.") (Nothing,Nothing)
+	= parallel "Do one of the following." (Nothing,Nothing)
 		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Stop)
 		,(Embedded, \s -> (taskb @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Stop)
 		] @? res
@@ -144,7 +146,7 @@ where
 	
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel (taskTitle taskb) Nothing //DON'T COPY ALL META DATA (this will also copy things like 'Hide'
+	= parallel "||-" Nothing 
 		[(Embedded, \_ -> taska @ const Keep)
 		,(Embedded, \s -> (taskb @> (\mbb _ -> Just mbb,taskListState s)) @ const Stop)
 		] @? res
@@ -154,7 +156,7 @@ where
 	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel (taskTitle taska) Nothing //DON'T COPY ALL META DATA (this will also copy things like 'Hide'
+	= parallel Void Nothing
 		[(Embedded, \s -> (taska @> (\mba _ -> Just mba,taskListState s)) @ const Stop)
 		,(Embedded, \_ -> taskb @ const Keep)
 		] @? res			
@@ -164,7 +166,7 @@ where
 	
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
-	= parallel ("-&&-", "Done when both subtasks are finished") (Nothing,Nothing)
+	= parallel Void (Nothing,Nothing)
 		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Keep)
 		,(Embedded, \s -> (taskb @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Keep)
 		] @? res
@@ -181,7 +183,7 @@ derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
-	= parallel ("any", "Done when any subtask is finished") [Nothing \\ _ <- tasks]
+	= parallel Void [Nothing \\ _ <- tasks]
 		[(Embedded, \s -> (t @> (\mba r -> Just (updateAt i mba r),taskListState s)) @ const Keep ) \\ t <- tasks & i <- [0..]] @? res
 where	
 	res (Just ([Just a:_]))		= Just a
@@ -227,7 +229,13 @@ repeatTask task pred a =
 
 whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= (get share >>= \val -> (task val @ Just) -||- (Hide @>> wait "watching share change" ((=!=) val) share @ const Nothing)) <! isJust @ fromJust
+	= (get share >>= \val -> (task val @ Just) -||- (hideLayout @>> wait "watching share change" ((=!=) val) share @ const Nothing)) <! isJust @ fromJust
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
-appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Keep) topLevelTasks @ WorkflowProcess 
+appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Keep) topLevelTasks @ WorkflowProcess
+
+instance tune BeforeLayout
+where tune (BeforeLayout f) task = tune (\(Layout l) -> Layout (\pa0 ac0 at0 -> let (pa1,ac1,at1) = f (pa0,ac0,at0) in l pa1 ac1 at1)) task
+		
+instance tune AfterLayout
+where tune (AfterLayout f) task	= tune (\(Layout l) -> Layout (\pa0 ac0 at0 -> f (l pa0 ac0 at0))) task

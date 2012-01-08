@@ -59,6 +59,9 @@ button.icon-previous, .icon-previous {
 button.icon-next, .icon-next, button.icon-continue, .icon-continue {
 	background-image: url('../img/icons/arrow_right.png');
 }
+button.icon-view, .icon-view {
+	background-image: url('../img/icons/page.png');
+}
 button.icon-edit, .icon-edit {
 	background-image: url('../img/icons/pencil.png');
 }

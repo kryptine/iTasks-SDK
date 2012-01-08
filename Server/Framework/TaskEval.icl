@@ -3,6 +3,7 @@ implementation module TaskEval
 import StdList, StdBool
 import Error
 import SystemTypes, IWorld, Task, TaskContext
+import LayoutCombinators
 
 from CoreCombinators	import :: TaskContainer(..), :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelResult
 from SystemTypes		import :: ProcessId(..)
@@ -35,20 +36,19 @@ processNo (EmbeddedProcess no _)	= no
 
 createContext :: !ProcessId !Dynamic !ManagementMeta !User !*IWorld -> (!TaskContext, !*IWorld)
 createContext processId container=:(Container task :: Container (Task a) a) mmeta user iworld=:{IWorld|localDateTime}
-	# (tcontext,iworld) = (taskFuncs task).initFun (taskNo processId) iworld		
-	# tmeta = taskMeta task
+	# (tcontext,iworld) = task.initFun (taskNo processId) iworld		
 	# pmeta = {issuedAt = localDateTime, issuedBy = user, status = Running, firstEvent = Nothing, latestEvent = Nothing}
-	= (TaskContext processId tmeta pmeta mmeta 0 (TTCRunning container tcontext),iworld)
+	= (TaskContext processId pmeta mmeta 0 (TTCRunning container tcontext),iworld)
 where
 	taskNo (WorkflowProcess pid)= [0,pid]
 	taskNo (SessionProcess _)	= [0,0]
 
 
 editInstance :: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-editInstance editEvent context=:(TaskContext processId tmeta pmeta mmeta changeNo tcontext) iworld
+editInstance editEvent context=:(TaskContext processId pmeta mmeta changeNo tcontext) iworld
 	= case tcontext of
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
-			# editFun			= (taskFuncs task).editFun
+			# editFun			= task.editFun
 			# procNo			= processNo processId
 			# taskNr			= [changeNo,procNo]
 			# (scontext,iworld) = case editEvent of
@@ -63,18 +63,18 @@ editInstance editEvent context=:(TaskContext processId tmeta pmeta mmeta changeN
 					= editFun taskNr (LuckyEvent event) scontext iworld
 				_
 					= (scontext, iworld)
-			= (Ok (TaskContext processId tmeta pmeta mmeta changeNo (TTCRunning container scontext)), iworld)
+			= (Ok (TaskContext processId pmeta mmeta changeNo (TTCRunning container scontext)), iworld)
 		_
 			= (Ok context, iworld)
 
 
 //Evaluate the given context and yield the result of the main task indicated by target
 evalInstance :: !TaskNr !(Maybe CommitEvent) !Bool !TaskContext  !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
-evalInstance target commitEvent genGUI context=:(TaskContext processId tmeta pmeta mmeta changeNo tcontext) iworld=:{evalStack}
+evalInstance target commitEvent genGUI context=:(TaskContext processId pmeta mmeta changeNo tcontext) iworld=:{evalStack}
 	= case tcontext of
 		//Eval instance
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
-			# evalFun			= (taskFuncs task).evalFun
+			# evalFun			= task.evalFun
 			# repAs				= if genGUI (RepAsTUI task.layout) RepAsService
 			# procNo			= processNo processId
 			# taskNo			= [changeNo,procNo]
@@ -92,23 +92,23 @@ evalInstance target commitEvent genGUI context=:(TaskContext processId tmeta pme
 			//# target			= foldr stepTarget [changeNo,pid] target
 			# target			= tl (tl target) //TODO: FIGURE OUT WHY IT DOESN'T WORK WHEN FOLDING STEPTARGET
 			//Apply task's eval function	
-			# (result,iworld)	= evalFun taskNo tmeta commitEvent target repAs scontext iworld 
+			# (result,iworld)	= evalFun taskNo commitEvent target repAs scontext iworld 
 			//Restore current process id in iworld
 			# iworld			= {iworld & evalStack = evalStack}
 			= case result of
-				TaskInstable _ (rep,actions) scontext
-					# context		= TaskContext processId tmeta (setRunning pmeta) mmeta changeNo (TTCRunning container scontext)
-					= (Ok (TaskInstable Nothing (rep,actions) scontext), context, iworld)
-				TaskStable val (rep,actions) scontext
-					# context		= TaskContext processId tmeta (setFinished pmeta) mmeta changeNo (TTCFinished (createValueContainer val))
-					= (Ok (TaskStable (createValueContainer val) (rep,actions) scontext), context, iworld)
+				TaskInstable _ rep scontext
+					# context		= TaskContext processId (setRunning pmeta) mmeta changeNo (TTCRunning container scontext)
+					= (Ok (TaskInstable Nothing rep scontext), context, iworld)
+				TaskStable val rep scontext
+					# context		= TaskContext processId (setFinished pmeta) mmeta changeNo (TTCFinished (createValueContainer val))
+					= (Ok (TaskStable (createValueContainer val) rep scontext), context, iworld)
 				TaskException e str
-					# context		= TaskContext processId tmeta (setExcepted pmeta) mmeta changeNo (TTCExcepted str)
+					# context		= TaskContext processId (setExcepted pmeta) mmeta changeNo (TTCExcepted str)
 					= (Ok (TaskException e str), context, iworld)
 		TTCRunning container scontext
 			= (Ok (taskException "Could not unpack task context"), context, iworld)
 		TTCFinished r
-			= (Ok (TaskStable r (NoRep,[]) TCEmpty), context, iworld)
+			= (Ok (TaskStable r NoRep TCEmpty), context, iworld)
 		TTCExcepted e
 			= (Ok (taskException e), context, iworld)
 
@@ -147,7 +147,7 @@ where
 	eval :: !TaskNr !(Maybe CommitEvent) !Bool !Int !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 	eval target commitEvent genGUI iteration context iworld
 		//Initialize the toplevel task list
-		# iworld 	= {iworld & parallelControls = 'Map'.fromList [(toString GlobalTaskList,(0,[]))]}
+		# iworld 	= {iworld & parallelControls = 'Map'.fromList [(toString TopLevelTaskList,(0,[]))]}
 		//Reset read shares list
 		# iworld			= {iworld & readShares = Just []} 
 		//Evaluate top instance	
@@ -191,8 +191,8 @@ where
 	
 	//Extracts controls and resets the toplevel task list
 	getControls iworld=:{parallelControls}
-		= case 'Map'.get (toString GlobalTaskList) parallelControls of
-			Just (_,controls)	= (controls, {iworld & parallelControls = 'Map'.put (toString GlobalTaskList)(0,[]) parallelControls})
+		= case 'Map'.get (toString TopLevelTaskList) parallelControls of
+			Just (_,controls)	= (controls, {iworld & parallelControls = 'Map'.put (toString TopLevelTaskList)(0,[]) parallelControls})
 			_					= ([],iworld)
 	
 	execControls [] queue iworld = (queue,iworld)
@@ -200,8 +200,8 @@ where
 		AppendTask pid user (container :: TaskContainer Void)
 			//Make thread and properties
 			# (thread,managerProperties) = case container of
-				(Embedded,tfun)			= (createTaskContainer (tfun GlobalTaskList),{noMeta & worker = Just user})
-				(Detached props,tfun)	= (createTaskContainer (tfun GlobalTaskList), props)	
+				(Embedded,tfun)			= (createTaskContainer (tfun TopLevelTaskList),{noMeta & worker = Just user})
+				(Detached props,tfun)	= (createTaskContainer (tfun TopLevelTaskList), props)	
 			//Make context
 			# (context,iworld) = createContext (WorkflowProcess pid) thread managerProperties user iworld			
 			= execControls cs (queue ++ [context]) iworld
@@ -209,12 +209,12 @@ where
 		_
 			= execControls cs queue iworld		
 	
-	topTarget (TaskContext processId _ _ _ changeNo _)
+	topTarget (TaskContext processId _ _ changeNo _)
 		= case processId of 
 			(SessionProcess _)			= [0,0]
 			(WorkflowProcess procNo)	= [changeNo,procNo]
 			(EmbeddedProcess _ taskId)	= taskNrFromString taskId
 			
 			
-	issueUser (TaskContext _ _ {ProgressMeta|issuedBy} _ _ _)
+	issueUser (TaskContext _ {ProgressMeta|issuedBy} _ _ _)
 		= issuedBy

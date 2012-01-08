@@ -5,7 +5,8 @@ definition module Task
 */
 
 import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
-from TaskContext	import :: TaskContextTree
+from TaskContext		import :: TaskContextTree
+from LayoutCombinators	import :: Layout
 
 derive JSONEncode		Task
 derive JSONDecode		Task
@@ -22,29 +23,20 @@ derive gPutRecordFields	Task
 
 // Tasks
 :: Task a =
-	{ meta					:: !TaskMeta		//The task's general properties	
-	, def					:: !(TaskFuncs a)	//The task's definition
-	, layout				:: !TaskLayouter	//Optional layout tweaked layouters
+	{ initFun				:: !TaskInitFun
+	, editFun				:: !TaskEditFun
+	, evalFun				:: !TaskEvalFun a
+	, layout				:: !Maybe Layout	//Optional tweaked layout algorithm
 	}
-	
-:: TaskLayouter	= DefaultLayouter
-				| InteractionLayouter InteractionLayouter
-				| StepLayouter StepLayouter
-				| ParallelLayouter ParallelLayouter
-		
-:: TaskFuncs a =	{ initFun			:: TaskInitFun
-					, editFun			:: TaskEditFun
-					, evalFun			:: TaskEvalFun a
-					}
-
+			
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
 
 :: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContextTree,!*IWorld)
 :: TaskEditFun		:== TaskNr EditEvent TaskContextTree *IWorld -> *(!TaskContextTree,!*IWorld)
-:: TaskEvalFun a	:== TaskNr TaskMeta (Maybe CommitEvent) ReversedTaskNr TaskRepInput TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
+:: TaskEvalFun a	:== TaskNr (Maybe CommitEvent) ReversedTaskNr TaskRepTarget TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
-:: TaskRepInput
-	= RepAsTUI TaskLayouter
+:: TaskRepTarget
+	= RepAsTUI (Maybe Layout)	//Optionally with tweaked layout
 	| RepAsService
 	
 :: ReversedTaskNr	:== [Int]							//Reversed tasks nr used to locate a subtask in a composition  
@@ -57,47 +49,39 @@ derive gPutRecordFields	Task
 :: CommitEvent		:== Event String					//Action name
 
 
-:: TaskResult a		= TaskInstable	!(Maybe a)	(!TaskRep,![TaskAction]) !TaskContextTree
-					| TaskStable	!a			(!TaskRep,![TaskAction]) !TaskContextTree
+:: TaskResult a		= TaskInstable	!(Maybe a)	!TaskRep !TaskContextTree
+					| TaskStable	!a			!TaskRep !TaskContextTree
 					| TaskException	!Dynamic !String
 
 :: TaskRep
 	= NoRep
-	| TUIRep !TUIDef
-	| ServiceRep [(!TaskId,!Int,!JSONNode)] //Task id, part index, value
+	| TUIRep !TaskTUI
+	| ServiceRep !TaskServiceRep 
 
-:: TaskAction :== (TaskId,Action,Bool)
+//Task representation for web application format
+:: TaskTUI		:== (!Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
 
-// Converts to task functions, ok action is added to action tasks
-taskFuncs :: !(Task a) -> TaskFuncs a | iTask a
-// Gives the layouter functions for a task
-taskLayouters :: !(Task a) -> (InteractionLayouter, StepLayouter, ParallelLayouter)
+//Task representation for web service format
+:: TaskServiceRep	:== (![TaskPart], ![TaskAction])
 
+:: TaskPart			:== (!TaskId, !Int, !JSONNode) //Task id, part index, value
+:: TaskAction		:== (!TaskId, !Action, !Bool)
+:: TaskAttribute	:== (!String, !String) 
+
+//Creates an execption result
 taskException :: !e -> TaskResult a | TC, toString e
 
 /**
 * Create a task from a description and a pair of task functions
 *
 */
-mkTask :: !d !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a | descr d
+mkTask :: !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a 
 
 /**
 * Create a task that is immediately finished
 */
-mkInstantTask :: !d (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | descr d & iTask a
+mkInstantTask :: (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | iTask a
 
-/**
-* Extracts the subject of a task
-*
-* @param The task
-* @return The task's subject
-*/
-taskTitle			:: !(Task a)	-> String
-
-/**
-* Extract the meta-data of a task
-*/
-taskMeta			:: !(Task a)	-> TaskMeta
 
 class iTaskId a
 where

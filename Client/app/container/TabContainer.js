@@ -33,7 +33,7 @@ Ext.define('itasks.container.TabContainer',{
 	},
 	onTab: function(cnt,tab) {
 		if(cnt.taskId) {
-			this.fireEvent('edit',cnt.taskId,'top',tab.index);
+			this.fireEvent('edit',cnt.taskId,'top',cnt.items.indexOf(tab));
 		}
 	},
 	insert: function(idx,tab) {

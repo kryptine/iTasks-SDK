@@ -1,6 +1,6 @@
 implementation module UserAdmin
 
-import iTasks, Text
+import iTasks, Text, Tuple
 
 userStore :: Shared [UserDetails]
 userStore = sharedStore "Users" []
@@ -48,8 +48,8 @@ authenticateUser username password
 
 doAuthenticated :: (Task a) -> Task a | iTask a
 doAuthenticated task
-	//=	(identifyApplication ||- enterInformation "Log in" [] /*<<@ fuseParallelLayout */) <<@ tweak
-	=	enterInformation "Log in" [] <<@ tweak
+	//=	(identifyApplication <<@ wrapWidth) ||- (enterInformation ("Log in","Please enter your username and password") [] <<@ setTopMargin 100 o wrapWidth)
+	=	enterInformation ("Log in","Please enter your username and password") [] <<@ AfterLayout (appFst3 (fmap (setTopMargin 100 o wrapWidth)))
 	>>! \credentials ->
 		authenticateUser (toString credentials.Credentials.username) (toString credentials.Credentials.password)
 	>>= \mbUser -> case mbUser of
@@ -57,12 +57,8 @@ doAuthenticated task
 		Just user	= workAs user task
 where
 	identifyApplication :: Task String
-	identifyApplication = viewSharedInformation "Application identity" [] applicationName <<@ plainInteractionLayout
+	identifyApplication = viewSharedInformation "Application identity" [] applicationName 
 	
-	tweak :: LayoutTweak
-	tweak = \(def,actions) -> ({TUIDef|def & margins = topMargin 100, width = Just (WrapContent 0)},actions)
-
-
 createUser :: !UserDetails -> Task User
 createUser details
 	=	get (userDetails user)

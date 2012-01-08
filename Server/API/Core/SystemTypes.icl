@@ -14,16 +14,16 @@ derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, Fi
 derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive JSONDecode		TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gEq				TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gHeaders			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gGridRows		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive JSONEncode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive JSONDecode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gEq				TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gHeaders			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gGridRows		ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
 
 derive class iTask	Credentials, Config
 derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException, FileError
@@ -564,8 +564,6 @@ where
 		
 JSONDecode{|User|} json	= (Nothing,json)
 
-
-
 instance toString FileException
 where
 	toString (FileException path error) = case error of
@@ -669,39 +667,41 @@ actionName ActionRefresh		= "Refresh"
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))
 
-
 instance toString (TaskList s)
 where
-	toString GlobalTaskList				= "global"
+	toString TopLevelTaskList			= "top"
 	toString (ParallelTaskList taskid)	= "parallel_" +++ taskid
 
-instance descr Void
-where
-	initTaskMeta _ = initTaskMeta` Nothing Nothing
-instance descr String
-where
-	initTaskMeta str = initTaskMeta` (Just str) Nothing
-	
-instance descr (!String, !descr) | html descr
-where
-	initTaskMeta (title,descr) = initTaskMeta` (Just title) (Just (toString (html descr)))
 
-instance descr TaskMeta
+instance descr Void
+where initAttributes	_ = [] 
+
+instance descr String
+where initAttributes	hint	= [(HINT_ATTRIBUTE, hint)]
+	
+instance descr (!String, !d) | html d
+where initAttributes (title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString (html hint))]
+
+instance descr Title
+where initAttributes (Title title) = [(TITLE_ATTRIBUTE,title)]
+
+instance descr Hint
+where initAttributes (Hint hint) = [(HINT_ATTRIBUTE, hint)]
+
+instance descr Icon
 where
-	initTaskMeta meta = meta
+	initAttributes (Icon icon)	= [(ICON_ATTRIBUTE, icon)]
+	initAttributes (IconView)	= [(ICON_ATTRIBUTE, "view")]
+	initAttributes (IconEdit)	= [(ICON_ATTRIBUTE, "edit")]
 	
-initTaskMeta` :: (Maybe String) (Maybe String) -> TaskMeta
-initTaskMeta` title instruction =
-	{ title = fromMaybe "Untitled" title
-	, instruction = instruction
-	, icon = Nothing
-	, attributes = []
-	, hide = False
-	, window = False
-	, interactionType = Nothing
-	, localInteraction = False
-	}
+instance descr Attribute
+where initAttributes (Attribute k v) = [(k,v)]
+instance descr Att
+where initAttributes (Att a) = initAttributes a
 	
+instance descr [d] | descr d
+where initAttributes list = flatten (map initAttributes list)
+
 instance toString TaskPriority
 where
 	toString LowPriority	= "LowPriority"

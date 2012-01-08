@@ -86,7 +86,6 @@ where
 		insertWorkflow` [nodeP:pathR] [] = [Node (Left nodeP) (insertWorkflow` pathR [])]
 
 // SERVICE TASKS
-
 viewTaskList :: Task [TaskInstanceMeta]
 viewTaskList 
 	=	doAuthenticated (viewSharedInformation "Tasks" [] processesForCurrentUser)
@@ -129,7 +128,7 @@ installInitialWorkflows iflows
 	}
 
 :: WorklistRow =
-	{ title		:: String
+	{ title		:: Maybe String
 	, priority	:: TaskPriority
 	, date		:: DateTime
 	, deadline	:: Maybe DateTime
@@ -138,26 +137,29 @@ installInitialWorkflows iflows
 derive class iTask ClientState, WorklistRow
 	
 workflowDashboard :: Task Void
-workflowDashboard = mainLayout @>> parallel "Workflow Dashboard" {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} 
-	[ (Embedded,	\list	-> infoBar)
-	, (Embedded,	\list	-> chooseWorkflow (taskListState list)	<<@ treeLayout)
+workflowDashboard = dashLayout @>> parallel "Workflow Dashboard" {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} 
+	[ (Embedded,	\list	-> controlDashboard)
+	, (Embedded,	\list	-> chooseWorkflow (taskListState list))
 	, (Embedded,	\list	-> viewWorkflowDetails list)
 	, (Embedded,	\list	-> viewWorklist list)	
 	] @ const Void
 
-infoBar :: Task ParallelResult
-infoBar =	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser <<@ infoBarLayout
-		>>* [AnyTime ActionRefresh (const (return Keep)),AnyTime (Action "Log out") (const (return Stop))] 
-			)
-		<! 	(\res -> case res of Stop = True; _ = False) 
+controlDashboard :: Task ParallelResult
+controlDashboard
+	=	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser
+			>>* [AnyTime ActionRefresh		(\_ -> return Keep)
+				,AnyTime (Action "Log out")	(\_ -> return Stop)
+				] 
+		)
+	<! 	(\res -> case res of Stop = True; _ = False) 
 where
 	view user = "Welcome " +++ toString user
 	
 chooseWorkflow :: !(Shared ClientState) -> Task ParallelResult
 chooseWorkflow state
-	= enterSharedChoice "Tasks" [ChoiceView (ChooseFromTree, toView)] (allowedWorkflowTree) 
+	=	enterSharedChoice [Att (Title "Tasks"), Att IconView] [ChoiceView (ChooseFromTree, toView)] (allowedWorkflowTree) 
 	@> (toClientState,state)
-	@ const Keep
+	@	const Keep
 where
 	toView (Left label) = label
 	toView (Right (index,{Workflow|path,description})) = last (split "/" path)
@@ -167,8 +169,8 @@ where
 		
 viewWorkflowDetails :: !(TaskList ClientState) -> Task ParallelResult
 viewWorkflowDetails taskList = forever (
-		viewSharedInformation "Task description" [DisplayView (GetShared view)] state <<@ descriptionLayout
-	>>*	[WithResult (Action "Start workflow") (\{selectedWorkflow} -> isJust selectedWorkflow) (\{selectedWorkflow} -> addWorkflow (fromJust selectedWorkflow))]
+		viewSharedInformation [Att ("Task description","You can start workflows from here"),Att IconView] [DisplayView (GetShared view)] state
+	>>*	[WithResult (Action "Start workflow") canStart doStart]
 	)
 where
 	state = taskListState taskList
@@ -176,6 +178,9 @@ where
 	view {selectedWorkflow} = case selectedWorkflow of
 		Nothing			= Note ""
 		Just (_,descr)	= Note descr
+	
+	canStart {selectedWorkflow} = isJust selectedWorkflow
+	doStart {selectedWorkflow} = addWorkflow (fromJust selectedWorkflow)
 		
 	addWorkflow (wid,_)
 		=	get (workflowByIndex wid) -&&- get currentUser
@@ -189,28 +194,27 @@ where
 		
 viewWorklist :: !(TaskList ClientState) -> Task ParallelResult	
 viewWorklist taskList = forever
-	(	enterSharedChoice "process table" [ChoiceView (ChooseFromGrid,mkRow)] processes <<@ maximalInteractionLayout<<@ setHeight (Fixed 150)
+	(	enterSharedChoice Void [ChoiceView (ChooseFromGrid,mkRow)] processes
 	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.processId)]
 	)
 where
-	state = taskListState taskList
-	
+	state = taskListState taskList	
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
 	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentProcessId)
 	where
 		show ownPid {processId,progressMeta} = processId <> ownPid && progressMeta.status == Running
 		pflatten procs = flatten [[p:pflatten p.subInstances] \\ p <- procs]
 
-	mkRow {TaskInstanceMeta|processId,taskMeta,progressMeta,managementMeta} =
+	mkRow {TaskInstanceMeta|processId,progressMeta,managementMeta} =
 		{WorklistRow
-		|title = taskMeta.TaskMeta.title	
+		|title = Nothing	
 		,priority = managementMeta.ManagementMeta.priority
 		,date = progressMeta.issuedAt
 		,deadline = managementMeta.completeBefore
 		}
 		
 openTask taskList processId
-	=	appendOnce processId (workOnTask processId <<@ singleControlLayout) taskList
+	=	appendOnce processId (workOnTask processId) taskList
 
 workOnTask processId
 	= workOn processId >>* [WhenStable (const (return Remove)),AnyTime ActionClose (const (return Remove))]
@@ -218,82 +222,41 @@ workOnTask processId
 appendOnce identity task taskList
 	=	get (taskListMeta taskList)
 	>>= \opened ->	if (isEmpty [t \\ t <- opened | hasAttribute "identity" identity t])
-			(appendTask (Embedded, \_ -> task <<@ Attribute "identity" identity) taskList @ const Void)
+			(appendTask (Embedded, \_ -> task <<@ Attribute "identity" (toString identity)) taskList @ const Void)
 			(return Void)
 where
-	hasAttribute attr value {ParallelTaskMeta|taskMeta={attributes}}	//PARALLEL NEEDS TO BE FIXED FIRST
-		= kvGet attr attributes == Just (toString value)
+	hasAttribute attr value _// {ParallelTaskMeta|taskMeta={attributes}}	//PARALLEL NEEDS TO BE FIXED FIRST
+		= False // kvGet attr attributes == Just (toString value)
 
 addWorkflow :: !Workflow -> Task Workflow
 addWorkflow workflow
 	=	update (\flows -> flows ++ [workflow]) workflows
 	>>|	return workflow
 
-// LAYOUTS
-mainLayout par=:{TUIParallel | items=i=:[(_,_,_,Just infoBar,_)
-								   ,(_,_,_,Just tree,_)
-								   ,(_,_,_,Just description,_)
-								   ,(_,_,_,Just workList, workListActions)
-								   :openedTasks]} =
-	({ content	= content
-	, width		= Just (FillParent 1 (FixedMinSize 0))
-	, height	= Just (FillParent 1 (FixedMinSize 0))
-	, margins	= Nothing
-	},[])
+/*
+* This layout rearranges the tasks in an e-mail like frame 
+*/
+dashLayout :: Layout
+dashLayout = Layout layout
 where
-	content = TUIContainer {TUIContainer | defaultLayoutContainer [left,right] & direction = Horizontal}
-	
-	left =	{ content	= TUIPanel (defaultLayoutPanel [tree,description])
-			, width		= Just (Fixed 260)
-			, height	= Just (FillParent 1 (FixedMinSize 0))
-			, margins	= Nothing
-			}
-			
-	right = { content	= TUIPanel (defaultLayoutPanel [infoBar,workArea])
-			, width		= Just (FillParent 1 (FixedMinSize 0))
-			, height	= Just (FillParent 1 (FixedMinSize 0))
-			, margins	= Nothing
-			}
-			
-	workArea =	{content	= TUIPanel {TUIPanel|defaultLayoutPanel [workList, fill workTabs] & menus = fst (defaultMenus workListActions)}
-				,width		= Just (FillParent 1 (FixedMinSize 0))
-				,height		= Just (FillParent 1 (FixedMinSize 0))
-				,margins	= Nothing
-				}
-	
-	(workTabs,workActions) = tabLayout {TUIParallel|par & items = openedTasks}
-	
-				
-mainLayout p = defaultParallelLayout p
-
-infoBarLayout :: TUIInteraction -> (TUIDef,[TaskAction])
-infoBarLayout {TUIInteraction|title,content,actions}
-	# (buttons,actions) = defaultButtons actions
-	= ({ content	= TUIContainer {TUIContainer|defaultLayoutContainer [{hd content & width = Just (WrapContent 0), margins = Nothing}:buttons]
-								& direction = Horizontal, halign = AlignRight, valign = AlignMiddle, baseCls = Just "x-panel-header"}
-	  , width		= Just (FillParent 1 (ContentSize))
-	  , height	= Just (Fixed 30)
-	  , margins	= Nothing
-	}, actions)
-
-treeLayout {TUIInteraction|title,content,actions}
-	= (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel [{hd content & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)}] & title = title, iconCls = Just "icon-newwork", frame = False}
-								, width		= Just (FillParent 1 (FixedMinSize 100))
-								, height	= Just (FillParent 1 (FixedMinSize 0))
-								, margins	= Nothing
-								}, actions)
-
-descriptionLayout {TUIInteraction|title,content,actions}
-	= (	{ content	= TUIPanel {TUIPanel | defaultLayoutPanel (defaultContent content (fst (defaultButtons actions))) & title = title, iconCls = Just "icon-description", frame = False}
-								, width		= Just (FillParent 1 (FixedMinSize 100))
-								, height	= Just (Fixed 150)
-								, margins	= Nothing
-								}, actions)
-
-processTableLayout interaction
-	= ({hd interaction.TUIInteraction.content & width = Just (FillParent 1 ContentSize), height = Just (Fixed 150), margins = (sameMargins 0)},interaction.TUIInteraction.actions)	 
-singleControlLayout interaction
-	= ({hd interaction.TUIInteraction.content & width = Just (FillParent 1 ContentSize), height = Just (FillParent 1 ContentSize)},interaction.TUIInteraction.actions)
+	layout [controlApp,chooseWf,viewWf,chooseTask:openedTasks] actions attributes = (Just gui,[],[])
+	where
+		gui		= fill (hjoin [left,right])
+		left	= (fixedWidth 260 o fillHeight) (vjoin
+									[(fill o fitTight) (appDeep [0] fill (tuiOf chooseWf))
+									,(fillWidth o fixedHeight 200 o fitTight) ((appDeep [0] (fillHeight o setMargins 5 5 5 5) o appDeep [2] (setBaseCls "x-panel-header") ) (tuiOf viewWf))
+									])
+		//TODO: Figure out why appDeep [2] is necessary! wheere does index 1 from?
+		right	= fill (vjoin
+							[(fixedHeight 30 o fillWidth) toolbar
+							,(fixedHeight 200 o fillWidth) worklist 
+							, fill (tuiOf (appLayout tabbedLayout openedTasks actions attributes))
+							])
+		
+		toolbar		= setBaseCls "x-panel-header" (hjoin [setLeftMargin 10 (tuiOf controlApp), buttonPanel (fst (actionsToButtons (actionsOf controlApp)))])
+		worklist	= addMenusToTUI (fst (actionsToMenus (actionsOf chooseTask))) (toPanel (fill (tuiOf chooseTask)))
+						
+		fitTight = setMargins 0 0 0 0 o setPadding 0 o setFramed False
 
 // UTIL FUNCTIONS
 workflow :: String String w -> Workflow | toWorkflow w
@@ -332,11 +295,8 @@ mkWorkflow path description roles taskContainer managerProps =
 	}
 
 isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool
-//Allow the root user
-isAllowedWorkflow RootUser _ _						= True
-//Allow workflows without required roles
-isAllowedWorkflow _ _ {Workflow|roles=r=:[]}		= True
-//Allow workflows for which the user has permission
-isAllowedWorkflow _ (Just details) {Workflow|roles}	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- roles]
-//Don't allow workflows in other cases
-isAllowedWorkflow _ _ _								= False
+isAllowedWorkflow RootUser _ _						= True	//Allow the root user
+isAllowedWorkflow _ _ {Workflow|roles=r=:[]}		= True	//Allow workflows without required roles
+isAllowedWorkflow _ (Just details) {Workflow|roles}			//Allow workflows for which the user has permission
+	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- roles]
+isAllowedWorkflow _ _ _								= False	//Don't allow workflows in other cases

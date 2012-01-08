@@ -123,7 +123,7 @@ visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction :== TUIName Bool VerifyResult (Maybe JSONNode) -> .(*VSt -> *(![TUIDef],!*VSt))
+:: TUIVizFunction :== String Bool VerifyResult (Maybe JSONNode) -> .(*VSt -> *(![TUIDef],!*VSt))
 
 (+++>) infixr 5		:: !a	!String	-> String | gVisualizeText{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualizeText{|*|} a

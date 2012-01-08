@@ -46,7 +46,6 @@ workflowByPath			:: !String -> Shared Workflow
 * @param The task(container) (with or without parameter)
 */
 workflow :: String String w -> Workflow | toWorkflow w
-
 /**
 *
 * Wraps any task as a workflow that is only available to specified roles
@@ -86,7 +85,6 @@ manageWorkflows :: ![Workflow] ->  Task Void
 addWorkflow :: !Workflow -> Task Workflow
 
 isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool
-
 
 //Service tasks
 

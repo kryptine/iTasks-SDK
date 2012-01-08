@@ -34,7 +34,7 @@ currentDate = makeReadOnlyShared "SystemData_currentDate" 'Util'.currentDate 'Ut
 
 // Workflow processes
 topLevelTasks :: (TaskList Void)
-topLevelTasks = GlobalTaskList
+topLevelTasks = TopLevelTaskList
 
 currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
 currentProcesses = makeReadOnlyShared "SystemData_processes" read timestamp

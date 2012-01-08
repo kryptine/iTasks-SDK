@@ -8,32 +8,32 @@ from Shared import makeReadOnlyShared, :: SharedId
 from SharedCombinators import toReadOnlyShared
 from Time import :: Timestamp(..)
 import StdBool, StdList, StdMisc, StdTuple
-import CoreTasks, CoreCombinators, TuningCombinators, CommonCombinators, SystemData
+import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
 
 enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
-enterInformation d views = InputTask @>> LocalInteractionTask @>>
-	(modifyInformation d (\_ _ -> defaultValue) filteredViews  voidNull Nothing @ fst)
+enterInformation d views
+	=	modifyInformation d (\_ _ -> defaultValue) filteredViews  voidNull Nothing @ fst
 where
 	filteredViews	= filterViews filterInputViews defaultViews views
 	defaultViews	= [EnterView (\l _ _ -> l)]
 	
 updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
-updateInformation d views m = UpdateTask @>> LocalInteractionTask @>>
-	(modifyInformation d (\_ _ -> m) filteredViews voidNull Nothing @ fst)
+updateInformation d views m
+	=	modifyInformation d (\_ _ -> m) filteredViews voidNull Nothing @ fst
 where
 	filteredViews	= filterViews noFilter defaultViews views
 	defaultViews	= [UpdateView (GetLocal id) (\l _ _ -> l)]
 	
 viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
-viewInformation d views m = OutputTask PassiveOutput @>> LocalInteractionTask @>>
-	(modifyInformation d (\(Just m) _ -> m) filteredViews  voidNull (Just m) @ fst)
+viewInformation d views m
+	=	modifyInformation d (\(Just m) _ -> m) filteredViews  voidNull (Just m) @ fst
 where
 	filteredViews	= filterViews filterOutputViews defaultViews views
 	defaultViews	= [DisplayView (GetLocal id)]
 		
 updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
-updateSharedInformation d views shared = UpdateTask @>>
-	project (\mbw _ -> mbw) shared (modifyInformation d initLocal filteredViews (toReadOnlyShared shared) Nothing @ fst)
+updateSharedInformation d views shared
+	=	(modifyInformation d initLocal filteredViews (toReadOnlyShared shared) Nothing @ fst) @> (\mbw _ -> mbw, shared)
 where
 	filteredViews						= filterViews noFilter defaultViews views
 	defaultViews						= [defaultView]
@@ -44,8 +44,8 @@ where
 		_								= (\_ _ -> defaultValue, EnterView 	(\w _ _ -> w))
 	
 viewSharedInformation :: !d ![SharedViewOn r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
-viewSharedInformation d views shared = OutputTask PassiveOutput @>>
-	modifyInformation d (\_ _ -> Void) filteredViews (toReadOnlyShared shared) (Just Void) @ snd
+viewSharedInformation d views shared
+	=	modifyInformation d (\_ _ -> Void) filteredViews (toReadOnlyShared shared) (Just Void) @ snd
 where
 	filteredViews	= filterViews filterOutputViews defaultViews views
 	defaultViews	= [DisplayView (GetShared id)]
@@ -73,20 +73,20 @@ filterOutputViews view = case view of
 noFilter = Just
 
 enterChoice :: !d ![ChoiceView ChoiceType o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
-enterChoice d views choiceOpts = InputTask @>> LocalInteractionTask @>>
-	modifyChoice d views (constShared choiceOpts) Nothing
+enterChoice d views choiceOpts
+	=	modifyChoice d views (constShared choiceOpts) Nothing
 
 updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
-updateChoice d views choiceOpts initC = UpdateTask @>> LocalInteractionTask @>>
-	modifyChoice d views (constShared choiceOpts) (Just initC)
+updateChoice d views choiceOpts initC
+	=	modifyChoice d views (constShared choiceOpts) (Just initC)
 	
 enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
-enterSharedChoice d views shared = InputTask @>>
-	modifyChoice d views shared Nothing
+enterSharedChoice d views shared
+	=	modifyChoice d views shared Nothing
 
 updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
-updateSharedChoice d views shared initC = UpdateTask @>>
-	modifyChoice d views shared (Just initC)
+updateSharedChoice d views shared initC
+	=	modifyChoice d views shared (Just initC)
 
 modifyChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) (Maybe o) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 modifyChoice d views shared mbInitSel = 
@@ -125,20 +125,20 @@ where
 	justValid _						= Nothing
 
 enterMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
-enterMultipleChoice d views choiceOpts = InputTask @>> LocalInteractionTask @>>
-	modifyMultipleChoice d views (constShared choiceOpts) []
+enterMultipleChoice d views choiceOpts
+	=	modifyMultipleChoice d views (constShared choiceOpts) []
 
 updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
-updateMultipleChoice d views choiceOpts initC = UpdateTask @>> LocalInteractionTask @>>
-	modifyMultipleChoice d views (constShared choiceOpts) initC
+updateMultipleChoice d views choiceOpts initC
+	=	modifyMultipleChoice d views (constShared choiceOpts) initC
 
 enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
-enterSharedMultipleChoice d views shared = InputTask @>> 
-	modifyMultipleChoice d views shared []
+enterSharedMultipleChoice d views shared
+	=	modifyMultipleChoice d views shared []
 
 updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
-updateSharedMultipleChoice d views shared sel = UpdateTask @>> 
-	modifyMultipleChoice d views shared sel
+updateSharedMultipleChoice d views shared sel 
+	=	modifyMultipleChoice d views shared sel
 
 modifyMultipleChoice d views shared initSels =
 	(modifyInformation d (\_ _ -> initSels) (toChoiceViews (addDefault views))  (toReadOnlyShared shared) Nothing @ fst)
@@ -233,8 +233,7 @@ waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
-	=	Hide 
-	@>> maximalInteractionLayout
+	=	hideLayout 
 	@>> interact "Choose an action" (\_ _ -> Void) [] Nothing voidNull
 	>>* [AnyTime action (\_ -> return val) \\ (action,val) <- actions]
 	
