@@ -41,19 +41,19 @@ maybeUpdateShared shared=:(ReadWriteShared _ read _ _) updF iworld
 			| isError wres	= (liftError wres,iworld)
 			= (Ok (Just wval),iworld)
 
-getSharedTimestamp :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
-getSharedTimestamp (ReadWriteShared _ _ _ getTimestamp) iworld = getTimestamp iworld
+getSharedVersion :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString Int,!*IWorld)
+getSharedVersion (ReadWriteShared _ _ _ getVersion) iworld = getVersion iworld
 
-isSharedChanged :: !(ReadWriteShared r w) !Timestamp !*IWorld -> (!MaybeErrorString Bool,!*IWorld)
-isSharedChanged (ReadWriteShared _ _ _ getTimestamp) t0 iworld
-	# (t1,iworld) = getTimestamp iworld
-	| isError t1 = (liftError t1,iworld)
-	= (Ok (t0 < fromOk t1),iworld)
+isSharedChanged :: !(ReadWriteShared r w) !Int !*IWorld -> (!MaybeErrorString Bool,!*IWorld)
+isSharedChanged (ReadWriteShared _ _ _ getVersion) v0 iworld
+	# (v1,iworld) = getVersion iworld
+	| isError v1 = (liftError v1,iworld)
+	= (Ok (v0 < fromOk v1),iworld)
 
-makeReadOnlyShared :: !SharedId !(*IWorld -> *(!a,!*IWorld)) !(*IWorld -> *(!Timestamp,!*IWorld)) -> ReadOnlyShared a
+makeReadOnlyShared :: !SharedId !(*IWorld -> *(!a,!*IWorld)) !(*IWorld -> *(!Int,!*IWorld)) -> ReadOnlyShared a
 makeReadOnlyShared id valueF tsF = ReadWriteShared [id] (appFst Ok o valueF) roWrite (appFst Ok o tsF)
 
-makeReadOnlySharedError	:: !SharedId !(*IWorld -> *(!MaybeErrorString a,!*IWorld)) !(*IWorld -> *(!MaybeErrorString Timestamp,!*IWorld)) -> ReadOnlyShared a
+makeReadOnlySharedError	:: !SharedId !(*IWorld -> *(!MaybeErrorString a,!*IWorld)) !(*IWorld -> *(!MaybeErrorString Int,!*IWorld)) -> ReadOnlyShared a
 makeReadOnlySharedError id valueF tsF = ReadWriteShared [id] valueF roWrite tsF
 
 roWrite _ iworld = (Ok Void,iworld)

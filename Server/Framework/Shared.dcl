@@ -15,14 +15,14 @@ from SharedCombinators import :: ReadOnlyShared
 
 // shared reference, data of type r can be read, data of type w can be written
 // each shared has at least one id, composed shares have the ids of all their components
-:: ReadWriteShared r w = ReadWriteShared ![SharedId] !(SharedRead r) !(SharedWrite w) !SharedGetTimestamp
+:: ReadWriteShared r w = ReadWriteShared ![SharedId] !(SharedRead r) !(SharedWrite w) !SharedGetVersion
 
 :: SharedId :== String
 
 // functions used for defining the basic operations provided by shared references
 :: SharedRead			a :== (*IWorld		-> *(!MaybeErrorString a,!*IWorld))
 :: SharedWrite			a :== (a *IWorld	-> *(!MaybeErrorString Void,!*IWorld))
-:: SharedGetTimestamp	  :== (*IWorld		-> *(!MaybeErrorString Timestamp,!*IWorld))
+:: SharedGetVersion       :== (*IWorld		-> *(!MaybeErrorString Int,!*IWorld))
 
 /**
 * Reads shared data.
@@ -63,26 +63,26 @@ updateShared :: !(ReadWriteShared r w) !(r -> w) !*IWorld -> (!MaybeErrorString 
 maybeUpdateShared :: !(ReadWriteShared r w) !(r -> Maybe w) !*IWorld -> (!MaybeErrorString (Maybe w),!*IWorld)
 
 /**
-* Gets the timestamp of the last change.
+* Gets the curret version of the shared data.
 *
 * @param A reference to shared data
 * @param iworld
-* @return timestamp of last change (or a string error)
+* @return version of last change (or a string error)
 */
-getSharedTimestamp :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
+getSharedVersion :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString Int,!*IWorld)
 
 /**
-* Checks if the store's value has been changed since given timestamp.
+* Checks if the store's value has been changed since given version.
 *
 * @param A reference to shared data
-* @param A timestamp
+* @param A version
 * @param iworld
 * @return A flag indicating if the data has been changed (or a string error)
 */
-isSharedChanged :: !(ReadWriteShared r w) !Timestamp !*IWorld -> (!MaybeErrorString Bool,!*IWorld)
+isSharedChanged :: !(ReadWriteShared r w) !Int !*IWorld -> (!MaybeErrorString Bool,!*IWorld)
 
 /**
 * Creates a read-only shared which's value & timestamp is computed by a function on IWorld (which can optionally give an error).
 */
-makeReadOnlyShared		:: !SharedId  !(*IWorld -> *(!a,!*IWorld))						!(*IWorld -> *(!Timestamp,!*IWorld))					-> ReadOnlyShared a
-makeReadOnlySharedError	:: !SharedId  !(*IWorld -> *(!MaybeErrorString a,!*IWorld))	!(*IWorld -> *(!MaybeErrorString Timestamp,!*IWorld))	-> ReadOnlyShared a
+makeReadOnlyShared		:: !SharedId  !(*IWorld -> *(!a,!*IWorld))						!(*IWorld -> *(!Int,!*IWorld))					-> ReadOnlyShared a
+makeReadOnlySharedError	:: !SharedId  !(*IWorld -> *(!MaybeErrorString a,!*IWorld))	!(*IWorld -> *(!MaybeErrorString Int,!*IWorld))	-> ReadOnlyShared a

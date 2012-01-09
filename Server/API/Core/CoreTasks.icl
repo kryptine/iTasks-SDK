@@ -3,8 +3,8 @@ implementation module CoreTasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
 import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TUIDefinition, LayoutCombinators
 from SharedCombinators		import :: Shared
-from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared, getSharedTimestamp
-from Shared					import :: SharedGetTimestamp, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..), :: ReadOnlyShared(..)
+from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared, getSharedVersion
+from Shared					import :: SharedGetVersion, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..), :: ReadOnlyShared(..)
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..), :: Control(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
@@ -50,16 +50,17 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskStable (fromOk val) NoRep TCEmpty, iworld)
 
+import StdDebug 
 interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
 interact desc initFun parts initLocal shared = mkTask init edit eval
 where
 	init taskNr iworld			//Create the initial views
 		# (mbrvalue,iworld) 	= 'Shared'.readShared shared iworld
-		| isError mbrvalue		= (TCEmpty, iworld)
+		| isError mbrvalue		= trace_n (fromError mbrvalue) (TCEmpty, iworld)
 		# rvalue				= fromOk mbrvalue
-		# (rts,iworld)			= getShareTimestamp shared iworld
+		# (version,iworld)		= getSharedVersion shared iworld
 		# lvalue				= initFun initLocal rvalue
-		= (TCInteract (toJSON lvalue) (initParts lvalue rvalue parts) rts Nothing, iworld)
+		= (TCInteract (toJSON lvalue) (initParts lvalue rvalue parts) version Nothing, iworld)
 
 	initParts l r parts = map (initPart l r) parts
 	
@@ -74,15 +75,15 @@ where
 	initFormView (FilledForm v)
 		= (v,toJSON v, defaultMask v)
 	
-	getShareTimestamp shared iworld
-		# (mbts,iworld)			= 'Shared'.getSharedTimestamp shared iworld
-		| isError mbts			= (Timestamp 0, iworld)
-								= (fromOk mbts,iworld)
+	getSharedVersion shared iworld
+		# (mbv,iworld)			= 'Shared'.getSharedVersion shared iworld
+		| isError mbv			= (0, iworld)
+								= (fromOk mbv,iworld)
 		
 	//Rewrite lucky events to events that target this task
 	edit taskNo (LuckyEvent e) context iworld = (edit taskNo (TaskEvent [] e) context iworld)
 	//There is an edit event for this task (because the location part of the event is the empty list)
-	edit taskNo (TaskEvent [] (dps,editv)) context=:(TCInteract encl views rts _) iworld=:{IWorld|timestamp,latestEvent}		
+	edit taskNo (TaskEvent [] (dps,editv)) context=:(TCInteract encl views version _) iworld=:{IWorld|timestamp,latestEvent}		
 		//Read latest versions of states
 		# (mbrval,iworld) 			= 'Shared'.readShared shared iworld
 		| isError mbrval			= (context, iworld)
@@ -93,7 +94,7 @@ where
 		| idx >= length parts		= (context, iworld) 
 		//Apply the event to the view
 		# (l,view,iworld)			= updateView l r dp editv (parts !! idx) (views !! idx) iworld
-		= (TCInteract (toJSON l) (updateAt idx view views) rts (Just (dps,editv)), iworld)
+		= (TCInteract (toJSON l) (updateAt idx view views) version (Just (dps,editv)), iworld)
 		
 	edit _ _ context iworld = (context,iworld)
 	
@@ -121,14 +122,14 @@ where
 		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
 		= (v,toJSON v,maskv,iworld)
 		
-	eval taskNo event tuiTaskNo repAs context=:(TCInteract encl views rts mbEdit) iworld=:{IWorld|timestamp}
+	eval taskNo event tuiTaskNo repAs context=:(TCInteract encl views rversion mbEdit) iworld=:{IWorld|timestamp}
 		# (mbrvalue,iworld) 				= 'Shared'.readShared shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
 		# rvalue							= fromOk mbrvalue	
-		# (mbchanged,iworld)				= 'Shared'.isSharedChanged shared rts iworld
+		# (mbchanged,iworld)				= 'Shared'.isSharedChanged shared rversion iworld
 		| isError mbchanged					= (sharedException mbchanged, iworld)
 		# changed							= fromOk mbchanged
-		# (rts,iworld)						= if changed (getShareTimestamp shared iworld) (rts,iworld)
+		# (rversion,iworld)					= if changed (getSharedVersion shared iworld) (rversion,iworld)
 		# lvalue							= fromJust (fromJSON encl)
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskNo repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# rep = case repAs of
@@ -140,7 +141,9 @@ where
 				= ServiceRep (flatten parts,flatten actions)
 		
 		# result							= if valid (Just (lvalue,rvalue)) Nothing 
-		= (TaskInstable result rep (TCInteract (toJSON lvalue) views rts Nothing), iworld)
+		= (TaskInstable result rep (TCInteract (toJSON lvalue) views rversion Nothing), iworld)
+	eval taskNo event tuiTaskNo repAs TCEmpty iworld
+		= (taskException "Failed to initialize interact",iworld)
 	eval taskNo event tuiTaskNo repAs context iworld
 		= (taskException "Corrupt context in interact",iworld)
 

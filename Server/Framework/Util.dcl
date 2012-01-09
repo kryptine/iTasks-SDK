@@ -24,6 +24,7 @@ currentTimestamp		:: !*IWorld -> (!Timestamp,!*IWorld)
 currentTimestampError	:: !*IWorld -> (!MaybeErrorString Timestamp,!*IWorld)
 currentDateTimeWorld	:: !*World	-> (!DateTime,!*World)
 timestampToGmDateTime	:: !Timestamp -> DateTime
+dateToTimestamp			:: !Date -> Timestamp
 
 //Simple key value functions when fullblown maps are overkill
 kvGet	:: k	[(k,v)]	-> Maybe v	| Eq k

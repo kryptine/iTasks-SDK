@@ -223,7 +223,7 @@ where
 		
 		
 // Parallel composition
-METAKEY taskNo	:== "parallel_" +++ taskNrToString taskNo +++ "-info"
+METAKEY taskNo	:== "parallel_" +++ taskNrToString taskNo +++ "-meta"
 
 :: ResultSet
 	= RSException !Dynamic !String
@@ -235,9 +235,13 @@ parallel desc initState initTasks = mkTask init edit eval
 where
 	//Create initial set of tasks and initial state
 	init taskNr iworld=:{IWorld|timestamp}
-		# meta								= {nextIdx = length initTasks, stateId = taskNrToString taskNr, stateChanged = timestamp, infoChanged = timestamp}
+		# meta								= { nextIdx = length initTasks
+											  , stateId = taskNrToString taskNr
+											  , stateVersion = 0
+											  , metaVersion = 0
+											  }
 		# iworld							= addParState taskNr initState meta iworld
-		# iworld							= addParTaskInfo taskNr [] meta.infoChanged iworld 
+		# iworld							= addParTaskInfo taskNr [] meta.metaVersion iworld 
 		# (subContexts,iworld)				= initSubContexts taskNr taskList 0 (length initTasks - 1) initTasks iworld  
 		# (state,meta,iworld)				= removeParState taskNr meta iworld
 		# iworld							= removeParTaskInfo taskNr iworld
@@ -262,7 +266,7 @@ where
 		# state							= decodeState encState initState 
 		# iworld						= addParState taskNr state meta iworld
 		//Put the initial parallel task info overview in the parallelStates scope in iworld
-		# iworld						= addParTaskInfo taskNr subs meta.infoChanged iworld 
+		# iworld						= addParTaskInfo taskNr subs meta.metaVersion iworld 
 		//Evaluate sub(s)
 		# (TCParallel encState meta subs,iworld)
 			= case event of
@@ -322,7 +326,7 @@ where
 		//Add the initial control structure to the parallelStates scope in iworld
 		# iworld						= addParControl taskNr pmeta iworld
 		//Put the initial parallel task info overview in the parallelStates scope in iworld
-		# iworld						= addParTaskInfo taskNr subs pmeta.infoChanged iworld
+		# iworld						= addParTaskInfo taskNr subs pmeta.metaVersion iworld
 		//Evaluate the sub tasks
 		# (resultset,iworld)			= evalSubTasks taskNr event tuiTaskNr pmeta [] subs iworld
 		//Remove the current state from the parallelStates scope in iworld
@@ -436,13 +440,13 @@ where
 		
 	//Put the shared state in the scope
 	addParState :: !TaskNr !s !ParallelMeta *IWorld -> *IWorld | TC s
-	addParState taskNr state {stateId,stateChanged} iworld=:{parallelStates}
-		= {iworld & parallelStates = 'Map'.put (toString (ParallelTaskList stateId)) (dynamic (state,stateChanged) :: (s^,Timestamp)) parallelStates}
+	addParState taskNr state {stateId,stateVersion} iworld=:{parallelStates} 
+		= {iworld & parallelStates = 'Map'.put (toString (ParallelTaskList stateId)) (dynamic (state,stateVersion) :: (s^,Int)) parallelStates}
 	
 	removeParState :: !TaskNr !ParallelMeta !*IWorld -> (!s,!ParallelMeta,!*IWorld) | TC s
 	removeParState taskNr meta=:{stateId} iworld=:{parallelStates}
 		= case 'Map'.get (toString (ParallelTaskList stateId)) parallelStates of
-			Just ((state,ts) :: (s^,Timestamp))	= (state,{meta & stateChanged = ts},{iworld & parallelStates = 'Map'.del (toString (ParallelTaskList stateId)) parallelStates})
+			Just ((state,version) :: (s^,Int))	= (state,{meta & stateVersion = version},{iworld & parallelStates = 'Map'.del (toString (ParallelTaskList stateId)) parallelStates})
 			_									= abort "Could not read parallel state"
 	
 	//IMPORTANT: first argument is never used, but passed just to solve overloading
@@ -462,9 +466,9 @@ where
 		key	= toString (ParallelTaskList stateId)
 	
 	//Put a datastructure in the scope with info on all processes in this set (TODO: Use parallel meta for identification)
-	addParTaskInfo :: !TaskNr ![(!SubTaskId,!SubTaskOrder,!SubTaskContext)] !Timestamp !*IWorld -> *IWorld
-	addParTaskInfo taskNr subs ts iworld=:{parallelStates}
-		= {iworld & parallelStates = 'Map'.put (METAKEY taskNr) (dynamic (mkInfo subs,ts) :: ([ParallelTaskMeta],Timestamp) ) parallelStates}
+	addParTaskInfo :: !TaskNr ![(!SubTaskId,!SubTaskOrder,!SubTaskContext)] !Int !*IWorld -> *IWorld
+	addParTaskInfo taskNr subs version iworld=:{parallelStates}
+		= {iworld & parallelStates = 'Map'.put (METAKEY taskNr) (dynamic (mkInfo subs,version) :: ([ParallelTaskMeta],Int) ) parallelStates}
 	where
 		mkInfo subs = [meta i sub \\ (i,o,sub) <- subs]
 	
@@ -600,42 +604,44 @@ where
 * Get the shared state of a task list
 */
 taskListState :: (TaskList s) -> Shared s | TC s
-taskListState tasklist = ReadWriteShared [identity] read write timestamp
+taskListState tasklist = ReadWriteShared [identity] read write getVersion
 where
 	identity 	= toString tasklist
 	
 	read iworld=:{parallelStates}
 		= case 'Map'.get identity parallelStates of
-				Just ((val,_) :: (s^,Timestamp))	= (Ok val, iworld)
-				_									= (Error ("Could not read shared parallel state of task list " +++ identity),iworld)
+				Just ((val,_) :: (s^,Int))	= (Ok val, iworld)
+				_							= (Error ("Could not read shared parallel state of task list " +++ identity),iworld)
 	
-	write val iworld=:{parallelStates,timestamp}
-			= (Ok Void, {iworld & parallelStates = 'Map'.put identity (dynamic (val,timestamp) :: (s^,Timestamp)) parallelStates })
+	write val iworld=:{parallelStates}
+		# (mbv,iworld) = getVersion iworld
+		# version	= case mbv of (Ok v) = v ; _ = 0
+		= (Ok Void, {iworld & parallelStates = 'Map'.put identity (dynamic (val,version + 1) :: (s^,Int)) parallelStates })
 	
-	timestamp iworld=:{parallelStates}
+	getVersion iworld=:{parallelStates}
 			= case 'Map'.get identity parallelStates of
-				Just ((_,ts) :: (s,Timestamp))		= (Ok ts, iworld)
-				_									= (Error ("Could not read timestamp for shared state of task list " +++ identity),iworld)
+				Just ((_,v) :: (s,Int))			= (Ok v, iworld)
+				_								= (Error ("Could not read timestamp for shared state of task list " +++ identity),iworld)
 
 /**
 * Get the properties share of a task list
 */
 taskListMeta :: (TaskList s) -> Shared [ParallelTaskMeta]
-taskListMeta tasklist = ReadWriteShared [identity] read write timestamp
+taskListMeta tasklist = ReadWriteShared [identity] read write getVersion
 where
 	identity	= toString tasklist +++ "-info"
 	
 	read iworld=:{parallelStates}
 		= case 'Map'.get identity parallelStates of
-			Just ((val,_) :: ([ParallelTaskMeta],Timestamp))	= (Ok val, iworld)
-			_													= (Error ("Could not read parallel task meta of " +++ identity), iworld)
+			Just ((val,_) :: ([ParallelTaskMeta],Int))	= (Ok val, iworld)
+			_												= (Error ("Could not read parallel task meta of " +++ identity), iworld)
 		
-	write val iworld=:{parallelStates,timestamp} //TODO
+	write val iworld=:{parallelStates} //TODO
 		= (Ok Void, iworld)
 			
-	timestamp iworld=:{parallelStates}
+	getVersion iworld=:{parallelStates}
 		= case 'Map'.get identity parallelStates of
-			Just ((_,ts) :: ([ParallelTaskMeta],Timestamp))	= (Ok ts, iworld)
+			Just ((_,version) :: ([ParallelTaskMeta],Int))	= (Ok version, iworld)
 			_												= (Error ("Could not read timestamp for parallel task meta of " +++ identity), iworld)
 		
 /**

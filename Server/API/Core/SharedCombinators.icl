@@ -74,6 +74,29 @@ compose compF f0 f1 iworld
 	# (res1,iworld)	= f1 iworld
 	| isError res1	= (liftError res1,iworld)
 	= (Ok (compF (fromOk res0) (fromOk res1)),iworld)
+
+
+(>+>) infixl 6 :: !(ReadWriteShared r0 w0) !(r0 -> (ReadWriteShared r1 w1)) -> ReadWriteShared r1 w1
+(>+>) (ReadWriteShared id0 read0 write0 getTimestamp0) f1 
+	= ReadWriteShared id0 readC writeC getTimestampC //TODO: figure out how to combine ids
+where
+	readC iworld
+		# (oa,iworld)	= read0 iworld
+		| isError oa 	= (liftError oa,iworld)
+		# (ReadWriteShared id1 read1 write1 getTimestamp1) = f1 (fromOk oa)
+		= read1 iworld
+
+	writeC w iworld
+		# (oa,iworld)	= read0 iworld
+		| isError oa 	= (liftError oa,iworld)
+		# (ReadWriteShared id1 read1 write1 getTimestamp1) = f1 (fromOk oa)
+		= write1 w iworld
+
+	getTimestampC iworld
+		# (oa,iworld)	= read0 iworld
+		| isError oa 	= (liftError oa,iworld)
+		# (ReadWriteShared id1 read1 write1 getTimestamp1) = f1 (fromOk oa)
+		= getTimestamp1 iworld
 	
 symmetricLens :: !(a b -> b) !(b a -> a) !(Shared a) !(Shared b) -> (!Shared a,!Shared b)
 symmetricLens putr putl sharedA sharedB = (newSharedA,newSharedB)

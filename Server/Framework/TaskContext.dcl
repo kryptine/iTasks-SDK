@@ -18,7 +18,7 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 
 :: TaskContextTree
 	= TCBasic !JSONNode !Bool //Encoded value and stable indicator
-	| TCInteract !JSONNode ![(!JSONNode,!UpdateMask,!Bool)] !Timestamp !(Maybe (String,JSONNode))
+	| TCInteract !JSONNode ![(!JSONNode,!UpdateMask,!Bool)] !Int !(Maybe (String,JSONNode))
 	| TCProject !JSONNode !TaskContextTree
 	| TCStep !(Either TaskContextTree (!JSONNode,!Int,!TaskContextTree))
 	| TCParallel !JSONNode !ParallelMeta ![(!SubTaskId,!SubTaskOrder,!SubTaskContext)]
@@ -35,6 +35,6 @@ derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, Pa
 :: ParallelMeta = 
 	{ nextIdx		:: !Int
 	, stateId		:: !String
-	, stateChanged	:: !Timestamp
-	, infoChanged	:: !Timestamp
+	, stateVersion	:: !Int		//Version number of the shared state
+	, metaVersion	:: !Int		//Version number of the meta-data of the parallel composition
 	}

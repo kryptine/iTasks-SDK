@@ -1,6 +1,6 @@
 definition module TUIDiff
 
-import GenUpdate, TUIDefinition
+import TUIDefinition
 
 :: TUIUpdate
 	//Leaf updates

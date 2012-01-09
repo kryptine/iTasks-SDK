@@ -44,7 +44,7 @@ where
 							, cmd
 							]
 							++ args
-		# (res,world)	= 'Process'.runProcess (sdkDirectory </> "Tools" </> "RunAsync" </> "RunAsync.exe") asyncArgs Nothing world
+		# (res,world)	= 'Process'.runProcess (sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")) asyncArgs Nothing world
 		= case res of
 			Error e	= (context (Left e), {IWorld|iworld & world = world})
 			Ok _	= (context (Right outfile), {IWorld|iworld & world = world})
@@ -119,7 +119,7 @@ where
 		# (res,world) = writeFile infile request world
 		| isError res
 			= (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
-		# cmd	= sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" 
+		# cmd	= IF_POSIX_OR_WINDOWS "curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
 		# args	=	[ options
 						, "--data-binary"
 						, "@" +++ infile

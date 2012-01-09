@@ -65,6 +65,10 @@ tmToDateTime tm
 	# time	= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
 	= DateTime date time
 
+dateToTimestamp :: !Date -> Timestamp
+dateToTimestamp {Date|day,mon,year}
+	= mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = False}
+
 instance toString (Maybe a) | toString a
 where
 	toString Nothing	= ""

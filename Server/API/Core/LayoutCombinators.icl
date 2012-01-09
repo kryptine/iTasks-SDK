@@ -235,7 +235,7 @@ paneled title mbIcon defs
 		Nothing		= panel
 		Just icon	= setIconCls ("icon-" +++ icon) panel
 where
-	frame = setTopMargin 10 o setPadding 10 o setFramed True o fixedWidth 700
+	frame = setMargins 10 10 0 10 o setPadding 10 o setFramed True o fixedWidth 700
 
 //Container operations
 addItemToTUI :: TUIDef TUIDef -> TUIDef

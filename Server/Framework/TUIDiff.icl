@@ -1,7 +1,7 @@
 implementation module TUIDiff
 
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple
-import Text, Util, GenUpdate, TUIDefinition
+import Text, Util, TUIDefinition
 
 derive gEq TUIControlType, TUIButtonControl, TUITree, TUIDirection, TUISize, TUIHAlign, TUIVAlign, TUIMinSize, TUIMargins, TUIGridControl
 derive gEq TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey

@@ -10,7 +10,7 @@ from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 :: StoreItem =
 	{ format		:: !StoreFormat
 	, content		:: !String
-	, lastChange	:: !Timestamp
+	, version		:: !Int
 	}
 
 :: StoreFormat = SFPlain | SFDynamic
@@ -23,15 +23,15 @@ storeValue namespace key value iworld
 	= storeValueAs defaultStoreFormat namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
-storeValueAs format namespace key value iworld=:{IWorld|build,dataDirectory,timestamp}
-	= writeToDisk namespace key {StoreItem|format=format,content=content,lastChange=timestamp} (storePath dataDirectory build) iworld
+storeValueAs format namespace key value iworld=:{IWorld|build,dataDirectory} 
+	= writeToDisk namespace key {StoreItem|format=format,content=content,version=0} (storePath dataDirectory build) iworld //TODO version
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
 		SFDynamic	= serialize value
 
 writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*IWorld -> *IWorld
-writeToDisk namespace key {StoreItem|format,content,lastChange} location iworld=:{IWorld|world}
+writeToDisk namespace key {StoreItem|format,content,version} location iworld=:{IWorld|world}
 	//Check if the location exists and create it otherwise
 	# (exists,world)	= fileExists location world
 	# world				= if exists world
@@ -49,8 +49,8 @@ writeToDisk namespace key {StoreItem|format,content,lastChange} location iworld=
 	//Write the value
 	# filename 			= addExtension (location </> namespace </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin")
 	# (ok,file,world)	= fopen filename (case format of SFPlain = FWriteText; _ = FWriteData) world
-	| not ok			= abort ("Failed to write value to store: " +++ filename)
-	# file				= fwritei (toInt lastChange) file
+	| not ok			= abort ("Failed to write value to store: " +++ filename +++ "\n")
+	# file				= fwritei version file
 	# file				= case format of SFPlain = fwritec ' ' file; _ = file // for txt files write space to indicate end of timestamp
 	# file				= fwrites content file
 	# (ok,world)		= fclose file world
@@ -65,20 +65,20 @@ loadValue namespace key iworld=:{IWorld|build,dataDirectory}
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 		
-getStoreTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe Timestamp,!*IWorld)
-getStoreTimestamp namespace key iworld
+getStoreVersion :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe Int,!*IWorld)
+getStoreVersion namespace key iworld
 	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
-		Just item	= (Just item.StoreItem.lastChange,iworld)
+		Just item	= (Just item.StoreItem.version,iworld)
 		Nothing 	= (Nothing,iworld)
 
-loadValueAndTimestamp :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe (a,Timestamp),!*IWorld) | JSONDecode{|*|}, TC a
-loadValueAndTimestamp namespace key iworld=:{IWorld|build,dataDirectory}
+loadValueAndVersion :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe (a,Int),!*IWorld) | JSONDecode{|*|}, TC a
+loadValueAndVersion namespace key iworld=:{IWorld|build,dataDirectory}
 	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
 		Just item = case unpackValue (not old) item of
 			Just v
-				= (Just (v,item.StoreItem.lastChange), if old (writeToDisk namespace key item (storePath dataDirectory build) iworld) iworld)
+				= (Just (v,item.StoreItem.version), if old (writeToDisk namespace key item (storePath dataDirectory build) iworld) iworld)
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 
@@ -91,7 +91,7 @@ unpackValue allowFunctions {StoreItem|format=SFPlain,content}
 			Just v		= Just v
 	| otherwise
 		= Nothing
-unpackValue allowFunctions {StoreItem|format=SFDynamic,content,lastChange}
+unpackValue allowFunctions {StoreItem|format=SFDynamic,content,version}
 	= case deserialize {s` \\ s` <-: content} of
 		Ok value = Just value
 		Error _  = Nothing
@@ -137,19 +137,19 @@ loadFromDisk namespace key storeDir world
 		# filename			= addExtension (storeDir </> namespace </> key) "txt"
 		# (ok,file,world)	= fopen filename FReadText world
 		| ok
-			# (ok,time,file)	= freadi file
+			# (ok,version,file)	= freadi file
 			# (ok,_,file)		= freadc file // read char indicating the end of the timestamp
 			# (content,file)	= freadfile file
 			# (ok,world)		= fclose file world
-			= (Just {StoreItem|format = SFPlain, content = content, lastChange = Timestamp time}, world)
+			= (Just {StoreItem|format = SFPlain, content = content, version = version}, world)
 		| otherwise
 			# filename			= addExtension (storeDir </> namespace </> key) "bin"
 			# (ok,file,world)	= fopen filename FReadData world
 			| ok
-				# (ok,time,file)	= freadi file
+				# (ok,version,file)	= freadi file
 				# (content,file)	= freadfile file
 				#( ok,world)		= fclose file world
-				=(Just {StoreItem|format = SFDynamic, content = content, lastChange = Timestamp time}, world)
+				=(Just {StoreItem|format = SFDynamic, content = content, version = version}, world)
 			| otherwise
 				= (Nothing, world)
 where
@@ -237,10 +237,10 @@ where
 				| err		= abort "fcopy: read error during copy"
 				| otherwise = (sfile,dfile)	
 
-isValueChanged :: !StoreNamespace !StoreKey !Timestamp !*IWorld -> (!Maybe Bool,!*IWorld)
-isValueChanged namespace key ts0 iworld
-	# (mbTimestamp,iworld) = getStoreTimestamp namespace key iworld
-	= (fmap ((<) ts0) mbTimestamp,iworld)
+isValueChanged :: !StoreNamespace !StoreKey !Int !*IWorld -> (!Maybe Bool,!*IWorld)
+isValueChanged namespace key v0 iworld
+	# (mbVersion,iworld) = getStoreVersion namespace key iworld
+	= (fmap ((<) v0) mbVersion,iworld)
 
 appWorld :: !.(*World -> *World) !*IWorld -> *IWorld
 appWorld f iworld=:{world}

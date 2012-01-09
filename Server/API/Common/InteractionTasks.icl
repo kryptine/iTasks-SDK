@@ -240,4 +240,4 @@ chooseAction actions
 voidNull :: Shared Void
 voidNull = null
 
-constShared a = makeReadOnlyShared ("const_" +++ toString (toJSON a)) (\world -> (a,world)) (\world -> (Timestamp 0,world))
+constShared a = makeReadOnlyShared ("const_" +++ toString (toJSON a)) (\world -> (a,world)) (\world -> (0,world))

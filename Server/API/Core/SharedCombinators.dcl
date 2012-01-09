@@ -40,6 +40,9 @@ toReadOnlyShared :: !(ReadWriteShared r w) -> ReadOnlyShared r
 // Compose symmetric shared references and only write to one of the shares if the value changed (read shared <> value to write).
 (>&<) infixl 6 :: !(Shared a) !(Shared b) -> (Shared (a,b)) | gEq{|*|} a & gEq{|*|} b
 
+// Use the value of one share as parameter for another
+(>+>) infixl 6 :: !(ReadWriteShared r0 w0) !(r0 -> (ReadWriteShared r1 w1)) -> ReadWriteShared r1 w1
+
 /**
 * Puts a symmetric lens between two symmetric shared data sources.
 * Changes of one also affects the other one.
