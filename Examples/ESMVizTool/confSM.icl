@@ -11,8 +11,9 @@ implementation module confSM
 	pieter@cs.ru.nl
 */
 
-import StdEnv, Random, gen, GenEq, genLibTest, testable //, StdLib
+import StdEnv, Random, gen, GenEq, testable //, StdLib
 import StdMaybe
+//import qualified genLibTest
 
 toSpec :: (state input -> [(state,[output])]) -> Spec state input output // conversion for old specificaions
 toSpec fun = \s i = [Pt o t \\ (t,o) <- fun s i]

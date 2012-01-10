@@ -248,7 +248,7 @@ where
 									])
 		//TODO: Figure out why appDeep [2] is necessary! wheere does index 1 from?
 		right	= fill (vjoin
-							[(fixedHeight 30 o fillWidth) toolbar
+							[(fixedHeight 26 o fillWidth o setPadding 0) toolbar
 							,(fixedHeight 200 o fillWidth) worklist 
 							, fill (tuiOf (appLayout tabbedLayout openedTasks actions attributes))
 							])

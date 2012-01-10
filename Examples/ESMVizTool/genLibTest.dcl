@@ -16,8 +16,8 @@ import StdGeneric, GenEq
 import StdClass
 instance + String
 
-(@) infixl 2 :: (a->b)  a -> b
-(@!)infixl 2 :: (a->b) !a -> b
+(@@) infixl 2 :: (a->b)  a -> b
+(@@!)infixl 2 :: (a->b) !a -> b
 
 generic genShow a :: String Bool a [String] -> [String]
 generic gLess a  :: a a -> Bool

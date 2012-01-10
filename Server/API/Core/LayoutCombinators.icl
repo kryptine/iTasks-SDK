@@ -1,7 +1,7 @@
 implementation module LayoutCombinators
 
 import StdTuple, StdList
-import Maybe, Text, Util
+import Maybe, Text, Tuple, Util
 import SystemTypes, TUIDefinition
 
 from StdFunc import o
@@ -386,3 +386,6 @@ appDeep [s:ss] f def=:{TUIDef|content} = case content of
 	_	= def
 where
 	update items = [if (i == s) (appDeep ss f item) item \\ item <- items & i <- [0..]]
+
+tweakTUI :: (TUIDef -> TUIDef) TaskTUI -> TaskTUI
+tweakTUI f tt = appFst3 (fmap f) tt

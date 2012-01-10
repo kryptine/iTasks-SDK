@@ -15,11 +15,11 @@ import StdEnv, StdGeneric, GenEq
 
 instance + String where (+) s t = s +++ t
 
-(@)infixl 2 :: (a->b) a -> b
-(@) f x = f x
+(@@)infixl 2 :: (a->b) a -> b
+(@@) f x = f x
 
-(@!)infixl 2 :: (a->b) !a -> b
-(@!) f x = f x
+(@@!)infixl 2 :: (a->b) !a -> b
+(@@!) f x = f x
 
 //--- show ---//
 generic genShow a :: String Bool a [String] -> [String]

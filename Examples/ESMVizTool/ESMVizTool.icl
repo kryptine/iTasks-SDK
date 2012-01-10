@@ -51,26 +51,27 @@ DiGraphFlow	esm st=:{ka,ss,trace,n,r}
 			, state esm st
 // 			, enterChoice "go to state... " [] (map show1 (if (isEmpty nodes) ss nodes)) >>= updateDig st
 // 			, chooseTaskComBo "go to state... " [let label = show1 node in (label, updateDig st label) \\ node <- if (isEmpty nodes) ss nodes]
-			, chooseTaskComBo "Do one of the following actions..."
+			, chooseTaskComBo ("Actions","Do one of the following actions...")
 				[("Back" , back st)
 				,("Prune", prune st)
 				,("Reset", return newState)
 				,("Clear trace", return {st & trace  = []})
 				:[let label = render node in ("go to: " + label, updateDig st node) \\ node <- nodes]
-				]
-    		, stepN esm st
-			, viewInformation "Trace & legend" [DisplayView (GetLocal traceHtml)] trace >>| return st
+				] >>! return
+    		, stepN esm st >>! return
+			, viewInformation (Title "Trace & legend") [DisplayView (GetLocal traceHtml)] trace <<@ traceTweak >>| return st
     		]
+    >>* [WhenValid (const True) return]
 where
 	selectInput
 		| isEmpty inputs
-			= viewInformation "no transition from current state" [] "Use another action" >>| return st
-			= updateChoice "Choose an input... "
+			= viewInformation ("Input","no transition from current state") [] "Use another action" >>| return st
+			= updateChoice ("Input","Choose an input... ")
 					[ChoiceView (if (length inputs > 7) ChooseFromComboBox ChooseFromRadioButtons ,fst)]
 					trans
 					(trans !! 0)
-				>?* [(Action "Apply selected input", IfValid (\(l,t) -> t))
-					,(Action "I'm feeling lucky", Always systemInput)
+				>>* [WithResult (Action "Apply selected input") (const True) (\(l,t) -> t)
+					,AnyTime (Action "I'm feeling lucky") (\_ -> systemInput)
 					]
 	where trans = sortBy (\(a,_) (b,_).a<b) [(render i,step esm st i) \\ i<-inputs]
 	
@@ -89,10 +90,11 @@ where
 	nodes		= nodesOf ka
 	newState 	= { ka = newKA, ss = [esm.s_0], trace = [], n = 1, r = rn}
 
-
+	traceTweak	=  AfterLayout (tweakTUI (\x -> appDeep [0] (fixedWidth 670 o fixedHeight 200) x)) 
+	
 stepN :: !(ESM s i o) !(State s i o) -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
 stepN esm st=:{ka,ss,trace,n,r}
- =		updateInformation "Add multiple steps..." [] n
+ =		updateInformation ("Steps","Add multiple steps...") [] n
 	>>= doStepN esm st
 	
 doStepN :: !(ESM s i o) !(State s i o) Int -> Task (State s i o) | all, Eq s & all, ggen{|*|} i & all o
@@ -107,7 +109,8 @@ chooseTask msg tasks = enterChoice msg [] [(l, Hidden t) \\ (l,t) <- tasks] >>= 
 
 chooseTaskComBo :: !d ![(String,Task o)] -> Task o | descr d & iTask o 
 chooseTaskComBo msg tasks
- = updateChoice msg [ChoiceView (ChooseFromComboBox,fst)] trans (trans !! 0) >>= \(l, Hidden t). t
+ =	updateChoice msg [ChoiceView (ChooseFromComboBox,fst)] trans (trans !! 0) >>= \(l, Hidden t). t
+ >>! return
 where
 	trans = [(l, Hidden t) \\ (l,t) <- tasks]
 
@@ -124,7 +127,7 @@ state esm st=:{ka,ss,trace,n,r}
 		=	digraph
 		=	digraph -|| viewIssues st 
 where
-	digraph = updateInformation "ESMviz" [UpdateView (GetLocal toView,SetLocal fromView)] st <<@ singleViewLayout (Fixed 700) (Fixed 300)
+	digraph = updateInformation Void [UpdateView (GetLocal toView) fromView] st <<@ AfterLayout (tweakTUI (fixedWidth 700 o fixedHeight 300))
 	
 	//Make an editable digraph from the esm state
 	toView st=:{ka,ss,trace} //TODO: MOVE mkDigraph function to this module as it is essentially the toView of a state

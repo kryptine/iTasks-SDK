@@ -629,7 +629,7 @@ where
 taskListMeta :: (TaskList s) -> Shared [ParallelTaskMeta]
 taskListMeta tasklist = ReadWriteShared [identity] read write getVersion
 where
-	identity	= toString tasklist +++ "-info"
+	identity	= toString tasklist +++ "-meta"
 	
 	read iworld=:{parallelStates}
 		= case 'Map'.get identity parallelStates of

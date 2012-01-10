@@ -95,3 +95,5 @@ attributesOf	:: TaskTUI -> [TaskAttribute]
 
 appLayout		:: Layout [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
 appDeep			:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef	//Modify an element inside the tree of components
+
+tweakTUI		:: (TUIDef -> TUIDef) TaskTUI -> TaskTUI

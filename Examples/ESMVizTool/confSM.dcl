@@ -12,7 +12,7 @@ definition module confSM
 */
 
 import StdFile
-import Random, gen, genLibTest, testable, StdMaybe
+import Random, gen,/* genLibTest,*/ testable, StdMaybe
 
 :: Spec state input output :== state input -> [Trans output state]
 :: Trans output state = Pt [output] state | Ft ([output]->[state])
