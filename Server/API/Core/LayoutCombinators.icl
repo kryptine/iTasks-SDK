@@ -78,7 +78,7 @@ where
 	//Remove all content from tabs that are not visible anyway
 	emptyNonActive active tabs = [if (i == active) tab (empty tab) \\ tab <- tabs & i <- [0..]] 
 	where
-		empty tab=:{TUIDef|content=TUITabItem c} = {tab & content = TUITabItem {TUITabItem|c & items = []}}
+		empty tab=:{TUIDef|content=TUITabItem c} = {tab & content = TUITabItem {TUITabItem|c & items = [], menus = []}}
 
 	//Find the task id of an ActionClose action
 	takeCloseTask [] = (Nothing,[])
