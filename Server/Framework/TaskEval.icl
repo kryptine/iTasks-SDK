@@ -85,7 +85,7 @@ evalInstance target editEvent commitEvent genGUI context=:(TaskContext processId
 			# taskNo			= [changeNo,procNo]
 			//Update current process id & eval stack in iworld
 			# iworld			= {iworld & evalStack = [processId:evalStack]} 
-			//Strip the process id and change number from the commit event and switch from ProcessEvent to TaskEvent if it matches
+			//Strip the process id and change number from the events and switch from ProcessEvent to TaskEvent if it matches
 			# commitEvent = case commitEvent of
 					Just (ProcessEvent [p,c:steps] action)
 						| p == procNo && c == changeNo		= Just (TaskEvent steps action)
@@ -93,6 +93,13 @@ evalInstance target editEvent commitEvent genGUI context=:(TaskContext processId
 					Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
 					Just (LuckyEvent e)						= Just (LuckyEvent e)
 					_										= Nothing
+			# editEvent = case editEvent of
+				Just (ProcessEvent [p,c:steps] action)
+					| p == procNo && c == changeNo		= Just (TaskEvent steps action)
+					| otherwise							= Just (ProcessEvent [p,c:steps] action)
+				Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
+				Just (LuckyEvent e)						= Just (LuckyEvent e)
+				_										= Nothing
 			//Match processId & changeNo in target path
 			//# target			= foldr stepTarget [changeNo,pid] target
 			# target			= tl (tl target) //TODO: FIGURE OUT WHY IT DOESN'T WORK WHEN FOLDING STEPTARGET

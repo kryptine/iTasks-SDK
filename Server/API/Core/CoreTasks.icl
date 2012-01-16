@@ -121,7 +121,7 @@ where
 		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
 		= (v,toJSON v,maskv,iworld)
 		
-	eval taskNo eevent cevent tuiTaskNo repAs context=:(TCInteract encl views rversion) iworld=:{IWorld|timestamp}
+	eval taskNo eEvent cEvent tuiTaskNo repAs context=:(TCInteract encl views rversion) iworld=:{IWorld|timestamp}
 		# (mbrvalue,iworld) 				= 'Shared'.readShared shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
 		# rvalue							= fromOk mbrvalue	
@@ -130,7 +130,7 @@ where
 		# changed							= fromOk mbchanged
 		# (rversion,iworld)					= if changed (getSharedVersion shared iworld) (rversion,iworld)
 		# lvalue							= fromJust (fromJSON encl)
-		# mbEdit	= case eevent of
+		# mbEdit	= case eEvent of
 			Just (TaskEvent [] e)	= Just e
 			_						= Nothing
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskNo repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
@@ -144,9 +144,9 @@ where
 		
 		# result							= if valid (Just (lvalue,rvalue)) Nothing 
 		= (TaskInstable result rep (TCInteract (toJSON lvalue) views rversion), iworld)
-	eval taskNo eevent cevent tuiTaskNo repAs TCEmpty iworld
+	eval taskNo eEvent cEvent tuiTaskNo repAs TCEmpty iworld
 		= (taskException "Failed to initialize interact",iworld)
-	eval taskNo eevent cevent tuiTaskNo repAs context iworld
+	eval taskNo eEvent cEvent tuiTaskNo repAs context iworld
 		= (taskException "Corrupt context in interact",iworld)
 
 	evalParts idx taskNo repAs mbEvent changed l r [] [] iworld
@@ -214,7 +214,7 @@ where
 		# iworld				= storeTaskInstance (fromOk mbContext) iworld
 		= (TCEmpty, iworld)
 		
-	eval taskNr eevent cevent tuiTaskNr (RepAsTUI layout) _ iworld=:{evalStack}
+	eval taskNr eEvent cEvent tuiTaskNr (RepAsTUI layout) _ iworld=:{evalStack}
 		//Check for cycles
 		| isMember processId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
@@ -233,7 +233,7 @@ where
 		# target = case processId of
 			(WorkflowProcess procNo)	= [procNo,changeNo (fromOk mbContext)]
 			(EmbeddedProcess _ taskId)	= reverse (taskNrFromString taskId)
-		# (mbResult,context,iworld)	= evalInstance target eevent cevent True (fromOk mbContext) iworld
+		# (mbResult,context,iworld)	= evalInstance target eEvent cEvent True (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result

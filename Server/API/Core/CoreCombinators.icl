@@ -15,8 +15,8 @@ derive class iTask ParallelTaskMeta, ParallelResult, ParallelTaskType
 transform :: ((Maybe a) -> Maybe b) (Task a) -> Task b | iTask a & iTask b 
 transform f task=:{Task|evalFun} = {Task|task & evalFun = evalFun`}
 where
-	evalFun` taskNo eevent cevent target repAs cxt iworld
-		= case evalFun taskNo eevent cevent target repAs cxt iworld of
+	evalFun` taskNo eEvent cEvent target repAs cxt iworld
+		= case evalFun taskNo eEvent cEvent target repAs cxt iworld of
 			(TaskInstable mba rep cxt, iworld)	= (TaskInstable (f mba) rep cxt, iworld)
 			(TaskStable a rep cxt, iworld)		= case f (Just a) of
 				(Just b)	= (TaskStable b rep cxt, iworld)
@@ -40,8 +40,8 @@ where
 				= (context,iworld)
 		
 	//Eval task and check for change
-	eval taskNr eevent cevent tuiTaskNr repAs (TCProject prev cxta) iworld
-		# (resa, iworld) 	= taska.evalFun [0:taskNr] (stepEvent 0 eevent) (stepEvent 0 cevent) (stepTarget 0 tuiTaskNr) (subRepAs repAs taska) cxta iworld
+	eval taskNr eEvent cEvent tuiTaskNr repAs (TCProject prev cxta) iworld
+		# (resa, iworld) 	= taska.evalFun [0:taskNr] (stepEvent 0 eEvent) (stepEvent 0 cEvent) (stepTarget 0 tuiTaskNr) (subRepAs repAs taska) cxta iworld
 		= case resa of
 			TaskInstable mba rep ncxta 
 				| changed prev mba	
@@ -105,9 +105,9 @@ where
 	edit taskNr event context iworld
 		= (context, iworld)
 	//Eval left-hand side
-	eval taskNr eevent cevent tuiTaskNr repAs (TCStep (Left cxta)) iworld 
-		# (resa, iworld) 	= taska.evalFun [0:taskNr] (stepEvent 1 eevent) (stepEvent 0 cevent) (stepTarget 0 tuiTaskNr) (subRepAs repAs taska) cxta iworld
-		# mbcommit			= case cevent of
+	eval taskNr eEvent cEvent tuiTaskNr repAs (TCStep (Left cxta)) iworld 
+		# (resa, iworld) 	= taska.evalFun [0:taskNr] (stepEvent 0 eEvent) (stepEvent 0 cEvent) (stepTarget 0 tuiTaskNr) (subRepAs repAs taska) cxta iworld
+		# mbcommit			= case cEvent of
 			(Just (TaskEvent [] action))	= Just action
 			_								= Nothing
 		# mbCont			= case resa of
@@ -130,7 +130,7 @@ where
 					TaskStable b rep ncxtb		= (TaskStable b rep ncxtb, iworld)
 					TaskException e str			= (TaskException e str, iworld)
 	//Eval right-hand side
-	eval taskNr eevent cevent tuiTaskNr repAs (TCStep (Right (enca,sel,cxtb))) iworld
+	eval taskNr eEvent cEvent tuiTaskNr repAs (TCStep (Right (enca,sel,cxtb))) iworld
 		# mbTaskb = case conts !! sel of
 			(AnyTime _ taskbf)		= fmap taskbf (fromJSON enca)
 			(WithResult	_ _ taskbf)	= fmap taskbf (fromJSON enca)
@@ -140,7 +140,7 @@ where
 			(CatchAll taskbf)		= fmap taskbf (fromJSON enca)
 		= case mbTaskb of
 			Just taskb
-				# (resb, iworld)	= taskb.evalFun [1:taskNr] (stepEvent 1 eevent) (stepEvent 1 cevent) (stepTarget 1 tuiTaskNr) (subRepAs repAs taskb) cxtb iworld 
+				# (resb, iworld)	= taskb.evalFun [1:taskNr] (stepEvent 1 eEvent) (stepEvent 1 cEvent) (stepTarget 1 tuiTaskNr) (subRepAs repAs taskb) cxtb iworld 
 				= case resb of
 					TaskInstable mbb rep ncxtb	= (TaskInstable mbb rep (TCStep (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b rep ncxtb		= (TaskStable b rep ncxtb, iworld)
@@ -148,7 +148,7 @@ where
 			Nothing
 				= (taskException "Corrupt task value in step", iworld) 	
 	//Incorred state
-	eval taskNr eevent cevent tuiTaskNr _ context iworld
+	eval taskNr eEvent cEvent tuiTaskNr _ context iworld
 		= (taskException "Corrupt task context in step", iworld)
 
 	searchContInstable mba mbcommit conts = search mba mbcommit 0 Nothing conts
@@ -312,7 +312,7 @@ where
 				= ((i,o,sub),iworld)
 	
 	//Eval all tasks in the set (in left to right order)
-	eval taskNr eevent cevent tuiTaskNr repAs context=:(TCParallel encState pmeta subs) iworld
+	eval taskNr eEvent cEvent tuiTaskNr repAs context=:(TCParallel encState pmeta subs) iworld
 		//Add the current state to the parallelStates scope in iworld
 		# state							= decodeState encState initState 
 		# iworld						= addParState taskNr state pmeta iworld
@@ -321,7 +321,7 @@ where
 		//Put the initial parallel task info overview in the parallelStates scope in iworld
 		# iworld						= addParTaskInfo taskNr subs pmeta.metaVersion iworld
 		//Evaluate the sub tasks
-		# (resultset,iworld)			= evalSubTasks taskNr eevent cevent tuiTaskNr pmeta [] subs iworld
+		# (resultset,iworld)			= evalSubTasks taskNr eEvent cEvent tuiTaskNr pmeta [] subs iworld
 		//Remove the current state from the parallelStates scope in iworld
 		# (state,pmeta,iworld)			= removeParState taskNr pmeta iworld
 		//Remove the control structure from the parallelStates scope in iworld
@@ -349,7 +349,7 @@ where
 					= (TaskInstable (Just state) rep (TCParallel encState pmeta subs), iworld)
 	
 	//When the parallel has been stopped, we have the state encoded in a TCBasic node
-	eval taskNr eevent cevent tuiTaskNr repAs context=:(TCBasic encState True) iworld
+	eval taskNr eEvent cEvent tuiTaskNr repAs context=:(TCBasic encState True) iworld
 		= case fromJSON encState of
 			Just state	= (TaskStable state NoRep context, iworld)
 			Nothing		= (taskException "Corrupt task context in parallel", iworld)
@@ -358,14 +358,14 @@ where
 		= (taskException "Corrupt task context in parallel", iworld)
 	//Keep evaluating tasks and updating the state until there are no more subtasks
 	//subtasks
-	evalSubTasks taskNr eevent cevent tuiTaskNr meta results [] iworld
+	evalSubTasks taskNr eEvent cEvent tuiTaskNr meta results [] iworld
 		= (RSResults results, iworld)
-	evalSubTasks taskNr eevent cevent tuiTaskNr meta results [(idx,order,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,localDateTime}
+	evalSubTasks taskNr eEvent cEvent tuiTaskNr meta results [(idx,order,stcontext):stasks] iworld=:{IWorld|latestEvent=parentLatestEvent,localDateTime}
 		//Evaluate subtask
 		# (result,stcontext,iworld)	= case stcontext of
 			(STCEmbedded (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
-				# (result,iworld)	= task.evalFun [idx:taskNr] (stepEvent idx eevent) (stepEvent idx cevent) (stepTarget idx tuiTaskNr) (RepAsTUI task.layout) context iworld 
+				# (result,iworld)	= task.evalFun [idx:taskNr] (stepEvent idx eEvent) (stepEvent idx cEvent) (stepTarget idx tuiTaskNr) (RepAsTUI task.layout) context iworld 
 				= case result of
 					TaskInstable mbr rep context	= (TaskInstable mbr rep context, STCEmbedded (Just (encTask, context)), iworld)
 					TaskStable r rep context		= (TaskStable r rep context, STCEmbedded Nothing, iworld)
@@ -374,7 +374,7 @@ where
 				# task				= fromJust (dynamicJSONDecode encTask)
 				//Update changed latest event timestamp
 				# iworld			= {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
-				# (result,iworld)	= task.evalFun [idx:taskNr] (stepEvent idx eevent) (stepEvent idx cevent) (stepTarget idx tuiTaskNr) (RepAsTUI task.layout) context iworld 
+				# (result,iworld)	= task.evalFun [idx:taskNr] (stepEvent idx eEvent) (stepEvent idx cEvent) (stepTarget idx tuiTaskNr) (RepAsTUI task.layout) context iworld 
 				# iworld			= {IWorld|iworld & latestEvent = parentLatestEvent}
 				//Update first/latest event if request is targeted at this detached process
 				# pmeta = case tuiTaskNr of
@@ -400,7 +400,7 @@ where
 		# (controls, iworld)			= getControls meta iworld
 		# (meta,results,stasks,iworld)	= processControls initState taskNr meta controls results stasks iworld
 		//Evaluate remaining subtasks
-		= evalSubTasks taskNr eevent cevent tuiTaskNr meta results stasks iworld
+		= evalSubTasks taskNr eEvent cEvent tuiTaskNr meta results stasks iworld
 		
 	initSubContext taskNo taskList i taskContainer iworld=:{IWorld|timestamp,localDateTime,currentUser}
 		# subTaskNo = [i:taskNo]
@@ -710,8 +710,8 @@ where
 		# (context,iworld) = f taskNr eevent context {iworld & currentUser = user}
 		= (context,{iworld & currentUser = currentUser})
 	
-	eval f taskNr eevent cevent target repInput context iworld=:{currentUser}
-		# (result,iworld) = f taskNr eevent cevent target repInput context {iworld & currentUser = user}
+	eval f taskNr eEvent cEvent target repInput context iworld=:{currentUser}
+		# (result,iworld) = f taskNr eEvent cEvent target repInput context {iworld & currentUser = user}
 		= (result,{iworld & currentUser = currentUser})
 
 /*
