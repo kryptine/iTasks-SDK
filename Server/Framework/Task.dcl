@@ -115,21 +115,3 @@ taskNrToString		:: !TaskNr -> String
 stepEvent :: !Int !(Maybe (Event e)) -> Maybe (Event e) 
 
 stepTarget :: !Int !ReversedTaskNr -> ReversedTaskNr
-
-// Changes
-
-// A dynamic that contains a change
-:: ChangeDyn	:== Dynamic
-
-// A change function which may be used to change tasks at runtime
-:: Change a :== (TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn))
-
-// Changes may be applied only once, or persist for future changes
-:: ChangeLifeTime	= CLTransient
-					| CLPersistent !ChangeLabel
-
-//A label for identifying changes externally
-:: ChangeLabel	:== String
-
-//A labeled new change
-:: ChangeInjection :== (!ChangeLifeTime,!ChangeDyn)

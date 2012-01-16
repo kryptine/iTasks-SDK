@@ -43,79 +43,78 @@ createContext :: !ProcessId !Dynamic !ManagementMeta !User !*IWorld -> (!TaskCon
 createContext processId container=:(Container task :: Container (Task a) a) mmeta user iworld=:{IWorld|localDateTime}
 	# (tcontext,iworld) = task.initFun (taskNo processId) iworld		
 	# pmeta = {issuedAt = localDateTime, issuedBy = user, status = Running, firstEvent = Nothing, latestEvent = Nothing}
-	= (TaskContext processId pmeta mmeta [] 0 (TTCRunning container tcontext),iworld)
+	= (TaskContext processId pmeta mmeta [] (TTCRunning container tcontext),iworld)
 where
-	taskNo (WorkflowProcess pid)= [0,pid]
-	taskNo (SessionProcess _)	= [0,0]
+	taskNo (WorkflowProcess pid)= [pid]
+	taskNo (SessionProcess _)	= [0]
 
 
 editInstance :: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-editInstance editEvent context=:(TaskContext processId pmeta mmeta tmeta changeNo tcontext) iworld
+editInstance editEvent context=:(TaskContext processId pmeta mmeta tmeta tcontext) iworld
 	= case tcontext of
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
 			# editFun			= task.editFun
 			# procNo			= processNo processId
-			# taskNr			= [changeNo,procNo]
+			# taskNr			= [procNo]
 			# (scontext,iworld) = case editEvent of
-				Just (ProcessEvent [p,c:steps] event)
-					| p == procNo && c == changeNo
+				Just (ProcessEvent [p:steps] event)
+					| p == procNo
 						= editFun taskNr (TaskEvent steps event) scontext iworld
 					| otherwise	
-						= editFun taskNr (ProcessEvent [p,c:steps] event) scontext iworld
+						= editFun taskNr (ProcessEvent [p:steps] event) scontext iworld
 				Just (ProcessEvent steps event)
 					= editFun taskNr (ProcessEvent steps event) scontext iworld
 				Just (LuckyEvent event)
 					= editFun taskNr (LuckyEvent event) scontext iworld
 				_
 					= (scontext, iworld)
-			= (Ok (TaskContext processId pmeta mmeta [] changeNo (TTCRunning container scontext)), iworld)
+			= (Ok (TaskContext processId pmeta mmeta [] (TTCRunning container scontext)), iworld)
 		_
 			= (Ok context, iworld)
 
 
 //Evaluate the given context and yield the result of the main task indicated by target
 evalInstance :: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !TaskContext  !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
-evalInstance target editEvent commitEvent genGUI context=:(TaskContext processId pmeta mmeta _ changeNo tcontext) iworld=:{evalStack}
+evalInstance target editEvent commitEvent genGUI context=:(TaskContext processId pmeta mmeta _ tcontext) iworld=:{evalStack}
 	= case tcontext of
 		//Eval instance
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
 			# evalFun			= task.evalFun
 			# repAs				= if genGUI (RepAsTUI task.layout) RepAsService
 			# procNo			= processNo processId
-			# taskNo			= [changeNo,procNo]
+			# taskNo			= [procNo]
 			//Update current process id & eval stack in iworld
 			# iworld			= {iworld & evalStack = [processId:evalStack]} 
 			//Strip the process id and change number from the events and switch from ProcessEvent to TaskEvent if it matches
 			# commitEvent = case commitEvent of
-					Just (ProcessEvent [p,c:steps] action)
-						| p == procNo && c == changeNo		= Just (TaskEvent steps action)
-						| otherwise							= Just (ProcessEvent [p,c:steps] action)
+					Just (ProcessEvent [p:steps] action)
+						| p == procNo 						= Just (TaskEvent steps action)
+						| otherwise							= Just (ProcessEvent [p:steps] action)
 					Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
 					Just (LuckyEvent e)						= Just (LuckyEvent e)
 					_										= Nothing
 			# editEvent = case editEvent of
-				Just (ProcessEvent [p,c:steps] action)
-					| p == procNo && c == changeNo		= Just (TaskEvent steps action)
-					| otherwise							= Just (ProcessEvent [p,c:steps] action)
+				Just (ProcessEvent [p:steps] action)
+					| p == procNo 						= Just (TaskEvent steps action)
+					| otherwise							= Just (ProcessEvent [p:steps] action)
 				Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
 				Just (LuckyEvent e)						= Just (LuckyEvent e)
 				_										= Nothing
-			//Match processId & changeNo in target path
-			//# target			= foldr stepTarget [changeNo,pid] target
-			# target			= tl (tl target) //TODO: FIGURE OUT WHY IT DOESN'T WORK WHEN FOLDING STEPTARGET
+			//Match processId in target path
+			# target			= (tl target)
 			//Apply task's eval function	
 			# (result,iworld)	= evalFun taskNo editEvent commitEvent target repAs scontext iworld 
 			//Restore current process id in iworld
 			# iworld			= {iworld & evalStack = evalStack}
 			= case result of
 				TaskInstable _ rep scontext
-					# context		= TaskContext processId (setRunning pmeta) mmeta (getTaskMeta rep) changeNo (TTCRunning container scontext)
+					# context		= TaskContext processId (setRunning pmeta) mmeta (getTaskMeta rep) (TTCRunning container scontext)
 					= (Ok (TaskInstable Nothing rep scontext), context, iworld)
 				TaskStable val rep scontext
-					# context		= TaskContext processId (setFinished pmeta) mmeta (getTaskMeta rep) changeNo (TTCFinished (createValueContainer val))
+					# context		= TaskContext processId (setFinished pmeta) mmeta (getTaskMeta rep) (TTCFinished (createValueContainer val))
 					= (Ok (TaskStable (createValueContainer val) rep scontext), context, iworld)
 				TaskException e str
-					# context		= TaskContext processId (setExcepted pmeta) mmeta [] changeNo (TTCExcepted str)
+					# context		= TaskContext processId (setExcepted pmeta) mmeta [] (TTCExcepted str)
 					= (Ok (TaskException e str), context, iworld)
 		TTCRunning container scontext
 			= (Ok (taskException "Could not unpack task context"), context, iworld)
@@ -222,12 +221,10 @@ where
 		_
 			= execControls cs queue iworld		
 	
-	topTarget (TaskContext processId _ _ _ changeNo _)
-		= case processId of 
-			(SessionProcess _)			= [0,0]
-			(WorkflowProcess procNo)	= [changeNo,procNo]
+	topTarget (TaskContext processId _ _ _ _) = case processId of 
+			(SessionProcess _)			= [0]
+			(WorkflowProcess procNo)	= [procNo]
 			(EmbeddedProcess _ taskId)	= taskNrFromString taskId
-			
-			
-	issueUser (TaskContext _ {ProgressMeta|issuedBy} _ _ _ _)
-		= issuedBy
+						
+	issueUser (TaskContext _ {ProgressMeta|issuedBy} _ _ _) = issuedBy
+		

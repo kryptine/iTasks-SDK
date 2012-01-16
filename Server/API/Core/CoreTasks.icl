@@ -231,7 +231,7 @@ where
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
 		# target = case processId of
-			(WorkflowProcess procNo)	= [procNo,changeNo (fromOk mbContext)]
+			(WorkflowProcess procNo)	= [procNo]
 			(EmbeddedProcess _ taskId)	= reverse (taskNrFromString taskId)
 		# (mbResult,context,iworld)	= evalInstance target eEvent cEvent True (fromOk mbContext) iworld
 		= case mbResult of
@@ -247,8 +247,6 @@ where
 					WOFinished	= (TaskStable WOFinished rep TCEmpty, iworld)
 					_			= (TaskInstable (Just result) rep TCEmpty, iworld)
 				
-	changeNo (TaskContext _ _ _ _ n _) = n
-
 	checkIfAddedGlobally (WorkflowProcess procNo) iworld=:{parallelControls,currentUser}
 		= case 'Map'.get (toString topLevelTasks) parallelControls of
 			Just (_,controls)

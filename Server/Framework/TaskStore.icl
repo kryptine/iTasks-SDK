@@ -49,7 +49,7 @@ newWorkflowId iworld
 			= (WorkflowProcess 1,iworld) //return the first value (1)		
 
 storeTaskInstance :: !TaskContext !*IWorld -> *IWorld
-storeTaskInstance context=:(TaskContext pid _ _ _ _ _) iworld
+storeTaskInstance context=:(TaskContext pid _ _ _ _) iworld
 		//Store the context
 		# iworld = storeValue (namespace pid) (context_store pid) context iworld
 		| isSession pid
@@ -87,7 +87,7 @@ workflowIndex fn iworld
 	= (list,iworld)
 
 contextToInstanceMeta :: !TaskContext -> TaskInstanceMeta
-contextToInstanceMeta (TaskContext processId pmeta mmeta tmeta _ scontext)
+contextToInstanceMeta (TaskContext processId pmeta mmeta tmeta scontext)
 	= {processId = processId, taskMeta = tmeta, progressMeta = pmeta, managementMeta = mmeta, subInstances = tsubprocs scontext}
 where
 	tsubprocs (TTCRunning _ context)		= subprocs context

@@ -7,7 +7,7 @@ import iTaskClass
 from Error				import ::MaybeError(..)
 from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
-from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn
+from Task				import :: Task
 
 derive class iTask WorkOnProcessState
 

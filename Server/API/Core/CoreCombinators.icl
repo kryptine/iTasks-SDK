@@ -555,50 +555,7 @@ where
 				= case [gui \\ (i,o,TaskInstable _ (TUIRep gui) _,_) <- contexts | i == t] of
 					[part]	= TUIRep part
 					_		= NoRep
-			
-	/*
-	//Use the parallel merger function to combine the user interfaces of all embedded tasks		
-	mergeTUIs taskNr pmerge tuiTaskNr pmeta contexts
-		= case tuiTaskNr of
-			[]
-				# items		= [(i,o,getMeta subContext,getTui subContext rep,getActions rep) \\(i,o,TaskInstable _ rep _,subContext) <- contexts | not (isDetached subContext)]
-				# (tui,actions) =
-					pmerge {TUIParallel
-				 		 |taskId = taskNrToString taskNr
-				 		 ,title = pmeta.TaskMeta.title
-						 ,instruction = pmeta.TaskMeta.instruction
-				 		 ,items = items
-				 		 }
-				= TUIRep (Just tui, actions, [])
-				where
-					isHidden (STCHidden _ _) = True
-					isHidden _ = False
-					isDetached (STCDetached _ _ _ _ _) = True
-					isDetached _ = False
 					
-					getMeta (STCHidden meta _)	= meta
-					getMeta (STCEmbedded meta _)	= meta		
-					
-					getTui (STCHidden _ _) _	= Nothing
-					getTui (STCEmbedded _ _) (TUIRep (mbTui,_,_))	=	mbTui
-					getTui (STCEmbedded _ _) _						= Nothing
-					
-					getActions (TUIRep (_,actions,_))	= actions
-					getActions _						= []
-			//We want to show the TUI of one of the detached tasks in this set
-			[t]
-				= case [(tui,actions,attributes) \\ (i,o,TaskInstable _ (TUIRep (tui, actions, attributes)) _,STCDetached _ _ _ _ _) <- contexts | i == t] of
-					[(tui,actions,attributes)]	= TUIRep (tui, actions, attributes)
-					_							= NoRep
-				
-				
-			//We want to show the TUI of a task inside the parallel set
-			[t:ts]
-				= case [(tui,actions,attributes) \\ (i,o,TaskInstable _ (TUIRep (tui,actions,attributes)) _,_) <- contexts | i == t] of
-					[(tui,actions,attributes)]	= TUIRep (tui, actions, attributes)
-					_							= NoRep
-		*/
-			
 	//Change the order of the subtask such that the indicated sub becomes top and the others
 	//maintain their relative ordering
 	reorder :: SubTaskId [(!SubTaskId,!SubTaskOrder,!SubTaskContext)] -> [(!SubTaskId,!SubTaskOrder,!SubTaskContext)]
