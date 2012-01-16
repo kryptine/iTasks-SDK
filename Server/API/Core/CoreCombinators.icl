@@ -40,9 +40,8 @@ where
 				= (context,iworld)
 		
 	//Eval task and check for change
-	eval taskNr event tuiTaskNr repAs (TCProject prev cxta) iworld 
-		# taskaRepAs		= subRepAs repAs taska
-		# (resa, iworld) 	= taska.evalFun [0:taskNr] (stepEvent 0 event) (stepTarget 0 tuiTaskNr) taskaRepAs cxta iworld
+	eval taskNr event tuiTaskNr repAs (TCProject prev cxta) iworld
+		# (resa, iworld) 	= taska.evalFun [0:taskNr] (stepEvent 0 event) (stepTarget 0 tuiTaskNr) (subRepAs repAs taska) cxta iworld
 		= case resa of
 			TaskInstable mba rep ncxta 
 				| changed prev mba	
@@ -58,10 +57,10 @@ where
 				= (TaskException e str,iworld)
 	
 	subRepAs RepAsService _ 					= RepAsService
-	subRepAs (RepAsTUI clayout)	task=:{layout}	= case clayout of
+	subRepAs (RepAsTUI mbLayout) task=:{layout} = case mbLayout of
 		Nothing			= RepAsTUI layout
-		_				= RepAsTUI clayout
-	
+		Just overwrite	= RepAsTUI (Just overwrite)
+		
 	changed encprev cur = case fromJSON encprev of
 		Nothing		= True	//Consider changed when parsing fails
 		Just prev	= prev =!= cur
@@ -70,7 +69,7 @@ where
 		= case maybeUpdateShared share (projection mba) iworld of
 			(Ok _,iworld)		= (result,iworld)
 			(Error e,iworld)	= (taskException e,iworld)
-	
+
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 step taska conts = mkTask init edit eval
 where
@@ -107,14 +106,13 @@ where
 		= (context, iworld)
 	//Eval left-hand side
 	eval taskNr event tuiTaskNr repAs (TCStep (Left cxta)) iworld 
-		# taskaRepAs		= subRepAs repAs taska
-		# (resa, iworld) 	= taska.evalFun [0:taskNr] (stepEvent 0 event) (stepTarget 0 tuiTaskNr)taskaRepAs cxta iworld
+		# (resa, iworld) 	= taska.evalFun [0:taskNr] (stepEvent 0 event) (stepTarget 0 tuiTaskNr) (subRepAs repAs taska) cxta iworld
 		# mbcommit			= case event of
 			(Just (TaskEvent [] action))	= Just action
 			_								= Nothing
 		# mbCont			= case resa of
 			TaskInstable mba rep ncxta = case searchContInstable mba mbcommit conts of
-				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr repAs rep mba)  (TCStep (Left ncxta)))
+				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr repAs rep mba) (TCStep (Left ncxta)))
 				Just rewrite	= Right rewrite
 			TaskStable a rep ncxta = case searchContStable a mbcommit conts of
 				Nothing			= Left (TaskInstable Nothing (addStepActions taskNr repAs rep (Just a)) (TCStep (Left ncxta)))
@@ -125,9 +123,8 @@ where
 		= case mbCont of
 			Left res = (res,iworld)
 			Right (sel,taskb,enca)
-				# taskbRepAs	= subRepAs repAs taskb
 				# (cxtb,iworld)		= taskb.initFun [1:taskNr] iworld
-				# (resb,iworld)		= taskb.evalFun [1:taskNr] Nothing (stepTarget 1 tuiTaskNr) taskbRepAs cxtb iworld 
+				# (resb,iworld)		= taskb.evalFun [1:taskNr] Nothing (stepTarget 1 tuiTaskNr) (subRepAs repAs taskb) cxtb iworld 
 				= case resb of
 					TaskInstable mbb rep ncxtb	= (TaskInstable mbb rep (TCStep (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b rep ncxtb		= (TaskStable b rep ncxtb, iworld)
@@ -143,8 +140,7 @@ where
 			(CatchAll taskbf)		= fmap taskbf (fromJSON enca)
 		= case mbTaskb of
 			Just taskb
-				# taskbRepAs		= subRepAs repAs taskb
-				# (resb, iworld)	= taskb.evalFun [1:taskNr] (stepEvent 1 event) (stepTarget 1 tuiTaskNr) taskbRepAs cxtb iworld 
+				# (resb, iworld)	= taskb.evalFun [1:taskNr] (stepEvent 1 event) (stepTarget 1 tuiTaskNr) (subRepAs repAs taskb) cxtb iworld 
 				= case resb of
 					TaskInstable mbb rep ncxtb	= (TaskInstable mbb rep (TCStep (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b rep ncxtb		= (TaskStable b rep ncxtb, iworld)
@@ -203,7 +199,7 @@ where
 		_	= rep
 	addStepActions taskNr (RepAsTUI layout) rep mba = case rep of
 		(TUIRep gui)
-			# (Layout layoutfun) = fromMaybe DEFAULT_LAYOUT layout
+			# layoutfun = fromMaybe DEFAULT_LAYOUT layout
 			= TUIRep (layoutfun [gui] (stepActions taskNr mba) [(TASK_ATTRIBUTE, taskNrToString taskNr)])	//TODO: Add attributes from task
 		_	= rep
 	
@@ -216,11 +212,8 @@ where
 		stepActions` [WithoutResult action _:cs]	= [(taskId,action,isNothing mba):stepActions` cs]
 		stepActions` [_:cs]							= stepActions` cs
 
-	subRepAs RepAsService _ = RepAsService
-	subRepAs (RepAsTUI clayout) {Task|layout} = case layout of
-		Nothing				= (RepAsTUI clayout)
-		_					= (RepAsTUI layout)
-		
+	subRepAs RepAsService _				= RepAsService
+	subRepAs (RepAsTUI _) {Task|layout} = RepAsTUI layout
 		
 // Parallel composition
 METAKEY taskNo	:== "parallel_" +++ taskNrToString taskNo +++ "-meta"
@@ -306,14 +299,14 @@ where
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Add case for error
 				# (newSubCxt,iworld) = task.editFun [i:taskNr] event subCxt iworld
 				= ((i,o,STCEmbedded (Just (encTask,newSubCxt))), iworld)		
-			STCDetached taskId pmeta mmeta (Just (encTask,subCxt))
+			STCDetached taskId pmeta mmeta tmeta (Just (encTask,subCxt))
 			//Same pattern as inbody tasks
 				# task = fromJust (dynamicJSONDecode encTask)	//TODO: Also add case for error
 				// change latest event timestamp for detached process
 				# iworld = {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
 				# (newSubCxt,iworld) = task.editFun [i:taskNr] event subCxt iworld
 				# iworld = {IWorld|iworld & latestEvent = parentLatestEvent}
-				= ((i,o,STCDetached taskId pmeta mmeta (Just (encTask,newSubCxt))), iworld)
+				= ((i,o,STCDetached taskId pmeta mmeta tmeta (Just (encTask,newSubCxt))), iworld)
 			//Task is either completed already or hidden
 			_
 				= ((i,o,sub),iworld)
@@ -346,8 +339,7 @@ where
 				# encState			= encodeState state initState
 				# rep				= case repAs of
 					(RepAsTUI layout)
-						# (Layout layoutfun) = fromMaybe DEFAULT_LAYOUT layout
-						= TUIRep (layoutfun (taskReps results) [] ([(TASK_ATTRIBUTE, taskNrToString taskNr)] ++ initAttributes desc))
+						= mergeReps (fromMaybe DEFAULT_LAYOUT layout) tuiTaskNr ([(TASK_ATTRIBUTE, taskNrToString taskNr)] ++ initAttributes desc) results
 					(RepAsService)
 						= ServiceRep ([],[]) //TODO
 				# subs				= mergeContexts results		
@@ -378,7 +370,7 @@ where
 					TaskInstable mbr rep context	= (TaskInstable mbr rep context, STCEmbedded (Just (encTask, context)), iworld)
 					TaskStable r rep context		= (TaskStable r rep context, STCEmbedded Nothing, iworld)
 					TaskException e str				= (TaskException e str, STCEmbedded Nothing, iworld)
-			(STCDetached taskId pmeta mmeta (Just (encTask,context)))
+			(STCDetached taskId pmeta mmeta _ (Just (encTask,context)))
 				# task				= fromJust (dynamicJSONDecode encTask)
 				//Update changed latest event timestamp
 				# iworld			= {IWorld|iworld & latestEvent = pmeta.ProgressMeta.latestEvent}
@@ -389,9 +381,9 @@ where
 					[t] | t == idx	= {pmeta & firstEvent = Just (fromMaybe localDateTime pmeta.firstEvent), latestEvent = Just localDateTime}
 					_				= pmeta
 				= case result of
-					TaskInstable mbr rep context	= (TaskInstable mbr rep context, STCDetached taskId pmeta mmeta (Just (encTask, context)), iworld)
-					TaskStable r rep context		= (TaskStable r rep context, STCDetached taskId (markFinished pmeta) mmeta Nothing, iworld)
-					TaskException e str				= (TaskException e str, STCDetached taskId (markExcepted pmeta) mmeta Nothing, iworld)		
+					TaskInstable mbr rep context	= (TaskInstable mbr rep context, STCDetached taskId pmeta mmeta (taskMeta rep) (Just (encTask, context)), iworld)
+					TaskStable r rep context		= (TaskStable r rep context, STCDetached taskId (markFinished pmeta) mmeta (taskMeta rep) Nothing, iworld)
+					TaskException e str				= (TaskException e str, STCDetached taskId (markExcepted pmeta) mmeta [] Nothing, iworld)		
 			_
 				//This task is already completed
 				= (TaskStable Keep NoRep TCEmpty, stcontext, iworld)
@@ -422,7 +414,7 @@ where
 				# pmeta			= initProgressMeta localDateTime currentUser
 				# taskId		= taskNrToString subTaskNo
 				# (cxt,iworld)	= task.initFun subTaskNo iworld
-				= (STCDetached taskId pmeta mmeta (Just (dynamicJSONEncode task, cxt)), iworld)
+				= (STCDetached taskId pmeta mmeta [] (Just (dynamicJSONEncode task, cxt)), iworld)
 		
 	//Initialize a process properties record for administration of detached tasks
 	initProgressMeta now user
@@ -476,13 +468,15 @@ where
 			= {ParallelTaskMeta
 			  |index = i
 			  ,taskId = taskNrToString [i:taskNr]
+			  ,taskMeta = []
 			  ,progressMeta = Nothing
 			  ,managementMeta = Nothing
 			  }
-		meta i (STCDetached taskId pmeta mmeta _)
+		meta i (STCDetached taskId pmeta mmeta tmeta _)
 			= {ParallelTaskMeta
 			  |index = i
 			  ,taskId = taskId
+			  ,taskMeta = tmeta
 			  ,progressMeta = Just pmeta
 			  ,managementMeta = Just mmeta
 			  }	
@@ -518,6 +512,10 @@ where
 			_
 				= processControls s taskNr meta cs results remaining iworld 		
 	
+	
+	taskMeta (TUIRep (_,_,attr))	= attr
+	taskMeta _						= []
+	
 	isException (TaskException _ _)	= True
 	isException _					= False
 	
@@ -536,8 +534,8 @@ where
 	markExcepted pmeta
 		= {ProgressMeta|pmeta & status = Excepted}
 	
-	updateProperties nmeta (STCDetached taskId pmeta mmeta scontext)
-		= (STCDetached taskId mmeta nmeta scontext)
+	updateProperties nmeta (STCDetached taskId pmeta mmeta tmeta scontext)
+		= (STCDetached taskId mmeta nmeta tmeta scontext)
 	updateProperties _ context = context
 	
 	mergeContexts contexts
@@ -545,7 +543,19 @@ where
 
 	taskReps results
 		= [appThd3 (kvSet STACK_ATTRIBUTE (toString o)) gui \\ (i,o,TaskInstable _ (TUIRep gui) _,subContext) <- results]
-		
+	
+	mergeReps layout tuiTaskNo attributes contexts
+		= case tuiTaskNo of
+			//We want to show this parallel
+			[]
+				# parts = [appThd3 (kvSet STACK_ATTRIBUTE (toString o)) gui \\ (i,o,TaskInstable _ (TUIRep gui) _,STCEmbedded  _) <- contexts]	
+				= TUIRep (layout parts [] attributes)
+			//We want to show one of the branches
+			[t:ts]
+				= case [gui \\ (i,o,TaskInstable _ (TUIRep gui) _,_) <- contexts | i == t] of
+					[part]	= TUIRep part
+					_		= NoRep
+			
 	/*
 	//Use the parallel merger function to combine the user interfaces of all embedded tasks		
 	mergeTUIs taskNr pmerge tuiTaskNr pmeta contexts
@@ -709,18 +719,8 @@ where
 */
 class tune b :: !b !(Task a) -> Task a
 
-instance tune Layout
-where tune layout task				= {Task|task & layout = Just layout}
+instance tune SetLayout
+where tune (SetLayout layout) task				= {Task|task & layout = Just layout}
 
-instance tune (Layout -> Layout)
-where tune f task=:{Task|layout}	= {Task|task & layout = Just (f (fromMaybe DEFAULT_LAYOUT layout))} 
-
-instance tune Attribute
-where tune (Attribute k v) task	= task //TODO
-instance tune Title
-where tune (Title t) task	= task //TODO
-instance tune Icon
-where tune (Icon i) task	= task //TODO
-
-instance tune Window
-where tune _ task			= task //TODO
+instance tune ModifyLayout
+where tune (ModifyLayout f) task=:{Task|layout}	= {Task|task & layout = Just (f (fromMaybe DEFAULT_LAYOUT layout))} 

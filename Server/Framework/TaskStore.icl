@@ -49,7 +49,7 @@ newWorkflowId iworld
 			= (WorkflowProcess 1,iworld) //return the first value (1)		
 
 storeTaskInstance :: !TaskContext !*IWorld -> *IWorld
-storeTaskInstance context=:(TaskContext pid _ _ _ _) iworld
+storeTaskInstance context=:(TaskContext pid _ _ _ _ _) iworld
 		//Store the context
 		# iworld = storeValue (namespace pid) (context_store pid) context iworld
 		| isSession pid
@@ -85,10 +85,10 @@ workflowIndex fn iworld
 	# list 				= fn (fromMaybe [] mbList)
 	# iworld			= storeValue NS_WORKFLOW_INSTANCES WORKFLOW_INDEX list iworld 
 	= (list,iworld)
-	
+
 contextToInstanceMeta :: !TaskContext -> TaskInstanceMeta
-contextToInstanceMeta (TaskContext processId pmeta mmeta _ scontext)
-	= {processId = processId, progressMeta = pmeta, managementMeta = mmeta, subInstances = tsubprocs scontext}
+contextToInstanceMeta (TaskContext processId pmeta mmeta tmeta _ scontext)
+	= {processId = processId, taskMeta = tmeta, progressMeta = pmeta, managementMeta = mmeta, subInstances = tsubprocs scontext}
 where
 	tsubprocs (TTCRunning _ context)		= subprocs context
 	tsubprocs _								= []
@@ -99,8 +99,9 @@ where
 	subprocs _								= []
 	
 	subprocsp [] = []
-	subprocsp [(_,_,STCDetached taskId pmeta mmeta context):subs]
+	subprocsp [(_,_,STCDetached taskId pmeta mmeta tmeta context):subs]
 		= [{processId = addTarget taskId processId
+		   ,taskMeta = tmeta
 		   ,progressMeta = pmeta
 		   ,managementMeta = mmeta
 		   ,subInstances = case context of Nothing = []; Just (_,c) = subprocs c}

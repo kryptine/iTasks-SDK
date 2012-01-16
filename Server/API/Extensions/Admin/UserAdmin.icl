@@ -32,8 +32,8 @@ setDetails (Just details) users = map (upd details) users
 where
 	upd n o		= if (o.UserDetails.username == n.UserDetails.username) n o
 	
-authenticateUser :: !String !String	-> Task (Maybe User)
-authenticateUser username password 
+authenticateUser :: !Username !Password	-> Task (Maybe User)
+authenticateUser (Username username) (Password password)
 	| username == "root"
 		=	get applicationConfig
 		>>= \config -> 
@@ -48,17 +48,16 @@ authenticateUser username password
 
 doAuthenticated :: (Task a) -> Task a | iTask a
 doAuthenticated task
-	//=	(identifyApplication <<@ wrapWidth) ||- (enterInformation ("Log in","Please enter your username and password") [] <<@ setTopMargin 100 o wrapWidth)
-	=	enterInformation ("Log in","Please enter your username and password") [] <<@ AfterLayout (appFst3 (fmap (setTopMargin 100 o wrapWidth)))
-	>>! \credentials ->
-		authenticateUser (toString credentials.Credentials.username) (toString credentials.Credentials.password)
+	=	enterInformation ("Log in","Please enter your credentials") []	<<@ loginForm
+	>>!	\{Credentials|username,password} ->
+		authenticateUser username password
 	>>= \mbUser -> case mbUser of
 		Nothing		= throw "Authentication failed"
 		Just user	= workAs user task
 where
-	identifyApplication :: Task String
-	identifyApplication = viewSharedInformation "Application identity" [] applicationName 
-	
+	//Layout tweak
+	loginForm = AfterLayout (tweakTUI (setTopMargin 100 o appDeep [1,0,1,0] (fixedWidth 180) o appDeep [1,1,1,0] (fixedWidth 180) o wrapWidth))
+
 createUser :: !UserDetails -> Task User
 createUser details
 	=	get (userDetails user)

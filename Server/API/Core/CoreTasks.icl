@@ -50,13 +50,12 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskStable (fromOk val) NoRep TCEmpty, iworld)
 
-import StdDebug 
 interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
 interact desc initFun parts initLocal shared = mkTask init edit eval
 where
 	init taskNr iworld			//Create the initial views
 		# (mbrvalue,iworld) 	= 'Shared'.readShared shared iworld
-		| isError mbrvalue		= trace_n (fromError mbrvalue) (TCEmpty, iworld)
+		| isError mbrvalue		= (TCEmpty, iworld)
 		# rvalue				= fromOk mbrvalue
 		# (version,iworld)		= getSharedVersion shared iworld
 		# lvalue				= initFun initLocal rvalue
@@ -134,7 +133,7 @@ where
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskNo repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# rep = case repAs of
 			(RepAsTUI layout)
-				# (Layout layoutfun)	= fromMaybe DEFAULT_LAYOUT layout
+				# layoutfun	= fromMaybe DEFAULT_LAYOUT layout
 				= TUIRep (layoutfun [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
 			_	
 				# (parts,actions) = unzip [(part,actions) \\ (ServiceRep (part,actions)) <- reps]
@@ -172,13 +171,13 @@ where
 			
 	displayRep idx taskNo (RepAsTUI _) f l r encv iworld
 		# (editor,iworld) = visualizeAsDisplay (f l r) iworld
-		= (TUIRep (editor,[],initAttributes desc),iworld)
+		= (TUIRep (editor,[],[]),iworld)
 	displayRep idx taskNo _ f l r encv iworld
 		= (ServiceRep ([(taskNrToString taskNo,idx,encv)],[]),iworld)
 	
 	editorRep idx taskNo (RepAsTUI _) f v encv maskv vermask mbEvent iworld
 		# (editor,iworld) = visualizeAsEditor v (taskNrToString taskNo) idx vermask mbEvent iworld
-		= (TUIRep (editor,[],initAttributes desc),iworld)
+		= (TUIRep (editor,[],[]),iworld)
 	editorRep idx taskNo _ f v encv maskv vermask mbEvent iworld
 		= (ServiceRep ([(taskNrToString taskNo,idx,encv)],[]),iworld)
 	
@@ -245,7 +244,7 @@ where
 					WOFinished	= (TaskStable WOFinished rep TCEmpty, iworld)
 					_			= (TaskInstable (Just result) rep TCEmpty, iworld)
 				
-	changeNo (TaskContext _ _ _ n _) = n
+	changeNo (TaskContext _ _ _ _ n _) = n
 
 	checkIfAddedGlobally (WorkflowProcess procNo) iworld=:{parallelControls,currentUser}
 		= case 'Map'.get (toString topLevelTasks) parallelControls of

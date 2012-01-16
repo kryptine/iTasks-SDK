@@ -66,7 +66,7 @@ where
 						//Still busy
 						# rep = case repAs of
 							(RepAsTUI layout)	
-								# (Layout layoutfun) = fromMaybe DEFAULT_LAYOUT layout
+								# layoutfun	= fromMaybe DEFAULT_LAYOUT layout
 								= TUIRep (layoutfun [] [] []) //TODO: Add attributes
 							_					= ServiceRep ([(taskNrToString taskNr, 0, JSONNull)], [])
 						

@@ -1,7 +1,6 @@
 implementation module Collection
 
 import iTasks
-
 /*
 * General purpose management task for a collection of data
 */

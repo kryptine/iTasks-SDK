@@ -5,6 +5,7 @@ definition module CoreCombinators
 */
 from Time				import :: Timestamp
 from SharedCombinators	import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
+from LayoutCombinators	import :: SetLayout, :: ModifyLayout, :: Layout
 import Task
 
 import iTaskClass
@@ -106,6 +107,7 @@ parallel :: !d !a ![TaskContainer a] -> Task a | descr d & iTask a
 :: ParallelTaskMeta =
 	{ index				:: !Int									//* The task's index
 	, taskId			:: !TaskId
+	, taskMeta			:: !TaskMeta
 	, progressMeta		:: !Maybe ProgressMeta
 	, managementMeta	:: !Maybe ManagementMeta
 	}					
@@ -141,11 +143,5 @@ workAs :: !User !(Task a)						-> Task a | iTask a
 * or add additional titles, hints and descriptions
 */
 class tune b :: !b !(Task a) -> Task a
-instance tune	Layout					//Set layout algorithm
-instance tune	(Layout -> Layout)		//Modify the existing layout
-
-instance tune	Attribute				//Set attribute
-instance tune	Window					//Indicate that this task should 
-instance tune	Title					//Set title
-instance tune	Icon					//Set icon
-
+instance tune	SetLayout				//Set layout algorithm
+instance tune	ModifyLayout			//Modify the existing layout

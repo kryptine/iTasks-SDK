@@ -137,7 +137,7 @@ installInitialWorkflows iflows
 derive class iTask ClientState, WorklistRow
 	
 workflowDashboard :: Task Void
-workflowDashboard = dashLayout @>> parallel "Workflow Dashboard" {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} 
+workflowDashboard = SetLayout dashLayout @>> parallel "Workflow Dashboard" {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} 
 	[ (Embedded,	\list	-> controlDashboard)
 	, (Embedded,	\list	-> chooseWorkflow (taskListState list))
 	, (Embedded,	\list	-> viewWorkflowDetails list)
@@ -169,7 +169,7 @@ where
 		
 viewWorkflowDetails :: !(TaskList ClientState) -> Task ParallelResult
 viewWorkflowDetails taskList = forever (
-		viewSharedInformation [Att ("Task description","You can start workflows from here"),Att IconView] [DisplayView (GetShared view)] state
+		viewSharedInformation [Att (Title "Task description"),Att IconView] [DisplayView (GetShared view)] state
 	>>*	[WithResult (Action "Start workflow") canStart doStart]
 	)
 where
@@ -237,16 +237,16 @@ addWorkflow workflow
 * This layout rearranges the tasks in an e-mail like frame 
 */
 dashLayout :: Layout
-dashLayout = Layout layout
+dashLayout = layout
 where
 	layout [controlApp,chooseWf,viewWf,chooseTask:openedTasks] actions attributes = (Just gui,[],[])
 	where
 		gui		= fill (hjoin [left,right])
 		left	= (fixedWidth 260 o fillHeight) (vjoin
 									[(fill o fitTight) (appDeep [0] fill (tuiOf chooseWf))
-									,(fillWidth o fixedHeight 200 o fitTight) ((appDeep [0] (fillHeight o setMargins 5 5 5 5) o appDeep [2] (setBaseCls "x-panel-header") ) (tuiOf viewWf))
+									,(fillWidth o fixedHeight 200 o fitTight) ((appDeep [0] (fill o setMargins 5 5 5 5) o appDeep [1] (setBaseCls "x-panel-header") ) (tuiOf viewWf))
 									])
-		//TODO: Figure out why appDeep [2] is necessary! wheere does index 1 from?
+	
 		right	= fill (vjoin
 							[(fixedHeight 26 o fillWidth o setPadding 0) toolbar
 							,(fixedHeight 200 o fillWidth) worklist 

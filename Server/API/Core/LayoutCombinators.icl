@@ -1,7 +1,7 @@
 implementation module LayoutCombinators
 
 import StdTuple, StdList
-import Maybe, Text, Tuple, Util
+import Maybe, Text, Tuple, Util, HtmlUtil
 import SystemTypes, TUIDefinition
 
 from StdFunc import o
@@ -10,23 +10,15 @@ from Task import :: TaskAttribute
 from Task import :: TaskAction
 from Task import :: TaskTUI
 
-accumulatingLayout :: Layout
-accumulatingLayout = Layout layout
-where
-	layout parts actions attributes
-		# attributes 	= foldr mergeAttributes [] (map thd3 parts ++ [attributes])
-		# actions		= flatten [actions:map snd3 parts]
-		# guis			= [gui \\ (Just gui,_,_) <- parts]
-		= (Just (vjoin guis), actions, attributes)
-
-panelingLayout :: Layout
-panelingLayout = Layout layout //TODO: Figure out proper propagation of attributes
+heuristicLayout :: Layout
+heuristicLayout = layout //TODO: Figure out proper propagation of attributes
 where
 	layout parts actions attributes
 		# partactions		= flatten (map snd3 parts)
 		# guis				= [gui \\ (Just gui,_,_) <- parts]
+		| isEmpty guis		= (Nothing, actions ++ partactions, attributes)
 		# gui				= case kvGet TITLE_ATTRIBUTE attributes of
-								(Just title)	= paneled title (kvGet ICON_ATTRIBUTE attributes) guis
+								(Just title)	= paneled (Just title) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis
 								Nothing	= case guis of
 									[gui]		= gui
 									_			= vjoin guis
@@ -42,8 +34,28 @@ where
 		| otherwise
 			= (Just gui, actions ++ partactions, attributes)
 
+accumulatingLayout :: Layout
+accumulatingLayout = layout
+where
+	layout parts actions attributes
+		# attributes 	= foldr mergeAttributes [] (map thd3 parts ++ [attributes])
+		# actions		= flatten [actions:map snd3 parts]
+		# guis			= [gui \\ (Just gui,_,_) <- parts]
+		= (Just (vjoin guis), actions, attributes)
+
+paneledLayout :: Layout
+paneledLayout = layout
+where
+	layout parts actions attributes
+		# partactions		= flatten (map snd3 parts)
+		# (buttons,actions)	= actionsToButtons actions 
+		# (menus,actions)	= actionsToMenus actions
+		# guis				= [gui \\ (Just gui,_,_) <- parts]
+		# gui 				= addMenusToTUI menus (addButtonsToTUI buttons (paneled (kvGet TITLE_ATTRIBUTE attributes) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis))
+		= (Just gui, actions ++ partactions, attributes)
+		
 tabbedLayout :: Layout
-tabbedLayout = Layout layout
+tabbedLayout = layout
 where
 	layout parts actions attributes
 		# tabs		= [tab gui actions attributes \\ (Just gui,actions,attributes) <- parts]
@@ -54,23 +66,44 @@ where
 		= (Just gui, actions, attributes)
 	
 	tab gui actions attributes
+		# (close,actions)	= takeCloseTask actions
 		# (menus,actions)	= actionsToMenus actions
-		# tab	= toTab gui
-		# tab	= setTitle (fromMaybe "Untitled" (kvGet TITLE_ATTRIBUTE attributes)) tab
-		# tab	= addMenusToTUI menus tab
+		# tab				= toTab gui
+		# tab				= case (kvGet TITLE_ATTRIBUTE attributes) of Nothing = tab; Just title = setTitle title tab
+		# tab				= case (kvGet ICON_ATTRIBUTE attributes) of Nothing = tab; Just icon = setIconCls ("icon-" +++ icon) tab
+		# tab				= case close of Nothing = tab; Just task = setCloseAction (actionName ActionClose,task) tab
+		# tab				= addMenusToTUI menus tab
 		= tab
 
 	//Remove all content from tabs that are not visible anyway
 	emptyNonActive active tabs = [if (i == active) tab (empty tab) \\ tab <- tabs & i <- [0..]] 
 	where
 		empty tab=:{TUIDef|content=TUITabItem c} = {tab & content = TUITabItem {TUITabItem|c & items = []}}
+
+	//Find the task id of an ActionClose action
+	takeCloseTask [] = (Nothing,[])
+	takeCloseTask [(task,ActionClose,enabled):as] = (if enabled (Just task) Nothing,as)
+	takeCloseTask [a:as] = let (mbtask,as`) = takeCloseTask as in (mbtask,[a:as`])
+
 hideLayout :: Layout
-hideLayout = Layout layout
+hideLayout = layout
 where
 	layout parts actions attributes
 		# attributes 	= foldr mergeAttributes [] (map thd3 parts ++ [attributes])
 		# actions		= flatten [actions:map snd3 parts]
 		= (Nothing,actions,attributes)
+
+vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
+vsplitLayout split fun = layout
+where
+	layout parts actions attributes
+		# (guis1,guis2)	= fun [gui \\ (Just gui,_,_) <- parts]
+		# gui			= (fill o vjoin)
+							[(fixedHeight split o fillWidth) (vjoin guis1)
+							, fill (vjoin guis2)
+							]					
+		= (Just gui, actions, attributes)
+
 /*	
 
 columnLayout :: !Int ![TUIDef] -> TUIDef
@@ -86,12 +119,6 @@ where
 		
 */
 			
-//Helper functions
-mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
-mergeAttributes attr1 attr2 = foldr setAttr attr1 attr2
-where
-	setAttr (k,v)	[] = [(k,v)]
-	setAttr (k,v)	[(k0,v0):kvs]	= [(k0, if (k == k0) v v0):setAttr (k,v) kvs]
 
 //Determine the index of the visible part with the highest stack-order attribute
 getTopIndex :: [TaskTUI] -> Int 
@@ -124,13 +151,13 @@ setHeight :: !TUISize !TUIDef -> TUIDef
 setHeight height def = {TUIDef|def & height = Just height}
 
 fill :: !TUIDef -> TUIDef
-fill def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 0)), height = Just ( FillParent 1 (FixedMinSize 0))}
+fill def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 200)), height = Just ( FillParent 1 (FixedMinSize 10))}
 
 fillHeight :: !TUIDef -> TUIDef
-fillHeight def = {def & height = Just (FillParent 1 (FixedMinSize 0))}
+fillHeight def = {def & height = Just (FillParent 1 (FixedMinSize 200))}
 
 fillWidth :: !TUIDef -> TUIDef
-fillWidth def = {def & width = Just (FillParent 1 (FixedMinSize 0))}
+fillWidth def = {def & width = Just (FillParent 1 (FixedMinSize 200))}
 
 fixedHeight	:: !Int !TUIDef -> TUIDef
 fixedHeight size def = {def & height = Just (Fixed size)}
@@ -197,9 +224,40 @@ setBaseCls :: !String !TUIDef -> TUIDef
 setBaseCls cls def=:{TUIDef|content} = case content of
 	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & baseCls = Just cls}}
 	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & baseCls = Just cls}}
+	//TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & baseCls = Just cls}}
 	TUIWindow c		= {TUIDef|def & content = TUIWindow {TUIWindow|c & baseCls = Just cls}}
 	_				= def
 
+setDirection :: !TUIDirection !TUIDef -> TUIDef
+setDirection dir def=:{TUIDef|content} = case content of
+	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & direction = dir}}
+	//TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & direction = dir}}
+	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & direction = dir}}
+	_				= def
+
+setHalign :: !TUIHAlign !TUIDef -> TUIDef
+setHalign align def=:{TUIDef|content} = case content of
+	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & halign = align}}
+	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & halign = align}}
+	_				= def
+
+setValign :: !TUIVAlign !TUIDef -> TUIDef
+setValign align def=:{TUIDef|content} = case content of
+	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & valign = align}}
+	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & valign = align}}
+	_				= def
+
+setPurpose :: !String !TUIDef -> TUIDef
+setPurpose purpose def=:{TUIDef|content} = case content of
+	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & purpose = Just purpose}}
+	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c &  purpose = Just purpose}}
+	_				= def
+
+setCloseAction :: !(!String,!TaskId) !TUIDef -> TUIDef
+setCloseAction action def=:{TUIDef|content} = case content of
+	TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & closeAction = Just action}}
+	_				= def
+	
 //Container coercion
 toPanel	:: !TUIDef -> TUIDef
 toPanel def=:{TUIDef|content} = case content of
@@ -216,9 +274,24 @@ toPanel def=:{TUIDef|content} = case content of
 			{TUIPanel	|items=[def],direction=Vertical,halign=AlignLeft,valign=AlignTop,padding=Nothing,purpose=Nothing
 						,title = Nothing,frame=False,menus=[],iconCls=Nothing,baseCls=Nothing}}
 
+toContainer :: !TUIDef -> TUIDef
+toContainer def=:{TUIDef|content} = case content of
+	TUIContainer _	= def
+	//Panels can be coerced to containers
+	TUIPanel {TUIPanel|items,direction,halign,valign,padding,purpose,baseCls} 
+		= {TUIDef|def & content = TUIContainer
+			{TUIContainer |items = items,direction=direction,halign=halign,valign=valign,padding=padding,purpose=purpose,baseCls=baseCls}}
+	//Uncoercable items are wrapped in a container instead
+	_
+		= {TUIDef|def & content = TUIContainer
+			{TUIContainer |items = [def],direction=Vertical,halign=AlignLeft,valign=AlignTop,padding=Nothing,purpose=Nothing,baseCls=Nothing}}
+					
 toTab :: !TUIDef -> TUIDef
 toTab def=:{TUIDef|content} = case content of
-	//TUIPanel panel	=
+	//Coerce panels and containers to tabs
+	TUIPanel {TUIPanel|items,title,iconCls,padding,menus}
+		= defaultDef (TUITabItem {TUITabItem| items =items, title = fromMaybe "Untitled" title, iconCls = iconCls,padding = Nothing, menus = menus, closeAction = Nothing})
+
 	_	= defaultDef (TUITabItem {TUITabItem| items = [def],title = "Untitled", iconCls = Nothing, padding = Nothing, menus = [], closeAction = Nothing})
 	
 //GUI combinators						
@@ -228,46 +301,77 @@ hjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Ho
 vjoin :: ![TUIDef] -> TUIDef
 vjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, purpose = Nothing, baseCls = Nothing})
 						
-paneled :: !String !(Maybe String) ![TUIDef] -> TUIDef
-paneled title mbIcon defs
-	# panel = (frame o setTitle title) (vjoin defs) 
-	= case mbIcon of
+paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![TUIDef] -> TUIDef
+paneled mbTitle mbHint mbIcon defs
+	# defs	= case mbHint of
+		Nothing = defs
+		Just hint = [hintPanel hint:defs]
+	# panel = frame (toPanel (vjoin defs))
+	# panel = case mbTitle of
 		Nothing		= panel
-		Just icon	= setIconCls ("icon-" +++ icon) panel
+		Just title	= setTitle title panel
+	# panel = case mbIcon of
+		Nothing		= panel
+		Just icon	= setIconCls ("icon-" +++ icon) panel	
+	= panel
 where
 	frame = setMargins 10 10 0 10 o setPadding 10 o setFramed True o fixedWidth 700
 
 //Container operations
-addItemToTUI :: TUIDef TUIDef -> TUIDef
-addItemToTUI item def=:{TUIDef|content} = case content of
-	TUIContainer container=:{TUIContainer|items}	= {TUIDef|def & content = TUIContainer {TUIContainer|container & items = items ++ [item]}}
-	TUIPanel panel=:{TUIPanel|items}				= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = items ++ [item]}}
+addItemToTUI :: (Maybe Int) TUIDef TUIDef -> TUIDef
+addItemToTUI mbIndex item def=:{TUIDef|content} = case content of
+	TUIContainer container=:{TUIContainer|items}	= {TUIDef|def & content = TUIContainer {TUIContainer|container & items = add mbIndex item items}}
+	TUIPanel panel=:{TUIPanel|items}				= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = add mbIndex item items}}
 	_												= def
-
+where
+	add Nothing item items = items ++ [item]
+	add (Just pos) item items = take pos items ++ [item] ++ drop pos items
+	
 //Add buttons to an existing panel. If there it is a container that has a "button" container in it add the buttons to that
 //Otherwise create that container
 addButtonsToTUI :: ![TUIDef] TUIDef -> TUIDef
-addButtonsToTUI buttons def=:{TUIDef|content} = case content of
-	(TUIPanel panel=:{TUIPanel|items})	= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = addToButtonPanel buttons items}}
-	_									= def
+addButtonsToTUI [] def = def
+addButtonsToTUI buttons def=:{TUIDef|content}
+	| isButtonPanel def	= foldr (addItemToTUI Nothing) def buttons 
+	| otherwise			= case content of
+		(TUIPanel panel=:{TUIPanel|items})	= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = addToButtonPanel buttons items}}
+		_									= def
 where
 	addToButtonPanel buttons []		= [buttonPanel buttons]
 	addToButtonPanel buttons [i:is]
-		| isButtonPanel i	= [foldr addItemToTUI i buttons:is]
+		| isButtonPanel i	= [foldr (addItemToTUI Nothing) i buttons:is]
 							= [i:addToButtonPanel buttons is]
 
 //Add menus to a panel, tab or window								
 addMenusToTUI :: [TUIMenuButton] TUIDef -> TUIDef
+addMenusToTUI [] def = def
 addMenusToTUI extramenus def=:{TUIDef|content} = case content of
 	(TUIPanel panel=:{TUIPanel|menus})		= {TUIDef|def & content = TUIPanel {TUIPanel|panel & menus = menus ++ extramenus}}
 	(TUITabItem tab=:{TUITabItem|menus})	= {TUIDef|def & content = TUITabItem {TUITabItem|tab & menus = menus ++ extramenus}}
 	(TUIWindow window=:{TUIWindow|menus})	= {TUIDef|def & content = TUIWindow {TUIWindow|window & menus = menus ++ extramenus}}
 	_										= def
+
+getItemsOfTUI :: TUIDef -> [TUIDef]
+getItemsOfTUI def=:{TUIDef|content} = case content of
+	TUIContainer {TUIContainer|items}	= items
+	TUITabItem {TUITabItem|items}		= items
+	TUIPanel {TUIPanel|items}			= items
+	TUIWindow {TUIWindow|items}			= items
+	_									= [def]
+	
+setItemsOfTUI :: [TUIDef] TUIDef -> TUIDef
+setItemsOfTUI items def=:{TUIDef|content} = case content of
+	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & items = items}}
+	TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & items = items}}
+	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & items = items}}
+	TUIWindow c		= {TUIDef|def & content = TUIWindow {TUIWindow|c & items = items}}
+	_				= def
 	
 //Predefined panels
 hintPanel :: !String -> TUIDef	//Panel with task instructions
-hintPanel hint = defaultDef (TUIShowControl TUIStringControl {TUIShowControl|value = JSONString hint})
-
+hintPanel hint
+	= (setPurpose "hint" o setMargins 0 0 10 0)(vjoin [stringDisplay hint])
+	
 buttonPanel	:: ![TUIDef] -> TUIDef	//Container for a set of horizontally layed out buttons
 buttonPanel buttons
 	=	{ content	= TUIContainer {TUIContainer|defaultContainer buttons & direction = Horizontal, halign = AlignRight, purpose = Just "buttons"}
@@ -275,10 +379,12 @@ buttonPanel buttons
 		, height	= Just (WrapContent 0)
 		, margins	= Nothing
 		}
+		
 isButtonPanel :: !TUIDef -> Bool
 isButtonPanel def=:{TUIDef|content} = case content of
-	TUIPanel {TUIPanel|purpose}		= purpose == Just "buttons"
-	_								= False
+	TUIPanel {TUIPanel|purpose=Just p}			= p == "buttons"
+	TUIContainer {TUIContainer|purpose=Just p}	= p == "buttons"
+	_											= False
 
 actionsToButtons :: ![TaskAction] -> (![TUIDef],![TaskAction])
 actionsToButtons [] = ([],[])
@@ -371,8 +477,11 @@ actionsOf t = snd3 t
 attributesOf :: TaskTUI -> [TaskAttribute]
 attributesOf t = thd3 t
 
+mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
+mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> kvSet k v attr) attr1 attr2
+
 appLayout :: Layout [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
-appLayout (Layout f) parts actions attributes  = f parts actions attributes
+appLayout f parts actions attributes  = f parts actions attributes
 
 appDeep	:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef
 appDeep [] f def = f def

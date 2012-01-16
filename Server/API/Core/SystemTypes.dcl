@@ -315,6 +315,8 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
 	}
+	
+:: TaskMeta :==	[(!String,!String)]					//* Task meta data consists of untyped attributes
 		
 :: TaskStatus
 	= Running		//* A process which is currently running (active or suspended)
@@ -324,6 +326,7 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
 :: TaskInstanceMeta =
 	{ processId			:: !ProcessId
+	, taskMeta			:: !TaskMeta
 	, progressMeta		:: !ProgressMeta
 	, managementMeta	:: !ManagementMeta
 	, subInstances		:: ![TaskInstanceMeta]
@@ -358,8 +361,9 @@ where
 	initAttributes :: !d -> [TaskAttribute]
 
 instance descr Void
-instance descr String
-instance descr (!String, !descr) | html descr
+instance descr String	//Hint
+instance descr (!String, !String) //Title, Hint
+instance descr (!Icon, !String, !String) //Icon, Title , Hint
 instance descr Title
 instance descr Hint
 instance descr Icon

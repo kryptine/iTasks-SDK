@@ -18,10 +18,10 @@ getCoins :: String (EUR,EUR) -> Task (String,EUR)
 getCoins product (cost,paid) = getCoins`
 where
 	getCoins`		
-		=			enterChoice  ("Insert coins",[ Text ("Chosen product: " <+++ product), BrTag[]
-					              , Text ("To pay: " <+++ cost), BrTag []
-					              , Text "Please insert a coin..."
-					              ]) [] coins
+		=			
+					viewInformation "Status" [] 
+						(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ cost)]) 
+			||-		enterChoice  ("Insert coins","Please insert a coin...") [] coins
 			>>*		[AnyTime ActionCancel (\_ -> show "Cancelled" paid)
 					,WithResult ActionOk (const True) handleMoney
 					]

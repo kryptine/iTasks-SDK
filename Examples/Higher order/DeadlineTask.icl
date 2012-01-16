@@ -17,7 +17,8 @@ deadlineTaskExample
 	= [ workflow "Examples/Higher order/Deadline task" "Demo of the deadline property for tasks" (Title "Do task before deadline" @>> (deadline trivialTask))]
 
 trivialTask :: Task Int
-trivialTask = enterInformation ("Initial number","Enter a number larger than 42") [] <| (\n -> if (n <= 42) (False,"Error " <+++ n <+++ " should be larger than 42") (True,""))
+trivialTask = enterInformation ("Initial number","Enter a number larger than 42") [] <! (\n -> n <= 42) 
+			// (\n -> if (n <= 42) (False,"Error " <+++ n <+++ " should be larger than 42") (True,""))
 
 deadline :: (Task a) -> Task a | iTask a
 deadline task

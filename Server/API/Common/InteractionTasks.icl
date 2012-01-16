@@ -233,7 +233,7 @@ waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
 
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
-	=	hideLayout 
+	=	SetLayout hideLayout 
 	@>> interact "Choose an action" (\_ _ -> Void) [] Nothing voidNull
 	>>* [AnyTime action (\_ -> return val) \\ (action,val) <- actions]
 	

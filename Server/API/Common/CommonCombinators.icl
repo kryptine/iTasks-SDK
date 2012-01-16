@@ -117,21 +117,24 @@ where
 	seqTasks []		= return []
 	seqTasks [t:ts]	= t >>= \a -> seqTasks ts >>= \as -> return [a:as]
 
-
+//Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = (parallel "Repeat until condition holds." Nothing [(Embedded, checked pred task 0)]) @? res
+(<!) task pred
+	= parallel Void Nothing [(Embedded, checked pred task)] @? res
 where
-	checked pred task i tlist
+	checked pred task tlist
 		=	task
+		@> (prj,taskListState tlist)
 		>>= \a -> if (pred a)
-			(set (Just a) (taskListState tlist) 											>>| return Stop)
-			(removeTask i tlist >>| appendTask (Embedded, checked pred task (i + 1)) tlist	>>| return Keep)
-	
+			(return Remove)
+			((appendTask (Embedded, checked pred task) tlist) @ const Remove)
+			
+	prj mba _ 			= Just mba
 	res (Just (Just a)) = Just a
 	res _				= Nothing
 
 forever :: !(Task a) -> Task b | iTask a & iTask b	
-forever	t = (<!) t (\_ -> False) >>| return defaultValue
+forever	t = (t <! (const False)) >>| return defaultValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb
@@ -146,7 +149,7 @@ where
 	
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel "||-" Nothing 
+	= parallel Void Nothing 
 		[(Embedded, \_ -> taska @ const Keep)
 		,(Embedded, \s -> (taskb @> (\mbb _ -> Just mbb,taskListState s)) @ const Stop)
 		] @? res
@@ -220,22 +223,30 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
 	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
-(<|) infixl 6 :: !(Task a) !(a -> (Bool, String)) -> Task a | iTask a
-(<|) taska pred 
-		=			taska
-		>>= \r -> 	case pred r of
-						(True,_) -> return r
-						(False,msg) -> (viewInformation "Feedback" []  msg) ||- (taska <| pred)
-
 whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= (get share >>= \val -> (task val @ Just) -||- (hideLayout @>> wait "watching share change" ((=!=) val) share @ const Nothing)) <! isJust @ fromJust
+	= ((	get share	
+		>>= \val ->
+			(task val >>= \res -> return (Just res))
+			-||-
+			(wait "watching share change" ((=!=) val) share >>| return Nothing)
+		)
+	<! isJust) >>= \(Just r) -> return r
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
-appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Keep) topLevelTasks @ WorkflowProcess
+appendTopLevelTask props task = appendTask (Detached props, \_ -> task @ const Remove) topLevelTasks @ WorkflowProcess
 
 instance tune BeforeLayout
-where tune (BeforeLayout f) task = tune (\(Layout l) -> Layout (\pa0 ac0 at0 -> let (pa1,ac1,at1) = f (pa0,ac0,at0) in l pa1 ac1 at1)) task
+where tune (BeforeLayout f) task = tune (ModifyLayout (\l pa0 ac0 at0 -> let (pa1,ac1,at1) = f (pa0,ac0,at0) in l pa1 ac1 at1)) task
 		
 instance tune AfterLayout
-where tune (AfterLayout f) task	= tune (\(Layout l) -> Layout (\pa0 ac0 at0 -> f (l pa0 ac0 at0))) task
+where tune (AfterLayout f) task	= tune (ModifyLayout (\l -> (\pa ac at -> (f (l pa ac at))))) task
+
+instance tune Title
+where tune (Title t) task = tune (BeforeLayout (appThd3 (kvSet TITLE_ATTRIBUTE t))) task
+instance tune Icon 
+where tune (Icon i) task = tune (BeforeLayout (appThd3 (kvSet ICON_ATTRIBUTE i))) task
+instance tune Attribute
+where tune (Attribute k v) task = tune (BeforeLayout (appThd3 (kvSet k v))) task
+instance tune Window
+where tune Window task = task

@@ -43,9 +43,9 @@ where
 		# (list, iworld) = loadValue NS_WORKFLOW_INSTANCES "index" iworld
 		= (fromMaybe [] list, iworld) 
 	getVersion  iworld
-		# (ts, iworld) = getStoreVersion NS_WORKFLOW_INSTANCES "index" iworld
-		= (fromMaybe 0 ts, iworld)
-		
+		# (version, iworld) = getStoreVersion NS_WORKFLOW_INSTANCES "index" iworld
+		= (fromMaybe 0 version, iworld)
+
 processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
 processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" read getVersion
 where
@@ -53,8 +53,8 @@ where
 		# (list, iworld) = loadValue NS_WORKFLOW_INSTANCES "index" iworld
 		= (maybe [] (\l -> find currentUser l) list, iworld)
 	getVersion iworld
-		# (ts, iworld) = getStoreVersion NS_WORKFLOW_INSTANCES "index" iworld
-		= (fromMaybe 0 ts, iworld)
+		# (version, iworld) = getStoreVersion NS_WORKFLOW_INSTANCES "index" iworld
+		= (fromMaybe 0 version, iworld)
 
 	find user procs
 		= flatten [if (p.managementMeta.worker === Just user || p.managementMeta.worker === Nothing) [{p & subInstances = find user p.subInstances}] (find user p.subInstances) \\ p <- procs]

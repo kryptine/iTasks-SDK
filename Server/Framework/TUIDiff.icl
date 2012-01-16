@@ -26,14 +26,20 @@ diffEditorDefinitions` path oldTui newTui
 			Just diff
 				| oldTui.width === newTui.width && oldTui.height === newTui.height
 					= diff
-				| otherwise
+				| isFixed oldTui.width && isFixed oldTui.height && isFixed newTui.width && isFixed newTui.height
+					//IMPORTANT: TUISetSize only works for fixed sizes
 					= [TUISetSize (toString path) newTui.width newTui.height:diff]
+				| otherwise
+					= [TUIReplace (toString ppath) pindex newTui]
 			Nothing
 				= [TUIReplace (toString ppath) pindex newTui]
 	| otherwise
 		= [TUIReplace (toString ppath) pindex newTui]
 where
 	[ItemStep pindex:ppath] = path
+
+	isFixed (Just (Fixed _))	= True
+	isFixed _					= False
 
 	diffEditorDefinitions`` :: !TUIDefContent !TUIDefContent -> Maybe [TUIUpdate]
 	diffEditorDefinitions`` old new = case (old,new) of

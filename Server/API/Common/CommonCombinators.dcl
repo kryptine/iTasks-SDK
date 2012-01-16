@@ -302,18 +302,7 @@ randomChoice		:: ![a]										-> Task a				| iTask a
 * @gin False
 */
 repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
-/**
-* Repeat a task as long as a predicate is not valid.
-* If the predicate fails after an iteration an error message is given.
-*
-* @param Task: The task to repeat
-* @param Predicate: The predicate/feedback function. This function also supplies the feedback message if the predicate yields False.
-* 
-* @return The result of the last iteration (that thus satisfies the predicate)
-* 
-* @gin False
-*/
-(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, String)) 	-> Task a 					| iTask a
+
 /**
 * Do a task as long while monitoring that a shared state remains unchanged.
 * When the share changes the task is restarted
@@ -328,6 +317,7 @@ appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
 // Additional tuning shortcuts
 instance tune BeforeLayout
 instance tune AfterLayout
-
-
-
+instance tune Title
+instance tune Icon
+instance tune Attribute		//Set attribute
+instance tune Window		//Indicate that this task should 

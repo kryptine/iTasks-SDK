@@ -24,7 +24,8 @@ storeValue namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValueAs format namespace key value iworld=:{IWorld|build,dataDirectory} 
-	= writeToDisk namespace key {StoreItem|format=format,content=content,version=0} (storePath dataDirectory build) iworld //TODO version
+	# (version,iworld) = getStoreVersion namespace key iworld
+	= writeToDisk namespace key {StoreItem|format=format,content=content,version=fromMaybe 0 version} (storePath dataDirectory build) iworld
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
@@ -50,7 +51,8 @@ writeToDisk namespace key {StoreItem|format,content,version} location iworld=:{I
 	# filename 			= addExtension (location </> namespace </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin")
 	# (ok,file,world)	= fopen filename (case format of SFPlain = FWriteText; _ = FWriteData) world
 	| not ok			= abort ("Failed to write value to store: " +++ filename +++ "\n")
-	# file				= fwritei version file
+	//Increment the version at each write to disk
+	# file				= fwritei (version + 1) file
 	# file				= case format of SFPlain = fwritec ' ' file; _ = file // for txt files write space to indicate end of timestamp
 	# file				= fwrites content file
 	# (ok,world)		= fclose file world

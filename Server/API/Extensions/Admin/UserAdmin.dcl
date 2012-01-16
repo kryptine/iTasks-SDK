@@ -25,7 +25,7 @@ currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
 
 * @gin-icon key
 */
-authenticateUser	:: !String !String	-> Task (Maybe User)
+authenticateUser	:: !Username !Password	-> Task (Maybe User)
 
 /**
 * Wraps a task with an authentication task

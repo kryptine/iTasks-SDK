@@ -23,6 +23,11 @@ setFinished meta = {meta & status = Finished}
 setExcepted :: !ProgressMeta  -> ProgressMeta
 setExcepted meta = {meta & status = Excepted}
 
+getTaskMeta	:: !TaskRep -> [(!String,!String)]
+getTaskMeta NoRep = []
+getTaskMeta (TUIRep (_,_,attr))	= attr
+getTaskMeta (ServiceRep _)		= [] //TODO
+
 createTaskContainer :: (Task a) -> Dynamic | iTask a
 createTaskContainer task = (dynamic (Container task) :: Container (Task a^) a^)
 
@@ -38,14 +43,14 @@ createContext :: !ProcessId !Dynamic !ManagementMeta !User !*IWorld -> (!TaskCon
 createContext processId container=:(Container task :: Container (Task a) a) mmeta user iworld=:{IWorld|localDateTime}
 	# (tcontext,iworld) = task.initFun (taskNo processId) iworld		
 	# pmeta = {issuedAt = localDateTime, issuedBy = user, status = Running, firstEvent = Nothing, latestEvent = Nothing}
-	= (TaskContext processId pmeta mmeta 0 (TTCRunning container tcontext),iworld)
+	= (TaskContext processId pmeta mmeta [] 0 (TTCRunning container tcontext),iworld)
 where
 	taskNo (WorkflowProcess pid)= [0,pid]
 	taskNo (SessionProcess _)	= [0,0]
 
 
 editInstance :: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-editInstance editEvent context=:(TaskContext processId pmeta mmeta changeNo tcontext) iworld
+editInstance editEvent context=:(TaskContext processId pmeta mmeta tmeta changeNo tcontext) iworld
 	= case tcontext of
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
 			# editFun			= task.editFun
@@ -63,14 +68,14 @@ editInstance editEvent context=:(TaskContext processId pmeta mmeta changeNo tcon
 					= editFun taskNr (LuckyEvent event) scontext iworld
 				_
 					= (scontext, iworld)
-			= (Ok (TaskContext processId pmeta mmeta changeNo (TTCRunning container scontext)), iworld)
+			= (Ok (TaskContext processId pmeta mmeta [] changeNo (TTCRunning container scontext)), iworld)
 		_
 			= (Ok context, iworld)
 
 
 //Evaluate the given context and yield the result of the main task indicated by target
 evalInstance :: !TaskNr !(Maybe CommitEvent) !Bool !TaskContext  !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
-evalInstance target commitEvent genGUI context=:(TaskContext processId pmeta mmeta changeNo tcontext) iworld=:{evalStack}
+evalInstance target commitEvent genGUI context=:(TaskContext processId pmeta mmeta _ changeNo tcontext) iworld=:{evalStack}
 	= case tcontext of
 		//Eval instance
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
@@ -97,13 +102,13 @@ evalInstance target commitEvent genGUI context=:(TaskContext processId pmeta mme
 			# iworld			= {iworld & evalStack = evalStack}
 			= case result of
 				TaskInstable _ rep scontext
-					# context		= TaskContext processId (setRunning pmeta) mmeta changeNo (TTCRunning container scontext)
+					# context		= TaskContext processId (setRunning pmeta) mmeta (getTaskMeta rep) changeNo (TTCRunning container scontext)
 					= (Ok (TaskInstable Nothing rep scontext), context, iworld)
 				TaskStable val rep scontext
-					# context		= TaskContext processId (setFinished pmeta) mmeta changeNo (TTCFinished (createValueContainer val))
+					# context		= TaskContext processId (setFinished pmeta) mmeta (getTaskMeta rep) changeNo (TTCFinished (createValueContainer val))
 					= (Ok (TaskStable (createValueContainer val) rep scontext), context, iworld)
 				TaskException e str
-					# context		= TaskContext processId (setExcepted pmeta) mmeta changeNo (TTCExcepted str)
+					# context		= TaskContext processId (setExcepted pmeta) mmeta [] changeNo (TTCExcepted str)
 					= (Ok (TaskException e str), context, iworld)
 		TTCRunning container scontext
 			= (Ok (taskException "Could not unpack task context"), context, iworld)
@@ -209,12 +214,12 @@ where
 		_
 			= execControls cs queue iworld		
 	
-	topTarget (TaskContext processId _ _ changeNo _)
+	topTarget (TaskContext processId _ _ _ changeNo _)
 		= case processId of 
 			(SessionProcess _)			= [0,0]
 			(WorkflowProcess procNo)	= [changeNo,procNo]
 			(EmbeddedProcess _ taskId)	= taskNrFromString taskId
 			
 			
-	issueUser (TaskContext _ {ProgressMeta|issuedBy} _ _ _)
+	issueUser (TaskContext _ {ProgressMeta|issuedBy} _ _ _ _)
 		= issuedBy

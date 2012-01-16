@@ -243,7 +243,7 @@ where
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)
 	
 	activator queryTask tlist
-		=	hideLayout
+		=	SetLayout hideLayout
 		@>>	viewSharedInformation "Query showSharedInformation" [] (taskListState tlist) 
 		>>* [WhenValid (\(_,d,_,_) -> d) (\(query,_,_,_) -> queryTask query)]	//Run the query when the dirty flag becomes True
 		>>= \results ->

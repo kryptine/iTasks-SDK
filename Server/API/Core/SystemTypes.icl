@@ -618,7 +618,7 @@ displayName (NamedUser name)
 where
 	start = indexOf "<" name
 	end = indexOf ">" name
-displayName _ = ""
+displayName _ = "Undefined"
 
 getRoles :: !User -> [Role]
 getRoles (RegisteredUser details) = mb2list details.UserDetails.roles
@@ -654,7 +654,6 @@ actionName ActionContinue		= "Continue"
 actionName ActionOpen			= "File/Open"
 actionName ActionSave			= "File/Save"
 actionName ActionSaveAs			= "File/Save as"
-actionName ActionClose			= "File/Close"
 actionName ActionQuit			= "File/Quit"
 actionName ActionHelp			= "Help/Help"
 actionName ActionAbout			= "Help/About"
@@ -663,6 +662,7 @@ actionName ActionNew			= "New"
 actionName ActionEdit			= "Edit"
 actionName ActionDelete			= "Delete"
 actionName ActionRefresh		= "Refresh"
+actionName ActionClose			= "Close"
 	
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))
@@ -679,8 +679,11 @@ where initAttributes	_ = []
 instance descr String
 where initAttributes	hint	= [(HINT_ATTRIBUTE, hint)]
 	
-instance descr (!String, !d) | html d
-where initAttributes (title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString (html hint))]
+instance descr (!String,!String) 
+where initAttributes (title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint)]
+
+instance descr (!Icon,!String,!String)
+where initAttributes (icon,title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint):initAttributes icon]
 
 instance descr Title
 where initAttributes (Title title) = [(TITLE_ATTRIBUTE,title)]
