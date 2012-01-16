@@ -37,4 +37,4 @@ evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool 
 
 //Helper functions: exported for use in workOn task
 editInstance	:: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-evalInstance	:: !TaskNr !(Maybe CommitEvent) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
+evalInstance	:: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)

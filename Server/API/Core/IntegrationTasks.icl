@@ -54,7 +54,7 @@ where
 				
 	edit taskNr event context iworld = (context,iworld)
 	
-	eval taskNr event tuiTaskNr repAs context=:(TCBasic encv stable) iworld=:{world}
+	eval taskNr eevent cevent tuiTaskNr repAs context=:(TCBasic encv stable) iworld=:{world}
 		| stable
 			= (TaskStable (fromJust (fromJSON encv)) NoRep context, iworld)
 		| otherwise

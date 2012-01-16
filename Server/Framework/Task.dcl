@@ -33,7 +33,7 @@ derive gPutRecordFields	Task
 
 :: TaskInitFun		:== TaskNr *IWorld -> *(!TaskContextTree,!*IWorld)
 :: TaskEditFun		:== TaskNr EditEvent TaskContextTree *IWorld -> *(!TaskContextTree,!*IWorld)
-:: TaskEvalFun a	:== TaskNr (Maybe CommitEvent) ReversedTaskNr TaskRepTarget TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
+:: TaskEvalFun a	:== TaskNr (Maybe EditEvent) (Maybe CommitEvent) ReversedTaskNr TaskRepTarget TaskContextTree *IWorld -> *(!TaskResult a, !*IWorld)
 
 :: TaskRepTarget
 	= RepAsTUI (Maybe Layout)	//Optionally with tweaked layout

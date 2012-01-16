@@ -74,8 +74,8 @@ editInstance editEvent context=:(TaskContext processId pmeta mmeta tmeta changeN
 
 
 //Evaluate the given context and yield the result of the main task indicated by target
-evalInstance :: !TaskNr !(Maybe CommitEvent) !Bool !TaskContext  !*IWorld	-> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
-evalInstance target commitEvent genGUI context=:(TaskContext processId pmeta mmeta _ changeNo tcontext) iworld=:{evalStack}
+evalInstance :: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !TaskContext  !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
+evalInstance target editEvent commitEvent genGUI context=:(TaskContext processId pmeta mmeta _ changeNo tcontext) iworld=:{evalStack}
 	= case tcontext of
 		//Eval instance
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
@@ -97,7 +97,7 @@ evalInstance target commitEvent genGUI context=:(TaskContext processId pmeta mme
 			//# target			= foldr stepTarget [changeNo,pid] target
 			# target			= tl (tl target) //TODO: FIGURE OUT WHY IT DOESN'T WORK WHEN FOLDING STEPTARGET
 			//Apply task's eval function	
-			# (result,iworld)	= evalFun taskNo commitEvent target repAs scontext iworld 
+			# (result,iworld)	= evalFun taskNo editEvent commitEvent target repAs scontext iworld 
 			//Restore current process id in iworld
 			# iworld			= {iworld & evalStack = evalStack}
 			= case result of
@@ -125,7 +125,7 @@ createSessionInstance task editEvent commitEvent genGUI iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
 		Ok context
-			# (mbRes,iworld)		= iterateEval [0,0] commitEvent genGUI context iworld
+			# (mbRes,iworld)		= iterateEval [0,0] editEvent commitEvent genGUI context iworld
 			= case mbRes of
 				Ok result	= (Ok (result, sessionId), iworld)
 				Error e		= (Error e, iworld)
@@ -136,27 +136,27 @@ evalSessionInstance sessionId editEvent commitEvent genGUI iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
 		Ok context
-			//Apply edit event (only once)
+			//Apply edit function only once
 			# (mbContext, iworld) = editInstance editEvent context iworld
 			= case mbContext of
 				Error e				= (Error e, iworld)
 				Ok context			
-					# (mbRes,iworld)	= iterateEval [0,0] commitEvent genGUI context iworld
+					# (mbRes,iworld)	= iterateEval [0,0] editEvent commitEvent genGUI context iworld
 					= case mbRes of
 						Ok result	= (Ok (result, sessionId), iworld)
 						Error e		= (Error e, iworld)
 						
-iterateEval :: !TaskNr !(Maybe CommitEvent) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-iterateEval target commitEvent genGUI context iworld = eval target commitEvent genGUI 1 context iworld
+iterateEval :: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+iterateEval target editEvent commitEvent genGUI context iworld = eval target editEvent commitEvent genGUI 1 context iworld
 where
-	eval :: !TaskNr !(Maybe CommitEvent) !Bool !Int !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-	eval target commitEvent genGUI iteration context iworld
+	eval :: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !Int !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+	eval target editEvent commitEvent genGUI iteration context iworld
 		//Initialize the toplevel task list
 		# iworld 	= {iworld & parallelControls = 'Map'.fromList [(toString TopLevelTaskList,(0,[]))]}
 		//Reset read shares list
 		# iworld			= {iworld & readShares = Just []} 
 		//Evaluate top instance	
-		# (mbResult, context, iworld) = evalInstance target commitEvent genGUI context iworld 
+		# (mbResult, context, iworld) = evalInstance target editEvent commitEvent genGUI context iworld 
 		= case mbResult of
 			Error e
 				= (Error e, iworld)
@@ -168,7 +168,8 @@ where
 				= case result of
 					(TaskInstable _ _ _)
 						| isNothing readShares && iteration < ITERATION_THRESHOLD
-							= eval target Nothing genGUI (iteration + 1) context iworld
+							//The edit event is passed to each eval iteration, but the commit event only once
+							= eval target editEvent Nothing genGUI (iteration + 1) context iworld
 						| otherwise
 							# iworld	= storeTaskInstance context iworld
 							= (Ok result,iworld)
@@ -190,7 +191,7 @@ where
 				[c:cs]
 					//Evaluate and store the context only. We do not want any result	
 					# iworld		= {iworld & currentUser = issueUser c}
-					# (_,c,iworld)	= evalInstance (topTarget c) Nothing genGUI c iworld
+					# (_,c,iworld)	= evalInstance (topTarget c) Nothing Nothing genGUI c iworld
 					# iworld		= storeTaskInstance c iworld
 					= processControls` cs {iworld & currentUser = currentUser}
 	

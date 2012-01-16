@@ -59,7 +59,7 @@ where
 		# rvalue				= fromOk mbrvalue
 		# (version,iworld)		= getSharedVersion shared iworld
 		# lvalue				= initFun initLocal rvalue
-		= (TCInteract (toJSON lvalue) (initParts lvalue rvalue parts) version Nothing, iworld)
+		= (TCInteract (toJSON lvalue) (initParts lvalue rvalue parts) version, iworld)
 
 	initParts l r parts = map (initPart l r) parts
 	
@@ -82,7 +82,7 @@ where
 	//Rewrite lucky events to events that target this task
 	edit taskNo (LuckyEvent e) context iworld = (edit taskNo (TaskEvent [] e) context iworld)
 	//There is an edit event for this task (because the location part of the event is the empty list)
-	edit taskNo (TaskEvent [] (dps,editv)) context=:(TCInteract encl views version _) iworld=:{IWorld|timestamp,latestEvent}		
+	edit taskNo (TaskEvent [] (dps,editv)) context=:(TCInteract encl views version) iworld=:{IWorld|timestamp,latestEvent}		
 		//Read latest versions of states
 		# (mbrval,iworld) 			= 'Shared'.readShared shared iworld
 		| isError mbrval			= (context, iworld)
@@ -93,7 +93,7 @@ where
 		| idx >= length parts		= (context, iworld) 
 		//Apply the event to the view
 		# (l,view,iworld)			= updateView l r dp editv (parts !! idx) (views !! idx) iworld
-		= (TCInteract (toJSON l) (updateAt idx view views) version (Just (dps,editv)), iworld)
+		= (TCInteract (toJSON l) (updateAt idx view views) version, iworld)
 		
 	edit _ _ context iworld = (context,iworld)
 	
@@ -121,7 +121,7 @@ where
 		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
 		= (v,toJSON v,maskv,iworld)
 		
-	eval taskNo event tuiTaskNo repAs context=:(TCInteract encl views rversion mbEdit) iworld=:{IWorld|timestamp}
+	eval taskNo eevent cevent tuiTaskNo repAs context=:(TCInteract encl views rversion) iworld=:{IWorld|timestamp}
 		# (mbrvalue,iworld) 				= 'Shared'.readShared shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
 		# rvalue							= fromOk mbrvalue	
@@ -130,6 +130,9 @@ where
 		# changed							= fromOk mbchanged
 		# (rversion,iworld)					= if changed (getSharedVersion shared iworld) (rversion,iworld)
 		# lvalue							= fromJust (fromJSON encl)
+		# mbEdit	= case eevent of
+			Just (TaskEvent [] e)	= Just e
+			_						= Nothing
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskNo repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# rep = case repAs of
 			(RepAsTUI layout)
@@ -140,10 +143,10 @@ where
 				= ServiceRep (flatten parts,flatten actions)
 		
 		# result							= if valid (Just (lvalue,rvalue)) Nothing 
-		= (TaskInstable result rep (TCInteract (toJSON lvalue) views rversion Nothing), iworld)
-	eval taskNo event tuiTaskNo repAs TCEmpty iworld
+		= (TaskInstable result rep (TCInteract (toJSON lvalue) views rversion), iworld)
+	eval taskNo eevent cevent tuiTaskNo repAs TCEmpty iworld
 		= (taskException "Failed to initialize interact",iworld)
-	eval taskNo event tuiTaskNo repAs context iworld
+	eval taskNo eevent cevent tuiTaskNo repAs context iworld
 		= (taskException "Corrupt context in interact",iworld)
 
 	evalParts idx taskNo repAs mbEvent changed l r [] [] iworld
@@ -211,7 +214,7 @@ where
 		# iworld				= storeTaskInstance (fromOk mbContext) iworld
 		= (TCEmpty, iworld)
 		
-	eval taskNr event tuiTaskNr (RepAsTUI layout) _ iworld=:{evalStack}
+	eval taskNr eevent cevent tuiTaskNr (RepAsTUI layout) _ iworld=:{evalStack}
 		//Check for cycles
 		| isMember processId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
@@ -230,7 +233,7 @@ where
 		# target = case processId of
 			(WorkflowProcess procNo)	= [procNo,changeNo (fromOk mbContext)]
 			(EmbeddedProcess _ taskId)	= reverse (taskNrFromString taskId)
-		# (mbResult,context,iworld)	= evalInstance target event True (fromOk mbContext) iworld
+		# (mbResult,context,iworld)	= evalInstance target eevent cevent True (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result
