@@ -17,49 +17,49 @@ derive JSONEncode UpdateMask
 derive JSONDecode UpdateMask
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask (\_ iworld -> (TaskStable a NoRep TCEmpty, iworld))
+return a  = mkInstantTask (\taskId iworld -> (TaskStable a NoRep (TCEmpty taskId), iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
-throw e = mkInstantTask (\_ iworld -> (TaskException (dynamic e) (toString e), iworld))
+throw e = mkInstantTask (\taskId iworld -> (TaskException (dynamic e) (toString e), iworld))
 
 get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask eval
 where
-	eval taskNr iworld
+	eval taskId iworld
 		# (val,iworld) = 'Shared'.readShared shared iworld
 		# res = case val of
-			Ok val	= TaskStable val NoRep TCEmpty
+			Ok val	= TaskStable val NoRep (TCEmpty taskId)
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
 set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
 where
-	eval taskNr iworld
+	eval taskId iworld
 		# (res,iworld)	='Shared'.writeShared shared val iworld
 		# res = case res of
-			Ok _	= TaskStable val NoRep TCEmpty
+			Ok _	= TaskStable val NoRep (TCEmpty taskId)
 			Error e	= taskException (SharedException e)
 		= (res, iworld)
 
 update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 update fun shared = mkInstantTask eval
 where
-	eval taskNr iworld
+	eval taskId iworld
 		# (val,iworld)	= 'Shared'.updateShared shared fun iworld
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
-		= (TaskStable (fromOk val) NoRep TCEmpty, iworld)
+		= (TaskStable (fromOk val) NoRep (TCEmpty taskId), iworld)
 
 interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
 interact desc initFun parts initLocal shared = mkTask init edit eval
 where
-	init taskNr iworld			//Create the initial views
+	init taskId iworld			//Create the initial views
 		# (mbrvalue,iworld) 	= 'Shared'.readShared shared iworld
-		| isError mbrvalue		= (TCEmpty, iworld)
+		| isError mbrvalue		= (TCEmpty taskId, iworld)
 		# rvalue				= fromOk mbrvalue
 		# (version,iworld)		= getSharedVersion shared iworld
 		# lvalue				= initFun initLocal rvalue
-		= (TCInteract (toJSON lvalue) (initParts lvalue rvalue parts) version, iworld)
+		= (TCInteract taskId (toJSON lvalue) (initParts lvalue rvalue parts) version, iworld)
 
 	initParts l r parts = map (initPart l r) parts
 	
@@ -80,9 +80,12 @@ where
 								= (fromOk mbv,iworld)
 		
 	//Rewrite lucky events to events that target this task
-	edit taskNo (LuckyEvent e) context iworld = (edit taskNo (TaskEvent [] e) context iworld)
+	edit (LuckyEvent e) context=:(TCInteract taskId _ _ _) iworld	
+			= (edit (TaskEvent taskId e) context iworld)
 	//There is an edit event for this task (because the location part of the event is the empty list)
-	edit taskNo (TaskEvent [] (dps,editv)) context=:(TCInteract encl views version) iworld=:{IWorld|timestamp,latestEvent}		
+	edit (TaskEvent targetId (dps,editv)) context=:(TCInteract taskId encl views version) iworld=:{IWorld|timestamp,latestEvent}		
+		| targetId <> taskId
+			= (context,iworld)
 		//Read latest versions of states
 		# (mbrval,iworld) 			= 'Shared'.readShared shared iworld
 		| isError mbrval			= (context, iworld)
@@ -93,9 +96,9 @@ where
 		| idx >= length parts		= (context, iworld) 
 		//Apply the event to the view
 		# (l,view,iworld)			= updateView l r dp editv (parts !! idx) (views !! idx) iworld
-		= (TCInteract (toJSON l) (updateAt idx view views) version, iworld)
+		= (TCInteract taskId (toJSON l) (updateAt idx view views) version, iworld)
 		
-	edit _ _ context iworld = (context,iworld)
+	edit _ context iworld = (context,iworld)
 	
 	splitDataPath dp
 		= (hd dplist, dataPathFromList (reverse (tl dplist)))
@@ -121,7 +124,7 @@ where
 		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
 		= (v,toJSON v,maskv,iworld)
 		
-	eval taskNo eEvent cEvent tuiTaskNo repAs context=:(TCInteract encl views rversion) iworld=:{IWorld|timestamp}
+	eval eEvent cEvent repAs context=:(TCInteract taskId encl views rversion) iworld=:{IWorld|timestamp}
 		# (mbrvalue,iworld) 				= 'Shared'.readShared shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
 		# rvalue							= fromOk mbrvalue	
@@ -131,35 +134,40 @@ where
 		# (rversion,iworld)					= if changed (getSharedVersion shared iworld) (rversion,iworld)
 		# lvalue							= fromJust (fromJSON encl)
 		# mbEdit	= case eEvent of
-			Just (TaskEvent [] e)	= Just e
+			Just (TaskEvent t e)
+				| t == taskId		= Just e
 			_						= Nothing
-		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskNo repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
+		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskId repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# rep = case repAs of
-			(RepAsTUI layout)
-				# layoutfun	= fromMaybe DEFAULT_LAYOUT layout
-				= TUIRep (layoutfun [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
+			(RepAsTUI Nothing layout) 
+				= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
+			(RepAsTUI (Just target) layout)	//If there is a target set, we only produce a representation only if this task is the target
+				| target == taskId
+					= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
+				| otherwise
+					= NoRep
 			_	
 				# (parts,actions) = unzip [(part,actions) \\ (ServiceRep (part,actions)) <- reps]
 				= ServiceRep (flatten parts,flatten actions)
 		
 		# result							= if valid (Just (lvalue,rvalue)) Nothing 
-		= (TaskInstable result rep (TCInteract (toJSON lvalue) views rversion), iworld)
-	eval taskNo eEvent cEvent tuiTaskNo repAs TCEmpty iworld
+		= (TaskInstable result rep (TCInteract taskId (toJSON lvalue) views rversion), iworld)
+	eval eEvent cEvent repAs (TCEmpty _) iworld
 		= (taskException "Failed to initialize interact",iworld)
-	eval taskNo eEvent cEvent tuiTaskNo repAs context iworld
+	eval eEvent cEvent repAs context iworld
 		= (taskException "Corrupt context in interact",iworld)
 
-	evalParts idx taskNo repAs mbEvent changed l r [] [] iworld
+	evalParts idx taskId repAs mbEvent changed l r [] [] iworld
 		= (l,[],[],True,iworld)
-	evalParts idx taskNo repAs mbEvent changed l r [p:ps] [v:vs] iworld	
-		# (nl,rep,view,pvalid,iworld)	= evalPart idx taskNo repAs mbEvent changed l r p v iworld
-		# (nnl,reps,views,valid,iworld)	= evalParts (idx + 1) taskNo repAs mbEvent changed nl r ps vs iworld
+	evalParts idx taskId repAs mbEvent changed l r [p:ps] [v:vs] iworld	
+		# (nl,rep,view,pvalid,iworld)	= evalPart idx taskId repAs mbEvent changed l r p v iworld
+		# (nnl,reps,views,valid,iworld)	= evalParts (idx + 1) taskId repAs mbEvent changed nl r ps vs iworld
 		= (nnl,[rep:reps],[view:views],pvalid && valid,iworld) //All parts have to be valid
 		
-	evalPart idx taskNo repAs mbEvent changed l r part view=:(encv,maskv,dirty) iworld = case part of
+	evalPart idx taskId repAs mbEvent changed l r part view=:(encv,maskv,dirty) iworld = case part of
 		DisplayPart f
 			//Simply visualize the view
-			# (rep,iworld) 	= displayRep idx taskNo repAs f l r encv iworld
+			# (rep,iworld) 	= displayRep idx taskId repAs f l r encv iworld
 			= (l,rep,view,True,iworld)
 		
 		FormPart initf sharef viewf
@@ -169,20 +177,20 @@ where
 			# (l,v,encv,maskv,vermask,dirty)
 				= if changed (refreshForm sharef l r v encv maskv vermask dirty) (l,v,encv,maskv,vermask,dirty) 
 			//Create an editor for the view
-			# (rep,iworld)				= editorRep idx taskNo repAs initf v encv maskv vermask mbEvent iworld
+			# (rep,iworld)				= editorRep idx taskId repAs initf v encv maskv vermask mbEvent iworld
 			= (l,rep,(encv,maskv,dirty),isValidValue vermask,iworld)
 			
-	displayRep idx taskNo (RepAsTUI _) f l r encv iworld
+	displayRep idx taskId (RepAsTUI _ _) f l r encv iworld
 		# (editor,iworld) = visualizeAsDisplay (f l r) iworld
 		= (TUIRep (editor,[],[]),iworld)
-	displayRep idx taskNo _ f l r encv iworld
-		= (ServiceRep ([(taskNrToString taskNo,idx,encv)],[]),iworld)
+	displayRep idx taskId _ f l r encv iworld
+		= (ServiceRep ([(toString taskId,idx,encv)],[]),iworld)
 	
-	editorRep idx taskNo (RepAsTUI _) f v encv maskv vermask mbEvent iworld
-		# (editor,iworld) = visualizeAsEditor v (taskNrToString taskNo) idx vermask mbEvent iworld
+	editorRep idx taskId (RepAsTUI _ _) f v encv maskv vermask mbEvent iworld
+		# (editor,iworld) = visualizeAsEditor v taskId idx vermask mbEvent iworld
 		= (TUIRep (editor,[],[]),iworld)
-	editorRep idx taskNo _ f v encv maskv vermask mbEvent iworld
-		= (ServiceRep ([(taskNrToString taskNo,idx,encv)],[]),iworld)
+	editorRep idx taskId _ f v encv maskv vermask mbEvent iworld
+		= (ServiceRep ([(toString taskId,idx,encv)],[]),iworld)
 	
 	refreshForm f l r v encv maskv vermask dirty
 		= case f l r (if (isValidValue vermask) (Just v) Nothing) dirty of
@@ -195,45 +203,42 @@ where
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = taskException (SharedException (fromError err))
 
-workOn :: !ProcessId -> Task WorkOnProcessState
-workOn (SessionProcess sessionId)
-	= abort "workOn applied to session process"
-workOn processId
+workOn :: !TaskId -> Task WorkOnProcessState
+workOn target=:(TaskId topNo taskNo)
 	= mkTask init edit eval
 where
-	init taskNr iworld = (TCEmpty, iworld)
+	init taskId iworld
+		= (TCEmpty taskId, iworld)
 	
-	edit taskNr event _ iworld
+	edit event context iworld
 		//Load instance
-		# (mbContext,iworld)	= loadTaskInstance processId iworld
-		| isError mbContext		= (TCEmpty, iworld)
+		# (mbContext,iworld)	= loadTaskInstance (Right topNo) iworld
+		| isError mbContext		= (context, iworld)
 		//Apply event to instance
 		# (mbContext,iworld)	= editInstance (Just event) (fromOk mbContext) iworld
 		//Store instance
-		| isError mbContext		= (TCEmpty, iworld)
+		| isError mbContext		= (context, iworld)
 		# iworld				= storeTaskInstance (fromOk mbContext) iworld
-		= (TCEmpty, iworld)
+		= (context, iworld)
 		
-	eval taskNr eEvent cEvent tuiTaskNr (RepAsTUI layout) _ iworld=:{evalStack}
+	eval eEvent cEvent (RepAsTUI target layout) (TCEmpty taskId) iworld=:{evalStack}
 		//Check for cycles
-		| isMember processId evalStack
+		| isMember taskId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
 		//Load instance
-		# (mbContext,iworld)		= loadTaskInstance processId iworld
+		# (mbContext,iworld)		= loadTaskInstance (Right topNo) iworld
 		| isError mbContext	
 			//If the instance can not be found, check if it was only just added by an
 			//appendTask in the same session. If so, create a temporary result and trigger
 			//reevaluation.
-			# (found,iworld)	= checkIfAddedGlobally processId iworld
+			# (found,iworld)	= checkIfAddedGlobally topNo iworld
 			| found
-				= (TaskInstable Nothing (TUIRep (Just (stringDisplay "Task finished"),[],[])) TCEmpty, {iworld & readShares = Nothing})
+				= (TaskInstable Nothing (TUIRep (Just (stringDisplay "Task finished"),[],[])) (TCEmpty taskId), {iworld & readShares = Nothing})
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
-		# target = case processId of
-			(WorkflowProcess procNo)	= [procNo]
-			(EmbeddedProcess _ taskId)	= reverse (taskNrFromString taskId)
-		# (mbResult,context,iworld)	= evalInstance target eEvent cEvent True (fromOk mbContext) iworld
+		# subTarget  = if (taskNo == 0) Nothing (Just (TaskId topNo taskNo)) 
+		# (mbResult,context,iworld)	= evalInstance eEvent cEvent subTarget True (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result
@@ -244,13 +249,13 @@ where
 					(TaskStable _ rep _)			= (WOFinished, rep, iworld)
 					(TaskException _ err)			= (WOExcepted, TUIRep (Just (stringDisplay ("Task excepted: " +++ err)), [], []), iworld)
 				= case result of
-					WOFinished	= (TaskStable WOFinished rep TCEmpty, iworld)
-					_			= (TaskInstable (Just result) rep TCEmpty, iworld)
+					WOFinished	= (TaskStable WOFinished rep (TCEmpty taskId), iworld)
+					_			= (TaskInstable (Just result) rep (TCEmpty taskId), iworld)
 				
-	checkIfAddedGlobally (WorkflowProcess procNo) iworld=:{parallelControls,currentUser}
-		= case 'Map'.get (toString topLevelTasks) parallelControls of
+	checkIfAddedGlobally topNo iworld=:{parallelControls,currentUser}
+		= case 'Map'.get (TaskId 0 0) parallelControls of
 			Just (_,controls)
-				= (isMember procNo [i \\ AppendTask i currentUser _ <- controls], iworld)
+				= (isMember topNo [i \\ AppendTask i currentUser _ <- controls], iworld)
 			_
 				= (False,iworld)
 	checkIfAddedGlobally _ iworld = (False,iworld)
@@ -258,24 +263,24 @@ where
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval
 where
-	eval taskNr iworld=:{IWorld|world}
-		= (TaskStable Void NoRep TCEmpty, {IWorld|iworld & world = fun world})
+	eval taskId iworld=:{IWorld|world}
+		= (TaskStable Void NoRep (TCEmpty taskId), {IWorld|iworld & world = fun world})
 		
 accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
 accWorld fun = mkInstantTask eval
 where
-	eval taskNr iworld=:{IWorld|world}
+	eval taskId iworld=:{IWorld|world}
 		# (res,world) = fun world
-		= (TaskStable res NoRep TCEmpty, {IWorld|iworld & world = world})
+		= (TaskStable res NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
 	
 accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 accWorldError fun errf = mkInstantTask eval
 where
-	eval taskNr iworld=:{IWorld|world}
+	eval taskId iworld=:{IWorld|world}
 		# (res,world)	= fun world
 		= case res of
 			Error e		= (taskException (errf e), {IWorld|iworld & world = world})
-			Ok v		= (TaskStable v NoRep TCEmpty, {IWorld|iworld & world = world})
+			Ok v		= (TaskStable v NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
 	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException

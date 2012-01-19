@@ -153,7 +153,7 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex
 							[	addMsg (verifyElementStr cmv) (sizedControl controlSize (TUIEditControl (TUIComboControl [gdc.gcd_name \\ gdc <- d.gtd_conses])
 										{ TUIEditControl
 										| name			= dp2s currentPath
-										, taskId		= maybe "" id taskId
+										, taskId		= fmap toString taskId
 										, value			= toJSON (if (isTouched cmv) (Just selectedConsIndex) Nothing)
 										, eventValue	= eventValue currentPath editEvent
 										}))
@@ -213,7 +213,7 @@ where
 		checkbox c = sizedControl controlSize (TUIEditControl TUIBoolControl 
 			{ name			= name
 			, value			= toJSON c
-			, taskId		= maybe "" id taskId
+			, taskId		= fmap toString taskId
 			, eventValue	= eventValue
 			})
 
@@ -274,7 +274,7 @@ where
 	mkControl name touched verRes _ vst=:{VSt|taskId,renderAsStatic}
 		# (options,sel)		= maybe ([],-1) (\(RadioChoice options mbSel) -> (map fst options,fromMaybe -1 mbSel) ) val
 		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
-		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = tuiOfEditor items, taskId = taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
+		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
 		= ([defaultDef (TUIContainer (defaultContainer itemDefs))], vst)
 
 
@@ -291,17 +291,14 @@ where
 gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom tuiF vst
 where
 	tuiF name touched verRes eventValue vst=:{VSt|taskId,renderAsStatic,controlSize}
-		//| renderAsStatic
-		//	=	([sizedControl controlSize (TUIShowControl control {TUIShowControl| value = toJSON v})], vst)
-		| otherwise
-			# viz = sizedControl controlSize (TUIEditControl (TUITreeControl (toTree val))
-													{ TUIEditControl
-													| name = name
-													, value = toJSON (fmap (\(TreeChoice _ mbSel) -> mbSel) (checkMask touched val))
-													, eventValue = eventValue
-													, taskId = fromMaybe "" taskId
-													})
-			= ([viz],vst)
+		# viz = sizedControl controlSize (TUIEditControl (TUITreeControl (toTree val))
+												{ TUIEditControl
+												| name = name
+												, value = toJSON (fmap (\(TreeChoice _ mbSel) -> mbSel) (checkMask touched val))
+												, eventValue = eventValue
+												, taskId = fmap toString taskId
+												})
+		= ([viz],vst)
 
 	toTree Nothing								= []
 	toTree (Just (TreeChoice (Tree nodes) _))	= fst (mkTree nodes 0)
@@ -328,7 +325,7 @@ where
 	mkControl name touched verRes _ vst=:{VSt|taskId,renderAsStatic}
 		# (options,sel)		= maybe ([],[]) (\(CheckMultiChoice options sel) -> (map fst options,sel) ) val
 		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
-		# itemDefs			= [defaultDef (TUICheckChoice {TUICheckChoice| items = tuiOfEditor items, taskId = taskId, name = name, index = i, checked = isMember i sel}) \\ items <- itemVis & i <- [0..]]
+		# itemDefs			= [defaultDef (TUICheckChoice {TUICheckChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = isMember i sel}) \\ items <- itemVis & i <- [0..]]
 		= ([defaultDef (TUIContainer (defaultContainer itemDefs))], vst)
 
 gVisualizeEditor{|Table|} val vst = visualizeControl(TUIGridControl (toGrid val)) (fmap (\(Table _ _ mbSel) -> mbSel) val) vst
@@ -346,7 +343,7 @@ where
 							{ TUIListContainer
 							| items = items
 							, name = Just name
-							, taskId = if renderAsStatic Nothing taskId}
+							, taskId = if renderAsStatic Nothing (fmap toString taskId)}
 			, width		= Nothing
 			, height	= Nothing
 			, margins	= Nothing
@@ -505,7 +502,7 @@ where
 													| name = name
 													, value = toJSON v
 													, eventValue = eventValue
-													, taskId = fromMaybe "" taskId
+													, taskId = fmap toString taskId
 													})
 			= ([addMsg verRes viz],vst)
 		

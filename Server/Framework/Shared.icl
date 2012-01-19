@@ -1,7 +1,7 @@
 implementation module Shared
 
 import StdTuple, StdFunc, Void, Maybe, Time, Error, GenUpdate, Util, Functor, StdList, Tuple
-from IWorld import :: IWorld(..), :: Control, :: ProcessId
+from IWorld import :: IWorld(..), :: Control
 from SharedCombinators import :: ReadOnlyShared
 
 readShared :: !(ReadWriteShared r w) !*IWorld -> (!MaybeErrorString r,!*IWorld)

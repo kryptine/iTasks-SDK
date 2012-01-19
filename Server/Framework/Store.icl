@@ -2,8 +2,8 @@ implementation module Store
 
 import StdString, StdArray, StdChar, StdClass, StdInt, StdBool, StdFile, StdList, StdTuple, StdOrdList, StdMisc, Void
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
-from IWorld			import :: IWorld(..), :: ProcessId, :: Control
-from SystemTypes	import :: DateTime, :: User, :: Config
+from IWorld			import :: IWorld(..), :: Control
+from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: TopNo, :: ParallelTaskMeta
 from Time 			import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 
@@ -192,52 +192,6 @@ where
 					= unlink dir fs world
 				| otherwise
 					= unlink dir fs world
-
-copyValues :: !StoreNamespace !StorePrefix !StorePrefix !*IWorld -> *IWorld
-copyValues namespace fromprefix toprefix iworld=:{build,dataDirectory}
-	//Copy items on disk
-	# iworld = appWorld (copyOnDisk fromprefix toprefix storeDir) iworld
-	= iworld
-where
-	storeDir = storePath dataDirectory build
-	newKey key	= toprefix +++ (key % (size fromprefix, size key))
-
-	copyOnDisk fromprefix toprefix location world
- 		# (res,world)	= readDirectory location world
- 		| isError res	= abort ("Cannot read store directory " +++ location +++ ": " +++ snd (fromError res))
- 		= copy fromprefix toprefix (fromOk res) world
-
-	copy fromprefix toprefix [] world = world
-	copy fromprefix toprefix [f:fs] world
-		| startsWith fromprefix f
-			# sfile	= storeDir </> f
-			# dfile = storeDir </> toprefix +++ (f % (size fromprefix, size f))
-			# world	= fcopy sfile dfile world
-			= copy fromprefix toprefix fs world
-		| otherwise
-			= copy fromprefix toprefix fs world
-
-	fcopy sfilename dfilename world
-		# (ok,sfile,world) = fopen sfilename FReadData world
-		| not ok = abort ("fcopy: Could not open " +++ sfilename +++ " for reading")
-		# (ok,dfile,world) = fopen dfilename FWriteData world
-		| not ok = abort ("fcopy: Could not open " +++ dfilename +++ " for writing")
-		# (sfile,dfile) = transfer sfile dfile
-		# (ok,world) = fclose sfile world
-		| not ok = abort ("fcopy: Could not close " +++ sfilename)
-		# (ok,world) = fclose dfile world
-		| not ok = abort ("fcopy: Could not close " +++ dfilename)
-		= world
-	where
-		transfer sfile dfile
-			# (ok,c,sfile) = freadc sfile
-			| ok
-				# dfile = fwritec c dfile
-				= transfer sfile dfile
-			| otherwise
-				# (err,sfile)= ferror sfile
-				| err		= abort "fcopy: read error during copy"
-				| otherwise = (sfile,dfile)	
 
 isValueChanged :: !StoreNamespace !StoreKey !Int !*IWorld -> (!Maybe Bool,!*IWorld)
 isValueChanged namespace key v0 iworld

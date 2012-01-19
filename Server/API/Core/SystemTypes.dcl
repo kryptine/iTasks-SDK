@@ -11,30 +11,30 @@ from HTML 			import class html
 from Time			import :: Timestamp
 from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
-from Task			import :: Task, :: TaskAttribute
+from Task			import :: Task, :: TaskId, :: TaskAttribute
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONEncode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONEncode		EmailAddress,ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONDecode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive gEq				EmailAddress, ProcessId, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
 derive JSONDecode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
 derive gEq				TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gHeaders			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gGridRows		ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVisualizeText	TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVisualizeEditor	TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gHeaders			TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gGridRows		TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gUpdate			TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gDefaultMask		TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVerify			TaskInstanceMeta, ProgressMeta, TaskStatus
 
-derive class iTask	Credentials, Config
+derive class iTask	Credentials, Config, TaskId
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 
@@ -49,15 +49,15 @@ instance toString Document
 instance toString User
 instance toString Username
 instance toString Password
+instance toString TaskId
 instance toString TaskPriority
 
 instance toString FormButton
-instance toString ProcessId
 instance toString (TaskList s)
 instance fromString Date
 instance fromString Time
 instance fromString DateTime
-instance fromString ProcessId
+instance fromString TaskId
 
 instance == Note
 instance == EUR
@@ -66,7 +66,7 @@ instance == Document
 instance == User
 instance == Username
 instance == Password
-instance == ProcessId
+instance == TaskId
 
 instance < EUR
 instance < USD
@@ -76,6 +76,7 @@ instance < DateTime
 instance < User
 instance < Username
 instance < Password
+instance < TaskId
 
 
 instance + Time		//Basic addition, righthand argument is treated as interval (seconds are added first)
@@ -294,10 +295,6 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	= TopLevelTaskList			//*The top-level list of task instances
 	| ParallelTaskList !TaskId	//*The list of task instances of a parallel task
 
-	
-//* String serialization of TaskNr values	
-:: TaskId :== String
-
 //* Meta-data of tasks
 :: ManagementMeta =
 	{ worker			:: !Maybe User				//* Who has to do the task? 
@@ -325,18 +322,31 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 	| Deleted		//* A process is deleted (never set, but returned when process can not be found)
 
 :: TaskInstanceMeta =
-	{ processId			:: !ProcessId
+	{ taskId			:: !TaskId
 	, taskMeta			:: !TaskMeta
 	, progressMeta		:: !ProgressMeta
 	, managementMeta	:: !ManagementMeta
 	, subInstances		:: ![TaskInstanceMeta]
 	} 
+/**
+* Information about a task in a parallel set.
+*/
+:: ParallelTaskMeta =
+	{ taskId			:: !TaskId								//* The task's index
+	, taskMeta			:: !TaskMeta
+	, progressMeta		:: !Maybe ProgressMeta
+	, managementMeta	:: !Maybe ManagementMeta
+	}
 
-:: ProcessId
-	= SessionProcess !String
-	| WorkflowProcess !Int
-	| EmbeddedProcess !Int !TaskId
+//* Each task can be identified by two numbers:
+// - A unique number identifying the top-level instance state
+// - A unique number the task within the instance state
+:: TaskId	= TaskId !TopNo !TaskNo
 
+:: TopNo	:== Int
+:: TaskNo	:== Int
+
+:: SessionId :== String
 
 //* tasks can have three levels of priority
 :: TaskPriority		= HighPriority					

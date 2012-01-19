@@ -40,30 +40,30 @@ currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
 currentProcesses = makeReadOnlyShared "SystemData_processes" read getVersion
 where
 	read iworld
-		# (list, iworld) = loadValue NS_WORKFLOW_INSTANCES "index" iworld
+		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
 		= (fromMaybe [] list, iworld) 
 	getVersion  iworld
-		# (version, iworld) = getStoreVersion NS_WORKFLOW_INSTANCES "index" iworld
+		# (version, iworld) = getStoreVersion NS_PERSISTENT_INSTANCES "index" iworld
 		= (fromMaybe 0 version, iworld)
 
 processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
 processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" read getVersion
 where
 	read iworld=:{currentUser}
-		# (list, iworld) = loadValue NS_WORKFLOW_INSTANCES "index" iworld
+		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
 		= (maybe [] (\l -> find currentUser l) list, iworld)
 	getVersion iworld
-		# (version, iworld) = getStoreVersion NS_WORKFLOW_INSTANCES "index" iworld
+		# (version, iworld) = getStoreVersion NS_PERSISTENT_INSTANCES "index" iworld
 		= (fromMaybe 0 version, iworld)
 
 	find user procs
-		= flatten [if (p.managementMeta.worker === Just user || p.managementMeta.worker === Nothing) [{p & subInstances = find user p.subInstances}] (find user p.subInstances) \\ p <- procs]
-
-currentProcessId :: ReadOnlyShared ProcessId
-currentProcessId = makeReadOnlyShared "SystemData_currentProcess" (\iworld=:{evalStack} -> (hd evalStack, iworld)) (\iworld -> (0,iworld))
+		= flatten [if (p.TaskInstanceMeta.managementMeta.worker === Just user || p.TaskInstanceMeta.managementMeta.worker === Nothing) [{p & subInstances = find user p.subInstances}] (find user p.subInstances) \\ p <- procs]
 
 currentUser :: ReadOnlyShared User
 currentUser = makeReadOnlyShared "SystemData_currentUser" (\iworld=:{currentUser} -> (currentUser,iworld)) (\iworld -> (0,iworld))
+
+currentTopTask :: ReadOnlyShared TaskId
+currentTopTask = makeReadOnlyShared "SystemData_currentTopTask" (\iworld=:{evalStack=[taskId:_]} -> (taskId,iworld)) (\iworld -> (0,iworld))
 		
 applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData_applicationName" appName (\iworld -> (0,iworld))

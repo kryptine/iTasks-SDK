@@ -7,25 +7,25 @@ from Time 		import :: Timestamp(..)
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONEncode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive gEq				EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONEncode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
 derive JSONDecode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
 derive gEq				TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gHeaders			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gGridRows		ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVisualizeText	TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVisualizeEditor	TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gHeaders			TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gGridRows		TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gUpdate			TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gDefaultMask		TaskInstanceMeta, ProgressMeta, TaskStatus
+derive gVerify			TaskInstanceMeta, ProgressMeta, TaskStatus
 
-derive class iTask	Credentials, Config
+derive class iTask	Credentials, Config, TaskId
 derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException, FileError
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
@@ -670,8 +670,7 @@ actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (sp
 instance toString (TaskList s)
 where
 	toString TopLevelTaskList			= "top"
-	toString (ParallelTaskList taskid)	= "parallel_" +++ taskid
-
+	toString (ParallelTaskList taskId)	= "parallel-" +++ toString taskId
 
 instance descr Void
 where initAttributes	_ = [] 
@@ -705,6 +704,24 @@ where initAttributes (Att a) = initAttributes a
 instance descr [d] | descr d
 where initAttributes list = flatten (map initAttributes list)
 
+instance toString TaskId
+where
+	toString (TaskId topNo taskNo)		= join "-" [toString topNo,toString taskNo]
+
+instance fromString TaskId
+where
+	fromString s = case split "-" s of
+		[topNo,taskNo]	= TaskId (toInt topNo) (toInt taskNo)
+		_				= TaskId 0 0
+
+instance == TaskId
+where
+	(==) (TaskId a0 b0) (TaskId a1 b1) = a0 == a1 && b0 == b1
+
+instance < TaskId
+where
+	(<) (TaskId a0 b0) (TaskId a1 b1) = if (a0 == a1) (b0 < b1) (a0 < a1)
+		
 instance toString TaskPriority
 where
 	toString LowPriority	= "LowPriority"
@@ -725,40 +742,7 @@ where
 	(==) Excepted	Excepted	= True
 	(==) Deleted	Deleted		= True
 	(==) _			_			= False
-	
-instance == ProcessId
-where
-	(==) (SessionProcess x)			(SessionProcess y)		= (x == y)
-	(==) (WorkflowProcess x)		(WorkflowProcess y)		= (x == y)
-	(==) (EmbeddedProcess x1 x2)	(EmbeddedProcess y1 y2)	= (x1 == y1) && (x2 == y2)
-	(==) _							_						= False
-
-instance toString ProcessId
-where
-	toString (SessionProcess id) = "s" +++ id
-	toString (WorkflowProcess id) = "w" +++ toString id
-	toString (EmbeddedProcess id target) = "e" +++ toString id +++ "-" +++ target
-
-instance fromString ProcessId
-where
-	fromString s
-		| size s == 0	= abort err
-		| s.[0] == 's'	= SessionProcess rest
-		| s.[0] == 'w'
-			# pid = toInt rest
-			| pid > 0	= WorkflowProcess pid
-			| otherwise	= abort err
-		| s.[0] == 'e'	= case split "-" rest of
-			[spid,target]
-				# pid = toInt spid
-				| pid > 0	= EmbeddedProcess pid target
-				| otherwise	= abort err
-			_
-				= abort err
-	where		
-		rest	= (subString 1 (size s) s)
-		err		= "Could not parse process id " +++ s
-	
+		
 instance toEmail EmailAddress where toEmail e = e
 instance toEmail String where toEmail s = EmailAddress s
 instance toEmail User

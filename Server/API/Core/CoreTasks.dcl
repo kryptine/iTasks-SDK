@@ -122,7 +122,7 @@ interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyS
 * @return The state of the process to work on
 * @throws WorkOnException
 */
-workOn :: !ProcessId -> Task WorkOnProcessState
+workOn :: !TaskId -> Task WorkOnProcessState
 
 /**
 * Evaluate a "World" function that does not yield any result once.

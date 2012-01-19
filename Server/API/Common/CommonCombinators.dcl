@@ -312,7 +312,7 @@ whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTas
 * Append a task to the set of top level tasks
 * 
 */
-appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
+appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 
 // Additional tuning shortcuts
 instance tune BeforeLayout

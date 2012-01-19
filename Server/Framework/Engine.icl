@@ -53,8 +53,10 @@ initIWorld sdkPath world
 	  ,latestEvent			= Nothing
 	  ,localDateTime		= localDateTime
 	  ,currentUser			= AnyUser
+	  ,nextTaskNo			= 0
 	  ,evalStack			= []
 	  ,parallelStates		= newMap
+	  ,parallelLists		= newMap
 	  ,parallelControls		= newMap
 	  ,readShares			= Nothing
 	  ,world				= world

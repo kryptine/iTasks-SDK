@@ -94,8 +94,7 @@ viewTask :: Task WorkOnProcessState
 viewTask
 	=	doAuthenticated (
 			enterInformation "Enter task identification" []
-		>>= \taskId ->
-			workOn (WorkflowProcess taskId)
+		>>= workOn 
 		)
 		
 externalTaskInterface :: [PublishedTask]
@@ -123,8 +122,8 @@ installInitialWorkflows iflows
 // Application specific types
 :: ClientState =
 	{ selectedWorkflow	:: !Maybe (!WorkflowId, !String)
-	, selectedProcess	:: !Maybe ProcessId
-	, openProcesses		:: ![ProcessId]
+	, selectedProcess	:: !Maybe TaskId
+	, openProcesses		:: ![TaskId]
 	}
 
 :: WorklistRow =
@@ -170,7 +169,7 @@ where
 viewWorkflowDetails :: !(TaskList ClientState) -> Task ParallelResult
 viewWorkflowDetails taskList = forever (
 		viewSharedInformation [Att (Title "Task description"),Att IconView] [DisplayView (GetShared view)] state
-	>>*	[WithResult (Action "Start workflow") canStart doStart]
+	>>*	[WithResult (Action "Add to worklist") canStart doStart]
 	)
 where
 	state = taskListState taskList
@@ -195,17 +194,17 @@ where
 viewWorklist :: !(TaskList ClientState) -> Task ParallelResult	
 viewWorklist taskList = forever
 	(	enterSharedChoice Void [ChoiceView (ChooseFromGrid,mkRow)] processes
-	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.processId)]
+	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskInstanceMeta.taskId)]
 	)
 where
 	state = taskListState taskList	
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
-	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentProcessId)
+	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentTopTask)
 	where
-		show ownPid {processId,progressMeta} = processId <> ownPid && progressMeta.status == Running
+		show ownPid {TaskInstanceMeta|taskId,progressMeta} = taskId <> ownPid && progressMeta.status == Running
 		pflatten procs = flatten [[p:pflatten p.subInstances] \\ p <- procs]
 
-	mkRow {TaskInstanceMeta|processId,progressMeta,managementMeta} =
+	mkRow {TaskInstanceMeta|progressMeta,managementMeta} =
 		{WorklistRow
 		|title = Nothing	
 		,priority = managementMeta.ManagementMeta.priority
@@ -213,11 +212,11 @@ where
 		,deadline = managementMeta.completeBefore
 		}
 		
-openTask taskList processId
-	=	appendOnce processId (workOnTask processId) taskList
+openTask taskList taskId
+	=	appendOnce taskId (workOnTask taskId) taskList
 
-workOnTask processId
-	= workOn processId >>* [WhenStable (const (return Remove)),AnyTime ActionClose (const (return Remove))]
+workOnTask taskId
+	= (workOn taskId >>| return Remove) -||- chooseAction [(ActionClose,Remove)]
 
 appendOnce identity task taskList
 	=	get (taskListMeta taskList)

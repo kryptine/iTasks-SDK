@@ -70,7 +70,7 @@ where
 	=						//updateManagerProperties pid (\m -> {ManagerProperties | m & status = Active})
 		/*>>| */			viewInformation ("Task activated","workflow is activated") [] False
 
-	delete (WorkflowProcess pid)
+	delete pid
 	=						removeTask pid topLevelTasks 
 		>>| 				viewInformation ("Task deleted","workflow is deleted") [] True				
 

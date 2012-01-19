@@ -31,16 +31,16 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (mbResult, Error "Fresh session, no previous user interface", iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
-					# (mbPreviousTui,iworld)	= loadTaskTUI (SessionProcess sessionId) iworld
+					# (mbPreviousTui,iworld)	= loadTaskTUI sessionId iworld
 					//Check if the version of the user interface the client has is still fresh
 					# outdated = case mbPreviousTui of
 						Ok (_,prevGuiVersion)		= guiVersion < prevGuiVersion
 						Error _						= False
 					| outdated
-						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) Nothing Nothing True iworld
+						# (mbResult, iworld) = evalSessionInstance sessionId Nothing Nothing True iworld
 						= (mbResult,mbPreviousTui,iworld)
 					| otherwise
-						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) editEvent commitEvent True iworld
+						# (mbResult, iworld) = evalSessionInstance sessionId editEvent commitEvent True iworld
 						= (mbResult,mbPreviousTui,iworld)
 			# (json, iworld) = case mbResult of
 					Error err
@@ -49,7 +49,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 					Ok (TaskStable _ _ _,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (TaskInstable _ mbCurrentTui context,SessionProcess sessionId)
+					Ok (TaskInstable _ mbCurrentTui context,sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
 							(Ok (previousTui,prevGuiVersion),TUIRep (Just currentTui,actions,attributes))
 								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
@@ -72,7 +72,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 						//Store gui for later incremental requests
 						# iworld = case mbCurrentTui of
-							TUIRep (Just currentTui,_,_)	= storeTaskTUI (SessionProcess sessionId) currentTui guiVersion iworld
+							TUIRep (Just currentTui,_,_)	= storeTaskTUI sessionId currentTui guiVersion iworld
 							_								= iworld
 						= (json,iworld)
 					_
@@ -83,7 +83,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			# (mbResult,iworld)	= case sessionParam of
 				""	= createSessionInstance task Nothing Nothing False iworld
 				sessionId
-					= evalSessionInstance (SessionProcess sessionId) Nothing Nothing False iworld
+					= evalSessionInstance sessionId Nothing Nothing False iworld
 			= case mbResult of
 				Ok (TaskException _ err,_)
 					= (errorResponse err, iworld)
@@ -125,12 +125,12 @@ where
 	versionParam		= paramValue "version" req
 	editEventParam		= paramValue "editEvent" req
 	editEvent			= case (fromJSON (fromString editEventParam)) of
-		Just (target,path,value)	= Just (ProcessEvent (reverse (taskNrFromString target)) (path,value))
-		_							= Nothing
+		Just (task,path,value)	= Just (TaskEvent (fromString task) (path,value))
+		_						= Nothing
 	commitEventParam	= paramValue "commitEvent" req
 	commitEvent			= case (fromJSON (fromString commitEventParam)) of
-		Just (target,action)		= Just (ProcessEvent (reverse (taskNrFromString target)) action)
-		_							= Nothing
+		Just (task,action)		= Just (TaskEvent (fromString task) action)
+		_						= Nothing
 
 	guiVersion			= toInt versionParam
 	
@@ -147,7 +147,7 @@ where
 	serviceBusyResponse rep actions
 		= JSONObject [("status",JSONString "busy"),("parts",parts)]
 	where
-		parts = toJSON [{ServiceResponsePart|taskId = taskId, partId = partId, value = value, actions = findActions taskId actions} \\ (taskId,partId,value) <- rep]
+		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, partId = partId, value = value, actions = findActions taskId actions} \\ (taskId,partId,value) <- rep]
 		findActions taskId actions
 			= [actionName action \\ (task,action,enabled) <- actions | enabled && task == taskId]
 	serviceDoneResponse (Container val :: Container a a)
@@ -175,6 +175,6 @@ where
 		stylefiles = ["/lib/ext-4.0.2a/resources/css/ext-all-gray.css"
 					 ,"/css/main.css"
 					 ,appName +++ ".css"]
-		//scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/app.js"]
-		scriptfiles = ["/lib/ext-4.0.2a/ext.js","/app-all.js"]
+		scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/app.js"]
+		//scriptfiles = ["/lib/ext-4.0.2a/ext.js","/app-all.js"]
 		

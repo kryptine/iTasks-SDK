@@ -33,11 +33,11 @@ callProcess cmd args
 	= mkTask init edit eval
 where
 	//Start the process
-	init :: TaskNr *IWorld -> (!TaskContextTree,!*IWorld)
-	init taskNr iworld =:{IWorld |build,dataDirectory,sdkDirectory,world}
-		# outfile 		= dataDirectory </> "tmp-" +++ build </> (iTaskId taskNr "callprocess")
+	init :: TaskId *IWorld -> (!TaskState,!*IWorld)
+	init taskId iworld =:{IWorld |build,dataDirectory,sdkDirectory,world}
+		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
 		# asyncArgs		=	[ "--taskid"
-							, toString (last taskNr)
+							, toString taskId 
 							, "--outfile"
 							, outfile
 							, "--process"
@@ -46,15 +46,15 @@ where
 							++ args
 		# (res,world)	= 'Process'.runProcess (sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")) asyncArgs Nothing world
 		= case res of
-			Error e	= (context (Left e), {IWorld|iworld & world = world})
-			Ok _	= (context (Right outfile), {IWorld|iworld & world = world})
+			Error e	= (state taskId (Left e), {IWorld|iworld & world = world})
+			Ok _	= (state taskId (Right outfile), {IWorld|iworld & world = world})
 	where
-		context :: (Either OSError FilePath) -> TaskContextTree
-		context val = TCBasic (toJSON val) False
+		state :: TaskId (Either OSError FilePath) -> TaskState
+		state taskId val = TCBasic taskId (toJSON val) False
 				
-	edit taskNr event context iworld = (context,iworld)
+	edit event context iworld = (context,iworld)
 	
-	eval taskNr eevent cevent tuiTaskNr repAs context=:(TCBasic encv stable) iworld=:{world}
+	eval eevent cevent repAs context=:(TCBasic taskId encv stable) iworld=:{world}
 		| stable
 			= (TaskStable (fromJust (fromJSON encv)) NoRep context, iworld)
 		| otherwise
@@ -65,10 +65,15 @@ where
 					| not exists
 						//Still busy
 						# rep = case repAs of
-							(RepAsTUI layout)	
-								# layoutfun	= fromMaybe DEFAULT_LAYOUT layout
-								= TUIRep (layoutfun [] [] []) //TODO: Add attributes
-							_					= ServiceRep ([(taskNrToString taskNr, 0, JSONNull)], [])
+							(RepAsTUI Nothing layout)	
+								= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) [] [] []) //TODO: Add attributes
+							(RepAsTUI (Just target) layout)
+								| target == taskId
+									= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) [] [] []) //TODO: Add attributes
+								| otherwise
+									= NoRep
+							_
+								= ServiceRep ([(toString taskId, 0, JSONNull)], [])
 						
 						= (TaskInstable Nothing rep context,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
@@ -82,7 +87,7 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = async.AsyncResult.exitcode 
-								= (TaskStable result NoRep (TCBasic (toJSON result) True), {IWorld|iworld & world = world})
+								= (TaskStable result NoRep (TCBasic taskId (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization
@@ -113,9 +118,9 @@ where
 		
 	initRPC = mkInstantTask eval
 	
-	eval taskNr iworld=:{IWorld|build,sdkDirectory,dataDirectory,world}
-		# infile  = dataDirectory </> "tmp-" +++ build </> (mkFileName taskNr "request")
-		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskNr "response")
+	eval taskId iworld=:{IWorld|build,sdkDirectory,dataDirectory,world}
+		# infile  = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "request")
+		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "response")
 		# (res,world) = writeFile infile request world
 		| isError res
 			= (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
@@ -127,10 +132,10 @@ where
 						, outfile
 						, url
 						]
-		= (TaskStable (cmd,args,outfile) NoRep TCEmpty, {IWorld|iworld & world = world})
+		= (TaskStable (cmd,args,outfile) NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
 	
-	mkFileName :: !TaskNr !String -> String
-	mkFileName taskNr part = iTaskId taskNr ("-rpc-" +++ part)
+	mkFileName :: !TaskId !String -> String
+	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
 
 curlError :: Int -> String
 curlError exitCode = 
@@ -213,9 +218,9 @@ curlError exitCode =
 sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
 sendEmail subject (Note body) recipients = mkInstantTask eval
 where
-	eval taskNr iworld=:{IWorld|currentUser,config}
+	eval taskId iworld=:{IWorld|currentUser,config}
 		# iworld = foldr (sendSingle config.smtpServer (toEmail currentUser)) iworld recipients
-		= (TaskStable recipients NoRep TCEmpty, iworld)
+		= (TaskStable recipients NoRep (TCEmpty taskId), iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

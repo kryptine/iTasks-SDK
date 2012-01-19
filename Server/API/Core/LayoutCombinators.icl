@@ -53,7 +53,7 @@ where
 		# guis				= [gui \\ (Just gui,_,_) <- parts]
 		# gui 				= addMenusToTUI menus (addButtonsToTUI buttons (paneled (kvGet TITLE_ATTRIBUTE attributes) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis))
 		= (Just gui, actions ++ partactions, attributes)
-		
+	
 tabbedLayout :: Layout
 tabbedLayout = layout
 where
@@ -69,6 +69,7 @@ where
 		# (close,actions)	= takeCloseTask actions
 		# (menus,actions)	= actionsToMenus actions
 		# tab				= toTab gui
+		# tab				= case (kvGet TASK_ATTRIBUTE attributes) of Nothing = tab; Just taskId = setTaskId taskId tab
 		# tab				= case (kvGet TITLE_ATTRIBUTE attributes) of Nothing = tab; Just title = setTitle title tab
 		# tab				= case (kvGet ICON_ATTRIBUTE attributes) of Nothing = tab; Just icon = setIconCls ("icon-" +++ icon) tab
 		# tab				= case close of Nothing = tab; Just task = setCloseAction (actionName ActionClose,task) tab
@@ -253,7 +254,17 @@ setPurpose purpose def=:{TUIDef|content} = case content of
 	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c &  purpose = Just purpose}}
 	_				= def
 
-setCloseAction :: !(!String,!TaskId) !TUIDef -> TUIDef
+setTaskId :: !String !TUIDef -> TUIDef
+setTaskId taskId def=:{TUIDef|content} = case content of
+	TUIEditControl t c	= {TUIDef|def & content = TUIEditControl t {TUIEditControl|c & taskId = Just taskId}}
+	TUITabContainer c	= {TUIDef|def & content = TUITabContainer {TUITabContainer|c & taskId = Just taskId}}
+	TUITabItem c		= {TUIDef|def & content = TUITabItem {TUITabItem|c & taskId = Just taskId}}
+	TUIListContainer c	= {TUIDef|def & content = TUIListContainer {TUIListContainer|c & taskId = Just taskId}}
+	TUIRadioChoice c	= {TUIDef|def & content = TUIRadioChoice {TUIRadioChoice|c & taskId = Just taskId}}
+	TUICheckChoice c	= {TUIDef|def & content = TUICheckChoice {TUICheckChoice|c & taskId = Just taskId}}
+	_					= def
+	
+setCloseAction :: !(!String,!String) !TUIDef -> TUIDef
 setCloseAction action def=:{TUIDef|content} = case content of
 	TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & closeAction = Just action}}
 	_				= def
@@ -290,9 +301,9 @@ toTab :: !TUIDef -> TUIDef
 toTab def=:{TUIDef|content} = case content of
 	//Coerce panels and containers to tabs
 	TUIPanel {TUIPanel|items,title,iconCls,padding,menus}
-		= defaultDef (TUITabItem {TUITabItem| items =items, title = fromMaybe "Untitled" title, iconCls = iconCls,padding = Nothing, menus = menus, closeAction = Nothing})
+		= defaultDef (TUITabItem {TUITabItem| taskId = Nothing, items = items, title = fromMaybe "Untitled" title, iconCls = iconCls,padding = Nothing, menus = menus, closeAction = Nothing})
 
-	_	= defaultDef (TUITabItem {TUITabItem| items = [def],title = "Untitled", iconCls = Nothing, padding = Nothing, menus = [], closeAction = Nothing})
+	_	= defaultDef (TUITabItem {TUITabItem| taskId = Nothing, items = [def],title = "Untitled", iconCls = Nothing, padding = Nothing, menus = [], closeAction = Nothing})
 	
 //GUI combinators						
 hjoin :: ![TUIDef] -> TUIDef
@@ -400,7 +411,7 @@ where
 		= { content	= TUIButton
 			{ TUIButton
 			| name			= actionName action
-			, taskId		= taskId
+			, taskId		= Just (toString taskId)
 			, disabled		= not enabled
 			, text			= actionName action
 			, iconCls 		= actionIcon action
@@ -445,7 +456,7 @@ where
 	createButton item sub taskId action enabled
 		= {TUIMenuButton
 			| text		= item
-			, target	= if (isEmpty sub) (Just taskId) Nothing
+			, target	= if (isEmpty sub) (Just (toString taskId)) Nothing
 			, action	= if (isEmpty sub) (Just (actionName action)) Nothing
 			, menu		= if (isEmpty sub) Nothing (Just {TUIMenu|items = addToItems sub taskId action enabled []})
 			, disabled	= if (isEmpty sub) (not enabled) False
@@ -455,7 +466,7 @@ where
 	createItem item sub taskId action enabled
 		=  	 {TUIMenuItem
 		   	 |text 		= item
-		   	 ,target	= if (isEmpty sub) (Just taskId) Nothing
+		   	 ,target	= if (isEmpty sub) (Just (toString taskId)) Nothing
 		   	 ,action	= if (isEmpty sub) (Just (actionName action)) Nothing
 		   	 ,menu		= if (isEmpty sub) Nothing (Just {TUIMenu|items = addToItems sub taskId action enabled []})
 		   	 ,disabled	= if (isEmpty sub) (not enabled) False

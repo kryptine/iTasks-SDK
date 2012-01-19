@@ -8,11 +8,11 @@ definition module TaskStore
 import Maybe, Error, SystemTypes, Task, TaskContext, TUIDefinition
 from Time import :: Timestamp
 
-newSessionId		:: !*IWorld -> (!ProcessId,	!*IWorld)
-newWorkflowId		:: !*IWorld -> (!ProcessId,	!*IWorld)
+newSessionId		:: !*IWorld -> (!SessionId,	!*IWorld)
+newTopNo			:: !*IWorld -> (!TopNo,	!*IWorld)
 
 storeTaskInstance	:: !TaskContext !*IWorld -> *IWorld
-loadTaskInstance	:: !ProcessId !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
+loadTaskInstance	:: !(Either SessionId TopNo) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 
-storeTaskTUI		:: !ProcessId !TUIDef !Int !*IWorld -> *IWorld
-loadTaskTUI			:: !ProcessId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)
+storeTaskTUI		:: !SessionId !TUIDef !Int !*IWorld -> *IWorld
+loadTaskTUI			:: !SessionId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)

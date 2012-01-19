@@ -6,5 +6,5 @@ from Task		import :: Event, :: EditEvent
 from GenUpdate	import :: UpdateMask
 import JSON
 
-derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta, UpdateMask
-derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta, UpdateMask
+derive JSONEncode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelItem, UpdateMask
+derive JSONDecode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelItem, UpdateMask

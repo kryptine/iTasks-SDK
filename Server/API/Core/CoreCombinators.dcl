@@ -100,17 +100,7 @@ parallel :: !d !a ![TaskContainer a] -> Task a | descr d & iTask a
 	= Keep
 	| Remove
 	| Stop
-	
-/**
-* Information about a task in a parallel set.
-*/
-:: ParallelTaskMeta =
-	{ index				:: !Int									//* The task's index
-	, taskId			:: !TaskId
-	, taskMeta			:: !TaskMeta
-	, progressMeta		:: !Maybe ProgressMeta
-	, managementMeta	:: !Maybe ManagementMeta
-	}					
+					
 /**
 * Get the shared state of a task list
 */
@@ -131,7 +121,7 @@ appendTask :: !(TaskContainer s) !(TaskList s)	-> Task Int | TC s
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !Int !(TaskList s)				-> Task Void | TC s
+removeTask :: !TaskId !(TaskList s)				-> Task Void | TC s
 
 /**
 * Execute a task with the identity of the given user

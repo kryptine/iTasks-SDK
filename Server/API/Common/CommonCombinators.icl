@@ -5,8 +5,8 @@ implementation module CommonCombinators
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text, Time, Tuple, List
 import Util, Either, GenVisualize, GenUpdate
 from StdFunc			import id, const, o
-from SystemTypes		import :: ProcessId, :: User(..), :: Note(..)
-from TaskContext		import :: TaskContextTree(..), :: SubTaskId, :: SubTaskOrder, :: SubTaskContext, :: ParallelMeta
+from SystemTypes		import :: User(..), :: Note(..)
+from TaskContext		import :: TaskState(..), :: ParallelMeta, :: ParallelContext, :: ParallelItem
 from SharedCombinators	import mapShared, :: Shared, :: ReadWriteShared
 from SystemData			import randomInt, topLevelTasks
 
@@ -233,8 +233,8 @@ whileUnchanged share task
 		)
 	<! isJust) >>= \(Just r) -> return r
 	
-appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
-appendTopLevelTask props task = appendTask (Detached props, \_ -> task @ const Remove) topLevelTasks @ WorkflowProcess
+appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
+appendTopLevelTask props task = appendTask (Detached props, \_ -> task @ const Remove) topLevelTasks @ \topNo -> (TaskId topNo 0)
 
 instance tune BeforeLayout
 where tune (BeforeLayout f) task = tune (ModifyLayout (\l pa0 ac0 at0 -> let (pa1,ac1,at1) = f (pa0,ac0,at0) in l pa1 ac1 at1)) task

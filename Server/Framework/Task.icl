@@ -2,7 +2,7 @@ implementation module Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass
-from TaskContext		import :: TaskContextTree(..), :: SubTaskContext, :: SubTaskId, :: SubTaskOrder, :: ParallelMeta
+from TaskContext		import :: TaskState(..), :: ParallelMeta, :: ParallelContext, :: ParallelItem
 from LayoutCombinators	import :: Layout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
@@ -15,72 +15,24 @@ mkTask initFun editFun evalFun =
 	, layout			= Nothing
 	}
 	
-mkInstantTask :: (TaskNr *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask a
+mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask a
 mkInstantTask iworldfun =
 	{ Task
-	| initFun			= \_ iworld -> (TCEmpty,iworld)
-	, editFun			= \_ _ context iworld -> (context,iworld)
+	| initFun			= \taskId iworld		-> (TCEmpty taskId,iworld)
+	, editFun			= \_ context iworld		-> (context,iworld)
 	, evalFun			= evalOnce iworldfun
 	, layout			= Nothing
 	}
 where
-	evalOnce f taskNo _ _ _ _ context=:(TCBasic enc True) iworld = case fromJSON enc of
-		(Just res)	= (TaskStable res NoRep context, iworld)
-		Nothing		= (taskException "Corrupt task result", iworld)
-	evalOnce f taskNo _ _ _ _ _ iworld = case f taskNo iworld of
-		(TaskStable res _ _, iworld)	= (TaskStable res NoRep (TCBasic (toJSON res) True), iworld)
+	evalOnce f _ _ _ context=:(TCEmpty taskId) iworld = case f taskId iworld of
+		(TaskStable res _ _, iworld)	= (TaskStable res NoRep (TCBasic taskId (toJSON res) True), iworld)
 		(TaskException e s, iworld)		= (TaskException e s, iworld)
 		(_,iworld)						= (taskException "Instant task did not complete instantly", iworld)
 
-instance iTaskId TaskNr
-where
-	iTaskId :: !TaskNr !String -> String
-	iTaskId tasknr postfix = iTaskId (taskNrToString tasknr) postfix
-
-instance iTaskId TaskId
-where
-	iTaskId :: !TaskId !String -> String
-	iTaskId taskid postfix
-		# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
-		| postfix == ""		= "iTask_" +++ taskid 
-		| otherwise			= "iTask_" +++ taskid +++ "-" +++ postfix
-		
-taskNrToString :: !TaskNr -> String
-taskNrToString [] 		= ""
-taskNrToString [i] 		= toString i
-taskNrToString [i:is] 	= taskNrToString is +++ "." +++ toString i 
-
-taskNrFromString :: !String -> TaskNr
-taskNrFromString "" 		= []
-taskNrFromString string	= reverse (parseTaskNr` (fromString string))
-where
-	parseTaskNr` :: ![Char] -> TaskNr
-	parseTaskNr` [] = []
-	parseTaskNr` list 
-	# (front,end)	= span (\c -> c <> '.') list
-	=  [toInt (toString  front) : parseTaskNr` (stl end)]
-
-	toString :: [Char] -> String
-	toString list = {c \\ c <- list}
-
-	stl :: [Char] -> [Char]
-	stl [] = []
-	stl xs = tl xs
-
-stepEvent :: !Int !(Maybe (Event e)) -> Maybe (Event e)
-stepEvent _ (Just (LuckyEvent e)) = Just (LuckyEvent e)
-stepEvent i (Just (TaskEvent [s:ss] e))
-	| s == i	= Just (TaskEvent ss e)
-				= Nothing
-stepEvent i (Just (ProcessEvent s e))	= Just (ProcessEvent s e)
-stepEvent _ _ 							= Nothing
-
-stepTarget :: !Int !ReversedTaskNr -> ReversedTaskNr
-stepTarget i []		= []
-stepTarget i [t:ts]	
-	| i == t			= ts
-	| otherwise			= []
-
+	evalOnce f _ _ _ context=:(TCBasic taskId enc True) iworld = case fromJSON enc of
+		(Just res)	= (TaskStable res NoRep context, iworld)
+		Nothing		= (taskException "Corrupt task result", iworld)
+	
 JSONEncode{|Task|} _ tt = [dynamicJSONEncode tt]		
 JSONDecode{|Task|} _ [tt:c] = (dynamicJSONDecode tt,c)
 JSONDecode{|Task|} _ c = (Nothing,c)
@@ -107,8 +59,8 @@ gVisualizeText{|Task|} _ _ _ = ["<Task>"]
 gVisualizeEditor{|Task|} _ _ _ _ _ vst = (NormalEditor [stringDisplay "<Task>"],vst)
 
 gHeaders{|Task|} _ = (undef, ["Task"])
-gGridRows{|Task|} _ _ _ _ = Nothing	
-gEq{|Task|} _ _ _ = True // tasks are always equal
+gGridRows{|Task|} _ _ _ _	= Nothing	
+gEq{|Task|} _ _ _			= True // tasks are always equal??
 
 gGetRecordFields{|Task|} _ _ _ fields = fields
 gPutRecordFields{|Task|} _ t _ fields = (t,fields)

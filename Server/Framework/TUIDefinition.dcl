@@ -5,8 +5,8 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
-from SystemTypes	import	:: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Action
-from Task			import	:: TaskAction
+from SystemTypes	import	:: Document, :: DocumentId, :: Hotkey, :: Action
+from Task			import	:: TaskAction, :: TaskId
 
 :: TUIDef =	{ content	:: !TUIDefContent
 			, width		:: !Maybe TUISize
@@ -57,7 +57,7 @@ from Task			import	:: TaskAction
 :: TUIEditControl =
 	{ name			:: !String
 	, value			:: !JSONNode
-	, taskId		:: !TaskId
+	, taskId		:: !Maybe String
 	, eventValue	:: !Maybe JSONNode
 	}
 :: TUIShowControl =
@@ -107,17 +107,18 @@ from Task			import	:: TaskAction
 	, baseCls			:: !Maybe String
 	}		
 :: TUITabContainer =
-	{ taskId			:: !Maybe TaskId
+	{ taskId			:: !Maybe String
 	, active			:: !Int
 	, items				:: ![TUITabItem]
 	}
 :: TUITabItem =
-	{ items				:: ![TUIDef] 
+	{ taskId			:: !Maybe String
+	, items				:: ![TUIDef] 
 	, title				:: !String
 	, iconCls			:: !Maybe String
 	, padding			:: !Maybe Int
 	, menus				:: ![TUIMenuButton]
-	, closeAction		:: !Maybe (!String,!TaskId)
+	, closeAction		:: !Maybe (!String,!String)
 	}
 :: TUIBorderContainer =
 	{ direction			:: !TUIDirection
@@ -133,7 +134,7 @@ from Task			import	:: TaskAction
 	}
 :: TUIListContainer =
 	{ items			:: ![TUIListItem]
-	, taskId		:: !Maybe TaskId
+	, taskId		:: !Maybe String
 	, name			:: !Maybe String
 	}
 :: TUIListItem =
@@ -146,20 +147,20 @@ from Task			import	:: TaskAction
 	}
 :: TUIRadioChoice =
 	{ items			:: ![TUIDef]
-	, taskId		:: !Maybe TaskId
+	, taskId		:: !Maybe String
 	, name			:: !String
 	, index			:: !Int
 	, checked		:: !Bool
 	}
 :: TUICheckChoice =
 	{ items			:: ![TUIDef]
-	, taskId		:: !Maybe TaskId
+	, taskId		:: !Maybe String
 	, name			:: !String
 	, index			:: !Int
 	, checked		:: !Bool
 	}
 :: TUIButton =
-	{ taskId		:: !TaskId
+	{ taskId		:: !Maybe String
 	, name			:: !String
 	, text			:: !String
 	, disabled		:: !Bool

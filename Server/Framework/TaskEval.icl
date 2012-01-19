@@ -6,10 +6,9 @@ import SystemTypes, IWorld, Task, TaskContext
 import LayoutCombinators
 
 from CoreCombinators	import :: TaskContainer(..), :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelResult
-from SystemTypes		import :: ProcessId(..)
 from TaskStore			import newSessionId, loadTaskInstance, storeTaskInstance
 
-from Map		import qualified fromList, get, put
+from Map				import qualified fromList, get, put
 import iTaskClass
 
 ITERATION_THRESHOLD :== 10
@@ -24,7 +23,7 @@ setExcepted :: !ProgressMeta  -> ProgressMeta
 setExcepted meta = {meta & status = Excepted}
 
 getTaskMeta	:: !TaskRep -> [(!String,!String)]
-getTaskMeta NoRep = []
+getTaskMeta NoRep				= []
 getTaskMeta (TUIRep (_,_,attr))	= attr
 getTaskMeta (ServiceRep _)		= [] //TODO
 
@@ -33,136 +32,118 @@ createTaskContainer task = (dynamic (Container task) :: Container (Task a^) a^)
 
 createValueContainer :: a -> Dynamic | iTask a
 createValueContainer val = (dynamic (Container val) :: Container a^ a^)
- 	
-processNo :: !ProcessId -> Int
-processNo (SessionProcess _)		= 0
-processNo (WorkflowProcess no)		= no
-processNo (EmbeddedProcess no _)	= no 
 
-createContext :: !ProcessId !Dynamic !ManagementMeta !User !*IWorld -> (!TaskContext, !*IWorld)
-createContext processId container=:(Container task :: Container (Task a) a) mmeta user iworld=:{IWorld|localDateTime}
-	# (tcontext,iworld) = task.initFun (taskNo processId) iworld		
-	# pmeta = {issuedAt = localDateTime, issuedBy = user, status = Running, firstEvent = Nothing, latestEvent = Nothing}
-	= (TaskContext processId pmeta mmeta [] (TTCRunning container tcontext),iworld)
+createContext :: !(Either SessionId TopNo) !Dynamic !ManagementMeta !User !*IWorld -> (!TaskContext, !*IWorld)
+createContext topId container=:(Container task :: Container (Task a) a) mmeta user iworld =:{IWorld|localDateTime}
+	# taskId				= case topId of
+		Left _		= TaskId 0 0
+		Right topNo	= TaskId topNo 0
+	# (tcontext,iworld) 	= task.initFun taskId {iworld & nextTaskNo = 1, evalStack = [taskId]}		
+	# (nextTaskNo,iworld)	= getNextTaskNo iworld 
+	# pmeta	 = {issuedAt = localDateTime
+			   ,issuedBy = user
+			   , status  = Running
+			   , firstEvent = Nothing
+			   , latestEvent = Nothing
+			   }
+	= (TaskContext topId nextTaskNo pmeta mmeta [] (TTCRunning container tcontext),iworld)
 where
-	taskNo (WorkflowProcess pid)= [pid]
-	taskNo (SessionProcess _)	= [0]
-
-
+	getNextTaskNo iworld=:{nextTaskNo} = (nextTaskNo,iworld)
+	
 editInstance :: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-editInstance editEvent context=:(TaskContext processId pmeta mmeta tmeta tcontext) iworld
+editInstance editEvent context=:(TaskContext topId nextTaskNo pmeta mmeta tmeta tcontext) iworld=:{evalStack}
 	= case tcontext of
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
-			# editFun			= task.editFun
-			# procNo			= processNo processId
-			# taskNr			= [procNo]
-			# (scontext,iworld) = case editEvent of
-				Just (ProcessEvent [p:steps] event)
-					| p == procNo
-						= editFun taskNr (TaskEvent steps event) scontext iworld
-					| otherwise	
-						= editFun taskNr (ProcessEvent [p:steps] event) scontext iworld
-				Just (ProcessEvent steps event)
-					= editFun taskNr (ProcessEvent steps event) scontext iworld
-				Just (LuckyEvent event)
-					= editFun taskNr (LuckyEvent event) scontext iworld
-				_
-					= (scontext, iworld)
-			= (Ok (TaskContext processId pmeta mmeta [] (TTCRunning container scontext)), iworld)
+			# taskId					= case topId of
+				(Left _)		= TaskId 0 0
+				(Right topNo)	= TaskId topNo 0
+				
+			# (scontext,iworld)	= case editEvent of
+				Just event	= task.editFun event scontext {iworld & evalStack = [taskId:evalStack]}
+				_			= (scontext,iworld)
+			# iworld		= {iworld & evalStack = evalStack}
+			= (Ok (TaskContext topId nextTaskNo pmeta mmeta tmeta (TTCRunning container scontext)), iworld)
 		_
 			= (Ok context, iworld)
 
-
 //Evaluate the given context and yield the result of the main task indicated by target
-evalInstance :: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !TaskContext  !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
-evalInstance target editEvent commitEvent genGUI context=:(TaskContext processId pmeta mmeta _ tcontext) iworld=:{evalStack}
+evalInstance :: !(Maybe EditEvent) !(Maybe CommitEvent) !(Maybe TaskId) !Bool !TaskContext  !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
+evalInstance editEvent commitEvent repTarget genGUI context=:(TaskContext topId curNextTaskNo pmeta mmeta _ tcontext) iworld=:{nextTaskNo,evalStack}
 	= case tcontext of
 		//Eval instance
 		TTCRunning container=:(Container task :: Container (Task a) a) scontext
-			# evalFun			= task.evalFun
-			# repAs				= if genGUI (RepAsTUI task.layout) RepAsService
-			# procNo			= processNo processId
-			# taskNo			= [procNo]
+			# evalFun					= task.evalFun
+			# repAs						= if genGUI (RepAsTUI repTarget task.layout) (RepAsService repTarget)
 			//Update current process id & eval stack in iworld
-			# iworld			= {iworld & evalStack = [processId:evalStack]} 
-			//Strip the process id and change number from the events and switch from ProcessEvent to TaskEvent if it matches
-			# commitEvent = case commitEvent of
-					Just (ProcessEvent [p:steps] action)
-						| p == procNo 						= Just (TaskEvent steps action)
-						| otherwise							= Just (ProcessEvent [p:steps] action)
-					Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
-					Just (LuckyEvent e)						= Just (LuckyEvent e)
-					_										= Nothing
-			# editEvent = case editEvent of
-				Just (ProcessEvent [p:steps] action)
-					| p == procNo 						= Just (TaskEvent steps action)
-					| otherwise							= Just (ProcessEvent [p:steps] action)
-				Just (ProcessEvent steps action)		= Just (ProcessEvent steps action)
-				Just (LuckyEvent e)						= Just (LuckyEvent e)
-				_										= Nothing
-			//Match processId in target path
-			# target			= (tl target)
-			//Apply task's eval function	
-			# (result,iworld)	= evalFun taskNo editEvent commitEvent target repAs scontext iworld 
-			//Restore current process id in iworld
-			# iworld			= {iworld & evalStack = evalStack}
+			# taskId					= case topId of
+				(Left _)		= TaskId 0 0
+				(Right topNo)	= TaskId topNo 0
+			# iworld					= {iworld & evalStack = [taskId:evalStack], nextTaskNo = curNextTaskNo} 
+			//Apply task's eval function and take updated nextTaskId from iworld
+			# (result,iworld)			= evalFun editEvent commitEvent repAs scontext iworld
+			# (updNextTaskNo,iworld)	= getNextTaskNo iworld
+			//Restore current process id & nextTask id in iworld
+			# iworld			= {iworld & nextTaskNo = nextTaskNo, evalStack = evalStack}
 			= case result of
 				TaskInstable _ rep scontext
-					# context		= TaskContext processId (setRunning pmeta) mmeta (getTaskMeta rep) (TTCRunning container scontext)
+					# context		= TaskContext topId updNextTaskNo (setRunning pmeta) mmeta (getTaskMeta rep) (TTCRunning container scontext)
 					= (Ok (TaskInstable Nothing rep scontext), context, iworld)
 				TaskStable val rep scontext
-					# context		= TaskContext processId (setFinished pmeta) mmeta (getTaskMeta rep) (TTCFinished (createValueContainer val))
+					# context		= TaskContext topId updNextTaskNo (setFinished pmeta) mmeta (getTaskMeta rep) (TTCFinished (createValueContainer val))
 					= (Ok (TaskStable (createValueContainer val) rep scontext), context, iworld)
 				TaskException e str
-					# context		= TaskContext processId (setExcepted pmeta) mmeta [] (TTCExcepted str)
+					# context		= TaskContext topId updNextTaskNo (setExcepted pmeta) mmeta [] (TTCExcepted str)
 					= (Ok (TaskException e str), context, iworld)
 		TTCRunning container scontext
 			= (Ok (taskException "Could not unpack task context"), context, iworld)
 		TTCFinished r
-			= (Ok (TaskStable r NoRep TCEmpty), context, iworld)
+			= (Ok (TaskStable r NoRep (TCEmpty (TaskId 0 0))), context, iworld)
 		TTCExcepted e
 			= (Ok (taskException e), context, iworld)
+where
+	getNextTaskNo iworld=:{nextTaskNo} = (nextTaskNo,iworld)
 
-createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
+createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld) |  iTask a
 createSessionInstance task editEvent commitEvent genGUI iworld
 	# (sessionId,iworld)	= newSessionId iworld
-	# (context, iworld)		= createContext sessionId (createTaskContainer task) noMeta AnyUser iworld
+	# (context, iworld)		= createContext (Left sessionId) (createTaskContainer task) noMeta AnyUser iworld
 	# (mbContext,iworld)	= editInstance editEvent context iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
 		Ok context
-			# (mbRes,iworld)		= iterateEval [0,0] editEvent commitEvent genGUI context iworld
+			# (mbRes,iworld)		= iterateEval editEvent commitEvent genGUI context iworld
 			= case mbRes of
 				Ok result	= (Ok (result, sessionId), iworld)
 				Error e		= (Error e, iworld)
 
-evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !ProcessId), !*IWorld)
+evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !SessionId), !*IWorld)
 evalSessionInstance sessionId editEvent commitEvent genGUI iworld
-	# (mbContext,iworld)	= loadTaskInstance sessionId iworld
+	# (mbContext,iworld)	= loadTaskInstance (Left sessionId) iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
 		Ok context
 			//Apply edit function only once
 			# (mbContext, iworld) = editInstance editEvent context iworld
 			= case mbContext of
-				Error e				= (Error e, iworld)
+				Error e	
+					= (Error e, iworld)
 				Ok context			
-					# (mbRes,iworld)	= iterateEval [0,0] editEvent commitEvent genGUI context iworld
+					# (mbRes,iworld)	= iterateEval editEvent commitEvent genGUI context iworld
 					= case mbRes of
-						Ok result	= (Ok (result, sessionId), iworld)
-						Error e		= (Error e, iworld)
+						Ok result		= (Ok (result, sessionId), iworld)
+						Error e			= (Error e, iworld)
 						
-iterateEval :: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-iterateEval target editEvent commitEvent genGUI context iworld = eval target editEvent commitEvent genGUI 1 context iworld
+iterateEval :: !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+iterateEval editEvent commitEvent genGUI context iworld = eval editEvent commitEvent genGUI 1 context iworld
 where
-	eval :: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !Int !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
-	eval target editEvent commitEvent genGUI iteration context iworld
+	eval :: !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !Int !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
+	eval editEvent commitEvent genGUI iteration context iworld
 		//Initialize the toplevel task list
-		# iworld 	= {iworld & parallelControls = 'Map'.fromList [(toString TopLevelTaskList,(0,[]))]}
+		# iworld 	= {iworld & parallelControls = 'Map'.fromList [(TaskId 0 0,(0,[]))]}
 		//Reset read shares list
 		# iworld			= {iworld & readShares = Just []} 
 		//Evaluate top instance	
-		# (mbResult, context, iworld) = evalInstance target editEvent commitEvent genGUI context iworld 
+		# (mbResult, context, iworld) = evalInstance editEvent commitEvent Nothing genGUI context iworld 
 		= case mbResult of
 			Error e
 				= (Error e, iworld)
@@ -175,7 +156,7 @@ where
 					(TaskInstable _ _ _)
 						| isNothing readShares && iteration < ITERATION_THRESHOLD
 							//The edit event is passed to each eval iteration, but the commit event only once
-							= eval target editEvent Nothing genGUI (iteration + 1) context iworld
+							= eval editEvent Nothing genGUI (iteration + 1) context iworld
 						| otherwise
 							# iworld	= storeTaskInstance context iworld
 							= (Ok result,iworld)
@@ -197,34 +178,29 @@ where
 				[c:cs]
 					//Evaluate and store the context only. We do not want any result	
 					# iworld		= {iworld & currentUser = issueUser c}
-					# (_,c,iworld)	= evalInstance (topTarget c) Nothing Nothing genGUI c iworld
+					# (_,c,iworld)	= evalInstance Nothing Nothing Nothing genGUI c iworld
 					# iworld		= storeTaskInstance c iworld
 					= processControls` cs {iworld & currentUser = currentUser}
 	
 	//Extracts controls and resets the toplevel task list
 	getControls iworld=:{parallelControls}
-		= case 'Map'.get (toString TopLevelTaskList) parallelControls of
-			Just (_,controls)	= (controls, {iworld & parallelControls = 'Map'.put (toString TopLevelTaskList)(0,[]) parallelControls})
+		= case 'Map'.get (TaskId 0 0) parallelControls of
+			Just (_,controls)	= (controls, {iworld & parallelControls = 'Map'.put (TaskId 0 0) (0,[]) parallelControls})
 			_					= ([],iworld)
 	
 	execControls [] queue iworld = (queue,iworld)
 	execControls [c:cs] queue iworld = case c of
-		AppendTask pid user (container :: TaskContainer Void)
+		AppendTask tid user (container :: TaskContainer Void)
 			//Make thread and properties
 			# (thread,managerProperties) = case container of
 				(Embedded,tfun)			= (createTaskContainer (tfun TopLevelTaskList),{noMeta & worker = Just user})
 				(Detached props,tfun)	= (createTaskContainer (tfun TopLevelTaskList), props)	
 			//Make context
-			# (context,iworld) = createContext (WorkflowProcess pid) thread managerProperties user iworld			
+			# (context,iworld) = createContext (Right tid) thread managerProperties user iworld			
 			= execControls cs (queue ++ [context]) iworld
 		//TODO: RemoveTask on the global list
 		_
 			= execControls cs queue iworld		
-	
-	topTarget (TaskContext processId _ _ _ _) = case processId of 
-			(SessionProcess _)			= [0]
-			(WorkflowProcess procNo)	= [procNo]
-			(EmbeddedProcess _ taskId)	= taskNrFromString taskId
-						
-	issueUser (TaskContext _ {ProgressMeta|issuedBy} _ _ _) = issuedBy
+		
+	issueUser (TaskContext _ _ {ProgressMeta|issuedBy} _ _ _) = issuedBy
 		

@@ -5,7 +5,7 @@ import TUIDefinition
 :: TUIUpdate
 	//Leaf updates
 	= TUISetValue		!TUIPath !JSONNode							// Set the value of a component
-	| TUISetTaskId		!TUIPath !TaskId							// Set taskId a component belongs to
+	| TUISetTaskId		!TUIPath !String							// Set taskId a component belongs to
 	| TUISetName		!TUIPath !String							// Set name of a component
 	| TUISetEnabled		!TUIPath !Bool								// Enable/disable form elements
 	| TUISetTitle		!TUIPath !(!String,!Maybe String)			// Set title & icon of a layout container

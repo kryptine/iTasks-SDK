@@ -32,8 +32,8 @@ Ext.define('itasks.container.TabContainer',{
 		this.callParent(arguments);
 	},
 	onTab: function(cnt,tab) {
-		if(cnt.taskId) {
-			this.fireEvent('edit',cnt.taskId,'top',cnt.items.indexOf(tab));
+		if(cnt.taskId && tab.taskId) {
+			this.fireEvent('edit',cnt.taskId,'top',tab.taskId);
 		}
 	},
 	insert: function(idx,tab) {

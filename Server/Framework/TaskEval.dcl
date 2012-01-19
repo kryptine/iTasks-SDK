@@ -3,8 +3,8 @@ definition module TaskEval
 * This module provides functions for creation, evaluation and removal of task/workflow instances.
 */
 
-from SystemTypes	import :: IWorld, :: ProcessId, :: TaskInstanceMeta, :: User
-from Task			import :: TaskNr, :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: ReversedTaskNr, :: TaskEvalFun, :: TaskRepTarget
+from SystemTypes	import :: IWorld, :: TaskInstanceMeta, :: User, :: TaskId, :: SessionId 
+from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: TaskEvalFun, :: TaskRepTarget
 
 import Maybe, JSON, Error
 import TaskContext, iTaskClass
@@ -19,7 +19,7 @@ import TaskContext, iTaskClass
 * @return The result of the targeted main task and the tasknr of the instance or an error
 * @return The IWorld state
 */
-createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !ProcessId), !*IWorld) |  iTask a
+createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld) |  iTask a
 
 /**
 * Evaluate a session task instance
@@ -33,8 +33,8 @@ createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionInstance :: !ProcessId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !ProcessId), !*IWorld)
+evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !SessionId), !*IWorld)
 
 //Helper functions: exported for use in workOn task
 editInstance	:: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
-evalInstance	:: !TaskNr !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
+evalInstance	:: !(Maybe EditEvent) !(Maybe CommitEvent) !(Maybe TaskId) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)

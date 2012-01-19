@@ -95,7 +95,7 @@ where
 		(TUITabContainer tcOld, TUITabContainer tcNew)
 			# activeTabUpdate	= update (\o n -> o.TUITabContainer.active == n.TUITabContainer.active) (\{TUITabContainer|active} -> Just active) TUISetActiveTab path tcOld tcNew
 			# itemUpdates 		= diffChildEditorDefinitions path (items tcOld) (items tcNew)
-			= Just (activeTabUpdate ++ itemUpdates)
+			= Just (itemUpdates ++ activeTabUpdate)
 			where
 				items tc = [{content = TUITabItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- tc.TUITabContainer.items]
 		(TUITabItem o, TUITabItem n)
@@ -170,8 +170,8 @@ sameName :: !TUIDefContent !TUIDefContent -> Bool
 sameName a b = (nameOf a) == (nameOf b)
 
 taskIdOf :: !TUIDefContent -> Maybe String
-taskIdOf (TUIEditControl _ {TUIEditControl|taskId})			= Just taskId
-taskIdOf (TUIButton {TUIButton|taskId})						= Just taskId
+taskIdOf (TUIEditControl _ {TUIEditControl|taskId})			= taskId
+taskIdOf (TUIButton {TUIButton|taskId})						= taskId
 taskIdOf (TUIListContainer {TUIListContainer|taskId})		= taskId
 taskIdOf _													= Nothing
 
