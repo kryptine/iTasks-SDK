@@ -35,9 +35,9 @@ where
 	actions list = [inParallel step \\ step <- selectionActions]
 	where
 		inParallel (AnyTime action taskf)
-			= AnyTime action (\_ -> (appendTask (Embedded, \_ -> (taskf Nothing @ const Remove) <<@ Window)) list)
+			= AnyTime action (\_ -> (appendTask Embedded (\_ -> (taskf Nothing @ const Remove) <<@ Window)) list)
 		inParallel (WithResult action pred taskf)
-			= WithResult action isJust (\(Just i) -> appendTask (Embedded, \_ -> (taskf i @ const Remove) <<@ Window) list)
+			= WithResult action isJust (\(Just i) -> appendTask Embedded (\_ -> (taskf i @ const Remove) <<@ Window) list)
 		
 itemShare :: (c -> i) (Shared [c]) i -> Shared (Maybe c) | gEq{|*|} i & gEq{|*|} c
 itemShare identify collection i = mapShared (toItem,fromItem) collection

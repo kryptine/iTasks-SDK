@@ -14,16 +14,16 @@ derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSi
 derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive JSONEncode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive JSONDecode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gEq				TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gVisualizeText	TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gVisualizeEditor	TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gHeaders			TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gGridRows		TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gUpdate			TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gDefaultMask		TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gVerify			TaskInstanceMeta, ProgressMeta, TaskStatus
+derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gVisualizeText	TaskListItem, ProgressMeta, TaskStatus
+derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskStatus
+derive gHeaders			TaskListItem, ProgressMeta, TaskStatus
+derive gGridRows		TaskListItem, ProgressMeta, TaskStatus
+derive gUpdate			TaskListItem, ProgressMeta, TaskStatus
+derive gDefaultMask		TaskListItem, ProgressMeta, TaskStatus
+derive gVerify			TaskListItem, ProgressMeta, TaskStatus
 
 derive class iTask	Credentials, Config, TaskId
 derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException, FileError
@@ -437,7 +437,7 @@ instance toString FormButton
 where
 	toString button = toString (pressed button)
 	where
-		pressed {state}= case state of
+		pressed {FormButton|state}= case state of
 			Pressed		= True
 			NotPressed	= False
 
@@ -667,11 +667,12 @@ actionName ActionClose			= "Close"
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))
 
-instance toString (TaskList s)
+instance toString (TaskListId s)
 where
-	toString TopLevelTaskList			= "top"
-	toString (ParallelTaskList taskId)	= "parallel-" +++ toString taskId
-
+	toString (TopLevelTaskList)					= "tasklist-top"
+	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
+	
+	
 instance descr Void
 where initAttributes	_ = [] 
 

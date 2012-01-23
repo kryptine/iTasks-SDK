@@ -86,7 +86,7 @@ where
 		insertWorkflow` [nodeP:pathR] [] = [Node (Left nodeP) (insertWorkflow` pathR [])]
 
 // SERVICE TASKS
-viewTaskList :: Task [TaskInstanceMeta]
+viewTaskList :: Task [TaskListItem]
 viewTaskList 
 	=	doAuthenticated (viewSharedInformation "Tasks" [] processesForCurrentUser)
 
@@ -166,7 +166,7 @@ where
 	toClientState (Just (Right (index,workflow))) state = Just {state & selectedWorkflow = Just (index,workflow.Workflow.description)} 
 	toClientState _ state = Just {state & selectedWorkflow = Nothing}
 		
-viewWorkflowDetails :: !(TaskList ClientState) -> Task ParallelResult
+viewWorkflowDetails :: !(SharedTaskList ClientState) -> Task ParallelResult
 viewWorkflowDetails taskList = forever (
 		viewSharedInformation [Att (Title "Task description"),Att IconView] [DisplayView (GetShared view)] state
 	>>*	[WithResult (Action "Add to worklist") canStart doStart]
@@ -191,25 +191,27 @@ where
 	fromContainer (WorkflowTask t) = t >>| return Keep
 	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Keep)
 		
-viewWorklist :: !(TaskList ClientState) -> Task ParallelResult	
+viewWorklist :: !(SharedTaskList ClientState) -> Task ParallelResult	
 viewWorklist taskList = forever
 	(	enterSharedChoice Void [ChoiceView (ChooseFromGrid,mkRow)] processes
-	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskInstanceMeta.taskId)]
+	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskListItem.taskId)
+		,WithResult (Action "Delete") (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks)]
 	)
 where
 	state = taskListState taskList	
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
 	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentTopTask)
 	where
-		show ownPid {TaskInstanceMeta|taskId,progressMeta} = taskId <> ownPid && progressMeta.status == Running
-		pflatten procs = flatten [[p:pflatten p.subInstances] \\ p <- procs]
+		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid && pmeta.status == Running
+		show ownPid _ = False
+		pflatten procs = flatten [[p:pflatten p.subItems] \\ p <- procs]
 
-	mkRow {TaskInstanceMeta|progressMeta,managementMeta} =
+	mkRow {TaskListItem|progressMeta=Just pmeta,managementMeta=Just mmeta} =
 		{WorklistRow
 		|title = Nothing	
-		,priority = managementMeta.ManagementMeta.priority
-		,date = progressMeta.issuedAt
-		,deadline = managementMeta.completeBefore
+		,priority = mmeta.ManagementMeta.priority
+		,date = pmeta.issuedAt
+		,deadline = mmeta.completeBefore
 		}
 		
 openTask taskList taskId
@@ -221,7 +223,7 @@ workOnTask taskId
 appendOnce identity task taskList
 	=	get (taskListMeta taskList)
 	>>= \opened ->	if (isEmpty [t \\ t <- opened | hasAttribute "identity" identity t])
-			(appendTask (Embedded, \_ -> task <<@ Attribute "identity" (toString identity)) taskList @ const Void)
+			(appendTask Embedded (\_ -> task <<@ Attribute "identity" (toString identity)) taskList @ const Void)
 			(return Void)
 where
 	hasAttribute attr value _// {ParallelTaskMeta|taskMeta={attributes}}	//PARALLEL NEEDS TO BE FIXED FIRST

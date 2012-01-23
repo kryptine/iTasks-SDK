@@ -13,6 +13,7 @@ newTopNo			:: !*IWorld -> (!TopNo,	!*IWorld)
 
 storeTaskInstance	:: !TaskContext !*IWorld -> *IWorld
 loadTaskInstance	:: !(Either SessionId TopNo) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
+deleteTaskInstance	:: !(Either SessionId TopNo) !*IWorld -> *IWorld
 
 storeTaskTUI		:: !SessionId !TUIDef !Int !*IWorld -> *IWorld
 loadTaskTUI			:: !SessionId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)

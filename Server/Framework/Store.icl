@@ -3,7 +3,7 @@ implementation module Store
 import StdString, StdArray, StdChar, StdClass, StdInt, StdBool, StdFile, StdList, StdTuple, StdOrdList, StdMisc, Void
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 from IWorld			import :: IWorld(..), :: Control
-from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: TopNo, :: ParallelTaskMeta
+from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: TopNo, :: TaskListItem
 from Time 			import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 

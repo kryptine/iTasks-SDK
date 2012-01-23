@@ -253,9 +253,9 @@ where
 					_			= (TaskInstable (Just result) rep (TCEmpty taskId), iworld)
 				
 	checkIfAddedGlobally topNo iworld=:{parallelControls,currentUser}
-		= case 'Map'.get (TaskId 0 0) parallelControls of
+		= case 'Map'.get (toString TopLevelTaskList) parallelControls of
 			Just (_,controls)
-				= (isMember topNo [i \\ AppendTask i currentUser _ <- controls], iworld)
+				= (isMember topNo [i \\ AppendTask i currentUser _ _ <- controls], iworld)
 			_
 				= (False,iworld)
 	checkIfAddedGlobally _ iworld = (False,iworld)

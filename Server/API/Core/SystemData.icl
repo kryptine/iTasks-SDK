@@ -33,10 +33,17 @@ currentDate :: ReadOnlyShared Date
 currentDate = makeReadOnlyShared "SystemData_currentDate" 'Util'.currentDate dateVersion
 
 // Workflow processes
-topLevelTasks :: (TaskList Void)
-topLevelTasks = TopLevelTaskList
-
-currentProcesses ::ReadOnlyShared [TaskInstanceMeta]
+topLevelTasks :: ReadWriteShared (TaskList Void) Void
+topLevelTasks = makeReadOnlyShared (toString TopLevelTaskList) read getVersion
+where
+	read iworld
+		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
+		= ({TaskList|listId = TopLevelTaskList, state = Void, items = fromMaybe [] list}, iworld)
+	getVersion  iworld
+		# (version, iworld) = getStoreVersion NS_PERSISTENT_INSTANCES "index" iworld
+		= (fromMaybe 0 version, iworld)
+		
+currentProcesses ::ReadOnlyShared [TaskListItem]
 currentProcesses = makeReadOnlyShared "SystemData_processes" read getVersion
 where
 	read iworld
@@ -46,7 +53,7 @@ where
 		# (version, iworld) = getStoreVersion NS_PERSISTENT_INSTANCES "index" iworld
 		= (fromMaybe 0 version, iworld)
 
-processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
+processesForCurrentUser	:: ReadOnlyShared [TaskListItem]
 processesForCurrentUser = makeReadOnlyShared "SystemData_processesForCurrentUser" read getVersion
 where
 	read iworld=:{currentUser}
@@ -57,7 +64,11 @@ where
 		= (fromMaybe 0 version, iworld)
 
 	find user procs
-		= flatten [if (p.TaskInstanceMeta.managementMeta.worker === Just user || p.TaskInstanceMeta.managementMeta.worker === Nothing) [{p & subInstances = find user p.subInstances}] (find user p.subInstances) \\ p <- procs]
+		= flatten [if (forWorker user p) [{p & subItems = find user p.subItems}] (find user p.subItems) \\ p <- procs]
+
+	forWorker user {managementMeta=Just {worker=Nothing}}		= True
+	forWorker user {managementMeta=Just {worker=Just worker}}	= worker == user
+	forWorker _ _												= False
 
 currentUser :: ReadOnlyShared User
 currentUser = makeReadOnlyShared "SystemData_currentUser" (\iworld=:{currentUser} -> (currentUser,iworld)) (\iworld -> (0,iworld))

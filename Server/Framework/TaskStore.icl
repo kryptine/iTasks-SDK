@@ -23,8 +23,8 @@ SESSION_INDEX			:== "index"
 namespace (Left _)		= NS_SESSION_INSTANCES
 namespace (Right _)		= NS_PERSISTENT_INSTANCES
 
-context_store (Left s)	= s +++ "-context"
-context_store (Right t) = toString t +++ "-context"
+state_store (Left s)	= s +++ "-state"
+state_store (Right t) = toString t +++ "-state"
 
 tui_store s				= s +++ "-tui"
 
@@ -47,22 +47,27 @@ newTopNo iworld
 storeTaskInstance :: !TaskContext !*IWorld -> *IWorld
 storeTaskInstance context=:(TaskContext topid _ _ _ _ _) iworld
 		//Store the context
-		# iworld = storeValue (namespace topid) (context_store topid) context iworld
-		| isPersistent topid
+		# iworld = storeValue (namespace topid) (state_store topid) context iworld
+		= case topid of
 			//Update the process index with the process information from this context	
-			= updatePersistentInstanceIndex (contextToInstanceMeta context) iworld
-		= iworld			
-where
-	isPersistent (Right _)	= True
-	isPersistent _			= False
+			Right _		= updatePersistentInstanceIndex (Left (stateToTaskListItem context)) iworld
+			_			= iworld			
 	
 loadTaskInstance :: !(Either SessionId TopNo) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 loadTaskInstance topid iworld
-	# (val,iworld) = loadValue (namespace topid) (context_store topid) iworld
+	# (val,iworld) = loadValue (namespace topid) (state_store topid) iworld
 	= (maybe (Error ("Could not load context of " +++ s topid)) Ok val, iworld)
 where
 	s (Left sid) = "session " +++ sid
 	s (Right topno) = "persistent task " +++ toString topno
+
+deleteTaskInstance :: !(Either SessionId TopNo) !*IWorld -> *IWorld
+deleteTaskInstance topid iworld
+	# iworld = deleteValue (namespace topid) (state_store topid) iworld
+	= case topid of
+		//Remove this instance from the process index
+		Right topno		= updatePersistentInstanceIndex (Right topno) iworld
+		_				= iworld
 	
 storeTaskTUI :: !SessionId !TUIDef !Int !*IWorld -> *IWorld
 storeTaskTUI sid def version iworld = storeValue NS_SESSION_INSTANCES (tui_store sid) (def,version) iworld
@@ -74,19 +79,23 @@ loadTaskTUI sid iworld
 		Just val	= (Ok val,iworld)
 		Nothing		= (Error ("Could not load tui of " +++ sid), iworld)
 
-updatePersistentInstanceIndex :: !TaskInstanceMeta !*IWorld -> *IWorld 
-updatePersistentInstanceIndex item iworld
+updatePersistentInstanceIndex :: !(Either TaskListItem TopNo) !*IWorld -> *IWorld 
+updatePersistentInstanceIndex v iworld
 	# (mbList,iworld)	= loadValue NS_PERSISTENT_INSTANCES PERSISTENT_INDEX iworld
-	# list 				= update item (fromMaybe [] mbList)
+	# list 				= case v of
+		Left item 	= update item (fromMaybe [] mbList)
+		Right id	= delete id (fromMaybe [] mbList)
 	# iworld			= storeValue NS_PERSISTENT_INSTANCES PERSISTENT_INDEX list iworld 
 	= iworld
 where
 	update item [] = [item]
-	update item [i:is] = if (item.TaskInstanceMeta.taskId == i.TaskInstanceMeta.taskId) [item:is] [i:update item is]
+	update item [i:is] = if (item.TaskListItem.taskId == i.TaskListItem.taskId) [item:is] [i:update item is]
+
+	delete id list = [ i \\ i <- list | i.TaskListItem.taskId <> TaskId id 0]
 	
-contextToInstanceMeta :: !TaskContext -> TaskInstanceMeta
-contextToInstanceMeta (TaskContext topid _ pmeta mmeta tmeta scontext)
-	= {taskId = taskId topid, taskMeta = tmeta, progressMeta = pmeta, managementMeta = mmeta, subInstances = tsubprocs scontext}
+stateToTaskListItem :: !TaskContext -> TaskListItem
+stateToTaskListItem (TaskContext topid _ pmeta mmeta tmeta scontext)
+	= {taskId = taskId topid, taskMeta = tmeta, progressMeta = Just pmeta, managementMeta = Just mmeta, subItems = tsubprocs scontext}
 where
 	taskId (Left session)	= TaskId 0 0
 	taskId (Right topNo)	= TaskId topNo 0
@@ -101,9 +110,8 @@ where
 	
 	subprocsp [] = []
 	subprocsp [{ParallelItem|taskId,progress,management,state}:subs]
-		= item ++ subprocsp subs
+		= [item:subprocsp subs]
 	where
 		fixme = []
-		item = case (progress,management) of
-			(Just p,Just m) = [{taskId = taskId, taskMeta = fixme, progressMeta = p, managementMeta = m, subInstances = subprocs state}]
-		  	_				= []
+		item = {taskId = taskId, taskMeta = fixme, progressMeta = progress, managementMeta = management, subItems = subprocs state}
+

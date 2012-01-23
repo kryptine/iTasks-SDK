@@ -71,7 +71,7 @@ where
 	where
 		control = taskListMeta tlist
 					
-	toView [_,{ParallelTaskMeta|progressMeta=Just p,managementMeta=Just m}]=
+	toView [_,{TaskListItem|progressMeta=Just p,managementMeta=Just m}]=
 		{ assignedTo	= m.ManagementMeta.worker
 		, priority		= m.ManagementMeta.priority
 		, issuedAt		= Display (Just p.ProgressMeta.issuedAt)
@@ -127,7 +127,7 @@ where
 		@> (prj,taskListState tlist)
 		>>= \a -> if (pred a)
 			(return Remove)
-			((appendTask (Embedded, checked pred task) tlist) @ const Remove)
+			((appendTask Embedded (checked pred task) tlist) @ const Remove)
 			
 	prj mba _ 			= Just mba
 	res (Just (Just a)) = Just a
@@ -234,7 +234,7 @@ whileUnchanged share task
 	<! isJust) >>= \(Just r) -> return r
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask props task = appendTask (Detached props, \_ -> task @ const Remove) topLevelTasks @ \topNo -> (TaskId topNo 0)
+appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Remove) topLevelTasks @ \topNo -> (TaskId topNo 0)
 
 instance tune BeforeLayout
 where tune (BeforeLayout f) task = tune (ModifyLayout (\l pa0 ac0 at0 -> let (pa1,ac1,at1) = f (pa0,ac0,at0) in l pa1 ac1 at1)) task

@@ -258,7 +258,7 @@ gVisualizeEditor {|Document|}	val vst = visualizeControl control val vst
 where
 	control = TUIDocumentControl (fromMaybe {Document|documentId = "",name = "", mime = "", size = 0} val)
 	
-gVisualizeEditor{|FormButton|} val vst = visualizeControl control (fmap (\b=:{state} -> (state,b)) val) vst
+gVisualizeEditor{|FormButton|} val vst = visualizeControl control (fmap (\b=:{FormButton|state} -> (state,b)) val) vst
 where
 	control
 		= TUIButtonControl	{ TUIButtonControl

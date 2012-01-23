@@ -6,7 +6,7 @@ definition module SystemData
 import Maybe, JSON
 from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
-from SystemTypes		import :: TaskInstanceMeta, :: Config, :: TaskId, :: TaskNo, :: TopNo
+from SystemTypes		import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: TopNo
 from Void				import :: Void
 from FilePath			import :: FilePath
 
@@ -26,10 +26,10 @@ currentTime				:: ReadOnlyShared Time
 currentDate				:: ReadOnlyShared Date
 
 // Processes
-topLevelTasks 			:: (TaskList Void)
+topLevelTasks 			:: ReadWriteShared (TaskList Void) Void
 
-currentProcesses		:: ReadOnlyShared [TaskInstanceMeta]
-processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
+currentProcesses		:: ReadOnlyShared [TaskListItem]
+processesForCurrentUser	:: ReadOnlyShared [TaskListItem]
 
 // Session
 currentUser				:: ReadOnlyShared User

@@ -201,7 +201,7 @@ gUpdate{|EUR|}					mode ust = basicUpdateSimple mode (EUR 0) ust
 gUpdate{|USD|}					mode ust = basicUpdateSimple mode (USD 0) ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode AnyUser ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
-gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
+gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton|b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
 gUpdate{|TreeChoice|} _ _		mode ust = updateChoice mode ust
 gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode ust

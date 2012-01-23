@@ -3,7 +3,7 @@ definition module IWorld
 from FilePath		import :: FilePath
 from Map			import :: Map
 from Maybe			import :: Maybe
-from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskNo, :: TaskId, :: ParallelTaskMeta
+from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType
 from Time			import :: Timestamp
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
@@ -18,13 +18,13 @@ from Time			import :: Timestamp
 					, currentUser			:: !User									// The current user
 					, nextTaskNo			:: !TaskNo									// The next task number to assign
 					, evalStack				:: ![TaskId]								// The stack of instances evaluating other instances through workOn
-					, parallelStates		:: !Map TaskId (!Int,!Dynamic)				// The set of shared state variables used during parallel task execution
-					, parallelLists			:: !Map TaskId (!Int,![ParallelTaskMeta])	// The set of shared tasklist meta data
-					, parallelControls		:: !Map TaskId (!Int,![Control])			// The set of controls for manipulating parallel task lists
+					, parallelStates		:: !Map String (!Int,!Dynamic)				// The set of shared state variables used during parallel task execution
+					, parallelLists			:: !Map String (!Int,![TaskListItem])		// The set of shared tasklist meta data
+					, parallelControls		:: !Map String (!Int,![Control])			// The set of controls for manipulating parallel task lists
 					, readShares			:: !Maybe [String]							// The IDs of shares from which was read
 					, world					:: !*World									// The outside world
 					}
 :: Control
-	= AppendTask		!Int !User !Dynamic /* :: (TaskContainer s) */		// append and additional task to be run in parallel as well
+	= AppendTask		!Int !User !ParallelTaskType !Dynamic 				// append and additional task to be run in parallel as well
 																			// The user that appended the task is used as identity upon the first evaluation of the task 
 	| RemoveTask		!TaskId												// remove the task with indicated id from the set

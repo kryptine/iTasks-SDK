@@ -13,98 +13,10 @@ from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 from Task			import :: Task, :: TaskId, :: TaskAttribute
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
-
-derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONEncode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONDecode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
-derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive JSONDecode		TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gEq				TaskInstanceMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gVisualizeText	TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gVisualizeEditor	TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gHeaders			TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gGridRows		TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gUpdate			TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gDefaultMask		TaskInstanceMeta, ProgressMeta, TaskStatus
-derive gVerify			TaskInstanceMeta, ProgressMeta, TaskStatus
-
-derive class iTask	Credentials, Config, TaskId
-derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
-instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
-
-instance toString Note
-instance toString EUR
-instance toString USD
-
-instance toString Date
-instance toString Time
-instance toString DateTime
-instance toString Document
-instance toString User
-instance toString Username
-instance toString Password
-instance toString TaskId
-instance toString TaskPriority
-
-instance toString FormButton
-instance toString (TaskList s)
-instance fromString Date
-instance fromString Time
-instance fromString DateTime
-instance fromString TaskId
-
-instance == Note
-instance == EUR
-instance == USD
-instance == Document
-instance == User
-instance == Username
-instance == Password
-instance == TaskId
-
-instance < EUR
-instance < USD
-instance < Time
-instance < Date
-instance < DateTime
-instance < User
-instance < Username
-instance < Password
-instance < TaskId
-
-
-instance + Time		//Basic addition, righthand argument is treated as interval (seconds are added first)
-instance + Date		//Basic addition, righthand argument is treated as interval (days are added first)
-instance + DateTime	//Basic addition, righthand argument is treated as interval
-instance + EUR
-instance + USD
-
-instance - Time		//Naive fieldwise subtraction
-instance - Date		//Naive fieldwise subtraction
-instance - DateTime	//Naive fieldwise subtraction
-instance - EUR
-instance - USD
-
-instance toInt EUR
-instance toInt USD
-instance zero EUR
-instance zero USD
-
-instance html Note
+from Shared			import :: ReadWriteShared
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress !String
-
-class toEmail r where toEmail :: !r -> EmailAddress
-instance toEmail EmailAddress
-instance toEmail String
-instance toEmail User
 
 // Uniform resource locators
 :: URL			= URL !String
@@ -136,7 +48,202 @@ instance toEmail User
 	, mime			:: !String					//*The mime type of the document
 	, size			:: !Int						//*The filesize in bytes
 	}
-:: DocumentId :== String
+:: DocumentId	:== String
+
+//* Meta-data of tasks
+:: TaskMeta		:==	[(!String,!String)]				//* Task meta data consists of untyped attributes
+
+:: ManagementMeta =
+	{ worker			:: !Maybe User				//* Who has to do the task? 
+	, role				:: !Maybe Role				//* What role does a worker need to do the task
+	, startAt			:: !Maybe DateTime			//* When is the task supposed to start
+	, completeBefore	:: !Maybe DateTime			//* When does the task need to be completed
+	, notifyAt			:: !Maybe DateTime			//* When would you like to be notified about the task
+	, priority			:: !TaskPriority			//* What is the current priority of this task?
+	}
+	
+:: ProgressMeta =
+	{ issuedAt			:: !DateTime				//* When was the task created
+	, issuedBy			:: !User					//* By whom was the task created
+	, status			:: !TaskStatus				//* Is a maintask active,suspended,finished or excepted
+	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
+	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
+	}
+		
+:: TaskStatus
+	= Running		//* A process which is currently running (active or suspended)
+	| Finished		//* A process terminated normally
+	| Excepted		//* A process terminated with an exception
+	| Deleted		//* A process is deleted (never set, but returned when process can not be found)
+
+//* Each task can be identified by two numbers:
+// - A unique number identifying the top-level state
+// - A unique number the task within the the state
+:: TaskId	= TaskId !TopNo !TaskNo
+:: TopNo	:== Int
+:: TaskNo	:== Int
+
+:: SessionId :== String
+
+//* Types for manipulating task lists
+
+:: TaskListId s
+	= TopLevelTaskList			//*The top-level list of task instances
+	| ParallelTaskList !TaskId	//*The list of task instances of a parallel task
+
+:: TaskList s =
+	{ listId	:: !(TaskListId s)
+	, state		:: !s
+	, items		:: ![TaskListItem]
+	}
+
+:: TaskListItem	=
+	{ taskId			:: !TaskId
+	, taskMeta			:: !TaskMeta
+	, managementMeta	:: !Maybe ManagementMeta	//Only for detached tasks
+	, progressMeta		:: !Maybe ProgressMeta		//Only for detached tasks
+	, subItems			:: ![TaskListItem]
+	}
+
+:: SharedTaskList s	:==	ReadWriteShared (TaskList s) s
+
+:: ParallelTaskType	
+	= Embedded 
+	| Detached !ManagementMeta
+
+:: ParallelTask a		:== (SharedTaskList a) -> Task ParallelResult
+
+//* When tasks in a a parallel set become stable, they must indicate whether they
+//* have to be kept in the set, removed, restarted or remove all tasks from the set
+:: ParallelResult	= Keep | Remove | Stop
+						
+//* Users	
+:: User
+	= AnyUser						//* Any not further specified person
+	| RootUser						//* The system super user
+	| RegisteredUser !UserDetails	//* A registered person of whom we know details
+	| NamedUser !String				//* A person identified by a username
+	| SessionUser !String			//* A person that is only identified by a session
+	
+:: UserDetails			=
+	{ username		:: !Username
+	, password		:: !Password
+	, displayName	:: !String
+	, emailAddress	:: !EmailAddress
+	, roles			:: !Maybe [Role]
+	}
+
+//* Authentication
+:: Credentials =
+	{ username	:: !Username
+	, password	:: !Password
+	}
+	
+:: Password		= Password !String
+:: Username		= Username !String
+
+:: Role			:== String
+
+//* Predefined exception types used by library tasks
+
+:: FileException		= FileException !FilePath !FileError
+:: ParseException		= CannotParse !String
+:: CallException		= CallFailed !OSError
+:: SharedException		= SharedException !String
+:: RPCException			= RPCException !String
+:: OSException			= OSException !OSError
+:: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
+
+derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive JSONEncode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive JSONDecode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gVisualizeText	TaskListItem, ProgressMeta, TaskStatus
+derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskStatus
+derive gHeaders			TaskListItem, ProgressMeta, TaskStatus
+derive gGridRows		TaskListItem, ProgressMeta, TaskStatus
+derive gUpdate			TaskListItem, ProgressMeta, TaskStatus
+derive gDefaultMask		TaskListItem, ProgressMeta, TaskStatus
+derive gVerify			TaskListItem, ProgressMeta, TaskStatus
+
+derive class iTask	Credentials, Config, TaskId
+derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
+instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
+
+instance toString Note
+instance toString EUR
+instance toString USD
+
+instance toString Date
+instance toString Time
+instance toString DateTime
+instance toString Document
+instance toString User
+instance toString Username
+instance toString Password
+instance toString TaskId
+instance toString TaskPriority
+
+instance toString FormButton
+instance toString (TaskListId s)
+instance fromString Date
+instance fromString Time
+instance fromString DateTime
+instance fromString TaskId
+
+instance == Note
+instance == EUR
+instance == USD
+instance == Document
+instance == User
+instance == Username
+instance == Password
+instance == TaskId
+
+instance < EUR
+instance < USD
+instance < Time
+instance < Date
+instance < DateTime
+instance < User
+instance < Username
+instance < Password
+instance < TaskId
+
+instance + Time		//Basic addition, righthand argument is treated as interval (seconds are added first)
+instance + Date		//Basic addition, righthand argument is treated as interval (days are added first)
+instance + DateTime	//Basic addition, righthand argument is treated as interval
+instance + EUR
+instance + USD
+
+instance - Time		//Naive fieldwise subtraction
+instance - Date		//Naive fieldwise subtraction
+instance - DateTime	//Naive fieldwise subtraction
+instance - EUR
+instance - USD
+
+instance toInt EUR
+instance toInt USD
+instance zero EUR
+instance zero USD
+
+instance html Note
+
+
+
+class toEmail r where toEmail :: !r -> EmailAddress
+instance toEmail EmailAddress
+instance toEmail String
+instance toEmail User
+
 
 //* Form buttons
 :: FormButton 		= 
@@ -290,63 +397,7 @@ fromFillWControlSize :: !(FillWControlSize .a) -> .a
 toFillHControlSize :: !.a -> FillHControlSize .a
 fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
-//* Represents lists of tasks (SHOULD BE ABSTRACT)
-:: TaskList s
-	= TopLevelTaskList			//*The top-level list of task instances
-	| ParallelTaskList !TaskId	//*The list of task instances of a parallel task
 
-//* Meta-data of tasks
-:: ManagementMeta =
-	{ worker			:: !Maybe User				//* Who has to do the task? 
-	, role				:: !Maybe Role				//* What role does a worker need to do the task
-	, startAt			:: !Maybe DateTime			//* When is the task supposed to start
-	, completeBefore	:: !Maybe DateTime			//* When does the task need to be completed
-	, notifyAt			:: !Maybe DateTime			//* When would you like to be notified about the task
-	, priority			:: !TaskPriority			//* What is the current priority of this task?
-	}
-	
-:: ProgressMeta =
-	{ issuedAt			:: !DateTime				//* When was the task created
-	, issuedBy			:: !User					//* By whom was the task created
-	, status			:: !TaskStatus				//* Is a maintask active,suspended,finished or excepted
-	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
-	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
-	}
-	
-:: TaskMeta :==	[(!String,!String)]					//* Task meta data consists of untyped attributes
-		
-:: TaskStatus
-	= Running		//* A process which is currently running (active or suspended)
-	| Finished		//* A process terminated normally
-	| Excepted		//* A process terminated with an exception
-	| Deleted		//* A process is deleted (never set, but returned when process can not be found)
-
-:: TaskInstanceMeta =
-	{ taskId			:: !TaskId
-	, taskMeta			:: !TaskMeta
-	, progressMeta		:: !ProgressMeta
-	, managementMeta	:: !ManagementMeta
-	, subInstances		:: ![TaskInstanceMeta]
-	} 
-/**
-* Information about a task in a parallel set.
-*/
-:: ParallelTaskMeta =
-	{ taskId			:: !TaskId								//* The task's index
-	, taskMeta			:: !TaskMeta
-	, progressMeta		:: !Maybe ProgressMeta
-	, managementMeta	:: !Maybe ManagementMeta
-	}
-
-//* Each task can be identified by two numbers:
-// - A unique number identifying the top-level instance state
-// - A unique number the task within the instance state
-:: TaskId	= TaskId !TopNo !TaskNo
-
-:: TopNo	:== Int
-:: TaskNo	:== Int
-
-:: SessionId :== String
 
 //* tasks can have three levels of priority
 :: TaskPriority		= HighPriority					
@@ -394,32 +445,7 @@ instance descr [d] | descr d
 
 noMeta :: ManagementMeta
 
-// Users	
-:: User
-	= AnyUser						//* Any not further specified person
-	| RootUser						//* The system super user
-	| RegisteredUser !UserDetails	//* A registered person of whom we know details
-	| NamedUser !String				//* A person identified by a username
-	| SessionUser !String			//* A person that is only identified by a session
-	
-:: UserDetails			=
-	{ username		:: !Username
-	, password		:: !Password
-	, displayName	:: !String
-	, emailAddress	:: !EmailAddress
-	, roles			:: !Maybe [Role]
-	}
 
-// Authentication
-:: Credentials =
-	{ username	:: !Username
-	, password	:: !Password
-	}
-	
-:: Password		= Password !String
-:: Username		= Username !String
-
-:: Role			:== String
 
 //Configuration
 :: Config =
@@ -429,14 +455,7 @@ noMeta :: ManagementMeta
 	, smtpServer		:: !String			// The smtp server to use for sending e-mails
 	}
 
-// Predefined exception types used by library tasks
-:: FileException		= FileException !FilePath !FileError
-:: ParseException		= CannotParse !String
-:: CallException		= CallFailed !OSError
-:: SharedException		= SharedException !String
-:: RPCException			= RPCException !String
-:: OSException			= OSException !OSError
-:: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
+
 
 /*
 * Gives the unique username of a user

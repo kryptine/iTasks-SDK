@@ -9,7 +9,7 @@ from LayoutCombinators	import :: SetLayout, :: ModifyLayout, :: Layout
 import Task
 
 import iTaskClass
-derive class iTask ParallelTaskMeta, ParallelResult, ParallelTaskType
+derive class iTask ParallelResult, ParallelTaskType
 
 /**
 * Adds a result transformation function to a task.
@@ -74,55 +74,27 @@ step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 * 
 * @gin False
 */
-parallel :: !d !a ![TaskContainer a] -> Task a | descr d & iTask a
-
-/**
-* A container for a child task of a parallel.
-*/				
-:: TaskContainer a		:== (ParallelTaskType, (ParallelTask a))
-
-/**
-* Defines how a task is shown inside of a parallel.
-*/
-:: ParallelTaskType		= Embedded 
-						| Detached !ManagementMeta	//* displays the task computed by the function as a distinct new task for the user identified in the worker field of ManagerProperties
-						
-/**
-* A task inside of a parallel. The first parameter is a reference to the shared data state. The second one is a reference to the shared parallel info.
-*/
-:: ParallelTask a		:== (TaskList a) -> Task ParallelResult
-
-/**
-* When tasks in a a parallel set become stable, they must indicate whether they
-* have to be kept in the set, removed, restarted or remove all tasks from the set
-*/
-:: ParallelResult
-	= Keep
-	| Remove
-	| Stop
+parallel :: !d !a ![(!ParallelTaskType,!ParallelTask a)] -> Task a | descr d & iTask a
 					
 /**
 * Get the shared state of a task list
 */
-taskListState	:: (TaskList s) -> Shared s | TC s
-
+taskListState	:: (SharedTaskList s) -> Shared s
 /**
 * Get the properties share of a task list
 */
-taskListMeta	:: (TaskList s) -> Shared [ParallelTaskMeta]
+taskListMeta	:: (SharedTaskList s) -> ReadOnlyShared [TaskListItem]
 
 //Manipulation 
 
 /**
-* Add a task to a task list
+* Appends a task to a task list
 */
-appendTask :: !(TaskContainer s) !(TaskList s)	-> Task Int | TC s
-
+appendTask :: !ParallelTaskType !(ParallelTask s)	!(SharedTaskList s)	-> Task Int | TC s
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !TaskId !(TaskList s)				-> Task Void | TC s
-
+removeTask :: !TaskId								!(SharedTaskList s)	-> Task Void | TC s
 /**
 * Execute a task with the identity of the given user
 */

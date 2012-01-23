@@ -3,7 +3,7 @@ definition module TaskEval
 * This module provides functions for creation, evaluation and removal of task/workflow instances.
 */
 
-from SystemTypes	import :: IWorld, :: TaskInstanceMeta, :: User, :: TaskId, :: SessionId 
+from SystemTypes	import :: IWorld, :: TaskListItem, :: User, :: TaskId, :: SessionId 
 from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: TaskEvalFun, :: TaskRepTarget
 
 import Maybe, JSON, Error
@@ -35,6 +35,7 @@ createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool
 */
 evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !SessionId), !*IWorld)
 
-//Helper functions: exported for use in workOn task
+//Helper functions: exported for use in workOn and parallel
 editInstance	:: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
 evalInstance	:: !(Maybe EditEvent) !(Maybe CommitEvent) !(Maybe TaskId) !Bool !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskContext, !*IWorld)
+taskListShare	:: !(TaskListId s) -> (SharedTaskList s) | TC s
