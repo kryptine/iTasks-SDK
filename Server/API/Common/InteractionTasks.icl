@@ -35,14 +35,25 @@ updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | d
 updateSharedInformation d views shared
 	=	(modifyInformation d initLocal filteredViews (toReadOnlyShared shared) Nothing @ fst) @> (\mbw _ -> mbw, shared)
 where
-	filteredViews						= filterViews noFilter defaultViews views
-	defaultViews						= [defaultView]
+	filteredViews						= filterViews noFilter defaultViews views	
+	//Use dynamics to test if r == w, if so we can use an update view
+	//If different types are used we can only resort to a display of type r and an enter of type w
+	defaultViews = case dynamic id :: A.a: (a -> a) of
+		(rtow :: (r^ -> w^))			= [UpdateView  (GetShared id) (\r _ _ -> rtow r)]
+		_								= [DisplayView (GetShared id), EnterView (\w _ _ -> w)]
 	
-	//Trick: use dynamics to test if r == w
-	(initLocal,defaultView) = case dynamic id :: A.a: (a -> a) of	
-		(rtow :: (r^ -> w^))			= (\_ r -> (rtow r), UpdateView	(GetShared id) (\r _ _ -> rtow r))
-		_								= (\_ _ -> defaultValue, EnterView 	(\w _ _ -> w))
+	initLocal = \_ r -> (makeInitFun filteredViews) r
 	
+	makeInitFun :: [ViewOn w r] -> (r -> w)
+	makeInitFun views = case views of
+		[UpdateView toV fromV]	= makeInitFun2 toV fromV
+		_						= abort "Cannot do updateSharedInformation without update views!"
+	where
+		makeInitFun2 :: (GetFun w r v) (SetFun w r v) -> (r -> w)
+		makeInitFun2 (GetShared toV) fromV	= \r -> fromV (toV r) undef r
+		makeInitFun2 _ _					= abort "Cannot do updateSharedInformation with something other than GetShared"
+
+
 viewSharedInformation :: !d ![SharedViewOn r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
 viewSharedInformation d views shared
 	=	modifyInformation d (\_ _ -> Void) filteredViews (toReadOnlyShared shared) (Just Void) @ snd
@@ -50,13 +61,13 @@ where
 	filteredViews	= filterViews filterOutputViews defaultViews views
 	defaultViews	= [DisplayView (GetShared id)]
 	
-
-filterViews filterF defaultViews views = addDefault (catMaybes (map filterF views))
+filterViews filterF defaultViews views = addDefault (catMaybes (map filterF views))	
 where	
 	addDefault views
-		| any (\v -> case v of (About _) = False; _ = True) views	= views
-		| otherwise													= views ++ defaultViews
-		
+		//If all given views are About views, add the default views
+		| all (\v -> case v of (About _) = True; _ = False) views	= views ++ defaultViews
+		| otherwise													= views
+	
 filterInputViews view = case view of
 	About a						= Just (About a)
 	EnterView e					= Just (EnterView e)
@@ -192,7 +203,7 @@ where
 	
 	//Refresh the view if it hasn't been touched by the user yet
 	whenCleanShareUpdate :: (GetFun l r v) -> FormShareUpdateFun l r v
-	whenCleanShareUpdate getfun = \l r mbv dirty ->(l, if dirty Nothing (Just (FilledForm (viewVal getfun l r))))
+	whenCleanShareUpdate getfun = \l r mbv dirty -> (l, if dirty Nothing (Just (FilledForm (viewVal getfun l r))))
 	
 	viewLocal :: (l -> v) l r -> v | iTask l
 	viewLocal f l r = f l

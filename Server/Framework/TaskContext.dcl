@@ -35,7 +35,6 @@ derive JSONDecode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelIt
 :: ParallelItem =
 	{ taskId		:: !TaskId					//Unique task id
 	, stack			:: !Int						//Stack order (required for properly laying out tasks in tabs or windows)
-	
 	, detached		:: !Bool
 	, progress		:: !Maybe ProgressMeta
 	, management	:: !Maybe ManagementMeta

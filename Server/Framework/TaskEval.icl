@@ -11,7 +11,7 @@ from TaskStore			import newSessionId, loadTaskInstance, storeTaskInstance, delet
 from Map				import qualified fromList, get, put
 import iTaskClass
 
-ITERATION_THRESHOLD :== 10
+ITERATION_THRESHOLD :== 5
 
 setRunning :: !ProgressMeta -> ProgressMeta
 setRunning meta = {meta & status = Running}

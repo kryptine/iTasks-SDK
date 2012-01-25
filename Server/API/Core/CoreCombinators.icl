@@ -64,7 +64,7 @@ where
 		Just overwrite	= RepAsTUI target (Just overwrite)
 		
 	changed encprev cur = case fromJSON encprev of
-		Nothing		= True	//Consider changed when parsing fails
+		Nothing		= fixme where fixme = True	//THIS ASSUMPTION DOES NOT ALWAYS HOLD! Consider changed when parsing fails
 		Just prev	= prev =!= cur
 	
 	projectOnShare mba result iworld

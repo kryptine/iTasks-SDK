@@ -314,6 +314,8 @@ whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTas
 */
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 
+appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
+
 // Additional tuning shortcuts
 instance tune BeforeLayout
 instance tune AfterLayout

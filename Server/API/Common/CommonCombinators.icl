@@ -236,6 +236,9 @@ whileUnchanged share task
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Remove) topLevelTasks @ \topNo -> (TaskId topNo 0)
 
+appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
+appendTopLevelTaskFor user task = appendTopLevelTask {noMeta & worker = Just user} task
+
 instance tune BeforeLayout
 where tune (BeforeLayout f) task = tune (ModifyLayout (\l pa0 ac0 at0 -> let (pa1,ac1,at1) = f (pa0,ac0,at0) in l pa1 ac1 at1)) task
 		

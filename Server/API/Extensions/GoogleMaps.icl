@@ -77,12 +77,7 @@ gVisualizeText{|GoogleMap|} _ _ = ["<Google map>"]
 gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ _ vst=:{VSt|taskId}
-		| False
-			//TODO
-			= ([], vst)
-			//= ([htmlDisplay (staticMap (convertToStaticMap (fromMaybe defaultMap mbMap)))], vst)
-		| otherwise
-			= ([defaultDef (TUICustom ((mapPanel mbMap name True)))], vst)
+		= ([defaultDef (TUICustom ((mapPanel mbMap name True)))], vst)
 	where		
 		mapPanel Nothing	name ed = toJSON (tuidef defaultMap name ed)
 		mapPanel (Just map)	name ed = toJSON (tuidef map   name ed)
@@ -123,7 +118,7 @@ where
 			= {GoogleMap | orig & markers = orig.GoogleMap.markers ++ [marker]}
 		# mbMarkerDrag = fromJSON json
 		| isJust mbMarkerDrag
-			# {MarkerDragUpdate|index,point}		= fromJust mbMarkerDrag
+			# {MarkerDragUpdate|index,point}	= fromJust mbMarkerDrag
 			= {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = point} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
 		
 		| otherwise = orig
