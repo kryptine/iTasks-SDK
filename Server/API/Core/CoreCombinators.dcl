@@ -4,9 +4,8 @@ definition module CoreCombinators
 * with which additional combinators can be defined.
 */
 from Time				import :: Timestamp
-from SharedCombinators	import :: Shared, :: ReadOnlyShared, :: ReadWriteShared
 from LayoutCombinators	import :: SetLayout, :: ModifyLayout, :: Layout
-import Task
+import Task, Shared
 
 import iTaskClass
 derive class iTask ParallelResult, ParallelTaskType
@@ -20,7 +19,7 @@ derive class iTask ParallelResult, ParallelTaskType
 *
 * @return The transformed task
 */
-transform :: ((Maybe a) -> Maybe b) (Task a) -> Task b | iTask a & iTask b 
+transform :: ((Maybe a) -> Maybe b) !(Task a) -> Task b | iTask a & iTask b 
 
 /**
 * Projects the result of a task in a share when its result changes.
@@ -79,11 +78,11 @@ parallel :: !d !a ![(!ParallelTaskType,!ParallelTask a)] -> Task a | descr d & i
 /**
 * Get the shared state of a task list
 */
-taskListState	:: (SharedTaskList s) -> Shared s
+taskListState	:: !(SharedTaskList s) -> Shared s
 /**
 * Get the properties share of a task list
 */
-taskListMeta	:: (SharedTaskList s) -> ReadOnlyShared [TaskListItem]
+taskListMeta	:: !(SharedTaskList s) -> ReadOnlyShared [TaskListItem]
 
 //Manipulation 
 

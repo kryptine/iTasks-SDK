@@ -1,10 +1,8 @@
 implementation module CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
-import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TUIDefinition, LayoutCombinators
-from SharedCombinators		import :: Shared
-from Shared					import qualified readShared, writeShared, isSharedChanged, updateShared, getSharedVersion
-from Shared					import :: SharedGetVersion, :: SharedWrite, :: SharedRead, :: SharedId, :: ReadWriteShared(..), :: ReadOnlyShared(..)
+import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TUIDefinition, LayoutCombinators, Shared
+from SharedDataSource		import qualified read, write, getVersion, readWrite, :: RWRes(..)
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..), :: Control(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
@@ -26,17 +24,17 @@ get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask eval
 where
 	eval taskId iworld
-		# (val,iworld) = 'Shared'.readShared shared iworld
+		# (val,iworld) = 'SharedDataSource'.read shared iworld
 		# res = case val of
-			Ok val	= TaskStable val NoRep (TCEmpty taskId)
-			Error e	= taskException (SharedException e)
+			Ok (val,_)	= TaskStable val NoRep (TCEmpty taskId)
+			Error e		= taskException (SharedException e)
 		= (res, iworld)
 
 set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
 where
 	eval taskId iworld
-		# (res,iworld)	='Shared'.writeShared shared val iworld
+		# (res,iworld)	='SharedDataSource'.write val shared iworld
 		# res = case res of
 			Ok _	= TaskStable val NoRep (TCEmpty taskId)
 			Error e	= taskException (SharedException e)
@@ -46,7 +44,7 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 update fun shared = mkInstantTask eval
 where
 	eval taskId iworld
-		# (val,iworld)	= 'Shared'.updateShared shared fun iworld
+		# (val,iworld)	= 'SharedDataSource'.readWrite (\r _ -> let w = fun r in 'SharedDataSource'.Write w w) shared iworld
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskStable (fromOk val) NoRep (TCEmpty taskId), iworld)
 
@@ -54,9 +52,9 @@ interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyS
 interact desc initFun parts initLocal shared = mkTask init edit eval
 where
 	init taskId iworld			//Create the initial views
-		# (mbrvalue,iworld) 	= 'Shared'.readShared shared iworld
-		| isError mbrvalue		= (TCEmpty taskId, iworld)
-		# rvalue				= fromOk mbrvalue
+		# (mbrvalue,iworld) 	= 'SharedDataSource'.read shared iworld
+		| isError mbrvalue		= abort (fromError mbrvalue)//(TCEmpty taskId, iworld)
+		# (rvalue,_)			= fromOk mbrvalue
 		# (version,iworld)		= getSharedVersion shared iworld
 		# lvalue				= initFun initLocal rvalue
 		= (TCInteract taskId (toJSON lvalue) (initParts lvalue rvalue parts) version, iworld)
@@ -75,7 +73,7 @@ where
 		= (v,toJSON v, defaultMask v)
 	
 	getSharedVersion shared iworld
-		# (mbv,iworld)			= 'Shared'.getSharedVersion shared iworld
+		# (mbv,iworld)			= 'SharedDataSource'.getVersion shared iworld
 		| isError mbv			= (0, iworld)
 								= (fromOk mbv,iworld)
 		
@@ -87,9 +85,9 @@ where
 		| targetId <> taskId
 			= (context,iworld)
 		//Read latest versions of states
-		# (mbrval,iworld) 			= 'Shared'.readShared shared iworld
+		# (mbrval,iworld) 			= 'SharedDataSource'.read shared iworld
 		| isError mbrval			= (context, iworld)
-		# r							= fromOk mbrval
+		# (r,_)						= fromOk mbrval
 		# l							= fromJust (fromJSON encl)
 		//Split datapath into datapath & part index
 		# (idx,dp)					= splitDataPath dps
@@ -125,12 +123,12 @@ where
 		= (v,toJSON v,maskv,iworld)
 		
 	eval eEvent cEvent repAs context=:(TCInteract taskId encl views rversion) iworld=:{IWorld|timestamp}
-		# (mbrvalue,iworld) 				= 'Shared'.readShared shared iworld
+		# (mbrvalue,iworld) 				= 'SharedDataSource'.read shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
-		# rvalue							= fromOk mbrvalue	
-		# (mbchanged,iworld)				= 'Shared'.isSharedChanged shared rversion iworld
-		| isError mbchanged					= (sharedException mbchanged, iworld)
-		# changed							= fromOk mbchanged
+		# (rvalue,_)						= fromOk mbrvalue
+		# (ver, iworld)						= 'SharedDataSource'.getVersion shared iworld
+		| isError ver						= (sharedException ver, iworld)		
+		# changed							= fromOk ver > rversion
 		# (rversion,iworld)					= if changed (getSharedVersion shared iworld) (rversion,iworld)
 		# lvalue							= fromJust (fromJSON encl)
 		# mbEdit	= case eEvent of
@@ -253,7 +251,7 @@ where
 					_			= (TaskInstable (Just result) rep (TCEmpty taskId), iworld)
 				
 	checkIfAddedGlobally topNo iworld=:{parallelControls,currentUser}
-		= case 'Map'.get (toString TopLevelTaskList) parallelControls of
+		= case 'Map'.get ("taskList:" +++ toString TopLevelTaskList) parallelControls of
 			Just (_,controls)
 				= (isMember topNo [i \\ AppendTask i currentUser _ _ <- controls], iworld)
 			_

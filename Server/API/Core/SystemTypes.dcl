@@ -13,7 +13,7 @@ from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 from Task			import :: Task, :: TaskId, :: TaskAttribute
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
-from Shared			import :: ReadWriteShared
+from Shared			import :: ReadWriteShared, :: RWShared
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress !String

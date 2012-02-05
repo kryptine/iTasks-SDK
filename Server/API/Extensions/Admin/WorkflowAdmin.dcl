@@ -57,7 +57,7 @@ workflow :: String String w -> Workflow | toWorkflow w
 */
 restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
 
-class toWorkflow w :: String String [Role] w -> Workflow
+class toWorkflow w :: String String [Role] !w -> Workflow
 
 instance toWorkflow (Task a)						| iTask a
 instance toWorkflow (WorkflowContainer a)			| iTask a

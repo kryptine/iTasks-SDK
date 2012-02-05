@@ -15,7 +15,7 @@ from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 
 :: StoreFormat = SFPlain | SFDynamic
 
-storePath :: FilePath String -> FilePath
+storePath :: !FilePath !String -> FilePath
 storePath dataDir build = dataDir </> "store-" +++ build
 
 storeValue :: !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a

@@ -36,7 +36,7 @@ publish :: String ServiceFormat (Task a) -> PublishedTask | iTask a
 
 class Publishable a
 where
-	publishAll :: a -> [PublishedTask]
+	publishAll :: !a -> [PublishedTask]
 
 instance Publishable (Task a) | iTask a
 instance Publishable [PublishedTask]

@@ -4,9 +4,9 @@ from StdFunc import id, const, o, flip
 from SystemData import null
 from Tuple import appSnd
 from List import isMemberGen, instance Functor []
-from Shared import makeReadOnlyShared, :: SharedId
-from SharedCombinators import toReadOnlyShared
+from Shared import makeReadOnlyShared
 from Time import :: Timestamp(..)
+from SharedDataSource import constShare
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
 
@@ -33,7 +33,7 @@ where
 		
 updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 updateSharedInformation d views shared
-	=	(modifyInformation d initLocal filteredViews (toReadOnlyShared shared) Nothing @ fst) @> (\mbw _ -> mbw, shared)
+	=	(modifyInformation d initLocal filteredViews (toReadOnly shared) Nothing @ fst) @> (\mbw _ -> mbw, shared)
 where
 	filteredViews						= filterViews noFilter defaultViews views	
 	//Use dynamics to test if r == w, if so we can use an update view
@@ -56,7 +56,7 @@ where
 
 viewSharedInformation :: !d ![SharedViewOn r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
 viewSharedInformation d views shared
-	=	modifyInformation d (\_ _ -> Void) filteredViews (toReadOnlyShared shared) (Just Void) @ snd
+	=	modifyInformation d (\_ _ -> Void) filteredViews (toReadOnly shared) (Just Void) @ snd
 where
 	filteredViews	= filterViews filterOutputViews defaultViews views
 	defaultViews	= [DisplayView (GetShared id)]
@@ -85,11 +85,11 @@ noFilter = Just
 
 enterChoice :: !d ![ChoiceView ChoiceType o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 enterChoice d views choiceOpts
-	=	modifyChoice d views (constShared choiceOpts) Nothing
+	=	modifyChoice d views (constShare choiceOpts) Nothing
 
 updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 updateChoice d views choiceOpts initC
-	=	modifyChoice d views (constShared choiceOpts) (Just initC)
+	=	modifyChoice d views (constShare choiceOpts) (Just initC)
 	
 enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 enterSharedChoice d views shared
@@ -101,7 +101,7 @@ updateSharedChoice d views shared initC
 
 modifyChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) (Maybe o) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 modifyChoice d views shared mbInitSel = 
-	transform justValid (modifyInformation d  (\_ _ -> mbInitSel) (toChoiceViews (addDefault views)) (toReadOnlyShared shared) Nothing)
+	transform justValid (modifyInformation d  (\_ _ -> mbInitSel) (toChoiceViews (addDefault views)) (toReadOnly shared) Nothing)
 where
 	toChoiceViews views = map toChoiceView views
 	where
@@ -137,11 +137,11 @@ where
 
 enterMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
 enterMultipleChoice d views choiceOpts
-	=	modifyMultipleChoice d views (constShared choiceOpts) []
+	=	modifyMultipleChoice d views (constShare choiceOpts) []
 
 updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
 updateMultipleChoice d views choiceOpts initC
-	=	modifyMultipleChoice d views (constShared choiceOpts) initC
+	=	modifyMultipleChoice d views (constShare choiceOpts) initC
 
 enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 enterSharedMultipleChoice d views shared
@@ -152,7 +152,7 @@ updateSharedMultipleChoice d views shared sel
 	=	modifyMultipleChoice d views shared sel
 
 modifyMultipleChoice d views shared initSels =
-	(modifyInformation d (\_ _ -> initSels) (toChoiceViews (addDefault views))  (toReadOnlyShared shared) Nothing @ fst)
+	(modifyInformation d (\_ _ -> initSels) (toChoiceViews (addDefault views))  (toReadOnly shared) Nothing @ fst)
 where
 	toChoiceViews views = map toChoiceView views
 	where
@@ -222,7 +222,7 @@ where
 		Just v	= (f v l r, Nothing)
 		Nothing	= (l, Nothing)
 		
-wait :: d (r -> Bool) (ReadWriteShared r w) -> Task r | descr d & iTask r
+wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | descr d & iTask r
 wait desc pred shared
 	=	viewSharedInformation desc [DisplayView (GetLocal id)] shared
 	>>* [WhenValid pred return]
@@ -250,5 +250,3 @@ chooseAction actions
 	
 voidNull :: Shared Void
 voidNull = null
-
-constShared a = makeReadOnlyShared ("const_" +++ toString (toJSON a)) (\world -> (a,world)) (\world -> (0,world))

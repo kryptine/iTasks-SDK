@@ -261,7 +261,7 @@ updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShar
 *
 * @return					The value of the shared when the predicate becomes true
 */
-wait :: d (r -> Bool) (ReadWriteShared r w) -> Task r | descr d & iTask r
+wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | descr d & iTask r
 
 /*** Special wait tasks ***/
 /**

@@ -11,8 +11,6 @@ camelCaseToWords 	:: !String -> String
 
 instance toString (Maybe a) | toString a
 
-mb2error			:: !e !(Maybe a) -> MaybeError e a
-
 pad					:: !Int !Int -> String
 decFormat			:: !Int -> String
 
@@ -27,5 +25,5 @@ timestampToGmDateTime	:: !Timestamp -> DateTime
 dateToTimestamp			:: !Date -> Timestamp
 
 //Simple key value functions when fullblown maps are overkill
-kvGet	:: k	[(k,v)]	-> Maybe v	| Eq k
-kvSet	:: k v	[(k,v)]	-> [(k,v)]	| Eq k 
+kvGet	:: k	![(k,v)]	-> Maybe v	| Eq k
+kvSet	:: k v	![(k,v)]	-> [(k,v)]	| Eq k 

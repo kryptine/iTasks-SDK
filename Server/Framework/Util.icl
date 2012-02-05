@@ -15,9 +15,6 @@ list2mb a = (Just a)
 voidNothing :: Maybe Void
 voidNothing = Nothing
 
-mb2error :: !e !(Maybe a) -> MaybeError e a
-mb2error error mbV = maybe (Error error) Ok mbV
-
 pad :: !Int !Int -> String
 pad len num = (createArray (max 0 (len - size nums)) '0' ) +++ nums
 where 
@@ -74,10 +71,10 @@ where
 	toString Nothing	= ""
 	toString (Just x)	= toString x
 
-kvGet :: k [(k,v)]		-> Maybe v	| Eq k // Linear search
+kvGet :: k ![(k,v)]		-> Maybe v	| Eq k // Linear search
 kvGet m []				= Nothing
 kvGet m [(k,v):kvs]		= if (k == m) (Just v) (kvGet m kvs)
 
-kvSet :: k v [(k,v)]	-> [(k,v)]	| Eq k //Linear search
+kvSet :: k v ![(k,v)]	-> [(k,v)]	| Eq k //Linear search
 kvSet m nv []			= [(m,nv)]
 kvSet m nv [(k,v):kvs]	= if (k == m) [(k,nv): kvs] [(k,v):kvSet m nv kvs]

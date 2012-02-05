@@ -42,35 +42,35 @@ workflows :: Shared [Workflow]
 workflows = sharedStore "Workflows" []
 
 workflowByIndex:: !WorkflowId -> Shared Workflow
-workflowByIndex index = mapSharedError (toPrj,fromPrj) workflows
+workflowByIndex index = mapReadWriteError (toPrj,fromPrj) workflows
 where
 	toPrj wfs 
 		| index >= length wfs || index < 0	= Error ("Workflow index out of range")
 											= Ok (wfs !! index)
 	fromPrj wf wfs
 		| index >= length wfs || index < 0	= Error ("Workflow index out of range")
-											= Ok ( updateAt index wf wfs)
+											= Ok (Just (updateAt index wf wfs))
 
 workflowByPath :: !String -> Shared Workflow
-workflowByPath path = mapSharedError (toPrj,fromPrj) workflows
+workflowByPath path = mapReadWriteError (toPrj,fromPrj) workflows
 where
 	toPrj wfs = case [wf \\ wf <- wfs | wf.Workflow.path == path] of
 		[wf:_]	= Ok wf
 		_		= Error ("Workflow " +++ path +++ " could not be found")
 
 	fromPrj nwf wfs
-		= Ok [if (wf.path == path) nwf wf \\ wf <- wfs]
+		= Ok (Just [if (wf.path == path) nwf wf \\ wf <- wfs])
 
 allowedWorkflows :: ReadOnlyShared [Workflow]
-allowedWorkflows = mapSharedRead filterAllowed (workflows |+| (currentUser |+| currentUserDetails))
+allowedWorkflows = mapRead filterAllowed (workflows |+| (currentUser |+| currentUserDetails))
 where
 	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
 	
 workflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
-workflowTree = mapShared (mkFlowTree,\Void w -> w) workflows
+workflowTree = mapRead mkFlowTree (toReadOnly workflows)
 
 allowedWorkflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
-allowedWorkflowTree = mapSharedRead mkFlowTree allowedWorkflows
+allowedWorkflowTree = mapRead mkFlowTree allowedWorkflows
 
 mkFlowTree :: ![Workflow] -> Tree (Either WorkflowFolderLabel (WorkflowId,Workflow))
 mkFlowTree workflows = Tree (seq [insertWorkflow i w \\ w <- workflows & i <- [0..]] [])
@@ -200,7 +200,7 @@ viewWorklist taskList = forever
 where
 	state = taskListState taskList	
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
-	processes = mapSharedRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentTopTask)
+	processes = mapRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentTopTask)
 	where
 		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid && pmeta.status == Running
 		show ownPid _ = False

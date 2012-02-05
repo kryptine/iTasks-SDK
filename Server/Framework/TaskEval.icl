@@ -156,7 +156,7 @@ where
 	eval :: !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !Int !TaskContext !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !*IWorld)
 	eval editEvent commitEvent genGUI iteration context iworld
 		//Initialize the toplevel task list
-		# iworld 	= {iworld & parallelControls = 'Map'.fromList [(toString TopLevelTaskList,(0,[]))]}
+		# iworld 	= {iworld & parallelControls = 'Map'.fromList [("taskList:" +++ toString TopLevelTaskList,(0,[]))]}
 		//Reset read shares list
 		# iworld			= {iworld & readShares = Just []} 
 		//Evaluate top instance	
@@ -201,7 +201,7 @@ where
 	
 	//Extracts controls and resets the toplevel task list
 	getControls iworld=:{parallelControls}
-		# listId = toString TopLevelTaskList
+		# listId = "taskList:" +++ toString TopLevelTaskList
 		= case 'Map'.get listId parallelControls of
 			Just (_,controls)	= (controls, {iworld & parallelControls = 'Map'.put listId (0,[]) parallelControls})
 			_					= ([],iworld)
@@ -225,25 +225,29 @@ where
 		
 	issueUser (TaskContext _ _ {ProgressMeta|issuedBy} _ _ _) = issuedBy
 
+import StdMisc
+
 taskListShare :: !(TaskListId s) -> (SharedTaskList s) | TC s
-taskListShare listId = ReadWriteShared [listIdS] read write getVersion
+taskListShare listId = mapWrite (\s tlist -> Just {TaskList|tlist & state = s}) (makeUnsafeShare "taskList" listIdS read write getVersion)
 where
 	listIdS = toString listId
 	
 	read iworld=:{parallelStates,parallelLists}
 		= case 'Map'.get listIdS parallelStates of
 				Just (_,state :: s^)
-					= case 'Map'.get listIdS parallelLists of
+					= case 'Map'.get ("taskList:" +++ listIdS) parallelLists of
 						Just (_,items)	= (Ok {TaskList|listId = listId, state = state, items = items}, iworld)
 						_				= (Error ("Could not read parallel task list of " +++ toString listId), iworld)
 				_						= (Error ("Could not read shared parallel state of task list " +++ toString listId),iworld)
 	
-	write state iworld=:{parallelStates}
+	// write function needs to get full TaskList, but only writes the state
+	// share only available with projected write type
+	write {TaskList|state} iworld=:{parallelStates}
 		# (mbv,iworld)	= getVersion iworld
 		# version		= case mbv of (Ok v) = v ; _ = 0
 		= (Ok Void, {iworld & parallelStates = 'Map'.put listIdS (version + 1, (dynamic state :: s^)) parallelStates})
 	
 	getVersion iworld=:{parallelStates,parallelLists}
-			= case ('Map'.get listIdS parallelStates,'Map'.get listIdS parallelLists) of
+			= case ('Map'.get listIdS parallelStates,'Map'.get ("taskList:" +++ listIdS) parallelLists) of
 				(Just (vs,_),Just (vl,_))	= (Ok (vs + vl), iworld)
 				_							= (Error ("Could not read timestamp for shared state of task list " +++ listIdS),iworld)

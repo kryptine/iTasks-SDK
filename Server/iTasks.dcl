@@ -52,5 +52,5 @@ import	Engine						// basic iTask system creator
 from StdFunc import id, const, o
 
 //Types
-import SharedCombinators, SystemTypes, GenRecord
+import Shared, SystemTypes, GenRecord
 from List import instance Functor []

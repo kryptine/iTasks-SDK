@@ -30,7 +30,7 @@ NS_APPLICATION_SHARES	:== "application-data"
 /**
 * Determine the location of the store from data directory and build
 */
-storePath :: FilePath String -> FilePath
+storePath :: !FilePath !String -> FilePath
 
 /**
 * Store a value in the default format

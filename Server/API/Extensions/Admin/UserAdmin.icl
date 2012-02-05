@@ -6,19 +6,19 @@ userStore :: Shared [UserDetails]
 userStore = sharedStore "Users" []
 
 users :: ReadOnlyShared [User]
-users = mapShared (\users -> map RegisteredUser users, \Void users -> users) userStore
+users = mapReadWrite (\users -> map RegisteredUser users, \Void users -> Just users) userStore
 
 usersWithRole :: !Role -> ReadOnlyShared [User]
-usersWithRole role = mapSharedRead (filter (hasRole role)) users
+usersWithRole role = mapRead (filter (hasRole role)) users
 where
 	hasRole role (RegisteredUser details) = maybe False (isMember role) details.UserDetails.roles
 	hasRole _ _ = False
 
 userDetails :: !User -> Shared (Maybe UserDetails)
-userDetails user = mapShared (getDetails user,setDetails) userStore
+userDetails user = mapReadWrite (getDetails user,\w r -> Just (setDetails w r)) userStore
 	
 currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
-currentUserDetails = mapSharedRead (\(user,users) -> getDetails user users ) (currentUser |+| userStore)  
+currentUserDetails = mapRead (\(user,users) -> getDetails user users ) (currentUser |+| userStore)  
 
 getDetails :: User [UserDetails] -> Maybe UserDetails
 getDetails user users

@@ -3,8 +3,7 @@ definition module SystemData
 * This module provides access to the iTask framework data by means of
 * a set of shared data structures.
 */
-import Maybe, JSON
-from SharedCombinators	import :: ReadWriteShared, :: ReadOnlyShared, :: Shared
+import Maybe, JSON, Shared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
 from SystemTypes		import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: TopNo
 from Void				import :: Void
@@ -43,6 +42,3 @@ applicationConfig		:: ReadOnlyShared Config	// Server config
 
 // Random source
 randomInt				:: ReadOnlyShared Int
-
-// Null data source (writing has no effect)
-null					:: ReadWriteShared Void a

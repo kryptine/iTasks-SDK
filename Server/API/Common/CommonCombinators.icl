@@ -7,7 +7,6 @@ import Util, Either, GenVisualize, GenUpdate
 from StdFunc			import id, const, o
 from SystemTypes		import :: User(..), :: Note(..)
 from TaskContext		import :: TaskState(..), :: ParallelMeta, :: ParallelContext, :: ParallelItem
-from SharedCombinators	import mapShared, :: Shared, :: ReadWriteShared
 from SystemData			import randomInt, topLevelTasks
 
 import CoreTasks, CoreCombinators, InteractionTasks, LayoutCombinators
@@ -223,7 +222,7 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
 	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
-whileUnchanged :: (ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
+whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
 	= ((	get share	
 		>>= \val ->

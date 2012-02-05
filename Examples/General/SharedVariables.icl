@@ -167,14 +167,14 @@ chooseOrAdd :: Task Order
 chooseOrAdd = enterOrder >>= viewInformation "You created the order:" []
 where
 	productDatabase :: ReadOnlyShared [Product]
-	productDatabase = toReadOnlyShared (sharedStore "chooseOrAddProductDB"
+	productDatabase = toReadOnly (sharedStore "chooseOrAddProductDB"
 						[{productId = 1, description = "Apples"}
 						,{productId = 2, description = "Oranges"}
 						,{productId = 3, description = "Pears"}
 						])
 	
 	customerDatabase :: ReadOnlyShared [Customer]
-	customerDatabase = toReadOnlyShared (sharedStore "chooseOrAddCustomerDB"
+	customerDatabase = toReadOnly (sharedStore "chooseOrAddCustomerDB"
 						[{customerId = 1, name = "Homer"}
 						,{customerId = 2, name = "Marge"}
 						,{customerId = 3, name = "Bart"}
@@ -251,7 +251,7 @@ where
 		>>| return Keep
 
 	searchResults tlist
-		=	enterSharedChoice ("Search results","The following results were found:") [] (mapSharedRead (\(_,_,r,_) -> r) (taskListState tlist))
+		=	enterSharedChoice ("Search results","The following results were found:") [] (mapRead (\(_,_,r,_) -> r) (taskListState tlist))
 		>>* [WithResult ActionNext (const True) (\x -> update (\(q,d,r,_) -> (q,d,r,Just x)) (taskListState tlist) @ const Stop)]
 		
 //Very simple CSV phonebook implementation
