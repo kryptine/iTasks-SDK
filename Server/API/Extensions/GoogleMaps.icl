@@ -49,7 +49,7 @@ JSONDecode{|GoogleMapPosition|} rest											= (Nothing,rest)
 	, mapType			:: GoogleMapType
 	, markers			:: [GoogleMapMarker]
 	, xtype				:: String
-	, taskId			:: Maybe TaskId
+	, taskId			:: Maybe String
 	, name				:: String
 	, editor			:: Bool
 	, options			:: TUIGoogleMapOptions
@@ -89,7 +89,7 @@ where
 			, markers = map.GoogleMap.markers
 			, xtype = "itasks-googlemap"
 			, name = name
-			, taskId = taskId
+			, taskId = fmap toString taskId
 			, editor = ed
 			, options =
 				{ TUIGoogleMapOptions
