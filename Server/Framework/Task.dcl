@@ -57,7 +57,7 @@ derive gPutRecordFields	Task
 :: TaskTUI		:== (!Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
 
 //Task representation for web service format
-:: TaskServiceRep	:== (![TaskPart], ![TaskAction])
+:: TaskServiceRep	:== (![TaskPart], ![TaskAction], ![TaskAttribute])
 
 :: TaskPart			:== (!String, !Int, !JSONNode) //Task id, part index, value
 :: TaskAction		:== (!String, !Action, !Bool)	//Task id, action, enabled

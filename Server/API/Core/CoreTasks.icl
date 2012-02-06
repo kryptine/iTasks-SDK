@@ -145,8 +145,8 @@ where
 				| otherwise
 					= NoRep
 			_	
-				# (parts,actions) = unzip [(part,actions) \\ (ServiceRep (part,actions)) <- reps]
-				= ServiceRep (flatten parts,flatten actions)
+				# (parts,actions,attributes) = unzip3 [(part,actions,attributes) \\ (ServiceRep (part,actions,attributes)) <- reps]
+				= ServiceRep (flatten parts,flatten actions, flatten attributes)
 		
 		# result							= if valid (Just (lvalue,rvalue)) Nothing 
 		= (TaskInstable result rep (TCInteract taskId (toJSON lvalue) views rversion), iworld)
@@ -182,13 +182,13 @@ where
 		# (editor,iworld) = visualizeAsDisplay (f l r) iworld
 		= (TUIRep (editor,[],[]),iworld)
 	displayRep idx taskId _ f l r encv iworld
-		= (ServiceRep ([(toString taskId,idx,encv)],[]),iworld)
+		= (ServiceRep ([(toString taskId,idx,encv)],[],[]),iworld)
 	
 	editorRep idx taskId (RepAsTUI _ _) f v encv maskv vermask mbEvent iworld
 		# (editor,iworld) = visualizeAsEditor v taskId idx vermask mbEvent iworld
 		= (TUIRep (editor,[],[]),iworld)
 	editorRep idx taskId _ f v encv maskv vermask mbEvent iworld
-		= (ServiceRep ([(toString taskId,idx,encv)],[]),iworld)
+		= (ServiceRep ([(toString taskId,idx,encv)],[],[]),iworld)
 	
 	refreshForm f l r v encv maskv vermask dirty
 		= case f l r (if (isValidValue vermask) (Just v) Nothing) dirty of

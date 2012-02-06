@@ -33,7 +33,7 @@ createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !SessionId), !*IWorld)
+evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld)
 
 //Helper functions: exported for use in workOn and parallel
 editInstance	:: !(Maybe EditEvent) !TaskContext !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)

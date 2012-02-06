@@ -40,14 +40,14 @@ where
 			= WithResult action isJust (\(Just i) -> appendTask Embedded (\_ -> (taskf i @ const Remove) <<@ Window) list)
 		
 itemShare :: (c -> i) (Shared [c]) i -> Shared (Maybe c) | gEq{|*|} i & gEq{|*|} c
-itemShare identify collection i = mapShared (toItem,fromItem) collection
+itemShare identify collection i = mapReadWrite (toItem,fromItem) collection
 where
 	toItem l	= case [c \\ c <- l | identify c === i] of
 		[c]		= Just c
 		_		= Nothing
 	
-	fromItem Nothing l 		= l
-	fromItem (Just c`) l	= [if (identify c === i) c` c \\ c <- l]
+	fromItem Nothing l 		= Just l
+	fromItem (Just c`) l	= Just [if (identify c === i) c` c \\ c <- l]
 
 selectItem :: !d (Shared [c]) (Shared (Maybe i)) (c -> i) -> Task (Maybe i) | descr d & iTask c & iTask i
 selectItem desc collection selection identify

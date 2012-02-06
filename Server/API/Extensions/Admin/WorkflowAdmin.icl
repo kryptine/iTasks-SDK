@@ -111,6 +111,11 @@ manageWorkflows iflows
 where
 	viewError error = viewInformation "Error" [] error >>! \_ -> return Void
 
+manageWorklist :: ![Workflow] -> Task Void
+manageWorklist iflows
+	=	installInitialWorkflows iflows
+	>>| workflowDashboard
+
 installInitialWorkflows ::[Workflow] -> Task Void
 installInitialWorkflows [] = return Void
 installInitialWorkflows iflows
@@ -136,7 +141,7 @@ installInitialWorkflows iflows
 derive class iTask ClientState, WorklistRow
 	
 workflowDashboard :: Task Void
-workflowDashboard = SetLayout dashLayout @>> parallel "Workflow Dashboard" {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} 
+workflowDashboard = SetLayout dashLayout @>> parallel (Title "Manage worklist") {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} 
 	[ (Embedded,	\list	-> controlDashboard)
 	, (Embedded,	\list	-> chooseWorkflow (taskListState list))
 	, (Embedded,	\list	-> viewWorkflowDetails list)

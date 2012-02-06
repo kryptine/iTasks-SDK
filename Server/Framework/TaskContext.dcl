@@ -38,8 +38,11 @@ derive JSONDecode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelIt
 	, detached		:: !Bool
 	, progress		:: !Maybe ProgressMeta
 	, management	:: !Maybe ManagementMeta
-			
-	, task			:: !Dynamic				// Encoded task definition
-	, state			:: !TaskState			// State of the parallel item
+	, task			:: !Dynamic					// Encoded task definition
+	, state			:: !TaskState				// State of the parallel item
+	, attributes	:: ![TaskAttribute]			// Cached meta-data, this field is recomputed on each evaluation
 	}
 
+//Conversion to a representation of task states which hides all internal details
+contextToTaskListItem	:: !TaskContext -> TaskListItem
+stateToTaskListItems	:: !TaskState -> [TaskListItem]

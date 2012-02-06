@@ -73,7 +73,7 @@ where
 								| otherwise
 									= NoRep
 							_
-								= ServiceRep ([(toString taskId, 0, JSONNull)], [])
+								= ServiceRep ([(toString taskId, 0, JSONNull)], [], [])
 						
 						= (TaskInstable Nothing rep context,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world

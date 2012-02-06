@@ -51,7 +51,7 @@ from Shared			import :: ReadWriteShared, :: RWShared
 :: DocumentId	:== String
 
 //* Meta-data of tasks
-:: TaskMeta		:==	[(!String,!String)]				//* Task meta data consists of untyped attributes
+:: TaskMeta		:==	[TaskAttribute]					//* Task meta data consists of untyped attributes
 
 :: ManagementMeta =
 	{ worker			:: !Maybe User				//* Who has to do the task? 

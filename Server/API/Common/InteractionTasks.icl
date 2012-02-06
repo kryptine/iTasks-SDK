@@ -45,7 +45,7 @@ where
 	initLocal = \_ r -> (makeInitFun filteredViews) r
 	
 	makeInitFun :: [ViewOn w r] -> (r -> w)
-	makeInitFun views = case views of
+	makeInitFun views = case [v \\ v=:(UpdateView _ _) <- views] of
 		[UpdateView toV fromV]	= makeInitFun2 toV fromV
 		_						= abort "Cannot do updateSharedInformation without update views!"
 	where

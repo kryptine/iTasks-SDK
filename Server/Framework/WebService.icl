@@ -89,8 +89,8 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (errorResponse err, iworld)
 				Ok (TaskStable val _ _,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (TaskInstable _ (ServiceRep (rep,actions)) _,_)
-					= (jsonResponse (serviceBusyResponse rep actions), iworld)
+				Ok (TaskInstable _ (ServiceRep (rep,actions,attributes)) _,_)
+					= (jsonResponse (serviceBusyResponse rep actions attributes), iworld)
 				Ok (TaskInstable _ _ _,_)
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
@@ -144,12 +144,13 @@ where
 	errorResponse msg
 		= {HTTPResponse | rsp_headers = fromList [("Status", "500 Internal Server Error")], rsp_data = msg}
 			
-	serviceBusyResponse rep actions
-		= JSONObject [("status",JSONString "busy"),("parts",parts)]
+	serviceBusyResponse rep actions attributes
+		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
 	where
 		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, partId = partId, value = value, actions = findActions taskId actions} \\ (taskId,partId,value) <- rep]
 		findActions taskId actions
 			= [actionName action \\ (task,action,enabled) <- actions | enabled && task == taskId]
+	
 	serviceDoneResponse (Container val :: Container a a)
 		= JSONObject [("status",JSONString "complete"),("value",toJSON val)]
 	serviceDoneResponse _

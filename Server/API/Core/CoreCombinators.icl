@@ -197,8 +197,8 @@ where
 		match _ _			= Nothing 
 	
 	addStepActions taskId (RepAsService _) rep mba = case rep of
-		(ServiceRep (parts,actions))
-			= ServiceRep (parts,actions ++ stepActions taskId mba)
+		(ServiceRep (parts,actions,attributes))
+			= ServiceRep (parts,actions ++ stepActions taskId mba,attributes)
 		_	= rep
 	addStepActions taskId (RepAsTUI Nothing layout) rep mba = case rep of
 		(TUIRep gui)
@@ -319,7 +319,7 @@ where
 					(RepAsTUI target layout)
 						= mergeReps taskId target (fromMaybe DEFAULT_LAYOUT layout) ([(TASK_ATTRIBUTE,toString taskId)] ++ initAttributes desc) results
 					(RepAsService target)
-						# fixme = ([],[])
+						# fixme = ([],[],[])
 						= ServiceRep fixme
 				# items				= mergeStates results		
 				| allStable results
@@ -374,15 +374,15 @@ where
 				# (taskId,iworld)	= getNextTaskId iworld
 				# (state,iworld)	= task.initFun taskId iworld
 				= ({taskId = taskId, stack = stack, detached = False, progress = Nothing, management = Nothing
-				   ,task = (dynamic parTask :: ParallelTask s^), state = state}, iworld)
+				   ,task = (dynamic parTask :: ParallelTask s^), state = state, attributes = []}, iworld)
 			Detached management
 				# task				= parTask taskList
 				# progress			= initProgressMeta localDateTime currentUser
 				# (taskId,iworld)	= getNextTaskId iworld
 				# (state,iworld)	= task.initFun taskId iworld
 				= ({taskId = taskId, stack = stack, detached = False, progress = Just progress, management = Just management
-				   ,task = (dynamic parTask :: ParallelTask s^), state = state}, iworld)
-
+				   ,task = (dynamic parTask :: ParallelTask s^), state = state, attributes = []}, iworld)
+		
 	//Initialize a process properties record for administration of detached tasks
 	initProgressMeta now user
 		= {ProgressMeta|status=Running,issuedAt=now,issuedBy=user,firstEvent=Nothing,latestEvent=Nothing}
@@ -414,9 +414,8 @@ where
 	addParList listId items version iworld=:{parallelLists}
 		= {iworld & parallelLists = 'Map'.put ("taskList:" +++ listId) (version,map toMeta items) parallelLists}
 	where
-		toMeta {ParallelItem|taskId,progress,management}
-			# fixme = []
-			= {TaskListItem|taskId = taskId, taskMeta = [],progressMeta = progress, managementMeta = management, subItems = fixme}
+		toMeta {ParallelItem|taskId,progress,management,state,attributes}
+			= {TaskListItem|taskId = taskId, taskMeta = attributes, progressMeta = progress, managementMeta = management, subItems = stateToTaskListItems state}
 	
 	removeParList :: !String !*IWorld -> *IWorld
 	removeParList listId iworld=:{parallelLists}

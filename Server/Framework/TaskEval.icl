@@ -23,19 +23,19 @@ setExcepted :: !ProgressMeta  -> ProgressMeta
 setExcepted meta = {meta & status = Excepted}
 
 getTaskMeta	:: !TaskRep -> [(!String,!String)]
-getTaskMeta NoRep				= []
-getTaskMeta (TUIRep (_,_,attr))	= attr
-getTaskMeta (ServiceRep _)		= fixme
-where
-	fixme = [] //TODO
+getTaskMeta NoRep					= []
+getTaskMeta (TUIRep (_,_,attr))		= attr
+getTaskMeta (ServiceRep (_,_,attr))	= attr
 
+//Tasks are packed in container to have all required overloading resolved for
+//completely independent evaluation
 createTaskContainer :: (ParallelTask a) -> Dynamic | iTask a
 createTaskContainer parTask = (dynamic (Container parTask) :: Container (ParallelTask a^) a^)
 
+//Final task results are wrapped in a container to be able to serialize it in
+//a webservice response
 createValueContainer :: a -> Dynamic | iTask a
-createValueContainer val = fixme
-where
-	fixme = (dynamic (Container val) :: Container a^ a^)	//TOTALLY NOT USED
+createValueContainer val = (dynamic (Container val) :: Container a^ a^)
 
 //Lifts any task to a task that can be added to the "sessions" task list
 toSessionTask :: (Task a) -> ParallelTask Void
@@ -106,7 +106,7 @@ evalInstance editEvent commitEvent repTarget genGUI context=:(TaskContext topId 
 					# context		= TaskContext topId updNextTaskNo (setRunning pmeta) mmeta (getTaskMeta rep) (TTCRunning container scontext)
 					= (Ok (TaskInstable Nothing rep scontext), context, iworld)
 				TaskStable val rep scontext
-					# context		= TaskContext topId updNextTaskNo (setFinished pmeta) mmeta (getTaskMeta rep) (TTCFinished (createValueContainer val))
+					# context		= TaskContext topId updNextTaskNo (setFinished pmeta) mmeta (getTaskMeta rep) (TTCFinished container)
 					= (Ok (TaskStable (createValueContainer val) rep scontext), context, iworld)
 				TaskException e str
 					# context		= TaskContext topId updNextTaskNo (setExcepted pmeta) mmeta [] (TTCExcepted str)
@@ -133,7 +133,7 @@ createSessionInstance task editEvent commitEvent genGUI iworld
 				Ok result	= (Ok (result, sessionId), iworld)
 				Error e		= (Error e, iworld)
 
-evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (TaskResult Dynamic, !SessionId), !*IWorld)
+evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld)
 evalSessionInstance sessionId editEvent commitEvent genGUI iworld
 	# (mbContext,iworld)	= loadTaskInstance (Left sessionId) iworld
 	= case mbContext of

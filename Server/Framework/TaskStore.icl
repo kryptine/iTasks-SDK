@@ -50,7 +50,7 @@ storeTaskInstance context=:(TaskContext topid _ _ _ _ _) iworld
 		# iworld = storeValue (namespace topid) (state_store topid) context iworld
 		= case topid of
 			//Update the process index with the process information from this context	
-			Right _		= updatePersistentInstanceIndex (Left (stateToTaskListItem context)) iworld
+			Right _		= updatePersistentInstanceIndex (Left (contextToTaskListItem context)) iworld
 			_			= iworld			
 	
 loadTaskInstance :: !(Either SessionId TopNo) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
@@ -92,26 +92,3 @@ where
 	update item [i:is] = if (item.TaskListItem.taskId == i.TaskListItem.taskId) [item:is] [i:update item is]
 
 	delete id list = [ i \\ i <- list | i.TaskListItem.taskId <> TaskId id 0]
-	
-stateToTaskListItem :: !TaskContext -> TaskListItem
-stateToTaskListItem (TaskContext topid _ pmeta mmeta tmeta scontext)
-	= {taskId = taskId topid, taskMeta = tmeta, progressMeta = Just pmeta, managementMeta = Just mmeta, subItems = tsubprocs scontext}
-where
-	taskId (Left session)	= TaskId 0 0
-	taskId (Right topNo)	= TaskId topNo 0
-	
-	tsubprocs (TTCRunning _ context)			= subprocs context
-	tsubprocs _									= []
-
-	subprocs (TCStep _ (Left context))			= subprocs context
-	subprocs (TCStep _ (Right (_,_,context)))	= subprocs context
-	subprocs (TCParallel _ _ _ subs)			= subprocsp subs
-	subprocs _									= []
-	
-	subprocsp [] = []
-	subprocsp [{ParallelItem|taskId,progress,management,state}:subs]
-		= [item:subprocsp subs]
-	where
-		fixme = []
-		item = {taskId = taskId, taskMeta = fixme, progressMeta = progress, managementMeta = management, subItems = subprocs state}
-

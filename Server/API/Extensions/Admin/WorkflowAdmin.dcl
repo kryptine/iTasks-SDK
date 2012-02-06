@@ -74,6 +74,8 @@ instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
 */
 manageWorkflows :: ![Workflow] ->  Task Void
 
+manageWorklist :: ![Workflow] -> Task Void
+
 /**
 * Dynamically adds a workflow to the system.
 *

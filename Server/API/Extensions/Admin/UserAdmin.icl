@@ -47,10 +47,14 @@ authenticateUser (Username username) (Password password)
 				= return Nothing
 
 doAuthenticated :: (Task a) -> Task a | iTask a
-doAuthenticated task
+doAuthenticated task = doAuthenticateWith verify task
+where
+	verify {Credentials|username,password} = authenticateUser username password
+	
+doAuthenticateWith :: (Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
+doAuthenticateWith verifyCredentials task
 	=	enterInformation ("Log in","Please enter your credentials") []	<<@ loginForm
-	>>!	\{Credentials|username,password} ->
-		authenticateUser username password
+	>>!	verifyCredentials
 	>>= \mbUser -> case mbUser of
 		Nothing		= throw "Authentication failed"
 		Just user	= workAs user task
