@@ -207,6 +207,9 @@ instance == User
 instance == Username
 instance == Password
 instance == TaskId
+instance == Date
+instance == Time
+instance == DateTime
 
 instance < EUR
 instance < USD

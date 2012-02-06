@@ -329,6 +329,10 @@ where
 // Time
 // ******************************************************************************************************
 
+instance == Time
+where
+	(==) x y = x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec == y.Time.sec
+	
 instance < Time
 where
 	(<) x y
@@ -363,6 +367,9 @@ where
 // ******************************************************************************************************
 // DateTime
 // ******************************************************************************************************
+instance == DateTime
+where
+	(==) (DateTime dx tx) (DateTime dy ty)	= dx == dy && tx == ty
 instance < DateTime
 where
 	(<) (DateTime dx tx) (DateTime dy ty)
