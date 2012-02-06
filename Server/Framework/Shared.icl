@@ -1,7 +1,7 @@
 implementation module Shared
 
-import IWorld, Void, Error, StdFunc, StdMisc, Tuple, Maybe
-from SharedDataSource import :: RWShared, :: Version, createBasicDataSource, :: BasicSourceOps{..}, :: OBSERVER
+import IWorld, Void, Error, StdFunc, StdMisc, Tuple, Maybe, StdString
+from SharedDataSource import :: RWShared, :: Version, createBasicDataSource, :: BasicSourceOps{..}, :: OBSERVER, read, createProxyDataSource
 
 makeUnsafeShare ::
 	!String
@@ -53,3 +53,13 @@ where
 			, close			= id
 			, addObserver	= \_ _ -> abort "unsafe share: not implemented"
 			}
+			
+(>+>) infixl 6 :: !(ReadWriteShared r0 w0) !(r0 -> (ReadWriteShared r1 w1)) -> ReadWriteShared r1 w1
+(>+>) share shareGenF = createProxyDataSource genShare id const
+where
+	genShare env
+		# (mbeRes, env) = read share env
+		= case mbeRes of
+			Error e		= abort ("proxy data source: " +++ e)
+			Ok (r,_)	= (shareGenF r, env)
+	

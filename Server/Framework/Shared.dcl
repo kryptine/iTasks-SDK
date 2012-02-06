@@ -32,3 +32,6 @@ makeReadOnlySharedError ::
 	!(*IWorld      -> *(!MaybeErrorString Version,!*IWorld))
 	->
 	ReadOnlyShared a
+	
+// Use the value of one share as parameter for another
+(>+>) infixl 6 :: !(ReadWriteShared r0 w0) !(r0 -> (ReadWriteShared r1 w1)) -> ReadWriteShared r1 w1
