@@ -15,7 +15,7 @@ import CoreTasks, CoreCombinators, InteractionTasks, LayoutCombinators
 (>>*) task steps = step task steps 
 
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskbf = step taska [WhenStable taskbf]
+(>>=) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf, WhenStable taskbf]
 
 (>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>!) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf]
