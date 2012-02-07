@@ -12,7 +12,7 @@ import CoreTasks
 				| E.v:	UpdateLocal		!(l -> v) (v l -> l)			& iTask v
 				| E.v:	DisplayShared	!(r -> v)						& iTask v
 				| E.v:	UpdateShared	!(r -> v) (v l -> l)			& iTask v
-				//More fine graint views
+				//More fine grained views
 				| E.v:	DisplayView		!(GetFun l r v)					& iTask v	//* a view to show the data model
 				| E.v:	EnterView						!(SetFun l r v)	& iTask v	//* a view to put information into the data model
 				| E.v:	UpdateView		!(GetFun l r v) !(SetFun l r v)	& iTask v	//* a view to update the data model
