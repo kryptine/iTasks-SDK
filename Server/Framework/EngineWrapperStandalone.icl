@@ -5,11 +5,6 @@ import HTTP, HttpServer, CommandLine, Func
 
 import Engine
 
-DEFAULT_PORT		:== IF_POSIX_OR_WINDOWS 8080 80
-SEARCH_PATHS		:== RELATIVE_LOCATIONS ++ DEFAULT_LOCATIONS
-DEFAULT_LOCATIONS	:== ["C:\\Clean 2.3"]
-RELATIVE_LOCATIONS	:== [".": take 5 (iterate ((</>) "..") "..")]
-
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
 	# (opts,world)			= getCommandLine world

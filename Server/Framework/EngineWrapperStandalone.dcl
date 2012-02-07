@@ -7,12 +7,10 @@ definition module EngineWrapperStandalone
 import Engine
 
 /**
-* Starts the task engine with a list of workflow definitions.
+* Starts the task engine with a list of published task definitions.
 *
-* @param A task to start
+* @param Tasks to start
 * @param The world
 * @return The world
 */
 startEngine :: a !*World -> *World | Publishable a
-
-

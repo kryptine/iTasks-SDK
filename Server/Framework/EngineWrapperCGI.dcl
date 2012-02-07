@@ -7,10 +7,10 @@ definition module EngineWrapperCGI
 import Engine
 
 /**
-* Starts the task engine with a list of workflow definitions.
+*  Starts the task engine with a list of published task definitions.
 *
-* @param A list of available workflows
+* @param Tasks to start
 * @param The world
 * @return The world
 */
-startEngine :: [Workflow] !*World -> *World
+startEngine :: a !*World -> *World | Publishable a

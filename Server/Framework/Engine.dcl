@@ -4,9 +4,15 @@ definition module Engine
 * This is the primary function that creates the complete
 * environment in which worfklow specifications can be executed.
 */
-import Maybe, JSON, FilePath, Task
+import Maybe, JSON, FilePath, Task, StdList
 from IWorld			import :: IWorld
 from HTTP			import :: HTTPRequest, :: HTTPResponse
+
+//* Configuarion defaults
+DEFAULT_PORT		:== IF_POSIX_OR_WINDOWS 8080 80
+SEARCH_PATHS		:== RELATIVE_LOCATIONS ++ DEFAULT_LOCATIONS
+DEFAULT_LOCATIONS	:== ["C:\\Clean 2.3"]
+RELATIVE_LOCATIONS	:== [".": take 5 (iterate ((</>) "..") "..")]
 
 :: PublishedTask =
 	{ url			:: String
