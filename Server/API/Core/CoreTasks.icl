@@ -219,7 +219,7 @@ where
 		# iworld				= storeTaskInstance (fromOk mbContext) iworld
 		= (context, iworld)
 		
-	eval eEvent cEvent (RepAsTUI target layout) (TCEmpty taskId) iworld=:{evalStack}
+	eval eEvent cEvent (RepAsTUI _ layout) (TCEmpty taskId) iworld=:{evalStack}
 		//Check for cycles
 		| isMember taskId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
@@ -235,8 +235,8 @@ where
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
-		# subTarget  = if (taskNo == 0) Nothing (Just (TaskId topNo taskNo)) 
-		# (mbResult,context,iworld)	= evalInstance eEvent cEvent subTarget True (fromOk mbContext) iworld
+		# target					= if (taskNo == 0) Nothing (Just (TaskId topNo taskNo))
+		# (mbResult,context,iworld)	= evalInstance eEvent cEvent target True (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result

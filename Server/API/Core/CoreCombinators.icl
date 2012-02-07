@@ -32,30 +32,30 @@ where
 project	:: ((Maybe a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
 project projection share taska = mkTask init edit eval
 where
-	init _ iworld
-		# (taskId,iworld)	= getNextTaskId iworld
+	init taskId iworld
+		# (taskIdA,iworld)	= getNextTaskId iworld
 		# (inita,iworld)	= taska.initFun taskId iworld
-		= (TCProject JSONNull inita, iworld)
+		= (TCProject taskId JSONNull inita, iworld)
 	
 	//Pass along edit events
-	edit event context=:(TCProject prev cxta) iworld
+	edit event context=:(TCProject taskId prev cxta) iworld
 		# (ncxta,iworld)	= taska.editFun event cxta iworld
-		= (TCProject prev ncxta, iworld)
+		= (TCProject taskId prev ncxta, iworld)
 		
 	//Eval task and check for change
-	eval eEvent cEvent repAs (TCProject prev cxta) iworld
-		# (resa, iworld) 	= taska.evalFun eEvent cEvent (subRepAs repAs taska) cxta iworld
+	eval eEvent cEvent repAs (TCProject taskId prev cxta) iworld
+		# (resa, iworld) 	= taska.evalFun eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) cxta iworld
 		= case resa of
 			TaskInstable mba rep ncxta 
 				| changed prev mba	
-					= projectOnShare mba (TaskInstable mba rep (TCProject (toJSON mba) ncxta)) iworld
+					= projectOnShare mba (TaskInstable mba rep (TCProject taskId (toJSON mba) ncxta)) iworld
 				| otherwise
-					= (TaskInstable mba rep (TCProject prev ncxta), iworld)
+					= (TaskInstable mba rep (TCProject taskId prev ncxta), iworld)
 			TaskStable a rep ncxta
 				| changed prev (Just a)
-					= projectOnShare (Just a) (TaskStable a rep (TCProject (toJSON (Just a)) ncxta)) iworld
+					= projectOnShare (Just a) (TaskStable a rep (TCProject taskId (toJSON (Just a)) ncxta)) iworld
 				| otherwise
-					= (TaskStable a rep (TCProject prev ncxta), iworld)
+					= (TaskStable a rep (TCProject taskId prev ncxta), iworld)
 			TaskException e str
 				= (TaskException e str,iworld)
 	
@@ -107,7 +107,7 @@ where
 		
 	//Eval left-hand side
 	eval eEvent cEvent repAs (TCStep taskId (Left cxta)) iworld 
-		# (resa, iworld) 	= taska.evalFun eEvent cEvent (subRepAs repAs taska) cxta iworld
+		# (resa, iworld) 	= taska.evalFun eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) cxta iworld
 		# mbcommit			= case cEvent of
 			(Just (TaskEvent t action))
 				| t == taskId	= Just action
@@ -127,7 +127,7 @@ where
 			Right (sel,taskb,enca)
 				# (taskIdB,iworld)	= getNextTaskId iworld
 				# (cxtb,iworld)		= taskb.initFun taskIdB iworld
-				# (resb,iworld)		= taskb.evalFun Nothing Nothing (subRepAs repAs taskb) cxtb iworld 
+				# (resb,iworld)		= taskb.evalFun Nothing Nothing (matchTarget (subRepAs repAs taskb) taskId) cxtb iworld 
 				= case resb of
 					TaskInstable mbb rep ncxtb	= (TaskInstable mbb rep (TCStep taskId (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b rep ncxtb		= (TaskStable b rep ncxtb, iworld)
@@ -143,7 +143,7 @@ where
 			(CatchAll taskbf)		= fmap taskbf (fromJSON enca)
 		= case mbTaskb of
 			Just taskb
-				# (resb, iworld)	= taskb.evalFun eEvent cEvent (subRepAs repAs taskb) cxtb iworld 
+				# (resb, iworld)	= taskb.evalFun eEvent cEvent (matchTarget (subRepAs repAs taskb) taskId) cxtb iworld 
 				= case resb of
 					TaskInstable mbb rep ncxtb	= (TaskInstable mbb rep (TCStep taskId (Right (enca,sel,ncxtb))),iworld)
 					TaskStable b rep ncxtb		= (TaskStable b rep ncxtb, iworld)
@@ -380,7 +380,7 @@ where
 				# progress			= initProgressMeta localDateTime currentUser
 				# (taskId,iworld)	= getNextTaskId iworld
 				# (state,iworld)	= task.initFun taskId iworld
-				= ({taskId = taskId, stack = stack, detached = False, progress = Just progress, management = Just management
+				= ({taskId = taskId, stack = stack, detached = True, progress = Just progress, management = Just management
 				   ,task = (dynamic parTask :: ParallelTask s^), state = state, attributes = []}, iworld)
 		
 	//Initialize a process properties record for administration of detached tasks
@@ -485,22 +485,21 @@ where
 	mergeStates :: [(!TaskResult ParallelResult, !ParallelItem)] -> [ParallelItem]
 	mergeStates results = map snd results
 
-	mergeReps taskId Nothing layout attributes results
-		# parts = [appThd3 (kvSet STACK_ATTRIBUTE (toString stack) o kvSet TASK_ATTRIBUTE (toString taskId)) gui
-					 \\ (TaskInstable _ (TUIRep gui) _,{ParallelItem|taskId,stack}) <- results]	
-		= TUIRep (layout parts [] attributes)
-	mergeReps taskId (Just target) layout attributes results
-		//This parallel is the target
-		| taskId == target
+	mergeReps taskId mbTarget layout attributes results
+		//This parallel is the target or no target is set
+		| show mbTarget
 			# parts = [appThd3 (kvSet STACK_ATTRIBUTE (toString stack) o kvSet TASK_ATTRIBUTE (toString taskId)) gui
-					 \\ (TaskInstable _ (TUIRep gui) _,{ParallelItem|taskId,stack}) <- results]	
+					 \\ (TaskInstable _ (TUIRep gui) _,{ParallelItem|taskId,stack,detached}) <- results | not detached]	
 			= TUIRep (layout parts [] attributes)
 		| otherwise
 			//If a target is set, only one of the branches should have a TUIRep representation
 			= case [gui \\ (TaskInstable _ (TUIRep gui) _,_) <- results] of
 				[part]	= TUIRep part
-				_		= NoRep
-					
+				parts	= NoRep
+	where
+		show Nothing			= True
+		show (Just target)	= target == taskId	
+						
 	//Change the order of the subtask such that the indicated sub becomes top and the others
 	//maintain their relative ordering
 	reorder :: !TaskId ![ParallelItem] -> [ParallelItem]
@@ -511,6 +510,8 @@ where
 		isTop {ParallelItem|taskId} = taskId == top
 		sortByTaskId items = sortBy ( \{ParallelItem|taskId=a} {ParallelItem|taskId=b} -> a < b) items
 		sortByStack items = sortBy ( \{ParallelItem|stack=a} {ParallelItem|stack=b} -> a < b) items
+
+import StdDebug
 		
 //Derived shares
 taskListState :: !(SharedTaskList s) -> Shared s 
@@ -576,6 +577,8 @@ where
 		# (result,iworld) = f eEvent cEvent repAs context {iworld & currentUser = user}
 		= (result,{iworld & currentUser = currentUser})
 
+
+
 /*
 * Tuning of tasks
 */
@@ -586,3 +589,12 @@ where tune (SetLayout layout) task				= {Task|task & layout = Just layout}
 
 instance tune ModifyLayout
 where tune (ModifyLayout f) task=:{Task|layout}	= {Task|task & layout = Just (f (fromMaybe DEFAULT_LAYOUT layout))} 
+
+/**
+* Helper function that sets the target task id to Nothing if it matches the given task id.
+* This ensures that a representation for the full sub-tree is generated when determining the representation target for sub trees.
+*/
+matchTarget :: !TaskRepTarget !TaskId -> TaskRepTarget
+matchTarget repAs=:(RepAsTUI (Just target) layout) taskId	= if (target == taskId) (RepAsTUI Nothing layout) repAs
+matchTarget repAs=:(RepAsService (Just target)) taskId		= if (target == taskId) (RepAsService Nothing) repAs
+matchTarget repAs taskId									= repAs
