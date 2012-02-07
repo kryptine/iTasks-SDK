@@ -137,7 +137,7 @@ forever	t = (t <! (const False)) >>| return defaultValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb
-	= parallel "Do one of the following." (Nothing,Nothing)
+	= parallel Void (Nothing,Nothing)
 		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Stop)
 		,(Embedded, \s -> (taskb @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Stop)
 		] @? res
@@ -194,7 +194,7 @@ where
 
 allTasks :: ![Task a] -> Task [a] | iTask a
 allTasks tasks
-	= parallel ("all", "Done when all subtasks are finished") [Nothing \\ _ <- tasks]
+	= parallel Void [Nothing \\ _ <- tasks]
 		[(Embedded, \s -> (t @> (\mba r -> Just (updateAt i mba r),taskListState s)) @ const Keep ) \\ t <- tasks & i <- [0..]] @? res
 where
 	res (Just [])				= Just []
@@ -205,7 +205,7 @@ where
 				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb
-	= parallel ("either", "Done when either subtask is finished") (Nothing,Nothing)
+	= parallel Void (Nothing,Nothing)
 		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Keep)
 		,(Embedded, \s -> (taskb @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Keep)
 		] @? res

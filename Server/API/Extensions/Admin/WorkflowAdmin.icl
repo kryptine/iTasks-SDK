@@ -150,7 +150,7 @@ workflowDashboard = SetLayout dashLayout @>> parallel (Title "Manage worklist") 
 
 controlDashboard :: Task ParallelResult
 controlDashboard
-	=	(viewSharedInformation "Info" [DisplayView (GetShared view)] currentUser
+	=	(viewSharedInformation Void [DisplayView (GetShared view)] currentUser
 			>>* [AnyTime ActionRefresh		(\_ -> return Keep)
 				,AnyTime (Action "Log out")	(\_ -> return Stop)
 				] 

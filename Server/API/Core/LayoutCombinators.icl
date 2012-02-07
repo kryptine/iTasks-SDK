@@ -19,9 +19,12 @@ where
 		| isEmpty guis		= (Nothing, actions ++ partactions, attributes)
 		# gui				= case kvGet TITLE_ATTRIBUTE attributes of
 								(Just title)	= paneled (Just title) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis
-								Nothing	= case guis of
-									[gui]		= gui
-									_			= vjoin guis
+								Nothing
+									= case kvGet HINT_ATTRIBUTE attributes of
+										(Just hint)	= formed (Just hint) guis
+										Nothing = case guis of
+											[gui]		= gui
+											_			= vjoin guis
 		| canHoldButtons gui		
 			# (buttons,actions)	= actionsToButtons actions
 			# gui				= addButtonsToTUI buttons gui
@@ -136,8 +139,9 @@ where
 									
 canHoldButtons :: TUIDef -> Bool
 canHoldButtons def=:{TUIDef|content} = case content of
-	TUIPanel _		= True
-	_				= False
+	TUIPanel {TUIPanel|purpose=Just "form"}			= True
+	TUIContainer {TUIContainer|purpose=Just "form"}	= True
+	_												= False
 
 canHoldMenus :: TUIDef -> Bool
 canHoldMenus def = False
@@ -317,7 +321,7 @@ paneled mbTitle mbHint mbIcon defs
 	# defs	= case mbHint of
 		Nothing = defs
 		Just hint = [hintPanel hint:defs]
-	# panel = frame (toPanel (vjoin defs))
+	# panel = (setPurpose "form" o frame) (toPanel (vjoin defs))
 	# panel = case mbTitle of
 		Nothing		= panel
 		Just title	= setTitle title panel
@@ -328,6 +332,13 @@ paneled mbTitle mbHint mbIcon defs
 where
 	frame = setMargins 10 10 0 10 o setPadding 10 o setFramed True o fixedWidth 700
 
+formed :: !(Maybe String) ![TUIDef] -> TUIDef
+formed mbHint defs 
+	# defs	= case mbHint of
+		Nothing = defs
+		Just hint = [hintPanel hint:defs]
+	= setPurpose "form" (vjoin defs)
+	
 //Container operations
 addItemToTUI :: (Maybe Int) TUIDef TUIDef -> TUIDef
 addItemToTUI mbIndex item def=:{TUIDef|content} = case content of
