@@ -738,17 +738,15 @@ where
 
 instance toString TaskStatus
 where
-	toString Running	= "Running"
-	toString Finished	= "Finished"
+	toString Unstable	= "Unstable"
+	toString Stable	= "Stable"
 	toString Excepted	= "Excepted"
-	toString Deleted	= "Deleted"
 
 instance == TaskStatus
 where
-	(==) Running	Running		= True
-	(==) Finished	Finished	= True
+	(==) Unstable	Unstable	= True
+	(==) Stable		Stable		= True
 	(==) Excepted	Excepted	= True
-	(==) Deleted	Deleted		= True
 	(==) _			_			= False
 		
 instance toEmail EmailAddress where toEmail e = e

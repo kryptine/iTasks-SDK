@@ -6,18 +6,18 @@ from Task		import :: Event, :: EditEvent
 from GenUpdate	import :: UpdateMask
 import JSON
 
-derive JSONEncode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelItem, UpdateMask
-derive JSONDecode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelItem, UpdateMask
+derive JSONEncode TopInstance, TaskState, ParallelMeta, ParallelItem, UpdateMask
+derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem, UpdateMask
 
-contextToTaskListItem :: !TaskContext -> TaskListItem
-contextToTaskListItem (TaskContext topid _ pmeta mmeta tmeta scontext)
-	= {taskId = taskId topid, taskMeta = tmeta, progressMeta = Just pmeta, managementMeta = Just mmeta, subItems = tsubprocs scontext}
+instanceToTaskListItem :: !TopInstance -> TaskListItem
+instanceToTaskListItem {TopInstance|instanceId,progress,management,state,attributes}
+	= {taskId = taskId instanceId, taskMeta = attributes, progressMeta = Just progress, managementMeta = Just management, subItems = subItems state}
 where
 	taskId (Left session)	= TaskId 0 0
 	taskId (Right topNo)	= TaskId topNo 0
 	
-	tsubprocs (TTCRunning _ state)			= stateToTaskListItems state
-	tsubprocs _								= []
+	subItems (Left state)			= stateToTaskListItems state
+	subItems _						= []
 
 stateToTaskListItems :: !TaskState -> [TaskListItem]
 stateToTaskListItems (TCStep _ (Left context))			= stateToTaskListItems context

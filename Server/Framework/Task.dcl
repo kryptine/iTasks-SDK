@@ -40,7 +40,7 @@ derive gPutRecordFields	Task
 :: CommitEvent		:== Event String					//Action name
 
 
-:: TaskResult a		= TaskInstable	!(Maybe a)	!TaskRep !TaskState
+:: TaskResult a		= TaskUnstable	!(Maybe a)	!TaskRep !TaskState
 					| TaskStable	!a			!TaskRep !TaskState
 					| TaskException	!Dynamic !String
 
@@ -59,13 +59,18 @@ derive gPutRecordFields	Task
 //Task representation for web service format
 :: TaskServiceRep	:== (![TaskPart], ![TaskAction], ![TaskAttribute])
 
-:: TaskPart			:== (!String, !Int, !JSONNode) //Task id, part index, value
+//Summary of the composition structure of tasks (used as input for layouting)
+:: TaskCompositionType
+	= SingleTask
+	| SequentialComposition
+	| ParallelComposition
+
+:: TaskPart			:== (!String, !Int, !JSONNode)	//Task id, part index, value
 :: TaskAction		:== (!String, !Action, !Bool)	//Task id, action, enabled
 :: TaskAttribute	:== (!String, !String) 
 
 //Creates an execption result
 taskException :: !e -> TaskResult a | TC, toString e
-
 /**
 * Create a task from a description and a pair of task functions
 *

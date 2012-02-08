@@ -149,7 +149,7 @@ where
 				= ServiceRep (flatten parts,flatten actions, flatten attributes)
 		
 		# result							= if valid (Just (lvalue,rvalue)) Nothing 
-		= (TaskInstable result rep (TCInteract taskId (toJSON lvalue) views rversion), iworld)
+		= (TaskUnstable result rep (TCInteract taskId (toJSON lvalue) views rversion), iworld)
 	eval eEvent cEvent repAs (TCEmpty _) iworld
 		= (taskException "Failed to initialize interact",iworld)
 	eval eEvent cEvent repAs context iworld
@@ -231,7 +231,7 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally topNo iworld
 			| found
-				= (TaskInstable Nothing (TUIRep (Just (stringDisplay "Task finished"),[],[])) (TCEmpty taskId), {iworld & readShares = Nothing})
+				= (TaskUnstable Nothing (TUIRep (Just (stringDisplay "Task finished"),[],[])) (TCEmpty taskId), {iworld & readShares = Nothing})
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
@@ -243,12 +243,12 @@ where
 				//Store context
 				# iworld		= storeTaskInstance context iworld
 				# (result,rep,iworld) = case result of
-					(TaskInstable _ rep _)			= (WOActive, rep, iworld)
+					(TaskUnstable _ rep _)			= (WOActive, rep, iworld)
 					(TaskStable _ rep _)			= (WOFinished, rep, iworld)
 					(TaskException _ err)			= (WOExcepted, TUIRep (Just (stringDisplay ("Task excepted: " +++ err)), [], []), iworld)
 				= case result of
 					WOFinished	= (TaskStable WOFinished rep (TCEmpty taskId), iworld)
-					_			= (TaskInstable (Just result) rep (TCEmpty taskId), iworld)
+					_			= (TaskUnstable (Just result) rep (TCEmpty taskId), iworld)
 				
 	checkIfAddedGlobally topNo iworld=:{parallelControls,currentUser}
 		= case 'Map'.get ("taskList:" +++ toString TopLevelTaskList) parallelControls of

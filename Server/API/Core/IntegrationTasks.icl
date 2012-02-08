@@ -75,7 +75,7 @@ where
 							_
 								= ServiceRep ([(toString taskId, 0, JSONNull)], [], [])
 						
-						= (TaskInstable Nothing rep context,{IWorld|iworld & world = world})
+						= (TaskUnstable Nothing rep context,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file

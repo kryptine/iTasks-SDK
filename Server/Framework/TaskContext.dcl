@@ -4,28 +4,29 @@ import SystemTypes
 
 from GenUpdate	import :: UpdateMask
 
-derive JSONEncode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelItem
-derive JSONDecode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelItem
+derive JSONEncode TopInstance, TaskState, ParallelMeta, ParallelItem
+derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 
 //Persistent context of active tasks
-:: TaskContext = TaskContext !(Either SessionId TopNo) !TaskNo !ProgressMeta !ManagementMeta !TaskMeta !ProcessState
-
-:: ProcessState
-	= TTCRunning !Dynamic !TaskState
-	| TTCFinished !Dynamic
-	| TTCExcepted !String
+:: TopInstance =
+	{ instanceId	:: !(Either SessionId TopNo)
+	, nextTaskNo	:: !TaskNo
+	, progress		:: !ProgressMeta
+	, management	:: !ManagementMeta
+	, task			:: !Dynamic
+	, state			:: !Either TaskState String	//Task state or error message
+	, attributes	:: !TaskMeta
+	}
 
 :: TaskState
-	= TCBasic !TaskId !JSONNode !Bool 										//Encoded value and stable indicator
-	| TCInteract !TaskId !JSONNode ![(!JSONNode,!UpdateMask,!Bool)] !Int
-	| TCProject !TaskId !JSONNode !TaskState
-	| TCStep !TaskId !(Either TaskState (!JSONNode,!Int,!TaskState))
-	| TCParallel !TaskId !ParallelContext !ParallelMeta ![ParallelItem] 
-	| TCEmpty !TaskId
+	= TCBasic		!TaskId !JSONNode !Bool 										//Encoded value and stable indicator
+	| TCInteract	!TaskId !JSONNode ![(!JSONNode,!UpdateMask,!Bool)] !Int
+	| TCProject		!TaskId !JSONNode !TaskState
+	| TCStep		!TaskId !(Either TaskState (!JSONNode,!Int,!TaskState))
+	| TCParallel	!TaskId !JSONNode !ParallelMeta ![ParallelItem] 
+	| TCEmpty		!TaskId
 
-:: ParallelContext 	:== JSONNode
-
-//Parallel has a bit more complex administration so we define it as a record
+//Parallel has a bit more complex state so we define it as a record
 :: ParallelMeta = 
 	{ nextIdx		:: !Int
 	, stateVersion	:: !Int		//Version number of the shared state
@@ -44,5 +45,5 @@ derive JSONDecode TaskContext, ProcessState, TaskState, ParallelMeta, ParallelIt
 	}
 
 //Conversion to a representation of task states which hides all internal details
-contextToTaskListItem	:: !TaskContext -> TaskListItem
+instanceToTaskListItem	:: !TopInstance -> TaskListItem
 stateToTaskListItems	:: !TaskState -> [TaskListItem]

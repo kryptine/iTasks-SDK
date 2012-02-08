@@ -11,8 +11,8 @@ from Time import :: Timestamp
 newSessionId		:: !*IWorld -> (!SessionId,	!*IWorld)
 newTopNo			:: !*IWorld -> (!TopNo,	!*IWorld)
 
-storeTaskInstance	:: !TaskContext !*IWorld -> *IWorld
-loadTaskInstance	:: !(Either SessionId TopNo) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
+storeTaskInstance	:: !TopInstance !*IWorld -> *IWorld
+loadTaskInstance	:: !(Either SessionId TopNo) !*IWorld -> (!MaybeErrorString TopInstance, !*IWorld)
 deleteTaskInstance	:: !(Either SessionId TopNo) !*IWorld -> *IWorld
 
 storeTaskTUI		:: !SessionId !TUIDef !Int !*IWorld -> *IWorld

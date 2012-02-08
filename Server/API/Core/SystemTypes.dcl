@@ -71,10 +71,9 @@ from Shared			import :: ReadWriteShared, :: RWShared
 	}
 		
 :: TaskStatus
-	= Running		//* A process which is currently running (active or suspended)
-	| Finished		//* A process terminated normally
+	= Unstable		//* A process which has an unstable result
+	| Stable		//* A process which has reached a stable result
 	| Excepted		//* A process terminated with an exception
-	| Deleted		//* A process is deleted (never set, but returned when process can not be found)
 
 //* Each task can be identified by two numbers:
 // - A unique number identifying the top-level state

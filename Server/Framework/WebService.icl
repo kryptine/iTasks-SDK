@@ -49,7 +49,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 					Ok (TaskStable _ _ _,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (TaskInstable _ mbCurrentTui context,sessionId)
+					Ok (TaskUnstable _ mbCurrentTui context,sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
 							(Ok (previousTui,prevGuiVersion),TUIRep (Just currentTui,actions,attributes))
 								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
@@ -89,9 +89,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (errorResponse err, iworld)
 				Ok (TaskStable val _ _,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (TaskInstable _ (ServiceRep (rep,actions,attributes)) _,_)
+				Ok (TaskUnstable _ (ServiceRep (rep,actions,attributes)) _,_)
 					= (jsonResponse (serviceBusyResponse rep actions attributes), iworld)
-				Ok (TaskInstable _ _ _,_)
+				Ok (TaskUnstable _ _ _,_)
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain

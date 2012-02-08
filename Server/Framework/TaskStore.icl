@@ -44,16 +44,16 @@ newTopNo iworld
 			# iworld = storeValue NS_PERSISTENT_INSTANCES PERSISTENT_INCREMENT 2 iworld //store the next value (2)
 			= (1,iworld) //return the first value (1)		
 
-storeTaskInstance :: !TaskContext !*IWorld -> *IWorld
-storeTaskInstance context=:(TaskContext topid _ _ _ _ _) iworld
-		//Store the context
-		# iworld = storeValue (namespace topid) (state_store topid) context iworld
-		= case topid of
-			//Update the process index with the process information from this context	
-			Right _		= updatePersistentInstanceIndex (Left (contextToTaskListItem context)) iworld
-			_			= iworld			
-	
-loadTaskInstance :: !(Either SessionId TopNo) !*IWorld -> (!MaybeErrorString TaskContext, !*IWorld)
+storeTaskInstance :: !TopInstance !*IWorld -> *IWorld
+storeTaskInstance context=:{TopInstance|instanceId} iworld
+	//Store the context
+	# iworld = storeValue (namespace instanceId) (state_store instanceId) context iworld
+	= case instanceId of
+		//Update the process index with the process information from this context	
+		Right _		= updatePersistentInstanceIndex (Left (instanceToTaskListItem context)) iworld
+		_			= iworld			
+
+loadTaskInstance :: !(Either SessionId TopNo) !*IWorld -> (!MaybeErrorString TopInstance, !*IWorld)
 loadTaskInstance topid iworld
 	# (val,iworld) = loadValue (namespace topid) (state_store topid) iworld
 	= (maybe (Error ("Could not load context of " +++ s topid)) Ok val, iworld)

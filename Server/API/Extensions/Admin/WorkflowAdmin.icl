@@ -207,7 +207,7 @@ where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
 	processes = mapRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentTopTask)
 	where
-		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid && pmeta.status == Running
+		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid
 		show ownPid _ = False
 		pflatten procs = flatten [[p:pflatten p.subItems] \\ p <- procs]
 

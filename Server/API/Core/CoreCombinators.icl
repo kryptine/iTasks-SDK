@@ -15,7 +15,7 @@ from SharedDataSource	import :: RWRes(..), readWrite, getIds, :: ShareId
 derive class iTask ParallelResult, ParallelTaskType
 
 getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
-getNextTaskId iworld=:{evalStack=[TaskId topNo _:_],nextTaskNo} = (TaskId topNo nextTaskNo, {iworld & nextTaskNo = nextTaskNo + 1})
+getNextTaskId iworld=:{evalStack=[TaskId topNo _:_],nextTaskNo} = (TaskId topNo nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
 getNextTaskId iworld = abort "Empty evaluation stack"
 
 transform :: ((Maybe a) -> Maybe b) !(Task a) -> Task b | iTask a & iTask b 
@@ -23,7 +23,7 @@ transform f task=:{Task|evalFun} = {Task|task & evalFun = evalFun`}
 where
 	evalFun` eEvent cEvent repAs cxt iworld
 		= case evalFun eEvent cEvent repAs cxt iworld of
-			(TaskInstable mba rep cxt, iworld)	= (TaskInstable (f mba) rep cxt, iworld)
+			(TaskUnstable mba rep cxt, iworld)	= (TaskUnstable (f mba) rep cxt, iworld)
 			(TaskStable a rep cxt, iworld)		= case f (Just a) of
 				(Just b)	= (TaskStable b rep cxt, iworld)
 				Nothing		= (taskException "Task with permanent invalid result", iworld)
@@ -46,11 +46,11 @@ where
 	eval eEvent cEvent repAs (TCProject taskId prev cxta) iworld
 		# (resa, iworld) 	= taska.evalFun eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) cxta iworld
 		= case resa of
-			TaskInstable mba rep ncxta 
+			TaskUnstable mba rep ncxta 
 				| changed prev mba	
-					= projectOnShare mba (TaskInstable mba rep (TCProject taskId (toJSON mba) ncxta)) iworld
+					= projectOnShare mba (TaskUnstable mba rep (TCProject taskId (toJSON mba) ncxta)) iworld
 				| otherwise
-					= (TaskInstable mba rep (TCProject taskId prev ncxta), iworld)
+					= (TaskUnstable mba rep (TCProject taskId prev ncxta), iworld)
 			TaskStable a rep ncxta
 				| changed prev (Just a)
 					= projectOnShare (Just a) (TaskStable a rep (TCProject taskId (toJSON (Just a)) ncxta)) iworld
@@ -113,11 +113,11 @@ where
 				| t == taskId	= Just action
 			_					= Nothing
 		# mbCont			= case resa of
-			TaskInstable mba rep ncxta = case searchContInstable mba mbcommit conts of
-				Nothing			= Left (TaskInstable Nothing (addStepActions taskId repAs rep mba) (TCStep taskId (Left ncxta)))
+			TaskUnstable mba rep ncxta = case searchContInstable mba mbcommit conts of
+				Nothing			= Left (TaskUnstable Nothing (addStepActions taskId repAs rep mba) (TCStep taskId (Left ncxta)))
 				Just rewrite	= Right rewrite
 			TaskStable a rep ncxta = case searchContStable a mbcommit conts of
-				Nothing			= Left (TaskInstable Nothing (addStepActions taskId repAs rep (Just a)) (TCStep taskId (Left ncxta)))
+				Nothing			= Left (TaskUnstable Nothing (addStepActions taskId repAs rep (Just a)) (TCStep taskId (Left ncxta)))
 				Just rewrite	= Right rewrite
 			TaskException e str = case searchContException e str conts of
 				Nothing			= Left (TaskException e str)
@@ -129,8 +129,8 @@ where
 				# (cxtb,iworld)		= taskb.initFun taskIdB iworld
 				# (resb,iworld)		= taskb.evalFun Nothing Nothing (matchTarget (subRepAs repAs taskb) taskId) cxtb iworld 
 				= case resb of
-					TaskInstable mbb rep ncxtb	= (TaskInstable mbb rep (TCStep taskId (Right (enca,sel,ncxtb))),iworld)
-					TaskStable b rep ncxtb		= (TaskStable b rep ncxtb, iworld)
+					TaskUnstable mbb rep ncxtb	= (TaskUnstable mbb rep (TCStep taskId (Right (enca,sel,ncxtb))),iworld)
+					TaskStable b rep ncxtb		= (TaskStable b rep (TCStep taskId (Right (enca,sel,ncxtb))), iworld)
 					TaskException e str			= (TaskException e str, iworld)
 	//Eval right-hand side
 	eval eEvent cEvent repAs (TCStep taskId (Right (enca,sel,cxtb))) iworld
@@ -145,8 +145,8 @@ where
 			Just taskb
 				# (resb, iworld)	= taskb.evalFun eEvent cEvent (matchTarget (subRepAs repAs taskb) taskId) cxtb iworld 
 				= case resb of
-					TaskInstable mbb rep ncxtb	= (TaskInstable mbb rep (TCStep taskId (Right (enca,sel,ncxtb))),iworld)
-					TaskStable b rep ncxtb		= (TaskStable b rep ncxtb, iworld)
+					TaskUnstable mbb rep ncxtb	= (TaskUnstable mbb rep (TCStep taskId (Right (enca,sel,ncxtb))),iworld)
+					TaskStable b rep ncxtb		= (TaskStable b rep (TCStep taskId (Right (enca,sel,ncxtb))), iworld)
 					TaskException e str			= (TaskException e str, iworld)
 			Nothing
 				= (taskException "Corrupt task value in step", iworld) 	
@@ -325,7 +325,7 @@ where
 				| allStable results
 					= (TaskStable state rep (TCParallel taskId encState pmeta items), iworld)
 				| otherwise
-					= (TaskInstable (Just state) rep (TCParallel taskId encState pmeta items), iworld)
+					= (TaskUnstable (Just state) rep (TCParallel taskId encState pmeta items), iworld)
 	
 	//When the parallel has been stopped, we have the state encoded in a TCBasic node
 	eval eEvent cEvent repAs context=:(TCBasic taskId encState True) iworld
@@ -346,7 +346,7 @@ where
 		# task				= parTask taskList
 		# (result,iworld)	= task.evalFun eEvent cEvent (subRepAs repAs taskId task) state iworld 
 		# item	= case result of
-			TaskInstable mbr rep state	= {ParallelItem|item & state = state}
+			TaskUnstable mbr rep state	= {ParallelItem|item & state = state}
 			TaskStable r rep state		= {ParallelItem|item & state = state}
 			TaskException e str			= item
 		//Check for exception
@@ -385,7 +385,7 @@ where
 		
 	//Initialize a process properties record for administration of detached tasks
 	initProgressMeta now user
-		= {ProgressMeta|status=Running,issuedAt=now,issuedBy=user,firstEvent=Nothing,latestEvent=Nothing}
+		= {ProgressMeta|status=Unstable,issuedAt=now,issuedBy=user,firstEvent=Nothing,latestEvent=Nothing}
 		
 	//IMPORTANT: The second argument is never used, but passed just to solve overloading
 	encodeState :: !s s -> JSONNode | JSONEncode{|*|} s
@@ -489,11 +489,11 @@ where
 		//This parallel is the target or no target is set
 		| show mbTarget
 			# parts = [appThd3 (kvSet STACK_ATTRIBUTE (toString stack) o kvSet TASK_ATTRIBUTE (toString taskId)) gui
-					 \\ (TaskInstable _ (TUIRep gui) _,{ParallelItem|taskId,stack,detached}) <- results | not detached]	
+					 \\ (TaskUnstable _ (TUIRep gui) _,{ParallelItem|taskId,stack,detached}) <- results | not detached]	
 			= TUIRep (layout parts [] attributes)
 		| otherwise
 			//If a target is set, only one of the branches should have a TUIRep representation
-			= case [gui \\ (TaskInstable _ (TUIRep gui) _,_) <- results] of
+			= case [gui \\ (TaskUnstable _ (TUIRep gui) _,_) <- results] of
 				[part]	= TUIRep part
 				parts	= NoRep
 	where
@@ -552,7 +552,7 @@ where
 		= case 'Map'.get listId parallelControls of
 			Just (nextIdx,controls)
 				# parallelControls = 'Map'.put listId (nextIdx, controls ++ [RemoveTask remId]) parallelControls
-				= (TaskStable Void NoRep (TCEmpty taskId), {iworld & parallelControls = parallelControls })
+				= (TaskStable Void NoRep (TCEmpty taskId), {iworld & parallelControls = parallelControls, readShares = Nothing})
 			_
 				= (taskException ("Task list " +++ listId +++ " is not in scope"), iworld)
 
@@ -576,8 +576,6 @@ where
 	eval f eEvent cEvent repAs context iworld=:{currentUser}
 		# (result,iworld) = f eEvent cEvent repAs context {iworld & currentUser = user}
 		= (result,{iworld & currentUser = currentUser})
-
-
 
 /*
 * Tuning of tasks
