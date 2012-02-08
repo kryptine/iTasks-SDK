@@ -138,10 +138,10 @@ where
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskId repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# rep = case repAs of
 			(RepAsTUI Nothing layout) 
-				= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
+				= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
 			(RepAsTUI (Just target) layout)	//If there is a target set, we only produce a representation only if this task is the target
 				| target == taskId
-					= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
+					= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
 				| otherwise
 					= NoRep
 			_	
@@ -180,13 +180,13 @@ where
 			
 	displayRep idx taskId (RepAsTUI _ _) f l r encv iworld
 		# (editor,iworld) = visualizeAsDisplay (f l r) iworld
-		= (TUIRep (editor,[],[]),iworld)
+		= (TUIRep (ViewPart,editor,[],[]),iworld)
 	displayRep idx taskId _ f l r encv iworld
 		= (ServiceRep ([(toString taskId,idx,encv)],[],[]),iworld)
 	
 	editorRep idx taskId (RepAsTUI _ _) f v encv maskv vermask mbEvent iworld
 		# (editor,iworld) = visualizeAsEditor v taskId idx vermask mbEvent iworld
-		= (TUIRep (editor,[],[]),iworld)
+		= (TUIRep (ViewPart,editor,[],[]),iworld)
 	editorRep idx taskId _ f v encv maskv vermask mbEvent iworld
 		= (ServiceRep ([(toString taskId,idx,encv)],[],[]),iworld)
 	
@@ -231,7 +231,7 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally topNo iworld
 			| found
-				= (TaskUnstable Nothing (TUIRep (Just (stringDisplay "Task finished"),[],[])) (TCEmpty taskId), {iworld & readShares = Nothing})
+				= (TaskUnstable Nothing (TUIRep (SingleTask, Just (stringDisplay "Task finished"),[],[])) (TCEmpty taskId), {iworld & readShares = Nothing})
 			| otherwise
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
@@ -245,7 +245,7 @@ where
 				# (result,rep,iworld) = case result of
 					(TaskUnstable _ rep _)			= (WOActive, rep, iworld)
 					(TaskStable _ rep _)			= (WOFinished, rep, iworld)
-					(TaskException _ err)			= (WOExcepted, TUIRep (Just (stringDisplay ("Task excepted: " +++ err)), [], []), iworld)
+					(TaskException _ err)			= (WOExcepted, TUIRep (SingleTask, Just (stringDisplay ("Task excepted: " +++ err)), [], []), iworld)
 				= case result of
 					WOFinished	= (TaskStable WOFinished rep (TCEmpty taskId), iworld)
 					_			= (TaskUnstable (Just result) rep (TCEmpty taskId), iworld)

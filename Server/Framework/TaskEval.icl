@@ -24,7 +24,7 @@ setExcepted meta = {meta & status = Excepted}
 
 getTaskMeta	:: !TaskRep -> [(!String,!String)]
 getTaskMeta NoRep					= []
-getTaskMeta (TUIRep (_,_,attr))		= attr
+getTaskMeta (TUIRep (_,_,_,attr))	= attr
 getTaskMeta (ServiceRep (_,_,attr))	= attr
 
 //Tasks are packed in container to have all required overloading resolved for

@@ -54,14 +54,15 @@ derive gPutRecordFields	Task
 	| ServiceRep !TaskServiceRep 
 
 //Task representation for web application format
-:: TaskTUI		:== (!Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
+:: TaskTUI		:== (!TaskCompositionType, !Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
 
 //Task representation for web service format
 :: TaskServiceRep	:== (![TaskPart], ![TaskAction], ![TaskAttribute])
 
 //Summary of the composition structure of tasks (used as input for layouting)
 :: TaskCompositionType
-	= SingleTask
+	= ViewPart
+	| SingleTask
 	| SequentialComposition
 	| ParallelComposition
 

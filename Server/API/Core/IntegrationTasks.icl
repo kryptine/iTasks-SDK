@@ -66,10 +66,10 @@ where
 						//Still busy
 						# rep = case repAs of
 							(RepAsTUI Nothing layout)	
-								= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) [] [] []) //TODO: Add attributes
+								= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [] [] []) //TODO: Add attributes
 							(RepAsTUI (Just target) layout)
 								| target == taskId
-									= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) [] [] []) //TODO: Add attributes
+									= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [] [] []) //TODO: Add attributes
 								| otherwise
 									= NoRep
 							_

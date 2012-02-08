@@ -51,7 +51,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
 					Ok (TaskUnstable _ mbCurrentTui context,sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
-							(Ok (previousTui,prevGuiVersion),TUIRep (Just currentTui,actions,attributes))
+							(Ok (previousTui,prevGuiVersion),TUIRep (_,Just currentTui,actions,attributes))
 								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
@@ -63,7 +63,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 												 ,("content",encodeTUIDefinition currentTui)
 												 ,("warning",JSONString "The client is out of sync. The user interface was refreshed with the most recent value.")
 												 ,("timestamp",toJSON timestamp)]
-							(_, TUIRep (Just currentTui,actions,attributes))
+							(_, TUIRep (_,Just currentTui,actions,attributes))
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
 											 ,("content", encodeTUIDefinition currentTui)
@@ -72,7 +72,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 						//Store gui for later incremental requests
 						# iworld = case mbCurrentTui of
-							TUIRep (Just currentTui,_,_)	= storeTaskTUI sessionId currentTui guiVersion iworld
+							TUIRep (_,Just currentTui,_,_)	= storeTaskTUI sessionId currentTui guiVersion iworld
 							_								= iworld
 						= (json,iworld)
 					_

@@ -6,17 +6,15 @@ import SystemTypes, TUIDefinition
 
 from StdFunc import o
 
-from Task import :: TaskAttribute
-from Task import :: TaskAction
-from Task import :: TaskTUI
+from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUI, :: TaskCompositionType(..)
 
 heuristicLayout :: Layout
 heuristicLayout = layout //TODO: Figure out proper propagation of attributes
 where
-	layout parts actions attributes
-		# partactions		= flatten (map snd3 parts)
-		# guis				= [gui \\ (Just gui,_,_) <- parts]
-		| isEmpty guis		= (Nothing, actions ++ partactions, attributes)
+	layout type parts actions attributes
+		# partactions		= flatten [actions \\ (_,_,actions,_) <- parts]
+		# guis				= [gui \\ (_,Just gui,_,_) <- parts]
+		| isEmpty guis		= (type, Nothing, actions ++ partactions, attributes)
 		# gui				= case kvGet TITLE_ATTRIBUTE attributes of
 								(Just title)	= paneled (Just title) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis
 								Nothing
@@ -25,48 +23,49 @@ where
 										Nothing = case guis of
 											[gui]		= gui
 											_			= vjoin guis
+		# actions				= filterImpossibleActions parts actions 
 		| canHoldButtons gui		
 			# (buttons,actions)	= actionsToButtons actions
 			# gui				= addButtonsToTUI buttons gui
 			| canHoldMenus gui
 				# (menus,actions)	= actionsToMenus actions
 				# gui				= addMenusToTUI menus gui
-				= (Just gui, actions ++ partactions, attributes)
+				= (type, Just gui, actions ++ partactions, attributes)
 			| otherwise
-				= (Just gui, actions ++ partactions, attributes)
+				= (type, Just gui, actions ++ partactions, attributes)
 		| otherwise
-			= (Just gui, actions ++ partactions, attributes)
+			= (type, Just gui, actions ++ partactions, attributes)
 
 accumulatingLayout :: Layout
 accumulatingLayout = layout
 where
-	layout parts actions attributes
-		# attributes 	= foldr mergeAttributes [] (map thd3 parts ++ [attributes])
-		# actions		= flatten [actions:map snd3 parts]
-		# guis			= [gui \\ (Just gui,_,_) <- parts]
-		= (Just (vjoin guis), actions, attributes)
+	layout type parts actions attributes
+		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
+		# actions		= flatten [actions:[actions \\ (_,_,actions,_) <- parts]]
+		# guis			= [gui \\ (_,Just gui,_,_) <- parts]
+		= (type, Just (vjoin guis), actions, attributes)
 
 paneledLayout :: Layout
 paneledLayout = layout
 where
-	layout parts actions attributes
-		# partactions		= flatten (map snd3 parts)
+	layout type parts actions attributes
+		# partactions		= flatten [actions \\ (_,_,actions,_) <- parts]
 		# (buttons,actions)	= actionsToButtons actions 
 		# (menus,actions)	= actionsToMenus actions
-		# guis				= [gui \\ (Just gui,_,_) <- parts]
+		# guis				= [gui \\ (_,Just gui,_,_) <- parts]
 		# gui 				= addMenusToTUI menus (addButtonsToTUI buttons (paneled (kvGet TITLE_ATTRIBUTE attributes) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis))
-		= (Just gui, actions ++ partactions, attributes)
+		= (type, Just gui, actions ++ partactions, attributes)
 	
 tabbedLayout :: Layout
 tabbedLayout = layout
 where
-	layout parts actions attributes
-		# tabs		= [tab gui actions attributes \\ (Just gui,actions,attributes) <- parts]
+	layout type parts actions attributes
+		# tabs		= [tab gui actions attributes \\ (_,Just gui,actions,attributes) <- parts]
 		# active	= getTopIndex parts
 		# tabs		= emptyNonActive active tabs
 		# taskId	= kvGet TASK_ATTRIBUTE attributes
 		# gui		= defaultDef (TUITabContainer {TUITabContainer| taskId = taskId, active = active, items = [tab \\{TUIDef|content=TUITabItem tab} <- tabs]})
-		= (Just gui, actions, attributes)
+		= (type, Just gui, actions, attributes)
 	
 	tab gui actions attributes
 		# (close,actions)	= takeCloseTask actions
@@ -92,21 +91,21 @@ where
 hideLayout :: Layout
 hideLayout = layout
 where
-	layout parts actions attributes
-		# attributes 	= foldr mergeAttributes [] (map thd3 parts ++ [attributes])
-		# actions		= flatten [actions:map snd3 parts]
-		= (Nothing,actions,attributes)
+	layout type parts actions attributes
+		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
+		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
+		= (type,Nothing,actions,attributes)
 
 vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
 vsplitLayout split fun = layout
 where
-	layout parts actions attributes
-		# (guis1,guis2)	= fun [gui \\ (Just gui,_,_) <- parts]
+	layout type parts actions attributes
+		# (guis1,guis2)	= fun [gui \\ (_,Just gui,_,_) <- parts]
 		# gui			= (fill o vjoin)
 							[(fixedHeight split o fillWidth) (vjoin guis1)
 							, fill (vjoin guis2)
 							]					
-		= (Just gui, actions, attributes)
+		= (type,Just gui, actions, attributes)
 
 /*	
 
@@ -129,8 +128,8 @@ getTopIndex :: [TaskTUI] -> Int
 getTopIndex parts = find 0 0 0 parts
 where
 	find maxTop maxIndex i [] = maxIndex
-	find maxTop maxIndex i [(Nothing,_,_):ps] = find maxTop maxIndex i ps //Ignore invisible parts 
-	find maxTop maxIndex i [(_,_,attr):ps] = case kvGet STACK_ATTRIBUTE attr of
+	find maxTop maxIndex i [(_,Nothing,_,_):ps] = find maxTop maxIndex i ps //Ignore invisible parts 
+	find maxTop maxIndex i [(_,_,_,attr):ps] = case kvGet STACK_ATTRIBUTE attr of
 		Nothing			= find maxTop maxIndex (i + 1) ps
 		Just stackOrder	
 			# stackOrder = toInt stackOrder
@@ -145,7 +144,12 @@ canHoldButtons def=:{TUIDef|content} = case content of
 
 canHoldMenus :: TUIDef -> Bool
 canHoldMenus def = False
-							
+
+filterImpossibleActions :: [TaskTUI] [TaskAction] -> [TaskAction]
+filterImpossibleActions [(SequentialComposition,_,_,_)] actions //Actions added to a sequential composition are useless
+	= []// [action\\action=:(_,_,enabled) <- actions | enabled]
+filterImpossibleActions _ actions = actions
+						
 setSize :: !TUISize !TUISize !TUIDef -> TUIDef
 setSize width height def = {TUIDef| def & width = Just width, height = Just height}
 
@@ -492,19 +496,19 @@ where
 	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
 
 tuiOf :: TaskTUI -> TUIDef
-tuiOf t	= fromMaybe (stringDisplay "-") (fst3 t)
+tuiOf (_,d,_,_)	= fromMaybe (stringDisplay "-") d
 
 actionsOf :: TaskTUI -> [TaskAction]
-actionsOf t = snd3 t
+actionsOf (_,_,a,_) = a
 
 attributesOf :: TaskTUI -> [TaskAttribute]
-attributesOf t = thd3 t
+attributesOf (_,_,_,a) =  a
 
 mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
 mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> kvSet k v attr) attr1 attr2
 
-appLayout :: Layout [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
-appLayout f parts actions attributes  = f parts actions attributes
+appLayout :: Layout TaskCompositionType [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
+appLayout f type parts actions attributes  = f type parts actions attributes
 
 appDeep	:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef
 appDeep [] f def = f def
@@ -520,4 +524,4 @@ where
 	update items = [if (i == s) (appDeep ss f item) item \\ item <- items & i <- [0..]]
 
 tweakTUI :: (TUIDef -> TUIDef) TaskTUI -> TaskTUI
-tweakTUI f tt = appFst3 (fmap f) tt
+tweakTUI f (type,gui,actions,attributes) = (type,fmap f gui,actions,attributes)

@@ -245,7 +245,7 @@ addWorkflow workflow
 dashLayout :: Layout
 dashLayout = layout
 where
-	layout [controlApp,chooseWf,viewWf,chooseTask:openedTasks] actions attributes = (Just gui,[],[])
+	layout type [controlApp,chooseWf,viewWf,chooseTask:openedTasks] actions attributes = (type,Just gui,[],[])
 	where
 		gui		= fill (hjoin [left,right])
 		left	= (fixedWidth 260 o fillHeight) (vjoin
@@ -256,7 +256,7 @@ where
 		right	= fill (vjoin
 							[(fixedHeight 26 o fillWidth o setPadding 0) toolbar
 							,(fixedHeight 200 o fillWidth) worklist 
-							, fill (tuiOf (appLayout tabbedLayout openedTasks actions attributes))
+							, fill (tuiOf (appLayout tabbedLayout ParallelComposition openedTasks actions attributes))
 							])
 		
 		toolbar		= setBaseCls "x-panel-header" (hjoin [setLeftMargin 10 (tuiOf controlApp), buttonPanel (fst (actionsToButtons (actionsOf controlApp)))])

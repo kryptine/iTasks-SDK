@@ -176,7 +176,7 @@ where
 	res (Just (Just a,Just b))	= Just (a,b)
 	res _						= Nothing
 
-(>&>) infixl 2  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+(>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 (>&>) taska taskbf = parallel Void (Nothing,Nothing)
 		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Keep)
 		,(Embedded, \s -> (taskbf (mapRead fst (toReadOnly (taskListState s))) @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Keep)
@@ -249,16 +249,16 @@ appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
 appendTopLevelTaskFor user task = appendTopLevelTask {noMeta & worker = Just user} task
 
 instance tune BeforeLayout
-where tune (BeforeLayout f) task = tune (ModifyLayout (\l pa0 ac0 at0 -> let (pa1,ac1,at1) = f (pa0,ac0,at0) in l pa1 ac1 at1)) task
+where tune (BeforeLayout f) task = tune (ModifyLayout (\l t0 pa0 ac0 at0 -> let (t1,pa1,ac1,at1) = f (t0,pa0,ac0,at0) in l t1 pa1 ac1 at1)) task
 		
 instance tune AfterLayout
-where tune (AfterLayout f) task	= tune (ModifyLayout (\l -> (\pa ac at -> (f (l pa ac at))))) task
+where tune (AfterLayout f) task	= tune (ModifyLayout (\l -> (\t pa ac at -> (f (l t pa ac at))))) task
 
 instance tune Title
-where tune (Title t) task = tune (BeforeLayout (appThd3 (kvSet TITLE_ATTRIBUTE t))) task
+where tune (Title title) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet TITLE_ATTRIBUTE title at))) task
 instance tune Icon 
-where tune (Icon i) task = tune (BeforeLayout (appThd3 (kvSet ICON_ATTRIBUTE i))) task
+where tune (Icon icon) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet ICON_ATTRIBUTE icon at))) task
 instance tune Attribute
-where tune (Attribute k v) task = tune (BeforeLayout (appThd3 (kvSet k v))) task
+where tune (Attribute k v) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet k v at))) task
 instance tune Window
 where tune Window task = task

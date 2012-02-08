@@ -204,7 +204,7 @@ where
 		(TUIRep gui)
 			# layoutfun = fromMaybe DEFAULT_LAYOUT layout
 			# fixme = []
-			= TUIRep (layoutfun [gui] (stepActions taskId mba) [(TASK_ATTRIBUTE, toString taskId):fixme])	//TODO: Add attributes from task
+			= TUIRep (layoutfun SequentialComposition [gui] (stepActions taskId mba) [(TASK_ATTRIBUTE, toString taskId):fixme])	//TODO: Add attributes from task
 		_	= rep
 	addStepActions taskId (RepAsTUI (Just _) layout) rep mba
 		= rep
@@ -488,9 +488,9 @@ where
 	mergeReps taskId mbTarget layout attributes results
 		//This parallel is the target or no target is set
 		| show mbTarget
-			# parts = [appThd3 (kvSet STACK_ATTRIBUTE (toString stack) o kvSet TASK_ATTRIBUTE (toString taskId)) gui
-					 \\ (TaskUnstable _ (TUIRep gui) _,{ParallelItem|taskId,stack,detached}) <- results | not detached]	
-			= TUIRep (layout parts [] attributes)
+			# parts = [(t,g,ac,kvSet STACK_ATTRIBUTE (toString stack) (kvSet TASK_ATTRIBUTE (toString taskId) at))
+					 \\ (TaskUnstable _ (TUIRep (t,g,ac,at)) _,{ParallelItem|taskId,stack,detached}) <- results | not detached]	
+			= TUIRep (layout ParallelComposition parts [] attributes)
 		| otherwise
 			//If a target is set, only one of the branches should have a TUIRep representation
 			= case [gui \\ (TaskUnstable _ (TUIRep gui) _,_) <- results] of

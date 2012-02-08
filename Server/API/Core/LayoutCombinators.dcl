@@ -2,9 +2,7 @@ definition module LayoutCombinators
 
 import SystemTypes, TUIDefinition
 
-from Task import :: TaskAttribute
-from Task import :: TaskAction
-from Task import :: TaskTUI
+from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUI
 
 import Maybe
 
@@ -15,12 +13,12 @@ DEFAULT_LAYOUT	:== heuristicLayout
 // The same layouts are used for layouting out forms of basic tasks as
 // well as combinations of tasks
 
-:: Layout		:== [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
+:: Layout		:== TaskCompositionType [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
 :: ModifyLayout	= ModifyLayout (Layout -> Layout)
-:: BeforeLayout	= BeforeLayout (([TaskTUI],[TaskAction],[TaskAttribute]) -> ([TaskTUI],[TaskAction],[TaskAttribute]))
+:: BeforeLayout	= BeforeLayout ((TaskCompositionType,[TaskTUI],[TaskAction],[TaskAttribute]) -> (TaskCompositionType,[TaskTUI],[TaskAction],[TaskAttribute]))
 :: AfterLayout	= AfterLayout (TaskTUI -> TaskTUI)
 
 /**
@@ -113,7 +111,7 @@ attributesOf	:: TaskTUI -> [TaskAttribute]
 
 mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
 
-appLayout		:: Layout [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
+appLayout		:: Layout TaskCompositionType [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
 appDeep			:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef	//Modify an element inside the tree of components
 
 tweakTUI		:: (TUIDef -> TUIDef) TaskTUI -> TaskTUI

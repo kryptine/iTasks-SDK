@@ -243,7 +243,7 @@ forever :: !(Task a) -> Task b | iTask a & iTask b
 /**
 * Feed the result of one task as read-only shared to another
 */
-(>&>) infixl 2  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+(>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 
 /**
 * Group a list of tasks in parallel.
