@@ -356,7 +356,8 @@ addButtonsToTUI [] def = def
 addButtonsToTUI buttons def=:{TUIDef|content}
 	| isButtonPanel def	= foldr (addItemToTUI Nothing) def buttons 
 	| otherwise			= case content of
-		(TUIPanel panel=:{TUIPanel|items})	= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = addToButtonPanel buttons items}}
+		(TUIPanel panel=:{TUIPanel|items})				= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = addToButtonPanel buttons items}}
+		(TUIContainer container=:{TUIContainer|items})	= {TUIDef|def & content = TUIContainer {TUIContainer|container & items = addToButtonPanel buttons items}}
 		_									= def
 where
 	addToButtonPanel buttons []		= [buttonPanel buttons]
