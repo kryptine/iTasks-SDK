@@ -175,6 +175,16 @@ where
 where
 	res (Just (Just a,Just b))	= Just (a,b)
 	res _						= Nothing
+
+(>&>) infixl 2  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+(>&>) taska taskbf = parallel Void (Nothing,Nothing)
+		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Keep)
+		,(Embedded, \s -> (taskbf (mapRead fst (toReadOnly (taskListState s))) @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Keep)
+		]
+	@? res
+where
+	res (Just (_,Just b))	= Just b
+	res _					= Nothing
 				
 :: ProcessOverviewView =	{ index			:: !Hidden Int
 							, subject		:: !Display String
