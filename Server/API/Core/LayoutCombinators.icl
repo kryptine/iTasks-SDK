@@ -138,9 +138,11 @@ where
 									
 canHoldButtons :: TUIDef -> Bool
 canHoldButtons def=:{TUIDef|content} = case content of
-	TUIPanel {TUIPanel|purpose=Just "form"}			= True
-	TUIContainer {TUIContainer|purpose=Just "form"}	= True
-	_												= False
+	TUIPanel {TUIPanel|purpose=Just "form"}				= True
+	TUIPanel {TUIPanel|purpose=Just "buttons"}			= True
+	TUIContainer {TUIContainer|purpose=Just "form"}		= True
+	TUIContainer {TUIContainer|purpose=Just "buttons"}	= True
+	_													= False
 
 canHoldMenus :: TUIDef -> Bool
 canHoldMenus def = False
