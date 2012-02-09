@@ -19,7 +19,7 @@ manageCollection desc itemname identify collection
 */
 manageCollectionWith ::
 	!d																			//Description
-	((Shared [c]) (Shared (Maybe i)) (c -> i) -> Task (Maybe i))				//Make selection
+	((Shared [c]) (Shared (Maybe i)) (c -> i) -> Task i)						//Make selection
 	((Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task a)		//Use selection
 	[TaskStep i (Maybe i)]														//Actions
 	(c -> i)																	//Identification function
@@ -27,11 +27,15 @@ manageCollectionWith ::
 	(Shared [c])																//Shared collection
 	-> Task (Maybe i) | descr d & iTask c & iTask i & iTask a
 manageCollectionWith desc makeSelection useSelection selectionActions identify itemShare collection
-	= parallel desc Nothing
-		[(Embedded, \l -> forever (makeSelection collection (taskListState l) identify >>* (actions l)))
-		,(Embedded, \l -> forever (whileUnchanged (taskListState l) (useSelection collection itemShare )))
-		]	
+	= parallel desc [Nothing,Nothing,Nothing]
+		[(Embedded, \l -> makeSelection collection (selShare l) identify @> (\sel list -> Just (updateAt 0 sel list),taskListState l)  @ const Keep )
+		,(Embedded, \l -> forever (viewSharedInformation Void [] (selShare l) <<@ SetLayout hideLayout >>* (actions l)))
+		,(Embedded, \l -> forever (whileUnchanged (selShare l) (useSelection collection itemShare)))
+		]
+	@ hd
 where
+	selShare l = mapReadWrite (hd,\sel list -> Just (updateAt 0 sel list)) (taskListState l)
+
 	actions list = [inParallel step \\ step <- selectionActions]
 	where
 		inParallel (AnyTime action taskf)
@@ -49,10 +53,11 @@ where
 	fromItem Nothing l 		= Just l
 	fromItem (Just c`) l	= Just [if (identify c === i) c` c \\ c <- l]
 
-selectItem :: !d (Shared [c]) (Shared (Maybe i)) (c -> i) -> Task (Maybe i) | descr d & iTask c & iTask i
+selectItem :: !d (Shared [c]) (Shared (Maybe i)) (c -> i) -> Task i | descr d & iTask c & iTask i
 selectItem desc collection selection identify
-	=	narrowDown desc identify collection selection
-	
+	=	enterSharedChoice desc [] collection
+	@	identify
+
 viewItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task (Maybe i) | descr d & iTask c & iTask i
 viewItem desc collection itemShare Nothing	= viewInformation desc [] "Make a selection first..." @ const Nothing
 viewItem desc collection itemShare (Just i)	= viewSharedInformation desc [] (itemShare collection i) @ const (Just i)
