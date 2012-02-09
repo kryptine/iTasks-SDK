@@ -120,9 +120,10 @@ where
 where
 	checked pred task tlist
 		=	task
-		>>= \a -> if (pred a)
-			(set [Just a] (taskListState tlist) @ const Remove)
-			(appendTask Embedded (checked pred task) tlist @ const Remove)
+		>>* [WhenStable (\a -> if (pred a)
+				(set [Just a] (taskListState tlist) @ const Remove)
+				(appendTask Embedded (checked pred task) tlist @ const Remove))
+			]
 				
 	res (Just [Just a]) = Just a
 	res _				= Nothing
@@ -234,11 +235,9 @@ whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTa
 whileUnchanged share task
 	= ((	get share	
 		>>= \val ->
-			(task val >>= \res -> return (Just res))
-			-||-
-			(wait "watching share change" ((=!=) val) share >>| return Nothing)
+			(task val @ Just) -||- (wait "watching share change" ((=!=) val) share >>| return Nothing)
 		)
-	<! isJust) >>= \(Just r) -> return r
+	<! isJust) @ fromJust
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Remove) topLevelTasks @ \topNo -> (TaskId topNo 0)
