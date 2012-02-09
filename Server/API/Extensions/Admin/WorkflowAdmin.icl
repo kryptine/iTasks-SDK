@@ -125,12 +125,13 @@ installInitialWorkflows iflows
 		_	= return Void
 
 // Application specific types
-:: ClientState =
-	{ selectedWorkflow	:: !Maybe (!WorkflowId, !String)
-	, selectedProcess	:: !Maybe TaskId
-	, openProcesses		:: ![TaskId]
-	}
 
+:: ClientState :== [Maybe ClientPart]
+:: ClientPart
+	= Logout								//Produced by the control task
+	| SelWorkflow 	!(!WorkflowId, !String)	//Produced by the workflow chooser & workflow details
+	| SelProcess 	!TaskId					//Produced by the worklist
+	
 :: WorklistRow =
 	{ title		:: Maybe String
 	, priority	:: TaskPriority
@@ -138,40 +139,44 @@ installInitialWorkflows iflows
 	, deadline	:: Maybe DateTime
 	}
 
-derive class iTask ClientState, WorklistRow
+derive class iTask /*ClientState,*/ ClientPart, WorklistRow
 	
 workflowDashboard :: Task Void
-workflowDashboard = SetLayout dashLayout @>> parallel (Title "Manage worklist") {selectedWorkflow = Nothing, selectedProcess = Nothing, openProcesses = []} 
-	[ (Embedded,	\list	-> controlDashboard)
-	, (Embedded,	\list	-> chooseWorkflow (taskListState list))
-	, (Embedded,	\list	-> viewWorkflowDetails list)
-	, (Embedded,	\list	-> viewWorklist list)	
-	] @ const Void
+workflowDashboard
+	=  parallel (Title "Manage worklist")
+		[Nothing,Nothing,Nothing,Nothing]
+		[ (Embedded,	\list	-> controlDashboard				@> (\mbv state -> Just (updateAt 0 mbv state), taskListState list)	@ const Keep)
+		, (Embedded,	\list	-> chooseWorkflow				@> (\mbv state -> Just (updateAt 1 mbv state), taskListState list)	@ const Keep)
+		, (Embedded,	\list	-> viewWorkflowDetails list		@> (\mbv state -> Just (updateAt 2 mbv state), taskListState list)	@ const Keep)
+		, (Embedded,	\list	-> viewWorklist list			@> (\mbv state -> Just (updateAt 3 mbv state), taskListState list)	@ const Keep)	
+		]  	<<@ SetLayout dashLayout
+	>>* [WhenValid (\[logout:_] -> isJust logout) (\_ -> return Void)]
 
-controlDashboard :: Task ParallelResult
+controlDashboard :: Task ClientPart
 controlDashboard
 	=	(viewSharedInformation Void [DisplayView (GetShared view)] currentUser
-			>>* [AnyTime ActionRefresh		(\_ -> return Keep)
-				,AnyTime (Action "Log out")	(\_ -> return Stop)
+			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
+				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
 				] 
 		)
-	<! 	(\res -> case res of Stop = True; _ = False) 
+	<! 	isJust
+	@	fromJust
 where
 	view user = "Welcome " +++ toString user
 	
-chooseWorkflow :: !(Shared ClientState) -> Task ParallelResult
-chooseWorkflow state
+chooseWorkflow :: Task ClientPart
+chooseWorkflow
 	=	enterSharedChoice [Att (Title "Tasks"), Att IconView] [ChoiceView (ChooseFromTree, toView)] (allowedWorkflowTree) 
-	@> (toClientState,state)
-	@	const Keep
+	@? onlyRight
 where
 	toView (Left label) = label
 	toView (Right (index,{Workflow|path,description})) = last (split "/" path)
-		
-	toClientState (Just (Right (index,workflow))) state = Just {state & selectedWorkflow = Just (index,workflow.Workflow.description)} 
-	toClientState _ state = Just {state & selectedWorkflow = Nothing}
-		
-viewWorkflowDetails :: !(SharedTaskList ClientState) -> Task ParallelResult
+	
+	onlyRight (Just (Right (index,workflow)))	= Just (SelWorkflow (index,workflow.Workflow.description))
+	onlyRight _									= Nothing
+	
+
+viewWorkflowDetails :: !(SharedTaskList ClientState) -> Task ClientPart
 viewWorkflowDetails taskList = forever (
 		viewSharedInformation [Att (Title "Task description"),Att IconView] [DisplayView (GetShared view)] state
 	>>*	[WithResult (Action "Add to worklist") canStart doStart]
@@ -179,14 +184,13 @@ viewWorkflowDetails taskList = forever (
 where
 	state = taskListState taskList
 				
-	view {selectedWorkflow} = case selectedWorkflow of
-		Nothing			= Note ""
-		Just (_,descr)	= Note descr
-	
-	canStart {selectedWorkflow} = isJust selectedWorkflow
-	doStart {selectedWorkflow} = addWorkflow (fromJust selectedWorkflow)
+	view [_,selectedWorkflow:_] = case selectedWorkflow of
+		Just (SelWorkflow (_,descr))	= Note descr
+		_								= Note ""
+	canStart [_,selectedWorkflow:_] 	= isJust selectedWorkflow
+	doStart [_,Just (SelWorkflow wf):_] = addWorkflow wf
 		
-	addWorkflow (wid,_)
+	addWorkflow (wid,desc)
 		=	get (workflowByIndex wid) -&&- get currentUser
 		>>=	\(wf,user) ->
 			appendTopLevelTask {noMeta & worker = Just user} (fromContainer wf.Workflow.task)
@@ -196,7 +200,7 @@ where
 	fromContainer (WorkflowTask t) = t >>| return Keep
 	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Keep)
 		
-viewWorklist :: !(SharedTaskList ClientState) -> Task ParallelResult	
+viewWorklist :: !(SharedTaskList ClientState) -> Task ClientPart	
 viewWorklist taskList = forever
 	(	enterSharedChoice Void [ChoiceView (ChooseFromGrid,mkRow)] processes
 	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskListItem.taskId)
@@ -263,7 +267,8 @@ where
 		worklist	= addMenusToTUI (fst (actionsToMenus (actionsOf chooseTask))) (toPanel (fill (tuiOf chooseTask)))
 						
 		fitTight = setMargins 0 0 0 0 o setPadding 0 o setFramed False
-
+	layout type parts actions attributes = heuristicLayout type parts actions attributes
+	
 // UTIL FUNCTIONS
 workflow :: String String w -> Workflow | toWorkflow w
 workflow path description task = toWorkflow path description [] task

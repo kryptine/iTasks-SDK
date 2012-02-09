@@ -48,10 +48,6 @@ catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
 catchAll task handler = step task [WhenStable return, CatchAll handler]
 
 //Helper functions for projections
-justResult :: (Maybe (Maybe a)) -> Maybe a
-justResult (Just (Just a))	= Just a
-justResult _				= Nothing
-
 projectJust :: (Maybe a) r -> Maybe (Maybe a)
 projectJust mba _ = Just mba
 /*
@@ -60,15 +56,12 @@ projectJust mba _ = Just mba
 */
 assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 assign props task
-	=	parallel Void Nothing
-			[(Embedded, processControl),(Detached props, \s -> (task @> (\mba _ -> Just mba, taskListState s) ) @ const Keep)]
+	=	parallel Void [Nothing,Nothing]
+			[(Embedded, \s -> processControl s @ const Keep),(Detached props, \s -> (task @> (\mba [c,_] -> Just [c,mba], taskListState s) ) @ const Keep)]
 	@?	justResult
 where
-	//processControl :: !(TaskList (Maybe a)) -> Task ParallelResult
 	processControl tlist =
-		(enterSharedChoice ("Waiting","Waiting for " <+++ task) [] control @ const Keep)
-	where
-		control = taskListMeta tlist
+		(enterSharedChoice ("Waiting","Waiting for " <+++ task) [] (taskListMeta tlist))
 					
 	toView [_,{TaskListItem|progressMeta=Just p,managementMeta=Just m}]=
 		{ assignedTo	= m.ManagementMeta.worker
@@ -90,6 +83,10 @@ where
 		= []// [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
 		
 	formatTimestamp timestamp = timestampToGmDateTime timestamp
+	
+	justResult (Just [_,Just a])	= Just a
+	justResult _					= Nothing
+	
 	
 :: ProcessControlView =	{ assignedTo	:: !Maybe User
 						, priority		:: !TaskPriority
@@ -119,17 +116,15 @@ where
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel Void Nothing [(Embedded, checked pred task)] @? res
+	= parallel Void [Nothing] [(Embedded, checked pred task)] @? res
 where
 	checked pred task tlist
 		=	task
-		@> (prj,taskListState tlist)
 		>>= \a -> if (pred a)
-			(return Remove)
-			((appendTask Embedded (checked pred task) tlist) @ const Remove)
-			
-	prj mba _ 			= Just mba
-	res (Just (Just a)) = Just a
+			(set [Just a] (taskListState tlist) @ const Remove)
+			(appendTask Embedded (checked pred task) tlist @ const Remove)
+				
+	res (Just [Just a]) = Just a
 	res _				= Nothing
 
 forever :: !(Task a) -> Task b | iTask a & iTask b	
@@ -137,54 +132,57 @@ forever	t = (t <! (const False)) >>| return defaultValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb
-	= parallel Void (Nothing,Nothing)
-		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Stop)
-		,(Embedded, \s -> (taskb @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Stop)
+	= parallel Void [Nothing,Nothing]
+		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [mbl,mbr],taskListState s)) @ const Stop)
+		,(Embedded, \s -> (taskb @> (\mbr [mbl,_] -> Just [mbl,mbr],taskListState s)) @ const Stop)
 		] @? res
 where
-	res (Just (Just a,_)) 		= Just a
-	res (Just (Nothing,Just a))	= Just a
+	res (Just [Just a,_]) 		= Just a
+	res (Just [Nothing,Just a])	= Just a
 	res _						= Nothing
 	
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel Void Nothing 
+	= parallel Void [Nothing,Nothing] 
 		[(Embedded, \_ -> taska @ const Keep)
-		,(Embedded, \s -> (taskb @> (\mbb _ -> Just mbb,taskListState s)) @ const Stop)
+		,(Embedded, \s -> (taskb @> (\mbr [mbl,_] -> Just [mbl,mbr],taskListState s)) @ const Stop)
 		] @? res
 where
-	res	(Just (Just b)) = Just b
-	res _				= Nothing
+	res	(Just [_,Just b])	= Just b
+	res _					= Nothing
 	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel Void Nothing
-		[(Embedded, \s -> (taska @> (\mba _ -> Just mba,taskListState s)) @ const Stop)
+	= parallel Void [Nothing,Nothing]
+		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [mbl,mbr],taskListState s)) @ const Stop)
 		,(Embedded, \_ -> taskb @ const Keep)
 		] @? res			
 where
-	res	(Just (Just a)) = Just a
-	res _				= Nothing
+	res	(Just [Just a,_])	= Just a
+	res _					= Nothing
 	
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
-	= parallel Void (Nothing,Nothing)
-		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Keep)
-		,(Embedded, \s -> (taskb @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Keep)
+	= parallel Void [Nothing,Nothing]
+		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [fmap Left mbl,mbr],taskListState s)) @ const Keep)
+		,(Embedded, \s -> (taskb @> (\mbr [mbl,_] -> Just [mbl,fmap Right mbr],taskListState s)) @ const Keep)
 		] @? res
 where
-	res (Just (Just a,Just b))	= Just (a,b)
-	res _						= Nothing
+	res (Just [Just (Left a),Just (Right b)])	= Just (a,b)
+	res _										= Nothing
 
 (>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
-(>&>) taska taskbf = parallel Void (Nothing,Nothing)
-		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Keep)
-		,(Embedded, \s -> (taskbf (mapRead fst (toReadOnly (taskListState s))) @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Keep)
+(>&>) taska taskbf = parallel Void [Nothing,Nothing]
+		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [fmap Left mbl,mbr],taskListState s)) @ const Keep)
+		,(Embedded, \s -> (taskbf (mapRead prj (toReadOnly (taskListState s))) @> (\mbr [mbl,_] -> Just [mbl,fmap Right mbr],taskListState s)) @ const Keep)
 		]
 	@? res
 where
-	res (Just (_,Just b))	= Just b
-	res _					= Nothing
+	prj [Just (Left a),_]			= Just a
+	prj _							= Nothing
+	
+	res (Just [_,Just (Right b)])	= Just b
+	res _							= Nothing
 				
 :: ProcessOverviewView =	{ index			:: !Hidden Int
 							, subject		:: !Display String
@@ -215,13 +213,13 @@ where
 				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb
-	= parallel Void (Nothing,Nothing)
-		[(Embedded, \s -> (taska @> (\mbl (_,mbr) -> Just (mbl,mbr),taskListState s)) @ const Keep)
-		,(Embedded, \s -> (taskb @> (\mbr (mbl,_) -> Just (mbl,mbr),taskListState s)) @ const Keep)
+	= parallel Void [Nothing,Nothing]
+		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [fmap Left mbl,mbr],taskListState s)) @ const Keep)
+		,(Embedded, \s -> (taskb @> (\mbr [mbl,_] -> Just [mbl,fmap Right mbr],taskListState s)) @ const Keep)
 		] @? res
 where
-	res (Just (Just a,_))	= Just (Left a)
-	res (Just (_,Just b))	= Just (Right b)
+	res (Just [Just la,_])	= Just la
+	res (Just [_,Just rb])	= Just rb
 	res _					= Nothing 
 
 randomChoice :: ![a] -> Task a | iTask a
