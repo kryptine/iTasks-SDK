@@ -30,7 +30,7 @@ derive JSONDecode AsyncResult
 
 callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args 
-	= mkTask init edit eval
+	= mkTask init eval
 where
 	//Start the process
 	init :: TaskId *IWorld -> (!TaskState,!*IWorld)
@@ -51,9 +51,7 @@ where
 	where
 		state :: TaskId (Either OSError FilePath) -> TaskState
 		state taskId val = TCBasic taskId (toJSON val) False
-				
-	edit event context iworld = (context,iworld)
-	
+
 	eval eevent cevent repAs context=:(TCBasic taskId encv stable) iworld=:{world}
 		| stable
 			= (TaskStable (fromJust (fromJSON encv)) NoRep context, iworld)

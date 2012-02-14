@@ -1,6 +1,7 @@
 implementation module CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
+import qualified StdList
 import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TUIDefinition, LayoutCombinators, Shared
 from SharedDataSource		import qualified read, write, getVersion, readWrite, :: RWRes(..)
 from StdFunc				import o, id
@@ -48,15 +49,16 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskStable (fromOk val) NoRep (TCEmpty taskId), iworld)
 
+import StdDebug
+
 interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
-interact desc initFun parts initLocal shared = mkTask init edit eval
+interact desc initFun parts initLocal shared = mkTask init eval
 where
-	init taskId iworld			//Create the initial views
-		# (mbrvalue,iworld) 	= 'SharedDataSource'.read shared iworld
-		| isError mbrvalue		= abort (fromError mbrvalue)//(TCEmpty taskId, iworld)
-		# (rvalue,_)			= fromOk mbrvalue
-		# (version,iworld)		= getSharedVersion shared iworld
-		# lvalue				= initFun initLocal rvalue
+	init taskId iworld					//Create the initial views
+		# (mbrvalue,iworld) 			= 'SharedDataSource'.read shared iworld
+		| isError mbrvalue				= (TCEmpty taskId, iworld)
+		# (rvalue,version)				= fromOk mbrvalue
+		# lvalue						= initFun initLocal rvalue
 		= (TCInteract taskId (toJSON lvalue) (initParts lvalue rvalue parts) version, iworld)
 
 	initParts l r parts = map (initPart l r) parts
@@ -66,74 +68,19 @@ where
 		# (_,encv,maskv)	= initFormView (f l r)
 		= (encv,maskv,False)
 	
-	initFormView BlankForm
-		# v		= defaultValue
-		= (v,toJSON v,Untouched)
-	initFormView (FilledForm v)
-		= (v,toJSON v, defaultMask v)
+	initFormView BlankForm		= (v, toJSON v, Untouched) where v = defaultValue
+	initFormView (FilledForm v)	= (v, toJSON v, defaultMask v)
 	
-	getSharedVersion shared iworld
-		# (mbv,iworld)			= 'SharedDataSource'.getVersion shared iworld
-		| isError mbv			= (0, iworld)
-								= (fromOk mbv,iworld)
-		
-	//Rewrite lucky events to events that target this task
-	edit (LuckyEvent e) context=:(TCInteract taskId _ _ _) iworld	
-			= (edit (TaskEvent taskId e) context iworld)
-	//There is an edit event for this task (because the location part of the event is the empty list)
-	edit (TaskEvent targetId (dps,editv)) context=:(TCInteract taskId encl views version) iworld=:{IWorld|timestamp,latestEvent}		
-		| targetId <> taskId
-			= (context,iworld)
-		//Read latest versions of states
-		# (mbrval,iworld) 			= 'SharedDataSource'.read shared iworld
-		| isError mbrval			= (context, iworld)
-		# (r,_)						= fromOk mbrval
-		# l							= fromJust (fromJSON encl)
-		//Split datapath into datapath & part index
-		# (idx,dp)					= splitDataPath dps
-		| idx >= length parts		= (context, iworld) 
-		//Apply the event to the view
-		# (l,view,iworld)			= updateView l r dp editv (parts !! idx) (views !! idx) iworld
-		= (TCInteract taskId (toJSON l) (updateAt idx view views) version, iworld)
-		
-	edit _ context iworld = (context,iworld)
-	
-	splitDataPath dp
-		= (hd dplist, dataPathFromList (reverse (tl dplist)))
-	where
-		dplist = reverse (dataPathList (s2dp dp))
-	
-	updateView l r dp editv (DisplayPart f) view iworld = (l,view,iworld)
-	updateView l r dp editv (FormPart _ _ f) view=:(encv,maskv,dirty) iworld
-		# (v,encv,maskv,iworld)	= applyEditEvent dp editv (fromJust (fromJSON encv)) encv maskv iworld	
-		# valid = isValidValue (verifyForm v maskv)
-		# (l,mbform) = f l r (if valid (Just v) Nothing)
-		= case mbform of
-			Nothing 	= (l,(encv,maskv,True),iworld)
-			Just form
-				# (_,encv,maskv) = initFormView form
-				= (l,(encv,maskv,True),iworld)
-			
-	applyEditEvent dp editv v encv maskv iworld
-		| dataPathLevel dp == 0 //Replace entire value
-			= case fromJSON editv of
-				Just nv = (nv,editv,defaultMask nv,iworld)
-				Nothing	= (v,encv,maskv,iworld)
-		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
-		= (v,toJSON v,maskv,iworld)
-		
-	eval eEvent cEvent repAs context=:(TCInteract taskId encl views rversion) iworld=:{IWorld|timestamp}
+	eval eEvent cEvent repAs context=:(TCInteract taskId encl views lastShareVersion) iworld=:{IWorld|timestamp}
 		# (mbrvalue,iworld) 				= 'SharedDataSource'.read shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
-		# (rvalue,_)						= fromOk mbrvalue
-		# (ver, iworld)						= 'SharedDataSource'.getVersion shared iworld
-		| isError ver						= (sharedException ver, iworld)		
-		# changed							= fromOk ver > rversion
-		# (rversion,iworld)					= if changed (getSharedVersion shared iworld) (rversion,iworld)
+		# (rvalue,currentShareVersion)		= (fromOk mbrvalue)
+		# changed							= currentShareVersion > lastShareVersion
 		# lvalue							= fromJust (fromJSON encl)
 		# mbEdit	= case eEvent of
 			Just (TaskEvent t e)
 				| t == taskId		= Just e
+			Just (LuckyEvent e)		= Just e						
 			_						= Nothing
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskId repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# rep = case repAs of
@@ -148,8 +95,8 @@ where
 				# (parts,actions,attributes) = unzip3 [(part,actions,attributes) \\ (ServiceRep (part,actions,attributes)) <- reps]
 				= ServiceRep (flatten parts,flatten actions, flatten attributes)
 		
-		# result							= if valid (Just (lvalue,rvalue)) Nothing 
-		= (TaskUnstable result rep (TCInteract taskId (toJSON lvalue) views rversion), iworld)
+		# result	= if valid (Just (lvalue,rvalue)) Nothing 
+		= (TaskUnstable result rep (TCInteract taskId (toJSON lvalue) views currentShareVersion), iworld)
 	eval eEvent cEvent repAs (TCEmpty _) iworld
 		= (taskException "Failed to initialize interact",iworld)
 	eval eEvent cEvent repAs context iworld
@@ -166,12 +113,17 @@ where
 		DisplayPart f
 			//Simply visualize the view
 			# (rep,iworld) 	= displayRep idx taskId repAs f l r encv iworld
-			= (l,rep,view,True,iworld)
-		
+			= (l,rep,view,True,iworld)		
 		FormPart initf sharef viewf
 			//Update the local value and possibly the view if the share has changed
 			# v							= fromJust (fromJSON encv)
 			# vermask					= verifyForm v maskv
+			//If the edit event is for this part, update the view
+			# (l,v,encv,maskv,vermask,dirty,iworld)
+				= if (matchEditEvent idx mbEvent) 
+						(applyEditEvent idx mbEvent viewf l r v encv maskv vermask dirty iworld)
+						(l,v,encv,maskv,vermask,dirty,iworld)
+			//If the share has changed, update the view
 			# (l,v,encv,maskv,vermask,dirty)
 				= if changed (refreshForm sharef l r v encv maskv vermask dirty) (l,v,encv,maskv,vermask,dirty) 
 			//Create an editor for the view
@@ -190,6 +142,39 @@ where
 	editorRep idx taskId _ f v encv maskv vermask mbEvent iworld
 		= (ServiceRep ([(toString taskId,idx,encv)],[],[]),iworld)
 	
+	matchEditEvent idx Nothing = False
+	matchEditEvent idx (Just (dp,_))
+		= case reverse (dataPathList dp) of
+			[idx:_]	= True
+			_		= False 		
+			
+	applyEditEvent idx (Just (dp,editv)) viewf l r v encv maskv vermask dirty iworld
+		//Remove part index from datapath
+		# dp 	= dataPathFromList ('StdList'.init (dataPathList dp))
+		//Update full value
+		| dataPathLevel dp == 0
+			= case fromJSON editv of
+				Just nv
+					# maskv = defaultMask nv
+					# vermask = verifyForm nv maskv
+					= (l,nv,editv,maskv,vermask,True,iworld)	//QUESTION: Should we also do a react here?
+				Nothing
+					= (l,v,encv,maskv,vermask,dirty,iworld)
+		//Update partial value
+		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
+		# encv				= toJSON v
+		# vermask			= verifyForm v maskv
+		= reactToEditEvent viewf l r v encv maskv vermask dirty iworld
+	
+	reactToEditEvent viewf l r v encv maskv vermask dirty iworld
+		= case viewf l r (if (isValidValue vermask) (Just v) Nothing) of
+			(l,Nothing)
+				= (l,v,encv,maskv,vermask,dirty,iworld)
+			(l,Just form)
+				# (v,encv,maskv)	= initFormView form
+				# vermask 			= verifyForm v maskv
+				= (l,v,encv,maskv,vermask,False,iworld)
+		
 	refreshForm f l r v encv maskv vermask dirty
 		= case f l r (if (isValidValue vermask) (Just v) Nothing) dirty of
 			(l,Nothing)			= (l,v,encv,maskv,vermask,dirty)
@@ -203,23 +188,12 @@ sharedException err = taskException (SharedException (fromError err))
 
 workOn :: !TaskId -> Task WorkOnProcessState
 workOn target=:(TaskId topNo taskNo)
-	= mkTask init edit eval
+	= mkTask init eval
 where
 	init taskId iworld
 		= (TCEmpty taskId, iworld)
-	
-	edit event context iworld
-		//Load instance
-		# (mbContext,iworld)	= loadTaskInstance (Right topNo) iworld
-		| isError mbContext		= (context, iworld)
-		//Apply event to instance
-		# (mbContext,iworld)	= editInstance (Just event) (fromOk mbContext) iworld
-		//Store instance
-		| isError mbContext		= (context, iworld)
-		# iworld				= storeTaskInstance (fromOk mbContext) iworld
-		= (context, iworld)
-		
-	eval eEvent cEvent (RepAsTUI _ layout) (TCEmpty taskId) iworld=:{evalStack}
+
+	eval eEvent cEvent repAs (TCEmpty taskId) iworld=:{evalStack}
 		//Check for cycles
 		| isMember taskId evalStack
 			=(taskException WorkOnDependencyCycle, iworld)
@@ -236,7 +210,8 @@ where
 				= (taskException WorkOnNotFound ,iworld)
 		//Eval instance
 		# target					= if (taskNo == 0) Nothing (Just (TaskId topNo taskNo))
-		# (mbResult,context,iworld)	= evalInstance eEvent cEvent target True (fromOk mbContext) iworld
+		# genGUI					= case repAs of (RepAsTUI _ _) = True ; _ = False
+		# (mbResult,context,iworld)	= evalInstance eEvent cEvent target genGUI (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (taskException WorkOnEvalError, iworld)
 			Ok result
@@ -256,14 +231,10 @@ where
 	checkIfAddedGlobally topNo iworld=:{parallelControls}
 		= case 'Map'.get ("taskList:" +++ toString TopLevelTaskList) parallelControls of
 			Just (_,controls)
-				# iworld = trace_n ("Looking for topNo " +++ toString topNo) iworld
-				# iworld = trace_n ("Number of controls: " +++ toString (length controls)) iworld
 				= (isMember topNo [i \\ AppendTask {ParallelItem|taskId=TaskId i 0} <- controls], iworld)
 			_
 				= (False,iworld)
 	checkIfAddedGlobally _ iworld = (False,iworld)
-
-import StdDebug
 
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval

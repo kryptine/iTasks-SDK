@@ -6,11 +6,10 @@ from TaskContext		import :: TaskState(..), :: ParallelMeta, :: ParallelItem
 from LayoutCombinators	import :: Layout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
-mkTask :: !TaskInitFun !TaskEditFun !(TaskEvalFun a) -> Task a 
-mkTask initFun editFun evalFun =
+mkTask :: !TaskInitFun !(TaskEvalFun a) -> Task a 
+mkTask initFun evalFun =
 	{ Task
 	| initFun			= initFun
-	, editFun			= editFun
 	, evalFun			= evalFun
 	, layout			= Nothing
 	}
@@ -19,7 +18,6 @@ mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask
 mkInstantTask iworldfun =
 	{ Task
 	| initFun			= \taskId iworld		-> (TCEmpty taskId,iworld)
-	, editFun			= \_ context iworld		-> (context,iworld)
 	, evalFun			= evalOnce iworldfun
 	, layout			= Nothing
 	}
@@ -43,7 +41,6 @@ gUpdate{|Task|} fx UDCreate ust
 where
 	defaultTask a =	{ Task
 					| initFun	= \_ -> abort funerror
-					, editFun	= \_ -> abort funerror
 					, evalFun	= \_ -> abort funerror
 					, layout	= Nothing
 					}

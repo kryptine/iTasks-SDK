@@ -36,7 +36,6 @@ createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool
 evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld)
 
 //Helper functions: exported for use in workOn and parallel
-editInstance	:: !(Maybe EditEvent) !TopInstance !*IWorld -> (!MaybeErrorString TopInstance, !*IWorld)
 evalInstance	:: !(Maybe EditEvent) !(Maybe CommitEvent) !(Maybe TaskId) !Bool !TopInstance !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TopInstance, !*IWorld)
 
 //Access to shared parallel information
