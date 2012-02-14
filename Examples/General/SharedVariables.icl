@@ -3,8 +3,6 @@ implementation module SharedVariables
 import iTasks, GoogleMaps, Text
 from StdFunc import o
 
-quit = [AnyTime ActionQuit (const (return Stop))]
-
 //THESE EXAMPLES NEED TO BE FIXED!
 
 //Text-Lines Examples
@@ -13,17 +11,20 @@ listEditor = UpdateView (GetShared (split "\n")) (\l _ _ -> join "\n" l)
 
 TrimAction :== Action "Trim"
 
-linesPar :: Task String
-linesPar = parallel "Lines Example" "" [(Embedded, noteE), (Embedded, \sid -> updateSharedInformation ("Lines","Edit lines") [listEditor] (taskListState sid) >>* quit)]
+linesPar :: Task (Maybe String)
+linesPar
+	=	withShared "" (\state -> (noteE state -||- lineE state) >>* [AnyTime ActionQuit return])
 where
-	noteE sid = 
-			updateSharedInformation ("Text","Edit text") [noteEditor] (taskListState sid)
-		>>*	[ WithResult TrimAction (const True) (\txt -> update trim (taskListState sid) >>| noteE sid)
-			, AnyTime ActionQuit (\_ -> return Stop)
+	noteE state = 
+			updateSharedInformation ("Text","Edit text") [noteEditor] state
+		>>*	[ WithResult TrimAction (const True) (\txt -> update trim state >>| noteE state)	
 			]
 
+	lineE state
+		=	updateSharedInformation ("Lines","Edit lines") [listEditor] state
+		
 //Calculate Sum Example
-calculateSum = updateInformation ("Sum","Auto compute sum") [UpdateView (GetLocal \t=:(x,y) -> (t,Display (x+y))) (\(t,_) _ _ -> t)] (0,0) >>* quit
+calculateSum = updateInformation ("Sum","Auto compute sum") [UpdateView (GetLocal \t=:(x,y) -> (t,Display (x+y))) (\(t,_) _ _ -> t)] (0,0) 
 
 //Tree Example
 :: Tree` a = Leaf` | Node` (Node` a)
@@ -48,31 +49,33 @@ where
 		end			= drop (middlePos + 1) list
 
 tree = updateInformation ("List & Balanced Binary Tree","Type something in the list and the tree will update as well.")
-			[UpdateView (GetLocal \l -> (l,Display (toTree l))) (\(l,_) _ _ -> l)] emptyL >>* quit
+			[UpdateView (GetLocal \l -> (l,Display (toTree l))) (\(l,_) _ _ -> l)] emptyL
 where
 	emptyL :: [Int]
 	emptyL = []
 
 //Merge Tests
 mergeTestList :: Task Void
-mergeTestList =	
-				appendTopLevelTask noMeta (Title "1st UpdateView" @>> view sid)
-	>>|			appendTopLevelTask noMeta (Title "2nd UpdateView" @>> view sid)
+mergeTestList =
+				appendTopLevelTask noMeta (view "1st UpdateView" sid)
+	>>|			appendTopLevelTask noMeta (view "2nd UpdateView" sid)
 	>>|			return Void
 where
+	sid :: Shared [String]
 	sid = sharedStore "mergeTestLists" []
 
-	view :: (Shared [String]) -> Task ParallelResult
-	view sid = updateSharedInformation ("List","Merging the lists") [] sid >>* quit
-	
+	view :: String (Shared [String]) -> Task [String]
+	view title sid = updateSharedInformation (title,"Merging the lists") [] sid
+
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
 		appendTopLevelTask noMeta (Title "1st UpdateView" @>> view store)
 	>>|	appendTopLevelTask noMeta (Title "2nd UpdateView" @>> view store)
-	>>|	appendTopLevelTask noMeta (Title "3rd UpdateView" @>> viewSharedInformation "Documents" [] store >>* quit)
+	>>|	appendTopLevelTask noMeta (Title "3rd UpdateView" @>> viewSharedInformation "Documents" [] store)
 	>>|	return Void
 where
-	view sid = updateSharedInformation ("List","Merging the documents") [] sid >>* quit
+	view sid = updateSharedInformation ("List","Merging the documents") [] sid
+	
 	store :: Shared [Document]
 	store = sharedStore "mergeTestDocs" []
 
@@ -85,18 +88,20 @@ derive class iTask MarkerInfo
 
 RemoveMarkersAction :== Action "Remove Markers"
 
-googleMaps :: Task GoogleMap
-googleMaps = parallel "Map Example" defaultMap
-	[ (Embedded, \s -> updateSharedInformation "Options" [optionsEditor] (taskListState s) @ const Keep)
-	, (Embedded, \s -> updateSharedInformation "Google Map" [] (taskListState s) @ const Keep)
-	, (Embedded, \s -> updateSharedInformation "Overview Map" [overviewEditor] (taskListState s) @ const Keep)
-	, (Embedded, \s -> markersDisplay (taskListState s))
-	]
+googleMaps :: Task (Maybe GoogleMap)
+googleMaps = withShared defaultMap
+	(\smap -> anyTask
+		[updateSharedInformation "Options" [optionsEditor] smap	@ const Nothing
+		,updateSharedInformation "Google Map" [] smap 			@ Just
+		,updateSharedInformation "Overview Map" [] smap 		@ const Nothing
+		,markersDisplay smap 									@ const Nothing
+		]
+	)
 where						
 	markersDisplay dbid
 		=	viewSharedInformation "Markers" [DisplayView (GetShared markersListener)] dbid
 		>>* [AnyTime RemoveMarkersAction (\_ -> update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid)
-			,AnyTime ActionQuit (const (return Stop))
+			,AnyTime ActionQuit (const (return Void))
 			]
 	
 	optionsEditor	=	UpdateView (GetShared \map -> map.GoogleMap.settings) (\opts _ map -> { map & settings = opts})
@@ -110,7 +115,7 @@ where
 	markersListener	map = [{position = position, map = {GoogleMap| defaultMap & perspective = {type = ROADMAP, center = position, zoom = 15}, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
-autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort) (\l _ _ -> l)] emptyL >>* quit
+autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort) (\l _ _ -> l)] emptyL
 where
 	emptyL :: [String]
 	emptyL = []
@@ -224,7 +229,8 @@ phoneBookSearch
 	
 //Abstract search task with a search that is repeated each time the query is altered
 activeQuery :: (Maybe String) (String -> Task [a]) -> Task a | iTask a
-activeQuery mbQuery queryTask
+activeQuery mbQuery queryTask = enterInformation "THIS IS BROKEN" []
+/* 
 	=	parallel "Active Query" (initQuery,initDirty,[],Nothing) 
 			[(Embedded, searchBox), (Embedded, activator queryTask), (Embedded, searchResults)] @? result 
 where
@@ -237,7 +243,7 @@ where
 	initDirty = isJust mbQuery
 	
 	searchBox tlist
-		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView) fromUpdateView] (taskListState tlist) @ const Keep
+		=	updateSharedInformation "Enter query:" [UpdateView (GetShared toUpdateView) fromUpdateView] (taskListState tlist) @ const Void
 	where
 		toUpdateView (q,d,r,_) = q
 		fromUpdateView q _ (_,d,r,res) = (q,True,r,res)
@@ -253,7 +259,7 @@ where
 	searchResults tlist
 		=	enterSharedChoice ("Search results","The following results were found:") [] (mapRead (\(_,_,r,_) -> r) (taskListState tlist))
 		>>* [WithResult ActionNext (const True) (\x -> update (\(q,d,r,_) -> (q,d,r,Just x)) (taskListState tlist) @ const Stop)]
-		
+*/	
 //Very simple CSV phonebook implementation
 :: Name :== String
 :: PhoneNumber :== String

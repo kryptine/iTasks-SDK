@@ -5,7 +5,7 @@ import Error
 import SystemTypes, IWorld, Shared, Task, TaskContext
 import LayoutCombinators
 
-from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..), :: ParallelResult
+from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from TaskStore			import newSessionId, loadTaskInstance, storeTaskInstance, deleteTaskInstance
 
 from Map				import qualified fromList, get, put
@@ -42,8 +42,8 @@ toSessionTask :: (Task a) -> ParallelTask Void
 toSessionTask task=:{evalFun} = \_ -> {task & evalFun = evalFun`}
 where
 	evalFun` mbE mbC repAs state iworld = case evalFun mbE mbC repAs state iworld of
-		(TaskUnstable mba rep state,iworld)	= (TaskUnstable (fmap (\_ -> Remove) mba) rep state, iworld)
-		(TaskStable a rep state, iworld)	= (TaskStable Remove rep state, iworld)
+		(TaskUnstable mba rep state,iworld)	= (TaskUnstable (fmap (\_ -> Void) mba) rep state, iworld)
+		(TaskStable a rep state, iworld)	= (TaskStable Void rep state, iworld)
 		(TaskException e str, iworld)		= (TaskException e str, iworld)
 
 createTaskState :: !(Either SessionId TopNo) !Dynamic !ManagementMeta !User !*IWorld -> (!TopInstance, !*IWorld)
@@ -206,46 +206,45 @@ where
 	
 	execControls [] queue iworld = (queue,iworld)
 	execControls [c:cs] queue iworld = case c of
-		AppendTask tid user parType (parTask :: ParallelTask Void)
-			//Make thread and properties
-			# (container,managerProperties) = case parType of
-				Embedded			= (createTaskContainer parTask, {noMeta & worker = Just user})
-				Detached props		= (createTaskContainer parTask, props)	
-			//Make context
-			# (state,iworld)		= createTaskState (Right tid) container managerProperties user iworld			
+		AppendTask {ParallelItem|taskId=TaskId tid 0,task=(parTask :: ParallelTask Void), management}
+			# container			= createTaskContainer parTask
+			# management		= fromMaybe noMeta management
+			# user				= fromMaybe AnyUser management.worker
+			# (state,iworld)	= createTaskState (Right tid) container management AnyUser iworld	
 			= execControls cs (queue ++ [state]) iworld
 		RemoveTask (TaskId tid 0)
 			//Remove task instance
 			# iworld				= deleteTaskInstance (Right tid) iworld
 			= execControls cs queue iworld
 		_
-			= execControls cs queue iworld		
+			= fixme where fixme = execControls cs queue iworld		
 		
 	issueUser {TopInstance|progress={ProgressMeta|issuedBy}} = issuedBy
 
-import StdMisc
-
-taskListShare :: !(TaskListId s) -> (SharedTaskList s) | TC s
-taskListShare listId = mapWrite (\s tlist -> Just {TaskList|tlist & state = s}) (makeUnsafeShare "taskList" listIdS read write getVersion)
+taskListShare :: !(TaskListId s) -> (SharedTaskList s) | iTask s
+taskListShare listId = (makeReadOnlySharedError "taskList" listKey read getVersion)
 where
-	listIdS = toString listId
+	listKey = toString listId
 	
-	read iworld=:{parallelStates,parallelLists}
-		= case 'Map'.get listIdS parallelStates of
-				Just (_,state :: s^)
-					= case 'Map'.get ("taskList:" +++ listIdS) parallelLists of
-						Just (_,items)	= (Ok {TaskList|listId = listId, state = state, items = items}, iworld)
-						_				= (Error ("Could not read parallel task list of " +++ toString listId), iworld)
-				_						= (Error ("Could not read shared parallel state of task list " +++ toString listId),iworld)
+	read iworld=:{parallelLists}
+		= case 'Map'.get ("taskList:" +++ listKey) parallelLists of
+			Just (_,items)	= (Ok (mkTaskList items), iworld)
+			_				= (Error ("Could not read parallel task list of " +++ toString listId), iworld)
+		
 	
-	// write function needs to get full TaskList, but only writes the state
-	// share only available with projected write type
-	write {TaskList|state} iworld=:{parallelStates}
-		# (mbv,iworld)	= getVersion iworld
-		# version		= case mbv of (Ok v) = v ; _ = 0
-		= (Ok Void, {iworld & parallelStates = 'Map'.put listIdS (version + 1, (dynamic state :: s^)) parallelStates})
+	getVersion iworld=:{parallelLists}
+			= case ('Map'.get ("taskList:" +++ listKey) parallelLists) of
+				(Just (v,_))	= (Ok v, iworld)
+				_				= (Error ("Could not read timestamp for shared state of task list " +++ listKey),iworld)
+
+	mkTaskList items = {TaskList|listId = listId, state = state, items = litems}
+	where
+		state	= [fromJSON lastValue \\ {ParallelItem|lastValue} <- items]
+		litems	= map toMeta items
+		
+		toMeta {ParallelItem|taskId,progress,management,state,lastAttributes}
+			= {TaskListItem|taskId = taskId, taskMeta = lastAttributes, progressMeta = progress, managementMeta = management
+			  ,subItems = stateToTaskListItems state}
 	
-	getVersion iworld=:{parallelStates,parallelLists}
-			= case ('Map'.get listIdS parallelStates,'Map'.get ("taskList:" +++ listIdS) parallelLists) of
-				(Just (vs,_),Just (vl,_))	= (Ok (vs + vl), iworld)
-				_							= (Error ("Could not read timestamp for shared state of task list " +++ listIdS),iworld)
+		
+		

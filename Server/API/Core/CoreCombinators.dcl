@@ -8,7 +8,7 @@ from LayoutCombinators	import :: SetLayout, :: ModifyLayout, :: Layout
 import Task, Shared
 
 import iTaskClass
-derive class iTask ParallelResult, ParallelTaskType
+derive class iTask ParallelTaskType
 
 /**
 * Adds a result transformation function to a task.
@@ -66,25 +66,23 @@ step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 * All-in-one swiss-army-knife parallel task creation
 *
 * @param Description: The (overloaded) task description
-* @param Accumulator: The accumulator
-* @param Merge: Function defining how to convert the accumulator to the final result when the parallel task finishes
 * @param Tasks: The list of tasks to run in parallel, each task is given a view on the status of all tasks in the set
-* @return The resulting value
+* @return The sum of all results
 * 
 * @gin False
 */
-parallel :: !d !a ![(!ParallelTaskType,!ParallelTask a)] -> Task a | descr d & iTask a
+parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [Maybe a] | descr d & iTask a
 					
 /**
 * Get the shared state of a task list
 */
-taskListState	:: !(SharedTaskList s) -> Shared s
+taskListState :: !(SharedTaskList a) -> ReadOnlyShared [Maybe a]
 /**
 * Get the properties share of a task list
 */
 taskListMeta	:: !(SharedTaskList s) -> ReadOnlyShared [TaskListItem]
 
-//Manipulation 
+//Task list manipulation 
 
 /**
 * Appends a task to a task list
@@ -94,8 +92,22 @@ appendTask :: !ParallelTaskType !(ParallelTask s)	!(SharedTaskList s)	-> Task In
 * Removes (and stops) a task from a task list
 */
 removeTask :: !TaskId								!(SharedTaskList s)	-> Task Void | TC s
+
+/**
+* Provide a local read/write shared for a task to work on.
+*
+* @param The initial value of the shared variable
+* @param The task which uses the shared variable
+*/
+withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
+
 /**
 * Execute a task with the identity of the given user
+*
+* @param The user with which identity the task is to be executed
+* @param The task to do
+*
+* @return The modified task
 */
 workAs :: !User !(Task a)						-> Task a | iTask a
 

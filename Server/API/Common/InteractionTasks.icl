@@ -188,7 +188,7 @@ where
 	part (UpdateShared getfun setfun)	= undef
 
 	part (EnterView setfun)				= FormPart blankInit ignoreShareUpdate (whenValidViewUpdate setfun)
-	part (UpdateView getfun setfun)		= FormPart (filledInit getfun) (whenCleanShareUpdate getfun) (whenValidViewUpdate setfun)
+	part (UpdateView getfun setfun)		= FormPart (filledInit getfun) (onChangedShareUpdate getfun) (whenValidViewUpdate setfun)
 	part (DisplayView getfun)			= DisplayPart (viewVal getfun)
 
 	blankInit :: FormInitFun l r v
@@ -201,9 +201,14 @@ where
 	ignoreShareUpdate :: FormShareUpdateFun l r v
 	ignoreShareUpdate = \mbl r mbv dirty -> (mbl,Nothing) //Don't change the result, don't change the view
 	
+	//Refresh the view if the share has changed
+	onChangedShareUpdate :: (GetFun l r v) -> FormShareUpdateFun l r v
+	onChangedShareUpdate getfun = \l r mbv _ -> (l, Just (FilledForm (viewVal getfun l r)))
+	
 	//Refresh the view if it hasn't been touched by the user yet
 	whenCleanShareUpdate :: (GetFun l r v) -> FormShareUpdateFun l r v
 	whenCleanShareUpdate getfun = \l r mbv dirty -> (l, if dirty Nothing (Just (FilledForm (viewVal getfun l r))))
+	
 	
 	viewLocal :: (l -> v) l r -> v | iTask l
 	viewLocal f l r = f l
@@ -215,7 +220,6 @@ where
 	viewVal (GetLocal f) l _ 	= f l
 	viewVal (GetShared f) _ r	= f r
 	viewVal (GetCombined f) l r	= f l r
-	
 	
 	whenValidViewUpdate :: (SetFun l r v) -> FormViewUpdateFun l r v
 	whenValidViewUpdate f = \l r mbv -> case mbv of

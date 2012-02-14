@@ -125,13 +125,12 @@ installInitialWorkflows iflows
 		_	= return Void
 
 // Application specific types
-
-:: ClientState :== [Maybe ClientPart]
 :: ClientPart
 	= Logout								//Produced by the control task
 	| SelWorkflow 	!(!WorkflowId, !String)	//Produced by the workflow chooser & workflow details
 	| SelProcess 	!TaskId					//Produced by the worklist
-	
+	| OpenProcess			
+		
 :: WorklistRow =
 	{ title		:: Maybe String
 	, priority	:: TaskPriority
@@ -139,16 +138,15 @@ installInitialWorkflows iflows
 	, deadline	:: Maybe DateTime
 	}
 
-derive class iTask /*ClientState,*/ ClientPart, WorklistRow
+derive class iTask ClientPart, WorklistRow
 	
 workflowDashboard :: Task Void
 workflowDashboard
 	=  parallel (Title "Manage worklist")
-		[Nothing,Nothing,Nothing,Nothing]
-		[ (Embedded,	\list	-> controlDashboard				@> (\mbv state -> Just (updateAt 0 mbv state), taskListState list)	@ const Keep)
-		, (Embedded,	\list	-> chooseWorkflow				@> (\mbv state -> Just (updateAt 1 mbv state), taskListState list)	@ const Keep)
-		, (Embedded,	\list	-> viewWorkflowDetails list		@> (\mbv state -> Just (updateAt 2 mbv state), taskListState list)	@ const Keep)
-		, (Embedded,	\list	-> viewWorklist list			@> (\mbv state -> Just (updateAt 3 mbv state), taskListState list)	@ const Keep)	
+		[ (Embedded,	\list	-> controlDashboard)
+		, (Embedded,	\list	-> chooseWorkflow)
+		, (Embedded,	\list	-> viewWorkflowDetails list)
+		, (Embedded,	\list	-> viewWorklist list)	
 		]  	<<@ SetLayout dashLayout
 	>>* [WhenValid (\[logout:_] -> isJust logout) (\_ -> return Void)]
 
@@ -175,8 +173,7 @@ where
 	onlyRight (Just (Right (index,workflow)))	= Just (SelWorkflow (index,workflow.Workflow.description))
 	onlyRight _									= Nothing
 	
-
-viewWorkflowDetails :: !(SharedTaskList ClientState) -> Task ClientPart
+viewWorkflowDetails :: !(SharedTaskList ClientPart) -> Task ClientPart
 viewWorkflowDetails taskList = forever (
 		viewSharedInformation [Att (Title "Task description"),Att IconView] [DisplayView (GetShared view)] state
 	>>*	[WithResult (Action "Add to worklist") canStart doStart]
@@ -197,14 +194,14 @@ where
 		>>= \procId ->
 			openTask taskList procId
 
-	fromContainer (WorkflowTask t) = t >>| return Keep
-	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Keep)
+	fromContainer (WorkflowTask t) = t >>| return Void
+	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Void)
 		
-viewWorklist :: !(SharedTaskList ClientState) -> Task ClientPart	
+viewWorklist :: !(SharedTaskList ClientPart) -> Task ClientPart	
 viewWorklist taskList = forever
 	(	enterSharedChoice Void [ChoiceView (ChooseFromGrid,mkRow)] processes
-	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskListItem.taskId)
-		,WithResult (Action "Delete") (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks)]
+	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskListItem.taskId @ const OpenProcess)
+		,WithResult (Action "Delete") (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks @ const OpenProcess)]
 	)
 where
 	state = taskListState taskList	
@@ -222,12 +219,14 @@ where
 		,date = pmeta.issuedAt
 		,deadline = mmeta.completeBefore
 		}
-		
-openTask taskList taskId
-	=	appendOnce taskId (workOnTask taskId) taskList
 
+openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
+openTask taskList taskId
+	=	appendOnce taskId (workOnTask taskId) taskList @ const OpenProcess
+
+workOnTask :: TaskId -> Task ClientPart
 workOnTask taskId
-	= (workOn taskId >>| return Remove) -||- chooseAction [(ActionClose,Remove)]
+	= (workOn taskId >>| return OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)]
 
 appendOnce identity task taskList
 	=	get (taskListMeta taskList)

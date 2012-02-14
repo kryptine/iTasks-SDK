@@ -5,7 +5,7 @@ definition module SystemData
 */
 import Maybe, JSON, Shared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
-from SystemTypes		import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: TopNo
+from SystemTypes		import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: TopNo, :: SharedTaskList
 from Void				import :: Void
 from FilePath			import :: FilePath
 
@@ -25,7 +25,7 @@ currentTime				:: ReadOnlyShared Time
 currentDate				:: ReadOnlyShared Date
 
 // Processes
-topLevelTasks 			:: ReadWriteShared (TaskList Void) Void
+topLevelTasks 			:: SharedTaskList Void
 
 currentProcesses		:: ReadOnlyShared [TaskListItem]
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem]

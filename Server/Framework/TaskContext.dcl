@@ -23,26 +23,34 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 	| TCInteract	!TaskId !JSONNode ![(!JSONNode,!UpdateMask,!Bool)] !Int
 	| TCProject		!TaskId !JSONNode !TaskState
 	| TCStep		!TaskId !(Either TaskState (!JSONNode,!Int,!TaskState))
-	| TCParallel	!TaskId !JSONNode !ParallelMeta ![ParallelItem] 
+	| TCParallel	!TaskId !ParallelMeta ![ParallelItem] 
+	| TCShared		!TaskId !JSONNode !Int !TaskState
 	| TCEmpty		!TaskId
 
 //Parallel has a bit more complex state so we define it as a record
 :: ParallelMeta = 
 	{ nextIdx		:: !Int
-	, stateVersion	:: !Int		//Version number of the shared state
-	, metaVersion	:: !Int		//Version number of the meta-data of the parallel composition
+	, listVersion	:: !Int		//Version number of the shared list state
 	}
 	
 :: ParallelItem =
-	{ taskId		:: !TaskId					//Unique task id
-	, stack			:: !Int						//Stack order (required for properly laying out tasks in tabs or windows)
-	, detached		:: !Bool
-	, progress		:: !Maybe ProgressMeta
-	, management	:: !Maybe ManagementMeta
-	, task			:: !Dynamic					// Encoded task definition
-	, state			:: !TaskState				// State of the parallel item
-	, attributes	:: ![TaskAttribute]			// Cached meta-data, this field is recomputed on each evaluation
+	{ taskId			:: !TaskId					//Unique task id
+	
+	, task				:: !Dynamic					// Encoded task definition
+	, state				:: !TaskState				// State of the parallel item
+	, lastValue			:: !JSONNode				// Cached task value, this field is recomputed on each evaluation
+	, lastAttributes	:: ![TaskAttribute]			// Cached meta-data, this field is recomputed on each evaluation
+
+	, stack				:: !Int						//Stack order (required for properly laying out tasks in tabs or windows)
+	, detached			:: !Bool
+	, progress			:: !Maybe ProgressMeta
+	, management		:: !Maybe ManagementMeta
 	}
+
+:: ParallelControl 		//Never actually stored, but used for manipulating sets of parallel items
+	= AppendTask		!ParallelItem		// add an item to a parallel list																		
+	| RemoveTask		!TaskId				// remove the task with indicated id from the set
+
 
 //Conversion to a representation of task states which hides all internal details
 instanceToTaskListItem	:: !TopInstance -> TaskListItem

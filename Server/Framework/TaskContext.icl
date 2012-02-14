@@ -22,13 +22,13 @@ where
 stateToTaskListItems :: !TaskState -> [TaskListItem]
 stateToTaskListItems (TCStep _ (Left context))			= stateToTaskListItems context
 stateToTaskListItems (TCStep _ (Right (_,_,context)))	= stateToTaskListItems context
-stateToTaskListItems (TCParallel _ _ _ subs)			= parallelToTaskListItems subs
+stateToTaskListItems (TCParallel _ _ subs)				= parallelToTaskListItems subs
 stateToTaskListItems _									= []
 
 parallelToTaskListItems :: ![ParallelItem]-> [TaskListItem]
 parallelToTaskListItems [] = []
-parallelToTaskListItems [{ParallelItem|taskId,progress,management,state,attributes}:subs]
-	= [{taskId = taskId, taskMeta = attributes, progressMeta = progress, managementMeta = management, subItems = stateToTaskListItems state}
+parallelToTaskListItems [{ParallelItem|taskId,progress,management,state,lastAttributes}:subs]
+	= [{taskId = taskId, taskMeta = lastAttributes, progressMeta = progress, managementMeta = management, subItems = stateToTaskListItems state}
 	  :parallelToTaskListItems subs]
 
 

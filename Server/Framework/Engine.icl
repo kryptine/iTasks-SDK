@@ -55,9 +55,9 @@ initIWorld sdkPath world
 	  ,currentUser			= AnyUser
 	  ,nextTaskNo			= 0
 	  ,evalStack			= []
-	  ,parallelStates		= newMap
 	  ,parallelLists		= newMap
 	  ,parallelControls		= newMap
+	  ,localShares			= newMap
 	  ,readShares			= Nothing
 	  ,world				= world
 	  }

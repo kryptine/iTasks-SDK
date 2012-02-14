@@ -56,12 +56,13 @@ projectJust mba _ = Just mba
 */
 assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 assign props task
-	=	parallel Void [Nothing,Nothing]
-			[(Embedded, \s -> processControl s @ const Keep),(Detached props, \s -> (task @> (\mba [c,_] -> Just [c,mba], taskListState s) ) @ const Keep)]
+	=	parallel Void
+			[(Embedded, \s -> processControl s),(Detached props, \_ -> task)]
 	@?	justResult
 where
 	processControl tlist =
 		(enterSharedChoice ("Waiting","Waiting for " <+++ task) [] (taskListMeta tlist))
+		@? const Nothing
 					
 	toView [_,{TaskListItem|progressMeta=Just p,managementMeta=Just m}]=
 		{ assignedTo	= m.ManagementMeta.worker
@@ -116,27 +117,28 @@ where
 //Repeat task until the predicate holds (loops if the predicate is false)
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred
-	= parallel Void [Nothing] [(Embedded, checked pred task)] @? res
+	= parallel Void [(Embedded, checked pred task)] @? res
 where
 	checked pred task tlist
 		=	task
-		>>* [WhenStable (\a -> if (pred a)
-				(set [Just a] (taskListState tlist) @ const Remove)
-				(appendTask Embedded (checked pred task) tlist @ const Remove))
-			]
-				
-	res (Just [Just a]) = Just a
-	res _				= Nothing
+		>>* [WhenStable (\a -> if (pred a) (return (Just a)) (restart (checked pred task) tlist))]
+		
+	res (Just [Just (Just a)])	= Just a
+	res _						= Nothing
+	
+	restart task tlist
+		=	get (taskListMeta tlist)
+		>>= \[{TaskListItem|taskId}:_] ->
+			removeTask taskId tlist -&&- appendTask Embedded task tlist
+		@	const Nothing 
 
 forever :: !(Task a) -> Task b | iTask a & iTask b	
 forever	t = (t <! (const False)) >>| return defaultValue
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb
-	= parallel Void [Nothing,Nothing]
-		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [mbl,mbr],taskListState s)) @ const Stop)
-		,(Embedded, \s -> (taskb @> (\mbr [mbl,_] -> Just [mbl,mbr],taskListState s)) @ const Stop)
-		] @? res
+	= parallel Void
+		[(Embedded, \_ -> taska),(Embedded, \_ -> taskb)] @? res
 where
 	res (Just [Just a,_]) 		= Just a
 	res (Just [Nothing,Just a])	= Just a
@@ -144,38 +146,32 @@ where
 	
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel Void [Nothing,Nothing] 
-		[(Embedded, \_ -> taska @ const Keep)
-		,(Embedded, \s -> (taskb @> (\mbr [mbl,_] -> Just [mbl,mbr],taskListState s)) @ const Stop)
-		] @? res
+	= parallel Void
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
 where
-	res	(Just [_,Just b])	= Just b
-	res _					= Nothing
+	res	(Just [_,Just (Right b)])	= Just b
+	res _							= Nothing
 	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel Void [Nothing,Nothing]
-		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [mbl,mbr],taskListState s)) @ const Stop)
-		,(Embedded, \_ -> taskb @ const Keep)
-		] @? res			
+	= parallel Void
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res			
 where
-	res	(Just [Just a,_])	= Just a
-	res _					= Nothing
+	res	(Just [Just (Left a),_])	= Just a
+	res _							= Nothing
 	
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
-	= parallel Void [Nothing,Nothing]
-		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [fmap Left mbl,mbr],taskListState s)) @ const Keep)
-		,(Embedded, \s -> (taskb @> (\mbr [mbl,_] -> Just [mbl,fmap Right mbr],taskListState s)) @ const Keep)
-		] @? res
+	= parallel Void
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
 where
 	res (Just [Just (Left a),Just (Right b)])	= Just (a,b)
 	res _										= Nothing
 
 (>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
-(>&>) taska taskbf = parallel Void [Nothing,Nothing]
-		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [fmap Left mbl,mbr],taskListState s)) @ const Keep)
-		,(Embedded, \s -> (taskbf (mapRead prj (toReadOnly (taskListState s))) @> (\mbr [mbl,_] -> Just [mbl,fmap Right mbr],taskListState s)) @ const Keep)
+(>&>) taska taskbf = parallel Void
+		[(Embedded, \s -> taska @ Left)
+		,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @ Right)
 		]
 	@? res
 where
@@ -194,8 +190,7 @@ derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
-	= parallel Void [Nothing \\ _ <- tasks]
-		[(Embedded, \s -> (t @> (\mba r -> Just (updateAt i mba r),taskListState s)) @ const Keep ) \\ t <- tasks & i <- [0..]] @? res
+	= parallel Void [(Embedded,const t) \\ t <- tasks] @? res
 where	
 	res (Just ([Just a:_]))		= Just a
 	res (Just ([Nothing:as]))	= res (Just as)
@@ -203,8 +198,8 @@ where
 
 allTasks :: ![Task a] -> Task [a] | iTask a
 allTasks tasks
-	= parallel Void [Nothing \\ _ <- tasks]
-		[(Embedded, \s -> (t @> (\mba r -> Just (updateAt i mba r),taskListState s)) @ const Keep ) \\ t <- tasks & i <- [0..]] @? res
+	= parallel Void
+		[(Embedded,const t) \\ t <- tasks] @? res
 where
 	res (Just [])				= Just []
 	res (Just [Just a:mbas])	= case res (Just mbas) of
@@ -214,9 +209,9 @@ where
 				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb
-	= parallel Void [Nothing,Nothing]
-		[(Embedded, \s -> (taska @> (\mbl [_,mbr] -> Just [fmap Left mbl,mbr],taskListState s)) @ const Keep)
-		,(Embedded, \s -> (taskb @> (\mbr [mbl,_] -> Just [mbl,fmap Right mbr],taskListState s)) @ const Keep)
+	= parallel Void
+		[(Embedded, \s -> (taska @ Left))
+		,(Embedded, \s -> (taskb @ Right))
 		] @? res
 where
 	res (Just [Just la,_])	= Just la
@@ -240,7 +235,7 @@ whileUnchanged share task
 	<! isJust) @ fromJust
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Remove) topLevelTasks @ \topNo -> (TaskId topNo 0)
+appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks @ \topNo -> (TaskId topNo 0)
 
 appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
 appendTopLevelTaskFor user task = appendTopLevelTask {noMeta & worker = Just user} task

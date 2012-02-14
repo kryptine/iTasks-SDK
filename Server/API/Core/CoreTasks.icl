@@ -4,7 +4,7 @@ import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, 
 import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TUIDefinition, LayoutCombinators, Shared
 from SharedDataSource		import qualified read, write, getVersion, readWrite, :: RWRes(..)
 from StdFunc				import o, id
-from IWorld					import :: IWorld(..), :: Control(..)
+from IWorld					import :: IWorld(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from SystemData				import topLevelTasks
 from Map					import qualified get
@@ -249,14 +249,21 @@ where
 				= case result of
 					WOFinished	= (TaskStable WOFinished rep (TCEmpty taskId), iworld)
 					_			= (TaskUnstable (Just result) rep (TCEmpty taskId), iworld)
-				
-	checkIfAddedGlobally topNo iworld=:{parallelControls,currentUser}
+
+	//If a top instance has just been added, but has not been evaluated before it is still in the
+	//queue of ParallelControls. If so, we don't throw an exception but return an unstable value
+	//as we are still waiting for the instance to be evaluated
+	checkIfAddedGlobally topNo iworld=:{parallelControls}
 		= case 'Map'.get ("taskList:" +++ toString TopLevelTaskList) parallelControls of
 			Just (_,controls)
-				= (isMember topNo [i \\ AppendTask i currentUser _ _ <- controls], iworld)
+				# iworld = trace_n ("Looking for topNo " +++ toString topNo) iworld
+				# iworld = trace_n ("Number of controls: " +++ toString (length controls)) iworld
+				= (isMember topNo [i \\ AppendTask {ParallelItem|taskId=TaskId i 0} <- controls], iworld)
 			_
 				= (False,iworld)
 	checkIfAddedGlobally _ iworld = (False,iworld)
+
+import StdDebug
 
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval

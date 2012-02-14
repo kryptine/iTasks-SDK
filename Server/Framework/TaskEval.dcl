@@ -38,4 +38,6 @@ evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool 
 //Helper functions: exported for use in workOn and parallel
 editInstance	:: !(Maybe EditEvent) !TopInstance !*IWorld -> (!MaybeErrorString TopInstance, !*IWorld)
 evalInstance	:: !(Maybe EditEvent) !(Maybe CommitEvent) !(Maybe TaskId) !Bool !TopInstance !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TopInstance, !*IWorld)
-taskListShare	:: !(TaskListId s) -> (SharedTaskList s) | TC s
+
+//Access to shared parallel information
+taskListShare	:: !(TaskListId a) -> (SharedTaskList a) | iTask a

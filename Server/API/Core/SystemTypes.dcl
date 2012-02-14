@@ -13,7 +13,7 @@ from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
 from Task			import :: Task, :: TaskId, :: TaskAttribute
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
-from Shared			import :: ReadWriteShared, :: RWShared
+from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress !String
@@ -90,9 +90,9 @@ from Shared			import :: ReadWriteShared, :: RWShared
 	= TopLevelTaskList			//*The top-level list of task instances
 	| ParallelTaskList !TaskId	//*The list of task instances of a parallel task
 
-:: TaskList s =
-	{ listId	:: !(TaskListId s)
-	, state		:: !s
+:: TaskList a =
+	{ listId	:: !(TaskListId a)
+	, state		:: ![Maybe a]
 	, items		:: ![TaskListItem]
 	}
 
@@ -104,18 +104,14 @@ from Shared			import :: ReadWriteShared, :: RWShared
 	, subItems			:: ![TaskListItem]
 	}
 
-:: SharedTaskList s	:==	ReadWriteShared (TaskList s) s
+:: SharedTaskList a	:==	ReadOnlyShared (TaskList a)
 
 :: ParallelTaskType	
 	= Embedded 
 	| Detached !ManagementMeta
 
-:: ParallelTask a		:== (SharedTaskList a) -> Task ParallelResult
+:: ParallelTask a		:== (SharedTaskList a) -> Task a
 
-//* When tasks in a a parallel set become stable, they must indicate whether they
-//* have to be kept in the set, removed, restarted or remove all tasks from the set
-:: ParallelResult	= Keep | Remove | Stop
-						
 //* Users	
 :: User
 	= AnyUser						//* Any not further specified person

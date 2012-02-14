@@ -3,9 +3,10 @@ implementation module SystemData
 import SystemTypes, Time, Shared, Util, Text, Task, Tuple
 import Random
 import StdList, StdBool
-from StdFunc	import o, seq
-from IWorld		import :: IWorld(..), :: Control
-from Util		import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
+from StdFunc		import o, seq
+from IWorld			import :: IWorld(..)
+from TaskContext 	import :: ParallelControl
+from Util			import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 sharedStore storeId defaultV = makeUnsafeShare
@@ -33,12 +34,12 @@ currentDate :: ReadOnlyShared Date
 currentDate = makeReadOnlyShared "SystemData" "currentDate" 'Util'.currentDate dateVersion
 
 // Workflow processes
-topLevelTasks :: ReadWriteShared (TaskList Void) Void
+topLevelTasks :: SharedTaskList Void
 topLevelTasks = makeReadOnlyShared "taskList" "tasklist-top" read getVersion
 where
 	read iworld
 		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
-		= ({TaskList|listId = TopLevelTaskList, state = Void, items = fromMaybe [] list}, iworld)
+		= ({TaskList|listId = TopLevelTaskList, state = [], items = fromMaybe [] list}, iworld)
 	getVersion  iworld
 		# (version, iworld) = getStoreVersion NS_PERSISTENT_INSTANCES "index" iworld
 		= (fromMaybe 0 version, iworld)
