@@ -36,15 +36,15 @@ where
 	init :: TaskId *IWorld -> (!TaskState,!*IWorld)
 	init taskId iworld =:{IWorld |build,dataDirectory,sdkDirectory,world}
 		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
-		# asyncArgs		=	[ "--taskid"
+		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
+		# runAsyncArgs	=	[ "--taskid"
 							, toString taskId 
 							, "--outfile"
 							, outfile
 							, "--process"
 							, cmd
-							]
-							++ args
-		# (res,world)	= 'Process'.runProcess (sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")) asyncArgs Nothing world
+							: args]
+		# (res,world)	= 'Process'.runProcess runAsync runAsyncArgs Nothing world
 		= case res of
 			Error e	= (state taskId (Left e), {IWorld|iworld & world = world})
 			Ok _	= (state taskId (Right outfile), {IWorld|iworld & world = world})
@@ -62,12 +62,14 @@ where
 					# (exists,world) = 'File'.fileExists outfile world
 					| not exists
 						//Still busy
+						# gui 			= [(ViewPart, Just (stringDisplay ("Calling " +++ cmd)), [], [])]
+						# attributes	= [(TITLE_ATTRIBUTE,"Calling external process")]
 						# rep = case repAs of
 							(RepAsTUI Nothing layout)	
-								= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [] [] []) //TODO: Add attributes
+								= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask gui [] attributes) 
 							(RepAsTUI (Just target) layout)
 								| target == taskId
-									= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [] [] []) //TODO: Add attributes
+									= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask gui [] attributes) 
 								| otherwise
 									= NoRep
 							_
