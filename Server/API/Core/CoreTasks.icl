@@ -49,8 +49,19 @@ where
 		| isError val	= (taskException (SharedException (fromError val)), iworld)
 		= (TaskStable (fromOk val) NoRep (TCEmpty taskId), iworld)
 
-import StdDebug
-
+watch :: !(ReadWriteShared r w) -> Task r | iTask r
+watch shared = mkTask init eval
+where
+	init taskId iworld
+		= (TCEmpty taskId, iworld)
+	
+	eval eEvent cEvent repAs (TCEmpty taskId) iworld
+		# (val,iworld)	= 'SharedDataSource'.read shared iworld
+		# res = case val of
+			Ok (val,_)	= TaskUnstable (Just val) NoRep (TCEmpty taskId)
+			Error e		= taskException (SharedException e)
+		= (res,iworld)
+		
 interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
 interact desc initFun parts initLocal shared = mkTask init eval
 where

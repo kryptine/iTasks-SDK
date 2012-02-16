@@ -180,15 +180,15 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 (<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
 
 /**
-* Repeats a task infinitely. As soon as the task is finished, it is restarted immediately.
-* As a consequence, the combined task never finishes.
+* Repeats a task infinitely. As soon as the task is stable, it is restarted immediately.
+* As a consequence, the combined task never stabilizes.
 *
 * @param Task: The task that has to be repeated infinitely
 * @return The combined task
 * 
 * @gin False
 */
-forever :: !(Task a) -> Task b | iTask a & iTask b
+forever :: !(Task a) -> Task a | iTask a 
 
 /**
 * Group two tasks in parallel, return the result of the first completed task.

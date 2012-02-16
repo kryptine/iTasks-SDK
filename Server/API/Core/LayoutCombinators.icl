@@ -527,3 +527,6 @@ where
 
 tweakTUI :: (TUIDef -> TUIDef) TaskTUI -> TaskTUI
 tweakTUI f (type,gui,actions,attributes) = (type,fmap f gui,actions,attributes)
+
+tweakAttr :: ([TaskAttribute] -> [TaskAttribute]) TaskTUI -> TaskTUI
+tweakAttr f (type,gui,actions,attributes) = (type,gui,actions,f attributes)

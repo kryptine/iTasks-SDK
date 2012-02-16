@@ -36,7 +36,7 @@ return 		:: !a 										-> Task a 		| iTask a
 throw		:: !e 								-> Task a 	| iTask a & iTask, toString e
 
 /**
-* Reads shared data.
+* Reads shared data once.
 *
 * @param Shared: A shared reference
 * @return The value read
@@ -72,6 +72,18 @@ set :: !a !(ReadWriteShared r a) -> Task a | iTask a
 * @gin-icon shared_update
 */
 update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+
+/**
+* Reads shared data continously
+*
+* @param Shared: A shared reference
+* @return The value read
+* @throws SharedException
+*
+* @gin-title Read shared
+* @gin-icon shared_read
+*/
+watch :: !(ReadWriteShared r w) -> Task r | iTask r
 
 /**
 * Swiss-army-knife interaction tasks. All other interaction tasks are derived from this one.

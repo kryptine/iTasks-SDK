@@ -19,7 +19,7 @@ manageCollection desc itemname identify collection
 */
 manageCollectionWith ::
 	!d																			//Description
-	((Shared [c]) (Shared (Maybe i)) (c -> i) -> Task i)						//Make selection
+	((Shared [c]) (ReadOnlyShared (Maybe i)) (c -> i) -> Task i)				//Make selection
 	((Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task a)		//Use selection
 	[TaskStep i (Maybe i)]														//Actions
 	(c -> i)																	//Identification function
@@ -27,22 +27,31 @@ manageCollectionWith ::
 	(Shared [c])																//Shared collection
 	-> Task (Maybe i) | descr d & iTask c & iTask i & iTask a
 manageCollectionWith desc makeSelection useSelection selectionActions identify itemShare collection
-	= parallel desc [Nothing,Nothing,Nothing]
-		[(Embedded, \l -> makeSelection collection (selShare l) identify @> (\sel list -> Just (updateAt 0 sel list),taskListState l)  @ const Keep )
-		,(Embedded, \l -> forever (viewSharedInformation Void [] (selShare l) <<@ SetLayout hideLayout >>* (actions l)))
-		,(Embedded, \l -> forever (whileUnchanged (selShare l) (useSelection collection itemShare)))
-		]
-	@ hd
+	= withShared Nothing (
+		\selection ->
+			parallel desc
+				[(Embedded, \_ -> (makeSelection collection (toReadOnly selection) identify) @> (\i _ -> Just i,selection)	@ Just)
+				,(Embedded, \l -> forever ((watch selection @? onlyJust) >>* actions l)										@ const Nothing)
+				,(Embedded, \_ -> forever (whileUnchanged selection (useSelection collection itemShare))					@ const Nothing)
+				] @? firstJust
+	)
 where
-	selShare l = mapReadWrite (hd,\sel list -> Just (updateAt 0 sel list)) (taskListState l)
+	selShare l = mapRead hd (taskListState l)
 
 	actions list = [inParallel step \\ step <- selectionActions]
 	where
 		inParallel (AnyTime action taskf)
-			= AnyTime action (\_ -> (appendTask Embedded (\_ -> (taskf Nothing @ const Remove) <<@ Window)) list)
+			= AnyTime action (\mbi -> (appendTask Embedded (\_ -> (taskf mbi) <<@ Window)) list)
 		inParallel (WithResult action pred taskf)
-			= WithResult action isJust (\(Just i) -> appendTask Embedded (\_ -> (taskf i @ const Remove) <<@ Window) list)
-		
+			= WithResult action (const True) (\i -> appendTask Embedded (\_ -> (taskf i) <<@ Window) list)
+
+	
+	onlyJust (Just (Just x))	= Just x
+	onlyJust _					= Nothing
+	
+	firstJust (Just [Just x:_])	= Just x
+	firstJust _					= Nothing
+
 itemShare :: (c -> i) (Shared [c]) i -> Shared (Maybe c) | gEq{|*|} i & gEq{|*|} c
 itemShare identify collection i = mapReadWrite (toItem,fromItem) collection
 where
@@ -53,7 +62,7 @@ where
 	fromItem Nothing l 		= Just l
 	fromItem (Just c`) l	= Just [if (identify c === i) c` c \\ c <- l]
 
-selectItem :: !d (Shared [c]) (Shared (Maybe i)) (c -> i) -> Task i | descr d & iTask c & iTask i
+selectItem :: !d (Shared [c]) (ReadOnlyShared (Maybe i)) (c -> i) -> Task i | descr d & iTask c & iTask i
 selectItem desc collection selection identify
 	=	enterSharedChoice desc [] collection
 	@	identify

@@ -565,9 +565,7 @@ where
 tuiOfEditor :: !VisualizationResult -> [TUIDef]
 tuiOfEditor (NormalEditor tui) = tui
 tuiOfEditor (OptionalEditor tui) = tui
-tuiOfEDitor HiddenEditor = []
-
-
+tuiOfEditor HiddenEditor = []
 
 //*********************************************************************************************************************
 	

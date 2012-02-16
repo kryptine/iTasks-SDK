@@ -176,7 +176,9 @@ where
 			# layoutfun = fromMaybe DEFAULT_LAYOUT layout
 			# fixme = []
 			= TUIRep (layoutfun SequentialComposition [gui] (stepActions taskId mba) [(TASK_ATTRIBUTE, toString taskId):fixme])	//TODO: Add attributes from task
-		_	= rep
+		_	
+			# layoutfun = fromMaybe DEFAULT_LAYOUT layout
+			= TUIRep (layoutfun SequentialComposition [] (stepActions taskId mba) [(TASK_ATTRIBUTE, toString taskId)])
 	addStepActions taskId (RepAsTUI (Just _) layout) rep mba
 		= rep
 	

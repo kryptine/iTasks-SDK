@@ -132,8 +132,8 @@ where
 			removeTask taskId tlist -&&- appendTask Embedded task tlist
 		@	const Nothing 
 
-forever :: !(Task a) -> Task b | iTask a & iTask b	
-forever	t = (t <! (const False)) >>| return defaultValue
+forever :: !(Task a) -> Task a | iTask a	
+forever	t = (t <! (const False))
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb

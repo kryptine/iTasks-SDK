@@ -115,3 +115,4 @@ appLayout		:: Layout TaskCompositionType [TaskTUI] [TaskAction] [TaskAttribute] 
 appDeep			:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef	//Modify an element inside the tree of components
 
 tweakTUI		:: (TUIDef -> TUIDef) TaskTUI -> TaskTUI
+tweakAttr		:: ([TaskAttribute] -> [TaskAttribute]) TaskTUI -> TaskTUI 
