@@ -249,7 +249,7 @@ Start :: *World -> *World
 Start world = startEngine main world
 where
 	//The 'meta' task for a user's interaction with the application
-	main :: Task Void
+	main :: Task [Void]
 	main = forever (catchAll (doAuthenticateWith authenticate useApplication) viewError) 
 	where
 		useApplication = allTasks
@@ -268,11 +268,10 @@ where
 //General stuff that should have been in the libraries
 viewSharedItemsOnMap :: d (r -> GoogleMapMarker) GoogleMap (ReadWriteShared [r] w) -> Task GoogleMapPerspective | descr d & iTask r
 viewSharedItemsOnMap desc toMarker initMap items 
-	= parallel desc initMap.perspective [(Embedded, \l -> viewMap (taskListState l))]
+	= withShared initMap.perspective viewMap
 where
 	viewMap perspective
 		= updateSharedInformation Void [UpdateView (GetShared toMapView) fromMapView] (items |+< perspective)
-		@ const Keep
 	toMapView (items,perspective)
 		= {initMap & perspective = perspective, markers = map toMarker items}
 	
