@@ -197,9 +197,11 @@ gUpdate{|String|}				mode ust = basicUpdateSimple mode "" ust
 gUpdate{|Note|}					mode ust = basicUpdateSimple mode (Note "") ust
 gUpdate{|Username|}				mode ust = basicUpdateSimple mode (Username "") ust
 gUpdate{|Password|}				mode ust = basicUpdateSimple mode (Password "") ust
+gUpdate{|EUR|}					mode ust = basicUpdateSimple mode (EUR 0) ust
+gUpdate{|USD|}					mode ust = basicUpdateSimple mode (USD 0) ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode AnyUser ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
-gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
+gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton|b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
 gUpdate{|TreeChoice|} _ _		mode ust = updateChoice mode ust
 gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode ust
@@ -212,17 +214,6 @@ where
 	updateSel i True sel	= removeDup [i:sel]
 	updateSel i False sel 	= removeMember i sel
 	
-gUpdate{|Currency|}				mode ust = basicUpdate mode parseUpdate (EUR 0) ust
-where
-	parseUpdate update orig = case split "." update of
-		[whole]		= replaceVal orig (100 * toInt whole)
-		[whole,dec] = replaceVal orig (100 * toInt whole + (if (size dec == 1) (10 * toInt dec) (toInt (dec % (0,1)))))
-		_			= orig
-	replaceVal (EUR _) x = (EUR x)
-	replaceVal (GBP _) x = (GBP x)
-	replaceVal (USD _) x = (USD x)
-	replaceVal (JPY _) x = (JPY x)
-
 gUpdate{|Date|} UDCreate ust = basicCreate {day = 1, mon = 1, year = 1970} ust
 gUpdate{|Date|} (UDSearch d) ust = basicSearch d (\json old -> fromMaybe old (fromJSON json)) ust
 gUpdate{|Time|} UDCreate ust = basicCreate {hour = 0, min = 0, sec = 0} ust
@@ -321,7 +312,8 @@ gDefaultMask{|FormButton|}			_ = [Touched []]
 gDefaultMask{|Note|}				_ = [Touched []]
 gDefaultMask{|Username|}			_ = [Touched []]
 gDefaultMask{|Password|}			_ = [Touched []]
-gDefaultMask{|Currency|}			_ = [Touched []]
+gDefaultMask{|EUR|}					_ = [Touched []]
+gDefaultMask{|USD|}					_ = [Touched []]
 gDefaultMask{|Date|}				_ = [Touched []]
 gDefaultMask{|Time|}				_ = [Touched []]
 gDefaultMask{|User|}				_ = [Touched []]

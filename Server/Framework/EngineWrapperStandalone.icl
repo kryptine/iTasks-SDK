@@ -1,14 +1,9 @@
 implementation module EngineWrapperStandalone
 
 import StdFile, StdInt, StdList, StdChar, StdBool, StdString
-import HTTP, HttpServer, CommandLine, Func, SharedMemory, Map
+import HTTP, HttpServer, CommandLine, Func
 
 import Engine
-
-DEFAULT_PORT		:== 80
-SEARCH_PATHS		:==  RELATIVE_LOCATIONS ++ DEFAULT_LOCATIONS
-DEFAULT_LOCATIONS	:== ["C:\\Clean 2.3"]
-RELATIVE_LOCATIONS	:== [".": take 5 (iterate ((</>) "..") "..")]
 
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
@@ -29,9 +24,8 @@ startEngine publishable world
 	| isNothing mbSDKPath	= show sdkpatherror world
 	//Normal execution
 	# world					= show (running port) world
-	# (appShares, world)	= sharedMemory newMap world
 	# options				= [HTTPServerOptPort port, HTTPServerOptDebug debug]
-	# world					= http_startServer options (engine (fromJust mbSDKPath) publishable appShares) world
+	# world					= http_startServer options (engine (fromJust mbSDKPath) publishable) world
 	= world
 where
 	infoline :: !String -> [String]

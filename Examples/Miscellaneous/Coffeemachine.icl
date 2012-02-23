@@ -5,7 +5,7 @@ import iTasks
 coffeemachineExample :: [Workflow]
 coffeemachineExample = [workflow "Examples/Miscellaneous/Coffeemachine" "A coffee machine demo" coffeemachine]
 
-coffeemachine :: Task (String,Currency)
+coffeemachine :: Task (String,EUR)
 coffeemachine  =				enterChoice ("Product","Choose your product") []
 									[("Coffee", EUR 100)
 									,("Cappucino", EUR 150)
@@ -14,16 +14,16 @@ coffeemachine  =				enterChoice ("Product","Choose your product") []
 									] 
 	>>= \(product,toPay) ->		getCoins product (toPay,EUR 0)
 
-getCoins :: String (Currency,Currency) -> Task (String,Currency)
+getCoins :: String (EUR,EUR) -> Task (String,EUR)
 getCoins product (cost,paid) = getCoins`
 where
 	getCoins`		
-		=			enterChoice  ("Insert coins",[ Text ("Chosen product: " <+++ product), BrTag[]
-					              , Text ("To pay: " <+++ cost), BrTag []
-					              , Text "Please insert a coin..."
-					              ]) [] coins
-			>?*		[ (ActionCancel,	Always	(show "Cancelled" paid))
-					, (ActionOk,		IfValid handleMoney)
+		=			
+					viewInformation "Status" [] 
+						(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ cost)]) 
+			||-		enterChoice  ("Insert coins","Please insert a coin...") [] coins
+			>>*		[AnyTime ActionCancel (\_ -> show "Cancelled" paid)
+					,WithResult ActionOk (const True) handleMoney
 					]
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
 

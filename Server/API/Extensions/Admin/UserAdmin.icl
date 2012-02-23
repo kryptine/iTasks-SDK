@@ -1,24 +1,24 @@
 implementation module UserAdmin
 
-import iTasks, Text
+import iTasks, Text, Tuple
 
 userStore :: Shared [UserDetails]
 userStore = sharedStore "Users" []
 
 users :: ReadOnlyShared [User]
-users = mapShared (\users -> map RegisteredUser users, \Void users -> users) userStore
+users = mapReadWrite (\users -> map RegisteredUser users, \Void users -> Just users) userStore
 
 usersWithRole :: !Role -> ReadOnlyShared [User]
-usersWithRole role = mapSharedRead (filter (hasRole role)) users
+usersWithRole role = mapRead (filter (hasRole role)) users
 where
 	hasRole role (RegisteredUser details) = maybe False (isMember role) details.UserDetails.roles
 	hasRole _ _ = False
 
 userDetails :: !User -> Shared (Maybe UserDetails)
-userDetails user = mapShared (getDetails user,setDetails) userStore
+userDetails user = mapReadWrite (getDetails user,\w r -> Just (setDetails w r)) userStore
 	
 currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
-currentUserDetails = mapSharedRead (\(user,users) -> getDetails user users ) (currentUser |+| userStore)  
+currentUserDetails = mapRead (\(user,users) -> getDetails user users ) (currentUser |+| userStore)  
 
 getDetails :: User [UserDetails] -> Maybe UserDetails
 getDetails user users
@@ -32,8 +32,8 @@ setDetails (Just details) users = map (upd details) users
 where
 	upd n o		= if (o.UserDetails.username == n.UserDetails.username) n o
 	
-authenticateUser :: !String !String	-> Task (Maybe User)
-authenticateUser username password 
+authenticateUser :: !Username !Password	-> Task (Maybe User)
+authenticateUser (Username username) (Password password)
 	| username == "root"
 		=	get applicationConfig
 		>>= \config -> 
@@ -45,6 +45,22 @@ authenticateUser username password
 				= return (if (details.UserDetails.password == Password password) (Just (RegisteredUser details)) Nothing)
 			Nothing
 				= return Nothing
+
+doAuthenticated :: (Task a) -> Task a | iTask a
+doAuthenticated task = doAuthenticateWith verify task
+where
+	verify {Credentials|username,password} = authenticateUser username password
+	
+doAuthenticateWith :: (Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
+doAuthenticateWith verifyCredentials task
+	=	enterInformation ("Log in","Please enter your credentials") []	<<@ loginForm
+	>>!	verifyCredentials
+	>>= \mbUser -> case mbUser of
+		Nothing		= throw "Authentication failed"
+		Just user	= workAs user task
+where
+	//Layout tweak
+	loginForm = AfterLayout (tweakTUI (setTopMargin 100 o appDeep [1,0,1,0] (fixedWidth 180) o appDeep [1,1,1,0] (fixedWidth 180) o wrapWidth))
 
 createUser :: !UserDetails -> Task User
 createUser details
@@ -65,25 +81,25 @@ where
 manageUsers :: Task Void
 manageUsers =
 	(		enterSharedChoice ("Users","The following users are available") [] users
-		>?*	[ (Action "New",								Always	(createUserFlow			>>|	return False))
-			, (ActionEdit,									IfValid (\u -> updateUserFlow u	>>|	return False))
-			, (ActionDelete,								IfValid (\u -> deleteUserFlow u	>>|	return False))
-			, (Action "Import & export/Import CSV file...",	Always	(importUserFileFlow		>>| return False))
-			, (Action "Import & export/Export CSV file...",	Always	(exportUserFileFlow		>>| return False))
-			, (Action "Import & export/Import demo users",	Always	(importDemoUsersFlow	>>| return False))
-			, (ActionQuit,									Always	(							return True))
+		>>*	[ AnyTime		(Action "New")									(\_ -> createUserFlow	@ const False)
+			, WithResult	(ActionEdit) (const True)						(\u -> updateUserFlow u @ const False)
+			, WithResult	(ActionDelete) (const True)						(\u -> deleteUserFlow u @ const False)
+			, AnyTime 		(Action "Import & export/Import CSV file...")	(\_ -> importUserFileFlow @ const False)
+			, AnyTime		(Action "Import & export/Export CSV file...")	(\_ -> exportUserFileFlow @ const False)
+			, AnyTime		(Action "Import & export/Import demo users")	(\_ -> importDemoUsersFlow @ const False)
+			, AnyTime		(ActionQuit)									(\_ -> return True)
 			]
 	) <! id >>| return Void
 
 createUserFlow :: Task Void
 createUserFlow =
 		enterInformation ("Create user","Enter user information") []
-	>?*	[ (ActionCancel,	Always	(return Void))
-		, (ActionOk,		IfValid (\user ->
+	>>*	[ AnyTime		ActionCancel	(\_ -> return Void)
+		, WithResult	ActionOk 		(const True) (\user ->
 											createUser user
 										>>|	viewInformation "User created" [] "Successfully added new user"
 										>>| return Void
-									))
+									)
 		]
 		
 updateUserFlow :: User -> Task User
@@ -92,24 +108,23 @@ updateUserFlow user
 	>>= \mbOldDetails -> case mbOldDetails of 
 		(Just oldDetails)
 			=	(updateInformation ("Editing " +++ displayName user,"Please make your changes") [] oldDetails
-			>?*	[ (ActionCancel,	Always	(return user))
-				, (ActionOk,		IfValid (\newDetails ->
+			>>*	[ AnyTime ActionCancel (\_ -> return user)
+				, WithResult ActionOk (const True)(\newDetails ->
 												set (Just newDetails) (userDetails user)
 											>>=	viewInformation "User updated" [DisplayView (GetLocal (\(Just {displayName}) -> "Successfully updated " +++ displayName))]
 											>>| return user
-											))
+											)
 				])
 		Nothing
 			=	(throw "Could not find user details")
-
-					
+				
 deleteUserFlow :: User -> Task User
 deleteUserFlow user =
 		viewInformation "Delete user" [] ("Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")
-	>?*	[ (ActionNo,	Always		(return user))
-		, (ActionYes,	Always (		deleteUser user
+	>>*	[ AnyTime ActionNo	(\_ -> return user)
+		, AnyTime ActionYes	(\_ -> deleteUser user
 									>>=	viewInformation "User deleted" [DisplayView (GetLocal (\user -> "Successfully deleted " +++ displayName user +++ "."))]
-						))
+						)
 		]
 		
 importUserFileFlow :: Task Void

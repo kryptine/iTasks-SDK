@@ -31,11 +31,8 @@ addWarning msg =
 	dynamic change  :: A.a: Change a | iTask a
 where
 	change :: TaskInstanceMeta (Task a) (Task a) -> (Maybe TaskInstanceMeta, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Nothing, Just (((viewInformation ("Warning!",redText msg) [] Void >>+ noActions`) ||- t)), Just (addWarning msg))
+	change props t t0 = (Nothing, Just (((viewInformation ("Warning!",redText msg) [] Void) ||- t)), Just (addWarning msg))
 
-	noActions` :: (TermFunc a Void) | iTask a
-	noActions` = noActions
-	
 redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
 //This will duplicate a running task n times

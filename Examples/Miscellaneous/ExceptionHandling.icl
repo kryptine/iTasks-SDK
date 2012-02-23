@@ -22,7 +22,7 @@ exceptionHandlingExample
 = [workflow "Examples/Higher order/Exception handling" "Exception handling demo" exceptionTask]
 
 exceptionTask :: Task Int
-exceptionTask = Description "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
+exceptionTask = Title "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
 
 db :: Shared Int
 db = sharedStore "MyIntDB" 0
@@ -37,6 +37,7 @@ normalTask
 where
 	subj :: String
 	subj= "Enter a number"
+	msg :: String
 	msg = "Please enter only values between 0 and 100"
 	
 	inspectVal val
@@ -49,10 +50,11 @@ catchNegativeValueTask :: (Task Int) NegativeValueException -> Task Int
 catchNegativeValueTask task (NegativeValueException msg)
 	=	get db
 	>>=	\curval ->
-		viewInformation ("Exception!",
-			[Text "A NegativeValueException occurred: ",Text msg, BrTag []
+		viewInformation "Exception!" []
+			(DivTag [] [Text "A NegativeValueException occurred: ",Text msg, BrTag []
 			,Text "The current stored value is: "
-			]) [] curval
+			],curval)
+	@ snd
 		
 
 catchTooLargeValueTask :: (Task Int) TooLargeValueException  -> Task Int

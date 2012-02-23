@@ -1,95 +1,70 @@
 implementation module CommonCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators
-* with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass, GenRecord, Text, Time, Tuple, List
-import Util, Either, GenVisualize, GenUpdate, SharedCombinators
+import Util, Either, GenVisualize, GenUpdate
 from StdFunc			import id, const, o
-from SystemTypes		import :: ProcessId, :: User(..), :: Note(..)
-from TaskContext		import :: TaskContextTree(..), :: SubTaskId, :: SubTaskOrder, :: SubTaskContext, :: ParallelMeta
-from SystemData			import topLevelTasks
-from Map				import qualified newMap
-import CoreTasks, CoreCombinators, ExceptionCombinators, TuningCombinators, InteractionTasks
+from SystemTypes		import :: User(..), :: Note(..)
+from TaskContext		import :: TaskState(..), :: ParallelMeta, :: ParallelItem
+from SystemData			import randomInt, topLevelTasks
 
-// use string instances of generic function for Tag values 
-gVisualizeText{|Tag|} mode (Tag t) = gVisualizeText{|*|} mode (toString t)
-gVisualizeEditor{|Tag|} val vst = gVisualizeEditor{|*|} (toStr val) vst
-where
-	toStr Nothing			= Nothing
-	toStr (Just (Tag t))	= Just (toString t)
+import CoreTasks, CoreCombinators, InteractionTasks, LayoutCombinators
 
-gUpdate{|Tag|} mode ust = basicUpdateSimple mode (Tag "") ust
-gDefaultMask{|Tag|} _ = [Touched []]
+(>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
+(>>*) task steps = step task steps 
 
-gVerify{|Tag|} _ vst = simpleVerify "Enter a tag" vst
-	
-JSONEncode{|Tag|} (Tag t) = JSONEncode{|*|} (toString t)
-JSONDecode{|Tag|} nodes = case nodes of
-	[JSONString str]	= (Just (Tag str), [])
-	_					= (Nothing, nodes)
-gEq{|Tag|} (Tag x) (Tag y) = (toString x) == (toString y)
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>=) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf, WhenStable taskbf]
 
-(>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
-(>>*) task termF = task >>+ termF >>= id
+(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
+(>>!) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf]
 
-(>?*) infixl 1 :: !(Task a) ![(!Action,!TaskContinuation a b)] -> Task b | iTask a & iTask b
-(>?*) task continuations = task >>* \st-> let (triggers,actions) = splitContinuations continuations in
-											case testTriggers triggers st of 
-												[t:_]	= StopInteraction t
-												_		= UserActions (map (appSnd (mapContinuation st)) actions)
-where
-	splitContinuations [] = ([],[])
-	splitContinuations [(_,Trigger pred taskF):cs] = let (ts,as) = splitContinuations cs in ([(Trigger pred taskF):ts],as)
-	splitContinuations [a:cs] = let (ts,as) = splitContinuations cs in (ts,[a:as])
+(>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
+(>>|) taska taskb = step taska [WhenStable (const taskb)]
 
-	testTriggers triggers {localValid,modelValue} = [taskF modelValue \\ Trigger pred taskF <- triggers | localValid && pred modelValue]
-	
-	mapContinuation _						(Always task)			= Just task
-	mapContinuation {localValid,modelValue}	(IfValid taskF)			= if localValid (Just (taskF modelValue)) Nothing
-	mapContinuation {localValid,modelValue} (IfHolds pred taskF)	= if (localValid && pred modelValue) (Just (taskF modelValue)) Nothing
-	mapContinuation st						(Sometimes f)			= f st
+(>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
+(>>^) taska taskb = taska >>= \x -> taskb >>| return x
 
+(@?) infixl 1 :: !(Task a) !((Maybe a) -> Maybe b) -> Task b | iTask a & iTask b
+(@?) task f = transform f task
 
+(@) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+(@) task f = transform (fmap f) task
 
-	
-(>?) infixl 1 :: !(Task a) !(a -> Bool) -> Task a | iTask a
-(>?) task pred = task >>+ \{modelValue} -> if (pred modelValue) (StopInteraction modelValue) (UserActions [])
+(@>) infixl 1 :: !(Task a) !((Maybe a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
+(@>) task (f,share) = project f share task
 
-//Helper function for tasks in a parallel set
-/*accu :: (a acc -> (acc,Bool)) (Task a) (TaskList acc) -> Task ParallelControl | iTask a & iTask acc
-accu accufun task tlist
-	=	task
-	>>= \result ->
-		get (taskListState tlist)
-	>>= \state ->
-		let (nstate,stop) =  accufun result state in
-				set nstate (taskListState tlist) 
-			>>| return (if stop Stop Continue)*/
-			
-transform :: !(a -> b) !a -> Task b | iTask b
-transform f x = mkInstantTask ("Value transformation", "Value transformation with a custom function") eval
-where
-	eval taskNr iworld = (TaskFinished (f x), iworld)
-	
+(<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
+(<<@) t a = tune a t
+
+(@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
+(@>>) a t = tune a t
+
+try :: !(Task a) (e -> Task a) -> Task a | iTask a & iTask, toString e
+try task handler = step task [WhenStable return, Catch handler]
+
+catchAll :: !(Task a) (String -> Task a) -> Task a | iTask a
+catchAll task handler = step task [WhenStable return, CatchAll handler]
+
+//Helper functions for projections
+projectJust :: (Maybe a) r -> Maybe (Maybe a)
+projectJust mba _ = Just mba
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-
-/*assign :: !ManagementMeta !(Task a) -> Task a | iTask a
-assign props task = parallel ("Assign","Manage a task assigned to another user.") Nothing (\_ (Just r) -> r)
-									[(Embedded, processControl),(Detached props, accu accJust task)] <<@ defaultParallelLayout
+assign :: !ManagementMeta !(Task a) -> Task a | iTask a
+assign props task
+	=	parallel Void
+			[(Embedded, \s -> processControl s),(Detached props, \_ -> task)]
+	@?	justResult
 where
-	processControl :: !(TaskList a) -> Task ParallelControl
 	processControl tlist =
-		(updateSharedInformation (taskTitle task,"Waiting for " +++ taskTitle task) [UpdateView (GetShared toView, SetShared fromView)] control Void >>+ noActions)
-	where
-		control = taskListMeta tlist
-		
-	accJust r _ = (Just r,True)
-			
-	toView [_,{ParallelTaskMeta|taskMeta,progressMeta=Just p,managementMeta=Just m}]=
+		(enterSharedChoice ("Waiting","Waiting for " <+++ task) [] (taskListMeta tlist))
+		@? const Nothing
+					
+	toView [_,{TaskListItem|progressMeta=Just p,managementMeta=Just m}]=
 		{ assignedTo	= m.ManagementMeta.worker
 		, priority		= m.ManagementMeta.priority
 		, issuedAt		= Display (Just p.ProgressMeta.issuedAt)
@@ -108,7 +83,11 @@ where
 	fromView view=:{ProcessControlView|assignedTo} _ _
 		= []// [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
 		
-	formatTimestamp timestamp = timestampToGmDateTime timestamp*/
+	formatTimestamp timestamp = timestampToGmDateTime timestamp
+	
+	justResult (Just [_,Just a])	= Just a
+	justResult _					= Nothing
+	
 	
 :: ProcessControlView =	{ assignedTo	:: !Maybe User
 						, priority		:: !TaskPriority
@@ -120,82 +99,88 @@ where
 derive class iTask ProcessControlView
 derive class GenRecord ProcessControlView, ManagementMeta, TaskPriority
 
-//(@:) infix 3 :: !User !(Task a) -> Task a | iTask a
-//(@:) user task = assign {noMeta & worker = Just user} task
-
-(>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
-(>>^) taska taskb = taska >>= \x -> taskb >>= \_ -> return x
-
-(>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iTask a & iTask b
-(>>?) t1 t2 
-= 	t1 
-	>>= \r1 -> 	case r1 of 
-					Nothing 	-> return Nothing
-					Just r`1 	-> t2 r`1
+(@:) infix 3 :: !User !(Task a) -> Task a | iTask a
+(@:) user task = assign {noMeta & worker = Just user} task
 
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
 = task >>= \r -> case r of
 	Just x	= return x
-	Nothing	= throw ("The task " +++ taskTitle task +++ " returned nothing.")
+	Nothing	= throw ("The task returned nothing.")
 
 sequence :: !String ![Task a]  -> Task [a] | iTask a
-sequence label tasks = Description label @>> (seqTasks tasks)
+sequence label tasks = Title label @>> (seqTasks tasks)
 where
 	seqTasks []		= return []
 	seqTasks [t:ts]	= t >>= \a -> seqTasks ts >>= \as -> return [a:as]
 
-
-/*(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
-(<!) task pred = parallel (taskMeta task) Nothing (\_ (Just a) -> a) [(Embedded, checked pred task 0)] <<@ layout
+//Repeat task until the predicate holds (loops if the predicate is false)
+(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
+(<!) task pred
+	= parallel Void [(Embedded, checked pred task)] @? res
 where
-	checked pred task i tlist
+	checked pred task tlist
 		=	task
-		>>= \a -> if (pred a)
-			(set (Just a) (taskListState tlist) 											>>| return Stop)
-			(removeTask i tlist >>| appendTask (Embedded, checked pred task (i + 1)) tlist	>>| return Continue)
-			 
-	layout :: TUIParallel -> (TUIDef,[TaskAction])
-	layout {TUIParallel|items=[(_,_,_,tui,actions):_]} = (fromJust tui, actions)*/
+		>>* [WhenStable (\a -> if (pred a) (return (Just a)) (restart (checked pred task) tlist))]
+		
+	res (Just [Just (Just a)])	= Just a
+	res _						= Nothing
+	
+	restart task tlist
+		=	get (taskListMeta tlist)
+		>>= \[{TaskListItem|taskId}:_] ->
+			removeTask taskId tlist -&&- appendTask Embedded task tlist
+		@	const Nothing 
 
-/*forever :: !(Task a) -> Task b | iTask a & iTask b	
-forever	t = (<!) t (\_ -> False) >>| return defaultValue
+forever :: !(Task a) -> Task a | iTask a	
+forever	t = (t <! (const False))
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
-(-||-) taska taskb = parallel ("-||-", "Done when either subtask is finished.") Nothing (\_ (Just a) -> a)
-						[(Embedded, accu orfun taska), (Embedded, accu orfun taskb)]
+(-||-) taska taskb
+	= parallel Void
+		[(Embedded, \_ -> taska),(Embedded, \_ -> taskb)] @? res
 where
-	orfun a _ = (Just a,True)
+	res (Just [Just a,_]) 		= Just a
+	res (Just [Nothing,Just a])	= Just a
+	res _						= Nothing
 	
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel (taskTitle taskb) Nothing (\_ (Just b) -> b)
-		[(Embedded, \_ -> taska >>| return Continue), (Embedded, accu orfun taskb)]
+	= parallel Void
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
 where
-	orfun b _ = (Just b,True)
+	res	(Just [_,Just (Right b)])	= Just b
+	res _							= Nothing
 	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel (taskTitle taska) Nothing (\_ (Just a) -> a)
-		[(Embedded, accu orfun taska), (Embedded, \_ -> taskb >>| return Continue)]				
+	= parallel Void
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res			
 where
-	orfun a _ = (Just a,True)
+	res	(Just [Just (Left a),_])	= Just a
+	res _							= Nothing
 	
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
-(-&&-) taska taskb = parallel ("-&&-", "Done when both subtasks are finished") (Nothing,Nothing) resfun
-	[(Embedded, accu (\a (_,b) -> ((Just a,b),False)) taska),(Embedded, accu (\b (a,_) -> ((a,Just b),False)) taskb)]
+(-&&-) taska taskb
+	= parallel Void
+		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
 where
-	resfun _ (Just a,Just b)	= (a,b)
-	resfun _ _					= abort "AND not finished"
+	res (Just [Just (Left a),Just (Right b)])	= Just (a,b)
+	res _										= Nothing
 
-(-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
-(-&?&-) taska taskb = parallel ("-&?&-", "Done when both subtasks are finished. Yields only a result of both subtasks have a result") (Nothing,Nothing) resfun
-	[(Embedded, accu (\a (_,b) -> ((a,b),False)) taska),(Embedded, accu (\b (a,_) -> ((a,b),False)) taskb)]
-where				
-	resfun _ (Just a,Just b)	= Just (a,b)
-	resfun _ _					= Nothing
-
-			
+(>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+(>&>) taska taskbf = parallel Void
+		[(Embedded, \s -> taska @ Left)
+		,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @ Right)
+		]
+	@? res
+where
+	prj [Just (Left a),_]			= Just a
+	prj _							= Nothing
+	
+	res (Just [_,Just (Right b)])	= Just b
+	res _							= Nothing
+				
 :: ProcessOverviewView =	{ index			:: !Hidden Int
 							, subject		:: !Display String
 							, assignedTo	:: !User
@@ -204,44 +189,68 @@ where
 derive class iTask ProcessOverviewView
 
 anyTask :: ![Task a] -> Task a | iTask a
-anyTask [] 		= return defaultValue
-anyTask tasks 	= parallel ("any", "Done when any subtask is finished") Nothing (\_ (Just a) -> a) (map (\t -> (Embedded, accu anyfun t)) tasks)
-where
-	anyfun a _ = (Just a, True)
+anyTask tasks
+	= parallel Void [(Embedded,const t) \\ t <- tasks] @? res
+where	
+	res (Just ([Just a:_]))		= Just a
+	res (Just ([Nothing:as]))	= res (Just as)
+	res _ 						= Nothing
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = parallel ("all", "Done when all subtasks are finished") [] (\_ l -> sortByIndex l) [(Embedded, accu (allfun i) t) \\ t <- tasks & i <- [0..]] 
+allTasks tasks
+	= parallel Void
+		[(Embedded,const t) \\ t <- tasks] @? res
 where
-	allfun i a acc = ([(i,a):acc],False)
-			
+	res (Just [])				= Just []
+	res (Just [Just a:mbas])	= case res (Just mbas) of
+		Just as = Just [a:as]
+		Nothing	= Nothing
+	res _						= Nothing
+				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
-eitherTask taska taskb = parallel ("either", "Done when either subtask is finished") Nothing (\_ (Just a) -> a)
-	[(Embedded, accu afun taska), (Embedded, accu bfun taskb)]
+eitherTask taska taskb
+	= parallel Void
+		[(Embedded, \s -> (taska @ Left))
+		,(Embedded, \s -> (taskb @ Right))
+		] @? res
 where
-	afun a _ = (Just (Left a),True)
-	bfun b _ = (Just (Right b),True)
+	res (Just [Just la,_])	= Just la
+	res (Just [_,Just rb])	= Just rb
+	res _					= Nothing 
 
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"
-randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length list)))*/
+randomChoice list = get randomInt >>= \i -> return (list !! ((abs i) rem (length list)))
 
-/*repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
+repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
 	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
-(<|) infixl 6 :: !(Task a) !(a -> (Bool, String)) -> Task a | iTask a
-(<|) taska pred 
-		=			taska
-		>>= \r -> 	case pred r of
-						(True,_) -> return r
-						(False,msg) -> (viewInformation "Feedback" []  msg >>+ noActions`) ||- (taska <| pred)
-where
-	noActions` :: (TermFunc a Void) | iTask a
-	noActions` = noActions*/
-
-/*whileUnchanged :: (RWShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
+whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= (get share >>= \val -> (task val >>$ Just) -||- (Hide @>> wait "watching share change" ((=!=) val) share >>$ const Nothing)) <! isJust >>= transform fromJust*/
+	= ((	get share	
+		>>= \val ->
+			(task val @ Just) -||- (wait "watching share change" ((=!=) val) share >>| return Nothing)
+		)
+	<! isJust) @ fromJust
 	
-appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
-appendTopLevelTask props task = appendTask (Detached props, \_ -> task >>| return Continue) topLevelTasks >>= transform WorkflowProcess 
+appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
+appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks @ \topNo -> (TaskId topNo 0)
+
+appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
+appendTopLevelTaskFor user task = appendTopLevelTask {noMeta & worker = Just user} task
+
+instance tune BeforeLayout
+where tune (BeforeLayout f) task = tune (ModifyLayout (\l t0 pa0 ac0 at0 -> let (t1,pa1,ac1,at1) = f (t0,pa0,ac0,at0) in l t1 pa1 ac1 at1)) task
+		
+instance tune AfterLayout
+where tune (AfterLayout f) task	= tune (ModifyLayout (\l -> (\t pa ac at -> (f (l t pa ac at))))) task
+
+instance tune Title
+where tune (Title title) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet TITLE_ATTRIBUTE title at))) task
+instance tune Icon 
+where tune (Icon icon) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet ICON_ATTRIBUTE icon at))) task
+instance tune Attribute
+where tune (Attribute k v) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet k v at))) task
+instance tune Window
+where tune Window task = task

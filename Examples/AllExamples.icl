@@ -20,16 +20,12 @@ import Coffeemachine
 import APIDocumentation
 
 //import Newsgroups
-import ChangeHandling
 //import textEditor
 import CoffeeTime
 import Calculator
 import TableExamples
 import GeoTracker
 //import RPCExamples
-
-//Change examples
-import SimpleChanges
 
 //Shared Value Examples
 import SharedVariables
@@ -58,9 +54,7 @@ where
 						, tableExamples
 						, geoTrackerExamples
 						//, newsgroupsExample
-						, exceptionHandlingExample
-						//, changeHandlingExample
-						, changeExamples
+						, exceptionHandlingExample				
 						, sharedValueExamples
 						//, rpcExamples
 						//, ginExamples

@@ -11,7 +11,7 @@ definition module stdProperty
 	pieter@cs.ru.nl
 */
 
-import genLibTest
+/* import qualified genLibTest */
 import testable
 
 class (\/) infixr 2 a b	:: !a b -> Property	//	Conditional or  of arg1 and arg2

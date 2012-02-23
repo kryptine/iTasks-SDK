@@ -1,23 +1,34 @@
 implementation module TaskContext
 
 import SystemTypes
-from iTasks import JSONEncode, JSONDecode
-import JSON, Map
+from iTasks		import JSONEncode, JSONDecode
+from Task		import :: Event, :: EditEvent
+from GenUpdate	import :: UpdateMask
+import JSON
 
-derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
-derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
+derive JSONEncode TopInstance, TaskState, ParallelMeta, ParallelItem, UpdateMask
+derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem, UpdateMask
 
-getLocalVar :: !String !TaskContextTree -> Maybe a | JSONDecode{|*|} a
-getLocalVar key (TCBasic vars)
-	= case get key vars of
-		Just json	= (fromJSON json)
-		Nothing		= Nothing
-getLocalVar _ _ = Nothing
+instanceToTaskListItem :: !TopInstance -> TaskListItem
+instanceToTaskListItem {TopInstance|instanceId,progress,management,state,attributes}
+	= {taskId = taskId instanceId, taskMeta = attributes, progressMeta = Just progress, managementMeta = Just management, subItems = subItems state}
+where
+	taskId (Left session)	= TaskId 0 0
+	taskId (Right topNo)	= TaskId topNo 0
+	
+	subItems (Left state)			= stateToTaskListItems state
+	subItems _						= []
 
-setLocalVar :: !String !a !TaskContextTree -> TaskContextTree | JSONEncode{|*|} a
-setLocalVar key val (TCBasic vars) = TCBasic (put key (toJSON val) vars)
-setLocalVar key val context = context
+stateToTaskListItems :: !TaskState -> [TaskListItem]
+stateToTaskListItems (TCStep _ (Left context))			= stateToTaskListItems context
+stateToTaskListItems (TCStep _ (Right (_,_,context)))	= stateToTaskListItems context
+stateToTaskListItems (TCParallel _ _ subs)				= parallelToTaskListItems subs
+stateToTaskListItems _									= []
 
-delLocalVar :: !String !TaskContextTree -> TaskContextTree
-delLocalVar key (TCBasic vars) = TCBasic (del key vars)
-delLocalVar key context = context
+parallelToTaskListItems :: ![ParallelItem]-> [TaskListItem]
+parallelToTaskListItems [] = []
+parallelToTaskListItems [{ParallelItem|taskId,progress,management,state,lastAttributes}:subs]
+	= [{taskId = taskId, taskMeta = lastAttributes, progressMeta = progress, managementMeta = management, subItems = stateToTaskListItems state}
+	  :parallelToTaskListItems subs]
+
+

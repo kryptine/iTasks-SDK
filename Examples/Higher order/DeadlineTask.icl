@@ -14,10 +14,11 @@ npersons = 6
 
 deadlineTaskExample :: [Workflow]
 deadlineTaskExample
-	= [ workflow "Examples/Higher order/Deadline task" "Demo of the deadline property for tasks" (Description "Do task before deadline" @>> (deadline trivialTask))]
+	= [ workflow "Examples/Higher order/Deadline task" "Demo of the deadline property for tasks" (Title "Do task before deadline" @>> (deadline trivialTask))]
 
 trivialTask :: Task Int
-trivialTask = enterInformation ("Initial number","Enter a number larger than 42") [] <| (\n -> if (n <= 42) (False,"Error " <+++ n <+++ " should be larger than 42") (True,""))
+trivialTask = enterInformation ("Initial number","Enter a number larger than 42") [] <! (\n -> n <= 42) 
+			// (\n -> if (n <= 42) (False,"Error " <+++ n <+++ " should be larger than 42") (True,""))
 
 deadline :: (Task a) -> Task a | iTask a
 deadline task
@@ -34,17 +35,15 @@ where
 		= viewInformation ("No result","Task expired or canceled, you have to do it yourself!") [] Void >>| task
 
 	delegateTask who time task
-	= who  @: (Description "Timed Task" @>> mytask)
+	= who  @: (Title "Timed Task" @>> mytask)
 	where
 		mytask
 		=			// wait for timeout and return nothing
 					( waitForTimer time >>| return Nothing)									
 		 			-||-
 		 			// do task and return its result
-		  			( (viewInformation ("Hurry!","You have to complete the task in " <+++ time <+++ " time") [] Void >>+ noActions`)
+		  			( (viewInformation ("Hurry!","You have to complete the task in " <+++ time <+++ " time") [] Void)
 		  			  ||- task 
 					  >>= \v -> return (Just v)
 					)	
-			
-	noActions` :: (TermFunc a Void) | iTask a
-	noActions` = noActions
+		

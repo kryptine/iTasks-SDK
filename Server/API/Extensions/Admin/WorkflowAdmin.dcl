@@ -35,7 +35,8 @@ workflows				:: Shared [Workflow]
 allowedWorkflows		:: ReadOnlyShared [Workflow]
 workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
 allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
-workflowById			:: !WorkflowId -> Shared Workflow
+workflowByIndex			:: !WorkflowId -> Shared Workflow
+workflowByPath			:: !String -> Shared Workflow
 
 /**
 * Wraps any task as a workflow with no access restrictions
@@ -45,7 +46,6 @@ workflowById			:: !WorkflowId -> Shared Workflow
 * @param The task(container) (with or without parameter)
 */
 workflow :: String String w -> Workflow | toWorkflow w
-
 /**
 *
 * Wraps any task as a workflow that is only available to specified roles
@@ -57,7 +57,7 @@ workflow :: String String w -> Workflow | toWorkflow w
 */
 restrictedWorkflow :: String String [Role] w -> Workflow | toWorkflow w
 
-class toWorkflow w :: String String [Role] w -> Workflow
+class toWorkflow w :: String String [Role] !w -> Workflow
 
 instance toWorkflow (Task a)						| iTask a
 instance toWorkflow (WorkflowContainer a)			| iTask a
@@ -74,6 +74,8 @@ instance toWorkflow (ParamWorkflowContainer a b)	| iTask a & iTask b
 */
 manageWorkflows :: ![Workflow] ->  Task Void
 
+manageWorklist :: ![Workflow] -> Task Void
+
 /**
 * Dynamically adds a workflow to the system.
 *
@@ -85,3 +87,11 @@ manageWorkflows :: ![Workflow] ->  Task Void
 addWorkflow :: !Workflow -> Task Workflow
 
 isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool
+
+//Service tasks
+
+viewTaskList	:: Task [TaskListItem]
+viewTask		:: Task WorkOnProcessState
+
+//The default external services
+externalTaskInterface :: [PublishedTask]

@@ -3,37 +3,42 @@ definition module SystemData
 * This module provides access to the iTask framework data by means of
 * a set of shared data structures.
 */
-import Maybe, SharedCombinators
+import Maybe, JSON, Shared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
-from SystemTypes		import :: ProcessId, :: TaskInstanceMeta, :: Config
+from SystemTypes		import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: TopNo, :: SharedTaskList
 from Void				import :: Void
+from FilePath			import :: FilePath
+
+//USER-DEFINED SHARES
+
+/*
+* Creates a reference to a store identified by a string identifier.
+* If no data is store the default value given as second argument is given as result.
+*/
+sharedStore 			:: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+
+//PREDEFINED SHARES 
 
 // Date & time
-/*currentDateTime			:: ReadOnlyShared DateTime
+currentDateTime			:: ReadOnlyShared DateTime
 currentTime				:: ReadOnlyShared Time
-currentDate				:: ReadOnlyShared Date*/
+currentDate				:: ReadOnlyShared Date
 
 // Processes
-topLevelTasks 			:: (TaskList Void)
+topLevelTasks 			:: SharedTaskList Void
 
-/*currentProcesses		:: ReadOnlyShared [TaskInstanceMeta]
-processesForCurrentUser	:: ReadOnlyShared [TaskInstanceMeta]
+currentProcesses		:: ReadOnlyShared [TaskListItem]
+processesForCurrentUser	:: ReadOnlyShared [TaskListItem]
 
 // Session
-currentProcessId		:: ReadOnlyShared ProcessId
 currentUser				:: ReadOnlyShared User
+currentTopTask			:: ReadOnlyShared TaskId
 
-// Application name
-applicationName			:: ReadOnlyShared String
-// Application build identifier
-applicationBuild		:: ReadOnlyShared String
-
-// Server config
-applicationConfig		:: ReadOnlyShared Config
+// Application
+applicationName			:: ReadOnlyShared String	// Application name
+applicationBuild		:: ReadOnlyShared String	// Application build identifier
+applicationDirectory	:: ReadOnlyShared FilePath	// Directory in which the applicaton resides
+applicationConfig		:: ReadOnlyShared Config	// Server config
 
 // Random source
-randomInt				:: ReadOnlyShared Int*/
-
-// Null data source (writing has no effect)
-from SharedDataSource	import null
-from SharedDataSource	import qualified :: WOShared
+randomInt				:: ReadOnlyShared Int

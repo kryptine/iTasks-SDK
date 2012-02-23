@@ -8,7 +8,7 @@ encodeTUIDefinition d = toJSON d
 //TUI DEFINITIONS
 derive JSONEncode TUIButton, TUIIcon, TUIHtml, Hotkey
 derive JSONEncode TUIButtonControl
-derive JSONEncode TUIContainer, TUIPanel, TUITabContainer, TUIBorderContainer, TUIListContainer
+derive JSONEncode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUIBorderContainer, TUIListContainer
 derive JSONEncode TUIGridControl, TUITree, TUIEditControl, TUIShowControl
 
 JSONEncode{|TUIDef|} {content,width,height,margins}
@@ -18,6 +18,7 @@ JSONEncode{|TUIDefContent|} (TUIEditControl c b)		= merge (encodeControlType edi
 JSONEncode{|TUIDefContent|} (TUIShowControl c b)		= merge (encodeControlType showprefix c) (JSONEncode{|*|} b)
 JSONEncode{|TUIDefContent|} (TUIPanel r)				= addXType "itasks_panel" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIContainer r)			= addXType "itasks_container" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUIWindow r)				= addXType "itasks_window" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUITabContainer r)			= addXType "itasks_tab_container" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUITabItem r)				= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIBorderContainer r)		= addXType "iborderc" (JSONEncode{|*|} r)
@@ -37,9 +38,9 @@ JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
 JSONEncode{|TUIListItem|}  {TUIListItem|items,index}
 	= [JSONObject [("xtype",JSONString "itasks_list_item"),("index",JSONInt index),("items", toJSON items)]]
 
-JSONEncode{|TUITabItem|} {TUITabItem|index,title,iconCls,items,menus,closeAction}
-	= [JSONObject [("xtype",JSONString "itasks_tab_item"),("index",JSONInt index),("title",toJSON title),("iconCls",toJSON iconCls)
-				  ,("items",toJSON items),("menus",toJSON menus),("closeAction",toJSON closeAction)]]
+JSONEncode{|TUITabItem|} {TUITabItem|taskId,items,title,iconCls,padding,menus,closeAction}
+	= [JSONObject (filterNull [("xtype",JSONString "itasks_tab_item"),("taskId",toJSON taskId),("items",toJSON items),("title",toJSON title),("iconCls",toJSON iconCls)
+				  ,("padding",toJSON padding),("menus",toJSON menus),("closeAction",toJSON closeAction)])]
 
 JSONEncode{|TUIBorderItem|} {TUIBorderItem|title,iconCls,item}
 	= [JSONObject [("xtype",JSONString "iborderi"),("title",toJSON title),("iconCls",toJSON iconCls),("items",toJSON item)]]

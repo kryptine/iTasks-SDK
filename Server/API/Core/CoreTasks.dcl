@@ -3,14 +3,12 @@ definition module CoreTasks
 * This module provides the core 'basic tasks' from which more specialized tasks can be derived.
 */
 
-import iTaskClass, SharedCombinators
+import iTaskClass, Shared
 from Error				import ::MaybeError(..)
 from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
-from Task				import :: Task, ::ChangeLifeTime, :: ChangeDyn, :: InteractionTerminators
+from Task				import :: Task
 
 derive class iTask WorkOnProcessState
-
-:: SharedStoreId :== String
 
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter
@@ -25,14 +23,20 @@ derive class iTask WorkOnProcessState
 */
 return 		:: !a 										-> Task a 		| iTask a
 
-/*
-* Creates a reference to a store identified by a string identifier.
-* If no data is store the default value given as second argument is given as result.
+/**
+* Exception throwing. This will throw an exception of arbitrary type e which has to be caught
+* by a higher level exception handler combinator.
+*
+* @param Value: The exception value
+* @return The combined task
+* 
+* @gin-title Raise exception
+* @gin-icon error
 */
-sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+throw		:: !e 								-> Task a 	| iTask a & iTask, toString e
 
 /**
-* Reads shared data.
+* Reads shared data once.
 *
 * @param Shared: A shared reference
 * @return The value read
@@ -41,7 +45,7 @@ sharedStore :: !SharedStoreId !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|},
 * @gin-title Read shared
 * @gin-icon shared_read
 */
-get :: !(RWShared a w) -> Task a | iTask a
+get :: !(ReadWriteShared a w) -> Task a | iTask a
 
 /**
 * Writes shared data.
@@ -54,7 +58,7 @@ get :: !(RWShared a w) -> Task a | iTask a
 * @gin-title Write shared
 * @gin-icon shared_update
 */
-set :: !a !(RWShared r a) -> Task a | iTask a
+set :: !a !(ReadWriteShared r a) -> Task a | iTask a
 
 /**
 * Updates shared data in one atomic operation.
@@ -67,20 +71,30 @@ set :: !a !(RWShared r a) -> Task a | iTask a
 * @gin-title Update shared
 * @gin-icon shared_update
 */
-update :: !(r -> w) !(RWShared r w) -> Task w | iTask r & iTask w
+update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
+
+/**
+* Reads shared data continously
+*
+* @param Shared: A shared reference
+* @return The value read
+* @throws SharedException
+*
+* @gin-title Read shared
+* @gin-icon shared_read
+*/
+watch :: !(ReadWriteShared r w) -> Task r | iTask r
 
 /**
 * Swiss-army-knife interaction tasks. All other interaction tasks are derived from this one.
 *
 * An interaction tasks works on a shared data model (r w). Additonally interation tasks keep a local state (l).
 * How the data model is displayed/updated/changed is defined by means of dynamically calculated InteractionParts.
-* When the tasks stop and it's result (a) is determined by dynamically calculated InteractionTerminators.
 *
 * @param Description: A description of the task to display to the user
-* @param Interaction function: A function (on current local state, current shared state & flag indicating if shared state has changed since last edit event for this task)
-*        dynamically generating the interaction parts shown to the user (parts can change the local state (l) & possibly also write to the shared (Maybe w));
-*        Additionally the local state can be updated
-* @param Initial state: The initial local state
+* @param Local initialization: Initialize the local state
+* @param Parts: TODO
+* @param Initial state: The optional initial local state
 * @param ReadWriteShared: A reference to shared data the task works on
 *
 * @return A result determined by the terminators
@@ -88,15 +102,19 @@ update :: !(r -> w) !(RWShared r w) -> Task w | iTask r & iTask w
 *
 * @gin False
 */
-interact :: !d !(l r Bool -> [InteractionPart l w]) l !(RWShared r w) -> Task (l,r) | descr d & iTask l & iTask r & iTask w
+interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
 
-:: InteractionPart l w	= E.v:	FormPart		!(FormView v) !((Maybe v) -> (!l,!Maybe w))	& iTask v	// A view on the data model (FormView v) which also allows update the states on change ((Maybe v) -> o) (the Maybe indicates if the form is produces a valid value)
-						| E.v:	DisplayPart		!v											& iTask v	// A static view displayed to the user
-						|		UpdatePart		!String !(!l,!Maybe w)									// A interaction element (typically a button with a string-label) allowing to directly change the states
-				
-:: FormView v	= FormValue !v				// A form representing a value
-				| Blank						// A blank form
-				| Unchanged (FormView v)	// Form is unchanged, if no view is stored the given initial value is used
+:: InteractionPart l r	= E.v: DisplayPart	(DisplayFun l r v)															& iTask v
+						| E.v: FormPart		(FormInitFun l r v) (FormShareUpdateFun l r v) (FormViewUpdateFun l r v)	& iTask v
+
+:: DisplayFun l r v			:==	l r -> v
+:: FormInitFun l r v		:==	l r -> FormView v									// Create the initial form
+:: FormShareUpdateFun l r v	:== l r (Maybe v) FormDirty	-> (l, Maybe (FormView v))	// What to do when share changes
+:: FormViewUpdateFun l r v	:== l r (Maybe v)			-> (l, Maybe (FormView v))	// What to do when the view changes
+
+:: FormView v	= BlankForm						// A blank form
+				| FilledForm !v					// A filled in form
+:: FormDirty	:== Bool						// Has a form been touched by the user
 
 /**
 * State of another process the user works on.
@@ -115,20 +133,7 @@ interact :: !d !(l r Bool -> [InteractionPart l w]) l !(RWShared r w) -> Task (l
 * @return The state of the process to work on
 * @throws WorkOnException
 */
-workOn :: !ProcessId -> Task WorkOnProcessState
-
-/**
-* Administer a change to another (running) workflow process
-*
-* @param Process ID: A process id
-* @param Change dynamic: The change
-* @param Lifetime: The change's lifetime
-*
-* @return The task that will do the change
-* 
-* @gin False
-*/
-applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
+workOn :: !TaskId -> Task WorkOnProcessState
 
 /**
 * Evaluate a "World" function that does not yield any result once.

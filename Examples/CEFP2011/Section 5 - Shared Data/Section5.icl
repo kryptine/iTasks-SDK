@@ -67,7 +67,7 @@ selectUserDetails
 
 // Administrated users details
 
-getWorkflows :: Task [WorkflowDescription]
+getWorkflows :: Task [Workflow]
 getWorkflows	
     =     		get workflows
 

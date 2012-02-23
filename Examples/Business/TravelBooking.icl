@@ -26,16 +26,16 @@ BookTrip
 		}
 :: FlightHotel
 	=	{ carrier		:: String
-		, priceOfFlight	:: Currency
+		, priceOfFlight	:: EUR
 		, nameOfHotel	:: String
-		, priceAllIn	:: Currency
+		, priceAllIn	:: EUR
 		}
 
 
 travelBookingExample :: [Workflow]
 travelBookingExample = [workflow "Examples/Business/Delegate book a trip" "Book a trip" BookTrip]
 
-:: Booking :== (String,String,String,Currency)
+:: Booking :== (String,String,String,EUR)
 
 travel :: Task Void
 travel 
@@ -49,13 +49,13 @@ travel
 where
 	makeBookings :: Task [Booking]
 	makeBookings
-		=	Description "Step 1: Make Bookings:"
+		=	Title "Step 1: Make Bookings:"
 		@>> enterMultipleChoice ("Booking options","Choose Booking options:") [] [BookFlight,BookHotel,BookCar]
 		>>= sequence "Bookings"
 
 	confirmBookings :: Task [Booking]
  	confirmBookings 
- 		=	Description "Step 2: Confirm Bookings:"
+ 		=	Title "Step 2: Confirm Bookings:"
  		@>> viewInformation ("Confirmation","Confirm") [] []
  	
 	handleBookings :: [[Booking]] -> Task Void

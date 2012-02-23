@@ -1,9 +1,9 @@
 implementation module DBTasks
 
-import StdList, StdOrdList, Util, List, SharedCombinators
+import StdList, StdOrdList, Util, List
 import iTaskClass, Task
 from CoreTasks			import get, set, return
-from CoreCombinators	import >>|, >>=
+from CommonCombinators	import >>|, >>=
 
 //	Convenient operations on databases
 eqItemId :: a a -> Bool | DB a

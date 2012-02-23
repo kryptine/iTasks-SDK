@@ -2,42 +2,56 @@ definition module TaskContext
 
 import SystemTypes
 
-derive JSONEncode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
-derive JSONDecode TaskContext, ProcessState, TaskContextTree, SubTaskContext, ParallelMeta
+from GenUpdate	import :: UpdateMask
+
+derive JSONEncode TopInstance, TaskState, ParallelMeta, ParallelItem
+derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 
 //Persistent context of active tasks
-:: TaskContext = TaskContext !ProcessId !TaskMeta !ProgressMeta !ManagementMeta !ChangeNo !ProcessState
+:: TopInstance =
+	{ instanceId	:: !(Either SessionId TopNo)
+	, nextTaskNo	:: !TaskNo
+	, progress		:: !ProgressMeta
+	, management	:: !ManagementMeta
+	, task			:: !Dynamic
+	, state			:: !Either TaskState String	//Task state or error message
+	, attributes	:: !TaskMeta
+	}
 
-:: ChangeNo	:== Int
-:: ProcessState
-	= TTCRunning !Dynamic !TaskContextTree
-	| TTCFinished !Dynamic
-	| TTCExcepted !String
+:: TaskState
+	= TCBasic		!TaskId !JSONNode !Bool 										//Encoded value and stable indicator
+	| TCInteract	!TaskId !JSONNode ![(!JSONNode,!UpdateMask,!Bool)] !Int
+	| TCProject		!TaskId !JSONNode !TaskState
+	| TCStep		!TaskId !(Either TaskState (!JSONNode,!Int,!TaskState))
+	| TCParallel	!TaskId !ParallelMeta ![ParallelItem] 
+	| TCShared		!TaskId !JSONNode !Int !TaskState
+	| TCEmpty		!TaskId
 
-:: TaskContextTree
-	= TCBasic !(Map String JSONNode)
-	| TCBind !(Either TaskContextTree (!JSONNode,!TaskContextTree))
-	| TCParallel !JSONNode !ParallelMeta ![(!SubTaskId,!SubTaskOrder,!SubTaskContext)]
-	| TCTry !(Either TaskContextTree (!JSONNode,!TaskContextTree))
-	| TCEmpty
-
-:: SubTaskId	:== Int
-:: SubTaskOrder :== Int	//Extra ordering information of tasks (required for properly laying out tasks in tabs or windows)
-
-:: SubTaskContext
-	= STCHidden !TaskMeta !(Maybe (!JSONNode,!TaskContextTree))		//Properties, Task (encoded), Context or JSON node
-	| STCEmbedded !TaskMeta !(Maybe (!JSONNode,TaskContextTree))			
-	| STCDetached !TaskId !TaskMeta !ProgressMeta !ManagementMeta !(Maybe (!JSONNode,!TaskContextTree))
-
-//Parallel has a bit more complex administration so we define it as a record
+//Parallel has a bit more complex state so we define it as a record
 :: ParallelMeta = 
 	{ nextIdx		:: !Int
-	, stateId		:: !String
-	, stateChanged	:: !Timestamp
-	, infoChanged	:: !Timestamp
+	, listVersion	:: !Int		//Version number of the shared list state
 	}
 	
-//Access functions for basic tasks
-getLocalVar :: !String !TaskContextTree -> Maybe a | JSONDecode{|*|} a
-setLocalVar :: !String !a !TaskContextTree -> TaskContextTree | JSONEncode{|*|} a
-delLocalVar :: !String !TaskContextTree -> TaskContextTree
+:: ParallelItem =
+	{ taskId			:: !TaskId					//Unique task id
+	
+	, task				:: !Dynamic					// Encoded task definition
+	, state				:: !TaskState				// State of the parallel item
+	, lastValue			:: !JSONNode				// Cached task value, this field is recomputed on each evaluation
+	, lastAttributes	:: ![TaskAttribute]			// Cached meta-data, this field is recomputed on each evaluation
+
+	, stack				:: !Int						//Stack order (required for properly laying out tasks in tabs or windows)
+	, detached			:: !Bool
+	, progress			:: !Maybe ProgressMeta
+	, management		:: !Maybe ManagementMeta
+	}
+
+:: ParallelControl 		//Never actually stored, but used for manipulating sets of parallel items
+	= AppendTask		!ParallelItem		// add an item to a parallel list																		
+	| RemoveTask		!TaskId				// remove the task with indicated id from the set
+
+
+//Conversion to a representation of task states which hides all internal details
+instanceToTaskListItem	:: !TopInstance -> TaskListItem
+stateToTaskListItems	:: !TaskState -> [TaskListItem]

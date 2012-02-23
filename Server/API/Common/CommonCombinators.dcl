@@ -2,109 +2,56 @@ definition module CommonCombinators
 /**
 * This module contains a collection of useful iTasks combinators defined in terms of the basic iTask combinators.
 */
-/* with Thanks to Erik Zuurbier for suggesting some of the advanced combinators */
-
-import CoreCombinators, TuningCombinators
+import CoreCombinators, LayoutCombinators
 import Either
 from SystemTypes		import :: User
 from Map				import :: Map
 
-derive gVisualizeText	Tag
-derive gVisualizeEditor	Tag
-derive gUpdate			Tag
-derive gDefaultMask		Tag
-derive gVerify			Tag
-derive JSONEncode		Tag
-derive JSONDecode		Tag
-derive gEq				Tag
-
 /**
-* General multi-bind used to define continuations.
-* Similar to (>>+) but terminators yield a continuation which is executed directly.
-*
+* Infix shorthand for step combinator
+* 
 * @param Task: The task for which continuations are defined
-* @param Continuation terminator generator function: The functions generating the terminators yielding continuations
+* @param The possible continuations
 * @return The continuation's result
 *
 * @gin False
 */
-(>>*) infixl 1 :: !(Task a) !(TermFunc a (Task b)) -> Task b | iTask a & iTask b
+(>>*) infixl 1 :: !(Task a) ![TaskStep a b] -> Task b | iTask a & iTask b
 
+//Standard monadic operations:
 
 /**
-* Special multi-bind used to define continuations using a list of user action with constant length.
-* A list of continuation with conditions (always, ifvalid, sometimes) has to be provided.
+* Combines two tasks sequentially. The first task is executed first. When it is finished
+* the second task is executed with the result of the first task as parameter.
 *
-* @param Task: The task for which continuations are defined
-* @param Continuations: A list of continuations
-*
-* @return The continuation's result
-*
+* @param First: The first task to be executed
+* @param Second: The second task, which receives the result of the first task
+* @return The combined task
+* 
 * @gin False
 */
-(>?*) infixl 1 :: !(Task a) ![(!Action,!TaskContinuation a b)] -> Task b | iTask a & iTask b
-
+(>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 /**
-* Adds a trigger to a task. The task automatically terminates as soon as the predicate holds.
+* Combines two tasks sequentially but waits for user input to confirm the completion of
+* the first task.
 *
-* @param Task: The task to which the trigger is added
-* @param Predicate: A predicate on the task's state
-*
-* @return The task's result
-*
+* @param First: The first task to be executed
+* @param Second: The second task, which receives the result of the first task
+* @return The combined task
+* 
 * @gin False
 */
-(>?) infixl 1 :: !(Task a) !(a -> Bool) -> Task a | iTask a
-
-/** 
-* Continuation, used as second argument of multi-bind.
-*/
-:: TaskContinuation a b	= Always	!(Task b)									//* continuation which can always be taken
-						| IfValid	!(a -> Task b)								//* continuation which can be taken if the local editor is in a valid state, the current value is given as input
-						| IfHolds	!(a -> Bool) (a -> Task b)					//* continuation which can be taken if the local editor is valid and the predicate holds
-						| Trigger	!(a -> Bool) (a -> Task b)					//* continuation which is automatically taken when the local editor is valid and the predicate holds
-						| Sometimes	!((InformationState a) -> Maybe (Task b))	//* continuation which can sometimes be taken depending on the editor's current state
-						
-
+(>>!) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 /**
-* Transform a value with a custom function
+* Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
 *
-* @param Transformation function: The transformation function
-* @param Value: The value to be transformed
-*
-* @return The transformed value
-*
-* @gin False
-*/
-transform			:: !(a -> b) !a 									-> Task b | iTask b
-
-/**
-* Assign a task to a(nother) user.
-*
-* @param Manager properties: The initial manager properties indicating the user to which the task is delegated, a priority and possibly a deadline
-* @param Action menu: A function generating a menu for the process delegated to the user
-* @param Task: The task that is to be delegated
-*
+* @param First: The first task to be executed
+* @param Second: The second task to be executed
 * @return The combined task
 *
 * @gin False
-*/ 
-//assign :: !ManagementMeta !(Task a) -> Task a | iTask a
-
-/**
-* Assign a task to a user. (no deadline, normal priority, no menu)
-*
-* @param User: The initial UserId of the user to which the task is delegated
-* @param Task: The task that is to be delegated.
-*
-* @return The combined task
-*
-* @gin-title Assign to user
-* @gin-icon user
-* @gin-shape assign
 */
-//(@:) infix 3		:: !User !(Task a) -> Task a | iTask a
-
+(>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
 /**
 * Combines two tasks sequentially just as >>=, but the result of the second task is disregarded.
 *
@@ -116,18 +63,87 @@ transform			:: !(a -> b) !a 									-> Task b | iTask b
 * @gin False
 */
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a| iTask a & iTask b
-
 /**
-* Bind for tasks with optional results.
-*
-* @param First:  The first task to be executed.
-* @param Second: The function of the second task to be executed. It is only executed if the first produces a result.
-*
-* @return The result of the second task, or Nothing if the first task did not produce a result.
+* Infix shorthand for transform combinator
 * 
+* @param Task: The task on which the transform should be applied
+* @param The transformation function to apply
+* @return The transformed task
+*
 * @gin False
 */
-(>>?)	infixl 1	:: !(Task (Maybe a)) !(a -> Task (Maybe b))	-> Task (Maybe b) 		| iTask a & iTask b
+(@?) infixl 1 :: !(Task a) !((Maybe a) -> Maybe b) -> Task b | iTask a & iTask b
+/**
+* Infix shorthand for transform combinator which only deals which only transforms valid results
+* 
+* @param Task: The task on which the transform should be applied
+* @param The transformation function to apply
+* @return The transformed task
+*
+* @gin False
+*/
+(@) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+/**
+* Infix shorthand for project combinator
+* 
+* @param Task: The task of which the result should be projected
+* @param The projection function and share
+* @return The tasks result
+*
+* @gin False
+*/
+(@>) infixl 1 :: !(Task a) !((Maybe a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
+/**
+* Infix shorthands for the (overloaded) tune combinator.
+*/
+(<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
+(@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
+/**
+* Exception combinator.
+*
+* @param Task: The normal task which will possibly raise an exception of type e
+* @param Handler: The exception handling task which gets the exception as parameter
+* @return The combined task
+*
+* @gin-title Try block
+* @gin-icon catch
+*/
+try 		:: !(Task a) (e -> Task a) 			-> Task a 	| iTask a & iTask, toString e
+/**
+* Catches all exceptions.
+*
+* @param Task: The normal task which will possibly raise an exception of any type
+* @param Handler: The exception handling task
+* 
+* @gin-title Catch all exceptions
+* @gin-icon catch
+*/
+catchAll	:: !(Task a) (String -> Task a)		-> Task a | iTask a
+/**
+* Assign a task to a(nother) user.
+*
+* @param Manager properties: The initial manager properties indicating the user to which the task is delegated, a priority and possibly a deadline
+* @param Action menu: A function generating a menu for the process delegated to the user
+* @param Task: The task that is to be delegated
+*
+* @return The combined task
+*
+* @gin False
+*/ 
+assign :: !ManagementMeta !(Task a) -> Task a | iTask a
+/**
+* Assign a task to a user. (no deadline, normal priority)
+*
+* @param User: The initial UserId of the user to which the task is delegated
+* @param Task: The task that is to be delegated.
+*
+* @return The combined task
+*
+* @gin-title Assign to user
+* @gin-icon user
+* @gin-shape assign
+*/
+(@:) infix 3		:: !User !(Task a) -> Task a | iTask a
 
 /**
 * Execute a Maybe task that you expect to always return Just.
@@ -161,18 +177,18 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-//(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
+(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
 
 /**
-* Repeats a task infinitely. As soon as the task is finished, it is restarted immediately.
-* As a consequence, the combined task never finishes.
+* Repeats a task infinitely. As soon as the task is stable, it is restarted immediately.
+* As a consequence, the combined task never stabilizes.
 *
 * @param Task: The task that has to be repeated infinitely
 * @return The combined task
 * 
 * @gin False
 */
-//forever :: !(Task a) -> Task b | iTask a & iTask b
+forever :: !(Task a) -> Task a | iTask a 
 
 /**
 * Group two tasks in parallel, return the result of the first completed task.
@@ -184,7 +200,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-//(-||-) infixr 3 	:: !(Task a) !(Task a) 	-> Task a 				| iTask a
+(-||-) infixr 3 	:: !(Task a) !(Task a) 	-> Task a 				| iTask a
 
 /**
 * Group two tasks in parallel, return the result of the right task
@@ -196,7 +212,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-//(||-)  infixr 3		:: !(Task a) !(Task b)	-> Task b				| iTask a & iTask b
+(||-)  infixr 3		:: !(Task a) !(Task b)	-> Task b				| iTask a & iTask b
 
 /**
 * Group two tasks in parallel, return the result of the left task
@@ -208,7 +224,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-//(-||)  infixl 3		:: !(Task a) !(Task b)	-> Task a				| iTask a & iTask b
+(-||)  infixl 3		:: !(Task a) !(Task b)	-> Task a				| iTask a & iTask b
 
 /** 
 * Group two tasks in parallel that both need to be completed.
@@ -222,20 +238,12 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @gin-title Parallel merge (tuple)
 * @gin-icon parallel-merge-tuple
 */
-//(-&&-) infixr 4 	:: !(Task a) !(Task b) 	-> Task (a,b) 			| iTask a & iTask b
+(-&&-) infixr 4 	:: !(Task a) !(Task b) 	-> Task (a,b) 			| iTask a & iTask b
 
 /**
-* Group two tasks in parallel that both need to be completed but
-* can complete without a result.
-*
-* @param Left: The left task
-* @param Right: The right task
-*
-* @return The result of both tasks if both finish with a result. Nothing otherwise.
-* 
-* @gin False
+* Feed the result of one task as read-only shared to another
 */
-//(-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
+(>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 
 /**
 * Group a list of tasks in parallel.
@@ -249,7 +257,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @gin-title Take first completed
 * @gin-icon parallel-merge-first
 */
-//anyTask				:: ![Task a]			-> Task a				| iTask a
+anyTask				:: ![Task a]			-> Task a				| iTask a
 
 /**
 * Group a list of tasks in parallel.
@@ -263,7 +271,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @gin-title Parallel merge (list)
 * @gin-icon parallel-merge-list
 */
-//allTasks			:: ![Task a]			-> Task [a]				| iTask a
+allTasks			:: ![Task a]			-> Task [a]				| iTask a
 
 /**
 * Group two tasks in parallel of which only one needs to be completed.
@@ -276,7 +284,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-//eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b	
+eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b	
 
 /**
 * Randomly selects one item from a list.
@@ -285,7 +293,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 *
 * @return The chosen item
 */
-//randomChoice		:: ![a]										-> Task a				| iTask a
+randomChoice		:: ![a]										-> Task a				| iTask a
 
 /**
 * Iterate a task as long as a predicate is not valid.
@@ -298,28 +306,25 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * 
 * @gin False
 */
-//repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
-/**
-* Repeat a task as long as a predicate is not valid.
-* If the predicate fails after an iteration an error message is given.
-*
-* @param Task: The task to repeat
-* @param Predicate: The predicate/feedback function. This function also supplies the feedback message if the predicate yields False.
-* 
-* @return The result of the last iteration (that thus satisfies the predicate)
-* 
-* @gin False
-*/
-//(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, String)) 	-> Task a 					| iTask a
+repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 
 /**
 * Do a task as long while monitoring that a shared state remains unchanged.
 * When the share changes the task is restarted
 */
-//whileUnchanged :: (RWShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
-
+whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 /**
 * Append a task to the set of top level tasks
 * 
 */
-appendTopLevelTask :: !ManagementMeta !(Task a) -> Task ProcessId | iTask a
+appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
+
+appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
+
+// Additional tuning shortcuts
+instance tune BeforeLayout
+instance tune AfterLayout
+instance tune Title
+instance tune Icon
+instance tune Attribute		//Set attribute
+instance tune Window		//Indicate that this task should 

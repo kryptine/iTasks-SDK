@@ -5,28 +5,28 @@ import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc,
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 
-derive JSONEncode		Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONEncode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive JSONDecode		Currency, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONDecode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONDecode		EmailAddress, ProcessId, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gEq				Currency, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive gEq				EmailAddress, ProcessId, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gLexOrd			Currency
-derive JSONEncode		TaskInstanceMeta, TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive JSONDecode		TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gEq				TaskInstanceMeta ,TaskMeta, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gVisualizeText	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gVisualizeEditor	ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gHeaders			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gGridRows		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gUpdate			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gDefaultMask		ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
-derive gVerify			ProcessId, TaskInstanceMeta, ProgressMeta, TaskMeta, TaskStatus, InteractionTaskType, OutputTaskType
+derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
+derive gVisualizeText	TaskListItem, ProgressMeta, TaskStatus
+derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskStatus
+derive gHeaders			TaskListItem, ProgressMeta, TaskStatus
+derive gGridRows		TaskListItem, ProgressMeta, TaskStatus
+derive gUpdate			TaskListItem, ProgressMeta, TaskStatus
+derive gDefaultMask		TaskListItem, ProgressMeta, TaskStatus
+derive gVerify			TaskListItem, ProgressMeta, TaskStatus
 
-derive class iTask	Credentials, Config
+derive class iTask	Credentials, Config, TaskId
+derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException, FileError
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]
 JSONDecode{|Timestamp|} [JSONInt t:c]	= (Just (Timestamp t), c)
@@ -36,7 +36,6 @@ JSONEncode{|Void|} Void = [JSONNull]
 JSONDecode{|Void|} [JSONNull:c]		= (Just Void, c)
 JSONDecode{|Void|} [JSONObject []:c]= (Just Void, c)
 JSONDecode{|Void|} c				= (Nothing, c)
-
 
 gEq{|(->)|} _ _ fa fb		= copy_to_string fa == copy_to_string fb // HACK: Compare string representations of graphs functions are never equal
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
@@ -159,8 +158,13 @@ where
 	toOptionList l				= l
 	toOptionTree l				= Tree (map Leaf l)
 	suggestedChoiceType	l
-		| length l > 7			= ChooseFromComboBox
-		| otherwise				= ChooseFromRadioButtons
+		| not (isEmpty (snd (headers l)))	= ChooseFromGrid
+		| length l > 7						= ChooseFromComboBox
+		| otherwise							= ChooseFromRadioButtons
+	where
+		// unify type of list elements with type to determine headers for
+		headers :: [a] -> (a,![String]) | gHeaders{|*|} a
+		headers _ = gHeaders{|*|}
 	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
 	
 instance OptionContainer Tree
@@ -325,6 +329,10 @@ where
 // Time
 // ******************************************************************************************************
 
+instance == Time
+where
+	(==) x y = x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec == y.Time.sec
+	
 instance < Time
 where
 	(<) x y
@@ -359,6 +367,9 @@ where
 // ******************************************************************************************************
 // DateTime
 // ******************************************************************************************************
+instance == DateTime
+where
+	(==) (DateTime dx tx) (DateTime dy ty)	= dx == dy && tx == ty
 instance < DateTime
 where
 	(<) (DateTime dx tx) (DateTime dy ty)
@@ -392,52 +403,52 @@ where
 // Currency
 // ******************************************************************************************************
 
-instance toString Currency
-where
-	toString c = decFormat (toInt c)
+instance toString EUR
+where toString c = "EUR " +++ decFormat (toInt c)
+instance toString USD
+where toString c = "USD " +++ decFormat (toInt c)
 
-instance toInt Currency
-where
-	toInt (EUR val) = val
-	toInt (GBP val) = val
-	toInt (USD val) = val
-	toInt (JPY val) = val
-		
-instance < Currency
-where
-	(<) x y = case x =?= y of
-		LT	= True
-		_	= False
+instance toInt EUR
+where toInt (EUR val) = val
+instance toInt USD
+where toInt (USD val) = val
 
-instance zero Currency
-where
-	zero = EUR 0
+instance == EUR
+where (==) (EUR x) (EUR y) = x == y
+instance == USD
+where (==) (USD x) (USD y) = x == y
 
-instance + Currency
-where
-	(+) (EUR x) (EUR y) = EUR (x + y)
-	(+) (GBP x) (GBP y) = GBP (x + y)
-	(+) (USD x) (USD y) = USD (x + y)
-	(+) (JPY x) (JPY y) = JPY (x + y)
-	(+) _ _ = abort "Trying to add money of different currencies!"
-
-instance - Currency
-where
-	(-) (EUR x) (EUR y) = EUR (x - y)
-	(-) (GBP x) (GBP y) = GBP (x - y)
-	(-) (USD x) (USD y) = USD (x - y)
-	(-) (JPY x) (JPY y) = JPY (x - y)
-	(-) _ _ = abort "Trying to subtract money of different currencies!"
+instance < EUR
+where (<) (EUR x) (EUR y) = x < y
+instance < USD
+where (<) (USD x) (USD y) = x < y
 	
+instance zero EUR
+where zero = EUR 0
+instance zero USD
+where zero = USD 0
+
+instance + EUR
+where (+) (EUR x) (EUR y) = EUR (x + y)
+
+instance + USD
+where (+) (USD x) (USD y) = USD (x + y)
+
+instance - EUR
+where (-) (EUR x) (EUR y) = EUR (x - y)
+
+instance - USD
+where (-) (USD x) (USD y) = USD (x - y)
+
 instance toString FormButton
 where
 	toString button = toString (pressed button)
 	where
-		pressed {state}= case state of
+		pressed {FormButton|state}= case state of
 			Pressed		= True
 			NotPressed	= False
 
-toTable	:: [a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
+toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
 toTable a = Table (snd (headers a)) (map row a) Nothing
 where
 	headers:: [a] -> (a,[String]) | gHeaders{|*|} a
@@ -560,6 +571,39 @@ where
 		
 JSONDecode{|User|} json	= (Nothing,json)
 
+instance toString FileException
+where
+	toString (FileException path error) = case error of
+		CannotOpen	= "Cannot open file '" +++ path +++ "'"
+		CannotClose	= "Cannot close file '" +++ path +++ "'"
+		IOError		= "Error reading/writing file '" +++ path +++ "'"
+	
+instance toString ParseException
+where
+	toString (CannotParse err) = "Parser error: " +++ err
+	
+instance toString CallException
+where
+	toString (CallFailed (_,err)) = "Error calling external process: " +++ err
+	
+instance toString SharedException
+where
+	toString (SharedException err) = "Error performing operation on shared:" +++ err
+	
+instance toString RPCException
+where
+	toString (RPCException err) = "Error performing RPC call: " +++ err
+	
+instance toString OSException
+where
+	toString (OSException (_,err)) = "Error performing OS operation: " +++ err
+	
+instance toString WorkOnException
+where
+	toString WorkOnNotFound				= "Error working on process: cannot find process"
+	toString WorkOnEvalError			= "Error working on process: evaluation error"
+	toString WorkOnDependencyCycle		= "Error working on process: cycle in dependencies detected"
+
 userName :: !User -> String
 userName RootUser = "root"
 userName (NamedUser name)
@@ -581,7 +625,7 @@ displayName (NamedUser name)
 where
 	start = indexOf "<" name
 	end = indexOf ">" name
-displayName _ = ""
+displayName _ = "Undefined"
 
 getRoles :: !User -> [Role]
 getRoles (RegisteredUser details) = mb2list details.UserDetails.roles
@@ -617,7 +661,6 @@ actionName ActionContinue		= "Continue"
 actionName ActionOpen			= "File/Open"
 actionName ActionSave			= "File/Save"
 actionName ActionSaveAs			= "File/Save as"
-actionName ActionClose			= "File/Close"
 actionName ActionQuit			= "File/Quit"
 actionName ActionHelp			= "Help/Help"
 actionName ActionAbout			= "Help/About"
@@ -626,43 +669,67 @@ actionName ActionNew			= "New"
 actionName ActionEdit			= "Edit"
 actionName ActionDelete			= "Delete"
 actionName ActionRefresh		= "Refresh"
+actionName ActionClose			= "Close"
 	
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (replaceSubString " " "-" (toLowerCase (last (split "/" (actionName action)))))
 
-
-instance toString (TaskList s)
+instance toString (TaskListId s)
 where
-	toString GlobalTaskList				= "global"
-	toString (ParallelTaskList taskid)	= "parallel_" +++ taskid
-
+	toString (TopLevelTaskList)					= "tasklist-top"
+	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
+	
+	
 instance descr Void
-where
-	initTaskMeta _ = initTaskMeta` Nothing Nothing
-instance descr String
-where
-	initTaskMeta str = initTaskMeta` (Just str) Nothing
-	
-instance descr (!String, !descr) | html descr
-where
-	initTaskMeta (title,descr) = initTaskMeta` (Just title) (Just (toString (html descr)))
+where initAttributes	_ = [] 
 
-instance descr TaskMeta
+instance descr String
+where initAttributes	hint	= [(HINT_ATTRIBUTE, hint)]
+	
+instance descr (!String,!String) 
+where initAttributes (title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint)]
+
+instance descr (!Icon,!String,!String)
+where initAttributes (icon,title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint):initAttributes icon]
+
+instance descr Title
+where initAttributes (Title title) = [(TITLE_ATTRIBUTE,title)]
+
+instance descr Hint
+where initAttributes (Hint hint) = [(HINT_ATTRIBUTE, hint)]
+
+instance descr Icon
 where
-	initTaskMeta meta = meta
+	initAttributes (Icon icon)	= [(ICON_ATTRIBUTE, icon)]
+	initAttributes (IconView)	= [(ICON_ATTRIBUTE, "view")]
+	initAttributes (IconEdit)	= [(ICON_ATTRIBUTE, "edit")]
 	
-initTaskMeta` :: (Maybe String) (Maybe String) -> TaskMeta
-initTaskMeta` title instruction =
-	{ title = fromMaybe "Untitled" title
-	, instruction = instruction
-	, icon = Nothing
-	, tags = []
-	, hide = False
-	, window = False
-	, interactionType = Nothing
-	, localInteraction = False
-	}
+instance descr Attribute
+where initAttributes (Attribute k v) = [(k,v)]
+instance descr Att
+where initAttributes (Att a) = initAttributes a
 	
+instance descr [d] | descr d
+where initAttributes list = flatten (map initAttributes list)
+
+instance toString TaskId
+where
+	toString (TaskId topNo taskNo)		= join "-" [toString topNo,toString taskNo]
+
+instance fromString TaskId
+where
+	fromString s = case split "-" s of
+		[topNo,taskNo]	= TaskId (toInt topNo) (toInt taskNo)
+		_				= TaskId 0 0
+
+instance == TaskId
+where
+	(==) (TaskId a0 b0) (TaskId a1 b1) = a0 == a1 && b0 == b1
+
+instance < TaskId
+where
+	(<) (TaskId a0 b0) (TaskId a1 b1) = if (a0 == a1) (b0 < b1) (a0 < a1)
+		
 instance toString TaskPriority
 where
 	toString LowPriority	= "LowPriority"
@@ -671,52 +738,17 @@ where
 
 instance toString TaskStatus
 where
-	toString Running	= "Running"
-	toString Finished	= "Finished"
+	toString Unstable	= "Unstable"
+	toString Stable	= "Stable"
 	toString Excepted	= "Excepted"
-	toString Deleted	= "Deleted"
 
 instance == TaskStatus
 where
-	(==) Running	Running		= True
-	(==) Finished	Finished	= True
+	(==) Unstable	Unstable	= True
+	(==) Stable		Stable		= True
 	(==) Excepted	Excepted	= True
-	(==) Deleted	Deleted		= True
 	(==) _			_			= False
-	
-instance == ProcessId
-where
-	(==) (SessionProcess x)			(SessionProcess y)		= (x == y)
-	(==) (WorkflowProcess x)		(WorkflowProcess y)		= (x == y)
-	(==) (EmbeddedProcess x1 x2)	(EmbeddedProcess y1 y2)	= (x1 == y1) && (x2 == y2)
-	(==) _							_						= False
-
-instance toString ProcessId
-where
-	toString (SessionProcess id) = "s" +++ id
-	toString (WorkflowProcess id) = "w" +++ toString id
-	toString (EmbeddedProcess id target) = "e" +++ toString id +++ "-" +++ target
-
-instance fromString ProcessId
-where
-	fromString s
-		| size s == 0	= abort err
-		| s.[0] == 's'	= SessionProcess rest
-		| s.[0] == 'w'
-			# pid = toInt rest
-			| pid > 0	= WorkflowProcess pid
-			| otherwise	= abort err
-		| s.[0] == 'e'	= case split "-" rest of
-			[spid,target]
-				# pid = toInt spid
-				| pid > 0	= EmbeddedProcess pid target
-				| otherwise	= abort err
-			_
-				= abort err
-	where		
-		rest	= (subString 1 (size s) s)
-		err		= "Could not parse process id " +++ s
-	
+		
 instance toEmail EmailAddress where toEmail e = e
 instance toEmail String where toEmail s = EmailAddress s
 instance toEmail User

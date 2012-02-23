@@ -2,26 +2,20 @@ implementation module IntegrationTasks
 
 import StdInt, StdFile, StdTuple, StdList
 
-import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple
+import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple, JSON
 
-import SystemTypes, Task, TaskContext
-import ExceptionCombinators, TuningCombinators
-import InteractionTasks
-from IWorld				import ::IWorld(..), :: Control, :: ProcessId
-from IWorld				import qualified :: Shared, :: RWShared
-from Util				import currentTimestampError
-from CoreCombinators	import >>=, >>|
-from CoreTasks			import return
-from CommonCombinators	import transform
+import SystemTypes, IWorld, Task, TaskContext
+import LayoutCombinators
+import CoreTasks, InteractionTasks, CommonCombinators
+import Shared
+
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess
-from Map				import qualified get, fromList, newMap
+from Process			import :: ProcessHandle(..)
 from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
 from StdFunc			import o
-
-import StdMisc
 
 :: AsyncResult = 
 	{ success	:: !Bool
@@ -36,70 +30,72 @@ derive JSONDecode AsyncResult
 
 callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args 
-	= mkTask ("Call process","Waiting for external process.") init edit eval
+	= mkTask init eval
 where
 	//Start the process
-	init :: TaskNr *IWorld -> (!TaskContextTree,!*IWorld)
-	init taskNr iworld =:{IWorld |application,build,appDirectory,sdkDirectory,world}
-		# outfile 		= appDirectory </> application </> "tmp-" +++ build </> (iTaskId taskNr "callprocess")
-		# context		= TCBasic 'Map'.newMap
-		# asyncArgs		=	[ "--taskid"
-							, toString (last taskNr)
+	init :: TaskId *IWorld -> (!TaskState,!*IWorld)
+	init taskId iworld =:{IWorld |build,dataDirectory,sdkDirectory,world}
+		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
+		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
+		# runAsyncArgs	=	[ "--taskid"
+							, toString taskId 
 							, "--outfile"
 							, outfile
 							, "--process"
 							, cmd
-							]
-							++ args
-		# (res,world)	= 'Process'.runProcess (sdkDirectory </> "Tools" </> "RunAsync" </> "RunAsync.exe") asyncArgs Nothing world
+							: args]
+		# (res,world)	= 'Process'.runProcess runAsync runAsyncArgs Nothing world
 		= case res of
-			Error e	= (setLocalVar "error" e context, {IWorld|iworld & world = world})
-			Ok _	= (setLocalVar "outfile" outfile context, {IWorld|iworld & world = world})
-			
-	edit taskNr event context iworld = (context,iworld)
-	
-	eval taskNr props event tuiTaskNr repAs context=:(TCBasic _) iworld=:{world}
-		= case getLocalVar "outfile" context of
-			Just outfile
-				//Check status
-				# (exists,world) = 'File'.fileExists outfile world
-				| not exists
-					//Still busy
-					# (rep,actions) = case repAs of
-						(RepAsTUI ilayout _) = appFst TUIRep (ilayout
-												{ title = props.TaskMeta.title
-								 				, instruction = props.TaskMeta.instruction
-												, editorParts = []
-												, actions = []
-												, type = props.interactionType
-												, localInteraction = props.TaskMeta.localInteraction
-												, warning = Nothing
-												})
-						_					= (ServiceRep [(taskNrToString taskNr, 0, JSONNull)], [])
-					
-					= (TaskBusy rep actions context,{IWorld|iworld & world = world})
-				# (res, world) = 'File'.readFile outfile world
-				| isError res
-					//Failed to read file
-					= (taskException (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
-				= case fromJSON (fromString (fromOk res)) of
-					//Failed to parse file
-					Nothing
-						= (taskException (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
-					Just async	
-						| async.AsyncResult.success
-							= (TaskFinished async.AsyncResult.exitcode, {IWorld|iworld & world = world})
-						| otherwise
-							= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
-			//Error during initialization
-			Nothing
-				= case getLocalVar "error" context of
-					Just e
-						= (taskException (CallFailed e),  {IWorld|iworld & world = world})
-					Nothing
-						= (taskException (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
-				
+			Error e	= (state taskId (Left e), {IWorld|iworld & world = world})
+			Ok _	= (state taskId (Right outfile), {IWorld|iworld & world = world})
+	where
+		state :: TaskId (Either OSError FilePath) -> TaskState
+		state taskId val = TCBasic taskId (toJSON val) False
 
+	eval eevent cevent repAs context=:(TCBasic taskId encv stable) iworld=:{world}
+		| stable
+			= (TaskStable (fromJust (fromJSON encv)) NoRep context, iworld)
+		| otherwise
+			= case fromJSON encv of
+				Just (Right outfile)
+					//Check status
+					# (exists,world) = 'File'.fileExists outfile world
+					| not exists
+						//Still busy
+						# gui 			= [(ViewPart, Just (stringDisplay ("Calling " +++ cmd)), [], [])]
+						# attributes	= [(TITLE_ATTRIBUTE,"Calling external process")]
+						# rep = case repAs of
+							(RepAsTUI Nothing layout)	
+								= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask gui [] attributes) 
+							(RepAsTUI (Just target) layout)
+								| target == taskId
+									= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask gui [] attributes) 
+								| otherwise
+									= NoRep
+							_
+								= ServiceRep ([(toString taskId, 0, JSONNull)], [], [])
+						
+						= (TaskUnstable Nothing rep context,{IWorld|iworld & world = world})
+					# (res, world) = 'File'.readFile outfile world
+					| isError res
+						//Failed to read file
+						= (taskException (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
+					= case fromJSON (fromString (fromOk res)) of
+						//Failed to parse file
+						Nothing
+							= (taskException (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
+						Just async	
+							| async.AsyncResult.success
+								# result = async.AsyncResult.exitcode 
+								= (TaskStable result NoRep (TCBasic taskId (toJSON result) True), {IWorld|iworld & world = world})
+							| otherwise
+								= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
+				//Error during initialization
+				(Just (Left e))
+					= (taskException (CallFailed e), {IWorld|iworld & world = world})
+				Nothing
+					= (taskException (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
+					
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
@@ -108,7 +104,7 @@ callRPCHTTP method url params transformResult
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callHTTP method url request parseResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Description "Call RPC"
+	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Title "Call RPC"
 	>>= \exitCode -> if (exitCode > 0)
 		(throw (RPCException (curlError exitCode)))
 		(importTextFile outfile >>= \result -> case parseResult result of
@@ -120,15 +116,15 @@ where
 		GET	 = "--get"
 		POST = ""
 		
-	initRPC = mkInstantTask("Call RPC", "Initializing") eval
+	initRPC = mkInstantTask eval
 	
-	eval taskNr iworld=:{IWorld|application,build,appDirectory,sdkDirectory,world}
-		# infile  = appDirectory </> application </> "tmp-" +++ build </> (mkFileName taskNr "request")
-		# outfile = appDirectory </> application </> "tmp-" +++ build </> (mkFileName taskNr "response")
+	eval taskId iworld=:{IWorld|build,sdkDirectory,dataDirectory,world}
+		# infile  = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "request")
+		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "response")
 		# (res,world) = writeFile infile request world
 		| isError res
 			= (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
-		# cmd	= sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" 
+		# cmd	= IF_POSIX_OR_WINDOWS "curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
 		# args	=	[ options
 						, "--data-binary"
 						, "@" +++ infile
@@ -136,10 +132,10 @@ where
 						, outfile
 						, url
 						]
-		= (TaskFinished (cmd,args,outfile),{IWorld|iworld & world = world})
+		= (TaskStable (cmd,args,outfile) NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
 	
-	mkFileName :: !TaskNr !String -> String
-	mkFileName taskNr part = iTaskId taskNr ("-rpc-" +++ part)
+	mkFileName :: !TaskId !String -> String
+	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
 
 curlError :: Int -> String
 curlError exitCode = 
@@ -220,11 +216,11 @@ curlError exitCode =
         88      = "FTP chunk callback reported error "
 
 sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
-sendEmail subject (Note body) recipients = mkInstantTask ("Send e-mail", "Send out an e-mail") eval
+sendEmail subject (Note body) recipients = mkInstantTask eval
 where
-	eval taskNr iworld=:{IWorld|currentUser,config}
+	eval taskId iworld=:{IWorld|currentUser,config}
 		# iworld = foldr (sendSingle config.smtpServer (toEmail currentUser)) iworld recipients
-		= (TaskFinished recipients, iworld)
+		= (TaskStable recipients NoRep (TCEmpty taskId), iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

@@ -1,7 +1,7 @@
 implementation module TUIDiff
 
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple
-import Text, Util, GenUpdate, TUIDefinition
+import Text, Util, TUIDefinition
 
 derive gEq TUIControlType, TUIButtonControl, TUITree, TUIDirection, TUISize, TUIHAlign, TUIVAlign, TUIMinSize, TUIMargins, TUIGridControl
 derive gEq TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
@@ -26,14 +26,20 @@ diffEditorDefinitions` path oldTui newTui
 			Just diff
 				| oldTui.width === newTui.width && oldTui.height === newTui.height
 					= diff
-				| otherwise
+				| isFixed oldTui.width && isFixed oldTui.height && isFixed newTui.width && isFixed newTui.height
+					//IMPORTANT: TUISetSize only works for fixed sizes
 					= [TUISetSize (toString path) newTui.width newTui.height:diff]
+				| otherwise
+					= [TUIReplace (toString ppath) pindex newTui]
 			Nothing
 				= [TUIReplace (toString ppath) pindex newTui]
 	| otherwise
 		= [TUIReplace (toString ppath) pindex newTui]
 where
 	[ItemStep pindex:ppath] = path
+
+	isFixed (Just (Fixed _))	= True
+	isFixed _					= False
 
 	diffEditorDefinitions`` :: !TUIDefContent !TUIDefContent -> Maybe [TUIUpdate]
 	diffEditorDefinitions`` old new = case (old,new) of
@@ -69,11 +75,16 @@ where
 				&& o.TUIPanel.frame === n.TUIPanel.frame
 				&& o.TUIPanel.menus === n.TUIPanel.menus
 				&& (isJust o.TUIPanel.iconCls == isJust n.TUIPanel.iconCls))
-					# titleUpdate	= update (\o n -> o.TUIPanel.title == n.TUIPanel.title && o.TUIPanel.iconCls == n.TUIPanel.iconCls) (\{TUIPanel|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
+					# titleUpdate	= update (\o n -> o.TUIPanel.title === n.TUIPanel.title && o.TUIPanel.iconCls == n.TUIPanel.iconCls) (\{TUIPanel|title,iconCls} -> Just (fromMaybe "" title,iconCls)) TUISetTitle path o n
 					# itemUpdates	= diffChildEditorDefinitions path o.TUIPanel.items n.TUIPanel.items
 					# menuUpdates	= []
 					//# menuUpdates	= diffTUIMenus path o.TUIPanel.menus n.TUIPanel.menus
 					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
+		(TUIWindow o, TUIWindow n)
+			|  (o.TUIWindow.direction === n.TUIWindow.direction
+				&& o.TUIWindow.halign === n.TUIWindow.halign
+				&& o.TUIWindow.valign === n.TUIWindow.valign)
+				= Just (diffChildEditorDefinitions path o.TUIWindow.items n.TUIWindow.items)
 		(TUIListContainer lcOld, TUIListContainer lcNew)	
 			= Just (diffChildEditorDefinitions path (items lcOld) (items lcNew)
 					++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
@@ -84,15 +95,14 @@ where
 		(TUITabContainer tcOld, TUITabContainer tcNew)
 			# activeTabUpdate	= update (\o n -> o.TUITabContainer.active == n.TUITabContainer.active) (\{TUITabContainer|active} -> Just active) TUISetActiveTab path tcOld tcNew
 			# itemUpdates 		= diffChildEditorDefinitions path (items tcOld) (items tcNew)
-			= Just (activeTabUpdate ++ itemUpdates)
+			= Just (itemUpdates ++ activeTabUpdate)
 			where
 				items tc = [{content = TUITabItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- tc.TUITabContainer.items]
 		(TUITabItem o, TUITabItem n)
 			| (o.TUITabItem.closeAction === n.TUITabItem.closeAction //Can't diff the close action for now
-				&& o.TUITabItem.menus === n.TUITabItem.menus		//Diff of menus is also still impossible
-				&& o.TUITabItem.index == n.TUITabItem.index)		//Can't update index right now
+				&& o.TUITabItem.menus === n.TUITabItem.menus)		//Diff of menus is also still impossible
 					# titleUpdate	= update (\o n -> o.TUITabItem.title == n.TUITabItem.title && o.TUITabItem.iconCls == n.TUITabItem.iconCls) (\{TUITabItem|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
-					# itemUpdates	= diffChildEditorDefinitions path (maybeToList o.TUITabItem.items) (maybeToList n.TUITabItem.items)
+					# itemUpdates	= diffChildEditorDefinitions path o.TUITabItem.items n.TUITabItem.items
 					# menuUpdates 	= []
 					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
 			| otherwise
@@ -160,8 +170,8 @@ sameName :: !TUIDefContent !TUIDefContent -> Bool
 sameName a b = (nameOf a) == (nameOf b)
 
 taskIdOf :: !TUIDefContent -> Maybe String
-taskIdOf (TUIEditControl _ {TUIEditControl|taskId})			= Just taskId
-taskIdOf (TUIButton {TUIButton|taskId})						= Just taskId
+taskIdOf (TUIEditControl _ {TUIEditControl|taskId})			= taskId
+taskIdOf (TUIButton {TUIButton|taskId})						= taskId
 taskIdOf (TUIListContainer {TUIListContainer|taskId})		= taskId
 taskIdOf _													= Nothing
 

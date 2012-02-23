@@ -61,7 +61,7 @@ importCSVFileWith	:: !Char !Char !Char !FilePath -> Task [[String]]
 * 
 * @gin-icon page_white_json
 */
-importJSONFile		:: !FilePath -> Task a | JSONDecode{|*|} a
+importJSONFile		:: !FilePath -> Task a | iTask a
 /**
 * Import and parse a JSON datafile on the server's filesystem using
 * a custom parse function.
@@ -74,4 +74,4 @@ importJSONFile		:: !FilePath -> Task a | JSONDecode{|*|} a
 * 
 * @gin False
 */
-importJSONFileWith	:: !(JSONNode -> Maybe a) !FilePath -> Task a
+importJSONFileWith	:: !(JSONNode -> Maybe a) !FilePath -> Task a | iTask a

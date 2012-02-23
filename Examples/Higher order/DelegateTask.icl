@@ -64,8 +64,8 @@ determineSet people = determineSet`
 where
 	determineSet`	
 	=					enterChoice ("Choose people","Current set:") [ChoiceContext people]
-						[ cancelTask choosePerson <<@ Description "Add Person"
-						, return Nothing <<@ Description "Finished"
+						[ cancelTask choosePerson <<@ Title "Add Person"
+						, return Nothing <<@ Title "Finished"
 						] 	
 		>>= \task	->	task					
 		>>= \result -> 	case result of

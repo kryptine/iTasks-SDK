@@ -1,6 +1,6 @@
 definition module DBTasks
 
-import iTaskClass, Task, SharedCombinators
+import iTaskClass, Task, Shared
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where

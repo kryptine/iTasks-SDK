@@ -4,151 +4,117 @@ definition module CoreCombinators
 * with which additional combinators can be defined.
 */
 from Time				import :: Timestamp
-from TuningCombinators	import :: Tag
-import Task, SharedCombinators
+from LayoutCombinators	import :: SetLayout, :: ModifyLayout, :: Layout
+import Task, Shared
 
 import iTaskClass
-derive class iTask ParallelTaskMeta, ParallelControl, ParallelTaskType
-
-//Standard monadic operations:
+derive class iTask ParallelTaskType
 
 /**
-* Combines two tasks sequentially. The first task is executed first. When it is finished
-* the second task is executed with the result of the first task as parameter.
-*
-* @param First: The first task to be executed
-* @param Second: The second task, which receives the result of the first task
-* @return The combined task
-* 
-* @gin False
-*/
-(>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
-/**
-* Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
-*
-* @param First: The first task to be executed
-* @param Second: The second task to be executed
-* @return The combined task
-*
-* @gin False
-*/
-(>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
-
-/**
-* Adds terminator generator (yielding user actions or trigger) to task.
-* The input of the function is the current state of the task.
-* The state of interaction tasks is changing during execution.
-* Other tasks are first executed, their constant state is their result.
-* The new return type of the task is determined by the type yieded by the generated terminators.
-*
-* @param Task: The task to which terminators are added
-* @param Terminator generator function: The function generating the terminators
-* @return The task which added terminators
-*
-* @gin False
-*/
-(>>+) infixl 1 :: !(Task a) !(TermFunc a b) -> Task b | iTask a & iTask b
-
-/**
-* Adds result transformation function to a task.
-* This combinator is similar to using "task >>= \a -> return (f a)".
-* The difference is that this combinator does not introduce a second step like the bind does.
+* Adds a result transformation function to a task.
 * The resulting task is still considered a single step in the workflow.
 *
+* @param Function: The transformation function. It works on maybe's to also map over instable tasks.
 * @param Task: The task to which the transformation function is added
+*
+* @return The transformed task
 */
-(>>$) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
+transform :: ((Maybe a) -> Maybe b) !(Task a) -> Task b | iTask a & iTask b 
 
-/*
-* Empty list of actions.
-* 'task >>+ noActions' never terminates.
+/**
+* Projects the result of a task in a share when its result changes.
+* The resulting task is still considered a single step in the workflow.
+*
+* @param The projection function
+* @param The share onto which the result should be projected
+* @param The task that provides the result
+
+* @return The modified task
 */
-noActions	:: (TermFunc a b) | iTask a & iTask b
-/*
-* One action which returns the task's value if valid
+project	:: ((Maybe a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
+
+/**
+* The generic sequential combinator.
+* It does a task followed by one out of a given list of continuations.
+* Once the transition to the continuation has been made it cannot be reversed.
+*
+* @param Task: The first step in the sequence
+* @param Continuations: A set of continuation definitions from which one is selected
+*   -AnyTime: Provides an action which is always enabled. Both for stable and instable tasks
+*	-WithResult: Provides an action which is enabled when the result is valid and the predicate holds
+*	-WithoutResult: Provides an action which is enabled only when the result is invalid
+*	-WhenValid: Provides a trigger that fires as soon as the result matches the predicate
+*	-WhenStable: Provides a trigger that fires as soon as the result becomes stable
+*	-Catch: Provides an exception handler for exceptions of type e
+*	-CathcAll: Provides an exception handler that catches all exceptions
+*
+*	@return The combined task
 */
-returnAction :: Action -> (TermFunc a a) | iTask a
-/*
-* Actions that yield constant values, independent of the task's value
-*/
-constActions :: ![(Action,b)] -> (TermFunc a b) | iTask a & iTask b
+step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
+
+:: TaskStep a b
+	=		AnyTime				Action				((Maybe a) -> Task b)
+	|		WithResult			Action	(a -> Bool)	(a -> Task b)		
+	|		WithoutResult		Action				(Task b)				
+	|		WhenValid					(a -> Bool)	(a -> Task b)
+	|		WhenStable								(a -> Task b)
+	| E.e:	Catch									(e -> Task b)		& iTask e
+	|		CatchAll								(String -> Task b)
+
 
 /**
 * All-in-one swiss-army-knife parallel task creation
 *
 * @param Description: The (overloaded) task description
-* @param Accumulator: The accumulator
-* @param Merge: Function defining how to convert the accumulator to the final result when the parallel task finishes
 * @param Tasks: The list of tasks to run in parallel, each task is given a view on the status of all tasks in the set
-* @return The resulting value
+* @return The sum of all results
 * 
 * @gin False
 */
-parallel :: !d !s (ResultFun s a) ![TaskContainer s] -> Task a | iTask s & iTask a & descr d
-
-/** 
-* ResultFun is called when the parallel task is stopped, either because all tasks completed, 
-* or the set was stopped by a task
-*/
-:: ResultFun s a 		:== TerminationStatus s -> a	
-
-:: TerminationStatus	=	AllRunToCompletion			//* all parallel processes have ended their execution
-						|	Stopped						//* the control signal StopParallel has been commited
-/**
-* A container for a child task of a parallel.
-*/				
-:: TaskContainer s		:== (ParallelTaskType, (ParallelTask s))
-
-/**
-* Defines how a task is shown inside of a parallel.
-*/
-:: ParallelTaskType		= Embedded 
-						| Detached !ManagementMeta	//* displays the task computed by the function as a distinct new task for the user identified in the worker field of ManagerProperties
-						
-/**
-* A task inside of a parallel. The first parameter is a reference to the shared data state. The second one is a reference to the shared parallel info.
-*/
-:: ParallelTask s		:== (TaskList s) -> Task ParallelControl
-
-/**
-* Control flow type for parallel sets. Tasks running in parallel have to indicate whether
-* to continue the parallel set or to stop the set when they complete.
-*/
-:: ParallelControl			= Stop | Continue
-
-/**
-* Information about a task in a parallel set.
-*/
-:: ParallelTaskMeta =	{ index				:: !Int									//* The task's index
-						, taskId			:: !TaskId
-						, taskMeta			:: !TaskMeta
-						, progressMeta		:: !Maybe ProgressMeta
-						, managementMeta	:: !Maybe ManagementMeta
-						}
-						
+parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [Maybe a] | descr d & iTask a
+					
 /**
 * Get the shared state of a task list
 */
-//taskListState	:: (TaskList s) -> Shared s | TC s
-
+taskListState :: !(SharedTaskList a) -> ReadOnlyShared [Maybe a]
 /**
 * Get the properties share of a task list
 */
-//taskListMeta	:: (TaskList s) -> Shared [ParallelTaskMeta]
+taskListMeta	:: !(SharedTaskList s) -> ReadOnlyShared [TaskListItem]
 
-//Manipulation 
+//Task list manipulation 
 
 /**
-* Add a task to a task list
+* Appends a task to a task list
 */
-appendTask :: !(TaskContainer s) !(TaskList s)	-> Task Int | TC s
-
+appendTask :: !ParallelTaskType !(ParallelTask s)	!(SharedTaskList s)	-> Task Int | TC s
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !Int !(TaskList s)				-> Task Void | TC s
+removeTask :: !TaskId								!(SharedTaskList s)	-> Task Void | TC s
+
+/**
+* Provide a local read/write shared for a task to work on.
+*
+* @param The initial value of the shared variable
+* @param The task which uses the shared variable
+*/
+withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 
 /**
 * Execute a task with the identity of the given user
+*
+* @param The user with which identity the task is to be executed
+* @param The task to do
+*
+* @return The modified task
 */
 workAs :: !User !(Task a)						-> Task a | iTask a
+
+/**
+* Fine tune a task by specifying custom layouts, tweaking generic layouts,
+* or add additional titles, hints and descriptions
+*/
+class tune b :: !b !(Task a) -> Task a
+instance tune	SetLayout				//Set layout algorithm
+instance tune	ModifyLayout			//Modify the existing layout

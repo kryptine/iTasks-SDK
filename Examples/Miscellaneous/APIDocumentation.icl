@@ -11,6 +11,7 @@ import File
 import FilePath
 import Directory
 import Text
+import TaskContext
 
 from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Environment, Index, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
 from LaTeX import qualified :: LaTeX (Text)
@@ -93,10 +94,10 @@ generateTeXExample = updateInformation "Enter API Directory:" [] (".." </> "Serv
 	>>= \(selectedFiles, selectedIdents) -> 
 							findAllFiles path ".dcl"
 	>>= \dclFiles 		-> 	updateMultipleChoice "Select modules to include in documentation" [] dclFiles selectedFiles
-	>>= \selectedFiles 	->	sequence "Parsing modules" [ accWorldError (getIdentifiers file) id \\ file <- selectedFiles ] >>= transform (sort o flatten)
+	>>= \selectedFiles 	->	sequence "Parsing modules" [ accWorldError (getIdentifiers file) id \\ file <- selectedFiles ] @ (sort o flatten)
 	>>= \idents			-> 	updateMultipleChoice "Select definitions to include in documentation" [] idents selectedIdents
 	>>= \selectedIdents ->	exportJSONFile (path </> settingsFile) (selectedFiles, selectedIdents)
-	>>| sequence "Generating LaTeX" [ accWorldError (dclToTeX selectedIdents file) id \\ file <- selectedFiles ] >>= transform (printLaTeX o flatten)
+	>>| sequence "Generating LaTeX" [ accWorldError (dclToTeX selectedIdents file) id \\ file <- selectedFiles ] @ (printLaTeX o flatten)
 	>>= \tex -> createDocumentTask "iTasks_API_documentation.tex" "application/x-tex" tex
 	>>= viewInformation "Download iTasks API documentation in LaTeX format" []
 	>>| return Void
@@ -111,7 +112,7 @@ findAllFiles path extension
 		if isSubDir
 			(accWorldOSError (readDirectory path) >>= \entries ->
 			 sequence ("Searching directory " +++ path) 
-				[ findAllFiles (path </> e) extension \\ e <- entries | e <> "." && e <> ".." ] >>= transform flatten
+				[ findAllFiles (path </> e) extension \\ e <- entries | e <> "." && e <> ".." ] @ flatten
 			)
 			(return [])
 where
@@ -410,8 +411,8 @@ optionalToMaybe ('general'.Yes x)	= Just x
 optionalToMaybe 'general'.No		= Nothing
 
 createDocumentTask :: !String !String !String -> Task Document
-createDocumentTask name mime content = mkInstantTask "Create document" create
+createDocumentTask name mime content = mkInstantTask create
 where
-	create taskNr iworld
+	create taskId iworld
 		# (res,iworld)	= createDocument name mime content iworld
-		= (TaskFinished res,iworld)
+		= (TaskStable res NoRep (TCEmpty taskId),iworld)

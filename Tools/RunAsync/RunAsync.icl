@@ -19,9 +19,9 @@ Start :: *World -> *World
 Start world
 	# options = parseCommandLine
 	# world = case options.mode of
-		Timeout msec = world
-		Process path args = process path args options.outfile world
-		_ = abort "No mode specified"
+		Timeout msec 		= world
+		Process path args	= process path args options.outfile world
+		_ 					= world
 	//# world = notify options world
 	= world
 

@@ -15,9 +15,6 @@ list2mb a = (Just a)
 voidNothing :: Maybe Void
 voidNothing = Nothing
 
-mb2error :: !e !(Maybe a) -> MaybeError e a
-mb2error error mbV = maybe (Error error) Ok mbV
-
 pad :: !Int !Int -> String
 pad len num = (createArray (max 0 (len - size nums)) '0' ) +++ nums
 where 
@@ -65,7 +62,19 @@ tmToDateTime tm
 	# time	= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
 	= DateTime date time
 
+dateToTimestamp :: !Date -> Timestamp
+dateToTimestamp {Date|day,mon,year}
+	= mkTime {Tm|sec = 0, min = 0, hour = 0, mday = day, mon = mon - 1, year = year - 1900, wday = 0, yday = 0, isdst = False}
+
 instance toString (Maybe a) | toString a
 where
 	toString Nothing	= ""
 	toString (Just x)	= toString x
+
+kvGet :: k ![(k,v)]		-> Maybe v	| Eq k // Linear search
+kvGet m []				= Nothing
+kvGet m [(k,v):kvs]		= if (k == m) (Just v) (kvGet m kvs)
+
+kvSet :: k v ![(k,v)]	-> [(k,v)]	| Eq k //Linear search
+kvSet m nv []			= [(m,nv)]
+kvSet m nv [(k,v):kvs]	= if (k == m) [(k,nv): kvs] [(k,v):kvSet m nv kvs]

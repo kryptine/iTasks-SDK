@@ -3,7 +3,8 @@ definition module iTasks
 /**
 * Main iTask module exporting all end user iTask modules 
 */
-import	EngineWrapperStandalone		// standalone wrapper
+import	Engine						// basic iTask system creator
+	,	EngineWrapperStandalone		// standalone wrapper
 	//,	EngineWrapperCGI			// CGI wrapper
 	
 	,	SerializationGraphCopy		// use serialization via graph_copy
@@ -18,15 +19,15 @@ import	EngineWrapperStandalone		// standalone wrapper
 	,	DBTasks						// convenience wrapper functions for databases with multiple values of type a
 		
 	,	ImportTasks					// tasks for importing external data
-	,	ExportTasks					// tasks for exporting data
-	
+	,	ExportTasks					// tasks for exporting data	
 	,	IntegrationTasks			// Tasks for integration with other systems
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
-	,	CommonCombinators			// Set of additional useful iTask combinators
-	,	ExceptionCombinators		// Handling exceptional situations
-	,	TuningCombinators			// Fine tuning of tasks
+	,	CommonCombinators			// Set of derived useful iTask combinators
+	
+	//	Layout tuning
+	,	LayoutCombinators
 	
 	//	Miscellaneous machinery
 	,	JSON						// Functions for serializing/deserializing strings
@@ -35,8 +36,8 @@ import	EngineWrapperStandalone		// standalone wrapper
 	,	GenVerify					// Functions for appending errors and hints to form values
 	
 	//	API extensions for user  & workflow management
-	//,	UserAdmin
-	//,	WorkflowAdmin
+	,	UserAdmin
+	,	WorkflowAdmin
 	
 	//StdEnv modules
 	,	StdInt
@@ -51,6 +52,5 @@ import	EngineWrapperStandalone		// standalone wrapper
 from StdFunc import id, const, o
 
 //Types
-import SharedCombinators, SystemTypes, GenRecord
-from Task import :: Change(..), :: ChangeLifeTime(..)
+import Shared, SystemTypes, GenRecord
 from List import instance Functor []

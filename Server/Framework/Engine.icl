@@ -2,79 +2,84 @@ implementation module Engine
 
 import StdMisc, StdArray, StdList, StdOrdList, StdTuple, StdChar, StdFile, StdBool, Func
 from StdFunc import o, seqList, ::St
-import	Map, Time, CommandLine, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
+import	Map, Time, CommandLine, Environment, Error, File, FilePath, Directory, HTTP, OSError, Text, MIME, UrlEncoding
 import	Util, HtmlUtil
 import	IWorld
 import	WebService
 
+CLEAN_HOME_VAR	:== "CLEAN_HOME"
+
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !FilePath publish !(Shared (Map String (Shared JSONNode *IWorld)) *World) -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
-engine sdkPath publishable appShares
+engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
+engine sdkPath publishable
 	= taskHandlers (publishAll publishable) sdkPath ++ defaultHandlers sdkPath
 where
 	taskHandlers published sdkPath
 		= [((==) url, taskDispatch sdkPath task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
 	taskDispatch sdkPath task defaultFormat req world
-		# iworld 			= initIWorld world
+		# iworld 			= initIWorld sdkPath world
 		# (response,iworld)	= webService task defaultFormat req iworld
 		= (response, finalizeIWorld iworld)
 	
 	defaultHandlers sdkPath
 		= [((==) "/stop", handleStopRequest),(\_ -> True, handleStaticResourceRequest sdkPath)]
 		
-	initIWorld :: !*World -> *IWorld
-	initIWorld world
-		# (appName,world) 			= determineAppName world
-		# (appPath,world)			= determineAppPath world
-		# appDir					= takeDirectory appPath
-		# (res,world)				= getFileInfo appPath world
-		| isError res				= abort "Cannot get executable info."
-		# tm						= (fromOk res).lastModifiedTime
-		# build						= strfTime "%Y%m%d-%H%M%S" tm
-		# (timestamp,world)			= time world
-		# (localDateTime,world)		= currentDateTimeWorld world
-		# (_,world)					= ensureDir "data" (appDir </> appName) world
-		# tmpPath					= appDir </> appName </> "tmp-" +++ build
-		# (_,world)					= ensureDir "tmp" tmpPath world
-		# storePath					= appDir </> appName </> "store-"+++ build
-		# (exists,world)			= ensureDir "store" storePath world
-		= {IWorld
-		  |application			= appName
-		  ,build				= build
-		  ,appDirectory			= appDir
-		  ,sdkDirectory			= sdkPath
-		  ,config				= defaultConfig
-		  ,appShares			= appShares
-		  ,timestamp			= timestamp
-		  ,latestEvent			= Nothing
-		  ,localDateTime		= localDateTime
-		  ,currentUser			= AnyUser
-		  ,evalStack			= []
-		  ,parallelStates		= newMap
-		  ,parallelControls		= newMap
-		  ,readShares			= Nothing
-		  ,world				= world
-		  }
-	where
-		defaultConfig :: Config
-		defaultConfig =
-			{ rootPassword		= "root"
-			, rootEmail			= "root@localhost"
-			, sessionTime		= 3600
-			, smtpServer		= "localhost"
-			}
-			
-		padZero :: !Int -> String
-		padZero number = (if (number < 10) "0" "") +++ toString number
-	
-		ensureDir :: !String !FilePath *World -> (!Bool,!*World)
-		ensureDir name path world
-			# (exists, world) = fileExists path world
-			| exists = (True,world)
-			# (res, world) = createDirectory path world
-			| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
-			= (False,world)
+initIWorld :: !FilePath !*World -> *IWorld
+initIWorld sdkPath world
+	# (appName,world) 			= determineAppName world
+	# (appPath,world)			= determineAppPath world
+	# appDir					= takeDirectory appPath
+	# dataDir					= appDir </> appName +++ "-data"
+	# (res,world)				= getFileInfo appPath world
+	| isError res				= abort "Cannot get executable info."
+	# tm						= (fromOk res).lastModifiedTime
+	# build						= strfTime "%Y%m%d-%H%M%S" tm
+	# (timestamp,world)			= time world
+	# (localDateTime,world)		= currentDateTimeWorld world
+	# (_,world)					= ensureDir "data" dataDir world
+	# tmpDir					= dataDir </> "tmp-" +++ build
+	# (_,world)					= ensureDir "tmp" tmpDir world
+	# storeDir					= dataDir </> "store-"+++ build
+	# (exists,world)			= ensureDir "store" storeDir world
+	= {IWorld
+	  |application			= appName
+	  ,build				= build
+	  ,appDirectory			= appDir
+	  ,sdkDirectory			= sdkPath
+	  ,dataDirectory		= dataDir
+	  ,config				= defaultConfig
+	  ,timestamp			= timestamp
+	  ,latestEvent			= Nothing
+	  ,localDateTime		= localDateTime
+	  ,currentUser			= AnyUser
+	  ,nextTaskNo			= 0
+	  ,evalStack			= []
+	  ,parallelLists		= newMap
+	  ,parallelControls		= newMap
+	  ,localShares			= newMap
+	  ,readShares			= Nothing
+	  ,world				= world
+	  }
+where
+	defaultConfig :: Config
+	defaultConfig =
+		{ rootPassword		= "root"
+		, rootEmail			= "root@localhost"
+		, sessionTime		= 3600
+		, smtpServer		= "localhost"
+		}
+		
+	padZero :: !Int -> String
+	padZero number = (if (number < 10) "0" "") +++ toString number
+
+	ensureDir :: !String !FilePath *World -> (!Bool,!*World)
+	ensureDir name path world
+		# (exists, world) = fileExists path world
+		| exists = (True,world)
+		# (res, world) = createDirectory path world
+		| isError res = abort ("Cannot create " +++ name +++ " directory" +++ path +++ " : "  +++ snd (fromError res))
+		= (False,world)
 
 finalizeIWorld :: !*IWorld -> *World
 finalizeIWorld iworld=:{IWorld|world} = world
@@ -150,13 +155,19 @@ determineAppName world
 	= ((dropExtension o dropDirectory) appPath, world)
 
 determineSDKPath :: ![FilePath] !*World -> (!Maybe FilePath, !*World)
-determineSDKPath [] world = (Nothing, world)
-determineSDKPath [p:ps] world
-	# (mbInfo,world) = getFileInfo path world
-	= case mbInfo of
-		Ok info	| info.directory	= (Just path,world)
-		_							= determineSDKPath ps world
-where
-	path = (p </> "iTasks-SDK")
-		
+determineSDKPath paths world
+	//Try environment var first
+	# (mbCleanHome,world) = getEnvironmentVariable CLEAN_HOME_VAR world
+	= case mbCleanHome of
+		Nothing			= searchPaths paths world
+		Just cleanHome	= searchPaths [cleanHome] world
+where	
+	searchPaths [] world = (Nothing, world)
+	searchPaths [p:ps] world
+		# (mbInfo,world) = getFileInfo path world
+		= case mbInfo of
+			Ok info	| info.directory	= (Just path,world)
+			_							= searchPaths ps world
+	where
+		path = (p </> "iTasks-SDK")
 	

@@ -26,12 +26,16 @@ where
 					= [(u,p):updatePos (user,position) ps]
 	
 viewMap :: Task Void
-viewMap = interact
+viewMap = 	viewInformation "Look where everyone is" [] nlMap
+		>>* [AnyTime ActionQuit (const (return Void))]
+/*
+interact
 			"Look where everyone is"
 			(\gmap locations _ -> [FormPart (FormValue {GoogleMap|gmap & markers = map mkMarker locations}) (\mbMap -> ({GoogleMap|fromMaybe gmap mbMap & markers = []},Nothing))])
 			nlMap
 			locationStore
-			>>+ \_ -> UserActions [(ActionQuit,Just Void)]
+			>>* [AnyTime ActionQuit (const (return Void))]
+*/
 where
 	nlMap :: GoogleMap		
 	nlMap = {GoogleMap| defaultMap & perspective = {type = ROADMAP, zoom = 7, center = {lat = 52.396, lng = 5.21}}}

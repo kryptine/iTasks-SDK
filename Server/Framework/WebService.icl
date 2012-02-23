@@ -31,28 +31,28 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (mbResult, Error "Fresh session, no previous user interface", iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
-					# (mbPreviousTui,iworld)	= loadTaskTUI (SessionProcess sessionId) iworld
+					# (mbPreviousTui,iworld)	= loadTaskTUI sessionId iworld
 					//Check if the version of the user interface the client has is still fresh
 					# outdated = case mbPreviousTui of
-						Ok (_,previousTimestamp)	= timestampParam <> "" && Timestamp (toInt timestampParam) < previousTimestamp
+						Ok (_,prevGuiVersion)		= guiVersion < prevGuiVersion
 						Error _						= False
 					| outdated
-						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) Nothing Nothing True iworld
+						# (mbResult, iworld) = evalSessionInstance sessionId Nothing Nothing True iworld
 						= (mbResult,mbPreviousTui,iworld)
 					| otherwise
-						# (mbResult, iworld) = evalSessionInstance (SessionProcess sessionId) editEvent commitEvent True iworld
+						# (mbResult, iworld) = evalSessionInstance sessionId editEvent commitEvent True iworld
 						= (mbResult,mbPreviousTui,iworld)
 			# (json, iworld) = case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
 					Ok (TaskException _ err,_)
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					Ok (TaskFinished _,_)
+					Ok (TaskStable _ _ _,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (TaskBusy mbCurrentTui actions context,SessionProcess sessionId)
+					Ok (TaskUnstable _ mbCurrentTui context,sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
-							(Ok (previousTui,previousTimestamp),TUIRep currentTui)
-								| previousTimestamp == Timestamp (toInt timestampParam) 
+							(Ok (previousTui,prevGuiVersion),TUIRep (_,Just currentTui,actions,attributes))
+								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
 												 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui))
@@ -61,19 +61,19 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
 												 ,("content",encodeTUIDefinition currentTui)
-												 ,("warning",JSONString "The client is outdated. The user interface was refreshed with the most recent value.")
+												 ,("warning",JSONString "The client is out of sync. The user interface was refreshed with the most recent value.")
 												 ,("timestamp",toJSON timestamp)]
-							(_, TUIRep currentTui)
+							(_, TUIRep (_,Just currentTui,actions,attributes))
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
 											 ,("content", encodeTUIDefinition currentTui)
 											 ,("timestamp",toJSON timestamp)]
 							_
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
-						//Store tui for later incremental requests
+						//Store gui for later incremental requests
 						# iworld = case mbCurrentTui of
-							TUIRep currentTui	= storeTaskTUI (SessionProcess sessionId) currentTui iworld
-							_					= iworld
+							TUIRep (_,Just currentTui,_,_)	= storeTaskTUI sessionId currentTui guiVersion iworld
+							_								= iworld
 						= (json,iworld)
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
@@ -83,15 +83,15 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			# (mbResult,iworld)	= case sessionParam of
 				""	= createSessionInstance task Nothing Nothing False iworld
 				sessionId
-					= evalSessionInstance (SessionProcess sessionId) Nothing Nothing False iworld
+					= evalSessionInstance sessionId Nothing Nothing False iworld
 			= case mbResult of
 				Ok (TaskException _ err,_)
 					= (errorResponse err, iworld)
-				Ok (TaskFinished val,_)
+				Ok (TaskStable val _ _,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (TaskBusy (ServiceRep rep) actions _,_)
-					= (jsonResponse (serviceBusyResponse rep actions), iworld)
-				Ok (TaskBusy _ _ _,_)
+				Ok (TaskUnstable _ (ServiceRep (rep,actions,attributes)) _,_)
+					= (jsonResponse (serviceBusyResponse rep actions attributes), iworld)
+				Ok (TaskUnstable _ _ _,_)
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
@@ -103,14 +103,13 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			= case mbResult of
 				Ok (TaskException _ err,_)
 					= (errorResponse err, iworld)
-				Ok (TaskFinished val,_)
+				Ok (TaskStable val _ _,_)
 					= (plainDoneResponse val, iworld)
 				_
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Error unimplemented type
 		_
-			= (jsonResponse (JSONString "Unknown service format"), iworld)
-		
+			= (jsonResponse (JSONString "Unknown service format"), iworld)	
 where
 	format			= case formatParam of
 		"webapp"			= WebApp
@@ -123,15 +122,17 @@ where
 	sessionParam		= paramValue "session" req
 	downloadParam		= paramValue "download" req
 	uploadParam			= paramValue "upload" req
-	timestampParam		= paramValue "timestamp" req
+	versionParam		= paramValue "version" req
 	editEventParam		= paramValue "editEvent" req
 	editEvent			= case (fromJSON (fromString editEventParam)) of
-		Just (target,path,value)	= Just (ProcessEvent (reverse (taskNrFromString target)) (path,value))
-		_							= Nothing
+		Just (task,path,value)	= Just (TaskEvent (fromString task) (path,value))
+		_						= Nothing
 	commitEventParam	= paramValue "commitEvent" req
 	commitEvent			= case (fromJSON (fromString commitEventParam)) of
-		Just (target,action)		= Just (ProcessEvent (reverse (taskNrFromString target)) action)
-		_							= Nothing
+		Just (task,action)		= Just (TaskEvent (fromString task) action)
+		_						= Nothing
+
+	guiVersion			= toInt versionParam
 	
 	//Parse the body of the request as JSON message
 	(luckyEdit,luckyCommit) = if(req.req_data == "")
@@ -143,12 +144,13 @@ where
 	errorResponse msg
 		= {HTTPResponse | rsp_headers = fromList [("Status", "500 Internal Server Error")], rsp_data = msg}
 			
-	serviceBusyResponse rep actions
-		= JSONObject [("status",JSONString "busy"),("parts",parts)]
+	serviceBusyResponse rep actions attributes
+		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
 	where
-		parts = toJSON [{ServiceResponsePart|taskId = taskId, partId = partId, value = value, actions = findActions taskId actions} \\ (taskId,partId,value) <- rep]
+		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, partId = partId, value = value, actions = findActions taskId actions} \\ (taskId,partId,value) <- rep]
 		findActions taskId actions
 			= [actionName action \\ (task,action,enabled) <- actions | enabled && task == taskId]
+	
 	serviceDoneResponse (Container val :: Container a a)
 		= JSONObject [("status",JSONString "complete"),("value",toJSON val)]
 	serviceDoneResponse _
@@ -172,7 +174,8 @@ where
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
 		stylefiles = ["/lib/ext-4.0.2a/resources/css/ext-all-gray.css"
-					 ,"/src/css/main.css"
+					 ,"/css/main.css"
 					 ,appName +++ ".css"]
-		scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/src/app.js"]
+		scriptfiles = ["/lib/ext-4.0.2a/ext-debug.js","/app.js"]
+		//scriptfiles = ["/lib/ext-4.0.2a/ext.js","/app-all.js"]
 		

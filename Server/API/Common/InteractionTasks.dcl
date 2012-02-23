@@ -5,32 +5,28 @@ import CoreTasks
 /**
 * Defines a view on the data model of interaction tasks. 
 */
-:: ViewOn l r w	= E.v:	About			!v									& iTask v	//* additional information independent from the data model the interaction task works on
-				| E.v:	EnterView		!(SetFunc l r w v)					& iTask v	//* a view to put information into the data model
-				| E.v:	UpdateView		!(!GetFunc l r v, !SetFunc l r w v)	& iTask v	//* a view to update the data model
-				| E.v:	DisplayView		!(GetFunc l r v)					& iTask v	//* a view to show the data model
-				|		UpdateTrigger	!String !(UpdateFunc l r w)						//* a trigger (typically a button) used to update the data model
-/**
+:: ViewOn l r	= E.v:	About			!v								& iTask v	//* additional information independent from the data model the interaction task works on
+				//Convenient simple views
+				| E.v:	DisplayLocal	!(l -> v)						& iTask v
+				| E.v:	EnterLocal		!(v -> l)						& iTask v
+				| E.v:	UpdateLocal		!(l -> v) (v l -> l)			& iTask v
+				| E.v:	DisplayShared	!(r -> v)						& iTask v
+				| E.v:	UpdateShared	!(r -> v) (v l -> l)			& iTask v
+				//More fine grained views
+				| E.v:	DisplayView		!(GetFun l r v)					& iTask v	//* a view to show the data model
+				| E.v:	EnterView						!(SetFun l r v)	& iTask v	//* a view to put information into the data model
+				| E.v:	UpdateView		!(GetFun l r v) !(SetFun l r v)	& iTask v	//* a view to update the data model
+/**	
 * Defines how to get a view from the data model.
 */
-:: GetFunc l r v	= GetLocal			!(l		-> v) //* a get function on the local part of the data model
-					| GetShared			!(r		-> v) //* a get function on the shared part of the data model
-					| GetCombined		!(l r	-> v) //* a get function on both parts of the data model
+:: GetFun l r v	= GetLocal			!(l		-> v)	//* a get function on the local part of the data model
+				| GetShared			!(r		-> v)	//* a get function on the shared part of the data model
+				| GetCombined		!(l r	-> v)	//* a get function on both parts of the data model
 
-/**
-* Defines how to put view data back into the data model.
-*/					
-:: SetFunc l r w v	= SetLocal			!(v l r -> l)						//* a putback function to put information into the local data model
-					| SetShared			!(v l r -> w)						//* a putback function to put information into the shared data model
-					| SetCombined		!(v l r -> (!Maybe l,!Maybe w)) 	//* a putback function to possibly put information into the local/shared data model
-/**
-* Defines how to update the data model.
-*/						
-:: UpdateFunc l r w	= UpdateLocal		!(l -> l)							//* a function updating the local data model
-					| UpdateShared		!(r -> w)							//* a function update the shared data model
-					| UpdateCombined	!(l r -> (!Maybe l, Maybe w))		//* a function possibly updating the local/shared data model
+:: SetFun l r v :== v l r -> l						//* a set function that updates the local part of the data model
 
-:: LocalViewOn a :== ViewOn a Void Void
+:: LocalViewOn a	:== ViewOn a Void
+:: SharedViewOn a	:== ViewOn Void a
 
 /*** General input/update/output tasks ***/
 
@@ -80,22 +76,6 @@ updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
 viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 
 /**
-* Ask the user to enter local information and information which is written to a shared.
-*
-* @param Description:		A description of the task to display to the user
-*                           @default ""
-* @param Views:				Interaction views; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used for the local and shared part
-*                           @default [] @gin-visible False
-* @param Shared:			Reference to the shared state to which the entered information is written
-*
-* @return					Last value of the shared state to which the user added information
-* @throws					SharedException
-* 
-* @gin-icon page_white
-*/
-enterSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) -> Task (r,l) | descr d & iTask l & iTask r & iTask w
-
-/**
 * Ask the user to update predefined local and shared information.
 *
 * @param Description:		A description of the task to display to the user
@@ -105,12 +85,12 @@ enterSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) -> Task (r,l) | des
 * @param Shared:			Reference to the shared state to update
 * @param Local:				The local data updated by the user
 *
-* @return 					Last value of the shared state the user updated
+* @return 					Current value of the shared thats being modified and local modified copy
 * @throws					SharedException
 * 
 * @gin-icon page_edit
 */
-updateSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
+updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 
 /**
 * Show a local and shared state.
@@ -125,8 +105,7 @@ updateSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) l -> Task (r,l) | 
 * 
 * @gin-icon monitor
 */
-viewSharedInformation :: !d ![ViewOn l r w] !(RWShared r w) !l -> Task (r,l) | descr d & iTask l & iTask r & iTask w
-
+viewSharedInformation :: !d ![SharedViewOn r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
 
 /*** Special tasks for choices ***/
 
@@ -184,7 +163,7 @@ updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr
 * 
 * @gin-icon choice
 */
-enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(RWShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
@@ -201,7 +180,7 @@ enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(RWShared (container o) w) -
 * 
 * @gin-icon choice
 */
-updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(RWShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select a number of items from a list of options
@@ -252,7 +231,7 @@ updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] ->
 * 
 * @gin-icon choice
 */
-enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(RWShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
@@ -271,7 +250,7 @@ enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(RWShared (cont
 * 
 * @gin-icon choice
 */
-updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(RWShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Wait for a share to match a certain predicate
@@ -282,7 +261,7 @@ updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(RWShared (con
 *
 * @return					The value of the shared when the predicate becomes true
 */
-wait :: !d !(r -> Bool) !(RWShared r w) -> Task r | descr d & iTask r & iTask w
+wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | descr d & iTask r
 
 /*** Special wait tasks ***/
 /**
@@ -295,7 +274,7 @@ wait :: !d !(r -> Bool) !(RWShared r w) -> Task r | descr d & iTask r & iTask w
 * 
 * @gin-icon clock_go
 */
-//waitForTime		:: !Time			-> Task Time
+waitForTime		:: !Time			-> Task Time
 /**
 * Creates a task which blocks a workflow until a specified date.
 *
@@ -306,7 +285,7 @@ wait :: !d !(r -> Bool) !(RWShared r w) -> Task r | descr d & iTask r & iTask w
 * 
 * @gin-icon date_go
 */
-//waitForDate		:: !Date			-> Task Date
+waitForDate		:: !Date			-> Task Date
 /**
 * Creates a task which blocks a workflow until a specified date and time.
 *
@@ -317,7 +296,7 @@ wait :: !d !(r -> Bool) !(RWShared r w) -> Task r | descr d & iTask r & iTask w
 * 
 * @gin-icon date_go
 */
-//waitForDateTime :: !DateTime 		-> Task DateTime
+waitForDateTime :: !DateTime 		-> Task DateTime
 /**
 * Task completes after specified amount of time has passed
 * since the creation of the task.
@@ -329,8 +308,7 @@ wait :: !d !(r -> Bool) !(RWShared r w) -> Task r | descr d & iTask r & iTask w
 * 
 * @gin-icon clock_go
 */
-//waitForTimer	:: !Time			-> Task Time
-
+waitForTimer	:: !Time			-> Task Time
 
 /*** Special tasks for choosing actions ***/
 
@@ -344,17 +322,3 @@ wait :: !d !(r -> Bool) !(RWShared r w) -> Task r | descr d & iTask r & iTask w
 * @gin False
 */
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
-
-/**
-* Ask the user to choose an action. The list of actions is calculated dynamically.
-*
-* @param RWShared:		Reference to a shared state the actions depend on
-* @param Termination function:	A function generating terminators for the task. So the task can either provide user actions or trigger an action automatically.
-*
-*
-* @return 						Value associated with chosen action
-* @throws						SharedException
-* 
-* @gin False
-*/						
-chooseActionDyn :: !(r -> InteractionTerminators a) !(RWShared r w) -> Task a | iTask a & iTask r & iTask w
