@@ -36,6 +36,8 @@ defaultPanel items =	{TUIPanel
 						, menus			= []
 						, iconCls		= Nothing
 						, baseCls		= Nothing
+						, bodyCls		= Nothing
+						, bodyPadding	= Nothing
 						}
 defaultWindow :: ![TUIDef] -> TUIWindow				
 defaultWindow items =	{TUIWindow

@@ -8,18 +8,18 @@ import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
 from TaskContext		import :: TaskState
 from LayoutCombinators	import :: Layout
 
-derive JSONEncode		Task
-derive JSONDecode		Task
-derive gUpdate			Task
-derive gDefaultMask		Task
-derive gVerify			Task
-derive gVisualizeText	Task
-derive gVisualizeEditor	Task
-derive gHeaders			Task
-derive gGridRows		Task
-derive gEq				Task
-derive gGetRecordFields	Task
-derive gPutRecordFields	Task
+derive JSONEncode		Task, TaskValue
+derive JSONDecode		Task, TaskValue
+derive gUpdate			Task, TaskValue
+derive gDefaultMask		Task, TaskValue
+derive gVerify			Task, TaskValue
+derive gVisualizeText	Task, TaskValue
+derive gVisualizeEditor	Task, TaskValue
+derive gHeaders			Task, TaskValue
+derive gGridRows		Task, TaskValue
+derive gEq				Task, TaskValue
+derive gGetRecordFields	Task, TaskValue
+derive gPutRecordFields	Task, TaskValue
 
 // Tasks
 :: Task a =
@@ -38,9 +38,13 @@ derive gPutRecordFields	Task
 :: CommitEvent		:== Event String					//Action name
 
 
-:: TaskResult a		= TaskUnstable	!(Maybe a)	!TaskRep !TaskState
-					| TaskStable	!a			!TaskRep !TaskState
-					| TaskException	!Dynamic !String
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskState	//If all goes well, a task computes its current value, an observable representation and a new task state
+					| ExceptionResult !Dynamic !String							//If something went wrong, a task produces an exception value
+
+:: TaskValue a		= NoValue				
+					| Value !a !Stability 
+			
+:: TaskTime			:== Int
 
 :: TaskRepTarget
 	= RepAsTUI (Maybe TaskId) (Maybe Layout)	//Optionally with tweaked layout
@@ -68,14 +72,20 @@ derive gPutRecordFields	Task
 :: TaskAction		:== (!String, !Action, !Bool)	//Task id, action, enabled
 :: TaskAttribute	:== (!String, !String) 
 
-//Creates an execption result
-taskException :: !e -> TaskResult a | TC, toString e
+/**
+* Creates an execption result
+*/
+exception :: !e -> TaskResult a | TC, toString e
 /**
 * Create a task from a description and a pair of task functions
 *
 */
 mkTask :: !TaskInitFun !(TaskEvalFun a) -> Task a 
 /**
-* Create a task that is finishes instantly
+* Create a task that finishes instantly
 */
 mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | iTask a
+
+//* Provides fmap for Task Values
+instance Functor TaskValue
+

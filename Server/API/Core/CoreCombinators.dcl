@@ -19,7 +19,7 @@ derive class iTask ParallelTaskType
 *
 * @return The transformed task
 */
-transform :: ((Maybe a) -> Maybe b) !(Task a) -> Task b | iTask a & iTask b 
+transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
 
 /**
 * Projects the result of a task in a share when its result changes.
@@ -31,7 +31,7 @@ transform :: ((Maybe a) -> Maybe b) !(Task a) -> Task b | iTask a & iTask b
 
 * @return The modified task
 */
-project	:: ((Maybe a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
+project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
 
 /**
 * The generic sequential combinator.
@@ -40,27 +40,20 @@ project	:: ((Maybe a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | i
 *
 * @param Task: The first step in the sequence
 * @param Continuations: A set of continuation definitions from which one is selected
-*   -AnyTime: Provides an action which is always enabled. Both for stable and instable tasks
-*	-WithResult: Provides an action which is enabled when the result is valid and the predicate holds
-*	-WithoutResult: Provides an action which is enabled only when the result is invalid
-*	-WhenValid: Provides a trigger that fires as soon as the result matches the predicate
-*	-WhenStable: Provides a trigger that fires as soon as the result becomes stable
-*	-Catch: Provides an exception handler for exceptions of type e
-*	-CathcAll: Provides an exception handler that catches all exceptions
+*   -OnValue: inspect the value, step if the predicate matches
+*	-OnAction: enable an action if the predicate matches, step if the actions is chosen
+*	-OnException: Provides an exception handler for exceptions of type e
+*	-OnAllExceptions: Provides an exception handler that catches all exceptions
 *
 *	@return The combined task
 */
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 
 :: TaskStep a b
-	=		AnyTime				Action				((Maybe a) -> Task b)
-	|		WithResult			Action	(a -> Bool)	(a -> Task b)		
-	|		WithoutResult		Action				(Task b)				
-	|		WhenValid					(a -> Bool)	(a -> Task b)
-	|		WhenStable								(a -> Task b)
-	| E.e:	Catch									(e -> Task b)		& iTask e
-	|		CatchAll								(String -> Task b)
-
+	= 		OnValue 			((TaskValue a) -> Bool)	((TaskValue a)	-> Task b)
+	|		OnAction	Action	((TaskValue a) -> Bool)	((TaskValue a)	-> Task b)
+	| E.e:	OnException									(e				-> Task b) & iTask e
+	| 		OnAllExceptions								(String			-> Task b)
 
 /**
 * All-in-one swiss-army-knife parallel task creation
@@ -71,12 +64,12 @@ step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 * 
 * @gin False
 */
-parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [Maybe a] | descr d & iTask a
+parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
 					
 /**
 * Get the shared state of a task list
 */
-taskListState :: !(SharedTaskList a) -> ReadOnlyShared [Maybe a]
+taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]
 /**
 * Get the properties share of a task list
 */
@@ -87,7 +80,7 @@ taskListMeta	:: !(SharedTaskList s) -> ReadOnlyShared [TaskListItem]
 /**
 * Appends a task to a task list
 */
-appendTask :: !ParallelTaskType !(ParallelTask s)	!(SharedTaskList s)	-> Task Int | TC s
+appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task Int | TC a & JSONEncode{|*|} a
 /**
 * Removes (and stops) a task from a task list
 */

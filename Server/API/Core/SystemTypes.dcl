@@ -11,7 +11,7 @@ from HTML 			import class html
 from Time			import :: Timestamp
 from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
-from Task			import :: Task, :: TaskId, :: TaskAttribute
+from Task			import :: Task, :: TaskId, :: TaskAttribute, :: TaskValue
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
 from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
@@ -50,6 +50,9 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 	}
 :: DocumentId	:== String
 
+
+:: Stability		= Unstable | Stable
+
 //* Meta-data of tasks
 :: TaskMeta		:==	[TaskAttribute]					//* Task meta data consists of untyped attributes
 
@@ -65,16 +68,11 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 :: ProgressMeta =
 	{ issuedAt			:: !DateTime				//* When was the task created
 	, issuedBy			:: !User					//* By whom was the task created
-	, status			:: !TaskStatus				//* Is a maintask active,suspended,finished or excepted
+	, status			:: !Stability				//* Is a maintask active,suspended,finished or excepted
 	, firstEvent		:: !Maybe DateTime			//* When was the first work done on this task
 	, latestEvent		:: !Maybe DateTime			//* When was the latest event on this task	
 	}
 		
-:: TaskStatus
-	= Unstable		//* A process which has an unstable result
-	| Stable		//* A process which has reached a stable result
-	| Excepted		//* A process terminated with an exception
-
 //* Each task can be identified by two numbers:
 // - A unique number identifying the top-level state
 // - A unique number the task within the the state
@@ -92,7 +90,7 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 :: TaskList a =
 	{ listId	:: !(TaskListId a)
-	, state		:: ![Maybe a]
+	, state		:: ![TaskValue a]
 	, items		:: ![TaskListItem]
 	}
 
@@ -158,16 +156,16 @@ derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSi
 derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gVisualizeText	TaskListItem, ProgressMeta, TaskStatus
-derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskStatus
-derive gHeaders			TaskListItem, ProgressMeta, TaskStatus
-derive gGridRows		TaskListItem, ProgressMeta, TaskStatus
-derive gUpdate			TaskListItem, ProgressMeta, TaskStatus
-derive gDefaultMask		TaskListItem, ProgressMeta, TaskStatus
-derive gVerify			TaskListItem, ProgressMeta, TaskStatus
+derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
+derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
+derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
+derive gVisualizeText	TaskListItem, ProgressMeta, Stability
+derive gVisualizeEditor	TaskListItem, ProgressMeta, Stability
+derive gHeaders			TaskListItem, ProgressMeta, Stability
+derive gGridRows		TaskListItem, ProgressMeta, Stability
+derive gUpdate			TaskListItem, ProgressMeta, Stability
+derive gDefaultMask		TaskListItem, ProgressMeta, Stability
+derive gVerify			TaskListItem, ProgressMeta, Stability
 
 derive class iTask	Credentials, Config, TaskId
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
@@ -404,8 +402,8 @@ fromFillHControlSize :: !(FillHControlSize .a) -> .a
 					
 formatPriority	:: !TaskPriority	-> HtmlTag
 						
-instance toString TaskStatus
-instance == TaskStatus
+instance toString Stability
+instance == Stability
 
 //Define initial meta attributes
 TASK_ATTRIBUTE	:== "task"

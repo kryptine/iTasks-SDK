@@ -16,61 +16,61 @@ derive JSONEncode UpdateMask
 derive JSONDecode UpdateMask
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask (\taskId iworld -> (TaskStable a NoRep (TCEmpty taskId), iworld))
+return a  = mkInstantTask (\taskId iworld=:{taskTime} -> (ValueResult (Value a Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
-throw e = mkInstantTask (\taskId iworld -> (TaskException (dynamic e) (toString e), iworld))
+throw e = mkInstantTask (\taskId iworld -> (ExceptionResult (dynamic e) (toString e), iworld))
 
 get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask eval
 where
-	eval taskId iworld
+	eval taskId iworld=:{taskTime}
 		# (val,iworld) = 'SharedDataSource'.read shared iworld
 		# res = case val of
-			Ok (val,_)	= TaskStable val NoRep (TCEmpty taskId)
-			Error e		= taskException (SharedException e)
+			Ok (val,_)	= ValueResult (Value val Stable) taskTime NoRep (TCEmpty taskId taskTime)
+			Error e		= exception (SharedException e)
 		= (res, iworld)
 
 set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
 where
-	eval taskId iworld
+	eval taskId iworld=:{taskTime}
 		# (res,iworld)	='SharedDataSource'.write val shared iworld
 		# res = case res of
-			Ok _	= TaskStable val NoRep (TCEmpty taskId)
-			Error e	= taskException (SharedException e)
+			Ok _	= ValueResult (Value val Stable) taskTime NoRep (TCEmpty taskId taskTime)
+			Error e	= exception (SharedException e)
 		= (res, iworld)
 
 update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 update fun shared = mkInstantTask eval
 where
-	eval taskId iworld
+	eval taskId iworld=:{taskTime}
 		# (val,iworld)	= 'SharedDataSource'.readWrite (\r _ -> let w = fun r in 'SharedDataSource'.Write w w) shared iworld
-		| isError val	= (taskException (SharedException (fromError val)), iworld)
-		= (TaskStable (fromOk val) NoRep (TCEmpty taskId), iworld)
+		| isError val	= (exception (SharedException (fromError val)), iworld)
+		= (ValueResult (Value (fromOk val) Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
 
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = mkTask init eval
 where
-	init taskId iworld
-		= (TCEmpty taskId, iworld)
+	init taskId iworld=:{taskTime}
+		= (TCEmpty taskId taskTime, iworld)
 	
-	eval eEvent cEvent repAs (TCEmpty taskId) iworld
+	eval eEvent cEvent repAs (TCEmpty taskId lastEvent) iworld
 		# (val,iworld)	= 'SharedDataSource'.read shared iworld
 		# res = case val of
-			Ok (val,_)	= TaskUnstable (Just val) NoRep (TCEmpty taskId)
-			Error e		= taskException (SharedException e)
+			Ok (val,_)	= ValueResult (Value val Unstable) lastEvent NoRep (TCEmpty taskId lastEvent)
+			Error e		= exception (SharedException e)
 		= (res,iworld)
 		
 interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
 interact desc initFun parts initLocal shared = mkTask init eval
 where
-	init taskId iworld					//Create the initial views
+	init taskId iworld=:{taskTime}		//Create the initial views
 		# (mbrvalue,iworld) 			= 'SharedDataSource'.read shared iworld
-		| isError mbrvalue				= (TCEmpty taskId, iworld)
+		| isError mbrvalue				= (TCEmpty taskId taskTime, iworld)
 		# (rvalue,version)				= fromOk mbrvalue
 		# lvalue						= initFun initLocal rvalue
-		= (TCInteract taskId (toJSON lvalue) (initParts lvalue rvalue parts) version, iworld)
+		= (TCInteract taskId (toJSON lvalue) taskTime (initParts lvalue rvalue parts) version, iworld)
 
 	initParts l r parts = map (initPart l r) parts
 	
@@ -82,17 +82,17 @@ where
 	initFormView BlankForm		= (v, toJSON v, Untouched) where v = defaultValue
 	initFormView (FilledForm v)	= (v, toJSON v, defaultMask v)
 	
-	eval eEvent cEvent repAs context=:(TCInteract taskId encl views lastShareVersion) iworld=:{IWorld|timestamp}
+	eval eEvent cEvent repAs context=:(TCInteract taskId encl lastEvent views lastShareVersion) iworld=:{IWorld|taskTime}
 		# (mbrvalue,iworld) 				= 'SharedDataSource'.read shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
 		# (rvalue,currentShareVersion)		= (fromOk mbrvalue)
 		# changed							= currentShareVersion > lastShareVersion
 		# lvalue							= fromJust (fromJSON encl)
-		# mbEdit	= case eEvent of
+		# (mbEdit,lastEvent)	= case eEvent of
 			Just (TaskEvent t e)
-				| t == taskId		= Just e
-			Just (LuckyEvent e)		= Just e						
-			_						= Nothing
+				| t == taskId		= (Just e,taskTime)
+			Just (LuckyEvent e)		= (Just e,taskTime)						
+			_						= (Nothing,lastEvent)
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskId repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# rep = case repAs of
 			(RepAsTUI Nothing layout) 
@@ -106,12 +106,12 @@ where
 				# (parts,actions,attributes) = unzip3 [(part,actions,attributes) \\ (ServiceRep (part,actions,attributes)) <- reps]
 				= ServiceRep (flatten parts,flatten actions, flatten attributes)
 		
-		# result	= if valid (Just (lvalue,rvalue)) Nothing 
-		= (TaskUnstable result rep (TCInteract taskId (toJSON lvalue) views currentShareVersion), iworld)
-	eval eEvent cEvent repAs (TCEmpty _) iworld
-		= (taskException "Failed to initialize interact",iworld)
+		# value	= if valid (Value (lvalue,rvalue) Unstable) NoValue 
+		= (ValueResult value lastEvent rep (TCInteract taskId (toJSON lvalue) lastEvent views currentShareVersion), iworld)
+	eval eEvent cEvent repAs (TCEmpty _ _) iworld
+		= (exception "Failed to initialize interact",iworld)
 	eval eEvent cEvent repAs context iworld
-		= (taskException "Corrupt context in interact",iworld)
+		= (exception "Corrupt context in interact",iworld)
 
 	evalParts idx taskId repAs mbEvent changed l r [] [] iworld
 		= (l,[],[],True,iworld)
@@ -195,19 +195,19 @@ where
 				= (l,v,encv,maskv,vermask,False)
 	
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
-sharedException err = taskException (SharedException (fromError err))
+sharedException err = exception (SharedException (fromError err))
 
 workOn :: !TaskId -> Task WorkOnProcessState
 workOn target=:(TaskId topNo taskNo)
 	= mkTask init eval
 where
-	init taskId iworld
-		= (TCEmpty taskId, iworld)
+	init taskId iworld=:{taskTime}
+		= (TCEmpty taskId taskTime, iworld)
 
-	eval eEvent cEvent repAs (TCEmpty taskId) iworld=:{evalStack}
+	eval eEvent cEvent repAs (TCEmpty taskId lastEvent) iworld=:{evalStack}
 		//Check for cycles
 		| isMember taskId evalStack
-			=(taskException WorkOnDependencyCycle, iworld)
+			=(exception WorkOnDependencyCycle, iworld)
 		//Load instance
 		# (mbContext,iworld)		= loadTaskInstance (Right topNo) iworld
 		| isError mbContext	
@@ -216,25 +216,25 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally topNo iworld
 			| found
-				= (TaskUnstable Nothing (TUIRep (SingleTask, Just (stringDisplay "Task finished"),[],[])) (TCEmpty taskId), {iworld & readShares = Nothing})
+				= (ValueResult NoValue lastEvent (TUIRep (SingleTask, Just (stringDisplay "Task finished"),[],[])) (TCEmpty taskId lastEvent), {iworld & readShares = Nothing})
 			| otherwise
-				= (taskException WorkOnNotFound ,iworld)
+				= (exception WorkOnNotFound ,iworld)
 		//Eval instance
 		# target					= if (taskNo == 0) Nothing (Just (TaskId topNo taskNo))
 		# genGUI					= case repAs of (RepAsTUI _ _) = True ; _ = False
 		# (mbResult,context,iworld)	= evalInstance eEvent cEvent target genGUI (fromOk mbContext) iworld
 		= case mbResult of
-			Error e				= (taskException WorkOnEvalError, iworld)
+			Error e				= (exception WorkOnEvalError, iworld)
 			Ok result
 				//Store context
 				# iworld		= storeTaskInstance context iworld
 				# (result,rep,iworld) = case result of
-					(TaskUnstable _ rep _)			= (WOActive, rep, iworld)
-					(TaskStable _ rep _)			= (WOFinished, rep, iworld)
-					(TaskException _ err)			= (WOExcepted, TUIRep (SingleTask, Just (stringDisplay ("Task excepted: " +++ err)), [], []), iworld)
+					(ValueResult (Value _ Stable) _ rep _)	= (WOFinished, rep, iworld)
+					(ValueResult _ _ rep _)					= (WOActive, rep, iworld)
+					(ExceptionResult _ err)					= (WOExcepted, TUIRep (SingleTask, Just (stringDisplay ("Task excepted: " +++ err)), [], []), iworld)
 				= case result of
-					WOFinished	= (TaskStable WOFinished rep (TCEmpty taskId), iworld)
-					_			= (TaskUnstable (Just result) rep (TCEmpty taskId), iworld)
+					WOFinished	= (ValueResult (Value result Stable) lastEvent rep (TCEmpty taskId lastEvent), iworld)
+					_			= (ValueResult (Value result Unstable) lastEvent rep (TCEmpty taskId lastEvent), iworld)
 
 	//If a top instance has just been added, but has not been evaluated before it is still in the
 	//queue of ParallelControls. If so, we don't throw an exception but return an unstable value
@@ -250,24 +250,24 @@ where
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval
 where
-	eval taskId iworld=:{IWorld|world}
-		= (TaskStable Void NoRep (TCEmpty taskId), {IWorld|iworld & world = fun world})
+	eval taskId iworld=:{IWorld|taskTime,world}
+		= (ValueResult (Value Void Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = fun world})
 		
 accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
 accWorld fun = mkInstantTask eval
 where
-	eval taskId iworld=:{IWorld|world}
+	eval taskId iworld=:{IWorld|taskTime,world}
 		# (res,world) = fun world
-		= (TaskStable res NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
+		= (ValueResult (Value res Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
 	
 accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 accWorldError fun errf = mkInstantTask eval
 where
-	eval taskId iworld=:{IWorld|world}
+	eval taskId iworld=:{IWorld|taskTime,world}
 		# (res,world)	= fun world
 		= case res of
-			Error e		= (taskException (errf e), {IWorld|iworld & world = world})
-			Ok v		= (TaskStable v NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
+			Error e		= (exception (errf e), {IWorld|iworld & world = world})
+			Ok v		= (ValueResult (Value v Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
 	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException

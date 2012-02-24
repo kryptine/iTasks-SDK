@@ -4,8 +4,9 @@ import StdList, StdArray, StdBool, StdFile
 import SystemTypes, Store, Random, Text, Time, Error, File, FilePath
 import GenUpdate
 from StdFunc	import id
-from IWorld		import ::IWorld(..)
-from TaskContext import ::ParallelItem, :: ParallelControl
+from IWorld		import :: IWorld(..)
+from Task		import :: TaskTime
+from TaskContext import :: ParallelItem, :: ParallelControl
 
 instance DocumentDB IWorld
 where

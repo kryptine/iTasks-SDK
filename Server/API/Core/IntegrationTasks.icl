@@ -34,7 +34,7 @@ callProcess cmd args
 where
 	//Start the process
 	init :: TaskId *IWorld -> (!TaskState,!*IWorld)
-	init taskId iworld =:{IWorld |build,dataDirectory,sdkDirectory,world}
+	init taskId iworld =:{IWorld |taskTime,build,dataDirectory,sdkDirectory,world}
 		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
 		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
 		# runAsyncArgs	=	[ "--taskid"
@@ -46,15 +46,15 @@ where
 							: args]
 		# (res,world)	= 'Process'.runProcess runAsync runAsyncArgs Nothing world
 		= case res of
-			Error e	= (state taskId (Left e), {IWorld|iworld & world = world})
-			Ok _	= (state taskId (Right outfile), {IWorld|iworld & world = world})
+			Error e	= (state taskId taskTime (Left e), {IWorld|iworld & world = world})
+			Ok _	= (state taskId taskTime (Right outfile), {IWorld|iworld & world = world})
 	where
-		state :: TaskId (Either OSError FilePath) -> TaskState
-		state taskId val = TCBasic taskId (toJSON val) False
+		state :: TaskId TaskTime (Either OSError FilePath) -> TaskState
+		state taskId taskTime val = TCBasic taskId (toJSON val) taskTime False
 
-	eval eevent cevent repAs context=:(TCBasic taskId encv stable) iworld=:{world}
+	eval eevent cevent repAs context=:(TCBasic taskId encv lastEvent stable) iworld=:{world}
 		| stable
-			= (TaskStable (fromJust (fromJSON encv)) NoRep context, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent NoRep context, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -75,26 +75,26 @@ where
 							_
 								= ServiceRep ([(toString taskId, 0, JSONNull)], [], [])
 						
-						= (TaskUnstable Nothing rep context,{IWorld|iworld & world = world})
+						= (ValueResult NoValue lastEvent rep context,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file
-						= (taskException (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
+						= (exception (CallFailed (1,"callProcess: Failed to read output")), {IWorld|iworld & world = world})
 					= case fromJSON (fromString (fromOk res)) of
 						//Failed to parse file
 						Nothing
-							= (taskException (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
+							= (exception (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
 						Just async	
 							| async.AsyncResult.success
 								# result = async.AsyncResult.exitcode 
-								= (TaskStable result NoRep (TCBasic taskId (toJSON result) True), {IWorld|iworld & world = world})
+								= (ValueResult (Value result Stable) lastEvent NoRep (TCBasic taskId (toJSON result) lastEvent True), {IWorld|iworld & world = world})
 							| otherwise
-								= (taskException (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
+								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization
 				(Just (Left e))
-					= (taskException (CallFailed e), {IWorld|iworld & world = world})
+					= (exception (CallFailed e), {IWorld|iworld & world = world})
 				Nothing
-					= (taskException (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
+					= (exception (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
 					
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
@@ -118,12 +118,12 @@ where
 		
 	initRPC = mkInstantTask eval
 	
-	eval taskId iworld=:{IWorld|build,sdkDirectory,dataDirectory,world}
+	eval taskId iworld=:{IWorld|taskTime,build,sdkDirectory,dataDirectory,world}
 		# infile  = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "request")
 		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "response")
 		# (res,world) = writeFile infile request world
 		| isError res
-			= (taskException (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
+			= (exception (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
 		# cmd	= IF_POSIX_OR_WINDOWS "curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
 		# args	=	[ options
 						, "--data-binary"
@@ -132,7 +132,7 @@ where
 						, outfile
 						, url
 						]
-		= (TaskStable (cmd,args,outfile) NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
+		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
 	
 	mkFileName :: !TaskId !String -> String
 	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
@@ -218,9 +218,9 @@ curlError exitCode =
 sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
 sendEmail subject (Note body) recipients = mkInstantTask eval
 where
-	eval taskId iworld=:{IWorld|currentUser,config}
+	eval taskId iworld=:{IWorld|taskTime,currentUser,config}
 		# iworld = foldr (sendSingle config.smtpServer (toEmail currentUser)) iworld recipients
-		= (TaskStable recipients NoRep (TCEmpty taskId), iworld)
+		= (ValueResult (Value recipients Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

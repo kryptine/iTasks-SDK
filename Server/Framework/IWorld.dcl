@@ -5,6 +5,7 @@ from Map			import :: Map
 from Maybe			import :: Maybe
 from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType 
 from Time			import :: Timestamp
+from Task			import :: TaskTime
 from TaskContext	import :: ParallelItem, :: ParallelControl
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
@@ -13,6 +14,7 @@ from TaskContext	import :: ParallelItem, :: ParallelControl
 					, sdkDirectory			:: !FilePath								// Location of the iTasks SDK
 					, dataDirectory			:: !FilePath								// Location of the applications data files
 					, config				:: !Config									// The server configuration
+					, taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
 					, timestamp				:: !Timestamp								// The timestamp of the current request
 					, localDateTime			:: !DateTime								// The local date & time of the current request
 					, latestEvent			:: !Maybe DateTime							// The date & time of the last event of the (detached) process

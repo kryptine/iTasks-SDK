@@ -33,7 +33,7 @@ where
 		
 updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 updateSharedInformation d views shared
-	=	(modifyInformation d initLocal filteredViews (toReadOnly shared) Nothing @ fst) @> (\mbw _ -> mbw, shared)
+	=	(modifyInformation d initLocal filteredViews (toReadOnly shared) Nothing @ fst) @> (\mbw _ -> valToMaybe mbw, shared)
 where
 	filteredViews						= filterViews noFilter defaultViews views	
 	//Use dynamics to test if r == w, if so we can use an update view
@@ -43,6 +43,9 @@ where
 		_								= [DisplayView (GetShared id), EnterView (\w _ _ -> w)]
 	
 	initLocal = \_ r -> (makeInitFun filteredViews) r
+	
+	valToMaybe (Value v _)	= Just v
+	valToMaybe _			= Nothing
 	
 	makeInitFun :: [ViewOn w r] -> (r -> w)
 	makeInitFun views = case [v \\ v=:(UpdateView _ _) <- views] of
@@ -101,7 +104,7 @@ updateSharedChoice d views shared initC
 
 modifyChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) (Maybe o) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 modifyChoice d views shared mbInitSel = 
-	transform justValid (modifyInformation d  (\_ _ -> mbInitSel) (toChoiceViews (addDefault views)) (toReadOnly shared) Nothing)
+	transform result (modifyInformation d  (\_ _ -> mbInitSel) (toChoiceViews (addDefault views)) (toReadOnly shared) Nothing)
 where
 	toChoiceViews views = map toChoiceView views
 	where
@@ -132,8 +135,8 @@ where
 		| any (\v -> case v of (ChoiceContext _) = False; _ = True) views	= views
 		| otherwise															= views ++ [ChoiceView (AutoChoiceView, id)]
 
-	justValid (Just (Just sel,_))	= Just sel
-	justValid _						= Nothing
+	result (Value (Just sel,_) s)	= Value sel s
+	result _						= NoValue
 
 enterMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
 enterMultipleChoice d views choiceOpts

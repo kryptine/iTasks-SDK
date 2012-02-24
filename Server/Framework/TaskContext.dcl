@@ -2,6 +2,7 @@ definition module TaskContext
 
 import SystemTypes
 
+from Task		import :: TaskTime
 from GenUpdate	import :: UpdateMask
 
 derive JSONEncode TopInstance, TaskState, ParallelMeta, ParallelItem
@@ -11,6 +12,7 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 :: TopInstance =
 	{ instanceId	:: !(Either SessionId TopNo)
 	, nextTaskNo	:: !TaskNo
+	, nextTaskTime	:: !TaskTime
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
 	, task			:: !Dynamic
@@ -19,13 +21,14 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 	}
 
 :: TaskState
-	= TCBasic		!TaskId !JSONNode !Bool 										//Encoded value and stable indicator
-	| TCInteract	!TaskId !JSONNode ![(!JSONNode,!UpdateMask,!Bool)] !Int
+	= TCBasic		!TaskId !JSONNode !TaskTime !Bool 									//Encoded value and stable indicator
+	| TCInteract	!TaskId !JSONNode !TaskTime ![(!JSONNode,!UpdateMask,!Bool)] !Int
 	| TCProject		!TaskId !JSONNode !TaskState
 	| TCStep		!TaskId !(Either TaskState (!JSONNode,!Int,!TaskState))
 	| TCParallel	!TaskId !ParallelMeta ![ParallelItem] 
 	| TCShared		!TaskId !JSONNode !Int !TaskState
-	| TCEmpty		!TaskId
+	| TCStable		!TaskId	!JSONNode !TaskTime
+	| TCEmpty		!TaskId !TaskTime
 
 //Parallel has a bit more complex state so we define it as a record
 :: ParallelMeta = 

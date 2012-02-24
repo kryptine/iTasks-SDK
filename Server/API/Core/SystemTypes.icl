@@ -4,6 +4,7 @@ from StdFunc import until
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, List, dynamic_string, Base64
 import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
+from Task		import :: TaskValue
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
@@ -14,16 +15,16 @@ derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSi
 derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskStatus
-derive gVisualizeText	TaskListItem, ProgressMeta, TaskStatus
-derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskStatus
-derive gHeaders			TaskListItem, ProgressMeta, TaskStatus
-derive gGridRows		TaskListItem, ProgressMeta, TaskStatus
-derive gUpdate			TaskListItem, ProgressMeta, TaskStatus
-derive gDefaultMask		TaskListItem, ProgressMeta, TaskStatus
-derive gVerify			TaskListItem, ProgressMeta, TaskStatus
+derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
+derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
+derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
+derive gVisualizeText	TaskListItem, ProgressMeta, Stability
+derive gVisualizeEditor	TaskListItem, ProgressMeta, Stability
+derive gHeaders			TaskListItem, ProgressMeta, Stability
+derive gGridRows		TaskListItem, ProgressMeta, Stability
+derive gUpdate			TaskListItem, ProgressMeta, Stability
+derive gDefaultMask		TaskListItem, ProgressMeta, Stability
+derive gVerify			TaskListItem, ProgressMeta, Stability
 
 derive class iTask	Credentials, Config, TaskId
 derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException, FileError
@@ -736,17 +737,15 @@ where
 	toString NormalPriority	= "NormalPriority"
 	toString HighPriority	= "HighPriority"
 
-instance toString TaskStatus
+instance toString Stability
 where
 	toString Unstable	= "Unstable"
 	toString Stable	= "Stable"
-	toString Excepted	= "Excepted"
-
-instance == TaskStatus
+	
+instance == Stability
 where
 	(==) Unstable	Unstable	= True
 	(==) Stable		Stable		= True
-	(==) Excepted	Excepted	= True
 	(==) _			_			= False
 		
 instance toEmail EmailAddress where toEmail e = e

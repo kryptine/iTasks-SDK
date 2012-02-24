@@ -30,27 +30,33 @@ manageCollectionWith desc makeSelection useSelection selectionActions identify i
 	= withShared Nothing (
 		\selection ->
 			parallel desc
-				[(Embedded, \_ -> (makeSelection collection (toReadOnly selection) identify) @> (\i _ -> Just i,selection)	@ Just)
-				,(Embedded, \l -> forever ((watch selection @? onlyJust) >>* actions l)										@ const Nothing)
-				,(Embedded, \_ -> forever (whileUnchanged selection (useSelection collection itemShare))					@ const Nothing)
+				[//(Embedded, \_ -> (makeSelection collection (toReadOnly selection) identify) @> (\i _ -> Just i,selection)	@ Just)
+			//	,(Embedded, \l -> forever ((watch selection @? onlyJust) >>* actions l)										@ const Nothing)
+				/*,*/(Embedded, \_ -> forever (whileUnchanged selection (useSelection collection itemShare))					@ const Nothing)
 				] @? firstJust
 	)
 where
-	selShare l = mapRead hd (taskListState l)
-
+	selShare l = mapRead toSel (taskListState l)
+	where
+		toSel [(Value _ v):_]	= Just v
+		toSel _					= Nothing
+		
 	actions list = [inParallel step \\ step <- selectionActions]
 	where
+		inParallel = fixme where fixme = abort "Fix inParallel"
+		/*
 		inParallel (AnyTime action taskf)
 			= AnyTime action (\mbi -> (appendTask Embedded (\_ -> (taskf mbi) <<@ Window)) list)
 		inParallel (WithResult action pred taskf)
 			= WithResult action (const True) (\i -> appendTask Embedded (\_ -> (taskf i) <<@ Window) list)
-
+		*/
 	
 	onlyJust (Just (Just x))	= Just x
 	onlyJust _					= Nothing
 	
-	firstJust (Just [Just x:_])	= Just x
-	firstJust _					= Nothing
+	firstJust (Value [(_,Value (Just x) s):_] _)	= Value x s
+	firstJust _										= NoValue
+import StdMisc
 
 itemShare :: (c -> i) (Shared [c]) i -> Shared (Maybe c) | gEq{|*|} i & gEq{|*|} c
 itemShare identify collection i = mapReadWrite (toItem,fromItem) collection

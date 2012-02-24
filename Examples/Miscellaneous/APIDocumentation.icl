@@ -413,6 +413,6 @@ optionalToMaybe 'general'.No		= Nothing
 createDocumentTask :: !String !String !String -> Task Document
 createDocumentTask name mime content = mkInstantTask create
 where
-	create taskId iworld
+	create taskId iworld=:{taskTime}
 		# (res,iworld)	= createDocument name mime content iworld
-		= (TaskStable res NoRep (TCEmpty taskId),iworld)
+		= (ValueResult (Value res Stable) taskTime NoRep (TCEmpty taskId taskTime),iworld)

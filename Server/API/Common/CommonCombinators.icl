@@ -26,13 +26,13 @@ import CoreTasks, CoreCombinators, InteractionTasks, LayoutCombinators
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
 
-(@?) infixl 1 :: !(Task a) !((Maybe a) -> Maybe b) -> Task b | iTask a & iTask b
+(@?) infixl 1 :: !(Task a) !((TaskValue a) -> TaskValue b) -> Task b | iTask a & iTask b
 (@?) task f = transform f task
 
 (@) infixl 1 :: !(Task a) !(a -> b) -> Task b | iTask a & iTask b
 (@) task f = transform (fmap f) task
 
-(@>) infixl 1 :: !(Task a) !((Maybe a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
+(@>) infixl 1 :: !(Task a) !((TaskValue a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
 (@>) task (f,share) = project f share task
 
 (<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
@@ -58,11 +58,11 @@ assign :: !ManagementMeta !(Task a) -> Task a | iTask a
 assign props task
 	=	parallel Void
 			[(Embedded, \s -> processControl s),(Detached props, \_ -> task)]
-	@?	justResult
+	@?	result
 where
 	processControl tlist =
 		(enterSharedChoice ("Waiting","Waiting for " <+++ task) [] (taskListMeta tlist))
-		@? const Nothing
+		@? const NoValue
 					
 	toView [_,{TaskListItem|progressMeta=Just p,managementMeta=Just m}]=
 		{ assignedTo	= m.ManagementMeta.worker
@@ -85,8 +85,8 @@ where
 		
 	formatTimestamp timestamp = timestampToGmDateTime timestamp
 	
-	justResult (Just [_,Just a])	= Just a
-	justResult _					= Nothing
+	result (Value [_,(_,v)] _)	= v
+	result _					= NoValue
 	
 	
 :: ProcessControlView =	{ assignedTo	:: !Maybe User
@@ -123,63 +123,59 @@ where
 		=	task
 		>>* [WhenStable (\a -> if (pred a) (return (Just a)) (restart (checked pred task) tlist))]
 		
-	res (Just [Just (Just a)])	= Just a
-	res _						= Nothing
+	res (Value [(_,Value (Just a) _)] s)	= Value a s
+	res _									= NoValue
 	
 	restart task tlist
 		=	get (taskListMeta tlist)
 		>>= \[{TaskListItem|taskId}:_] ->
 			removeTask taskId tlist -&&- appendTask Embedded task tlist
-		@	const Nothing 
+		@	const Nothing
 
 forever :: !(Task a) -> Task a | iTask a	
 forever	t = (t <! (const False))
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
-(-||-) taska taskb
-	= parallel Void
-		[(Embedded, \_ -> taska),(Embedded, \_ -> taskb)] @? res
-where
-	res (Just [Just a,_]) 		= Just a
-	res (Just [Nothing,Just a])	= Just a
-	res _						= Nothing
-	
+(-||-) taska taskb = anyTask [taska,taskb]
+
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
 	= parallel Void
 		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
 where
-	res	(Just [_,Just (Right b)])	= Just b
-	res _							= Nothing
+	res	(Value [_,(_,Value (Right b) s)] _)	= Value b s
+	res _									= NoValue
 	
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
 	= parallel Void
 		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res			
 where
-	res	(Just [Just (Left a),_])	= Just a
-	res _							= Nothing
+	res	(Value [(_,Value (Left a) s),_] _)	= Value a s
+	res _									= NoValue
 	
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
 	= parallel Void
 		[(Embedded, \_ -> taska @ Left),(Embedded, \_ -> taskb @ Right)] @? res
 where
-	res (Just [Just (Left a),Just (Right b)])	= Just (a,b)
-	res _										= Nothing
+	res (Value [(_,Value (Left a) _),(_,Value (Right b) _)] s)	= Value (a,b) s
+	res _														= NoValue
 
-(>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
-(>&>) taska taskbf = parallel Void
-		[(Embedded, \s -> taska @ Left)
-		,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @ Right)
-		]
-	@? res
+feedForward :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | descr d & iTask a & iTask b
+feedForward desc taska taskbf = parallel desc
+	[(Embedded, \s -> taska @ Left)
+	,(Embedded, \s -> taskbf (mapRead prj (toReadOnly (taskListState s))) @ Right)
+	] @? res
 where
-	prj [Just (Left a),_]			= Just a
+	prj [Value (Left a) _,_]		= Just a
 	prj _							= Nothing
 	
-	res (Just [_,Just (Right b)])	= Just b
-	res _							= Nothing
+	res (Value [_,(_,Value (Right b) s)] _)	= Value b s
+	res _									= NoValue
+	
+(>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
+(>&>) taska taskbf = feedForward Void taska taskbf
 				
 :: ProcessOverviewView =	{ index			:: !Hidden Int
 							, subject		:: !Display String
@@ -191,32 +187,19 @@ derive class iTask ProcessOverviewView
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask tasks
 	= parallel Void [(Embedded,const t) \\ t <- tasks] @? res
-where	
-	res (Just ([Just a:_]))		= Just a
-	res (Just ([Nothing:as]))	= res (Just as)
-	res _ 						= Nothing
+where
+	res (Value l _) = hd ([v \\ (_,v=:(Value _ Stable)) <- l] ++ [v \\ (_,v=:(Value _ _)) <- sortBy (\a b -> fst a > fst b) l] ++ [NoValue])
+	res _			= NoValue
 
 allTasks :: ![Task a] -> Task [a] | iTask a
 allTasks tasks
 	= parallel Void
-		[(Embedded,const t) \\ t <- tasks] @? res
+		[(Embedded,const t) \\ t <- tasks] @ res
 where
-	res (Just [])				= Just []
-	res (Just [Just a:mbas])	= case res (Just mbas) of
-		Just as = Just [a:as]
-		Nothing	= Nothing
-	res _						= Nothing
+	res l	= [v \\ (_,Value v _) <- l]
 				
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
-eitherTask taska taskb
-	= parallel Void
-		[(Embedded, \s -> (taska @ Left))
-		,(Embedded, \s -> (taskb @ Right))
-		] @? res
-where
-	res (Just [Just la,_])	= Just la
-	res (Just [_,Just rb])	= Just rb
-	res _					= Nothing 
+eitherTask taska taskb = (taska @ Left) -||- (taskb @ Right)
 
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"
@@ -230,7 +213,7 @@ whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTa
 whileUnchanged share task
 	= ((	get share	
 		>>= \val ->
-			(task val @ Just) -||- (wait "watching share change" ((=!=) val) share >>| return Nothing)
+			(wait Void ((=!=) val) share >>| return Nothing) -||- (task val @ Just)
 		)
 	<! isJust) @ fromJust
 	
@@ -254,3 +237,33 @@ instance tune Attribute
 where tune (Attribute k v) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet k v at))) task
 instance tune Window
 where tune Window task = task
+
+valToMaybe (Value v _)  = Just v
+valToMaybe NoValue		= Nothing
+
+Always :: Action (Task b) -> TaskStep a b
+Always a t = OnAction a (\_ -> True) (\_ -> t)
+
+AnyTime :: Action ((Maybe a) -> Task b)	-> TaskStep a b
+AnyTime a f = OnAction a (\_ -> True) (f o valToMaybe)
+	
+WithResult :: Action (a -> Bool) (a -> Task b) -> TaskStep a b
+WithResult a p f = OnAction a (maybe False p o valToMaybe) (f o fromJust o valToMaybe)
+	
+WithoutResult :: Action (Task b) -> TaskStep a b
+WithoutResult a t = OnAction a (isNothing o valToMaybe) (\_ -> t)
+	
+WhenValid :: (a -> Bool) (a -> Task b) -> TaskStep a b
+WhenValid p f = OnValue (maybe False p o valToMaybe) (f o fromJust o valToMaybe)
+
+WhenStable :: (a -> Task b) -> TaskStep a b
+WhenStable f = OnValue isStable (\(Value a _) -> f a)
+where
+	isStable (Value _ Stable)	= True
+	isStable _					= False
+	
+Catch :: (e -> Task b) -> TaskStep a b | iTask e
+Catch f = OnException f
+
+CatchAll :: (String -> Task b) -> TaskStep a b
+CatchAll f = OnAllExceptions f

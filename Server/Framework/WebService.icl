@@ -45,11 +45,11 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			# (json, iworld) = case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
-					Ok (TaskException _ err,_)
+					Ok (ExceptionResult _ err,_)
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					Ok (TaskStable _ _ _,_)
+					Ok (ValueResult (Value _ Stable) _ _ _,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (TaskUnstable _ mbCurrentTui context,sessionId)
+					Ok (ValueResult _ _ mbCurrentTui context,sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
 							(Ok (previousTui,prevGuiVersion),TUIRep (_,Just currentTui,actions,attributes))
 								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
@@ -85,14 +85,12 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 				sessionId
 					= evalSessionInstance sessionId Nothing Nothing False iworld
 			= case mbResult of
-				Ok (TaskException _ err,_)
+				Ok (ExceptionResult _ err,_)
 					= (errorResponse err, iworld)
-				Ok (TaskStable val _ _,_)
+				Ok (ValueResult (Value val Stable) _ _ _,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (TaskUnstable _ (ServiceRep (rep,actions,attributes)) _,_)
+				Ok (ValueResult _ _ (ServiceRep (rep,actions,attributes)) _,_)
 					= (jsonResponse (serviceBusyResponse rep actions attributes), iworld)
-				Ok (TaskUnstable _ _ _,_)
-					= (errorResponse "Requested service format not available for this task", iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
 			//HACK: REALLY REALLY REALLY UGLY THAT IT IS NECCESARY TO EVAL TWICE
@@ -101,9 +99,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 				(Ok (_,sessionId))	= evalSessionInstance sessionId luckyEdit luckyCommit False iworld
 				(Error e)			= (Error e,iworld)
 			= case mbResult of
-				Ok (TaskException _ err,_)
+				Ok (ExceptionResult _ err,_)
 					= (errorResponse err, iworld)
-				Ok (TaskStable val _ _,_)
+				Ok (ValueResult (Value val Stable) _ _ _,_)
 					= (plainDoneResponse val, iworld)
 				_
 					= (errorResponse "Requested service format not available for this task", iworld)

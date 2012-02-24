@@ -148,8 +148,11 @@ workflowDashboard
 		, (Embedded,	\list	-> viewWorkflowDetails list)
 		, (Embedded,	\list	-> viewWorklist list)	
 		]  	<<@ SetLayout dashLayout
-	>>* [WhenValid (\[logout:_] -> isJust logout) (\_ -> return Void)]
-
+	>>* [WhenValid (\[(_,logout):_] -> isValue logout) (\_ -> return Void)]
+where
+	isValue (Value _ _) = True
+	isValue _			= False
+	
 controlDashboard :: Task ClientPart
 controlDashboard
 	=	(viewSharedInformation Void [DisplayView (GetShared view)] currentUser
@@ -170,22 +173,23 @@ where
 	toView (Left label) = label
 	toView (Right (index,{Workflow|path,description})) = last (split "/" path)
 	
-	onlyRight (Just (Right (index,workflow)))	= Just (SelWorkflow (index,workflow.Workflow.description))
-	onlyRight _									= Nothing
+	onlyRight (Value (Right (index,workflow)) s)	= Value (SelWorkflow (index,workflow.Workflow.description)) s
+	onlyRight _										= NoValue
 	
 viewWorkflowDetails :: !(SharedTaskList ClientPart) -> Task ClientPart
 viewWorkflowDetails taskList = forever (
-		viewSharedInformation [Att (Title "Task description"),Att IconView] [DisplayView (GetShared view)] state
+		viewSharedInformation [Att (Title "Task description"), Att IconView] [DisplayView (GetShared view)] state
 	>>*	[WithResult (Action "Add to worklist") canStart doStart]
 	)
 where
 	state = taskListState taskList
 				
 	view [_,selectedWorkflow:_] = case selectedWorkflow of
-		Just (SelWorkflow (_,descr))	= Note descr
+		Value (SelWorkflow (_,descr)) _	= Note descr
 		_								= Note ""
-	canStart [_,selectedWorkflow:_] 	= isJust selectedWorkflow
-	doStart [_,Just (SelWorkflow wf):_] = addWorkflow wf
+	canStart [_,Value _ selectedWorkflow:_] 	= True
+	canStart _									= False
+	doStart [_,Value (SelWorkflow wf) _:_] 		= addWorkflow wf
 		
 	addWorkflow (wid,desc)
 		=	get (workflowByIndex wid) -&&- get currentUser
@@ -210,7 +214,10 @@ where
 	where
 		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid
 		show ownPid _ = False
-		pflatten procs = flatten [[p:pflatten p.subItems] \\ p <- procs]
+		pflatten procs = flatten [[p:pflatten p.subItems] \\ p <- procs | isActive p]
+	
+	isActive {progressMeta=Just {status=Unstable}}	= True
+	isActive _										= False	
 
 	mkRow {TaskListItem|progressMeta=Just pmeta,managementMeta=Just mmeta} =
 		{WorklistRow
@@ -262,7 +269,7 @@ where
 							, fill (tuiOf (appLayout tabbedLayout ParallelComposition openedTasks actions attributes))
 							])
 		
-		toolbar		= setBaseCls "x-panel-header" (hjoin [setLeftMargin 10 (tuiOf controlApp), buttonPanel (fst (actionsToButtons (actionsOf controlApp)))])
+		toolbar		= setBaseCls "x-panel-header" (hjoin [setLeftMargin 10 (tuiOf controlApp),setPadding 0 (buttonPanel (fst (actionsToButtons (actionsOf controlApp))))])
 		worklist	= addMenusToTUI (fst (actionsToMenus (actionsOf chooseTask))) (toPanel (fill (tuiOf chooseTask)))
 						
 		fitTight = setMargins 0 0 0 0 o setPadding 0 o setFramed False

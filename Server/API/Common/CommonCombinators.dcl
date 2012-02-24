@@ -72,7 +72,7 @@ from Map				import :: Map
 *
 * @gin False
 */
-(@?) infixl 1 :: !(Task a) !((Maybe a) -> Maybe b) -> Task b | iTask a & iTask b
+(@?) infixl 1 :: !(Task a) !((TaskValue a) -> TaskValue b) -> Task b | iTask a & iTask b
 /**
 * Infix shorthand for transform combinator which only deals which only transforms valid results
 * 
@@ -92,7 +92,7 @@ from Map				import :: Map
 *
 * @gin False
 */
-(@>) infixl 1 :: !(Task a) !((Maybe a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
+(@>) infixl 1 :: !(Task a) !((TaskValue a) r -> Maybe w, ReadWriteShared r w) -> Task a | iTask a
 /**
 * Infix shorthands for the (overloaded) tune combinator.
 */
@@ -241,8 +241,11 @@ forever :: !(Task a) -> Task a | iTask a
 (-&&-) infixr 4 	:: !(Task a) !(Task b) 	-> Task (a,b) 			| iTask a & iTask b
 
 /**
-* Feed the result of one task as read-only shared to another
+* Feed the result of one task as read-only shared to another 
 */
+feedForward :: !d (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | descr d & iTask a & iTask b
+
+//Infix version of feedForward
 (>&>) infixl 1  :: (Task a) ((ReadOnlyShared (Maybe a)) -> Task b) -> Task b | iTask a & iTask b
 
 /**
@@ -328,3 +331,16 @@ instance tune Title
 instance tune Icon
 instance tune Attribute		//Set attribute
 instance tune Window		//Indicate that this task should 
+
+
+//Common derived task steps
+Always			:: Action (Task b)						-> TaskStep a b
+AnyTime 		:: Action ((Maybe a) -> Task b)			-> TaskStep a b
+WithResult 		:: Action (a -> Bool) (a -> Task b)		-> TaskStep a b
+WithoutResult	:: Action (Task b)						-> TaskStep a b
+WhenValid		:: (a -> Bool) (a -> Task b)			-> TaskStep a b
+WhenStable		:: (a -> Task b)						-> TaskStep a b
+Catch			:: (e -> Task b)						-> TaskStep a b | iTask e
+CatchAll		:: (String -> Task b)					-> TaskStep a b
+
+

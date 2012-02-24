@@ -15,9 +15,9 @@ where
 createCSVFile :: !String ![[String]] -> Task Document
 createCSVFile filename content = mkInstantTask eval
 where
-	eval taskId iworld
+	eval taskId iworld=:{taskTime}
 		# (doc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
-		= (TaskStable doc NoRep (TCEmpty taskId), iworld)
+		= (ValueResult (Value doc Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
 
 exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask eval
@@ -37,13 +37,13 @@ exportJSONFileWith encoder filename content = mkInstantTask eval
 where
 	eval taskId iworld = fileTask taskId filename content (writeJSON encoder) iworld
 
-fileTask taskId filename content f iworld=:{IWorld|world}
+fileTask taskId filename content f iworld=:{IWorld|taskTime,world}
 	# (ok,file,world)	= fopen filename FWriteData world
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# file				= f content file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	= (TaskStable content NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
+	= (ValueResult (Value content Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
 	
 writeAll content file
 	= fwrites content file
@@ -52,7 +52,7 @@ writeJSON encoder content file
 	= fwrites (toString (encoder content)) file
 
 writeDocument taskId filename document iworld
-	# (mbContent,iworld=:{IWorld|world})
+	# (mbContent,iworld=:{IWorld|taskTime,world})
 							= getDocumentContent document.Document.documentId iworld
 	| isNothing mbContent	= (ioException filename, {IWorld|iworld & world = world})
 	# (ok,file,world)		= fopen filename FWriteData world
@@ -60,8 +60,8 @@ writeDocument taskId filename document iworld
 	# file					= fwrites (fromJust mbContent) file
 	# (ok,world)			= fclose file world
 	| not ok				= (closeException filename,{IWorld|iworld & world = world})	
-	= (TaskStable document NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
+	= (ValueResult (Value document Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
 
-ioException s		= taskException (FileException s IOError)
-openException s		= taskException (FileException s CannotOpen)
-closeException s	= taskException (FileException s CannotClose)
+ioException s		= exception (FileException s IOError)
+openException s		= exception (FileException s CannotOpen)
+closeException s	= exception (FileException s CannotClose)

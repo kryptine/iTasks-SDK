@@ -1,12 +1,13 @@
 implementation module LayoutCombinators
 
-import StdTuple, StdList
+import StdTuple, StdList, StdBool
 import Maybe, Text, Tuple, Util, HtmlUtil
 import SystemTypes, TUIDefinition
 
 from StdFunc import o
 
 from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUI, :: TaskCompositionType(..)
+derive gEq TaskCompositionType
 
 heuristicLayout :: Layout
 heuristicLayout = layout //TODO: Figure out proper propagation of attributes
@@ -14,7 +15,8 @@ where
 	layout type parts actions attributes
 		# partactions		= flatten [actions \\ (_,_,actions,_) <- parts]
 		# guis				= [gui \\ (_,Just gui,_,_) <- parts]
-		| isEmpty guis		= (type, Nothing, actions ++ partactions, attributes)
+		| isEmpty guis && type =!= SingleTask
+			= (type, Nothing, actions ++ partactions, attributes)
 		# gui				= case kvGet TITLE_ATTRIBUTE attributes of
 								(Just title)	= paneled (Just title) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis
 								Nothing
@@ -22,7 +24,9 @@ where
 										(Just hint)	= formed (Just hint) guis
 										Nothing = case guis of
 											[gui]		= gui
-											_			= vjoin guis
+											_			= case type of
+												SingleTask	= formed Nothing guis
+												_			= vjoin guis
 		# actions				= filterImpossibleActions parts actions 
 		| canHoldButtons gui		
 			# (buttons,actions)	= actionsToButtons actions
@@ -96,6 +100,15 @@ where
 		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
 		= (type,Nothing,actions,attributes)
 
+fillLayout :: TUIDirection -> Layout
+fillLayout direction = layout
+where
+	layout type parts actions attributes
+		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
+		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
+		# guis			= [(fill o setMargins 0 0 0 0 o setFramed False) gui \\ (_,Just gui,_,_) <- parts]
+		=(type,Just ((fill o setDirection direction) (vjoin guis)),actions,attributes) 
+		
 vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
 vsplitLayout split fun = layout
 where
@@ -287,13 +300,13 @@ toPanel def=:{TUIDef|content} = case content of
 	//Containers can be coerced to panels
 	TUIContainer {TUIContainer|items,direction,halign,valign,padding,purpose,baseCls}
 		= {TUIDef|def & content = TUIPanel
-			{TUIPanel	|items=items,direction=direction,halign=halign,valign=valign,padding=padding,purpose=purpose
-						,title = Nothing,frame=False,menus=[],iconCls=Nothing,baseCls=baseCls}}
+			{TUIPanel	|items=items,direction=direction,halign=halign,valign=valign,padding=Nothing,purpose=purpose
+						,title = Nothing,frame=False,menus=[],iconCls=Nothing,baseCls=Nothing,bodyCls=baseCls,bodyPadding=padding}}
 	//Uncoercable items are wrapped in a panel instead
 	_
 		= {TUIDef|def & content = TUIPanel
 			{TUIPanel	|items=[def],direction=Vertical,halign=AlignLeft,valign=AlignTop,padding=Nothing,purpose=Nothing
-						,title = Nothing,frame=False,menus=[],iconCls=Nothing,baseCls=Nothing}}
+						,title = Nothing,frame=False,menus=[],iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing,bodyPadding=Nothing}}
 
 toContainer :: !TUIDef -> TUIDef
 toContainer def=:{TUIDef|content} = case content of
@@ -324,10 +337,8 @@ vjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Ve
 						
 paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![TUIDef] -> TUIDef
 paneled mbTitle mbHint mbIcon defs
-	# defs	= case mbHint of
-		Nothing = defs
-		Just hint = [hintPanel hint:defs]
-	# panel = (setPurpose "form" o frame) (toPanel (vjoin defs))
+	# def	= maybe (formPanel defs) (\hint -> vjoin [hintPanel hint,formPanel defs]) mbHint
+	# panel = (setPurpose "form" o frame) (toPanel def)
 	# panel = case mbTitle of
 		Nothing		= panel
 		Just title	= setTitle title panel
@@ -336,14 +347,13 @@ paneled mbTitle mbHint mbIcon defs
 		Just icon	= setIconCls ("icon-" +++ icon) panel	
 	= panel
 where
-	frame = setMargins 10 10 0 10 o setPadding 10 o setFramed True o fixedWidth 700
+	frame = setMargins 10 10 0 10 o setFramed True o fixedWidth 700
 
 formed :: !(Maybe String) ![TUIDef] -> TUIDef
 formed mbHint defs 
-	# defs	= case mbHint of
-		Nothing = defs
-		Just hint = [hintPanel hint:defs]
-	= setPurpose "form" (vjoin defs)
+	= case mbHint of
+		Nothing		= formPanel defs
+		Just hint	= setPurpose "form" (vjoin [hintPanel hint,formPanel defs])
 	
 //Container operations
 addItemToTUI :: (Maybe Int) TUIDef TUIDef -> TUIDef
@@ -399,11 +409,15 @@ setItemsOfTUI items def=:{TUIDef|content} = case content of
 //Predefined panels
 hintPanel :: !String -> TUIDef	//Panel with task instructions
 hintPanel hint
-	= (setPurpose "hint" o setMargins 0 0 10 0)(vjoin [stringDisplay hint])
-	
+	= (setBaseCls "i-hint-panel" o setPurpose "hint" o setPadding 5 o fillWidth) (vjoin [stringDisplay hint])
+
+formPanel :: ![TUIDef] -> TUIDef
+formPanel items
+	= (/*setBaseCls "i-form-panel" o */ setPurpose "form" o setPadding 5 ) (vjoin items)
+
 buttonPanel	:: ![TUIDef] -> TUIDef	//Container for a set of horizontally layed out buttons
 buttonPanel buttons
-	=	{ content	= TUIContainer {TUIContainer|defaultContainer buttons & direction = Horizontal, halign = AlignRight, purpose = Just "buttons"}
+	=	{ content	= TUIContainer {TUIContainer|defaultContainer buttons & direction = Horizontal, halign = AlignRight, purpose = Just "buttons", baseCls = Just "i-button-panel", padding = Just 5}
 		, width		= Just (FillParent 1 ContentSize)
 		, height	= Just (WrapContent 0)
 		, margins	= Nothing

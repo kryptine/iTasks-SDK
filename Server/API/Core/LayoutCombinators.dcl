@@ -44,8 +44,12 @@ tabbedLayout :: Layout
 * This layout hides the gui, but accumulates actions and attributes
 */
 hideLayout :: Layout
+/**
+* Fill out available space
+*/
+fillLayout :: TUIDirection -> Layout
 
-//PLEASE DON'T USE (For backwards compat only
+//PLEASE DON'T USE (For backwards compat only)
 vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
 
 //Useful functions for tweaking or roll-your-own layouts

@@ -49,6 +49,7 @@ initIWorld sdkPath world
 	  ,sdkDirectory			= sdkPath
 	  ,dataDirectory		= dataDir
 	  ,config				= defaultConfig
+	  ,taskTime				= 0
 	  ,timestamp			= timestamp
 	  ,latestEvent			= Nothing
 	  ,localDateTime		= localDateTime

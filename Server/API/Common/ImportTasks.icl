@@ -35,13 +35,13 @@ importJSONFileWith parsefun filename = mkInstantTask eval
 where
 	eval taskId iworld = readJSON taskId filename parsefun iworld
 	
-fileTask taskId filename f iworld=:{IWorld|world}
+fileTask taskId filename f iworld=:{IWorld|taskTime,world}
 	# (ok,file,world)	= fopen filename FReadData world
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (res,file)		= f file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	= (TaskStable res NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
+	= (ValueResult (Value res Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
 		
 readAll file
 	# (chunk,file) = freads file CHUNK_SIZE
@@ -51,17 +51,17 @@ readAll file
 		# (rest,file) = readAll file
 		= (chunk +++ rest,file)
 
-readJSON taskId filename parsefun iworld=:{IWorld|world}
+readJSON taskId filename parsefun iworld=:{IWorld|taskTime,world}
 	# (ok,file,world)	= fopen filename FReadData world
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (content,file)	= readAll file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
 	= case (parsefun (fromString content)) of
-		Just a 	= (TaskStable a NoRep (TCEmpty taskId), {IWorld|iworld & world = world})
+		Just a 	= (ValueResult (Value a Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
 		Nothing	= (parseException filename, {IWorld|iworld & world = world})
 		
-readDocument taskId filename iworld=:{IWorld|world}
+readDocument taskId filename iworld=:{IWorld|taskTime,world}
 	# (ok,file,world)	= fopen filename FReadData world
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (content,file)	= readAll file
@@ -70,8 +70,8 @@ readDocument taskId filename iworld=:{IWorld|world}
 	# name				= dropDirectory filename 
 	# mime				= extensionToMimeType (takeExtension name)
 	# (document,iworld)	= createDocument name mime content {IWorld|iworld & world = world}
-	= (TaskStable document NoRep (TCEmpty taskId), iworld)
+	= (ValueResult (Value document Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
 
-openException s		= taskException (FileException s CannotOpen)
-closeException s	= taskException (FileException s CannotClose)
-parseException s	= taskException (CannotParse ("Cannot parse JSON file " +++ s))
+openException s		= exception (FileException s CannotOpen)
+closeException s	= exception (FileException s CannotClose)
+parseException s	= exception (CannotParse ("Cannot parse JSON file " +++ s))

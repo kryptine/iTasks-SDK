@@ -94,6 +94,8 @@ from Task			import	:: TaskAction, :: TaskId
 	, menus				:: ![TUIMenuButton]
 	, iconCls			:: !Maybe String
 	, baseCls			:: !Maybe String
+	, bodyCls			:: !Maybe String
+	, bodyPadding		:: !Maybe Int
 	}
 :: TUIWindow =
 	{ items				:: ![TUIDef]
