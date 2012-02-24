@@ -5,7 +5,7 @@ definition module TaskStore
 * Session instances: temporary tasks for each interactive session between a user and the server. 
 * Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
-import Maybe, Error, SystemTypes, Task, TaskContext, TUIDefinition
+import Maybe, Error, SystemTypes, Task, TaskState, TUIDefinition
 from Time import :: Timestamp
 
 newSessionId		:: !*IWorld -> (!SessionId,	!*IWorld)

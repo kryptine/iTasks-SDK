@@ -1,4 +1,4 @@
-implementation module TaskContext
+implementation module TaskState
 
 import SystemTypes
 from iTasks		import JSONEncode, JSONDecode

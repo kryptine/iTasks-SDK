@@ -1,6 +1,6 @@
 implementation module ImportTasks
  
-import StdBool, _SystemArray, StdInt, IWorld, Task, TaskContext, DocumentStore, MIME, Text, Util, CSV, File, Map
+import StdBool, _SystemArray, StdInt, IWorld, Task, TaskState, DocumentStore, MIME, Text, Util, CSV, File, Map
 from StdFunc import id
 
 CHUNK_SIZE :== 1024

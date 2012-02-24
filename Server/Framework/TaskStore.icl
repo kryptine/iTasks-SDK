@@ -2,7 +2,7 @@ implementation module TaskStore
 
 import StdEnv, Maybe
 
-import IWorld, TaskContext, Store, Util, Text, Time, Random, JSON, TUIDefinition
+import IWorld, TaskState, Store, Util, Text, Time, Random, JSON, TUIDefinition
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
 //Derives required for storage of TUI definitions

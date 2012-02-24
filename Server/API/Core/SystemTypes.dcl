@@ -11,7 +11,7 @@ from HTML 			import class html
 from Time			import :: Timestamp
 from IWorld			import :: IWorld
 from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
-from Task			import :: Task, :: TaskId, :: TaskAttribute, :: TaskValue
+from Task			import :: Task, :: TaskId, :: TaskAttribute
 from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
 from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
@@ -50,6 +50,12 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 	}
 :: DocumentId	:== String
 
+
+//* Task results
+:: TaskValue a		= NoValue				
+					| Value !a !Stability 
+			
+:: TaskTime			:== Int
 
 :: Stability		= Unstable | Stable
 
@@ -167,7 +173,7 @@ derive gUpdate			TaskListItem, ProgressMeta, Stability
 derive gDefaultMask		TaskListItem, ProgressMeta, Stability
 derive gVerify			TaskListItem, ProgressMeta, Stability
 
-derive class iTask	Credentials, Config, TaskId
+derive class iTask	Credentials, Config, TaskId, TaskValue
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 

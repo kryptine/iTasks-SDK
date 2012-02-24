@@ -3,10 +3,9 @@ definition module IWorld
 from FilePath		import :: FilePath
 from Map			import :: Map
 from Maybe			import :: Maybe
-from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType 
+from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from Time			import :: Timestamp
-from Task			import :: TaskTime
-from TaskContext	import :: ParallelItem, :: ParallelControl
+from TaskState		import :: ParallelItem, :: ParallelControl
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build

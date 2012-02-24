@@ -4,7 +4,7 @@ import StdInt, StdFile, StdTuple, StdList
 
 import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple, JSON
 
-import SystemTypes, IWorld, Task, TaskContext
+import SystemTypes, IWorld, Task, TaskState
 import LayoutCombinators
 import CoreTasks, InteractionTasks, CommonCombinators
 import Shared

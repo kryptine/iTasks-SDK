@@ -2,7 +2,7 @@ implementation module CoreTasks
 
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
 import qualified StdList
-import iTaskClass, Task, TaskContext, TaskEval, TaskStore, TUIDefinition, LayoutCombinators, Shared
+import iTaskClass, Task, TaskState, TaskEval, TaskStore, TUIDefinition, LayoutCombinators, Shared
 from SharedDataSource		import qualified read, write, getVersion, readWrite, :: RWRes(..)
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..)

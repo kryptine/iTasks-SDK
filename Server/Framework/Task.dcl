@@ -5,21 +5,21 @@ definition module Task
 */
 
 import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
-from TaskContext		import :: TaskState
+from TaskState			import :: TaskState
 from LayoutCombinators	import :: Layout
 
-derive JSONEncode		Task, TaskValue
-derive JSONDecode		Task, TaskValue
-derive gUpdate			Task, TaskValue
-derive gDefaultMask		Task, TaskValue
-derive gVerify			Task, TaskValue
-derive gVisualizeText	Task, TaskValue
-derive gVisualizeEditor	Task, TaskValue
-derive gHeaders			Task, TaskValue
-derive gGridRows		Task, TaskValue
-derive gEq				Task, TaskValue
-derive gGetRecordFields	Task, TaskValue
-derive gPutRecordFields	Task, TaskValue
+derive JSONEncode		Task
+derive JSONDecode		Task
+derive gUpdate			Task
+derive gDefaultMask		Task
+derive gVerify			Task
+derive gVisualizeText	Task
+derive gVisualizeEditor	Task
+derive gHeaders			Task
+derive gGridRows		Task
+derive gEq				Task
+derive gGetRecordFields	Task
+derive gPutRecordFields	Task
 
 // Tasks
 :: Task a =
@@ -40,11 +40,6 @@ derive gPutRecordFields	Task, TaskValue
 
 :: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskState	//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String							//If something went wrong, a task produces an exception value
-
-:: TaskValue a		= NoValue				
-					| Value !a !Stability 
-			
-:: TaskTime			:== Int
 
 :: TaskRepTarget
 	= RepAsTUI (Maybe TaskId) (Maybe Layout)	//Optionally with tweaked layout

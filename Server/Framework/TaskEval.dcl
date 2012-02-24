@@ -7,7 +7,7 @@ from SystemTypes	import :: IWorld, :: TaskListItem, :: User, :: TaskId, :: Sessi
 from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: TaskEvalFun, :: TaskRepTarget
 
 import Maybe, JSON, Error
-import TaskContext, iTaskClass
+import TaskState, iTaskClass
 
 /**
 * Create a new session task instance

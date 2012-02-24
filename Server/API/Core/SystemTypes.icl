@@ -26,7 +26,7 @@ derive gUpdate			TaskListItem, ProgressMeta, Stability
 derive gDefaultMask		TaskListItem, ProgressMeta, Stability
 derive gVerify			TaskListItem, ProgressMeta, Stability
 
-derive class iTask	Credentials, Config, TaskId
+derive class iTask	Credentials, Config, TaskId, TaskValue
 derive class iTask FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException, FileError
 
 JSONEncode{|Timestamp|} (Timestamp t)	= [JSONInt t]

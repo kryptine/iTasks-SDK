@@ -2,7 +2,7 @@ implementation module TaskEval
 
 import StdList, StdBool
 import Error
-import SystemTypes, IWorld, Shared, Task, TaskContext
+import SystemTypes, IWorld, Shared, Task, TaskState
 import LayoutCombinators
 
 from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)

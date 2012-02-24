@@ -5,7 +5,7 @@ import Random
 import StdList, StdBool
 from StdFunc		import o, seq
 from IWorld			import :: IWorld(..)
-from TaskContext 	import :: ParallelControl
+from TaskState	 	import :: ParallelControl
 from Util			import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
