@@ -49,6 +49,11 @@ hideLayout :: Layout
 */
 fillLayout :: TUIDirection -> Layout
 
+/**
+* Split available space into a main area and a side panel.
+*/
+sideLayout :: TUISide TUIFixedSize Layout -> Layout
+
 //PLEASE DON'T USE (For backwards compat only)
 vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
 

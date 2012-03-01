@@ -29,12 +29,10 @@ derive JSONDecode MaybeError
 derive JSONDecode AsyncResult
 
 callProcess :: !FilePath ![String] -> Task Int
-callProcess cmd args 
-	= mkTask init eval
+callProcess cmd args = mkTask eval
 where
-	//Start the process
-	init :: TaskId *IWorld -> (!TaskState,!*IWorld)
-	init taskId iworld =:{IWorld |taskTime,build,dataDirectory,sdkDirectory,world}
+	//Start the external process
+	eval eEvent cEvent repAs (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
 		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
 		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
 		# runAsyncArgs	=	[ "--taskid"
@@ -45,16 +43,18 @@ where
 							, cmd
 							: args]
 		# (res,world)	= 'Process'.runProcess runAsync runAsyncArgs Nothing world
-		= case res of
-			Error e	= (state taskId taskTime (Left e), {IWorld|iworld & world = world})
-			Ok _	= (state taskId taskTime (Right outfile), {IWorld|iworld & world = world})
+		# nstate		= case res of
+			Error e	= state taskId ts (Left e)
+			Ok _	= state taskId ts (Right outfile)
+		= eval eEvent cEvent repAs nstate {IWorld|iworld & world = world}
 	where
 		state :: TaskId TaskTime (Either OSError FilePath) -> TaskState
 		state taskId taskTime val = TCBasic taskId (toJSON val) taskTime False
 
-	eval eevent cevent repAs context=:(TCBasic taskId encv lastEvent stable) iworld=:{world}
+	//Check for its result
+	eval eEvent cEvent repAs state=:(TCBasic taskId encv lastEvent stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent NoRep context, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent NoRep state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -75,7 +75,7 @@ where
 							_
 								= ServiceRep ([(toString taskId, 0, JSONNull)], [], [])
 						
-						= (ValueResult NoValue lastEvent rep context,{IWorld|iworld & world = world})
+						= (ValueResult NoValue lastEvent rep state,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file

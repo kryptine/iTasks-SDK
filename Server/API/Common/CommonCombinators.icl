@@ -88,7 +88,6 @@ where
 	result (Value [_,(_,v)] _)	= v
 	result _					= NoValue
 	
-	
 :: ProcessControlView =	{ assignedTo	:: !Maybe User
 						, priority		:: !TaskPriority
 						, issuedAt		:: !Display (Maybe DateTime)

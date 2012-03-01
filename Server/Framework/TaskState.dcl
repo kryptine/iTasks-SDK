@@ -21,7 +21,8 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 	}
 
 :: TaskState
-	= TCBasic		!TaskId !JSONNode !TaskTime !Bool 									//Encoded value and stable indicator
+	= TCInit		!TaskId !TaskTime
+	| TCBasic		!TaskId !JSONNode !TaskTime !Bool 									//Encoded value and stable indicator
 	| TCInteract	!TaskId !JSONNode !TaskTime ![(!JSONNode,!UpdateMask,!Bool)] !Int
 	| TCProject		!TaskId !JSONNode !TaskState
 	| TCStep		!TaskId !(Either TaskState (!JSONNode,!Int,!TaskState))

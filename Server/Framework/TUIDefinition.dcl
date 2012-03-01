@@ -217,6 +217,8 @@ from Task			import	:: TaskAction, :: TaskId
 :: TUIHAlign		= AlignLeft | AlignCenter | AlignRight
 :: TUIVAlign		= AlignTop | AlignMiddle | AlignBottom
 :: TUIDirection		= Horizontal | Vertical
+:: TUISide			= TopSide | RightSide | BottomSide | LeftSide
+
 
 //Utility functions
 defaultDef				:: !TUIDefContent	-> TUIDef

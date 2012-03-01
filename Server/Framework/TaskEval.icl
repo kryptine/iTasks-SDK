@@ -31,28 +31,24 @@ createValueContainer val = (dynamic (Container val) :: Container a^ a^)
 
 //Lifts any task to a task that can be added to the "sessions" task list
 toSessionTask :: (Task a) -> ParallelTask Void
-toSessionTask task=:{evalFun} = \_ -> {task & evalFun = evalFun`}
+toSessionTask task=:{eval} = \_ -> {task & eval = evalFun`}
 where
-	evalFun` mbE mbC repAs state iworld = case evalFun mbE mbC repAs state iworld of
+	evalFun` mbE mbC repAs state iworld = case eval mbE mbC repAs state iworld of
 		(ValueResult val lastEvent rep state, iworld)	= (ValueResult (fmap (\_-> Void) val) lastEvent rep state, iworld)
 		(ExceptionResult e str, iworld)					= (ExceptionResult e str, iworld)
 
 createTaskState :: !(Either SessionId TopNo) !Dynamic !ManagementMeta !User !*IWorld -> (!TopInstance, !*IWorld)
-createTaskState topId container=:(Container parTask :: Container (ParallelTask a) a) mmeta user iworld =:{IWorld|localDateTime}
-	# taskId				= case topId of
+createTaskState topId container=:(Container parTask :: Container (ParallelTask a) a) mmeta user iworld =:{IWorld|currentDateTime}
+	# taskId	= case topId of
 		Left _		= TaskId 0 0
 		Right topNo	= TaskId topNo 0
-	# taskList				= taskListShare TopLevelTaskList
-	# task					= parTask taskList
-	# (state,iworld) 		= task.initFun taskId {iworld & nextTaskNo = 1, taskTime = 1, evalStack = [taskId]}		
-	# (nextTaskNo,iworld)	= getNextTaskNo iworld 
-	# pmeta	 = {issuedAt = localDateTime
-			   ,issuedBy = user
-			   , status  = Unstable
-			   , firstEvent = Nothing
-			   , latestEvent = Nothing
-			   }
-	= ({TopInstance|instanceId=topId,nextTaskNo=nextTaskNo,nextTaskTime=2,progress=pmeta,management=mmeta,task=container,state=Left state,attributes=[]},iworld)
+	# pmeta		= { issuedAt = currentDateTime
+				  , issuedBy = user
+				  , status  = Unstable
+				  , firstEvent = Nothing
+				  , latestEvent = Nothing
+				  }
+	= ({TopInstance|instanceId=topId,nextTaskNo=1,nextTaskTime=2,progress=pmeta,management=mmeta,task=container,state=Left (TCInit taskId 1),attributes=[]},iworld)
 where
 	getNextTaskNo iworld=:{IWorld|nextTaskNo} = (nextTaskNo,iworld)
 
@@ -69,7 +65,7 @@ evalInstance editEvent commitEvent repTarget genGUI topInstance=:{TopInstance|in
 		(Right topNo)	= TaskId topNo 0
 	# iworld					= {iworld & evalStack = [taskId:evalStack], nextTaskNo = curNextTaskNo, taskTime = nextTaskTime} 
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (result,iworld)			= task.evalFun editEvent commitEvent repAs taskState iworld
+	# (result,iworld)			= task.eval editEvent commitEvent repAs taskState iworld
 	# (updNextTaskNo,iworld)	= getNextTaskNo iworld
 	//Restore current process id & nextTask id in iworld
 	# iworld					= {iworld & nextTaskNo = nextTaskNo, taskTime = taskTime, evalStack = evalStack}
@@ -195,6 +191,4 @@ where
 		toMeta {ParallelItem|taskId,progress,management,state,lastAttributes}
 			= {TaskListItem|taskId = taskId, taskMeta = lastAttributes, progressMeta = progress, managementMeta = management
 			  ,subItems = stateToTaskListItems state}
-	
-		
 		

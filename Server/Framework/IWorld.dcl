@@ -14,9 +14,8 @@ from TaskState		import :: ParallelItem, :: ParallelControl
 					, dataDirectory			:: !FilePath								// Location of the applications data files
 					, config				:: !Config									// The server configuration
 					, taskTime				:: !TaskTime								// The 'virtual' time for the task. Increments at every event
-					, timestamp				:: !Timestamp								// The timestamp of the current request
-					, localDateTime			:: !DateTime								// The local date & time of the current request
-					, latestEvent			:: !Maybe DateTime							// The date & time of the last event of the (detached) process
+					, timestamp				:: !Timestamp								// The timestamp of the current request	
+					, currentDateTime		:: !DateTime								// The local date & time of the current request
 					, currentUser			:: !User									// The current user
 					, nextTaskNo			:: !TaskNo									// The next task number to assign
 					, evalStack				:: ![TaskId]								// The stack of instances evaluating other instances through workOn

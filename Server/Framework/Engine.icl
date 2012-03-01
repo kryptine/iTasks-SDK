@@ -36,7 +36,7 @@ initIWorld sdkPath world
 	# tm						= (fromOk res).lastModifiedTime
 	# build						= strfTime "%Y%m%d-%H%M%S" tm
 	# (timestamp,world)			= time world
-	# (localDateTime,world)		= currentDateTimeWorld world
+	# (currentDateTime,world)	= currentDateTimeWorld world
 	# (_,world)					= ensureDir "data" dataDir world
 	# tmpDir					= dataDir </> "tmp-" +++ build
 	# (_,world)					= ensureDir "tmp" tmpDir world
@@ -51,8 +51,7 @@ initIWorld sdkPath world
 	  ,config				= defaultConfig
 	  ,taskTime				= 0
 	  ,timestamp			= timestamp
-	  ,latestEvent			= Nothing
-	  ,localDateTime		= localDateTime
+	  ,currentDateTime		= currentDateTime
 	  ,currentUser			= AnyUser
 	  ,nextTaskNo			= 0
 	  ,evalStack			= []

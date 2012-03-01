@@ -2,7 +2,7 @@ implementation module Util
 
 import StdBool, StdList, StdFile, StdMisc, StdArray, StdString, StdTuple, StdGeneric, StdOrdList, Maybe, Time, Text, JSON, Void, Error, GenEq
 from SystemTypes	import :: Date{..}, :: Time{..}, :: DateTime(..)
-from IWorld 		import :: IWorld{localDateTime,timestamp}
+from IWorld 		import :: IWorld{currentDateTime,timestamp}
 
 mb2list	:: !(Maybe [a]) -> [a]
 mb2list	Nothing = []
@@ -34,13 +34,13 @@ where
 		| otherwise			= [c:addspace cs]
 
 currentTime :: !*IWorld -> (!Time,!*IWorld)
-currentTime iworld=:{localDateTime=l=:(DateTime _ time)} = (time,iworld)
+currentTime iworld=:{currentDateTime=l=:(DateTime _ time)} = (time,iworld)
 
 currentDate :: !*IWorld -> (!Date,!*IWorld)
-currentDate iworld=:{localDateTime=l=:(DateTime date _)} = (date,iworld)
+currentDate iworld=:{currentDateTime=l=:(DateTime date _)} = (date,iworld)
 	
 currentDateTime :: !*IWorld -> (!DateTime,!*IWorld)
-currentDateTime iworld=:{localDateTime} = (localDateTime,iworld)
+currentDateTime iworld=:{currentDateTime} = (currentDateTime,iworld)
 
 currentTimestamp :: !*IWorld -> (!Timestamp,!*IWorld)
 currentTimestamp iworld=:{timestamp} = (timestamp,iworld)

@@ -50,39 +50,33 @@ where
 		= (ValueResult (Value (fromOk val) Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
 
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
-watch shared = mkTask init eval
+watch shared = mkTask eval
 where
-	init taskId iworld=:{taskTime}
-		= (TCEmpty taskId taskTime, iworld)
-	
-	eval eEvent cEvent repAs (TCEmpty taskId lastEvent) iworld
+	eval eEvent cEvent repAs (TCInit taskId ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.read shared iworld
 		# res = case val of
-			Ok (val,_)	= ValueResult (Value val Unstable) lastEvent NoRep (TCEmpty taskId lastEvent)
+			Ok (val,_)	= ValueResult (Value val Unstable) ts NoRep (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 		
 interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
-interact desc initFun parts initLocal shared = mkTask init eval
+interact desc initFun parts initLocal shared = mkTask eval
 where
-	init taskId iworld=:{taskTime}		//Create the initial views
+	eval eEvent cEvent repAs state=:(TCInit taskId ts) iworld		//Create the initial views
 		# (mbrvalue,iworld) 			= 'SharedDataSource'.read shared iworld
-		| isError mbrvalue				= (TCEmpty taskId taskTime, iworld)
+		| isError mbrvalue				= (exception "Could not read shared in interact", iworld)
 		# (rvalue,version)				= fromOk mbrvalue
 		# lvalue						= initFun initLocal rvalue
-		= (TCInteract taskId (toJSON lvalue) taskTime (initParts lvalue rvalue parts) version, iworld)
-
-	initParts l r parts = map (initPart l r) parts
-	
-	initPart l r (DisplayPart f)	= (toJSON (f l r),Untouched, False)
-	initPart l r (FormPart f _ _)
-		# (_,encv,maskv)	= initFormView (f l r)
-		= (encv,maskv,False)
-	
-	initFormView BlankForm		= (v, toJSON v, Untouched) where v = defaultValue
-	initFormView (FilledForm v)	= (v, toJSON v, defaultMask v)
-	
-	eval eEvent cEvent repAs context=:(TCInteract taskId encl lastEvent views lastShareVersion) iworld=:{IWorld|taskTime}
+		= eval eEvent cEvent repAs (TCInteract taskId (toJSON lvalue) ts (initParts lvalue rvalue parts) version) iworld
+	where
+		initParts l r parts = map (initPart l r) parts
+		
+		initPart l r (DisplayPart f)	= (toJSON (f l r),Untouched, False)
+		initPart l r (FormPart f _ _)
+			# (_,encv,maskv)	= initFormView (f l r)
+			= (encv,maskv,False)
+		
+	eval eEvent cEvent repAs state=:(TCInteract taskId encl ts views lastShareVersion) iworld=:{IWorld|taskTime}
 		# (mbrvalue,iworld) 				= 'SharedDataSource'.read shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
 		# (rvalue,currentShareVersion)		= (fromOk mbrvalue)
@@ -92,7 +86,7 @@ where
 			Just (TaskEvent t e)
 				| t == taskId		= (Just e,taskTime)
 			Just (LuckyEvent e)		= (Just e,taskTime)						
-			_						= (Nothing,lastEvent)
+			_						= (Nothing,ts)
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskId repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
 		# rep = case repAs of
 			(RepAsTUI Nothing layout) 
@@ -108,9 +102,7 @@ where
 		
 		# value	= if valid (Value (lvalue,rvalue) Unstable) NoValue 
 		= (ValueResult value lastEvent rep (TCInteract taskId (toJSON lvalue) lastEvent views currentShareVersion), iworld)
-	eval eEvent cEvent repAs (TCEmpty _ _) iworld
-		= (exception "Failed to initialize interact",iworld)
-	eval eEvent cEvent repAs context iworld
+	eval eEvent cEvent repAs state iworld
 		= (exception "Corrupt context in interact",iworld)
 
 	evalParts idx taskId repAs mbEvent changed l r [] [] iworld
@@ -194,17 +186,16 @@ where
 				# vermask			= verifyForm v maskv
 				= (l,v,encv,maskv,vermask,False)
 	
+	initFormView BlankForm		= (v, toJSON v, Untouched) where v = defaultValue
+	initFormView (FilledForm v)	= (v, toJSON v, defaultMask v)
+	
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = exception (SharedException (fromError err))
 
 workOn :: !TaskId -> Task WorkOnProcessState
-workOn target=:(TaskId topNo taskNo)
-	= mkTask init eval
+workOn target=:(TaskId topNo taskNo) = mkTask eval
 where
-	init taskId iworld=:{taskTime}
-		= (TCEmpty taskId taskTime, iworld)
-
-	eval eEvent cEvent repAs (TCEmpty taskId lastEvent) iworld=:{evalStack}
+	eval eEvent cEvent repAs (TCInit taskId ts) iworld=:{evalStack}
 		//Check for cycles
 		| isMember taskId evalStack
 			=(exception WorkOnDependencyCycle, iworld)
@@ -216,7 +207,7 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally topNo iworld
 			| found
-				= (ValueResult NoValue lastEvent (TUIRep (SingleTask, Just (stringDisplay "Task finished"),[],[])) (TCEmpty taskId lastEvent), {iworld & readShares = Nothing})
+				= (ValueResult NoValue ts (TUIRep (SingleTask, Just (stringDisplay "Task finished"),[],[])) (TCInit taskId ts), {iworld & readShares = Nothing})
 			| otherwise
 				= (exception WorkOnNotFound ,iworld)
 		//Eval instance
@@ -233,8 +224,8 @@ where
 					(ValueResult _ _ rep _)					= (WOActive, rep, iworld)
 					(ExceptionResult _ err)					= (WOExcepted, TUIRep (SingleTask, Just (stringDisplay ("Task excepted: " +++ err)), [], []), iworld)
 				= case result of
-					WOFinished	= (ValueResult (Value result Stable) lastEvent rep (TCEmpty taskId lastEvent), iworld)
-					_			= (ValueResult (Value result Unstable) lastEvent rep (TCEmpty taskId lastEvent), iworld)
+					WOFinished	= (ValueResult (Value result Stable) ts rep (TCInit taskId ts), iworld)
+					_			= (ValueResult (Value result Unstable) ts rep (TCInit taskId ts), iworld)
 
 	//If a top instance has just been added, but has not been evaluated before it is still in the
 	//queue of ParallelControls. If so, we don't throw an exception but return an unstable value

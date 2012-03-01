@@ -19,33 +19,29 @@ getNextTaskId iworld=:{evalStack=[TaskId topNo _:_],nextTaskNo} = (TaskId topNo 
 getNextTaskId iworld = abort "Empty evaluation stack"
 
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
-transform f task=:{Task|evalFun} = {Task|task & evalFun = evalFun`}
+transform f task=:{Task|eval} = {Task|task & eval = eval`}
 where
-	evalFun` eEvent cEvent repAs cxt iworld
-		= case evalFun eEvent cEvent repAs cxt iworld of
+	eval` eEvent cEvent repAs cxt iworld
+		= case eval eEvent cEvent repAs cxt iworld of
 			(ValueResult val lastEvent rep cxt,iworld)	= (ValueResult (f val) lastEvent rep cxt, iworld)	//TODO: guarantee stability
 			(ExceptionResult e str, iworld)				= (ExceptionResult e str, iworld)
 
 project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
-project projection share taska = mkTask init eval
+project projection share taska = mkTask eval
 where
-	init taskId iworld
-		# (taskIda,iworld)	= getNextTaskId iworld
-		# (inita,iworld)	= taska.initFun taskId iworld
-		= (TCProject taskId (toJSON (initPrev taska)) inita, iworld)
-	where
-		initPrev :: (Task a) -> TaskValue a //Solve overloading
-		initPrev _ = NoValue
-		
-	//Eval task and check for change
-	eval eEvent cEvent repAs (TCProject taskId encprev cxta) iworld
-		# (resa, iworld) 	= taska.evalFun eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) cxta iworld
+	eval eEvent cEvent repAs state iworld
+		# (taskId,prev,statea) = case state of
+			(TCInit taskId _)					= (taskId,NoValue,state) 
+			(TCProject taskId encprev statea)	= (taskId,fromJust (fromJSON encprev),statea)
+			
+		# (resa, iworld) 	= taska.eval eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) statea iworld
 		= case resa of
-			ValueResult val lastEvent rep ncxta
-				| val =!= (fromJust (fromJSON encprev))
-					= projectOnShare val (ValueResult val lastEvent rep (TCProject taskId (toJSON val) ncxta)) iworld
+			ValueResult val ts rep ncxta
+				# result = ValueResult val ts rep (TCProject taskId (toJSON val) ncxta)
+				| val =!= prev
+					= projectOnShare val result iworld
 				| otherwise
-					= (ValueResult val lastEvent rep (TCProject taskId encprev ncxta), iworld)
+					= (result,iworld)
 			ExceptionResult e str
 				= (ExceptionResult e str,iworld)
 	
@@ -61,23 +57,22 @@ where
 
 
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
-step taska conts = mkTask init eval
+step taska conts = mkTask eval
 where
-	init taskId iworld
+	eval eEvent cEvent repAs (TCInit taskId ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
-		# (inita,iworld)	= taska.initFun taskIda iworld
-		= (TCStep taskId (Left inita), iworld)		
+		= eval eEvent cEvent repAs (TCStep taskId (Left (TCInit taskIda ts))) iworld
 
 	//Eval left-hand side
-	eval eEvent cEvent repAs (TCStep taskId (Left cxta)) iworld 
-		# (resa, iworld) 	= taska.evalFun eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) cxta iworld
+	eval eEvent cEvent repAs (TCStep taskId (Left statea)) iworld=:{taskTime}
+		# (resa, iworld) 	= taska.eval eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) statea iworld
 		# mbcommit			= case cEvent of
 			(Just (TaskEvent t action))
 				| t == taskId	= Just action
 			_					= Nothing
 		# mbCont			= case resa of
-			ValueResult val lastEvent rep ncxta = case searchContValue val mbcommit conts of
-				Nothing			= Left (ValueResult NoValue lastEvent (addStepActions taskId repAs rep val) (TCStep taskId (Left ncxta)) )
+			ValueResult val lastEvent rep nstatea = case searchContValue val mbcommit conts of
+				Nothing			= Left (ValueResult NoValue lastEvent (addStepActions taskId repAs rep val) (TCStep taskId (Left nstatea)) )
 				Just rewrite	= Right rewrite
 			ExceptionResult e str = case searchContException e str conts of
 				Nothing			= Left (ExceptionResult e str)
@@ -86,13 +81,12 @@ where
 			Left res = (res,iworld)
 			Right (sel,taskb,enca)
 				# (taskIdb,iworld)	= getNextTaskId iworld
-				# (cxtb,iworld)		= taskb.initFun taskIdb iworld
-				# (resb,iworld)		= taskb.evalFun Nothing Nothing (matchTarget (subRepAs repAs taskb) taskId) cxtb iworld 
+				# (resb,iworld)		= taskb.eval Nothing Nothing (matchTarget (subRepAs repAs taskb) taskId) (TCInit taskIdb taskTime) iworld 
 				= case resb of
-					ValueResult val lastEvent rep ncxtb		= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,ncxtb))),iworld)
+					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,nstateb))),iworld)
 					ExceptionResult e str					= (ExceptionResult e str, iworld)
 	//Eval right-hand side
-	eval eEvent cEvent repAs (TCStep taskId (Right (enca,sel,cxtb))) iworld
+	eval eEvent cEvent repAs (TCStep taskId (Right (enca,sel,stateb))) iworld
 		# mbTaskb = case conts !! sel of
 			(OnValue _ taskbf)			= fmap taskbf (fromJSON enca)
 			(OnAction _ _ taskbf)		= fmap taskbf (fromJSON enca)
@@ -100,15 +94,15 @@ where
 			(OnAllExceptions taskbf)	= fmap taskbf (fromJSON enca)
 		= case mbTaskb of
 			Just taskb
-				# (resb, iworld)	= taskb.evalFun eEvent cEvent (matchTarget (subRepAs repAs taskb) taskId) cxtb iworld 
+				# (resb, iworld)	= taskb.eval eEvent cEvent (matchTarget (subRepAs repAs taskb) taskId) stateb iworld 
 				= case resb of
-					ValueResult val lastEvent rep ncxtb	= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,ncxtb))), iworld)
-					ExceptionResult e str				= (ExceptionResult e str, iworld)
+					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,nstateb))), iworld)
+					ExceptionResult e str					= (ExceptionResult e str, iworld)
 			Nothing
 				= (exception "Corrupt task value in step", iworld) 	
 	//Incorred state
-	eval eEvent cEvent _ context iworld
-		= (exception "Corrupt task context in step", iworld)
+	eval eEvent cEvent _ state iworld
+		= (exception ("Corrupt task state in step:" +++ (toString (toJSON state))), iworld)
 
 	searchContValue val mbcommit conts = search val mbcommit 0 Nothing conts
 	where
@@ -163,20 +157,19 @@ where
 :: ListId a = ListId TaskId
 
 parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
-parallel desc initTasks = mkTask init eval 
+parallel desc initTasks = mkTask eval 
 where
 	//Create initial set of tasks and initial state
-	init taskId iworld=:{IWorld|timestamp}	
+	eval eEvent cEvent repAs (TCInit taskId ts) iworld
 		//Create the list of initial parallel items
-		# (items,iworld)					= mkParallelItems listId initTasks (length initTasks - 1) iworld
+		# (items,iworld)					= mkParallelItems listId ts initTasks (length initTasks - 1) iworld
 		//Initialize all initial items
-		# (items,iworld)					= initParallelItems listId 0 items 0 iworld  
-		= (TCParallel taskId listMeta items, iworld)
+		= eval eEvent cEvent repAs (TCParallel taskId listMeta items) iworld
 	where
 		listId		= ListId taskId //Passed to subfunctions to solve overloading
 		listMeta	= {nextIdx = length initTasks, listVersion = 0}	
 
-	eval eEvent cEvent repAs context=:(TCParallel taskId meta items) iworld
+	eval eEvent cEvent repAs (TCParallel taskId meta items) iworld
 		//If a reorder edit event is given, reorder the stack 
 		# items = case eEvent of 
 			Just (TaskEvent t ("top",JSONString top))	= reorder (fromString top) items
@@ -200,7 +193,7 @@ where
 		listKey = toString (ParallelTaskList taskId)
 	//Fallback
 	eval _ _ _ _ iworld
-		= (exception "Corrupt task context in parallel", iworld)
+		= (exception "Corrupt task state in parallel", iworld)
 		
 	//Helper function to unify ListId type parameter with type parameter of initial task set
 	listId :: !TaskId [(!ParallelTaskType,!ParallelTask a)] -> ListId a	
@@ -226,13 +219,13 @@ where
 			= (RSResults [(item,result) \\ (item,Just result) <- items], nextIdx, iworld)
 		| otherwise
 			//Update scope
-			# iworld		= shareParallelList listId (map fst items) version iworld 
+			# iworld					= shareParallelList listId (map fst items) version iworld 
 			//Enable control
-			# iworld		= enableControl listId nextIdx iworld
+			# iworld					= enableControl listId nextIdx iworld
 			//Evaluate item at index
 			# (result,item,iworld)		= evalParallelItem listId eEvent cEvent repAs (fst (items !! index)) iworld
 			//Process additions and removals from the list
-			# (controls,nextIdx,iworld)	= takeControl listId iworld
+			# (controls,nextIdx,iworld)	= takeControls listId iworld
 			# (items,iworld)			= processControls listId controls (updateAt index (item,Just result) items) iworld
 			# index						= if (isEmpty controls) index (resetIndex items) 	//If items have been removed, the index may not be correct anymore
 			= case result of
@@ -246,7 +239,7 @@ where
 		
 	evalParallelItem :: !(ListId a) !(Maybe EditEvent) !(Maybe CommitEvent) !TaskRepTarget !ParallelItem !*IWorld -> (!TaskResult a,!ParallelItem,!*IWorld) | iTask a
 	evalParallelItem listId=:(ListId listTaskId) eEvent cEvent repAs item=:{ParallelItem|task=(parTask :: ParallelTask a^),state} iworld
-		# (result, iworld)	= task.evalFun eEvent cEvent (subRepAs repAs listTaskId task) state iworld
+		# (result, iworld)	= task.eval eEvent cEvent (subRepAs repAs listTaskId task) state iworld
 		# item	= case result of
 			ValueResult val _ rep state		= {ParallelItem|item & state = state, lastValue = toJSON val} //TODO: set lastAttributes
 			ExceptionResult e str			= item
@@ -257,9 +250,8 @@ where
 	
 	processControls :: !(ListId a) ![ParallelControl] ![(ParallelItem,Maybe (TaskResult a))] !*IWorld -> (![(ParallelItem,Maybe (TaskResult a))],!*IWorld) | iTask a
 	processControls listId [] items iworld = (items,iworld)
-	processControls listId [AppendTask item:controls] items iworld
-		//Initialize the new item and append for later evaluation			//TODO: Maybe initialize should only happen just before evaluation?
-		# (item,iworld)	= initParallelItem listId item iworld	
+	processControls listId [AppendTask item:controls] items iworld=:{taskTime}
+		//Append for later evaluation	
 		= processControls listId controls (items ++ [(item,Nothing)]) iworld
 	processControls listId [RemoveTask taskId:controls] items iworld
 		//Filter the item from the set
@@ -278,8 +270,8 @@ where
 	where
 		listKey = toString (ParallelTaskList taskId)
 
-	takeControl	:: !(ListId a) !*IWorld -> (![ParallelControl],!Int,!*IWorld)
-	takeControl (ListId taskId) iworld=:{parallelControls}
+	takeControls	:: !(ListId a) !*IWorld -> (![ParallelControl],!Int,!*IWorld)
+	takeControls (ListId taskId) iworld=:{parallelControls}
 		= case 'Map'.get ("taskList:" +++ listKey) parallelControls of
 			Just (nextIdx,controls)	= (controls,nextIdx,iworld)
 			_						= abort "Could not read parallel controls"
@@ -328,12 +320,12 @@ where
 //Use decrementing stack order values (o)
 //To make sure that the first initial subtask has the highest order value
 //(this will ensure the first tab is active, or the first window will be on top)
-mkParallelItems :: !(ListId a) ![(!ParallelTaskType,!ParallelTask a)] !Int *IWorld -> (![ParallelItem],!*IWorld) | TC a & JSONEncode{|*|} a
-mkParallelItems listId [] stackOrder iworld = ([],iworld)
-mkParallelItems listId [(parType,parTask):tasks] stackOrder iworld=:{IWorld|taskTime,localDateTime,currentUser}
+mkParallelItems :: !(ListId a) !TaskTime  ![(!ParallelTaskType,!ParallelTask a)] !Int *IWorld -> (![ParallelItem],!*IWorld) | TC a & JSONEncode{|*|} a
+mkParallelItems listId taskTime [] stackOrder iworld = ([],iworld)
+mkParallelItems listId taskTime [(parType,parTask):tasks] stackOrder iworld=:{IWorld|currentDateTime,currentUser}
 	# (taskId,iworld)		= getNextTaskId iworld
-	# (listItems,iworld)	= mkParallelItems listId tasks (stackOrder - 1) iworld
-	= ([mkParallelItem taskTime parType taskId stackOrder currentUser localDateTime parTask :listItems], iworld)
+	# (listItems,iworld)	= mkParallelItems listId taskTime tasks (stackOrder - 1) iworld
+	= ([mkParallelItem taskTime parType taskId stackOrder currentUser currentDateTime parTask : listItems], iworld)
 
 mkParallelItem :: !TaskTime !ParallelTaskType !TaskId !Int !User !DateTime !(ParallelTask a) -> ParallelItem | TC a & JSONEncode{|*|} a
 mkParallelItem taskTime parType taskId stackOrder user now parTask
@@ -341,26 +333,11 @@ mkParallelItem taskTime parType taskId stackOrder user now parTask
 		Embedded				= (Nothing,Nothing)
 		(Detached management)	= (Just {ProgressMeta|status=Unstable,issuedAt=now,issuedBy=user,firstEvent=Nothing,latestEvent=Nothing},Just management)
 	= {taskId = taskId, stack = stackOrder, detached = False, progress = progress, management = management
-	   ,task = (dynamic parTask :: ParallelTask a^), state = TCEmpty taskId taskTime, lastValue = toJSON (initValue parTask), lastAttributes = []}
+	   ,task = (dynamic parTask :: ParallelTask a^), state = TCInit taskId taskTime, lastValue = toJSON (initValue parTask), lastAttributes = []}
 	where
 		initValue :: (ParallelTask a) -> TaskValue a //Solve overloading
 		initValue _ = NoValue
 		
-initParallelItems :: !(ListId a) !Int ![ParallelItem] !Int !*IWorld -> (![ParallelItem],!*IWorld) | iTask a
-initParallelItems listId=:(ListId taskId) index items version iworld
-	| index >= length items
-		= (items, unshareParallelList listId iworld)									//Remove shared data from scope
-	# iworld		= shareParallelList listId items version iworld 					//Update shared data	
-	# (item,iworld)	= initParallelItem listId (items !! index) iworld					//Init item at index
-	= initParallelItems listId (index + 1) (updateAt index item items) version iworld
-
-initParallelItem :: !(ListId a) !ParallelItem !*IWorld -> (!ParallelItem,!*IWorld) | iTask a
-initParallelItem (ListId listTaskId) item=:{ParallelItem|taskId, task = (parTask :: ParallelTask a^)} iworld
-	# (state,iworld)	= (parTask listShare).initFun taskId iworld
-	= ({ParallelItem|item & state = state}, iworld)
-where
-	listShare = taskListShare (ParallelTaskList listTaskId)
-
 shareParallelList :: !(ListId a) ![ParallelItem] !Int !*IWorld -> *IWorld
 shareParallelList (ListId taskId) items version iworld=:{parallelLists}
 	= {iworld & parallelLists = 'Map'.put ("taskList:" +++ listKey) (version,items) parallelLists}
@@ -386,7 +363,7 @@ appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task In
 appendTask parType parTask tasklist = mkInstantTask eval
 where
 	listId = hd (getIds tasklist)
-	eval taskId iworld=:{taskTime,parallelControls,currentUser,localDateTime}
+	eval taskId iworld=:{taskTime,parallelControls,currentUser,currentDateTime}
 		= case 'Map'.get listId parallelControls of
 			Just (nextIdx,controls)
 				//For the global tasklist we don't use the internal counter, but get the index from the
@@ -398,7 +375,7 @@ where
 					_						
 						# (newTaskId,iworld)	= getNextTaskId iworld	
 						= (nextIdx,newTaskId,nextIdx + 1,iworld)		
-				# newItem					= mkParallelItem taskTime parType newTaskId newIdx currentUser localDateTime parTask
+				# newItem					= mkParallelItem taskTime parType newTaskId newIdx currentUser currentDateTime parTask
 				# parallelControls			= 'Map'.put listId (nextIdx, controls ++ [AppendTask newItem]) parallelControls
 				= (ValueResult (Value newIdx Stable) taskTime NoRep (TCEmpty taskId taskTime), {iworld & parallelControls = parallelControls, readShares = Nothing})
 			_
@@ -426,37 +403,30 @@ where
 */
 workAs :: !User !(Task a) -> Task a | iTask a
 workAs user task
-	= {Task|task & initFun = init task.initFun, evalFun = eval task.evalFun}
+	= {Task|task & eval = eval task.eval}
 where
-	init f taskId iworld=:{currentUser}
-		# (context,iworld) = f taskId {iworld & currentUser = user}
-		= (context,{iworld & currentUser = currentUser})
-	
-	eval f eEvent cEvent repAs context iworld=:{currentUser}
-		# (result,iworld) = f eEvent cEvent repAs context {iworld & currentUser = user}
+	eval f eEvent cEvent repAs state iworld=:{currentUser}
+		# (result,iworld) = f eEvent cEvent repAs state {iworld & currentUser = user}
 		= (result,{iworld & currentUser = currentUser})
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
-withShared initial stask = mkTask init eval
-where
-	init taskId iworld
+withShared initial stask = mkTask eval
+where	
+	eval eEvent cEvent repAs (TCInit taskId ts) iworld
 		# (taskIda,iworld)			= getNextTaskId iworld
-		# iworld					= shareValue taskId initial initial 0 iworld
-		# (inita,iworld)			= (stask (localShare taskId)).initFun taskId iworld
-		# (value,version,iworld)	= unshareValue taskId initial iworld
-		= (TCShared taskId (toJSON value) version inita, iworld)
-
-	eval eEvent cEvent repAs context=:(TCShared taskId encv version cxta) iworld
-		# iworld					= shareValue taskId initial (fromJust (fromJSON encv)) version iworld
+		= eval eEvent cEvent repAs  (TCShared taskId (toJSON initial) 0 (TCInit taskIda ts)) iworld
+		
+	eval eEvent cEvent repAs (TCShared taskId encsvalue version cxta) iworld
+		# iworld					= shareValue taskId initial (fromJust (fromJSON encsvalue)) version iworld
 		# taska						= stask (localShare taskId)
-		# (resa,iworld)				= taska.evalFun eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) cxta iworld
-		# (value,version,iworld)	= unshareValue taskId initial iworld
+		# (resa,iworld)				= taska.eval eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) cxta iworld
+		# (svalue,version,iworld)	= unshareValue taskId initial iworld
 		= case resa of
-			ValueResult NoValue lastEvent rep ncxta		= (ValueResult NoValue lastEvent rep (TCShared taskId (JSONNull) version ncxta),iworld)
-			ValueResult (Value stable val) lastEvent rep ncxta	= (ValueResult (Value stable val) lastEvent rep (TCShared taskId (toJSON val) version ncxta),iworld)
-			ExceptionResult e str						= (ExceptionResult e str,iworld)
+			ValueResult NoValue lastEvent rep ncxta				= (ValueResult NoValue lastEvent rep (TCShared taskId (toJSON svalue) version ncxta),iworld)
+			ValueResult (Value stable val) lastEvent rep ncxta	= (ValueResult (Value stable val) lastEvent rep (TCShared taskId (toJSON svalue) version ncxta),iworld)
+			ExceptionResult e str								= (ExceptionResult e str,iworld)
 	eval _ _ _ _ iworld
-		= (exception "Corrupt task context in withShared", iworld)
+		= (exception "Corrupt task state in withShared", iworld)
 	
 	subRepAs (RepAsService target) _  			= (RepAsService target)
 	subRepAs (RepAsTUI target mbLayout) task=:{layout} = case mbLayout of
@@ -511,4 +481,3 @@ matchTarget :: !TaskRepTarget !TaskId -> TaskRepTarget
 matchTarget repAs=:(RepAsTUI (Just target) layout) taskId	= if (target == taskId) (RepAsTUI Nothing layout) repAs
 matchTarget repAs=:(RepAsService (Just target)) taskId		= if (target == taskId) (RepAsService Nothing) repAs
 matchTarget repAs taskId									= repAs
-

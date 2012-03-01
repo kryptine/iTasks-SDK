@@ -6,29 +6,27 @@ from TaskState			import :: TaskState(..), :: ParallelMeta, :: ParallelItem
 from LayoutCombinators	import :: Layout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
-mkTask :: !TaskInitFun !(TaskEvalFun a) -> Task a 
-mkTask initFun evalFun =
+mkTask :: !(TaskEvalFun a) -> Task a 
+mkTask eval =
 	{ Task
-	| initFun			= initFun
-	, evalFun			= evalFun
-	, layout			= Nothing
+	| eval			= eval
+	, layout		= Nothing
 	}
 	
 mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask a
 mkInstantTask iworldfun =
 	{ Task
-	| initFun			= \taskId iworld=:{taskTime}	-> (TCEmpty taskId taskTime,iworld)
-	, evalFun			= evalOnce iworldfun
+	| eval				= evalOnce iworldfun
 	, layout			= Nothing
 	}
 where
-	evalOnce f _ _ _ context=:(TCEmpty taskId _) iworld = case f taskId iworld of
-		(ValueResult (Value a Stable) ts _ _, iworld)	= (ValueResult (Value a Stable) ts NoRep (TCStable taskId (toJSON a) ts), iworld)
+	evalOnce f _ _ _ (TCInit taskId ts) iworld = case f taskId iworld of
+		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts NoRep (TCStable taskId (toJSON a) ts), iworld)
 		(ExceptionResult e s, iworld)					= (ExceptionResult e s, iworld)
 		(_,iworld)										= (exception "Instant task did not complete instantly", iworld)
 
-	evalOnce f _ _ _ context=:(TCStable taskId enc ts) iworld = case fromJSON enc of
-		(Just a)	= (ValueResult (Value a Stable) ts NoRep context, iworld)
+	evalOnce f _ _ _ state=:(TCStable taskId enc ts) iworld = case fromJSON enc of
+		(Just a)	= (ValueResult (Value a Stable) ts NoRep state, iworld)
 		Nothing		= (exception "Corrupt task result", iworld)
 
 derive gGetRecordFields	TaskValue, Stability
@@ -43,8 +41,7 @@ gUpdate{|Task|} fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
 	defaultTask a =	{ Task
-					| initFun	= \_ -> abort funerror
-					, evalFun	= \_ -> abort funerror
+					| eval		= \_ -> abort funerror
 					, layout	= Nothing
 					}
 	funerror = "Creating default task functions is impossible"

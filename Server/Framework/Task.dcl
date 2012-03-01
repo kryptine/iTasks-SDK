@@ -23,12 +23,11 @@ derive gPutRecordFields	Task
 
 // Tasks
 :: Task a =
-	{ initFun				:: !TaskInitFun
-	, evalFun				:: !TaskEvalFun a
+	{ eval					:: !TaskEvalFun a
 	, layout				:: !Maybe Layout	//Optional tweaked layout algorithm
 	}
 				
-:: TaskInitFun		:== TaskId *IWorld -> *(!TaskState,!*IWorld)
+:: TaskInitFun		:== TaskState TaskId *IWorld -> *(!TaskState,!*IWorld)
 :: TaskEvalFun a	:== (Maybe EditEvent) (Maybe CommitEvent) TaskRepTarget TaskState *IWorld -> *(!TaskResult a, !*IWorld)
 
 :: Event e			= TaskEvent		!TaskId !e			//Event for a task within the process we are looking for
@@ -75,7 +74,7 @@ exception :: !e -> TaskResult a | TC, toString e
 * Create a task from a description and a pair of task functions
 *
 */
-mkTask :: !TaskInitFun !(TaskEvalFun a) -> Task a 
+mkTask :: !(TaskEvalFun a) -> Task a 
 /**
 * Create a task that finishes instantly
 */

@@ -11,7 +11,7 @@ import File
 import FilePath
 import Directory
 import Text
-import TaskContext
+import TaskState
 
 from LaTeX import :: LaTeX (CleanCode, CleanInline, EmDash, Environment, Index, Item, NewParagraph, Paragraph, Section, Subsection), printLaTeX
 from LaTeX import qualified :: LaTeX (Text)

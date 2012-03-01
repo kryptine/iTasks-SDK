@@ -6,7 +6,7 @@ import SystemTypes, TUIDefinition
 
 from StdFunc import o
 
-from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUI, :: TaskCompositionType(..)
+from Task import :: TaskCompositionType, :: TaskAttribute(..), :: TaskAction(..), :: TaskTUI(..), :: TaskCompositionType(..)
 derive gEq TaskCompositionType
 
 heuristicLayout :: Layout
@@ -108,7 +108,33 @@ where
 		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
 		# guis			= [(fill o setMargins 0 0 0 0 o setFramed False) gui \\ (_,Just gui,_,_) <- parts]
 		=(type,Just ((fill o setDirection direction) (vjoin guis)),actions,attributes) 
-		
+	
+sideLayout :: TUISide TUIFixedSize Layout -> Layout
+sideLayout side size mainLayout = layout
+where
+	layout type [] actions attributes		= mainLayout type [] actions attributes	
+
+	layout type parts actions attributes
+		# (direction,sidePart,restParts) = case side of
+			TopSide		= (Vertical, hd parts,tl parts)
+			RightSide	= (Horizontal, last parts,init parts)
+			BottomSide	= (Vertical, last parts,init parts)
+			LeftSide	= (Horizontal, hd parts, tl parts)	
+		# (_,Just restGui,restActions,restAttributes) = mainLayout type restParts actions attributes //TODO: Dont' assume Just
+		# sideGui		= (ifH direction (setWidth (Fixed size)) (setHeight (Fixed size))) (fill (guiOf sidePart))
+		# arrangedGuis	= ifTL side [sideGui,restGui] [restGui,sideGui]
+		# gui			= (fill o setDirection direction) (vjoin arrangedGuis)
+		= (type,Just gui,restActions ++ actions,restAttributes ++ attributes)
+
+	guiOf (_,Just g,_,_) = g //TODO: Dont' assume Just
+
+	ifTL TopSide a b = a
+	ifTL LeftSide a b = a
+	ifTL _ a b = b
+	
+	ifH Horizontal a b = a
+	ifH _ a b = b
+	
 vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
 vsplitLayout split fun = layout
 where
