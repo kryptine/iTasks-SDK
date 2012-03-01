@@ -114,7 +114,7 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 	= Embedded 
 	| Detached !ManagementMeta
 
-:: ParallelTask a		:== (SharedTaskList a) -> Task a
+:: ParallelTask a	:== (SharedTaskList a) -> Task a
 
 //* Users	
 :: User

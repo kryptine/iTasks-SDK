@@ -193,7 +193,7 @@ sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = exception (SharedException (fromError err))
 
 workOn :: !TaskId -> Task WorkOnProcessState
-workOn target=:(TaskId topNo taskNo) = mkTask eval
+workOn (TaskId topNo taskNo) = mkTask eval
 where
 	eval eEvent cEvent repAs (TCInit taskId ts) iworld=:{evalStack}
 		//Check for cycles

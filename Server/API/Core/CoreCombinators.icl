@@ -291,7 +291,7 @@ where
 		| maybe True (\t -> t == taskId) target
 			//Show if target is Nothing or taskId matches
 			# parts = [(t,g,ac,kvSet STACK_ATTRIBUTE (toString stack) (kvSet TASK_ATTRIBUTE (toString taskId) at))
-					 \\ ({ParallelItem|taskId,stack,detached},ValueResult val _ (TUIRep (t,g,ac,at)) _) <- results | not detached && not (isStable val)]	
+					 \\ ({ParallelItem|taskId,stack,management},ValueResult val _ (TUIRep (t,g,ac,at)) _) <- results | isNothing management && not (isStable val)]	
 			= TUIRep (layout ParallelComposition parts [] attributes)
 		| otherwise
 			//If a target is set, only one of the branches should have a TUIRep representation
@@ -332,7 +332,7 @@ mkParallelItem taskTime parType taskId stackOrder user now parTask
 	# (progress,management)	= case parType of
 		Embedded				= (Nothing,Nothing)
 		(Detached management)	= (Just {ProgressMeta|status=Unstable,issuedAt=now,issuedBy=user,firstEvent=Nothing,latestEvent=Nothing},Just management)
-	= {taskId = taskId, stack = stackOrder, detached = False, progress = progress, management = management
+	= {taskId = taskId, stack = stackOrder, progress = progress, management = management
 	   ,task = (dynamic parTask :: ParallelTask a^), state = TCInit taskId taskTime, lastValue = toJSON (initValue parTask), lastAttributes = []}
 	where
 		initValue :: (ParallelTask a) -> TaskValue a //Solve overloading

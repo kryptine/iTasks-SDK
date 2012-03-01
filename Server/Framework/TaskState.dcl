@@ -46,7 +46,6 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 	, lastAttributes	:: ![TaskAttribute]			// Cached meta-data, this field is recomputed on each evaluation
 
 	, stack				:: !Int						//Stack order (required for properly laying out tasks in tabs or windows)
-	, detached			:: !Bool
 	, progress			:: !Maybe ProgressMeta
 	, management		:: !Maybe ManagementMeta
 	}
