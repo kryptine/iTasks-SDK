@@ -162,18 +162,18 @@ derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSi
 derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
-derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
-derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, Stability
-derive gVisualizeText	TaskListItem, ProgressMeta, Stability
-derive gVisualizeEditor	TaskListItem, ProgressMeta, Stability
-derive gHeaders			TaskListItem, ProgressMeta, Stability
-derive gGridRows		TaskListItem, ProgressMeta, Stability
-derive gUpdate			TaskListItem, ProgressMeta, Stability
-derive gDefaultMask		TaskListItem, ProgressMeta, Stability
-derive gVerify			TaskListItem, ProgressMeta, Stability
+derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
+derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
+derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
+derive gVisualizeText	TaskListItem, ProgressMeta, TaskValue, Stability
+derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskValue, Stability
+derive gHeaders			TaskListItem, ProgressMeta, TaskValue, Stability
+derive gGridRows		TaskListItem, ProgressMeta, TaskValue, Stability
+derive gUpdate			TaskListItem, ProgressMeta, TaskValue, Stability
+derive gDefaultMask		TaskListItem, ProgressMeta, TaskValue, Stability
+derive gVerify			TaskListItem, ProgressMeta, TaskValue, Stability
 
-derive class iTask	Credentials, Config, TaskId, TaskValue
+derive class iTask	Credentials, Config, TaskId
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 

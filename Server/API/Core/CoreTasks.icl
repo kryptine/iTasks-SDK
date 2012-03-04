@@ -65,9 +65,9 @@ where
 	eval eEvent cEvent repAs state=:(TCInit taskId ts) iworld		//Create the initial views
 		# (mbrvalue,iworld) 			= 'SharedDataSource'.read shared iworld
 		| isError mbrvalue				= (exception "Could not read shared in interact", iworld)
-		# (rvalue,version)				= fromOk mbrvalue
+		# (rvalue,_)					= fromOk mbrvalue
 		# lvalue						= initFun initLocal rvalue
-		= eval eEvent cEvent repAs (TCInteract taskId (toJSON lvalue) ts (initParts lvalue rvalue parts) version) iworld
+		= eval eEvent cEvent repAs (TCInteract taskId ts (toJSON lvalue) (toJSON rvalue) (initParts lvalue rvalue parts)) iworld
 	where
 		initParts l r parts = map (initPart l r) parts
 		
@@ -76,11 +76,11 @@ where
 			# (_,encv,maskv)	= initFormView (f l r)
 			= (encv,maskv,False)
 		
-	eval eEvent cEvent repAs state=:(TCInteract taskId encl ts views lastShareVersion) iworld=:{IWorld|taskTime}
+	eval eEvent cEvent repAs state=:(TCInteract taskId ts encl encr views) iworld=:{IWorld|taskTime}
 		# (mbrvalue,iworld) 				= 'SharedDataSource'.read shared iworld
 		| isError mbrvalue					= (sharedException mbrvalue, iworld)
-		# (rvalue,currentShareVersion)		= (fromOk mbrvalue)
-		# changed							= currentShareVersion > lastShareVersion
+		# (rvalue,_)						= (fromOk mbrvalue)
+		# changed							= rvalue =!= fromJust (fromJSON encr)
 		# lvalue							= fromJust (fromJSON encl)
 		# (mbEdit,lastEvent)	= case eEvent of
 			Just (TaskEvent t e)
@@ -101,7 +101,7 @@ where
 				= ServiceRep (flatten parts,flatten actions, flatten attributes)
 		
 		# value	= if valid (Value (lvalue,rvalue) Unstable) NoValue 
-		= (ValueResult value lastEvent rep (TCInteract taskId (toJSON lvalue) lastEvent views currentShareVersion), iworld)
+		= (ValueResult value lastEvent rep (TCInteract taskId  lastEvent (toJSON lvalue) (toJSON rvalue) views), iworld)
 	eval eEvent cEvent repAs state iworld
 		= (exception "Corrupt context in interact",iworld)
 

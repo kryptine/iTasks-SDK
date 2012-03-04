@@ -49,10 +49,10 @@ where
 		= eval eEvent cEvent repAs nstate {IWorld|iworld & world = world}
 	where
 		state :: TaskId TaskTime (Either OSError FilePath) -> TaskState
-		state taskId taskTime val = TCBasic taskId (toJSON val) taskTime False
+		state taskId taskTime val = TCBasic taskId taskTime (toJSON val) False
 
 	//Check for its result
-	eval eEvent cEvent repAs state=:(TCBasic taskId encv lastEvent stable) iworld=:{world}
+	eval eEvent cEvent repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
 			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent NoRep state, iworld)
 		| otherwise
@@ -87,7 +87,7 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = async.AsyncResult.exitcode 
-								= (ValueResult (Value result Stable) lastEvent NoRep (TCBasic taskId (toJSON result) lastEvent True), {IWorld|iworld & world = world})
+								= (ValueResult (Value result Stable) lastEvent NoRep (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization
