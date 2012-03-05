@@ -4,6 +4,8 @@ Ext.define('itasks.container.CheckChoice',{
 	requires: ['itasks.layout.VHBox'],
 	mixins: ['itasks.mixin.Editable'],
 	padding: 2,
+	border: false,
+	bodyStyle: 'padding: 0 0 0 5px',
 	bodyBorder: false,
 	initComponent: function() {
 		Ext.applyIf(this,{

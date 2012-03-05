@@ -342,7 +342,7 @@ where
 			{ content	= TUIListContainer
 							{ TUIListContainer
 							| items = items
-							, name = Just name
+							, name = if renderAsStatic Nothing (Just name)
 							, taskId = if renderAsStatic Nothing (fmap toString taskId)}
 			, width		= Nothing
 			, height	= Nothing
