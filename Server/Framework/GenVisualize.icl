@@ -179,14 +179,17 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex
 			NormalEditor [] = if (isTouched cmv) (NormalEditor [(stringDisplay ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))]) (NormalEditor [])
 			
 			
-			NormalEditor vis = NormalEditor [{ content	= TUIContainer (defaultContainer vis)
-								, width 	= Just (FillParent 1 ContentSize)
+			NormalEditor vis = NormalEditor [{ content	= TUIContainer {TUIContainer|defaultContainer (addSpacing vis) & direction = Horizontal}
+								, width 	= Just (WrapContent 0)
 								, height	= Nothing
 								, margins	= Nothing
 								}]
 			//TODO: Add case for OptionalEditor
 		= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
-
+where
+	addSpacing [] = []
+	addSpacing [d:ds] = [d:map (setMargins 0 0 0 5) ds]
+	
 gVisualizeEditor{|CONS of d|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ eventValue vst=:{taskId,editEvent,currentPath,optional,controlSize,renderAsStatic}

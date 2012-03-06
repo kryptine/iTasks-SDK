@@ -4,6 +4,7 @@ Ext.define('itasks.container.RadioChoice',{
 	requires: ['itasks.layout.VHBox'],
 	mixins: ['itasks.mixin.Editable'],
 	padding: 2,
+	border: false,
 	bodyBorder: false,
 	initComponent: function() {
 		Ext.applyIf(this,{

@@ -12,6 +12,11 @@ derive gEq TaskCompositionType
 heuristicLayout :: Layout
 heuristicLayout = layout //TODO: Figure out proper propagation of attributes
 where
+	layout SingleTask parts actions attributes
+		= heuristicInteractionLayout SingleTask parts actions attributes
+	layout ParallelComposition parts actions attributes
+		= heuristicParallelLayout ParallelComposition parts actions attributes
+		
 	layout type parts actions attributes
 		# partactions		= flatten [actions \\ (_,_,actions,_) <- parts]
 		# guis				= [gui \\ (_,Just gui,_,_) <- parts]
@@ -40,6 +45,56 @@ where
 		| otherwise
 			= (type, Just gui, actions ++ partactions, attributes)
 
+heuristicInteractionLayout :: Layout
+heuristicInteractionLayout = layout
+where
+	layout type parts actions attributes = case (mbTitle,mbHint) of
+		(Nothing,Nothing)		= (type,Just body,actions,attributes)
+		(Nothing,Just hint)		= (type,Just (basicTaskContainer [hintPanel hint,body]),actions,attributes)
+		(Just title,Nothing)	= (type,Just (basicTaskPanel title mbIcon [body]),actions,attributes)
+		(Just title,Just hint)	= (type,Just (basicTaskPanel title mbIcon [hintPanel hint,body]),actions,attributes)
+	where	
+		mbTitle = kvGet TITLE_ATTRIBUTE attributes
+		mbHint  = kvGet HINT_ATTRIBUTE attributes
+		mbIcon	= kvGet ICON_ATTRIBUTE attributes
+
+		bodyGui	= case [gui \\ (_,Just gui,_,_) <- parts] of
+			[gui]	= gui
+			guis	= vjoin guis
+		body	= addMargins ((fillWidth o setHeight (FillParent 1 ContentSize)) bodyGui)
+		
+		//Add margins except for some controls that look better without margins
+		addMargins gui=:{TUIDef|content=TUICustom _}							= gui
+		addMargins gui=:{TUIDef|content=TUIEditControl (TUIGridControl _) _}	= gui
+		addMargins gui=:{TUIDef|content=TUIEditControl (TUITreeControl _) _}	= gui
+		addMargins gui=:{TUIDef|content=TUIEditControl (TUICustomControl _) _}	= gui
+		addMargins gui															= setMargins 5 5 5 5 gui
+			
+		basicTaskContainer items			= (setPurpose "form" o setMargins 5 5 0 5 o fixedWidth 700 o wrapHeight) (vjoin items)
+		basicTaskPanel title mbIcon items
+			# panel = (setPurpose "form" o setMargins 5 5 0 5 o setTitle title o setFramed True o toPanel) ((fixedWidth 700 o wrapHeight) (vjoin items))
+			= case mbIcon of	
+				Nothing		= panel
+				Just icon	= setIconCls ("icon-" +++ icon) panel
+
+heuristicParallelLayout :: Layout
+heuristicParallelLayout = layout
+where
+	layout type [part] actions attributes	//If there's only one part, do nothing
+		= part
+	layout type parts actions attributes
+		= (type,Just gui,cactions,cattributes)
+	where
+		cactions = foldr (++) actions [a \\ (_,_,a,_) <- parts]
+		cattributes = attributes //TODO!
+		
+		guis = [gui \\ (_,Just gui,_,_) <- parts]
+		gui = if (all isForm guis)
+			(mergeForms guis)
+			(vjoin guis)
+	
+	mergeForms guis = setPurpose "form" (vjoin guis)
+	
 accumulatingLayout :: Layout
 accumulatingLayout = layout
 where
@@ -380,7 +435,8 @@ formed mbHint defs
 	= case mbHint of
 		Nothing		= formPanel defs
 		Just hint	= setPurpose "form" (vjoin [hintPanel hint,formPanel defs])
-	
+
+
 //Container operations
 addItemToTUI :: (Maybe Int) TUIDef TUIDef -> TUIDef
 addItemToTUI mbIndex item def=:{TUIDef|content} = case content of
@@ -435,7 +491,7 @@ setItemsOfTUI items def=:{TUIDef|content} = case content of
 //Predefined panels
 hintPanel :: !String -> TUIDef	//Panel with task instructions
 hintPanel hint
-	= (setBaseCls "i-hint-panel" o setPurpose "hint" o setPadding 5 o fillWidth) (vjoin [stringDisplay hint])
+	= (setBaseCls "i-hint-panel" o setPurpose "hint" o setPadding 5 o fillWidth o wrapHeight) (vjoin [stringDisplay hint])
 
 formPanel :: ![TUIDef] -> TUIDef
 formPanel items
@@ -454,6 +510,8 @@ isButtonPanel def=:{TUIDef|content} = case content of
 	TUIPanel {TUIPanel|purpose=Just p}			= p == "buttons"
 	TUIContainer {TUIContainer|purpose=Just p}	= p == "buttons"
 	_											= False
+
+
 
 actionsToButtons :: ![TaskAction] -> (![TUIDef],![TaskAction])
 actionsToButtons [] = ([],[])
@@ -536,6 +594,11 @@ where
 		= {TUIMenuItem|item & menu = Just {TUIMenu|items = addToItems sub taskId action enabled (maybe [] (\m -> m.TUIMenu.items) menu)}}
 
 	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
+
+isForm :: TUIDef -> Bool
+isForm {TUIDef|content=TUIContainer {TUIContainer|purpose = Just "form"}}	= True
+isForm {TUIDef|content=TUIPanel {TUIPanel|purpose = Just "form"}}			= True
+isForm _ = False
 
 tuiOf :: TaskTUI -> TUIDef
 tuiOf (_,d,_,_)	= fromMaybe (stringDisplay "-") d
