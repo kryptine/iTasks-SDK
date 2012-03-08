@@ -63,7 +63,8 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 :: TaskMeta		:==	[TaskAttribute]					//* Task meta data consists of untyped attributes
 
 :: ManagementMeta =
-	{ worker			:: !Maybe User				//* Who has to do the task? 
+	{ title				:: !Maybe String			//* Title to identify the task
+	, worker			:: !Maybe User				//* Who has to do the task? 
 	, role				:: !Maybe Role				//* What role does a worker need to do the task
 	, startAt			:: !Maybe DateTime			//* When is the task supposed to start
 	, completeBefore	:: !Maybe DateTime			//* When does the task need to be completed

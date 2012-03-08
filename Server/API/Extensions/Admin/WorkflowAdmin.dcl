@@ -4,8 +4,6 @@ definition module WorkflowAdmin
 */
 import iTasks
 
-:: WorkflowId :== Int
-
 // A workflow specification
 :: Workflow	=
 	{ path				:: String					//* a unique name of this workflow
@@ -31,11 +29,11 @@ derive gEq				Workflow, WorkflowTaskContainer
 
 // Available workflows
 :: WorkflowFolderLabel :== String
+
 workflows				:: Shared [Workflow]
 allowedWorkflows		:: ReadOnlyShared [Workflow]
-workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
-allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel (WorkflowId,Workflow)))
-workflowByIndex			:: !WorkflowId -> Shared Workflow
+workflowTree			:: ReadOnlyShared (Tree (Either WorkflowFolderLabel Workflow))
+allowedWorkflowTree		:: ReadOnlyShared (Tree (Either WorkflowFolderLabel Workflow))
 workflowByPath			:: !String -> Shared Workflow
 
 /**
@@ -89,7 +87,6 @@ addWorkflow :: !Workflow -> Task Workflow
 isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool
 
 //Service tasks
-
 viewTaskList	:: Task [TaskListItem]
 viewTask		:: Task WorkOnProcessState
 

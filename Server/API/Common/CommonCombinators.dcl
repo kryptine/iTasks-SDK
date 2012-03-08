@@ -332,7 +332,6 @@ instance tune Icon
 instance tune Attribute		//Set attribute
 instance tune Window		//Indicate that this task should 
 
-
 //Common derived task steps
 Always			:: Action (Task b)						-> TaskStep a b
 AnyTime 		:: Action ((Maybe a) -> Task b)			-> TaskStep a b

@@ -760,7 +760,8 @@ where
 
 noMeta :: ManagementMeta
 noMeta =
-	{ worker			= Nothing
+	{ title				= Nothing
+	, worker			= Nothing
 	, role				= Nothing
 	, startAt			= Nothing
 	, completeBefore	= Nothing

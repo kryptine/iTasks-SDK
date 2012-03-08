@@ -176,7 +176,7 @@ where
 			BottomSide	= (Vertical, last parts,init parts)
 			LeftSide	= (Horizontal, hd parts, tl parts)	
 		# (_,Just restGui,restActions,restAttributes) = mainLayout type restParts actions attributes //TODO: Dont' assume Just
-		# sideGui		= (ifH direction (setWidth (Fixed size)) (setHeight (Fixed size))) (fill (guiOf sidePart))
+		# sideGui		= (ifH direction (setWidth (Fixed size)) (setHeight (Fixed size))) ((fill o setMargins 0 0 0 0 o setFramed False) (guiOf sidePart))
 		# arrangedGuis	= ifTL side [sideGui,restGui] [restGui,sideGui]
 		# gui			= (fill o setDirection direction) (vjoin arrangedGuis)
 		= (type,Just gui,restActions ++ actions,restAttributes ++ attributes)
