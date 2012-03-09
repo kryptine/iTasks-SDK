@@ -2,31 +2,11 @@ definition module InteractionTasks
 
 import CoreTasks
 
-/**
-* Defines a view on the data model of interaction tasks. 
-*/
-:: ViewOn l r	= E.v:	About			!v								& iTask v	//* additional information independent from the data model the interaction task works on
-				//Convenient simple views
-				| E.v:	DisplayLocal	!(l -> v)						& iTask v
-				| E.v:	EnterLocal		!(v -> l)						& iTask v
-				| E.v:	UpdateLocal		!(l -> v) (v l -> l)			& iTask v
-				| E.v:	DisplayShared	!(r -> v)						& iTask v
-				| E.v:	UpdateShared	!(r -> v) (v l -> l)			& iTask v
-				//More fine grained views
-				| E.v:	DisplayView		!(GetFun l r v)					& iTask v	//* a view to show the data model
-				| E.v:	EnterView						!(SetFun l r v)	& iTask v	//* a view to put information into the data model
-				| E.v:	UpdateView		!(GetFun l r v) !(SetFun l r v)	& iTask v	//* a view to update the data model
-/**	
-* Defines how to get a view from the data model.
-*/
-:: GetFun l r v	= GetLocal			!(l		-> v)	//* a get function on the local part of the data model
-				| GetShared			!(r		-> v)	//* a get function on the shared part of the data model
-				| GetCombined		!(l r	-> v)	//* a get function on both parts of the data model
+//View defintions for customizing interaction
 
-:: SetFun l r v :== v l r -> l						//* a set function that updates the local part of the data model
-
-:: LocalViewOn a	:== ViewOn a Void
-:: SharedViewOn a	:== ViewOn Void a
+:: ViewOption a 		= E.v: ViewWith 	(a -> v)			& iTask v
+:: EnterOption a		= E.v: EnterWith	(v -> a)			& iTask v
+:: UpdateOption a b		= E.v: UpdateWith	(a -> v) (a v -> b)	& iTask v
 
 /*** General input/update/output tasks ***/
 
@@ -35,14 +15,14 @@ import CoreTasks
 *
 * @param Description:		A description of the task to display to the user
 *							@default ""
-* @param Views:				Interaction views; only putback parts of Views are used, Gets are ignored; if no putback is defined the id putback with v = w is used
+* @param Views:				Views
 *							@default [] @gin-visible False
 *
 * @return					Value entered by the user
 * 
 * @gin-icon page_white
 */
-enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
+enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
 
 /**
 * Ask the user to update predefined information. 
@@ -57,7 +37,7 @@ enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
 * 
 * @gin-icon page_edit
 */
-updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
+updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 
 /**
 * Show information to the user. 
@@ -73,7 +53,7 @@ updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
 * 
 * @gin-icon information
 */
-viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
+viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
 
 /**
 * Ask the user to update predefined local and shared information.
@@ -90,7 +70,7 @@ viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
 * 
 * @gin-icon page_edit
 */
-updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
+updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 
 /**
 * Show a local and shared state.
@@ -105,7 +85,7 @@ updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | d
 * 
 * @gin-icon monitor
 */
-viewSharedInformation :: !d ![SharedViewOn r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
+viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
 
 /*** Special tasks for choices ***/
 

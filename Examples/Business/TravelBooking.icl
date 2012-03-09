@@ -14,7 +14,7 @@ derive class iTask	PlaceToGo, FlightHotel
 BookTrip :: Task FlightHotel
 BookTrip
 	=						enterInformation ("Specify trip","Please fill in trip information to make booking") []
-		>>= \info ->		info.delegateTo @: enterInformation ("Book trip","Please book the following trip") [About info]
+		>>= \info ->		info.delegateTo @: (enterInformation ("Book trip","Please book the following trip") [] -|| viewInformation Void [] info)
 		>>= \booking ->		viewInformation ("Trip booked","The following trip has been booked") [] booking
 	
 

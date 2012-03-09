@@ -10,81 +10,77 @@ from SharedDataSource import constShare
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
 
-enterInformation :: !d ![LocalViewOn m] -> Task m | descr d & iTask m
-enterInformation d views
-	=	modifyInformation d (\_ _ -> defaultValue) filteredViews  voidNull Nothing @ fst
+enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
+enterInformation d opts
+	= interact d init (parts opts) Nothing voidNull @ fst
 where
-	filteredViews	= filterViews filterInputViews defaultViews views
-	defaultViews	= [EnterView (\l _ _ -> l)]
+	init _ _ = defaultValue
 	
-updateInformation :: !d ![LocalViewOn m] m -> Task m | descr d & iTask m
-updateInformation d views m
-	=	modifyInformation d (\_ _ -> m) filteredViews voidNull Nothing @ fst
+	parts [EnterWith fromf]	= [FormPart (\_ _ -> BlankForm) (\l _ _ _ -> (l,Nothing)) (\l _ mbv -> (maybe l fromf mbv, Nothing))]
+	parts _					= [FormPart (\_ _ -> BlankForm) (\l _ _ _ -> (l,Nothing)) (\l _ mbv -> (fromMaybe l mbv,Nothing))]
+
+updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
+updateInformation d opts m
+	= interact d init (parts opts) Nothing voidNull @ fst	
 where
-	filteredViews	= filterViews noFilter defaultViews views
-	defaultViews	= [UpdateView (GetLocal id) (\l _ _ -> l)]
+	init _ _ = m
 	
-viewInformation :: !d ![LocalViewOn m] !m -> Task m | descr d & iTask m
-viewInformation d views m
-	=	modifyInformation d (\(Just m) _ -> m) filteredViews  voidNull (Just m) @ fst
+	parts [UpdateWith tof fromf]	= [FormPart (\l _ -> FilledForm (tof l)) (\l _ _ _ -> (l,Nothing)) (\l _ mbv -> (maybe l (fromf l) mbv, Nothing))]
+	parts _							= [FormPart (\l _ -> FilledForm l) (\l _ _ _ -> (l,Nothing)) (\l _ mbv -> (fromMaybe l mbv,Nothing))]
+	
+viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
+viewInformation d opts m
+	= interact d init (parts opts) Nothing voidNull @ fst
 where
-	filteredViews	= filterViews filterOutputViews defaultViews views
-	defaultViews	= [DisplayView (GetLocal id)]
-		
-updateSharedInformation :: !d ![ViewOn w r] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
+	init _ _ = m
+	
+	parts [ViewWith tof]	= [DisplayPart (\l _ -> tof l)]
+	parts _					= [DisplayPart (\l _ -> m)]
+	
+updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 updateSharedInformation d views shared
-	=	(modifyInformation d initLocal filteredViews (toReadOnly shared) Nothing @ fst) @> (\mbw _ -> valToMaybe mbw, shared)
+	= (interact d init (parts views) Nothing (toReadOnly shared) @ fst) @> (mapval, shared)
 where
-	filteredViews						= filterViews noFilter defaultViews views	
-	//Use dynamics to test if r == w, if so we can use an update view
+	//Use dynamics to test if r == w, if so we can use an update view	
 	//If different types are used we can only resort to a display of type r and an enter of type w
-	defaultViews = case dynamic id :: A.a: (a -> a) of
-		(rtow :: (r^ -> w^))			= [UpdateView  (GetShared id) (\r _ _ -> rtow r)]
-		_								= [DisplayView (GetShared id), EnterView (\w _ _ -> w)]
+	init = case dynamic id :: A.a: (a -> a) of
+		(rtow :: (r^ -> w^))			= (\_ r -> rtow r)
+		_								= (\_ _ -> defaultValue)
 	
-	initLocal = \_ r -> (makeInitFun filteredViews) r
+	parts [UpdateWith tof fromf]
+		= [FormPart
+			(\w r -> FilledForm (tof r))
+			(\w r _ _ -> (w, Just (FilledForm (tof r))))
+			(\w r mbv -> (maybe w (fromf r) mbv, Nothing))
+			]
+	parts _	= case dynamic id :: A.a: (a -> a) of
+		(rtow :: (r^ -> w^))
+			//We can use a filled form if r == w
+			=	[FormPart
+				(\w r -> FilledForm (rtow r))
+				(\w r _ _ -> (rtow r, Just (FilledForm (rtow r))))
+				(\w r mbv -> (maybe w id mbv, Nothing)) 
+				]
+		_
+			//Split up in display and enter
+			=	[DisplayPart (\_ r -> r)
+				,FormPart
+				(\w r -> BlankForm)
+				(\w r _ _ -> (w,Nothing))
+				(\w r mbv -> (maybe w id mbv, Nothing))
+				]
 	
-	valToMaybe (Value v _)	= Just v
-	valToMaybe _			= Nothing
-	
-	makeInitFun :: [ViewOn w r] -> (r -> w)
-	makeInitFun views = case [v \\ v=:(UpdateView _ _) <- views] of
-		[UpdateView toV fromV]	= makeInitFun2 toV fromV
-		_						= abort "Cannot do updateSharedInformation without update views!"
-	where
-		makeInitFun2 :: (GetFun w r v) (SetFun w r v) -> (r -> w)
-		makeInitFun2 (GetShared toV) fromV	= \r -> fromV (toV r) undef r
-		makeInitFun2 _ _					= abort "Cannot do updateSharedInformation with something other than GetShared"
+	mapval (Value w _) _	= Just w
+	mapval _ _				= Nothing	
 
-
-viewSharedInformation :: !d ![SharedViewOn r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
+viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
 viewSharedInformation d views shared
-	=	modifyInformation d (\_ _ -> Void) filteredViews (toReadOnly shared) (Just Void) @ snd
+	= interact d init (parts views) Nothing (toReadOnly shared) @ snd
 where
-	filteredViews	= filterViews filterOutputViews defaultViews views
-	defaultViews	= [DisplayView (GetShared id)]
-	
-filterViews filterF defaultViews views = addDefault (catMaybes (map filterF views))	
-where	
-	addDefault views
-		//If all given views are About views, add the default views
-		| all (\v -> case v of (About _) = True; _ = False) views	= views ++ defaultViews
-		| otherwise													= views
-	
-filterInputViews view = case view of
-	About a						= Just (About a)
-	EnterView e					= Just (EnterView e)
-	UpdateView _ e				= Just (EnterView e)
-	DisplayView (GetShared get)	= Just (DisplayView (GetShared get))
-	_							= Nothing
-		
-filterOutputViews view = case view of
-	About a				= Just (About a)
-	DisplayView s		= Just (DisplayView s)
-	UpdateView s _		= Just (DisplayView s)
-	_					= Nothing
-		
-noFilter = Just
+	init _ _ = Void
+
+	parts []	= [DisplayPart (\_ r -> r)]
+	parts views = [DisplayPart (\_ r -> tof r) \\ ViewWith tof <- views]
 
 enterChoice :: !d ![ChoiceView ChoiceType o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 enterChoice d views choiceOpts
@@ -180,6 +176,32 @@ where
 		| any (\v -> case v of (ChoiceContext _) = False; _ = True) views	= views
 		| otherwise															= views ++ [ChoiceView (AutoMultiChoiceView, id)]
 
+/**
+* Defines a view on the data model of interaction tasks. 
+*/
+:: ViewOn l r	= E.v:	About			!v								& iTask v	//* additional information independent from the data model the interaction task works on
+				//Convenient simple views
+				| E.v:	DisplayLocal	!(l -> v)						& iTask v
+				| E.v:	EnterLocal		!(v -> l)						& iTask v
+				| E.v:	UpdateLocal		!(l -> v) (v l -> l)			& iTask v
+				| E.v:	DisplayShared	!(r -> v)						& iTask v
+				| E.v:	UpdateShared	!(r -> v) (v l -> l)			& iTask v
+				//More fine grained views
+				| E.v:	DisplayView		!(GetFun l r v)					& iTask v	//* a view to show the data model
+				| E.v:	EnterView						!(SetFun l r v)	& iTask v	//* a view to put information into the data model
+				| E.v:	UpdateView		!(GetFun l r v) !(SetFun l r v)	& iTask v	//* a view to update the data model
+/**	
+* Defines how to get a view from the data model.
+*/
+:: GetFun l r v	= GetLocal			!(l		-> v)	//* a get function on the local part of the data model
+				| GetShared			!(r		-> v)	//* a get function on the shared part of the data model
+				| GetCombined		!(l r	-> v)	//* a get function on both parts of the data model
+
+:: SetFun l r v :== v l r -> l						//* a set function that updates the local part of the data model
+
+:: LocalViewOn a	:== ViewOn a Void
+:: SharedViewOn a	:== ViewOn Void a
+
 modifyInformation :: !d !((Maybe l) r -> l) ![ViewOn l r] !(ReadOnlyShared r) (Maybe l) -> Task (l,r) | descr d & iTask l & iTask r
 modifyInformation d initl views shared mbl = interact d initl [part v \\ v <- views] mbl shared
 where
@@ -212,7 +234,6 @@ where
 	whenCleanShareUpdate :: (GetFun l r v) -> FormShareUpdateFun l r v
 	whenCleanShareUpdate getfun = \l r mbv dirty -> (l, if dirty Nothing (Just (FilledForm (viewVal getfun l r))))
 	
-	
 	viewLocal :: (l -> v) l r -> v | iTask l
 	viewLocal f l r = f l
 	
@@ -231,7 +252,7 @@ where
 		
 wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | descr d & iTask r
 wait desc pred shared
-	=	viewSharedInformation desc [DisplayView (GetLocal id)] shared
+	=	viewSharedInformation desc [ViewWith (const Void)] shared
 	>>* [WhenValid pred return]
 	
 waitForTime :: !Time -> Task Time

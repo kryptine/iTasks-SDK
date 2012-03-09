@@ -28,7 +28,7 @@ trivialTask = fillInForm
 fillInForm :: Task QForm
 fillInForm	
 	= 				enterInformation ("Quote information","Please fill in quotation:") []
-	>>= \form ->	viewInformation ("Check","Is everything filled in correctly?") [About form] Void
+	>>= \form ->	viewInformation ("Check","Is everything filled in correctly?") [] form
 	>>*				[ AnyTime ActionNo (\_ -> fillInForm)
 					, AnyTime ActionYes (\_ -> return form)
 					] 

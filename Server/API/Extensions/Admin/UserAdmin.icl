@@ -111,7 +111,7 @@ updateUserFlow user
 			>>*	[ AnyTime ActionCancel (\_ -> return user)
 				, WithResult ActionOk (const True)(\newDetails ->
 												set (Just newDetails) (userDetails user)
-											>>=	viewInformation "User updated" [DisplayView (GetLocal (\(Just {displayName}) -> "Successfully updated " +++ displayName))]
+											>>=	viewInformation "User updated" [ViewWith (\(Just {displayName}) -> "Successfully updated " +++ displayName)]
 											>>| return user
 											)
 				])
@@ -123,7 +123,7 @@ deleteUserFlow user =
 		viewInformation "Delete user" [] ("Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")
 	>>*	[ AnyTime ActionNo	(\_ -> return user)
 		, AnyTime ActionYes	(\_ -> deleteUser user
-									>>=	viewInformation "User deleted" [DisplayView (GetLocal (\user -> "Successfully deleted " +++ displayName user +++ "."))]
+									>>=	viewInformation "User deleted" [ViewWith (\user -> "Successfully deleted " +++ displayName user +++ ".")]
 						)
 		]
 		

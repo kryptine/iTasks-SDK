@@ -6,8 +6,8 @@ from StdFunc import o
 //THESE EXAMPLES NEED TO BE FIXED!
 
 //Text-Lines Examples
-noteEditor = UpdateView (GetShared (\txt -> Note txt)) (\(Note txt) _ _ -> txt)
-listEditor = UpdateView (GetShared (split "\n")) (\l _ _ -> join "\n" l)
+noteEditor = UpdateWith (\txt -> Note txt) (\_ (Note txt) -> txt)
+listEditor = UpdateWith (split "\n") (\_ l -> join "\n" l)
 
 TrimAction :== Action "Trim"
 
@@ -24,7 +24,7 @@ where
 		=	updateSharedInformation ("Lines","Edit lines") [listEditor] state
 		
 //Calculate Sum Example
-calculateSum = updateInformation ("Sum","Auto compute sum") [UpdateView (GetLocal \t=:(x,y) -> (t,Display (x+y))) (\(t,_) _ _ -> t)] (0,0) 
+calculateSum = updateInformation ("Sum","Auto compute sum") [UpdateWith (\t=:(x,y) -> (t,Display (x+y))) (\_ (t,_) -> t)] (0,0) 
 
 //Tree Example
 :: Tree` a = Leaf` | Node` (Node` a)
@@ -49,7 +49,7 @@ where
 		end			= drop (middlePos + 1) list
 
 tree = updateInformation ("List & Balanced Binary Tree","Type something in the list and the tree will update as well.")
-			[UpdateView (GetLocal \l -> (l,Display (toTree l))) (\(l,_) _ _ -> l)] emptyL
+			[UpdateWith (\l -> (l,Display (toTree l))) (\_ (l,_) -> l)] emptyL
 where
 	emptyL :: [Int]
 	emptyL = []
@@ -99,23 +99,23 @@ googleMaps = withShared defaultMap
 	)
 where						
 	markersDisplay dbid
-		=	viewSharedInformation "Markers" [DisplayView (GetShared markersListener)] dbid
+		=	viewSharedInformation "Markers" [ViewWith markersListener] dbid
 		>>* [AnyTime RemoveMarkersAction (\_ -> update (\map -> {GoogleMap| map & markers = []}) dbid >>| markersDisplay dbid)
 			,AnyTime ActionQuit (const (return Void))
 			]
 	
-	optionsEditor	=	UpdateView (GetShared \map -> map.GoogleMap.settings) (\opts _ map -> { map & settings = opts})
+	optionsEditor	=	UpdateWith (\map -> map.GoogleMap.settings) (\map opts -> { map & settings = opts})
 						
-	overviewEditor	= 	UpdateView (GetShared \map -> {GoogleMap | minimalMap & markers = [{GoogleMapMarker|m & draggable = False} \\ m <- map.markers]})
+	overviewEditor	= 	UpdateWith (\map -> {GoogleMap | minimalMap & markers = [{GoogleMapMarker|m & draggable = False} \\ m <- map.markers]})
 	
-							(\nmap _ map ->	{ GoogleMap | map
+							(\nmap map ->	{ GoogleMap | map
 														& perspective = {map.perspective & center = nmap.GoogleMap.perspective.center}
 														})
 					
 	markersListener	map = [{position = position, map = {GoogleMap| defaultMap & perspective = {type = ROADMAP, center = position, zoom = 15}, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 
 //Auto sorted list
-autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateView (GetLocal sort) (\l _ _ -> l)] emptyL
+autoSortedList = updateInformation ("Automatically Sorted List","You can edit the list, it will sort automatically.") [UpdateWith sort (\_ l -> l)] emptyL
 where
 	emptyL :: [String]
 	emptyL = []
@@ -189,9 +189,9 @@ where
 	form = sharedStore "chooseOrAddForm" defaultValue
 	enterOrder :: Task Order
 	enterOrder
-		= updateSharedInformation "Enter order" [view] (form >+| (productDatabase >+< customerDatabase)) >>* [WithResult ActionOk (const True) return]
+		= updateSharedInformation "Enter order" [] (form >+| (productDatabase >+< customerDatabase)) >>* [WithResult ActionOk (const True) return]
 	where
-		view = UpdateView (GetShared vfrom) vto
+		view = UpdateWith vfrom vto
 		vfrom (order,(products,customers))
 			= { OrderForm
 			  | customer = (mkComboChoice (customerOptions customers) (Just (customerSel order)), newCustomer order)
@@ -211,7 +211,7 @@ where
 										   		
 		productOptions db		= [(p.Product.description,p.productId) \\ p <- db]
 		
-		vto form _ (order,(products,customers))
+		vto _ form (order,(products,customers))
 			= { Order
 			  | customer = customerChoice form.OrderForm.customer
 			  , product = getSelection form.OrderForm.product

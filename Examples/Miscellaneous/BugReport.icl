@@ -172,7 +172,7 @@ analyzeBug bug
 		dbUpdateItem {bug & analysis = Just {cause = cause, affectedVersions = []}}
 where
 	determineCause bug
-		= enterInformation ("Cause","What is the cause of the following bug?") [About bug]
+		= enterInformation ("Cause","What is the cause of the following bug?") [] -|| viewInformation Void [] bug
 		
 developBugFix :: Bug -> Task Bug
 developBugFix bug = viewInformation ("Bug fix","Please implement a fix for the following bug:") [] bug

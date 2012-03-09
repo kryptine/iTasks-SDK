@@ -30,7 +30,7 @@ deadline task
 	>>= 			checkDone
 where
 	checkDone (Just value)
-		= viewInformation ("Task result","Result of task:") [About value] value
+		= viewInformation ("Task result","Result of task:") [] value
 	checkDone Nothing
 		= viewInformation ("No result","Task expired or canceled, you have to do it yourself!") [] Void >>| task
 

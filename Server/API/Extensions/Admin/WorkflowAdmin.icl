@@ -146,7 +146,7 @@ where
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
-	=	(viewSharedInformation Void [DisplayView (GetShared view)] currentUser	<<@ tweak1
+	=	(viewSharedInformation Void [ViewWith view] currentUser					<<@ tweak1
 			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
 				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
 				]																
@@ -177,7 +177,7 @@ where
 
 viewWorkflowDetails :: !(ReadOnlyShared (Maybe Workflow)) -> Task Workflow
 viewWorkflowDetails sel
-	= viewSharedInformation [Att (Title "Task description"), Att IconView] [DisplayView (GetShared view)] sel
+	= viewSharedInformation [Att (Title "Task description"), Att IconView] [ViewWith view] sel
 	@? onlyJust
 where
 	view = fmap (\wf -> Note wf.Workflow.description)
