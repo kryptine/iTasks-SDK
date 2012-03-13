@@ -19,9 +19,9 @@ from TaskState		import :: ParallelItem, :: ParallelControl
 					, currentUser			:: !User									// The current user
 					, nextTaskNo			:: !TaskNo									// The next task number to assign
 					, evalStack				:: ![TaskId]								// The stack of instances evaluating other instances through workOn
-					, parallelLists			:: !Map String (!Int,![ParallelItem])		// The set of shared tasklist meta data
+					, parallelLists			:: !Map String [ParallelItem]				// The set of shared tasklist meta data
 					, parallelControls		:: !Map String (!Int,![ParallelControl])	// The set of controls for manipulating parallel task lists
-					, localShares			:: !Map String (!Int,!Dynamic)				// The set of locally shared values
+					, localShares			:: !Map String Dynamic						// The set of locally shared values
 					, readShares			:: !Maybe [String]							// The IDs of shares from which was read
 					, world					:: !*World									// The outside world
 					}

@@ -169,19 +169,14 @@ where
 	issueUser {TopInstance|progress={ProgressMeta|issuedBy}} = issuedBy
 
 taskListShare :: !(TaskListId s) -> (SharedTaskList s) | iTask s
-taskListShare listId = (makeReadOnlySharedError "taskList" listKey read getVersion)
+taskListShare listId = (makeReadOnlySharedError "taskList" listKey read)
 where
 	listKey = toString listId
 	
 	read iworld=:{parallelLists}
 		= case 'Map'.get ("taskList:" +++ listKey) parallelLists of
-			Just (_,items)	= (Ok (mkTaskList items), iworld)
-			_				= (Error ("Could not read parallel task list of " +++ toString listId), iworld)
-		
-	getVersion iworld=:{parallelLists}
-			= case ('Map'.get ("taskList:" +++ listKey) parallelLists) of
-				(Just (v,_))	= (Ok v, iworld)
-				_				= (Error ("Could not read timestamp for shared state of task list " +++ listKey),iworld)
+			Just items	= (Ok (mkTaskList items), iworld)
+			_			= (Error ("Could not read parallel task list of " +++ toString listId), iworld)
 
 	mkTaskList items = {TaskList|listId = listId, state = state, items = litems}
 	where

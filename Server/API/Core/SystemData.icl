@@ -13,7 +13,6 @@ sharedStore storeId defaultV = makeUnsafeShare
 	"sharedStore" storeId
 	(get (loadValue NS_APPLICATION_SHARES) defaultV)
 	write
-	(get (getStoreVersion NS_APPLICATION_SHARES) 0)
 where	
 	get f defaultV iworld
 		# (mbV,iworld) = f storeId iworld
@@ -25,45 +24,36 @@ where
 	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
 	
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = makeReadOnlyShared "SystemData" "currentDateTime" 'Util'.currentDateTime timeVersion
+currentDateTime = makeReadOnlyShared "SystemData" "currentDateTime" 'Util'.currentDateTime
 		
 currentTime :: ReadOnlyShared Time
-currentTime = makeReadOnlyShared "SystemData" "currentTime" 'Util'.currentTime timeVersion 
+currentTime = makeReadOnlyShared "SystemData" "currentTime" 'Util'.currentTime 
 		
 currentDate :: ReadOnlyShared Date
-currentDate = makeReadOnlyShared "SystemData" "currentDate" 'Util'.currentDate dateVersion
+currentDate = makeReadOnlyShared "SystemData" "currentDate" 'Util'.currentDate
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
-topLevelTasks = makeReadOnlyShared "taskList" "tasklist-top" read getVersion
+topLevelTasks = makeReadOnlyShared "taskList" "tasklist-top" read
 where
 	read iworld
 		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
 		= ({TaskList|listId = TopLevelTaskList, state = [], items = fromMaybe [] list}, iworld)
-	getVersion  iworld
-		# (version, iworld) = getStoreVersion NS_PERSISTENT_INSTANCES "index" iworld
-		= (fromMaybe 0 version, iworld)
 		
 currentProcesses ::ReadOnlyShared [TaskListItem]
-currentProcesses = makeReadOnlyShared "SystemData" "processes" read getVersion
+currentProcesses = makeReadOnlyShared "SystemData" "processes" read
 where
 	read iworld
 		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
-		= (fromMaybe [] list, iworld) 
-	getVersion  iworld
-		# (version, iworld) = getStoreVersion NS_PERSISTENT_INSTANCES "index" iworld
-		= (fromMaybe 0 version, iworld)
+		= (fromMaybe [] list, iworld)
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem]
-processesForCurrentUser = makeReadOnlyShared "SystemData" "processesForCurrentUser" read getVersion
+processesForCurrentUser = makeReadOnlyShared "SystemData" "processesForCurrentUser" read
 where
 	read iworld=:{currentUser}
 		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
 		= (maybe [] (\l -> find currentUser l) list, iworld)
-	getVersion iworld
-		# (version, iworld) = getStoreVersion NS_PERSISTENT_INSTANCES "index" iworld
-		= (fromMaybe 0 version, iworld)
-
+		
 	find user procs
 		= flatten [if (forWorker user p) [{p & subItems = find user p.subItems}] (find user p.subItems) \\ p <- procs]
 
@@ -72,44 +62,35 @@ where
 	forWorker _ _												= False
 
 currentUser :: ReadOnlyShared User
-currentUser = makeReadOnlyShared "SystemData" "currentUser" (\iworld=:{currentUser} -> (currentUser,iworld)) (\iworld -> (0,iworld))
+currentUser = makeReadOnlyShared "SystemData" "currentUser" (\iworld=:{currentUser} -> (currentUser,iworld))
 
 currentTopTask :: ReadOnlyShared TaskId
-currentTopTask = makeReadOnlyShared "SystemData" "currentTopTask" (\iworld=:{evalStack=[taskId:_]} -> (taskId,iworld)) (\iworld -> (0,iworld))
+currentTopTask = makeReadOnlyShared "SystemData" "currentTopTask" (\iworld=:{evalStack=[taskId:_]} -> (taskId,iworld))
 		
 applicationName :: ReadOnlyShared String
-applicationName = makeReadOnlyShared "SystemData" "applicationName" appName (\iworld -> (0,iworld))
+applicationName = makeReadOnlyShared "SystemData" "applicationName" appName
 where
 	appName iworld=:{IWorld|application} = (application,iworld)
 
 applicationBuild:: ReadOnlyShared String
-applicationBuild  = makeReadOnlyShared "SystemData" "applicationBuild" appBuild (\iworld -> (0,iworld))
+applicationBuild  = makeReadOnlyShared "SystemData" "applicationBuild" appBuild
 where
 	appBuild iworld=:{IWorld|build} = (build,iworld)
 
 applicationDirectory :: ReadOnlyShared FilePath
-applicationDirectory = makeReadOnlyShared "SystemData" "applicationDirectory" appDir (\iworld -> (0,iworld))
+applicationDirectory = makeReadOnlyShared "SystemData" "applicationDirectory" appDir
 where
 	appDir iworld=:{IWorld|appDirectory} = (appDirectory,iworld)
 
 applicationConfig :: ReadOnlyShared Config
-applicationConfig = makeReadOnlyShared "SystemData" "config" config (\iworld -> (0,iworld))
+applicationConfig = makeReadOnlyShared "SystemData" "config" config
 where
 	config iworld=:{IWorld|config} = (config,iworld)
 
 // Random source
 randomInt	:: ReadOnlyShared Int
-randomInt = makeReadOnlyShared "SystemData" "randomInt" randomInt timeVersion
+randomInt = makeReadOnlyShared "SystemData" "randomInt" randomInt
 where
 	randomInt iworld=:{IWorld|world}
 		# (Clock seed, world)	= clock world
 		= (hd (genRandInt seed), {IWorld|iworld & world = world})
-
-dateVersion iworld
-	# (date,iworld) 	= 'Util'.currentDate iworld 
-	# (Timestamp ts)	= 'Util'.dateToTimestamp date
-	= (ts,iworld)
-
-timeVersion iworld
-	# (Timestamp ts,iworld)	= 'Util'.currentTimestamp iworld
-	= (ts,iworld)

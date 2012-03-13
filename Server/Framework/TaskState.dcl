@@ -27,7 +27,7 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 	| TCProject		!TaskId !JSONNode !TaskState
 	| TCStep		!TaskId !(Either TaskState (!JSONNode,!Int,!TaskState))
 	| TCParallel	!TaskId !ParallelMeta ![ParallelItem] 
-	| TCShared		!TaskId !JSONNode !Int !TaskState
+	| TCShared		!TaskId !JSONNode !TaskState
 	| TCStable		!TaskId !TaskTime !JSONNode
 	| TCEmpty		!TaskId !TaskTime
 

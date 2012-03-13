@@ -25,8 +25,8 @@ storeValue namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValueAs format namespace key value iworld=:{IWorld|build,dataDirectory} 
-	# (version,iworld) = getStoreVersion namespace key iworld
-	= writeToDisk namespace key {StoreItem|format=format,content=content,version=fromMaybe 0 version} (storePath dataDirectory build) iworld
+	//# (version,iworld) = getStoreVersion namespace key iworld
+	= writeToDisk namespace key {StoreItem|format=format,content=content,version=0} (storePath dataDirectory build) iworld
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
@@ -68,7 +68,7 @@ loadValue namespace key iworld=:{IWorld|build,dataDirectory}
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 		
-getStoreVersion :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe Int,!*IWorld)
+/*getStoreVersion :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe Int,!*IWorld)
 getStoreVersion namespace key iworld
 	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
 	= case mbItem of
@@ -83,7 +83,7 @@ loadValueAndVersion namespace key iworld=:{IWorld|build,dataDirectory}
 			Just v
 				= (Just (v,item.StoreItem.version), if old (writeToDisk namespace key item (storePath dataDirectory build) iworld) iworld)
 			Nothing	= (Nothing,iworld)
-		Nothing 	= (Nothing,iworld)
+		Nothing 	= (Nothing,iworld)*/
 
 unpackValue :: !Bool !StoreItem -> (Maybe a) | JSONDecode{|*|}, TC a
 unpackValue allowFunctions {StoreItem|format=SFPlain,content}
@@ -194,10 +194,10 @@ where
 				| otherwise
 					= unlink dir fs world
 
-isValueChanged :: !StoreNamespace !StoreKey !Int !*IWorld -> (!Maybe Bool,!*IWorld)
+/*isValueChanged :: !StoreNamespace !StoreKey !Int !*IWorld -> (!Maybe Bool,!*IWorld)
 isValueChanged namespace key v0 iworld
 	# (mbVersion,iworld) = getStoreVersion namespace key iworld
-	= (fmap ((<) v0) mbVersion,iworld)
+	= (fmap ((<) v0) mbVersion,iworld)*/
 
 appWorld :: !.(*World -> *World) !*IWorld -> *IWorld
 appWorld f iworld=:{world}

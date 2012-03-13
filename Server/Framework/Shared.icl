@@ -1,22 +1,20 @@
 implementation module Shared
 
 import IWorld, Void, Error, StdFunc, StdMisc, Tuple, Maybe, StdString
-from SharedDataSource import :: RWShared, :: Version, createBasicDataSource, :: BasicSourceOps{..}, :: OBSERVER, read, createProxyDataSource
+from SharedDataSource import :: RWShared, :: Hash, createBasicDataSource, :: BasicSourceOps{..}, :: OBSERVER, read, createProxyDataSource
 
 makeUnsafeShare ::
 	!String
 	!String
 	!(*IWorld      -> *(!MaybeErrorString a,!*IWorld))
 	!(a *IWorld    -> *(!MaybeErrorString Void,!*IWorld))
-	!(*IWorld      -> *(!MaybeErrorString Version,!*IWorld))
 	->
 	Shared a
-makeUnsafeShare type ident read write getVersion
+makeUnsafeShare type ident read write
 	= createBasicDataSource type ident (\iworld -> (ops, iworld)) id const
 where
-	ops =	{ read			= combineErrorsSt read getVersion (\r ver -> Ok (r,ver))
+	ops =	{ read			= read
 			, write			= write
-			, getVersion	= getVersion
 			, lock			= id
 			, lockExcl		= id
 			, unlock		= id
@@ -28,25 +26,22 @@ makeReadOnlyShared ::
 	!String
 	!String
 	!(*IWorld      -> *(!a,!*IWorld))
-	!(*IWorld      -> *(!Version,!*IWorld))
 	->
 	ReadOnlyShared a
-makeReadOnlyShared type ident read getVersion
-	= makeReadOnlySharedError type ident (appFst Ok o read) (appFst Ok o getVersion)
+makeReadOnlyShared type ident read
+	= makeReadOnlySharedError type ident (appFst Ok o read)
 	
 makeReadOnlySharedError ::
 	!String
 	!String
 	!(*IWorld      -> *(!MaybeErrorString a,!*IWorld))
-	!(*IWorld      -> *(!MaybeErrorString Version,!*IWorld))
 	->
 	ReadOnlyShared a
-makeReadOnlySharedError type ident read getVersion
+makeReadOnlySharedError type ident read
 	= createBasicDataSource type ident (\iworld -> (ops, iworld)) id (\_ b -> b)
 where
-	ops =	{ read			= combineErrorsSt read getVersion (\r ver -> Ok (r,ver))
+	ops =	{ read			= read
 			, write			= \_ env -> (Ok Void, env)
-			, getVersion	= getVersion
 			, lock			= id
 			, lockExcl		= id
 			, unlock		= id
