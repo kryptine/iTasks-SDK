@@ -63,7 +63,8 @@ determineSet :: [User] -> Task [User]
 determineSet people = determineSet`
 where
 	determineSet`	
-	=					enterChoice ("Choose people","Current set:") [ChoiceContext people]
+	=		viewInformation Void [] people			
+		||-	enterChoice ("Choose people","Current set:") []
 						[ cancelTask choosePerson <<@ Title "Add Person"
 						, return Nothing <<@ Title "Finished"
 						] 	

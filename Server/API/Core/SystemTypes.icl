@@ -7,13 +7,13 @@ from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode		RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Either, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -42,167 +42,6 @@ gEq{|(->)|} _ _ fa fb		= copy_to_string fa == copy_to_string fb // HACK: Compare
 gEq{|Dynamic|} _ _			= False	// dynamics are never equal
 //gEq{|Dynamic|} (x :: a | gEq{|*|} a) (y :: a | gEq{|*|} a) = x === y
 
-mkRadioChoice :: !(container (!v,!o)) !(Maybe o) -> RadioChoice v o | OptionContainer container & gEq{|*|} o
-mkRadioChoice options mbSel = mkChoice options mbSel
-
-instance Choice RadioChoice
-where
-	mkChoice options mbSel										= mkChoice` (RadioChoice (toOptionList options)) mbSel
-	selectOption newOption (RadioChoice options _)				= RadioChoice options (selectOption` options newOption)
-	getSelection (RadioChoice options mbSel)					= getSelection` options mbSel
-	getMbSelection (RadioChoice options mbSel)					= getMbSelection` options mbSel snd
-	getMbSelectionView (RadioChoice options mbSel)				= getMbSelection` options mbSel fst
-	setOptions newOptions (RadioChoice oldOptions mbSel)		= RadioChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
-	selectIndex idx (RadioChoice options _)						= RadioChoice options (Just idx)
-	mkEmptyChoice												= RadioChoice [] Nothing
-
-mkComboChoice :: !(container (!v,!o)) !(Maybe o) -> ComboChoice v o | OptionContainer container & gEq{|*|} o
-mkComboChoice options mbSel = mkChoice options mbSel
-
-instance Choice ComboChoice
-where
-	mkChoice options mbSel										= mkChoice` (ComboChoice (toOptionList options)) mbSel
-	selectOption newSelection (ComboChoice options _)			= ComboChoice options (selectOption` options newSelection)
-	getSelection (ComboChoice options mbSel)					= getSelection` options mbSel
-	getMbSelection (ComboChoice options mbSel)					= getMbSelection` options mbSel snd
-	getMbSelectionView (ComboChoice options mbSel)				= getMbSelection` options mbSel fst
-	setOptions newOptions (ComboChoice oldOptions mbSel)		= ComboChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
-	selectIndex idx (ComboChoice options _)						= ComboChoice options (Just idx)
-	mkEmptyChoice												= ComboChoice [] Nothing
-
-mkTreeChoice :: !(container (!v,!o)) !(Maybe o) -> TreeChoice v o | OptionContainer container & gEq{|*|} o
-mkTreeChoice options mbSel = mkChoice options mbSel
-
-instance Choice TreeChoice
-where
-	mkChoice options mbSel										= mkChoice` (TreeChoice (toOptionTree options)) mbSel
-	selectOption newSelection (TreeChoice options _)			= TreeChoice options (selectOption` options newSelection)
-	getSelection (TreeChoice options mbSel)						= getSelection` options mbSel
-	getMbSelection (TreeChoice options mbSel)					= getMbSelection` options mbSel snd
-	getMbSelectionView (TreeChoice options mbSel)				= getMbSelection` options mbSel fst
-	setOptions newOptions (TreeChoice oldOptions mbSel)			= TreeChoice (toOptionTree newOptions) (setOptions` oldOptions mbSel newOptions)
-	selectIndex idx (TreeChoice options _)						= TreeChoice options (Just idx)
-	mkEmptyChoice												= TreeChoice (Tree []) Nothing
-	
-mkGridChoice :: !(container (!v,!o)) !(Maybe o) -> GridChoice v o | OptionContainer container & gEq{|*|} o
-mkGridChoice options mbSel = mkChoice options mbSel
-
-instance Choice GridChoice
-where
-	mkChoice options mbSel										= mkChoice` (GridChoice (toOptionList options)) mbSel
-	selectOption newSelection (GridChoice options _)			= GridChoice options (selectOption` options newSelection)
-	getSelection (GridChoice options mbSel)						= getSelection` options mbSel
-	getMbSelection (GridChoice options mbSel)					= getMbSelection` options mbSel snd
-	getMbSelectionView (GridChoice options mbSel)				= getMbSelection` options mbSel fst
-	setOptions newOptions (GridChoice oldOptions mbSel)			= GridChoice (toOptionList newOptions) (setOptions` oldOptions mbSel newOptions)
-	selectIndex idx (GridChoice options _)						= GridChoice options (Just idx)
-	mkEmptyChoice												= GridChoice [] Nothing
-
-mkChoice` :: !((Maybe Int) -> choice v o) !(Maybe o) -> choice v o | Choice choice & gEq{|*|} o
-mkChoice` choice mbSel
-	# choice = choice Nothing
-	= case mbSel of
-		Just sel	= selectOption sel choice
-		_			= choice
-
-selectOption` :: !(c (v,!o)) !o -> (Maybe Int) | gEq{|*|} o & OptionContainer c
-selectOption` options newSelection
-	= case [idx \\ (_,option) <- toOptionList options & idx <- [0..] | newSelection === option] of
-		[idx:_]	= Just idx
-		_		= Nothing
-
-getSelection` :: !(c (v,!o)) !(Maybe Int) -> o | OptionContainer c
-getSelection` options mbSel = fromMaybe (abort "choice has no selection") (getMbSelection` options mbSel snd)
-
-getMbSelection` :: !(c o) !(Maybe Int) !(o -> r) -> (Maybe r) | OptionContainer c
-getMbSelection` options mbSel f
-	# options = toOptionList options
- 	= case mbSel of
-		Just sel | sel < length options	= Just (f (options !! sel))
-		_								= Nothing
-
-setOptions` :: !(c1 (v,!o)) !(Maybe Int) !(c2 (v,!o)) -> (Maybe Int) | gEq{|*|} o & OptionContainer c1 & OptionContainer c2		
-setOptions` oldOptions mbSel newOptions
-	# oldOptionList = map snd (toOptionList oldOptions)
-	# newOptionList = map snd (toOptionList newOptions)
-	= case mbSel of
-		Nothing			= Nothing
-		Just sel = case newIndexes oldOptionList newOptionList [sel] of
-			[newSel]	= Just newSel
-			_			= Nothing
-
-mkCheckMultiChoice :: !(container (!v,!o)) ![o] -> CheckMultiChoice v o | OptionContainer container & gEq{|*|} o
-mkCheckMultiChoice options sels = mkMultiChoice options sels
-			
-instance MultiChoice CheckMultiChoice
-where
-	mkMultiChoice options sels										= selectOptions sels (CheckMultiChoice (toOptionList options) [])
-	selectOptions newSelections (CheckMultiChoice options _)		= CheckMultiChoice options (selectOptions` options newSelections)
-	getSelections (CheckMultiChoice options sels)					= getSelections` options sels snd
-	getSelectionViews (CheckMultiChoice options sels)				= getSelections` options sels fst
-	setMultiOptions newOptions (CheckMultiChoice oldOptions sels)	= CheckMultiChoice (toOptionList newOptions) (setMultiOptions` oldOptions sels newOptions)
-
-selectOptions` :: !(c (v,!o)) ![o] -> [Int] | gEq{|*|} o & OptionContainer c
-selectOptions` options newSelections = [idx \\ (_,option) <- toOptionList options & idx <- [0..] | isMemberGen option newSelections]
-
-getSelections` :: !(c o) ![Int] !(o -> r) -> [r] | OptionContainer c
-getSelections` options sels f =  [f option \\ option <- toOptionList options & idx <- [0..] | isMember idx sels]
-
-setMultiOptions` :: !(c1 (v,!o)) ![Int] !(c2 (v,!o)) -> [Int] | gEq{|*|} o & OptionContainer c1 & OptionContainer c2
-setMultiOptions` oldOptions sels newOptions
-	# oldOptionList = map snd (toOptionList oldOptions)
-	# newOptionList = map snd (toOptionList newOptions)
-	= newIndexes oldOptionList newOptionList sels
-
-instance OptionContainer []
-where
-	toOptionList l				= l
-	toOptionTree l				= Tree (map Leaf l)
-	suggestedChoiceType	l
-		| not (isEmpty (snd (headers l)))	= ChooseFromGrid
-		| length l > 7						= ChooseFromComboBox
-		| otherwise							= ChooseFromRadioButtons
-	where
-		// unify type of list elements with type to determine headers for
-		headers :: [a] -> (a,![String]) | gHeaders{|*|} a
-		headers _ = gHeaders{|*|}
-	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
-	
-instance OptionContainer Tree
-where
-	toOptionList (Tree nodes) = flatten (map toOptionList` nodes)
-	where
-		toOptionList` node = case node of
-			Leaf option			= [option]
-			Node option nodes	= [option:flatten (map toOptionList` nodes)]
-	toOptionTree t = t
-	suggestedChoiceType _		= ChooseFromTree
-	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
-	
-newIndexes :: ![a] ![a] ![Int] -> [Int] | gEq{|*|} a
-newIndexes oldOpts newOpts sel = newIndexes` curChoices []
-where
-	newIndexes` [] acc = acc
-	newIndexes` [(choice,nrOfOccurrence):choices] acc = case findOption choice nrOfOccurrence of
-		Nothing	= newIndexes` choices acc
-		Just i	= newIndexes` choices [i:acc]
-	where
-		findOption choice nr
-			| isEmpty choiceIndexes			= Nothing
-			| length choiceIndexes <= nr	= Just (choiceIndexes !! (length choiceIndexes - 1))
-			| otherwise						= Just (choiceIndexes !! nr)
-		where
-			choiceIndexes = [i \\ opt <- newOpts & i <- [0..] | choice === opt]
-	curChoices = [(choice,nrOfOccurrence choice i oldOpts) \\ choice <- oldOpts & i <- [0..] | isMember i sel]
-	where
-		nrOfOccurrence choice choiceIndex opts = nrOfOccurrence` 0 0 opts
-		where
-			nrOfOccurrence` _ nr [] = nr
-			nrOfOccurrence` i nr [opt:oldOpts]
-				| choice === opt
-					| i == choiceIndex	= nr
-					| otherwise			= nrOfOccurrence` (inc i) (inc nr) oldOpts
-				| otherwise				= nrOfOccurrence` (inc i) nr oldOpts
 				
 instance Functor Tree
 where
@@ -508,6 +347,76 @@ toFillHControlSize a = FillHControlSize a
 
 fromFillHControlSize :: !(FillHControlSize .a) -> .a
 fromFillHControlSize (FillHControlSize a) = a
+
+// ******************************************************************************************************
+// Choice representations
+// ******************************************************************************************************
+instance Choice ComboChoice
+where
+	selectOption newSel (ComboChoice options _)					= ComboChoice options (setListOption options newSel)
+	getSelection combo											= fromJust (getMbSelection combo)
+	getMbSelection (ComboChoice options mbSel)					= fmap snd (getListOption options mbSel)
+	getMbSelectionView (ComboChoice options mbSel)				= fmap fst (getListOption options mbSel)
+
+instance Choice RadioChoice
+where
+	selectOption newSel (RadioChoice options _)					= RadioChoice options (setListOption options newSel)
+	getSelection radios											= fromJust (getMbSelection radios)
+	getMbSelection (RadioChoice options mbSel)					= fmap snd (getListOption options mbSel)
+	getMbSelectionView (RadioChoice options mbSel)				= fmap fst (getListOption options mbSel)
+
+instance Choice TreeChoice
+where
+	selectOption newSel (TreeChoice options _)					= TreeChoice options (setTreeOption options newSel)
+	getSelection tree											= fromJust (getMbSelection tree)
+	getMbSelection (TreeChoice options mbSel)					= fmap snd (getTreeOption options mbSel)
+	getMbSelectionView (TreeChoice options mbSel)				= fmap fst (getTreeOption options mbSel)
+
+instance Choice GridChoice
+where
+	selectOption newSel (GridChoice options _)					= GridChoice options (setListOption options newSel)
+	getSelection grid											= fromJust (getMbSelection grid)
+	getMbSelection (GridChoice options mbSel)					= fmap snd (getListOption options mbSel)
+	getMbSelectionView (GridChoice options mbSel)				= fmap fst (getListOption options mbSel)
+
+instance MultiChoice CheckMultiChoice
+where
+	selectOptions newSels (CheckMultiChoice options _)			= CheckMultiChoice options (setListOptions options newSels)
+	getSelections (CheckMultiChoice options sels)				= fmap snd (getListOptions options sels)
+	getSelectionViews (CheckMultiChoice options sels)			= fmap fst (getListOptions options sels)
+
+setListOption :: ![(v,o)] !o -> (Maybe Int) | gEq{|*|} o
+setListOption options newSel
+	= case setListOptions options [newSel] of
+		[idx:_]	= Just idx
+		_		= Nothing
+
+setListOptions :: ![(v,o)] ![o] -> [Int] | gEq{|*|} o
+setListOptions options sels
+	= [idx \\ (_,option) <- options & idx <- [0..] | gIsMember option sels]
+where
+	gIsMember x [hd:tl]	= hd===x || gIsMember x tl
+	gIsMember x []		= False
+	
+getListOption :: ![a] !(Maybe Int) -> Maybe a
+getListOption options mbSel = case getListOptions options (maybeToList mbSel) of
+	[a] = Just a
+	_	= Nothing
+	
+getListOptions :: ![a] ![Int] -> [a]
+getListOptions options sels = [opt \\ opt <- options & idx <- [0..] | isMember idx sels]
+
+getTreeOption :: !(Tree a) !(Maybe Int) -> Maybe a
+getTreeOption tree mbSel = getListOption (treeToList tree) mbSel
+
+setTreeOption :: !(Tree (v,o)) !o -> (Maybe Int) | gEq{|*|} o
+setTreeOption tree newSel = setListOption (treeToList tree) newSel
+
+treeToList :: (Tree a) -> [a]
+treeToList (Tree nodes) = (foldr addNode [] nodes)
+where
+	addNode (Leaf a) accu		= [a:accu]
+	addNode (Node a nodes) accu	= [a:foldr addNode accu nodes] 
 
 // ******************************************************************************************************
 // User

@@ -203,11 +203,12 @@ gUpdate{|User|}					mode ust = basicUpdateSimple mode AnyUser ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
 gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton|b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
-gUpdate{|TreeChoice|} _ _		mode ust = updateChoice mode ust
-gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode ust
-gUpdate{|RadioChoice|} _ _		mode ust = updateChoice mode ust
-gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode ust
-updateChoice mode ust = basicUpdate mode (\json choice -> maybe choice (\i -> selectIndex i choice) (fromJSON json)) mkEmptyChoice ust
+gUpdate{|TreeChoice|} _ _		mode ust = updateChoice mode (\idx (TreeChoice options _) -> TreeChoice options (Just idx)) (TreeChoice (Tree []) Nothing) ust
+gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode (\idx (GridChoice options _) -> GridChoice options (Just idx)) (GridChoice [] Nothing) ust
+gUpdate{|RadioChoice|} _ _		mode ust = updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) (RadioChoice [] Nothing) ust
+gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) (ComboChoice [] Nothing) ust
+
+updateChoice mode select empty ust = basicUpdate mode (\json choice -> maybe choice (\i -> select i choice) (fromJSON json)) empty ust
 
 gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\json (CheckMultiChoice opts sel)	-> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel)	(CheckMultiChoice [] [])										ust
 where

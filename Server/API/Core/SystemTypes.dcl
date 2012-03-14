@@ -155,13 +155,13 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 :: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONEncode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONEncode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONDecode		Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive JSONDecode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive gEq				Note, Username, Password, Date, Time, DateTime, RadioChoice, ComboChoice, TreeChoice, GridChoice, CheckMultiChoice, Map, Void, Either, Timestamp, Tree, TreeNode, Table
+derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -240,8 +240,6 @@ instance zero USD
 
 instance html Note
 
-
-
 class toEmail r where toEmail :: !r -> EmailAddress
 instance toEmail EmailAddress
 instance toEmail String
@@ -256,72 +254,54 @@ instance toEmail User
 	}
 :: ButtonState		= NotPressed | Pressed
 
-//* Represents the choice of one element from a list represented as radio buttons
-:: RadioChoice v o = RadioChoice ![(!v,!o)] !(Maybe Int)
+//* Simple tree type (used primarily for creating trees to choose from)
+:: Tree a = Tree !.[.TreeNode a]
+:: TreeNode a = Leaf !a | Node !a !.[TreeNode a]
 
-mkRadioChoice :: !(container(!v,!o)) !(Maybe o) -> RadioChoice v o | OptionContainer container & gEq{|*|} o
-instance Choice RadioChoice
+instance Functor Tree
+
+//* Represents a table consisting of headers, the displayed data cells & possibly a selection
+:: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
+
+//Generate a table from a value
+toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
 
-mkComboChoice :: !(container (!v,!o)) !(Maybe o) -> ComboChoice v o | OptionContainer container & gEq{|*|} o
-instance Choice ComboChoice
+//* Represents the choice of one element from a list represented as radio buttons
+:: RadioChoice v o = RadioChoice ![(!v,!o)] !(Maybe Int)
 
 //* Represents a tree from with the user can choose one element
 :: TreeChoice v o = TreeChoice !(Tree (!v,!o)) !(Maybe Int)
-:: Tree a = Tree !.[.TreeNode a]
-:: TreeNode a = Leaf !a | Node !a !.[TreeNode a]
-
-mkTreeChoice :: !(container (!v,!o)) !(Maybe o) -> TreeChoice v o | OptionContainer container & gEq{|*|} o
-instance Choice TreeChoice
-instance Functor Tree
 
 //* Represents the choice of one element from a list represented as grid
 //* (typically v is a record which's labels are used as headers)
 :: GridChoice v o = GridChoice ![(!v,!o)] !(Maybe Int)
-
-mkGridChoice :: !(container (!v,!o)) !(Maybe o) -> GridChoice v o | OptionContainer container & gEq{|*|} o
-instance Choice GridChoice
 
 /**
 * Interface for types representing choices of one element out of a set of options.
 * There are different kinds of containers for such options (e.g. lists, trees, ...).
 * Each option consists of an actual value (o) & a view value shown to the user (v).
 */
-class Choice choiceType
+class Choice t
 where
-	//* Generates a choice with given options and possibly initial selection
-	mkChoice				:: !(container (!v,!o)) !(Maybe o)			-> choiceType v o | OptionContainer container & gEq{|*|} o
 	//* Selects the given option, if not present in list of options selection is cleared
-	selectOption			:: !o !(choiceType v o)						-> choiceType v o | gEq{|*|} o
+	selectOption			:: !o !(t v o)					-> t v o | gEq{|*|} o
 	//* Gets the current selection assuming it is present (a valid choice always has a selection)
-	getSelection			:: !(choiceType v o)						-> o
+	getSelection			:: !(t v o)						-> o
 	//* Gets the current selection if present
-	getMbSelection			:: !(choiceType v o)						-> Maybe o
+	getMbSelection			:: !(t v o)						-> Maybe o
 	//* Gets the current selection's view if present
-	getMbSelectionView		:: !(choiceType v o)						-> Maybe v
-	//* Sets the choice's options, tries to keep the selection as intact as possible
-	setOptions				:: !(container (!v,!o)) !(choiceType v o)	-> choiceType v o | OptionContainer container & gEq{|*|} o
-	//* Selects the option given by the index
-	selectIndex				:: !Int !(choiceType v o)					-> choiceType v o
-	//* Generates empty choice
-	mkEmptyChoice			:: 											   choiceType v o
-	
-:: ChoiceType	= AutoChoiceView
-				| ChooseFromRadioButtons
-				| ChooseFromComboBox
-				| ChooseFromGrid
-				| ChooseFromTree
+	getMbSelectionView		:: !(t v o)						-> Maybe v
+
+instance Choice ComboChoice
+instance Choice RadioChoice
+instance Choice TreeChoice
+instance Choice GridChoice
 
 //* Represents the choice of a number of items from a list
 :: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]
-
-mkCheckMultiChoice :: !(container (!v,!o)) ![o] -> CheckMultiChoice v o | OptionContainer container & gEq{|*|} o
-instance MultiChoice CheckMultiChoice
-
-:: MultiChoiceType	= AutoMultiChoiceView
-					| ChooseFromCheckBoxes
 
 /**
 * Interface for types representing choices a number of elements out of a set of options.
@@ -330,32 +310,14 @@ instance MultiChoice CheckMultiChoice
 */
 class MultiChoice choiceType
 where
-	//* Generates a multi choice with given options and initial selection
-	mkMultiChoice			:: !(container (!v,!o)) ![o]				-> choiceType v o | OptionContainer container & gEq{|*|} o
 	//* Selects the given options, selections not present in list of options are ignored
 	selectOptions			:: ![o] !(choiceType v o)					-> choiceType v o | gEq{|*|} o
 	//* Gets the current selections
 	getSelections			:: !(choiceType v o)						-> [o]
 	//* Gets the current selection's views
 	getSelectionViews		:: !(choiceType v o)						-> [v]
-	//* Sets the choice's options, tries to keep the selection as intact as possible
-	setMultiOptions			:: !(container (!v,!o)) !(choiceType v o)	-> choiceType v o | OptionContainer container & gEq{|*|} o
 
-class OptionContainer container | Functor container
-where
-	toOptionList				:: !(container o) -> [o]
-	toOptionTree				:: !(container o) -> Tree o
-	suggestedChoiceType			:: !(container o) -> ChoiceType		| gHeaders{|*|} o
-	suggestedMultiChoiceType	:: !(container o) -> MultiChoiceType
-	
-instance OptionContainer []
-instance OptionContainer Tree
-
-//* Represents a table consisting of headers, the displayed data cells & possibly a selection
-:: Table = Table ![String] ![[HtmlTag]] !(Maybe Int)
-
-//Generate a table from a value
-toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
+instance MultiChoice CheckMultiChoice
 
 //* Field behaviour extensions
 :: VisualizationHint a 	= VHEditable a

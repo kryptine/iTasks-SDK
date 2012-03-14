@@ -2,11 +2,34 @@ definition module InteractionTasks
 
 import CoreTasks
 
-//View defintions for customizing interaction
+//View definitions for customizing interaction
 
 :: ViewOption a 		= E.v: ViewWith 	(a -> v)			& iTask v
 :: EnterOption a		= E.v: EnterWith	(v -> a)			& iTask v
 :: UpdateOption a b		= E.v: UpdateWith	(a -> v) (a v -> b)	& iTask v
+
+:: ChoiceOption a		= E.v: ChooseWith		ChoiceType		(a -> v) & iTask v
+:: MultiChoiceOption a	= E.v: MultiChooseWith	MultiChoiceType	(a -> v) & iTask v
+
+:: ChoiceType			= AutoChoice
+						| ChooseFromComboBox
+						| ChooseFromRadioButtons
+						| ChooseFromGrid
+						| ChooseFromTree
+					
+:: MultiChoiceType		= AutoMultiChoice
+						| ChooseFromCheckBoxes
+
+//Class that defines the types that you can choose an item from
+class OptionContainer container | Functor container
+where
+	toOptionList				:: !(container o) -> [o]
+	toOptionTree				:: !(container o) -> Tree o
+	suggestedChoiceType			:: !(container o) -> ChoiceType		| gHeaders{|*|} o
+	suggestedMultiChoiceType	:: !(container o) -> MultiChoiceType
+	
+instance OptionContainer []
+instance OptionContainer Tree
 
 /*** General input/update/output tasks ***/
 
@@ -89,8 +112,7 @@ viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | d
 
 /*** Special tasks for choices ***/
 
-:: ChoiceView choiceType o	= E.v: ChoiceContext	!v							& iTask v
-							| E.v: ChoiceView		!(!choiceType, !(o -> v))	& iTask v
+
 
 /**
 * Ask the user to select one item from a list of options.
@@ -108,9 +130,9 @@ viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | d
 */
 //ListChoice (a -> [o], o -> v)
 //TreeChoice (a -> Tree o, o -> v)
-//enterChoice :: !d ![ChoiceView ChoiceType o] !a -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
+//enterChoice :: !d ![ChoiceOption ChoiceType o] !a -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 
-enterChoice :: !d ![ChoiceView ChoiceType o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
+enterChoice :: !d ![ChoiceOption o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 
 /**
 * Ask the user to select one item from a list of options with already one option pre-selected.
@@ -127,7 +149,7 @@ enterChoice :: !d ![ChoiceView ChoiceType o] !(container o) -> Task o | descr d 
 * 
 * @gin-icon choice
 */
-updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
+updateChoice :: !d ![ChoiceOption o] !(container o) o -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 
 /**
 * Ask the user to select one item from a list of shared options.
@@ -143,7 +165,7 @@ updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr
 * 
 * @gin-icon choice
 */
-enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select one item from a list of shared options with already one option pre-selected.
@@ -160,7 +182,7 @@ enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container 
 * 
 * @gin-icon choice
 */
-updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select a number of items from a list of options
@@ -176,7 +198,7 @@ updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container
 * 
 * @gin-icon choice
 */
-enterMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
+enterMultipleChoice :: !d ![MultiChoiceOption o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
 
 /**
 * Ask the user to select a number of items from a list of options with already a number of options pre-selected.
@@ -195,7 +217,7 @@ enterMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) -> Task
 * 
 * @gin-icon choice
 */
-updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
+updateMultipleChoice :: !d ![MultiChoiceOption o] !(container o) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
 
 /**
 * Ask the user to select a number of items from a list of shared options.
@@ -211,7 +233,7 @@ updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] ->
 * 
 * @gin-icon choice
 */
-enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Ask the user to select one item from a list of shared options with already a number of options pre-selected.
@@ -230,7 +252,7 @@ enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShare
 * 
 * @gin-icon choice
 */
-updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 
 /**
 * Wait for a share to match a certain predicate

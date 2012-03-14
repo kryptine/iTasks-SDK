@@ -10,6 +10,56 @@ from SharedDataSource import constShare
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
 
+instance OptionContainer []
+where
+	toOptionList l				= l
+	toOptionTree l				= Tree (map Leaf l)
+	suggestedChoiceType	l
+		| not (isEmpty (snd (headers l)))	= ChooseFromGrid
+		| length l > 7						= ChooseFromComboBox
+		| otherwise							= ChooseFromRadioButtons
+	where
+		// unify type of list elements with type to determine headers for
+		headers :: [a] -> (a,![String]) | gHeaders{|*|} a
+		headers _ = gHeaders{|*|}
+	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
+	
+instance OptionContainer Tree
+where
+	toOptionList (Tree nodes) = flatten (map toOptionList` nodes)
+	where
+		toOptionList` node = case node of
+			Leaf option			= [option]
+			Node option nodes	= [option:flatten (map toOptionList` nodes)]
+	toOptionTree t = t
+	suggestedChoiceType _		= ChooseFromTree
+	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
+	
+newIndexes :: ![a] ![a] ![Int] -> [Int] | gEq{|*|} a
+newIndexes oldOpts newOpts sel = newIndexes` curChoices []
+where
+	newIndexes` [] acc = acc
+	newIndexes` [(choice,nrOfOccurrence):choices] acc = case findOption choice nrOfOccurrence of
+		Nothing	= newIndexes` choices acc
+		Just i	= newIndexes` choices [i:acc]
+	where
+		findOption choice nr
+			| isEmpty choiceIndexes			= Nothing
+			| length choiceIndexes <= nr	= Just (choiceIndexes !! (length choiceIndexes - 1))
+			| otherwise						= Just (choiceIndexes !! nr)
+		where
+			choiceIndexes = [i \\ opt <- newOpts & i <- [0..] | choice === opt]
+	curChoices = [(choice,nrOfOccurrence choice i oldOpts) \\ choice <- oldOpts & i <- [0..] | isMember i sel]
+	where
+		nrOfOccurrence choice choiceIndex opts = nrOfOccurrence` 0 0 opts
+		where
+			nrOfOccurrence` _ nr [] = nr
+			nrOfOccurrence` i nr [opt:oldOpts]
+				| choice === opt
+					| i == choiceIndex	= nr
+					| otherwise			= nrOfOccurrence` (inc i) (inc nr) oldOpts
+				| otherwise				= nrOfOccurrence` (inc i) nr oldOpts
+
 enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
 enterInformation d opts
 	= interact d init (parts opts) Nothing voidNull @ fst
@@ -82,36 +132,32 @@ where
 	parts []	= [DisplayPart (\_ r -> r)]
 	parts views = [DisplayPart (\_ r -> tof r) \\ ViewWith tof <- views]
 
-enterChoice :: !d ![ChoiceView ChoiceType o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
+enterChoice :: !d ![ChoiceOption o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 enterChoice d views choiceOpts
 	=	modifyChoice d views (constShare choiceOpts) Nothing
 
-updateChoice :: !d ![ChoiceView ChoiceType o] !(container o) o -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
+updateChoice :: !d ![ChoiceOption o] !(container o) o -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 updateChoice d views choiceOpts initC
 	=	modifyChoice d views (constShare choiceOpts) (Just initC)
 	
-enterSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 enterSharedChoice d views shared
 	=	modifyChoice d views shared Nothing
 
-updateSharedChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 updateSharedChoice d views shared initC
 	=	modifyChoice d views shared (Just initC)
 
-modifyChoice :: !d ![ChoiceView ChoiceType o] !(ReadWriteShared (container o) w) (Maybe o) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+modifyChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) (Maybe o) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 modifyChoice d views shared mbInitSel = 
-	transform result (modifyInformation d  (\_ _ -> mbInitSel) (toChoiceViews (addDefault views)) (toReadOnly shared) Nothing)
+	transform result (modifyInformation d  (\_ _ -> mbInitSel) (toChoiceOptions (addDefault views)) (toReadOnly shared) Nothing)
 where
-	toChoiceViews views = map toChoiceView views
+	toChoiceOptions views = map toChoiceOption views
 	where
-		toChoiceView view = case view of
-			ChoiceContext v			= About v
-			ChoiceView (type,viewF)	= choiceView type viewF
-		
-		choiceView type viewF = case type of
+		toChoiceOption (ChooseWith type viewF) = case type of
 			//TEMPORARY TRICK. WE WOULD LIKE TO USE THE ACTUAL OPTIONS INSTEAD OF DEFAULT VALUE
 			//NOT POSSIBLE ATM
-			AutoChoiceView				= choiceView (determineAutoChoice shared defaultValue) viewF
+			AutoChoice					= toChoiceOption (ChooseWith (determineAutoChoice shared defaultValue) viewF)
 			ChooseFromRadioButtons		= choiceView` mkRadioChoice
 			ChooseFromComboBox			= choiceView` mkComboChoice
 			ChooseFromGrid				= choiceView` mkGridChoice
@@ -127,40 +173,59 @@ where
 		
 		fromChoice choice _ _		= getMbSelection choice
 	
-	addDefault views
-		| any (\v -> case v of (ChoiceContext _) = False; _ = True) views	= views
-		| otherwise															= views ++ [ChoiceView (AutoChoiceView, id)]
-
+	addDefault [] = [ChooseWith AutoChoice id]
+	addDefault views = views
+	
 	result (Value (Just sel,_) s)	= Value sel s
 	result _						= NoValue
+	
+mkRadioChoice :: !(container (!v,!o)) !(Maybe o) -> RadioChoice v o | OptionContainer container & gEq{|*|} o
+mkRadioChoice options mbSel = mkChoice` (RadioChoice (toOptionList options)) mbSel
 
-enterMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
+mkComboChoice :: !(container (!v,!o)) !(Maybe o) -> ComboChoice v o | OptionContainer container & gEq{|*|} o
+mkComboChoice options mbSel = mkChoice` (ComboChoice (toOptionList options)) mbSel
+
+mkTreeChoice :: !(container (!v,!o)) !(Maybe o) -> TreeChoice v o | OptionContainer container & gEq{|*|} o
+mkTreeChoice options mbSel = mkChoice` (TreeChoice (toOptionTree options)) mbSel
+
+mkGridChoice :: !(container (!v,!o)) !(Maybe o) -> GridChoice v o | OptionContainer container & gEq{|*|} o
+mkGridChoice options mbSel = mkChoice` (GridChoice (toOptionList options)) mbSel
+
+mkChoice` :: !((Maybe Int) -> choice v o) !(Maybe o) -> choice v o | Choice choice & gEq{|*|} o
+mkChoice` choice mbSel
+	# choice = choice Nothing
+	= case mbSel of
+		Just sel	= selectOption sel choice
+		_			= choice
+
+mkCheckMultiChoice :: !(container (!v,!o)) ![o] -> CheckMultiChoice v o | OptionContainer container & gEq{|*|} o
+mkCheckMultiChoice options sels = selectOptions sels (CheckMultiChoice (toOptionList options) [])
+
+enterMultipleChoice :: !d ![MultiChoiceOption o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
 enterMultipleChoice d views choiceOpts
 	=	modifyMultipleChoice d views (constShare choiceOpts) []
 
-updateMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(container o) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
+updateMultipleChoice :: !d ![MultiChoiceOption o] !(container o) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
 updateMultipleChoice d views choiceOpts initC
 	=	modifyMultipleChoice d views (constShare choiceOpts) initC
 
-enterSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared (container o) w) -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 enterSharedMultipleChoice d views shared
 	=	modifyMultipleChoice d views shared []
 
-updateSharedMultipleChoice :: !d ![ChoiceView MultiChoiceType o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedMultipleChoice :: !d ![MultiChoiceOption o] !(ReadWriteShared (container o) w) [o] -> Task [o] | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
 updateSharedMultipleChoice d views shared sel 
 	=	modifyMultipleChoice d views shared sel
 
 modifyMultipleChoice d views shared initSels =
-	(modifyInformation d (\_ _ -> initSels) (toChoiceViews (addDefault views))  (toReadOnly shared) Nothing @ fst)
+	(modifyInformation d (\_ _ -> initSels) (toChoiceOptions (addDefault views))  (toReadOnly shared) Nothing @ fst)
 where
-	toChoiceViews views = map toChoiceView views
+	toChoiceOptions views = map toChoiceOption views
 	where
-		toChoiceView view = case view of
-			ChoiceContext v			= About v
-			ChoiceView (type,viewF)	= choiceView type viewF
-		
+		toChoiceOption (MultiChooseWith type viewF )	= choiceView type viewF
+			
 		choiceView type viewF = case type of
-			AutoMultiChoiceView			= choiceView (determineAutoChoice shared defaultValue) viewF
+			AutoMultiChoice				= choiceView (determineAutoChoice shared defaultValue) viewF
 			ChooseFromCheckBoxes		= choiceView` mkCheckMultiChoice
 		where
 			choiceView` mkF				= UpdateView (GetCombined (toChoice mkF viewF)) fromChoice
@@ -172,10 +237,8 @@ where
 	toChoice mkF viewF mbSel options	= mkF (fmap (\o -> (viewF o, o)) options) mbSel
 	fromChoice choice _ _				= getSelections choice
 	
-	addDefault views
-		| any (\v -> case v of (ChoiceContext _) = False; _ = True) views	= views
-		| otherwise															= views ++ [ChoiceView (AutoMultiChoiceView, id)]
-
+	addDefault []		= [MultiChooseWith AutoMultiChoice id]
+	addDefault views	= views
 /**
 * Defines a view on the data model of interaction tasks. 
 */

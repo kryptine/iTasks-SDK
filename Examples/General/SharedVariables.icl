@@ -194,8 +194,8 @@ where
 		view = UpdateWith vfrom vto
 		vfrom (order,(products,customers))
 			= { OrderForm
-			  | customer = (mkComboChoice (customerOptions customers) (Just (customerSel order)), newCustomer order)
-			  , product = mkComboChoice (productOptions products) (Just order.Order.product)
+			  | customer = (ComboChoice (customerOptions customers) (Just (customerSel order)), newCustomer order)
+			  , product = ComboChoice (productOptions products) (Just order.Order.product)
 			  , amount = order.Order.amount
 			  }
 							

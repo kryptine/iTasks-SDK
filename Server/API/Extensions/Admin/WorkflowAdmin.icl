@@ -166,7 +166,7 @@ startWork list = forever
 	
 chooseWorkflow :: Task Workflow
 chooseWorkflow
-	=	enterSharedChoice [Att (Title "Tasks"), Att IconView] [ChoiceView (ChooseFromTree, toView)] (allowedWorkflowTree) 
+	=	enterSharedChoice [Att (Title "Tasks"), Att IconView] [ChooseWith ChooseFromTree toView] (allowedWorkflowTree) 
 	@? onlyRight
 where
 	toView (Left label)				= label
@@ -199,7 +199,7 @@ where
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
-	(	enterSharedChoice Void [ChoiceView (ChooseFromGrid,mkRow)] processes 														<<@ tweak 
+	(	enterSharedChoice Void [ChooseWith ChooseFromGrid mkRow] processes 														<<@ tweak 
 	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskListItem.taskId @ const OpenProcess)
 		,WithResult (Action "Delete") (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks @ const OpenProcess)]
 	)
