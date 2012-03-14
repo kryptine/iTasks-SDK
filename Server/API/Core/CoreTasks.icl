@@ -58,7 +58,7 @@ where
 			Ok (val,_)	= ValueResult (Value val Unstable) ts NoRep (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
-		
+
 interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
 interact desc initFun parts initLocal shared = mkTask eval
 where
@@ -82,12 +82,31 @@ where
 		# (rvalue,_)						= (fromOk mbrvalue)
 		# changed							= rvalue =!= fromJust (fromJSON encr)
 		# lvalue							= fromJust (fromJSON encl)
+
+		# (is_lucky_event,lvalue,mbEdit,lastEvent)
+		  = case eEvent of
+			Just (TaskEvent t e)
+				| t == taskId
+					= (False,lvalue,Just e,taskTime)
+			Just (LuckyEvent e=:(_,json_node))
+				= case fromJSON json_node of
+					Just lucky_value
+						-> (True,lucky_value,Just e,taskTime)
+					_
+						-> (True,lvalue,Just e,taskTime)						
+			_
+				= (False,lvalue,Nothing,ts)
+
+/*
 		# (mbEdit,lastEvent)	= case eEvent of
 			Just (TaskEvent t e)
 				| t == taskId		= (Just e,taskTime)
 			Just (LuckyEvent e)		= (Just e,taskTime)						
 			_						= (Nothing,ts)
+
+*/
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskId repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
+
 		# rep = case repAs of
 			(RepAsTUI Nothing layout) 
 				= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
@@ -99,6 +118,10 @@ where
 			_	
 				# (parts,actions,attributes) = unzip3 [(part,actions,attributes) \\ (ServiceRep (part,actions,attributes)) <- reps]
 				= ServiceRep (flatten parts,flatten actions, flatten attributes)
+
+		| is_lucky_event && valid
+			# value	= Value (lvalue,rvalue) Stable
+			= (ValueResult value lastEvent rep (TCInteract taskId  lastEvent (toJSON lvalue) (toJSON rvalue) views), iworld)
 		
 		# value	= if valid (Value (lvalue,rvalue) Unstable) NoValue 
 		= (ValueResult value lastEvent rep (TCInteract taskId  lastEvent (toJSON lvalue) (toJSON rvalue) views), iworld)
@@ -111,8 +134,9 @@ where
 		# (nl,rep,view,pvalid,iworld)	= evalPart idx taskId repAs mbEvent changed l r p v iworld
 		# (nnl,reps,views,valid,iworld)	= evalParts (idx + 1) taskId repAs mbEvent changed nl r ps vs iworld
 		= (nnl,[rep:reps],[view:views],pvalid && valid,iworld) //All parts have to be valid
-		
-	evalPart idx taskId repAs mbEvent changed l r part view=:(encv,maskv,dirty) iworld = case part of
+
+	evalPart idx taskId repAs mbEvent changed l r part view=:(encv,maskv,dirty) iworld
+	  = case part of
 		DisplayPart f
 			//Simply visualize the view
 			# (rep,iworld) 	= displayRep idx taskId repAs f l r encv iworld
@@ -124,13 +148,13 @@ where
 			//If the edit event is for this part, update the view
 			# (l,v,encv,maskv,vermask,dirty,iworld)
 				= if (matchEditEvent idx mbEvent) 
-						(applyEditEvent idx mbEvent viewf l r v encv maskv vermask dirty iworld)
+						(applyEditEvent /*idx*/ mbEvent viewf l r v encv maskv vermask dirty iworld)
 						(l,v,encv,maskv,vermask,dirty,iworld)
 			//If the share has changed, update the view
 			# (l,v,encv,maskv,vermask,dirty)
 				= if changed (refreshForm sharef l r v encv maskv vermask dirty) (l,v,encv,maskv,vermask,dirty) 
 			//Create an editor for the view
-			# (rep,iworld)				= editorRep idx taskId repAs initf v encv maskv vermask mbEvent iworld
+			# (rep,iworld)				= editorRep idx taskId repAs initf v encv maskv vermask mbEvent iworld			
 			= (l,rep,(encv,maskv,dirty),isValidValue vermask,iworld)
 			
 	displayRep idx taskId (RepAsTUI _ _) f l r encv iworld
@@ -138,7 +162,7 @@ where
 		= (TUIRep (ViewPart,editor,[],[]),iworld)
 	displayRep idx taskId _ f l r encv iworld
 		= (ServiceRep ([(toString taskId,idx,encv)],[],[]),iworld)
-	
+
 	editorRep idx taskId (RepAsTUI _ _) f v encv maskv vermask mbEvent iworld
 		# (editor,iworld) = visualizeAsEditor v taskId idx vermask mbEvent iworld
 		= (TUIRep (ViewPart,editor,[],[]),iworld)
@@ -150,8 +174,8 @@ where
 		= case reverse (dataPathList dp) of
 			[idx:_]	= True
 			_		= False 		
-			
-	applyEditEvent idx (Just (dp,editv)) viewf l r v encv maskv vermask dirty iworld
+
+	applyEditEvent /*idx*/ (Just (dp,editv)) viewf l r v encv maskv vermask dirty iworld	
 		//Remove part index from datapath
 		# dp 	= dataPathFromList ('StdList'.init (dataPathList dp))
 		//Update full value

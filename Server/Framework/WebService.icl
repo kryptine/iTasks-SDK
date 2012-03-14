@@ -95,6 +95,11 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		JSONPlain
 			//HACK: REALLY REALLY REALLY UGLY THAT IT IS NECCESARY TO EVAL TWICE
 			# (mbResult,iworld) = createSessionInstance task Nothing Nothing False iworld
+			# (luckyEdit,luckyCommit)
+				= if (req.req_data == "")
+					(Nothing,Nothing)	
+					(Just (LuckyEvent ("0",fromString req.req_data)), Just (LuckyEvent ""))
+
 			# (mbResult,iworld) = case mbResult of
 				(Ok (_,sessionId))	= evalSessionInstance sessionId luckyEdit luckyCommit False iworld
 				(Error e)			= (Error e,iworld)
@@ -115,11 +120,13 @@ where
 		"json-service"		= JSONService
 		"json-plain"		= JSONPlain
 		_					= defaultFormat
-		 
+
 	formatParam			= paramValue "format" req
+
+
 	sessionParam		= paramValue "session" req
-	downloadParam		= paramValue "download" req
-	uploadParam			= paramValue "upload" req
+//	downloadParam		= paramValue "download" req
+//	uploadParam			= paramValue "upload" req
 	versionParam		= paramValue "version" req
 	editEventParam		= paramValue "editEvent" req
 	editEvent			= case (fromJSON (fromString editEventParam)) of
@@ -131,12 +138,12 @@ where
 		_						= Nothing
 
 	guiVersion			= toInt versionParam
-	
+/*	
 	//Parse the body of the request as JSON message
 	(luckyEdit,luckyCommit) = if(req.req_data == "")
 		(Nothing,Nothing)	
 		(Just (LuckyEvent ("0",fromString req.req_data)), Just (LuckyEvent ""))
-	
+*/
 	jsonResponse json
 		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}
 	errorResponse msg
@@ -155,7 +162,7 @@ where
 		= serviceErrorResponse "Corrupt result value"
 	serviceErrorResponse e
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
-		
+
 	plainDoneResponse (Container val :: Container a a)
 		= jsonResponse (toJSON val)
 	plainDoneResponse _

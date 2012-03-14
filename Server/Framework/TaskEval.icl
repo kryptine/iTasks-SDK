@@ -29,14 +29,6 @@ createTaskContainer parTask = (dynamic (Container parTask) :: Container (Paralle
 createValueContainer :: a -> Dynamic | iTask a
 createValueContainer val = (dynamic (Container val) :: Container a^ a^)
 
-//Lifts any task to a task that can be added to the "sessions" task list
-toSessionTask :: (Task a) -> ParallelTask Void
-toSessionTask task=:{eval} = \_ -> {task & eval = evalFun`}
-where
-	evalFun` mbE mbC repAs state iworld = case eval mbE mbC repAs state iworld of
-		(ValueResult val lastEvent rep state, iworld)	= (ValueResult (fmap (\_-> Void) val) lastEvent rep state, iworld)
-		(ExceptionResult e str, iworld)					= (ExceptionResult e str, iworld)
-
 createTaskState :: !(Either SessionId TopNo) !Dynamic !ManagementMeta !User !*IWorld -> (!TopInstance, !*IWorld)
 createTaskState topId container=:(Container parTask :: Container (ParallelTask a) a) mmeta user iworld =:{IWorld|currentDateTime}
 	# taskId	= case topId of
@@ -66,6 +58,7 @@ evalInstance editEvent commitEvent repTarget genGUI topInstance=:{TopInstance|in
 	# iworld					= {iworld & evalStack = [taskId:evalStack], nextTaskNo = curNextTaskNo, taskTime = nextTaskTime} 
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (result,iworld)			= task.eval editEvent commitEvent repAs taskState iworld
+
 	# (updNextTaskNo,iworld)	= getNextTaskNo iworld
 	//Restore current process id & nextTask id in iworld
 	# iworld					= {iworld & nextTaskNo = nextTaskNo, taskTime = taskTime, evalStack = evalStack}
@@ -89,7 +82,7 @@ evalInstance _ _ _ _ topInstance iworld
 createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld) |  iTask a
 createSessionInstance task editEvent commitEvent genGUI iworld
 	# (sessionId,iworld)	= newSessionId iworld
-	# (state, iworld)		= createTaskState (Left sessionId) (createTaskContainer (toSessionTask task)) noMeta AnyUser iworld
+	# (state, iworld)		= createTaskState (Left sessionId) (createTaskContainer (\_ -> task)) noMeta AnyUser iworld
 	# (mbRes,iworld)		= evalTopInstance editEvent commitEvent genGUI state iworld
 	= case mbRes of
 		Ok result	= (Ok (result, sessionId), iworld)
@@ -176,8 +169,7 @@ where
 	read iworld=:{parallelLists}
 		= case 'Map'.get ("taskList:" +++ listKey) parallelLists of
 			Just items	= (Ok (mkTaskList items), iworld)
-			_			= (Error ("Could not read parallel task list of " +++ toString listId), iworld)
-
+	
 	mkTaskList items = {TaskList|listId = listId, state = state, items = litems}
 	where
 		state	= [fromJust (fromJSON lastValue) \\ {ParallelItem|lastValue} <- items]
