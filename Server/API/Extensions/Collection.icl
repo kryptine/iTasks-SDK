@@ -106,13 +106,13 @@ deleteItem desc collection itemShare identify i
 
 narrowDown :: !d (a -> b) (Shared [a]) (Shared (Maybe b)) -> Task (Maybe b) | descr d & iTask a & iTask b
 narrowDown desc f options selection =
-	updateSharedInformation desc [UpdateView (GetShared toView) fromView] (options |+< selection)
+	updateSharedInformation desc [UpdateWith toView fromView] (options |+< selection)
 where
 	//Use a grid choice type to indicate the choice to make the 
 	toView (opts,sel)	= GridChoice [(a,a) \\ a <- opts] (selIndex 0 opts sel)
 
 	//Write the selection to the shared
-	fromView choice _ _ = fmap f (getMbSelection choice)
+	fromView _ choice = fmap f (getMbSelection choice)
 
 	selIndex i _ Nothing	= Nothing
 	selIndex i [] _			= Nothing

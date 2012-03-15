@@ -59,19 +59,18 @@ where
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 
-interact :: !d !((Maybe l) r -> l) ![InteractionPart l r] !(Maybe l) !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
-interact desc initFun parts initLocal shared = mkTask eval
+interact :: !d ![InteractionPart l r] !l !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
+interact desc parts initLocal shared = mkTask eval
 where
 	eval eEvent cEvent repAs state=:(TCInit taskId ts) iworld		//Create the initial views
 		# (mbrvalue,iworld) 			= 'SharedDataSource'.read shared iworld
 		| isError mbrvalue				= (exception "Could not read shared in interact", iworld)
 		# (rvalue,_)					= fromOk mbrvalue
-		# lvalue						= initFun initLocal rvalue
-		= eval eEvent cEvent repAs (TCInteract taskId ts (toJSON lvalue) (toJSON rvalue) (initParts lvalue rvalue parts)) iworld
+		= eval eEvent cEvent repAs (TCInteract taskId ts (toJSON initLocal) (toJSON rvalue) (initParts initLocal rvalue parts)) iworld
 	where
 		initParts l r parts = map (initPart l r) parts
 		
-		initPart l r (DisplayPart f)	= (toJSON (f l r),Untouched, False)
+		//initPart l r (DisplayPart f)	= (toJSON (f l r),Untouched, False)
 		initPart l r (FormPart f _ _)
 			# (_,encv,maskv)	= initFormView (f l r)
 			= (encv,maskv,False)
@@ -135,27 +134,21 @@ where
 		# (nnl,reps,views,valid,iworld)	= evalParts (idx + 1) taskId repAs mbEvent changed nl r ps vs iworld
 		= (nnl,[rep:reps],[view:views],pvalid && valid,iworld) //All parts have to be valid
 
-	evalPart idx taskId repAs mbEvent changed l r part view=:(encv,maskv,dirty) iworld
-	  = case part of
-		DisplayPart f
-			//Simply visualize the view
-			# (rep,iworld) 	= displayRep idx taskId repAs f l r encv iworld
-			= (l,rep,view,True,iworld)		
-		FormPart initf sharef viewf
-			//Update the local value and possibly the view if the share has changed
-			# v							= fromJust (fromJSON encv)
-			# vermask					= verifyForm v maskv
-			//If the edit event is for this part, update the view
-			# (l,v,encv,maskv,vermask,dirty,iworld)
-				= if (matchEditEvent idx mbEvent) 
-						(applyEditEvent /*idx*/ mbEvent viewf l r v encv maskv vermask dirty iworld)
-						(l,v,encv,maskv,vermask,dirty,iworld)
-			//If the share has changed, update the view
-			# (l,v,encv,maskv,vermask,dirty)
-				= if changed (refreshForm sharef l r v encv maskv vermask dirty) (l,v,encv,maskv,vermask,dirty) 
-			//Create an editor for the view
-			# (rep,iworld)				= editorRep idx taskId repAs initf v encv maskv vermask mbEvent iworld			
-			= (l,rep,(encv,maskv,dirty),isValidValue vermask,iworld)
+	evalPart idx taskId repAs mbEvent changed l r part=:(FormPart initf sharef viewf) view=:(encv,maskv,dirty) iworld
+		//Update the local value and possibly the view if the share has changed
+		# v							= fromJust (fromJSON encv)
+		# vermask					= verifyForm v maskv
+		//If the edit event is for this part, update the view
+		# (l,v,encv,maskv,vermask,dirty,iworld)
+			= if (matchEditEvent idx mbEvent) 
+					(applyEditEvent /*idx*/ mbEvent viewf l r v encv maskv vermask dirty iworld)
+					(l,v,encv,maskv,vermask,dirty,iworld)
+		//If the share has changed, update the view
+		# (l,v,encv,maskv,vermask,dirty)
+			= if changed (refreshForm sharef l r v encv maskv vermask dirty) (l,v,encv,maskv,vermask,dirty) 
+		//Create an editor for the view
+		# (rep,iworld)				= editorRep idx taskId repAs initf v encv maskv vermask mbEvent iworld			
+		= (l,rep,(encv,maskv,dirty),isValidValue vermask,iworld)
 			
 	displayRep idx taskId (RepAsTUI _ _) f l r encv iworld
 		# (editor,iworld) = visualizeAsDisplay (f l r) iworld

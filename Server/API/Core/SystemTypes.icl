@@ -7,13 +7,13 @@ from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -351,6 +351,17 @@ fromFillHControlSize (FillHControlSize a) = a
 // ******************************************************************************************************
 // Choice representations
 // ******************************************************************************************************
+class Choice t
+where
+	//* Selects the given option, if not present in list of options selection is cleared
+	selectOption			:: !o !(t v o)					-> t v o | gEq{|*|} o
+	//* Gets the current selection assuming it is present (a valid choice always has a selection)
+	getSelection			:: !(t v o)						-> o
+	//* Gets the current selection if present
+	getMbSelection			:: !(t v o)						-> Maybe o
+	//* Gets the current selection's view if present
+	getMbSelectionView		:: !(t v o)						-> Maybe v
+	
 instance Choice ComboChoice
 where
 	selectOption newSel (ComboChoice options _)					= ComboChoice options (setListOption options newSel)
@@ -385,6 +396,28 @@ where
 	getSelections (CheckMultiChoice options sels)				= fmap snd (getListOptions options sels)
 	getSelectionViews (CheckMultiChoice options sels)			= fmap fst (getListOptions options sels)
 
+instance Choice DynamicChoice
+where
+	selectOption newSel (DCCombo choice)	= DCCombo (selectOption newSel choice)
+	selectOption newSel (DCRadio choice)	= DCRadio (selectOption newSel choice)	
+	selectOption newSel (DCTree choice)		= DCTree (selectOption newSel choice)
+	selectOption newSel (DCGrid choice)		= DCGrid (selectOption newSel choice)
+	
+	getSelection (DCCombo choice)			= getSelection choice
+	getSelection (DCRadio choice)			= getSelection choice
+	getSelection (DCTree choice)			= getSelection choice
+	getSelection (DCGrid choice)			= getSelection choice
+	
+	getMbSelection (DCCombo choice)			= getMbSelection choice
+	getMbSelection (DCRadio choice)			= getMbSelection choice
+	getMbSelection (DCTree choice)			= getMbSelection choice
+	getMbSelection (DCGrid choice)			= getMbSelection choice
+	
+	getMbSelectionView (DCCombo choice)		= getMbSelectionView choice
+	getMbSelectionView (DCRadio choice)		= getMbSelectionView choice
+	getMbSelectionView (DCTree choice)		= getMbSelectionView choice
+	getMbSelectionView (DCGrid choice)		= getMbSelectionView choice
+	
 setListOption :: ![(v,o)] !o -> (Maybe Int) | gEq{|*|} o
 setListOption options newSel
 	= case setListOptions options [newSel] of

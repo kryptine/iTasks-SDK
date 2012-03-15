@@ -208,6 +208,12 @@ gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode (\idx (GridChoice option
 gUpdate{|RadioChoice|} _ _		mode ust = updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) (RadioChoice [] Nothing) ust
 gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) (ComboChoice [] Nothing) ust
 
+gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCCombo val))	ust = appFst DCCombo (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
+gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCRadio val))	ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
+gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCTree val))		ust = appFst DCTree (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
+gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCGrid val))		ust = appFst DCGrid (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
+gUpdate{|DynamicChoice|} fx fy	UDCreate 					ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy UDCreate ust)
+
 updateChoice mode select empty ust = basicUpdate mode (\json choice -> maybe choice (\i -> select i choice) (fromJSON json)) empty ust
 
 gUpdate{|CheckMultiChoice|} _ _	mode ust = basicUpdate mode (\json (CheckMultiChoice opts sel)	-> case fromJSON json of Just (i,v) = CheckMultiChoice opts (updateSel i v sel); _ = CheckMultiChoice opts sel)	(CheckMultiChoice [] [])										ust
@@ -340,6 +346,7 @@ gDefaultMask{|TreeChoice|} _ _ tree=:(TreeChoice _ mbSel)
 	| otherwise		= [Untouched]
 
 derive gDefaultMask Either, (,), (,,), (,,,), JSONNode, Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gDefaultMask DynamicChoice //TODO
 
 //Utility functions
 dp2s :: !DataPath -> String

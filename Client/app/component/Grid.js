@@ -25,6 +25,9 @@ Ext.define('itasks.component.Grid',{
 		}
 		if(!this.height && !this.vflex) {
 			this.height = 150;
+			
+		} else if(this.vwrap) {
+			this.minHeight = 150;
 		}
 		
 		//Setup columns

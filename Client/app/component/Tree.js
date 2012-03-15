@@ -5,10 +5,15 @@ Ext.define('itasks.component.Tree',{
 	rootVisible: false,
 
 	initComponent: function() {	
-		
+		//Default width & height
 		if(!this.width && !this.hflex) {
-			this.hflex = 1;
 			this.minWidth = 400;
+			this.hflex = 1;
+		}
+		if(!this.height && !this.vflex) {
+			this.height = 150;	
+		} else if(this.vwrap) {
+			this.minHeight = 150;
 		}
 		
 		var store = Ext.create('Ext.data.TreeStore',{

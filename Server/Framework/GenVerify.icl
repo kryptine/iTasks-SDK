@@ -138,6 +138,12 @@ gVerify{|Dynamic|}			_ vst = alwaysValid vst
 gVerify{|(->)|} _ _			_ vst = alwaysValid vst
 gVerify{|JSONNode|}			_ vst = alwaysValid vst
 
+gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
+gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
+gVerify{|DynamicChoice|} fx fy	(Just (DCTree v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
+gVerify{|DynamicChoice|} fx fy	(Just (DCGrid v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
+gVerify{|DynamicChoice|} fx fy	Nothing vst = alwaysValid vst
+
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool
 anyError children = or [isError c \\ c <- children]

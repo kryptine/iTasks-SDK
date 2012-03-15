@@ -86,6 +86,12 @@ gVisualizeText{|RadioChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (f
 gVisualizeText{|ComboChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
 gVisualizeText{|GridChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))	
 gVisualizeText{|TreeChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
+
+gVisualizeText{|DynamicChoice|}		fv fo mode (DCRadio val)	= gVisualizeText{|*->*->*|} fv fo mode val
+gVisualizeText{|DynamicChoice|}		fv fo mode (DCCombo val)	= gVisualizeText{|*->*->*|} fv fo mode val
+gVisualizeText{|DynamicChoice|}		fv fo mode (DCGrid val)		= gVisualizeText{|*->*->*|} fv fo mode val
+gVisualizeText{|DynamicChoice|}		fv fo mode (DCTree val)		= gVisualizeText{|*->*->*|} fv fo mode val
+
 gVisualizeText{|CheckMultiChoice|}	fv _ _ val		= gVisualizeText{|* -> *|} fv  AsLabel (getSelectionViews val)
 gVisualizeText{|Table|}	_ _							= ["Table"]
 gVisualizeText {|[]|} fx  mode val					= ["[":  flatten (intersperse [", "] [fx mode x \\ x <- val])] ++ ["]"]
@@ -111,6 +117,7 @@ gVisualizeText{|JSONNode|} _ val			= [toString val]
 gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
 derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Username, Action, TreeNode, ManagementMeta, TaskPriority, Tree, ButtonState, TUIMargins, TUISize, TUIMinSize
+
 
 mkVSt :: *IWorld -> *VSt
 mkVSt iworld
@@ -320,6 +327,16 @@ where
 	checkMask False _	= Nothing
 	checkMask _ val 	= val
 
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCCombo val)) vst
+	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCRadio val)) vst
+	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCTree val)) vst
+	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCGrid val)) vst
+	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
+gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 Nothing vst
+	= (NormalEditor [],vst)
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
 
@@ -443,7 +460,6 @@ where
 		= ([defaultDef (TUIHtml {TUIHtml|html = toString val})], vst)
 
 derive gVisualizeEditor DateTime
-	
 derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
 
 generic gHeaders a :: (a, ![String])
@@ -464,7 +480,7 @@ gHeaders{|(->)|} _ _		= (undef, [])
 gHeaders{|UNIT|}			= (undef,[])
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserDetails, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
@@ -487,7 +503,7 @@ gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserDetails, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserDetails, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

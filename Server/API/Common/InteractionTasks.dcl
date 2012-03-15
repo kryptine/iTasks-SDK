@@ -96,12 +96,11 @@ viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
 
 /**
-* Show a local and shared state.
+* Show a shared value.
 *
 * @param Description:		A description of the task to display to the user
-* @param Views:				Interaction views; only get parts of Views are used, Putbacks are ignored; if no get is defined the id get is used for the local and shared part
+* @param Options:			Views options
 * @param Shared:			Reference to the shared state to monitor
-* @param Local:				The local data shown to the user
 *
 * @return					Last value of the monitored state
 * @throws					SharedException
@@ -110,9 +109,14 @@ updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task
 */
 viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
 
+/*** Special tasks for a mix of manipulating shared and local information ***/
+
+/**
+* Update a local value, making use of shared information.
+*/
+updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | descr d & iTask r & iTask m
+
 /*** Special tasks for choices ***/
-
-
 
 /**
 * Ask the user to select one item from a list of options.

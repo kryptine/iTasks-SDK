@@ -155,13 +155,13 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 :: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONEncode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive JSONEncode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONDecode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive JSONDecode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -279,6 +279,13 @@ toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|
 //* (typically v is a record which's labels are used as headers)
 :: GridChoice v o = GridChoice ![(!v,!o)] !(Maybe Int)
 
+//* Represents the choice of one element from a set with a dynamic representation
+:: DynamicChoice v o
+	= DCCombo (ComboChoice v o)
+	| DCRadio (RadioChoice v o)
+	| DCTree  (TreeChoice v o)
+	| DCGrid  (GridChoice v o)
+
 /**
 * Interface for types representing choices of one element out of a set of options.
 * There are different kinds of containers for such options (e.g. lists, trees, ...).
@@ -299,6 +306,7 @@ instance Choice ComboChoice
 instance Choice RadioChoice
 instance Choice TreeChoice
 instance Choice GridChoice
+instance Choice DynamicChoice
 
 //* Represents the choice of a number of items from a list
 :: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]
