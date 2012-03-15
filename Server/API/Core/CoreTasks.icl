@@ -70,10 +70,9 @@ where
 	where
 		initParts l r parts = map (initPart l r) parts
 		
-		//initPart l r (DisplayPart f)	= (toJSON (f l r),Untouched, False)
 		initPart l r (FormPart f _ _)
 			# (_,encv,maskv)	= initFormView (f l r)
-			= (encv,maskv,False)
+			= (encv,maskv)
 		
 	eval eEvent cEvent repAs state=:(TCInteract taskId ts encl encr views) iworld=:{IWorld|taskTime}
 		# (mbrvalue,iworld) 				= 'SharedDataSource'.read shared iworld
@@ -95,17 +94,7 @@ where
 						-> (True,lvalue,Just e,taskTime)						
 			_
 				= (False,lvalue,Nothing,ts)
-
-/*
-		# (mbEdit,lastEvent)	= case eEvent of
-			Just (TaskEvent t e)
-				| t == taskId		= (Just e,taskTime)
-			Just (LuckyEvent e)		= (Just e,taskTime)						
-			_						= (Nothing,ts)
-
-*/
 		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskId repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
-
 		# rep = case repAs of
 			(RepAsTUI Nothing layout) 
 				= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
@@ -134,21 +123,21 @@ where
 		# (nnl,reps,views,valid,iworld)	= evalParts (idx + 1) taskId repAs mbEvent changed nl r ps vs iworld
 		= (nnl,[rep:reps],[view:views],pvalid && valid,iworld) //All parts have to be valid
 
-	evalPart idx taskId repAs mbEvent changed l r part=:(FormPart initf sharef viewf) view=:(encv,maskv,dirty) iworld
+	evalPart idx taskId repAs mbEvent changed l r part=:(FormPart initf sharef viewf) view=:(encv,maskv) iworld
 		//Update the local value and possibly the view if the share has changed
 		# v							= fromJust (fromJSON encv)
 		# vermask					= verifyForm v maskv
 		//If the edit event is for this part, update the view
-		# (l,v,encv,maskv,vermask,dirty,iworld)
+		# (l,v,encv,maskv,vermask,iworld)
 			= if (matchEditEvent idx mbEvent) 
-					(applyEditEvent /*idx*/ mbEvent viewf l r v encv maskv vermask dirty iworld)
-					(l,v,encv,maskv,vermask,dirty,iworld)
+					(applyEditEvent /*idx*/ mbEvent viewf l r v encv maskv vermask iworld)
+					(l,v,encv,maskv,vermask,iworld)
 		//If the share has changed, update the view
-		# (l,v,encv,maskv,vermask,dirty)
-			= if changed (refreshForm sharef l r v encv maskv vermask dirty) (l,v,encv,maskv,vermask,dirty) 
+		# (l,v,encv,maskv,vermask)
+			= if changed (refreshForm sharef l r v encv maskv vermask) (l,v,encv,maskv,vermask) 
 		//Create an editor for the view
 		# (rep,iworld)				= editorRep idx taskId repAs initf v encv maskv vermask mbEvent iworld			
-		= (l,rep,(encv,maskv,dirty),isValidValue vermask,iworld)
+		= (l,rep,(encv,maskv),isValidValue vermask,iworld)
 			
 	displayRep idx taskId (RepAsTUI _ _) f l r encv iworld
 		# (editor,iworld) = visualizeAsDisplay (f l r) iworld
@@ -168,7 +157,7 @@ where
 			[idx:_]	= True
 			_		= False 		
 
-	applyEditEvent /*idx*/ (Just (dp,editv)) viewf l r v encv maskv vermask dirty iworld	
+	applyEditEvent /*idx*/ (Just (dp,editv)) viewf l r v encv maskv vermask iworld	
 		//Remove part index from datapath
 		# dp 	= dataPathFromList ('StdList'.init (dataPathList dp))
 		//Update full value
@@ -177,34 +166,34 @@ where
 				Just nv
 					# maskv = defaultMask nv
 					# vermask = verifyForm nv maskv
-					= (l,nv,editv,maskv,vermask,True,iworld)	//QUESTION: Should we also do a react here?
+					= (l,nv,editv,maskv,vermask,iworld)
 				Nothing
-					= (l,v,encv,maskv,vermask,dirty,iworld)
+					= (l,v,encv,maskv,vermask,iworld)
 		//Update partial value
 		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
 		# encv				= toJSON v
 		# vermask			= verifyForm v maskv
-		= reactToEditEvent viewf l r v encv maskv vermask dirty iworld
+		= reactToEditEvent viewf l r v encv maskv vermask iworld
 	
-	reactToEditEvent viewf l r v encv maskv vermask dirty iworld
+	reactToEditEvent viewf l r v encv maskv vermask iworld
 		= case viewf l r (if (isValidValue vermask) (Just v) Nothing) of
 			(l,Nothing)
-				= (l,v,encv,maskv,vermask,dirty,iworld)
+				= (l,v,encv,maskv,vermask,iworld)
 			(l,Just form)
 				# (v,encv,maskv)	= initFormView form
 				# vermask 			= verifyForm v maskv
-				= (l,v,encv,maskv,vermask,False,iworld)
+				= (l,v,encv,maskv,vermask,iworld)
 		
-	refreshForm f l r v encv maskv vermask dirty
-		= case f l r (if (isValidValue vermask) (Just v) Nothing) dirty of
-			(l,Nothing)			= (l,v,encv,maskv,vermask,dirty)
+	refreshForm f l r v encv maskv vermask
+		= case f l r (if (isValidValue vermask) (Just v) Nothing) of
+			(l,Nothing)			= (l,v,encv,maskv,vermask)
 			(l,Just form)
 				# (v,encv,maskv)	= initFormView form
 				# vermask			= verifyForm v maskv
-				= (l,v,encv,maskv,vermask,False)
+				= (l,v,encv,maskv,vermask)
 	
-	initFormView BlankForm		= (v, toJSON v, Untouched) where v = defaultValue
-	initFormView (FilledForm v)	= (v, toJSON v, defaultMask v)
+	initFormView (FormView v mask) = (v,toJSON v, mask)
+
 	
 sharedException :: !(MaybeErrorString a) -> (TaskResult b)
 sharedException err = exception (SharedException (fromError err))

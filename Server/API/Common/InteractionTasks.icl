@@ -10,23 +10,23 @@ from Time import :: Timestamp(..)
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
 
-DisplayPart f = FormPart (\l r -> FilledForm (Display (f l r)))
-							(\l r _ _ -> (l,Just (FilledForm (Display (f l r)))))
-							(\l _ _ -> (l,Nothing))
+DisplayPart f = FormPart (\l r -> let v = f l r in FormView (Display v) (defaultMask v))
+							(\l r _ -> let v = f l r in (l, Just (FormView (Display v) (defaultMask (Display v)))))
+							(\l _ _ -> (l, Nothing))
 							
 enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
 enterInformation d opts
 	= interact d (parts opts) defaultValue null @ fst
 where
-	parts [EnterWith fromf]	= [FormPart (\_ _ -> BlankForm) (\l _ _ _ -> (l,Nothing)) (\l _ mbv -> (maybe l fromf mbv, Nothing))]
-	parts _					= [FormPart (\_ _ -> BlankForm) (\l _ _ _ -> (l,Nothing)) (\l _ mbv -> (fromMaybe l mbv,Nothing))]
+	parts [EnterWith fromf]	= [FormPart (\l _ -> FormView defaultValue Untouched) (\l _ _ -> (l,Nothing)) (\l _ mbv -> (maybe l fromf mbv, Nothing))]
+	parts _					= [FormPart (\l _ -> FormView l Untouched) (\l _ _ -> (l,Nothing)) (\l _ mbv -> (fromMaybe l mbv,Nothing))]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 updateInformation d opts m
 	= interact d (parts opts) m null @ fst	
 where	
-	parts [UpdateWith tof fromf]	= [FormPart (\l _ -> FilledForm (tof l)) (\l _ _ _ -> (l,Nothing)) (\l _ mbv -> (maybe l (fromf l) mbv, Nothing))]
-	parts _							= [FormPart (\l _ -> FilledForm l) (\l _ _ _ -> (l,Nothing)) (\l _ mbv -> (fromMaybe l mbv,Nothing))]
+	parts [UpdateWith tof fromf]	= [FormPart (\l _ -> let v = tof l in FormView v (defaultMask v)) (\l _ _ -> (l,Nothing)) (\l _ mbv -> (maybe l (fromf l) mbv, Nothing))]
+	parts _							= [FormPart (\l _ -> FormView l (defaultMask l)) (\l _ _ -> (l,Nothing)) (\l _ mbv -> (fromMaybe l mbv,Nothing))]
 	
 viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
 viewInformation d opts m
@@ -39,17 +39,10 @@ updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task
 updateSharedInformation d views shared
 	= (interact d (parts views) defaultValue (toReadOnly shared) @ fst) @> (mapval, shared)
 where
-	/*
-	//Use dynamics to test if r == w, if so we can use an update view	
-	//If different types are used we can only resort to a display of type r and an enter of type w
-	init = case dynamic id :: A.a: (a -> a) of
-		(rtow :: (r^ -> w^))			= (\_ r -> rtow r)
-		_								= (\_ _ -> defaultValue)
-	*/
 	parts [UpdateWith tof fromf]
 		= [FormPart
-			(\w r -> FilledForm (tof r))
-			(\w r _ _ -> (w, Just (FilledForm (tof r))))
+			(\w r -> let v = tof r in FormView v (defaultMask v))
+			(\w r mbv -> let v = tof r in (w, Just (FormView v (defaultMask v))))
 			(\w r mbv -> (maybe w (fromf r) mbv, Nothing))
 			]
 	//Use dynamics to test if r == w, if so we can use an update view	
@@ -58,18 +51,20 @@ where
 		(rtow :: (r^ -> w^))
 			//We can use a filled form if r == w
 			=	[FormPart
-				(\w r -> FilledForm (rtow r))
-				(\w r _ _ -> (rtow r, Just (FilledForm (rtow r))))
+				(\w r -> let v = rtow r in FormView v (defaultMask v))
+				(\w r mbv -> let v = rtow r in (rtow r, Just (FormView v (defaultMask v))))
 				(\w r mbv -> (maybe w id mbv, Nothing)) 
 				]
 		_
 			//Split up in display and enter
-			=	[DisplayPart (\_ r -> r)
-				,FormPart
-				(\w r -> BlankForm)
-				(\w r _ _ -> (w,Nothing))
-				(\w r mbv -> (maybe w id mbv, Nothing))
+			=	[FormPart
+				(\w r -> let v = (Display r,defaultValue) in FormView v (untouch 1 (defaultMask v)))
+				(\w r mbv -> (w,Nothing))
+				(\w r mbv -> (maybe w snd mbv, Nothing))
 				]
+	
+	untouch i (Touched subs)	= Touched (updateAt i Untouched subs)
+	untouch i mask				= mask
 	
 	mapval (Value w _) _	= Just w
 	mapval _ _				= Nothing	
@@ -87,16 +82,15 @@ updateInformationWithShared d options shared init
 where
 	parts [UpdateWith tof fromf]
 		= [FormPart
-			(\m r -> FilledForm (tof (r,m)))
-			(\m r _ _ -> (m, Just (FilledForm (tof (r,m)))))
+			(\m r -> let v = tof (r,m) in FormView v (defaultMask v))
+			(\m r mbv -> let v = tof (r,m) in (m, Just (FormView v (defaultMask v))))
 			(\m r mbv -> (maybe m (fromf (r,m)) mbv, Nothing))
 			]
 	parts _	
-		= [DisplayPart (\_ r -> r)
-		  ,FormPart
-		  	(\l _ -> FilledForm l)
-		  	(\l _ _ _ -> (l,Nothing))
-		  	(\l _ mbv -> (fromMaybe l mbv,Nothing))
+		= [FormPart
+		  	(\l r -> let v = (Display r,l) in FormView v (defaultMask v))
+		  	(\l _ mbv -> (l,Nothing))
+		  	(\l _ mbv -> (maybe l snd mbv,Nothing))
 		  	]
 
 enterChoice :: !d ![ChoiceOption o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)

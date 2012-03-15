@@ -106,14 +106,12 @@ interact :: !d ![InteractionPart l r] !l !(ReadOnlyShared r) -> Task (l,r) | des
 
 :: InteractionPart l r	= E.v: FormPart (FormInitFun l r v) (FormShareUpdateFun l r v) (FormViewUpdateFun l r v) & iTask v
 
-:: FormInitFun l r v		:==	l r -> FormView v									// Create the initial form
-:: FormShareUpdateFun l r v	:== l r (Maybe v) FormDirty	-> (l, Maybe (FormView v))	// What to do when share changes
-:: FormViewUpdateFun l r v	:== l r (Maybe v)			-> (l, Maybe (FormView v))	// What to do when the view changes
+:: FormInitFun l r v		:==	l r -> FormView v							// Create the initial form
+:: FormShareUpdateFun l r v	:== l r (Maybe v) -> (l, Maybe (FormView v))	// What to do when share changes
+:: FormViewUpdateFun l r v	:== l r (Maybe v) -> (l, Maybe (FormView v))	// What to do when the view changes
 
-:: FormView v	= BlankForm						// A blank form
-				| FilledForm !v					// A filled in form
-:: FormDirty	:== Bool						// Has a form been touched by the user
-
+:: FormView v	= FormView !v !UpdateMask		// A form with custom mask
+	
 /**
 * State of another process the user works on.
 */
