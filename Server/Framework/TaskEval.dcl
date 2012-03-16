@@ -4,7 +4,7 @@ definition module TaskEval
 */
 
 from SystemTypes	import :: IWorld, :: TaskListItem, :: User, :: TaskId, :: SessionId 
-from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: TaskEvalFun, :: TaskRepTarget
+from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: TaskEvalFun, :: RefreshFlag, :: TaskRepTarget
 
 import Maybe, JSON, Error
 import TaskState, iTaskClass
@@ -36,7 +36,7 @@ createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool
 evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld)
 
 //Helper functions: exported for use in workOn and parallel
-evalInstance	:: !(Maybe EditEvent) !(Maybe CommitEvent) !(Maybe TaskId) !Bool !TopInstance !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TopInstance, !*IWorld)
+evalInstance	:: !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !(Maybe TaskId) !Bool !TopInstance !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TopInstance, !*IWorld)
 
 //Access to shared parallel information
 taskListShare	:: !(TaskListId a) -> (SharedTaskList a) | iTask a

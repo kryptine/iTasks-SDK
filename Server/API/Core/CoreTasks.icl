@@ -52,7 +52,7 @@ where
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = mkTask eval
 where
-	eval eEvent cEvent repAs (TCInit taskId ts) iworld
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.read shared iworld
 		# res = case val of
 			Ok (val,_)	= ValueResult (Value val Unstable) ts NoRep (TCInit taskId ts)
@@ -62,20 +62,20 @@ where
 interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask)) -> Task l | descr d & iTask l & iTask r & iTask v
 interact desc shared initFun refreshFun = mkTask eval
 where
-	eval eEvent cEvent repAs (TCInit taskId ts) iworld
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
 		= case mbr of
 			Error _		= (exception "Could not read shared in interact", iworld)
 			Ok (r,_)
 				# (l,v,mask)	= initFun r
-				= eval eEvent cEvent repAs (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
+				= eval eEvent cEvent refresh repAs (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
-	eval eEvent cEvent repAs (TCInteract taskId ts encl encr encv mask) iworld=:{taskTime}
+	eval eEvent cEvent refresh repAs (TCInteract taskId ts encl encr encv mask) iworld=:{taskTime}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
 		# event					= matchEvent taskId eEvent
-		# (nv,nmask,nts,iworld) = applyEvent taskId taskTime v mask ts event iworld
+		# (nv,nmask,nts,iworld) = if refresh (v,mask,ts,iworld) (applyEvent taskId taskTime v mask ts event iworld)
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
 		| isError mbr			= (exception "Could not read shared in interact", iworld)
@@ -87,7 +87,7 @@ where
 		//Make visualization
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repAs nv validity event iworld
-		# value 				= if (isValidValue validity) (Value l Unstable) NoValue
+		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
 		= (ValueResult value nts rep (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 	
 	matchEvent taskId1 (Just (LuckyEvent e))								= Just e	
@@ -123,7 +123,7 @@ where
 workOn :: !TaskId -> Task WorkOnProcessState
 workOn (TaskId topNo taskNo) = mkTask eval
 where
-	eval eEvent cEvent repAs (TCInit taskId ts) iworld=:{evalStack}
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{evalStack}
 		//Check for cycles
 		| isMember taskId evalStack
 			=(exception WorkOnDependencyCycle, iworld)
@@ -141,7 +141,7 @@ where
 		//Eval instance
 		# target					= if (taskNo == 0) Nothing (Just (TaskId topNo taskNo))
 		# genGUI					= case repAs of (RepAsTUI _ _) = True ; _ = False
-		# (mbResult,context,iworld)	= evalInstance eEvent cEvent target genGUI (fromOk mbContext) iworld
+		# (mbResult,context,iworld)	= evalInstance eEvent cEvent refresh target genGUI (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (exception WorkOnEvalError, iworld)
 			Ok result

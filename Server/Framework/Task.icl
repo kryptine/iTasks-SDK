@@ -20,12 +20,12 @@ mkInstantTask iworldfun =
 	, layout			= Nothing
 	}
 where
-	evalOnce f _ _ _ (TCInit taskId ts) iworld = case f taskId iworld of
+	evalOnce f _ _ _ _ (TCInit taskId ts) iworld = case f taskId iworld of
 		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts NoRep (TCStable taskId ts (toJSON a)), iworld)
 		(ExceptionResult e s, iworld)					= (ExceptionResult e s, iworld)
 		(_,iworld)										= (exception "Instant task did not complete instantly", iworld)
 
-	evalOnce f _ _ _ state=:(TCStable taskId ts enc) iworld = case fromJSON enc of
+	evalOnce f _ _ _ _ state=:(TCStable taskId ts enc) iworld = case fromJSON enc of
 		(Just a)	= (ValueResult (Value a Stable) ts NoRep state, iworld)
 		Nothing		= (exception "Corrupt task result", iworld)
 

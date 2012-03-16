@@ -32,7 +32,7 @@ callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args = mkTask eval
 where
 	//Start the external process
-	eval eEvent cEvent repAs (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
 		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
 		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
 		# runAsyncArgs	=	[ "--taskid"
@@ -46,13 +46,13 @@ where
 		# nstate		= case res of
 			Error e	= state taskId ts (Left e)
 			Ok _	= state taskId ts (Right outfile)
-		= eval eEvent cEvent repAs nstate {IWorld|iworld & world = world}
+		= eval eEvent cEvent refresh repAs nstate {IWorld|iworld & world = world}
 	where
 		state :: TaskId TaskTime (Either OSError FilePath) -> TaskState
 		state taskId taskTime val = TCBasic taskId taskTime (toJSON val) False
 
 	//Check for its result
-	eval eEvent cEvent repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
+	eval eEvent cEvent refresh repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
 			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent NoRep state, iworld)
 		| otherwise

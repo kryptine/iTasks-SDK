@@ -21,20 +21,20 @@ getNextTaskId iworld = abort "Empty evaluation stack"
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
 transform f task=:{Task|eval} = {Task|task & eval = eval`}
 where
-	eval` eEvent cEvent repAs cxt iworld
-		= case eval eEvent cEvent repAs cxt iworld of
+	eval` eEvent cEvent refresh repAs cxt iworld
+		= case eval eEvent cEvent refresh repAs cxt iworld of
 			(ValueResult val lastEvent rep cxt,iworld)	= (ValueResult (f val) lastEvent rep cxt, iworld)	//TODO: guarantee stability
 			(ExceptionResult e str, iworld)				= (ExceptionResult e str, iworld)
 
 project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
 project projection share taska = mkTask eval
 where
-	eval eEvent cEvent repAs state iworld
+	eval eEvent cEvent refresh repAs state iworld
 		# (taskId,prev,statea) = case state of
 			(TCInit taskId _)					= (taskId,NoValue,state) 
 			(TCProject taskId encprev statea)	= (taskId,fromJust (fromJSON encprev),statea)
 			
-		# (resa, iworld) 	= taska.eval eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) statea iworld
+		# (resa, iworld) 	= taska.eval eEvent cEvent refresh (matchTarget (subRepAs repAs taska) taskId) statea iworld
 		= case resa of
 			ValueResult val ts rep ncxta
 				# result = ValueResult val ts rep (TCProject taskId (toJSON val) ncxta)
@@ -59,17 +59,17 @@ where
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 step taska conts = mkTask eval
 where
-	eval eEvent cEvent repAs (TCInit taskId ts) iworld
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
-		= eval eEvent cEvent repAs (TCStep taskId (Left (TCInit taskIda ts))) iworld
+		= eval eEvent cEvent refresh repAs (TCStep taskId (Left (TCInit taskIda ts))) iworld
 
 	//Eval left-hand side
-	eval eEvent cEvent repAs (TCStep taskId (Left statea)) iworld=:{taskTime}
-		# (resa, iworld) 	= taska.eval eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) statea iworld
+	eval eEvent cEvent refresh repAs (TCStep taskId (Left statea)) iworld=:{taskTime}
+		# (resa, iworld) 	= taska.eval eEvent cEvent refresh (matchTarget (subRepAs repAs taska) taskId) statea iworld
 		# mbcommit			= case cEvent of
 			(Just (TaskEvent t action))
-				| t == taskId	= Just action
-			_					= Nothing
+				| t == taskId && not refresh	= Just action
+			_									= Nothing
 		# mbCont			= case resa of
 			ValueResult val lastEvent rep nstatea = case searchContValue val mbcommit conts of
 				Nothing			= Left (ValueResult NoValue lastEvent (addStepActions taskId repAs rep val) (TCStep taskId (Left nstatea)) )
@@ -81,12 +81,12 @@ where
 			Left res = (res,iworld)
 			Right (sel,taskb,enca)
 				# (taskIdb,iworld)	= getNextTaskId iworld
-				# (resb,iworld)		= taskb.eval Nothing Nothing (matchTarget (subRepAs repAs taskb) taskId) (TCInit taskIdb taskTime) iworld 
+				# (resb,iworld)		= taskb.eval Nothing Nothing refresh (matchTarget (subRepAs repAs taskb) taskId) (TCInit taskIdb taskTime) iworld 
 				= case resb of
 					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,nstateb))),iworld)
 					ExceptionResult e str					= (ExceptionResult e str, iworld)
 	//Eval right-hand side
-	eval eEvent cEvent repAs (TCStep taskId (Right (enca,sel,stateb))) iworld
+	eval eEvent cEvent refresh repAs (TCStep taskId (Right (enca,sel,stateb))) iworld
 		# mbTaskb = case conts !! sel of
 			(OnValue _ taskbf)			= fmap taskbf (fromJSON enca)
 			(OnAction _ _ taskbf)		= fmap taskbf (fromJSON enca)
@@ -94,14 +94,14 @@ where
 			(OnAllExceptions taskbf)	= fmap taskbf (fromJSON enca)
 		= case mbTaskb of
 			Just taskb
-				# (resb, iworld)	= taskb.eval eEvent cEvent (matchTarget (subRepAs repAs taskb) taskId) stateb iworld 
+				# (resb, iworld)	= taskb.eval eEvent cEvent refresh (matchTarget (subRepAs repAs taskb) taskId) stateb iworld 
 				= case resb of
 					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,nstateb))), iworld)
 					ExceptionResult e str					= (ExceptionResult e str, iworld)
 			Nothing
 				= (exception "Corrupt task value in step", iworld) 	
 	//Incorred state
-	eval eEvent cEvent _ state iworld
+	eval eEvent cEvent refresh _ state iworld
 		= (exception ("Corrupt task state in step:" +++ (toString (toJSON state))), iworld)
 
 	searchContValue val mbcommit conts = search val mbcommit 0 Nothing conts
@@ -160,22 +160,22 @@ parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskV
 parallel desc initTasks = mkTask eval 
 where
 	//Create initial set of tasks and initial state
-	eval eEvent cEvent repAs (TCInit taskId ts) iworld
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		//Create the list of initial parallel items
 		# (items,iworld)					= mkParallelItems listId ts initTasks (length initTasks - 1) iworld
 		//Initialize all initial items
-		= eval eEvent cEvent repAs (TCParallel taskId listMeta items) iworld
+		= eval eEvent cEvent refresh repAs (TCParallel taskId listMeta items) iworld
 	where
 		listId		= ListId taskId //Passed to subfunctions to solve overloading
 		listMeta	= {nextIdx = length initTasks, listVersion = 0}	
 
-	eval eEvent cEvent repAs (TCParallel taskId meta items) iworld
+	eval eEvent cEvent refresh repAs (TCParallel taskId meta items) iworld
 		//If a reorder edit event is given, reorder the stack 
 		# items = case eEvent of 
 			Just (TaskEvent t ("top",JSONString top))	= reorder (fromString top) items
 			_											= items
 		//Eval all subtasks 
-		# (results,nextIdx,iworld)	= evalParallelItems (listId taskId initTasks) eEvent cEvent repAs 0 (zip (items,repeat Nothing)) meta.nextIdx iworld
+		# (results,nextIdx,iworld)	= evalParallelItems (listId taskId initTasks) eEvent cEvent refresh repAs 0 (zip (items,repeat Nothing)) meta.nextIdx iworld
 		= case results of
 			RSException e str
 				= (ExceptionResult e str, iworld)
@@ -192,7 +192,7 @@ where
 		
 		listKey = toString (ParallelTaskList taskId)
 	//Fallback
-	eval _ _ _ _ iworld
+	eval _ _ _ _ _ iworld
 		= (exception "Corrupt task state in parallel", iworld)
 		
 	//Helper function to unify ListId type parameter with type parameter of initial task set
@@ -210,8 +210,8 @@ where
 		sortByTaskId items = sortBy ( \{ParallelItem|taskId=a} {ParallelItem|taskId=b} -> a < b) items
 		sortByStack items = sortBy ( \{ParallelItem|stack=a} {ParallelItem|stack=b} -> a < b) items
 			
-	evalParallelItems :: !(ListId a) !(Maybe EditEvent) !(Maybe CommitEvent) !TaskRepTarget !Int ![(ParallelItem, Maybe (TaskResult a))] !Int !*IWorld -> (!ResultSet a, !Int, !*IWorld) | iTask a
-	evalParallelItems listId=:(ListId listTaskId) eEvent cEvent repAs index items nextIdx iworld
+	evalParallelItems :: !(ListId a) !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !TaskRepTarget !Int ![(ParallelItem, Maybe (TaskResult a))] !Int !*IWorld -> (!ResultSet a, !Int, !*IWorld) | iTask a
+	evalParallelItems listId=:(ListId listTaskId) eEvent cEvent refresh repAs index items nextIdx iworld
 		| index >= length items
 			//All done, return result set and remove list from scope
 			# iworld = unshareParallelList listId iworld
@@ -223,7 +223,7 @@ where
 			//Enable control
 			# iworld					= enableControl listId nextIdx iworld
 			//Evaluate item at index
-			# (result,item,iworld)		= evalParallelItem listId eEvent cEvent repAs (fst (items !! index)) iworld
+			# (result,item,iworld)		= evalParallelItem listId eEvent cEvent refresh repAs (fst (items !! index)) iworld
 			//Process additions and removals from the list
 			# (controls,nextIdx,iworld)	= takeControls listId iworld
 			# (items,iworld)			= processControls listId controls (updateAt index (item,Just result) items) iworld
@@ -233,11 +233,11 @@ where
 					# iworld = unshareParallelList listId iworld
 					= (RSException e str, nextIdx, iworld)
 				_					//Evaluate other items
-					= evalParallelItems listId eEvent cEvent repAs (index + 1) items nextIdx iworld
+					= evalParallelItems listId eEvent cEvent refresh repAs (index + 1) items nextIdx iworld
 		
-	evalParallelItem :: !(ListId a) !(Maybe EditEvent) !(Maybe CommitEvent) !TaskRepTarget !ParallelItem !*IWorld -> (!TaskResult a,!ParallelItem,!*IWorld) | iTask a
-	evalParallelItem listId=:(ListId listTaskId) eEvent cEvent repAs item=:{ParallelItem|task=(parTask :: ParallelTask a^),state} iworld
-		# (result, iworld)	= task.eval eEvent cEvent (subRepAs repAs listTaskId task) state iworld
+	evalParallelItem :: !(ListId a) !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !TaskRepTarget !ParallelItem !*IWorld -> (!TaskResult a,!ParallelItem,!*IWorld) | iTask a
+	evalParallelItem listId=:(ListId listTaskId) eEvent cEvent refresh repAs item=:{ParallelItem|task=(parTask :: ParallelTask a^),state} iworld
+		# (result, iworld)	= task.eval eEvent cEvent refresh (subRepAs repAs listTaskId task) state iworld
 		# item	= case result of
 			ValueResult val _ rep state		= {ParallelItem|item & state = state, lastValue = toJSON val} //TODO: set lastAttributes
 			ExceptionResult e str			= item
@@ -312,7 +312,6 @@ where
 	subRepAs (RepAsService (Just target)) taskId task
 		| target == taskId										= RepAsService Nothing
 																= RepAsService (Just target)
-
 //SHARED HELPER FUNCTIONS
 	
 //Use decrementing stack order values (o)
@@ -403,27 +402,27 @@ workAs :: !User !(Task a) -> Task a | iTask a
 workAs user task
 	= {Task|task & eval = eval task.eval}
 where
-	eval f eEvent cEvent repAs state iworld=:{currentUser}
-		# (result,iworld) = f eEvent cEvent repAs state {iworld & currentUser = user}
+	eval f eEvent cEvent refresh repAs state iworld=:{currentUser}
+		# (result,iworld) = f eEvent cEvent refresh repAs state {iworld & currentUser = user}
 		= (result,{iworld & currentUser = currentUser})
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = mkTask eval
 where	
-	eval eEvent cEvent repAs (TCInit taskId ts) iworld
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (taskIda,iworld)			= getNextTaskId iworld
-		= eval eEvent cEvent repAs  (TCShared taskId (toJSON initial) (TCInit taskIda ts)) iworld
+		= eval eEvent cEvent refresh repAs  (TCShared taskId (toJSON initial) (TCInit taskIda ts)) iworld
 		
-	eval eEvent cEvent repAs (TCShared taskId encsvalue cxta) iworld
+	eval eEvent cEvent refresh repAs (TCShared taskId encsvalue cxta) iworld
 		# iworld					= shareValue taskId initial (fromJust (fromJSON encsvalue)) iworld
 		# taska						= stask (localShare taskId)
-		# (resa,iworld)				= taska.eval eEvent cEvent (matchTarget (subRepAs repAs taska) taskId) cxta iworld
+		# (resa,iworld)				= taska.eval eEvent cEvent refresh (matchTarget (subRepAs repAs taska) taskId) cxta iworld
 		# (svalue,iworld)			= unshareValue taskId initial iworld
 		= case resa of
 			ValueResult NoValue lastEvent rep ncxta				= (ValueResult NoValue lastEvent rep (TCShared taskId (toJSON svalue) ncxta),iworld)
 			ValueResult (Value stable val) lastEvent rep ncxta	= (ValueResult (Value stable val) lastEvent rep (TCShared taskId (toJSON svalue) ncxta),iworld)
 			ExceptionResult e str								= (ExceptionResult e str,iworld)
-	eval _ _ _ _ iworld
+	eval _ _ _ _ _ iworld
 		= (exception "Corrupt task state in withShared", iworld)
 	
 	subRepAs (RepAsService target) _  			= (RepAsService target)

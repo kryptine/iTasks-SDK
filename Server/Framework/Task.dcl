@@ -28,7 +28,9 @@ derive gPutRecordFields	Task
 	}
 				
 :: TaskInitFun		:== TaskState TaskId *IWorld -> *(!TaskState,!*IWorld)
-:: TaskEvalFun a	:== (Maybe EditEvent) (Maybe CommitEvent) TaskRepTarget TaskState *IWorld -> *(!TaskResult a, !*IWorld)
+:: TaskEvalFun a	:== (Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepTarget TaskState *IWorld -> *(!TaskResult a, !*IWorld)
+
+:: RefreshFlag		:== Bool
 
 :: Event e			= TaskEvent		!TaskId !e			//Event for a task within the process we are looking for
 					| LuckyEvent	!e					//Event for any task who is willing to handle it (I am feeling lucky event)

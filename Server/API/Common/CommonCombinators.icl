@@ -128,7 +128,8 @@ where
 	restart task tlist
 		=	get (taskListMeta tlist)
 		>>= \[{TaskListItem|taskId}:_] ->
-			removeTask taskId tlist -&&- appendTask Embedded task tlist
+			removeTask taskId tlist
+		>>| appendTask Embedded task tlist
 		@	const Nothing
 
 forever :: !(Task a) -> Task a | iTask a	
@@ -210,11 +211,8 @@ repeatTask task pred a =
 
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= ((	get share	
-		>>= \val ->
-			(wait Void ((=!=) val) share >>| return Nothing) -||- (task val @ Just)
-		)
-	<! isJust) @ fromJust
+	= 	((get share >>= \val -> (wait Void ((=!=) val) share @ const Nothing) -||- (task val @ Just)) <! isJust)
+	@	fromJust
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks @ \topNo -> (TaskId topNo 0)

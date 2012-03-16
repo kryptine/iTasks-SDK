@@ -45,8 +45,8 @@ where
 	getNextTaskNo iworld=:{IWorld|nextTaskNo} = (nextTaskNo,iworld)
 
 //Evaluate the given context and yield the result of the main task indicated by target
-evalInstance :: !(Maybe EditEvent) !(Maybe CommitEvent) !(Maybe TaskId) !Bool !TopInstance  !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TopInstance, !*IWorld)
-evalInstance editEvent commitEvent repTarget genGUI topInstance=:{TopInstance|instanceId,nextTaskNo=curNextTaskNo,nextTaskTime,progress,task=(Container parTask :: Container (ParallelTask a) a),state=Left taskState} iworld=:{nextTaskNo,taskTime,evalStack}
+evalInstance :: !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !(Maybe TaskId) !Bool !TopInstance  !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TopInstance, !*IWorld)
+evalInstance editEvent commitEvent refresh repTarget genGUI topInstance=:{TopInstance|instanceId,nextTaskNo=curNextTaskNo,nextTaskTime,progress,task=(Container parTask :: Container (ParallelTask a) a),state=Left taskState} iworld=:{nextTaskNo,taskTime,evalStack}
 	//Eval instance
 	# taskList					= taskListShare TopLevelTaskList
 	# task						= parTask taskList
@@ -57,7 +57,7 @@ evalInstance editEvent commitEvent repTarget genGUI topInstance=:{TopInstance|in
 		(Right topNo)	= TaskId topNo 0
 	# iworld					= {iworld & evalStack = [taskId:evalStack], nextTaskNo = curNextTaskNo, taskTime = nextTaskTime} 
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (result,iworld)			= task.eval editEvent commitEvent repAs taskState iworld
+	# (result,iworld)			= task.eval editEvent commitEvent refresh repAs taskState iworld
 
 	# (updNextTaskNo,iworld)	= getNextTaskNo iworld
 	//Restore current process id & nextTask id in iworld
@@ -74,9 +74,9 @@ evalInstance editEvent commitEvent repTarget genGUI topInstance=:{TopInstance|in
 			= (Ok (ExceptionResult e str), topInstance, iworld)
 where
 	getNextTaskNo iworld=:{IWorld|nextTaskNo} = (nextTaskNo,iworld)
-evalInstance _ _ _ _ topInstance=:{TopInstance|state=Right e} iworld
+evalInstance _ _ _ _ _ topInstance=:{TopInstance|state=Right e} iworld
 	= (Ok (exception e), topInstance, iworld)
-evalInstance _ _ _ _ topInstance iworld	
+evalInstance _ _ _ _ _ topInstance iworld	
 	= (Ok (exception "Could not unpack instance state"), topInstance, iworld)
 
 createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld) |  iTask a
@@ -106,14 +106,14 @@ evalTopInstance editEvent commitEvent genGUI state iworld
 	
 	//If an event was present evaluate an extra time without events for a consistent picture
 	# (mbResult, state, iworld) = case (editEvent,commitEvent) of
-		(Nothing,Nothing)	= evalInstance editEvent commitEvent Nothing genGUI state iworld 
+		(Nothing,Nothing)	= evalInstance editEvent commitEvent False Nothing genGUI state iworld 
 		_					
 			//Evaluate twice: First with events, but without generating a GUI, then once without events
-			# (_,state,iworld)	= evalInstance editEvent commitEvent Nothing False state iworld 
+			# (_,state,iworld)	= evalInstance editEvent commitEvent False Nothing False state iworld 
 			//Save the intermediate state and process controls (or you won't see completed/added/removed processes)
 			# iworld			= storeTaskInstance state iworld		
 			# iworld			= processControls iworld
-			= evalInstance Nothing Nothing Nothing genGUI state iworld
+			= evalInstance editEvent commitEvent True Nothing genGUI state iworld
 	//Store context & process controls
 	# iworld	= storeTaskInstance state iworld		
 	# iworld	= processControls iworld 
@@ -133,7 +133,7 @@ where
 			[c:cs]
 				//Evaluate and store the context only. We do not want any result	
 				# iworld		= {iworld & currentUser = issueUser c}
-				# (_,c,iworld)	= evalInstance Nothing Nothing Nothing False c iworld
+				# (_,c,iworld)	= evalInstance Nothing Nothing False Nothing False c iworld
 				# iworld		= storeTaskInstance c iworld
 				= processControls` cs {iworld & currentUser = currentUser}
 
