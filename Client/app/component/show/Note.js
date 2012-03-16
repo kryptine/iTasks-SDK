@@ -2,6 +2,7 @@ Ext.define('itasks.component.show.Note',{
 	extend: 'Ext.Component',
 	alias: 'widget.itasks_show_note',
 	style: 'width: 100px',
+	minHeight: 100,
 	initComponent: function() {
 		if(!this.width && !this.hflex) {
 			this.hflex = 1;

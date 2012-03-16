@@ -1,6 +1,7 @@
 Ext.define('itasks.component.show.Currency',{
 	extend: 'Ext.Component',
 	alias: 'widget.itasks_show_currency',
+	minHeight: 20,
 	initComponent: function() {
 		this.html = Ext.util.Format.currency(this.value[1] / 100.0, this.sign(this.value[0]));
 	},
