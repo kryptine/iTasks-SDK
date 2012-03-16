@@ -9,7 +9,6 @@ import Engine, IWorld
 :: ServiceResponse :== [ServiceResponsePart]
 :: ServiceResponsePart =
 	{ taskId	:: !String
-	, partId	:: !Int
 	, value		:: !JSONNode
 	, actions	:: ![String]
 	}
@@ -152,7 +151,7 @@ where
 	serviceBusyResponse rep actions attributes
 		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
 	where
-		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, partId = partId, value = value, actions = findActions taskId actions} \\ (taskId,partId,value) <- rep]
+		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, value = value, actions = findActions taskId actions} \\ (taskId,value) <- rep]
 		findActions taskId actions
 			= [actionName action \\ (task,action,enabled) <- actions | enabled && task == taskId]
 	

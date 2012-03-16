@@ -3,19 +3,10 @@ implementation module GenVisualize
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List, Generic
 import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
 
-visualizeAsEditor :: !a !TaskId !Int !VerifyMask !(Maybe (!DataPath,!JSONNode)) !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
-visualizeAsEditor x taskId idx vmask editEvent iworld
-	# vst		= {mkVSt iworld & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath (childDataPath emptyDataPath idx)}
-	# (res,vst)	= gVisualizeEditor{|*|} (Just x) vst
-	= case tuiOfEditor res of
-		[]		= (Nothing, kmVSt vst)
-		[tui]	= (Just tui, kmVSt vst)
-		tuis	= (Just (defaultDef (TUIContainer (defaultContainer tuis))), kmVSt vst)
-		
-visualizeAsDisplay :: !a !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
-visualizeAsDisplay x iworld
-	# vst		= {mkVSt iworld & renderAsStatic = True}
-	# (res,vst)	= gVisualizeEditor{|*|} (Just x) vst
+visualizeAsEditor :: !a !VerifyMask !TaskId !(Maybe (!String,!JSONNode)) !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
+visualizeAsEditor v vmask taskId editEvent iworld
+	# vst		= {mkVSt iworld & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath emptyDataPath}
+	# (res,vst)	= gVisualizeEditor{|*|} (Just v) vst
 	= case tuiOfEditor res of
 		[]		= (Nothing, kmVSt vst)
 		[tui]	= (Just tui, kmVSt vst)
@@ -511,7 +502,7 @@ derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(!VisualizationResult, !*VSt) | JSONEncode{|*|} a
 visualizeControl control v vst = visualizeCustom tuiF vst
 where
-	tuiF name touched verRes eventValue vst=:{VSt|taskId, renderAsStatic,controlSize}
+	tuiF name touched verRes eventValue vst=:{VSt|taskId,renderAsStatic,controlSize}
 		| renderAsStatic
 			=	([sizedControl controlSize (TUIShowControl control {TUIShowControl| value = toJSON v})], vst)
 		| otherwise
@@ -560,10 +551,10 @@ newChildVisualization fx newOptional vst=:{VSt|optional}
 sizedControl :: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins) !TUIDefContent -> TUIDef
 sizedControl (width,height,mbMargins) content = {content = content, width = width, height = height, margins = mbMargins}
 
-eventValue :: !DataPath !(Maybe (!DataPath,!JSONNode)) -> Maybe JSONNode
+eventValue :: !DataPath !(Maybe (!String,!JSONNode)) -> Maybe JSONNode
 eventValue currentPath mbEvent = case mbEvent of
-	Just (dp,val) | dp == currentPath	= Just val
-	_									= Nothing
+	Just (dp,val) | dp == dp2s currentPath	= Just val
+	_										= Nothing
 
 verifyElementStr :: !VerifyMask -> VerifyResult
 verifyElementStr cmv = case cmv of

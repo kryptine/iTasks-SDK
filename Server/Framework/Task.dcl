@@ -62,7 +62,7 @@ derive gPutRecordFields	Task
 	| SequentialComposition
 	| ParallelComposition
 
-:: TaskPart			:== (!String, !Int, !JSONNode)	//Task id, part index, value
+:: TaskPart			:== (!String, !JSONNode)		//Task id, part index, value
 :: TaskAction		:== (!String, !Action, !Bool)	//Task id, action, enabled
 :: TaskAttribute	:== (!String, !String) 
 

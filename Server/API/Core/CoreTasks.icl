@@ -59,144 +59,66 @@ where
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 
-interact :: !d ![InteractionPart l r] !l !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
-interact desc parts initLocal shared = mkTask eval
+interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask)) -> Task l | descr d & iTask l & iTask r & iTask v
+interact desc shared initFun refreshFun = mkTask eval
 where
-	eval eEvent cEvent repAs state=:(TCInit taskId ts) iworld		//Create the initial views
-		# (mbrvalue,iworld) 			= 'SharedDataSource'.read shared iworld
-		| isError mbrvalue				= (exception "Could not read shared in interact", iworld)
-		# (rvalue,_)					= fromOk mbrvalue
-		= eval eEvent cEvent repAs (TCInteract taskId ts (toJSON initLocal) (toJSON rvalue) (initParts initLocal rvalue parts)) iworld
-	where
-		initParts l r parts = map (initPart l r) parts
-		
-		initPart l r (FormPart f _ _)
-			# (_,encv,maskv)	= initFormView (f l r)
-			= (encv,maskv)
-		
-	eval eEvent cEvent repAs state=:(TCInteract taskId ts encl encr views) iworld=:{IWorld|taskTime}
-		# (mbrvalue,iworld) 				= 'SharedDataSource'.read shared iworld
-		| isError mbrvalue					= (sharedException mbrvalue, iworld)
-		# (rvalue,_)						= (fromOk mbrvalue)
-		# changed							= rvalue =!= fromJust (fromJSON encr)
-		# lvalue							= fromJust (fromJSON encl)
-
-		# (is_lucky_event,lvalue,mbEdit,lastEvent)
-		  = case eEvent of
-			Just (TaskEvent t e)
-				| t == taskId
-					= (False,lvalue,Just e,taskTime)
-			Just (LuckyEvent e=:(_,json_node))
-				= case fromJSON json_node of
-					Just lucky_value
-						-> (True,lucky_value,Just e,taskTime)
-					_
-						-> (True,lvalue,Just e,taskTime)						
-			_
-				= (False,lvalue,Nothing,ts)
-		# (lvalue,reps,views,valid,iworld)	= evalParts 0 taskId repAs (fmap (appFst s2dp) mbEdit) changed lvalue rvalue parts views iworld
-		# rep = case repAs of
-			(RepAsTUI Nothing layout) 
-				= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
-			(RepAsTUI (Just target) layout)	//If there is a target set, we only produce a representation only if this task is the target
-				| target == taskId
-					= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [gui \\ (TUIRep gui) <- reps] [] (initAttributes desc))
-				| otherwise
-					= NoRep
-			_	
-				# (parts,actions,attributes) = unzip3 [(part,actions,attributes) \\ (ServiceRep (part,actions,attributes)) <- reps]
-				= ServiceRep (flatten parts,flatten actions, flatten attributes)
-
-		| is_lucky_event && valid
-			# value	= Value (lvalue,rvalue) Stable
-			= (ValueResult value lastEvent rep (TCInteract taskId  lastEvent (toJSON lvalue) (toJSON rvalue) views), iworld)
-		
-		# value	= if valid (Value (lvalue,rvalue) Unstable) NoValue 
-		= (ValueResult value lastEvent rep (TCInteract taskId  lastEvent (toJSON lvalue) (toJSON rvalue) views), iworld)
-	eval eEvent cEvent repAs state iworld
-		= (exception "Corrupt context in interact",iworld)
-
-	evalParts idx taskId repAs mbEvent changed l r [] [] iworld
-		= (l,[],[],True,iworld)
-	evalParts idx taskId repAs mbEvent changed l r [p:ps] [v:vs] iworld	
-		# (nl,rep,view,pvalid,iworld)	= evalPart idx taskId repAs mbEvent changed l r p v iworld
-		# (nnl,reps,views,valid,iworld)	= evalParts (idx + 1) taskId repAs mbEvent changed nl r ps vs iworld
-		= (nnl,[rep:reps],[view:views],pvalid && valid,iworld) //All parts have to be valid
-
-	evalPart idx taskId repAs mbEvent changed l r part=:(FormPart initf sharef viewf) view=:(encv,maskv) iworld
-		//Update the local value and possibly the view if the share has changed
-		# v							= fromJust (fromJSON encv)
-		# vermask					= verifyForm v maskv
-		//If the edit event is for this part, update the view
-		# (l,v,encv,maskv,vermask,iworld)
-			= if (matchEditEvent idx mbEvent) 
-					(applyEditEvent /*idx*/ mbEvent viewf l r v encv maskv vermask iworld)
-					(l,v,encv,maskv,vermask,iworld)
-		//If the share has changed, update the view
-		# (l,v,encv,maskv,vermask)
-			= if changed (refreshForm sharef l r v encv maskv vermask) (l,v,encv,maskv,vermask) 
-		//Create an editor for the view
-		# (rep,iworld)				= editorRep idx taskId repAs initf v encv maskv vermask mbEvent iworld			
-		= (l,rep,(encv,maskv),isValidValue vermask,iworld)
-			
-	displayRep idx taskId (RepAsTUI _ _) f l r encv iworld
-		# (editor,iworld) = visualizeAsDisplay (f l r) iworld
-		= (TUIRep (ViewPart,editor,[],[]),iworld)
-	displayRep idx taskId _ f l r encv iworld
-		= (ServiceRep ([(toString taskId,idx,encv)],[],[]),iworld)
-
-	editorRep idx taskId (RepAsTUI _ _) f v encv maskv vermask mbEvent iworld
-		# (editor,iworld) = visualizeAsEditor v taskId idx vermask mbEvent iworld
-		= (TUIRep (ViewPart,editor,[],[]),iworld)
-	editorRep idx taskId _ f v encv maskv vermask mbEvent iworld
-		= (ServiceRep ([(toString taskId,idx,encv)],[],[]),iworld)
+	eval eEvent cEvent repAs (TCInit taskId ts) iworld
+		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
+		= case mbr of
+			Error _		= (exception "Could not read shared in interact", iworld)
+			Ok (r,_)
+				# (l,v,mask)	= initFun r
+				= eval eEvent cEvent repAs (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
+				
+	eval eEvent cEvent repAs (TCInteract taskId ts encl encr encv mask) iworld=:{taskTime}
+		//Decode stored values
+		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
+		//Determine next v by applying edit event if applicable 	
+		# event					= matchEvent taskId eEvent
+		# (nv,nmask,nts,iworld) = applyEvent taskId taskTime v mask ts event iworld
+		//Load next r from shared value
+		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
+		| isError mbr			= (exception "Could not read shared in interact", iworld)
+		# (nr,_)				= (fromOk mbr)
+		//Apply refresh function if r or v changed
+		# changed				= (nts =!= ts) || (nr =!= r) 
+		# valid					= isValidValue (verifyForm nv nmask)
+		# (nl,nv,nmask) 		= if changed (refreshFun l nr nv nmask valid) (l,nv,mask)
+		//Make visualization
+		# validity				= verifyForm nv nmask
+		# (rep,iworld) 			= visualizeView taskId repAs nv validity event iworld
+		# value 				= if (isValidValue validity) (Value l Unstable) NoValue
+		= (ValueResult value nts rep (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 	
-	matchEditEvent idx Nothing = False
-	matchEditEvent idx (Just (dp,_))
-		= case reverse (dataPathList dp) of
-			[idx:_]	= True
-			_		= False 		
-
-	applyEditEvent /*idx*/ (Just (dp,editv)) viewf l r v encv maskv vermask iworld	
-		//Remove part index from datapath
-		# dp 	= dataPathFromList ('StdList'.init (dataPathList dp))
-		//Update full value
-		| dataPathLevel dp == 0
-			= case fromJSON editv of
-				Just nv
-					# maskv = defaultMask nv
-					# vermask = verifyForm nv maskv
-					= (l,nv,editv,maskv,vermask,iworld)
-				Nothing
-					= (l,v,encv,maskv,vermask,iworld)
-		//Update partial value
-		# (v,maskv,iworld)	= updateValueAndMask dp editv v maskv iworld
-		# encv				= toJSON v
-		# vermask			= verifyForm v maskv
-		= reactToEditEvent viewf l r v encv maskv vermask iworld
+	matchEvent taskId1 (Just (LuckyEvent e))								= Just e	
+	matchEvent taskId1 (Just (TaskEvent taskId2 e))	| taskId1 == taskId2	= Just e
+	matchEvent taskId1 _													= Nothing
 	
-	reactToEditEvent viewf l r v encv maskv vermask iworld
-		= case viewf l r (if (isValidValue vermask) (Just v) Nothing) of
-			(l,Nothing)
-				= (l,v,encv,maskv,vermask,iworld)
-			(l,Just form)
-				# (v,encv,maskv)	= initFormView form
-				# vermask 			= verifyForm v maskv
-				= (l,v,encv,maskv,vermask,iworld)
-		
-	refreshForm f l r v encv maskv vermask
-		= case f l r (if (isValidValue vermask) (Just v) Nothing) of
-			(l,Nothing)			= (l,v,encv,maskv,vermask)
-			(l,Just form)
-				# (v,encv,maskv)	= initFormView form
-				# vermask			= verifyForm v maskv
-				= (l,v,encv,maskv,vermask)
-	
-	initFormView (FormView v mask) = (v,toJSON v, mask)
-
-	
-sharedException :: !(MaybeErrorString a) -> (TaskResult b)
-sharedException err = exception (SharedException (fromError err))
+	applyEvent taskId taskTime v mask ts event iworld = case event of
+		Nothing	 = (v,mask,ts,iworld)
+		Just (dps,encev)
+			# dp = s2dp dps
+			| dataPathLevel dp == 0
+				= case fromJSON encev of
+					Nothing	= (v,mask,ts,iworld)
+					Just nv	= (nv,defaultMask nv,taskTime,iworld)
+			| otherwise
+				# (nv,nmask,iworld)	= updateValueAndMask dp encev v mask iworld
+				= (nv,nmask,taskTime,iworld)
+				
+	visualizeView taskId (RepAsTUI target layout) v validity event iworld
+		| isNothing target || target == Just taskId
+			# (editor,iworld) = visualizeAsEditor v validity taskId event iworld
+			= (TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)), iworld)
+		| otherwise
+			= (NoRep,iworld)
+	visualizeView taskId (RepAsService target) v validity event iworld
+		| isNothing target || target == Just taskId
+			= (ServiceRep ([(toString taskId,toJSON v)],[],[]),iworld)
+		| otherwise
+			= (NoRep,iworld)
+	visualizeView taskId _ v validity event iworld
+		= (NoRep,iworld)
 
 workOn :: !TaskId -> Task WorkOnProcessState
 workOn (TaskId topNo taskNo) = mkTask eval

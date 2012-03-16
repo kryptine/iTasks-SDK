@@ -9,89 +9,68 @@ from Time import :: Timestamp(..)
 
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
-
-DisplayPart f = FormPart (\l r -> let v = f l r in FormView (Display v) (defaultMask v))
-							(\l r _ -> let v = f l r in (l, Just (FormView (Display v) (defaultMask (Display v)))))
-							(\l _ _ -> (l, Nothing))
 							
 enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
-enterInformation d opts
-	= interact d (parts opts) defaultValue null @ fst
-where
-	parts [EnterWith fromf]	= [FormPart (\l _ -> FormView defaultValue Untouched) (\l _ _ -> (l,Nothing)) (\l _ mbv -> (maybe l fromf mbv, Nothing))]
-	parts _					= [FormPart (\l _ -> FormView l Untouched) (\l _ _ -> (l,Nothing)) (\l _ mbv -> (fromMaybe l mbv,Nothing))]
+enterInformation d [EnterWith fromf]
+	= interact d  null
+		(\r -> (defaultValue,defaultValue,Untouched))
+		(\l r v m ok -> if ok (fromf v,v,m) (l,v,m))
+enterInformation d _ = enterInformation d [EnterWith id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
-updateInformation d opts m
-	= interact d (parts opts) m null @ fst	
-where	
-	parts [UpdateWith tof fromf]	= [FormPart (\l _ -> let v = tof l in FormView v (defaultMask v)) (\l _ _ -> (l,Nothing)) (\l _ mbv -> (maybe l (fromf l) mbv, Nothing))]
-	parts _							= [FormPart (\l _ -> FormView l (defaultMask l)) (\l _ _ -> (l,Nothing)) (\l _ mbv -> (fromMaybe l mbv,Nothing))]
-	
+updateInformation d [UpdateWith tof fromf] m
+	= interact d null
+		(\r -> let v = tof m in (m,v,defaultMask v))
+		(\l r v m ok -> if ok (fromf l v,v,m) (l,v,m))
+updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)] m
+
 viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
-viewInformation d opts m
-	= interact d (parts opts) m null @ fst
-where
-	parts [ViewWith tof]	= [DisplayPart (\l _ -> tof l)]
-	parts _					= [DisplayPart (\l _ -> m)]
-	
+viewInformation d [ViewWith tof] m
+	= interact d null
+		(\r -> let v = (Display m) in (m,v,defaultMask v))
+		(\l r v m ok -> (l,v,m))
+viewInformation d _ m = viewInformation d [ViewWith id] m
+
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
-updateSharedInformation d views shared
-	= (interact d (parts views) defaultValue (toReadOnly shared) @ fst) @> (mapval, shared)
-where
-	parts [UpdateWith tof fromf]
-		= [FormPart
-			(\w r -> let v = tof r in FormView v (defaultMask v))
-			(\w r mbv -> let v = tof r in (w, Just (FormView v (defaultMask v))))
-			(\w r mbv -> (maybe w (fromf r) mbv, Nothing))
-			]
+updateSharedInformation d [UpdateWith tof fromf] shared
+	= interact d (toReadOnly shared)
+				(\r -> let v = tof r in (fromf r v,v,defaultMask v))
+				(\l r v m ok -> if ok (let nl = fromf r v in (let nv = tof r in (nl,nv,defaultMask nv))) (l,v,m))
+		@> (mapval,shared)
+updateSharedInformation d _ shared			
 	//Use dynamics to test if r == w, if so we can use an update view	
 	//If different types are used we can only resort to a display of type r and an enter of type w
-	parts _	= case dynamic id :: A.a: (a -> a) of
+	= case dynamic id :: A.a: (a -> a) of
 		(rtow :: (r^ -> w^))
-			//We can use a filled form if r == w
-			=	[FormPart
-				(\w r -> let v = rtow r in FormView v (defaultMask v))
-				(\w r mbv -> let v = rtow r in (rtow r, Just (FormView v (defaultMask v))))
-				(\w r mbv -> (maybe w id mbv, Nothing)) 
-				]
+			= interact d (toReadOnly shared)
+				(\r -> let v = rtow r in (rtow r,v,defaultMask v))
+				(\l r v m ok -> if ok (let nl = v in (let nv = rtow r in (nl,nv,defaultMask nv))) (l,v,m))
+				@> (mapval,shared)
 		_
-			//Split up in display and enter
-			=	[FormPart
-				(\w r -> let v = (Display r,defaultValue) in FormView v (untouch 1 (defaultMask v)))
-				(\w r mbv -> (w,Nothing))
-				(\w r mbv -> (maybe w snd mbv, Nothing))
-				]
-	
-	untouch i (Touched subs)	= Touched (updateAt i Untouched subs)
-	untouch i mask				= mask
-	
-	mapval (Value w _) _	= Just w
-	mapval _ _				= Nothing	
+			= interact d (toReadOnly shared)
+				(\r -> let v = (Display r,defaultValue) in (defaultValue,v,Touched [defaultMask (Display r),Untouched]))
+				(\l r (_,v) (Touched [_,m]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,Touched [defaultMask (Display r),m])))
+				@> (mapval,shared)	
+
+mapval (Value w _) _	= Just w
+mapval _ _				= Nothing
 
 viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
-viewSharedInformation d options shared
-	= interact d (parts options) Void (toReadOnly shared) @ snd
-where
-	parts []		= [DisplayPart (\_ r -> r)]
-	parts options	= [DisplayPart (\_ r -> tof r) \\ ViewWith tof <- options]
+viewSharedInformation d [ViewWith tof] shared
+	= interact d (toReadOnly shared)
+		(\r -> let v = Display (tof r) in (r,v,defaultMask v))
+		(\l r v m ok -> let v = Display (tof r) in (r,v,defaultMask v)) 
+viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
 
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | descr d & iTask r & iTask m
-updateInformationWithShared d options shared init
-	= interact d (parts options) init (toReadOnly shared) @ fst
-where
-	parts [UpdateWith tof fromf]
-		= [FormPart
-			(\m r -> let v = tof (r,m) in FormView v (defaultMask v))
-			(\m r mbv -> let v = tof (r,m) in (m, Just (FormView v (defaultMask v))))
-			(\m r mbv -> (maybe m (fromf (r,m)) mbv, Nothing))
-			]
-	parts _	
-		= [FormPart
-		  	(\l r -> let v = (Display r,l) in FormView v (defaultMask v))
-		  	(\l _ mbv -> (l,Nothing))
-		  	(\l _ mbv -> (maybe l snd mbv,Nothing))
-		  	]
+updateInformationWithShared d [UpdateWith tof fromf] shared m
+	= interact d (toReadOnly shared)
+		(\r -> let v = tof (r,m) in (m,v,defaultMask v))
+		(\l r v msk ok -> let nl = if ok (fromf (r,l) v) l in (let v = tof (r,nl) in (nl,v,defaultMask v)))
+updateInformationWithShared d _ shared m
+	= interact d (toReadOnly shared)
+		(\r -> let v = (Display r,m) in (m,v,Touched [defaultMask (Display r),Untouched]))
+		(\l r (_,v) (Touched [_,msk]) ok -> let nl = if ok v l in (let nv = (Display r,nl) in (nl,nv,Touched [defaultMask (Display r),msk])))
 
 enterChoice :: !d ![ChoiceOption o] !(container o) -> Task o | descr d & OptionContainer container & iTask o & iTask (container o)
 enterChoice d options container
@@ -160,7 +139,7 @@ waitForTimer time = get currentTime >>= \now -> waitForTime (now + time)
 chooseAction :: ![(!Action,a)] -> Task a | iTask a
 chooseAction actions
 	=	SetLayout hideLayout 
-	@>> interact "Choose an action" [] Void null
+	@>> viewInformation "Choose an action" [] Void
 	>>* [AnyTime action (\_ -> return val) \\ (action,val) <- actions]
 	
 instance OptionContainer []
@@ -211,7 +190,7 @@ sharedChoiceToUpdate options = case choiceToUpdate options of
 	_						= []
 
 multiChoiceToUpdate :: [MultiChoiceOption o] -> [UpdateOption (container o, [o]) (container o,[o])] | OptionContainer container & iTask o
-multiChoiceToUpdate [MultiChooseWith type view] = [UpdateWith (toView type) fromView]
+multiChoiceToUpdate [ChooseMultipleWith type view] = [UpdateWith (toView type) fromView]
 where
 	toView type (container,sel)	= selectOptions sel (initChoice type container)
 
@@ -220,7 +199,7 @@ where
 	
 	fromView (container,_) choice = (container,getSelections choice)
 	
-multiChoiceToUpdate _ = multiChoiceToUpdate [MultiChooseWith AutoMultiChoice id]
+multiChoiceToUpdate _ = multiChoiceToUpdate [ChooseMultipleWith AutoMultiChoice id]
 
 sharedMultiChoiceToUpdate :: [MultiChoiceOption o] -> [UpdateOption (container o, [o]) [o]] | OptionContainer container & iTask o
 sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of

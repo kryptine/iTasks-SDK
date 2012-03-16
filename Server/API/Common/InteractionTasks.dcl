@@ -2,14 +2,13 @@ definition module InteractionTasks
 
 import CoreTasks
 
-//View definitions for customizing interaction
-
+//Option types for customizing interaction
 :: ViewOption a 		= E.v: ViewWith 	(a -> v)			& iTask v
 :: EnterOption a		= E.v: EnterWith	(v -> a)			& iTask v
 :: UpdateOption a b		= E.v: UpdateWith	(a -> v) (a v -> b)	& iTask v
 
-:: ChoiceOption a		= E.v: ChooseWith		ChoiceType		(a -> v) & iTask v
-:: MultiChoiceOption a	= E.v: MultiChooseWith	MultiChoiceType	(a -> v) & iTask v
+:: ChoiceOption a		= E.v: ChooseWith			ChoiceType		(a -> v) & iTask v
+:: MultiChoiceOption a	= E.v: ChooseMultipleWith	MultiChoiceType	(a -> v) & iTask v
 
 :: ChoiceType			= AutoChoice
 						| ChooseFromComboBox

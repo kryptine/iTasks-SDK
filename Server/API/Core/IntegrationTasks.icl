@@ -73,7 +73,7 @@ where
 								| otherwise
 									= NoRep
 							_
-								= ServiceRep ([(toString taskId, 0, JSONNull)], [], [])
+								= ServiceRep ([(toString taskId, JSONNull)], [], [])
 						
 						= (ValueResult NoValue lastEvent rep state,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world

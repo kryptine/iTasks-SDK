@@ -86,31 +86,20 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 
 /**
-* Swiss-army-knife interaction tasks. All other interaction tasks are derived from this one.
+* Core interaction task. All other interaction tasks are derived from this one.
 *
-* An interaction tasks works on a shared data model (r w). Additonally interation tasks keep a local state (l).
-* How the data model is displayed/updated/changed is defined by means of dynamically calculated InteractionParts.
+* An interaction tasks works on a local state and has read-only access to shared data.
 *
 * @param Description: A description of the task to display to the user
-* @param Local initialization: Initialize the local state
-* @param Parts: TODO
-* @param Initial state: The optional initial local state
-* @param ReadWriteShared: A reference to shared data the task works on
+* @param ReadOnlyShared: A reference to shared data the task has access to
+* @param Initialization function: Computes the initial local state and view
+* @param Refresh function: Recomputes the local state and view when either the view is edited or the shared data changes.
 *
-* @return A result determined by the terminators
-* @throws SharedException
+* @return The local state
 *
 * @gin False
 */
-interact :: !d ![InteractionPart l r] !l !(ReadOnlyShared r) -> Task (l,r) | descr d & iTask l & iTask r
-
-:: InteractionPart l r	= E.v: FormPart (FormInitFun l r v) (FormShareUpdateFun l r v) (FormViewUpdateFun l r v) & iTask v
-
-:: FormInitFun l r v		:==	l r -> FormView v							// Create the initial form
-:: FormShareUpdateFun l r v	:== l r (Maybe v) -> (l, Maybe (FormView v))	// What to do when share changes
-:: FormViewUpdateFun l r v	:== l r (Maybe v) -> (l, Maybe (FormView v))	// What to do when the view changes
-
-:: FormView v	= FormView !v !UpdateMask		// A form with custom mask
+interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask)) -> Task l | descr d & iTask l & iTask r & iTask v
 	
 /**
 * State of another process the user works on.
