@@ -17,6 +17,9 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress !String
+class toEmail r where toEmail :: !r -> EmailAddress
+instance toEmail EmailAddress
+instance toEmail String
 
 // Uniform resource locators
 :: URL			= URL !String
@@ -64,7 +67,7 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 :: ManagementMeta =
 	{ title				:: !Maybe String			//* Title to identify the task
-	, worker			:: !Maybe User				//* Who has to do the task? 
+	, worker			:: !UserConstraint			//* Who has to do the task? 
 	, role				:: !Maybe Role				//* What role does a worker need to do the task
 	, startAt			:: !Maybe DateTime			//* When is the task supposed to start
 	, completeBefore	:: !Maybe DateTime			//* When does the task need to be completed
@@ -119,20 +122,27 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 //* Users	
 :: User
-	= AnyUser						//* Any not further specified person
-	| RootUser						//* The system super user
-	| RegisteredUser !UserDetails	//* A registered person of whom we know details
-	| NamedUser !String				//* A person identified by a username
-	| SessionUser !String			//* A person that is only identified by a session
-	
-:: UserDetails			=
-	{ username		:: !Username
-	, password		:: !Password
-	, displayName	:: !String
-	, emailAddress	:: !EmailAddress
-	, roles			:: !Maybe [Role]
-	}
+	= AnonymousUser !SessionId								//* An anonymous user identified only by a session id
+	| AuthenticatedUser !UserId ![Role] !(Maybe UserTitle)	//* An authenticated user
 
+//* Constrained users, to indicate who can work on a task
+:: UserConstraint
+	= AnyUser
+	| UserWithId !UserId
+	| UserWithRole !Role
+
+class toUserConstraint a
+where
+	toUserConstraint :: a -> UserConstraint
+
+instance toUserConstraint UserConstraint
+instance toUserConstraint User
+instance toUserConstraint String
+
+:: UserId		:== String
+:: Role			:== String
+:: UserTitle	:== String			//* A descriptive name of a user (not used for identification)
+	
 //* Authentication
 :: Credentials =
 	{ username	:: !Username
@@ -141,8 +151,6 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 	
 :: Password		= Password !String
 :: Username		= Username !String
-
-:: Role			:== String
 
 //* Predefined exception types used by library tasks
 
@@ -154,13 +162,13 @@ from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 :: OSException			= OSException !OSError
 :: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
 
-derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive JSONEncode		EUR, USD, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONEncode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive JSONDecode		EUR, USD, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive JSONDecode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
-derive gEq				EUR, USD, FormButton, User, UserDetails, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
+derive gEq				EUR, USD, FormButton, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -239,12 +247,6 @@ instance zero EUR
 instance zero USD
 
 instance html Note
-
-class toEmail r where toEmail :: !r -> EmailAddress
-instance toEmail EmailAddress
-instance toEmail String
-instance toEmail User
-
 
 //* Form buttons
 :: FormButton 		= 
@@ -418,39 +420,11 @@ instance descr [d] | descr d
 
 noMeta :: ManagementMeta
 
-
-
 //Configuration
 :: Config =
-	{ rootPassword		:: !String			// Password for the 'root' superuser (default 'root').
-	, rootEmail			:: !String			// E-mail address for the 'root' superuser (default root@localhost).
-	, sessionTime		:: !Int				// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
+	{ sessionTime		:: !Int				// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, smtpServer		:: !String			// The smtp server to use for sending e-mails
 	}
-
-
-
-/*
-* Gives the unique username of a user
-*
-* @param The user
-* @return The user's username
-*/
-userName 			:: !User -> String
-/*
-* Gives the display name of a user
-*
-* @param The user
-* @return The user's display name
-*/
-displayName			:: !User -> String
-/* 
-* Gives the roles of the passed user
-*
-* @param The user
-* @return The roles currently assigned to this user
-*/
-getRoles			:: !User -> [Role]
 
 /*
 * To allow the specification of a followup action to their current task

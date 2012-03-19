@@ -21,7 +21,7 @@ import CoreTasks, CoreCombinators, InteractionTasks, LayoutCombinators
 (>>!) taska taskbf = step taska [WithResult ActionContinue (const True) taskbf]
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
-(>>|) taska taskb = step taska [WhenStable (const taskb)]
+(>>|) taska taskb = step taska [WithResult ActionContinue (const True) (const taskb), WhenStable (const taskb)]
 
 (>>^) infixl 1 :: !(Task a) (Task b) -> Task a | iTask a & iTask b
 (>>^) taska taskb = taska >>= \x -> taskb >>| return x
@@ -60,46 +60,38 @@ assign props task
 			[(Embedded, \s -> processControl s),(Detached props, \_ -> task)]
 	@?	result
 where
-	processControl tlist =
-		(enterSharedChoice ("Waiting","Waiting for " <+++ task) [] (taskListMeta tlist))
-		@? const NoValue
+	processControl tlist
+		= viewSharedInformation (Title "Waiting for result") [ViewWith toView] (taskListMeta tlist) @? const NoValue
 					
 	toView [_,{TaskListItem|progressMeta=Just p,managementMeta=Just m}]=
-		{ assignedTo	= m.ManagementMeta.worker
+		{ assignedTo	= toString m.ManagementMeta.worker
+		, issuedBy		= toString p.ProgressMeta.issuedBy
+		, issuedAt		= p.ProgressMeta.issuedAt
 		, priority		= m.ManagementMeta.priority
-		, issuedAt		= Display (Just p.ProgressMeta.issuedAt)
-		, issuedBy		= Display (Just p.ProgressMeta.issuedBy)
-		, firstWorkedOn	= Display p.ProgressMeta.firstEvent
-		, lastWorkedOn	= Display p.ProgressMeta.latestEvent
-		}
-	toView [_,_]=
-		{ assignedTo	= Nothing
-		, priority		= NormalPriority
-		, issuedAt		= Display Nothing
-		, issuedBy		= Display Nothing
-		, firstWorkedOn	= Display Nothing
-		, lastWorkedOn	= Display Nothing
+		, firstWorkedOn	= p.ProgressMeta.firstEvent
+		, lastWorkedOn	= p.ProgressMeta.latestEvent
 		}	
-	fromView view=:{ProcessControlView|assignedTo} _ _
-		= []// [UpdateProperties 1 {mapRecord view & worker = assignedTo}]
-		
-	formatTimestamp timestamp = timestampToGmDateTime timestamp
-	
 	result (Value [_,(_,v)] _)	= v
 	result _					= NoValue
-	
-:: ProcessControlView =	{ assignedTo	:: !Maybe User
+
+instance toString UserConstraint
+where
+	toString AnyUser				= "Anybody"
+	toString (UserWithId uid)		= uid
+	toString (UserWithRole role)	= "Any user with role " +++ role
+
+:: ProcessControlView =	{ assignedTo	:: !String
+						, issuedBy		:: !String
+						, issuedAt		:: !DateTime
 						, priority		:: !TaskPriority
-						, issuedAt		:: !Display (Maybe DateTime)
-						, issuedBy		:: !Display (Maybe User)
-						, firstWorkedOn	:: !Display (Maybe DateTime)
-						, lastWorkedOn	:: !Display (Maybe DateTime)
+						, firstWorkedOn	:: !Maybe DateTime
+						, lastWorkedOn	:: !Maybe DateTime
 						}
 derive class iTask ProcessControlView
-derive class GenRecord ProcessControlView, ManagementMeta, TaskPriority
+derive class GenRecord ProcessControlView, UserConstraint, ManagementMeta, TaskPriority
 
-(@:) infix 3 :: !User !(Task a) -> Task a | iTask a
-(@:) user task = assign {noMeta & worker = Just user} task
+(@:) infix 3 :: !worker !(Task a) -> Task a | iTask a & toUserConstraint worker
+(@:) worker task = assign {noMeta & worker = toUserConstraint worker} task
 
 justdo :: !(Task (Maybe a)) -> Task a | iTask a
 justdo task
@@ -218,7 +210,7 @@ appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks @ \topNo -> (TaskId topNo 0)
 
 appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
-appendTopLevelTaskFor user task = appendTopLevelTask {noMeta & worker = Just user} task
+appendTopLevelTaskFor user task = appendTopLevelTask {noMeta & worker = toUserConstraint user} task
 
 instance tune BeforeLayout
 where tune (BeforeLayout f) task = tune (ModifyLayout (\l t0 pa0 ac0 at0 -> let (t1,pa1,ac1,at1) = f (t0,pa0,ac0,at0) in l t1 pa1 ac1 at1)) task

@@ -199,7 +199,7 @@ gUpdate{|Username|}				mode ust = basicUpdateSimple mode (Username "") ust
 gUpdate{|Password|}				mode ust = basicUpdateSimple mode (Password "") ust
 gUpdate{|EUR|}					mode ust = basicUpdateSimple mode (EUR 0) ust
 gUpdate{|USD|}					mode ust = basicUpdateSimple mode (USD 0) ust
-gUpdate{|User|}					mode ust = basicUpdateSimple mode AnyUser ust
+gUpdate{|User|}					mode ust = basicUpdateSimple mode (AnonymousUser "") ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
 gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton|b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
@@ -255,7 +255,7 @@ where
 gUpdate{|HtmlTag|} UDCreate ust = basicCreate (Html "") ust
 gUpdate{|HtmlTag|} (UDSearch v) ust = basicSearch v (\Void v -> v) ust //HOPE THIS IS OK
 
-derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
 
 basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
 basicUpdateSimple mode def ust = case mode of
@@ -345,7 +345,7 @@ gDefaultMask{|TreeChoice|} _ _ tree=:(TreeChoice _ mbSel)
 	| isJust mbSel	= [Touched []]
 	| otherwise		= [Untouched]
 
-derive gDefaultMask Either, (,), (,,), (,,,), JSONNode, Void, DateTime, UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gDefaultMask Either, (,), (,,), (,,,), JSONNode, Void, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
 derive gDefaultMask DynamicChoice //TODO
 
 //Utility functions

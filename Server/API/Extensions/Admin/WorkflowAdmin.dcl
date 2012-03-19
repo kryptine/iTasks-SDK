@@ -84,7 +84,7 @@ manageWorklist :: ![Workflow] -> Task Void
 */
 addWorkflow :: !Workflow -> Task Workflow
 
-isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool
+isAllowedWorkflow :: !User !Workflow -> Bool
 
 //Service tasks
 viewTaskList	:: Task [TaskListItem]

@@ -38,7 +38,7 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	appendTopLevelTask {noMeta & worker = Just who} (task <<@ Title label)
+		>>= \who ->	appendTopLevelTask {noMeta & worker = toUserConstraint who} (task <<@ Title label)
 		>>= 		inspect
 	
 	inspect pref

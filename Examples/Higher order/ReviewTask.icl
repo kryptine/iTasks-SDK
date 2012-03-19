@@ -47,7 +47,7 @@ reviewtask = taskToReview AnyUser (defaultValue, mytask)
 mytask :: a -> (Task a) | iTask a
 mytask v =	updateInformation ("Form","Fill in Form:") [] v
 
-taskToReview :: User (a,a -> Task a) -> Task (a,Review) | iTask a 
+taskToReview :: UserConstraint (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
 	=					task v`               
 		>>= \v ->		reviewer @: (Title "Review" @>> review v) 

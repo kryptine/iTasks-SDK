@@ -4,7 +4,7 @@ definition module SystemData
 * a set of shared data structures.
 */
 import Maybe, JSON, Shared
-from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: UserDetails, :: TaskList, :: Tree
+from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: TaskList, :: Tree
 from SystemTypes		import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: TopNo, :: SharedTaskList
 from Void				import :: Void
 from FilePath			import :: FilePath

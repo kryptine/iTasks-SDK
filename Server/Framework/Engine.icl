@@ -52,7 +52,7 @@ initIWorld sdkPath world
 	  ,taskTime				= 0
 	  ,timestamp			= timestamp
 	  ,currentDateTime		= currentDateTime
-	  ,currentUser			= AnyUser
+	  ,currentUser			= AnonymousUser ""
 	  ,nextTaskNo			= 0
 	  ,evalStack			= []
 	  ,parallelLists		= newMap
@@ -64,9 +64,7 @@ initIWorld sdkPath world
 where
 	defaultConfig :: Config
 	defaultConfig =
-		{ rootPassword		= "root"
-		, rootEmail			= "root@localhost"
-		, sessionTime		= 3600
+		{ sessionTime		= 3600
 		, smtpServer		= "localhost"
 		}
 		

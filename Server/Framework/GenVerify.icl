@@ -3,7 +3,7 @@ implementation module GenVerify
 import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text, Generic
 import GenUpdate, StdMisc
 
-derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gVerify (,), (,,), (,,,), Void, Either, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
 verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 verifyForm val updateMask
 	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, staticDisplay = False}

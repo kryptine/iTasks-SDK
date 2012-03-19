@@ -2,50 +2,52 @@ implementation module UserAdmin
 
 import iTasks, Text, Tuple
 
-userStore :: Shared [UserDetails]
-userStore = sharedStore "Users" []
+derive class iTask UserAccount
+
+//Initial root user
+ROOT_USER :== {credentials={Credentials|username=Username "root",password = Password "root"},title = Just "Root user", roles = ["admin"]}
+
+userAccounts :: Shared [UserAccount]
+userAccounts = sharedStore "UserAccounts" [ROOT_USER]
 
 users :: ReadOnlyShared [User]
-users = mapReadWrite (\users -> map RegisteredUser users, \Void users -> Just users) userStore
+users = mapReadWrite (\accounts -> [AuthenticatedUser (toString a.UserAccount.credentials.Credentials.username) a.UserAccount.roles a.UserAccount.title
+									\\ a <- accounts]
+					 , \Void accounts -> Nothing) userAccounts
 
 usersWithRole :: !Role -> ReadOnlyShared [User]
 usersWithRole role = mapRead (filter (hasRole role)) users
 where
-	hasRole role (RegisteredUser details) = maybe False (isMember role) details.UserDetails.roles
+	hasRole role (AuthenticatedUser _ roles _) = isMember role roles
 	hasRole _ _ = False
 
-userDetails :: !User -> Shared (Maybe UserDetails)
-userDetails user = mapReadWrite (getDetails user,\w r -> Just (setDetails w r)) userStore
-	
-currentUserDetails :: ReadOnlyShared (Maybe UserDetails)
-currentUserDetails = mapRead (\(user,users) -> getDetails user users ) (currentUser |+| userStore)  
-
-getDetails :: User [UserDetails] -> Maybe UserDetails
-getDetails user users
-	= case [u \\ u <- users | (RegisteredUser u) == user] of
-		[details]	= Just details
-		_			= Nothing
-
-setDetails :: (Maybe UserDetails) [UserDetails] -> [UserDetails]
-setDetails Nothing users = users
-setDetails (Just details) users = map (upd details) users
+userAccount :: UserId -> Shared (Maybe UserAccount)
+userAccount userId = mapReadWrite (getAccount userId, \w r -> Just (setAccount w r)) userAccounts
 where
-	upd n o		= if (o.UserDetails.username == n.UserDetails.username) n o
-	
-authenticateUser :: !Username !Password	-> Task (Maybe User)
-authenticateUser (Username username) (Password password)
-	| username == "root"
-		=	get applicationConfig
-		>>= \config -> 
-			return (if (config.rootPassword == password) (Just RootUser) Nothing)
-	| otherwise
-		=	get (userDetails (NamedUser username))
-		>>= \mbDetails -> case mbDetails of
-			Just details
-				= return (if (details.UserDetails.password == Password password) (Just (RegisteredUser details)) Nothing)
-			Nothing
-				= return Nothing
+	getAccount :: UserId [UserAccount] -> Maybe UserAccount
+	getAccount userId accounts = case [a \\ a <- accounts | identifyUserAccount a == userId] of
+		[a] = Just a
+		_	= Nothing
+		
+	setAccount :: (Maybe UserAccount) [UserAccount] -> [UserAccount]
+	setAccount Nothing accounts = accounts
+	setAccount (Just updated) accounts = [if (identifyUserAccount a == identifyUserAccount updated) updated a \\ a <- accounts]
 
+identifyUserAccount :: UserAccount -> UserId
+identifyUserAccount {UserAccount|credentials={Credentials|username}} = toString username
+
+accountToUser :: UserAccount -> User
+accountToUser {UserAccount|credentials={Credentials|username},title,roles} = AuthenticatedUser (toString username) roles title
+
+accountTitle :: UserAccount -> String
+accountTitle {UserAccount|credentials={Credentials|username},title=Just title} = title  
+accountTitle {UserAccount|credentials={Credentials|username}} = "Untitled (" +++ toString username +++ ")" 
+
+authenticateUser :: !Username !Password	-> Task (Maybe User)
+authenticateUser (Username username) password
+	=	get (userAccount username)
+	@	(maybe Nothing (\a -> if (a.UserAccount.credentials.Credentials.password == password) (Just (accountToUser a)) Nothing))
+	
 doAuthenticated :: (Task a) -> Task a | iTask a
 doAuthenticated task = doAuthenticateWith verify task
 where
@@ -62,25 +64,23 @@ where
 	//Layout tweak
 	loginForm = AfterLayout (tweakTUI (setTopMargin 100 o fixedWidth 550))
 	
-createUser :: !UserDetails -> Task User
-createUser details
-	=	get (userDetails user)
+createUser :: !UserAccount -> Task UserAccount
+createUser account
+	=	get (userAccount (identifyUserAccount account))
 	>>= \mbExisting -> case mbExisting of
 		Nothing
-			= update (\users -> users ++ [details]) userStore >>| return user
+			= update (\accounts -> accounts ++ [account]) userAccounts @ const account
 		_	
-			= throw ("A user with username '" +++ toString details.UserDetails.username +++ "' already exists.")
+			= throw ("A user with username '" +++ toString account.UserAccount.credentials.Credentials.username +++ "' already exists.")
+
+deleteUser :: !UserId -> Task Void
+deleteUser userId = update (filter (exclude userId)) userAccounts @ const Void
 where
-	user = RegisteredUser details
-			
-deleteUser :: !User -> Task User
-deleteUser user = update (filter (exclude user)) userStore >>| return user
-where
-	exclude user d	= user == (RegisteredUser d)
+	exclude user d	= identifyUserAccount d == userId 
 
 manageUsers :: Task Void
 manageUsers =
-	(		enterSharedChoice ("Users","The following users are available") [] users
+	(		enterSharedChoice ("Users","The following users are available") [] userAccounts @ identifyUserAccount
 		>>*	[ AnyTime		(Action "New")									(\_ -> createUserFlow	@ const False)
 			, WithResult	(ActionEdit) (const True)						(\u -> updateUserFlow u @ const False)
 			, WithResult	(ActionDelete) (const True)						(\u -> deleteUserFlow u @ const False)
@@ -102,54 +102,56 @@ createUserFlow =
 									)
 		]
 		
-updateUserFlow :: User -> Task User
-updateUserFlow user
-	=	get (userDetails user)
-	>>= \mbOldDetails -> case mbOldDetails of 
-		(Just oldDetails)
-			=	(updateInformation ("Editing " +++ displayName user,"Please make your changes") [] oldDetails
-			>>*	[ AnyTime ActionCancel (\_ -> return user)
-				, WithResult ActionOk (const True)(\newDetails ->
-												set (Just newDetails) (userDetails user)
-											>>=	viewInformation "User updated" [ViewWith (\(Just {displayName}) -> "Successfully updated " +++ displayName)]
-											>>| return user
+updateUserFlow :: UserId -> Task UserAccount
+updateUserFlow userId
+	=	get (userAccount userId)
+	>>= \mbAccount -> case mbAccount of 
+		(Just account)
+			=	(updateInformation ("Editing " +++ fromMaybe "Untitled" account.UserAccount.title ,"Please make your changes") [] account
+			>>*	[ AnyTime ActionCancel (\_ -> return account)
+				, WithResult ActionOk (const True)(\newAccount ->
+												set (Just newAccount) (userAccount userId)
+											>>=	viewInformation "User updated" [ViewWith (\(Just {UserAccount|title}) -> "Successfully updated " +++ fromMaybe "Untitled" title)]
+											>>| return newAccount
 											)
 				])
 		Nothing
 			=	(throw "Could not find user details")
 				
-deleteUserFlow :: User -> Task User
-deleteUserFlow user =
-		viewInformation "Delete user" [] ("Are you sure you want to delete " +++ displayName user +++ "? This cannot be undone.")
-	>>*	[ AnyTime ActionNo	(\_ -> return user)
-		, AnyTime ActionYes	(\_ -> deleteUser user
-									>>=	viewInformation "User deleted" [ViewWith (\user -> "Successfully deleted " +++ displayName user +++ ".")]
-						)
-		]
-		
+deleteUserFlow :: UserId -> Task UserAccount
+deleteUserFlow userId
+	=	get (userAccount userId)
+	>>= \mbAccount -> case mbAccount of 
+		(Just account)
+			=	viewInformation "Delete user" [] ("Are you sure you want to delete " +++ accountTitle account +++ "? This cannot be undone.")
+			>>*	[ AnyTime ActionNo	(\_ -> return account)
+				, AnyTime ActionYes	(\_ -> deleteUser userId
+									>>|	viewInformation "User deleted" [ViewWith (\account -> "Successfully deleted " +++ accountTitle account +++ ".")] account
+									>>| return account
+									)
+				]
+				
 importUserFileFlow :: Task Void
 importUserFileFlow = viewInformation "Not implemented" [] Void
 
 exportUserFileFlow :: Task Document
 exportUserFileFlow
-	=	get users -&&- get applicationName
+	=	get userAccounts -&&- get applicationName
 	>>= \(list,app) ->
-		createCSVFile (app +++ "-users.csv") [toRow u \\ (RegisteredUser u) <- list] 
+		createCSVFile (app +++ "-users.csv") (map toRow list)
 	>>=	viewInformation ("Export users file","A CSV file containing the users of this application has been created for you to download.") []
 where
-	toRow {username = (Username username), password = (Password password), displayName, emailAddress = (EmailAddress email), roles}
-		= [displayName,username,password,email: fromMaybe [] roles]
+	toRow {credentials = {Credentials|username =(Username username), password = (Password password)}, title, roles}
+		= [fromMaybe "" title,username,password:roles]
 	
-importDemoUsersFlow :: Task [User]
+importDemoUsersFlow :: Task [UserAccount]
 importDemoUsersFlow =
-	allTasks [catchAll (createUser (demoUser n)) (\_ -> return (RegisteredUser (demoUser n))) \\ n <- names]
+	allTasks [catchAll (createUser (demoUser n)) (\_ -> return (demoUser n)) \\ n <- names]
 where
 	demoUser name
-		= {UserDetails
-		  | username = Username (toLowerCase name)
-		  , password = Password (toLowerCase name)
-		  , displayName = name
-		  , emailAddress = EmailAddress (name +++ "@example.com")
-		  , roles = Nothing
+		= {UserAccount
+		  | credentials = {Credentials| username = Username (toLowerCase name), password = Password (toLowerCase name)}
+		  , title = Just name
+		  , roles = []
 		  }
 	names = ["Alice","Bob","Carol","Dave","Eve","Fred"]

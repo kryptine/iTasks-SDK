@@ -27,7 +27,7 @@ generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gUpdate Note, DateTime, Document, FormButton, Username, Password, EUR, USD, Date, Time, User, UserDetails, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
+derive gUpdate Note, DateTime, Document, FormButton, Username, Password, EUR, USD, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
 derive gUpdate EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gUpdate ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
@@ -36,7 +36,7 @@ generic gDefaultMask a :: !a -> [UpdateMask]
 derive gDefaultMask UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gDefaultMask Int, Real, Char, Bool, String
 derive gDefaultMask Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gDefaultMask Note, DateTime, Document, FormButton, Username, Password, EUR, USD, Date, Time, User, UserDetails, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
+derive gDefaultMask Note, DateTime, Document, FormButton, Username, Password, EUR, USD, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
 derive gDefaultMask EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gDefaultMask ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 

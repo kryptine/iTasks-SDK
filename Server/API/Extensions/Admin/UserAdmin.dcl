@@ -4,16 +4,23 @@ definition module UserAdmin
 */
 import iTasks
 
+:: UserAccount			=
+	{ credentials	:: !Credentials
+	, title			:: !Maybe String
+	, roles			:: ![Role]
+	}
+
+derive class iTask UserAccount
+
 // Shares
 
+//* All user accounts
+userAccounts			::				Shared [UserAccount]
+
 //* All users
-users					:: 			ReadOnlyShared [User]
+users					:: 				ReadOnlyShared [User]
 //* Users with a specific role
-usersWithRole			:: !Role ->	ReadOnlyShared [User]
-//* User details (name,credentials etc)
-userDetails				:: !User ->	Shared (Maybe UserDetails)
-//* Details of the current user
-currentUserDetails		::			ReadOnlyShared (Maybe UserDetails)
+usersWithRole			:: !Role ->		ReadOnlyShared [User]
 
 /**
 * Authenticates a user by username and password
@@ -48,7 +55,7 @@ doAuthenticateWith :: (Credentials -> Task (Maybe User)) (Task a) -> Task a | iT
 * 
 * @gin-icon user_add
 */
-createUser			:: !UserDetails -> Task User
+createUser			:: !UserAccount -> Task UserAccount
 /**
 * Delete an existing user
 *
@@ -58,7 +65,7 @@ createUser			:: !UserDetails -> Task User
 * 
 * @gin-icon user_delete
 */
-deleteUser			:: !User -> Task User
+deleteUser			:: !UserId -> Task Void
 /**
 * Browse and manage the existing users
 */

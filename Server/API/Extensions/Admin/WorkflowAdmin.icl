@@ -52,9 +52,9 @@ where
 		= Ok (Just [if (wf.path == path) nwf wf \\ wf <- wfs])
 
 allowedWorkflows :: ReadOnlyShared [Workflow]
-allowedWorkflows = mapRead filterAllowed (workflows |+| (currentUser |+| currentUserDetails))
+allowedWorkflows = mapRead filterAllowed (workflows |+| currentUser)
 where
-	filterAllowed (workflows,(user,mbDetails)) = filter (isAllowedWorkflow user mbDetails) workflows
+	filterAllowed (workflows,user) = filter (isAllowedWorkflow user) workflows
 	
 workflowTree :: ReadOnlyShared (Tree (Either WorkflowFolderLabel Workflow))
 workflowTree = mapRead mkFlowTree (toReadOnly workflows)
@@ -189,13 +189,13 @@ startWorkflow :: !(SharedTaskList ClientPart) !Workflow -> Task Workflow
 startWorkflow list wf
 	= 	get currentUser
 	>>=	\user ->
-		appendTopLevelTask {noMeta & worker = Just user, title = Just (workflowTitle wf)} (fromContainer wf.Workflow.task)
+		appendTopLevelTask {noMeta & worker = toUserConstraint user, title = Just (workflowTitle wf)} (fromContainer wf.Workflow.task)
 	>>= \procId ->
 		openTask list procId
 	@	const wf
 where
-	fromContainer (WorkflowTask t) = t >>| return Void
-	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf >>| return Void)		
+	fromContainer (WorkflowTask t) = t @ const Void
+	fromContainer (ParamWorkflowTask tf) = (enterInformation "Enter parameters" [] >>= tf @ const Void)		
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
@@ -230,7 +230,7 @@ openTask taskList taskId
 
 workOnTask :: TaskId -> Task ClientPart
 workOnTask taskId
-	= (workOn taskId >>| return OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)]
+	= (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)]
 
 appendOnce identity task taskList
 	=	get (taskListMeta taskList)
@@ -285,9 +285,8 @@ mkWorkflow path description roles taskContainer managerProps =
 workflowTitle :: Workflow -> String
 workflowTitle {Workflow|path} = last (split "/" path)
 
-isAllowedWorkflow :: !User !(Maybe UserDetails) !Workflow -> Bool
-isAllowedWorkflow RootUser _ _						= True	//Allow the root user
-isAllowedWorkflow _ _ {Workflow|roles=r=:[]}		= True	//Allow workflows without required roles
-isAllowedWorkflow _ (Just details) {Workflow|roles}			//Allow workflows for which the user has permission
-	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- roles]
-isAllowedWorkflow _ _ _								= False	//Don't allow workflows in other cases
+isAllowedWorkflow :: !User !Workflow -> Bool
+isAllowedWorkflow _ {Workflow|roles=[]}		= True								//Allow workflows without required roles
+isAllowedWorkflow (AuthenticatedUser _ hasRoles _) {Workflow|roles=needsRoles}	//Allow workflows for which the user has permission
+	= or [isMember r hasRoles \\ r <- needsRoles]
+isAllowedWorkflow _ _ 						= False								//Don't allow workflows in other cases

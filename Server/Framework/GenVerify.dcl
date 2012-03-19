@@ -24,7 +24,7 @@ instance toString ErrorMessage
 
 derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS, FIELD, Int, Real, Char, Bool, String, (,), (,,),(,,,),(->), []
 derive gVerify Maybe, Dynamic, JSONNode, Void, Document, Either, Editable, Hidden, Display, VisualizationHint, HtmlTag, Timestamp
-derive gVerify Username, Password, Date, Time, FormButton, EUR, USD, User, UserDetails, Note, DateTime, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
+derive gVerify Username, Password, Date, Time, FormButton, EUR, USD, User, Note, DateTime, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
 derive gVerify EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gVerify ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 

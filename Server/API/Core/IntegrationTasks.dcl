@@ -48,11 +48,12 @@ callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a |
 *
 * @param Subject: The subject line of the e-mail
 * @param Body: The body of the e-mail
-* @param Recipients: The list of recipients. This can be either e-mail addresses or existing system users.
+* @param Sender: The sender address
+* @param Recipients: The list of recipients
 *
 * @return The recipients to which the email was sent
 
 * @gin-title Send e-mail
 * @gin-icon email
 */
-sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
+sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt

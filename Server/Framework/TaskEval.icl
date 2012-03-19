@@ -29,17 +29,11 @@ createTaskContainer parTask = (dynamic (Container parTask) :: Container (Paralle
 createValueContainer :: a -> Dynamic | iTask a
 createValueContainer val = (dynamic (Container val) :: Container a^ a^)
 
-createTaskState :: !(Either SessionId TopNo) !Dynamic !ManagementMeta !User !*IWorld -> (!TopInstance, !*IWorld)
-createTaskState topId container=:(Container parTask :: Container (ParallelTask a) a) mmeta user iworld =:{IWorld|currentDateTime}
+createTaskState :: !(Either SessionId TopNo) !Dynamic !ManagementMeta !ProgressMeta !*IWorld -> (!TopInstance, !*IWorld)
+createTaskState topId container=:(Container parTask :: Container (ParallelTask a) a) mmeta pmeta iworld 
 	# taskId	= case topId of
 		Left _		= TaskId 0 0
 		Right topNo	= TaskId topNo 0
-	# pmeta		= { issuedAt = currentDateTime
-				  , issuedBy = user
-				  , status  = Unstable
-				  , firstEvent = Nothing
-				  , latestEvent = Nothing
-				  }
 	= ({TopInstance|instanceId=topId,nextTaskNo=1,nextTaskTime=2,progress=pmeta,management=mmeta,task=container,state=Left (TCInit taskId 1),attributes=[]},iworld)
 where
 	getNextTaskNo iworld=:{IWorld|nextTaskNo} = (nextTaskNo,iworld)
@@ -80,9 +74,9 @@ evalInstance _ _ _ _ _ topInstance iworld
 	= (Ok (exception "Could not unpack instance state"), topInstance, iworld)
 
 createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld) |  iTask a
-createSessionInstance task editEvent commitEvent genGUI iworld
+createSessionInstance task editEvent commitEvent genGUI iworld=:{currentDateTime}
 	# (sessionId,iworld)	= newSessionId iworld
-	# (state, iworld)		= createTaskState (Left sessionId) (createTaskContainer (\_ -> task)) noMeta AnyUser iworld
+	# (state, iworld)		= createTaskState (Left sessionId) (createTaskContainer (\_ -> task)) noMeta {issuedAt=currentDateTime,issuedBy=AnonymousUser sessionId,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
 	# (mbRes,iworld)		= evalTopInstance editEvent commitEvent genGUI state iworld
 	= case mbRes of
 		Ok result	= (Ok (result, sessionId), iworld)
@@ -94,7 +88,7 @@ evalSessionInstance sessionId editEvent commitEvent genGUI iworld
 	= case mbContext of
 		Error e				= (Error e, iworld)
 		Ok context
-			# (mbRes,iworld)	= evalTopInstance editEvent commitEvent genGUI context iworld
+			# (mbRes,iworld)	= evalTopInstance editEvent commitEvent genGUI context {iworld & currentUser = AnonymousUser sessionId}
 			= case mbRes of
 				Ok result		= (Ok (result, sessionId), iworld)
 				Error e			= (Error e, iworld)
@@ -145,12 +139,12 @@ where
 			_					= ([],iworld)
 
 	execControls [] queue iworld = (queue,iworld)
-	execControls [c:cs] queue iworld = case c of
-		AppendTask {ParallelItem|taskId=TaskId tid 0,task=(parTask :: ParallelTask Void), management}
+	execControls [c:cs] queue iworld=:{currentDateTime,currentUser} = case c of
+		AppendTask {ParallelItem|taskId=TaskId tid 0,task=(parTask :: ParallelTask Void), management, progress}
 			# container			= createTaskContainer parTask
 			# management		= fromMaybe noMeta management
-			# user				= fromMaybe AnyUser management.worker
-			# (state,iworld)	= createTaskState (Right tid) container management AnyUser iworld	
+			# progress			= fromMaybe {issuedAt=currentDateTime,issuedBy=currentUser,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} progress
+			# (state,iworld)	= createTaskState (Right tid) container management progress iworld	
 			= execControls cs (queue ++ [state]) iworld
 		RemoveTask (TaskId tid 0)
 			//Remove task instance

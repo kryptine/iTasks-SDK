@@ -6,13 +6,13 @@ import GenLexOrd, JSON, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
-derive JSONEncode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive JSONDecode		EUR, USD, FormButton, ButtonState, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gEq				EUR, USD, FormButton, UserDetails, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq				EUR, USD, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -457,62 +457,20 @@ where
 
 instance toString User
 where
-	toString user
-		| dname == ""	= uname
-	 					= dname +++ " <" +++ uname +++ ">"
-	where
-		dname = displayName user
-		uname = userName user
-
-gEq{|User|} x y = x == y
+	toString (AnonymousUser _)					= "Anonymous"
+	toString (AuthenticatedUser uid _ title)	= maybe uid (\t -> t +++ " <" +++ uid +++ ">") title
 
 instance == User
 where
-	(==) AnyUser AnyUser						= True
-	(==) RootUser RootUser						= True
-	(==) (NamedUser a) (NamedUser b)			= userName (NamedUser a) == userName (NamedUser b)
-	(==) (RegisteredUser a) (RegisteredUser b)	= a.UserDetails.username == b.UserDetails.username
-	(==) (NamedUser a) (RegisteredUser b)		= userName (NamedUser a) == toString b.UserDetails.username
-	(==) (RegisteredUser a) (NamedUser b)		= toString a.UserDetails.username == userName (NamedUser b)
-	(==) (SessionUser a) (SessionUser b)		= a == b
-	(==) _ _									= False
+	(==) (AnonymousUser a) (AnonymousUser b)					= a == b
+	(==) (AuthenticatedUser a _ _) (AuthenticatedUser b _ _)	= a == b
+	(==) _ _													= False
 
 instance < User
 where
-	(<) (AnyUser) _								= True
-	(<) (RootUser) (AnyUser)					= False
-	(<) (RootUser) _							= True
-	(<) (NamedUser a) (NamedUser b)				= a < b
-	(<) (NamedUser a) (RegisteredUser b)		= a < toString b.UserDetails.username
-	(<) (NamedUser _) (SessionUser _)			= True
-	(<) (NamedUser _) _							= False
-	(<) (RegisteredUser a) (NamedUser b)		= toString a.UserDetails.username < b
-	(<) (RegisteredUser a) (RegisteredUser b)	= a.UserDetails.username < b.UserDetails.username 
-	(<) (RegisteredUser _) (SessionUser _)		= True
-	(<) (RegisteredUser _) _					= False
-	(<)	_ _										= False
-
-JSONEncode{|User|} AnyUser 					= [JSONString "Any User <>"]
-JSONEncode{|User|} RootUser 				= [JSONString "Root User <root>"]
-JSONEncode{|User|} (RegisteredUser details) = [JSONString (details.displayName+++" <"+++ toString details.UserDetails.username+++">")]
-JSONEncode{|User|} (NamedUser username)		= [JSONString username]
-JSONEncode{|User|} (SessionUser session)	= [JSONString ("Anonymous User <#"+++session+++">")]
-
-JSONDecode{|User|} [JSONString user:json]
-	# uname = extractUserName user
-	| uname == "root" 		= (Just RootUser, json)
-	| uname == ""	  		= (Just AnyUser, json)
-	| startsWith "#" uname 	= (Just (SessionUser (uname%(1,size uname))),json)
-	| otherwise				= (Just (NamedUser user), json)
-where
-	extractUserName user
-		| end > start && start > -1 = trim (user % (start + 1, end - 1)) 
-		| otherwise					= user
-	where
-		start = indexOf "<" user
-		end = indexOf ">" user 
-		
-JSONDecode{|User|} json	= (Nothing,json)
+	(<) (AnonymousUser a) (AnonymousUser b)					= a < b
+	(<) (AuthenticatedUser a _ _) (AuthenticatedUser b _ _)	= a < b
+	(<)	_ _													= False
 
 instance toString FileException
 where
@@ -547,32 +505,25 @@ where
 	toString WorkOnEvalError			= "Error working on process: evaluation error"
 	toString WorkOnDependencyCycle		= "Error working on process: cycle in dependencies detected"
 
-userName :: !User -> String
-userName RootUser = "root"
-userName (NamedUser name)
-	| end > start && start > -1	= name % (start + 1,end - 1)	//Named user of form "Joe Smith <joe>" (with display name)
-	| otherwise					= name							//Other named users (without display name)
+class toUserConstraint a
 where
-	start = indexOf "<" name
-	end = indexOf ">" name
-userName (RegisteredUser details) = toString details.UserDetails.username 
-userName _ = ""
-			
-displayName :: !User -> String
-displayName RootUser = "Root User"
-displayName (SessionUser _) = "Anonymous"
-displayName (RegisteredUser details) = details.UserDetails.displayName
-displayName (NamedUser name)
-	| end > start && start > -1 = trim (name % (0,start - 1)) //Named user of form "Joe Smith <joe>" (with display name)
-	| otherwise					= ""						 //Other named users (without display name)
-where
-	start = indexOf "<" name
-	end = indexOf ">" name
-displayName _ = "Undefined"
+	toUserConstraint :: a -> UserConstraint
 
-getRoles :: !User -> [Role]
-getRoles (RegisteredUser details) = mb2list details.UserDetails.roles
-getRoles _ = []
+instance toUserConstraint UserConstraint
+where
+	toUserConstraint r = r
+
+instance toUserConstraint User
+where
+	toUserConstraint (AnonymousUser _)				= AnyUser
+	toUserConstraint (AuthenticatedUser uid _ _)	= UserWithId uid
+
+instance toUserConstraint String
+where
+	toUserConstraint userId = UserWithId userId
+	
+			
+
 
 JSONEncode{|Time|} t		= [JSONString (toString t)]
 JSONEncode{|Date|} d		= [JSONString (toString d)]
@@ -692,18 +643,11 @@ where
 		
 instance toEmail EmailAddress where toEmail e = e
 instance toEmail String where toEmail s = EmailAddress s
-instance toEmail User
-where
-	toEmail (NamedUser n)		= EmailAddress (userName (NamedUser n))
-	toEmail (RegisteredUser d)	= d.emailAddress
-	toEmail RootUser			= EmailAddress ""
-	toEmail AnyUser				= EmailAddress ""
-	
 
 noMeta :: ManagementMeta
 noMeta =
 	{ title				= Nothing
-	, worker			= Nothing
+	, worker			= AnyUser
 	, role				= Nothing
 	, startAt			= Nothing
 	, completeBefore	= Nothing

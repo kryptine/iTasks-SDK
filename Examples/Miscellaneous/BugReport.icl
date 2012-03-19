@@ -53,16 +53,15 @@ reportBugVerySimple :: Task Note
 reportBugVerySimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found") []
 	>>=	\report ->
-		NamedUser "bas" @:
+		"alice" @:
 			(Title "Bug Report" @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
 
 reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation ("Describe bug","Please describe the bug you have found") []
 	>>=	\report ->
-		NamedUser "bas" @:
+		"alice" @:
 			(Title "Bug Report" @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] report)
-	>>| return report
 
 //Different variant of simple reportBug
 bugReport :: Task BugReport
@@ -72,7 +71,7 @@ where
 	reportBug = enterInformation ("Describe bug","Please describe the bug you found") []
 	
 	fixBug :: BugReport -> Task BugReport
-	fixBug bug = NamedUser "bas" @: (Title "Bug Report" @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] bug)
+	fixBug bug = "alice" @: (Title "Bug Report" @>> viewInformation ("Fix bug","The following bug has been reported, please fix it.") [] bug)
 
 //Main workflow	  
 reportBug :: Task Bug
@@ -95,7 +94,7 @@ assignBug bug critical
 	>>=	\developer ->
 		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
 	>>= \bug ->
-		assign {noMeta & worker = Just developer, priority = priority} (Title subject @>> resolveBug bug critical)
+		assign {noMeta & worker = toUserConstraint developer, priority = priority} (Title subject @>> resolveBug bug critical)
 where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
@@ -136,7 +135,7 @@ confirmCritical :: BugReport -> Task Bool
 confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
-		assign {noMeta & worker =Just assessor, priority = HighPriority}
+		assign {noMeta & worker =toUserConstraint assessor, priority = HighPriority}
 			( Title "Bug report assessment" @>>
 			  viewInformation ("Confirmation","Is this bug really critical?") [] report >>* [AnyTime ActionNo (const (return False)),AnyTime ActionYes (const (return True))]
 			)
@@ -149,7 +148,6 @@ selectDeveloper application
 		_	= selectLeastBusy developers
 where
 	findAppDevelopers :: String -> Task [User]
-	findAppDevelopers "itasks"	= return [NamedUser "bas"]
 	findAppDevelopers _			= return []
 		
 	selectLeastBusy :: [User] -> Task User

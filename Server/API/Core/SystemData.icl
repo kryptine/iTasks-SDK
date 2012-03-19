@@ -57,9 +57,10 @@ where
 	find user procs
 		= flatten [if (forWorker user p) [{p & subItems = find user p.subItems}] (find user p.subItems) \\ p <- procs]
 
-	forWorker user {managementMeta=Just {worker=Nothing}}		= True
-	forWorker user {managementMeta=Just {worker=Just worker}}	= worker == user
-	forWorker _ _												= False
+	forWorker user {managementMeta=Just {worker=AnyUser}}										= True
+	forWorker (AuthenticatedUser uid1 _ _) {managementMeta=Just {worker=UserWithId uid2}}		= uid1 == uid2
+	forWorker (AuthenticatedUser _ roles _) {managementMeta=Just {worker=UserWithRole role}}	= isMember role roles
+	forWorker _ _																				= False
 
 currentUser :: ReadOnlyShared User
 currentUser = makeReadOnlyShared "SystemData" "currentUser" (\iworld=:{currentUser} -> (currentUser,iworld))

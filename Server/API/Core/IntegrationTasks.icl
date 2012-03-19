@@ -215,11 +215,13 @@ curlError exitCode =
         87      = "unable to parse FTP file list"
         88      = "FTP chunk callback reported error "
 
-sendEmail :: !String !Note ![EmailAddress] -> Task [EmailAddress]
-sendEmail subject (Note body) recipients = mkInstantTask eval
+sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
+sendEmail subject (Note body) sender recipients = mkInstantTask eval
 where
-	eval taskId iworld=:{IWorld|taskTime,currentUser,config}
-		# iworld = foldr (sendSingle config.smtpServer (toEmail currentUser)) iworld recipients
+	eval taskId iworld=:{IWorld|taskTime,config}
+		# sender		= toEmail sender
+		# recipients	= map toEmail recipients
+		# iworld		= foldr (sendSingle config.smtpServer sender) iworld recipients
 		= (ValueResult (Value recipients Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}

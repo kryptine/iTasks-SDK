@@ -107,7 +107,7 @@ gVisualizeText{|(->)|} _ _ _ _				= []
 gVisualizeText{|JSONNode|} _ val			= [toString val]
 gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
-derive gVisualizeText DateTime, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Username, Action, TreeNode, ManagementMeta, TaskPriority, Tree, ButtonState, TUIMargins, TUISize, TUIMinSize
+derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Username, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 
 mkVSt :: *IWorld -> *VSt
@@ -451,7 +451,7 @@ where
 		= ([defaultDef (TUIHtml {TUIHtml|html = toString val})], vst)
 
 derive gVisualizeEditor DateTime
-derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), UserDetails, Timestamp, Map, EmailAddress, Action, TreeNode, ManagementMeta, TaskPriority, Tree
+derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
 
 generic gHeaders a :: (a, ![String])
 
@@ -471,8 +471,8 @@ gHeaders{|(->)|} _ _		= (undef, [])
 gHeaders{|UNIT|}			= (undef,[])
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserDetails, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
-derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
+derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 
@@ -494,7 +494,7 @@ gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserDetails, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	

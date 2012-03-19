@@ -50,7 +50,7 @@ where
 	mkMarker (user,position)
 		=	{ GoogleMapMarker
 			| position		= position
-			, title			= Just (displayName user)
+			, title			= Just (toString user)
 			, icon			= Nothing
 			, infoWindow	= Just {GoogleMapInfoWindow|content = toString info}
 			, draggable		= False
@@ -58,7 +58,7 @@ where
 			}
 	where
 		info = SpanTag []
-			[H1Tag [] [Text (displayName user)],BrTag []
+			[H1Tag [] [Text (toString user)],BrTag []
 			,Text "Lat:", Text (toString position.lat), BrTag []
 			,Text "Lng: ", Text (toString position.lng), BrTag []
 			]
