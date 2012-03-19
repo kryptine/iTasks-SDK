@@ -21,7 +21,7 @@ updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 updateInformation d [UpdateWith tof fromf] m
 	= interact d null
 		(\r -> let v = tof m in (m,v,defaultMask v))
-		(\l r v m ok -> if ok (fromf l v,v,m) (l,v,m))
+		(\l r v m ok -> if ok (let nl = fromf l v in (let nv = tof nl in (nl,nv,defaultMask nv))) (l,v,m))
 updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
