@@ -68,6 +68,9 @@ Ext.define('itasks.layout.VHBox',{
 		this.getTarget().setStyle({overflow: 'auto'});
 	},
 	onLayout: function() {
+		if(this.owner.hidden) {
+			return;
+		}
 		// Clear the innerCt size so it doesn't influence the child items.
 		if (this.adjustmentPass !== true) {
 			this.innerCt.setSize(null, null);
@@ -95,9 +98,7 @@ Ext.define('itasks.layout.VHBox',{
 		me.childBoxCache = calcs;
 
 		me.updateInnerCtSize(targetSize, calcs);
-		if(!me.owner.hidden) {
-			me.updateChildBoxes(boxes);
-		}
+		me.updateChildBoxes(boxes);
 		
 		//If the owner was not resized to make things fit, scrollbars appeared/disappeared
 		if(!resized) {
