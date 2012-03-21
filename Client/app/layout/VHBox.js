@@ -83,6 +83,7 @@ Ext.define('itasks.layout.VHBox',{
 		//Update the size of the container if it is wrapping and currently
 		//too small, or has dimensions determined by unrestricted html flow
 		resized = me.updateOwnerSize(targetSize,calcs);
+
 		//If the container was resized, redo the box calculations
 		if(resized) {
 			targetSize = me.getLayoutTargetSize();
@@ -94,8 +95,10 @@ Ext.define('itasks.layout.VHBox',{
 		me.childBoxCache = calcs;
 
 		me.updateInnerCtSize(targetSize, calcs);
-		me.updateChildBoxes(boxes);
-	
+		if(!me.owner.hidden) {
+			me.updateChildBoxes(boxes);
+		}
+		
 		//If the owner was not resized to make things fit, scrollbars appeared/disappeared
 		if(!resized) {
 			me.handleTargetOverflow(targetSize);
