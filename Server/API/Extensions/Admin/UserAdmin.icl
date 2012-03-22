@@ -49,12 +49,12 @@ authenticateUser (Username username) password
 	@	(maybe Nothing (\a -> if (a.UserAccount.credentials.Credentials.password == password) (Just (accountToUser a)) Nothing))
 	
 doAuthenticated :: (Task a) -> Task a | iTask a
-doAuthenticated task = doAuthenticateWith verify task
+doAuthenticated task = doAuthenticatedWith verify task
 where
 	verify {Credentials|username,password} = authenticateUser username password
 	
-doAuthenticateWith :: (Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
-doAuthenticateWith verifyCredentials task
+doAuthenticatedWith :: (Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
+doAuthenticatedWith verifyCredentials task
 	=	enterInformation ("Log in","Please enter your credentials") []	<<@ loginForm
 	>>!	verifyCredentials
 	>>= \mbUser -> case mbUser of

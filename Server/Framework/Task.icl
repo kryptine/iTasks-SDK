@@ -3,22 +3,12 @@ implementation module Task
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass, IWorld
 from TaskState			import :: TaskState(..), :: ParallelMeta, :: ParallelItem
-from LayoutCombinators	import :: Layout
+from LayoutCombinators	import :: Layout, DEFAULT_LAYOUT, heuristicLayout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
-mkTask :: !(TaskEvalFun a) -> Task a 
-mkTask eval =
-	{ Task
-	| eval			= eval
-	, layout		= Nothing
-	}
 	
 mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask a
-mkInstantTask iworldfun =
-	{ Task
-	| eval				= evalOnce iworldfun
-	, layout			= Nothing
-	}
+mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f _ _ _ _ (TCInit taskId ts) iworld = case f taskId iworld of
 		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts NoRep (TCStable taskId ts (toJSON a)), iworld)
@@ -40,11 +30,8 @@ gUpdate{|Task|} fx UDCreate ust
 	# (a,ust) = fx UDCreate ust
 	= basicCreate (defaultTask a) ust
 where
-	defaultTask a =	{ Task
-					| eval		= \_ -> abort funerror
-					, layout	= Nothing
-					}
-	funerror = "Creating default task functions is impossible"
+	defaultTask a	= Task (\_ -> abort funerror)
+	funerror		= "Creating default task functions is impossible"
 	
 gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
 
@@ -64,6 +51,10 @@ gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 
 exception :: !e -> TaskResult a | TC, toString e
 exception e = ExceptionResult (dynamic e) (toString e)
+
+repLayout :: TaskRepTarget -> Layout
+repLayout (RepAsTUI _ layout mod)	= (fromMaybe id mod) (fromMaybe DEFAULT_LAYOUT layout)
+repLayout _							= DEFAULT_LAYOUT
 
 instance Functor TaskValue
 where

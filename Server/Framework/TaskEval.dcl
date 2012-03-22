@@ -4,7 +4,7 @@ definition module TaskEval
 */
 
 from SystemTypes	import :: IWorld, :: TaskListItem, :: User, :: TaskId, :: SessionId 
-from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: TaskEvalFun, :: RefreshFlag, :: TaskRepTarget
+from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: RefreshFlag, :: TaskRepTarget
 
 import Maybe, JSON, Error
 import TaskState, iTaskClass

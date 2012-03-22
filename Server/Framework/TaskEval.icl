@@ -43,15 +43,15 @@ evalInstance :: !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !(Maybe Tas
 evalInstance editEvent commitEvent refresh repTarget genGUI topInstance=:{TopInstance|instanceId,nextTaskNo=curNextTaskNo,nextTaskTime,progress,task=(Container parTask :: Container (ParallelTask a) a),state=Left taskState} iworld=:{nextTaskNo,taskTime,evalStack}
 	//Eval instance
 	# taskList					= taskListShare TopLevelTaskList
-	# task						= parTask taskList
-	# repAs						= if genGUI (RepAsTUI repTarget task.layout) (RepAsService repTarget)
+	# (Task taskfun)			= parTask taskList
+	# repAs						= if genGUI (RepAsTUI repTarget Nothing Nothing) (RepAsService repTarget)
 	//Update current process id & eval stack in iworld
 	# taskId					= case instanceId of
 		(Left _)		= TaskId 0 0
 		(Right topNo)	= TaskId topNo 0
 	# iworld					= {iworld & evalStack = [taskId:evalStack], nextTaskNo = curNextTaskNo, taskTime = nextTaskTime} 
 	//Apply task's eval function and take updated nextTaskId from iworld
-	# (result,iworld)			= task.eval editEvent commitEvent refresh repAs taskState iworld
+	# (result,iworld)			= taskfun editEvent commitEvent refresh repAs taskState iworld
 
 	# (updNextTaskNo,iworld)	= getNextTaskNo iworld
 	//Restore current process id & nextTask id in iworld

@@ -19,22 +19,21 @@ getNextTaskId iworld=:{evalStack=[TaskId topNo _:_],nextTaskNo} = (TaskId topNo 
 getNextTaskId iworld = abort "Empty evaluation stack"
 
 transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTask b 
-transform f task=:{Task|eval} = {Task|task & eval = eval`}
+transform f (Task evala) = Task eval
 where
-	eval` eEvent cEvent refresh repAs cxt iworld
-		= case eval eEvent cEvent refresh repAs cxt iworld of
-			(ValueResult val lastEvent rep cxt,iworld)	= (ValueResult (f val) lastEvent rep cxt, iworld)	//TODO: guarantee stability
-			(ExceptionResult e str, iworld)				= (ExceptionResult e str, iworld)
+	eval eEvent cEvent refresh repAs cxt iworld = case evala eEvent cEvent refresh repAs cxt iworld of
+		(ValueResult val lastEvent rep cxt,iworld)	= (ValueResult (f val) lastEvent rep cxt, iworld)	//TODO: guarantee stability
+		(ExceptionResult e str, iworld)				= (ExceptionResult e str, iworld)
 
 project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
-project projection share taska = mkTask eval
+project projection share (Task evala) = Task eval
 where
 	eval eEvent cEvent refresh repAs state iworld
 		# (taskId,prev,statea) = case state of
 			(TCInit taskId _)					= (taskId,NoValue,state) 
 			(TCProject taskId encprev statea)	= (taskId,fromJust (fromJSON encprev),statea)
 			
-		# (resa, iworld) 	= taska.eval eEvent cEvent refresh (matchTarget (subRepAs repAs taska) taskId) statea iworld
+		# (resa, iworld) 	= evala eEvent cEvent refresh (matchTarget repAs taskId) statea iworld
 		= case resa of
 			ValueResult val ts rep ncxta
 				# result = ValueResult val ts rep (TCProject taskId (toJSON val) ncxta)
@@ -45,11 +44,6 @@ where
 			ExceptionResult e str
 				= (ExceptionResult e str,iworld)
 	
-	subRepAs (RepAsService target) _ = (RepAsService target)
-	subRepAs (RepAsTUI target mbLayout) task=:{layout} = case mbLayout of
-		Nothing			= RepAsTUI target layout
-		Just overwrite	= RepAsTUI target (Just overwrite)
-		
 	projectOnShare val result iworld
 		= case readWrite (\r _ -> case projection val r of Just w = Write w Void; Nothing = YieldResult Void) share iworld of
 			(Ok _,iworld)		= (result,iworld)
@@ -57,7 +51,7 @@ where
 
 
 step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
-step taska conts = mkTask eval
+step (Task evala) conts = Task eval
 where
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
@@ -65,7 +59,7 @@ where
 
 	//Eval left-hand side
 	eval eEvent cEvent refresh repAs (TCStep taskId (Left statea)) iworld=:{taskTime}
-		# (resa, iworld) 	= taska.eval eEvent cEvent refresh (matchTarget (subRepAs repAs taska) taskId) statea iworld
+		# (resa, iworld) 	= evala eEvent cEvent refresh (matchTarget repAs taskId) statea iworld
 		# mbcommit			= case cEvent of
 			(Just (TaskEvent t action))
 				| t == taskId && not refresh	= Just action
@@ -79,9 +73,9 @@ where
 				Just rewrite	= Right rewrite
 		= case mbCont of
 			Left res = (res,iworld)
-			Right (sel,taskb,enca)
+			Right (sel,Task evalb,enca)
 				# (taskIdb,iworld)	= getNextTaskId iworld
-				# (resb,iworld)		= taskb.eval Nothing Nothing refresh (matchTarget (subRepAs repAs taskb) taskId) (TCInit taskIdb taskTime) iworld 
+				# (resb,iworld)		= evalb Nothing Nothing refresh (matchTarget repAs taskId) (TCInit taskIdb taskTime) iworld 
 				= case resb of
 					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,nstateb))),iworld)
 					ExceptionResult e str					= (ExceptionResult e str, iworld)
@@ -93,8 +87,8 @@ where
 			(OnException taskbf)		= fmap taskbf (fromJSON enca)
 			(OnAllExceptions taskbf)	= fmap taskbf (fromJSON enca)
 		= case mbTaskb of
-			Just taskb
-				# (resb, iworld)	= taskb.eval eEvent cEvent refresh (matchTarget (subRepAs repAs taskb) taskId) stateb iworld 
+			Just (Task evalb)
+				# (resb, iworld)	= evalb eEvent cEvent refresh (matchTarget repAs taskId) stateb iworld 
 				= case resb of
 					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,nstateb))), iworld)
 					ExceptionResult e str					= (ExceptionResult e str, iworld)
@@ -132,21 +126,16 @@ where
 		(ServiceRep (parts,actions,attributes))
 			= ServiceRep (parts,actions ++ stepActions taskId val,attributes)
 		_	= rep
-	addStepActions taskId (RepAsTUI Nothing layout) rep val = case rep of
+	addStepActions taskId repAs=:(RepAsTUI Nothing _ _) rep val = case rep of
 		(TUIRep gui)
-			# layoutfun = fromMaybe DEFAULT_LAYOUT layout
 			# fixme = []
-			= TUIRep (layoutfun SequentialComposition [gui] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId):fixme])	//TODO: Add attributes from task
+			= TUIRep ((repLayout repAs) SequentialComposition [gui] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId):fixme])	//TODO: Add attributes from task
 		_	
-			# layoutfun = fromMaybe DEFAULT_LAYOUT layout
-			= TUIRep (layoutfun SequentialComposition [] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId)])
-	addStepActions taskId (RepAsTUI (Just _) layout) rep val
+			= TUIRep ((repLayout repAs) SequentialComposition [] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId)])
+	addStepActions taskId (RepAsTUI (Just _) _ _) rep val
 		= rep
 	
 	stepActions taskId val = [(toString taskId,action,pred val)\\ OnAction action pred _ <- conts]
-	
-	subRepAs (RepAsService target) _				= RepAsService target
-	subRepAs (RepAsTUI target _) {Task|layout} 		= RepAsTUI target layout
 
 // Parallel composition
 :: ResultSet a
@@ -157,7 +146,7 @@ where
 :: ListId a = ListId TaskId
 
 parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
-parallel desc initTasks = mkTask eval 
+parallel desc initTasks = Task eval 
 where
 	//Create initial set of tasks and initial state
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
@@ -237,13 +226,13 @@ where
 		
 	evalParallelItem :: !(ListId a) !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !TaskRepTarget !ParallelItem !*IWorld -> (!TaskResult a,!ParallelItem,!*IWorld) | iTask a
 	evalParallelItem listId=:(ListId listTaskId) eEvent cEvent refresh repAs item=:{ParallelItem|task=(parTask :: ParallelTask a^),state} iworld
-		# (result, iworld)	= task.eval eEvent cEvent refresh (subRepAs repAs listTaskId task) state iworld
+		# (result, iworld)	= eval eEvent cEvent refresh (subRepAs repAs listTaskId) state iworld
 		# item	= case result of
 			ValueResult val _ rep state		= {ParallelItem|item & state = state, lastValue = toJSON val} //TODO: set lastAttributes
 			ExceptionResult e str			= item
 		= (result,item,iworld)
 	where
-		task = parTask listShare
+		(Task eval) = parTask listShare
 		listShare = taskListShare (ParallelTaskList listTaskId)
 	
 	processControls :: !(ListId a) ![ParallelControl] ![(ParallelItem,Maybe (TaskResult a))] !*IWorld -> (![(ParallelItem,Maybe (TaskResult a))],!*IWorld) | iTask a
@@ -283,8 +272,8 @@ where
 		listKey = toString (ParallelTaskList taskId)
 	
 	mergeTaskReps :: !TaskId !d !TaskRepTarget ![(!ParallelItem,!TaskResult a)] -> TaskRep | descr d
-	mergeTaskReps taskId desc (RepAsTUI target layout) results
-		# layout		= (fromMaybe DEFAULT_LAYOUT layout)
+	mergeTaskReps taskId desc repAs=:(RepAsTUI target _ _) results
+		# layout		= repLayout repAs
 		# attributes	= [(TASK_ATTRIBUTE,toString taskId) : initAttributes desc]
 		| maybe True (\t -> t == taskId) target
 			//Show if target is Nothing or taskId matches
@@ -303,15 +292,16 @@ where
 	isStable (Value _ Stable) 	= True
 	isStable _					= False
 
-	subRepAs :: !TaskRepTarget !TaskId !(Task a) -> TaskRepTarget
-	subRepAs (RepAsTUI Nothing _) taskId task=:{layout}			= RepAsTUI Nothing layout
-	subRepAs (RepAsTUI (Just target) _) taskId task=:{layout}
-		| target == taskId										= RepAsTUI Nothing layout
-																= RepAsTUI (Just target) layout			
-	subRepAs (RepAsService Nothing) taskId task					= RepAsService Nothing 
-	subRepAs (RepAsService (Just target)) taskId task
-		| target == taskId										= RepAsService Nothing
-																= RepAsService (Just target)
+	subRepAs :: !TaskRepTarget !TaskId -> TaskRepTarget
+	subRepAs (RepAsTUI Nothing _ _) taskId 			= RepAsTUI Nothing Nothing Nothing
+	subRepAs (RepAsTUI (Just target) _ _) taskId
+		| target == taskId							= RepAsTUI Nothing Nothing Nothing
+													= RepAsTUI (Just target) Nothing Nothing	
+																	
+	subRepAs (RepAsService Nothing) taskId 			= RepAsService Nothing 
+	subRepAs (RepAsService (Just target)) taskId
+		| target == taskId							= RepAsService Nothing
+													= RepAsService (Just target)
 //SHARED HELPER FUNCTIONS
 	
 //Use decrementing stack order values (o)
@@ -399,15 +389,14 @@ where
 * the given user, and restored afterwards.
 */
 workAs :: !User !(Task a) -> Task a | iTask a
-workAs user task
-	= {Task|task & eval = eval task.eval}
+workAs user (Task eval) = Task eval`
 where
-	eval f eEvent cEvent refresh repAs state iworld=:{currentUser}
-		# (result,iworld) = f eEvent cEvent refresh repAs state {iworld & currentUser = user}
+	eval` eEvent cEvent refresh repAs state iworld=:{currentUser}
+		# (result,iworld) = eval eEvent cEvent refresh repAs state {iworld & currentUser = user}
 		= (result,{iworld & currentUser = currentUser})
 
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
-withShared initial stask = mkTask eval
+withShared initial stask = Task eval
 where	
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (taskIda,iworld)			= getNextTaskId iworld
@@ -415,8 +404,8 @@ where
 		
 	eval eEvent cEvent refresh repAs (TCShared taskId encsvalue cxta) iworld
 		# iworld					= shareValue taskId initial (fromJust (fromJSON encsvalue)) iworld
-		# taska						= stask (localShare taskId)
-		# (resa,iworld)				= taska.eval eEvent cEvent refresh (matchTarget (subRepAs repAs taska) taskId) cxta iworld
+		# (Task evala)				= stask (localShare taskId)
+		# (resa,iworld)				= evala eEvent cEvent refresh (matchTarget repAs taskId) cxta iworld
 		# (svalue,iworld)			= unshareValue taskId initial iworld
 		= case resa of
 			ValueResult NoValue lastEvent rep ncxta				= (ValueResult NoValue lastEvent rep (TCShared taskId (toJSON svalue) ncxta),iworld)
@@ -424,12 +413,7 @@ where
 			ExceptionResult e str								= (ExceptionResult e str,iworld)
 	eval _ _ _ _ _ iworld
 		= (exception "Corrupt task state in withShared", iworld)
-	
-	subRepAs (RepAsService target) _  			= (RepAsService target)
-	subRepAs (RepAsTUI target mbLayout) task=:{layout} = case mbLayout of
-		Nothing			= RepAsTUI target layout
-		Just overwrite	= RepAsTUI target (Just overwrite)
-
+		
 	shareValue :: !TaskId s !s !*IWorld -> *IWorld | iTask s	//With bogus argument to solve overloading
 	shareValue taskId _ value iworld=:{localShares}
 		= {iworld & localShares = 'Map'.put ("localShare:" +++ toString taskId) (dynamic value :: s^) localShares}
@@ -459,16 +443,32 @@ where
 class tune b :: !b !(Task a) -> Task a
 
 instance tune SetLayout
-where tune (SetLayout layout) task				= {Task|task & layout = Just layout}
+where
+	tune (SetLayout layout) (Task eval)	= Task eval`
+	where
+		eval` eEvent cEvent refresh (RepAsTUI target Nothing mod) state iworld
+			= eval eEvent cEvent refresh (RepAsTUI target (Just ((fromMaybe id mod) layout)) Nothing) state iworld 
+		eval` eEvent cEvent refresh (RepAsTUI target (Just layout) mod) state iworld
+			= eval eEvent cEvent refresh (RepAsTUI target (Just layout) Nothing) state iworld 
+		eval` eEvent cEvent refresh repAs state iworld
+			= eval eEvent cEvent refresh repAs state iworld 
 
 instance tune ModifyLayout
-where tune (ModifyLayout f) task=:{Task|layout}	= {Task|task & layout = Just (f (fromMaybe DEFAULT_LAYOUT layout))} 
-
+where
+	tune (ModifyLayout f) (Task eval)	= Task eval`
+	where
+		eval` eEvent cEvent refresh (RepAsTUI target layout Nothing) state iworld
+			= eval eEvent cEvent refresh (RepAsTUI target layout (Just f)) state iworld 
+		eval` eEvent cEvent refresh (RepAsTUI target layout (Just g)) state iworld
+			= eval eEvent cEvent refresh (RepAsTUI target layout (Just (g o f))) state iworld 	
+		eval` eEvent cEvent refresh repAs state iworld
+			= eval eEvent cEvent refresh repAs state iworld 
+	
 /**
 * Helper function that sets the target task id to Nothing if it matches the given task id.
 * This ensures that a representation for the full sub-tree is generated when determining the representation target for sub trees.
 */
 matchTarget :: !TaskRepTarget !TaskId -> TaskRepTarget
-matchTarget repAs=:(RepAsTUI (Just target) layout) taskId	= if (target == taskId) (RepAsTUI Nothing layout) repAs
-matchTarget repAs=:(RepAsService (Just target)) taskId		= if (target == taskId) (RepAsService Nothing) repAs
-matchTarget repAs taskId									= repAs
+matchTarget repAs=:(RepAsTUI (Just target) layout mod) taskId	= if (target == taskId) (RepAsTUI Nothing layout mod) repAs
+matchTarget repAs=:(RepAsService (Just target)) taskId			= if (target == taskId) (RepAsService Nothing) repAs
+matchTarget repAs taskId										= repAs

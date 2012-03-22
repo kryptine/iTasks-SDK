@@ -159,7 +159,7 @@ where
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list = forever
-	(	 (chooseWorkflow >&> viewWorkflowDetails) <<@ SetLayout (sideLayout BottomSide 200 (fillLayout Vertical)) <<@ AfterLayout (tweakTUI (setPurpose "form"))
+	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 (fillLayout Vertical))) <<@ AfterLayout (tweakTUI (setPurpose "form"))
 	>>*	 [WithResult (Action "Start Workflow") (const True) (startWorkflow list)]
 	@ 	\wf -> SelWorkflow wf.Workflow.path
 	)
@@ -230,7 +230,7 @@ openTask taskList taskId
 
 workOnTask :: TaskId -> Task ClientPart
 workOnTask taskId
-	= (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)]
+	= (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)] <<@ SetLayout (partLayout 0)
 
 appendOnce identity task taskList
 	=	get (taskListMeta taskList)

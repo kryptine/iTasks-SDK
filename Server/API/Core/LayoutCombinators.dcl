@@ -2,7 +2,7 @@ definition module LayoutCombinators
 
 import SystemTypes, TUIDefinition
 
-from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUI
+from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUIRep
 
 import Maybe
 
@@ -13,13 +13,13 @@ DEFAULT_LAYOUT	:== heuristicLayout
 // The same layouts are used for layouting out forms of basic tasks as
 // well as combinations of tasks
 
-:: Layout		:== TaskCompositionType [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
+:: Layout		:== TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
 :: ModifyLayout	= ModifyLayout (Layout -> Layout)
-:: BeforeLayout	= BeforeLayout ((TaskCompositionType,[TaskTUI],[TaskAction],[TaskAttribute]) -> (TaskCompositionType,[TaskTUI],[TaskAction],[TaskAttribute]))
-:: AfterLayout	= AfterLayout (TaskTUI -> TaskTUI)
+:: BeforeLayout	= BeforeLayout ((TaskCompositionType,[TaskTUIRep],[TaskAction],[TaskAttribute]) -> (TaskCompositionType,[TaskTUIRep],[TaskAction],[TaskAttribute]))
+:: AfterLayout	= AfterLayout (TaskTUIRep -> TaskTUIRep)
 
 /**
 * This is a layout following some simple layout heuristics. It puts its content in a
@@ -48,7 +48,10 @@ hideLayout :: Layout
 * Fill out available space
 */
 fillLayout :: TUIDirection -> Layout
-
+/**
+* Use the gui of a specific part, but keep merge attributes and actions of all parts
+*/
+partLayout :: Int -> Layout
 /**
 * Split available space into a main area and a side panel.
 */
@@ -114,14 +117,14 @@ actionsToMenus				:: ![TaskAction]	-> (![TUIMenuButton],![TaskAction])
 
 //Util
 
-tuiOf			:: TaskTUI -> TUIDef
-actionsOf		:: TaskTUI -> [TaskAction]
-attributesOf	:: TaskTUI -> [TaskAttribute]
+tuiOf			:: TaskTUIRep -> TUIDef
+actionsOf		:: TaskTUIRep -> [TaskAction]
+attributesOf	:: TaskTUIRep -> [TaskAttribute]
 
 mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
 
-appLayout		:: Layout TaskCompositionType [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
+appLayout		:: Layout TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
 appDeep			:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef	//Modify an element inside the tree of components
 
-tweakTUI		:: (TUIDef -> TUIDef) TaskTUI -> TaskTUI
-tweakAttr		:: ([TaskAttribute] -> [TaskAttribute]) TaskTUI -> TaskTUI 
+tweakTUI		:: (TUIDef -> TUIDef) TaskTUIRep -> TaskTUIRep
+tweakAttr		:: ([TaskAttribute] -> [TaskAttribute]) TaskTUIRep -> TaskTUIRep 

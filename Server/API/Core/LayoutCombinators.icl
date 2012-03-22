@@ -6,7 +6,7 @@ import SystemTypes, TUIDefinition
 
 from StdFunc import o
 
-from Task import :: TaskCompositionType, :: TaskAttribute(..), :: TaskAction(..), :: TaskTUI(..), :: TaskCompositionType(..)
+from Task import :: TaskCompositionType, :: TaskAttribute(..), :: TaskAction(..), :: TaskTUIRep(..), :: TaskCompositionType(..)
 derive gEq TaskCompositionType
 
 heuristicLayout :: Layout
@@ -189,6 +189,15 @@ where
 	
 	ifH Horizontal a b = a
 	ifH _ a b = b
+
+partLayout :: Int -> Layout
+partLayout idx = layout
+where
+	layout type parts actions attributes
+		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
+		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
+		# gui			= (\(_,x,_,_)->x) (parts !! idx)
+		= (type,gui,actions,attributes)
 	
 vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
 vsplitLayout split fun = layout
@@ -218,7 +227,7 @@ where
 			
 
 //Determine the index of the visible part with the highest stack-order attribute
-getTopIndex :: [TaskTUI] -> Int 
+getTopIndex :: [TaskTUIRep] -> Int 
 getTopIndex parts = find 0 0 0 parts
 where
 	find maxTop maxIndex i [] = maxIndex
@@ -241,7 +250,7 @@ canHoldButtons def=:{TUIDef|content} = case content of
 canHoldMenus :: TUIDef -> Bool
 canHoldMenus def = False
 
-filterImpossibleActions :: [TaskTUI] [TaskAction] -> [TaskAction]
+filterImpossibleActions :: [TaskTUIRep] [TaskAction] -> [TaskAction]
 filterImpossibleActions [(SequentialComposition,_,_,_)] actions //Actions added to a sequential composition are useless
 	= []// [action\\action=:(_,_,enabled) <- actions | enabled]
 filterImpossibleActions _ actions = actions
@@ -600,19 +609,19 @@ isForm {TUIDef|content=TUIContainer {TUIContainer|purpose = Just "form"}}	= True
 isForm {TUIDef|content=TUIPanel {TUIPanel|purpose = Just "form"}}			= True
 isForm _ = False
 
-tuiOf :: TaskTUI -> TUIDef
+tuiOf :: TaskTUIRep -> TUIDef
 tuiOf (_,d,_,_)	= fromMaybe (stringDisplay "-") d
 
-actionsOf :: TaskTUI -> [TaskAction]
+actionsOf :: TaskTUIRep -> [TaskAction]
 actionsOf (_,_,a,_) = a
 
-attributesOf :: TaskTUI -> [TaskAttribute]
+attributesOf :: TaskTUIRep -> [TaskAttribute]
 attributesOf (_,_,_,a) =  a
 
 mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
 mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> kvSet k v attr) attr1 attr2
 
-appLayout :: Layout TaskCompositionType [TaskTUI] [TaskAction] [TaskAttribute] -> TaskTUI
+appLayout :: Layout TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
 appLayout f type parts actions attributes  = f type parts actions attributes
 
 appDeep	:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef
@@ -628,8 +637,8 @@ appDeep [s:ss] f def=:{TUIDef|content} = case content of
 where
 	update items = [if (i == s) (appDeep ss f item) item \\ item <- items & i <- [0..]]
 
-tweakTUI :: (TUIDef -> TUIDef) TaskTUI -> TaskTUI
+tweakTUI :: (TUIDef -> TUIDef) TaskTUIRep -> TaskTUIRep
 tweakTUI f (type,gui,actions,attributes) = (type,fmap f gui,actions,attributes)
 
-tweakAttr :: ([TaskAttribute] -> [TaskAttribute]) TaskTUI -> TaskTUI
+tweakAttr :: ([TaskAttribute] -> [TaskAttribute]) TaskTUIRep -> TaskTUIRep
 tweakAttr f (type,gui,actions,attributes) = (type,gui,actions,f attributes)

@@ -50,7 +50,7 @@ where
 		= (ValueResult (Value (fromOk val) Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
 
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
-watch shared = mkTask eval
+watch shared = Task eval
 where
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.read shared iworld
@@ -60,7 +60,7 @@ where
 		= (res,iworld)
 
 interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask)) -> Task l | descr d & iTask l & iTask r & iTask v
-interact desc shared initFun refreshFun = mkTask eval
+interact desc shared initFun refreshFun = Task eval
 where
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
@@ -106,10 +106,10 @@ where
 				# (nv,nmask,iworld)	= updateValueAndMask dp encev v mask iworld
 				= (nv,nmask,taskTime,iworld)
 				
-	visualizeView taskId (RepAsTUI target layout) v validity event iworld
+	visualizeView taskId repAs=:(RepAsTUI target _ _) v validity event iworld
 		| isNothing target || target == Just taskId
 			# (editor,iworld) = visualizeAsEditor v validity taskId event iworld
-			= (TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)), iworld)
+			= (TUIRep ((repLayout repAs) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)), iworld)
 		| otherwise
 			= (NoRep,iworld)
 	visualizeView taskId (RepAsService target) v validity event iworld
@@ -121,7 +121,7 @@ where
 		= (NoRep,iworld)
 
 workOn :: !TaskId -> Task WorkOnProcessState
-workOn (TaskId topNo taskNo) = mkTask eval
+workOn (TaskId topNo taskNo) = Task eval
 where
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{evalStack}
 		//Check for cycles
@@ -140,7 +140,7 @@ where
 				= (exception WorkOnNotFound ,iworld)
 		//Eval instance
 		# target					= if (taskNo == 0) Nothing (Just (TaskId topNo taskNo))
-		# genGUI					= case repAs of (RepAsTUI _ _) = True ; _ = False
+		# genGUI					= case repAs of (RepAsTUI _ _ _) = True ; _ = False
 		# (mbResult,context,iworld)	= evalInstance eEvent cEvent refresh target genGUI (fromOk mbContext) iworld
 		= case mbResult of
 			Error e				= (exception WorkOnEvalError, iworld)

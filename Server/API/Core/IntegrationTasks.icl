@@ -29,7 +29,7 @@ derive JSONDecode MaybeError
 derive JSONDecode AsyncResult
 
 callProcess :: !FilePath ![String] -> Task Int
-callProcess cmd args = mkTask eval
+callProcess cmd args = Task eval
 where
 	//Start the external process
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
@@ -65,11 +65,11 @@ where
 						# gui 			= [(ViewPart, Just (stringDisplay ("Calling " +++ cmd)), [], [])]
 						# attributes	= [(TITLE_ATTRIBUTE,"Calling external process")]
 						# rep = case repAs of
-							(RepAsTUI Nothing layout)	
-								= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask gui [] attributes) 
-							(RepAsTUI (Just target) layout)
+							(RepAsTUI Nothing _ _)	
+								= TUIRep ((repLayout repAs) SingleTask gui [] attributes) 
+							(RepAsTUI (Just target) _ _)
 								| target == taskId
-									= TUIRep ((fromMaybe DEFAULT_LAYOUT layout) SingleTask gui [] attributes) 
+									= TUIRep ((repLayout repAs) SingleTask gui [] attributes) 
 								| otherwise
 									= NoRep
 							_

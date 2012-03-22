@@ -22,37 +22,29 @@ derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 
 // Tasks
-:: Task a =
-	{ eval					:: !TaskEvalFun a
-	, layout				:: !Maybe Layout	//Optional tweaked layout algorithm
-	}
-				
-:: TaskInitFun		:== TaskState TaskId *IWorld -> *(!TaskState,!*IWorld)
-:: TaskEvalFun a	:== (Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepTarget TaskState *IWorld -> *(!TaskResult a, !*IWorld)
-
-:: RefreshFlag		:== Bool
+:: Task a = Task ((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepTarget TaskState *IWorld -> *(!TaskResult a, !*IWorld))
 
 :: Event e			= TaskEvent		!TaskId !e			//Event for a task within the process we are looking for
 					| LuckyEvent	!e					//Event for any task who is willing to handle it (I am feeling lucky event)
 
 :: EditEvent		:== Event (!String,!JSONNode)		//Datapath and new value
 :: CommitEvent		:== Event String					//Action name
-
+:: RefreshFlag		:== Bool							//Flag that indicates if events should not be applied
 
 :: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskState	//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String							//If something went wrong, a task produces an exception value
 
 :: TaskRepTarget
-	= RepAsTUI (Maybe TaskId) (Maybe Layout)	//Optionally with tweaked layout
+	= RepAsTUI (Maybe TaskId) (Maybe Layout) (Maybe (Layout -> Layout))			//Optionally with tweaked layout options
 	| RepAsService (Maybe TaskId)
 
 :: TaskRep
 	= NoRep
-	| TUIRep !TaskTUI
+	| TUIRep !TaskTUIRep
 	| ServiceRep !TaskServiceRep 
 
 //Task representation for web application format
-:: TaskTUI		:== (!TaskCompositionType, !Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
+:: TaskTUIRep		:== (!TaskCompositionType, !Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
 
 //Task representation for web service format
 :: TaskServiceRep	:== (![TaskPart], ![TaskAction], ![TaskAttribute])
@@ -72,11 +64,12 @@ derive gPutRecordFields	Task
 * Creates an execption result
 */
 exception :: !e -> TaskResult a | TC, toString e
+
 /**
-* Create a task from a description and a pair of task functions
-*
+* Determine the layout function for a rep target
 */
-mkTask :: !(TaskEvalFun a) -> Task a 
+repLayout :: TaskRepTarget -> Layout
+
 /**
 * Create a task that finishes instantly
 */
