@@ -53,6 +53,10 @@ fillLayout :: TUIDirection -> Layout
 */
 partLayout :: Int -> Layout
 /**
+* Split the available space into two areas with their own layout
+*/
+splitLayout :: TUISide TUIFixedSize ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
+/**
 * Split available space into a main area and a side panel.
 */
 sideLayout :: TUISide TUIFixedSize Layout -> Layout

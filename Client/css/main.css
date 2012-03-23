@@ -167,9 +167,13 @@ button.icon-expand-tree, .icon-expand-tree {
 .icon-unpin{
 	background-image: url('../img/icons/unpin.gif') !important;	
 }
-.icon-edit{
+.icon-edit {
 	background-image: url('../img/icons/pencil.png') !important;
 }
+.icon-add {
+	background-image: url('../img/icons/add.png') !important;
+}
+
 .icon-properties{
 	background-image: url('../img/icons/table_gear.png') !important;
 }

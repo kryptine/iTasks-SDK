@@ -346,7 +346,7 @@ taskListMeta tasklist = mapRead (\{TaskList|items} -> items) tasklist
 /**
 * Appends a task to a task list
 */
-appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task Int | TC a & JSONEncode{|*|} a
+appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task TaskId | TC a & JSONEncode{|*|} a
 appendTask parType parTask tasklist = mkInstantTask eval
 where
 	listId = hd (getIds tasklist)
@@ -364,7 +364,7 @@ where
 						= (nextIdx,newTaskId,nextIdx + 1,iworld)		
 				# newItem					= mkParallelItem taskTime parType newTaskId newIdx currentUser currentDateTime parTask
 				# parallelControls			= 'Map'.put listId (nextIdx, controls ++ [AppendTask newItem]) parallelControls
-				= (ValueResult (Value newIdx Stable) taskTime NoRep (TCEmpty taskId taskTime), {iworld & parallelControls = parallelControls, readShares = Nothing})
+				= (ValueResult (Value newTaskId Stable) taskTime NoRep (TCEmpty taskId taskTime), {iworld & parallelControls = parallelControls, readShares = Nothing})
 			_
 				= (exception ("Task list " +++ listId +++ " is not in scope"), iworld)
 /**

@@ -163,6 +163,22 @@ where
 		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
 		# guis			= [(fill o setMargins 0 0 0 0 o setFramed False) gui \\ (_,Just gui,_,_) <- parts]
 		=(type,Just ((fill o setDirection direction) (vjoin guis)),actions,attributes) 
+
+splitLayout :: TUISide TUIFixedSize ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
+splitLayout side size splitFun layout1 layout2 = layout
+where
+	layout type parts actions attributes
+		# (parts1,parts2)					= splitFun parts
+		# (_,gui1,actions1,attributes1)		= layout1 type parts1 [] []
+		# (_,gui2,actions2,attributes2)		= layout2 type parts2 [] []
+		# (guis,dir)	= case side of
+			TopSide		= ([(fillWidth o fixedHeight size) (fromJust gui1),fill (fromJust gui2)],Vertical)
+			RightSide	= ([fill (fromJust gui2),(fixedWidth size o fillHeight) (fromJust gui1)],Horizontal)
+			BottomSide	= ([fill (fromJust gui2),(fillWidth o fixedHeight size) (fromJust gui1)],Vertical)
+			LeftSide	= ([(fixedWidth size o fillHeight) (fromJust gui1),fill (fromJust gui2)],Horizontal)
+		# guis		= map (setMargins 0 0 0 0 o setFramed False) guis
+		# gui		= (fill o setDirection dir) (vjoin guis)
+		= (type, Just gui,actions,attributes)
 	
 sideLayout :: TUISide TUIFixedSize Layout -> Layout
 sideLayout side size mainLayout = layout

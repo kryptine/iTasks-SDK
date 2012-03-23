@@ -118,7 +118,7 @@ updateSharedMultipleChoice d options shared sel
 
 wait :: !d (r -> Bool) !(ReadWriteShared r w) -> Task r | descr d & iTask r
 wait desc pred shared
-	=	viewSharedInformation desc [ViewWith (const Void)] shared
+	=	viewSharedInformation desc [ViewWith (const "Waiting for information update")] shared
 	>>* [WhenValid pred return]
 	
 waitForTime :: !Time -> Task Time

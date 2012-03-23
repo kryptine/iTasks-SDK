@@ -203,11 +203,11 @@ repeatTask task pred a =
 
 whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
 whileUnchanged share task
-	= 	((get share >>= \val -> (wait Void ((=!=) val) share @ const Nothing) -||- (task val @ Just)) <! isJust)
+	= 	((get share >>= \val -> (wait Void ((=!=) val) share @ const Nothing) -||- (task val @ Just) <<@ SetLayout (partLayout 1)) <! isJust)
 	@	fromJust
 	
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
-appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks @ \topNo -> (TaskId topNo 0)
+appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks
 
 appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
 appendTopLevelTaskFor user task = appendTopLevelTask {noMeta & worker = toUserConstraint user} task

@@ -80,7 +80,7 @@ taskListMeta	:: !(SharedTaskList s) -> ReadOnlyShared [TaskListItem]
 /**
 * Appends a task to a task list
 */
-appendTask :: !ParallelTaskType !(ParallelTask a) !(SharedTaskList a) -> Task Int | TC a & JSONEncode{|*|} a
+appendTask :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task TaskId | TC a & JSONEncode{|*|} a
 /**
 * Removes (and stops) a task from a task list
 */

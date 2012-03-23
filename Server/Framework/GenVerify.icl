@@ -64,18 +64,14 @@ gVerify{|[]|} fx mbL vst=:{optional,verifyMask,updateMask,staticDisplay}
 	# (listMask,vst)	= verifyList l cm vst	
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask listMask}
 where
+	
 	verifyList l cm vst
-		# vst=:{verifyMask=childMask} = verifyItems fx l {vst & verifyMask = [], updateMask = childMasks cm, optional = False}
+		# vst=:{verifyMask=childMask} = verifyItems fx l {vst & verifyMask = [], updateMask = childMasks cm}
 		# vst = {vst & verifyMask = childMask}
 		| staticDisplay
 				= (VMValid Nothing childMask,vst)
 		| not (isTouched cm)
-				= (VMUntouched Nothing optional childMask,vst)
-		| isEmpty l
-			| optional
-				= (VMValid hintOpt childMask,vst)
-			| otherwise
-				= (VMInvalid (ErrorMessage "You must add at least one item") childMask,vst)
+				= (VMUntouched Nothing True childMask,vst)
 		| otherwise
 				= (VMValid Nothing childMask,vst)
 				
@@ -86,8 +82,6 @@ where
 		# vst = fx (Just x) vst
 		= verifyItems fx xs vst
 	
-	hintOpt	= Just "You may add list items"
-
 gVerify{|Maybe|} fx mb vst=:{optional,verifyMask}
 	# vst=:{verifyMask} = fx (fromMaybe Nothing mb) {vst & optional = True}
 	= {vst & optional = optional}
@@ -177,7 +171,7 @@ where
 instance GenMask VerifyMask
 where
 	popMask :: ![VerifyMask] -> (!VerifyMask, ![VerifyMask])
-	popMask []					   		= (VMValid Nothing [], [])
+	popMask []					   		= (VMUntouched Nothing True [],[])
 	popMask [c:cm]						= (c,cm)
 	
 	appendToMask :: ![VerifyMask] !VerifyMask -> [VerifyMask]
