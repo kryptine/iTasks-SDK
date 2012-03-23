@@ -77,7 +77,7 @@ where
 			\\ NodeDef nr st nodeAtts edges <- nodeDefs
 			] selected
 
-	imgname taskId name	= (maybe "notask" id taskId) + "-" + name
+	imgname taskId name	= (maybe "notask" toString taskId) + "-" + name
 
 /*
 where

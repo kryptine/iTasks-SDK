@@ -32,7 +32,7 @@ manageCollection :: !d !String (c -> i) (Shared [c]) -> Task (Maybe i) | descr d
 */
 manageCollectionWith ::
 	!d																			//Description
-	((Shared [c]) (ReadOnlyShared (Maybe i)) (c -> i) -> Task i)				//Make selection
+	((Shared [c]) (c -> i) -> Task i)											//Make selection
 	((Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task a)		//Use selection
 	[TaskStep i (Maybe i)]														//Actions
 	(c -> i)																	//Identification function
@@ -48,23 +48,19 @@ manageCollectionWith ::
 * @param	Item identification
 */
 itemShare :: (c -> i) (Shared [c]) i -> Shared (Maybe c) | gEq{|*|} i & gEq{|*|} c
-
 /**
 * Select an item from a shared collection and project the selection on another shared state
 *
 */
-selectItem :: !d (Shared [c]) (ReadOnlyShared (Maybe i)) (c -> i) -> Task i | descr d & iTask c & iTask i
-
+selectItem :: !d (Shared [c]) (c -> i) -> Task i | descr d & iTask c & iTask i
 /**
 * View an item in the collection (without actions)
 */
 viewItem :: !d (Shared [c]) ((Shared [c]) i -> Shared (Maybe c)) (Maybe i) -> Task (Maybe i) | descr d & iTask c & iTask i
-
 /**
 * Add an item to the collection
 */
 addItem :: !d (Shared [c]) (c -> i) -> Task (Maybe i) | descr d & iTask i & iTask c
-
 /**
 * Edit an item in the collection
 */

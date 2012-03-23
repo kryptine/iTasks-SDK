@@ -59,7 +59,7 @@ DiGraphFlow	esm st=:{ka,ss,trace,n,r}
 				:[let label = render node in ("go to: " + label, updateDig st node) \\ node <- nodes]
 				] >>! return
     		, stepN esm st >>! return
-			, viewInformation (Title "Trace & legend") [DisplayView (GetLocal traceHtml)] trace <<@ traceTweak >>| return st
+			, viewInformation (Title "Trace & legend") [ViewWith traceHtml] trace <<@ traceTweak >>| return st
     		]
     >>* [WhenValid (const True) return]
 where
@@ -67,7 +67,7 @@ where
 		| isEmpty inputs
 			= viewInformation ("Input","no transition from current state") [] "Use another action" >>| return st
 			= updateChoice ("Input","Choose an input... ")
-					[ChoiceView (if (length inputs > 7) ChooseFromComboBox ChooseFromRadioButtons ,fst)]
+					[ChooseWith (if (length inputs > 7) ChooseFromComboBox ChooseFromRadioButtons) fst]
 					trans
 					(trans !! 0)
 				>>* [WithResult (Action "Apply selected input") (const True) (\(l,t) -> t)
@@ -109,7 +109,7 @@ chooseTask msg tasks = enterChoice msg [] [(l, Hidden t) \\ (l,t) <- tasks] >>= 
 
 chooseTaskComBo :: !d ![(String,Task o)] -> Task o | descr d & iTask o 
 chooseTaskComBo msg tasks
- =	updateChoice msg [ChoiceView (ChooseFromComboBox,fst)] trans (trans !! 0) >>= \(l, Hidden t). t
+ =	updateChoice msg [ChooseWith ChooseFromComboBox fst] trans (trans !! 0) >>= \(l, Hidden t). t
  >>! return
 where
 	trans = [(l, Hidden t) \\ (l,t) <- tasks]
@@ -127,13 +127,13 @@ state esm st=:{ka,ss,trace,n,r}
 		=	digraph
 		=	digraph -|| viewIssues st 
 where
-	digraph = updateInformation Void [UpdateView (GetLocal toView) fromView] st <<@ AfterLayout (tweakTUI (fixedWidth 700 o fixedHeight 300))
+	digraph = updateInformation Void [UpdateWith toView fromView] st <<@ AfterLayout (tweakTUI (fixedWidth 700 o fixedHeight 300))
 	
 	//Make an editable digraph from the esm state
 	toView st=:{ka,ss,trace} //TODO: MOVE mkDigraph function to this module as it is essentially the toView of a state
 		= includeChanges (mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace)) 
 	//Map changes in the diagraph back to the esm state
-	fromView dg st _ = st
+	fromView st dg = st
 		
 	 //(mkDigraph "ESM" (ka, esm.s_0, ss, allEdgesFound esm ka, sharedNodesOf ka, map fst ka.issues, flatten trace))
 	 //	>>= updateDig st
@@ -305,7 +305,7 @@ traceHtml trace
 
 viewIssues :: (State s i o) -> Task [(SeenTrans s i o,[String])] | render, iTask s & render, iTask i & render, iTask o
 viewIssues st=:{ka}
-	= viewInformation "Issues" [DisplayView (GetLocal issuesToHtml)] ka.issues
+	= viewInformation "Issues" [ViewWith issuesToHtml] ka.issues
 where	
 	issuesToHtml :: [(SeenTrans s i o,[String])] -> HtmlTag | render s & render i & render o
 	issuesToHtml l
