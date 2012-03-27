@@ -133,25 +133,37 @@ where
 
 instance + Date //Second date is treated as an interval to be added
 where
-	(+) x y = addYears y.Date.year (normMonths (addMonths y.Date.mon (normDays (addDays y.Date.day x))))
+	(+) x y = normDays (addYears y.Date.year (normMonths (addMonths y.Date.mon (normDays (addDays y.Date.day x)))))
+		// last normDays to remove 29-2 in non leap year
 	where
 		addDays days date		= {Date|date & day = date.day + days}
-		normDays date			= until (\d -> d.day <= monthLength d) (\d -> {d & mon = d.mon + 1, day = d.day - monthLength d}) date
 		addMonths months date	= {Date|date & mon = date.mon + months}
-		normMonths date			= until (\d -> d.mon <= 12) (\d -> {d & year = d.year + 1, mon = d.mon - 12}) date
 		addYears years date		= {Date|date & year = date.year + years}
-	
-		monthLength date
-			| date.mon == 2					= if (isLeapYear date.year)	29 28
-			| isMember date.mon [4,6,9,11]	= 30
-			| otherwise						= 31
-			 
-		isLeapYear year
-			| year rem 400	== 0	= True
-			| year rem 100	== 0	= False
-			| year rem 4	== 0	= True
-			| otherwise				= False
 
+		normDays date
+			# monthLength = monthLengthOfDate date
+			| date.day <= monthLength
+				= date
+				= normDays (normMonths {date & mon = date.mon + 1, day = date.day - monthLength})
+
+		normMonths date
+			| date.mon <= 12
+				= date
+				= normMonths {date & year = date.year + 1, mon = date.mon - 12}
+
+		monthLengthOfDate date=:{mon}
+			| mon==2
+				| isLeapYear date.year
+					= 29
+					= 28
+			| mon==4 || mon==6 || mon==9 || mon==11
+				= 30
+				= 31
+
+		isLeapYear year
+			| year rem 4<>0
+				= False
+				= year rem 100 <> 0 || year rem 400 == 0
 
 instance - Date
 where
