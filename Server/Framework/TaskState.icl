@@ -6,12 +6,12 @@ from Task		import :: Event, :: EditEvent, :: TaskTime
 from GenUpdate	import :: UpdateMask
 import JSON
 
-derive JSONEncode TopInstance, TaskState, ParallelMeta, ParallelItem, UpdateMask
-derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem, UpdateMask
+derive JSONEncode TopInstance, TaskTree, ParallelMeta, ParallelItem, UpdateMask
+derive JSONDecode TopInstance, TaskTree, ParallelMeta, ParallelItem, UpdateMask
 
 instanceToTaskListItem :: !TopInstance -> TaskListItem
-instanceToTaskListItem {TopInstance|instanceId,progress,management,state,attributes}
-	= {taskId = taskId instanceId, taskMeta = attributes, progressMeta = Just progress, managementMeta = Just management, subItems = subItems state}
+instanceToTaskListItem {TopInstance|instanceId,progress,management,tree,attributes}
+	= {taskId = taskId instanceId, taskMeta = attributes, progressMeta = Just progress, managementMeta = Just management, subItems = subItems tree}
 where
 	taskId (Left session)	= TaskId 0 0
 	taskId (Right topNo)	= TaskId topNo 0
@@ -19,7 +19,7 @@ where
 	subItems (Left state)			= stateToTaskListItems state
 	subItems _						= []
 
-stateToTaskListItems :: !TaskState -> [TaskListItem]
+stateToTaskListItems :: !TaskTree -> [TaskListItem]
 stateToTaskListItems (TCStep _ (Left context))			= stateToTaskListItems context
 stateToTaskListItems (TCStep _ (Right (_,_,context)))	= stateToTaskListItems context
 stateToTaskListItems (TCParallel _ _ subs)				= parallelToTaskListItems subs

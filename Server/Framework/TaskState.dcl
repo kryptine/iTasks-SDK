@@ -5,8 +5,8 @@ import SystemTypes
 from Task		import :: TaskTime
 from GenUpdate	import :: UpdateMask
 
-derive JSONEncode TopInstance, TaskState, ParallelMeta, ParallelItem
-derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
+derive JSONEncode TopInstance, TaskTree, ParallelMeta, ParallelItem
+derive JSONDecode TopInstance, TaskTree, ParallelMeta, ParallelItem
 
 //Persistent context of active tasks
 :: TopInstance =
@@ -16,18 +16,19 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
 	, task			:: !Dynamic
-	, state			:: !Either TaskState String	//Task state or error message
+	, tree			:: !Either TaskTree String			//Task state or error message
+	, shares		:: ![(!TaskNo,!JSONNode)]
 	, attributes	:: !TaskMeta
 	}
 
-:: TaskState
+:: TaskTree
 	= TCInit		!TaskId !TaskTime
 	| TCBasic		!TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
 	| TCInteract	!TaskId !TaskTime !JSONNode !JSONNode !JSONNode !UpdateMask
-	| TCProject		!TaskId !JSONNode !TaskState
-	| TCStep		!TaskId !(Either TaskState (!JSONNode,!Int,!TaskState))
+	| TCProject		!TaskId !JSONNode !TaskTree
+	| TCStep		!TaskId !(Either TaskTree (!JSONNode,!Int,!TaskTree))
 	| TCParallel	!TaskId !ParallelMeta ![ParallelItem] 
-	| TCShared		!TaskId !JSONNode !TaskState
+	| TCShared		!TaskId !TaskTree
 	| TCStable		!TaskId !TaskTime !JSONNode
 	| TCEmpty		!TaskId !TaskTime
 
@@ -41,7 +42,7 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 	{ taskId			:: !TaskId					//Unique task id
 	
 	, task				:: !Dynamic					// Encoded task definition
-	, state				:: !TaskState				// State of the parallel item
+	, state				:: !TaskTree				// State of the parallel item
 	, lastValue			:: !JSONNode				// Cached task value, this field is recomputed on each evaluation
 	, lastAttributes	:: ![TaskAttribute]			// Cached meta-data, this field is recomputed on each evaluation
 
@@ -57,4 +58,4 @@ derive JSONDecode TopInstance, TaskState, ParallelMeta, ParallelItem
 
 //Conversion to a representation of task states which hides all internal details
 instanceToTaskListItem	:: !TopInstance -> TaskListItem
-stateToTaskListItems	:: !TaskState -> [TaskListItem]
+stateToTaskListItems	:: !TaskTree -> [TaskListItem]

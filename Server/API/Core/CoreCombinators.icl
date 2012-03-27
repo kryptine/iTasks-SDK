@@ -398,45 +398,35 @@ where
 withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 withShared initial stask = Task eval
 where	
-	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{localShares}
+		# localShares				= 'Map'.put taskId (toJSON initial) localShares
 		# (taskIda,iworld)			= getNextTaskId iworld
-		= eval eEvent cEvent refresh repAs  (TCShared taskId (toJSON initial) (TCInit taskIda ts)) iworld
+		= eval eEvent cEvent refresh repAs  (TCShared taskId (TCInit taskIda ts)) {iworld & localShares = localShares}
 		
-	eval eEvent cEvent refresh repAs (TCShared taskId encsvalue cxta) iworld
-		# iworld					= shareValue taskId initial (fromJust (fromJSON encsvalue)) iworld
+	eval eEvent cEvent refresh repAs (TCShared taskId cxta) iworld
 		# (Task evala)				= stask (localShare taskId)
 		# (resa,iworld)				= evala eEvent cEvent refresh (matchTarget repAs taskId) cxta iworld
-		# (svalue,iworld)			= unshareValue taskId initial iworld
 		= case resa of
-			ValueResult NoValue lastEvent rep ncxta				= (ValueResult NoValue lastEvent rep (TCShared taskId (toJSON svalue) ncxta),iworld)
-			ValueResult (Value stable val) lastEvent rep ncxta	= (ValueResult (Value stable val) lastEvent rep (TCShared taskId (toJSON svalue) ncxta),iworld)
+			ValueResult NoValue lastEvent rep ncxta				= (ValueResult NoValue lastEvent rep (TCShared taskId ncxta),iworld)
+			ValueResult (Value stable val) lastEvent rep ncxta	= (ValueResult (Value stable val) lastEvent rep (TCShared taskId ncxta),iworld)
 			ExceptionResult e str								= (ExceptionResult e str,iworld)
 	eval _ _ _ _ _ iworld
 		= (exception "Corrupt task state in withShared", iworld)
-		
-	shareValue :: !TaskId s !s !*IWorld -> *IWorld | iTask s	//With bogus argument to solve overloading
-	shareValue taskId _ value iworld=:{localShares}
-		= {iworld & localShares = 'Map'.put ("localShare:" +++ toString taskId) (dynamic value :: s^) localShares}
-	
-	unshareValue :: !TaskId s !*IWorld -> (!s,!*IWorld) | iTask s //With bogus argument to solve overloading
-	unshareValue taskId _ iworld=:{localShares}
-		= case 'Map'.get ("localShare:" +++ toString taskId) localShares of
-			Just (value :: s^)
-				= (value,{iworld & localShares = 'Map'.del ("localShare:" +++ toString taskId) localShares})
-			_	= abort "Shared value not in scope"
 
 localShare :: !TaskId -> (Shared s) | iTask s
 localShare taskId = (makeUnsafeShare "localShare" shareKey read write)
 where
 	shareKey = toString taskId
 	read iworld=:{localShares}
-		= case 'Map'.get ("localShare:" +++ shareKey) localShares of
-			Just (value:: s^)	= (Ok value, iworld)
-			_					= (Error ("Could not read local shared stated " +++ shareKey), iworld)
+		= case 'Map'.get taskId localShares of
+			Just encs	
+				= case fromJSON encs of
+					Just s	= (Ok s, iworld)
+					_		= (Error ("Could not decode local shared state " +++ shareKey), iworld)
+			_			= (Error ("Could not read local shared state " +++ shareKey), iworld)
 	
 	write value iworld=:{localShares}
-		= (Ok Void, {iworld & localShares = 'Map'.put ("localShare:" +++ shareKey) (dynamic value :: s^) localShares})
-
+		= (Ok Void, {iworld & localShares = 'Map'.put taskId (toJSON value) localShares})
 /*
 * Tuning of tasks
 */

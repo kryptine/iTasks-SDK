@@ -48,7 +48,7 @@ where
 			Ok _	= state taskId ts (Right outfile)
 		= eval eEvent cEvent refresh repAs nstate {IWorld|iworld & world = world}
 	where
-		state :: TaskId TaskTime (Either OSError FilePath) -> TaskState
+		state :: TaskId TaskTime (Either OSError FilePath) -> TaskTree
 		state taskId taskTime val = TCBasic taskId taskTime (toJSON val) False
 
 	//Check for its result

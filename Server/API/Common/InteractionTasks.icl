@@ -44,7 +44,7 @@ updateSharedInformation d _ shared
 		(rtow :: (r^ -> w^))
 			= interact d (toReadOnly shared)
 				(\r -> let v = rtow r in (rtow r,v,defaultMask v))
-				(\l r v m ok -> if ok (let nl = v in (let nv = rtow r in (nl,nv,defaultMask nv))) (l,v,m))
+				(\l r v m ok -> if ok (let nl = (if (rtow r =!= l) (rtow r) v) in (let nv = nl in (nl,nv,defaultMask nv))) (l,v,m))
 				@> (mapval,shared)
 		_
 			= interact d (toReadOnly shared)

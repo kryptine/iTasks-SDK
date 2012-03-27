@@ -5,7 +5,7 @@ definition module Task
 */
 
 import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
-from TaskState			import :: TaskState
+from TaskState			import :: TaskTree
 from LayoutCombinators	import :: Layout
 
 derive JSONEncode		Task
@@ -22,7 +22,7 @@ derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 
 // Tasks
-:: Task a = Task ((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepTarget TaskState *IWorld -> *(!TaskResult a, !*IWorld))
+:: Task a = Task ((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepTarget TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
 :: Event e			= TaskEvent		!TaskId !e			//Event for a task within the process we are looking for
 					| LuckyEvent	!e					//Event for any task who is willing to handle it (I am feeling lucky event)
@@ -31,7 +31,7 @@ derive gPutRecordFields	Task
 :: CommitEvent		:== Event String					//Action name
 :: RefreshFlag		:== Bool							//Flag that indicates if events should not be applied
 
-:: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskState	//If all goes well, a task computes its current value, an observable representation and a new task state
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskTree	//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String							//If something went wrong, a task produces an exception value
 
 :: TaskRepTarget

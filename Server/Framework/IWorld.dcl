@@ -6,6 +6,7 @@ from Maybe			import :: Maybe
 from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from Time			import :: Timestamp
 from TaskState		import :: ParallelItem, :: ParallelControl
+from JSON			import :: JSONNode
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -21,7 +22,7 @@ from TaskState		import :: ParallelItem, :: ParallelControl
 					, evalStack				:: ![TaskId]								// The stack of instances evaluating other instances through workOn
 					, parallelLists			:: !Map String [ParallelItem]				// The set of shared tasklist meta data
 					, parallelControls		:: !Map String (!Int,![ParallelControl])	// The set of controls for manipulating parallel task lists
-					, localShares			:: !Map String Dynamic						// The set of locally shared values
+					, localShares			:: !Map TaskId JSONNode						// The set of locally shared values
 					, readShares			:: !Maybe [String]							// The IDs of shares from which was read
 					, world					:: !*World									// The outside world
 					}
