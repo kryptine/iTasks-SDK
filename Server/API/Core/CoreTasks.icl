@@ -87,12 +87,15 @@ where
 		//Make visualization
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repAs nv validity event iworld
-		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
+		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
 		= (ValueResult value nts rep (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 	
 	matchEvent taskId1 (Just (LuckyEvent e))								= Just e	
 	matchEvent taskId1 (Just (TaskEvent taskId2 e))	| taskId1 == taskId2	= Just e
 	matchEvent taskId1 _													= Nothing
+	
+	isLucky (Just (LuckyEvent _))	= True	//HACK
+	isLucky _						= False
 	
 	applyEvent taskId taskTime v mask ts event iworld = case event of
 		Nothing	 = (v,mask,ts,iworld)
