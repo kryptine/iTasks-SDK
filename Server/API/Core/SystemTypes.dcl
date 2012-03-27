@@ -33,8 +33,8 @@ instance toEmail String
 
 // (Local) date and time
 :: Date	=
-	{ day	:: !Int
-	, mon	:: !Int
+	{ day	:: !Int // 1..31
+	, mon	:: !Int // 1..12
 	, year	:: !Int
 	}
 :: Time =
