@@ -97,7 +97,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			# (luckyEdit,luckyCommit)
 				= if (req.req_data == "")
 					(Nothing,Nothing)	
-					(Just (LuckyEvent ("0",fromString req.req_data)), Just (LuckyEvent ""))
+					(Just (LuckyEvent ("",fromString req.req_data)), Just (LuckyEvent ""))
 
 			# (mbResult,iworld) = case mbResult of
 				(Ok (_,sessionId))	= evalSessionInstance sessionId luckyEdit luckyCommit False iworld

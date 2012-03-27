@@ -353,7 +353,8 @@ dp2s :: !DataPath -> String
 dp2s (DataPath path) = join "-" (map toString (reverse path))
 
 s2dp :: !String -> DataPath
-s2dp str = DataPath (reverse (map toInt (split "-" str)))
+s2dp ""		= DataPath []
+s2dp str	= DataPath (reverse (map toInt (split "-" str)))
 
 isdps :: !String -> Bool
 isdps path = and [c == '-' || isDigit c || c == '_' \\ c <-: path]
