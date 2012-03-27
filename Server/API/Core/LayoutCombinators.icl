@@ -16,35 +16,9 @@ where
 		= heuristicInteractionLayout SingleTask parts actions attributes
 	layout ParallelComposition parts actions attributes
 		= heuristicParallelLayout ParallelComposition parts actions attributes
-		
-	layout type parts actions attributes
-		# partactions		= flatten [actions \\ (_,_,actions,_) <- parts]
-		# guis				= [gui \\ (_,Just gui,_,_) <- parts]
-		| isEmpty guis && type =!= SingleTask
-			= (type, Nothing, actions ++ partactions, attributes)
-		# gui				= case kvGet TITLE_ATTRIBUTE attributes of
-								(Just title)	= paneled (Just title) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis
-								Nothing
-									= case kvGet HINT_ATTRIBUTE attributes of
-										(Just hint)	= formed (Just hint) guis
-										Nothing = case guis of
-											[gui]		= gui
-											_			= case type of
-												SingleTask	= formed Nothing guis
-												_			= vjoin guis
-		# actions				= filterImpossibleActions parts actions 
-		| canHoldButtons gui		
-			# (buttons,actions)	= actionsToButtons actions
-			# gui				= addButtonsToTUI buttons gui
-			| canHoldMenus gui
-				# (menus,actions)	= actionsToMenus actions
-				# gui				= addMenusToTUI menus gui
-				= (type, Just gui, actions ++ partactions, attributes)
-			| otherwise
-				= (type, Just gui, actions ++ partactions, attributes)
-		| otherwise
-			= (type, Just gui, actions ++ partactions, attributes)
-
+	layout SequentialComposition parts actions attributes
+		= heuristicSequenceLayout SequentialComposition parts actions attributes
+	
 heuristicInteractionLayout :: Layout
 heuristicInteractionLayout = layout
 where
@@ -94,7 +68,30 @@ where
 			(vjoin guis)
 	
 	mergeForms guis = setPurpose "form" (vjoin guis)
-	
+
+
+heuristicSequenceLayout :: Layout
+heuristicSequenceLayout = layout
+where
+	layout type [(SequentialComposition,partgui,partactions,partattributes)] actions attributes
+		= (type,partgui,partactions, mergeAttributes partattributes attributes)
+	layout type [(parttype,Nothing,partactions,partattributes)] actions attributes
+		= (type,Nothing,partactions ++ actions, mergeAttributes partattributes attributes)
+	layout type [(parttype,Just gui,partactions,partattributes)] actions attributes
+		| canHoldButtons gui
+			# (buttons,actions)	= actionsToButtons actions
+			# gui				= addButtonsToTUI buttons gui
+			| canHoldMenus gui
+				# (menus,actions)	= actionsToMenus actions
+				# gui				= addMenusToTUI menus gui
+				= (type,Just gui,partactions ++ actions,mergeAttributes partattributes attributes)
+			| otherwise
+				= (type,Just gui,partactions ++ actions,mergeAttributes partattributes attributes)
+		| otherwise
+			= (type,Just gui,partactions ++ actions,mergeAttributes partattributes attributes)
+	layout type parts actions attributes
+		= heuristicParallelLayout type parts actions attributes
+		
 accumulatingLayout :: Layout
 accumulatingLayout = layout
 where
@@ -259,18 +256,15 @@ canHoldButtons :: TUIDef -> Bool
 canHoldButtons def=:{TUIDef|content} = case content of
 	TUIPanel {TUIPanel|purpose=Just "form"}				= True
 	TUIPanel {TUIPanel|purpose=Just "buttons"}			= True
+	TUIPanel {TUIPanel|items}							= or (map canHoldButtons items)
 	TUIContainer {TUIContainer|purpose=Just "form"}		= True
 	TUIContainer {TUIContainer|purpose=Just "buttons"}	= True
+	TUIContainer {TUIContainer|items}					= or (map canHoldButtons items)
 	_													= False
 
 canHoldMenus :: TUIDef -> Bool
 canHoldMenus def = False
 
-filterImpossibleActions :: [TaskTUIRep] [TaskAction] -> [TaskAction]
-filterImpossibleActions [(SequentialComposition,_,_,_)] actions //Actions added to a sequential composition are useless
-	= []// [action\\action=:(_,_,enabled) <- actions | enabled]
-filterImpossibleActions _ actions = actions
-						
 setSize :: !TUISize !TUISize !TUIDef -> TUIDef
 setSize width height def = {TUIDef| def & width = Just width, height = Just height}
 

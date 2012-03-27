@@ -27,7 +27,7 @@ updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)]
 viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
 viewInformation d [ViewWith tof] m
 	= interact d null
-		(\r -> let v = (Display m) in (m,v,defaultMask v))
+		(\r -> let v = (Display (tof m)) in (m,v,defaultMask v))
 		(\l r v m ok -> (l,v,m))
 viewInformation d _ m = viewInformation d [ViewWith id] m
 
@@ -205,3 +205,8 @@ sharedMultiChoiceToUpdate :: [MultiChoiceOption o] -> [UpdateOption (container o
 sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
 	[UpdateWith fromf tof]	= [UpdateWith fromf (\m v -> snd (tof m v))]
 	_						= []
+
+viewTitle :: a -> Task a | iTask a 
+viewTitle a = viewInformation Void [ViewWith view] a <<@ AfterLayout (tweakTUI (fixedHeight 40 o fixedWidth 700))
+where
+	view a = DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text (visualizeAsText AsLabel a)]]
