@@ -57,6 +57,26 @@ viewStoredPersons = viewSharedInformation "These are the currently stored person
 
 //* Sequential task composition
 
+getValue (Value v _) = v
+
+returnF :: (a -> b) (TaskValue a) -> Task b | iTask b
+returnF fun (Value v _) = return (fun v)
+
+returnC :: b (TaskValue a) -> Task b | iTask b
+returnC v _ = return v 
+
+palindrome :: Task (Maybe String)
+palindrome 
+	=   	enterInformation "Enter a palindrome" []
+		>>* [ OnAction  ActionOk      ifPalindrome  (returnF Just)
+            , OnAction  ActionCancel (const True)   (returnC Nothing)
+            ]
+where
+	ifPalindrome (Value v _) = l == reverse l
+	where l :: [Char]
+		  l = fromString v
+	ifPalindrome _ = False
+
 //* Parallel task composition
 
 //* Distributing tasks
@@ -67,18 +87,30 @@ viewStoredPersons = viewSharedInformation "These are the currently stored person
 
 
 //* Running the tasks in a workflow browser
+
+bae 		:== "Basic API Examples"
+basicTypes	:== bae +++ "/Interaction with basic types/"
+costumTypes :== bae +++ "/Interaction with custom types/"
+sharedData	:== bae +++ "/Interaction with shared data/"
+seqTasks	:== bae +++ "/Sequential task composition/"
+
 basicAPIExamples :: [Workflow]
 basicAPIExamples =
-	[workflow "Basic API Examples/Interaction with basic types/Hello world" "View a constant string" helloWorld
-	,workflow "Basic API Examples/Interaction with basic types/Enter a string" "Entering a string" enterString
-	,workflow "Basic API Examples/Interaction with basic types/Enter an integer" "Entering an integer" enterInt
-	,workflow "Basic API Examples/Interaction with basic types/Enter a date & time" "Entering a date & time" enterDateTime
-	,workflow "Basic API Examples/Interaction with custom types/Enter a person" "Entering a person" enterPerson
-	,workflow "Basic API Examples/Interaction with custom types/Enter multiple persons" "Entering multiple persons" enterPersons
-	,workflow "Basic API Examples/Interaction with shared data/View date and time" "View the current date and time" viewCurDateTime
-	,workflow "Basic API Examples/Interaction with shared data/Edit stored persons" "Update a stored list of persons" editStoredPersons
-	,workflow "Basic API Examples/Interaction with shared data/View stored persons" "View a stored list of persons" viewStoredPersons
-	,workflow "Manage users" "Manage system users..." manageUsers
+	[workflow (basicTypes +++ "Hello world") 			 "View a constant string" 			helloWorld
+	,workflow (basicTypes +++ "Enter a string") 		 "Entering a string" 				enterString
+	,workflow (basicTypes +++ "Enter an integer") 		 "Entering an integer" 				enterInt
+	,workflow (basicTypes +++ "Enter a date & time") 	 "Entering a date & time" 			enterDateTime
+
+	,workflow (costumTypes +++ "Enter a person") 		 "Entering a person" 				enterPerson
+	,workflow (costumTypes +++ "Enter multiple persons") "Entering multiple persons" 		enterPersons
+
+	,workflow (sharedData +++ "View date and time")		 "View the current date and time" 	viewCurDateTime
+	,workflow (sharedData +++ "Edit stored persons") 	 "Update a stored list of persons" 	editStoredPersons
+	,workflow (sharedData +++ "View stored persons") 	 "View a stored list of persons" 	viewStoredPersons
+
+	,workflow (seqTasks +++ "Palindrome") 	 			 "Enter a Palindrome" 				palindrome
+
+	,workflow "Manage users" 							 "Manage system users..." 			manageUsers
 	]
 	
 Start :: *World -> *World
