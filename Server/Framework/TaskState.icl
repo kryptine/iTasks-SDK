@@ -11,11 +11,8 @@ derive JSONDecode TopInstance, TaskTree, ParallelMeta, ParallelItem, UpdateMask
 
 instanceToTaskListItem :: !TopInstance -> TaskListItem
 instanceToTaskListItem {TopInstance|instanceId,progress,management,tree,attributes}
-	= {taskId = taskId instanceId, taskMeta = attributes, progressMeta = Just progress, managementMeta = Just management, subItems = subItems tree}
+	= {taskId = TaskId instanceId 0, taskMeta = attributes, progressMeta = Just progress, managementMeta = Just management, subItems = subItems tree}
 where
-	taskId (Left session)	= TaskId 0 0
-	taskId (Right topNo)	= TaskId topNo 0
-	
 	subItems (Left state)			= stateToTaskListItems state
 	subItems _						= []
 

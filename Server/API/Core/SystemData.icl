@@ -37,21 +37,21 @@ topLevelTasks :: SharedTaskList Void
 topLevelTasks = makeReadOnlyShared "taskList" "tasklist-top" read
 where
 	read iworld
-		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
+		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
 		= ({TaskList|listId = TopLevelTaskList, state = [], items = fromMaybe [] list}, iworld)
 		
 currentProcesses ::ReadOnlyShared [TaskListItem]
 currentProcesses = makeReadOnlyShared "SystemData" "processes" read
 where
 	read iworld
-		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
+		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
 		= (fromMaybe [] list, iworld)
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem]
 processesForCurrentUser = makeReadOnlyShared "SystemData" "processesForCurrentUser" read
 where
 	read iworld=:{currentUser}
-		# (list, iworld) = loadValue NS_PERSISTENT_INSTANCES "index" iworld
+		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
 		= (maybe [] (\l -> find currentUser l) list, iworld)
 		
 	find user procs

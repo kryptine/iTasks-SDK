@@ -209,7 +209,7 @@ where
 	layout type parts actions attributes
 		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
 		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
-		# gui			= (\(_,x,_,_)->x) (parts !! idx)
+		# gui			= if (idx >= length parts) Nothing ((\(_,x,_,_)->x) (parts !! idx))
 		= (type,gui,actions,attributes)
 	
 vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout

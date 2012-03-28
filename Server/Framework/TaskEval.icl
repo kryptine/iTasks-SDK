@@ -6,7 +6,7 @@ import SystemTypes, IWorld, Shared, Task, TaskState
 import LayoutCombinators
 
 from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
-from TaskStore			import newSessionId, loadTaskInstance, storeTaskInstance, deleteTaskInstance
+from TaskStore			import newSessionId, newInstanceId, loadTaskInstance, loadSessionInstance, storeTaskInstance, deleteTaskInstance
 
 from Map				import qualified fromList, toList, get, put
 import iTaskClass
@@ -29,12 +29,9 @@ createTaskContainer parTask = (dynamic (Container parTask) :: Container (Paralle
 createValueContainer :: a -> Dynamic | iTask a
 createValueContainer val = (dynamic (Container val) :: Container a^ a^)
 
-createTaskState :: !(Either SessionId TopNo) !Dynamic !ManagementMeta !ProgressMeta !*IWorld -> (!TopInstance, !*IWorld)
-createTaskState topId container=:(Container parTask :: Container (ParallelTask a) a) mmeta pmeta iworld 
-	# taskId	= case topId of
-		Left _		= TaskId 0 0
-		Right topNo	= TaskId topNo 0
-	= ({TopInstance|instanceId=topId,nextTaskNo=1,nextTaskTime=2,progress=pmeta,management=mmeta,task=container,tree=Left (TCInit taskId 1),shares = [], attributes=[]},iworld)
+createTaskState :: !TopNo !(Maybe SessionId) !Dynamic !ManagementMeta !ProgressMeta !*IWorld -> (!TopInstance, !*IWorld)
+createTaskState topNo sessionId container=:(Container parTask :: Container (ParallelTask a) a) mmeta pmeta iworld 
+	= ({TopInstance|instanceId=topNo,sessionId=sessionId,nextTaskNo=1,nextTaskTime=2,progress=pmeta,management=mmeta,task=container,tree=Left (TCInit (TaskId topNo 0) 1),shares = [], attributes=[]},iworld)
 where
 	getNextTaskNo iworld=:{IWorld|nextTaskNo} = (nextTaskNo,iworld)
 
@@ -46,11 +43,8 @@ evalInstance editEvent commitEvent refresh repTarget genGUI topInstance=:{TopIns
 	# (Task eval)			= parTask taskList
 	# repAs					= if genGUI (RepAsTUI repTarget Nothing Nothing) (RepAsService repTarget)
 	//Update current process id & eval stack in iworld
-	# topNo					= case instanceId of
-		(Left _)		= 0
-		(Right topNo)	= topNo
-	# taskId					= TaskId topNo 0
-	# curLocalShares			= 'Map'.fromList [(TaskId topNo taskNo,val) \\ (taskNo,val) <- shares] 
+	# taskId					= TaskId instanceId 0
+	# curLocalShares			= 'Map'.fromList [(TaskId instanceId taskNo,val) \\ (taskNo,val) <- shares] 
 	# iworld					= {iworld & evalStack = [taskId:evalStack], nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = curLocalShares} 
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (result,iworld)			= eval editEvent commitEvent refresh repAs taskState iworld
@@ -81,7 +75,8 @@ evalInstance _ _ _ _ _ topInstance iworld
 createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld) |  iTask a
 createSessionInstance task editEvent commitEvent genGUI iworld=:{currentDateTime}
 	# (sessionId,iworld)	= newSessionId iworld
-	# (state, iworld)		= createTaskState (Left sessionId) (createTaskContainer (\_ -> task)) noMeta {issuedAt=currentDateTime,issuedBy=AnonymousUser sessionId,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
+	# (instanceId,iworld)	= newInstanceId iworld
+	# (state, iworld)		= createTaskState instanceId (Just sessionId) (createTaskContainer (\_ -> task)) noMeta {issuedAt=currentDateTime,issuedBy=AnonymousUser sessionId,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
 	# (mbRes,iworld)		= evalTopInstance editEvent commitEvent genGUI state iworld
 	= case mbRes of
 		Ok result	= (Ok (result, sessionId), iworld)
@@ -89,11 +84,11 @@ createSessionInstance task editEvent commitEvent genGUI iworld=:{currentDateTime
 
 evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !Bool !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld)
 evalSessionInstance sessionId editEvent commitEvent genGUI iworld
-	# (mbContext,iworld)	= loadTaskInstance (Left sessionId) iworld
-	= case mbContext of
+	# (mbInstance,iworld)	= loadSessionInstance sessionId iworld
+	= case mbInstance of
 		Error e				= (Error e, iworld)
-		Ok context
-			# (mbRes,iworld)	= evalTopInstance editEvent commitEvent genGUI context {iworld & currentUser = AnonymousUser sessionId}
+		Ok inst
+			# (mbRes,iworld)	= evalTopInstance editEvent commitEvent genGUI inst {iworld & currentUser = AnonymousUser sessionId}
 			= case mbRes of
 				Ok result		= (Ok (result, sessionId), iworld)
 				Error e			= (Error e, iworld)
@@ -104,17 +99,17 @@ evalTopInstance editEvent commitEvent genGUI state iworld
 	# iworld 	= {iworld & parallelControls = 'Map'.fromList [("taskList:" +++ toString TopLevelTaskList,(0,[]))]}
 	
 	//If an event was present evaluate an extra time without events for a consistent picture
-	# (mbResult, nstate, iworld) = case (editEvent,commitEvent) of
+	# (mbResult, state, iworld) = case (editEvent,commitEvent) of
 		(Nothing,Nothing)	= evalInstance editEvent commitEvent False Nothing genGUI state iworld 
 		_					
 			//Evaluate twice: First with events, but without generating a GUI, then once without events
-			# (_,nistate,iworld)	= evalInstance editEvent commitEvent False Nothing False state iworld 
+			# (_,state,iworld)	= evalInstance editEvent commitEvent False Nothing False state iworld 
 			//Save the intermediate state and process controls (or you won't see completed/added/removed processes)
-			# iworld			= storeTaskInstance nistate iworld		
+			# iworld			= storeTaskInstance state iworld		
 			# iworld			= processControls iworld
-			= evalInstance editEvent commitEvent True Nothing genGUI nistate iworld
+			= evalInstance editEvent commitEvent True Nothing genGUI state iworld
 	//Store context & process controls
-	# iworld	= storeTaskInstance nstate iworld		
+	# iworld	= storeTaskInstance state iworld		
 	# iworld	= processControls iworld 
 	= (mbResult, iworld)
 		
@@ -149,11 +144,11 @@ where
 			# container			= createTaskContainer parTask
 			# management		= fromMaybe noMeta management
 			# progress			= fromMaybe {issuedAt=currentDateTime,issuedBy=currentUser,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} progress
-			# (state,iworld)	= createTaskState (Right tid) container management progress iworld	
+			# (state,iworld)	= createTaskState tid Nothing container management progress iworld	
 			= execControls cs (queue ++ [state]) iworld
 		RemoveTask (TaskId tid 0)
 			//Remove task instance
-			# iworld				= deleteTaskInstance (Right tid) iworld
+			# iworld				= deleteTaskInstance tid iworld
 			= execControls cs queue iworld
 		_
 			= execControls cs queue iworld		

@@ -80,7 +80,7 @@ viewTaskList :: Task [TaskListItem]
 viewTaskList 
 	=	doAuthenticated (viewSharedInformation "Tasks" [] processesForCurrentUser)
 
-viewTask :: Task WorkOnProcessState
+viewTask :: Task WorkOnStatus
 viewTask
 	=	doAuthenticated (
 			enterInformation "Enter task identification" []

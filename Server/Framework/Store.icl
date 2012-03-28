@@ -11,7 +11,6 @@ from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 :: StoreItem =
 	{ format		:: !StoreFormat
 	, content		:: !String
-	, version		:: !Int
 	}
 
 :: StoreFormat = SFPlain | SFDynamic
@@ -25,15 +24,14 @@ storeValue namespace key value iworld
 
 storeValueAs :: !StoreFormat !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValueAs format namespace key value iworld=:{IWorld|build,dataDirectory} 
-	//# (version,iworld) = getStoreVersion namespace key iworld
-	= writeToDisk namespace key {StoreItem|format=format,content=content,version=0} (storePath dataDirectory build) iworld
+	= writeToDisk namespace key {StoreItem|format=format,content=content} (storePath dataDirectory build) iworld
 where
 	content = case format of	
 		SFPlain		= toString (toJSON value)
 		SFDynamic	= serialize value
 
 writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*IWorld -> *IWorld
-writeToDisk namespace key {StoreItem|format,content,version} location iworld=:{IWorld|world}
+writeToDisk namespace key {StoreItem|format,content} location iworld=:{IWorld|world}
 	//Check if the location exists and create it otherwise
 	# (exists,world)	= fileExists location world
 	# world				= if exists world
@@ -52,9 +50,6 @@ writeToDisk namespace key {StoreItem|format,content,version} location iworld=:{I
 	# filename 			= addExtension (location </> namespace </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin")
 	# (ok,file,world)	= fopen filename (case format of SFPlain = FWriteText; _ = FWriteData) world
 	| not ok			= abort ("Failed to write value to store: " +++ filename +++ "\n")
-	//Increment the version at each write to disk
-	# file				= fwritei (version + 1) file
-	# file				= case format of SFPlain = fwritec ' ' file; _ = file // for txt files write space to indicate end of timestamp
 	# file				= fwrites content file
 	# (ok,world)		= fclose file world
 	= {IWorld|iworld & world = world}
@@ -68,23 +63,6 @@ loadValue namespace key iworld=:{IWorld|build,dataDirectory}
 			Nothing	= (Nothing,iworld)
 		Nothing 	= (Nothing,iworld)
 		
-/*getStoreVersion :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe Int,!*IWorld)
-getStoreVersion namespace key iworld
-	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
-	= case mbItem of
-		Just item	= (Just item.StoreItem.version,iworld)
-		Nothing 	= (Nothing,iworld)
-
-loadValueAndVersion :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe (a,Int),!*IWorld) | JSONDecode{|*|}, TC a
-loadValueAndVersion namespace key iworld=:{IWorld|build,dataDirectory}
-	# (mbItem,old,iworld) = loadStoreItem namespace key iworld
-	= case mbItem of
-		Just item = case unpackValue (not old) item of
-			Just v
-				= (Just (v,item.StoreItem.version), if old (writeToDisk namespace key item (storePath dataDirectory build) iworld) iworld)
-			Nothing	= (Nothing,iworld)
-		Nothing 	= (Nothing,iworld)*/
-
 unpackValue :: !Bool !StoreItem -> (Maybe a) | JSONDecode{|*|}, TC a
 unpackValue allowFunctions {StoreItem|format=SFPlain,content}
 	# json = fromString content
@@ -94,7 +72,7 @@ unpackValue allowFunctions {StoreItem|format=SFPlain,content}
 			Just v		= Just v
 	| otherwise
 		= Nothing
-unpackValue allowFunctions {StoreItem|format=SFDynamic,content,version}
+unpackValue allowFunctions {StoreItem|format=SFDynamic,content}
 	= case deserialize {s` \\ s` <-: content} of
 		Ok value = Just value
 		Error _  = Nothing
@@ -117,7 +95,7 @@ findOldStoreItem namespace key iworld=:{application,build,appDirectory,dataDirec
 	  //Also Look in 'old' data directory
 	# (deprBuilds,world) = readBuilds (appDirectory </> application) world
 	#  builds = builds ++ deprBuilds
-	# (mbItem,world) = searchStoreItem (sortBy (\x y -> x > y) builds)/*(filter (startsWith "store-") dirs))*/ world
+	# (mbItem,world) = searchStoreItem (sortBy (\x y -> x > y) builds) world
 	= (mbItem,{IWorld|iworld & world = world})
 where
 	readBuilds dir world		
@@ -140,19 +118,16 @@ loadFromDisk namespace key storeDir world
 		# filename			= addExtension (storeDir </> namespace </> key) "txt"
 		# (ok,file,world)	= fopen filename FReadText world
 		| ok
-			# (ok,version,file)	= freadi file
-			# (ok,_,file)		= freadc file // read char indicating the end of the timestamp
 			# (content,file)	= freadfile file
 			# (ok,world)		= fclose file world
-			= (Just {StoreItem|format = SFPlain, content = content, version = version}, world)
+			= (Just {StoreItem|format = SFPlain, content = content}, world)
 		| otherwise
 			# filename			= addExtension (storeDir </> namespace </> key) "bin"
 			# (ok,file,world)	= fopen filename FReadData world
 			| ok
-				# (ok,version,file)	= freadi file
 				# (content,file)	= freadfile file
 				#( ok,world)		= fclose file world
-				=(Just {StoreItem|format = SFDynamic, content = content, version = version}, world)
+				=(Just {StoreItem|format = SFDynamic, content = content}, world)
 			| otherwise
 				= (Nothing, world)
 where
@@ -165,22 +140,22 @@ where
 			| otherwise    = rec file (acc +++ string)
 
 deleteValue :: !StoreNamespace !StoreKey !*IWorld -> *IWorld
-deleteValue namespace delKey iworld = deleteValues` delKey (==) filterFuncDisk iworld
+deleteValue namespace delKey iworld = deleteValues` namespace delKey (==) filterFuncDisk iworld
 where
 	// compare key with filename without extension
 	filterFuncDisk delKey key = (subString 0 (size key - 4) key) == delKey
 
 deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
-deleteValues namespace delKey iworld = deleteValues` delKey startsWith startsWith iworld
+deleteValues namespace delKey iworld = deleteValues` namespace delKey startsWith startsWith iworld
 
-deleteValues` :: !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
-deleteValues` delKey filterFuncCache filterFuncDisk iworld=:{build,dataDirectory}
+deleteValues` :: !String !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
+deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{build,dataDirectory}
 	//Delete items from disk
 	# iworld = appWorld deleteFromDisk iworld
 	= iworld
 where
 	deleteFromDisk world
-		# storeDir		= storePath dataDirectory build
+		# storeDir		= storePath dataDirectory build </> namespace
 		# (res, world)	= readDirectory storeDir world
 		| isError res = abort ("Cannot read store directory " +++ storeDir +++ ": " +++ snd (fromError res))
 		= unlink storeDir (fromOk res) world
@@ -193,11 +168,6 @@ where
 					= unlink dir fs world
 				| otherwise
 					= unlink dir fs world
-
-/*isValueChanged :: !StoreNamespace !StoreKey !Int !*IWorld -> (!Maybe Bool,!*IWorld)
-isValueChanged namespace key v0 iworld
-	# (mbVersion,iworld) = getStoreVersion namespace key iworld
-	= (fmap ((<) v0) mbVersion,iworld)*/
 
 appWorld :: !.(*World -> *World) !*IWorld -> *IWorld
 appWorld f iworld=:{world}

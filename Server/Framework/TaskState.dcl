@@ -10,7 +10,8 @@ derive JSONDecode TopInstance, TaskTree, ParallelMeta, ParallelItem
 
 //Persistent context of active tasks
 :: TopInstance =
-	{ instanceId	:: !(Either SessionId TopNo)
+	{ instanceId	:: !TopNo
+	, sessionId		:: !Maybe SessionId
 	, nextTaskNo	:: !TaskNo
 	, nextTaskTime	:: !TaskTime
 	, progress		:: !ProgressMeta

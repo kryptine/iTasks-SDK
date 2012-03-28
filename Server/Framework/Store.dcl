@@ -22,8 +22,7 @@ from FilePath import :: FilePath
 :: StorePrefix		:== String
 
 // Predefined namespaces
-NS_SESSION_INSTANCES	:== "session-instances"
-NS_PERSISTENT_INSTANCES	:== "persistent-instances"
+NS_TASK_INSTANCES		:== "task-instances"
 NS_DOCUMENT_CONTENT		:== "document-data"
 NS_APPLICATION_SHARES	:== "application-data"
 

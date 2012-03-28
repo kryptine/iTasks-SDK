@@ -10,7 +10,7 @@ from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from SystemData				import topLevelTasks
 from Map					import qualified get
 
-derive class iTask WorkOnProcessState
+derive class iTask WorkOnStatus
 
 derive JSONEncode UpdateMask
 derive JSONDecode UpdateMask
@@ -123,7 +123,7 @@ where
 	visualizeView taskId _ v validity event iworld
 		= (NoRep,iworld)
 
-workOn :: !TaskId -> Task WorkOnProcessState
+workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId topNo taskNo) = Task eval
 where
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{evalStack}
@@ -131,20 +131,20 @@ where
 		| isMember taskId evalStack
 			=(exception WorkOnDependencyCycle, iworld)
 		//Load instance
-		# (mbContext,iworld)		= loadTaskInstance (Right topNo) iworld
-		| isError mbContext	
+		# (mbInstance,iworld)		= loadTaskInstance topNo iworld
+		| isError mbInstance	
 			//If the instance can not be found, check if it was only just added by an
 			//appendTask in the same session. If so, create a temporary result and trigger
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally topNo iworld
 			| found
-				= (ValueResult NoValue ts (TUIRep (SingleTask, Just (stringDisplay "Task finished"),[],[])) (TCInit taskId ts), {iworld & readShares = Nothing})
+				= (ValueResult NoValue ts (TUIRep (SingleTask, Just (stringDisplay "Task not yet initialized, please refresh."),[],[])) (TCInit taskId ts), {iworld & readShares = Nothing})
 			| otherwise
-				= (exception WorkOnNotFound ,iworld)
+				= (ValueResult (Value WODeleted Stable) ts (TUIRep (SingleTask, Just (stringDisplay "This task has been deleted."),[],[])) (TCInit taskId ts), iworld)
 		//Eval instance
 		# target					= if (taskNo == 0) Nothing (Just (TaskId topNo taskNo))
 		# genGUI					= case repAs of (RepAsTUI _ _ _) = True ; _ = False
-		# (mbResult,context,iworld)	= evalInstance eEvent cEvent refresh target genGUI (fromOk mbContext) iworld
+		# (mbResult,context,iworld)	= evalInstance eEvent cEvent refresh target genGUI (fromOk mbInstance) iworld
 		= case mbResult of
 			Error e				= (exception WorkOnEvalError, iworld)
 			Ok result

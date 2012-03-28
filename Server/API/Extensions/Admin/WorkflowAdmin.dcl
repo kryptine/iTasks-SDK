@@ -88,7 +88,7 @@ isAllowedWorkflow :: !User !Workflow -> Bool
 
 //Service tasks
 viewTaskList	:: Task [TaskListItem]
-viewTask		:: Task WorkOnProcessState
+viewTask		:: Task WorkOnStatus
 
 //The default external services
 externalTaskInterface :: [PublishedTask]

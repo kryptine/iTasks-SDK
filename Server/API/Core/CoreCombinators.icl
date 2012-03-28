@@ -357,7 +357,7 @@ where
 				//process database
 				# (newIdx,newTaskId,nextIdx,iworld) = case listId of
 					"taskList:tasklist-top"
-						# (newIdx,iworld)		= newTopNo iworld
+						# (newIdx,iworld)		= newInstanceId iworld
 						= (newIdx,TaskId newIdx 0,nextIdx, iworld)
 					_						
 						# (newTaskId,iworld)	= getNextTaskId iworld	
