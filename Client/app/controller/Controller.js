@@ -137,7 +137,7 @@ Ext.define('itasks.controller.Controller',{
 		}
 		
 		if(message.error) {
-			this.error("Server error: " + message.error);
+			this.error(message.error);
 			return;
 		}
 
@@ -192,7 +192,7 @@ Ext.define('itasks.controller.Controller',{
 							target.insert(update.arguments[0],update.arguments[1]);
 						} else {
 							if(!target) {
-								this.error("Could not find target at path " + update.path);
+								this.error("Could not find user interface component at location " + update.path);
 							} else {
 								this.error("Can't apply " + update.method + " to " + target.getId() + " (" + target.getXType() + ")");
 								this.error(update.arguments);
@@ -201,7 +201,7 @@ Ext.define('itasks.controller.Controller',{
 					}
 					
 				} catch (e) {
-					this.error("Exception during update " + e);
+					this.error("Failed to update user interface " + e);
 				}
 			}
 			//Enable events
@@ -258,6 +258,7 @@ Ext.define('itasks.controller.Controller',{
 		return child;
 	},
 	error: function(e) {
-		document.title = 'Error: ' + e;
+		alert(e);
+		window.location = window.location;
 	}
 });
