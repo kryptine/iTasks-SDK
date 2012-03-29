@@ -2,24 +2,24 @@ definition module TaskState
 
 import SystemTypes
 
-from Task		import :: TaskTime
+from Task		import :: TaskTime, :: TaskResult
 from GenUpdate	import :: UpdateMask
 
-derive JSONEncode TopInstance, TaskTree, ParallelMeta, ParallelItem
-derive JSONDecode TopInstance, TaskTree, ParallelMeta, ParallelItem
+derive JSONEncode TaskInstance, TaskTree, ParallelMeta, ParallelItem
+derive JSONDecode TaskInstance, TaskTree, ParallelMeta, ParallelItem
 
 //Persistent context of active tasks
-:: TopInstance =
-	{ instanceId	:: !TopNo
+:: TaskInstance =
+	{ instanceNo	:: !InstanceNo
 	, sessionId		:: !Maybe SessionId
 	, nextTaskNo	:: !TaskNo
 	, nextTaskTime	:: !TaskTime
 	, progress		:: !ProgressMeta
 	, management	:: !ManagementMeta
 	, task			:: !Dynamic
-	, tree			:: !Either TaskTree String			//Task state or error message
-	, shares		:: ![(!TaskNo,!JSONNode)]
-	, attributes	:: !TaskMeta
+	, result		:: !TaskResult JSONNode
+	, shares		:: ![(!TaskNo,!JSONNode)]			//Locally shared data
+	, lists			:: ![(!TaskNo,![TaskListEntry])]	//Shared task lists of parallel tasks
 	}
 
 :: TaskTree
@@ -32,6 +32,16 @@ derive JSONDecode TopInstance, TaskTree, ParallelMeta, ParallelItem
 	| TCShared		!TaskId !TaskTree
 	| TCStable		!TaskId !TaskTime !JSONNode
 	| TCEmpty		!TaskId !TaskTime
+
+:: TaskListEntry	=
+	{ state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
+	, result			:: !TaskResult JSONNode		//Stored result of last evaluation
+	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
+	}
+
+:: TaskListEntryState
+	= EmbeddedState !Dynamic !TaskTree				//Task & tree
+	| DetachedState !InstanceNo	
 
 //Parallel has a bit more complex state so we define it as a record
 :: ParallelMeta = 
@@ -58,5 +68,5 @@ derive JSONDecode TopInstance, TaskTree, ParallelMeta, ParallelItem
 
 
 //Conversion to a representation of task states which hides all internal details
-instanceToTaskListItem	:: !TopInstance -> TaskListItem
+instanceToTaskListItem	:: !TaskInstance -> TaskListItem
 stateToTaskListItems	:: !TaskTree -> [TaskListItem]

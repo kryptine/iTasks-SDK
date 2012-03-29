@@ -54,7 +54,7 @@ where
 	//Check for its result
 	eval eEvent cEvent refresh repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent NoRep state, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent (TaskRep (SingleTask,Nothing,[],[]) []) state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -65,15 +65,14 @@ where
 						# gui 			= [(ViewPart, Just (stringDisplay ("Calling " +++ cmd)), [], [])]
 						# attributes	= [(TITLE_ATTRIBUTE,"Calling external process")]
 						# rep = case repAs of
-							(RepAsTUI Nothing _ _)	
-								= TUIRep ((repLayout repAs) SingleTask gui [] attributes) 
-							(RepAsTUI (Just target) _ _)
+							(TaskRepTarget Nothing _ _)	
+								= TaskRep ((repLayout repAs) SingleTask gui [] attributes) []
+							(TaskRepTarget (Just target) _ _)
 								| target == taskId
-									= TUIRep ((repLayout repAs) SingleTask gui [] attributes) 
+									= TaskRep ((repLayout repAs) SingleTask gui [] attributes) []
 								| otherwise
-									= NoRep
-							_
-								= ServiceRep ([(toString taskId, JSONNull)], [], [])
+									= TaskRep (SingleTask,Nothing,[],[]) []
+							
 						
 						= (ValueResult NoValue lastEvent rep state,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
@@ -87,7 +86,7 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = async.AsyncResult.exitcode 
-								= (ValueResult (Value result Stable) lastEvent NoRep (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
+								= (ValueResult (Value result Stable) lastEvent (TaskRep (SingleTask,Nothing,[],[]) []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization
@@ -132,7 +131,7 @@ where
 						, outfile
 						, url
 						]
-		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
+		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
 	
 	mkFileName :: !TaskId !String -> String
 	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
@@ -222,7 +221,7 @@ where
 		# sender		= toEmail sender
 		# recipients	= map toEmail recipients
 		# iworld		= foldr (sendSingle config.smtpServer sender) iworld recipients
-		= (ValueResult (Value recipients Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
+		= (ValueResult (Value recipients Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

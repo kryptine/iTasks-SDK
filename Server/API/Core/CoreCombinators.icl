@@ -122,17 +122,10 @@ where
 		match f (e :: e^)	= Just (f e, toJSON e)
 		match _ _			= Nothing 
 	
-	addStepActions taskId (RepAsService _) rep val = case rep of
-		(ServiceRep (parts,actions,attributes))
-			= ServiceRep (parts,actions ++ stepActions taskId val,attributes)
-		_	= rep
-	addStepActions taskId repAs=:(RepAsTUI Nothing _ _) rep val = case rep of
-		(TUIRep gui)
-			# fixme = []
-			= TUIRep ((repLayout repAs) SequentialComposition [gui] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId):fixme])	//TODO: Add attributes from task
-		_	
-			= TUIRep ((repLayout repAs) SequentialComposition [] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId)])
-	addStepActions taskId (RepAsTUI (Just _) _ _) rep val
+	addStepActions taskId repAs=:(TaskRepTarget Nothing _ _) (TaskRep gui parts) val 
+		# fixme = []
+		= TaskRep ((repLayout repAs) SequentialComposition [gui] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId):fixme]) parts	//TODO: Add attributes from task
+	addStepActions taskId (TaskRepTarget (Just _) _ _) rep val
 		= rep
 	
 	stepActions taskId val = [(toString taskId,action,pred val)\\ OnAction action pred _ <- conts]
@@ -272,36 +265,29 @@ where
 		listKey = toString (ParallelTaskList taskId)
 	
 	mergeTaskReps :: !TaskId !d !TaskRepTarget ![(!ParallelItem,!TaskResult a)] -> TaskRep | descr d
-	mergeTaskReps taskId desc repAs=:(RepAsTUI target _ _) results
+	mergeTaskReps taskId desc repAs=:(TaskRepTarget target _ _) results
 		# layout		= repLayout repAs
 		# attributes	= [(TASK_ATTRIBUTE,toString taskId) : initAttributes desc]
 		| maybe True (\t -> t == taskId) target
 			//Show if target is Nothing or taskId matches
 			# parts = [(t,g,ac,kvSet STACK_ATTRIBUTE (toString stack) (kvSet TASK_ATTRIBUTE (toString taskId) at))
-					 \\ ({ParallelItem|taskId,stack,management},ValueResult val _ (TUIRep (t,g,ac,at)) _) <- results | isNothing management && not (isStable val)]	
-			= TUIRep (layout ParallelComposition parts [] attributes)
+					 \\ ({ParallelItem|taskId,stack,management},ValueResult val _ (TaskRep (t,g,ac,at) _) _) <- results | isNothing management && not (isStable val)]	
+			= TaskRep (layout ParallelComposition parts [] attributes) []
 		| otherwise
 			//If a target is set, only one of the branches should have a TUIRep representation
-			= case [gui \\ (_,ValueResult _ _ (TUIRep gui) _) <- results] of
-				[part]	= TUIRep part
-				parts	= NoRep	
-	mergeTaskReps _ _ (RepAsService target) results
-		# fixme = ([],[],[])
-		= ServiceRep fixme
+			= case [gui \\ (_,ValueResult _ _ (TaskRep gui _) _) <- results] of
+				[part]	= TaskRep part []
+				_		= TaskRep (ParallelComposition,Nothing,[],[]) []
 
 	isStable (Value _ Stable) 	= True
 	isStable _					= False
 
 	subRepAs :: !TaskRepTarget !TaskId -> TaskRepTarget
-	subRepAs (RepAsTUI Nothing _ _) taskId 			= RepAsTUI Nothing Nothing Nothing
-	subRepAs (RepAsTUI (Just target) _ _) taskId
-		| target == taskId							= RepAsTUI Nothing Nothing Nothing
-													= RepAsTUI (Just target) Nothing Nothing	
+	subRepAs (TaskRepTarget Nothing _ _) taskId 			= TaskRepTarget Nothing Nothing Nothing
+	subRepAs (TaskRepTarget (Just target) _ _) taskId
+		| target == taskId							= TaskRepTarget Nothing Nothing Nothing
+													= TaskRepTarget (Just target) Nothing Nothing	
 																	
-	subRepAs (RepAsService Nothing) taskId 			= RepAsService Nothing 
-	subRepAs (RepAsService (Just target)) taskId
-		| target == taskId							= RepAsService Nothing
-													= RepAsService (Just target)
 //SHARED HELPER FUNCTIONS
 	
 //Use decrementing stack order values (o)
@@ -364,7 +350,7 @@ where
 						= (nextIdx,newTaskId,nextIdx + 1,iworld)		
 				# newItem					= mkParallelItem taskTime parType newTaskId newIdx currentUser currentDateTime parTask
 				# parallelControls			= 'Map'.put listId (nextIdx, controls ++ [AppendTask newItem]) parallelControls
-				= (ValueResult (Value newTaskId Stable) taskTime NoRep (TCEmpty taskId taskTime), {iworld & parallelControls = parallelControls, readShares = Nothing})
+				= (ValueResult (Value newTaskId Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), {iworld & parallelControls = parallelControls, readShares = Nothing})
 			_
 				= (exception ("Task list " +++ listId +++ " is not in scope"), iworld)
 /**
@@ -379,7 +365,7 @@ where
 		= case 'Map'.get listId parallelControls of
 			Just (nextIdx,controls)
 				# parallelControls = 'Map'.put listId (nextIdx, controls ++ [RemoveTask remId]) parallelControls
-				= (ValueResult (Value Void Stable) taskTime NoRep (TCEmpty taskId taskTime), {iworld & parallelControls = parallelControls, readShares = Nothing})
+				= (ValueResult (Value Void Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), {iworld & parallelControls = parallelControls, readShares = Nothing})
 			_
 				= (exception ("Task list " +++ listId +++ " is not in scope"), iworld)
 
@@ -436,10 +422,10 @@ instance tune SetLayout
 where
 	tune (SetLayout layout) (Task eval)	= Task eval`
 	where
-		eval` eEvent cEvent refresh (RepAsTUI target Nothing mod) state iworld
-			= eval eEvent cEvent refresh (RepAsTUI target (Just ((fromMaybe id mod) layout)) Nothing) state iworld 
-		eval` eEvent cEvent refresh (RepAsTUI target (Just layout) mod) state iworld
-			= eval eEvent cEvent refresh (RepAsTUI target (Just layout) Nothing) state iworld 
+		eval` eEvent cEvent refresh (TaskRepTarget target Nothing mod) state iworld
+			= eval eEvent cEvent refresh (TaskRepTarget target (Just ((fromMaybe id mod) layout)) Nothing) state iworld 
+		eval` eEvent cEvent refresh (TaskRepTarget target (Just layout) mod) state iworld
+			= eval eEvent cEvent refresh (TaskRepTarget target (Just layout) Nothing) state iworld 
 		eval` eEvent cEvent refresh repAs state iworld
 			= eval eEvent cEvent refresh repAs state iworld 
 
@@ -447,10 +433,10 @@ instance tune ModifyLayout
 where
 	tune (ModifyLayout f) (Task eval)	= Task eval`
 	where
-		eval` eEvent cEvent refresh (RepAsTUI target layout Nothing) state iworld
-			= eval eEvent cEvent refresh (RepAsTUI target layout (Just f)) state iworld 
-		eval` eEvent cEvent refresh (RepAsTUI target layout (Just g)) state iworld
-			= eval eEvent cEvent refresh (RepAsTUI target layout (Just (g o f))) state iworld 	
+		eval` eEvent cEvent refresh (TaskRepTarget target layout Nothing) state iworld
+			= eval eEvent cEvent refresh (TaskRepTarget target layout (Just f)) state iworld 
+		eval` eEvent cEvent refresh (TaskRepTarget target layout (Just g)) state iworld
+			= eval eEvent cEvent refresh (TaskRepTarget target layout (Just (g o f))) state iworld 	
 		eval` eEvent cEvent refresh repAs state iworld
 			= eval eEvent cEvent refresh repAs state iworld 
 	
@@ -459,6 +445,5 @@ where
 * This ensures that a representation for the full sub-tree is generated when determining the representation target for sub trees.
 */
 matchTarget :: !TaskRepTarget !TaskId -> TaskRepTarget
-matchTarget repAs=:(RepAsTUI (Just target) layout mod) taskId	= if (target == taskId) (RepAsTUI Nothing layout mod) repAs
-matchTarget repAs=:(RepAsService (Just target)) taskId			= if (target == taskId) (RepAsService Nothing) repAs
-matchTarget repAs taskId										= repAs
+matchTarget repAs=:(TaskRepTarget (Just target) layout mod) taskId	= if (target == taskId) (TaskRepTarget Nothing layout mod) repAs
+matchTarget repAs taskId											= repAs

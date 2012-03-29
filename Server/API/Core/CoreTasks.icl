@@ -15,6 +15,8 @@ derive class iTask WorkOnStatus
 derive JSONEncode UpdateMask
 derive JSONDecode UpdateMask
 
+NoRep :== TaskRep (SingleTask,Nothing,[],[]) []
+
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask (\taskId iworld=:{taskTime} -> (ValueResult (Value a Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld))
 
@@ -109,15 +111,10 @@ where
 				# (nv,nmask,iworld)	= updateValueAndMask dp encev v mask iworld
 				= (nv,nmask,taskTime,iworld)
 				
-	visualizeView taskId repAs=:(RepAsTUI target _ _) v validity event iworld
+	visualizeView taskId repAs=:(TaskRepTarget target _ _) v validity event iworld
 		| isNothing target || target == Just taskId
 			# (editor,iworld) = visualizeAsEditor v validity taskId event iworld
-			= (TUIRep ((repLayout repAs) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)), iworld)
-		| otherwise
-			= (NoRep,iworld)
-	visualizeView taskId (RepAsService target) v validity event iworld
-		| isNothing target || target == Just taskId
-			= (ServiceRep ([(toString taskId,toJSON v)],[],[]),iworld)
+			= (TaskRep ((repLayout repAs) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)) [(toString taskId,toJSON v)], iworld)
 		| otherwise
 			= (NoRep,iworld)
 	visualizeView taskId _ v validity event iworld
@@ -138,13 +135,12 @@ where
 			//reevaluation.
 			# (found,iworld)	= checkIfAddedGlobally topNo iworld
 			| found
-				= (ValueResult NoValue ts (TUIRep (SingleTask, Just (stringDisplay "Task not yet initialized, please refresh."),[],[])) (TCInit taskId ts), {iworld & readShares = Nothing})
+				= (ValueResult NoValue ts (TaskRep (SingleTask, Just (stringDisplay "Task not yet initialized, please refresh."),[],[]) []) (TCInit taskId ts), {iworld & readShares = Nothing})
 			| otherwise
-				= (ValueResult (Value WODeleted Stable) ts (TUIRep (SingleTask, Just (stringDisplay "This task has been deleted."),[],[])) (TCInit taskId ts), iworld)
+				= (ValueResult (Value WODeleted Stable) ts (TaskRep (SingleTask, Just (stringDisplay "This task has been deleted."),[],[]) []) (TCInit taskId ts), iworld)
 		//Eval instance
 		# target					= if (taskNo == 0) Nothing (Just (TaskId topNo taskNo))
-		# genGUI					= case repAs of (RepAsTUI _ _ _) = True ; _ = False
-		# (mbResult,context,iworld)	= evalInstance eEvent cEvent refresh target genGUI (fromOk mbInstance) iworld
+		# (mbResult,context,iworld)	= evalInstance eEvent cEvent refresh target (fromOk mbInstance) iworld
 		= case mbResult of
 			Error e				= (exception WorkOnEvalError, iworld)
 			Ok result
@@ -153,7 +149,7 @@ where
 				# (result,rep,iworld) = case result of
 					(ValueResult (Value _ Stable) _ rep _)	= (WOFinished, rep, iworld)
 					(ValueResult _ _ rep _)					= (WOActive, rep, iworld)
-					(ExceptionResult _ err)					= (WOExcepted, TUIRep (SingleTask, Just (stringDisplay ("Task excepted: " +++ err)), [], []), iworld)
+					(ExceptionResult _ err)					= (WOExcepted, TaskRep (SingleTask, Just (stringDisplay ("Task excepted: " +++ err)), [], []) [], iworld)
 				= case result of
 					WOFinished	= (ValueResult (Value result Stable) ts rep (TCInit taskId ts), iworld)
 					_			= (ValueResult (Value result Unstable) ts rep (TCInit taskId ts), iworld)

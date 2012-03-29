@@ -10,13 +10,13 @@ from Time import :: Timestamp
 
 
 newSessionId		:: !*IWorld -> (!SessionId,	!*IWorld)
-newInstanceId		:: !*IWorld -> (!TopNo,	!*IWorld)
+newInstanceId		:: !*IWorld -> (!InstanceNo, !*IWorld)
 
-storeTaskInstance	:: !TopInstance !*IWorld -> *IWorld
+storeTaskInstance	:: !TaskInstance !*IWorld -> *IWorld
 
-loadTaskInstance	:: !TopNo !*IWorld -> (!MaybeErrorString TopInstance, !*IWorld)
-loadSessionInstance	:: !SessionId !*IWorld -> (!MaybeErrorString TopInstance, !*IWorld)
-deleteTaskInstance	:: !TopNo !*IWorld -> *IWorld
+loadTaskInstance	:: !InstanceNo !*IWorld -> (!MaybeErrorString TaskInstance, !*IWorld)
+loadSessionInstance	:: !SessionId !*IWorld -> (!MaybeErrorString TaskInstance, !*IWorld)
+deleteTaskInstance	:: !InstanceNo !*IWorld -> *IWorld
 
 storeTaskTUI		:: !SessionId !TUIDef !Int !*IWorld -> *IWorld
 loadTaskTUI			:: !SessionId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)

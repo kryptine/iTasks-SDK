@@ -86,9 +86,9 @@ instance toEmail String
 //* Each task can be identified by two numbers:
 // - A unique number identifying the top-level state
 // - A unique number the task within the the state
-:: TaskId	= TaskId !TopNo !TaskNo
-:: TopNo	:== Int
-:: TaskNo	:== Int
+:: TaskId		= TaskId !InstanceNo !TaskNo
+:: InstanceNo	:== Int
+:: TaskNo		:== Int
 
 :: SessionId :== String
 

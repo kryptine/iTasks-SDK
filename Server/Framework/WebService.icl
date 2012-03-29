@@ -26,7 +26,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			//Load or create session context and edit / evaluate
 			# (mbResult, mbPrevTui, iworld)	= case sessionParam of
 				""	
-					# (mbResult, iworld) = createSessionInstance task Nothing Nothing True iworld
+					# (mbResult, iworld) = createSessionInstance task Nothing Nothing iworld
 					= (mbResult, Error "Fresh session, no previous user interface", iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
@@ -36,10 +36,10 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						Ok (_,prevGuiVersion)		= guiVersion < prevGuiVersion
 						Error _						= False
 					| outdated
-						# (mbResult, iworld) = evalSessionInstance sessionId Nothing Nothing True iworld
+						# (mbResult, iworld) = evalSessionInstance sessionId Nothing Nothing iworld
 						= (mbResult,mbPreviousTui,iworld)
 					| otherwise
-						# (mbResult, iworld) = evalSessionInstance sessionId editEvent commitEvent True iworld
+						# (mbResult, iworld) = evalSessionInstance sessionId editEvent commitEvent iworld
 						= (mbResult,mbPreviousTui,iworld)
 			# (json, iworld) = case mbResult of
 					Error err
@@ -50,7 +50,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
 					Ok (ValueResult _ _ mbCurrentTui context,sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
-							(Ok (previousTui,prevGuiVersion),TUIRep (_,Just currentTui,actions,attributes))
+							(Ok (previousTui,prevGuiVersion),TaskRep (_,Just currentTui,actions,attributes) _)
 								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
@@ -62,7 +62,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 												 ,("content",encodeTUIDefinition currentTui)
 												 ,("warning",JSONString "The client is out of sync. The user interface was refreshed with the most recent value.")
 												 ,("timestamp",toJSON timestamp)]
-							(_, TUIRep (_,Just currentTui,actions,attributes))
+							(_, TaskRep (_,Just currentTui,actions,attributes) _)
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
 											 ,("content", encodeTUIDefinition currentTui)
@@ -71,8 +71,8 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 						//Store gui for later incremental requests
 						# iworld = case mbCurrentTui of
-							TUIRep (_,Just currentTui,_,_)	= storeTaskTUI sessionId currentTui guiVersion iworld
-							_								= iworld
+							TaskRep (_,Just currentTui,_,_) _	= storeTaskTUI sessionId currentTui guiVersion iworld
+							_									= iworld
 						= (json,iworld)
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
@@ -80,27 +80,27 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		//Serve the task in easily accessable JSON representation
 		JSONService
 			# (mbResult,iworld)	= case sessionParam of
-				""	= createSessionInstance task Nothing Nothing False iworld
+				""	= createSessionInstance task Nothing Nothing iworld
 				sessionId
-					= evalSessionInstance sessionId Nothing Nothing False iworld
+					= evalSessionInstance sessionId Nothing Nothing iworld
 			= case mbResult of
 				Ok (ExceptionResult _ err,_)
 					= (errorResponse err, iworld)
 				Ok (ValueResult (Value val Stable) _ _ _,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (ValueResult _ _ (ServiceRep (rep,actions,attributes)) _,_)
+				Ok (ValueResult _ _ (TaskRep (_,_,actions,attributes) rep) _,_)
 					= (jsonResponse (serviceBusyResponse rep actions attributes), iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
 			//HACK: REALLY REALLY REALLY UGLY THAT IT IS NECCESARY TO EVAL TWICE
-			# (mbResult,iworld) = createSessionInstance task Nothing Nothing False iworld
+			# (mbResult,iworld) = createSessionInstance task Nothing Nothing iworld
 			# (luckyEdit,luckyCommit)
 				= if (req.req_data == "")
 					(Nothing,Nothing)	
 					(Just (LuckyEvent ("",fromString req.req_data)), Just (LuckyEvent ""))
 
 			# (mbResult,iworld) = case mbResult of
-				(Ok (_,sessionId))	= evalSessionInstance sessionId luckyEdit luckyCommit False iworld
+				(Ok (_,sessionId))	= evalSessionInstance sessionId luckyEdit luckyCommit iworld
 				(Error e)			= (Error e,iworld)
 			= case mbResult of
 				Ok (ExceptionResult _ err,_)

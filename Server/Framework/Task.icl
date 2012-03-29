@@ -10,13 +10,15 @@ mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f _ _ _ _ (TCInit taskId ts) iworld = case f taskId iworld of
-		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts NoRep (TCStable taskId ts (toJSON a)), iworld)
+		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts rep (TCStable taskId ts (toJSON a)), iworld)
 		(ExceptionResult e s, iworld)					= (ExceptionResult e s, iworld)
 		(_,iworld)										= (exception "Instant task did not complete instantly", iworld)
 
 	evalOnce f _ _ _ _ state=:(TCStable taskId ts enc) iworld = case fromJSON enc of
-		(Just a)	= (ValueResult (Value a Stable) ts NoRep state, iworld)
+		(Just a)	= (ValueResult (Value a Stable) ts rep state, iworld)
 		Nothing		= (exception "Corrupt task result", iworld)
+
+	rep = TaskRep (SingleTask,Nothing,[],[]) []
 
 derive gGetRecordFields	TaskValue, Stability
 derive gPutRecordFields	TaskValue, Stability
@@ -52,8 +54,8 @@ exception :: !e -> TaskResult a | TC, toString e
 exception e = ExceptionResult (dynamic e) (toString e)
 
 repLayout :: TaskRepTarget -> Layout
-repLayout (RepAsTUI _ layout mod)	= (fromMaybe id mod) (fromMaybe DEFAULT_LAYOUT layout)
-repLayout _							= DEFAULT_LAYOUT
+repLayout (TaskRepTarget _ layout mod)	= (fromMaybe id mod) (fromMaybe DEFAULT_LAYOUT layout)
+repLayout _								= DEFAULT_LAYOUT
 
 instance Functor TaskValue
 where

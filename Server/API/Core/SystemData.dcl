@@ -5,7 +5,7 @@ definition module SystemData
 */
 import Maybe, JSON, Shared
 from SystemTypes		import :: DateTime, :: Date, :: Time, :: User, :: Role, :: TaskList, :: Tree
-from SystemTypes		import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: TopNo, :: SharedTaskList
+from SystemTypes		import :: TaskListItem, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: SharedTaskList
 from Void				import :: Void
 from FilePath			import :: FilePath
 

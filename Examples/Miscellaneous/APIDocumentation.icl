@@ -415,4 +415,4 @@ createDocumentTask name mime content = mkInstantTask create
 where
 	create taskId iworld=:{taskTime}
 		# (res,iworld)	= createDocument name mime content iworld
-		= (ValueResult (Value res Stable) taskTime NoRep (TCEmpty taskId taskTime),iworld)
+		= (ValueResult (Value res Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime),iworld)

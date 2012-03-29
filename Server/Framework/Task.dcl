@@ -31,23 +31,18 @@ derive gPutRecordFields	Task
 :: CommitEvent		:== Event String					//Action name
 :: RefreshFlag		:== Bool							//Flag that indicates if events should not be applied
 
-:: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskTree	//If all goes well, a task computes its current value, an observable representation and a new task state
-					| ExceptionResult !Dynamic !String							//If something went wrong, a task produces an exception value
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
+					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value
 
-:: TaskRepTarget
-	= RepAsTUI (Maybe TaskId) (Maybe Layout) (Maybe (Layout -> Layout))			//Optionally with tweaked layout options
-	| RepAsService (Maybe TaskId)
-
-:: TaskRep
-	= NoRep
-	| TUIRep !TaskTUIRep
-	| ServiceRep !TaskServiceRep 
+:: TaskRepTarget	= TaskRepTarget (Maybe TaskId) (Maybe Layout) (Maybe (Layout -> Layout))			//Optionally with tweaked layout options
+	
+:: TaskRep			= TaskRep !TaskTUIRep !TaskServiceRep												//Compute both the UI and the raw service representation simultaneously
 
 //Task representation for web application format
 :: TaskTUIRep		:== (!TaskCompositionType, !Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
 
 //Task representation for web service format
-:: TaskServiceRep	:== (![TaskPart], ![TaskAction], ![TaskAttribute])
+:: TaskServiceRep	:== [TaskPart]
 
 //Summary of the composition structure of tasks (used as input for layouting)
 :: TaskCompositionType
