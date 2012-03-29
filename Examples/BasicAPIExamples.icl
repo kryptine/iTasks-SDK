@@ -1,6 +1,6 @@
 implementation module BasicAPIExamples
 import iTasks, UserAdmin, WorkflowAdmin
-
+import Text
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
 */
@@ -44,7 +44,7 @@ enterPersons = enterInformation "Enter personal information of multiple people" 
 //* Interaction with shared data
 
 viewCurDateTime :: Task DateTime
-viewCurDateTime = viewSharedInformation "The current date and time are:" [] currentDateTime
+viewCurDateTime = viewSharedInformation "The current date and time is:" [] currentDateTime
 
 personStore :: Shared [MyPerson]
 personStore = sharedStore "Persons" []
@@ -54,6 +54,7 @@ editStoredPersons = updateSharedInformation "Update the stored list of persons" 
 
 viewStoredPersons :: Task [MyPerson] 
 viewStoredPersons = viewSharedInformation "These are the currently stored persons" [] personStore
+
 
 //* Sequential task composition
 
@@ -79,7 +80,34 @@ where
 
 //* Parallel task composition
 
+derive class iTask Statistics
+
+:: Statistics = {lineCount :: Int
+				,wordCount :: Int
+				}
+
+edit :: Task Note
+edit = withShared (Note "") edit`
+where
+	edit` note
+		=	viewSharedInformation "Statistics:" [ViewWith stat] note 
+			-||-
+			updateSharedInformation "Edit text:" [] note
+			
+stat (Note text) = {lineCount = length lines , wordCount = length words}
+where
+	lines = split "\n" text
+	words = split " " (replaceSubString "\n" " " text)
+
+horizontal = AfterLayout (tweakTUI (setDirection Horizontal))
+
 //* Distributing tasks
+
+delegate :: (Task a) -> Task a | iTask a
+delegate task
+	=							enterSharedChoice "Select someone to delegate the task to:" [] users
+		>>= \user -> user @: 	task
+		>>= \result ->			viewInformation "The result is:" [] result
 
 //* Customizing interaction with views
 
@@ -93,24 +121,31 @@ basicTypes	:== bae +++ "/Interaction with basic types/"
 costumTypes :== bae +++ "/Interaction with custom types/"
 sharedData	:== bae +++ "/Interaction with shared data/"
 seqTasks	:== bae +++ "/Sequential task composition/"
+parTasks	:== bae +++ "/Parallel task composition/"
+distrTask	:== bae +++ "/Distributed tasks/"
 
 basicAPIExamples :: [Workflow]
 basicAPIExamples =
-	[workflow (basicTypes +++ "Hello world") 			 "View a constant string" 			helloWorld
-	,workflow (basicTypes +++ "Enter a string") 		 "Entering a string" 				enterString
-	,workflow (basicTypes +++ "Enter an integer") 		 "Entering an integer" 				enterInt
-	,workflow (basicTypes +++ "Enter a date & time") 	 "Entering a date & time" 			enterDateTime
+	[workflow (basicTypes +++ "Hello world") 			 	"View a constant string" 			helloWorld
+	,workflow (basicTypes +++ "Enter a string") 		 	"Entering a string" 				enterString
+	,workflow (basicTypes +++ "Enter an integer") 		 	"Entering an integer" 				enterInt
+	,workflow (basicTypes +++ "Enter a date & time") 	 	"Entering a date & time" 			enterDateTime
 
-	,workflow (costumTypes +++ "Enter a person") 		 "Entering a person" 				enterPerson
-	,workflow (costumTypes +++ "Enter multiple persons") "Entering multiple persons" 		enterPersons
+	,workflow (costumTypes +++ "Enter a person") 		 	"Entering a person" 				enterPerson
+	,workflow (costumTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		enterPersons
 
-	,workflow (sharedData +++ "View date and time")		 "View the current date and time" 	viewCurDateTime
-	,workflow (sharedData +++ "Edit stored persons") 	 "Update a stored list of persons" 	editStoredPersons
-	,workflow (sharedData +++ "View stored persons") 	 "View a stored list of persons" 	viewStoredPersons
+	,workflow (sharedData +++ "View date and time")		 	"View the current date and time" 	viewCurDateTime
+	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	editStoredPersons
+	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	viewStoredPersons
 
-	,workflow (seqTasks +++ "Palindrome") 	 			 "Enter a Palindrome" 				palindrome
+	,workflow (seqTasks +++ "Palindrome") 	 			 	"Enter a Palindrome" 				palindrome
 
-	,workflow "Manage users" 							 "Manage system users..." 			manageUsers
+	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
+
+	,workflow (distrTask +++ "Delegate Enter a person")    "Delegate Enter a person" 			(delegate enterPerson)
+
+
+	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	]
 	
 Start :: *World -> *World
