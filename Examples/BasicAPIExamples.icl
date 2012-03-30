@@ -18,7 +18,11 @@ returnF :: (a -> b) (TaskValue a) -> Task b | iTask b
 returnF fun (Value v _) = return (fun v)
 
 returnC :: b (TaskValue a) -> Task b | iTask b
-returnC v _ = return v 
+returnC v _ = return v
+
+toMaybe :: (TaskValue a) -> Maybe a
+toMaybe (Value v _) =  (Just v)
+toMaybe _   =  Nothing
 
 //* Basic interaction
 
@@ -71,6 +75,27 @@ editStoredPersons = updateSharedInformation "Update the stored list of persons" 
 viewStoredPersons :: Task [MyPerson] 
 viewStoredPersons = viewSharedInformation "These are the currently stored persons" [] personStore
 
+linesPar :: Task (Maybe String)
+linesPar
+	=	withShared "" doEditor
+where
+	doEditor state
+		= 			noteE state 
+					-||- 
+					lineE state
+			>>* 	[OnAction ActionQuit always (return o toMaybe)]
+
+	noteE state 
+		= 			updateSharedInformation ("Text","Edit text") [noteEditor] state
+			>>*		[ OnAction (Action "Trim") always 	(\txt -> update trim state >>| noteE state)	
+					]
+
+	lineE state
+		=	updateSharedInformation ("Lines","Edit lines") [listEditor] state
+
+	noteEditor = UpdateWith (\txt -> Note txt) (\_ (Note txt) -> txt)
+	listEditor = UpdateWith (split "\n") (\_ l -> join "\n" l)
+
 //* Sequential task composition
 
 palindrome :: Task (Maybe String)
@@ -84,7 +109,7 @@ where
 	where l :: [Char]
 		  l = fromString v
 	ifPalindrome _ = False
-
+//
 calculateSum :: Task Int
 calculateSum
   =   enterInformation ("Number 1","Enter a number") []
@@ -92,7 +117,7 @@ calculateSum
       enterInformation ("Number 2","Enter another number") []
   >>= \num2 ->
       viewInformation ("Sum","The sum of those numbers is:") [] (num1 + num2)
-
+//
 calculateSumSteps :: Task Int
 calculateSumSteps = step1 0 0
 where
@@ -106,17 +131,48 @@ where
 						>>*	[ OnAction ActionPrevious always 	(const (step2 n1 n2))
 						  	, OnAction ActionOk  always  		(returnC (n1 + n2))
 						  	]
-
+//
 :: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Display Int}
 derive class iTask MySum
 
 calculateSum2 :: Task Int
 calculateSum2
-  = 				updateInformation ("Sum of 2 numbers","") 
+  = 				updateInformation ("Sum of 2 numbers, with view","") 
   						[UpdateWith (\(i,j) -> {firstNumber = i, secondNumber = j, sum = Display (i+j)}) 
   						            (\_ res -> (res.firstNumber,res.secondNumber))] (0,0)
   	>>= \(i,j) -> 	return (i+j)
 
+//
+coffeemachine :: Task (String,EUR)
+coffeemachine  
+	=	enterChoice ("Product","Choose your product:") []
+					[("Coffee", EUR 100)
+					,("Cappucino", EUR 150)
+					,("Tea", EUR 50)
+					,("Chocolate", EUR 100)
+					] 
+	>>=  getCoins (EUR 0)
+	>>|  coffeemachine
+
+getCoins :: EUR (String,EUR) -> Task (String,EUR)
+getCoins paid (product,toPay) 
+	= 				viewInformation "Coffee Machine" [ViewWith view1] toPay
+					||-		
+					enterChoice  ("Insert coins","Please insert a coin...") [] coins
+			>>*		[ OnAction ActionCancel 		always (const (stop ("Cancelled",paid)))
+					, OnAction (Action "Insert") 	always (handleMoney o getValue)
+					]
+where				
+	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
+
+	handleMoney coin 
+	| toPay > coin	= getCoins (paid+coin) (product, toPay-coin)
+	| otherwise		= stop (product,coin-toPay)
+	
+	stop (product, money) = viewInformation "Coffee Machine" [ViewWith view2] (product,money)
+
+	view1 toPay 		   = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ toPay)])]
+	view2 (product,money)  = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("Money returned: " <+++ money)])]
 
 //* Parallel task composition
 
@@ -233,11 +289,13 @@ basicAPIExamples =
 	,workflow (sharedData +++ "View date and time")		 	"View the current date and time" 	viewCurDateTime
 	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	editStoredPersons
 	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	viewStoredPersons
+	,workflow (sharedData +++ "Edit note or List of strings") "Edit note or List of strings" 	linesPar
 
 	,workflow (seqTasks +++ "Palindrome") 	 			 	"Enter a Palindrome" 				palindrome
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers" 				calculateSum
 	,workflow (seqTasks +++ "Sum, with backstep") 	 		"Sum, with backstep" 				calculateSumSteps
-	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers" 				calculateSum2
+	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers 2" 				calculateSum2
+	,workflow (seqTasks +++ "Coffee Machine") 	 			"Coffee Machine" 					coffeemachine
 
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
 
