@@ -16,9 +16,11 @@ voidNothing :: Maybe Void
 voidNothing = Nothing
 
 pad :: !Int !Int -> String
-pad len num = (createArray (max 0 (len - size nums)) '0' ) +++ nums
-where 
-	nums = toString num
+pad len num
+	# nums = toString num
+	| size nums >= len
+		= nums
+		= createArray (len - size nums) '0' +++ nums
 	
 decFormat :: !Int -> String
 decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
