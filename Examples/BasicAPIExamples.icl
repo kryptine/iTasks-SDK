@@ -7,6 +7,7 @@ import Text
 
 //* utility functions
 
+always = const True
 
 hasValue (Value _ _) = True
 hasValue _ = False
@@ -44,6 +45,7 @@ viewIntList = viewInformation "View the numbers from 1 to 10" [] [1..10]
 :: MyGender = Male | Female
 
 //Generate boiler-plate code for user-defined types
+
 derive class iTask MyPerson, MyGender
 
 helloWorld :: Task String
@@ -69,7 +71,6 @@ editStoredPersons = updateSharedInformation "Update the stored list of persons" 
 viewStoredPersons :: Task [MyPerson] 
 viewStoredPersons = viewSharedInformation "These are the currently stored persons" [] personStore
 
-
 //* Sequential task composition
 
 palindrome :: Task (Maybe String)
@@ -83,6 +84,39 @@ where
 	where l :: [Char]
 		  l = fromString v
 	ifPalindrome _ = False
+
+calculateSum :: Task Int
+calculateSum
+  =   enterInformation ("Number 1","Enter a number") []
+  >>= \num1 ->
+      enterInformation ("Number 2","Enter another number") []
+  >>= \num2 ->
+      viewInformation ("Sum","The sum of those numbers is:") [] (num1 + num2)
+
+calculateSumSteps :: Task Int
+calculateSumSteps = step1 0 0
+where
+	step1 n1 n2		=		updateInformation ("Number 1","Enter first number")  [] n1
+						>>*	[ OnAction ActionNext hasValue ((\n1 -> step2 n1 n2) o getValue)
+							]
+	step2 n1 n2		=		updateInformation ("Number 2","Enter second number") [] n2
+						>>*	[ OnAction ActionPrevious always 	(const (step1 n1 n2))
+							, OnAction ActionNext     hasValue ((\n2 -> step3 n1 n2) o getValue)]
+	step3 n1 n2		=		viewInformation ("Sum","The sum of those numbers is:") [] (n1 + n2)
+						>>*	[ OnAction ActionPrevious always 	(const (step2 n1 n2))
+						  	, OnAction ActionOk  always  		(returnC (n1 + n2))
+						  	]
+
+:: MySum = {firstNumber :: Int, secondNumber :: Int, sum :: Display Int}
+derive class iTask MySum
+
+calculateSum2 :: Task Int
+calculateSum2
+  = 				updateInformation ("Sum of 2 numbers","") 
+  						[UpdateWith (\(i,j) -> {firstNumber = i, secondNumber = j, sum = Display (i+j)}) 
+  						            (\_ res -> (res.firstNumber,res.secondNumber))] (0,0)
+  	>>= \(i,j) -> 	return (i+j)
+
 
 //* Parallel task composition
 
@@ -108,6 +142,8 @@ where
 horizontal = AfterLayout (tweakTUI (setDirection Horizontal))
 
 //* Distributing tasks
+
+// delegate
 
 delegate :: (Task a) -> Task a | iTask a
 delegate task
@@ -199,6 +235,9 @@ basicAPIExamples =
 	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	viewStoredPersons
 
 	,workflow (seqTasks +++ "Palindrome") 	 			 	"Enter a Palindrome" 				palindrome
+	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers" 				calculateSum
+	,workflow (seqTasks +++ "Sum, with backstep") 	 		"Sum, with backstep" 				calculateSumSteps
+	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers" 				calculateSum2
 
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
 
