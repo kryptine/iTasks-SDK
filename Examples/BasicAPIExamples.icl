@@ -5,6 +5,20 @@ import Text
 * This module contains a series of small examples of basic usage of the iTasks API.
 */
 
+//* utility functions
+
+
+hasValue (Value _ _) = True
+hasValue _ = False
+
+getValue (Value v _) = v
+
+returnF :: (a -> b) (TaskValue a) -> Task b | iTask b
+returnF fun (Value v _) = return (fun v)
+
+returnC :: b (TaskValue a) -> Task b | iTask b
+returnC v _ = return v 
+
 //* Basic interaction
 
 enterString :: Task String
@@ -58,14 +72,6 @@ viewStoredPersons = viewSharedInformation "These are the currently stored person
 
 //* Sequential task composition
 
-getValue (Value v _) = v
-
-returnF :: (a -> b) (TaskValue a) -> Task b | iTask b
-returnF fun (Value v _) = return (fun v)
-
-returnC :: b (TaskValue a) -> Task b | iTask b
-returnC v _ = return v 
-
 palindrome :: Task (Maybe String)
 palindrome 
 	=   	enterInformation "Enter a palindrome" []
@@ -106,8 +112,62 @@ horizontal = AfterLayout (tweakTUI (setDirection Horizontal))
 delegate :: (Task a) -> Task a | iTask a
 delegate task
 	=							enterSharedChoice "Select someone to delegate the task to:" [] users
-		>>= \user -> user @: 	task
+		>>= \user -> user @: 	(task >>= return)
 		>>= \result ->			viewInformation "The result is:" [] result
+
+
+// plan meeting
+
+testMeeting :: Task DateTime
+testMeeting
+	=	enterSharedMultipleChoice ("Choose users","Select the users with whom you want to plan a meeting") [] users
+	>>=	planMeeting
+	
+planMeeting :: [User] -> Task DateTime
+planMeeting users =   enterDateTimeOptions
+                  >>* [askPreferences users]
+                  >>* [tryAgain users,decide]
+
+enterDateTimeOptions :: Task [DateTime]
+enterDateTimeOptions = enterInformation "Enter options" []
+
+askPreferences :: [User] -> TaskStep [DateTime] [(User,[DateTime])]
+askPreferences users
+  = OnAction (Action "Continue") hasValue (ask users o getValue)
+
+ask :: [User] [DateTime] -> Task [(User,[DateTime])]
+ask users options
+	= parallel "Collect possibilities"
+	  [ (Embedded, monitor) 
+	  :[(Detached (worker u),select u options) \\ u <- users]
+	  ]
+	  @ \answers -> [a \\ (_,Value a _) <- answers]
+
+monitor :: ParallelTask a | iTask a
+monitor = \all_results -> viewSharedInformation "Results so far" [] (mapRead tl (taskListState all_results)) @? \_ -> NoValue
+
+select :: User [DateTime] -> ParallelTask (User,[DateTime])
+select user options = \_ -> (enterMultipleChoice "Enter preferences" [] options @ \choice -> (user,choice))
+ 
+tryAgain :: [User] -> TaskStep [(User,[DateTime])] DateTime
+tryAgain users
+  = OnAction (Action "Try again") (const True) (const (planMeeting users))
+ 
+decide :: TaskStep [(User,[DateTime])] DateTime
+decide = OnAction (Action "Make decision") hasValue (pick o getValue)
+
+pick :: [(User,[DateTime])] -> Task DateTime
+pick user_dates
+  =   (enterChoice "Choose date" [] (transpose user_dates) @ fst)
+      -||-
+      (enterInformation "Enter override" [])
+  >>* [OnAction (Action "Continue") hasValue (return o getValue)]
+
+transpose :: [(a,[b])] -> [(b,[a])] | Eq b
+transpose a_bs = [(b,[a \\ (a,bs) <- a_bs | isMember b bs]) \\ b <- removeDup (flatten (map snd a_bs))]
+
+worker :: User -> ManagementMeta
+worker (AuthenticatedUser id _ _) = {noMeta & worker = UserWithId id}
 
 //* Customizing interaction with views
 
@@ -142,8 +202,8 @@ basicAPIExamples =
 
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
 
-	,workflow (distrTask +++ "Delegate Enter a person")    "Delegate Enter a person" 			(delegate enterPerson)
-
+	,workflow (distrTask +++ "Delegate Enter a person")    	"Delegate Enter a person" 			(delegate enterPerson)
+	,workflow (distrTask +++ "Plan meeting") 				"Plan meeting" 						testMeeting
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	]
