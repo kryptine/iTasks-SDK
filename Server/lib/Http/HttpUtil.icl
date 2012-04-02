@@ -166,8 +166,9 @@ http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply world //W
 	# reply = reply +++	("Content-Type: " +++ (http_getValue "Content-Type" headers "text/html") +++ "\r\n")					//Content type header
 	# reply = reply +++	("Content-Length: " +++ (toString (size data)) +++ "\r\n")												//Content length header
 	# reply = reply +++ ("Last-Modified: " +++ (http_getValue "Last-Modified" headers (now tm)) +++ "\r\n")						//Timestamp for caching
-	# reply = reply +++	(foldr (+++) "" [(n +++ ": " +++ v +++ "\r\n") \\ (n,v) <- toList headers | not (skipHeader n)])				//Additional headers
-	# reply = reply +++	("\r\n" +++ data)																						//Separator + data
+	# reply = reply +++	(foldr (+++) "" [(n +++ ": " +++ v +++ "\r\n") \\ (n,v) <- toList headers | not (skipHeader n)])		//Additional headers
+	# reply = reply +++	"\r\n"																									//Separator
+	# reply = reply +++	data																									//data
 	= (reply, world)
 where
 	//Do not add these headers two times
