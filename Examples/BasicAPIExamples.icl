@@ -1,6 +1,7 @@
 implementation module BasicAPIExamples
 import iTasks, UserAdmin, WorkflowAdmin
 import Text
+import GoogleMaps
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
 */
@@ -38,6 +39,9 @@ enterDateTime = enterInformation "Enter a date and time" []
 viewIntList :: Task [Int]
 viewIntList = viewInformation "View the numbers from 1 to 10" [] [1..10]
 
+enterGoogleMap :: Task GoogleMap
+enterGoogleMap = enterInformation "Edit Map..." []
+
 //* Interaction using user-defined types
 
 :: MyPerson =
@@ -74,6 +78,16 @@ editStoredPersons = updateSharedInformation "Update the stored list of persons" 
 
 viewStoredPersons :: Task [MyPerson] 
 viewStoredPersons = viewSharedInformation "These are the currently stored persons" [] personStore
+
+notes :: Task Note
+notes 
+	= withShared (Note "")
+		(\note -> 	viewSharedInformation "view on note" [] note
+					-||-
+					updateSharedInformation "edit shared note" [] note
+					-||-
+					updateSharedInformation "edit shared note" [] note
+		)
 
 linesPar :: Task (Maybe String)
 linesPar
@@ -174,6 +188,40 @@ where
 	view1 toPay 		   = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("To pay: " <+++ toPay)])]
 	view2 (product,money)  = [(DivTag [] [Text ("Chosen product: " <+++ product), BrTag [], Text ("Money returned: " <+++ money)])]
 
+// need some more work on lay-out and dividing...
+
+:: CalculatorState = { display :: Int, n :: Int }
+
+derive class iTask CalculatorState
+
+calculator :: Task Int
+calculator = calc initSt
+where
+	calc st
+	= 		viewInformation "Calculator" [ViewWith Display] st
+		>>* [ OnAction (Action "7") always (updateDigit 7 st) 
+			, OnAction (Action "8") always (updateDigit 8 st) 
+			, OnAction (Action "9") always (updateDigit 9 st) 
+			, OnAction (Action "4") always (updateDigit 4 st) 
+			, OnAction (Action "5") always (updateDigit 5 st) 
+			, OnAction (Action "6") always (updateDigit 6 st) 
+			, OnAction (Action "1") always (updateDigit 1 st) 
+			, OnAction (Action "2") always (updateDigit 2 st) 
+			, OnAction (Action "3") always (updateDigit 3 st) 
+			, OnAction (Action "0") always (updateDigit 0 st) 
+			, OnAction (Action "+") always (apply (+) st) 
+			, OnAction (Action "-") always (apply (-) st) 
+			, OnAction (Action "*") always (apply (*) st) 
+			, OnAction (Action "/") always (apply (/) st) 
+			]
+	where
+		updateDigit n st _ = calc {st & n = st.n*10 + n}
+	
+		apply op st _ = calc {display = op st.display st.n, n = 0}
+
+	initSt = { display = 0, n = 0}
+
+
 //* Parallel task composition
 
 derive class iTask Statistics
@@ -189,6 +237,7 @@ where
 		=	viewSharedInformation "Statistics:" [ViewWith stat] note 
 			-||-
 			updateSharedInformation "Edit text:" [] note
+			
 			
 stat (Note text) = {lineCount = length lines , wordCount = length words}
 where
@@ -282,6 +331,7 @@ basicAPIExamples =
 	,workflow (basicTypes +++ "Enter a string") 		 	"Entering a string" 				enterString
 	,workflow (basicTypes +++ "Enter an integer") 		 	"Entering an integer" 				enterInt
 	,workflow (basicTypes +++ "Enter a date & time") 	 	"Entering a date & time" 			enterDateTime
+	,workflow (basicTypes +++ "BUGGY: Enter Google Map") 	"Point on map" 						enterGoogleMap
 
 	,workflow (costumTypes +++ "Enter a person") 		 	"Entering a person" 				enterPerson
 	,workflow (costumTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		enterPersons
@@ -289,18 +339,20 @@ basicAPIExamples =
 	,workflow (sharedData +++ "View date and time")		 	"View the current date and time" 	viewCurDateTime
 	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	editStoredPersons
 	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	viewStoredPersons
-	,workflow (sharedData +++ "Edit note or List of strings") "Edit note or List of strings" 	linesPar
+	,workflow (sharedData +++ "Editors on shared note") 	"edit notes" 						notes
+	,workflow (sharedData +++ "BUGGY: Edit note or List of strings") "Edit note or List of strings" 	linesPar
 
 	,workflow (seqTasks +++ "Palindrome") 	 			 	"Enter a Palindrome" 				palindrome
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers" 				calculateSum
 	,workflow (seqTasks +++ "Sum, with backstep") 	 		"Sum, with backstep" 				calculateSumSteps
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers 2" 				calculateSum2
 	,workflow (seqTasks +++ "Coffee Machine") 	 			"Coffee Machine" 					coffeemachine
+	,workflow (seqTasks +++ "Calculator") 	 				"Calculator" 						calculator
 
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
 
-	,workflow (distrTask +++ "Delegate Enter a person")    	"Delegate Enter a person" 			(delegate enterPerson)
-	,workflow (distrTask +++ "Plan meeting") 				"Plan meeting" 						testMeeting
+	,workflow (distrTask +++ "BUGGY: Delegate Enter a person")    	"Delegate Enter a person" 			(delegate enterPerson)
+	,workflow (distrTask +++ "BUGGY: Plan meeting") 				"Plan meeting" 						testMeeting
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	]
