@@ -36,17 +36,20 @@ basicAPIExamples =
 	,workflow (seqTasks +++ "Hello User") 	 			 	"Enter your name:" 					hello
 	,workflow (seqTasks +++ "Positive Number") 	 			"Enter a positive number:" 			positiveNumber
 	,workflow (seqTasks +++ "Palindrome") 	 			 	"Enter a Palindrome" 				palindrome
-	,workflow (seqTasks +++ "Edit shared list of persons") 	"Select a person and edit record" 	choosePersonAndEdit
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers" 				calculateSum
 	,workflow (seqTasks +++ "Sum, with backstep") 	 		"Sum, with backstep" 				calculateSumSteps
 	,workflow (seqTasks +++ "Sum of two numbers") 	 		"Sum of two numbers 2" 				calculateSum2
 	,workflow (seqTasks +++ "Coffee Machine") 	 			"Coffee Machine" 					coffeemachine
 	,workflow (seqTasks +++ "Calculator") 	 				"Calculator" 						calculator
+	,workflow (seqTasks +++ "Edit shared list of persons") 	"Edit shared list of persons" 		editPersonList
+	,workflow (seqTasks +++ "Edit shared todo list") 		"Edit shared todo list" 			editToDoList
+	,workflow (seqTasks +++ "Follow tweets of a user") 		"Follow tweets of a user" 			followTweets
+
 
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
 
-	,workflow (distrTask +++ "BUGGY: Delegate Enter a person")    	"Delegate Enter a person" 			(delegate enterPerson)
-	,workflow (distrTask +++ "BUGGY: Plan meeting") 				"Plan meeting" 						testMeeting
+	,workflow (distrTask +++ "BUGGY: Delegate Enter a person")    	"Delegate Enter a person" 	(delegate enterPerson)
+	,workflow (distrTask +++ "BUGGY: Plan meeting") 				"Plan meeting" 				testMeeting
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	]
@@ -73,6 +76,8 @@ where
 		
 		
 //* utility functions
+
+undef = undef
 
 always = const True
 
@@ -208,31 +213,84 @@ where
 		  lc = fromString s
 
 // BUG? not always all record fields are shown in a choice...
+// sometimes I get several continues... does not looks nice
 
-choosePersonAndEdit:: Task Void
-choosePersonAndEdit  
-	=			enterSharedChoice "Choose an item to edit" [] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) personStore)
-		>>*		[ OnAction (Action "Append") hasValue (showAndDo append o getValue)
-				, OnAction (Action "Delete") hasValue (showAndDo delete o getValue)
-				, OnAction (Action "Edit")   hasValue (showAndDo edit   o getValue)
-				, OnAction (Action "Quit")   always (const (return Void))
+editPersonList :: Task Void
+editPersonList = editSharedList personStore
+
+editSharedList :: (Shared [a]) -> Task Void | iTask a
+editSharedList store 
+	=			enterSharedChoice "Choose an item to edit" [] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
+		>>*		[ OnAction (Action "Append")   hasValue (showAndDo append o getValue)
+				, OnAction (Action "Delete")   hasValue (showAndDo delete o getValue)
+				, OnAction (Action "Edit")     hasValue (showAndDo edit   o getValue)
+				, OnAction (Action "New List") always   (const (showAndDo append (-1,undef)))
+				, OnAction (Action "Quit")     always   (const (return Void))
 				]
 where
 	showAndDo fun ip
-		=		viewSharedInformation "In store" [] personStore
+		=		viewSharedInformation "In store" [] store
  		 		||- 
- 		 		fun ip 
-//		 	>>| choosePersonAndEdit										// BUG? gives additional continue ... not nice 
- 		 	>>* [ OnValue hasValue (const choosePersonAndEdit) ]
+ 		 		fun ip
+ 		 	>>* [ OnValue 					 hasValue (const (editSharedList store))
+ 		 		, OnAction (Action "Cancel") always   (const (editSharedList store))
+ 		 		]
 
 	append (i,_)
 		=			enterInformation "Add new item" []
-		>>=	\n ->	update (\ps -> let (begin,end) = splitAt (i+1) ps in (begin ++ [n] ++ end)) personStore
+		>>=	\n ->	update (\ps -> let (begin,end) = splitAt (i+1) ps in (begin ++ [n] ++ end)) store
 	delete (i,_)
-		=			update (\ps -> removeAt i ps) personStore
+		=			update (\ps -> removeAt i ps) store
 	edit (i,p)
 		=			updateInformation "Edit item" [] p 
-		 >>= \p -> 	update (\ps ->  updateAt i p ps) personStore
+		 >>= \p -> 	update (\ps ->  updateAt i p ps) store
+
+//
+
+:: ToDo =	{ name     :: String
+			, deadline :: Maybe Date
+			, remark   :: Maybe Note
+			, done     :: Bool
+			}
+derive class iTask ToDo
+
+toDoList :: Shared [ToDo]
+toDoList = sharedStore "My To Do List" []
+
+editToDoList = editSharedList toDoList
+
+//* tweets
+
+:: Tweet  :== (String,String)
+
+twitterId :: String -> Shared [Tweet]
+twitterId name  = sharedStore ("Twitter with " +++ name) []
+
+followTweets 
+	= 					get currentUser
+		>>= \me ->		enterSharedChoice "Whoms tweets you want to see?" [] users
+		>>= \user ->	let name = getName user in joinTweets (getName me) name "type in your tweet" (twitterId name)
+where
+	getName (AuthenticatedUser id _ (Just name)) = name +++ id
+	getName _ = "anonymus"
+
+
+joinTweets  :: String String String (Shared [Tweet]) -> Task Void
+joinTweets me follow message tweetsStore
+	=			viewSharedInformation ("You are following " +++ follow) [] tweetsStore
+				||-
+				updateInformation "Add a tweet" [] message
+		>>*		[ OnAction (Action "Quit")    always (const (return Void))
+//				, OnAction (Action "Refresh") always (const (joinTweets me follow tweets)) 
+				, OnAction (Action "Commit")  (ifValue (\v -> True /*size v > 0*/)) (commit o getValue)
+				]
+where
+	commit :: String -> Task Void
+	commit message
+		=				update (\tweets -> tweets ++ [(me,message)]) tweetsStore 
+			>>| 		joinTweets me follow "type in your tweet" tweetsStore
+
+//
 
 calculateSum :: Task Int
 calculateSum
@@ -365,7 +423,6 @@ delegate task
 	=							enterSharedChoice "Select someone to delegate the task to:" [] users
 		>>= \user -> user @: 	(task >>= return)
 		>>= \result ->			viewInformation "The result is:" [] result
-
 
 // plan meeting
 
