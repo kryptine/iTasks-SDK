@@ -48,8 +48,9 @@ basicAPIExamples =
 
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
 
-	,workflow (distrTask +++ "BUGGY: Delegate Enter a person")    	"Delegate Enter a person" 	(delegate enterPerson)
-	,workflow (distrTask +++ "BUGGY: Plan meeting") 				"Plan meeting" 				testMeeting
+	,workflow (distrTask +++ "BUGGY: Delegate Enter a person") "Delegate Enter a person" 		(delegate enterPerson)
+	,workflow (distrTask +++ "VERY BUGGY: Chat with someone")    "Chat with someone" 				chat
+	,workflow (distrTask +++ "BUGGY: Plan meeting") 		"Plan meeting" 						testMeeting
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	]
@@ -89,6 +90,9 @@ getValue (Value v _) = v
 ifValue pred (Value v _) = pred v
 ifValue _ _ = False
 
+ifStable (Value v Stable) = True
+ifStable _ = False
+
 returnF :: (a -> b) (TaskValue a) -> Task b | iTask b
 returnF fun (Value v _) = return (fun v)
 
@@ -101,6 +105,13 @@ returnV (Value v _) = return v
 toMaybe :: (TaskValue a) -> Maybe a
 toMaybe (Value v _) =  (Just v)
 toMaybe _   =  Nothing
+
+getUserName :: User -> String
+getUserName (AuthenticatedUser id _ (Just name)) = name +++ id
+getUserName _ = "anonymus"
+
+(>||) infixl 1 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
+(>||) ta tb = ta >>* [ OnValue  ifStable (const tb) ]
 
 //* The example tasks are colelcted in categories:
 
@@ -269,26 +280,22 @@ twitterId name  = sharedStore ("Twitter with " +++ name) []
 followTweets 
 	= 					get currentUser
 		>>= \me ->		enterSharedChoice "Whoms tweets you want to see?" [] users
-		>>= \user ->	let name = getName user in joinTweets (getName me) name "type in your tweet" (twitterId name)
+		>>= \user ->	let name = getUserName user in joinTweets (getUserName me) name "type in your tweet" (twitterId name)
 where
-	getName (AuthenticatedUser id _ (Just name)) = name +++ id
-	getName _ = "anonymus"
-
-
-joinTweets  :: String String String (Shared [Tweet]) -> Task Void
-joinTweets me follow message tweetsStore
-	=			viewSharedInformation ("You are following " +++ follow) [] tweetsStore
-				||-
-				updateInformation "Add a tweet" [] message
-		>>*		[ OnAction (Action "Quit")    always (const (return Void))
-//				, OnAction (Action "Refresh") always (const (joinTweets me follow tweets)) 
-				, OnAction (Action "Commit")  (ifValue (\v -> True /*size v > 0*/)) (commit o getValue)
-				]
-where
-	commit :: String -> Task Void
-	commit message
-		=				update (\tweets -> tweets ++ [(me,message)]) tweetsStore 
-			>>| 		joinTweets me follow "type in your tweet" tweetsStore
+	joinTweets  :: String String String (Shared [Tweet]) -> Task Void
+	joinTweets me follow message tweetsStore
+		=			viewSharedInformation ("You are following " +++ follow) [] tweetsStore
+					||-
+					updateInformation "Add a tweet" [] message
+			>>*		[ OnAction (Action "Quit")    always (const (return Void))
+	//				, OnAction (Action "Refresh") always (const (joinTweets me follow tweets)) 
+					, OnAction (Action "Commit")  (ifValue (\v -> True /*size v > 0*/)) (commit o getValue)
+					]
+	where
+		commit :: String -> Task Void
+		commit message
+			=				update (\tweets -> tweets ++ [(me,message)]) tweetsStore 
+				>>| 		joinTweets me follow "type in your tweet" tweetsStore
 
 //
 
@@ -420,9 +427,28 @@ horizontal = AfterLayout (tweakTUI (setDirection Horizontal))
 
 delegate :: (Task a) -> Task a | iTask a
 delegate task
-	=							enterSharedChoice "Select someone to delegate the task to:" [] users
-		>>= \user -> user @: 	(task >>= return)
-		>>= \result ->			viewInformation "The result is:" [] result
+	=					enterSharedChoice "Select someone to delegate the task to:" [] users
+		>>= \user -> 	user @: (task >>= return)
+		>>= \result ->	viewInformation "The result is:" [] result
+
+// chat
+
+
+chat :: Task Void
+chat = 					get currentUser
+		>>= \me ->		enterSharedChoice "Select someone to chat with:" [] users
+		>>= \user -> 	withShared ("","") (duoChat user (getUserName me) (getUserName user))
+		>||				return Void
+where
+	duoChat user me you notes
+		=	updateSharedInformation ("Chat with " +++ me)  [UpdateWith toView fromView] notes
+			-||-
+  		    (user @: updateSharedInformation ("Chat with " +++ you) [UpdateWith (toView o switch) (\a v -> switch (fromView a v))] notes)
+
+	toView   (me,you) 							= (/*Display*/ (Note you), Note me)
+	fromView _ (/*Display*/ (Note you), Note me) 	= (me,you) 
+
+	switch (me,you) = (you,me)
 
 // plan meeting
 
