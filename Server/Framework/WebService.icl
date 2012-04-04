@@ -137,12 +137,7 @@ where
 		_						= Nothing
 
 	guiVersion			= toInt versionParam
-/*	
-	//Parse the body of the request as JSON message
-	(luckyEdit,luckyCommit) = if(req.req_data == "")
-		(Nothing,Nothing)	
-		(Just (LuckyEvent ("0",fromString req.req_data)), Just (LuckyEvent ""))
-*/
+
 	jsonResponse json
 		= {HTTPResponse | rsp_headers = fromList [("Content-Type","text/json")], rsp_data = toString json}
 	errorResponse msg
@@ -155,18 +150,13 @@ where
 		findActions taskId actions
 			= [actionName action \\ (task,action,enabled) <- actions | enabled && task == taskId]
 	
-	serviceDoneResponse (Container val :: Container a a)
-		= JSONObject [("status",JSONString "complete"),("value",toJSON val)]
-	serviceDoneResponse _
-		= serviceErrorResponse "Corrupt result value"
+	serviceDoneResponse val
+		= JSONObject [("status",JSONString "complete"),("value",val)]
 	serviceErrorResponse e
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
-	plainDoneResponse (Container val :: Container a a)
-		= jsonResponse (toJSON val)
-	plainDoneResponse _
-		= errorResponse "Corrupt result value"
-
+	plainDoneResponse val = jsonResponse val
+	
 	appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
 
 	appStartPage appName = HtmlTag [] [head,body]

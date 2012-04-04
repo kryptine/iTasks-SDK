@@ -17,7 +17,7 @@ derive JSONDecode TaskInstance, TaskTree
 	, nextTaskTime	:: !TaskTime
 	, progress		:: !ProgressMeta					
 	, management	:: !ManagementMeta
-	, task			:: !Dynamic
+	, task			:: !Task JSONNode
 	, result		:: !TaskResult JSONNode				//Result of last evaluation
 	, shares		:: ![(!TaskNo,!JSONNode)]			//Locally shared data
 	, lists			:: ![(!TaskId,![TaskListEntry])]	//Shared task lists of parallel tasks

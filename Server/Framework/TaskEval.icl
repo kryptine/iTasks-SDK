@@ -10,37 +10,30 @@ from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 from Map				import qualified fromList, toList, get, put
 import iTaskClass
 
-setStatus :: !Stability !ProgressMeta -> ProgressMeta
-setStatus status meta = {meta & status = status}
-
-//Tasks are packed in container to have all required overloading resolved for
-//completely independent evaluation
-createTaskContainer :: (ParallelTask a) -> Dynamic | iTask a
-createTaskContainer parTask = (dynamic (Container parTask) :: Container (ParallelTask a^) a^)
-
-//Final task results are wrapped in a container to be able to serialize it in
-//a webservice response
-createValueContainer :: a -> Dynamic | iTask a
-createValueContainer val = (dynamic (Container val) :: Container a^ a^)
-
-createTaskInstance :: !InstanceNo !(Maybe SessionId) !Dynamic !ManagementMeta !ProgressMeta !*IWorld -> (!TaskInstance, !*IWorld)
-createTaskInstance instanceNo sessionId container=:(Container parTask :: Container (ParallelTask a) a) mmeta pmeta iworld=:{taskTime} 
-	= ({TaskInstance|instanceNo=instanceNo,sessionId=sessionId,parent=0,nextTaskNo=1,nextTaskTime=2,progress=pmeta,management=mmeta,task=container
+createTaskInstance :: !InstanceNo !(Maybe SessionId) !InstanceNo !(Task a) !ManagementMeta !ProgressMeta !*IWorld -> (!TaskInstance, !*IWorld) | iTask a
+createTaskInstance instanceNo sessionId parent task mmeta pmeta iworld=:{taskTime} 
+	= ({TaskInstance|instanceNo=instanceNo,sessionId=sessionId,parent=parent,nextTaskNo=1,nextTaskTime=2,progress=pmeta,management=mmeta,task=toJSONTask task
 	   ,result = ValueResult NoValue taskTime (TaskRep (SingleTask,Just (stringDisplay "This task has not been evaluated yet." ),[],[]) []) (TCInit (TaskId instanceNo 0) 1)
 	   ,shares = [], lists = [], observers = []}, iworld)
+where
+	toJSONTask (Task eval) = Task eval`
+	where
+		eval` eEvent cEvent refresh repAs tree iworld = case eval eEvent cEvent refresh repAs tree iworld of
+			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
+			(ExceptionResult e str,iworld)			= (ExceptionResult e str,iworld)
 
-createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld) |  iTask a
+createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !SessionId), !*IWorld) |  iTask a
 createSessionInstance task editEvent commitEvent iworld=:{currentDateTime}
 	# (sessionId,iworld)	= newSessionId iworld
 	# (instanceId,iworld)	= newInstanceId iworld
-	# (inst, iworld)		= createTaskInstance instanceId (Just sessionId) (createTaskContainer (\_ -> task)) noMeta {issuedAt=currentDateTime,issuedBy=AnonymousUser sessionId,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
-	# (mbRes,inst,iworld)	= evalInstance editEvent commitEvent False inst iworld
+	# (inst, iworld)		= createTaskInstance instanceId (Just sessionId) 0 task noMeta {issuedAt=currentDateTime,issuedBy=AnonymousUser sessionId,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
+	# (mbRes,inst,iworld)	= evalAndStoreInstance editEvent commitEvent False inst iworld
 	# iworld				= storeTaskInstance inst iworld
 	= case mbRes of
 		Ok result	= (Ok (result, sessionId), iworld)
 		Error e		= (Error e, iworld)
 
-evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld)
+evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !SessionId), !*IWorld)
 evalSessionInstance sessionId eEvent cEvent iworld
 	//Set session user
 	# iworld				= {iworld & currentUser = AnonymousUser sessionId}
@@ -51,7 +44,7 @@ evalSessionInstance sessionId eEvent cEvent iworld
 	= case mbInstance of
 		Error e				= (Error e, iworld)
 		Ok inst
-			# (mbRes,inst,iworld)	= evalInstance eEvent cEvent True inst iworld
+			# (mbRes,inst,iworld)	= evalAndStoreInstance eEvent cEvent True inst iworld
 			# iworld				= storeTaskInstance inst iworld
 			# iworld				= remOutdatedInstance inst.TaskInstance.instanceNo iworld
 			= case mbRes of
@@ -66,13 +59,9 @@ processEvent eEvent cEvent iworld
 		(Error _,iworld)	= iworld
 		(Ok inst,iworld)
 			//Eval the targeted instance first
-			# (_,inst,iworld)	= evalInstance eEvent cEvent False inst iworld
-			# iworld			= storeTaskInstance inst iworld
-			# iworld			= remOutdatedInstance inst.TaskInstance.instanceNo iworld
+			# (_,inst,iworld)	= evalAndStoreInstance eEvent cEvent False inst iworld
 			//Eval another time with refresh flag to make sure shares are all up-to-date (THIS SHOULD BE OPTIMIZED)
-			# (_,inst,iworld)	= evalInstance eEvent cEvent True inst iworld
-			# iworld			= storeTaskInstance inst iworld
-			# iworld			= remOutdatedInstance inst.TaskInstance.instanceNo iworld
+			# (_,inst,iworld)	= evalAndStoreInstance eEvent cEvent True inst iworld
 			//Refresh affected tasks
 			# iworld			= refreshOutdatedInstances iworld 
 			= iworld
@@ -80,18 +69,17 @@ where
 	instanceNo (Just (TaskEvent (TaskId no _) _)) _ = no
 	instanceNo _ (Just (TaskEvent (TaskId no _) _)) = no
 	
-createPersistentInstance :: !(Task a) !ManagementMeta !User !*IWorld -> (!TaskId, !*IWorld) | iTask a
-createPersistentInstance task meta issuer iworld=:{currentDateTime}
+createPersistentInstance :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createPersistentInstance task meta issuer parent iworld=:{currentDateTime}
 	# (instanceId,iworld)	= newInstanceId iworld
-	# (state, iworld)		= createTaskInstance instanceId Nothing (createTaskContainer (\_ -> task)) meta {issuedAt=currentDateTime,issuedBy=issuer,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
+	# (state, iworld)		= createTaskInstance instanceId Nothing parent task meta {issuedAt=currentDateTime,issuedBy=issuer,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
 	# iworld				= storeTaskInstance state iworld		
 	= (TaskId instanceId 0, iworld)
 
 //Evaluate a single task instance
-evalInstance :: !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !TaskInstance  !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskInstance, !*IWorld)
-evalInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceNo,nextTaskNo=curNextTaskNo,nextTaskTime,progress,task=(Container parTask :: Container (ParallelTask a) a),result=ValueResult _ _ _ tree,shares,lists} iworld=:{currentInstance,nextTaskNo,taskTime,localShares,localLists}
+evalAndStoreInstance :: !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !TaskInstance  !*IWorld -> (!MaybeErrorString (TaskResult JSONNode), !TaskInstance, !*IWorld)
+evalAndStoreInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceNo,parent,nextTaskNo=curNextTaskNo,nextTaskTime,progress,task=Task eval,result=ValueResult val _ _ tree,shares,lists} iworld=:{currentInstance,nextTaskNo,taskTime,localShares,localLists}
 	//Eval instance
-	# (Task eval)				= parTask topListShare
 	# repAs						= TaskRepOpts Nothing Nothing
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
@@ -105,24 +93,31 @@ evalInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceNo,nextTa
 	# (lists,iworld)			= getLocalLists iworld
 	//Restore current process id, nextTask id and local shares in iworld
 	# iworld					= {iworld & currentInstance = currentInstance, nextTaskNo = nextTaskNo, taskTime = taskTime, localShares = localShares, localLists = localLists}
-	= case result of
-		ValueResult NoValue lastEvent rep tree
-			# inst = {TaskInstance|inst & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, progress = setStatus Unstable progress, result = ValueResult NoValue lastEvent rep tree, shares = shares, lists = lists}
-			= (Ok (ValueResult NoValue lastEvent rep tree), inst, iworld)
-		ValueResult (Value val stable) lastEvent rep tree
-			# inst = {TaskInstance|inst & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, progress = setStatus stable progress, result = ValueResult (Value (toJSON val) stable) lastEvent rep tree, shares = shares, lists = lists}
-			= (Ok (ValueResult (Value (createValueContainer val) stable) lastEvent rep tree), inst, iworld)
-		ExceptionResult e str
-			# inst = {TaskInstance|inst & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, progress = setStatus Unstable progress, result = ExceptionResult e str, shares = shares, lists = lists}
-			= (Ok (ExceptionResult e str), inst, iworld)
+	# inst 						= {TaskInstance|inst & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, progress = setStatus result progress, result = result, shares = shares, lists = lists}
+	//Store the instance and remove the instance from the index of outdated instances
+	# iworld					= storeTaskInstance inst iworld
+	# iworld					= remOutdatedInstance instanceNo iworld
+	//If the result has a new value, mark the parent process as outdated
+	| parent > 0 && isChanged val result
+		# iworld				= addOutdatedInstances [parent] iworld
+		= (Ok result, inst, iworld)
+	| otherwise
+		= (Ok result, inst, iworld)
 where
 	getNextTaskNo iworld=:{IWorld|nextTaskNo} = (nextTaskNo,iworld)
 	getLocalShares iworld=:{IWorld|localShares} = ([(taskNo,val) \\ (TaskId _ taskNo,val) <- 'Map'.toList localShares],iworld)
 	getLocalLists iworld=:{IWorld|localLists} = ('Map'.toList localLists,iworld)
 
-evalInstance _ _ _ inst=:{TaskInstance|result=ExceptionResult e msg} iworld
+	setStatus (ExceptionResult _ _) meta				= {meta & status = Stable}
+	setStatus (ValueResult (Value _ Stable) _ _ _) meta	= {meta & status = Stable}
+	setStatus _	meta									= {meta & status = Unstable}
+	
+	isChanged val (ValueResult nval _ _ _)  = val =!= nval
+	isChanged val _							= True
+
+evalAndStoreInstance _ _ _ inst=:{TaskInstance|result=ExceptionResult e msg} iworld
 	= (Ok (ExceptionResult e msg), inst, iworld)
-evalInstance _ _ _ inst iworld	
+evalAndStoreInstance _ _ _ inst iworld	
 	= (Ok (exception "Could not unpack instance state"), inst, iworld)
 
 //Evaluate tasks marked as outdated in the task pool
@@ -134,16 +129,14 @@ where
 		(Just next,iworld)
 			| isMember next done	= iworld
 									= refresh [next:done] (refreshInstance next iworld)
-	
+
 //Evaluate a task instance without any events
 refreshInstance :: !InstanceNo !*IWorld -> *IWorld
 refreshInstance instanceNo iworld
 	= case loadTaskInstance instanceNo iworld of
 		(Error _,iworld)	= iworld
 		(Ok inst,iworld)
-			# (_,inst,iworld)	= evalInstance Nothing Nothing False inst iworld
-			# iworld			= storeTaskInstance inst iworld
-			# iworld			= remOutdatedInstance inst.TaskInstance.instanceNo iworld
+			# (_,_,iworld)	= evalAndStoreInstance Nothing Nothing False inst iworld
 			= iworld
 
 localShare :: !TaskId -> Shared a | iTask a
@@ -192,4 +185,3 @@ where
 	
 	deserialize NoValue	= NoValue
 	deserialize (Value json stable) = maybe NoValue (\v -> Value v stable) (fromJSON json)
-

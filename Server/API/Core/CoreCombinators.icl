@@ -218,7 +218,7 @@ where
 //SHARED HELPER FUNCTIONS
 //TODO: Also add to lists which are not in scope!
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
-appendTaskToList taskId (parType,parTask) iworld=:{localLists,taskTime,currentUser,currentDateTime}
+appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{localLists,taskTime,currentUser,currentDateTime}
 	# list = fromMaybe [] ('Map'.get taskId localLists)
 	# (taskIda,state,iworld) = case parType of
 		Embedded
@@ -228,7 +228,7 @@ appendTaskToList taskId (parType,parTask) iworld=:{localLists,taskTime,currentUs
 		Detached management
 			# task									= parTask (parListShare taskId)
 			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,status=Unstable,firstEvent=Nothing,latestEvent=Nothing}
-			# (taskIda=:TaskId instanceNo _,iworld)	= createPersistentInstance task management currentUser iworld
+			# (taskIda=:TaskId instanceNo _,iworld)	= createPersistentInstance task management currentUser parent iworld
 			
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# result	= ValueResult NoValue taskTime (TaskRep (SingleTask,Just (stringDisplay "Task not evaluated yet"),[],[]) []) (TCInit taskIda taskTime)
@@ -297,7 +297,7 @@ where
 	append TopLevelTaskList parType parTask iworld=:{currentUser}
 		# meta						= case parType of Embedded = noMeta; Detached meta = meta;
 		# task						= parTask topListShare
-		= createPersistentInstance task meta currentUser iworld
+		= createPersistentInstance task meta currentUser 0 iworld
 	append (ParallelTaskList parId) parType parTask iworld
 		= appendTaskToList parId (parType,parTask) iworld
 

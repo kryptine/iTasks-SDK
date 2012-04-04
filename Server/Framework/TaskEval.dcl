@@ -19,7 +19,7 @@ import TaskState, iTaskClass
 * @return The result of the targeted main task and the tasknr of the instance or an error
 * @return The IWorld state
 */
-createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld) |  iTask a
+createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !SessionId), !*IWorld) |  iTask a
 
 /**
 * Evaluate a session task instance
@@ -32,19 +32,20 @@ createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWo
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld)
+evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !SessionId), !*IWorld)
 
 /**
-* Create a stored task instance in the task pool 2(lazily without evaluating it)
+* Create a stored task instance in the task pool (lazily without evaluating it)
 * @param The task to store
 * @param Management meta data
 * @param The user who issued the task
+* @param The parent instance that created the instance
 * @param The IWorld state
 *
 * @return The task id of the stored instance
 * @return The IWorld state
 */
-createPersistentInstance :: !(Task a) !ManagementMeta !User !*IWorld -> (!TaskId, !*IWorld) | iTask a
+createPersistentInstance :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
 //Helper functions that provide access to shares and parallel task lists
 localShare		:: !TaskId ->	Shared a			| iTask a
