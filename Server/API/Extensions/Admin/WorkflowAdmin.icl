@@ -76,7 +76,7 @@ where
 		insertWorkflow` [nodeP:pathR] [] = [Node (Left nodeP) (insertWorkflow` pathR [])]
 
 // SERVICE TASKS
-viewTaskList :: Task [TaskListItem]
+viewTaskList :: Task [TaskListItem Void]
 viewTaskList 
 	=	doAuthenticated (viewSharedInformation "Tasks" [] processesForCurrentUser)
 
@@ -205,13 +205,11 @@ manageWork taskList = forever
 	)
 where
 	// list of active processes for current user without current one (to avoid work on dependency cycles)
-	processes = mapRead (\(procs,ownPid) -> filter (show ownPid) (pflatten procs)) (processesForCurrentUser |+| currentTopTask)
+	processes = mapRead (\(procs,ownPid) -> filter (show ownPid) (filter isActive procs)) (processesForCurrentUser |+| currentTopTask)
 	where
 		show ownPid {TaskListItem|taskId,progressMeta=Just pmeta,managementMeta=Just _} = taskId <> ownPid
 		show ownPid _ = False
 		
-		pflatten procs = flatten [[p:pflatten p.subItems] \\ p <- procs | isActive p]
-	
 	isActive {progressMeta=Just {status=Unstable}}	= True
 	isActive _										= False	
 

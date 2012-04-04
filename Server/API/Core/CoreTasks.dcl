@@ -8,8 +8,6 @@ from Error				import ::MaybeError(..)
 from OSError			import ::MaybeOSError, ::OSError, ::OSErrorCode, ::OSErrorMessage
 from Task				import :: Task
 
-derive class iTask WorkOnStatus
-
 /**
 * Lifts a value to the task domain. The task finishes immediately and yields its parameter
 * as result of the task.
@@ -101,25 +99,6 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 */
 interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask)) -> Task l | descr d & iTask l & iTask r & iTask v
 	
-/**
-* State of another process the user works on.
-*/
-:: WorkOnStatus
-	= WOActive		//* the process is active, the user can work on it
-	| WOFinished	//* the process is finished
-	| WOExcepted	//* an uncaught exception was thrown inside of the process
-	| WODeleted		//* the process has been deleted
-
-/**
-* Work on another process.
-*
-* @param Process ID: The ID of the process to work on
-* 
-* @return The state of the process to work on
-* @throws WorkOnException
-*/
-workOn :: !TaskId -> Task WorkOnStatus
-
 /**
 * Evaluate a "World" function that does not yield any result once.
 *

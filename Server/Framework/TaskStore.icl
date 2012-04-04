@@ -2,7 +2,7 @@ implementation module TaskStore
 
 import StdEnv, Maybe
 
-import IWorld, TaskState, Store, Util, Text, Time, Random, JSON, TUIDefinition, Map
+import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON, TUIDefinition, Map
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
 //Derives required for storage of TUI definitions
@@ -19,6 +19,7 @@ derive JSONDecode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem
 INCREMENT				:== "increment"
 SESSION_INDEX			:== "session-index"
 PERSISTENT_INDEX		:== "persistent-index"
+OUTDATED_INDEX			:== "outdated-index"
 
 state_store t	= toString t +++ "-state"
 tui_store s		= s +++ "-tui"
@@ -50,10 +51,17 @@ where
 	replace item [] = [item]
 	replace item [i:is] = if (item.TaskListItem.taskId == i.TaskListItem.taskId) [item:is] [i:replace item is]
 
+	instanceToTaskListItem :: !TaskInstance -> TaskListItem a
+	instanceToTaskListItem {TaskInstance|instanceNo,progress,management,result}
+		= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = attributes result, progressMeta = Just progress, managementMeta = Just management}
+	where
+		attributes (ValueResult _ _ (TaskRep (_,_,_,attr) _) _) = attr
+		attributes _											= []
+	
 loadTaskInstance :: !InstanceNo !*IWorld -> (!MaybeErrorString TaskInstance, !*IWorld)
-loadTaskInstance topno iworld
-	# (val,iworld) = loadValue NS_TASK_INSTANCES (state_store topno) iworld
-	= (maybe (Error ("Could not load context of task " +++ toString topno)) Ok val, iworld)
+loadTaskInstance instanceNo iworld
+	# (val,iworld) = loadValue NS_TASK_INSTANCES (state_store instanceNo) iworld
+	= (maybe (Error ("Could not load instance state of task " +++ toString instanceNo)) Ok val, iworld)
 
 loadSessionInstance	:: !SessionId !*IWorld -> (!MaybeErrorString TaskInstance, !*IWorld)
 loadSessionInstance sessionId iworld
@@ -63,13 +71,41 @@ loadSessionInstance sessionId iworld
 		_			= (Error ("Could not load session " +++ sessionId), iworld)
 		
 deleteTaskInstance :: !InstanceNo !*IWorld -> *IWorld
-deleteTaskInstance topno iworld
-	# iworld = deleteValue NS_TASK_INSTANCES (state_store topno) iworld
-	# iworld = updatePersistentInstanceIndex (delete topno) iworld
+deleteTaskInstance instanceNo iworld
+	# iworld = deleteValue NS_TASK_INSTANCES (state_store instanceNo) iworld
+	# iworld = updatePersistentInstanceIndex (delete instanceNo) iworld
 	= iworld
 where
 	delete id list = [ i \\ i <- list | i.TaskListItem.taskId <> TaskId id 0]
-	
+
+updateTaskInstance :: !InstanceNo !(TaskInstance -> TaskInstance) !*IWorld -> *IWorld
+updateTaskInstance instanceNo f iworld
+	= case loadValue NS_TASK_INSTANCES (state_store instanceNo) iworld of
+		(Nothing,iworld)	= iworld
+		(Just inst,iworld)	
+			# iworld = storeValue NS_TASK_INSTANCES (state_store instanceNo) (f inst) iworld
+			# iworld = addOutdatedInstances [instanceNo] iworld
+			= iworld
+			
+addTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
+addTaskInstanceObserver observer instanceNo iworld
+	= updateTaskInstance instanceNo (add observer) iworld
+where
+	add observer inst=:{TaskInstance|observers}		= {TaskInstance|inst & observers = removeDup (observers ++ [observer])}
+
+addOutdatedInstances :: ![InstanceNo] !*IWorld -> *IWorld
+addOutdatedInstances outdated iworld = updateOutdatedInstanceIndex ((++) outdated) iworld
+
+remOutdatedInstance :: !InstanceNo !*IWorld -> *IWorld
+remOutdatedInstance rem iworld = updateOutdatedInstanceIndex (filter ((<>) rem)) iworld
+
+nextOutdatedInstance :: !*IWorld -> (!Maybe InstanceNo,!*IWorld)
+nextOutdatedInstance iworld
+	# (index,iworld)	= loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
+	= case index of	
+		Just [next:_]	= (Just next,iworld)
+		_				= (Nothing,iworld)
+		
 storeTaskTUI :: !SessionId !TUIDef !Int !*IWorld -> *IWorld
 storeTaskTUI sid def version iworld = storeValue NS_TASK_INSTANCES (tui_store sid) (def,version) iworld
 
@@ -77,7 +113,7 @@ loadTaskTUI	:: !SessionId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorl
 loadTaskTUI sid iworld
 	# (mbVal,iworld) = loadValue NS_TASK_INSTANCES (tui_store sid) iworld
 	= case mbVal of
-		Just val	= (Ok val,iworld)
+		Just val	= (Ok val, iworld)
 		Nothing		= (Error ("Could not load tui of " +++ sid), iworld)
 
 updateSessionInstanceIndex :: !((Map SessionId InstanceNo)-> (Map SessionId InstanceNo)) !*IWorld -> *IWorld
@@ -86,8 +122,15 @@ updateSessionInstanceIndex f iworld
 	# iworld			= storeValue NS_TASK_INSTANCES SESSION_INDEX (f (fromMaybe newMap index)) iworld
 	= iworld
 
-updatePersistentInstanceIndex :: !([TaskListItem] -> [TaskListItem]) !*IWorld -> *IWorld 
+updatePersistentInstanceIndex :: !([TaskListItem Void] -> [TaskListItem Void]) !*IWorld -> *IWorld 
 updatePersistentInstanceIndex f iworld
 	# (index,iworld)	= loadValue NS_TASK_INSTANCES PERSISTENT_INDEX iworld
 	# iworld			= storeValue NS_TASK_INSTANCES PERSISTENT_INDEX (f (fromMaybe [] index)) iworld
 	= iworld
+	
+updateOutdatedInstanceIndex :: ([Int] -> [Int]) !*IWorld -> *IWorld
+updateOutdatedInstanceIndex f iworld
+	# (index,iworld)	= loadValue NS_TASK_INSTANCES OUTDATED_INDEX iworld
+	# iworld			= storeValue NS_TASK_INSTANCES OUTDATED_INDEX (sortBy (>) (removeDup (f (fromMaybe [] index)))) iworld
+	= iworld
+	

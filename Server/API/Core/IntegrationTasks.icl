@@ -64,16 +64,7 @@ where
 						//Still busy
 						# gui 			= [(ViewPart, Just (stringDisplay ("Calling " +++ cmd)), [], [])]
 						# attributes	= [(TITLE_ATTRIBUTE,"Calling external process")]
-						# rep = case repAs of
-							(TaskRepTarget Nothing _ _)	
-								= TaskRep ((repLayout repAs) SingleTask gui [] attributes) []
-							(TaskRepTarget (Just target) _ _)
-								| target == taskId
-									= TaskRep ((repLayout repAs) SingleTask gui [] attributes) []
-								| otherwise
-									= TaskRep (SingleTask,Nothing,[],[]) []
-							
-						
+						# rep			= TaskRep ((repLayout repAs) SingleTask gui [] attributes) []
 						= (ValueResult NoValue lastEvent rep state,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res

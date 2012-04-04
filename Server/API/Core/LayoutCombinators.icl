@@ -223,34 +223,18 @@ where
 							]					
 		= (type,Just gui, actions, attributes)
 
-/*	
-
-columnLayout :: !Int ![TUIDef] -> TUIDef
-columnLayout nCols items
-	# cols = repeatn nCols []
-	# cols = columnLayout` items cols
-	# cols = map (\col -> {content = TUIContainer {TUIContainer|defaultContainer col & direction = Vertical}, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing}) cols
-	= {content = TUIContainer {TUIContainer|defaultContainer cols & direction = Horizontal}, width = Just (WrapContent 0), height = Just (WrapContent 0), margins = Nothing}
-where
-	columnLayout` items cols = case splitAt nCols items of
-		([],_)	= map reverse cols
-		(row,r)	= columnLayout` r (map (\(item,col) -> [item:col]) (zip2 row cols))
-		
-*/
-			
-
 //Determine the index of the visible part with the highest stack-order attribute
 getTopIndex :: [TaskTUIRep] -> Int 
 getTopIndex parts = find 0 0 0 parts
 where
 	find maxTop maxIndex i [] = maxIndex
 	find maxTop maxIndex i [(_,Nothing,_,_):ps] = find maxTop maxIndex i ps //Ignore invisible parts 
-	find maxTop maxIndex i [(_,_,_,attr):ps] = case kvGet STACK_ATTRIBUTE attr of
+	find maxTop maxIndex i [(_,_,_,attr):ps] = case kvGet TIME_ATTRIBUTE attr of
 		Nothing			= find maxTop maxIndex (i + 1) ps
-		Just stackOrder	
-			# stackOrder = toInt stackOrder
-			| stackOrder >= maxTop	= find stackOrder i (i + 1) ps
-									= find maxTop maxIndex (i + 1) ps
+		Just time	
+			# time = toInt time
+			| time > maxTop	= find time i (i + 1) ps
+							= find maxTop maxIndex (i + 1) ps
 									
 canHoldButtons :: TUIDef -> Bool
 canHoldButtons def=:{TUIDef|content} = case content of

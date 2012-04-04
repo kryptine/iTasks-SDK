@@ -8,8 +8,7 @@ from LayoutCombinators	import :: SetLayout, :: ModifyLayout, :: Layout
 import Task, Shared
 
 import iTaskClass
-derive class iTask ParallelTaskType
-
+derive class iTask ParallelTaskType, WorkOnStatus
 /**
 * Adds a result transformation function to a task.
 * The resulting task is still considered a single step in the workflow.
@@ -73,26 +72,37 @@ taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]
 /**
 * Get the properties share of a task list
 */
-taskListMeta	:: !(SharedTaskList s) -> ReadOnlyShared [TaskListItem]
+taskListMeta	:: !(SharedTaskList a) -> ReadOnlyShared [TaskListItem a]
 
 //Task list manipulation 
 
 /**
 * Appends a task to a task list
 */
-appendTask :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task TaskId | TC a & JSONEncode{|*|} a
+appendTask :: !ParallelTaskType !(ParallelTask a)	!(SharedTaskList a) -> Task TaskId | iTask a
 /**
 * Removes (and stops) a task from a task list
 */
-removeTask :: !TaskId								!(SharedTaskList s)	-> Task Void | TC s
+removeTask :: !TaskId								!(SharedTaskList a)	-> Task Void | iTask a
 
 /**
-* Provide a local read/write shared for a task to work on.
-*
-* @param The initial value of the shared variable
-* @param The task which uses the shared variable
+* State of another process the user works on.
 */
-withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
+:: WorkOnStatus
+	= WOActive		//* the process is active, the user can work on it
+	| WOFinished	//* the process is finished
+	| WOExcepted	//* an uncaught exception was thrown inside of the process
+	| WODeleted		//* the process has been deleted
+
+/**
+* Work on a detached task.
+*
+* @param Task identification of the task to work on
+* 
+* @return The state of the task to work on
+* @throws WorkOnException
+*/
+workOn :: !TaskId -> Task WorkOnStatus
 
 /**
 * Execute a task with the identity of the given user
@@ -103,6 +113,14 @@ withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 * @return The modified task
 */
 workAs :: !User !(Task a)						-> Task a | iTask a
+
+/**
+* Provide a local read/write shared for a task to work on.
+*
+* @param The initial value of the shared variable
+* @param The task which uses the shared variable
+*/
+withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 
 /**
 * Fine tune a task by specifying custom layouts, tweaking generic layouts,

@@ -100,16 +100,15 @@ instance toEmail String
 
 :: TaskList a =
 	{ listId	:: !(TaskListId a)
-	, state		:: ![TaskValue a]
-	, items		:: ![TaskListItem]
+	, items		:: ![TaskListItem a]
 	}
 
-:: TaskListItem	=
+:: TaskListItem a =
 	{ taskId			:: !TaskId
+	, value				:: !TaskValue a
 	, taskMeta			:: !TaskMeta
 	, managementMeta	:: !Maybe ManagementMeta	//Only for detached tasks
 	, progressMeta		:: !Maybe ProgressMeta		//Only for detached tasks
-	, subItems			:: ![TaskListItem]
 	}
 
 :: SharedTaskList a	:==	ReadOnlyShared (TaskList a)
@@ -372,8 +371,6 @@ fromFillWControlSize :: !(FillWControlSize .a) -> .a
 toFillHControlSize :: !.a -> FillHControlSize .a
 fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
-
-
 //* tasks can have three levels of priority
 :: TaskPriority		= HighPriority					
 					| NormalPriority
@@ -390,7 +387,7 @@ TITLE_ATTRIBUTE	:== "title"
 HINT_ATTRIBUTE	:== "hint"
 ERROR_ATTRIBUTE	:== "error"
 ICON_ATTRIBUTE	:== "icon"
-STACK_ATTRIBUTE	:== "stack-order"
+TIME_ATTRIBUTE	:== "time"	//Task time, used for ordering but not real time
 
 class descr d
 where

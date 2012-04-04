@@ -667,6 +667,7 @@ noMeta =
 	, priority			= NormalPriority
 	}
 
+
 formatPriority	:: !TaskPriority	-> HtmlTag
 formatPriority p = Text (toText p)
 where

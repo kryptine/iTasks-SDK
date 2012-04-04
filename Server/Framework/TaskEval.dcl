@@ -4,13 +4,14 @@ definition module TaskEval
 */
 
 from SystemTypes	import :: IWorld, :: TaskListItem, :: User, :: TaskId, :: SessionId 
-from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: RefreshFlag, :: TaskRepTarget
+from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: RefreshFlag, :: TaskRepOpts
+from Shared			import :: Shared
 
 import Maybe, JSON, Error
 import TaskState, iTaskClass
 
 /**
-* Create a new session task instance
+* Create a new session task instance and evaluate ite immediately
 *
 * @param The task to run as session
 * @param The IWorld state
@@ -33,8 +34,19 @@ createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWo
 */
 evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult Dynamic, !SessionId), !*IWorld)
 
-//Helper functions: exported for use in workOn and parallel
-evalInstance	:: !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !(Maybe TaskId) !TaskInstance !*IWorld -> (!MaybeErrorString (TaskResult Dynamic), !TaskInstance, !*IWorld)
+/**
+* Create a stored task instance in the task pool 2(lazily without evaluating it)
+* @param The task to store
+* @param Management meta data
+* @param The user who issued the task
+* @param The IWorld state
+*
+* @return The task id of the stored instance
+* @return The IWorld state
+*/
+createPersistentInstance :: !(Task a) !ManagementMeta !User !*IWorld -> (!TaskId, !*IWorld) | iTask a
 
-//Access to shared parallel information
-taskListShare	:: !(TaskListId a) -> (SharedTaskList a) | iTask a
+//Helper functions that provide access to shares and parallel task lists
+localShare		:: !TaskId ->	Shared a			| iTask a
+topListShare	::				SharedTaskList a
+parListShare	:: !TaskId ->	SharedTaskList a	| iTask a

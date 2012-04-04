@@ -3,9 +3,9 @@ definition module IWorld
 from FilePath		import :: FilePath
 from Map			import :: Map
 from Maybe			import :: Maybe
-from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
+from SystemTypes	import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from Time			import :: Timestamp
-from TaskState		import :: ParallelItem, :: ParallelControl
+from TaskState		import :: TaskListEntry
 from JSON			import :: JSONNode
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
@@ -18,11 +18,10 @@ from JSON			import :: JSONNode
 					, timestamp				:: !Timestamp								// The timestamp of the current request	
 					, currentDateTime		:: !DateTime								// The local date & time of the current request
 					, currentUser			:: !User									// The current user
+					, currentInstance		:: !InstanceNo								// The current evaluated task instance
 					, nextTaskNo			:: !TaskNo									// The next task number to assign
-					, evalStack				:: ![TaskId]								// The stack of instances evaluating other instances through workOn
-					, parallelLists			:: !Map String [ParallelItem]				// The set of shared tasklist meta data
-					, parallelControls		:: !Map String (!Int,![ParallelControl])	// The set of controls for manipulating parallel task lists
 					, localShares			:: !Map TaskId JSONNode						// The set of locally shared values
+					, localLists			:: !Map TaskId [TaskListEntry]				// The set of local parallel task lists
 					, readShares			:: !Maybe [String]							// The IDs of shares from which was read
 					, world					:: !*World									// The outside world
 					}

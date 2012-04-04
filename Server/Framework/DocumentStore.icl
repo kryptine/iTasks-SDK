@@ -5,7 +5,7 @@ import SystemTypes, Store, Random, Text, Time, Error, File, FilePath
 import GenUpdate
 from StdFunc	import id
 from IWorld		import :: IWorld(..)
-from TaskState	import :: ParallelItem, :: ParallelControl
+from TaskState	import :: TaskListEntry
 
 instance DocumentDB IWorld
 where

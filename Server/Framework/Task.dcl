@@ -22,7 +22,7 @@ derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 
 // Tasks
-:: Task a = Task ((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepTarget TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+:: Task a = Task ((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
 :: Event e			= TaskEvent		!TaskId !e			//Event for a task within the process we are looking for
 					| LuckyEvent	!e					//Event for any task who is willing to handle it (I am feeling lucky event)
@@ -34,7 +34,7 @@ derive gPutRecordFields	Task
 :: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value
 
-:: TaskRepTarget	= TaskRepTarget (Maybe TaskId) (Maybe Layout) (Maybe (Layout -> Layout))			//Optionally with tweaked layout options
+:: TaskRepOpts		= TaskRepOpts (Maybe Layout) (Maybe (Layout -> Layout))								//Optionally with tweaked layout options
 	
 :: TaskRep			= TaskRep !TaskTUIRep !TaskServiceRep												//Compute both the UI and the raw service representation simultaneously
 
@@ -63,7 +63,7 @@ exception :: !e -> TaskResult a | TC, toString e
 /**
 * Determine the layout function for a rep target
 */
-repLayout :: TaskRepTarget -> Layout
+repLayout :: TaskRepOpts -> Layout
 
 /**
 * Create a task that finishes instantly

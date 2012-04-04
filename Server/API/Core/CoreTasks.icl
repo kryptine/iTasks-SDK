@@ -10,8 +10,6 @@ from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from SystemData				import topLevelTasks
 from Map					import qualified get
 
-derive class iTask WorkOnStatus
-
 derive JSONEncode UpdateMask
 derive JSONDecode UpdateMask
 
@@ -111,60 +109,10 @@ where
 				# (nv,nmask,iworld)	= updateValueAndMask dp encev v mask iworld
 				= (nv,nmask,taskTime,iworld)
 				
-	visualizeView taskId repAs=:(TaskRepTarget target _ _) v validity event iworld
-		| isNothing target || target == Just taskId
-			# (editor,iworld) = visualizeAsEditor v validity taskId event iworld
-			= (TaskRep ((repLayout repAs) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)) [(toString taskId,toJSON v)], iworld)
-		| otherwise
-			= (NoRep,iworld)
-	visualizeView taskId _ v validity event iworld
-		= (NoRep,iworld)
-
-workOn :: !TaskId -> Task WorkOnStatus
-workOn (TaskId topNo taskNo) = Task eval
-where
-	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{evalStack}
-		//Check for cycles
-		| isMember taskId evalStack
-			=(exception WorkOnDependencyCycle, iworld)
-		//Load instance
-		# (mbInstance,iworld)		= loadTaskInstance topNo iworld
-		| isError mbInstance	
-			//If the instance can not be found, check if it was only just added by an
-			//appendTask in the same session. If so, create a temporary result and trigger
-			//reevaluation.
-			# (found,iworld)	= checkIfAddedGlobally topNo iworld
-			| found
-				= (ValueResult NoValue ts (TaskRep (SingleTask, Just (stringDisplay "Task not yet initialized, please refresh."),[],[]) []) (TCInit taskId ts), {iworld & readShares = Nothing})
-			| otherwise
-				= (ValueResult (Value WODeleted Stable) ts (TaskRep (SingleTask, Just (stringDisplay "This task has been deleted."),[],[]) []) (TCInit taskId ts), iworld)
-		//Eval instance
-		# target					= if (taskNo == 0) Nothing (Just (TaskId topNo taskNo))
-		# (mbResult,context,iworld)	= evalInstance eEvent cEvent refresh target (fromOk mbInstance) iworld
-		= case mbResult of
-			Error e				= (exception WorkOnEvalError, iworld)
-			Ok result
-				//Store context
-				# iworld		= storeTaskInstance context iworld
-				# (result,rep,iworld) = case result of
-					(ValueResult (Value _ Stable) _ rep _)	= (WOFinished, rep, iworld)
-					(ValueResult _ _ rep _)					= (WOActive, rep, iworld)
-					(ExceptionResult _ err)					= (WOExcepted, TaskRep (SingleTask, Just (stringDisplay ("Task excepted: " +++ err)), [], []) [], iworld)
-				= case result of
-					WOFinished	= (ValueResult (Value result Stable) ts rep (TCInit taskId ts), iworld)
-					_			= (ValueResult (Value result Unstable) ts rep (TCInit taskId ts), iworld)
-
-	//If a top instance has just been added, but has not been evaluated before it is still in the
-	//queue of ParallelControls. If so, we don't throw an exception but return an unstable value
-	//as we are still waiting for the instance to be evaluated
-	checkIfAddedGlobally topNo iworld=:{parallelControls}
-		= case 'Map'.get ("taskList:" +++ toString TopLevelTaskList) parallelControls of
-			Just (_,controls)
-				= (isMember topNo [i \\ AppendTask {ParallelItem|taskId=TaskId i 0} <- controls], iworld)
-			_
-				= (False,iworld)
-	checkIfAddedGlobally _ iworld = (False,iworld)
-
+	visualizeView taskId repAs v validity event iworld
+		# (editor,iworld) = visualizeAsEditor v validity taskId event iworld
+		= (TaskRep ((repLayout repAs) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)) [(toString taskId,toJSON v)], iworld)
+	
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval
 where

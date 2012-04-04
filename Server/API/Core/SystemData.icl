@@ -5,7 +5,6 @@ import Random
 import StdList, StdBool
 from StdFunc		import o, seq
 from IWorld			import :: IWorld(..)
-from TaskState	 	import :: ParallelControl
 from Util			import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
@@ -38,25 +37,22 @@ topLevelTasks = makeReadOnlyShared "taskList" "tasklist-top" read
 where
 	read iworld
 		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
-		= ({TaskList|listId = TopLevelTaskList, state = [], items = fromMaybe [] list}, iworld)
+		= ({TaskList|listId = TopLevelTaskList, items = fromMaybe [] list}, iworld)
 		
-currentProcesses ::ReadOnlyShared [TaskListItem]
+currentProcesses ::ReadOnlyShared [TaskListItem Void]
 currentProcesses = makeReadOnlyShared "SystemData" "processes" read
 where
 	read iworld
 		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
 		= (fromMaybe [] list, iworld)
 
-processesForCurrentUser	:: ReadOnlyShared [TaskListItem]
+processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
 processesForCurrentUser = makeReadOnlyShared "SystemData" "processesForCurrentUser" read
 where
 	read iworld=:{currentUser}
 		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
-		= (maybe [] (\l -> find currentUser l) list, iworld)
+		= (maybe [] (\l -> [ p \\ p <- l | forWorker currentUser p]) list, iworld)
 		
-	find user procs
-		= flatten [if (forWorker user p) [{p & subItems = find user p.subItems}] (find user p.subItems) \\ p <- procs]
-
 	forWorker user {managementMeta=Just {worker=AnyUser}}										= True
 	forWorker (AuthenticatedUser uid1 _ _) {managementMeta=Just {worker=UserWithId uid2}}		= uid1 == uid2
 	forWorker (AuthenticatedUser _ roles _) {managementMeta=Just {worker=UserWithRole role}}	= isMember role roles
@@ -66,7 +62,7 @@ currentUser :: ReadOnlyShared User
 currentUser = makeReadOnlyShared "SystemData" "currentUser" (\iworld=:{currentUser} -> (currentUser,iworld))
 
 currentTopTask :: ReadOnlyShared TaskId
-currentTopTask = makeReadOnlyShared "SystemData" "currentTopTask" (\iworld=:{evalStack=[taskId:_]} -> (taskId,iworld))
+currentTopTask = makeReadOnlyShared "SystemData" "currentTopTask" (\iworld=:{currentInstance} -> (TaskId currentInstance 0,iworld))
 		
 applicationName :: ReadOnlyShared String
 applicationName = makeReadOnlyShared "SystemData" "applicationName" appName

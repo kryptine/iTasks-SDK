@@ -4,7 +4,7 @@ import StdString, StdArray, StdChar, StdClass, StdInt, StdBool, StdFile, StdList
 import File, Directory, OSError, Maybe, Map, Text, JSON, Functor, FilePath
 from IWorld			import :: IWorld(..)
 from SystemTypes	import :: DateTime, :: User, :: Config, :: TaskId, :: TaskNo, :: InstanceNo, :: TaskListItem, :: TaskTime 
-from TaskState		import :: ParallelItem, :: ParallelControl
+from TaskState		import :: TaskListEntry
 from Time 			import :: Timestamp(..), instance < Timestamp, instance toInt Timestamp
 from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 

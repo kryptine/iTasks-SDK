@@ -2,7 +2,7 @@ implementation module Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass, IWorld
-from TaskState			import :: TaskTree(..), :: ParallelMeta, :: ParallelItem
+from TaskState			import :: TaskTree(..)
 from LayoutCombinators	import :: Layout, DEFAULT_LAYOUT, heuristicLayout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
@@ -53,9 +53,9 @@ gPutRecordFields{|Task|} _ t _ fields = (t,fields)
 exception :: !e -> TaskResult a | TC, toString e
 exception e = ExceptionResult (dynamic e) (toString e)
 
-repLayout :: TaskRepTarget -> Layout
-repLayout (TaskRepTarget _ layout mod)	= (fromMaybe id mod) (fromMaybe DEFAULT_LAYOUT layout)
-repLayout _								= DEFAULT_LAYOUT
+repLayout :: TaskRepOpts -> Layout
+repLayout (TaskRepOpts layout mod)	= (fromMaybe id mod) (fromMaybe DEFAULT_LAYOUT layout)
+repLayout _							= DEFAULT_LAYOUT
 
 instance Functor TaskValue
 where
