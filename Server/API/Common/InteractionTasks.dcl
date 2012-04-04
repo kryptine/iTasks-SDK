@@ -331,4 +331,4 @@ chooseAction :: ![(!Action,a)] -> Task a | iTask a
 /**
 * Visualizes data as a title and show it
 */
-viewTitle :: a -> Task a | iTask a 
+viewTitle :: !a -> Task a | iTask a 

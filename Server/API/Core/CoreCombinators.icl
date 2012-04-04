@@ -10,7 +10,7 @@ from IWorld				import :: IWorld(..)
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from TaskEval			import localShare, parListShare, topListShare
 from CoreTasks			import return
-from SharedDataSource	import :: RWRes(..), read, readWrite, getIds, :: ShareId
+from SharedDataSource	import write, read//, getIds, :: ShareId
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
@@ -24,7 +24,7 @@ where
 		(ValueResult val lastEvent rep tree,iworld)	= (ValueResult (f val) lastEvent rep tree, iworld)	//TODO: guarantee stability
 		(ExceptionResult e str, iworld)				= (ExceptionResult e str, iworld)
 
-project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
+project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task a | iTask a
 project projection share (Task evala) = Task eval
 where
 	eval eEvent cEvent refresh repAs state iworld
@@ -44,12 +44,18 @@ where
 				= (ExceptionResult e str,iworld)
 	
 	projectOnShare val result iworld
-		= case readWrite (\r _ -> case projection val r of Just w = Write w Void; Nothing = YieldResult Void) share iworld of
-			(Ok _,iworld)		= (result,iworld)
-			(Error e,iworld)	= (exception e,iworld)
+		# (er, iworld) = read share iworld
+		= case er of
+			Ok r = case projection val r of
+				Just w
+					# (ew, iworld) = write w share iworld
+					= case ew of
+						Ok _	= (result, iworld)
+						Error e	= (exception e, iworld)
+				Nothing = (result, iworld)
+			Error e = (exception e, iworld)
 
-
-step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
+step :: !(Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 step (Task evala) conts = Task eval
 where
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
@@ -270,8 +276,8 @@ updateListEntry listId entryId f iworld=:{localLists}
 
 readListId :: (SharedTaskList a) *IWorld -> (MaybeErrorString (TaskListId a),*IWorld)	| iTask a
 readListId slist iworld = case read slist iworld of
-	(Ok (l,_),iworld) = (Ok l.TaskList.listId, iworld)
-	(Error e, iworld) = (Error e, iworld)
+	(Ok l,iworld)		= (Ok l.TaskList.listId, iworld)
+	(Error e, iworld)	= (Error e, iworld)
 
 //Derived shares
 taskListState :: !(SharedTaskList a) -> ReadOnlyShared [TaskValue a]

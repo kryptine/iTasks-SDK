@@ -140,7 +140,7 @@ refreshInstance instanceNo iworld
 			= iworld
 
 localShare :: !TaskId -> Shared a | iTask a
-localShare taskId = makeUnsafeShare "localShare" shareKey read write
+localShare taskId = createBasicSDS "localShare" shareKey read write
 where
 	shareKey = toString taskId
 	read iworld=:{localShares}
@@ -156,13 +156,13 @@ where
 
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
-topListShare = makeReadOnlySharedError "globalList" "top" read
+topListShare = createReadOnlySDSError "globalList" "top" read
 where
 	read iworld
 		= (Ok {listId = TopLevelTaskList, items = []}, iworld)
 		
 parListShare :: !TaskId -> SharedTaskList a | iTask a
-parListShare taskId=:(TaskId instanceNo taskNo) = makeReadOnlySharedError "localList" shareKey read
+parListShare taskId=:(TaskId instanceNo taskNo) = createReadOnlySDSError "localList" shareKey read
 where
 	shareKey = toString taskId
 	read iworld=:{localLists}

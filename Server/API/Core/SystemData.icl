@@ -8,7 +8,7 @@ from IWorld			import :: IWorld(..)
 from Util			import qualified currentDate, currentTime, currentDateTime, currentTimestamp, dateToTimestamp
 
 sharedStore :: !String !a -> Shared a | JSONEncode{|*|}, JSONDecode{|*|}, TC a
-sharedStore storeId defaultV = makeUnsafeShare
+sharedStore storeId defaultV = createBasicSDS
 	"sharedStore" storeId
 	(get (loadValue NS_APPLICATION_SHARES) defaultV)
 	write
@@ -23,31 +23,31 @@ where
 	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
 	
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = makeReadOnlyShared "SystemData" "currentDateTime" 'Util'.currentDateTime
+currentDateTime = createReadOnlySDS "SystemData" "currentDateTime" 'Util'.currentDateTime
 		
 currentTime :: ReadOnlyShared Time
-currentTime = makeReadOnlyShared "SystemData" "currentTime" 'Util'.currentTime 
+currentTime = createReadOnlySDS "SystemData" "currentTime" 'Util'.currentTime 
 		
 currentDate :: ReadOnlyShared Date
-currentDate = makeReadOnlyShared "SystemData" "currentDate" 'Util'.currentDate
+currentDate = createReadOnlySDS "SystemData" "currentDate" 'Util'.currentDate
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
-topLevelTasks = makeReadOnlyShared "taskList" "tasklist-top" read
+topLevelTasks = createReadOnlySDS "taskList" "tasklist-top" read
 where
 	read iworld
 		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
 		= ({TaskList|listId = TopLevelTaskList, items = fromMaybe [] list}, iworld)
 		
 currentProcesses ::ReadOnlyShared [TaskListItem Void]
-currentProcesses = makeReadOnlyShared "SystemData" "processes" read
+currentProcesses = createReadOnlySDS "SystemData" "processes" read
 where
 	read iworld
 		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
 		= (fromMaybe [] list, iworld)
 
 processesForCurrentUser	:: ReadOnlyShared [TaskListItem Void]
-processesForCurrentUser = makeReadOnlyShared "SystemData" "processesForCurrentUser" read
+processesForCurrentUser = createReadOnlySDS "SystemData" "processesForCurrentUser" read
 where
 	read iworld=:{currentUser}
 		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
@@ -59,34 +59,34 @@ where
 	forWorker _ _																				= False
 
 currentUser :: ReadOnlyShared User
-currentUser = makeReadOnlyShared "SystemData" "currentUser" (\iworld=:{currentUser} -> (currentUser,iworld))
+currentUser = createReadOnlySDS "SystemData" "currentUser" (\iworld=:{currentUser} -> (currentUser,iworld))
 
 currentTopTask :: ReadOnlyShared TaskId
-currentTopTask = makeReadOnlyShared "SystemData" "currentTopTask" (\iworld=:{currentInstance} -> (TaskId currentInstance 0,iworld))
+currentTopTask = createReadOnlySDS "SystemData" "currentTopTask" (\iworld=:{currentInstance} -> (TaskId currentInstance 0,iworld))
 		
 applicationName :: ReadOnlyShared String
-applicationName = makeReadOnlyShared "SystemData" "applicationName" appName
+applicationName = createReadOnlySDS "SystemData" "applicationName" appName
 where
 	appName iworld=:{IWorld|application} = (application,iworld)
 
 applicationBuild:: ReadOnlyShared String
-applicationBuild  = makeReadOnlyShared "SystemData" "applicationBuild" appBuild
+applicationBuild  = createReadOnlySDS "SystemData" "applicationBuild" appBuild
 where
 	appBuild iworld=:{IWorld|build} = (build,iworld)
 
 applicationDirectory :: ReadOnlyShared FilePath
-applicationDirectory = makeReadOnlyShared "SystemData" "applicationDirectory" appDir
+applicationDirectory = createReadOnlySDS "SystemData" "applicationDirectory" appDir
 where
 	appDir iworld=:{IWorld|appDirectory} = (appDirectory,iworld)
 
 applicationConfig :: ReadOnlyShared Config
-applicationConfig = makeReadOnlyShared "SystemData" "config" config
+applicationConfig = createReadOnlySDS "SystemData" "config" config
 where
 	config iworld=:{IWorld|config} = (config,iworld)
 
 // Random source
 randomInt	:: ReadOnlyShared Int
-randomInt = makeReadOnlyShared "SystemData" "randomInt" randomInt
+randomInt = createReadOnlySDS "SystemData" "randomInt" randomInt
 where
 	randomInt iworld=:{IWorld|world}
 		# (Clock seed, world)	= clock world

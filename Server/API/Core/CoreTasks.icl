@@ -3,7 +3,7 @@ implementation module CoreTasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List
 import qualified StdList
 import iTaskClass, Task, TaskState, TaskEval, TaskStore, TUIDefinition, LayoutCombinators, Shared
-from SharedDataSource		import qualified read, write, readWrite, :: RWRes(..)
+from SharedDataSource		import qualified read, write
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
@@ -27,7 +27,7 @@ where
 	eval taskId iworld=:{taskTime}
 		# (val,iworld) = 'SharedDataSource'.read shared iworld
 		# res = case val of
-			Ok (val,_)	= ValueResult (Value val Stable) taskTime NoRep (TCEmpty taskId taskTime)
+			Ok val		= ValueResult (Value val Stable) taskTime NoRep (TCEmpty taskId taskTime)
 			Error e		= exception (SharedException e)
 		= (res, iworld)
 
@@ -45,9 +45,11 @@ update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 update fun shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime}
-		# (val,iworld)	= 'SharedDataSource'.readWrite (\r _ -> let w = fun r in 'SharedDataSource'.Write w w) shared iworld
-		| isError val	= (exception (SharedException (fromError val)), iworld)
-		= (ValueResult (Value (fromOk val) Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
+		# (er, iworld)	= 'SharedDataSource'.read shared iworld
+		| isError er	= (exception (SharedException (fromError er)), iworld)
+		# w				= fun (fromOk er)
+		# (er, iworld)	= 'SharedDataSource'.write w shared iworld
+		= (ValueResult (Value w Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
 
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task eval
@@ -55,7 +57,7 @@ where
 	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.read shared iworld
 		# res = case val of
-			Ok (val,_)	= ValueResult (Value val Unstable) ts NoRep (TCInit taskId ts)
+			Ok val		= ValueResult (Value val Unstable) ts NoRep (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 
@@ -66,7 +68,7 @@ where
 		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
 		= case mbr of
 			Error _		= (exception "Could not read shared in interact", iworld)
-			Ok (r,_)
+			Ok r
 				# (l,v,mask)	= initFun r
 				= eval eEvent cEvent refresh repAs (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
@@ -79,7 +81,7 @@ where
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
 		| isError mbr			= (exception "Could not read shared in interact", iworld)
-		# (nr,_)				= (fromOk mbr)
+		# nr					= (fromOk mbr)
 		//Apply refresh function if r or v changed
 		# changed				= (nts =!= ts) || (nr =!= r) 
 		# valid					= isValidValue (verifyForm nv nmask)

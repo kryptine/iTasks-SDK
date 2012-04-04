@@ -4,7 +4,6 @@ from StdFunc import id, const, o, flip
 from SystemData import null
 from Tuple import appSnd
 from List import isMemberGen, instance Functor []
-from Shared import makeReadOnlyShared
 from Time import :: Timestamp(..)
 
 import StdBool, StdList, StdMisc, StdTuple
@@ -206,7 +205,7 @@ sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
 	[UpdateWith fromf tof]	= [UpdateWith fromf (\m v -> snd (tof m v))]
 	_						= []
 
-viewTitle :: a -> Task a | iTask a 
+viewTitle :: !a -> Task a | iTask a 
 viewTitle a = viewInformation Void [ViewWith view] a <<@ AfterLayout (tweakTUI (fixedHeight 40 o fixedWidth 700))
 where
 	view a = DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text (visualizeAsText AsLabel a)]]

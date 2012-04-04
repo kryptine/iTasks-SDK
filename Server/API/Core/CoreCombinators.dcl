@@ -30,7 +30,7 @@ transform :: ((TaskValue a) -> TaskValue b) !(Task a) -> Task b | iTask a & iTas
 
 * @return The modified task
 */
-project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a | iTask a
+project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) !(Task a) -> Task a | iTask a
 
 /**
 * The generic sequential combinator.
@@ -46,7 +46,7 @@ project	:: ((TaskValue a) r -> Maybe w) (ReadWriteShared r w) (Task a) -> Task a
 *
 *	@return The combined task
 */
-step :: (Task a) [TaskStep a b] -> Task b | iTask a & iTask b
+step :: !(Task a) [TaskStep a b] -> Task b | iTask a & iTask b
 
 :: TaskStep a b
 	= 		OnValue 			((TaskValue a) -> Bool)	((TaskValue a)	-> Task b)
