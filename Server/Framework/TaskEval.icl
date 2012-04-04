@@ -168,7 +168,7 @@ where
 	read iworld=:{localLists}
 		= case 'Map'.get taskId localLists of
 			Just entries
-				= (Ok {listId = ParallelTaskList taskId, items = map toItem entries},iworld)
+				= (Ok {listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
 			_			= (Error ("Could not read local shared state " +++ shareKey), iworld)
 
 	toItem {TaskListEntry|entryId,state,result=ValueResult val ts (TaskRep (_,_,_,attr) _) _}

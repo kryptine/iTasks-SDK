@@ -209,7 +209,7 @@ where
 		# layout		= repLayout repAs
 		# attributes	= [(TASK_ATTRIBUTE,toString taskId) : initAttributes desc]
 		# parts = [(t,g,ac,kvSet TIME_ATTRIBUTE (toString time) (kvSet TASK_ATTRIBUTE (toString entryId) at))
-					 \\ {TaskListEntry|entryId,state=EmbeddedState _,result=ValueResult val _ (TaskRep (t,g,ac,at) _) _,time} <- entries | not (isStable val)]	
+					 \\ {TaskListEntry|entryId,state=EmbeddedState _,result=ValueResult val _ (TaskRep (t,g,ac,at) _) _,time,removed=False} <- entries | not (isStable val)]	
 		= TaskRep (layout ParallelComposition parts [] attributes) []
 	
 	isStable (Value _ Stable) 	= True
@@ -229,7 +229,6 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{localLists
 			# task									= parTask (parListShare taskId)
 			# progress								= {issuedAt=currentDateTime,issuedBy=currentUser,status=Unstable,firstEvent=Nothing,latestEvent=Nothing}
 			# (taskIda=:TaskId instanceNo _,iworld)	= createPersistentInstance task management currentUser parent iworld
-			
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# result	= ValueResult NoValue taskTime (TaskRep (SingleTask,Just (stringDisplay "Task not evaluated yet"),[],[]) []) (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, state = state, result = result, time = taskTime, removed = False}
@@ -242,17 +241,16 @@ where
 	serialize (ValueResult val ts rep tree) = ValueResult (fmap toJSON val) ts rep tree
 	serialize (ExceptionResult e str)		= ExceptionResult e str
 
+	maxTime cur (ValueResult _ ts _ _)		= max cur ts
+	maxTime cur _							= cur
+
 updateListEntryDetachedResult :: !TaskId !TaskId (TaskResult JSONNode) !ProgressMeta !ManagementMeta !*IWorld -> *IWorld
 updateListEntryDetachedResult listId entryId result progress management iworld
 	= updateListEntry listId entryId update iworld
 where
-	update e=:{TaskListEntry|state=DetachedState no _ _,time}
-		= {TaskListEntry| e & state = DetachedState no progress management,result = result, time = maxTime time result} //TIME IS WRONG, WE SHOULD NOT USE THE REMOTE TASK TIME
+	update e=:{TaskListEntry|state=DetachedState no _ _}
+		= {TaskListEntry| e & state = DetachedState no progress management,result = result}
 	update e = e
-
-maxTime :: TaskTime (TaskResult a) -> TaskTime
-maxTime cur (ValueResult _ ts _ _)		= max cur ts
-maxTime cur _							= cur
 
 updateListEntryTime :: !TaskId !TaskId !TaskTime !*IWorld -> *IWorld
 updateListEntryTime listId entryId ts iworld
