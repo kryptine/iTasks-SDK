@@ -1,6 +1,6 @@
 implementation module HtmlUtil
 
-import HTML, JSON, Text, HTTP, Map, OS
+import HTML, JSON_NG, Text, HTTP, Map, OS
 import StdList, StdBool
 
 embeddedStyle :: HtmlTag

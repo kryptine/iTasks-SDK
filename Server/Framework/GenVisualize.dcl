@@ -1,6 +1,6 @@
 definition module GenVisualize
 
-import HTML, JSON, TUIDefinition
+import HTML, JSON_NG, TUIDefinition
 import StdGeneric, Maybe, Void, Either
 import GenUpdate, GenVerify
 from Map import :: Map
@@ -11,7 +11,7 @@ from Map import :: Map
 generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 
 //Default available instances
-derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeText Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
@@ -29,7 +29,7 @@ derive gVisualizeText EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPri
 generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
 
 //Default available instances
-derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeEditor Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
@@ -40,7 +40,7 @@ derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagementMeta, TaskP
 generic gHeaders a :: (a, ![String])
 
 //Default available instances
-derive gHeaders UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gHeaders UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
 derive gHeaders Int, Real, Char, Bool, String
 derive gHeaders Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
@@ -50,7 +50,7 @@ derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority,
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 
 //Default available instances
-derive gGridRows UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
+derive gGridRows UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
 derive gGridRows Int, Real, Char, Bool, String
 derive gGridRows Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table

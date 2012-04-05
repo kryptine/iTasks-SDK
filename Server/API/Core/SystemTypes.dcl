@@ -4,7 +4,7 @@ definition module SystemTypes
 * of the iTasks framework.
 */
 
-import GenEq, Maybe, JSON, Store, Void, Either, FilePath, HTML, Error, File, OS
+import GenEq_NG, Maybe, JSON_NG, Store, Void, Either, FilePath, HTML, Error, File, OS
 from Map 			import :: Map
 from Map 			import qualified get
 from HTML 			import class html

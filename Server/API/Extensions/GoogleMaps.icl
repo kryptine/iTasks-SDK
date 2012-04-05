@@ -1,6 +1,6 @@
 implementation module GoogleMaps
 
-import HTML, StdEnv, JSON, GenUpdate, GenVisualize, GenVerify
+import HTML, StdEnv, JSON_NG, GenUpdate, GenVisualize, GenVerify
 
 derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions
 derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent, MarkerDragUpdate

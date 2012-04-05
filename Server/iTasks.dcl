@@ -30,7 +30,7 @@ import	Engine						// basic iTask system creator
 	,	LayoutCombinators
 	
 	//	Miscellaneous machinery
-	,	JSON						// Functions for serializing/deserializing strings
+	,	JSON_NG						// Functions for serializing/deserializing strings
 	,	GenVisualize				// Functions for generating GUIs
 	,	GenUpdate					// Functions for updating arbitrary values
 	,	GenVerify					// Functions for appending errors and hints to form values
@@ -53,4 +53,4 @@ from StdFunc import id, const, o
 
 //Types
 import Shared, SystemTypes, GenRecord
-from List import instance Functor []
+from List_NG import instance Functor []

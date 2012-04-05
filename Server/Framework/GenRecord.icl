@@ -1,6 +1,6 @@
 implementation module GenRecord
 
-import StdTuple, StdList, StdFunc, Error, Util, GenUpdate, Map, Generic, Tuple
+import StdTuple, StdList, StdFunc, Error, Util, GenUpdate, Map, Generic_NG, Tuple
 from dynamic_string import copy_to_string, copy_from_string
 
 copyRecord :: !a !b -> b | GenRecord a & GenRecord b
@@ -15,9 +15,7 @@ mapRecord rec
 	
 generic gGetRecordFields r :: !r ![GenType] !*RecordFields -> *RecordFields
 
-gGetRecordFields{|OBJECT of d|} fx (OBJECT o) _ fields
-	| isRecordType d	= fx o (getFieldTypes d) fields
-	| otherwise			= fields
+gGetRecordFields{|OBJECT of d|} fx (OBJECT o) _ fields = fields
 gGetRecordFields{|CONS|} fx (CONS c) types fields = fx c types fields
 gGetRecordFields{|EITHER|} fx fy either types fields = case either of
 	LEFT x	= fx x types fields
@@ -25,6 +23,7 @@ gGetRecordFields{|EITHER|} fx fy either types fields = case either of
 gGetRecordFields{|PAIR|} fx fy (PAIR x y) types fields
 	# fields = fx x types fields
 	= fy y types fields
+gGetRecordFields{|RECORD of d|} fx (RECORD r) _ fields = fx r (getFieldTypes d) fields
 gGetRecordFields{|FIELD of d|} _ f types fields = put d.gfd_name (GenericDyn (copy_to_string f) (types !! d.gfd_index)) fields
 gGetRecordFields{|UNIT|} _ _ fields = fields
 gGetRecordFields{|Int|}		_ _ fields = fields
@@ -41,9 +40,7 @@ derive gGetRecordFields EmailAddress, Action, ButtonState
 
 generic gPutRecordFields r :: !r ![GenType] !*RecordFields -> (!r,!*RecordFields)
 
-gPutRecordFields{|OBJECT of d|} fx obj=:(OBJECT o) _ fields
-	| isRecordType d	= appFst OBJECT (fx o (getFieldTypes d) fields)
-	| otherwise			= (obj,fields)
+gPutRecordFields{|OBJECT of d|} fx obj=:(OBJECT o) _ fields = (obj,fields)
 gPutRecordFields{|CONS|} fx (CONS c) types fields = appFst CONS (fx c types fields)
 gPutRecordFields{|EITHER|} fx fy either types fields = case either of
 	LEFT x	= appFst LEFT (fx x types fields)
@@ -52,6 +49,8 @@ gPutRecordFields{|PAIR|} fx fy (PAIR x y) types fields
 	# (x`,fields)	= fx x types fields
 	# (y`,fields)	= fy y types fields
 	= (PAIR x` y`,fields)
+gPutRecordFields{|RECORD of d|} fx (RECORD r) _ fields
+	= appFst RECORD (fx r (getFieldTypes d) fields)
 gPutRecordFields{|FIELD of d|} _ f types fields
 	# (mbGenDyn,fields) = delU d.gfd_name fields
 	# f` = case mbGenDyn of
@@ -93,8 +92,8 @@ matchGenericDyn (GenericDyn str dynType) reqType
 	| otherwise				= Nothing
 
 // Retrieves the types of a record's fields.
-getFieldTypes :: !GenericTypeDefDescriptor -> [GenType]
-getFieldTypes {gtd_conses=c=:[{gcd_type}]} = getFieldTypes` gcd_type []
+getFieldTypes :: !GenericRecordDescriptor -> [GenType]
+getFieldTypes {grd_type} = getFieldTypes` grd_type []
 where
 	getFieldTypes` (GenTypeArrow field next) acc	= getFieldTypes` next [field:acc]
 	getFieldTypes` _ acc							= reverse acc

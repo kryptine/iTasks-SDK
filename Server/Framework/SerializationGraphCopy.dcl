@@ -1,6 +1,6 @@
 definition module SerializationGraphCopy
 
-from JSON import generic JSONEncode, generic JSONDecode, ::JSONNode
+from JSON_NG import generic JSONEncode, generic JSONDecode, ::JSONNode
 from Error import ::MaybeError, ::MaybeErrorString
 from Maybe import ::Maybe
 from Store import :: StoreFormat

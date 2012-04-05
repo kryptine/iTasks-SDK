@@ -4,7 +4,7 @@ definition module TUIDefinition
 * component definitions and a specialized instance of
 * JSONEncode for serializing them to JSON
 */
-import JSON, GenEq
+import JSON_NG, GenEq_NG
 from SystemTypes	import	:: Document, :: DocumentId, :: Hotkey, :: Action
 from Task			import	:: TaskAction, :: TaskId
 

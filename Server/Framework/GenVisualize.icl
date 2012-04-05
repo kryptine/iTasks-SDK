@@ -1,7 +1,7 @@
 implementation module GenVisualize
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List, Generic
-import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON, TUIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
+import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List_NG, Generic_NG
+import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON_NG, TUIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
 
 visualizeAsEditor :: !a !VerifyMask !TaskId !(Maybe (!String,!JSONNode)) !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
 visualizeAsEditor v vmask taskId editEvent iworld
@@ -20,6 +20,12 @@ generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 
 gVisualizeText{|UNIT|} _ _ = []
 
+gVisualizeText{|RECORD|} fx mode (RECORD x)
+	# viz = fx mode x
+	= case mode of
+		AsLabel			= take 1 viz
+		AsDisplay		= viz
+
 gVisualizeText{|FIELD of d|} fx mode (FIELD x)
 	# viz = fx mode x
 	= case mode of
@@ -29,15 +35,7 @@ gVisualizeText{|FIELD of d|} fx mode (FIELD x)
 gVisualizeText{|OBJECT|} fx mode (OBJECT x) = fx mode x
 	
 gVisualizeText{|CONS of d|} fx mode (CONS x)
-	# viz = fx mode x
-	= case mode of
-		AsLabel
-			//For records only show the first field
-			| isRecordCons d	= take 1 viz
-			| otherwise			= normalADTStaticViz viz	
-		AsDisplay
-			| isRecordCons d	= viz
-			| otherwise			= normalADTStaticViz viz
+	= normalADTStaticViz (fx mode x)
 where
 	normalADTStaticViz viz
 		//If viz is empty, only show constructor name
@@ -124,6 +122,31 @@ generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Mayb
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 	
+gVisualizeEditor{|RECORD|} fx _ _ _ val vst = visualizeCustom mkControl vst
+where
+	mkControl name _ _ eventValue vst=:{taskId,editEvent,currentPath,optional,controlSize,renderAsStatic}	
+		= case fmap fromRECORD val of
+			Nothing // Create checkbox to create record
+				| optional	= (if renderAsStatic [] [checkbox False], vst)
+				# (viz,vst) = fx Nothing vst
+				= ([recordContainer (tuiOfEditor viz)],vst)
+			Just x
+				# (viz,vst) = fx (Just x) vst
+				= ([recordContainer (tuiOfEditor viz)],vst)
+	where
+		recordContainer viz =	{ content	= TUIContainer (defaultContainer (if (optional && not renderAsStatic) [checkbox True] [] ++ viz))
+								, width		= Just (FillParent 1 ContentSize)
+								, height	= Just (WrapContent 0)
+								, margins	= Nothing
+								}
+											
+		checkbox c = sizedControl controlSize (TUIEditControl TUIBoolControl 
+			{ name			= name
+			, value			= toJSON c
+			, taskId		= fmap toString taskId
+			, eventValue	= eventValue
+			})				
+						
 gVisualizeEditor{|FIELD of d|} fx _ _ _ val vst=:{renderAsStatic}
 	# (vizBody,vst)		= fx (fmap fromFIELD val) vst
 	= case vizBody of
@@ -134,15 +157,13 @@ where
 	addLabel optional content
 		# label	= {stringDisplay (camelCaseToWords d.gfd_name +++ if (optional || renderAsStatic) "" "*" +++ ":") & width = Just (Fixed 100)}
 		= [{content = TUIContainer {TUIContainer|defaultContainer [label: content] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}]
-			
+
+
 gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent,controlSize}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
 	# x			= fmap fromOBJECT val
-	//Record: just strip of the OBJECT constructor and pass through, record container is created when processing the CONS
-	| isRecordType d
-		= fx x vst
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| d.gtd_num_conses > 1 && not renderAsStatic
 		# (items, vst=:{selectedConsIndex}) = fx x vst
@@ -192,31 +213,9 @@ gVisualizeEditor{|CONS of d|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ eventValue vst=:{taskId,editEvent,currentPath,optional,controlSize,renderAsStatic}
 		# x = fmap fromCONS val
-		= case isRecordCons d of
-			False // normal ADT
-				# (viz,vst)	= fx x vst
-				= (tuiOfEditor viz, {VSt | vst & selectedConsIndex = d.gcd_index})
-			True = case x of // record
-				Nothing // Create checkbox to create record
-					| optional	= (if renderAsStatic [] [checkbox False], vst)
-					# (viz,vst) = fx Nothing vst
-					= ([recordContainer (tuiOfEditor viz)],vst)
-				Just x
-					# (viz,vst) = fx (Just x) vst
-					= ([recordContainer (tuiOfEditor viz)],vst)
-	where
-		recordContainer viz =	{ content	= TUIContainer (defaultContainer (if (optional && not renderAsStatic) [checkbox True] [] ++ viz))
-								, width		= Just (FillParent 1 ContentSize)
-								, height	= Just (WrapContent 0)
-								, margins	= Nothing
-								}
-											
-		checkbox c = sizedControl controlSize (TUIEditControl TUIBoolControl 
-			{ name			= name
-			, value			= toJSON c
-			, taskId		= fmap toString taskId
-			, eventValue	= eventValue
-			})
+		# (viz,vst)	= fx x vst
+		= (tuiOfEditor viz, {VSt | vst & selectedConsIndex = d.gcd_index})
+	
 
 gVisualizeEditor{|PAIR|} fx _ _ _ fy _ _ _ val vst
 	# (x,y)			= (fmap fromPAIRX val, fmap fromPAIRY val)
@@ -455,8 +454,9 @@ derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), Timestamp, Map, Emai
 
 generic gHeaders a :: (a, ![String])
 
-gHeaders{|OBJECT|} fx		= (undef, snd fx)
-gHeaders{|CONS of d|} fx	= (undef, [camelCaseToWords gfd_name \\ {gfd_name} <- d.gcd_fields])
+gHeaders{|OBJECT|} fx		= (undef, [])
+gHeaders{|RECORD of d|} fx	= (undef, [camelCaseToWords fieldname \\ fieldname <- d.grd_fields])
+gHeaders{|CONS|} fx			= (undef, [])
 gHeaders{|PAIR|} fx fy		= (undef, [])
 gHeaders{|FIELD|} fx		= (undef, [])
 gHeaders{|EITHER|} fx fy	= (undef, [])
@@ -476,11 +476,10 @@ derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMet
 
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 
-gGridRows{|OBJECT of d|} fx _ (OBJECT o) acc
-	| isRecordType d	= fmap reverse (fx o acc)
-	| otherwise			= Nothing
+gGridRows{|OBJECT|} _ _ _ _					= Nothing
 gGridRows{|CONS|} fx _ (CONS c) acc			= fx c acc
 gGridRows{|PAIR|} fx _ fy _ (PAIR x y) acc	= fy y (fromMaybe [] (fx x acc))
+gGridRows{|RECORD|} fx _ (RECORD r) acc		= fmap reverse (fx r acc) 
 gGridRows{|FIELD|} _ gx (FIELD f) acc		= Just [concat (gx AsLabel f):acc]
 gGridRows{|EITHER|} _ _ _ _	_ _				= abort "gGridRows: EITHER should not occur"
 gGridRows{|Int|} i _						= Nothing

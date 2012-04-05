@@ -1,8 +1,8 @@
 implementation module SystemTypes
 from StdFunc import until
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, List, dynamic_string, Base64
-import GenLexOrd, JSON, HTML, Text, Util
+import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, List_NG, dynamic_string, Base64
+import JSON_NG, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 

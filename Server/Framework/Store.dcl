@@ -9,7 +9,7 @@ definition module Store
 * Dynamics are generally more expensive, so only when really necessary (for example to store tasks or
 * functions) should they be used.
 */
-import JSON
+import JSON_NG
 from Time import :: Timestamp
 from IWorld import :: IWorld
 from FilePath import :: FilePath

@@ -3,7 +3,7 @@ implementation module InteractionTasks
 from StdFunc import id, const, o, flip
 from SystemData import null
 from Tuple import appSnd
-from List import isMemberGen, instance Functor []
+from List_NG import isMemberGen, instance Functor []
 from Time import :: Timestamp(..)
 
 import StdBool, StdList, StdMisc, StdTuple

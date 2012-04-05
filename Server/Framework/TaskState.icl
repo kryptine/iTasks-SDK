@@ -4,7 +4,7 @@ import SystemTypes, TUIDefinition
 from iTasks		import JSONEncode, JSONDecode
 from Task		import :: Event, :: EditEvent, :: TaskTime, :: TaskResult(..), :: TaskRep(..), :: TaskTUIRep, :: TaskServiceRep, :: TaskPart, :: TaskCompositionType
 from GenUpdate	import :: UpdateMask
-import JSON
+import JSON_NG
 
 derive JSONEncode TaskInstance, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskCompositionType, UpdateMask
 derive JSONDecode TaskInstance, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskCompositionType, UpdateMask

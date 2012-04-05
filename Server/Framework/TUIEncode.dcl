@@ -1,6 +1,6 @@
 definition module TUIEncode
 
-import JSON, TUIDefinition, TUIDiff
+import JSON_NG, TUIDefinition, TUIDiff
 
 // encodes a tui definition in a format readable by the client
 encodeTUIDefinition :: !TUIDef -> JSONNode

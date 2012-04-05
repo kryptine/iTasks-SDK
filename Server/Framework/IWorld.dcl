@@ -6,7 +6,7 @@ from Maybe			import :: Maybe
 from SystemTypes	import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
 from Time			import :: Timestamp
 from TaskState		import :: TaskListEntry
-from JSON			import :: JSONNode
+from JSON_NG		import :: JSONNode
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build

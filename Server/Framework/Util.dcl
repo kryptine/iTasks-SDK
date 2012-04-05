@@ -1,6 +1,6 @@
 definition module Util
 
-import StdGeneric, SystemTypes, Error, GenEq, StdClass
+import StdGeneric, SystemTypes, Error, GenEq_NG, StdClass
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])

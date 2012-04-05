@@ -1,6 +1,6 @@
 implementation module GenVerify
 
-import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text, Generic
+import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, Util, Text, Generic_NG
 import GenUpdate, StdMisc
 
 derive gVerify (,), (,,), (,,,), Void, Either, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
@@ -23,6 +23,20 @@ generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
 gVerify{|UNIT|} 			  _ 					vst = vst
 gVerify{|PAIR|}			fx fy p						vst = fy (fmap fromPAIRY p) (fx (fmap fromPAIRX p) vst)
 gVerify{|CONS|}			fx c						vst = fx (fmap fromCONS c) vst
+
+gVerify{|RECORD|}		fx r						vst=:{updateMask,verifyMask,optional}
+	# val		= fmap fromRECORD r
+	# (cmu,um)	= popMask updateMask
+	# vst		= {vst & updateMask = childMasks cmu, verifyMask = []}	
+	# (childMask,vst) = case isJust r of
+		True
+			# vst=:{verifyMask = childMask} = fx val {vst & optional = False}
+			= (childMask,{vst & verifyMask = childMask})
+		False
+			= ([],vst)
+	# (consMask,vst) = if (isTouched cmu) (VMValid Nothing childMask,vst) (VMUntouched Nothing optional childMask,vst)
+	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}
+	
 gVerify{|FIELD|}		fx f						vst = fx (fmap fromFIELD f) vst
 
 gVerify{|EITHER|} 		_  _  Nothing				vst = vst
@@ -33,29 +47,19 @@ gVerify{|OBJECT of d|}	fx    obj					vst=:{updateMask,verifyMask,optional}
 	# val		= fmap fromOBJECT obj
 	# (cmu,um)	= popMask updateMask
 	# vst		= {vst & updateMask = childMasks cmu, verifyMask = []}
-	# (consMask,vst) = case (isRecordType d,d.gtd_num_conses) of
-		(False,1) // ADT's with just one constructor
+	# (consMask,vst) = case d.gtd_num_conses of
+		1 	// ADT's with just one constructor
 			# vst=:{verifyMask = childMask} = fx val vst
 			# vst							= {vst & verifyMask = childMask}
 			| isTouched cmu					= (VMValid Nothing childMask,vst)
 			| otherwise						= (VMUntouched Nothing optional childMask,vst)
-		(False,_) // ADT's with multiple constructors
+		_ 	// ADT's with multiple constructors
 			# vst=:{verifyMask = childMask} = fx val {vst & optional = False}
 			# vst							= {vst & verifyMask = childMask}
 			 = case cmu of
 			 	Blanked | not optional		= (VMInvalid IsBlankError childMask,vst)
 				Untouched					= (VMUntouched (Just "Select an option") optional childMask,vst)
 				_							= (VMValid (Just "Select an option") childMask,vst)
-		(True,_) // Records
-			//Only compute child verify mask if record has value. Else you can end up in endless recursion!
-			# (childMask,vst) = case isJust obj of
-				True
-					# vst=:{verifyMask = childMask} = fx val {vst & optional = False}
-					= (childMask,{vst & verifyMask = childMask})
-				False
-					= ([],vst)
-			| isTouched cmu					= (VMValid Nothing childMask,vst)
-			| otherwise						= (VMUntouched Nothing optional childMask,vst)		
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}
 
 gVerify{|[]|} fx mbL vst=:{optional,verifyMask,updateMask,staticDisplay}

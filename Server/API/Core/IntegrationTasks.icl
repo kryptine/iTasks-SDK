@@ -2,7 +2,7 @@ implementation module IntegrationTasks
 
 import StdInt, StdFile, StdTuple, StdList
 
-import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple, JSON
+import Directory, File, FilePath, Error, OSError, UrlEncoding, Text, Tuple, JSON_NG
 
 import SystemTypes, IWorld, Task, TaskState
 import LayoutCombinators

@@ -1,6 +1,6 @@
 implementation module TUIEncode
 
-import StdMisc, StdList, JSON, SystemTypes, TUIDefinition, TUIDiff
+import StdMisc, StdList, JSON_NG, SystemTypes, TUIDefinition, TUIDiff
 
 encodeTUIDefinition :: !TUIDef -> JSONNode
 encodeTUIDefinition d = toJSON d

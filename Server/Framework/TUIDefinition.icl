@@ -1,6 +1,6 @@
 implementation module TUIDefinition
 
-import JSON, StdList, StdBool, StdTuple, GenEq, StdFunc, HTML, Text, List
+import JSON_NG, StdList, StdBool, StdTuple, GenEq_NG, StdFunc, HTML, Text, List_NG
 from SystemTypes	import :: Document, :: DocumentId, :: Hotkey, :: TaskId, :: Action(..), :: ActionName
 from SystemTypes	import actionIcon, actionName
 from Task			import  :: TaskAction

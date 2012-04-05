@@ -1,6 +1,6 @@
 implementation module GenUpdate
 
-import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum, Tuple, List
+import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum, Tuple, List_NG
 import SystemTypes, Text, Util, DocumentStore
 from StdFunc import id, const, o
 from TUIDefinition import :: TUISize(..), :: TUIFixedSize, :: TUIWeight
@@ -60,7 +60,20 @@ where
 		JSONInt consIdx | consIdx < length d.gtd_conses
 			= getConsPath (d.gtd_conses !! consIdx)
 		_			= []
-		
+
+gUpdate{|RECORD|} fx UDCreate ust=:{newMask}
+	# (nx,ust=:{newMask=recordMask}) = fx UDCreate {ust & newMask = []}
+	= (RECORD nx, {ust & newMask = newMask ++ recordMask})	
+gUpdate{|RECORD|} fx (UDSearch (RECORD x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
+	| searchPath <== currentPath
+		//Update is targeted somewhere in a substructure of this value
+		# (nx,ust=:{newMask=childMask}) = fx (UDSearch x) {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
+		= (RECORD nx, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched childMask)})
+	| otherwise
+		//Not on the path, so just put back the current mask (cm)	
+		= (RECORD x, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
+
 gUpdate{|CONS|}		fx UDCreate				ust = appFst CONS	(fx UDCreate ust)
 gUpdate{|CONS|}		fx (UDSearch (CONS c))	ust = appFst CONS	(fx (UDSearch c) ust)
 gUpdate{|FIELD|}	fx UDCreate				ust = appFst FIELD	(fx UDCreate ust)
@@ -284,6 +297,7 @@ generic gDefaultMask a :: !a -> [UpdateMask]
 gDefaultMask{|UNIT|} _						= []
 gDefaultMask{|OBJECT|}	fx (OBJECT x)		= [Touched (fx x)]
 gDefaultMask{|CONS|}	fx (CONS x)			= fx x
+gDefaultMask{|RECORD|}	fx (RECORD x)		= fx x
 gDefaultMask{|FIELD|}	fx (FIELD x)		= fx x
 gDefaultMask{|PAIR|}	fx fy (PAIR x y)	= fx x ++ fy y
 gDefaultMask{|EITHER|}	fx fy e = case e of

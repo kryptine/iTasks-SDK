@@ -1,3 +1,3 @@
 implementation module iTasks
 
-import GenUpdate, GenVisualize, GenVerify, JSON
+import GenUpdate, GenVisualize, GenVerify, JSON_NG
