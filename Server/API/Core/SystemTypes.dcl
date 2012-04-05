@@ -234,7 +234,7 @@ instance + DateTime	//Basic addition, righthand argument is treated as interval
 instance + EUR
 instance + USD
 
-instance - Time		//Naive fieldwise subtraction
+instance - Time		//Basic subtraction, righthand argument is treated as interval (seconds are subtracted first)
 instance - Date		//Naive fieldwise subtraction
 instance - DateTime	//Naive fieldwise subtraction
 instance - EUR

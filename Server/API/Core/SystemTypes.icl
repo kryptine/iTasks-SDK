@@ -206,8 +206,24 @@ where
 		
 instance - Time
 where
-	(-) x y = {Time|hour = x.Time.hour - y.Time.hour, min = x.Time.min - y.Time.min, sec = x.Time.sec - y.Time.sec}
-
+	(-) x y = normHours (subHours y.hour (normMinutes (subMinutes y.min (normSeconds (subSeconds y.sec x)))))
+	where
+		subSeconds s t	= {t & sec = t.sec - s}
+		normSeconds t
+			# ns = t.sec rem 60
+			| ns < 0	= {t & min = t.min + (t.sec / 60) - 1, sec = ns + 60}
+						= {t & min = t.min + (t.sec / 60), sec = ns}
+		subMinutes m t	= {t & min = t.min - m}
+		normMinutes t	
+			# nm = t.min rem 60
+			| nm < 0	= {t & hour = t.hour + (t.min / 60) - 1, min = nm + 60}
+						= {t & hour = t.hour + (t.min / 60), min = nm}
+		subHours h t	= {t & hour = t.hour - h}
+		normHours t	
+			# nh = t.hour rem 24
+			| nh < 0	= {t & hour = nh + 24}
+						= {t & hour = nh}
+		
 instance toString Time
 where
 	toString {Time|hour,min,sec}	= (pad 2 hour) +++ ":" +++ (pad 2 min) +++ ":" +++ (pad 2 sec)
