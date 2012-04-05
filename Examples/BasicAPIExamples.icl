@@ -31,7 +31,7 @@ basicAPIExamples =
 	,workflow (sharedData +++ "Edit stored persons") 	 	"Update a stored list of persons" 	editStoredPersons
 	,workflow (sharedData +++ "View stored persons") 	 	"View a stored list of persons" 	viewStoredPersons
 	,workflow (sharedData +++ "Editors on shared note") 	"edit notes" 						notes
-	,workflow (sharedData +++ "BUGGY: Edit note or List of strings") "Edit note or List of strings" 	linesPar
+	,workflow (sharedData +++ "Edit note or List of strings") "Edit note or List of strings" 	linesPar
 
 	,workflow (seqTasks +++ "Hello User") 	 			 	"Enter your name:" 					hello
 	,workflow (seqTasks +++ "Positive Number") 	 			"Enter a positive number:" 			positiveNumber

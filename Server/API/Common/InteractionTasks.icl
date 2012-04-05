@@ -34,8 +34,8 @@ updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task
 updateSharedInformation d [UpdateWith tof fromf] shared
 	= interact d (toReadOnly shared)
 				(\r -> let v = tof r in (fromf r v,v,defaultMask v))
-				(\l r v m ok -> if ok (let nl = fromf r v in (let nv = tof r in (nl,nv,defaultMask nv))) (l,v,m))
-		@> (mapval,shared)
+				(\l r v m ok -> if ok (if (fromf r (tof r) =!= l) (let nv = tof r in (fromf r nv,nv,defaultMask nv)) (fromf r v,v,m)) (l,v,m))
+				@> (mapval,shared)
 updateSharedInformation d _ shared			
 	//Use dynamics to test if r == w, if so we can use an update view	
 	//If different types are used we can only resort to a display of type r and an enter of type w
@@ -43,7 +43,7 @@ updateSharedInformation d _ shared
 		(rtow :: (r^ -> w^))
 			= interact d (toReadOnly shared)
 				(\r -> let v = rtow r in (rtow r,v,defaultMask v))
-				(\l r v m ok -> if ok (let nl = (if (rtow r =!= l) (rtow r) v) in (let nv = nl in (nl,nv,defaultMask nv))) (l,v,m))
+				(\l r v m ok -> if ok (if (rtow r =!= l) (let nv = rtow r in (nv,nv,defaultMask nv)) (v,v,m)) (l,v,m))
 				@> (mapval,shared)
 		_
 			= interact d (toReadOnly shared)
