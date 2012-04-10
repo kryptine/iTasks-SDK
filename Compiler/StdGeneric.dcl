@@ -15,12 +15,6 @@ bimapId :: Bimap .a .a
 :: RECORD a = RECORD a 		// record marking
 :: FIELD a = FIELD a 		// record field marking
 
-:: GenericInfo 	= NoGenericInfo	
-				| GenericConsInfo GenericConsDescriptor
-				| GenericRecordInfo GenericRecordDescriptor
-				| GenericFieldInfo GenericFieldDescriptor
-				| GenericTypeDefInfo GenericTypeDefDescriptor
-
 :: GenericTypeDefDescriptor =
 	{ gtd_name  	:: String 
 	, gtd_arity 	:: Int 
@@ -61,7 +55,7 @@ bimapId :: Bimap .a .a
 // determine the path in the generic binary-sum-tree of a constructor
 :: ConsPos = ConsLeft | ConsRight
 getConsPath :: !GenericConsDescriptor -> [ConsPos]
-	
+
 // generic bidirectional mapping
 generic bimap a b :: Bimap .a .b
 
