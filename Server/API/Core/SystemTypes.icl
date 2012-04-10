@@ -8,12 +8,12 @@ from Task		import :: TaskValue
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONEncode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONDecode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive gEq				EUR, USD, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
-derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -99,9 +99,7 @@ JSONDecode{|Password|} c = (Nothing,c)
 // Note
 // ******************************************************************************************************
 
-instance toString Note
-where
-	toString (Note s) = s
+instance toString Note where toString (Note s) = s
 
 JSONEncode{|Note|} (Note txt) = [JSONString txt]
 JSONDecode{|Note|} [JSONString txt:c] = (Just (Note txt),c)
@@ -111,9 +109,13 @@ instance == Note
 where
 	(==) (Note x) (Note y) = x == y
 	
-instance html Note
-where
-	html (Note msg) = Text msg
+instance html Note where html (Note msg) = Text msg
+
+// ******************************************************************************************************
+// URL 
+// ******************************************************************************************************
+instance toString URL where toString (URL url) = url
+instance html URL where html (URL url) = ATag [HrefAttr url] [Text url]
 
 // ******************************************************************************************************
 // Date

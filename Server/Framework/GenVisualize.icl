@@ -61,6 +61,7 @@ gVisualizeText{|String|}		_ val				= [toString val]
 gVisualizeText{|Bool|}			_ val				= [toString val]
 gVisualizeText{|Password|}		_ val				= ["********"]
 gVisualizeText{|Note|}			_ val				= [toString val]
+gVisualizeText{|URL|}			_ val				= [toString val]
 gVisualizeText{|Date|}			_ val				= [toString val]
 gVisualizeText{|Time|}			_ val				= [toString val]
 gVisualizeText{|User|}			_ val				= [toString val]
@@ -258,6 +259,24 @@ gVisualizeEditor {|Document|}	val vst = visualizeControl control val vst
 where
 	control = TUIDocumentControl (fromMaybe {Document|documentId = "",name = "", mime = "", size = 0} val)
 	
+gVisualizeEditor{|URL|}		val vst = visualizeCustom vizUrl vst
+where
+	vizUrl name touched verRes eventValue vst=:{VSt|taskId,renderAsStatic,controlSize}
+		| renderAsStatic
+		//	= ([sizedControl controlSize (TUIShowControl TUIStringControl {TUIShowControl| value = toJSON (fmap toString val)})], vst)
+			# url = toString val
+			= ([defaultDef (TUIHtml {TUIHtml|html = toString (ATag [HrefAttr url] [Text url])})], vst)
+		| otherwise
+			# val = checkMask touched val
+			# viz = sizedControl controlSize (TUIEditControl TUIStringControl
+													{ TUIEditControl
+													| name = name
+													, value = toJSON (fmap toString val)
+													, eventValue = eventValue
+													, taskId = fmap toString taskId
+													})
+			= ([addMsg verRes viz],vst)
+		
 gVisualizeEditor{|FormButton|} val vst = visualizeControl control (fmap (\b=:{FormButton|state} -> (state,b)) val) vst
 where
 	control
@@ -313,10 +332,6 @@ where
 		# (rtree,idx`)		= mkTree r idx`
 		= ([{text = concat (gx AsLabel v), value = idx, leaf = False, children = Just children}:rtree],idx`)
 		
-	checkMask :: !Bool !(Maybe a) -> (Maybe a)
-	checkMask False _	= Nothing
-	checkMask _ val 	= val
-
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCCombo val)) vst
 	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCRadio val)) vst
@@ -471,7 +486,7 @@ gHeaders{|(->)|} _ _		= (undef, [])
 gHeaders{|UNIT|}			= (undef,[])
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gHeaders Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
@@ -493,7 +508,7 @@ gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gGridRows Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
@@ -515,10 +530,6 @@ where
 													})
 			= ([addMsg verRes viz],vst)
 		
-	checkMask :: !Bool !(Maybe a) -> (Maybe a)
-	checkMask False _	= Nothing
-	checkMask _ val 	= val
-
 visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 visualizeCustom tuiF vst=:{currentPath,renderAsStatic,verifyMask,editEvent}
 	# (cmv,vm)	= popMask verifyMask
@@ -570,6 +581,10 @@ addMsg verRes viz = case verRes of
 where	
 	add cls msg viz= {content = TUIContainer {TUIContainer|defaultContainer [viz,mkIcon cls msg] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}
 	mkIcon cls msg = setLeftMargin 5 (defaultDef (TUIIcon {type = cls, tooltip = Just msg}))
+
+checkMask :: !Bool !(Maybe a) -> (Maybe a)
+checkMask False _	= Nothing
+checkMask _ val 	= val
 
 tuiOfEditor :: !VisualizationResult -> [TUIDef]
 tuiOfEditor (NormalEditor tui) = tui

@@ -162,13 +162,13 @@ instance toUserConstraint String
 :: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
 
 derive JSONEncode		EUR, USD, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONEncode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive JSONEncode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode		EUR, USD, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONDecode		Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive JSONDecode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq				EUR, USD, FormButton, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive gEq				Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -186,6 +186,7 @@ derive class iTask	FileException, ParseException, CallException, SharedException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 
 instance toString Note
+instance toString URL 
 instance toString EUR
 instance toString USD
 
@@ -246,6 +247,7 @@ instance zero EUR
 instance zero USD
 
 instance html Note
+instance html URL 
 
 //* Form buttons
 :: FormButton 		= 

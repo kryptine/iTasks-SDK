@@ -215,6 +215,8 @@ gUpdate{|USD|}					mode ust = basicUpdateSimple mode (USD 0) ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode (AnonymousUser "") ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
 gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton|b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
+gUpdate{|URL|}					mode ust = basicUpdate mode (\json url -> maybe url (\s -> URL s) (fromJSON json))  (URL "") ust
+
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
 gUpdate{|TreeChoice|} _ _		mode ust = updateChoice mode (\idx (TreeChoice options _) -> TreeChoice options (Just idx)) (TreeChoice (Tree []) Nothing) ust
 gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode (\idx (GridChoice options _) -> GridChoice options (Just idx)) (GridChoice [] Nothing) ust
@@ -331,6 +333,7 @@ gDefaultMask{|(->)|} _ _			_ = [Touched []]
 gDefaultMask{|Document|}			_ = [Touched []]			
 gDefaultMask{|FormButton|}			_ = [Touched []]
 gDefaultMask{|Note|}				_ = [Touched []]
+gDefaultMask{|URL|}					_ = [Touched []]
 gDefaultMask{|Username|}			_ = [Touched []]
 gDefaultMask{|Password|}			_ = [Touched []]
 gDefaultMask{|EUR|}					_ = [Touched []]

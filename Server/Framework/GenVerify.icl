@@ -119,6 +119,7 @@ gVerify{|Password|}				_ vst = simpleVerify "Enter a password" vst
 gVerify{|Date|}					_ vst = simpleVerify "Enter a date" vst
 gVerify{|Time|}					_ vst = simpleVerify "Enter a time of day" vst
 gVerify{|Note|}					_ vst = simpleVerify "Enter a long text" vst
+gVerify{|URL|}					_ vst = simpleVerify "Enter a uniform resource locator (URL)" vst
 gVerify{|FormButton|}			_ vst = alwaysValid vst
 gVerify{|EUR|}					_ vst = simpleVerify "Enter an amount in EUR" vst
 gVerify{|USD|}					_ vst = simpleVerify "Enter an amount in USD" vst
