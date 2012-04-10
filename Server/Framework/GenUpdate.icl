@@ -57,9 +57,19 @@ gUpdate{|OBJECT of d|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,upd
 		= (OBJECT x, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
 where
 	path = case update of
-		JSONInt consIdx | consIdx < length d.gtd_conses
-			= getConsPath (d.gtd_conses !! consIdx)
-		_			= []
+		JSONInt consIdx | consIdx < d.gtd_num_conses
+				= consPath consIdx d.gtd_num_conses
+		_		= []
+
+	consPath i n
+		| i >= n	
+			= []
+		| n == 1
+			= []
+		| i < (n/2)
+			= [ ConsLeft : consPath i (n/2) ]
+		| otherwise
+			= [ ConsRight : consPath (i - (n/2)) (n - (n/2)) ]
 
 gUpdate{|RECORD|} fx UDCreate ust=:{newMask}
 	# (nx,ust=:{newMask=recordMask}) = fx UDCreate {ust & newMask = []}

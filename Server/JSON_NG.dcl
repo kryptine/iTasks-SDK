@@ -76,14 +76,14 @@ jsonQuery :: !String !JSONNode -> Maybe a | JSONDecode{|*|} a
 * for each type you want to encode in JSON format.
 */
 generic JSONEncode t :: !t -> [JSONNode]
-derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, RECORD, FIELD, CONS, OBJECT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode
+derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, RECORD of d, FIELD, CONS of d, OBJECT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode
 /**
 * Generic decoding function. This function should not be used
 * directly, but always through the fromJSON function. It must be derived
 * for each type you want to parse from JSON format.
 */
 generic JSONDecode t :: ![JSONNode] -> (!Maybe t,![JSONNode])
-derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, RECORD, FIELD, CONS, OBJECT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode
+derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, RECORD, FIELD of d, CONS of d, OBJECT, [], (,), (,,), (,,,), (,,,,), {}, {!}, Maybe, JSONNode
 
 /**
 * Equality of JSON nodes.

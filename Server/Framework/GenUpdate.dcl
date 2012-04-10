@@ -24,7 +24,7 @@ from Map	import :: Map
 
 generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
 
-derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
+derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT of d, RECORD, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gUpdate URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table

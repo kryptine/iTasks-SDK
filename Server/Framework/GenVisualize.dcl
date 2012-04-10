@@ -11,7 +11,7 @@ from Map import :: Map
 generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 
 //Default available instances
-derive gVisualizeText UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
+derive gVisualizeText UNIT, PAIR, EITHER, CONS of d, OBJECT, RECORD, FIELD of d
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeText URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
@@ -29,18 +29,18 @@ derive gVisualizeText EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPri
 generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
 
 //Default available instances
-derive gVisualizeEditor UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
+derive gVisualizeEditor UNIT, PAIR, EITHER, CONS of d, OBJECT of d, RECORD, FIELD of d
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeEditor URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
 derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Generic headers function for getting grid headers for a type (typically names of record fields)
-//! The first part of the result is always undef. It's needed to indicate the type the function works on. !
-generic gHeaders a :: (a, ![String])
+//The argument is ignored. It's needed to indicate the type the function works on!
+generic gHeaders a :: a -> [String]
 
 //Default available instances
-derive gHeaders UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
+derive gHeaders UNIT, PAIR, EITHER, CONS, OBJECT, RECORD of d, FIELD
 derive gHeaders Int, Real, Char, Bool, String
 derive gHeaders Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table

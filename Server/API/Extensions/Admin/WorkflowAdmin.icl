@@ -19,7 +19,7 @@ derive gEq				Workflow
 
 gVisualizeText{|WorkflowTaskContainer|} _ _	= []
 gVisualizeEditor{|WorkflowTaskContainer|} _ vst = noVisualization vst
-gHeaders{|WorkflowTaskContainer|} = (undef, ["Workflow task container"])
+gHeaders{|WorkflowTaskContainer|} _ = ["Workflow task container"]
 gGridRows{|WorkflowTaskContainer|} _ _ = Nothing
 gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode (\Void x -> x) (WorkflowTask defTask) ust
 where

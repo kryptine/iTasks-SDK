@@ -319,10 +319,10 @@ where
 			NotPressed	= False
 
 toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|*|} a
-toTable a = Table (snd (headers a)) (map row a) Nothing
+toTable a = Table (headers a undef) (map row a) Nothing
 where
-	headers:: [a] -> (a,[String]) | gHeaders{|*|} a
-	headers _ = gHeaders{|*|}
+	headers:: [a] a -> [String] | gHeaders{|*|} a
+	headers _ a = gHeaders{|*|} a
 
 	row x = case (gGridRows{|*|} x []) of
 		Just cells	= [Text cell \\ cell <- cells]

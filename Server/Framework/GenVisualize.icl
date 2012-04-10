@@ -305,7 +305,7 @@ where
 gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ val vst = visualizeControl (TUIGridControl (toGrid val)) (fmap (\(GridChoice _ mbSel) -> mbSel) val) vst
 where
 	toGrid Nothing							= {cells = [], headers = []}
-	toGrid (Just (GridChoice options _))	= {headers = snd hx, cells = [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]}
+	toGrid (Just (GridChoice options _))	= {headers = hx undef, cells = [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]}
 	
 gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom tuiF vst
 where
@@ -467,23 +467,24 @@ where
 derive gVisualizeEditor DateTime
 derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
 
-generic gHeaders a :: (a, ![String])
+generic gHeaders a :: a -> [String]
 
-gHeaders{|OBJECT|} fx		= (undef, [])
-gHeaders{|RECORD of d|} fx	= (undef, [camelCaseToWords fieldname \\ fieldname <- d.grd_fields])
-gHeaders{|CONS|} fx			= (undef, [])
-gHeaders{|PAIR|} fx fy		= (undef, [])
-gHeaders{|FIELD|} fx		= (undef, [])
-gHeaders{|EITHER|} fx fy	= (undef, [])
-gHeaders{|Int|}				= (undef, [])
-gHeaders{|Char|}			= (undef, [])
-gHeaders{|String|}			= (undef, [])
-gHeaders{|Real|}			= (undef, [])
-gHeaders{|Bool|}			= (undef, [])
-gHeaders{|Dynamic|}			= (undef, [])
-gHeaders{|HtmlTag|}			= (undef, [])
-gHeaders{|(->)|} _ _		= (undef, [])
-gHeaders{|UNIT|}			= (undef,[])
+gHeaders{|UNIT|} _			= []
+gHeaders{|PAIR|} _ _ _		= []
+gHeaders{|EITHER|} _ _ _	= []
+gHeaders{|OBJECT|} _ _		= []
+gHeaders{|CONS|} _ _		= []
+gHeaders{|RECORD of d|} _ _	= [camelCaseToWords fieldname \\ fieldname <- d.grd_fields]
+gHeaders{|FIELD|} _ _		= []
+gHeaders{|Int|}	_			= []
+gHeaders{|Char|} _			= []
+gHeaders{|String|} _		= []
+gHeaders{|Real|} _			= []
+gHeaders{|Bool|} _ 			= []
+gHeaders{|Dynamic|}	_		= []
+gHeaders{|HtmlTag|}	_		= []
+gHeaders{|(->)|} _ _ _		= []
+
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table

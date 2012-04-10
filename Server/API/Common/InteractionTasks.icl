@@ -146,13 +146,13 @@ where
 	toOptionList l				= l
 	toOptionTree l				= Tree (map Leaf l)
 	suggestedChoiceType	l
-		| not (isEmpty (snd (headers l)))	= ChooseFromGrid
+		| not (isEmpty (headers l undef))	= ChooseFromGrid
 		| length l > 7						= ChooseFromComboBox
 		| otherwise							= ChooseFromRadioButtons
 	where
 		// unify type of list elements with type to determine headers for
-		headers :: [a] -> (a,![String]) | gHeaders{|*|} a
-		headers _ = gHeaders{|*|}
+		headers :: [a] a -> [String] | gHeaders{|*|} a
+		headers _ a = gHeaders{|*|} a
 	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
 	
 instance OptionContainer Tree

@@ -43,7 +43,7 @@ gVerify{|Task|} _ _ vst = alwaysValid vst
 gVisualizeText{|Task|} _ _ _ = ["<Task>"]
 gVisualizeEditor{|Task|} _ _ _ _ _ vst = (NormalEditor [stringDisplay "<Task>"],vst)
 
-gHeaders{|Task|} _ = (undef, ["Task"])
+gHeaders{|Task|} _ _ = ["Task"]
 gGridRows{|Task|} _ _ _ _	= Nothing	
 gEq{|Task|} _ _ _			= True // tasks are always equal??
 
