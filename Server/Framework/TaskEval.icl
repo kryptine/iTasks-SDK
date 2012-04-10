@@ -7,14 +7,14 @@ import LayoutCombinators
 
 from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
 
-from Map				import qualified fromList, toList, get, put
+from Map				import qualified newMap, fromList, toList, get, put
 import iTaskClass
 
 createTaskInstance :: !InstanceNo !(Maybe SessionId) !InstanceNo !(Task a) !ManagementMeta !ProgressMeta !*IWorld -> (!TaskInstance, !*IWorld) | iTask a
 createTaskInstance instanceNo sessionId parent task mmeta pmeta iworld=:{taskTime} 
 	= ({TaskInstance|instanceNo=instanceNo,sessionId=sessionId,parent=parent,nextTaskNo=1,nextTaskTime=2,progress=pmeta,management=mmeta,task=toJSONTask task
 	   ,result = ValueResult NoValue taskTime (TaskRep (SingleTask,Just (stringDisplay "This task has not been evaluated yet." ),[],[]) []) (TCInit (TaskId instanceNo 0) 1)
-	   ,shares = [], lists = [], observers = []}, iworld)
+	   ,shares = 'Map'.newMap, lists = 'Map'.newMap, observers = []}, iworld)
 where
 	toJSONTask (Task eval) = Task eval`
 	where
@@ -83,9 +83,7 @@ evalAndStoreInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceN
 	# repAs						= TaskRepOpts Nothing Nothing
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
-	# curLocalShares			= 'Map'.fromList [(TaskId instanceNo taskNo,val) \\ (taskNo,val) <- shares] 
-	# curLocalLists				= 'Map'.fromList lists
-	# iworld					= {iworld & currentInstance = instanceNo, nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = curLocalShares, localLists = curLocalLists} 
+	# iworld					= {iworld & currentInstance = instanceNo, nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = shares, localLists = lists} 
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (result,iworld)			= eval editEvent commitEvent refresh repAs tree iworld
 	# (updNextTaskNo,iworld)	= getNextTaskNo iworld
@@ -104,9 +102,9 @@ evalAndStoreInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceN
 	| otherwise
 		= (Ok result, inst, iworld)
 where
-	getNextTaskNo iworld=:{IWorld|nextTaskNo} = (nextTaskNo,iworld)
-	getLocalShares iworld=:{IWorld|localShares} = ([(taskNo,val) \\ (TaskId _ taskNo,val) <- 'Map'.toList localShares],iworld)
-	getLocalLists iworld=:{IWorld|localLists} = ('Map'.toList localLists,iworld)
+	getNextTaskNo iworld=:{IWorld|nextTaskNo}	= (nextTaskNo,iworld)
+	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
+	getLocalLists iworld=:{IWorld|localLists}	= (localLists,iworld)
 
 	setStatus (ExceptionResult _ _) meta				= {meta & status = Stable}
 	setStatus (ValueResult (Value _ Stable) _ _ _) meta	= {meta & status = Stable}
@@ -140,20 +138,45 @@ refreshInstance instanceNo iworld
 			= iworld
 
 localShare :: !TaskId -> Shared a | iTask a
-localShare taskId = createBasicSDS "localShare" shareKey read write
+localShare taskId=:(TaskId instanceNo taskNo) = createBasicSDS "localShare" shareKey read write
 where
 	shareKey = toString taskId
-	read iworld=:{localShares}
-		= case 'Map'.get taskId localShares of
-			Just encs	
-				= case fromJSON encs of
-					Just s	= (Ok s, iworld)
-					_		= (Error ("Could not decode local shared state " +++ shareKey), iworld)
-			_			= (Error ("Could not read local shared state " +++ shareKey), iworld)
-	
-	write value iworld=:{localShares}
-		= (Ok Void, {iworld & localShares = 'Map'.put taskId (toJSON value) localShares})
 
+	read iworld=:{currentInstance,localShares}
+		//Local share
+		| instanceNo == currentInstance
+			= case 'Map'.get taskId localShares of
+				Just encs	
+					= case fromJSON encs of
+						Just s	= (Ok s, iworld)
+						_		= (Error ("Could not decode local shared state " +++ shareKey), iworld)
+				_			= (Error ("Could not read local shared state " +++ shareKey), iworld)
+		//Share of ancestor
+		| otherwise
+			= case loadTaskInstance instanceNo iworld of
+				(Ok inst,iworld)
+					=  case 'Map'.get taskId inst.TaskInstance.shares of
+						Just encs
+							= case fromJSON encs of	
+								Just s	= (Ok s, iworld)
+								_		= (Error ("Could not decode remote shared state " +++ shareKey), iworld)
+						_
+							= (Error ("Could not read remote shared state " +++ shareKey), iworld)
+				(Error _,iworld)
+					= (Error ("Could not read remote shared state " +++ shareKey), iworld)
+				
+	write value iworld=:{currentInstance,localShares}
+		| instanceNo == currentInstance
+			= (Ok Void, {iworld & localShares = 'Map'.put taskId (toJSON value) localShares})
+		| otherwise
+			= case loadTaskInstance instanceNo iworld of
+				(Ok inst,iworld)
+					# inst		= {inst & shares = 'Map'.put taskId (toJSON value) inst.TaskInstance.shares}
+					# iworld	= storeTaskInstance inst iworld
+					= (Ok Void, iworld)
+				(Error _,iworld)
+					= (Error ("Could not write to remote shared state " +++ shareKey), iworld)
+		
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
 topListShare = createReadOnlySDSError "globalList" "top" read
@@ -165,12 +188,22 @@ parListShare :: !TaskId -> SharedTaskList a | iTask a
 parListShare taskId=:(TaskId instanceNo taskNo) = createReadOnlySDSError "localList" shareKey read
 where
 	shareKey = toString taskId
-	read iworld=:{localLists}
-		= case 'Map'.get taskId localLists of
-			Just entries
-				= (Ok {listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
-			_			= (Error ("Could not read local shared state " +++ shareKey), iworld)
-
+	read iworld=:{currentInstance,localLists}
+		| instanceNo == currentInstance		
+			= case 'Map'.get taskId localLists of
+				Just entries
+					= (Ok {listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
+				_	= (Error ("Could not read local task list " +++ shareKey), iworld)
+		| otherwise
+			= case loadTaskInstance instanceNo iworld of
+				(Ok inst,iworld)
+					= case 'Map'.get taskId inst.TaskInstance.lists of					
+						Just entries
+							= (Ok {listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
+						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)
+				(Error _,iworld)
+					= (Error ("Could not load remote task list " +++ shareKey), iworld)
+					
 	toItem {TaskListEntry|entryId,state,result=ValueResult val ts (TaskRep (_,_,_,attr) _) _}
 		= 	{taskId			= entryId
 			,value			= deserialize val

@@ -19,8 +19,8 @@ derive JSONDecode TaskInstance, TaskTree
 	, management	:: !ManagementMeta
 	, task			:: !Task JSONNode
 	, result		:: !TaskResult JSONNode				//Result of last evaluation
-	, shares		:: ![(!TaskNo,!JSONNode)]			//Locally shared data
-	, lists			:: ![(!TaskId,![TaskListEntry])]	//Shared task lists of parallel tasks
+	, shares		:: !Map TaskId JSONNode				//Locally shared data
+	, lists			:: !Map TaskId [TaskListEntry]		//Shared task lists of parallel tasks
 	, observers		:: ![InstanceNo]					//List of instances that may be affected by changes in this instance
 	}
 

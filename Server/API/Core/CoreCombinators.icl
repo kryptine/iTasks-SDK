@@ -10,7 +10,7 @@ from IWorld				import :: IWorld(..)
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 from TaskEval			import localShare, parListShare, topListShare
 from CoreTasks			import return
-from SharedDataSource	import write, read//, getIds, :: ShareId
+from SharedDataSource	import write, read
 
 derive class iTask ParallelTaskType, WorkOnStatus
 
@@ -222,10 +222,9 @@ where
 	isStable _					= False
 																
 //SHARED HELPER FUNCTIONS
-//TODO: Also add to lists which are not in scope!
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
-appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{localLists,taskTime,currentUser,currentDateTime}
-	# list = fromMaybe [] ('Map'.get taskId localLists)
+appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,currentUser,currentDateTime}
+	# (list,iworld) = loadTaskList taskId iworld 
 	# (taskIda,state,iworld) = case parType of
 		Embedded
 			# (taskIda,iworld)	= getNextTaskId iworld
@@ -238,7 +237,8 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{localLists
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# result	= ValueResult NoValue taskTime (TaskRep (SingleTask,Just (stringDisplay "Task not evaluated yet"),[],[]) []) (TCInit taskIda taskTime)
 	# entry		= {entryId = taskIda, state = state, result = result, time = taskTime, removed = False}
-	= (taskIda, {iworld & localLists = 'Map'.put taskId (list ++ [entry]) localLists})		
+	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
+	= (taskIda, iworld)		
 
 updateListEntryEmbeddedResult :: !TaskId !TaskId (TaskResult a) !*IWorld -> *IWorld | iTask a
 updateListEntryEmbeddedResult listId entryId result iworld
@@ -265,15 +265,31 @@ updateListEntryTime listId entryId ts iworld
 markListEntryRemoved :: !TaskId !TaskId !*IWorld -> *IWorld
 markListEntryRemoved listId entryId iworld
 	= updateListEntry listId entryId (\e -> {TaskListEntry|e & removed = True}) iworld
-	
-//TODO Also update list entries of lists that are not in scope
-updateListEntry :: !TaskId !TaskId !(TaskListEntry -> TaskListEntry) !*IWorld -> *IWorld
-updateListEntry listId entryId f iworld=:{localLists}
-	= case 'Map'.get listId localLists of
-		Nothing 	= iworld
-		Just list	= {iworld & localLists = 'Map'.put listId
-							[if (e.TaskListEntry.entryId == entryId) (f e) e \\ e <- list] localLists}
 
+updateListEntry :: !TaskId !TaskId !(TaskListEntry -> TaskListEntry) !*IWorld -> *IWorld
+updateListEntry listId entryId f iworld
+	# (list,iworld) = loadTaskList listId iworld
+	# iworld		= storeTaskList listId [if (e.TaskListEntry.entryId == entryId) (f e) e \\ e <- list] iworld
+	= iworld
+
+loadTaskList :: !TaskId !*IWorld -> (![TaskListEntry],!*IWorld)	
+loadTaskList taskId=:(TaskId instanceNo taskNo) iworld=:{currentInstance,localLists}
+	| instanceNo == currentInstance
+		= (fromMaybe [] ('Map'.get taskId localLists),iworld)
+	| otherwise
+		= case loadTaskInstance instanceNo iworld of
+			(Ok inst,iworld)	= (fromMaybe [] ('Map'.get taskId inst.TaskInstance.lists),iworld)
+			(_,iworld)			= ([],iworld)
+
+storeTaskList :: !TaskId ![TaskListEntry] !*IWorld -> *IWorld	
+storeTaskList taskId=:(TaskId instanceNo taskNo) list iworld=:{currentInstance,localLists}
+	| instanceNo == currentInstance
+		= {iworld & localLists = 'Map'.put taskId list localLists}
+	| otherwise
+		= case loadTaskInstance instanceNo iworld of
+			(Ok inst=:{TaskInstance|lists},iworld)	= storeTaskInstance {inst & lists = 'Map'.put taskId list lists} iworld
+			(_,iworld)								= iworld
+			
 readListId :: (SharedTaskList a) *IWorld -> (MaybeErrorString (TaskListId a),*IWorld)	| iTask a
 readListId slist iworld = case read slist iworld of
 	(Ok l,iworld)		= (Ok l.TaskList.listId, iworld)
