@@ -9,7 +9,7 @@ import FilePath
 from File import ::FileError, writeFile, moveFile
 from Maybe import qualified ::Maybe(..)
 import Error
-from JSON import ::JSONNode, generic JSONEncode, toJSON, instance toString JSONNode
+from JSON_NG import ::JSONNode, generic JSONEncode, toJSON, instance toString JSONNode
 from OSError import ::OSError(..), ::OSErrorCode, ::OSErrorMessage, ::MaybeOSError(..)
 from Process import callProcess
 import Text
