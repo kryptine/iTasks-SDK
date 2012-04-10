@@ -299,7 +299,7 @@ generic gDefaultMask a :: !a -> [UpdateMask]
 gDefaultMask{|UNIT|} _						= []
 gDefaultMask{|OBJECT|}	fx (OBJECT x)		= [Touched (fx x)]
 gDefaultMask{|CONS|}	fx (CONS x)			= fx x
-gDefaultMask{|RECORD|}	fx (RECORD x)		= fx x
+gDefaultMask{|RECORD|}	fx (RECORD x)		= [Touched (fx x)]
 gDefaultMask{|FIELD|}	fx (FIELD x)		= fx x
 gDefaultMask{|PAIR|}	fx fy (PAIR x y)	= fx x ++ fy y
 gDefaultMask{|EITHER|}	fx fy e = case e of
