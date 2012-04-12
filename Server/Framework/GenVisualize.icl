@@ -239,6 +239,26 @@ gVisualizeEditor{|EITHER|} fx _ _ _ fy _ _ _ val vst = case val of
 		Just (LEFT x)	= fx (Just x) vst
 		Just (RIGHT y)	= fy (Just y) vst
 
+
+gVisualizeEditor{|(,)|} fx _ _ _ fy _ _ _ val vst=:{VSt|currentPath,verifyMask}
+	# (x,y)			= (fmap fst val, fmap snd val)
+	# (cmv,vm)		= popMask verifyMask
+	# vst			= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
+	# (vizx, vst)	= fx x vst
+	# (vizy, vst)	= fy y vst
+	# viz = case (vizx,vizy) of
+		(HiddenEditor,HiddenEditor) = HiddenEditor
+		_	= NormalEditor
+				[{ content	= TUIContainer (defaultContainer (tui vizx ++ tui vizy))
+				 , width 	= Nothing
+				 , height	= Nothing
+				 , margins	= Nothing
+				 }]
+	= (viz, {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+where
+	tui (NormalEditor v) = v
+	tui (OptionalEditor v) = v
+
 gVisualizeEditor{|Int|}			val vst = visualizeControl TUIIntControl val vst
 gVisualizeEditor{|Real|}		val vst = visualizeControl TUIRealControl val vst
 gVisualizeEditor{|Char|}		val vst = visualizeControl TUICharControl val vst
@@ -465,7 +485,7 @@ where
 		= ([defaultDef (TUIHtml {TUIHtml|html = toString val})], vst)
 
 derive gVisualizeEditor DateTime
-derive gVisualizeEditor JSONNode, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
+derive gVisualizeEditor JSONNode, Either, (,,), (,,,), Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
 
 generic gHeaders a :: a -> [String]
 
