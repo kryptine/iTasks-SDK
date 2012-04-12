@@ -19,6 +19,7 @@ loadSessionInstance		:: !SessionId !*IWorld -> (!MaybeErrorString TaskInstance, 
 deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
 
 //Keep track of which instances depend on other instances
+setTaskWorker			:: !User !InstanceNo !*IWorld -> *IWorld
 addTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
 
 //Keep track of outdated task instances that need to be refreshed

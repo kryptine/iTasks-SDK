@@ -89,7 +89,8 @@ removeTask :: !TaskId								!(SharedTaskList a)	-> Task Void | iTask a
 * State of another process the user works on.
 */
 :: WorkOnStatus
-	= WOActive		//* the process is active, the user can work on it
+	= WOActive		//* the process is active, the current user works on it
+	| WOInUse User	//* the process is active, another user is working on it
 	| WOFinished	//* the process is finished
 	| WOExcepted	//* an uncaught exception was thrown inside of the process
 	| WODeleted		//* the process has been deleted

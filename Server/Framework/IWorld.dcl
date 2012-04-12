@@ -22,6 +22,7 @@ from JSON_NG		import :: JSONNode
 					, nextTaskNo			:: !TaskNo									// The next task number to assign
 					, localShares			:: !Map TaskId JSONNode						// The set of locally shared values
 					, localLists			:: !Map TaskId [TaskListEntry]				// The set of local parallel task lists
-					, readShares			:: !Maybe [String]							// The IDs of shares from which was read
+					, readShares			:: ![String]								// The IDs of shares from which was read
+					, outdated				:: !Bool									// Flag that is set when an internal inconsistenty is detected 
 					, world					:: !*World									// The outside world
 					}

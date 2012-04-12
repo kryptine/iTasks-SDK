@@ -345,11 +345,12 @@ where
 workOn :: !TaskId -> Task WorkOnStatus
 workOn (TaskId instanceNo taskNo) = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{currentInstance}
+	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{currentInstance,currentUser}
+		# iworld = setTaskWorker currentUser instanceNo iworld
 		# iworld = addTaskInstanceObserver currentInstance instanceNo iworld
 		= eval eEvent cEvent refresh repAs (TCEmpty taskId ts) iworld
 		
-	eval eEvent cEvent refresh repAs (TCEmpty taskId ts) iworld
+	eval eEvent cEvent refresh repAs (TCEmpty taskId ts) iworld=:{currentUser}
 		//Load instance
 		= case loadTaskInstance instanceNo iworld of
 			(Error _, iworld)
@@ -359,8 +360,11 @@ where
 			(Ok {TaskInstance|result=ExceptionResult _ err}, iworld)
 				= (ValueResult (Value WOExcepted Stable) ts (TaskRep (SingleTask, Nothing, [], []) []) (TCEmpty taskId ts), iworld)
 			//Embed the representation of the detached instance
-			(Ok {TaskInstance|result=ValueResult _ _ rep _}, iworld)
-				= (ValueResult (Value WOActive Unstable) ts rep (TCEmpty taskId ts), iworld)
+			(Ok {TaskInstance|worker=Just worker,result=ValueResult _ _ rep _}, iworld)
+				| worker == currentUser
+					= (ValueResult (Value WOActive Unstable) ts rep (TCEmpty taskId ts), iworld)
+				| otherwise
+					= (ValueResult (Value (WOInUse worker) Unstable) ts (TaskRep (SingleTask,Just (stringDisplay (toString worker +++ " is working on this task")),[],[]) []) (TCEmpty taskId ts), iworld)
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to

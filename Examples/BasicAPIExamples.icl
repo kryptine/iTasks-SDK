@@ -107,8 +107,9 @@ toMaybe (Value v _) =  (Just v)
 toMaybe _   =  Nothing
 
 getUserName :: User -> String
-getUserName (AuthenticatedUser id _ (Just name)) = name +++ id
-getUserName _ = "anonymus"
+getUserName u = toString u
+//getUserName (AuthenticatedUser id _ (Just name)) = name +++ id
+//getUserName _ = "Anonymous"
 
 (>||) infixl 1 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (>||) ta tb = ta >>* [ OnValue  ifStable (const tb) ]
@@ -437,19 +438,20 @@ delegate task
 chat :: Task Void
 chat = 					get currentUser
 		>>= \me ->		enterSharedChoice "Select someone to chat with:" [] users
-		>>= \user -> 	withShared ("","") (duoChat user (getUserName me) (getUserName user))
+		>>= \you -> 	withShared ("INIT ME","INIT YOU") (duoChat me you)
 		>||				return Void
 where
-	duoChat user me you notes
-		=	updateSharedInformation ("Chat with " +++ me)  [UpdateWith toView fromView] notes
+	duoChat me you notes
+		=	updateSharedInformation ("Chat with " <+++ you)  [] /*[UpdateWith toView fromView]*/ notes
 			-||-
-  		    (user @: updateSharedInformation ("Chat with " +++ you) [UpdateWith (toView o switch) (\a v -> switch (fromView a v))] notes)
+  		    (you @: updateSharedInformation ("Chat with " <+++ me) [] /*[UpdateWith (toView o switch) (\a v -> switch (fromView a v))]*/ notes)
 
-	toView   (me,you) 							= (/*Display*/ (Note you), Note me)
-	fromView _ (/*Display*/ (Note you), Note me) 	= (me,you) 
+/*
+	toView   (me,you) 							= (/*Display*/ (/*Note*/ you), /*Note*/ me)
+	fromView _ (/*Display*/ (/*Note*/ you), /*Note*/ me) 	= (me,you) 
 
 	switch (me,you) = (you,me)
-
+*/
 // plan meeting
 
 testMeeting :: Task DateTime

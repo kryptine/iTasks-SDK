@@ -57,7 +57,8 @@ initIWorld sdkPath world
 	  ,nextTaskNo			= 0
 	  ,localShares			= newMap
 	  ,localLists			= newMap
-	  ,readShares			= Nothing
+	  ,readShares			= []
+	  ,outdated				= False
 	  ,world				= world
 	  }
 where

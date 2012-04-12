@@ -86,7 +86,14 @@ updateTaskInstance instanceNo f iworld
 			# iworld = storeValue NS_TASK_INSTANCES (state_store instanceNo) (f inst) iworld
 			# iworld = addOutdatedInstances [instanceNo] iworld
 			= iworld
-			
+
+setTaskWorker :: !User !InstanceNo !*IWorld -> *IWorld
+setTaskWorker worker instanceNo iworld
+	= updateTaskInstance instanceNo (set worker) iworld
+where
+	set worker inst=:{TaskInstance|worker=Nothing} = {TaskInstance|inst & worker = Just worker}
+	set _ inst = inst
+	
 addTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
 addTaskInstanceObserver observer instanceNo iworld
 	= updateTaskInstance instanceNo (add observer) iworld

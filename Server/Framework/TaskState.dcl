@@ -15,12 +15,16 @@ derive JSONDecode TaskInstance, TaskTree
 	, parent		:: !InstanceNo						//zero for top-level instances, instance that detached this one otherwise
 	, nextTaskNo	:: !TaskNo
 	, nextTaskTime	:: !TaskTime
+	
+	, worker		:: !Maybe User						//Identity of the user working on this instance (this determines the value of the currentUser share)
 	, progress		:: !ProgressMeta					
 	, management	:: !ManagementMeta
+
 	, task			:: !Task JSONNode
 	, result		:: !TaskResult JSONNode				//Result of last evaluation
 	, shares		:: !Map TaskId JSONNode				//Locally shared data
 	, lists			:: !Map TaskId [TaskListEntry]		//Shared task lists of parallel tasks
+
 	, observers		:: ![InstanceNo]					//List of instances that may be affected by changes in this instance
 	}
 
