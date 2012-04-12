@@ -1,12 +1,13 @@
 definition module IWorld
 
-from FilePath		import :: FilePath
-from Map			import :: Map
-from Maybe			import :: Maybe
-from SystemTypes	import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
-from Time			import :: Timestamp
-from TaskState		import :: TaskListEntry
-from JSON_NG		import :: JSONNode
+from FilePath			import :: FilePath
+from Map				import :: Map
+from Maybe				import :: Maybe
+from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime
+from Time				import :: Timestamp
+from TaskState			import :: TaskListEntry
+from JSON_NG			import :: JSONNode
+from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class reportSDSChangeFilter
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
 					, build					:: !String									// The date/time identifier of the application's build
@@ -26,3 +27,9 @@ from JSON_NG		import :: JSONNode
 					, outdated				:: !Bool									// Flag that is set when an internal inconsistenty is detected 
 					, world					:: !*World									// The outside world
 					}
+
+:: ITaskMsg :== Int
+
+instance registerSDSMsg			ITaskMsg	IWorld
+instance reportSDSChange					IWorld
+instance reportSDSChangeFilter	ITaskMsg	IWorld
