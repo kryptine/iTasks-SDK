@@ -14,9 +14,19 @@ from iTasks import serialize, deserialize, defaultStoreFormat, functionFree
 	}
 
 :: StoreFormat = SFPlain | SFDynamic
-
+	
 storePath :: !FilePath !String -> FilePath
 storePath dataDir build = dataDir </> "store-" +++ build
+
+safeName :: !String -> String
+safeName s = copy 0 (createArray len '\0') 
+where
+	len = size s
+	copy :: !Int !*String -> String
+	copy i n
+		| i == len	= n
+		| isAlphanum s.[i]	= copy (i + 1) {n & [i] = s.[i]}
+							= copy (i + 1) {n & [i] = '_'} 
 
 storeValue :: !StoreNamespace !StoreKey !a !*IWorld -> *IWorld | JSONEncode{|*|}, TC a
 storeValue namespace key value iworld 
@@ -47,7 +57,7 @@ writeToDisk namespace key {StoreItem|format,content} location iworld=:{IWorld|wo
 								(Error e, world) = abort ("Cannot create namespace " +++ namespace +++ ": " +++ snd e)
 							)
 	//Write the value
-	# filename 			= addExtension (location </> namespace </> key) (case format of SFPlain = "txt" ; SFDynamic = "bin")
+	# filename 			= addExtension (location </> namespace </> safeName key) (case format of SFPlain = "txt" ; SFDynamic = "bin")
 	# (ok,file,world)	= fopen filename (case format of SFPlain = FWriteText; _ = FWriteData) world
 	| not ok			= abort ("Failed to write value to store: " +++ filename +++ "\n")
 	# file				= fwrites content file
@@ -78,15 +88,15 @@ unpackValue allowFunctions {StoreItem|format=SFDynamic,content}
 		Error _  = Nothing
 
 loadStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!Bool,!*IWorld)
-loadStoreItem namespace key iworld=:{build,dataDirectory}
-	= case accWorld (loadFromDisk namespace key (storePath dataDirectory build)) iworld of
-		(Just item,iworld)	= (Just item,False,iworld)
-		(Nothing,iworld)	
+loadStoreItem namespace key iworld=:{build,dataDirectory,world}
+	= case loadFromDisk namespace key (storePath dataDirectory build) world of
+		(Just item,world)	= (Just item,False,{iworld & world = world})
+		(Nothing,world)	
 			| namespace == NS_APPLICATION_SHARES
-				# (mbItem,iworld) = findOldStoreItem namespace key iworld
+				# (mbItem,iworld) = findOldStoreItem namespace key {iworld & world = world}
 				= (mbItem,True,iworld)
 			| otherwise
-				= (Nothing,False,iworld)
+				= (Nothing,False,{iworld & world = world})
 
 //Look in stores of previous builds for a version of the store that can be migrated
 findOldStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
@@ -115,14 +125,14 @@ where
 loadFromDisk :: !StoreNamespace !StoreKey !FilePath !*World -> (Maybe StoreItem, !*World)	
 loadFromDisk namespace key storeDir world		
 		//Try plain format first
-		# filename			= addExtension (storeDir </> namespace </> key) "txt"
+		# filename			= addExtension (storeDir </> namespace </> safeName key) "txt"
 		# (ok,file,world)	= fopen filename FReadText world
 		| ok
 			# (content,file)	= freadfile file
 			# (ok,world)		= fclose file world
 			= (Just {StoreItem|format = SFPlain, content = content}, world)
 		| otherwise
-			# filename			= addExtension (storeDir </> namespace </> key) "bin"
+			# filename			= addExtension (storeDir </> namespace </> safeName key) "bin"
 			# (ok,file,world)	= fopen filename FReadData world
 			| ok
 				# (content,file)	= freadfile file
@@ -149,10 +159,10 @@ deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
 deleteValues namespace delKey iworld = deleteValues` namespace delKey startsWith startsWith iworld
 
 deleteValues` :: !String !String !(String String -> Bool) !(String String -> Bool) !*IWorld -> *IWorld
-deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{build,dataDirectory}
+deleteValues` namespace delKey filterFuncCache filterFuncDisk iworld=:{build,dataDirectory,world}
 	//Delete items from disk
-	# iworld = appWorld deleteFromDisk iworld
-	= iworld
+	# world = deleteFromDisk world
+	= {iworld & world = world}
 where
 	deleteFromDisk world
 		# storeDir		= storePath dataDirectory build </> namespace
@@ -168,12 +178,3 @@ where
 					= unlink dir fs world
 				| otherwise
 					= unlink dir fs world
-
-appWorld :: !.(*World -> *World) !*IWorld -> *IWorld
-appWorld f iworld=:{world}
-	= {iworld & world = f world}
-	
-accWorld :: !.(*World -> *(.a,*World)) !*IWorld -> (.a,!*IWorld)
-accWorld f iworld=:{world}
-	# (a,world) = f world
-	= (a,{iworld & world = world})
