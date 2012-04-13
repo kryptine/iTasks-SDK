@@ -1,6 +1,6 @@
 implementation module SystemData
 
-import SystemTypes, Time, Shared, Util, Text, Task, Tuple
+import SystemTypes, TaskStore, Time, Shared, Util, Text, Task, Tuple
 import Random
 import StdList, StdBool
 from StdFunc		import o, seq
@@ -23,13 +23,22 @@ where
 	write v iworld = (Ok Void,storeValue NS_APPLICATION_SHARES storeId v iworld)
 	
 currentDateTime :: ReadOnlyShared DateTime
-currentDateTime = createReadOnlySDS "SystemData" "currentDateTime" 'Util'.currentDateTime
+currentDateTime = createReadOnlySDS "SystemData" "currentDateTime" read
+where
+	read iworld=:{currentInstance} //Marking instances outdated directly is a bit of a workaround
+		= 'Util'.currentDateTime (addOutdatedInstances [currentInstance] iworld)
 		
 currentTime :: ReadOnlyShared Time
-currentTime = createReadOnlySDS "SystemData" "currentTime" 'Util'.currentTime 
+currentTime = createReadOnlySDS "SystemData" "currentTime" read
+where
+	read iworld=:{currentInstance} //Marking instances outdated directly is a bit of a workaround
+		= 'Util'.currentTime (addOutdatedInstances [currentInstance] iworld)
 		
 currentDate :: ReadOnlyShared Date
-currentDate = createReadOnlySDS "SystemData" "currentDate" 'Util'.currentDate
+currentDate = createReadOnlySDS "SystemData" "currentDate" read
+where
+	read iworld=:{currentInstance} //Marking instances outdated directly is a bit of a workaround
+		= 'Util'.currentDate (addOutdatedInstances [currentInstance] iworld)
 
 // Workflow processes
 topLevelTasks :: SharedTaskList Void
@@ -53,10 +62,10 @@ where
 		# (list, iworld) = loadValue NS_TASK_INSTANCES "persistent-index" iworld
 		= (maybe [] (\l -> [ p \\ p <- l | forWorker currentUser p]) list, iworld)
 		
-	forWorker user {managementMeta=Just {worker=AnyUser}}										= True
-	forWorker (AuthenticatedUser uid1 _ _) {managementMeta=Just {worker=UserWithId uid2}}		= uid1 == uid2
-	forWorker (AuthenticatedUser _ roles _) {managementMeta=Just {worker=UserWithRole role}}	= isMember role roles
-	forWorker _ _																				= False
+	forWorker user {managementMeta=Just {ManagementMeta|worker=AnyUser}}									= True
+	forWorker (AuthenticatedUser uid1 _ _) {managementMeta=Just {ManagementMeta|worker=UserWithId uid2}}	= uid1 == uid2
+	forWorker (AuthenticatedUser _ roles _) {managementMeta=Just {ManagementMeta|worker=UserWithRole role}}	= isMember role roles
+	forWorker _ _																							= False
 
 currentUser :: ReadOnlyShared User
 currentUser = createReadOnlySDS "SystemData" "currentUser" (\iworld=:{currentUser} -> (currentUser,iworld))

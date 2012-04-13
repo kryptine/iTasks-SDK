@@ -111,7 +111,7 @@ installInitialWorkflows [] = return Void
 installInitialWorkflows iflows
 	= get workflows
 	>>= \flows -> case flows of
-		[]	= allTasks [addWorkflow flow \\ flow <- iflows] >>| return Void
+		[]	= addWorkflows iflows >>| return Void
 		_	= return Void
 
 // Application specific types
@@ -239,10 +239,10 @@ where
 	hasAttribute attr value _// {ParallelTaskMeta|taskMeta={attributes}}	//PARALLEL NEEDS TO BE FIXED FIRST
 		= False // kvGet attr attributes == Just (toString value)
 
-addWorkflow :: !Workflow -> Task Workflow
-addWorkflow workflow
-	=	update (\flows -> flows ++ [workflow]) workflows
-	>>|	return workflow
+addWorkflows :: ![Workflow] -> Task [Workflow]
+addWorkflows additional
+	=	update (\flows -> flows ++ additional) workflows
+
 
 // UTIL FUNCTIONS
 workflow :: String String w -> Workflow | toWorkflow w

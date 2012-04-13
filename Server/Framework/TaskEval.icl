@@ -95,6 +95,9 @@ evalAndStoreInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceN
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
 	# iworld					= {iworld & currentInstance = instanceNo, currentUser = worker, nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = shares, localLists = lists} 
+	//Clear the instance's registrations for share changes & remove from outdated queue
+	# iworld					= clearShareRegistrations instanceNo iworld
+	# iworld					= remOutdatedInstance instanceNo iworld
 	//Apply task's eval function and take updated nextTaskId from iworld
 	# (result,iworld)			= eval editEvent commitEvent refresh repAs tree iworld
 	# (updNextTaskNo,iworld)	= getNextTaskNo iworld
@@ -103,9 +106,8 @@ evalAndStoreInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceN
 	//Restore current process id, nextTask id and local shares in iworld
 	# iworld					= {iworld & currentInstance = currentInstance, currentUser = currentUser, nextTaskNo = nextTaskNo, taskTime = taskTime, localShares = localShares, localLists = localLists}
 	# inst 						= {TaskInstance|inst & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, progress = setStatus result progress, result = result, shares = shares, lists = lists}
-	//Store the instance and remove the instance from the index of outdated instances
-	# iworld					= storeTaskInstance inst iworld
-	# iworld					= remOutdatedInstance instanceNo iworld
+	//Store the instance
+	# iworld					= storeTaskInstance inst iworld	
 	//If the result has a new value, mark the parent process as outdated
 	| parent > 0 && isChanged val result
 		# iworld				= addOutdatedInstances [parent] iworld

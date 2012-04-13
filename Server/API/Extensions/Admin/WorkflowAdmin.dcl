@@ -82,7 +82,7 @@ manageWorklist :: ![Workflow] -> Task Void
 * 
 * @gin False
 */
-addWorkflow :: !Workflow -> Task Workflow
+addWorkflows :: ![Workflow] -> Task [Workflow]
 
 isAllowedWorkflow :: !User !Workflow -> Bool
 

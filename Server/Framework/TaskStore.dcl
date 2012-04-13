@@ -6,8 +6,9 @@ definition module TaskStore
 * Workflow instances: persistent long-running tasks that may be shared between users and exist between sessions.
 */
 import Maybe, Error, SystemTypes, Task, TaskState, TUIDefinition
-from Time import :: Timestamp
 
+from Time				import :: Timestamp
+from SharedDataSource	import :: BasicShareId
 
 newSessionId			:: !*IWorld -> (!SessionId,	!*IWorld)
 newInstanceId			:: !*IWorld -> (!InstanceNo, !*IWorld)
@@ -23,9 +24,14 @@ setTaskWorker			:: !User !InstanceNo !*IWorld -> *IWorld
 addTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld
 
 //Keep track of outdated task instances that need to be refreshed
-addOutdatedInstances	:: ![InstanceNo] !*IWorld -> *IWorld
-remOutdatedInstance		:: !InstanceNo !*IWorld -> *IWorld
-nextOutdatedInstance	:: !*IWorld -> (!Maybe InstanceNo,!*IWorld)
+addOutdatedInstances		:: ![InstanceNo] !*IWorld -> *IWorld
+remOutdatedInstance			:: !InstanceNo !*IWorld -> *IWorld
 
-storeTaskTUI			:: !SessionId !TUIDef !Int !*IWorld -> *IWorld
-loadTaskTUI				:: !SessionId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)
+nextOutdatedInstance		:: !*IWorld -> (!Maybe InstanceNo,!*IWorld)
+
+addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
+clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
+addOutdatedOnShareChange	:: !BasicShareId !*IWorld -> *IWorld
+
+storeTaskTUI				:: !SessionId !TUIDef !Int !*IWorld -> *IWorld
+loadTaskTUI					:: !SessionId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)

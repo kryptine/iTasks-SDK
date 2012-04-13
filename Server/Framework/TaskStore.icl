@@ -3,6 +3,7 @@ implementation module TaskStore
 import StdEnv, Maybe
 
 import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, TUIDefinition, Map
+import SharedDataSource
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
 //Derives required for storage of TUI definitions
@@ -20,6 +21,7 @@ INCREMENT				:== "increment"
 SESSION_INDEX			:== "session-index"
 PERSISTENT_INDEX		:== "persistent-index"
 OUTDATED_INDEX			:== "outdated-index"
+SHARE_REGISTRATIONS		:== "share-registrations"
 
 state_store t	= toString t +++ "-state"
 tui_store s		= s +++ "-tui"
@@ -101,7 +103,7 @@ where
 	add observer inst=:{TaskInstance|observers}		= {TaskInstance|inst & observers = removeDup (observers ++ [observer])}
 
 addOutdatedInstances :: ![InstanceNo] !*IWorld -> *IWorld
-addOutdatedInstances outdated iworld = updateOutdatedInstanceIndex ((++) outdated) iworld
+addOutdatedInstances outdated iworld = updateOutdatedInstanceIndex (removeDup o ((++) outdated)) iworld
 
 remOutdatedInstance :: !InstanceNo !*IWorld -> *IWorld
 remOutdatedInstance rem iworld = updateOutdatedInstanceIndex (filter ((<>) rem)) iworld
@@ -112,6 +114,34 @@ nextOutdatedInstance iworld
 	= case index of	
 		Just [next:_]	= (Just next,iworld)
 		_				= (Nothing,iworld)
+
+addShareRegistration :: !BasicShareId !InstanceNo !*IWorld -> *IWorld
+addShareRegistration shareId instanceNo iworld
+	# (mbRegs,iworld) = loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
+	# regs	= fromMaybe newMap mbRegs
+	# sregs	= fromMaybe [] (get shareId regs)
+	# regs	= put shareId (removeDup (sregs ++ [instanceNo])) regs
+	= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
+	
+clearShareRegistrations :: !InstanceNo !*IWorld -> *IWorld
+clearShareRegistrations instanceNo iworld
+	# (mbRegs,iworld)	= loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
+	# regs				= maybe newMap (fromList o clear instanceNo o toList) mbRegs
+	= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
+where
+	clear :: InstanceNo [(BasicShareId,[InstanceNo])] -> [(BasicShareId,[InstanceNo])]
+	clear no regs = [(shareId,removeMember no insts) \\ (shareId,insts) <- regs]
+
+addOutdatedOnShareChange :: !BasicShareId !*IWorld -> *IWorld
+addOutdatedOnShareChange shareId iworld
+	# (mbRegs,iworld)	= loadValue NS_TASK_INSTANCES SHARE_REGISTRATIONS iworld
+	# regs				= fromMaybe newMap mbRegs
+	= case get shareId regs of
+		Just outdated=:[_:_]
+			# iworld			= addOutdatedInstances outdated iworld
+			# regs				= del shareId regs
+			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
+		_	= iworld
 		
 storeTaskTUI :: !SessionId !TUIDef !Int !*IWorld -> *IWorld
 storeTaskTUI sid def version iworld = storeValue NS_TASK_INSTANCES (tui_store sid) (def,version) iworld

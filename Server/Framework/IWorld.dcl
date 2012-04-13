@@ -28,8 +28,6 @@ from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class 
 					, world					:: !*World									// The outside world
 					}
 
-:: ITaskMsg :== Int
-
-instance registerSDSMsg			ITaskMsg	IWorld
+instance registerSDSMsg			InstanceNo	IWorld
 instance reportSDSChange					IWorld
-instance reportSDSChangeFilter	ITaskMsg	IWorld
+instance reportSDSChangeFilter	InstanceNo	IWorld

@@ -3,7 +3,7 @@ implementation module CoreTasks
 import StdList, StdBool, StdInt, StdTuple,StdMisc, Util, HtmlUtil, Time, Error, OSError, Map, Tuple, List_NG
 import qualified StdList
 import iTaskClass, Task, TaskState, TaskEval, TaskStore, TUIDefinition, LayoutCombinators, Shared
-from SharedDataSource		import qualified read, write
+from SharedDataSource		import qualified read, readRegister, write
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..)
 from iTasks					import dynamicJSONEncode, dynamicJSONDecode
@@ -54,8 +54,8 @@ where
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
-		# (val,iworld)	= 'SharedDataSource'.read shared iworld
+	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+		# (val,iworld)	= 'SharedDataSource'.readRegister instanceNo shared iworld
 		# res = case val of
 			Ok val		= ValueResult (Value val Unstable) ts NoRep (TCInit taskId ts)
 			Error e		= exception (SharedException e)
@@ -64,22 +64,22 @@ where
 interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask)) -> Task l | descr d & iTask l & iTask r & iTask v
 interact desc shared initFun refreshFun = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld
-		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
+	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error _		= (exception "Could not read shared in interact", iworld)
 			Ok r
 				# (l,v,mask)	= initFun r
 				= eval eEvent cEvent refresh repAs (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
-	eval eEvent cEvent refresh repAs (TCInteract taskId ts encl encr encv mask) iworld=:{taskTime}
+	eval eEvent cEvent refresh repAs (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{taskTime}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
 		# event					= matchEvent taskId eEvent
 		# (nv,nmask,nts,iworld) = if refresh (v,mask,ts,iworld) (applyEvent taskId taskTime v mask ts event iworld)
 		//Load next r from shared value
-		# (mbr,iworld) 			= 'SharedDataSource'.read shared iworld
+		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception "Could not read shared in interact", iworld)
 		# nr					= (fromOk mbr)
 		//Apply refresh function if r or v changed
