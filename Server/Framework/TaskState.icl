@@ -6,8 +6,8 @@ from Task		import :: Event, :: EditEvent, :: TaskTime, :: TaskResult(..), :: Tas
 from GenUpdate	import :: UpdateMask
 import JSON_NG
 
-derive JSONEncode TaskInstance, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskCompositionType, UpdateMask
-derive JSONDecode TaskInstance, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskCompositionType, UpdateMask
+derive JSONEncode TIMeta, TIReduct, TIResult, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskCompositionType, UpdateMask
+derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree, TaskListEntry, TaskListEntryState, TaskResult, TaskRep, TaskCompositionType, UpdateMask
 
 //IS ALSO DERIVED IN TASK STORE: SEEMS REDUNDANT
 derive JSONEncode TUIDef, TUIDefContent, TUIIcon, TUIHtml, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey

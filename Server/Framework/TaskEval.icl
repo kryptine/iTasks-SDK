@@ -12,10 +12,11 @@ import iTaskClass
 
 createTaskInstance :: !InstanceNo !(Maybe SessionId) !InstanceNo !(Maybe User) !(Task a) !ManagementMeta !ProgressMeta !*IWorld -> (!TaskInstance, !*IWorld) | iTask a
 createTaskInstance instanceNo sessionId parent worker task mmeta pmeta iworld=:{taskTime} 
-	= ({TaskInstance|instanceNo=instanceNo,sessionId=sessionId,parent=parent,worker=worker,nextTaskNo=1,nextTaskTime=2,progress=pmeta,management=mmeta
-	   ,task= toJSONTask task
-	   ,result = ValueResult NoValue taskTime (TaskRep (SingleTask,Just (stringDisplay "This task has not been evaluated yet." ),[],[]) []) (TCInit (TaskId instanceNo 0) 1)
-	   ,shares = 'Map'.newMap, lists = 'Map'.newMap, observers = []}, iworld)
+	# meta		= {TIMeta|instanceNo=instanceNo,sessionId=sessionId,parent=parent,worker=worker,observers=[],management=mmeta,progress=pmeta}
+	# reduct	= {TIReduct|task=toJSONTask task,nextTaskNo=2,nextTaskTime=1,tree=(TCInit (TaskId instanceNo 0) 1),shares = 'Map'.newMap, lists = 'Map'.newMap}
+	# result	= TIValue NoValue taskTime
+	# rep		= (TaskRep (SingleTask,Just (stringDisplay "This task has not been evaluated yet." ),[],[]) [])
+	= ((meta,reduct,result,rep),iworld)
 where
 	toJSONTask (Task eval) = Task eval`
 	where
@@ -28,12 +29,13 @@ createSessionInstance task eEvent cEvent iworld=:{currentDateTime}
 	# (sessionId,iworld)	= newSessionId iworld
 	# (instanceId,iworld)	= newInstanceId iworld
 	# worker				= AnonymousUser sessionId
-	# (inst, iworld)		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task noMeta {issuedAt=currentDateTime,issuedBy=worker,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
-	# (mbRes,inst,iworld)	= evalAndStoreInstance eEvent cEvent False inst iworld
+	# ((meta,reduct,result,_), iworld)
+		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task noMeta {issuedAt=currentDateTime,issuedBy=worker,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
+	# (mbRes,iworld)		= evalAndStoreInstance eEvent cEvent False (meta,reduct,result) iworld
 	# iworld				= refreshOutdatedInstances iworld 
 	= case loadSessionInstance sessionId iworld of
-		(Ok inst,iworld)
-			# (mbRes,inst,iworld)	= evalAndStoreInstance eEvent cEvent False inst iworld
+		(Ok (meta,reduct,result),iworld)
+			# (mbRes,iworld)	= evalAndStoreInstance eEvent cEvent False (meta,reduct,result) iworld
 			= case mbRes of
 				Ok result	= (Ok (result, sessionId), iworld)
 				Error e		= (Error e, iworld)
@@ -54,10 +56,9 @@ evalSessionInstance sessionId eEvent cEvent iworld
 	# (mbInstance,iworld)	= loadSessionInstance sessionId iworld
 	= case mbInstance of
 		Error e				= (Error e, iworld)
-		Ok inst
-			# (mbRes,inst,iworld)	= evalAndStoreInstance eEvent cEvent True inst iworld
-			# iworld				= storeTaskInstance inst iworld
-			# iworld				= remOutdatedInstance inst.TaskInstance.instanceNo iworld
+		Ok (meta,reduct,result)
+			# (mbRes,iworld)	= evalAndStoreInstance eEvent cEvent True (meta,reduct,result) iworld
+			# iworld			= remOutdatedInstance meta.TIMeta.instanceNo iworld
 			= case mbRes of
 				Ok result		= (Ok (result, sessionId), iworld)
 				Error e			= (Error e, iworld)
@@ -68,11 +69,9 @@ processEvent Nothing Nothing iworld
 processEvent eEvent cEvent iworld
 	= case loadTaskInstance (instanceNo eEvent cEvent) iworld of
 		(Error _,iworld)	= iworld
-		(Ok inst,iworld)
+		(Ok (meta,reduct,result),iworld)
 			//Eval the targeted instance first
-			# (_,inst,iworld)	= evalAndStoreInstance eEvent cEvent False inst iworld
-			//Eval another time with refresh flag to make sure shares are all up-to-date (THIS SHOULD BE OPTIMIZED)
-			# (_,inst,iworld)	= evalAndStoreInstance eEvent cEvent True inst iworld
+			# (_,iworld)	= evalAndStoreInstance eEvent cEvent False (meta,reduct,result) iworld
 			= iworld
 where
 	instanceNo (Just (TaskEvent (TaskId no _) _)) _ = no
@@ -86,10 +85,10 @@ createPersistentInstance task meta issuer parent iworld=:{currentDateTime}
 	= (TaskId instanceId 0, iworld)
 
 //Evaluate a single task instance
-evalAndStoreInstance :: !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !TaskInstance  !*IWorld -> (!MaybeErrorString (TaskResult JSONNode), !TaskInstance, !*IWorld)
-evalAndStoreInstance _ _ _ inst=:{TaskInstance|worker=Nothing} iworld
-	= (Error "Can't evalutate a task instance with no worker set", inst, iworld)
-evalAndStoreInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceNo,parent,worker=Just worker,nextTaskNo=curNextTaskNo,nextTaskTime,progress,task=Task eval,result=ValueResult val _ _ tree,shares,lists} iworld=:{currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
+evalAndStoreInstance :: !(Maybe EditEvent) !(Maybe CommitEvent) !RefreshFlag !(TIMeta,TIReduct,TIResult) !*IWorld -> (!MaybeErrorString (TaskResult JSONNode),!*IWorld)
+evalAndStoreInstance _ _ _ inst=:(meta=:{TIMeta|worker=Nothing},_,_) iworld
+	= (Error "Can't evalutate a task instance with no worker set", iworld)
+evalAndStoreInstance editEvent commitEvent refresh (meta=:{TIMeta|instanceNo,parent,worker=Just worker,progress},reduct=:{TIReduct|task=Task eval,nextTaskNo=curNextTaskNo,nextTaskTime,tree,shares,lists},result=:TIValue val _) iworld=:{currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
 	//Eval instance
 	# repAs						= TaskRepOpts Nothing Nothing
 	//Update current process id & eval stack in iworld
@@ -105,15 +104,17 @@ evalAndStoreInstance editEvent commitEvent refresh inst=:{TaskInstance|instanceN
 	# (lists,iworld)			= getLocalLists iworld
 	//Restore current process id, nextTask id and local shares in iworld
 	# iworld					= {iworld & currentInstance = currentInstance, currentUser = currentUser, nextTaskNo = nextTaskNo, taskTime = taskTime, localShares = localShares, localLists = localLists}
-	# inst 						= {TaskInstance|inst & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, progress = setStatus result progress, result = result, shares = shares, lists = lists}
+	# reduct					= {TIReduct|reduct & nextTaskNo = updNextTaskNo, nextTaskTime = nextTaskTime + 1, tree = tasktree result, shares = shares, lists = lists}
+	# meta						= {TIMeta|meta & progress = setStatus result progress}
+	# inst 						= (meta,reduct,taskres result,taskrep result)
 	//Store the instance
 	# iworld					= storeTaskInstance inst iworld	
 	//If the result has a new value, mark the parent process as outdated
 	| parent > 0 && isChanged val result
 		# iworld				= addOutdatedInstances [parent] iworld
-		= (Ok result, inst, iworld)
+		= (Ok result, iworld)
 	| otherwise
-		= (Ok result, inst, iworld)
+		= (Ok result, iworld)
 where
 	getNextTaskNo iworld=:{IWorld|nextTaskNo}	= (nextTaskNo,iworld)
 	getLocalShares iworld=:{IWorld|localShares}	= (localShares,iworld)
@@ -126,10 +127,19 @@ where
 	isChanged val (ValueResult nval _ _ _)  = val =!= nval
 	isChanged val _							= True
 
-evalAndStoreInstance _ _ _ inst=:{TaskInstance|result=ExceptionResult e msg} iworld
-	= (Ok (ExceptionResult e msg), inst, iworld)
-evalAndStoreInstance _ _ _ inst iworld	
-	= (Ok (exception "Could not unpack instance state"), inst, iworld)
+	tasktree (ValueResult _ _ _ tree)	= tree
+	tasktree (ExceptionResult _ _)		= TCNop
+	
+	taskres (ValueResult val ts _ _)	= TIValue val ts
+	taskres (ExceptionResult e str)		= TIException e str
+	
+	taskrep	(ValueResult _ _ rep _)		= rep
+	taskrep (ExceptionResult _ _)		= TaskRep (SingleTask,Nothing,[],[]) []
+
+evalAndStoreInstance _ _ _ (_,_,TIException e msg) iworld
+	= (Ok (ExceptionResult e msg), iworld)
+evalAndStoreInstance _ _ _ _ iworld	
+	= (Ok (exception "Could not unpack instance state"), iworld)
 
 //Evaluate tasks marked as outdated in the task pool
 refreshOutdatedInstances :: !*IWorld -> *IWorld
@@ -146,16 +156,16 @@ refreshInstance :: !InstanceNo !*IWorld -> *IWorld
 refreshInstance instanceNo iworld
 	= case loadTaskInstance instanceNo iworld of
 		(Error _,iworld)	= iworld
-		(Ok inst,iworld)
-			# (_,_,iworld)	= evalAndStoreInstance Nothing Nothing False inst iworld
+		(Ok (meta,reduct,result),iworld)
+			# (_,iworld)	= evalAndStoreInstance Nothing Nothing False (meta,reduct,result) iworld
 			= iworld
 
 refreshSessionInstance :: !SessionId !*IWorld -> *IWorld
 refreshSessionInstance sessionId iworld
 	= case loadSessionInstance sessionId iworld of
 		(Error _,iworld)	= iworld
-		(Ok inst,iworld)
-			# (_,_,iworld)	= evalAndStoreInstance Nothing Nothing False inst iworld
+		(Ok (meta,reduct,result),iworld)
+			# (_,iworld)	= evalAndStoreInstance Nothing Nothing False (meta,reduct,result) iworld
 			= iworld
 			
 localShare :: !TaskId -> Shared a | iTask a
@@ -174,9 +184,9 @@ where
 				_			= (Error ("Could not read local shared state " +++ shareKey), iworld)
 		//Share of ancestor
 		| otherwise
-			= case loadTaskInstance instanceNo iworld of
-				(Ok inst,iworld)
-					=  case 'Map'.get taskId inst.TaskInstance.shares of
+			= case loadTaskReduct instanceNo iworld of
+				(Ok reduct,iworld)
+					=  case 'Map'.get taskId reduct.TIReduct.shares of
 						Just encs
 							= case fromJSON encs of	
 								Just s	= (Ok s, iworld)
@@ -190,10 +200,10 @@ where
 		| instanceNo == currentInstance
 			= (Ok Void, {iworld & localShares = 'Map'.put taskId (toJSON value) localShares})
 		| otherwise
-			= case loadTaskInstance instanceNo iworld of
-				(Ok inst,iworld)
-					# inst		= {inst & shares = 'Map'.put taskId (toJSON value) inst.TaskInstance.shares}
-					# iworld	= storeTaskInstance inst iworld
+			= case loadTaskReduct instanceNo iworld of
+				(Ok reduct,iworld)
+					# reduct	= {TIReduct|reduct & shares = 'Map'.put taskId (toJSON value) reduct.TIReduct.shares}
+					# iworld	= storeTaskReduct instanceNo reduct iworld
 					= (Ok Void, iworld)
 				(Error _,iworld)
 					= (Error ("Could not write to remote shared state " +++ shareKey), iworld)
@@ -216,9 +226,9 @@ where
 					= (Ok {listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
 				_	= (Error ("Could not read local task list " +++ shareKey), iworld)
 		| otherwise
-			= case loadTaskInstance instanceNo iworld of
-				(Ok inst,iworld)
-					= case 'Map'.get taskId inst.TaskInstance.lists of					
+			= case loadTaskReduct instanceNo iworld of
+				(Ok reduct, iworld)
+					= case 'Map'.get taskId reduct.TIReduct.lists of					
 						Just entries
 							= (Ok {listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
 						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)

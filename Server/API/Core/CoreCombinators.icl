@@ -196,7 +196,8 @@ where
 	evalParTask taskId eEvent cEvent refresh repAs (Nothing,iworld) {TaskListEntry|entryId,state=DetachedState instanceNo _ _,removed=False}
 		= case loadTaskInstance instanceNo iworld of
 			(Error _, iworld)	= (Nothing,iworld)	//TODO: remove from parallel if it can't be loaded (now it simply keeps the last known result)
-			(Ok inst, iworld)	= (Nothing,updateListEntryDetachedResult taskId entryId inst.TaskInstance.result inst.TaskInstance.progress inst.TaskInstance.management iworld)
+			(Ok (meta,_,res), iworld)
+				= (Nothing,updateListEntryDetachedResult taskId entryId res meta.TIMeta.progress meta.TIMeta.management iworld)
 
 	//Do nothing if an exeption occurred or marked as removed
 	evalParTask taskId eEvent cEvent refresh repAs (result,iworld) entry = (result,iworld) 
@@ -250,14 +251,17 @@ where
 	maxTime cur (ValueResult _ ts _ _)		= max cur ts
 	maxTime cur _							= cur
 
-updateListEntryDetachedResult :: !TaskId !TaskId (TaskResult JSONNode) !ProgressMeta !ManagementMeta !*IWorld -> *IWorld
+updateListEntryDetachedResult :: !TaskId !TaskId TIResult !ProgressMeta !ManagementMeta !*IWorld -> *IWorld
 updateListEntryDetachedResult listId entryId result progress management iworld
 	= updateListEntry listId entryId update iworld
 where
 	update e=:{TaskListEntry|state=DetachedState no _ _}
-		= {TaskListEntry| e & state = DetachedState no progress management,result = result}
+		= {TaskListEntry| e & state = DetachedState no progress management,result = taskres result}
 	update e = e
 
+	taskres (TIValue val ts)	= ValueResult val ts (TaskRep (SingleTask,Nothing,[],[]) []) TCNop
+	taskres (TIException e str)	= ExceptionResult e str
+	
 updateListEntryTime :: !TaskId !TaskId !TaskTime !*IWorld -> *IWorld
 updateListEntryTime listId entryId ts iworld
 	= updateListEntry listId entryId (\e -> {TaskListEntry|e & time = ts}) iworld
@@ -277,17 +281,17 @@ loadTaskList taskId=:(TaskId instanceNo taskNo) iworld=:{currentInstance,localLi
 	| instanceNo == currentInstance
 		= (fromMaybe [] ('Map'.get taskId localLists),iworld)
 	| otherwise
-		= case loadTaskInstance instanceNo iworld of
-			(Ok inst,iworld)	= (fromMaybe [] ('Map'.get taskId inst.TaskInstance.lists),iworld)
-			(_,iworld)			= ([],iworld)
+		= case loadTaskReduct instanceNo iworld of
+			(Ok {TIReduct|lists},iworld)	= (fromMaybe [] ('Map'.get taskId lists),iworld)
+			(_,iworld)						= ([],iworld)
 
 storeTaskList :: !TaskId ![TaskListEntry] !*IWorld -> *IWorld	
 storeTaskList taskId=:(TaskId instanceNo taskNo) list iworld=:{currentInstance,localLists}
 	| instanceNo == currentInstance
 		= {iworld & localLists = 'Map'.put taskId list localLists}
 	| otherwise
-		= case loadTaskInstance instanceNo iworld of
-			(Ok inst=:{TaskInstance|lists},iworld)	= storeTaskInstance {inst & lists = 'Map'.put taskId list lists} iworld
+		= case loadTaskReduct instanceNo iworld of
+			(Ok reduct=:{TIReduct|lists},iworld)	= storeTaskReduct instanceNo {TIReduct|reduct & lists = 'Map'.put taskId list lists} iworld
 			(_,iworld)								= iworld
 			
 readListId :: (SharedTaskList a) *IWorld -> (MaybeErrorString (TaskListId a),*IWorld)	| iTask a
@@ -352,19 +356,22 @@ where
 		
 	eval eEvent cEvent refresh repAs (TCEmpty taskId ts) iworld=:{currentUser}
 		//Load instance
-		= case loadTaskInstance instanceNo iworld of
-			(Error _, iworld)
-				= (ValueResult (Value WODeleted Stable) ts (TaskRep (SingleTask, Nothing, [],[]) []) (TCEmpty taskId ts), iworld)
-			(Ok {TaskInstance|result=ValueResult (Value _ Stable) _ _ _}, iworld)
+		# (meta,iworld)		= loadTaskMeta instanceNo iworld
+		# (result,iworld)	= loadTaskResult instanceNo iworld
+		# (rep,iworld)		= loadTaskRep instanceNo iworld
+		= case (meta,result,rep) of
+			(_,Ok (TIValue (Value _ Stable) _),_)
 				= (ValueResult (Value WOFinished Stable) ts (TaskRep (SingleTask, Nothing, [],[]) []) (TCEmpty taskId ts), iworld)
-			(Ok {TaskInstance|result=ExceptionResult _ err}, iworld)
+			(_,Ok (TIException _ _),_)
 				= (ValueResult (Value WOExcepted Stable) ts (TaskRep (SingleTask, Nothing, [], []) []) (TCEmpty taskId ts), iworld)
-			//Embed the representation of the detached instance
-			(Ok {TaskInstance|worker=Just worker,result=ValueResult _ _ rep _}, iworld)
+			(Ok {TIMeta|worker=Just worker},_,Ok rep)
 				| worker == currentUser
 					= (ValueResult (Value WOActive Unstable) ts rep (TCEmpty taskId ts), iworld)
 				| otherwise
-					= (ValueResult (Value (WOInUse worker) Unstable) ts (TaskRep (SingleTask,Just (stringDisplay (toString worker +++ " is working on this task")),[],[]) []) (TCEmpty taskId ts), iworld)
+					= (ValueResult (Value (WOInUse worker) Unstable) ts (TaskRep (SingleTask,Just (stringDisplay (toString worker +++ " is working on this task")),[],[]) []) (TCEmpty taskId ts), iworld)		
+			_
+				= (ValueResult (Value WODeleted Stable) ts (TaskRep (SingleTask, Nothing, [],[]) []) (TCEmpty taskId ts), iworld)
+		
 /*
 * Alters the evaluation functions of a task in such a way
 * that before evaluation the currentUser field in iworld is set to

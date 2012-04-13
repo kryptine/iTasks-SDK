@@ -15,8 +15,21 @@ newInstanceId			:: !*IWorld -> (!InstanceNo, !*IWorld)
 
 storeTaskInstance		:: !TaskInstance !*IWorld -> *IWorld
 
-loadTaskInstance		:: !InstanceNo !*IWorld -> (!MaybeErrorString TaskInstance, !*IWorld)
-loadSessionInstance		:: !SessionId !*IWorld -> (!MaybeErrorString TaskInstance, !*IWorld)
+loadTaskInstance		:: !InstanceNo !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
+loadSessionInstance		:: !SessionId !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
+
+//Separated load functions
+loadTaskMeta			:: !InstanceNo !*IWorld -> (!MaybeErrorString TIMeta, !*IWorld)
+loadTaskReduct			:: !InstanceNo !*IWorld -> (!MaybeErrorString TIReduct, !*IWorld)
+loadTaskResult			:: !InstanceNo !*IWorld -> (!MaybeErrorString TIResult, !*IWorld)
+loadTaskRep				:: !InstanceNo !*IWorld -> (!MaybeErrorString TIRep, !*IWorld)
+
+//Store 
+storeTaskMeta			:: !InstanceNo !TIMeta !*IWorld -> *IWorld
+storeTaskReduct			:: !InstanceNo !TIReduct !*IWorld -> *IWorld
+storeTaskResult			:: !InstanceNo !TIResult !*IWorld -> *IWorld
+storeTaskRep			:: !InstanceNo !TIRep !*IWorld -> *IWorld
+
 deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
 
 //Keep track of which instances depend on other instances

@@ -2,31 +2,40 @@ definition module TaskState
 
 import SystemTypes
 
-from Task		import :: TaskTime, :: TaskResult
+from Task		import :: TaskTime, :: TaskResult, :: TaskRep
 from GenUpdate	import :: UpdateMask
 
-derive JSONEncode TaskInstance, TaskTree
-derive JSONDecode TaskInstance, TaskTree
+derive JSONEncode TIMeta, TIReduct, TIResult, TaskTree
+derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 
 //Persistent context of active tasks
-:: TaskInstance =
-	{ instanceNo	:: !InstanceNo						//Unique global identification
-	, sessionId		:: !Maybe SessionId					//Optionally an alternative identification by session id
-	, parent		:: !InstanceNo						//zero for top-level instances, instance that detached this one otherwise
+//Split up version of task instance information
+:: TaskInstance :== (!TIMeta,!TIReduct,!TIResult,!TIRep)
+
+:: TIMeta =
+	{ instanceNo	:: !InstanceNo		//Unique global identification
+	, sessionId		:: !Maybe SessionId	//zero for top-level instances, instance that detached this one otherwise
+	, parent		:: !InstanceNo		
+	, observers		:: ![InstanceNo]	//List of instances that may be affected by changes in this instance
+	, worker		:: !Maybe User		//Identity of the user working on this instance (this determines the value of the currentUser share)
+	, progress		:: !ProgressMeta
+	, management	:: !ManagementMeta
+	}
+	
+:: TIReduct = 
+	{ task			:: !Task JSONNode
 	, nextTaskNo	:: !TaskNo
 	, nextTaskTime	:: !TaskTime
-	
-	, worker		:: !Maybe User						//Identity of the user working on this instance (this determines the value of the currentUser share)
-	, progress		:: !ProgressMeta					
-	, management	:: !ManagementMeta
-
-	, task			:: !Task JSONNode
-	, result		:: !TaskResult JSONNode				//Result of last evaluation
+	, tree			:: !TaskTree						//Internal task tree state
 	, shares		:: !Map TaskId JSONNode				//Locally shared data
-	, lists			:: !Map TaskId [TaskListEntry]		//Shared task lists of parallel tasks
-
-	, observers		:: ![InstanceNo]					//List of instances that may be affected by changes in this instance
+	, lists			:: !Map TaskId [TaskListEntry]		//Parallel task lists
 	}
+
+:: TIResult
+	= TIValue !(TaskValue JSONNode) !TaskTime
+	| TIException !Dynamic !String
+	
+:: TIRep :== TaskRep
 
 :: TaskTree
 	= TCInit		!TaskId !TaskTime
@@ -38,6 +47,7 @@ derive JSONDecode TaskInstance, TaskTree
 	| TCShared		!TaskId !TaskTree
 	| TCStable		!TaskId !TaskTime !JSONNode
 	| TCEmpty		!TaskId !TaskTime
+	| TCNop			
 
 :: TaskListEntry	=
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
