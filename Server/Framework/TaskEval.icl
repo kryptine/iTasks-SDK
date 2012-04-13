@@ -159,7 +159,7 @@ refreshSessionInstance sessionId iworld
 			= iworld
 			
 localShare :: !TaskId -> Shared a | iTask a
-localShare taskId=:(TaskId instanceNo taskNo) = createBasicSDS "localShare" shareKey read write
+localShare taskId=:(TaskId instanceNo taskNo) = createChangeOnWriteSDS "localShare" shareKey read write
 where
 	shareKey = toString taskId
 
@@ -200,13 +200,13 @@ where
 		
 //Top list share has no items, and is therefore completely polymorphic
 topListShare :: SharedTaskList a
-topListShare = createReadOnlySDSError "globalList" "top" read
+topListShare = createReadOnlySDSError read
 where
 	read iworld
 		= (Ok {listId = TopLevelTaskList, items = []}, iworld)
 		
 parListShare :: !TaskId -> SharedTaskList a | iTask a
-parListShare taskId=:(TaskId instanceNo taskNo) = createReadOnlySDSError "localList" shareKey read
+parListShare taskId=:(TaskId instanceNo taskNo) = createReadOnlySDSError read
 where
 	shareKey = toString taskId
 	read iworld=:{currentInstance,localLists}
