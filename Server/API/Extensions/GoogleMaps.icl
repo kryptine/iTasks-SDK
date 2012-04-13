@@ -76,7 +76,7 @@ where
 gVisualizeText{|GoogleMap|} _ _ = ["<Google map>"]
 gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl vst
 where
-	mkControl name _ _ _ vst=:{VSt|taskId}
+	mkControl name _ _ vst=:{VSt|taskId}
 		= ([defaultDef (TUICustom ((mapPanel mbMap name True)))], vst)
 	where		
 		mapPanel Nothing	name ed = toJSON (tuidef defaultMap name ed)

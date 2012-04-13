@@ -76,8 +76,9 @@ where
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
-		# event					= matchEvent taskId eEvent
-		# (nv,nmask,nts,iworld) = if refresh (v,mask,ts,iworld) (applyEvent taskId taskTime v mask ts event iworld)
+		# (nv,nmask,nts,iworld) = if refresh
+			(v,mask,ts,iworld)
+			(applyEvent taskId taskTime v mask ts (matchEvent taskId eEvent) iworld)
 		//Load next r from shared value
 		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
 		| isError mbr			= (exception "Could not read shared in interact", iworld)
@@ -88,7 +89,7 @@ where
 		# (nl,nv,nmask) 		= if changed (refreshFun l nr nv nmask valid) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
-		# (rep,iworld) 			= visualizeView taskId repAs nv validity event iworld
+		# (rep,iworld) 			= visualizeView taskId repAs nv validity iworld
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
 		= (ValueResult value nts rep (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 	
@@ -111,8 +112,8 @@ where
 				# (nv,nmask,iworld)	= updateValueAndMask dp encev v mask iworld
 				= (nv,nmask,taskTime,iworld)
 				
-	visualizeView taskId repAs v validity event iworld
-		# (editor,iworld) = visualizeAsEditor v validity taskId event iworld
+	visualizeView taskId repAs v validity iworld
+		# (editor,iworld) = visualizeAsEditor v validity taskId iworld
 		= (TaskRep ((repLayout repAs) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)) [(toString taskId,toJSON v)], iworld)
 	
 appWorld :: !(*World -> *World) -> Task Void

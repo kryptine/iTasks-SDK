@@ -2,6 +2,7 @@ implementation module TUIDiff
 
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple
 import Text, Util, TUIDefinition
+from Task import :: EditEvent(..), :: Event(..)
 
 derive gEq TUIControlType, TUIButtonControl, TUITree, TUIDirection, TUISize, TUIHAlign, TUIVAlign, TUIMinSize, TUIMargins, TUIGridControl
 derive gEq TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
@@ -16,13 +17,13 @@ where
 		step (ItemStep i) = toString i
 		step (MenuStep) = "m"
 
-diffTUIDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
-diffTUIDefinitions old new = diffEditorDefinitions` [ItemStep 0] old new
+diffTUIDefinitions :: !TUIDef !TUIDef !(Maybe EditEvent) -> [TUIUpdate]
+diffTUIDefinitions old new event = diffEditorDefinitions` [ItemStep 0] event old new
 
-diffEditorDefinitions` :: !DiffPath !TUIDef !TUIDef -> [TUIUpdate]
-diffEditorDefinitions` path oldTui newTui
+diffEditorDefinitions` :: !DiffPath !(Maybe EditEvent) !TUIDef !TUIDef -> [TUIUpdate]
+diffEditorDefinitions` path event oldTui newTui
 	| oldTui.margins === newTui.margins
-		= case diffEditorDefinitions`` oldTui.TUIDef.content newTui.TUIDef.content of
+		= case diffEditorDefinitions`` event oldTui.TUIDef.content newTui.TUIDef.content of
 			Just diff
 				| oldTui.width === newTui.width && oldTui.height === newTui.height
 					= diff
@@ -41,8 +42,8 @@ where
 	isFixed (Just (Fixed _))	= True
 	isFixed _					= False
 
-	diffEditorDefinitions`` :: !TUIDefContent !TUIDefContent -> Maybe [TUIUpdate]
-	diffEditorDefinitions`` old new = case (old,new) of
+	diffEditorDefinitions`` :: !(Maybe EditEvent) !TUIDefContent !TUIDefContent -> Maybe [TUIUpdate]
+	diffEditorDefinitions`` event old new = case (old,new) of
 		// Documents are replaced if their value has changed
 		(TUIEditControl (TUIDocumentControl odoc) oc, TUIEditControl (TUIDocumentControl ndoc) nc)
 			| odoc == ndoc && oc.TUIEditControl.taskId == nc.TUIEditControl.taskId && oc.TUIEditControl.name == nc.TUIEditControl.name
@@ -53,7 +54,7 @@ where
 			| ogrid =!= ngrid	= Nothing
 		(TUIEditControl otype oc, TUIEditControl ntype nc)
 			| otype === ntype
-				= Just (valueUpdate path oc nc ++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
+				= Just (valueUpdate path event oc nc ++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
 		(TUIShowControl otype oc, TUIShowControl ntype nc)
 			| otype === ntype && oc.TUIShowControl.value === nc.TUIShowControl.value
 				= Just []
@@ -67,7 +68,7 @@ where
 			|  (o.TUIContainer.direction === n.TUIContainer.direction
 				&& o.TUIContainer.halign === n.TUIContainer.halign
 				&& o.TUIContainer.valign === n.TUIContainer.valign)
-				= Just (diffChildEditorDefinitions path o.TUIContainer.items n.TUIContainer.items)
+				= Just (diffChildEditorDefinitions path event o.TUIContainer.items n.TUIContainer.items)
 		(TUIPanel o, TUIPanel n)
 			| ( o.TUIPanel.direction === n.TUIPanel.direction
 				&& o.TUIPanel.halign === n.TUIPanel.halign
@@ -76,7 +77,7 @@ where
 				&& o.TUIPanel.menus === n.TUIPanel.menus
 				&& (isJust o.TUIPanel.iconCls == isJust n.TUIPanel.iconCls))
 					# titleUpdate	= update (\o n -> o.TUIPanel.title === n.TUIPanel.title && o.TUIPanel.iconCls == n.TUIPanel.iconCls) (\{TUIPanel|title,iconCls} -> Just (fromMaybe "" title,iconCls)) TUISetTitle path o n
-					# itemUpdates	= diffChildEditorDefinitions path o.TUIPanel.items n.TUIPanel.items
+					# itemUpdates	= diffChildEditorDefinitions path event o.TUIPanel.items n.TUIPanel.items
 					# menuUpdates	= []
 					//# menuUpdates	= diffTUIMenus path o.TUIPanel.menus n.TUIPanel.menus
 					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
@@ -84,17 +85,17 @@ where
 			|  (o.TUIWindow.direction === n.TUIWindow.direction
 				&& o.TUIWindow.halign === n.TUIWindow.halign
 				&& o.TUIWindow.valign === n.TUIWindow.valign)
-				= Just (diffChildEditorDefinitions path o.TUIWindow.items n.TUIWindow.items)
+				= Just (diffChildEditorDefinitions path event o.TUIWindow.items n.TUIWindow.items)
 		(TUIListContainer lcOld, TUIListContainer lcNew)	
-			= Just (diffChildEditorDefinitions path (items lcOld) (items lcNew)
+			= Just (diffChildEditorDefinitions path event (items lcOld) (items lcNew)
 					++ flatten [f path old new \\ f <- [taskIdUpdate,nameUpdate]])
 			where
 				items lc = [{content = TUIListItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- lc.TUIListContainer.items]
 		(TUIListItem liOld, TUIListItem liNew)
-			= Just (diffChildEditorDefinitions path [liOld.TUIListItem.items] [liNew.TUIListItem.items])
+			= Just (diffChildEditorDefinitions path event [liOld.TUIListItem.items] [liNew.TUIListItem.items])
 		(TUITabContainer tcOld, TUITabContainer tcNew)
 			# activeTabUpdate	= update (\o n -> o.TUITabContainer.active == n.TUITabContainer.active) (\{TUITabContainer|active} -> Just active) TUISetActiveTab path tcOld tcNew
-			# itemUpdates 		= diffChildEditorDefinitions path (items tcOld) (items tcNew)
+			# itemUpdates 		= diffChildEditorDefinitions path event (items tcOld) (items tcNew)
 			= Just (itemUpdates ++ activeTabUpdate)
 			where
 				items tc = [{content = TUITabItem item, width = Nothing, height = Nothing, margins = Nothing} \\ item <- tc.TUITabContainer.items]
@@ -102,7 +103,7 @@ where
 			| (o.TUITabItem.closeAction === n.TUITabItem.closeAction //Can't diff the close action for now
 				&& o.TUITabItem.menus === n.TUITabItem.menus)		//Diff of menus is also still impossible
 					# titleUpdate	= update (\o n -> o.TUITabItem.title == n.TUITabItem.title && o.TUITabItem.iconCls == n.TUITabItem.iconCls) (\{TUITabItem|title,iconCls} -> Just (title,iconCls)) TUISetTitle path o n
-					# itemUpdates	= diffChildEditorDefinitions path o.TUITabItem.items n.TUITabItem.items
+					# itemUpdates	= diffChildEditorDefinitions path event o.TUITabItem.items n.TUITabItem.items
 					# menuUpdates 	= []
 					= Just (titleUpdate ++ itemUpdates ++ menuUpdates)
 			| otherwise
@@ -119,29 +120,30 @@ where
 		_	= Nothing
 	
 	//Determine the updates for child items in containers, lists etc	
-	diffChildEditorDefinitions :: DiffPath [TUIDef] [TUIDef] -> [TUIUpdate]
-	diffChildEditorDefinitions path old new = diffChildEditorDefinitions` path 0 old new
+	diffChildEditorDefinitions :: DiffPath (Maybe EditEvent) [TUIDef] [TUIDef] -> [TUIUpdate]
+	diffChildEditorDefinitions path event old new = diffChildEditorDefinitions` path event 0 old new
 	where
-		diffChildEditorDefinitions` path i [] []
+		diffChildEditorDefinitions` path event i [] []
 			= []
-		diffChildEditorDefinitions` path i old []
+		diffChildEditorDefinitions` path event i old []
 			//Less items in new than old (remove starting with the last item)
 			= [TUIRemove (toString path) n \\ n <- reverse [i.. i + length old - 1 ]] 
-		diffChildEditorDefinitions` path i [] new
+		diffChildEditorDefinitions` path event i [] new
 			//More items in new than old
 			= [TUIAdd (toString path) n def \\ n <- [i..] & def <- new] 
-		diffChildEditorDefinitions` path i [o:os] [n:ns] 
-			=	(diffEditorDefinitions` [ItemStep i:path] o n)
-			++  (diffChildEditorDefinitions` path (i + 1) os ns)
+		diffChildEditorDefinitions` path event i [o:os] [n:ns] 
+			=	(diffEditorDefinitions` [ItemStep i:path] event o n)
+			++  (diffChildEditorDefinitions` path event (i + 1) os ns)
 
 //Update the value of a control
-valueUpdate path old new = update sameValue (\{TUIEditControl|value} -> Just value) TUISetValue path old new
+valueUpdate path mbEvent old new = update (sameValue mbEvent) (\{TUIEditControl|value} -> Just value) TUISetValue path old new
 where
-	sameValue old new = ov == new.TUIEditControl.value
-	where
-		ov = case new.eventValue of
-			Just v	= toJSON v
-			Nothing	= old.TUIEditControl.value
+	sameValue Nothing old new
+			= old.TUIEditControl.value == new.TUIEditControl.value
+	sameValue (Just (TaskEvent eTask (eName,eValue))) old new
+		| old.TUIEditControl.taskId == Just (toString eTask) && old.TUIEditControl.name == eName
+			= eValue  == new.TUIEditControl.value
+			= old.TUIEditControl.value == new.TUIEditControl.value
 
 //Update the task id of a control
 taskIdUpdate path old new	= update sameTaskId taskIdOf TUISetTaskId path old new

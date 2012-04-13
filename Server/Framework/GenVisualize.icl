@@ -3,9 +3,9 @@ implementation module GenVisualize
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List_NG, Generic_NG
 import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON_NG, TUIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
 
-visualizeAsEditor :: !a !VerifyMask !TaskId !(Maybe (!String,!JSONNode)) !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
-visualizeAsEditor v vmask taskId editEvent iworld
-	# vst		= {mkVSt iworld & verifyMask = [vmask], editEvent = editEvent, taskId = Just taskId, currentPath = shiftDataPath emptyDataPath}
+visualizeAsEditor :: !a !VerifyMask !TaskId !*IWorld -> (!Maybe TUIDef,!*IWorld) | gVisualizeEditor{|*|} a
+visualizeAsEditor v vmask taskId iworld
+	# vst		= {VSt|mkVSt iworld & verifyMask = [vmask], taskId = Just taskId, currentPath = shiftDataPath emptyDataPath}
 	# (res,vst)	= gVisualizeEditor{|*|} (Just v) vst
 	= case tuiOfEditor res of
 		[]		= (Nothing, kmVSt vst)
@@ -111,7 +111,7 @@ derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailA
 
 mkVSt :: *IWorld -> *VSt
 mkVSt iworld
-	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = [], editEvent = Nothing
+	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, renderAsStatic = False, verifyMask = []
 	  , taskId = Nothing, controlSize = (Nothing,Nothing,Nothing), iworld = iworld}
 
 kmVSt :: !*VSt -> *IWorld //inverse of mkVSt
@@ -125,7 +125,7 @@ gVisualizeEditor{|UNIT|} _ vst
 	
 gVisualizeEditor{|RECORD|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name _ _ eventValue vst=:{taskId,editEvent,currentPath,optional,controlSize,renderAsStatic}	
+	mkControl name _ _ vst=:{taskId,currentPath,optional,controlSize,renderAsStatic}	
 		= case fmap fromRECORD val of
 			Nothing // Create checkbox to create record
 				| optional	= (if renderAsStatic [] [checkbox False], vst)
@@ -142,10 +142,10 @@ where
 								}
 											
 		checkbox c = sizedControl controlSize (TUIEditControl TUIBoolControl 
-			{ name			= name
+			{ TUIEditControl
+			| name			= name
 			, value			= toJSON c
 			, taskId		= fmap toString taskId
-			, eventValue	= eventValue
 			})				
 						
 gVisualizeEditor{|FIELD of d|} fx _ _ _ val vst=:{renderAsStatic}
@@ -160,7 +160,7 @@ where
 		= [{content = TUIContainer {TUIContainer|defaultContainer [label: content] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}]
 
 
-gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,editEvent,controlSize}
+gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,controlSize}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
@@ -175,7 +175,6 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex
 										| name			= dp2s currentPath
 										, taskId		= fmap toString taskId
 										, value			= toJSON (if (isTouched cmv) (Just selectedConsIndex) Nothing)
-										, eventValue	= eventValue currentPath editEvent
 										}))
 							:	if (isEmpty content)
 								[]
@@ -212,7 +211,7 @@ where
 	
 gVisualizeEditor{|CONS of d|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name _ _ eventValue vst=:{taskId,editEvent,currentPath,optional,controlSize,renderAsStatic}
+	mkControl name _ _ vst=:{taskId,currentPath,optional,controlSize,renderAsStatic}
 		# x = fmap fromCONS val
 		# (viz,vst)	= fx x vst
 		= (tuiOfEditor viz, {VSt | vst & selectedConsIndex = d.gcd_index})
@@ -281,9 +280,8 @@ where
 	
 gVisualizeEditor{|URL|}		val vst = visualizeCustom vizUrl vst
 where
-	vizUrl name touched verRes eventValue vst=:{VSt|taskId,renderAsStatic,controlSize}
+	vizUrl name touched verRes vst=:{VSt|taskId,renderAsStatic,controlSize}
 		| renderAsStatic
-		//	= ([sizedControl controlSize (TUIShowControl TUIStringControl {TUIShowControl| value = toJSON (fmap toString val)})], vst)
 			# url = toString val
 			= ([defaultDef (TUIHtml {TUIHtml|html = toString (ATag [HrefAttr url] [Text url])})], vst)
 		| otherwise
@@ -292,7 +290,6 @@ where
 													{ TUIEditControl
 													| name = name
 													, value = toJSON (fmap toString val)
-													, eventValue = eventValue
 													, taskId = fmap toString taskId
 													})
 			= ([addMsg verRes viz],vst)
@@ -310,7 +307,7 @@ where
 
 gVisualizeEditor{|RadioChoice|} fx _ _ _ _ _ _ _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name touched verRes _ vst=:{VSt|taskId,renderAsStatic}
+	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# (options,sel)		= maybe ([],-1) (\(RadioChoice options mbSel) -> (map fst options,fromMaybe -1 mbSel) ) val
 		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
 		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
@@ -329,12 +326,11 @@ where
 	
 gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom tuiF vst
 where
-	tuiF name touched verRes eventValue vst=:{VSt|taskId,renderAsStatic,controlSize}
+	tuiF name touched verRes vst=:{VSt|taskId,renderAsStatic,controlSize}
 		# viz = sizedControl controlSize (TUIEditControl (TUITreeControl (toTree val))
 												{ TUIEditControl
 												| name = name
 												, value = toJSON (fmap (\(TreeChoice _ mbSel) -> mbSel) (checkMask touched val))
-												, eventValue = eventValue
 												, taskId = fmap toString taskId
 												})
 		= ([viz],vst)
@@ -367,7 +363,7 @@ getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
 
 gVisualizeEditor{|CheckMultiChoice|} fx _ _ _ _ _ _ _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name touched verRes _ vst=:{VSt|taskId,renderAsStatic}
+	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# (options,sel)		= maybe ([],[]) (\(CheckMultiChoice options sel) -> (map fst options,sel) ) val
 		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
 		# itemDefs			= [defaultDef (TUICheckChoice {TUICheckChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = isMember i sel}) \\ items <- itemVis & i <- [0..]]
@@ -380,7 +376,7 @@ where
 
 gVisualizeEditor {|[]|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
-	mkControl name touched verRes _ vst=:{VSt|taskId,renderAsStatic}
+	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
 		# val			= fromMaybe [] val
 		# (items,vst)	= listControl val vst
 		= (addMsg verRes
@@ -481,7 +477,7 @@ gVisualizeEditor{|FillHControlSize|} fx _ _ _ val vst=:{controlSize=controlSize=
 gVisualizeEditor{|Void|} _ vst = noVisualization vst
 gVisualizeEditor{|HtmlTag|}	val vst = visualizeCustom toControl vst
 where
-	toControl name touched _ _ vst
+	toControl name touched _ vst
 		= ([defaultDef (TUIHtml {TUIHtml|html = toString val})], vst)
 
 derive gVisualizeEditor DateTime
@@ -537,7 +533,7 @@ derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 visualizeControl :: !TUIControlType !(Maybe a) !*VSt -> *(!VisualizationResult, !*VSt) | JSONEncode{|*|} a
 visualizeControl control v vst = visualizeCustom tuiF vst
 where
-	tuiF name touched verRes eventValue vst=:{VSt|taskId,renderAsStatic,controlSize}
+	tuiF name touched verRes vst=:{VSt|taskId,renderAsStatic,controlSize}
 		| renderAsStatic
 			=	([sizedControl controlSize (TUIShowControl control {TUIShowControl| value = toJSON v})], vst)
 		| otherwise
@@ -546,18 +542,17 @@ where
 													{ TUIEditControl
 													| name = name
 													, value = toJSON v
-													, eventValue = eventValue
 													, taskId = fmap toString taskId
 													})
 			= ([addMsg verRes viz],vst)
 		
 visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
-visualizeCustom tuiF vst=:{currentPath,renderAsStatic,verifyMask,editEvent}
+visualizeCustom tuiF vst=:{currentPath,renderAsStatic,verifyMask}
 	# (cmv,vm)	= popMask verifyMask
 	// only check mask if generating editor definition & not for labels
 	# touched	= isTouched cmv
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
-	# (vis,vst) = tuiF (dp2s currentPath) touched (verifyElementStr cmv) (eventValue currentPath editEvent) vst
+	# (vis,vst) = tuiF (dp2s currentPath) touched (verifyElementStr cmv) vst
 	= (NormalEditor vis,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 noVisualization :: !*VSt -> *(!VisualizationResult,!*VSt)

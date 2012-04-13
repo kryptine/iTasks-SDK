@@ -58,7 +58,6 @@ from Task			import	:: TaskAction, :: TaskId
 	{ name			:: !String
 	, value			:: !JSONNode
 	, taskId		:: !Maybe String
-	, eventValue	:: !Maybe JSONNode
 	}
 :: TUIShowControl =
 	{ value			:: !JSONNode

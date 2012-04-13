@@ -54,7 +54,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
-												 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui))
+												 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui editEvent))
 												 ,("timestamp",toJSON timestamp)]
 								| otherwise
 									= JSONObject [("success",JSONBool True)

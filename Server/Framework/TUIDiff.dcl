@@ -1,6 +1,7 @@
 definition module TUIDiff
 
 import TUIDefinition
+from Task import :: EditEvent, :: Event
 
 :: TUIUpdate
 	//Leaf updates
@@ -19,4 +20,4 @@ import TUIDefinition
 	
 :: TUIPath	:== String
 
-diffTUIDefinitions :: !TUIDef !TUIDef -> [TUIUpdate]
+diffTUIDefinitions :: !TUIDef !TUIDef !(Maybe EditEvent) -> [TUIUpdate]

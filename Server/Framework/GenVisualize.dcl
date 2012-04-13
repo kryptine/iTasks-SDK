@@ -57,8 +57,8 @@ derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, 
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !VerifyMask !TaskId !(Maybe (!String,!JSONNode)) 	!*IWorld 	-> (!Maybe TUIDef,!*IWorld)	| gVisualizeEditor{|*|} a
-visualizeAsText			:: !StaticVisualizationMode !a										-> String					| gVisualizeText{|*|} a
+visualizeAsEditor		:: !a !VerifyMask !TaskId !*IWorld 		-> (!Maybe TUIDef,!*IWorld)	| gVisualizeEditor{|*|} a
+visualizeAsText			:: !StaticVisualizationMode !a			-> String					| gVisualizeText{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -67,7 +67,6 @@ visualizeAsText			:: !StaticVisualizationMode !a										-> String					| gVisua
 	, selectedConsIndex	:: !Int													// Index of the selected constructor in an Object
 	, optional			:: !Bool												// Create optional form fields
 	, renderAsStatic	:: !Bool												// If true, flag the form items as being static
-	, editEvent			:: !(Maybe (!String,!JSONNode))							// The edit event (if present) for keeping track of values sent by the client (used for diff)
 	, taskId			:: !Maybe TaskId										// The id of the task the visualisation belongs to
 	, controlSize		:: !(!Maybe TUISize,!Maybe TUISize,!Maybe TUIMargins)	// The width, height & margins of generated controls
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
@@ -122,7 +121,7 @@ visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction :== String Bool VerifyResult (Maybe JSONNode) -> .(*VSt -> *(![TUIDef],!*VSt))
+:: TUIVizFunction :== String Bool VerifyResult -> .(*VSt -> *(![TUIDef],!*VSt))
 
 (+++>) infixr 5		:: !a	!String	-> String | gVisualizeText{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualizeText{|*|} a
