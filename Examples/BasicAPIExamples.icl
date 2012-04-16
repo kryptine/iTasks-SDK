@@ -48,9 +48,9 @@ basicAPIExamples =
 
 	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
 
-	,workflow (distrTask +++ "BUGGY: Delegate Enter a person") "Delegate Enter a person" 		(delegate enterPerson)
-	,workflow (distrTask +++ "VERY BUGGY: Chat with someone")    "Chat with someone" 				chat
-	,workflow (distrTask +++ "BUGGY: Plan meeting") 		"Plan meeting" 						testMeeting
+	,workflow (distrTask +++ "Delegate Enter a person") "Delegate Enter a person" 		(delegate enterPerson)
+	,workflow (distrTask +++ "BUG (Display in tuple): Chat with someone")    "Chat with someone" 				chat
+	,workflow (distrTask +++ "BUG (not all dates shown): Plan meeting") 		"Plan meeting" 						testMeeting
 
 	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
 	]
@@ -415,7 +415,7 @@ where
 			updateSharedInformation "Edit text:" [] note
 			
 			
-stat (Note text) = {lineCount = length lines , wordCount = length words}
+stat (Note text) = {lineCount = length lines , wordCount = length words - 1}
 where
 	lines = split "\n" text
 	words = split " " (replaceSubString "\n" " " text)
@@ -439,24 +439,26 @@ chat :: Task Void
 chat = 					get currentUser
 		>>= \me ->		enterSharedChoice "Select someone to chat with:" [] users
 		>>= \you -> 	withShared ("INIT ME","INIT YOU") (duoChat me you)
-		>||				return Void
 where
 	duoChat me you notes
-		=	updateSharedInformation ("Chat with " <+++ you)  [] /*[UpdateWith toView fromView]*/ notes
-			-||-
-  		    (you @: updateSharedInformation ("Chat with " <+++ me) [] /*[UpdateWith (toView o switch) (\a v -> switch (fromView a v))]*/ notes)
+		=	chat you toView fromView notes
+			-||- 
+			(you @: chat me (toView o switch) (\a v -> switch (fromView a v)) notes)
 
-/*
-	toView   (me,you) 							= (/*Display*/ (/*Note*/ you), /*Note*/ me)
-	fromView _ (/*Display*/ (/*Note*/ you), /*Note*/ me) 	= (me,you) 
+	chat who toView fromView notes
+		= 			updateSharedInformation ("Chat with " <+++ who) [UpdateWith toView fromView] notes
+			>>*		[OnAction (Action "Stop") always (const (return Void))]
+
+	toView   (me,you) 							= (Display (/*Note*/ you), Note me)
+	fromView _ (Display (/*Note*/ you), Note me) 	= (me,you) 
 
 	switch (me,you) = (you,me)
-*/
+
 // plan meeting
 
 testMeeting :: Task DateTime
 testMeeting
-	=	enterSharedMultipleChoice ("Choose users","Select the users with whom you want to plan a meeting") [] users
+	=	enterSharedMultipleChoice ("Choose users","Select the users with whom you want to plan a meeting...") [] users
 	>>=	planMeeting
 	
 planMeeting :: [User] -> Task DateTime
@@ -465,7 +467,7 @@ planMeeting users =   enterDateTimeOptions
                   >>* [tryAgain users,decide]
 
 enterDateTimeOptions :: Task [DateTime]
-enterDateTimeOptions = enterInformation "Enter options" []
+enterDateTimeOptions = enterInformation "Propose meeting dates and times..." []
 
 askPreferences :: [User] -> TaskStep [DateTime] [(User,[DateTime])]
 askPreferences users
