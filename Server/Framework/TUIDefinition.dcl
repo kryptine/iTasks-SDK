@@ -46,6 +46,7 @@ from Task			import	:: TaskAction, :: TaskId
 					| TUIPasswordControl
 					| TUIUserControl
 					| TUICurrencyControl
+					| TUISliderControl		!TUISliderControl
 					| TUIDocumentControl	!Document
 					| TUIButtonControl		!TUIButtonControl
 					| TUIComboControl		![String]
@@ -191,12 +192,16 @@ from Task			import	:: TaskAction, :: TaskId
 :: TUIHtml =
 	{ html			:: !String
 	}
-	
 :: TUIGridControl =
 	{ headers		:: ![String]
 	, cells			:: ![[String]]
 	}
-		
+
+:: TUISliderControl =
+	{ minValue		:: !Int
+	, maxValue		:: !Int
+	}
+
 :: TUISize			= WrapContent !TUIFixedSize				// The tui element's size becomes the minimal size of its content, but can't become smaller than the given minimal size
 					| FillParent !TUIWeight !TUIMinSize		// The tui element fills the entire parent container
 															// If there is more than one 'FillParent' element in one container the available space is distributed according to the weights (my size = my weight/sum of weights * available space)

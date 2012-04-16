@@ -123,6 +123,7 @@ gVerify{|URL|}					_ vst = simpleVerify "Enter a uniform resource locator (URL)"
 gVerify{|FormButton|}			_ vst = alwaysValid vst
 gVerify{|EUR|}					_ vst = simpleVerify "Enter an amount in EUR" vst
 gVerify{|USD|}					_ vst = simpleVerify "Enter an amount in USD" vst
+gVerify{|BoundedInt|}			_ vst = alwaysValid vst
 gVerify{|User|}					_ vst = simpleVerify "Select a username" vst 
 gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
 gVerify{|ComboChoice|} _ _		_ vst = simpleVerify "Choose one item" vst

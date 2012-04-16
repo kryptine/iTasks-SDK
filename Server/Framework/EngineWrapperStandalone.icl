@@ -17,7 +17,7 @@ startEngine publishable world
 	# debug					= boolOpt "-debug" opts
 	# help					= boolOpt "-help" opts
 	# sdkOpt				= stringOpt "-sdk" opts
-	//If -h option is given show help and stop
+	//If -help option is given show help and stop
 	| help					= show instructions world
 	//Check sdkpath
 	# mbSDKPath				= maybe mbSDKPath Just sdkOpt //Commandline SDK option overrides found paths

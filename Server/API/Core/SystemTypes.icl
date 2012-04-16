@@ -6,13 +6,13 @@ import JSON_NG, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
-derive JSONEncode		EUR, USD, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONEncode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive JSONDecode		EUR, USD, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive JSONDecode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gEq				EUR, USD, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq				EUR, USD, BoundedInt, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -197,34 +197,34 @@ where
 
 instance + Time // Second time is treated as an interval
 where
-	(+) x y = normHours (addHours y.hour (normMinutes (addMinutes y.min (normSeconds (addSeconds y.sec x)))))
+	(+) x y = normHours (addHours y.Time.hour (normMinutes (addMinutes y.Time.min (normSeconds (addSeconds y.Time.sec x)))))
 	where
-		addSeconds s t	= {t & sec = t.sec + s}
-		normSeconds t	= {t & min = t.min + (t.sec / 60), sec = t.sec rem 60}
-		addMinutes m t	= {t & min = t.min + m}
-		normMinutes t	= {t & hour = t.hour + (t.min / 60), min = t.min rem 60}
-		addHours h t	= {t & hour = t.hour + h}
-		normHours t		= {t & hour = t.hour rem 24}
+		addSeconds s t	= {Time|t & sec = t.Time.sec + s}
+		normSeconds t	= {Time|t & min = t.Time.min + (t.Time.sec / 60), sec = t.Time.sec rem 60}
+		addMinutes m t	= {Time|t & min = t.Time.min + m}
+		normMinutes t	= {Time|t & hour = t.Time.hour + (t.Time.min / 60), min = t.Time.min rem 60}
+		addHours h t	= {Time|t & hour = t.Time.hour + h}
+		normHours t		= {Time|t & hour = t.Time.hour rem 24}
 		
 instance - Time
 where
-	(-) x y = normHours (subHours y.hour (normMinutes (subMinutes y.min (normSeconds (subSeconds y.sec x)))))
+	(-) x y = normHours (subHours y.Time.hour (normMinutes (subMinutes y.Time.min (normSeconds (subSeconds y.Time.sec x)))))
 	where
 		subSeconds s t	= {t & sec = t.sec - s}
 		normSeconds t
-			# ns = t.sec rem 60
-			| ns < 0	= {t & min = t.min + (t.sec / 60) - 1, sec = ns + 60}
-						= {t & min = t.min + (t.sec / 60), sec = ns}
-		subMinutes m t	= {t & min = t.min - m}
+			# ns = t.Time.sec rem 60
+			| ns < 0	= {Time|t & min = t.Time.min + (t.Time.sec / 60) - 1, sec = ns + 60}
+						= {Time|t & min = t.Time.min + (t.Time.sec / 60), sec = ns}
+		subMinutes m t	= {Time|t & min = t.Time.min - m}
 		normMinutes t	
-			# nm = t.min rem 60
-			| nm < 0	= {t & hour = t.hour + (t.min / 60) - 1, min = nm + 60}
-						= {t & hour = t.hour + (t.min / 60), min = nm}
-		subHours h t	= {t & hour = t.hour - h}
+			# nm = t.Time.min rem 60
+			| nm < 0	= {Time|t & hour = t.Time.hour + (t.Time.min / 60) - 1, min = nm + 60}
+						= {Time|t & hour = t.Time.hour + (t.Time.min / 60), min = nm}
+		subHours h t	= {Time|t & hour = t.Time.hour - h}
 		normHours t	
-			# nh = t.hour rem 24
-			| nh < 0	= {t & hour = nh + 24}
-						= {t & hour = nh}
+			# nh = t.Time.hour rem 24
+			| nh < 0	= {Time|t & hour = nh + 24}
+						= {Time|t & hour = nh}
 		
 instance toString Time
 where

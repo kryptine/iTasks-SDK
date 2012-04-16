@@ -9,7 +9,7 @@ encodeTUIDefinition d = toJSON d
 derive JSONEncode TUIButton, TUIIcon, TUIHtml, Hotkey
 derive JSONEncode TUIButtonControl
 derive JSONEncode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUIBorderContainer, TUIListContainer
-derive JSONEncode TUIGridControl, TUITree, TUIEditControl, TUIShowControl
+derive JSONEncode TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUISliderControl
 
 JSONEncode{|TUIDef|} {content,width,height,margins}
 	= merge (JSONEncode{|*|} content) (sizeAttributes width height margins)
@@ -77,6 +77,7 @@ encodeControlType prefix TUITimeControl					= justXType (prefix +++ "time")
 encodeControlType prefix TUIPasswordControl				= justXType (prefix +++ "password")
 encodeControlType prefix TUIUserControl					= justXType (prefix +++ "string")
 encodeControlType prefix TUICurrencyControl				= justXType (prefix +++ "currency")
+encodeControlType prefix (TUISliderControl r)			= addXType (prefix +++ "slider") (JSONEncode{|*|} r)
 encodeControlType prefix (TUIDocumentControl r)			= justXType (prefix +++ "document")
 encodeControlType prefix (TUIButtonControl r)			= addXType "itasks_button" (JSONEncode{|*|} r)
 encodeControlType prefix (TUIComboControl r)			= [JSONObject [("xtype",JSONString "itasks_combo"),("options",toJSON r)]]

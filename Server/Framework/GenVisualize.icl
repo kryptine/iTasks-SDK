@@ -67,6 +67,7 @@ gVisualizeText{|Time|}			_ val				= [toString val]
 gVisualizeText{|User|}			_ val				= [toString val]
 gVisualizeText{|EUR|}			_ val				= [toString val]
 gVisualizeText{|USD|}			_ val				= [toString val]
+gVisualizeText{|BoundedInt|}	_ {BoundedInt|cur}	= [toString cur]
 gVisualizeText{|HtmlInclude|}	_ val				= ["Html include"]
 gVisualizeText{|FormButton|}	_ val				= [val.FormButton.label]
 gVisualizeText{|Document|}		_ val
@@ -272,6 +273,28 @@ gVisualizeEditor{|User|}		val vst = visualizeControl TUIUserControl val vst
 gVisualizeEditor{|EUR|}			val vst = visualizeControl TUICurrencyControl val vst
 gVisualizeEditor{|USD|}			val vst = visualizeControl TUICurrencyControl val vst
 
+gVisualizeEditor{|BoundedInt|}	val vst = visualizeCustom vizSlider vst
+where
+	vizSlider name touched verRes vst=:{VSt|taskId,renderAsStatic,controlSize}
+		# opts	= {TUISliderControl|minValue=maybe 1 (\{BoundedInt|min} -> min) val,maxValue=maybe 5 (\{BoundedInt|max} -> max) val}
+		| renderAsStatic
+			
+			# viz =  sizedControl controlSize (TUIShowControl (TUISliderControl opts)
+													{ TUIShowControl
+													| value = toJSON (fmap curVal val)
+													})
+			= ([viz],vst)
+		| otherwise
+			# viz =  sizedControl controlSize (TUIEditControl (TUISliderControl opts)
+													{ TUIEditControl
+													| name = name
+													, value = toJSON (fmap curVal val)
+													, taskId = fmap toString taskId
+													})
+			= ([addMsg verRes viz],vst)
+
+	curVal {BoundedInt|cur} = cur
+	
 gVisualizeEditor{|HtmlInclude|} val vst = visualizeControl TUIStringControl (fmap (\(HtmlInclude path) -> path) val) vst
 
 gVisualizeEditor {|Document|}	val vst = visualizeControl control val vst
@@ -293,7 +316,8 @@ where
 													, taskId = fmap toString taskId
 													})
 			= ([addMsg verRes viz],vst)
-		
+
+	
 gVisualizeEditor{|FormButton|} val vst = visualizeControl control (fmap (\b=:{FormButton|state} -> (state,b)) val) vst
 where
 	control
@@ -498,6 +522,7 @@ gHeaders{|String|} _		= []
 gHeaders{|Real|} _			= []
 gHeaders{|Bool|} _ 			= []
 gHeaders{|Dynamic|}	_		= []
+gHeaders{|BoundedInt|} _	= []
 gHeaders{|HtmlTag|}	_		= []
 gHeaders{|(->)|} _ _ _		= []
 
@@ -520,9 +545,11 @@ gGridRows{|String|} s _						= Nothing
 gGridRows{|Real|} r _						= Nothing
 gGridRows{|Bool|} b _						= Nothing
 gGridRows{|Dynamic|} d _					= Nothing
+gGridRows{|BoundedInt|} _ _					= Nothing
 gGridRows{|HtmlTag|} h _					= Nothing
 gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
+
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table

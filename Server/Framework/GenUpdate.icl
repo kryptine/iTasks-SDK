@@ -223,6 +223,7 @@ gUpdate{|Password|}				mode ust = basicUpdateSimple mode (Password "") ust
 gUpdate{|EUR|}					mode ust = basicUpdateSimple mode (EUR 0) ust
 gUpdate{|USD|}					mode ust = basicUpdateSimple mode (USD 0) ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode (AnonymousUser "") ust
+gUpdate{|BoundedInt|}			mode ust = basicUpdate mode (\json i -> maybe i (\cur -> {BoundedInt|i & cur = cur}) (fromJSON json)) {BoundedInt|min=1,cur=3,max=5} ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
 gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton|b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
 gUpdate{|URL|}					mode ust = basicUpdate mode (\json url -> maybe url (\s -> URL s) (fromJSON json))  (URL "") ust
@@ -353,6 +354,7 @@ gDefaultMask{|Time|}				_ = [Touched []]
 gDefaultMask{|User|}				_ = [Touched []]
 gDefaultMask{|HtmlTag|}				_ = [Touched []]
 gDefaultMask{|HtmlInclude|}			_ = [Touched []]
+gDefaultMask{|BoundedInt|}			_ = [Touched []]
 gDefaultMask{|CheckMultiChoice|}_ _	_ = [Touched []]
 gDefaultMask{|RadioChoice|} _ _ (RadioChoice opts mbSel)
 	// if no valid selection is made, start with untouched mask

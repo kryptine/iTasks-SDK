@@ -4,7 +4,7 @@ import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple
 import Text, Util, TUIDefinition
 from Task import :: EditEvent(..), :: Event(..)
 
-derive gEq TUIControlType, TUIButtonControl, TUITree, TUIDirection, TUISize, TUIHAlign, TUIVAlign, TUIMinSize, TUIMargins, TUIGridControl
+derive gEq TUIControlType, TUIButtonControl, TUITree, TUIDirection, TUISize, TUIHAlign, TUIVAlign, TUIMinSize, TUIMargins, TUIGridControl, TUISliderControl
 derive gEq TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 
 :: DiffPath :== [DiffStep] 
