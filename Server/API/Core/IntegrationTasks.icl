@@ -11,7 +11,7 @@ import Shared
 
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
-from Process			import qualified ::ProcessHandle, runProcess, checkProcess
+from Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from Process			import :: ProcessHandle(..)
 from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
@@ -85,7 +85,15 @@ where
 					= (exception (CallFailed e), {IWorld|iworld & world = world})
 				Nothing
 					= (exception (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
-					
+
+callInstantProcess :: !FilePath ![String] -> Task Int
+callInstantProcess cmd args = mkInstantTask eval
+where
+	eval taskId iworld=:{taskTime,world}
+		# (res,world)	= 'Process'.callProcess cmd args Nothing world
+		= case res of
+			Error e	= (exception (CallFailed e), {IWorld|iworld & world = world})
+			Ok i	= (ValueResult (Value i Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult

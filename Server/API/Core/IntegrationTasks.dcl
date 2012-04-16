@@ -28,6 +28,15 @@ import iTaskClass
 callProcess :: !FilePath ![String] -> Task Int
 
 /**
+* Calls an external executable. This call blocks task computation, only use when process is known to terminate fast.
+* @param Executable: path to the executable
+* @param Arguments: a list of command-line arguments
+* @return return-code of the process
+* @throws CallException
+*/
+callInstantProcess :: !FilePath ![String] -> Task Int
+
+/**
 * Calls an external HTTP webservice.
 *
 * @param HTTP Method: the HTTP method (GET or POST) to use

@@ -205,7 +205,12 @@ whileUnchanged :: !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTa
 whileUnchanged share task
 	= 	((get share >>= \val -> (wait Void ((=!=) val) share @ const Nothing) -||- (task val @ Just) <<@ SetLayout (partLayout 1)) <! isJust)
 	@	fromJust
-	
+
+whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Task b | iTask r & iTask w & iTask b
+whileUnchangedWith eq share task
+	= 	((get share >>= \val -> (wait Void (eq val) share @ const Nothing) -||- (task val @ Just) <<@ SetLayout (partLayout 1)) <! isJust)
+	@	fromJust
+
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const Void) topLevelTasks
 
