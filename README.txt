@@ -4,7 +4,8 @@ This repository holds the iTasks Software Development Kit (SDK).
 = Preparation of the IDE =
 - Make sure that this SDK is placed in the folder of the Clean 2.4 32-bit distribution (the one that contains "CleanIDE.exe")
   and is called "iTasks-SDK".
-- Copy the files "iTasks-SDK/Compiler/StdGeneric.dcl" "iTasks-SDK/Compiler/StdGeneric.icl" and to "Libraries/StdEnv/" (overwriting the existing files)
+- Copy the files "iTasks-SDK/Compiler/StdGeneric.dcl" and "iTasks-SDK/Compiler/StdGeneric.icl" to "Libraries/StdEnv/" (overwriting the existing files)
+- Copy the files "iTasks-SDK/Compiler/TCPChannels.dcl" and "iTasks-SDK/Compiler/TCPChannels.icl" tp "Libraries/TCPIP/" (overwriting the existing files)
 - Start the CleanIDE
 - Import the "iTasks" environment by choosing "Environment" -> "Import..." from the menu
   and selecting the "iTasks-SDK/Server/iTasks.env" file. 

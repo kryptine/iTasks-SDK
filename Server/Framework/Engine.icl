@@ -10,21 +10,18 @@ import	WebService
 CLEAN_HOME_VAR	:== "CLEAN_HOME"
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
-engine sdkPath publishable
-	= taskHandlers (publishAll publishable) sdkPath ++ defaultHandlers sdkPath
+engine :: publish -> [(!String -> Bool,!HTTPRequest *IWorld -> (!HTTPResponse, !*IWorld))] | Publishable publish
+engine publishable
+	= taskHandlers (publishAll publishable) ++ defaultHandlers
 where
-	taskHandlers published sdkPath
-		= [((==) url, taskDispatch sdkPath task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
+	taskHandlers published
+		= [((==) url, webService task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
-	taskDispatch sdkPath task defaultFormat req world
-		# iworld 			= initIWorld sdkPath world
-		# (response,iworld)	= webService task defaultFormat req iworld
-		= (response, finalizeIWorld iworld)
-	
-	defaultHandlers sdkPath
-		= [((==) "/stop", handleStopRequest),(\_ -> True, handleStaticResourceRequest sdkPath)]
-		
+	defaultHandlers
+		= [((==) "/stop", handleStopRequest)
+		  ,(\_ -> True, handleStaticResourceRequest)
+		  ]
+
 initIWorld :: !FilePath !*World -> *IWorld
 initIWorld sdkPath world
 	# (appName,world) 			= determineAppName world
@@ -85,17 +82,17 @@ finalizeIWorld iworld=:{IWorld|world} = world
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
-handleStaticResourceRequest :: !FilePath !HTTPRequest *World -> (!HTTPResponse,!*World)
-handleStaticResourceRequest sdkPath req world
+handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
+handleStaticResourceRequest req iworld=:{IWorld|sdkDirectory,world}
 	# (appPath,world)		= determineAppPath world
 	# path					= if (req.req_path == "/") "/index.html" req.req_path
-	# filename				= sdkPath </> "Client" </> filePath path
+	# filename				= sdkDirectory </> "Client" </> filePath path
 	# type					= mimeType filename
 	# (mbContent, world)	= readFile filename world
 	| isOk mbContent		= ({rsp_headers = fromList [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size (fromOk mbContent)))]
-							   	,rsp_data = fromOk mbContent}, world)
+							   	,rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})
 	# filename				= takeDirectory appPath </> "Static" </> filePath path
 	# type					= mimeType filename
 	# (mbContent, world)	= readFile filename world
@@ -103,15 +100,15 @@ handleStaticResourceRequest sdkPath req world
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size (fromOk mbContent)))											   
 											   ]
-							   	,rsp_data = fromOk mbContent}, world)						   								 	 							   
-	= (notFoundResponse req,world)
+							   	,rsp_data = fromOk mbContent},{IWorld|iworld & world = world})						   								 	 							   
+	= (notFoundResponse req,{IWorld|iworld & world = world})
 where
 	//Translate a URL path to a filesystem path
 	filePath path	= ((replaceSubString "/" {pathSeparator}) o (replaceSubString ".." "")) path
 	mimeType path	= extensionToMimeType (takeExtension path)
 
-handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!*World)
-handleStopRequest req world = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, world) //Stop
+handleStopRequest :: HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
+handleStopRequest req iworld = ({newHTTPResponse & rsp_headers = fromList [("X-Server-Control","stop")], rsp_data = "Server stopped..."}, iworld) //Stop
 
 path2name path = last (split "/" path)
 

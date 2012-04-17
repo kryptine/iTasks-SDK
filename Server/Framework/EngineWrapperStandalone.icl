@@ -1,10 +1,24 @@
 implementation module EngineWrapperStandalone
 
 import StdFile, StdInt, StdList, StdChar, StdBool, StdString
-import HTTP, HttpServer, CommandLine, Func
+import TCPIP, tcp, HTTP, HttpServer, CommandLine, Func
 
-import Engine
+import Engine, IWorld
 
+//Wrapper instance for TCP channels with IWorld
+instance ChannelEnv IWorld
+where
+	channelEnvKind iworld=:{IWorld|world}
+		# (kind,world) = channelEnvKind world
+		= (kind,{IWorld|iworld & world = world})
+	
+	mb_close_inet_receiver_without_id b (endpoint,cat) iworld=:{IWorld|world}
+		= {IWorld|iworld & world = mb_close_inet_receiver_without_id b (endpoint,cat) world}
+	
+	channel_env_get_current_tick iworld=:{IWorld|world}
+		# (tick,world) = channel_env_get_current_tick world
+		= (tick,{IWorld|iworld & world = world})
+		
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
 	# (opts,world)			= getCommandLine world
@@ -25,8 +39,9 @@ startEngine publishable world
 	//Normal execution
 	# world					= show (running port) world
 	# options				= [HTTPServerOptPort port, HTTPServerOptDebug debug]
-	# world					= http_startServer options (engine (fromJust mbSDKPath) publishable) world
-	= world
+	# iworld				= initIWorld (fromJust mbSDKPath) world
+	# iworld				= http_startServer options (engine publishable) iworld
+	= finalizeIWorld iworld
 where
 	infoline :: !String -> [String]
 	infoline app	= ["*** " +++ app +++ " HTTP server ***",""]

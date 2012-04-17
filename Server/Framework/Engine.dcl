@@ -33,7 +33,7 @@ RELATIVE_LOCATIONS	:== [".": take 5 (iterate ((</>) "..") "..")]
 * @param  The config record
 * @param  A task to execute
 */
-engine :: !FilePath publish -> [(!String -> Bool,!HTTPRequest *World -> (!HTTPResponse, !*World))] | Publishable publish
+engine :: publish -> [(!String -> Bool,!HTTPRequest *IWorld -> (!HTTPResponse, !*IWorld))] | Publishable publish
 
 /**
 * Wraps a task together with a url to make it publishable by the engine
@@ -46,6 +46,16 @@ where
 
 instance Publishable (Task a) | iTask a
 instance Publishable [PublishedTask]
+
+/**
+* Inititialize the iworld
+*/
+initIWorld :: !FilePath !*World -> *IWorld
+
+/**
+* Finalize the iworld
+*/
+finalizeIWorld :: !*IWorld -> *World
 
 /**
 * Determines the server executables path

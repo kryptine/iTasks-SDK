@@ -3,6 +3,7 @@ implementation module HttpServer
 import StdList, StdTuple, StdArray, StdFile, StdBool, StdMisc
 import StdMaybe
 
+import 	Time
 import	TCPChannelClass,
 		TCPChannels,
 		TCPEvent,
@@ -16,7 +17,7 @@ from HTTP import instance toString HTTPRequest, instance toString HTTPResponse
 from HttpUtil import http_addRequestData, http_parseArguments, http_makeResponse, http_encodeResponse, http_serverControl
 
 //Start the HTTP server
-http_startServer :: ![HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!*World)))] !*World -> *World
+http_startServer :: ![HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *st-> (!HTTPResponse,!*st)))] !*st -> *st | ChannelEnv st & FileSystem st
 http_startServer options handlers world
 	//Start the listener
 	# (listener,world)	= startListener (getPortOption options) world
@@ -24,7 +25,7 @@ http_startServer options handlers world
 	= loop options handlers listener [] [] [] world
 	
 // Try to open a listener on the given port
-startListener :: Int !*World -> (TCP_Listener,!*World)
+startListener :: Int !*st -> (TCP_Listener,!*st) | ChannelEnv st
 startListener port world
 	# (success, mbListener, world) = openTCP_Listener port world
 	| success	= (fromJust mbListener,world)
@@ -34,10 +35,10 @@ startListener port world
 
 //Main event loop, it is called each time a client connects or data arrives
 loop ::	[HTTPServerOption]
-		[(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!*World)))]
+		[(!(String -> Bool),!(HTTPRequest *st -> (!HTTPResponse,!*st)))]
 		TCP_Listener [TCP_RChannel] [TCP_SChannel]
 		[(HTTPRequest,Bool,Bool,Bool)]
-		*World -> *World
+		*st -> *st | ChannelEnv st & FileSystem st
 loop options handlers listener rchannels schannels requests world
 	//Join the listener with the open channels
 	# glue = TCP_Pair (TCP_Listeners [listener]) (TCP_RChannels rchannels)
@@ -88,7 +89,7 @@ loop options handlers listener rchannels schannels requests world
 				# world				= debug "Generated response:" options world
 				# world				= debug response options world
 				// Encode the response to the HTTP protocol format
-				# (reply, world) = http_encodeResponse response True world
+				# reply				= http_encodeResponse response True
 				// Send the encoded response to the client
 				# (currentschannel,world) = send (toByteSeq reply) currentschannel world
 				# world				= debug "Sent encoded reply:" options world
@@ -141,7 +142,7 @@ getDebugOption [] = False
 getDebugOption [x:xs] = case x of (HTTPServerOptDebug b)	= b
 								  _							= getDebugOption xs
 								  
-debug:: a [HTTPServerOption] *World -> *World | toString a
+debug:: a [HTTPServerOption] *st -> *st | toString a & FileSystem st
 debug msg options world
 	| not (getDebugOption options)	= world
 	# (sio, world)					= stdio world

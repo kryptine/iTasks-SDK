@@ -7,6 +7,7 @@ from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: Task
 from Time				import :: Timestamp
 from TaskState			import :: TaskListEntry
 from JSON_NG			import :: JSONNode
+from StdFile			import class FileSystem		
 from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class reportSDSChangeFilter
 
 :: *IWorld		=	{ application			:: !String									// The name of the application	
@@ -27,6 +28,8 @@ from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class 
 					, outdated				:: !Bool									// Flag that is set when an internal inconsistenty is detected 
 					, world					:: !*World									// The outside world
 					}
+
+instance FileSystem IWorld
 
 instance registerSDSMsg			InstanceNo	IWorld
 instance reportSDSChange					IWorld

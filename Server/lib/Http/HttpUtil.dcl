@@ -1,6 +1,6 @@
 definition module HttpUtil
 
-import HTTP
+import HTTP, StdFile
 
 //General utility functions
 http_splitMultiPart :: !String !String -> [([(String,String)], String)]
@@ -19,17 +19,18 @@ http_parseUrlEncodedArguments :: !String -> [(String,String)]
 http_parseMultiPartPostArguments :: !HTTPRequest -> (Map String String, Map String HTTPUpload) 
 
 //Construction of HTTP Response messages
-http_makeResponse :: !HTTPRequest ![((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] !Bool !*World -> (!HTTPResponse,!*World)
-http_encodeResponse :: !HTTPResponse !Bool !*World -> (!String,!*World)
+http_makeResponse :: !HTTPRequest ![((String -> Bool),(HTTPRequest *st -> (HTTPResponse, *st)))] !Bool !*st -> (!HTTPResponse,!*st) | FileSystem st
+http_addDateHeaders	:: !HTTPResponse !*World -> (!HTTPResponse,!*World)
+http_encodeResponse :: !HTTPResponse !Bool -> String
 
 //Error responses
-http_notfoundResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
-http_forbiddenResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+http_notfoundResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st)
+http_forbiddenResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st)
 
 //Static content
-http_staticResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
-http_staticFileContent :: !String !*World -> (!Bool, !String, !*World)
-http_staticFileMimeType :: !String !*World -> (!String, !*World)
+http_staticResponse :: !HTTPRequest !*st -> (!HTTPResponse, !*st) | FileSystem st
+http_staticFileContent :: !String !*st -> (!Bool, !String, !*st) | FileSystem st
+http_staticFileMimeType :: !String !*st -> (!String, !*st)
 
 //Server control
 http_serverControl :: !HTTPResponse -> String
