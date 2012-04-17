@@ -134,7 +134,6 @@ where
 	stepActions taskId val = [(toString taskId,action,pred val)\\ OnAction action pred _ <- conts]
 
 // Parallel composition
-
 parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
 parallel desc initTasks = Task eval 
 where
@@ -163,11 +162,13 @@ where
 			(Nothing,iworld=:{localLists})
 				//Create the task value
 				# entries			= fromMaybe [] ('Map'.get taskId localLists) 
+				//Remove marked entries
+				# entries			= [e \\ e=:{TaskListEntry|removed} <- entries | not removed]
 				# rep				= parallelRep desc taskId repAs entries
 				# values			= map toValueAndTime entries 
 				# stable			= if (all (isStable o snd) values) Stable Unstable
 				# ts				= foldr max 0 (map fst values)
-				= (ValueResult (Value values stable) ts rep (TCParallel taskId),iworld)
+				= (ValueResult (Value values stable) ts rep (TCParallel taskId),{iworld & localLists = 'Map'.put taskId entries localLists})
 	//Fallback
 	eval _ _ _ _ _ iworld
 		= (exception "Corrupt task state in parallel", iworld)
@@ -222,7 +223,7 @@ where
 	
 	isStable (Value _ Stable) 	= True
 	isStable _					= False
-																
+							
 //SHARED HELPER FUNCTIONS
 appendTaskToList :: !TaskId !(!ParallelTaskType,!ParallelTask a) !*IWorld -> (!TaskId,!*IWorld) | iTask a
 appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,currentUser,currentDateTime}

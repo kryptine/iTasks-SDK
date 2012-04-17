@@ -22,7 +22,7 @@ derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 
 // Tasks
-:: Task a = Task ((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+:: Task a = Task !((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
 :: Event e			= TaskEvent		!TaskId !e			//Event for a task within the process we are looking for
 					| LuckyEvent	!e					//Event for any task who is willing to handle it (I am feeling lucky event)
