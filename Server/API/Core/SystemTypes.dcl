@@ -392,6 +392,7 @@ instance == Stability
 
 //Define initial meta attributes
 TASK_ATTRIBUTE	:== "task"
+LIST_ATTRIBUTE	:== "list"
 TITLE_ATTRIBUTE	:== "title"
 HINT_ATTRIBUTE	:== "hint"
 ERROR_ATTRIBUTE	:== "error"

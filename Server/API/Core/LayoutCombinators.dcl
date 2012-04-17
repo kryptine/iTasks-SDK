@@ -92,6 +92,7 @@ setHalign		:: !TUIHAlign			!TUIDef -> TUIDef
 setValign		:: !TUIVAlign			!TUIDef -> TUIDef
 setPurpose		:: !String				!TUIDef -> TUIDef
 setTaskId		:: !String				!TUIDef -> TUIDef
+setListId		:: !String				!TUIDef -> TUIDef
 
 //Combinators on interface definitions
 hjoin :: ![TUIDef] -> TUIDef

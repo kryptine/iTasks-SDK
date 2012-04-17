@@ -213,7 +213,7 @@ topListShare :: SharedTaskList a
 topListShare = createReadOnlySDSError read
 where
 	read iworld
-		= (Ok {listId = TopLevelTaskList, items = []}, iworld)
+		= (Ok {TaskList|listId = TopLevelTaskList, items = []}, iworld)
 		
 parListShare :: !TaskId -> SharedTaskList a | iTask a
 parListShare taskId=:(TaskId instanceNo taskNo) = createReadOnlySDSError read
@@ -223,14 +223,14 @@ where
 		| instanceNo == currentInstance		
 			= case 'Map'.get taskId localLists of
 				Just entries
-					= (Ok {listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
+					= (Ok {TaskList|listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
 				_	= (Error ("Could not read local task list " +++ shareKey), iworld)
 		| otherwise
 			= case loadTaskReduct instanceNo iworld of
 				(Ok reduct, iworld)
 					= case 'Map'.get taskId reduct.TIReduct.lists of					
 						Just entries
-							= (Ok {listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
+							= (Ok {TaskList|listId = ParallelTaskList taskId, items = [toItem e\\ e <- entries | not e.TaskListEntry.removed]},iworld)
 						_	= (Error ("Could not read remote task list " +++ shareKey), iworld)
 				(Error _,iworld)
 					= (Error ("Could not load remote task list " +++ shareKey), iworld)

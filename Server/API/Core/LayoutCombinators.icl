@@ -119,8 +119,7 @@ where
 		# tabs		= [tab gui actions attributes \\ (_,Just gui,actions,attributes) <- parts]
 		# active	= getTopIndex parts
 		# tabs		= emptyNonActive active tabs
-		# taskId	= kvGet TASK_ATTRIBUTE attributes
-		# gui		= defaultDef (TUITabContainer {TUITabContainer| taskId = taskId, active = active, items = [tab \\{TUIDef|content=TUITabItem tab} <- tabs]})
+		# gui		= defaultDef (TUITabContainer {TUITabContainer| active = active, items = [tab \\{TUIDef|content=TUITabItem tab} <- tabs]})
 		= (type, Just gui, actions, attributes)
 	
 	tab gui actions attributes
@@ -128,6 +127,7 @@ where
 		# (menus,actions)	= actionsToMenus actions
 		# tab				= toTab gui
 		# tab				= case (kvGet TASK_ATTRIBUTE attributes) of Nothing = tab; Just taskId = setTaskId taskId tab
+		# tab				= case (kvGet LIST_ATTRIBUTE attributes) of Nothing = tab; Just listId = setListId listId tab
 		# tab				= case (kvGet TITLE_ATTRIBUTE attributes) of Nothing = tab; Just title = setTitle title tab
 		# tab				= case (kvGet ICON_ATTRIBUTE attributes) of Nothing = tab; Just icon = setIconCls ("icon-" +++ icon) tab
 		# tab				= case close of Nothing = tab; Just task = setCloseAction (actionName ActionClose,task) tab
@@ -364,11 +364,15 @@ setPurpose purpose def=:{TUIDef|content} = case content of
 setTaskId :: !String !TUIDef -> TUIDef
 setTaskId taskId def=:{TUIDef|content} = case content of
 	TUIEditControl t c	= {TUIDef|def & content = TUIEditControl t {TUIEditControl|c & taskId = Just taskId}}
-	TUITabContainer c	= {TUIDef|def & content = TUITabContainer {TUITabContainer|c & taskId = Just taskId}}
 	TUITabItem c		= {TUIDef|def & content = TUITabItem {TUITabItem|c & taskId = Just taskId}}
 	TUIListContainer c	= {TUIDef|def & content = TUIListContainer {TUIListContainer|c & taskId = Just taskId}}
 	TUIRadioChoice c	= {TUIDef|def & content = TUIRadioChoice {TUIRadioChoice|c & taskId = Just taskId}}
 	TUICheckChoice c	= {TUIDef|def & content = TUICheckChoice {TUICheckChoice|c & taskId = Just taskId}}
+	_					= def
+
+setListId :: !String !TUIDef -> TUIDef
+setListId listId def=:{TUIDef|content} = case content of
+	TUITabItem c		= {TUIDef|def & content = TUITabItem {TUITabItem|c & listId = Just listId}}
 	_					= def
 	
 setCloseAction :: !(!String,!String) !TUIDef -> TUIDef
@@ -408,9 +412,9 @@ toTab :: !TUIDef -> TUIDef
 toTab def=:{TUIDef|content} = case content of
 	//Coerce panels and containers to tabs
 	TUIPanel {TUIPanel|items,title,iconCls,padding,menus}
-		= defaultDef (TUITabItem {TUITabItem| taskId = Nothing, items = items, title = fromMaybe "Untitled" title, iconCls = iconCls,padding = Nothing, menus = menus, closeAction = Nothing})
+		= defaultDef (TUITabItem {TUITabItem| taskId = Nothing, listId = Nothing, items = items, title = fromMaybe "Untitled" title, iconCls = iconCls,padding = Nothing, menus = menus, closeAction = Nothing})
 
-	_	= defaultDef (TUITabItem {TUITabItem| taskId = Nothing, items = [def],title = "Untitled", iconCls = Nothing, padding = Nothing, menus = [], closeAction = Nothing})
+	_	= defaultDef (TUITabItem {TUITabItem| taskId = Nothing, listId = Nothing, items = [def],title = "Untitled", iconCls = Nothing, padding = Nothing, menus = [], closeAction = Nothing})
 	
 //GUI combinators						
 hjoin :: ![TUIDef] -> TUIDef

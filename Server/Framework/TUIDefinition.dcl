@@ -109,12 +109,12 @@ from Task			import	:: TaskAction, :: TaskId
 	, baseCls			:: !Maybe String
 	}		
 :: TUITabContainer =
-	{ taskId			:: !Maybe String
-	, active			:: !Int
+	{ active			:: !Int
 	, items				:: ![TUITabItem]
 	}
 :: TUITabItem =
 	{ taskId			:: !Maybe String
+	, listId			:: !Maybe String
 	, items				:: ![TUIDef] 
 	, title				:: !String
 	, iconCls			:: !Maybe String

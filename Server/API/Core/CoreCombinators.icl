@@ -214,8 +214,9 @@ where
 	parallelRep :: !d !TaskId !TaskRepOpts ![TaskListEntry] -> TaskRep | descr d
 	parallelRep desc taskId repAs entries
 		# layout		= repLayout repAs
-		# attributes	= [(TASK_ATTRIBUTE,toString taskId) : initAttributes desc]
-		# parts = [(t,g,ac,kvSet TIME_ATTRIBUTE (toString time) (kvSet TASK_ATTRIBUTE (toString entryId) at))
+		# listId		= toString taskId
+		# attributes	= [(TASK_ATTRIBUTE,listId) : initAttributes desc]
+		# parts = [(t,g,ac,kvSet TIME_ATTRIBUTE (toString time) (kvSet TASK_ATTRIBUTE (toString entryId) (kvSet LIST_ATTRIBUTE listId at)))
 					 \\ {TaskListEntry|entryId,state=EmbeddedState _,result=ValueResult val _ (TaskRep (t,g,ac,at) _) _,time,removed=False} <- entries | not (isStable val)]	
 		= TaskRep (layout ParallelComposition parts [] attributes) []
 	
