@@ -2,7 +2,7 @@ implementation module TaskEval
 
 import StdList, StdBool
 import Error
-import SystemTypes, IWorld, Shared, Task, TaskState, TaskStore
+import SystemTypes, IWorld, Shared, Task, TaskState, TaskStore, Util
 import LayoutCombinators
 
 from CoreCombinators	import :: ParallelTaskType(..), :: ParallelTask(..)
@@ -46,6 +46,8 @@ evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWor
 evalSessionInstance sessionId eEvent cEvent iworld
 	//Set session user
 	# iworld				= {iworld & currentUser = AnonymousUser sessionId}
+	//Update current datetime in iworld
+	# iworld				= updateCurrentDateTime iworld
 	//Evaluate the instance at which the targeted or refresh the session instance
 	# iworld = if (isJust eEvent || isJust cEvent)
 		(processEvent eEvent cEvent iworld)
@@ -62,7 +64,12 @@ evalSessionInstance sessionId eEvent cEvent iworld
 			= case mbRes of
 				Ok result		= (Ok (result, sessionId), iworld)
 				Error e			= (Error e, iworld)
-
+where
+	updateCurrentDateTime :: !*IWorld -> *IWorld
+	updateCurrentDateTime iworld=:{IWorld|world}
+		# (dt,world) = currentDateTimeWorld world
+		= {IWorld|iworld  & currentDateTime = dt, world = world}
+	
 processEvent :: !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> *IWorld
 processEvent Nothing Nothing iworld
 	= iworld
