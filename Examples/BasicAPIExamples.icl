@@ -46,13 +46,15 @@ basicAPIExamples =
 	,workflow (seqTasks +++ "Follow tweets of a user") 		"Follow tweets of a user" 			followTweets
 
 
-	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						edit
+	,workflow (parTasks +++ "Simple editor with statistics")"Edit text" 						editWithStatistics
 
 	,workflow (distrTask +++ "Delegate Enter a person") "Delegate Enter a person" 		(delegate enterPerson)
 	,workflow (distrTask +++ "BUG (Display in tuple): Chat with someone")    "Chat with someone" 				chat
 	,workflow (distrTask +++ "BUG (not all dates shown): Plan meeting") 		"Plan meeting" 						testMeeting
 
-	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers
+	,workflow "Droste Cacaobus" 							"Start this application as a task" 	(manageWorklist basicAPIExamples)
+
+	,workflow "Manage users" 							 	"Manage system users..." 			manageUsers 
 	]
 	
 Start :: *World -> *World
@@ -406,8 +408,8 @@ derive class iTask Statistics
 				,wordCount :: Int
 				}
 
-edit :: Task Note
-edit = withShared (Note "") edit`
+editWithStatistics :: Task Note
+editWithStatistics = withShared (Note "") edit`
 where
 	edit` note
 		=	viewSharedInformation "Statistics:" [ViewWith stat] note 
@@ -415,10 +417,13 @@ where
 			updateSharedInformation "Edit text:" [] note
 			
 			
-stat (Note text) = {lineCount = length lines , wordCount = length words - 1}
+stat (Note text) = {lineCount = lengthLines text, wordCount = lengthWords text}
 where
-	lines = split "\n" text
-	words = split " " (replaceSubString "\n" " " text)
+	lengthLines ""   = 0
+	lengthLines text = length (split "\n" text)
+
+	lengthWords "" 	 = 0
+	lengthWords text = length (split " " (replaceSubString "\n" " " text))
 
 horizontal = AfterLayout (tweakTUI (setDirection Horizontal))
 
