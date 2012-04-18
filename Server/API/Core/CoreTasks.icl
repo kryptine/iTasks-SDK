@@ -16,7 +16,7 @@ derive JSONDecode UpdateMask
 NoRep :== TaskRep (SingleTask,Nothing,[],[]) []
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask (\taskId iworld=:{taskTime} -> (ValueResult (Value a Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld))
+return a  = mkInstantTask (\taskId iworld=:{taskTime} -> (ValueResult (Value a Stable) taskTime NoRep TCNop, iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
 throw e = mkInstantTask (\taskId iworld -> (ExceptionResult (dynamic e) (toString e), iworld))
@@ -27,7 +27,7 @@ where
 	eval taskId iworld=:{taskTime}
 		# (val,iworld) = 'SharedDataSource'.read shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val Stable) taskTime NoRep (TCEmpty taskId taskTime)
+			Ok val		= ValueResult (Value val Stable) taskTime NoRep TCNop
 			Error e		= exception (SharedException e)
 		= (res, iworld)
 
@@ -37,7 +37,7 @@ where
 	eval taskId iworld=:{taskTime}
 		# (res,iworld)	='SharedDataSource'.write val shared iworld
 		# res = case res of
-			Ok _	= ValueResult (Value val Stable) taskTime NoRep (TCEmpty taskId taskTime)
+			Ok _	= ValueResult (Value val Stable) taskTime NoRep TCNop
 			Error e	= exception (SharedException e)
 		= (res, iworld)
 
@@ -49,7 +49,7 @@ where
 		| isError er	= (exception (SharedException (fromError er)), iworld)
 		# w				= fun (fromOk er)
 		# (er, iworld)	= 'SharedDataSource'.write w shared iworld
-		= (ValueResult (Value w Stable) taskTime NoRep (TCEmpty taskId taskTime), iworld)
+		= (ValueResult (Value w Stable) taskTime NoRep TCNop, iworld)
 
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task eval
@@ -93,6 +93,8 @@ where
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
 		= (ValueResult value nts rep (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 	
+	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+	
 	matchEvent taskId1 (Just (LuckyEvent e))								= Just e	
 	matchEvent taskId1 (Just (TaskEvent taskId2 e))	| taskId1 == taskId2	= Just e
 	matchEvent taskId1 _													= Nothing
@@ -120,14 +122,14 @@ appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval
 where
 	eval taskId iworld=:{IWorld|taskTime,world}
-		= (ValueResult (Value Void Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = fun world})
+		= (ValueResult (Value Void Stable) taskTime NoRep TCNop, {IWorld|iworld & world = fun world})
 		
 accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
 accWorld fun = mkInstantTask eval
 where
 	eval taskId iworld=:{IWorld|taskTime,world}
 		# (res,world) = fun world
-		= (ValueResult (Value res Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
+		= (ValueResult (Value res Stable) taskTime NoRep TCNop, {IWorld|iworld & world = world})
 	
 accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 accWorldError fun errf = mkInstantTask eval
@@ -136,7 +138,7 @@ where
 		# (res,world)	= fun world
 		= case res of
 			Error e		= (exception (errf e), {IWorld|iworld & world = world})
-			Ok v		= (ValueResult (Value v Stable) taskTime NoRep (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
+			Ok v		= (ValueResult (Value v Stable) taskTime NoRep TCNop, {IWorld|iworld & world = world})
 	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException

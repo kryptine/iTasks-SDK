@@ -33,6 +33,7 @@ derive gPutRecordFields	Task
 
 :: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value
+					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 
 :: TaskRepOpts		= TaskRepOpts (Maybe Layout) (Maybe (Layout -> Layout))								//Optionally with tweaked layout options
 	

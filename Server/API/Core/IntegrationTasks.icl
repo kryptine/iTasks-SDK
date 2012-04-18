@@ -85,7 +85,11 @@ where
 					= (exception (CallFailed e), {IWorld|iworld & world = world})
 				Nothing
 					= (exception (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
-
+	//Clean up
+	eval eEvent cEvent refresh repAs (TCDestroy (TCBasic taskId lastEvent encv stable)) iworld
+		//TODO: kill runasync for this task and clean up tmp files
+		= (DestroyedResult,iworld)
+		
 callInstantProcess :: !FilePath ![String] -> Task Int
 callInstantProcess cmd args = mkInstantTask eval
 where
@@ -99,6 +103,7 @@ callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a |
 callRPCHTTP method url params transformResult
 	= callHTTP method url (urlEncodePairs params) (Ok o transformResult)
 
+//TODO: Add proper cleanup
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callHTTP method url request parseResult =
 		initRPC
@@ -130,7 +135,7 @@ where
 						, outfile
 						, url
 						]
-		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
+		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
 	
 	mkFileName :: !TaskId !String -> String
 	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
@@ -220,7 +225,7 @@ where
 		# sender		= toEmail sender
 		# recipients	= map toEmail recipients
 		# iworld		= foldr (sendSingle config.smtpServer sender) iworld recipients
-		= (ValueResult (Value recipients Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), iworld)
+		= (ValueResult (Value recipients Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

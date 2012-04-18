@@ -18,6 +18,8 @@ where
 		(Just a)	= (ValueResult (Value a Stable) ts rep state, iworld)
 		Nothing		= (exception "Corrupt task result", iworld)
 
+	evalOnce f _ _ _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
+
 	rep = TaskRep (SingleTask,Nothing,[],[]) []
 
 derive gGetRecordFields	TaskValue, Stability

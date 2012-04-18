@@ -41,7 +41,7 @@ fileTask taskId filename f iworld=:{IWorld|taskTime,world}
 	# (res,file)		= f file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	= (ValueResult (Value res Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
+	= (ValueResult (Value res Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
 		
 readAll file
 	# (chunk,file) = freads file CHUNK_SIZE
@@ -58,7 +58,7 @@ readJSON taskId filename parsefun iworld=:{IWorld|taskTime,world}
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
 	= case (parsefun (fromString content)) of
-		Just a 	= (ValueResult (Value a Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), {IWorld|iworld & world = world})
+		Just a 	= (ValueResult (Value a Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
 		Nothing	= (parseException filename, {IWorld|iworld & world = world})
 		
 readDocument taskId filename iworld=:{IWorld|taskTime,world}
@@ -70,7 +70,7 @@ readDocument taskId filename iworld=:{IWorld|taskTime,world}
 	# name				= dropDirectory filename 
 	# mime				= extensionToMimeType (takeExtension name)
 	# (document,iworld)	= createDocument name mime content {IWorld|iworld & world = world}
-	= (ValueResult (Value document Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) (TCEmpty taskId taskTime), iworld)
+	= (ValueResult (Value document Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, iworld)
 
 openException s		= exception (FileException s CannotOpen)
 closeException s	= exception (FileException s CannotClose)

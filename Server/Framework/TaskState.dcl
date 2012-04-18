@@ -38,7 +38,7 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 :: TIRep :== TaskRep
 
 :: TaskTree
-	= TCInit		!TaskId !TaskTime
+	= TCInit		!TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		!TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
 	| TCInteract	!TaskId !TaskTime !JSONNode !JSONNode !JSONNode !UpdateMask
 	| TCProject		!TaskId !JSONNode !TaskTree
@@ -46,9 +46,9 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 	| TCParallel	!TaskId 
 	| TCShared		!TaskId !TaskTree
 	| TCStable		!TaskId !TaskTime !JSONNode
-	| TCEmpty		!TaskId !TaskTime
 	| TCNop			
-
+	| TCDestroy		!TaskTree															//Marks a task state as garbage that must be destroyed
+	
 :: TaskListEntry	=
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
