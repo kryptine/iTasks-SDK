@@ -52,11 +52,12 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 :: TaskListEntry	=
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
-	, result			:: !TaskResult JSONNode		//Stored result of last evaluation (for detached tasks this is a cached copy)
+	, result			:: !TIResult				//Stored result of last evaluation (for detached tasks this is a cached copy)
+	, attributes		:: ![TaskAttribute]			//Stored attributes of last evaluation
 	, time				:: !TaskTime				//Last modified time
 	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
 	}
 
 :: TaskListEntryState
-	= EmbeddedState !Dynamic									//The task definition
+	= EmbeddedState !Dynamic !TaskTree 							//The task definition, task tree and last computed attributes
 	| DetachedState !InstanceNo !ProgressMeta !ManagementMeta	//A reference to the detached task (management and progress meta are cached copies)

@@ -242,10 +242,10 @@ where
 				(Error _,iworld)
 					= (Error ("Could not load remote task list " +++ shareKey), iworld)
 					
-	toItem {TaskListEntry|entryId,state,result=ValueResult val ts (TaskRep (_,_,_,attr) _) _}
+	toItem {TaskListEntry|entryId,state,result=TIValue val ts,attributes}
 		= 	{taskId			= entryId
 			,value			= deserialize val
-			,taskMeta		= attr
+			,taskMeta		= attributes
 			,managementMeta = management
 			,progressMeta	= progress
 			}
