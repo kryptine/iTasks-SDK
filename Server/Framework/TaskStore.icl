@@ -20,7 +20,6 @@ derive JSONDecode TUIButtonControl, TUISliderControl, TUIListItem
 derive JSONDecode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
 
 INCREMENT				:== "increment"
-SESSION_INDEX			:== "session-index"
 PERSISTENT_INDEX		:== "persistent-index"
 OUTDATED_INDEX			:== "outdated-index"
 SHARE_REGISTRATIONS		:== "share-registrations"
@@ -78,9 +77,8 @@ loadTaskInstance instanceNo iworld
 			= (Error ("Could not load instance state of task " +++ toString instanceNo),iworld)
 	
 loadSessionInstance	:: !SessionId !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
-loadSessionInstance sessionId iworld
-	# (index,iworld) = loadValue NS_TASK_INSTANCES SESSION_INDEX iworld
-	= case (get sessionId (fromMaybe newMap index)) of
+loadSessionInstance sessionId iworld=:{sessions}
+	= case get sessionId sessions of
 		Just topno	= loadTaskInstance topno iworld
 		_			= (Error ("Could not load session " +++ sessionId), iworld)
 
@@ -200,10 +198,8 @@ loadTaskTUI sid iworld
 		Nothing		= (Error ("Could not load tui of " +++ sid), iworld)
 
 updateSessionInstanceIndex :: !((Map SessionId InstanceNo)-> (Map SessionId InstanceNo)) !*IWorld -> *IWorld
-updateSessionInstanceIndex f iworld 
-	# (index,iworld)	= loadValue NS_TASK_INSTANCES SESSION_INDEX iworld
-	# iworld			= storeValue NS_TASK_INSTANCES SESSION_INDEX (f (fromMaybe newMap index)) iworld
-	= iworld
+updateSessionInstanceIndex f iworld=:{sessions}
+	= {IWorld|iworld & sessions = f sessions}
 
 updatePersistentInstanceIndex :: !([TaskListItem Void] -> [TaskListItem Void]) !*IWorld -> *IWorld 
 updatePersistentInstanceIndex f iworld

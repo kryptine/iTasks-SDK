@@ -56,6 +56,7 @@ initIWorld sdkPath world
 	  ,localLists			= newMap
 	  ,readShares			= []
 	  ,outdated				= False
+	  ,sessions				= newMap
 	  ,world				= world
 	  }
 where
