@@ -46,5 +46,6 @@ addShareRegistration		:: !BasicShareId !InstanceNo !*IWorld -> *IWorld
 clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
 addOutdatedOnShareChange	:: !BasicShareId !*IWorld -> *IWorld
 
-storeTaskTUI				:: !SessionId !TUIDef !Int !*IWorld -> *IWorld
-loadTaskTUI					:: !SessionId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)
+//Keep last version of session user interfaces around, to be able to send differences to client
+storeCurUI				:: !SessionId !Int !TUIDef !*IWorld -> *IWorld
+loadPrevUI				:: !SessionId !Int !*IWorld -> (!Maybe TUIDef, !*IWorld)

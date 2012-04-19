@@ -29,8 +29,6 @@ reduct_store t	= toString t +++ "-reduct"
 result_store t	= toString t +++ "-result"
 rep_store t		= toString t +++ "-rep"
 
-tui_store s		= s +++ "-tui"	//OBSOLETE
-
 newSessionId :: !*IWorld -> (!SessionId,!*IWorld)
 newSessionId iworld=:{IWorld|world,timestamp}
 	# (Clock c, world)		= clock world
@@ -187,15 +185,14 @@ addOutdatedOnShareChange shareId iworld
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld
 		
-storeTaskTUI :: !SessionId !TUIDef !Int !*IWorld -> *IWorld
-storeTaskTUI sid def version iworld = storeValue NS_TASK_INSTANCES (tui_store sid) (def,version) iworld
+storeCurUI :: !SessionId !Int !TUIDef !*IWorld -> *IWorld
+storeCurUI sid version def iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,def) uis}
 
-loadTaskTUI	:: !SessionId !*IWorld -> (!MaybeErrorString (!TUIDef,!Int), !*IWorld)
-loadTaskTUI sid iworld
-	# (mbVal,iworld) = loadValue NS_TASK_INSTANCES (tui_store sid) iworld
-	= case mbVal of
-		Just val	= (Ok val, iworld)
-		Nothing		= (Error ("Could not load tui of " +++ sid), iworld)
+loadPrevUI	:: !SessionId !Int !*IWorld -> (!Maybe TUIDef, !*IWorld)
+loadPrevUI sid version iworld=:{IWorld|uis}
+	= case get sid uis of
+		Just (prev,def) | version == (prev + 1)	= (Just def, iworld)
+		_										= (Nothing, iworld)
 
 updateSessionInstanceIndex :: !((Map SessionId InstanceNo)-> (Map SessionId InstanceNo)) !*IWorld -> *IWorld
 updateSessionInstanceIndex f iworld=:{sessions}

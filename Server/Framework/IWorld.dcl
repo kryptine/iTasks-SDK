@@ -4,6 +4,7 @@ from FilePath			import :: FilePath
 from Map				import :: Map
 from Maybe				import :: Maybe
 from SystemTypes		import :: DateTime, :: User, :: Config, :: InstanceNo, :: TaskNo, :: TaskId, :: TaskListItem, :: ParallelTaskType, :: TaskTime, :: SessionId
+from TUIDefinition		import :: TUIDef
 from Time				import :: Timestamp
 from TaskState			import :: TaskListEntry
 from JSON_NG			import :: JSONNode
@@ -27,6 +28,7 @@ from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class 
 					, readShares			:: ![String]								// The IDs of shares from which was read
 					, outdated				:: !Bool									// Flag that is set when an internal inconsistenty is detected 
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
+					, uis					:: !Map SessionId (!Int,!TUIDef)			// Previous gui versions to optimize output sent to clients
 					, world					:: !*World									// The outside world
 					}
 

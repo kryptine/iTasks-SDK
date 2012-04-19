@@ -27,20 +27,12 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			# (mbResult, mbPrevTui, iworld)	= case sessionParam of
 				""	
 					# (mbResult, iworld) = createSessionInstance task Nothing Nothing iworld
-					= (mbResult, Error "Fresh session, no previous user interface", iworld)
+					= (mbResult, Nothing, iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
-					# (mbPreviousTui,iworld)	= loadTaskTUI sessionId iworld
-					//Check if the version of the user interface the client has is still fresh
-					# outdated = case mbPreviousTui of
-						Ok (_,prevGuiVersion)		= guiVersion < prevGuiVersion
-						Error _						= False
-					| outdated
-						# (mbResult, iworld) = evalSessionInstance sessionId Nothing Nothing iworld
-						= (mbResult,mbPreviousTui,iworld)
-					| otherwise
-						# (mbResult, iworld) = evalSessionInstance sessionId editEvent commitEvent iworld
-						= (mbResult,mbPreviousTui,iworld)
+					# (mbPreviousTui,iworld)	= loadPrevUI sessionId guiVersion iworld
+					# (mbResult, iworld) 		= evalSessionInstance sessionId editEvent commitEvent iworld
+					= (mbResult,mbPreviousTui,iworld)
 			# (json, iworld) = case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
@@ -50,17 +42,10 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
 					Ok (ValueResult _ _ mbCurrentTui context,sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
-							(Ok (previousTui,prevGuiVersion),TaskRep (_,Just currentTui,actions,attributes) _)
-								| prevGuiVersion == guiVersion - 1 //The stored version, is exactly one less then the current version 
+							(Just previousTui,TaskRep (_,Just currentTui,actions,attributes) _)
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
 												 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui editEvent))
-												 ,("timestamp",toJSON timestamp)]
-								| otherwise
-									= JSONObject [("success",JSONBool True)
-												 ,("session",JSONString sessionId)
-												 ,("content",encodeTUIDefinition currentTui)
-												 ,("warning",JSONString "The client is out of sync. The user interface was refreshed with the most recent value.")
 												 ,("timestamp",toJSON timestamp)]
 							(_, TaskRep (_,Just currentTui,actions,attributes) _)
 								= JSONObject [("success",JSONBool True)
@@ -71,7 +56,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 						//Store gui for later incremental requests
 						# iworld = case mbCurrentTui of
-							TaskRep (_,Just currentTui,_,_) _	= storeTaskTUI sessionId currentTui guiVersion iworld
+							TaskRep (_,Just currentTui,_,_) _	= storeCurUI sessionId guiVersion currentTui iworld
 							_									= iworld
 						= (json,iworld)
 					_
