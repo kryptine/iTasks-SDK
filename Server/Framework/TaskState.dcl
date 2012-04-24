@@ -42,12 +42,19 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 	| TCBasic		!TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
 	| TCInteract	!TaskId !TaskTime !JSONNode !JSONNode !JSONNode !UpdateMask
 	| TCProject		!TaskId !JSONNode !TaskTree
-	| TCStep		!TaskId !(Either TaskTree (!JSONNode,!Int,!TaskTree))
+	| TCStep		!TaskId !(Either TaskTree (DeferredJSON,Int,TaskTree))
 	| TCParallel	!TaskId 
 	| TCShared		!TaskId !TaskTree
 	| TCStable		!TaskId !TaskTime !JSONNode
 	| TCNop			
 	| TCDestroy		!TaskTree															//Marks a task state as garbage that must be destroyed
+
+:: DeferredJSON
+	= E. a:	DeferredJSON !a & TC a & JSONEncode{|*|} a
+	|		DeferredJSONNode !JSONNode
+
+derive JSONEncode DeferredJSON
+derive JSONDecode DeferredJSON
 	
 :: TaskListEntry	=
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)

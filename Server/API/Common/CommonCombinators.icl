@@ -6,7 +6,7 @@ import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdCl
 import Util, Either, GenVisualize, GenUpdate
 from StdFunc			import id, const, o
 from SystemTypes		import :: User(..), :: Note(..)
-from TaskState			import :: TaskTree(..)
+from TaskState			import :: TaskTree(..), :: DeferredJSON
 from SystemData			import randomInt, topLevelTasks
 
 import CoreTasks, CoreCombinators, InteractionTasks, LayoutCombinators

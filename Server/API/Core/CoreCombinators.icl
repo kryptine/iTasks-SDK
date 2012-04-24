@@ -82,7 +82,7 @@ where
 				Just rewrite	= Right (rewrite,Nothing)		//TODO: Figure out how to garbage collect after exceptions
 		= case mbCont of
 			Left res = (res,iworld)
-			Right ((sel,Task evalb,enca),mbTreeA)
+			Right ((sel,Task evalb,d_json_a),mbTreeA)
 				//Cleanup state of left-hand side
 				# iworld	= case mbTreeA of
 					Nothing		= iworld
@@ -90,7 +90,7 @@ where
 				# (taskIdb,iworld)	= getNextTaskId iworld
 				# (resb,iworld)		= evalb Nothing Nothing refresh repAs (TCInit taskIdb taskTime) iworld 
 				= case resb of
-					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent rep (TCStep taskId (Right (enca,sel,nstateb))),iworld)
+					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent rep (TCStep taskId (Right (d_json_a,sel,nstateb))),iworld)
 					ExceptionResult e str					= (ExceptionResult e str, iworld)
 	//Eval right-hand side
 	eval eEvent cEvent refresh repAs (TCStep taskId (Right (enca,sel,treeb))) iworld
@@ -123,10 +123,10 @@ where
 	where
 		search _ _ _ mbmatch []							= mbmatch									//No matching OnValue steps were found, return the potential match
 		search val mbcommit i mbmatch [OnValue pred f:cs]
-			| pred val									= Just (i, f val, toJSON val)				//Don't look any further, first matching trigger wins
+			| pred val									= Just (i, f val, DeferredJSON val)				//Don't look any further, first matching trigger wins
 														= search val mbcommit (i + 1) mbmatch cs	//Keep search
 		search val (Just commit) i Nothing [OnAction action pred f:cs]
-			| pred val && commit == actionName action	= search val (Just commit) (i + 1) (Just (i, f val, toJSON val)) cs //We found a potential winner (if no OnValue values are in cs)
+			| pred val && commit == actionName action	= search val (Just commit) (i + 1) (Just (i, f val, DeferredJSON val)) cs //We found a potential winner (if no OnValue values are in cs)
 														= search val (Just commit) (i + 1) Nothing cs						//Keep searching
 		search val mbcommit i mbmatch [_:cs]			= search val mbcommit (i + 1) mbmatch cs							//Keep searching
 		
@@ -136,24 +136,46 @@ where
 		search dyn str i catchall [OnException f:cs] = case (match f dyn) of
 			Just (taskb,enca)						= Just (i, taskb, enca)											//We have a match
 			_										= search dyn str (i + 1) catchall cs							//Keep searching
-		search dyn str i Nothing [OnAllExceptions f:cs]	= search dyn str (i + 1) (Just (i, f str, toJSON str)) cs 	//Keep searching (at least we have a catchall)
+		search dyn str i Nothing [OnAllExceptions f:cs]	= search dyn str (i + 1) (Just (i, f str, DeferredJSON str)) cs //Keep searching (at least we have a catchall)
 		search dyn str i mbcatchall [_:cs]			= search dyn str (i + 1) mbcatchall cs							//Keep searching
 				
-		match :: (e -> Task b) Dynamic -> Maybe (Task b, JSONNode) | iTask e
-		match f (e :: e^)	= Just (f e, toJSON e)
+		match :: (e -> Task b) Dynamic -> Maybe (Task b, DeferredJSON) | iTask e
+		match f (e :: e^)	= Just (f e, DeferredJSON e)
 		match _ _			= Nothing 
 	
-	restoreTaskB sel enca = case conts !! sel of
-		(OnValue _ taskbf)			= fmap taskbf (fromJSON enca)
-		(OnAction _ _ taskbf)		= fmap taskbf (fromJSON enca)
-		(OnException taskbf)		= fmap taskbf (fromJSON enca)
-		(OnAllExceptions taskbf)	= fmap taskbf (fromJSON enca)
+	restoreTaskB sel d_json_a = case conts !! sel of
+		(OnValue _ taskbf)			= call_with_DeferredJSON_TaskValue taskbf d_json_a
+		(OnAction _ _ taskbf)		= call_with_DeferredJSON_TaskValue taskbf d_json_a
+		(OnException taskbf)		= call_with_DeferredJSON taskbf d_json_a
+		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
 	addStepActions taskId repAs (TaskRep gui parts) val 
 		# fixme = []
 		= TaskRep ((repLayout repAs) SequentialComposition [gui] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId):fixme]) parts	//TODO: Add attributes from task
 	
 	stepActions taskId val = [(toString taskId,action,pred val)\\ OnAction action pred _ <- conts]
+
+	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
+	call_with_DeferredJSON_TaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
+		= case make_dynamic tva of
+			(tva :: TaskValue a^)
+				-> Just (f_tva_tb tva)
+	call_with_DeferredJSON_TaskValue f_tva_tb (DeferredJSONNode json)
+		= case fromJSON json of
+			Just a ->  Just (f_tva_tb a)
+			Nothing -> Nothing
+	
+	call_with_DeferredJSON :: (a -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
+	call_with_DeferredJSON f_tva_tb d_json_tva=:(DeferredJSON tva)
+		= case make_dynamic tva of
+			(tva :: a^)
+				-> Just (f_tva_tb tva)
+	call_with_DeferredJSON f_tva_tb (DeferredJSONNode json)
+		= case fromJSON json of
+			Just a ->  Just (f_tva_tb a)
+			Nothing -> Nothing
+
+	make_dynamic tva = dynamic tva
 
 // Parallel composition
 parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a

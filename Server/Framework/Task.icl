@@ -2,7 +2,7 @@ implementation module Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass, IWorld
-from TaskState			import :: TaskTree(..)
+from TaskState			import :: TaskTree(..), :: DeferredJSON
 from LayoutCombinators	import :: Layout, DEFAULT_LAYOUT, heuristicLayout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 

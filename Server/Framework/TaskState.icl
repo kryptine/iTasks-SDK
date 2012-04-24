@@ -20,4 +20,14 @@ derive JSONDecode TUIControlType
 derive JSONDecode TUIButtonControl, TUISliderControl, TUIListItem
 derive JSONDecode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
 
+JSONEncode{|DeferredJSON|} (DeferredJSON a)
+	= JSONEncode{|*|} a
+JSONEncode{|DeferredJSON|} (DeferredJSONNode json)
+	= [json]
 
+JSONDecode{|DeferredJSON|} []
+	= (Just (DeferredJSONNode JSONNull), [])
+JSONDecode{|DeferredJSON|} [x:xs]
+	= ((Just (DeferredJSONNode x)), xs)
+JSONDecode{|DeferredJSON|} l
+	= (Nothing, l)
