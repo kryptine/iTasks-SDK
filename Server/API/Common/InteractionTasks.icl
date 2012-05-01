@@ -180,8 +180,18 @@ where
 	initChoice ChooseFromGrid container			= DCGrid	(GridChoice [(view o,o) \\ o <- toOptionList container] Nothing)
 	
 	fromView (container,_) choice = (container,getMbSelection choice)
-	
-choiceToUpdate _ = choiceToUpdate [ChooseWith AutoChoice id]
+choiceToUpdate _ = [UpdateWith toViewId fromViewId]
+where
+	toViewId (container,mbSel)
+		= let choice = initChoiceNoView (suggestedChoiceType container) container in
+			maybe choice (\sel -> selectOptionNoView sel choice) mbSel
+
+	fromViewId (container,_) choice = (container,getMbSelectionNoView choice)
+
+	initChoiceNoView ChooseFromComboBox		container = DCComboNoView	(ComboChoiceNoView (toOptionList container) Nothing)
+	initChoiceNoView ChooseFromRadioButtons	container = DCRadioNoView	(RadioChoiceNoView (toOptionList container) Nothing)
+	initChoiceNoView ChooseFromTree			container = DCTreeNoView	(TreeChoiceNoView (toOptionTree container) Nothing)
+	initChoiceNoView ChooseFromGrid			container = DCGridNoView	(GridChoiceNoView (toOptionList container) Nothing)
 
 sharedChoiceToUpdate :: [ChoiceOption o] -> [UpdateOption (container o, Maybe o) (Maybe o)] | OptionContainer container & iTask o
 sharedChoiceToUpdate options = case choiceToUpdate options of

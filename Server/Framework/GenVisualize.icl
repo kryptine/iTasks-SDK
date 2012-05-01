@@ -74,14 +74,23 @@ gVisualizeText{|Document|}		_ val
 	| val.Document.size == 0						= ["No Document"]
 	| otherwise										= [val.Document.name]
 gVisualizeText{|RadioChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
+gVisualizeText{|RadioChoiceNoView|}	fo   mode val	= fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 gVisualizeText{|ComboChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
+gVisualizeText{|ComboChoiceNoView|} fo   mode val	= fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 gVisualizeText{|GridChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))	
+gVisualizeText{|GridChoiceNoView|}	fo   mode val	= fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))	
 gVisualizeText{|TreeChoice|}		fv _ mode val	= fromMaybe ["No item selected"] (fmap (\v -> fv mode v) (getMbSelectionView val))
+gVisualizeText{|TreeChoiceNoView|} 	fo     mode val = fromMaybe ["No item selected"] (fmap (\v -> fo mode v) (getMbSelectionNoView val))
 
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCRadio val)	= gVisualizeText{|*->*->*|} fv fo mode val
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCCombo val)	= gVisualizeText{|*->*->*|} fv fo mode val
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCGrid val)		= gVisualizeText{|*->*->*|} fv fo mode val
 gVisualizeText{|DynamicChoice|}		fv fo mode (DCTree val)		= gVisualizeText{|*->*->*|} fv fo mode val
+
+gVisualizeText{|DynamicChoiceNoView|} fo mode (DCRadioNoView val)	= gVisualizeText{|*->*|} fo mode val
+gVisualizeText{|DynamicChoiceNoView|} fo mode (DCComboNoView val)	= gVisualizeText{|*->*|} fo mode val
+gVisualizeText{|DynamicChoiceNoView|} fo mode (DCTreeNoView val)	= gVisualizeText{|*->*|} fo mode val
+gVisualizeText{|DynamicChoiceNoView|} fo mode (DCGridNoView val)	= gVisualizeText{|*->*|} fo mode val
 
 gVisualizeText{|CheckMultiChoice|}	fv _ _ val		= gVisualizeText{|* -> *|} fv  AsLabel (getSelectionViews val)
 gVisualizeText{|Table|}	_ _							= ["Table"]
@@ -337,20 +346,37 @@ where
 		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
 		= ([defaultDef (TUIContainer (defaultContainer itemDefs))], vst)
 
+gVisualizeEditor{|RadioChoiceNoView|} fx _ _ _ val vst = visualizeCustom mkControl vst
+where
+	mkControl name touched verRes vst=:{VSt|taskId,renderAsStatic}
+		# (options,sel)		= maybe ([],-1) (\(RadioChoiceNoView options mbSel) -> (options,fromMaybe -1 mbSel) ) val
+		# (itemVis,vst)		= childVisualizations fx options {VSt|vst & renderAsStatic = True}
+		# itemDefs			= [defaultDef (TUIRadioChoice {TUIRadioChoice| items = tuiOfEditor items, taskId = fmap toString taskId, name = name, index = i, checked = i == sel}) \\ items <- itemVis & i <- [0..]]
+		= ([defaultDef (TUIContainer (defaultContainer itemDefs))], vst)
 
 gVisualizeEditor{|ComboChoice|} _ gx _ _ _ _ _ _ val vst = visualizeControl (TUIComboControl (toChoice val)) (fmap (\(ComboChoice _ mbSel) -> mbSel) val) vst
 where
 	toChoice Nothing						= []
 	toChoice (Just (ComboChoice options _))	= [concat (gx AsLabel v) \\ (v,_) <- options]
+
+gVisualizeEditor{|ComboChoiceNoView|} _ gx _ _ val vst = visualizeControl (TUIComboControl (toChoice val)) (fmap (\(ComboChoiceNoView _ mbSel) -> mbSel) val) vst
+where
+	toChoice Nothing								= []
+	toChoice (Just (ComboChoiceNoView options _))	= [concat (gx AsLabel v) \\ v <- options]
 	
 gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ val vst = visualizeControl (TUIGridControl (toGrid val)) (fmap (\(GridChoice _ mbSel) -> mbSel) val) vst
 where
 	toGrid Nothing							= {cells = [], headers = []}
 	toGrid (Just (GridChoice options _))	= {headers = hx undef, cells = [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ (opt,_) <- options]}
-	
+
+gVisualizeEditor{|GridChoiceNoView|} _ gx hx ix val vst = visualizeControl (TUIGridControl (toGrid val)) (fmap (\(GridChoiceNoView _ mbSel) -> mbSel) val) vst
+where
+	toGrid Nothing 								= {cells = [], headers = []}
+	toGrid (Just (GridChoiceNoView options _))	= {headers = hx undef, cells = [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]}
+
 gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom tuiF vst
 where
-	tuiF name touched verRes vst=:{VSt|taskId,renderAsStatic,controlSize}
+	tuiF name touched verRes vst=:{VSt|taskId,controlSize}
 		# viz = sizedControl controlSize (TUIEditControl (TUITreeControl (toTree val))
 												{ TUIEditControl
 												| name = name
@@ -361,13 +387,37 @@ where
 
 	toTree Nothing								= []
 	toTree (Just (TreeChoice (Tree nodes) _))	= fst (mkTree nodes 0)
-	
+
 	mkTree [] idx
 		= ([],idx)
 	mkTree [Leaf (v,_):r] idx
 		# (rtree,idx`) 		= mkTree r (inc idx)
 		= ([{text = concat (gx AsLabel v), value = idx, leaf = True, children = Nothing}:rtree],idx`)
 	mkTree [Node (v,_) nodes:r] idx
+		# (children,idx`)	= mkTree nodes (inc idx)
+		# (rtree,idx`)		= mkTree r idx`
+		= ([{text = concat (gx AsLabel v), value = idx, leaf = False, children = Just children}:rtree],idx`)
+
+gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ val vst = visualizeCustom tuiF vst
+where
+	tuiF name touched verRes vst=:{VSt|taskId,controlSize}
+		# viz = sizedControl controlSize (TUIEditControl (TUITreeControl (toTree val))
+												{ TUIEditControl
+												| name = name
+												, value = toJSON (fmap (\(TreeChoiceNoView _ mbSel) -> mbSel) (checkMask touched val))
+												, taskId = fmap toString taskId
+												})
+		= ([viz],vst)
+
+	toTree Nothing									= []
+	toTree (Just (TreeChoiceNoView (Tree nodes) _))	= fst (mkTree nodes 0)
+
+	mkTree [] idx
+		= ([],idx)
+	mkTree [Leaf v:r] idx
+		# (rtree,idx`) 		= mkTree r (inc idx)
+		= ([{text = concat (gx AsLabel v), value = idx, leaf = True, children = Nothing}:rtree],idx`)
+	mkTree [Node v nodes:r] idx
 		# (children,idx`)	= mkTree nodes (inc idx)
 		# (rtree,idx`)		= mkTree r idx`
 		= ([{text = concat (gx AsLabel v), value = idx, leaf = False, children = Just children}:rtree],idx`)
@@ -381,6 +431,17 @@ gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCTree val)) vs
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCGrid val)) vst
 	= gVisualizeEditor{|*->*->*|} f1 f2 f3 f4 f5 f6 f7 f8 (Just val) vst
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 Nothing vst
+	= (NormalEditor [],vst)
+
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCComboNoView val)) vst
+	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCRadioNoView val)) vst
+	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCTreeNoView val)) vst
+	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 (Just (DCGridNoView val)) vst
+	= gVisualizeEditor{|*->*|} f1 f2 f3 f4 (Just val) vst
+gVisualizeEditor{|DynamicChoiceNoView|} f1 f2 f3 f4 Nothing vst
 	= (NormalEditor [],vst)
 	
 getMbView f mbChoice = fmap f (maybe Nothing getMbSelectionView mbChoice)
@@ -528,8 +589,10 @@ gHeaders{|(->)|} _ _ _		= []
 
 
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
+derive gHeaders DynamicChoice, RadioChoice, ComboChoice, GridChoice, TreeChoice
+derive gHeaders DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridChoiceNoView, TreeChoiceNoView
 
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 
@@ -552,8 +615,10 @@ gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
 
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
+derive gGridRows DynamicChoice, RadioChoice, ComboChoice, TreeChoice, GridChoice
+derive gGridRows DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridChoiceNoView, TreeChoiceNoView
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
 

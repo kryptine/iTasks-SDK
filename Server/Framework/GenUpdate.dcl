@@ -27,18 +27,20 @@ generic gUpdate a :: !(UpdateMode a) !*USt -> (!a,!*USt)
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT of d, RECORD, FIELD
 derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gUpdate URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
+derive gUpdate URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
 derive gUpdate EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gUpdate ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gUpdate DynamicChoice,DynamicChoiceNoView
 
 generic gDefaultMask a :: !a -> [UpdateMask]
 
 derive gDefaultMask UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
 derive gDefaultMask Int, Real, Char, Bool, String
 derive gDefaultMask Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gDefaultMask URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, DynamicChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
+derive gDefaultMask URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table
 derive gDefaultMask EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gDefaultMask ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gDefaultMask DynamicChoice,DynamicChoiceNoView
 
 //derive bimap UpdateMode
 

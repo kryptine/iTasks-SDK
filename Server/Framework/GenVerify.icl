@@ -126,11 +126,15 @@ gVerify{|USD|}					_ vst = simpleVerify "Enter an amount in USD" vst
 gVerify{|BoundedInt|}			_ vst = alwaysValid vst
 gVerify{|User|}					_ vst = simpleVerify "Select a username" vst 
 gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
+gVerify{|RadioChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
 gVerify{|ComboChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
+gVerify{|ComboChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
 gVerify{|GridChoice|} _ _		_ vst = alwaysValid vst//simpleVerify "Choose one row" vst
+gVerify{|GridChoiceNoView|} _	_ vst = alwaysValid vst
 gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
 gVerify{|Table|}				_ vst = alwaysValid vst
 gVerify{|TreeChoice|} _ _		_ vst = simpleVerify "Choose an element of the tree" vst
+gVerify{|TreeChoiceNoView|} _	_ vst = simpleVerify "Choose an element of the tree" vst
 gVerify{|HtmlInclude|}			_ vst = alwaysValid vst
 gVerify{|HtmlTag|}				_ vst = alwaysValid vst
 
@@ -143,6 +147,12 @@ gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) vst = gVerify{|*->*->*|} fx fy
 gVerify{|DynamicChoice|} fx fy	(Just (DCTree v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
 gVerify{|DynamicChoice|} fx fy	(Just (DCGrid v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
 gVerify{|DynamicChoice|} fx fy	Nothing vst = alwaysValid vst
+
+gVerify{|DynamicChoiceNoView|} fx (Just (DCComboNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
+gVerify{|DynamicChoiceNoView|} fx (Just (DCRadioNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
+gVerify{|DynamicChoiceNoView|} fx (Just (DCTreeNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
+gVerify{|DynamicChoiceNoView|} fx (Just (DCGridNoView v)) vst = gVerify{|*->*|} fx (Just v) vst
+gVerify{|DynamicChoiceNoView|} fx Nothing vst = alwaysValid vst
 
 //********************************************************************************************************
 anyError :: ![VerifyMask] -> Bool

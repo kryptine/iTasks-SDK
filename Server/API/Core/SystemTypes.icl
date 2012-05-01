@@ -391,13 +391,19 @@ where
 	getMbSelection			:: !(t v o)						-> Maybe o
 	//* Gets the current selection's view if present
 	getMbSelectionView		:: !(t v o)						-> Maybe v
-	
+
 instance Choice ComboChoice
 where
 	selectOption newSel (ComboChoice options _)					= ComboChoice options (setListOption options newSel)
 	getSelection combo											= fromJust (getMbSelection combo)
 	getMbSelection (ComboChoice options mbSel)					= fmap snd (getListOption options mbSel)
 	getMbSelectionView (ComboChoice options mbSel)				= fmap fst (getListOption options mbSel)
+
+instance ChoiceNoView ComboChoiceNoView
+where
+	selectOptionNoView newSel (ComboChoiceNoView options _)		= ComboChoiceNoView options (setListOptionNoView options newSel)
+	getSelectionNoView combo									= fromJust (getMbSelectionNoView combo)
+	getMbSelectionNoView (ComboChoiceNoView options mbSel)		= getListOption options mbSel
 
 instance Choice RadioChoice
 where
@@ -406,6 +412,12 @@ where
 	getMbSelection (RadioChoice options mbSel)					= fmap snd (getListOption options mbSel)
 	getMbSelectionView (RadioChoice options mbSel)				= fmap fst (getListOption options mbSel)
 
+instance ChoiceNoView RadioChoiceNoView
+where
+	selectOptionNoView newSel (RadioChoiceNoView options _)		= RadioChoiceNoView options (setListOptionNoView options newSel)
+	getSelectionNoView radios									= fromJust (getMbSelectionNoView radios)
+	getMbSelectionNoView (RadioChoiceNoView options mbSel)		= getListOption options mbSel
+
 instance Choice TreeChoice
 where
 	selectOption newSel (TreeChoice options _)					= TreeChoice options (setTreeOption options newSel)
@@ -413,12 +425,24 @@ where
 	getMbSelection (TreeChoice options mbSel)					= fmap snd (getTreeOption options mbSel)
 	getMbSelectionView (TreeChoice options mbSel)				= fmap fst (getTreeOption options mbSel)
 
+instance ChoiceNoView TreeChoiceNoView
+where
+	selectOptionNoView newSel (TreeChoiceNoView options _)		= TreeChoiceNoView options (setTreeOptionNoView options newSel)
+	getSelectionNoView tree										= fromJust (getMbSelectionNoView tree)
+	getMbSelectionNoView (TreeChoiceNoView options mbSel)		= getTreeOption options mbSel
+
 instance Choice GridChoice
 where
 	selectOption newSel (GridChoice options _)					= GridChoice options (setListOption options newSel)
 	getSelection grid											= fromJust (getMbSelection grid)
 	getMbSelection (GridChoice options mbSel)					= fmap snd (getListOption options mbSel)
 	getMbSelectionView (GridChoice options mbSel)				= fmap fst (getListOption options mbSel)
+
+instance ChoiceNoView GridChoiceNoView
+where
+	selectOptionNoView newSel (GridChoiceNoView options _)		= GridChoiceNoView options (setListOptionNoView options newSel)
+	getSelectionNoView grid										= fromJust (getMbSelectionNoView grid)
+	getMbSelectionNoView (GridChoiceNoView options mbSel)		= getListOption options mbSel
 
 instance MultiChoice CheckMultiChoice
 where
@@ -447,7 +471,24 @@ where
 	getMbSelectionView (DCRadio choice)		= getMbSelectionView choice
 	getMbSelectionView (DCTree choice)		= getMbSelectionView choice
 	getMbSelectionView (DCGrid choice)		= getMbSelectionView choice
+
+instance ChoiceNoView DynamicChoiceNoView
+where
+	selectOptionNoView newSel (DCComboNoView choice)	= DCComboNoView (selectOptionNoView newSel choice)
+	selectOptionNoView newSel (DCRadioNoView choice)	= DCRadioNoView (selectOptionNoView newSel choice)	
+	selectOptionNoView newSel (DCTreeNoView choice)		= DCTreeNoView (selectOptionNoView newSel choice)
+	selectOptionNoView newSel (DCGridNoView choice) 	= DCGridNoView (selectOptionNoView newSel choice)
 	
+	getSelectionNoView (DCComboNoView choice)	= getSelectionNoView choice
+	getSelectionNoView (DCRadioNoView choice)	= getSelectionNoView choice
+	getSelectionNoView (DCTreeNoView choice)	= getSelectionNoView choice
+	getSelectionNoView (DCGridNoView choice)	= getSelectionNoView choice
+
+	getMbSelectionNoView (DCComboNoView choice)	= getMbSelectionNoView choice
+	getMbSelectionNoView (DCRadioNoView choice)	= getMbSelectionNoView choice
+	getMbSelectionNoView (DCTreeNoView choice)	= getMbSelectionNoView choice
+	getMbSelectionNoView (DCGridNoView choice)	= getMbSelectionNoView choice
+
 setListOption :: ![(v,o)] !o -> (Maybe Int) | gEq{|*|} o
 setListOption options newSel
 	= case setListOptions options [newSel] of
@@ -465,7 +506,7 @@ getListOption :: ![a] !(Maybe Int) -> Maybe a
 getListOption options mbSel = case getListOptions options (maybeToList mbSel) of
 	[a] = Just a
 	_	= Nothing
-	
+
 getListOptions :: ![a] ![Int] -> [a]
 getListOptions options sels = [opt \\ opt <- options & idx <- [0..] | isMember idx sels]
 
@@ -474,6 +515,24 @@ getTreeOption tree mbSel = getListOption (treeToList tree) mbSel
 
 setTreeOption :: !(Tree (v,o)) !o -> (Maybe Int) | gEq{|*|} o
 setTreeOption tree newSel = setListOption (treeToList tree) newSel
+
+setTreeOptionNoView :: !(Tree o) !o -> (Maybe Int) | gEq{|*|} o
+setTreeOptionNoView tree newSel
+	= setListOptionNoView (treeToList tree) newSel
+
+setListOptionNoView :: ![o] !o -> (Maybe Int) | gEq{|*|} o
+setListOptionNoView options newSel
+	= case setListOptionL options newSel of
+		[idx:_]	= Just idx
+		_		= Nothing
+  where
+	setListOptionL :: ![o] o -> [Int] | gEq{|*|} o
+	setListOptionL options sel
+		= [idx \\ option <- options & idx <- [0..] | option===sel]
+
+derive JSONEncode	DynamicChoiceNoView,ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,GridChoiceNoView
+derive JSONDecode	DynamicChoiceNoView,ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,GridChoiceNoView
+derive gEq			DynamicChoiceNoView,ComboChoiceNoView,RadioChoiceNoView,TreeChoiceNoView,GridChoiceNoView
 
 treeToList :: (Tree a) -> [a]
 treeToList (Tree nodes) = (foldr addNode [] nodes)

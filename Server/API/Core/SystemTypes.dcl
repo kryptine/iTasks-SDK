@@ -169,13 +169,13 @@ instance toUserConstraint String
 :: WorkOnException		= WorkOnNotFound | WorkOnEvalError | WorkOnDependencyCycle
 
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONEncode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive JSONEncode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive JSONDecode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive JSONDecode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gEq				EUR, USD, BoundedInt, FormButton, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
-derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table
+derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -278,16 +278,20 @@ toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|
 
 //* Represents the choice of one element from a list represented as combo box
 :: ComboChoice v o = ComboChoice ![(!v,!o)] !(Maybe Int)
+:: ComboChoiceNoView o = ComboChoiceNoView ![o] !(Maybe Int)
 
 //* Represents the choice of one element from a list represented as radio buttons
 :: RadioChoice v o = RadioChoice ![(!v,!o)] !(Maybe Int)
+:: RadioChoiceNoView o = RadioChoiceNoView ![o] !(Maybe Int)
 
 //* Represents a tree from with the user can choose one element
 :: TreeChoice v o = TreeChoice !(Tree (!v,!o)) !(Maybe Int)
+:: TreeChoiceNoView o = TreeChoiceNoView !(Tree o) !(Maybe Int)
 
 //* Represents the choice of one element from a list represented as grid
 //* (typically v is a record which's labels are used as headers)
 :: GridChoice v o = GridChoice ![(!v,!o)] !(Maybe Int)
+:: GridChoiceNoView o = GridChoiceNoView ![o] !(Maybe Int)
 
 //* Represents the choice of one element from a set with a dynamic representation
 :: DynamicChoice v o
@@ -295,6 +299,16 @@ toTable	:: ![a] -> Table | gHeaders{|*|} a & gGridRows{|*|} a & gVisualizeText{|
 	| DCRadio (RadioChoice v o)
 	| DCTree  (TreeChoice v o)
 	| DCGrid  (GridChoice v o)
+
+:: DynamicChoiceNoView o
+	= DCComboNoView (ComboChoiceNoView o)
+	| DCRadioNoView (RadioChoiceNoView o)
+	| DCTreeNoView	(TreeChoiceNoView o)
+	| DCGridNoView	(GridChoiceNoView o)
+
+derive JSONEncode	DynamicChoice,DynamicChoiceNoView
+derive JSONDecode	DynamicChoice,DynamicChoiceNoView
+derive gEq			DynamicChoice,DynamicChoiceNoView
 
 /**
 * Interface for types representing choices of one element out of a set of options.
@@ -312,11 +326,17 @@ where
 	//* Gets the current selection's view if present
 	getMbSelectionView		:: !(t v o)						-> Maybe v
 
-instance Choice ComboChoice
-instance Choice RadioChoice
-instance Choice TreeChoice
-instance Choice GridChoice
-instance Choice DynamicChoice
+class ChoiceNoView t
+where
+	//* Selects the given option, if not present in list of options selection is cleared
+	selectOptionNoView			:: !o !(t o)					-> t o | gEq{|*|} o
+	//* Gets the current selection assuming it is present (a valid choice always has a selection)
+	getSelectionNoView			:: !(t o)						-> o
+	//* Gets the current selection if present
+	getMbSelectionNoView		:: !(t o)						-> Maybe o
+
+instance Choice ComboChoice,RadioChoice,TreeChoice,GridChoice,DynamicChoice
+instance ChoiceNoView DynamicChoiceNoView,RadioChoiceNoView,ComboChoiceNoView,TreeChoiceNoView,GridChoiceNoView
 
 //* Represents the choice of a number of items from a list
 :: CheckMultiChoice v o = CheckMultiChoice ![(!v,!o)] ![Int]

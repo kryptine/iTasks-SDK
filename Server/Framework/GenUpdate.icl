@@ -230,15 +230,25 @@ gUpdate{|URL|}					mode ust = basicUpdate mode (\json url -> maybe url (\s -> UR
 
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
 gUpdate{|TreeChoice|} _ _		mode ust = updateChoice mode (\idx (TreeChoice options _) -> TreeChoice options (Just idx)) (TreeChoice (Tree []) Nothing) ust
+gUpdate{|TreeChoiceNoView|} _	mode ust = updateChoice mode (\idx (TreeChoiceNoView options _) -> TreeChoiceNoView options (Just idx)) (TreeChoiceNoView (Tree []) Nothing) ust
 gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode (\idx (GridChoice options _) -> GridChoice options (Just idx)) (GridChoice [] Nothing) ust
+gUpdate{|GridChoiceNoView|} _	mode ust = updateChoice mode (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) (GridChoiceNoView [] Nothing) ust
 gUpdate{|RadioChoice|} _ _		mode ust = updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) (RadioChoice [] Nothing) ust
+gUpdate{|RadioChoiceNoView|} _	mode ust = updateChoice mode (\idx (RadioChoiceNoView options _) -> RadioChoiceNoView options (Just idx)) (RadioChoiceNoView [] Nothing) ust
 gUpdate{|ComboChoice|} _ _		mode ust = updateChoice mode (\idx (ComboChoice options _) -> ComboChoice options (Just idx)) (ComboChoice [] Nothing) ust
+gUpdate{|ComboChoiceNoView|} _	mode ust = updateChoice mode (\idx (ComboChoiceNoView options _) -> ComboChoiceNoView options (Just idx)) (ComboChoiceNoView [] Nothing) ust
 
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCCombo val))	ust = appFst DCCombo (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCRadio val))	ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCTree val))		ust = appFst DCTree (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
 gUpdate{|DynamicChoice|} fx fy	(UDSearch (DCGrid val))		ust = appFst DCGrid (gUpdate{|*->*->*|} fx fy (UDSearch val) ust)
 gUpdate{|DynamicChoice|} fx fy	UDCreate 					ust = appFst DCRadio (gUpdate{|*->*->*|} fx fy UDCreate ust)
+
+gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCComboNoView val))	ust = appFst DCComboNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
+gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCRadioNoView val))	ust = appFst DCRadioNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
+gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCTreeNoView val)) 	ust = appFst DCTreeNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
+gUpdate{|DynamicChoiceNoView|} fx (UDSearch (DCGridNoView val)) 	ust = appFst DCGridNoView (gUpdate{|*->*|} fx (UDSearch val) ust)
+gUpdate{|DynamicChoiceNoView|} fx UDCreate	 						ust = appFst DCRadioNoView (gUpdate{|*->*|} fx UDCreate ust)
 
 updateChoice mode select empty ust = basicUpdate mode (\json choice -> maybe choice (\i -> select i choice) (fromJSON json)) empty ust
 
@@ -360,11 +370,23 @@ gDefaultMask{|RadioChoice|} _ _ (RadioChoice opts mbSel)
 	// if no valid selection is made, start with untouched mask
 	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
 	| otherwise										= [Untouched]
+gDefaultMask{|RadioChoiceNoView|} _ (RadioChoiceNoView opts mbSel)
+	// if no valid selection is made, start with untouched mask
+	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
+	| otherwise										= [Untouched]
 gDefaultMask{|ComboChoice|} _ _ (ComboChoice opts mbSel)
 	// if no valid selection is made, start with untouched mask
 	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
 	| otherwise										= [Untouched]
+gDefaultMask{|ComboChoiceNoView|} _ (ComboChoiceNoView opts mbSel)
+	// if no valid selection is made, start with untouched mask
+	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
+	| otherwise										= [Untouched]
 gDefaultMask{|GridChoice|} _ _ (GridChoice opts mbSel)
+	// if no valid selection is made, start with untouched mask
+	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
+	| otherwise										= [Untouched]
+gDefaultMask{|GridChoiceNoView|} _ (GridChoiceNoView opts mbSel)
 	// if no valid selection is made, start with untouched mask
 	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
 	| otherwise										= [Untouched]
@@ -373,9 +395,13 @@ gDefaultMask{|TreeChoice|} _ _ tree=:(TreeChoice _ mbSel)
 	// if no valid selection is made, start with untouched mask
 	| isJust mbSel	= [Touched []]
 	| otherwise		= [Untouched]
+gDefaultMask{|TreeChoiceNoView|} _ tree=:(TreeChoiceNoView _ mbSel)
+	// if no valid selection is made, start with untouched mask
+	| isJust mbSel	= [Touched []]
+	| otherwise		= [Untouched]
 
 derive gDefaultMask Either, (,), (,,), (,,,), JSONNode, Void, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
-derive gDefaultMask DynamicChoice //TODO
+derive gDefaultMask DynamicChoice,DynamicChoiceNoView //TODO
 
 //Utility functions
 dp2s :: !DataPath -> String
