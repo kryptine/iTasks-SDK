@@ -98,7 +98,15 @@ watch :: !(ReadWriteShared r w) -> Task r | iTask r
 * @gin False
 */
 interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask)) -> Task l | descr d & iTask l & iTask r & iTask v
-	
+interactNullEnter :: !d !v (v->l) -> Task l | descr d & iTask v
+interactNullUpdate :: !d !(l -> v) (l v -> l) l -> Task l | descr d & iTask l & iTask v
+interactNullView :: !d (l->v) l -> Task l | descr d & iTask l & iTask v
+interactSharedChoice :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t v l)
+						-> Task (Maybe l) | descr d & Choice t & iTask r & iTask l & iTask (t v l)
+interactSharedChoiceNoView :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t l)
+							  -> Task (Maybe l) | descr d & ChoiceNoView t & iTask r & iTask l & iTask (t l)
+interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) -> Task r | descr d & iTask r & iTask v
+
 /**
 * Evaluate a "World" function that does not yield any result once.
 *

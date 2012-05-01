@@ -8,26 +8,36 @@ from Time import :: Timestamp(..)
 
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
-							
+
 enterInformation :: !d ![EnterOption m] -> Task m | descr d & iTask m
 enterInformation d [EnterWith fromf]
-	= interact d  null
-		(\r -> (defaultValue,defaultValue,Untouched))
+/*
+	= interact d null
+//		(\r -> (defaultValue,defaultValue,Untouched))
+		(\r -> let v = defaultValue in (fromf v,v,Untouched))
 		(\l r v m ok -> if ok (fromf v,v,m) (l,v,m))
+*/
+	= interactNullEnter d defaultValue fromf
 enterInformation d _ = enterInformation d [EnterWith id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 updateInformation d [UpdateWith tof fromf] m
+/*
 	= interact d null
 		(\r -> let v = tof m in (m,v,defaultMask v))
 		(\l r v m ok -> if ok (let nl = fromf l v in (let nv = tof nl in (nl,nv,defaultMask nv))) (l,v,m))
+*/
+	= interactNullUpdate d tof fromf m
 updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m
 viewInformation d [ViewWith tof] m
+/*
 	= interact d null
-		(\r -> let v = (Display (tof m)) in (m,v,defaultMask v))
+		(\r -> let v = Display (tof m) in (m,v,defaultMask v))
 		(\l r v m ok -> (l,v,m))
+*/
+	= interactNullView d tof m
 viewInformation d _ m = viewInformation d [ViewWith id] m
 
 updateSharedInformation :: !d ![UpdateOption r w] !(ReadWriteShared r w) -> Task w | descr d & iTask r & iTask w
@@ -56,9 +66,12 @@ mapval _ _				= Nothing
 
 viewSharedInformation :: !d ![ViewOption r] !(ReadWriteShared r w) -> Task r | descr d & iTask r
 viewSharedInformation d [ViewWith tof] shared
+/*
 	= interact d (toReadOnly shared)
 		(\r -> let v = Display (tof r) in (r,v,defaultMask v))
 		(\l r v m ok -> let v = Display (tof r) in (r,v,defaultMask v)) 
+*/
+	= interactSharedInformation d (toReadOnly shared) (\r -> Display (tof r))
 viewSharedInformation d _ shared = viewSharedInformation d [ViewWith id] shared
 
 updateInformationWithShared :: !d ![UpdateOption (r,m) m] !(ReadWriteShared r w) m -> Task m | descr d & iTask r & iTask m
@@ -84,21 +97,46 @@ updateChoice d options container sel
 where
 	res (Value (_,Just x) s)	= Value x s
 	res _						= NoValue
-	
-enterSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
-enterSharedChoice d options shared
-	= updateInformationWithShared d (sharedChoiceToUpdate options) shared Nothing @? res
-where
-	res (Value (Just x) s)		= Value x s
-	res _						= NoValue
 
-updateSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) o -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+removeMaybeFromValue (Value (Just x) s)		= Value x s
+removeMaybeFromValue _						= NoValue
+
+enterSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w)
+					 -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+enterSharedChoice d [] shared
+	= updateInformationWithSharedChoiceNoView d shared Nothing @? removeMaybeFromValue
+enterSharedChoice d options shared
+//	= updateInformationWithShared d (sharedChoiceToUpdate options) shared Nothing @? removeMaybeFromValue
+	= updateInformationWithSharedChoice d options shared Nothing @? removeMaybeFromValue
+
+updateSharedChoice :: !d ![ChoiceOption o] !(ReadWriteShared (container o) w) o
+					  -> Task o | descr d & OptionContainer container & iTask o & iTask w & iTask (container o)
+updateSharedChoice d [] shared sel
+	= updateInformationWithSharedChoiceNoView d shared (Just sel) @? removeMaybeFromValue
 updateSharedChoice d options shared sel
-	= updateInformationWithShared d (sharedChoiceToUpdate options) shared (Just sel) @? res
-where
-	res (Value (Just x) s)		= Value x s
-	res _						= NoValue
-	
+//	= updateInformationWithShared d (sharedChoiceToUpdate options) shared (Just sel) @? removeMaybeFromValue
+	= updateInformationWithSharedChoice d options shared (Just sel) @? removeMaybeFromValue
+
+updateInformationWithSharedChoiceNoView :: d (ReadWriteShared (b c) a) (Maybe c) -> Task (Maybe c) | descr d & iTask c & iTask (b c) & OptionContainer b
+updateInformationWithSharedChoiceNoView d shared m
+	= interactSharedChoiceNoView d (toReadOnly shared) m toViewId
+  where
+	toViewId :: (container a) (Maybe a) -> DynamicChoiceNoView a | OptionContainer container & gEq{|*|},gHeaders{|*|} a
+	toViewId container mbSel
+		# choice = initChoiceNoView (suggestedChoiceType container) container
+		= maybe choice (\sel -> selectOptionNoView sel choice) mbSel
+
+updateInformationWithSharedChoice :: !d ![ChoiceOption c] !(ReadWriteShared (b c) a) (Maybe c) -> Task (Maybe c) | descr d & iTask c & iTask (b c) & OptionContainer b
+updateInformationWithSharedChoice d [ChooseWith type view] shared m
+	= interactSharedChoice d (toReadOnly shared) m (toView type view)
+  where
+	toView :: ChoiceType (a -> b) (c a) (Maybe a) -> DynamicChoice b a | OptionContainer c & gEq{|*|},gHeaders{|*|} a
+	toView type view container mbSel
+		# choice = initChoice type container view
+		= case mbSel of
+			Nothing -> choice
+			Just sel -> selectOption sel choice
+
 enterMultipleChoice :: !d ![MultiChoiceOption o] !(container o) -> Task [o] | descr d & OptionContainer container & iTask o & iTask (container o)
 enterMultipleChoice d options container
 	= updateInformation d (multiChoiceToUpdate options) (container,[]) @ snd
@@ -167,18 +205,14 @@ where
 	suggestedMultiChoiceType _	= ChooseFromCheckBoxes
 
 choiceToUpdate :: [ChoiceOption o] -> [UpdateOption (container o, Maybe o) (container o, Maybe o)] | OptionContainer container & iTask o
-choiceToUpdate [ChooseWith type view] = [UpdateWith (toView type) fromView]
+choiceToUpdate [ChooseWith type view] = [UpdateWith (toView type view) fromView]
 where
-	toView type (container,mbSel)
-		= let choice = initChoice type container in
+	toView :: ChoiceType (a -> b) (c a,Maybe a) -> DynamicChoice b a | OptionContainer c & gEq{|*|},gHeaders{|*|} a
+	toView type view (container,mbSel)
+		= let choice = initChoice type container view in
 			maybe choice (\sel -> selectOption sel choice) mbSel
-		
-	initChoice AutoChoice container				= initChoice (suggestedChoiceType container) container
-	initChoice ChooseFromComboBox container		= DCCombo	(ComboChoice [(view o,o) \\ o <- toOptionList container] Nothing)
-	initChoice ChooseFromRadioButtons container	= DCRadio	(RadioChoice [(view o,o) \\ o <- toOptionList container] Nothing)
-	initChoice ChooseFromTree container			= DCTree	(TreeChoice (fmap (\o -> (view o,o)) (toOptionTree container)) Nothing)
-	initChoice ChooseFromGrid container			= DCGrid	(GridChoice [(view o,o) \\ o <- toOptionList container] Nothing)
 	
+	fromView :: (.a,.b) (c d e) -> (.a,Maybe e) | Choice c
 	fromView (container,_) choice = (container,getMbSelection choice)
 choiceToUpdate _ = [UpdateWith toViewId fromViewId]
 where
@@ -188,15 +222,23 @@ where
 
 	fromViewId (container,_) choice = (container,getMbSelectionNoView choice)
 
-	initChoiceNoView ChooseFromComboBox		container = DCComboNoView	(ComboChoiceNoView (toOptionList container) Nothing)
-	initChoiceNoView ChooseFromRadioButtons	container = DCRadioNoView	(RadioChoiceNoView (toOptionList container) Nothing)
-	initChoiceNoView ChooseFromTree			container = DCTreeNoView	(TreeChoiceNoView (toOptionTree container) Nothing)
-	initChoiceNoView ChooseFromGrid			container = DCGridNoView	(GridChoiceNoView (toOptionList container) Nothing)
+initChoice AutoChoice 				container view = initChoice (suggestedChoiceType container) container view
+initChoice ChooseFromComboBox		container view = DCCombo (ComboChoice [(view o,o) \\ o <- toOptionList container] Nothing)
+initChoice ChooseFromRadioButtons	container view = DCRadio (RadioChoice [(view o,o) \\ o <- toOptionList container] Nothing)
+initChoice ChooseFromTree			container view = DCTree (TreeChoice (fmap (\o -> (view o,o)) (toOptionTree container)) Nothing)
+initChoice ChooseFromGrid			container view = DCGrid (GridChoice [(view o,o) \\ o <- toOptionList container] Nothing)
 
+initChoiceNoView ChooseFromComboBox		container = DCComboNoView	(ComboChoiceNoView (toOptionList container) Nothing)
+initChoiceNoView ChooseFromRadioButtons	container = DCRadioNoView	(RadioChoiceNoView (toOptionList container) Nothing)
+initChoiceNoView ChooseFromTree			container = DCTreeNoView	(TreeChoiceNoView (toOptionTree container) Nothing)
+initChoiceNoView ChooseFromGrid			container = DCGridNoView	(GridChoiceNoView (toOptionList container) Nothing)
+
+/*
 sharedChoiceToUpdate :: [ChoiceOption o] -> [UpdateOption (container o, Maybe o) (Maybe o)] | OptionContainer container & iTask o
 sharedChoiceToUpdate options = case choiceToUpdate options of
 	[UpdateWith fromf tof]	= [UpdateWith fromf (\m v -> snd (tof m v))]
 	_						= []
+*/
 
 multiChoiceToUpdate :: [MultiChoiceOption o] -> [UpdateOption (container o, [o]) (container o,[o])] | OptionContainer container & iTask o
 multiChoiceToUpdate [ChooseMultipleWith type view] = [UpdateWith (toView type) fromView]

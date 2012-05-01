@@ -41,6 +41,8 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 	= TCInit		!TaskId !TaskTime													//Initial state for all tasks
 	| TCBasic		!TaskId !TaskTime !JSONNode !Bool 									//Encoded value and stable indicator
 	| TCInteract	!TaskId !TaskTime !JSONNode !JSONNode !JSONNode !UpdateMask
+	| TCInteract1	!TaskId !TaskTime !JSONNode !UpdateMask
+	| TCInteract2	!TaskId !TaskTime !JSONNode !JSONNode !UpdateMask
 	| TCProject		!TaskId !JSONNode !TaskTree
 	| TCStep		!TaskId !(Either TaskTree (DeferredJSON,Int,TaskTree))
 	| TCParallel	!TaskId 
