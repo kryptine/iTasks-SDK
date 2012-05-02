@@ -11,7 +11,7 @@ from Map import :: Map
 generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 
 //Default available instances
-derive gVisualizeText UNIT, PAIR, EITHER, CONS of {gcd_name,gcd_type_def}, OBJECT, RECORD of {grd_name}, FIELD of {gfd_name}
+derive gVisualizeText UNIT, PAIR, EITHER, CONS of {gcd_name,gcd_type_def}, OBJECT, RECORD, FIELD of {gfd_name}
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeText URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
@@ -51,7 +51,7 @@ generic gHeaders a :: a -> [String]
 derive gHeaders UNIT,
 	OBJECT with _,
 	CONS with _,
-	RECORD of {grd_fields,grd_name} with _,
+	RECORD of {grd_fields} with _,
 	FIELD with _,
 	PAIR with _ _,
 	EITHER with _ _
@@ -67,8 +67,8 @@ generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 //Default available instances
 derive gGridRows UNIT,
 	OBJECT with _ _,
-	CONS with _ _,
-	RECORD of {grd_name} with gr1 _,
+	CONS with gr1 _,
+	RECORD with gr1 _,
 	FIELD with _ vt1,
 	PAIR with gr1 _ gr2 _,
 	EITHER with _ _ _ _

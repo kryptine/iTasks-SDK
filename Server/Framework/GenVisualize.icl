@@ -133,7 +133,7 @@ generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Mayb
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 
-gVisualizeEditor{|RECORD|} fx _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|RECORD of {grd_name}|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ vst=:{taskId,currentPath,optional,controlSize,renderAsStatic}	
 		= case fmap fromRECORD val of
