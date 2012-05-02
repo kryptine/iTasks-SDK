@@ -42,7 +42,7 @@ gUpdate{|OBJECT|} fx UDCreate ust=:{newMask}
 	//Empty object mask
 	# (nx,ust=:{newMask=objectMask}) = fx UDCreate {ust & newMask = []}
 	= (OBJECT nx, {ust & newMask = newMask ++ objectMask})
-gUpdate{|OBJECT of d|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
+gUpdate{|OBJECT of {gtd_num_conses}|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
 		//Update is a constructor switch
@@ -57,8 +57,8 @@ gUpdate{|OBJECT of d|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,upd
 		= (OBJECT x, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
 where
 	path = case update of
-		JSONInt consIdx | consIdx < d.gtd_num_conses
-				= consPath consIdx d.gtd_num_conses
+		JSONInt consIdx | consIdx < gtd_num_conses
+				= consPath consIdx gtd_num_conses
 		_		= []
 
 	consPath i n
@@ -73,7 +73,7 @@ where
 
 gUpdate{|RECORD|} fx UDCreate ust=:{newMask}
 	# (nx,ust=:{newMask=recordMask}) = fx UDCreate {ust & newMask = []}
-	= (RECORD nx, {ust & newMask = newMask ++ recordMask})	
+	= (RECORD nx, {ust & newMask = newMask ++ recordMask})
 gUpdate{|RECORD|} fx (UDSearch (RECORD x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| searchPath <== currentPath
@@ -86,6 +86,7 @@ gUpdate{|RECORD|} fx (UDSearch (RECORD x)) ust=:{searchPath,currentPath,update,o
 
 gUpdate{|CONS|}		fx UDCreate				ust = appFst CONS	(fx UDCreate ust)
 gUpdate{|CONS|}		fx (UDSearch (CONS c))	ust = appFst CONS	(fx (UDSearch c) ust)
+
 gUpdate{|FIELD|}	fx UDCreate				ust = appFst FIELD	(fx UDCreate ust)
 gUpdate{|FIELD|}	fx (UDSearch (FIELD c))	ust = appFst FIELD	(fx (UDSearch c) ust)
 

@@ -26,24 +26,24 @@ gVisualizeText{|RECORD|} fx mode (RECORD x)
 		AsLabel			= take 1 viz
 		AsDisplay		= viz
 
-gVisualizeText{|FIELD of d|} fx mode (FIELD x)
+gVisualizeText{|FIELD of {gfd_name}|} fx mode (FIELD x)
 	# viz = fx mode x
 	= case mode of
-		AsDisplay	= [camelCaseToWords d.gfd_name, ": ": viz] ++ [" "]
+		AsDisplay	= [camelCaseToWords gfd_name, ": ": viz] ++ [" "]
 		AsLabel	= viz
-			
+
 gVisualizeText{|OBJECT|} fx mode (OBJECT x) = fx mode x
-	
-gVisualizeText{|CONS of d|} fx mode (CONS x)
+
+gVisualizeText{|CONS of {gcd_name,gcd_type_def}|} fx mode (CONS x)
 	= normalADTStaticViz (fx mode x)
 where
 	normalADTStaticViz viz
 		//If viz is empty, only show constructor name
 		| isEmpty viz
-			= [d.gcd_name]
+			= [gcd_name]
 		//If there are multiple constructors, also show the name of the constructor
-		| d.gcd_type_def.gtd_num_conses > 1
-			= intersperse " " [d.gcd_name:viz]
+		| gcd_type_def.gtd_num_conses > 1
+			= intersperse " " [gcd_name:viz]
 		//Otherwise show visualisation of fields separated by spaces
 		| otherwise
 			= intersperse " " viz
@@ -132,7 +132,7 @@ generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Mayb
 
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
-	
+
 gVisualizeEditor{|RECORD|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ vst=:{taskId,currentPath,optional,controlSize,renderAsStatic}	
@@ -158,7 +158,7 @@ where
 			, taskId		= fmap toString taskId
 			})				
 						
-gVisualizeEditor{|FIELD of d|} fx _ _ _ val vst=:{renderAsStatic}
+gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{renderAsStatic}
 	# (vizBody,vst)		= fx (fmap fromFIELD val) vst
 	= case vizBody of
 		HiddenEditor		= (HiddenEditor,vst)
@@ -166,21 +166,21 @@ gVisualizeEditor{|FIELD of d|} fx _ _ _ val vst=:{renderAsStatic}
 		OptionalEditor ex	= (OptionalEditor (addLabel True ex), vst)
 where
 	addLabel optional content
-		# label	= {stringDisplay (camelCaseToWords d.gfd_name +++ if (optional || renderAsStatic) "" "*" +++ ":") & width = Just (Fixed 100)}
+		# label	= {stringDisplay (camelCaseToWords gfd_name +++ if (optional || renderAsStatic) "" "*" +++ ":") & width = Just (Fixed 100)}
 		= [{content = TUIContainer {TUIContainer|defaultContainer [label: content] & direction = Horizontal}, width = Just (FillParent 1 ContentSize), height = Just (WrapContent 0), margins = Nothing}]
 
 
-gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,controlSize}
+gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,renderAsStatic,verifyMask,taskId,controlSize}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
 	# x			= fmap fromOBJECT val
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
-	| d.gtd_num_conses > 1 && not renderAsStatic
+	| gtd_num_conses > 1 && not renderAsStatic
 		# (items, vst=:{selectedConsIndex}) = fx x vst
 		# content = if (isTouched cmv)  (tuiOfEditor items) []
 		= (NormalEditor [{ content = TUIContainer (defaultContainer
-							[	addMsg (verifyElementStr cmv) (sizedControl controlSize (TUIEditControl (TUIComboControl [gdc.gcd_name \\ gdc <- d.gtd_conses])
+							[	addMsg (verifyElementStr cmv) (sizedControl controlSize (TUIEditControl (TUIComboControl [gdc.gcd_name \\ gdc <- gtd_conses])
 										{ TUIEditControl
 										| name			= dp2s currentPath
 										, taskId		= fmap toString taskId
@@ -205,7 +205,7 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex
 		# (vis,vst) = fx x vst
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
-			NormalEditor [] = if (isTouched cmv) (NormalEditor [(stringDisplay ((d.gtd_conses !! vst.selectedConsIndex).gcd_name))]) (NormalEditor [])
+			NormalEditor [] = if (isTouched cmv) (NormalEditor [(stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name))]) (NormalEditor [])
 			
 			
 			NormalEditor vis = NormalEditor [{ content	= TUIContainer {TUIContainer|defaultContainer (addSpacing vis) & direction = Horizontal}
@@ -218,14 +218,13 @@ gVisualizeEditor{|OBJECT of d|} fx _ _ _ val vst=:{currentPath,selectedConsIndex
 where
 	addSpacing [] = []
 	addSpacing [d:ds] = [d:map (setMargins 0 0 0 5) ds]
-	
-gVisualizeEditor{|CONS of d|} fx _ _ _ val vst = visualizeCustom mkControl vst
+
+gVisualizeEditor{|CONS of {gcd_index}|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ vst=:{taskId,currentPath,optional,controlSize,renderAsStatic}
 		# x = fmap fromCONS val
 		# (viz,vst)	= fx x vst
-		= (tuiOfEditor viz, {VSt | vst & selectedConsIndex = d.gcd_index})
-	
+		= (tuiOfEditor viz, {VSt | vst & selectedConsIndex = gcd_index})
 
 gVisualizeEditor{|PAIR|} fx _ _ _ fy _ _ _ val vst
 	# (x,y)			= (fmap fromPAIRX val, fmap fromPAIRY val)
@@ -575,7 +574,7 @@ gHeaders{|PAIR|} _ _ _		= []
 gHeaders{|EITHER|} _ _ _	= []
 gHeaders{|OBJECT|} _ _		= []
 gHeaders{|CONS|} _ _		= []
-gHeaders{|RECORD of d|} _ _	= [camelCaseToWords fieldname \\ fieldname <- d.grd_fields]
+gHeaders{|RECORD of {grd_fields}|} _ _	= [camelCaseToWords fieldname \\ fieldname <- grd_fields]
 gHeaders{|FIELD|} _ _		= []
 gHeaders{|Int|}	_			= []
 gHeaders{|Char|} _			= []
@@ -587,7 +586,6 @@ gHeaders{|BoundedInt|} _	= []
 gHeaders{|HtmlTag|}	_		= []
 gHeaders{|(->)|} _ _ _		= []
 
-
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, ButtonState, TUIMargins, TUISize, TUIMinSize
@@ -597,11 +595,13 @@ derive gHeaders DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridC
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 
 gGridRows{|OBJECT|} _ _ _ _					= Nothing
-gGridRows{|CONS|} fx _ (CONS c) acc			= fx c acc
+gGridRows{|CONS|} fx _ _ acc				= Nothing
 gGridRows{|PAIR|} fx _ fy _ (PAIR x y) acc	= fy y (fromMaybe [] (fx x acc))
 gGridRows{|RECORD|} fx _ (RECORD r) acc		= fmap reverse (fx r acc) 
 gGridRows{|FIELD|} _ gx (FIELD f) acc		= Just [concat (gx AsLabel f):acc]
 gGridRows{|EITHER|} _ _ _ _	_ _				= abort "gGridRows: EITHER should not occur"
+gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
+
 gGridRows{|Int|} i _						= Nothing
 gGridRows{|Char|} c _						= Nothing
 gGridRows{|String|} s _						= Nothing
@@ -611,7 +611,6 @@ gGridRows{|Dynamic|} d _					= Nothing
 gGridRows{|BoundedInt|} _ _					= Nothing
 gGridRows{|HtmlTag|} h _					= Nothing
 gGridRows{|(->)|} _ gx _ gy f _				= Nothing
-gGridRows{|UNIT|} _ _						= abort "gGridRows: UNIT should not occur"
 
 
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp

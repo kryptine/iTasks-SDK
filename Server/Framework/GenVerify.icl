@@ -43,17 +43,17 @@ gVerify{|EITHER|} 		_  _  Nothing				vst = vst
 gVerify{|EITHER|}		fx _  (Just (LEFT x))		vst	= fx (Just x) vst
 gVerify{|EITHER|}		_  fy (Just (RIGHT y))		vst = fy (Just y) vst
 
-gVerify{|OBJECT of d|}	fx    obj					vst=:{updateMask,verifyMask,optional}
+gVerify{|OBJECT of {gtd_num_conses}|}	fx    obj	vst=:{updateMask,verifyMask,optional}
 	# val		= fmap fromOBJECT obj
 	# (cmu,um)	= popMask updateMask
 	# vst		= {vst & updateMask = childMasks cmu, verifyMask = []}
-	# (consMask,vst) = case d.gtd_num_conses of
-		1 	// ADT's with just one constructor
+	# (consMask,vst) = case gtd_num_conses of
+		1	// ADT's with just one constructor
 			# vst=:{verifyMask = childMask} = fx val vst
 			# vst							= {vst & verifyMask = childMask}
 			| isTouched cmu					= (VMValid Nothing childMask,vst)
 			| otherwise						= (VMUntouched Nothing optional childMask,vst)
-		_ 	// ADT's with multiple constructors
+		_	// ADT's with multiple constructors
 			# vst=:{verifyMask = childMask} = fx val {vst & optional = False}
 			# vst							= {vst & verifyMask = childMask}
 			 = case cmu of

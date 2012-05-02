@@ -11,7 +11,7 @@ from Map import :: Map
 generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 
 //Default available instances
-derive gVisualizeText UNIT, PAIR, EITHER, CONS of d, OBJECT, RECORD, FIELD of d
+derive gVisualizeText UNIT, PAIR, EITHER, CONS of {gcd_name,gcd_type_def}, OBJECT, RECORD of {grd_name}, FIELD of {gfd_name}
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeText URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
@@ -30,7 +30,13 @@ derive gVisualizeText DynamicChoice, DynamicChoiceNoView
 generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
 
 //Default available instances
-derive gVisualizeEditor UNIT, PAIR, EITHER, CONS of d, OBJECT of d, RECORD, FIELD of d
+derive gVisualizeEditor UNIT,
+	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ _,
+	CONS of {gcd_index} with ve1 _ _ _,
+	RECORD of {grd_name} with ve1 _ _ _,
+	FIELD of {gfd_name} with ve1 _ _ _,
+	PAIR with ve1 _ _ _ ve2 _ _ _,
+	EITHER with ve1 _ _ _ ve2 _ _ _
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gVisualizeEditor URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
@@ -42,7 +48,13 @@ derive gVisualizeEditor DynamicChoice, DynamicChoiceNoView
 generic gHeaders a :: a -> [String]
 
 //Default available instances
-derive gHeaders UNIT, PAIR, EITHER, CONS, OBJECT, RECORD of d, FIELD
+derive gHeaders UNIT,
+	OBJECT with _,
+	CONS with _,
+	RECORD of {grd_fields,grd_name} with _,
+	FIELD with _,
+	PAIR with _ _,
+	EITHER with _ _
 derive gHeaders Int, Real, Char, Bool, String
 derive gHeaders Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
@@ -53,7 +65,13 @@ derive gHeaders DynamicChoice, DynamicChoiceNoView
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 
 //Default available instances
-derive gGridRows UNIT, PAIR, EITHER, CONS, OBJECT, RECORD, FIELD
+derive gGridRows UNIT,
+	OBJECT with _ _,
+	CONS with _ _,
+	RECORD of {grd_name} with gr1 _,
+	FIELD with _ vt1,
+	PAIR with gr1 _ gr2 _,
+	EITHER with _ _ _ _
 derive gGridRows Int, Real, Char, Bool, String
 derive gGridRows Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table

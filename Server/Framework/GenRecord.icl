@@ -15,7 +15,7 @@ mapRecord rec
 	
 generic gGetRecordFields r :: !r ![GenType] !*RecordFields -> *RecordFields
 
-gGetRecordFields{|OBJECT of d|} fx (OBJECT o) _ fields = fields
+gGetRecordFields{|OBJECT|} fx (OBJECT o) _ fields = fields
 gGetRecordFields{|CONS|} fx (CONS c) types fields = fx c types fields
 gGetRecordFields{|EITHER|} fx fy either types fields = case either of
 	LEFT x	= fx x types fields
@@ -23,8 +23,8 @@ gGetRecordFields{|EITHER|} fx fy either types fields = case either of
 gGetRecordFields{|PAIR|} fx fy (PAIR x y) types fields
 	# fields = fx x types fields
 	= fy y types fields
-gGetRecordFields{|RECORD of d|} fx (RECORD r) _ fields = fx r (getFieldTypes d) fields
-gGetRecordFields{|FIELD of d|} _ f types fields = put d.gfd_name (GenericDyn (copy_to_string f) (types !! d.gfd_index)) fields
+gGetRecordFields{|RECORD of {grd_type}|} fx (RECORD r) _ fields = fx r (getFieldTypes grd_type) fields
+gGetRecordFields{|FIELD of {gfd_name,gfd_index}|} _ f types fields = put gfd_name (GenericDyn (copy_to_string f) (types !! gfd_index)) fields
 gGetRecordFields{|UNIT|} _ _ fields = fields
 gGetRecordFields{|Int|}		_ _ fields = fields
 gGetRecordFields{|Real|}	_ _ fields = fields
@@ -40,7 +40,7 @@ derive gGetRecordFields EmailAddress, Action, ButtonState
 
 generic gPutRecordFields r :: !r ![GenType] !*RecordFields -> (!r,!*RecordFields)
 
-gPutRecordFields{|OBJECT of d|} fx obj=:(OBJECT o) _ fields = (obj,fields)
+gPutRecordFields{|OBJECT|} fx obj=:(OBJECT o) _ fields = (obj,fields)
 gPutRecordFields{|CONS|} fx (CONS c) types fields = appFst CONS (fx c types fields)
 gPutRecordFields{|EITHER|} fx fy either types fields = case either of
 	LEFT x	= appFst LEFT (fx x types fields)
@@ -49,12 +49,12 @@ gPutRecordFields{|PAIR|} fx fy (PAIR x y) types fields
 	# (x`,fields)	= fx x types fields
 	# (y`,fields)	= fy y types fields
 	= (PAIR x` y`,fields)
-gPutRecordFields{|RECORD of d|} fx (RECORD r) _ fields
-	= appFst RECORD (fx r (getFieldTypes d) fields)
-gPutRecordFields{|FIELD of d|} _ f types fields
-	# (mbGenDyn,fields) = delU d.gfd_name fields
+gPutRecordFields{|RECORD of {grd_type}|} fx (RECORD r) _ fields
+	= appFst RECORD (fx r (getFieldTypes grd_type) fields)
+gPutRecordFields{|FIELD of {gfd_name,gfd_index}|} _ f types fields
+	# (mbGenDyn,fields) = delU gfd_name fields
 	# f` = case mbGenDyn of
-		Just genDyn = case matchGenericDyn genDyn (types !! d.gfd_index) of
+		Just genDyn = case matchGenericDyn genDyn (types !! gfd_index) of
 			Just f	= f
 			Nothing	= f
 		Nothing		= f
@@ -92,11 +92,10 @@ matchGenericDyn (GenericDyn str dynType) reqType
 	| otherwise				= Nothing
 
 // Retrieves the types of a record's fields.
-getFieldTypes :: !GenericRecordDescriptor -> [GenType]
-getFieldTypes {grd_type} = getFieldTypes` grd_type []
+getFieldTypes :: !GenType -> [GenType]
+getFieldTypes grd_type = getFieldTypes` grd_type []
 where
 	getFieldTypes` (GenTypeArrow field next) acc	= getFieldTypes` next [field:acc]
 	getFieldTypes` _ acc							= reverse acc
-getFieldTypes _ = []
-	
+
 derive gEq GenType
