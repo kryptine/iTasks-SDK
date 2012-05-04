@@ -205,9 +205,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 		# (vis,vst) = fx x vst
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
-			NormalEditor [] = if (isTouched cmv) (NormalEditor [(stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name))]) (NormalEditor [])
-			
-			
+			NormalEditor [] = if (isTouched cmv || renderAsStatic) (NormalEditor [(stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name))]) (NormalEditor [])			
 			NormalEditor vis = NormalEditor [{ content	= TUIContainer {TUIContainer|defaultContainer (addSpacing vis) & direction = Horizontal}
 								, width 	= Just (WrapContent 0)
 								, height	= Nothing
