@@ -60,6 +60,7 @@ where
 			Ok val		= ValueResult (Value val Unstable) ts NoRep (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
+	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 interactSharedChoice :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t v l)
 						-> Task (Maybe l) | descr d & Choice t & iTask r & iTask l & iTask (t v l)
