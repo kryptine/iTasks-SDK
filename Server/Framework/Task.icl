@@ -2,7 +2,7 @@ implementation module Task
 
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass, IWorld
-from TaskState			import :: TaskTree(..), :: DeferredJSON
+from TaskState			import :: TaskTree(..), :: DeferredJSON(..)
 from LayoutCombinators	import :: Layout, DEFAULT_LAYOUT, heuristicLayout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
@@ -10,17 +10,27 @@ mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
 	evalOnce f _ _ _ _ (TCInit taskId ts) iworld = case f taskId iworld of
-		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts rep (TCStable taskId ts (toJSON a)), iworld)
+		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts rep (TCStable taskId ts (DeferredJSON a)), iworld)
 		(ExceptionResult e s, iworld)					= (ExceptionResult e s, iworld)
 		(_,iworld)										= (exception "Instant task did not complete instantly", iworld)
 
-	evalOnce f _ _ _ _ state=:(TCStable taskId ts enc) iworld = case fromJSON enc of
-		(Just a)	= (ValueResult (Value a Stable) ts rep state, iworld)
-		Nothing		= (exception "Corrupt task result", iworld)
+	evalOnce f _ _ _ _ state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+		Just a	= (ValueResult (Value a Stable) ts rep state, iworld)
+		Nothing	= (exception "Corrupt task result", iworld)
 
 	evalOnce f _ _ _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
 
 	rep = TaskRep (SingleTask,Nothing,[],[]) []
+
+fromJSONOfDeferredJSON :: !DeferredJSON -> Maybe a | TC a & JSONDecode{|*|} a
+fromJSONOfDeferredJSON (DeferredJSON v)
+	= case make_dynamic v of
+		(v :: a^)
+			-> Just v
+fromJSONOfDeferredJSON (DeferredJSONNode json)
+	= fromJSON json
+
+make_dynamic v = dynamic v
 
 derive gGetRecordFields	TaskValue, Stability
 derive gPutRecordFields	TaskValue, Stability
