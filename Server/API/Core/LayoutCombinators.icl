@@ -60,7 +60,8 @@ where
 		= (type,Just gui,cactions,cattributes)
 	where
 		cactions = foldr (++) actions [a \\ (_,_,a,_) <- parts]
-		cattributes = attributes //TODO!
+		//cattributes = attributes //TODO!
+		cattributes = foldr mergeAttributes attributes [a \\ (_,_,_,a) <- parts] 
 		
 		guis = [gui \\ (_,Just gui,_,_) <- parts]
 		gui = if (all isForm guis)
@@ -617,7 +618,7 @@ attributesOf :: TaskTUIRep -> [TaskAttribute]
 attributesOf (_,_,_,a) =  a
 
 mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
-mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> kvSet k v attr) attr1 attr2
+mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> kvSetOnce k v attr) attr1 attr2
 
 appLayout :: Layout TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
 appLayout f type parts actions attributes  = f type parts actions attributes
