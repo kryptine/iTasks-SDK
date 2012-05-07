@@ -15,6 +15,13 @@ import iTaskClass
 :: HTTPMethod = GET | POST
 
 /**
+* Call a function that interacts with the world
+*
+* @param The function to call
+*/
+worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e
+
+/**
 * Calls an external executable. The call is non-blocking.
 *
 * @param Executable: path to the executable

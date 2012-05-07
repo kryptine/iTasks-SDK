@@ -28,6 +28,15 @@ derive JSONDecode MaybeError
 
 derive JSONDecode AsyncResult
 
+worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e 
+worldIO f = mkInstantTask eval
+where
+	eval taskId iworld=:{taskTime,world}
+		= case f world of 
+			(Ok a,world)	= (ValueResult (Value a Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop
+							  ,{IWorld|iworld & world = world})
+			(Error e,world)	= (ExceptionResult (dynamic e) "World IO failed", {IWorld|iworld & world = world})
+
 callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args = Task eval
 where
@@ -127,10 +136,11 @@ where
 		# (res,world) = writeFile infile request world
 		| isError res
 			= (exception (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
-		# cmd	= IF_POSIX_OR_WINDOWS "curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
+		# cmd	= IF_POSIX_OR_WINDOWS "/usr/bin/curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
 		# args	=	[ options
 						, "--data-binary"
 						, "@" +++ infile
+						, "-s"
 						, "-o"
 						, outfile
 						, url
