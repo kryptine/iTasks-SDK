@@ -33,7 +33,7 @@ generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Mayb
 derive gVisualizeEditor UNIT,
 	OBJECT of {gtd_num_conses,gtd_conses} with ve1 _ _ _,
 	CONS of {gcd_index} with ve1 _ _ _,
-	RECORD of {grd_name} with ve1 _ _ _,
+	RECORD with ve1 _ _ _,
 	FIELD of {gfd_name} with ve1 _ _ _,
 	PAIR with ve1 _ _ _ ve2 _ _ _,
 	EITHER with ve1 _ _ _ ve2 _ _ _
@@ -67,7 +67,7 @@ generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 //Default available instances
 derive gGridRows UNIT,
 	OBJECT with _ _,
-	CONS with gr1 _,
+	CONS with _ _,
 	RECORD with gr1 _,
 	FIELD with _ vt1,
 	PAIR with gr1 _ gr2 _,

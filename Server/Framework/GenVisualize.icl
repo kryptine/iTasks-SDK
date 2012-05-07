@@ -133,7 +133,7 @@ generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Mayb
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 
-gVisualizeEditor{|RECORD of {grd_name}|} fx _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|RECORD|} fx _ _ _ val vst = visualizeCustom mkControl vst
 where
 	mkControl name _ _ vst=:{taskId,currentPath,optional,controlSize,renderAsStatic}	
 		= case fmap fromRECORD val of
@@ -593,7 +593,7 @@ derive gHeaders DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridC
 generic gGridRows a | gVisualizeText a :: !a ![String] -> Maybe [String]
 
 gGridRows{|OBJECT|} _ _ _ _					= Nothing
-gGridRows{|CONS|} fx _ _ acc				= Nothing
+gGridRows{|CONS|} _ _ _ acc					= Nothing
 gGridRows{|PAIR|} fx _ fy _ (PAIR x y) acc	= fy y (fromMaybe [] (fx x acc))
 gGridRows{|RECORD|} fx _ (RECORD r) acc		= fmap reverse (fx r acc) 
 gGridRows{|FIELD|} _ gx (FIELD f) acc		= Just [concat (gx AsLabel f):acc]
