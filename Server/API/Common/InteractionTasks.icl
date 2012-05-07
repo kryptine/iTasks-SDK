@@ -5,6 +5,7 @@ from SystemData import null
 from Tuple import appSnd
 from List_NG import isMemberGen, instance Functor []
 from Time import :: Timestamp(..)
+from Util import kvSet
 
 import StdBool, StdList, StdMisc, StdTuple
 import CoreTasks, CoreCombinators, CommonCombinators, LayoutCombinators, SystemData
@@ -258,6 +259,8 @@ sharedMultiChoiceToUpdate options = case multiChoiceToUpdate options of
 	_						= []
 
 viewTitle :: !a -> Task a | iTask a 
-viewTitle a = viewInformation Void [ViewWith view] a <<@ AfterLayout (tweakTUI (fixedHeight 40 o fixedWidth 700))
+viewTitle a = viewInformation Void  [ViewWith view] a <<@ AfterLayout (tweakAttr addTitleAttr o tweakTUI (fixedHeight 40 o fixedWidth 700))
 where
-	view a = DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text (visualizeAsText AsLabel a)]]
+	title				= visualizeAsText AsLabel a
+	view a				= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
+	addTitleAttr attr	= kvSet TITLE_ATTRIBUTE title attr
