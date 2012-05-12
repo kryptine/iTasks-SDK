@@ -11,7 +11,16 @@ This repository holds the iTasks Software Development Kit (SDK).
   and selecting the "iTasks-SDK/Server/iTasks.env" file. 
 - Set your default heap size for projects to 8M by choosing "Project" -> "Project defaults..." from the menu
 
-
+= Additional steps if you need client side execution =
+- Please note that it works only with the Clean 2.4 32-bit distribution
+- Import the "iTasks + SAPL" environment by choosing "Environment" -> "Import..." from the menu
+  and selecting the "iTasks-SDK/Server/iTasks + Sapl.env" file. 
+- Unpack "iTasks-SDK/Compiler/StdEnv-Sapl.zip" into "Libraries/StdEnv/"
+- When you want to compile the current project to SAPL, choose "iTasks+SAPL" environment from the menu,
+  and press CTRL-SHIFT-U to force the recompilation of the whole project.
+  The compilation process creates a directory called "sapl" which contains all the necessary SAPL files;
+  this directory will be used by the client side execution infrastucture of the iTask toolkit.
+  
 = Building the support tools ==
 - Build the RunAsync tool by opening the Clean project "iTasks-SDK/Tools/RunAsync/RunAsync.prj" and choosing ("Project" -> "Update") from the menu.
 
