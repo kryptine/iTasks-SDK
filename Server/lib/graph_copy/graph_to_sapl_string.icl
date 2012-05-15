@@ -21,21 +21,21 @@ where
  mkse (BoolS b)             = toString b
  mkse (CharS c)         	= toString c
  mkse (StringS s)       	= "\"" +++  s  +++ "\""
- mkse (CstrS mod name _ []) = makePrintableName (mod +++ "_" +++ makeSaplName name)
- mkse (CstrS mod name _ as) = "(" +++ makePrintableName (mod +++ "_"  +++ makeSaplName name) +++ args as +++ ")"
- mkse (FunctionS mod name _ []) = makePrintableName (mod +++ "_"  +++ makeSaplName name)
- mkse (FunctionS mod name _ as) = "(" +++ makePrintableName (mod +++ "_"  +++ makeSaplName name) +++ args as +++ ")"
+ mkse (CstrS mod name _ []) = makePrintableName (mod +++ "." +++ makeSaplName name)
+ mkse (CstrS mod name _ as) = "(" +++ makePrintableName (mod +++ "."  +++ makeSaplName name) +++ args as +++ ")"
+ mkse (FunctionS mod name _ []) = makePrintableName (mod +++ "."  +++ makeSaplName name)
+ mkse (FunctionS mod name _ as) = "(" +++ makePrintableName (mod +++ "."  +++ makeSaplName name) +++ args as +++ ")"
  mkse (RecS mod name _ []) 	= makePrintableName (makeRecName mod name)
  mkse (RecS mod name _ as) 	= "(" +++ makePrintableName (makeRecName mod name) +++ args as +++ ")"
  mkse (ArrayS  _ as)        = mkl as
  mkse (ListS    as)         = mkl as
- mkse (TupleS n as)         = "(_predefined__Tuple" +++ toString n +++ args as +++ ")"
+ mkse (TupleS n as)         = "(_predefined._Tuple" +++ toString n +++ args as +++ ")"
 
 
  args []                = ""
  args [a:as]      		= " " +++ mkse a +++ args as
- mkl  []                = "nil"
- mkl  [a:as]            = "(cons " +++ mkse a +++ " " +++ mkl as +++ ")"
+ mkl  []                = "_predefined._Nil"
+ mkl  [a:as]            = "(_predefined._Cons " +++ mkse a +++ " " +++ mkl as +++ ")"
  
 instance toString DynamicSapl
 where toString (IntS i)   	= "IntS "  +++ toString i
@@ -327,26 +327,28 @@ makeSaplName str
 # revl           = reverse lstr
 # (dgs,revrest)  = span isDigit revl
 # initname       = reverse (remsc revrest)
+// FIXME: heuristic for this case: _f703;703;703 -> _f703_703
+# initname       = if (dgs<>[]) (takeWhile (\r -> not (r == ';')) initname) initname
 # initstr        = {c\\ c <- initname}
 # fname          = makeName initstr
 | dgs <> [] && hd revrest == ';'     
 =  (fname +++ "_" +++ toString (reverse dgs))
 | dgs <> []     
 =  (fname +++ toString (reverse dgs))
-=  fname 
- 
+=  fname
+
 remsc [';':rs] = rs
 remsc rs       = rs
 
 makePrintableName f      | ss f                              = "<{" +++ f +++ "}>"
                                                              = f
 where ss f = or [is_ss c\\ c <-: f]
-      is_ss c = not (isAlphanum c || c == '_')          
+      is_ss c = not (isAlphanum c || c == '_' || c == '.')              
 
 makeRecName :: String String -> String
 makeRecName mod name 
-| last [c\\ c <-: ("" +++ name)] == ';' = mod +++ "_" +++ name
-                                        = mod +++ "__" +++ makeSaplName {a\\ a<-: name| a <> '[' && a <> ']' && a <> '#'}
+| last [c\\ c <-: ("" +++ name)] == ';' = mod +++ "." +++ name
+                                        = mod +++ "._" +++ makeSaplName {a\\ a<-: name| a <> '[' && a <> ']' && a <> '#'}
     
 makeName name | name.[0] == '\\' = "anon" 
               | startsWith "<lambda" name = "anon"
