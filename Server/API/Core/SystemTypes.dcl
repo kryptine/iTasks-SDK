@@ -143,7 +143,7 @@ where
 
 instance toUserConstraint UserConstraint
 instance toUserConstraint User
-instance toUserConstraint String
+instance toUserConstraint UserId
 
 :: UserId		:== String
 :: Role			:== String

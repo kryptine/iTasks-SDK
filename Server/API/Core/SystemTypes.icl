@@ -607,7 +607,7 @@ where
 	toUserConstraint (AnonymousUser _)				= AnyUser
 	toUserConstraint (AuthenticatedUser uid _ _)	= UserWithId uid
 
-instance toUserConstraint String
+instance toUserConstraint UserId
 where
 	toUserConstraint userId = UserWithId userId
 	

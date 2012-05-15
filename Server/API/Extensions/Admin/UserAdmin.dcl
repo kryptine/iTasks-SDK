@@ -6,7 +6,7 @@ import iTasks
 
 :: UserAccount			=
 	{ credentials	:: !Credentials
-	, title			:: !Maybe String
+	, title			:: !Maybe UserTitle
 	, roles			:: ![Role]
 	}
 
