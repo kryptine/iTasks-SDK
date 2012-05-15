@@ -156,7 +156,7 @@ instance toUserConstraint String
 	}
 	
 :: Password		= Password !String
-:: Username		= Username !String
+:: Username		= Username !UserId
 
 //* Predefined exception types used by library tasks
 
