@@ -31,6 +31,7 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.MenuButton',
 		'itasks.component.MenuItem',	
 		'itasks.component.Html',
+		'itasks.component.Tasklet',
 		'itasks.container.Panel',
 		'itasks.container.Container',
 		'itasks.container.Window',
@@ -44,6 +45,8 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.container.ListItem'
 	],
 
+	tasklets: {},
+	
 	init: function () {
 
 		this.version = 0;
@@ -66,6 +69,9 @@ Ext.define('itasks.controller.Controller',{
 		this.control('.itasks_menu_button', {
 			commit: this.onCommit
 		});
+		
+		// global object used by tasklets
+		controller = this;
 	},
 	//Once, the viewport is rendered we can load the initial
 	//user interface definition
@@ -261,6 +267,6 @@ Ext.define('itasks.controller.Controller',{
 	},
 	error: function(e) {
 		alert(e);
-		window.location = window.location;
+//		window.location = window.location;
 	}
 });

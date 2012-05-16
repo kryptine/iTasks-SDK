@@ -10,6 +10,7 @@ derive JSONEncode TUIButton, TUIIcon, TUIHtml, Hotkey
 derive JSONEncode TUIButtonControl
 derive JSONEncode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUIBorderContainer, TUIListContainer
 derive JSONEncode TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUISliderControl
+derive JSONEncode TUITasklet
 
 JSONEncode{|TUIDef|} {content,width,height,margins}
 	= merge (JSONEncode{|*|} content) (sizeAttributes width height margins)
@@ -32,6 +33,8 @@ JSONEncode{|TUIDefContent|} (TUIHtml r)					= addXType "itasks_html" (JSONEncode
 JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks_button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDefContent|} (TUIMenuButton r) 			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIMenuItem r) 			= JSONEncode{|*|} r
+JSONEncode{|TUIDefContent|} (TUITasklet r)				= addXType "itasks_tasklet" (JSONEncode{|*|} r)
+JSONEncode{|TUIDefContent|} (TUITaskletPlaceholder)		= justXType "itasks_tasklet_placeholder"
 
 JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
 

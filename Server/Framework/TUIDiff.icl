@@ -1,6 +1,6 @@
 implementation module TUIDiff
 
-import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple
+import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple, sapldebug
 import Text, Util, TUIDefinition
 from Task import :: EditEvent(..), :: Event(..)
 
@@ -21,17 +21,16 @@ diffTUIDefinitions :: !TUIDef !TUIDef !(Maybe EditEvent) -> [TUIUpdate]
 diffTUIDefinitions old new event = diffEditorDefinitions` [ItemStep 0] event old new
 
 diffEditorDefinitions` :: !DiffPath !(Maybe EditEvent) !TUIDef !TUIDef -> [TUIUpdate]
+diffEditorDefinitions` path event oldTui {content = TUITaskletPlaceholder} = [] // Don't delete the tasklet, do nothing
 diffEditorDefinitions` path event oldTui newTui
 	| oldTui.margins === newTui.margins
 		= case diffEditorDefinitions`` event oldTui.TUIDef.content newTui.TUIDef.content of
 			Just diff
-				| oldTui.width === newTui.width && oldTui.height === newTui.height
-					= diff
 				| isFixed oldTui.width && isFixed oldTui.height && isFixed newTui.width && isFixed newTui.height
 					//IMPORTANT: TUISetSize only works for fixed sizes
 					= [TUISetSize (toString path) newTui.width newTui.height:diff]
 				| otherwise
-					= [TUIReplace (toString ppath) pindex newTui]
+					= diff
 			Nothing
 				= [TUIReplace (toString ppath) pindex newTui]
 	| otherwise
@@ -111,7 +110,7 @@ where
 		(TUIIcon o, TUIIcon n)
 			| o.TUIIcon.type == n.TUIIcon.type
 				&& o.TUIIcon.tooltip === n.TUIIcon.tooltip
-					= Just []
+					= Just []	
 		// Custom components need to figure out their own update on the client side
 		(TUICustom oc, TUICustom nc)
 			| oc === nc	= Just []

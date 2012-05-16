@@ -33,7 +33,10 @@ from Task			import	:: TaskAction, :: TaskId
 	| TUIMenuButton			!TUIMenuButton
 	| TUIMenuItem			!TUIMenuItem
 	| TUIHtml				!TUIHtml
+	| TUITasklet			!TUITasklet
 	| TUICustom				!JSONNode
+	// it means, there was a TUITasklet at the same position: don't touch that
+	| TUITaskletPlaceholder					
 	
 :: TUIControlType	= TUIStringControl
 					| TUICharControl
@@ -55,6 +58,13 @@ from Task			import	:: TaskAction, :: TaskId
 					| TUIORYXControl		!String // stencilset URL
 					| TUICustomControl		!String // xtype
 
+:: TUITasklet =
+	{ taskId		:: !String
+	, html 			:: !Maybe String
+	, defState		:: !Maybe String
+	, script		:: !Maybe String
+	, events		:: !Maybe [(!String,!String,!String)]
+	}
 :: TUIEditControl =
 	{ name			:: !String
 	, value			:: !JSONNode
