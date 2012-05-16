@@ -1,4 +1,4 @@
-function __SaplHtml_handleWidgetEvent(expr,taskId,event){
+function __SaplHtml_handleJSEvent(expr,taskId,event){
 	
 	var state = controller.tasklets[taskId].st;
 	
@@ -29,4 +29,3 @@ function __SaplHtml_handleWidgetEvent(expr,taskId,event){
 			break;
 	}
 }
-

@@ -13,15 +13,17 @@ import StdString, Void
 :: HtmlId :== String
 :: HtmlAttr2 :== String // TODO: 2?
 
-handleWidgetEvent :: (HtmlEventHandlerFunc st) !String *HtmlObject -> Void
-handleEditorEvent :: (HtmlEventHandlerFunc st) !String !String *HtmlObject -> Void
+/**
+* Wrapper for JS call back functions
+*/
+handleJSEvent :: (HtmlEventHandlerFunc a) !String *HtmlObject -> Void
 
 getObjectAttr :: !*HtmlDocument !HtmlObject !String -> *(!*HtmlDocument, !HtmlObject, !String)
 getObjectAttrObject :: !*HtmlDocument !HtmlObject !String -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 setObjectAttr :: !*HtmlDocument !HtmlObject !String !String -> *(!*HtmlDocument, !HtmlObject, !String)
 
 // TODO: runObjectMethodx -> runObjectMethod
-:: Arg = E.a: Arg [a]
+:: JSFuncArg = E.a: JSFuncArg [a]
 
 //runObjectMethod :: !*HtmlDocument !HtmlObject !String (E.a: [a]) -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 

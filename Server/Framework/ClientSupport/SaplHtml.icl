@@ -5,11 +5,8 @@ import StdEnv, Void
 :: HtmlDocument :== Int
 :: HtmlObject :== Int
 
-handleWidgetEvent :: (HtmlEventHandlerFunc a) !String *HtmlObject -> Void
-handleWidgetEvent origHandler taskId eventJS = undef
-
-handleEditorEvent :: (HtmlEventHandlerFunc a) !String !String *HtmlObject -> Void
-handleEditorEvent origHandler taskNr dataPath eventJS = undef
+handleJSEvent :: (HtmlEventHandlerFunc a) !String *HtmlObject -> Void
+handleJSEvent origHandler taskId eventJS = undef
 
 getDomElement :: !*HtmlDocument !HtmlId -> *(!*HtmlDocument, !HtmlObject)
 getDomElement document id = undef

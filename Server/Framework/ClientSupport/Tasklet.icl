@@ -44,7 +44,7 @@ where
 				# (state_js, script_js, events_js, iworld) 
 					= linker state 
 							 gui.eventHandlers
-						     (\handler = handleWidgetEvent handler (toString taskId)) 
+						     (\handler = handleJSEvent handler (toString taskId)) 
 						     iworld
 					
 				# tui = toHTML gui taskId state_js script_js events_js

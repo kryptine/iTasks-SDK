@@ -3,6 +3,57 @@ module TaskletExamples
 import iTasks, Task, Tasklet
 
 //-------------------------------------------------------------------------
+// http://www.sephidev.net/external/webkit/LayoutTests/fast/dom/Geolocation/argument-types-expected.txt
+// http://html5doctor.com/finding-your-position-with-geolocation/
+
+:: GeoLocationParams = {enableHighAccuracy :: Bool
+					   ,timeout            :: Int
+					   ,maximumAge         :: Int
+					   }
+
+:: GPSCoord :== (String,String)
+:: Position = GPS GPSCoord
+
+geoTasklet :: Tasklet (Maybe GPSCoord) (Maybe GPSCoord)
+geoTasklet = 
+	{ Tasklet
+	| defSt				= Nothing
+	, generatorFunc		= geoTaskletGUI
+	, resultFunc		= \pos = Value pos Unstable
+	, tweakUI  			= \t = (paneled (Just "GEO Tasklet") Nothing Nothing [t])		
+	}
+
+geoTaskletGUI _ state iworld
+
+	# gui = { TaskletHTML
+			| width  		= Fixed 300
+			, height 		= Fixed 30
+			, html   		= "Current position: <span id='loc'/>"
+			, eventHandlers = [HtmlEvent "tasklet" "init" onInit]
+			}
+			
+	= (TaskletHTML gui, state, iworld)
+where
+    onSuccess _ _ pos d
+		# (d, _, la) = getObjectAttr d pos "coords.latitude"
+		# (d, _, lo) = getObjectAttr d pos "coords.longitude"		    
+		# (d, _) = setDomAttr d "loc" "innerText" (la +++ ", " +++ lo)
+    	= (d, PersistState (Just (la, lo)))
+
+    onFailure _ _ msg d
+		# (d, _) = setDomAttr d "loc" "innerText" "FAILURE"
+    	= (d, KeepState)
+
+	onInit _ taskId _ d
+	    # (d, loc) = findObject d "navigator.geolocation" 
+		# (d, loc, _) = runObjectMethod3 d loc "getCurrentPosition" 
+				(handleJSEvent onSuccess taskId) 
+				(handleJSEvent onFailure taskId)
+				{enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}
+				
+		= (d, KeepState)
+
+//-------------------------------------------------------------------------
 
 pushTasklet :: Tasklet Int Int 
 pushTasklet = 
@@ -265,18 +316,26 @@ where
 taskletExamples :: [Workflow]
 taskletExamples =
 	[workflow "Simple push button tasklet" "Push the button 3 times" tasklet1,
-	 workflow "Painter tasklet" "Simple painter tasklet" tasklet2]
+	 workflow "Painter tasklet" "Simple painter tasklet" tasklet2,
+	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3]
 
 tasklet2 :: Task Drawing
-tasklet2 
+tasklet2
 	= 		mkTask painterTasklet
 		>>* [ OnValue ifStable returnV
             ] 
 
 tasklet1 :: Task Int
-tasklet1 
+tasklet1
 	= 		mkTask pushTasklet
-		>>* [ OnAction  ActionOk (ifValue (\n -> n >= 3))  returnV
+		>>* [ OnAction ActionOk (ifValue (\n -> n >= 3)) returnV
+            ] 
+
+tasklet3 :: Task (Maybe GPSCoord)
+tasklet3
+	= 		mkTask geoTasklet
+		>>* [ OnAction ActionOk (ifValue isJust) returnV,
+		  	  OnAction ActionCancel (\_ = True) (returnC Nothing)
             ] 
 
 ifValue pred (Value v _) = pred v
@@ -284,6 +343,9 @@ ifValue _ _ = False
 
 ifStable (Value v Stable) = True
 ifStable _ = False
+
+returnC :: b (TaskValue a) -> Task b | iTask b
+returnC v _ = return v
 
 returnV :: (TaskValue a) -> Task a | iTask a
 returnV (Value v _) = return v
