@@ -11,7 +11,24 @@ import Maybe, JSON_NG, Error
 import TaskState, iTaskClass
 
 /**
-* Create a new session task instance and evaluate ite immediately
+* Create a new task instance without evaluating it by an existing instance number
+*
+* @param The instance number
+* @param Optionally the session id
+* @param The parent instance number
+* @param Optionally the worker use
+* @param Optionally, the session id
+* @param ManagementMeta
+* @param ProgressMeta
+* @param The IWorld state
+*
+* @return The created task instance
+* @return The IWorld state
+*/
+createTaskInstance :: !InstanceNo !(Maybe SessionId) !InstanceNo !(Maybe User) !(Task a) !ManagementMeta !ProgressMeta !*IWorld -> (!TaskInstance, !*IWorld) | iTask a
+
+/**
+* Create a new session task instance and evaluate its immediately
 *
 * @param The task to run as session
 * @param The IWorld state
