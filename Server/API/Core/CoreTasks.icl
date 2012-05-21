@@ -6,7 +6,6 @@ import iTaskClass, Task, TaskState, TaskEval, TaskStore, TUIDefinition, LayoutCo
 from SharedDataSource		import qualified read, readRegister, write
 from StdFunc				import o, id
 from IWorld					import :: IWorld(..)
-from iTasks					import dynamicJSONEncode, dynamicJSONDecode
 from SystemData				import topLevelTasks
 from Map					import qualified get
 
