@@ -245,4 +245,14 @@ where
 		= case hd rest_pts of
 			PosToken lp cp _ = (lp, cp)
 		
-		
+mergeParserStates :: ParserState (Maybe ParserState) -> ParserState
+mergeParserStates pst1 (Just pst2)
+	= {pst1 &
+	   ps_constructors = mergeMaps pst1.ps_constructors pst2.ps_constructors,
+	   ps_functions    = mergeMaps pst1.ps_functions    pst2.ps_functions,
+	   ps_CAFs         = mergeMaps pst1.ps_CAFs         pst2.ps_CAFs}
+where
+	mergeMaps m1 m2 = putList (toList m2) m1
+
+mergeParserStates pst1 Nothing = pst1
+

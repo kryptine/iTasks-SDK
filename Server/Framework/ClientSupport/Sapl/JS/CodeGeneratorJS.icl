@@ -383,23 +383,23 @@ termCoder (SLet body defs) s a
 termCoder (SLetDefinition name body) s a
 	= a <++ termCoder name {s & cs_inletdef = Nothing} <++ "=" <++ termCoder body s
 
-termCoder _ s a = a <++ "TODO"
+termCoder _ s a = abort "???"
 
-generateJS :: String -> (StringAppender, Bool)
+generateJS :: String -> (MaybeErrorString (StringAppender, ParserState))
 generateJS saplsrc
 	# pts = tokensWithPositions saplsrc
 	= case parse pts of
 		Ok (funcs, s) # state = newState s 
 					  # a = foldl (\a curr = funcCoder curr state a) newAppender funcs
-					  = (a, False)
-		Error msg = (newAppender <++ msg, True)
+					  = Ok (a, s)
+		Error msg = Error msg
 
-exprGenerateJS :: String -> (StringAppender, Bool)
-exprGenerateJS saplsrc
+exprGenerateJS :: String (Maybe ParserState) -> (MaybeErrorString StringAppender)
+exprGenerateJS saplsrc mbPst
 	# pts = tokensWithPositions saplsrc
 	= case parseExpr pts of
-		Ok (body, s) # state = newState s 
+		Ok (body, s) # state = newState (mergeParserStates s mbPst)
 					 # a = termCoder body {state & cs_inbody=True} newAppender
-					 = (a, False)
-		Error msg = (newAppender <++ msg, True)
+					 = Ok a
+		Error msg = Error msg
 

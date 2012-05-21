@@ -3,7 +3,10 @@ definition module Tasklet
 import StdString
 import Task, SaplHtml
 
+:: JSONString :== String
+
 :: TaskletGUI st = TaskletHTML !(TaskletHTML st)
+                 | TaskletTUI  !(TaskletTUI  st)
 
 :: GeneratorFunc st :== TaskId st *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
 
@@ -12,6 +15,27 @@ import Task, SaplHtml
 	, height			:: !TUISize
 	, html				:: !String
 	, eventHandlers		:: ![HtmlEvent st] 
+	}
+
+/**
+* Client side event handler. Event types:
+*
+* - init:   eventName: Nothing, eventValue: Nothing
+* - commit: eventName: Nothing
+* - edit:   otherwise
+
+* @param taskId
+* @param state
+* @param eventName
+* @param eventValue
+*/
+:: ControllerFunc st :== TaskId st (Maybe String) (Maybe JSONString) -> (Maybe TUIDef, ControllerResult, st)
+
+:: ControllerResult = CC_Skip // So far...
+
+:: TaskletTUI st = 
+	{ tui				:: !Maybe TUIDef
+	, eventHandler		:: !Maybe (InstanceNo, ControllerFunc st)
 	}
 
 :: Tasklet st val =

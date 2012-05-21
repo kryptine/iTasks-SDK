@@ -45,7 +45,9 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.container.ListItem'
 	],
 
+	// for tasklet support: taskId -> tasklet, instanceNo -> tasklet.controllerFunc maps
 	tasklets: {},
+	taskletControllers: {},
 	
 	init: function () {
 
@@ -80,15 +82,36 @@ Ext.define('itasks.controller.Controller',{
 		this.viewport = viewport;
 		this.pollServer();
 	},
-	onEdit: function(taskId,name,value) {
+	onEdit: function(taskId,name,value) {	
+		var instanceNo = taskId.split("-")[0];
+		if(this.taskletControllers[instanceNo] != null){
+			controllerWrapper(
+					this.taskletControllers[instanceNo].taskletId,
+					this.taskletControllers[instanceNo].controllerFunc, 
+					taskId, "edit", name, value);
+		}else{
+			this.sendEditEvent(taskId,name,value);
+		}	
+	},
+	onCommit: function(taskId,name) {
+		var instanceNo = taskId.split("-")[0];
+		if(this.taskletControllers[instanceNo] != null){
+			controllerWrapper(
+					this.taskletControllers[instanceNo].taskletId,
+					this.taskletControllers[instanceNo].controllerFunc, 
+					taskId, "commit", name);
+		}else{
+			this.sendCommitEvent(taskId,name);
+		}	
+	},
+	sendEditEvent: function(taskId,name,value) {
 		this.editEvent = [taskId,name,value];
 		this.pollServer();
 	},
-	onCommit: function(taskId,name) {
+	sendCommitEvent: function(taskId,name) {
 		this.commitEvent = [taskId,name];
 		this.pollServer();
 	},
-
 	// SERVER CONTROL PROCESSING
 
 	//Interface definition loading / updating

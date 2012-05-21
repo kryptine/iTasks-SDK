@@ -59,12 +59,21 @@ from Task			import	:: TaskAction, :: TaskId
 					| TUICustomControl		!String // xtype
 
 :: TUITasklet =
-	{ taskId		:: !String
-	, html 			:: !Maybe String
-	, defState		:: !Maybe String
-	, script		:: !Maybe String
-	, events		:: !Maybe [(!String,!String,!String)]
+	{ taskId		 :: !String
+	
+	// It contains html _or_ tui
+	, html 			 :: !Maybe String
+	, tui			 :: !Maybe TUIDef
+
+	, defState		 :: !Maybe String
+	, script		 :: !Maybe String
+	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
+	
+	// They are a pair: the controller hijacks all the events sent to the given instance
+	, instanceNo	 :: !Maybe String
+	, controllerFunc :: !Maybe String
 	}
+	
 :: TUIEditControl =
 	{ name			:: !String
 	, value			:: !JSONNode

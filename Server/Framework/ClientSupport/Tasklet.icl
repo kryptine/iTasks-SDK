@@ -1,7 +1,10 @@
 implementation module Tasklet
 
-import iTasks, Task, TaskState
+import iTasks, Task, TaskState, TUIEncode
 import LazyLinker, CodeGeneratorJS, SaplHtml, graph_to_sapl_string
+//import sapldebug, StdFile, StdMisc
+
+//---------------------------------------------------------------------------------------
 
 mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} st & JSONEncode{|*|} st & JSONDecode{|*|} res 
 mkTask tasklet = Task taskFunc
@@ -41,13 +44,33 @@ where
 		
 			TaskletHTML gui 
 
-				# (state_js, script_js, events_js, iworld) 
+				# (state_js, script_js, events_js, _, iworld) 
 					= linker state 
-							 gui.eventHandlers
-						     (\handler = handleJSEvent handler (toString taskId)) 
+							 (map (eventHandlerWrapper taskId) gui.eventHandlers)
+						     Nothing
 						     iworld
 					
-				# tui = toHTML gui taskId state_js script_js events_js
+				# tui = tHTMLToTasklet gui taskId state_js script_js events_js
+				# taskTuiRep = appTweak (ViewPart, Just tui, [], [])
+				# layout = repLayout taskRepOpts
+				# taskTuiRep = appLayout layout SingleTask [taskTuiRep] [] []
+						
+				# rep = TaskRep taskTuiRep []						
+				= (rep, iworld)
+
+			TaskletTUI gui
+
+				# (mb_ino, mb_cf) = case gui.eventHandler of
+						Just (iNo, eh) = (Just (toString iNo), Just eh)
+									   = (Nothing , Nothing)
+
+				# (state_js, script_js, _, mb_cf_js, iworld) 
+					= linker state 
+							 []
+						     (fmap controllerWrapper mb_cf)
+						     iworld
+					
+				# tui = tTUIToTasklet gui taskId state_js script_js mb_ino mb_cf_js
 				# taskTuiRep = appTweak (ViewPart, Just tui, [], [])
 				# layout = repLayout taskRepOpts
 				# taskTuiRep = appLayout layout SingleTask [taskTuiRep] [] []
@@ -55,40 +78,87 @@ where
 				# rep = TaskRep taskTuiRep []							
 				= (rep, iworld)
 
-	toHTML {TaskletHTML|width,height,html} taskId state_js script_js events_js
+	tTUIToTasklet {TaskletTUI|tui} taskId state_js script_js mb_ino mb_cf_js
+		 = (defaultDef (TUITasklet  { taskId   		 = toString taskId
+									, html     		 = Nothing
+								    , tui      		 = tui 
+								    , defState 		 = Just state_js
+								    , script   		 = Just script_js
+								    , events   		 = Nothing
+								    , instanceNo	 = mb_ino
+								    , controllerFunc = mb_cf_js}))
+
+	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js
 		= setSize width height 
-			(defaultDef (TUITasklet { taskId   = toString taskId
-								    , html     = Just html 
-								    , defState = Just state_js
-								    , script   = Just script_js
-								    , events   = Just events_js}))
+			(defaultDef (TUITasklet { taskId   		 = toString taskId
+								    , html     		 = Just html
+								    , tui      		 = Nothing
+								    , defState 		 = Just state_js
+								    , script   		 = Just script_js
+								    , events   		 = Just events_js
+								    , instanceNo     = Nothing
+								    , controllerFunc = Nothing}))
 
 	appTweak taskTuiRep = tweakTUI tasklet.tweakUI taskTuiRep
 
+	/* Controller wrapper to be easier to write controler function:
+	 * 1. taskId is parsed
+	 * 2. TUI result is stringified 
+	 */
+	controllerWrapper cf strTaskID st mbEventName mbEventHandler
+		# (mbTUI, res, st) = cf (fromString strTaskID) st mbEventName mbEventHandler
+		= (fmap (toString o encodeTUIDefinition) mbTUI, res, st)
+
+	eventHandlerWrapper taskId (HtmlEvent id event f) 
+		= (id, event, handleJSEvent f (toString taskId))
+
 //---------------------------------------------------------------------------------------
 
-:: EventHandlerWrapperFunc st :== (HtmlEventHandlerFunc st) *HtmlObject -> Void
+linker state eventHandlers mbControllerFunc iworld
 
-linker :: !st ![HtmlEvent st] (EventHandlerWrapperFunc st) !*IWorld -> *(!String, !String, [(!String,!String,!String)], !*IWorld)
-linker state eventHandlers handlerWrapper iworld
+	/* 1. First, we collect all the necessary function definitions to generate ParserState */
+
 	# (ls, iworld) = generateLoaderState iworld
-	// load functions indicated by the state structure
+	// link functions indicated by the state structure
 	# saplst = graph_to_sapl_string state
 	# (ls, a, iworld) = linkSaplforExprByLoaderState ls newAppender saplst iworld
+
+	// link functions indicated by controller func
+	# (ls, a, mbSaplCF, iworld) = case mbControllerFunc of
+		Just cf # saplCF = graph_to_sapl_string cf
+				# (ls, a, iworld) = linkSaplforExprByLoaderState ls a saplCF iworld
+				= (ls, a, Just saplCF, iworld)
+				= (ls, a, Nothing,  iworld)
 				
-	// load functions indicated by event handlers
-	# (ls, a, iworld) = foldl (\(ls, a, iworld) (HtmlEvent _ _ f) = 
+	// link functions indicated by event handlers
+	# (ls, a, iworld) = foldl (\(ls, a, iworld) (_,_,f) = 
 				linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) iworld) (ls, a, iworld) eventHandlers
-								
-	// State object can be very large, so it is not a good idea to copy
-	// it to the argument list of every event handler
-	// It has its own place now in the TUIWidget structure
-	# statejs = toString (fst (exprGenerateJS saplst))
+
+	/* 2. Generate function definitions and ParserState */
 
 	# sapl = toString a
-	# script = toString (fst (generateJS sapl))
-	# events = map (\(HtmlEvent id event handler) = (id,event,toString (fst 
-				(exprGenerateJS (graph_to_sapl_string (handlerWrapper handler)))))) eventHandlers
+	# (script, mbPst) = case sapl of
+		"" = ("", Nothing)
+		   = let (script, pst) = fromOk (generateJS sapl) in (toString script, Just pst)
 	
-	= (statejs, script, events, iworld)
+	/* 3. Generate expressions by ParserState */
+									
+	# statejs = toString (fromOk (exprGenerateJS saplst mbPst))
+
+	# events = map (\(id,event,handler) = (id,event,toString (fromOk 
+				(exprGenerateJS (graph_to_sapl_string handler) mbPst)))) eventHandlers
+	
+	# cfjs = case mbSaplCF of
+		Just saplCF = Just (toString (fromOk (exprGenerateJS saplCF mbPst)))
+					= Nothing
+					
+/* For debugging:					
+
+	# (_, iworld) = writeFile "debug_state.sapl" saplst iworld
+	# (_, iworld) = writeFile "debug_state.js" statejs iworld	
+	# (_, iworld) = writeFile "debug.sapl" sapl iworld
+	# (_, iworld) = writeFile "debug.js" script iworld
+
+*/
+	= (statejs, script, events, cfjs, iworld)
  

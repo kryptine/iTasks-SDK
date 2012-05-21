@@ -40,9 +40,9 @@ generateLoaderState iworld=:{IWorld|world}
 	// These modules can't be run on the client anyway
 	# mmap = del "graph_to_sapl_string" mmap
 	# mmap = del "graph_to_string_with_descriptors" mmap
-	# mmap = del "dynamic_string" mmap	
 	# mmap = del "sapldebug" mmap
-	
+
+	# mmap = del "dynamic_string" mmap		
 	# mmap = del "Base64" mmap
 	
 	# mmap = del "LazyLinker" mmap

@@ -1,5 +1,5 @@
 Ext.define('itasks.component.Tasklet', {
-	extend: 'Ext.Component',
+	extend: 'Ext.container.Container',
 	alias: 'widget.itasks_tasklet',
 	
 	taskId:  null,
@@ -9,7 +9,13 @@ Ext.define('itasks.component.Tasklet', {
 	defState: null,
 	script: null,
 	events: [],
-
+	tui: null,	// default TUI
+	controllerFunc: null,
+	instanceNo: null,
+	
+	// indicates whether the defualt TUI is already included or not
+	tuiIncluded: false,
+	
 	// Creating a closure
 	eventHandler: function(expr){
 		
@@ -24,13 +30,24 @@ Ext.define('itasks.component.Tasklet', {
 	
 	onRender: function() {
 		
-		if(this.script != null){
+		if(this.script != null && this.script != "" && !sapldebug){
 			evalScript(this.script);
 		}
 
 		eval("var evalSt = eval(" + this.defState + ");");
 		this.st = evalSt;
 		controller.tasklets[this.taskId] = this;			
+		
+		if(this.controllerFunc != null){
+			controller.taskletControllers[this.instanceNo] = 
+					{taskletId: this.taskId, controllerFunc: this.controllerFunc}
+		}		
+		
+		if(this.tui != null && !this.tuiIncluded){
+			this.tuiIncluded = true;
+			this.tui = this.lookupComponent(this.tui);
+			this.add(this.tui);
+		}		
 		
 		this.callParent(arguments);
 	},

@@ -1,6 +1,6 @@
 definition module BuiltInJS
 
-import SaplParser
+import SaplTokenizer, SaplParser
 
 /**
 * Definitions of built-in and inline functions for the JavaScript code generator.

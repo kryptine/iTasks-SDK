@@ -2,8 +2,6 @@ definition module SaplParser
 
 import SaplTokenizer, Map, Void, Error
 
-//:: ParseResult a b = Success a | Error b
-
 // Cannot be abstract because code generator uses it
 :: ParserState = { ps_level 		:: Int
 				 , ps_constructors  :: Map SaplTerm [SaplTerm]
@@ -56,4 +54,14 @@ parse :: [PosToken] -> MaybeError ErrorMsg ([FuncType], ParserState)
 * @return an AST, ParserState pair or an error message
 */
 parseExpr :: [PosToken] -> MaybeError ErrorMsg (SaplTerm, ParserState) 
+
+/**
+* Merge a ParserState record into another, by adding the elements of the Map fields
+* to the Map fields of the other structure.
+*
+* @param first parser state
+* @param second parser state
+* @return merged parser state
+*/
+mergeParserStates :: ParserState (Maybe ParserState) -> ParserState
 			
