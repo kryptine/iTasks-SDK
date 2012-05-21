@@ -6,7 +6,6 @@ Ext.define('itasks.component.Icon', {
 	initComponent: function() {
 		this.addCls(this.type || 'icon-help');
 		this.callParent(arguments);
-
 	},
 	afterRender: function() {
 		this.callParent(arguments);
@@ -20,5 +19,10 @@ Ext.define('itasks.component.Icon', {
 			this.tooltip.destroy();
 		}
 		this.callParent(arguments);
-	}
+	},
+	setType: function(type){
+		this.removeCls(this.type);
+		this.type = type;
+		this.addCls(this.type || 'icon-help');
+	}	
 });
