@@ -41,14 +41,13 @@ generateLoaderState iworld=:{IWorld|world}
 	# mmap = del "graph_to_sapl_string" mmap
 	# mmap = del "graph_to_string_with_descriptors" mmap
 	# mmap = del "sapldebug" mmap
-
+	# mmap = del "_SystemDynamic" mmap
+	
 	# mmap = del "dynamic_string" mmap		
 	# mmap = del "Base64" mmap
 	
 	# mmap = del "LazyLinker" mmap
 	# mmap = del "CodeGeneratorJS" mmap
-	// This module has different implementation at client side
-	# mmap = del "SaplHtmlClientSupport" mmap
 	
 	= (((mmap, bmmap, [], 0), newMap), {iworld & world=world})
 

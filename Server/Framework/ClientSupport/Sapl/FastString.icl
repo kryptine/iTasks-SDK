@@ -2,6 +2,18 @@ implementation module FastString
 
 import StdEnv
 
+startsWith :: !String !String -> Bool
+startsWith start str
+	| (size str) >= (size start)
+		= startsWith_ ((size start)-1)
+		= False
+where
+	startsWith_ -1 = True
+	startsWith_ starti
+		= case start.[starti] == str.[starti] of
+				True = startsWith_ (starti-1)
+					 = False
+					 
 endsWith :: !String !String -> Bool
 endsWith end str
 	| (size str) >= (size end)

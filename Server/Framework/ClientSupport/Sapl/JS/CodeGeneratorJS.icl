@@ -205,6 +205,8 @@ letDefCoder [] _ a = a
 // Generate code that forces the evaluation of the given term
 forceTermCoder :: SaplTerm CoderState StringAppender -> StringAppender
 forceTermCoder t=:(SApplication name args) s a
+	| isdynamic name
+		= a <++ "[__dynamic_handler]"
 	// local variable
 	| isMember name s.cs_current_vars
 		= a <++ "Sapl.feval(" <++ termCoder t s <++ ")" 
@@ -349,6 +351,8 @@ termCoder (SCase pred lhs rhs) s a
 		<++ "}"
 
 termCoder (SApplication name args) s a
+	| isdynamic name
+		= a <++ "[__dynamic_handler]"
 	| (isJust constructor_args && (length (fromJust constructor_args) == length args))
 		= a <++ func_name name <++ "(" <++ make_app_args name args s <++ ")"
 		= a <++ "[" <++ termCoder name s <++ ",[" 
@@ -357,6 +361,7 @@ termCoder (SApplication name args) s a
 where
 	constructor_args = get name s.cs_constructors
 	func_name name a = a <++ escapeName (unpackName name) // skip level information
+
 
 termCoder (SConst (CString str)) s a = a <++ "\"" <++ str <++ "\""
 termCoder (SConst (CChar chr)) s a = a <++ "'" <++ chr <++ "'"
@@ -384,6 +389,10 @@ termCoder (SLetDefinition name body) s a
 	= a <++ termCoder name {s & cs_inletdef = Nothing} <++ "=" <++ termCoder body s
 
 termCoder _ s a = abort "???"
+
+isdynamic (SName name _) | startsWith "_SystemDynamic." name
+	= True
+	= False
 
 generateJS :: String -> (MaybeErrorString (StringAppender, ParserState))
 generateJS saplsrc

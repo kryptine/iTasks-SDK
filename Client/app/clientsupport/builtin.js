@@ -64,6 +64,10 @@ function __abort(str){
     throw "ABORT: "+str;
 }
 
+function __dynamic_handler(){
+	return "DYNVAL";
+}
+
 function __sapldebug(str, f){
     if(confirm(str)){
         return f;

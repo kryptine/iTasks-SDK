@@ -1,6 +1,14 @@
 definition module FastString
 
 /**
+* Predicate which tests if a string starts with another substring
+*
+* @param The substring.
+* @param The string that is being searched.
+*/
+startsWith :: !String !String -> Bool
+
+/**
 * Predicate which tests if a string ends with another substring
 *
 * @param The substring.
