@@ -45,6 +45,7 @@ generateLoaderState iworld=:{IWorld|world}
 	
 	# mmap = del "dynamic_string" mmap		
 	# mmap = del "Base64" mmap
+	# mmap = del "ClientOverride" mmap
 	
 	# mmap = del "LazyLinker" mmap
 	# mmap = del "CodeGeneratorJS" mmap

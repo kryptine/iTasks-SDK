@@ -8,6 +8,8 @@ function ___predefined__Tuple2(__a1, __a2) {
 };
 // TO BE SURE
 
+// --------- Primitive functions -----------------------------
+
 function __atan(a){
     return Math.atan(Sapl.feval(a));
 }
@@ -159,6 +161,8 @@ function __shiftright(a,b){
     return Sapl.feval(a) >>> Sapl.feval(b);
 }
 
+// --------- SaplHtml stuff -----------------------------
+
 function __SaplHtml_getDomElement(d, id){
     d = Sapl.feval(d);
     id = Sapl.feval(id);
@@ -305,14 +309,24 @@ function __SaplHtml_findObject(d, name){
     return ___predefined__Tuple2(d, obj);
 }
 
-function __SaplHtmlClientSupport_onClient(){
-	return true;
-}
+// --------- Function overrides -----------------------------
 
 function __sapldebug_sapldebug(a,b){
 	console.log("DEBUG: "+Sapl.toString(a));
 	return b;
 }
+
+function __ClientOverride_onClient(){
+	return true;
+}
+
+function __ClientOverride_cast_to_TaskValue(___vTC_0, ___vTC_1, __a_2) {
+    return Sapl.feval(__a_2);
+};
+
+function __ClientOverride_cast(___vTC_0, ___vTC_1, __a_2) {
+    return Sapl.feval(__a_2);
+};
 
 function __dynamic_string_copy_to_string(a){
 	return Sapl.dynamicToString(Sapl.feval(a));

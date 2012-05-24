@@ -3,6 +3,7 @@ implementation module CoreCombinators
 import StdList, StdTuple, StdMisc, StdBool, StdOrdList
 import Task, TaskState, TaskStore, TaskEval, Util, HTTP, GenUpdate, GenEq_NG, Store, SystemTypes, Time, Text, Shared, Func, Tuple, List_NG
 import iTaskClass, InteractionTasks, LayoutCombinators, TUIDefinition
+import ClientOverride
 
 from Map				import qualified get, put, del
 from StdFunc			import id, const, o, seq
@@ -157,25 +158,21 @@ where
 
 	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	call_with_DeferredJSON_TaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
-		= case make_dynamic tva of
-			(tva :: TaskValue a^)
-				-> Just (f_tva_tb tva)
+        = Just (f_tva_tb (cast_to_TaskValue tva))
+	
 	call_with_DeferredJSON_TaskValue f_tva_tb (DeferredJSONNode json)
 		= case fromJSON json of
 			Just a ->  Just (f_tva_tb a)
 			Nothing -> Nothing
 	
 	call_with_DeferredJSON :: (a -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
-	call_with_DeferredJSON f_tva_tb d_json_tva=:(DeferredJSON tva)
-		= case make_dynamic tva of
-			(tva :: a^)
-				-> Just (f_tva_tb tva)
+    call_with_DeferredJSON f_tva_tb d_json_tva=:(DeferredJSON tva)
+        = Just (f_tva_tb (cast tva))
+
 	call_with_DeferredJSON f_tva_tb (DeferredJSONNode json)
 		= case fromJSON json of
 			Just a ->  Just (f_tva_tb a)
 			Nothing -> Nothing
-
-	make_dynamic tva = dynamic tva
 
 // Parallel composition
 parallel :: !d ![(!ParallelTaskType,!ParallelTask a)] -> Task [(!TaskTime,!TaskValue a)] | descr d & iTask a
