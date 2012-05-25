@@ -32,6 +32,7 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.MenuItem',	
 		'itasks.component.Html',
 		'itasks.component.Tasklet',
+		'itasks.component.TaskletPlaceholder',
 		'itasks.container.Panel',
 		'itasks.container.Container',
 		'itasks.container.Window',

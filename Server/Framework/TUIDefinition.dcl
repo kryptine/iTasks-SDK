@@ -58,14 +58,14 @@ from Task			import	:: TaskAction, :: TaskId
 					| TUIORYXControl		!String // stencilset URL
 					| TUICustomControl		!String // xtype
 
-:: TUITasklet =
+:: TUITasklet = 
 	{ taskId		 :: !String
 	
 	// It contains html _or_ tui
 	, html 			 :: !Maybe String
 	, tui			 :: !Maybe TUIDef
 
-	, defState		 :: !Maybe String
+	, st			 :: !Maybe String
 	, script		 :: !Maybe String
 	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
 	, resultFunc     :: !Maybe String

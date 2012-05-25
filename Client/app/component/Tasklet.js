@@ -3,12 +3,10 @@ Ext.define('itasks.component.Tasklet', {
 	alias: 'widget.itasks_tasklet',
 	
 	taskId:  null,
-	st: null, // current task state
-	lastResult: null,
 	
 	// script fields
-	defState: null,
 	script: null,
+	st: null, // current task state	
 	events: [],
 	resultFunc: null,
 	tui: null,	// default TUI
@@ -17,6 +15,8 @@ Ext.define('itasks.component.Tasklet', {
 	
 	// indicates whether the defualt TUI is already included or not
 	tuiIncluded: false,
+	// for detecting whether the result is changed
+	lastResult: null,
 	
 	// Creating a closure
 	eventHandler: function(expr){
@@ -30,14 +30,14 @@ Ext.define('itasks.component.Tasklet', {
 		return h;
 	},
 	
-	onRender: function() {
+	initComponent: function() {
 		
 		if(this.script != null && this.script != "" && !sapldebug){
 			evalScript(this.script);
 		}
 
-		eval("var evalSt = eval(" + this.defState + ");");
-		this.st = evalSt;
+		eval("var tmp = eval(" + this.st + ");");
+		this.st = tmp;
 		controller.tasklets[this.taskId] = this;			
 
 		if(this.resultFunc != null){
@@ -47,16 +47,25 @@ Ext.define('itasks.component.Tasklet', {
 		}
 		
 		if(this.controllerFunc != null){
+			eval("var tmp = eval(" + this.controllerFunc + ");");
+			this.controllerFunc = tmp;
 			controller.taskletControllers[this.instanceNo] = 
 					{taskletId: this.taskId, controllerFunc: this.controllerFunc}
-		}		
-		
+		}			
+	
+		DB.saveTasklet(this);
+	
+		this.callParent(arguments);
+	},	
+	
+	onRender: function() {
+				
 		if(this.tui != null && !this.tuiIncluded){
 			this.tuiIncluded = true;
 			this.tui = this.lookupComponent(this.tui);
 			this.add(this.tui);
 		}		
-		
+				
 		this.callParent(arguments);
 	},
 	

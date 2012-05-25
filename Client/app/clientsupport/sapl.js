@@ -227,7 +227,7 @@ Sapl = new function () {
 			return expr;
 		}
 	}
-
+	
 	this.dynamicToString = function(expr) {
 
 		if (isArray(expr)) {
@@ -246,11 +246,30 @@ Sapl = new function () {
 				return expr.toString();
 			} else if (isBoolean(expr)) {
 				return expr.toString();
-			} else {
+			} else if (isString(expr)){
 				return "\"" + expr.replace(/"/g, "\\\"") + "\"";
+			} else {
+				return expr;
 			}
 		}
 	}	
+	
+	// hyper(strict) eval
+	this.heval = function (expr) {
+		expr = Sapl.feval(expr);
+		
+		if (isArray(expr)) {
+
+			// It's a constructor
+			if (isNumber(expr[0])) {
+				for(var i = 2; i<expr.length; i++){
+					Sapl.heval(expr[i]);
+				}
+			}
+		}
+			
+		return expr;
+	}
 	
 	this.feval = function (expr) { // check on length split for == and <=
 		var y, f, xs;

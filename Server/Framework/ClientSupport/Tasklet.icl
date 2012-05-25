@@ -96,7 +96,7 @@ where
 		 = (defaultDef (TUITasklet  { taskId   		 = toString taskId
 									, html     		 = Nothing
 								    , tui      		 = tui 
-								    , defState 		 = Just state_js
+								    , st    		 = Just state_js
 								    , script   		 = Just script_js
 								    , events   		 = Nothing
 								    , resultFunc	 = Just rf_js
@@ -108,7 +108,7 @@ where
 			(defaultDef (TUITasklet { taskId   		 = toString taskId
 								    , html     		 = Just html
 								    , tui      		 = Nothing
-								    , defState 		 = Just state_js
+								    , st    		 = Just state_js
 								    , script   		 = Just script_js
 								    , events   		 = Just events_js
 								    , resultFunc     = Just rf_js

@@ -6,7 +6,7 @@ function controllerWrapper(taskletId,controllerFunc,taskId,eventType,eventName,e
 	
 	var state = controller.tasklets[taskletId].st;
 
-	eval("var tmp = eval([" + controllerFunc + ",[]]);");
+	var tmp = [controllerFunc,[]];
 	tmp[1].push(taskId);
 	tmp[1].push(state);
 	
@@ -25,19 +25,27 @@ function controllerWrapper(taskletId,controllerFunc,taskId,eventType,eventName,e
 
 	// result is a tuple of mbTUI and state
 	var ys = Sapl.feval(tmp);
-	state = Sapl.feval(ys[3]);
+	state = Sapl.heval(ys[3]);
+
 	controller.tasklets[taskletId].st = state;	// save it
 	
 	// toJS to make the result hyperstrict
 	var newres = Sapl.toJS(Sapl.feval([controller.tasklets[taskletId].resultFunc,[state]]));	
 	
 	var mbTUI = Sapl.feval(ys[2]);
+	
 	// If mbTUI is Nothing, the task is finished
 	if(mbTUI[0] == 0){
+		DB.removeTasklet(taskletId);
 		controller.onEdit(taskletId, "finalize", newres);
-	}else{
+	}else{		
 		var tuistr = Sapl.feval(mbTUI[2]);
-		eval("var tui = " + tuistr + ";");
+		
+		DB.updateTasklet(controller.tasklets[taskletId], 
+						 null,
+						 tuistr);				
+						 
+		eval("var tui = " + tuistr + ";");		
 		applytui(controller.tasklets[taskletId].tui, tui);
 		
 		// Send result to the client if it is changed only
@@ -129,6 +137,11 @@ function __SaplHtml_handleJSEvent(expr,taskId,event){
 	
 	var newstate = Sapl.feval(ys[3]);
 	controller.tasklets[taskId].st = newstate;
+	
+	DB.updateTasklet(controller.tasklets[taskId], 
+					 controller.tasklets[taskId].getEl().dom.innerHTML,
+					 null);
+	
 	// toJS to make the result hyperstrict
 	var newres = Sapl.toJS(Sapl.feval([controller.tasklets[taskId].resultFunc,[newstate]]));
 	
