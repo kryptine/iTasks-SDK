@@ -36,7 +36,7 @@ from Task			import	:: TaskAction, :: TaskId
 	| TUITasklet			!TUITasklet
 	| TUICustom				!JSONNode
 	// it means, there was a TUITasklet at the same position: don't touch that
-	| TUITaskletPlaceholder					
+	| TUITaskletPlaceholder !String // taskId			
 	
 :: TUIControlType	= TUIStringControl
 					| TUICharControl
@@ -68,6 +68,7 @@ from Task			import	:: TaskAction, :: TaskId
 	, defState		 :: !Maybe String
 	, script		 :: !Maybe String
 	, events		 :: !Maybe [(!String,!String,!String)]	// HTML id, event name, handler function
+	, resultFunc     :: !Maybe String
 	
 	// They are a pair: the controller hijacks all the events sent to the given instance
 	, instanceNo	 :: !Maybe String

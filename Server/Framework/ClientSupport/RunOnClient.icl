@@ -53,7 +53,7 @@ roc_generator task (TaskId instanceNo taskNo) st iworld
 
 // Init
 controllerFunc taskId st Nothing Nothing
-	= (Nothing, CC_Skip, st)
+	= (Nothing, st)
 
 // Commit
 controllerFunc taskId st (Just eventName) Nothing
@@ -72,7 +72,7 @@ controllerFunc` taskId st mbEditEvent mbCommitEvent
 	# mbTUI = case result of
 		(ValueResult _ _ (TaskRep (_, mbTUIDef, _, _) _) _) = mbTUIDef
 															= Nothing								
-	= (mbTUI, CC_Skip, Just (meta, reduct, taskres))
+	= (mbTUI, Just (meta, reduct, taskres))
 
 createClientIWorld :: *IWorld
 createClientIWorld

@@ -4,8 +4,7 @@ import StdString, Void
 
 :: HtmlEvent st = HtmlEvent !String !String (HtmlEventHandlerFunc st)
 //TaskId
-:: HtmlEventHandlerFunc st :== (st String HtmlObject *HtmlDocument -> *(!*HtmlDocument, !HtmlEventResult st))
-:: HtmlEventResult st = KeepState | SaveState st | PersistState st
+:: HtmlEventHandlerFunc st :== (st String HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
 
 :: HtmlDocument
 :: HtmlObject

@@ -8,7 +8,7 @@ Global
 		CheckStacks:	False
 		CheckIndexes:	True
 	Application
-		HeapSize:	2097152
+		HeapSize:	20971520
 		StackSize:	512000
 		ExtraMemory:	81920
 		IntialHeapSize:	204800
@@ -1330,6 +1330,20 @@ OtherModules
 	Module
 		Name:	iTaskClass
 		Dir:	{Application}\iTasks-SDK\Server\Framework
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+	Module
+		Name:	ClientOverride
+		Dir:	{Application}\iTasks-SDK\Server\Framework\ClientSupport
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False

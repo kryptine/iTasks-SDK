@@ -3,11 +3,6 @@
 * even in the case of "edit" event.
 */
 function controllerWrapper(taskletId,controllerFunc,taskId,eventType,eventName,eventValue){
-
-	/*
-	var splitted = taskId.split("-");
-	var saplTaskId = [0, 'TaskId', [splitted[0], splitted[0]]];
-	*/
 	
 	var state = controller.tasklets[taskletId].st;
 
@@ -28,36 +23,32 @@ function controllerWrapper(taskletId,controllerFunc,taskId,eventType,eventName,e
 		tmp[1].push([0, 'Nothing']);
 	}	
 
-	// result is a tuple of mbTUI, command and state
+	// result is a tuple of mbTUI and state
 	var ys = Sapl.feval(tmp);
-	state = Sapl.feval(ys[4]);
+	state = Sapl.feval(ys[3]);
 	controller.tasklets[taskletId].st = state;	// save it
-	var cmd = Sapl.feval(ys[3]);
 	
-	var mbTUI = Sapl.feval(ys[2]);	
+	// toJS to make the result hyperstrict
+	var newres = Sapl.toJS(Sapl.feval([controller.tasklets[taskletId].resultFunc,[state]]));	
+	
+	var mbTUI = Sapl.feval(ys[2]);
+	// If mbTUI is Nothing, the task is finished
 	if(mbTUI[0] == 0){
-		alert("Nothing");
+		controller.onEdit(taskletId, "finalize", newres);
 	}else{
 		var tuistr = Sapl.feval(mbTUI[2]);
 		eval("var tui = " + tuistr + ";");
 		applytui(controller.tasklets[taskletId].tui, tui);
-		//alert(tui);
+		
+		// Send result to the client if it is changed only
+		if(!geq(controller.tasklets[taskletId].lastResult, newres)){
+			controller.tasklets[taskletId].lastResult = newres;
+			controller.onEdit(taskletId, "result", newres);
+		}
 	}
 }
 
 function applytui(widget,tui){
-	
-/*	
-	if(tui.xtype === "itasks_widget_placeholder"){
-		if(widget.xtype === "itasks_html"){
-			
-			if(tui.tui != null){
-				applytui(widget.tui,tui.tui);
-			}
-			return;
-		}
-	}
-*/
 
 	if(tui.xtype !== widget.xtype){
 		throw "ERROR: TUI/Object structure doesn't match!";
@@ -69,7 +60,6 @@ function applytui(widget,tui){
 
 			var val = tui[prop];
 			if(prop === "xtype") continue;
-			if(prop === "value") continue;
 				
 			if(isString(val) || isBoolean(val) || isNumber(val)){
 				
@@ -97,22 +87,24 @@ function applytui(widget,tui){
 				
 				try{				
 				
-					for(var i=0;i<val.length;i++){
-					
-						// ExtJS :(
-						if(prop === "items"){
-							var children = widget.items ? widget.items.items : [];
-							applytui(children[i],val[i]);
-						}else{
-							applytui(widget[prop][i],val[i]);
-						}
-						
+					if(prop === "items"){
+						var children = widget.items ? widget.items.items : [];
+					}else{
+						var children = widget[prop];
+					}
+					if(children.length != val.length) throw "fallback";
+				
+					for(var i=0;i<val.length;i++){					
+						applytui(children[i],val[i]);
 					}
 				
 				}catch(e){
 					// Fallback to replace. TODO: works for "items" only
 					widget.removeAll();
-					for(var i=0;i<val.length;i++) widget.add(val[i]);
+					for(var i=0;i<val.length;i++){
+						var a = widget.lookupComponent(val[i]);
+						widget.add(a);
+					}
 				}				
 			}else{
 				
@@ -135,21 +127,14 @@ function __SaplHtml_handleJSEvent(expr,taskId,event){
 	// but the document can be dropped after that.
 	Sapl.feval(ys[2]);
 	
-	ys = Sapl.feval(ys[3]);
-	switch(ys[0]){
-		/* [0, "KeepState"] */
-		case 0: 
-			break;
-		/* [1, "SaveState", newstate] */
-		case 1:
-			var newstate = Sapl.feval(ys[2]);
-			controller.tasklets[taskId].st = newstate;
-			break;
-		/* [2, "PersistState", newstate] */		
-		case 2:
-			var newstate = Sapl.feval(ys[2]);
-			controller.tasklets[taskId].st = newstate;		
-			controller.onEdit(taskId,"state",Sapl.toJS(newstate));
-			break;
+	var newstate = Sapl.feval(ys[3]);
+	controller.tasklets[taskId].st = newstate;
+	// toJS to make the result hyperstrict
+	var newres = Sapl.toJS(Sapl.feval([controller.tasklets[taskId].resultFunc,[newstate]]));
+	
+	// Send result to the client if it is changed only
+	if(!geq(controller.tasklets[taskId].lastResult, newres)){
+		controller.tasklets[taskId].lastResult = newres;
+		controller.onEdit(taskId, "result", newres);
 	}
 }

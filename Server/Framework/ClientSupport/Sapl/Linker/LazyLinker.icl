@@ -43,10 +43,12 @@ generateLoaderState iworld=:{IWorld|world}
 	# mmap = del "sapldebug" mmap
 	# mmap = del "_SystemDynamic" mmap
 	
+	// These modules have overrides on the client
 	# mmap = del "dynamic_string" mmap		
 	# mmap = del "Base64" mmap
 	# mmap = del "ClientOverride" mmap
 	
+	// These modules won't be used on the client for sure
 	# mmap = del "LazyLinker" mmap
 	# mmap = del "CodeGeneratorJS" mmap
 	

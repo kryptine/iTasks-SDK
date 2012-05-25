@@ -21,7 +21,7 @@ diffTUIDefinitions :: !TUIDef !TUIDef !(Maybe EditEvent) -> [TUIUpdate]
 diffTUIDefinitions old new event = diffEditorDefinitions` [ItemStep 0] event old new
 
 diffEditorDefinitions` :: !DiffPath !(Maybe EditEvent) !TUIDef !TUIDef -> [TUIUpdate]
-diffEditorDefinitions` path event oldTui {content = TUITaskletPlaceholder} = [] // Don't delete the tasklet, do nothing
+diffEditorDefinitions` path event oldTui {content = TUITaskletPlaceholder _} = [] // Don't delete the tasklet, do nothing
 diffEditorDefinitions` path event oldTui newTui
 	| oldTui.margins === newTui.margins
 		= case diffEditorDefinitions`` event oldTui.TUIDef.content newTui.TUIDef.content of

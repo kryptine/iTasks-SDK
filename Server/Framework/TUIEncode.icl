@@ -34,7 +34,7 @@ JSONEncode{|TUIDefContent|} (TUIButton r)				= addXType "itasks_button" (JSONEnc
 JSONEncode{|TUIDefContent|} (TUIMenuButton r) 			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUIMenuItem r) 			= JSONEncode{|*|} r
 JSONEncode{|TUIDefContent|} (TUITasklet r)				= addXType "itasks_tasklet" (JSONEncode{|*|} r)
-JSONEncode{|TUIDefContent|} (TUITaskletPlaceholder)		= justXType "itasks_tasklet_placeholder"
+JSONEncode{|TUIDefContent|} (TUITaskletPlaceholder tid)	= [JSONObject [("xtype",JSONString "itasks_widget_placeholder"),("taskId",toJSON tid)]]
 
 JSONEncode{|TUIDefContent|} (TUICustom r)				= [r]
 

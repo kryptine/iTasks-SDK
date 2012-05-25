@@ -4,11 +4,13 @@ Ext.define('itasks.component.Tasklet', {
 	
 	taskId:  null,
 	st: null, // current task state
+	lastResult: null,
 	
 	// script fields
 	defState: null,
 	script: null,
 	events: [],
+	resultFunc: null,
 	tui: null,	// default TUI
 	controllerFunc: null,
 	instanceNo: null,
@@ -37,6 +39,12 @@ Ext.define('itasks.component.Tasklet', {
 		eval("var evalSt = eval(" + this.defState + ");");
 		this.st = evalSt;
 		controller.tasklets[this.taskId] = this;			
+
+		if(this.resultFunc != null){
+			eval("var tmp = eval(" + this.resultFunc + ");");
+			this.resultFunc = tmp;
+			this.lastResult = Sapl.toJS(Sapl.feval([this.resultFunc,[this.st]]));
+		}
 		
 		if(this.controllerFunc != null){
 			controller.taskletControllers[this.instanceNo] = 

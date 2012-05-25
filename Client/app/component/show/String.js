@@ -5,5 +5,5 @@ Ext.define('itasks.component.show.String',{
 	minHeight: 20,
 	initComponent: function() {
 		this.html = Ext.util.Format.nl2br(Ext.util.Format.htmlEncode(this.value));
-	}	
+	}		
 });

@@ -29,9 +29,7 @@ import Task, SaplHtml
 * @param eventName
 * @param eventValue
 */
-:: ControllerFunc st :== TaskId st (Maybe String) (Maybe JSONString) -> (Maybe TUIDef, ControllerResult, st)
-
-:: ControllerResult = CC_Skip // So far...
+:: ControllerFunc st :== TaskId st (Maybe String) (Maybe JSONString) -> (Maybe TUIDef, st)
 
 :: TaskletTUI st = 
 	{ tui				:: !Maybe TUIDef
@@ -45,5 +43,5 @@ import Task, SaplHtml
 	, tweakUI 			:: !(TUIDef -> TUIDef)
 	}
 
-mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} st & JSONEncode{|*|} st & JSONDecode{|*|} res 
+mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} st & JSONEncode{|*|} st & JSONDecode{|*|} res & JSONEncode{|*|} res 
 

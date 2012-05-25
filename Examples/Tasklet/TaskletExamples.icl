@@ -12,7 +12,6 @@ import iTasks, Task, Tasklet
 					   }
 
 :: GPSCoord :== (String,String)
-:: Position = GPS GPSCoord
 
 geoTasklet :: Tasklet (Maybe GPSCoord) (Maybe GPSCoord)
 geoTasklet = 
@@ -34,24 +33,24 @@ geoTaskletGUI _ state iworld
 			
 	= (TaskletHTML gui, state, iworld)
 where
-    onSuccess _ _ pos d
+    onSuccess st _ pos d
 		# (d, _, la) = getObjectAttr d pos "coords.latitude"
 		# (d, _, lo) = getObjectAttr d pos "coords.longitude"		    
 		# (d, _) = setDomAttr d "loc" "innerText" (la +++ ", " +++ lo)
-    	= (d, PersistState (Just (la, lo)))
+    	= (d, Just (la,lo))
 
-    onFailure _ _ msg d
+    onFailure st _ msg d
 		# (d, _) = setDomAttr d "loc" "innerText" "FAILURE"
-    	= (d, KeepState)
+    	= (d, st)
 
-	onInit _ taskId _ d
+	onInit st taskId _ d
 	    # (d, loc) = findObject d "navigator.geolocation" 
 		# (d, loc, _) = runObjectMethod3 d loc "getCurrentPosition" 
 				(handleJSEvent onSuccess taskId) 
 				(handleJSEvent onFailure taskId)
 				{enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}
 				
-		= (d, KeepState)
+		= (d, st)
 
 //-------------------------------------------------------------------------
 
@@ -78,7 +77,7 @@ pushGenerateGUI _ state iworld
 where			
 	onClick state _ _ d
 		# (d, str) = setDomAttr d "pushbtn" "value" (toString (state + 1))
-		= (d, PersistState (state + 1))
+		= (d, state + 1)
  
 //-------------------------------------------------------------------------
 
@@ -178,12 +177,12 @@ where
 	onStart state _ e d
 		# (d, context) = getContext d False
 		# (d, context) = foldl (\(d, context) dr = draw d context dr) (d, context) (reverse state.draw)
-		= (d, KeepState)
+		= (d, state)
 		
 	onChangeTool state _ e d
 		# (d, e, selectedIndex) = getObjectAttr d e "target.selectedIndex"
 		# (d, e, atool) = getObjectAttr d e ("target.options["+++selectedIndex+++"].value")
-		= (d, SaveState {state & tool = atool})		
+		= (d, {state & tool = atool})		
 
 	onSelectColor color state _ e d
 		# d = foldl (\d el = fst (setDomAttr d el "style.borderColor" "white")) d
@@ -191,7 +190,7 @@ where
 
 		# (d, e, target) = getObjectAttrObject d e "target"
 		# (d, target, _) = setObjectAttr d target "style.borderColor" "pink"	 
-		= (d, SaveState {state & color = color})
+		= (d, {state & color = color})
 
 	getCoordinates d e
 	    # (d, e, x) = getObjectAttr d e "layerX"
@@ -200,7 +199,7 @@ where
 
 	onMouseDown state _ e d
 	    # (d, e, coords) = getCoordinates d e
-		= (d, SaveState {state & mouseDown = Just coords, lastDraw = Nothing})
+		= (d, {state & mouseDown = Just coords, lastDraw = Nothing})
 
 	getCanvas d temp
 		= case temp of
@@ -223,14 +222,14 @@ where
 		# (d, context, _) = runObjectMethod3 d context "drawImage" tempcanvas 0 0
 		# (d, tempcontext) = clearContext d tempcontext
 		| isJust state.lastDraw
-			= (d, PersistState {state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing})
-			= (d, SaveState {state & mouseDown = Nothing})
+			= (d, {state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing})
+			= (d, {state & mouseDown = Nothing})
 
 	// generate onDrawing event
 	onMouseMove state _ e d
 		= case state.mouseDown of
 			Just coord = onDrawing state coord e d
-			_          = (d, KeepState)
+			_          = (d, state)
 				
 	drawLine d context color x1 y1 x2 y2
 		# (d, context, _) = runObjectMethod0 d context "beginPath"
@@ -291,8 +290,8 @@ where
 			
 		// Update start coordinates for pencil
 		= case state.tool of 
-				"P" = (d, PersistState {state & mouseDown = Just (x,y), draw=[drawType:state.draw], lastDraw = Nothing})
-				_   = (d, SaveState {state & lastDraw = Just drawType})
+				"P" = (d, {state & mouseDown = Just (x,y), draw=[drawType:state.draw], lastDraw = Nothing})
+				_   = (d, {state & lastDraw = Just drawType})
 
 	draw d context (DrawLine color x1 y1 x2 y2)
 		= drawLine d context color x1 y1 x2 y2
@@ -306,10 +305,10 @@ where
 	onClickClear state _ e d
 		# (d, context) = getContext d False
 		# (d, context) = clearContext d context
-		= (d, PersistState {state & draw = []})
+		= (d, {state & draw = []})
 			
 	onClickFinish state _ e d
-		= (d, PersistState {state & finished = True})
+		= (d, {state & finished = True})
 
 //-------------------------------------------------------------------------
 

@@ -4,5 +4,8 @@ Ext.define('itasks.component.show.Int',{
 	minHeight: 20,
 	initComponent: function() {
 		this.html = '' + this.value;
-	}
+	},
+	setValue: function(value){
+		this.update('' + value);
+	}	
 });
