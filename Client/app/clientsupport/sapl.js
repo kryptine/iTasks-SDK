@@ -205,17 +205,8 @@ Sapl = new function () {
 			// It's an application
 			if (isArray(expr) && isFunction(expr[0]) && isArray(expr[1])) {
 				if (expr[0].length > expr[1].length) {
-					var res = [];
-
-					res.push(this.toJS(expr[0]));
-					var args = expr[1];
-
-					for (var i = 0; i < args.length; i++) {
-						var aarg = this.toJS(this.feval(args[i]));
-						res.push(aarg);
-					}
-
-					return res;
+					// it's an partial application. leave it like that
+					return expr;
 				} else {
 					return this.toJS(this.feval(expr));
 				}

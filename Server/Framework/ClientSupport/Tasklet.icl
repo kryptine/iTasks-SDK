@@ -6,7 +6,7 @@ import LazyLinker, CodeGeneratorJS, SaplHtml, graph_to_sapl_string
 
 //---------------------------------------------------------------------------------------
 
-mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} st & JSONEncode{|*|} st & JSONDecode{|*|} res & JSONEncode{|*|} res
+mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res
 mkTask tasklet = Task taskFunc
 where
 	// Init

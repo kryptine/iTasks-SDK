@@ -1,6 +1,52 @@
 module TaskletExamples
 
-import iTasks, Task, Tasklet
+import iTasks, Task, Tasklet, sapldebug
+
+//-------------------------------------------------------------------------
+
+:: GoogleMapsOptions = {center    :: HtmlObject
+          			   ,zoom      :: Int
+          			   ,mapTypeId :: HtmlObject
+        			   };
+
+googleMapsTasklet :: Tasklet (Maybe HtmlObject) Void
+googleMapsTasklet = 
+	{ Tasklet
+	| defSt				= Nothing
+	, generatorFunc		= googleMapsGUI
+	, resultFunc		= \_ = NoValue
+	, tweakUI  			= \t = (paneled (Just "Google Maps Tasklet") Nothing Nothing [t])		
+	}
+
+googleMapsGUI _ state iworld
+
+	# canvas = DivTag [IdAttr "map_canvas", StyleAttr "width:100%; height:100%"] []
+
+	# gui = { TaskletHTML
+			| width  		= Fixed 300
+			, height 		= Fixed 300
+			, html   		= toString canvas
+			, eventHandlers = [HtmlEvent "tasklet" "init" onInit]
+			}
+			
+	= (TaskletHTML gui, state, iworld)
+where
+    onScriptLoad st _ _ d
+	    # (d, typeId) = findObject d "google.maps.MapTypeId.ROADMAP"
+	    # (d, center) = createObject d "google.maps.LatLng" [JSFuncArg -34.397, JSFuncArg 150.644]
+	    # (d, mapdiv) = getDomElement d "map_canvas" 
+
+	    # (d, map) = createObject d "google.maps.Map" 
+	    				[JSFuncArg mapdiv
+	    				,JSFuncArg {center = center, zoom = 8, mapTypeId = typeId}]
+
+		= (d, Just map)
+
+	onInit st taskId _ d
+		# d = loadExternalJS d "http://maps.googleapis.com/maps/api/js?sensor=false"
+					(handleJSEvent onScriptLoad taskId)
+				
+		= (d, st)
 
 //-------------------------------------------------------------------------
 // http://www.sephidev.net/external/webkit/LayoutTests/fast/dom/Geolocation/argument-types-expected.txt
@@ -45,10 +91,10 @@ where
 
 	onInit st taskId _ d
 	    # (d, loc) = findObject d "navigator.geolocation" 
-		# (d, loc, _) = runObjectMethod3 d loc "getCurrentPosition" 
-				(handleJSEvent onSuccess taskId) 
-				(handleJSEvent onFailure taskId)
-				{enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}
+		# (d, loc, _) = runObjectMethod d loc "getCurrentPosition" 
+							[JSFuncArg (handleJSEvent onSuccess taskId)
+							,JSFuncArg (handleJSEvent onFailure taskId)
+				    		,JSFuncArg {enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}]
 				
 		= (d, st)
 
@@ -208,18 +254,19 @@ where
 
 	getContext d temp
 	 	# (d, canvas) = getCanvas d temp
-		# (d, canvas, context) = runObjectMethod1 d canvas "getContext" "2d"  // not "2D" !
+		# (d, canvas, context) = runObjectMethod d canvas "getContext" [JSFuncArg "2d"]  // not "2D" !
 		= (d, context)
 
 	clearContext d context
-		# (d, context, _) = runObjectMethod4 d context "clearRect" 0 0 canvasWidth canvasHeight 
+		# (d, context, _) = runObjectMethod d context "clearRect" 
+				[JSFuncArg 0, JSFuncArg 0, JSFuncArg canvasWidth, JSFuncArg canvasHeight] 
 		= (d, context)
 
 	onMouseUp state _ e d
 		# (d, tempcanvas) = getCanvas d True
 		# (d, tempcontext) = getContext d True
 		# (d, context) = getContext d False
-		# (d, context, _) = runObjectMethod3 d context "drawImage" tempcanvas 0 0
+		# (d, context, _) = runObjectMethod d context "drawImage" [JSFuncArg tempcanvas, JSFuncArg 0, JSFuncArg 0]
 		# (d, tempcontext) = clearContext d tempcontext
 		| isJust state.lastDraw
 			= (d, {state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing})
@@ -232,38 +279,39 @@ where
 			_          = (d, state)
 				
 	drawLine d context color x1 y1 x2 y2
-		# (d, context, _) = runObjectMethod0 d context "beginPath"
+		# (d, context, _) = runObjectMethod d context "beginPath" []
 		# (d, context, _) = setObjectAttr d context "strokeStyle" color
-		# (d, context, _) = runObjectMethod2 d context "moveTo" x1 y1
-		# (d, context, _) = runObjectMethod2 d context "lineTo" x2 y2
-		# (d, context, _) = runObjectMethod0 d context "stroke"
+		# (d, context, _) = runObjectMethod d context "moveTo" [JSFuncArg x1, JSFuncArg y1]
+		# (d, context, _) = runObjectMethod d context "lineTo" [JSFuncArg x2, JSFuncArg y2]
+		# (d, context, _) = runObjectMethod d context "stroke" []
 		= (d, context)				
 
 	drawRect d context color x1 y1 x2 y2
 		# (d, context, _) = setObjectAttr d context "strokeStyle" color
-		# (d, context, _) = runObjectMethod4 d context "strokeRect" x1 y1 (x2 - x1) (y2 - y1)
+		# (d, context, _) = runObjectMethod d context "strokeRect" 
+				[JSFuncArg x1, JSFuncArg y1, JSFuncArg (x2 - x1), JSFuncArg (y2 - y1)]
 		= (d, context)
 
 	drawFilledRect d context color x1 y1 x2 y2
 		# (d, context, _) = setObjectAttr d context "fillStyle" color
-		# (d, context, _) = runObjectMethod4 d context "fillRect" x1 y1 (x2 - x1) (y2 - y1)
+		# (d, context, _) = runObjectMethod d context "fillRect"
+				[JSFuncArg x1, JSFuncArg y1, JSFuncArg (x2 - x1), JSFuncArg (y2 - y1)]
 		= (d, context)
 
 	drawCircle d context fill color x1 y1 x2 y2
-		# (d, context, _) = runObjectMethod0 d context "beginPath"
+		# (d, context, _) = runObjectMethod d context "beginPath" []
 		# (d, context, _) = setObjectAttr d context "strokeStyle" color
 		# (d, context, _) = setObjectAttr d context "fillStyle" color
 	
-		# (d, context, _) = runObjectMethod6 d context "arc" 
-						(center x1 x2)(center y1 y2) 
-						(toInt ((distance x1 y1 x2 y2)/2.0)) 0 
-						(3.14159265*2.0) 
-						True
+		# (d, context, _) = runObjectMethod d context "arc"
+						[JSFuncArg (center x1 x2), JSFuncArg (center y1 y2)
+						,JSFuncArg (toInt ((distance x1 y1 x2 y2)/2.0))
+						,JSFuncArg 0, JSFuncArg (3.14159265*2.0), JSFuncArg True]
 							
 		# (d, context, _) = case fill of 
-						True = runObjectMethod0 d context "fill"
-						_	 = runObjectMethod0 d context "stroke"
-		# (d, context, _) = runObjectMethod0 d context "closePath"
+						True = runObjectMethod d context "fill" []
+						_	 = runObjectMethod d context "stroke" []
+		# (d, context, _) = runObjectMethod d context "closePath" []
 		= (d, context)
 	where
 		center x1 x2 = (max x1 x2) - (abs (x1 - x2))/2
@@ -316,7 +364,8 @@ taskletExamples :: [Workflow]
 taskletExamples =
 	[workflow "Simple push button tasklet" "Push the button 3 times" tasklet1,
 	 workflow "Painter tasklet" "Simple painter tasklet" tasklet2,
-	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3]
+	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3,
+	 workflow "Google MAP" "Basic Google Maps functionality" (mkTask googleMapsTasklet)]
 
 tasklet2 :: Task Drawing
 tasklet2

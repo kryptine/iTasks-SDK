@@ -43,5 +43,5 @@ import Task, SaplHtml
 	, tweakUI 			:: !(TUIDef -> TUIDef)
 	}
 
-mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} st & JSONEncode{|*|} st & JSONDecode{|*|} res & JSONEncode{|*|} res 
+mkTask :: (Tasklet st res) -> Task res | JSONDecode{|*|} res & JSONEncode{|*|} res 
 

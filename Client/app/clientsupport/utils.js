@@ -37,8 +37,12 @@ String.prototype.capitalize = function() {
 
 /* Only this way works for built in javascript objects */
 function streval(obj, method){
-    var str = "obj."+method+"(";
-
+	if(method!=null){
+		var str = "obj."+method+"(";
+	}else{
+		var str = "new obj(";
+	}
+		
     // Creating a closure
     var eventHandler = function(expr){
 		
