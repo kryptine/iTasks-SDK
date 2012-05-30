@@ -40,7 +40,7 @@ function streval(obj, method){
 	if(method!=null){
 		var str = "obj."+method+"(";
 	}else{
-		var str = "new obj(";
+		var str = "new "+obj+"(";
 	}
 		
     // Creating a closure

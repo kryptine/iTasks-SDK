@@ -211,8 +211,17 @@ function __SaplHtml_setObjectAttr(d, e, attr, value){
     value = Sapl.feval(value);
     attr = Sapl.feval(attr);      
     
+	// unbox function value, boxed by Sapl.feval
+	if(isArray(value) && value.length == 2 && typeof (value[0]) == "function" && value[1].length == 0){
+		value = value[0];
+	}
+	
     eval("e."+attr+"=value;");
     return ___predefined__Tuple3(d, e, value);
+}
+
+function __SaplHtml_setObjectAttrObject(d, e, attr, value){
+	return __SaplHtml_setObjectAttr(d, e, attr, value);
 }
 
 function __SaplHtml_getDomAttr(d, id, attr){
@@ -240,7 +249,11 @@ function __SaplHtml_findObject(d, name){
     name = Sapl.feval(name);
 
     var obj;
-    eval("obj = "+name+";");
+	try{
+		eval("obj = "+name+";");
+	} catch (e) {	
+		// possibly undefined. don't do anything. 
+	}
 	
     return ___predefined__Tuple2(d, obj);
 }
@@ -283,6 +296,13 @@ function __SaplHtml_loadExternalJS(d, url, continuation){
 	document.getElementsByTagName("head")[0].appendChild(script);
 	
 	return d;
+}
+
+function __SaplHtml_isUndefined(d, obj){
+	d = Sapl.feval(d);
+	obj = Sapl.feval(obj);
+	
+	return ___predefined__Tuple2(d, obj == null);
 }
 
 // --------- Function overrides -----------------------------

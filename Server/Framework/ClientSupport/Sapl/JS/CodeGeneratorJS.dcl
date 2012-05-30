@@ -18,6 +18,15 @@ import StringAppender, Error
 from SaplParser import :: ParserState
 
 /**
+* Convert SAPL function name to JS name
+*
+* @param Sapl fn name
+* @param String appender
+* @return String appender
+*/
+escapeName :: String StringAppender -> StringAppender
+
+/**
 * Generates JS from Sapl source
 *
 * @param Sapl source

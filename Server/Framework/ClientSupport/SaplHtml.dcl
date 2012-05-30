@@ -6,7 +6,7 @@ import StdString, Void
 :: HtmlObject
 :: TaskSID :== String	// String TaskId
 
-:: HtmlEvent st = HtmlEvent !String !String (HtmlEventHandlerFunc st)
+:: HtmlEvent st = HtmlEvent !HtmlId !String (HtmlEventHandlerFunc st)
 :: HtmlEventHandlerFunc st :== (st TaskSID HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
 
 :: HtmlId :== String
@@ -17,9 +17,10 @@ import StdString, Void
 */
 handleJSEvent :: (HtmlEventHandlerFunc a) !TaskSID *HtmlObject -> Void
 
-getObjectAttr       :: !*HtmlDocument !HtmlObject !String         -> *(!*HtmlDocument, !HtmlObject, !String)
-getObjectAttrObject :: !*HtmlDocument !HtmlObject !String         -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
-setObjectAttr       :: !*HtmlDocument !HtmlObject !String !String -> *(!*HtmlDocument, !HtmlObject, !String)
+getObjectAttr       :: !*HtmlDocument !HtmlObject !String             -> *(!*HtmlDocument, !HtmlObject, !String)
+getObjectAttrObject :: !*HtmlDocument !HtmlObject !String             -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+setObjectAttr       :: !*HtmlDocument !HtmlObject !String !String     -> *(!*HtmlDocument, !HtmlObject, !String)
+setObjectAttrObject :: !*HtmlDocument !HtmlObject !String !HtmlObject -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 
 :: JSFuncArg = E.a: JSFuncArg a
 
@@ -28,6 +29,8 @@ runObjectMethod :: !*HtmlDocument !HtmlObject !String [JSFuncArg] -> *(!*HtmlDoc
 getDomElement :: !*HtmlDocument !HtmlId                 -> *(!*HtmlDocument, !HtmlObject)
 getDomAttr    :: !*HtmlDocument !HtmlId !HtmlObjAttr    -> *(!*HtmlDocument, !String)
 setDomAttr    :: !*HtmlDocument !HtmlId !HtmlObjAttr !a -> *(!*HtmlDocument, !a)
+
+isUndefined :: !*HtmlDocument !HtmlObject -> *(!*HtmlDocument, Bool)
 
 /*
 * Find a browser object or constant like:

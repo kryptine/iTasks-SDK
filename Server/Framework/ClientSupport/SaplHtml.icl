@@ -20,6 +20,9 @@ getObjectAttrObject d object attr = undef
 setObjectAttr :: !*HtmlDocument !HtmlObject !String !String -> *(!*HtmlDocument, !HtmlObject, !String)
 setObjectAttr d object attr value = undef
 
+setObjectAttrObject :: !*HtmlDocument !HtmlObject !String !HtmlObject -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+setObjectAttrObject d object attr value = undef
+
 runObjectMethod :: !*HtmlDocument !HtmlObject !String [JSFuncArg] -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 runObjectMethod d object method args = undef
 
@@ -38,5 +41,7 @@ createObject document objname args = undef
 loadExternalJS :: !*HtmlDocument !String (*HtmlObject -> Void) -> *HtmlDocument
 loadExternalJS document url continuation = undef
 
+isUndefined :: !*HtmlDocument !HtmlObject -> *(!*HtmlDocument, Bool)
+isUndefined document object = undef
 
 

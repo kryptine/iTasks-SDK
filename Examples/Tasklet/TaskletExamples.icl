@@ -1,6 +1,8 @@
 module TaskletExamples
 
-import iTasks, Task, Tasklet, sapldebug
+import iTasks, Task, Tasklet
+import StringAppender, CodeGeneratorJS, graph_to_sapl_string
+import sapldebug
 
 //-------------------------------------------------------------------------
 
@@ -18,19 +20,21 @@ googleMapsTasklet =
 	, tweakUI  			= \t = (paneled (Just "Google Maps Tasklet") Nothing Nothing [t])		
 	}
 
-googleMapsGUI _ state iworld
+googleMapsGUI taskId state iworld
 
 	# canvas = DivTag [IdAttr "map_canvas", StyleAttr "width:100%; height:100%"] []
+	// This must be done on server side:
+	# onLoadHnd = toString (newAppender <++ escapeName (graph_to_sapl_string onScriptLoad))
 
 	# gui = { TaskletHTML
 			| width  		= Fixed 300
 			, height 		= Fixed 300
-			, html   		= toString canvas
-			, eventHandlers = [HtmlEvent "tasklet" "init" onInit]
+			, html   		= toString (html canvas)
+			, eventHandlers = [HtmlEvent "tasklet" "init" (onInit onLoadHnd)]
 			}
 			
 	= (TaskletHTML gui, state, iworld)
-where
+where    
     onScriptLoad st _ _ d
 	    # (d, typeId) = findObject d "google.maps.MapTypeId.ROADMAP"
 	    # (d, center) = createObject d "google.maps.LatLng" [JSFuncArg -34.397, JSFuncArg 150.644]
@@ -42,11 +46,26 @@ where
 
 		= (d, Just map)
 
-	onInit st taskId _ d
-		# d = loadExternalJS d "http://maps.googleapis.com/maps/api/js?sensor=false"
-					(handleJSEvent onScriptLoad taskId)
-				
-		= (d, st)
+	onInit onLoadHnd st taskId e d
+
+		// Google maps API doesn't like to be loaded twice	
+		# (d, mapsobj) = findObject d "google.maps"
+		# (d, undef) = isUndefined d mapsobj
+		| undef 
+		= (loadMapsAPI onLoadHnd taskId e d, st)
+		= onScriptLoad st taskId e d
+		
+	loadMapsAPI onLoadHnd taskId e d	
+		# handlersrc   = "__SaplHtml_handleJSEvent(" +++ onLoadHnd +++ ",\"" +++ toString taskId +++ "\");"
+		// Trick: add at least one argument to the function otherwise Sapl.feval evaluates it
+		# (d, handler) = createObject d "Function" [JSFuncArg "dummy", JSFuncArg handlersrc]
+		# (d, window)  = findObject d "window"	
+		# (d, _, _)    = setObjectAttrObject d window "gmapscallback" handler
+	
+		= loadExternalJS d "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
+					(handleJSEvent nullEventHandler taskId)
+
+	nullEventHandler st _ _ d = (d, st)
 
 //-------------------------------------------------------------------------
 // http://www.sephidev.net/external/webkit/LayoutTests/fast/dom/Geolocation/argument-types-expected.txt
