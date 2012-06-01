@@ -323,7 +323,7 @@ whileUnchangedWith :: !(r r -> Bool) !(ReadWriteShared r w) (r -> Task b) -> Tas
 */
 appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 
-appendTopLevelTaskFor :: !User !(Task a) -> Task TaskId | iTask a
+appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 
 // Additional tuning shortcuts
 instance tune BeforeLayout
