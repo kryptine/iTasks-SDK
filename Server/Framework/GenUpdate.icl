@@ -225,6 +225,7 @@ gUpdate{|EUR|}					mode ust = basicUpdateSimple mode (EUR 0) ust
 gUpdate{|USD|}					mode ust = basicUpdateSimple mode (USD 0) ust
 gUpdate{|User|}					mode ust = basicUpdateSimple mode (AnonymousUser "") ust
 gUpdate{|BoundedInt|}			mode ust = basicUpdate mode (\json i -> maybe i (\cur -> {BoundedInt|i & cur = cur}) (fromJSON json)) {BoundedInt|min=1,cur=3,max=5} ust
+gUpdate{|Progress|}				mode ust = noUpdate mode {Progress|progress=0.0, description = ""} ust
 gUpdate{|HtmlInclude|}			mode ust = basicUpdateSimple mode (HtmlInclude "") ust
 gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton|b & state = st})																						{FormButton | label = "Form Button", icon="", state = NotPressed}	ust
 gUpdate{|URL|}					mode ust = basicUpdate mode (\json url -> maybe url (\s -> URL s) (fromJSON json))  (URL "") ust
@@ -289,10 +290,20 @@ where
 		= (mbDoc,{ust & iworld = Just iworld})
 	getDoc docId ust = (Nothing,ust) 
 
+gUpdate{|HtmlTag|} mode ust = noUpdate mode (Html "") ust
+/*
 gUpdate{|HtmlTag|} UDCreate ust = basicCreate (Html "") ust
 gUpdate{|HtmlTag|} (UDSearch v) ust = basicSearch v (\Void v -> v) ust //HOPE THIS IS OK
+*/
 
 derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
+
+noUpdate :: !(UpdateMode a) a !*USt -> *(!a,!*USt)
+noUpdate UDCreate def ust	= basicCreate def ust
+noUpdate (UDSearch v) _ ust=:{currentPath,oldMask,newMask}
+	# (cm,om)	= popMask oldMask
+	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}
+	= (v,ust)
 
 basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
 basicUpdateSimple mode def ust = case mode of
@@ -366,6 +377,7 @@ gDefaultMask{|User|}				_ = [Touched []]
 gDefaultMask{|HtmlTag|}				_ = [Touched []]
 gDefaultMask{|HtmlInclude|}			_ = [Touched []]
 gDefaultMask{|BoundedInt|}			_ = [Touched []]
+gDefaultMask{|Progress|}			_ = [Touched []]
 gDefaultMask{|CheckMultiChoice|}_ _	_ = [Touched []]
 gDefaultMask{|RadioChoice|} _ _ (RadioChoice opts mbSel)
 	// if no valid selection is made, start with untouched mask

@@ -4,6 +4,6 @@ Ext.define('itasks.component.Html', {
 	width: 400,
 	minWidth: 400,
 	height: 100,
-	minHeight: 100,
+	minHeight: 50,
 	style: 'overflow: auto'
 });

@@ -66,9 +66,10 @@ gVisualizeText{|Date|}			_ val				= [toString val]
 gVisualizeText{|Time|}			_ val				= [toString val]
 gVisualizeText{|User|}			_ val				= [toString val]
 gVisualizeText{|EUR|}			_ val				= [toString val]
-gVisualizeText{|USD|}			_ val				= [toString val]
-gVisualizeText{|BoundedInt|}	_ {BoundedInt|cur}	= [toString cur]
-gVisualizeText{|HtmlInclude|}	_ val				= ["Html include"]
+gVisualizeText{|USD|}			_ val						= [toString val]
+gVisualizeText{|BoundedInt|}	_ {BoundedInt|cur}			= [toString cur]
+gVisualizeText{|Progress|}		_ {Progress|description}	= [description]
+gVisualizeText{|HtmlInclude|}	_ val						= ["Html include"]
 gVisualizeText{|FormButton|}	_ val				= [val.FormButton.label]
 gVisualizeText{|Document|}		_ val
 	| val.Document.size == 0						= ["No Document"]
@@ -300,6 +301,19 @@ where
 			= ([addMsg verRes viz],vst)
 
 	curVal {BoundedInt|cur} = cur
+
+gVisualizeEditor{|Progress|} val vst = visualizeCustom vizProgress vst
+where
+	vizProgress name touched verRes vst=:{VSt|taskId,controlSize}
+		= ([sizedControl controlSize (TUIProgressBar {TUIProgressBar|text = text val,value = value val})],vst)
+	where
+		text (Just {Progress|description}) 	= description
+		text _								= ""
+		value (Just {Progress|progress})
+			| progress < 0.0	= 0.0
+			| progress > 1.0	= 1.0
+								= progress
+		value _					= 0.0
 	
 gVisualizeEditor{|HtmlInclude|} val vst = visualizeControl TUIStringControl (fmap (\(HtmlInclude path) -> path) val) vst
 
@@ -581,6 +595,7 @@ gHeaders{|Real|} _			= []
 gHeaders{|Bool|} _ 			= []
 gHeaders{|Dynamic|}	_		= []
 gHeaders{|BoundedInt|} _	= []
+gHeaders{|Progress|} _		= []
 gHeaders{|HtmlTag|}	_		= []
 gHeaders{|(->)|} _ _ _		= []
 
@@ -607,6 +622,7 @@ gGridRows{|Real|} r _						= Nothing
 gGridRows{|Bool|} b _						= Nothing
 gGridRows{|Dynamic|} d _					= Nothing
 gGridRows{|BoundedInt|} _ _					= Nothing
+gGridRows{|Progress|} _ _					= Nothing
 gGridRows{|HtmlTag|} h _					= Nothing
 gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 

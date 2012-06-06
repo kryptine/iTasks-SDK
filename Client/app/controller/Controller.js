@@ -30,6 +30,7 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.Button',
 		'itasks.component.MenuButton',
 		'itasks.component.MenuItem',	
+		'itasks.component.ProgressBar',
 		'itasks.component.Html',
 		'itasks.component.Tasklet',
 		'itasks.component.TaskletPlaceholder',
@@ -81,6 +82,15 @@ Ext.define('itasks.controller.Controller',{
 	onViewportRendered: function(viewport) {
 		document.title = 'Running...';
 		this.viewport = viewport;
+
+		//Uncomment these lines to start polling every second
+        //var me = this;
+        //var pollTask = {
+        //    run: function() { me.pollServer();},
+        //    interval: 1000
+        //}
+        //Ext.TaskManager.start(pollTask);
+
 		this.pollServer();
 	},
 	onEdit: function(taskId,name,value) {	

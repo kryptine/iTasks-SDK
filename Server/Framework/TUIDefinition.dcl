@@ -32,6 +32,7 @@ from Task			import	:: TaskAction, :: TaskId
 	| TUIButton				!TUIButton
 	| TUIMenuButton			!TUIMenuButton
 	| TUIMenuItem			!TUIMenuItem
+	| TUIProgressBar		!TUIProgressBar
 	| TUIHtml				!TUIHtml
 	| TUITasklet			!TUITasklet
 	| TUICustom				!JSONNode
@@ -209,6 +210,11 @@ from Task			import	:: TaskAction, :: TaskId
 	, hotkey		:: !Maybe Hotkey
 	, menu			:: !Maybe TUIMenu
 	}
+:: TUIProgressBar =
+	{ text			:: !String
+	, value			:: !Real
+	}
+
 :: TUIHtml =
 	{ html			:: !String
 	}

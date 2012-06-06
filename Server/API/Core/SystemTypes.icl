@@ -7,12 +7,12 @@ from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress
 derive JSONEncode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
+derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress
 derive JSONDecode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
-derive gEq				EUR, USD, BoundedInt, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
+derive gEq				EUR, USD, BoundedInt, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint, Progress
 derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
 derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability

@@ -12,14 +12,14 @@ derive JSONEncode TUIDef, TUIDefContent, TUIIcon, TUIHtml, TUIButton, TUIMenuBut
 derive JSONEncode TUIControlType
 derive JSONEncode TUIButtonControl, TUISliderControl, TUIListItem
 derive JSONEncode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
-derive JSONEncode TUITasklet
+derive JSONEncode TUIProgressBar, TUITasklet
 
 derive JSONDecode TaskRep, TaskCompositionType
 derive JSONDecode TUIDef, TUIDefContent, TUIIcon, TUIHtml, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
 derive JSONDecode TUIControlType
 derive JSONDecode TUIButtonControl, TUISliderControl, TUIListItem
 derive JSONDecode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
-derive JSONDecode TUITasklet
+derive JSONDecode TUIProgressBar, TUITasklet
 
 INCREMENT				:== "increment"
 PERSISTENT_INDEX		:== "persistent-index"

@@ -14,7 +14,7 @@ generic gVisualizeText a :: !StaticVisualizationMode !a -> [String]
 derive gVisualizeText UNIT, PAIR, EITHER, CONS of {gcd_name,gcd_type_def}, OBJECT, RECORD, FIELD of {gfd_name}
 derive gVisualizeText Int, Real, Char, Bool, String
 derive gVisualizeText Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualizeText URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeText URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table, Progress
 derive gVisualizeText EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gVisualizeText DynamicChoice, DynamicChoiceNoView
 
@@ -39,7 +39,7 @@ derive gVisualizeEditor UNIT,
 	EITHER with ve1 _ _ _ ve2 _ _ _
 derive gVisualizeEditor Int, Real, Char, Bool, String
 derive gVisualizeEditor Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gVisualizeEditor URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gVisualizeEditor URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table, Progress
 derive gVisualizeEditor EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gVisualizeEditor DynamicChoice, DynamicChoiceNoView
 
@@ -57,7 +57,7 @@ derive gHeaders UNIT,
 	EITHER with _ _
 derive gHeaders Int, Real, Char, Bool, String
 derive gHeaders Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table, Progress
 derive gHeaders EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gHeaders DynamicChoice, DynamicChoiceNoView
 
@@ -74,7 +74,7 @@ derive gGridRows UNIT,
 	EITHER with _ _ _ _
 derive gGridRows Int, Real, Char, Bool, String
 derive gGridRows Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
-derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table
+derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, BoundedInt, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, TreeChoice, Tree, TreeNode, Table, Progress
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
 derive gGridRows DynamicChoice, DynamicChoiceNoView
 

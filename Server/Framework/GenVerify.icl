@@ -124,6 +124,7 @@ gVerify{|FormButton|}			_ vst = alwaysValid vst
 gVerify{|EUR|}					_ vst = simpleVerify "Enter an amount in EUR" vst
 gVerify{|USD|}					_ vst = simpleVerify "Enter an amount in USD" vst
 gVerify{|BoundedInt|}			_ vst = alwaysValid vst
+gVerify{|Progress|}				_ vst = alwaysValid vst
 gVerify{|User|}					_ vst = simpleVerify "Select a username" vst 
 gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
 gVerify{|RadioChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
