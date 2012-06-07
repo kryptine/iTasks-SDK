@@ -36,6 +36,10 @@ googleMapsGUI taskId state iworld
 	= (TaskletHTML gui, state, iworld)
 where    
     onScriptLoad st _ _ d
+		// Check whether it's already initalized
+    	| isJust st
+    		= (d, st)
+    
 	    # (d, typeId) = findObject d "google.maps.MapTypeId.ROADMAP"
 	    # (d, center) = createObject d "google.maps.LatLng" [JSFuncArg -34.397, JSFuncArg 150.644]
 	    # (d, mapdiv) = getDomElement d "map_canvas" 
