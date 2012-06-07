@@ -18,6 +18,10 @@ isFunction = function(o){
 	return (typeof o == "function");
 }
 
+isObject = function(o){
+	return (typeof (o) == "object");
+}
+
 String.prototype.trim = function () {
     return this.replace(/^\s*/, "").replace(/\s*$/, "");
 }

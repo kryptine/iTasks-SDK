@@ -19,7 +19,8 @@ DB = new function () {
 	this.saveTasklet = function(tasklet){
 	
 		var taskletId = tasklet.taskId;
-		var st = DB.stringify(tasklet.st);
+		// evaluate it completely to avoid serialize JS objects as much as possible
+		var st = DB.stringify(Sapl.heval(tasklet.st)); 
 		var events = DB.stringify(tasklet.events);
 		var resultFunc = DB.stringify(tasklet.resultFunc);
 		var tui = JSON.stringify(tasklet.tui);
@@ -57,7 +58,8 @@ DB = new function () {
 	this.updateTasklet = function(tasklet, html, tuistr){
 	
 		var taskletId = tasklet.taskId;	
-		var st = DB.stringify(tasklet.st);
+		// evaluate it completely to avoid serialize JS objects as much as possible
+		var st = DB.stringify(Sapl.heval(tasklet.st)); 
 		
 		this.saveValue(taskletId, "st", st);
 		this.saveValue(taskletId, "tui", tuistr);

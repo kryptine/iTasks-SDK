@@ -232,6 +232,10 @@ Sapl = new function () {
 			
 		} else if (isFunction(expr)) {
 			return expr.name;
+		
+		} else if (isObject(expr)) {
+			return "\"OBJECT\"";
+			
 		} else {
 			if (isNumber(expr)) {
 				return expr.toString();

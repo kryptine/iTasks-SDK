@@ -11,6 +11,8 @@ import sapldebug
           			   ,mapTypeId :: HtmlObject
         			   };
 
+mapdiv =: toString (DivTag [IdAttr "map_canvas", StyleAttr "width:100%; height:100%"] [])
+
 googleMapsTasklet :: Tasklet (Maybe HtmlObject) Void
 googleMapsTasklet = 
 	{ Tasklet
@@ -22,7 +24,7 @@ googleMapsTasklet =
 
 googleMapsGUI taskId state iworld
 
-	# canvas = DivTag [IdAttr "map_canvas", StyleAttr "width:100%; height:100%"] []
+	# canvas = DivTag [IdAttr "map_place_holder", StyleAttr "width:100%; height:100%"] []
 	// This must be done on server side:
 	# onLoadHnd = toString (newAppender <++ escapeName (graph_to_sapl_string onScriptLoad))
 
@@ -36,13 +38,11 @@ googleMapsGUI taskId state iworld
 	= (TaskletHTML gui, state, iworld)
 where    
     onScriptLoad st _ _ d
-		// Check whether it's already initalized
-    	| isJust st
-    		= (d, st)
-    
+	    # (d, _) = setDomAttr d "map_place_holder" "innerHTML" mapdiv
+	    # (d, mapdiv) = getDomElement d "map_canvas"
+	        
 	    # (d, typeId) = findObject d "google.maps.MapTypeId.ROADMAP"
 	    # (d, center) = createObject d "google.maps.LatLng" [JSFuncArg -34.397, JSFuncArg 150.644]
-	    # (d, mapdiv) = getDomElement d "map_canvas" 
 
 	    # (d, map) = createObject d "google.maps.Map" 
 	    				[JSFuncArg mapdiv
@@ -166,7 +166,7 @@ where
 
 derive class iTask PainterState, DrawType, Drawing
 
-info = "Draw somthing, but please do _not_ use the pencil! (it kills the server)" 
+info = "Draw somthing, but use the pencil slowly in Chrome!" 
 
 painterTasklet :: Tasklet PainterState Drawing
 painterTasklet = 
