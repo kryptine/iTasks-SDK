@@ -105,11 +105,11 @@ where
     onSuccess st _ pos d
 		# (d, _, la) = getObjectAttr d pos "coords.latitude"
 		# (d, _, lo) = getObjectAttr d pos "coords.longitude"		    
-		# (d, _) = setDomAttr d "loc" "innerText" (la +++ ", " +++ lo)
+		# (d, _) = setDomAttr d "loc" "innerHTML" (la +++ ", " +++ lo)
     	= (d, Just (la,lo))
 
     onFailure st _ msg d
-		# (d, _) = setDomAttr d "loc" "innerText" "FAILURE"
+		# (d, _) = setDomAttr d "loc" "innerHTML" "FAILURE"
     	= (d, st)
 
 	onInit st taskId _ d

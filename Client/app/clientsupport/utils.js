@@ -166,8 +166,8 @@ function _geq(a, b, stack) {
     if (a.isEqual && isFunction(a.isEqual)) return a.isEqual(b);
     if (b.isEqual && isFunction(b.isEqual)) return b.isEqual(a);
     // Compare `[[Class]]` names.
-    var className = toString.call(a);
-    if (className != toString.call(b)) return false;
+    var className = a.toString();
+    if (className != b.toString()) return false;
     switch (className) {
       // Strings, numbers, dates, and booleans are compared by value.
       case '[object String]':
