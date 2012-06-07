@@ -34,13 +34,14 @@ generateLoaderState :: !*IWorld -> *(LoaderStateExt, !*IWorld)
 *
 * @param LoaderState
 * @param StringAppender as the output stream
-* @param the module name
+* @param the expression to link for
 * @param *IWorld for accessing referenced modules
 * @return new LoaderState
-* @return new output stream 
+* @return new output stream of generated source code with dependencies
+* @return the original expression after macro substitution 
 * @return *IWorld
 */
-linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*IWorld -> *(LoaderStateExt, !StringAppender, !*IWorld)
+linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*IWorld -> *(LoaderStateExt, !StringAppender, !String, !*IWorld)
 
 /**
 * Simplified linker
@@ -48,7 +49,8 @@ linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*IWorld 
 * @param Expression for linking
 * @param *IWorld for accessing referenced modules
 * @return generated source code with dependencies
+* @return the original expression after macro substitution
 * @return *IWorld
 */
-linkSaplforExpr :: !String *IWorld -> *(!String,!*IWorld)
+linkSaplforExpr :: !String *IWorld -> *(!String, !String,!*IWorld)
 

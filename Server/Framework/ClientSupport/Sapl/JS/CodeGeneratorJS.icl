@@ -394,6 +394,12 @@ isdynamic (SName name _) | startsWith "_SystemDynamic." name
 	= True
 	= False
 
+isdynamic (SStrictName name) | startsWith "_SystemDynamic." name
+	= True
+	= False
+
+isdynamic _ = False
+
 generateJS :: String -> (MaybeErrorString (StringAppender, ParserState))
 generateJS saplsrc
 	# pts = tokensWithPositions saplsrc

@@ -2,7 +2,7 @@ implementation module Tasklet
 
 import iTasks, Task, TaskState, TUIEncode
 import LazyLinker, CodeGeneratorJS, SaplHtml, graph_to_sapl_string
-//import sapldebug, StdFile, StdMisc
+import sapldebug, StdFile, StdMisc //, graph_to_string_with_descriptors
 
 //---------------------------------------------------------------------------------------
 
@@ -132,31 +132,39 @@ where
 
 linker state eventHandlers resultFunc mbControllerFunc iworld
 
+/* For debugging: */				
+
+//	# (_, iworld) = writeFile "debug_bubu1.sapl" "nunu" iworld
+//	# (_, iworld) = writeFile "debug_bubuk.sapl" (graph_to_sapl_string state) iworld
+//	# (_, iworld) = writeFile "debug_bubu2.sapl" "nunu" iworld
+	
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 
 	# (ls, iworld) = generateLoaderState iworld
 	// link functions indicated by the state structure
 	# saplst = graph_to_sapl_string state
-	# (ls, a, iworld) = linkSaplforExprByLoaderState ls newAppender saplst iworld
+	# (ls, a, saplst, iworld) = linkSaplforExprByLoaderState ls newAppender saplst iworld
 
 	// link functions indicated by result func
 	# saplRF = graph_to_sapl_string resultFunc
-	# (ls, a, iworld) = linkSaplforExprByLoaderState ls a saplRF iworld
+	# (ls, a, saplRF, iworld) = linkSaplforExprByLoaderState ls a saplRF iworld
 
 	// link functions indicated by controller func
 	# (ls, a, mbSaplCF, iworld) = case mbControllerFunc of
 		Just cf # saplCF = graph_to_sapl_string cf
-				# (ls, a, iworld) = linkSaplforExprByLoaderState ls a saplCF iworld
+				# (ls, a, saplCF, iworld) = linkSaplforExprByLoaderState ls a saplCF iworld
 				= (ls, a, Just saplCF, iworld)
 				= (ls, a, Nothing,  iworld)
 				
 	// link functions indicated by event handlers
-	# (ls, a, iworld) = foldl (\(ls, a, iworld) (_,_,f) = 
-				linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) iworld) (ls, a, iworld) eventHandlers
+	# (ls, a, eventHandlers, iworld) = foldl (\(ls, a, hs, iworld) (e1,e2,f) = 
+				let (ls2, a2, f2, iworld2) = linkSaplforExprByLoaderState ls a (graph_to_sapl_string f) iworld
+				 in (ls2, a2, [(e1,e2,f2):hs], iworld2)) 
+			(ls, a, [], iworld) eventHandlers
 
 	/* 2. Generate function definitions and ParserState */
 
-	# sapl = toString a
+	# sapl = toString a	
 	# (script, mbPst) = case sapl of
 		"" = ("", Nothing)
 		   = let (script, pst) = fromOk (generateJS sapl) in (toString script, Just pst)
@@ -165,8 +173,8 @@ linker state eventHandlers resultFunc mbControllerFunc iworld
 									
 	# statejs = toString (fromOk (exprGenerateJS saplst mbPst))
 
-	# events = map (\(id,event,handler) = (id,event,toString (fromOk 
-				(exprGenerateJS (graph_to_sapl_string handler) mbPst)))) eventHandlers
+	# events = map (\(id,event,saplhandler) = (id,event,toString (fromOk 
+				(exprGenerateJS saplhandler mbPst)))) eventHandlers
 	
 	# rfjs = toString (fromOk (exprGenerateJS saplRF mbPst))		
 	
@@ -174,7 +182,7 @@ linker state eventHandlers resultFunc mbControllerFunc iworld
 		Just saplCF = Just (toString (fromOk (exprGenerateJS saplCF mbPst)))
 					= Nothing		
 					
-/* For debugging: 				
+/* For debugging: 
 
 	# (_, iworld) = writeFile "debug_state.sapl" saplst iworld
 	# (_, iworld) = writeFile "debug_state.js" statejs iworld	

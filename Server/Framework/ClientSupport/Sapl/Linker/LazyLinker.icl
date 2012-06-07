@@ -54,21 +54,22 @@ generateLoaderState iworld=:{IWorld|world}
 	
 	= (((mmap, bmmap, [], 0), newMap), {iworld & world=world})
 
-linkSaplforExpr :: !String *IWorld -> *(!String,!*IWorld)
+linkSaplforExpr :: !String *IWorld -> *(!String, !String, !*IWorld)
 linkSaplforExpr expr iworld
 	# (ls, iworld) = generateLoaderState iworld
-	# (_, a, iworld) = linkSaplforExprByLoaderState ls newAppender expr iworld
-	= (toString a, iworld)
+	# (_, a, newexpr, iworld) = linkSaplforExprByLoaderState ls newAppender expr iworld
+	= (toString a, newexpr, iworld)
 
-linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*IWorld -> *(LoaderStateExt, !StringAppender, !*IWorld)
+linkSaplforExprByLoaderState :: LoaderStateExt !StringAppender !String !*IWorld -> *(LoaderStateExt, !StringAppender, !String, !*IWorld)
 linkSaplforExprByLoaderState (ls,lmap) a expr iworld=:{IWorld|world} 
 	# maindeps = generate_dependencies (tokens expr) []
+	# (lmap, (_, ls), world, expra) = substitute_macros lmap maindeps (lazy_loader, ls) expr world newAppender
 
 	# (lmap, (_, ls), world, a) 
 				= foldl (\(llmap, loader, world, a) d = generate_source llmap loader d world a) 
 					    (lmap, (lazy_loader, ls), world, a) maindeps
 
-	= ((ls,lmap), a, {iworld & world=world})
+	= ((ls,lmap), a, toString expra, {iworld & world=world})
 
 where
 	getModuleName name

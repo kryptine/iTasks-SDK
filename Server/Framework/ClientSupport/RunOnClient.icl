@@ -35,7 +35,7 @@ roc_generator task (TaskId instanceNo taskNo) st iworld
 	
 	# (newInstanceNo, iworld) = newInstanceId iworld
 	# ((meta, reduct, taskres, rep), iworld) = 
-		createTaskInstance newInstanceNo ameta.sessionId instanceNo ameta.TIMeta.worker task ameta.management ameta.progress iworld
+		createTaskInstance newInstanceNo ameta.sessionId instanceNo ameta.TIMeta.worker task ameta.management ameta.TIMeta.progress iworld
 	
 	// Initialize embedded task
 	# (meta, reduct, taskres, result, iworld) = evalInstance Nothing Nothing False (meta, reduct, taskres) iworld

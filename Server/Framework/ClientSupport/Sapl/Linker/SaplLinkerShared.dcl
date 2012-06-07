@@ -92,6 +92,22 @@ read_module :: !String FuncTypeMap Warnings IdGenerator !*World -> (FuncTypeMap,
 */
 generate_source :: !FuncTypeMap !(Loader st) !String !*World !StringAppender -> *(!FuncTypeMap, !(Loader st), !*World, !StringAppender)
 
+/**
+* Substitute macros in a given expression.
+*
+* @param initial FuncTypeMap
+* @param dependencies of the expression
+* @param loader function (and its current state)
+* @param the expression
+* @param *World
+* @param output stream
+* @return new FuncTypeMap (loader my changed it)
+* @return loader function (and its new state)
+* @return *World
+* @return updated output stream
+*/
+substitute_macros :: !FuncTypeMap ![String] !(Loader st) !String !*World !StringAppender -> (!FuncTypeMap, !(Loader st), !*World, StringAppender)
+
 // .gfp
 sapl_module_name_extension  :: String
 // .sapl

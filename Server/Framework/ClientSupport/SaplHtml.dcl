@@ -6,29 +6,37 @@ import StdString, Void
 :: HtmlObject
 :: TaskSID :== String	// String TaskId
 
-:: HtmlEvent st = HtmlEvent !HtmlId !String (HtmlEventHandlerFunc st)
+:: HtmlElementId :== String
+:: HtmlObjAttr :== String
+:: HtmlEventName :== String
+
+:: HtmlEvent st = HtmlEvent !HtmlElementId !HtmlEventName (HtmlEventHandlerFunc st)
 :: HtmlEventHandlerFunc st :== (st TaskSID HtmlObject *HtmlDocument -> *(!*HtmlDocument, st))
 
-:: HtmlId :== String
-:: HtmlObjAttr :== String
+/**
+* TODO:
+* - createFunction :: !String ![String] -> HtmlObject
+* - createEventhandler :: !(HtmlEventHandlerFunc st) !TaskSID -> HtmlObject
+* - Functions are wrapped into {funcValue: ...} on creation, and unwrapped on passing as argument
+*/
 
 /**
 * Wrapper for JS call back functions
 */
 handleJSEvent :: (HtmlEventHandlerFunc a) !TaskSID *HtmlObject -> Void
 
-getObjectAttr       :: !*HtmlDocument !HtmlObject !String             -> *(!*HtmlDocument, !HtmlObject, !String)
-getObjectAttrObject :: !*HtmlDocument !HtmlObject !String             -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
-setObjectAttr       :: !*HtmlDocument !HtmlObject !String !String     -> *(!*HtmlDocument, !HtmlObject, !String)
-setObjectAttrObject :: !*HtmlDocument !HtmlObject !String !HtmlObject -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+getObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr             -> *(!*HtmlDocument, !HtmlObject, !String)
+getObjectAttrObject :: !*HtmlDocument !HtmlObject !HtmlObjAttr             -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+setObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr !String     -> *(!*HtmlDocument, !HtmlObject, !String)
+setObjectAttrObject :: !*HtmlDocument !HtmlObject !HtmlObjAttr !HtmlObject -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 
 :: JSFuncArg = E.a: JSFuncArg a
 
 runObjectMethod :: !*HtmlDocument !HtmlObject !String [JSFuncArg] -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 
-getDomElement :: !*HtmlDocument !HtmlId                 -> *(!*HtmlDocument, !HtmlObject)
-getDomAttr    :: !*HtmlDocument !HtmlId !HtmlObjAttr    -> *(!*HtmlDocument, !String)
-setDomAttr    :: !*HtmlDocument !HtmlId !HtmlObjAttr !a -> *(!*HtmlDocument, !a)
+getDomElement :: !*HtmlDocument !HtmlElementId                 -> *(!*HtmlDocument, !HtmlObject)
+getDomAttr    :: !*HtmlDocument !HtmlElementId !HtmlObjAttr    -> *(!*HtmlDocument, !String)
+setDomAttr    :: !*HtmlDocument !HtmlElementId !HtmlObjAttr !a -> *(!*HtmlDocument, !a)
 
 isUndefined :: !*HtmlDocument !HtmlObject -> *(!*HtmlDocument, Bool)
 

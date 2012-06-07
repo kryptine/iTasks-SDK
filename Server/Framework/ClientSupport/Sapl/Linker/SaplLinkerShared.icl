@@ -143,21 +143,11 @@ where
 	generate_source_ lmap (lf,ls) fn (Just (LT_FUNC line dt)) world a
 		# lmap = del fn lmap
 		# deps = gendep fn dt
-		# (lmap, macrodeps, ls, world) = load_macros lmap deps [] (lf,ls) world
-		# macrodeps = map (\(name, Just (LT_MACRO body _))=(name, body)) (filter is_macro macrodeps)
-		# a = case isEmpty macrodeps of
-					True = a <++ line
-						 = a <++ substitute_macros line macrodeps
+		# (lmap, (lf,ls), world, a) = substitute_macros lmap deps (lf,ls) line world a
+						  
 		= foldl (\(lmap, loader, world, a) t = generate_source lmap loader t world a) 
 															(lmap, (lf,ls), world, a) deps
-	where
-		load_macros lmap [m:ms] mlines (lf,ls) world
-			# (line, lmap, ls, world) = lf ls m lmap world 
-			= load_macros lmap ms [(m,line):mlines] (lf,ls) world
-
-		load_macros lmap [] mlines (lf,ls) world
-			= (lmap, mlines, ls, world)
-
+	
 	// don't delete macros
 	// do nothing, macros are substituted
 	generate_source_ lmap loader fn (Just (LT_MACRO _ DT_NO_DEPENDENCY)) world a
@@ -179,11 +169,27 @@ where
 	// Remove cyclyc and duplicate dependencies
 	gendep fn (DT_NEED_PROCESS ts) = removeMember fn (removeDup (generate_dependencies ts []))
 
-	is_macro (_,(Just (LT_MACRO _ _))) = True
-	is_macro _ = False	
+// [String] : dependencies
+load_dependencies :: !FuncTypeMap ![String] ![(String,Maybe LineType)] !(Loader st) *World -> (!FuncTypeMap, ![(String, Maybe LineType)], !(Loader st), !*World)
+load_dependencies lmap [m:ms] mlines (lf,ls) world
+	# (line, lmap, ls, world) = lf ls m lmap world 
+	= load_dependencies lmap ms [(m,line):mlines] (lf,ls) world
 
-substitute_macros line macros a
-		= substitute_macros_ line macros 0 0 a
+load_dependencies lmap [] mlines loader world
+	= (lmap, mlines, loader, world)
+
+substitute_macros :: !FuncTypeMap ![String] !(Loader st) !String !*World !StringAppender -> (!FuncTypeMap, !(Loader st), !*World, StringAppender)
+substitute_macros lmap deps loader line world a
+
+		// deps: [name], depbodies: [(name, line)]
+		# (lmap, depbodies, loader, world) = load_dependencies lmap deps [] loader world
+		# macros = map (\(name, Just (LT_MACRO body _))=(name, body)) (filter is_macro depbodies)
+
+		# a = case isEmpty macros of
+					True = a <++ line
+						 = substitute_macros_ line macros 0 0 a
+
+		= (lmap, loader, world, a)
 	where
 		substitute_macros_ line macros base last a
 			| base < (size line)
@@ -202,6 +208,9 @@ substitute_macros line macros a
 				= trythem what ms
 
 		trythem _ [] = Nothing
+
+		is_macro (_,(Just (LT_MACRO _ _))) = True
+		is_macro _ = False	
 
 sapl_module_name_extension :: String
 sapl_module_name_extension = "gfp"
