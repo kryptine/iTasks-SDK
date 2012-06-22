@@ -11,7 +11,7 @@ import StdDebug
 // JMJ 2007
 
 // Simplified sapl representation
-:: DynamicSapl = IntS Int | BoolS Bool | CharS Char | StringS String | CstrS String String Int [DynamicSapl] | 
+:: DynamicSapl = IntS Int | BoolS Bool | CharS Char | RealS Real | StringS String | CstrS String String Int [DynamicSapl] | 
                  FunctionS String String Int [DynamicSapl] | ArrayS Int [DynamicSapl] | ListS [DynamicSapl] |
                  TupleS Int [DynamicSapl] | RecS String String Int [DynamicSapl]
 
@@ -20,6 +20,7 @@ where
  mkse (IntS i)              = toString i
  mkse (BoolS b)             = toString b
  mkse (CharS c)         	= toString c
+ mkse (RealS r)         	= toString r
  mkse (StringS s)       	= "\"" +++  s  +++ "\""
  mkse (CstrS mod name _ []) = makePrintableName (mod +++ "." +++ makeSaplName name)
  mkse (CstrS mod name _ as) = "(" +++ makePrintableName (mod +++ "."  +++ makeSaplName name) +++ args as +++ ")"
@@ -41,6 +42,7 @@ instance toString DynamicSapl
 where toString (IntS i)   	= "IntS "  +++ toString i
       toString (BoolS i) 	= "BoolS "  +++ toString i
       toString (CharS i) 	= "CharS "  +++ toString i
+      toString (RealS i) 	= "RealS "  +++ toString i      
       toString (StringS i) 	= "StringS "  +++ toString i
 
 sapl_from_string 	:: !*{#Char} -> (.a,!Int)
@@ -78,7 +80,15 @@ select_int_from_string i s = toInt s.[i]+(toInt s.[i+1]<<8)+(toInt s.[i+2]<<16)+
 sifs = select_int_from_string
 sbfs i s = int2bool (sifs i s)
 scfs i s = toChar(sifs i s)
-	
+
+srfs i s
+       = make_real_from_2_ints (select_int_from_string i s) (select_int_from_string (i+4) s) // 32 bit only
+where
+       make_real_from_2_ints :: !Int !Int -> Real
+       make_real_from_2_ints r0 r1 = code {
+               pop_b 0
+       }
+
 int2bool 0 = False
 int2bool 1 = True
 
@@ -102,6 +112,7 @@ where
 	| desc_type == 'c'  = (CharS (scfs (pos+4) str),pos+8)  // Char
 	| desc_type == 'b'  = (BoolS (sbfs (pos+4) str),pos+8)  // Bool
 	| desc_type == 's'  = readString (pos-4)           // String in array
+	| desc_type == 'r'  = (RealS (srfs (pos+4) str),pos+12) // Real	
 	//| desc_type == 'C' && size str > pos + 4 && sifs (pos+4) str < 0         // shared node in array
 	                    //= getEarlierElem (pos + 4 + sifs (pos+4) str + 3) (pos+8)       
 	| desc_type == 'C' && size str > pos + 4 && sifs (pos+4) str < 0         // shared node in constructor

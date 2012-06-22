@@ -212,8 +212,8 @@ Sapl = new function () {
 				}
 			}
 
-		} else if (isFunction(expr)) {
-			return this.print_ident(expr.name);
+	/*	} else if (isFunction(expr)) {
+			return this.print_ident(expr.name);*/
 		} else {
 			return expr;
 		}
@@ -258,7 +258,7 @@ Sapl = new function () {
 			// It's a constructor
 			if (isNumber(expr[0])) {
 				for(var i = 2; i<expr.length; i++){
-					Sapl.heval(expr[i]);
+					expr[i] = Sapl.heval(expr[i]);
 				}
 			}
 		}

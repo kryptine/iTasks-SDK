@@ -149,6 +149,11 @@ function __toChar(code){
     return String.fromCharCode(ncode);
 }
 
+function __toString(a){
+    var na = Sapl.feval(a);
+    return na + "";
+}
+
 function __bitand(a,b){
     return Sapl.feval(a) & Sapl.feval(b);
 }
@@ -176,18 +181,8 @@ function __SaplHtml_getObjectAttr(d, e, attr){
     attr = Sapl.feval(attr);    
     
     var value = eval("e."+attr+";");
-
-    if(isNumber(value)){
-        value = value.toString();
-    }else if(isBoolean(value)){
-        value = value.toString();
-    }
     
     return ___predefined__Tuple3(d, e, value);
-}
-
-function __SaplHtml_getObjectAttrObject(d, e, attr){
-    return __SaplHtml_getObjectAttr(d, e, attr);
 }
 
 function __SaplHtml_runObjectMethod(d, obj, method, params){
@@ -198,7 +193,7 @@ function __SaplHtml_runObjectMethod(d, obj, method, params){
 
 	var eargs = [obj, method];
 	for(var i=0; i<params.length; i++){
-		eargs.push(params[i][1]);
+		eargs.push(params[i]);
 	}
 	
     var value = streval.apply(null, eargs);
@@ -208,7 +203,7 @@ function __SaplHtml_runObjectMethod(d, obj, method, params){
 function __SaplHtml_setObjectAttr(d, e, attr, value){
     d = Sapl.feval(d);
     e = Sapl.feval(e);
-    value = Sapl.feval(value);
+    value = Sapl.toJS(Sapl.feval(value));
     attr = Sapl.feval(attr);      
     
 	// unbox function value, boxed by Sapl.feval
@@ -218,10 +213,6 @@ function __SaplHtml_setObjectAttr(d, e, attr, value){
 	
     eval("e."+attr+"=value;");
     return ___predefined__Tuple3(d, e, value);
-}
-
-function __SaplHtml_setObjectAttrObject(d, e, attr, value){
-	return __SaplHtml_setObjectAttr(d, e, attr, value);
 }
 
 function __SaplHtml_getDomAttr(d, id, attr){
@@ -265,7 +256,7 @@ function __SaplHtml_createObject(d, obj, params){
 
 	var eargs = [obj, null];
 	for(var i=0; i<params.length; i++){
-		eargs.push(params[i][1]);
+		eargs.push(params[i]);
 	}
 	
     var value = streval.apply(null, eargs);	
@@ -276,21 +267,10 @@ function __SaplHtml_loadExternalJS(d, url, continuation){
     d = Sapl.feval(d);
 	continuation = Sapl.feval(continuation);
     url = Sapl.feval(url);	
-	
-    // Creating a closure
-    var eventHandler = function(expr, param){
 		
-		var h = function(){
-			expr[1].push(param);
-			Sapl.feval(expr);
-		};
-		
-		return h;
-    }	
-	
 	var script=document.createElement('script');
 	script.setAttribute("type","text/javascript");
-	script.onload = eventHandler(continuation, script);
+	script.onload = continuation;
 	
 	script.setAttribute("src", url);
 	document.getElementsByTagName("head")[0].appendChild(script);
@@ -298,11 +278,36 @@ function __SaplHtml_loadExternalJS(d, url, continuation){
 	return d;
 }
 
-function __SaplHtml_isUndefined(d, obj){
-	d = Sapl.feval(d);
+function __SaplHtml_createEventHandler(expr, taskId){
+	expr = Sapl.feval(expr);
+	taskId = Sapl.feval(taskId);
+	
+    // Creating a closure of 2. layer
+    var eventHandler = function(expr, taskId){
+		
+		var h = function(source){
+			return __SaplHtml_handleJSEvent(expr, taskId, source);
+		};
+		
+		return h;
+    }
+	
+	return eventHandler(expr, taskId);
+}
+
+function __SaplHtml_isUndefined(obj){
 	obj = Sapl.feval(obj);
 	
-	return ___predefined__Tuple2(d, obj == null);
+	return obj == null;
+}
+
+function __SaplHtml_toHtmlObject(val){
+	val = Sapl.feval(val);
+	return Sapl.toJS(val);
+}
+
+function __SaplHtml_fromHtmlObject(obj){
+	return Sapl.feval(obj);
 }
 
 // --------- Function overrides -----------------------------

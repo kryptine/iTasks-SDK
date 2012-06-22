@@ -125,18 +125,13 @@ where
 		# (mbTUI, st) = cf (fromString strTaskID) st mbEventName mbEventHandler
 		= (fmap (toString o encodeTUIDefinition) mbTUI, st)
 
+	// it uses the 2. layer (handleJSEvent), because it's created on the server
 	eventHandlerWrapper taskId (HtmlEvent id event f) 
 		= (id, event, handleJSEvent f (toString taskId))
 
 //---------------------------------------------------------------------------------------
 
 linker state eventHandlers resultFunc mbControllerFunc iworld
-
-/* For debugging: */				
-
-//	# (_, iworld) = writeFile "debug_bubu1.sapl" "nunu" iworld
-//	# (_, iworld) = writeFile "debug_bubuk.sapl" (graph_to_sapl_string state) iworld
-//	# (_, iworld) = writeFile "debug_bubu2.sapl" "nunu" iworld
 	
 	/* 1. First, we collect all the necessary function definitions to generate ParserState */
 

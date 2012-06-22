@@ -31,10 +31,10 @@ Ext.define('itasks.component.Tasklet', {
 	},
 	
 	initComponent: function() {
-		
+
 		if(this.script != null && this.script != "" && !sapldebug){
 			evalScript(this.script);
-		}
+		}		
 
 		eval("var tmp = eval(" + this.st + ");");
 		this.st = tmp;
@@ -52,9 +52,9 @@ Ext.define('itasks.component.Tasklet', {
 			controller.taskletControllers[this.instanceNo] = 
 					{taskletId: this.taskId, controllerFunc: this.controllerFunc}
 		}			
-	
+		
 		DB.saveTasklet(this);
-	
+		
 		this.callParent(arguments);
 	},	
 	
@@ -87,6 +87,32 @@ Ext.define('itasks.component.Tasklet', {
 		}
 		
 		this.callParent(arguments);
-	}	
+	},
 	
+	fireEvent: function(name){
+		for (var i=0; i<this.events.length; ++i){
+			var elname = this.events[i][0];
+			var eventName = this.events[i][1];
+			var expr = this.events[i][2];
+						
+			if(elname == "tasklet"){
+				if(eventName == name){
+					(this.eventHandler(expr))(this);
+					break;
+				}
+			}
+		}	
+	},
+	
+	onDestroy: function() {
+
+		this.fireEvent("destroy");
+		this.callParent(arguments);
+	},
+	
+	afterComponentLayout: function() {
+	
+		this.fireEvent("afterlayout");
+		this.callParent(arguments);
+    }
 });

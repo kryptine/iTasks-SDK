@@ -35,6 +35,8 @@ DB = new function () {
 		this.saveValue(taskletId, "html", html);
 		this.saveValue(taskletId, "controllerFunc", controllerFunc);
 		this.saveValue(taskletId, "instanceNo", instanceNo);
+		this.saveValue(taskletId, "width", tasklet.width);
+		this.saveValue(taskletId, "height", tasklet.height);
 	}
 	
 	this.stringify = function(o){
@@ -53,6 +55,8 @@ DB = new function () {
 		o.tui = JSON.parse(this.loadValue(taskletId, "tui"));
 		o.controllerFunc = this.loadValue(taskletId, "controllerFunc");
 		o.instanceNo = this.loadValue(taskletId, "instanceNo");
+		o.width = parseInt(this.loadValue(taskletId, "width"));
+		o.height = parseInt(this.loadValue(taskletId, "height"));
 	}
 	
 	this.updateTasklet = function(tasklet, html, tuistr){
@@ -73,7 +77,9 @@ DB = new function () {
 		this.removeValue(taskletId, "tui");
 		this.removeValue(taskletId, "html");
 		this.removeValue(taskletId, "controllerFunc");
-		this.removeValue(taskletId, "instanceNo");	
+		this.removeValue(taskletId, "instanceNo");
+		this.removeValue(taskletId, "width");
+		this.removeValue(taskletId, "height");			
 	}
 }
 

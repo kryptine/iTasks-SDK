@@ -5,71 +5,110 @@ import StringAppender, CodeGeneratorJS, graph_to_sapl_string
 import sapldebug
 
 //-------------------------------------------------------------------------
+//
+// TODO:
+//
+// zoom, maptype, markers
 
 :: GoogleMapsOptions = {center    :: HtmlObject
           			   ,zoom      :: Int
           			   ,mapTypeId :: HtmlObject
         			   };
 
-mapdiv =: toString (DivTag [IdAttr "map_canvas", StyleAttr "width:100%; height:100%"] [])
+:: GoogleMapsState = {map      :: Maybe HtmlObject
+					 ,centerLA :: Real
+					 ,centerLO :: Real}
 
-googleMapsTasklet :: Tasklet (Maybe HtmlObject) Void
-googleMapsTasklet = 
+googleMapsTasklet :: Real Real -> Tasklet GoogleMapsState (Real,Real)
+googleMapsTasklet cla clo = 
 	{ Tasklet
-	| defSt				= Nothing
+	| defSt				= {map = Nothing, centerLA = cla, centerLO = clo}
 	, generatorFunc		= googleMapsGUI
-	, resultFunc		= \_ = NoValue
+	, resultFunc		= \{centerLA,centerLO} = Value (centerLA,centerLO) Unstable
 	, tweakUI  			= \t = (paneled (Just "Google Maps Tasklet") Nothing Nothing [t])		
 	}
 
 googleMapsGUI taskId state iworld
 
 	# canvas = DivTag [IdAttr "map_place_holder", StyleAttr "width:100%; height:100%"] []
-	// This must be done on server side:
-	# onLoadHnd = toString (newAppender <++ escapeName (graph_to_sapl_string onScriptLoad))
 
 	# gui = { TaskletHTML
 			| width  		= Fixed 300
 			, height 		= Fixed 300
 			, html   		= toString (html canvas)
-			, eventHandlers = [HtmlEvent "tasklet" "init" (onInit onLoadHnd)]
+			, eventHandlers = [HtmlEvent "tasklet" "init" onInit
+			                  ,HtmlEvent "tasklet" "destroy" onDestroy
+			                  ,HtmlEvent "tasklet" "afterlayout" onResize]
 			}
 			
 	= (TaskletHTML gui, state, iworld)
-where    
+where
+
+	updatePerspective st=:{map = Just map} _ _  d 
+		# (d, map, center) = runObjectMethod d map "getCenter" []
+		# (d, center, la) = runObjectMethod d center "lat" []
+		# (d, center, lo) = runObjectMethod d center "lng" []
+		= (d, {st & centerLA = fromHtmlObject la, centerLO = fromHtmlObject lo})	
+
     onScriptLoad st _ _ d
-	    # (d, _) = setDomAttr d "map_place_holder" "innerHTML" mapdiv
+	    # (d, _) = setDomAttr d "map_place_holder" "innerHTML" "<div id=\"map_canvas\" style=\"width:100%; height:100%\"/>"
 	    # (d, mapdiv) = getDomElement d "map_canvas"
 	        
 	    # (d, typeId) = findObject d "google.maps.MapTypeId.ROADMAP"
-	    # (d, center) = createObject d "google.maps.LatLng" [JSFuncArg -34.397, JSFuncArg 150.644]
+	    # (d, center) = createObject d "google.maps.LatLng" [toHtmlObject st.centerLA, toHtmlObject st.centerLO]
 
 	    # (d, map) = createObject d "google.maps.Map" 
-	    				[JSFuncArg mapdiv
-	    				,JSFuncArg {center = center, zoom = 8, mapTypeId = typeId}]
+	    				[mapdiv
+	    				,toHtmlObject {center = center, zoom = 8, mapTypeId = typeId}]
 
-		= (d, Just map)
+	    # (d, mapevent) = findObject d "google.maps.event" 
+		# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "dragend", onChange]
+		# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "maptypeid_changed", onChange]
+		# (d, mapevent, _) = runObjectMethod d mapevent "addListener" [map, toHtmlObject "zoom_changed", onChange]
+		= (d, {st & map = Just map})
+	where
+		onChange = createEventHandler updatePerspective (toString taskId)
 
-	onInit onLoadHnd st taskId e d
-
-		// Google maps API doesn't like to be loaded twice	
+	// Google maps API doesn't like to be loaded twice	
+	onInit st taskId e d
 		# (d, mapsobj) = findObject d "google.maps"
-		# (d, undef) = isUndefined d mapsobj
-		| undef 
-		= (loadMapsAPI onLoadHnd taskId e d, st)
+		| isUndefined mapsobj 
+		= (loadMapsAPI taskId e d, st)
 		= onScriptLoad st taskId e d
 		
-	loadMapsAPI onLoadHnd taskId e d	
-		# handlersrc   = "__SaplHtml_handleJSEvent(" +++ onLoadHnd +++ ",\"" +++ toString taskId +++ "\");"
-		// Trick: add at least one argument to the function otherwise Sapl.feval evaluates it
-		# (d, handler) = createObject d "Function" [JSFuncArg "dummy", JSFuncArg handlersrc]
+	loadMapsAPI taskId e d	
 		# (d, window)  = findObject d "window"	
-		# (d, _, _)    = setObjectAttrObject d window "gmapscallback" handler
+		# (d, _, _)    = setObjectAttr d window "gmapscallback" (createEventHandler onScriptLoad taskId)
 	
 		= loadExternalJS d "http://maps.googleapis.com/maps/api/js?sensor=false&callback=gmapscallback"
-					(handleJSEvent nullEventHandler taskId)
+					(createEventHandler nullEventHandler taskId)
 
 	nullEventHandler st _ _ d = (d, st)
+
+	onDestroy st=:{map = Just map} _ _ d
+	    # (d, mapevent) = findObject d "google.maps.event" 
+		# (d, mapevent, _) = runObjectMethod d mapevent "clearInstanceListeners" [map]
+		
+		// clear generated stuff
+		# (d, _) = setDomAttr d "map_place_holder" "innerHTML" ""
+		
+		= (d, {st & map = Nothing})
+
+	onDestroy st _ _ d
+		= (d, st)
+
+	// http://stackoverflow.com/questions/1746608/google-maps-not-rendering-completely-on-page
+	onResize st=:{map = Just map} _ _ d
+	    # (d, mapevent) = findObject d "google.maps.event" 
+		# (d, mapevent, _) = runObjectMethod d mapevent "trigger" [map, toHtmlObject "resize"]
+		
+		# (d, center) = createObject d "google.maps.LatLng" [toHtmlObject st.centerLA, toHtmlObject st.centerLO]		
+		# (d, map, _) = runObjectMethod d map "setCenter" [center]	
+		
+		= (d, st)
+
+	onResize st _ _ d
+		= (d, st)
 
 //-------------------------------------------------------------------------
 // http://www.sephidev.net/external/webkit/LayoutTests/fast/dom/Geolocation/argument-types-expected.txt
@@ -80,7 +119,7 @@ where
 					   ,maximumAge         :: Int
 					   }
 
-:: GPSCoord :== (String,String)
+:: GPSCoord :== (Real,Real)
 
 geoTasklet :: Tasklet (Maybe GPSCoord) (Maybe GPSCoord)
 geoTasklet = 
@@ -105,7 +144,7 @@ where
     onSuccess st _ pos d
 		# (d, _, la) = getObjectAttr d pos "coords.latitude"
 		# (d, _, lo) = getObjectAttr d pos "coords.longitude"		    
-		# (d, _) = setDomAttr d "loc" "innerHTML" (la +++ ", " +++ lo)
+		# (d, _) = setDomAttr d "loc" "innerHTML" (fromHtmlObject la +++ ", " +++ fromHtmlObject lo)
     	= (d, Just (la,lo))
 
     onFailure st _ msg d
@@ -115,9 +154,9 @@ where
 	onInit st taskId _ d
 	    # (d, loc) = findObject d "navigator.geolocation" 
 		# (d, loc, _) = runObjectMethod d loc "getCurrentPosition" 
-							[JSFuncArg (handleJSEvent onSuccess taskId)
-							,JSFuncArg (handleJSEvent onFailure taskId)
-				    		,JSFuncArg {enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}]
+							[createEventHandler onSuccess taskId
+							,createEventHandler onFailure taskId
+				    		,toHtmlObject {enableHighAccuracy = True, timeout = 10 * 1000 * 1000, maximumAge = 0}]
 				
 		= (d, st)
 
@@ -166,7 +205,7 @@ where
 
 derive class iTask PainterState, DrawType, Drawing
 
-info = "Draw somthing, but use the pencil slowly in Chrome!" 
+info = "Draw something, but use the pencil _slowly_ in Chrome!" 
 
 painterTasklet :: Tasklet PainterState Drawing
 painterTasklet = 
@@ -250,21 +289,21 @@ where
 		
 	onChangeTool state _ e d
 		# (d, e, selectedIndex) = getObjectAttr d e "target.selectedIndex"
-		# (d, e, atool) = getObjectAttr d e ("target.options["+++selectedIndex+++"].value")
-		= (d, {state & tool = atool})		
+		# (d, e, atool) = getObjectAttr d e ("target.options["+++ fromInt (fromHtmlObject selectedIndex) +++"].value")
+		= (d, {state & tool = fromHtmlObject atool})		
 
 	onSelectColor color state _ e d
 		# d = foldl (\d el = fst (setDomAttr d el "style.borderColor" "white")) d
 					["selectorYellow","selectorRed","selectorGreen","selectorBlue","selectorBlack"]
 
-		# (d, e, target) = getObjectAttrObject d e "target"
-		# (d, target, _) = setObjectAttr d target "style.borderColor" "pink"	 
+		# (d, e, target) = getObjectAttr d e "target"
+		# (d, target, _) = setObjectAttr d target "style.borderColor" "pink"
 		= (d, {state & color = color})
 
 	getCoordinates d e
 	    # (d, e, x) = getObjectAttr d e "layerX"
 	    # (d, e, y) = getObjectAttr d e "layerY"
-	    = (d, e, ((toInt x), (toInt y)))
+	    = (d, e, (fromHtmlObject x, fromHtmlObject y))
 
 	onMouseDown state _ e d
 	    # (d, e, coords) = getCoordinates d e
@@ -277,19 +316,19 @@ where
 
 	getContext d temp
 	 	# (d, canvas) = getCanvas d temp
-		# (d, canvas, context) = runObjectMethod d canvas "getContext" [JSFuncArg "2d"]  // not "2D" !
+		# (d, canvas, context) = runObjectMethod d canvas "getContext" [toHtmlObject "2d"]  // not "2D" !
 		= (d, context)
 
 	clearContext d context
 		# (d, context, _) = runObjectMethod d context "clearRect" 
-				[JSFuncArg 0, JSFuncArg 0, JSFuncArg canvasWidth, JSFuncArg canvasHeight] 
+				[toHtmlObject 0, toHtmlObject 0, toHtmlObject canvasWidth, toHtmlObject canvasHeight] 
 		= (d, context)
 
 	onMouseUp state _ e d
 		# (d, tempcanvas) = getCanvas d True
 		# (d, tempcontext) = getContext d True
 		# (d, context) = getContext d False
-		# (d, context, _) = runObjectMethod d context "drawImage" [JSFuncArg tempcanvas, JSFuncArg 0, JSFuncArg 0]
+		# (d, context, _) = runObjectMethod d context "drawImage" [toHtmlObject tempcanvas, toHtmlObject 0, toHtmlObject 0]
 		# (d, tempcontext) = clearContext d tempcontext
 		| isJust state.lastDraw
 			= (d, {state & mouseDown = Nothing, draw = [fromJust state.lastDraw:state.draw], lastDraw = Nothing})
@@ -304,21 +343,21 @@ where
 	drawLine d context color x1 y1 x2 y2
 		# (d, context, _) = runObjectMethod d context "beginPath" []
 		# (d, context, _) = setObjectAttr d context "strokeStyle" color
-		# (d, context, _) = runObjectMethod d context "moveTo" [JSFuncArg x1, JSFuncArg y1]
-		# (d, context, _) = runObjectMethod d context "lineTo" [JSFuncArg x2, JSFuncArg y2]
+		# (d, context, _) = runObjectMethod d context "moveTo" [toHtmlObject x1, toHtmlObject y1]
+		# (d, context, _) = runObjectMethod d context "lineTo" [toHtmlObject x2, toHtmlObject y2]
 		# (d, context, _) = runObjectMethod d context "stroke" []
 		= (d, context)				
 
 	drawRect d context color x1 y1 x2 y2
 		# (d, context, _) = setObjectAttr d context "strokeStyle" color
 		# (d, context, _) = runObjectMethod d context "strokeRect" 
-				[JSFuncArg x1, JSFuncArg y1, JSFuncArg (x2 - x1), JSFuncArg (y2 - y1)]
+				[toHtmlObject x1, toHtmlObject y1, toHtmlObject (x2 - x1), toHtmlObject (y2 - y1)]
 		= (d, context)
 
 	drawFilledRect d context color x1 y1 x2 y2
 		# (d, context, _) = setObjectAttr d context "fillStyle" color
 		# (d, context, _) = runObjectMethod d context "fillRect"
-				[JSFuncArg x1, JSFuncArg y1, JSFuncArg (x2 - x1), JSFuncArg (y2 - y1)]
+				[toHtmlObject x1, toHtmlObject y1, toHtmlObject (x2 - x1), toHtmlObject (y2 - y1)]
 		= (d, context)
 
 	drawCircle d context fill color x1 y1 x2 y2
@@ -327,9 +366,9 @@ where
 		# (d, context, _) = setObjectAttr d context "fillStyle" color
 	
 		# (d, context, _) = runObjectMethod d context "arc"
-						[JSFuncArg (center x1 x2), JSFuncArg (center y1 y2)
-						,JSFuncArg (toInt ((distance x1 y1 x2 y2)/2.0))
-						,JSFuncArg 0, JSFuncArg (3.14159265*2.0), JSFuncArg True]
+						[toHtmlObject (center x1 x2), toHtmlObject (center y1 y2)
+						,toHtmlObject (toInt ((distance x1 y1 x2 y2)/2.0))
+						,toHtmlObject 0, toHtmlObject (3.14159265*2.0), toHtmlObject True]
 							
 		# (d, context, _) = case fill of 
 						True = runObjectMethod d context "fill" []
@@ -388,7 +427,7 @@ taskletExamples =
 	[workflow "Simple push button tasklet" "Push the button 3 times" tasklet1,
 	 workflow "Painter tasklet" "Simple painter tasklet" tasklet2,
 	 workflow "GEO location tasklet" "GEO location tasklet" tasklet3,
-	 workflow "Google MAP" "Basic Google Maps functionality" (mkTask googleMapsTasklet)]
+	 workflow "Google MAP" "Basic Google Maps functionality" (mkTask (googleMapsTasklet 47.471944 19.050278))]
 
 tasklet2 :: Task Drawing
 tasklet2

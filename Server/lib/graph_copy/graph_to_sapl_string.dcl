@@ -4,7 +4,7 @@ definition module graph_to_sapl_string
 // Convert a graph to a SAPL string that can be evaluated by the SAPL interpreter
 
 // DynamicSapl is only for debugging purposes
-:: DynamicSapl = IntS Int | BoolS Bool | CharS Char | StringS String | CstrS String String Int [DynamicSapl] | 
+:: DynamicSapl = IntS Int | BoolS Bool | CharS Char | RealS Real | StringS String | CstrS String String Int [DynamicSapl] | 
                  FunctionS String String Int [DynamicSapl] | ArrayS Int [DynamicSapl] | ListS [DynamicSapl] |
                  TupleS Int [DynamicSapl] | RecS String String Int [DynamicSapl]
 

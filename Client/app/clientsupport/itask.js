@@ -138,10 +138,14 @@ function __SaplHtml_handleJSEvent(expr,taskId,event){
 	var newstate = Sapl.feval(ys[3]);
 	controller.tasklets[taskId].st = newstate;
 	
-	DB.updateTasklet(controller.tasklets[taskId], 
-					 controller.tasklets[taskId].getEl().dom.innerHTML,
-					 null);
-	
+	try{
+		DB.updateTasklet(controller.tasklets[taskId], 
+						 controller.tasklets[taskId].getEl().dom.innerHTML,
+						 null);
+	}catch(e){
+		// can happen that "dom" is null, but why? 
+	}
+						 
 	// toJS to make the result hyperstrict
 	var newres = Sapl.toJS(Sapl.feval([controller.tasklets[taskId].resultFunc,[newstate]]));
 	

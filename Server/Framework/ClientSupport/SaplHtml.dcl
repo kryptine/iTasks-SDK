@@ -21,24 +21,35 @@ import StdString, Void
 */
 
 /**
-* Wrapper for JS call back functions
+* Three layers of event handler wrapping:
+* 3. Clean event handler function of type "HtmlEventHandlerFunc a"
+* 2. SaplHtml.handleJSEvent: creates the context for 3., still Clean function
+* 1. JavaScript event handler function created by createEventHandler
 */
+
+// 2. layer
 handleJSEvent :: (HtmlEventHandlerFunc a) !TaskSID *HtmlObject -> Void
 
-getObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr             -> *(!*HtmlDocument, !HtmlObject, !String)
-getObjectAttrObject :: !*HtmlDocument !HtmlObject !HtmlObjAttr             -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
-setObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr !String     -> *(!*HtmlDocument, !HtmlObject, !String)
-setObjectAttrObject :: !*HtmlDocument !HtmlObject !HtmlObjAttr !HtmlObject -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+// creates 1. layer
+createEventHandler :: (HtmlEventHandlerFunc a) !TaskSID -> HtmlObject 
 
-:: JSFuncArg = E.a: JSFuncArg a
+getObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr             -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+//getObjectAttrObject :: !*HtmlDocument !HtmlObject !HtmlObjAttr             -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+setObjectAttr       :: !*HtmlDocument !HtmlObject !HtmlObjAttr !a     -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+//setObjectAttrObject :: !*HtmlDocument !HtmlObject !HtmlObjAttr !HtmlObject -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 
-runObjectMethod :: !*HtmlDocument !HtmlObject !String [JSFuncArg] -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
+// calls SAPL.toJS
+toHtmlObject :: !a -> HtmlObject
+// does nothing, use it carefully!
+fromHtmlObject :: HtmlObject -> a
+
+runObjectMethod :: !*HtmlDocument !HtmlObject !String ![HtmlObject] -> *(!*HtmlDocument, !HtmlObject, !HtmlObject)
 
 getDomElement :: !*HtmlDocument !HtmlElementId                 -> *(!*HtmlDocument, !HtmlObject)
 getDomAttr    :: !*HtmlDocument !HtmlElementId !HtmlObjAttr    -> *(!*HtmlDocument, !String)
 setDomAttr    :: !*HtmlDocument !HtmlElementId !HtmlObjAttr !a -> *(!*HtmlDocument, !a)
 
-isUndefined :: !*HtmlDocument !HtmlObject -> *(!*HtmlDocument, Bool)
+isUndefined :: !HtmlObject -> Bool
 
 /*
 * Find a browser object or constant like:
@@ -51,11 +62,11 @@ findObject :: !*HtmlDocument !String -> *(!*HtmlDocument, !HtmlObject)
 * Create a JS object, like:
 * - new google.maps.LatLng(-34.397, 150.644)
 */
-createObject :: !*HtmlDocument !String [JSFuncArg] -> *(!*HtmlDocument, !HtmlObject)
+createObject :: !*HtmlDocument !String ![HtmlObject] -> *(!*HtmlDocument, !HtmlObject)
 
 /*
 * Load external JS by its URL. A continuation must be given,
 * which is called when script is actually loaded
 */
-loadExternalJS :: !*HtmlDocument !String (*HtmlObject -> Void) -> *HtmlDocument
+loadExternalJS :: !*HtmlDocument !String !HtmlObject -> *HtmlDocument
 
