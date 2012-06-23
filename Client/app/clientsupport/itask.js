@@ -4,6 +4,8 @@
 */
 function controllerWrapper(taskletId,controllerFunc,taskId,eventType,eventName,eventValue){
 	
+	console.time('controllerWrapper timer: eval');
+	
 	var state = controller.tasklets[taskletId].st;
 
 	var tmp = [controllerFunc,[]];
@@ -33,27 +35,36 @@ function controllerWrapper(taskletId,controllerFunc,taskId,eventType,eventName,e
 	var newres = Sapl.toJS(Sapl.feval([controller.tasklets[taskletId].resultFunc,[state]]));	
 	
 	var mbTUI = Sapl.feval(ys[2]);
-	
+		
 	// If mbTUI is Nothing, the task is finished
 	if(mbTUI[0] == 0){
 		DB.removeTasklet(taskletId);
 		controller.onEdit(taskletId, "finalize", newres);
 	}else{		
 		var tuistr = Sapl.feval(mbTUI[2]);
+
+		console.timeEnd('controllerWrapper timer: eval');
 		
+		console.time('controllerWrapper timer: serialization');
 		DB.updateTasklet(controller.tasklets[taskletId], 
 						 null,
 						 tuistr);				
-						 
+		console.timeEnd('controllerWrapper timer: serialization');
+		
+		console.time('controllerWrapper timer: apply TUI');
 		eval("var tui = " + tuistr + ";");		
 		applytui(controller.tasklets[taskletId].tui, tui);
+		console.timeEnd('controllerWrapper timer: apply TUI');
 		
 		// Send result to the client if it is changed only
 		if(!geq(controller.tasklets[taskletId].lastResult, newres)){
 			controller.tasklets[taskletId].lastResult = newres;
 			controller.onEdit(taskletId, "result", newres);
 		}
+		
+				
 	}
+	
 }
 
 function applytui(widget,tui){
@@ -72,13 +83,13 @@ function applytui(widget,tui){
 			if(isString(val) || isBoolean(val) || isNumber(val)){
 				
 				if(widget[prop] !== val){
-					console.log("set "+widget.xtype+" property \""+prop+"\" to \""+val+"\"");
+					//console.log("set "+widget.xtype+" property \""+prop+"\" to \""+val+"\"");
 					
 					var setter = "widget.set"+prop.capitalize();
 					
 					if (eval("typeof " + setter + " == 'function'")) {
 					
-						console.log("...done");
+						//console.log("...done");
 						
 						// instead of widget[prop] = val; to fire change event
 						if(isString(val)){
@@ -87,7 +98,7 @@ function applytui(widget,tui){
 							eval(setter+"("+val+");");
 						}
 					}else{
-						console.log("...setter is not found");
+						//console.log("...setter is not found");
 					}
 				}
 				
