@@ -89,7 +89,7 @@ Ext.define('itasks.component.Tasklet', {
 		this.callParent(arguments);
 	},
 	
-	fireEvent: function(name){
+	fireTaskletEvent: function(name){
 		for (var i=0; i<this.events.length; ++i){
 			var elname = this.events[i][0];
 			var eventName = this.events[i][1];
@@ -106,13 +106,13 @@ Ext.define('itasks.component.Tasklet', {
 	
 	onDestroy: function() {
 
-		this.fireEvent("destroy");
+		this.fireTaskletEvent("destroy");
 		this.callParent(arguments);
 	},
 	
 	afterComponentLayout: function() {
 	
-		this.fireEvent("afterlayout");
+		this.fireTaskletEvent("afterlayout");
 		this.callParent(arguments);
     }
 });
