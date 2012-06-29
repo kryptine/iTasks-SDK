@@ -15,11 +15,11 @@ engine publishable
 	= taskHandlers (publishAll publishable) ++ defaultHandlers
 where
 	taskHandlers published
-		= [((==) url, webService task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
+		= [((==) (URL_PREFIX +++ url), webService task defaultFormat) \\ {url,task=TaskWrapper task,defaultFormat} <- published]	
 	
 	defaultHandlers
 		= [((==) "/stop", handleStopRequest)
-		  ,(\_ -> True, handleStaticResourceRequest)
+		  ,(startsWith URL_PREFIX, handleStaticResourceRequest)
 		  ]
 
 initIWorld :: !FilePath !*World -> *IWorld
@@ -87,15 +87,15 @@ finalizeIWorld iworld=:{IWorld|world} = world
 handleStaticResourceRequest :: !HTTPRequest *IWorld -> (!HTTPResponse,!*IWorld)
 handleStaticResourceRequest req iworld=:{IWorld|sdkDirectory,world}
 	# (appPath,world)		= determineAppPath world
-	# path					= if (req.req_path == "/") "/index.html" req.req_path
-	# filename				= sdkDirectory </> "Client" </> filePath path
+	# path					= subString (size URL_PREFIX) (size req.req_path) req.req_path
+	# filename				= sdkDirectory </> "Client" +++ filePath path
 	# type					= mimeType filename
 	# (mbContent, world)	= readFile filename world
 	| isOk mbContent		= ({rsp_headers = fromList [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size (fromOk mbContent)))]
 							   	,rsp_data = fromOk mbContent}, {IWorld|iworld & world = world})
-	# filename				= takeDirectory appPath </> "Static" </> filePath path
+	# filename				= takeDirectory appPath </> "Static" +++ filePath path
 	# type					= mimeType filename
 	# (mbContent, world)	= readFile filename world
 	| isOk mbContent 		= ({rsp_headers = fromList [("Status","200 OK"),
