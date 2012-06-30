@@ -50,7 +50,8 @@ zipWith f as [] = []
 zipWith f [] bs = []
 zipWith f [a:as] [b:bs] = [f a b : zipWith f as bs]
 
-
+concat :: [[a]]-> [a]
+concat as = flatten as
 
 
 

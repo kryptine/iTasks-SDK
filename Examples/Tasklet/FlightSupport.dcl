@@ -15,3 +15,4 @@ intercalate :: [a] [[a]] -> [a]
 replicate :: Int a -> [a]
 maximum :: [a] -> a | Ord a
 zipWith :: (a b -> c) [a] [b] -> [c]
+concat :: [[a]] -> [a]

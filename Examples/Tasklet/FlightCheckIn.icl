@@ -13,6 +13,10 @@ returnV (Value v _) = return v
 returnC :: b (TaskValue a) -> Task b | iTask b
 returnC v _ = return v
 
+maybeStable :: (Maybe a) -> (TaskValue a)
+maybeStable (Just v) = Value v Stable
+maybeStable _        = NoValue
+
 :: BookingInfo = BookingReference String | PassangerLastName String
 :: Booking = {bookingRef :: String, firstName :: String, lastName :: String, flightNumber :: String, id :: Hidden String, seat :: Maybe Seat}
 :: Flight = {flightNumber :: String, rows :: Int, layout :: [Int], freeSeats :: [Seat]}
@@ -100,17 +104,13 @@ where
 		>>= \s -> return (fromString s)
 */
 
-chooseSeat (Just f)
-	= mkTask seatTasklet
-
+chooseSeat (Just f) = mkTask seatTasklet
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 
 		{ defSt				= Nothing
-		, generatorFunc		= generateGUI
-		, resultFunc		= \mbS = case mbS of 
-										Nothing = NoValue 
-										Just s  = Value s Stable
+		, generatorFunc		= (\_ st iworld -> (TaskletHTML gui, st, iworld))
+		, resultFunc		= maybeStable
 		, tweakUI  			= \t = (paneled (Just "Seat chooser Tasklet") (Just "Choose seat:") Nothing [t])	
 		}
 
@@ -118,42 +118,36 @@ where
 	freeStyle = StyleAttr "float: left; border-style:solid; background-color:white; border-color:black; width: 15px; height: 15px; margin: 1px;"
 	corridorStyle = StyleAttr "float: left; background-color:white; width: 20px; height: 15px;"
 
-	mm i [] = []
-	mm i [x:xs] = [y : mm (i+length y) xs] where y = take x [i..]
+	rowLayout = intercalate [-1] (numberSeats 1 f.layout)
+	numberSeats i [] = []
+	numberSeats i [x:xs] = let y = take x [i..] in [y : numberSeats (i+length y) xs]
 
-	rowlayout = intercalate [-1] (mm 1 f.layout)
-	genSeatId row seat = "_seat_" +++ toString (Seat row seat)
+	genSeatId seat = "_seat_" +++ toString seat
 
-	genRowLayout row -1 = DivTag [corridorStyle] []
-	genRowLayout row seat | isMember (Seat row seat) f.freeSeats
-			= DivTag [TitleAttr (toString (Seat row seat)), IdAttr (genSeatId row seat), freeStyle] []
-			= DivTag [TitleAttr (toString (Seat row seat)), occupiedStyle] []
+	genRowUI (Seat _ -1) = DivTag [corridorStyle] []
+	genRowUI seat | isMember seat f.freeSeats
+			= DivTag [TitleAttr (toString seat), IdAttr (genSeatId seat), freeStyle] []
+			= DivTag [TitleAttr (toString seat), occupiedStyle] []
 
-	attachHandlers s=:(Seat row seat) = 
- 		[HtmlEvent (genSeatId row seat) "click" (onClick s),
- 		 HtmlEvent (genSeatId row seat) "mouseover" (setColor "pink"),
- 		 HtmlEvent (genSeatId row seat) "mouseout" (setColor "white")]
+	attachHandlers seat = 
+ 		[HtmlEvent (genSeatId seat) "click" (setState (Just seat)),
+ 		 HtmlEvent (genSeatId seat) "mouseover" (setColor "red"),
+ 		 HtmlEvent (genSeatId seat) "mouseout" (setColor "white")]
  		
- 	onClick seat _ _ _ d = (d, Just seat)
- 	setColor color state _ e d
-		# (d, e, target) = getObjectAttr d e "target" 	
-		# (d, _, _) = setObjectAttr d target "style.backgroundColor" color
- 		= (d, state)
+ 	setState newst _ _ _ d  = (d, newst)
+ 	setColor color st _ e d	=
+		(fst3 (setObjectAttr d e "target.style.backgroundColor" color), st)
 
-	generateGUI _ state iworld  
-
-		# html = DivTag []
-					(intercalate [DivTag [StyleAttr "clear: both;"] []]
-								 [map (genRowLayout i) rowlayout \\ i <- [1 .. f.rows]])
+	htmlui = DivTag [] (intercalate [DivTag [StyleAttr "clear: both;"] []]
+								    [map (\s -> genRowUI (Seat r s)) rowLayout \\ r <- [1 .. f.rows]])
 			
-		# gui = { TaskletHTML |
+	gui = { TaskletHTML |
 				  width  		= Fixed 300
 				, height 		= Fixed 300
-				, html   		= toString html
-				, eventHandlers = flatten (map attachHandlers f.freeSeats)
+				, html   		= toString htmlui
+				, eventHandlers = concat (map attachHandlers f.freeSeats)
 				}
-			
-		= (TaskletHTML gui, state, iworld)
+	
 								 
 taskletExamples :: [Workflow]
 taskletExamples =
