@@ -1,6 +1,6 @@
 definition module FlightSupport
 
-import StdString, Maybe
+import StdString, StdClass, Maybe
 
 :: Seat = Seat Int Int
 
@@ -11,3 +11,7 @@ instance fromString Seat
 instance toString Seat
 
 find :: (a -> Bool) [a] -> Maybe a
+intercalate :: [a] [[a]] -> [a]
+replicate :: Int a -> [a]
+maximum :: [a] -> a | Ord a
+zipWith :: (a b -> c) [a] [b] -> [c]

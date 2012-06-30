@@ -15,7 +15,7 @@ returnC v _ = return v
 
 :: BookingInfo = BookingReference String | PassangerLastName String
 :: Booking = {bookingRef :: String, firstName :: String, lastName :: String, flightNumber :: String, id :: Hidden String, seat :: Maybe Seat}
-:: Flight = {flightNumber :: String, rows :: Int, seats :: [Int], freeSeats :: [Seat]}
+:: Flight = {flightNumber :: String, rows :: Int, layout :: [Int], freeSeats :: [Seat]}
 
 derive class iTask BookingInfo, Booking, MaybeError, Flight
 
@@ -62,7 +62,7 @@ bookingStore = sharedStore "Bookings"
 
 flightStore :: Shared [Flight]
 flightStore = sharedStore "Flights" 
-	[{flightNumber = "BA1234", rows = 20, seats = [3,3], freeSeats = [Seat 13 1,Seat 13 5, Seat 11 1,Seat 10 2]}]
+	[{flightNumber = "BA1234", rows = 20, layout = [3,3], freeSeats = [Seat 13 1,Seat 13 5, Seat 11 1,Seat 10 2]}]
 
 task_checkin :: Task Void
 task_checkin
@@ -94,9 +94,66 @@ where
 								enterInformation "Please enter you id number:" []
 		>>= \id -> if (fromHidden p.id == id) (return p) (throw "Identification falied.")
 
-	chooseSeat f
-	    =   enterChoice "..." [] (map toString (sort (fromJust f).freeSeats))
+/*
+	chooseSeat (Just f)
+	    =   enterChoice "..." [] (map toString (sort f.freeSeats))
 		>>= \s -> return (fromString s)
+*/
+
+chooseSeat (Just f)
+	= mkTask seatTasklet
+
+where
+	seatTasklet :: Tasklet (Maybe Seat) Seat
+	seatTasklet = 
+		{ defSt				= Nothing
+		, generatorFunc		= generateGUI
+		, resultFunc		= \mbS = case mbS of 
+										Nothing = NoValue 
+										Just s  = Value s Stable
+		, tweakUI  			= \t = (paneled (Just "Seat chooser Tasklet") (Just "Choose seat:") Nothing [t])	
+		}
+
+	occupiedStyle = StyleAttr "float: left; border-style:solid; background-color:blue; border-color:black; width: 15px; height: 15px; margin: 1px;"
+	freeStyle = StyleAttr "float: left; border-style:solid; background-color:white; border-color:black; width: 15px; height: 15px; margin: 1px;"
+	corridorStyle = StyleAttr "float: left; background-color:white; width: 20px; height: 15px;"
+
+	mm i [] = []
+	mm i [x:xs] = [y : mm (i+length y) xs] where y = take x [i..]
+
+	rowlayout = intercalate [-1] (mm 1 f.layout)
+	genSeatId row seat = "_seat_" +++ toString (Seat row seat)
+
+	genRowLayout row -1 = DivTag [corridorStyle] []
+	genRowLayout row seat | isMember (Seat row seat) f.freeSeats
+			= DivTag [TitleAttr (toString (Seat row seat)), IdAttr (genSeatId row seat), freeStyle] []
+			= DivTag [TitleAttr (toString (Seat row seat)), occupiedStyle] []
+
+	attachHandlers s=:(Seat row seat) = 
+ 		[HtmlEvent (genSeatId row seat) "click" (onClick s),
+ 		 HtmlEvent (genSeatId row seat) "mouseover" (setColor "pink"),
+ 		 HtmlEvent (genSeatId row seat) "mouseout" (setColor "white")]
+ 		
+ 	onClick seat _ _ _ d = (d, Just seat)
+ 	setColor color state _ e d
+		# (d, e, target) = getObjectAttr d e "target" 	
+		# (d, _, _) = setObjectAttr d target "style.backgroundColor" color
+ 		= (d, state)
+
+	generateGUI _ state iworld  
+
+		# html = DivTag []
+					(intercalate [DivTag [StyleAttr "clear: both;"] []]
+								 [map (genRowLayout i) rowlayout \\ i <- [1 .. f.rows]])
+			
+		# gui = { TaskletHTML |
+				  width  		= Fixed 300
+				, height 		= Fixed 300
+				, html   		= toString html
+				, eventHandlers = flatten (map attachHandlers f.freeSeats)
+				}
+			
+		= (TaskletHTML gui, state, iworld)
 								 
 taskletExamples :: [Workflow]
 taskletExamples =
@@ -104,7 +161,6 @@ taskletExamples =
     
 Start :: *World -> *World
 Start world = startEngine (workAs (AuthenticatedUser "root" [] Nothing) (manageWorklist taskletExamples)) world
-//fs = [{flightNumber = "BA1234", rows = 20, seats = [3,3], freeSeats = [Seat 13 1,Seat 13 5, Seat 11 1,Seat 10 2]}]
-//Start = removeSeat "BA1234" (Seat 11 1) fs
+
 
 

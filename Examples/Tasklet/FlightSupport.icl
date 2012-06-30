@@ -22,3 +22,35 @@ find :: (a -> Bool) [a] -> Maybe a
 find f as = case filter f as of
 	[] = Nothing					
 	fs = Just (hd fs)
+
+
+intercalate :: [a] [[a]] -> [a]
+intercalate ss xss = flatten (intercalate` ss xss)
+where
+	intercalate` ss []
+		= []
+		
+	intercalate` ss [x]
+		= [x]
+
+	intercalate` ss [x,y:xs]
+		= [x,ss] ++ intercalate` ss [y:xs]
+
+replicate :: Int a -> [a]
+replicate n a = repeatn n a
+
+max a b = if (a<b) b a
+
+maximum :: [a] -> a | Ord a
+maximum [a] = a
+maximum [a:as] = max a (maximum as)
+
+zipWith :: (a b -> c) [a] [b] -> [c]
+zipWith f as [] = []
+zipWith f [] bs = []
+zipWith f [a:as] [b:bs] = [f a b : zipWith f as bs]
+
+
+
+
+
