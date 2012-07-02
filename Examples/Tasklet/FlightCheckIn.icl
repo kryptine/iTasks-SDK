@@ -50,7 +50,7 @@ updateBooking pid seat [p:ps]
 		= [p:updateBooking pid seat ps] 
 
 findFlight fno = 
-	get flightStore >>= return  o find (\f -> f.Flight.flightNumber == fno)
+	get flightStore >>= return o find (\f -> f.Flight.flightNumber == fno)
 
 findBooking ref = 
 	get bookingStore >>= return o find (\{bookingRef} -> bookingRef == ref)
@@ -89,7 +89,7 @@ where
 		=   getBookings (\p -> p.lastName == lname && isNothing p.seat)
 		>>= \bs -> case bs of 
 			[] = return Nothing
-			fs = enterChoice "Please choose seat:" [ChooseWith ChooseFromGrid id] fs >>= return o Just	
+			fs = enterChoice "Please choose seat:" [] fs >>= return o Just	
 
 	verifyBooking Nothing = throw "Passanger cannot be found."
 	verifyBooking (Just {seat = Just _}) = throw "Passanger already checked-in."
@@ -118,9 +118,9 @@ where
 	freeStyle = StyleAttr "float: left; border-style:solid; background-color:white; border-color:black; width: 15px; height: 15px; margin: 1px;"
 	corridorStyle = StyleAttr "float: left; background-color:white; width: 20px; height: 15px;"
 
-	rowLayout = intercalate [-1] (numberSeats 1 f.layout)
-	numberSeats i [] = []
-	numberSeats i [x:xs] = let y = take x [i..] in [y : numberSeats (i+length y) xs]
+	rowLayout = intercalate [-1] (numbering 1 f.layout)
+	numbering i [] = []
+	numbering i [x:xs] = let y = take x [i..] in [y : numbering (i+length y) xs]
 
 	genSeatId seat = "_seat_" +++ toString seat
 
@@ -145,7 +145,7 @@ where
 				  width  		= Fixed 300
 				, height 		= Fixed 300
 				, html   		= toString htmlui
-				, eventHandlers = concat (map attachHandlers f.freeSeats)
+				, eventHandlers = concatMap attachHandlers f.freeSeats
 				}
 	
 								 

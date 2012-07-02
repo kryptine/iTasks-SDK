@@ -16,3 +16,4 @@ replicate :: Int a -> [a]
 maximum :: [a] -> a | Ord a
 zipWith :: (a b -> c) [a] [b] -> [c]
 concat :: [[a]] -> [a]
+concatMap :: (a -> [b]) [a] -> [b]
