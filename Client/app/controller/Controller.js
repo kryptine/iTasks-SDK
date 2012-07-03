@@ -17,6 +17,8 @@ Ext.define('itasks.controller.Controller',{
 		'itasks.component.show.Date',
 		'itasks.component.edit.Time',
 		'itasks.component.show.Time',
+		'itasks.component.edit.Document',
+		'itasks.component.show.Document',
 		'itasks.component.edit.Password',
 		'itasks.component.show.Password',
 		'itasks.component.edit.Currency',
