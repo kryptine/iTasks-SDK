@@ -36,7 +36,7 @@ createTaskInstance :: !InstanceNo !(Maybe SessionId) !InstanceNo !(Maybe User) !
 * @return The result of the targeted main task and the tasknr of the instance or an error
 * @return The IWorld state
 */
-createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !SessionId), !*IWorld) |  iTask a
+createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld) |  iTask a
 
 /**
 * Evaluate a session task instance
@@ -49,7 +49,7 @@ createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWo
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !SessionId), !*IWorld)
+evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld)
 
 /**
 * Create a stored task instance in the task pool (lazily without evaluating it)

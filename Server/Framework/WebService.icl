@@ -36,11 +36,11 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			# (json, iworld) = case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
-					Ok (ExceptionResult _ err,_)
+					Ok (ExceptionResult _ err,_,_)
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
-					Ok (ValueResult (Value _ Stable) _ _ _,_)
+					Ok (ValueResult (Value _ Stable) _ _ _,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (ValueResult _ _ mbCurrentTui context,sessionId)
+					Ok (ValueResult _ _ mbCurrentTui context,_,sessionId)
 						# json = case (mbPrevTui,mbCurrentTui) of
 							(Just previousTui,TaskRep (_,Just currentTui,actions,attributes) _)
 									= JSONObject [("success",JSONBool True)
@@ -69,28 +69,27 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 				sessionId
 					= evalSessionInstance sessionId Nothing Nothing iworld
 			= case mbResult of
-				Ok (ExceptionResult _ err,_)
+				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)
-				Ok (ValueResult (Value val Stable) _ _ _,_)
+				Ok (ValueResult (Value val Stable) _ _ _,_,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (ValueResult _ _ (TaskRep (_,_,actions,attributes) rep) _,_)
+				Ok (ValueResult _ _ (TaskRep (_,_,actions,attributes) rep) _,_,_)
 					= (jsonResponse (serviceBusyResponse rep actions attributes), iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
 			//HACK: REALLY REALLY REALLY UGLY THAT IT IS NECCESARY TO EVAL TWICE
 			# (mbResult,iworld) = createSessionInstance task Nothing Nothing iworld
-			# (luckyEdit,luckyCommit)
-				= if (req.req_data == "")
-					(Nothing,Nothing)	
-					(Just (LuckyEvent ("",fromString req.req_data)), Just (LuckyEvent ""))
-
 			# (mbResult,iworld) = case mbResult of
-				(Ok (_,sessionId))	= evalSessionInstance sessionId luckyEdit luckyCommit iworld
+				(Ok (_,instanceId,sessionId))	
+					# (luckyEdit,luckyCommit) = if (req.req_data == "")
+						(Nothing,Nothing)	
+						(Just (LuckyEvent instanceId ("",fromString req.req_data)), Just (LuckyEvent instanceId ""))
+					= evalSessionInstance sessionId luckyEdit luckyCommit iworld
 				(Error e)			= (Error e,iworld)
 			= case mbResult of
-				Ok (ExceptionResult _ err,_)
+				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)
-				Ok (ValueResult (Value val Stable) _ _ _,_)
+				Ok (ValueResult (Value val Stable) _ _ _,_,_)
 					= (plainDoneResponse val, iworld)
 				_
 					= (errorResponse "Requested service format not available for this task", iworld)

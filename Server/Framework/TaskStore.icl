@@ -196,6 +196,17 @@ loadPrevUI sid version iworld=:{IWorld|uis}
 		Just (prev,def) | version == (prev + 1)	= (Just def, iworld)
 		_										= (Nothing, iworld)
 
+saveUICache	:: !*IWorld -> *IWorld
+saveUICache iworld=:{IWorld|uis}
+	= storeValue NS_TASK_INSTANCES "ui-cache" uis iworld
+
+restoreUICache :: !*IWorld -> *IWorld
+restoreUICache iworld
+	# (mbUis,iworld)	= loadValue NS_TASK_INSTANCES "ui-cache" iworld
+	= case mbUis of
+		Just uis		= {IWorld|iworld & uis = uis}
+		_				= iworld
+
 updateSessionInstanceIndex :: !((Map SessionId InstanceNo)-> (Map SessionId InstanceNo)) !*IWorld -> *IWorld
 updateSessionInstanceIndex f iworld=:{sessions}
 	= {IWorld|iworld & sessions = f sessions}

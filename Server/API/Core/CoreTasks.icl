@@ -312,13 +312,13 @@ where
 
 	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-isLucky (Just (LuckyEvent _))	= True	//HACK
+isLucky (Just (LuckyEvent _ _))	= True	//HACK
 isLucky _						= False
 
 matchAndApplyEvent eEvent taskId taskTime v mask ts iworld
 	= applyEvent taskId taskTime v mask ts (matchEvent taskId eEvent) iworld
 where
-	matchEvent taskId1 (Just (LuckyEvent e))								= Just e	
+	matchEvent taskId1 (Just (LuckyEvent _ e))								= Just e	
 	matchEvent taskId1 (Just (TaskEvent taskId2 e))	| taskId1 == taskId2	= Just e
 	matchEvent taskId1 _													= Nothing
 

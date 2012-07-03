@@ -1,7 +1,7 @@
 implementation module EngineWrapperCGI
 
 import Engine
-import HTTP, CGI, Tuple, StdMisc
+import HTTP, CGI, Tuple, StdMisc, IWorld, TaskStore
 
 startEngine :: a !*World -> *World | Publishable a
 startEngine publishable world
@@ -10,5 +10,16 @@ startEngine publishable world
 	= startCGI [] [(p, withIWorld (fromJust mbSDKPath) f)\\(p,f) <- engine publishable] world
 where
 	withIWorld path f req world
-		= appSnd finalizeIWorld (f req (initIWorld path world))
+		= appSnd finalizeCGIIWorld (f req (initCGIIWorld path world))
 		
+	initCGIIWorld path world
+		//Load previous session user interfaces from disk
+		//(normally these are only kept in-memory)
+		# iworld			= initIWorld path world
+		# iworld			= restoreUICache iworld
+		= iworld
+
+	finalizeCGIIWorld iworld
+		//Store the session user interfaces
+		# iworld = saveUICache iworld
+		= finalizeIWorld iworld

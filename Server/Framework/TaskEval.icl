@@ -24,7 +24,7 @@ where
 			(ValueResult val ts rep tree,iworld)	= (ValueResult (fmap toJSON val) ts rep tree, iworld)
 			(ExceptionResult e str,iworld)			= (ExceptionResult e str,iworld)
 
-createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !SessionId), !*IWorld) |  iTask a
+createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld) |  iTask a
 createSessionInstance task eEvent cEvent iworld=:{currentDateTime}
 	# (sessionId,iworld)	= newSessionId iworld
 	# (instanceId,iworld)	= newInstanceId iworld
@@ -37,12 +37,12 @@ createSessionInstance task eEvent cEvent iworld=:{currentDateTime}
 		(Ok (meta,reduct,result),iworld)
 			# (mbRes,iworld)	= evalAndStoreInstance eEvent cEvent False (meta,reduct,result) iworld
 			= case mbRes of
-				Ok result	= (Ok (result, sessionId), iworld)
+				Ok result	= (Ok (result, instanceId, sessionId), iworld)
 				Error e		= (Error e, iworld)
 		(Error e, iworld)
 			= (Error e, iworld)
 
-evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !SessionId), !*IWorld)
+evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld)
 evalSessionInstance sessionId eEvent cEvent iworld
 	//Set session user
 	# iworld				= {iworld & currentUser = AnonymousUser sessionId}
@@ -62,7 +62,7 @@ evalSessionInstance sessionId eEvent cEvent iworld
 			# (mbRes,iworld)	= evalAndStoreInstance eEvent cEvent True (meta,reduct,result) iworld
 			# iworld			= remOutdatedInstance meta.TIMeta.instanceNo iworld
 			= case mbRes of
-				Ok result		= (Ok (result, sessionId), iworld)
+				Ok result		= (Ok (result, meta.TIMeta.instanceNo, sessionId), iworld)
 				Error e			= (Error e, iworld)
 where
 	updateCurrentDateTime :: !*IWorld -> *IWorld
@@ -83,6 +83,9 @@ processEvent eEvent cEvent iworld
 where
 	instanceNo (Just (TaskEvent (TaskId no _) _)) _ = no
 	instanceNo _ (Just (TaskEvent (TaskId no _) _)) = no
+	instanceNo (Just (LuckyEvent no _)) _			= no
+	instanceNo _ (Just (LuckyEvent no _))			= no
+	instanceNo _ _									= 0 //Should not happen
 
 createPersistentInstance :: !(Task a) !ManagementMeta !User !InstanceNo !*IWorld -> (!TaskId, !*IWorld) | iTask a
 createPersistentInstance task meta issuer parent iworld=:{currentDateTime}
