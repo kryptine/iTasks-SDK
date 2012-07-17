@@ -1,0 +1,12 @@
+.icon-help {
+	background-image: url('../img/icons/help.png');
+}
+.icon-hint {
+	background-image: url('../img/icons/information.png') !important;
+}
+.icon-valid {
+	background-image: url('../img/icons/accept.png') !important;
+}
+.icon-invalid {
+	background-image: url('../img/icons/exclamation.png') !important;
+}

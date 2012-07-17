@@ -1,25 +1,15 @@
 Ext.application({
-	name: 'itasks',
+	name: 'itwc', //iTasks Web Client
 	appFolder: 'app',
-	requires: [
-		'itasks.layout.VHBox',
-		'Ext.container.Viewport',
-		//Extension classes
-		'itasks.extension.GoogleMap'
-	],
-	controllers: [
-		'Controller'
-	],
+	
+	//Apply patches
+	requires: ['itwc.patch.grid.View'],
+	
+	//Core controller that syncs with server-side session state
+	controllers: ['Controller'],
+	
+	//On launch, create the viewport
 	launch: function() {
-		Ext.tip.QuickTipManager.init();
-		
-		Ext.create('Ext.container.Viewport', {
-			layout: {
-				type: 'vhbox',
-				direction: 'vertical',
-				valign: 'top',
-				halign: 'center'	
-			}
-		});
+		Ext.create('itwc.container.Viewport');
 	}
 });
