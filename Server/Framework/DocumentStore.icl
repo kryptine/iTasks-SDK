@@ -4,7 +4,7 @@ import StdList, StdArray, StdBool, StdFile
 import SystemTypes, Store, Random, Text, Time, Error, File, FilePath
 import GenUpdate
 from StdFunc	import id
-from IWorld		import :: IWorld(..)
+from IWorld		import :: IWorld(..), :: UIControl
 from TaskState	import :: TaskListEntry
 
 instance DocumentDB IWorld

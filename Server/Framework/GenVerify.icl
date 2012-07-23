@@ -103,11 +103,6 @@ verifyEditable	fx e vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = stat
 verifyDisplay	fx d vst=:{staticDisplay}		= (\vst -> {vst & staticDisplay = staticDisplay}) (fx d {vst & staticDisplay = True})
 verifyHidden	vst=:{verifyMask,updateMask}	= {vst & verifyMask = appendToMask verifyMask (VMValid Nothing []), updateMask = snd (popMask updateMask)}
 
-gVerify{|ControlSize|}		fx v vst = fx (fmap fromControlSize v) vst
-gVerify{|FillControlSize|}	fx v vst = fx (fmap fromFillControlSize v) vst
-gVerify{|FillWControlSize|}	fx v vst = fx (fmap fromFillWControlSize v) vst
-gVerify{|FillHControlSize|}	fx v vst = fx (fmap fromFillHControlSize v) vst
-
 gVerify{|Int|}    				_ vst = simpleVerify "Enter a number" vst
 gVerify{|Real|}   				_ vst = simpleVerify "Enter a decimal number" vst
 gVerify{|Char|}   				_ vst = simpleVerify "Enter a character" vst

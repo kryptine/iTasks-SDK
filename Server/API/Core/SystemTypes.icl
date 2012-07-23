@@ -8,13 +8,13 @@ from Task		import :: TaskValue
 
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress
-derive JSONEncode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONEncode		URL, EmailAddress, Action, HtmlInclude
 derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONDecode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress
-derive JSONDecode		URL, EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive JSONDecode		URL, EmailAddress, Action, HtmlInclude
 derive gEq				EUR, USD, BoundedInt, FormButton, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint, Progress
 derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr
-derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize, TUIMargins, TUISize, TUIMinSize
+derive gEq				EmailAddress, Action, Maybe, ButtonState, JSONNode, HtmlInclude
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -353,30 +353,6 @@ fromHidden (Hidden x) = x
 
 toHidden :: !.a -> (Hidden .a)
 toHidden x = (Hidden x)
-
-toControlSize :: !(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !.a -> ControlSize .a
-toControlSize width height margins a = ControlSize width height margins a
-
-fromControlSize :: !(ControlSize .a) -> .a
-fromControlSize (ControlSize _ _ _ a) = a
-
-toFillControlSize :: !.a -> FillControlSize .a
-toFillControlSize a = FillControlSize a
-
-fromFillControlSize :: !(FillControlSize .a) -> .a
-fromFillControlSize (FillControlSize a) = a
-
-toFillWControlSize :: !.a -> FillWControlSize .a
-toFillWControlSize a = FillWControlSize a
-
-fromFillWControlSize :: !(FillWControlSize .a) -> .a
-fromFillWControlSize (FillWControlSize a) = a
-
-toFillHControlSize :: !.a -> FillHControlSize .a
-toFillHControlSize a = FillHControlSize a
-
-fromFillHControlSize :: !(FillHControlSize .a) -> .a
-fromFillHControlSize (FillHControlSize a) = a
 
 // ******************************************************************************************************
 // Choice representations

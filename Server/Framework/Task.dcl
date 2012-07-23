@@ -40,7 +40,7 @@ derive gPutRecordFields	Task
 :: TaskRep			= TaskRep !TaskTUIRep !TaskServiceRep												//Compute both the UI and the raw service representation simultaneously
 
 //Task representation for web application format
-:: TaskTUIRep		:== (!TaskCompositionType, !Maybe TUIDef, ![TaskAction], ![TaskAttribute]) 
+:: TaskTUIRep		:== (!TaskCompositionType, !Maybe UIControl, ![TaskAction], ![TaskAttribute]) 
 
 //Task representation for web service format
 :: TaskServiceRep	:== [TaskPart]

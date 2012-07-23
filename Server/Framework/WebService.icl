@@ -2,7 +2,7 @@ implementation module WebService
 
 import StdList, StdBool
 import Time, JSON_NG
-import SystemTypes, Task, TaskState, TaskEval, TaskStore, TUIDiff, TUIEncode, Util, HtmlUtil, Map
+import SystemTypes, Task, TaskState, TaskEval, TaskStore, UIDiff, Util, HtmlUtil, Map
 import Engine, IWorld
 
 //The representation of the JSON service
@@ -45,12 +45,12 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 							(Just previousTui,TaskRep (_,Just currentTui,actions,attributes) _)
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
-												 ,("updates", encodeTUIUpdates (diffTUIDefinitions previousTui currentTui editEvent))
+												 ,("updates", encodeUIUpdates (diffUIDefinitions previousTui currentTui editEvent))
 												 ,("timestamp",toJSON timestamp)]
 							(_, TaskRep (_,Just currentTui,actions,attributes) _)
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
-											 ,("content", encodeTUIDefinition currentTui)
+											 ,("content", encodeUIDefinition currentTui)
 											 ,("timestamp",toJSON timestamp)]
 							_
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
@@ -145,19 +145,19 @@ where
 
 	appStartPage appName = HtmlTag [] [head,body]
 	where
-		head = HeadTag [] [TitleTag [] [Text "Loading..."]: styles ++ scripts]
+		head = HeadTag [] [TitleTag [] [Text appName]: styles ++ scripts]
 		body = BodyTag [] []
 	
 		styles = [LinkTag [RelAttr "stylesheet", HrefAttr file, TypeAttr "text/css"] [] \\ file <- stylefiles]
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
-		stylefiles = ["lib/ext-4.0.2a/resources/css/ext-all-gray.css"
-					 ,"css/main.css"
+		stylefiles = ["lib/extjs-4.1.0/resources/css/ext-all-gray.css"
+					 ,"css/app.css"
 					 ,appName +++ ".css"]
-		scriptfiles = ["lib/ext-4.0.2a/ext-debug.js",
-					   "app/clientsupport/utils.js","app/clientsupport/itask.js",
-					   "app/clientsupport/builtin.js","app/clientsupport/sapl.js",
-					   "app/clientsupport/db.js", "app/clientsupport/debug.js",				   
+		scriptfiles = ["lib/extjs-4.1.0/ext-debug.js",
+					   "app/taskeval/utils.js","app/taskeval/itask.js", //UGLY INCLUSION, MUST BE MERGED INTO ITWC FRAMEWORK
+					   "app/taskeval/builtin.js","app/taskeval/sapl.js",
+					   "app/taskeval/db.js", "app/taskeval/debug.js",				   
 					   "app.js"]
-		//scriptfiles = ["/lib/ext-4.0.2a/ext.js","/app-all.js"]
+		//scriptfiles = ["/lib/ext-4.1.0/ext.js","/app-all.js"]
 		

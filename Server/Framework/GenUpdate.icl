@@ -3,7 +3,7 @@ implementation module GenUpdate
 import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum, Tuple, List_NG
 import SystemTypes, Text, Util, DocumentStore
 from StdFunc import id, const, o
-from TUIDefinition import :: TUISize(..), :: TUIFixedSize, :: TUIWeight
+from UIDefinition import :: UISize(..)
 
 //derive bimap UpdateMode
 
@@ -200,11 +200,6 @@ gUpdate{|VisualizationHint|} 	fx UDCreate									ust = wrapperUpdate fx UDCreat
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHEditable s))			ust = wrapperUpdate fx mode fromVisualizationHint VHEditable ust
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHDisplay s))			ust = wrapperUpdate fx mode fromVisualizationHint VHDisplay ust
 gUpdate{|VisualizationHint|} 	fx mode=:(UDSearch (VHHidden s))			ust = wrapperUpdate fx mode fromVisualizationHint VHHidden ust
-gUpdate{|ControlSize|} 			fx UDCreate									ust = wrapperUpdate fx UDCreate undef (ControlSize Nothing Nothing Nothing) ust 
-gUpdate{|ControlSize|}			fx mode=:(UDSearch (ControlSize w h m _))	ust = wrapperUpdate fx mode fromControlSize (ControlSize w h m) ust
-gUpdate{|FillControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillControlSize FillControlSize ust
-gUpdate{|FillWControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillWControlSize FillWControlSize ust
-gUpdate{|FillHControlSize|}		fx mode										ust = wrapperUpdate fx mode fromFillHControlSize FillHControlSize ust
 
 wrapperUpdate fx mode get cons ust=:{USt|currentPath} = case mode of
 	UDCreate
@@ -350,10 +345,6 @@ gDefaultMask {|Hidden|}				fx (Hidden h)				= fx h
 gDefaultMask {|VisualizationHint|}	fx (VHEditable e)			= fx e
 gDefaultMask {|VisualizationHint|}	fx (VHDisplay d)			= fx d
 gDefaultMask {|VisualizationHint|}	fx (VHHidden h)				= fx h
-gDefaultMask {|ControlSize|}		fx (ControlSize _ _ _ v)	= fx v
-gDefaultMask {|FillControlSize|}	fx (FillControlSize v)		= fx v
-gDefaultMask {|FillWControlSize|}	fx (FillWControlSize v)		= fx v
-gDefaultMask {|FillHControlSize|}	fx (FillHControlSize v)		= fx v
 
 gDefaultMask{|Int|}					_ = [Touched []]
 gDefaultMask{|Real|}				_ = [Touched []]

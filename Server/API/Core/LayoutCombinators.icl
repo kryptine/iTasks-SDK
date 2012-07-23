@@ -2,7 +2,7 @@ implementation module LayoutCombinators
 
 import StdTuple, StdList, StdBool
 import Maybe, Text, Tuple, Util, HtmlUtil
-import SystemTypes, TUIDefinition
+import SystemTypes, UIDefinition
 
 from StdFunc import o
 
@@ -35,14 +35,12 @@ where
 		bodyGui	= case [gui \\ (_,Just gui,_,_) <- parts] of
 			[gui]	= gui
 			guis	= vjoin guis
-		body	= addMargins ((fillWidth o setHeight (FillParent 1 ContentSize)) bodyGui)
+		body	= addMargins ((fillWidth o setHeight FlexSize) bodyGui)
 		
 		//Add margins except for some controls that look better without margins
-		addMargins gui=:{TUIDef|content=TUICustom _}							= gui
-		addMargins gui=:{TUIDef|content=TUIEditControl (TUIGridControl _) _}	= gui
-		addMargins gui=:{TUIDef|content=TUIEditControl (TUITreeControl _) _}	= gui
-		addMargins gui=:{TUIDef|content=TUIEditControl (TUICustomControl _) _}	= gui
-		addMargins gui															= setMargins 5 5 5 5 gui
+		addMargins gui=:(UIGrid _ _ _)		= gui
+		addMargins gui=:(UITree _ _)		= gui
+		addMargins gui						= setMargins 5 5 5 5 gui
 			
 		basicTaskContainer items			= (setPurpose "form" o setMargins 5 5 0 5 o fixedWidth 700 o wrapHeight) (vjoin items)
 		basicTaskPanel title mbIcon items
@@ -114,13 +112,15 @@ where
 		= (type, Just gui, actions ++ partactions, attributes)
 	
 tabbedLayout :: Layout
-tabbedLayout = layout
+tabbedLayout = heuristicParallelLayout 
+/*
 where
 	layout type parts actions attributes
+		
 		# tabs		= [tab gui actions attributes \\ (_,Just gui,actions,attributes) <- parts]
 		# active	= getTopIndex parts
 		# tabs		= emptyNonActive active tabs
-		# gui		= defaultDef (TUITabContainer {TUITabContainer| active = active, items = [tab \\{TUIDef|content=TUITabItem tab} <- tabs]})
+		# gui		= defaultDef (UITabContainer {UITabContainer| active = active, items = [tab \\{UIDef|content=UITabItem tab} <- tabs]})
 		= (type, Just gui, actions, attributes)
 	
 	tab gui actions attributes
@@ -128,23 +128,22 @@ where
 		# (menus,actions)	= actionsToMenus actions
 		# tab				= toTab gui
 		# tab				= case (kvGet TASK_ATTRIBUTE attributes) of Nothing = tab; Just taskId = setTaskId taskId tab
-		# tab				= case (kvGet LIST_ATTRIBUTE attributes) of Nothing = tab; Just listId = setListId listId tab
 		# tab				= case (kvGet TITLE_ATTRIBUTE attributes) of Nothing = tab; Just title = setTitle title tab
 		# tab				= case (kvGet ICON_ATTRIBUTE attributes) of Nothing = tab; Just icon = setIconCls ("icon-" +++ icon) tab
-		# tab				= case close of Nothing = tab; Just task = setCloseAction (actionName ActionClose,task) tab
+		//# tab				= case close of Nothing = tab; Just task = setCloseAction (actionName ActionClose,task) tab
 		# tab				= addMenusToTUI menus tab
 		= tab
 
 	//Remove all content from tabs that are not visible anyway
 	emptyNonActive active tabs = [if (i == active) tab (empty tab) \\ tab <- tabs & i <- [0..]] 
 	where
-		empty tab=:{TUIDef|content=TUITabItem c} = {tab & content = TUITabItem {TUITabItem|c & items = [], menus = []}}
+		empty tab=:{UIDef|content=UITabItem c} = {tab & content = UITabItem {UITabItem|c & items = [], menus = []}}
 
 	//Find the task id of an ActionClose action
 	takeCloseTask [] = (Nothing,[])
 	takeCloseTask [(task,ActionClose,enabled):as] = (if enabled (Just task) Nothing,as)
 	takeCloseTask [a:as] = let (mbtask,as`) = takeCloseTask as in (mbtask,[a:as`])
-
+*/
 hideLayout :: Layout
 hideLayout = layout
 where
@@ -153,7 +152,7 @@ where
 		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
 		= (type,Nothing,actions,attributes)
 
-fillLayout :: TUIDirection -> Layout
+fillLayout :: UIDirection -> Layout
 fillLayout direction = layout
 where
 	layout type parts actions attributes
@@ -162,7 +161,7 @@ where
 		# guis			= [(fill o setMargins 0 0 0 0 o setFramed False) gui \\ (_,Just gui,_,_) <- parts]
 		=(type,Just ((fill o setDirection direction) (vjoin guis)),actions,attributes) 
 
-splitLayout :: TUISide TUIFixedSize ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
+splitLayout :: UISide Int ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
 splitLayout side size splitFun layout1 layout2 = layout
 where
 	layout type parts actions attributes
@@ -178,7 +177,7 @@ where
 		# gui		= (fill o setDirection dir) (vjoin guis)
 		= (type, Just gui,actions,attributes)
 	
-sideLayout :: TUISide TUIFixedSize Layout -> Layout
+sideLayout :: UISide Int Layout -> Layout
 sideLayout side size mainLayout = layout
 where
 	layout type [] actions attributes		= mainLayout type [] actions attributes	
@@ -190,7 +189,7 @@ where
 			BottomSide	= (Vertical, last parts,init parts)
 			LeftSide	= (Horizontal, hd parts, tl parts)	
 		# (_,Just restGui,restActions,restAttributes) = mainLayout type restParts actions attributes //TODO: Dont' assume Just
-		# sideGui		= (ifH direction (setWidth (Fixed size)) (setHeight (Fixed size))) ((fill o setMargins 0 0 0 0 o setFramed False) (guiOf sidePart))
+		# sideGui		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) ((fill o setMargins 0 0 0 0 o setFramed False) (guiOf sidePart))
 		# arrangedGuis	= ifTL side [sideGui,restGui] [restGui,sideGui]
 		# gui			= (fill o setDirection direction) (vjoin arrangedGuis)
 		= (type,Just gui,restActions ++ actions,restAttributes ++ attributes)
@@ -213,7 +212,7 @@ where
 		# gui			= if (idx >= length parts) Nothing ((\(_,x,_,_)->x) (parts !! idx))
 		= (type,gui,actions,attributes)
 	
-vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
+vsplitLayout :: Int ([UIControl] -> ([UIControl],[UIControl])) -> Layout
 vsplitLayout split fun = layout
 where
 	layout type parts actions attributes
@@ -237,194 +236,198 @@ where
 			| time > maxTop	= find time i (i + 1) ps
 							= find maxTop maxIndex (i + 1) ps
 									
-canHoldButtons :: TUIDef -> Bool
-canHoldButtons def=:{TUIDef|content} = case content of
-	TUIPanel {TUIPanel|purpose=Just "form"}				= True
-	TUIPanel {TUIPanel|purpose=Just "buttons"}			= True
-	TUIPanel {TUIPanel|items}							= or (map canHoldButtons items)
-	TUIContainer {TUIContainer|purpose=Just "form"}		= True
-	TUIContainer {TUIContainer|purpose=Just "buttons"}	= True
-	TUIContainer {TUIContainer|items}					= or (map canHoldButtons items)
-	_													= False
+canHoldButtons :: UIControl -> Bool
+canHoldButtons (UIPanel _ _ _ {UIPanelOpts|purpose=Just "form"})			= True
+canHoldButtons (UIPanel _ _ _ {UIPanelOpts|purpose=Just "buttons"})			= True
+canHoldButtons (UIPanel _ _ items _)										= or (map canHoldButtons items)
+canHoldButtons (UIContainer _ _ _ {UIContainerOpts|purpose=Just "form"})	= True
+canHoldButtons (UIContainer _ _ _ {UIContainerOpts|purpose=Just "buttons"})	= True
+canHoldButtons (UIContainer _ _ items _)									= or (map canHoldButtons items)
+canHoldButtons	_															= False
 
-canHoldMenus :: TUIDef -> Bool
+canHoldMenus :: UIControl -> Bool
 canHoldMenus def = False
 
-setSize :: !TUISize !TUISize !TUIDef -> TUIDef
-setSize width height def = {TUIDef| def & width = Just width, height = Just height}
+updSizeOpts :: (UISizeOpts -> UISizeOpts) UIControl -> UIControl
+updSizeOpts f (UIViewString	sOpts vOpts)			= (UIViewString	(f sOpts) vOpts)
+updSizeOpts f (UIViewHtml sOpts vOpts)				= (UIViewHtml (f sOpts) vOpts)
+updSizeOpts f (UIViewDocument sOpts vOpts)			= (UIViewDocument (f sOpts) vOpts)
+updSizeOpts f (UIViewCheckbox sOpts vOpts)			= (UIViewCheckbox (f sOpts) vOpts)
+updSizeOpts f (UIViewSlider sOpts vOpts opts)		= (UIViewSlider (f sOpts) vOpts opts)
+updSizeOpts f (UIViewProgress sOpts vOpts opts)		= (UIViewProgress (f sOpts) vOpts opts)
+updSizeOpts f (UIEditString	sOpts eOpts)			= (UIEditString	(f sOpts) eOpts)
+updSizeOpts f (UIEditNote sOpts eOpts)				= (UIEditNote (f sOpts) eOpts)
+updSizeOpts f (UIEditPassword sOpts eOpts)			= (UIEditPassword (f sOpts) eOpts)
+updSizeOpts f (UIEditInt sOpts eOpts)				= (UIEditInt (f sOpts) eOpts)
+updSizeOpts f (UIEditDecimal sOpts eOpts)			= (UIEditDecimal (f sOpts) eOpts)
+updSizeOpts f (UIEditCheckbox sOpts eOpts)			= (UIEditCheckbox (f sOpts) eOpts)
+updSizeOpts f (UIEditSlider sOpts eOpts opts)		= (UIEditSlider (f sOpts) eOpts opts)
+updSizeOpts f (UIEditDate sOpts eOpts)				= (UIEditDate (f sOpts) eOpts)
+updSizeOpts f (UIEditTime sOpts eOpts)				= (UIEditTime (f sOpts) eOpts)
+updSizeOpts f (UIEditDocument sOpts eOpts)			= (UIEditDocument (f sOpts) eOpts)
+updSizeOpts f (UIEditButton	sOpts eOpts)			= (UIEditButton	(f sOpts) eOpts)
+updSizeOpts f (UIDropdown sOpts cOpts)				= (UIDropdown (f sOpts) cOpts)
+updSizeOpts f (UIGrid sOpts cOpts opts)				= (UIGrid (f sOpts) cOpts opts)
+updSizeOpts f (UITree sOpts cOpts)					= (UITree (f sOpts) cOpts)
+updSizeOpts f (UIActionButton sOpts aOpts opts)		= (UIActionButton (f sOpts) aOpts opts)	
+updSizeOpts f (UIMenuButton	sOpts opts)				= (UIMenuButton	(f sOpts) opts)	
+updSizeOpts f (UILabel sOpts opts)					= (UILabel (f sOpts) opts)
+updSizeOpts f (UIIcon sOpts opts)					= (UIIcon (f sOpts) opts)
+updSizeOpts f (UITab sOpts opts)					= (UITab (f sOpts) opts)
+updSizeOpts f (UITasklet sOpts opts)				= (UITasklet (f sOpts) opts)
+updSizeOpts f (UIContainer sOpts lOpts items opts)	= (UIContainer (f sOpts) lOpts items opts)
+updSizeOpts f (UIPanel sOpts lOpts items opts)		= (UIPanel (f sOpts) lOpts items opts)
+updSizeOpts f (UIFieldSet sOpts lOpts items opts)	= (UIFieldSet (f sOpts) lOpts items opts)
+updSizeOpts f (UIWindow	sOpts lOpts items opts)		= (UIWindow	(f sOpts) lOpts items opts)
 
-setWidth :: !TUISize !TUIDef -> TUIDef
-setWidth width def = {TUIDef|def & width = Just width}
+setSize :: !UISize !UISize !UIControl -> UIControl
+setSize width height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just width, height = Just height}) ctrl
 
-setHeight :: !TUISize !TUIDef -> TUIDef
-setHeight height def = {TUIDef|def & height = Just height}
+setWidth :: !UISize !UIControl -> UIControl
+setWidth width ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just width}) ctrl
 
-fill :: !TUIDef -> TUIDef
-fill def = {TUIDef|def & width = Just ( FillParent 1 (FixedMinSize 200)), height = Just ( FillParent 1 (FixedMinSize 10))}
+setHeight :: !UISize !UIControl -> UIControl
+setHeight height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & height = Just height}) ctrl
 
-fillHeight :: !TUIDef -> TUIDef
-fillHeight def = {def & height = Just (FillParent 1 (FixedMinSize 200))}
+fill :: !UIControl -> UIControl
+fill ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just FlexSize, height = Just FlexSize}) ctrl
 
-fillWidth :: !TUIDef -> TUIDef
-fillWidth def = {def & width = Just (FillParent 1 (FixedMinSize 200))}
+fillHeight :: !UIControl -> UIControl
+fillHeight ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & height = Just FlexSize}) ctrl
 
-fixedHeight	:: !Int !TUIDef -> TUIDef
-fixedHeight size def = {def & height = Just (Fixed size)}
+fillWidth :: !UIControl -> UIControl
+fillWidth ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just FlexSize}) ctrl
 
-fixedWidth :: !Int !TUIDef -> TUIDef
-fixedWidth size def = {def & width = Just (Fixed size)}
+fixedHeight	:: !Int !UIControl -> UIControl
+fixedHeight size ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & height = Just (ExactSize size)}) ctrl
 
-wrapHeight :: !TUIDef -> TUIDef
-wrapHeight def = {def & height = Just (WrapContent 0)}
+fixedWidth :: !Int !UIControl -> UIControl
+fixedWidth size ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just (ExactSize size)}) ctrl
+
+wrapHeight :: !UIControl -> UIControl
+wrapHeight ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & height = Just WrapSize}) ctrl
  
-wrapWidth :: !TUIDef -> TUIDef
-wrapWidth def = {def & width = Just (WrapContent 0)}
+wrapWidth :: !UIControl -> UIControl
+wrapWidth ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just WrapSize}) ctrl
 
-setMargins :: !Int !Int !Int !Int !TUIDef -> TUIDef
-setMargins top right bottom left def = {def & margins = Just {top = top, right = right, bottom = bottom, left = left}}
+setMargins :: !Int !Int !Int !Int !UIControl -> UIControl
+setMargins top right bottom left ctrl
+	= updSizeOpts (\opts -> {UISizeOpts|opts & margins = Just {top = top, right = right, bottom = bottom, left = left}}) ctrl
 
-setTopMargin :: !Int !TUIDef -> TUIDef
-setTopMargin top def = case def.margins of
-	Nothing = {def & margins = Just {top = top, right = 0, bottom = 0, left = 0}}
-	Just m	= {def & margins = Just {m & top = top}}
+setTopMargin :: !Int !UIControl -> UIControl
+setTopMargin top ctrl = updSizeOpts f ctrl
+where
+	f opts = case opts.margins of
+		Nothing = {UISizeOpts|opts & margins = Just {top = top, right = 0, bottom = 0, left = 0}}
+		Just m	= {UISizeOpts|opts & margins = Just {m & top = top}}
 
-setRightMargin	:: !Int !TUIDef -> TUIDef
-setRightMargin right def = case def.margins of
-	Nothing = {def & margins = Just {top = 0, right = right, bottom = 0, left = 0}}
-	Just m	= {def & margins = Just {m & right = right}}
+setRightMargin	:: !Int !UIControl -> UIControl
+setRightMargin right ctrl = updSizeOpts f ctrl
+where
+	f opts = case opts.margins of
+		Nothing = {UISizeOpts|opts & margins = Just {top = 0, right = right, bottom = 0, left = 0}}
+		Just m	= {UISizeOpts|opts & margins = Just {m & right = right}}
 	
-setBottomMargin	:: !Int !TUIDef -> TUIDef
-setBottomMargin bottom def = case def.margins of
-	Nothing = {def & margins = Just {top = 0, right = 0, bottom = bottom, left = 0}}
-	Just m	= {def & margins = Just {m & bottom = bottom}}
+setBottomMargin	:: !Int !UIControl -> UIControl
+setBottomMargin bottom ctrl = updSizeOpts f ctrl
+where
+	f opts = case opts.margins of
+		Nothing = {UISizeOpts|opts & margins = Just {top = 0, right = 0, bottom = bottom, left = 0}}
+		Just m	= {UISizeOpts|opts & margins = Just {m & bottom = bottom}}
 	
-setLeftMargin :: !Int !TUIDef -> TUIDef
-setLeftMargin left def = case def.margins of
-	Nothing = {def & margins = Just {top = 0, right = 0, bottom = 0, left = left}}
-	Just m	= {def & margins = Just {m & left = left}}
+setLeftMargin :: !Int !UIControl -> UIControl
+setLeftMargin left ctrl = updSizeOpts f ctrl
+where
+	f opts = case opts.margins of
+		Nothing = {UISizeOpts|opts & margins = Just {top = 0, right = 0, bottom = 0, left = left}}
+		Just m	= {UISizeOpts|opts & margins = Just {m & left = left}}
 
-setPadding :: !Int !TUIDef -> TUIDef
-setPadding padding def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & padding = Just padding}}
-	TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & padding = Just padding}}
-	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & padding = Just padding}}
-	_				= def
-	
-setTitle :: !String !TUIDef -> TUIDef
-setTitle title def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & title = Just title}}
-	TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & title = title}}
-	TUIContainer _	= setTitle title (toPanel def)	//Coerce to panel
-	_				= def
+setPadding :: !Int !Int !Int !Int !UIControl -> UIControl
+setPadding top right bottom left (UIContainer sOpts lOpts items opts)
+	= UIContainer sOpts {UILayoutOpts|lOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}} items opts
+setPadding top right bottom left (UIPanel sOpts lOpts items opts)
+	= UIPanel sOpts {UILayoutOpts|lOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}} items opts
+setPadding top right bottom left (UIWindow sOpts lOpts items opts)
+	= UIWindow sOpts {UILayoutOpts|lOpts & padding = Just {top=top,right=right,bottom=bottom,left=left}} items opts
+setPadding top right bottom left ctrl = ctrl
 
-setFramed :: !Bool !TUIDef -> TUIDef
-setFramed frame def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & frame = frame}}
-	_				= def
+setTitle :: !String !UIControl -> UIControl
+setTitle title (UIPanel sOpts lOpts items opts) = UIPanel sOpts lOpts items {UIPanelOpts|opts & title = Just title}
+setTitle title (UIWindow sOpts lOpts items opts) = UIWindow sOpts lOpts items {UIWindowOpts|opts & title = Just title}
+setTitle title (UIFieldSet sOpts lOpts items opts) = UIFieldSet sOpts lOpts items {UIFieldSetOpts|opts & title = title}
+setTitle title ctrl = ctrl
 
-setIconCls :: !String !TUIDef -> TUIDef
-setIconCls cls def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & iconCls = Just cls}}
-	TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & iconCls = Just cls}}
-	TUIWindow c		= {TUIDef|def & content = TUIWindow {TUIWindow|c & iconCls = Just cls}}
-	_				= def
+setFramed :: !Bool !UIControl -> UIControl
+setFramed frame (UIPanel sOpts lOpts items opts) = UIPanel sOpts lOpts items {UIPanelOpts|opts & frame = frame}
+setFramed frame (UIWindow sOpts lOpts items opts) = UIWindow sOpts lOpts items {UIWindowOpts|opts & frame = frame}
+setFramed frame ctrl = ctrl
 
-setBaseCls :: !String !TUIDef -> TUIDef
-setBaseCls cls def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & baseCls = Just cls}}
-	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & baseCls = Just cls}}
-	//TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & baseCls = Just cls}}
-	TUIWindow c		= {TUIDef|def & content = TUIWindow {TUIWindow|c & baseCls = Just cls}}
-	_				= def
+setIconCls :: !String !UIControl -> UIControl
+setIconCls iconCls (UIActionButton sOpts aOpts opts) = UIActionButton sOpts aOpts {UIActionButtonOpts|opts & iconCls = Just iconCls}
+setIconCls iconCls (UIMenuButton sOpts opts) = UIMenuButton sOpts {UIMenuButtonOpts|opts & iconCls = Just iconCls}
+setIconCls iconCls (UIIcon sOpts opts) = UIIcon sOpts  {UIIconOpts|opts & iconCls = iconCls}
+setIconCls iconCls (UITab sOpts opts) = UITab sOpts  {UITabOpts|opts & iconCls = Just iconCls}
+setIconCls iconCls (UIPanel sOpts lOpts items opts) = UIPanel sOpts lOpts items {UIPanelOpts|opts & iconCls = Just iconCls}
+setIconCls iconCls (UIWindow sOpts lOpts items opts) = UIWindow sOpts lOpts items {UIWindowOpts|opts & baseCls = Just iconCls}
+setIconCls iconCls ctrl = ctrl
 
-setDirection :: !TUIDirection !TUIDef -> TUIDef
-setDirection dir def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & direction = dir}}
-	//TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & direction = dir}}
-	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & direction = dir}}
-	_				= def
+setBaseCls :: !String !UIControl -> UIControl
+setBaseCls baseCls (UIContainer sOpts lOpts items opts) = UIContainer sOpts lOpts items {UIContainerOpts|opts & baseCls = Just baseCls}
+setBaseCls baseCls (UIPanel sOpts lOpts items opts) = UIPanel sOpts lOpts items {UIPanelOpts|opts & baseCls = Just baseCls}
+setBaseCls baseCls (UIWindow sOpts lOpts items opts) = UIWindow sOpts lOpts items {UIWindowOpts|opts & baseCls = Just baseCls}
+setBaseCls baseCls ctrl = ctrl
 
-setHalign :: !TUIHAlign !TUIDef -> TUIDef
-setHalign align def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & halign = align}}
-	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & halign = align}}
-	_				= def
+setDirection :: !UIDirection !UIControl -> UIControl
+setDirection dir (UIContainer sOpts lOpts items opts)	= UIContainer sOpts {lOpts & direction = dir} items opts
+setDirection dir (UIPanel sOpts lOpts items opts)		= UIPanel sOpts {lOpts & direction = dir} items opts
+setDirection dir (UIWindow sOpts lOpts items opts)		= UIWindow sOpts {lOpts & direction = dir} items opts
+setDirection dir ctrl									= ctrl
 
-setValign :: !TUIVAlign !TUIDef -> TUIDef
-setValign align def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & valign = align}}
-	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & valign = align}}
-	_				= def
+setHalign :: !UIHAlign !UIControl -> UIControl
+setHalign align (UIContainer sOpts lOpts items opts)	= UIContainer sOpts {lOpts & halign = align} items opts
+setHalign align (UIPanel sOpts lOpts items opts)		= UIPanel sOpts {lOpts & halign = align} items opts
+setHalign align (UIWindow sOpts lOpts items opts)		= UIWindow sOpts {lOpts & halign = align} items opts
+setHalign align ctrl									= ctrl
 
-setPurpose :: !String !TUIDef -> TUIDef
-setPurpose purpose def=:{TUIDef|content} = case content of
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & purpose = Just purpose}}
-	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c &  purpose = Just purpose}}
-	_				= def
+setValign :: !UIVAlign !UIControl -> UIControl
+setValign align (UIContainer sOpts lOpts items opts)	= UIContainer sOpts {lOpts & valign = align} items opts
+setValign align (UIPanel sOpts lOpts items opts)		= UIPanel sOpts {lOpts & valign = align} items opts
+setValign align (UIWindow sOpts lOpts items opts)		= UIWindow sOpts {lOpts & valign = align} items opts
+setValign align ctrl									= ctrl
 
-setTaskId :: !String !TUIDef -> TUIDef
-setTaskId taskId def=:{TUIDef|content} = case content of
-	TUIEditControl t c	= {TUIDef|def & content = TUIEditControl t {TUIEditControl|c & taskId = Just taskId}}
-	TUITabItem c		= {TUIDef|def & content = TUITabItem {TUITabItem|c & taskId = Just taskId}}
-	TUIListContainer c	= {TUIDef|def & content = TUIListContainer {TUIListContainer|c & taskId = Just taskId}}
-	TUIRadioChoice c	= {TUIDef|def & content = TUIRadioChoice {TUIRadioChoice|c & taskId = Just taskId}}
-	TUICheckChoice c	= {TUIDef|def & content = TUICheckChoice {TUICheckChoice|c & taskId = Just taskId}}
-	_					= def
-
-setListId :: !String !TUIDef -> TUIDef
-setListId listId def=:{TUIDef|content} = case content of
-	TUITabItem c		= {TUIDef|def & content = TUITabItem {TUITabItem|c & listId = Just listId}}
-	_					= def
-	
-setCloseAction :: !(!String,!String) !TUIDef -> TUIDef
-setCloseAction action def=:{TUIDef|content} = case content of
-	TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & closeAction = Just action}}
-	_				= def
+setPurpose :: !String !UIControl -> UIControl
+setPurpose purpose (UIContainer sOpts lOpts items opts)	= UIContainer sOpts lOpts items {UIContainerOpts|opts & purpose = Just purpose}
+setPurpose purpose (UIPanel sOpts lOpts items opts)		= UIPanel sOpts lOpts items {UIPanelOpts|opts & purpose = Just purpose}
+setPurpose purpose (UIWindow sOpts lOpts items opts)	= UIWindow sOpts lOpts items {UIWindowOpts|opts & purpose = Just purpose}
+setPurpose purpose ctrl									= ctrl
 	
 //Container coercion
-toPanel	:: !TUIDef -> TUIDef
-toPanel def=:{TUIDef|content} = case content of
-	//Panels are left untouched
-	TUIPanel _		= def
-	//Containers can be coerced to panels
-	TUIContainer {TUIContainer|items,direction,halign,valign,padding,purpose,baseCls}
-		= {TUIDef|def & content = TUIPanel
-			{TUIPanel	|items=items,direction=direction,halign=halign,valign=valign,padding=Nothing,purpose=purpose
-						,title = Nothing,frame=False,menus=[],iconCls=Nothing,baseCls=Nothing,bodyCls=baseCls,bodyPadding=padding}}
-	//Uncoercable items are wrapped in a panel instead
-	_
-		= {TUIDef|def & content = TUIPanel
-			{TUIPanel	|items=[def],direction=Vertical,halign=AlignLeft,valign=AlignTop,padding=Nothing,purpose=Nothing
-						,title = Nothing,frame=False,menus=[],iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing,bodyPadding=Nothing}}
+toPanel	:: !UIControl -> UIControl
+//Panels are left untouched
+toPanel ctrl=:(UIPanel _ _ _ _)		= ctrl
+//Containers are coerced to panels
+toPanel ctrl=:(UIContainer sOpts lOpts items {UIContainerOpts|purpose,baseCls,bodyCls})
+	= UIPanel sOpts lOpts items {UIPanelOpts|title=Nothing,frame=False,tbar=[],purpose=purpose,iconCls=Nothing,baseCls=baseCls,bodyCls=bodyCls}
+//Uncoercable items are wrapped in a panel instead
+toPanel ctrl = defaultPanel [ctrl]
 
-toContainer :: !TUIDef -> TUIDef
-toContainer def=:{TUIDef|content} = case content of
-	TUIContainer _	= def
-	//Panels can be coerced to containers
-	TUIPanel {TUIPanel|items,direction,halign,valign,padding,purpose,baseCls} 
-		= {TUIDef|def & content = TUIContainer
-			{TUIContainer |items = items,direction=direction,halign=halign,valign=valign,padding=padding,purpose=purpose,baseCls=baseCls}}
-	//Uncoercable items are wrapped in a container instead
-	_
-		= {TUIDef|def & content = TUIContainer
-			{TUIContainer |items = [def],direction=Vertical,halign=AlignLeft,valign=AlignTop,padding=Nothing,purpose=Nothing,baseCls=Nothing}}
-					
-toTab :: !TUIDef -> TUIDef
-toTab def=:{TUIDef|content} = case content of
-	//Coerce panels and containers to tabs
-	TUIPanel {TUIPanel|items,title,iconCls,padding,menus}
-		= defaultDef (TUITabItem {TUITabItem| taskId = Nothing, listId = Nothing, items = items, title = fromMaybe "Untitled" title, iconCls = iconCls,padding = Nothing, menus = menus, closeAction = Nothing})
-
-	_	= defaultDef (TUITabItem {TUITabItem| taskId = Nothing, listId = Nothing, items = [def],title = "Untitled", iconCls = Nothing, padding = Nothing, menus = [], closeAction = Nothing})
+toContainer :: !UIControl -> UIControl
+//Containers are left untouched
+toContainer ctrl=:(UIContainer _ _ _ _) = ctrl
+//Panels can be coerced to containers
+toContainer ctrl=:(UIPanel sOpts lOpts items {UIPanelOpts|purpose,baseCls,bodyCls})
+	= UIContainer sOpts lOpts items {UIContainerOpts|purpose=purpose,baseCls=baseCls,bodyCls=bodyCls}
+//Uncoercable items are wrapped in a container instead
+toContainer ctrl = defaultContainer [ctrl]
 	
 //GUI combinators						
-hjoin :: ![TUIDef] -> TUIDef
-hjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Horizontal, halign = AlignLeft, valign = AlignMiddle, padding = Nothing, purpose = Nothing, baseCls = Nothing})
+hjoin :: ![UIControl] -> UIControl
+hjoin items = UIContainer defaultSizeOpts {defaultLayoutOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle} items {UIContainerOpts|purpose=Nothing,baseCls=Nothing,bodyCls=Nothing}
 
-vjoin :: ![TUIDef] -> TUIDef
-vjoin defs = defaultDef (TUIContainer {TUIContainer|items = defs, direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing, purpose = Nothing, baseCls = Nothing})
+vjoin :: ![UIControl] -> UIControl
+vjoin items = UIContainer defaultSizeOpts {defaultLayoutOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop} items {UIContainerOpts|purpose=Nothing,baseCls=Nothing,bodyCls=Nothing}
 						
-paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![TUIDef] -> TUIDef
+paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![UIControl] -> UIControl
 paneled mbTitle mbHint mbIcon defs
 	# def	= maybe (formPanel defs) (\hint -> vjoin [hintPanel hint,formPanel defs]) mbHint
 	# panel = (setPurpose "form" o frame) (toPanel def)
@@ -438,7 +441,7 @@ paneled mbTitle mbHint mbIcon defs
 where
 	frame = setMargins 10 10 0 10 o setFramed True o fixedWidth 700
 
-formed :: !(Maybe String) ![TUIDef] -> TUIDef
+formed :: !(Maybe String) ![UIControl] -> UIControl
 formed mbHint defs 
 	= case mbHint of
 		Nothing		= formPanel defs
@@ -446,82 +449,72 @@ formed mbHint defs
 
 
 //Container operations
-addItemToTUI :: (Maybe Int) TUIDef TUIDef -> TUIDef
-addItemToTUI mbIndex item def=:{TUIDef|content} = case content of
-	TUIContainer container=:{TUIContainer|items}	= {TUIDef|def & content = TUIContainer {TUIContainer|container & items = add mbIndex item items}}
-	TUIPanel panel=:{TUIPanel|items}				= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = add mbIndex item items}}
-	_												= def
+addItemToTUI :: (Maybe Int) UIControl UIControl -> UIControl
+addItemToTUI mbIndex item ctrl = case ctrl of
+	UIContainer sOpts lOpts items opts	= UIContainer sOpts lOpts (add mbIndex item items) opts
+	UIPanel sOpts lOpts items opts		= UIPanel sOpts lOpts (add mbIndex item items) opts
+	UIWindow sOpts lOpts items opts		= UIWindow sOpts lOpts (add mbIndex item items) opts
+	_									= ctrl
 where
-	add Nothing item items = items ++ [item]
-	add (Just pos) item items = take pos items ++ [item] ++ drop pos items
+	add Nothing item items		= items ++ [item]
+	add (Just pos) item items	= take pos items ++ [item] ++ drop pos items
 	
 //Add buttons to an existing panel. If there it is a container that has a "button" container in it add the buttons to that
 //Otherwise create that container
-addButtonsToTUI :: ![TUIDef] TUIDef -> TUIDef
-addButtonsToTUI [] def = def
-addButtonsToTUI buttons def=:{TUIDef|content}
-	| isButtonPanel def	= foldr (addItemToTUI Nothing) def buttons 
-	| otherwise			= case content of
-		(TUIPanel panel=:{TUIPanel|items})				= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = addToButtonPanel buttons items}}
-		(TUIContainer container=:{TUIContainer|items})	= {TUIDef|def & content = TUIContainer {TUIContainer|container & items = addToButtonPanel buttons items}}
-		_									= def
+addButtonsToTUI :: ![UIControl] UIControl -> UIControl
+addButtonsToTUI [] ctrl = ctrl
+addButtonsToTUI buttons ctrl
+	| isButtonPanel ctrl	= foldr (addItemToTUI Nothing) ctrl buttons 
+	| otherwise				= case ctrl of
+		(UIPanel sOpts lOpts items opts)		= UIPanel sOpts lOpts (addToButtonPanel buttons items) opts
+		(UIContainer sOpts lOpts items opts)	= UIContainer sOpts lOpts (addToButtonPanel buttons items) opts
+		_										= ctrl
 where
-	addToButtonPanel buttons []		= [buttonPanel buttons]
+	addToButtonPanel buttons []	= [buttonPanel buttons]
 	addToButtonPanel buttons [i:is]
 		| isButtonPanel i	= [foldr (addItemToTUI Nothing) i buttons:is]
 							= [i:addToButtonPanel buttons is]
 
 //Add menus to a panel, tab or window								
-addMenusToTUI :: [TUIMenuButton] TUIDef -> TUIDef
-addMenusToTUI [] def = def
-addMenusToTUI extramenus def=:{TUIDef|content} = case content of
-	(TUIPanel panel=:{TUIPanel|menus})		= {TUIDef|def & content = TUIPanel {TUIPanel|panel & menus = menus ++ extramenus}}
-	(TUITabItem tab=:{TUITabItem|menus})	= {TUIDef|def & content = TUITabItem {TUITabItem|tab & menus = menus ++ extramenus}}
-	(TUIWindow window=:{TUIWindow|menus})	= {TUIDef|def & content = TUIWindow {TUIWindow|window & menus = menus ++ extramenus}}
-	_										= def
+addMenusToTUI :: [UIControl] UIControl -> UIControl
+addMenusToTUI [] ctrl = ctrl
+addMenusToTUI extra (UIPanel sOpts lOpts items opts=:{UIPanelOpts|tbar}) = UIPanel sOpts lOpts items {UIPanelOpts|opts & tbar = tbar ++ extra}
+addMenusToTUI extra (UIWindow sOpts lOpts items opts=:{UIWindowOpts|tbar}) = UIWindow sOpts lOpts items {UIWindowOpts|opts & tbar = tbar ++ extra}
+addMenusToTUI extra ctrl = ctrl
 
-getItemsOfTUI :: TUIDef -> [TUIDef]
-getItemsOfTUI def=:{TUIDef|content} = case content of
-	TUIContainer {TUIContainer|items}	= items
-	TUITabItem {TUITabItem|items}		= items
-	TUIPanel {TUIPanel|items}			= items
-	TUIWindow {TUIWindow|items}			= items
-	_									= [def]
+
+getItemsOfTUI :: UIControl -> [UIControl]
+getItemsOfTUI (UIContainer _ _ items _)	= items
+getItemsOfTUI (UIPanel _ _ items _)		= items
+getItemsOfTUI (UIWindow _ _ items _)	= items
+getItemsOfTUI ctrl						= [ctrl]
 	
-setItemsOfTUI :: [TUIDef] TUIDef -> TUIDef
-setItemsOfTUI items def=:{TUIDef|content} = case content of
-	TUIContainer c	= {TUIDef|def & content = TUIContainer {TUIContainer|c & items = items}}
-	TUITabItem c	= {TUIDef|def & content = TUITabItem {TUITabItem|c & items = items}}
-	TUIPanel c		= {TUIDef|def & content = TUIPanel {TUIPanel|c & items = items}}
-	TUIWindow c		= {TUIDef|def & content = TUIWindow {TUIWindow|c & items = items}}
-	_				= def
-	
+setItemsOfTUI :: [UIControl] UIControl -> UIControl
+setItemsOfTUI items (UIContainer sOpts lOpts _ opts)	= UIContainer sOpts lOpts items opts
+setItemsOfTUI items (UIPanel sOpts lOpts _ opts)		= UIPanel sOpts lOpts items opts
+setItemsOfTUI items (UIWindow sOpts lOpts _ opts)		= UIWindow sOpts lOpts items opts
+setItemsOfTUI items ctrl								= ctrl
+
 //Predefined panels
-hintPanel :: !String -> TUIDef	//Panel with task instructions
+hintPanel :: !String -> UIControl	//Panel with task instructions
 hintPanel hint
-	= (setBaseCls "i-hint-panel" o setPurpose "hint" o setPadding 5 o fillWidth o wrapHeight) (vjoin [stringDisplay hint])
+	= (setBaseCls "i-hint-panel" o setPurpose "hint" o setPadding 5 5 5 5 o fillWidth o wrapHeight) (vjoin [stringDisplay hint])
 
-formPanel :: ![TUIDef] -> TUIDef
+formPanel :: ![UIControl] -> UIControl
 formPanel items
-	= (/*setBaseCls "i-form-panel" o */ setPurpose "form" o setPadding 5 ) (vjoin items)
+	= (/*setBaseCls "i-form-panel" o */ setPurpose "form" o setPadding 5 5 5 5 ) (vjoin items)
 
-buttonPanel	:: ![TUIDef] -> TUIDef	//Container for a set of horizontally layed out buttons
+buttonPanel	:: ![UIControl] -> UIControl	//Container for a set of horizontally layed out buttons
 buttonPanel buttons
-	=	{ content	= TUIContainer {TUIContainer|defaultContainer buttons & direction = Horizontal, halign = AlignRight, purpose = Just "buttons", baseCls = Just "i-button-panel", padding = Just 5}
-		, width		= Just (FillParent 1 ContentSize)
-		, height	= Just (WrapContent 0)
-		, margins	= Nothing
-		}
-		
-isButtonPanel :: !TUIDef -> Bool
-isButtonPanel def=:{TUIDef|content} = case content of
-	TUIPanel {TUIPanel|purpose=Just p}			= p == "buttons"
-	TUIContainer {TUIContainer|purpose=Just p}	= p == "buttons"
-	_											= False
+	= (fillWidth o setPadding 5 5 5 5 o setDirection Horizontal o setHalign AlignRight o setPurpose "buttons") (defaultContainer buttons)
 
+isButtonPanel :: !UIControl -> Bool
+isButtonPanel (UIContainer _ _ _ {UIContainerOpts|purpose=Just p})	= p == "buttons"
+isButtonPanel (UIPanel _ _ _ {UIPanelOpts|purpose=Just p})			= p == "buttons"
+isButtonPanel (UIWindow _ _ _ {UIWindowOpts|purpose=Just p})		= p == "buttons"
+isButtonPanel _														= False
 
-
-actionsToButtons :: ![TaskAction] -> (![TUIDef],![TaskAction])
+actionsToButtons :: ![TaskAction] -> (![UIControl],![TaskAction])
 actionsToButtons [] = ([],[])
 actionsToButtons [a=:(taskId,action,enabled):as]
 	# (buttons,actions)	= actionsToButtons as 
@@ -532,32 +525,21 @@ actionsToButtons [a=:(taskId,action,enabled):as]
 		_		= (buttons,[a:actions])
 where
 	mkButton taskId action enabled
-		= { content	= TUIButton
-			{ TUIButton
-			| name			= actionName action
-			, taskId		= Just (toString taskId)
-			, disabled		= not enabled
-			, text			= actionName action
-			, iconCls 		= actionIcon action
-			, actionButton	= True
-			}
-	 	  , width	= Nothing
-		  , height	= Nothing
-		  , margins	= Nothing
-		  }
-
-actionsToMenus :: ![TaskAction] -> (![TUIMenuButton],![TaskAction])
+		= UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,action=actionName action}
+			{UIActionButtonOpts|text = actionName action, iconCls = Just (actionIcon action), disabled = not enabled}
+			
+actionsToMenus :: ![TaskAction] -> (![UIControl],![TaskAction])
 actionsToMenus actions = makeMenus [] actions
 where
-	makeMenus :: [TUIMenuButton] [TaskAction] -> ([TUIMenuButton],[TaskAction])
+	makeMenus :: [UIControl] [TaskAction] -> ([UIControl],[TaskAction])
 	makeMenus menus []	= (menus,[])	
 	makeMenus menus [a=:(taskId,action,enabled):as] = makeMenus (addToMenus (split "/" (actionName action)) taskId action enabled menus) as
 	
 	addToMenus [main:item] taskId action enabled [] //Create menu
 		= [createButton main item taskId action enabled]
-	addToMenus [main:item] taskId action enabled [m:ms] //Add to existing menu if it exists
-		| m.TUIMenuButton.text == main //Found!
-			= [{TUIMenuButton|m & menu = Just {TUIMenu|items = addToItems item taskId action enabled (maybe [] (\menu -> menu.TUIMenu.items) m.TUIMenuButton.menu)}}:ms]
+	addToMenus [main:item] taskId action enabled [m=:(UIMenuButton sOpts opts):ms] //Add to existing menu if it exists
+		| opts.UIMenuButtonOpts.text == main //Found!
+			= [UIMenuButton sOpts {UIMenuButtonOpts|opts & menu = addToItems item taskId action enabled opts.UIMenuButtonOpts.menu}:ms]
 		| otherwise
 			= [m:addToMenus [main:item] taskId action enabled ms]
 			
@@ -574,41 +556,41 @@ where
 	addToItems [] _ _ _ _
 		= []
 
-	itemText {TUIMenuItem|text}	= text
+	itemText (UIActionMenuItem _ {UIActionButtonOpts|text})	= text
+	itemText (UISubMenuItem {UIMenuButtonOpts|text})		= text
 	itemText _					= ""
 	
 	createButton item sub taskId action enabled
-		= {TUIMenuButton
-			| text		= item
-			, target	= if (isEmpty sub) (Just (toString taskId)) Nothing
-			, action	= if (isEmpty sub) (Just (actionName action)) Nothing
-			, menu		= if (isEmpty sub) Nothing (Just {TUIMenu|items = addToItems sub taskId action enabled []})
-			, disabled	= if (isEmpty sub) (not enabled) False
-			, iconCls	= Just (icon item)
+		= UIMenuButton defaultSizeOpts
+			{UIMenuButtonOpts
+			|text = item
+			,iconCls = Just (icon item)
+			,disabled	= if (isEmpty sub) (not enabled) False
+			,menu = addToItems sub taskId action enabled []
 			}
-			
-	createItem item sub taskId action enabled
-		=  	 {TUIMenuItem
-		   	 |text 		= item
-		   	 ,target	= if (isEmpty sub) (Just (toString taskId)) Nothing
-		   	 ,action	= if (isEmpty sub) (Just (actionName action)) Nothing
-		   	 ,menu		= if (isEmpty sub) Nothing (Just {TUIMenu|items = addToItems sub taskId action enabled []})
-		   	 ,disabled	= if (isEmpty sub) (not enabled) False
-		   	 ,iconCls	= Just (icon item)
-		   	 ,hotkey	= Nothing
-		     }
-
-	addToItem sub taskId action enabled item=:{TUIMenuItem|menu}
-		= {TUIMenuItem|item & menu = Just {TUIMenu|items = addToItems sub taskId action enabled (maybe [] (\m -> m.TUIMenu.items) menu)}}
-
+	createItem item [] taskId action enabled //Action item
+		= UIActionMenuItem
+			{UIActionOpts|taskId=taskId,action=actionName action}
+			{UIActionButtonOpts|text=item,iconCls = Just (icon item), disabled = not enabled}
+	createItem item sub taskId action enabled //Sub item
+		= UISubMenuItem
+				{ text = item
+				, iconCls = Just (icon item)
+				, disabled = False
+				, menu = addToItems sub taskId action enabled []
+				}
+		
+	addToItem sub taskId action enabled item=:(UISubMenuItem opts=:{UIMenuButtonOpts|menu})
+		= UISubMenuItem {UIMenuButtonOpts|opts & menu = addToItems sub taskId action enabled menu}
+	
 	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
 
-isForm :: TUIDef -> Bool
-isForm {TUIDef|content=TUIContainer {TUIContainer|purpose = Just "form"}}	= True
-isForm {TUIDef|content=TUIPanel {TUIPanel|purpose = Just "form"}}			= True
-isForm _ = False
+isForm :: UIControl -> Bool
+isForm (UIContainer _ _ _ {UIContainerOpts|purpose = Just "form"})	= True
+isForm (UIPanel _ _ _ {UIPanelOpts|purpose = Just "form"})			= True
+isForm _ 															= False
 
-tuiOf :: TaskTUIRep -> TUIDef
+tuiOf :: TaskTUIRep -> UIControl
 tuiOf (_,d,_,_)	= fromMaybe (stringDisplay "-") d
 
 actionsOf :: TaskTUIRep -> [TaskAction]
@@ -623,20 +605,17 @@ mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> kvSetOnce k v attr) attr1 at
 appLayout :: Layout TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
 appLayout f type parts actions attributes  = f type parts actions attributes
 
-appDeep	:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef
-appDeep [] f def = f def
-appDeep [s:ss] f def=:{TUIDef|content} = case content of
-	TUIContainer container=:{TUIContainer|items}
-		= {TUIDef|def & content = TUIContainer {TUIContainer|container & items = update items}}
-	TUIPanel panel=:{TUIPanel|items}
-		= {TUIDef|def & content = TUIPanel {TUIPanel|panel & items = update items}}
-	TUIWindow window=:{TUIWindow|items}
-		= {TUIDef|def & content = TUIWindow {TUIWindow|window & items = update items}}
-	_	= def
+appDeep	:: [Int] (UIControl -> UIControl) UIControl -> UIControl
+appDeep [] f ctrl = f ctrl
+appDeep [s:ss] f ctrl = case ctrl of
+	(UIContainer sOpts lOpts items cOpts) 	= UIContainer sOpts lOpts (update items) cOpts
+	(UIPanel sOpts lOpts items pOpts)		= UIPanel sOpts lOpts (update items) pOpts
+	(UIWindow sOpts lOpts items wOpts)		= UIWindow sOpts lOpts (update items) wOpts
+	_										= ctrl
 where
 	update items = [if (i == s) (appDeep ss f item) item \\ item <- items & i <- [0..]]
 
-tweakTUI :: (TUIDef -> TUIDef) TaskTUIRep -> TaskTUIRep
+tweakTUI :: (UIControl -> UIControl) TaskTUIRep -> TaskTUIRep
 tweakTUI f (type,gui,actions,attributes) = (type,fmap f gui,actions,attributes)
 
 tweakAttr :: ([TaskAttribute] -> [TaskAttribute]) TaskTUIRep -> TaskTUIRep

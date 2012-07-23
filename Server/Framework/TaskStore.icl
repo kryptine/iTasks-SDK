@@ -2,24 +2,22 @@ implementation module TaskStore
 
 import StdEnv, Maybe
 
-import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, TUIDefinition, Map
+import IWorld, TaskState, Task, Store, Util, Text, Time, Random, JSON_NG, UIDefinition, Map
 import SharedDataSource
 import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
 //Derives required for storage of TUI definitions
 derive JSONEncode TaskRep, TaskCompositionType
-derive JSONEncode TUIDef, TUIDefContent, TUIIcon, TUIHtml, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
-derive JSONEncode TUIControlType
-derive JSONEncode TUIButtonControl, TUISliderControl, TUIListItem
-derive JSONEncode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
-derive JSONEncode TUIProgressBar, TUITasklet
+derive JSONEncode UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
+derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
+derive JSONEncode UIMenuButtonOpts, UIActionButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
+derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
 derive JSONDecode TaskRep, TaskCompositionType
-derive JSONDecode TUIDef, TUIDefContent, TUIIcon, TUIHtml, TUIButton, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey
-derive JSONDecode TUIControlType
-derive JSONDecode TUIButtonControl, TUISliderControl, TUIListItem
-derive JSONDecode TUIContainer, TUIPanel, TUIWindow, TUITabContainer, TUITabItem, TUIBorderContainer, TUIBorderItem, TUIListContainer, TUIGridControl, TUITree, TUIEditControl, TUIShowControl, TUIRadioChoice, TUICheckChoice, TUISize, TUIVAlign, TUIHAlign, TUIDirection, TUIMinSize, TUIMargins
-derive JSONDecode TUIProgressBar, TUITasklet
+derive JSONDecode UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
+derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
+derive JSONDecode UIMenuButtonOpts, UIActionButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
+derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
 INCREMENT				:== "increment"
 PERSISTENT_INDEX		:== "persistent-index"
@@ -187,10 +185,10 @@ addOutdatedOnShareChange shareId iworld
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld
 		
-storeCurUI :: !SessionId !Int !TUIDef !*IWorld -> *IWorld
+storeCurUI :: !SessionId !Int !UIControl !*IWorld -> *IWorld
 storeCurUI sid version def iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,def) uis}
 
-loadPrevUI	:: !SessionId !Int !*IWorld -> (!Maybe TUIDef, !*IWorld)
+loadPrevUI	:: !SessionId !Int !*IWorld -> (!Maybe UIControl, !*IWorld)
 loadPrevUI sid version iworld=:{IWorld|uis}
 	= case get sid uis of
 		Just (prev,def) | version == (prev + 1)	= (Just def, iworld)

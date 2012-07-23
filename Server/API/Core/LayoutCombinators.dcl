@@ -1,6 +1,6 @@
 definition module LayoutCombinators
 
-import SystemTypes, TUIDefinition
+import SystemTypes, UIDefinition
 
 from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUIRep
 
@@ -47,7 +47,7 @@ hideLayout :: Layout
 /**
 * Fill out available space
 */
-fillLayout :: TUIDirection -> Layout
+fillLayout :: UIDirection -> Layout
 /**
 * Use the gui of a specific part, but keep merge attributes and actions of all parts
 */
@@ -55,81 +55,78 @@ partLayout :: Int -> Layout
 /**
 * Split the available space into two areas with their own layout
 */
-splitLayout :: TUISide TUIFixedSize ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
+splitLayout :: UISide Int ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
 /**
 * Split available space into a main area and a side panel.
 */
-sideLayout :: TUISide TUIFixedSize Layout -> Layout
+sideLayout :: UISide Int Layout -> Layout
 
 //PLEASE DON'T USE (For backwards compat only)
-vsplitLayout :: Int ([TUIDef] -> ([TUIDef],[TUIDef])) -> Layout
+vsplitLayout :: Int ([UIControl] -> ([UIControl],[UIControl])) -> Layout
 
 //Useful functions for tweaking or roll-your-own layouts
 
 //Modifiers on interface definitions
-setSize			:: !TUISize	!TUISize	!TUIDef -> TUIDef
-setWidth		:: !TUISize				!TUIDef -> TUIDef
-setHeight		:: !TUISize				!TUIDef -> TUIDef
-fill			:: 						!TUIDef -> TUIDef
-fillHeight		:: 						!TUIDef -> TUIDef
-fillWidth		:: 						!TUIDef -> TUIDef
-fixedHeight		:: !Int 				!TUIDef -> TUIDef
-fixedWidth		:: !Int 				!TUIDef -> TUIDef
-wrapHeight		::						!TUIDef -> TUIDef
-wrapWidth		:: 						!TUIDef -> TUIDef
-setMargins		:: !Int !Int !Int !Int	!TUIDef -> TUIDef
-setTopMargin	:: !Int 				!TUIDef -> TUIDef
-setRightMargin	:: !Int 				!TUIDef -> TUIDef
-setBottomMargin	:: !Int 				!TUIDef -> TUIDef
-setLeftMargin	:: !Int 				!TUIDef -> TUIDef
-setPadding		:: !Int					!TUIDef -> TUIDef
-setTitle 		:: !String 				!TUIDef -> TUIDef
-setFramed		:: !Bool				!TUIDef -> TUIDef
-setIconCls		:: !String				!TUIDef -> TUIDef
-setBaseCls		:: !String				!TUIDef -> TUIDef
-setDirection	:: !TUIDirection		!TUIDef -> TUIDef
-setHalign		:: !TUIHAlign			!TUIDef -> TUIDef
-setValign		:: !TUIVAlign			!TUIDef -> TUIDef
-setPurpose		:: !String				!TUIDef -> TUIDef
-setTaskId		:: !String				!TUIDef -> TUIDef
-setListId		:: !String				!TUIDef -> TUIDef
+setSize			:: !UISize	!UISize		!UIControl -> UIControl
+setWidth		:: !UISize				!UIControl -> UIControl
+setHeight		:: !UISize				!UIControl -> UIControl
+fill			:: 						!UIControl -> UIControl
+fillHeight		:: 						!UIControl -> UIControl
+fillWidth		:: 						!UIControl -> UIControl
+fixedHeight		:: !Int 				!UIControl -> UIControl
+fixedWidth		:: !Int 				!UIControl -> UIControl
+wrapHeight		::						!UIControl -> UIControl
+wrapWidth		:: 						!UIControl -> UIControl
+setMargins		:: !Int !Int !Int !Int	!UIControl -> UIControl
+setTopMargin	:: !Int 				!UIControl -> UIControl
+setRightMargin	:: !Int 				!UIControl -> UIControl
+setBottomMargin	:: !Int 				!UIControl -> UIControl
+setLeftMargin	:: !Int 				!UIControl -> UIControl
+setPadding		:: !Int !Int !Int !Int	!UIControl -> UIControl
+setTitle 		:: !String 				!UIControl -> UIControl
+setFramed		:: !Bool				!UIControl -> UIControl
+setIconCls		:: !String				!UIControl -> UIControl
+setBaseCls		:: !String				!UIControl -> UIControl
+setDirection	:: !UIDirection			!UIControl -> UIControl
+setHalign		:: !UIHAlign			!UIControl -> UIControl
+setValign		:: !UIVAlign			!UIControl -> UIControl
+setPurpose		:: !String				!UIControl -> UIControl
 
 //Combinators on interface definitions
-hjoin :: ![TUIDef] -> TUIDef
-vjoin :: ![TUIDef] -> TUIDef
+hjoin :: ![UIControl] -> UIControl
+vjoin :: ![UIControl] -> UIControl
 
-paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![TUIDef] -> TUIDef
+paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![UIControl] -> UIControl
 
 //Operations on containers
-addItemToTUI	:: (Maybe Int) TUIDef TUIDef -> TUIDef
-addMenusToTUI	:: [TUIMenuButton] TUIDef -> TUIDef
-getItemsOfTUI	:: TUIDef -> [TUIDef]
-setItemsOfTUI	:: [TUIDef] TUIDef -> TUIDef
+addItemToTUI	:: (Maybe Int) UIControl UIControl -> UIControl
+addMenusToTUI	:: [UIControl] UIControl -> UIControl
+getItemsOfTUI	:: UIControl -> [UIControl]
+setItemsOfTUI	:: [UIControl] UIControl -> UIControl
 
 //Coercion between different types of containers
-toPanel			:: !TUIDef -> TUIDef
-toContainer		:: !TUIDef -> TUIDef
-toTab			:: !TUIDef -> TUIDef
+toPanel			:: !UIControl -> UIControl
+toContainer		:: !UIControl -> UIControl
 
 //Predefined panels
-hintPanel		:: !String		-> TUIDef	//Panel with task instructions
-buttonPanel		:: ![TUIDef]	-> TUIDef	//Container for a set of horizontally layed out buttons
-isButtonPanel	:: !TUIDef		-> Bool		//Test if some component is a button panel
+hintPanel		:: !String		-> UIControl	//Panel with task instructions
+buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
+isButtonPanel	:: !UIControl		-> Bool		//Test if some component is a button panel
 
 //Predefined action placement
-actionsToButtons			:: ![TaskAction]	-> (![TUIDef],![TaskAction])
-actionsToMenus				:: ![TaskAction]	-> (![TUIMenuButton],![TaskAction])
+actionsToButtons			:: ![TaskAction]	-> (![UIControl],![TaskAction])
+actionsToMenus				:: ![TaskAction]	-> (![UIControl],![TaskAction])
 
 //Util
 
-tuiOf			:: TaskTUIRep -> TUIDef
+tuiOf			:: TaskTUIRep -> UIControl
 actionsOf		:: TaskTUIRep -> [TaskAction]
 attributesOf	:: TaskTUIRep -> [TaskAttribute]
 
 mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
 
 appLayout		:: Layout TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
-appDeep			:: [Int] (TUIDef -> TUIDef) TUIDef -> TUIDef	//Modify an element inside the tree of components
+appDeep			:: [Int] (UIControl -> UIControl) UIControl -> UIControl	//Modify an element inside the tree of components
 
-tweakTUI		:: (TUIDef -> TUIDef) TaskTUIRep -> TaskTUIRep
+tweakTUI		:: (UIControl -> UIControl) TaskTUIRep -> TaskTUIRep
 tweakAttr		:: ([TaskAttribute] -> [TaskAttribute]) TaskTUIRep -> TaskTUIRep 

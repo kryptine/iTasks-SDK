@@ -10,9 +10,9 @@ from Map 			import qualified get
 from HTML 			import class html
 from Time			import :: Timestamp
 from IWorld			import :: IWorld
-from TUIDefinition	import :: TUISize, :: TUIMargins, :: TUIMinSize
+from UIDefinition	import :: UISize, :: UISideSizes, :: UIMinSize
 from Task			import :: Task, :: TaskId, :: TaskAttribute
-from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), :: TUIDef, visualizeAsText
+from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
 from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 // Strings with special meanings
@@ -176,13 +176,13 @@ instance toUserConstraint UserId
 
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag, Progress
 derive JSONEncode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
-derive JSONEncode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONEncode		EmailAddress, Action, HtmlInclude
 derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag, Progress
 derive JSONDecode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
-derive JSONDecode		EmailAddress, Action, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive JSONDecode		EmailAddress, Action, HtmlInclude
 derive gEq				EUR, USD, BoundedInt, FormButton, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, Progress
-derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude, ControlSize, FillControlSize, FillWControlSize, FillHControlSize
+derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
@@ -390,21 +390,6 @@ fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> Hidden .a
 
 :: HtmlInclude	= HtmlInclude String
-
-// Wrapper types for changing the control's sizes
-:: ControlSize a		= ControlSize		!(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !a	//* all controls generated for a have specified sizes
-:: FillControlSize a	= FillControlSize	!a											//* all controls generated for a fill the parent
-:: FillWControlSize a	= FillWControlSize	!a											//* all controls generated for a fill the parent's width
-:: FillHControlSize a	= FillHControlSize	!a											//* all controls generated for a fill the parent's height
-
-toControlSize :: !(Maybe TUISize) !(Maybe TUISize) !(Maybe TUIMargins) !.a -> ControlSize .a
-fromControlSize :: !(ControlSize .a) -> .a
-toFillControlSize :: !.a -> FillControlSize .a
-fromFillControlSize :: !(FillControlSize .a) -> .a
-toFillWControlSize :: !.a -> FillWControlSize .a
-fromFillWControlSize :: !(FillWControlSize .a) -> .a
-toFillHControlSize :: !.a -> FillHControlSize .a
-fromFillHControlSize :: !(FillHControlSize .a) -> .a
 
 //* tasks can have three levels of priority
 :: TaskPriority		= HighPriority					

@@ -154,8 +154,8 @@ controlDashboard list
 	@	fromJust
 where
 	view user	= "Welcome " +++ toString user
-	tweak1		= AfterLayout (tweakTUI (setBaseCls "x-panel-header" o setPadding 0 o setDirection Horizontal o setPurpose "form" o toContainer))
-	tweak2		= AfterLayout (tweakTUI (appDeep [1] (setPadding 0)))
+	tweak1		= AfterLayout (tweakTUI (setBaseCls "x-panel-header" o setPadding 0 0 0 0 o setDirection Horizontal o setPurpose "form" o toContainer))
+	tweak2		= AfterLayout (tweakTUI (appDeep [1] (setPadding 0 0 0 0)))
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list = forever
