@@ -21,7 +21,7 @@ Ext.define('itwc.component.misc.Icon', {
 		}
 		this.callParent(arguments);
 	},
-	setType: function(type) {
+	setType: function(iconCls) {
 		this.removeCls(this.iconCls);
 		this.iconCls = iconCls;
 		this.addCls(this.iconCls);
