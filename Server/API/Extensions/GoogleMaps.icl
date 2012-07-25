@@ -1,6 +1,6 @@
 implementation module GoogleMaps
 
-import HTML, StdEnv, JSON_NG, GenUpdate, GenVisualize, GenVerify
+import HTML, StdEnv, JSON_NG, Map, GenUpdate, GenVisualize, GenVerify
 
 derive JSONEncode UIGoogleMap, UIGoogleMapOptions
 derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent, MarkerDragUpdate
@@ -76,7 +76,7 @@ where
 gVisualizeText{|GoogleMap|} _ _ = ["<Google map>"]
 gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl vst
 where
-	mkControl name _ _ vst=:{VSt|taskId} = ([UICustom (mapPanel mbMap name True)], vst)
+	mkControl name _ _ vst=:{VSt|taskId} = ([(UICustom (mapPanel mbMap name True),newMap)], vst)
 	where		
 		mapPanel Nothing	name ed = toJSON (tuidef defaultMap name ed)
 		mapPanel (Just map)	name ed = toJSON (tuidef map   name ed)

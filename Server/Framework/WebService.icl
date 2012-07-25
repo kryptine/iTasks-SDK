@@ -154,6 +154,7 @@ where
 		scripts = [ScriptTag [SrcAttr file, TypeAttr "text/javascript"] [] \\ file <- scriptfiles]
 		
 		stylefiles = ["lib/extjs-4.1.0/resources/css/ext-all-gray.css"
+					 ,"css/icons.css"
 					 ,"css/app.css"
 					 ,appName +++ ".css"]
 		scriptfiles = ["lib/extjs-4.1.0/ext-debug.js",

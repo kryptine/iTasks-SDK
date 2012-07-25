@@ -19,7 +19,7 @@ where
 	layout (FinalLayout def)				= def
 	
 heuristicInteractionLayout :: UIDef UIDef -> UIDef
-heuristicInteractionLayout prompt editor = mergeDefs prompt editor
+heuristicInteractionLayout prompt editor = mergeDefs prompt (decorateControls editor)
 /*
 where
 	layout type parts actions attributes = case (mbTitle,mbHint) of
@@ -101,6 +101,35 @@ where
 
 heuristicFinalLayout :: UIDef -> UIDef
 heuristicFinalLayout def = def
+
+//Add labels and icons to a set of controls if they have any of those attributes set
+decorateControls :: UIDef -> UIDef
+decorateControls def=:{UIDef|controls} = {UIDef|def & controls = map decorate controls}
+where
+	decorate (control,attributes)
+		# mbLabel 	= get LABEL_ATTRIBUTE attributes
+		# mbHint 	= get HINT_ATTRIBUTE attributes
+		# mbValid	= get VALID_ATTRIBUTE attributes
+		# mbError	= get ERROR_ATTRIBUTE attributes
+		= case (mbLabel,mbHint,mbValid,mbError) of
+			(Nothing,Nothing,Nothing,Nothing)	//Nothing to do
+				= (control,attributes)
+			_									//Add decoration													
+				# control = row (labelCtrl mbLabel ++ [control] ++ iconCtrl mbHint mbValid mbError) 
+				# attributes = foldr del attributes [LABEL_ATTRIBUTE,HINT_ATTRIBUTE,VALID_ATTRIBUTE,ERROR_ATTRIBUTE]
+				= (control,attributes)
+	
+	row ctrls				= (setBottomMargin 5 o setSize FlexSize WrapSize o setDirection Horizontal) (defaultContainer ctrls)
+	
+	labelCtrl (Just label)	= [setWidth (ExactSize 100) (stringDisplay label)]
+	labelCtrl Nothing		= []
+	
+	iconCtrl (Just msg) _ _	= icon "icon-hint" msg
+	iconCtrl _ (Just msg) _	= icon "icon-valid" msg
+	iconCtrl _ _ (Just msg)	= icon "icon-invalid" msg
+	iconCtrl _ _ _			= []
+	
+	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
 
 accumulatingLayout :: Layout
 accumulatingLayout = heuristicLayout// layout
@@ -464,8 +493,8 @@ formed mbHint defs
 
 
 //Container operations
-addItemToTUI :: (Maybe Int) UIControl UIControl -> UIControl
-addItemToTUI mbIndex item ctrl = case ctrl of
+addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl
+addItemToUI mbIndex item ctrl = case ctrl of
 	UIContainer sOpts lOpts items opts	= UIContainer sOpts lOpts (add mbIndex item items) opts
 	UIPanel sOpts lOpts items opts		= UIPanel sOpts lOpts (add mbIndex item items) opts
 	UIWindow sOpts lOpts items opts		= UIWindow sOpts lOpts (add mbIndex item items) opts
@@ -476,10 +505,10 @@ where
 	
 //Add buttons to an existing panel. If there it is a container that has a "button" container in it add the buttons to that
 //Otherwise create that container
-addButtonsToTUI :: ![UIControl] UIControl -> UIControl
-addButtonsToTUI [] ctrl = ctrl
-addButtonsToTUI buttons ctrl
-	| isButtonPanel ctrl	= foldr (addItemToTUI Nothing) ctrl buttons 
+addButtonsToUI :: ![UIControl] UIControl -> UIControl
+addButtonsToUI [] ctrl = ctrl
+addButtonsToUI buttons ctrl
+	| isButtonPanel ctrl	= foldr (addItemToUI Nothing) ctrl buttons 
 	| otherwise				= case ctrl of
 		(UIPanel sOpts lOpts items opts)		= UIPanel sOpts lOpts (addToButtonPanel buttons items) opts
 		(UIContainer sOpts lOpts items opts)	= UIContainer sOpts lOpts (addToButtonPanel buttons items) opts
@@ -487,28 +516,28 @@ addButtonsToTUI buttons ctrl
 where
 	addToButtonPanel buttons []	= [buttonPanel buttons]
 	addToButtonPanel buttons [i:is]
-		| isButtonPanel i	= [foldr (addItemToTUI Nothing) i buttons:is]
+		| isButtonPanel i	= [foldr (addItemToUI Nothing) i buttons:is]
 							= [i:addToButtonPanel buttons is]
 
 //Add menus to a panel, tab or window								
-addMenusToTUI :: [UIControl] UIControl -> UIControl
-addMenusToTUI [] ctrl = ctrl
-addMenusToTUI extra (UIPanel sOpts lOpts items opts=:{UIPanelOpts|tbar}) = UIPanel sOpts lOpts items {UIPanelOpts|opts & tbar = tbar ++ extra}
-addMenusToTUI extra (UIWindow sOpts lOpts items opts=:{UIWindowOpts|tbar}) = UIWindow sOpts lOpts items {UIWindowOpts|opts & tbar = tbar ++ extra}
-addMenusToTUI extra ctrl = ctrl
+addMenusToUI :: [UIControl] UIControl -> UIControl
+addMenusToUI [] ctrl = ctrl
+addMenusToUI extra (UIPanel sOpts lOpts items opts=:{UIPanelOpts|tbar}) = UIPanel sOpts lOpts items {UIPanelOpts|opts & tbar = tbar ++ extra}
+addMenusToUI extra (UIWindow sOpts lOpts items opts=:{UIWindowOpts|tbar}) = UIWindow sOpts lOpts items {UIWindowOpts|opts & tbar = tbar ++ extra}
+addMenusToUI extra ctrl = ctrl
 
 
-getItemsOfTUI :: UIControl -> [UIControl]
-getItemsOfTUI (UIContainer _ _ items _)	= items
-getItemsOfTUI (UIPanel _ _ items _)		= items
-getItemsOfTUI (UIWindow _ _ items _)	= items
-getItemsOfTUI ctrl						= [ctrl]
+getItemsOfUI :: UIControl -> [UIControl]
+getItemsOfUI (UIContainer _ _ items _)	= items
+getItemsOfUI (UIPanel _ _ items _)		= items
+getItemsOfUI (UIWindow _ _ items _)	= items
+getItemsOfUI ctrl						= [ctrl]
 	
-setItemsOfTUI :: [UIControl] UIControl -> UIControl
-setItemsOfTUI items (UIContainer sOpts lOpts _ opts)	= UIContainer sOpts lOpts items opts
-setItemsOfTUI items (UIPanel sOpts lOpts _ opts)		= UIPanel sOpts lOpts items opts
-setItemsOfTUI items (UIWindow sOpts lOpts _ opts)		= UIWindow sOpts lOpts items opts
-setItemsOfTUI items ctrl								= ctrl
+setItemsOfUI :: [UIControl] UIControl -> UIControl
+setItemsOfUI items (UIContainer sOpts lOpts _ opts)	= UIContainer sOpts lOpts items opts
+setItemsOfUI items (UIPanel sOpts lOpts _ opts)		= UIPanel sOpts lOpts items opts
+setItemsOfUI items (UIWindow sOpts lOpts _ opts)		= UIWindow sOpts lOpts items opts
+setItemsOfUI items ctrl								= ctrl
 
 //Predefined panels
 hintPanel :: !String -> UIControl	//Panel with task instructions
@@ -522,7 +551,7 @@ formPanel items
 //Container for a set of horizontally layed out buttons
 buttonPanel	:: ![UIControl] -> UIControl	
 buttonPanel buttons
-	= (wrapHeight o fillWidth o setPadding 5 5 5 5 o setDirection Horizontal o setHalign AlignRight o setPurpose "buttons") (defaultContainer buttons)
+	= (wrapHeight o fillWidth o setPadding 2 5 2 5 o setDirection Horizontal o setHalign AlignRight o setPurpose "buttons") (defaultContainer buttons)
 
 isButtonPanel :: !UIControl -> Bool
 isButtonPanel (UIContainer _ _ _ {UIContainerOpts|purpose=Just p})	= p == "buttons"

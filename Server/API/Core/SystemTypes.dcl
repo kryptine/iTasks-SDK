@@ -407,12 +407,13 @@ TASK_ATTRIBUTE		:== "task"
 LIST_ATTRIBUTE		:== "list"
 TITLE_ATTRIBUTE		:== "title"
 HINT_ATTRIBUTE		:== "hint"
+VALID_ATTRIBUTE		:== "valid"
 ERROR_ATTRIBUTE		:== "error"
+LABEL_ATTRIBUTE		:== "label"
 ICON_ATTRIBUTE		:== "icon"
 TIME_ATTRIBUTE		:== "time"	//Task time, used for ordering but not real time
 TYPE_ATTRIBUTE		:== "type"
 PURPOSE_ATTRIBUTE	:== "purpose"
-
 
 class descr d
 where

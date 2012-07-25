@@ -10,3 +10,12 @@
 .icon-invalid {
 	background-image: url('../img/icons/exclamation.png') !important;
 }
+.icon-continue {
+	background-image: url('../img/icons/arrow_right.png');
+}
+.icon-login, .icon-log-in {
+		background-image: url('../img/icons/tick.png');
+}
+.icon-logout, .icon-log-out {
+	background-image: url('../img/icons/door_in.png');
+}

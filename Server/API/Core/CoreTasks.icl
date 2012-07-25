@@ -335,8 +335,8 @@ where
 				= (nv,nmask,taskTime,iworld)
 
 visualizeView taskId repAs v validity desc iworld
-	# (editor,iworld) = visualizeAsEditor v validity taskId iworld
-	= (TaskRep ((repLayout repAs) (InteractLayout {UIDef|controls=[],actions=[],attributes=initAttributes desc} {UIDef|controls=maybe [] (\e -> [(e,newMap)]) editor,attributes=newMap,actions=[]})) [(toString taskId,toJSON v)], iworld)
+	# (controls,iworld) = visualizeAsEditor v validity taskId iworld
+	= (TaskRep ((repLayout repAs) (InteractLayout {UIDef|controls=[],actions=[],attributes=initAttributes desc} {UIDef|controls=controls,attributes=newMap,actions=[]})) [(toString taskId,toJSON v)], iworld)
 
 could_not_read_shared_in_interact_exception iworld
 	= (exception "Could not read shared in interact", iworld)

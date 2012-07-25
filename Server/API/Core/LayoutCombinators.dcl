@@ -107,10 +107,10 @@ vjoin :: ![UIControl] -> UIControl
 paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![UIControl] -> UIControl
 
 //Operations on containers
-addItemToTUI	:: (Maybe Int) UIControl UIControl -> UIControl
-addMenusToTUI	:: [UIControl] UIControl -> UIControl
-getItemsOfTUI	:: UIControl -> [UIControl]
-setItemsOfTUI	:: [UIControl] UIControl -> UIControl
+addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
+addMenusToUI	:: [UIControl] UIControl -> UIControl
+getItemsOfUI	:: UIControl -> [UIControl]
+setItemsOfUI	:: [UIControl] UIControl -> UIControl
 
 //Coercion between different types of containers
 toPanel			:: !UIControl -> UIControl

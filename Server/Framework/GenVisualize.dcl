@@ -79,8 +79,8 @@ derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
 derive gGridRows DynamicChoice, DynamicChoiceNoView
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: !a !VerifyMask !TaskId !*IWorld 		-> (!Maybe UIControl,!*IWorld)	| gVisualizeEditor{|*|} a
-visualizeAsText			:: !StaticVisualizationMode !a			-> String						| gVisualizeText{|*|} a
+visualizeAsEditor		:: !a !VerifyMask !TaskId !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld)	| gVisualizeEditor{|*|} a
+visualizeAsText			:: !StaticVisualizationMode !a			-> String								| gVisualizeText{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -135,7 +135,7 @@ visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 *
 * @return The generated TUI definition
 */
-:: UIVizFunction :== String Bool VerifyResult -> .(*VSt -> *(![UIControl],!*VSt))
+:: UIVizFunction :== String Bool VerifyResult -> .(*VSt -> *(![(!UIControl,!UIAttributes)],!*VSt))
 
 (+++>) infixr 5		:: !a	!String	-> String | gVisualizeText{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualizeText{|*|} a
