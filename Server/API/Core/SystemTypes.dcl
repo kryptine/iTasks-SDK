@@ -5,15 +5,16 @@ definition module SystemTypes
 */
 
 import GenEq_NG, Maybe, JSON_NG, Store, Void, Either, FilePath, HTML, Error, File, OS
-from Map 			import :: Map
-from Map 			import qualified get
-from HTML 			import class html
-from Time			import :: Timestamp
-from IWorld			import :: IWorld
-from UIDefinition	import :: UISize, :: UISideSizes, :: UIMinSize
-from Task			import :: Task, :: TaskId, :: TaskAttribute
-from iTaskClass		import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
-from Shared			import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
+from Map 				import :: Map
+from Map 				import qualified get
+from HTML 				import class html
+from Time				import :: Timestamp
+from IWorld				import :: IWorld
+from UIDefinition		import :: UIDef, :: UISize, :: UISideSizes, :: UIMinSize, :: UIAttributes
+from LayoutCombinators	import :: Layout, :: Layoutable
+from Task				import :: Task, :: TaskId
+from iTaskClass			import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
+from Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress !String
@@ -76,7 +77,7 @@ instance toEmail String
 :: Stability		= Unstable | Stable
 
 //* Meta-data of tasks
-:: TaskMeta		:==	[TaskAttribute]					//* Task meta data consists of untyped attributes
+:: TaskMeta		:==	[(!String,!String)]				//* Task meta data consists of untyped attributes
 
 :: ManagementMeta =
 	{ title				:: !Maybe String			//* Title to identify the task
@@ -402,17 +403,20 @@ instance toString Stability
 instance == Stability
 
 //Define initial meta attributes
-TASK_ATTRIBUTE	:== "task"
-LIST_ATTRIBUTE	:== "list"
-TITLE_ATTRIBUTE	:== "title"
-HINT_ATTRIBUTE	:== "hint"
-ERROR_ATTRIBUTE	:== "error"
-ICON_ATTRIBUTE	:== "icon"
-TIME_ATTRIBUTE	:== "time"	//Task time, used for ordering but not real time
+TASK_ATTRIBUTE		:== "task"
+LIST_ATTRIBUTE		:== "list"
+TITLE_ATTRIBUTE		:== "title"
+HINT_ATTRIBUTE		:== "hint"
+ERROR_ATTRIBUTE		:== "error"
+ICON_ATTRIBUTE		:== "icon"
+TIME_ATTRIBUTE		:== "time"	//Task time, used for ordering but not real time
+TYPE_ATTRIBUTE		:== "type"
+PURPOSE_ATTRIBUTE	:== "purpose"
+
 
 class descr d
 where
-	initAttributes :: !d -> [TaskAttribute]
+	initAttributes :: !d -> UIAttributes
 
 instance descr Void
 instance descr String	//Hint

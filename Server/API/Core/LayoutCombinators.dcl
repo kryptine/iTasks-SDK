@@ -2,7 +2,7 @@ definition module LayoutCombinators
 
 import SystemTypes, UIDefinition
 
-from Task import :: TaskCompositionType, :: TaskAttribute, :: TaskAction, :: TaskTUIRep
+from Task import :: TaskCompositionType
 
 import Maybe
 
@@ -13,13 +13,21 @@ DEFAULT_LAYOUT	:== heuristicLayout
 // The same layouts are used for layouting out forms of basic tasks as
 // well as combinations of tasks
 
-:: Layout		:== TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
+:: Layout		:== Layoutable -> UIDef
+
+// The layoutable defines the possible situations in which layouting is required
+:: Layoutable
+	= DataLayout UIDef				//Reduce a composite data structure
+	| InteractLayout UIDef UIDef 	//Prompt, editor	
+	| StepLayout UIDef [UIAction]	//Part and actions if the step has not been made yet
+	| ParallelLayout UIDef [UIDef] 	//Prompt, parallel parts
+	| FinalLayout UIDef				//Reduce the final composition
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
 :: ModifyLayout	= ModifyLayout (Layout -> Layout)
-:: BeforeLayout	= BeforeLayout ((TaskCompositionType,[TaskTUIRep],[TaskAction],[TaskAttribute]) -> (TaskCompositionType,[TaskTUIRep],[TaskAction],[TaskAttribute]))
-:: AfterLayout	= AfterLayout (TaskTUIRep -> TaskTUIRep)
+:: BeforeLayout	= BeforeLayout (Layoutable -> Layoutable)
+:: AfterLayout	= AfterLayout (UIDef -> UIDef)
 
 /**
 * This is a layout following some simple layout heuristics. It puts its content in a
@@ -55,7 +63,7 @@ partLayout :: Int -> Layout
 /**
 * Split the available space into two areas with their own layout
 */
-splitLayout :: UISide Int ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
+splitLayout :: UISide Int ([UIDef] -> ([UIDef],[UIDef])) Layout Layout -> Layout
 /**
 * Split available space into a main area and a side panel.
 */
@@ -111,22 +119,21 @@ toContainer		:: !UIControl -> UIControl
 //Predefined panels
 hintPanel		:: !String		-> UIControl	//Panel with task instructions
 buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
-isButtonPanel	:: !UIControl		-> Bool		//Test if some component is a button panel
+isButtonPanel	:: !UIControl	-> Bool			//Test if some component is a button panel
 
 //Predefined action placement
-actionsToButtons			:: ![TaskAction]	-> (![UIControl],![TaskAction])
-actionsToMenus				:: ![TaskAction]	-> (![UIControl],![TaskAction])
+actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIAction])
+actionsToMenus				:: ![UIAction]	-> (![UIControl],![UIAction])
 
 //Util
+uiOf			:: UIDef -> UIControl
+actionsOf		:: UIDef -> [UIAction]
+attributesOf	:: UIDef -> UIAttributes
 
-tuiOf			:: TaskTUIRep -> UIControl
-actionsOf		:: TaskTUIRep -> [TaskAction]
-attributesOf	:: TaskTUIRep -> [TaskAttribute]
+mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 
-mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
-
-appLayout		:: Layout TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
+appLayout		:: Layout Layoutable -> UIDef
 appDeep			:: [Int] (UIControl -> UIControl) UIControl -> UIControl	//Modify an element inside the tree of components
 
-tweakTUI		:: (UIControl -> UIControl) TaskTUIRep -> TaskTUIRep
-tweakAttr		:: ([TaskAttribute] -> [TaskAttribute]) TaskTUIRep -> TaskTUIRep 
+tweakTUI		:: (UIControl -> UIControl) UIDef -> UIDef
+tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 

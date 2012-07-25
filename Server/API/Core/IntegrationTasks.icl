@@ -11,6 +11,7 @@ import Shared
 
 from ImportTasks		import importTextFile
 from File				import qualified fileExists, readFile
+from Map				import qualified newMap, put
 from Process			import qualified ::ProcessHandle, runProcess, checkProcess,callProcess
 from Process			import :: ProcessHandle(..)
 from Email 				import qualified sendEmail
@@ -33,7 +34,7 @@ worldIO f = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,world}
 		= case f world of 
-			(Ok a,world)	= (ValueResult (Value a Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop
+			(Ok a,world)	= (ValueResult (Value a Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop
 							  ,{IWorld|iworld & world = world})
 			(Error e,world)	= (ExceptionResult (dynamic e) "World IO failed", {IWorld|iworld & world = world})
 
@@ -63,7 +64,7 @@ where
 	//Check for its result
 	eval eEvent cEvent refresh repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent (TaskRep (SingleTask,Nothing,[],[]) []) state, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -71,9 +72,11 @@ where
 					# (exists,world) = 'File'.fileExists outfile world
 					| not exists
 						//Still busy
-						# gui 			= [(ViewPart, Just (stringDisplay ("Calling " +++ cmd)), [], [])]
-						# attributes	= [(TITLE_ATTRIBUTE,"Calling external process")]
-						# rep			= TaskRep ((repLayout repAs) SingleTask gui [] attributes) []
+						# controls		= [(stringDisplay ("Calling " +++ cmd),'Map'.newMap)]
+						# attributes	= 'Map'.put TITLE_ATTRIBUTE "Calling external process" 'Map'.newMap
+						# prompt		= {UIDef|controls=[],actions=[],attributes='Map'.newMap}
+						# editor		= {UIDef|controls=controls,actions=[],attributes=attributes}
+						# rep			= TaskRep ((repLayout repAs) (InteractLayout prompt editor)) []
 						= (ValueResult NoValue lastEvent rep state,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
@@ -86,7 +89,7 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = async.AsyncResult.exitcode 
-								= (ValueResult (Value result Stable) lastEvent (TaskRep (SingleTask,Nothing,[],[]) []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
+								= (ValueResult (Value result Stable) lastEvent (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization
@@ -106,7 +109,7 @@ where
 		# (res,world)	= 'Process'.callProcess cmd args Nothing world
 		= case res of
 			Error e	= (exception (CallFailed e), {IWorld|iworld & world = world})
-			Ok i	= (ValueResult (Value i Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
+			Ok i	= (ValueResult (Value i Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop, {IWorld|iworld & world = world})
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
@@ -145,7 +148,7 @@ where
 						, outfile
 						, url
 						]
-		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
+		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop, {IWorld|iworld & world = world})
 	
 	mkFileName :: !TaskId !String -> String
 	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
@@ -235,7 +238,7 @@ where
 		# sender		= toEmail sender
 		# recipients	= map toEmail recipients
 		# iworld		= foldr (sendSingle config.smtpServer sender) iworld recipients
-		= (ValueResult (Value recipients Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, iworld)
+		= (ValueResult (Value recipients Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop, iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

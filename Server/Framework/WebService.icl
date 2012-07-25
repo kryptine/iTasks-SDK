@@ -1,6 +1,6 @@
 implementation module WebService
 
-import StdList, StdBool
+import StdList, StdBool, StdTuple
 import Time, JSON_NG
 import SystemTypes, Task, TaskState, TaskEval, TaskStore, UIDiff, Util, HtmlUtil, Map
 import Engine, IWorld
@@ -24,15 +24,15 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		//Serve the user interface representations
 		JSONGui
 			//Load or create session context and edit / evaluate
-			# (mbResult, mbPrevTui, iworld)	= case sessionParam of
+			# (mbResult, prevUI, iworld)	= case sessionParam of
 				""	
 					# (mbResult, iworld) = createSessionInstance task Nothing Nothing iworld
-					= (mbResult, Nothing, iworld)
+					= (mbResult, [], iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
-					# (mbPreviousTui,iworld)	= loadPrevUI sessionId guiVersion iworld
-					# (mbResult, iworld) 		= evalSessionInstance sessionId editEvent commitEvent iworld
-					= (mbResult,mbPreviousTui,iworld)
+					# (prevUI,iworld)		= loadPrevUI sessionId guiVersion iworld
+					# (mbResult, iworld) 	= evalSessionInstance sessionId editEvent commitEvent iworld
+					= (mbResult,prevUI,iworld)
 			# (json, iworld) = case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
@@ -40,24 +40,26 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 					Ok (ValueResult (Value _ Stable) _ _ _,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (ValueResult _ _ mbCurrentTui context,_,sessionId)
-						# json = case (mbPrevTui,mbCurrentTui) of
-							(Just previousTui,TaskRep (_,Just currentTui,actions,attributes) _)
-									= JSONObject [("success",JSONBool True)
-												 ,("session",JSONString sessionId)
-												 ,("updates", encodeUIUpdates (diffUIDefinitions previousTui currentTui editEvent))
-												 ,("timestamp",toJSON timestamp)]
-							(_, TaskRep (_,Just currentTui,actions,attributes) _)
+					Ok (ValueResult _ _ curRep context,_,sessionId)
+						# json = case (prevUI,curRep) of
+							([], TaskRep def _)
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
-											 ,("content", encodeUIDefinition currentTui)
+											 ,("content", encodeUIDefinition def)
 											 ,("timestamp",toJSON timestamp)]
+							
+							(_, TaskRep {UIDef|controls} _)
+									= JSONObject [("success",JSONBool True)
+												 ,("session",JSONString sessionId)
+												 ,("updates", encodeUIUpdates (diffUIDefinitions prevUI (map fst controls) editEvent))
+												 ,("timestamp",toJSON timestamp)]
+							
 							_
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 						//Store gui for later incremental requests
-						# iworld = case mbCurrentTui of
-							TaskRep (_,Just currentTui,_,_) _	= storeCurUI sessionId guiVersion currentTui iworld
-							_									= iworld
+						# iworld = case curRep of
+							TaskRep {UIDef|controls} _	= storeCurUI sessionId guiVersion (map fst controls) iworld
+							_							= iworld
 						= (json,iworld)
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)
@@ -73,8 +75,8 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (errorResponse err, iworld)
 				Ok (ValueResult (Value val Stable) _ _ _,_,_)
 					= (jsonResponse (serviceDoneResponse val), iworld)
-				Ok (ValueResult _ _ (TaskRep (_,_,actions,attributes) rep) _,_,_)
-					= (jsonResponse (serviceBusyResponse rep actions attributes), iworld)
+				Ok (ValueResult _ _ (TaskRep {UIDef|actions,attributes} rep) _,_,_)
+					= (jsonResponse (serviceBusyResponse rep actions (toList attributes)), iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
 			//HACK: REALLY REALLY REALLY UGLY THAT IT IS NECCESARY TO EVAL TWICE
@@ -131,8 +133,8 @@ where
 		= JSONObject [("status",JSONString "busy"),("parts",parts),("attributes",JSONObject [(k,JSONString v) \\ (k,v) <- attributes])]
 	where
 		parts = toJSON [{ServiceResponsePart|taskId = toString taskId, value = value, actions = findActions taskId actions} \\ (taskId,value) <- rep]
-		findActions taskId actions
-			= [actionName action \\ (task,action,enabled) <- actions | enabled && task == taskId]
+		findActions match actions
+			= [actionName action \\ {taskId,action,enabled} <- actions | enabled && taskId == match]
 	
 	serviceDoneResponse val
 		= JSONObject [("status",JSONString "complete"),("value",val)]

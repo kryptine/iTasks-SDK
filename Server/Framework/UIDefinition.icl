@@ -1,7 +1,7 @@
 implementation module UIDefinition
 
-import JSON_NG, StdList, StdBool, StdTuple, GenEq_NG, StdFunc, HTML, Text, List_NG
-from SystemTypes import :: Document, :: DocumentId, :: Date, :: Time
+import JSON_NG, StdList, StdBool, StdTuple, GenEq_NG, StdFunc, HTML, Text, Map, List_NG
+from SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: Action
 	
 defaultSizeOpts	:: UISizeOpts
 defaultSizeOpts = {width = Nothing, minWidth = Nothing, height = Nothing, minHeight = Nothing, margins = Nothing}
@@ -21,37 +21,41 @@ defaultWindow items = UIWindow defaultSizeOpts defaultLayoutOpts items {UIWindow
 stringDisplay :: !String -> UIControl
 stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}
 
-encodeUIDefinition :: !UIControl -> JSONNode
-encodeUIDefinition (UIViewString sopts vopts)			= enc "itwc_view_string" [toJSON sopts,toJSON vopts] []
-encodeUIDefinition (UIViewHtml sopts vopts)				= enc "itwc_view_html" [toJSON sopts, toJSON vopts] []
-encodeUIDefinition (UIViewDocument sopts vopts)			= enc "itwc_view_document" [toJSON sopts, toJSON vopts] []
-encodeUIDefinition (UIViewCheckbox sopts vopts)			= enc "itwc_view_checkbox" [toJSON sopts, toJSON vopts] []
-encodeUIDefinition (UIViewSlider sopts vopts opts)		= enc "itwc_view_slider" [toJSON sopts, toJSON vopts, toJSON opts] []
-encodeUIDefinition (UIViewProgress sopts vopts opts)	= enc "itwc_view_progress" [toJSON sopts, toJSON vopts, toJSON opts] []
-encodeUIDefinition (UIEditString sopts eopts)			= enc "itwc_edit_string" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditNote sopts eopts)				= enc "itwc_edit_note" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditPassword sopts eopts)			= enc "itwc_edit_password" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditInt sopts eopts)				= enc "itwc_edit_int" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditDecimal sopts eopts)			= enc "itwc_edit_decimal" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditCheckbox sopts eopts)			= enc "itwc_edit_checkbox" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditSlider sopts eopts opts)		= enc "itwc_edit_slider" [toJSON sopts, toJSON eopts, toJSON opts] []
-encodeUIDefinition (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIEditButton sopts eopts)			= enc "itwc_editbutton" [toJSON sopts, toJSON eopts] []
-encodeUIDefinition (UIDropdown sopts copts)				= enc "itwc_choice_dropdown" [toJSON sopts, toJSON copts] []
-encodeUIDefinition (UIGrid sopts copts opts)			= enc "itwc_choice_grid" [toJSON sopts, toJSON copts, toJSON opts] []
-encodeUIDefinition (UITree sopts copts)					= enc "itwc_choice_tree" [toJSON sopts, toJSON copts] []
-encodeUIDefinition (UIActionButton sopts aopts opts)	= enc "itwc_actionbutton" [toJSON sopts, toJSON aopts, toJSON opts] []
-encodeUIDefinition (UIMenuButton sopts opts)			= enc "itwc_menubutton" [toJSON sopts, toJSON opts] []
-encodeUIDefinition (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSON opts] []
-encodeUIDefinition (UIIcon sopts opts)					= enc "itwc_icon" [toJSON sopts, toJSON opts] []
-encodeUIDefinition (UITab sopts opts)					= enc "itwc_tab" [toJSON sopts, toJSON opts] []
-encodeUIDefinition (UITasklet sopts opts)				= enc "itwc_tasklet" [toJSON sopts, toJSON opts] []
-encodeUIDefinition (UIContainer sopts lopts items opts)	= enc "itwc_container" [toJSON sopts, toJSON lopts, toJSON opts] items
-encodeUIDefinition (UIPanel sopts lopts items opts)		= enc "itwc_panel" [toJSON sopts, toJSON lopts, toJSON opts] items
-encodeUIDefinition (UIFieldSet sopts lopts items opts)	= enc "itwc_fieldset" [toJSON sopts, toJSON lopts, toJSON opts] items
-encodeUIDefinition (UIWindow sopts lopts items opts)	= enc "itwc_window" [toJSON sopts, toJSON lopts, toJSON opts] items
+encodeUIDefinition :: !UIDef -> JSONNode
+encodeUIDefinition {UIDef|controls} = JSONArray [encodeUIControl c \\ (c,_) <- controls]
+
+encodeUIControl :: !UIControl -> JSONNode
+encodeUIControl (UIViewString sopts vopts)				= enc "itwc_view_string" [toJSON sopts,toJSON vopts] []
+encodeUIControl (UIViewHtml sopts vopts)				= enc "itwc_view_html" [toJSON sopts, encHtml vopts] []
+encodeUIControl (UIViewDocument sopts vopts)			= enc "itwc_view_document" [toJSON sopts, toJSON vopts] []
+encodeUIControl (UIViewCheckbox sopts vopts)			= enc "itwc_view_checkbox" [toJSON sopts, toJSON vopts] []
+encodeUIControl (UIViewSlider sopts vopts opts)			= enc "itwc_view_slider" [toJSON sopts, toJSON vopts, toJSON opts] []
+encodeUIControl (UIViewProgress sopts vopts opts)		= enc "itwc_view_progress" [toJSON sopts, toJSON vopts, toJSON opts] []
+encodeUIControl (UIEditString sopts eopts)				= enc "itwc_edit_string" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditNote sopts eopts)				= enc "itwc_edit_note" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditPassword sopts eopts)			= enc "itwc_edit_password" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditInt sopts eopts)					= enc "itwc_edit_int" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditDecimal sopts eopts)				= enc "itwc_edit_decimal" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditCheckbox sopts eopts)			= enc "itwc_edit_checkbox" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditSlider sopts eopts opts)			= enc "itwc_edit_slider" [toJSON sopts, toJSON eopts, toJSON opts] []
+encodeUIControl (UIEditDate sopts eopts)				= enc "itwc_edit_date" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditTime sopts eopts)				= enc "itwc_edit_time" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditDocument sopts eopts)			= enc "itwc_edit_document" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIEditButton sopts eopts)				= enc "itwc_editbutton" [toJSON sopts, toJSON eopts] []
+encodeUIControl (UIDropdown sopts copts)				= enc "itwc_choice_dropdown" [toJSON sopts, toJSON copts] []
+encodeUIControl (UIGrid sopts copts opts)				= enc "itwc_choice_grid" [toJSON sopts, toJSON copts, toJSON opts] []
+encodeUIControl (UITree sopts copts)					= enc "itwc_choice_tree" [toJSON sopts, toJSON copts] []
+encodeUIControl (UIActionButton sopts aopts opts)		= enc "itwc_actionbutton" [toJSON sopts, toJSON aopts, toJSON opts] []
+encodeUIControl (UIMenuButton sopts opts)				= enc "itwc_menubutton" [toJSON sopts, toJSON opts] []
+encodeUIControl (UILabel sopts opts)					= enc "itwc_label" [toJSON sopts, toJSON opts] []
+encodeUIControl (UIIcon sopts opts)						= enc "itwc_icon" [toJSON sopts, toJSON opts] []
+encodeUIControl (UITab sopts opts)						= enc "itwc_tab" [toJSON sopts, toJSON opts] []
+encodeUIControl (UITasklet sopts opts)					= enc "itwc_tasklet" [toJSON sopts, toJSON opts] []
+encodeUIControl (UIContainer sopts lopts items opts)	= enc "itwc_container" [toJSON sopts, toJSON lopts, toJSON opts] items
+encodeUIControl (UIPanel sopts lopts items opts)		= enc "itwc_panel" [toJSON sopts, toJSON lopts, toJSON opts] items
+encodeUIControl (UIFieldSet sopts lopts items opts)		= enc "itwc_fieldset" [toJSON sopts, toJSON lopts, toJSON opts] items
+encodeUIControl (UIWindow sopts lopts items opts)		= enc "itwc_window" [toJSON sopts, toJSON lopts, toJSON opts] items
+encodeUIControl (UICustom json)							= json
 
 derive JSONEncode UISizeOpts, UIViewOpts, UIEditOpts, UIChoiceOpts, UIActionOpts, UILayoutOpts
 derive JSONEncode UISliderOpts, UIProgressOpts, UIGridOpts, UIActionButtonOpts, UITreeNode, UILabelOpts
@@ -88,7 +92,7 @@ where
 JSONEncode{|UIMenuItem|} (UIActionMenuItem aopts opts)	= [enc "itwc_actionmenuitem" [toJSON aopts,toJSON opts] []]
 JSONEncode{|UIMenuItem|} (UISubMenuItem opts) 			= [enc "itwc_submenuitem" [toJSON opts] []]
 
-JSONEncode{|UIControl|} control = [encodeUIDefinition control]
+JSONEncode{|UIControl|} control = [encodeUIControl control]
 
 enc :: String [JSONNode] [UIControl] -> JSONNode
 enc xtype opts items = JSONObject [("xtype",JSONString xtype):optsfields ++ itemsfield]
@@ -96,4 +100,11 @@ where
 	optsfields = flatten [fields \\ JSONObject fields <- opts]
 	itemsfield = case items of
 		[]	= []
-		_	= [("items",JSONArray (map encodeUIDefinition items))]
+		_	= [("items",JSONArray (map encodeUIControl items))]
+
+//Special cases
+encHtml :: (UIViewOpts HtmlTag) -> JSONNode
+encHtml {UIViewOpts|value=Just html} = JSONObject [("value",JSONString (toString html))]
+encHtml {UIViewOpts|value=Nothing} = JSONObject []
+
+

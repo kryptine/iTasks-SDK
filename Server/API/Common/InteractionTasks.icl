@@ -5,6 +5,7 @@ from SystemData import null
 from Tuple import appSnd
 from List_NG import isMemberGen, instance Functor []
 from Time import :: Timestamp(..)
+from Map import qualified put
 from Util import kvSet
 
 import StdBool, StdList, StdMisc, StdTuple
@@ -263,4 +264,4 @@ viewTitle a = viewInformation Void  [ViewWith view] a <<@ AfterLayout (tweakAttr
 where
 	title				= visualizeAsText AsLabel a
 	view a				= DivTag [] [SpanTag [StyleAttr "font-size: 30px"] [Text title]]
-	addTitleAttr attr	= kvSet TITLE_ATTRIBUTE title attr
+	addTitleAttr attr	= 'Map'.put TITLE_ATTRIBUTE title attr

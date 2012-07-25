@@ -5,7 +5,7 @@ import Task, TaskState, TaskStore, TaskEval, Util, HTTP, GenUpdate, GenEq_NG, St
 import iTaskClass, InteractionTasks, LayoutCombinators, UIDefinition
 import ClientOverride
 
-from Map				import qualified get, put, del
+from Map				import qualified get, put, del, newMap, toList, fromList
 from StdFunc			import id, const, o, seq
 from IWorld				import :: IWorld(..)
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
@@ -150,11 +150,10 @@ where
 		(OnException taskbf)		= call_with_DeferredJSON taskbf d_json_a
 		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
-	addStepActions taskId repAs (TaskRep gui parts) val 
-		# fixme = []
-		= TaskRep ((repLayout repAs) SequentialComposition [gui] (stepActions taskId val) [(TASK_ATTRIBUTE, toString taskId):fixme]) parts	//TODO: Add attributes from task
-	
-	stepActions taskId val = [(toString taskId,action,pred val)\\ OnAction action pred _ <- conts]
+	addStepActions taskId repAs (TaskRep gui parts) val
+		= TaskRep ((repLayout repAs) (StepLayout gui (stepActions taskId val))) parts
+		
+	stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=pred val}\\ OnAction action pred _ <- conts]
 
 	call_with_DeferredJSON_TaskValue :: ((TaskValue a) -> Task .b) DeferredJSON -> Maybe (Task .b) | TC a & JSONDecode{|*|} a
 	call_with_DeferredJSON_TaskValue f_tva_tb d_json_tva=:(DeferredJSON tva)
@@ -285,11 +284,11 @@ where
 	parallelRep desc taskId repAs entries
 		# layout		= repLayout repAs
 		# listId		= toString taskId
-		# attributes	= [(TASK_ATTRIBUTE,listId) : initAttributes desc]
-		# parts = [(t,g,ac,kvSet TIME_ATTRIBUTE (toString time) (kvSet TASK_ATTRIBUTE (toString entryId) (kvSet LIST_ATTRIBUTE listId at)))
-					 \\ ({TaskListEntry|entryId,state=EmbeddedState _ _,result=TIValue val _,time,removed=False},Just (TaskRep (t,g,ac,at) _)) <- entries | not (isStable val)]	
-		= TaskRep (layout ParallelComposition parts [] attributes) []
-	
+		# attributes	= 'Map'.put TASK_ATTRIBUTE listId (initAttributes desc)
+		# parts = [({UIDef|d & attributes = 'Map'.put TIME_ATTRIBUTE (toString time) ('Map'.put TASK_ATTRIBUTE (toString entryId) ('Map'.put LIST_ATTRIBUTE listId d.UIDef.attributes))})
+					 \\ ({TaskListEntry|entryId,state=EmbeddedState _ _,result=TIValue val _,time,removed=False},Just (TaskRep d _)) <- entries | not (isStable val)]	
+		= TaskRep (layout (ParallelLayout {UIDef|controls=[],actions=[],attributes=attributes} parts)) []
+		
 	isStable (Value _ Stable) 	= True
 	isStable _					= False
 	
@@ -312,7 +311,7 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,c
 			# (taskIda=:TaskId instanceNo _,iworld)	= createPersistentInstance task management currentUser parent iworld
 			= (taskIda,DetachedState instanceNo progress management, iworld)
 	# result	= TIValue NoValue taskTime
-	# entry		= {entryId = taskIda, state = state, result = result, attributes = [], time = taskTime, removed = False}
+	# entry		= {entryId = taskIda, state = state, result = result, attributes = 'Map'.newMap, time = taskTime, removed = False}
 	# iworld	= storeTaskList taskId (list ++ [entry]) iworld
 	= (taskIda, iworld)		
 
@@ -327,8 +326,8 @@ where
 	newTree (EmbeddedState task _) (ValueResult _ _ _ tree)	= (EmbeddedState task tree)
 	newTree cur _											= cur
 	
-	newAttr (ValueResult _ _ (TaskRep (_,_,_,attr) _) _)	= attr
-	newAttr _												= []
+	newAttr (ValueResult _ _ (TaskRep {UIDef|attributes} _) _)	= attributes
+	newAttr _													= 'Map'.newMap
 	
 	maxTime cur (ValueResult _ ts _ _)		= max cur ts
 	maxTime cur _							= cur
@@ -338,7 +337,7 @@ updateListEntryDetachedResult listId entryId result progress management attribut
 	= updateListEntry listId entryId update iworld
 where
 	update e=:{TaskListEntry|state=DetachedState no _ _}
-		= {TaskListEntry| e & state = DetachedState no progress management,result = result, attributes = attributes}
+		= {TaskListEntry| e & state = DetachedState no progress management,result = result, attributes = 'Map'.fromList attributes}
 	update e = e
 
 updateListEntryTime :: !TaskId !TaskId !TaskTime !*IWorld -> *IWorld
@@ -394,7 +393,7 @@ where
 		= case readListId slist iworld of
 			(Ok listId,iworld)
 				# (taskIda,iworld) = append listId parType parTask iworld
-				= (ValueResult (Value taskIda Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, iworld)
+				= (ValueResult (Value taskIda Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop, iworld)
 			(Error e,iworld)
 				= (exception e, iworld)
 								
@@ -416,7 +415,7 @@ where
 		= case readListId slist iworld of
 			(Ok listId,iworld)
 				# iworld = remove listId entryId iworld
-				= (ValueResult (Value Void Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, iworld)
+				= (ValueResult (Value Void Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop, iworld)
 			(Error e,iworld)
 				= (exception e, iworld)
 
@@ -442,16 +441,16 @@ where
 		# (rep,iworld)		= loadTaskRep instanceNo iworld
 		= case (meta,result,rep) of
 			(_,Ok (TIValue (Value _ Stable) _),_)
-				= (ValueResult (Value WOFinished Stable) ts (TaskRep (SingleTask, Nothing, [],[]) []) tree, iworld)
+				= (ValueResult (Value WOFinished Stable) ts (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) tree, iworld)
 			(_,Ok (TIException _ _),_)
-				= (ValueResult (Value WOExcepted Stable) ts (TaskRep (SingleTask, Nothing, [], []) []) tree, iworld)
+				= (ValueResult (Value WOExcepted Stable) ts (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) tree, iworld)
 			(Ok {TIMeta|worker=Just worker},_,Ok rep)
 				| worker == currentUser
 					= (ValueResult (Value WOActive Unstable) ts rep tree, iworld)
 				| otherwise
-					= (ValueResult (Value (WOInUse worker) Unstable) ts (TaskRep (SingleTask,Just (stringDisplay (toString worker +++ " is working on this task")),[],[]) []) tree, iworld)		
+					= (ValueResult (Value (WOInUse worker) Unstable) ts (TaskRep {UIDef|controls=[(stringDisplay (toString worker +++ " is working on this task"),'Map'.newMap)],actions=[],attributes='Map'.newMap} []) tree, iworld)		
 			_
-				= (ValueResult (Value WODeleted Stable) ts (TaskRep (SingleTask, Nothing, [],[]) []) tree, iworld)
+				= (ValueResult (Value WODeleted Stable) ts (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) tree, iworld)
 
 	eval eEvent cEvent refresh repAs (TCDestroy (TCBasic taskId _ _ _)) iworld
 		//TODO: Remove this workon from the observers

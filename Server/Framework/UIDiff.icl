@@ -14,8 +14,8 @@ where
 		step (ItemStep i) = toString i
 		step (MenuStep) = "m"
 
-diffUIDefinitions :: !UIControl !UIControl !(Maybe EditEvent) -> [UIUpdate]
-diffUIDefinitions old new event = diffEditorDefinitions` [ItemStep 0] event old new
+diffUIDefinitions :: ![UIControl] ![UIControl] !(Maybe EditEvent) -> [UIUpdate]
+diffUIDefinitions old new event = [] //diffEditorDefinitions` [ItemStep 0] event old new
 
 diffEditorDefinitions` :: !DiffPath !(Maybe EditEvent) !UIControl !UIControl -> [UIUpdate]
 //diffEditorDefinitions` path event (UIViewString osize oview) (UIViewString nsize nview) = []
@@ -175,9 +175,9 @@ encodeUIUpdate (UISetName path name)			= [node path "setName"			[JSONString name
 encodeUIUpdate (UISetEnabled path enabled)		= [node path "setDisabled"		[JSONBool (not enabled)]]
 encodeUIUpdate (UISetActive path active)		= [node path "setActive"		[JSONBool active]]
 encodeUIUpdate (UISetTitle path title)			= [node path "setTitle"			[JSONString title]]
-encodeUIUpdate (UIReplace path index def)		= [node path "replace" 			[JSONInt index, encodeUIDefinition def]]
-encodeUIUpdate (UIUpdate path def)				= [node path "update"			[encodeUIDefinition def]]
-encodeUIUpdate (UIAdd path index def)			= [node path "insert"			[JSONInt index, encodeUIDefinition def]]
+encodeUIUpdate (UIReplace path index def)		= [node path "replace" 			[JSONInt index, encodeUIControl def]]
+encodeUIUpdate (UIUpdate path def)				= [node path "update"			[encodeUIControl def]]
+encodeUIUpdate (UIAdd path index def)			= [node path "insert"			[JSONInt index, encodeUIControl def]]
 encodeUIUpdate (UIRemove path index)			= [node path "remove"			[JSONInt index]]
 
 node path method arguments

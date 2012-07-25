@@ -8,13 +8,13 @@ import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 
 //Derives required for storage of TUI definitions
 derive JSONEncode TaskRep, TaskCompositionType
-derive JSONEncode UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
+derive JSONEncode UIDef, UIAction, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
 derive JSONEncode UIMenuButtonOpts, UIActionButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
 derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
 derive JSONDecode TaskRep, TaskCompositionType
-derive JSONDecode UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
+derive JSONDecode UIDef, UIAction, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
 derive JSONDecode UIMenuButtonOpts, UIActionButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
 derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
@@ -60,8 +60,8 @@ where
 	replace item [i:is] = if (item.TaskListItem.taskId == i.TaskListItem.taskId) [item:is] [i:replace item is]
 
 	instanceToTaskListItem :: !TIMeta !TIRep -> TaskListItem a
-	instanceToTaskListItem {TIMeta|instanceNo,progress,management} (TaskRep (_,_,_,attr) _)
-		= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = attr, progressMeta = Just progress, managementMeta = Just management}
+	instanceToTaskListItem {TIMeta|instanceNo,progress,management} (TaskRep {UIDef|attributes} _)
+		= {taskId = TaskId instanceNo 0, value = NoValue, taskMeta = toList attributes, progressMeta = Just progress, managementMeta = Just management}
 
 loadTaskInstance :: !InstanceNo !*IWorld -> (!MaybeErrorString (TIMeta,TIReduct,TIResult), !*IWorld)
 loadTaskInstance instanceNo iworld
@@ -185,14 +185,14 @@ addOutdatedOnShareChange shareId iworld
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld
 		
-storeCurUI :: !SessionId !Int !UIControl !*IWorld -> *IWorld
-storeCurUI sid version def iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,def) uis}
+storeCurUI :: !SessionId !Int ![UIControl] !*IWorld -> *IWorld
+storeCurUI sid version controls iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,controls) uis}
 
-loadPrevUI	:: !SessionId !Int !*IWorld -> (!Maybe UIControl, !*IWorld)
-loadPrevUI sid version iworld=:{IWorld|uis}
+loadPrevUI	:: !SessionId !Int !*IWorld -> (![UIControl], !*IWorld)
+loadPrevUI sid version iworld=:{IWorld|uis} 
 	= case get sid uis of
-		Just (prev,def) | version == (prev + 1)	= (Just def, iworld)
-		_										= (Nothing, iworld)
+		Just (prev,controls) | version == (prev + 1)	= (controls, iworld)
+		_												= ([], iworld)
 
 saveUICache	:: !*IWorld -> *IWorld
 saveUICache iworld=:{IWorld|uis}

@@ -1,7 +1,7 @@
 implementation module SystemTypes
 from StdFunc import until
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, List_NG, dynamic_string, Base64
+import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList, StdFunc, StdOrdList, List_NG, dynamic_string, Map, Base64
 import JSON_NG, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
@@ -640,36 +640,36 @@ where
 	
 	
 instance descr Void
-where initAttributes	_ = [] 
+where initAttributes	_ = newMap 
 
 instance descr String
-where initAttributes	hint	= [(HINT_ATTRIBUTE, hint)]
+where initAttributes	hint	= fromList [(HINT_ATTRIBUTE, hint)]
 	
 instance descr (!String,!String) 
-where initAttributes (title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint)]
+where initAttributes (title,hint) = fromList [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint)]
 
 instance descr (!Icon,!String,!String)
-where initAttributes (icon,title,hint) = [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint):initAttributes icon]
+where initAttributes (icon,title,hint) = fromList [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint):toList (initAttributes icon)]
 
 instance descr Title
-where initAttributes (Title title) = [(TITLE_ATTRIBUTE,title)]
+where initAttributes (Title title) = fromList [(TITLE_ATTRIBUTE,title)]
 
 instance descr Hint
-where initAttributes (Hint hint) = [(HINT_ATTRIBUTE, hint)]
+where initAttributes (Hint hint) = fromList [(HINT_ATTRIBUTE, hint)]
 
 instance descr Icon
 where
-	initAttributes (Icon icon)	= [(ICON_ATTRIBUTE, icon)]
-	initAttributes (IconView)	= [(ICON_ATTRIBUTE, "view")]
-	initAttributes (IconEdit)	= [(ICON_ATTRIBUTE, "edit")]
+	initAttributes (Icon icon)	= fromList [(ICON_ATTRIBUTE, icon)]
+	initAttributes (IconView)	= fromList [(ICON_ATTRIBUTE, "view")]
+	initAttributes (IconEdit)	= fromList [(ICON_ATTRIBUTE, "edit")]
 	
 instance descr Attribute
-where initAttributes (Attribute k v) = [(k,v)]
+where initAttributes (Attribute k v) = put k v newMap
 instance descr Att
 where initAttributes (Att a) = initAttributes a
 	
 instance descr [d] | descr d
-where initAttributes list = flatten (map initAttributes list)
+where initAttributes list = fromList (flatten [toList (initAttributes d) \\ d <- list])
 
 instance toString TaskId
 where

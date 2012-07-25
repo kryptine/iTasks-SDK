@@ -62,7 +62,7 @@ derive JSONDecode DeferredJSON
 	{ entryId			:: !TaskId					//Identification of entries in the list (for easy updating)
 	, state				:: !TaskListEntryState		//Tree if embedded, or instance no if detached
 	, result			:: !TIResult				//Stored result of last evaluation (for detached tasks this is a cached copy)
-	, attributes		:: ![TaskAttribute]			//Stored attributes of last evaluation
+	, attributes		:: !Map String String		//Stored attributes of last evaluation
 	, time				:: !TaskTime				//Last modified time
 	, removed			:: !Bool					//Flag for marking this entry as 'removed', actual removal is done by the controlling parallel combinator
 	}

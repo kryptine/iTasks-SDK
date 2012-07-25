@@ -47,8 +47,8 @@ clearShareRegistrations		:: !InstanceNo !*IWorld -> *IWorld
 addOutdatedOnShareChange	:: !BasicShareId !*IWorld -> *IWorld
 
 //Keep last version of session user interfaces around, to be able to send differences to client
-storeCurUI				:: !SessionId !Int !UIControl !*IWorld -> *IWorld
-loadPrevUI				:: !SessionId !Int !*IWorld -> (!Maybe UIControl, !*IWorld)
+storeCurUI				:: !SessionId !Int ![UIControl] !*IWorld -> *IWorld
+loadPrevUI				:: !SessionId !Int !*IWorld -> (![UIControl], !*IWorld)
 
 //Sync previous user interfaces to disk (Only used with CGI wrapper)
 saveUICache				:: !*IWorld -> *IWorld

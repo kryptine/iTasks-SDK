@@ -12,7 +12,7 @@ from Map					import qualified get
 derive JSONEncode UpdateMask
 derive JSONDecode UpdateMask
 
-NoRep :== TaskRep (SingleTask,Nothing,[],[]) []
+NoRep :== TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask (\taskId iworld=:{taskTime} -> (ValueResult (Value a Stable) taskTime NoRep TCNop, iworld))
@@ -336,7 +336,7 @@ where
 
 visualizeView taskId repAs v validity desc iworld
 	# (editor,iworld) = visualizeAsEditor v validity taskId iworld
-	= (TaskRep ((repLayout repAs) SingleTask [(ViewPart, editor, [],[])] [] (initAttributes desc)) [(toString taskId,toJSON v)], iworld)
+	= (TaskRep ((repLayout repAs) (InteractLayout {UIDef|controls=[],actions=[],attributes=initAttributes desc} {UIDef|controls=maybe [] (\e -> [(e,newMap)]) editor,attributes=newMap,actions=[]})) [(toString taskId,toJSON v)], iworld)
 
 could_not_read_shared_in_interact_exception iworld
 	= (exception "Could not read shared in interact", iworld)

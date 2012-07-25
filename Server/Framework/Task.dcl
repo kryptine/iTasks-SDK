@@ -6,7 +6,7 @@ definition module Task
 
 import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
 from TaskState			import :: TaskTree
-from LayoutCombinators	import :: Layout
+from LayoutCombinators	import :: Layout, :: Layoutable
 
 derive JSONEncode		Task
 derive JSONDecode		Task
@@ -37,10 +37,7 @@ derive gPutRecordFields	Task
 
 :: TaskRepOpts		= TaskRepOpts (Maybe Layout) (Maybe (Layout -> Layout))								//Optionally with tweaked layout options
 	
-:: TaskRep			= TaskRep !TaskTUIRep !TaskServiceRep												//Compute both the UI and the raw service representation simultaneously
-
-//Task representation for web application format
-:: TaskTUIRep		:== (!TaskCompositionType, !Maybe UIControl, ![TaskAction], ![TaskAttribute]) 
+:: TaskRep			= TaskRep !UIDef !TaskServiceRep	//Compute both the UI and the raw service representation simultaneously
 
 //Task representation for web service format
 :: TaskServiceRep	:== [TaskPart]
@@ -53,8 +50,6 @@ derive gPutRecordFields	Task
 	| ParallelComposition
 
 :: TaskPart			:== (!String, !JSONNode)		//Task id, part index, value
-:: TaskAction		:== (!String, !Action, !Bool)	//Task id, action, enabled
-:: TaskAttribute	:== (!String, !String) 
 
 /**
 * Creates an execption result

@@ -1,8 +1,7 @@
 implementation module GenVisualize
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List_NG, Generic_NG
-import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, JSON_NG, UIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
-
+import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdGeneric, StdEnum, StdFunc, List_NG, Generic_NG, JSON_NG
+import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, Map, UIDefinition, SystemTypes, HtmlUtil, LayoutCombinators
 
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
 visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)
@@ -119,13 +118,13 @@ derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailA
 mkVSt :: !TaskId *IWorld -> *VSt
 mkVSt taskId iworld
 	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, disabled = False, verifyMask = []
-	  , taskId = taskId, iworld = iworld}
+	  , taskId = taskId, layout = DEFAULT_LAYOUT, iworld = iworld}
 
 kmVSt :: !*VSt -> *IWorld //inverse of mkVSt
 kmVSt {VSt|iworld} = iworld
 
 //Generic visualizer
-generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a) !*VSt -> (!VisualizationResult,!*VSt)
+generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a)!*VSt -> (!VisualizationResult,!*VSt)
 
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
@@ -150,9 +149,9 @@ where
 gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled}
 	# (vizBody,vst)		= fx (fmap fromFIELD val) vst
 	= case vizBody of
-		HiddenEditor		= (HiddenEditor,vst)
-		NormalEditor ex		= (NormalEditor (addLabel False ex), vst)
-		OptionalEditor ex	= (OptionalEditor (addLabel True ex), vst)
+		HiddenEditor			= (HiddenEditor,vst)
+		NormalEditor controls	= (NormalEditor [(c,newMap)\\ c <-(addLabel False (map fst controls))], vst)
+		OptionalEditor controls	= (OptionalEditor [(c,newMap)\\ c <-(addLabel True (map fst controls))], vst)
 where
 	addLabel optional content
 		# label	= stringDisplay (camelCaseToWords gfd_name +++ if (optional || disabled) "" "*" +++ ":")
@@ -168,7 +167,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx x vst
 		# content = if (isTouched cmv)  (uiOfEditor items) []
-		= (NormalEditor [defaultContainer
+		= (NormalEditor [(defaultContainer
 							[ addMsg (verifyElementStr cmv) (UIDropdown defaultSizeOpts
 								{UIChoiceOpts|taskId = toString taskId
 								, name = dp2s currentPath
@@ -176,15 +175,16 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 								, options = [gdc.gcd_name \\ gdc <- gtd_conses]})
 							: if (isEmpty content) [] [defaultContainer content]
 							]
-						]
+						,newMap)]
 		  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 	//ADT with one constructor or static render: put content into container, if empty show cons name
 	| otherwise
 		# (vis,vst) = fx x vst
 		# vis = case vis of
 			HiddenEditor 	= HiddenEditor
-			NormalEditor [] = if (isTouched cmv || disabled) (NormalEditor [(stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name))]) (NormalEditor [])			
-			NormalEditor vis = NormalEditor [setDirection Horizontal (defaultContainer (addSpacing vis))]			
+			NormalEditor [] = if (isTouched cmv || disabled) (NormalEditor [((stringDisplay ((gtd_conses !! vst.selectedConsIndex).gcd_name)),newMap)]) (NormalEditor [])			
+			NormalEditor vis
+				= NormalEditor [(setDirection Horizontal (defaultContainer (addSpacing (map fst vis))),newMap)]
 			//TODO: Add case for OptionalEditor
 		= (vis,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 where
@@ -228,8 +228,7 @@ gVisualizeEditor{|(,)|} fx _ _ _ fy _ _ _ val vst=:{VSt|currentPath,verifyMask}
 	# (vizy, vst)	= fy y vst
 	# viz = case (vizx,vizy) of
 		(HiddenEditor,HiddenEditor) = HiddenEditor
-		_	= NormalEditor
-				[defaultContainer (uiOfEditor vizx ++ uiOfEditor vizy)]
+		_	= NormalEditor[(defaultContainer (uiOfEditor vizx ++ uiOfEditor vizy),newMap)]
 				 
 	= (viz, {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 
@@ -342,7 +341,7 @@ where
 		| disabled	= ([UIViewDocument defaultSizeOpts {UIViewOpts|value = val}],vst)
 		| otherwise			= ([UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=val}],vst)
 
-gVisualizeEditor{|URL|}	val vst = visualizeCustom viz vst
+gVisualizeEditor{|URL|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled
@@ -663,19 +662,19 @@ derive gGridRows DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, Grid
 
 //***** UTILITY FUNCTIONS *************************************************************************************************	
 		
-visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
+visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 visualizeCustom tuiF vst=:{VSt|currentPath,disabled,verifyMask}
 	# (cmv,vm)	= popMask verifyMask
 	// only check mask if generating editor definition & not for labels
 	# touched	= isTouched cmv
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
 	# (vis,vst) = tuiF (dp2s currentPath) touched (verifyElementStr cmv) vst
-	= (NormalEditor vis,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+	= (NormalEditor [(c,newMap)\\c <-vis],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 noVisualization :: !*VSt -> *(!VisualizationResult,!*VSt)
 noVisualization vst=:{VSt|currentPath,verifyMask}
 	# (_,vm) = popMask verifyMask
-	= (NormalEditor [],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+	= (NormalEditor [], {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 childVisualizations :: !((Maybe a) -> .(*VSt -> *(!VisualizationResult,*VSt))) ![a] !*VSt -> *(![VisualizationResult],!*VSt)
 childVisualizations fx children vst = childVisualizations` children [] vst
@@ -719,9 +718,9 @@ checkMask False _	= Nothing
 checkMask _ val 	= val
 
 uiOfEditor :: !VisualizationResult -> [UIControl]
-uiOfEditor (NormalEditor ui)	= ui
-uiOfEditor (OptionalEditor ui)	= ui
-uiOfEditor HiddenEditor		= []
+uiOfEditor (NormalEditor controls)		= map fst controls
+uiOfEditor (OptionalEditor controls)	= map fst controls
+uiOfEditor HiddenEditor					= []
 
 //*********************************************************************************************************************
 	

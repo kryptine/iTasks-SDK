@@ -4,7 +4,7 @@ import HTML, JSON_NG, UIDefinition
 import StdGeneric, Maybe, Void, Either
 import GenUpdate, GenVerify
 from Map import :: Map
-
+from LayoutCombinators import :: Layout, :: Layoutable
 :: StaticVisualizationMode = AsDisplay | AsLabel
 
 //Generic text visualization function
@@ -90,10 +90,14 @@ visualizeAsText			:: !StaticVisualizationMode !a			-> String						| gVisualizeTe
 	, optional			:: !Bool												// Create optional form fields
 	, disabled			:: !Bool												// If true the editor is not editable
 	, taskId			:: !TaskId												// The id of the task the visualisation belongs to
+	, layout			:: !Layout												// Layout for composite structures
 	, iworld			:: !*IWorld												// The iworld, used for example if external tools are needed to create editors
 	}
 
-:: VisualizationResult = NormalEditor [UIControl] | OptionalEditor [UIControl] | HiddenEditor
+:: VisualizationResult
+		= NormalEditor [(!UIControl,!UIAttributes)]
+		| OptionalEditor [(!UIControl,!UIAttributes)]
+		| HiddenEditor
 	
 :: VerifyResult = HintMsg !String | ValidMsg !String | ErrorMsg !String | NoMsg
 
@@ -117,7 +121,7 @@ noVisualization :: !*VSt -> *(!VisualizationResult,!*VSt)
 *
 * @return The generated visualization
 */
-visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
+visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 
 /**
 * A function using VSt for generating TUI definitions.
@@ -131,7 +135,7 @@ visualizeCustom :: !TUIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
 *
 * @return The generated TUI definition
 */
-:: TUIVizFunction :== String Bool VerifyResult -> .(*VSt -> *(![UIControl],!*VSt))
+:: UIVizFunction :== String Bool VerifyResult -> .(*VSt -> *(![UIControl],!*VSt))
 
 (+++>) infixr 5		:: !a	!String	-> String | gVisualizeText{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualizeText{|*|} a

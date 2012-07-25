@@ -19,6 +19,6 @@ from Task import :: EditEvent, :: Event
 	
 :: UIPath	:== String
 
-diffUIDefinitions :: !UIControl !UIControl !(Maybe EditEvent) -> [UIUpdate]
+diffUIDefinitions :: ![UIControl] ![UIControl] !(Maybe EditEvent) -> [UIUpdate]
 
 encodeUIUpdates :: ![UIUpdate] -> JSONNode

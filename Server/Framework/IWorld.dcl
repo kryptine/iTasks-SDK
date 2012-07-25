@@ -28,7 +28,7 @@ from SharedDataSource	import class registerSDSMsg, class reportSDSChange, class 
 					, readShares			:: ![String]								// The IDs of shares from which was read
 					, outdated				:: !Bool									// Flag that is set when an internal inconsistenty is detected 
 					, sessions				:: !Map SessionId InstanceNo				// Index of sessions to instance numbers
-					, uis					:: !Map SessionId (!Int,!UIControl)			// Previous ui versions to optimize output sent to clients
+					, uis					:: !Map SessionId (!Int,![UIControl])		// Previous ui versions to optimize output sent to clients
 					, world					:: !*World									// The outside world
 					}
 

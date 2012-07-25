@@ -2,7 +2,7 @@ implementation module GoogleMaps
 
 import HTML, StdEnv, JSON_NG, GenUpdate, GenVisualize, GenVerify
 
-derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions
+derive JSONEncode UIGoogleMap, UIGoogleMapOptions
 derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent, MarkerDragUpdate
 
 derive gVisualizeText  	GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
@@ -44,18 +44,18 @@ JSONDecode{|GoogleMapPosition|} rest											= (Nothing,rest)
 	, point				:: !GoogleMapPosition
 	}
 
-:: TUIGoogleMap = 
+:: UIGoogleMap = 
 	{ center 			:: GoogleMapPosition
 	, mapType			:: GoogleMapType
 	, markers			:: [GoogleMapMarker]
 	, xtype				:: String
-	, taskId			:: Maybe String
+	, taskId			:: String
 	, name				:: String
 	, editor			:: Bool
-	, options			:: TUIGoogleMapOptions
+	, options			:: UIGoogleMapOptions
 	}
 	
-:: TUIGoogleMapOptions =
+:: UIGoogleMapOptions =
 	{ mapTypeControl 	:: Bool
 	, panControl		:: Bool
 	, streetViewControl	:: Bool
@@ -76,23 +76,22 @@ where
 gVisualizeText{|GoogleMap|} _ _ = ["<Google map>"]
 gVisualizeEditor{|GoogleMap|} mbMap vst = visualizeCustom mkControl vst
 where
-	mkControl name _ _ vst=:{VSt|taskId}
-		= ([defaultDef (TUICustom ((mapPanel mbMap name True)))], vst)
+	mkControl name _ _ vst=:{VSt|taskId} = ([UICustom (mapPanel mbMap name True)], vst)
 	where		
 		mapPanel Nothing	name ed = toJSON (tuidef defaultMap name ed)
 		mapPanel (Just map)	name ed = toJSON (tuidef map   name ed)
 	
 		tuidef map name ed =
-			{ TUIGoogleMap
+			{ UIGoogleMap
 			| center = map.perspective.GoogleMapPerspective.center
 			, mapType = map.perspective.GoogleMapPerspective.type
 			, markers = map.GoogleMap.markers
 			, xtype = "itasks-googlemap"
 			, name = name
-			, taskId = fmap toString taskId
+			, taskId = toString taskId
 			, editor = ed
 			, options =
-				{ TUIGoogleMapOptions
+				{ UIGoogleMapOptions
 				| mapTypeControl = map.settings.GoogleMapSettings.mapTypeControl
 				, panControl = map.settings.GoogleMapSettings.panControl
 				, streetViewControl = map.settings.GoogleMapSettings.streetViewControl

@@ -1,38 +1,38 @@
 implementation module LayoutCombinators
 
 import StdTuple, StdList, StdBool
-import Maybe, Text, Tuple, Util, HtmlUtil
+import Maybe, Text, Tuple, Map, Util, HtmlUtil
 import SystemTypes, UIDefinition
 
 from StdFunc import o
 
-from Task import :: TaskCompositionType, :: TaskAttribute(..), :: TaskAction(..), :: TaskTUIRep(..), :: TaskCompositionType(..)
+from Task import :: TaskCompositionType, :: TaskCompositionType(..)
 derive gEq TaskCompositionType
 
 heuristicLayout :: Layout
 heuristicLayout = layout //TODO: Figure out proper propagation of attributes
 where
-	layout SingleTask parts actions attributes
-		= heuristicInteractionLayout SingleTask parts actions attributes
-	layout ParallelComposition parts actions attributes
-		= heuristicParallelLayout ParallelComposition parts actions attributes
-	layout SequentialComposition parts actions attributes
-		= heuristicSequenceLayout SequentialComposition parts actions attributes
+	layout (DataLayout def)					= def
+	layout (InteractLayout prompt editor)	= heuristicInteractionLayout prompt editor
+	layout (StepLayout def actions)			= heuristicStepLayout def actions
+	layout (ParallelLayout prompt defs)		= heuristicParallelLayout prompt defs
+	layout (FinalLayout def)				= def
 	
-heuristicInteractionLayout :: Layout
-heuristicInteractionLayout = layout
+heuristicInteractionLayout :: UIDef UIDef -> UIDef
+heuristicInteractionLayout prompt editor = mergeDefs prompt editor
+/*
 where
 	layout type parts actions attributes = case (mbTitle,mbHint) of
-		(Nothing,Nothing)		= (type,Just body,actions,attributes)
-		(Nothing,Just hint)		= (type,Just (basicTaskContainer [hintPanel hint,body]),actions,attributes)
-		(Just title,Nothing)	= (type,Just (basicTaskPanel title mbIcon [body]),actions,attributes)
-		(Just title,Just hint)	= (type,Just (basicTaskPanel title mbIcon [hintPanel hint,body]),actions,attributes)
+		(Nothing,Nothing)		= {attributes=attributes,controls=[(body,newMap)],actions=actions}
+		(Nothing,Just hint)		= {attributes=attributes,controls=[(basicTaskContainer [hintPanel hint,body],newMap)],actions=actions}
+		(Just title,Nothing)	= {attributes=attributes,controls=[(basicTaskPanel title mbIcon [body],newMap)],actions=actions}
+		(Just title,Just hint)	= {attributes=attributes,controls=[(basicTaskPanel title mbIcon [hintPanel hint,body],newMap)],actions=actions}
 	where	
-		mbTitle = kvGet TITLE_ATTRIBUTE attributes
-		mbHint  = kvGet HINT_ATTRIBUTE attributes
-		mbIcon	= kvGet ICON_ATTRIBUTE attributes
+		mbTitle = get TITLE_ATTRIBUTE attributes
+		mbHint  = get HINT_ATTRIBUTE attributes
+		mbIcon	= get ICON_ATTRIBUTE attributes
 
-		bodyGui	= case [gui \\ (_,Just gui,_,_) <- parts] of
+		bodyGui	= case [gui \\ {UIDef|controls=[(gui,_):_]} <- parts] of
 			[gui]	= gui
 			guis	= vjoin guis
 		body	= addMargins ((fillWidth o setHeight FlexSize) bodyGui)
@@ -48,71 +48,84 @@ where
 			= case mbIcon of	
 				Nothing		= panel
 				Just icon	= setIconCls ("icon-" +++ icon) panel
-
-heuristicParallelLayout :: Layout
-heuristicParallelLayout = layout
+*/
+heuristicStepLayout :: UIDef [UIAction] -> UIDef
+heuristicStepLayout def=:{UIDef|controls,actions} stepActions
+	# (buttons,actions)	= actionsToButtons (actions ++ stepActions)
+	# buttonbar			= buttonPanel buttons
+	= {UIDef|def & controls = controls ++ [(buttonbar,newMap)], actions = actions}
+/*
 where
-	layout type [part] actions attributes	//If there's only one part, do nothing
-		= part
-	layout type parts actions attributes
-		= (type,Just gui,cactions,cattributes)
-	where
-		cactions = foldr (++) actions [a \\ (_,_,a,_) <- parts]
-		//cattributes = attributes //TODO!
-		cattributes = foldr mergeAttributes attributes [a \\ (_,_,_,a) <- parts] 
-		
-		guis = [gui \\ (_,Just gui,_,_) <- parts]
-		gui = if (all isForm guis)
-			(mergeForms guis)
-			(vjoin guis)
+	//layout type [{UIDef|controls,actions=partactions,attributes=partattributes}] actions attributes //TODO: Test for step
+	//	= {UIDef|controls=controls,actions=partactions,attributes = mergeAttributes partattributes attributes}
 	
-	mergeForms guis = setPurpose "form" (vjoin guis)
-
-
-heuristicSequenceLayout :: Layout
-heuristicSequenceLayout = layout
-where
-	layout type [(SequentialComposition,partgui,partactions,partattributes)] actions attributes
-		= (type,partgui,partactions, mergeAttributes partattributes attributes)
-	layout type [(parttype,Nothing,partactions,partattributes)] actions attributes
-		= (type,Nothing,partactions ++ actions, mergeAttributes partattributes attributes)
-	layout type [(parttype,Just gui,partactions,partattributes)] actions attributes
+	layout type [{UIDef|controls=[],actions=partactions,attributes=partattributes}] actions attributes
+		= {UIDef|controls=[],actions=partactions ++ actions,attributes= mergeAttributes partattributes attributes}
+	layout type [{UIDef|controls=[(gui,_):_],actions=partactions,attributes=partattributes}] actions attributes
 		| canHoldButtons gui
 			# (buttons,actions)	= actionsToButtons actions
 			# gui				= addButtonsToTUI buttons gui
 			| canHoldMenus gui
 				# (menus,actions)	= actionsToMenus actions
 				# gui				= addMenusToTUI menus gui
-				= (type,Just gui,partactions ++ actions,mergeAttributes partattributes attributes)
+				= {UIDef|controls=[(gui,newMap)],actions=partactions ++ actions,attributes=mergeAttributes partattributes attributes}
 			| otherwise
-				= (type,Just gui,partactions ++ actions,mergeAttributes partattributes attributes)
+				= {UIDef|controls=[(gui,newMap)],actions=partactions ++ actions,attributes=mergeAttributes partattributes attributes}
 		| otherwise
-			= (type,Just gui,partactions ++ actions,mergeAttributes partattributes attributes)
+			= {UIDef|controls=[(gui,newMap)],actions=partactions ++ actions,attributes=mergeAttributes partattributes attributes}
 	layout type parts actions attributes
 		= heuristicParallelLayout type parts actions attributes
-		
-accumulatingLayout :: Layout
-accumulatingLayout = layout
-where
-	layout type parts actions attributes
-		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
-		# actions		= flatten [actions:[actions \\ (_,_,actions,_) <- parts]]
-		# guis			= [gui \\ (_,Just gui,_,_) <- parts]
-		= (type, Just (vjoin guis), actions, attributes)
+*/
 
-paneledLayout :: Layout
-paneledLayout = layout
+heuristicParallelLayout :: UIDef [UIDef] -> UIDef
+heuristicParallelLayout prompt defs = foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs]
+
+/*
+where
+	layout type [part] actions attributes	//If there's only one part, do nothing
+		= part
+	layout type parts actions attributes
+		= {UIDef|attributes=cattributes,controls = [(gui,newMap)],actions=cactions}
+	where
+		cactions = foldr (++) actions [a \\ {UIDef|actions=a} <- parts]
+		//cattributes = attributes //TODO!
+		cattributes = foldr mergeAttributes attributes [attributes \\ {UIDef|attributes} <- parts] 
+		
+		guis = [gui \\ {UIDef|controls=[(gui,_):_]} <- parts]
+		gui = if (all isForm guis)
+			(mergeForms guis)
+			(vjoin guis)
+	
+	mergeForms guis = setPurpose "form" (vjoin guis)
+*/
+
+heuristicFinalLayout :: UIDef -> UIDef
+heuristicFinalLayout def = def
+
+accumulatingLayout :: Layout
+accumulatingLayout = heuristicLayout// layout
+/*
 where
 	layout type parts actions attributes
-		# partactions		= flatten [actions \\ (_,_,actions,_) <- parts]
+		# attributes 	= foldr mergeAttributes newMap ([attributes \\ {UIDef|attributes} <- parts] ++ [attributes])
+		# actions		= flatten [actions:[actions \\ {UIDef|actions} <- parts]]
+		# guis			= [gui \\ {UIDef|controls=[(gui,_):_]} <- parts]
+		= {UIDef|controls=[(vjoin guis,newMap)], actions=actions, attributes=attributes}
+*/
+paneledLayout :: Layout
+paneledLayout = heuristicLayout //layout
+/*
+where
+	layout type parts actions attributes
+		# partactions		= flatten [actions \\ {UIDef|actions} <- parts]
 		# (buttons,actions)	= actionsToButtons actions 
 		# (menus,actions)	= actionsToMenus actions
-		# guis				= [gui \\ (_,Just gui,_,_) <- parts]
-		# gui 				= addMenusToTUI menus (addButtonsToTUI buttons (paneled (kvGet TITLE_ATTRIBUTE attributes) (kvGet HINT_ATTRIBUTE attributes) (kvGet ICON_ATTRIBUTE attributes) guis))
-		= (type, Just gui, actions ++ partactions, attributes)
-	
+		# guis				= [gui \\ {UIDef|controls=[(gui,_):_]} <- parts]
+		# gui 				= addMenusToTUI menus (addButtonsToTUI buttons (paneled (get TITLE_ATTRIBUTE attributes) (get HINT_ATTRIBUTE attributes) (get ICON_ATTRIBUTE attributes) guis))
+		= {UIDef|controls=[(gui,newMap)],actions=actions ++ partactions,attributes = attributes}
+*/	
 tabbedLayout :: Layout
-tabbedLayout = heuristicParallelLayout 
+tabbedLayout = heuristicLayout 
 /*
 where
 	layout type parts actions attributes
@@ -145,42 +158,44 @@ where
 	takeCloseTask [a:as] = let (mbtask,as`) = takeCloseTask as in (mbtask,[a:as`])
 */
 hideLayout :: Layout
-hideLayout = layout
+hideLayout = heuristicLayout /*layout
 where
 	layout type parts actions attributes
-		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
-		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
-		= (type,Nothing,actions,attributes)
-
+		# attributes 	= foldr mergeAttributes newMap ([attributes \\ {UIDef|attributes} <- parts] ++ [attributes])
+		# actions		= flatten [actions:[a \\ {UIDef|actions=a} <- parts]]
+		= {UIDef|controls=[],actions=actions,attributes=attributes}
+*/
 fillLayout :: UIDirection -> Layout
-fillLayout direction = layout
+fillLayout direction = heuristicLayout /* layout
 where
 	layout type parts actions attributes
-		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
-		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
-		# guis			= [(fill o setMargins 0 0 0 0 o setFramed False) gui \\ (_,Just gui,_,_) <- parts]
-		=(type,Just ((fill o setDirection direction) (vjoin guis)),actions,attributes) 
-
-splitLayout :: UISide Int ([TaskTUIRep] -> ([TaskTUIRep],[TaskTUIRep])) Layout Layout -> Layout
-splitLayout side size splitFun layout1 layout2 = layout
+		# attributes 	= foldr mergeAttributes newMap ([attributes \\ {UIDef|attributes} <- parts] ++ [attributes])
+		# actions		= flatten [actions:[a \\ {UIDef|actions=a} <- parts]]
+		# guis			= [(fill o setMargins 0 0 0 0 o setFramed False) gui \\ {UIDef|controls=[(gui,_):_]} <- parts]
+		= {UIDef|controls=[((fill o setDirection direction) (vjoin guis),newMap)],actions=actions,attributes=attributes}
+*/
+splitLayout :: UISide Int ([UIDef] -> ([UIDef],[UIDef])) Layout Layout -> Layout
+splitLayout side size splitFun layout1 layout2 = heuristicLayout //layout
+/*
 where
 	layout type parts actions attributes
-		# (parts1,parts2)					= splitFun parts
-		# (_,gui1,actions1,attributes1)		= layout1 type parts1 [] []
-		# (_,gui2,actions2,attributes2)		= layout2 type parts2 [] []
+		# (parts1,parts2)				= splitFun parts
+		# {UIDef|controls=[(gui1,_):_]}	= layout1 type parts1 [] newMap
+		# {UIDef|controls=[(gui2,_):_]}	= layout2 type parts2 [] newMap
 		# (guis,dir)	= case side of
-			TopSide		= ([(fillWidth o fixedHeight size) (fromJust gui1),fill (fromJust gui2)],Vertical)
-			RightSide	= ([fill (fromJust gui2),(fixedWidth size o fillHeight) (fromJust gui1)],Horizontal)
-			BottomSide	= ([fill (fromJust gui2),(fillWidth o fixedHeight size) (fromJust gui1)],Vertical)
-			LeftSide	= ([(fixedWidth size o fillHeight) (fromJust gui1),fill (fromJust gui2)],Horizontal)
+			TopSide		= ([(fillWidth o fixedHeight size) gui1,fill gui2],Vertical)
+			RightSide	= ([fill gui2,(fixedWidth size o fillHeight) gui1],Horizontal)
+			BottomSide	= ([fill gui2,(fillWidth o fixedHeight size) gui1],Vertical)
+			LeftSide	= ([(fixedWidth size o fillHeight) gui1,fill gui2],Horizontal)
 		# guis		= map (setMargins 0 0 0 0 o setFramed False) guis
 		# gui		= (fill o setDirection dir) (vjoin guis)
-		= (type, Just gui,actions,attributes)
-	
+		= {UIDef|controls=[(gui,newMap)],actions=actions,attributes=attributes}
+*/	
 sideLayout :: UISide Int Layout -> Layout
-sideLayout side size mainLayout = layout
+sideLayout side size mainLayout = heuristicLayout //layout
+/*
 where
-	layout type [] actions attributes		= mainLayout type [] actions attributes	
+	layout type [] actions attributes	= mainLayout type [] actions attributes	
 
 	layout type parts actions attributes
 		# (direction,sidePart,restParts) = case side of
@@ -188,13 +203,12 @@ where
 			RightSide	= (Horizontal, last parts,init parts)
 			BottomSide	= (Vertical, last parts,init parts)
 			LeftSide	= (Horizontal, hd parts, tl parts)	
-		# (_,Just restGui,restActions,restAttributes) = mainLayout type restParts actions attributes //TODO: Dont' assume Just
-		# sideGui		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) ((fill o setMargins 0 0 0 0 o setFramed False) (guiOf sidePart))
+		# {UIDef|controls=[(restGui,_):_],actions=restActions,attributes=restAttributes}
+			= mainLayout type restParts actions attributes //TODO: Dont' assume Just
+		# sideGui		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) ((fill o setMargins 0 0 0 0 o setFramed False) (uiOf sidePart))
 		# arrangedGuis	= ifTL side [sideGui,restGui] [restGui,sideGui]
 		# gui			= (fill o setDirection direction) (vjoin arrangedGuis)
-		= (type,Just gui,restActions ++ actions,restAttributes ++ attributes)
-
-	guiOf (_,Just g,_,_) = g //TODO: Dont' assume Just
+		= {UIDef|controls=[(gui,newMap)],actions= restActions ++ actions,attributes = mergeAttributes restAttributes attributes}
 
 	ifTL TopSide a b = a
 	ifTL LeftSide a b = a
@@ -202,34 +216,35 @@ where
 	
 	ifH Horizontal a b = a
 	ifH _ a b = b
-
+*/
 partLayout :: Int -> Layout
-partLayout idx = layout
+partLayout idx = heuristicLayout //layout
+/*
 where
 	layout type parts actions attributes
-		# attributes 	= foldr mergeAttributes [] ([a \\ (_,_,_,a) <- parts] ++ [attributes])
-		# actions		= flatten [actions:[a \\ (_,_,a,_) <- parts]]
-		# gui			= if (idx >= length parts) Nothing ((\(_,x,_,_)->x) (parts !! idx))
-		= (type,gui,actions,attributes)
-	
+		# attributes 	= foldr mergeAttributes newMap ([attributes \\ {UIDef|attributes} <- parts] ++ [attributes])
+		# actions		= flatten [actions:[a \\ {UIDef|actions=a} <- parts]]
+		# controls		= if (idx >= length parts) [] (parts !! idx).UIDef.controls
+		= {UIDef|controls=controls,actions=actions,attributes=attributes}
+*/
 vsplitLayout :: Int ([UIControl] -> ([UIControl],[UIControl])) -> Layout
-vsplitLayout split fun = layout
+vsplitLayout split fun = heuristicLayout /*layout
 where
 	layout type parts actions attributes
-		# (guis1,guis2)	= fun [gui \\ (_,Just gui,_,_) <- parts]
+		# (guis1,guis2)	= fun (flatten [map fst controls \\ {UIDef|controls} <- parts])
 		# gui			= (fill o vjoin)
 							[(fixedHeight split o fillWidth) (vjoin guis1)
 							, fill (vjoin guis2)
 							]					
-		= (type,Just gui, actions, attributes)
-
+		= {UIDef|attributes=attributes,controls=[(gui,newMap)],actions=actions}
+*/
 //Determine the index of the visible part with the highest stack-order attribute
-getTopIndex :: [TaskTUIRep] -> Int 
+getTopIndex :: [UIDef] -> Int 
 getTopIndex parts = find 0 0 0 parts
 where
 	find maxTop maxIndex i [] = maxIndex
-	find maxTop maxIndex i [(_,Nothing,_,_):ps] = find maxTop maxIndex i ps //Ignore invisible parts 
-	find maxTop maxIndex i [(_,_,_,attr):ps] = case kvGet TIME_ATTRIBUTE attr of
+	find maxTop maxIndex i [{UIDef|controls=[]}:ps] = find maxTop maxIndex i ps //Ignore invisible parts 
+	find maxTop maxIndex i [{UIDef|attributes}:ps] = case get TIME_ATTRIBUTE attributes of
 		Nothing			= find maxTop maxIndex (i + 1) ps
 		Just time	
 			# time = toInt time
@@ -504,9 +519,10 @@ formPanel :: ![UIControl] -> UIControl
 formPanel items
 	= (/*setBaseCls "i-form-panel" o */ setPurpose "form" o setPadding 5 5 5 5 ) (vjoin items)
 
-buttonPanel	:: ![UIControl] -> UIControl	//Container for a set of horizontally layed out buttons
+//Container for a set of horizontally layed out buttons
+buttonPanel	:: ![UIControl] -> UIControl	
 buttonPanel buttons
-	= (fillWidth o setPadding 5 5 5 5 o setDirection Horizontal o setHalign AlignRight o setPurpose "buttons") (defaultContainer buttons)
+	= (wrapHeight o fillWidth o setPadding 5 5 5 5 o setDirection Horizontal o setHalign AlignRight o setPurpose "buttons") (defaultContainer buttons)
 
 isButtonPanel :: !UIControl -> Bool
 isButtonPanel (UIContainer _ _ _ {UIContainerOpts|purpose=Just p})	= p == "buttons"
@@ -514,9 +530,9 @@ isButtonPanel (UIPanel _ _ _ {UIPanelOpts|purpose=Just p})			= p == "buttons"
 isButtonPanel (UIWindow _ _ _ {UIWindowOpts|purpose=Just p})		= p == "buttons"
 isButtonPanel _														= False
 
-actionsToButtons :: ![TaskAction] -> (![UIControl],![TaskAction])
+actionsToButtons :: ![UIAction] -> (![UIControl],![UIAction])
 actionsToButtons [] = ([],[])
-actionsToButtons [a=:(taskId,action,enabled):as]
+actionsToButtons [a=:{taskId,action,enabled}:as]
 	# (buttons,actions)	= actionsToButtons as 
 	= case split "/" (actionName action) of
 		//Action name consist of only one part -> make a button
@@ -528,12 +544,12 @@ where
 		= UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,action=actionName action}
 			{UIActionButtonOpts|text = actionName action, iconCls = Just (actionIcon action), disabled = not enabled}
 			
-actionsToMenus :: ![TaskAction] -> (![UIControl],![TaskAction])
+actionsToMenus :: ![UIAction] -> (![UIControl],![UIAction])
 actionsToMenus actions = makeMenus [] actions
 where
-	makeMenus :: [UIControl] [TaskAction] -> ([UIControl],[TaskAction])
+	makeMenus :: [UIControl] [UIAction] -> ([UIControl],[UIAction])
 	makeMenus menus []	= (menus,[])	
-	makeMenus menus [a=:(taskId,action,enabled):as] = makeMenus (addToMenus (split "/" (actionName action)) taskId action enabled menus) as
+	makeMenus menus [a=:{taskId,action,enabled}:as] = makeMenus (addToMenus (split "/" (actionName action)) taskId action enabled menus) as
 	
 	addToMenus [main:item] taskId action enabled [] //Create menu
 		= [createButton main item taskId action enabled]
@@ -590,20 +606,26 @@ isForm (UIContainer _ _ _ {UIContainerOpts|purpose = Just "form"})	= True
 isForm (UIPanel _ _ _ {UIPanelOpts|purpose = Just "form"})			= True
 isForm _ 															= False
 
-tuiOf :: TaskTUIRep -> UIControl
-tuiOf (_,d,_,_)	= fromMaybe (stringDisplay "-") d
+uiOf :: UIDef -> UIControl
+uiOf {UIDef|controls} = case controls of
+	[]			= stringDisplay "-"
+	[(c,_):_]	= c
 
-actionsOf :: TaskTUIRep -> [TaskAction]
-actionsOf (_,_,a,_) = a
+actionsOf :: UIDef -> [UIAction]
+actionsOf {UIDef|actions} = actions
 
-attributesOf :: TaskTUIRep -> [TaskAttribute]
-attributesOf (_,_,_,a) =  a
+attributesOf :: UIDef -> UIAttributes
+attributesOf {UIDef|attributes} = attributes
 
-mergeAttributes :: [TaskAttribute] [TaskAttribute] -> [TaskAttribute]
-mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> kvSetOnce k v attr) attr1 attr2
+mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
+mergeAttributes attr1 attr2 = foldr (\(k,v) attr -> put k v attr) attr1 (toList attr2)
 
-appLayout :: Layout TaskCompositionType [TaskTUIRep] [TaskAction] [TaskAttribute] -> TaskTUIRep
-appLayout f type parts actions attributes  = f type parts actions attributes
+mergeDefs :: UIDef UIDef -> UIDef
+mergeDefs {UIDef|controls=ct1,actions=ac1,attributes=at1} {UIDef|controls=ct2,actions=ac2,attributes=at2}
+	= {UIDef|controls = ct1 ++ ct2, actions = ac1 ++ ac2, attributes = mergeAttributes at1 at2}
+
+appLayout :: Layout Layoutable -> UIDef
+appLayout f layoutable  = f layoutable
 
 appDeep	:: [Int] (UIControl -> UIControl) UIControl -> UIControl
 appDeep [] f ctrl = f ctrl
@@ -615,8 +637,8 @@ appDeep [s:ss] f ctrl = case ctrl of
 where
 	update items = [if (i == s) (appDeep ss f item) item \\ item <- items & i <- [0..]]
 
-tweakTUI :: (UIControl -> UIControl) TaskTUIRep -> TaskTUIRep
-tweakTUI f (type,gui,actions,attributes) = (type,fmap f gui,actions,attributes)
+tweakTUI :: (UIControl -> UIControl) UIDef -> UIDef
+tweakTUI f def=:{UIDef|controls} = {UIDef|def & controls = [(f c,a) \\ (c,a) <- controls]}
 
-tweakAttr :: ([TaskAttribute] -> [TaskAttribute]) TaskTUIRep -> TaskTUIRep
-tweakAttr f (type,gui,actions,attributes) = (type,gui,actions,f attributes)
+tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
+tweakAttr f def=:{UIDef|attributes} = {UIDef|def & attributes = f attributes}

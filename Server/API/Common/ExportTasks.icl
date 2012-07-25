@@ -17,7 +17,7 @@ createCSVFile filename content = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime}
 		# (doc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
-		= (ValueResult (Value doc Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, iworld)
+		= (ValueResult (Value doc Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, iworld)
 
 exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask eval
@@ -43,7 +43,7 @@ fileTask taskId filename content f iworld=:{IWorld|taskTime,world}
 	# file				= f content file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	= (ValueResult (Value content Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
+	= (ValueResult (Value content Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, {IWorld|iworld & world = world})
 	
 writeAll content file
 	= fwrites content file
@@ -60,7 +60,7 @@ writeDocument taskId filename document iworld
 	# file					= fwrites (fromJust mbContent) file
 	# (ok,world)			= fclose file world
 	| not ok				= (closeException filename,{IWorld|iworld & world = world})	
-	= (ValueResult (Value document Stable) taskTime (TaskRep (SingleTask,Nothing,[],[]) []) TCNop, {IWorld|iworld & world = world})
+	= (ValueResult (Value document Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, {IWorld|iworld & world = world})
 
 ioException s		= exception (FileException s IOError)
 openException s		= exception (FileException s CannotOpen)

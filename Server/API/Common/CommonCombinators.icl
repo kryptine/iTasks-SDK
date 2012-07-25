@@ -8,6 +8,7 @@ from StdFunc			import id, const, o
 from SystemTypes		import :: User(..), :: Note(..)
 from TaskState			import :: TaskTree(..), :: DeferredJSON
 from SystemData			import randomInt, topLevelTasks
+from Map				import qualified put
 
 import CoreTasks, CoreCombinators, InteractionTasks, LayoutCombinators
 
@@ -218,19 +219,25 @@ appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserCons
 appendTopLevelTaskFor worker task = appendTopLevelTask {noMeta & worker = toUserConstraint worker} task
 
 instance tune BeforeLayout
-where tune (BeforeLayout f) task = tune (ModifyLayout (\l t0 pa0 ac0 at0 -> let (t1,pa1,ac1,at1) = f (t0,pa0,ac0,at0) in l t1 pa1 ac1 at1)) task
+where tune (BeforeLayout f) task = tune (ModifyLayout (\l lt0 -> let lt1 = f lt0 in l lt1)) task
 		
 instance tune AfterLayout
-where tune (AfterLayout f) task	= tune (ModifyLayout (\l -> (\t pa ac at -> (f (l t pa ac at))))) task
+where tune (AfterLayout f) task	= tune (ModifyLayout (\l -> (\lt -> (f (l lt))))) task
 
 instance tune Title
-where tune (Title title) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet TITLE_ATTRIBUTE title at))) task
+where tune (Title title) task = tune (BeforeLayout (\l -> setAttribute TITLE_ATTRIBUTE title l)) task
 instance tune Icon 
-where tune (Icon icon) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet ICON_ATTRIBUTE icon at))) task
+where tune (Icon icon) task = tune (BeforeLayout (\l -> setAttribute ICON_ATTRIBUTE icon l)) task
 instance tune Attribute
-where tune (Attribute k v) task = tune (BeforeLayout (\(t,pa,ac,at) -> (t,pa,ac,kvSet k v at))) task
+where tune (Attribute k v) task = tune (BeforeLayout (\l -> setAttribute k v l)) task
 instance tune Window
 where tune Window task = task
+
+
+setAttribute k v (DataLayout def=:{UIDef|attributes}) = DataLayout {UIDef|def & attributes = 'Map'.put k v attributes}
+setAttribute k v (InteractLayout prompt=:{UIDef|attributes} editor) = InteractLayout {UIDef|prompt & attributes = 'Map'.put k v attributes} editor
+setAttribute k v (StepLayout def=:{UIDef|attributes} actions) = StepLayout {UIDef|def & attributes = 'Map'.put k v attributes} actions
+setAttribute k v (ParallelLayout def=:{UIDef|attributes} parts) = ParallelLayout {UIDef|def & attributes = 'Map'.put k v attributes} parts
 
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing

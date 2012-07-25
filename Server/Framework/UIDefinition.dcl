@@ -6,8 +6,23 @@ definition module UIDefinition
 */
 import JSON_NG, GenEq_NG
 from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: Action
-from Task			import :: TaskAction, :: TaskId
+from Task			import :: TaskId
 from HTML			import :: HtmlTag
+from Map			import :: Map(..)
+
+:: UIDef =
+	{ attributes	:: !UIAttributes
+	, controls		:: ![(!UIControl,!UIAttributes)]
+	, actions		:: ![UIAction]
+	}
+	
+:: UIAttributes :== Map String String
+
+:: UIAction	=
+	{ taskId	:: !String
+	, action	:: !Action
+	, enabled	:: !Bool
+	}
 
 :: UIControl
 	// Components for viewing data:
@@ -46,7 +61,9 @@ from HTML			import :: HtmlTag
 	| UIPanel			!UISizeOpts !UILayoutOpts ![UIControl] !UIPanelOpts		// - Panel (container with decoration like a title header, icon and frame)
 	| UIFieldSet		!UISizeOpts !UILayoutOpts ![UIControl] !UIFieldSetOpts	// - Fieldset (wrapper with a simple border and title)
 	| UIWindow			!UISizeOpts !UILayoutOpts ![UIControl] !UIWindowOpts	// - Window (floating window TODO)
-
+	// DEPRECATED: custom xtjs definition:
+	| UICustom			!JSONNode
+	
 :: UISizeOpts =
 	{ width		:: !Maybe UISize
 	, minWidth	:: !Maybe UIMinSize
@@ -229,5 +246,6 @@ stringDisplay			:: !String		-> UIControl
 
 //Encode a user interface definition to a format that
 //can be interpreted by the client framework
-encodeUIDefinition 		:: !UIControl -> JSONNode
+encodeUIDefinition		:: !UIDef -> JSONNode
+encodeUIControl			:: !UIControl -> JSONNode
 
