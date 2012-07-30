@@ -60,9 +60,14 @@ getBookings f =
 
 bookingStore :: Shared [Booking]
 bookingStore = sharedStore "Bookings" 
+/*	[ {firstName = "Will", lastName = "Smith", bookingRef = "BHJZ345", flightNumber = "BA2334", id = Hidden "ID1L", seat = Nothing}
+	, {firstName = "Adam",   lastName = "Smith", bookingRef = "BHJZ346", flightNumber = "BA5623", id = Hidden "ID8I", seat = Nothing}
+	, {firstName = "Teodor", lastName = "Domoszlai", bookingRef = "BHJZ347", flightNumber = "BA1234", id = Hidden "ID3T", seat = Just (Seat 1 1)}]
+*/
 	[ {firstName = "Laszlo", lastName = "Domoszlai", bookingRef = "BHJZ345", flightNumber = "BA1234", id = Hidden "ID1L", seat = Nothing}
 	, {firstName = "Igor",   lastName = "Domoszlai", bookingRef = "BHJZ346", flightNumber = "BA1234", id = Hidden "ID8I", seat = Nothing}
 	, {firstName = "Teodor", lastName = "Domoszlai", bookingRef = "BHJZ347", flightNumber = "BA1234", id = Hidden "ID3T", seat = Just (Seat 1 1)}]
+
 
 flightStore :: Shared [Flight]
 flightStore = sharedStore "Flights" 
@@ -79,7 +84,8 @@ task_checkin
 	>>= \seat -> update (commitCheckIn p seat) (bookingStore >+< flightStore)
 	>>| findBooking p.bookingRef // refresh booking record
 	>>= viewInformation "Check-in succeeded:" []
-	>>*	[OnAction ActionNext always (const task_checkin)]
+	>>| task_checkin
+	//>>*	[OnAction ActionNext always (const task_checkin)]
 	) errorHandler
 where
 	errorHandler msg = viewInformation "Error:" [] msg >>| task_checkin
@@ -89,27 +95,26 @@ where
 		=   getBookings (\p -> p.lastName == lname && isNothing p.seat)
 		>>= \bs -> case bs of 
 			[] = return Nothing
-			fs = enterChoice "Please choose seat:" [] fs >>= return o Just	
+			fs = enterChoice "Please choose passenger:" [] fs >>= return o Just	
 
-	verifyBooking Nothing = throw "Passanger cannot be found."
-	verifyBooking (Just {seat = Just _}) = throw "Passanger already checked-in."
-	verifyBooking (Just p) =  viewInformation "Passanger:" [] p 
+	verifyBooking Nothing = throw "Passenger cannot be found."
+	verifyBooking (Just b) | isJust b.seat = throw "Passenger already checked-in."
+	verifyBooking (Just p) =  viewInformation "Passenger:" [] p 
 								||-
 								enterInformation "Please enter you id number:" []
 		>>= \id -> if (fromHidden p.id == id) (return p) (throw "Identification falied.")
 
 /*
 	chooseSeat (Just f)
-	    =   enterChoice "..." [] (map toString (sort f.freeSeats))
-		>>= \s -> return (fromString s)
+	    =   enterChoice "Please choose seat:" [] (map toString (sort f.freeSeats))
+		>>= return o fromString
 */
 
 chooseSeat (Just f) = mkTask seatTasklet
 where
 	seatTasklet :: Tasklet (Maybe Seat) Seat
 	seatTasklet = 
-		{ defSt				= Nothing
-		, generatorFunc		= (\_ st iworld -> (TaskletHTML gui, st, iworld))
+		{ generatorFunc		= (\_ iworld -> (TaskletHTML gui, Nothing, iworld))
 		, resultFunc		= maybeStable
 		, tweakUI  			= \t = (paneled (Just "Seat chooser Tasklet") (Just "Choose seat:") Nothing [t])	
 		}
@@ -120,7 +125,7 @@ where
 
 	rowLayout = intercalate [-1] (numbering 1 f.layout)
 	numbering i [] = []
-	numbering i [x:xs] = let y = take x [i..] in [y : numbering (i+length y) xs]
+	numbering i [x:xs] = [take x [i..] : numbering (i+x) xs]
 
 	genSeatId seat = "_seat_" +++ toString seat
 
@@ -144,7 +149,7 @@ where
 	gui = { TaskletHTML |
 				  width  		= Fixed 300
 				, height 		= Fixed 300
-				, html   		= toString htmlui
+				, html   		= HtmlDef htmlui
 				, eventHandlers = concatMap attachHandlers f.freeSeats
 				}
 	

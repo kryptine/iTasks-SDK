@@ -11,8 +11,8 @@ mkTask tasklet = Task taskFunc
 where
 	// Init
 	taskFunc mbEdit mbCommit refreshFlag taskRepOpts (TCInit taskId ts) iworld
-		# (rep, iworld) = genRep taskId tasklet.defSt taskRepOpts iworld
-		# res = tasklet.Tasklet.resultFunc tasklet.defSt
+		# (rep, st, iworld) = genRep taskId taskRepOpts iworld
+		# res = tasklet.Tasklet.resultFunc st
 		# result = ValueResult res ts rep (TCBasic taskId ts (toJSON res) False)
 		= (result, iworld)	
 
@@ -50,8 +50,8 @@ where
 	placeHolderRep taskId 
 		= TaskRep (appTweak (ViewPart, Just (defaultDef (TUITaskletPlaceholder (toString taskId))), [], [])) []
 
-	genRep taskId st taskRepOpts iworld 
-		# (gui, state, iworld) = tasklet.generatorFunc taskId st iworld
+	genRep taskId taskRepOpts iworld 
+		# (gui, state, iworld) = tasklet.generatorFunc taskId iworld
 		= case gui of
 		
 			TaskletHTML gui 
@@ -69,7 +69,7 @@ where
 				# taskTuiRep = appLayout layout SingleTask [taskTuiRep] [] []
 						
 				# rep = TaskRep taskTuiRep []						
-				= (rep, iworld)
+				= (rep, state, iworld)
 
 			TaskletTUI gui
 
@@ -90,7 +90,7 @@ where
 				# taskTuiRep = appLayout layout SingleTask [taskTuiRep] [] []
 						
 				# rep = TaskRep taskTuiRep []							
-				= (rep, iworld)
+				= (rep, state, iworld)
 
 	tTUIToTasklet {TaskletTUI|tui} taskId state_js script_js mb_ino rf_js mb_cf_js
 		 = (defaultDef (TUITasklet  { taskId   		 = toString taskId
@@ -106,7 +106,7 @@ where
 	tHTMLToTasklet {TaskletHTML|width,height,html} taskId state_js script_js events_js rf_js
 		= setSize width height 
 			(defaultDef (TUITasklet { taskId   		 = toString taskId
-								    , html     		 = Just html
+								    , html     		 = Just (toString html)
 								    , tui      		 = Nothing
 								    , st    		 = Just state_js
 								    , script   		 = Just script_js
@@ -128,6 +128,12 @@ where
 	// it uses the 2. layer (handleJSEvent), because it's created on the server
 	eventHandlerWrapper taskId (HtmlEvent id event f) 
 		= (id, event, handleJSEvent f (toString taskId))
+
+//---------------------------------------------------------------------------------------
+
+instance toString HtmlDef
+where
+	toString (HtmlDef a) = toString a
 
 //---------------------------------------------------------------------------------------
 
@@ -177,7 +183,7 @@ linker state eventHandlers resultFunc mbControllerFunc iworld
 		Just saplCF = Just (toString (fromOk (exprGenerateJS saplCF mbPst)))
 					= Nothing		
 					
-/* For debugging: 
+/* For debugging:
 
 	# (_, iworld) = writeFile "debug_state.sapl" saplst iworld
 	# (_, iworld) = writeFile "debug_state.js" statejs iworld	
