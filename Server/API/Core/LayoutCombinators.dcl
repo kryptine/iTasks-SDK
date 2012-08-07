@@ -17,11 +17,11 @@ DEFAULT_LAYOUT	:== heuristicLayout
 
 // The layoutable defines the possible situations in which layouting is required
 :: Layoutable
-	= DataLayout UIDef				//Reduce a composite data structure
-	| InteractLayout UIDef UIDef 	//Prompt, editor	
-	| StepLayout UIDef [UIAction]	//Part and actions if the step has not been made yet
-	| ParallelLayout UIDef [UIDef] 	//Prompt, parallel parts
-	| FinalLayout UIDef				//Reduce the final composition
+	= DataLayout UIDef					//Reduce a composite data structure
+	| InteractLayout UIDef UIDef 		//Prompt, editor	
+	| StepLayout UIDef [UIAction] 		//Part, actions to make the step
+	| ParallelLayout UIDef [UIDef] 		//Prompt, parallel parts
+	| FinalLayout UIDef					//Reduce the final composition
 
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
@@ -98,7 +98,6 @@ setBaseCls		:: !String				!UIControl -> UIControl
 setDirection	:: !UIDirection			!UIControl -> UIControl
 setHalign		:: !UIHAlign			!UIControl -> UIControl
 setValign		:: !UIVAlign			!UIControl -> UIControl
-setPurpose		:: !String				!UIControl -> UIControl
 
 //Combinators on interface definitions
 hjoin :: ![UIControl] -> UIControl
@@ -108,7 +107,6 @@ paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![UIControl] -> UICon
 
 //Operations on containers
 addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
-addMenusToUI	:: [UIControl] UIControl -> UIControl
 getItemsOfUI	:: UIControl -> [UIControl]
 setItemsOfUI	:: [UIControl] UIControl -> UIControl
 
@@ -119,7 +117,6 @@ toContainer		:: !UIControl -> UIControl
 //Predefined panels
 hintPanel		:: !String		-> UIControl	//Panel with task instructions
 buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
-isButtonPanel	:: !UIControl	-> Bool			//Test if some component is a button panel
 
 //Predefined action placement
 actionsToButtons			:: ![UIAction]	-> (![UIControl],![UIAction])

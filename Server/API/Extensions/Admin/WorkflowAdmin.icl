@@ -154,12 +154,12 @@ controlDashboard list
 	@	fromJust
 where
 	view user	= "Welcome " +++ toString user
-	tweak1		= AfterLayout (tweakTUI (setBaseCls "x-panel-header" o setPadding 0 0 0 0 o setDirection Horizontal o setPurpose "form" o toContainer))
+	tweak1		= AfterLayout (tweakTUI (setBaseCls "x-panel-header" o setPadding 0 0 0 0 o setDirection Horizontal o toContainer))
 	tweak2		= AfterLayout (tweakTUI (appDeep [1] (setPadding 0 0 0 0)))
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list = forever
-	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 (fillLayout Vertical))) <<@ AfterLayout (tweakTUI (setPurpose "form"))
+	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 (fillLayout Vertical)))
 	>>*	 [WithResult (Action "Start Workflow") (const True) (startWorkflow list)]
 	@ 	\wf -> SelWorkflow wf.Workflow.path
 	)
@@ -220,7 +220,7 @@ where
 		,date = pmeta.issuedAt
 		,deadline = mmeta.completeBefore
 		}
-	tweak = AfterLayout (tweakTUI (setPurpose "form" o toContainer))
+	tweak = AfterLayout (tweakTUI toContainer)
 	
 openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
 openTask taskList taskId

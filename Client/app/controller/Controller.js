@@ -48,7 +48,7 @@ Ext.define('itwc.controller.Controller',{
 	init: function() {
 		this.viewport = null;
 
-		this.reqVersion = null;
+		this.version = null;
 	
 		this.control({
 			'viewport': {
@@ -73,20 +73,30 @@ Ext.define('itwc.controller.Controller',{
 	//iTasks edit events
 	onEdit: function(taskId, editorId, value) {
 		console.log("Edit event", taskId, editorId, value);
+		var me = this,
+			params = {editEvent: Ext.encode([taskId,editorId,value])};
+		
+		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
 	},
 	//iTasks action events
 	onAction: function(taskId, actionId) {
 		console.log("Action event", taskId, actionId);
+		var me = this,
+			params = {commitEvent: Ext.encode([taskId,actionId])};
+		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
 	},
 	//iTasks focus events
 	onFocus: function(taskId) {
 		console.log("Focus event", taskId);
 	},
 	//Send a message to the server
-	sendMessage: function() {
+	sendMessage: function(msg) {
 		var me = this,
 			params = {};
-
+		
+		if(msg) {
+			Ext.apply(params,msg);
+		}
         //Setup request parameters
         params['version'] = me.version;
 
@@ -109,24 +119,28 @@ Ext.define('itwc.controller.Controller',{
 		//Preprocess and check for errors
 		//Transmission errors
 		if(!success) {
-			this.error("Request to server failed");
+			me.error("Request to server failed");
 			return;
 		}
 		try {
 			message = Ext.decode(response.responseText);
 		} catch (SyntaxError) {
-			this.error("Request from server malformed");
+			me.error("Request from server malformed");
 			return;
 		}
 		if (typeof message != 'object') {
-			this.error("Request from server malformed");
+			me.error("Request from server malformed");
             return;
         }
 		//Server errors
 		if(message.error) {
-			this.error(message.error);
+			me.error(message.error);
 			return;
 		}
+		
+		//Update session
+		me.session = message.session;
+		
 		//Take action
         if(message.content) {
 			me.fullUpdate(message.content);

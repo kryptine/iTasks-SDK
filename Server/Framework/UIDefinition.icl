@@ -10,13 +10,13 @@ defaultLayoutOpts :: UILayoutOpts
 defaultLayoutOpts = {direction = Vertical, halign = AlignLeft, valign = AlignTop, padding = Nothing}
 
 defaultContainer :: ![UIControl] -> UIControl
-defaultContainer items = UIContainer defaultSizeOpts defaultLayoutOpts items {UIContainerOpts|purpose=Nothing,baseCls=Nothing,bodyCls=Nothing}
+defaultContainer items = UIContainer defaultSizeOpts defaultLayoutOpts items {UIContainerOpts|baseCls=Nothing,bodyCls=Nothing}
 
 defaultPanel :: ![UIControl] -> UIControl
-defaultPanel items = UIPanel defaultSizeOpts defaultLayoutOpts items {UIPanelOpts|title=Nothing,frame=False,tbar=[],purpose=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
+defaultPanel items = UIPanel defaultSizeOpts defaultLayoutOpts items {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
 
 defaultWindow :: ![UIControl] -> UIControl
-defaultWindow items = UIWindow defaultSizeOpts defaultLayoutOpts items {UIWindowOpts|title=Nothing,frame=False,tbar=[],purpose=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
+defaultWindow items = UIWindow defaultSizeOpts defaultLayoutOpts items {UIWindowOpts|title=Nothing,frame=False,tbar=Nothing,iconCls=Nothing,baseCls=Nothing,bodyCls=Nothing}
 
 stringDisplay :: !String -> UIControl
 stringDisplay value = UIViewString defaultSizeOpts {UIViewOpts|value = Just value}

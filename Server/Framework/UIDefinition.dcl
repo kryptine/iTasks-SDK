@@ -121,18 +121,18 @@ from Map			import :: Map(..)
 	
 :: UIEditOpts a =
 	{ taskId		:: !String
-	, name			:: !String
+	, editorId		:: !String
 	, value			:: !Maybe a
 	}
 
 :: UIActionOpts =
 	{ taskId		:: !String
-	, action		:: !String
+	, actionId		:: !String
 	}
 
 :: UIChoiceOpts a =
 	{ taskId		:: !String
-	, name			:: !String
+	, editorId		:: !String
 	, value			:: !Maybe Int
 	, options		:: ![a]
 	}
@@ -206,16 +206,14 @@ from Map			import :: Map(..)
 	}
 
 :: UIContainerOpts =
-	{ purpose		:: !Maybe String 
-	, baseCls		:: !Maybe String
+	{ baseCls		:: !Maybe String
 	, bodyCls		:: !Maybe String
 	}
 
 :: UIPanelOpts =
 	{ title			:: !Maybe String
 	, frame			:: !Bool
-	, tbar			:: ![UIControl]
-	, purpose		:: !Maybe String
+	, tbar			:: !Maybe [UIControl]
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
 	, bodyCls		:: !Maybe String
@@ -228,8 +226,7 @@ from Map			import :: Map(..)
 :: UIWindowOpts =
 	{ title			:: !Maybe String
 	, frame			:: !Bool
-	, tbar			:: ![UIControl]
-	, purpose		:: !Maybe String
+	, tbar			:: !Maybe [UIControl]
 	, iconCls		:: !Maybe String
 	, baseCls		:: !Maybe String
 	, bodyCls		:: !Maybe String

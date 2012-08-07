@@ -138,7 +138,7 @@ where
 				# (viz,vst) = fx (Just x) vst
 				= (controlsOf viz,vst)
 	where										
-		checkbox c = UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, name = name, value = Just c}
+		checkbox c = UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = name, value = Just c}
 				
 						
 gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled}
@@ -158,8 +158,9 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 		# (items, vst=:{selectedConsIndex}) = fx x vst
 		# content = if (isTouched cmv)  (map fst (controlsOf items)) []
 		= (NormalEditor [(UIDropdown defaultSizeOpts
-								{UIChoiceOpts|taskId = toString taskId
-								, name = dp2s currentPath
+								{UIChoiceOpts
+								| taskId = toString taskId
+								, editorId = dp2s currentPath
 								, value = if (isTouched cmv) (Just selectedConsIndex) Nothing
 								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}
 							,addVerAttributes (verifyElementStr cmv) newMap)
@@ -225,73 +226,73 @@ gVisualizeEditor{|Int|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditInt defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditInt defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 	
 gVisualizeEditor{|Real|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Char|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=fmap toString val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|String|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Bool|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled		= ([(UIViewCheckbox defaultSizeOpts {UIViewOpts|value = val},addVerAttributes verRes newMap)],vst)
-		| otherwise		= ([(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=val},addVerAttributes verRes newMap)],vst)
+		| otherwise		= ([(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Username|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
-		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=fmap (\(Username v) -> v) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Username v) -> v) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Password|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
-		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value= fmap (\(Password v) -> v) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (\(Password v) -> v) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Note|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(Note v) -> Text v) val},newMap)],vst)
-		| otherwise	= ([(UIEditNote defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=fmap (\(Note v) -> v) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditNote defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Note v) -> v) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Date|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditDate defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditDate defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Time|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditTime defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditTime defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|EUR|}	val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
-		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=fmap (\(EUR v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(EUR v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|USD|}	val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
-		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|BoundedInt|} val vst = visualizeCustom viz vst
 where
@@ -301,7 +302,7 @@ where
 			# viewOpts = {UIViewOpts|value = fmap curVal val}  
 			= ([(UIViewSlider defaultSizeOpts viewOpts sliderOpts, newMap)],vst)
 		| otherwise
-			# editOpts = {UIEditOpts|taskId = toString taskId, name = name, value = fmap curVal val}
+			# editOpts = {UIEditOpts|taskId = toString taskId, editorId = name, value = fmap curVal val}
 			= ([(UIEditSlider defaultSizeOpts editOpts sliderOpts, addVerAttributes verRes newMap)],vst)
 
 	curVal {BoundedInt|cur} = cur
@@ -328,7 +329,7 @@ gVisualizeEditor {|Document|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		| disabled	= ([(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
-		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=val},addVerAttributes verRes newMap)],vst)
+		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|URL|} val vst = visualizeCustom viz vst
 where
@@ -337,13 +338,13 @@ where
 			= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(URL url) -> ATag [HrefAttr url] [Text url]) val},newMap)], vst)
 		| otherwise
 			# val = checkMask touched val
-			# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=fmap toString val}
+			# ui = UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val}
 			= ([(ui,addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|FormButton|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
-		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,name=name,value=fmap (\_ -> "pressed") val},addVerAttributes verRes newMap)],vst)
+		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> "pressed") val},addVerAttributes verRes newMap)],vst)
 		
 gVisualizeEditor{|RadioChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
@@ -351,7 +352,7 @@ where
 		| disabled
 			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 		| otherwise
-			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,name=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
 
 	vvalue (Just (RadioChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
 	vvalue _										= Nothing
@@ -367,7 +368,7 @@ where
 		| disabled
 			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 		| otherwise
-			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,name=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
 	
 	vvalue (Just (RadioChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
 	vvalue _												= Nothing
@@ -382,7 +383,7 @@ where
 		| disabled
 			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 		| otherwise
-			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,name=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
 
 	vvalue (Just (ComboChoice options (Just sel)))	= Just (hd (gx AsLabel (fst(options !! sel ))))
 	vvalue _										= Nothing
@@ -397,7 +398,7 @@ where
 		| disabled
 			= ([(UIViewString defaultSizeOpts {UIViewOpts|value = vvalue val},newMap)],vst)
 		| otherwise
-			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,name=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
+			= ([(UIDropdown defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=evalue val,options=options val},addVerAttributes verRes newMap)],vst)
 	
 	vvalue (Just (ComboChoiceNoView options (Just sel)))	= Just (hd (gx AsLabel (options !! sel )))
 	vvalue _												= Nothing
@@ -410,7 +411,7 @@ gVisualizeEditor{|GridChoice|} _ gx hx ix _ _ _ _ val vst = visualizeCustom viz 
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		= ([(UIGrid defaultSizeOpts
-			{UIChoiceOpts|taskId=toString taskId,name=name,value=value val,options = options val}
+			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
 			{UIGridOpts|columns = hx undef},addVerAttributes verRes newMap)],vst)
 	
 	value (Just (GridChoice options mbSel)) = mbSel
@@ -423,7 +424,7 @@ gVisualizeEditor{|GridChoiceNoView|} _ gx hx ix val vst = visualizeCustom viz vs
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		= ([(UIGrid defaultSizeOpts
-			{UIChoiceOpts|taskId=toString taskId,name=name,value=value val,options =options val}
+			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options =options val}
 			{UIGridOpts|columns = hx undef},newMap)],vst)
 	
 	value (Just (GridChoiceNoView options mbSel))	= mbSel
@@ -435,7 +436,7 @@ where
 gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId}
-		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,name=name,value=value val,options = options val},addVerAttributes verRes newMap)],vst)
+		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val},addVerAttributes verRes newMap)],vst)
 
 	value  (Just (TreeChoice _ mbSel)) 	= mbSel
 	value _								= Nothing
@@ -456,7 +457,7 @@ where
 gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId}
-		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,name=name,value=value val,options = options val},newMap)],vst)
+		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val},newMap)],vst)
 
 	value (Just (TreeChoiceNoView _ mbSel)) = mbSel
 	value _									= Nothing
@@ -506,13 +507,13 @@ where
 		= ([(defaultContainer itemDefs,addVerAttributes verRes newMap)], vst)
 
 	checkbox taskId i sel
-		= UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,name="sel-" +++ toString i,value= Just (isMember i sel)}
+		= UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId="sel-" +++ toString i,value= Just (isMember i sel)}
 
 gVisualizeEditor{|Table|} val vst = visualizeCustom viz vst 
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		= ([(UIGrid defaultSizeOpts
-			{UIChoiceOpts|taskId=toString taskId,name=name,value=value val,options = options val}
+			{UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val}
 			{UIGridOpts|columns = columns val},addVerAttributes verRes newMap)],vst)
 	
 	value (Just (Table _ _ mbSel))	= mbSel

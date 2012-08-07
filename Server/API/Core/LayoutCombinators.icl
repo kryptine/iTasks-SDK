@@ -10,7 +10,7 @@ from Task import :: TaskCompositionType, :: TaskCompositionType(..)
 derive gEq TaskCompositionType
 
 heuristicLayout :: Layout
-heuristicLayout = layout //TODO: Figure out proper propagation of attributes
+heuristicLayout = layout
 where
 	layout (DataLayout def)					= def
 	layout (InteractLayout prompt editor)	= heuristicInteractionLayout prompt editor
@@ -49,34 +49,39 @@ where
 				Nothing		= panel
 				Just icon	= setIconCls ("icon-" +++ icon) panel
 */
-heuristicStepLayout :: UIDef [UIAction] -> UIDef
-heuristicStepLayout def=:{UIDef|controls,actions} stepActions
-	# (buttons,actions)	= actionsToButtons (actions ++ stepActions)
-	# buttonbar			= buttonPanel buttons
-	= {UIDef|def & controls = controls ++ [(buttonbar,newMap)], actions = actions}
-/*
-where
-	//layout type [{UIDef|controls,actions=partactions,attributes=partattributes}] actions attributes //TODO: Test for step
-	//	= {UIDef|controls=controls,actions=partactions,attributes = mergeAttributes partattributes attributes}
-	
-	layout type [{UIDef|controls=[],actions=partactions,attributes=partattributes}] actions attributes
-		= {UIDef|controls=[],actions=partactions ++ actions,attributes= mergeAttributes partattributes attributes}
-	layout type [{UIDef|controls=[(gui,_):_],actions=partactions,attributes=partattributes}] actions attributes
-		| canHoldButtons gui
-			# (buttons,actions)	= actionsToButtons actions
-			# gui				= addButtonsToTUI buttons gui
-			| canHoldMenus gui
-				# (menus,actions)	= actionsToMenus actions
-				# gui				= addMenusToTUI menus gui
-				= {UIDef|controls=[(gui,newMap)],actions=partactions ++ actions,attributes=mergeAttributes partattributes attributes}
-			| otherwise
-				= {UIDef|controls=[(gui,newMap)],actions=partactions ++ actions,attributes=mergeAttributes partattributes attributes}
-		| otherwise
-			= {UIDef|controls=[(gui,newMap)],actions=partactions ++ actions,attributes=mergeAttributes partattributes attributes}
-	layout type parts actions attributes
-		= heuristicParallelLayout type parts actions attributes
+/**
+* A sequential composition adds a visual boundary to the ui definition
+* because upon choosing an action, this part of the ui 'disappears' together.
+* It also adds controls for triggering the actions as buttons or menus.
 */
-
+heuristicStepLayout :: UIDef [UIAction]-> UIDef
+heuristicStepLayout def=:{UIDef|attributes,controls,actions} stepActions
+	| nestedStep attributes	//If we directly nest subsequent steps, we don't want to do the visual grouping
+		= {UIDef|def & actions = actions ++ stepActions}
+	# (buttons,actions)	= actionsToButtons (actions ++ stepActions)
+	# (menus,actions)	= actionsToMenus actions
+	# attributes		= put TYPE_ATTRIBUTE "step" attributes	//Make sure we can recognize nested step combinators
+	# controls			= groupControls attributes buttons menus controls
+	= {UIDef|def & controls = controls, actions = actions, attributes = attributes}
+where
+	//Check if we have a directly nested step (by checking the type attribute)
+	nestedStep attributes = case get TYPE_ATTRIBUTE attributes of
+		Just "step"	= True
+		_			= False
+	//Create the visual grouping
+	groupControls attributes buttons menus controls
+		= [(panel,attributes)]
+	where
+		panel = UIPanel sizeOpts layoutOpts (map fst controls ++ buttonBar) panelOpts
+		buttonBar = [buttonPanel buttons]
+		
+		sizeOpts  = {defaultSizeOpts & width = Just WrapSize /*, minWidth = Just (ExactMin 700)*/, height = Just WrapSize}
+		layoutOpts = {defaultLayoutOpts & padding = Just {top = 5, right = 5, bottom = 5, left = 5}}
+		panelOpts = {UIPanelOpts|title = titleAttr,frame = True, tbar = case menus of [] = Nothing; _ = Just menus
+					,iconCls = Nothing, baseCls = Nothing, bodyCls = Nothing}
+		
+		titleAttr	= get TITLE_ATTRIBUTE attributes
+				
 heuristicParallelLayout :: UIDef [UIDef] -> UIDef
 heuristicParallelLayout prompt defs = foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs]
 
@@ -279,18 +284,7 @@ where
 			# time = toInt time
 			| time > maxTop	= find time i (i + 1) ps
 							= find maxTop maxIndex (i + 1) ps
-									
-canHoldButtons :: UIControl -> Bool
-canHoldButtons (UIPanel _ _ _ {UIPanelOpts|purpose=Just "form"})			= True
-canHoldButtons (UIPanel _ _ _ {UIPanelOpts|purpose=Just "buttons"})			= True
-canHoldButtons (UIPanel _ _ items _)										= or (map canHoldButtons items)
-canHoldButtons (UIContainer _ _ _ {UIContainerOpts|purpose=Just "form"})	= True
-canHoldButtons (UIContainer _ _ _ {UIContainerOpts|purpose=Just "buttons"})	= True
-canHoldButtons (UIContainer _ _ items _)									= or (map canHoldButtons items)
-canHoldButtons	_															= False
 
-canHoldMenus :: UIControl -> Bool
-canHoldMenus def = False
 
 updSizeOpts :: (UISizeOpts -> UISizeOpts) UIControl -> UIControl
 updSizeOpts f (UIViewString	sOpts vOpts)			= (UIViewString	(f sOpts) vOpts)
@@ -439,19 +433,13 @@ setValign align (UIPanel sOpts lOpts items opts)		= UIPanel sOpts {lOpts & valig
 setValign align (UIWindow sOpts lOpts items opts)		= UIWindow sOpts {lOpts & valign = align} items opts
 setValign align ctrl									= ctrl
 
-setPurpose :: !String !UIControl -> UIControl
-setPurpose purpose (UIContainer sOpts lOpts items opts)	= UIContainer sOpts lOpts items {UIContainerOpts|opts & purpose = Just purpose}
-setPurpose purpose (UIPanel sOpts lOpts items opts)		= UIPanel sOpts lOpts items {UIPanelOpts|opts & purpose = Just purpose}
-setPurpose purpose (UIWindow sOpts lOpts items opts)	= UIWindow sOpts lOpts items {UIWindowOpts|opts & purpose = Just purpose}
-setPurpose purpose ctrl									= ctrl
-	
 //Container coercion
 toPanel	:: !UIControl -> UIControl
 //Panels are left untouched
 toPanel ctrl=:(UIPanel _ _ _ _)		= ctrl
 //Containers are coerced to panels
-toPanel ctrl=:(UIContainer sOpts lOpts items {UIContainerOpts|purpose,baseCls,bodyCls})
-	= UIPanel sOpts lOpts items {UIPanelOpts|title=Nothing,frame=False,tbar=[],purpose=purpose,iconCls=Nothing,baseCls=baseCls,bodyCls=bodyCls}
+toPanel ctrl=:(UIContainer sOpts lOpts items {UIContainerOpts|baseCls,bodyCls})
+	= UIPanel sOpts lOpts items {UIPanelOpts|title=Nothing,frame=False,tbar=Nothing,iconCls=Nothing,baseCls=baseCls,bodyCls=bodyCls}
 //Uncoercable items are wrapped in a panel instead
 toPanel ctrl = defaultPanel [ctrl]
 
@@ -459,22 +447,22 @@ toContainer :: !UIControl -> UIControl
 //Containers are left untouched
 toContainer ctrl=:(UIContainer _ _ _ _) = ctrl
 //Panels can be coerced to containers
-toContainer ctrl=:(UIPanel sOpts lOpts items {UIPanelOpts|purpose,baseCls,bodyCls})
-	= UIContainer sOpts lOpts items {UIContainerOpts|purpose=purpose,baseCls=baseCls,bodyCls=bodyCls}
+toContainer ctrl=:(UIPanel sOpts lOpts items {UIPanelOpts|baseCls,bodyCls})
+	= UIContainer sOpts lOpts items {UIContainerOpts|baseCls=baseCls,bodyCls=bodyCls}
 //Uncoercable items are wrapped in a container instead
 toContainer ctrl = defaultContainer [ctrl]
 	
 //GUI combinators						
 hjoin :: ![UIControl] -> UIControl
-hjoin items = UIContainer defaultSizeOpts {defaultLayoutOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle} items {UIContainerOpts|purpose=Nothing,baseCls=Nothing,bodyCls=Nothing}
+hjoin items = UIContainer defaultSizeOpts {defaultLayoutOpts & direction = Horizontal, halign = AlignLeft, valign = AlignMiddle} items {UIContainerOpts|baseCls=Nothing,bodyCls=Nothing}
 
 vjoin :: ![UIControl] -> UIControl
-vjoin items = UIContainer defaultSizeOpts {defaultLayoutOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop} items {UIContainerOpts|purpose=Nothing,baseCls=Nothing,bodyCls=Nothing}
+vjoin items = UIContainer defaultSizeOpts {defaultLayoutOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop} items {UIContainerOpts|baseCls=Nothing,bodyCls=Nothing}
 						
 paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![UIControl] -> UIControl
 paneled mbTitle mbHint mbIcon defs
 	# def	= maybe (formPanel defs) (\hint -> vjoin [hintPanel hint,formPanel defs]) mbHint
-	# panel = (setPurpose "form" o frame) (toPanel def)
+	# panel = frame (toPanel def)
 	# panel = case mbTitle of
 		Nothing		= panel
 		Just title	= setTitle title panel
@@ -489,7 +477,7 @@ formed :: !(Maybe String) ![UIControl] -> UIControl
 formed mbHint defs 
 	= case mbHint of
 		Nothing		= formPanel defs
-		Just hint	= setPurpose "form" (vjoin [hintPanel hint,formPanel defs])
+		Just hint	= vjoin [hintPanel hint,formPanel defs]
 
 
 //Container operations
@@ -503,29 +491,6 @@ where
 	add Nothing item items		= items ++ [item]
 	add (Just pos) item items	= take pos items ++ [item] ++ drop pos items
 	
-//Add buttons to an existing panel. If there it is a container that has a "button" container in it add the buttons to that
-//Otherwise create that container
-addButtonsToUI :: ![UIControl] UIControl -> UIControl
-addButtonsToUI [] ctrl = ctrl
-addButtonsToUI buttons ctrl
-	| isButtonPanel ctrl	= foldr (addItemToUI Nothing) ctrl buttons 
-	| otherwise				= case ctrl of
-		(UIPanel sOpts lOpts items opts)		= UIPanel sOpts lOpts (addToButtonPanel buttons items) opts
-		(UIContainer sOpts lOpts items opts)	= UIContainer sOpts lOpts (addToButtonPanel buttons items) opts
-		_										= ctrl
-where
-	addToButtonPanel buttons []	= [buttonPanel buttons]
-	addToButtonPanel buttons [i:is]
-		| isButtonPanel i	= [foldr (addItemToUI Nothing) i buttons:is]
-							= [i:addToButtonPanel buttons is]
-
-//Add menus to a panel, tab or window								
-addMenusToUI :: [UIControl] UIControl -> UIControl
-addMenusToUI [] ctrl = ctrl
-addMenusToUI extra (UIPanel sOpts lOpts items opts=:{UIPanelOpts|tbar}) = UIPanel sOpts lOpts items {UIPanelOpts|opts & tbar = tbar ++ extra}
-addMenusToUI extra (UIWindow sOpts lOpts items opts=:{UIWindowOpts|tbar}) = UIWindow sOpts lOpts items {UIWindowOpts|opts & tbar = tbar ++ extra}
-addMenusToUI extra ctrl = ctrl
-
 
 getItemsOfUI :: UIControl -> [UIControl]
 getItemsOfUI (UIContainer _ _ items _)	= items
@@ -542,22 +507,16 @@ setItemsOfUI items ctrl								= ctrl
 //Predefined panels
 hintPanel :: !String -> UIControl	//Panel with task instructions
 hintPanel hint
-	= (setBaseCls "i-hint-panel" o setPurpose "hint" o setPadding 5 5 5 5 o fillWidth o wrapHeight) (vjoin [stringDisplay hint])
+	= (setBaseCls "i-hint-panel" o setPadding 5 5 5 5 o fillWidth o wrapHeight) (vjoin [stringDisplay hint])
 
 formPanel :: ![UIControl] -> UIControl
 formPanel items
-	= (/*setBaseCls "i-form-panel" o */ setPurpose "form" o setPadding 5 5 5 5 ) (vjoin items)
+	= (/*setBaseCls "i-form-panel" o */ setPadding 5 5 5 5 ) (vjoin items)
 
 //Container for a set of horizontally layed out buttons
 buttonPanel	:: ![UIControl] -> UIControl	
 buttonPanel buttons
-	= (wrapHeight o fillWidth o setPadding 2 5 2 5 o setDirection Horizontal o setHalign AlignRight o setPurpose "buttons") (defaultContainer buttons)
-
-isButtonPanel :: !UIControl -> Bool
-isButtonPanel (UIContainer _ _ _ {UIContainerOpts|purpose=Just p})	= p == "buttons"
-isButtonPanel (UIPanel _ _ _ {UIPanelOpts|purpose=Just p})			= p == "buttons"
-isButtonPanel (UIWindow _ _ _ {UIWindowOpts|purpose=Just p})		= p == "buttons"
-isButtonPanel _														= False
+	= (wrapHeight o fillWidth o setPadding 2 5 2 5 o setDirection Horizontal o setHalign AlignRight) (defaultContainer buttons)
 
 actionsToButtons :: ![UIAction] -> (![UIControl],![UIAction])
 actionsToButtons [] = ([],[])
@@ -570,7 +529,7 @@ actionsToButtons [a=:{taskId,action,enabled}:as]
 		_		= (buttons,[a:actions])
 where
 	mkButton taskId action enabled
-		= UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,action=actionName action}
+		= UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId= actionName action}
 			{UIActionButtonOpts|text = actionName action, iconCls = Just (actionIcon action), disabled = not enabled}
 			
 actionsToMenus :: ![UIAction] -> (![UIControl],![UIAction])
@@ -615,7 +574,7 @@ where
 			}
 	createItem item [] taskId action enabled //Action item
 		= UIActionMenuItem
-			{UIActionOpts|taskId=taskId,action=actionName action}
+			{UIActionOpts|taskId=taskId,actionId=actionName action}
 			{UIActionButtonOpts|text=item,iconCls = Just (icon item), disabled = not enabled}
 	createItem item sub taskId action enabled //Sub item
 		= UISubMenuItem
@@ -629,11 +588,6 @@ where
 		= UISubMenuItem {UIMenuButtonOpts|opts & menu = addToItems sub taskId action enabled menu}
 	
 	icon name = "icon-" +++ (replaceSubString " " "-" (toLowerCase name))
-
-isForm :: UIControl -> Bool
-isForm (UIContainer _ _ _ {UIContainerOpts|purpose = Just "form"})	= True
-isForm (UIPanel _ _ _ {UIPanelOpts|purpose = Just "form"})			= True
-isForm _ 															= False
 
 uiOf :: UIDef -> UIControl
 uiOf {UIDef|controls} = case controls of

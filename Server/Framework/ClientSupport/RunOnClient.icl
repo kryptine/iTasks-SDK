@@ -10,8 +10,7 @@ runOnClient task
 
 	# roc_tasklet =
 		{ Tasklet 
-		| defSt				= Nothing
-		, generatorFunc		= roc_generator task
+		| generatorFunc		= roc_generator task
 		, resultFunc		= toResult
 		, tweakUI			= id
 		}
@@ -27,8 +26,8 @@ toResult (Just (_,_,TIValue NoValue _))
 toResult (Just (_,_,TIValue (Value json stab) _))
 	= Value (fromJust (fromJSON json)) stab
 
-roc_generator :: !(Task m) !TaskId !TaskState !*IWorld -> *(!TaskletGUI TaskState, !TaskState, !*IWorld) | iTask m
-roc_generator task (TaskId instanceNo taskNo) st iworld
+roc_generator :: !(Task m) !TaskId !*IWorld -> *(!TaskletGUI TaskState, !TaskState, !*IWorld) | iTask m
+roc_generator task (TaskId instanceNo taskNo) iworld
 
 	# (res, iworld) = loadTaskInstance instanceNo iworld
 	# (ameta, _, _) = fromOk res

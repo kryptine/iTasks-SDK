@@ -8,14 +8,16 @@ import Task, SaplHtml
 :: TaskletGUI st = TaskletHTML !(TaskletHTML st)
                  | TaskletTUI  !(TaskletTUI  st)
 
-:: GeneratorFunc st :== TaskId st *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
+:: GeneratorFunc st :== TaskId *IWorld -> *(!TaskletGUI st, !st, !*IWorld)
 
 :: TaskletHTML st = 
 	{ width 			:: !TUISize
 	, height			:: !TUISize
-	, html				:: !String
+	, html				:: !HtmlDef
 	, eventHandlers		:: ![HtmlEvent st] 
-	}
+	} 
+
+:: HtmlDef = E.a: HtmlDef a & toString a
 
 /**
 * Client side event handler. Event types:
@@ -37,8 +39,7 @@ import Task, SaplHtml
 	}
 
 :: Tasklet st val =
-	{ defSt				:: !st
-	, generatorFunc		:: !(GeneratorFunc st)
+	{ generatorFunc		:: !(GeneratorFunc st)
 	, resultFunc		:: !(st -> TaskValue val)
 	, tweakUI 			:: !(TUIDef -> TUIDef)
 	}
