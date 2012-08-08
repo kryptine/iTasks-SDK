@@ -53,10 +53,10 @@ where
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval eEvent cEvent refresh repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.readRegister instanceNo shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val Unstable) ts NoRep (TCInit taskId ts)
+			Ok val		= ValueResult (Value val Unstable) ts (finalizeRep repOpts NoRep) (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -65,15 +65,15 @@ interactSharedChoice :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t v l)
 						-> Task (Maybe l) | descr d & Choice t & iTask r & iTask l & iTask (t v l)
 interactSharedChoice desc shared initial_mask toView = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval eEvent cEvent refresh repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error _		= could_not_read_shared_in_interact_exception iworld
 			Ok r
 				# v = toView r initial_mask
 				# (l,v,mask) = (initial_mask,v,defaultMask v)
-				= eval eEvent cEvent refresh repAs (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
-	eval eEvent cEvent refresh repAs (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
+				= eval eEvent cEvent refresh repOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
+	eval eEvent cEvent refresh repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  r = fromJust (fromJSON encr)
@@ -95,10 +95,10 @@ where
 										(l,nv,mask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
-		# (rep,iworld) 			= visualizeView taskId repAs nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
-		= (ValueResult value nts rep (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
-	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+	eval eEvent cEvent refresh repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l nr nv valid
 		# nl = if valid (getMbSelection nv) l
@@ -109,15 +109,15 @@ interactSharedChoiceNoView :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t
 							  -> Task (Maybe l) | descr d & ChoiceNoView t & iTask r & iTask l & iTask (t l)
 interactSharedChoiceNoView desc shared initial_mask toViewId = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval eEvent cEvent refresh repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error _		= could_not_read_shared_in_interact_exception iworld
 			Ok r
 				# v = toViewId r initial_mask
 				# (l,v,mask) = (initial_mask,v,defaultMask v)
-				= eval eEvent cEvent refresh repAs (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
-	eval eEvent cEvent refresh repAs (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
+				= eval eEvent cEvent refresh repOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
+	eval eEvent cEvent refresh repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
 		//Decode stored values
 		# l	= fromJust( fromJSON encl)
 		  r = fromJust (fromJSON encr)
@@ -139,10 +139,10 @@ where
 										(l,nv,mask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
-		# (rep,iworld) 			= visualizeView taskId repAs nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
-		= (ValueResult value nts rep (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
-	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+	eval eEvent cEvent refresh repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l nr nv valid
 		# nl = if valid (getMbSelectionNoView nv) l
@@ -152,15 +152,15 @@ where
 interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) -> Task r | descr d & iTask r & iTask v
 interactSharedInformation desc shared toView = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval eEvent cEvent refresh repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error _		= could_not_read_shared_in_interact_exception iworld
 			Ok r
 				# v = toView r
 				# (l,v,mask) = (r,v,defaultMask v)
-				= eval eEvent cEvent refresh repAs (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
-	eval eEvent cEvent refresh repAs (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
+				= eval eEvent cEvent refresh repOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
+	eval eEvent cEvent refresh repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  r = fromJust (fromJSON encr)
@@ -179,10 +179,10 @@ where
 		# (nl,nv,nmask) 		= if changed (refresh_fun nr) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
-		# (rep,iworld) 			= visualizeView taskId repAs nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
-		= (ValueResult value nts rep (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
-	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+	eval eEvent cEvent refresh repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun r
 		# v = toView r
@@ -191,11 +191,11 @@ where
 interactNullEnter :: !d !v (v->l) -> Task l | descr d & iTask v
 interactNullEnter desc initFun fromf = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval eEvent cEvent refresh repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = initFun
 		# mask = Untouched
-		= eval eEvent cEvent refresh repAs (TCInteract1 taskId ts (toJSON v) mask) iworld
-	eval eEvent cEvent refresh repAs (TCInteract1 taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{taskTime}
+		= eval eEvent cEvent refresh repOpts (TCInteract1 taskId ts (toJSON v) mask) iworld
+	eval eEvent cEvent refresh repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encv mask) iworld=:{taskTime}
 		//Decode stored value
 		# v = fromJust (fromJSON encv)
 		  l = fromf v
@@ -209,10 +209,10 @@ where
 		# (nl,nv,nmask) 		= if changed (refresh_fun l nv nmask valid) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
-		# (rep,iworld) 			= visualizeView taskId repAs nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
-		= (ValueResult value nts rep (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
-	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
+	eval eEvent cEvent refresh repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
 		| ok
@@ -222,12 +222,12 @@ where
 interactNullUpdate :: !d !(l -> v) (l v -> l) l -> Task l | descr d & iTask l & iTask v
 interactNullUpdate desc tof fromf m = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval eEvent cEvent refresh repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = tof m
 		  l = m
 		  mask = defaultMask v
-		= eval eEvent cEvent refresh repAs (TCInteract1 taskId ts (toJSON l) mask) iworld
-	eval eEvent cEvent refresh repAs (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{taskTime}
+		= eval eEvent cEvent refresh repOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
+	eval eEvent cEvent refresh repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{taskTime}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  v = tof l
@@ -241,10 +241,10 @@ where
 		# (nl,nv,nmask) 		= if changed (refresh_fun l nv nmask valid) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
-		# (rep,iworld) 			= visualizeView taskId repAs nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
-		= (ValueResult value nts rep (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
-	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+	eval eEvent cEvent refresh repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
 		| ok 
@@ -256,12 +256,12 @@ where
 interactNullView :: !d (l->v) l -> Task l | descr d & iTask l & iTask v
 interactNullView desc tof m = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval eEvent cEvent refresh repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# l = m
 		  v = Display (tof l)
 		  mask = defaultMask v
-		= eval eEvent cEvent refresh repAs (TCInteract1 taskId ts (toJSON l) mask) iworld
-	eval eEvent cEvent refresh repAs (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{taskTime}
+		= eval eEvent cEvent refresh repOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
+	eval eEvent cEvent refresh repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{taskTime}
 		//Decode stored values
 		# l	= fromJust (fromJSON encl)
 		  v = Display (tof l)
@@ -272,24 +272,24 @@ where
 		# nl = l
 		//Make visualization
 		# validity				= verifyForm nv nmask
-		# (rep,iworld) 			= visualizeView taskId repAs nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
-		= (ValueResult value nts rep (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
-	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
+		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+	eval eEvent cEvent refresh repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask))
 			-> Task l | descr d & iTask l & iTask r & iTask v
 interact desc shared initFun refreshFun = Task eval
 where
-	eval eEvent cEvent refresh repAs (TCInit taskId=:(TaskId instanceNo _) ts) iworld
+	eval eEvent cEvent refresh repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (mbr,iworld) 			= 'SharedDataSource'.readRegister instanceNo shared iworld
 		= case mbr of
 			Error _		= could_not_read_shared_in_interact_exception iworld
 			Ok r
 				# (l,v,mask)	= initFun r
-				= eval eEvent cEvent refresh repAs (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
+				= eval eEvent cEvent refresh repOpts (TCInteract taskId ts (toJSON l) (toJSON r) (toJSON v) mask) iworld
 				
-	eval eEvent cEvent refresh repAs (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{taskTime}
+	eval eEvent cEvent refresh repOpts (TCInteract taskId=:(TaskId instanceNo _) ts encl encr encv mask) iworld=:{taskTime}
 		//Decode stored values
 		# (l,r,v)				= (fromJust (fromJSON encl), fromJust (fromJSON encr), fromJust (fromJSON encv))
 		//Determine next v by applying edit event if applicable 	
@@ -306,9 +306,9 @@ where
 		# (nl,nv,nmask) 		= if changed (refreshFun l nr nv nmask valid) (l,nv,mask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
-		# (rep,iworld) 			= visualizeView taskId repAs nv validity desc iworld
+		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl (if (isLucky eEvent) Stable Unstable)) NoValue
-		= (ValueResult value nts rep (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
+		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval eEvent cEvent refresh repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -334,9 +334,10 @@ where
 				# (nv,nmask,iworld)	= updateValueAndMask dp encev v mask iworld
 				= (nv,nmask,taskTime,iworld)
 
-visualizeView taskId repAs v validity desc iworld
-	# (controls,iworld) = visualizeAsEditor v validity taskId iworld
-	= (TaskRep ((repLayout repAs) (InteractLayout {UIDef|controls=[],actions=[],attributes=initAttributes desc} {UIDef|controls=controls,attributes=newMap,actions=[]})) [(toString taskId,toJSON v)], iworld)
+visualizeView taskId repOpts v validity desc iworld
+	# layout = repLayout repOpts
+	# (controls,iworld) = visualizeAsEditor v validity taskId layout iworld
+	= (TaskRep (layout (InteractLayout (toPrompt desc) {UIDef|controls=controls,attributes=newMap,actions=[]})) [(toString taskId,toJSON v)], iworld)
 
 could_not_read_shared_in_interact_exception iworld
 	= (exception "Could not read shared in interact", iworld)

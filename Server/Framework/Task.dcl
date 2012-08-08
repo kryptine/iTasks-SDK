@@ -35,7 +35,11 @@ derive gPutRecordFields	Task
 					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
 
-:: TaskRepOpts		= TaskRepOpts (Maybe Layout) (Maybe (Layout -> Layout))								//Optionally with tweaked layout options
+:: TaskRepOpts	=
+	{ useLayout			:: Maybe Layout
+	, modLayout			:: Maybe (Layout -> Layout)
+	, appFinalLayout	:: Bool
+	}
 	
 :: TaskRep			= TaskRep !UIDef !TaskServiceRep	//Compute both the UI and the raw service representation simultaneously
 
@@ -49,7 +53,7 @@ derive gPutRecordFields	Task
 	| SequentialComposition
 	| ParallelComposition
 
-:: TaskPart			:== (!String, !JSONNode)		//Task id, part index, value
+:: TaskPart			:== (!String, !JSONNode)		//Task id, value
 
 /**
 * Creates an execption result
@@ -60,6 +64,11 @@ exception :: !e -> TaskResult a | TC, toString e
 * Determine the layout function for a rep target
 */
 repLayout :: TaskRepOpts -> Layout
+
+/**
+* Apply the final layout if necessary
+*/
+finalizeRep :: TaskRepOpts TaskRep -> TaskRep
 
 /**
 * Create a task that finishes instantly

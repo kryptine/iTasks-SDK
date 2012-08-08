@@ -417,12 +417,12 @@ PURPOSE_ATTRIBUTE	:== "purpose"
 
 class descr d
 where
-	initAttributes :: !d -> UIAttributes
+	toPrompt		:: !d -> UIDef			//Make the UI definition of the interaction prompt
 
-instance descr Void
-instance descr String	//Hint
-instance descr (!String, !String) //Title, Hint
-instance descr (!Icon, !String, !String) //Icon, Title , Hint
+instance descr Void							//No prompt
+instance descr String						//Simple instruction
+instance descr (!String, !String)			//Title attribute + instruction
+instance descr (!Icon, !String, !String)	//Icon attribute, title attribute, and instruction
 instance descr Title
 instance descr Hint
 instance descr Icon

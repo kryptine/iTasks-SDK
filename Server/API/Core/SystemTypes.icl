@@ -6,6 +6,9 @@ import JSON_NG, HTML, Text, Util
 from Time 		import :: Timestamp(..)
 from Task		import :: TaskValue
 
+from UIDefinition import :: UIDef(..), :: UIAction, :: UIControl, stringDisplay
+from LayoutCombinators import mergeDefs
+
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, UserConstraint, Document, Hidden, Display, Editable, VisualizationHint
 derive JSONEncode		Map, Either, ComboChoice, RadioChoice, TreeChoice, GridChoice, DynamicChoice, CheckMultiChoice, Tree, TreeNode, Table, HtmlTag, HtmlAttr, Progress
 derive JSONEncode		URL, EmailAddress, Action, HtmlInclude
@@ -638,38 +641,42 @@ where
 	toString (TopLevelTaskList)					= "tasklist-top"
 	toString (ParallelTaskList (TaskId t0 t1))	= "tasklist-parallel-" +++ toString t0 +++ "-" +++ toString t1
 	
-	
 instance descr Void
-where initAttributes	_ = newMap 
+where toPrompt _ = {UIDef|attributes = newMap, controls = [], actions = []}
 
 instance descr String
-where initAttributes	hint	= fromList [(HINT_ATTRIBUTE, hint)]
+where toPrompt prompt	= {UIDef|attributes = newMap, controls = [(stringDisplay prompt,newMap)], actions = []}
 	
 instance descr (!String,!String) 
-where initAttributes (title,hint) = fromList [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint)]
+where toPrompt (title,prompt)	= {UIDef|attributes = fromList [(TITLE_ATTRIBUTE,title)], controls = [(stringDisplay prompt,newMap)], actions = []}
 
 instance descr (!Icon,!String,!String)
-where initAttributes (icon,title,hint) = fromList [(TITLE_ATTRIBUTE,title),(HINT_ATTRIBUTE,toString hint):toList (initAttributes icon)]
+where toPrompt (icon,title,prompt)	= {UIDef|attributes = fromList [(TITLE_ATTRIBUTE,title),(ICON_ATTRIBUTE, toString icon)]
+									  ,controls = [(stringDisplay prompt,newMap)], actions = []}
 
 instance descr Title
-where initAttributes (Title title) = fromList [(TITLE_ATTRIBUTE,title)]
-
-instance descr Hint
-where initAttributes (Hint hint) = fromList [(HINT_ATTRIBUTE, hint)]
-
-instance descr Icon
-where
-	initAttributes (Icon icon)	= fromList [(ICON_ATTRIBUTE, icon)]
-	initAttributes (IconView)	= fromList [(ICON_ATTRIBUTE, "view")]
-	initAttributes (IconEdit)	= fromList [(ICON_ATTRIBUTE, "edit")]
+where toPrompt (Title title)	= {UIDef|attributes = put TITLE_ATTRIBUTE title newMap,controls = [], actions = []}
 	
+instance descr Hint
+where toPrompt (Hint hint)	= {UIDef|attributes = put HINT_ATTRIBUTE hint newMap, controls = [], actions = []}
+	
+instance descr Icon
+where toPrompt icon	= {UIDef|attributes = put ICON_ATTRIBUTE (toString icon) newMap, controls = [], actions = []}
+
 instance descr Attribute
-where initAttributes (Attribute k v) = put k v newMap
+where toPrompt (Attribute k v)	= {UIDef|attributes = put k v newMap, controls = [], actions = []}
+	
 instance descr Att
-where initAttributes (Att a) = initAttributes a
+where toPrompt (Att a)			= toPrompt a
 	
 instance descr [d] | descr d
-where initAttributes list = fromList (flatten [toList (initAttributes d) \\ d <- list])
+where toPrompt list = foldr mergeDefs {UIDef|attributes=newMap,controls=[],actions=[]} (map toPrompt list)
+	
+instance toString Icon
+where
+	toString (Icon icon) = icon
+	toString (IconView)	= "view"
+	toString (IconEdit) = "edit"
 
 instance toString TaskId
 where

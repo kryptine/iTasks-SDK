@@ -136,30 +136,29 @@ workflowDashboard
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
-		] <<@ SetLayout layout 
+		] //<<@ SetLayout layout 
 	>>* [WhenValid (\results -> isValue (snd (results !! 1))) (\_ -> return Void)]
 where
 	isValue (Value _ _) = True
 	isValue _			= False
 	
-	layout = (sideLayout LeftSide 260 (sideLayout TopSide 26 (sideLayout TopSide 200 tabbedLayout)))
+	//layout = (sideLayout LeftSide 260 (sideLayout TopSide 26 (sideLayout TopSide 200 tabbedLayout)))
+	layout = (sideLayout LeftSide 260 (sideLayout TopSide 26 (sideLayout TopSide 200 autoLayout)))
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
-	=	(viewSharedInformation Void [ViewWith view] currentUser					<<@ tweak1
+	=	(viewSharedInformation Void [ViewWith view] currentUser	
 			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
 				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
 				]																
-		) <! isJust																<<@ tweak2
+		) <! isJust
 	@	fromJust
 where
 	view user	= "Welcome " +++ toString user
-	tweak1		= AfterLayout (tweakTUI (setBaseCls "x-panel-header" o setPadding 0 0 0 0 o setDirection Horizontal o toContainer))
-	tweak2		= AfterLayout (tweakTUI (appDeep [1] (setPadding 0 0 0 0)))
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list = forever
-	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 (fillLayout Vertical)))
+	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 autoLayout))
 	>>*	 [WithResult (Action "Start Workflow") (const True) (startWorkflow list)]
 	@ 	\wf -> SelWorkflow wf.Workflow.path
 	)
@@ -199,7 +198,7 @@ where
 
 manageWork :: !(SharedTaskList ClientPart) -> Task ClientPart	
 manageWork taskList = forever
-	(	enterSharedChoice Void [ChooseWith ChooseFromGrid mkRow] processes 														<<@ tweak 
+	(	enterSharedChoice Void [ChooseWith ChooseFromGrid mkRow] processes 														
 	>>* [WithResult (Action "Open") (const True) (\proc -> openTask taskList proc.TaskListItem.taskId @ const OpenProcess)
 		,WithResult (Action "Delete") (const True) (\proc -> removeTask proc.TaskListItem.taskId topLevelTasks @ const OpenProcess)]
 	)
@@ -220,7 +219,6 @@ where
 		,date = pmeta.issuedAt
 		,deadline = mmeta.completeBefore
 		}
-	tweak = AfterLayout (tweakTUI toContainer)
 	
 openTask :: !(SharedTaskList ClientPart) !TaskId -> Task ClientPart
 openTask taskList taskId

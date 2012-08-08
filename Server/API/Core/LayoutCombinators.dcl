@@ -6,9 +6,6 @@ from Task import :: TaskCompositionType
 
 import Maybe
 
-//Defines which layout is used by default
-DEFAULT_LAYOUT	:== heuristicLayout
-
 // Definition of a layout algorithm
 // The same layouts are used for layouting out forms of basic tasks as
 // well as combinations of tasks
@@ -30,36 +27,14 @@ DEFAULT_LAYOUT	:== heuristicLayout
 :: AfterLayout	= AfterLayout (UIDef -> UIDef)
 
 /**
-* This is a layout following some simple layout heuristics. It puts its content in a
-* panel if a title attribute is available. If actions placed in the panels
-* when possible or accumulated otherwise.
+* This is a layout that aims to automatically determine a simple, but
+* functional and visually pleasing layout by following some simple layout heuristics.
 */
-heuristicLayout :: Layout
+autoLayout :: Layout
 /**
-* This is a very simple layout which accumulates actions,
-* wraps all guis in a container and overwrites/appends attributes
-*/
-accumulatingLayout :: Layout
-/**
-* This layout puts all of its parts into a panel.
-*/
-paneledLayout :: Layout
-/**
-* This layout arranges its parts into a tab panel.
-*/
-tabbedLayout :: Layout
-/**
-* This layout hides the gui, but accumulates actions and attributes
+* This layout hides ui controls, but accumulates actions and attributes.
 */
 hideLayout :: Layout
-/**
-* Fill out available space
-*/
-fillLayout :: UIDirection -> Layout
-/**
-* Use the gui of a specific part, but keep merge attributes and actions of all parts
-*/
-partLayout :: Int -> Layout
 /**
 * Split the available space into two areas with their own layout
 */
@@ -68,42 +43,48 @@ splitLayout :: UISide Int ([UIDef] -> ([UIDef],[UIDef])) Layout Layout -> Layout
 * Split available space into a main area and a side panel.
 */
 sideLayout :: UISide Int Layout -> Layout
-
-//PLEASE DON'T USE (For backwards compat only)
-vsplitLayout :: Int ([UIControl] -> ([UIControl],[UIControl])) -> Layout
+/**
+* This layout arranges its parallel parts into a set of tabs.
+*/
+tabbedLayout :: Layout
+/**
+* Use the gui of a specific part, but keep merge attributes and actions of all parts
+*/
+partLayout :: Int -> Layout
 
 //Useful functions for tweaking or roll-your-own layouts
 
 //Modifiers on interface definitions
-setSize			:: !UISize	!UISize		!UIControl -> UIControl
-setWidth		:: !UISize				!UIControl -> UIControl
-setHeight		:: !UISize				!UIControl -> UIControl
-fill			:: 						!UIControl -> UIControl
-fillHeight		:: 						!UIControl -> UIControl
-fillWidth		:: 						!UIControl -> UIControl
-fixedHeight		:: !Int 				!UIControl -> UIControl
-fixedWidth		:: !Int 				!UIControl -> UIControl
-wrapHeight		::						!UIControl -> UIControl
-wrapWidth		:: 						!UIControl -> UIControl
-setMargins		:: !Int !Int !Int !Int	!UIControl -> UIControl
-setTopMargin	:: !Int 				!UIControl -> UIControl
-setRightMargin	:: !Int 				!UIControl -> UIControl
-setBottomMargin	:: !Int 				!UIControl -> UIControl
-setLeftMargin	:: !Int 				!UIControl -> UIControl
-setPadding		:: !Int !Int !Int !Int	!UIControl -> UIControl
-setTitle 		:: !String 				!UIControl -> UIControl
-setFramed		:: !Bool				!UIControl -> UIControl
-setIconCls		:: !String				!UIControl -> UIControl
-setBaseCls		:: !String				!UIControl -> UIControl
-setDirection	:: !UIDirection			!UIControl -> UIControl
-setHalign		:: !UIHAlign			!UIControl -> UIControl
-setValign		:: !UIVAlign			!UIControl -> UIControl
+setSize			:: !UISize	!UISize			!UIControl -> UIControl
+setWidth		:: !UISize					!UIControl -> UIControl
+setHeight		:: !UISize					!UIControl -> UIControl
+setMinSize		:: !UIMinSize !UIMinSize	!UIControl -> UIControl
+setMinWidth		:: !UIMinSize				!UIControl -> UIControl
+setMinHeight	:: !UIMinSize				!UIControl -> UIControl
+fill			:: 							!UIControl -> UIControl
+fillHeight		:: 							!UIControl -> UIControl
+fillWidth		:: 							!UIControl -> UIControl
+fixedHeight		:: !Int 					!UIControl -> UIControl
+fixedWidth		:: !Int 					!UIControl -> UIControl
+wrapHeight		::							!UIControl -> UIControl
+wrapWidth		:: 							!UIControl -> UIControl
+setMargins		:: !Int !Int !Int !Int		!UIControl -> UIControl
+setTopMargin	:: !Int 					!UIControl -> UIControl
+setRightMargin	:: !Int 					!UIControl -> UIControl
+setBottomMargin	:: !Int 					!UIControl -> UIControl
+setLeftMargin	:: !Int 					!UIControl -> UIControl
+setPadding		:: !Int !Int !Int !Int		!UIControl -> UIControl
+setTitle 		:: !String 					!UIControl -> UIControl
+setFramed		:: !Bool					!UIControl -> UIControl
+setIconCls		:: !String					!UIControl -> UIControl
+setBaseCls		:: !String					!UIControl -> UIControl
+setDirection	:: !UIDirection				!UIControl -> UIControl
+setHalign		:: !UIHAlign				!UIControl -> UIControl
+setValign		:: !UIVAlign				!UIControl -> UIControl
 
 //Combinators on interface definitions
 hjoin :: ![UIControl] -> UIControl
 vjoin :: ![UIControl] -> UIControl
-
-paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![UIControl] -> UIControl
 
 //Operations on containers
 addItemToUI		:: (Maybe Int) UIControl UIControl -> UIControl
@@ -115,7 +96,6 @@ toPanel			:: !UIControl -> UIControl
 toContainer		:: !UIControl -> UIControl
 
 //Predefined panels
-hintPanel		:: !String		-> UIControl	//Panel with task instructions
 buttonPanel		:: ![UIControl]	-> UIControl	//Container for a set of horizontally layed out buttons
 
 //Predefined action placement
@@ -127,10 +107,11 @@ uiOf			:: UIDef -> UIControl
 actionsOf		:: UIDef -> [UIAction]
 attributesOf	:: UIDef -> UIAttributes
 
+mergeDefs		:: UIDef UIDef -> UIDef
 mergeAttributes :: UIAttributes UIAttributes -> UIAttributes
 
-appLayout		:: Layout Layoutable -> UIDef
+appControls		:: (UIControl -> UIControl) UIDef -> UIDef
 appDeep			:: [Int] (UIControl -> UIControl) UIControl -> UIControl	//Modify an element inside the tree of components
 
-tweakTUI		:: (UIControl -> UIControl) UIDef -> UIDef
+tweakUI			:: (UIControl -> UIControl) UIDef -> UIDef
 tweakAttr		:: (UIAttributes -> UIAttributes) UIDef -> UIDef 

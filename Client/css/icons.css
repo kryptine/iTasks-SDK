@@ -19,3 +19,12 @@
 .icon-logout, .icon-log-out {
 	background-image: url('../img/icons/door_in.png');
 }
+.icon-view {
+	background-image: url('../img/icons/page.png') !important;
+}
+.icon-edit {
+	background-image: url('../img/icons/pencil.png') !important;
+}
+.icon-refresh {
+	background-image: url('../img/icons/refresh.png') !important;
+}

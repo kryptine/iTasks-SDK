@@ -62,7 +62,7 @@ doAuthenticatedWith verifyCredentials task
 		Just user	= workAs user task
 where
 	//Layout tweak
-	loginForm = AfterLayout (tweakTUI (setTopMargin 100 o fixedWidth 550))
+	loginForm = AfterLayout (tweakUI (setTopMargin 100 o fixedWidth 550))
 	
 createUser :: !UserAccount -> Task UserAccount
 createUser account

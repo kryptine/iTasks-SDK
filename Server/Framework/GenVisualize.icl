@@ -6,9 +6,9 @@ import GenUpdate, GenVerify, Util, Maybe, Functor, Text, HTML, Map, UIDefinition
 visualizeAsText :: !StaticVisualizationMode !a -> String | gVisualizeText{|*|} a
 visualizeAsText mode v = concat (gVisualizeText{|*|} mode v)
 
-visualizeAsEditor :: !a !VerifyMask !TaskId !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gVisualizeEditor{|*|} a
-visualizeAsEditor v vmask taskId iworld
-	# vst		= {VSt|mkVSt taskId iworld & verifyMask = [vmask], currentPath = shiftDataPath emptyDataPath}
+visualizeAsEditor :: !a !VerifyMask !TaskId !Layout !*IWorld -> (![(!UIControl,!UIAttributes)],!*IWorld) | gVisualizeEditor{|*|} a
+visualizeAsEditor v vmask taskId layout iworld
+	# vst		= {VSt|mkVSt taskId iworld & verifyMask = [vmask], currentPath = shiftDataPath emptyDataPath, layout = layout}
 	# (res,vst)	= gVisualizeEditor{|*|} (Just v) vst
 	= (controlsOf res,kmVSt vst)
 	
@@ -115,7 +115,7 @@ derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailA
 mkVSt :: !TaskId *IWorld -> *VSt
 mkVSt taskId iworld
 	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, disabled = False, verifyMask = []
-	  , taskId = taskId, layout = DEFAULT_LAYOUT, iworld = iworld}
+	  , taskId = taskId, layout = autoLayout, iworld = iworld}
 
 kmVSt :: !*VSt -> *IWorld //inverse of mkVSt
 kmVSt {VSt|iworld} = iworld

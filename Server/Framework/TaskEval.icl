@@ -100,7 +100,7 @@ evalAndStoreInstance _ _ _ inst=:(meta=:{TIMeta|worker=Nothing},_,_) iworld
 	= (Error "Can't evalutate a task instance with no worker set", iworld)
 evalAndStoreInstance editEvent commitEvent refresh (meta=:{TIMeta|instanceNo,parent,worker=Just worker,progress},reduct=:{TIReduct|task=Task eval,nextTaskNo=curNextTaskNo,nextTaskTime,tree,shares,lists},result=:TIValue val _) iworld=:{currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
 	//Eval instance
-	# repAs						= TaskRepOpts Nothing Nothing
+	# repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=True}
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
 	# iworld					= {iworld & currentInstance = instanceNo, currentUser = worker, nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = shares, localLists = lists} 

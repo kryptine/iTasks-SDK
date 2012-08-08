@@ -425,7 +425,7 @@ where
 	lengthWords "" 	 = 0
 	lengthWords text = length (split " " (replaceSubString "\n" " " text))
 
-horizontal = AfterLayout (tweakTUI (setDirection Horizontal))
+horizontal = AfterLayout (tweakUI (setDirection Horizontal))
 
 //* Distributing tasks
 

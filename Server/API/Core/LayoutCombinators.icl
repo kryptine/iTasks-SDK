@@ -9,121 +9,101 @@ from StdFunc import o
 from Task import :: TaskCompositionType, :: TaskCompositionType(..)
 derive gEq TaskCompositionType
 
-heuristicLayout :: Layout
-heuristicLayout = layout
+autoLayout :: Layout
+autoLayout = layout
 where
-	layout (DataLayout def)					= def
-	layout (InteractLayout prompt editor)	= heuristicInteractionLayout prompt editor
-	layout (StepLayout def actions)			= heuristicStepLayout def actions
-	layout (ParallelLayout prompt defs)		= heuristicParallelLayout prompt defs
-	layout (FinalLayout def)				= def
-	
-heuristicInteractionLayout :: UIDef UIDef -> UIDef
-heuristicInteractionLayout prompt editor = mergeDefs prompt (decorateControls editor)
-/*
-where
-	layout type parts actions attributes = case (mbTitle,mbHint) of
-		(Nothing,Nothing)		= {attributes=attributes,controls=[(body,newMap)],actions=actions}
-		(Nothing,Just hint)		= {attributes=attributes,controls=[(basicTaskContainer [hintPanel hint,body],newMap)],actions=actions}
-		(Just title,Nothing)	= {attributes=attributes,controls=[(basicTaskPanel title mbIcon [body],newMap)],actions=actions}
-		(Just title,Just hint)	= {attributes=attributes,controls=[(basicTaskPanel title mbIcon [hintPanel hint,body],newMap)],actions=actions}
-	where	
-		mbTitle = get TITLE_ATTRIBUTE attributes
-		mbHint  = get HINT_ATTRIBUTE attributes
-		mbIcon	= get ICON_ATTRIBUTE attributes
-
-		bodyGui	= case [gui \\ {UIDef|controls=[(gui,_):_]} <- parts] of
-			[gui]	= gui
-			guis	= vjoin guis
-		body	= addMargins ((fillWidth o setHeight FlexSize) bodyGui)
-		
-		//Add margins except for some controls that look better without margins
-		addMargins gui=:(UIGrid _ _ _)		= gui
-		addMargins gui=:(UITree _ _)		= gui
-		addMargins gui						= setMargins 5 5 5 5 gui
-			
-		basicTaskContainer items			= (setPurpose "form" o setMargins 5 5 0 5 o fixedWidth 700 o wrapHeight) (vjoin items)
-		basicTaskPanel title mbIcon items
-			# panel = (setPurpose "form" o setMargins 5 5 0 5 o setTitle title o setFramed True o toPanel) ((fixedWidth 700 o wrapHeight) (vjoin items))
-			= case mbIcon of	
-				Nothing		= panel
-				Just icon	= setIconCls ("icon-" +++ icon) panel
-*/
+	layout (DataLayout def)					= autoDataLayout def
+	layout (InteractLayout prompt editor)	= autoInteractionLayout prompt editor
+	layout (StepLayout def actions)			= autoStepLayout def actions
+	layout (ParallelLayout prompt defs)		= autoParallelLayout prompt defs
+	layout (FinalLayout def)				= autoFinalLayout def
 /**
-* A sequential composition adds a visual boundary to the ui definition
-* because upon choosing an action, this part of the ui 'disappears' together.
-* It also adds controls for triggering the actions as buttons or menus.
+* The basic data layout groups the controls of a part of a compound datastructure in a fieldset
 */
-heuristicStepLayout :: UIDef [UIAction]-> UIDef
-heuristicStepLayout def=:{UIDef|attributes,controls,actions} stepActions
-	| nestedStep attributes	//If we directly nest subsequent steps, we don't want to do the visual grouping
-		= {UIDef|def & actions = actions ++ stepActions}
-	# (buttons,actions)	= actionsToButtons (actions ++ stepActions)
-	# (menus,actions)	= actionsToMenus actions
-	# attributes		= put TYPE_ATTRIBUTE "step" attributes	//Make sure we can recognize nested step combinators
-	# controls			= groupControls attributes buttons menus controls
-	= {UIDef|def & controls = controls, actions = actions, attributes = attributes}
-where
-	//Check if we have a directly nested step (by checking the type attribute)
-	nestedStep attributes = case get TYPE_ATTRIBUTE attributes of
-		Just "step"	= True
-		_			= False
-	//Create the visual grouping
-	groupControls attributes buttons menus controls
-		= [(panel,attributes)]
-	where
-		panel = UIPanel sizeOpts layoutOpts (map fst controls ++ buttonBar) panelOpts
-		buttonBar = [buttonPanel buttons]
-		
-		sizeOpts  = {defaultSizeOpts & width = Just WrapSize /*, minWidth = Just (ExactMin 700)*/, height = Just WrapSize}
-		layoutOpts = {defaultLayoutOpts & padding = Just {top = 5, right = 5, bottom = 5, left = 5}}
-		panelOpts = {UIPanelOpts|title = titleAttr,frame = True, tbar = case menus of [] = Nothing; _ = Just menus
-					,iconCls = Nothing, baseCls = Nothing, bodyCls = Nothing}
-		
-		titleAttr	= get TITLE_ATTRIBUTE attributes
-				
-heuristicParallelLayout :: UIDef [UIDef] -> UIDef
-heuristicParallelLayout prompt defs = foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs]
+autoDataLayout :: UIDef -> UIDef
+autoDataLayout def
+	= {UIDef|def & attributes = put TYPE_ATTRIBUTE "partial" def.UIDef.attributes}
+/**
+* The basic interaction layout simply decorates the prompt and merges it with the editor.
+*/	
+autoInteractionLayout :: UIDef UIDef -> UIDef
+autoInteractionLayout prompt editor
+	# def = mergeDefs (decoratePrompt prompt) editor
+	= {UIDef|def & attributes = put TYPE_ATTRIBUTE "partial" def.UIDef.attributes}
 
-/*
+autoStepLayout :: UIDef [UIAction]-> UIDef
+autoStepLayout def=:{UIDef|attributes,controls,actions} stepActions
+	//If the definition is not already of gorup type, add actions from this step
+	//We set the type attribute to "group" because the step combinator binds the controls
+	//in the definition together. If the step is made, all these controls will disappear together.
+	| not (isGroup def)
+		= {UIDef|def & actions = actions ++ stepActions, attributes = put TYPE_ATTRIBUTE "group" def.UIDef.attributes}
+	| otherwise
+		= def
 where
-	layout type [part] actions attributes	//If there's only one part, do nothing
-		= part
-	layout type parts actions attributes
-		= {UIDef|attributes=cattributes,controls = [(gui,newMap)],actions=cactions}
-	where
-		cactions = foldr (++) actions [a \\ {UIDef|actions=a} <- parts]
-		//cattributes = attributes //TODO!
-		cattributes = foldr mergeAttributes attributes [attributes \\ {UIDef|attributes} <- parts] 
-		
-		guis = [gui \\ {UIDef|controls=[(gui,_):_]} <- parts]
-		gui = if (all isForm guis)
-			(mergeForms guis)
-			(vjoin guis)
+	isGroup {UIDef|attributes} = case get TYPE_ATTRIBUTE attributes of Just "group" = True; _ = False;
+/**
+* The default parallel composition only merges the prompt of the parallel with
+* the definitions of the constituents.
+*/
+autoParallelLayout :: UIDef [UIDef] -> UIDef
+autoParallelLayout prompt defs
+	| allPartial defs		//If we are composing partial user interfaces
+		= mergePartials prompt defs
+	| otherwise
+		# def = makeGroups prompt defs //Create a visual groupin for each def in the list
+		= {UIDef|def & attributes = put TYPE_ATTRIBUTE "multi" def.UIDef.attributes}
+where
+	allPartial [] = True
+	allPartial [d:ds] = case get TYPE_ATTRIBUTE d.UIDef.attributes of Just "partial" = allPartial ds; _ = False;
+/**
+* Add actions and frame the content
+*/
+autoFinalLayout :: UIDef -> UIDef	//TODO: Size should be minWidth, but that doesn't seem to work yet...
+autoFinalLayout def = appControls (setWidth (ExactSize 600) o setFramed True) (groupControls (decorateControls def))
+
+//Merge the fragments of a composed interactive task into a single definition
+mergePartials :: UIDef [UIDef] -> UIDef
+mergePartials prompt defs
+	# attributes = prompt.UIDef.attributes
+	# controls = foldr (++) (decoratePrompt prompt).UIDef.controls [d.UIDef.controls \\ d <- defs]
+	# actions = foldr (++) [] [d.UIDef.actions \\ d <- defs]
+	//Determine title: if prompt has title use it, else combine titles 
+	# attributes = case (get TITLE_ATTRIBUTE attributes, collectTitles defs) of
+		(Just _,_) 	= attributes //Title already set, do nothing
+		(_,[])		= attributes //None of the parts have a title, do nothing
+		(_,titles)	= put TITLE_ATTRIBUTE (join ", " titles) attributes	//Set the joined titles
+	= {UIDef|attributes = attributes, controls = controls, actions = actions}
+where
+	collectTitles defs = [title \\ Just title <- [get TITLE_ATTRIBUTE d.UIDef.attributes \\ d <- defs]]
 	
-	mergeForms guis = setPurpose "form" (vjoin guis)
-*/
-
-heuristicFinalLayout :: UIDef -> UIDef
-heuristicFinalLayout def = def
-
+//Create groups for all definitions in the list
+makeGroups :: UIDef [UIDef] -> UIDef
+makeGroups prompt defs
+	# groups		= map (groupControls o decorateControls) defs
+	# attributes	= prompt.UIDef.attributes
+	# controls		= foldr (++) (decoratePrompt prompt).UIDef.controls [d.UIDef.controls \\ d <- groups]
+	# actions		= foldr (++) [][d.UIDef.actions \\ d <- groups]
+	= {UIDef|attributes = attributes, controls = controls, actions = actions}
+	
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: UIDef -> UIDef
-decorateControls def=:{UIDef|controls} = {UIDef|def & controls = map decorate controls}
+decorateControls def=:{UIDef|controls} = {UIDef|def & controls = map decorateControl controls}
+
+decorateControl :: (!UIControl,!UIAttributes) -> (!UIControl,!UIAttributes)
+decorateControl (control,attributes)
+	# mbLabel 	= get LABEL_ATTRIBUTE attributes
+	# mbHint 	= get HINT_ATTRIBUTE attributes
+	# mbValid	= get VALID_ATTRIBUTE attributes
+	# mbError	= get ERROR_ATTRIBUTE attributes
+	= case (mbLabel,mbHint,mbValid,mbError) of
+		(Nothing,Nothing,Nothing,Nothing)	//Nothing to do
+			= (control,attributes)
+		_									//Add decoration													
+			# control = row (labelCtrl mbLabel ++ [control] ++ iconCtrl mbHint mbValid mbError) 
+			# attributes = foldr del attributes [LABEL_ATTRIBUTE,HINT_ATTRIBUTE,VALID_ATTRIBUTE,ERROR_ATTRIBUTE]
+			= (control,attributes)
 where
-	decorate (control,attributes)
-		# mbLabel 	= get LABEL_ATTRIBUTE attributes
-		# mbHint 	= get HINT_ATTRIBUTE attributes
-		# mbValid	= get VALID_ATTRIBUTE attributes
-		# mbError	= get ERROR_ATTRIBUTE attributes
-		= case (mbLabel,mbHint,mbValid,mbError) of
-			(Nothing,Nothing,Nothing,Nothing)	//Nothing to do
-				= (control,attributes)
-			_									//Add decoration													
-				# control = row (labelCtrl mbLabel ++ [control] ++ iconCtrl mbHint mbValid mbError) 
-				# attributes = foldr del attributes [LABEL_ATTRIBUTE,HINT_ATTRIBUTE,VALID_ATTRIBUTE,ERROR_ATTRIBUTE]
-				= (control,attributes)
-	
 	row ctrls				= (setBottomMargin 5 o setSize FlexSize WrapSize o setDirection Horizontal) (defaultContainer ctrls)
 	
 	labelCtrl (Just label)	= [setWidth (ExactSize 100) (stringDisplay label)]
@@ -136,30 +116,99 @@ where
 	
 	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
 
-accumulatingLayout :: Layout
-accumulatingLayout = heuristicLayout// layout
-/*
+//Reduce all controls to a single control by wrapping them in a panel
+//During this grouping, applicable actions are converted to menus and buttons
+//and added to the panel
+groupControls :: UIDef -> UIDef
+groupControls def=:{UIDef|attributes,controls,actions}
+	# (buttons,actions)	= actionsToButtons actions
+	# (menus,actions)	= actionsToMenus actions
+	# panel				= groupPanel attributes buttons menus controls
+	= {UIDef|def & controls = [(panel,newMap)], actions = actions, attributes = attributes}
 where
-	layout type parts actions attributes
-		# attributes 	= foldr mergeAttributes newMap ([attributes \\ {UIDef|attributes} <- parts] ++ [attributes])
-		# actions		= flatten [actions:[actions \\ {UIDef|actions} <- parts]]
-		# guis			= [gui \\ {UIDef|controls=[(gui,_):_]} <- parts]
-		= {UIDef|controls=[(vjoin guis,newMap)], actions=actions, attributes=attributes}
-*/
-paneledLayout :: Layout
-paneledLayout = heuristicLayout //layout
-/*
+	//Create the panel
+	groupPanel attributes buttons menus controls
+		= UIPanel sizeOpts layoutOpts ((map fst controls) ++ buttonBar) panelOpts
+	where
+		buttonBar	= [buttonPanel buttons]
+		tbar		= case menus of [] = Nothing; _ = Just menus
+		
+		sizeOpts  = {defaultSizeOpts & width = Just FlexSize, minWidth = Just WrapMin, height = Just WrapSize}
+		layoutOpts = {defaultLayoutOpts & padding = Just {top = 5, right = 5, bottom = 0, left = 5}}
+		panelOpts = {UIPanelOpts|title = titleAttr,frame = False, tbar 
+					,iconCls = iconClsAttr, baseCls = Nothing, bodyCls = Nothing}
+		
+		titleAttr	= get TITLE_ATTRIBUTE attributes
+		iconClsAttr	= fmap (\icon -> "icon-" +++ icon) (get ICON_ATTRIBUTE attributes)
+
+//Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
+decoratePrompt :: UIDef -> UIDef
+decoratePrompt def=:{UIDef|controls=[]} = def //If there are no controls in the prompt def, don't create a container
+decoratePrompt def=:{UIDef|controls}
+	= {UIDef|def & controls = [(container,newMap)]}
 where
-	layout type parts actions attributes
-		# partactions		= flatten [actions \\ {UIDef|actions} <- parts]
-		# (buttons,actions)	= actionsToButtons actions 
-		# (menus,actions)	= actionsToMenus actions
-		# guis				= [gui \\ {UIDef|controls=[(gui,_):_]} <- parts]
-		# gui 				= addMenusToTUI menus (addButtonsToTUI buttons (paneled (get TITLE_ATTRIBUTE attributes) (get HINT_ATTRIBUTE attributes) (get ICON_ATTRIBUTE attributes) guis))
-		= {UIDef|controls=[(gui,newMap)],actions=actions ++ partactions,attributes = attributes}
-*/	
+	container = UIContainer sizeOpts defaultLayoutOpts (map fst controls) containerOpts
+	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 0, bottom = 10, left = 0}, width = Just FlexSize, minWidth = Just WrapMin}
+	containerOpts = {UIContainerOpts|baseCls=Just "itwc-prompt", bodyCls=Nothing}
+
+
+hideLayout :: Layout
+hideLayout = layout
+where
+	layout (DataLayout def)					= {UIDef|def & controls = []}
+	layout (InteractLayout prompt editor)	= {UIDef|mergeDefs prompt editor & controls = []}
+	layout (StepLayout def actions)			= {UIDef|def & controls = [], actions = def.UIDef.actions ++ actions}
+	layout (ParallelLayout prompt defs)		= {UIDef|foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs] & controls = []}
+	layout (FinalLayout def)				= {UIDef|def & controls = []}
+	
+splitLayout :: UISide Int ([UIDef] -> ([UIDef],[UIDef])) Layout Layout -> Layout
+splitLayout side size splitFun layout1 layout2 = layout
+where
+	layout (ParallelLayout prompt parts)	= container prompt parts
+	layout layoutable						= autoLayout layoutable
+	
+	container prompt parts
+		# (parts1,parts2)		= splitFun parts
+		# side1 = layout1 (ParallelLayout prompt parts1)
+		# side2 = layout2 (ParallelLayout prompt parts2)
+		# ui1 = defaultContainer (map fst side1.UIDef.controls)
+		# ui2 = defaultContainer (map fst side2.UIDef.controls)
+		# (uis,dir) = case side of
+			TopSide		= ([(fillWidth o fixedHeight size) ui1,fill ui2],Vertical)
+			RightSide	= ([fill ui2,(fixedWidth size o fillHeight) ui1],Horizontal)
+			BottomSide	= ([fill ui2,(fillWidth o fixedHeight size) ui1],Vertical)
+			LeftSide	= ([(fixedWidth size o fillHeight) ui1,fill ui2],Horizontal)
+		# ui = (fill o setDirection dir) (defaultContainer uis)
+		= {UIDef|attributes = prompt.UIDef.attributes, controls = [(ui,newMap)], actions = side1.UIDef.actions ++ side2.UIDef.actions} 
+
+sideLayout :: UISide Int Layout -> Layout
+sideLayout side size restLayout = layout
+where
+	layout (ParallelLayout prompt parts)	= container prompt parts
+	layout layoutable						= autoLayout layoutable
+	
+	container prompt parts
+		# (direction,sidePart,restParts) = case side of
+			TopSide		= (Vertical, hd parts,tl parts)
+			RightSide	= (Horizontal, last parts,init parts)
+			BottomSide	= (Vertical, last parts,init parts)
+			LeftSide	= (Horizontal, hd parts, tl parts)
+		# restPart		= restLayout (ParallelLayout prompt restParts)
+		# sidePart		= groupControls (decorateControls sidePart)
+		# sideUI		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill (defaultContainer (map fst sidePart.UIDef.controls)))
+		# restUI		= fill (defaultContainer (map fst restPart.UIDef.controls))
+		# ui			= (fill o setDirection direction) (defaultContainer (ifTL side [sideUI,restUI] [restUI,sideUI]))
+		= {UIDef|controls = [(ui,newMap)],actions = sidePart.UIDef.actions ++ restPart.UIDef.actions, attributes = prompt.UIDef.attributes}
+
+	ifTL TopSide a b = a
+	ifTL LeftSide a b = a
+	ifTL _ a b = b
+	
+	ifH Horizontal a b = a
+	ifH _ a b = b
+
 tabbedLayout :: Layout
-tabbedLayout = heuristicLayout 
+tabbedLayout = autoLayout 
 /*
 where
 	layout type parts actions attributes
@@ -191,87 +240,6 @@ where
 	takeCloseTask [(task,ActionClose,enabled):as] = (if enabled (Just task) Nothing,as)
 	takeCloseTask [a:as] = let (mbtask,as`) = takeCloseTask as in (mbtask,[a:as`])
 */
-hideLayout :: Layout
-hideLayout = heuristicLayout /*layout
-where
-	layout type parts actions attributes
-		# attributes 	= foldr mergeAttributes newMap ([attributes \\ {UIDef|attributes} <- parts] ++ [attributes])
-		# actions		= flatten [actions:[a \\ {UIDef|actions=a} <- parts]]
-		= {UIDef|controls=[],actions=actions,attributes=attributes}
-*/
-fillLayout :: UIDirection -> Layout
-fillLayout direction = heuristicLayout /* layout
-where
-	layout type parts actions attributes
-		# attributes 	= foldr mergeAttributes newMap ([attributes \\ {UIDef|attributes} <- parts] ++ [attributes])
-		# actions		= flatten [actions:[a \\ {UIDef|actions=a} <- parts]]
-		# guis			= [(fill o setMargins 0 0 0 0 o setFramed False) gui \\ {UIDef|controls=[(gui,_):_]} <- parts]
-		= {UIDef|controls=[((fill o setDirection direction) (vjoin guis),newMap)],actions=actions,attributes=attributes}
-*/
-splitLayout :: UISide Int ([UIDef] -> ([UIDef],[UIDef])) Layout Layout -> Layout
-splitLayout side size splitFun layout1 layout2 = heuristicLayout //layout
-/*
-where
-	layout type parts actions attributes
-		# (parts1,parts2)				= splitFun parts
-		# {UIDef|controls=[(gui1,_):_]}	= layout1 type parts1 [] newMap
-		# {UIDef|controls=[(gui2,_):_]}	= layout2 type parts2 [] newMap
-		# (guis,dir)	= case side of
-			TopSide		= ([(fillWidth o fixedHeight size) gui1,fill gui2],Vertical)
-			RightSide	= ([fill gui2,(fixedWidth size o fillHeight) gui1],Horizontal)
-			BottomSide	= ([fill gui2,(fillWidth o fixedHeight size) gui1],Vertical)
-			LeftSide	= ([(fixedWidth size o fillHeight) gui1,fill gui2],Horizontal)
-		# guis		= map (setMargins 0 0 0 0 o setFramed False) guis
-		# gui		= (fill o setDirection dir) (vjoin guis)
-		= {UIDef|controls=[(gui,newMap)],actions=actions,attributes=attributes}
-*/	
-sideLayout :: UISide Int Layout -> Layout
-sideLayout side size mainLayout = heuristicLayout //layout
-/*
-where
-	layout type [] actions attributes	= mainLayout type [] actions attributes	
-
-	layout type parts actions attributes
-		# (direction,sidePart,restParts) = case side of
-			TopSide		= (Vertical, hd parts,tl parts)
-			RightSide	= (Horizontal, last parts,init parts)
-			BottomSide	= (Vertical, last parts,init parts)
-			LeftSide	= (Horizontal, hd parts, tl parts)	
-		# {UIDef|controls=[(restGui,_):_],actions=restActions,attributes=restAttributes}
-			= mainLayout type restParts actions attributes //TODO: Dont' assume Just
-		# sideGui		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) ((fill o setMargins 0 0 0 0 o setFramed False) (uiOf sidePart))
-		# arrangedGuis	= ifTL side [sideGui,restGui] [restGui,sideGui]
-		# gui			= (fill o setDirection direction) (vjoin arrangedGuis)
-		= {UIDef|controls=[(gui,newMap)],actions= restActions ++ actions,attributes = mergeAttributes restAttributes attributes}
-
-	ifTL TopSide a b = a
-	ifTL LeftSide a b = a
-	ifTL _ a b = b
-	
-	ifH Horizontal a b = a
-	ifH _ a b = b
-*/
-partLayout :: Int -> Layout
-partLayout idx = heuristicLayout //layout
-/*
-where
-	layout type parts actions attributes
-		# attributes 	= foldr mergeAttributes newMap ([attributes \\ {UIDef|attributes} <- parts] ++ [attributes])
-		# actions		= flatten [actions:[a \\ {UIDef|actions=a} <- parts]]
-		# controls		= if (idx >= length parts) [] (parts !! idx).UIDef.controls
-		= {UIDef|controls=controls,actions=actions,attributes=attributes}
-*/
-vsplitLayout :: Int ([UIControl] -> ([UIControl],[UIControl])) -> Layout
-vsplitLayout split fun = heuristicLayout /*layout
-where
-	layout type parts actions attributes
-		# (guis1,guis2)	= fun (flatten [map fst controls \\ {UIDef|controls} <- parts])
-		# gui			= (fill o vjoin)
-							[(fixedHeight split o fillWidth) (vjoin guis1)
-							, fill (vjoin guis2)
-							]					
-		= {UIDef|attributes=attributes,controls=[(gui,newMap)],actions=actions}
-*/
 //Determine the index of the visible part with the highest stack-order attribute
 getTopIndex :: [UIDef] -> Int 
 getTopIndex parts = find 0 0 0 parts
@@ -285,6 +253,11 @@ where
 			| time > maxTop	= find time i (i + 1) ps
 							= find maxTop maxIndex (i + 1) ps
 
+partLayout :: Int -> Layout
+partLayout idx = layout
+where
+	layout (ParallelLayout prompt parts)	= parts !! idx
+	layout layoutable						= autoLayout layoutable
 
 updSizeOpts :: (UISizeOpts -> UISizeOpts) UIControl -> UIControl
 updSizeOpts f (UIViewString	sOpts vOpts)			= (UIViewString	(f sOpts) vOpts)
@@ -326,6 +299,15 @@ setWidth width ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just wid
 
 setHeight :: !UISize !UIControl -> UIControl
 setHeight height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & height = Just height}) ctrl
+
+setMinSize :: !UIMinSize !UIMinSize !UIControl -> UIControl
+setMinSize width height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & minWidth = Just width, minHeight = Just height}) ctrl
+
+setMinWidth :: !UIMinSize !UIControl -> UIControl
+setMinWidth width ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & minWidth = Just width}) ctrl
+
+setMinHeight :: !UIMinSize !UIControl -> UIControl
+setMinHeight height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & minHeight = Just height}) ctrl
 
 fill :: !UIControl -> UIControl
 fill ctrl = updSizeOpts (\opts -> {UISizeOpts|opts & width = Just FlexSize, height = Just FlexSize}) ctrl
@@ -459,27 +441,6 @@ hjoin items = UIContainer defaultSizeOpts {defaultLayoutOpts & direction = Horiz
 vjoin :: ![UIControl] -> UIControl
 vjoin items = UIContainer defaultSizeOpts {defaultLayoutOpts & direction = Vertical, halign = AlignLeft, valign = AlignTop} items {UIContainerOpts|baseCls=Nothing,bodyCls=Nothing}
 						
-paneled :: !(Maybe String) !(Maybe String) !(Maybe String) ![UIControl] -> UIControl
-paneled mbTitle mbHint mbIcon defs
-	# def	= maybe (formPanel defs) (\hint -> vjoin [hintPanel hint,formPanel defs]) mbHint
-	# panel = frame (toPanel def)
-	# panel = case mbTitle of
-		Nothing		= panel
-		Just title	= setTitle title panel
-	# panel = case mbIcon of
-		Nothing		= panel
-		Just icon	= setIconCls ("icon-" +++ icon) panel	
-	= panel
-where
-	frame = setMargins 10 10 0 10 o setFramed True o fixedWidth 700
-
-formed :: !(Maybe String) ![UIControl] -> UIControl
-formed mbHint defs 
-	= case mbHint of
-		Nothing		= formPanel defs
-		Just hint	= vjoin [hintPanel hint,formPanel defs]
-
-
 //Container operations
 addItemToUI :: (Maybe Int) UIControl UIControl -> UIControl
 addItemToUI mbIndex item ctrl = case ctrl of
@@ -504,19 +465,10 @@ setItemsOfUI items (UIPanel sOpts lOpts _ opts)		= UIPanel sOpts lOpts items opt
 setItemsOfUI items (UIWindow sOpts lOpts _ opts)		= UIWindow sOpts lOpts items opts
 setItemsOfUI items ctrl								= ctrl
 
-//Predefined panels
-hintPanel :: !String -> UIControl	//Panel with task instructions
-hintPanel hint
-	= (setBaseCls "i-hint-panel" o setPadding 5 5 5 5 o fillWidth o wrapHeight) (vjoin [stringDisplay hint])
-
-formPanel :: ![UIControl] -> UIControl
-formPanel items
-	= (/*setBaseCls "i-form-panel" o */ setPadding 5 5 5 5 ) (vjoin items)
-
 //Container for a set of horizontally layed out buttons
 buttonPanel	:: ![UIControl] -> UIControl	
 buttonPanel buttons
-	= (wrapHeight o fillWidth o setPadding 2 5 2 5 o setDirection Horizontal o setHalign AlignRight) (defaultContainer buttons)
+	= (wrapHeight o fillWidth o setPadding 2 0 2 0 o setDirection Horizontal o setHalign AlignRight) (defaultContainer buttons)
 
 actionsToButtons :: ![UIAction] -> (![UIControl],![UIAction])
 actionsToButtons [] = ([],[])
@@ -607,8 +559,8 @@ mergeDefs :: UIDef UIDef -> UIDef
 mergeDefs {UIDef|controls=ct1,actions=ac1,attributes=at1} {UIDef|controls=ct2,actions=ac2,attributes=at2}
 	= {UIDef|controls = ct1 ++ ct2, actions = ac1 ++ ac2, attributes = mergeAttributes at1 at2}
 
-appLayout :: Layout Layoutable -> UIDef
-appLayout f layoutable  = f layoutable
+appControls :: (UIControl -> UIControl) UIDef -> UIDef
+appControls f def=:{UIDef|controls} = {UIDef|def & controls = [(f c,a) \\ (c,a) <- controls]}
 
 appDeep	:: [Int] (UIControl -> UIControl) UIControl -> UIControl
 appDeep [] f ctrl = f ctrl
@@ -620,8 +572,8 @@ appDeep [s:ss] f ctrl = case ctrl of
 where
 	update items = [if (i == s) (appDeep ss f item) item \\ item <- items & i <- [0..]]
 
-tweakTUI :: (UIControl -> UIControl) UIDef -> UIDef
-tweakTUI f def=:{UIDef|controls} = {UIDef|def & controls = [(f c,a) \\ (c,a) <- controls]}
+tweakUI :: (UIControl -> UIControl) UIDef -> UIDef
+tweakUI f def=:{UIDef|controls} = {UIDef|def & controls = [(f c,a) \\ (c,a) <- controls]}
 
 tweakAttr :: (UIAttributes -> UIAttributes) UIDef -> UIDef
 tweakAttr f def=:{UIDef|attributes} = {UIDef|def & attributes = f attributes}
