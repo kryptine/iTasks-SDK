@@ -6,6 +6,7 @@ Ext.define('itwc.component.choice.Tree',{
 
 	width: 150,
 	height: 200,
+	editBufferTime: 0,
 
 	initComponent: function() {	
 		var me = this,

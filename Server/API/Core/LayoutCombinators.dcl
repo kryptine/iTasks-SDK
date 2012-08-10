@@ -20,6 +20,10 @@ import Maybe
 	| ParallelLayout UIDef [UIDef] 		//Prompt, parallel parts
 	| FinalLayout UIDef					//Reduce the final composition
 
+// When the multiple parts of a parallel combinator need to be merged into a single definition
+// we call it a parallel merger
+:: ParallelMerger :== UIDef [UIDef] -> UIDef
+
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
 :: ModifyLayout	= ModifyLayout (Layout -> Layout)
@@ -36,13 +40,13 @@ autoLayout :: Layout
 */
 hideLayout :: Layout
 /**
-* Split the available space into two areas with their own layout
+* Split the available space into equal areas
 */
-splitLayout :: UISide Int ([UIDef] -> ([UIDef],[UIDef])) Layout Layout -> Layout
+splitLayout :: UIDirection -> Layout
 /**
 * Split available space into a main area and a side panel.
 */
-sideLayout :: UISide Int Layout -> Layout
+sideLayout :: UISide Int ParallelMerger -> Layout
 /**
 * This layout arranges its parallel parts into a set of tabs.
 */
@@ -51,6 +55,12 @@ tabbedLayout :: Layout
 * Use the gui of a specific part, but keep merge attributes and actions of all parts
 */
 partLayout :: Int -> Layout
+
+minimalMerge	:: ParallelMerger
+groupedMerge	:: ParallelMerger
+sideMerge		:: UISide Int ParallelMerger -> ParallelMerger
+splitMerge		:: UIDirection -> ParallelMerger
+tabbedMerge		:: ParallelMerger
 
 //Useful functions for tweaking or roll-your-own layouts
 

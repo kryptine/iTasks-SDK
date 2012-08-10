@@ -49,10 +49,9 @@ where
 autoParallelLayout :: UIDef [UIDef] -> UIDef
 autoParallelLayout prompt defs
 	| allPartial defs		//If we are composing partial user interfaces
-		= mergePartials prompt defs
+		= partialMerge prompt defs
 	| otherwise
-		# def = makeGroups prompt defs //Create a visual groupin for each def in the list
-		= {UIDef|def & attributes = put TYPE_ATTRIBUTE "multi" def.UIDef.attributes}
+		= groupedMerge prompt defs
 where
 	allPartial [] = True
 	allPartial [d:ds] = case get TYPE_ATTRIBUTE d.UIDef.attributes of Just "partial" = allPartial ds; _ = False;
@@ -60,31 +59,49 @@ where
 * Add actions and frame the content
 */
 autoFinalLayout :: UIDef -> UIDef	//TODO: Size should be minWidth, but that doesn't seem to work yet...
-autoFinalLayout def = appControls (setWidth (ExactSize 600) o setFramed True) (groupControls (decorateControls def))
-
-//Merge the fragments of a composed interactive task into a single definition
-mergePartials :: UIDef [UIDef] -> UIDef
-mergePartials prompt defs
-	# attributes = prompt.UIDef.attributes
-	# controls = foldr (++) (decoratePrompt prompt).UIDef.controls [d.UIDef.controls \\ d <- defs]
-	# actions = foldr (++) [] [d.UIDef.actions \\ d <- defs]
-	//Determine title: if prompt has title use it, else combine titles 
-	# attributes = case (get TITLE_ATTRIBUTE attributes, collectTitles defs) of
-		(Just _,_) 	= attributes //Title already set, do nothing
-		(_,[])		= attributes //None of the parts have a title, do nothing
-		(_,titles)	= put TITLE_ATTRIBUTE (join ", " titles) attributes	//Set the joined titles
-	= {UIDef|attributes = attributes, controls = controls, actions = actions}
+autoFinalLayout def = appControls finalTouch (autoReduce (decorateControls def))
 where
-	collectTitles defs = [title \\ Just title <- [get TITLE_ATTRIBUTE d.UIDef.attributes \\ d <- defs]]
+	finalTouch = setWidth (ExactSize 600) o setFramed True
+	//Only set width, if it was not explicitly set yet
+	setConditionalWidth size = updSizeOpts (\opts -> case opts.UISizeOpts.width of Nothing = {UISizeOpts|opts & width = Just size}; _ = opts)
+
+//Default reduction function that reduces the list of controls to a single control by
+//wrapping them in a panel if necessary.
+//If possible, actions are converted to menus and buttons and added to this panel
+autoReduce :: UIDef -> UIDef
+autoReduce def=:{UIDef|attributes,controls,actions}
+	# (buttons,actions)	= actionsToButtons actions
+	# controls			= addButtons buttons controls
+	# (controls,actions) = case controls of
+		[(UIPanel _ _ _ _,_)]		= (controls,actions)	//Do nothing if the controls already consist of a single panel
+		[(c=:(UIContainer _ _ _ _),a)] = case titleAttr of
+				Nothing			= (controls,actions)							//If we don't have a title, just leave the container be the single control
+				(Just title)	= ([(setTitle title (toPanel c),a)],actions)	//Promote container to panel and set title
+		_					
+			# (menus,actions)	= actionsToMenus actions
+			= (wrapControls attributes menus controls,actions)
+	= {UIDef|def & controls = controls, actions = actions, attributes = attributes}
+where
+	addButtons [] controls		= controls
+	addButtons buttons controls	= controls ++ [(buttonPanel buttons,newMap)]
+
+	titleAttr	= get TITLE_ATTRIBUTE attributes
 	
-//Create groups for all definitions in the list
-makeGroups :: UIDef [UIDef] -> UIDef
-makeGroups prompt defs
-	# groups		= map (groupControls o decorateControls) defs
-	# attributes	= prompt.UIDef.attributes
-	# controls		= foldr (++) (decoratePrompt prompt).UIDef.controls [d.UIDef.controls \\ d <- groups]
-	# actions		= foldr (++) [][d.UIDef.actions \\ d <- groups]
-	= {UIDef|attributes = attributes, controls = controls, actions = actions}
+	//Create the panel
+	wrapControls attributes menus controls
+		= [(UIPanel sizeOpts layoutOpts (map fst controls) panelOpts,newMap)]
+	where
+		tbar		= case menus of [] = Nothing; _ = Just menus
+		
+		sizeOpts  = {defaultSizeOpts & width = Just FlexSize, minWidth = Just WrapMin, height = Just WrapSize}
+		layoutOpts = {defaultLayoutOpts & padding = Just {top = 5, right = 5, bottom = 0, left = 5}}
+		panelOpts = {UIPanelOpts|title = titleAttr,frame = False, tbar 
+					,iconCls = iconClsAttr, baseCls = Nothing, bodyCls = Nothing}
+		
+		iconClsAttr	= fmap (\icon -> "icon-" +++ icon) (get ICON_ATTRIBUTE attributes)
+
+fillReduce :: UIDef -> UIDef
+fillReduce def = autoReduce (fillOutControls def)
 	
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: UIDef -> UIDef
@@ -116,30 +133,9 @@ where
 	
 	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
 
-//Reduce all controls to a single control by wrapping them in a panel
-//During this grouping, applicable actions are converted to menus and buttons
-//and added to the panel
-groupControls :: UIDef -> UIDef
-groupControls def=:{UIDef|attributes,controls,actions}
-	# (buttons,actions)	= actionsToButtons actions
-	# (menus,actions)	= actionsToMenus actions
-	# panel				= groupPanel attributes buttons menus controls
-	= {UIDef|def & controls = [(panel,newMap)], actions = actions, attributes = attributes}
-where
-	//Create the panel
-	groupPanel attributes buttons menus controls
-		= UIPanel sizeOpts layoutOpts ((map fst controls) ++ buttonBar) panelOpts
-	where
-		buttonBar	= [buttonPanel buttons]
-		tbar		= case menus of [] = Nothing; _ = Just menus
-		
-		sizeOpts  = {defaultSizeOpts & width = Just FlexSize, minWidth = Just WrapMin, height = Just WrapSize}
-		layoutOpts = {defaultLayoutOpts & padding = Just {top = 5, right = 5, bottom = 0, left = 5}}
-		panelOpts = {UIPanelOpts|title = titleAttr,frame = False, tbar 
-					,iconCls = iconClsAttr, baseCls = Nothing, bodyCls = Nothing}
-		
-		titleAttr	= get TITLE_ATTRIBUTE attributes
-		iconClsAttr	= fmap (\icon -> "icon-" +++ icon) (get ICON_ATTRIBUTE attributes)
+//TODO: try to make as many components flex fitting as possible to fill up a container
+fillOutControls	:: UIDef -> UIDef
+fillOutControls def = def
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 decoratePrompt :: UIDef -> UIDef
@@ -151,6 +147,122 @@ where
 	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 0, bottom = 10, left = 0}, width = Just FlexSize, minWidth = Just WrapMin}
 	containerOpts = {UIContainerOpts|baseCls=Just "itwc-prompt", bodyCls=Nothing}
 
+//Merge the fragments of a composed interactive task into a single definition
+partialMerge :: UIDef [UIDef] -> UIDef
+partialMerge prompt defs
+	# attributes =  put TYPE_ATTRIBUTE "partial" prompt.UIDef.attributes
+	# controls = foldr (++) (decoratePrompt prompt).UIDef.controls [d.UIDef.controls \\ d <- defs]
+	# actions = foldr (++) [] [d.UIDef.actions \\ d <- defs]
+	//Determine title: if prompt has title use it, else combine titles 
+	# attributes = case (get TITLE_ATTRIBUTE attributes, collectTitles defs) of
+		(Just _,_) 	= attributes //Title already set, do nothing
+		(_,[])		= attributes //None of the parts have a title, do nothing
+		(_,titles)	= put TITLE_ATTRIBUTE (join ", " titles) attributes	//Set the joined titles
+	= {UIDef|attributes = attributes, controls = controls, actions = actions}
+where
+	collectTitles defs = [title \\ Just title <- [get TITLE_ATTRIBUTE d.UIDef.attributes \\ d <- defs]]
+
+
+//Minimal merge, ignore the prompt, only reduce all parts
+minimalMerge :: ParallelMerger
+minimalMerge = merge
+where
+	merge _ defs
+		# attributes	= put TYPE_ATTRIBUTE "multi" newMap
+		# controls		= foldr (++) [] [(autoReduce d).UIDef.controls \\ d <- defs]
+		# actions		= foldr (++) [] [d.UIDef.actions \\ d <- defs]
+		= {UIDef|attributes = attributes, controls = controls, actions = actions}
+	
+//Create groups for all definitions in the list
+groupedMerge :: ParallelMerger
+groupedMerge = merge
+where
+	merge prompt defs
+		# groups		= map (autoReduce o decorateControls) defs
+		# attributes	= put TYPE_ATTRIBUTE "multi" prompt.UIDef.attributes
+		# controls		= foldr (++) (decoratePrompt prompt).UIDef.controls [d.UIDef.controls \\ d <- groups]
+		# actions		= foldr (++) [][d.UIDef.actions \\ d <- groups]
+		= {UIDef|attributes = attributes, controls = controls, actions = actions}
+
+sideMerge :: UISide Int ParallelMerger -> ParallelMerger
+sideMerge side size restMerge = merge
+where
+	merge prompt []		= prompt
+	merge prompt parts
+		# (direction,sidePart,restParts) = case side of
+			TopSide		= (Vertical, hd parts,tl parts)
+			RightSide	= (Horizontal, last parts,init parts)
+			BottomSide	= (Vertical, last parts,init parts)
+			LeftSide	= (Horizontal, hd parts, tl parts)
+		# restPart		= fillReduce (restMerge prompt restParts)
+		# sidePart		= fillReduce sidePart
+		# sideUI		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill (uiOf sidePart))
+		# restUI		= fill (uiOf restPart)
+		# ui			= (fill o setDirection direction) (defaultContainer (ifTL side [sideUI,restUI] [restUI,sideUI]))
+		= {UIDef|controls = [(ui,newMap)],actions = sidePart.UIDef.actions ++ restPart.UIDef.actions, attributes = prompt.UIDef.attributes}
+
+	ifTL TopSide a b = a
+	ifTL LeftSide a b = a
+	ifTL _ a b = b
+	
+	ifH Horizontal a b = a
+	ifH _ a b = b
+	
+splitMerge :: UIDirection -> ParallelMerger
+splitMerge dir = merge
+where
+	merge prompt parts = prompt
+	/*
+		# (parts1,parts2)		= splitFun parts
+		# side1 = merger1 prompt parts1
+		# side2 = merger2 prompt parts2
+		# ui1 = defaultContainer (map fst side1.UIDef.controls)
+		# ui2 = defaultContainer (map fst side2.UIDef.controls)
+		# (uis,dir) = case side of
+			TopSide		= ([(fillWidth o fixedHeight size) ui1,fill ui2],Vertical)
+			RightSide	= ([fill ui2,(fixedWidth size o fillHeight) ui1],Horizontal)
+			BottomSide	= ([fill ui2,(fillWidth o fixedHeight size) ui1],Vertical)
+			LeftSide	= ([(fixedWidth size o fillHeight) ui1,fill ui2],Horizontal)
+		# ui = (fill o setDirection dir) (defaultContainer uis)
+		= {UIDef|attributes = prompt.UIDef.attributes, controls = [(ui,newMap)], actions = side1.UIDef.actions ++ side2.UIDef.actions} 
+	*/
+tabbedMerge :: ParallelMerger
+tabbedMerge = merge
+where
+	merge prompt defs
+		# attributes				= prompt.UIDef.attributes
+		# (activeIndex,activeDef)	= findActive defs	
+		# (tabBar,actions)			= mkTabs activeIndex defs	
+		# tabContent				=  maybe [(defaultPanel [],newMap)] (\d -> (tweakUI (setPadding 0 0 0 0) (autoReduce (tweakAttr (del TITLE_ATTRIBUTE) d))).UIDef.controls) activeDef
+		# controls					= (decoratePrompt prompt).UIDef.controls ++ [(tabBar,newMap)] ++ tabContent
+		= {UIDef|attributes = attributes,controls = controls, actions = actions}
+
+	findActive defs = find 0 (0,Nothing) defs
+	where
+		find i bestSoFar [] = bestSoFar
+		find i (_,Nothing) [d:ds]	= find (i+1) (i,Just d) ds
+		find i bestSoFar=:(_,Just best) [d:ds]	= if (later d best) (find (i+1) (i,Just d) ds) (find (i+1) bestSoFar ds)
+		
+		later a b = case (get TIME_ATTRIBUTE a.UIDef.attributes,get TIME_ATTRIBUTE b.UIDef.attributes) of
+			(Just ta,Just tb)	= ta > tb
+			(Just _,Nothing)	= True
+			_					= False
+		
+	mkTabs active defs
+		# (tabs,actions) = unzip [mkTab (i == active) d \\ d <- defs & i <- [0..]]
+		= (setDirection Horizontal (defaultContainer tabs),foldr (++) [] actions)
+
+	mkTab active def=:{UIDef|attributes,actions}
+		# taskId				= get TASK_ATTRIBUTE attributes
+		# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
+		# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
+		# (closable,actions)	= searchCloseAction taskId actions
+		# tabOpts = {text = text ,taskId = taskId,active = active,closable = closable,iconCls=iconCls}
+		= (UITab defaultSizeOpts tabOpts, if active actions [])
+	
+	searchCloseAction match [] = (False,[])
+	searchCloseAction (Just match) [{taskId,action=ActionClose,enabled}:as] = (taskId == match && enabled,as)
+	searchCloseAction match [a:as] = let (mbtask,as`) = searchCloseAction match as in (mbtask,[a:as`])
 
 hideLayout :: Layout
 hideLayout = layout
@@ -161,85 +273,25 @@ where
 	layout (ParallelLayout prompt defs)		= {UIDef|foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs] & controls = []}
 	layout (FinalLayout def)				= {UIDef|def & controls = []}
 	
-splitLayout :: UISide Int ([UIDef] -> ([UIDef],[UIDef])) Layout Layout -> Layout
-splitLayout side size splitFun layout1 layout2 = layout
+splitLayout :: UIDirection -> Layout
+splitLayout dir = layout
 where
-	layout (ParallelLayout prompt parts)	= container prompt parts
+	layout (ParallelLayout prompt parts)	= splitMerge dir prompt parts
 	layout layoutable						= autoLayout layoutable
 	
-	container prompt parts
-		# (parts1,parts2)		= splitFun parts
-		# side1 = layout1 (ParallelLayout prompt parts1)
-		# side2 = layout2 (ParallelLayout prompt parts2)
-		# ui1 = defaultContainer (map fst side1.UIDef.controls)
-		# ui2 = defaultContainer (map fst side2.UIDef.controls)
-		# (uis,dir) = case side of
-			TopSide		= ([(fillWidth o fixedHeight size) ui1,fill ui2],Vertical)
-			RightSide	= ([fill ui2,(fixedWidth size o fillHeight) ui1],Horizontal)
-			BottomSide	= ([fill ui2,(fillWidth o fixedHeight size) ui1],Vertical)
-			LeftSide	= ([(fixedWidth size o fillHeight) ui1,fill ui2],Horizontal)
-		# ui = (fill o setDirection dir) (defaultContainer uis)
-		= {UIDef|attributes = prompt.UIDef.attributes, controls = [(ui,newMap)], actions = side1.UIDef.actions ++ side2.UIDef.actions} 
-
-sideLayout :: UISide Int Layout -> Layout
-sideLayout side size restLayout = layout
+sideLayout :: UISide Int ParallelMerger -> Layout
+sideLayout side size restMerge = layout
 where
-	layout (ParallelLayout prompt parts)	= container prompt parts
+	layout (ParallelLayout prompt parts)	= sideMerge side size restMerge prompt parts
 	layout layoutable						= autoLayout layoutable
 	
-	container prompt parts
-		# (direction,sidePart,restParts) = case side of
-			TopSide		= (Vertical, hd parts,tl parts)
-			RightSide	= (Horizontal, last parts,init parts)
-			BottomSide	= (Vertical, last parts,init parts)
-			LeftSide	= (Horizontal, hd parts, tl parts)
-		# restPart		= restLayout (ParallelLayout prompt restParts)
-		# sidePart		= groupControls (decorateControls sidePart)
-		# sideUI		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill (defaultContainer (map fst sidePart.UIDef.controls)))
-		# restUI		= fill (defaultContainer (map fst restPart.UIDef.controls))
-		# ui			= (fill o setDirection direction) (defaultContainer (ifTL side [sideUI,restUI] [restUI,sideUI]))
-		= {UIDef|controls = [(ui,newMap)],actions = sidePart.UIDef.actions ++ restPart.UIDef.actions, attributes = prompt.UIDef.attributes}
-
-	ifTL TopSide a b = a
-	ifTL LeftSide a b = a
-	ifTL _ a b = b
-	
-	ifH Horizontal a b = a
-	ifH _ a b = b
-
 tabbedLayout :: Layout
-tabbedLayout = autoLayout 
-/*
+tabbedLayout = layout
 where
-	layout type parts actions attributes
-		
-		# tabs		= [tab gui actions attributes \\ (_,Just gui,actions,attributes) <- parts]
-		# active	= getTopIndex parts
-		# tabs		= emptyNonActive active tabs
-		# gui		= defaultDef (UITabContainer {UITabContainer| active = active, items = [tab \\{UIDef|content=UITabItem tab} <- tabs]})
-		= (type, Just gui, actions, attributes)
+	layout (ParallelLayout prompt parts)	= tabbedMerge prompt parts
+	layout layoutable						= autoLayout layoutable
 	
-	tab gui actions attributes
-		# (close,actions)	= takeCloseTask actions
-		# (menus,actions)	= actionsToMenus actions
-		# tab				= toTab gui
-		# tab				= case (kvGet TASK_ATTRIBUTE attributes) of Nothing = tab; Just taskId = setTaskId taskId tab
-		# tab				= case (kvGet TITLE_ATTRIBUTE attributes) of Nothing = tab; Just title = setTitle title tab
-		# tab				= case (kvGet ICON_ATTRIBUTE attributes) of Nothing = tab; Just icon = setIconCls ("icon-" +++ icon) tab
-		//# tab				= case close of Nothing = tab; Just task = setCloseAction (actionName ActionClose,task) tab
-		# tab				= addMenusToTUI menus tab
-		= tab
 
-	//Remove all content from tabs that are not visible anyway
-	emptyNonActive active tabs = [if (i == active) tab (empty tab) \\ tab <- tabs & i <- [0..]] 
-	where
-		empty tab=:{UIDef|content=UITabItem c} = {tab & content = UITabItem {UITabItem|c & items = [], menus = []}}
-
-	//Find the task id of an ActionClose action
-	takeCloseTask [] = (Nothing,[])
-	takeCloseTask [(task,ActionClose,enabled):as] = (if enabled (Just task) Nothing,as)
-	takeCloseTask [a:as] = let (mbtask,as`) = takeCloseTask as in (mbtask,[a:as`])
-*/
 //Determine the index of the visible part with the highest stack-order attribute
 getTopIndex :: [UIDef] -> Int 
 getTopIndex parts = find 0 0 0 parts

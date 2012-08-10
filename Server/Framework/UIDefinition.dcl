@@ -185,7 +185,7 @@ from Map			import :: Map(..)
 
 :: UITabOpts =
 	{ text			:: !String
-	, taskId		:: !String
+	, taskId		:: !Maybe String
 	, active		:: !Bool
 	, closable		:: !Bool
 	, iconCls		:: !Maybe String

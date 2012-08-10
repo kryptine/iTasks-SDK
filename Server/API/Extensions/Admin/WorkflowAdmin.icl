@@ -132,18 +132,17 @@ derive class iTask ClientPart, WorklistRow
 	
 workflowDashboard :: Task Void
 workflowDashboard
-	=  parallel (Title "Manage worklist")
+	=  parallel Void//(Title "Manage worklist")
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
-		] //<<@ SetLayout layout 
+		] <<@ SetLayout layout 
 	>>* [WhenValid (\results -> isValue (snd (results !! 1))) (\_ -> return Void)]
 where
 	isValue (Value _ _) = True
 	isValue _			= False
 	
-	//layout = (sideLayout LeftSide 260 (sideLayout TopSide 26 (sideLayout TopSide 200 tabbedLayout)))
-	layout = (sideLayout LeftSide 260 (sideLayout TopSide 26 (sideLayout TopSide 200 autoLayout)))
+	layout = (sideLayout LeftSide 260 (sideMerge TopSide 50 (sideMerge TopSide 200 minimalMerge)))
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
@@ -158,7 +157,7 @@ where
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list = forever
-	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 autoLayout))
+	(	 ((chooseWorkflow >&> viewWorkflowDetails)  <<@ SetLayout (sideLayout BottomSide 200 minimalMerge))
 	>>*	 [WithResult (Action "Start Workflow") (const True) (startWorkflow list)]
 	@ 	\wf -> SelWorkflow wf.Workflow.path
 	)
