@@ -15,7 +15,7 @@ import Engine, IWorld
 	
 derive JSONEncode ServiceResponsePart
 
-webService :: !(Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
+webService :: !(HTTPRequest -> Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
 webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 	= case format of
 		//Serve start page
@@ -26,12 +26,12 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 			//Load or create session context and edit / evaluate
 			# (mbResult, prevUI, iworld)	= case sessionParam of
 				""	
-					# (mbResult, iworld) = createSessionInstance task Nothing Nothing iworld
+					# (mbResult, iworld) = createSessionInstance (task req) RefreshEvent iworld
 					= (mbResult, [], iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
 					# (prevUI,iworld)		= loadPrevUI sessionId guiVersion iworld
-					# (mbResult, iworld) 	= evalSessionInstance sessionId editEvent commitEvent iworld
+					# (mbResult, iworld) 	= evalSessionInstance sessionId event iworld
 					= (mbResult,prevUI,iworld)
 			# (json, iworld) = case mbResult of
 					Error err
@@ -51,7 +51,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 							(_, TaskRep {UIDef|controls} _)
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
-												 ,("updates", encodeUIUpdates (diffUIDefinitions prevUI (map fst controls) editEvent))
+												 ,("updates", encodeUIUpdates (diffUIDefinitions prevUI (map fst controls) event))
 												 ,("timestamp",toJSON timestamp)]
 							
 							_
@@ -67,9 +67,9 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		//Serve the task in easily accessable JSON representation
 		JSONService
 			# (mbResult,iworld)	= case sessionParam of
-				""	= createSessionInstance task Nothing Nothing iworld
+				""	= createSessionInstance (task req) RefreshEvent iworld
 				sessionId
-					= evalSessionInstance sessionId Nothing Nothing iworld
+					= evalSessionInstance sessionId RefreshEvent iworld
 			= case mbResult of
 				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)
@@ -79,20 +79,12 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					= (jsonResponse (serviceBusyResponse rep actions (toList attributes)), iworld)
 		//Serve the task in a minimal JSON representation (only possible for non-parallel instantly completing tasks)
 		JSONPlain
-			//HACK: REALLY REALLY REALLY UGLY THAT IT IS NECCESARY TO EVAL TWICE
-			# (mbResult,iworld) = createSessionInstance task Nothing Nothing iworld
-			# (mbResult,iworld) = case mbResult of
-				(Ok (_,instanceId,sessionId))	
-					# (luckyEdit,luckyCommit) = if (req.req_data == "")
-						(Nothing,Nothing)	
-						(Just (LuckyEvent instanceId ("",fromString req.req_data)), Just (LuckyEvent instanceId ""))
-					= evalSessionInstance sessionId luckyEdit luckyCommit iworld
-				(Error e)			= (Error e,iworld)
+			# (mbResult,iworld) = createSessionInstance (task req) RefreshEvent iworld
 			= case mbResult of
 				Ok (ExceptionResult _ err,_,_)
 					= (errorResponse err, iworld)
-				Ok (ValueResult (Value val Stable) _ _ _,_,_)
-					= (plainDoneResponse val, iworld)
+				Ok (ValueResult (Value val _) _ _ _,_,_)
+					= (jsonResponse val, iworld)
 				_
 					= (errorResponse "Requested service format not available for this task", iworld)
 		//Error unimplemented type
@@ -108,20 +100,23 @@ where
 
 	formatParam			= paramValue "format" req
 
-
 	sessionParam		= paramValue "session" req
 //	downloadParam		= paramValue "download" req
 //	uploadParam			= paramValue "upload" req
 	versionParam		= paramValue "version" req
-	editEventParam		= paramValue "editEvent" req
-	editEvent			= case (fromJSON (fromString editEventParam)) of
-		Just (task,path,value)	= Just (TaskEvent (fromString task) (path,value))
-		_						= Nothing
-	commitEventParam	= paramValue "commitEvent" req
-	commitEvent			= case (fromJSON (fromString commitEventParam)) of
-		Just (task,action)		= Just (TaskEvent (fromString task) action)
-		_						= Nothing
 
+	editEventParam		= paramValue "editEvent" req
+	actionEventParam	= paramValue "actionEvent" req
+	focusEventParam		= paramValue "focusEvent" req
+	
+	event = case (fromJSON (fromString editEventParam)) of
+		Just (taskId,name,value)	= EditEvent (fromString taskId) name value
+		_	= case (fromJSON (fromString actionEventParam)) of
+			Just (taskId,actionId)	= ActionEvent (fromString taskId) actionId
+			_	= case (fromJSON (fromString focusEventParam)) of
+				Just taskId			= FocusEvent (fromString taskId)
+				_					= RefreshEvent
+	
 	guiVersion			= toInt versionParam
 
 	jsonResponse json
@@ -141,8 +136,6 @@ where
 	serviceErrorResponse e
 		= JSONObject [("status",JSONString "error"),("error",JSONString e)]
 
-	plainDoneResponse val = jsonResponse val
-	
 	appStartResponse appName = {newHTTPResponse & rsp_data = toString (appStartPage appName)}
 
 	appStartPage appName = HtmlTag [] [head,body]

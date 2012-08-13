@@ -21,6 +21,8 @@ URL_PREFIX			:== ""
 	, defaultFormat	:: ServiceFormat
 	}
 	
+:: TaskWrapper = E.a: TaskWrapper (HTTPRequest -> Task a) & iTask a
+	
 //* The format in which a task is presented.
 :: ServiceFormat
 	= WebApp			
@@ -39,13 +41,14 @@ engine :: publish -> [(!String -> Bool,!HTTPRequest *IWorld -> (!HTTPResponse, !
 /**
 * Wraps a task together with a url to make it publishable by the engine
 */
-publish :: String ServiceFormat (Task a) -> PublishedTask | iTask a
+publish :: String ServiceFormat (HTTPRequest -> Task a) -> PublishedTask | iTask a
 
 class Publishable a
 where
 	publishAll :: !a -> [PublishedTask]
 
 instance Publishable (Task a) | iTask a
+instance Publishable (HTTPRequest -> Task a) | iTask a
 instance Publishable [PublishedTask]
 
 /**

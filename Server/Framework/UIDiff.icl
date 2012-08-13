@@ -2,7 +2,7 @@ implementation module UIDiff
 
 import StdBool, StdClass, StdList, StdEnum, StdMisc, StdTuple, sapldebug
 import Text, Util, UIDefinition
-from Task import :: EditEvent(..), :: Event(..)
+from Task import :: Event(..)
 
 :: DiffPath :== [DiffStep] 
 :: DiffStep	= ItemStep !Int | MenuStep
@@ -14,10 +14,10 @@ where
 		step (ItemStep i) = toString i
 		step (MenuStep) = "m"
 
-diffUIDefinitions :: ![UIControl] ![UIControl] !(Maybe EditEvent) -> [UIUpdate]
+diffUIDefinitions :: ![UIControl] ![UIControl] !Event -> [UIUpdate]
 diffUIDefinitions old new event = [] //diffEditorDefinitions` [ItemStep 0] event old new
 
-diffEditorDefinitions` :: !DiffPath !(Maybe EditEvent) !UIControl !UIControl -> [UIUpdate]
+diffEditorDefinitions` :: !DiffPath !Event !UIControl !UIControl -> [UIUpdate]
 //diffEditorDefinitions` path event (UIViewString osize oview) (UIViewString nsize nview) = []
 //Fallback case, simply replace old by new
 diffEditorDefinitions` [ItemStep parentIndex:parentPath] event old new = [UIReplace (toString parentPath) parentIndex new]

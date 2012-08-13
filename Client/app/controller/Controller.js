@@ -82,12 +82,14 @@ Ext.define('itwc.controller.Controller',{
 	onAction: function(taskId, actionId) {
 		console.log("Action event", taskId, actionId);
 		var me = this,
-			params = {commitEvent: Ext.encode([taskId,actionId])};
+			params = {actionEvent: Ext.encode([taskId,actionId])};
 		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING
 	},
 	//iTasks focus events
 	onFocus: function(taskId) {
-		console.log("Focus event", taskId);
+		var me = this,
+			params = {focusEvent: Ext.encode(taskId)};
+		me.sendMessage(params);
 	},
 	//Send a message to the server
 	sendMessage: function(msg) {

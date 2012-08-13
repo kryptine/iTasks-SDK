@@ -9,16 +9,16 @@ from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDeco
 mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask a
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
-	evalOnce f _ _ _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of
+	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of
 		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts (finalizeRep repOpts rep) (TCStable taskId ts (DeferredJSON a)), iworld)
 		(ExceptionResult e s, iworld)					= (ExceptionResult e s, iworld)
 		(_,iworld)										= (exception "Instant task did not complete instantly", iworld)
 
-	evalOnce f _ _ _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
+	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
 		Just a	= (ValueResult (Value a Stable) ts (finalizeRep repOpts rep) state, iworld)
 		Nothing	= (exception "Corrupt task result", iworld)
 
-	evalOnce f _ _ _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
+	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)
 
 	rep = TaskRep {UIDef|attributes= put TYPE_ATTRIBUTE "single" newMap,controls=[],actions=[]} []
 

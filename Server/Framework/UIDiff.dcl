@@ -1,7 +1,7 @@
 definition module UIDiff
 
 import UIDefinition
-from Task import :: EditEvent, :: Event
+from Task import :: Event
 
 :: UIUpdate
 	//Leaf updates
@@ -19,6 +19,6 @@ from Task import :: EditEvent, :: Event
 	
 :: UIPath	:== String
 
-diffUIDefinitions :: ![UIControl] ![UIControl] !(Maybe EditEvent) -> [UIUpdate]
+diffUIDefinitions :: ![UIControl] ![UIControl] !Event -> [UIUpdate]
 
 encodeUIUpdates :: ![UIUpdate] -> JSONNode

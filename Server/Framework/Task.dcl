@@ -22,14 +22,13 @@ derive gGetRecordFields	Task
 derive gPutRecordFields	Task
 
 // Tasks
-:: Task a = Task !((Maybe EditEvent) (Maybe CommitEvent) RefreshFlag TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
+:: Task a = Task !(Event TaskRepOpts TaskTree *IWorld -> *(!TaskResult a, !*IWorld))
 
-:: Event e			= TaskEvent		!TaskId !e			//Event for a task within the process we are looking for
-					| LuckyEvent	!InstanceNo !e		//Event for any task who is willing to handle it (I am feeling lucky event)
-
-:: EditEvent		:== Event (!String,!JSONNode)		//Datapath and new value
-:: CommitEvent		:== Event String					//Action name
-:: RefreshFlag		:== Bool							//Flag that indicates if events should not be applied
+:: Event	= EditEvent		!TaskId !String !JSONNode	//Update something in an interaction: Task id, edit name, value
+			| ActionEvent	!TaskId !String				//Progress in a step combinator: Task id, action id
+			| FocusEvent	!TaskId						//Update last event time without changing anything: Task id
+			| RefreshEvent								//No event, just recalcalutate the entire task instance
+			
 
 :: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value

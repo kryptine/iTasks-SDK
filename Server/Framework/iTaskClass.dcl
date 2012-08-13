@@ -17,4 +17,3 @@ class iTask a
 	, TC a
 	
 :: Container a c = Container a & iTask c // container for context restrictions
-:: TaskWrapper = E.a: TaskWrapper (Task a) & iTask a

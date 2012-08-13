@@ -42,7 +42,7 @@ callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args = Task eval
 where
 	//Start the external process
-	eval eEvent cEvent refresh repAs (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
+	eval event repAs (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
 		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
 		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
 		# runAsyncArgs	=	[ "--taskid"
@@ -56,13 +56,13 @@ where
 		# nstate		= case res of
 			Error e	= state taskId ts (Left e)
 			Ok _	= state taskId ts (Right outfile)
-		= eval eEvent cEvent refresh repAs nstate {IWorld|iworld & world = world}
+		= eval event repAs nstate {IWorld|iworld & world = world}
 	where
 		state :: TaskId TaskTime (Either OSError FilePath) -> TaskTree
 		state taskId taskTime val = TCBasic taskId taskTime (toJSON val) False
 
 	//Check for its result
-	eval eEvent cEvent refresh repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
+	eval event repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
 			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) state, iworld)
 		| otherwise
@@ -98,7 +98,7 @@ where
 				Nothing
 					= (exception (CallFailed (3,"callProcess: Unknown exception")), {IWorld|iworld & world = world})
 	//Clean up
-	eval eEvent cEvent refresh repAs (TCDestroy (TCBasic taskId lastEvent encv stable)) iworld
+	eval event repAs (TCDestroy (TCBasic taskId lastEvent encv stable)) iworld
 		//TODO: kill runasync for this task and clean up tmp files
 		= (DestroyedResult,iworld)
 		

@@ -4,7 +4,7 @@ definition module TaskEval
 */
 
 from SystemTypes	import :: IWorld, :: TaskListItem, :: User, :: TaskId, :: SessionId 
-from Task			import :: Task, :: TaskResult, :: Event, :: EditEvent, :: CommitEvent, :: RefreshFlag, :: TaskRepOpts
+from Task			import :: Task, :: TaskResult, :: Event, :: TaskRepOpts
 from Shared			import :: Shared
 
 import Maybe, JSON_NG, Error
@@ -31,25 +31,25 @@ createTaskInstance :: !InstanceNo !(Maybe SessionId) !InstanceNo !(Maybe User) !
 * Create a new session task instance and evaluate its immediately
 *
 * @param The task to run as session
+* @param An event
 * @param The IWorld state
 *
 * @return The result of the targeted main task and the tasknr of the instance or an error
 * @return The IWorld state
 */
-createSessionInstance :: !(Task a) !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld) |  iTask a
+createSessionInstance :: !(Task a) !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld) |  iTask a
 
 /**
 * Evaluate a session task instance
 *
 * @param The session id
-* @param Optionally an edit event
-* @param Optionally a commit event
+* @param An event
 * @param The IWorld state
 * 
 * @return The result of the targeted main task or an error
 * @return The IWorld state
 */
-evalSessionInstance :: !SessionId !(Maybe EditEvent) !(Maybe CommitEvent) !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld)
+evalSessionInstance :: !SessionId !Event !*IWorld -> (!MaybeErrorString (!TaskResult JSONNode, !InstanceNo, !SessionId), !*IWorld)
 
 /**
 * Create a stored task instance in the task pool (lazily without evaluating it)
