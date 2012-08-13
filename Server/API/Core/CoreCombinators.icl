@@ -206,6 +206,9 @@ where
 						# values			= map (toValueAndTime o fst) entries 
 						# stable			= if (all (isStable o snd) values) Stable Unstable
 						# ts				= foldr max 0 (map fst values)
+						# ts				= case event of
+							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+							_						= ts
 						= (ValueResult (Value values stable) ts (finalizeRep repOpts rep) (TCParallel taskId),{iworld & localLists = 'Map'.put taskId (map fst entries) localLists})
 	//Cleanup
 	eval event repOpts (TCDestroy (TCParallel taskId)) iworld=:{localLists}

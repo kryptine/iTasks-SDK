@@ -319,8 +319,8 @@ where
 partLayout :: Int -> Layout
 partLayout idx = layout
 where
-	layout (ParallelLayout prompt parts)	= parts !! idx
-	layout layoutable						= autoLayout layoutable
+	layout (ParallelLayout prompt parts) | idx < length parts	= parts !! idx
+	layout layoutable											= autoLayout layoutable
 
 updSizeOpts :: (UISizeOpts -> UISizeOpts) UIControl -> UIControl
 updSizeOpts f (UIViewString	sOpts vOpts)			= (UIViewString	(f sOpts) vOpts)
