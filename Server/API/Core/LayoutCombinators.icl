@@ -339,7 +339,7 @@ updSizeOpts f (UIEditSlider sOpts eOpts opts)		= (UIEditSlider (f sOpts) eOpts o
 updSizeOpts f (UIEditDate sOpts eOpts)				= (UIEditDate (f sOpts) eOpts)
 updSizeOpts f (UIEditTime sOpts eOpts)				= (UIEditTime (f sOpts) eOpts)
 updSizeOpts f (UIEditDocument sOpts eOpts)			= (UIEditDocument (f sOpts) eOpts)
-updSizeOpts f (UIEditButton	sOpts eOpts)			= (UIEditButton	(f sOpts) eOpts)
+updSizeOpts f (UIEditButton	sOpts eOpts opts)		= (UIEditButton	(f sOpts) eOpts opts)
 updSizeOpts f (UIDropdown sOpts cOpts)				= (UIDropdown (f sOpts) cOpts)
 updSizeOpts f (UIGrid sOpts cOpts opts)				= (UIGrid (f sOpts) cOpts opts)
 updSizeOpts f (UITree sOpts cOpts)					= (UITree (f sOpts) cOpts)
@@ -446,7 +446,7 @@ setFramed frame (UIWindow sOpts lOpts items opts) = UIWindow sOpts lOpts items {
 setFramed frame ctrl = ctrl
 
 setIconCls :: !String !UIControl -> UIControl
-setIconCls iconCls (UIActionButton sOpts aOpts opts) = UIActionButton sOpts aOpts {UIActionButtonOpts|opts & iconCls = Just iconCls}
+setIconCls iconCls (UIActionButton sOpts aOpts opts) = UIActionButton sOpts aOpts {UIButtonOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls (UIMenuButton sOpts opts) = UIMenuButton sOpts {UIMenuButtonOpts|opts & iconCls = Just iconCls}
 setIconCls iconCls (UIIcon sOpts opts) = UIIcon sOpts  {UIIconOpts|opts & iconCls = iconCls}
 setIconCls iconCls (UITab sOpts opts) = UITab sOpts  {UITabOpts|opts & iconCls = Just iconCls}
@@ -545,7 +545,7 @@ actionsToButtons [a=:{taskId,action,enabled}:as]
 where
 	mkButton taskId action enabled
 		= UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId= actionName action}
-			{UIActionButtonOpts|text = actionName action, iconCls = Just (actionIcon action), disabled = not enabled}
+			{UIButtonOpts|text = actionName action, iconCls = Just (actionIcon action), disabled = not enabled}
 			
 actionsToMenus :: ![UIAction] -> (![UIControl],![UIAction])
 actionsToMenus actions = makeMenus [] actions
@@ -575,7 +575,7 @@ where
 	addToItems [] _ _ _ _
 		= []
 
-	itemText (UIActionMenuItem _ {UIActionButtonOpts|text})	= text
+	itemText (UIActionMenuItem _ {UIButtonOpts|text})	= text
 	itemText (UISubMenuItem {UIMenuButtonOpts|text})		= text
 	itemText _					= ""
 	
@@ -590,7 +590,7 @@ where
 	createItem item [] taskId action enabled //Action item
 		= UIActionMenuItem
 			{UIActionOpts|taskId=taskId,actionId=actionName action}
-			{UIActionButtonOpts|text=item,iconCls = Just (icon item), disabled = not enabled}
+			{UIButtonOpts|text=item,iconCls = Just (icon item), disabled = not enabled}
 	createItem item sub taskId action enabled //Sub item
 		= UISubMenuItem
 				{ text = item

@@ -28,6 +28,7 @@ Ext.define('itwc.controller.Controller',{
 			  ,'itwc.component.edit.Password'	//An editor for passwords 
 			  ,'itwc.component.edit.Slider'		//A slider for bounded values
 			  ,'itwc.component.edit.Document'	//An editor for uploading documents
+			  ,'itwc.component.edit.EditButton'	//A button that fires edit events
 
 			  ,'itwc.component.choice.Dropdown'	//A simple dropdown box for choosing from a fixed set
 			  ,'itwc.component.choice.Grid'		//A grid from which you can select rows
@@ -72,7 +73,6 @@ Ext.define('itwc.controller.Controller',{
 	},
 	//iTasks edit events
 	onEdit: function(taskId, editorId, value) {
-		console.log("Edit event", taskId, editorId, value);
 		var me = this,
 			params = {editEvent: Ext.encode([taskId,editorId,value])};
 		
@@ -80,7 +80,6 @@ Ext.define('itwc.controller.Controller',{
 	},
 	//iTasks action events
 	onAction: function(taskId, actionId) {
-		console.log("Action event", taskId, actionId);
 		var me = this,
 			params = {actionEvent: Ext.encode([taskId,actionId])};
 		me.sendMessage(params); //TEMPORARILY DUMB WITHOUT QUEUE AND TRACKING

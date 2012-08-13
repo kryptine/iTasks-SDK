@@ -361,7 +361,9 @@ where
 gVisualizeEditor{|FormButton|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
-		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> "pressed") val},addVerAttributes verRes newMap)],vst)
+		# text = maybe "" (\b -> b.FormButton.label) val
+		# iconCls = fmap (\b -> b.FormButton.icon) val
+		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> JSONString "pressed") val} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},addVerAttributes verRes newMap)],vst)
 		
 gVisualizeEditor{|RadioChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
@@ -551,16 +553,20 @@ where
 		where
 			listControl items vst=:{VSt|optional,disabled}
 				# (itemsVis,vst)	= childVisualizations fx items vst
+				# numItems = length items
 				| disabled
-					= ([listItemControl idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
+					= ([listItemControl numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
 				| otherwise
 					# (newItem,vst)		= newChildVisualization fx (optional || length items > 0) vst
-					= ([listItemControl idx dx \\ dx <- itemsVis ++ [newItem] & idx <- [0..]],vst)
+					= ([listItemControl numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [c \\ (c,_) <- controlsOf newItem],vst)
 						
-			listItemControl idx item
-				= case map fst (controlsOf item) of
-					[def]	= def
-					defs	=  defaultContainer defs
+			listItemControl numItems idx item
+				# controls = map fst (controlsOf item)
+				# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text="Remove",iconCls=Just "icon-remove",disabled=False}
+							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text="Up",iconCls=Just "icon-up",disabled=idx == 0}
+							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text="Down",iconCls=Just "icon-down",disabled= idx == numItems - 1}
+							  ]
+				= setBottomMargin 2 (setDirection Horizontal (defaultContainer (controls ++ buttons)))
 			
 gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
 gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst

@@ -43,13 +43,13 @@ from Map			import :: Map(..)
 	| UIEditDate		!UISizeOpts	!(UIEditOpts Date)							// - Date (date picker)
 	| UIEditTime		!UISizeOpts	!(UIEditOpts Time)							// - Time (time picker)
 	| UIEditDocument	!UISizeOpts	!(UIEditOpts Document)						// - Document (info + upload possibility)
-	| UIEditButton		!UISizeOpts !(UIEditOpts String)						// - Button that sends edit events on click
+	| UIEditButton		!UISizeOpts !(UIEditOpts JSONNode) !UIButtonOpts		// - Button that sends edit events on click
 	// Components for indicating choices:
 	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
 	| UITree			!UISizeOpts	!(UIChoiceOpts UITreeNode) 					// - Tree (selecting a node in a tree structure)
 	// Components for triggering actions:
-	| UIActionButton	!UISizeOpts	!UIActionOpts !UIActionButtonOpts			// - Action Button (clicks trigger action events)
+	| UIActionButton	!UISizeOpts	!UIActionOpts !UIButtonOpts					// - Action Button (clicks trigger action events)
 	| UIMenuButton		!UISizeOpts	!UIMenuButtonOpts							// - Menu Button (clicks open a menu)
 	// Misc auxiliary components:
 	| UILabel			!UISizeOpts	!UILabelOpts								// - Label (non-wrapping text label, clicks focus next component)
@@ -157,7 +157,7 @@ from Map			import :: Map(..)
 	, value		:: !Int
 	}
 
-:: UIActionButtonOpts =
+:: UIButtonOpts =
 	{ text		:: !String
 	, iconCls	:: !Maybe String
 	, disabled	:: !Bool
@@ -171,7 +171,7 @@ from Map			import :: Map(..)
 	}
 
 :: UIMenuItem
-	= UIActionMenuItem	!UIActionOpts	!UIActionButtonOpts	// - Action Menu Item (clicks trigger action events)
+	= UIActionMenuItem	!UIActionOpts	!UIButtonOpts		// - Action Menu Item (clicks trigger action events)
 	| UISubMenuItem						!UIMenuButtonOpts	// - Sub Menu Item (clicks open a submenu)
 		
 :: UILabelOpts =

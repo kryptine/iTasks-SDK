@@ -28,3 +28,15 @@
 .icon-refresh {
 	background-image: url('../img/icons/refresh.png') !important;
 }
+.icon-up {
+	background-image: url('../img/icons/move-up.png') !important;
+}
+.icon-down {
+	background-image: url('../img/icons/move-down.png') !important;
+}
+.icon-add {
+	background-image: url('../img/icons/add.png') !important;
+}
+.icon-remove {
+	background-image: url('../img/icons/delete.png') !important;
+}

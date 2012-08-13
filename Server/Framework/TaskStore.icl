@@ -10,13 +10,13 @@ import SerializationGraphCopy //TODO: Make switchable from within iTasks module
 derive JSONEncode TaskRep, TaskCompositionType
 derive JSONEncode UIDef, UIAction, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
-derive JSONEncode UIMenuButtonOpts, UIActionButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
+derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
 derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
 derive JSONDecode TaskRep, TaskCompositionType
 derive JSONDecode UIDef, UIAction, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
-derive JSONDecode UIMenuButtonOpts, UIActionButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
+derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
 derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
 
 INCREMENT				:== "increment"
