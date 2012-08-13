@@ -1,6 +1,6 @@
 implementation module ExportTasks
 
-import StdBool, FilePath, CSV, File, Map, IWorld, Task, TaskState, DocumentStore
+import StdBool, FilePath, CSV, File, Map, IWorld, Task, TaskState, TaskStore
 
 exportDocument :: !FilePath !Document -> Task Document
 exportDocument filename document = mkInstantTask eval
@@ -16,9 +16,11 @@ createCSVFile :: !String ![[String]] -> Task Document
 createCSVFile filename content = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime}
-		# (doc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
-		= (ValueResult (Value doc Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, iworld)
-
+		# (mbDoc,iworld)	= createDocumentWith filename "text/csv" (writeCSVFile content) iworld
+		= case mbDoc of
+			Ok doc	= (ValueResult (Value doc Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, iworld)
+			_		= (exception "Failed to create csv file",iworld)
+			
 exportCSVFile :: !FilePath ![[String]] -> Task [[String]]
 exportCSVFile filename content = mkInstantTask eval
 where
@@ -53,7 +55,7 @@ writeJSON encoder content file
 
 writeDocument taskId filename document iworld
 	# (mbContent,iworld=:{IWorld|taskTime,world})
-							= getDocumentContent document.Document.documentId iworld
+							= loadDocumentContent document.Document.documentId iworld
 	| isNothing mbContent	= (ioException filename, {IWorld|iworld & world = world})
 	# (ok,file,world)		= fopen filename FWriteData world
 	| not ok				= (openException filename,{IWorld|iworld & world = world})

@@ -1,7 +1,7 @@
 implementation module GenUpdate
 
 import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, Maybe, StdGeneric, StdEnum, Tuple, List_NG
-import SystemTypes, Text, Util, DocumentStore
+import SystemTypes, Text, Util
 from StdFunc import id, const, o
 from UIDefinition import :: UISize(..)
 
@@ -264,26 +264,19 @@ gUpdate{|(->)|} _ fy	mode ust
 	# (def,ust) = fy UDCreate ust
 	= basicUpdate mode unchanged (const def) ust
 
-gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", name="", mime="", size = 0} ust
+gUpdate {|Document|} UDCreate ust = basicCreate {Document|documentId = "", contentUrl = "", name="", mime="", size = 0} ust
 gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask, newMask}
 	# (cm,om)		= popMask oldMask
 	# ust			= {ust & currentPath = stepDataPath currentPath, oldMask = om}
 	| currentPath == searchPath
 		= case fromJSON update of
-			Nothing // Reset
-				= ({Document|documentId = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
-			Just docId // Look up meta-data in the store and update the document
-				# (mbDocument,ust)		= getDoc docId ust
+			Nothing 	// Reset
+				= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
+			Just doc 	//Update
 				# ust					= {ust & newMask = appendToMask newMask (Touched [])}
-				= (fromMaybe s mbDocument,ust)
+				= (doc,ust)
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
-where
-	getDoc :: !DocumentId !*USt ->  (Maybe Document, !*USt)
-	getDoc docId ust=:{iworld=Just iworld}
-		# (mbDoc,iworld) = getDocument docId iworld
-		= (mbDoc,{ust & iworld = Just iworld})
-	getDoc docId ust = (Nothing,ust) 
 
 gUpdate{|HtmlTag|} mode ust = noUpdate mode (Html "") ust
 /*

@@ -41,6 +41,10 @@ where
 		SFPlain		= toString (toJSON value)
 		SFDynamic	= serialize value
 
+storeBlob :: !StoreNamespace !StoreKey !{#Char}		!*IWorld -> *IWorld
+storeBlob namespace key blob iworld=:{IWorld|build,dataDirectory}
+	= writeToDisk namespace key {StoreItem|format=SFDynamic,content=blob} (storePath dataDirectory build) iworld
+
 writeToDisk :: !StoreNamespace !StoreKey !StoreItem !String !*IWorld -> *IWorld
 writeToDisk namespace key {StoreItem|format,content} location iworld=:{IWorld|world}
 	//Check if the location exists and create it otherwise
@@ -99,6 +103,12 @@ loadStoreItem namespace key iworld=:{build,dataDirectory,world}
 			| otherwise
 				= (Nothing,False,{iworld & world = world})
 
+loadBlob :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe {#Char}, !*IWorld)
+loadBlob namespace key iworld=:{build,dataDirectory,world}
+	= case loadFromDisk namespace key (storePath dataDirectory build) world of
+		(Just {StoreItem|content},world)	= (Just content, {IWorld|iworld & world = world})
+		(Nothing,world)						= (Nothing, {IWorld|iworld & world = world})
+	
 //Look in stores of previous builds for a version of the store that can be migrated
 findOldStoreItem :: !StoreNamespace !StoreKey !*IWorld -> (!Maybe StoreItem,!*IWorld)
 findOldStoreItem namespace key iworld=:{application,build,appDirectory,dataDirectory,world}

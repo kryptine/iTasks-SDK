@@ -1,6 +1,6 @@
 implementation module ImportTasks
  
-import StdBool, _SystemArray, StdInt, IWorld, Task, TaskState, DocumentStore, MIME, Text, Util, CSV, File, Map
+import StdBool, _SystemArray, StdInt, IWorld, Task, TaskState, TaskStore, MIME, Text, Util, CSV, File, Map
 from StdFunc import id
 
 CHUNK_SIZE :== 1024
@@ -66,12 +66,14 @@ readDocument taskId filename iworld=:{IWorld|taskTime,world}
 	| not ok			= (openException filename,{IWorld|iworld & world = world})
 	# (content,file)	= readAll file
 	# (ok,world)		= fclose file world
-	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	# name				= dropDirectory filename 
-	# mime				= extensionToMimeType (takeExtension name)
-	# (document,iworld)	= createDocument name mime content {IWorld|iworld & world = world}
-	= (ValueResult (Value document Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, iworld)
-
+	| not ok				= (closeException filename,{IWorld|iworld & world = world})
+	# name					= dropDirectory filename 
+	# mime					= extensionToMimeType (takeExtension name)
+	# (mbDocument,iworld)	= createDocument name mime content {IWorld|iworld & world = world}
+	= case mbDocument of
+		(Ok document) 	= (ValueResult (Value document Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, iworld)
+		(Error e)		= (exception e,iworld)
+		
 openException s		= exception (FileException s CannotOpen)
 closeException s	= exception (FileException s CannotClose)
 parseException s	= exception (CannotParse ("Cannot parse JSON file " +++ s))

@@ -15,8 +15,33 @@ import Engine, IWorld
 	
 derive JSONEncode ServiceResponsePart
 
+//TODO: The upload and download mechanism used here is inherently insecure!!!
+// A smarter scheme that checks up and downloads, based on the current session/task is needed to prevent
+// unauthorized downloading of documents and DDOS uploading.
+
 webService :: !(HTTPRequest -> Task a) !ServiceFormat !HTTPRequest !*IWorld -> (!HTTPResponse, !*IWorld) | iTask a
 webService task defaultFormat req iworld=:{IWorld|timestamp,application}
+	//Check for uploads
+	| hasParam "upload" req
+		# uploads = toList req.arg_uploads
+		| length uploads == 0
+			= (jsonResponse (JSONArray []),iworld)
+		# (documents, iworld) = createDocumentsFromUploads uploads iworld
+		// response of uploads must use content-type "text/html" or else iframe upload of extjs does not work
+		# rsp = jsonResponse (toJSON documents)
+		= ({rsp & rsp_headers = put "Content-Type" "text/html" rsp.rsp_headers},iworld)
+		
+	//Check for downloads
+	| hasParam "download" req
+		# (mbContent, iworld)	= loadDocumentContent downloadParam iworld
+		# (mbMeta, iworld)		= loadDocumentMeta downloadParam iworld
+		= case (mbContent,mbMeta) of
+			(Just content,Just {Document|name,mime,size})
+			
+				# headers	= [("Status","200 OK"),("Content-Type", mime),("Content-Length", toString size),("Content-Disposition","attachment;filename=\"" +++ name +++ "\"")]
+				= ({HTTPResponse|rsp_headers = fromList headers, rsp_data = content},iworld)
+			_
+				= (notFoundResponse req,iworld)
 	= case format of
 		//Serve start page
 		WebApp	
@@ -33,6 +58,7 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					# (prevUI,iworld)		= loadPrevUI sessionId guiVersion iworld
 					# (mbResult, iworld) 	= evalSessionInstance sessionId event iworld
 					= (mbResult,prevUI,iworld)
+			
 			# (json, iworld) = case mbResult of
 					Error err
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)],iworld)
@@ -101,8 +127,8 @@ where
 	formatParam			= paramValue "format" req
 
 	sessionParam		= paramValue "session" req
-//	downloadParam		= paramValue "download" req
-//	uploadParam			= paramValue "upload" req
+	downloadParam		= paramValue "download" req
+	uploadParam			= paramValue "upload" req
 	versionParam		= paramValue "version" req
 
 	editEventParam		= paramValue "editEvent" req
@@ -156,4 +182,11 @@ where
 					   "app/taskeval/db.js", "app/taskeval/debug.js",				   
 					   "app.js"]
 		//scriptfiles = ["/lib/ext-4.1.0/ext.js","/app-all.js"]
+
+	createDocumentsFromUploads [] iworld = ([],iworld)
+	createDocumentsFromUploads [(n,u):us] iworld
+		# (mbD,iworld)	= createDocument u.upl_filename u.upl_mimetype u.upl_content iworld
+		| isError mbD	= createDocumentsFromUploads us iworld
+		# (ds,iworld)	= createDocumentsFromUploads us iworld
+		= ([fromOk mbD:ds],iworld)
 		

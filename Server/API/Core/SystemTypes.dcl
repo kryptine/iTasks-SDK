@@ -61,12 +61,12 @@ instance toEmail String
 // Documents
 :: Document =
 	{ documentId	:: !DocumentId				//*A unique identifier of the document
+	, contentUrl	:: !String					//*A url to where the document can be downloaded
 	, name			:: !String					//*The filename of a document
 	, mime			:: !String					//*The mime type of the document
 	, size			:: !Int						//*The filesize in bytes
 	}
 :: DocumentId	:== String
-
 
 //* Task results
 :: TaskValue a		= NoValue				

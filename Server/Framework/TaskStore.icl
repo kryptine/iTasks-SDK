@@ -45,6 +45,12 @@ newInstanceId iworld
 			# iworld = storeValue NS_TASK_INSTANCES INCREMENT 2 iworld //store the next value (2)
 			= (1,iworld) //return the first value (1)		
 
+newDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
+newDocumentId iworld=:{world,timestamp}
+	# (Clock c,world)	= clock world
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (toInt timestamp+c)]) ,{iworld & world = world})
+
+
 storeTaskInstance :: !TaskInstance !*IWorld -> *IWorld
 storeTaskInstance (meta=:{TIMeta|instanceNo,sessionId},reduct,result,rep) iworld
 	//Store all parts
@@ -122,6 +128,26 @@ deleteTaskInstance instanceNo iworld
 where
 	delete id list = [ i \\ i <- list | i.TaskListItem.taskId <> TaskId id 0]
 
+createDocument :: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
+createDocument name mime content iworld
+	# (documentId, iworld)	= newDocumentId iworld
+	# document				= {Document|documentId = documentId, contentUrl = "?download="+++documentId, name = name, mime = mime, size = size content}
+	# iworld				= storeBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") content iworld
+	# iworld				= storeValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") document iworld	
+	= (Ok document,iworld)
+	
+createDocumentWith :: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
+createDocumentWith name mime f iworld 
+	= createDocument name mime "FIXME" iworld //TODO make it possible to apply the function during creation
+	
+loadDocumentContent	:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
+loadDocumentContent documentId iworld
+	= loadBlob NS_DOCUMENT_CONTENT (documentId +++ "-data") iworld
+
+loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
+loadDocumentMeta documentId iworld
+	= loadValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") iworld
+	
 updateTaskInstanceMeta :: !InstanceNo !(TIMeta -> TIMeta) !*IWorld -> *IWorld
 updateTaskInstanceMeta instanceNo f iworld
 	= case loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld of

@@ -34,7 +34,6 @@ Ext.define('itwc.component.edit.Document',{
 				tag: 'input',
 				type: 'file',
 				name: 'upload',
-				hidden: hasValue,
 				size: 1
 			},
 			triggerCfg = {
@@ -49,6 +48,9 @@ Ext.define('itwc.component.edit.Document',{
 				tag: 'form',
 				cls: 'x-form'
 			};
+		if(hasValue) {
+			inputElCfg.hidden = true;
+		}
 		triggerCfg.cn = inputElCfg;
 		formCfg.cn = triggerCfg
 		return '<td class="x-trigger-cell">' + Ext.DomHelper.markup(formCfg) + '</td>';
@@ -64,7 +66,7 @@ Ext.define('itwc.component.edit.Document',{
 		opts = {
 			isUpload: true,
 			form: formEl,
-			url: '/itwc/dummy-upload.php',
+			url: '?upload',
 			method: 'POST',
 			success: me.onUploadComplete,
 			failure: me.onUploadFailed,
@@ -120,7 +122,12 @@ Ext.define('itwc.component.edit.Document',{
 		fileInputEl.hide();
 	},
 	onUploadComplete: function(rsp) {
-		this.setValue(Ext.decode(rsp.responseText));	
+		var docs = Ext.decode(rsp.responseText);
+		if(isArray(docs) && docs.length == 1) {
+			this.setValue(docs[0]);	
+		} else {
+			this.setValue(null);
+		}
 	},
 	onUploadFailed: function() {
 		this.setValue(null);

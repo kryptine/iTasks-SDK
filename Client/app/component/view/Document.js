@@ -6,7 +6,7 @@ Ext.define('itwc.component.view.Document',{
 
 	initComponent: function() {
 		this.renderData['name'] = Ext.htmlEncode(this.value.name);
-		this.renderData['url'] = this.value.content;
+		this.renderData['url'] = this.value.contentUrl;
 
 		this.callParent(arguments);
 	}

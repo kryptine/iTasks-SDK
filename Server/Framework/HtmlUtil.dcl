@@ -13,6 +13,10 @@ notFoundResponse :: !HTTPRequest -> HTTPResponse
 */
 paramValue :: !String !HTTPRequest -> String
 /**
+* Check if a parameter is set
+*/
+hasParam :: !String !HTTPRequest -> Bool
+/**
 * Convert newlines to br tags.
 */
 nl2br :: !String -> HtmlTag

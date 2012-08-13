@@ -32,6 +32,12 @@ storeTaskRep			:: !InstanceNo !TIRep !*IWorld -> *IWorld
 
 deleteTaskInstance		:: !InstanceNo !*IWorld -> *IWorld
 
+//Documents
+createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError Document, !*IWorld)
+createDocumentWith		:: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
+loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
+loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
+
 //Keep track of which instances depend on other instances
 setTaskWorker			:: !User !InstanceNo !*IWorld -> *IWorld
 addTaskInstanceObserver	:: !InstanceNo !InstanceNo !*IWorld -> *IWorld

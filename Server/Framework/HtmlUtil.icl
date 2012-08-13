@@ -46,6 +46,9 @@ paramValue name req
 			Just val	= val
 			Nothing		= ""
 
+hasParam :: !String !HTTPRequest -> Bool
+hasParam name req = isJust (get name req.arg_post) || isJust (get name req.arg_get)
+
 nl2br :: !String -> HtmlTag
 nl2br str = html [[Text line,BrTag []] \\ line <- split OS_NEWLINE str]
 
