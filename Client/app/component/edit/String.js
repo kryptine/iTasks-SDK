@@ -4,7 +4,7 @@ Ext.define('itwc.component.edit.String',{
 	mixins: ['itwc.component.edit.Editable'],
 
 	width: 'flex',
-	minWidth: 400,
+	minWidth: 200,
 
 	initComponent: function() {
 		this.callParent(arguments);

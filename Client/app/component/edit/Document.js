@@ -26,7 +26,7 @@ Ext.define('itwc.component.edit.Document',{
 	},
 	getTriggerMarkup: function() {
 		var me = this,
-			hasValue = !(this.value == null),
+			hasValue = isObject(this.value),
 			inputElCfg = {
 				id: me.id + '-fileInputEl',
 				cls: Ext.baseCSSPrefix + 'form-file-input',
@@ -41,7 +41,7 @@ Ext.define('itwc.component.edit.Document',{
 				id: me.id + '-triggerEl',
 				ui: me.ui,
 				tag: 'div',
-				cls: ['x-form-trigger ',this.value ? 'x-form-clear-trigger':'x-form-search-trigger',Ext.baseCSSPrefix + 'trigger-index-0'].join(' ')
+				cls: ['x-form-trigger ',hasValue ? 'x-form-clear-trigger':'x-form-search-trigger',Ext.baseCSSPrefix + 'trigger-index-0'].join(' ')
 			},
 			formCfg = {
 				id: me.id + '-formEl',
@@ -49,7 +49,6 @@ Ext.define('itwc.component.edit.Document',{
 				tag: 'form',
 				cls: 'x-form'
 			};
-
 		triggerCfg.cn = inputElCfg;
 		formCfg.cn = triggerCfg
 		return '<td class="x-trigger-cell">' + Ext.DomHelper.markup(formCfg) + '</td>';
@@ -59,7 +58,6 @@ Ext.define('itwc.component.edit.Document',{
 			formEl = me.formEl,
 			fileInputEl = me.getEl().child('file'),
 			opts;
-
 		//When a file is selected, we immediately start uploading it to get its info
 		//only when the upload is completed we change the value of the field
 		//console.log("Starting upload of ",this.fileInputEl.dom.value);
@@ -114,7 +112,6 @@ Ext.define('itwc.component.edit.Document',{
 	enableUpload: function() {
 		var me = this,
 			fileInputEl = me.fileInputEl;
-		
 		fileInputEl.show();	
 	},
 	disableUpload: function() {
@@ -132,7 +129,6 @@ Ext.define('itwc.component.edit.Document',{
 		var me = this;
 
 		if(!(me.value == null)) {
-
 			me.setValue(null);
 		}
 	}

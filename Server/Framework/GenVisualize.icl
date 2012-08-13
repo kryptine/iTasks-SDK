@@ -111,7 +111,6 @@ gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
 derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Username, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree, ButtonState
 
-
 mkVSt :: !TaskId *IWorld -> *VSt
 mkVSt taskId iworld
 	= {VSt| currentPath = startDataPath, selectedConsIndex = -1, optional = False, disabled = False, verifyMask = []
@@ -122,7 +121,7 @@ kmVSt {VSt|iworld} = iworld
 
 //Generic visualizer
 generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a)!*VSt -> (!VisualizationResult,!*VSt)
-
+import StdDebug
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 
@@ -141,12 +140,16 @@ where
 		checkbox c = UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = name, value = Just c}
 				
 						
-gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled}
+gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 	# (vizBody,vst)		= fx (fmap fromFIELD val) vst
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
-		NormalEditor controls	= (NormalEditor [(c,addLabel False gfd_name a) \\ (c,a) <- controls], vst)
-		OptionalEditor controls	= (OptionalEditor [(c,addLabel True gfd_name a) \\ (c,a) <- controls], vst)
+		NormalEditor controls
+			# def = layout (DataLayout {UIDef|attributes = addLabel False gfd_name newMap, controls = controls, actions = []})
+			= (NormalEditor def.UIDef.controls,vst)
+		OptionalEditor controls	
+			# def = layout (DataLayout {UIDef|attributes = addLabel False gfd_name newMap, controls = controls, actions = []})
+			= (OptionalEditor def.UIDef.controls, vst)
 
 gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
@@ -225,78 +228,91 @@ gVisualizeEditor{|(,)|} fx _ _ _ fy _ _ _ val vst=:{VSt|currentPath,verifyMask}
 gVisualizeEditor{|Int|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditInt defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 	
 gVisualizeEditor{|Real|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Char|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap toString val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|String|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Bool|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled		= ([(UIViewCheckbox defaultSizeOpts {UIViewOpts|value = val},addVerAttributes verRes newMap)],vst)
 		| otherwise		= ([(UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Username|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(Username v) -> v) val},newMap)],vst)
 		| otherwise	= ([(UIEditString defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Username v) -> v) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Password|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = Just "********"},newMap)],vst)
 		| otherwise	= ([(UIEditPassword defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value= fmap (\(Password v) -> v) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Note|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(Note v) -> Text v) val},newMap)],vst)
 		| otherwise	= ([(UIEditNote defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Note v) -> v) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Date|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDate defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|Time|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditTime defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|EUR|}	val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap (\(EUR v) -> toString v) val},newMap)],vst)
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(EUR v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|USD|}	val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewString defaultSizeOpts {UIViewOpts|value = fmap toString val},newMap)],vst)
 		| otherwise	= ([(UIEditDecimal defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(USD v) -> toReal v / 100.0) val},addVerAttributes verRes newMap)],vst)
 
 gVisualizeEditor{|BoundedInt|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		# sliderOpts	= {UISliderOpts|minValue=maybe 1 (\{BoundedInt|min} -> min) val,maxValue=maybe 5 (\{BoundedInt|max} -> max) val}
 		| disabled									
 			# viewOpts = {UIViewOpts|value = fmap curVal val}  
@@ -328,6 +344,7 @@ where
 gVisualizeEditor {|Document|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
+		# val = checkMask touched val
 		| disabled	= ([(UIViewDocument defaultSizeOpts {UIViewOpts|value = val},newMap)],vst)
 		| otherwise	= ([(UIEditDocument defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=val},addVerAttributes verRes newMap)],vst)
 

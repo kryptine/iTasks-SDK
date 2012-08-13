@@ -21,8 +21,10 @@ where
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset
 */
 autoDataLayout :: UIDef -> UIDef
-autoDataLayout def
-	= {UIDef|def & attributes = put TYPE_ATTRIBUTE "partial" def.UIDef.attributes}
+autoDataLayout def=:{UIDef|attributes}
+	# def = autoReduce (decorateControls {UIDef|def & attributes = put TYPE_ATTRIBUTE "partial" def.UIDef.attributes})
+	//Attributes are discarded so merge with the reduced control
+	= {UIDef|def & controls = [(c,mergeAttributes a attributes) \\ (c,a) <- def.UIDef.controls]} 
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
 */	
@@ -73,10 +75,13 @@ autoReduce def=:{UIDef|attributes,controls,actions}
 	# (buttons,actions)	= actionsToButtons actions
 	# controls			= addButtons buttons controls
 	# (controls,actions) = case controls of
+		
 		[(UIPanel _ _ _ _,_)]		= (controls,actions)	//Do nothing if the controls already consist of a single panel
 		[(c=:(UIContainer _ _ _ _),a)] = case titleAttr of
 				Nothing			= (controls,actions)							//If we don't have a title, just leave the container be the single control
 				(Just title)	= ([(setTitle title (toPanel c),a)],actions)	//Promote container to panel and set title
+		[_] | isNothing titleAttr
+			= (controls,actions)
 		_					
 			# (menus,actions)	= actionsToMenus actions
 			= (wrapControls attributes menus controls,actions)
@@ -94,7 +99,7 @@ where
 		tbar		= case menus of [] = Nothing; _ = Just menus
 		
 		sizeOpts  = {defaultSizeOpts & width = Just FlexSize, minWidth = Just WrapMin, height = Just WrapSize}
-		layoutOpts = {defaultLayoutOpts & padding = Just {top = 5, right = 5, bottom = 0, left = 5}}
+		layoutOpts = {defaultLayoutOpts & padding = Just {top = 5, right = 5, bottom = 5, left = 5}}
 		panelOpts = {UIPanelOpts|title = titleAttr,frame = False, tbar 
 					,iconCls = iconClsAttr, baseCls = Nothing, bodyCls = Nothing}
 		
@@ -105,23 +110,29 @@ fillReduce def = autoReduce (fillOutControls def)
 	
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: UIDef -> UIDef
-decorateControls def=:{UIDef|controls} = {UIDef|def & controls = map decorateControl controls}
-
-decorateControl :: (!UIControl,!UIAttributes) -> (!UIControl,!UIAttributes)
-decorateControl (control,attributes)
+decorateControls def=:{UIDef|controls} = {UIDef|def & controls = mapLst decorateControl controls}
+where
+	mapLst f [] = []
+	mapLst f [x] = [f True x]
+	mapLst f [x:xs] = [f False x: mapLst f xs]
+	
+decorateControl :: Bool (!UIControl,!UIAttributes) -> (!UIControl,!UIAttributes)
+decorateControl last (control,attributes)
 	# mbLabel 	= get LABEL_ATTRIBUTE attributes
 	# mbHint 	= get HINT_ATTRIBUTE attributes
 	# mbValid	= get VALID_ATTRIBUTE attributes
 	# mbError	= get ERROR_ATTRIBUTE attributes
 	= case (mbLabel,mbHint,mbValid,mbError) of
 		(Nothing,Nothing,Nothing,Nothing)	//Nothing to do
+			# control = if last control (setBottomMargin 5 control)
 			= (control,attributes)
 		_									//Add decoration													
 			# control = row (labelCtrl mbLabel ++ [control] ++ iconCtrl mbHint mbValid mbError) 
+			# control = if last control (setBottomMargin 5 control)
 			# attributes = foldr del attributes [LABEL_ATTRIBUTE,HINT_ATTRIBUTE,VALID_ATTRIBUTE,ERROR_ATTRIBUTE]
 			= (control,attributes)
 where
-	row ctrls				= (setBottomMargin 5 o setSize FlexSize WrapSize o setDirection Horizontal) (defaultContainer ctrls)
+	row ctrls				= (setSize FlexSize WrapSize o setDirection Horizontal) (defaultContainer ctrls)
 	
 	labelCtrl (Just label)	= [setWidth (ExactSize 100) (stringDisplay label)]
 	labelCtrl Nothing		= []
