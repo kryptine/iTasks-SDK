@@ -44,6 +44,7 @@ from Map			import :: Map(..)
 	| UIEditTime		!UISizeOpts	!(UIEditOpts Time)							// - Time (time picker)
 	| UIEditDocument	!UISizeOpts	!(UIEditOpts Document)						// - Document (info + upload possibility)
 	| UIEditButton		!UISizeOpts !(UIEditOpts JSONNode) !UIButtonOpts		// - Button that sends edit events on click
+	| UIEditGoogleMap	!UISizeOpts !(UIEditOpts JSONNode) !UIGoogleMapOpts		// - Google Map panel
 	// Components for indicating choices:
 	| UIDropdown		!UISizeOpts	!(UIChoiceOpts String)						// - Dropdown (choice from a list of alternatives)
 	| UIGrid			!UISizeOpts	!(UIChoiceOpts [String]) !UIGridOpts		// - Grid (selecting an item in a table)
@@ -144,6 +145,33 @@ from Map			import :: Map(..)
 	
 :: UIProgressOpts = 
 	{ text			:: !String
+	}
+	
+:: UIGoogleMapOpts = 
+	{ center 			:: !(!Real,!Real)
+	, mapType			:: !String
+	, markers			:: ![UIGoogleMapMarker]	
+	, options			:: !UIGoogleMapOptions
+	}
+
+:: UIGoogleMapMarker =
+	{ position				:: !(!Real,!Real)
+	, title					:: !Maybe String
+	, icon					:: !Maybe String
+	, infoWindow			:: !Maybe String
+	, draggable				:: !Bool
+	, selected				:: !Bool
+	}
+		
+:: UIGoogleMapOptions =
+	{ mapTypeControl 	:: !Bool
+	, panControl		:: !Bool
+	, streetViewControl	:: !Bool
+	, zoomControl		:: !Bool
+	, scaleControl		:: !Bool
+	, scrollwheel		:: !Bool
+	, draggable			:: !Bool
+	, zoom				:: !Int
 	}
 
 :: UIGridOpts =

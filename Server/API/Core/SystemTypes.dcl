@@ -68,6 +68,43 @@ instance toEmail String
 	}
 :: DocumentId	:== String
 
+// Maps
+:: GoogleMap = 
+	{ settings				:: GoogleMapSettings 
+	, perspective			:: GoogleMapPerspective
+	, markers				:: [GoogleMapMarker]		// Markers placed on the map
+	}
+:: GoogleMapPerspective =
+	{ type					:: GoogleMapType			// The map type
+	, center				:: GoogleMapPosition 		// Coordinate of the center point (Required by maps)
+	, zoom					:: Int	      				// The zoom level (Required by maps)
+	}	
+:: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
+:: GoogleMapSettings =
+	{ mapTypeControl		:: Bool		  				// Show the control for switching between map types
+	, panControl			:: Bool		  				// Show the control for panning
+	, zoomControl			:: Bool						// Show the control for zooming
+	, streetViewControl		:: Bool						// Show the control for street view
+	, scaleControl			:: Bool		  				// Show the scale of the map
+	, scrollwheel			:: Bool						// Scrollwheel zooming on the map
+	, draggable				:: Bool						// Map can be dragged
+	}
+:: GoogleMapPosition = 
+	{ lat		:: !Real	//Lattitude
+	, lng		:: !Real	//Longitude
+	}	
+:: GoogleMapMarker =
+	{ position				:: !GoogleMapPosition			// Position of the marker
+	, title					:: !Maybe String				// Title of the marker
+	, icon					:: !Maybe String				// Name of an icon to use
+	, infoWindow			:: !Maybe GoogleMapInfoWindow	// Information which is shown on click
+	, draggable				:: !Bool						// Can the marker be dragged
+	, selected				:: !Bool
+	}
+:: GoogleMapInfoWindow =
+	{ content				:: !String						// Contents of the window
+	}
+
 //* Task results
 :: TaskValue a		= NoValue				
 					| Value !a !Stability 
@@ -178,12 +215,16 @@ instance toUserConstraint UserId
 derive JSONEncode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag, Progress
 derive JSONEncode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONEncode		EmailAddress, Action, HtmlInclude
+derive JSONEncode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive JSONDecode		EUR, USD, BoundedInt, FormButton, ButtonState, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag, Progress
 derive JSONDecode		URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table
 derive JSONDecode		EmailAddress, Action, HtmlInclude
+derive JSONDecode		GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gEq				EUR, USD, BoundedInt, FormButton, User, Document, Hidden, Display, Editable, VisualizationHint, HtmlTag
 derive gEq				URL, Note, Username, Password, Date, Time, DateTime, Map, Void, Either, Timestamp, ComboChoice, RadioChoice, TreeChoice, GridChoice, CheckMultiChoice, Tree, TreeNode, Table, Progress
 derive gEq				EmailAddress, Action, Maybe, JSONNode, (->), Dynamic, HtmlInclude
+derive gEq				GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+
 derive JSONEncode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive JSONDecode		TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability
 derive gEq				TaskListItem, ManagementMeta, TaskPriority, ProgressMeta, TaskValue, Stability

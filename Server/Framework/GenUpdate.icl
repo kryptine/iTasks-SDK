@@ -5,8 +5,6 @@ import SystemTypes, Text, Util
 from StdFunc import id, const, o
 from UIDefinition import :: UISize(..)
 
-//derive bimap UpdateMode
-
 :: DataPath = DataPath [Int]
 
 defaultValue :: a | gUpdate{|*|} a
@@ -279,12 +277,73 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 		= (s, {ust & newMask = appendToMask newMask cm})
 
 gUpdate{|HtmlTag|} mode ust = noUpdate mode (Html "") ust
-/*
-gUpdate{|HtmlTag|} UDCreate ust = basicCreate (Html "") ust
-gUpdate{|HtmlTag|} (UDSearch v) ust = basicSearch v (\Void v -> v) ust //HOPE THIS IS OK
-*/
+
+//Helper types for GoogleMap update
+:: MVCUpdate = 
+	{ center			:: !(Real,Real)
+	, zoom				:: !Int
+	, type				:: !GoogleMapType
+	}	
+	
+:: ClickUpdate = 
+	{ event				:: !ClickEvent
+	, source			:: !ClickSource
+	, point				:: !(Real,Real)
+	}
+
+:: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
+:: ClickSource  = MAP | MARKER (Real,Real)
+
+:: MarkerDragUpdate = 
+	{ index				:: !Int
+	, point				:: !(Real,Real)
+	}
+derive JSONDecode MVCUpdate,  ClickUpdate, ClickEvent, ClickSource, MarkerDragUpdate
+
+gUpdate{|GoogleMap|} mode ust = basicUpdate mode parseUpdate defaultMap ust
+where
+	parseUpdate json orig
+		# mbMVC		= fromJSON json
+		| isJust mbMVC
+			# {MVCUpdate|center=(lat,lng),zoom,type} = fromJust mbMVC
+			= {GoogleMap | orig & perspective = {GoogleMapPerspective|orig.perspective & center = {lat=lat,lng=lng}, zoom = zoom, type = type}}
+		# mbClick 	= fromJSON json
+		| isJust mbClick
+			# click = fromJust mbClick
+			# marker = {GoogleMapMarker | position = {lat=fst click.ClickUpdate.point,lng=snd click.ClickUpdate.point}, title = Nothing, icon = Nothing, infoWindow = Nothing, draggable = True, selected = False} 
+			= {GoogleMap | orig & markers = orig.GoogleMap.markers ++ [marker]}
+		# mbMarkerDrag = fromJSON json
+		| isJust mbMarkerDrag
+			# {MarkerDragUpdate|index,point=(lat,lng)}	= fromJust mbMarkerDrag
+			= {GoogleMap | orig & markers = [if (i == index) {GoogleMapMarker|m & position = {lat=lat,lng=lng}} m \\ m <- orig.GoogleMap.markers & i <- [0..]]}
+		
+		| otherwise = orig
+
+	defaultMap =
+		{ GoogleMap
+		| settings=settings
+		, perspective=perspective
+		, markers=[]
+		}
+	perspective =
+		{ GoogleMapPerspective
+		| type				= ROADMAP
+		, center 			= {GoogleMapPosition|lat = 51.82, lng = 5.86}
+		, zoom				= 10
+		}	
+	settings =
+		{ GoogleMapSettings
+		| mapTypeControl	= True
+		, panControl		= True
+		, streetViewControl	= True
+		, zoomControl		= True
+		, scaleControl		= True
+		, scrollwheel		= True
+		, draggable			= True
+		}
 
 derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
+derive gUpdate GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 
 noUpdate :: !(UpdateMode a) a !*USt -> *(!a,!*USt)
 noUpdate UDCreate def ust	= basicCreate def ust
@@ -398,6 +457,7 @@ gDefaultMask{|TreeChoiceNoView|} _ tree=:(TreeChoiceNoView _ mbSel)
 	| otherwise		= [Untouched]
 
 derive gDefaultMask Either, (,), (,,), (,,,), JSONNode, Void, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
+derive gDefaultMask	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gDefaultMask DynamicChoice,DynamicChoiceNoView //TODO
 
 //Utility functions

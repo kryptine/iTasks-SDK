@@ -29,6 +29,7 @@ derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gUpdate URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
 derive gUpdate EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
+derive gUpdate GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate DynamicChoice,DynamicChoiceNoView
 
 generic gDefaultMask a :: !a -> [UpdateMask]
@@ -38,6 +39,7 @@ derive gDefaultMask Int, Real, Char, Bool, String
 derive gDefaultMask Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), JSONNode, Void, HtmlTag, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gDefaultMask URL, Note, DateTime, Document, FormButton, Username, Password, EUR, USD, BoundedInt, Date, Time, User, UserConstraint, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
 derive gDefaultMask EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
+derive gDefaultMask	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gDefaultMask DynamicChoice,DynamicChoiceNoView
 
 //derive bimap UpdateMode

@@ -4,6 +4,8 @@ import StdGeneric, StdBool, StdInt, StdList, StdTuple, StdFunc, Maybe, Functor, 
 import GenUpdate, StdMisc
 
 derive gVerify (,), (,,), (,,,), Void, Either, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
+derive gVerify GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+
 verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 verifyForm val updateMask
 	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, staticDisplay = False}
@@ -133,10 +135,11 @@ gVerify{|TreeChoice|} _ _		_ vst = simpleVerify "Choose an element of the tree" 
 gVerify{|TreeChoiceNoView|} _	_ vst = simpleVerify "Choose an element of the tree" vst
 gVerify{|HtmlInclude|}			_ vst = alwaysValid vst
 gVerify{|HtmlTag|}				_ vst = alwaysValid vst
+gVerify{|GoogleMap|}			_ vst = alwaysValid vst
 
-gVerify{|Dynamic|}			_ vst = alwaysValid vst
-gVerify{|(->)|} _ _			_ vst = alwaysValid vst
-gVerify{|JSONNode|}			_ vst = alwaysValid vst
+gVerify{|Dynamic|}				_ vst = alwaysValid vst
+gVerify{|(->)|} _ _				_ vst = alwaysValid vst
+gVerify{|JSONNode|}				_ vst = alwaysValid vst
 
 gVerify{|DynamicChoice|} fx fy	(Just (DCCombo v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst
 gVerify{|DynamicChoice|} fx fy	(Just (DCRadio v)) vst = gVerify{|*->*->*|} fx fy (Just v) vst

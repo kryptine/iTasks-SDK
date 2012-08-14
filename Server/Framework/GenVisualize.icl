@@ -110,6 +110,7 @@ gVisualizeText{|JSONNode|} _ val			= [toString val]
 gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
 derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Username, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree, ButtonState
+derive gVisualizeText GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 
 mkVSt :: !TaskId *IWorld -> *VSt
 mkVSt taskId iworld
@@ -364,6 +365,35 @@ where
 		# text = maybe "" (\b -> b.FormButton.label) val
 		# iconCls = fmap (\b -> b.FormButton.icon) val
 		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> JSONString "pressed") val} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},addVerAttributes verRes newMap)],vst)
+
+gVisualizeEditor{|GoogleMap|} val vst = visualizeCustom viz vst
+where
+	viz name touched verRes vst=:{VSt|taskId}
+		# editOpts	= {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing}
+		# opts		= mapOpts (fromMaybe defaultValue val)
+		= ([(UIEditGoogleMap defaultSizeOpts editOpts opts,addVerAttributes verRes newMap)],vst)
+	
+	mapOpts map =
+		{ UIGoogleMapOpts
+		| center = (map.perspective.GoogleMapPerspective.center.lat,map.perspective.GoogleMapPerspective.center.lng)
+		, mapType = mapType map.perspective.GoogleMapPerspective.type
+		, markers = []// map.GoogleMap.markers
+		, options =
+			{ UIGoogleMapOptions
+			| mapTypeControl = map.settings.GoogleMapSettings.mapTypeControl
+			, panControl = map.settings.GoogleMapSettings.panControl
+			, streetViewControl = map.settings.GoogleMapSettings.streetViewControl
+			, zoomControl = map.settings.GoogleMapSettings.zoomControl
+			, scaleControl = map.settings.GoogleMapSettings.scaleControl
+			, scrollwheel = map.settings.GoogleMapSettings.scrollwheel
+			, draggable = map.settings.GoogleMapSettings.draggable
+			, zoom = map.perspective.GoogleMapPerspective.zoom
+			}
+		}
+	mapType ROADMAP 	= "ROADMAP"
+	mapType SATELLITE 	= "SATELLITE"
+	mapType HYBRID 		= "HYBRID"
+	mapType TERRAIN 	= "TERRAIN"
 		
 gVisualizeEditor{|RadioChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
@@ -608,6 +638,7 @@ where
 
 derive gVisualizeEditor DateTime, User
 derive gVisualizeEditor JSONNode, Either, (,,), (,,,), Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
+derive gVisualizeEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 
 generic gHeaders a :: a -> [String]
 
@@ -632,6 +663,7 @@ gHeaders{|(->)|} _ _ _		= []
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority
+derive gHeaders	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gHeaders DynamicChoice, RadioChoice, ComboChoice, GridChoice, TreeChoice
 derive gHeaders DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridChoiceNoView, TreeChoiceNoView
 
@@ -660,6 +692,7 @@ gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ButtonState
+derive gGridRows GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gGridRows DynamicChoice, RadioChoice, ComboChoice, TreeChoice, GridChoice
 derive gGridRows DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridChoiceNoView, TreeChoiceNoView
 
