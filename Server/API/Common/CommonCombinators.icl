@@ -101,7 +101,7 @@ justdo task
 	Nothing	= throw ("The task returned nothing.")
 
 sequence :: !String ![Task a]  -> Task [a] | iTask a
-sequence label tasks = Title label @>> (seqTasks tasks)
+sequence _ tasks = seqTasks tasks
 where
 	seqTasks []		= return []
 	seqTasks [t:ts]	= t >>= \a -> seqTasks ts >>= \as -> return [a:as]
@@ -217,27 +217,16 @@ appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const 
 
 appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 appendTopLevelTaskFor worker task = appendTopLevelTask {noMeta & worker = toUserConstraint worker} task
-
-instance tune BeforeLayout
-where tune (BeforeLayout f) task = tune (ModifyLayout (\l lt0 -> let lt1 = f lt0 in l lt1)) task
-		
+	
 instance tune AfterLayout
-where tune (AfterLayout f) task	= tune (ModifyLayout (\l -> (\lt -> (f (l lt))))) task
-
-instance tune Title
-where tune (Title title) task = tune (BeforeLayout (\l -> setAttribute TITLE_ATTRIBUTE title l)) task
-instance tune Icon 
-where tune (Icon icon) task = tune (BeforeLayout (\l -> setAttribute ICON_ATTRIBUTE icon l)) task
-instance tune Attribute
-where tune (Attribute k v) task = tune (BeforeLayout (\l -> setAttribute k v l)) task
+where
+	tune (AfterLayout f) task	= tune (ModifyLayout (\l -> update l f )) task
+	where
+		update {editor,interact,step,parallel,final} f
+			= {editor=editor,interact = interact o f, step = step o f, parallel = parallel o f, final = final o f}
+			
 instance tune Window
 where tune Window task = task
-
-
-setAttribute k v (DataLayout def=:{UIDef|attributes}) = DataLayout {UIDef|def & attributes = 'Map'.put k v attributes}
-setAttribute k v (InteractLayout prompt=:{UIDef|attributes} editor) = InteractLayout {UIDef|prompt & attributes = 'Map'.put k v attributes} editor
-setAttribute k v (StepLayout def=:{UIDef|attributes} actions) = StepLayout {UIDef|def & attributes = 'Map'.put k v attributes} actions
-setAttribute k v (ParallelLayout def=:{UIDef|attributes} parts) = ParallelLayout {UIDef|def & attributes = 'Map'.put k v attributes} parts
 
 valToMaybe (Value v _)  = Just v
 valToMaybe NoValue		= Nothing

@@ -314,7 +314,7 @@ matchAndApplyEvent _ matchId taskTime v mask ts iworld
 visualizeView taskId repOpts v validity desc iworld
 	# layout = repLayout repOpts
 	# (controls,iworld) = visualizeAsEditor v validity taskId layout iworld
-	= (TaskRep (layout (InteractLayout (toPrompt desc) {UIDef|controls=controls,attributes=newMap,actions=[]})) [(toString taskId,toJSON v)], iworld)
+	= (TaskRep (layout.Layout.interact (toPrompt desc) {UIDef|controls=controls,attributes=newMap,actions=[]}) [(toString taskId,toJSON v)], iworld)
 
 could_not_read_shared_in_interact_exception iworld
 	= (exception "Could not read shared in interact", iworld)

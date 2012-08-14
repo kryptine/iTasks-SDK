@@ -132,7 +132,7 @@ derive class iTask ClientPart, WorklistRow
 	
 workflowDashboard :: Task Void
 workflowDashboard
-	=  parallel Void//(Title "Manage worklist")
+	=  parallel Void
 		[ (Embedded, startWork)
 		, (Embedded, controlDashboard)
 		, (Embedded, manageWork)
@@ -142,18 +142,18 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 	
-	layout = (sideLayout LeftSide 260 (sideMerge TopSide 50 (sideMerge TopSide 200 minimalMerge)))
+	layout = customMergeLayout (sideMerge LeftSide 260 (sideMerge TopSide 100 (sideMerge TopSide 200 tabbedMerge)))
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
 	=	(viewSharedInformation Void [ViewWith view] currentUser	
 			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
 				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
-				]																
-		) <! isJust
-	@	fromJust
+				]															
+		) <! isJust	<<@ AfterLayout (appControls (setDirection Horizontal o setValign AlignMiddle) o autoReduce)	
+	@	fromJust	
 where
-	view user	= "Welcome " +++ toString user
+	view user	= "Welcome " +++ toString user		
 
 startWork :: !(SharedTaskList ClientPart) -> Task ClientPart
 startWork list = forever
@@ -229,12 +229,9 @@ workOnTask taskId
 
 appendOnce identity task taskList
 	=	get (taskListMeta taskList)
-	>>= \opened ->	if (isEmpty [t \\ t <- opened | hasAttribute "identity" identity t])
-			(appendTask Embedded (\_ -> task <<@ Attribute "identity" (toString identity)) taskList @ const Void)
+	>>= \opened ->	if (isEmpty [t \\ t <- opened])
+			(appendTask Embedded (\_ -> task) taskList @ const Void)
 			(return Void)
-where
-	hasAttribute attr value _// {ParallelTaskMeta|taskMeta={attributes}}	//PARALLEL NEEDS TO BE FIXED FIRST
-		= False // kvGet attr attributes == Just (toString value)
 
 addWorkflows :: ![Workflow] -> Task [Workflow]
 addWorkflows additional

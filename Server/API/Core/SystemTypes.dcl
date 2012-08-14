@@ -11,7 +11,7 @@ from HTML 				import class html
 from Time				import :: Timestamp
 from IWorld				import :: IWorld
 from UIDefinition		import :: UIDef, :: UISize, :: UISideSizes, :: UIMinSize, :: UIAttributes
-from LayoutCombinators	import :: Layout, :: Layoutable
+from LayoutCombinators	import :: Layout
 from Task				import :: Task, :: TaskId
 from iTaskClass			import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
 from Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared

@@ -153,7 +153,7 @@ where
 		(OnAllExceptions taskbf)	= call_with_DeferredJSON taskbf d_json_a
 	
 	doStepLayout taskId repOpts (TaskRep def parts) mbVal 
-		= finalizeRep repOpts (TaskRep ((repLayout repOpts) (StepLayout def (maybe [] (stepActions taskId) mbVal))) parts)
+		= finalizeRep repOpts (TaskRep ((repLayout repOpts).Layout.step def (maybe [] (stepActions taskId) mbVal)) parts)
 	where
 		stepActions taskId val = [{UIAction|taskId=toString taskId,action=action,enabled=pred val}\\ OnAction action pred _ <- conts]
 
@@ -284,7 +284,7 @@ where
 		# listId		= toString taskId
 		# parts = [({UIDef|d & attributes = 'Map'.put TIME_ATTRIBUTE (toString time) ('Map'.put TASK_ATTRIBUTE (toString entryId) ('Map'.put LIST_ATTRIBUTE listId d.UIDef.attributes))})
 					 \\ ({TaskListEntry|entryId,state=EmbeddedState _ _,result=TIValue val _,time,removed=False},Just (TaskRep d _)) <- entries | not (isStable val)]	
-		= TaskRep (layout (ParallelLayout (toPrompt desc) parts)) []
+		= TaskRep (layout.Layout.parallel (toPrompt desc) parts) []
 		
 	isStable (Value _ Stable) 	= True
 	isStable _					= False

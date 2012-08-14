@@ -6,19 +6,14 @@ from Task import :: TaskCompositionType
 
 import Maybe
 
-// Definition of a layout algorithm
-// The same layouts are used for layouting out forms of basic tasks as
-// well as combinations of tasks
-
-:: Layout		:== Layoutable -> UIDef
-
-// The layoutable defines the possible situations in which layouting is required
-:: Layoutable
-	= DataLayout UIDef					//Reduce a composite data structure
-	| InteractLayout UIDef UIDef 		//Prompt, editor	
-	| StepLayout UIDef [UIAction] 		//Part, actions to make the step
-	| ParallelLayout UIDef [UIDef] 		//Prompt, parallel parts
-	| FinalLayout UIDef					//Reduce the final composition
+// Definition of a layout as collection of combination functions
+:: Layout =
+	{ editor	:: UIAttributes [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]	//Combine multiple controls to a single one in editors
+	, interact	:: UIDef UIDef -> UIDef														//Combine the prompt and editor of an interact
+	, step		:: UIDef [UIAction] -> UIDef												//Combine current definition with the step actions
+	, parallel	:: UIDef [UIDef] -> UIDef													//Combine the promp and parts of a parallel composition
+	, final		:: UIDef -> UIDef															//Last touches to the composition
+	}
 
 // When the multiple parts of a parallel combinator need to be merged into a single definition
 // we call it a parallel merger
@@ -27,7 +22,6 @@ import Maybe
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
 :: ModifyLayout	= ModifyLayout (Layout -> Layout)
-:: BeforeLayout	= BeforeLayout (Layoutable -> Layoutable)
 :: AfterLayout	= AfterLayout (UIDef -> UIDef)
 
 /**
@@ -40,21 +34,13 @@ autoLayout :: Layout
 */
 hideLayout :: Layout
 /**
-* Split the available space into equal areas
-*/
-splitLayout :: UIDirection -> Layout
-/**
-* Split available space into a main area and a side panel.
-*/
-sideLayout :: UISide Int ParallelMerger -> Layout
-/**
-* This layout arranges its parallel parts into a set of tabs.
-*/
-tabbedLayout :: Layout
-/**
-* Use the gui of a specific part, but keep merge attributes and actions of all parts
+* Use the gui of a specific part, but keep attributes and actions of all parts
 */
 partLayout :: Int -> Layout
+/**
+* Use a custom function for merging parallel combinations
+*/
+customMergeLayout :: ParallelMerger -> Layout
 
 minimalMerge	:: ParallelMerger
 groupedMerge	:: ParallelMerger
@@ -62,7 +48,14 @@ sideMerge		:: UISide Int ParallelMerger -> ParallelMerger
 splitMerge		:: UIDirection -> ParallelMerger
 tabbedMerge		:: ParallelMerger
 
+//Shorthands for layouts with custom parallel mergers
+tabbedLayout				:== customMergeLayout tabbedMerge 
+splitLayout direction		:== customMergeLayout (splitMerge direction)
+sideLayout side size rest	:== customMergeLayout (sideMerge side size rest)
+
 //Useful functions for tweaking or roll-your-own layouts
+autoReduce :: UIDef -> UIDef
+
 
 //Modifiers on interface definitions
 setSize			:: !UISize	!UISize			!UIControl -> UIControl

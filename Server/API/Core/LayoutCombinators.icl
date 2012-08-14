@@ -10,21 +10,15 @@ from Task import :: TaskCompositionType, :: TaskCompositionType(..)
 derive gEq TaskCompositionType
 
 autoLayout :: Layout
-autoLayout = layout
-where
-	layout (DataLayout def)					= autoDataLayout def
-	layout (InteractLayout prompt editor)	= autoInteractionLayout prompt editor
-	layout (StepLayout def actions)			= autoStepLayout def actions
-	layout (ParallelLayout prompt defs)		= autoParallelLayout prompt defs
-	layout (FinalLayout def)				= autoFinalLayout def
+autoLayout = {editor = autoEditorLayout, interact = autoInteractionLayout ,step = autoStepLayout, parallel = autoParallelLayout, final = autoFinalLayout}
 /**
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset
 */
-autoDataLayout :: UIDef -> UIDef
-autoDataLayout def=:{UIDef|attributes}
-	# def = autoReduce (decorateControls {UIDef|def & attributes = put TYPE_ATTRIBUTE "partial" def.UIDef.attributes})
+autoEditorLayout :: UIAttributes [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]
+autoEditorLayout attributes controls
+	# def = autoReduce (decorateControls {UIDef|attributes = put TYPE_ATTRIBUTE "partial" attributes,controls=controls,actions=[]})
 	//Attributes are discarded so merge with the reduced control
-	= {UIDef|def & controls = [(c,mergeAttributes a attributes) \\ (c,a) <- def.UIDef.controls]} 
+	= [(c,mergeAttributes a attributes) \\ (c,a) <- def.UIDef.controls]
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
 */	
@@ -99,7 +93,7 @@ where
 		tbar		= case menus of [] = Nothing; _ = Just menus
 		
 		sizeOpts  = {defaultSizeOpts & width = Just FlexSize, minWidth = Just WrapMin, height = Just WrapSize}
-		layoutOpts = {defaultLayoutOpts & padding = Just {top = 5, right = 5, bottom = 5, left = 5}}
+		layoutOpts = {defaultLayoutOpts & padding = Nothing}
 		panelOpts = {UIPanelOpts|title = titleAttr,frame = False, tbar 
 					,iconCls = iconClsAttr, baseCls = Nothing, bodyCls = Nothing}
 		
@@ -122,13 +116,15 @@ decorateControl last (control,attributes)
 	# mbHint 	= get HINT_ATTRIBUTE attributes
 	# mbValid	= get VALID_ATTRIBUTE attributes
 	# mbError	= get ERROR_ATTRIBUTE attributes
+	# noMargins	= noMarginControl control
 	= case (mbLabel,mbHint,mbValid,mbError) of
-		(Nothing,Nothing,Nothing,Nothing)	//Nothing to do
-			# control = if last control (setBottomMargin 5 control)
+		(Nothing,Nothing,Nothing,Nothing)	//Just set margins
+			# control = if noMargins (setMargins 0 0 0 0 control) (if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))
 			= (control,attributes)
 		_									//Add decoration													
 			# control = row (labelCtrl mbLabel ++ [control] ++ iconCtrl mbHint mbValid mbError) 
-			# control = if last control (setBottomMargin 5 control)
+			# control = if noMargins (setMargins 0 0 0 0 control) (if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))
+			
 			# attributes = foldr del attributes [LABEL_ATTRIBUTE,HINT_ATTRIBUTE,VALID_ATTRIBUTE,ERROR_ATTRIBUTE]
 			= (control,attributes)
 where
@@ -144,9 +140,16 @@ where
 	
 	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
 
+	noMarginControl	(UIContainer _ _ _ _)	= True
+	noMarginControl	(UIPanel _ _ _ _)	= True
+	noMarginControl	(UIGrid _ _ _)		= True
+	noMarginControl	(UITree _ _)		= True
+	noMarginControl _					= False
+
+
 //TODO: try to make as many components flex fitting as possible to fill up a container
 fillOutControls	:: UIDef -> UIDef
-fillOutControls def = def
+fillOutControls def=:{UIDef|controls} = {UIDef|def & controls= map (appFst fill) controls}
 
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 decoratePrompt :: UIDef -> UIDef
@@ -155,7 +158,7 @@ decoratePrompt def=:{UIDef|controls}
 	= {UIDef|def & controls = [(container,newMap)]}
 where
 	container = UIContainer sizeOpts defaultLayoutOpts (map fst controls) containerOpts
-	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 0, bottom = 10, left = 0}, width = Just FlexSize, minWidth = Just WrapMin}
+	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}, width = Just FlexSize, minWidth = Just WrapMin}
 	containerOpts = {UIContainerOpts|baseCls=Just "itwc-prompt", bodyCls=Nothing}
 
 //Merge the fragments of a composed interactive task into a single definition
@@ -205,7 +208,7 @@ where
 			RightSide	= (Horizontal, last parts,init parts)
 			BottomSide	= (Vertical, last parts,init parts)
 			LeftSide	= (Horizontal, hd parts, tl parts)
-		# restPart		= fillReduce (restMerge prompt restParts)
+		# restPart		= restMerge prompt restParts
 		# sidePart		= fillReduce sidePart
 		# sideUI		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill (uiOf sidePart))
 		# restUI		= fill (uiOf restPart)
@@ -245,7 +248,7 @@ where
 		# (activeIndex,activeDef)	= findActive defs	
 		# (tabBar,actions)			= mkTabs activeIndex defs	
 		# tabContent				=  maybe [(defaultPanel [],newMap)] (\d -> (tweakUI (setPadding 0 0 0 0) (autoReduce (tweakAttr (del TITLE_ATTRIBUTE) d))).UIDef.controls) activeDef
-		# controls					= (decoratePrompt prompt).UIDef.controls ++ [(tabBar,newMap)] ++ tabContent
+		# controls					= [(defaultContainer (map fst (decoratePrompt prompt).UIDef.controls ++ [tabBar] ++ map fst tabContent),newMap)]
 		= {UIDef|attributes = attributes,controls = controls, actions = actions}
 
 	findActive defs = find 0 (0,Nothing) defs
@@ -276,51 +279,29 @@ where
 	searchCloseAction match [a:as] = let (mbtask,as`) = searchCloseAction match as in (mbtask,[a:as`])
 
 hideLayout :: Layout
-hideLayout = layout
-where
-	layout (DataLayout def)					= {UIDef|def & controls = []}
-	layout (InteractLayout prompt editor)	= {UIDef|mergeDefs prompt editor & controls = []}
-	layout (StepLayout def actions)			= {UIDef|def & controls = [], actions = def.UIDef.actions ++ actions}
-	layout (ParallelLayout prompt defs)		= {UIDef|foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs] & controls = []}
-	layout (FinalLayout def)				= {UIDef|def & controls = []}
-	
-splitLayout :: UIDirection -> Layout
-splitLayout dir = layout
-where
-	layout (ParallelLayout prompt parts)	= splitMerge dir prompt parts
-	layout layoutable						= autoLayout layoutable
-	
-sideLayout :: UISide Int ParallelMerger -> Layout
-sideLayout side size restMerge = layout
-where
-	layout (ParallelLayout prompt parts)	= sideMerge side size restMerge prompt parts
-	layout layoutable						= autoLayout layoutable
-	
-tabbedLayout :: Layout
-tabbedLayout = layout
-where
-	layout (ParallelLayout prompt parts)	= tabbedMerge prompt parts
-	layout layoutable						= autoLayout layoutable
-	
-
-//Determine the index of the visible part with the highest stack-order attribute
-getTopIndex :: [UIDef] -> Int 
-getTopIndex parts = find 0 0 0 parts
-where
-	find maxTop maxIndex i [] = maxIndex
-	find maxTop maxIndex i [{UIDef|controls=[]}:ps] = find maxTop maxIndex i ps //Ignore invisible parts 
-	find maxTop maxIndex i [{UIDef|attributes}:ps] = case get TIME_ATTRIBUTE attributes of
-		Nothing			= find maxTop maxIndex (i + 1) ps
-		Just time	
-			# time = toInt time
-			| time > maxTop	= find time i (i + 1) ps
-							= find maxTop maxIndex (i + 1) ps
+hideLayout =
+	{ editor	= \_ _ -> []
+	, interact	= \prompt editor -> {UIDef|mergeDefs prompt editor & controls = []}
+	, step		= \def actions -> {UIDef|def & controls = [], actions = def.UIDef.actions ++ actions}
+	, parallel	= \prompt defs -> {UIDef|foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs] & controls = []}
+	, final		= \def			-> {UIDef|def & controls = []}
+	}
+		
+customMergeLayout :: ParallelMerger -> Layout
+customMergeLayout merger = {autoLayout & parallel = merger}
 
 partLayout :: Int -> Layout
-partLayout idx = layout
+partLayout idx = {autoLayout & parallel = layout}
 where
-	layout (ParallelLayout prompt parts) | idx < length parts	= parts !! idx
-	layout layoutable											= autoLayout layoutable
+
+	layout prompt parts
+		| idx < length parts
+			# controls	= (parts !! idx).UIDef.controls
+			# attributes = foldr mergeAttributes prompt.UIDef.attributes [d.UIDef.attributes \\ d <- parts]
+			# actions = foldr (++) [] [d.UIDef.actions \\ d <- parts]
+			= {UIDef|attributes=attributes,controls=controls,actions=actions}
+		| otherwise
+			= autoParallelLayout prompt parts
 
 updSizeOpts :: (UISizeOpts -> UISizeOpts) UIControl -> UIControl
 updSizeOpts f (UIViewString	sOpts vOpts)			= (UIViewString	(f sOpts) vOpts)
@@ -515,7 +496,6 @@ where
 	add Nothing item items		= items ++ [item]
 	add (Just pos) item items	= take pos items ++ [item] ++ drop pos items
 	
-
 getItemsOfUI :: UIControl -> [UIControl]
 getItemsOfUI (UIContainer _ _ items _)	= items
 getItemsOfUI (UIPanel _ _ items _)		= items
@@ -531,7 +511,7 @@ setItemsOfUI items ctrl								= ctrl
 //Container for a set of horizontally layed out buttons
 buttonPanel	:: ![UIControl] -> UIControl	
 buttonPanel buttons
-	= (wrapHeight o fillWidth o setPadding 2 0 2 0 o setDirection Horizontal o setHalign AlignRight) (defaultContainer buttons)
+	= (wrapHeight o fillWidth o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (defaultContainer buttons)
 
 actionsToButtons :: ![UIAction] -> (![UIControl],![UIAction])
 actionsToButtons [] = ([],[])

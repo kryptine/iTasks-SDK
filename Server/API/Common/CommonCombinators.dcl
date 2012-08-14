@@ -326,12 +326,8 @@ appendTopLevelTask :: !ManagementMeta !(Task a) -> Task TaskId | iTask a
 appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 
 // Additional tuning shortcuts
-instance tune BeforeLayout
 instance tune AfterLayout
-instance tune Title
-instance tune Icon
-instance tune Attribute		//Set attribute
-instance tune Window		//Indicate that this task should 
+instance tune Window		//Indicate that this task should be a window
 
 //Common derived task steps
 Always			:: Action (Task b)						-> TaskStep a b

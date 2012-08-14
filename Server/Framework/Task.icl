@@ -3,7 +3,7 @@ implementation module Task
 import StdClass, StdArray, StdTuple, StdInt, StdList, StdFunc, StdBool, StdMisc, HTML, SystemTypes, GenRecord, HTTP, Map, Util
 import GenVisualize, iTaskClass, IWorld
 from TaskState			import :: TaskTree(..), :: DeferredJSON(..)
-from LayoutCombinators	import :: Layout, :: Layoutable(..), autoLayout
+from LayoutCombinators	import :: Layout(..), autoLayout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
 mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask a
@@ -69,7 +69,7 @@ repLayout :: TaskRepOpts -> Layout
 repLayout {TaskRepOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayout useLayout)
 
 finalizeRep :: TaskRepOpts TaskRep -> TaskRep
-finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep ((repLayout repOpts) (FinalLayout def)) parts
+finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep ((repLayout repOpts).Layout.final def) parts
 finalizeRep repOpts rep = rep
 
 instance Functor TaskValue

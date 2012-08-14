@@ -1,7 +1,6 @@
 implementation module BasicAPIExamples
 import iTasks, UserAdmin, WorkflowAdmin
 import Text
-import GoogleMaps
 /**
 * This module contains a series of small examples of basic usage of the iTasks API.
 */

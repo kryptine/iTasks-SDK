@@ -6,7 +6,7 @@ definition module Task
 
 import SystemTypes, HTTP, GenVisualize, iTaskClass, GenRecord
 from TaskState			import :: TaskTree
-from LayoutCombinators	import :: Layout, :: Layoutable
+from LayoutCombinators	import :: Layout
 
 derive JSONEncode		Task
 derive JSONDecode		Task

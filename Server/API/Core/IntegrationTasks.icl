@@ -76,7 +76,7 @@ where
 						# attributes	= 'Map'.put TITLE_ATTRIBUTE "Calling external process" 'Map'.newMap
 						# prompt		= {UIDef|controls=[],actions=[],attributes='Map'.newMap}
 						# editor		= {UIDef|controls=controls,actions=[],attributes=attributes}
-						# rep			= TaskRep ((repLayout repAs) (InteractLayout prompt editor)) []
+						# rep			= TaskRep ((repLayout repAs).Layout.interact prompt editor) []
 						= (ValueResult NoValue lastEvent rep state,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
@@ -119,7 +119,7 @@ callRPCHTTP method url params transformResult
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callHTTP method url request parseResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess cmd args <<@ Title "Call RPC"
+	>>= \(cmd,args,outfile) -> callProcess cmd args
 	>>= \exitCode -> if (exitCode > 0)
 		(throw (RPCException (curlError exitCode)))
 		(importTextFile outfile >>= \result -> case parseResult result of

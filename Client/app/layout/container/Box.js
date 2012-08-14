@@ -585,7 +585,7 @@ Ext.define('itwc.layout.container.Box', {
 			childMargins = childContext.marginInfo || childContext.getMarginInfo();
 			//Only measure if we are not going to set the size
             if (me.horizontal ? (childContext.vflex && !childContext.heightModel.shrinkWrap) : (childContext.hflex && !childContext.widthModel.shrinkWrap)) {
-				childSize = availSize || 0;
+				childSize = availSize - childMargins[me.horizontal ? 'height':'width'] || 0;
 			} else {
 				childSize = childContext.getProp(me.horizontal ? 'height' : 'width');
 			}
@@ -604,15 +604,16 @@ Ext.define('itwc.layout.container.Box', {
 		ownerContext[me.horizontal ? 'setContentHeight':'setContentWidth'](maxSize + me.padding[me.horizontal ? 'height' : 'width'] +
 			ownerContext.targetContext.getPaddingInfo()[me.horizontal ? 'height' : 'width']);
 
-		if (isCenter || isEnd) {
-			size = shrinkWrap ? maxSize : availSize;
+		
+		if (isCenter || isEnd) {		
 			// When calculating a centered position within the content box of the innerCt,
 			// the width of the borders must be subtracted from the size to yield the
 			// space available to center within. The publishInnerCtSize method explicitly
 			// adds the border widths to the set size of the innerCt.
+			size = shrinkWrap ? maxSize : availSize;
 			size = size - ownerContext.innerCtContext.getBorderInfo()[me.horizontal ? 'height' : 'width'];
 		} 
-
+	
         for (i = 0; i < childItemsLength; i++) {
             childContext = childItems[i];
             childMargins = childContext.marginInfo || childContext.getMarginInfo();
@@ -634,7 +635,7 @@ Ext.define('itwc.layout.container.Box', {
 				if(isNaN(size)) { //If we need to align an element we need the container size first
 					return false;
 				}
-				childStart = start + mmax(0,size - childContext.props[me.horizontal ? 'height':'width']);
+				childStart = start + mmax(0,size - childContext.props[me.horizontal ? 'height':'width'] - childMargins[me.horizontal ? 'bottom':'right']);
 			}
 
             childContext.setProp(me.horizontal ? 'y':'x', childStart);

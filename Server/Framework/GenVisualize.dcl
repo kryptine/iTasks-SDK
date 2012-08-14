@@ -4,7 +4,7 @@ import HTML, JSON_NG, UIDefinition
 import StdGeneric, Maybe, Void, Either
 import GenUpdate, GenVerify
 from Map import :: Map
-from LayoutCombinators import :: Layout, :: Layoutable
+from LayoutCombinators import :: Layout
 :: StaticVisualizationMode = AsDisplay | AsLabel
 
 //Generic text visualization function

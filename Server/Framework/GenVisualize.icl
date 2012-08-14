@@ -146,11 +146,11 @@ gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
-			# def = layout (DataLayout {UIDef|attributes = addLabel False gfd_name newMap, controls = controls, actions = []})
-			= (NormalEditor def.UIDef.controls,vst)
+			# controls = layout.Layout.editor (addLabel False gfd_name newMap) controls
+			= (NormalEditor controls,vst)
 		OptionalEditor controls	
-			# def = layout (DataLayout {UIDef|attributes = addLabel False gfd_name newMap, controls = controls, actions = []})
-			= (OptionalEditor def.UIDef.controls, vst)
+			# controls = layout.Layout.editor (addLabel False gfd_name newMap) controls
+			= (OptionalEditor controls, vst)
 
 gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
