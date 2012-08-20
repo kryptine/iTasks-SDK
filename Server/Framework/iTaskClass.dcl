@@ -9,7 +9,6 @@ class iTask a
 	, gHeaders{|*|}
 	, gGridRows{|*|}
 	, gUpdate{|*|}
-	, gDefaultMask{|*|}
 	, gVerify{|*|}
 	, JSONEncode{|*|}
 	, JSONDecode{|*|}

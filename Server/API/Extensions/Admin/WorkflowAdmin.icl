@@ -11,7 +11,6 @@ derive gVisualizeEditor	Workflow
 derive gHeaders			Workflow
 derive gGridRows		Workflow
 derive gUpdate 			Workflow
-derive gDefaultMask		Workflow
 derive gVerify			Workflow
 derive JSONEncode		Workflow
 derive JSONDecode		Workflow
@@ -25,8 +24,6 @@ gUpdate{|WorkflowTaskContainer|} mode ust = basicUpdate mode (\Void x -> x) (Wor
 where
 	defTask :: Task Void
 	defTask = abort "default task container"
-
-gDefaultMask{|WorkflowTaskContainer|}_ = [Touched []]
 
 gVerify{|WorkflowTaskContainer|} _ vst = alwaysValid vst
 
@@ -142,7 +139,7 @@ where
 	isValue (Value _ _) = True
 	isValue _			= False
 	
-	layout = customMergeLayout (sideMerge LeftSide 260 (sideMerge TopSide 100 (sideMerge TopSide 200 tabbedMerge)))
+	layout = customMergeLayout (sideMerge LeftSide 260 (sideMerge TopSide 30 (sideMerge TopSide 200 tabbedMerge)))
 
 controlDashboard :: !(SharedTaskList ClientPart) -> Task ClientPart
 controlDashboard list
@@ -150,7 +147,7 @@ controlDashboard list
 			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
 				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
 				]															
-		) <! isJust	<<@ AfterLayout (appControls (setDirection Horizontal o setValign AlignMiddle) o autoReduce)	
+		) <! isJust	//<<@ AfterLayout (appControls (setDirection Horizontal o setValign AlignMiddle) o autoReduce)	
 	@	fromJust	
 where
 	view user	= "Welcome " +++ toString user		
@@ -228,15 +225,11 @@ workOnTask taskId
 	= (workOn taskId @ const OpenProcess) -||- chooseAction [(ActionClose,OpenProcess)] <<@ SetLayout (partLayout 0)
 
 appendOnce identity task taskList
-	=	get (taskListMeta taskList)
-	>>= \opened ->	if (isEmpty [t \\ t <- opened])
-			(appendTask Embedded (\_ -> task) taskList @ const Void)
-			(return Void)
+	= 	appendTask Embedded (\_ -> task) taskList @ const Void
 
 addWorkflows :: ![Workflow] -> Task [Workflow]
 addWorkflows additional
 	=	update (\flows -> flows ++ additional) workflows
-
 
 // UTIL FUNCTIONS
 workflow :: String String w -> Workflow | toWorkflow w

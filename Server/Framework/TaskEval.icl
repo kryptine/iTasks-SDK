@@ -31,11 +31,11 @@ createSessionInstance task event iworld=:{currentDateTime}
 	# worker				= AnonymousUser sessionId
 	# ((meta,reduct,result,_), iworld)
 		= createTaskInstance instanceId (Just sessionId) 0 (Just worker) task noMeta {issuedAt=currentDateTime,issuedBy=worker,status=Unstable,firstEvent=Nothing,latestEvent=Nothing} iworld
-	# (mbRes,iworld)		= evalAndStoreInstance event (meta,reduct,result) iworld
+	# (mbRes,iworld)		= evalAndStoreInstance True event (meta,reduct,result) iworld
 	# iworld				= refreshOutdatedInstances iworld 
 	= case loadSessionInstance sessionId iworld of
 		(Ok (meta,reduct,result),iworld)
-			# (mbRes,iworld)	= evalAndStoreInstance RefreshEvent (meta,reduct,result) iworld
+			# (mbRes,iworld)	= evalAndStoreInstance True RefreshEvent (meta,reduct,result) iworld
 			= case mbRes of
 				Ok result	= (Ok (result, instanceId, sessionId), iworld)
 				Error e		= (Error e, iworld)
@@ -59,7 +59,7 @@ evalSessionInstance sessionId event iworld
 	= case mbInstance of
 		Error e				= (Error e, iworld)
 		Ok (meta,reduct,result)
-			# (mbRes,iworld)	= evalAndStoreInstance RefreshEvent (meta,reduct,result) iworld
+			# (mbRes,iworld)	= evalAndStoreInstance True RefreshEvent (meta,reduct,result) iworld
 			# iworld			= remOutdatedInstance meta.TIMeta.instanceNo iworld
 			= case mbRes of
 				Ok result		= (Ok (result, meta.TIMeta.instanceNo, sessionId), iworld)
@@ -77,7 +77,7 @@ processEvent event iworld
 		(Error _,iworld)	= iworld
 		(Ok (meta,reduct,result),iworld)
 			//Eval the targeted instance first
-			# (_,iworld)	= evalAndStoreInstance event (meta,reduct,result) iworld
+			# (_,iworld)	= evalAndStoreInstance False event (meta,reduct,result) iworld
 			= iworld
 where
 	instanceNo (EditEvent (TaskId no _) _ _)	= no
@@ -93,12 +93,12 @@ createPersistentInstance task meta issuer parent iworld=:{currentDateTime}
 	= (TaskId instanceId 0, iworld)
 
 //Evaluate a single task instance
-evalAndStoreInstance :: !Event !(TIMeta,TIReduct,TIResult) !*IWorld -> (!MaybeErrorString (TaskResult JSONNode),!*IWorld)
-evalAndStoreInstance _ inst=:(meta=:{TIMeta|worker=Nothing},_,_) iworld
+evalAndStoreInstance :: !Bool !Event !(TIMeta,TIReduct,TIResult) !*IWorld -> (!MaybeErrorString (TaskResult JSONNode),!*IWorld)
+evalAndStoreInstance _ _ inst=:(meta=:{TIMeta|worker=Nothing},_,_) iworld
 	= (Error "Can't evalutate a task instance with no worker set", iworld)
-evalAndStoreInstance event (meta=:{TIMeta|instanceNo,parent,worker=Just worker,progress},reduct=:{TIReduct|task=Task eval,nextTaskNo=curNextTaskNo,nextTaskTime,tree,shares,lists},result=:TIValue val _) iworld=:{currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
+evalAndStoreInstance isSession event (meta=:{TIMeta|instanceNo,parent,worker=Just worker,progress},reduct=:{TIReduct|task=Task eval,nextTaskNo=curNextTaskNo,nextTaskTime,tree,shares,lists},result=:TIValue val _) iworld=:{currentUser,currentInstance,nextTaskNo,taskTime,localShares,localLists}
 	//Eval instance
-	# repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=True}
+	# repAs						= {TaskRepOpts|useLayout=Nothing,modLayout=Nothing,appFinalLayout=isSession}
 	//Update current process id & eval stack in iworld
 	# taskId					= TaskId instanceNo 0
 	# iworld					= {iworld & currentInstance = instanceNo, currentUser = worker, nextTaskNo = curNextTaskNo, taskTime = nextTaskTime, localShares = shares, localLists = lists} 
@@ -144,9 +144,9 @@ where
 	taskrep	(ValueResult _ _ rep _)		= rep
 	taskrep (ExceptionResult _ _)		= TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []
 
-evalAndStoreInstance _ (_,_,TIException e msg) iworld
+evalAndStoreInstance _ _ (_,_,TIException e msg) iworld
 	= (Ok (ExceptionResult e msg), iworld)
-evalAndStoreInstance _ _ iworld	
+evalAndStoreInstance _ _ _ iworld	
 	= (Ok (exception "Could not unpack instance state"), iworld)
 
 //Evaluate tasks marked as outdated in the task pool
@@ -165,7 +165,7 @@ refreshInstance instanceNo iworld
 	= case loadTaskInstance instanceNo iworld of
 		(Error _,iworld)	= iworld
 		(Ok (meta,reduct,result),iworld)
-			# (_,iworld)	= evalAndStoreInstance RefreshEvent (meta,reduct,result) iworld
+			# (_,iworld)	= evalAndStoreInstance False RefreshEvent (meta,reduct,result) iworld
 			= iworld
 
 refreshSessionInstance :: !SessionId !*IWorld -> *IWorld
@@ -173,7 +173,7 @@ refreshSessionInstance sessionId iworld
 	= case loadSessionInstance sessionId iworld of
 		(Error _,iworld)	= iworld
 		(Ok (meta,reduct,result),iworld)
-			# (_,iworld)	= evalAndStoreInstance RefreshEvent (meta,reduct,result) iworld
+			# (_,iworld)	= evalAndStoreInstance True RefreshEvent (meta,reduct,result) iworld
 			= iworld
 			
 localShare :: !TaskId -> Shared a | iTask a

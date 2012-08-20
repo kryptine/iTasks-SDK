@@ -11,13 +11,14 @@ verifyForm val updateMask
 	# verSt = gVerify{|*|} (Just val) {updateMask = [updateMask], verifyMask = [], optional = False, staticDisplay = False}
 	= hd verSt.verifyMask
 
-verifyValue :: !a -> Bool | gVerify{|*|}, gDefaultMask{|*|} a
-verifyValue val = isValidValue (verifyForm val (defaultMask val))
+verifyValue :: !a -> Bool | gVerify{|*|} a
+verifyValue val = isValidValue (verifyForm val Touched)
 
 isValidValue :: !VerifyMask -> Bool
 isValidValue (VMUntouched _ optional cm)	= optional && (and (map isValidValue cm)) 
 isValidValue (VMValid _ cm)					= and (map isValidValue cm)
-isValidValue (VMInvalid _ _)				= False
+isValidValue (VMValidWithState _ cm _)		= and (map isValidValue cm)
+isValidValue _								= False
 
 //Generic Verify
 generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
@@ -30,11 +31,11 @@ gVerify{|RECORD|}		fx r						vst=:{updateMask,verifyMask,optional}
 	# val		= fmap fromRECORD r
 	# (cmu,um)	= popMask updateMask
 	# vst		= {vst & updateMask = childMasks cmu, verifyMask = []}	
-	# (childMask,vst) = case isJust r of
-		True
+	# (childMask,vst) = case r of
+		Just _
 			# vst=:{verifyMask = childMask} = fx val {vst & optional = False}
 			= (childMask,{vst & verifyMask = childMask})
-		False
+		_
 			= ([],vst)
 	# (consMask,vst) = if (isTouched cmu) (VMValid Nothing childMask,vst) (VMUntouched Nothing optional childMask,vst)
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}
@@ -127,7 +128,7 @@ gVerify{|RadioChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
 gVerify{|RadioChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
 gVerify{|ComboChoice|} _ _		_ vst = simpleVerify "Choose one item" vst
 gVerify{|ComboChoiceNoView|} _	_ vst = simpleVerify "Choose one item" vst
-gVerify{|GridChoice|} _ _		_ vst = alwaysValid vst//simpleVerify "Choose one row" vst
+gVerify{|GridChoice|} _ _		_ vst = alwaysValid vst
 gVerify{|GridChoiceNoView|} _	_ vst = alwaysValid vst
 gVerify{|CheckMultiChoice|} _ _	_ vst = simpleVerify "Choose a number of items" vst
 gVerify{|Table|}				_ vst = alwaysValid vst
@@ -193,9 +194,14 @@ where
 	appendToMask l c = l++[c]
 	
 	childMasks :: !VerifyMask -> [VerifyMask]
-	childMasks (VMValid _ cm)		= cm
-	childMasks (VMInvalid _ cm)		= cm
-	childMasks (VMUntouched _ _ cm)	= cm
+	childMasks (VMValid _ cm)				= cm
+	childMasks (VMValidWithState _ cm _)	= cm
+	childMasks (VMInvalid _ cm)				= cm
+	childMasks (VMInvalidWithState _ cm _)	= cm
+	childMasks (VMUntouched _ _ cm)			= cm
+	
+	childMasksN :: !VerifyMask !Int -> [VerifyMask]
+	childMasksN m _ = childMasks m
 	
 	isTouched :: !VerifyMask -> Bool
 	isTouched (VMUntouched _ _ _)			= False
@@ -205,7 +211,10 @@ where
 alwaysValid :: !*VerSt -> *VerSt
 alwaysValid vst=:{verifyMask,updateMask}
 	# (cm,um) = popMask updateMask
-	= {vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing [])}
+	# nm = case cm of
+		TouchedWithState s	= VMValidWithState Nothing [] s
+		_					= VMValid Nothing []
+	= {vst & updateMask = um, verifyMask = appendToMask verifyMask nm}
 	
 simpleVerify :: !String !*VerSt -> *VerSt
 simpleVerify hint vst
@@ -219,12 +228,12 @@ wrapperVerify mbHint pred parseErr mbVal vst=:{updateMask, verifyMask, optional,
 			| staticDisplay
 							= VMValid Nothing [VMValid Nothing []]
 			| optional = case cm of
-				Touched _	= validateValue val
+				Touched		= validateValue val
 				_			= VMValid Nothing [VMValid mbHint []]           
 			| otherwise = case cm of
 				Untouched	= VMUntouched Nothing False [VMUntouched mbHint False []]
 				Blanked		= VMInvalid IsBlankError [VMInvalid IsBlankError []]
-				Touched _	= validateValue val     
+				Touched		= validateValue val     
 		Nothing
 							= VMValid Nothing [VMValid mbHint []]
 	= {vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
@@ -242,20 +251,29 @@ customVerify mbHint pred mkErrMsg mbVal vst=:{updateMask, verifyMask, optional, 
 								= VMValid Nothing []
 			| optional
 				= case cm of
-					Touched _	= validateValue val
-					_			= VMValid mbHint []
+					Touched				= validateValue val
+					TouchedWithState s	= validateValueWithState s val
+					_					= VMValid mbHint []
 			| otherwise
 				= case cm of
-					Untouched	= VMUntouched mbHint False []
-					Blanked		= VMInvalid IsBlankError []
-					Touched _	= validateValue val
+					Untouched			= VMUntouched mbHint False []
+					PartiallyTouched _	= validateValue val
+					Touched				= validateValue val
+					TouchedWithState s	= validateValueWithState s val
+					Blanked				= VMInvalid IsBlankError []
 		Nothing
-								= VMValid mbHint []
+			= case cm of
+				TouchedWithState s	= VMValidWithState mbHint [] s
+				_					= VMValid (fmap (\s -> "GAK" +++ s) mbHint) []
 	= {vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
 where
 	validateValue val
 		| pred val	= VMValid mbHint []
 		| otherwise	= VMInvalid (ErrorMessage (mkErrMsg val)) []
+		
+	validateValueWithState state val
+		| pred val	= VMValidWithState (fmap (\s -> "GEK" +++ s) mbHint) [] state
+		| otherwise	= VMInvalidWithState (ErrorMessage (mkErrMsg val)) [] state  
 
 setInvalid :: ![(!DataPath,!ErrorMessage)] !VerifyMask -> VerifyMask
 setInvalid errors mask = seq (map setInvalid` errors) mask

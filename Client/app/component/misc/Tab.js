@@ -12,6 +12,9 @@ Ext.define('itwc.component.misc.Tab',{
 		if(this.active) {
 			this.activate();
 		}
+		if(this.closeTaskId) {
+			this.closable = true;
+		}		
 	},
 	onClick: function(e, target) {
 		var me = this,
@@ -23,9 +26,9 @@ Ext.define('itwc.component.misc.Tab',{
 		me.viewport = me.viewport || me.up('viewport');
 
 		if(isCloseClick) {
-			me.viewport.fireEvent('action',this.taskId,'close');
+			me.viewport.fireEvent('action',this.closeTaskId,'Close');
 		} else {
-			me.viewport.fireEvent('focus',this.taskId);
+			me.viewport.fireEvent('focus',this.focusTaskId);
 		}
 	}
 });

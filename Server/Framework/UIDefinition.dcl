@@ -182,6 +182,7 @@ from Map			import :: Map(..)
 	{ text		:: !String
 	, children	:: !Maybe [UITreeNode]
 	, leaf		:: !Bool
+	, expanded	:: !Bool
 	, value		:: !Int
 	}
 
@@ -213,9 +214,9 @@ from Map			import :: Map(..)
 
 :: UITabOpts =
 	{ text			:: !String
-	, taskId		:: !Maybe String
 	, active		:: !Bool
-	, closable		:: !Bool
+	, focusTaskId	:: !Maybe String
+	, closeTaskId	:: !Maybe String
 	, iconCls		:: !Maybe String
 	}
 

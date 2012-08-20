@@ -4,8 +4,9 @@ Ext.define('itwc.component.choice.Tree',{
 	alias: 'widget.itwc_choice_tree',
 	rootVisible: false,
 
-	width: 150,
-	height: 200,
+	width: 'flex',
+	minWidth: 150,
+	minHeight: 200,
 	editBufferTime: 0,
 
 	initComponent: function() {	
@@ -22,6 +23,8 @@ Ext.define('itwc.component.choice.Tree',{
 		me.callParent(arguments);
 		
 		me.addManagedListener(me,'itemclick',me.onItemClick,me);
+		me.addManagedListener(me,'beforeitemexpand',me.onItemExpand,me);
+		me.addManagedListener(me,'beforeitemcollapse',me.onItemCollapse,me);
 		me.initEditable();
 	},
 	afterRender: function() {
@@ -31,9 +34,23 @@ Ext.define('itwc.component.choice.Tree',{
 			this.setValue(this.value);
 		}
 	},
+	onItemExpand: function(record) {
+		this.viewport = this.viewport || this.up('viewport');
+		this.viewport.fireEvent('edit', this.taskId, this.editorId, ["exp",record.raw.value,true]);
+		return false;
+	},
+	onItemCollapse: function(record) {
+		this.viewport = this.viewport || this.up('viewport');
+		this.viewport.fireEvent('edit', this.taskId, this.editorId, ["exp",record.raw.value,false]);
+		return false;
+	},
 	onItemClick: function(tree,record,item) {
 		this.selectedNode = record.raw.value;
-		this.fireEvent('change');
+		this.viewport = this.viewport || this.up('viewport');
+		
+		if(record.isLeaf()) {
+			this.viewport.fireEvent('edit', this.taskId, this.editorId, ["sel",record.raw.value,true]);
+		}
 	},
 	getValue: function() {
 		return this.selectedNode;

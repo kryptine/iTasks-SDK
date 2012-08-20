@@ -8,7 +8,7 @@ import Maybe
 
 // Definition of a layout as collection of combination functions
 :: Layout =
-	{ editor	:: UIAttributes [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]	//Combine multiple controls to a single one in editors
+	{ editor	:: UIDef -> UIDef															//Combine multiple controls to a single one in editors
 	, interact	:: UIDef UIDef -> UIDef														//Combine the prompt and editor of an interact
 	, step		:: UIDef [UIAction] -> UIDef												//Combine current definition with the step actions
 	, parallel	:: UIDef [UIDef] -> UIDef													//Combine the promp and parts of a parallel composition

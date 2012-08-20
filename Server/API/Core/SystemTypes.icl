@@ -29,7 +29,6 @@ derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskValue, Stability
 derive gHeaders			TaskListItem, ProgressMeta, TaskValue, Stability
 derive gGridRows		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gUpdate			TaskListItem, ProgressMeta, TaskValue, Stability
-derive gDefaultMask		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gVerify			TaskListItem, ProgressMeta, TaskValue, Stability
 
 derive class iTask	Credentials, Config, TaskId

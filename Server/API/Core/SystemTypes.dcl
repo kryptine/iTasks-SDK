@@ -13,7 +13,7 @@ from IWorld				import :: IWorld
 from UIDefinition		import :: UIDef, :: UISize, :: UISideSizes, :: UIMinSize, :: UIAttributes
 from LayoutCombinators	import :: Layout
 from Task				import :: Task, :: TaskId
-from iTaskClass			import class iTask, generic gVerify, :: VerSt, generic gDefaultMask, :: UpdateMask, generic gUpdate, :: USt, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
+from iTaskClass			import class iTask, generic gVerify, :: VerSt, generic gUpdate, :: USt, :: UpdateMask, :: UpdateMode, generic gVisualizeEditor, generic gVisualizeText, generic gHeaders, generic gGridRows, :: VSt, :: VisualizationResult, :: StaticVisualizationMode(..), visualizeAsText
 from Shared				import :: ReadWriteShared, :: ReadOnlyShared, :: RWShared
 
 // Strings with special meanings
@@ -233,7 +233,6 @@ derive gVisualizeEditor	TaskListItem, ProgressMeta, TaskValue, Stability
 derive gHeaders			TaskListItem, ProgressMeta, TaskValue, Stability
 derive gGridRows		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gUpdate			TaskListItem, ProgressMeta, TaskValue, Stability
-derive gDefaultMask		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gVerify			TaskListItem, ProgressMeta, TaskValue, Stability
 
 derive class iTask	Credentials, Config, TaskId

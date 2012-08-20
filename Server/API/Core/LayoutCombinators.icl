@@ -14,11 +14,11 @@ autoLayout = {editor = autoEditorLayout, interact = autoInteractionLayout ,step 
 /**
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset
 */
-autoEditorLayout :: UIAttributes [(UIControl,UIAttributes)] -> [(UIControl,UIAttributes)]
-autoEditorLayout attributes controls
+autoEditorLayout :: UIDef -> UIDef
+autoEditorLayout def=:{UIDef|attributes,controls}
 	# def = autoReduce (decorateControls {UIDef|attributes = put TYPE_ATTRIBUTE "partial" attributes,controls=controls,actions=[]})
 	//Attributes are discarded so merge with the reduced control
-	= [(c,mergeAttributes a attributes) \\ (c,a) <- def.UIDef.controls]
+	= {UIDef|def & controls = [(c,mergeAttributes a attributes) \\ (c,a) <- def.UIDef.controls]}
 /**
 * The basic interaction layout simply decorates the prompt and merges it with the editor.
 */	
@@ -50,16 +50,19 @@ autoParallelLayout prompt defs
 		= groupedMerge prompt defs
 where
 	allPartial [] = True
-	allPartial [d:ds] = case get TYPE_ATTRIBUTE d.UIDef.attributes of Just "partial" = allPartial ds; _ = False;
+	allPartial [d:ds] = case get TYPE_ATTRIBUTE d.UIDef.attributes of 
+		Just "partial"	= allPartial ds
+		Just "group"	= allPartial ds	//Experiment...
+		_ = False;
 /**
 * Add actions and frame the content
 */
 autoFinalLayout :: UIDef -> UIDef	//TODO: Size should be minWidth, but that doesn't seem to work yet...
-autoFinalLayout def = appControls finalTouch (autoReduce (decorateControls def))
+autoFinalLayout def
+	| singleControl def && isEmpty (actionsOf def)	= def
+													= appControls finalTouch (autoReduce (decorateControls def))
 where
 	finalTouch = setWidth (ExactSize 600) o setFramed True
-	//Only set width, if it was not explicitly set yet
-	setConditionalWidth size = updSizeOpts (\opts -> case opts.UISizeOpts.width of Nothing = {UISizeOpts|opts & width = Just size}; _ = opts)
 
 //Default reduction function that reduces the list of controls to a single control by
 //wrapping them in a panel if necessary.
@@ -70,7 +73,7 @@ autoReduce def=:{UIDef|attributes,controls,actions}
 	# controls			= addButtons buttons controls
 	# (controls,actions) = case controls of
 		
-		[(UIPanel _ _ _ _,_)]		= (controls,actions)	//Do nothing if the controls already consist of a single panel
+		[(UIPanel _ _ _ _,_)]		= (controls,actions)						//Do nothing if the controls already consist of a single panel
 		[(c=:(UIContainer _ _ _ _),a)] = case titleAttr of
 				Nothing			= (controls,actions)							//If we don't have a title, just leave the container be the single control
 				(Just title)	= ([(setTitle title (toPanel c),a)],actions)	//Promote container to panel and set title
@@ -116,9 +119,11 @@ decorateControl last (control,attributes)
 	# mbHint 	= get HINT_ATTRIBUTE attributes
 	# mbValid	= get VALID_ATTRIBUTE attributes
 	# mbError	= get ERROR_ATTRIBUTE attributes
+	# hasMargin	= hasMargin control
 	# noMargins	= noMarginControl control
 	= case (mbLabel,mbHint,mbValid,mbError) of
 		(Nothing,Nothing,Nothing,Nothing)	//Just set margins
+			| hasMargin	= (control,attributes)
 			# control = if noMargins (setMargins 0 0 0 0 control) (if last (setMargins 0 5 5 5 control) (setMargins 0 5 0 5 control))
 			= (control,attributes)
 		_									//Add decoration													
@@ -140,7 +145,8 @@ where
 	
 	icon cls tooltip		= [setLeftMargin 5 (UIIcon defaultSizeOpts {UIIconOpts|iconCls = cls, tooltip = Just tooltip})]
 
-	noMarginControl	(UIContainer _ _ _ _)	= True
+	hasMargin control = isJust (getSizeOpts control).UISizeOpts.margins
+
 	noMarginControl	(UIPanel _ _ _ _)	= True
 	noMarginControl	(UIGrid _ _ _)		= True
 	noMarginControl	(UITree _ _)		= True
@@ -183,7 +189,7 @@ minimalMerge = merge
 where
 	merge _ defs
 		# attributes	= put TYPE_ATTRIBUTE "multi" newMap
-		# controls		= foldr (++) [] [(autoReduce d).UIDef.controls \\ d <- defs]
+		# controls		= foldr (++) [] [d.UIDef.controls \\ d <- defs]
 		# actions		= foldr (++) [] [d.UIDef.actions \\ d <- defs]
 		= {UIDef|attributes = attributes, controls = controls, actions = actions}
 	
@@ -208,7 +214,7 @@ where
 			RightSide	= (Horizontal, last parts,init parts)
 			BottomSide	= (Vertical, last parts,init parts)
 			LeftSide	= (Horizontal, hd parts, tl parts)
-		# restPart		= restMerge prompt restParts
+		# restPart		= fillReduce (restMerge prompt restParts)
 		# sidePart		= fillReduce sidePart
 		# sideUI		= (ifH direction (setWidth (ExactSize size)) (setHeight (ExactSize size))) (fill (uiOf sidePart))
 		# restUI		= fill (uiOf restPart)
@@ -240,6 +246,7 @@ where
 		# ui = (fill o setDirection dir) (defaultContainer uis)
 		= {UIDef|attributes = prompt.UIDef.attributes, controls = [(ui,newMap)], actions = side1.UIDef.actions ++ side2.UIDef.actions} 
 	*/
+
 tabbedMerge :: ParallelMerger
 tabbedMerge = merge
 where
@@ -247,9 +254,10 @@ where
 		# attributes				= prompt.UIDef.attributes
 		# (activeIndex,activeDef)	= findActive defs	
 		# (tabBar,actions)			= mkTabs activeIndex defs	
-		# tabContent				=  maybe [(defaultPanel [],newMap)] (\d -> (tweakUI (setPadding 0 0 0 0) (autoReduce (tweakAttr (del TITLE_ATTRIBUTE) d))).UIDef.controls) activeDef
+		# tabContent				= maybe [(defaultPanel [],newMap)]
+			(\d -> (tweakUI (setPadding 0 0 0 0) (autoReduce (tweakAttr (del TITLE_ATTRIBUTE) d))).UIDef.controls) (fmap removeCloseAction activeDef)
 		# controls					= [(defaultContainer (map fst (decoratePrompt prompt).UIDef.controls ++ [tabBar] ++ map fst tabContent),newMap)]
-		= {UIDef|attributes = attributes,controls = controls, actions = actions}
+		= {UIDef|attributes = attributes, controls = controls, actions = []}
 
 	findActive defs = find 0 (0,Nothing) defs
 	where
@@ -264,27 +272,32 @@ where
 		
 	mkTabs active defs
 		# (tabs,actions) = unzip [mkTab (i == active) d \\ d <- defs & i <- [0..]]
-		= (setDirection Horizontal (defaultContainer tabs),foldr (++) [] actions)
+		= ((setDirection Horizontal o setHeight WrapSize o setBaseCls "x-tab-bar") (defaultContainer tabs),foldr (++) [] actions)
 
 	mkTab active def=:{UIDef|attributes,actions}
 		# taskId				= get TASK_ATTRIBUTE attributes
 		# iconCls				= fmap (\i -> "icon-" +++ i) (get ICON_ATTRIBUTE attributes)
 		# text					= fromMaybe "Untitled" (get TITLE_ATTRIBUTE attributes)
-		# (closable,actions)	= searchCloseAction taskId actions
-		# tabOpts = {text = text ,taskId = taskId,active = active,closable = closable,iconCls=iconCls}
+		# (close,actions)		= searchCloseAction actions
+		# tabOpts				= {text = text ,focusTaskId = taskId,active = active,closeTaskId = close,iconCls=iconCls}
 		= (UITab defaultSizeOpts tabOpts, if active actions [])
 	
-	searchCloseAction match [] = (False,[])
-	searchCloseAction (Just match) [{taskId,action=ActionClose,enabled}:as] = (taskId == match && enabled,as)
-	searchCloseAction match [a:as] = let (mbtask,as`) = searchCloseAction match as in (mbtask,[a:as`])
+	searchCloseAction [] = (Nothing,[])
+	searchCloseAction [{taskId,action=ActionClose,enabled}:as] = (if enabled (Just taskId) Nothing,as)
+	searchCloseAction [a:as] = let (mbtask,as`) = searchCloseAction as in (mbtask,[a:as`])
 
+	removeCloseAction def=:{UIDef|actions} = {UIDef|def & actions= filter notClose actions}
+	where
+		notClose {UIAction|action=ActionClose}	= False
+		notClose _								= True
+		
 hideLayout :: Layout
 hideLayout =
-	{ editor	= \_ _ -> []
-	, interact	= \prompt editor -> {UIDef|mergeDefs prompt editor & controls = []}
-	, step		= \def actions -> {UIDef|def & controls = [], actions = def.UIDef.actions ++ actions}
-	, parallel	= \prompt defs -> {UIDef|foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs] & controls = []}
-	, final		= \def			-> {UIDef|def & controls = []}
+	{ editor	= \def				-> {UIDef|def & controls = []}
+	, interact	= \prompt editor	-> {UIDef|mergeDefs prompt editor & controls = []}
+	, step		= \def actions		-> {UIDef|def & controls = [], actions = def.UIDef.actions ++ actions}
+	, parallel	= \prompt defs		-> {UIDef|foldr mergeDefs {UIDef|controls=[],actions=[],attributes = newMap} [prompt:defs] & controls = []}
+	, final		= \def				-> {UIDef|def & controls = []}
 	}
 		
 customMergeLayout :: ParallelMerger -> Layout
@@ -292,8 +305,7 @@ customMergeLayout merger = {autoLayout & parallel = merger}
 
 partLayout :: Int -> Layout
 partLayout idx = {autoLayout & parallel = layout}
-where
-
+where	
 	layout prompt parts
 		| idx < length parts
 			# controls	= (parts !! idx).UIDef.controls
@@ -334,6 +346,39 @@ updSizeOpts f (UIContainer sOpts lOpts items opts)	= (UIContainer (f sOpts) lOpt
 updSizeOpts f (UIPanel sOpts lOpts items opts)		= (UIPanel (f sOpts) lOpts items opts)
 updSizeOpts f (UIFieldSet sOpts lOpts items opts)	= (UIFieldSet (f sOpts) lOpts items opts)
 updSizeOpts f (UIWindow	sOpts lOpts items opts)		= (UIWindow	(f sOpts) lOpts items opts)
+
+getSizeOpts :: UIControl -> UISizeOpts
+getSizeOpts (UIViewString	sOpts vOpts)			= sOpts
+getSizeOpts (UIViewHtml sOpts vOpts)				= sOpts
+getSizeOpts (UIViewDocument sOpts vOpts)			= sOpts
+getSizeOpts (UIViewCheckbox sOpts vOpts)			= sOpts
+getSizeOpts (UIViewSlider sOpts vOpts opts)			= sOpts
+getSizeOpts (UIViewProgress sOpts vOpts opts)		= sOpts
+getSizeOpts (UIEditString	sOpts eOpts)			= sOpts
+getSizeOpts (UIEditNote sOpts eOpts)				= sOpts
+getSizeOpts (UIEditPassword sOpts eOpts)			= sOpts
+getSizeOpts (UIEditInt sOpts eOpts)					= sOpts
+getSizeOpts (UIEditDecimal sOpts eOpts)				= sOpts
+getSizeOpts (UIEditCheckbox sOpts eOpts)			= sOpts
+getSizeOpts (UIEditSlider sOpts eOpts opts)			= sOpts
+getSizeOpts (UIEditDate sOpts eOpts)				= sOpts
+getSizeOpts (UIEditTime sOpts eOpts)				= sOpts
+getSizeOpts (UIEditDocument sOpts eOpts)			= sOpts
+getSizeOpts (UIEditButton	sOpts eOpts opts)		= sOpts
+getSizeOpts (UIDropdown sOpts cOpts)				= sOpts
+getSizeOpts (UIGrid sOpts cOpts opts)				= sOpts
+getSizeOpts (UITree sOpts cOpts)					= sOpts
+getSizeOpts (UIActionButton sOpts aOpts opts)		= sOpts	
+getSizeOpts (UIMenuButton	sOpts opts)				= sOpts	
+getSizeOpts (UILabel sOpts opts)					= sOpts
+getSizeOpts (UIIcon sOpts opts)						= sOpts
+getSizeOpts (UITab sOpts opts)						= sOpts
+getSizeOpts (UITasklet sOpts opts)					= sOpts
+getSizeOpts (UIContainer sOpts lOpts items opts)	= sOpts
+getSizeOpts (UIPanel sOpts lOpts items opts)		= sOpts
+getSizeOpts (UIFieldSet sOpts lOpts items opts)		= sOpts
+getSizeOpts (UIWindow	sOpts lOpts items opts)		= sOpts
+
 
 setSize :: !UISize !UISize !UIControl -> UIControl
 setSize width height ctrl = updSizeOpts (\opts -> {UISizeOpts| opts & width = Just width, height = Just height}) ctrl
@@ -511,7 +556,7 @@ setItemsOfUI items ctrl								= ctrl
 //Container for a set of horizontally layed out buttons
 buttonPanel	:: ![UIControl] -> UIControl	
 buttonPanel buttons
-	= (wrapHeight o fillWidth o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (defaultContainer buttons)
+	= (/*setBaseCls "x-toolbar" o*/ wrapHeight o fillWidth o setPadding 2 2 2 0 o setDirection Horizontal o setHalign AlignRight) (defaultContainer buttons)
 
 actionsToButtons :: ![UIAction] -> (![UIControl],![UIAction])
 actionsToButtons [] = ([],[])
@@ -586,8 +631,12 @@ where
 
 uiOf :: UIDef -> UIControl
 uiOf {UIDef|controls} = case controls of
-	[]			= stringDisplay "-"
 	[(c,_):_]	= c
+	[]			= stringDisplay "-"
+
+singleControl :: UIDef -> Bool
+singleControl {UIDef|controls=[_]}	= True
+singleControl _						= False
 
 actionsOf :: UIDef -> [UIAction]
 actionsOf {UIDef|actions} = actions

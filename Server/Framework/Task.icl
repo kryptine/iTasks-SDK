@@ -48,8 +48,6 @@ where
 	
 gUpdate{|Task|} _ (UDSearch t) ust = basicSearch t (\Void t -> t) ust
 
-gDefaultMask{|Task|} _ _ = [Touched []]
-
 gVerify{|Task|} _ _ vst = alwaysValid vst
 
 gVisualizeText{|Task|} _ _ _ = ["<Task>"]

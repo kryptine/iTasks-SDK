@@ -8,10 +8,7 @@ from UIDefinition import :: UISize(..)
 :: DataPath = DataPath [Int]
 
 defaultValue :: a | gUpdate{|*|} a
-defaultValue = fst (gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = JSONNull, oldMask = [], newMask = [], iworld = Nothing})
-
-defaultMask :: !a -> UpdateMask | gDefaultMask{|*|} a	
-defaultMask a = hd (gDefaultMask{|*|} a)
+defaultValue = fst (gUpdate{|*|} UDCreate {searchPath = emptyDataPath, currentPath = emptyDataPath, consPath = [], update = JSONNull, oldMask = [Untouched], newMask = [], iworld = Nothing})
 
 updateValueAndMask :: !DataPath !JSONNode !a !UpdateMask !*IWorld -> (!a,!UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
@@ -48,8 +45,8 @@ gUpdate{|OBJECT of {gtd_num_conses}|} fx (UDSearch (OBJECT x)) ust=:{searchPath,
 		= (OBJECT nx, {ust & oldMask = om, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update)}) 
 	| searchPath <== currentPath
 		//Update is targeted somewhere in a substructure of this value
-		# (nx,ust=:{newMask=childMask}) = fx (UDSearch x) {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
-		= (OBJECT nx, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched childMask)})
+		# (nx,ust=:{newMask=childMask}) = fx (UDSearch x) {ust & currentPath = shiftDataPath currentPath, oldMask = [cm:om], newMask = []}
+		= (OBJECT nx, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (PartiallyTouched childMask)})
 	| otherwise
 		//Not on the path, so just put back the current mask (cm)	
 		= (OBJECT x, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
@@ -69,21 +66,24 @@ where
 		| otherwise
 			= [ ConsRight : consPath (i - (n/2)) (n - (n/2)) ]
 
+gUpdate{|CONS|}	fx UDCreate	ust = appFst CONS (fx UDCreate ust)
+gUpdate{|CONS of {gcd_arity}|}	fx (UDSearch (CONS c)) ust=:{oldMask}
+	# (cm,om)	= popMask oldMask
+	# (nx,ust)	= fx (UDSearch c) {ust & oldMask = childMasksN cm gcd_arity}
+	= (CONS nx,ust)
+
 gUpdate{|RECORD|} fx UDCreate ust=:{newMask}
 	# (nx,ust=:{newMask=recordMask}) = fx UDCreate {ust & newMask = []}
 	= (RECORD nx, {ust & newMask = newMask ++ recordMask})
-gUpdate{|RECORD|} fx (UDSearch (RECORD x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
+gUpdate{|RECORD of {grd_arity}|} fx (UDSearch (RECORD x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| searchPath <== currentPath
 		//Update is targeted somewhere in a substructure of this value
-		# (nx,ust=:{newMask=childMask}) = fx (UDSearch x) {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
-		= (RECORD nx, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched childMask)})
+		# (nx,ust=:{newMask=childMask}) = fx (UDSearch x) {ust & currentPath = shiftDataPath currentPath, oldMask = childMasksN cm grd_arity, newMask = []}
+		= (RECORD nx, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (PartiallyTouched childMask)})
 	| otherwise
 		//Not on the path, so just put back the current mask (cm)	
 		= (RECORD x, {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}) 
-
-gUpdate{|CONS|}		fx UDCreate				ust = appFst CONS	(fx UDCreate ust)
-gUpdate{|CONS|}		fx (UDSearch (CONS c))	ust = appFst CONS	(fx (UDSearch c) ust)
 
 gUpdate{|FIELD|}	fx UDCreate				ust = appFst FIELD	(fx UDCreate ust)
 gUpdate{|FIELD|}	fx (UDSearch (FIELD c))	ust = appFst FIELD	(fx (UDSearch c) ust)
@@ -146,7 +146,7 @@ gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMas
 		= case isNew currentPath searchPath (length l) of
 			True
 				# (nv,ust) = fx UDCreate {ust & oldMask = [], newMask = []}
-				= (l++[nv], Touched [], ust)
+				= (l++[nv], PartiallyTouched [], ust)
 			False
 				= (l,cm,ust)
 	# (lx,ust=:{newMask=cMasks})
@@ -165,10 +165,10 @@ gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMas
 				= (insertAt (index+1) nv lx,insertAt (index+1) (hd childMask) cMasks,{ust & newMask = childMask})
 			_ 	
 				= (lx,cMasks,ust)
-		= (lx,{ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched cMasks), oldMask = om})
+		= (lx,{ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (PartiallyTouched cMasks), oldMask = om})
 	| otherwise
 		# listMask = case listMask of
-			Touched _	= Touched cMasks
+			PartiallyTouched _	= PartiallyTouched cMasks
 			mask		= mask
 		= (lx, {ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask listMask, oldMask = om})
 where
@@ -224,8 +224,44 @@ gUpdate{|FormButton|}			mode ust = basicUpdate mode (\st b								-> {FormButton
 gUpdate{|URL|}					mode ust = basicUpdate mode (\json url -> maybe url (\s -> URL s) (fromJSON json))  (URL "") ust
 
 gUpdate{|Table|}				mode ust = basicUpdate mode (\json (Table headers cells _)		-> case fromJSON json of Just i = Table headers cells (Just i); _ = Table headers cells Nothing)			(Table [] [] Nothing) 												ust
-gUpdate{|TreeChoice|} _ _		mode ust = updateChoice mode (\idx (TreeChoice options _) -> TreeChoice options (Just idx)) (TreeChoice (Tree []) Nothing) ust
-gUpdate{|TreeChoiceNoView|} _	mode ust = updateChoice mode (\idx (TreeChoiceNoView options _) -> TreeChoiceNoView options (Just idx)) (TreeChoiceNoView (Tree []) Nothing) ust
+
+gUpdate{|TreeChoice|} _ _		UDCreate ust	= basicCreate (TreeChoice (Tree []) Nothing) ust
+gUpdate{|TreeChoice|} _ _		(UDSearch (TreeChoice options sel)) ust=:{searchPath,currentPath,update,oldMask,newMask}
+	# (cm, om)	= popMask oldMask
+	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om}
+	| currentPath == searchPath
+		= case fromJSON update of
+			Just ("sel",idx,val)
+				= (TreeChoice options (if val (Just idx) Nothing), {ust & newMask = appendToMask newMask (touch cm)})
+			Just ("exp",idx,val)
+				= (TreeChoice options sel, {ust & newMask = appendToMask newMask (if val (expand idx cm) (collapse idx cm))})
+			_
+				= ((TreeChoice options sel), {ust & newMask = appendToMask newMask cm})
+	| otherwise
+		= ((TreeChoice options sel), {ust & newMask = appendToMask newMask cm})
+
+touch (TouchedWithState s)	= TouchedWithState s
+touch (PartiallyTouched c)	= PartiallyTouched c
+touch _						= Touched
+
+expand :: Int UpdateMask -> UpdateMask
+expand idx (TouchedWithState s) = case fromJSON s of
+	Just list	= TouchedWithState (toJSON (removeDup [idx:list]))
+	_			= TouchedWithState (toJSON [idx])
+expand idx _	= TouchedWithState (toJSON [idx])
+ 
+collapse idx (TouchedWithState s) = case fromJSON s of
+	Just list	= TouchedWithState (toJSON (removeMember idx list))
+	_			= TouchedWithState s
+collapse idx m = m
+
+gUpdate{|TreeChoiceNoView|} _	mode ust = updateChoice mode update (TreeChoiceNoView (Tree []) Nothing) ust
+where
+	update ("sel",idx,val)		(TreeChoiceNoView options _) 		= TreeChoiceNoView options (if val (Just idx) Nothing)
+	update ("exp",idx,val)		(TreeChoiceNoView options sel)		= TreeChoiceNoView options sel
+	update _					treechoice							= treechoice
+	
+
 gUpdate{|GridChoice|} _ _		mode ust = updateChoice mode (\idx (GridChoice options _) -> GridChoice options (Just idx)) (GridChoice [] Nothing) ust
 gUpdate{|GridChoiceNoView|} _	mode ust = updateChoice mode (\idx (GridChoiceNoView options _) -> GridChoiceNoView options (Just idx)) (GridChoiceNoView [] Nothing) ust
 gUpdate{|RadioChoice|} _ _		mode ust = updateChoice mode (\idx (RadioChoice options _) -> RadioChoice options (Just idx)) (RadioChoice [] Nothing) ust
@@ -271,7 +307,7 @@ gUpdate {|Document|} (UDSearch s) ust=:{searchPath, currentPath, update, oldMask
 			Nothing 	// Reset
 				= ({Document|documentId = "", contentUrl = "", name="", mime="", size = 0},{ust & newMask = appendToMask newMask Blanked})
 			Just doc 	//Update
-				# ust					= {ust & newMask = appendToMask newMask (Touched [])}
+				# ust					= {ust & newMask = appendToMask newMask (PartiallyTouched [])}
 				= (doc,ust)
 	| otherwise 
 		= (s, {ust & newMask = appendToMask newMask cm})
@@ -352,16 +388,16 @@ noUpdate (UDSearch v) _ ust=:{currentPath,oldMask,newMask}
 	# ust		= {ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask cm}
 	= (v,ust)
 
-basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
-basicUpdateSimple mode def ust = case mode of
-	UDCreate	= basicCreate def ust
-	UDSearch v	= basicSearch v (\json old -> fromMaybe old (fromJSON json)) ust
-	
 basicUpdate :: !(UpdateMode a) (upd a -> a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} upd
 basicUpdate mode toV def ust = case mode of
 	UDCreate	= basicCreate def ust
 	UDSearch v	= basicSearch v toV ust
 	
+basicUpdateSimple :: !(UpdateMode a) a !*USt -> *(!a,!*USt) | JSONDecode{|*|} a
+basicUpdateSimple mode def ust = case mode of
+	UDCreate	= basicCreate def ust
+	UDSearch v	= basicSearch v (\json old -> fromMaybe old (fromJSON json)) ust	
+
 basicCreate :: !a !*USt -> *(!a,!*USt)
 basicCreate def ust=:{newMask} = (def,{ust & newMask = appendToMask newMask Untouched})
 
@@ -374,91 +410,6 @@ basicSearch v toV ust=:{searchPath,currentPath,update,oldMask,newMask}
 	| otherwise
 		= (v, {ust & newMask = appendToMask newMask cm})
 
-generic gDefaultMask a :: !a -> [UpdateMask]
-
-gDefaultMask{|UNIT|} _						= []
-gDefaultMask{|OBJECT|}	fx (OBJECT x)		= [Touched (fx x)]
-gDefaultMask{|CONS|}	fx (CONS x)			= fx x
-gDefaultMask{|RECORD|}	fx (RECORD x)		= [Touched (fx x)]
-gDefaultMask{|FIELD|}	fx (FIELD x)		= fx x
-gDefaultMask{|PAIR|}	fx fy (PAIR x y)	= fx x ++ fy y
-gDefaultMask{|EITHER|}	fx fy e = case e of
-	(LEFT x)								= fx x
-	(RIGHT y)								= fy y
-
-gDefaultMask{|Maybe|} fx mbVal = maybe [Untouched] fx mbVal
-
-gDefaultMask{|[]|} _ [] = [Untouched]
-gDefaultMask{|[]|} fx l = [Touched (map (hd o fx) l)]
-
-gDefaultMask {|Display|}			fx (Display d)				= fx d
-gDefaultMask {|Editable|}			fx (Editable e)				= fx e
-gDefaultMask {|Hidden|}				fx (Hidden h)				= fx h
-gDefaultMask {|VisualizationHint|}	fx (VHEditable e)			= fx e
-gDefaultMask {|VisualizationHint|}	fx (VHDisplay d)			= fx d
-gDefaultMask {|VisualizationHint|}	fx (VHHidden h)				= fx h
-
-gDefaultMask{|Int|}					_ = [Touched []]
-gDefaultMask{|Real|}				_ = [Touched []]
-gDefaultMask{|Char|}				_ = [Touched []]
-gDefaultMask{|Bool|}				_ = [Touched []]
-gDefaultMask{|String|}				_ = [Touched []]
-gDefaultMask{|Dynamic|}				_ = [Touched []]
-gDefaultMask{|(->)|} _ _			_ = [Touched []]
-
-gDefaultMask{|Document|}			_ = [Touched []]			
-gDefaultMask{|FormButton|}			_ = [Touched []]
-gDefaultMask{|Note|}				_ = [Touched []]
-gDefaultMask{|URL|}					_ = [Touched []]
-gDefaultMask{|Username|}			_ = [Touched []]
-gDefaultMask{|Password|}			_ = [Touched []]
-gDefaultMask{|EUR|}					_ = [Touched []]
-gDefaultMask{|USD|}					_ = [Touched []]
-gDefaultMask{|Date|}				_ = [Touched []]
-gDefaultMask{|Time|}				_ = [Touched []]
-gDefaultMask{|User|}				_ = [Touched []]
-gDefaultMask{|HtmlTag|}				_ = [Touched []]
-gDefaultMask{|HtmlInclude|}			_ = [Touched []]
-gDefaultMask{|BoundedInt|}			_ = [Touched []]
-gDefaultMask{|Progress|}			_ = [Touched []]
-gDefaultMask{|CheckMultiChoice|}_ _	_ = [Touched []]
-gDefaultMask{|RadioChoice|} _ _ (RadioChoice opts mbSel)
-	// if no valid selection is made, start with untouched mask
-	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
-	| otherwise										= [Untouched]
-gDefaultMask{|RadioChoiceNoView|} _ (RadioChoiceNoView opts mbSel)
-	// if no valid selection is made, start with untouched mask
-	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
-	| otherwise										= [Untouched]
-gDefaultMask{|ComboChoice|} _ _ (ComboChoice opts mbSel)
-	// if no valid selection is made, start with untouched mask
-	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
-	| otherwise										= [Untouched]
-gDefaultMask{|ComboChoiceNoView|} _ (ComboChoiceNoView opts mbSel)
-	// if no valid selection is made, start with untouched mask
-	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
-	| otherwise										= [Untouched]
-gDefaultMask{|GridChoice|} _ _ (GridChoice opts mbSel)
-	// if no valid selection is made, start with untouched mask
-	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
-	| otherwise										= [Untouched]
-gDefaultMask{|GridChoiceNoView|} _ (GridChoiceNoView opts mbSel)
-	// if no valid selection is made, start with untouched mask
-	| isJust mbSel && fromJust mbSel < length opts	= [Touched []]
-	| otherwise										= [Untouched]
-gDefaultMask{|Table|} _ = [Touched []]
-gDefaultMask{|TreeChoice|} _ _ tree=:(TreeChoice _ mbSel)
-	// if no valid selection is made, start with untouched mask
-	| isJust mbSel	= [Touched []]
-	| otherwise		= [Untouched]
-gDefaultMask{|TreeChoiceNoView|} _ tree=:(TreeChoiceNoView _ mbSel)
-	// if no valid selection is made, start with untouched mask
-	| isJust mbSel	= [Touched []]
-	| otherwise		= [Untouched]
-
-derive gDefaultMask Either, (,), (,,), (,,,), JSONNode, Void, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
-derive gDefaultMask	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
-derive gDefaultMask DynamicChoice,DynamicChoiceNoView //TODO
 
 //Utility functions
 dp2s :: !DataPath -> String
@@ -517,7 +468,7 @@ where
 toggleMask :: !JSONNode -> UpdateMask
 toggleMask update = case update of
 	JSONNull	= Blanked
-	_			= Touched []
+	_			= PartiallyTouched []
 	
 unchanged :: !Void !a -> a
 unchanged _ v = v
@@ -532,13 +483,20 @@ where
 	appendToMask l m	= l ++ [m]
 
 	childMasks :: !UpdateMask -> [UpdateMask]
-	childMasks (Untouched)		= []
-	childMasks (Touched  cm)	= cm
-	childMasks (Blanked)		= []
+	childMasks (PartiallyTouched  cm)	= cm
+	childMasks _						= []
+
+	childMasksN :: !UpdateMask !Int -> [UpdateMask]
+	childMasksN (Untouched)	n			= repeatn n Untouched
+	childMasksN (PartiallyTouched cm) n	= cm
+	childMasksN (Touched) n				= repeatn n Touched
+	childMasksN (TouchedWithState _) n	= repeatn n Touched
+	childMasksN (Blanked) n				= repeatn n Untouched
 	
 	isTouched :: !UpdateMask -> Bool
-	isTouched (Touched _)	= True
-	isTouched _				= False
+	isTouched  Touched					= True
+	isTouched (PartiallyTouched parts)	= foldr ((&&) o isTouched) True parts
+	isTouched _							= False
 
 allUntouched :: ![UpdateMask] -> Bool
 allUntouched children = and [isUntouched c \\ c <- children]

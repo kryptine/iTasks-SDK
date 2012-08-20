@@ -37,7 +37,7 @@
 .icon-down {
 	background-image: url('../img/icons/move-down.png') !important;
 }
-.icon-add {
+.icon-add, .icon-new {
 	background-image: url('../img/icons/add.png') !important;
 }
 .icon-remove {

@@ -8,7 +8,9 @@ import GenUpdate
 
 :: VerifyMask = VMUntouched !(Maybe HintMessage) !Optional ![VerifyMask] 
 			  | VMValid !(Maybe HintMessage) ![VerifyMask]
+			  | VMValidWithState !(Maybe HintMessage) ![VerifyMask] !JSONNode
 			  | VMInvalid !ErrorMessage ![VerifyMask]
+			  | VMInvalidWithState !ErrorMessage ![VerifyMask] !JSONNode
 			  
 :: *VerSt =
 	{ updateMask	:: ![UpdateMask]
@@ -38,7 +40,7 @@ verifyForm :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 /**
 * Verify a value (a form which is filled in completely).
 */
-verifyValue :: !a -> Bool | gVerify{|*|}, gDefaultMask{|*|} a
+verifyValue :: !a -> Bool | gVerify{|*|} a
 
 /**
 * Based on the verify mask of a value, determine if it is valid.

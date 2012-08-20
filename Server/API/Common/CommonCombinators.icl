@@ -223,7 +223,12 @@ where
 	tune (AfterLayout f) task	= tune (ModifyLayout (\l -> update l f )) task
 	where
 		update {editor,interact,step,parallel,final} f
-			= {editor=editor,interact = interact o f, step = step o f, parallel = parallel o f, final = final o f}
+			= {editor= \d -> f (editor d)
+			  ,interact = \p e -> f (interact p e)
+			  ,step = \d a -> f (step d a)
+			  ,parallel = \p d -> f (parallel p d)
+			  ,final = \d -> f (final d)
+			  }
 			
 instance tune Window
 where tune Window task = task

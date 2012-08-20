@@ -122,7 +122,7 @@ kmVSt {VSt|iworld} = iworld
 
 //Generic visualizer
 generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Maybe a)!*VSt -> (!VisualizationResult,!*VSt)
-import StdDebug
+
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 
@@ -146,11 +146,11 @@ gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
-			# controls = layout.Layout.editor (addLabel False gfd_name newMap) controls
-			= (NormalEditor controls,vst)
+			# def = layout.Layout.editor {UIDef|attributes=addLabel False gfd_name newMap, controls=controls, actions=[]}
+			= (NormalEditor def.UIDef.controls,vst)
 		OptionalEditor controls	
-			# controls = layout.Layout.editor (addLabel False gfd_name newMap) controls
-			= (OptionalEditor controls, vst)
+			# def = layout.Layout.editor {UIDef|attributes=addLabel False gfd_name newMap, controls=controls, actions=[]}
+			= (OptionalEditor def.UIDef.controls, vst)
 
 gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
@@ -482,6 +482,45 @@ where
 	options _										= []
 
 
+/*
+visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
+visualizeCustom tuiF vst=:{VSt|currentPath,disabled,verifyMask}
+	# (cmv,vm)	= popMask verifyMask
+	// only check mask if generating editor definition & not for labels
+	# touched	= isTouched cmv
+	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
+	# ver		= verifyElementStr cmv
+	# (vis,vst) = tuiF (dp2s currentPath) touched ver vst
+	= (NormalEditor vis,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+*/
+gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask}
+	# (cmv,vm)	= popMask verifyMask
+	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
+	# ver		= verifyElementStr cmv
+	# viz		= [(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=dp2s currentPath,value=value val,options = options val cmv},addVerAttributes ver newMap)]
+	= (NormalEditor viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+where
+	value  (Just (TreeChoice _ mbSel)) 	= mbSel
+	value _								= Nothing
+	
+	options (Just (TreeChoice (Tree nodes) _)) msk = fst (mkTree nodes 0 )
+		where
+			expanded = case msk of
+				VMValidWithState _ _ s 		= case fromJSON s of Just expanded = expanded; _ = []
+				VMInvalidWithState _ _ s	= case fromJSON s of Just expanded = expanded; _ = []
+				_							= []
+				
+			mkTree [] idx
+				= ([],idx)
+			mkTree [Leaf (v,_):r] idx
+				# (rtree,idx`) 		= mkTree r (inc idx)
+				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, expanded = isMember idx expanded, children = Nothing}:rtree],idx`)
+			mkTree [Node (v,_) nodes:r] idx
+				# (children,idx`)	= mkTree nodes (inc idx)
+				# (rtree,idx`)		= mkTree r idx`
+				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = isMember idx expanded, children = Just children}:rtree],idx`)
+	options _ _ = []
+/*	
 gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId}
@@ -496,13 +535,13 @@ where
 				= ([],idx)
 			mkTree [Leaf (v,_):r] idx
 				# (rtree,idx`) 		= mkTree r (inc idx)
-				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, children = Nothing}:rtree],idx`)
+				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, expanded = False, children = Nothing}:rtree],idx`)
 			mkTree [Node (v,_) nodes:r] idx
 				# (children,idx`)	= mkTree nodes (inc idx)
 				# (rtree,idx`)		= mkTree r idx`
-				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, children = Just children}:rtree],idx`)
+				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = False, children = Just children}:rtree],idx`)
 	options _ = []
-	
+*/
 gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId}
@@ -516,11 +555,11 @@ where
 			= ([],idx)
 		mkTree [Leaf v:r] idx
 			# (rtree,idx`) 		= mkTree r (inc idx)
-			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, children = Nothing}:rtree],idx`)
+			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, expanded = False, children = Nothing}:rtree],idx`)
 		mkTree [Node v nodes:r] idx
 			# (children,idx`)	= mkTree nodes (inc idx)
 			# (rtree,idx`)		= mkTree r idx`
-			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, children = Just children}:rtree],idx`)
+			= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = False, children = Just children}:rtree],idx`)
 	options _ = []
 				
 gVisualizeEditor{|DynamicChoice|} f1 f2 f3 f4 f5 f6 f7 f8 (Just (DCCombo val)) vst
@@ -585,18 +624,18 @@ where
 				# (itemsVis,vst)	= childVisualizations fx items vst
 				# numItems = length items
 				| disabled
-					= ([listItemControl numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
+					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
 				| otherwise
 					# (newItem,vst)		= newChildVisualization fx (optional || length items > 0) vst
-					= ([listItemControl numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [c \\ (c,_) <- controlsOf newItem],vst)
+					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [c \\ (c,_) <- controlsOf newItem],vst)
 						
-			listItemControl numItems idx item
+			listItemControl disabled numItems idx item 
 				# controls = map fst (controlsOf item)
 				# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text="Remove",iconCls=Just "icon-remove",disabled=False}
 							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text="Up",iconCls=Just "icon-up",disabled=idx == 0}
 							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text="Down",iconCls=Just "icon-down",disabled= idx == numItems - 1}
 							  ]
-				= setBottomMargin 2 (setDirection Horizontal (defaultContainer (controls ++ buttons)))
+				= setBottomMargin 2 (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons))))
 			
 gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
 gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst

@@ -71,7 +71,7 @@ where
 			Error _		= could_not_read_shared_in_interact_exception iworld
 			Ok r
 				# v = toView r initial_mask
-				# (l,v,mask) = (initial_mask,v,defaultMask v)
+				# (l,v,mask) = (initial_mask,v,Touched)
 				= eval event repOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
 	eval event repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
 		//Decode stored values
@@ -88,8 +88,8 @@ where
 		# changed				= (nts =!= ts) || (nr =!= r) 
 		# valid					= isValidValue (verifyForm nv nmask)
 		# (nl,nv,nmask) 		= if changed
-										(refresh_fun l nr nv valid)
-										(l,nv,mask)
+										(refresh_fun l nr nv nmask valid)
+										(l,nv,nmask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
@@ -97,10 +97,11 @@ where
 		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-	refresh_fun l nr nv valid
+	refresh_fun l nr nv nmask valid
 		# nl = if valid (getMbSelection nv) l
 		# v = toView nr nl
-		= (nl,v,defaultMask v)
+		| v === nv	= (nl,nv,nmask)	//If the view value is the same, we can keep the mask info
+					= (nl,v,Touched)
 
 interactSharedChoiceNoView :: !d !(ReadOnlyShared r) (Maybe l) (r (Maybe l) -> t l)
 							  -> Task (Maybe l) | descr d & ChoiceNoView t & iTask r & iTask l & iTask (t l)
@@ -112,7 +113,7 @@ where
 			Error _		= could_not_read_shared_in_interact_exception iworld
 			Ok r
 				# v = toViewId r initial_mask
-				# (l,v,mask) = (initial_mask,v,defaultMask v)
+				# (l,v,mask) = (initial_mask,v,Touched)
 				= eval event repOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
 	eval event repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
 		//Decode stored values
@@ -129,8 +130,8 @@ where
 		# changed				= (nts =!= ts) || (nr =!= r) 
 		# valid					= isValidValue (verifyForm nv nmask)
 		# (nl,nv,nmask) 		= if changed
-										(refresh_fun l nr nv valid)
-										(l,nv,mask)
+										(refresh_fun l nr nv nmask valid)
+										(l,nv,nmask)
 		//Make visualization
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
@@ -138,10 +139,11 @@ where
 		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
-	refresh_fun l nr nv valid
+	refresh_fun l nr nv nmask valid
 		# nl = if valid (getMbSelectionNoView nv) l
 		# v = toViewId nr nl
-		= (nl,v,defaultMask v)
+		| v === nv	= (nl,nv,nmask)	//If the view value is the same, we can keep the mask info
+					= (nl,v,Touched)
 
 interactSharedInformation :: !d !(ReadOnlyShared r) (r -> v) -> Task r | descr d & iTask r & iTask v
 interactSharedInformation desc shared toView = Task eval
@@ -152,7 +154,7 @@ where
 			Error _		= could_not_read_shared_in_interact_exception iworld
 			Ok r
 				# v = toView r
-				# (l,v,mask) = (r,v,defaultMask v)
+				# (l,v,mask) = (r,v,Touched)
 				= eval event repOpts (TCInteract2 taskId ts (toJSON l) (toJSON r) mask) iworld
 	eval event repOpts (TCInteract2 taskId=:(TaskId instanceNo _) ts encl encr mask) iworld=:{taskTime}
 		//Decode stored values
@@ -178,7 +180,7 @@ where
 
 	refresh_fun r
 		# v = toView r
-		= (r,v,defaultMask v) 
+		= (r,v,Touched) 
 
 interactNullEnter :: !d !v (v->l) -> Task l | descr d & iTask v
 interactNullEnter desc initFun fromf = Task eval
@@ -215,7 +217,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# v = tof m
 		  l = m
-		  mask = defaultMask v
+		  mask = Touched
 		= eval event repOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
 	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{taskTime}
 		//Decode stored values
@@ -238,7 +240,7 @@ where
 		| ok 
 			# nl = fromf l v
 			  nv = tof nl
-			= (nl,nv,defaultMask nv)
+			= (nl,nv,Touched)
 			= (l,v,m)
 
 interactNullView :: !d (l->v) l -> Task l | descr d & iTask l & iTask v
@@ -247,7 +249,7 @@ where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# l = m
 		  v = Display (tof l)
-		  mask = defaultMask v
+		  mask = Touched
 		= eval event repOpts (TCInteract1 taskId ts (toJSON l) mask) iworld
 	eval event repOpts (TCInteract1 taskId=:(TaskId instanceNo _) ts encl mask) iworld=:{taskTime}
 		//Decode stored values
@@ -301,7 +303,7 @@ matchAndApplyEvent (EditEvent taskId name value) matchId taskTime v mask ts iwor
 		# dp = s2dp name
 		| (dataPathLevel dp == 0)	= case fromJSON value of
 				Nothing	= (v,mask,ts,iworld)
-				Just nv	= (nv,defaultMask nv,taskTime,iworld)
+				Just nv	= (nv,Touched,taskTime,iworld)
 		| otherwise
 			# (nv,nmask,iworld)	= updateValueAndMask dp value v mask iworld
 			= (nv,nmask,taskTime,iworld)
