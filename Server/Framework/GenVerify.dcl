@@ -24,12 +24,12 @@ generic gVerify a :: !(Maybe a) !*VerSt -> *VerSt
 instance GenMask VerifyMask
 instance toString ErrorMessage
 
-derive gVerify UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses}, CONS, RECORD, FIELD
+derive gVerify UNIT, PAIR, EITHER, OBJECT of {gtd_num_conses}, CONS of {gcd_arity}, RECORD of {grd_arity}, FIELD
 derive gVerify Int, Real, Char, Bool, String, (,), (,,),(,,,),(->), []
 derive gVerify Maybe, Dynamic, JSONNode, Void, Document, Either, Editable, Hidden, Display, VisualizationHint, HtmlTag, Timestamp
 derive gVerify Username, Password, Date, Time, FormButton, EUR, USD, BoundedInt, User, URL, Note, DateTime, RadioChoice, ComboChoice, GridChoice, CheckMultiChoice, Map, Tree, TreeChoice, TreeNode, Table, Progress
 derive gVerify EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority
-derive gVerify GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVerify GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gVerify DynamicChoice, DynamicChoiceNoView
 
 /**

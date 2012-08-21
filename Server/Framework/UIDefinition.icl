@@ -85,9 +85,10 @@ JSONEncode{|UIDirection|} Vertical		= [JSONString "vertical"]
 JSONEncode{|UIDirection|} Horizontal	= [JSONString "horizontal"]
 
 JSONEncode{|UIMenuButtonOpts|} {UIMenuButtonOpts|text,iconCls,disabled,menu}
-	= [JSONObject [("text",JSONString text),("disabled",JSONBool disabled),("menu",menu`):icon]]
+	= [JSONObject (text` ++ [("disabled",JSONBool disabled),("menu",menu`)] ++ iconCls`)]
 where
-	icon = [("iconCls",JSONString cls) \\ Just cls <- [iconCls]]
+	text`		= maybe [] (\s -> [("text",JSONString s)]) text
+	iconCls`	= maybe [] (\s -> [("iconCls",JSONString s)]) iconCls
 	menu`= JSONObject [("xtype",JSONString "itwc_menu"),("items",JSONArray (map toJSON menu))]
 
 JSONEncode{|UIMenuItem|} (UIActionMenuItem aopts opts)	= [enc "itwc_actionmenuitem" [toJSON aopts,toJSON opts] []]

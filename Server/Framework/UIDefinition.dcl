@@ -187,13 +187,13 @@ from Map			import :: Map(..)
 	}
 
 :: UIButtonOpts =
-	{ text		:: !String
+	{ text		:: !Maybe String
 	, iconCls	:: !Maybe String
 	, disabled	:: !Bool
 	}
 
 :: UIMenuButtonOpts =
-	{ text		:: !String
+	{ text		:: !Maybe String
 	, iconCls	:: !Maybe String
 	, disabled	:: !Bool
 	, menu		:: ![UIMenuItem]

@@ -239,9 +239,9 @@ where
 	refresh_fun l v m ok
 		| ok 
 			# nl = fromf l v
-			  nv = tof nl
-			= (nl,nv,Touched)
-			= (l,v,m)
+			# nv = tof nl
+			= (l,nv,Touched)	
+		= (l,v,m)
 
 interactNullView :: !d (l->v) l -> Task l | descr d & iTask l & iTask v
 interactNullView desc tof m = Task eval

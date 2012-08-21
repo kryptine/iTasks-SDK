@@ -333,6 +333,7 @@ updSizeOpts f (UIEditDate sOpts eOpts)				= (UIEditDate (f sOpts) eOpts)
 updSizeOpts f (UIEditTime sOpts eOpts)				= (UIEditTime (f sOpts) eOpts)
 updSizeOpts f (UIEditDocument sOpts eOpts)			= (UIEditDocument (f sOpts) eOpts)
 updSizeOpts f (UIEditButton	sOpts eOpts opts)		= (UIEditButton	(f sOpts) eOpts opts)
+updSizeOpts f (UIEditGoogleMap sOpts eOpts opts)	= (UIEditGoogleMap (f sOpts) eOpts opts)
 updSizeOpts f (UIDropdown sOpts cOpts)				= (UIDropdown (f sOpts) cOpts)
 updSizeOpts f (UIGrid sOpts cOpts opts)				= (UIGrid (f sOpts) cOpts opts)
 updSizeOpts f (UITree sOpts cOpts)					= (UITree (f sOpts) cOpts)
@@ -364,7 +365,8 @@ getSizeOpts (UIEditSlider sOpts eOpts opts)			= sOpts
 getSizeOpts (UIEditDate sOpts eOpts)				= sOpts
 getSizeOpts (UIEditTime sOpts eOpts)				= sOpts
 getSizeOpts (UIEditDocument sOpts eOpts)			= sOpts
-getSizeOpts (UIEditButton	sOpts eOpts opts)		= sOpts
+getSizeOpts (UIEditButton sOpts eOpts opts)			= sOpts
+getSizeOpts (UIEditGoogleMap sOpts eOpts opts)		= sOpts
 getSizeOpts (UIDropdown sOpts cOpts)				= sOpts
 getSizeOpts (UIGrid sOpts cOpts opts)				= sOpts
 getSizeOpts (UITree sOpts cOpts)					= sOpts
@@ -570,7 +572,7 @@ actionsToButtons [a=:{taskId,action,enabled}:as]
 where
 	mkButton taskId action enabled
 		= UIActionButton defaultSizeOpts {UIActionOpts|taskId = toString taskId,actionId= actionName action}
-			{UIButtonOpts|text = actionName action, iconCls = Just (actionIcon action), disabled = not enabled}
+			{UIButtonOpts|text = Just (actionName action), iconCls = Just (actionIcon action), disabled = not enabled}
 			
 actionsToMenus :: ![UIAction] -> (![UIControl],![UIAction])
 actionsToMenus actions = makeMenus [] actions
@@ -582,7 +584,7 @@ where
 	addToMenus [main:item] taskId action enabled [] //Create menu
 		= [createButton main item taskId action enabled]
 	addToMenus [main:item] taskId action enabled [m=:(UIMenuButton sOpts opts):ms] //Add to existing menu if it exists
-		| opts.UIMenuButtonOpts.text == main //Found!
+		| opts.UIMenuButtonOpts.text == Just main //Found!
 			= [UIMenuButton sOpts {UIMenuButtonOpts|opts & menu = addToItems item taskId action enabled opts.UIMenuButtonOpts.menu}:ms]
 		| otherwise
 			= [m:addToMenus [main:item] taskId action enabled ms]
@@ -600,14 +602,14 @@ where
 	addToItems [] _ _ _ _
 		= []
 
-	itemText (UIActionMenuItem _ {UIButtonOpts|text})	= text
-	itemText (UISubMenuItem {UIMenuButtonOpts|text})		= text
+	itemText (UIActionMenuItem _ {UIButtonOpts|text})	= fromMaybe "" text
+	itemText (UISubMenuItem {UIMenuButtonOpts|text})	= fromMaybe "" text
 	itemText _					= ""
 	
 	createButton item sub taskId action enabled
 		= UIMenuButton defaultSizeOpts
 			{UIMenuButtonOpts
-			|text = item
+			|text = Just item
 			,iconCls = Just (icon item)
 			,disabled	= if (isEmpty sub) (not enabled) False
 			,menu = addToItems sub taskId action enabled []
@@ -615,10 +617,10 @@ where
 	createItem item [] taskId action enabled //Action item
 		= UIActionMenuItem
 			{UIActionOpts|taskId=taskId,actionId=actionName action}
-			{UIButtonOpts|text=item,iconCls = Just (icon item), disabled = not enabled}
+			{UIButtonOpts|text=Just item,iconCls = Just (icon item), disabled = not enabled}
 	createItem item sub taskId action enabled //Sub item
 		= UISubMenuItem
-				{ text = item
+				{ text = Just item
 				, iconCls = Just (icon item)
 				, disabled = False
 				, menu = addToItems sub taskId action enabled []

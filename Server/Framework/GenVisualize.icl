@@ -110,7 +110,7 @@ gVisualizeText{|JSONNode|} _ val			= [toString val]
 gVisualizeText{|HtmlTag|} _ html			= [toString html]
 
 derive gVisualizeText DateTime, Either, (,), (,,), (,,,), Timestamp, Map, EmailAddress, Username, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree, ButtonState
-derive gVisualizeText GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeText GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
 mkVSt :: !TaskId *IWorld -> *VSt
 mkVSt taskId iworld
@@ -126,33 +126,32 @@ generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Mayb
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 
-gVisualizeEditor{|RECORD|} fx _ _ _ val vst = visualizeCustom mkControl vst
+gVisualizeEditor{|RECORD|} fx _ _ _ val vst=:{VSt|currentPath,verifyMask,optional,taskId}
+	# (cmv,vm)	= popMask verifyMask
+	//When optional and no value yet, just show the checkbox
+	| optional && isNothing val 
+		= (OptionalEditor [checkbox False], {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
+	
+	# (fieldViz,vst) = fx (fmap fromRECORD val) {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv, optional = False}
+	//For optional records we add the checkbox to clear the entire record
+	# viz = if optional (OptionalEditor [checkbox True:controlsOf fieldViz]) fieldViz	
+	= (viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
-	mkControl name _ _ vst=:{VSt|taskId,currentPath,optional,disabled,layout}	
-		= case fmap fromRECORD val of
-			Nothing // Create checkbox to create record
-				| optional	= (if disabled [] [(checkbox False,newMap)], vst)
-				# (viz,vst) = fx Nothing vst
-				= (controlsOf viz,vst)
-			Just x
-				# (viz,vst) = fx (Just x) vst
-				= (controlsOf viz,vst)
-	where										
-		checkbox c = UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = name, value = Just c}
-				
-						
+	checkbox checked = (UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = dp2s currentPath, value = Just checked},newMap)
+	
 gVisualizeEditor{|FIELD of {gfd_name}|} fx _ _ _ val vst=:{VSt|disabled,layout}
 	# (vizBody,vst)		= fx (fmap fromFIELD val) vst
 	= case vizBody of
 		HiddenEditor			= (HiddenEditor,vst)
 		NormalEditor controls
-			# def = layout.Layout.editor {UIDef|attributes=addLabel False gfd_name newMap, controls=controls, actions=[]}
+			# def = layout.Layout.editor {UIDef|attributes=addLabel disabled gfd_name newMap, controls=controls, actions=[]}
 			= (NormalEditor def.UIDef.controls,vst)
 		OptionalEditor controls	
-			# def = layout.Layout.editor {UIDef|attributes=addLabel False gfd_name newMap, controls=controls, actions=[]}
+			# def = layout.Layout.editor {UIDef|attributes=addLabel True gfd_name newMap, controls=controls, actions=[]}
 			= (OptionalEditor def.UIDef.controls, vst)
 
-gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId}
+
+gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{currentPath,selectedConsIndex = oldSelectedConsIndex,disabled,verifyMask,taskId,layout}
 	//For objects we only peek at the verify mask, but don't take it out of the state yet.
 	//The masks are removed from the states when processing the CONS.
 	# (cmv,vm)	= popMask verifyMask
@@ -160,7 +159,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx x vst
-		# content = if (isTouched cmv)  (map fst (controlsOf items)) []
+		# content = if (isTouched cmv) (layout.editor {UIDef|attributes=newMap,controls = controlsOf items,actions=[]}).controls []
 		= (NormalEditor [(UIDropdown defaultSizeOpts
 								{UIChoiceOpts
 								| taskId = toString taskId
@@ -168,7 +167,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 								, value = if (isTouched cmv) (Just selectedConsIndex) Nothing
 								, options = [gdc.gcd_name \\ gdc <- gtd_conses]}
 							,addVerAttributes (verifyElementStr cmv) newMap)
-						: if (isEmpty content) [] [(defaultContainer content,newMap)]
+						: content
 						]
 		  ,{vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex})
 	//ADT with one constructor or static render: put content into container, if empty show cons name
@@ -362,7 +361,7 @@ where
 gVisualizeEditor{|FormButton|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
-		# text = maybe "" (\b -> b.FormButton.label) val
+		# text = fmap (\b -> b.FormButton.label) val
 		# iconCls = fmap (\b -> b.FormButton.icon) val
 		= ([(UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\_ -> JSONString "pressed") val} {UIButtonOpts|text=text,iconCls=iconCls,disabled=False},addVerAttributes verRes newMap)],vst)
 
@@ -377,7 +376,8 @@ where
 		{ UIGoogleMapOpts
 		| center = (map.perspective.GoogleMapPerspective.center.lat,map.perspective.GoogleMapPerspective.center.lng)
 		, mapType = mapType map.perspective.GoogleMapPerspective.type
-		, markers = []// map.GoogleMap.markers
+		, markers = [{UIGoogleMapMarker|position=(lat,lng),title=title,icon=icon,infoWindow=fmap toString infoWindow,draggable=draggable,selected=selected}
+					\\ {GoogleMapMarker|position={lat,lng},title,icon,infoWindow,draggable,selected} <- map.GoogleMap.markers]
 		, options =
 			{ UIGoogleMapOptions
 			| mapTypeControl = map.settings.GoogleMapSettings.mapTypeControl
@@ -481,18 +481,6 @@ where
 	options (Just (GridChoiceNoView options _))		= [fromMaybe [concat (gx AsLabel opt)] (ix opt []) \\ opt <- options]
 	options _										= []
 
-
-/*
-visualizeCustom :: !UIVizFunction !*VSt -> *(!VisualizationResult,!*VSt)
-visualizeCustom tuiF vst=:{VSt|currentPath,disabled,verifyMask}
-	# (cmv,vm)	= popMask verifyMask
-	// only check mask if generating editor definition & not for labels
-	# touched	= isTouched cmv
-	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
-	# ver		= verifyElementStr cmv
-	# (vis,vst) = tuiF (dp2s currentPath) touched ver vst
-	= (NormalEditor vis,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
-*/
 gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask}
 	# (cmv,vm)	= popMask verifyMask
 	# vst		= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
@@ -520,28 +508,7 @@ where
 				# (rtree,idx`)		= mkTree r idx`
 				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = isMember idx expanded, children = Just children}:rtree],idx`)
 	options _ _ = []
-/*	
-gVisualizeEditor{|TreeChoice|} _ gx _ _ _ _ _ _ val vst = visualizeCustom viz vst
-where
-	viz name touched verRes vst=:{VSt|taskId}
-		= ([(UITree defaultSizeOpts {UIChoiceOpts|taskId=toString taskId,editorId=name,value=value val,options = options val},addVerAttributes verRes newMap)],vst)
 
-	value  (Just (TreeChoice _ mbSel)) 	= mbSel
-	value _								= Nothing
-	
-	options (Just (TreeChoice (Tree nodes) _)) = fst (mkTree nodes 0)
-		where
-			mkTree [] idx
-				= ([],idx)
-			mkTree [Leaf (v,_):r] idx
-				# (rtree,idx`) 		= mkTree r (inc idx)
-				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = True, expanded = False, children = Nothing}:rtree],idx`)
-			mkTree [Node (v,_) nodes:r] idx
-				# (children,idx`)	= mkTree nodes (inc idx)
-				# (rtree,idx`)		= mkTree r idx`
-				= ([{UITreeNode|text = concat (gx AsLabel v), value = idx, leaf = False, expanded = False, children = Just children}:rtree],idx`)
-	options _ = []
-*/
 gVisualizeEditor{|TreeChoiceNoView|} _ gx _ _ val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId}
@@ -612,31 +579,40 @@ where
 	
 	options (Just (Table _ cells _))	= map (map toString) cells
 	options _							= []
-		
-gVisualizeEditor {|[]|} fx _ _ _ val vst = visualizeCustom mkControl vst
+
+gVisualizeEditor{|[]|} fx _ _ _ val vst=:{VSt|taskId,currentPath,disabled,verifyMask,layout}
+	# (cmv,vm)		= popMask verifyMask
+	# vst			= {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv}
+	# ver			= verifyElementStr cmv
+	# val			= fromMaybe [] val
+	# (items,vst)	= listControl val vst
+	= (NormalEditor [(defaultContainer items,addVerAttributes ver newMap)],{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
-	mkControl name touched verRes vst=:{VSt|taskId,disabled}
-		# val			= fromMaybe [] val
-		# (items,vst)	= listControl val vst
-		= ([(defaultContainer items,addVerAttributes verRes newMap)],vst)
-		where
-			listControl items vst=:{VSt|optional,disabled}
-				# (itemsVis,vst)	= childVisualizations fx items vst
-				# numItems = length items
-				| disabled
-					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
-				| otherwise
-					# (newItem,vst)		= newChildVisualization fx (optional || length items > 0) vst
-					= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [c \\ (c,_) <- controlsOf newItem],vst)
+	name = dp2s currentPath
+	listControl items vst=:{VSt|optional,disabled}
+		# (itemsVis,vst)	= childVisualizations fx items vst
+		# numItems = length items
+		| disabled
+			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
+		| otherwise
+			# (newItem,vst)		= newChildVisualization fx True vst
+			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [newItemControl newItem],vst)
 						
-			listItemControl disabled numItems idx item 
-				# controls = map fst (controlsOf item)
-				# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text="Remove",iconCls=Just "icon-remove",disabled=False}
-							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text="Up",iconCls=Just "icon-up",disabled=idx == 0}
-							  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text="Down",iconCls=Just "icon-down",disabled= idx == numItems - 1}
-							  ]
-				= setBottomMargin 2 (setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons))))
-			
+	listItemControl disabled numItems idx item 
+		# controls	= map fst (layout.editor {UIDef|attributes = newMap,controls = controlsOf item, actions = []}).controls
+		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mup_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=idx == 0}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("mdn_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= idx == numItems - 1}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
+					  ]
+		= setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons)))
+	newItemControl item
+		# controls	= map fst (layout.editor {UIDef|attributes = newMap,controls = controlsOf item, actions = []}).controls
+		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=True}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-down",disabled= True}
+					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=True}
+					  ]
+		= setDirection Horizontal (defaultContainer (controls ++ buttons))
+				
 gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
 gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst
 
@@ -677,7 +653,7 @@ where
 
 derive gVisualizeEditor DateTime, User
 derive gVisualizeEditor JSONNode, Either, (,,), (,,,), Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
-derive gVisualizeEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gVisualizeEditor GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
 generic gHeaders a :: a -> [String]
 
@@ -702,7 +678,7 @@ gHeaders{|(->)|} _ _ _		= []
 derive gHeaders [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gHeaders URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gHeaders EmailAddress, Action, HtmlInclude, UserConstraint, ManagementMeta, TaskPriority
-derive gHeaders	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gHeaders	GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gHeaders DynamicChoice, RadioChoice, ComboChoice, GridChoice, TreeChoice
 derive gHeaders DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridChoiceNoView, TreeChoiceNoView
 
@@ -731,7 +707,7 @@ gGridRows{|(->)|} _ gx _ gy f _				= Nothing
 derive gGridRows [], Maybe, Either, (,), (,,), (,,,), JSONNode, Void, Display, Editable, Hidden, VisualizationHint, Timestamp
 derive gGridRows URL, Note, Username, Password, Date, Time, DateTime, Document, FormButton, EUR, USD, User, UserConstraint, CheckMultiChoice, Map, Tree, TreeNode, Table
 derive gGridRows EmailAddress, Action, HtmlInclude, ManagementMeta, TaskPriority, ButtonState
-derive gGridRows GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gGridRows GoogleMap, GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 derive gGridRows DynamicChoice, RadioChoice, ComboChoice, TreeChoice, GridChoice
 derive gGridRows DynamicChoiceNoView, RadioChoiceNoView, ComboChoiceNoView, GridChoiceNoView, TreeChoiceNoView
 

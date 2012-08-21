@@ -24,12 +24,13 @@ enterInformation d _ = enterInformation d [EnterWith id]
 
 updateInformation :: !d ![UpdateOption m m] m -> Task m | descr d & iTask m
 updateInformation d [UpdateWith tof fromf] m
-/*
+
 	= interact d null
-		(\r -> let v = tof m in (m,v,defaultMask v))
-		(\l r v m ok -> if ok (let nl = fromf l v in (let nv = tof nl in (nl,nv,defaultMask nv))) (l,v,m))
-*/
-	= interactNullUpdate d tof fromf m
+		(\r -> let v = tof m in (m,v,Touched))
+		(\l r v m ok -> if ok (let nl = fromf l v in (let nv = tof nl in (nl,nv,m))) (l,v,m))
+
+//THIS OPTIMIZATION IS WRONG!
+//	= interactNullUpdate d tof fromf m
 updateInformation d _ m = updateInformation d [UpdateWith (\l -> l) (\_ v -> v)] m
 
 viewInformation :: !d ![ViewOption m] !m -> Task m | descr d & iTask m

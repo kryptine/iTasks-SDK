@@ -37,12 +37,12 @@ gUpdate{|OBJECT|} fx UDCreate ust=:{newMask}
 	//Empty object mask
 	# (nx,ust=:{newMask=objectMask}) = fx UDCreate {ust & newMask = []}
 	= (OBJECT nx, {ust & newMask = newMask ++ objectMask})
-gUpdate{|OBJECT of {gtd_num_conses}|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
+gUpdate{|OBJECT of {gtd_num_conses,gtd_conses}|} fx (UDSearch (OBJECT x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
 		//Update is a constructor switch
 		# (nx,ust) = fx UDCreate {ust & consPath = path}
-		= (OBJECT nx, {ust & oldMask = om, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update)}) 
+		= (OBJECT nx, {ust & oldMask = om, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (PartiallyTouched consMask)/*(toggleMask update)*/}) 
 	| searchPath <== currentPath
 		//Update is targeted somewhere in a substructure of this value
 		# (nx,ust=:{newMask=childMask}) = fx (UDSearch x) {ust & currentPath = shiftDataPath currentPath, oldMask = [cm:om], newMask = []}
@@ -66,15 +66,18 @@ where
 		| otherwise
 			= [ ConsRight : consPath (i - (n/2)) (n - (n/2)) ]
 
+	consMask = case update of
+		JSONInt consIdx | consIdx < gtd_num_conses
+			= repeatn ((gtd_conses !! consIdx).gcd_arity) Untouched
+		_	= repeatn (hd gtd_conses).gcd_arity Untouched
+
 gUpdate{|CONS|}	fx UDCreate	ust = appFst CONS (fx UDCreate ust)
 gUpdate{|CONS of {gcd_arity}|}	fx (UDSearch (CONS c)) ust=:{oldMask}
 	# (cm,om)	= popMask oldMask
 	# (nx,ust)	= fx (UDSearch c) {ust & oldMask = childMasksN cm gcd_arity}
 	= (CONS nx,ust)
 
-gUpdate{|RECORD|} fx UDCreate ust=:{newMask}
-	# (nx,ust=:{newMask=recordMask}) = fx UDCreate {ust & newMask = []}
-	= (RECORD nx, {ust & newMask = newMask ++ recordMask})
+gUpdate{|RECORD|} fx UDCreate ust = appFst RECORD (fx UDCreate ust)
 gUpdate{|RECORD of {grd_arity}|} fx (UDSearch (RECORD x)) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| searchPath <== currentPath
@@ -129,10 +132,10 @@ gUpdate{|Maybe|} fx (UDSearch m) ust=:{currentPath,searchPath,update,oldMask,new
 			Nothing
 				| searchPath <== currentPath
 					// Create a default value
-					# (x,ust=:{newMask=nmCreate}) 	= fx UDCreate ust
+					# (x,ust) 	= fx UDCreate ust
 					// Search in the default value
-					# (x,ust=:{newMask=nmSearch}) 	= fx (UDSearch x) {ust & currentPath = currentPath, searchPath = searchPath, update = update, oldMask = oldMask, newMask = newMask}
-					= (Just x, ust)
+					# (x,ust=:{newMask=[nmSearch:_]}) 	= fx (UDSearch x) {ust & currentPath = currentPath, searchPath = searchPath, update = update, oldMask = [Untouched], newMask = []}
+					= (Just x, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask nmSearch, oldMask = om})
 				| otherwise
 					= (Nothing, {ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask cm, oldMask = om})
 			Just x
@@ -142,16 +145,15 @@ gUpdate{|Maybe|} fx (UDSearch m) ust=:{currentPath,searchPath,update,oldMask,new
 gUpdate{|[]|} _ UDCreate ust = basicCreate [] ust
 gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
-	# (l,listMask,ust)
+	# (l,childMasks,ust)
 		= case isNew currentPath searchPath (length l) of
 			True
 				# (nv,ust) = fx UDCreate {ust & oldMask = [], newMask = []}
-				= (l++[nv], PartiallyTouched [], ust)
+				= (l++[nv],childMasksN cm (length l) ++ [Untouched],ust)
 			False
-				= (l,cm,ust)
-	# (lx,ust=:{newMask=cMasks})
-		= updateElements fx l {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks cm, newMask = []}
-	# ust = {ust & newMask = cMasks}
+				= (l,childMasksN cm (length l), ust)
+	# (lx,ust=:{newMask=cMasks})	= updateElements fx l {ust & currentPath = shiftDataPath currentPath, oldMask = childMasks, newMask = []}
+	# ust							= {ust & newMask = cMasks}
 	| currentPath == searchPath
 		//Process the reordering commands 
 		# split = split "_" (fromMaybe "" (fromJSON update))
@@ -161,20 +163,17 @@ gUpdate{|[]|} fx (UDSearch l) ust=:{searchPath,currentPath,update,oldMask,newMas
 			"mdn" = (swap lx (index+1),swap cMasks (index+1),ust)
 			"rem" = (removeAt index lx,removeAt index cMasks,ust)	
 			"add"
-				# (nv,ust=:{newMask=childMask}) = fx UDCreate {ust & oldMask = [], newMask = []}
-				= (insertAt (index+1) nv lx,insertAt (index+1) (hd childMask) cMasks,{ust & newMask = childMask})
+				# (nv,ust) = fx UDCreate {ust & oldMask = [], newMask = []}
+				= (insertAt (index+1) nv lx, insertAt (index+1) Untouched cMasks, ust)
 			_ 	
 				= (lx,cMasks,ust)
 		= (lx,{ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (PartiallyTouched cMasks), oldMask = om})
 	| otherwise
-		# listMask = case listMask of
-			PartiallyTouched _	= PartiallyTouched cMasks
-			mask		= mask
-		= (lx, {ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask listMask, oldMask = om})
+		= (lx, {ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask (PartiallyTouched cMasks), oldMask = om})
 where
 	//Check if search path is equal or below [datapath:(length list)]
 	isNew cp sp l = sp <== dataPathFromList [l:dataPathList cp] 
-
+	
 	updateElements fx []     ust 
 		= ([],ust)
 	updateElements fx [l:ls] ust
@@ -379,7 +378,7 @@ where
 		}
 
 derive gUpdate Either, (,), (,,), (,,,), JSONNode, Void, DateTime, Timestamp, Map, EmailAddress, Action, TreeNode, UserConstraint, ManagementMeta, TaskPriority, Tree
-derive gUpdate GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
+derive gUpdate GoogleMapSettings, GoogleMapPerspective, GoogleMapPosition, GoogleMapMarker, GoogleMapType
 
 noUpdate :: !(UpdateMode a) a !*USt -> *(!a,!*USt)
 noUpdate UDCreate def ust	= basicCreate def ust
@@ -495,7 +494,8 @@ where
 	
 	isTouched :: !UpdateMask -> Bool
 	isTouched  Touched					= True
-	isTouched (PartiallyTouched parts)	= foldr ((&&) o isTouched) True parts
+	isTouched (TouchedWithState _)		= True
+	isTouched (PartiallyTouched _)		= True
 	isTouched _							= False
 
 allUntouched :: ![UpdateMask] -> Bool
