@@ -55,14 +55,11 @@ where
 	
 doAuthenticatedWith :: (Credentials -> Task (Maybe User)) (Task a) -> Task a | iTask a
 doAuthenticatedWith verifyCredentials task
-	=	enterInformation ("Log in","Please enter your credentials") []	<<@ loginForm
+	=	enterInformation ("Log in","Please enter your credentials") []
 	>>!	verifyCredentials
 	>>= \mbUser -> case mbUser of
 		Nothing		= throw "Authentication failed"
 		Just user	= workAs user task
-where
-	//Layout tweak
-	loginForm = AfterLayout (tweakUI (setTopMargin 100 o fixedWidth 550))
 	
 createUser :: !UserAccount -> Task UserAccount
 createUser account

@@ -22,6 +22,84 @@ diffEditorDefinitions` :: !DiffPath !Event !UIControl !UIControl -> [UIUpdate]
 //Fallback case, simply replace old by new
 diffEditorDefinitions` [ItemStep parentIndex:parentPath] event old new = [UIReplace (toString parentPath) parentIndex new]
 
+//Compare controls
+diffControls :: !DiffPath !Event !UIControl !UIControl -> [UIUpdate]
+diffControls path event (UIViewString sOpts1 vOpts1)				(UIViewString sOpts2 vOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIViewHtml sOpts1 vOpts1)					(UIViewHtml sOpts2 vOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIViewDocument sOpts1 vOpts1)				(UIViewDocument sOpts2 vOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIViewCheckbox sOpts1 vOpts1)				(UIViewCheckbox sOpts2 vOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIViewSlider sOpts1 vOpts1 opts1)			(UIViewSlider sOpts2 vOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIViewProgress sOpts1 vOpts1 opts1)		(UIViewProgress sOpts2 vOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditString sOpts1 eOpts1)				(UIEditString sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditNote sOpts1 eOpts1)					(UIEditNote sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditPassword sOpts1 eOpts1)				(UIEditPassword sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditInt sOpts1 eOpts1)					(UIEditInt sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditDecimal sOpts1 eOpts1)				(UIEditDecimal sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditCheckbox sOpts1 eOpts1)				(UIEditCheckbox sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditSlider sOpts1 eOpts1 opts1)			(UIEditSlider sOpts2 eOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditDate sOpts1 eOpts1)					(UIEditDate sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditTime sOpts1 eOpts1)					(UIEditTime sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditDocument sOpts1 eOpts1)				(UIEditDocument sOpts2 eOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditButton sOpts1 eOpts1 opts1)			(UIEditButton sOpts2 eOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIEditGoogleMap sOpts1 eOpts1 opts1)		(UIEditGoogleMap sOpts2 eOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIDropdown sOpts1 cOpts1)					(UIDropdown sOpts2 cOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIGrid sOpts1 cOpts1 opts1)				(UIGrid sOpts2 cOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UITree sOpts1 cOpts1)						(UITree sOpts2 cOpts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIActionButton sOpts1 aOpts1 opts1)		(UIActionButton sOpts2 aOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIMenuButton sOpts1 opts1)					(UIMenuButton sOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UILabel sOpts1 opts1)						(UILabel sOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIIcon sOpts1 opts1)						(UIIcon sOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UITab sOpts1 opts1)						(UITab sOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UITasklet sOpts1 opts1)					(UITasklet sOpts2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIContainer sOpts1 lOpts1 items1 opts1)	(UIContainer sOpts2 lOpts2 items2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIPanel sOpts1 lOpts1 items1 opts1)		(UIPanel sOpts2 lOpts2 items2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIFieldSet sOpts1 lOpts1 items1 opts1)		(UIFieldSet sOpts2 lOpts2 items2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UIWindow sOpts1 lOpts1 items1 opts1)		(UIWindow sOpts2 lOpts2 items2 opts2)
+	= diffSizeOpts path sOpts1 sOpts2
+diffControls path event (UICustom opts1)							(UICustom opts2)							= []
+
+diffSizeOpts :: DiffPath UISizeOpts UISizeOpts -> [UIUpdate]
+diffSizeOpts path opts1 opts2 = []
+
+diffViewOpts :: DiffPath (UIViewOpts a) (UIViewOpts a) -> [UIUpdate] | gEq{|*|} a & JSONEncode{|*|} a
+diffViewOpts path opts1 opts2 = []
+
+diffEditOpts :: DiffPath (UIEditOpts a) (UIEditOpts a) -> [UIUpdate] | gEq{|*|} a & JSONEncode{|*|} a
+diffEditOpts path opts1 opts2 = []
+
+diffChoiceOpts :: DiffPath (UIChoiceOpts a) (UIChoiceOpts a) -> [UIUpdate] | gEq{|*|} a & JSONEncode{|*|} a
+diffChoiceOpts path opts1 opts2 = []
+
 /*
 where
 	diffEditorDefinitions`` :: !(Maybe EditEvent) !UIControlContent !UIControlContent -> Maybe [UIUpdate]

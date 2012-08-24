@@ -217,18 +217,6 @@ appendTopLevelTask props task = appendTask (Detached props) (\_ -> task @ const 
 
 appendTopLevelTaskFor :: !worker !(Task a) -> Task TaskId | iTask a & toUserConstraint worker
 appendTopLevelTaskFor worker task = appendTopLevelTask {noMeta & worker = toUserConstraint worker} task
-	
-instance tune AfterLayout
-where
-	tune (AfterLayout f) task	= tune (ModifyLayout (\l -> update l f )) task
-	where
-		update {editor,interact,step,parallel,final} f
-			= {editor= \d -> f (editor d)
-			  ,interact = \p e -> f (interact p e)
-			  ,step = \d a -> f (step d a)
-			  ,parallel = \p d -> f (parallel p d)
-			  ,final = \d -> f (final d)
-			  }
 			
 instance tune Window
 where tune Window task = task

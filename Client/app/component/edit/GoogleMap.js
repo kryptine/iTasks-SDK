@@ -96,15 +96,15 @@ Ext.define('itwc.component.edit.GoogleMap',{
 	addMarkers: function() {
  		var	me = this,
 			map = this.map,
-			marker, infoWindow, clickHandler, dragHandler, i;
+			marker, infoWindow, clickHandler, dragHandler;
 
-		for(i=0; i<this.displayedMarkers.length; i++) {
+		for(var i=0; i<this.displayedMarkers.length; i++) {
 			this.displayedMarkers[i].setMap(null);
 		}
         
 		this.displayedMarkers = new Array();
         
-		for(i=0; i<this.markers.length; i++) {
+		for(var i=0; i<this.markers.length; i++) {
             
 			marker = new google.maps.Marker({
 				map : map,
@@ -115,20 +115,23 @@ Ext.define('itwc.component.edit.GoogleMap',{
 			});
                 
 			if(this.markers[i].infoWindow) {
-                		infoWindow = new google.maps.InfoWindow({
+				var markerText = this.markers[i].infoWindow;
+				
+                infoWindow = new google.maps.InfoWindow({
 					content : this.markers[i].infoWindow
 				}); 
             
-				clickHandler = function(map,marker) {
-					return function() {infoWindow.open(map,marker);};
+				clickHandler = function(map,marker,infoWindow) {
+					return function(e) {infoWindow.open(map,marker);};
 				};
 
-				google.maps.event.addListener(marker,'click',clickHandler(map,marker));
+				google.maps.event.addListener(marker,'click',clickHandler(map,marker,infoWindow));
 			}
             
 			if(this.markers[i].draggable) {
 				dragHandler = function(markerId) { return function(e) {
-                    			me.fireEvent('edit', me.taskId, me.name, {index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
+                    			me.viewport = me.viewport || me.up('viewport');
+								me.viewport.fireEvent('edit',me.taskId, me.editorId,{index: markerId, point : [e.latLng.lat(),e.latLng.lng()]});
                 		};};
                 
 				google.maps.event.addListener(marker,'dragend', dragHandler(i));

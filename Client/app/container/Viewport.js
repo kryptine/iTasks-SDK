@@ -6,6 +6,7 @@ Ext.define('itwc.container.Viewport',{
 	valign: 'middle',
 	direction: 'vertical',
 	padding: 0,
+	autoScroll: true,
 	initComponent: function() {
 		this.layout = {type: 'itwc_box',halign: this.halign, valign: this.valign,direction: this.direction, padding: this.padding};
 		this.callParent(arguments);

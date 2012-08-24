@@ -22,7 +22,6 @@ import Maybe
 // These types are used to specify modifications to layouts
 :: SetLayout	= SetLayout Layout
 :: ModifyLayout	= ModifyLayout (Layout -> Layout)
-:: AfterLayout	= AfterLayout (UIDef -> UIDef)
 
 /**
 * This is a layout that aims to automatically determine a simple, but

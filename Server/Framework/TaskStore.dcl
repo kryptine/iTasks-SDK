@@ -12,6 +12,7 @@ from SharedDataSource	import :: BasicShareId
 
 newSessionId			:: !*IWorld -> (!SessionId,	!*IWorld)
 newInstanceId			:: !*IWorld -> (!InstanceNo, !*IWorld)
+newDocumentId			:: !*IWorld -> (!DocumentId, !*IWorld)
 
 storeTaskInstance		:: !TaskInstance !*IWorld -> *IWorld
 
@@ -37,6 +38,9 @@ createDocument 			:: !String !String !String !*IWorld -> (!MaybeError FileError 
 createDocumentWith		:: !String !String (*File -> *File) !*IWorld -> (!MaybeError FileError Document, !*IWorld)
 loadDocumentContent		:: !DocumentId !*IWorld -> (!Maybe String, !*IWorld)
 loadDocumentMeta		:: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
+
+documentLocation		:: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
+
 
 //Keep track of which instances depend on other instances
 setTaskWorker			:: !User !InstanceNo !*IWorld -> *IWorld

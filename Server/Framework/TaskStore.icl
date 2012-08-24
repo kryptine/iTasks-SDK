@@ -147,7 +147,11 @@ loadDocumentContent documentId iworld
 loadDocumentMeta :: !DocumentId !*IWorld -> (!Maybe Document, !*IWorld)
 loadDocumentMeta documentId iworld
 	= loadValue NS_DOCUMENT_CONTENT (documentId +++ "-meta") iworld
-	
+
+documentLocation :: !DocumentId !*IWorld -> (!FilePath,!*IWorld)
+documentLocation documentId iworld=:{build,dataDirectory}
+	= (storePath dataDirectory build </> NS_DOCUMENT_CONTENT </> (documentId +++ "_data.bin"),iworld)
+
 updateTaskInstanceMeta :: !InstanceNo !(TIMeta -> TIMeta) !*IWorld -> *IWorld
 updateTaskInstanceMeta instanceNo f iworld
 	= case loadValue NS_TASK_INSTANCES (meta_store instanceNo) iworld of

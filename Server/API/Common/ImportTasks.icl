@@ -19,12 +19,26 @@ importCSVFile :: !FilePath -> Task [[String]]
 importCSVFile filename = mkInstantTask eval
 where
 	eval taskId iworld = fileTask taskId filename readCSVFile iworld
-	
+
+importCSVDocument :: !Document -> Task [[String]]
+importCSVDocument {Document|documentId} = mkInstantTask eval
+where
+	eval taskId iworld
+		# (filename,iworld) = documentLocation documentId iworld
+		= fileTask taskId filename readCSVFile iworld
+
 importCSVFileWith :: !Char !Char !Char !FilePath -> Task [[String]]
 importCSVFileWith delimitChar quoteChar escapeChar filename = mkInstantTask eval
 where
 	eval taskId iworld = fileTask taskId filename (readCSVFileWith delimitChar quoteChar escapeChar) iworld
-	
+
+importCSVDocumentWith :: !Char !Char !Char !Document -> Task [[String]]
+importCSVDocumentWith delimitChar quoteChar escapeChar {Document|documentId} = mkInstantTask eval
+where
+	eval taskId iworld
+		# (filename,iworld) = documentLocation documentId iworld
+		= fileTask taskId filename (readCSVFileWith delimitChar quoteChar escapeChar) iworld
+
 importJSONFile :: !FilePath -> Task a | iTask a
 importJSONFile filename = mkInstantTask eval
 where

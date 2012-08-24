@@ -126,15 +126,15 @@ generic gVisualizeEditor a | gVisualizeText a, gHeaders a, gGridRows a :: !(Mayb
 gVisualizeEditor{|UNIT|} _ vst
 	= (NormalEditor [],vst)
 
-gVisualizeEditor{|RECORD|} fx _ _ _ val vst=:{VSt|currentPath,verifyMask,optional,taskId}
+gVisualizeEditor{|RECORD|} fx _ _ _ val vst=:{VSt|currentPath,verifyMask,optional,disabled,taskId}
 	# (cmv,vm)	= popMask verifyMask
 	//When optional and no value yet, just show the checkbox
-	| optional && isNothing val 
+	| optional && isNothing val && not disabled
 		= (OptionalEditor [checkbox False], {VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 	
 	# (fieldViz,vst) = fx (fmap fromRECORD val) {VSt|vst & currentPath = shiftDataPath currentPath, verifyMask = childMasks cmv, optional = False}
 	//For optional records we add the checkbox to clear the entire record
-	# viz = if optional (OptionalEditor [checkbox True:controlsOf fieldViz]) fieldViz	
+	# viz = if (optional && not disabled) (OptionalEditor [checkbox True:controlsOf fieldViz]) fieldViz	
 	= (viz,{VSt|vst & currentPath = stepDataPath currentPath, verifyMask = vm})
 where
 	checkbox checked = (UIEditCheckbox defaultSizeOpts {UIEditOpts|taskId = toString taskId, editorId = dp2s currentPath, value = Just checked},newMap)
