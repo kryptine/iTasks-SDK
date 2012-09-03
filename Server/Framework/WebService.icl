@@ -66,17 +66,19 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 						= (JSONObject [("success",JSONBool False),("error",JSONString err)], iworld)
 					Ok (ValueResult (Value _ Stable) _ _ _,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
-					Ok (ValueResult _ _ curRep context,_,sessionId)
+					Ok (ValueResult _ info curRep context,_,sessionId)
 						# json = case (prevUI,curRep) of
 							([], TaskRep def _)
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
+											 ,("expiresIn",toJSON info.TaskInfo.expiresIn)
 											 ,("content", encodeUIDefinition def)
 											 ,("timestamp",toJSON timestamp)]
 							
 							(_, TaskRep {UIDef|controls} _)
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
+												 ,("expiresIn",toJSON info.TaskInfo.expiresIn)
 												 ,("updates", encodeUIUpdates (diffUIDefinitions prevUI (map fst controls) event))
 												 ,("timestamp",toJSON timestamp)]
 							

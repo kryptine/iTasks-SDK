@@ -138,8 +138,8 @@ where
 	tasktree (ValueResult _ _ _ tree)	= tree
 	tasktree (ExceptionResult _ _)		= TCNop
 	
-	taskres (ValueResult val ts _ _)	= TIValue val ts
-	taskres (ExceptionResult e str)		= TIException e str
+	taskres (ValueResult val {TaskInfo|lastEvent} _ _)	= TIValue val lastEvent
+	taskres (ExceptionResult e str)						= TIException e str
 	
 	taskrep	(ValueResult _ _ rep _)		= rep
 	taskrep (ExceptionResult _ _)		= TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []

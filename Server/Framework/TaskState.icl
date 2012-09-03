@@ -2,7 +2,7 @@ implementation module TaskState
 
 import SystemTypes, UIDefinition
 from iTasks		import JSONEncode, JSONDecode
-from Task		import :: Event, :: TaskTime, :: TaskResult(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: TaskCompositionType
+from Task		import :: Event, :: TaskTime, :: TaskResult(..), :: TaskInfo(..), :: TaskRep(..), :: TaskServiceRep, :: TaskPart, :: TaskCompositionType
 from GenUpdate	import :: UpdateMask
 import JSON_NG
 

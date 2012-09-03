@@ -440,17 +440,17 @@ instance toString Stability
 instance == Stability
 
 //Define initial meta attributes
-TASK_ATTRIBUTE		:== "task"
-LIST_ATTRIBUTE		:== "list"
-TITLE_ATTRIBUTE		:== "title"
-HINT_ATTRIBUTE		:== "hint"
-VALID_ATTRIBUTE		:== "valid"
-ERROR_ATTRIBUTE		:== "error"
-LABEL_ATTRIBUTE		:== "label"
-ICON_ATTRIBUTE		:== "icon"
-TIME_ATTRIBUTE		:== "time"	//Task time, used for ordering but not real time
-TYPE_ATTRIBUTE		:== "type"
-PURPOSE_ATTRIBUTE	:== "purpose"
+TASK_ATTRIBUTE			:== "task"
+TITLE_ATTRIBUTE			:== "title"
+HINT_ATTRIBUTE			:== "hint"
+VALID_ATTRIBUTE			:== "valid"
+ERROR_ATTRIBUTE			:== "error"
+LABEL_ATTRIBUTE			:== "label"
+ICON_ATTRIBUTE			:== "icon"
+CREATED_AT_ATTRIBUTE	:== "createdat"	//Creation task time, used for ordering but not real time
+LAST_EVENT_ATTRIBUTE	:== "lastevent"	//Last event task time, used for ordering but not real time
+TYPE_ATTRIBUTE			:== "type"
+PURPOSE_ATTRIBUTE		:== "purpose"
 
 class descr d
 where

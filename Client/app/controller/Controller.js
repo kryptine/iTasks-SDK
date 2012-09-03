@@ -52,6 +52,7 @@ Ext.define('itwc.controller.Controller',{
 
 		this.version = null;
 	
+		this.refresher = new Ext.util.DelayedTask(this.onAutoRefresh,this);
 		this.control({
 			'viewport': {
 				render: this.onViewportReady,
@@ -90,6 +91,12 @@ Ext.define('itwc.controller.Controller',{
 		var me = this,
 			params = {focusEvent: Ext.encode(taskId)};
 		me.sendMessage(params);
+	},
+	//Auto refresh event (triggered by tasks with an expiresIn value
+	onAutoRefresh: function () {
+		var me = this;
+		
+		me.sendMessage({});
 	},
 	//Send a message to the server
 	sendMessage: function(msg) {
@@ -143,6 +150,10 @@ Ext.define('itwc.controller.Controller',{
 		//Update session
 		me.session = message.session;
 		
+		//Schedule automatic refresh when an expiration time is set
+		if(Ext.isNumber(message.expiresIn)) {
+			me.refresher.delay(message.expiresIn);
+		}
 		//Take action
         if(message.content) {
 			me.fullUpdate(message.content);

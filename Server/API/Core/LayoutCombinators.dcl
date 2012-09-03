@@ -28,6 +28,13 @@ import Maybe
 * functional and visually pleasing layout by following some simple layout heuristics.
 */
 autoLayout :: Layout
+//Partial layouts of autolayout
+autoEditorLayout		:: UIDef -> UIDef
+autoInteractionLayout	:: UIDef UIDef -> UIDef
+autoStepLayout			:: UIDef [UIAction]-> UIDef
+autoParallelLayout		:: UIDef [UIDef] -> UIDef
+autoFinalLayout			:: UIDef -> UIDef
+
 /**
 * This layout hides ui controls, but accumulates actions and attributes.
 */

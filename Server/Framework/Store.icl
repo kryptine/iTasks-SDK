@@ -164,7 +164,7 @@ deleteValue :: !StoreNamespace !StoreKey !*IWorld -> *IWorld
 deleteValue namespace delKey iworld = deleteValues` namespace delKey (==) filterFuncDisk iworld
 where
 	// compare key with filename without extension
-	filterFuncDisk delKey key = (subString 0 (size key - 4) key) == delKey
+	filterFuncDisk delKey key = dropExtension key == delKey
 
 deleteValues :: !StoreNamespace !StorePrefix !*IWorld -> *IWorld
 deleteValues namespace delKey iworld = deleteValues` namespace delKey startsWith startsWith iworld
@@ -184,7 +184,7 @@ where
 			unlink _ [] world
 				= world
 			unlink dir [f:fs] world
-				| filterFuncDisk delKey f
+				| filterFuncDisk (safeName delKey) f
 					# (err,world) = deleteFile (dir </> f) world 
 					= unlink dir fs world
 				| otherwise

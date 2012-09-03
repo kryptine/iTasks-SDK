@@ -55,7 +55,7 @@ fileTask taskId filename f iworld=:{IWorld|taskTime,world}
 	# (res,file)		= f file
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
-	= (ValueResult (Value res Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, {IWorld|iworld & world = world})
+	= (Ok res, {IWorld|iworld & world = world})
 		
 readAll file
 	# (chunk,file) = freads file CHUNK_SIZE
@@ -72,7 +72,7 @@ readJSON taskId filename parsefun iworld=:{IWorld|taskTime,world}
 	# (ok,world)		= fclose file world
 	| not ok			= (closeException filename,{IWorld|iworld & world = world})
 	= case (parsefun (fromString content)) of
-		Just a 	= (ValueResult (Value a Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, {IWorld|iworld & world = world})
+		Just a 	= (Ok a, {IWorld|iworld & world = world})
 		Nothing	= (parseException filename, {IWorld|iworld & world = world})
 		
 readDocument taskId filename iworld=:{IWorld|taskTime,world}
@@ -85,9 +85,15 @@ readDocument taskId filename iworld=:{IWorld|taskTime,world}
 	# mime					= extensionToMimeType (takeExtension name)
 	# (mbDocument,iworld)	= createDocument name mime content {IWorld|iworld & world = world}
 	= case mbDocument of
-		(Ok document) 	= (ValueResult (Value document Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []) TCNop, iworld)
-		(Error e)		= (exception e,iworld)
+		(Ok document) 	= (Ok document, iworld)
+		(Error e)		= (Error (dynamic e,toString e),iworld)
 		
-openException s		= exception (FileException s CannotOpen)
-closeException s	= exception (FileException s CannotClose)
-parseException s	= exception (CannotParse ("Cannot parse JSON file " +++ s))
+openException s	
+	# e = FileException s CannotOpen
+	= Error (dynamic e, toString e)
+closeException s
+	# e = FileException s CannotClose
+	= Error (dynamic e, toString e)
+parseException s
+	# e = CannotParse ("Cannot parse JSON file " +++ s)
+	= Error (dynamic e, toString e)

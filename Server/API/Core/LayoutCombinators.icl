@@ -265,8 +265,14 @@ where
 		find i (_,Nothing) [d:ds]	= find (i+1) (i,Just d) ds
 		find i bestSoFar=:(_,Just best) [d:ds]	= if (later d best) (find (i+1) (i,Just d) ds) (find (i+1) bestSoFar ds)
 		
-		later a b = case (get TIME_ATTRIBUTE a.UIDef.attributes,get TIME_ATTRIBUTE b.UIDef.attributes) of
-			(Just ta,Just tb)	= ta > tb
+		later a b = case (get LAST_EVENT_ATTRIBUTE a.UIDef.attributes,get LAST_EVENT_ATTRIBUTE b.UIDef.attributes) of
+			(Just ta,Just tb)
+				| ta == tb	//If the last event time is the same, then we compare creation times to which tab is newest
+					= case (get CREATED_AT_ATTRIBUTE a.UIDef.attributes,get CREATED_AT_ATTRIBUTE b.UIDef.attributes) of
+						(Just ca,Just cb)	= ca > cb
+						_					= False
+				| otherwise	
+					= ta > tb
 			(Just _,Nothing)	= True
 			_					= False
 		

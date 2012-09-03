@@ -18,6 +18,8 @@ from Email 				import qualified sendEmail
 from Email 				import :: Email(..), :: EmailOption(..)
 from StdFunc			import o
 
+PROCESS_EXPIRY	:== 1000
+
 :: AsyncResult = 
 	{ success	:: !Bool
 	, exitcode	:: !Int
@@ -34,9 +36,8 @@ worldIO f = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime,world}
 		= case f world of 
-			(Ok a,world)	= (ValueResult (Value a Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop
-							  ,{IWorld|iworld & world = world})
-			(Error e,world)	= (ExceptionResult (dynamic e) "World IO failed", {IWorld|iworld & world = world})
+			(Ok a,world)	= (Ok a, {IWorld|iworld & world = world})
+			(Error e,world)	= (Error (dynamic e,"World IO failed"), {IWorld|iworld & world = world})
 
 callProcess :: !FilePath ![String] -> Task Int
 callProcess cmd args = Task eval
@@ -64,7 +65,7 @@ where
 	//Check for its result
 	eval event repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
-			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) lastEvent (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) state, iworld)
+			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) state, iworld)
 		| otherwise
 			= case fromJSON encv of
 				Just (Right outfile)
@@ -77,7 +78,7 @@ where
 						# prompt		= {UIDef|controls=[],actions=[],attributes='Map'.newMap}
 						# editor		= {UIDef|controls=controls,actions=[],attributes=attributes}
 						# rep			= TaskRep ((repLayout repAs).Layout.interact prompt editor) []
-						= (ValueResult NoValue lastEvent rep state,{IWorld|iworld & world = world})
+						= (ValueResult NoValue {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} rep state,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file
@@ -89,7 +90,7 @@ where
 						Just async	
 							| async.AsyncResult.success
 								# result = async.AsyncResult.exitcode 
-								= (ValueResult (Value result Stable) lastEvent (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
+								= (ValueResult (Value result Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
 				//Error during initialization
@@ -108,8 +109,10 @@ where
 	eval taskId iworld=:{taskTime,world}
 		# (res,world)	= 'Process'.callProcess cmd args Nothing world
 		= case res of
-			Error e	= (exception (CallFailed e), {IWorld|iworld & world = world})
-			Ok i	= (ValueResult (Value i Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop, {IWorld|iworld & world = world})
+			Error e
+				# ex = CallFailed e
+				= (Error (dynamic ex,toString ex), {IWorld|iworld & world = world})
+			Ok i	= (Ok i, {IWorld|iworld & world = world})
 
 callRPCHTTP :: !HTTPMethod !String ![(String,String)] !(String -> a) -> Task a | iTask a
 callRPCHTTP method url params transformResult
@@ -138,7 +141,8 @@ where
 		# outfile = dataDirectory </> "tmp-" +++ build </> (mkFileName taskId "response")
 		# (res,world) = writeFile infile request world
 		| isError res
-			= (exception (RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))),{IWorld|iworld & world = world})
+			# ex = RPCException ("Write file " +++ infile +++ " failed: " +++ toString (fromError res))
+			= (Error (dynamic ex,toString ex),{IWorld|iworld & world = world})
 		# cmd	= IF_POSIX_OR_WINDOWS "/usr/bin/curl" (sdkDirectory </> "Tools" </> "Curl" </> "curl.exe" )
 		# args	=	[ options
 						, "--data-binary"
@@ -148,7 +152,7 @@ where
 						, outfile
 						, url
 						]
-		= (ValueResult (Value (cmd,args,outfile) Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop, {IWorld|iworld & world = world})
+		= (Ok (cmd,args,outfile), {IWorld|iworld & world = world})
 	
 	mkFileName :: !TaskId !String -> String
 	mkFileName taskId part = toString taskId +++  "-rpc-" +++ part
@@ -238,7 +242,7 @@ where
 		# sender		= toEmail sender
 		# recipients	= map toEmail recipients
 		# iworld		= foldr (sendSingle config.smtpServer sender) iworld recipients
-		= (ValueResult (Value recipients Stable) taskTime (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) TCNop, iworld)
+		= (Ok recipients, iworld)
 				
 	sendSingle server (EmailAddress sender) (EmailAddress address) iworld=:{IWorld|world}
 		# (_,world)	= 'Email'.sendEmail [EmailOptSMTPServer server]

@@ -5,14 +5,20 @@ import Text, Util, UIDefinition
 from Task import :: Event(..)
 
 :: DiffPath :== [DiffStep] 
-:: DiffStep	= ItemStep !Int | MenuStep
+:: DiffStep
+	= ItemStep !Int		//Navigate to item i
+	| MenuStep			//Navigate to the menu bar
+	| WindowStep !Int	//Navigate to window i
 
 instance toString DiffPath
 where
-	toString path = join "/" (map step (reverse path))
+	toString path = join "-" (map step (reverse path))
 	where
-		step (ItemStep i) = toString i
-		step (MenuStep) = "m"
+		step (ItemStep i)	= toString i
+		step (MenuStep)		= "m"
+		step (WindowStep i)	= "w" +++ toString i
+
+derive gEq UISizeOpts, UISide, UISize, UIMinSize, UISideSizes, UIViewOpts
 
 diffUIDefinitions :: ![UIControl] ![UIControl] !Event -> [UIUpdate]
 diffUIDefinitions old new event = [] //diffEditorDefinitions` [ItemStep 0] event old new
@@ -89,14 +95,22 @@ diffControls path event (UIWindow sOpts1 lOpts1 items1 opts1)		(UIWindow sOpts2 
 diffControls path event (UICustom opts1)							(UICustom opts2)							= []
 
 diffSizeOpts :: DiffPath UISizeOpts UISizeOpts -> [UIUpdate]
-diffSizeOpts path opts1 opts2 = []
+diffSizeOpts path opts1 opts2
+	| opts1 === opts2	= []
+						= [UIResize (toString path) opts2]
 
 diffViewOpts :: DiffPath (UIViewOpts a) (UIViewOpts a) -> [UIUpdate] | gEq{|*|} a & JSONEncode{|*|} a
-diffViewOpts path opts1 opts2 = []
+diffViewOpts path opts1 opts2
+	| opts1 === opts2	= []
+						= [UISetValue (toString path) (toJSON opts2.UIViewOpts.value)]
 
 diffEditOpts :: DiffPath (UIEditOpts a) (UIEditOpts a) -> [UIUpdate] | gEq{|*|} a & JSONEncode{|*|} a
-diffEditOpts path opts1 opts2 = []
-
+diffEditOpts path opts1 opts2 = foldr (++) [] [taskIdUpd,editorIdUpd,valueUpd]
+where
+	taskIdUpd	= if (opts1.UIEditOpts.taskId == opts2.UIEditOpts.taskId) [] [UISetTaskId (toString path) opts2.UIEditOpts.taskId]
+	editorIdUpd = if (opts1.UIEditOpts.editorId == opts2.UIEditOpts.editorId) [] [UISetEditorId (toString path) opts2.UIEditOpts.editorId]
+	valueUpd	= if (opts1.UIEditOpts.value === opts2.UIEditOpts.value) [] [UISetValue (toString path) (toJSON opts2.UIEditOpts.value)]
+	
 diffChoiceOpts :: DiffPath (UIChoiceOpts a) (UIChoiceOpts a) -> [UIUpdate] | gEq{|*|} a & JSONEncode{|*|} a
 diffChoiceOpts path opts1 opts2 = []
 
@@ -257,6 +271,7 @@ encodeUIUpdate (UIReplace path index def)		= [node path "replace" 			[JSONInt in
 encodeUIUpdate (UIUpdate path def)				= [node path "update"			[encodeUIControl def]]
 encodeUIUpdate (UIAdd path index def)			= [node path "insert"			[JSONInt index, encodeUIControl def]]
 encodeUIUpdate (UIRemove path index)			= [node path "remove"			[JSONInt index]]
+encodeUIUpdate _								= []
 
 node path method arguments
 	= JSONObject [("path",JSONString path),("method",JSONString method),("arguments",JSONArray arguments)]

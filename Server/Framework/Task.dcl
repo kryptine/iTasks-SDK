@@ -29,9 +29,15 @@ derive gPutRecordFields	Task
 			| RefreshEvent								//No event, just recalcalutate the entire task instance
 			
 
-:: TaskResult a		= ValueResult !(TaskValue a) !TaskTime !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
+:: TaskResult a		= ValueResult !(TaskValue a) !TaskInfo !TaskRep !TaskTree							//If all goes well, a task computes its current value, an observable representation and a new task state
 					| ExceptionResult !Dynamic !String													//If something went wrong, a task produces an exception value
 					| DestroyedResult																	//If a task finalizes and cleaned up it gives this result
+
+:: TaskInfo =
+	{ lastEvent			:: TaskTime		//When was the last edit, action or focus event in this task
+//	, lastValueChange	:: TaskTime 	//When was the last time this task's value changed
+	, expiresIn			:: Maybe Int	//Guideline for the maximum amount of time to wait before automatically refreshing (in milliseconds)	
+	}
 
 :: TaskRepOpts	=
 	{ useLayout			:: Maybe Layout
@@ -71,7 +77,7 @@ finalizeRep :: TaskRepOpts TaskRep -> TaskRep
 /**
 * Create a task that finishes instantly
 */
-mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a | iTask a
+mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 
 //* Provides fmap for Task Values
 instance Functor TaskValue

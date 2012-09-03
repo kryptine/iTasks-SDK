@@ -6,16 +6,15 @@ from TaskState			import :: TaskTree(..), :: DeferredJSON(..)
 from LayoutCombinators	import :: Layout(..), autoLayout
 from iTasks				import JSONEncode, JSONDecode, dynamicJSONEncode, dynamicJSONDecode
 
-mkInstantTask :: (TaskId *IWorld -> (!TaskResult a,!*IWorld)) -> Task a |  iTask a
+mkInstantTask :: (TaskId *IWorld -> (!MaybeError (Dynamic,String) a,!*IWorld)) -> Task a | iTask a
 mkInstantTask iworldfun = Task (evalOnce iworldfun)
 where
-	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of
-		(ValueResult (Value a Stable) _ _ _, iworld)	= (ValueResult (Value a Stable) ts (finalizeRep repOpts rep) (TCStable taskId ts (DeferredJSON a)), iworld)
-		(ExceptionResult e s, iworld)					= (ExceptionResult e s, iworld)
-		(_,iworld)										= (exception "Instant task did not complete instantly", iworld)
+	evalOnce f _ repOpts (TCInit taskId ts) iworld = case f taskId iworld of	
+		(Ok a,iworld)							= (ValueResult (Value a Stable) {lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts rep) (TCStable taskId ts (DeferredJSON a)), iworld)
+		(Error (e,s), iworld)					= (ExceptionResult e s, iworld)
 
 	evalOnce f _ repOpts state=:(TCStable taskId ts enc) iworld = case fromJSONOfDeferredJSON enc of
-		Just a	= (ValueResult (Value a Stable) ts (finalizeRep repOpts rep) state, iworld)
+		Just a	= (ValueResult (Value a Stable) {lastEvent=ts,expiresIn=Nothing} (finalizeRep repOpts rep) state, iworld)
 		Nothing	= (exception "Corrupt task result", iworld)
 
 	evalOnce f _ _ (TCDestroy _) iworld	= (DestroyedResult,iworld)

@@ -12,51 +12,54 @@ from Map					import qualified get
 derive JSONEncode UpdateMask
 derive JSONDecode UpdateMask
 
-NoRep :== TaskRep {UIDef|controls=[],actions=[],attributes=newMap} []
+//Expiry time for tasks that use shared values
+SHARE_EXPIRY :== 1000
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask (\taskId iworld=:{taskTime} -> (ValueResult (Value a Stable) taskTime NoRep TCNop, iworld))
+return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))
 
 throw :: !e -> Task a | iTask a & iTask, toString e
-throw e = mkInstantTask (\taskId iworld -> (ExceptionResult (dynamic e) (toString e), iworld))
+throw e = mkInstantTask (\taskId iworld -> (Error (dynamic e,toString e), iworld))
 
 get :: !(ReadWriteShared a w) -> Task a | iTask a
 get shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime}
 		# (val,iworld) = 'SharedDataSource'.read shared iworld
-		# res = case val of
-			Ok val		= ValueResult (Value val Stable) taskTime NoRep TCNop
-			Error e		= exception (SharedException e)
-		= (res, iworld)
-
+		= case val of
+			Ok val		= (Ok val,iworld)
+			Error e		= (Error (dynamic (SharedException e), e), iworld)
+	
 set :: !a !(ReadWriteShared r a)  -> Task a | iTask a
 set val shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime}
 		# (res,iworld)	='SharedDataSource'.write val shared iworld
-		# res = case res of
-			Ok _	= ValueResult (Value val Stable) taskTime NoRep TCNop
-			Error e	= exception (SharedException e)
-		= (res, iworld)
+		= case res of
+			Ok _	= (Ok val,iworld)
+			Error e	= (Error (dynamic (SharedException e), e), iworld)
 
 update :: !(r -> w) !(ReadWriteShared r w) -> Task w | iTask r & iTask w
 update fun shared = mkInstantTask eval
 where
 	eval taskId iworld=:{taskTime}
 		# (er, iworld)	= 'SharedDataSource'.read shared iworld
-		| isError er	= (exception (SharedException (fromError er)), iworld)
-		# w				= fun (fromOk er)
-		# (er, iworld)	= 'SharedDataSource'.write w shared iworld
-		= (ValueResult (Value w Stable) taskTime NoRep TCNop, iworld)
-
+		= case er of
+			Error e		= (Error (dynamic (SharedException e), e), iworld)
+			Ok r	
+				# w				= fun r
+				# (er, iworld)	=  'SharedDataSource'.write w shared iworld
+				= case er of
+					Ok _	= (Ok w, iworld)
+					Error e = (Error (dynamic (SharedException e), e), iworld)
+					
 watch :: !(ReadWriteShared r w) -> Task r | iTask r
 watch shared = Task eval
 where
 	eval event repOpts (TCInit taskId=:(TaskId instanceNo _) ts) iworld
 		# (val,iworld)	= 'SharedDataSource'.readRegister instanceNo shared iworld
 		# res = case val of
-			Ok val		= ValueResult (Value val Unstable) ts (finalizeRep repOpts NoRep) (TCInit taskId ts)
+			Ok val		= ValueResult (Value val Unstable) {TaskInfo|lastEvent=ts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts (TaskRep {UIDef|controls=[],actions=[],attributes=newMap} [])) (TCInit taskId ts)
 			Error e		= exception (SharedException e)
 		= (res,iworld)
 	eval event repAs (TCDestroy _) iworld = (DestroyedResult,iworld)
@@ -94,7 +97,7 @@ where
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
-		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l nr nv nmask valid
@@ -136,7 +139,7 @@ where
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
-		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l nr nv nmask valid
@@ -175,7 +178,7 @@ where
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
-		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts rep) (TCInteract2 taskId nts (toJSON nl) (toJSON nr) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun r
@@ -203,7 +206,7 @@ where
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
-		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Nothing} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nv) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -233,7 +236,7 @@ where
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
-		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Nothing} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 	refresh_fun l v m ok
@@ -262,7 +265,7 @@ where
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
-		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Nothing} (finalizeRep repOpts rep) (TCInteract1 taskId nts (toJSON nl) nmask), iworld)
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
 interact :: !d !(ReadOnlyShared r) (r -> (l,v,UpdateMask)) (l r v UpdateMask Bool -> (l,v,UpdateMask))
@@ -294,7 +297,7 @@ where
 		# validity				= verifyForm nv nmask
 		# (rep,iworld) 			= visualizeView taskId repOpts nv validity desc iworld
 		# value 				= if (isValidValue validity) (Value nl Unstable) NoValue
-		= (ValueResult value nts (finalizeRep repOpts rep) (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
+		= (ValueResult value {TaskInfo|lastEvent=nts,expiresIn=Just SHARE_EXPIRY} (finalizeRep repOpts rep) (TCInteract taskId nts (toJSON nl) (toJSON nr) (toJSON nv) nmask), iworld)
 
 	eval event repOpts (TCDestroy _) iworld = (DestroyedResult,iworld)
 
@@ -324,15 +327,15 @@ could_not_read_shared_in_interact_exception iworld
 appWorld :: !(*World -> *World) -> Task Void
 appWorld fun = mkInstantTask eval
 where
-	eval taskId iworld=:{IWorld|taskTime,world}
-		= (ValueResult (Value Void Stable) taskTime NoRep TCNop, {IWorld|iworld & world = fun world})
+	eval taskId iworld=:{IWorld|world}
+		= (Ok Void, {IWorld|iworld & world = fun world})
 		
 accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
 accWorld fun = mkInstantTask eval
 where
-	eval taskId iworld=:{IWorld|taskTime,world}
+	eval taskId iworld=:{IWorld|world}
 		# (res,world) = fun world
-		= (ValueResult (Value res Stable) taskTime NoRep TCNop, {IWorld|iworld & world = world})
+		= (Ok res, {IWorld|iworld & world = world})
 	
 accWorldError :: !(*World -> (!MaybeError e a, !*World)) !(e -> err) -> Task a | iTask a & TC, toString err
 accWorldError fun errf = mkInstantTask eval
@@ -340,8 +343,11 @@ where
 	eval taskId iworld=:{IWorld|taskTime,world}
 		# (res,world)	= fun world
 		= case res of
-			Error e		= (exception (errf e), {IWorld|iworld & world = world})
-			Ok v		= (ValueResult (Value v Stable) taskTime NoRep TCNop, {IWorld|iworld & world = world})
+			Error e
+				# err = errf e		
+				= (Error (dynamic err,toString err), {IWorld|iworld & world = world})	
+			Ok v
+				= (Ok v, {IWorld|iworld & world = world})
 	
 accWorldOSError :: !(*World -> (!MaybeOSError a, !*World)) -> Task a | iTask a
 accWorldOSError fun = accWorldError fun OSException
