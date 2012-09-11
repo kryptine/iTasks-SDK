@@ -41,6 +41,7 @@ derive gPutRecordFields	Task
 
 :: TaskRepOpts	=
 	{ useLayout			:: Maybe Layout
+	, afterLayout		:: Maybe (UIDef -> UIDef)
 	, modLayout			:: Maybe (Layout -> Layout)
 	, appFinalLayout	:: Bool
 	}
@@ -69,6 +70,10 @@ exception :: !e -> TaskResult a | TC, toString e
 */
 repLayout :: TaskRepOpts -> Layout
 
+/**
+* Determine what function to apply after a layout has been done
+*/
+afterLayout :: TaskRepOpts -> (UIDef -> UIDef)
 /**
 * Apply the final layout if necessary
 */

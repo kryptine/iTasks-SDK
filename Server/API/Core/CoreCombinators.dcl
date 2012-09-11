@@ -4,7 +4,7 @@ definition module CoreCombinators
 * with which additional combinators can be defined.
 */
 from Time				import :: Timestamp
-from LayoutCombinators	import :: SetLayout, :: ModifyLayout, :: Layout
+from LayoutCombinators	import :: SetLayout, :: AfterLayout, :: ModifyLayout, :: Layout
 import Task, Shared
 
 import iTaskClass
@@ -129,4 +129,5 @@ withShared :: !b !((Shared b) -> Task a) -> Task a | iTask a & iTask b
 */
 class tune b :: !b !(Task a) -> Task a
 instance tune	SetLayout				//Set layout algorithm
+instance tune	AfterLayout				//Apply a modification after a layout has been run
 instance tune	ModifyLayout			//Modify the existing layout

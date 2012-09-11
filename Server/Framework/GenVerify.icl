@@ -37,7 +37,7 @@ gVerify{|RECORD of {grd_arity}|} fx r				vst=:{updateMask,verifyMask,optional}
 	# vst							= {vst & verifyMask=childMask}
 	# (consMask,vst) = if (isTouched cmu)
 								(VMValid Nothing childMask,vst)
-								(VMUntouched Nothing optional [] /*childMask */,vst)
+								(VMUntouched Nothing optional childMask, vst)
 	= {vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}
 	
 gVerify{|FIELD|}		fx f						vst = fx (fmap fromFIELD f) vst

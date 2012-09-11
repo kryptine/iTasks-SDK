@@ -5,7 +5,7 @@ definition module UIDefinition
 * to describe rich user interfaces and being leaving rendering details to the client framework.
 */
 import JSON_NG, GenEq_NG
-from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: Action
+from SystemTypes	import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount, :: Action
 from Task			import :: TaskId
 from HTML			import :: HtmlTag
 from Map			import :: Map(..)
@@ -26,12 +26,12 @@ from Map			import :: Map(..)
 
 :: UIControl
 	// Components for viewing data:
-	= UIViewString		!UISizeOpts	!(UIViewOpts String)						// - String (non-wrapping single line text with automatic escaping)
-	| UIViewHtml		!UISizeOpts	!(UIViewOpts HtmlTag)						// - Html (formatted multi line text)
-	| UIViewDocument	!UISizeOpts	!(UIViewOpts Document)						// - Document (info + download link)
-	| UIViewCheckbox	!UISizeOpts	!(UIViewOpts Bool)							// - Checkbox (non-editable tick-mark)
-	| UIViewSlider		!UISizeOpts	!(UIViewOpts Int)	!UISliderOpts			// - Slider (non-editable slider)
-	| UIViewProgress	!UISizeOpts	!(UIViewOpts Real)	!UIProgressOpts			// - Progress (non editable progress bar)
+	= UIViewString		!UISizeOpts	!(UIViewOpts String)							// - String (non-wrapping single line text with automatic escaping)
+	| UIViewHtml		!UISizeOpts	!(UIViewOpts HtmlTag)								// - Html (formatted multi line text)
+	| UIViewDocument	!UISizeOpts	!(UIViewOpts Document)							// - Document (info + download link)
+	| UIViewCheckbox	!UISizeOpts	!(UIViewOpts Bool)								// - Checkbox (non-editable tick-mark)
+	| UIViewSlider		!UISizeOpts	!(UIViewOpts Int)	!UISliderOpts				// - Slider (non-editable slider)
+	| UIViewProgress	!UISizeOpts	!(UIViewOpts ProgressAmount) !UIProgressOpts	// - Progress (non editable progress bar)
 	// Components for editing data:
 	| UIEditString		!UISizeOpts	!(UIEditOpts String)						// - String (single line text field)
 	| UIEditNote		!UISizeOpts	!(UIEditOpts String)						// - Note (multi-line text field)

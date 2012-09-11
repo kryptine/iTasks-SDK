@@ -5,5 +5,8 @@ Ext.define('itwc.component.view.HTML',{
 	
 		this.html = this.value;	
 		this.callParent(arguments);
+	},
+	setValue: function(value) {
+		this.getEl().update(value);
 	}
 });

@@ -269,12 +269,13 @@ where
 			(Just ta,Just tb)
 				| ta == tb	//If the last event time is the same, then we compare creation times to which tab is newest
 					= case (get CREATED_AT_ATTRIBUTE a.UIDef.attributes,get CREATED_AT_ATTRIBUTE b.UIDef.attributes) of
-						(Just ca,Just cb)	= ca > cb
+						(Just ca,Just cb)	= toInt ca > toInt cb
 						_					= False
 				| otherwise	
-					= ta > tb
+					= toInt ta > toInt tb
 			(Just _,Nothing)	= True
 			_					= False
+			
 		
 	mkTabs active defs
 		# (tabs,actions) = unzip [mkTab (i == active) d \\ d <- defs & i <- [0..]]

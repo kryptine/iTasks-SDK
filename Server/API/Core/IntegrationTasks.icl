@@ -39,11 +39,18 @@ where
 			(Ok a,world)	= (Ok a, {IWorld|iworld & world = world})
 			(Error e,world)	= (Error (dynamic e,"World IO failed"), {IWorld|iworld & world = world})
 
-callProcess :: !FilePath ![String] -> Task Int
-callProcess cmd args = Task eval
+/*
+visualizeView taskId repOpts v validity desc iworld
+	# layout = repLayout repOpts
+	# (controls,iworld) = visualizeAsEditor v validity taskId layout iworld
+	= (TaskRep (layout.Layout.interact (toPrompt desc) {UIDef|controls=controls,attributes=newMap,actions=[]}) [(toString taskId,toJSON v)], iworld)
+*/
+
+callProcess :: !d !FilePath ![String] -> Task ProcessStatus | descr d
+callProcess desc cmd args = Task eval
 where
 	//Start the external process
-	eval event repAs (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
+	eval event repOpts (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
 		# outfile 		= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-callprocess")
 		# runAsync		= sdkDirectory </> "Tools" </> "RunAsync" </> (IF_POSIX_OR_WINDOWS "RunAsync" "RunAsync.exe")
 		# runAsyncArgs	=	[ "--taskid"
@@ -57,13 +64,13 @@ where
 		# nstate		= case res of
 			Error e	= state taskId ts (Left e)
 			Ok _	= state taskId ts (Right outfile)
-		= eval event repAs nstate {IWorld|iworld & world = world}
+		= eval event repOpts nstate {IWorld|iworld & world = world}
 	where
 		state :: TaskId TaskTime (Either OSError FilePath) -> TaskTree
 		state taskId taskTime val = TCBasic taskId taskTime (toJSON val) False
 
 	//Check for its result
-	eval event repAs state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
+	eval event repOpts state=:(TCBasic taskId lastEvent encv stable) iworld=:{world}
 		| stable
 			= (ValueResult (Value (fromJust (fromJSON encv)) Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) state, iworld)
 		| otherwise
@@ -73,12 +80,12 @@ where
 					# (exists,world) = 'File'.fileExists outfile world
 					| not exists
 						//Still busy
+						# status		= RunningProcess cmd
 						# controls		= [(stringDisplay ("Calling " +++ cmd),'Map'.newMap)]
-						# attributes	= 'Map'.put TITLE_ATTRIBUTE "Calling external process" 'Map'.newMap
-						# prompt		= {UIDef|controls=[],actions=[],attributes='Map'.newMap}
-						# editor		= {UIDef|controls=controls,actions=[],attributes=attributes}
-						# rep			= TaskRep ((repLayout repAs).Layout.interact prompt editor) []
-						= (ValueResult NoValue {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} rep state,{IWorld|iworld & world = world})
+						# prompt		= toPrompt desc
+						# editor		= {UIDef|controls=controls,actions=[],attributes='Map'.newMap}
+						# rep			= TaskRep ((repLayout repOpts).Layout.interact prompt editor) []
+						= (ValueResult (Value status Unstable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} rep state,{IWorld|iworld & world = world})
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file
@@ -89,7 +96,7 @@ where
 							= (exception (CallFailed (2,"callProcess: Failed to parse JSON in file " +++ outfile)), {IWorld|iworld & world = world})
 						Just async	
 							| async.AsyncResult.success
-								# result = async.AsyncResult.exitcode 
+								# result = CompletedProcess async.AsyncResult.exitcode 
 								= (ValueResult (Value result Stable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} (TaskRep {UIDef|controls=[],actions=[],attributes='Map'.newMap} []) (TCBasic taskId lastEvent (toJSON result) True), {IWorld|iworld & world = world})
 							| otherwise
 								= (exception (CallFailed (async.AsyncResult.exitcode,"callProcess: " +++ async.AsyncResult.message)), {IWorld|iworld & world = world})
@@ -122,8 +129,8 @@ callRPCHTTP method url params transformResult
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callHTTP method url request parseResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess cmd args
-	>>= \exitCode -> if (exitCode > 0)
+	>>= \(cmd,args,outfile) -> callProcess ("Fetching " +++ url) cmd args
+	>>= \(CompletedProcess exitCode) -> if (exitCode > 0)
 		(throw (RPCException (curlError exitCode)))
 		(importTextFile outfile >>= \result -> case parseResult result of
 			Ok res	= return res
@@ -234,6 +241,9 @@ curlError exitCode =
         86      = "RTSP: mismatch of Session Identifiers"
         87      = "unable to parse FTP file list"
         88      = "FTP chunk callback reported error "
+
+withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
+withTemporaryDirectory task = task "C:\\itasks-tmp"
 
 sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
 sendEmail subject (Note body) sender recipients = mkInstantTask eval

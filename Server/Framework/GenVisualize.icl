@@ -331,10 +331,11 @@ where
 		text (Just {Progress|description}) 	= description
 		text _								= ""
 		
-		value {Progress|progress}
-			| progress < 0.0	= 0.0
-			| progress > 1.0	= 1.0
-								= progress
+		value {Progress|progress=ProgressRatio ratio} 
+			| ratio < 0.0	= ProgressRatio 0.0
+			| ratio > 1.0	= ProgressRatio 1.0
+							= ProgressRatio ratio
+		value {Progress|progress} = progress
 		
 gVisualizeEditor{|HtmlInclude|} val vst = visualizeCustom viz vst
 where

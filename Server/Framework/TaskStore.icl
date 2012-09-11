@@ -11,13 +11,13 @@ derive JSONEncode TaskRep, TaskCompositionType
 derive JSONEncode UIDef, UIAction, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
 derive JSONEncode UIProgressOpts, UISliderOpts, UIGridOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
 derive JSONEncode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
-derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
+derive JSONEncode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem, ProgressAmount
 
 derive JSONDecode TaskRep, TaskCompositionType
 derive JSONDecode UIDef, UIAction, UIControl, UISizeOpts, UIViewOpts, UIEditOpts, UIActionOpts, UIChoiceOpts, UILayoutOpts
 derive JSONDecode UIProgressOpts, UISliderOpts, UIGoogleMapOpts, UIGoogleMapMarker, UIGoogleMapOptions, UIGridOpts, UIIconOpts, UILabelOpts, UITabOpts, UITaskletOpts, UITreeNode
 derive JSONDecode UIMenuButtonOpts, UIButtonOpts, UIContainerOpts, UIPanelOpts, UIFieldSetOpts, UIWindowOpts
-derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem
+derive JSONDecode UISize, UIMinSize, UIDirection, UIHAlign, UIVAlign, UISideSizes, UIMenuItem, ProgressAmount
 
 INCREMENT				:== "increment"
 PERSISTENT_INDEX		:== "persistent-index"
@@ -215,14 +215,14 @@ addOutdatedOnShareChange shareId iworld
 			= storeValue NS_TASK_INSTANCES SHARE_REGISTRATIONS regs iworld
 		_	= iworld
 		
-storeCurUI :: !SessionId !Int ![UIControl] !*IWorld -> *IWorld
-storeCurUI sid version controls iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,controls) uis}
+storeCurUI :: !SessionId !Int !UIDef !*IWorld -> *IWorld
+storeCurUI sid version def iworld=:{IWorld|uis} = {IWorld|iworld & uis = put sid (version,def) uis}
 
-loadPrevUI	:: !SessionId !Int !*IWorld -> (![UIControl], !*IWorld)
+loadPrevUI	:: !SessionId !Int !*IWorld -> (!Maybe UIDef, !*IWorld)
 loadPrevUI sid version iworld=:{IWorld|uis} 
 	= case get sid uis of
-		Just (prev,controls) | version == (prev + 1)	= (controls, iworld)
-		_												= ([], iworld)
+		Just (prev,def)	| version == (prev + 1)	= (Just def, iworld)
+		_										= (Nothing, iworld)
 
 saveUICache	:: !*IWorld -> *IWorld
 saveUICache iworld=:{IWorld|uis}

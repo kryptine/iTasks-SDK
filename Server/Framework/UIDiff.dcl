@@ -23,6 +23,6 @@ from Task import :: Event
 	
 :: UIPath	:== String
 
-diffUIDefinitions :: ![UIControl] ![UIControl] !Event -> [UIUpdate]
+diffUIDefinitions :: !UIDef !UIDef !Event -> [UIUpdate]	
 
 encodeUIUpdates :: ![UIUpdate] -> JSONNode

@@ -49,15 +49,15 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 		//Serve the user interface representations
 		JSONGui
 			//Load or create session context and edit / evaluate
-			# (mbResult, prevUI, iworld)	= case sessionParam of
+			# (mbResult, mbPrevUI, iworld)	= case sessionParam of
 				""	
 					# (mbResult, iworld) = createSessionInstance (task req) RefreshEvent iworld
-					= (mbResult, [], iworld)
+					= (mbResult, Nothing, iworld)
 				sessionId
 					//Check if there is a previous tui definition and check if it is still current
-					# (prevUI,iworld)		= loadPrevUI sessionId guiVersion iworld
+					# (mbPrevUI,iworld)		= loadPrevUI sessionId guiVersion iworld
 					# (mbResult, iworld) 	= evalSessionInstance sessionId event iworld
-					= (mbResult,prevUI,iworld)
+					= (mbResult,mbPrevUI,iworld)
 			
 			# (json, iworld) = case mbResult of
 					Error err
@@ -67,27 +67,27 @@ webService task defaultFormat req iworld=:{IWorld|timestamp,application}
 					Ok (ValueResult (Value _ Stable) _ _ _,_,_)
 						= (JSONObject ([("success",JSONBool True),("done",JSONBool True)]), iworld)
 					Ok (ValueResult _ info curRep context,_,sessionId)
-						# json = case (prevUI,curRep) of
-							([], TaskRep def _)
+						# json = case (mbPrevUI,curRep) of
+							(Nothing, TaskRep def _)
 								= JSONObject [("success",JSONBool True)
 											 ,("session",JSONString sessionId)
 											 ,("expiresIn",toJSON info.TaskInfo.expiresIn)
 											 ,("content", encodeUIDefinition def)
-											 ,("timestamp",toJSON timestamp)]
+											 ,("version",toJSON guiVersion)]
 							
-							(_, TaskRep {UIDef|controls} _)
+							(Just prevUI, TaskRep def _)
 									= JSONObject [("success",JSONBool True)
 												 ,("session",JSONString sessionId)
 												 ,("expiresIn",toJSON info.TaskInfo.expiresIn)
-												 ,("updates", encodeUIUpdates (diffUIDefinitions prevUI (map fst controls) event))
-												 ,("timestamp",toJSON timestamp)]
+												 ,("updates", encodeUIUpdates (diffUIDefinitions prevUI def event))
+												 ,("version",toJSON guiVersion)]
 							
 							_
 								= JSONObject [("success",JSONBool True),("done",JSONBool True)]
 						//Store gui for later incremental requests
 						# iworld = case curRep of
-							TaskRep {UIDef|controls} _	= storeCurUI sessionId guiVersion (map fst controls) iworld
-							_							= iworld
+							TaskRep def _	= storeCurUI sessionId guiVersion def iworld
+							_				= iworld
 						= (json,iworld)
 					_
 						= (JSONObject [("success",JSONBool False),("error",JSONString  "Unknown exception")],iworld)

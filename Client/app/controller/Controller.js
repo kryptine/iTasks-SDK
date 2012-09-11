@@ -50,7 +50,7 @@ Ext.define('itwc.controller.Controller',{
 	init: function() {
 		this.viewport = null;
 
-		this.version = null;
+		this.version = 0;
 	
 		this.refresher = new Ext.util.DelayedTask(this.onAutoRefresh,this);
 		this.control({
@@ -150,6 +150,9 @@ Ext.define('itwc.controller.Controller',{
 		//Update session
 		me.session = message.session;
 		
+		//Update version for incremental updates
+		me.version = message.version + 1;
+		
 		//Schedule automatic refresh when an expiration time is set
 		if(Ext.isNumber(message.expiresIn)) {
 			me.refresher.delay(message.expiresIn);
@@ -176,7 +179,35 @@ Ext.define('itwc.controller.Controller',{
 		viewport.add(viewportItems);
 	},
 	partialUpdate: function(updates) {
-		console.log("Partial update requested");
+		var me = this,
+			numUpdates = updates.length,
+			update, cmp, i;
+			
+		for(i = 0; i < numUpdates; i++) {
+			update = updates[i];
+		
+			try {
+				cmp	= me.viewport.getComponentByPath(update.path);
+				
+				if(cmp) {
+					if(cmp && typeof cmp[update.method] == 'function') {
+						cmp[update.method].apply(cmp,update.arguments);
+					} else {
+						//If replace is not defined as function, try remove followed by add
+						if(update.method == 'replace' && typeof cmp['remove'] == 'function' && typeof cmp['insert'] == 'function') {
+							cmp.remove(update.arguments[0]);
+							cmp.insert(update.arguments[0],update.arguments[1]);
+						} else {
+							me.error("Can't apply " + update.method + " to " + cmp.getId() + " (" + cmp.getXType() + ")");
+						}
+					}
+				} else {
+					me.error("Could not find user interface component at location " + update.path);
+				}
+			} catch (e) {
+				me.error("Failed to update user interface " + e);
+			}
+		}
 	},
 	error: function(e) {
         alert(e);

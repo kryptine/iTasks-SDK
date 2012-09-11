@@ -45,8 +45,8 @@ derive JSONDecode TIMeta, TIReduct, TIResult, TaskTree
 	| TCInteract2	!TaskId !TaskTime !JSONNode !JSONNode !UpdateMask
 	| TCProject		!TaskId !JSONNode !TaskTree
 	| TCStep		!TaskId !(Either TaskTree (DeferredJSON,Int,TaskTree))
-	| TCParallel	!TaskId 
-	| TCShared		!TaskId !TaskTree
+	| TCParallel	!TaskId !TaskTime
+	| TCShared		!TaskId !TaskTime !TaskTree
 	| TCStable		!TaskId !TaskTime !DeferredJSON
 	| TCNop			
 	| TCDestroy		!TaskTree															//Marks a task state as garbage that must be destroyed

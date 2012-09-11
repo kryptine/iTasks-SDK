@@ -54,9 +54,12 @@ instance toEmail String
 
 // Progress
 :: Progress =
-	{ progress		:: !Real 	//*Value between 0.0 and 1.0 indicating how much progress has been made
-	, description	:: !String	//*Description of how much progress has been made
+	{ progress		:: !ProgressAmount 	//*Value between 0.0 and 1.0 indicating how much progress has been made
+	, description	:: !String			//*Description of how much progress has been made
 	}
+:: ProgressAmount
+	= ProgressUndetermined	//Value for progress that cannot be estimated
+	| ProgressRatio Real	//Value between 0.0 and 1.0 that defines the ratio of progress
 
 // Documents
 :: Document =
@@ -232,7 +235,7 @@ derive gGridRows		TaskListItem, ProgressMeta, TaskValue, Stability
 derive gUpdate			TaskListItem, ProgressMeta, TaskValue, Stability
 derive gVerify			TaskListItem, ProgressMeta, TaskValue, Stability
 
-derive class iTask	Credentials, Config, TaskId
+derive class iTask	Credentials, Config, TaskId, ProcessStatus
 derive class iTask	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 instance toString	FileException, ParseException, CallException, SharedException, RPCException, OSException, WorkOnException
 
@@ -529,3 +532,9 @@ actionIcon 	:: !Action -> String
 			}
 			
 :: Key :== Char
+
+:: ProcessStatus
+	= RunningProcess !String
+	| CompletedProcess !Int
+
+

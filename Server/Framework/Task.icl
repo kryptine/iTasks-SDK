@@ -65,6 +65,9 @@ exception e = ExceptionResult (dynamic e) (toString e)
 repLayout :: TaskRepOpts -> Layout
 repLayout {TaskRepOpts|useLayout,modLayout}	= (fromMaybe id modLayout) (fromMaybe autoLayout useLayout)
 
+afterLayout :: TaskRepOpts -> (UIDef -> UIDef)
+afterLayout {TaskRepOpts|afterLayout} = fromMaybe id afterLayout
+
 finalizeRep :: TaskRepOpts TaskRep -> TaskRep
 finalizeRep repOpts=:{TaskRepOpts|appFinalLayout=True} rep=:(TaskRep def parts) = TaskRep ((repLayout repOpts).Layout.final def) parts
 finalizeRep repOpts rep = rep

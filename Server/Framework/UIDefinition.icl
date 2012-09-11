@@ -1,7 +1,7 @@
 implementation module UIDefinition
 
 import JSON_NG, StdList, StdBool, StdTuple, GenEq_NG, StdFunc, HTML, Text, Map, List_NG
-from SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: Action
+from SystemTypes import :: Document, :: DocumentId, :: Date, :: Time, :: ProgressAmount(..), :: Action
 	
 defaultSizeOpts	:: UISizeOpts
 defaultSizeOpts = {width = Nothing, minWidth = Nothing, height = Nothing, minHeight = Nothing, margins = Nothing}
@@ -95,6 +95,8 @@ JSONEncode{|UIMenuItem|} (UIActionMenuItem aopts opts)	= [enc "itwc_actionmenuit
 JSONEncode{|UIMenuItem|} (UISubMenuItem opts) 			= [enc "itwc_submenuitem" [toJSON opts] []]
 
 JSONEncode{|UIControl|} control = [encodeUIControl control]
+JSONEncode{|ProgressAmount|} ProgressUndetermined		= [JSONString "undetermined"]
+JSONEncode{|ProgressAmount|} (ProgressRatio ratio)		= [JSONReal ratio]
 
 enc :: String [JSONNode] [UIControl] -> JSONNode
 enc xtype opts items = JSONObject [("xtype",JSONString xtype):optsfields ++ itemsfield]
