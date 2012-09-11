@@ -103,7 +103,17 @@ where
 		iconClsAttr	= fmap (\icon -> "icon-" +++ icon) (get ICON_ATTRIBUTE attributes)
 
 fillReduce :: UIDef -> UIDef
-fillReduce def = autoReduce (fillOutControls def)
+fillReduce def = appControls fill (autoReduce (fillOutFlexibleControls def))
+
+//This sets all controls which are suitable for flexing flexable.
+//It makes no sense to flex checkboxes or vertically flexed string inputs,
+//but text areas, grids and maps can be easily flexed
+
+fillOutFlexibleControls	:: UIDef -> UIDef
+fillOutFlexibleControls def=:{UIDef|controls} = {UIDef|def & controls= map (appFst fillIfPossible) controls}
+where	
+	fillIfPossible c=:(UIEditNote _ _) = fill c
+	fillIfPossible c = c
 	
 //Add labels and icons to a set of controls if they have any of those attributes set
 decorateControls :: UIDef -> UIDef
@@ -153,10 +163,6 @@ where
 	noMarginControl _					= False
 
 
-//TODO: try to make as many components flex fitting as possible to fill up a container
-fillOutControls	:: UIDef -> UIDef
-fillOutControls def=:{UIDef|controls} = {UIDef|def & controls= map (appFst fill) controls}
-
 //Wrap the controls of the prompt in a container with a nice css class and add some bottom margin
 decoratePrompt :: UIDef -> UIDef
 decoratePrompt def=:{UIDef|controls=[]} = def //If there are no controls in the prompt def, don't create a container
@@ -164,7 +170,7 @@ decoratePrompt def=:{UIDef|controls}
 	= {UIDef|def & controls = [(container,newMap)]}
 where
 	container = UIContainer sizeOpts defaultLayoutOpts (map fst controls) containerOpts
-	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}, width = Just FlexSize, minWidth = Just WrapMin}
+	sizeOpts = {defaultSizeOpts & margins = Just {top= 5, right = 5, bottom = 10, left = 5}, width = Just FlexSize, minWidth = Just WrapMin, height = Just WrapSize}
 	containerOpts = {UIContainerOpts|baseCls=Just "itwc-prompt", bodyCls=Nothing}
 
 //Merge the fragments of a composed interactive task into a single definition
@@ -255,7 +261,7 @@ where
 		# (activeIndex,activeDef)	= findActive defs	
 		# (tabBar,actions)			= mkTabs activeIndex defs	
 		# tabContent				= maybe [(defaultPanel [],newMap)]
-			(\d -> (tweakUI (setPadding 0 0 0 0) (autoReduce (tweakAttr (del TITLE_ATTRIBUTE) d))).UIDef.controls) (fmap removeCloseAction activeDef)
+			(\d -> (tweakUI (setPadding 0 0 0 0) (fillReduce (tweakAttr (del TITLE_ATTRIBUTE) d))).UIDef.controls) (fmap removeCloseAction activeDef)
 		# controls					= [(defaultContainer (map fst (decoratePrompt prompt).UIDef.controls ++ [tabBar] ++ map fst tabContent),newMap)]
 		= {UIDef|attributes = attributes, controls = controls, actions = []}
 

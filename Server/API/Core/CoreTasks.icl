@@ -13,7 +13,7 @@ derive JSONEncode UpdateMask
 derive JSONDecode UpdateMask
 
 //Expiry time for tasks that use shared values
-SHARE_EXPIRY :== 1000
+SHARE_EXPIRY :== 10000
 
 return :: !a -> (Task a) | iTask a
 return a  = mkInstantTask (\taskId iworld-> (Ok a, iworld))

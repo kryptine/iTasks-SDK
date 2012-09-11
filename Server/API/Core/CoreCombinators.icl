@@ -289,10 +289,13 @@ where
 		= TaskRep (after (layout.Layout.parallel (toPrompt desc) parts)) []
 	
 	parallelExpiry :: [(!TaskListEntry,!Maybe TaskRep)] -> Maybe Int
-	parallelExpiry entries = case [exp \\ ({TaskListEntry|expiresIn=Just exp},_) <- entries] of
-		[]		= Nothing
-		exps	= Just (foldr min 0 exps)	//If we have multiple tasks in parallel, the lowest expiry determines the expiry of the set
-		
+	parallelExpiry entries = minimum [exp \\ ({TaskListEntry|expiresIn=Just exp},_) <- entries]
+	where
+		//If we have multiple tasks in parallel, the lowest expiry determines the expiry of the set
+		minimum []	= Nothing
+		minimum [e]	= Just e
+		minimum [e:es] = let (Just mines) = minimum es in Just (if (e < mines) e mines)
+
 	isStable (Value _ Stable) 	= True
 	isStable _					= False
 	
@@ -322,7 +325,7 @@ appendTaskToList taskId=:(TaskId parent _) (parType,parTask) iworld=:{taskTime,c
 updateListEntryEmbeddedResult :: !TaskId !TaskId (TaskResult a) !*IWorld -> (!TaskListEntry,!*IWorld) | iTask a
 updateListEntryEmbeddedResult listId entryId result iworld
 	= updateListEntry listId entryId (\e=:{TaskListEntry|state,lastEvent} ->
-		{TaskListEntry|e & state = newTree state result, result = serialize result, attributes = newAttr result, lastEvent = maxTime lastEvent result}) iworld
+		{TaskListEntry|e & state = newTree state result, result = serialize result, attributes = newAttr result, lastEvent = maxTime lastEvent result, expiresIn = expiresIn result}) iworld
 where
 	serialize (ValueResult val {TaskInfo|lastEvent} _ _) 		= TIValue (fmap toJSON val) lastEvent
 	serialize (ExceptionResult e str)							= TIException e str
@@ -335,6 +338,9 @@ where
 	
 	maxTime cur (ValueResult _ {TaskInfo|lastEvent} _ _)		= max cur lastEvent
 	maxTime cur _												= cur
+
+	expiresIn (ValueResult _ {TaskInfo|expiresIn} _ _)			= expiresIn
+	expiresIn _													= Nothing
 
 updateListEntryDetachedResult :: !TaskId !TaskId TIResult !ProgressMeta !ManagementMeta !TaskMeta !*IWorld -> (!TaskListEntry,!*IWorld)
 updateListEntryDetachedResult listId entryId result progress management attributes iworld
