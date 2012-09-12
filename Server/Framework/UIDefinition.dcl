@@ -275,3 +275,16 @@ stringDisplay			:: !String		-> UIControl
 encodeUIDefinition		:: !UIDef -> JSONNode
 encodeUIControl			:: !UIControl -> JSONNode
 
+//Encoding of values for use in UI diffs
+class encodeUIValue a :: a -> JSONNode
+instance encodeUIValue String
+instance encodeUIValue Int
+instance encodeUIValue Real
+instance encodeUIValue Bool
+instance encodeUIValue Document
+instance encodeUIValue Date
+instance encodeUIValue Time
+instance encodeUIValue HtmlTag
+instance encodeUIValue ProgressAmount
+instance encodeUIValue JSONNode
+instance encodeUIValue (Maybe a) | encodeUIValue a

@@ -9,7 +9,7 @@ from Error	import :: MaybeError, :: MaybeErrorString
 
 from Task 			import :: Task
 from SystemTypes	import :: Note, :: EmailAddress
-
+from InteractionTasks	import :: ViewOption
 import iTaskClass
 
 :: HTTPMethod = GET | POST
@@ -33,7 +33,7 @@ worldIO :: (*World -> *(!MaybeError e a,!*World)) -> Task a | iTask a & TC e
 * @gin-title Start executable
 * @gin-icon executable
 */
-callProcess :: !d !FilePath ![String] -> Task ProcessStatus | descr d
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
 
 /**
 * Calls an external executable. This call blocks task computation, only use when process is known to terminate fast.

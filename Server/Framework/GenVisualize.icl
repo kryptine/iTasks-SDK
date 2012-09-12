@@ -278,8 +278,17 @@ gVisualizeEditor{|Note|} val vst = visualizeCustom viz vst
 where
 	viz name touched verRes vst=:{VSt|taskId,disabled}
 		# val = checkMask touched val
-		| disabled	= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(Note v) -> Text v) val},newMap)],vst)
+//		| disabled	= ([(UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap (\(Note v) -> Text v) val},newMap)],vst)
+		| disabled	= ([(setMargins 5 5 5 5 (UIViewHtml defaultSizeOpts {UIViewOpts|value = fmap noteToHtml val}),newMap)],vst)
+
 		| otherwise	= ([(UIEditNote defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=fmap (\(Note v) -> v) val},addVerAttributes verRes newMap)],vst)
+	// THIS IS A HACK!
+	// The encoding of a Text constructor should escape newlines and convert them to <br> tags. Unfortunately it doesn't
+	noteToHtml (Note s)	//TODO: Fix this in the toString of the Text constructor of HtmlTag type
+		= case split "\n" s of
+			[line]	= Text line
+			lines	= SpanTag [] (intersperse (BrTag []) (map Text lines))
+			
 
 gVisualizeEditor{|Date|} val vst = visualizeCustom viz vst
 where

@@ -46,8 +46,8 @@ visualizeView taskId repOpts v validity desc iworld
 	= (TaskRep (layout.Layout.interact (toPrompt desc) {UIDef|controls=controls,attributes=newMap,actions=[]}) [(toString taskId,toJSON v)], iworld)
 */
 
-callProcess :: !d !FilePath ![String] -> Task ProcessStatus | descr d
-callProcess desc cmd args = Task eval
+callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
+callProcess desc opts cmd args = Task eval
 where
 	//Start the external process
 	eval event repOpts (TCInit taskId ts) iworld=:{build,dataDirectory,sdkDirectory,world}
@@ -80,12 +80,14 @@ where
 					# (exists,world) = 'File'.fileExists outfile world
 					| not exists
 						//Still busy
-						# status		= RunningProcess cmd
-						# controls		= [(stringDisplay ("Calling " +++ cmd),'Map'.newMap)]
-						# prompt		= toPrompt desc
-						# editor		= {UIDef|controls=controls,actions=[],attributes='Map'.newMap}
-						# rep			= TaskRep ((repLayout repOpts).Layout.interact prompt editor) []
-						= (ValueResult (Value status Unstable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} rep state,{IWorld|iworld & world = world})
+						# iworld			= {IWorld|iworld & world = world}
+						# status			= RunningProcess cmd
+						# layout			= repLayout repOpts
+						# (controls,iworld)	= makeView opts status (verifyForm status Touched) taskId layout iworld
+						# prompt			= toPrompt desc
+						# editor			= {UIDef|controls=controls,actions=[],attributes='Map'.newMap}
+						# rep				= TaskRep (layout.Layout.interact prompt editor) []
+						= (ValueResult (Value status Unstable) {TaskInfo|lastEvent=lastEvent,expiresIn=Just PROCESS_EXPIRY} rep state,iworld)
 					# (res, world) = 'File'.readFile outfile world
 					| isError res
 						//Failed to read file
@@ -109,6 +111,15 @@ where
 	eval event repAs (TCDestroy (TCBasic taskId lastEvent encv stable)) iworld
 		//TODO: kill runasync for this task and clean up tmp files
 		= (DestroyedResult,iworld)
+	
+	makeView [ViewWith viewFun] status vmask taskId layout iworld
+		= visualizeAsEditor (Display (viewFun status)) vmask taskId layout iworld
+	makeView _ status vmask taskId layout iworld
+		= visualizeAsEditor (Display (defaultViewFun status)) vmask taskId layout iworld
+	
+	//By default show a progress bar 
+	defaultViewFun (RunningProcess cmd) = {Progress|progress=ProgressUndetermined,description="Running " +++ cmd +++ "..."}
+	defaultViewFun (CompletedProcess exit) = {Progress|progress=ProgressRatio 1.0,description=cmd +++ " done (" +++ toString exit +++ ")"}
 		
 callInstantProcess :: !FilePath ![String] -> Task Int
 callInstantProcess cmd args = mkInstantTask eval
@@ -129,7 +140,7 @@ callRPCHTTP method url params transformResult
 callHTTP :: !HTTPMethod !String !String !(String -> (MaybeErrorString b)) -> Task b | iTask b	
 callHTTP method url request parseResult =
 		initRPC
-	>>= \(cmd,args,outfile) -> callProcess ("Fetching " +++ url) cmd args
+	>>= \(cmd,args,outfile) -> callProcess ("Fetching " +++ url) [] cmd args
 	>>= \(CompletedProcess exitCode) -> if (exitCode > 0)
 		(throw (RPCException (curlError exitCode)))
 		(importTextFile outfile >>= \result -> case parseResult result of

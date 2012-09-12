@@ -111,4 +111,18 @@ encHtml :: (UIViewOpts HtmlTag) -> JSONNode
 encHtml {UIViewOpts|value=Just html} = JSONObject [("value",JSONString (toString html))]
 encHtml {UIViewOpts|value=Nothing} = JSONObject []
 
-
+class encodeUIValue a :: a -> JSONNode
+instance encodeUIValue String			where encodeUIValue v = JSONString v
+instance encodeUIValue Int				where encodeUIValue v = JSONInt v
+instance encodeUIValue Real				where encodeUIValue v = JSONReal v
+instance encodeUIValue Bool				where encodeUIValue v = JSONBool v
+instance encodeUIValue Document			where encodeUIValue v = toJSON v
+instance encodeUIValue Date				where encodeUIValue v = toJSON v
+instance encodeUIValue Time				where encodeUIValue v = toJSON v
+instance encodeUIValue HtmlTag			where encodeUIValue v = JSONString (toString v)
+instance encodeUIValue ProgressAmount	where encodeUIValue v = toJSON v
+instance encodeUIValue JSONNode			where encodeUIValue v = toJSON v
+instance encodeUIValue (Maybe a) | encodeUIValue a
+where
+	encodeUIValue Nothing = JSONNull
+	encodeUIValue (Just a) = encodeUIValue a
