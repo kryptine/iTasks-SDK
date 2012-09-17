@@ -39,6 +39,7 @@ Ext.define('itwc.controller.Controller',{
 			  ,'itwc.component.action.MenuButton'		//A button that opens a menu
 			  ,'itwc.component.action.Menu',			//A menu wrapper
 			  ,'itwc.component.action.ActionMenuItem'	//A menu item that triggers an action event
+			  ,'itwc.component.action.SubMenuItem'		//A menu item that leads to a sub menu 
 
 			  ,'itwc.component.misc.Splitter'	//Resize of adjacent components
 			  ,'itwc.component.misc.Label'		//Label for standard forms

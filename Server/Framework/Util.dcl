@@ -24,6 +24,9 @@ currentDateTimeWorld	:: !*World	-> (!DateTime,!*World)
 timestampToGmDateTime	:: !Timestamp -> DateTime
 dateToTimestamp			:: !Date -> Timestamp
 
+//Path conversion
+toCanonicalPath			:: !FilePath !*World -> (!FilePath,!*World)
+
 //Simple key value functions when fullblown maps are overkill
 kvGet		:: k	![(k,v)]	-> Maybe v	| Eq k
 kvSet		:: k v	![(k,v)]	-> [(k,v)]	| Eq k 

@@ -39,13 +39,6 @@ where
 			(Ok a,world)	= (Ok a, {IWorld|iworld & world = world})
 			(Error e,world)	= (Error (dynamic e,"World IO failed"), {IWorld|iworld & world = world})
 
-/*
-visualizeView taskId repOpts v validity desc iworld
-	# layout = repLayout repOpts
-	# (controls,iworld) = visualizeAsEditor v validity taskId layout iworld
-	= (TaskRep (layout.Layout.interact (toPrompt desc) {UIDef|controls=controls,attributes=newMap,actions=[]}) [(toString taskId,toJSON v)], iworld)
-*/
-
 callProcess :: !d ![ViewOption ProcessStatus] !FilePath ![String] -> Task ProcessStatus | descr d
 callProcess desc opts cmd args = Task eval
 where
@@ -254,7 +247,45 @@ curlError exitCode =
         88      = "FTP chunk callback reported error "
 
 withTemporaryDirectory :: (FilePath -> Task a) -> Task a | iTask a
-withTemporaryDirectory task = task "C:\\itasks-tmp"
+withTemporaryDirectory taskfun = Task eval
+where
+	eval event repOpts (TCInit taskId ts) iworld=:{build,dataDirectory}
+		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+		# (taskIda,iworld=:{world})	= getNextTaskId iworld
+		# (mbErr,world)		= createDirectory tmpdir world 
+		= case mbErr of
+			Ok Void
+				= eval event repOpts (TCShared taskId ts (TCInit taskIda ts)) {iworld & world = world}
+			Error e=:(ecode,emsg)
+				= (ExceptionResult (dynamic e) emsg, {iworld & world = world})
+
+	eval event repOpts (TCShared taskId ts treea) iworld=:{build,dataDirectory,taskTime}
+		# tmpdir 					= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+		# ts						= case event of
+			(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+			_						= ts
+		# (Task evala)				= taskfun tmpdir 
+		# (resa,iworld)				= evala event repOpts treea iworld
+		= case resa of
+			ValueResult value info rep ntreea
+				# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
+				= (ValueResult value info rep (TCShared taskId info.TaskInfo.lastEvent ntreea),iworld)
+			ExceptionResult e str = (ExceptionResult e str,iworld)
+	
+	eval event repOpts (TCDestroy (TCShared taskId ts treea)) iworld=:{build,dataDirectory} //First destroy inner task
+		# tmpdir 			= dataDirectory </> "tmp-" +++ build </> (toString taskId +++ "-tmpdir")
+		# (Task evala)		= taskfun tmpdir 
+		# (resa,iworld)		= evala event repOpts (TCDestroy treea) iworld
+		//TODO: recursive delete of tmp dir to not fill up the task store
+		= (resa,iworld)
+
+	eval _ _ _ iworld
+		= (exception "Corrupt task state in withShared", iworld)	
+
+	//Inline copy of function from CoreCombinators.icl
+	//I don't want to export it there because CoreCombinators is an API module
+	getNextTaskId :: *IWorld -> (!TaskId,!*IWorld)
+	getNextTaskId iworld=:{currentInstance,nextTaskNo} = (TaskId currentInstance nextTaskNo, {IWorld|iworld & nextTaskNo = nextTaskNo + 1})
 
 sendEmail :: !String !Note !sndr ![rcpt] -> Task [EmailAddress] | toEmail sndr & toEmail rcpt
 sendEmail subject (Note body) sender recipients = mkInstantTask eval
