@@ -133,7 +133,7 @@ where
 determineAppPath :: !*World -> (!FilePath, !*World)
 determineAppPath world
 	# ([arg:_],world) = getCommandLine world
-	| dropDirectory arg <> "ConsoleClient.exe" = toCanonicalPath arg world
+	| dropDirectory arg <> "ConsoleClient.exe" = (arg,world) //toCanonicalPath arg world
 	//Using dynamic linker:	
 	# (res, world)				= getCurrentDirectory world	
 	| isError res				= abort "Cannot get current directory."	
