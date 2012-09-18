@@ -9,4 +9,8 @@ Ext.define('itwc.component.edit.EditButton',{
 	onClick: function() {
 		this.viewport = this.viewport || this.up('viewport');
 		this.viewport.fireEvent('edit',this.taskId, this.editorId,this.value);
-	}});
+	},
+	setValue: function(value) {
+		this.value = value;
+	}
+});
