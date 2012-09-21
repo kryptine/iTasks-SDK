@@ -67,22 +67,27 @@ step (Task evala) conts = Task eval
 where
 	eval event repOpts (TCInit taskId ts) iworld
 		# (taskIda,iworld)	= getNextTaskId iworld
-		= eval event repOpts (TCStep taskId (Left (TCInit taskIda ts))) iworld
+		= eval event repOpts (TCStep taskId ts (Left (TCInit taskIda ts))) iworld
 
 	//Eval left-hand side
-	eval event repOpts (TCStep taskId (Left treea)) iworld=:{taskTime}
+	eval event repOpts (TCStep taskId ts (Left treea)) iworld=:{taskTime}
 		# (resa, iworld) 	= evala event {repOpts & appFinalLayout = False} treea iworld
+		# ts				= case event of
+							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+							_						= ts
 		# mbcommit			= case event of
 			(ActionEvent t action)
 				| t == taskId 		= Just action
 			_						= Nothing
 		# mbCont			= case resa of
 			ValueResult val info rep ntreea = case searchContValue val mbcommit conts of
-				Nothing			= Left (ValueResult NoValue info (doStepLayout taskId repOpts rep (Just val)) (TCStep taskId (Left ntreea)) )
+				Nothing			
+					# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
+					= Left (ValueResult NoValue info (doStepLayout taskId repOpts rep (Just val)) (TCStep taskId info.TaskInfo.lastEvent (Left ntreea)) )
 				Just rewrite	= Right (rewrite,Just ntreea, info.TaskInfo.lastEvent)
 			ExceptionResult e str = case searchContException e str conts of
 				Nothing			= Left (ExceptionResult e str)
-				Just rewrite	= Right (rewrite,Nothing, taskTime)		//TODO: Figure out how to garbage collect after exceptions
+				Just rewrite	= Right (rewrite,Nothing, ts)		//TODO: Figure out how to garbage collect after exceptions
 		= case mbCont of
 			Left res = (res,iworld)
 			Right ((sel,Task evalb,d_json_a),mbTreeA, lastEvent)
@@ -93,27 +98,34 @@ where
 				# (taskIdb,iworld)	= getNextTaskId iworld
 				# (resb,iworld)		= evalb RefreshEvent {repOpts & appFinalLayout = False} (TCInit taskIdb lastEvent) iworld 
 				= case resb of
-					ValueResult val lastEvent rep nstateb	= (ValueResult val lastEvent (doStepLayout taskId repOpts rep Nothing) (TCStep taskId (Right (d_json_a,sel,nstateb))),iworld)
-					ExceptionResult e str					= (ExceptionResult e str, iworld)
+					ValueResult val info rep nstateb	
+						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
+						= (ValueResult val info (doStepLayout taskId repOpts rep Nothing) (TCStep taskId info.TaskInfo.lastEvent (Right (d_json_a,sel,nstateb))),iworld)
+					ExceptionResult e str				= (ExceptionResult e str, iworld)
 	//Eval right-hand side
-	eval event repOpts (TCStep taskId (Right (enca,sel,treeb))) iworld
+	eval event repOpts (TCStep taskId ts (Right (enca,sel,treeb))) iworld=:{taskTime}
+		# ts				= case event of
+							(FocusEvent focusId)	= if (focusId == taskId) taskTime ts
+							_						= ts
 		= case restoreTaskB sel enca of
 			Just (Task evalb)
 				# (resb, iworld)	= evalb event {repOpts & appFinalLayout = False} treeb iworld 
 				= case resb of
-					ValueResult val lastEvent rep ntreeb	= (ValueResult val lastEvent (doStepLayout taskId repOpts rep Nothing) (TCStep taskId (Right (enca,sel,ntreeb))), iworld)
-					ExceptionResult e str					= (ExceptionResult e str, iworld)
+					ValueResult val info rep ntreeb
+						# info = {TaskInfo|info & lastEvent = max ts info.TaskInfo.lastEvent}
+						= (ValueResult val info (doStepLayout taskId repOpts rep Nothing) (TCStep taskId info.TaskInfo.lastEvent (Right (enca,sel,ntreeb))), iworld)
+					ExceptionResult e str			= (ExceptionResult e str, iworld)
 			Nothing
 				= (exception "Corrupt task value in step", iworld) 	
 	
 	//Cleanup
-	eval event repOpts (TCDestroy (TCStep taskId (Left treea))) iworld
+	eval event repOpts (TCDestroy (TCStep taskId ts (Left treea))) iworld
 		= case evala event repOpts (TCDestroy treea) iworld of
 			(DestroyedResult,iworld)		= (DestroyedResult,iworld)
 			(ExceptionResult e str,iworld)	= (ExceptionResult e str,iworld)
 			(ValueResult _ _ _ _,iworld)	= (exception "Destroy failed in step",iworld)
 	
-	eval event repOpts (TCDestroy (TCStep taskId (Right(enca,sel,treeb)))) iworld
+	eval event repOpts (TCDestroy (TCStep taskId ts (Right(enca,sel,treeb)))) iworld
 		= case restoreTaskB sel enca of
 			Just (Task evalb)	= evalb event repOpts (TCDestroy treeb) iworld
 			Nothing				= (exception "Corrupt task value in step", iworld)
