@@ -55,7 +55,12 @@
 .icon-close {
 	background-image: url('../img/icons/cancel.png') !important;
 }
-
+.icon-previous {
+	background-image: url('../img/icons/arrow_left.png') !important;
+}
+.icon-next {
+	background-image: url('../img/icons/arrow_right.png') !important;
+}
 
 
 

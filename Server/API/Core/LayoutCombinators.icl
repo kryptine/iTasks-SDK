@@ -582,6 +582,8 @@ actionsToButtons [a=:{taskId,action,enabled}:as]
 	= case split "/" (actionName action) of
 		//Action name consist of only one part -> make a button
 		[name]	= ([mkButton taskId action enabled : buttons],actions)
+		//Action name is "/" -> also make a button or we get a weird menu
+		["",""]	= ([mkButton taskId action enabled : buttons],actions)
 		//Action name consists of multiple parts -> pass through
 		_		= (buttons,[a:actions])
 where
@@ -595,7 +597,7 @@ where
 	makeMenus :: [UIControl] [UIAction] -> ([UIControl],[UIAction])
 	makeMenus menus []	= (menus,[])	
 	makeMenus menus [a=:{taskId,action,enabled}:as] = makeMenus (addToMenus (split "/" (actionName action)) taskId action enabled menus) as
-	
+		
 	addToMenus [main:item] taskId action enabled [] //Create menu
 		= [createButton main item taskId action enabled]
 	addToMenus [main:item] taskId action enabled [m=:(UIMenuButton sOpts opts):ms] //Add to existing menu if it exists

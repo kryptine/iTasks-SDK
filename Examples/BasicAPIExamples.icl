@@ -233,11 +233,11 @@ editPersonList = editSharedList personStore
 
 editSharedList :: (Shared [a]) -> Task Void | iTask a
 editSharedList store 
-	=			enterSharedChoice "Choose an item to edit" [] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
+	=			enterSharedChoice "Choose an item to edit" [ChooseWith ChooseFromGrid snd] (mapRead (\ps -> [(i,p) \\ p <- ps & i <- [0..]]) store)
 		>>*		[ OnAction (Action "Append")   hasValue (showAndDo append o getValue)
 				, OnAction (Action "Delete")   hasValue (showAndDo delete o getValue)
 				, OnAction (Action "Edit")     hasValue (showAndDo edit   o getValue)
-				, OnAction (Action "New List") always   (const (showAndDo append (-1,undef)))
+				, OnAction (Action "Clear")    always   (const (showAndDo append (-1,undef)))
 				, OnAction (Action "Quit")     always   (const (return Void))
 				]
 where
