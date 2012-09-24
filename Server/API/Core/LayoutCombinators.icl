@@ -15,6 +15,8 @@ autoLayout = {editor = autoEditorLayout, interact = autoInteractionLayout ,step 
 * The basic data layout groups the controls of a part of a compound datastructure in a fieldset
 */
 autoEditorLayout :: UIDef -> UIDef
+autoEditorLayout def=:{UIDef|attributes,controls=[]}
+	= {UIDef|def & attributes = put TYPE_ATTRIBUTE "partial" attributes}
 autoEditorLayout def=:{UIDef|attributes,controls}
 	# def = autoReduce (decorateControls {UIDef|attributes = put TYPE_ATTRIBUTE "partial" attributes,controls=controls,actions=[]})
 	//Attributes are discarded so merge with the reduced control
@@ -261,7 +263,7 @@ where
 		# (activeIndex,activeDef)	= findActive defs	
 		# (tabBar,actions)			= mkTabs activeIndex defs	
 		# tabContent				= maybe [(defaultPanel [],newMap)]
-			(\d -> (tweakUI (setPadding 0 0 0 0) (fillReduce (tweakAttr (del TITLE_ATTRIBUTE) d))).UIDef.controls) (fmap removeCloseAction activeDef)
+			(\d -> (tweakUI (setPadding 0 0 0 0) (fillReduce (decorateControls (tweakAttr (del TITLE_ATTRIBUTE) d)))).UIDef.controls) (fmap removeCloseAction activeDef)
 		# controls					= [(defaultContainer (map fst (decoratePrompt prompt).UIDef.controls ++ [tabBar] ++ map fst tabContent),newMap)]
 		= {UIDef|attributes = attributes, controls = controls, actions = []}
 

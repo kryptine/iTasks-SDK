@@ -159,7 +159,7 @@ gVisualizeEditor{|OBJECT of {gtd_num_conses,gtd_conses}|} fx _ _ _ val vst=:{cur
 	//ADT with multiple constructors & not rendered static: Add the creation of a control for choosing the constructor
 	| gtd_num_conses > 1 && not disabled
 		# (items, vst=:{selectedConsIndex}) = fx x vst
-		# content = if (isTouched cmv) (layout.editor {UIDef|attributes=newMap,controls = controlsOf items,actions=[]}).controls []
+		# content = (layout.editor {UIDef|attributes=newMap,controls = if (isTouched cmv) (controlsOf items) [],actions=[]}).controls
 		= (NormalEditor [(UIDropdown defaultSizeOpts
 								{UIChoiceOpts
 								| taskId = toString taskId
@@ -605,8 +605,9 @@ where
 		| disabled
 			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]],vst)
 		| otherwise
-			# (newItem,vst)		= newChildVisualization fx True vst
-			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [newItemControl newItem],vst)
+			//# (newItem,vst)		= newChildVisualization fx True vst
+			//= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [newItemControl newItem],vst)
+			= ([listItemControl disabled numItems idx dx \\ dx <- itemsVis & idx <- [0..]] ++ [addItemControl numItems],vst)	
 						
 	listItemControl disabled numItems idx item 
 		# controls	= map fst (layout.editor {UIDef|attributes = newMap,controls = controlsOf item, actions = []}).controls
@@ -615,6 +616,7 @@ where
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString ("rem_" +++ toString idx))} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=False}
 					  ]
 		= setDirection Horizontal (defaultContainer (if disabled controls (controls ++ buttons)))
+
 	newItemControl item
 		# controls	= map fst (layout.editor {UIDef|attributes = newMap,controls = controlsOf item, actions = []}).controls
 		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-up",disabled=True}
@@ -622,6 +624,15 @@ where
 					  ,UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Nothing} {UIButtonOpts|text=Nothing,iconCls=Just "icon-remove",disabled=True}
 					  ]
 		= setDirection Horizontal (defaultContainer (controls ++ buttons))
+	
+	addItemControl numItems
+		# controls	= [UIViewString {defaultSizeOpts & width=Just FlexSize} {UIViewOpts|value= Just (numItemsText numItems)}]
+		# buttons	= [UIEditButton defaultSizeOpts {UIEditOpts|taskId=toString taskId,editorId=name,value=Just (JSONString "add")} {UIButtonOpts|text=Nothing,iconCls=Just "icon-add",disabled=False}]
+		= setDirection Horizontal (defaultContainer (controls ++ buttons))
+	
+	numItemsText 1 = "1 item"
+	numItemsText n = toString n +++ " items"
+	
 				
 gVisualizeEditor{|Dynamic|}					_ vst	= noVisualization vst
 gVisualizeEditor{|(->)|} _ _ _ _ _ _ _ _	_ vst	= noVisualization vst
