@@ -85,9 +85,7 @@ where
 		| otherwise
 				= (VMValid Nothing childMask,vst)
 				
-	verifyItems fx [] vst=:{optional}
-		# vst = fx Nothing {vst & optional = True}
-		= {vst & optional = optional}
+	verifyItems fx [] vst=:{optional} = vst
 	verifyItems fx [x:xs] vst
 		# vst = fx (Just x) vst
 		= verifyItems fx xs vst
