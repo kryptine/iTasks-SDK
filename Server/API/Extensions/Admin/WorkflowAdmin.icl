@@ -147,7 +147,7 @@ controlDashboard list
 			>>* [AnyTime ActionRefresh		(\_ -> return Nothing)
 				,AnyTime (Action "Log out")	(\_ -> return (Just Logout))
 				]															
-		) <! isJust	//<<@ AfterLayout (appControls (setDirection Horizontal o setValign AlignMiddle) o autoReduce)	
+		) <! isJust	<<@ AfterLayout (appControls (setDirection Horizontal o setValign AlignMiddle) o autoReduce)	
 	@	fromJust	
 where
 	view user	= "Welcome " +++ toString user		

@@ -21,7 +21,7 @@ basicAPIExamples =
 	,workflow (basicTypes +++ "Enter a string") 		 	"Entering a string" 				enterString
 	,workflow (basicTypes +++ "Enter an integer") 		 	"Entering an integer" 				enterInt
 	,workflow (basicTypes +++ "Enter a date & time") 	 	"Entering a date & time" 			enterDateTime
-	,workflow (basicTypes +++ "BUGGY: Enter Google Map") 	"Point on map" 						enterGoogleMap
+	,workflow (basicTypes +++ "Browse Google Map") 			"Browse the map" 					browseGoogleMap
 
 	,workflow (costumTypes +++ "Enter a person") 		 	"Entering a person" 				enterPerson
 	,workflow (costumTypes +++ "Enter multiple persons") 	"Entering multiple persons" 		enterPersons
@@ -134,8 +134,8 @@ enterDateTime = enterInformation "Enter a date and time" []
 viewIntList :: Task [Int]
 viewIntList = viewInformation "View the numbers from 1 to 10" [] [1..10]
 
-enterGoogleMap :: Task GoogleMap
-enterGoogleMap = enterInformation "Edit Map..." []
+browseGoogleMap :: Task GoogleMap
+browseGoogleMap = enterInformation ("Browse Map","Move around on the map. Your perspective is persistent during the task") []
 
 //* Interaction using user-defined types
 
